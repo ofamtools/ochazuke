@@ -147,6 +147,7 @@ footer{border-top:3px double var(--ink);padding:1.5rem 0 3rem;font-size:.92rem;c
 <h2>On this page</h2>
 <ol>
 <li><a href="#pipeline">The shared pipeline</a></li>
+<li><a href="#before-bindings">Before binding resolution</a></li>
 <li><a href="#rules">Two lookup directions</a></li>
 <li><a href="#tab">Flow 1 · Tab</a></li>
 <li><a href="#ctrl-n">Flow 2 · Ctrl-N</a></li>
@@ -203,7 +204,7 @@ func (r *Runtime) Context() Context { return r.Frames[len(r.Frames)-1].Context.C
 </figure>
 
 <h3>Where Model.Update hands off</h3>
-<p><code>Model.Update</code> splits multi-rune key messages into single keys, then calls <code>dispatchKey</code>. The call to <code>HandleBinding</code> comes after the macro, palette, paste, and in-progress input-grammar checks.</p>
+<p><code>Model.Update</code> splits ordinary multi-rune key messages into single keys, then calls <code>dispatchKey</code>. The call to <code>HandleBinding</code> comes after the macro, palette, paste, and in-progress input-grammar checks. <a href="#before-bindings">See which interaction gets each key first.</a></p>
 <figure class="src">
 <figcaption><span>Model.dispatchKey tail</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L97-L102">model.go:97-102</a> · <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L150-L159">150-159</a></figcaption>
 <pre tabindex="0" aria-label="Go source excerpt">err := m.dispatchKey(MacroKey{Key: v.String(), Paste: v.Paste})
@@ -219,6 +220,86 @@ if key.Key == "esc" && len(r.Frames) > 1 && r.Mode(r.Context()) == "normal" &amp
 _, err = HandleInputKey(r, key.Key)</pre>
 </figure>
 <p>A key that no binding handles falls through to <code>HandleInputKey</code>, which is the text editor. Both flows below are handled earlier, at <code>HandleBinding</code>.</p>
+</section>
+
+<section id="before-bindings" aria-labelledby="h-before-bindings">
+<h2 id="h-before-bindings"><span class="n">01a</span>Before binding resolution</h2>
+<p>The framework does not send every key straight to your configured bindings. It first checks whether an active interaction needs that key. A register prompt, an open palette, a paste, or an unfinished editor command can take priority over the ordinary binding path.</p>
+<div class="callout"><strong>Two separate decisions</strong> The router decides which handler gets the key first. Layer precedence decides which configured binding wins <em>once binding resolution runs</em>. The routing order below is hard-coded in <code>Model.dispatchKey</code>, not assembled from layers.</div>
+
+<ol class="flow">
+<li>
+<h4>A macro command may be waiting for a register</h4>
+<p>In normal mode, press <kbd>q</kbd> to begin recording, then <kbd>a</kbd> to choose register <code>a</code>. The second key answers the register prompt. It should not trigger an unrelated binding for <code>a</code>.</p>
+<div class="state">
+<span class="lab">Illustrative state · simplified JS</span>
+<pre>before = { macroPending: "q" }
+keypress = "a"
+after = { recordingInto: "a" }</pre>
+</div>
+<p>A replay command can also wait for a register. The early macro check handles that pending choice or a recording-stop key. It does not consume every key while recording: ordinary recorded keys continue through dispatch.</p>
+<p><a href="https://github.com/unixsuperhero/ochazuke/blob/4938b935bfe888e53f75f157f9601f827a41f784/model.go#L120-L133">Source: macro recording and early handling</a>.</p>
+</li>
+<li>
+<h4>An open palette takes over routing</h4>
+<p>If the palette is active, <code>dispatchKey</code> calls <code>Palette.HandleKey</code> and returns. The key does not continue through the ordinary page-input path.</p>
+<p>This does <em>not</em> disable configured bindings. The palette handler calls <code>Runtime.HandleBinding</code> itself, using the palette's active context, before its navigation and editor handling.</p>
+<figure class="src">
+<figcaption><span>Palette.HandleKey, binding check</span><a href="https://github.com/unixsuperhero/ochazuke/blob/4938b935bfe888e53f75f157f9601f827a41f784/palette.go#L478-L482">palette.go:478-482</a></figcaption>
+<pre tabindex="0" aria-label="Palette binding check">if handled, err := p.r.HandleBinding(key); handled || err != nil {
+	p.collectEditors()
+	p.publish()
+	return handled, err
+}</pre>
+</figure>
+</li>
+<li>
+<h4>A paste is text, not a series of shortcuts</h4>
+<p>On the ordinary page-input path, a paste goes directly to <code>HandleInputKey</code>. Pasting <code>hello</code> should deliver text to the editor, not execute bindings for <code>h</code>, <code>e</code>, and the remaining letters.</p>
+<figure class="src">
+<figcaption><span>Paste bypass in dispatchKey</span><a href="https://github.com/unixsuperhero/ochazuke/blob/4938b935bfe888e53f75f157f9601f827a41f784/model.go#L138-L141">model.go:138-141</a></figcaption>
+<pre tabindex="0" aria-label="Paste dispatch">if key.Paste {
+	_, err := HandleInputKey(r, key.Key)
+	return err
+}</pre>
+</figure>
+<p>The palette branch comes earlier. This paste bypass describes the ordinary page-input path, not a guarantee about the palette's separate handler.</p>
+</li>
+<li>
+<h4>An unfinished editor command gets first chance to finish</h4>
+<p>“Input grammar” means the editor's rules for commands and counts, such as <code>d w</code> and <code>3 j</code>. Suppose the editor has already accepted <kbd>d</kbd> as a delete operator, and the app also has a shortcut for <kbd>w</kbd>.</p>
+<div class="state">
+<span class="lab">Illustrative state · simplified JS</span>
+<pre>appBinding = { keys: "w", action: "switch-page" }
+editor = { mode: "normal", pending: "d" }
+keypress = "w"
+
+// The editor gets first chance:
+result = "complete d w: delete a word"
+// Not: interrupt the command to switch pages.</pre>
+</div>
+<p>If <code>Input.Pending</code> or <code>Input.Count</code> is set, the input handler gets the key before the configured bindings. Dispatch stops if that handler reports the key handled or returns an error. Otherwise, resolution continues.</p>
+<p>This priority applies to an <em>already-started</em> command. A fresh key still reaches configured bindings before ordinary editor handling. The condition also covers an app-level macro count when no input is focused.</p>
+<p><a href="https://github.com/unixsuperhero/ochazuke/blob/4938b935bfe888e53f75f157f9601f827a41f784/model.go#L142-L149">Source: in-progress grammar and count check</a>.</p>
+</li>
+<li>
+<h4>Now the ordinary path resolves configured bindings</h4>
+<p><code>Runtime.HandleBinding(key.Key)</code> resolves the effective bindings and any pending binding sequence. A handled key stops here. It does not also become editor input.</p>
+<p>If binding resolution does not handle the key, the router checks whether normal-mode Escape should close a modal. Otherwise, it falls back to <code>HandleInputKey</code>.</p>
+<p><a href="https://github.com/unixsuperhero/ochazuke/blob/4938b935bfe888e53f75f157f9601f827a41f784/model.go#L150-L159">Source: binding dispatch and final fallback</a>.</p>
+</li>
+</ol>
+
+<h3>Two different meanings of “pending”</h3>
+<table>
+<thead><tr><th scope="col">State</th><th scope="col">What is underway?</th><th scope="col">Who gets the next key?</th></tr></thead>
+<tbody>
+<tr><th scope="row"><code>Input.Pending</code> / <code>Input.Count</code></th><td>An editor command, such as <code>d</code> or the count <code>3</code>.</td><td>The input editor gets first chance.</td></tr>
+<tr><th scope="row"><code>Runtime.Pending</code></th><td>A configured sequence, such as the first <code>g</code> of <code>g g</code>.</td><td>The binding resolver handles it when routing reaches <code>HandleBinding</code>.</td></tr>
+</tbody>
+</table>
+<p>The <a href="#sandbox">timed binding resolver</a> tracks its own pending sequence and completed fallback. That state is separate from the editor's unfinished operator or count. The routing examples here do not change the timeout rules described later in this guide.</p>
+<p>Source links in this section pin the published <code>4938b93</code> router. The routing order and quoted checks remain present in the current code; the newer revision also handles binding-timeout messages in <code>Model.Update</code>.</p>
 </section>
 
 <section id="rules" aria-labelledby="h-rules">
