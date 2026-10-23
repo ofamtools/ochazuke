@@ -43,11 +43,27 @@ func startPickerIgnore(ctx context.Context, root string) (*pickerIgnore, error) 
 	_, err := probe.Output()
 	args := []string{"-C", root}
 	checker := &pickerIgnore{}
+	isolated := err != nil
 	if err != nil {
 		var exit *exec.ExitError
 		if !errors.As(err, &exit) || !strings.Contains(diagnostic.String(), "not a git repository") {
 			return nil, fmt.Errorf("locate Git ignore rules: %w: %s", err, strings.TrimSpace(diagnostic.String()))
 		}
+	} else {
+		probe = exec.CommandContext(ctx, "git", "-C", root, "check-ignore", "--no-index", "--quiet", ".")
+		probe.Env = append(os.Environ(), "LC_ALL=C")
+		data, ignoredErr := probe.CombinedOutput()
+		if ignoredErr == nil {
+			// Explicitly opening an ignored directory makes it the browsing boundary.
+			isolated = true
+		} else {
+			var exit *exec.ExitError
+			if !errors.As(ignoredErr, &exit) || exit.ExitCode() != 1 {
+				return nil, fmt.Errorf("check search root ignore rule: %w: %s", ignoredErr, strings.TrimSpace(string(data)))
+			}
+		}
+	}
+	if isolated {
 		checker.temp, err = os.MkdirTemp("", "ochazuke-ignore-*")
 		if err != nil {
 			return nil, err
