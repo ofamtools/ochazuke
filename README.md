@@ -96,6 +96,7 @@ Ordinary modals block page switching. The palette closes before dispatching a se
 - In an input modal, Escape returns insert mode to normal; another Escape closes the modal. A pending normal-mode motion/count is canceled before closing. `Ctrl-G` closes demo drafts directly. Palette and picker cancellation retain their own documented behavior.
 - App-specific modal rendering is registered through `Model.ModalViews[frameID] = ModalView{Title, Render}`. The framework owns positioning and composition; the renderer receives the modal frame and available content dimensions.
 - Render callbacks may return trusted Lip Gloss ANSI styling. Sanitize external text before rendering it; built-in input and filesystem labels already do so.
+- Input cursors invert the existing grapheme rather than inserting a marker, so moving the cursor does not shift following text. Empty positions use a styled blank cell. Wide/combining graphemes, terminal-cell clipping, and visual-selection styling share the same renderer.
 
 ```sh
 /tmp/ochazuke themes list

@@ -274,7 +274,7 @@ func safeText(s string) string {
 	}, s)
 }
 
-// InputView shows a rune cursor and cursor-following viewport without changing editing state.
+// InputView inverts the cursor's grapheme without changing text or editing state.
 func InputView(in *Input, width, height int) string {
 	if in == nil {
 		return "(no focused input)"
@@ -282,72 +282,121 @@ func InputView(in *Input, width, height int) string {
 	width = max(1, width)
 	height = max(1, height)
 	cursor := min(max(0, in.Cursor), len(in.Text))
-	before := string(in.Text[:cursor])
-	var body strings.Builder
-	highlight := func(s string) string { return "\x1b[7m" + s + "\x1b[27m" }
-	rowIndex, column := 0, 0
-	lo, hi := in.selectionRange()
-	top, bottom, left, right := 0, -1, 0, 0
-	if in.Mode == "visual-block" {
-		top, bottom, left, right = in.blockBounds()
-	}
 	clusters := uniseg.NewGraphemes(safeText(string(in.Text)))
-	runeIndex := 0
+	cursorRow, cursorColumn, cursorWidth, runeIndex := 0, 0, 1, 0
 	for clusters.Next() {
 		text := clusters.Str()
 		count := utf8.RuneCountInString(text)
-		i := runeIndex
-		runeIndex += count
-		if i <= cursor && cursor < runeIndex {
-			body.WriteString("▏")
+		if runeIndex+count > cursor {
+			cursorWidth = max(1, cellWidth(text))
+			break
 		}
+		runeIndex += count
+		if text == "\n" {
+			cursorRow++
+			cursorColumn = 0
+		} else {
+			cursorColumn += cellWidth(text)
+		}
+	}
+	if in.Mode == "visual-block" && (cursor == len(in.Text) || in.Text[cursor] == '\n') {
+		cursorColumn = max(cursorColumn, in.goalColumn)
+	}
+	start := max(0, cursorRow-height+1)
+	offset := max(0, cursorColumn+min(width, cursorWidth)-width)
+	var body strings.Builder
+	rowIndex, column := 0, 0
+	write := func(text string, cells int, reversed bool) {
+		lo, hi := max(column, offset), min(column+cells, offset+width)
+		visible := rowIndex >= start && rowIndex < start+height
+		if visible && (hi > lo || cells == 0 && column >= offset && column < offset+width) {
+			if lo != column || hi != column+cells {
+				text = strings.Repeat(" ", hi-lo)
+			}
+			if reversed {
+				body.WriteString("\x1b[7m")
+			}
+			body.WriteString(text)
+			if reversed {
+				body.WriteString("\x1b[27m")
+			}
+		}
+		column += cells
+	}
+	lo, hi := in.selectionRange()
+	top, bottom, left, right := 0, -1, 0, 0
+	block := in.Mode == "visual-block"
+	if block {
+		top, bottom, left, right = in.blockBounds()
+	}
+	writeLineEnd := func(selected, onCursor bool) {
+		end := column
+		blockRow := block && rowIndex >= top && rowIndex <= bottom
+		if blockRow {
+			end = max(end, right)
+		} else if !block && selected {
+			end++
+		}
+		if onCursor {
+			end = max(end, cursorColumn+1)
+		}
+		for column < end {
+			next := end
+			reversed := !block && selected
+			if blockRow {
+				reversed = column >= left && column < right
+				if column < left {
+					next = min(next, left)
+				} else if column < right {
+					next = min(next, right)
+				}
+			}
+			atCursor := onCursor && column == cursorColumn
+			if onCursor && column < cursorColumn {
+				next = min(next, cursorColumn)
+			} else if atCursor {
+				next = min(next, column+1)
+			}
+			write(strings.Repeat(" ", next-column), next-column, reversed != atCursor)
+		}
+	}
+	clusters.Reset()
+	runeIndex = 0
+	for clusters.Next() {
+		text := clusters.Str()
+		i := runeIndex
+		runeIndex += utf8.RuneCountInString(text)
+		onCursor := i <= cursor && cursor < runeIndex
 		selected := isVisual(in.Mode) && i < hi && runeIndex > lo
 		w := cellWidth(text)
-		if in.Mode == "visual-block" {
+		if block {
 			selected = rowIndex >= top && rowIndex <= bottom && column < right && column+w > left
 		}
 		if text == "\n" {
-			if in.Mode == "visual-block" && rowIndex >= top && rowIndex <= bottom && column < right {
-				body.WriteString(strings.Repeat(" ", max(0, left-column)))
-				body.WriteString(highlight(strings.Repeat(" ", right-max(left, column))))
-			} else if selected {
-				body.WriteString(highlight(" "))
+			writeLineEnd(selected, onCursor)
+			if rowIndex >= start && rowIndex < start+height-1 {
+				body.WriteByte('\n')
 			}
-			body.WriteByte('\n')
 			rowIndex++
 			column = 0
 			continue
 		}
-		if selected {
-			if in.Mode == "visual-block" && w > 0 && (column < left || column+w > right) {
-				text = strings.Repeat(" ", max(0, left-column)) + highlight(strings.Repeat(" ", min(column+w, right)-max(column, left))) + strings.Repeat(" ", max(0, column+w-right))
-			} else {
-				text = highlight(text)
+		// Reverse video composes by toggling it on the selected cursor cell.
+		if selected && block && w > 0 && (column < left || column+w > right) {
+			before := max(0, left-column)
+			middle := min(column+w, right) - max(column, left)
+			after := max(0, column+w-right)
+			if before > 0 {
+				write(strings.Repeat(" ", before), before, onCursor)
 			}
+			write(strings.Repeat(" ", middle), middle, !onCursor)
+			if after > 0 {
+				write(strings.Repeat(" ", after), after, onCursor)
+			}
+		} else {
+			write(text, w, selected != onCursor)
 		}
-		body.WriteString(text)
-		column += w
 	}
-	if cursor == len(in.Text) {
-		body.WriteString("▏")
-	}
-	if in.Mode == "visual-block" && rowIndex >= top && rowIndex <= bottom && column < right {
-		body.WriteString(strings.Repeat(" ", max(0, left-column)))
-		body.WriteString(highlight(strings.Repeat(" ", right-max(left, column))))
-	}
-	lines := strings.Split(body.String(), "\n")
-	row := strings.Count(before, "\n")
-	start := max(0, row-height+1)
-	end := min(len(lines), start+height)
-	visible := lines[start:end]
-	columnText := before[strings.LastIndex(before, "\n")+1:]
-	cursorColumn := ansi.StringWidth(safeText(columnText))
-	if in.Mode == "visual-block" {
-		cursorColumn = max(cursorColumn, in.goalColumn)
-	}
-	offset := max(0, cursorColumn-width+2)
-	for i, line := range visible {
-		visible[i] = ansi.Cut(line, offset, offset+width)
-	}
-	return strings.Join(visible, "\n")
+	writeLineEnd(false, cursor == len(in.Text))
+	return body.String()
 }
