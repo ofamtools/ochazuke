@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Runtime relationships · Ochazuke</title>
+<style>
+:root { color-scheme: light; --paper: #f4f1ea; --ink: #242d2a; --muted: #626b65; --line: #d8dcd2; --accent: #315f46; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: "Avenir Next", Avenir, sans-serif; }
+main { width: 90vw; max-width: 90vw; margin: 0 auto; padding: 64px 0 48px; }
+a { color: var(--accent); text-underline-offset: 4px; }
+a:focus-visible { outline: 3px solid var(--accent); outline-offset: 5px; }
+.eyebrow, .number, footer { font-family: "SFMono-Regular", Consolas, monospace; }
+.eyebrow { font-size: 12px; letter-spacing: .15em; text-transform: uppercase; color: var(--accent); }
+h1 { font: normal clamp(2.6rem, 5vw, 5rem)/1.05 Georgia, serif; letter-spacing: -.045em; margin: 18px 0; }
+.intro { color: var(--muted); line-height: 1.7; max-width: 65ch; }
+nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 30px 0 48px; }
+nav a { padding: 8px 12px; border: 1px solid var(--line); border-radius: 4px; text-decoration: none; font-size: 13px; }
+nav a:hover { background: #e3e9df; border-color: var(--accent); }
+section { scroll-margin-top: 24px; margin-bottom: 48px; }
+h2 { border-top: 1px solid var(--line); padding-top: 20px; font-size: 21px; font-weight: 500; }
+.number { font-size: 12px; color: var(--muted); margin-right: 12px; }
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+figure { min-width: 0; margin: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; }
+.diagram { display: flex; align-items: center; justify-content: center; min-height: 300px; padding: 12px; background: #fafbf9; }
+img { display: block; width: 100%; height: auto; }
+figcaption { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 18px; border-top: 1px solid var(--line); font-size: 14px; }
+figcaption a { font-size: 12px; }
+footer { border-top: 1px solid var(--line); padding-top: 24px; font-size: 12px; color: var(--muted); }
+@media (max-width: 1050px) { .grid { grid-template-columns: 1fr; } .diagram { min-height: 0; } img { max-height: 75vh; object-fit: contain; } }
+@media (max-width: 600px) { main { padding-top: 32px; } nav { margin-bottom: 32px; } }
+</style>
+</head>
+<body>
+<main id="top">
+<header>
+<p class="eyebrow">Ochazuke / diagram library</p>
+<h1>Runtime relationships</h1>
+<p class="intro">Context lookups, active frames, and object references, grouped by visual theme. Select any diagram to view the full-size SVG.</p>
+<p class="intro">42 diagrams · 14 groups · <a href="../keybinding-walkthrough.html#relationships">Read the walkthrough</a></p>
+<nav aria-label="Diagram themes"><a href="#original">Original</a>
+<a href="#catppuccin-latte">Catppuccin latte</a>
+<a href="#default">Default</a>
+<a href="#dracula">Dracula</a>
+<a href="#github-dark">Github dark</a>
+<a href="#github-light">Github light</a>
+<a href="#nord">Nord</a>
+<a href="#nord-light">Nord light</a>
+<a href="#one-dark">One dark</a>
+<a href="#solarized">Solarized</a>
+<a href="#tokyo-night">Tokyo night</a>
+<a href="#tokyo-night-light">Tokyo night light</a>
+<a href="#tokyo-night-storm">Tokyo night storm</a>
+<a href="#zinc-dark">Zinc dark</a></nav>
+</header>
+<section id="original" aria-labelledby="title-original"><h2 id="title-original"><span class="number">01</span> Original</h2><div class="grid"><figure>
+<a class="diagram" href="context.svg" aria-label="Open context diagram, Original, full size"><img src="context.svg" alt="Context runtime relationships in the Original theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Context</span><a href="context.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="frames.svg" aria-label="Open frames diagram, Original, full size"><img src="frames.svg" alt="Frames runtime relationships in the Original theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Frames</span><a href="frames.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="objects.svg" aria-label="Open objects diagram, Original, full size"><img src="objects.svg" alt="Objects runtime relationships in the Original theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Objects</span><a href="objects.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure></div></section>
+<section id="catppuccin-latte" aria-labelledby="title-catppuccin-latte"><h2 id="title-catppuccin-latte"><span class="number">02</span> Catppuccin latte</h2><div class="grid"><figure>
+<a class="diagram" href="context-catppuccin-latte.svg" aria-label="Open context diagram, Catppuccin latte, full size"><img src="context-catppuccin-latte.svg" alt="Context runtime relationships in the Catppuccin latte theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Context</span><a href="context-catppuccin-latte.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="frames-catppuccin-latte.svg" aria-label="Open frames diagram, Catppuccin latte, full size"><img src="frames-catppuccin-latte.svg" alt="Frames runtime relationships in the Catppuccin latte theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Frames</span><a href="frames-catppuccin-latte.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="objects-catppuccin-latte.svg" aria-label="Open objects diagram, Catppuccin latte, full size"><img src="objects-catppuccin-latte.svg" alt="Objects runtime relationships in the Catppuccin latte theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Objects</span><a href="objects-catppuccin-latte.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure></div></section>
+<section id="default" aria-labelledby="title-default"><h2 id="title-default"><span class="number">03</span> Default</h2><div class="grid"><figure>
+<a class="diagram" href="context-default.svg" aria-label="Open context diagram, Default, full size"><img src="context-default.svg" alt="Context runtime relationships in the Default theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Context</span><a href="context-default.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="frames-default.svg" aria-label="Open frames diagram, Default, full size"><img src="frames-default.svg" alt="Frames runtime relationships in the Default theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Frames</span><a href="frames-default.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="objects-default.svg" aria-label="Open objects diagram, Default, full size"><img src="objects-default.svg" alt="Objects runtime relationships in the Default theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Objects</span><a href="objects-default.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure></div></section>
+<section id="dracula" aria-labelledby="title-dracula"><h2 id="title-dracula"><span class="number">04</span> Dracula</h2><div class="grid"><figure>
+<a class="diagram" href="context-dracula.svg" aria-label="Open context diagram, Dracula, full size"><img src="context-dracula.svg" alt="Context runtime relationships in the Dracula theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Context</span><a href="context-dracula.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="frames-dracula.svg" aria-label="Open frames diagram, Dracula, full size"><img src="frames-dracula.svg" alt="Frames runtime relationships in the Dracula theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Frames</span><a href="frames-dracula.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="objects-dracula.svg" aria-label="Open objects diagram, Dracula, full size"><img src="objects-dracula.svg" alt="Objects runtime relationships in the Dracula theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Objects</span><a href="objects-dracula.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure></div></section>
+<section id="github-dark" aria-labelledby="title-github-dark"><h2 id="title-github-dark"><span class="number">05</span> Github dark</h2><div class="grid"><figure>
+<a class="diagram" href="context-github-dark.svg" aria-label="Open context diagram, Github dark, full size"><img src="context-github-dark.svg" alt="Context runtime relationships in the Github dark theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Context</span><a href="context-github-dark.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="frames-github-dark.svg" aria-label="Open frames diagram, Github dark, full size"><img src="frames-github-dark.svg" alt="Frames runtime relationships in the Github dark theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Frames</span><a href="frames-github-dark.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="objects-github-dark.svg" aria-label="Open objects diagram, Github dark, full size"><img src="objects-github-dark.svg" alt="Objects runtime relationships in the Github dark theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Objects</span><a href="objects-github-dark.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure></div></section>
+<section id="github-light" aria-labelledby="title-github-light"><h2 id="title-github-light"><span class="number">06</span> Github light</h2><div class="grid"><figure>
+<a class="diagram" href="context-github-light.svg" aria-label="Open context diagram, Github light, full size"><img src="context-github-light.svg" alt="Context runtime relationships in the Github light theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Context</span><a href="context-github-light.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="frames-github-light.svg" aria-label="Open frames diagram, Github light, full size"><img src="frames-github-light.svg" alt="Frames runtime relationships in the Github light theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Frames</span><a href="frames-github-light.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="objects-github-light.svg" aria-label="Open objects diagram, Github light, full size"><img src="objects-github-light.svg" alt="Objects runtime relationships in the Github light theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Objects</span><a href="objects-github-light.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure></div></section>
+<section id="nord" aria-labelledby="title-nord"><h2 id="title-nord"><span class="number">07</span> Nord</h2><div class="grid"><figure>
+<a class="diagram" href="context-nord.svg" aria-label="Open context diagram, Nord, full size"><img src="context-nord.svg" alt="Context runtime relationships in the Nord theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Context</span><a href="context-nord.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="frames-nord.svg" aria-label="Open frames diagram, Nord, full size"><img src="frames-nord.svg" alt="Frames runtime relationships in the Nord theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Frames</span><a href="frames-nord.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="objects-nord.svg" aria-label="Open objects diagram, Nord, full size"><img src="objects-nord.svg" alt="Objects runtime relationships in the Nord theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Objects</span><a href="objects-nord.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure></div></section>
+<section id="nord-light" aria-labelledby="title-nord-light"><h2 id="title-nord-light"><span class="number">08</span> Nord light</h2><div class="grid"><figure>
+<a class="diagram" href="context-nord-light.svg" aria-label="Open context diagram, Nord light, full size"><img src="context-nord-light.svg" alt="Context runtime relationships in the Nord light theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Context</span><a href="context-nord-light.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="frames-nord-light.svg" aria-label="Open frames diagram, Nord light, full size"><img src="frames-nord-light.svg" alt="Frames runtime relationships in the Nord light theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Frames</span><a href="frames-nord-light.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="objects-nord-light.svg" aria-label="Open objects diagram, Nord light, full size"><img src="objects-nord-light.svg" alt="Objects runtime relationships in the Nord light theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Objects</span><a href="objects-nord-light.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure></div></section>
+<section id="one-dark" aria-labelledby="title-one-dark"><h2 id="title-one-dark"><span class="number">09</span> One dark</h2><div class="grid"><figure>
+<a class="diagram" href="context-one-dark.svg" aria-label="Open context diagram, One dark, full size"><img src="context-one-dark.svg" alt="Context runtime relationships in the One dark theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Context</span><a href="context-one-dark.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="frames-one-dark.svg" aria-label="Open frames diagram, One dark, full size"><img src="frames-one-dark.svg" alt="Frames runtime relationships in the One dark theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Frames</span><a href="frames-one-dark.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="objects-one-dark.svg" aria-label="Open objects diagram, One dark, full size"><img src="objects-one-dark.svg" alt="Objects runtime relationships in the One dark theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Objects</span><a href="objects-one-dark.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure></div></section>
+<section id="solarized" aria-labelledby="title-solarized"><h2 id="title-solarized"><span class="number">10</span> Solarized</h2><div class="grid"><figure>
+<a class="diagram" href="context-solarized.svg" aria-label="Open context diagram, Solarized, full size"><img src="context-solarized.svg" alt="Context runtime relationships in the Solarized theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Context</span><a href="context-solarized.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="frames-solarized.svg" aria-label="Open frames diagram, Solarized, full size"><img src="frames-solarized.svg" alt="Frames runtime relationships in the Solarized theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Frames</span><a href="frames-solarized.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="objects-solarized.svg" aria-label="Open objects diagram, Solarized, full size"><img src="objects-solarized.svg" alt="Objects runtime relationships in the Solarized theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Objects</span><a href="objects-solarized.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure></div></section>
+<section id="tokyo-night" aria-labelledby="title-tokyo-night"><h2 id="title-tokyo-night"><span class="number">11</span> Tokyo night</h2><div class="grid"><figure>
+<a class="diagram" href="context-tokyo-night.svg" aria-label="Open context diagram, Tokyo night, full size"><img src="context-tokyo-night.svg" alt="Context runtime relationships in the Tokyo night theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Context</span><a href="context-tokyo-night.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="frames-tokyo-night.svg" aria-label="Open frames diagram, Tokyo night, full size"><img src="frames-tokyo-night.svg" alt="Frames runtime relationships in the Tokyo night theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Frames</span><a href="frames-tokyo-night.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="objects-tokyo-night.svg" aria-label="Open objects diagram, Tokyo night, full size"><img src="objects-tokyo-night.svg" alt="Objects runtime relationships in the Tokyo night theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Objects</span><a href="objects-tokyo-night.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure></div></section>
+<section id="tokyo-night-light" aria-labelledby="title-tokyo-night-light"><h2 id="title-tokyo-night-light"><span class="number">12</span> Tokyo night light</h2><div class="grid"><figure>
+<a class="diagram" href="context-tokyo-night-light.svg" aria-label="Open context diagram, Tokyo night light, full size"><img src="context-tokyo-night-light.svg" alt="Context runtime relationships in the Tokyo night light theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Context</span><a href="context-tokyo-night-light.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="frames-tokyo-night-light.svg" aria-label="Open frames diagram, Tokyo night light, full size"><img src="frames-tokyo-night-light.svg" alt="Frames runtime relationships in the Tokyo night light theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Frames</span><a href="frames-tokyo-night-light.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="objects-tokyo-night-light.svg" aria-label="Open objects diagram, Tokyo night light, full size"><img src="objects-tokyo-night-light.svg" alt="Objects runtime relationships in the Tokyo night light theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Objects</span><a href="objects-tokyo-night-light.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure></div></section>
+<section id="tokyo-night-storm" aria-labelledby="title-tokyo-night-storm"><h2 id="title-tokyo-night-storm"><span class="number">13</span> Tokyo night storm</h2><div class="grid"><figure>
+<a class="diagram" href="context-tokyo-night-storm.svg" aria-label="Open context diagram, Tokyo night storm, full size"><img src="context-tokyo-night-storm.svg" alt="Context runtime relationships in the Tokyo night storm theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Context</span><a href="context-tokyo-night-storm.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="frames-tokyo-night-storm.svg" aria-label="Open frames diagram, Tokyo night storm, full size"><img src="frames-tokyo-night-storm.svg" alt="Frames runtime relationships in the Tokyo night storm theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Frames</span><a href="frames-tokyo-night-storm.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="objects-tokyo-night-storm.svg" aria-label="Open objects diagram, Tokyo night storm, full size"><img src="objects-tokyo-night-storm.svg" alt="Objects runtime relationships in the Tokyo night storm theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Objects</span><a href="objects-tokyo-night-storm.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure></div></section>
+<section id="zinc-dark" aria-labelledby="title-zinc-dark"><h2 id="title-zinc-dark"><span class="number">14</span> Zinc dark</h2><div class="grid"><figure>
+<a class="diagram" href="context-zinc-dark.svg" aria-label="Open context diagram, Zinc dark, full size"><img src="context-zinc-dark.svg" alt="Context runtime relationships in the Zinc dark theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Context</span><a href="context-zinc-dark.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="frames-zinc-dark.svg" aria-label="Open frames diagram, Zinc dark, full size"><img src="frames-zinc-dark.svg" alt="Frames runtime relationships in the Zinc dark theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Frames</span><a href="frames-zinc-dark.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<figure>
+<a class="diagram" href="objects-zinc-dark.svg" aria-label="Open objects diagram, Zinc dark, full size"><img src="objects-zinc-dark.svg" alt="Objects runtime relationships in the Zinc dark theme" loading="lazy" decoding="async"></a>
+<figcaption><span>Objects</span><a href="objects-zinc-dark.svg">Open SVG <span aria-hidden="true">↗</span></a></figcaption>
+</figure></div></section>
+<footer>All relationship SVGs · <a href="#top">Back to top</a></footer>
+</main>
+</body>
+</html>
