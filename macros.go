@@ -136,6 +136,7 @@ func (r *Runtime) replayMacro(name string, count int) (err error) {
 		r.Macro.Depth--
 		if outer {
 			if err != nil {
+				r.CancelPendingBinding()
 				for len(r.Frames) > frameCount {
 					if popErr := r.Pop(); popErr != nil {
 						break
@@ -143,7 +144,6 @@ func (r *Runtime) replayMacro(name string, count int) (err error) {
 				}
 			}
 			r.Macro.Pending = ""
-			r.Pending = ""
 			if in := r.Inputs[r.Context().InputID]; in != nil {
 				in.resetKeys()
 			}

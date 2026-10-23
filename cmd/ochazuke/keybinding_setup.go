@@ -11,7 +11,6 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
-	"ochazuke"
 )
 
 func (m *keybindingModel) openForm(kind string, values ...string) tea.Cmd {
@@ -26,7 +25,7 @@ func (m *keybindingModel) openForm(kind string, values ...string) tea.Cmd {
 }
 
 func (m *keybindingModel) replaceBindings(bindings []sandboxBinding) {
-	m.runtime = ochazuke.NewRuntime()
+	m.resetRuntime()
 	for _, binding := range bindings {
 		m.installBinding(binding)
 	}
@@ -139,7 +138,9 @@ func (m *keybindingModel) updateSetup(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.openForm(kind, path)
 	case "enter":
 		m.sandbox, m.notice = true, ""
-		m.runtime.Pending = ""
+		m.runtime.CancelPendingBinding()
+	case "t":
+		return m, m.openForm("timeout", m.runtime.BindingTimeout.String())
 	}
 	return m, nil
 }
@@ -160,6 +161,15 @@ func (m *keybindingModel) submitForm() {
 		m.installBinding(binding)
 		m.selected = len(m.bindings()) - 1
 		m.notice = "Binding saved in memory (export to keep it)"
+	case "timeout":
+		timeout, err := parseBindingTimeout(m.fields[0].Value())
+		if err != nil {
+			m.notice = err.Error()
+			return
+		}
+		m.runtime.CancelPendingBinding()
+		m.runtime.BindingTimeout = timeout
+		m.notice = "Timeout set to " + timeout.String() + " (not saved in JSON)"
 	case "import", "export":
 		path := m.fields[0].Value()
 		var err error
@@ -192,6 +202,8 @@ func (m *keybindingModel) setupView() string {
 	case m.form != "":
 		if m.form == "binding" {
 			lines = append(lines, "Keys (Tea names, e.g. ctrl+s or g g):", m.fields[0].View(), "Action identifier:", m.fields[1].View(), "", "Tab: change field · Enter: next / save · Esc: cancel")
+		} else if m.form == "timeout" {
+			lines = append(lines, "Ambiguous-sequence timeout (e.g. 400ms, 1s):", m.fields[0].View(), "", "Enter: save · Esc: cancel")
 		} else {
 			lines = append(lines, strings.ToUpper(m.form)+" JSON bindings", m.fields[0].View(), "", "F4: browse files / folders · Enter: confirm · Esc: cancel")
 			if m.form == "import" {
@@ -199,12 +211,12 @@ func (m *keybindingModel) setupView() string {
 			}
 		}
 	default:
-		lines = append(lines, "a: add · e: edit · d: delete · ↑/↓: select", "i: import · o: export · Enter: ENTER SANDBOX", "Ctrl-C: exit · F2 returns here from sandbox", "", "KEYS → ACTION")
+		lines = append(lines, "a: add · e: edit · d: delete · ↑/↓: select", "i: import · o: export · t: timeout · Enter: ENTER SANDBOX", "Ctrl-C: exit · F2 returns here from sandbox", "Timeout: "+m.runtime.BindingTimeout.String()+" (not saved in JSON)", "", "KEYS → ACTION")
 		bindings := m.bindings()
 		if len(bindings) == 0 {
 			lines = append(lines, "No bindings yet. Press a to add one, or i to import.")
 		}
-		visible := max(1, m.height-11)
+		visible := max(1, m.height-12)
 		start := max(0, m.selected-visible+1)
 		for i := start; i < min(len(bindings), start+visible); i++ {
 			marker := "  "

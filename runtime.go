@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Arguments map[string]any
@@ -81,6 +82,9 @@ type Runtime struct {
 	Operations     map[string]Operation
 	Quit           bool
 	Pending        string
+	BindingTimeout time.Duration
+	pendingBinding pendingBinding
+	bindingVersion uint64
 	Registers      map[string]Register
 	YankHistory    []Yank
 	ActiveRegister string
@@ -95,7 +99,8 @@ func NewRuntime() *Runtime {
 		Frames: []*Frame{{ID: "main", Context: Context{Path: []string{"app"}}, State: map[string]any{}}},
 		Pages:  map[string]*Page{},
 		Modes:  map[string]bool{"normal": true, "insert": true}, Operations: map[string]Operation{},
-		Registers: map[string]Register{},
+		Registers:      map[string]Register{},
+		BindingTimeout: DefaultBindingTimeout,
 	}
 	registerCore(r)
 	registerConfiguration(r)
@@ -182,7 +187,7 @@ func (r *Runtime) Focus(id string) error {
 		return err
 	}
 	r.Frames[len(r.Frames)-1].Context = next.Clone()
-	r.Pending = ""
+	r.CancelPendingBinding()
 	return nil
 }
 func (r *Runtime) Push(frame *Frame) error {
@@ -202,7 +207,7 @@ func (r *Runtime) Push(frame *Frame) error {
 		frame.State = map[string]any{}
 	}
 	r.Frames = append(r.Frames, frame)
-	r.Pending = ""
+	r.CancelPendingBinding()
 	return nil
 }
 func (r *Runtime) Pop() error {
@@ -210,7 +215,7 @@ func (r *Runtime) Pop() error {
 		return errors.New("no modal to close")
 	}
 	r.Frames = r.Frames[:len(r.Frames)-1]
-	r.Pending = ""
+	r.CancelPendingBinding()
 	return nil
 }
 func (r *Runtime) Execute(q Request) (any, error) { return r.ExecuteAt(r.Context(), q) }
@@ -319,37 +324,6 @@ func (r *Runtime) EffectiveBindings(c Context) []Binding {
 	return out
 }
 
-// HandleBinding returns handled=true for both complete and pending sequences.
-func (r *Runtime) HandleBinding(key string) (bool, error) {
-	if key == "esc" && r.Pending != "" {
-		r.Pending = ""
-		return true, nil
-	}
-	sequence := key
-	if r.Pending != "" {
-		sequence = r.Pending + " " + key
-	}
-	bindings := r.EffectiveBindings(r.Context())
-	for _, b := range bindings {
-		if b.Keys == sequence {
-			r.Pending = ""
-			_, err := r.Execute(b.Request)
-			return true, err
-		}
-	}
-	for _, b := range bindings {
-		if strings.HasPrefix(b.Keys, sequence+" ") {
-			r.Pending = sequence
-			return true, nil
-		}
-	}
-	hadPending := r.Pending != ""
-	r.Pending = ""
-	if hadPending {
-		return r.HandleBinding(key)
-	}
-	return false, nil
-}
 func (r *Runtime) Snapshot() map[string]any {
 	inputs := map[string]any{}
 	for id, in := range r.Inputs {

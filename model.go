@@ -78,6 +78,16 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case CallMsg:
 		m.Runtime.HandleCall(v)
 		m.Palette.publish()
+	case BindingTimeoutMsg:
+		if handled, err := m.Runtime.HandleBindingTimeout(v); handled {
+			if err != nil {
+				m.Status = err.Error()
+			} else {
+				m.Status = ""
+			}
+			m.Palette.collectEditors()
+			m.Palette.publish()
+		}
 	case tea.KeyMsg:
 		if v.Type == tea.KeyRunes && !v.Paste && !v.Alt && len(v.Runes) > 1 {
 			var commands []tea.Cmd
@@ -105,6 +115,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	}
 	var commands []tea.Cmd
+	if cmd := m.Runtime.BindingTimeoutCommand(); cmd != nil {
+		commands = append(commands, cmd)
+	}
 	for _, picker := range m.Pickers {
 		if cmd := picker.PendingCommand(); cmd != nil {
 			commands = append(commands, cmd)

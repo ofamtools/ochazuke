@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 	"unicode"
 
 	"ochazuke"
@@ -65,12 +66,26 @@ func (m *keybindingModel) importBindings(path string) error {
 			return fmt.Errorf("binding %d: %w", i+1, err)
 		}
 	}
-	m.runtime = ochazuke.NewRuntime()
+	m.resetRuntime()
 	for _, binding := range bindings {
 		m.installBinding(binding)
 	}
 	m.selected = 0
 	return nil
+}
+
+// resetRuntime replaces the runtime with an empty one, cancelling any pending
+// sequence and keeping the configured binding timeout (it is not in the JSON).
+func (m *keybindingModel) resetRuntime() {
+	timeout := time.Duration(0)
+	if m.runtime != nil {
+		m.runtime.CancelPendingBinding()
+		timeout = m.runtime.BindingTimeout
+	}
+	m.runtime = ochazuke.NewRuntime()
+	if timeout > 0 {
+		m.runtime.BindingTimeout = timeout
+	}
 }
 
 func (m *keybindingModel) exportBindings(path string, overwrite bool) error {

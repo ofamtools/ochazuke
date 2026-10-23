@@ -16,7 +16,7 @@ No server, install, or internet connection is needed. Search 12 components, insp
 
 The guide links to four generated pages: [Actions](docs/actions.html), [Default bindings](docs/bindings.html), [Go API](docs/api.html), and [CLI & socket](docs/transport.html). Each page has separate navigation links; the action, binding, and Go API pages have their own search. Actions and bindings reflect a fresh demo, not a running application's customized registry. Editor grammar shortcuts remain in the [keyboard guide](#keyboard-guide).
 
-The [keybinding execution walkthrough](docs/keybinding-walkthrough.html) follows Tab through input focus, Ctrl-N through modal creation, and a configured `g g` sequence through pending and exact matching. It includes Go excerpts, concrete state snapshots, GitHub source links, and an illustrative sequence stepper.
+The [keybinding execution walkthrough](docs/keybinding-walkthrough.html) follows Tab through input focus, Ctrl-N through modal creation, and a configured `g g` sequence through timed longest-match resolution (`g`, `g g`, `g g g`). It includes Go excerpts, concrete state snapshots, GitHub source links, and an illustrative sequence stepper.
 
 Regenerate after changing registrations or Go declarations/comments:
 
@@ -67,6 +67,7 @@ Run `ochazuke keybinding` (or `go run ./cmd/ochazuke keybinding`) without starti
 
 - `a`: add a binding; enter Tea key names and a dummy action identifier in separate fields.
 - `e` / `d`: edit / delete the selected binding; arrows select a row.
+- `t`: edit the ambiguous-binding timeout (Go durations such as `400ms` or `1s`; must be positive). The current timeout is shown in setup and in the sandbox.
 - `i` / `o`: import / export JSON. Enter a path or press F4 to browse files and folders. An export folder selection proposes `bindings.json`; the filename remains editable.
 - Enter: **Enter sandbox**. In **Stage 2**, the left column shows the latest key, outcome, and effective bindings; the right column logs messages newest first (last 200 retained).
 - F2: return to setup without losing bindings or history. Ctrl-C exits either stage.
@@ -93,9 +94,23 @@ go run ./cmd/ochazuke keybinding \
   --bind 'alt+x=alternate'
 ```
 
-These are real Ochazuke app-scope bindings dispatched through `Runtime.HandleBinding` and the operation registry. Each dummy action prints `ACTION: <identifier>` in the sandbox's latest-result area and history, without performing any app operation. The left column lists the effective bindings; history labels unmatched keys, pending sequences, and cancelled sequences. A later definition of the same key sequence replaces the earlier one.
+These are real Ochazuke app-scope bindings dispatched through `Runtime.HandleBinding` and the operation registry. Each dummy action prints `ACTION: <identifier>` in the sandbox's latest-result area and history, without performing any app operation. The left column lists the effective bindings; history labels unmatched keys, pending sequences, cancelled sequences, and timed-out sequences. A later definition of the same key sequence replaces the earlier one.
 
-Coalesced ordinary typing is split into keys, like the app's dispatcher, so multi-key sequences work during rapid typing. Bracketed paste remains one logged message and does not trigger bindings. Escape cancels a pending sequence.
+#### Timed ambiguous bindings
+
+When a complete binding is also a prefix of a longer binding, the runtime waits instead of firing at once. With `g`, `g g`, and `g g g` all bound:
+
+- The first `g` is complete but ambiguous: it is deferred, and the timer starts.
+- Each valid continuation (`g g`, then `g g g`) refreshes the timer. The longest complete match so far is the fallback.
+- When no longer continuation remains possible, the third `g` runs `g g g` immediately.
+- On timeout, the fallback (the longest completed binding) runs. The sandbox updates the outcome of the last key row rather than adding a key; if nothing runs, it shows that the sequence timed out.
+- If a different key arrives and a completed fallback exists, the fallback runs and the mismatching key is consumed. If no completed fallback exists, the mismatching key is retried on its own, as before.
+- A pure prefix (not itself a binding) times out and clears without running anything.
+- Escape cancels all deferred work. Late timer events from a cancelled or superseded wait do nothing, and context changes cancel pending sequences.
+
+The timeout defaults to 400ms. Set it with `--timeout DURATION` (for example `--timeout 1s`; zero or negative values are rejected) or press `t` in setup. The timeout is not stored in the bindings JSON, which remains a plain array, so it is not persisted by export. It is kept when bindings are imported, edited, or deleted.
+
+Coalesced ordinary typing is split into keys, like the app's dispatcher, so multi-key sequences work during rapid typing. Bracketed paste remains one logged message and does not trigger bindings.
 
 ## Full-project example
 
@@ -506,7 +521,7 @@ The path follows the active page and nested selected/focused nouns, not a fixed 
 
 Within each layer, mode-specific bindings precede mode-independent bindings, and user configuration overrides defaults in the same layer. Layer precedence comes first: an inner layer's binding wins over an outer layer's binding even if the outer binding is mode-specific. App-level bindings are fallback definitions, not unconditionally reserved shortcuts.
 
-Multi-key sequences such as `g g` require pending-sequence state, cancellation, and defined incomplete-sequence behavior. Unmatched text in insert mode is delivered to the focused editor.
+Multi-key sequences such as `g g` require pending-sequence state, cancellation, and defined incomplete-sequence behavior. When a complete binding is also a prefix of a longer one, the runtime waits up to a configurable timeout (default 400ms) and falls back to the longest complete match on timeout or mismatch. Unmatched text in insert mode is delivered to the focused editor.
 
 ## Nested verb/noun command palette
 

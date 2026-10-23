@@ -5,7 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"ochazuke"
@@ -63,6 +65,47 @@ func TestBindingSetupRoundTrip(t *testing.T) {
 	key(tea.KeyCtrlS)
 	if m.results[1] != "ACTION: updated" {
 		t.Fatalf("imported action: %q", m.results[1])
+	}
+}
+
+func TestSetupTimeoutEditPreservedAndInvalidatesStaleTimer(t *testing.T) {
+	m := &keybindingModel{width: 100, height: 24, runtime: ochazuke.NewRuntime(), sandbox: true}
+	for _, spec := range []string{"g=single", "g g=double"} {
+		if err := m.addBinding(spec); err != nil {
+			t.Fatal(err)
+		}
+	}
+	m.runtime.BindingTimeout = 5 * time.Millisecond
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("g")})
+	stale := cmd().(ochazuke.BindingTimeoutMsg)
+	m.Update(tea.KeyMsg{Type: tea.KeyF2})
+	typeKeys := func(s string) { m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)}) }
+	typeKeys("t")
+	if m.form != "timeout" || !strings.Contains(m.View(), "400ms, 1s") {
+		t.Fatalf("timeout editor not shown: form=%q", m.form)
+	}
+	m.Update(tea.KeyMsg{Type: tea.KeyCtrlU})
+	typeKeys("0s")
+	m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	if m.form != "timeout" || m.runtime.BindingTimeout != 5*time.Millisecond {
+		t.Fatalf("invalid timeout accepted: %q %v", m.notice, m.runtime.BindingTimeout)
+	}
+	m.Update(tea.KeyMsg{Type: tea.KeyCtrlU})
+	typeKeys("1s")
+	m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	if m.form != "" || m.runtime.BindingTimeout != time.Second || !strings.Contains(m.View(), "Timeout: 1s") {
+		t.Fatalf("timeout not applied: %q %v", m.notice, m.runtime.BindingTimeout)
+	}
+	// Edit rebuilds the runtime but keeps the timeout and drops stale timers.
+	typeKeys("d")
+	if m.runtime.BindingTimeout != time.Second {
+		t.Fatal("timeout lost when the runtime was rebuilt")
+	}
+	m.sandbox = true
+	count, results := m.count, m.results
+	m.Update(stale)
+	if m.count != count || m.results != results {
+		t.Fatal("stale timer changed state after setup change")
 	}
 }
 

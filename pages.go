@@ -57,7 +57,7 @@ func (r *Runtime) OpenPage(id string) error {
 	}
 	r.Frames = []*Frame{page.Frame}
 	r.ActivePage = id
-	r.Pending = ""
+	r.CancelPendingBinding()
 	return nil
 }
 

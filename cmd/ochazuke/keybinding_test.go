@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 	"testing"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"ochazuke"
@@ -58,6 +59,82 @@ func TestSandboxBindings(t *testing.T) {
 		if !strings.Contains(m.View(), step.want) {
 			t.Fatalf("missing visible outcome %q", step.want)
 		}
+	}
+}
+
+func runeKey(s string) tea.KeyMsg { return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)} }
+
+func TestSandboxTimeoutResolvesLongestFallback(t *testing.T) {
+	m := &keybindingModel{width: 100, height: 24, sandbox: true, runtime: ochazuke.NewRuntime()}
+	m.runtime.BindingTimeout = 5 * time.Millisecond
+	for _, spec := range []string{"g=single", "g g=double", "q q=quit-seq", "k=other"} {
+		if err := m.addBinding(spec); err != nil {
+			t.Fatal(err)
+		}
+	}
+	_, cmd := m.Update(runeKey("g"))
+	if cmd == nil || m.results[0] != "pending: g" {
+		t.Fatalf("ambiguous g should defer with a timer: cmd=%v result=%q", cmd != nil, m.results[0])
+	}
+	msg, ok := cmd().(ochazuke.BindingTimeoutMsg)
+	if !ok {
+		t.Fatal("timer did not produce a BindingTimeoutMsg")
+	}
+	m.Update(msg)
+	if m.count != 1 || m.results[0] != "ACTION: single" {
+		t.Fatalf("timeout should run the fallback in the same row: count=%d result=%q", m.count, m.results[0])
+	}
+	// A pure prefix times out and clears without inventing a key row.
+	_, cmd = m.Update(runeKey("q"))
+	m.Update(cmd().(ochazuke.BindingTimeoutMsg))
+	if m.count != 2 || m.results[1] != "sequence timed out" || m.runtime.Pending != "" {
+		t.Fatalf("pure prefix timeout: count=%d result=%q pending=%q", m.count, m.results[1], m.runtime.Pending)
+	}
+	// Mismatch with a completed fallback consumes the key.
+	m.runtime.BindingTimeout = time.Minute
+	m.Update(runeKey("g"))
+	m.Update(runeKey("k"))
+	if m.results[3] != "ACTION: single" {
+		t.Fatalf("mismatch should run fallback: %q", m.results[3])
+	}
+	// The earlier timer is stale now and must not change anything.
+	count, results := m.count, m.results
+	m.Update(msg)
+	if m.count != count || m.results != results {
+		t.Fatal("stale timeout changed history or outcome")
+	}
+}
+
+func TestSandboxCoalescedKeysBatchTimers(t *testing.T) {
+	m := &keybindingModel{width: 100, height: 24, sandbox: true, runtime: ochazuke.NewRuntime()}
+	for _, spec := range []string{"g=single", "g g=double"} {
+		if err := m.addBinding(spec); err != nil {
+			t.Fatal(err)
+		}
+	}
+	_, cmd := m.Update(runeKey("g"))
+	if cmd == nil {
+		t.Fatal("single ambiguous key should schedule a timer")
+	}
+	_, cmd = m.Update(runeKey("gg"))
+	if cmd == nil || m.results[1] != "ACTION: double" || m.results[2] != "pending: g" {
+		t.Fatalf("coalesced keys lost their commands or results: %v", m.results[:3])
+	}
+}
+
+func TestParseBindingTimeout(t *testing.T) {
+	for in, want := range map[string]time.Duration{"400ms": 400 * time.Millisecond, " 1s ": time.Second} {
+		if got, err := parseBindingTimeout(in); err != nil || got != want {
+			t.Fatalf("%q: got %v, %v", in, got, err)
+		}
+	}
+	for _, in := range []string{"", "abc", "0s", "-1s", "400"} {
+		if _, err := parseBindingTimeout(in); err == nil {
+			t.Fatalf("%q should be rejected", in)
+		}
+	}
+	if err := runKeybinding([]string{"--timeout", "0s"}); err == nil {
+		t.Fatal("--timeout 0s should be rejected")
 	}
 }
 

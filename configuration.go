@@ -53,6 +53,7 @@ func registerConfiguration(r *Runtime) {
 			return nil, err
 		}
 		binding := Binding{Mode: mode, Keys: keys, Request: q}
+		r.CancelPendingBinding()
 		for i, b := range layer.Bindings {
 			if b.Mode == mode && b.Keys == keys {
 				layer.Bindings[i] = binding
@@ -72,7 +73,7 @@ func registerConfiguration(r *Runtime) {
 			return nil, err
 		}
 		r.Frames[len(r.Frames)-1].Context = next.Clone()
-		r.Pending = ""
+		r.CancelPendingBinding()
 		return next, nil
 	}})
 }

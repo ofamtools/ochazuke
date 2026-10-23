@@ -135,7 +135,7 @@ footer{border-top:3px double var(--ink);padding:1.5rem 0 3rem;font-size:.92rem;c
 <h1>Three keys, <em>one</em> pipeline</h1>
 <p class="lede">Follow <kbd>Tab</kbd>, <kbd>Ctrl-N</kbd>, and a configured <kbd>g</kbd> <kbd>g</kbd> from the key press to the state change. Every claim points at a pinned line range in the source.</p>
 <div class="meta">
-<span>Source revision <code>c2790bc</code></span>
+<span>Published core <code>527d680</code> · local timed resolver</span>
 <a href="architecture.html">Architecture overview</a>
 <a href="../README.md">README</a>
 </div>
@@ -306,24 +306,17 @@ Runtime.Pending: ""</pre></div>
 </li>
 <li>
 <h4>The runtime finds an exact match</h4>
-<p><code>Pending</code> is empty, so <code>sequence</code> is <code>"tab"</code>. <code>EffectiveBindings</code> includes the playground binding below. It has no mode, so it applies in every mode. The exact-match loop runs first, clears <code>Pending</code>, and calls <code>Execute</code>.</p>
+<p><code>Pending</code> is empty, so <code>sequence</code> is <code>"tab"</code>. <code>EffectiveBindings</code> includes the playground binding below. It has no mode, so it applies in every mode. Tab is complete with no longer continuation, so the matcher clears pending state and executes immediately.</p>
 <figure class="src">
 <figcaption><span>Demo binding</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L135">demo.go:135</a></figcaption>
 <pre tabindex="0" aria-label="Go source excerpt">bind("playground", "", "tab", "next", "input", nil)</pre>
 </figure>
 <figure class="src">
-<figcaption><span>HandleBinding, exact match</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L328-L339">runtime.go:328-339</a></figcaption>
-<pre tabindex="0" aria-label="Go source excerpt">sequence := key
-if r.Pending != "" {
-	sequence = r.Pending + " " + key
-}
-bindings := r.EffectiveBindings(r.Context())
-for _, b := range bindings {
-	if b.Keys == sequence {
-		r.Pending = ""
-		_, err := r.Execute(b.Request)
-		return true, err
-	}
+<figcaption><span>HandleBinding: complete match with no longer continuation</span><a href="../bindings.go#L140-L144">bindings.go:140-144</a></figcaption>
+<pre tabindex="0" aria-label="Go source excerpt">if matched {
+	r.CancelPendingBinding()
+	_, err := r.Execute(exact)
+	return true, err
 }</pre>
 </figure>
 </li>
@@ -409,7 +402,7 @@ bind("dialog", "normal", "ctrl+n", "push", "modal", Arguments{"id": "nested-draf
 </li>
 <li>
 <h4>Exact match, then Execute</h4>
-<p>The exact-match loop at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L333-L339">runtime.go:333-339</a> finds <code>ctrl+n</code>, clears <code>Pending</code>, and calls <code>Execute</code> with the request <code>push.modal</code> and arguments <code>id: "draft"</code>, <code>input: "dialog"</code>.</p>
+<p><code>ctrl+n</code> is complete with no longer binding, so it is not deferred. <a href="../bindings.go#L140-L144">HandleBinding</a> clears pending state and calls <code>Execute</code> with <code>push.modal</code> and arguments <code>id: "draft"</code>, <code>input: "dialog"</code>.</p>
 </li>
 <li>
 <h4>The handler lookup falls to the registry default</h4>
@@ -444,23 +437,26 @@ return nil</pre>
 
 <section id="sandbox" aria-labelledby="h-sandbox">
 <h2 id="h-sandbox"><span class="n">05</span>Flow 3 · A configured <code>g g</code> in the sandbox</h2>
-<p>This flow does <strong>not</strong> use <code>NewDemo</code>, <code>Model.Update</code>, or the default demo bindings. The <code>ochazuke keybinding</code> command builds its own <code>keybindingModel</code> around a fresh <code>NewRuntime()</code> (<a href="../cmd/ochazuke/keybinding.go#L136-L137">keybinding.go:136-137</a>). Its <code>Update</code> is a separate dispatcher that calls the same <code>Runtime.HandleBinding</code>.</p>
+<p>This flow does <strong>not</strong> use <code>NewDemo</code>, <code>Model.Update</code>, or the default demo bindings. The <code>ochazuke keybinding</code> command builds its own <code>keybindingModel</code> around a fresh <code>NewRuntime()</code> (<a href="../cmd/ochazuke/keybinding.go#L178-L179">keybinding.go:178-179</a>). Its <code>Update</code> is a separate dispatcher that calls the same <code>Runtime.HandleBinding</code>.</p>
 <p><strong>Assumed configuration.</strong> The user configured the binding <code>g g</code> with action <code>go-top</code>, either in setup or with <code>--bind 'g g=go-top'</code>. This is a configuration choice for the example. It is not a default.</p>
 
 <h3>How the configuration becomes a binding</h3>
 <p><code>installBinding</code> normalizes the key string, registers an operation with verb <code>go-top</code> and noun <code>sandbox</code>, and appends a binding to the <code>app</code> layer. The operation's <code>Run</code> only records <code>"ACTION: go-top"</code> in the results ring. It moves nothing.</p>
 <figure class="src">
-<figcaption><span>keybindingModel.installBinding</span><a href="../cmd/ochazuke/keybinding.go#L183-L193">keybinding.go:183-193</a></figcaption>
-<pre tabindex="0" aria-label="Go source excerpt">keys, action := strings.Join(strings.Fields(spec.Keys), " "), strings.TrimSpace(spec.Action)
-m.runtime.Register(ochazuke.Operation{
-	Verb: action, Noun: "sandbox",
+<figcaption><span>keybindingModel.installBinding</span><a href="../cmd/ochazuke/keybinding.go#L231-L243">cmd/ochazuke/keybinding.go:231-243</a></figcaption>
+<pre tabindex="0" aria-label="Go source excerpt">keys, action := strings.Join(strings.Fields(spec.Keys), &quot; &quot;), strings.TrimSpace(spec.Action)
+op := ochazuke.Operation{
+	Verb: action, Noun: &quot;sandbox&quot;,
 	Run: func(_ *ochazuke.Runtime, _ ochazuke.Context, _ ochazuke.Arguments) (any, error) {
-		m.results[(m.count-1)%keyHistorySize] = "ACTION: " + action
+		m.results[(m.count-1)%keyHistorySize] = &quot;ACTION: &quot; + action
 		return action, nil
 	},
-})
-layer := m.runtime.Layers["app"]
-binding := ochazuke.Binding{Keys: keys, Request: ochazuke.Request{Verb: action, Noun: "sandbox"}}</pre>
+}
+if _, exists := m.runtime.Operations[op.Key()]; !exists {
+	m.runtime.Register(op)
+}
+layer := m.runtime.Layers[&quot;app&quot;]
+binding := ochazuke.Binding{Keys: keys, Request: ochazuke.Request{Verb: action, Noun: &quot;sandbox&quot;}}</pre>
 </figure>
 
 <div class="state">
@@ -489,35 +485,48 @@ runtime.Pending: ""</pre>
 <ol class="flow">
 <li>
 <h4>The user presses g</h4>
-<p><code>keybindingModel.Update</code> appends <code>"g"</code> to the history and sets the result to <code>"unmatched"</code>. It then calls the runtime (<a href="../cmd/ochazuke/keybinding.go#L65-L77">keybinding.go:65-77</a>).</p>
+<p><code>keybindingModel.Update</code> delegates to <code>handleKey</code>, which appends <code>"g"</code> to history and sets the result to <code>"unmatched"</code>. It then calls <a href="../cmd/ochazuke/keybinding.go#L79-L102">Runtime.HandleBinding</a>.</p>
 </li>
 <li>
 <h4>No exact match, but a prefix match</h4>
-<p><code>sequence</code> is <code>"g"</code>. No binding has the keys <code>"g"</code>, so the first loop finds nothing. The second loop finds <code>"g g"</code>, which starts with <code>"g "</code>. The runtime stores <code>Pending = "g"</code> and returns <code>handled = true</code>.</p>
+<p><code>sequence</code> is <code>"g"</code>. No binding has exactly those keys, so there is no completed fallback. The longer binding <code>"g g"</code> starts with <code>"g "</code>. The runtime stores the pending prefix and deadline. The sandbox schedules the returned timer command; if no continuation arrives, this pure prefix clears without running an action.</p>
 <figure class="src">
-<figcaption><span>HandleBinding, prefix match</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L340-L345">runtime.go:340-345</a></figcaption>
-<pre tabindex="0" aria-label="Go source excerpt">for _, b := range bindings {
-	if strings.HasPrefix(b.Keys, sequence+" ") {
-		r.Pending = sequence
-		return true, nil
+<figcaption><span>HandleBinding: storing a prefix and its deadline</span><a href="../bindings.go#L121-L138">bindings.go:121-138</a></figcaption>
+<pre tabindex="0" aria-label="Go source excerpt">if longer {
+	if r.Pending == &quot;&quot; {
+		r.pendingBinding.context = r.Context()
+		r.pendingBinding.frame = r.Frames[len(r.Frames)-1]
+		r.pendingBinding.mode = r.Mode(r.pendingBinding.context)
 	}
-}</pre>
+	if matched {
+		r.pendingBinding.fallback, r.pendingBinding.hasFallback = exact, true
+	}
+	timeout := r.BindingTimeout
+	if timeout &lt;= 0 {
+		timeout = DefaultBindingTimeout
+	}
+	r.Pending = sequence
+	r.bindingVersion++
+	r.pendingBinding.deadline = time.Now().Add(timeout)
+	r.pendingBinding.scheduled = false
+	return true, nil</pre>
 </figure>
 </li>
 <li>
 <h4>The sandbox reports the pending state</h4>
 <p>Back in <code>Update</code>, <code>m.runtime.Pending != ""</code> is true, so the history row reads <code>pending: g</code>.</p>
 <figure class="src">
-<figcaption><span>Sandbox result switch</span><a href="../cmd/ochazuke/keybinding.go#L76-L86">keybinding.go:76-86</a></figcaption>
+<figcaption><span>Sandbox result and timer scheduling</span><a href="../cmd/ochazuke/keybinding.go#L93-L102">cmd/ochazuke/keybinding.go:93-102</a></figcaption>
 <pre tabindex="0" aria-label="Go source excerpt">handled, err := m.runtime.HandleBinding(msg.String())
 switch {
 case err != nil:
-	m.results[index] = "error: " + err.Error()
-case m.runtime.Pending != "":
-	m.results[index] = "pending: " + m.runtime.Pending
-case handled &amp;&amp; m.results[index] == "unmatched":
-	m.results[index] = "sequence cancelled"
-}</pre>
+	m.results[index] = &quot;error: &quot; + err.Error()
+case m.runtime.Pending != &quot;&quot;:
+	m.results[index] = &quot;pending: &quot; + m.runtime.Pending
+case handled &amp;&amp; m.results[index] == &quot;unmatched&quot;:
+	m.results[index] = &quot;sequence cancelled&quot;
+}
+return m.runtime.BindingTimeoutCommand()</pre>
 </figure>
 </li>
 </ol>
@@ -536,8 +545,8 @@ Frames, Context.Path: unchanged</pre>
 <p><code>Pending</code> is <code>"g"</code>, so <code>sequence</code> becomes <code>"g" + " " + "g"</code>, which is <code>"g g"</code>.</p>
 </li>
 <li>
-<h4>Exact match wins</h4>
-<p>The exact loop runs before the prefix loop. It matches, sets <code>Pending</code> back to <code>""</code>, and calls <code>Execute</code> with <code>go-top.sandbox</code>.</p>
+<h4>Complete match, nothing longer</h4>
+<p><code>"g g"</code> is complete and no longer binding extends it, so it runs immediately: <code>Pending</code> goes back to <code>""</code> and <code>Execute</code> is called with <code>go-top.sandbox</code>. Any timer scheduled by the first <kbd>g</kbd> is now stale and does nothing when it arrives.</p>
 </li>
 <li>
 <h4>The registry default runs</h4>
@@ -552,64 +561,53 @@ results[1]: "ACTION: go-top"
 history: ["g", "g"]   // newest first in the right-hand column</pre>
 </div>
 
-<h3>Mismatch, retry, and Escape</h3>
-<p>The runtime handles three other cases inside the same function. Each one clears <code>Pending</code>.</p>
+<h3>Timed longest match: when <code>g</code>, <code>g g</code> and <code>g g g</code> are all bound</h3>
+<p>The walkthrough above binds only <code>g g</code>, so the first <kbd>g</kbd> is a pure prefix. If a complete binding is <em>also</em> a prefix of a longer one, the runtime now defers it instead of running it at once. The timeout defaults to 400ms and is set with <code>--timeout</code> or <kbd>t</kbd> in setup.</p>
 <ul>
-<li><strong>Mismatch.</strong> With <code>Pending = "g"</code>, the key <kbd>x</kbd> forms <code>"g x"</code>. Neither loop matches. The runtime clears <code>Pending</code> and calls itself with <code>"x"</code> alone, so <kbd>x</kbd> gets a fresh chance (<a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L346-L351">runtime.go:346-351</a>).</li>
-<li><strong>Escape.</strong> With <code>Pending</code> set, <kbd>Esc</kbd> clears it and returns <code>handled = true</code> before any matching (<a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L324-L327">runtime.go:324-327</a>). The sandbox shows <code>sequence cancelled</code>.</li>
-<li><strong>No timeout.</strong> Nothing in <code>HandleBinding</code> or the sandbox starts a timer. <code>Pending</code> stays set until a key resolves it, <kbd>Esc</kbd> cancels it, or something else clears it. In the sandbox, <kbd>F2</kbd> clears it when you return to setup (<a href="../cmd/ochazuke/keybinding.go#L48-L52">keybinding.go:48-52</a>).</li>
+<li><strong>Defer.</strong> With <code>g</code>, <code>g g</code> and <code>g g g</code> bound, the first <kbd>g</kbd> is complete but ambiguous. It is stored as the fallback and a timer is scheduled. The second <kbd>g</kbd> is a valid continuation: it refreshes the timer and <code>g g</code> becomes the fallback. The third <kbd>g</kbd> has no longer continuation, so <code>g g g</code> runs immediately.</li>
+<li><strong>Timeout.</strong> The timer arrives as a Bubble Tea message, so the runtime is only mutated inside <code>Update</code>. On timeout the longest completed fallback runs. A pure prefix with no completed fallback clears without running; the sandbox shows <code>sequence timed out</code>. The outcome is written to the last key row; no key is invented.</li>
+<li><strong>Mismatch with a fallback.</strong> After <kbd>g</kbd>, the key <kbd>x</kbd> forms <code>"g x"</code>, which matches nothing. The completed fallback <code>g</code> runs and <kbd>x</kbd> is consumed.</li>
+<li><strong>Mismatch without a fallback.</strong> If nothing complete was deferred (for example a pure prefix such as <code>g g</code> alone), the pending state clears and the mismatching key is retried on its own, as before.</li>
+<li><strong>Escape.</strong> <kbd>Esc</kbd> cancels all deferred work: pending keys, fallback, and timer. The sandbox shows <code>sequence cancelled</code>. Timer events from a cancelled or superseded wait are stale and do nothing. <kbd>F2</kbd>, entering the sandbox, and configuration changes also cancel (<code>CancelPendingBinding</code>).</li>
 </ul>
-<figure class="src">
-<figcaption><span>HandleBinding, Esc and retry</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L323-L327">runtime.go:323-327</a> · <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L346-L351">346-351</a></figcaption>
-<pre tabindex="0" aria-label="Go source excerpt">func (r *Runtime) HandleBinding(key string) (bool, error) {
-	if key == "esc" &amp;&amp; r.Pending != "" {
-		r.Pending = ""
-		return true, nil
-	}
-...
-	hadPending := r.Pending != ""
-	r.Pending = ""
-	if hadPending {
-		return r.HandleBinding(key)
-	}
-	return false, nil</pre>
-</figure>
-<div class="callout"><strong>Exact wins</strong> If both <code>g</code> and <code>g g</code> were bound, the first <kbd>g</kbd> would run the <code>g</code> binding at once, because the exact loop precedes the prefix loop. <code>Pending</code> would never be set, and <code>g g</code> would be unreachable. The runtime never waits to see whether a longer sequence might follow.</div>
+<div class="callout"><strong>Current resolver</strong> <a href="../bindings.go#L94-L152">HandleBinding</a> defers ambiguous matches. <a href="../bindings.go#L56-L90">BindingTimeoutCommand and HandleBindingTimeout</a> deliver and resolve the deadline on the event loop. <a href="../bindings.go#L30-L51">CancelPendingBinding and finishPendingBinding</a> clear stale state before dispatch. These local sources replace the older immediate-exact-match resolver. Set <code>Runtime.BindingTimeout</code> in embedded applications; the default is 400ms.</div>
 </section>
 
 <section id="stepper" aria-labelledby="h-stepper">
 <h2 id="h-stepper"><span class="n">06</span>Sequence stepper</h2>
-<p>This stepper is a small <strong>illustration written in JavaScript</strong>. It does not run the Go code. It mirrors the rules of <code>HandleBinding</code> for one binding, <code>g g → go-top</code>. Without JavaScript, the three flows above carry the same information.</p>
+<p>This stepper is a small <strong>illustration written in JavaScript</strong>. It does not run the Go code and has no real clock. It mirrors the timed longest-match rules for three bindings, <code>g → single</code>, <code>g g → double</code>, and <code>g g g → triple</code>. The <strong>Advance timeout</strong> button stands in for the timer firing; it is an illustration control, not live Go. Without JavaScript, the three flows above carry the same information.</p>
 
 <div class="stepper" role="group" aria-labelledby="stepper-title">
-<header id="stepper-title">Illustrative: binding "g g" → go-top</header>
+<header id="stepper-title">Illustrative: bindings "g", "g g", "g g g"</header>
 <div class="body">
 <div class="btns">
 <button type="button" id="b-g">Press g</button>
 <button type="button" id="b-x">Press x</button>
 <button type="button" id="b-esc">Press Esc</button>
+<button type="button" id="b-timeout">Advance timeout</button>
 <button type="button" id="b-reset" class="reset">Reset</button>
 </div>
 <dl class="readout">
 <div><dt>Pending before</dt><dd id="r-before">""</dd></div>
 <div><dt>Key</dt><dd id="r-key">none</dd></div>
 <div><dt>Sequence tried</dt><dd id="r-seq">none</dd></div>
+<div><dt>Fallback</dt><dd id="r-fb">none</dd></div>
 <div><dt>Pending after</dt><dd id="r-after">""</dd></div>
 </dl>
 <p id="log" role="status" aria-live="polite">Press g to start. Nothing has happened yet.</p>
 </div>
 </div>
 <ul>
-<li>Press <strong>g</strong> twice. The first press stores the prefix. The second matches and runs <code>go-top</code>.</li>
-<li>Press <strong>g</strong>, then <strong>x</strong>. <code>g x</code> fails, <code>Pending</code> clears, and <code>x</code> retries alone.</li>
-<li>Press <strong>g</strong>, then <strong>Esc</strong>. The sequence cancels.</li>
-<li>Wait as long as you like after the first <strong>g</strong>. There is no timer.</li>
+<li>Press <strong>g</strong> three times. The first two presses defer (<code>single</code>, then <code>double</code> become the fallback). The third has no longer continuation, so <code>triple</code> runs.</li>
+<li>Press <strong>g</strong>, <strong>g</strong>, then <strong>Advance timeout</strong>. The fallback <code>double</code> runs.</li>
+<li>Press <strong>g</strong>, then <strong>x</strong>. <code>g x</code> fails, the fallback <code>single</code> runs, and <kbd>x</kbd> is consumed.</li>
+<li>Press <strong>g</strong>, then <strong>Esc</strong>: everything deferred is cancelled and nothing runs. (Every prefix of these bindings is itself complete, so the stepper cannot show the no-fallback retry; the section above describes it.)</li>
 </ul>
 </section>
 
 <section id="index" aria-labelledby="h-index">
 <h2 id="h-index"><span class="n">07</span>Source index</h2>
-<p>The walkthrough describes local revision <code>c2790bc</code>. GitHub links pin published revision <code>527d680</code>; the cited framework and demo files are unchanged between those revisions. The newer sandbox source has not been pushed, so its links open the local Go file. The adjacent labels identify its line ranges.</p>
+<p>This page describes the local timed resolver. GitHub links pin the published core at <code>527d680</code> for the original demo, scope lookup, and frame behavior. Current matcher and sandbox excerpts link to local source files with line labels, because those changes have not been pushed.</p>
 <table>
 <thead><tr><th scope="col">Topic</th><th scope="col">Location</th></tr></thead>
 <tbody>
@@ -617,7 +615,7 @@ history: ["g", "g"]   // newest first in the right-hand column</pre>
 <tr><th scope="row"><code>Focus</code>, <code>Push</code>, <code>Pop</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L175-L215">runtime.go:175-215</a></td></tr>
 <tr><th scope="row"><code>ExecuteAt</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L216-L241">runtime.go:216-241</a></td></tr>
 <tr><th scope="row"><code>EffectiveBindings</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L297-L320">runtime.go:297-320</a></td></tr>
-<tr><th scope="row"><code>HandleBinding</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L322-L352">runtime.go:322-352</a></td></tr>
+<tr><th scope="row"><code>HandleBinding</code> and timeout delivery</th><td><a href="../bindings.go#L30-L152">bindings.go:30-152</a></td></tr>
 <tr><th scope="row"><code>push.modal</code> operation</th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L435-L443">runtime.go:435-443</a></td></tr>
 <tr><th scope="row"><code>Model.Update</code>, <code>dispatchKey</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L70-L160">model.go:70-160</a></td></tr>
 <tr><th scope="row">Default app bindings</th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L56-L66">model.go:56-66</a></td></tr>
@@ -625,8 +623,8 @@ history: ["g", "g"]   // newest first in the right-hand column</pre>
 <tr><th scope="row">Demo <code>next.input</code> handler</th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L77-L92">demo.go:77-92</a></td></tr>
 <tr><th scope="row">Demo <code>tab</code> and <code>ctrl+n</code> bindings</th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L135">demo.go:135</a>, <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L141-L142">141-142</a></td></tr>
 <tr><th scope="row"><code>OpenPage</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/pages.go#L50-L62">pages.go:50-62</a></td></tr>
-<tr><th scope="row"><code>keybindingModel.Update</code></th><td><a href="../cmd/ochazuke/keybinding.go#L38-L89">keybinding.go:38-89</a></td></tr>
-<tr><th scope="row"><code>installBinding</code></th><td><a href="../cmd/ochazuke/keybinding.go#L183-L201">keybinding.go:183-201</a></td></tr>
+<tr><th scope="row"><code>keybindingModel.Update</code> and key dispatch</th><td><a href="../cmd/ochazuke/keybinding.go#L39-L119">keybinding.go:39-119</a></td></tr>
+<tr><th scope="row"><code>installBinding</code></th><td><a href="../cmd/ochazuke/keybinding.go#L230-L256">keybinding.go:230-256</a></td></tr>
 </tbody>
 </table>
 </section>
@@ -636,64 +634,93 @@ history: ["g", "g"]   // newest first in the right-hand column</pre>
 
 <footer>
 <div class="wrap">
-<p>Source revision <code>c2790bc</code>. Back to the <a href="architecture.html">architecture overview</a> or the <a href="../README.md">README</a>. Snapshots and the stepper are illustrations, not captured program output.</p>
+<p>Published core <code>527d680</code>, with the local timed resolver. Back to the <a href="architecture.html">architecture overview</a> or the <a href="../README.md">README</a>. Snapshots and the stepper are illustrations, not captured program output.</p>
 </div>
 </footer>
 
 <script>
 (function () {
-  var BINDING = "g g";
+  // Illustration only: models the timed longest-match rules, not the Go code.
+  var BINDINGS = { "g": "single", "g g": "double", "g g g": "triple" };
   var pending = "";
+  var fallback = "";
   var $ = function (id) { return document.getElementById(id); };
   var q = function (s) { return '"' + s + '"'; };
+  var isComplete = function (s) { return Object.prototype.hasOwnProperty.call(BINDINGS, s); };
+  var hasLonger = function (s) {
+    return Object.keys(BINDINGS).some(function (b) { return b.indexOf(s + " ") === 0; });
+  };
 
-  function show(before, key, seq, after, msg) {
+  function show(before, key, seq, msg) {
     $("r-before").textContent = q(before);
     $("r-key").textContent = key;
     $("r-seq").textContent = seq === null ? "none" : q(seq);
-    $("r-after").textContent = q(after);
-    $("r-after").className = after ? "pend-on" : "";
+    $("r-fb").textContent = fallback ? q(fallback) + " (" + BINDINGS[fallback] + ")" : "none";
+    $("r-after").textContent = q(pending);
+    $("r-after").className = pending ? "pend-on" : "";
     $("log").textContent = msg;
   }
 
-  function press(key) {
+  function run(seq) { return "ACTION: " + BINDINGS[seq]; }
+
+  function press(key, retry) {
     var before = pending;
-    if (key === "esc" && pending !== "") {
-      pending = "";
-      show(before, "Esc", null, pending, "Pending was set, so Esc clears it and the key is handled. The sandbox shows: sequence cancelled.");
-      return;
-    }
     if (key === "esc") {
-      show(before, "Esc", null, pending, "Pending is empty. HandleBinding finds no match and returns handled = false.");
+      if (!pending) {
+        show(before, "Esc", null, "Nothing is deferred. Esc matches no binding, so handled = false.");
+        return;
+      }
+      pending = ""; fallback = "";
+      show(before, "Esc", null, "Esc cancels all deferred work: the pending keys, the fallback, and the timer. Nothing runs. The sandbox shows: sequence cancelled.");
       return;
     }
     var seq = pending ? pending + " " + key : key;
-    if (seq === BINDING) {
-      pending = "";
-      show(before, key, seq, pending, "Exact match. Pending clears and go-top.sandbox runs. The sandbox shows: ACTION: go-top.");
-    } else if ((BINDING + " ").indexOf(seq + " ") === 0) {
+    var complete = isComplete(seq), longer = hasLonger(seq);
+    if (complete && !longer) {
+      pending = ""; fallback = "";
+      show(before, key, seq, q(seq) + " is complete and nothing longer exists, so it runs now. " + run(seq) + ".");
+    } else if (complete) {
+      pending = seq; fallback = seq;
+      show(before, key, seq, q(seq) + " is complete but also a prefix of a longer binding. It becomes the fallback and the timer (re)starts. The sandbox shows: pending: " + seq + ".");
+    } else if (longer) {
       pending = seq;
-      show(before, key, seq, pending, "No exact match, but " + q(BINDING) + " starts with " + q(seq + " ") + ". Pending is stored. The sandbox shows: pending: " + seq + ". No timer runs.");
+      show(before, key, seq, q(seq) + " is not a binding but is a prefix. The timer refreshes; the fallback stays " + (fallback ? q(fallback) : "empty") + ".");
+    } else if (fallback) {
+      var fb = fallback;
+      pending = ""; fallback = "";
+      show(before, key, seq, "Mismatch for " + q(seq) + ". The fallback " + q(fb) + " runs and the mismatching key " + q(key) + " is consumed. " + run(fb) + ".");
     } else if (before) {
       pending = "";
-      var again = key;
-      if ((BINDING + " ").indexOf(again + " ") === 0) {
-        pending = again;
-        show(before, key, seq, pending, "Mismatch for " + q(seq) + ". Pending clears and " + q(key) + " retries alone. It starts a new prefix.");
-      } else {
-        show(before, key, seq, pending, "Mismatch for " + q(seq) + ". Pending clears and " + q(key) + " retries alone. It matches nothing, so handled = false.");
-      }
+      press(key, true);
+    } else if (retry) {
+      show(before, key, seq, "Mismatch with no completed fallback. " + q(key) + " retries alone and matches nothing, so handled = false.");
     } else {
-      show(before, key, seq, pending, "No exact match, no prefix match, nothing pending. handled = false. The sandbox shows: unmatched.");
+      show(before, key, seq, "No binding and no prefix match, nothing deferred. handled = false. The sandbox shows: unmatched.");
+    }
+  }
+
+  function timeout() {
+    var before = pending;
+    if (!pending) {
+      show(before, "timeout", null, "No timer is running, so nothing happens. A stale timer event is ignored the same way.");
+      return;
+    }
+    var fb = fallback;
+    pending = ""; fallback = "";
+    if (fb) {
+      show(before, "timeout", null, "Timeout. The fallback " + q(fb) + " runs. " + run(fb) + ".");
+    } else {
+      show(before, "timeout", null, "Timeout on a pure prefix. It clears and nothing runs. The sandbox shows: sequence timed out.");
     }
   }
 
   $("b-g").addEventListener("click", function () { press("g"); });
   $("b-x").addEventListener("click", function () { press("x"); });
   $("b-esc").addEventListener("click", function () { press("esc"); });
+  $("b-timeout").addEventListener("click", timeout);
   $("b-reset").addEventListener("click", function () {
-    pending = "";
-    show("", "none", null, "", "Reset. Press g to start. Nothing has happened yet.");
+    pending = ""; fallback = "";
+    show("", "none", null, "Reset. Press g to start. Nothing has happened yet.");
   });
 })();
 </script>

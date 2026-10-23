@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/filepicker"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -47,45 +48,86 @@ func (m *keybindingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	if key, ok := msg.(tea.KeyMsg); ok && key.String() == "f2" {
 		m.sandbox = false
-		m.runtime.Pending = ""
+		if m.runtime != nil {
+			m.runtime.CancelPendingBinding()
+		}
 		return m, nil
 	}
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
+	case ochazuke.BindingTimeoutMsg:
+		m.handleTimeout(msg)
 	case tea.KeyMsg:
-		if msg.Type == tea.KeyRunes && !msg.Paste && !msg.Alt && len(msg.Runes) > 1 {
-			for i := range msg.Runes {
-				key := msg
-				key.Runes = msg.Runes[i : i+1]
-				m.Update(key)
-			}
-			return m, nil
-		}
-		m.history[m.count%keyHistorySize] = msg.String()
-		m.count++
-		index := (m.count - 1) % keyHistorySize
-		m.results[index] = "unmatched"
-		if msg.Type == tea.KeyCtrlC {
-			return m, tea.Quit
-		}
-		if msg.Paste {
-			m.results[index] = "paste (not dispatched)"
-			return m, nil
-		}
-		if m.runtime != nil {
-			handled, err := m.runtime.HandleBinding(msg.String())
-			switch {
-			case err != nil:
-				m.results[index] = "error: " + err.Error()
-			case m.runtime.Pending != "":
-				m.results[index] = "pending: " + m.runtime.Pending
-			case handled && m.results[index] == "unmatched":
-				m.results[index] = "sequence cancelled"
-			}
-		}
+		return m, m.handleKey(msg)
 	}
 	return m, nil
+}
+
+// handleKey records one key and returns the commands (quit or timer) it needs.
+// A multi-rune message is split into single keys whose commands are batched.
+func (m *keybindingModel) handleKey(msg tea.KeyMsg) tea.Cmd {
+	if msg.Type == tea.KeyRunes && !msg.Paste && !msg.Alt && len(msg.Runes) > 1 {
+		cmds := make([]tea.Cmd, 0, len(msg.Runes))
+		for i := range msg.Runes {
+			key := msg
+			key.Runes = msg.Runes[i : i+1]
+			cmds = append(cmds, m.handleKey(key))
+		}
+		return tea.Batch(cmds...)
+	}
+	m.history[m.count%keyHistorySize] = msg.String()
+	m.count++
+	index := (m.count - 1) % keyHistorySize
+	m.results[index] = "unmatched"
+	if msg.Type == tea.KeyCtrlC {
+		return tea.Quit
+	}
+	if msg.Paste {
+		m.results[index] = "paste (not dispatched)"
+		return nil
+	}
+	if m.runtime == nil {
+		return nil
+	}
+	handled, err := m.runtime.HandleBinding(msg.String())
+	switch {
+	case err != nil:
+		m.results[index] = "error: " + err.Error()
+	case m.runtime.Pending != "":
+		m.results[index] = "pending: " + m.runtime.Pending
+	case handled && m.results[index] == "unmatched":
+		m.results[index] = "sequence cancelled"
+	}
+	return m.runtime.BindingTimeoutCommand()
+}
+
+// handleTimeout resolves a deferred sequence in the last key row. Stale
+// events leave history and outcomes untouched.
+func (m *keybindingModel) handleTimeout(msg ochazuke.BindingTimeoutMsg) {
+	if m.runtime == nil || m.count == 0 {
+		return
+	}
+	index := (m.count - 1) % keyHistorySize
+	handled, err := m.runtime.HandleBindingTimeout(msg)
+	switch {
+	case err != nil:
+		m.results[index] = "error: " + err.Error()
+	case handled && strings.HasPrefix(m.results[index], "pending: "):
+		m.results[index] = "sequence timed out"
+	}
+}
+
+// parseBindingTimeout parses a positive duration such as 400ms or 1s.
+func parseBindingTimeout(value string) (time.Duration, error) {
+	d, err := time.ParseDuration(strings.TrimSpace(value))
+	if err != nil {
+		return 0, fmt.Errorf("timeout must be a duration such as 400ms or 1s")
+	}
+	if d <= 0 {
+		return 0, fmt.Errorf("timeout must be greater than zero")
+	}
+	return d, nil
 }
 
 func (m *keybindingModel) View() string {
@@ -105,7 +147,7 @@ func (m *keybindingModel) View() string {
 		left = append(left, "", m.results[(m.count-1)%keyHistorySize])
 	}
 	if m.runtime != nil {
-		left = append(left, "", "DEFINED BINDINGS")
+		left = append(left, "", "Timeout: "+m.runtime.BindingTimeout.String(), "", "DEFINED BINDINGS")
 		for _, binding := range m.runtime.EffectiveBindings(m.runtime.Context()) {
 			left = append(left, binding.Keys+" → "+binding.Request.Verb)
 		}
@@ -137,6 +179,7 @@ func runKeybinding(args []string) error {
 	m := &keybindingModel{width: 80, height: 24, runtime: ochazuke.NewRuntime(), editing: -1}
 	flags := flag.NewFlagSet("keybinding", flag.ContinueOnError)
 	config := flags.String("bindings", "", "JSON bindings file to load into setup")
+	timeout := flags.Duration("timeout", 400*time.Millisecond, "Wait for a longer key sequence before running the longest completed binding (not saved in JSON)")
 	var overrides []string
 	flags.Func("bind", "Dummy binding KEYS=ACTION; overrides matching config keys", func(spec string) error {
 		overrides = append(overrides, spec)
@@ -149,8 +192,12 @@ func runKeybinding(args []string) error {
 		return err
 	}
 	if flags.NArg() != 0 {
-		return fmt.Errorf("usage: ochazuke keybinding [--bindings FILE] [--bind 'KEYS=ACTION']...")
+		return fmt.Errorf("usage: ochazuke keybinding [--bindings FILE] [--timeout DURATION] [--bind 'KEYS=ACTION']...")
 	}
+	if *timeout <= 0 {
+		return fmt.Errorf("--timeout must be greater than zero")
+	}
+	m.runtime.BindingTimeout = *timeout
 	if *config != "" {
 		if err := m.importBindings(*config); err != nil {
 			return fmt.Errorf("loading bindings: %w", err)
@@ -182,20 +229,42 @@ func (m *keybindingModel) addBinding(spec string) error {
 
 func (m *keybindingModel) installBinding(spec sandboxBinding) {
 	keys, action := strings.Join(strings.Fields(spec.Keys), " "), strings.TrimSpace(spec.Action)
-	m.runtime.Register(ochazuke.Operation{
+	op := ochazuke.Operation{
 		Verb: action, Noun: "sandbox",
 		Run: func(_ *ochazuke.Runtime, _ ochazuke.Context, _ ochazuke.Arguments) (any, error) {
 			m.results[(m.count-1)%keyHistorySize] = "ACTION: " + action
 			return action, nil
 		},
-	})
+	}
+	if _, exists := m.runtime.Operations[op.Key()]; !exists {
+		m.runtime.Register(op)
+	}
 	layer := m.runtime.Layers["app"]
 	binding := ochazuke.Binding{Keys: keys, Request: ochazuke.Request{Verb: action, Noun: "sandbox"}}
+	replaced := false
 	for i, existing := range layer.Bindings {
 		if existing.Keys == keys {
 			layer.Bindings[i] = binding
-			return
+			replaced = true
+			break
 		}
 	}
-	layer.Bindings = append(layer.Bindings, binding)
+	if !replaced {
+		layer.Bindings = append(layer.Bindings, binding)
+	}
+	m.pruneOperations()
+}
+
+// pruneOperations drops sandbox operations no binding refers to anymore, so
+// replacing a binding does not leave its old action registered.
+func (m *keybindingModel) pruneOperations() {
+	used := map[string]bool{}
+	for _, b := range m.runtime.Layers["app"].Bindings {
+		used[ochazuke.Operation{Verb: b.Request.Verb, Noun: b.Request.Noun}.Key()] = true
+	}
+	for key, op := range m.runtime.Operations {
+		if op.Noun == "sandbox" && !used[key] {
+			delete(m.runtime.Operations, key)
+		}
+	}
 }
