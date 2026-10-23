@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ochazuke keybinding explorer</title>
+<style>
+  :root {
+    --bg: #020617; --grid: #1e293b; --text: #ffffff; --muted: #94a3b8; --dim: #64748b;
+    --panel: rgba(15,23,42,.55); --panel-solid: #0f172a; --border: #1e293b; --border-strong: #334155;
+    --cyan: #22d3ee; --cyan-fill: rgba(8,51,68,.45);
+    --green: #34d399; --green-fill: rgba(6,78,59,.45);
+    --arrow: #64748b; --code-bg: #01040f; --hl: rgba(34,211,238,.13); --hl-strong: rgba(52,211,153,.2);
+    --fn: rgba(148,163,184,.07);
+    --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  [data-theme="light"] {
+    --bg: #f8fafc; --grid: #e2e8f0; --text: #0f172a; --muted: #475569; --dim: #64748b;
+    --panel: rgba(255,255,255,.8); --panel-solid: #ffffff; --border: #cbd5e1; --border-strong: #94a3b8;
+    --cyan: #0e7490; --cyan-fill: rgba(207,250,254,.7);
+    --green: #047857; --green-fill: rgba(209,250,229,.8);
+    --arrow: #64748b; --code-bg: #f1f5f9; --hl: rgba(14,116,144,.14); --hl-strong: rgba(4,120,87,.2);
+    --fn: rgba(15,23,42,.04);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 13px; line-height: 1.5;
+    background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 40px 40px; background-position: -1px -1px;
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
+  a { color: var(--cyan); }
+  button { font-family: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+
+  header { padding: 14px 20px 10px; background: var(--bg); border-bottom: 1px solid var(--border); }
+  .top { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
+  h1 { margin: 0; font-size: 16px; letter-spacing: .04em; }
+  h1 .acc { color: var(--cyan); }
+  .links { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: 12px; }
+  .btn { background: var(--panel-solid); border: 1px solid var(--border-strong); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 12px; }
+  .btn:hover:not(:disabled) { border-color: var(--cyan); }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .note { margin: 8px 0 0; color: var(--muted); font-size: 11.5px; overflow-wrap: anywhere; }
+  .note code { color: var(--green); }
+  .meta { color: var(--dim); }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 10px; }
+  .flows { display: flex; flex-wrap: wrap; gap: 8px; }
+  .flow-btn { background: var(--panel); border: 1px solid var(--border-strong); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+  .flow-btn[aria-pressed="true"] { border-color: var(--cyan); background: var(--cyan-fill); color: var(--cyan); font-weight: 600; }
+  .stepper { display: flex; gap: 6px; align-items: center; margin-left: auto; }
+  .status { color: var(--muted); font-size: 12px; }
+  .status b.pv { color: var(--cyan); } .status b.pn { color: var(--green); }
+
+  main { flex: 1; display: grid; grid-template-columns: minmax(0, 40fr) minmax(0, 60fr); gap: 16px; padding: 16px 20px 20px; min-height: 0; height: calc(100vh - 150px); min-height: 460px; }
+  .pane { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; min-height: 0; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .pane > h2 { margin: 0; padding: 8px 14px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); font-weight: 600; }
+  .scroll { overflow: auto; min-height: 0; flex: 1; }
+
+  /* graph */
+  #graph { list-style: none; margin: 0; padding: 14px 16px 18px; }
+  #flow-desc { margin: 0 0 12px; color: var(--muted); font-size: 12px; }
+  .step { position: relative; }
+  .node {
+    display: block; width: 100%; text-align: left; cursor: pointer; padding: 9px 12px;
+    background: var(--cyan-fill); border: 1.5px solid var(--cyan); border-radius: 8px; position: relative;
+  }
+  .node .n { color: var(--dim); margin-right: 6px; }
+  .node .t { font-weight: 600; overflow-wrap: anywhere; }
+  .node .m { display: block; color: var(--muted); font-size: 11px; margin-top: 1px; overflow-wrap: anywhere; }
+  .step.on-path .node { box-shadow: 0 0 0 1px rgba(34,211,238,.25); }
+  .step:not(.on-path) .node { border-color: var(--border-strong); background: var(--panel); }
+  .step.pinned .node { background: var(--green-fill); border-color: var(--green); opacity: 1; box-shadow: 0 0 14px rgba(52,211,153,.25); }
+  .step.pinned .node .n { color: var(--green); }
+  .step.preview .node { border-style: dashed; border-color: var(--cyan); opacity: 1; background: var(--cyan-fill); }
+  .step.pinned.preview .node { border-style: solid; }
+  .edge { display: flex; gap: 10px; align-items: stretch; padding-left: 22px; min-height: 40px; }
+  .edge svg { flex: none; width: 14px; height: auto; min-height: 40px; overflow: visible; }
+  .edge .line { stroke: var(--border-strong); stroke-width: 2; }
+  .edge .head { fill: var(--border-strong); }
+  .edge.lit .line { stroke: var(--green); } .edge.lit .head { fill: var(--green); }
+  .edge .lbl { align-self: center; padding: 3px 0; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+  .edge.lit .lbl { color: var(--muted); }
+
+  /* source */
+  #src-head { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  #src-title { margin: 0; font-size: 15px; color: var(--green); overflow-wrap: anywhere; }
+  #src-sub { margin: 2px 0 6px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+  #src-sub .mod { color: var(--cyan); }
+  #src-detail { margin: 0; font-size: 12.5px; overflow-wrap: anywhere; }
+  #src-state { display: inline-block; margin-bottom: 6px; padding: 1px 8px; border-radius: 999px; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; border: 1px solid var(--cyan); color: var(--cyan); }
+  #src-state.pinned { border-color: var(--green); color: var(--green); }
+  #code { background: var(--code-bg); }
+  #code-table { border-collapse: collapse; width: max-content; min-width: 100%; font-size: 12.5px; }
+  #code-table td { padding: 0; vertical-align: top; }
+  .ln { position: sticky; left: 0; background: var(--code-bg); width: 1%; min-width: 52px; padding: 0 10px 0 12px !important; text-align: right; color: var(--dim); user-select: none; border-right: 1px solid var(--border); }
+  .src { padding: 0 16px 0 12px !important; white-space: pre; tab-size: 4; user-select: text; }
+  tr.fn td.src { background: var(--fn); }
+  tr.hl td.src { background: var(--hl); box-shadow: inset 3px 0 0 var(--cyan); }
+  tr.hl .ln { color: var(--green); font-weight: 700; background: var(--hl-strong); }
+  #empty { padding: 20px; color: var(--muted); }
+
+  footer { padding: 0 20px 14px; color: var(--dim); font-size: 11px; overflow-wrap: anywhere; }
+  footer details summary { cursor: pointer; }
+  footer ul { margin: 4px 0 0; padding-left: 18px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+  @media (max-width: 860px) {
+    main { display: block; height: auto; padding: 12px; }
+    .pane { margin-bottom: 14px; }
+    #graph-scroll { max-height: 40vh; overflow: auto; flex: none; }
+    #code { overflow-x: auto; max-height: 70vh; overflow-y: auto; }
+    .stepper { margin-left: 0; }
+    header { padding: 12px; } footer { padding: 0 12px 14px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <h1><span class="acc">ochazuke</span> / keybinding explorer</h1>
+    <div class="links">
+      <a href="keybinding-walkthrough.html">original walkthrough</a>
+      <a href="architecture-map.html">architecture map</a>
+      <button class="btn" id="theme" type="button" aria-pressed="false">light mode</button>
+    </div>
+  </div>
+  <p class="note">Static source snapshot, not a debugger and not runtime instrumentation: each flow is a hand-mapped path through real source. Rebuild with <code>python3 docs/keybinding-explorer/generate.py</code>. <span class="meta">Snapshot <span id="hash" title=""></span></span></p>
+  <div class="controls">
+    <div class="flows" id="flows" role="group" aria-label="Flow"></div>
+    <div class="stepper">
+      <button class="btn" id="prev" type="button">&larr; prev</button>
+      <button class="btn" id="next" type="button">next &rarr;</button>
+    </div>
+  </div>
+  <div class="status" id="status" role="status" aria-live="polite"></div>
+</header>
+
+<main>
+  <section class="pane" aria-label="Execution graph">
+    <h2>Execution path · hover to preview, click to pin</h2>
+    <div class="scroll" id="graph-scroll">
+      <div style="padding:14px 16px 0"><p id="flow-desc"></p></div>
+      <ol id="graph" style="padding-top:0"></ol>
+    </div>
+  </section>
+  <section class="pane" aria-label="Source">
+    <h2>Source</h2>
+    <div id="src-head">
+      <span id="src-state">preview</span>
+      <h3 id="src-title"></h3>
+      <p id="src-sub"></p>
+      <p id="src-detail"></p>
+    </div>
+    <div class="scroll" id="code" tabindex="0" aria-label="Source excerpt">
+      <table id="code-table"><tbody id="code-body"></tbody></table>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <details><summary>Source files in this snapshot</summary><ul id="files"></ul></details>
+</footer>
+
+<script id="trace-data" type="application/json">__TRACE_DATA__</script>
+<script>
+(function () {
+  "use strict";
+  var DATA = JSON.parse(document.getElementById("trace-data").textContent);
+  var $ = function (id) { return document.getElementById(id); };
+  var NS = "http://www.w3.org/2000/svg";
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  var flowIdx = 0, pinned = 0, hover = null;
+  var stepEls = [], edgeEls = [];
+
+  function flow() { return DATA.flows[flowIdx]; }
+  function shownIdx() { return hover != null ? hover : pinned; }
+
+  // header
+  $("hash").textContent = String(DATA.sourceHash).slice(0, 12);
+  $("hash").title = "sourceHash " + DATA.sourceHash;
+  DATA.files.forEach(function (f) {
+    var li = el("li");
+    var a = el("a", null, f.path); a.href = "../" + f.path;
+    li.appendChild(a);
+    li.appendChild(document.createTextNode("  sha256 " + String(f.sha256).slice(0, 12)));
+    $("files").appendChild(li);
+  });
+
+  // theme
+  $("theme").addEventListener("click", function () {
+    var light = document.documentElement.getAttribute("data-theme") !== "light";
+    document.documentElement.setAttribute("data-theme", light ? "light" : "dark");
+    $("theme").setAttribute("aria-pressed", String(light));
+    $("theme").textContent = light ? "dark mode" : "light mode";
+  });
+
+  // flow buttons
+  var flowBtns = DATA.flows.map(function (f, i) {
+    var b = el("button", "flow-btn", f.label);
+    b.type = "button"; b.dataset.flow = f.id;
+    b.addEventListener("click", function () { selectFlow(i); });
+    $("flows").appendChild(b);
+    return b;
+  });
+
+  function svgArrow() {
+    var s = document.createElementNS(NS, "svg");
+    s.setAttribute("viewBox", "0 0 14 40"); s.setAttribute("preserveAspectRatio", "none");
+    s.setAttribute("aria-hidden", "true");
+    var l = document.createElementNS(NS, "line");
+    l.setAttribute("class", "line"); l.setAttribute("x1", "7"); l.setAttribute("x2", "7");
+    l.setAttribute("y1", "0"); l.setAttribute("y2", "30"); l.setAttribute("vector-effect", "non-scaling-stroke");
+    var h = document.createElementNS(NS, "path");
+    h.setAttribute("class", "head"); h.setAttribute("d", "M1 28 L13 28 L7 40 Z");
+    s.appendChild(l); s.appendChild(h);
+    return s;
+  }
+
+  function buildGraph() {
+    var g = $("graph"), f = flow();
+    g.textContent = "";
+    stepEls = []; edgeEls = [];
+    $("flow-desc").textContent = f.description;
+    f.steps.forEach(function (s, i) {
+      var li = el("li", "step");
+      li.dataset.step = s.id;
+      var b = el("button", "node");
+      b.type = "button";
+      b.setAttribute("aria-pressed", "false");
+      var line = el("span");
+      line.appendChild(el("span", "n", String(i + 1).padStart(2, "0")));
+      line.appendChild(el("span", "t", s.title));
+      b.appendChild(line);
+      b.appendChild(el("span", "m", s.module + ":" + s.start + "-" + s.end));
+      b.addEventListener("click", function () { pin(i); });
+      b.addEventListener("mouseenter", function () { preview(i); });
+      b.addEventListener("mouseleave", function () { unpreview(i); });
+      b.addEventListener("focus", function () { preview(i); });
+      b.addEventListener("blur", function () { unpreview(i); });
+      li.appendChild(b);
+      g.appendChild(li);
+      stepEls.push(li);
+      if (i < f.steps.length - 1) {
+        var ed = el("li", "edge");
+        ed.appendChild(svgArrow());
+        ed.appendChild(el("span", "lbl", s.edge));
+        g.appendChild(ed);
+        edgeEls.push(ed);
+      }
+    });
+  }
+
+  function renderGraphState() {
+    var sh = shownIdx();
+    stepEls.forEach(function (li, i) {
+      li.classList.toggle("pinned", i === pinned);
+      li.classList.toggle("preview", hover != null && i === hover);
+      li.classList.toggle("on-path", i <= sh);
+      li.firstChild.setAttribute("aria-pressed", String(i === pinned));
+    });
+    edgeEls.forEach(function (ed, i) { ed.classList.toggle("lit", i < sh); });
+  }
+
+  var lastRendered = null;
+  function renderSource(scroll) {
+    var f = flow(), idx = shownIdx(), s = f.steps[idx];
+    var key = flowIdx + ":" + idx;
+    var isPinned = hover == null || hover === pinned;
+    var st = $("src-state");
+    st.textContent = isPinned ? "pinned" : "preview";
+    st.className = isPinned ? "pinned" : "";
+    $("status").textContent = "";
+    var sp = el("span");
+    sp.appendChild(document.createTextNode("Step " + (idx + 1) + "/" + f.steps.length + " shown ("));
+    sp.appendChild(el("b", isPinned ? "pn" : "pv", isPinned ? "pinned" : "preview"));
+    sp.appendChild(document.createTextNode(")"));
+    if (!isPinned) {
+      sp.appendChild(document.createTextNode("; pinned is step " + (pinned + 1) + " - click a node to pin"));
+    }
+    $("status").appendChild(sp);
+
+    if (key === lastRendered) { return; }
+    lastRendered = key;
+
+    $("src-title").textContent = s.title;
+    var sub = $("src-sub"); sub.textContent = "";
+    sub.appendChild(el("span", "mod", s.module));
+    sub.appendChild(document.createTextNode("  "));
+    var a = el("a", null, s.file + ":" + s.start + "-" + s.end);
+    a.href = "../" + s.file;
+    sub.appendChild(a);
+    sub.appendChild(document.createTextNode("  highlight " + s.highlight[0] +
+      (s.highlight[1] !== s.highlight[0] ? "-" + s.highlight[1] : "")));
+    $("src-detail").textContent = s.detail;
+
+    var body = $("code-body"); body.textContent = "";
+    var lines = s.code.split("\n");
+    var firstHl = null;
+    lines.forEach(function (text, k) {
+      var n = s.start + k;
+      var tr = el("tr", "fn");
+      if (n >= s.highlight[0] && n <= s.highlight[1]) {
+        tr.className = "hl";
+        if (!firstHl) firstHl = tr;
+      }
+      tr.appendChild(el("td", "ln", String(n)));
+      tr.appendChild(el("td", "src", text === "" ? " " : text));
+      body.appendChild(tr);
+    });
+    var box = $("code");
+    box.scrollLeft = 0;
+    box.scrollTop = 0;
+    if (firstHl) {
+      // scroll only the code box, never the page
+      var top = firstHl.offsetTop - Math.max(0, (box.clientHeight - 24) / 3);
+      box.scrollTop = Math.max(0, top);
+    }
+  }
+
+  function keepNodeVisible(i) {
+    var sc = $("graph-scroll"), li = stepEls[i];
+    if (!li || sc.scrollHeight <= sc.clientHeight) return;
+    var top = li.offsetTop - sc.offsetTop, bottom = top + li.offsetHeight;
+    if (top < sc.scrollTop + 8) sc.scrollTop = Math.max(0, top - 40);
+    else if (bottom > sc.scrollTop + sc.clientHeight - 8) sc.scrollTop = bottom - sc.clientHeight + 40;
+  }
+
+  function render() {
+    renderGraphState();
+    renderSource();
+    $("prev").disabled = pinned <= 0;
+    $("next").disabled = pinned >= flow().steps.length - 1;
+  }
+
+  function preview(i) { hover = i; render(); }
+  function unpreview(i) { if (hover === i) { hover = null; render(); } }
+  function pin(i) { pinned = i; hover = null; render(); keepNodeVisible(i); }
+
+  function selectFlow(i) {
+    flowIdx = i; pinned = 0; hover = null; lastRendered = null;
+    flowBtns.forEach(function (b, k) { b.setAttribute("aria-pressed", String(k === i)); });
+    buildGraph();
+    render();
+    $("graph-scroll").scrollTop = 0;
+  }
+
+  function step(d) {
+    var n = pinned + d;
+    if (n < 0 || n >= flow().steps.length) return;
+    pin(n);
+  }
+  $("prev").addEventListener("click", function () { step(-1); });
+  $("next").addEventListener("click", function () { step(1); });
+  document.addEventListener("keydown", function (e) {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    var t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || (t.closest && t.closest("#code")))) return;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown" && t && t.classList && t.classList.contains("node")) {
+      e.preventDefault(); step(1);
+      var b = stepEls[pinned] && stepEls[pinned].firstChild; if (b && t.classList && t.classList.contains("node")) b.focus({ preventScroll: true });
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp" && t && t.classList && t.classList.contains("node")) {
+      e.preventDefault(); step(-1);
+      var b2 = stepEls[pinned] && stepEls[pinned].firstChild; if (b2 && t.classList && t.classList.contains("node")) b2.focus({ preventScroll: true });
+    }
+  });
+
+  selectFlow(0);
+})();
+</script>
+</body>
+</html>
