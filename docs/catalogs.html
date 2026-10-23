@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ochazuke · source catalogs</title>
+<style>
+:root{--paper:#f3f0e7;--card:#fcfaf4;--ink:#24382f;--muted:#626960;--line:#cccfc0;--green:#284e3c;--accent:#a63d27}*{box-sizing:border-box}html{scroll-padding-top:24px}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.65 "Avenir Next",Avenir,"Segoe UI",sans-serif}main,header,footer{max-width:1200px;margin:auto;padding:28px}a{color:var(--green);text-underline-offset:4px}h1,h2{font-family:Palatino,Georgia,serif;font-weight:400;line-height:1.1;letter-spacing:-.035em}h1{font-size:clamp(44px,7vw,80px);margin:24px 0}h2{font-size:38px}h3{font-size:19px;margin:0}nav{display:flex;flex-wrap:wrap;gap:24px}section{padding:40px 0;border-top:1px solid var(--line)}.eyebrow,small{color:var(--muted)}.eyebrow{text-transform:uppercase;letter-spacing:.15em;font-size:12px}.toolbar{padding:24px 0}label{display:block;font-weight:600}input{width:100%;max-width:680px;padding:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit}a:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:4px}.entry{background:var(--card);border:1px solid var(--line);padding:20px;margin:14px 0}.entry>p:last-child{margin-bottom:0}summary{cursor:pointer;overflow-wrap:anywhere}summary small{margin-left:12px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#e4e9da;padding:16px;font-size:13px}code{font-family:Menlo,Consolas,monospace;font-size:.9em;overflow-wrap:anywhere}table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;vertical-align:top;padding:10px;border-bottom:1px solid var(--line);overflow-wrap:anywhere}.table-scroll{overflow-x:auto}td pre{margin:0;min-width:220px}th{color:var(--muted)}.count{font-family:Menlo,monospace;font-size:14px;color:var(--muted)}[hidden]{display:none!important}@media(max-width:600px){main,header,footer{padding:20px}.entry{padding:14px}nav{gap:14px}}
+#bindings table{min-width:680px}#bindings th:nth-child(-n+3),#bindings td:nth-child(-n+3){white-space:nowrap}
+</style></head><body>
+<header><a href="architecture.html">← Architecture field guide</a><p class="eyebrow">Ochazuke / generated reference</p><h1>Look up the contract.</h1><p>Actions and bindings come from a fresh <code>NewDemo()</code>. Go declarations and comments come from the package source through Go's standard <code>go/doc</code> library. This is a build-time snapshot, not your running application's customized registry.</p><nav aria-label="Catalogs"><a href="#actions">Actions (68)</a><a href="#bindings">Default bindings (61)</a><a href="#api">Go API (85)</a><a href="#transport">CLI &amp; socket</a></nav>
+<div class="toolbar"><label for="search">Search all catalogs</label><input id="search" type="search" placeholder="Try undo, ctrl+n, picker, or Runtime.Execute" autocomplete="off"><p id="matches" role="status"></p></div>
+<noscript>All entries are available below. Search requires JavaScript.</noscript></header>
+<main><section id="actions"><p class="eyebrow">01 / Runtime operations</p><h2>Actions <span class="count">68</span></h2><p>Identifiers use <code>verb.noun</code>; CLI arguments use <code>NOUN VERB</code>. The registration column distinguishes framework operations from demo additions. Parameters below are the registry's declared schema; descriptions and result labels are verbatim, not inferred defaults. Context and value constraints can still reject a well-typed request.</p>
+<details class="entry searchable"><summary><code>back.palette</code> <small>NewModel</small> · Leave search, go back one level, or cancel at the root</summary><p>CLI: <code>ochazuke palette back</code> · Result: <code>palette state</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>begin.input</code> <small>NewRuntime</small> · Enter insert mode at insert/append/first/end/below/above</summary><p>CLI: <code>ochazuke input begin</code> · Result: <code>input state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>position</code></td><td>string</td><td>No</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>cancel.input</code> <small>NewRuntime</small> · Cancel this input&#39;s count and pending motion</summary><p>CLI: <code>ochazuke input cancel</code> · Result: <code>input state</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>choose.picker</code> <small>NewPicker</small> · Confirm highlighted path, or explicitly choose current root</summary><p>CLI: <code>ochazuke picker choose</code> · Result: <code>picker state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>current</code></td><td>boolean</td><td>No</td><td>Choose current root instead of the highlight (any/dir only)</td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>clear.palette-argument</code> <small>NewModel</small> · Omit an argument from the selected operation</summary><p>CLI: <code>ochazuke palette-argument clear</code> · Result: <code>palette state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>name</code></td><td>string</td><td>Yes</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>close.palette</code> <small>NewModel</small> · Cancel the palette without executing</summary><p>CLI: <code>ochazuke palette close</code> · Result: <code>palette state</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>close.picker</code> <small>NewPicker</small> · Cancel the picker without changing its originating input</summary><p>CLI: <code>ochazuke picker close</code> · Result: <code>picker state</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>complete.picker</code> <small>NewPicker</small> · Complete the highlighted path without confirming it</summary><p>CLI: <code>ochazuke picker complete</code> · Result: <code>picker state</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>cycle.density</code> <small>NewDemo</small> · Toggle comfortable and compact spacing</summary><p>CLI: <code>ochazuke density cycle</code> · Result: <code>JSON value</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>cycle.theme</code> <small>NewDemo</small> · Cycle through the available default themes</summary><p>CLI: <code>ochazuke theme cycle</code> · Result: <code>JSON value</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>delete.input</code> <small>NewRuntime</small> · Delete forward/backward runes without crossing a normal-mode line</summary><p>CLI: <code>ochazuke input delete</code> · Result: <code>input state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>direction</code></td><td>string</td><td>No</td><td></td></tr><tr><td><code>steps</code></td><td>integer</td><td>No</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>delete.palette</code> <small>NewModel</small> · Delete the last search or argument character, or go back</summary><p>CLI: <code>ochazuke palette delete</code> · Result: <code>palette state</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>descend.picker</code> <small>NewPicker</small> · Enter the highlighted directory without selecting files</summary><p>CLI: <code>ochazuke picker descend</code> · Result: <code>picker state</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>enter.picker</code> <small>NewPicker</small> · Enter the highlighted directory or select a file</summary><p>CLI: <code>ochazuke picker enter</code> · Result: <code>picker state</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>execute.palette</code> <small>NewModel</small> · Execute the selected operation in the context captured on open</summary><p>CLI: <code>ochazuke palette execute</code> · Result: <code>palette state</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>focus.input</code> <small>NewRuntime</small> · Focus a registered input</summary><p>CLI: <code>ochazuke input focus</code> · Result: <code>context</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>id</code></td><td>string</td><td>Yes</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>get.appearance</code> <small>NewModel</small> · Get theme and density</summary><p>CLI: <code>ochazuke appearance get</code> · Result: <code>appearance</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>get.register</code> <small>NewRuntime</small> · Inspect a shared register</summary><p>CLI: <code>ochazuke register get</code> · Result: <code>editor state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>name</code></td><td>string</td><td>No</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>get.state</code> <small>NewRuntime</small> · Inspect public state using a JSON Pointer</summary><p>CLI: <code>ochazuke state get</code> · Result: <code>JSON value</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>path</code></td><td>string</td><td>No</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>insert.input</code> <small>NewRuntime</small> · Insert literal text at the rune cursor</summary><p>CLI: <code>ochazuke input insert</code> · Result: <code>input state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>text</code></td><td>string</td><td>Yes</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>insert.palette</code> <small>NewModel</small> · Append text to palette search or the focused argument</summary><p>CLI: <code>ochazuke palette insert</code> · Result: <code>palette state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>text</code></td><td>string</td><td>Yes</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>inspect.selection</code> <small>NewDemo</small> · Report the innermost layer handling this action</summary><p>CLI: <code>ochazuke selection inspect</code> · Result: <code>JSON value</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>kill.input</code> <small>NewRuntime</small> · Kill preceding WORD/path component or line into shared yank history</summary><p>CLI: <code>ochazuke input kill</code> · Result: <code>editor state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>motion</code></td><td>string</td><td>Yes</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>list.bindings</code> <small>NewRuntime</small> · List effective bindings for the current context</summary><p>CLI: <code>ochazuke bindings list</code> · Result: <code>binding[]</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>list.modes</code> <small>NewRuntime</small> · List registered interaction modes</summary><p>CLI: <code>ochazuke modes list</code> · Result: <code>string[]</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>list.operations</code> <small>NewRuntime</small> · List registered verbs, nouns, and argument schemas</summary><p>CLI: <code>ochazuke operations list</code> · Result: <code>operation[]</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>list.pages</code> <small>NewRuntime</small> · List pages in registration order</summary><p>CLI: <code>ochazuke pages list</code> · Result: <code>page[]</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>list.themes</code> <small>NewModel</small> · List available themes</summary><p>CLI: <code>ochazuke themes list</code> · Result: <code>string[]</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>move.input</code> <small>NewRuntime</small> · Move by left/right/up/down, Vim word-forward/backward/end, Readline word-next/previous, line-start/end, first-line/last-line</summary><p>CLI: <code>ochazuke input move</code> · Result: <code>input state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>line</code></td><td>integer</td><td>No</td><td></td></tr><tr><td><code>motion</code></td><td>string</td><td>Yes</td><td></td></tr><tr><td><code>steps</code></td><td>integer</td><td>No</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>move.palette</code> <small>NewModel</small> · Move the palette selection or argument focus</summary><p>CLI: <code>ochazuke palette move</code> · Result: <code>palette state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>delta</code></td><td>integer</td><td>Yes</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>move.picker</code> <small>NewPicker</small> · Move the highlighted result without editing the path</summary><p>CLI: <code>ochazuke picker move</code> · Result: <code>picker state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>delta</code></td><td>integer</td><td>Yes</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>move.yank-history</code> <small>NewRuntime</small> · Move the yank-history selection</summary><p>CLI: <code>ochazuke yank-history move</code> · Result: <code>yank history state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>steps</code></td><td>integer</td><td>Yes</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>next.input</code> <small>NewDemo</small> · Cycle playground field focus</summary><p>CLI: <code>ochazuke input next</code> · Result: <code>JSON value</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>delta</code></td><td>integer</td><td>No</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>next.page</code> <small>NewRuntime</small> · Open the next page, wrapping in registration order</summary><p>CLI: <code>ochazuke page next</code> · Result: <code>context</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>open.help</code> <small>NewDemo</small> · Open the keyboard guide without losing your place</summary><p>CLI: <code>ochazuke help open</code> · Result: <code>JSON value</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>open.page</code> <small>NewRuntime</small> · Open a registered page</summary><p>CLI: <code>ochazuke page open</code> · Result: <code>context</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>id</code></td><td>string</td><td>Yes</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>open.palette</code> <small>NewModel</small> · Open the nested verb/noun palette</summary><p>CLI: <code>ochazuke palette open</code> · Result: <code>palette state</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>open.picker</code> <small>NewPicker</small> · Open the shared fuzzy path picker in insert mode</summary><p>CLI: <code>ochazuke picker open</code> · Result: <code>picker state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>filter</code></td><td>string</td><td>No</td><td>any, file or dir; defaults to the originating path field&#39;s filter</td></tr><tr><td><code>path</code></td><td>string</td><td>No</td><td>Initial path/query; otherwise path value, current paths line, or cwd</td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>open.yank-history</code> <small>NewRuntime</small> · Select a previous application yank without inserting it</summary><p>CLI: <code>ochazuke yank-history open</code> · Result: <code>yank history state</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>operator.input</code> <small>NewRuntime</small> · Yank, delete, or change a selection, whole lines, or an existing motion</summary><p>CLI: <code>ochazuke input operator</code> · Result: <code>editor state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>line</code></td><td>integer</td><td>No</td><td></td></tr><tr><td><code>motion</code></td><td>string</td><td>No</td><td></td></tr><tr><td><code>operator</code></td><td>string</td><td>Yes</td><td></td></tr><tr><td><code>register</code></td><td>string</td><td>No</td><td></td></tr><tr><td><code>steps</code></td><td>integer</td><td>No</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>parent.picker</code> <small>NewPicker</small> · Browse the parent directory</summary><p>CLI: <code>ochazuke picker parent</code> · Result: <code>picker state</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>paste.input</code> <small>NewRuntime</small> · Paste a shared register preserving its shape; literal inserts at cursor</summary><p>CLI: <code>ochazuke input paste</code> · Result: <code>editor state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>before</code></td><td>boolean</td><td>No</td><td></td></tr><tr><td><code>literal</code></td><td>boolean</td><td>No</td><td></td></tr><tr><td><code>register</code></td><td>string</td><td>No</td><td></td></tr><tr><td><code>steps</code></td><td>integer</td><td>No</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>pop.modal</code> <small>NewRuntime</small> · Close the active modal and restore its parent</summary><p>CLI: <code>ochazuke modal pop</code> · Result: <code>context</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>prefix.input</code> <small>NewRuntime</small> · Accumulate a normal-mode digit or g prefix</summary><p>CLI: <code>ochazuke input prefix</code> · Result: <code>input state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>key</code></td><td>string</td><td>Yes</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>prefix.macro</code> <small>NewRuntime</small> · Accumulate an application macro count or await a recording/replay register</summary><p>CLI: <code>ochazuke macro prefix</code> · Result: <code>macro state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>key</code></td><td>string</td><td>Yes</td><td></td></tr><tr><td><code>steps</code></td><td>integer</td><td>No</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>previous.page</code> <small>NewRuntime</small> · Open the previous page, wrapping in registration order</summary><p>CLI: <code>ochazuke page previous</code> · Result: <code>context</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>push.modal</code> <small>NewRuntime</small> · Open a modal focused on a registered input</summary><p>CLI: <code>ochazuke modal push</code> · Result: <code>context</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>id</code></td><td>string</td><td>Yes</td><td></td></tr><tr><td><code>input</code></td><td>string</td><td>Yes</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>quit.app</code> <small>NewRuntime</small> · Exit the application</summary><p>CLI: <code>ochazuke app quit</code> · Result: <code>boolean</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>redo.input</code> <small>NewRuntime</small> · Redo changes; branch is a zero-based child index for the first step</summary><p>CLI: <code>ochazuke input redo</code> · Result: <code>input state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>branch</code></td><td>integer</td><td>No</td><td></td></tr><tr><td><code>steps</code></td><td>integer</td><td>No</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>register.mode</code> <small>NewRuntime</small> · Register an application-defined mode name</summary><p>CLI: <code>ochazuke mode register</code> · Result: <code>mode</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>name</code></td><td>string</td><td>Yes</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>replace.input</code> <small>NewRuntime</small> · Replace a half-open rune range</summary><p>CLI: <code>ochazuke input replace</code> · Result: <code>input state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>end</code></td><td>integer</td><td>Yes</td><td></td></tr><tr><td><code>start</code></td><td>integer</td><td>Yes</td><td></td></tr><tr><td><code>text</code></td><td>string</td><td>Yes</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>replay.macro</code> <small>NewRuntime</small> · Replay a register through application dispatch; @ repeats last macro</summary><p>CLI: <code>ochazuke macro replay</code> · Result: <code>macro state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>register</code></td><td>string</td><td>Yes</td><td></td></tr><tr><td><code>steps</code></td><td>integer</td><td>No</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>scroll.surface</code> <small>NewModel</small> · Scroll the active page or modal without changing focus</summary><p>CLI: <code>ochazuke surface scroll</code> · Result: <code>scroll offset</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>lines</code></td><td>integer</td><td>Yes</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>search.palette</code> <small>NewModel</small> · Enter search in the current palette list</summary><p>CLI: <code>ochazuke palette search</code> · Result: <code>palette state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>query</code></td><td>string</td><td>No</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>select.context</code> <small>NewRuntime</small> · Select a nested noun path; omit input to leave text editing</summary><p>CLI: <code>ochazuke context select</code> · Result: <code>context</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>input</code></td><td>string</td><td>No</td><td></td></tr><tr><td><code>path</code></td><td>string</td><td>Yes</td><td>JSON array of layer IDs, outermost first, beginning with app</td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>select.input</code> <small>NewRuntime</small> · Start or toggle character, line, or block visual selection</summary><p>CLI: <code>ochazuke input select</code> · Result: <code>editor state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>shape</code></td><td>string</td><td>No</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>select.palette</code> <small>NewModel</small> · Choose the highlighted entry or advance the argument form</summary><p>CLI: <code>ochazuke palette select</code> · Result: <code>palette state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>value</code></td><td>string</td><td>No</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>select.register</code> <small>NewRuntime</small> · Select the register used by the next yank, delete, or paste</summary><p>CLI: <code>ochazuke register select</code> · Result: <code>editor state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>name</code></td><td>string</td><td>Yes</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>select.yank-history</code> <small>NewRuntime</small> · Make a history entry the unnamed register and restore origin focus</summary><p>CLI: <code>ochazuke yank-history select</code> · Result: <code>yank history state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>index</code></td><td>integer</td><td>No</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>set.appearance</code> <small>NewModel</small> · Set theme and density atomically</summary><p>CLI: <code>ochazuke appearance set</code> · Result: <code>appearance</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>density</code></td><td>string</td><td>No</td><td>comfortable or compact</td></tr><tr><td><code>theme</code></td><td>string</td><td>No</td><td>adaptive, dark, light, or mono</td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>set.binding</code> <small>NewRuntime</small> · Override a key sequence in a layer and optional mode</summary><p>CLI: <code>ochazuke binding set</code> · Result: <code>binding</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>keys</code></td><td>string</td><td>Yes</td><td></td></tr><tr><td><code>layer</code></td><td>string</td><td>Yes</td><td></td></tr><tr><td><code>mode</code></td><td>string</td><td>No</td><td></td></tr><tr><td><code>request</code></td><td>string</td><td>Yes</td><td>JSON request object: verb, noun, optional args and target</td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>set.mode</code> <small>NewRuntime</small> · Set the focused input or active frame&#39;s registered interaction mode</summary><p>CLI: <code>ochazuke mode set</code> · Result: <code>mode</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>mode</code></td><td>string</td><td>Yes</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>set.palette-argument</code> <small>NewModel</small> · Set a selected operation argument using its text representation</summary><p>CLI: <code>ochazuke palette-argument set</code> · Result: <code>palette state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>name</code></td><td>string</td><td>Yes</td><td></td></tr><tr><td><code>value</code></td><td>string</td><td>Yes</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>set.register</code> <small>NewRuntime</small> · Set a text register; uppercase appends, underscore discards</summary><p>CLI: <code>ochazuke register set</code> · Result: <code>editor state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>name</code></td><td>string</td><td>Yes</td><td></td></tr><tr><td><code>shape</code></td><td>string</td><td>No</td><td></td></tr><tr><td><code>text</code></td><td>string</td><td>Yes</td><td></td></tr><tr><td><code>width</code></td><td>integer</td><td>No</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>start.macro</code> <small>NewRuntime</small> · Record application keys into a named register</summary><p>CLI: <code>ochazuke macro start</code> · Result: <code>macro state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>register</code></td><td>string</td><td>Yes</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>stop.macro</code> <small>NewRuntime</small> · Finish the current macro recording</summary><p>CLI: <code>ochazuke macro stop</code> · Result: <code>macro state</code></p><p>No declared parameters.</p></details><details class="entry searchable"><summary><code>undo.input</code> <small>NewRuntime</small> · Undo changes in this input</summary><p>CLI: <code>ochazuke input undo</code> · Result: <code>input state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>steps</code></td><td>integer</td><td>No</td><td></td></tr></tbody></table></div></details><details class="entry searchable"><summary><code>yank.input</code> <small>NewRuntime</small> · Yank visual selection or whole current lines</summary><p>CLI: <code>ochazuke input yank</code> · Result: <code>editor state</code></p><div class="table-scroll"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>register</code></td><td>string</td><td>No</td><td></td></tr><tr><td><code>steps</code></td><td>integer</td><td>No</td><td></td></tr></tbody></table></div></details>
+<p class="empty" hidden>No matching actions.</p></section>
+<section id="bindings"><p class="eyebrow">02 / Registered defaults</p><h2>Default bindings <span class="count">61</span></h2><p>Every registered layer binding in the demo, including palette, picker and yank-history layers. These are declarations, not a flattened effective keymap: descendant layers override ancestors; mode-specific bindings override modeless bindings within a layer. Only layers on the current context path participate.</p><p>The editor's Vim/Readline grammar and macro prefixes are separate from <code>Layer.Bindings</code>. See the <a href="../README.md#keyboard-guide">editor keyboard guide</a> and <a href="../README.md#palette-and-selectors">palette and selector controls</a> for those keys. <code>ctrl+@</code> is Bubble Tea's spelling for Ctrl-Space. The palette and unfinished editor grammar can handle keys before binding lookup.</p>
+<div class="table-scroll"><table><thead><tr><th>Layer</th><th>Mode</th><th>Keys</th><th>Request</th></tr></thead><tbody><tr class="searchable"><td><code>__yank-history</code></td><td>Any mode</td><td><code>j</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;yank-history&#34;,
+  &#34;args&#34;: {
+    &#34;steps&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>__yank-history</code></td><td>Any mode</td><td><code>down</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;yank-history&#34;,
+  &#34;args&#34;: {
+    &#34;steps&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>__yank-history</code></td><td>Any mode</td><td><code>k</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;yank-history&#34;,
+  &#34;args&#34;: {
+    &#34;steps&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>__yank-history</code></td><td>Any mode</td><td><code>up</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;yank-history&#34;,
+  &#34;args&#34;: {
+    &#34;steps&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>__yank-history</code></td><td>Any mode</td><td><code>enter</code></td><td><pre>{
+  &#34;verb&#34;: &#34;select&#34;,
+  &#34;noun&#34;: &#34;yank-history&#34;
+}</pre></td></tr><tr class="searchable"><td><code>__yank-history</code></td><td>Any mode</td><td><code>esc</code></td><td><pre>{
+  &#34;verb&#34;: &#34;pop&#34;,
+  &#34;noun&#34;: &#34;modal&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>ctrl&#43;p</code></td><td><pre>{
+  &#34;verb&#34;: &#34;open&#34;,
+  &#34;noun&#34;: &#34;palette&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>ctrl&#43;y</code></td><td><pre>{
+  &#34;verb&#34;: &#34;open&#34;,
+  &#34;noun&#34;: &#34;yank-history&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>Any mode</td><td><code>ctrl&#43;@</code></td><td><pre>{
+  &#34;verb&#34;: &#34;open&#34;,
+  &#34;noun&#34;: &#34;palette&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>Any mode</td><td><code>ctrl&#43;c</code></td><td><pre>{
+  &#34;verb&#34;: &#34;quit&#34;,
+  &#34;noun&#34;: &#34;app&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>Any mode</td><td><code>alt&#43;right</code></td><td><pre>{
+  &#34;verb&#34;: &#34;next&#34;,
+  &#34;noun&#34;: &#34;page&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>Any mode</td><td><code>alt&#43;left</code></td><td><pre>{
+  &#34;verb&#34;: &#34;previous&#34;,
+  &#34;noun&#34;: &#34;page&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>Any mode</td><td><code>pgdown</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: 8
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>Any mode</td><td><code>pgup</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: -8
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>ctrl&#43;j</code></td><td><pre>{
+  &#34;verb&#34;: &#34;next&#34;,
+  &#34;noun&#34;: &#34;page&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>ctrl&#43;k</code></td><td><pre>{
+  &#34;verb&#34;: &#34;previous&#34;,
+  &#34;noun&#34;: &#34;page&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>:</code></td><td><pre>{
+  &#34;verb&#34;: &#34;open&#34;,
+  &#34;noun&#34;: &#34;palette&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>?</code></td><td><pre>{
+  &#34;verb&#34;: &#34;open&#34;,
+  &#34;noun&#34;: &#34;help&#34;
+}</pre></td></tr><tr class="searchable"><td><code>appearance</code></td><td>normal</td><td><code>j</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>appearance</code></td><td>normal</td><td><code>k</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>appearance</code></td><td>normal</td><td><code>down</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>appearance</code></td><td>normal</td><td><code>up</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>appearance</code></td><td>normal</td><td><code>t</code></td><td><pre>{
+  &#34;verb&#34;: &#34;cycle&#34;,
+  &#34;noun&#34;: &#34;theme&#34;
+}</pre></td></tr><tr class="searchable"><td><code>appearance</code></td><td>normal</td><td><code>d</code></td><td><pre>{
+  &#34;verb&#34;: &#34;cycle&#34;,
+  &#34;noun&#34;: &#34;density&#34;
+}</pre></td></tr><tr class="searchable"><td><code>commands</code></td><td>normal</td><td><code>j</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>commands</code></td><td>normal</td><td><code>k</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>commands</code></td><td>normal</td><td><code>down</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>commands</code></td><td>normal</td><td><code>up</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>dialog</code></td><td>normal</td><td><code>ctrl&#43;n</code></td><td><pre>{
+  &#34;verb&#34;: &#34;push&#34;,
+  &#34;noun&#34;: &#34;modal&#34;,
+  &#34;args&#34;: {
+    &#34;id&#34;: &#34;nested-draft&#34;,
+    &#34;input&#34;: &#34;nested-dialog&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>dialog</code></td><td>Any mode</td><td><code>ctrl&#43;g</code></td><td><pre>{
+  &#34;verb&#34;: &#34;pop&#34;,
+  &#34;noun&#34;: &#34;modal&#34;
+}</pre></td></tr><tr class="searchable"><td><code>directory</code></td><td>normal</td><td><code>enter</code></td><td><pre>{
+  &#34;verb&#34;: &#34;open&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>help</code></td><td>Any mode</td><td><code>ctrl&#43;g</code></td><td><pre>{
+  &#34;verb&#34;: &#34;pop&#34;,
+  &#34;noun&#34;: &#34;modal&#34;
+}</pre></td></tr><tr class="searchable"><td><code>help</code></td><td>Any mode</td><td><code>ctrl&#43;c</code></td><td><pre>{
+  &#34;verb&#34;: &#34;pop&#34;,
+  &#34;noun&#34;: &#34;modal&#34;
+}</pre></td></tr><tr class="searchable"><td><code>nested-dialog</code></td><td>Any mode</td><td><code>ctrl&#43;g</code></td><td><pre>{
+  &#34;verb&#34;: &#34;pop&#34;,
+  &#34;noun&#34;: &#34;modal&#34;
+}</pre></td></tr><tr class="searchable"><td><code>overview</code></td><td>normal</td><td><code>j</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>overview</code></td><td>normal</td><td><code>k</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>overview</code></td><td>normal</td><td><code>down</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>overview</code></td><td>normal</td><td><code>up</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>palette</code></td><td>Any mode</td><td><code>ctrl&#43;c</code></td><td><pre>{
+  &#34;verb&#34;: &#34;close&#34;,
+  &#34;noun&#34;: &#34;palette&#34;
+}</pre></td></tr><tr class="searchable"><td><code>palette</code></td><td>Any mode</td><td><code>tab</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;palette&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>palette</code></td><td>Any mode</td><td><code>shift&#43;tab</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;palette&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>paths</code></td><td>normal</td><td><code>enter</code></td><td><pre>{
+  &#34;verb&#34;: &#34;open&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>j</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;picker&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>down</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;picker&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>k</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;picker&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>up</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;picker&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>h</code></td><td><pre>{
+  &#34;verb&#34;: &#34;parent&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>left</code></td><td><pre>{
+  &#34;verb&#34;: &#34;parent&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>l</code></td><td><pre>{
+  &#34;verb&#34;: &#34;descend&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>right</code></td><td><pre>{
+  &#34;verb&#34;: &#34;descend&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>insert</td><td><code>ctrl&#43;n</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;picker&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>insert</td><td><code>ctrl&#43;p</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;picker&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>Any mode</td><td><code>tab</code></td><td><pre>{
+  &#34;verb&#34;: &#34;complete&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>Any mode</td><td><code>enter</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>Any mode</td><td><code>ctrl&#43;s</code></td><td><pre>{
+  &#34;verb&#34;: &#34;choose&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>esc</code></td><td><pre>{
+  &#34;verb&#34;: &#34;close&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>playground</code></td><td>Any mode</td><td><code>tab</code></td><td><pre>{
+  &#34;verb&#34;: &#34;next&#34;,
+  &#34;noun&#34;: &#34;input&#34;
+}</pre></td></tr><tr class="searchable"><td><code>playground</code></td><td>Any mode</td><td><code>shift&#43;tab</code></td><td><pre>{
+  &#34;verb&#34;: &#34;next&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>playground</code></td><td>normal</td><td><code>ctrl&#43;o</code></td><td><pre>{
+  &#34;verb&#34;: &#34;open&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>playground</code></td><td>normal</td><td><code>ctrl&#43;n</code></td><td><pre>{
+  &#34;verb&#34;: &#34;push&#34;,
+  &#34;noun&#34;: &#34;modal&#34;,
+  &#34;args&#34;: {
+    &#34;id&#34;: &#34;draft&#34;,
+    &#34;input&#34;: &#34;dialog&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>playground</code></td><td>normal</td><td><code>f2</code></td><td><pre>{
+  &#34;verb&#34;: &#34;inspect&#34;,
+  &#34;noun&#34;: &#34;selection&#34;
+}</pre></td></tr></tbody></table></div><p class="empty" hidden>No matching registered bindings.</p></section>
+<section id="api"><p class="eyebrow">03 / Exported Go API</p><h2>Go API <span class="count">85</span></h2><p>Generated exported types, functions, methods, constants and variables from the root <code>ochazuke</code> package. Unexported fields and function bodies are omitted. Missing prose means the declaration has no source doc comment. Command entry points under <code>cmd/</code> are not library APIs.</p><p>Go also provides terminal documentation: run <code>go doc -all .</code> or <code>go doc Runtime.Execute</code> from the repository root. This offline reference needs no <code>godoc</code> server or published module.</p>
+<details class="entry searchable"><summary><code>Appearance</code> <small>type</small></summary><pre>Appearance is event-loop-owned configuration. Operation results are value snapshots.
+</pre><pre>type Appearance struct {
+	Theme   string `json:&#34;theme&#34;`
+	Density string `json:&#34;density&#34;`
+}</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>Arguments</code> <small>type</small></summary><pre>type Arguments map[string]any</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Binding</code> <small>type</small></summary><pre>type Binding struct {
+	Mode    string  `json:&#34;mode,omitempty&#34;`
+	Keys    string  `json:&#34;keys&#34;`
+	Request Request `json:&#34;request&#34;`
+}</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Call</code> <small>function / method</small></summary><pre>func Call(ctx context.Context, path string, q Request) (any, error)</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>CallMsg</code> <small>type</small></summary><pre>CallMsg is delivered to the UI loop; only that loop may call Runtime.Execute.
+</pre><pre>type CallMsg struct {
+	Request Request
+	Reply   chan Response
+}</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>ComposeModal</code> <small>function / method</small></summary><pre>ComposeModal centers a content-sized panel over the existing page, not a blank
+screen. Body and backdrop may contain trusted ANSI; title and footer are raw labels.
+</pre><pre>func ComposeModal(background, title, body, footer string, width, height int, styles Styles) string</pre><a href="../surface.go">Source file</a></details><details class="entry searchable"><summary><code>Context</code> <small>type</small></summary><pre>type Context struct {
+	Path    []string `json:&#34;path&#34;`
+	InputID string   `json:&#34;inputId,omitempty&#34;`
+}</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Context.Clone</code> <small>function / method</small></summary><pre>func (c Context) Clone() Context</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>EditNode</code> <small>type</small></summary><pre>type EditNode struct {
+	Text     string `json:&#34;text&#34;`
+	Cursor   int    `json:&#34;cursor&#34;`
+	Parent   int    `json:&#34;parent&#34;`
+	Children []int  `json:&#34;children&#34;`
+}</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>Frame</code> <small>type</small></summary><pre>type Frame struct {
+	ID      string         `json:&#34;id&#34;`
+	Context Context        `json:&#34;context&#34;`
+	State   map[string]any `json:&#34;state&#34;`
+}</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>HandleInputKey</code> <small>function / method</small></summary><pre>HandleInputKey interprets editor keys through registered operations.
+</pre><pre>func HandleInputKey(r *Runtime, key string) (bool, error)</pre><a href="../editing.go">Source file</a></details><details class="entry searchable"><summary><code>Handler</code> <small>type</small></summary><pre>type Handler func(*Runtime, Context, Arguments) (any, error)</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Input</code> <small>type</small></summary><pre>type Input struct {
+	ID         string
+	Text       []rune
+	Cursor     int
+	Mode       string
+	Multiline  bool
+	Kind       string
+	PathFilter string
+	Anchor     int
+	History    []EditNode
+	Head       int
+	Count      int
+	Pending    string
+	// contains filtered or unexported fields
+}</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>Input.Redo</code> <small>function / method</small></summary><pre>func (in *Input) Redo(steps, branch int) error</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>Input.Replace</code> <small>function / method</small></summary><pre>func (in *Input) Replace(start, end int, text string) error</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>Input.SetMode</code> <small>function / method</small></summary><pre>SetMode is the mode-transition hook for both editor operations and set.mode.
+Direct assignment to Mode cannot delimit insert sessions.
+</pre><pre>func (in *Input) SetMode(mode string)</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>Input.Snapshot</code> <small>function / method</small></summary><pre>func (in *Input) Snapshot() map[string]any</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>Input.Undo</code> <small>function / method</small></summary><pre>func (in *Input) Undo(steps int) error</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>InputView</code> <small>function / method</small></summary><pre>InputView inverts the cursor&#39;s grapheme without changing text or editing state.
+</pre><pre>func InputView(in *Input, width, height int) string</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>IntArg</code> <small>function / method</small></summary><pre>func IntArg(a Arguments, name string, fallback int) int</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>JSONPointer</code> <small>function / method</small></summary><pre>func JSONPointer(value any, path string) (any, error)</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Layer</code> <small>type</small></summary><pre>type Layer struct {
+	ID       string             `json:&#34;id&#34;`
+	Noun     string             `json:&#34;noun&#34;`
+	Bindings []Binding          `json:&#34;bindings&#34;`
+	Actions  map[string]Handler `json:&#34;-&#34;`
+}</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Listen</code> <small>function / method</small></summary><pre>Listen requires a private, current-user-owned socket directory and never removes an existing socket.
+</pre><pre>func Listen(path string, send func(CallMsg)) (*Server, error)</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>MacroKey</code> <small>type</small></summary><pre>type MacroKey struct {
+	Key   string `json:&#34;key&#34;`
+	Paste bool   `json:&#34;paste,omitempty&#34;`
+}</pre><a href="../macros.go">Source file</a></details><details class="entry searchable"><summary><code>MacroState</code> <small>type</small></summary><pre>type MacroState struct {
+	Recording string     `json:&#34;recording,omitempty&#34;`
+	Pending   string     `json:&#34;pending,omitempty&#34;`
+	Last      string     `json:&#34;last,omitempty&#34;`
+	Keys      []MacroKey `json:&#34;keys,omitempty&#34;`
+	Depth     int        `json:&#34;depth&#34;`
+	Steps     int        `json:&#34;steps&#34;`
+	Count     int        `json:&#34;count,omitempty&#34;`
+}</pre><a href="../macros.go">Source file</a></details><details class="entry searchable"><summary><code>ModalSize</code> <small>function / method</small></summary><pre>ModalSize returns safe body bounds, reserving the same chrome as ComposeModal.
+Modal chrome uses one horizontal padding cell regardless of page density.
+</pre><pre>func ModalSize(width, height int) (contentWidth, contentHeight int)</pre><a href="../surface.go">Source file</a></details><details class="entry searchable"><summary><code>ModalView</code> <small>type</small></summary><pre>ModalView renders one modal without replacing or inspecting its parent page.
+</pre><pre>type ModalView struct {
+	Title  string
+	Render func(*Runtime, *Frame, int, int) string
+}</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>Model</code> <small>type</small></summary><pre>Model is the Bubble Tea adapter. Pages and modal instances retain their state in Runtime.
+</pre><pre>type Model struct {
+	Runtime    *Runtime
+	Palette    *Palette
+	Appearance *Appearance
+	Pickers    []*Picker
+	ModalViews map[string]ModalView
+	Title      string
+	Width      int
+	Height     int
+	Status     string
+	// contains filtered or unexported fields
+}</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>Model.Init</code> <small>function / method</small></summary><pre>func (m *Model) Init() tea.Cmd</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>Model.Update</code> <small>function / method</small></summary><pre>func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd)</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>Model.View</code> <small>function / method</small></summary><pre>func (m *Model) View() string</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>NewAppearance</code> <small>function / method</small></summary><pre>NewAppearance registers appearance operations once per runtime.
+</pre><pre>func NewAppearance(r *Runtime) *Appearance</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>NewDemo</code> <small>function / method</small></summary><pre>NewDemo supplies example pages; none of these page names are required by the framework.
+</pre><pre>func NewDemo() *Model</pre><a href="../demo.go">Source file</a></details><details class="entry searchable"><summary><code>NewInput</code> <small>function / method</small></summary><pre>func NewInput(id, text string, multiline bool) *Input</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>NewModel</code> <small>function / method</small></summary><pre>func NewModel(r *Runtime) *Model</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>NewPalette</code> <small>function / method</small></summary><pre>func NewPalette(r *Runtime) *Palette</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>NewPicker</code> <small>function / method</small></summary><pre>func NewPicker(r *Runtime) *Picker</pre><a href="../picker.go">Source file</a></details><details class="entry searchable"><summary><code>NewRuntime</code> <small>function / method</small></summary><pre>func NewRuntime() *Runtime</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>NewStyles</code> <small>function / method</small></summary><pre>NewStyles keeps layout and focus cues usable without terminal color support.
+</pre><pre>func NewStyles(a Appearance) Styles</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>Operation</code> <small>type</small></summary><pre>type Operation struct {
+	Verb        string               `json:&#34;verb&#34;`
+	Noun        string               `json:&#34;noun&#34;`
+	Description string               `json:&#34;description&#34;`
+	Parameters  map[string]Parameter `json:&#34;parameters&#34;`
+	Result      string               `json:&#34;result&#34;`
+	Run         Handler              `json:&#34;-&#34;`
+}</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Operation.Key</code> <small>function / method</small></summary><pre>func (o Operation) Key() string</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Page</code> <small>type</small></summary><pre>Page retains its base frame and renderer across navigation.
+</pre><pre>type Page struct {
+	ID     string                          `json:&#34;id&#34;`
+	Title  string                          `json:&#34;title&#34;`
+	Frame  *Frame                          `json:&#34;frame&#34;`
+	Render func(*Runtime, int, int) string `json:&#34;-&#34;`
+}</pre><a href="../pages.go">Source file</a></details><details class="entry searchable"><summary><code>Palette</code> <small>type</small></summary><pre>Palette owns its overlay and drafts; it never edits the originating input.
+Create one palette per runtime: operation keys are globally unique.
+</pre><pre>type Palette struct {
+	// contains filtered or unexported fields
+}</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.Close</code> <small>function / method</small></summary><pre>func (p *Palette) Close()</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.HandleKey</code> <small>function / method</small></summary><pre>HandleKey applies layered overrides before palette navigation or the shared input editor.
+</pre><pre>func (p *Palette) HandleKey(key string) (bool, error)</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.IsActive</code> <small>function / method</small></summary><pre>func (p *Palette) IsActive() bool</pre><a href="../palette_editing.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.IsOpen</code> <small>function / method</small></summary><pre>func (p *Palette) IsOpen() bool</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.Open</code> <small>function / method</small></summary><pre>func (p *Palette) Open() error</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.View</code> <small>function / method</small></summary><pre>func (p *Palette) View() string</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.ViewSized</code> <small>function / method</small></summary><pre>func (p *Palette) ViewSized(width, height int) string</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Parameter</code> <small>type</small></summary><pre>type Parameter struct {
+	Type        string `json:&#34;type&#34;`
+	Required    bool   `json:&#34;required,omitempty&#34;`
+	Description string `json:&#34;description,omitempty&#34;`
+}</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>ParseArguments</code> <small>function / method</small></summary><pre>ParseArguments parses the same JSON object used by the wire API.
+</pre><pre>func ParseArguments(raw string) (Arguments, error)</pre><a href="../cli.go">Source file</a></details><details class="entry searchable"><summary><code>Picker</code> <small>type</small></summary><pre>Picker owns one modal and one ordinary editor. Background commands only read
+immutable snapshots; HandleMessage is the sole result-application boundary.
+</pre><pre>type Picker struct {
+	Runtime   *Runtime
+	Origin    Context
+	Directory string
+	Filter    string
+	Entries   []PickerEntry
+	Selected  int
+	Error     string
+	Loading   bool
+	// contains filtered or unexported fields
+}</pre><a href="../picker.go">Source file</a></details><details class="entry searchable"><summary><code>Picker.HandleMessage</code> <small>function / method</small></summary><pre>HandleMessage applies only this picker&#39;s current generation on the UI loop.
+</pre><pre>func (p *Picker) HandleMessage(msg tea.Msg) bool</pre><a href="../picker.go">Source file</a></details><details class="entry searchable"><summary><code>Picker.IsOpen</code> <small>function / method</small></summary><pre>func (p *Picker) IsOpen() bool</pre><a href="../picker.go">Source file</a></details><details class="entry searchable"><summary><code>Picker.PendingCommand</code> <small>function / method</small></summary><pre>PendingCommand must be drained by the Bubble Tea adapter after every event,
+including CallMsg. It schedules work, never waits on filesystem or search.
+</pre><pre>func (p *Picker) PendingCommand() tea.Cmd</pre><a href="../picker.go">Source file</a></details><details class="entry searchable"><summary><code>Picker.View</code> <small>function / method</small></summary><pre>func (p *Picker) View(width, height int) string</pre><a href="../picker.go">Source file</a></details><details class="entry searchable"><summary><code>PickerEntry</code> <small>type</small></summary><pre>PickerEntry is relative to the indexed root. Symlinks are selectable files,
+never traversal edges.
+</pre><pre>type PickerEntry struct {
+	Path string `json:&#34;path&#34;`
+	Dir  bool   `json:&#34;dir&#34;`
+}</pre><a href="../picker_search.go">Source file</a></details><details class="entry searchable"><summary><code>Register</code> <small>type</small></summary><pre>type Register struct {
+	Yank Yank       `json:&#34;yank&#34;`
+	Keys []MacroKey `json:&#34;keys,omitempty&#34;`
+}</pre><a href="../registers.go">Source file</a></details><details class="entry searchable"><summary><code>RegisterInputOperations</code> <small>function / method</small></summary><pre>func RegisterInputOperations(r *Runtime)</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>Request</code> <small>type</small></summary><pre>type Request struct {
+	Verb   string    `json:&#34;verb&#34;`
+	Noun   string    `json:&#34;noun&#34;`
+	Target string    `json:&#34;target,omitempty&#34;`
+	Args   Arguments `json:&#34;args,omitempty&#34;`
+}</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Request.Key</code> <small>function / method</small></summary><pre>func (q Request) Key() string</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Response</code> <small>type</small></summary><pre>type Response struct {
+	Result any    `json:&#34;result,omitempty&#34;`
+	Error  string `json:&#34;error,omitempty&#34;`
+}</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime</code> <small>type</small></summary><pre>Runtime is owned by one event loop. Transport callers submit messages to that loop.
+</pre><pre>type Runtime struct {
+	Layers         map[string]*Layer
+	Inputs         map[string]*Input
+	InputPaths     map[string][]string
+	Frames         []*Frame
+	Pages          map[string]*Page
+	PageOrder      []string
+	ActivePage     string
+	Modes          map[string]bool
+	Operations     map[string]Operation
+	Quit           bool
+	Pending        string
+	Registers      map[string]Register
+	YankHistory    []Yank
+	ActiveRegister string
+	Macro          MacroState
+	// contains filtered or unexported fields
+}</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.AddInput</code> <small>function / method</small></summary><pre>func (r *Runtime) AddInput(in *Input, path []string) error</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Catalog</code> <small>function / method</small></summary><pre>func (r *Runtime) Catalog() []Operation</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Context</code> <small>function / method</small></summary><pre>func (r *Runtime) Context() Context</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.EffectiveBindings</code> <small>function / method</small></summary><pre>EffectiveBindings overlays complete key sequences, not individual keystrokes.
+</pre><pre>func (r *Runtime) EffectiveBindings(c Context) []Binding</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Execute</code> <small>function / method</small></summary><pre>func (r *Runtime) Execute(q Request) (any, error)</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.ExecuteAt</code> <small>function / method</small></summary><pre>func (r *Runtime) ExecuteAt(c Context, q Request) (any, error)</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Focus</code> <small>function / method</small></summary><pre>func (r *Runtime) Focus(id string) error</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.HandleBinding</code> <small>function / method</small></summary><pre>HandleBinding returns handled=true for both complete and pending sequences.
+</pre><pre>func (r *Runtime) HandleBinding(key string) (bool, error)</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.HandleCall</code> <small>function / method</small></summary><pre>func (r *Runtime) HandleCall(msg CallMsg)</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Mode</code> <small>function / method</small></summary><pre>func (r *Runtime) Mode(c Context) string</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.OpenPage</code> <small>function / method</small></summary><pre>OpenPage restores the exact page-owned frame; an open modal blocks navigation.
+</pre><pre>func (r *Runtime) OpenPage(id string) error</pre><a href="../pages.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Pop</code> <small>function / method</small></summary><pre>func (r *Runtime) Pop() error</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Push</code> <small>function / method</small></summary><pre>func (r *Runtime) Push(frame *Frame) error</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Register</code> <small>function / method</small></summary><pre>func (r *Runtime) Register(o Operation)</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.RegisterPage</code> <small>function / method</small></summary><pre>RegisterPage uses an existing layer and does not activate the page.
+</pre><pre>func (r *Runtime) RegisterPage(page *Page) error</pre><a href="../pages.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Snapshot</code> <small>function / method</small></summary><pre>func (r *Runtime) Snapshot() map[string]any</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Server</code> <small>type</small></summary><pre>type Server struct {
+	// contains filtered or unexported fields
+}</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>Server.Close</code> <small>function / method</small></summary><pre>func (s *Server) Close() error</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>StringArg</code> <small>function / method</small></summary><pre>func StringArg(a Arguments, name, fallback string) string</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Styles</code> <small>type</small></summary><pre>Styles is a render-time value; it does not retain mutable appearance state.
+</pre><pre>type Styles struct {
+	Title        lipgloss.Style
+	Subtitle     lipgloss.Style
+	Muted        lipgloss.Style
+	Accent       lipgloss.Style
+	Error        lipgloss.Style
+	Panel        lipgloss.Style
+	FocusedPanel lipgloss.Style
+	Tab          lipgloss.Style
+	ActiveTab    lipgloss.Style
+	Badge        lipgloss.Style
+	Padding      int
+}</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>Yank</code> <small>type</small></summary><pre>Yank retains the geometry needed to paste independently of the source field.
+</pre><pre>type Yank struct {
+	Text  string `json:&#34;text&#34;`
+	Shape string `json:&#34;shape&#34;`
+	Width int    `json:&#34;width,omitempty&#34;`
+}</pre><a href="../registers.go">Source file</a></details><p class="empty" hidden>No matching Go declarations.</p></section>
+<section id="transport"><p class="eyebrow">04 / One request contract</p><h2>CLI &amp; socket API</h2><p>There is no HTTP API. The CLI sends one JSON request per Unix-socket connection. The runtime processes it on the UI loop. Use the action catalog above for operation names and parameter schemas.</p><pre>// Simplified JavaScript-shaped request; the wire format is JSON.
+{
+  verb: "undo",
+  noun: "input",
+  target: "focused-input",
+  args: { steps: 1 }
+}</pre><p>With an application running, query its actual registry or invoke an action:</p><pre>go run ./cmd/ochazuke operations list
+go run ./cmd/ochazuke input undo --json '{"steps":1}'</pre><p><code>Request</code> and <code>Response</code> in the Go catalog describe the wire envelopes; <code>Call</code>, <code>Listen</code> and <code>CallMsg</code> provide transport integration. The socket uses a private current-user-owned directory, mode 0600, ten-second deadlines and a 1 MiB scanner limit. See <a href="../README.md#live-cli-control">live CLI setup</a> for socket selection.</p></section></main>
+<footer>Regenerate from the repository root: <code>go run ./cmd/docgen</code>. Generated file; edit source registrations/comments or <code>cmd/docgen/main.go</code>, then regenerate. <a href="architecture.html#catalogs">Back to the field guide</a>.</footer>
+<script>
+const search=document.getElementById('search');
+const entries=Array.from(document.querySelectorAll('.searchable'),element=>({element,text:element.textContent.toLowerCase()}));
+function filter(){const query=search.value.trim().toLowerCase();let count=0;for(const {element,text} of entries){element.hidden=!text.includes(query);if(!element.hidden)count++}document.getElementById('matches').textContent=count+' of '+entries.length+' entries';for(const section of document.querySelectorAll('main section')){const empty=section.querySelector('.empty');if(empty)empty.hidden=!!section.querySelector('.searchable:not([hidden])')}}
+search.addEventListener('input',filter);filter();
+</script></body></html>

@@ -14,6 +14,24 @@ open docs/architecture.html
 
 No server, install, or internet connection is needed. Search 12 components, inspect their responsibilities and source locations, step through keyboard/CLI/picker/modal journeys, and experiment with retained modal state. The state lab illustrates ownership; it does not connect to a running Go application. The linked [architecture map](docs/architecture-map.html) supports node exploration and light/dark themes; its editable specification is [architecture-map.json](docs/architecture-map.json).
 
+The guide links to [generated source catalogs](docs/catalogs.html) for actions, default layer bindings, exported Go APIs, and the CLI/socket contract. Search by operation, key, parameter, or symbol. Actions and bindings reflect a fresh demo, not a running application's customized registry. Editor grammar shortcuts remain in the [keyboard guide](#keyboard-guide).
+
+Regenerate after changing registrations or Go declarations/comments:
+
+```sh
+go run ./cmd/docgen
+```
+
+Go's built-in documentation also works directly in the Ochazuke project directory:
+
+```sh
+go doc
+go doc -all .
+go doc Runtime.Execute
+```
+
+The HTML API catalog uses the standard `go/doc` library, with no documentation-server dependency. Edit `cmd/docgen/main.go` for its layout; do not hand-edit `docs/catalogs.html`.
+
 ## Run on macOS
 
 Requires Go 1.25 or newer.
