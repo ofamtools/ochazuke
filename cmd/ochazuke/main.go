@@ -27,7 +27,7 @@ func run(args []string) error {
 	flags := flag.NewFlagSet("ochazuke", flag.ContinueOnError)
 	socket := flags.String("socket", filepath.Join(cache, "ochazuke", "app.sock"), "Unix socket identifying the running app")
 	flags.Usage = func() {
-		fmt.Fprintln(flags.Output(), "Usage:\n  ochazuke [--socket PATH] run [--headless]\n  ochazuke [--socket PATH] NOUN VERB [--json '{...}'] [--target INPUT_ID]\n\nDiscover actions: ochazuke operations list\nExample: ochazuke input undo --json '{\"steps\":2}'\nEvery registered operation is available as NOUN VERB.")
+		fmt.Fprintln(flags.Output(), "Usage:\n  ochazuke keybinding\n  ochazuke [--socket PATH] run [--headless]\n  ochazuke [--socket PATH] NOUN VERB [--json '{...}'] [--target INPUT_ID]\n\nDiscover actions: ochazuke operations list\nExample: ochazuke input undo --json '{\"steps\":2}'\nEvery registered operation is available as NOUN VERB.")
 		flags.PrintDefaults()
 	}
 	if err := flags.Parse(args); err != nil {
@@ -40,6 +40,9 @@ func run(args []string) error {
 	if len(rest) == 0 {
 		flags.Usage()
 		return nil
+	}
+	if rest[0] == "keybinding" {
+		return runKeybinding(rest[1:])
 	}
 	if rest[0] == "run" {
 		runFlags := flag.NewFlagSet("run", flag.ContinueOnError)

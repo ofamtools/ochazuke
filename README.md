@@ -59,6 +59,12 @@ In another terminal:
 
 Global `--socket PATH` goes before `run` or `NOUN VERB`. It selects a specific application instance. The default socket on macOS is `~/Library/Caches/ochazuke/app.sock`. `run --headless` uses the same Bubble Tea event loop without terminal rendering.
 
+### Keybinding sandbox
+
+Run `ochazuke keybinding` (or `go run ./cmd/ochazuke keybinding`) without starting the demo or socket server. The left column shows the latest key message; the right column logs messages newest first, retaining the last 200 and showing as many as fit the terminal.
+
+Names come directly from Bubble Tea's `tea.KeyMsg.String()`, quoted to make whitespace visible. App bindings are not executed; Ctrl-C exits. Messages are not split into individual characters, so paste/coalesced input is shown as Tea delivers it. Keys that the terminal encodes identically cannot be distinguished by the sandbox.
+
 ## Full-project example
 
 [`examples/full-project`](examples/full-project/README.md) is a standalone application assembled from separate configuration, action, binding, and page modules. Its JSON files define pages, nested interaction layers, inputs, actions, key bindings, modals, modes, and appearance. Go registries supply the handlers and renderers named by that configuration.
