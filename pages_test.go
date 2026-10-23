@@ -72,7 +72,7 @@ func TestPageSwitchRestoresFrameFocusAndEditingState(t *testing.T) {
 	in.Cursor = 2
 	paletteRequest(t, r, "set", "mode", Arguments{"mode": "insert"})
 	paletteRequest(t, r, "insert", "input", Arguments{"text": "X"})
-	in.Kill, in.Count, in.Pending = "clipboard", 2, "g"
+	in.Count, in.Pending = 2, "g"
 	alpha.Frame.State["draft"] = "page draft"
 	before := paletteInputSnapshot(t, in)
 	context := r.Context()

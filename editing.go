@@ -20,7 +20,7 @@ func (in *Input) lineBounds(cursor int) (int, int) {
 
 func (in *Input) clampCursor() {
 	in.Cursor = max(0, min(in.Cursor, len(in.Text)))
-	if in.Mode == "normal" {
+	if in.Mode == "normal" || isVisual(in.Mode) {
 		start, end := in.lineBounds(in.Cursor)
 		if end > start && in.Cursor == end {
 			in.Cursor--
@@ -124,19 +124,19 @@ func (in *Input) move(motion string, steps, line int) error {
 	switch motion {
 	case "left":
 		lower := 0
-		if in.Mode == "normal" {
+		if in.Mode == "normal" || isVisual(in.Mode) {
 			lower = start
 		}
 		in.Cursor = max(lower, in.Cursor-steps)
 	case "right":
 		upper := len(in.Text)
-		if in.Mode == "normal" {
+		if in.Mode == "normal" || isVisual(in.Mode) {
 			upper = max(start, end-1)
 		}
 		in.Cursor = min(upper, in.Cursor+steps)
 	case "up", "down":
 		if in.goalColumn < 0 {
-			in.goalColumn = in.Cursor - start
+			in.goalColumn = cellWidth(string(in.Text[start:in.Cursor]))
 		}
 		for ; steps > 0; steps-- {
 			if motion == "up" {
@@ -152,10 +152,10 @@ func (in *Input) move(motion string, steps, line int) error {
 			}
 		}
 		limit := end
-		if in.Mode == "normal" {
+		if in.Mode == "normal" || isVisual(in.Mode) {
 			limit = max(start, end-1)
 		}
-		in.Cursor = min(start+in.goalColumn, limit)
+		in.Cursor = start + runeOffsetAtColumn(in.Text[start:end], in.goalColumn, limit-start)
 	case "word-forward", "word-backward", "word-end", "word-next", "word-previous":
 		for ; steps > 0; steps-- {
 			old := in.Cursor
@@ -268,7 +268,7 @@ func (in *Input) deleteRunes(direction string, steps int) error {
 	return in.Replace(start, end, "")
 }
 
-func (in *Input) kill(motion string) error {
+func (in *Input) killRange(motion string) (int, int, error) {
 	start, end := in.Cursor, in.Cursor
 	lineStart, lineEnd := in.lineBounds(in.Cursor)
 	switch motion {
@@ -276,7 +276,11 @@ func (in *Input) kill(motion string) error {
 		for start > 0 && unicode.IsSpace(in.Text[start-1]) {
 			start--
 		}
-		for start > 0 && !unicode.IsSpace(in.Text[start-1]) {
+		// A slash is a component boundary; punctuation inside a filename is not.
+		if start > 0 && in.Text[start-1] == '/' {
+			start--
+		}
+		for start > 0 && !unicode.IsSpace(in.Text[start-1]) && in.Text[start-1] != '/' {
 			start--
 		}
 	case "line-start":
@@ -287,30 +291,33 @@ func (in *Input) kill(motion string) error {
 			end++
 		}
 	default:
-		return errors.New("unknown kill motion")
+		return 0, 0, errors.New("unknown kill motion")
 	}
-	in.resetKeys()
-	if start == end {
-		return nil
-	}
-	killed := string(in.Text[start:end])
-	if err := in.Replace(start, end, ""); err != nil {
-		return err
-	}
-	in.Kill = killed
-	return nil
+	return start, end, nil
 }
 
 func (in *Input) prefix(key string) error {
-	if in.Mode != "normal" {
-		return errors.New("input prefixes require normal mode")
+	if in.Mode != "normal" && !isVisual(in.Mode) {
+		return errors.New("input prefixes require normal or visual mode")
 	}
-	if key == "g" {
-		in.Pending = "g"
+	switch key {
+	case "register":
+		in.Pending = "register"
+		return nil
+	case "register-done":
+		in.Pending = ""
+		return nil
+	case "y", "d", "c":
+		in.Pending = key
+		in.operatorCount = max(1, in.Count)
+		in.Count = 0
+		return nil
+	case "g":
+		in.Pending += "g"
 		return nil
 	}
 	if len(key) != 1 || key[0] < '0' || key[0] > '9' {
-		return errors.New("prefix must be g or a digit")
+		return errors.New("unknown editor prefix")
 	}
 	digit := int(key[0] - '0')
 	if in.Count > 100000 || in.Count*10+digit > 1000000 {
@@ -320,9 +327,11 @@ func (in *Input) prefix(key string) error {
 	return nil
 }
 
-// HandleInputKey is called only after Runtime.HandleBinding declines a key.
-// It interprets keys, but every state mutation is a registered operation.
+// HandleInputKey interprets editor keys through registered operations.
 func HandleInputKey(r *Runtime, key string) (bool, error) {
+	if handled, err := r.handleMacroKey(key); handled || err != nil {
+		return handled, err
+	}
 	in := r.Inputs[r.Context().InputID]
 	if in == nil {
 		return false, nil
@@ -360,7 +369,7 @@ func HandleInputKey(r *Runtime, key string) (bool, error) {
 		case "ctrl+k":
 			return command("kill", Arguments{"motion": "line-end"})
 		case "ctrl+y":
-			return command("yank", nil)
+			return command("paste", Arguments{"before": true, "literal": true})
 		case "backspace", "ctrl+h":
 			return command("delete", Arguments{"direction": "backward"})
 		case "delete", "ctrl+d":
@@ -383,73 +392,10 @@ func HandleInputKey(r *Runtime, key string) (bool, error) {
 		}
 		return false, nil
 	}
-	if in.Mode != "normal" {
-		return false, nil
+	if in.Mode == "normal" || isVisual(in.Mode) {
+		return handleNormalEditorKey(r, in, key)
 	}
-	if key == "esc" {
-		return command("cancel", nil)
-	}
-	if in.Pending == "g" && key == "g" {
-		return command("move", Arguments{"motion": "first-line", "line": max(1, in.Count)})
-	}
-	if in.Pending != "" {
-		if _, err := command("cancel", nil); err != nil {
-			return true, err
-		}
-	}
-	if len(key) == 1 && key[0] >= '0' && key[0] <= '9' && (key != "0" || in.Count > 0) {
-		return command("prefix", Arguments{"key": key})
-	}
-	steps := max(1, in.Count)
-	motion := ""
-	switch key {
-	case "g":
-		return command("prefix", Arguments{"key": "g"})
-	case "h", "left":
-		motion = "left"
-	case "j", "down":
-		motion = "down"
-	case "k", "up":
-		motion = "up"
-	case "l", "right":
-		motion = "right"
-	case "w":
-		motion = "word-forward"
-	case "b":
-		motion = "word-backward"
-	case "e":
-		motion = "word-end"
-	case "0", "home":
-		motion = "line-start"
-	case "$", "end":
-		motion = "line-end"
-	case "G":
-		return command("move", Arguments{"motion": "last-line", "line": in.Count})
-	case "i":
-		return command("begin", Arguments{"position": "insert"})
-	case "a":
-		return command("begin", Arguments{"position": "append"})
-	case "I":
-		return command("begin", Arguments{"position": "first"})
-	case "A":
-		return command("begin", Arguments{"position": "end"})
-	case "o":
-		return command("begin", Arguments{"position": "below"})
-	case "O":
-		return command("begin", Arguments{"position": "above"})
-	case "x", "delete":
-		return command("delete", Arguments{"steps": steps})
-	case "u":
-		return command("undo", Arguments{"steps": steps})
-	case "ctrl+r":
-		return command("redo", Arguments{"steps": steps})
-	default:
-		if in.Count != 0 || in.Pending != "" {
-			return command("cancel", nil)
-		}
-		return false, nil
-	}
-	return command("move", Arguments{"motion": motion, "steps": steps})
+	return false, nil
 }
 
 func literalInput(key string) bool {

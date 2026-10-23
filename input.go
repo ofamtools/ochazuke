@@ -14,19 +14,23 @@ type EditNode struct {
 }
 
 type Input struct {
-	ID         string
-	Text       []rune
-	Cursor     int
-	Mode       string
-	Multiline  bool
-	History    []EditNode
-	Head       int
-	Count      int
-	Pending    string
-	Kill       string
-	groupOpen  bool
-	groupNode  int
-	goalColumn int
+	ID            string
+	Text          []rune
+	Cursor        int
+	Mode          string
+	Multiline     bool
+	Kind          string
+	PathFilter    string
+	Anchor        int
+	History       []EditNode
+	Head          int
+	Count         int
+	Pending       string
+	operatorCount int
+	groupOpen     bool
+	groupNode     int
+	goalColumn    int
+	blockChange   *blockChange
 }
 
 func NewInput(id, text string, multiline bool) *Input {
@@ -51,7 +55,8 @@ func (in *Input) Snapshot() map[string]any {
 	return map[string]any{
 		"id": in.ID, "text": string(in.Text), "cursor": in.Cursor, "mode": in.Mode,
 		"multiline": in.Multiline, "history": in.History, "head": in.Head,
-		"count": in.Count, "pending": in.Pending, "kill": in.Kill,
+		"count": in.Count, "pending": in.Pending, "kind": in.Kind, "pathFilter": in.PathFilter,
+		"anchor": in.Anchor, "selection": in.selectionSnapshot(),
 		"insertGroup": in.groupOpen, "row": row, "column": column,
 	}
 }
@@ -63,9 +68,15 @@ func (in *Input) SetMode(mode string) {
 		return
 	}
 	old := in.Mode
+	if old == "insert" {
+		in.finishBlockChange()
+	}
 	edited := in.groupNode == in.Head
 	in.endGroup()
 	in.Mode = mode
+	if isVisual(mode) && !isVisual(old) {
+		in.Anchor = in.Cursor
+	}
 	in.resetKeys()
 	in.goalColumn = -1
 	if mode == "insert" {
@@ -128,6 +139,10 @@ func (in *Input) Undo(steps int) error {
 		return errors.New("steps must be positive")
 	}
 	in.endGroup()
+	in.blockChange = nil
+	if isVisual(in.Mode) {
+		in.Mode = "normal"
+	}
 	in.resetKeys()
 	for ; steps > 0; steps-- {
 		parent := in.History[in.Head].Parent
@@ -151,6 +166,10 @@ func (in *Input) Redo(steps, branch int) error {
 		return errors.New("unknown undo branch")
 	}
 	in.endGroup()
+	in.blockChange = nil
+	if isVisual(in.Mode) {
+		in.Mode = "normal"
+	}
 	in.resetKeys()
 	for ; steps > 0; steps-- {
 		children := in.History[in.Head].Children
@@ -184,7 +203,7 @@ func (in *Input) endGroup() {
 	in.groupNode = -1
 }
 
-func (in *Input) resetKeys() { in.Count = 0; in.Pending = "" }
+func (in *Input) resetKeys() { in.Count = 0; in.Pending = ""; in.operatorCount = 0 }
 
 func RegisterInputOperations(r *Runtime) {
 	r.Modes["normal"] = true
@@ -209,12 +228,29 @@ func RegisterInputOperations(r *Runtime) {
 		}},
 		{"begin", "Enter insert mode at insert/append/first/end/below/above", map[string]Parameter{"position": {Type: "string"}}, func(in *Input, a Arguments) error { return in.begin(StringArg(a, "position", "insert")) }},
 		{"delete", "Delete forward/backward runes without crossing a normal-mode line", map[string]Parameter{"direction": {Type: "string"}, "steps": {Type: "integer"}}, func(in *Input, a Arguments) error {
-			return in.deleteRunes(StringArg(a, "direction", "forward"), IntArg(a, "steps", 1))
-		}},
-		{"kill", "Kill word-backward, line-start, or line-end into this input's register", map[string]Parameter{"motion": {Type: "string", Required: true}}, func(in *Input, a Arguments) error { return in.kill(StringArg(a, "motion", "")) }},
-		{"yank", "Insert this input's most recently killed text", nil, func(in *Input, a Arguments) error {
-			in.resetKeys()
-			return in.Replace(in.Cursor, in.Cursor, in.Kill)
+			direction, steps := StringArg(a, "direction", "forward"), IntArg(a, "steps", 1)
+			start, end := in.Cursor, in.Cursor
+			normal := in.Mode == "normal"
+			if normal && steps > 0 {
+				boundedSteps := min(steps, len(in.Text))
+				lower, upper := in.lineBounds(in.Cursor)
+				if direction == "backward" {
+					start = max(lower, start-boundedSteps)
+				} else {
+					end = min(upper, end+boundedSteps)
+				}
+			}
+			killed := ""
+			if normal {
+				killed = string(in.Text[start:end])
+			}
+			if err := in.deleteRunes(direction, steps); err != nil {
+				return err
+			}
+			if normal && killed != "" {
+				return r.storeYank(Yank{Text: killed, Shape: "char"}, "", true)
+			}
+			return nil
 		}},
 		{"prefix", "Accumulate a normal-mode digit or g prefix", map[string]Parameter{"key": {Type: "string", Required: true}}, func(in *Input, a Arguments) error { return in.prefix(StringArg(a, "key", "")) }},
 		{"cancel", "Cancel this input's count and pending motion", nil, func(in *Input, a Arguments) error { in.resetKeys(); return nil }},
@@ -228,7 +264,11 @@ func RegisterInputOperations(r *Runtime) {
 			if err := fn(in, a); err != nil {
 				return nil, err
 			}
+			if spec.verb == "cancel" {
+				r.ActiveRegister = ""
+			}
 			return in.Snapshot(), nil
 		}})
 	}
+	registerEditorOperations(r)
 }

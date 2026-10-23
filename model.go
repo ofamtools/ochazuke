@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/rivo/uniseg"
 )
 
 // ModalView renders one modal without replacing or inspecting its parent page.
@@ -22,6 +24,7 @@ type Model struct {
 	Runtime    *Runtime
 	Palette    *Palette
 	Appearance *Appearance
+	Pickers    []*Picker
 	ModalViews map[string]ModalView
 	Title      string
 	Width      int
@@ -32,6 +35,8 @@ type Model struct {
 
 func NewModel(r *Runtime) *Model {
 	m := &Model{Runtime: r, Palette: NewPalette(r), Appearance: NewAppearance(r), ModalViews: map[string]ModalView{}, Title: "Ochazuke", Width: 80, Height: 24, views: map[string]*viewport.Model{}}
+	r.dispatchKey = m.dispatchKey
+	m.ModalViews[yankHistoryID] = ModalView{Title: "Yank history", Render: yankHistoryView}
 	r.Register(Operation{Verb: "scroll", Noun: "surface", Description: "Scroll the active page or modal without changing focus", Parameters: map[string]Parameter{"lines": {Type: "integer", Required: true}}, Result: "scroll offset", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		frame := r.Frames[len(r.Frames)-1]
 		width, height := m.pageSize()
@@ -50,6 +55,7 @@ func NewModel(r *Runtime) *Model {
 	}})
 	defaults := []Binding{
 		{Mode: "normal", Keys: "ctrl+p", Request: Request{Verb: "open", Noun: "palette"}},
+		{Mode: "normal", Keys: "ctrl+y", Request: Request{Verb: "open", Noun: "yank-history"}},
 		{Keys: "ctrl+@", Request: Request{Verb: "open", Noun: "palette"}},
 		{Keys: "ctrl+c", Request: Request{Verb: "quit", Noun: "app"}},
 		{Keys: "alt+right", Request: Request{Verb: "next", Noun: "page"}},
@@ -62,6 +68,9 @@ func NewModel(r *Runtime) *Model {
 }
 func (m *Model) Init() tea.Cmd { return nil }
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	for _, picker := range m.Pickers {
+		picker.HandleMessage(msg)
+	}
 	switch v := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.Width = max(1, v.Width)
@@ -71,31 +80,21 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.Palette.publish()
 	case tea.KeyMsg:
 		if v.Type == tea.KeyRunes && !v.Paste && !v.Alt && len(v.Runes) > 1 {
+			var commands []tea.Cmd
 			for i := range v.Runes {
 				single := v
 				single.Runes = v.Runes[i : i+1]
-				if _, cmd := m.Update(single); cmd != nil {
-					return m, cmd
+				_, cmd := m.Update(single)
+				if cmd != nil {
+					commands = append(commands, cmd)
+				}
+				if m.Runtime.Quit {
+					break
 				}
 			}
-			return m, nil
+			return m, tea.Batch(commands...)
 		}
-		var err error
-		if m.Palette.IsActive() {
-			_, err = m.Palette.HandleKey(v.String())
-		} else {
-			var handled bool
-			handled, err = m.Runtime.HandleBinding(v.String())
-			if !handled && err == nil {
-				c := m.Runtime.Context()
-				in := m.Runtime.Inputs[c.InputID]
-				if v.String() == "esc" && len(m.Runtime.Frames) > 1 && m.Runtime.Mode(c) == "normal" && (in == nil || (in.Pending == "" && in.Count == 0)) {
-					_, err = m.Runtime.Execute(Request{Verb: "pop", Noun: "modal"})
-				} else {
-					_, err = HandleInputKey(m.Runtime, v.String())
-				}
-			}
-		}
+		err := m.dispatchKey(MacroKey{Key: v.String(), Paste: v.Paste})
 		if err != nil {
 			m.Status = err.Error()
 		} else {
@@ -105,7 +104,55 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m.Runtime.Quit {
 		return m, tea.Quit
 	}
-	return m, nil
+	var commands []tea.Cmd
+	for _, picker := range m.Pickers {
+		if cmd := picker.PendingCommand(); cmd != nil {
+			commands = append(commands, cmd)
+		}
+	}
+	return m, tea.Batch(commands...)
+}
+
+// dispatchKey is shared by live input and macro playback, including modal and
+// layer bindings. Pasted text stays one literal event, never a command sequence.
+func (m *Model) dispatchKey(key MacroKey) error {
+	r := m.Runtime
+	in := r.Inputs[r.Context().InputID]
+	stop := key.Key == "q" && !key.Paste && r.Mode(r.Context()) == "normal" && r.Macro.Pending == "" && (in == nil || in.Pending == "")
+	if r.Macro.Recording != "" && r.Macro.Depth == 0 && !stop {
+		if len(r.Macro.Keys) >= 10000 {
+			return fmt.Errorf("macro recording exceeds 10000 keys")
+		}
+		r.Macro.Keys = append(r.Macro.Keys, key)
+	}
+	if !key.Paste && (r.Macro.Pending != "" || r.Macro.Recording != "" && stop) {
+		handled, err := r.handleMacroKey(key.Key)
+		if handled || err != nil {
+			return err
+		}
+	}
+	if m.Palette.IsActive() {
+		_, err := m.Palette.HandleKey(key.Key)
+		return err
+	}
+	// A field's active grammar wins over unrelated app bindings, e.g. dw
+	// when w also switches a page. Fresh keys still honor layer overrides.
+	if !key.Paste && (r.Macro.Pending != "" || in == nil && r.Macro.Count > 0 || in != nil && (in.Pending != "" || in.Count > 0)) {
+		handled, err := HandleInputKey(r, key.Key)
+		if handled || err != nil {
+			return err
+		}
+	}
+	handled, err := r.HandleBinding(key.Key)
+	if handled || err != nil {
+		return err
+	}
+	if key.Key == "esc" && len(r.Frames) > 1 && r.Mode(r.Context()) == "normal" && (in == nil || in.Pending == "" && in.Count == 0) {
+		_, err = r.Execute(Request{Verb: "pop", Noun: "modal"})
+		return err
+	}
+	_, err = HandleInputKey(r, key.Key)
+	return err
 }
 func (m *Model) pageSize() (int, int) {
 	pad := NewStyles(*m.Appearance).Padding
@@ -236,16 +283,71 @@ func InputView(in *Input, width, height int) string {
 	height = max(1, height)
 	cursor := min(max(0, in.Cursor), len(in.Text))
 	before := string(in.Text[:cursor])
-	after := string(in.Text[cursor:])
-	lines := strings.Split(before+"▏"+after, "\n")
+	var body strings.Builder
+	highlight := func(s string) string { return "\x1b[7m" + s + "\x1b[27m" }
+	rowIndex, column := 0, 0
+	lo, hi := in.selectionRange()
+	top, bottom, left, right := 0, -1, 0, 0
+	if in.Mode == "visual-block" {
+		top, bottom, left, right = in.blockBounds()
+	}
+	clusters := uniseg.NewGraphemes(safeText(string(in.Text)))
+	runeIndex := 0
+	for clusters.Next() {
+		text := clusters.Str()
+		count := utf8.RuneCountInString(text)
+		i := runeIndex
+		runeIndex += count
+		if i <= cursor && cursor < runeIndex {
+			body.WriteString("▏")
+		}
+		selected := isVisual(in.Mode) && i < hi && runeIndex > lo
+		w := cellWidth(text)
+		if in.Mode == "visual-block" {
+			selected = rowIndex >= top && rowIndex <= bottom && column < right && column+w > left
+		}
+		if text == "\n" {
+			if in.Mode == "visual-block" && rowIndex >= top && rowIndex <= bottom && column < right {
+				body.WriteString(strings.Repeat(" ", max(0, left-column)))
+				body.WriteString(highlight(strings.Repeat(" ", right-max(left, column))))
+			} else if selected {
+				body.WriteString(highlight(" "))
+			}
+			body.WriteByte('\n')
+			rowIndex++
+			column = 0
+			continue
+		}
+		if selected {
+			if in.Mode == "visual-block" && w > 0 && (column < left || column+w > right) {
+				text = strings.Repeat(" ", max(0, left-column)) + highlight(strings.Repeat(" ", min(column+w, right)-max(column, left))) + strings.Repeat(" ", max(0, column+w-right))
+			} else {
+				text = highlight(text)
+			}
+		}
+		body.WriteString(text)
+		column += w
+	}
+	if cursor == len(in.Text) {
+		body.WriteString("▏")
+	}
+	if in.Mode == "visual-block" && rowIndex >= top && rowIndex <= bottom && column < right {
+		body.WriteString(strings.Repeat(" ", max(0, left-column)))
+		body.WriteString(highlight(strings.Repeat(" ", right-max(left, column))))
+	}
+	lines := strings.Split(body.String(), "\n")
 	row := strings.Count(before, "\n")
 	start := max(0, row-height+1)
 	end := min(len(lines), start+height)
 	visible := lines[start:end]
 	columnText := before[strings.LastIndex(before, "\n")+1:]
-	offset := max(0, ansi.StringWidth(safeText(columnText))-width+2)
+	cursorColumn := ansi.StringWidth(safeText(columnText))
+	if in.Mode == "visual-block" {
+		cursorColumn = max(cursorColumn, in.goalColumn)
+	}
+	offset := max(0, cursorColumn-width+2)
 	for i, line := range visible {
-		visible[i] = ansi.Cut(safeText(line), offset, offset+width)
+		visible[i] = ansi.Cut(line, offset, offset+width)
 	}
 	return strings.Join(visible, "\n")
 }

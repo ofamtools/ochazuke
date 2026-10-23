@@ -162,8 +162,8 @@ func TestEditorReadlineMotionAndKillYank(t *testing.T) {
 	r, in = editorTestRuntime(t, "one 世界 tail", false)
 	editorTestKeys(t, r, "A", "ctrl+w")
 	editorTestState(t, in, "one 世界 ", 7, "insert")
-	if in.Kill != "tail" {
-		t.Fatalf("kill=%q want tail", in.Kill)
+	if r.Registers["\""].Yank.Text != "tail" {
+		t.Fatalf("yank=%q want tail", r.Registers["\""].Yank.Text)
 	}
 	editorTestKeys(t, r, "ctrl+y", "ctrl+u")
 	editorTestState(t, in, "", 0, "insert")
@@ -185,8 +185,8 @@ func TestEditorReadlineWordBoundariesDifferFromVim(t *testing.T) {
 	editorTestState(t, in, "one foo.bar", 8, "insert")
 	editorTestKeys(t, r, "ctrl+e", "ctrl+w")
 	editorTestState(t, in, "one ", 4, "insert")
-	if in.Kill != "foo.bar" {
-		t.Fatalf("kill=%q want foo.bar", in.Kill)
+	if r.Registers["\""].Yank.Text != "foo.bar" {
+		t.Fatalf("yank=%q want foo.bar", r.Registers["\""].Yank.Text)
 	}
 	editorTestKeys(t, r, "ctrl+y", "esc", "u")
 	editorTestState(t, in, "one foo.bar", 0, "normal")
@@ -196,8 +196,8 @@ func TestEditorKillNewlineAndBackspaceJoin(t *testing.T) {
 	r, in := editorTestRuntime(t, "ab\ncd", true)
 	editorTestKeys(t, r, "A", "ctrl+k")
 	editorTestState(t, in, "abcd", 2, "insert")
-	if in.Kill != "\n" {
-		t.Fatalf("kill=%q want newline", in.Kill)
+	if r.Registers["\""].Yank.Text != "\n" {
+		t.Fatalf("yank=%q want newline", r.Registers["\""].Yank.Text)
 	}
 	editorTestKeys(t, r, "ctrl+y", "backspace")
 	editorTestState(t, in, "abcd", 2, "insert")
@@ -254,7 +254,7 @@ func TestEditorInputIsolationAndCapturedTarget(t *testing.T) {
 		t.Fatal(err)
 	}
 	editorTestKeys(t, r, "A", "ctrl+w", "esc", "2", "g")
-	if first.Count != 2 || first.Pending != "g" || first.Kill != "beta" {
+	if first.Count != 2 || first.Pending != "g" || r.Registers["\""].Yank.Text != "beta" {
 		t.Fatalf("first state=%v", first.Snapshot())
 	}
 	r.Pending = "binding prefix"
@@ -262,7 +262,7 @@ func TestEditorInputIsolationAndCapturedTarget(t *testing.T) {
 		t.Fatal(err)
 	}
 	editorTestKeys(t, r, "i", "ctrl+y", "!", "esc")
-	editorTestState(t, second, "!XYZ", 0, "normal")
+	editorTestState(t, second, "beta!XYZ", 4, "normal")
 	editorTestState(t, first, "alpha ", 5, "normal")
 	if first.Count != 2 || first.Pending != "g" {
 		t.Fatal("focus discarded input-local prefix")
@@ -271,11 +271,11 @@ func TestEditorInputIsolationAndCapturedTarget(t *testing.T) {
 		t.Fatal(err)
 	}
 	editorTestState(t, first, "alpha beta", 0, "normal")
-	editorTestState(t, second, "!XYZ", 0, "normal")
+	editorTestState(t, second, "beta!XYZ", 4, "normal")
 	editorTestKeys(t, r, "u")
 	editorTestState(t, second, "XYZ", 0, "normal")
-	if first.Kill != "beta" || second.Kill != "" {
-		t.Fatal("kill registers leaked across inputs")
+	if r.Registers["\""].Yank.Text != "beta" {
+		t.Fatal("shared yank lost after cross-field paste and undo")
 	}
 }
 

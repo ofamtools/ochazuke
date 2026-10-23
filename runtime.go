@@ -70,17 +70,22 @@ type Frame struct {
 
 // Runtime is owned by one event loop. Transport callers submit messages to that loop.
 type Runtime struct {
-	Layers     map[string]*Layer
-	Inputs     map[string]*Input
-	InputPaths map[string][]string
-	Frames     []*Frame
-	Pages      map[string]*Page
-	PageOrder  []string
-	ActivePage string
-	Modes      map[string]bool
-	Operations map[string]Operation
-	Quit       bool
-	Pending    string
+	Layers         map[string]*Layer
+	Inputs         map[string]*Input
+	InputPaths     map[string][]string
+	Frames         []*Frame
+	Pages          map[string]*Page
+	PageOrder      []string
+	ActivePage     string
+	Modes          map[string]bool
+	Operations     map[string]Operation
+	Quit           bool
+	Pending        string
+	Registers      map[string]Register
+	YankHistory    []Yank
+	ActiveRegister string
+	Macro          MacroState
+	dispatchKey    func(MacroKey) error
 }
 
 func NewRuntime() *Runtime {
@@ -90,11 +95,14 @@ func NewRuntime() *Runtime {
 		Frames: []*Frame{{ID: "main", Context: Context{Path: []string{"app"}}, State: map[string]any{}}},
 		Pages:  map[string]*Page{},
 		Modes:  map[string]bool{"normal": true, "insert": true}, Operations: map[string]Operation{},
+		Registers: map[string]Register{},
 	}
 	registerCore(r)
 	registerConfiguration(r)
 	registerPages(r)
 	RegisterInputOperations(r)
+	registerYankHistory(r)
+	registerMacros(r)
 	return r
 }
 
@@ -126,6 +134,18 @@ func (r *Runtime) AddInput(in *Input, path []string) error {
 	}
 	if err := r.validateContext(Context{Path: path, InputID: ""}); err != nil {
 		return err
+	}
+	switch in.Kind {
+	case "", "text", "path":
+	case "paths":
+		in.Multiline = true
+	default:
+		return errors.New("input kind must be text, path, or paths")
+	}
+	switch in.PathFilter {
+	case "", "any", "file", "dir":
+	default:
+		return errors.New("path filter must be any, file, or dir")
 	}
 	r.Inputs[in.ID] = in
 	r.InputPaths[in.ID] = append([]string(nil), path...)
@@ -349,7 +369,9 @@ func (r *Runtime) Snapshot() map[string]any {
 		modes = append(modes, mode)
 	}
 	sort.Strings(modes)
-	return map[string]any{"frames": r.Frames, "pages": r.Pages, "activePage": r.ActivePage, "inputs": inputs, "context": r.Context(), "mode": r.Mode(r.Context()), "modes": modes, "layers": layers, "bindings": r.EffectiveBindings(r.Context()), "pending": r.Pending, "quit": r.Quit}
+	// Registers and macro state belong to the application, never individual fields.
+	return map[string]any{"frames": r.Frames, "pages": r.Pages, "activePage": r.ActivePage, "inputs": inputs, "context": r.Context(), "mode": r.Mode(r.Context()), "modes": modes, "layers": layers, "bindings": r.EffectiveBindings(r.Context()), "pending": r.Pending, "quit": r.Quit,
+		"registers": r.Registers, "yankHistory": r.YankHistory, "activeRegister": r.ActiveRegister, "macro": r.Macro}
 }
 func JSONPointer(value any, path string) (any, error) {
 	data, err := json.Marshal(value)
