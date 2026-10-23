@@ -75,6 +75,44 @@ func TestPaletteVerbAndNounPaths(t *testing.T) {
 	}
 }
 
+func TestPaletteNestedSearch(t *testing.T) {
+	for _, path := range []struct {
+		name, query, choice, nested string
+	}{
+		{"verb", "insert", "verb:insert", "input"},
+		{"noun", "input", "noun:input", "insert"},
+	} {
+		t.Run(path.name, func(t *testing.T) {
+			r := NewRuntime()
+			p := NewPalette(r)
+			if err := p.Open(); err != nil {
+				t.Fatal(err)
+			}
+			for _, key := range path.query {
+				paletteKeys(t, p, string(key))
+			}
+			paletteChoose(t, r, path.choice)
+			if !p.searching || p.query != "" || string(p.editor("search").Text) != "" {
+				t.Fatalf("nested search: active=%v query=%q text=%q", p.searching, p.query, p.editor("search").Text)
+			}
+			for _, key := range path.nested {
+				paletteKeys(t, p, string(key))
+			}
+			if p.query != path.nested {
+				t.Fatalf("nested query = %q, want %q", p.query, path.nested)
+			}
+			paletteKeys(t, p, "enter")
+			if p.stage != "arguments" || p.op.Key() != "insert.input" {
+				t.Fatalf("selected stage=%q operation=%q", p.stage, p.op.Key())
+			}
+			paletteKeys(t, p, "hello")
+			if p.drafts["text"] != "hello" {
+				t.Fatalf("argument text = %q, want hello", p.drafts["text"])
+			}
+		})
+	}
+}
+
 func TestPaletteKeyboardUndoUsesCapturedInput(t *testing.T) {
 	r := NewRuntime()
 	origin := NewInput("origin", "base", false)
@@ -99,7 +137,7 @@ func TestPaletteKeyboardUndoUsesCapturedInput(t *testing.T) {
 	if err := p.Open(); err != nil {
 		t.Fatal(err)
 	}
-	paletteKeys(t, p, "undo", "enter", "/", "input", "enter")
+	paletteKeys(t, p, "undo", "enter", "input", "enter")
 	if got := paletteInputSnapshot(t, origin); got != before {
 		t.Fatal("navigation changed originating input")
 	}

@@ -190,7 +190,7 @@ On terminals where Option does not send Meta sequences, configure Option-as-Meta
 
 - The palette opens with its search field focused in insert mode: type immediately.
 - Its root displays the actual **VERBS** and **NOUNS** lists side by side. In normal mode, `h/l` and left/right switch columns; `j/k` and up/down move through results; Enter chooses.
-- Choosing a verb lists compatible nouns. Choosing a noun lists its verbs and any configured instances. For `page`, the instances are the live pages; selecting one executes `open.page` with its ID. Search matches page titles and IDs, so navigation does not depend on numbered tabs.
+- Choosing a verb lists compatible nouns. Choosing a noun lists its verbs and any configured instances. Moving into a nested list preserves search mode and clears the previous query, so typing immediately filters the new options. For `page`, the instances are the live pages; selecting one executes `open.page` with its ID. Search matches page titles and IDs, so navigation does not depend on numbered tabs.
 - `/` enters search when browsing a list. Search and argument fields use the same Vim/Readline editor and independent undo trees as page inputs. Escape first returns an editing field to normal mode; subsequent Escape goes back.
 - Argument forms show required/optional fields. Tab/arrows change fields; Enter advances and then executes. Empty optional fields are omitted. `set palette-argument` can supply an explicit empty string; `clear palette-argument` omits one.
 - The originating interaction context is captured before the palette opens. Selecting `undo → input` edits the originating input, not the palette's search field.

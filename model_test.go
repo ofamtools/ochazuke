@@ -31,7 +31,7 @@ func TestModelCoalescedPaletteSearchNavigatesPage(t *testing.T) {
 	enter := func() { m.Update(tea.KeyMsg{Type: tea.KeyEnter}) }
 	typed("open")
 	enter()
-	typed("/page")
+	typed("page")
 	enter()
 	typed("playground")
 	enter()

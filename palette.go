@@ -279,7 +279,12 @@ func (p *Palette) choose(a Arguments) error {
 		p.focusEditor()
 	}
 	p.query = ""
-	p.searching = false
+	if p.searching {
+		editor := p.editor("search")
+		if err := editor.Replace(0, len(editor.Text), ""); err != nil {
+			return err
+		}
+	}
 	p.selection = 0
 	p.message = ""
 	p.focusEditor()
