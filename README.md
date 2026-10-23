@@ -12,6 +12,7 @@ Status: requirements and initial design; no implementation yet. Neither gmtm nor
 - Customizable keybindings scoped to modes, components, or the application, plus global bindings.
 - Public operations available through an API and CLI tools, including a central CLI with subcommands.
 - JSON export of application state and individually addressable public values.
+- Nested command palette with two top-level lists: verbs and nouns. Either can be chosen first.
 
 ## Stateful modal stack
 
@@ -102,6 +103,34 @@ Proposed precedence:
 Within a scope, mode-specific bindings precede mode-independent bindings. User configuration overrides defaults in the same scope. Shortcuts that must override every scope should be explicitly reserved rather than implicitly granting that behavior to all global bindings.
 
 Multi-key sequences such as `g g` require pending-sequence state, cancellation, and defined incomplete-sequence behavior. Unmatched text in insert mode is delivered to the focused editor.
+
+## Nested verb/noun command palette
+
+The palette's main options are just a list of verbs and a list of nouns, rather than a flat list of complete commands.
+
+- Choosing a verb opens a nested list of nouns that support that verb.
+- Choosing a noun opens a nested list of verbs associated with that noun.
+- Both paths select the same registered operation; choosing the order does not change its meaning.
+
+Illustrative relationships and navigation (JavaScript notation, not a Go API contract):
+
+```js
+{
+  operations: [
+    { verb: "create", noun: "task" },
+    { verb: "edit", noun: "task" },
+    { verb: "edit", noun: "project" }
+  ],
+  root: {
+    verbs: ["create", "edit"],
+    nouns: ["task", "project"]
+  },
+  verbFirst: { selected: "edit", nextNouns: ["task", "project"] },
+  nounFirst: { selected: "task", nextVerbs: ["create", "edit"] }
+}
+```
+
+Derive both navigation paths from the shared operation registry so they expose the same supported verb/noun pairs.
 
 ## Shared command and query API
 
