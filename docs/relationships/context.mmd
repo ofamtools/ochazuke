@@ -1,0 +1,10 @@
+flowchart TD
+    F["Top Frame"] -->|contains| C["Context"]
+    F -->|also contains| S["State: frame-local values such as scroll"]
+    C -->|Path| P["Layer IDs: app, screen, field"]
+    C -->|InputID| ID["Input ID: title"]
+    P -->|look up in Runtime.Layers| L["Named binding and action scopes"]
+    L -->|binding precedence| B["Outer to inner: later definitions override"]
+    L -->|action lookup| A["Inner to outer: first handler wins"]
+    ID -->|look up in Runtime.Inputs| I["Input: title"]
+    I -->|owns| E["Text, cursor, mode, undo history"]

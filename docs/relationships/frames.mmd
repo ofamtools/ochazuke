@@ -1,0 +1,8 @@
+flowchart TD
+    P["Page: editor"] -->|retains| B["Base Frame: editor"]
+    Q["Page: settings"] -->|retains| U["Base Frame: settings - inactive"]
+    S["Runtime.Frames: active stack"] -->|index 0 - same object| B
+    S -->|index 1| D["Modal Frame: draft"]
+    S -->|index 2 - top| C["Modal Frame: confirm"]
+    C -->|current context| K["Ordinary key routing starts here"]
+    V["Model.View"] -->|draws in order| W["editor, then draft, then confirm"]

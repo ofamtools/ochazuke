@@ -1,0 +1,10 @@
+flowchart LR
+    M["Model"] -->|Runtime pointer| R["Runtime"]
+    M -->|ModalViews map| MV["Modal render callbacks"]
+    R -->|Pages map| P["Page objects"]
+    R -->|Frames slice| F["Active Frame references"]
+    R -->|Inputs map| I["Input objects"]
+    R -->|Layers map| L["Layer objects"]
+    R -->|Operations map| O["Operation definitions"]
+    P -->|Frame pointer| B["Retained base Frame"]
+    P -->|Render function| V["Page render callback"]

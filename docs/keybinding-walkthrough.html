@@ -90,13 +90,9 @@ th{background:var(--paper2);font:600 .78rem var(--mono);letter-spacing:.06em;tex
 .stackviz li{border:1px solid var(--ink);padding:.35rem .6rem;margin-top:-1px;font:.84rem/1.4 var(--mono);background:var(--paper)}
 .stackviz li.top{background:var(--matcha-bg);border-width:2px}
 .stackviz p{font-size:.9rem;margin:.6rem 0 0}
-.diagram{margin:1.25rem 0;border:1px dashed var(--ink);background:#fbf5e8;padding:.5rem}
-.diagram svg{display:block;width:100%;height:auto;max-width:48rem;margin:0 auto}
-.diagram text{font:12px var(--mono);fill:var(--ink)}
-.diagram .box{fill:var(--paper);stroke:var(--ink);stroke-width:2}
-.diagram .own{fill:var(--matcha-bg);stroke:var(--matcha);stroke-width:2}
-.diagram .ref{fill:none;stroke:var(--shu);stroke-width:2;stroke-dasharray:5 4}
-.diagram .lbl{fill:var(--shu);font-size:11px}
+.diagram{margin:1.25rem 0;border:1px solid var(--rule);background:#fdf6e3;padding:1rem;overflow-x:auto}
+.diagram img{display:block;width:100%;min-width:700px;height:auto}
+.diagram figcaption{position:sticky;left:0;max-width:45rem;margin-bottom:1rem;font-size:.9rem}
 dl.gloss{margin:1rem 0;max-width:48rem}
 dl.gloss dt{font:600 .95rem var(--mono);margin-top:1rem;padding-top:.6rem;border-top:1px solid var(--rule);scroll-margin-top:1rem}
 dl.gloss dt:target{background:var(--shu-bg)}
@@ -220,23 +216,29 @@ footer{border-top:3px double var(--ink);padding:1.5rem 0 3rem;font-size:.92rem;c
 <h3>What a Frame holds</h3>
 <p>A Frame is <code>{ id, context, state }</code>. It does not hold a renderer, pixel geometry, or a z-index. Its position in the <code>Frames</code> slice <em>is</em> its stacking order. <code>state</code> holds frame-local values such as scroll position, not all application or editor state. Text, cursor, mode, and history live on the <a href="#term-input">Input</a>, which the Frame's Context refers to by <code>inputId</code>.</p>
 
-<h3>Ownership diagram</h3>
-<div class="diagram">
-<svg viewBox="0 0 560 250" role="img" aria-labelledby="dg-t dg-d">
-<title id="dg-t">Runtime ownership relationships</title>
-<desc id="dg-d">Runtime owns Frames, Layers, Inputs, and Pages. A Frame's Context.Path names Layers and Context.InputID names an Input. A Page retains the base Frame and a render callback. Model reads the Runtime to draw.</desc>
-<rect class="own" x="10" y="10" width="540" height="230" rx="4"/>
-<text x="20" y="28">Runtime (owned by one event loop)</text>
-<rect class="box" x="30" y="50" width="140" height="70"/><text x="40" y="70">Frames []*Frame</text><text x="40" y="88">id/context/state</text><text x="40" y="106">last = current</text>
-<rect class="box" x="210" y="50" width="130" height="70"/><text x="220" y="70">Layers map</text><text x="220" y="88">named scopes</text><text x="220" y="106">bindings/actions</text>
-<rect class="box" x="380" y="50" width="150" height="70"/><text x="390" y="70">Inputs map</text><text x="390" y="88">text/cursor/mode</text><text x="390" y="106">history</text>
-<rect class="box" x="30" y="170" width="140" height="55"/><text x="40" y="190">Pages map</text><text x="40" y="208">frame + render</text>
-<path class="ref" d="M170 75 H210"/><text class="lbl" x="172" y="68">Path</text>
-<path class="ref" d="M170 105 C270 150 400 150 455 120"/><text class="lbl" x="290" y="150">InputID</text>
-<path class="ref" d="M100 170 V120"/><text class="lbl" x="106" y="150">base</text>
-</svg>
-<p style="margin:.4rem .6rem;font-size:.85rem">Outer box: Runtime ownership. Dashed lines: references (<code>Path</code> and <code>InputID</code> use IDs; a Page holds a base Frame pointer). <code>Model</code> reads the Runtime to draw and to dispatch keys.</p>
-</div>
+<h3 id="relationships">Three relationship graphs—not one family tree</h3>
+<p><strong>Read an arrow as the label on that arrow, not “is a kind of.”</strong> Model holds a Runtime pointer; a Page holds a Frame pointer. Neither is an inheritance relationship. “Registry” is a name for an ID-keyed map, not another object above Runtime. “Modal” is the role of a Frame above the base frame, not a separate core type.</p>
+<h4>1. Storage: who holds what?</h4>
+<p>Start at Model and follow its Runtime pointer. Runtime keeps several collections side by side—not nested inside one another. This is a selected field map, not every field in either struct. A registered Page retains its own base Frame, even when inactive.</p>
+<figure class="diagram">
+<figcaption>Each arrow names an actual field or reference. Scroll horizontally if needed, or <a href="relationships/objects.svg">open the full diagram</a>. <a href="relationships/objects.mmd">Mermaid source</a> · <a href="relationships/objects.png">PNG</a>.</figcaption>
+<img src="relationships/objects.svg" alt="Model holds Runtime and modal render callbacks. Runtime holds Pages, active Frame references, Inputs, Layers, and Operations. Each Page holds a base Frame and render callback.">
+</figure>
+<p>For example, <code>Runtime.Inputs["title"]</code> looks up an Input. That map is the input registry. There is no separate <code>Registry</code> instance between Runtime and Input.</p>
+<h4>2. Active stack: which page and modals are open?</h4>
+<p>Hypothetical snapshot: the editor page has draft and confirm modals open. Settings is registered but inactive. The editor Page and <code>Frames[0]</code> point to <strong>the same Frame object</strong>, not copies. The modals are siblings in the Frames slice; confirm is not stored inside draft.</p>
+<figure class="diagram">
+<figcaption>Index 0 is the base; the last index is the top. <a href="relationships/frames.svg">Open full diagram</a> · <a href="relationships/frames.mmd">Mermaid source</a> · <a href="relationships/frames.png">PNG</a>.</figcaption>
+<img src="relationships/frames.svg" alt="Editor Page and active stack index zero share a base Frame. Draft and confirm occupy stack indices one and two. Settings retains a separate inactive frame. Model draws editor, draft, then confirm; confirm supplies the current context.">
+</figure>
+<p><code>Pop</code> removes confirm, making draft current. It does not rebuild draft. <code>OpenPage</code> can switch to settings only after both modals close; it then uses settings' existing Frame as the single base frame.</p>
+<h4>3. Context: how does a frame select scopes and an editor?</h4>
+<p>Hypothetical context: <code>{ path: ["app", "screen", "field"], inputId: "title" }</code>. The path names Layer entries; the input ID names an Input entry. These are two separate lookups, not another stack of windows.</p>
+<figure class="diagram">
+<figcaption>Layer IDs and InputID are references, not embedded objects. <a href="relationships/context.svg">Open full diagram</a> · <a href="relationships/context.mmd">Mermaid source</a> · <a href="relationships/context.png">PNG</a>.</figcaption>
+<img src="relationships/context.svg" alt="Top Frame contains Context and local State. Context.Path selects named Layers for binding precedence and action lookup. Context.InputID selects an Input that owns text, cursor, mode, and history.">
+</figure>
+<p>Ordinary key routing starts with this top-frame Context. An explicitly targeted operation can use another context. If no contextual action handles a request, execution falls back to the registered Operation's default handler.</p>
 
 <h3>Before, focus, push, pop</h3>
 <p>Illustrative objects with hypothetical names. Who owns what changes: focus edits the top frame's Context; push adds a frame; pop removes it and the parent's own Context returns unchanged.</p>
