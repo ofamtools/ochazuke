@@ -15,8 +15,9 @@ func TestLayoutsStayInsideViewport(t *testing.T) {
 		t.Run(fmt.Sprintf("%dx%d", size[0], size[1]), func(t *testing.T) {
 			l := Layout{Width: size[0], Height: size[1], Styles: styles}
 			for name, view := range map[string]string{
-				"page":  l.Page("Tasks", "Workspace", l.Split("Files", body, "Preview", body), "Esc back"),
-				"panel": l.Panel("Preview", body, size[0], size[1], false),
+				"page":    l.Page("Tasks", "Workspace", l.Split("Files", body, "Preview", body), "Esc back"),
+				"panel":   l.Panel("Preview", body, size[0], size[1], false),
+				"sidebar": l.Page("Tasks", "Workspace", l.Sidebar("Files", []string{"界 e\u0301 👩‍💻", "main.go"}, 1, "Preview", body), "Esc back"),
 			} {
 				if size[0] <= 0 || size[1] <= 0 {
 					if view != "" {
@@ -101,4 +102,31 @@ func ExampleLayout() {
 	body := layout.Split("Files", "main.go\nlayout.go", "Preview", "Selected file contents")
 	page := layout.Page("Workspace", "Browse files", body, "Enter open · Esc back")
 	fmt.Print(page)
+}
+
+func TestSidebarKeepsSelectionVisibleAcrossResize(t *testing.T) {
+	items := make([]string, 30)
+	for i := range items {
+		items[i] = fmt.Sprintf("Item %02d", i+1)
+	}
+	for _, width := range []int{80, 120, 60} {
+		l := Layout{Width: width, Height: 18, Styles: NewStyles(Appearance{Theme: "mono"})}
+		view := ansi.Strip(l.Sidebar("Navigate", items, 29, "Content", "Selected item details"))
+		if !strings.Contains(view, "▸ Item 30") || strings.Contains(view, "Item 01") || !strings.Contains(view, "/ 30") || !strings.Contains(view, "Selected item details") {
+			t.Fatalf("%d columns lost selection, position hint, or main content:\n%s", width, view)
+		}
+		if width >= 72 {
+			// The navigation rail must not grow when the main content gets wider.
+			contentRow := strings.Split(view, "\n")[1]
+			if ansi.StringWidth(strings.Split(contentRow, "│")[0]) != 29 {
+				t.Fatalf("%d columns changed the navigation rail width: %q", width, contentRow)
+			}
+		}
+	}
+}
+
+func ExampleLayout_Sidebar() {
+	layout := Layout{Width: 80, Height: 24, Styles: NewStyles(Appearance{Theme: "adaptive"})}
+	body := layout.Sidebar("Workspace", []string{"Files", "Search", "Settings"}, 1, "Search", "Search results")
+	fmt.Print(layout.Page("Project", "Workspace navigation", body, "↑↓ select · Enter open"))
 }

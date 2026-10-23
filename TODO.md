@@ -19,6 +19,7 @@
 - [x] Add reusable Lip Gloss layouts and apply them to the keybinding sandbox.
   - `Layout.Page`: title, subtitle, bounded body, and persistent footer.
   - `Layout.Panel`: titled, focused panels with visible overflow; `Layout.Split`: side-by-side panes that stack in narrow windows.
+  - `Layout.Sidebar`: 28-column navigation rail, selected-row highlighting, automatic scrolling with a position hint, and narrow-window stacking. Sandbox setup uses it; callers own selection and keyboard handling.
   - `ModalSize` / `ComposeModal`: bounded overlays with a visible backdrop perimeter; terminals below 3×3 keep the backdrop instead.
   - Sandbox setup, live key feedback, editors, confirmations, and file browsing use these surfaces.
   - Verified with `go test ./...`, a CLI build, and real-terminal interactions at 80×24 and 60×18.

@@ -225,32 +225,12 @@ func (m *keybindingModel) resizeForm() {
 	}
 }
 
-// setupListVisible estimates how many binding rows fit in the list panel
-// (conservatively, so the selected row is never clipped).
-func (m *keybindingModel) setupListVisible() int {
-	_, bh := m.layout().BodySize()
-	if m.width >= 72 {
-		return max(1, bh-3)
-	}
-	return max(1, bh*2/5-3)
-}
-
 func (m *keybindingModel) setupPage() string {
 	st := m.styles()
 	bindings := m.bindings()
-	var list []string
-	if len(bindings) == 0 {
-		list = append(list, st.Muted.Render("No bindings yet."), st.Muted.Render("a add · i import"))
-	}
-	visible := m.setupListVisible()
-	start := max(0, m.selected-visible+1)
-	for i := start; i < min(len(bindings), start+visible); i++ {
-		keys, action := cleanLabel(bindings[i].Keys), cleanLabel(bindings[i].Action)
-		if i == m.selected {
-			list = append(list, st.Accent.Render("▸ "+keys+" → "+action))
-		} else {
-			list = append(list, "  "+keys+st.Muted.Render(" → "+action))
-		}
+	items := make([]string, len(bindings))
+	for i, binding := range bindings {
+		items[i] = binding.Keys + " → " + binding.Action
 	}
 	var details []string
 	if len(bindings) > 0 && m.selected < len(bindings) {
@@ -266,7 +246,7 @@ func (m *keybindingModel) setupPage() string {
 	}
 	footer := "a add · e edit · d delete · Enter test · ^C exit"
 	return m.layout().Page("Keybinding sandbox", "Stage 1 · Define bindings",
-		m.layout().Split(fmt.Sprintf("Bindings (%d)", len(bindings)), strings.Join(list, "\n"), "Details", strings.Join(details, "\n")), footer)
+		m.layout().Sidebar(fmt.Sprintf("Bindings (%d)", len(bindings)), items, m.selected, "Details", strings.Join(details, "\n")), footer)
 }
 
 func (m *keybindingModel) setupView() string {

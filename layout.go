@@ -125,22 +125,60 @@ func (l Layout) Panel(title, body string, width, height int, focused bool) strin
 // viewport is at least 72 cells wide, otherwise stacked (top ~40%). The left or
 // top panel is the focused one.
 func (l Layout) Split(leftTitle, leftBody, rightTitle, rightBody string) string {
+	bw, _ := l.BodySize()
+	return l.panelPair(leftTitle, leftBody, rightTitle, rightBody, (bw-1)*2/5)
+}
+
+// Sidebar renders a 28-cell navigation rail beside the main panel. Below 72
+// columns it stacks above the main panel. Items are raw labels; mainBody is
+// trusted ANSI. Selection is zero-based and clamped for rendering. The caller
+// owns selection and key handling; this method keeps the selected item visible.
+func (l Layout) Sidebar(title string, items []string, selected int, mainTitle, mainBody string) string {
+	_, height := l.BodySize()
+	if l.Width < layoutStackAt {
+		height = height * 2 / 5
+	}
+	if height >= 3 {
+		height -= 2 // Panel borders.
+	}
+	rows := make([]string, 0, max(0, height))
+	if len(items) == 0 {
+		rows = append(rows, l.Styles.Muted.Render("No items."))
+	} else if height > 0 {
+		selected = min(max(0, selected), len(items)-1)
+		visible := height
+		if len(items) > height && height > 1 {
+			visible-- // Keep the position hint separate from selectable rows.
+		}
+		start := min(max(0, selected-visible+1), max(0, len(items)-visible))
+		end := min(len(items), start+visible)
+		for i := start; i < end; i++ {
+			label := modalLabel(items[i])
+			if i == selected {
+				rows = append(rows, l.Styles.Accent.Render("▸ "+label))
+			} else {
+				rows = append(rows, "  "+label)
+			}
+		}
+		if len(items) > height && height > 1 {
+			rows = append(rows, l.Styles.Muted.Render(fmt.Sprintf("… %d–%d / %d", start+1, end, len(items))))
+		}
+	}
+	return l.panelPair(title, strings.Join(rows, "\n"), mainTitle, mainBody, 28)
+}
+
+func (l Layout) panelPair(leftTitle, leftBody, rightTitle, rightBody string, leftWidth int) string {
 	bw, bh := l.BodySize()
 	if bw <= 0 || bh <= 0 {
 		return ""
 	}
 	if l.Width >= layoutStackAt {
-		gap := 0
-		if bw >= 3 {
-			gap = 1
-		}
-		lw := (bw - gap) * 2 / 5
-		rw := bw - gap - lw
-		left := strings.Split(l.Panel(leftTitle, leftBody, lw, bh, true), "\n")
+		rw := bw - 1 - leftWidth
+		left := strings.Split(l.Panel(leftTitle, leftBody, leftWidth, bh, true), "\n")
 		right := strings.Split(l.Panel(rightTitle, rightBody, rw, bh, false), "\n")
 		rows := make([]string, bh)
 		for i := range rows {
-			rows[i] = layoutRow(left, i, lw) + strings.Repeat(" ", gap) + layoutRow(right, i, rw)
+			rows[i] = layoutRow(left, i, leftWidth) + " " + layoutRow(right, i, rw)
 		}
 		return strings.Join(rows, "\n")
 	}
