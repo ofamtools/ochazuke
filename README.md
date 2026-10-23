@@ -63,7 +63,24 @@ Modal windows and editing modes are different concepts. A modal is a stack frame
 
 Applications and extensions register mode names; the framework does not restrict them to a fixed enum.
 
-Vim-style modes alone do not constitute a Vim text editor. Operations such as `ciw`, `d3w`, registers, undo, and repeat require an editing engine. The extent of Vim text-editing compatibility remains to be decided.
+Text fields, single-line text inputs, and multiline text areas must support basic Vim motions in normal mode and Readline bindings in insert mode. The exact supported motion and binding sets remain to be specified; full Vim compatibility is not implied.
+
+## Input-local editing and undo
+
+Each text input owns its editing state and its own undo tree. Histories are independent between fields and remain part of the preserved modal-local state. An undo tree preserves alternate edit branches rather than discarding them when editing after an undo; branch navigation and edit grouping remain to be specified.
+
+Inputs expose editing verbs through the shared operation registry. In particular, `undo` accepts an optional number of steps, defaulting to one change. The input handles its own history; outside callers do not manipulate the tree.
+
+The application must support dispatching an editing operation to the focused input without requiring callers to know its identity or implementation. Illustrative requests (JavaScript notation, not a final API contract):
+
+```js
+[
+  { target: "focused-input", verb: "undo" },
+  { target: "focused-input", verb: "undo", args: { steps: 3 } }
+]
+```
+
+The first request undoes the focused input's last change; the second requests three undo steps from that same input's history. These operations are available through the shared API and CLI as well as UI bindings. Normal/insert modes determine keyboard interpretation, not whether an external caller can invoke the input's editing verbs.
 
 ## Scoped, customizable keybindings
 
