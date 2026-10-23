@@ -28,11 +28,11 @@ type PickerEntry struct {
 // A temporary metadata directory gives non-repositories the same parser without
 // modifying the directory being browsed.
 type pickerIgnore struct {
-	cmd     *exec.Cmd
-	input   io.WriteCloser
-	output  *bufio.Reader
-	stderr  bytes.Buffer
-	temp    string
+	cmd    *exec.Cmd
+	input  io.WriteCloser
+	output *bufio.Reader
+	stderr bytes.Buffer
+	temp   string
 }
 
 func startPickerIgnore(ctx context.Context, root string) (*pickerIgnore, error) {

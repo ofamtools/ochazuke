@@ -12,7 +12,7 @@ import (
 // NewDemo supplies example pages; none of these page names are required by the framework.
 func NewDemo() *Model {
 	r := NewRuntime()
-	for _, id := range []string{"overview", "playground", "commands", "appearance", "agent", "directory", "notes", "dialog", "nested-dialog", "help"} {
+	for _, id := range []string{"overview", "playground", "commands", "appearance", "agent", "directory", "notes", "paths", "dialog", "nested-dialog", "help"} {
 		r.Layers[id] = &Layer{ID: id, Noun: id, Actions: map[string]Handler{}}
 	}
 	for _, item := range []struct {
@@ -21,9 +21,16 @@ func NewDemo() *Model {
 	}{
 		{NewInput("directory", "/tmp", false), []string{"app", "playground", "agent", "directory"}},
 		{NewInput("notes", "A small workspace, with state that stays.\nTry i, type a few words, then Escape and u.\nSwitch pages and come back: your place is kept.", true), []string{"app", "playground", "agent", "notes"}},
+		{NewInput("paths", "/tmp\n.", true), []string{"app", "playground", "agent", "paths"}},
 		{NewInput("dialog", "This draft belongs to the modal.\nThe page remains underneath it.", true), []string{"app", "dialog"}},
 		{NewInput("nested-dialog", "A second modal, with its own history.", true), []string{"app", "nested-dialog"}},
 	} {
+		switch item.in.ID {
+		case "directory":
+			item.in.Kind, item.in.PathFilter = "path", "dir"
+		case "paths":
+			item.in.Kind, item.in.PathFilter = "paths", "any"
+		}
 		if err := r.AddInput(item.in, item.path); err != nil {
 			panic(err)
 		}
@@ -45,6 +52,7 @@ func NewDemo() *Model {
 	}
 	m = NewModel(r)
 	picker := NewPicker(r)
+	m.Pickers = append(m.Pickers, picker)
 	m.ModalViews["picker"] = ModalView{Title: "Choose a path", Render: func(r *Runtime, f *Frame, w, h int) string { return picker.View(w, h) }}
 	for _, id := range []string{"draft", "nested-draft"} {
 		title := "Draft editor"
@@ -61,20 +69,25 @@ func NewDemo() *Model {
 		}}
 	}
 	m.ModalViews["help"] = ModalView{Title: "Keyboard guide", Render: func(r *Runtime, f *Frame, w, h int) string {
-		return "NAVIGATION\nAlt-1…4       Open a demo page\nAlt-← / Alt-→ Previous / next page\nCtrl-P        Command palette (normal mode)\nCtrl-Space    Palette in any editing mode\nPgUp / PgDn   Scroll the active surface\n\nPLAYGROUND\nTab           Next field\nCtrl-N        Open a draft; repeat inside to nest\nCtrl-O / T    Choose directory / file\n\nNORMAL INPUT\nh j k l       Move\nw b e         Word motions\n0 $ / gg G    Line / document bounds\ni a I A       Begin inserting\no O           Open a line\nu / Ctrl-R    Undo / redo\n\nINSERT INPUT\nCtrl-A / E    Line start / end\nCtrl-P / N    Previous / next line\nAlt-B / F     Word movement\nCtrl-W/U/K    Kill word / line start / line end\nCtrl-Y        Yank\nEscape        Return to normal"
+		return "NAVIGATION\nCtrl-J / K    Next / previous page (normal mode)\n:             Search command palette\nCtrl-Space    Palette in any editing mode\nPgUp / PgDn   Scroll the active surface\n\nPLAYGROUND\nTab / S-Tab   Next / previous field\nCtrl-N        Open a draft; repeat inside to nest\nCtrl-O        Choose a path using the field's filter\nEnter         Open picker in path / paths fields\n\nNORMAL INPUT\nh j k l       Move (same as arrows)\nw b e         Word motions\n0 $ / gg G    Line / document bounds\ni a I A       Begin inserting\no O           Open a line\nv / V / C-v   Character / line / block selection\nyy / p / P    Yank line / paste after / before\nCtrl-Y        Yank history\n\"a            Select register a\nqa … q / @a   Record / replay macro a\nu / Ctrl-R    Undo / redo\n\nINSERT INPUT\nCtrl-A / E    Line start / end\nCtrl-P / N    Previous / next line (picker: result)\nAlt-B / F     Word movement\nCtrl-W/U/K    Kill path word / line start / line end\nCtrl-Y        Paste app yank\nEscape        Return to normal"
 	}}
 	register := func(verb, noun, description string, params map[string]Parameter, fn Handler) {
 		r.Register(Operation{Verb: verb, Noun: noun, Description: description, Parameters: params, Result: "JSON value", Run: fn})
 	}
-	register("next", "input", "Focus the other playground input", nil, func(r *Runtime, c Context, a Arguments) (any, error) {
+	register("next", "input", "Cycle playground field focus", map[string]Parameter{"delta": {Type: "integer"}}, func(r *Runtime, c Context, a Arguments) (any, error) {
 		if r.ActivePage != "playground" || len(r.Frames) > 1 {
 			return nil, errors.New("switch fields on the playground page, with modals closed")
 		}
-		id := "notes"
-		if c.InputID == "notes" {
-			id = "directory"
+		ids := []string{"directory", "notes", "paths"}
+		index := 0
+		for i, id := range ids {
+			if id == c.InputID {
+				index = i
+				break
+			}
 		}
-		err := r.Focus(id)
+		index = ((index+IntArg(a, "delta", 1))%len(ids) + len(ids)) % len(ids)
+		err := r.Focus(ids[index])
 		return r.Context(), err
 	})
 	register("inspect", "selection", "Report the innermost layer handling this action", nil, func(r *Runtime, c Context, a Arguments) (any, error) {
@@ -112,19 +125,22 @@ func NewDemo() *Model {
 	bind := func(layer, mode, key, verb, noun string, args Arguments) {
 		r.Layers[layer].Bindings = append(r.Layers[layer].Bindings, Binding{Mode: mode, Keys: key, Request: Request{Verb: verb, Noun: noun, Args: args}})
 	}
-	for i, id := range r.PageOrder {
-		bind("app", "", fmt.Sprintf("alt+%d", i+1), "open", "page", Arguments{"id": id})
-	}
-	bind("app", "normal", "q", "quit", "app", nil)
+	bind("app", "normal", "ctrl+j", "next", "page", nil)
+	bind("app", "normal", "ctrl+k", "previous", "page", nil)
+	bind("app", "normal", ":", "open", "palette", nil)
 	bind("app", "normal", "?", "open", "help", nil)
 	for _, id := range []string{"overview", "commands", "appearance"} {
 		bind(id, "normal", "j", "scroll", "surface", Arguments{"lines": 1})
 		bind(id, "normal", "k", "scroll", "surface", Arguments{"lines": -1})
+		bind(id, "normal", "down", "scroll", "surface", Arguments{"lines": 1})
+		bind(id, "normal", "up", "scroll", "surface", Arguments{"lines": -1})
 	}
 	bind("playground", "", "tab", "next", "input", nil)
-	bind("playground", "", "shift+tab", "next", "input", nil)
-	bind("playground", "normal", "ctrl+o", "open", "picker", Arguments{"kind": "directory"})
-	bind("playground", "normal", "ctrl+t", "open", "picker", Arguments{"kind": "file"})
+	bind("playground", "", "shift+tab", "next", "input", Arguments{"delta": -1})
+	bind("playground", "normal", "ctrl+o", "open", "picker", nil)
+	for _, id := range []string{"directory", "paths"} {
+		bind(id, "normal", "enter", "open", "picker", nil)
+	}
 	bind("playground", "normal", "ctrl+n", "push", "modal", Arguments{"id": "draft", "input": "dialog"})
 	bind("dialog", "normal", "ctrl+n", "push", "modal", Arguments{"id": "nested-draft", "input": "nested-dialog"})
 	for _, id := range []string{"dialog", "nested-dialog", "help"} {
@@ -147,10 +163,10 @@ func demoOverview(m *Model, width int) string {
 	b.WriteString(s.Muted.Render("Pages keep their place. Actions share one interface.") + "\n\n")
 	for i, id := range m.Runtime.PageOrder {
 		descriptions := map[string]string{"overview": "Start here: navigation and the framework's structure.", "playground": "Edit text, branch undo history, and open nested modals.", "commands": "Inspect real operations, argument schemas, and bindings.", "appearance": "Change the live theme and spacing defaults."}
-		fmt.Fprintf(&b, "%s  %s\n    %s\n\n", s.Accent.Render(fmt.Sprintf("Alt-%d", i+1)), s.Subtitle.Render(m.Runtime.Pages[id].Title), s.Muted.Render(descriptions[id]))
+		fmt.Fprintf(&b, "%s  %s\n    %s\n\n", s.Accent.Render(fmt.Sprintf("%d", i+1)), s.Subtitle.Render(m.Runtime.Pages[id].Title), s.Muted.Render(descriptions[id]))
 	}
-	b.WriteString(s.Panel.Width(max(1, width-2)).Render("TRY IT\nAlt-2 → i → type → Escape → u\nCtrl-N opens a modal without replacing the page.\nCtrl-P opens the same actions available through the CLI."))
-	b.WriteString("\n\n" + s.Muted.Render("? keyboard guide · Alt-←/→ switch pages · Ctrl-C quit"))
+	b.WriteString(s.Panel.Width(max(1, width-2)).Render("TRY IT\nCtrl-J → i → type → Escape → u\nCtrl-N opens a modal without replacing the page.\n: searches the same actions available through the CLI."))
+	b.WriteString("\n\n" + s.Muted.Render("? keyboard guide · Ctrl-J/K switch pages · Ctrl-C quit"))
 	return b.String()
 }
 func demoPlayground(m *Model, width, height int) string {
@@ -171,18 +187,23 @@ func demoPlayground(m *Model, width, height int) string {
 		return style.Padding(0, s.Padding).Width(max(1, w-2)).Render(s.Subtitle.Render(marker+label) + "\n" + body)
 	}
 	var fields string
-	if width >= 76 {
+	if height < 18 {
+		labels := map[string]string{"directory": "Directory · path", "notes": "Notes · text", "paths": "Paths · one per line"}
+		id := frame.Context.InputID
+		fields = field(id, labels[id], width, max(1, height-9))
+	} else if width >= 76 {
 		left := width / 3
 		right := width - left - 2
-		fields = lipgloss.JoinHorizontal(lipgloss.Top, field("directory", "Directory", left, 2), "  ", field("notes", "Notes", right, max(2, min(5, height-9))))
+		paths := field("directory", "Directory · path", left, 1) + "\n" + field("paths", "Paths · one per line", left, 3)
+		fields = lipgloss.JoinHorizontal(lipgloss.Top, paths, "  ", field("notes", "Notes · text", right, 7))
 	} else {
-		fields = field("directory", "Directory", width, 1) + "\n" + field("notes", "Notes", width, max(2, min(4, height-11)))
+		fields = field("directory", "Directory · path", width, 1) + "\n" + field("notes", "Notes · text", width, 2) + "\n" + field("paths", "Paths · one per line", width, 2)
 	}
 	status := "App → Playground → Agent → " + strings.Title(frame.Context.Path[len(frame.Context.Path)-1])
 	if layer, ok := frame.State["lastLayer"].(string); ok {
 		status = "F2 action handled by: " + layer
 	}
-	return s.Title.Render("Widget playground") + "\n" + s.Muted.Render("Real inputs. Independent histories. Preserved focus.") + "\n\n" + fields + "\n\n" + s.Accent.Render(safeText(status)) + "\n" + s.Muted.Render("Tab field · i insert · u undo · Ctrl-R redo\nCtrl-N draft · Ctrl-O directory · Ctrl-T file · F2 inspect")
+	return s.Title.Render("Widget playground") + "\n" + s.Muted.Render("Shared yanks and registers. Independent edit histories.") + "\n\n" + fields + "\n\n" + s.Accent.Render(safeText(status)) + "\n" + s.Muted.Render("Tab field · i insert · v/V/C-v select · Ctrl-Y yank history\nCtrl-N draft · Ctrl-O path picker · F2 inspect")
 }
 func demoCommands(m *Model, width int) string {
 	r := m.Runtime

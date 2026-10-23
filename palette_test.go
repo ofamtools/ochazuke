@@ -99,7 +99,7 @@ func TestPaletteKeyboardUndoUsesCapturedInput(t *testing.T) {
 	if err := p.Open(); err != nil {
 		t.Fatal(err)
 	}
-	paletteKeys(t, p, "/", "undo", "enter", "/", "input", "enter")
+	paletteKeys(t, p, "undo", "enter", "/", "input", "enter")
 	if got := paletteInputSnapshot(t, origin); got != before {
 		t.Fatal("navigation changed originating input")
 	}
@@ -265,7 +265,7 @@ func TestPaletteSearchNavigationAndCancellation(t *testing.T) {
 	if err := p.Open(); err != nil {
 		t.Fatal(err)
 	}
-	paletteKeys(t, p, "/", "j")
+	paletteKeys(t, p, "j")
 	if p.query != "j" {
 		t.Fatal("search must accept j as text")
 	}
@@ -336,5 +336,25 @@ func TestPaletteSelectedFocusChangesOriginFrame(t *testing.T) {
 	paletteRequest(t, r, "execute", "palette", nil)
 	if p.IsOpen() || len(r.Frames) != 1 || r.Context().InputID != "second" {
 		t.Fatalf("focus was applied to discarded overlay: %+v", r.Context())
+	}
+}
+
+func TestPaletteNormalNavigationAfterInitialSearch(t *testing.T) {
+	r := NewRuntime()
+	p := NewPalette(r)
+	if err := p.Open(); err != nil {
+		t.Fatal(err)
+	}
+	paletteKeys(t, p, "page", "esc", "j", "k", "enter")
+	if p.first != "page" || p.section != "nouns" {
+		t.Fatalf("normal navigation changed search text or selected the wrong noun: first=%q section=%q", p.first, p.section)
+	}
+	paletteKeys(t, p, "ctrl+c")
+	if err := p.Open(); err != nil {
+		t.Fatal(err)
+	}
+	paletteKeys(t, p, "esc", "l", "enter")
+	if p.first != "app" || p.section != "nouns" {
+		t.Fatalf("l did not navigate to nouns: first=%q section=%q", p.first, p.section)
 	}
 }

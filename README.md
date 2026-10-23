@@ -35,12 +35,14 @@ Global `--socket PATH` goes before `run` or `NOUN VERB`. It selects a specific a
 
 `run` launches the demo, not an application you must adopt. It starts on **Overview**. The framework accepts your own page IDs, renderers, state, inputs, and registered actions.
 
-| Demo page | Shortcut | Working example |
-|---|---|---|
-| Overview | `Alt-1` | Navigation and a short framework tour |
-| Playground | `Alt-2` | Single-line/multiline inputs, independent undo, nested drafts, file/directory pickers |
-| Commands | `Alt-3` | Live operation catalog, argument schemas, and remembered Playground bindings |
-| Appearance | `Alt-4` | Live theme and density controls: `t` cycles theme, `d` toggles density |
+| Demo page | Purpose |
+|---|---|
+| Overview | Navigation and a short framework tour |
+| Playground | Text, path and multiline paths fields, shared yanks, nested drafts, path picker |
+| Commands | Live operation catalog, argument schemas, and remembered Playground bindings |
+| Appearance | Live theme and density controls: `t` cycles theme, `d` toggles density |
+
+In normal mode, `Ctrl-J` advances and `Ctrl-K` goes back. The demo does not bind Alt-number shortcuts.
 
 These are suggested starter/demo pages. Domain pages such as Agents, Panes, Projects, and application Settings belong to consuming applications; the framework does not require those names or behaviors.
 
@@ -71,7 +73,7 @@ if _, err := tea.NewProgram(model, tea.WithAltScreen()).Run(); err != nil {
 }
 ```
 
-Registration does not activate a page. Switching reuses the page's exact frame and input instances: selection, focus, modes, drafts, undo history, and scrolling survive a round trip. `Alt-Left/Right` move between pages; the demo also supplies `Alt-1…4`. Page-specific bindings replace those from the previous page through the existing layer resolver.
+Registration does not activate a page. Switching reuses the page's exact frame and input instances: selection, focus, modes, drafts, undo history, and scrolling survive a round trip. The demo supplies normal-mode `Ctrl-J/K` navigation; `Alt-Left/Right` remain framework defaults. Page-specific bindings replace those from the previous page through the existing layer resolver.
 
 Ordinary modals block page switching. The palette closes before dispatching a selected operation, so choosing `open → page` works when no other modal is underneath it. Focusing an inactive page's input does not silently navigate; open that page first. Explicitly targeted editing operations may still update an offscreen input without moving focus.
 
@@ -105,7 +107,7 @@ Theme and density changes are atomic and apply immediately to all pages and moda
 
 ### Keyboard guide
 
-The demo starts on Overview in normal mode. Open Playground with `Alt-2`; Tab/Shift-Tab switch between its directory and notes inputs. Overview, Commands, and Appearance also support `j/k` scrolling.
+The demo starts on Overview in normal mode. Open Playground with `Ctrl-J`; Tab/Shift-Tab cycle its directory, notes, and paths fields. Overview, Commands, and Appearance support `j/k` and up/down scrolling. Demo page shortcuts are normal-mode-only, so insert-mode `Ctrl-K` still kills to line end.
 
 | Context | Keys | Behavior |
 |---|---|---|
@@ -115,35 +117,87 @@ The demo starts on Overview in normal mode. Open Playground with `Alt-2`; Tab/Sh
 | Multiline normal input | `o O` | Open a line below/above and insert |
 | Normal input | `x`, `u`, `Ctrl-R` | Delete, undo, redo |
 | Normal input | Numeric prefix | Count for motions, delete, undo/redo; `Ngg`/`NG` select a line |
+| Normal input | `v`, `V`, `Ctrl-V` | Character, line, or block visual selection |
+| Normal input | `yy`, `p`, `P` | Yank a line; paste after/before |
+| Normal app | `Ctrl-Y` | Open shared yank history |
+| Normal input | `"a` | Select named register `a` for the next operation |
+| Normal app/input | `qa … q`, `@a`, `@@` | Record macro `a`, replay it, repeat the last macro |
 | Insert input | `Ctrl-A/E`, `Ctrl-B/F` | Line start/end, previous/next rune |
 | Insert input | `Ctrl-P/N`, `Alt-B/F` | Previous/next line, previous/next word |
-| Insert input | `Ctrl-W/U/K`, `Ctrl-Y` | Kill word/to line start/to line end; yank local killed text |
+| Insert input | `Ctrl-W/U/K`, `Ctrl-Y` | Kill path component/to line start/to line end; paste the app's current yank |
 | Insert input | Backspace, Delete/`Ctrl-D`, Enter | Delete backward/forward; newline in multiline inputs |
 | Insert input | Escape | Return to normal mode |
 | Normal input | Escape | Cancel a pending motion/count |
-| Normal app | `Ctrl-P` | Open palette |
+| Normal demo | `:` | Open palette in search insert mode (`Ctrl-P` also works) |
 | Any editing mode | `Ctrl-Space` | Open palette without stealing Readline `Ctrl-P` |
-| Normal Playground | `Ctrl-O`, `Ctrl-T` | Directory/file selector |
+| Normal Playground | `Ctrl-O` | Open the shared picker using the field's filter |
+| Normal path/paths field | Enter | Open picker using the current value/line |
 | Normal Playground / draft | `Ctrl-N` | Open a draft / nest another draft |
 | Draft modal | `Ctrl-G` | Close and restore the parent |
 | Normal Playground | `F2` | Inspect the handling layer |
 | Normal app | `?` | Open the scrollable keyboard guide |
 | Normal Appearance | `t`, `d` | Cycle theme / density |
-| App | `Alt-Left/Right`, `Alt-1…4` | Previous/next page, or named demo page |
+| Normal demo | `Ctrl-J/K` | Next/previous page |
 | App or modal | `PgUp/PgDn` | Scroll the active surface |
-| App | `Ctrl-C`; normal-mode `q` | Quit |
+| App | `Ctrl-C` | Quit (`q` is reserved for macro recording) |
 
 On terminals where Option does not send Meta sequences, configure Option-as-Meta to use `Alt-B/F`. `Ctrl-Space` is received as `ctrl+@` by Bubble Tea. These shortcuts are registered bindings, not hard-coded global overrides.
 
 ### Palette and selectors
 
-- The palette root displays the actual **VERBS** and **NOUNS** lists side by side. Left/right switch columns; `j/k` or arrows move; Enter chooses.
+- The palette opens with its search field focused in insert mode: type immediately.
+- Its root displays the actual **VERBS** and **NOUNS** lists side by side. In normal mode, `h/l` and left/right switch columns; `j/k` and up/down move through results; Enter chooses.
 - Choosing a verb lists compatible nouns; choosing a noun lists compatible verbs.
-- `/` focuses a search input. Search and argument fields use the same Vim/Readline editor and independent undo trees as page inputs. Escape first returns an editing field to normal mode; subsequent Escape goes back.
+- `/` enters search when browsing a list. Search and argument fields use the same Vim/Readline editor and independent undo trees as page inputs. Escape first returns an editing field to normal mode; subsequent Escape goes back.
 - Argument forms show required/optional fields. Tab/arrows change fields; Enter advances and then executes. Empty optional fields are omitted. `set palette-argument` can supply an explicit empty string; `clear palette-argument` omits one.
 - The originating interaction context is captured before the palette opens. Selecting `undo → input` edits the originating input, not the palette's search field.
 - `Ctrl-C` cancels the palette. Errors retain the form and its drafts.
-- File/directory selectors use `j/k`, Enter to open a directory/select a file, `-` to go to the parent, `Ctrl-S` to choose the current directory/highlighted file, and Escape to cancel.
+- The shared path picker opens with its path field in insert mode. `Ctrl-N/P` moves through results without moving the text cursor. Other Readline bindings still edit the path; `/` and whitespace delimit `Ctrl-W` kills, while dots and hyphens remain part of a filename.
+- Escape first enters normal mode. There, `h/left` browses the parent, `l/right` enters a directory, and `j/k` match up/down. Enter opens a directory/selects a file, and `Ctrl-S` confirms a path. Escape in normal mode cancels.
+- Results recursively fuzzy-match the full relative path. Native Git supplies `.gitignore` semantics, including nested rules, negations, repository excludes, and global excludes; Git must be on `PATH`. Non-repositories use temporary Git metadata outside the browsed tree. `.git` and directory symlinks are never traversed.
+- Indexing and searching run asynchronously. Query edits reuse the current root's index; canceled or stale results cannot overwrite newer results. Scan failures show `Index incomplete` rather than presenting a partial index as complete.
+- `Ctrl-S` confirms the highlighted result; an empty query includes a current-directory entry for `any`/`dir`. The action `choose.picker {current:true}` explicitly chooses the root. Changing the originating text while the picker is open rejects selection instead of replacing stale offsets.
+
+### Path fields
+
+One picker handles files and directories. Field kind determines replacement behavior; its separate filter controls eligible results:
+
+```go
+directory := ochazuke.NewInput("directory", "/tmp", false)
+directory.Kind = "path"
+directory.PathFilter = "dir"
+
+paths := ochazuke.NewInput("paths", "/tmp\n.", true)
+paths.Kind = "paths"
+paths.PathFilter = "any"
+```
+
+| Field kind | Picker starting context | Selection result |
+|---|---|---|
+| Empty / `text` | Working directory or explicitly supplied path | Insert at the cursor captured when opened |
+| `path` | Entire field value | Replace the entire value |
+| `paths` | Current line | Replace only that captured line, preserving the rest |
+
+Filters are `file`, `dir`, and `any`. A `paths` field is an ordinary multiline editor: motions, `o/O`, visual selection, registers, yanks, macros, and undo operate on its text. It does not serialize a JSON array or use a separate chip/list widget. Filenames containing a newline cannot be represented as one path per line and are rejected rather than silently splitting the set.
+
+```sh
+/tmp/ochazuke picker open --json '{"filter":"file","path":"/work"}'
+/tmp/ochazuke picker choose
+/tmp/ochazuke picker close
+```
+
+Applications constructing their own picker register it with the model's event loop:
+
+```go
+picker := ochazuke.NewPicker(r)
+model.Pickers = append(model.Pickers, picker)
+model.ModalViews["picker"] = ochazuke.ModalView{
+    Title: "Choose a path",
+    Render: func(_ *ochazuke.Runtime, _ *ochazuke.Frame, w, h int) string {
+        return picker.View(w, h)
+    },
+}
+```
 
 ### API and ownership
 
@@ -169,9 +223,10 @@ result, err := r.Execute(ochazuke.Request{
 | File | Responsibility |
 |---|---|
 | `runtime.go`, `configuration.go` | Registry, layer resolution, contexts, modal stack, mode/binding configuration, JSON inspection |
-| `input.go`, `editing.go` | Input-owned undo trees and the Vim/Readline adapter |
+| `input.go`, `editing.go`, `editor*.go` | Input-owned undo, Vim/Readline keys, operators, visual geometry |
+| `registers.go`, `macros.go`, `yank_history.go` | App-owned yanks/registers, key recording/replay, history modal |
 | `palette.go`, `palette_editing.go` | Verb/noun navigation, typed arguments, originating context |
-| `picker.go` | File/directory selection using registered actions |
+| `picker.go`, `picker_search.go` | Contextual path selection, asynchronous fuzzy indexing, native Git ignores |
 | `pages.go` | Page registration, retained frames, navigation, and focus isolation |
 | `theme.go`, `surface.go` | Appearance operations, Lip Gloss styles, bounded modal composition |
 | `model.go` | Bubble Tea adapter, page shell, Bubbles viewports, modal renderers |
@@ -182,10 +237,13 @@ Local checks:
 
 ```sh
 go test ./...
+go test -race ./...
 go run ./examples/core
 ```
 
 The integrated implementation was checked locally on macOS with the test suite and live terminal/CLI sessions. Checks covered retained page edits and scroll, page-specific bindings, blocked navigation under modals, nested restoration, palette-driven page navigation, live appearance changes, and a narrow 56×18 modal. Regression tests and a live rapid-input check cover Bubble Tea's coalesced typing events without treating bracketed paste as commands.
+
+The editor/picker expansion also passed the full suite and race detector. Live terminal/CLI checks exercised all three visual shapes, cross-field block paste and undo, named registers, counted macro replay, history selection without insertion, `o/O`, slash-delimited kills, contextual path replacement, recursive fuzzy ignore-aware picking, and a 48×15 layout.
 
 ## Requirements
 
@@ -266,6 +324,42 @@ The application supports dispatching an editing operation to the focused input w
 ```
 
 The first request undoes the focused input's last change; the second requests three undo steps from that same input's history. These operations are available through the shared API and CLI as well as UI bindings. Normal/insert modes determine keyboard interpretation, not whether an external caller can invoke the input's editing verbs.
+
+## Shared yanks, registers, and macros
+
+Selection and undo belong to each input. Yanks, history, registers, and macros belong to `Runtime`, so a yank from notes can be pasted into paths or a modal editor.
+
+```js
+{
+  registers: {
+    '"': { yank: { text: "ab\nef", shape: "block", width: 2 } },
+    a: { yank: { text: "alpha", shape: "char" } }
+  },
+  yankHistory: [
+    { text: "ab\nef", shape: "block", width: 2 },
+    { text: "alpha", shape: "char" }
+  ]
+}
+```
+
+- `v`, `V`, and `Ctrl-V` select characters, whole lines, and display-cell rectangles. Motions extend selections; `y/d/c/p` yank/delete/change/replace. Escape cancels selection. Normal `yy/dd/cc` act on whole lines; motion operators and counts work too.
+- `p/P` preserve the yank's shape. Block operations handle ragged rows and wide glyphs; block change repeats a contiguous first-row insertion across selected rows when leaving insert mode. Each block edit is one undo step. Single-line inputs reject line/block-shaped pastes rather than flattening them.
+- `"a` selects register `a` for the next operation; `"A` appends. The unnamed register is shared; `0` holds the last yank, `1`–`9` hold line/multiline deletions, and `-` holds small deletions. `"_` discards without changing shared yanks or history.
+- Normal `Ctrl-Y` or `open.yank-history` opens history. `j/k` or arrows highlight an entry; Enter makes it the unnamed yank and closes **without inserting**. Then use `p/P` or insert-mode `Ctrl-Y` to paste. Escape cancels. History keeps the newest 100 entries, including duplicates.
+- `qa … q` records into register `a`; `qA` appends. `@a` replays, `3@a` repeats three times, and `@@` repeats the last macro. Mode changes, bindings, focus changes, and modal/palette interactions use the same dispatcher as live keys. Register yanks and macro recordings share storage: replacing one replaces the other.
+- Macro replay is bounded to 16 nested calls and 10,000 dispatched keys. Errors are reported, not swallowed; earlier edits remain undoable rather than being rolled back as a transaction. Bare `Runtime` replay requires a `NewModel` dispatcher.
+
+```sh
+/tmp/ochazuke yank-history open
+/tmp/ochazuke yank-history select --json '{"index":0}'
+/tmp/ochazuke register get --json '{"name":"a"}'
+/tmp/ochazuke register set --json '{"name":"a","text":"shared","shape":"char"}'
+/tmp/ochazuke input paste --json '{"register":"a"}'
+/tmp/ochazuke macro replay --json '{"register":"a","steps":2}'
+```
+
+`yank.input` captures a selection/current lines; `paste.input` inserts a stored yank. Insert `Ctrl-W/U/K` publish shared kills and `Ctrl-Y` pastes the unnamed text literally. These operations use the same registry as the keyboard, palette, and CLI. All this state is in memory.
+
 
 ## Scoped, customizable keybindings
 
@@ -380,9 +474,9 @@ Keyboard, Go API, palette, and CLI use the same command semantics. Queries run t
 ## Scope and limits
 
 - Standalone Go module and example application; no gmtm/Matomeru integration.
-- Basic Vim/Readline subset, not a full Vim engine: no visual selections, operators/text objects, dot-repeat, or repeated insert counts.
+- Vim-style editing, not a complete Vim implementation; no promise of text objects, dot-repeat, or full Vim scripting compatibility.
 - Cursor and edit offsets count Unicode runes, not grapheme clusters. Rendering accounts for terminal cell width.
-- Undo trees are in-memory text snapshots. No persistence across restarts or kill ring.
+- Undo trees, yank history, registers, and macros are in memory; they do not persist across restarts.
 - Custom modes are registered names. Applications supply their mode-specific bindings; unknown modes are not silently interpreted as normal or insert.
 - Modal frames preserve their own state and existing input instances. Closing a modal restores interaction state, not a stale copy of shared application data.
 - Handler registration and widget construction are Go APIs. User-facing operations, including configuration, palette navigation, field editing, and picker actions, are registered and available through the CLI.

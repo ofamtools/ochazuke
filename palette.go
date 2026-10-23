@@ -132,7 +132,7 @@ func (p *Palette) open() error {
 	p.section = ""
 	p.first = ""
 	p.query = ""
-	p.searching = false
+	p.searching = true
 	p.selection = 0
 	p.op = Operation{}
 	p.fields = nil
@@ -145,6 +145,7 @@ func (p *Palette) open() error {
 	}
 	p.editors = map[string]*Input{}
 	p.explicitEmpty = map[string]bool{}
+	p.focusEditor()
 	return nil
 }
 
@@ -487,6 +488,18 @@ func (p *Palette) HandleKey(key string) (bool, error) {
 		p.collectEditors()
 		p.publish()
 		return handled, err
+	}
+	if p.stage != "arguments" && p.r.Mode(p.frame.Context) == "normal" {
+		switch key {
+		case "h":
+			key = "left"
+		case "j":
+			key = "down"
+		case "k":
+			key = "up"
+		case "l":
+			key = "right"
+		}
 	}
 	if handled, err := p.handleEditorKey(key); handled || err != nil {
 		return handled, err

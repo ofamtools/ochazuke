@@ -66,6 +66,9 @@ func (p *Palette) handleEditorKey(key string) (bool, error) {
 	if in == nil {
 		return false, nil
 	}
+	if p.searching && in.Mode == "normal" && (key == "left" || key == "right") {
+		return false, nil
+	}
 	switch key {
 	case "enter", "tab", "shift+tab", "up", "down", "ctrl+enter", "ctrl+c":
 		return false, nil
