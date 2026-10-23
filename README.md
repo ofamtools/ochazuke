@@ -1,8 +1,112 @@
 # Ochazuke
 
-A proposed Go application framework on top of Bubble Tea. Bubbles may supply individual widgets underneath it.
+A Go application framework on Charmbracelet Bubble Tea v1.3, with a runnable example, layered actions and bindings, stateful modals, modal text editing, a nested command palette, and live CLI control.
 
-Status: requirements and initial design; no implementation yet. Neither gmtm nor Matomeru is changed by this proposal.
+Status: working standalone foundation. Neither gmtm nor Matomeru is changed. Existing widgets are retained; Bubbles is the preferred starting point for new standard widgets.
+
+## Run on macOS
+
+Requires Go 1.25 or newer.
+
+```sh
+go run ./cmd/ochazuke run
+```
+
+For a reusable executable:
+
+```sh
+go build -o /tmp/ochazuke ./cmd/ochazuke
+/tmp/ochazuke run
+```
+
+In another terminal:
+
+```sh
+/tmp/ochazuke operations list
+/tmp/ochazuke input undo
+/tmp/ochazuke input undo --json '{"steps":3}' --target directory
+/tmp/ochazuke state get --json '{"path":"/inputs/directory/text"}'
+```
+
+Global `--socket PATH` goes before `run` or `NOUN VERB`. It selects a specific application instance. The default socket on macOS is `~/Library/Caches/ochazuke/app.sock`. `run --headless` uses the same Bubble Tea event loop without terminal rendering.
+
+### Keyboard guide
+
+The example starts in normal mode. Tab/Shift-Tab switch between directory and notes inputs.
+
+| Context | Keys | Behavior |
+|---|---|---|
+| Normal input | `h j k l`, arrows | Rune/line movement |
+| Normal input | `w b e`, `0 $`, `gg G` | Word, line, and document motions |
+| Normal input | `i a I A` | Insert here, after cursor, at first nonblank, or at line end |
+| Multiline normal input | `o O` | Open a line below/above and insert |
+| Normal input | `x`, `u`, `Ctrl-R` | Delete, undo, redo |
+| Normal input | Numeric prefix | Count for motions, delete, undo/redo; `Ngg`/`NG` select a line |
+| Insert input | `Ctrl-A/E`, `Ctrl-B/F` | Line start/end, previous/next rune |
+| Insert input | `Ctrl-P/N`, `Alt-B/F` | Previous/next line, previous/next word |
+| Insert input | `Ctrl-W/U/K`, `Ctrl-Y` | Kill word/to line start/to line end; yank local killed text |
+| Insert input | Backspace, Delete/`Ctrl-D`, Enter | Delete backward/forward; newline in multiline inputs |
+| Insert input | Escape | Return to normal mode |
+| Normal input | Escape | Cancel a pending motion/count |
+| Normal app | `Ctrl-P` | Open palette |
+| Any editing mode | `Ctrl-Space` | Open palette without stealing Readline `Ctrl-P` |
+| Normal app | `Ctrl-O`, `Ctrl-T` | Directory/file selector |
+| Normal app | `Ctrl-N` | Open an independent draft modal |
+| Draft modal | `Ctrl-G` | Close and restore the parent |
+| Normal app | `F2`, `?` | Inspect the handling layer; toggle help |
+| App | `Ctrl-C`; normal-mode `q` | Quit |
+
+On terminals where Option does not send Meta sequences, configure Option-as-Meta to use `Alt-B/F`. `Ctrl-Space` is received as `ctrl+@` by Bubble Tea. These shortcuts are registered bindings, not hard-coded global overrides.
+
+### Palette and selectors
+
+- The palette root displays the actual **VERBS** and **NOUNS** lists side by side. Left/right switch columns; `j/k` or arrows move; Enter chooses.
+- Choosing a verb lists compatible nouns; choosing a noun lists compatible verbs.
+- `/` focuses a search input. Search and argument fields use the same Vim/Readline editor and independent undo trees as page inputs. Escape first returns an editing field to normal mode; subsequent Escape goes back.
+- Argument forms show required/optional fields. Tab/arrows change fields; Enter advances and then executes. Empty optional fields are omitted. `set palette-argument` can supply an explicit empty string; `clear palette-argument` omits one.
+- The originating interaction context is captured before the palette opens. Selecting `undo → input` edits the originating input, not the palette's search field.
+- `Ctrl-C` cancels the palette. Errors retain the form and its drafts.
+- File/directory selectors use `j/k`, Enter to open a directory/select a file, `-` to go to the parent, `Ctrl-S` to choose the current directory/highlighted file, and Escape to cancel.
+
+### API and ownership
+
+Every keyboard action dispatches a registered operation. The CLI is a generic `NOUN VERB` adapter over that same registry; it has no separate list of supported actions. `operations list` returns the current catalog and argument specifications.
+
+```go
+r := ochazuke.NewRuntime()
+input := ochazuke.NewInput("title", "Example", false)
+if err := r.AddInput(input, []string{"app"}); err != nil {
+    panic(err)
+}
+if err := r.Focus("title"); err != nil {
+    panic(err)
+}
+result, err := r.Execute(ochazuke.Request{
+    Verb: "undo", Noun: "input", Target: "focused-input",
+    Args: ochazuke.Arguments{"steps": 1},
+})
+```
+
+`Runtime` is single-owner state. In a running application, call it from Bubble Tea's update loop; external goroutines/processes use `Call`/`CallMsg`, not concurrent `Execute` calls. `ExecuteAt` accepts a captured context for explicit originating-target dispatch. `Input.SetMode` is the mode transition hook; do not assign `Input.Mode` directly.
+
+| File | Responsibility |
+|---|---|
+| `runtime.go`, `configuration.go` | Registry, layer resolution, contexts, modal stack, mode/binding configuration, JSON inspection |
+| `input.go`, `editing.go` | Input-owned undo trees and the Vim/Readline adapter |
+| `palette.go`, `palette_editing.go` | Verb/noun navigation, typed arguments, originating context |
+| `picker.go` | File/directory selection using registered actions |
+| `model.go` | Bubble Tea update/view adapter |
+| `transport.go`, `cli.go`, `cmd/ochazuke` | Private Unix socket and generic CLI dispatch |
+| `demo.go`, `examples/core` | Runnable UI and noninteractive foundation example |
+
+Local checks:
+
+```sh
+go test ./...
+go run ./examples/core
+```
+
+The integrated implementation was checked locally on macOS with the test suite and a live terminal/CLI session. The latter exercised grouped undo/redo, captured-context palette dispatch, modal restoration, Readline line movement, layer resolution, and picker lifecycle.
 
 ## Requirements
 
@@ -63,20 +167,20 @@ Modal windows and editing modes are different concepts. A modal is a stack frame
 
 Applications and extensions register mode names; the framework does not restrict them to a fixed enum.
 
-Text fields, single-line text inputs, and multiline text areas must support basic Vim motions in normal mode and Readline bindings in insert mode. The exact supported motion and binding sets remain to be specified; full Vim compatibility is not implied.
+Text fields, single-line text inputs, and multiline text areas support the basic Vim motions and Readline bindings listed above. Normal mode interprets Vim keys; insert mode interprets Readline keys. Full Vim compatibility is not implied.
 
 ## Input-local editing and undo
 
-Each text input owns its editing state and its own undo tree. Histories are independent between fields and remain part of the preserved modal-local state. An undo tree preserves alternate edit branches rather than discarding them when editing after an undo; branch navigation and edit grouping remain to be specified.
+Each text input owns its editing state and undo tree. Histories are independent between fields and remain part of preserved modal-local state. An insert session is one undo change, including kills/yanks and open-line creation. Editing after undo creates a new branch without deleting alternatives. `redo.input` accepts optional `steps` and a zero-based `branch` index for its first step; omitted `branch` selects the newest child. API edits outside insert mode create separate changes.
 
 Inputs expose editing verbs through the shared operation registry. In particular, `undo` accepts an optional number of steps, defaulting to one change. The input handles its own history; outside callers do not manipulate the tree.
 
-The application must support dispatching an editing operation to the focused input without requiring callers to know its identity or implementation. Illustrative requests (JavaScript notation, not a final API contract):
+The application supports dispatching an editing operation to the focused input without requiring callers to know its identity or implementation. JSON requests:
 
 ```js
 [
-  { target: "focused-input", verb: "undo" },
-  { target: "focused-input", verb: "undo", args: { steps: 3 } }
+  { target: "focused-input", verb: "undo", noun: "input" },
+  { target: "focused-input", verb: "undo", noun: "input", args: { steps: 3 } }
 ]
 ```
 
@@ -84,31 +188,28 @@ The first request undoes the focused input's last change; the second requests th
 
 ## Scoped, customizable keybindings
 
-Bindings invoke named commands instead of embedding application behavior in key handlers.
+Bindings invoke registered requests instead of embedding application behavior in key handlers. Each layer owns its binding list:
 
 ```js
-[
-  {
-    scope: "app",
-    keys: ["ctrl+p"],
-    command: "palette.open"
-  },
-  {
-    scope: "task-editor",
-    mode: "normal",
-    keys: ["i"],
-    command: "mode.set",
-    args: { mode: "insert" }
-  },
-  {
-    scope: "task-editor",
-    mode: "insert",
-    keys: ["escape"],
-    command: "mode.set",
-    args: { mode: "normal" }
-  }
-]
+{
+  id: "directory",
+  noun: "directory",
+  bindings: [
+    {
+      mode: "normal",
+      keys: "U",
+      request: { verb: "undo", noun: "input", args: { steps: 3 } }
+    },
+    {
+      mode: "insert",
+      keys: "esc",
+      request: { verb: "set", noun: "mode", args: { mode: "normal" } }
+    }
+  ]
+}
 ```
+
+`set.binding` updates a layer's mode/key pair at runtime. Its `request` argument is a JSON-encoded request string. `list.bindings` reports effective layer bindings; if none matches, the input's built-in Vim/Readline interpreter handles the key through the same operation registry.
 
 Bindings and actions compose in layers along the current selection path. The application is always the outermost layer. Apply each more-specific layer on top, overriding matching bindings and action names while retaining everything it does not override.
 
@@ -161,9 +262,9 @@ Derive both navigation paths from the shared operation registry so they expose t
 
 ## Shared command and query API
 
-One registry describes supported operations, their input schemas, and their result schemas. Commands mutate state; queries inspect it.
+One registry describes supported operations, validated argument types/requiredness, and result descriptions. Commands mutate state; queries inspect it. Unknown operations, unknown arguments, and invalid argument types are rejected before handler execution.
 
-Expose supported public operations and inspectable values through this registry. Whether the requirement to expose every method/function includes internal helpers needs clarification before implementation; the proposed boundary keeps private implementation details out of the compatibility contract.
+Public user actions and registered state are the compatibility surface. Implementation helpers and handler functions are not remotely callable code.
 
 The same registered operation is accessible through:
 
@@ -173,35 +274,34 @@ The same registered operation is accessible through:
 - A central CLI with subcommands.
 - Optional individual CLI executables delegating to the same interface.
 
-Illustrative CLI shape; these commands do not exist yet:
+Live CLI examples:
 
 ```sh
-ochazuke modal push --json '{"component":"task-editor","args":{"taskId":"123"}}'
-ochazuke modal pop
-ochazuke mode set insert
-ochazuke bindings list --mode normal --format json
-ochazuke state get --path /modalStack --format json
-ochazuke state get --path /modalStack/0/values/title --format json
+/tmp/ochazuke modal push --json '{"id":"draft","input":"dialog"}'
+/tmp/ochazuke modal pop
+/tmp/ochazuke mode set --json '{"mode":"insert"}'
+/tmp/ochazuke bindings list
+/tmp/ochazuke state get --json '{"path":"/frames"}'
+/tmp/ochazuke state get --json '{"path":"/inputs/directory/text"}'
+/tmp/ochazuke mode register --json '{"name":"directory-search"}'
 ```
 
-JSON inspection covers declared public state, including registered component state, modes, effective bindings, and domain values. Functions, terminal handles, and private widget internals are not JSON state. Sensitive fields need explicit export rules. Path syntax and result envelopes remain to be specified.
+JSON inspection covers registered inputs and their histories, modal frames, modes, layer definitions, effective bindings, and application frame state. `get.state` accepts a JSON Pointer (`""` for the full state; `~1` escapes `/` and `~0` escapes `~` in a key). All inputs registered with this foundation are public state: do not register secrets without adding an explicit export policy. Handlers and terminal handles are not serialized.
 
 ## Live CLI control
 
-A separate CLI process cannot directly access a running TUI's memory. Live control requires a transport, proposed as a local Unix socket, with an explicit application-instance selector.
+The live transport is a local Unix socket. Its parent directory must be owned by the current user and have no group/other access; the socket is mode `0600`. Startup refuses to overwrite an existing socket. Use different `--socket` paths for different instances. After an unclean exit, verify the old instance is stopped before removing a stale socket.
 
 CLI commands enter Bubble Tea's message loop. The event loop remains the sole owner of UI state; transport handlers do not mutate models concurrently. Queries must also obtain a consistent view through the runtime.
 
-Keyboard, Go API, palette, and CLI use the same command semantics. Queries expose the same public state as JSON.
+Keyboard, Go API, palette, and CLI use the same command semantics. Queries run through the same event loop and return detached JSON values. The wire protocol accepts one newline-terminated request per connection and returns `{ "result": ... }` or `{ "error": "..." }`. The CLI prints the result as JSON and returns a nonzero exit code for errors.
 
-## Proposed implementation boundary
+## Scope and limits
 
-Start as a standalone reusable Go module with a small example application. Prove modal restoration, arbitrary modes, key resolution, JSON inspection, and live CLI control together before integrating into gmtm or Matomeru.
-
-Open decisions:
-
-- Bubble Tea major version and supported integration targets.
-- Extent of Vim text-editing compatibility versus mode/key-routing support.
-- Final public API, CLI schema, and inspection contract.
-- Live instance discovery, transport access controls, and secret-export policy.
-- Whether persistence across restarts is required.
+- Standalone Go module and example application; no gmtm/Matomeru integration.
+- Basic Vim/Readline subset, not a full Vim engine: no visual selections, operators/text objects, dot-repeat, or repeated insert counts.
+- Cursor and edit offsets count Unicode runes, not grapheme clusters. Rendering accounts for terminal cell width.
+- Undo trees are in-memory text snapshots. No persistence across restarts or kill ring.
+- Custom modes are registered names. Applications supply their mode-specific bindings; unknown modes are not silently interpreted as normal or insert.
+- Modal frames preserve their own state and existing input instances. Closing a modal restores interaction state, not a stale copy of shared application data.
+- Handler registration and widget construction are Go APIs. User-facing operations, including configuration, palette navigation, field editing, and picker actions, are registered and available through the CLI.
