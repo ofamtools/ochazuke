@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -73,6 +74,9 @@ type Runtime struct {
 	Inputs     map[string]*Input
 	InputPaths map[string][]string
 	Frames     []*Frame
+	Pages      map[string]*Page
+	PageOrder  []string
+	ActivePage string
 	Modes      map[string]bool
 	Operations map[string]Operation
 	Quit       bool
@@ -84,10 +88,12 @@ func NewRuntime() *Runtime {
 		Layers: map[string]*Layer{"app": {ID: "app", Noun: "app", Actions: map[string]Handler{}}},
 		Inputs: map[string]*Input{}, InputPaths: map[string][]string{},
 		Frames: []*Frame{{ID: "main", Context: Context{Path: []string{"app"}}, State: map[string]any{}}},
+		Pages:  map[string]*Page{},
 		Modes:  map[string]bool{"normal": true, "insert": true}, Operations: map[string]Operation{},
 	}
 	registerCore(r)
 	registerConfiguration(r)
+	registerPages(r)
 	RegisterInputOperations(r)
 	return r
 }
@@ -136,8 +142,13 @@ func (r *Runtime) validateContext(c Context) error {
 		}
 		seen[id] = true
 	}
-	if c.InputID != "" && r.Inputs[c.InputID] == nil {
-		return fmt.Errorf("unknown input %q", c.InputID)
+	if c.InputID != "" {
+		if r.Inputs[c.InputID] == nil {
+			return fmt.Errorf("unknown input %q", c.InputID)
+		}
+		if !slices.Equal(r.InputPaths[c.InputID], c.Path) {
+			return errors.New("input does not belong to this interaction path")
+		}
 	}
 	return nil
 }
@@ -146,7 +157,11 @@ func (r *Runtime) Focus(id string) error {
 	if !ok {
 		return fmt.Errorf("unknown input %q", id)
 	}
-	r.Frames[len(r.Frames)-1].Context = Context{Path: append([]string(nil), path...), InputID: id}
+	next := Context{Path: path, InputID: id}
+	if err := r.validateSelection(next); err != nil {
+		return err
+	}
+	r.Frames[len(r.Frames)-1].Context = next.Clone()
 	r.Pending = ""
 	return nil
 }
@@ -334,7 +349,7 @@ func (r *Runtime) Snapshot() map[string]any {
 		modes = append(modes, mode)
 	}
 	sort.Strings(modes)
-	return map[string]any{"frames": r.Frames, "inputs": inputs, "context": r.Context(), "mode": r.Mode(r.Context()), "modes": modes, "layers": layers, "bindings": r.EffectiveBindings(r.Context()), "pending": r.Pending, "quit": r.Quit}
+	return map[string]any{"frames": r.Frames, "pages": r.Pages, "activePage": r.ActivePage, "inputs": inputs, "context": r.Context(), "mode": r.Mode(r.Context()), "modes": modes, "layers": layers, "bindings": r.EffectiveBindings(r.Context()), "pending": r.Pending, "quit": r.Quit}
 }
 func JSONPointer(value any, path string) (any, error) {
 	data, err := json.Marshal(value)

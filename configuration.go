@@ -68,19 +68,8 @@ func registerConfiguration(r *Runtime) {
 			return nil, err
 		}
 		next := Context{Path: path, InputID: StringArg(a, "input", "")}
-		if err := r.validateContext(next); err != nil {
+		if err := r.validateSelection(next); err != nil {
 			return nil, err
-		}
-		if next.InputID != "" {
-			expected := r.InputPaths[next.InputID]
-			if len(expected) != len(path) {
-				return nil, errors.New("input does not belong to this interaction path")
-			}
-			for i, id := range expected {
-				if path[i] != id {
-					return nil, errors.New("input does not belong to this interaction path")
-				}
-			}
 		}
 		r.Frames[len(r.Frames)-1].Context = next.Clone()
 		r.Pending = ""
