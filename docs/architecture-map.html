@@ -619,6 +619,24 @@
 
     .header { margin-bottom: 1.5rem; padding-right: 29.5rem; }
 
+    .project-docs-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 0.5rem;
+      margin-top: 0.6rem;
+    }
+    .project-docs-nav a {
+      font-size: 0.8rem;
+      padding: 0.2rem 0.65rem;
+      border: 1px solid currentColor;
+      border-radius: 999px;
+      color: inherit;
+      opacity: 0.85;
+      text-decoration: none;
+    }
+    .project-docs-nav a:hover,
+    .project-docs-nav a:focus-visible { opacity: 1; text-decoration: underline; }
+
     html[data-preset="signal-flow"] .header,
     html[data-preset="blueprint"] .header,
     html[data-preset="editorial"] .header { padding-right: 29.5rem; }
@@ -4957,6 +4975,11 @@
         <div class="pulse-dot"></div>
         <h1>Ochazuke · one owner, two entrances</h1>
       </div>
+      <nav class="project-docs-nav" aria-label="Project docs">
+        <a href="architecture.html">Architecture guide</a>
+        <a href="keybinding-walkthrough.html">Key walkthrough</a>
+        <a href="keybinding-walkthrough.html#concepts">Concepts glossary</a>
+      </nav>
     </div>
 
     <script id="archify-guided-views-data" type="application/json">[]</script>

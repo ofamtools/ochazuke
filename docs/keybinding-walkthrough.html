@@ -79,6 +79,31 @@ figure.src pre:focus-visible{outline-offset:-3px}
 table{border-collapse:collapse;table-layout:fixed;width:100%;max-width:48rem;margin:1rem 0;font-size:.95rem}
 th,td{border:1px solid var(--rule);padding:.5rem .7rem;text-align:left;vertical-align:top;overflow-wrap:anywhere}
 th{background:var(--paper2);font:600 .78rem var(--mono);letter-spacing:.06em;text-transform:uppercase}
+/* concepts */
+.topnav{display:flex;flex-wrap:wrap;gap:.5rem;margin:1rem 0 0;padding:0;list-style:none}
+.topnav a{display:inline-block;padding:.45rem .8rem;min-height:2.75rem;line-height:1.7;border:2px solid var(--ink);background:#fbf5e8;color:var(--ink);font:600 .82rem/1.7 var(--mono);text-decoration:none}
+.topnav a:hover{background:var(--ink);color:var(--paper)}
+.stackviz{display:grid;grid-template-columns:repeat(auto-fit,minmax(16rem,1fr));gap:1rem;margin:1.25rem 0}
+.stackviz>div{border:2px solid var(--ink);background:#fbf5e8;padding:.8rem 1rem}
+.stackviz h4{margin:0 0 .5rem;font:600 .75rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--shu)}
+.stackviz ol,.stackviz ul{margin:0;padding:0;list-style:none}
+.stackviz li{border:1px solid var(--ink);padding:.35rem .6rem;margin-top:-1px;font:.84rem/1.4 var(--mono);background:var(--paper)}
+.stackviz li.top{background:var(--matcha-bg);border-width:2px}
+.stackviz p{font-size:.9rem;margin:.6rem 0 0}
+.diagram{margin:1.25rem 0;border:1px dashed var(--ink);background:#fbf5e8;padding:.5rem}
+.diagram svg{display:block;width:100%;height:auto;max-width:48rem;margin:0 auto}
+.diagram text{font:12px var(--mono);fill:var(--ink)}
+.diagram .box{fill:var(--paper);stroke:var(--ink);stroke-width:2}
+.diagram .own{fill:var(--matcha-bg);stroke:var(--matcha);stroke-width:2}
+.diagram .ref{fill:none;stroke:var(--shu);stroke-width:2;stroke-dasharray:5 4}
+.diagram .lbl{fill:var(--shu);font-size:11px}
+dl.gloss{margin:1rem 0;max-width:48rem}
+dl.gloss dt{font:600 .95rem var(--mono);margin-top:1rem;padding-top:.6rem;border-top:1px solid var(--rule);scroll-margin-top:1rem}
+dl.gloss dt:target{background:var(--shu-bg)}
+dl.gloss dd{margin:.25rem 0 0}
+dl.gloss dd p{margin:.3rem 0}
+.gloss-group{margin:2rem 0 0}
+.gloss-group>h3{margin-top:0}
 /* stepper */
 .stepper{border:2px solid var(--ink);background:#fbf5e8;margin:1.5rem 0;box-shadow:6px 6px 0 rgba(31,26,20,.14)}
 .stepper header{padding:.6rem 1rem;border-bottom:2px solid var(--ink);background:var(--paper2);font:600 .8rem var(--mono);letter-spacing:.06em;text-transform:uppercase}
@@ -115,7 +140,7 @@ footer{border-top:3px double var(--ink);padding:1.5rem 0 3rem;font-size:.92rem;c
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
 @media print{
   body{background:#fff;color:#000;font-size:10.5pt}
-  nav.toc,.btns,.skip{display:none}
+  nav.toc,.btns,.skip,.topnav{display:none}
   .layout{display:block}
   figure.src,.state,.card,.stepper{box-shadow:none;break-inside:avoid}
   figure.src{background:#fff;border:1px solid #000}
@@ -139,6 +164,11 @@ footer{border-top:3px double var(--ink);padding:1.5rem 0 3rem;font-size:.92rem;c
 <a href="architecture.html">Architecture overview</a>
 <a href="../README.md">README</a>
 </div>
+<ul class="topnav" aria-label="Related docs">
+<li><a href="#concepts">Key terms: Frames vs layers</a></li>
+<li><a href="architecture.html">architecture.html</a></li>
+<li><a href="architecture-map.html">architecture-map.html</a></li>
+</ul>
 </div>
 </header>
 
@@ -146,6 +176,7 @@ footer{border-top:3px double var(--ink);padding:1.5rem 0 3rem;font-size:.92rem;c
 <nav class="toc" aria-label="On this page">
 <h2>On this page</h2>
 <ol>
+<li><a href="#concepts">Key terms</a></li>
 <li><a href="#pipeline">The shared pipeline</a></li>
 <li><a href="#before-bindings">Before binding resolution</a></li>
 <li><a href="#rules">Two lookup directions</a></li>
@@ -159,6 +190,168 @@ footer{border-top:3px double var(--ink);padding:1.5rem 0 3rem;font-size:.92rem;c
 
 <main id="main">
 
+<section id="concepts" aria-labelledby="h-concepts">
+<h2 id="h-concepts"><span class="n">00</span>Key terms: Frames, layers, and Context</h2>
+<p>If <code>Frames</code> and <em>layers</em> feel like the same thing, they are not. A <strong>Frame</strong> is one entry in a stack that is drawn bottom to top <em>and</em> supplies the current key-routing <strong>Context</strong>. A <strong>layer</strong> (scope) is a named bundle of bindings and actions, looked up by ID. A Context's <code>Path</code> lists layer IDs. Frames do not have a numeric z-index, pixels, or a renderer. Only <code>app</code> is a required root; names such as <code>playground</code> or <code>agent</code> come from the demo. Source: <a href="../runtime.go">runtime.go</a>, <a href="../model.go">model.go</a>, <a href="../pages.go">pages.go</a>, <a href="../input.go">input.go</a>, <a href="../demo.go">demo.go</a>.</p>
+
+<h3>Two different orderings</h3>
+<div class="stackviz">
+<div>
+<h4>Frames · draw + input stack</h4>
+<ol aria-label="Frames, top of stack first">
+<li class="top">Frames[2] "confirm" ← top: current Context</li>
+<li>Frames[1] "draft" (modal)</li>
+<li>Frames[0] "page" (base, drawn first)</li>
+</ol>
+<p><code>Model.View</code> draws the active page, then <code>Frames[1:]</code> bottom → top. Ordinary keys use the last frame's Context.</p>
+</div>
+<div>
+<h4>Context.Path · scope precedence</h4>
+<ol aria-label="Context path, innermost first">
+<li class="top">"field" ← innermost, searched first</li>
+<li>"screen"</li>
+<li>"app" ← required root, searched last</li>
+</ol>
+<p><code>Path</code> is stored outer → inner (<code>["app","screen","field"]</code>). <code>EffectiveBindings</code> overlays the scopes; action handlers are searched inner → outer. This is not a visual stack.</p>
+</div>
+</div>
+<p>All names above are hypothetical. In the real demo the path also contains an <code>agent</code> scope (<code>["app","playground","agent","notes"]</code>). That is a demo-only intermediate scope shared by the <code>notes</code> and <code>directory</code> inputs, not an AI agent and not a framework special case.</p>
+
+<h3>What a Frame holds</h3>
+<p>A Frame is <code>{ id, context, state }</code>. It does not hold a renderer, pixel geometry, or a z-index. Its position in the <code>Frames</code> slice <em>is</em> its stacking order. <code>state</code> holds frame-local values such as scroll position, not all application or editor state. Text, cursor, mode, and history live on the <a href="#term-input">Input</a>, which the Frame's Context refers to by <code>inputId</code>.</p>
+
+<h3>Ownership diagram</h3>
+<div class="diagram">
+<svg viewBox="0 0 560 250" role="img" aria-labelledby="dg-t dg-d">
+<title id="dg-t">Runtime ownership relationships</title>
+<desc id="dg-d">Runtime owns Frames, Layers, Inputs, and Pages. A Frame's Context.Path names Layers and Context.InputID names an Input. A Page retains the base Frame and a render callback. Model reads the Runtime to draw.</desc>
+<rect class="own" x="10" y="10" width="540" height="230" rx="4"/>
+<text x="20" y="28">Runtime (owned by one event loop)</text>
+<rect class="box" x="30" y="50" width="140" height="70"/><text x="40" y="70">Frames []*Frame</text><text x="40" y="88">id/context/state</text><text x="40" y="106">last = current</text>
+<rect class="box" x="210" y="50" width="130" height="70"/><text x="220" y="70">Layers map</text><text x="220" y="88">named scopes</text><text x="220" y="106">bindings/actions</text>
+<rect class="box" x="380" y="50" width="150" height="70"/><text x="390" y="70">Inputs map</text><text x="390" y="88">text/cursor/mode</text><text x="390" y="106">history</text>
+<rect class="box" x="30" y="170" width="140" height="55"/><text x="40" y="190">Pages map</text><text x="40" y="208">frame + render</text>
+<path class="ref" d="M170 75 H210"/><text class="lbl" x="172" y="68">Path</text>
+<path class="ref" d="M170 105 C270 150 400 150 455 120"/><text class="lbl" x="290" y="150">InputID</text>
+<path class="ref" d="M100 170 V120"/><text class="lbl" x="106" y="150">base</text>
+</svg>
+<p style="margin:.4rem .6rem;font-size:.85rem">Outer box: Runtime ownership. Dashed lines: references (<code>Path</code> and <code>InputID</code> use IDs; a Page holds a base Frame pointer). <code>Model</code> reads the Runtime to draw and to dispatch keys.</p>
+</div>
+
+<h3>Before, focus, push, pop</h3>
+<p>Illustrative objects with hypothetical names. Who owns what changes: focus edits the top frame's Context; push adds a frame; pop removes it and the parent's own Context returns unchanged.</p>
+<div class="state">
+<span class="lab">Illustrative snapshot · simplified JS, not real output</span>
+<div class="ba">
+<div><pre>// 0. BEFORE
+Frames: [
+  { id: "page",
+    context: { path: ["app","screen","a"],
+               inputId: "a" } }
+]
+Inputs.a: { text: "hi", mode: "normal" }
+
+// 1. FOCUS b  (no frame added)
+Frames: [
+  { id: "page",
+    context: { path: ["app","screen","b"],
+               inputId: "b" } }
+]
+// only top Context replaced;
+// Inputs.a keeps its own text</pre></div>
+<div><pre>// 2. PUSH modal "draft"
+Frames: [
+  { id: "page", ...unchanged },
+  { id: "draft",
+    context: { path: ["app","dialog"],
+               inputId: "d" } }
+]
+// keys now route via ["app","dialog"]
+
+// 3. POP
+Frames: [
+  { id: "page",
+    context: { path: ["app","screen","b"],
+               inputId: "b" } }
+]
+// parent context was never cleared,
+// so focus returns to "b"</pre></div>
+</div>
+</div>
+<p>Page switching is different again: <code>OpenPage</code> replaces <code>Frames</code> with the new page's retained base frame, and is refused while a modal is open. Current keys use the last frame's context, but <code>ExecuteAt</code> or a <code>Target</code> can name another context, so not every operation is top-only. Real traces: <a href="#tab">Tab (focus)</a> and <a href="#ctrl-n">Ctrl-N (push)</a>.</p>
+
+<h3>Glossary</h3>
+<p>Terms are grouped. Each term has a stable anchor (for example <a href="#term-frame"><code>#term-frame</code></a>, <a href="#term-layer"><code>#term-layer</code></a>) that the other docs link to.</p>
+
+<div class="gloss-group">
+<h3>Runtime objects</h3>
+<dl class="gloss">
+<dt id="term-runtime">Runtime</dt>
+<dd>The framework core, owned by one event loop. Holds <code>Frames</code>, <code>Layers</code>, <code>Inputs</code>, <code>Pages</code>, <code>Operations</code>, and the pending key sequence. <code>runtime.go</code>.</dd>
+<dt id="term-model">Model</dt>
+<dd>The Bubble Tea adapter around a Runtime: <code>Update</code> receives keys and <code>View</code> draws. <code>model.go</code>.</dd>
+<dt id="term-page">Page</dt>
+<dd>A top-level screen. It retains its base Frame and a render callback. <code>OpenPage</code> swaps <code>Frames</code> to that frame. <code>pages.go</code>.</dd>
+<dt id="term-frame">Frame</dt>
+<dd><p>One <code>{ id, context, state }</code> entry in <code>Runtime.Frames</code>. The slice order is both draw order (bottom → top) and input routing: the last frame's Context is the current one. It holds no renderer, pixels, geometry, or numeric z-index.</p></dd>
+<dt id="term-modal">Modal</dt>
+<dd>A Frame pushed above the page by <code>Push</code> (the built-in <code>push.modal</code> operation). While one is open, <code>OpenPage</code> is blocked. <code>pop.modal</code> removes the top one. See <a href="#ctrl-n">Flow 2</a>.</dd>
+<dt id="term-registry">Registry</dt>
+<dd>A lookup map keyed by ID: <code>Layers</code>, <code>Inputs</code>, <code>Pages</code>, <code>Operations</code>. A registry says what exists. It does not order anything.</dd>
+</dl>
+</div>
+
+<div class="gloss-group">
+<h3>Scope and focus</h3>
+<dl class="gloss">
+<dt id="term-layer">Layer / scope</dt>
+<dd><p>A named scope <code>{ id, noun, bindings, actions }</code> stored in the <code>Runtime.Layers</code> registry. It is not a visual layer and has no z-order. A layer only matters when a Context's Path names it.</p></dd>
+<dt id="term-context">Context</dt>
+<dd>Where input goes: <code>{ path, inputId }</code>. Each Frame carries one. <code>Runtime.Context()</code> returns the top frame's.</dd>
+<dt id="term-path">Path</dt>
+<dd>Ordered layer IDs, outer → inner, always rooted at <code>app</code>. Set explicitly when a frame or input is registered; the runtime does not infer it from the UI structure. <code>EffectiveBindings</code> overlays scopes, and action handlers are searched inner → outer. See <a href="#rules">two lookup directions</a>.</dd>
+<dt id="term-focus">Focus</dt>
+<dd>Replacing the top frame's Context with a registered input's path and ID. No frame is pushed. See <a href="#tab">Flow 1</a>.</dd>
+</dl>
+</div>
+
+<div class="gloss-group">
+<h3>Input and editing</h3>
+<dl class="gloss">
+<dt id="term-input">Input / InputID</dt>
+<dd>An <code>Input</code> owns text, cursor, mode, and history. A Context refers to it by <code>InputID</code> and never holds a copy. <code>input.go</code>.</dd>
+<dt id="term-mode">Mode</dt>
+<dd>The focused input's editing mode, such as <code>normal</code>, <code>insert</code>, or a visual mode. Without an input, the runtime uses the top frame's <code>state.mode</code>, else <code>normal</code>. Bindings can be restricted to a mode.</dd>
+<dt id="term-grammar">Pending vs editor grammar</dt>
+<dd><em>Runtime.Pending</em> holds a partly typed binding sequence. <em>Editor grammar</em> uses the Input's own state for counts and operators. An unfinished editor command can consume a key before binding resolution; otherwise unhandled binding keys can fall through to the editor. See <a href="#before-bindings">before binding resolution</a>.</dd>
+</dl>
+</div>
+
+<div class="gloss-group">
+<h3>Bindings and operations</h3>
+<dl class="gloss">
+<dt id="term-binding">Binding / key sequence</dt>
+<dd>A <code>{ mode, keys, request }</code> entry. <code>keys</code> may be one key or a sequence such as <code>g g</code>. Ambiguous prefixes wait for a timeout. See the <a href="#stepper">sequence stepper</a>.</dd>
+<dt id="term-request">Request</dt>
+<dd>What a binding produces: <code>{ verb, noun, target, args }</code>, keyed as <code>verb.noun</code>.</dd>
+<dt id="term-operation">Operation / action / Handler</dt>
+<dd>An <em>Operation</em> is a registered <code>verb.noun</code> with parameters and a default <code>Run</code>. A layer <em>action</em> is a layer's own <em>Handler</em> for that key, which wins when found while searching inner → outer. A <code>Handler</code> has signature <code>func(*Runtime, Context, Arguments) (any, error)</code>.</dd>
+<dt id="term-verb-noun">Verb / noun</dt>
+<dd>A request's verb is the action (<code>push</code>, <code>pop</code>) and its noun is the target kind (<code>modal</code>). Dispatch looks up the complete <code>verb.noun</code> key in each contextual layer's Actions; it does not filter those layers by their <code>Noun</code> field.</dd>
+</dl>
+</div>
+
+<div class="gloss-group">
+<h3>Drawing</h3>
+<dl class="gloss">
+<dt id="term-view">View / render / compositor / viewport</dt>
+<dd><code>Model.View</code> builds the screen: it renders the active page's content through a <em>viewport</em> (scrolling kept in the base frame's state), then draws each modal in <code>Frames[1:]</code> over it using <code>ComposeModal</code>. A renderer produces content; the compositor combines surfaces; a viewport bounds and scrolls content. <code>model.go</code>.</dd>
+</dl>
+</div>
+
+<p>Next: the <a href="architecture.html">architecture overview</a> and the <a href="architecture-map.html">interactive architecture map</a> link back to these terms.</p>
+</section>
+
 <section id="pipeline" aria-labelledby="h-pipeline">
 <h2 id="h-pipeline"><span class="n">01</span>The shared pipeline</h2>
 <p>The framework owns state and dispatch. The demo defines its pages, inputs, and bindings. Tab and Ctrl-N follow the same five steps below. The sandbox uses its own <code>Update</code> and <code>View</code>, but shares the runtime's matching and execution.</p>
@@ -168,7 +361,7 @@ footer{border-top:3px double var(--ink);padding:1.5rem 0 3rem;font-size:.92rem;c
 <li><b>2 · Adapter</b><code>Model.dispatchKey</code> checks macros, palette, and input grammar.</li>
 <li><b>3 · Runtime</b><code>HandleBinding</code> builds the sequence and matches it.</li>
 <li><b>4 · Execute</b><code>ExecuteAt</code> finds a layer action or the operation's <code>Run</code>.</li>
-<li><b>5 · State</b>The handler changes <code>Frames</code>, then <code>View</code> renders.</li>
+<li><b>5 · State</b>The handler changes runtime state (a <a href="#term-context">context</a>, a <a href="#term-frame">frame</a>, input text, a page), then <code>View</code> renders.</li>
 </ol>
 
 <div class="cols">
@@ -185,7 +378,7 @@ footer{border-top:3px double var(--ink);padding:1.5rem 0 3rem;font-size:.92rem;c
 </div>
 
 <h3>Context.Path is not Frames</h3>
-<p><code>Context</code> says <em>where input goes</em>: an ordered list of layer IDs from <code>app</code> to the innermost layer, plus an optional focused <code>InputID</code>. <code>Frames</code> says <em>what is stacked on screen</em>: the page frame first, then each open modal. The runtime's current context is the context of the last frame.</p>
+<p><code>Context</code> says <em>where input goes</em>: an ordered list of layer IDs from <code>app</code> to the innermost layer, plus an optional focused <code>InputID</code>. <code>Frames</code> is the visual <em>and</em> interaction stack: the page frame first, then each open modal, drawn bottom to top. Each frame carries its own <code>Context</code>, so the last frame also decides where keys go. The runtime's current context is the context of the last frame. <a href="#concepts">Full glossary.</a></p>
 
 <figure class="src">
 <figcaption><span>Context, Frame, Runtime (excerpt)</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L30-L33">runtime.go:30-33</a> · <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L65-L69">65-69</a> · <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L109">109</a></figcaption>
