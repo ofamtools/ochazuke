@@ -73,6 +73,7 @@ func NewPicker(r *Runtime) *Picker {
 		{"normal", "h", "parent", nil}, {"normal", "left", "parent", nil},
 		{"normal", "l", "descend", nil}, {"normal", "right", "descend", nil},
 		{"insert", "ctrl+n", "move", Arguments{"delta": 1}}, {"insert", "ctrl+p", "move", Arguments{"delta": -1}},
+		{"", "tab", "complete", nil},
 		{"", "enter", "enter", nil}, {"", "ctrl+s", "choose", nil}, {"normal", "esc", "close", nil},
 	} {
 		layer.Bindings = append(layer.Bindings, Binding{Mode: binding.mode, Keys: binding.key, Request: Request{Verb: binding.verb, Noun: "picker", Args: binding.args}})
@@ -109,6 +110,23 @@ func NewPicker(r *Runtime) *Picker {
 	})
 	register("enter", "Enter the highlighted directory or select a file", nil, func(_ Context, _ Arguments) (any, error) {
 		return p.enter(false)
+	})
+	register("complete", "Complete the highlighted path without confirming it", nil, func(_ Context, _ Arguments) (any, error) {
+		if err := p.require(); err != nil {
+			return nil, err
+		}
+		entry, err := p.selected()
+		if err != nil {
+			return nil, err
+		}
+		path := filepath.Join(p.Directory, filepath.FromSlash(entry.Path))
+		if entry.Dir {
+			return p.browse(path)
+		}
+		if _, err := p.Runtime.ExecuteAt(p.frame.Context, Request{Verb: "replace", Noun: "input", Args: Arguments{"start": 0, "end": len(p.input.Text), "text": path}}); err != nil {
+			return nil, err
+		}
+		return p.state(), nil
 	})
 	register("choose", "Confirm highlighted path, or explicitly choose current root", map[string]Parameter{"current": {Type: "boolean", Description: "Choose current root instead of the highlight (any/dir only)"}}, func(_ Context, args Arguments) (any, error) {
 		if err := p.require(); err != nil {

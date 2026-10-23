@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -92,6 +93,38 @@ func pickerHighlight(t *testing.T, r *Runtime, p *Picker, path string) {
 		}
 	}
 	t.Fatalf("missing result %q in %v", path, p.Entries)
+}
+
+func TestPickerTabCompletesHighlightedPathWithoutChoosing(t *testing.T) {
+	for _, mode := range []string{"insert", "normal"} {
+		for _, directory := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/directory=%v", mode, directory), func(t *testing.T) {
+				root := t.TempDir()
+				pickerFile(t, root, "nested/target.txt", "")
+				r, p, origin := pickerFixture(t, "unchanged", "text", "any", 0)
+				pickerDo(t, r, "open", "picker", Arguments{"path": root})
+				pickerDrain(t, p)
+				path := "nested/target.txt"
+				if directory {
+					path = "nested"
+				}
+				pickerHighlight(t, r, p, path)
+				want := filepath.Join(p.Directory, filepath.FromSlash(path))
+				if directory {
+					want += string(filepath.Separator)
+				}
+				p.input.SetMode(mode)
+				pickerKey(t, r, "tab")
+				pickerDrain(t, p)
+				if got := string(p.input.Text); got != want {
+					t.Fatalf("completed path = %q, want %q", got, want)
+				}
+				if !p.IsOpen() || string(origin.Text) != "unchanged" {
+					t.Fatal("completion confirmed or closed the picker")
+				}
+			})
+		}
+	}
 }
 
 func TestPickerInsertsAtCapturedRuneCursorAndRestoresOrigin(t *testing.T) {
