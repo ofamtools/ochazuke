@@ -1,6 +1,16 @@
 
 # TODO
 
+## upcoming
+
+- [ ] define actions via config to call a cli's json/api version of an action
+  - so "command" or "subcommand" or "format" whatever is needed to say when
+    noun/verb is triggered it should run cli command:
+    `base noun verb --json JSON` or something standard and easy for all clis to
+    support
+
+## done
+
 - [x] Cursor should not move and reposition text after cursor.
     - `InputView` now inverts the existing grapheme instead of inserting `▏`.
     - Empty/end positions use a styled blank cell; wide/combining characters,
