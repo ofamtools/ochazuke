@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Three keys, one pipeline · Ochazuke keybinding walkthrough</title>
+<meta name="description" content="Source-cited walkthrough of how Ochazuke turns Tab, Ctrl-N, and a configured g g sequence into state changes.">
+<style>
+:root{
+  --paper:#f4ecdc; --paper2:#ebe0c9; --ink:#1f1a14; --muted:#5a4e3f; --rule:#c9b995;
+  --matcha:#3d5a2a; --matcha-bg:#e3e8cc; --shu:#a3331f; --shu-bg:#f3d9cf; --gold:#7a5a0e;
+  --code-bg:#241d15; --code-fg:#f1e6cf; --code-dim:#a89a7e; --focus:#0b4f8a;
+  --serif:"Iowan Old Style","Palatino Linotype","Palatino","Book Antiqua","Hoefler Text",Georgia,serif;
+  --mono:"JetBrains Mono","Berkeley Mono","SF Mono","Cascadia Code",ui-monospace,Menlo,Consolas,monospace;
+  --display:"Didot","Bodoni 72","Baskerville","Iowan Old Style",Georgia,serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:1.0625rem/1.65 var(--serif);
+  background-image:radial-gradient(circle at 20% 0,rgba(163,51,31,.06),transparent 40%),radial-gradient(circle at 90% 30%,rgba(61,90,42,.07),transparent 45%)}
+a{color:var(--shu);text-underline-offset:.18em;text-decoration-thickness:1px}
+a:hover{color:var(--ink)}
+:focus-visible{outline:3px solid var(--focus);outline-offset:3px;border-radius:2px}
+.skip{position:absolute;left:-999px;top:0;background:var(--ink);color:var(--paper);padding:.5rem 1rem;z-index:9}
+.skip:focus{left:0}
+.wrap{max-width:74rem;margin:0 auto;padding:0 1.5rem}
+header.top{border-bottom:3px double var(--ink);padding:2.5rem 0 2rem}
+.kicker{font:600 .78rem/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--shu);margin:0 0 1rem}
+h1{font:400 clamp(2.4rem,6vw,4.6rem)/1.02 var(--display);letter-spacing:-.02em;margin:0 0 1rem;max-width:18ch}
+h1 em{color:var(--shu);font-style:italic}
+.lede{font-size:1.25rem;max-width:44rem;color:var(--muted);margin:0 0 1.25rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;font:.82rem/1.4 var(--mono);color:var(--muted)}
+.meta a{color:inherit}
+.layout{display:grid;grid-template-columns:14rem minmax(0,1fr);gap:3rem;padding:2.5rem 0 4rem}
+nav.toc{position:sticky;top:1rem;align-self:start;font-size:.92rem}
+nav.toc h2{font:600 .72rem/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 .75rem}
+nav.toc ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--rule)}
+nav.toc li a{display:block;padding:.3rem .8rem;text-decoration:none;color:var(--ink)}
+nav.toc li a:hover{background:var(--paper2)}
+main{min-width:0}
+section{margin:0 0 4rem}
+h2{font:400 clamp(1.7rem,3.4vw,2.4rem)/1.15 var(--display);margin:0 0 1rem;padding-top:.5rem;border-top:1px solid var(--rule)}
+h2 .n{font:600 .8rem var(--mono);color:var(--shu);display:block;letter-spacing:.14em;margin-bottom:.4rem}
+h3{font:600 1.1rem/1.3 var(--serif);margin:2rem 0 .5rem}
+p,li{max-width:46rem}
+code,kbd{font:.88em var(--mono)}
+code{background:var(--paper2);padding:.08em .35em;border-radius:3px}
+kbd{border:1px solid var(--ink);border-bottom-width:3px;border-radius:4px;padding:.05em .45em;background:#fffaf0}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:1rem;margin:1.25rem 0}
+.card{background:#fbf5e8;border:1px solid var(--rule);border-top:4px solid var(--matcha);padding:1rem 1.1rem}
+.card.shu{border-top-color:var(--shu)}
+.card h3{margin-top:0}
+.card p{margin:.4rem 0}
+.tag{display:inline-block;font:600 .7rem/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:.3rem .5rem;margin-bottom:.4rem;background:var(--matcha-bg);color:var(--matcha)}
+.tag.fw{background:var(--shu-bg);color:var(--shu)}
+.callout{border-left:5px solid var(--gold);background:#f8eecf;padding:.8rem 1.1rem;margin:1.25rem 0;max-width:48rem}
+.callout strong:first-child{font-family:var(--mono);font-size:.8rem;letter-spacing:.08em;text-transform:uppercase}
+figure.src{margin:1.25rem 0;border-radius:4px;overflow:hidden;background:var(--code-bg);box-shadow:6px 6px 0 rgba(31,26,20,.14)}
+figure.src figcaption{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.25rem 1rem;padding:.5rem 1rem;background:#16110b;color:var(--code-dim);font:.78rem/1.4 var(--mono)}
+figure.src figcaption a{color:#f0b9a8}
+figure.src pre{margin:0;padding:1rem;overflow-x:auto;color:var(--code-fg);font:.84rem/1.55 var(--mono);tab-size:4}
+figure.src pre:focus-visible{outline-offset:-3px}
+.state{margin:1.25rem 0;border:1px dashed var(--ink);background:#fbf5e8;position:relative}
+.state .lab{display:block;font:600 .72rem/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:.5rem .8rem;border-bottom:1px dashed var(--ink);color:var(--gold)}
+.state pre{margin:0;padding:.8rem;overflow-x:auto;font:.84rem/1.55 var(--mono)}
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.ba>div+div{border-left:1px dashed var(--ink)}
+.flow{counter-reset:step;list-style:none;padding:0;margin:1.5rem 0}
+.flow>li{counter-increment:step;position:relative;padding:0 0 1.5rem 3.4rem;max-width:none}
+.flow>li::before{content:counter(step);position:absolute;left:0;top:0;width:2.3rem;height:2.3rem;border-radius:50%;border:2px solid var(--ink);display:grid;place-items:center;font:600 .9rem var(--mono);background:var(--paper)}
+.flow>li::after{content:"";position:absolute;left:1.15rem;top:2.4rem;bottom:.1rem;width:1px;background:var(--rule)}
+.flow>li:last-child::after{display:none}
+.flow h4{margin:.1rem 0 .3rem;font:600 1.05rem/1.3 var(--serif)}
+.flow p{margin:.3rem 0}
+.pipeline{display:flex;flex-wrap:wrap;gap:.5rem;margin:1.25rem 0;padding:0;list-style:none}
+.pipeline li{flex:1 1 9rem;border:2px solid var(--ink);background:#fbf5e8;padding:.6rem .7rem;font-size:.9rem;line-height:1.35;position:relative}
+.pipeline li b{display:block;font:600 .7rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--shu);margin-bottom:.2rem}
+.pipeline li:not(:last-child)::after{content:"→";position:absolute;right:-.85rem;top:50%;transform:translateY(-50%);font-weight:700;background:var(--paper);z-index:1}
+table{border-collapse:collapse;table-layout:fixed;width:100%;max-width:48rem;margin:1rem 0;font-size:.95rem}
+th,td{border:1px solid var(--rule);padding:.5rem .7rem;text-align:left;vertical-align:top;overflow-wrap:anywhere}
+th{background:var(--paper2);font:600 .78rem var(--mono);letter-spacing:.06em;text-transform:uppercase}
+/* stepper */
+.stepper{border:2px solid var(--ink);background:#fbf5e8;margin:1.5rem 0;box-shadow:6px 6px 0 rgba(31,26,20,.14)}
+.stepper header{padding:.6rem 1rem;border-bottom:2px solid var(--ink);background:var(--paper2);font:600 .8rem var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.stepper .body{padding:1rem}
+.btns{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem}
+.btns button{font:600 .9rem var(--mono);padding:.55rem .9rem;min-height:2.75rem;background:var(--paper);color:var(--ink);border:2px solid var(--ink);border-radius:4px;cursor:pointer}
+.btns button:hover{background:var(--ink);color:var(--paper)}
+.btns button.reset{margin-left:auto;border-style:dashed}
+.readout{display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));gap:.75rem;margin-bottom:1rem}
+.readout div{border:1px solid var(--rule);padding:.5rem .7rem;background:var(--paper)}
+.readout dt{font:600 .68rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.readout dd{margin:.2rem 0 0;font:600 1.05rem var(--mono)}
+.pend-on{color:var(--shu)}
+#log{margin:0;padding:.7rem .9rem;background:var(--code-bg);color:var(--code-fg);font:.84rem/1.5 var(--mono);min-height:4.6rem;white-space:pre-wrap}
+footer{border-top:3px double var(--ink);padding:1.5rem 0 3rem;font-size:.92rem;color:var(--muted)}
+@media (max-width:60rem){
+  .layout{grid-template-columns:1fr;gap:1rem}
+  nav.toc{position:static}
+  nav.toc ol{display:flex;flex-wrap:wrap;border:0;gap:.25rem}
+  nav.toc li a{border:1px solid var(--rule)}
+  .ba{grid-template-columns:1fr}.ba>div+div{border-left:0;border-top:1px dashed var(--ink)}
+  .pipeline li:not(:last-child)::after{display:none}
+}
+@media (max-width:34rem){
+  .wrap{padding:0 1rem}
+  .flow>li{padding-left:2.8rem}
+  .btns button.reset{margin-left:0}
+}
+@media (prefers-reduced-motion:no-preference){
+  header.top .kicker,header.top h1,header.top .lede,header.top .meta{animation:rise .7s both}
+  header.top h1{animation-delay:.08s}header.top .lede{animation-delay:.16s}header.top .meta{animation-delay:.24s}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+@media print{
+  body{background:#fff;color:#000;font-size:10.5pt}
+  nav.toc,.btns,.skip{display:none}
+  .layout{display:block}
+  figure.src,.state,.card,.stepper{box-shadow:none;break-inside:avoid}
+  figure.src{background:#fff;border:1px solid #000}
+  figure.src pre,figure.src figcaption{color:#000;background:#fff;white-space:pre-wrap}
+  a{color:#000}
+  a[href^="http"]::after{content:" (" attr(href) ")";font-size:.7em;word-break:break-all}
+  section{break-inside:auto}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+<div class="wrap">
+<p class="kicker">Ochazuke · field guide</p>
+<h1>Three keys, <em>one</em> pipeline</h1>
+<p class="lede">Follow <kbd>Tab</kbd>, <kbd>Ctrl-N</kbd>, and a configured <kbd>g</kbd> <kbd>g</kbd> from the key press to the state change. Every claim points at a pinned line range in the source.</p>
+<div class="meta">
+<span>Source revision <code>c2790bc</code></span>
+<a href="architecture.html">Architecture overview</a>
+<a href="../README.md">README</a>
+</div>
+</div>
+</header>
+
+<div class="wrap layout">
+<nav class="toc" aria-label="On this page">
+<h2>On this page</h2>
+<ol>
+<li><a href="#pipeline">The shared pipeline</a></li>
+<li><a href="#rules">Two lookup directions</a></li>
+<li><a href="#tab">Flow 1 · Tab</a></li>
+<li><a href="#ctrl-n">Flow 2 · Ctrl-N</a></li>
+<li><a href="#sandbox">Flow 3 · g g in the sandbox</a></li>
+<li><a href="#stepper">Sequence stepper</a></li>
+<li><a href="#index">Source index</a></li>
+</ol>
+</nav>
+
+<main id="main">
+
+<section id="pipeline" aria-labelledby="h-pipeline">
+<h2 id="h-pipeline"><span class="n">01</span>The shared pipeline</h2>
+<p>The framework owns state and dispatch. The demo defines its pages, inputs, and bindings. Tab and Ctrl-N follow the same five steps below. The sandbox uses its own <code>Update</code> and <code>View</code>, but shares the runtime's matching and execution.</p>
+
+<ol class="pipeline" aria-label="Pipeline steps">
+<li><b>1 · Bubble Tea</b>A <code>tea.KeyMsg</code> reaches <code>Update</code>.</li>
+<li><b>2 · Adapter</b><code>Model.dispatchKey</code> checks macros, palette, and input grammar.</li>
+<li><b>3 · Runtime</b><code>HandleBinding</code> builds the sequence and matches it.</li>
+<li><b>4 · Execute</b><code>ExecuteAt</code> finds a layer action or the operation's <code>Run</code>.</li>
+<li><b>5 · State</b>The handler changes <code>Frames</code>, then <code>View</code> renders.</li>
+</ol>
+
+<div class="cols">
+<div class="card">
+<span class="tag">Framework</span>
+<h3>Runtime and Model</h3>
+<p>Owns <code>Context</code>, <code>Frames</code>, <code>Pending</code>, <code>HandleBinding</code>, <code>ExecuteAt</code>, and the built-in <code>push.modal</code> operation.</p>
+</div>
+<div class="card shu">
+<span class="tag fw">Demo</span>
+<h3>NewDemo</h3>
+<p>Owns the page names, the input IDs <code>directory</code>, <code>notes</code>, and <code>dialog</code>, the <code>next.input</code> handler, and the <code>tab</code> and <code>ctrl+n</code> bindings. The comment at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L12">demo.go:12</a> says the framework requires none of these names.</p>
+</div>
+</div>
+
+<h3>Context.Path is not Frames</h3>
+<p><code>Context</code> says <em>where input goes</em>: an ordered list of layer IDs from <code>app</code> to the innermost layer, plus an optional focused <code>InputID</code>. <code>Frames</code> says <em>what is stacked on screen</em>: the page frame first, then each open modal. The runtime's current context is the context of the last frame.</p>
+
+<figure class="src">
+<figcaption><span>Context, Frame, Runtime (excerpt)</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L30-L33">runtime.go:30-33</a> · <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L65-L69">65-69</a> · <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L109">109</a></figcaption>
+<pre tabindex="0" aria-label="Go source excerpt">type Context struct {
+	Path    []string `json:"path"`
+	InputID string   `json:"inputId,omitempty"`
+}
+
+type Frame struct {
+	ID      string         `json:"id"`
+	Context Context        `json:"context"`
+	State   map[string]any `json:"state"`
+}
+
+func (r *Runtime) Context() Context { return r.Frames[len(r.Frames)-1].Context.Clone() }</pre>
+</figure>
+
+<h3>Where Model.Update hands off</h3>
+<p><code>Model.Update</code> splits multi-rune key messages into single keys, then calls <code>dispatchKey</code>. The call to <code>HandleBinding</code> comes after the macro, palette, paste, and in-progress input-grammar checks.</p>
+<figure class="src">
+<figcaption><span>Model.dispatchKey tail</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L97-L102">model.go:97-102</a> · <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L150-L159">150-159</a></figcaption>
+<pre tabindex="0" aria-label="Go source excerpt">err := m.dispatchKey(MacroKey{Key: v.String(), Paste: v.Paste})
+...
+handled, err := r.HandleBinding(key.Key)
+if handled || err != nil {
+	return err
+}
+if key.Key == "esc" && len(r.Frames) > 1 && r.Mode(r.Context()) == "normal" &amp;&amp; (in == nil || in.Pending == "" &amp;&amp; in.Count == 0) {
+	_, err = r.Execute(Request{Verb: "pop", Noun: "modal"})
+	return err
+}
+_, err = HandleInputKey(r, key.Key)</pre>
+</figure>
+<p>A key that no binding handles falls through to <code>HandleInputKey</code>, which is the text editor. Both flows below are handled earlier, at <code>HandleBinding</code>.</p>
+</section>
+
+<section id="rules" aria-labelledby="h-rules">
+<h2 id="h-rules"><span class="n">02</span>Two lookup directions</h2>
+<p>Bindings and handlers resolve in opposite directions. The difference matters when two layers define the same thing.</p>
+<div class="cols">
+<div class="card">
+<span class="tag">Bindings</span>
+<h3>Outer → inner, last write wins</h3>
+<p><code>EffectiveBindings</code> walks <code>Context.Path</code> from <code>app</code> inward. For each layer it writes the mode-less bindings into a map keyed by the full key sequence, then the bindings for the current mode. The innermost layer writes last, so it overwrites.</p>
+</div>
+<div class="card shu">
+<span class="tag fw">Handlers</span>
+<h3>Inner → outer, first hit wins</h3>
+<p><code>ExecuteAt</code> walks the path from the end back to <code>app</code> and runs the first layer whose <code>Actions</code> map has the key <code>verb.noun</code>. If no layer has one, it runs the operation's registered default <code>Run</code>.</p>
+</div>
+</div>
+<figure class="src">
+<figcaption><span>EffectiveBindings</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L298-L320">runtime.go:298-320</a></figcaption>
+<pre tabindex="0" aria-label="Go source excerpt">for _, id := range c.Path {
+	layer := r.Layers[id]
+	for _, b := range layer.Bindings {
+		if b.Mode == "" {
+			byKey[b.Keys] = b
+		}
+	}
+	for _, b := range layer.Bindings {
+		if b.Mode == mode &amp;&amp; b.Mode != "" {
+			byKey[b.Keys] = b
+		}
+	}
+}</pre>
+</figure>
+<figure class="src">
+<figcaption><span>ExecuteAt handler lookup</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L235-L240">runtime.go:235-240</a></figcaption>
+<pre tabindex="0" aria-label="Go source excerpt">for i := len(c.Path) - 1; i >= 0; i-- {
+	if fn := r.Layers[c.Path[i]].Actions[q.Key()]; fn != nil {
+		return fn(r, c, q.Args)
+	}
+}
+return op.Run(r, c, q.Args)</pre>
+</figure>
+<p>The demo uses this split for <code>inspect.selection</code>. The registry default at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L93-L96">demo.go:93-96</a> reports <code>app</code>. The layers <code>playground</code>, <code>agent</code>, and <code>directory</code> override it at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L97-L103">demo.go:97-103</a>.</p>
+<div class="callout"><strong>Note</strong> Bindings overlay complete key sequences, not single keys. A binding for <code>g g</code> replaces another binding for <code>g g</code> and leaves <code>g</code> alone (<a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L297">runtime.go:297</a>).</div>
+</section>
+
+<section id="tab" aria-labelledby="h-tab">
+<h2 id="h-tab"><span class="n">03</span>Flow 1 · Tab moves directory → notes</h2>
+<p><strong>Starting point.</strong> The user is on the Playground page with the <code>directory</code> field focused. The demo registers that page's frame with that context at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L45">demo.go:45</a>, and <code>OpenPage</code> installs the frame as <code>Frames</code> (<a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/pages.go#L50-L62">pages.go:50-62</a>).</p>
+
+<div class="state">
+<span class="lab">Illustrative snapshot · simplified JS, not real output</span>
+<div class="ba">
+<div><pre>// BEFORE
+Frames: [{
+  id: "playground",
+  context: {
+    path: ["app","playground",
+           "agent","directory"],
+    inputId: "directory"
+  }
+}]
+Runtime.Pending: ""</pre></div>
+<div><pre>// AFTER
+Frames: [{
+  id: "playground",
+  context: {
+    path: ["app","playground",
+           "agent","notes"],
+    inputId: "notes"
+  }
+}]
+Runtime.Pending: ""</pre></div>
+</div>
+</div>
+
+<ol class="flow">
+<li>
+<h4>The user presses Tab</h4>
+<p>Bubble Tea sends a <code>tea.KeyMsg</code> whose <code>String()</code> is <code>"tab"</code>. <code>Model.Update</code> passes it to <code>dispatchKey</code> (<a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L81-L102">model.go:81-102</a>).</p>
+</li>
+<li>
+<h4>The adapter lets it through</h4>
+<p>No macro is pending, the palette is closed, the key is not a paste, and the <code>directory</code> input has no pending grammar. So the checks at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L128-L149">model.go:128-149</a> do not return, and the call at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L150">model.go:150</a> runs.</p>
+</li>
+<li>
+<h4>The runtime finds an exact match</h4>
+<p><code>Pending</code> is empty, so <code>sequence</code> is <code>"tab"</code>. <code>EffectiveBindings</code> includes the playground binding below. It has no mode, so it applies in every mode. The exact-match loop runs first, clears <code>Pending</code>, and calls <code>Execute</code>.</p>
+<figure class="src">
+<figcaption><span>Demo binding</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L135">demo.go:135</a></figcaption>
+<pre tabindex="0" aria-label="Go source excerpt">bind("playground", "", "tab", "next", "input", nil)</pre>
+</figure>
+<figure class="src">
+<figcaption><span>HandleBinding, exact match</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L328-L339">runtime.go:328-339</a></figcaption>
+<pre tabindex="0" aria-label="Go source excerpt">sequence := key
+if r.Pending != "" {
+	sequence = r.Pending + " " + key
+}
+bindings := r.EffectiveBindings(r.Context())
+for _, b := range bindings {
+	if b.Keys == sequence {
+		r.Pending = ""
+		_, err := r.Execute(b.Request)
+		return true, err
+	}
+}</pre>
+</figure>
+</li>
+<li>
+<h4>ExecuteAt chooses the handler</h4>
+<p>The request key is <code>next.input</code>. No layer on the path has an <code>Actions["next.input"]</code> entry, so the loop at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L235-L240">runtime.go:235-240</a> falls through to the registered <code>Run</code>. That is the demo's handler.</p>
+</li>
+<li>
+<h4>The demo handler picks the next field</h4>
+<p>The handler refuses to run unless the active page is <code>playground</code> and no modal is open. It finds the current <code>InputID</code> in the ordered list, adds <code>delta</code> (default 1), wraps, and calls <code>r.Focus</code>.</p>
+<figure class="src">
+<figcaption><span>next.input handler</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L77-L92">demo.go:77-92</a></figcaption>
+<pre tabindex="0" aria-label="Go source excerpt">ids := []string{"directory", "notes", "paths"}
+...
+index = ((index+IntArg(a, "delta", 1))%len(ids) + len(ids)) % len(ids)
+err := r.Focus(ids[index])</pre>
+</figure>
+</li>
+<li>
+<h4>The runtime rewrites the top frame's context</h4>
+<p><code>Focus</code> looks up the input's registered path, validates it, and replaces the <em>top frame's</em> <code>Context</code>. No frame is pushed, so <code>Frames</code> keeps its length of 1. Only <code>Context.Path</code> and <code>InputID</code> change.</p>
+<figure class="src">
+<figcaption><span>Runtime.Focus</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L175-L187">runtime.go:175-187</a></figcaption>
+<pre tabindex="0" aria-label="Go source excerpt">next := Context{Path: path, InputID: id}
+if err := r.validateSelection(next); err != nil {
+	return err
+}
+r.Frames[len(r.Frames)-1].Context = next.Clone()
+r.Pending = ""</pre>
+</figure>
+</li>
+<li>
+<h4>The view follows the context</h4>
+<p><code>HandleBinding</code> returns <code>handled = true</code>, so the key never reaches the text editor. On the next <code>View</code>, the playground page renders <code>notes</code> as the active field (<a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L169-L190">demo.go:169-190</a>). The path to <code>notes</code> is registered at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L23">demo.go:23</a>.</p>
+</li>
+</ol>
+<p><strong>Who did what.</strong> The framework matched the key, ran the handler, and moved focus. The demo decided that <code>directory</code>, <code>notes</code>, and <code>paths</code> form a cycle.</p>
+</section>
+
+<section id="ctrl-n" aria-labelledby="h-ctrl-n">
+<h2 id="h-ctrl-n"><span class="n">04</span>Flow 2 · Ctrl-N opens the draft modal</h2>
+<p><strong>Starting point.</strong> The user is in the <code>notes</code> field, in normal mode. A new input starts in <code>"normal"</code> mode (<a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/input.go#L37">input.go:37</a>). This matters: the binding below only exists in normal mode.</p>
+
+<div class="state">
+<span class="lab">Illustrative snapshot · simplified JS, not real output</span>
+<div class="ba">
+<div><pre>// BEFORE
+Frames: [
+  { id: "playground",
+    context: {
+      path: ["app","playground",
+             "agent","notes"],
+      inputId: "notes" } }
+]
+Mode(ctx): "normal"
+Runtime.Pending: ""</pre></div>
+<div><pre>// AFTER  (frame pushed)
+Frames: [
+  { id: "playground", ...unchanged },
+  { id: "draft",
+    context: {
+      path: ["app","dialog"],
+      inputId: "dialog" } }
+]
+Runtime.Pending: ""</pre></div>
+</div>
+</div>
+
+<ol class="flow">
+<li>
+<h4>The user presses Ctrl-N</h4>
+<p>The key string is <code>"ctrl+n"</code>. The adapter reaches <code>HandleBinding</code> the same way as in flow 1, because <code>notes</code> has no pending grammar.</p>
+</li>
+<li>
+<h4>The binding exists only for normal mode</h4>
+<p>The binding lives on the <code>playground</code> layer with mode <code>"normal"</code>. <code>EffectiveBindings</code> adds it in the second pass over that layer, because <code>Mode(c)</code> equals <code>"normal"</code>. In insert mode the binding would be absent.</p>
+<figure class="src">
+<figcaption><span>Demo bindings</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L141-L142">demo.go:141-142</a></figcaption>
+<pre tabindex="0" aria-label="Go source excerpt">bind("playground", "normal", "ctrl+n", "push", "modal", Arguments{"id": "draft", "input": "dialog"})
+bind("dialog", "normal", "ctrl+n", "push", "modal", Arguments{"id": "nested-draft", "input": "nested-dialog"})</pre>
+</figure>
+<p>The second line explains why Ctrl-N inside the draft nests a second modal. The <code>dialog</code> layer is not on the <code>notes</code> path, so it does not apply yet.</p>
+</li>
+<li>
+<h4>Exact match, then Execute</h4>
+<p>The exact-match loop at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L333-L339">runtime.go:333-339</a> finds <code>ctrl+n</code>, clears <code>Pending</code>, and calls <code>Execute</code> with the request <code>push.modal</code> and arguments <code>id: "draft"</code>, <code>input: "dialog"</code>.</p>
+</li>
+<li>
+<h4>The handler lookup falls to the registry default</h4>
+<p>No demo layer defines an action for <code>push.modal</code>. <code>ExecuteAt</code> validates the arguments, then runs the built-in <code>Run</code> from <code>registerCore</code>. This time the framework supplies the handler too.</p>
+<figure class="src">
+<figcaption><span>push.modal operation</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L435-L443">runtime.go:435-443</a></figcaption>
+<pre tabindex="0" aria-label="Go source excerpt">id := StringArg(a, "input", "")
+path, ok := r.InputPaths[id]
+if !ok {
+	return nil, errors.New("unknown modal input")
+}
+err := r.Push(&amp;Frame{ID: StringArg(a, "id", ""), Context: Context{Path: path, InputID: id}, State: map[string]any{}})</pre>
+</figure>
+</li>
+<li>
+<h4>Push adds a frame</h4>
+<p>The new frame's context comes from the input's registered path. The demo registered <code>dialog</code> with path <code>["app","dialog"]</code> (<a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L25">demo.go:25</a>). <code>Push</code> rejects a duplicate frame ID, validates the context, appends, and clears <code>Pending</code>.</p>
+<figure class="src">
+<figcaption><span>Runtime.Push</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L188-L207">runtime.go:188-207</a></figcaption>
+<pre tabindex="0" aria-label="Go source excerpt">r.Frames = append(r.Frames, frame)
+r.Pending = ""
+return nil</pre>
+</figure>
+</li>
+<li>
+<h4>The view draws the modal over the page</h4>
+<p><code>r.Context()</code> now returns the <code>dialog</code> context, so the next key resolves against <code>["app","dialog"]</code>. The page frame stays underneath, unchanged. The demo registered the <code>draft</code> modal's title and renderer at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L57-L70">demo.go:57-70</a>.</p>
+</li>
+</ol>
+<div class="callout"><strong>Contrast with flow 1</strong> Tab changed the <em>top frame's</em> <code>Context.Path</code> and left <code>Frames</code> at length 1. Ctrl-N changed <code>Frames</code> to length 2 and left the page frame's context alone. Different structures, same pipeline.</div>
+</section>
+
+<section id="sandbox" aria-labelledby="h-sandbox">
+<h2 id="h-sandbox"><span class="n">05</span>Flow 3 · A configured <code>g g</code> in the sandbox</h2>
+<p>This flow does <strong>not</strong> use <code>NewDemo</code>, <code>Model.Update</code>, or the default demo bindings. The <code>ochazuke keybinding</code> command builds its own <code>keybindingModel</code> around a fresh <code>NewRuntime()</code> (<a href="../cmd/ochazuke/keybinding.go#L136-L137">keybinding.go:136-137</a>). Its <code>Update</code> is a separate dispatcher that calls the same <code>Runtime.HandleBinding</code>.</p>
+<p><strong>Assumed configuration.</strong> The user configured the binding <code>g g</code> with action <code>go-top</code>, either in setup or with <code>--bind 'g g=go-top'</code>. This is a configuration choice for the example. It is not a default.</p>
+
+<h3>How the configuration becomes a binding</h3>
+<p><code>installBinding</code> normalizes the key string, registers an operation with verb <code>go-top</code> and noun <code>sandbox</code>, and appends a binding to the <code>app</code> layer. The operation's <code>Run</code> only records <code>"ACTION: go-top"</code> in the results ring. It moves nothing.</p>
+<figure class="src">
+<figcaption><span>keybindingModel.installBinding</span><a href="../cmd/ochazuke/keybinding.go#L183-L193">keybinding.go:183-193</a></figcaption>
+<pre tabindex="0" aria-label="Go source excerpt">keys, action := strings.Join(strings.Fields(spec.Keys), " "), strings.TrimSpace(spec.Action)
+m.runtime.Register(ochazuke.Operation{
+	Verb: action, Noun: "sandbox",
+	Run: func(_ *ochazuke.Runtime, _ ochazuke.Context, _ ochazuke.Arguments) (any, error) {
+		m.results[(m.count-1)%keyHistorySize] = "ACTION: " + action
+		return action, nil
+	},
+})
+layer := m.runtime.Layers["app"]
+binding := ochazuke.Binding{Keys: keys, Request: ochazuke.Request{Verb: action, Noun: "sandbox"}}</pre>
+</figure>
+
+<div class="state">
+<span class="lab">Illustrative snapshot · simplified JS, not real output</span>
+<pre>runtime.Layers.app.Bindings: [
+  { mode: "", keys: "g g",
+    request: { verb: "go-top", noun: "sandbox" } }
+]
+runtime.Frames: [{ id: "main", context: { path: ["app"] } }]   // from NewRuntime
+runtime.Pending: ""</pre>
+</div>
+
+<h3>Where this dispatcher differs</h3>
+<table>
+<thead><tr><th scope="col">Step</th><th scope="col">Demo app</th><th scope="col">Sandbox</th></tr></thead>
+<tbody>
+<tr><th scope="row">Entry</th><td><code>Model.Update</code></td><td><code>keybindingModel.Update</code></td></tr>
+<tr><th scope="row">Pre-checks</th><td>Macros, palette, input grammar</td><td>Records history, rejects paste, then calls the runtime</td></tr>
+<tr><th scope="row">Binding call</th><td><code>r.HandleBinding</code></td><td><code>m.runtime.HandleBinding</code></td></tr>
+<tr><th scope="row">After a miss</th><td>Falls through to <code>HandleInputKey</code></td><td>Records <code>unmatched</code></td></tr>
+<tr><th scope="row">Frames</th><td>Page frame plus modals</td><td>One <code>main</code> frame, never pushed</td></tr>
+</tbody>
+</table>
+
+<h3>First g: the prefix is stored</h3>
+<ol class="flow">
+<li>
+<h4>The user presses g</h4>
+<p><code>keybindingModel.Update</code> appends <code>"g"</code> to the history and sets the result to <code>"unmatched"</code>. It then calls the runtime (<a href="../cmd/ochazuke/keybinding.go#L65-L77">keybinding.go:65-77</a>).</p>
+</li>
+<li>
+<h4>No exact match, but a prefix match</h4>
+<p><code>sequence</code> is <code>"g"</code>. No binding has the keys <code>"g"</code>, so the first loop finds nothing. The second loop finds <code>"g g"</code>, which starts with <code>"g "</code>. The runtime stores <code>Pending = "g"</code> and returns <code>handled = true</code>.</p>
+<figure class="src">
+<figcaption><span>HandleBinding, prefix match</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L340-L345">runtime.go:340-345</a></figcaption>
+<pre tabindex="0" aria-label="Go source excerpt">for _, b := range bindings {
+	if strings.HasPrefix(b.Keys, sequence+" ") {
+		r.Pending = sequence
+		return true, nil
+	}
+}</pre>
+</figure>
+</li>
+<li>
+<h4>The sandbox reports the pending state</h4>
+<p>Back in <code>Update</code>, <code>m.runtime.Pending != ""</code> is true, so the history row reads <code>pending: g</code>.</p>
+<figure class="src">
+<figcaption><span>Sandbox result switch</span><a href="../cmd/ochazuke/keybinding.go#L76-L86">keybinding.go:76-86</a></figcaption>
+<pre tabindex="0" aria-label="Go source excerpt">handled, err := m.runtime.HandleBinding(msg.String())
+switch {
+case err != nil:
+	m.results[index] = "error: " + err.Error()
+case m.runtime.Pending != "":
+	m.results[index] = "pending: " + m.runtime.Pending
+case handled &amp;&amp; m.results[index] == "unmatched":
+	m.results[index] = "sequence cancelled"
+}</pre>
+</figure>
+</li>
+</ol>
+
+<div class="state">
+<span class="lab">Illustrative snapshot · after first g</span>
+<pre>runtime.Pending: ""  →  "g"
+results[0]: "pending: g"
+Frames, Context.Path: unchanged</pre>
+</div>
+
+<h3>Second g: the full sequence matches</h3>
+<ol class="flow">
+<li>
+<h4>The user presses g again</h4>
+<p><code>Pending</code> is <code>"g"</code>, so <code>sequence</code> becomes <code>"g" + " " + "g"</code>, which is <code>"g g"</code>.</p>
+</li>
+<li>
+<h4>Exact match wins</h4>
+<p>The exact loop runs before the prefix loop. It matches, sets <code>Pending</code> back to <code>""</code>, and calls <code>Execute</code> with <code>go-top.sandbox</code>.</p>
+</li>
+<li>
+<h4>The registry default runs</h4>
+<p>The <code>app</code> layer has no <code>Actions</code> entry for <code>go-top.sandbox</code>, so <code>ExecuteAt</code> calls the <code>Run</code> that <code>installBinding</code> registered. It writes <code>"ACTION: go-top"</code> into the latest history slot. <code>Pending</code> is empty, so the <code>switch</code> falls to no case, and the row keeps the <code>ACTION</code> text.</p>
+</li>
+</ol>
+
+<div class="state">
+<span class="lab">Illustrative snapshot · after second g</span>
+<pre>runtime.Pending: "g"  →  ""
+results[1]: "ACTION: go-top"
+history: ["g", "g"]   // newest first in the right-hand column</pre>
+</div>
+
+<h3>Mismatch, retry, and Escape</h3>
+<p>The runtime handles three other cases inside the same function. Each one clears <code>Pending</code>.</p>
+<ul>
+<li><strong>Mismatch.</strong> With <code>Pending = "g"</code>, the key <kbd>x</kbd> forms <code>"g x"</code>. Neither loop matches. The runtime clears <code>Pending</code> and calls itself with <code>"x"</code> alone, so <kbd>x</kbd> gets a fresh chance (<a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L346-L351">runtime.go:346-351</a>).</li>
+<li><strong>Escape.</strong> With <code>Pending</code> set, <kbd>Esc</kbd> clears it and returns <code>handled = true</code> before any matching (<a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L324-L327">runtime.go:324-327</a>). The sandbox shows <code>sequence cancelled</code>.</li>
+<li><strong>No timeout.</strong> Nothing in <code>HandleBinding</code> or the sandbox starts a timer. <code>Pending</code> stays set until a key resolves it, <kbd>Esc</kbd> cancels it, or something else clears it. In the sandbox, <kbd>F2</kbd> clears it when you return to setup (<a href="../cmd/ochazuke/keybinding.go#L48-L52">keybinding.go:48-52</a>).</li>
+</ul>
+<figure class="src">
+<figcaption><span>HandleBinding, Esc and retry</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L323-L327">runtime.go:323-327</a> · <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L346-L351">346-351</a></figcaption>
+<pre tabindex="0" aria-label="Go source excerpt">func (r *Runtime) HandleBinding(key string) (bool, error) {
+	if key == "esc" &amp;&amp; r.Pending != "" {
+		r.Pending = ""
+		return true, nil
+	}
+...
+	hadPending := r.Pending != ""
+	r.Pending = ""
+	if hadPending {
+		return r.HandleBinding(key)
+	}
+	return false, nil</pre>
+</figure>
+<div class="callout"><strong>Exact wins</strong> If both <code>g</code> and <code>g g</code> were bound, the first <kbd>g</kbd> would run the <code>g</code> binding at once, because the exact loop precedes the prefix loop. <code>Pending</code> would never be set, and <code>g g</code> would be unreachable. The runtime never waits to see whether a longer sequence might follow.</div>
+</section>
+
+<section id="stepper" aria-labelledby="h-stepper">
+<h2 id="h-stepper"><span class="n">06</span>Sequence stepper</h2>
+<p>This stepper is a small <strong>illustration written in JavaScript</strong>. It does not run the Go code. It mirrors the rules of <code>HandleBinding</code> for one binding, <code>g g → go-top</code>. Without JavaScript, the three flows above carry the same information.</p>
+
+<div class="stepper" role="group" aria-labelledby="stepper-title">
+<header id="stepper-title">Illustrative: binding "g g" → go-top</header>
+<div class="body">
+<div class="btns">
+<button type="button" id="b-g">Press g</button>
+<button type="button" id="b-x">Press x</button>
+<button type="button" id="b-esc">Press Esc</button>
+<button type="button" id="b-reset" class="reset">Reset</button>
+</div>
+<dl class="readout">
+<div><dt>Pending before</dt><dd id="r-before">""</dd></div>
+<div><dt>Key</dt><dd id="r-key">none</dd></div>
+<div><dt>Sequence tried</dt><dd id="r-seq">none</dd></div>
+<div><dt>Pending after</dt><dd id="r-after">""</dd></div>
+</dl>
+<p id="log" role="status" aria-live="polite">Press g to start. Nothing has happened yet.</p>
+</div>
+</div>
+<ul>
+<li>Press <strong>g</strong> twice. The first press stores the prefix. The second matches and runs <code>go-top</code>.</li>
+<li>Press <strong>g</strong>, then <strong>x</strong>. <code>g x</code> fails, <code>Pending</code> clears, and <code>x</code> retries alone.</li>
+<li>Press <strong>g</strong>, then <strong>Esc</strong>. The sequence cancels.</li>
+<li>Wait as long as you like after the first <strong>g</strong>. There is no timer.</li>
+</ul>
+</section>
+
+<section id="index" aria-labelledby="h-index">
+<h2 id="h-index"><span class="n">07</span>Source index</h2>
+<p>The walkthrough describes local revision <code>c2790bc</code>. GitHub links pin published revision <code>527d680</code>; the cited framework and demo files are unchanged between those revisions. The newer sandbox source has not been pushed, so its links open the local Go file. The adjacent labels identify its line ranges.</p>
+<table>
+<thead><tr><th scope="col">Topic</th><th scope="col">Location</th></tr></thead>
+<tbody>
+<tr><th scope="row"><code>Context</code>, <code>Frame</code>, <code>Runtime</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L30-L89">runtime.go:30-89</a></td></tr>
+<tr><th scope="row"><code>Focus</code>, <code>Push</code>, <code>Pop</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L175-L215">runtime.go:175-215</a></td></tr>
+<tr><th scope="row"><code>ExecuteAt</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L216-L241">runtime.go:216-241</a></td></tr>
+<tr><th scope="row"><code>EffectiveBindings</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L297-L320">runtime.go:297-320</a></td></tr>
+<tr><th scope="row"><code>HandleBinding</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L322-L352">runtime.go:322-352</a></td></tr>
+<tr><th scope="row"><code>push.modal</code> operation</th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L435-L443">runtime.go:435-443</a></td></tr>
+<tr><th scope="row"><code>Model.Update</code>, <code>dispatchKey</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L70-L160">model.go:70-160</a></td></tr>
+<tr><th scope="row">Default app bindings</th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L56-L66">model.go:56-66</a></td></tr>
+<tr><th scope="row">Demo inputs and paths</th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L22-L26">demo.go:22-26</a></td></tr>
+<tr><th scope="row">Demo <code>next.input</code> handler</th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L77-L92">demo.go:77-92</a></td></tr>
+<tr><th scope="row">Demo <code>tab</code> and <code>ctrl+n</code> bindings</th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L135">demo.go:135</a>, <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L141-L142">141-142</a></td></tr>
+<tr><th scope="row"><code>OpenPage</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/pages.go#L50-L62">pages.go:50-62</a></td></tr>
+<tr><th scope="row"><code>keybindingModel.Update</code></th><td><a href="../cmd/ochazuke/keybinding.go#L38-L89">keybinding.go:38-89</a></td></tr>
+<tr><th scope="row"><code>installBinding</code></th><td><a href="../cmd/ochazuke/keybinding.go#L183-L201">keybinding.go:183-201</a></td></tr>
+</tbody>
+</table>
+</section>
+
+</main>
+</div>
+
+<footer>
+<div class="wrap">
+<p>Source revision <code>c2790bc</code>. Back to the <a href="architecture.html">architecture overview</a> or the <a href="../README.md">README</a>. Snapshots and the stepper are illustrations, not captured program output.</p>
+</div>
+</footer>
+
+<script>
+(function () {
+  var BINDING = "g g";
+  var pending = "";
+  var $ = function (id) { return document.getElementById(id); };
+  var q = function (s) { return '"' + s + '"'; };
+
+  function show(before, key, seq, after, msg) {
+    $("r-before").textContent = q(before);
+    $("r-key").textContent = key;
+    $("r-seq").textContent = seq === null ? "none" : q(seq);
+    $("r-after").textContent = q(after);
+    $("r-after").className = after ? "pend-on" : "";
+    $("log").textContent = msg;
+  }
+
+  function press(key) {
+    var before = pending;
+    if (key === "esc" && pending !== "") {
+      pending = "";
+      show(before, "Esc", null, pending, "Pending was set, so Esc clears it and the key is handled. The sandbox shows: sequence cancelled.");
+      return;
+    }
+    if (key === "esc") {
+      show(before, "Esc", null, pending, "Pending is empty. HandleBinding finds no match and returns handled = false.");
+      return;
+    }
+    var seq = pending ? pending + " " + key : key;
+    if (seq === BINDING) {
+      pending = "";
+      show(before, key, seq, pending, "Exact match. Pending clears and go-top.sandbox runs. The sandbox shows: ACTION: go-top.");
+    } else if ((BINDING + " ").indexOf(seq + " ") === 0) {
+      pending = seq;
+      show(before, key, seq, pending, "No exact match, but " + q(BINDING) + " starts with " + q(seq + " ") + ". Pending is stored. The sandbox shows: pending: " + seq + ". No timer runs.");
+    } else if (before) {
+      pending = "";
+      var again = key;
+      if ((BINDING + " ").indexOf(again + " ") === 0) {
+        pending = again;
+        show(before, key, seq, pending, "Mismatch for " + q(seq) + ". Pending clears and " + q(key) + " retries alone. It starts a new prefix.");
+      } else {
+        show(before, key, seq, pending, "Mismatch for " + q(seq) + ". Pending clears and " + q(key) + " retries alone. It matches nothing, so handled = false.");
+      }
+    } else {
+      show(before, key, seq, pending, "No exact match, no prefix match, nothing pending. handled = false. The sandbox shows: unmatched.");
+    }
+  }
+
+  $("b-g").addEventListener("click", function () { press("g"); });
+  $("b-x").addEventListener("click", function () { press("x"); });
+  $("b-esc").addEventListener("click", function () { press("esc"); });
+  $("b-reset").addEventListener("click", function () {
+    pending = "";
+    show("", "none", null, "", "Reset. Press g to start. Nothing has happened yet.");
+  });
+})();
+</script>
+</body>
+</html>

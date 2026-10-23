@@ -16,6 +16,8 @@ No server, install, or internet connection is needed. Search 12 components, insp
 
 The guide links to four generated pages: [Actions](docs/actions.html), [Default bindings](docs/bindings.html), [Go API](docs/api.html), and [CLI & socket](docs/transport.html). Each page has separate navigation links; the action, binding, and Go API pages have their own search. Actions and bindings reflect a fresh demo, not a running application's customized registry. Editor grammar shortcuts remain in the [keyboard guide](#keyboard-guide).
 
+The [keybinding execution walkthrough](docs/keybinding-walkthrough.html) follows Tab through input focus, Ctrl-N through modal creation, and a configured `g g` sequence through pending and exact matching. It includes Go excerpts, concrete state snapshots, GitHub source links, and an illustrative sequence stepper.
+
 Regenerate after changing registrations or Go declarations/comments:
 
 ```sh
