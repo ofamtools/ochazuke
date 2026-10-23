@@ -63,7 +63,20 @@ Global `--socket PATH` goes before `run` or `NOUN VERB`. It selects a specific a
 
 Run `ochazuke keybinding` (or `go run ./cmd/ochazuke keybinding`) without starting the demo or socket server. The left column shows the latest key message; the right column logs messages newest first, retaining the last 200 and showing as many as fit the terminal.
 
-Names come directly from Bubble Tea's `tea.KeyMsg.String()`, quoted to make whitespace visible. App bindings are not executed; Ctrl-C exits. Messages are not split into individual characters, so paste/coalesced input is shown as Tea delivers it. Keys that the terminal encodes identically cannot be distinguished by the sandbox.
+Names come directly from Bubble Tea's `tea.KeyMsg.String()`, quoted to make whitespace visible. Ctrl-C is reserved for exit. Keys that the terminal encodes identically cannot be distinguished by the sandbox.
+
+Define dummy actions with repeatable `--bind 'KEYS=ACTION'` options:
+
+```sh
+go run ./cmd/ochazuke keybinding \
+  --bind 'ctrl+s=save' \
+  --bind 'g g=go-top' \
+  --bind 'alt+x=alternate'
+```
+
+These are real Ochazuke app-scope bindings dispatched through `Runtime.HandleBinding` and the operation registry. Each dummy action prints `ACTION: <identifier>` in the sandbox's latest-result area and history, without performing any app operation. The left column lists the effective bindings; history labels unmatched keys, pending sequences, and cancelled sequences. A later definition of the same key sequence replaces the earlier one.
+
+Coalesced ordinary typing is split into keys, like the app's dispatcher, so multi-key sequences work during rapid typing. Bracketed paste remains one logged message and does not trigger bindings. Escape cancels a pending sequence.
 
 ## Full-project example
 
