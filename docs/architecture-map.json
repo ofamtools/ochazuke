@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {"title": "Ochazuke · one owner, two entrances", "quality_profile": "showcase", "locale": "en", "viewBox": [1200, 580]},
+  "components": [
+    {"id":"keyboard","type":"external","label":"Keyboard","sublabel":"tea.KeyMsg","pos":[70,70],"size":[200,72]},
+    {"id":"model","type":"frontend","label":"Model.Update","sublabel":"Bubble Tea event loop","pos":[450,70],"size":[230,72]},
+    {"id":"bindings","type":"backend","label":"Bindings / grammar","sublabel":"Context + mode","pos":[870,70],"size":[230,72]},
+    {"id":"cli","type":"external","label":"CLI / socket","sublabel":"JSON Request → CallMsg","pos":[70,260],"size":[200,72]},
+    {"id":"runtime","type":"backend","label":"Runtime.ExecuteAt","sublabel":"Operations + layer actions","pos":[450,260],"size":[230,72]},
+    {"id":"input","type":"backend","label":"Input","sublabel":"In-memory text + undo tree","pos":[870,260],"size":[230,72]},
+    {"id":"view","type":"frontend","label":"Model.View","sublabel":"Pages + stacked modals","pos":[450,450],"size":[230,72]}
+  ],
+  "connections": [
+    {"id":"key-message","from":"keyboard","to":"model","label":"key event"},
+    {"id":"dispatch","from":"model","to":"bindings","label":"dispatchKey"},
+    {"id":"request","from":"bindings","to":"runtime","label":"Request","fromSide":"bottom","toSide":"right"},
+    {"id":"socket-call","from":"cli","to":"runtime","label":"via Model.Update"},
+    {"id":"edit","from":"runtime","to":"input","label":"input operation"},
+    {"id":"render","from":"runtime","to":"view","label":"read retained state","labelDy":24}
+  ]
+}

@@ -4,6 +4,16 @@ A Go application framework on Charmbracelet Bubble Tea v1.3, with retained pages
 
 Status: working standalone framework and demo. Neither gmtm nor Matomeru is changed. Existing editors are retained; Bubbles provides the new page/modal scrolling viewports.
 
+## Explore the architecture
+
+Open the [interactive architecture field guide](docs/architecture.html) locally:
+
+```sh
+open docs/architecture.html
+```
+
+No server, install, or internet connection is needed. Search 12 components, inspect their responsibilities and source locations, step through keyboard/CLI/picker/modal journeys, and experiment with retained modal state. The state lab illustrates ownership; it does not connect to a running Go application. The linked [architecture map](docs/architecture-map.html) supports node exploration and light/dark themes; its editable specification is [architecture-map.json](docs/architecture-map.json).
+
 ## Run on macOS
 
 Requires Go 1.25 or newer.
