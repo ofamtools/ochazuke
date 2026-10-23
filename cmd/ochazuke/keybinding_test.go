@@ -146,3 +146,17 @@ func TestSandboxRejectsInvalidBindings(t *testing.T) {
 		}
 	}
 }
+
+func TestSandboxResizeKeepsLatestOutcomeVisible(t *testing.T) {
+	m := &keybindingModel{width: 80, height: 24, sandbox: true, runtime: ochazuke.NewRuntime()}
+	if err := m.addBinding("x=save"); err != nil {
+		t.Fatal(err)
+	}
+	m.Update(runeKey("x"))
+	m.Update(tea.WindowSizeMsg{Width: 60, Height: 18})
+	view := m.View()
+	latest, _, found := strings.Cut(view, "History")
+	if !found || !strings.Contains(latest, "ACTION: save") {
+		t.Fatalf("stacked layout hid the latest outcome:\n%s", view)
+	}
+}

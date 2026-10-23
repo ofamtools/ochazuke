@@ -10,8 +10,6 @@ import (
 	"github.com/charmbracelet/bubbles/filepicker"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/x/ansi"
 	"ochazuke"
 )
 
@@ -39,6 +37,7 @@ func (m *keybindingModel) Init() tea.Cmd { return nil }
 func (m *keybindingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if size, ok := msg.(tea.WindowSizeMsg); ok {
 		m.width, m.height = size.Width, size.Height
+		m.resizeForm()
 	}
 	if key, ok := msg.(tea.KeyMsg); ok && key.Type == tea.KeyCtrlC {
 		return m, tea.Quit
@@ -134,45 +133,51 @@ func (m *keybindingModel) View() string {
 	if !m.sandbox {
 		return m.setupView()
 	}
-	width, height := max(1, m.width), max(1, m.height)
-	leftWidth := max(1, (width-3)/2)
-	rightWidth := max(1, width-leftWidth-3)
-	rows := max(0, height-4)
-	latest := "Waiting for a key…"
-	if m.count > 0 {
-		latest = strconv.Quote(m.history[(m.count-1)%keyHistorySize])
+	st := m.styles()
+	layout := m.layout()
+	_, bodyHeight := layout.BodySize()
+	// outcome colors a result string by kind.
+	outcome := func(result string) string {
+		result = cleanLabel(result)
+		switch {
+		case strings.HasPrefix(result, "error"):
+			return st.Error.Render(result)
+		case strings.HasPrefix(result, "ACTION"):
+			return st.Accent.Render(result)
+		case strings.HasPrefix(result, "pending"):
+			return st.Subtitle.Render(result)
+		case result == "unmatched":
+			return st.Muted.Render(result)
+		}
+		return result
 	}
-	left := []string{"LATEST KEY", latest, "", "Names: tea.KeyMsg.String()", "Quoted to expose whitespace."}
-	if m.count > 0 {
-		left = append(left, "", m.results[(m.count-1)%keyHistorySize])
+	var left []string
+	if m.count == 0 {
+		left = append(left, st.Muted.Render("Waiting for a key…"))
+	} else {
+		last := (m.count - 1) % keyHistorySize
+		left = append(left, st.Title.Render(strconv.Quote(m.history[last])), outcome(m.results[last]))
 	}
-	if m.runtime != nil {
-		left = append(left, "", "Timeout: "+m.runtime.BindingTimeout.String(), "", "DEFINED BINDINGS")
-		for _, binding := range m.runtime.EffectiveBindings(m.runtime.Context()) {
-			left = append(left, binding.Keys+" → "+binding.Request.Verb)
+	if m.width >= 72 || bodyHeight*2/5 >= 6 {
+		left = append(left, "", st.Muted.Render("Key names are quoted."))
+		if m.runtime != nil {
+			left = append(left, "Timeout: "+m.runtime.BindingTimeout.String(), "", st.Subtitle.Render("Defined bindings"))
+			for _, binding := range m.runtime.EffectiveBindings(m.runtime.Context()) {
+				left = append(left, cleanLabel(binding.Keys)+st.Muted.Render(" → "+cleanLabel(binding.Request.Verb)))
+			}
 		}
 	}
-	right := []string{"HISTORY · newest first"}
-	for i := range min(m.count, keyHistorySize, rows-1) {
+	var right []string
+	if m.count == 0 {
+		right = append(right, st.Muted.Render("No keys yet."))
+	}
+	for i := range min(m.count, keyHistorySize, bodyHeight) {
 		n := m.count - 1 - i
-		right = append(right, fmt.Sprintf("%d  %s · %s", n+1, strconv.Quote(m.history[n%keyHistorySize]), m.results[n%keyHistorySize]))
+		right = append(right, fmt.Sprintf("%s  %s · %s", st.Muted.Render(strconv.Itoa(n+1)), strconv.Quote(m.history[n%keyHistorySize]), outcome(m.results[n%keyHistorySize])))
 	}
-	column := func(lines []string, w int) string {
-		visible := lines[:min(len(lines), rows)]
-		clipped := make([]string, len(visible))
-		for i, line := range visible {
-			clipped[i] = ansi.Truncate(line, w, "…")
-		}
-		return lipgloss.NewStyle().Width(w).Height(rows).Render(strings.Join(clipped, "\n"))
-	}
-	body := lipgloss.JoinHorizontal(lipgloss.Top, column(left, leftWidth), " │ ", column(right, rightWidth))
-	view := "Keybinding sandbox · Stage 2: Test\n\n" + body + "\nF2: setup · Ctrl-C: exit · Last 200 key messages"
-	lines := strings.Split(view, "\n")
-	lines = lines[:min(len(lines), height)]
-	for i := range lines {
-		lines[i] = ansi.Truncate(lines[i], width, "")
-	}
-	return strings.Join(lines, "\n")
+	return layout.Page("Keybinding sandbox", "Stage 2 · Test keys",
+		layout.Split("Latest key", strings.Join(left, "\n"), "History · newest first", strings.Join(right, "\n")),
+		"F2 setup · ^C exit · last 200 key messages")
 }
 
 func runKeybinding(args []string) error {

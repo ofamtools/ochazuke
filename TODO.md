@@ -3,6 +3,11 @@
 
 ## upcoming
 
+- [ ] Add configurable color schemes shared by pages, panels, inputs, and modals.
+  - Build on `Appearance` / `Styles`: named palettes, semantic colors, live preview, and config persistence.
+  - Check contrast in light/dark terminals, ANSI-16 terminals, and `NO_COLOR`; keep focus visible without color.
+  - Use the keybinding sandbox as the preview surface for every layout and modal state.
+
 - [ ] define actions via config to call a cli's json/api version of an action
   - so "command" or "subcommand" or "format" whatever is needed to say when
     noun/verb is triggered it should run cli command:
@@ -10,6 +15,13 @@
     support
 
 ## done
+
+- [x] Add reusable Lip Gloss layouts and apply them to the keybinding sandbox.
+  - `Layout.Page`: title, subtitle, bounded body, and persistent footer.
+  - `Layout.Panel`: titled, focused panels with visible overflow; `Layout.Split`: side-by-side panes that stack in narrow windows.
+  - `ModalSize` / `ComposeModal`: bounded overlays with a visible backdrop perimeter; terminals below 3×3 keep the backdrop instead.
+  - Sandbox setup, live key feedback, editors, confirmations, and file browsing use these surfaces.
+  - Verified with `go test ./...`, a CLI build, and real-terminal interactions at 80×24 and 60×18.
 
 - [x] Cursor should not move and reposition text after cursor.
     - `InputView` now inverts the existing grapheme instead of inserting `▏`.

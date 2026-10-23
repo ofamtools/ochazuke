@@ -138,7 +138,7 @@ func TestModalGeometryWithANSIWideTextAndTinyTerminals(t *testing.T) {
 					t.Fatalf("row %d has %d cells, want %d: %q", row, got, width, line)
 				}
 			}
-			if !strings.Contains(ansi.Strip(view), "…") {
+			if cw > 0 && ch > 0 && !strings.Contains(ansi.Strip(view), "…") {
 				t.Fatal("overflow was silently clipped")
 			}
 			if height >= 3 && ansi.Strip(rows[0]) != ansi.Strip(ansi.Truncate(background[:strings.IndexByte(background, '\n')], width, ""))+strings.Repeat(" ", width%2) {

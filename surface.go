@@ -16,17 +16,11 @@ func ModalSize(width, height int) (contentWidth, contentHeight int) {
 }
 
 func modalBounds(width, height int) (contentWidth, contentHeight int, bordered bool) {
-	if width <= 0 || height <= 0 {
+	if width < 3 || height < 3 {
 		return 0, 0, false
 	}
-	outerWidth, outerHeight := width, height
-	if width >= 3 {
-		outerWidth -= 2
-	}
-	if height >= 3 {
-		outerHeight = min(height-2, max(1, height/4*3+height%4*3/4))
-	}
-	outerWidth = min(78, outerWidth)
+	outerWidth := min(78, width-2, max(1, width/5*4+width%5*4/5))
+	outerHeight := min(height-2, max(1, height/4*3+height%4*3/4))
 	if outerWidth >= 5 && outerHeight >= 5 {
 		// Two borders, two horizontal padding cells, title and footer rows.
 		return outerWidth - 4, outerHeight - 4, true
@@ -39,7 +33,10 @@ func modalBounds(width, height int) (contentWidth, contentHeight int, bordered b
 func ComposeModal(background, title, body, footer string, width, height int, styles Styles) string {
 	contentWidth, contentHeight, bordered := modalBounds(width, height)
 	if contentWidth == 0 || contentHeight == 0 {
-		return ""
+		if width <= 0 || height <= 0 {
+			return ""
+		}
+		return fitSurface(background, width, height)
 	}
 	title, footer = modalLabel(title), modalLabel(footer)
 	body = strings.ReplaceAll(body, "\t", "    ")

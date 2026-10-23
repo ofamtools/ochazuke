@@ -1,0 +1,104 @@
+package ochazuke
+
+import (
+	"fmt"
+	"strings"
+	"testing"
+
+	"github.com/charmbracelet/x/ansi"
+)
+
+func TestLayoutsStayInsideViewport(t *testing.T) {
+	styles := NewStyles(Appearance{Theme: "mono"})
+	body := strings.Repeat("\x1b[32m界 e\u0301 👩‍💻\x1b[0m\t"+strings.Repeat("x", 120)+"\n", 35)
+	for _, size := range [][2]int{{120, 40}, {80, 24}, {60, 18}, {12, 8}, {9, 7}, {3, 3}, {2, 2}, {1, 1}, {0, 10}, {10, 0}, {-1, 4}} {
+		t.Run(fmt.Sprintf("%dx%d", size[0], size[1]), func(t *testing.T) {
+			l := Layout{Width: size[0], Height: size[1], Styles: styles}
+			for name, view := range map[string]string{
+				"page":  l.Page("Tasks", "Workspace", l.Split("Files", body, "Preview", body), "Esc back"),
+				"panel": l.Panel("Preview", body, size[0], size[1], false),
+			} {
+				if size[0] <= 0 || size[1] <= 0 {
+					if view != "" {
+						t.Fatalf("%s rendered an empty viewport: %q", name, view)
+					}
+					continue
+				}
+				rows := strings.Split(view, "\n")
+				if len(rows) != size[1] {
+					t.Fatalf("%s: got %d rows, want %d", name, len(rows), size[1])
+				}
+				for i, row := range rows {
+					if got := ansi.StringWidth(row); got != size[0] {
+						t.Fatalf("%s row %d: %d cells, want %d", name, i, got, size[0])
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestSplitReflowsWithoutLosingEitherPane(t *testing.T) {
+	for _, width := range []int{80, 60} {
+		l := Layout{Width: width, Height: 24, Styles: NewStyles(Appearance{Theme: "mono"})}
+		view := ansi.Strip(l.Split("Files", "left-content", "Preview", "right-content"))
+		leftRow, rightRow := -1, -1
+		for i, row := range strings.Split(view, "\n") {
+			if strings.Contains(row, "left-content") {
+				leftRow = i
+			}
+			if strings.Contains(row, "right-content") {
+				rightRow = i
+			}
+		}
+		if leftRow < 0 || rightRow < 0 {
+			t.Fatalf("%d: lost content:\n%s", width, view)
+		}
+		if width == 80 && leftRow != rightRow {
+			t.Fatalf("wide panes are not side by side:\n%s", view)
+		}
+		if width == 60 && leftRow >= rightRow {
+			t.Fatalf("narrow panes are not stacked:\n%s", view)
+		}
+	}
+}
+
+func TestPanelMakesOverflowAndFocusVisibleWithoutColor(t *testing.T) {
+	l := Layout{Styles: NewStyles(Appearance{Theme: "mono"})}
+	body := "first\nsecond\nthird\nfourth\nfifth"
+	view := ansi.Strip(l.Panel("Results", body, 24, 5, true))
+	if !strings.Contains(view, "first") || !strings.Contains(view, "second") || !strings.Contains(view, "… 3 more") || strings.Contains(view, "third") {
+		t.Fatalf("hidden rows not indicated correctly:\n%s", view)
+	}
+	if !strings.Contains(view, "━") || strings.Contains(ansi.Strip(l.Panel("Results", body, 24, 5, false)), "━") {
+		t.Fatalf("focus requires color:\n%s", view)
+	}
+}
+
+func TestModalsNeverReplaceTheBackdropPerimeter(t *testing.T) {
+	styles := NewStyles(Appearance{Theme: "mono"})
+	for _, size := range [][2]int{{80, 24}, {60, 18}, {3, 3}, {2, 2}, {1, 1}} {
+		w, h := size[0], size[1]
+		background := strings.TrimSuffix(strings.Repeat(strings.Repeat("b", w)+"\n", h), "\n")
+		view := ansi.Strip(ComposeModal(background, "Title", strings.Repeat("modal\n", 40), "Esc close", w, h, styles))
+		rows := strings.Split(view, "\n")
+		if rows[0] != strings.Repeat("b", w) || rows[h-1] != strings.Repeat("b", w) {
+			t.Fatalf("%dx%d: modal consumed backdrop:\n%s", w, h, view)
+		}
+		for _, row := range rows {
+			if !strings.HasPrefix(row, "b") || !strings.HasSuffix(row, "b") {
+				t.Fatalf("%dx%d: missing side gutter: %q", w, h, row)
+			}
+		}
+	}
+}
+
+func ExampleLayout() {
+	layout := Layout{
+		Width: 80, Height: 24,
+		Styles: NewStyles(Appearance{Theme: "adaptive"}),
+	}
+	body := layout.Split("Files", "main.go\nlayout.go", "Preview", "Selected file contents")
+	page := layout.Page("Workspace", "Browse files", body, "Enter open · Esc back")
+	fmt.Print(page)
+}

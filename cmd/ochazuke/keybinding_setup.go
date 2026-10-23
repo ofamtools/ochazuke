@@ -6,11 +6,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode"
 
 	"github.com/charmbracelet/bubbles/filepicker"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/x/ansi"
+	"ochazuke"
 )
 
 func (m *keybindingModel) openForm(kind string, values ...string) tea.Cmd {
@@ -19,8 +20,8 @@ func (m *keybindingModel) openForm(kind string, values ...string) tea.Cmd {
 	for i, value := range values {
 		m.fields[i] = textinput.New()
 		m.fields[i].SetValue(value)
-		m.fields[i].Width = max(10, m.width-16)
 	}
+	m.resizeForm()
 	return m.fields[0].Focus()
 }
 
@@ -83,10 +84,11 @@ func (m *keybindingModel) updateSetup(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.picker.CurrentDirectory = filepath.Dir(m.fields[0].Value())
 					m.picker.FileAllowed = true
 					m.picker.DirAllowed = m.form == "export"
-					m.picker.SetHeight(max(3, m.height-8))
+					m.picker.AutoHeight = false
 					m.picker.KeyMap.Select.SetKeys("ctrl+s")
 					m.picker.KeyMap.Open.SetKeys("right", "enter", "l", "ctrl+s")
 					m.form = "browse-" + m.form
+					m.resizeForm()
 					return m, m.picker.Init()
 				}
 			case "enter":
@@ -192,47 +194,120 @@ func (m *keybindingModel) submitForm() {
 	m.form = ""
 }
 
+// styles and layout are render-time values derived from the viewport.
+func (m *keybindingModel) styles() ochazuke.Styles {
+	return ochazuke.NewStyles(ochazuke.Appearance{Theme: "adaptive", Density: "compact"})
+}
+
+func (m *keybindingModel) layout() ochazuke.Layout {
+	return ochazuke.Layout{Width: max(0, m.width), Height: max(0, m.height), Styles: m.styles()}
+}
+
+// cleanLabel drops control characters from user-typed text before it enters
+// a trusted-ANSI body.
+func cleanLabel(s string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) {
+			return -1
+		}
+		return r
+	}, s)
+}
+
+// resizeForm fits the active fields and picker to the modal, not the window.
+func (m *keybindingModel) resizeForm() {
+	cw, ch := ochazuke.ModalSize(m.width, m.height)
+	for i := range m.fields {
+		m.fields[i].Width = max(1, cw-4)
+	}
+	if strings.HasPrefix(m.form, "browse-") {
+		m.picker.SetHeight(max(1, ch-1))
+	}
+}
+
+// setupListVisible estimates how many binding rows fit in the list panel
+// (conservatively, so the selected row is never clipped).
+func (m *keybindingModel) setupListVisible() int {
+	_, bh := m.layout().BodySize()
+	if m.width >= 72 {
+		return max(1, bh-3)
+	}
+	return max(1, bh*2/5-3)
+}
+
+func (m *keybindingModel) setupPage() string {
+	st := m.styles()
+	bindings := m.bindings()
+	var list []string
+	if len(bindings) == 0 {
+		list = append(list, st.Muted.Render("No bindings yet."), st.Muted.Render("a add · i import"))
+	}
+	visible := m.setupListVisible()
+	start := max(0, m.selected-visible+1)
+	for i := start; i < min(len(bindings), start+visible); i++ {
+		keys, action := cleanLabel(bindings[i].Keys), cleanLabel(bindings[i].Action)
+		if i == m.selected {
+			list = append(list, st.Accent.Render("▸ "+keys+" → "+action))
+		} else {
+			list = append(list, "  "+keys+st.Muted.Render(" → "+action))
+		}
+	}
+	var details []string
+	if len(bindings) > 0 && m.selected < len(bindings) {
+		b := bindings[min(m.selected, len(bindings)-1)]
+		details = append(details, st.Subtitle.Render("Keys:   "+cleanLabel(b.Keys)), "Action: "+cleanLabel(b.Action))
+	}
+	details = append(details,
+		"Timeout: "+m.runtime.BindingTimeout.String(),
+		st.Muted.Render("↑↓ select · t timeout"),
+		st.Muted.Render("i import · o export"))
+	if m.notice != "" {
+		details = append(details, st.Accent.Render(cleanLabel(m.notice)))
+	}
+	footer := "a add · e edit · d delete · Enter test · ^C exit"
+	return m.layout().Page("Keybinding sandbox", "Stage 1 · Define bindings",
+		m.layout().Split(fmt.Sprintf("Bindings (%d)", len(bindings)), strings.Join(list, "\n"), "Details", strings.Join(details, "\n")), footer)
+}
+
 func (m *keybindingModel) setupView() string {
-	lines := []string{"Keybinding sandbox · Stage 1: Define bindings", ""}
+	page := m.setupPage()
+	if m.form == "" {
+		return page
+	}
+	st := m.styles()
+	label := func(active bool, text string) string {
+		if active {
+			return st.Accent.Render("▸ " + text)
+		}
+		return st.Muted.Render("  " + text)
+	}
+	var title, footer string
+	var body []string
 	switch {
 	case strings.HasPrefix(m.form, "browse-"):
-		lines = append(lines, "Choose a file / export directory", "↑/↓: move · ←/→: folders · Ctrl-S: select · Esc: back", m.picker.View())
+		title, footer = "Choose a file or folder", "↑↓ move · ←→ folders · ^S select · Esc back"
+		body = []string{m.picker.View()}
 	case m.form == "overwrite":
-		lines = append(lines, "File already exists: "+m.path, "Overwrite? y / n")
-	case m.form != "":
-		if m.form == "binding" {
-			lines = append(lines, "Keys (Tea names, e.g. ctrl+s or g g):", m.fields[0].View(), "Action identifier:", m.fields[1].View(), "", "Tab: change field · Enter: next / save · Esc: cancel")
-		} else if m.form == "timeout" {
-			lines = append(lines, "Ambiguous-sequence timeout (e.g. 400ms, 1s):", m.fields[0].View(), "", "Enter: save · Esc: cancel")
-		} else {
-			lines = append(lines, strings.ToUpper(m.form)+" JSON bindings", m.fields[0].View(), "", "F4: browse files / folders · Enter: confirm · Esc: cancel")
-			if m.form == "import" {
-				lines = append(lines, "Import replaces the in-memory bindings; export first to keep them.")
-			}
+		title, footer = "Overwrite file?", "y overwrite · n / Esc cancel"
+		body = []string{"File already exists:", cleanLabel(m.path)}
+	case m.form == "binding":
+		title, footer = "Add binding", "Tab field · Enter next/save · Esc cancel"
+		if m.editing >= 0 {
+			title = "Edit binding"
 		}
+		body = []string{label(m.field == 0, "Keys (e.g. ctrl+s or g g)"), m.fields[0].View(), "", label(m.field == 1, "Action identifier"), m.fields[1].View()}
+	case m.form == "timeout":
+		title, footer = "Sequence timeout", "Enter save · Esc cancel"
+		body = []string{label(true, "Duration (e.g. 400ms, 1s)"), m.fields[0].View(), st.Muted.Render("Not saved in JSON.")}
 	default:
-		lines = append(lines, "a: add · e: edit · d: delete · ↑/↓: select", "i: import · o: export · t: timeout · Enter: ENTER SANDBOX", "Ctrl-C: exit · F2 returns here from sandbox", "Timeout: "+m.runtime.BindingTimeout.String()+" (not saved in JSON)", "", "KEYS → ACTION")
-		bindings := m.bindings()
-		if len(bindings) == 0 {
-			lines = append(lines, "No bindings yet. Press a to add one, or i to import.")
-		}
-		visible := max(1, m.height-12)
-		start := max(0, m.selected-visible+1)
-		for i := start; i < min(len(bindings), start+visible); i++ {
-			marker := "  "
-			if i == m.selected {
-				marker = "> "
-			}
-			lines = append(lines, marker+bindings[i].Keys+" → "+bindings[i].Action)
+		title, footer = strings.ToUpper(m.form[:1])+m.form[1:]+" bindings", "F4 browse · Enter confirm · Esc cancel"
+		body = []string{label(true, "JSON file path"), m.fields[0].View()}
+		if m.form == "import" {
+			body = append(body, "", st.Muted.Render("Replaces in-memory bindings."))
 		}
 	}
-	if m.notice != "" {
-		lines = append(lines, "", m.notice)
+	if m.notice != "" && m.form != "overwrite" {
+		body = append(body, "", st.Error.Render(cleanLabel(m.notice)))
 	}
-	lines = strings.Split(strings.Join(lines, "\n"), "\n")
-	lines = lines[:min(len(lines), max(1, m.height))]
-	for i := range lines {
-		lines[i] = ansi.Truncate(lines[i], max(1, m.width), "")
-	}
-	return strings.Join(lines, "\n")
+	return ochazuke.ComposeModal(page, title, strings.Join(body, "\n"), footer, m.width, m.height, st)
 }
