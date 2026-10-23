@@ -416,25 +416,31 @@ func TestPickerFiltersValidateBeforeOpeningAndExplicitOverrideWins(t *testing.T)
 	}
 }
 
-func TestPickerIndexFailureIsVisibleAndNoPartialResultsSelectable(t *testing.T) {
+func TestPickerIndexFailurePreservesSelectableShallowResults(t *testing.T) {
 	root := t.TempDir()
 	pickerFile(t, root, "visible", "")
-	r, p, origin := pickerFixture(t, "safe", "text", "", 0)
-	pickerDo(t, r, "open", "picker", Arguments{"path": root})
-	p.HandleMessage(pickerIndexMsg{picker: p, id: p.indexID, entries: []PickerEntry{{Path: "visible"}}, err: errors.New("permission denied: private")})
+	r, p, origin := pickerFixture(t, "safe", "path", "", 0)
+	pickerDo(t, r, "open", "picker", Arguments{"path": root, "filter": "file"})
+	pickerShallowResults(t, p)
+	// Hold the recursive command; delivery order does not depend on timing.
+	p.PendingCommand()
+	p.HandleMessage(pickerIndexMsg{picker: p, id: p.indexID, err: errors.New("permission denied: private")})
 	if !strings.Contains(p.View(100, 20), "Index incomplete") || p.Loading {
 		t.Fatalf("index error not visible: %s", p.View(100, 20))
 	}
-	if _, err := r.Execute(Request{Verb: "choose", Noun: "picker"}); err == nil || !strings.Contains(err.Error(), "permission denied") {
-		t.Fatalf("incomplete index selection: %v", err)
+	if got := pickerEntryPaths(p.Entries); !reflect.DeepEqual(got, []string{"visible"}) {
+		t.Fatalf("recursive failure erased shallow results: %q", got)
 	}
-	if string(origin.Text) != "safe" || !p.IsOpen() {
-		t.Fatal("index error changed origin or closed modal")
+	t.Setenv("PATH", "")
+	pickerDo(t, r, "insert", "input", Arguments{"text": "/vis"})
+	pickerCommand(t, p, p.PendingCommand())
+	if p.Loading || !strings.Contains(p.Error, "Index incomplete") || !reflect.DeepEqual(pickerEntryPaths(p.Entries), []string{"visible"}) {
+		t.Fatalf("query lost incomplete state or usable paths: %#v", p.state())
 	}
-	pickerDo(t, r, "insert", "input", Arguments{"text": string(filepath.Separator)})
-	pickerDrain(t, p)
-	if !reflect.DeepEqual(pickerEntryPaths(p.Entries), []string{".", "visible"}) {
-		t.Fatalf("retry did not recover: %v", p.Entries)
+	want := filepath.Join(p.Directory, "visible")
+	pickerDo(t, r, "choose", "picker", nil)
+	if string(origin.Text) != want || p.IsOpen() {
+		t.Fatalf("incomplete index selection = %q, open=%v", string(origin.Text), p.IsOpen())
 	}
 }
 
@@ -455,5 +461,144 @@ func TestPickerOrdinaryTextDefaultsToCwdNotInputContents(t *testing.T) {
 	pickerDo(t, r, "close", "picker", nil)
 	if string(origin.Text) != "this is ordinary prose, not a path" || origin.Cursor != 5 {
 		t.Fatal("cancel changed ordinary input")
+	}
+}
+
+// Deliver only the shallow filesystem stage and its search. Recursion remains
+// queued so callers can interact with results before choosing when it runs.
+func pickerShallowResults(t *testing.T, p *Picker) {
+	t.Helper()
+	pickerCommand(t, p, p.PendingCommand())
+	pickerCommand(t, p, p.PendingCommand())
+}
+
+func TestPickerShallowChildrenSelectableWhileIndexing(t *testing.T) {
+	for _, action := range []string{"file", "directory", "descend"} {
+		t.Run(action, func(t *testing.T) {
+			root := t.TempDir()
+			pickerFile(t, root, ".gitignore", "/ignored/\n*.tmp\n")
+			pickerFile(t, root, "ignored/deep", "")
+			pickerFile(t, root, "hidden.tmp", "")
+			pickerFile(t, root, "nested/deep", "")
+			pickerFile(t, root, "visible", "")
+			r, p, origin := pickerFixture(t, "unchanged", "path", "", 0)
+			pickerDo(t, r, "open", "picker", Arguments{"path": root})
+			pickerShallowResults(t, p)
+			want := []string{".", "nested", ".gitignore", "visible"}
+			if !p.Loading || !reflect.DeepEqual(pickerEntryPaths(p.Entries), want) {
+				t.Fatalf("shallow state: %#v", p.state())
+			}
+			if !strings.Contains(p.View(100, 20), "Indexing/searching") {
+				t.Fatal("deeper scan is not indicated")
+			}
+			path := "nested"
+			if action == "file" {
+				path = "visible"
+			}
+			pickerHighlight(t, r, p, path)
+			chosen := filepath.Join(p.Directory, path)
+			if action == "descend" {
+				pickerDo(t, r, "descend", "picker", nil)
+				if p.Directory != chosen || !p.IsOpen() || string(origin.Text) != "unchanged" {
+					t.Fatalf("shallow navigation: %#v", p.state())
+				}
+			} else {
+				pickerDo(t, r, "choose", "picker", nil)
+				if string(origin.Text) != chosen || p.IsOpen() {
+					t.Fatalf("shallow choice = %q, open=%v", string(origin.Text), p.IsOpen())
+				}
+			}
+		})
+	}
+}
+
+func TestPickerFullIndexEnrichesWithoutMovingHighlight(t *testing.T) {
+	root := t.TempDir()
+	pickerFile(t, root, "nested/alpha", "")
+	pickerFile(t, root, "zeta", "")
+	r, p, _ := pickerFixture(t, "", "text", "", 0)
+	pickerDo(t, r, "open", "picker", Arguments{"path": root})
+	pickerShallowResults(t, p)
+	pickerHighlight(t, r, p, "zeta")
+	pickerDrain(t, p)
+	want := []string{".", "nested", "nested/alpha", "zeta"}
+	if !reflect.DeepEqual(pickerEntryPaths(p.Entries), want) || p.Entries[p.Selected].Path != "zeta" {
+		t.Fatalf("enrichment moved highlight or lost paths: %#v", p.state())
+	}
+}
+
+func TestPickerPendingQueriesSearchAvailableStageAndRejectOldResults(t *testing.T) {
+	root := t.TempDir()
+	pickerFile(t, root, "alpha", "")
+	pickerFile(t, root, "beta", "")
+	pickerFile(t, root, "nested/beta", "")
+	r, p, _ := pickerFixture(t, "", "text", "", 0)
+	pickerDo(t, r, "open", "picker", Arguments{"path": root, "filter": "file"})
+	shallow := p.PendingCommand()
+	pickerDo(t, r, "insert", "input", Arguments{"text": "/bt"})
+	pickerCommand(t, p, shallow)
+	oldQuery := p.PendingCommand()
+	pickerDo(t, r, "replace", "input", Arguments{"start": 0, "end": len(p.input.Text), "text": filepath.Join(root, "alp")})
+	pickerCommand(t, p, p.PendingCommand())
+	pickerCommand(t, p, oldQuery)
+	if !p.Loading || !reflect.DeepEqual(pickerEntryPaths(p.Entries), []string{"alpha"}) {
+		t.Fatalf("query before shallow delivery: %#v", p.state())
+	}
+	full := p.PendingCommand()
+	pickerDo(t, r, "replace", "input", Arguments{"start": 0, "end": len(p.input.Text), "text": filepath.Join(root, "bt")})
+	pickerCommand(t, p, p.PendingCommand())
+	if !p.Loading || !reflect.DeepEqual(pickerEntryPaths(p.Entries), []string{"beta"}) {
+		t.Fatalf("query while recursion pending: %#v", p.state())
+	}
+	pickerDo(t, r, "replace", "input", Arguments{"start": 0, "end": len(p.input.Text), "text": filepath.Join(root, "alp")})
+	staleShallowSearch := p.PendingCommand()
+	pickerCommand(t, p, full)
+	pickerDrain(t, p)
+	pickerCommand(t, p, staleShallowSearch)
+	if p.Loading || !reflect.DeepEqual(pickerEntryPaths(p.Entries), []string{"alpha"}) {
+		t.Fatalf("full index used stale query/results: %#v", p.state())
+	}
+}
+
+func TestPickerLateFullResultsCannotReplaceNewRootOrReopenCanceledPicker(t *testing.T) {
+	first, second := t.TempDir(), t.TempDir()
+	pickerFile(t, first, "old/deep", "")
+	pickerFile(t, second, "new", "")
+	r, p, origin := pickerFixture(t, "unchanged", "text", "", 0)
+	pickerDo(t, r, "open", "picker", Arguments{"path": first, "filter": "file"})
+	pickerShallowResults(t, p)
+	full := p.PendingCommand()
+	late := full()
+	pickerDo(t, r, "replace", "input", Arguments{"start": 0, "end": len(p.input.Text), "text": second})
+	pickerDrain(t, p)
+	pickerCommand(t, p, func() tea.Msg { return late })
+	if !reflect.DeepEqual(pickerEntryPaths(p.Entries), []string{"new"}) || p.Loading {
+		t.Fatalf("late recursive root replaced current results: %#v", p.state())
+	}
+	pickerDo(t, r, "close", "picker", nil)
+	pickerDo(t, r, "open", "picker", Arguments{"path": first, "filter": "file"})
+	pickerShallowResults(t, p)
+	canceled := p.PendingCommand()
+	pickerDo(t, r, "close", "picker", nil)
+	pickerCommand(t, p, canceled)
+	p.HandleMessage(late)
+	if p.IsOpen() || string(origin.Text) != "unchanged" || p.PendingCommand() != nil {
+		t.Fatal("canceled recursive scan revived modal or changed origin")
+	}
+}
+
+func TestPickerRecursiveFailureKeepsPendingShallowQuery(t *testing.T) {
+	root := t.TempDir()
+	pickerFile(t, root, "alpha", "")
+	pickerFile(t, root, "beta", "")
+	r, p, _ := pickerFixture(t, "", "text", "", 0)
+	pickerDo(t, r, "open", "picker", Arguments{"path": root, "filter": "file"})
+	pickerShallowResults(t, p)
+	p.PendingCommand()
+	pickerDo(t, r, "insert", "input", Arguments{"text": "/bt"})
+	p.HandleMessage(pickerIndexMsg{picker: p, id: p.indexID, err: errors.New("blocked subtree")})
+	pickerCommand(t, p, p.PendingCommand())
+	if p.Loading || !strings.Contains(p.Error, "blocked subtree") || !reflect.DeepEqual(pickerEntryPaths(p.Entries), []string{"beta"}) {
+		t.Fatalf("recursive failure discarded pending query: %#v", p.state())
 	}
 }

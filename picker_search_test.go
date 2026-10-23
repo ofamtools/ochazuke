@@ -231,3 +231,82 @@ func TestPickerUnreadableSubdirectoryFailsInsteadOfReturningPartialIndex(t *test
 		t.Fatalf("unreadable subtree returned partial index %v, error %v", entries, err)
 	}
 }
+
+func TestPickerShallowIndexUsesNativeIgnoreRulesWithoutDescending(t *testing.T) {
+	pickerGitEnvironment(t)
+	global := pickerFile(t, t.TempDir(), "global-ignore", "*.global\n")
+	pickerGit(t, t.TempDir(), "config", "--global", "core.excludesFile", global)
+	for _, repository := range []bool{false, true} {
+		t.Run(fmt.Sprintf("repository=%v", repository), func(t *testing.T) {
+			root := t.TempDir()
+			if repository {
+				pickerGit(t, root, "init", "--quiet", "--template=")
+				pickerFile(t, root, ".git/info/exclude", "local-only\n")
+			}
+			pickerFile(t, root, ".gitignore", "/build/\n*.tmp\n!keep.tmp\n")
+			pickerFile(t, root, ".git/private", "")
+			pickerFile(t, root, "build/hidden", "")
+			pickerFile(t, root, "drop.tmp", "")
+			pickerFile(t, root, "hide.global", "")
+			pickerFile(t, root, "keep.tmp", "")
+			pickerFile(t, root, "local-only", "")
+			pickerFile(t, root, "nested/deep/file", "")
+			if err := os.Symlink(root, filepath.Join(root, "loop")); err != nil {
+				t.Fatal(err)
+			}
+			entries, err := indexPickerEntries(context.Background(), root, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := []PickerEntry{{Path: ".gitignore"}, {Path: "keep.tmp"}, {Path: "local-only"}, {Path: "loop"}, {Path: "nested", Dir: true}}
+			if repository {
+				want = []PickerEntry{{Path: ".gitignore"}, {Path: "keep.tmp"}, {Path: "loop"}, {Path: "nested", Dir: true}}
+			}
+			if !reflect.DeepEqual(entries, want) {
+				t.Fatalf("shallow entries = %#v, want %#v", entries, want)
+			}
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+			if entries, err := indexPickerEntries(ctx, root, false); err == nil || len(entries) != 0 {
+				t.Fatalf("canceled shallow scan = %v, %v", entries, err)
+			}
+		})
+	}
+}
+
+func TestPickerHomeRootExpansionLeavesOtherShellSyntaxLiteral(t *testing.T) {
+	home, base := t.TempDir(), t.TempDir()
+	t.Setenv("HOME", home)
+	pickerFile(t, home, "proj/target", "")
+	pickerFile(t, base, "~someone/file", "")
+	pickerFile(t, base, "$HOME/file", "")
+	canonicalHome, err := filepath.EvalSymlinks(home)
+	if err != nil {
+		t.Fatal(err)
+	}
+	canonicalBase, err := filepath.EvalSymlinks(base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		value, root, query string
+	}{
+		{"~", canonicalHome, ""},
+		{"~/", canonicalHome, ""},
+		{"~/proj", filepath.Join(canonicalHome, "proj"), ""},
+		{"~/proj/tgt", filepath.Join(canonicalHome, "proj"), "tgt"},
+		{"~someone", filepath.Join(canonicalBase, "~someone"), ""},
+		{"$HOME", filepath.Join(canonicalBase, "$HOME"), ""},
+	} {
+		t.Run(tc.value, func(t *testing.T) {
+			root, query, err := pickerLocation(base, tc.value)
+			if err != nil || root != tc.root || query != tc.query {
+				t.Fatalf("location(%q) = %q, %q, %v; want %q, %q", tc.value, root, query, err, tc.root, tc.query)
+			}
+		})
+	}
+	t.Setenv("HOME", "")
+	if _, _, err := pickerLocation(base, "~/proj"); err == nil || !strings.Contains(err.Error(), "home directory") {
+		t.Fatalf("missing HOME silently resolved: %v", err)
+	}
+}

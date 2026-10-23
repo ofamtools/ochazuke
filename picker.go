@@ -34,6 +34,8 @@ type Picker struct {
 	query        string
 	indexed      []PickerEntry
 	indexReady   bool
+	indexRunning bool
+	fullIndex    tea.Cmd
 	indexID      uint64
 	searchID     uint64
 	indexFailed  bool
@@ -45,6 +47,7 @@ type Picker struct {
 type pickerIndexMsg struct {
 	picker  *Picker
 	id      uint64
+	shallow bool
 	entries []PickerEntry
 	err     error
 }
@@ -255,9 +258,6 @@ func (p *Picker) require() error {
 }
 
 func (p *Picker) selected() (PickerEntry, error) {
-	if p.Loading {
-		return PickerEntry{}, errors.New("picker search is still running")
-	}
 	if p.Selected < 0 || p.Selected >= len(p.Entries) {
 		if p.Error != "" {
 			return PickerEntry{}, errors.New(p.Error)
@@ -324,6 +324,13 @@ func (p *Picker) choose(path string) (any, error) {
 // remaining relative full path as the fuzzy query. It never trims path spaces.
 func pickerLocation(base, value string) (string, string, error) {
 	path := value
+	if path == "~" || strings.HasPrefix(path, "~/") {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", "", fmt.Errorf("resolve home directory: %w", err)
+		}
+		path = filepath.Join(home, strings.TrimPrefix(path, "~"))
+	}
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(base, path)
 	}
@@ -354,9 +361,13 @@ func pickerLocation(base, value string) (string, string, error) {
 }
 
 func (p *Picker) pathChanged() {
-	p.Error, p.Entries, p.Selected = "", nil, 0
+	p.Entries, p.Selected = nil, 0
+	if !p.indexFailed {
+		p.Error = ""
+	}
 	if p.cancelSearch != nil {
 		p.cancelSearch()
+		p.cancelSearch = nil
 	}
 	p.searchID++
 	root, query, err := pickerLocation(p.base, string(p.input.Text))
@@ -367,27 +378,35 @@ func (p *Picker) pathChanged() {
 		}
 		p.indexID++
 		p.indexReady = false
+		p.indexRunning, p.fullIndex = false, nil
 		p.Directory = ""
 		p.sync()
 		return
 	}
 	p.query, p.Loading = query, true
-	if root != p.Directory || p.indexFailed {
+	if root != p.Directory {
 		if p.cancelIndex != nil {
 			p.cancelIndex()
 		}
 		p.indexID++
 		p.Directory, p.indexed, p.indexReady = root, nil, false
 		p.indexFailed = false
+		p.Error, p.indexRunning = "", true
 		ctx, cancel := context.WithCancel(context.Background())
 		p.cancelIndex = cancel
 		id := p.indexID
-		p.pending = append(p.pending, func() tea.Msg {
+		p.fullIndex = func() tea.Msg {
 			entries, err := indexPicker(ctx, root)
 			return pickerIndexMsg{picker: p, id: id, entries: entries, err: err}
+		}
+		p.pending = append(p.pending, func() tea.Msg {
+			entries, err := indexPickerEntries(ctx, root, false)
+			return pickerIndexMsg{picker: p, id: id, shallow: true, entries: entries, err: err}
 		})
 	} else if p.indexReady {
 		p.queueSearch()
+	} else {
+		p.Loading = p.indexRunning
 	}
 	p.sync()
 }
@@ -432,12 +451,19 @@ func (p *Picker) HandleMessage(msg tea.Msg) bool {
 		if !p.IsOpen() || result.id != p.indexID {
 			return true
 		}
+		if result.shallow && p.indexReady {
+			return true
+		}
 		if result.err != nil {
-			p.Error, p.Loading = "Index incomplete: "+result.err.Error(), false
-			p.indexFailed = true
+			p.Error = "Index incomplete: " + result.err.Error()
+			p.indexFailed, p.indexRunning, p.fullIndex = true, false, nil
+			// Keep the independently completed shallow index and any search
+			// against it; a recursive failure must not erase usable paths.
+			p.Loading = p.cancelSearch != nil
 		} else {
 			p.Error = ""
 			p.indexed, p.indexReady = result.entries, true
+			p.indexRunning = result.shallow
 			p.queueSearch()
 		}
 	case pickerSearchMsg:
@@ -447,12 +473,33 @@ func (p *Picker) HandleMessage(msg tea.Msg) bool {
 		if !p.IsOpen() || result.id != p.searchID {
 			return true
 		}
-		p.Loading = false
+		if p.cancelSearch != nil {
+			p.cancelSearch()
+			p.cancelSearch = nil
+		}
+		p.Loading = p.indexRunning
 		if result.err != nil {
 			p.Error = result.err.Error()
 		} else {
-			p.Error = ""
+			if !p.indexFailed {
+				p.Error = ""
+			}
+			var selected string
+			if p.Selected >= 0 && p.Selected < len(p.Entries) {
+				selected = p.Entries[p.Selected].Path
+			}
 			p.Entries, p.Selected = result.entries, 0
+			for i, entry := range p.Entries {
+				if entry.Path == selected {
+					p.Selected = i
+					break
+				}
+			}
+			// Start recursion only after shallow results have been published.
+			if p.fullIndex != nil {
+				p.pending = append(p.pending, p.fullIndex)
+				p.fullIndex = nil
+			}
 		}
 	default:
 		return false
@@ -467,10 +514,12 @@ func (p *Picker) stop() {
 	}
 	if p.cancelSearch != nil {
 		p.cancelSearch()
+		p.cancelSearch = nil
 	}
 	p.indexID++
 	p.searchID++
 	p.pending = nil
+	p.fullIndex, p.indexRunning = nil, false
 	p.Loading = false
 }
 

@@ -124,6 +124,12 @@ func (g *pickerIgnore) close() error {
 }
 
 func indexPicker(ctx context.Context, root string) ([]PickerEntry, error) {
+	return indexPickerEntries(ctx, root, true)
+}
+
+// Both stages use native Git's ignore decisions. The shallow stage skips
+// traversal after recording each immediate child, including directories.
+func indexPickerEntries(ctx context.Context, root string, recursive bool) ([]PickerEntry, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
 	canonical, err := filepath.EvalSymlinks(root)
@@ -167,6 +173,9 @@ func indexPicker(ctx context.Context, root string) ([]PickerEntry, error) {
 			return err
 		}
 		entries = append(entries, PickerEntry{Path: filepath.ToSlash(relative), Dir: entry.IsDir()})
+		if !recursive && entry.IsDir() {
+			return filepath.SkipDir
+		}
 		return nil
 	})
 	closeErr := ignore.close()
