@@ -89,7 +89,7 @@ Bindings invoke named commands instead of embedding application behavior in key 
 ```js
 [
   {
-    scope: "global",
+    scope: "app",
     keys: ["ctrl+p"],
     command: "palette.open"
   },
@@ -110,14 +110,24 @@ Bindings invoke named commands instead of embedding application behavior in key 
 ]
 ```
 
-Proposed precedence:
+Bindings and actions compose in layers along the current selection path. The application is always the outermost layer. Apply each more-specific layer on top, overriding matching bindings and action names while retaining everything it does not override.
 
-1. Focused component.
-2. Active modal.
-3. Application.
-4. Global fallback.
+Illustrative selection path (JavaScript notation, not an API contract):
 
-Within a scope, mode-specific bindings precede mode-independent bindings. User configuration overrides defaults in the same scope. Shortcuts that must override every scope should be explicitly reserved rather than implicitly granting that behavior to all global bindings.
+```js
+{
+  layers: ["app", "panes-page", "agent", "directory"],
+  lookupOrder: ["directory", "agent", "panes-page", "app"]
+}
+```
+
+Here, a directory in the selected agent's details is the most-specific noun. Its bindings and actions take precedence over the agent's, the page's, and the app's. If the selected parent is a terminal instead, that layer is `terminal`; the same rule applies.
+
+For each invoked binding or action, use the first definition found from innermost to outermost. Missing definitions fall through to the parent layer, all the way to the app. An inner layer does not replace the entire outer binding or action set. Once a definition is found, it handles the invocation; fallback is for absent definitions, not failed actions.
+
+The path follows the active page and nested selected/focused nouns, not a fixed list of component types. Changing the selection changes the effective layers. Modal and input scopes participate in that active interaction path; covered modal frames do not receive input.
+
+Within each layer, mode-specific bindings precede mode-independent bindings, and user configuration overrides defaults in the same layer. Layer precedence comes first: an inner layer's binding wins over an outer layer's binding even if the outer binding is mode-specific. App-level bindings are fallback definitions, not unconditionally reserved shortcuts.
 
 Multi-key sequences such as `g g` require pending-sequence state, cancellation, and defined incomplete-sequence behavior. Unmatched text in insert mode is delivered to the focused editor.
 
