@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/filepicker"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
@@ -20,11 +22,34 @@ type keybindingModel struct {
 	results       [keyHistorySize]string
 	runtime       *ochazuke.Runtime
 	count         int
+	sandbox       bool
+	selected      int
+	form          string
+	fields        []textinput.Model
+	field         int
+	editing       int
+	notice        string
+	path          string
+	picker        filepicker.Model
 }
 
 func (m *keybindingModel) Init() tea.Cmd { return nil }
 
 func (m *keybindingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if size, ok := msg.(tea.WindowSizeMsg); ok {
+		m.width, m.height = size.Width, size.Height
+	}
+	if key, ok := msg.(tea.KeyMsg); ok && key.Type == tea.KeyCtrlC {
+		return m, tea.Quit
+	}
+	if !m.sandbox {
+		return m.updateSetup(msg)
+	}
+	if key, ok := msg.(tea.KeyMsg); ok && key.String() == "f2" {
+		m.sandbox = false
+		m.runtime.Pending = ""
+		return m, nil
+	}
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
@@ -64,6 +89,9 @@ func (m *keybindingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *keybindingModel) View() string {
+	if !m.sandbox {
+		return m.setupView()
+	}
 	width, height := max(1, m.width), max(1, m.height)
 	leftWidth := max(1, (width-3)/2)
 	rightWidth := max(1, width-leftWidth-3)
@@ -96,7 +124,7 @@ func (m *keybindingModel) View() string {
 		return lipgloss.NewStyle().Width(w).Height(rows).Render(strings.Join(clipped, "\n"))
 	}
 	body := lipgloss.JoinHorizontal(lipgloss.Top, column(left, leftWidth), " │ ", column(right, rightWidth))
-	view := "Keybinding sandbox\n\n" + body + "\nCtrl-C exits · Last 200 key messages retained"
+	view := "Keybinding sandbox · Stage 2: Test\n\n" + body + "\nF2: setup · Ctrl-C: exit · Last 200 key messages"
 	lines := strings.Split(view, "\n")
 	lines = lines[:min(len(lines), height)]
 	for i := range lines {
@@ -106,9 +134,14 @@ func (m *keybindingModel) View() string {
 }
 
 func runKeybinding(args []string) error {
-	m := &keybindingModel{width: 80, height: 24, runtime: ochazuke.NewRuntime()}
+	m := &keybindingModel{width: 80, height: 24, runtime: ochazuke.NewRuntime(), editing: -1}
 	flags := flag.NewFlagSet("keybinding", flag.ContinueOnError)
-	flags.Func("bind", "Dummy binding KEYS=ACTION; repeat for multiple bindings (e.g. 'g g=go-top')", m.addBinding)
+	config := flags.String("bindings", "", "JSON bindings file to load into setup")
+	var overrides []string
+	flags.Func("bind", "Dummy binding KEYS=ACTION; overrides matching config keys", func(spec string) error {
+		overrides = append(overrides, spec)
+		return nil
+	})
 	if err := flags.Parse(args); err != nil {
 		if err == flag.ErrHelp {
 			return nil
@@ -116,7 +149,18 @@ func runKeybinding(args []string) error {
 		return err
 	}
 	if flags.NArg() != 0 {
-		return fmt.Errorf("usage: ochazuke keybinding [--bind 'KEYS=ACTION']...")
+		return fmt.Errorf("usage: ochazuke keybinding [--bindings FILE] [--bind 'KEYS=ACTION']...")
+	}
+	if *config != "" {
+		if err := m.importBindings(*config); err != nil {
+			return fmt.Errorf("loading bindings: %w", err)
+		}
+		m.path = *config
+	}
+	for _, spec := range overrides {
+		if err := m.addBinding(spec); err != nil {
+			return err
+		}
 	}
 	_, err := tea.NewProgram(m, tea.WithAltScreen()).Run()
 	return err
@@ -128,11 +172,16 @@ func (m *keybindingModel) addBinding(spec string) error {
 	if !ok || keys == "" || action == "" {
 		return fmt.Errorf("binding must be KEYS=ACTION with non-empty keys and action")
 	}
-	for _, key := range strings.Fields(keys) {
-		if key == "ctrl+c" {
-			return fmt.Errorf("ctrl+c is reserved for exiting the sandbox")
-		}
+	binding := sandboxBinding{Keys: keys, Action: action}
+	if err := validateSandboxBinding(binding); err != nil {
+		return err
 	}
+	m.installBinding(binding)
+	return nil
+}
+
+func (m *keybindingModel) installBinding(spec sandboxBinding) {
+	keys, action := strings.Join(strings.Fields(spec.Keys), " "), strings.TrimSpace(spec.Action)
 	m.runtime.Register(ochazuke.Operation{
 		Verb: action, Noun: "sandbox",
 		Run: func(_ *ochazuke.Runtime, _ ochazuke.Context, _ ochazuke.Arguments) (any, error) {
@@ -145,9 +194,8 @@ func (m *keybindingModel) addBinding(spec string) error {
 	for i, existing := range layer.Bindings {
 		if existing.Keys == keys {
 			layer.Bindings[i] = binding
-			return nil
+			return
 		}
 	}
 	layer.Bindings = append(layer.Bindings, binding)
-	return nil
 }

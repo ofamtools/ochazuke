@@ -9,7 +9,7 @@ import (
 )
 
 func TestKeybindingHistory(t *testing.T) {
-	m := &keybindingModel{width: 80, height: 24}
+	m := &keybindingModel{width: 80, height: 24, sandbox: true}
 	for range keyHistorySize {
 		m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("x")})
 	}
@@ -31,7 +31,7 @@ func TestKeybindingHistory(t *testing.T) {
 }
 
 func TestSandboxBindings(t *testing.T) {
-	m := &keybindingModel{width: 100, height: 24, runtime: ochazuke.NewRuntime()}
+	m := &keybindingModel{width: 100, height: 24, sandbox: true, runtime: ochazuke.NewRuntime()}
 	for _, spec := range []string{"ctrl+s=save", "g g=go-top", "x=old", "x=new"} {
 		if err := m.addBinding(spec); err != nil {
 			t.Fatal(err)
@@ -62,7 +62,7 @@ func TestSandboxBindings(t *testing.T) {
 }
 
 func TestSandboxRejectsInvalidBindings(t *testing.T) {
-	for _, spec := range []string{"", "x", "=action", "x=", "ctrl+c=quit", "g ctrl+c=quit"} {
+	for _, spec := range []string{"", "x", "=action", "x=", "ctrl+c=quit", "g ctrl+c=quit", "f2=reserved"} {
 		m := &keybindingModel{runtime: ochazuke.NewRuntime()}
 		if err := m.addBinding(spec); err == nil {
 			t.Fatalf("accepted invalid binding %q", spec)

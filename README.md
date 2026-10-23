@@ -61,11 +61,28 @@ Global `--socket PATH` goes before `run` or `NOUN VERB`. It selects a specific a
 
 ### Keybinding sandbox
 
-Run `ochazuke keybinding` (or `go run ./cmd/ochazuke keybinding`) without starting the demo or socket server. The left column shows the latest key message; the right column logs messages newest first, retaining the last 200 and showing as many as fit the terminal.
+Run `ochazuke keybinding` (or `go run ./cmd/ochazuke keybinding`) without starting the demo or socket server. It opens **Stage 1: Define bindings**:
 
-Names come directly from Bubble Tea's `tea.KeyMsg.String()`, quoted to make whitespace visible. Ctrl-C is reserved for exit. Keys that the terminal encodes identically cannot be distinguished by the sandbox.
+- `a`: add a binding; enter Tea key names and a dummy action identifier in separate fields.
+- `e` / `d`: edit / delete the selected binding; arrows select a row.
+- `i` / `o`: import / export JSON. Enter a path or press F4 to browse files and folders. An export folder selection proposes `bindings.json`; the filename remains editable.
+- Enter: **Enter sandbox**. In **Stage 2**, the left column shows the latest key, outcome, and effective bindings; the right column logs messages newest first (last 200 retained).
+- F2: return to setup without losing bindings or history. Ctrl-C exits either stage.
 
-Define dummy actions with repeatable `--bind 'KEYS=ACTION'` options:
+Import replaces in-memory bindings only after the whole file validates. Export asks before overwriting an existing file. Changes remain in memory until exported; exiting does not autosave.
+
+Preload setup from a file with `ochazuke keybinding --bindings=path/to/bindings.json`. The import/export format is:
+
+```json
+[
+  {"keys": "ctrl+s", "action": "save"},
+  {"keys": "g g", "action": "go-top"}
+]
+```
+
+Names come directly from Bubble Tea's `tea.KeyMsg.String()`, quoted in the log to make whitespace visible. Ctrl-C and F2 are reserved and cannot be bound. Keys that the terminal encodes identically cannot be distinguished by the sandbox.
+
+You can also preload dummy actions with repeatable `--bind 'KEYS=ACTION'` options. These override matching keys from `--bindings`, regardless of flag order:
 
 ```sh
 go run ./cmd/ochazuke keybinding \
