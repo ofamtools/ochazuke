@@ -1,0 +1,19 @@
+[
+  {"layer": "overview", "keys": "tab", "request": {"verb": "cycle", "noun": "workspace", "args": {"delta": 1}}},
+  {"layer": "overview", "keys": "shift+tab", "request": {"verb": "cycle", "noun": "workspace", "args": {"delta": -1}}},
+  {"layer": "paths", "keys": "tab", "request": {"verb": "cycle", "noun": "workspace", "args": {"delta": 1}}},
+  {"layer": "paths", "keys": "shift+tab", "request": {"verb": "cycle", "noun": "workspace", "args": {"delta": -1}}},
+  {"layer": "paths", "mode": "normal", "keys": "ctrl+f", "request": {"verb": "open", "noun": "picker"}},
+  {"layer": "paths", "mode": "normal", "keys": "enter", "request": {"verb": "open", "noun": "picker"}},
+  {"layer": "app", "keys": "ctrl+s", "request": {"verb": "save", "noun": "workspace"}},
+  {"layer": "app", "keys": "ctrl+h", "request": {"verb": "open", "noun": "workspace", "args": {"id": "help"}}},
+  {"layer": "app", "keys": "ctrl+o", "request": {"verb": "open", "noun": "workspace", "args": {"id": "confirm"}}},
+  {"layer": "editor", "keys": "ctrl+n", "request": {"verb": "open", "noun": "workspace", "args": {"id": "details"}}},
+  {"layer": "app", "mode": "normal", "keys": "g s", "request": {"verb": "summarize", "noun": "workspace"}},
+  {"layer": "app", "mode": "normal", "keys": "g h", "request": {"verb": "greet", "noun": "workspace", "args": {"name": "Ochazuke", "repeat": 1}}},
+  {"layer": "app", "mode": "normal", "keys": "ctrl+r", "request": {"verb": "set", "noun": "mode", "args": {"mode": "review"}}},
+  {"layer": "app", "mode": "review", "keys": "esc", "request": {"verb": "set", "noun": "mode", "args": {"mode": "normal"}}},
+  {"layer": "app", "mode": "review", "keys": "s", "request": {"verb": "inspect", "noun": "workspace"}},
+  {"layer": "workspace", "mode": "normal", "keys": "ctrl+t", "request": {"verb": "insert", "noun": "input", "target": "title", "args": {"text": " [reviewed]"}}},
+  {"layer": "paths", "mode": "normal", "keys": "g f", "request": {"verb": "focus", "noun": "input", "args": {"id": "destination"}}}
+]

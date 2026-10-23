@@ -1,0 +1,142 @@
+# Full-project example
+
+A runnable workspace application with JSON configuration and separate Go modules for composition, actions, bindings, and rendering. It uses the public `ochazuke` package rather than copying the framework's editor, palette, or picker.
+
+## Run
+
+From the repository root, with Go 1.25 or newer:
+
+```sh
+go run ./examples/full-project
+```
+
+The executable embeds the seven files in `config/`. To edit configuration without rebuilding a compiled executable, supply a complete configuration directory:
+
+```sh
+go run ./examples/full-project --config ./examples/full-project/config
+```
+
+Configuration is loaded at startup, not watched. An external directory replaces the embedded configuration rather than merging with it. Unknown JSON fields, trailing JSON values, and invalid references produce startup errors.
+
+Run the headless behavior check:
+
+```sh
+go run ./examples/full-project --smoke
+go run ./examples/full-project --config ./examples/full-project/config --smoke
+```
+
+The smoke scenario uses the supplied example's IDs. It is not a general validator for an unrelated application configuration.
+
+## File responsibilities
+
+| File | Responsibility |
+|---|---|
+| `main.go` | Flags, terminal startup, one-shot commands, and socket transport |
+| `app.go` | Construct the runtime, register configured objects, and assemble the model |
+| `config.go` | Configuration types, embedded defaults, and JSON parsing |
+| `actions.go` | Named Go handlers and configured operation registration |
+| `bindings.go` | Install configured key sequences using the framework binding operation |
+| `pages.go` | Named page and modal renderers |
+| `config/app.json` | Application title, initial page, custom modes, theme, and density |
+| `config/layers.json` | Interaction layers used for action and binding resolution |
+| `config/inputs.json` | Initial values, context paths, multiline fields, and path filters |
+| `config/pages.json` | Page order, titles, initial contexts, renderer names, and field lists |
+| `config/actions.json` | Verb/noun schemas, handler names, and layer overrides |
+| `config/bindings.json` | Layer, mode, key sequence, operation arguments, and explicit targets |
+| `config/modals.json` | Modal titles, renderer names, and editable inputs |
+
+JSON names Go handlers and renderers; it cannot contain executable Go functions. Add behavior to the appropriate registry, then reference that name in configuration. Framework operations are already registered and do not need copies in `actions.json`.
+
+## Configuration flow
+
+The following simplified data shows the relationships. The complete executable configuration lives in `config/`.
+
+```js
+{
+  app: { modes: ["review"] },
+  action: {
+    verb: "greet", noun: "workspace", handler: "greet",
+    parameters: {
+      name: { type: "string", required: true },
+      repeat: { type: "integer" }
+    }
+  },
+  binding: {
+    layer: "app", mode: "normal", keys: "g h",
+    request: {
+      verb: "greet", noun: "workspace",
+      args: { name: "Ochazuke", repeat: 1 }
+    }
+  }
+}
+```
+
+The registry identifier is `greet.workspace` (`verb.noun`). The CLI spelling is `workspace greet` (`NOUN VERB`). A binding, the palette, and a CLI request dispatch the same registered operation.
+
+## Explore the application
+
+- **Workspace** (`overview`) contains the title and notes editors. Edit with `i`, return to normal mode with Escape, and use `u` to undo. Switch pages and return to observe retained input state.
+- **Paths** contains a file input, a directory input, and a multiline paths input. In normal mode, `Ctrl-F` or Enter opens the picker with the focused input's configured filter. Tab cycles fields. File and directory selection are both supported.
+- **Guide** (`help`) is a retained text page. Help can also open as a modal.
+- `Ctrl-S` invokes the configured save action in any mode. The editor layer overrides the application handler. This example records state in memory; it does not save a project to disk.
+- `Ctrl-H` opens help. `Ctrl-O` opens the editable confirmation modal. From its editor context, `Ctrl-N` opens the details modal. Closing a modal restores its parent context.
+- In normal mode, `g s` summarizes the workspace and `g h` invokes the parameterized greeting.
+- In the workspace context, `Ctrl-T` sends an insert operation explicitly targeted at the title input.
+- On the Paths page, `g f` focuses the directory input.
+- Framework bindings remain available: `Alt-Right` and `Alt-Left` change pages, `Ctrl-P` opens the palette in normal mode, `Ctrl-Y` opens yank history, and `PgUp` and `PgDn` scroll.
+
+The framework also supplies visual selection, registers, macro recording and replay, and branching undo. These are runtime/editor features rather than duplicated configuration formats. See the repository [keyboard guide](../../README.md#keyboard-guide).
+
+### Custom modes use the existing API
+
+`app.json` declares `review`. Startup registers it through `register.mode`. In normal mode, `Ctrl-R` switches the current context to `review` through `set.mode`. In review mode, `s` invokes inspection and Escape sets the mode to `normal`.
+
+Each input holds its own mode. When no input is focused, the active frame holds the mode. There is no mode stack. Setting a mode selects it directly, and modal restoration restores the parent context rather than pushing or popping modes. Custom-mode behavior comes from its bindings; it does not inherit normal-mode editor keys. Any-mode bindings still apply.
+
+The framework API is unchanged:
+
+```js
+{ verb: "register", noun: "mode", args: { name: "review" } }
+{ verb: "set", noun: "mode", args: { mode: "review" } }
+{ verb: "set", noun: "mode", args: { mode: "normal" } }
+```
+
+## Call operations
+
+Without `--socket`, commands construct a fresh configured application, execute one request, print JSON, and exit. State does not persist between commands.
+
+```sh
+go run ./examples/full-project operations list
+go run ./examples/full-project workspace greet --json '{"name":"Ada","repeat":2}'
+go run ./examples/full-project mode set --json '{"mode":"review"}'
+```
+
+To control one running application, start it with an explicit socket path in a private directory:
+
+```sh
+mkdir -p /tmp/ochazuke-full-project
+chmod 700 /tmp/ochazuke-full-project
+go run ./examples/full-project --socket /tmp/ochazuke-full-project/app.sock run
+```
+
+In another terminal:
+
+```sh
+go run ./examples/full-project --socket /tmp/ochazuke-full-project/app.sock page open --json '{"id":"paths"}'
+go run ./examples/full-project --socket /tmp/ochazuke-full-project/app.sock mode set --json '{"mode":"review"}'
+go run ./examples/full-project --socket /tmp/ochazuke-full-project/app.sock state get --json '{"path":"/activePage"}'
+```
+
+Socket commands use the running server's configuration; local `--config` does not change that server.
+
+`run --headless` uses the same event loop and socket without terminal rendering. The socket is local and private; the example does not expose a network service. Application state and input contents are inspectable through the runtime, so do not put secrets in these example fields.
+
+## Verify changes
+
+```sh
+go test ./...
+go run ./examples/full-project --smoke
+go run ./examples/full-project --config ./examples/full-project/config --smoke
+```
+
+The configuration tests cover external configuration and malformed or missing files. The smoke command drives configured key sequences and real operations, including custom modes, nested modals, picker selection, palette execution, and shared editor state.

@@ -1,0 +1,5 @@
+[
+  {"id": "help", "title": "Workspace help", "renderer": "text", "text": "This modal leaves the page beneath it intact. Ctrl-O opens an editable confirmation above this help. Esc returns one frame at a time. The action palette exposes both framework operations and the separate workspace action registry."},
+  {"id": "confirm", "title": "Release confirmation", "renderer": "confirm", "input": "confirm-note", "text": "Edit the confirmation note. Ctrl-N opens a second editable modal. Ctrl-S invokes the editor-specific save handler. Esc returns without destroying page state."},
+  {"id": "details", "title": "Nested release details", "renderer": "confirm", "input": "details-note", "text": "This is a nested modal with its own input. Edit independently, then Esc returns to the previous modal and restores its focus."}
+]

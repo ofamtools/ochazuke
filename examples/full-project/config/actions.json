@@ -1,0 +1,9 @@
+[
+  {"verb": "save", "noun": "workspace", "description": "Save a workspace snapshot in memory", "handler": "save", "result": "string"},
+  {"verb": "save", "noun": "workspace", "description": "Save from the nested editor layer", "handler": "save-editor", "layer": "editor", "result": "string"},
+  {"verb": "summarize", "noun": "workspace", "description": "Summarize the configured workspace inputs", "handler": "summarize", "result": "string"},
+  {"verb": "inspect", "noun": "workspace", "description": "Inspect the active context and workspace state", "handler": "inspect", "result": "object"},
+  {"verb": "greet", "noun": "workspace", "description": "Greet a named collaborator", "handler": "greet", "result": "string", "parameters": {"name": {"type": "string", "required": true, "description": "Collaborator name"}, "repeat": {"type": "integer", "description": "Number of greetings (defaults to one)"}}},
+  {"verb": "cycle", "noun": "workspace", "description": "Move focus between the active page's inputs", "handler": "cycle-input", "result": "object", "parameters": {"delta": {"type": "integer", "description": "Focus direction (defaults to one)"}}},
+  {"verb": "open", "noun": "workspace", "description": "Open a configured modal, including nested modals", "handler": "open-modal", "result": "object", "parameters": {"id": {"type": "string", "required": true, "description": "Configured modal ID"}}}
+]

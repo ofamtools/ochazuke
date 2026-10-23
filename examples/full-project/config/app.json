@@ -1,0 +1,6 @@
+{
+  "title": "Ochazuke workspace",
+  "startPage": "overview",
+  "modes": ["normal", "insert", "review"],
+  "appearance": {"theme": "adaptive", "density": "comfortable"}
+}

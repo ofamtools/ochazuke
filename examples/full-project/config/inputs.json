@@ -1,0 +1,9 @@
+[
+  {"id": "title", "value": "Release workspace", "kind": "text", "path": ["app", "overview", "workspace"]},
+  {"id": "notes", "value": "Prepare the release notes.\nReview the source and destination paths.\nUse the action palette to explore the registry.", "kind": "text", "multiline": true, "path": ["app", "overview", "workspace", "editor"]},
+  {"id": "source", "value": "go.mod", "kind": "path", "pathFilter": "file", "path": ["app", "paths"]},
+  {"id": "destination", "value": ".", "kind": "path", "pathFilter": "dir", "path": ["app", "paths"]},
+  {"id": "attachments", "value": "go.mod\nexamples", "kind": "paths", "pathFilter": "any", "path": ["app", "paths"]},
+  {"id": "confirm-note", "value": "Confirm the release checklist", "kind": "text", "multiline": true, "path": ["app", "overview", "workspace", "editor"]},
+  {"id": "details-note", "value": "Nested modal: edit this independently, then Esc returns to confirmation.", "kind": "text", "multiline": true, "path": ["app", "overview", "workspace", "editor"]}
+]

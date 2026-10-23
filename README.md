@@ -59,6 +59,18 @@ In another terminal:
 
 Global `--socket PATH` goes before `run` or `NOUN VERB`. It selects a specific application instance. The default socket on macOS is `~/Library/Caches/ochazuke/app.sock`. `run --headless` uses the same Bubble Tea event loop without terminal rendering.
 
+## Full-project example
+
+[`examples/full-project`](examples/full-project/README.md) is a standalone application assembled from separate configuration, action, binding, and page modules. Its JSON files define pages, nested interaction layers, inputs, actions, key bindings, modals, modes, and appearance. Go registries supply the handlers and renderers named by that configuration.
+
+```sh
+go run ./examples/full-project
+go run ./examples/full-project --config ./examples/full-project/config
+go run ./examples/full-project --smoke
+```
+
+The default configuration is embedded in the executable. `--config` reads an editable directory instead. The smaller [`examples/core`](examples/core/main.go) remains a headless example of action fallback, modal restoration, and isolated undo.
+
 ## Pages and default presentation
 
 `run` launches the demo, not an application you must adopt. It starts on **Overview**. The framework accepts your own page IDs, renderers, state, inputs, and registered actions.

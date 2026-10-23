@@ -1,0 +1,7 @@
+[
+  {"id": "overview", "noun": "page"},
+  {"id": "workspace", "noun": "workspace"},
+  {"id": "editor", "noun": "input"},
+  {"id": "paths", "noun": "page"},
+  {"id": "help", "noun": "page"}
+]
