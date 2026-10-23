@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ochazuke · Default bindings</title>
+<style>
+:root{--paper:#f3f0e7;--card:#fcfaf4;--ink:#24382f;--muted:#626960;--line:#cccfc0;--green:#284e3c;--accent:#a63d27}*{box-sizing:border-box}html{scroll-padding-top:24px}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.65 "Avenir Next",Avenir,"Segoe UI",sans-serif}main,header,footer{max-width:1200px;margin:auto;padding:28px}a{color:var(--green);text-underline-offset:4px}h1,h2{font-family:Palatino,Georgia,serif;font-weight:400;line-height:1.1;letter-spacing:-.035em}h1{font-size:clamp(44px,7vw,80px);margin:24px 0}h2{font-size:38px}h3{font-size:19px;margin:0}nav{display:flex;flex-wrap:wrap;gap:24px}section{padding:40px 0;border-top:1px solid var(--line)}.eyebrow,small{color:var(--muted)}.eyebrow{text-transform:uppercase;letter-spacing:.15em;font-size:12px}.toolbar{padding:24px 0}label{display:block;font-weight:600}input{width:100%;max-width:680px;padding:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit}a:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:4px}.entry{background:var(--card);border:1px solid var(--line);padding:20px;margin:14px 0}.entry>p:last-child{margin-bottom:0}summary{cursor:pointer;overflow-wrap:anywhere}summary small{margin-left:12px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#e4e9da;padding:16px;font-size:13px}code{font-family:Menlo,Consolas,monospace;font-size:.9em;overflow-wrap:anywhere}table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;vertical-align:top;padding:10px;border-bottom:1px solid var(--line);overflow-wrap:anywhere}.table-scroll{overflow-x:auto}td pre{margin:0;min-width:220px}th{color:var(--muted)}.count{font-family:Menlo,monospace;font-size:14px;color:var(--muted)}[hidden]{display:none!important}@media(max-width:600px){main,header,footer{padding:20px}.entry{padding:14px}nav{gap:14px}}
+#bindings table{min-width:680px}#bindings th:nth-child(-n+3),#bindings td:nth-child(-n+3){white-space:nowrap}
+nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
+</style></head><body>
+<header><a href="architecture.html">← Architecture field guide</a><p class="eyebrow">Ochazuke / generated reference</p><h1>Default bindings</h1><p>Actions and bindings come from a fresh <code>NewDemo()</code>. Go declarations and comments come from the package source through Go's standard <code>go/doc</code> library. This is a build-time snapshot, not your running application's customized registry.</p>
+<nav aria-label="Catalogs"><a href="actions.html">Actions (68)</a><a href="bindings.html" aria-current="page">Default bindings (61)</a><a href="api.html">Go API (85)</a><a href="transport.html">CLI &amp; socket</a></nav>
+<div class="toolbar"><label for="search">Search Default bindings</label><input id="search" type="search" placeholder="Search this catalog" autocomplete="off"><p id="matches" role="status"></p></div>
+<noscript>All entries are available below. Search requires JavaScript.</noscript></header>
+<main>
+
+
+<section id="bindings"><p class="eyebrow">02 / Registered defaults</p><h2>Default bindings <span class="count">61</span></h2><p>Every registered layer binding in the demo, including palette, picker and yank-history layers. These are declarations, not a flattened effective keymap: descendant layers override ancestors; mode-specific bindings override modeless bindings within a layer. Only layers on the current context path participate.</p><p>The editor's Vim/Readline grammar and macro prefixes are separate from <code>Layer.Bindings</code>. See the <a href="../README.md#keyboard-guide">editor keyboard guide</a> and <a href="../README.md#palette-and-selectors">palette and selector controls</a> for those keys. <code>ctrl+@</code> is Bubble Tea's spelling for Ctrl-Space. The palette and unfinished editor grammar can handle keys before binding lookup.</p>
+<div class="table-scroll"><table><thead><tr><th>Layer</th><th>Mode</th><th>Keys</th><th>Request</th></tr></thead><tbody><tr class="searchable"><td><code>__yank-history</code></td><td>Any mode</td><td><code>j</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;yank-history&#34;,
+  &#34;args&#34;: {
+    &#34;steps&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>__yank-history</code></td><td>Any mode</td><td><code>down</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;yank-history&#34;,
+  &#34;args&#34;: {
+    &#34;steps&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>__yank-history</code></td><td>Any mode</td><td><code>k</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;yank-history&#34;,
+  &#34;args&#34;: {
+    &#34;steps&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>__yank-history</code></td><td>Any mode</td><td><code>up</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;yank-history&#34;,
+  &#34;args&#34;: {
+    &#34;steps&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>__yank-history</code></td><td>Any mode</td><td><code>enter</code></td><td><pre>{
+  &#34;verb&#34;: &#34;select&#34;,
+  &#34;noun&#34;: &#34;yank-history&#34;
+}</pre></td></tr><tr class="searchable"><td><code>__yank-history</code></td><td>Any mode</td><td><code>esc</code></td><td><pre>{
+  &#34;verb&#34;: &#34;pop&#34;,
+  &#34;noun&#34;: &#34;modal&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>ctrl&#43;p</code></td><td><pre>{
+  &#34;verb&#34;: &#34;open&#34;,
+  &#34;noun&#34;: &#34;palette&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>ctrl&#43;y</code></td><td><pre>{
+  &#34;verb&#34;: &#34;open&#34;,
+  &#34;noun&#34;: &#34;yank-history&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>Any mode</td><td><code>ctrl&#43;@</code></td><td><pre>{
+  &#34;verb&#34;: &#34;open&#34;,
+  &#34;noun&#34;: &#34;palette&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>Any mode</td><td><code>ctrl&#43;c</code></td><td><pre>{
+  &#34;verb&#34;: &#34;quit&#34;,
+  &#34;noun&#34;: &#34;app&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>Any mode</td><td><code>alt&#43;right</code></td><td><pre>{
+  &#34;verb&#34;: &#34;next&#34;,
+  &#34;noun&#34;: &#34;page&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>Any mode</td><td><code>alt&#43;left</code></td><td><pre>{
+  &#34;verb&#34;: &#34;previous&#34;,
+  &#34;noun&#34;: &#34;page&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>Any mode</td><td><code>pgdown</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: 8
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>Any mode</td><td><code>pgup</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: -8
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>ctrl&#43;j</code></td><td><pre>{
+  &#34;verb&#34;: &#34;next&#34;,
+  &#34;noun&#34;: &#34;page&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>ctrl&#43;k</code></td><td><pre>{
+  &#34;verb&#34;: &#34;previous&#34;,
+  &#34;noun&#34;: &#34;page&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>:</code></td><td><pre>{
+  &#34;verb&#34;: &#34;open&#34;,
+  &#34;noun&#34;: &#34;palette&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>?</code></td><td><pre>{
+  &#34;verb&#34;: &#34;open&#34;,
+  &#34;noun&#34;: &#34;help&#34;
+}</pre></td></tr><tr class="searchable"><td><code>appearance</code></td><td>normal</td><td><code>j</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>appearance</code></td><td>normal</td><td><code>k</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>appearance</code></td><td>normal</td><td><code>down</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>appearance</code></td><td>normal</td><td><code>up</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>appearance</code></td><td>normal</td><td><code>t</code></td><td><pre>{
+  &#34;verb&#34;: &#34;cycle&#34;,
+  &#34;noun&#34;: &#34;theme&#34;
+}</pre></td></tr><tr class="searchable"><td><code>appearance</code></td><td>normal</td><td><code>d</code></td><td><pre>{
+  &#34;verb&#34;: &#34;cycle&#34;,
+  &#34;noun&#34;: &#34;density&#34;
+}</pre></td></tr><tr class="searchable"><td><code>commands</code></td><td>normal</td><td><code>j</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>commands</code></td><td>normal</td><td><code>k</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>commands</code></td><td>normal</td><td><code>down</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>commands</code></td><td>normal</td><td><code>up</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>dialog</code></td><td>normal</td><td><code>ctrl&#43;n</code></td><td><pre>{
+  &#34;verb&#34;: &#34;push&#34;,
+  &#34;noun&#34;: &#34;modal&#34;,
+  &#34;args&#34;: {
+    &#34;id&#34;: &#34;nested-draft&#34;,
+    &#34;input&#34;: &#34;nested-dialog&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>dialog</code></td><td>Any mode</td><td><code>ctrl&#43;g</code></td><td><pre>{
+  &#34;verb&#34;: &#34;pop&#34;,
+  &#34;noun&#34;: &#34;modal&#34;
+}</pre></td></tr><tr class="searchable"><td><code>directory</code></td><td>normal</td><td><code>enter</code></td><td><pre>{
+  &#34;verb&#34;: &#34;open&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>help</code></td><td>Any mode</td><td><code>ctrl&#43;g</code></td><td><pre>{
+  &#34;verb&#34;: &#34;pop&#34;,
+  &#34;noun&#34;: &#34;modal&#34;
+}</pre></td></tr><tr class="searchable"><td><code>help</code></td><td>Any mode</td><td><code>ctrl&#43;c</code></td><td><pre>{
+  &#34;verb&#34;: &#34;pop&#34;,
+  &#34;noun&#34;: &#34;modal&#34;
+}</pre></td></tr><tr class="searchable"><td><code>nested-dialog</code></td><td>Any mode</td><td><code>ctrl&#43;g</code></td><td><pre>{
+  &#34;verb&#34;: &#34;pop&#34;,
+  &#34;noun&#34;: &#34;modal&#34;
+}</pre></td></tr><tr class="searchable"><td><code>overview</code></td><td>normal</td><td><code>j</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>overview</code></td><td>normal</td><td><code>k</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>overview</code></td><td>normal</td><td><code>down</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>overview</code></td><td>normal</td><td><code>up</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;surface&#34;,
+  &#34;args&#34;: {
+    &#34;lines&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>palette</code></td><td>Any mode</td><td><code>ctrl&#43;c</code></td><td><pre>{
+  &#34;verb&#34;: &#34;close&#34;,
+  &#34;noun&#34;: &#34;palette&#34;
+}</pre></td></tr><tr class="searchable"><td><code>palette</code></td><td>Any mode</td><td><code>tab</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;palette&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>palette</code></td><td>Any mode</td><td><code>shift&#43;tab</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;palette&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>paths</code></td><td>normal</td><td><code>enter</code></td><td><pre>{
+  &#34;verb&#34;: &#34;open&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>j</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;picker&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>down</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;picker&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>k</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;picker&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>up</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;picker&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>h</code></td><td><pre>{
+  &#34;verb&#34;: &#34;parent&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>left</code></td><td><pre>{
+  &#34;verb&#34;: &#34;parent&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>l</code></td><td><pre>{
+  &#34;verb&#34;: &#34;descend&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>right</code></td><td><pre>{
+  &#34;verb&#34;: &#34;descend&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>insert</td><td><code>ctrl&#43;n</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;picker&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>insert</td><td><code>ctrl&#43;p</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;picker&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>Any mode</td><td><code>tab</code></td><td><pre>{
+  &#34;verb&#34;: &#34;complete&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>Any mode</td><td><code>enter</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>Any mode</td><td><code>ctrl&#43;s</code></td><td><pre>{
+  &#34;verb&#34;: &#34;choose&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>esc</code></td><td><pre>{
+  &#34;verb&#34;: &#34;close&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>playground</code></td><td>Any mode</td><td><code>tab</code></td><td><pre>{
+  &#34;verb&#34;: &#34;next&#34;,
+  &#34;noun&#34;: &#34;input&#34;
+}</pre></td></tr><tr class="searchable"><td><code>playground</code></td><td>Any mode</td><td><code>shift&#43;tab</code></td><td><pre>{
+  &#34;verb&#34;: &#34;next&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>playground</code></td><td>normal</td><td><code>ctrl&#43;o</code></td><td><pre>{
+  &#34;verb&#34;: &#34;open&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>playground</code></td><td>normal</td><td><code>ctrl&#43;n</code></td><td><pre>{
+  &#34;verb&#34;: &#34;push&#34;,
+  &#34;noun&#34;: &#34;modal&#34;,
+  &#34;args&#34;: {
+    &#34;id&#34;: &#34;draft&#34;,
+    &#34;input&#34;: &#34;dialog&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>playground</code></td><td>normal</td><td><code>f2</code></td><td><pre>{
+  &#34;verb&#34;: &#34;inspect&#34;,
+  &#34;noun&#34;: &#34;selection&#34;
+}</pre></td></tr></tbody></table></div><p class="empty" hidden>No matching registered bindings.</p></section>
+
+
+</main>
+<footer>Regenerate from the repository root: <code>go run ./cmd/docgen</code>. Generated file; edit source registrations/comments or <code>cmd/docgen/main.go</code>, then regenerate. <a href="architecture.html#catalogs">Back to the field guide</a>.</footer>
+
+<script>
+const search=document.getElementById('search');
+const entries=Array.from(document.querySelectorAll('.searchable'),element=>({element,text:element.textContent.toLowerCase()}));
+function filter(){const query=search.value.trim().toLowerCase();let count=0;for(const {element,text} of entries){element.hidden=!text.includes(query);if(!element.hidden)count++}document.getElementById('matches').textContent=count+' of '+entries.length+' entries';for(const section of document.querySelectorAll('main section')){const empty=section.querySelector('.empty');if(empty)empty.hidden=!!section.querySelector('.searchable:not([hidden])')}}
+search.addEventListener('input',filter);filter();
+</script></body></html>
