@@ -1,8 +1,8 @@
 # Ochazuke
 
-A Go application framework on Charmbracelet Bubble Tea v1.3, with a runnable example, layered actions and bindings, stateful modals, modal text editing, a nested command palette, and live CLI control.
+A Go application framework on Charmbracelet Bubble Tea v1.3, with retained pages, default Lip Gloss styling, partial-screen modals, layered actions and bindings, modal text editing, a nested command palette, and live CLI control.
 
-Status: working standalone foundation. Neither gmtm nor Matomeru is changed. Existing widgets are retained; Bubbles is the preferred starting point for new standard widgets.
+Status: working standalone framework and demo. Neither gmtm nor Matomeru is changed. Existing editors are retained; Bubbles provides the new page/modal scrolling viewports.
 
 ## Run on macOS
 
@@ -23,6 +23,7 @@ In another terminal:
 
 ```sh
 /tmp/ochazuke operations list
+/tmp/ochazuke page open --json '{"id":"playground"}'
 /tmp/ochazuke input undo
 /tmp/ochazuke input undo --json '{"steps":3}' --target directory
 /tmp/ochazuke state get --json '{"path":"/inputs/directory/text"}'
@@ -30,9 +31,81 @@ In another terminal:
 
 Global `--socket PATH` goes before `run` or `NOUN VERB`. It selects a specific application instance. The default socket on macOS is `~/Library/Caches/ochazuke/app.sock`. `run --headless` uses the same Bubble Tea event loop without terminal rendering.
 
+## Pages and default presentation
+
+`run` launches the demo, not an application you must adopt. It starts on **Overview**. The framework accepts your own page IDs, renderers, state, inputs, and registered actions.
+
+| Demo page | Shortcut | Working example |
+|---|---|---|
+| Overview | `Alt-1` | Navigation and a short framework tour |
+| Playground | `Alt-2` | Single-line/multiline inputs, independent undo, nested drafts, file/directory pickers |
+| Commands | `Alt-3` | Live operation catalog, argument schemas, and remembered Playground bindings |
+| Appearance | `Alt-4` | Live theme and density controls: `t` cycles theme, `d` toggles density |
+
+These are suggested starter/demo pages. Domain pages such as Agents, Panes, Projects, and application Settings belong to consuming applications; the framework does not require those names or behaviors.
+
+### Registering your own pages
+
+`Page` retains a base `Frame` and a renderer. Its context starts with `["app", page.ID]`. Register the page's layer and any inputs before registering the page:
+
+```go
+r := ochazuke.NewRuntime()
+r.Layers["home"] = &ochazuke.Layer{ID: "home", Noun: "page"}
+err := r.RegisterPage(&ochazuke.Page{
+    ID: "home",
+    Title: "Home",
+    Frame: &ochazuke.Frame{
+        ID: "home",
+        Context: ochazuke.Context{Path: []string{"app", "home"}},
+        State: map[string]any{},
+    },
+    Render: func(r *ochazuke.Runtime, width, height int) string {
+        return "Welcome to your application."
+    },
+})
+if err != nil { panic(err) }
+if err := r.OpenPage("home"); err != nil { panic(err) }
+model := ochazuke.NewModel(r)
+if _, err := tea.NewProgram(model, tea.WithAltScreen()).Run(); err != nil {
+    panic(err)
+}
+```
+
+Registration does not activate a page. Switching reuses the page's exact frame and input instances: selection, focus, modes, drafts, undo history, and scrolling survive a round trip. `Alt-Left/Right` move between pages; the demo also supplies `Alt-1…4`. Page-specific bindings replace those from the previous page through the existing layer resolver.
+
+Ordinary modals block page switching. The palette closes before dispatching a selected operation, so choosing `open → page` works when no other modal is underneath it. Focusing an inactive page's input does not silently navigate; open that page first. Explicitly targeted editing operations may still update an offscreen input without moving focus.
+
+```sh
+/tmp/ochazuke pages list
+/tmp/ochazuke page open --json '{"id":"commands"}'
+/tmp/ochazuke page next
+/tmp/ochazuke page previous
+/tmp/ochazuke state get --json '{"path":"/activePage"}'
+/tmp/ochazuke state get --json '{"path":"/pages/playground/frame/context"}'
+/tmp/ochazuke surface scroll --json '{"lines":8}'
+```
+
+### Styling and modal behavior
+
+- Default styling uses restrained teal/green accents, rounded panels, heavier focused borders, page tabs, a mode badge, and a status line.
+- Themes: `adaptive`, `dark`, `light`, `mono`. Density: `comfortable` or `compact`. Adaptive follows the terminal's detected background; `NO_COLOR` disables theme colors. Focus remains visible through border weight and a tab marker.
+- Modals are centered, content-sized panels, capped at 78 columns and about 75% of the terminal height. They leave a visible, subdued perimeter of the previous screen whenever the terminal can accommodate it. Nested modals retain the previous modal and page underneath.
+- Tiny terminals use reduced chrome rather than overflowing the screen. Bubbles viewports handle overflowing page and modal content; `PgUp/PgDn` scroll the active surface.
+- In an input modal, Escape returns insert mode to normal; another Escape closes the modal. A pending normal-mode motion/count is canceled before closing. `Ctrl-G` closes demo drafts directly. Palette and picker cancellation retain their own documented behavior.
+- App-specific modal rendering is registered through `Model.ModalViews[frameID] = ModalView{Title, Render}`. The framework owns positioning and composition; the renderer receives the modal frame and available content dimensions.
+- Render callbacks may return trusted Lip Gloss ANSI styling. Sanitize external text before rendering it; built-in input and filesystem labels already do so.
+
+```sh
+/tmp/ochazuke themes list
+/tmp/ochazuke appearance get
+/tmp/ochazuke appearance set --json '{"theme":"dark","density":"compact"}'
+```
+
+Theme and density changes are atomic and apply immediately to all pages and modals. They are in-memory settings, not persisted preferences. `NewStyles(*model.Appearance)` supplies the same style vocabulary to application renderers.
+
 ### Keyboard guide
 
-The example starts in normal mode. Tab/Shift-Tab switch between directory and notes inputs.
+The demo starts on Overview in normal mode. Open Playground with `Alt-2`; Tab/Shift-Tab switch between its directory and notes inputs. Overview, Commands, and Appearance also support `j/k` scrolling.
 
 | Context | Keys | Behavior |
 |---|---|---|
@@ -50,10 +123,14 @@ The example starts in normal mode. Tab/Shift-Tab switch between directory and no
 | Normal input | Escape | Cancel a pending motion/count |
 | Normal app | `Ctrl-P` | Open palette |
 | Any editing mode | `Ctrl-Space` | Open palette without stealing Readline `Ctrl-P` |
-| Normal app | `Ctrl-O`, `Ctrl-T` | Directory/file selector |
-| Normal app | `Ctrl-N` | Open an independent draft modal |
+| Normal Playground | `Ctrl-O`, `Ctrl-T` | Directory/file selector |
+| Normal Playground / draft | `Ctrl-N` | Open a draft / nest another draft |
 | Draft modal | `Ctrl-G` | Close and restore the parent |
-| Normal app | `F2`, `?` | Inspect the handling layer; toggle help |
+| Normal Playground | `F2` | Inspect the handling layer |
+| Normal app | `?` | Open the scrollable keyboard guide |
+| Normal Appearance | `t`, `d` | Cycle theme / density |
+| App | `Alt-Left/Right`, `Alt-1…4` | Previous/next page, or named demo page |
+| App or modal | `PgUp/PgDn` | Scroll the active surface |
 | App | `Ctrl-C`; normal-mode `q` | Quit |
 
 On terminals where Option does not send Meta sequences, configure Option-as-Meta to use `Alt-B/F`. `Ctrl-Space` is received as `ctrl+@` by Bubble Tea. These shortcuts are registered bindings, not hard-coded global overrides.
@@ -95,7 +172,9 @@ result, err := r.Execute(ochazuke.Request{
 | `input.go`, `editing.go` | Input-owned undo trees and the Vim/Readline adapter |
 | `palette.go`, `palette_editing.go` | Verb/noun navigation, typed arguments, originating context |
 | `picker.go` | File/directory selection using registered actions |
-| `model.go` | Bubble Tea update/view adapter |
+| `pages.go` | Page registration, retained frames, navigation, and focus isolation |
+| `theme.go`, `surface.go` | Appearance operations, Lip Gloss styles, bounded modal composition |
+| `model.go` | Bubble Tea adapter, page shell, Bubbles viewports, modal renderers |
 | `transport.go`, `cli.go`, `cmd/ochazuke` | Private Unix socket and generic CLI dispatch |
 | `demo.go`, `examples/core` | Runnable UI and noninteractive foundation example |
 
@@ -106,11 +185,13 @@ go test ./...
 go run ./examples/core
 ```
 
-The integrated implementation was checked locally on macOS with the test suite and a live terminal/CLI session. The latter exercised grouped undo/redo, captured-context palette dispatch, modal restoration, Readline line movement, layer resolution, and picker lifecycle.
+The integrated implementation was checked locally on macOS with the test suite and live terminal/CLI sessions. Checks covered retained page edits and scroll, page-specific bindings, blocked navigation under modals, nested restoration, palette-driven page navigation, live appearance changes, and a narrow 56×18 modal. Regression tests and a live rapid-input check cover Bubble Tea's coalesced typing events without treating bracketed paste as commands.
 
 ## Requirements
 
 - General UI infrastructure with a stack of stateful modals.
+- First-class pages retaining their interaction state across navigation.
+- Styled partial-screen modal overlays that leave the preceding screen visible.
 - Pushing a modal preserves the previous modal's state; popping restores the previous interaction exactly.
 - Vim-style interaction with arbitrary, application-defined modes.
 - Customizable keybindings scoped to modes, components, or the application, plus global bindings.
@@ -286,7 +367,7 @@ Live CLI examples:
 /tmp/ochazuke mode register --json '{"name":"directory-search"}'
 ```
 
-JSON inspection covers registered inputs and their histories, modal frames, modes, layer definitions, effective bindings, and application frame state. `get.state` accepts a JSON Pointer (`""` for the full state; `~1` escapes `/` and `~0` escapes `~` in a key). All inputs registered with this foundation are public state: do not register secrets without adding an explicit export policy. Handlers and terminal handles are not serialized.
+JSON inspection covers registered pages (`activePage`, `pages`), inputs and histories, modal frames, modes, layer definitions, effective bindings, and application frame state. `get.state` accepts a JSON Pointer (`""` for the full state; `~1` escapes `/` and `~0` escapes `~` in a key). Appearance has its own `get.appearance` query. All registered inputs are public state: do not register secrets without adding an explicit export policy. Handlers, renderers, and terminal handles are not serialized.
 
 ## Live CLI control
 
