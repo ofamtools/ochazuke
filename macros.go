@@ -177,10 +177,13 @@ func (r *Runtime) handleMacroKey(key string) (bool, error) {
 		if key == "esc" {
 			return execute("prefix", Arguments{"key": ""})
 		}
-		if r.Macro.Pending == "q" {
+		pending, count := r.Macro.Pending, max(1, r.Macro.Count)
+		r.Macro.Pending = ""
+		r.Macro.Count = 0
+		if pending == "q" {
 			return execute("start", Arguments{"register": key})
 		}
-		return execute("replay", Arguments{"register": key, "steps": max(1, r.Macro.Count)})
+		return execute("replay", Arguments{"register": key, "steps": count})
 	}
 	in := r.Inputs[r.Context().InputID]
 	if in == nil && len(key) == 1 && key[0] >= '0' && key[0] <= '9' {

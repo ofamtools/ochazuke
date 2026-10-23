@@ -37,7 +37,7 @@ The smoke scenario uses the supplied example's IDs. It is not a general validato
 | `actions.go` | Named Go handlers and configured operation registration |
 | `bindings.go` | Install configured key sequences using the framework binding operation |
 | `pages.go` | Named page and modal renderers |
-| `config/app.json` | Application title, initial page, custom modes, theme, and density |
+| `config/app.json` | Application title, initial page, custom modes, palette instance sources/default actions, theme, and density |
 | `config/layers.json` | Interaction layers used for action and binding resolution |
 | `config/inputs.json` | Initial values, context paths, multiline fields, and path filters |
 | `config/pages.json` | Page order, titles, initial contexts, renderer names, and field lists |
@@ -83,9 +83,38 @@ The registry identifier is `greet.workspace` (`verb.noun`). The CLI spelling is 
 - In normal mode, `g s` summarizes the workspace and `g h` invokes the parameterized greeting.
 - In the workspace context, `Ctrl-T` sends an insert operation explicitly targeted at the title input.
 - On the Paths page, `g f` focuses the directory input.
-- Framework bindings remain available: `Alt-Right` and `Alt-Left` change pages, `Ctrl-P` opens the palette in normal mode, `Ctrl-Y` opens yank history, and `PgUp` and `PgDn` scroll.
+- In normal mode, `Ctrl-J/K` cycles pages and `:` opens the palette. `Ctrl-Space` opens the palette in any editing mode. `Ctrl-Y` opens yank history, and `PgUp` and `PgDn` scroll. Pages are not numbered; use noun-first palette navigation to search by page title or ID.
 
 The framework also supplies visual selection, registers, macro recording and replay, and branching undo. These are runtime/editor features rather than duplicated configuration formats. See the repository [keyboard guide](../../README.md#keyboard-guide).
+
+### Noun instances and default actions
+
+Type `:` in normal mode, choose `noun:page`, then search for a page title or ID. The list contains page instances alongside page verbs. Selecting a page opens it immediately; selecting `verb:open` opens the ordinary argument form instead.
+
+`config/app.json` explicitly connects each noun to an instance source and default action:
+
+```json
+{
+  "palette": [
+    {"noun": "page", "source": "pages", "defaultVerb": "open", "argument": "id"},
+    {"noun": "input", "source": "inputs", "defaultVerb": "focus", "argument": "id"}
+  ]
+}
+```
+
+The Go source registry in `app.go` supplies the items. `pages` reads the runtime's live page list; it does not freeze the list when the palette is constructed. `inputs` lists fields on the originating page, excluding palette and picker internals. Focusing an input does not navigate to another page.
+
+A different default requires a registered operation with the configured string argument and no other required arguments. One instance selection supplies exactly that argument. Operations needing more information remain available through the verb list and argument form.
+
+An instance and a verb may share a name without ambiguity. Palette selection values are `instance:<id>` and `verb:<verb>` for nouns with instance sources. Published palette `entries` include each item's value, kind, and display label.
+
+For a running application:
+
+```sh
+go run ./examples/full-project --socket /tmp/ochazuke-full-project/app.sock palette open
+go run ./examples/full-project --socket /tmp/ochazuke-full-project/app.sock palette select --json '{"value":"noun:page"}'
+go run ./examples/full-project --socket /tmp/ochazuke-full-project/app.sock palette select --json '{"value":"instance:paths"}'
+```
 
 ### Custom modes use the existing API
 

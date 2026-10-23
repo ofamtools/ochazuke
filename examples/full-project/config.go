@@ -30,6 +30,14 @@ type AppConfig struct {
 	StartPage  string              `json:"startPage"`
 	Modes      []string            `json:"modes"`
 	Appearance ochazuke.Appearance `json:"appearance"`
+	Palette    []PaletteConfig     `json:"palette"`
+}
+
+type PaletteConfig struct {
+	Noun        string `json:"noun"`
+	Source      string `json:"source"`
+	DefaultVerb string `json:"defaultVerb"`
+	Argument    string `json:"argument"`
 }
 
 type LayerConfig struct {

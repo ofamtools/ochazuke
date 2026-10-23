@@ -29,10 +29,13 @@ type Palette struct {
 	actions       map[string]bool
 	editors       map[string]*Input
 	explicitEmpty map[string]bool
+	nouns         map[string]PaletteNoun
 }
 
 func NewPalette(r *Runtime) *Palette {
-	p := &Palette{r: r, actions: map[string]bool{}}
+	p := &Palette{r: r, actions: map[string]bool{}, nouns: map[string]PaletteNoun{
+		"page": {Source: PagesPaletteSource, DefaultVerb: "open", Argument: "id"},
+	}}
 	p.editors = map[string]*Input{}
 	p.explicitEmpty = map[string]bool{}
 	r.Layers["palette"] = &Layer{ID: "palette", Noun: "palette", Actions: map[string]Handler{}, Bindings: []Binding{
@@ -174,40 +177,12 @@ func (p *Palette) requireOpen() error {
 }
 
 func (p *Palette) options() []string {
-	var options []string
-	seen := map[string]bool{}
-	for _, op := range p.r.Catalog() {
-		values := []string{}
-		if p.stage == "root" {
-			values = []string{"verb:" + op.Verb, "noun:" + op.Noun}
-		} else if p.section == "verbs" && op.Verb == p.first {
-			values = []string{op.Noun}
-		} else if p.section == "nouns" && op.Noun == p.first {
-			values = []string{op.Verb}
-		}
-		for _, value := range values {
-			if !seen[value] {
-				seen[value] = true
-				options = append(options, value)
-			}
-		}
+	entries := p.entries()
+	options := make([]string, len(entries))
+	for i, entry := range entries {
+		options[i] = entry.Value
 	}
-	sort.Slice(options, func(i, j int) bool {
-		if p.stage == "root" && strings.HasPrefix(options[i], "verb:") != strings.HasPrefix(options[j], "verb:") {
-			return strings.HasPrefix(options[i], "verb:")
-		}
-		return options[i] < options[j]
-	})
-	if p.query == "" {
-		return options
-	}
-	filtered := make([]string, 0, len(options))
-	for _, option := range options {
-		if strings.Contains(strings.ToLower(option), strings.ToLower(p.query)) {
-			filtered = append(filtered, option)
-		}
-	}
-	return filtered
+	return options
 }
 
 func (p *Palette) move(delta int) error {
@@ -244,11 +219,11 @@ func (p *Palette) choose(a Arguments) error {
 		p.message = ""
 		return nil
 	}
-	options := p.options()
+	entries := p.entries()
 	if value, ok := a["value"].(string); ok {
 		found := false
-		for i, option := range options {
-			if option == value {
+		for i, entry := range entries {
+			if entry.Value == value {
 				p.selection = i
 				found = true
 				break
@@ -258,13 +233,14 @@ func (p *Palette) choose(a Arguments) error {
 			return fmt.Errorf("unknown palette choice %q", value)
 		}
 	}
-	if len(options) == 0 {
+	if len(entries) == 0 {
 		return errors.New("no matching palette entries")
 	}
-	if p.selection >= len(options) {
-		p.selection = len(options) - 1
+	if p.selection >= len(entries) {
+		p.selection = len(entries) - 1
 	}
-	value := options[p.selection]
+	entry := entries[p.selection]
+	value := entry.Value
 	switch p.stage {
 	case "root":
 		kind, name, _ := strings.Cut(value, ":")
@@ -272,9 +248,13 @@ func (p *Palette) choose(a Arguments) error {
 		p.first = name
 		p.stage = "second"
 	case "second":
+		if entry.Kind == "instance" {
+			config := p.nouns[p.first]
+			return p.dispatch(Request{Verb: config.DefaultVerb, Noun: p.first, Args: Arguments{config.Argument: entry.ID}})
+		}
 		q := Request{Verb: p.first, Noun: value}
 		if p.section == "nouns" {
-			q.Verb, q.Noun = value, p.first
+			q.Verb, q.Noun = entry.Verb, p.first
 		}
 		op, ok := p.r.Operations[q.Key()]
 		if !ok {
@@ -440,9 +420,6 @@ func (p *Palette) arguments() (Arguments, error) {
 }
 
 func (p *Palette) execute() error {
-	if p.executing {
-		return errors.New("recursive palette execution is not allowed")
-	}
 	if err := p.requireOpen(); err != nil {
 		return err
 	}
@@ -453,21 +430,30 @@ func (p *Palette) execute() error {
 	if err != nil {
 		return err
 	}
-	q := Request{Verb: p.op.Verb, Noun: p.op.Noun, Args: args}
+	return p.dispatch(Request{Verb: p.op.Verb, Noun: p.op.Noun, Args: args})
+}
+
+func (p *Palette) dispatch(q Request) error {
+	if p.executing {
+		return errors.New("recursive palette execution is not allowed")
+	}
+	if err := p.requireOpen(); err != nil {
+		return err
+	}
 	origin := p.origin.Clone()
 	p.executing = true
 	defer func() { p.executing = false }()
 	// Palette controls act on the live overlay; the recursion guard also covers
 	// selecting select.palette or execute.palette from the palette itself.
 	if p.actions[q.Key()] {
-		_, err = p.r.ExecuteAt(origin, q)
+		_, err := p.r.ExecuteAt(origin, q)
 		return err
 	}
 	frame := p.frame
 	if err := p.close(); err != nil {
 		return err
 	}
-	_, err = p.r.ExecuteAt(origin, q)
+	_, err := p.r.ExecuteAt(origin, q)
 	if err != nil {
 		// Dismiss before dispatch so focus/push/pop act on the originating frame.
 		// A failure restores this same overlay, including its argument drafts.
@@ -581,7 +567,7 @@ func (p *Palette) state() map[string]any {
 	for name, value := range p.drafts {
 		drafts[name] = value
 	}
-	return map[string]any{"open": p.IsOpen(), "origin": p.origin.Clone(), "stage": p.stage, "section": p.section, "first": p.first, "search": p.query, "searching": p.searching, "selection": p.selection, "operation": p.op.Key(), "arguments": drafts, "field": p.field, "error": p.message}
+	return map[string]any{"open": p.IsOpen(), "origin": p.origin.Clone(), "stage": p.stage, "section": p.section, "first": p.first, "search": p.query, "searching": p.searching, "selection": p.selection, "entries": p.entries(), "operation": p.op.Key(), "arguments": drafts, "field": p.field, "error": p.message}
 }
 
 func (p *Palette) publish() {
@@ -642,14 +628,14 @@ func (p *Palette) ViewSized(width, height int) string {
 		if p.searching {
 			fmt.Fprintf(&out, "Search [%s]: %s\n", p.editor("search").Mode, InputView(p.editor("search"), max(8, width-20), 1))
 		}
-		options := p.options()
-		if len(options) == 0 {
+		entries := p.entries()
+		if len(entries) == 0 {
 			out.WriteString("  No matches\n")
 		}
 		limit := max(1, height-6)
 		if p.stage == "root" {
 			split := 0
-			for split < len(options) && strings.HasPrefix(options[split], "verb:") {
+			for split < len(entries) && entries[split].Kind == "verb" {
 				split++
 			}
 			row := p.selection
@@ -659,32 +645,37 @@ func (p *Palette) ViewSized(width, height int) string {
 			start := max(0, row-limit+1)
 			column := max(8, (width-3)/2)
 			fmt.Fprintf(&out, "%-*s  %s\n", column, "VERBS", "NOUNS")
-			for i := start; i < min(max(split, len(options)-split), start+limit); i++ {
+			for i := start; i < min(max(split, len(entries)-split), start+limit); i++ {
 				left, right := "", ""
 				if i < split {
 					mark := "  "
 					if p.selection == i {
 						mark = "> "
 					}
-					left = mark + strings.TrimPrefix(options[i], "verb:")
+					left = mark + entries[i].Label
 				}
-				if split+i < len(options) {
+				if split+i < len(entries) {
 					mark := "  "
 					if p.selection == split+i {
 						mark = "> "
 					}
-					right = mark + strings.TrimPrefix(options[split+i], "noun:")
+					right = mark + entries[split+i].Label
 				}
 				fmt.Fprintf(&out, "%-*s  %s\n", column, left, right)
 			}
 		} else {
 			start := max(0, p.selection-limit+1)
-			for i := start; i < min(len(options), start+limit); i++ {
+			for i := start; i < min(len(entries), start+limit); i++ {
 				marker := "  "
 				if i == p.selection {
 					marker = "> "
 				}
-				fmt.Fprintf(&out, "%s%s\n", marker, options[i])
+				entry := entries[i]
+				label := entry.Label
+				if entry.Kind == "instance" {
+					label = fmt.Sprintf("%s [%s] → %s.%s", label, entry.ID, p.nouns[p.first].DefaultVerb, p.first)
+				}
+				fmt.Fprintf(&out, "%s%s\n", marker, label)
 			}
 		}
 		out.WriteString("j/k: move · ←/→: column · Enter: choose · /: search · Esc: normal/back\n")

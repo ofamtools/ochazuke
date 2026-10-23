@@ -329,6 +329,16 @@ func (in *Input) prefix(key string) error {
 
 // HandleInputKey interprets editor keys through registered operations.
 func HandleInputKey(r *Runtime, key string) (bool, error) {
+	// A bracketed paste is one literal input event, not a macro register or prefix.
+	if strings.HasPrefix(key, "[") && strings.HasSuffix(key, "]") && len(key) >= 2 {
+		in := r.Inputs[r.Context().InputID]
+		if in == nil || in.Mode != "insert" {
+			return true, nil
+		}
+		text := strings.ReplaceAll(key[1:len(key)-1], "\r\n", "\n")
+		_, err := r.Execute(Request{Verb: "insert", Noun: "input", Target: "focused-input", Args: Arguments{"text": strings.ReplaceAll(text, "\r", "\n")}})
+		return true, err
+	}
 	if handled, err := r.handleMacroKey(key); handled || err != nil {
 		return handled, err
 	}
@@ -381,11 +391,6 @@ func HandleInputKey(r *Runtime, key string) (bool, error) {
 			return command("insert", Arguments{"text": "\n"})
 		case "space":
 			return command("insert", Arguments{"text": " "})
-		}
-		// Bubble Tea v1 brackets KeyRunes paste text in KeyMsg.String().
-		if strings.HasPrefix(key, "[") && strings.HasSuffix(key, "]") && len(key) >= 2 {
-			text := strings.ReplaceAll(key[1:len(key)-1], "\r\n", "\n")
-			return command("insert", Arguments{"text": strings.ReplaceAll(text, "\r", "\n")})
 		}
 		if literalInput(key) {
 			return command("insert", Arguments{"text": key})

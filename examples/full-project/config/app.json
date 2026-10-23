@@ -2,5 +2,9 @@
   "title": "Ochazuke workspace",
   "startPage": "overview",
   "modes": ["normal", "insert", "review"],
-  "appearance": {"theme": "adaptive", "density": "comfortable"}
+  "appearance": {"theme": "adaptive", "density": "comfortable"},
+  "palette": [
+    {"noun": "page", "source": "pages", "defaultVerb": "open", "argument": "id"},
+    {"noun": "input", "source": "inputs", "defaultVerb": "focus", "argument": "id"}
+  ]
 }

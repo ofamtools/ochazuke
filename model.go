@@ -54,12 +54,12 @@ func NewModel(r *Runtime) *Model {
 		return view.YOffset, nil
 	}})
 	defaults := []Binding{
-		{Mode: "normal", Keys: "ctrl+p", Request: Request{Verb: "open", Noun: "palette"}},
+		{Mode: "normal", Keys: ":", Request: Request{Verb: "open", Noun: "palette"}},
 		{Mode: "normal", Keys: "ctrl+y", Request: Request{Verb: "open", Noun: "yank-history"}},
 		{Keys: "ctrl+@", Request: Request{Verb: "open", Noun: "palette"}},
 		{Keys: "ctrl+c", Request: Request{Verb: "quit", Noun: "app"}},
-		{Keys: "alt+right", Request: Request{Verb: "next", Noun: "page"}},
-		{Keys: "alt+left", Request: Request{Verb: "previous", Noun: "page"}},
+		{Mode: "normal", Keys: "ctrl+j", Request: Request{Verb: "next", Noun: "page"}},
+		{Mode: "normal", Keys: "ctrl+k", Request: Request{Verb: "previous", Noun: "page"}},
 		{Keys: "pgdown", Request: Request{Verb: "scroll", Noun: "surface", Args: Arguments{"lines": 8}}},
 		{Keys: "pgup", Request: Request{Verb: "scroll", Noun: "surface", Args: Arguments{"lines": -8}}},
 	}
@@ -135,6 +135,10 @@ func (m *Model) dispatchKey(key MacroKey) error {
 		_, err := m.Palette.HandleKey(key.Key)
 		return err
 	}
+	if key.Paste {
+		_, err := HandleInputKey(r, key.Key)
+		return err
+	}
 	// A field's active grammar wins over unrelated app bindings, e.g. dw
 	// when w also switches a page. Fresh keys still honor layer overrides.
 	if !key.Paste && (r.Macro.Pending != "" || in == nil && r.Macro.Count > 0 || in != nil && (in.Pending != "" || in.Count > 0)) {
@@ -189,6 +193,53 @@ func (m *Model) modalContent(frame *Frame, width, height int) (string, string) {
 	}
 	return frame.ID, "This modal has no focused input."
 }
+func (m *Model) pageTabs(styles Styles, width int) string {
+	order := m.Runtime.PageOrder
+	if len(order) == 0 {
+		return ""
+	}
+	active := 0
+	for i, id := range order {
+		if id == m.Runtime.ActivePage {
+			active = i
+			break
+		}
+	}
+	title := safeText(m.Runtime.Pages[order[active]].Title)
+	tabs := ansi.Truncate(styles.ActiveTab.Render(ansi.Truncate(title, max(1, width-4), "…")), width, "")
+	used := ansi.StringWidth(tabs)
+	left, right := active-1, active+1
+	for left >= 0 || right < len(order) {
+		added := false
+		if left >= 0 {
+			tab := styles.Tab.Render(safeText(m.Runtime.Pages[order[left]].Title))
+			if size := ansi.StringWidth(tab); used+size <= width {
+				tabs = tab + tabs
+				used += size
+				left--
+				added = true
+			} else {
+				left = -1
+			}
+		}
+		if right < len(order) {
+			tab := styles.Tab.Render(safeText(m.Runtime.Pages[order[right]].Title))
+			if size := ansi.StringWidth(tab); used+size <= width {
+				tabs += tab
+				used += size
+				right++
+				added = true
+			} else {
+				right = len(order)
+			}
+		}
+		if !added {
+			break
+		}
+	}
+	return tabs
+}
+
 func (m *Model) View() string {
 	styles := NewStyles(*m.Appearance)
 	width, height := m.pageSize()
@@ -197,26 +248,28 @@ func (m *Model) View() string {
 		pageTitle = page.Title
 	}
 	heading := styles.Title.Render(safeText(m.Title)) + "  " + styles.Muted.Render(safeText(pageTitle))
-	mode := styles.Badge.Render(strings.ToUpper(m.Runtime.Mode(m.Runtime.Context())))
+	modeLabel := strings.ToUpper(m.Runtime.Mode(m.Runtime.Context()))
+	if m.Runtime.Macro.Recording != "" {
+		modeLabel += " · REC @" + m.Runtime.Macro.Recording
+	}
+	mode := styles.Badge.Render(modeLabel)
+	heading = ansi.Truncate(heading, max(0, width-lipgloss.Width(mode)-1), "…")
 	gap := max(1, m.Width-lipgloss.Width(heading)-lipgloss.Width(mode)-2*styles.Padding)
 	heading += strings.Repeat(" ", gap) + mode
-	tabs := make([]string, 0, len(m.Runtime.PageOrder))
-	for i, id := range m.Runtime.PageOrder {
-		label := fmt.Sprintf("%d %s", i+1, safeText(m.Runtime.Pages[id].Title))
-		style := styles.Tab
-		if id == m.Runtime.ActivePage {
-			style = styles.ActiveTab
-		}
-		tabs = append(tabs, style.Render(label))
-	}
+	tabs := m.pageTabs(styles, width)
 	base := m.Runtime.Frames[0]
 	content := m.pageContent(width, height)
 	page := m.viewport(base, content, width, height).View()
-	footer := "Alt-←/→ pages · Ctrl-P palette · PgUp/PgDn scroll · Ctrl-C quit"
+	footer := "Ctrl-J/K pages · : palette · PgUp/PgDn scroll · Ctrl-C quit"
 	if m.Runtime.Mode(m.Runtime.Context()) == "insert" {
 		footer = "INSERT · Esc normal · Ctrl-A/E line · Ctrl-W/U/K kill · Ctrl-Space palette"
 	}
 	status := styles.Muted.Render(footer)
+	if m.Runtime.Macro.Pending == "q" {
+		status = styles.Accent.Render("Record macro: choose a register · Esc cancel")
+	} else if m.Runtime.Macro.Pending == "@" {
+		status = styles.Accent.Render("Replay macro: choose a register · Esc cancel")
+	}
 	if m.Runtime.Pending != "" {
 		status = styles.Accent.Render("Pending " + safeText(m.Runtime.Pending) + " · Esc cancel")
 	}
@@ -224,7 +277,7 @@ func (m *Model) View() string {
 		status = styles.Error.Render("Error: " + safeText(m.Status))
 	}
 	inset := lipgloss.NewStyle().PaddingLeft(styles.Padding).PaddingRight(styles.Padding)
-	background := strings.Join([]string{inset.Render(heading), inset.Render(lipgloss.JoinHorizontal(lipgloss.Top, tabs...)), "", inset.Render(page), "", inset.Render(status)}, "\n")
+	background := strings.Join([]string{inset.Render(heading), inset.Render(tabs), "", inset.Render(page), "", inset.Render(status)}, "\n")
 	background = fitSurface(background, m.Width, m.Height)
 	for _, frame := range m.Runtime.Frames[1:] {
 		modalWidth, modalHeight := ModalSize(m.Width, m.Height)

@@ -7,14 +7,14 @@
 nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
 </style></head><body>
 <header><a href="architecture.html">← Architecture field guide</a><p class="eyebrow">Ochazuke / generated reference</p><h1>Go API</h1><p>Actions and bindings come from a fresh <code>NewDemo()</code>. Go declarations and comments come from the package source through Go's standard <code>go/doc</code> library. This is a build-time snapshot, not your running application's customized registry.</p>
-<nav aria-label="Catalogs"><a href="actions.html">Actions (68)</a><a href="bindings.html">Default bindings (61)</a><a href="api.html" aria-current="page">Go API (85)</a><a href="transport.html">CLI &amp; socket</a></nav>
+<nav aria-label="Catalogs"><a href="actions.html">Actions (68)</a><a href="bindings.html">Default bindings (58)</a><a href="api.html" aria-current="page">Go API (91)</a><a href="transport.html">CLI &amp; socket</a></nav>
 <div class="toolbar"><label for="search">Search Go API</label><input id="search" type="search" placeholder="Search this catalog" autocomplete="off"><p id="matches" role="status"></p></div>
 <noscript>All entries are available below. Search requires JavaScript.</noscript></header>
 <main>
 
 
 
-<section id="api"><p class="eyebrow">03 / Exported Go API</p><h2>Go API <span class="count">85</span></h2><p>Generated exported types, functions, methods, constants and variables from the root <code>ochazuke</code> package. Unexported fields and function bodies are omitted. Missing prose means the declaration has no source doc comment. Command entry points under <code>cmd/</code> are not library APIs.</p><p>Go also provides terminal documentation: run <code>go doc -all .</code> or <code>go doc Runtime.Execute</code> from the repository root. This offline reference needs no <code>godoc</code> server or published module.</p>
+<section id="api"><p class="eyebrow">03 / Exported Go API</p><h2>Go API <span class="count">91</span></h2><p>Generated exported types, functions, methods, constants and variables from the root <code>ochazuke</code> package. Unexported fields and function bodies are omitted. Missing prose means the declaration has no source doc comment. Command entry points under <code>cmd/</code> are not library APIs.</p><p>Go also provides terminal documentation: run <code>go doc -all .</code> or <code>go doc Runtime.Execute</code> from the repository root. This offline reference needs no <code>godoc</code> server or published module.</p>
 <details class="entry searchable"><summary><code>Appearance</code> <small>type</small></summary><pre>Appearance is event-loop-owned configuration. Operation results are value snapshots.
 </pre><pre>type Appearance struct {
 	Theme   string `json:&#34;theme&#34;`
@@ -110,12 +110,31 @@ Modal chrome uses one horizontal padding cell regardless of page density.
 	Title  string                          `json:&#34;title&#34;`
 	Frame  *Frame                          `json:&#34;frame&#34;`
 	Render func(*Runtime, int, int) string `json:&#34;-&#34;`
-}</pre><a href="../pages.go">Source file</a></details><details class="entry searchable"><summary><code>Palette</code> <small>type</small></summary><pre>Palette owns its overlay and drafts; it never edits the originating input.
+}</pre><a href="../pages.go">Source file</a></details><details class="entry searchable"><summary><code>PagesPaletteSource</code> <small>function / method</small></summary><pre>PagesPaletteSource reads the runtime registry on every listing, not at startup.
+</pre><pre>func PagesPaletteSource(r *Runtime, _ Context) []PaletteInstance</pre><a href="../palette_nouns.go">Source file</a></details><details class="entry searchable"><summary><code>Palette</code> <small>type</small></summary><pre>Palette owns its overlay and drafts; it never edits the originating input.
 Create one palette per runtime: operation keys are globally unique.
 </pre><pre>type Palette struct {
 	// contains filtered or unexported fields
 }</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.Close</code> <small>function / method</small></summary><pre>func (p *Palette) Close()</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.HandleKey</code> <small>function / method</small></summary><pre>HandleKey applies layered overrides before palette navigation or the shared input editor.
-</pre><pre>func (p *Palette) HandleKey(key string) (bool, error)</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.IsActive</code> <small>function / method</small></summary><pre>func (p *Palette) IsActive() bool</pre><a href="../palette_editing.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.IsOpen</code> <small>function / method</small></summary><pre>func (p *Palette) IsOpen() bool</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.Open</code> <small>function / method</small></summary><pre>func (p *Palette) Open() error</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.View</code> <small>function / method</small></summary><pre>func (p *Palette) View() string</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.ViewSized</code> <small>function / method</small></summary><pre>func (p *Palette) ViewSized(width, height int) string</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Parameter</code> <small>type</small></summary><pre>type Parameter struct {
+</pre><pre>func (p *Palette) HandleKey(key string) (bool, error)</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.IsActive</code> <small>function / method</small></summary><pre>func (p *Palette) IsActive() bool</pre><a href="../palette_editing.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.IsOpen</code> <small>function / method</small></summary><pre>func (p *Palette) IsOpen() bool</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.Open</code> <small>function / method</small></summary><pre>func (p *Palette) Open() error</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.RegisterNoun</code> <small>function / method</small></summary><pre>RegisterNoun adds or replaces a live instance source without changing operation forms.
+</pre><pre>func (p *Palette) RegisterNoun(noun string, config PaletteNoun) error</pre><a href="../palette_nouns.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.View</code> <small>function / method</small></summary><pre>func (p *Palette) View() string</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.ViewSized</code> <small>function / method</small></summary><pre>func (p *Palette) ViewSized(width, height int) string</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>PaletteEntry</code> <small>type</small></summary><pre>PaletteEntry exposes the exact select.palette value independently of its display label.
+</pre><pre>type PaletteEntry struct {
+	Value string `json:&#34;value&#34;`
+	Kind  string `json:&#34;kind&#34;`
+	Label string `json:&#34;label&#34;`
+	ID    string `json:&#34;id,omitempty&#34;`
+	Verb  string `json:&#34;verb,omitempty&#34;`
+}</pre><a href="../palette_nouns.go">Source file</a></details><details class="entry searchable"><summary><code>PaletteInstance</code> <small>type</small></summary><pre>PaletteInstance is a labeled object whose ID becomes the default action argument.
+</pre><pre>type PaletteInstance struct {
+	ID    string `json:&#34;id&#34;`
+	Label string `json:&#34;label&#34;`
+}</pre><a href="../palette_nouns.go">Source file</a></details><details class="entry searchable"><summary><code>PaletteNoun</code> <small>type</small></summary><pre>PaletteNoun explicitly chooses the action and string argument used for an instance.
+</pre><pre>type PaletteNoun struct {
+	Source      PaletteSource
+	DefaultVerb string
+	Argument    string
+}</pre><a href="../palette_nouns.go">Source file</a></details><details class="entry searchable"><summary><code>PaletteSource</code> <small>type</small></summary><pre>PaletteSource reads current instances in the context captured when the palette opened.
+</pre><pre>type PaletteSource func(*Runtime, Context) []PaletteInstance</pre><a href="../palette_nouns.go">Source file</a></details><details class="entry searchable"><summary><code>Parameter</code> <small>type</small></summary><pre>type Parameter struct {
 	Type        string `json:&#34;type&#34;`
 	Required    bool   `json:&#34;required,omitempty&#34;`
 	Description string `json:&#34;description,omitempty&#34;`

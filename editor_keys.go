@@ -23,6 +23,8 @@ func handleNormalEditorKey(r *Runtime, in *Input, key string) (bool, error) {
 		_, err := r.Execute(Request{Verb: "select", Noun: "register", Args: Arguments{"name": key}})
 		if err == nil {
 			_, err = r.Execute(Request{Verb: "prefix", Noun: "input", Args: Arguments{"key": "register-done"}})
+		} else {
+			_, _ = command("cancel", nil)
 		}
 		return true, err
 	}

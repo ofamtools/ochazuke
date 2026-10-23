@@ -113,7 +113,7 @@ if _, err := tea.NewProgram(model, tea.WithAltScreen()).Run(); err != nil {
 }
 ```
 
-Registration does not activate a page. Switching reuses the page's exact frame and input instances: selection, focus, modes, drafts, undo history, and scrolling survive a round trip. The demo supplies normal-mode `Ctrl-J/K` navigation; `Alt-Left/Right` remain framework defaults. Page-specific bindings replace those from the previous page through the existing layer resolver.
+Registration does not activate a page. Switching reuses the page's exact frame and input instances: selection, focus, modes, drafts, undo history, and scrolling survive a round trip. Normal-mode `Ctrl-J/K` cycles pages. Page-specific bindings replace those from the previous page through the existing layer resolver. Page tabs have no numeric shortcuts; use the palette to search large page sets.
 
 Ordinary modals block page switching. The palette closes before dispatching a selected operation, so choosing `open → page` works when no other modal is underneath it. Focusing an inactive page's input does not silently navigate; open that page first. Explicitly targeted editing operations may still update an offscreen input without moving focus.
 
@@ -150,6 +150,8 @@ Theme and density changes are atomic and apply immediately to all pages and moda
 
 The demo starts on Overview in normal mode. Open Playground with `Ctrl-J`; Tab/Shift-Tab cycle its directory, notes, and paths fields. Overview, Commands, and Appearance support `j/k` and up/down scrolling. Demo page shortcuts are normal-mode-only, so insert-mode `Ctrl-K` still kills to line end.
 
+Macro recording consumes exactly one register character after `q`. For `qq:`, the first `q` prompts for a register, the second starts recording into `q` and displays `REC @q`, and `:` opens the palette. A normal-mode `q` stops recording. Invalid register input reports an error but does not trap later commands in register selection.
+
 | Context | Keys | Behavior |
 |---|---|---|
 | Normal input | `h j k l`, arrows | Rune/line movement |
@@ -169,7 +171,7 @@ The demo starts on Overview in normal mode. Open Playground with `Ctrl-J`; Tab/S
 | Insert input | Backspace, Delete/`Ctrl-D`, Enter | Delete backward/forward; newline in multiline inputs |
 | Insert input | Escape | Return to normal mode |
 | Normal input | Escape | Cancel a pending motion/count |
-| Normal demo | `:` | Open palette in search insert mode (`Ctrl-P` also works) |
+| Normal app/input | `:` | Open palette in search insert mode |
 | Any editing mode | `Ctrl-Space` | Open palette without stealing Readline `Ctrl-P` |
 | Normal Playground | `Ctrl-O` | Open the shared picker using the field's filter |
 | Normal path/paths field | Enter | Open picker using the current value/line |
@@ -188,11 +190,12 @@ On terminals where Option does not send Meta sequences, configure Option-as-Meta
 
 - The palette opens with its search field focused in insert mode: type immediately.
 - Its root displays the actual **VERBS** and **NOUNS** lists side by side. In normal mode, `h/l` and left/right switch columns; `j/k` and up/down move through results; Enter chooses.
-- Choosing a verb lists compatible nouns; choosing a noun lists compatible verbs.
+- Choosing a verb lists compatible nouns. Choosing a noun lists its verbs and any configured instances. For `page`, the instances are the live pages; selecting one executes `open.page` with its ID. Search matches page titles and IDs, so navigation does not depend on numbered tabs.
 - `/` enters search when browsing a list. Search and argument fields use the same Vim/Readline editor and independent undo trees as page inputs. Escape first returns an editing field to normal mode; subsequent Escape goes back.
 - Argument forms show required/optional fields. Tab/arrows change fields; Enter advances and then executes. Empty optional fields are omitted. `set palette-argument` can supply an explicit empty string; `clear palette-argument` omits one.
 - The originating interaction context is captured before the palette opens. Selecting `undo → input` edits the originating input, not the palette's search field.
 - `Ctrl-C` cancels the palette. Errors retain the form and its drafts.
+- Instance sources explicitly declare their default verb and ID argument. The palette does not infer a default from operation order. The [full-project example](examples/full-project/README.md) configures these defaults in JSON.
 - The shared path picker opens with its path field in insert mode. `Ctrl-N/P` moves through results without moving the text cursor. Other Readline bindings still edit the path; `/` and whitespace delimit `Ctrl-W` kills, while dots and hyphens remain part of a filename.
 - Tab completes the highlighted result into the picker's path input without confirming or closing it. Directories receive a trailing separator for continued browsing; the originating field stays unchanged until confirmation.
 - Escape first enters normal mode. There, `h/left` browses the parent, `l/right` enters a directory, and `j/k` match up/down. Enter opens a directory/selects a file, and `Ctrl-S` confirms a path. Escape in normal mode cancels.
@@ -200,6 +203,23 @@ On terminals where Option does not send Meta sequences, configure Option-as-Meta
 - The picker publishes immediate children first, then builds the recursive index in the background. Listed paths remain selectable and Tab-completable while indexing continues. Query edits search the available index; recursive results preserve the highlighted path when it still matches. Canceled or stale results cannot overwrite newer results. A recursive failure keeps usable shallow results and shows `Index incomplete`.
 - Leading `~` and `~/` resolve to the home directory. Explicitly opening a directory excluded by an ancestor repository's ignore rule makes that directory a fresh ignore boundary, so a home-repository rule such as `proj/` does not hide every project. Root-local, nested, and global ignore rules still apply.
 - `Ctrl-S` confirms the highlighted result; an empty query includes a current-directory entry for `any`/`dir`. The action `choose.picker {current:true}` explicitly chooses the root. Changing the originating text while the picker is open rejects selection instead of replacing stale offsets.
+
+#### Configuring noun instances
+
+`NewPalette` supplies live page instances with `open.page` as their default. Applications can replace that configuration or register sources for their own nouns:
+
+```go
+err := model.Palette.RegisterNoun("page", ochazuke.PaletteNoun{
+    Source: ochazuke.PagesPaletteSource,
+    DefaultVerb: "open",
+    Argument: "id",
+})
+if err != nil { return err }
+```
+
+A `PaletteSource` receives the runtime and originating context and returns `[]PaletteInstance`, each with an `ID` and `Label`. Selecting an instance passes its ID to the configured argument, then dispatches through the normal operation path. The source is queried live so newly registered pages appear without rebuilding the palette.
+
+For nouns with sources, `select.palette` accepts `instance:<id>` or `verb:<verb>`. Its published `entries` distinguish item kinds and labels. For example, `noun:page` followed by `instance:playground` opens Playground without an argument form; `verb:open` still exposes the normal form.
 
 ### Path fields
 
@@ -268,7 +288,7 @@ result, err := r.Execute(ochazuke.Request{
 | `runtime.go`, `configuration.go` | Registry, layer resolution, contexts, modal stack, mode/binding configuration, JSON inspection |
 | `input.go`, `editing.go`, `editor*.go` | Input-owned undo, Vim/Readline keys, operators, visual geometry |
 | `registers.go`, `macros.go`, `yank_history.go` | App-owned yanks/registers, key recording/replay, history modal |
-| `palette.go`, `palette_editing.go` | Verb/noun navigation, typed arguments, originating context |
+| `palette.go`, `palette_editing.go`, `palette_nouns.go` | Verb/noun and live instance navigation, configured defaults, typed arguments, originating context |
 | `picker.go`, `picker_search.go` | Contextual path selection, asynchronous fuzzy indexing, native Git ignores |
 | `pages.go` | Page registration, retained frames, navigation, and focus isolation |
 | `theme.go`, `surface.go` | Appearance operations, Lip Gloss styles, bounded modal composition |

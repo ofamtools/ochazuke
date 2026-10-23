@@ -69,7 +69,7 @@ func NewDemo() *Model {
 		}}
 	}
 	m.ModalViews["help"] = ModalView{Title: "Keyboard guide", Render: func(r *Runtime, f *Frame, w, h int) string {
-		return "NAVIGATION\nCtrl-J / K    Next / previous page (normal mode)\n:             Search command palette\nCtrl-Space    Palette in any editing mode\nPgUp / PgDn   Scroll the active surface\n\nPLAYGROUND\nTab / S-Tab   Next / previous field\nCtrl-N        Open a draft; repeat inside to nest\nCtrl-O        Choose a path using the field's filter\nEnter         Open picker in path / paths fields\n\nNORMAL INPUT\nh j k l       Move (same as arrows)\nw b e         Word motions\n0 $ / gg G    Line / document bounds\ni a I A       Begin inserting\no O           Open a line\nv / V / C-v   Character / line / block selection\nyy / p / P    Yank line / paste after / before\nCtrl-Y        Yank history\n\"a            Select register a\nqa … q / @a   Record / replay macro a\nu / Ctrl-R    Undo / redo\n\nINSERT INPUT\nCtrl-A / E    Line start / end\nCtrl-P / N    Previous / next line (picker: result)\nAlt-B / F     Word movement\nCtrl-W/U/K    Kill path word / line start / line end\nCtrl-Y        Paste app yank\nEscape        Return to normal"
+		return "NAVIGATION\nCtrl-J / K    Next / previous page (normal mode)\n:             Search command palette\nCtrl-Space    Palette in any editing mode\nPgUp / PgDn   Scroll the active surface\n\nPLAYGROUND\nTab / S-Tab   Next / previous field\nCtrl-N        Open a draft; repeat inside to nest\nCtrl-O        Choose a path using the field's filter\nEnter         Open picker in path / paths fields\n\nNORMAL INPUT\nh j k l       Move (same as arrows)\nw b e         Word motions\n0 $ / gg G    Line / document bounds\ni a I A       Begin inserting\no O           Open a line\nv / V / C-v   Character / line / block selection\nyy / p / P    Yank line / paste after / before\nCtrl-Y        Yank history\n\"a            Select register a\nq then a      Start recording immediately in register a\nq / @a        Stop recording / replay macro a\nu / Ctrl-R    Undo / redo\n\nINSERT INPUT\nCtrl-A / E    Line start / end\nCtrl-P / N    Previous / next line (picker: result)\nAlt-B / F     Word movement\nCtrl-W/U/K    Kill path word / line start / line end\nCtrl-Y        Paste app yank\nEscape        Return to normal"
 	}}
 	register := func(verb, noun, description string, params map[string]Parameter, fn Handler) {
 		r.Register(Operation{Verb: verb, Noun: noun, Description: description, Parameters: params, Result: "JSON value", Run: fn})
@@ -125,9 +125,6 @@ func NewDemo() *Model {
 	bind := func(layer, mode, key, verb, noun string, args Arguments) {
 		r.Layers[layer].Bindings = append(r.Layers[layer].Bindings, Binding{Mode: mode, Keys: key, Request: Request{Verb: verb, Noun: noun, Args: args}})
 	}
-	bind("app", "normal", "ctrl+j", "next", "page", nil)
-	bind("app", "normal", "ctrl+k", "previous", "page", nil)
-	bind("app", "normal", ":", "open", "palette", nil)
 	bind("app", "normal", "?", "open", "help", nil)
 	for _, id := range []string{"overview", "commands", "appearance"} {
 		bind(id, "normal", "j", "scroll", "surface", Arguments{"lines": 1})
@@ -161,9 +158,9 @@ func demoOverview(m *Model, width int) string {
 	var b strings.Builder
 	b.WriteString(s.Title.Render("A framework. Your application.") + "\n")
 	b.WriteString(s.Muted.Render("Pages keep their place. Actions share one interface.") + "\n\n")
-	for i, id := range m.Runtime.PageOrder {
+	for _, id := range m.Runtime.PageOrder {
 		descriptions := map[string]string{"overview": "Start here: navigation and the framework's structure.", "playground": "Edit text, branch undo history, and open nested modals.", "commands": "Inspect real operations, argument schemas, and bindings.", "appearance": "Change the live theme and spacing defaults."}
-		fmt.Fprintf(&b, "%s  %s\n    %s\n\n", s.Accent.Render(fmt.Sprintf("%d", i+1)), s.Subtitle.Render(m.Runtime.Pages[id].Title), s.Muted.Render(descriptions[id]))
+		fmt.Fprintf(&b, "%s\n  %s\n\n", s.Subtitle.Render(m.Runtime.Pages[id].Title), s.Muted.Render(descriptions[id]))
 	}
 	b.WriteString(s.Panel.Width(max(1, width-2)).Render("TRY IT\nCtrl-J → i → type → Escape → u\nCtrl-N opens a modal without replacing the page.\n: searches the same actions available through the CLI."))
 	b.WriteString("\n\n" + s.Muted.Render("? keyboard guide · Ctrl-J/K switch pages · Ctrl-C quit"))

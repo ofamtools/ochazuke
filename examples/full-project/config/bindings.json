@@ -1,4 +1,7 @@
 [
+  {"layer": "app", "mode": "normal", "keys": ":", "request": {"verb": "open", "noun": "palette"}},
+  {"layer": "app", "mode": "normal", "keys": "ctrl+j", "request": {"verb": "next", "noun": "page"}},
+  {"layer": "app", "mode": "normal", "keys": "ctrl+k", "request": {"verb": "previous", "noun": "page"}},
   {"layer": "overview", "keys": "tab", "request": {"verb": "cycle", "noun": "workspace", "args": {"delta": 1}}},
   {"layer": "overview", "keys": "shift+tab", "request": {"verb": "cycle", "noun": "workspace", "args": {"delta": -1}}},
   {"layer": "paths", "keys": "tab", "request": {"verb": "cycle", "noun": "workspace", "args": {"delta": 1}}},

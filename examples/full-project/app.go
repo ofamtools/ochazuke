@@ -56,6 +56,9 @@ func Build(cfg Config) (*ochazuke.Model, error) {
 	if err := registerActions(r, cfg); err != nil {
 		return nil, err
 	}
+	if err := registerPalette(m, cfg.App.Palette); err != nil {
+		return nil, err
+	}
 	if err := registerBindings(r, cfg); err != nil {
 		return nil, err
 	}
@@ -63,4 +66,39 @@ func Build(cfg Config) (*ochazuke.Model, error) {
 		return nil, err
 	}
 	return m, nil
+}
+
+// Sources stay Go functions; JSON only selects a source and its explicit action.
+func registerPalette(m *ochazuke.Model, configs []PaletteConfig) error {
+	sources := map[string]ochazuke.PaletteSource{
+		"pages": ochazuke.PagesPaletteSource,
+		"inputs": func(r *ochazuke.Runtime, origin ochazuke.Context) []ochazuke.PaletteInstance {
+			var instances []ochazuke.PaletteInstance
+			for id := range r.Inputs {
+				path := r.InputPaths[id]
+				if len(origin.Path) > 1 && (len(path) < 2 || path[1] != origin.Path[1]) {
+					continue
+				}
+				if !strings.HasPrefix(id, "__palette/") && id != "picker-path" {
+					instances = append(instances, ochazuke.PaletteInstance{ID: id, Label: id})
+				}
+			}
+			return instances
+		},
+	}
+	seen := map[string]bool{}
+	for _, config := range configs {
+		source, ok := sources[config.Source]
+		if !ok {
+			return fmt.Errorf("app.json palette noun %q: unknown source %q", config.Noun, config.Source)
+		}
+		if seen[config.Noun] {
+			return fmt.Errorf("app.json palette: duplicate noun %q", config.Noun)
+		}
+		seen[config.Noun] = true
+		if err := m.Palette.RegisterNoun(config.Noun, ochazuke.PaletteNoun{Source: source, DefaultVerb: config.DefaultVerb, Argument: config.Argument}); err != nil {
+			return fmt.Errorf("app.json: %w", err)
+		}
+	}
+	return nil
 }
