@@ -20,7 +20,7 @@ func NewAppearance(r *Runtime) *Appearance {
 		return *a, nil
 	}})
 	r.Register(Operation{Verb: "set", Noun: "appearance", Description: "Set theme and density atomically", Parameters: map[string]Parameter{
-		"theme": {Type: "string", Description: "adaptive, dark, light, or mono"},
+		"theme":   {Type: "string", Description: "adaptive, dark, light, or mono"},
 		"density": {Type: "string", Description: "comfortable or compact"},
 	}, Result: "appearance", Run: func(_ *Runtime, _ Context, args Arguments) (any, error) {
 		next := *a
@@ -94,16 +94,16 @@ func NewStyles(a Appearance) Styles {
 	focusedBorder.Top, focusedBorder.Bottom = "━", "━"
 	focusedBorder.Left, focusedBorder.Right = "┃", "┃"
 	return Styles{
-		Title: lipgloss.NewStyle().Bold(true).Foreground(text),
-		Subtitle: lipgloss.NewStyle().Foreground(accent),
-		Muted: lipgloss.NewStyle().Foreground(muted).Faint(true),
-		Accent: lipgloss.NewStyle().Foreground(accent).Bold(true),
-		Error: lipgloss.NewStyle().Foreground(color("#AB3D36", "#E99B8D")).Bold(true),
-		Panel: panel,
+		Title:        lipgloss.NewStyle().Bold(true).Foreground(text),
+		Subtitle:     lipgloss.NewStyle().Foreground(accent),
+		Muted:        lipgloss.NewStyle().Foreground(muted).Faint(true),
+		Accent:       lipgloss.NewStyle().Foreground(accent).Bold(true),
+		Error:        lipgloss.NewStyle().Foreground(color("#AB3D36", "#E99B8D")).Bold(true),
+		Panel:        panel,
 		FocusedPanel: panel.Border(focusedBorder).BorderForeground(accent),
-		Tab: lipgloss.NewStyle().Foreground(muted).Padding(0, 1),
-		ActiveTab: lipgloss.NewStyle().Foreground(accent).Background(surface).Bold(true).Padding(0, 1).Transform(func(s string) string { return "› " + s }),
-		Badge: lipgloss.NewStyle().Foreground(accent).Background(surface).Padding(0, 1),
-		Padding: padding,
+		Tab:          lipgloss.NewStyle().Foreground(muted).Padding(0, 1),
+		ActiveTab:    lipgloss.NewStyle().Foreground(accent).Background(surface).Bold(true).Padding(0, 1).Transform(func(s string) string { return "› " + s }),
+		Badge:        lipgloss.NewStyle().Foreground(accent).Background(surface).Padding(0, 1),
+		Padding:      padding,
 	}
 }

@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/charmbracelet/x/ansi"
 )
 
 type Picker struct {
@@ -184,14 +186,15 @@ func (p *Picker) sync() {
 		p.frame.State = p.state()
 	}
 }
-func (p *Picker) View() string {
+func (p *Picker) View(width, height int) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "Choose %s: %s\n\nj/k move · Enter open/select · - parent · Ctrl-S choose · Esc cancel\n\n", p.Kind, p.Directory)
+	fmt.Fprintf(&b, "%s\nj/k move · Enter open · - parent · Ctrl-S choose · Esc cancel\n\n", ansi.Truncate(safeText(p.Directory), max(1, width), "…"))
 	if len(p.Entries) == 0 {
 		b.WriteString("(empty directory)\n")
 	}
-	start := max(0, p.Selected-5)
-	end := min(len(p.Entries), start+10)
+	limit := max(1, height-3)
+	start := max(0, p.Selected-limit+1)
+	end := min(len(p.Entries), start+limit)
 	for i := start; i < end; i++ {
 		mark := "  "
 		if i == p.Selected {
@@ -201,7 +204,7 @@ func (p *Picker) View() string {
 		if p.Entries[i].IsDir() {
 			suffix = "/"
 		}
-		fmt.Fprintf(&b, "%s%s%s\n", mark, p.Entries[i].Name(), suffix)
+		fmt.Fprintf(&b, "%s\n", ansi.Truncate(mark+safeText(p.Entries[i].Name())+suffix, max(1, width), "…"))
 	}
 	return b.String()
 }

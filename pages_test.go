@@ -148,7 +148,7 @@ func TestPageModalNavigationErrorsAreAtomic(t *testing.T) {
 
 func TestPageRegistrationRejectsInvalidPagesAtomically(t *testing.T) {
 	cases := []struct {
-		name string
+		name   string
 		change func(*Page) *Page
 	}{
 		{"nil", func(*Page) *Page { return nil }},
@@ -241,7 +241,7 @@ func TestPageFocusIsolationAllowsExplicitOffscreenEdits(t *testing.T) {
 	paletteRequest(t, r, "focus", "input", Arguments{"id": "alpha-input"})
 	r.Pending = "g"
 	before := pageTestSnapshot(t, r)
-	if err := r.Focus("beta-input"); err == nil || !strings.Contains(err.Error(), "open page") || pageTestSnapshot(t, r) != before {
+	if err := r.Focus("beta-input"); err == nil || pageTestSnapshot(t, r) != before {
 		t.Fatalf("cross-page Focus must fail without mutation: %v", err)
 	}
 	for _, q := range []Request{

@@ -8,9 +8,9 @@ import (
 
 // Page retains its base frame and renderer across navigation.
 type Page struct {
-	ID     string                         `json:"id"`
-	Title  string                         `json:"title"`
-	Frame  *Frame                         `json:"frame"`
+	ID     string                          `json:"id"`
+	Title  string                          `json:"title"`
+	Frame  *Frame                          `json:"frame"`
 	Render func(*Runtime, int, int) string `json:"-"`
 }
 
@@ -67,6 +67,9 @@ func (r *Runtime) validateSelection(c Context) error {
 		return err
 	}
 	if r.Pages[r.ActivePage] != nil {
+		if len(r.Frames) == 1 && (len(c.Path) < 2 || c.Path[1] != r.ActivePage) {
+			return errors.New("select a context inside the active page; open a modal for a modal input")
+		}
 		for _, id := range c.Path[1:] {
 			if r.Pages[id] != nil && id != r.ActivePage {
 				return fmt.Errorf("open page %q before selecting its context", id)
