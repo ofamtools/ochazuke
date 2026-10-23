@@ -75,6 +75,21 @@ func (l Layout) Page(title, subtitle, body, footer string) string {
 	return strings.Join(rows, "\n")
 }
 
+// PanelContentSize returns the body cells available inside a Panel, excluding
+// its border and horizontal padding. Tiny panels omit their chrome.
+func PanelContentSize(width, height int) (int, int) {
+	if width <= 0 || height <= 0 {
+		return 0, 0
+	}
+	if width < 3 || height < 3 {
+		return width, height
+	}
+	if width >= 6 {
+		return width - 4, height - 2
+	}
+	return width - 2, height - 2
+}
+
 // Panel renders a rounded, titled box of exactly width x height outer cells.
 // Focused panels use the heavy accent border. Body is trusted ANSI; title is a
 // raw label. Content that does not fit is clipped and marked with "…" (columns)
@@ -95,11 +110,7 @@ func (l Layout) Panel(title, body string, width, height int, focused bool) strin
 	b := frame.GetBorderStyle()
 	edge := lipgloss.NewStyle().Foreground(frame.GetBorderTopForeground())
 	inner := width - 2
-	cw := inner
-	if inner >= 4 {
-		cw = inner - 2
-	}
-	ih := height - 2
+	cw, ih := PanelContentSize(width, height)
 	rows := layoutRows(layoutClip(body, ih, s), cw, ih)
 
 	label := ""
@@ -125,8 +136,8 @@ func (l Layout) Panel(title, body string, width, height int, focused bool) strin
 // viewport is at least 72 cells wide, otherwise stacked (top ~40%). The left or
 // top panel is the focused one.
 func (l Layout) Split(leftTitle, leftBody, rightTitle, rightBody string) string {
-	bw, _ := l.BodySize()
-	return l.panelPair(leftTitle, leftBody, rightTitle, rightBody, (bw-1)*2/5)
+	bw, bh := l.BodySize()
+	return l.panelPair(leftTitle, leftBody, rightTitle, rightBody, bw, bh, (bw-1)*2/5, l.Width < layoutStackAt)
 }
 
 // Sidebar renders a 28-cell navigation rail beside the main panel. Below 72
@@ -134,8 +145,14 @@ func (l Layout) Split(leftTitle, leftBody, rightTitle, rightBody string) string 
 // trusted ANSI. Selection is zero-based and clamped for rendering. The caller
 // owns selection and key handling; this method keeps the selected item visible.
 func (l Layout) Sidebar(title string, items []string, selected int, mainTitle, mainBody string) string {
-	_, height := l.BodySize()
-	if l.Width < layoutStackAt {
+	bw, bh := l.BodySize()
+	return l.sidebar(title, items, selected, mainTitle, mainBody, bw, bh, l.Width < layoutStackAt)
+}
+
+// sidebar also composes a model-owned content region without a second page shell.
+func (l Layout) sidebar(title string, items []string, selected int, mainTitle, mainBody string, width, height int, stacked bool) string {
+	regionHeight := height
+	if stacked {
 		height = height * 2 / 5
 	}
 	if height >= 3 {
@@ -164,15 +181,23 @@ func (l Layout) Sidebar(title string, items []string, selected int, mainTitle, m
 			rows = append(rows, l.Styles.Muted.Render(fmt.Sprintf("… %d–%d / %d", start+1, end, len(items))))
 		}
 	}
-	return l.panelPair(title, strings.Join(rows, "\n"), mainTitle, mainBody, 28)
+	return l.panelPair(title, strings.Join(rows, "\n"), mainTitle, mainBody, width, regionHeight, 28, stacked)
 }
 
-func (l Layout) panelPair(leftTitle, leftBody, rightTitle, rightBody string, leftWidth int) string {
-	bw, bh := l.BodySize()
+func sidebarMainSize(width, height int, stacked bool) (int, int) {
+	if stacked {
+		height -= height * 2 / 5
+	} else {
+		width -= 29
+	}
+	return PanelContentSize(width, height)
+}
+
+func (l Layout) panelPair(leftTitle, leftBody, rightTitle, rightBody string, bw, bh, leftWidth int, stacked bool) string {
 	if bw <= 0 || bh <= 0 {
 		return ""
 	}
-	if l.Width >= layoutStackAt {
+	if !stacked {
 		rw := bw - 1 - leftWidth
 		left := strings.Split(l.Panel(leftTitle, leftBody, leftWidth, bh, true), "\n")
 		right := strings.Split(l.Panel(rightTitle, rightBody, rw, bh, false), "\n")

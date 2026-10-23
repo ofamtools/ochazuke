@@ -75,6 +75,9 @@ The registry identifier is `greet.workspace` (`verb.noun`). The CLI spelling is 
 
 ## Explore the application
 
+- The sidebar marks the active page. In normal mode, `Ctrl-J/K` switches pages; the palette can open a page directly. Sidebar navigation does not take focus away from the active editor, and an open modal blocks page changes.
+- Editors appear in titled panels. When the available height cannot hold every field, the page shows the focused field and a `Field N/M` hint. Tab and Shift-Tab still visit every field. Action results remain below the editor.
+
 - **Workspace** (`overview`) contains the title and notes editors. Edit with `i`, return to normal mode with Escape, and use `u` to undo. Switch pages and return to observe retained input state.
 - **Paths** contains a file input, a directory input, and a multiline paths input. In normal mode, `Ctrl-F` or Enter opens the picker with the focused input's configured filter. Tab cycles fields. File and directory selection are both supported.
 - **Guide** (`help`) is a retained text page. Help can also open as a modal.
@@ -86,6 +89,24 @@ The registry identifier is `greet.workspace` (`verb.noun`). The CLI spelling is 
 - In normal mode, `Ctrl-J/K` cycles pages and `:` opens the palette. `Ctrl-Space` opens the palette in any editing mode. `Ctrl-Y` opens yank history, and `PgUp` and `PgDn` scroll. Pages are not numbered; use noun-first palette navigation to search by page title or ID.
 
 The framework also supplies visual selection, registers, macro recording and replay, and branching undo. These are runtime/editor features rather than duplicated configuration formats. See the repository [keyboard guide](../../README.md#keyboard-guide).
+
+### Layout ownership
+
+`Build` enables the shared model's sidebar in `app.go`:
+
+```go
+m := ochazuke.NewModel(r)
+m.Sidebar = true
+```
+
+`Model` owns the application heading, mode indicator, navigation, scrolling, status footer, and modal overlays. The sidebar uses `Runtime.PageOrder` and `Runtime.ActivePage`; it has no second selection state. Apps that leave `Sidebar` false retain the tab layout.
+
+Page renderers receive the content width and height after the shell, sidebar, borders, and padding have been deducted. They return content, not another `Layout.Page`. This prevents nested application shells.
+
+`workspaceView` in `pages.go` composes the field panels with `Layout.Panel`. `PanelContentSize` gives each `InputView` the space inside its panel. The text renderer wraps the Guide to the available width. Page scrolling affects the main content, not the sidebar.
+
+On narrow terminals, the navigation rail stacks above the page. Modal renderers continue to receive bounds from `ModalSize`; `Model` places them over the existing page with `ComposeModal`. Neither page renderers nor modal renderers draw their own full-screen backdrop.
+
 
 ### Noun instances and default actions
 
@@ -169,3 +190,7 @@ go run ./examples/full-project --config ./examples/full-project/config --smoke
 ```
 
 The configuration tests cover external configuration and malformed or missing files. The smoke command drives configured key sequences and real operations, including custom modes, nested modals, picker selection, palette execution, and shared editor state.
+
+`pages_test.go` covers responsive field navigation, visible action feedback, modal-blocked page changes, restored focus after nested modals, and Guide scrolling. The shared layout tests check that the shell displays the entire content area promised to page renderers.
+
+For a terminal check, start at 80×24 and resize to 60×18. Open Paths with `Ctrl-J`, cycle its fields with Tab, then press `Ctrl-S` to see the action result. Open confirmation with `Ctrl-O`, nest details with `Ctrl-N`, and close both with Escape. Paths should retain the focused field. Open Guide and use `PgDn`; the sidebar should stay in place.

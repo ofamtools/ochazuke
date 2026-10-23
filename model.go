@@ -30,7 +30,10 @@ type Model struct {
 	Width      int
 	Height     int
 	Status     string
-	views      map[string]*viewport.Model
+	// Sidebar replaces page tabs with a navigation rail. Existing page operations
+	// remain the only navigation state; input focus and modal routing are unchanged.
+	Sidebar bool
+	views   map[string]*viewport.Model
 }
 
 func NewModel(r *Runtime) *Model {
@@ -172,6 +175,13 @@ func (m *Model) dispatchKey(key MacroKey) error {
 	return err
 }
 func (m *Model) pageSize() (int, int) {
+	width, height := m.surfaceSize()
+	if m.Sidebar {
+		width, height = sidebarMainSize(width, height, width < layoutStackAt)
+	}
+	return max(1, width), max(1, height)
+}
+func (m *Model) surfaceSize() (int, int) {
 	pad := NewStyles(*m.Appearance).Padding
 	return max(1, m.Width-2*pad), max(1, m.Height-6)
 }
@@ -255,7 +265,7 @@ func (m *Model) pageTabs(styles Styles, width int) string {
 
 func (m *Model) View() string {
 	styles := NewStyles(*m.Appearance)
-	width, height := m.pageSize()
+	width, height := m.surfaceSize()
 	pageTitle := ""
 	if page := m.Runtime.Pages[m.Runtime.ActivePage]; page != nil {
 		pageTitle = page.Title
@@ -269,10 +279,26 @@ func (m *Model) View() string {
 	heading = ansi.Truncate(heading, max(0, width-lipgloss.Width(mode)-1), "…")
 	gap := max(1, m.Width-lipgloss.Width(heading)-lipgloss.Width(mode)-2*styles.Padding)
 	heading += strings.Repeat(" ", gap) + mode
-	tabs := m.pageTabs(styles, width)
+	tabs := ""
+	if !m.Sidebar {
+		tabs = m.pageTabs(styles, width)
+	}
 	base := m.Runtime.Frames[0]
-	content := m.pageContent(width, height)
-	page := m.viewport(base, content, width, height).View()
+	pageWidth, pageHeight := m.pageSize()
+	content := m.pageContent(pageWidth, pageHeight)
+	page := m.viewport(base, content, pageWidth, pageHeight).View()
+	if m.Sidebar {
+		titles := make([]string, len(m.Runtime.PageOrder))
+		selected := 0
+		for i, id := range m.Runtime.PageOrder {
+			titles[i] = m.Runtime.Pages[id].Title
+			if id == m.Runtime.ActivePage {
+				selected = i
+			}
+		}
+		layout := Layout{Styles: styles}
+		page = layout.sidebar("Pages", titles, selected, pageTitle, page, width, height, width < layoutStackAt)
+	}
 	footer := "Ctrl-J/K pages · : palette · PgUp/PgDn scroll · Ctrl-C quit"
 	if m.Runtime.Mode(m.Runtime.Context()) == "insert" {
 		footer = "INSERT · Esc normal · Ctrl-A/E line · Ctrl-W/U/K kill · Ctrl-Space palette"

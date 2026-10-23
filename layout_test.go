@@ -130,3 +130,34 @@ func ExampleLayout_Sidebar() {
 	body := layout.Sidebar("Workspace", []string{"Files", "Search", "Settings"}, 1, "Search", "Search results")
 	fmt.Print(layout.Page("Project", "Workspace navigation", body, "↑↓ select · Enter open"))
 }
+
+func TestModelSidebarHonorsPageRenderBounds(t *testing.T) {
+	r := NewRuntime()
+	page := pageTestRegister(t, r, "alpha")
+	m := NewModel(r)
+	m.Sidebar = true
+	if err := r.OpenPage("alpha"); err != nil {
+		t.Fatal(err)
+	}
+	area := 0
+	page.Render = func(_ *Runtime, width, height int) string {
+		area = width * height
+		return strings.TrimSuffix(strings.Repeat(strings.Repeat("░", width)+"\n", height), "\n")
+	}
+	for _, size := range [][2]int{{120, 40}, {80, 24}, {60, 18}} {
+		m.Width, m.Height = size[0], size[1]
+		view := ansi.Strip(m.View())
+		if strings.Count(view, "░") != area || !strings.Contains(view, "▸ ALPHA") {
+			t.Fatalf("%dx%d: sidebar clipped the page's advertised body area:\n%s", size[0], size[1], view)
+		}
+		rows := strings.Split(view, "\n")
+		if len(rows) != size[1] {
+			t.Fatalf("got %d rows, want %d", len(rows), size[1])
+		}
+		for _, row := range rows {
+			if ansi.StringWidth(row) != size[0] {
+				t.Fatalf("unbounded sidebar row: %q", row)
+			}
+		}
+	}
+}

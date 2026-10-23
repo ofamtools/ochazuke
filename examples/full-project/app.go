@@ -34,6 +34,7 @@ func Build(cfg Config) (*ochazuke.Model, error) {
 	}
 	m := ochazuke.NewModel(r)
 	m.Title = cfg.App.Title
+	m.Sidebar = true
 	picker := ochazuke.NewPicker(r)
 	m.Pickers = append(m.Pickers, picker)
 	m.ModalViews["picker"] = ochazuke.ModalView{Title: "Choose a path", Render: func(_ *ochazuke.Runtime, _ *ochazuke.Frame, w, h int) string { return picker.View(w, h) }}
