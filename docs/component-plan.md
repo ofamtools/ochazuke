@@ -162,8 +162,11 @@ The terminal component has a live-input state that captures keyboard input for t
 | `Ctrl+A`, then `d` | Detach from live mode |
 | `Ctrl+A`, then `Ctrl+A` | Send one literal `Ctrl+A` to the inner process |
 | Prefix, then an unbound key | Forward both the configured prefix and the second key, in order, without a hint |
+| Prefix with no second key before the configured timeout | Forward the held prefix once and clear pending-prefix state |
 
 These are sequential keystrokes, not a three-key chord. Every completed sequence clears pending-prefix state. An unbound `Ctrl+C` after the prefix follows the same forwarding rule; there is no separate prefix-cancel shortcut. The user chose forwarding both keys instead of TUIOS's behavior of consuming the prefix and forwarding only the unbound second key.
+
+After expiration, the next key starts ordinary input handling rather than completing the expired sequence. For example, `Ctrl+A`, a pause beyond the timeout, then `d` sends `Ctrl+A` and `d` to the terminal instead of detaching.
 
 Detaching returns control and focus to the surrounding application and restores its normal binding resolution. It does not terminate the terminal session or its running process.
 
@@ -171,7 +174,7 @@ The terminal-daemon client and protocol remain application-level. The component 
 
 Still undecided:
 
-- Whether a pending prefix times out, and how incomplete sequences are handled.
+- The default prefix timeout duration.
 - The exact component/provider API, screen-update representation, resize behavior, and disconnect/reconnect lifecycle.
 
 ### Resume point
