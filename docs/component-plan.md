@@ -176,6 +176,8 @@ The terminal-daemon client and protocol remain application-level. The component 
 
 The user chose daemon-backed terminals. The daemon owns the PTYs, running processes, and persistent terminal state. Ochazuke attaches to those sessions, displays their output, and forwards input and resize requests through the application's adapter. Detaching or closing Ochazuke leaves the daemon sessions running. The widget does not launch or own a local shell process.
 
+The application supplies a daemon name. Startup attaches to that named daemon if it exists; otherwise it creates the daemon and attaches. Callers do not choose separate attach and create paths. Reopening the same name reuses the daemon instead of creating another one. This named attach-or-create behavior does not change the session-lifetime rule above.
+
 Still undecided:
 
 - The exact component/provider API, screen-update representation, resize behavior, and disconnect/reconnect lifecycle.
