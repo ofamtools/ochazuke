@@ -63,7 +63,7 @@ func TestListFocusSelectsItemActionsAndLeavesEditorAlone(t *testing.T) {
 	if err != nil || value != "b" {
 		t.Fatalf("second item action: %v, %v", value, err)
 	}
-	if err := r.Focus(input.ID); err != nil {
+	if err := r.SetFocus(input.ID); err != nil {
 		t.Fatal(err)
 	}
 	editorTestKeys(t, r, "j", "k", "x")
@@ -95,7 +95,7 @@ func TestListRefreshRetainsIdentityAndRestoresHiddenContexts(t *testing.T) {
 	if selected.ID != "two" || r.Context().Path[3] != "two" {
 		t.Fatal("refresh followed the index instead of identity")
 	}
-	if err := r.Push(&Frame{ID: "dialog", Focus: "dialog"}); err != nil {
+	if err := r.Push("dialog", "dialog"); err != nil {
 		t.Fatal(err)
 	}
 	if err := list.SetItems([]ListItem{items[2], items[0]}); err != nil {

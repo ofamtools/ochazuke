@@ -189,10 +189,6 @@ func (g *Grid) SetFilter(keep func(row []string) bool) {
 // Refresh recomputes the visible rows, keeps the cursor on its row, drops
 // marks that fell off the sheet and re-syncs the focus instances by id.
 func (g *Grid) Refresh() {
-	previous := g.id
-	if len(g.live) > 0 {
-		previous = g.live[len(g.live)-1]
-	}
 	keep := -1
 	if g.vrow >= 0 && g.vrow < len(g.visible) {
 		keep = g.visible[g.vrow]
@@ -218,7 +214,7 @@ func (g *Grid) Refresh() {
 	if g.anchor.Row >= len(g.rows) || g.anchor.Col >= len(g.header) {
 		g.anchor = g.Cursor()
 	}
-	g.syncInstances(previous)
+	g.syncInstances()
 }
 
 // Cursor is the focused cell as a reference into the application's rows;
@@ -286,7 +282,7 @@ func isShape(mode string) bool {
 // Shape is the active selection shape: the base mode when it is a shape and
 // the focus sits in the grid (or in a modal opened over it), else "".
 func (g *Grid) Shape() string {
-	if mode := g.r.BaseMode(); isShape(mode) && slices.Contains(g.r.Ancestry(g.r.FocusID()), g.id) {
+	if mode := g.r.BaseMode(); isShape(mode) && slices.Contains(g.r.Ancestry(g.r.Focus), g.id) {
 		return mode
 	}
 	return ""
@@ -465,7 +461,7 @@ func (g *Grid) focusTarget() string {
 }
 
 // Focused reports whether the active frame points at the grid or its cell.
-func (g *Grid) Focused() bool { return g.holds(g.r.FocusID()) }
+func (g *Grid) Focused() bool { return g.holds(g.r.Focus) }
 
 func (g *Grid) holds(focus string) bool {
 	if focus == g.id {
@@ -479,13 +475,15 @@ func (g *Grid) holds(focus string) bool {
 	return false
 }
 
-// Focus points the active frame at the cursor cell.
-func (g *Grid) Focus() error { return g.r.Focus(g.focusTarget()) }
+// Focus points the focus at the cursor cell.
+func (g *Grid) Focus() error { return g.r.SetFocus(g.focusTarget()) }
 
 // syncInstances replaces the column, row and cell instances with the ones
-// for the cursor and moves every frame that pointed into the grid to the new
-// cell, as the list does for its selected row.
-func (g *Grid) syncInstances(previous string) {
+// for the cursor and moves every focus reference that pointed into the grid
+// (the focus, a page's remembered focus, a modal's return) to the new cell,
+// as the list does for its selected row. Both moves stay inside the grid's
+// focus stop, so the mode (a visual shape) is kept.
+func (g *Grid) syncInstances() {
 	var want []string
 	cursor := g.Cursor()
 	if cursor.Row >= 0 {
@@ -495,11 +493,11 @@ func (g *Grid) syncInstances(previous string) {
 	for i := 0; same && i < len(want); i++ {
 		same = want[i] == g.live[i]
 	}
-	old := map[string]bool{}
 	if !same {
-		for _, id := range g.live {
-			old[id] = true
-			delete(g.r.Instances, id)
+		if len(g.live) > 0 {
+			// Removing the outermost drops the row and cell beneath it and
+			// points references into them at the grid.
+			_ = g.r.RemoveInstance(g.live[0])
 		}
 		nouns := []string{g.Nouns.Column, g.Nouns.Row, g.Nouns.Cell}
 		parent := g.id
@@ -509,21 +507,7 @@ func (g *Grid) syncInstances(previous string) {
 		}
 		g.live = want
 	}
-	target := g.focusTarget()
-	if g.r.FocusID() != target && (g.holds(g.r.FocusID()) || old[g.r.FocusID()]) {
-		g.r.CancelPendingBinding()
-	}
-	update := func(frame *ochazuke.Frame) {
-		if frame.Focus != target && (frame.Focus == previous || frame.Focus == g.id || old[frame.Focus]) {
-			frame.Focus = target
-		}
-	}
-	for _, frame := range g.r.Frames {
-		update(frame)
-	}
-	for _, page := range g.r.PageList() {
-		update(page.Frame)
-	}
+	g.r.RetargetFocus(func(id string) bool { return id == g.id }, g.focusTarget())
 }
 
 // At resolves the cell an operation addresses: the focused cell instance when
@@ -544,8 +528,8 @@ func (g *Grid) PendingCommand() tea.Cmd    { return nil }
 
 // Close drops the focus instances.
 func (g *Grid) Close() {
-	for _, id := range g.live {
-		delete(g.r.Instances, id)
+	if len(g.live) > 0 && g.r.Instances[g.live[0]] != nil {
+		_ = g.r.RemoveInstance(g.live[0])
 	}
 	g.live = nil
 }

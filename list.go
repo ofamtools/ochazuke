@@ -56,7 +56,7 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 	r.Instance(id, Parent(spec.parent), Kind(spec.noun))
 	r.Instances[id].Component = list
 	if err := list.SetItems(items); err != nil {
-		r.removeInstance(id)
+		_ = r.RemoveInstance(id)
 		return nil, err
 	}
 	return list, nil
@@ -86,7 +86,7 @@ func (l *List) SetItems(items []ListItem) error {
 		if !ids[old.ID] {
 			gone[old.ID] = true
 			delete(l.marks, old.ID)
-			l.r.removeInstance(old.ID)
+			_ = l.r.RemoveInstance(old.ID)
 		}
 	}
 	for _, item := range items {
@@ -168,10 +168,10 @@ func (l *List) Marked() []ListItem {
 }
 
 // Focus points the active frame at the list's selected row, or the list.
-func (l *List) Focus() error { return l.r.Focus(l.focusTarget()) }
+func (l *List) Focus() error { return l.r.SetFocus(l.focusTarget()) }
 
 // Focused derives focus from the active frame instead of retaining a stale flag.
-func (l *List) Focused() bool { return l.holds(l.r.FocusID()) }
+func (l *List) Focused() bool { return l.holds(l.r.Focus) }
 
 func (l *List) holds(focus string) bool { return focus == l.id || l.r.rows[focus] == l.id }
 
@@ -182,29 +182,17 @@ func (l *List) focusTarget() string {
 	return l.id
 }
 
-// syncFocus moves every frame that pointed at this list or one of its rows
-// to the current row, so hidden page frames and modal parents restore the
-// live selection rather than a removed row's bindings.
+// syncFocus moves every focus reference that pointed at this list or one of
+// its rows to the current row, so hidden pages and modal returns restore
+// the live selection rather than a removed row's bindings.
 func (l *List) syncFocus(previous ListItem, gone map[string]bool) {
 	current, _ := l.Selected()
 	if l.Focused() && (previous.ID != current.ID || previous.Noun != current.Noun) {
 		l.r.CancelPendingBinding()
 	}
-	target := l.focusTarget()
-	update := func(frame *Frame) {
-		if frame.Focus == target {
-			return
-		}
-		if l.holds(frame.Focus) || gone[frame.Focus] || frame.Focus == previous.ID && previous.ID != "" {
-			frame.Focus = target
-		}
-	}
-	for _, frame := range l.r.Frames {
-		update(frame)
-	}
-	for _, page := range l.r.PageList() {
-		update(page.Frame)
-	}
+	l.r.RetargetFocus(func(id string) bool {
+		return l.holds(id) || gone[id] || id == previous.ID && previous.ID != ""
+	}, l.focusTarget())
 }
 
 func (l *List) Snapshot() map[string]any {

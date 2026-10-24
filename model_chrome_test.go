@@ -53,7 +53,7 @@ func TestModelChromeIsLayoutShellWithHintsFromBindings(t *testing.T) {
 				if sidebar && !strings.Contains(view, "▸ ALPHA") || !sidebar && !strings.Contains(rows[1], "› ALPHA") {
 					t.Fatalf("page navigation missing (sidebar=%t):\n%s", sidebar, view)
 				}
-				if footer := rows[size[1]-2]; !hintPrefix(footer, BindingHints(r, r.FocusID())) || !strings.Contains(BindingHints(r, r.FocusID()), "ctrl+j page.next") {
+				if footer := rows[size[1]-2]; !hintPrefix(footer, BindingHints(r, r.Focus)) || !strings.Contains(BindingHints(r, r.Focus), "ctrl+j page.next") {
 					t.Fatalf("footer is not the focus's binding hints: %q", footer)
 				}
 			})
@@ -66,17 +66,17 @@ func TestModelChromeIsLayoutShellWithHintsFromBindings(t *testing.T) {
 		t.Fatal(err)
 	}
 	footer := strings.Split(ansi.Strip(m.View().Content), "\n")[22]
-	hints := BindingHints(r, r.FocusID())
+	hints := BindingHints(r, r.Focus)
 	if !hintPrefix(footer, hints) || !strings.Contains(hints, "ctrl+j page.previous") || strings.Contains(hints, "ctrl+j page.next") {
 		t.Fatalf("footer did not follow the rebinding: %q (%q)", footer, hints)
 	}
 	// An input in insert mode shows the mode badge and lists the editor rows.
-	if err := r.Focus("alpha-input"); err != nil {
+	if err := r.SetFocus("alpha-input"); err != nil {
 		t.Fatal(err)
 	}
 	keytest.Press(m, "i")
 	rows := strings.Split(ansi.Strip(m.View().Content), "\n")
-	if insert := BindingHints(r, r.FocusID()); !strings.HasSuffix(strings.TrimSpace(rows[0]), "INSERT") || !hintPrefix(rows[22], insert) || !strings.Contains(insert, "ctrl+a") {
+	if insert := BindingHints(r, r.Focus); !strings.HasSuffix(strings.TrimSpace(rows[0]), "INSERT") || !hintPrefix(rows[22], insert) || !strings.Contains(insert, "ctrl+a") {
 		t.Fatalf("insert mode chrome: title %q footer %q", rows[0], rows[22])
 	}
 	// An error replaces the hints until the next key.
@@ -87,10 +87,10 @@ func TestModelChromeIsLayoutShellWithHintsFromBindings(t *testing.T) {
 	}
 	// A modal's hint is its focus's rows: the modal noun's esc among them.
 	m.Status = ""
-	if err := r.Push(&Frame{ID: "note", Focus: "app"}); err != nil {
+	if err := r.Push("note", "app"); err != nil {
 		t.Fatal(err)
 	}
-	m.ModalViews["note"] = ModalView{Title: "Note", Render: func(*Runtime, *Frame, int, int) Block { return Text("read me") }}
+	m.ModalViews["note"] = ModalView{Title: "Note", Render: func(*Runtime, *Instance, int, int) Block { return Text("read me") }}
 	if view := ansi.Strip(m.View().Content); !strings.Contains(view, "esc modal.pop") {
 		t.Fatalf("modal hint is not derived from the modal rows:\n%s", view)
 	}

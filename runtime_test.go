@@ -13,7 +13,7 @@ func TestNounActionResolutionAndMissingOnlyFallback(t *testing.T) {
 	if err := r.AddInput(NewInput("field", "", false), Parent("directory")); err != nil {
 		t.Fatal(err)
 	}
-	_ = r.Focus("field")
+	_ = r.SetFocus("field")
 	r.Register(Operation{Verb: "show", Noun: "owner", Run: func(*Runtime, Context, Arguments) (any, error) { return "app", nil }})
 	for _, id := range []string{"page", "agent", "directory"} {
 		name := id
@@ -35,7 +35,7 @@ func TestBindingsOverlayAndSequenceCancellation(t *testing.T) {
 	r := NewRuntime()
 	r.Instance("panel")
 	_ = r.AddInput(NewInput("field", "", false), Parent("panel"))
-	_ = r.Focus("field")
+	_ = r.SetFocus("field")
 	r.Define("app").Mode("normal").Bind("x", Do("app.quit")).Mode("").Bind("g g", Do("app.quit"))
 	r.Define("panel").Mode("").Bind("x", Do("input.insert", Arguments{"text": "inner"}))
 	if handled, err := r.HandleBinding("x"); !handled || err != nil {
@@ -63,11 +63,11 @@ func TestModalRestoresExactInputInstance(t *testing.T) {
 	child := NewInput("child", "", false)
 	_ = r.AddInput(input, Parent("panel"))
 	_ = r.AddInput(child, Parent("child-panel"))
-	_ = r.Focus("editor")
+	_ = r.SetFocus("editor")
 	input.Cursor = 2
 	input.SetMode("insert")
 	_ = input.Replace(2, 2, "X")
-	_ = r.Push(&Frame{ID: "dialog", Focus: "child"})
+	_ = r.Push("dialog", "child")
 	_, _ = r.Execute(Request{Verb: "insert", Noun: "input", Args: Arguments{"text": "child"}})
 	_ = r.Pop()
 	if r.Input(r.Context().InputID) != input || string(input.Text) != "drXaft" || input.Cursor != 3 || input.Mode != "insert" {
@@ -84,7 +84,7 @@ func TestModalRestoresExactInputInstance(t *testing.T) {
 func TestOperationArgumentErrorsDoNotMutateInput(t *testing.T) {
 	r := NewRuntime()
 	_ = r.AddInput(NewInput("field", "safe", false))
-	_ = r.Focus("field")
+	_ = r.SetFocus("field")
 	for _, args := range []Arguments{{"steps": -1}, {"steps": 1.5}, {"steps": "2"}, {"unknown": true}} {
 		if _, err := r.Execute(Request{Verb: "undo", Noun: "input", Args: args}); err == nil {
 			t.Fatalf("expected error for %#v", args)

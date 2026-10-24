@@ -29,7 +29,7 @@ func (p *Palette) activeEditor() *Input {
 	return nil
 }
 func (p *Palette) focusEditor() {
-	if p.frame == nil {
+	if !p.IsOpen() {
 		return
 	}
 	focus := "palette"
@@ -37,12 +37,12 @@ func (p *Palette) focusEditor() {
 	if in != nil {
 		focus = in.ID
 	}
-	moved := p.r.FocusID() != focus
+	moved := p.r.ModalFocus(paletteID) != focus
 	cursor := 0
 	if in != nil {
 		cursor = in.Cursor
 	}
-	p.r.setFocus(p.frame, focus)
+	p.r.setModalFocus(paletteID, focus)
 	// A field the palette moves to types again where its cursor was.
 	if in != nil && moved {
 		in.SetMode("insert")
@@ -75,4 +75,4 @@ func (p *Palette) collectEditors() {
 }
 
 // IsActive reports whether the palette is the top modal.
-func (p *Palette) IsActive() bool { return p.IsOpen() && p.r.top() == p.frame }
+func (p *Palette) IsActive() bool { return p.IsOpen() && p.r.TopModal() == paletteID }

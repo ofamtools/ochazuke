@@ -133,7 +133,7 @@ func TestComponentDeliveryAccumulatesIndependentJobs(t *testing.T) {
 	}
 	// The instance registry drives the component list: a removed instance
 	// is closed, and a message for nobody is not consumed.
-	r.removeInstance("job")
+	_ = r.RemoveInstance("job")
 	if comp.closed != 2 {
 		t.Fatalf("removeInstance must close the component: %d", comp.closed)
 	}
@@ -288,8 +288,8 @@ func TestApplicationVerbRunsOffTheLoop(t *testing.T) {
 	}
 	// Keys are handled while the work is outstanding.
 	editorTestKeys(t, r, "j")
-	if r.FocusID() != "two" {
-		t.Fatalf("key handling blocked: focus %s", r.FocusID())
+	if r.Focus != "two" {
+		t.Fatalf("key handling blocked: focus %s", r.Focus)
 	}
 	done := make(chan []tea.Msg, 1)
 	go func() { done <- runCmd(cmd) }()
@@ -346,27 +346,27 @@ func TestConfirmCompilesToAModalWithPayload(t *testing.T) {
 	}
 	editorTestKeys(t, r, "d")
 	inst := r.Instances["confirm"]
-	if len(r.Frames) != 2 || r.FocusID() != "confirm" || inst == nil || inst.Parent != "one" || inst.Payload.Prompt != "Remove a one?" || inst.Payload.Request == nil || !inst.Payload.Request.Confirmed || inst.Payload.Request.Target != "one" {
-		t.Fatalf("confirm modal: frames=%d focus=%s inst=%+v", len(r.Frames), r.FocusID(), inst)
+	if len(r.Modals()) != 1 || r.Focus != "confirm" || inst == nil || inst.Parent != "one" || inst.Payload.Prompt != "Remove a one?" || inst.Payload.Request == nil || !inst.Payload.Request.Confirmed || inst.Payload.Request.Target != "one" {
+		t.Fatalf("confirm modal: frames=%d focus=%s inst=%+v", len(r.Modals()), r.Focus, inst)
 	}
 	if rows := r.ListBindings("confirm"); !slices.ContainsFunc(rows, func(b Binding) bool { return b.Keys == "y" && b.Request.Key() == "confirm.accept" }) {
 		t.Fatalf("confirm rows: %+v", rows)
 	}
 	editorTestKeys(t, r, "d", "x") // swallowed: no second confirm, no removal
-	if len(r.Frames) != 2 || len(removed) != 0 {
-		t.Fatalf("other keys must be swallowed: frames=%d removed=%v", len(r.Frames), removed)
+	if len(r.Modals()) != 1 || len(removed) != 0 {
+		t.Fatalf("other keys must be swallowed: frames=%d removed=%v", len(r.Modals()), removed)
 	}
 	editorTestKeys(t, r, "n")
-	if len(r.Frames) != 1 || r.Instances["confirm"] != nil || len(removed) != 0 || r.FocusID() != "one" {
-		t.Fatalf("n must pop without running: frames=%d removed=%v focus=%s", len(r.Frames), removed, r.FocusID())
+	if len(r.Modals()) != 0 || r.Instances["confirm"] != nil || len(removed) != 0 || r.Focus != "one" {
+		t.Fatalf("n must pop without running: frames=%d removed=%v focus=%s", len(r.Modals()), removed, r.Focus)
 	}
 	editorTestKeys(t, r, "d", "esc")
-	if len(r.Frames) != 1 || len(removed) != 0 {
+	if len(r.Modals()) != 0 || len(removed) != 0 {
 		t.Fatal("esc must pop without running")
 	}
 	editorTestKeys(t, r, "d", "y")
-	if len(r.Frames) != 1 || !reflect.DeepEqual(removed, []string{"one"}) {
-		t.Fatalf("y must run the stored request at its origin: frames=%d removed=%v", len(r.Frames), removed)
+	if len(r.Modals()) != 0 || !reflect.DeepEqual(removed, []string{"one"}) {
+		t.Fatalf("y must run the stored request at its origin: frames=%d removed=%v", len(r.Modals()), removed)
 	}
 	// A confirmed request from a script skips the prompt; OpenModal is the
 	// generic form behind it.
@@ -377,14 +377,14 @@ func TestConfirmCompilesToAModalWithPayload(t *testing.T) {
 		t.Fatalf("confirm.set removal: %v", err)
 	}
 	editorTestKeys(t, r, "d")
-	if len(r.Frames) != 1 || len(removed) != 3 {
+	if len(r.Modals()) != 0 || len(removed) != 3 {
 		t.Fatal("a removed confirm runs the verb directly")
 	}
 	if _, err := r.Execute(Request{Verb: "set", Noun: "confirm", Args: Arguments{"operation": "a.remove", "prompt": "Sure?"}}); err != nil {
 		t.Fatal(err)
 	}
 	editorTestKeys(t, r, "d")
-	if r.FocusID() != "confirm" || r.Instances["confirm"].Payload.Prompt != "Sure?" {
+	if r.Focus != "confirm" || r.Instances["confirm"].Payload.Prompt != "Sure?" {
 		t.Fatal("confirm.set must add a prompt")
 	}
 	if body, err := r.OpenModal("confirm", Payload{}); err == nil || body != nil {
@@ -407,8 +407,8 @@ func TestRuntimeHoldsNoComponentFields(t *testing.T) {
 	}
 	sort.Strings(fields)
 	want := []string{
-		"BindingTimeout", "Frames", "Instances", "Mode", "Modes", "Nouns", "Operations", "Page", "Pending", "Quit",
-		"bindingVersion", "commands", "deprecations", "guards", "jobSeq", "jobs", "modalInstances", "modeGeneration", "pendingModes", "prefix", "rows", "seq",
+		"BindingTimeout", "Focus", "Instances", "Mode", "Modes", "Nouns", "Operations", "Page", "Pending", "Quit",
+		"bindingVersion", "commands", "deprecations", "guards", "jobSeq", "jobs", "modalInstances", "modals", "modeGeneration", "pendingModes", "prefix", "rows", "seq",
 	}
 	if !reflect.DeepEqual(fields, want) {
 		t.Fatalf("Runtime fields:\n got %v\nwant %v", fields, want)
@@ -475,7 +475,7 @@ func TestEditorFallbackNeedsAnInputOnThePath(t *testing.T) {
 	}(), " "), "q") {
 		t.Fatal("q is an app row")
 	}
-	if err := r.Focus(input.ID); err != nil {
+	if err := r.SetFocus(input.ID); err != nil {
 		t.Fatal(err)
 	}
 	if !slices.ContainsFunc(r.ListBindings(input.ID), func(b Binding) bool { return b.Noun == "editor" }) {

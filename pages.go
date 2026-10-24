@@ -6,17 +6,19 @@ import (
 	"strings"
 )
 
-// Page is the component a page instance fronts: a title, the base frame that
-// remembers where focus sits on the page, and a renderer. Render returns the
+// Page is the component a page instance fronts: a title, the instance it
+// starts focused on (Focus), the focus it remembers while another page is
+// open (Remembered, restored with its mode by OpenPage), and a renderer. Render returns the
 // page body for the given cell bounds as a Block; its cursor, when the page
 // holds the focused input, is relative to the body's top-left cell. Pages
 // without inputs return Text(body).
 type Page struct {
-	ID     string                         `json:"id"`
-	Title  string                         `json:"title"`
-	Focus  string                         `json:"focus"`
-	Frame  *Frame                         `json:"frame"`
-	Render func(*Runtime, int, int) Block `json:"-"`
+	ID         string                         `json:"id"`
+	Title      string                         `json:"title"`
+	Focus      string                         `json:"focus"`
+	Remembered string                         `json:"remembered"`
+	Render     func(*Runtime, int, int) Block `json:"-"`
+	mode       ModeState
 }
 
 // AddPage registers a page instance of kind page under app with a title and
@@ -78,10 +80,10 @@ func (r *Runtime) RegisterPage(page *Page, opts ...InstanceOption) error {
 	}
 	inst := r.Instance(page.ID, append([]InstanceOption{Kind("page")}, opts...)...)
 	inst.Component = page
-	page.Frame = &Frame{ID: page.ID, Focus: page.Focus}
+	page.Remembered = page.Focus
 	if list := r.List(page.Focus); list != nil {
 		// A page that starts on a list starts on its selected row.
-		page.Frame.Focus = list.focusTarget()
+		page.Remembered = list.focusTarget()
 	}
 	return nil
 }
@@ -107,29 +109,33 @@ func (r *Runtime) PageList() []*Page {
 	return out
 }
 
-// OpenPage makes a page current and restores its exact base frame; an open
-// modal blocks navigation. Runtime.Page always lies on the base frame's focus.
+// OpenPage makes a page current and restores the focus and mode it was left
+// in; an open modal blocks navigation. Runtime.Page is always an ancestor of
+// the focus.
 func (r *Runtime) OpenPage(id string) error {
 	page := r.PageOf(id)
 	if page == nil {
 		return fmt.Errorf("unknown page %q", id)
 	}
-	if len(r.Frames) > 1 {
+	if len(r.modals) > 0 {
 		return errors.New("close the active modal before opening a page")
 	}
-	from := r.FocusID()
+	from := r.Focus
 	stop, path := r.stopOf(from), r.Ancestry(from)
 	r.CancelPendingBinding()
 	if current := r.PageOf(r.Page); current != nil {
-		// The page being left remembers its mode with its focus.
-		current.Frame.mode = ModeState{Name: r.BaseMode()}
+		// The page being left remembers its focus and mode.
+		current.Remembered, current.mode = from, ModeState{Name: r.BaseMode()}
 	}
-	r.Frames = []*Frame{page.Frame}
+	if r.Instances[page.Remembered] == nil {
+		page.Remembered, page.mode = page.ID, ModeState{}
+	}
+	r.Focus = page.Remembered
 	r.Page = id
-	if page.Frame.mode.Name != "" {
-		r.restoreMode(page.Frame.mode, path)
-	} else if r.FocusID() != from {
-		r.focusMoved(stop, path, r.FocusID())
+	if page.mode.Name != "" {
+		r.restoreMode(page.mode, path)
+	} else if r.Focus != from {
+		r.focusMoved(stop, path, r.Focus)
 	}
 	return nil
 }

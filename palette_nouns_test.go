@@ -53,8 +53,8 @@ func TestPalettePageInstancesAreLiveAndSearchable(t *testing.T) {
 		t.Fatalf("published choices = %#v", entries)
 	}
 	paletteChoose(t, r, entries[0].Value)
-	if p.IsOpen() || r.Page != "late-page" || len(r.Frames) != 1 {
-		t.Fatalf("instance did not open page and close palette: page=%s frames=%d", r.Page, len(r.Frames))
+	if p.IsOpen() || r.Page != "late-page" || len(r.Modals()) != 0 {
+		t.Fatalf("instance did not open page and close palette: page=%s frames=%d", r.Page, len(r.Modals()))
 	}
 }
 
@@ -118,8 +118,7 @@ func TestPaletteInstanceFailurePreservesModalAndOrigin(t *testing.T) {
 	pageTestRegister(t, r, "target")
 	paletteRequest(t, r, "open", "page", Arguments{"id": "home"})
 	paletteRequest(t, r, "focus", "input", Arguments{"id": "home-input"})
-	modal := &Frame{ID: "dialog", Focus: r.FocusID()}
-	if err := r.Push(modal); err != nil {
+	if err := r.Push("dialog", r.Focus); err != nil {
 		t.Fatal(err)
 	}
 	origin := r.Context()
@@ -127,11 +126,11 @@ func TestPaletteInstanceFailurePreservesModalAndOrigin(t *testing.T) {
 	paletteRequest(t, r, "open", "palette", nil)
 	paletteChoose(t, r, "noun:page")
 	_, err := r.Execute(Request{Verb: "select", Noun: "palette", Args: Arguments{"value": "instance:target"}})
-	if err == nil || !strings.Contains(err.Error(), "modal") || !p.IsOpen() || len(r.Frames) != 3 || r.Frames[1] != modal || r.Page != "home" || !reflect.DeepEqual(p.origin, origin) {
+	if err == nil || !strings.Contains(err.Error(), "modal") || !p.IsOpen() || len(r.Modals()) != 2 || r.Modals()[0].ID != "dialog" || r.Page != "home" || !reflect.DeepEqual(p.origin, origin) {
 		t.Fatalf("failed instance lost modal/origin: err=%v state=%#v", err, p.state())
 	}
 	paletteRequest(t, r, "close", "palette", nil)
-	if !reflect.DeepEqual(r.Context(), origin) || len(r.Frames) != 2 {
+	if !reflect.DeepEqual(r.Context(), origin) || len(r.Modals()) != 1 {
 		t.Fatal("closing failed palette lost modal focus")
 	}
 	paletteRequest(t, r, "pop", "modal", nil)

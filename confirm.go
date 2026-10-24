@@ -20,7 +20,7 @@ func registerConfirm(r *Runtime) {
 		Bind("esc", Do("modal.pop")).
 		Pattern(Any, Do("key.ignore"))
 	r.Register(Operation{Verb: "accept", Noun: "confirm", Description: "Run the request the open confirm modal holds and close it", Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		inst := r.Instances[r.top().ID]
+		inst := r.Instances[r.TopModal()]
 		if inst == nil || inst.Noun != "confirm" || inst.Payload.Request == nil {
 			return nil, errors.New("no confirm modal is open")
 		}
@@ -84,8 +84,7 @@ func (r *Runtime) openConfirm(c Context, q Request, op Operation) (any, error) {
 }
 
 // confirmView renders the confirm modal body.
-func confirmView(r *Runtime, f *Frame, width, height int) Block {
-	inst := r.Instances[f.ID]
+func confirmView(r *Runtime, inst *Instance, width, height int) Block {
 	if inst == nil {
 		return Text("")
 	}

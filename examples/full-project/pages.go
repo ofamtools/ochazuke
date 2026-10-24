@@ -69,7 +69,7 @@ func registerPages(m *ochazuke.Model, specs []PageConfig) error {
 			if spec.Renderer == "terminal" {
 				return terminalPageView(r, term, spec, styles, width, height)
 			}
-			return workspaceView(r, r.PageOf(spec.ID).Frame, spec, styles, width, height)
+			return workspaceView(r, r.PageFocus(spec.ID), spec, styles, width, height)
 		}
 		if _, err := m.Runtime.AddPage(spec.ID, spec.Title, render, ochazuke.Focus(spec.Focus)); err != nil {
 			return fmt.Errorf("page %q: %w", spec.ID, err)
@@ -92,7 +92,7 @@ func pageState(id string) map[string]any {
 
 // workspaceView keeps all fields visible when they fit. Small windows show the
 // focused field instead; Tab still visits every configured field in order.
-func workspaceView(r *ochazuke.Runtime, frame *ochazuke.Frame, spec PageConfig, styles ochazuke.Styles, width, height int) ochazuke.Block {
+func workspaceView(r *ochazuke.Runtime, focus string, spec PageConfig, styles ochazuke.Styles, width, height int) ochazuke.Block {
 	var status []string
 	state := pageState(spec.ID)
 	for _, key := range []string{"lastAction", "summary", "greeting", "inspection"} {
@@ -106,7 +106,7 @@ func workspaceView(r *ochazuke.Runtime, frame *ochazuke.Frame, spec PageConfig, 
 		if r.Input(id).Multiline {
 			minimum++
 		}
-		if frame.Focus == id {
+		if focus == id {
 			selected = i
 		}
 	}
@@ -138,7 +138,7 @@ func workspaceView(r *ochazuke.Runtime, frame *ochazuke.Frame, spec PageConfig, 
 			label += " · " + input.PathFilter
 		}
 		// Only the focused field carries a cursor; the panel moves it inside its border.
-		focused := frame.Focus == id
+		focused := focus == id
 		body := ochazuke.InputBlock(input, contentWidth, contentHeight)
 		if !focused {
 			body.Cursor = nil

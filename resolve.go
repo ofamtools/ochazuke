@@ -45,8 +45,8 @@ func (r *Runtime) stack(focus string) []level {
 	}
 	for i, id := range ancestry {
 		inst := r.Instances[id]
-		if i == len(ancestry)-1 && len(r.Frames) > 1 {
-			frame := r.Instances[r.top().ID]
+		if i == len(ancestry)-1 && len(r.modals) > 0 {
+			frame := r.Instances[r.TopModal()]
 			if frame != nil && onStack[frame.ID] {
 				frame = nil
 			}
@@ -71,7 +71,7 @@ func (r *Runtime) Dispatch(key MacroKey) (bool, error) {
 	if err := r.expirePrefix(); err != nil {
 		return true, err
 	}
-	focus := r.FocusID()
+	focus := r.Focus
 	mode := r.Mode
 	if r.Registers().Macro.Recording != "" && r.Registers().Macro.Depth == 0 {
 		shadow := mode
@@ -301,7 +301,7 @@ func (r *Runtime) enterMode(name string, payload Payload) {
 	payload.Return = r.BaseMode()
 	r.setMode(ModeState{Name: name, Payload: payload})
 	if payload.Prefix != "" {
-		r.armPrefix(r.FocusID(), name, payload.Prefix)
+		r.armPrefix(r.Focus, name, payload.Prefix)
 	}
 }
 
@@ -440,7 +440,7 @@ func (r *Runtime) prefixStillPending() bool {
 	if r.Pending == "" || r.prefix.focus == "" {
 		return false
 	}
-	return r.Mode.Name == r.prefix.mode && r.FocusID() == r.prefix.focus
+	return r.Mode.Name == r.prefix.mode && r.Focus == r.prefix.focus
 }
 
 // expirePrefix resolves a sequence whose deadline passed before the next key.

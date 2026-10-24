@@ -100,7 +100,7 @@ func TestTerminalLeaderForwardsBoundRunsAndTimeoutForwardsPrefix(t *testing.T) {
 	r.Define("terminal").Mode("leader_pending").Bind("c", Do("test.new-window"))
 	mode := func() string { return r.Mode.Name }
 	if !term.Focused() || mode() != "terminal" {
-		t.Fatalf("focus %q mode %q", r.FocusID(), mode())
+		t.Fatalf("focus %q mode %q", r.Focus, mode())
 	}
 	press(t, r, "x", "esc", "ctrl+c")
 	if !reflect.DeepEqual(stream.sent, [][]string{{"x"}, {"esc"}, {"ctrl+c"}}) {
@@ -124,8 +124,8 @@ func TestTerminalLeaderForwardsBoundRunsAndTimeoutForwardsPrefix(t *testing.T) {
 	press(t, r, "ctrl+a")
 	r.prefix.deadline = time.Now().Add(-time.Second)
 	press(t, r, "d")
-	if got := stream.sent[6:]; !reflect.DeepEqual(got, [][]string{{"ctrl+a"}, {"d"}}) || mode() != "terminal" || r.FocusID() != "pane" {
-		t.Fatalf("expired leader then d: %v mode %q focus %q", got, mode(), r.FocusID())
+	if got := stream.sent[6:]; !reflect.DeepEqual(got, [][]string{{"ctrl+a"}, {"d"}}) || mode() != "terminal" || r.Focus != "pane" {
+		t.Fatalf("expired leader then d: %v mode %q focus %q", got, mode(), r.Focus)
 	}
 	// Timeout through the timer message.
 	press(t, r, "ctrl+a")
@@ -142,11 +142,11 @@ func TestTerminalLeaderForwardsBoundRunsAndTimeoutForwardsPrefix(t *testing.T) {
 	}
 	// d under the leader detaches: focus returns to the page and keys stop forwarding.
 	press(t, r, "ctrl+a", "d")
-	if r.FocusID() != "console" || mode() != "normal" || len(stream.sent) != 9 {
-		t.Fatalf("detach: focus %q mode %q sent %v", r.FocusID(), mode(), stream.sent)
+	if r.Focus != "console" || mode() != "normal" || len(stream.sent) != 9 {
+		t.Fatalf("detach: focus %q mode %q sent %v", r.Focus, mode(), stream.sent)
 	}
-	if _, err := r.Execute(Request{Verb: "attach", Noun: "terminal", Args: Arguments{"id": "pane"}}); err != nil || r.FocusID() != "pane" {
-		t.Fatalf("attach: %v focus %q", err, r.FocusID())
+	if _, err := r.Execute(Request{Verb: "attach", Noun: "terminal", Args: Arguments{"id": "pane"}}); err != nil || r.Focus != "pane" {
+		t.Fatalf("attach: %v focus %q", err, r.Focus)
 	}
 	// Paste forwards as text, in and out of the leader.
 	if _, err := r.Dispatch(MacroKey{Key: "[ls -la]", Paste: true}); err != nil {
@@ -341,8 +341,8 @@ func TestInstanceConstructorsShareOptions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if page.Frame.Focus != "a" || r.PageOf("home") != page {
-		t.Fatalf("page starts on the list's selected row: %+v", page.Frame)
+	if page.Remembered != "a" || r.PageOf("home") != page {
+		t.Fatalf("page starts on the list's selected row: %+v", page)
 	}
 	for id, parent := range map[string]string{"rows": "home", "note": "home", "pane": "home", "a": "rows"} {
 		if inst := r.Instances[id]; inst == nil || inst.Parent != parent {

@@ -21,7 +21,7 @@ func pickerFixture(t *testing.T, text, kind, filter string, cursor int) (*Runtim
 	if err := r.AddInput(in); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Focus(in.ID); err != nil {
+	if err := r.SetFocus(in.ID); err != nil {
 		t.Fatal(err)
 	}
 	p := NewPicker(r)

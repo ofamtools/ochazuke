@@ -13,7 +13,7 @@ func main() {
 	r.Instance("dialog")
 	must(r.AddInput(ochazuke.NewInput("directory", "/tmp", false), ochazuke.Parent("field")))
 	must(r.AddInput(ochazuke.NewInput("picker", "/home", false), ochazuke.Parent("dialog")))
-	must(r.Focus("directory"))
+	must(r.SetFocus("directory"))
 	exec := func(q ochazuke.Request) any { v, e := r.Execute(q); must(e); return v }
 	exec(ochazuke.Request{Verb: "insert", Noun: "input", Args: ochazuke.Arguments{"text": "x"}})
 	exec(ochazuke.Request{Verb: "push", Noun: "modal", Args: ochazuke.Arguments{"id": "picker", "input": "picker"}})

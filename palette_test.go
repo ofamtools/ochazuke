@@ -51,7 +51,7 @@ func TestPaletteVerbAndNounPaths(t *testing.T) {
 			if err := r.AddInput(in); err != nil {
 				t.Fatal(err)
 			}
-			if err := r.Focus("draft"); err != nil {
+			if err := r.SetFocus("draft"); err != nil {
 				t.Fatal(err)
 			}
 			p := NewPalette(r)
@@ -122,7 +122,7 @@ func TestPaletteKeyboardUndoUsesCapturedInput(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := r.Focus("origin"); err != nil {
+	if err := r.SetFocus("origin"); err != nil {
 		t.Fatal(err)
 	}
 	for _, text := range []string{"1", "2", "3"} {
@@ -142,7 +142,7 @@ func TestPaletteKeyboardUndoUsesCapturedInput(t *testing.T) {
 		t.Fatal("navigation changed originating input")
 	}
 	// Changing overlay focus must not retarget the selected command.
-	if err := r.Focus("other"); err != nil {
+	if err := r.SetFocus("other"); err != nil {
 		t.Fatal(err)
 	}
 	paletteKeys(t, p, "2", "enter", "enter")
@@ -163,7 +163,7 @@ func TestPaletteOptionalUndoStepsCanBeOmitted(t *testing.T) {
 	if err := r.AddInput(in); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Focus("draft"); err != nil {
+	if err := r.SetFocus("draft"); err != nil {
 		t.Fatal(err)
 	}
 	if err := in.Replace(1, 1, "b"); err != nil {
@@ -276,8 +276,8 @@ func TestPaletteHandlerFailureRestoresOverlayAndDraft(t *testing.T) {
 	paletteChoose(t, r, "verb:publish", "record")
 	paletteKeys(t, p, "bad", "enter")
 	handled, err := p.HandleKey("enter")
-	if !handled || err == nil || !p.IsOpen() || len(r.Frames) != 2 {
-		t.Fatalf("failed execution lost overlay: handled=%v err=%v frames=%d", handled, err, len(r.Frames))
+	if !handled || err == nil || !p.IsOpen() || len(r.Modals()) != 1 {
+		t.Fatalf("failed execution lost overlay: handled=%v err=%v frames=%d", handled, err, len(r.Modals()))
 	}
 	if view := p.View(); !strings.Contains(view, "publication rejected") || !strings.Contains(view, "\"bad\"") {
 		t.Fatalf("error/draft not visible:\n%s", view)
@@ -294,7 +294,7 @@ func TestPaletteSearchNavigationAndCancellation(t *testing.T) {
 	if err := r.AddInput(in); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Focus("draft"); err != nil {
+	if err := r.SetFocus("draft"); err != nil {
 		t.Fatal(err)
 	}
 	before := paletteInputSnapshot(t, in)
@@ -350,7 +350,7 @@ func TestPaletteRecursiveExecutionIsVisibleAndCancelable(t *testing.T) {
 		t.Fatalf("recursive execution: %v\n%s", err, p.View())
 	}
 	paletteKeys(t, p, "ctrl+c")
-	if p.IsOpen() || len(r.Frames) != 1 {
+	if p.IsOpen() || len(r.Modals()) != 0 {
 		t.Fatal("recursive execution prevented cancellation")
 	}
 }
@@ -362,7 +362,7 @@ func TestPaletteSelectedFocusChangesOriginFrame(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := r.Focus("first"); err != nil {
+	if err := r.SetFocus("first"); err != nil {
 		t.Fatal(err)
 	}
 	p := NewPalette(r)
@@ -372,7 +372,7 @@ func TestPaletteSelectedFocusChangesOriginFrame(t *testing.T) {
 	paletteChoose(t, r, "verb:focus", "input")
 	paletteRequest(t, r, "set", "palette-argument", Arguments{"name": "id", "value": "second"})
 	paletteRequest(t, r, "execute", "palette", nil)
-	if p.IsOpen() || len(r.Frames) != 1 || r.Context().InputID != "second" {
+	if p.IsOpen() || len(r.Modals()) != 0 || r.Context().InputID != "second" {
 		t.Fatalf("focus was applied to discarded overlay: %+v", r.Context())
 	}
 }

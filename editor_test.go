@@ -80,7 +80,7 @@ func TestRegisterAppendBlackHoleAndCrossFieldPaste(t *testing.T) {
 	if err := r.AddInput(second); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Focus(second.ID); err != nil {
+	if err := r.SetFocus(second.ID); err != nil {
 		t.Fatal(err)
 	}
 	editorTestKeys(t, r, "\"", "a", "p")
@@ -102,7 +102,7 @@ func TestPathKillGlobalHistoryAndLiteralPaste(t *testing.T) {
 	if err := r.AddInput(second); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Focus(second.ID); err != nil {
+	if err := r.SetFocus(second.ID); err != nil {
 		t.Fatal(err)
 	}
 	editorTestKeys(t, r, "i", "ctrl+y")
@@ -117,7 +117,7 @@ func TestBlockPasteRaggedUnicodeAndUndo(t *testing.T) {
 	if err := r.AddInput(second); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Focus(second.ID); err != nil {
+	if err := r.SetFocus(second.ID); err != nil {
 		t.Fatal(err)
 	}
 	editorTestKeys(t, r, "l", "P")
@@ -168,7 +168,7 @@ func TestMacrosDispatchModesCountsFocusAndLiteralPaste(t *testing.T) {
 		t.Fatal(err)
 	}
 	modelEditorKeys(t, m, "esc", "q")
-	if err := r.Focus(in.ID); err != nil {
+	if err := r.SetFocus(in.ID); err != nil {
 		t.Fatal(err)
 	}
 	modelEditorKeys(t, m, "@", "b")
@@ -190,7 +190,7 @@ func TestMacroRecursiveSafeguardAndPrefixPriority(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "recursion") {
 		t.Fatalf("recursive macro: %v", err)
 	}
-	if r.Quit || r.Registers().Macro.Depth != 0 || r.Mode.Name != "normal" || in.Pending() != "" || len(r.Frames) != 1 {
+	if r.Quit || r.Registers().Macro.Depth != 0 || r.Mode.Name != "normal" || in.Pending() != "" || len(r.Modals()) != 0 {
 		t.Fatalf("recursive macro left context: %+v mode=%s", r.Registers().Macro, r.Mode.Name)
 	}
 }
@@ -198,7 +198,7 @@ func TestYankHistoryModalRestoresFocusWithoutInsertion(t *testing.T) {
 	r, in := editorTestRuntime(t, "one two", true)
 	m := NewModel(r)
 	modelEditorKeys(t, m, "y", "w", "w", "y", "e", "ctrl+y", "j")
-	if len(r.Frames) != 2 {
+	if len(r.Modals()) != 1 {
 		t.Fatal("no yank modal")
 	}
 	view := m.View().Content
@@ -206,7 +206,7 @@ func TestYankHistoryModalRestoresFocusWithoutInsertion(t *testing.T) {
 		t.Fatal("history renderer absent")
 	}
 	modelEditorKeys(t, m, "enter")
-	if len(r.Frames) != 1 || r.Context().InputID != in.ID || string(in.Text) != "one two" {
+	if len(r.Modals()) != 0 || r.Context().InputID != in.ID || string(in.Text) != "one two" {
 		t.Fatal("history selection inserted or lost origin")
 	}
 	modelEditorKeys(t, m, "p")
@@ -225,7 +225,7 @@ func TestPathsMetadataNormalizesAndEditorRemainsAvailable(t *testing.T) {
 	if !in.Multiline || in.Snapshot()["kind"] != "paths" {
 		t.Fatal("paths not normalized")
 	}
-	if err := r.Focus(in.ID); err != nil {
+	if err := r.SetFocus(in.ID); err != nil {
 		t.Fatal(err)
 	}
 	editorTestKeys(t, r, "o", "three", "esc")
@@ -281,7 +281,7 @@ func TestMacroStepLimitAndErrorModalCleanup(t *testing.T) {
 		t.Fatal("step bound left replay active")
 	}
 	r.Register(Operation{Verb: "fail", Noun: "editor-test", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		if err := r.Push(&Frame{ID: "macro-test-modal", Focus: "app"}); err != nil {
+		if err := r.Push("macro-test-modal", "app"); err != nil {
 			return nil, err
 		}
 		return nil, fmt.Errorf("expected macro failure")
@@ -290,8 +290,8 @@ func TestMacroStepLimitAndErrorModalCleanup(t *testing.T) {
 	r.Registers().Named["b"] = Register{Keys: []MacroKey{{Key: "ctrl+t"}}}
 	modelEditorKeys(t, m, "@")
 	_, err = r.Dispatch(MacroKey{Key: "b"})
-	if err == nil || err.Error() != "expected macro failure" || len(r.Frames) != 1 {
-		t.Fatalf("failed replay: frames=%d err=%v", len(r.Frames), err)
+	if err == nil || err.Error() != "expected macro failure" || len(r.Modals()) != 0 {
+		t.Fatalf("failed replay: frames=%d err=%v", len(r.Modals()), err)
 	}
 }
 

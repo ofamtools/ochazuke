@@ -54,7 +54,7 @@ func TestResponsiveFieldsAndModalRestoration(t *testing.T) {
 	before := m.Runtime.Context().Clone()
 	key("ctrl+o")
 	key("ctrl+n")
-	if len(m.Runtime.Frames) != 3 {
+	if len(m.Runtime.Modals()) != 2 {
 		t.Fatal("nested modal did not open")
 	}
 	key("ctrl+j")
@@ -63,7 +63,7 @@ func TestResponsiveFieldsAndModalRestoration(t *testing.T) {
 	}
 	key("esc")
 	key("esc")
-	if len(m.Runtime.Frames) != 1 || !reflect.DeepEqual(m.Runtime.Context(), before) || !strings.Contains(ansi.Strip(m.View().Content), "examples") {
+	if len(m.Runtime.Modals()) != 0 || !reflect.DeepEqual(m.Runtime.Context(), before) || !strings.Contains(ansi.Strip(m.View().Content), "examples") {
 		t.Fatalf("modal close failed to restore selected field: %+v\n%s", m.Runtime.Context(), m.View().Content)
 	}
 	if _, err := m.Runtime.Execute(ochazuke.Request{Verb: "open", Noun: "page", Args: ochazuke.Arguments{"id": "help"}}); err != nil {

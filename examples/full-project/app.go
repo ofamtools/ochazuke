@@ -60,7 +60,9 @@ func Build(cfg Config) (*ochazuke.Model, error) {
 	m.Title = cfg.App.Title
 	m.Sidebar = true
 	picker := ochazuke.NewPicker(r)
-	m.ModalViews["picker"] = ochazuke.ModalView{Title: "Choose a path", Render: func(_ *ochazuke.Runtime, _ *ochazuke.Frame, w, h int) ochazuke.Block { return picker.ViewBlock(w, h) }}
+	m.ModalViews["picker"] = ochazuke.ModalView{Title: "Choose a path", Render: func(_ *ochazuke.Runtime, _ *ochazuke.Instance, w, h int) ochazuke.Block {
+		return picker.ViewBlock(w, h)
+	}}
 	appearance := ochazuke.Arguments{}
 	if cfg.App.Appearance.Theme != "" {
 		appearance["theme"] = cfg.App.Appearance.Theme

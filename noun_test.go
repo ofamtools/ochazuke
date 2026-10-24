@@ -36,7 +36,7 @@ func TestDefineBuilderBindsVerbsActionsAndRows(t *testing.T) {
 		t.Fatalf("Bind must replace by key and Unbind remove: %+v", rows)
 	}
 	r.Instance("p", Kind("panel"))
-	if err := r.Focus("p"); err != nil {
+	if err := r.SetFocus("p"); err != nil {
 		t.Fatal(err)
 	}
 	if v, _ := r.Execute(Request{Verb: "quit", Noun: "app"}); v != "panel" || r.Quit {
@@ -63,7 +63,7 @@ func TestResolveWalksStackInnerToOuter(t *testing.T) {
 	r.Define("app").Mode("normal").Bind("x", Do("test.app-normal")).Mode("").Bind("y", Do("test.app-any"))
 	r.Define("page").Mode("").Bind("x", Do("test.page-any")).Mode("normal").Bind("y", Do("test.page-normal")).Pattern(Any, Do("test.any-row")).Pattern(Alpha, Do("test.alpha-row"))
 	r.Define("row").Mode("insert").Bind("x", Do("test.row-insert"))
-	if err := r.Focus("row"); err != nil {
+	if err := r.SetFocus("row"); err != nil {
 		t.Fatal(err)
 	}
 	press := func(keys ...string) {
@@ -202,7 +202,7 @@ func TestLeaderPendingShadowShape(t *testing.T) {
 		Bind("c", Do("test.new-window")).
 		Pattern(Any, Do("pane.forward").Join("keys", SourcePrefix, SourceKey))
 	r.Instance("pane", Kind("term"))
-	if err := r.Focus("pane"); err != nil {
+	if err := r.SetFocus("pane"); err != nil {
 		t.Fatal(err)
 	}
 	for _, key := range []string{"x", "ctrl+b", "c", "ctrl+b", "z", "y"} {
@@ -362,10 +362,10 @@ func TestListRowsAreInstancesOfTheirNouns(t *testing.T) {
 	if _, err := r.Execute(Request{Verb: "select", Noun: "context", Args: Arguments{"instance": "two"}}); err != nil || r.Context().Path[3] != "two" {
 		t.Fatalf("context.select instance: %v %+v", err, r.Context())
 	}
-	if err := r.Focus(input.ID); err != nil || r.Context().InputID != "note" {
+	if err := r.SetFocus(input.ID); err != nil || r.Context().InputID != "note" {
 		t.Fatalf("Focus input: %v", err)
 	}
-	if err := r.Focus("sidebar"); err != nil || r.Context().InputID != "" || r.Context().Path[2] != "sidebar" {
+	if err := r.SetFocus("sidebar"); err != nil || r.Context().InputID != "" || r.Context().Path[2] != "sidebar" {
 		t.Fatalf("Focus list: %v %+v", err, r.Context())
 	}
 	snapshot := r.Snapshot()
@@ -443,7 +443,7 @@ func TestModeIsGlobal(t *testing.T) {
 	}
 	// Focus moving to another stop resets the mode to normal; closing the
 	// modal restores the interaction state beneath it.
-	if err := r.Push(&Frame{ID: "dialog", Focus: "dialog"}); err != nil {
+	if err := r.Push("dialog", "dialog"); err != nil {
 		t.Fatal(err)
 	}
 	if r.Mode.Name != "normal" {
@@ -456,7 +456,7 @@ func TestModeIsGlobal(t *testing.T) {
 		t.Fatalf("pop restores the mode the modal opened over: %+v", r.Mode)
 	}
 	// A pinned noun sets its mode on focus.
-	if err := r.Focus(input.ID); err != nil {
+	if err := r.SetFocus(input.ID); err != nil {
 		t.Fatal(err)
 	}
 	if r.Mode.Name != "insert" || input.Mode != "insert" {
@@ -466,7 +466,7 @@ func TestModeIsGlobal(t *testing.T) {
 	if err := r.AddInput(other, Parent("editor")); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Focus("other-input"); err != nil {
+	if err := r.SetFocus("other-input"); err != nil {
 		t.Fatal(err)
 	}
 	if r.Mode.Name != "normal" {

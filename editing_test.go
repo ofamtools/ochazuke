@@ -12,7 +12,7 @@ func editorTestRuntime(t *testing.T, text string, multiline bool) (*Runtime, *In
 	if err := r.AddInput(in); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Focus(in.ID); err != nil {
+	if err := r.SetFocus(in.ID); err != nil {
 		t.Fatal(err)
 	}
 	return r, in
@@ -58,7 +58,7 @@ func TestReadlineOnlyKeepsTypingAfterEscapeAndModeChanges(t *testing.T) {
 	if err := r.AddInput(in, Kind("prompt")); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Focus(in.ID); err != nil {
+	if err := r.SetFocus(in.ID); err != nil {
 		t.Fatal(err)
 	}
 	editorTestKeys(t, r, "ctrl+e", "esc", "j", "k")
@@ -84,7 +84,7 @@ func TestReadlineOnlyPathKillYankAndMultiline(t *testing.T) {
 	if err := r.AddInput(in, Kind("prompt")); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Focus(in.ID); err != nil {
+	if err := r.SetFocus(in.ID); err != nil {
 		t.Fatal(err)
 	}
 	editorTestKeys(t, r, "ctrl+e", "ctrl+w")
@@ -308,7 +308,7 @@ func TestEditorInputIsolationAndCapturedTarget(t *testing.T) {
 	if first.Count() != 2 || first.Pending() != "g" || r.Registers().Named["\""].Yank.Text != "beta" {
 		t.Fatalf("first state=%v", first.Snapshot())
 	}
-	if err := r.Focus(second.ID); err != nil {
+	if err := r.SetFocus(second.ID); err != nil {
 		t.Fatal(err)
 	}
 	editorTestKeys(t, r, "i", "ctrl+y", "!", "esc")

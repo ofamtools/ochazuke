@@ -23,6 +23,7 @@ type Instance struct {
 	Unfocusable bool      `json:"unfocusable,omitempty"`
 	Component   any       `json:"-"`
 	seq         uint64
+	returnMode  ModeState // an open modal's mode to restore on Pop, beside Payload.Return
 }
 
 // Payload is the small typed state a mode carries (Runtime.Mode.Payload).
@@ -156,11 +157,4 @@ func (r *Runtime) ActionFor(focus, key string) Handler {
 		}
 	}
 	return nil
-}
-
-// removeInstance closes and drops an instance and its own rows.
-func (r *Runtime) removeInstance(id string) {
-	r.closeInstance(id)
-	delete(r.Instances, id)
-	delete(r.rows, id)
 }

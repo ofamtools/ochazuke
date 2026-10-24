@@ -28,8 +28,8 @@ func sheet(t *testing.T) (*ochazuke.Runtime, *Grid) {
 
 func TestFocusInstancesFollowTheCursor(t *testing.T) {
 	r, g := sheet(t)
-	if r.FocusID() != "r0:c0" {
-		t.Fatalf("focus = %s", r.FocusID())
+	if r.Focus != "r0:c0" {
+		t.Fatalf("focus = %s", r.Focus)
 	}
 	if got := r.InstancePath("r0:c0"); !reflect.DeepEqual(got, []string{"app", "page", "grid", "c0", "r0", "r0:c0"}) {
 		t.Fatalf("path = %v", got)
@@ -45,8 +45,8 @@ func TestFocusInstancesFollowTheCursor(t *testing.T) {
 	if _, err := r.Execute(ochazuke.Request{Verb: "move", Noun: "grid", Args: ochazuke.Arguments{"motion": "right"}}); err != nil {
 		t.Fatal(err)
 	}
-	if r.FocusID() != "r2:c1" || r.Instances["r0:c0"] != nil || r.Instances["r0"] != nil || r.Instances["c0"] != nil {
-		t.Fatalf("focus=%s stale instances kept", r.FocusID())
+	if r.Focus != "r2:c1" || r.Instances["r0:c0"] != nil || r.Instances["r0"] != nil || r.Instances["c0"] != nil {
+		t.Fatalf("focus=%s stale instances kept", r.Focus)
 	}
 	if got := len(r.Children("grid")); got != 1 {
 		t.Fatalf("grid children = %d, want the one column", got)
@@ -116,8 +116,8 @@ func TestFilterKeepsIdsAndClampsCursor(t *testing.T) {
 	r, g := sheet(t)
 	g.Move("bottom", 1, 0)
 	g.SetFilter(func(row []string) bool { return row[0] != "x" })
-	if g.VisibleCount() != 3 || r.FocusID() != "r2:c0" {
-		t.Fatalf("filtered: visible=%d focus=%s", g.VisibleCount(), r.FocusID())
+	if g.VisibleCount() != 3 || r.Focus != "r2:c0" {
+		t.Fatalf("filtered: visible=%d focus=%s", g.VisibleCount(), r.Focus)
 	}
 	if err := g.Goto(Ref{Row: 3, Col: 0}); err == nil {
 		t.Fatal("goto a hidden row succeeded")
@@ -130,12 +130,12 @@ func TestFilterKeepsIdsAndClampsCursor(t *testing.T) {
 	g.SetFilter(nil)
 	rows := g.Rows()[:2]
 	g.SetData(g.Header(), rows)
-	if r.FocusID() != "r1:c0" || g.Cursor() != (Ref{1, 0}) {
-		t.Fatalf("shrunk: focus=%s cursor=%v", r.FocusID(), g.Cursor())
+	if r.Focus != "r1:c0" || g.Cursor() != (Ref{1, 0}) {
+		t.Fatalf("shrunk: focus=%s cursor=%v", r.Focus, g.Cursor())
 	}
 	g.SetData(nil, nil)
-	if r.FocusID() != "grid" || len(r.Children("grid")) != 0 {
-		t.Fatalf("empty: focus=%s children=%d", r.FocusID(), len(r.Children("grid")))
+	if r.Focus != "grid" || len(r.Children("grid")) != 0 {
+		t.Fatalf("empty: focus=%s children=%d", r.Focus, len(r.Children("grid")))
 	}
 }
 

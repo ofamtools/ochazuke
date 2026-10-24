@@ -134,12 +134,12 @@ func TestDispatchEscPopsModalInNormalMode(t *testing.T) {
 	m, in, calls := dispatchTestModel(t, "abc")
 	keytest.Press(m, "esc")
 	dispatchTestState(t, m, in, "abc", calls)
-	if err := m.Runtime.Push(&Frame{ID: "modal", Focus: "app"}); err != nil {
+	if err := m.Runtime.Push("modal", "app"); err != nil {
 		t.Fatal(err)
 	}
 	keytest.Press(m, "esc")
-	if len(m.Runtime.Frames) != 1 || m.Status != "" {
-		t.Fatalf("esc did not pop the modal: frames=%d status=%q", len(m.Runtime.Frames), m.Status)
+	if len(m.Runtime.Modals()) != 0 || m.Status != "" {
+		t.Fatalf("esc did not pop the modal: frames=%d status=%q", len(m.Runtime.Modals()), m.Status)
 	}
 }
 
@@ -153,16 +153,16 @@ func TestDispatchEscSettlesModalInputBeforePopping(t *testing.T) {
 		t.Fatal(err)
 	}
 	m := NewModel(r)
-	if err := r.Push(&Frame{ID: "modal", Focus: in.ID}); err != nil {
+	if err := r.Push("modal", in.ID); err != nil {
 		t.Fatal(err)
 	}
 	for _, step := range []struct {
 		key, mode string
-		frames    int
-	}{{"i", "insert", 2}, {"esc", "normal", 2}, {"3", "count_pending", 2}, {"esc", "normal", 2}, {"esc", "normal", 1}} {
+		modals    int
+	}{{"i", "insert", 1}, {"esc", "normal", 1}, {"3", "count_pending", 1}, {"esc", "normal", 1}, {"esc", "normal", 0}} {
 		keytest.Press(m, step.key)
-		if got := modeOf(m); got != step.mode || len(r.Frames) != step.frames || m.Status != "" {
-			t.Fatalf("after %s: mode %q frames %d status %q; want %q %d", step.key, got, len(r.Frames), m.Status, step.mode, step.frames)
+		if got := modeOf(m); got != step.mode || len(r.Modals()) != step.modals || m.Status != "" {
+			t.Fatalf("after %s: mode %q modals %d status %q; want %q %d", step.key, got, len(r.Modals()), m.Status, step.mode, step.modals)
 		}
 	}
 	if in.Count() != 0 {

@@ -72,29 +72,20 @@ type Operation struct {
 
 func (o Operation) Key() string { return o.Noun + "." + o.Verb }
 
-// Frame is one entry of the modal stack: the base page frame or an open
-// modal. Focus names the instance that receives keys while the frame is on
-// top; Context() derives the old path view from it.
-type Frame struct {
-	ID    string    `json:"id"`
-	Focus string    `json:"focus"`
-	mode  ModeState // the mode the frame beneath was in when this modal opened
-}
-
 // Runtime is owned by one event loop. Transport callers submit messages to
 // that loop. It holds the operation registry (Operations, Modes and their
 // guards), the instance registry (Nouns, Instances and their parent links,
-// including list rows), focus and the modal chain (Frames, Page), the
-// pending key-sequence state (Pending, prefix, BindingTimeout) and the hook
+// including list rows), the three plain interaction fields Focus, Mode and
+// Page with the chain of open modals, the pending key-sequence state (Pending, prefix, BindingTimeout) and the hook
 // that hands off-loop work to the adapter (commands). Components such as
 // inputs, lists, the picker and the registers are instances, never fields;
 // TestRuntimeHoldsNoComponentFields pins this list.
 type Runtime struct {
 	Nouns          map[string]*Noun
 	Instances      map[string]*Instance
-	Frames         []*Frame
-	Page           string    // the current page instance; always on the base frame's focus path
+	Focus          string    // the focused instance; Context() is derived from it
 	Mode           ModeState // the one interaction mode; mode.set writes it, a focus change to another stop resets it
+	Page           string    // the current page instance; always an ancestor of BaseFocus()
 	Modes          map[string]bool
 	Operations     map[string]Operation
 	Quit           bool
@@ -106,6 +97,7 @@ type Runtime struct {
 	bindingVersion uint64
 	modeGeneration uint64
 	rows           map[string]string // list row instance id -> owning list id
+	modals         []string          // the open modal instances, outermost first; each holds its return focus in Payload.Return
 	modalInstances map[string]bool   // instances created by Push or OpenModal, removed by Pop
 	seq            uint64            // instance registration order
 	commands       []tea.Cmd         // off-loop work scheduled since the adapter last drained it
@@ -117,7 +109,7 @@ type Runtime struct {
 func NewRuntime() *Runtime {
 	r := &Runtime{
 		Nouns: map[string]*Noun{}, Instances: map[string]*Instance{}, rows: map[string]string{},
-		Frames: []*Frame{{ID: "main", Focus: "app"}}, Mode: ModeState{Name: "normal"},
+		Focus: "app", Mode: ModeState{Name: "normal"},
 		Modes: map[string]bool{"normal": true, "insert": true}, Operations: map[string]Operation{},
 		pendingModes:   map[string]bool{},
 		guards:         builtinGuards(),
@@ -144,14 +136,6 @@ func NewRuntime() *Runtime {
 	r.Define("modal").Mode("normal").Bind("esc", Do("modal.pop"))
 	return r
 }
-
-func (r *Runtime) top() *Frame { return r.Frames[len(r.Frames)-1] }
-
-// Context derives the active frame's path view from its focus.
-func (r *Runtime) Context() Context { return r.contextOf(r.top().Focus) }
-
-// FocusID is the instance the active frame points at.
-func (r *Runtime) FocusID() string { return r.top().Focus }
 
 // ModeState is a mode name with the payload the mode carries.
 type ModeState struct {
@@ -186,7 +170,7 @@ func (r *Runtime) setMode(m ModeState, extra ...string) {
 		return
 	}
 	seen := map[string]bool{}
-	for _, id := range append(r.Ancestry(r.FocusID()), extra...) {
+	for _, id := range append(r.Ancestry(r.Focus), extra...) {
 		if seen[id] {
 			continue
 		}
@@ -206,81 +190,12 @@ func (r *Runtime) SetMode(mode string) error {
 	if !r.Modes[mode] {
 		return fmt.Errorf("unknown mode %q", mode)
 	}
-	if in := r.Input(r.FocusID()); in != nil {
+	if in := r.Input(r.Focus); in != nil {
 		in.SetMode(mode)
 		return nil
 	}
 	r.setMode(ModeState{Name: mode})
 	return nil
-}
-
-// stopOf is the focus stop an instance belongs to: the nearest focusable
-// instance on its ancestry (itself included), else the instance itself.
-func (r *Runtime) stopOf(id string) string {
-	for _, step := range r.Ancestry(id) {
-		if r.focusable(step) {
-			return step
-		}
-	}
-	return id
-}
-
-// focusable reports whether an instance is a focus stop: its noun is
-// declared Focusable, or it fronts an input, and it has not opted out.
-func (r *Runtime) focusable(id string) bool {
-	inst := r.Instances[id]
-	if inst == nil || inst.Unfocusable {
-		return false
-	}
-	if _, ok := inst.Component.(*Input); ok {
-		return true
-	}
-	noun := r.Nouns[inst.Noun]
-	return noun != nil && noun.Focusable
-}
-
-// focusMoved applies the mode rule to a focus change. Moving within one
-// focus stop (a grid's cell to the next cell, a list's row to the next row)
-// keeps the mode; moving to another stop resets it to normal with an empty
-// payload, or to the pinned mode of the newly focused noun (prompt pins
-// insert, terminal pins terminal). A focused input then follows the mode.
-func (r *Runtime) focusMoved(fromStop string, fromPath []string, to string) {
-	pin := ""
-	if inst := r.Instances[to]; inst != nil {
-		if noun := r.Nouns[inst.Noun]; noun != nil {
-			pin = noun.Pin
-		}
-	}
-	in := r.Input(to)
-	if in != nil && in.pin != "" {
-		pin = in.pin
-	}
-	switch {
-	case pin != "":
-		if r.BaseMode() != pin || !r.Mode.Payload.empty() {
-			r.setMode(ModeState{Name: pin}, fromPath...)
-		}
-	case fromStop != r.stopOf(to):
-		r.setMode(ModeState{Name: "normal"}, fromPath...)
-	}
-	if in != nil && in.Mode != r.BaseMode() {
-		in.transition(r.BaseMode(), false)
-	}
-}
-
-// moveFocus points a frame at id; when the frame is the active one the mode
-// rule of focusMoved applies.
-func (r *Runtime) moveFocus(frame *Frame, id string) {
-	if frame != r.top() {
-		frame.Focus = id
-		return
-	}
-	from := frame.Focus
-	stop, path := r.stopOf(from), r.Ancestry(from)
-	frame.Focus = id
-	if from != id {
-		r.focusMoved(stop, path, id)
-	}
 }
 
 // Register adds an operation. An operation with App set is of kind
@@ -405,130 +320,6 @@ func (r *Runtime) instancesInOrder() []*Instance {
 	return out
 }
 
-// Focus points the active frame at one instance: an input, a list, a row, a
-// page or a modal body. Without a modal, the focus must sit inside the active
-// page; a hidden page's instances are addressed with an explicit target.
-func (r *Runtime) Focus(id string) error {
-	if err := r.validateFocus(id); err != nil {
-		return err
-	}
-	r.setFocus(r.top(), id)
-	return nil
-}
-
-func (r *Runtime) validateFocus(id string) error {
-	ancestry := r.Ancestry(id)
-	if len(ancestry) == 0 || ancestry[len(ancestry)-1] != "app" {
-		return fmt.Errorf("unknown instance %q", id)
-	}
-	if r.PageOf(r.Page) == nil {
-		return nil
-	}
-	if len(r.Frames) == 1 && (len(ancestry) < 2 || ancestry[len(ancestry)-2] != r.Page) {
-		return errors.New("select a context inside the current page; open a modal for a modal input")
-	}
-	for _, step := range ancestry[:len(ancestry)-1] {
-		if r.PageOf(step) != nil && step != r.Page {
-			return fmt.Errorf("open page %q before selecting its context", step)
-		}
-	}
-	return nil
-}
-
-// setFocus moves a frame's focus and drops any key-sequence prefix.
-func (r *Runtime) setFocus(frame *Frame, id string) {
-	if frame.Focus != id {
-		r.CancelPendingBinding()
-	}
-	r.moveFocus(frame, id)
-}
-
-// Push opens a modal focused on frame.Focus. A frame id that is not already
-// an instance becomes one of the modal noun for as long as it is open.
-func (r *Runtime) Push(frame *Frame) error {
-	if frame == nil || frame.ID == "" {
-		return errors.New("modal ID is required")
-	}
-	for _, f := range r.Frames {
-		if f.ID == frame.ID {
-			return errors.New("modal is already open")
-		}
-	}
-	if frame.Focus == "" {
-		frame.Focus = "app"
-	}
-	if len(r.Ancestry(frame.Focus)) == 0 {
-		return fmt.Errorf("unknown instance %q", frame.Focus)
-	}
-	if r.Instances[frame.ID] == nil {
-		r.Instances[frame.ID] = &Instance{ID: frame.ID, Noun: "modal"}
-		r.modalInstances[frame.ID] = true
-	}
-	from := r.FocusID()
-	stop, path := r.stopOf(from), r.Ancestry(from)
-	r.CancelPendingBinding()
-	frame.mode = r.Mode
-	r.Frames = append(r.Frames, frame)
-	if frame.Focus != from {
-		r.focusMoved(stop, path, frame.Focus)
-	}
-	return nil
-}
-
-// OpenModal opens a modal whose body is a new instance of noun kind (its id
-// is the kind), parented at the current focus and carrying payload, and
-// focuses it. The instance lives until Pop closes the modal. The kind's
-// rows answer first, then the focus it opened over, then the modal noun.
-func (r *Runtime) OpenModal(kind string, payload Payload) (*Instance, error) {
-	if kind == "" {
-		return nil, errors.New("modal kind is required")
-	}
-	if r.Instances[kind] != nil {
-		return nil, fmt.Errorf("modal %q is already open", kind)
-	}
-	r.Define(kind)
-	r.seq++
-	inst := &Instance{ID: kind, Noun: kind, Parent: r.FocusID(), Payload: payload, seq: r.seq}
-	r.Instances[kind] = inst
-	r.modalInstances[kind] = true
-	if err := r.Push(&Frame{ID: kind, Focus: kind}); err != nil {
-		delete(r.Instances, kind)
-		delete(r.modalInstances, kind)
-		return nil, err
-	}
-	return inst, nil
-}
-
-// Pop closes the active modal. An instance the modal created is closed
-// through the delivery contract and removed.
-func (r *Runtime) Pop() error {
-	if len(r.Frames) == 1 {
-		return errors.New("no modal to close")
-	}
-	frame := r.top()
-	r.CancelPendingBinding()
-	path := r.Ancestry(frame.Focus)
-	r.Frames = r.Frames[:len(r.Frames)-1]
-	if r.modalInstances[frame.ID] {
-		delete(r.modalInstances, frame.ID)
-		r.closeInstance(frame.ID)
-		delete(r.Instances, frame.ID)
-	}
-	r.restoreMode(frame.mode, path)
-	return nil
-}
-
-// restoreMode returns to the mode a modal was opened over; the focused
-// input follows it.
-func (r *Runtime) restoreMode(m ModeState, leaving []string) {
-	if m.Name == "" {
-		m.Name = "normal"
-	}
-	r.setMode(m, leaving...)
-	if in := r.Input(r.FocusID()); in != nil && in.Mode != r.BaseMode() {
-		in.transition(r.BaseMode(), false)
-	}
-}
 func (r *Runtime) Execute(q Request) (any, error) { return r.ExecuteAt(r.Context(), q) }
 
 // ExecuteAt runs an operation for a context. The innermost noun on the
@@ -660,7 +451,7 @@ func (r *Runtime) Snapshot() map[string]any {
 		pages[page.ID] = page
 	}
 	regs := r.Registers()
-	return map[string]any{"frames": r.Frames, "pages": pages, "page": r.Page, "inputs": inputs, "context": r.Context(), "focus": r.FocusID(), "mode": r.Mode.Name, "modeState": r.Mode, "modes": modes, "bindings": r.ListBindings(r.FocusID()), "pending": r.Pending, "quit": r.Quit,
+	return map[string]any{"modals": r.modalIDs(), "pages": pages, "page": r.Page, "inputs": inputs, "context": r.Context(), "focus": r.Focus, "mode": r.Mode.Name, "modeState": r.Mode, "modes": modes, "bindings": r.ListBindings(r.Focus), "pending": r.Pending, "quit": r.Quit,
 		"lists": lists, "registers": regs.Named, "yankHistory": regs.History, "activeRegister": regs.Active, "macro": regs.Macro,
 		"nouns": nouns, "instances": r.Instances, "components": r.componentSnapshot(), "jobs": r.runningJobs()}
 }
@@ -712,7 +503,7 @@ func registerCore(r *Runtime) {
 		if r.Input(id) == nil {
 			return nil, fmt.Errorf("unknown input %q", id)
 		}
-		err := r.Focus(id)
+		err := r.SetFocus(id)
 		return r.Context(), err
 	}})
 	r.Register(Operation{Verb: "set", Noun: "mode", Description: "Set the global interaction mode (a registered mode) and clear any pending payload", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
@@ -733,7 +524,7 @@ func registerCore(r *Runtime) {
 		if r.Input(id) == nil {
 			return nil, errors.New("unknown modal input")
 		}
-		err := r.Push(&Frame{ID: StringArg(a, "id", ""), Focus: id})
+		err := r.Push(StringArg(a, "id", ""), id)
 		return r.Context(), err
 	}})
 	r.Register(Operation{Verb: "pop", Noun: "modal", Description: "Close the active modal and restore its parent", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) { err := r.Pop(); return r.Context(), err }})

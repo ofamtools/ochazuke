@@ -24,11 +24,11 @@ func registerYankHistory(r *Runtime) {
 	add("open", "Select a previous application yank without inserting it", nil, func(r *Runtime, c Context, a Arguments) (any, error) {
 		g := r.Registers()
 		g.selection = 0
-		err := r.Push(&Frame{ID: yankHistoryID, Focus: yankHistoryID})
+		err := r.Push(yankHistoryID, yankHistoryID)
 		return g.History, err
 	})
 	active := func(r *Runtime) error {
-		if r.top().ID != yankHistoryID {
+		if r.TopModal() != yankHistoryID {
 			return errors.New("yank history is not active")
 		}
 		return nil
@@ -57,7 +57,7 @@ func registerYankHistory(r *Runtime) {
 		return y, err
 	})
 }
-func yankHistoryView(r *Runtime, f *Frame, width, height int) Block {
+func yankHistoryView(r *Runtime, _ *Instance, width, height int) Block {
 	return Text(yankHistoryText(r, width, height))
 }
 

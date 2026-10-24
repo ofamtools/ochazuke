@@ -224,7 +224,7 @@ func TestModelViewCursorFollowsFocusedInput(t *testing.T) {
 	if view := m.View(); view.Cursor != nil {
 		t.Fatalf("cursor %+v reported with no focused input", view.Cursor)
 	}
-	if err := r.Focus(in.ID); err != nil {
+	if err := r.SetFocus(in.ID); err != nil {
 		t.Fatal(err)
 	}
 	in.Cursor = 3
@@ -273,10 +273,10 @@ func TestModelViewCursorFollowsFocusedInput(t *testing.T) {
 		t.Fatal("modal cursor landed on the page row")
 	}
 	// A modal without an input hides the cursor of everything beneath it.
-	if err := r.Push(&Frame{ID: "note", Focus: "app"}); err != nil {
+	if err := r.Push("note", "app"); err != nil {
 		t.Fatal(err)
 	}
-	m.ModalViews["note"] = ModalView{Title: "Note", Render: func(*Runtime, *Frame, int, int) Block { return Text("read me") }}
+	m.ModalViews["note"] = ModalView{Title: "Note", Render: func(*Runtime, *Instance, int, int) Block { return Text("read me") }}
 	if view := m.View(); view.Cursor != nil {
 		t.Fatalf("cursor %+v reported under a modal without an input", view.Cursor)
 	}

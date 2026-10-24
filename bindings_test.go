@@ -151,7 +151,7 @@ func TestContextChangesCancelDeferredBindings(t *testing.T) {
 			bindingKey(t, r, "g")
 			msg := BindingTimeoutMsg{runtime: r, version: r.bindingVersion}
 			if change == "frame" {
-				if err := r.Push(&Frame{ID: "modal", Focus: "app"}); err != nil {
+				if err := r.Push("modal", "app"); err != nil {
 					t.Fatal(err)
 				}
 			} else {

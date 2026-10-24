@@ -46,8 +46,8 @@ func TestModelCoalescedPaletteSearchNavigatesPage(t *testing.T) {
 	typed("playground")
 	enter()
 	enter()
-	if m.Runtime.Page != "playground" || len(m.Runtime.Frames) != 1 {
-		t.Fatalf("coalesced palette navigation: page=%q frames=%d; want playground with palette closed", m.Runtime.Page, len(m.Runtime.Frames))
+	if m.Runtime.Page != "playground" || len(m.Runtime.Modals()) != 0 {
+		t.Fatalf("coalesced palette navigation: page=%q frames=%d; want playground with palette closed", m.Runtime.Page, len(m.Runtime.Modals()))
 	}
 }
 
@@ -169,7 +169,7 @@ func TestModelPickerHomeProjectsSelectableBeforeRecursiveScan(t *testing.T) {
 	}
 	search := stage(cmd)
 	stage(search) // ochazuke.Leave recursion pending.
-	frame := m.Runtime.Frames[len(m.Runtime.Frames)-1]
+	top := m.Runtime.TopModal()
 	picker := m.Runtime.Instances["picker"].Component.(*ochazuke.Picker)
 	if !reflect.DeepEqual(pickerEntryPaths(picker.Entries), []string{".", "project"}) || !picker.Loading {
 		t.Fatalf("home projects shallow state: %#v loading=%v", picker.Entries, picker.Loading)
@@ -182,7 +182,7 @@ func TestModelPickerHomeProjectsSelectableBeforeRecursiveScan(t *testing.T) {
 	if got, want := string(m.Runtime.Input("directory").Text), filepath.Join(canonical, "proj", "project"); got != want {
 		t.Fatalf("shallow project selection = %q, want %q", got, want)
 	}
-	if frame == m.Runtime.Frames[len(m.Runtime.Frames)-1] {
+	if top == m.Runtime.TopModal() {
 		t.Fatal("project confirmation did not close picker")
 	}
 }
@@ -211,8 +211,8 @@ func assertPageInvariant(t *testing.T, r *ochazuke.Runtime, step string) {
 	if r.Page == "" {
 		return
 	}
-	if !slices.Contains(r.Ancestry(r.Frames[0].Focus), r.Page) {
-		t.Fatalf("%s: page %q is not an ancestor of base focus %q", step, r.Page, r.Frames[0].Focus)
+	if !slices.Contains(r.Ancestry(r.BaseFocus()), r.Page) {
+		t.Fatalf("%s: page %q is not an ancestor of base focus %q", step, r.Page, r.BaseFocus())
 	}
 }
 
@@ -270,7 +270,7 @@ func TestFocusedInputFollowsGlobalModeInDemo(t *testing.T) {
 	r := m.Runtime
 	for _, key := range []string{"ctrl+j", "i", "h", "esc", "v", "l", "esc", "ctrl+n", "i", "x", "esc", "ctrl+g", "2", "d"} {
 		keytest.Press(m, key)
-		if in := r.Input(r.FocusID()); in != nil && r.BaseMode() != in.Mode {
+		if in := r.Input(r.Focus); in != nil && r.BaseMode() != in.Mode {
 			t.Fatalf("after %s: input %s mode %q, global %+v", key, in.ID, in.Mode, r.Mode)
 		}
 	}

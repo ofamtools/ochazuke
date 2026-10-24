@@ -105,7 +105,7 @@ func TestEnterRowFromConfigCarriesPrefixAndRequest(t *testing.T) {
 	if err := r.Bind(rows...); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Focus("pane"); err != nil {
+	if err := r.SetFocus("pane"); err != nil {
 		t.Fatal(err)
 	}
 	for _, key := range []string{"ctrl+b", "z"} {

@@ -59,30 +59,32 @@ func New() *ochazuke.Model {
 	}
 	m = ochazuke.NewModel(r)
 	picker := ochazuke.NewPicker(r)
-	m.ModalViews["picker"] = ochazuke.ModalView{Title: "Choose a path", Render: func(r *ochazuke.Runtime, f *ochazuke.Frame, w, h int) ochazuke.Block { return picker.ViewBlock(w, h) }}
+	m.ModalViews["picker"] = ochazuke.ModalView{Title: "Choose a path", Render: func(r *ochazuke.Runtime, f *ochazuke.Instance, w, h int) ochazuke.Block {
+		return picker.ViewBlock(w, h)
+	}}
 	for _, id := range []string{"draft", "nested-draft"} {
 		title := "Draft editor"
 		if id == "nested-draft" {
 			title = "Nested draft"
 		}
-		m.ModalViews[id] = ochazuke.ModalView{Title: title, Render: func(r *ochazuke.Runtime, f *ochazuke.Frame, w, h int) ochazuke.Block {
+		m.ModalViews[id] = ochazuke.ModalView{Title: title, Render: func(r *ochazuke.Runtime, f *ochazuke.Instance, w, h int) ochazuke.Block {
 			s := ochazuke.NewStyles(*m.Appearance)
 			hint := "i edit · Escape normal / close · Ctrl-G close"
 			if f.ID == "draft" {
 				hint += " · Ctrl-N nest"
 			}
-			editor := ochazuke.InputBlock(r.Input(f.Focus), w, max(1, h-2))
+			editor := ochazuke.InputBlock(r.Input(r.ModalFocus(f.ID)), w, max(1, h-2))
 			return editor.Offset(0, 2).WithText(s.Muted.Render(safeText(hint)) + "\n\n" + editor.Text)
 		}}
 	}
-	m.ModalViews["help"] = ochazuke.ModalView{Title: "Keyboard guide", Render: func(r *ochazuke.Runtime, f *ochazuke.Frame, w, h int) ochazuke.Block {
+	m.ModalViews["help"] = ochazuke.ModalView{Title: "Keyboard guide", Render: func(r *ochazuke.Runtime, f *ochazuke.Instance, w, h int) ochazuke.Block {
 		return ochazuke.Text("NAVIGATION\nCtrl-J / K    Next / previous page (normal mode)\n:             Search command palette\nCtrl-Space    Palette in any editing mode\nPgUp / PgDn   Scroll the active surface\n\nPLAYGROUND\nTab / S-Tab   Next / previous field\nCtrl-N        Open a draft; repeat inside to nest\nCtrl-O        Choose a path using the field's filter\nEnter         Open picker in path / paths fields\n\nNORMAL INPUT\nh j k l       Move (same as arrows)\nw b e         Word motions\n0 $ / gg G    Line / document bounds\ni a I A       Begin inserting\no O           Open a line\nv / V / C-v   Character / line / block selection\nyy / p / P    Yank line / paste after / before\nCtrl-Y        Yank history\n\"a            Select register a\nq then a      Start recording immediately in register a\nq / @a        Stop recording / replay macro a\nu / Ctrl-R    Undo / redo\n\nINSERT INPUT\nCtrl-A / E    Line start / end\nCtrl-P / N    Previous / next line (picker: result)\nAlt-B / F     Word movement\nCtrl-W/U/K    Kill path word / line start / line end\nCtrl-Y        Paste app yank\nEscape        Return to normal")
 	}}
 	register := func(verb, noun, description string, params map[string]ochazuke.Parameter, fn ochazuke.Handler) {
 		r.Register(ochazuke.Operation{Verb: verb, Noun: noun, Description: description, Parameters: params, Result: "JSON value", Run: fn})
 	}
 	register("next", "input", "Cycle playground field focus", map[string]ochazuke.Parameter{"delta": {Type: "integer"}}, func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
-		if r.Page != "playground" || len(r.Frames) > 1 {
+		if r.Page != "playground" || len(r.Modals()) > 0 {
 			return nil, errors.New("switch fields on the playground page, with modals closed")
 		}
 		ids := []string{"directory", "notes", "paths"}
@@ -94,7 +96,7 @@ func New() *ochazuke.Model {
 			}
 		}
 		index = ((index+ochazuke.IntArg(a, "delta", 1))%len(ids) + len(ids)) % len(ids)
-		err := r.Focus(ids[index])
+		err := r.SetFocus(ids[index])
 		return r.Context(), err
 	})
 	register("inspect", "selection", "Report the innermost noun handling this action", nil, func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
@@ -115,7 +117,7 @@ func New() *ochazuke.Model {
 		})
 	}
 	register("open", "help", "Open the keyboard guide without losing your place", nil, func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
-		err := r.Push(&ochazuke.Frame{ID: "help", Focus: "help"})
+		err := r.Push("help", "help")
 		return r.Context(), err
 	})
 	register("cycle", "theme", "Cycle through the available default themes", nil, func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
@@ -189,11 +191,11 @@ func demoOverview(m *ochazuke.Model, width int) string {
 func demoPlayground(m *ochazuke.Model, width, height int, lastNoun string) ochazuke.Block {
 	r := m.Runtime
 	s := ochazuke.NewStyles(*m.Appearance)
-	frame := r.PageOf("playground").Frame
+	focus := r.PageFocus("playground")
 	// Only the focused field carries a cursor; the panel border, padding and
 	// label row move it.
 	field := func(id, label string, w, h int) ochazuke.Block {
-		active := frame.Focus == id
+		active := focus == id
 		style := s.Panel
 		if active {
 			style = s.FocusedPanel
@@ -211,7 +213,7 @@ func demoPlayground(m *ochazuke.Model, width, height int, lastNoun string) ochaz
 	var fields ochazuke.Block
 	if height < 18 {
 		labels := map[string]string{"directory": "Directory · path", "notes": "Notes · text", "paths": "Paths · one per line"}
-		id := frame.Focus
+		id := focus
 		fields = field(id, labels[id], width, max(1, height-9))
 	} else if width >= 76 {
 		left := width / 3
@@ -226,7 +228,7 @@ func demoPlayground(m *ochazuke.Model, width, height int, lastNoun string) ochaz
 		paths := field("paths", "Paths · one per line", width, 2).Offset(0, lipgloss.Height(directory.Text)+lipgloss.Height(notes.Text))
 		fields = ochazuke.Block{Text: directory.Text + "\n" + notes.Text + "\n" + paths.Text, Cursor: firstCursor(directory, notes, paths)}
 	}
-	status := "App → Playground → Agent → " + strings.Title(frame.Focus)
+	status := "App → Playground → Agent → " + strings.Title(focus)
 	if lastNoun != "" {
 		status = "Ctrl-X action handled by: " + lastNoun
 	}
@@ -238,7 +240,7 @@ func demoCommands(m *ochazuke.Model, width int) string {
 	s := ochazuke.NewStyles(*m.Appearance)
 	var b strings.Builder
 	b.WriteString(s.Title.Render("Commands & bindings") + "\n" + s.Muted.Render("Live registry · every action is available as CLI: NOUN VERB") + "\n\n")
-	focus := r.PageOf("playground").Frame.Focus
+	focus := r.PageFocus("playground")
 	b.WriteString(s.Subtitle.Render("Remembered Playground bindings") + "\n")
 	b.WriteString(s.Muted.Render(strings.Join(r.InstancePath(focus), " → ")+" · "+r.Mode.Name) + "\n")
 	for _, binding := range r.ListBindings(focus) {

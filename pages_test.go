@@ -34,11 +34,11 @@ func pageTestSnapshot(t *testing.T, r *Runtime) string {
 
 func TestPageRegistrationAndPublicSnapshot(t *testing.T) {
 	r := NewRuntime()
-	original := r.Frames[0]
+	original := r.Focus
 	r.Pending = "g"
 	alpha := pageTestRegister(t, r, "alpha")
 	pageTestRegister(t, r, "beta")
-	if r.Page != "" || len(r.Frames) != 1 || r.Frames[0] != original || r.Pending != "g" {
+	if r.Page != "" || len(r.Modals()) != 0 || r.Focus != original || r.Pending != "g" {
 		t.Fatal("registering pages changed the active frame or pending sequence")
 	}
 	if pages := r.PageList(); len(pages) != 2 || pages[0] != alpha || pages[1].ID != "beta" || r.PageOf("alpha") != alpha {
@@ -53,7 +53,7 @@ func TestPageRegistrationAndPublicSnapshot(t *testing.T) {
 	if got := paletteRequest(t, r, "list", "pages", nil); !reflect.DeepEqual(got, want) {
 		t.Fatalf("pages=%v; want %v", got, want)
 	}
-	for path, want := range map[string]any{"/page": "alpha", "/pages/alpha/id": "alpha", "/pages/alpha/title": "ALPHA", "/pages/alpha/frame/focus": "alpha", "/instances/alpha/noun": "alpha", "/instances/alpha-input/parent": "alpha-editor"} {
+	for path, want := range map[string]any{"/page": "alpha", "/pages/alpha/id": "alpha", "/pages/alpha/title": "ALPHA", "/pages/alpha/remembered": "alpha", "/instances/alpha/noun": "alpha", "/instances/alpha-input/parent": "alpha-editor"} {
 		if got := paletteRequest(t, r, "get", "state", Arguments{"path": path}); !reflect.DeepEqual(got, want) {
 			t.Fatalf("%s=%v; want %v", path, got, want)
 		}
@@ -78,7 +78,7 @@ func TestPageSwitchRestoresFrameFocusAndEditingState(t *testing.T) {
 	paletteRequest(t, r, "open", "page", Arguments{"id": "beta"})
 	paletteRequest(t, r, "set", "mode", Arguments{"mode": "insert"})
 	paletteRequest(t, r, "open", "page", Arguments{"id": "alpha"})
-	if len(r.Frames) != 1 || r.Frames[0] != alpha.Frame || r.Input(r.Context().InputID) != in || !reflect.DeepEqual(r.Context(), context) {
+	if len(r.Modals()) != 0 || r.Page != alpha.ID || r.Input(r.Context().InputID) != in || !reflect.DeepEqual(r.Context(), context) {
 		t.Fatalf("page identity or nested focus was lost: %+v", r.Context())
 	}
 	if got := paletteInputSnapshot(t, in); got != before || r.Mode.Name != "insert" {
@@ -89,7 +89,7 @@ func TestPageSwitchRestoresFrameFocusAndEditingState(t *testing.T) {
 		t.Fatal("page switch lost the originating undo history or changed another input")
 	}
 	paletteRequest(t, r, "open", "page", Arguments{"id": "beta"})
-	if r.Frames[0] != beta.Frame || r.Mode.Name != "insert" || r.Context().InputID != "" {
+	if r.Page != beta.ID || r.Mode.Name != "insert" || r.Context().InputID != "" {
 		t.Fatal("page-owned frame mode, state, or non-input context was lost")
 	}
 }
@@ -125,8 +125,7 @@ func TestPageModalNavigationErrorsAreAtomic(t *testing.T) {
 	pageTestRegister(t, r, "beta")
 	paletteRequest(t, r, "open", "page", Arguments{"id": "alpha"})
 	r.Instance("dialog")
-	dialog := &Frame{ID: "dialog", Focus: "dialog"}
-	if err := r.Push(dialog); err != nil {
+	if err := r.Push("dialog", "dialog"); err != nil {
 		t.Fatal(err)
 	}
 	r.Pending = "g"
@@ -135,7 +134,7 @@ func TestPageModalNavigationErrorsAreAtomic(t *testing.T) {
 		if _, err := r.Execute(q); err == nil {
 			t.Fatalf("%s switched pages under a modal", q.Key())
 		}
-		if pageTestSnapshot(t, r) != before || r.Frames[0] != alpha.Frame || r.Frames[1] != dialog {
+		if pageTestSnapshot(t, r) != before || r.Page != alpha.ID || r.TopModal() != "dialog" {
 			t.Fatalf("%s changed state despite rejecting navigation", q.Key())
 		}
 	}
@@ -194,7 +193,7 @@ func TestPageNavigationWrapsAndRejectsInvalidRequests(t *testing.T) {
 	pageTestRegister(t, r, "gamma")
 	for _, step := range []struct{ verb, want string }{{"next", "alpha"}, {"previous", "gamma"}, {"next", "alpha"}, {"next", "beta"}, {"next", "gamma"}, {"previous", "beta"}} {
 		paletteRequest(t, r, step.verb, "page", nil)
-		if r.Page != step.want || r.Frames[0] != r.PageOf(step.want).Frame {
+		if r.Page != step.want {
 			t.Fatalf("%s: active=%s; want %s", step.verb, r.Page, step.want)
 		}
 	}
@@ -230,7 +229,7 @@ func TestPageFocusIsolationAllowsExplicitOffscreenEdits(t *testing.T) {
 	paletteRequest(t, r, "focus", "input", Arguments{"id": "alpha-input"})
 	r.Pending = "g"
 	before := pageTestSnapshot(t, r)
-	if err := r.Focus("beta-input"); err == nil || pageTestSnapshot(t, r) != before {
+	if err := r.SetFocus("beta-input"); err == nil || pageTestSnapshot(t, r) != before {
 		t.Fatalf("cross-page Focus must fail without mutation: %v", err)
 	}
 	for _, q := range []Request{
@@ -250,7 +249,7 @@ func TestPageFocusIsolationAllowsExplicitOffscreenEdits(t *testing.T) {
 	if _, err := r.Execute(Request{Verb: "insert", Noun: "input", Target: "beta-input", Args: Arguments{"text": "target-"}}); err != nil {
 		t.Fatal(err)
 	}
-	if r.Page != "alpha" || r.Frames[0] != alpha.Frame || r.Context().InputID != "alpha-input" || string(r.Input("alpha-input").Text) != "alpha" || string(r.Input("beta-input").Text) != "off-target-beta" || r.Pending != "g" {
+	if r.Page != "alpha" || r.Page != alpha.ID || r.Context().InputID != "alpha-input" || string(r.Input("alpha-input").Text) != "alpha" || string(r.Input("beta-input").Text) != "off-target-beta" || r.Pending != "g" {
 		t.Fatal("targeted edits navigated or edited the wrong input")
 	}
 	paletteRequest(t, r, "select", "context", Arguments{"path": `["app","alpha","alpha-editor"]`})
@@ -262,7 +261,7 @@ func TestPageFocusIsolationAllowsExplicitOffscreenEdits(t *testing.T) {
 		if err := r.AddInput(NewInput(id+"-field", "", false), Parent(id)); err != nil {
 			t.Fatal(err)
 		}
-		if err := r.Push(&Frame{ID: id, Focus: id}); err != nil {
+		if err := r.Push(id, id); err != nil {
 			t.Fatal(err)
 		}
 		paletteRequest(t, r, "focus", "input", Arguments{"id": id + "-field"})
@@ -290,7 +289,7 @@ func TestPagePaletteClosesBeforeNavigationDispatch(t *testing.T) {
 	paletteChoose(t, r, "verb:open", "page")
 	paletteRequest(t, r, "set", "palette-argument", Arguments{"name": "id", "value": "beta"})
 	paletteRequest(t, r, "execute", "palette", nil)
-	if p.IsOpen() || len(r.Frames) != 1 || r.Frames[0] != beta.Frame || r.Page != "beta" {
+	if p.IsOpen() || len(r.Modals()) != 0 || r.Page != beta.ID || r.Page != "beta" {
 		t.Fatal("palette navigation was blocked or switched a discarded overlay")
 	}
 }

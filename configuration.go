@@ -59,7 +59,7 @@ func registerConfiguration(r *Runtime) {
 				return nil, fmt.Errorf("invalid path for %q", id)
 			}
 		}
-		if err := r.Focus(id); err != nil {
+		if err := r.SetFocus(id); err != nil {
 			return nil, err
 		}
 		return r.Context(), nil

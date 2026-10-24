@@ -201,7 +201,7 @@ func TestNewModelNavigationDefaultsAndRemovedAliases(t *testing.T) {
 	if _, err := r.Execute(Request{Verb: "close", Noun: "palette"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Focus("alpha-input"); err != nil {
+	if err := r.SetFocus("alpha-input"); err != nil {
 		t.Fatal(err)
 	}
 	modelType(m, "i:", true)

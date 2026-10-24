@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/charmbracelet/x/ansi"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -13,7 +14,6 @@ import (
 // Create one palette per runtime: operation keys are globally unique.
 type Palette struct {
 	r             *Runtime
-	frame         *Frame
 	origin        Context
 	stage         string
 	section       string
@@ -80,7 +80,7 @@ func NewPalette(r *Runtime) *Palette {
 		if err := editor.Replace(0, len(editor.Text), p.query); err != nil {
 			return err
 		}
-		p.r.setFocus(p.frame, editor.ID)
+		p.r.setModalFocus(paletteID, editor.ID)
 		editor.SetMode("insert")
 		return nil
 	})
@@ -189,29 +189,20 @@ func (p *Palette) Close() {
 	_, _ = p.r.Execute(Request{Verb: "close", Noun: "palette"})
 }
 
-func (p *Palette) IsOpen() bool {
-	if p.frame == nil {
-		return false
-	}
-	for _, f := range p.r.Frames {
-		if f == p.frame {
-			return true
-		}
-	}
-	return false
-}
+// paletteID is the palette's modal instance.
+const paletteID = "palette"
+
+func (p *Palette) IsOpen() bool { return slices.Contains(p.r.modals, paletteID) }
 
 func (p *Palette) open() error {
 	if p.IsOpen() {
 		return nil
 	}
 	origin := p.r.Context().Clone()
-	frame := &Frame{ID: "palette", Focus: "palette"}
-	if err := p.r.Push(frame); err != nil {
+	if err := p.r.Push(paletteID, paletteID); err != nil {
 		return err
 	}
 	p.origin = origin
-	p.frame = frame
 	p.stage = "root"
 	p.section = ""
 	p.first = ""
@@ -224,7 +215,7 @@ func (p *Palette) open() error {
 	p.field = 0
 	p.message = ""
 	for _, editor := range p.editors {
-		p.r.removeInstance(editor.ID)
+		_ = p.r.RemoveInstance(editor.ID)
 	}
 	p.editors = map[string]*Input{}
 	p.explicitEmpty = map[string]bool{}
@@ -236,21 +227,17 @@ func (p *Palette) close() error {
 	if !p.IsOpen() {
 		return nil
 	}
-	if p.r.top() != p.frame {
+	if p.r.TopModal() != paletteID {
 		return errors.New("palette is covered by another modal")
 	}
-	if err := p.r.Pop(); err != nil {
-		return err
-	}
-	p.frame = nil
-	return nil
+	return p.r.Pop()
 }
 
 func (p *Palette) requireOpen() error {
 	if !p.IsOpen() {
 		return errors.New("palette is not open")
 	}
-	if p.r.top() != p.frame {
+	if p.r.TopModal() != paletteID {
 		return errors.New("palette is covered by another modal")
 	}
 	return nil
@@ -388,7 +375,7 @@ func (p *Palette) back() error {
 		p.searching = false
 		p.query = ""
 		p.selection = 0
-		p.r.setFocus(p.frame, "palette")
+		p.r.setModalFocus(paletteID, "palette")
 		p.message = ""
 		return nil
 	}
@@ -407,7 +394,7 @@ func (p *Palette) back() error {
 		p.field = 0
 		p.choiceCache = nil
 	}
-	p.r.setFocus(p.frame, "palette")
+	p.r.setModalFocus(paletteID, "palette")
 	p.query = ""
 	p.selection = 0
 	p.message = ""
@@ -549,18 +536,19 @@ func (p *Palette) dispatch(q Request) error {
 		_, err := p.r.ExecuteAt(origin, q)
 		return err
 	}
-	frame := p.frame
+	focus, mode := p.r.Focus, p.r.BaseMode()
 	if err := p.close(); err != nil {
 		return err
 	}
 	_, err := p.r.ExecuteAt(origin, q)
 	if err != nil {
-		// Dismiss before dispatch so focus/push/pop act on the originating frame.
-		// A failure restores this same overlay, including its argument drafts.
-		if restoreErr := p.r.Push(frame); restoreErr != nil {
+		// Dismiss before dispatch so focus/push/pop act on the originating focus.
+		// A failure restores this same overlay, including its argument drafts,
+		// its focus and its mode.
+		if restoreErr := p.r.Push(paletteID, focus); restoreErr != nil {
 			return fmt.Errorf("%w (restoring palette: %v)", err, restoreErr)
 		}
-		p.frame = frame
+		p.r.restoreMode(ModeState{Name: mode}, nil)
 	}
 	return err
 }

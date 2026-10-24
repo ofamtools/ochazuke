@@ -22,8 +22,8 @@ func TestSmokeKeepsPageOnFocusPath(t *testing.T) {
 		if r.Page == "" {
 			return fmt.Errorf("%s: no current page", label)
 		}
-		if !slices.Contains(r.Ancestry(r.Frames[0].Focus), r.Page) {
-			return fmt.Errorf("%s: page %q is not an ancestor of base focus %q", label, r.Page, r.Frames[0].Focus)
+		if !slices.Contains(r.Ancestry(r.BaseFocus()), r.Page) {
+			return fmt.Errorf("%s: page %q is not an ancestor of base focus %q", label, r.Page, r.BaseFocus())
 		}
 		return nil
 	}

@@ -131,7 +131,7 @@ func (r *Runtime) replayMacro(name string, count int) (err error) {
 		return errors.New("macro register is empty")
 	}
 	outer := g.Macro.Depth == 0
-	frameCount := len(r.Frames)
+	modalCount := len(r.modals)
 	if outer {
 		g.Macro.Steps = 0
 	}
@@ -142,14 +142,14 @@ func (r *Runtime) replayMacro(name string, count int) (err error) {
 		if outer {
 			if err != nil {
 				r.CancelPendingBinding()
-				for len(r.Frames) > frameCount {
+				for len(r.modals) > modalCount {
 					if popErr := r.Pop(); popErr != nil {
 						break
 					}
 				}
 			}
 			if r.pending() {
-				if in := r.Input(r.FocusID()); in != nil {
+				if in := r.Input(r.Focus); in != nil {
 					in.resetKeys()
 				} else {
 					r.leaveMode()

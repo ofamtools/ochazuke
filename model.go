@@ -13,11 +13,12 @@ import (
 )
 
 // ModalView renders one modal without replacing or inspecting its parent page.
-// Render returns the body as a Block; its cursor, when the modal holds the
-// focused input, is relative to the body's top-left cell.
+// Render receives the modal instance (its Payload carries what OpenModal
+// gave it) and returns the body as a Block; its cursor, when the modal holds
+// the focused input, is relative to the body's top-left cell.
 type ModalView struct {
 	Title  string
-	Render func(*Runtime, *Frame, int, int) Block
+	Render func(*Runtime, *Instance, int, int) Block
 }
 
 // Model is the Bubble Tea adapter. Pages and modal instances retain their
@@ -37,7 +38,7 @@ type Model struct {
 	// remain the only navigation state; input focus and modal routing are unchanged.
 	Sidebar bool
 	views   map[string]*viewport.Model
-	scroll  map[string]int // frame ID -> scroll offset
+	scroll  map[string]int // modal ID or page surface key -> scroll offset
 }
 
 func NewModel(r *Runtime) *Model {
@@ -45,20 +46,20 @@ func NewModel(r *Runtime) *Model {
 	m.ModalViews[yankHistoryID] = ModalView{Title: "Yank history", Render: yankHistoryView}
 	m.ModalViews["confirm"] = ModalView{Title: "Confirm", Render: confirmView}
 	r.Register(Operation{Verb: "scroll", Noun: "surface", Description: "Scroll the active page or modal without changing focus", Parameters: map[string]Parameter{"lines": {Type: "integer", Required: true}}, Result: "scroll offset", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		frame := r.top()
+		key := m.surfaceKey()
 		width, height := m.pageSize()
 		var content string
-		if len(r.Frames) > 1 {
+		if top := r.TopModal(); top != "" {
 			width, height = ModalSize(m.Width, m.Height)
-			_, body := m.modalContent(frame, width, height)
+			_, body := m.modalContent(top, width, height)
 			content = body.Text
 		} else {
 			content = m.pageContent(width, height).Text
 		}
-		view := m.viewport(frame, content, width, height)
+		view := m.viewport(key, content, width, height)
 		delta := min(max(IntArg(a, "lines", 0), -view.TotalLineCount()), view.TotalLineCount())
 		view.SetYOffset(view.YOffset() + delta)
-		m.scroll[frame.ID] = view.YOffset()
+		m.scroll[key] = view.YOffset()
 		return view.YOffset(), nil
 	}})
 	// Application rows already on the app noun keep precedence over these defaults.
@@ -153,43 +154,56 @@ func (m *Model) pageContent(width, height int) Block {
 	}
 	return Text("No page selected. Open a registered page through the palette or API.")
 }
-func (m *Model) viewport(frame *Frame, content string, width, height int) *viewport.Model {
-	view := m.views[frame.ID]
+
+// surfaceKey names the surface that scrolls: the top modal, else the page.
+func (m *Model) surfaceKey() string {
+	if top := m.Runtime.TopModal(); top != "" {
+		return top
+	}
+	if m.Runtime.Page != "" {
+		return m.Runtime.Page
+	}
+	return "main"
+}
+
+func (m *Model) viewport(key string, content string, width, height int) *viewport.Model {
+	view := m.views[key]
 	if view == nil {
 		v := viewport.New(viewport.WithWidth(width), viewport.WithHeight(height))
 		view = &v
-		m.views[frame.ID] = view
+		m.views[key] = view
 	}
 	view.SetWidth(max(1, width))
 	view.SetHeight(max(1, height))
 	view.SetContent(content)
-	view.SetYOffset(m.scroll[frame.ID])
+	view.SetYOffset(m.scroll[key])
 	return view
 }
 
-// modalContent renders a modal body. Only the top frame's input is focused, so
-// a covered modal reports no cursor.
-func (m *Model) modalContent(frame *Frame, width, height int) (string, Block) {
+// modalContent renders a modal body. Only the top modal's input is focused,
+// so a covered modal reports no cursor.
+func (m *Model) modalContent(id string, width, height int) (string, Block) {
 	var body Block
+	focus := m.Runtime.ModalFocus(id)
 	switch {
-	case frame == m.Palette.frame:
+	case id == paletteID && m.Palette.IsOpen():
 		body = m.Palette.viewBlock(width, height)
 		body = body.WithText(strings.TrimPrefix(body.Text, "Command palette\n")).Offset(0, -1)
 		return "Command palette", body
-	case m.ModalViews[frame.ID].Render != nil:
-		body = m.ModalViews[frame.ID].Render(m.Runtime, frame, width, height)
-	case m.Runtime.Input(frame.Focus) != nil:
-		body = InputBlock(m.Runtime.Input(frame.Focus), width, height)
+	case m.ModalViews[id].Render != nil:
+		body = m.ModalViews[id].Render(m.Runtime, m.Runtime.Instances[id], width, height)
+	case m.Runtime.Input(focus) != nil:
+		body = InputBlock(m.Runtime.Input(focus), width, height)
 	default:
 		body = Text("This modal has no focused input.")
 	}
-	if frame != m.Runtime.top() {
+	if id != m.Runtime.TopModal() {
 		body.Cursor = nil
 	}
-	if view, ok := m.ModalViews[frame.ID]; ok {
+	if view, ok := m.ModalViews[id]; ok {
 		return view.Title, body
 	}
-	return frame.ID, body
+	return id, body
 }
 
 // pageTitles lists the page titles in order and the index of the current page.
@@ -222,7 +236,7 @@ func (m *Model) footer() Footer {
 	if m.Status != "" {
 		return Footer{Text: "Error: " + safeText(m.Status), Error: true}
 	}
-	return Footer{Text: BindingHints(m.Runtime, m.Runtime.FocusID())}
+	return Footer{Text: BindingHints(m.Runtime, m.Runtime.Focus)}
 }
 
 // BindingHints renders the rows a focus answers to in its current mode as a
@@ -286,7 +300,7 @@ func (m *Model) cursor(block Block) *tea.Cursor {
 	cursor := tea.NewCursor(block.Cursor.X, block.Cursor.Y)
 	cursor.Blink = false
 	// A focused pane shows its own cursor, shaped as the pane reports.
-	if term := m.Runtime.Terminal(m.Runtime.FocusID()); term != nil {
+	if term := m.Runtime.Terminal(m.Runtime.Focus); term != nil {
 		cursor.Shape = term.cursorShape()
 		return cursor
 	}
@@ -318,7 +332,10 @@ func (m *Model) render() Block {
 	if !m.Sidebar {
 		header.Tabs, header.Active = m.pageTitles()
 	}
-	base := m.Runtime.Frames[0]
+	base := m.Runtime.Page
+	if base == "" {
+		base = "main"
+	}
 	pageWidth, pageHeight := m.pageSize()
 	page := m.scrolled(base, m.pageContent(pageWidth, pageHeight), pageWidth, pageHeight)
 	if m.Sidebar {
@@ -327,16 +344,16 @@ func (m *Model) render() Block {
 		page = layout.sidebar("Pages", titles, selected, pageTitle, page, width, height, m.Width < layoutStackAt)
 	}
 	surface := layout.Shell(header, page, m.footer())
-	for _, frame := range m.Runtime.Frames[1:] {
+	for _, id := range m.Runtime.modals {
 		modalWidth, modalHeight := ModalSize(m.Width, m.Height)
-		title, body := m.modalContent(frame, modalWidth, modalHeight)
+		title, body := m.modalContent(id, modalWidth, modalHeight)
 		bodyHeight := min(modalHeight, max(1, lipgloss.Height(body.Text)))
 		bodyWidth := min(modalWidth, max(1, lipgloss.Width(body.Text)))
-		body = m.scrolled(frame, body, bodyWidth, bodyHeight)
+		body = m.scrolled(id, body, bodyWidth, bodyHeight)
 		// The hint is the modal focus's own binding rows; it may widen the
 		// panel up to a readable width but never past the modal bounds.
-		hint := ansi.Truncate(BindingHints(m.Runtime, frame.Focus), min(modalWidth, max(bodyWidth, 48)), "…")
-		if frame == m.Runtime.top() && m.Status != "" {
+		hint := ansi.Truncate(BindingHints(m.Runtime, m.Runtime.ModalFocus(id)), min(modalWidth, max(bodyWidth, 48)), "…")
+		if id == m.Runtime.TopModal() && m.Status != "" {
 			hint = "Error: " + m.Status
 		}
 		surface = ComposeModalBlock(surface.Text, title, body, hint, m.Width, m.Height, layout.Styles)
@@ -344,10 +361,10 @@ func (m *Model) render() Block {
 	return surface
 }
 
-// scrolled runs a block through the frame's viewport, moving the cursor with
-// the scrolled content and dropping it when it scrolls out of view.
-func (m *Model) scrolled(frame *Frame, content Block, width, height int) Block {
-	view := m.viewport(frame, content.Text, width, height)
+// scrolled runs a block through the surface's viewport, moving the cursor
+// with the scrolled content and dropping it when it scrolls out of view.
+func (m *Model) scrolled(key string, content Block, width, height int) Block {
+	view := m.viewport(key, content.Text, width, height)
 	return content.WithText(view.View()).Offset(0, -view.YOffset()).Clip(width, height)
 }
 

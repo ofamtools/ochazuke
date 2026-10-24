@@ -73,7 +73,9 @@ func New(path string) (*App, error) {
 	a.registerVerbs()
 	a.bind()
 	picker := ochazuke.NewPicker(r)
-	a.m.ModalViews["picker"] = ochazuke.ModalView{Title: "Choose a path", Render: func(_ *ochazuke.Runtime, _ *ochazuke.Frame, w, h int) ochazuke.Block { return picker.ViewBlock(w, h) }}
+	a.m.ModalViews["picker"] = ochazuke.ModalView{Title: "Choose a path", Render: func(_ *ochazuke.Runtime, _ *ochazuke.Instance, w, h int) ochazuke.Block {
+		return picker.ViewBlock(w, h)
+	}}
 	if path != "" {
 		if err := a.Load(path); err != nil {
 			return nil, err

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
 
@@ -31,7 +32,6 @@ type Picker struct {
 	Selected     int
 	Error        string
 	Loading      bool
-	frame        *Frame
 	input        *Input
 	originInput  *Input
 	originText   string
@@ -233,8 +233,7 @@ func (p *Picker) open(c Context, args Arguments) (any, error) {
 	inst.Component = p.input
 	p.input.SetMode("insert")
 	p.input.Cursor = len(p.input.Text)
-	p.frame = &Frame{ID: "picker", Focus: p.input.ID}
-	if err := p.Runtime.Push(p.frame); err != nil {
+	if err := p.Runtime.Push(pickerID, p.input.ID); err != nil {
 		return nil, err
 	}
 	p.Directory = ""
@@ -242,20 +241,10 @@ func (p *Picker) open(c Context, args Arguments) (any, error) {
 	return p.state(), nil
 }
 
-func (p *Picker) IsOpen() bool {
-	if p.frame == nil {
-		return false
-	}
-	for _, frame := range p.Runtime.Frames {
-		if frame == p.frame {
-			return true
-		}
-	}
-	return false
-}
+func (p *Picker) IsOpen() bool { return slices.Contains(p.Runtime.modals, pickerID) }
 
 func (p *Picker) require() error {
-	if !p.IsOpen() || p.Runtime.top() != p.frame {
+	if p.Runtime.TopModal() != pickerID {
 		return errors.New("picker is not the active modal")
 	}
 	return nil

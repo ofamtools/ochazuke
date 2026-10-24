@@ -39,7 +39,7 @@ func press(t *testing.T, a *App, keys ...string) {
 func cursor(t *testing.T, a *App, want grid.Ref) {
 	t.Helper()
 	if got := a.grid.Cursor(); got != want {
-		t.Fatalf("cursor = %v, want %v (focus %s)", got, want, a.r.FocusID())
+		t.Fatalf("cursor = %v, want %v (focus %s)", got, want, a.r.Focus)
 	}
 }
 
@@ -48,16 +48,16 @@ func TestOpenAndNavigateWithCounts(t *testing.T) {
 	if !reflect.DeepEqual(a.Header, []string{"name", "email", "role"}) || len(a.Rows) != 5 {
 		t.Fatalf("loaded header=%v rows=%d", a.Header, len(a.Rows))
 	}
-	if a.r.FocusID() != "r0:c0" || a.r.Page != "sheet" {
-		t.Fatalf("start focus=%s page=%s", a.r.FocusID(), a.r.Page)
+	if a.r.Focus != "r0:c0" || a.r.Page != "sheet" {
+		t.Fatalf("start focus=%s page=%s", a.r.Focus, a.r.Page)
 	}
 	if got := a.r.InstancePath("r0:c0"); !reflect.DeepEqual(got, []string{"app", "sheet", "grid", "c0", "r0", "r0:c0"}) {
 		t.Fatalf("cell path = %v", got)
 	}
 	press(t, a, "3", "j")
 	cursor(t, a, grid.Ref{Row: 3, Col: 0})
-	if a.r.FocusID() != "r3:c0" || a.r.Instances["r0:c0"] != nil {
-		t.Fatalf("focus=%s, old cell kept=%v", a.r.FocusID(), a.r.Instances["r0:c0"] != nil)
+	if a.r.Focus != "r3:c0" || a.r.Instances["r0:c0"] != nil {
+		t.Fatalf("focus=%s, old cell kept=%v", a.r.Focus, a.r.Instances["r0:c0"] != nil)
 	}
 	press(t, a, "2", "l")
 	cursor(t, a, grid.Ref{Row: 3, Col: 2})
@@ -87,8 +87,8 @@ func TestOpenAndNavigateWithCounts(t *testing.T) {
 func TestEditCellThroughPrompt(t *testing.T) {
 	a := open(t)
 	press(t, a, "j", "enter")
-	if len(a.r.Frames) != 2 || a.r.FocusID() != fieldID || string(a.field.Text) != "bo" {
-		t.Fatalf("prompt: frames=%d focus=%s text=%q", len(a.r.Frames), a.r.FocusID(), string(a.field.Text))
+	if len(a.r.Modals()) != 1 || a.r.Focus != fieldID || string(a.field.Text) != "bo" {
+		t.Fatalf("prompt: frames=%d focus=%s text=%q", len(a.r.Modals()), a.r.Focus, string(a.field.Text))
 	}
 	if mode := a.r.Mode.Name; mode != "insert" {
 		t.Fatalf("prompt mode = %q", mode)
@@ -98,16 +98,16 @@ func TestEditCellThroughPrompt(t *testing.T) {
 	}
 	keytest.Type(a.m, "b")
 	press(t, a, "enter")
-	if len(a.r.Frames) != 1 || a.Rows[1][0] != "bob" || !a.Dirty || len(a.Undo) != 1 {
-		t.Fatalf("commit: frames=%d cell=%q dirty=%v undo=%d", len(a.r.Frames), a.Rows[1][0], a.Dirty, len(a.Undo))
+	if len(a.r.Modals()) != 0 || a.Rows[1][0] != "bob" || !a.Dirty || len(a.Undo) != 1 {
+		t.Fatalf("commit: frames=%d cell=%q dirty=%v undo=%d", len(a.r.Modals()), a.Rows[1][0], a.Dirty, len(a.Undo))
 	}
-	if a.r.FocusID() != "r1:c0" {
-		t.Fatalf("focus after commit = %s", a.r.FocusID())
+	if a.r.Focus != "r1:c0" {
+		t.Fatalf("focus after commit = %s", a.r.Focus)
 	}
 	press(t, a, "i")
 	keytest.Type(a.m, "zzz")
 	press(t, a, "esc")
-	if len(a.r.Frames) != 1 || a.Rows[1][0] != "bob" || len(a.Undo) != 1 {
+	if len(a.r.Modals()) != 0 || a.Rows[1][0] != "bob" || len(a.Undo) != 1 {
 		t.Fatalf("cancel changed the sheet: %q undo=%d", a.Rows[1][0], len(a.Undo))
 	}
 	press(t, a, "u")
@@ -123,19 +123,19 @@ func TestEditCellThroughPrompt(t *testing.T) {
 func TestDeleteRowAsksForConfirmation(t *testing.T) {
 	a := open(t)
 	press(t, a, "j", "d", "d")
-	if len(a.r.Frames) != 2 || a.r.FocusID() != "confirm" {
-		t.Fatalf("confirm not open: frames=%d focus=%s", len(a.r.Frames), a.r.FocusID())
+	if len(a.r.Modals()) != 1 || a.r.Focus != "confirm" {
+		t.Fatalf("confirm not open: frames=%d focus=%s", len(a.r.Modals()), a.r.Focus)
 	}
 	if view := ansi.Strip(a.m.View().Content); !strings.Contains(view, "Delete row r1:c0?") {
 		t.Fatalf("confirm prompt missing:\n%s", view)
 	}
 	press(t, a, "n")
-	if len(a.r.Frames) != 1 || len(a.Rows) != 5 {
-		t.Fatalf("n: frames=%d rows=%d", len(a.r.Frames), len(a.Rows))
+	if len(a.r.Modals()) != 0 || len(a.Rows) != 5 {
+		t.Fatalf("n: frames=%d rows=%d", len(a.r.Modals()), len(a.Rows))
 	}
 	press(t, a, "d", "d", "y")
-	if len(a.Rows) != 4 || a.Rows[1][0] != "cy" || a.r.FocusID() != "r1:c0" {
-		t.Fatalf("y: rows=%d row1=%v focus=%s", len(a.Rows), a.Rows[1], a.r.FocusID())
+	if len(a.Rows) != 4 || a.Rows[1][0] != "cy" || a.r.Focus != "r1:c0" {
+		t.Fatalf("y: rows=%d row1=%v focus=%s", len(a.Rows), a.Rows[1], a.r.Focus)
 	}
 	press(t, a, "u")
 	if len(a.Rows) != 5 || a.Rows[1][0] != "bo" {
@@ -145,8 +145,8 @@ func TestDeleteRowAsksForConfirmation(t *testing.T) {
 	if _, err := a.r.Execute(ochazuke.Request{Verb: "delete", Noun: "row", Confirmed: true}); err != nil {
 		t.Fatal(err)
 	}
-	if len(a.Rows) != 4 || len(a.r.Frames) != 1 {
-		t.Fatalf("confirmed delete: rows=%d frames=%d", len(a.Rows), len(a.r.Frames))
+	if len(a.Rows) != 4 || len(a.r.Modals()) != 0 {
+		t.Fatalf("confirmed delete: rows=%d frames=%d", len(a.Rows), len(a.r.Modals()))
 	}
 }
 
@@ -289,7 +289,7 @@ func TestColumnVerbsAndSave(t *testing.T) {
 		t.Fatalf("sort: %v", a.Rows)
 	}
 	press(t, a, "D")
-	if a.r.FocusID() != "confirm" {
+	if a.r.Focus != "confirm" {
 		t.Fatal("column delete did not ask")
 	}
 	press(t, a, "y")
@@ -306,8 +306,8 @@ func TestColumnVerbsAndSave(t *testing.T) {
 	// column change: dee, the last row after sorting.
 	cursor(t, a, grid.Ref{Row: 4, Col: 1})
 	press(t, a, "o")
-	if len(a.Rows) != 6 || a.Rows[5][0] != "" || a.r.FocusID() != "r5:c1" {
-		t.Fatalf("insertBelow: rows=%d focus=%s", len(a.Rows), a.r.FocusID())
+	if len(a.Rows) != 6 || a.Rows[5][0] != "" || a.r.Focus != "r5:c1" {
+		t.Fatalf("insertBelow: rows=%d focus=%s", len(a.Rows), a.r.Focus)
 	}
 	press(t, a, "k", "y", "y")
 	if len(a.Rows) != 7 || a.Rows[4][0] != "dee" || a.Rows[5][0] != "dee" {
@@ -326,22 +326,22 @@ func TestColumnVerbsAndSave(t *testing.T) {
 	}
 	// Save-as through the prompt: ctrl+o inside opens the picker on the field.
 	press(t, a, "ctrl+s")
-	if a.r.FocusID() != "" && len(a.r.Frames) != 1 {
-		t.Fatalf("save with a path opened a prompt: frames=%d", len(a.r.Frames))
+	if a.r.Focus != "" && len(a.r.Modals()) != 0 {
+		t.Fatalf("save with a path opened a prompt: frames=%d", len(a.r.Modals()))
 	}
 	if _, err := a.r.Execute(ochazuke.Request{Verb: "saveAs", Noun: "sheet"}); err != nil {
 		t.Fatal(err)
 	}
-	if a.r.FocusID() != fieldID || string(a.field.Text) != out {
-		t.Fatalf("save-as prompt: focus=%s text=%q", a.r.FocusID(), string(a.field.Text))
+	if a.r.Focus != fieldID || string(a.field.Text) != out {
+		t.Fatalf("save-as prompt: focus=%s text=%q", a.r.Focus, string(a.field.Text))
 	}
 	press(t, a, "ctrl+o")
-	if a.r.Frames[len(a.r.Frames)-1].ID != "picker" {
-		t.Fatalf("ctrl+o did not open the picker: %v", a.r.Frames[len(a.r.Frames)-1])
+	if a.r.TopModal() != "picker" {
+		t.Fatalf("ctrl+o did not open the picker: %v", a.r.TopModal())
 	}
 	press(t, a, "esc", "esc")
-	if len(a.r.Frames) != 1 || a.ask != nil {
-		t.Fatalf("esc twice: frames=%d ask=%v", len(a.r.Frames), a.ask)
+	if len(a.r.Modals()) != 0 || a.ask != nil {
+		t.Fatalf("esc twice: frames=%d ask=%v", len(a.r.Modals()), a.ask)
 	}
 }
 
@@ -393,14 +393,14 @@ func TestEmptySheetStartsOnTheGrid(t *testing.T) {
 		t.Fatal(err)
 	}
 	a.m.Width, a.m.Height = 60, 16
-	if a.r.FocusID() != "grid" {
-		t.Fatalf("focus = %s", a.r.FocusID())
+	if a.r.Focus != "grid" {
+		t.Fatalf("focus = %s", a.r.Focus)
 	}
 	// No cell instance: the cell, row and column rows are not on the stack.
 	keytest.Press(a.m, "j")
 	keytest.Press(a.m, "i")
-	if a.m.Status != "" || len(a.r.Frames) != 1 {
-		t.Fatalf("keys on an empty sheet: status=%q frames=%d", a.m.Status, len(a.r.Frames))
+	if a.m.Status != "" || len(a.r.Modals()) != 0 {
+		t.Fatalf("keys on an empty sheet: status=%q frames=%d", a.m.Status, len(a.r.Modals()))
 	}
 	if _, err := a.r.Execute(ochazuke.Request{Verb: "edit", Noun: "cell"}); err == nil {
 		t.Fatal("editing an empty sheet reported no error")
@@ -411,8 +411,8 @@ func TestEmptySheetStartsOnTheGrid(t *testing.T) {
 	if _, err := a.r.Execute(ochazuke.Request{Verb: "insertBelow", Noun: "row"}); err != nil {
 		t.Fatal(err)
 	}
-	if a.r.FocusID() != "r0:c0" || len(a.Rows) != 1 {
-		t.Fatalf("after first row: focus=%s rows=%d", a.r.FocusID(), len(a.Rows))
+	if a.r.Focus != "r0:c0" || len(a.Rows) != 1 {
+		t.Fatalf("after first row: focus=%s rows=%d", a.r.Focus, len(a.Rows))
 	}
 	if view := ansi.Strip(a.m.View().Content); !strings.Contains(view, "(untitled) [+]") {
 		t.Fatalf("view:\n%s", view)

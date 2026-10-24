@@ -161,7 +161,7 @@ func (m *keybindingModel) render() string {
 		left = append(left, "", st.Muted.Render("Key names are quoted."))
 		if m.runtime != nil {
 			left = append(left, "Timeout: "+m.runtime.BindingTimeout.String(), "", st.Subtitle.Render("Defined bindings"))
-			for _, binding := range m.runtime.ListBindings(m.runtime.FocusID()) {
+			for _, binding := range m.runtime.ListBindings(m.runtime.Focus) {
 				if binding.Request.Noun != "sandbox" {
 					continue
 				}

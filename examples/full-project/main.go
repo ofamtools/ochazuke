@@ -462,13 +462,13 @@ func smokeExample(m *ochazuke.Model) error {
 	call("select", "context", "", ochazuke.Arguments{"instance": "main"})
 	expect("context.select by instance", r.Context().Path, []string{"app", "items", "item-list", "main"})
 	binding("d")
-	expect("worktree.remove asks first", r.Frames[len(r.Frames)-1].ID, "confirm")
+	expect("worktree.remove asks first", r.TopModal(), "confirm")
 	expect("confirm names the row", strings.Contains(plain(m.View().Content), "Remove worktree main?"), true)
 	binding("n")
-	expect("n keeps the row", r.Instances["main"] != nil && len(r.Frames) == 1, true)
+	expect("n keeps the row", r.Instances["main"] != nil && len(r.Modals()) == 0, true)
 	binding("d", "y")
 	expect("worktree.remove drops the row after y", r.Instances["main"] == nil, true)
-	expect("confirm closed", len(r.Frames), 1)
+	expect("confirm closed", len(r.Modals()), 0)
 	binding(":")
 	call("select", "palette", "", ochazuke.Arguments{"value": "noun:worktree"})
 	call("select", "palette", "", ochazuke.Arguments{"value": "instance:docs"})
@@ -490,7 +490,7 @@ func smokeExample(m *ochazuke.Model) error {
 	// The console page: a terminal instance under the page, fed by the
 	// example's echo stream, driven only through the public API and rows.
 	call("open", "page", "", ochazuke.Arguments{"id": "console"})
-	expect("console starts on its pane", r.FocusID(), "pane")
+	expect("console starts on its pane", r.Focus, "pane")
 	expect("pane keys are terminal mode", r.Mode.Name, "terminal")
 	term := r.Terminal("pane")
 	frames()
@@ -506,7 +506,7 @@ func smokeExample(m *ochazuke.Model) error {
 	binding("ctrl+a", ":")
 	expect("leader-bound key opens the palette", m.Palette.IsOpen(), true)
 	call("close", "palette", "", nil)
-	expect("palette returns to the pane", r.FocusID(), "pane")
+	expect("palette returns to the pane", r.Focus, "pane")
 	terminalKeys := func() []string {
 		var keys []string
 		rows, _ := call("list", "bindings", "pane", nil).([]ochazuke.Binding)
@@ -521,7 +521,7 @@ func smokeExample(m *ochazuke.Model) error {
 	binding("x")
 	expect("detached pane takes no keys", strings.HasSuffix(paneText(), "$ <ctrl+a>x"), true)
 	binding("enter")
-	expect("enter re-attaches", r.FocusID(), "pane")
+	expect("enter re-attaches", r.Focus, "pane")
 	update(tea.WindowSizeMsg{Width: 100, Height: 30})
 	// Rendering sizes the pane to its panel, which the stream answers with a
 	// frame; a read with nothing changed would wait, as it does in a program.

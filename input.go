@@ -40,7 +40,7 @@ func NewInput(id, text string, multiline bool) *Input {
 
 // focused reports whether the input is the runtime's focus, which puts it
 // in the global mode.
-func (in *Input) focused() bool { return in.r != nil && in.r.FocusID() == in.ID }
+func (in *Input) focused() bool { return in.r != nil && in.r.Focus == in.ID }
 
 // Count is the pending Vim count, read from the global mode payload while
 // the input is focused.

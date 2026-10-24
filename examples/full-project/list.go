@@ -13,7 +13,7 @@ func listPageView(r *ochazuke.Runtime, list *ochazuke.List, spec PageConfig, sty
 	if width <= 0 || height <= 0 {
 		return ochazuke.Block{}
 	}
-	frame := r.PageOf(spec.ID).Frame
+	focus := r.PageFocus(spec.ID)
 	selected, ok := list.Selected()
 	id := "none"
 	if ok {
@@ -24,7 +24,7 @@ func listPageView(r *ochazuke.Runtime, list *ochazuke.List, spec PageConfig, sty
 		noun = selected.Noun
 	}
 	state := pageState(spec.ID)
-	status := fmt.Sprintf("Selected: %s (%s) · Active: %s", id, noun, frame.Focus)
+	status := fmt.Sprintf("Selected: %s (%s) · Active: %s", id, noun, focus)
 	if last, ok := state["lastAction"].(string); ok {
 		status += " · " + last
 	}
@@ -60,7 +60,7 @@ func listPageView(r *ochazuke.Runtime, list *ochazuke.List, spec PageConfig, sty
 	} else if bodyHeight >= 8 {
 		topHeight := bodyHeight / 2
 		body = stack(listPanel(width, topHeight), editorPanel(width, bodyHeight-topHeight))
-	} else if r.Input(frame.Focus) == nil {
+	} else if r.Input(focus) == nil {
 		body = listPanel(width, bodyHeight)
 	} else {
 		body = editorPanel(width, bodyHeight)
@@ -161,14 +161,14 @@ func registerModals(m *ochazuke.Model, specs []ModalConfig) error {
 		if spec.Renderer == "confirm" && spec.Input == "" {
 			return fmt.Errorf("modal %q: confirm renderer requires an input", spec.ID)
 		}
-		m.ModalViews["modal:"+spec.ID] = ochazuke.ModalView{Title: spec.Title, Render: func(r *ochazuke.Runtime, frame *ochazuke.Frame, w, h int) ochazuke.Block {
+		m.ModalViews["modal:"+spec.ID] = ochazuke.ModalView{Title: spec.Title, Render: func(r *ochazuke.Runtime, frame *ochazuke.Instance, w, h int) ochazuke.Block {
 			body := ochazuke.Text(ansi.Wrap(plain(spec.Text), max(1, w), ""))
 			if spec.Renderer == "bindings" {
 				body = stack(body, ochazuke.Text(""), ochazuke.Text(bindingsView(r, modalOrigins[frame.ID], w)))
 			}
 			if spec.Renderer == "confirm" {
 				inputHeight := max(1, h-strings.Count(body.Text, "\n")-3)
-				body = stack(body, ochazuke.Text(""), ochazuke.InputBlock(r.Input(frame.Focus), w, inputHeight))
+				body = stack(body, ochazuke.Text(""), ochazuke.InputBlock(r.Input(r.ModalFocus(frame.ID)), w, inputHeight))
 			}
 			return body
 		}}

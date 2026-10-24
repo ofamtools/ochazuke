@@ -27,7 +27,7 @@ func (a *App) registerPrompt() {
 	r.Define("field").Pin("insert").
 		Verb("commit", func(r *ochazuke.Runtime, c ochazuke.Context, args ochazuke.Arguments) (any, error) {
 			q := a.ask
-			if q == nil || r.Instances[r.FocusID()] == nil || r.FocusID() != fieldID {
+			if q == nil || r.Instances[r.Focus] == nil || r.Focus != fieldID {
 				return nil, errors.New("no prompt is open")
 			}
 			text := string(a.field.Text)
@@ -52,7 +52,7 @@ func (a *App) registerPrompt() {
 	if err := r.AddInput(a.field, ochazuke.Kind("field")); err != nil {
 		panic(err)
 	}
-	a.m.ModalViews[promptFrame] = ochazuke.ModalView{Title: "Prompt", Render: func(r *ochazuke.Runtime, f *ochazuke.Frame, w, h int) ochazuke.Block {
+	a.m.ModalViews[promptFrame] = ochazuke.ModalView{Title: "Prompt", Render: func(r *ochazuke.Runtime, f *ochazuke.Instance, w, h int) ochazuke.Block {
 		label := ""
 		if a.ask != nil {
 			label = a.ask.label
@@ -78,7 +78,7 @@ func (a *App) prompt(label, text, kind string, commit func(string) error) error 
 	view.Title = label
 	a.m.ModalViews[promptFrame] = view
 	a.ask = &question{label: label, commit: commit}
-	if err := a.r.Push(&ochazuke.Frame{ID: promptFrame, Focus: fieldID}); err != nil {
+	if err := a.r.Push(promptFrame, fieldID); err != nil {
 		a.ask = nil
 		return err
 	}

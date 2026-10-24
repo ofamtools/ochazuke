@@ -97,7 +97,7 @@ func (t *Terminal) Size() (cols, rows int) { return t.cols, t.rows }
 func (t *Terminal) Err() string { return t.err }
 
 // Focused reports whether keys go to this pane.
-func (t *Terminal) Focused() bool { return t.r.FocusID() == t.id }
+func (t *Terminal) Focused() bool { return t.r.Focus == t.id }
 
 // read schedules the next frame read as work owned by the instance.
 func (t *Terminal) read() {
@@ -238,7 +238,7 @@ func registerTerminal(r *Runtime) {
 			if err != nil {
 				return nil, err
 			}
-			err = r.Focus(t.id)
+			err = r.SetFocus(t.id)
 			return r.Context(), err
 		}, "Focus a terminal: keys go to the pane until the leader detaches").
 		Verb("detach", func(r *Runtime, c Context, a Arguments) (any, error) {
@@ -246,7 +246,7 @@ func registerTerminal(r *Runtime) {
 			if err != nil {
 				return nil, err
 			}
-			err = r.Focus(r.Instances[t.id].Parent)
+			err = r.SetFocus(r.Instances[t.id].Parent)
 			return r.Context(), err
 		}, "Return focus to the instance around the terminal; the pane keeps running").
 		Mode("terminal").

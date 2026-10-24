@@ -130,7 +130,7 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 			return removeRow(r, page, list, row.ID)
 		}),
 		"cycle-input": func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
-			if len(r.Frames) != 1 {
+			if len(r.Modals()) != 0 {
 				return nil, fmt.Errorf("close modals before changing page fields")
 			}
 			for _, page := range cfg.Pages {
@@ -149,7 +149,7 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 				}
 				delta := ochazuke.IntArg(a, "delta", 1) % len(page.Inputs)
 				index = (index + delta + len(page.Inputs)) % len(page.Inputs)
-				err := r.Focus(page.Inputs[index])
+				err := r.SetFocus(page.Inputs[index])
 				return r.Context(), err
 			}
 			return nil, fmt.Errorf("no active configured page")
@@ -190,7 +190,7 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 				}
 				// The opening focus lets a renderer describe what was focused.
 				modalOrigins["modal:"+id] = focusOf(c)
-				err := r.Push(&ochazuke.Frame{ID: "modal:" + id, Focus: focus})
+				err := r.Push("modal:"+id, focus)
 				return r.Context(), err
 			}
 			return nil, fmt.Errorf("unknown configured modal %q", id)
