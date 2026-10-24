@@ -41,6 +41,9 @@ Do not hand-edit either generated file. If a map entry is wrong, fix the code or
 - Modals keep their own frame and existing input instances. Closing one restores interaction state, not a copy of shared data.
 - Offsets count runes, not grapheme clusters. Rendering accounts for cell width.
 - Custom modes are registered names. Unknown modes are not treated as normal or insert.
+- Mode resolution: the focused input's mode wins; otherwise the top frame's `State["mode"]`; otherwise `normal`. See README "Input modes" for the editing-model and field-kind matrix.
+- Readline keys are always active in insert mode. They are framework defaults, not removable; an application overrides a key by binding it in a layer with `mode: insert`.
+- Never bind function keys (F1 to F12) anywhere, including demos, sandboxes, and tests. Use ordinary keys or Ctrl/Alt combinations and keep help text in sync with the real binding.
 - This is Bubble Tea **v1**. Do not import v2 idioms from the reference projects below (`tea.KeyPressMsg`, `tea.View` structs, `charm.land/...` paths).
 
 ## Checks

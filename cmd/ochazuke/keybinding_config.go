@@ -27,8 +27,8 @@ func validateSandboxBinding(binding sandboxBinding) error {
 		}
 	}
 	for _, key := range strings.Fields(binding.Keys) {
-		if key == "ctrl+c" || key == "f2" {
-			return fmt.Errorf("ctrl+c and f2 are reserved sandbox controls")
+		if key == "ctrl+c" || key == "ctrl+g" {
+			return fmt.Errorf("ctrl+c and ctrl+g are reserved sandbox controls")
 		}
 	}
 	return nil

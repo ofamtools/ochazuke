@@ -78,7 +78,7 @@ func (m *keybindingModel) updateSetup(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.fields[m.field].Blur()
 				m.field = (m.field + 1) % len(m.fields)
 				return m, m.fields[m.field].Focus()
-			case "f4":
+			case "ctrl+o":
 				if m.form == "import" || m.form == "export" {
 					m.picker = filepicker.New()
 					m.picker.CurrentDirectory = filepath.Dir(m.fields[0].Value())
@@ -280,7 +280,7 @@ func (m *keybindingModel) setupView() string {
 		title, footer = "Sequence timeout", "Enter save · Esc cancel"
 		body = []string{label(true, "Duration (e.g. 400ms, 1s)"), m.fields[0].View(), st.Muted.Render("Not saved in JSON.")}
 	default:
-		title, footer = strings.ToUpper(m.form[:1])+m.form[1:]+" bindings", "F4 browse · Enter confirm · Esc cancel"
+		title, footer = strings.ToUpper(m.form[:1])+m.form[1:]+" bindings", "^O browse · Enter confirm · Esc cancel"
 		body = []string{label(true, "JSON file path"), m.fields[0].View()}
 		if m.form == "import" {
 			body = append(body, "", st.Muted.Render("Replaces in-memory bindings."))

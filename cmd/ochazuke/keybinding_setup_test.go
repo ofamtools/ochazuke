@@ -30,9 +30,9 @@ func TestBindingSetupRoundTrip(t *testing.T) {
 	if !m.sandbox || m.results[0] != "ACTION: save" {
 		t.Fatalf("sandbox did not execute save: %+v", m.results[0])
 	}
-	key(tea.KeyF2)
+	key(tea.KeyCtrlG)
 	if m.sandbox {
-		t.Fatal("F2 did not return to setup")
+		t.Fatal("ctrl+g did not return to setup")
 	}
 	typeText("e")
 	key(tea.KeyTab)
@@ -78,7 +78,7 @@ func TestSetupTimeoutEditPreservedAndInvalidatesStaleTimer(t *testing.T) {
 	m.runtime.BindingTimeout = 5 * time.Millisecond
 	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("g")})
 	stale := cmd().(ochazuke.BindingTimeoutMsg)
-	m.Update(tea.KeyMsg{Type: tea.KeyF2})
+	m.Update(tea.KeyMsg{Type: tea.KeyCtrlG})
 	typeKeys := func(s string) { m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)}) }
 	typeKeys("t")
 	if m.form != "timeout" || !strings.Contains(m.View(), "400ms, 1s") {
@@ -116,7 +116,7 @@ func TestBindingConfigValidationIsTransactional(t *testing.T) {
 	}
 	path := filepath.Join(t.TempDir(), "bindings.json")
 	for _, data := range []string{
-		`[{"keys":"z","action":"new"},{"keys":"f2","action":"bad"}]`,
+		`[{"keys":"z","action":"new"},{"keys":"ctrl+g","action":"bad"}]`,
 		`[{"keys":"x","action":"new","typo":true}]`,
 		`[] []`, `null`, `{"keys":"x"}`,
 	} {
@@ -163,7 +163,7 @@ func TestBindingFileBrowserSelectsDirectoryAndFile(t *testing.T) {
 	m.openForm("export", filepath.Join(dir, "bindings.json"))
 	browse := func() {
 		t.Helper()
-		_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyF4})
+		_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyCtrlO})
 		if cmd == nil {
 			t.Fatal("browser did not load directory")
 		}

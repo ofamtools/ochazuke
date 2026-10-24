@@ -45,7 +45,7 @@ func (m *keybindingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if !m.sandbox {
 		return m.updateSetup(msg)
 	}
-	if key, ok := msg.(tea.KeyMsg); ok && key.String() == "f2" {
+	if key, ok := msg.(tea.KeyMsg); ok && key.String() == "ctrl+g" {
 		m.sandbox = false
 		if m.runtime != nil {
 			m.runtime.CancelPendingBinding()
@@ -177,7 +177,7 @@ func (m *keybindingModel) View() string {
 	}
 	return layout.Page("Keybinding sandbox", "Stage 2 · Test keys",
 		layout.Split("Latest key", strings.Join(left, "\n"), "History · newest first", strings.Join(right, "\n")),
-		"F2 setup · ^C exit · last 200 key messages")
+		"^G setup · ^C exit · last 200 key messages")
 }
 
 func runKeybinding(args []string) error {

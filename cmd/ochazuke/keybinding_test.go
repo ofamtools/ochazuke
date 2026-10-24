@@ -139,7 +139,7 @@ func TestParseBindingTimeout(t *testing.T) {
 }
 
 func TestSandboxRejectsInvalidBindings(t *testing.T) {
-	for _, spec := range []string{"", "x", "=action", "x=", "ctrl+c=quit", "g ctrl+c=quit", "f2=reserved"} {
+	for _, spec := range []string{"", "x", "=action", "x=", "ctrl+c=quit", "g ctrl+c=quit", "ctrl+g=reserved"} {
 		m := &keybindingModel{runtime: ochazuke.NewRuntime()}
 		if err := m.addBinding(spec); err == nil {
 			t.Fatalf("accepted invalid binding %q", spec)

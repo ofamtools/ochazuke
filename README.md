@@ -70,9 +70,9 @@ Run `ochazuke keybinding` (or `go run ./cmd/ochazuke keybinding`) without starti
 - `a`: add a binding; enter Tea key names and a dummy action identifier in separate fields.
 - `e` / `d`: edit / delete the selected binding; arrows select a row.
 - `t`: edit the ambiguous-binding timeout (Go durations such as `400ms` or `1s`; must be positive). The current timeout is shown in setup and in the sandbox.
-- `i` / `o`: import / export JSON. Enter a path or press F4 to browse files and folders. An export folder selection proposes `bindings.json`; the filename remains editable.
+- `i` / `o`: import / export JSON. Enter a path or press Ctrl-O to browse files and folders. An export folder selection proposes `bindings.json`; the filename remains editable.
 - Enter: **Enter sandbox**. In **Stage 2**, the left column shows the latest key, outcome, and effective bindings; the right column logs messages newest first (last 200 retained).
-- F2: return to setup without losing bindings or history. Ctrl-C exits either stage.
+- Ctrl-G: return to setup without losing bindings or history. Ctrl-C exits either stage.
 
 Import replaces in-memory bindings only after the whole file validates. Export asks before overwriting an existing file. Changes remain in memory until exported; exiting does not autosave.
 
@@ -85,7 +85,7 @@ Preload setup from a file with `ochazuke keybinding --bindings=path/to/bindings.
 ]
 ```
 
-Names come directly from Bubble Tea's `tea.KeyMsg.String()`, quoted in the log to make whitespace visible. Ctrl-C and F2 are reserved and cannot be bound. Keys that the terminal encodes identically cannot be distinguished by the sandbox.
+Names come directly from Bubble Tea's `tea.KeyMsg.String()`, quoted in the log to make whitespace visible. Ctrl-C and Ctrl-G are reserved and cannot be bound. Keys that the terminal encodes identically cannot be distinguished by the sandbox.
 
 You can also preload dummy actions with repeatable `--bind 'KEYS=ACTION'` options. These override matching keys from `--bindings`, regardless of flag order:
 
@@ -232,7 +232,7 @@ Macro recording consumes exactly one register character after `q`. For `qq:`, th
 | Normal path/paths field | Enter | Open picker using the current value/line |
 | Normal Playground / draft | `Ctrl-N` | Open a draft / nest another draft |
 | Draft modal | `Ctrl-G` | Close and restore the parent |
-| Normal Playground | `F2` | Inspect the handling layer |
+| Normal Playground | `Ctrl-X` | Inspect the handling layer |
 | Normal app | `?` | Open the scrollable keyboard guide |
 | Normal Appearance | `t`, `d` | Cycle theme / density |
 | Normal demo | `Ctrl-J/K` | Next/previous page |
@@ -355,6 +355,27 @@ The final base-path layer (`sidebar` here) identifies the list in `Runtime.Lists
 - Call these methods on the runtime's event loop. Data loading and domain actions remain application-owned. There is no tree expansion or built-in search provider.
 
 The operation equivalents are `focus.list {id}`, `move.list {id?, delta}`, and `select.list {id?, item}`. Omit `id` to operate on the list in the dispatch context. State is inspectable under `/lists/<id>`. The full-project example's **Items** page demonstrates list/editor focus, refresh, and removal with sample records.
+
+### Input modes
+
+Every `Input` has two independent settings, plus behavior all inputs share. Modes are names, not an enum; these are the ones the built-in editor enters.
+
+| Setting | Value | Effect |
+|---|---|---|
+| `ReadlineOnly` | `false` (default) | Vim editing. Starts in `normal`. `i a I A o O` enter `insert`; Escape returns to `normal`. `v V Ctrl-V` enter `visual`, `visual-line`, `visual-block`. |
+| `ReadlineOnly` | `true` | Insert only. Starts in `insert` and `set.mode` keeps it there. The editor does not consume Escape, so an application layer can bind it, as the picker binds cancel. |
+| `Kind` | `""` or `text` | Picker opens at the working directory or a supplied path and inserts at the cursor captured when it opened. |
+| `Kind` | `path` | Picker opens at the whole value and replaces it. |
+| `Kind` | `paths` | Forces `Multiline`. Picker opens at the current line and replaces only that line. |
+| `PathFilter` | `any`, `file`, `dir` | Which picker results are eligible. Does not change editing keys. |
+
+Shared by every input regardless of these settings:
+
+- Readline keys in `insert` mode (`Ctrl-A/E/B/F/P/N`, `Alt-B/F`, `Ctrl-W/U/K/Y`, `Ctrl-H/D`). They are framework defaults. A layer binding with `mode: insert` overrides a key; there is no plain mode without them.
+- `Ctrl-W` kills one path component, treating `/` and whitespace as boundaries, in every input, not only `path` kinds.
+- One undo tree, named registers, shared yanks, and macros.
+
+Mode resolution for key dispatch: the focused input's mode wins. Without a focused input, the active frame's `State["mode"]` applies. Otherwise the mode is `normal`. The `search` mode string belongs to the palette and picker, not to text inputs.
 
 ### API and ownership
 

@@ -144,7 +144,7 @@ func NewDemo() *Model {
 		bind(id, "", "ctrl+g", "pop", "modal", nil)
 	}
 	bind("help", "", "ctrl+c", "pop", "modal", nil)
-	bind("playground", "normal", "f2", "inspect", "selection", nil)
+	bind("playground", "normal", "ctrl+x", "inspect", "selection", nil)
 	bind("appearance", "normal", "t", "cycle", "theme", nil)
 	bind("appearance", "normal", "d", "cycle", "density", nil)
 	if err := r.OpenPage("overview"); err != nil {
@@ -198,9 +198,9 @@ func demoPlayground(m *Model, width, height int) string {
 	}
 	status := "App → Playground → Agent → " + strings.Title(frame.Context.Path[len(frame.Context.Path)-1])
 	if layer, ok := frame.State["lastLayer"].(string); ok {
-		status = "F2 action handled by: " + layer
+		status = "Ctrl-X action handled by: " + layer
 	}
-	return s.Title.Render("Widget playground") + "\n" + s.Muted.Render("Shared yanks and registers. Independent edit histories.") + "\n\n" + fields + "\n\n" + s.Accent.Render(safeText(status)) + "\n" + s.Muted.Render("Tab field · i insert · v/V/C-v select · Ctrl-Y yank history\nCtrl-N draft · Ctrl-O path picker · F2 inspect")
+	return s.Title.Render("Widget playground") + "\n" + s.Muted.Render("Shared yanks and registers. Independent edit histories.") + "\n\n" + fields + "\n\n" + s.Accent.Render(safeText(status)) + "\n" + s.Muted.Render("Tab field · i insert · v/V/C-v select · Ctrl-Y yank history\nCtrl-N draft · Ctrl-O path picker · Ctrl-X inspect")
 }
 func demoCommands(m *Model, width int) string {
 	r := m.Runtime
