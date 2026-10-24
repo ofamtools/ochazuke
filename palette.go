@@ -3,49 +3,59 @@ package ochazuke
 import (
 	"errors"
 	"fmt"
-	"github.com/charmbracelet/x/ansi"
 	"slices"
 	"sort"
-	"strconv"
 	"strings"
+
+	"github.com/charmbracelet/x/ansi"
 )
 
-// Palette owns its overlay and drafts; it never edits the originating input.
-// Create one palette per runtime: operation keys are globally unique.
+// Palette is the ex-mode command line: one prompt input whose text is the
+// source of truth, parsed by the grammar in palette_parse.go, with a
+// completion list for the next word beneath it. It never edits the
+// originating input. Create one palette per runtime: operation keys are
+// globally unique.
 type Palette struct {
-	r             *Runtime
-	origin        Context
-	originMode    ModeState
-	stage         string
-	section       string
-	first         string
-	query         string
-	searching     bool
-	selection     int
-	op            Operation
-	fields        []string
-	drafts        map[string]string
-	field         int
-	message       string
-	executing     bool
-	actions       map[string]bool
-	editors       map[string]*Input
-	explicitEmpty map[string]bool
-	nouns         map[string]PaletteNoun
-	choice        int
-	choiceCache   map[string]choiceList
+	r          *Runtime
+	origin     Context
+	originMode ModeState
+	line       *Input
+	// highlight is the completion ctrl+n/ctrl+p moved onto (-1: none); it
+	// holds only while the line still reads marked.
+	highlight int
+	marked    string
+	// filter restricts the list to verbs, nouns or choices ("v", "n", "p")
+	// for the word at filterAt; typing :v, :n or :p sets it.
+	filter   string
+	filterAt int
+	seen     string // the line at the last sync
+	recall   int    // palette history steps back; 0 is the draft
+	draft    string
+	message  string
+	// executing guards against the line running palette.run itself.
+	executing   bool
+	actions     map[string]bool
+	nouns       map[string]PaletteNoun
+	choiceCache map[string]choiceList
 }
 
+// paletteID is the palette's modal instance; paletteLineID its line.
+const (
+	paletteID     = "palette"
+	paletteLineID = "__palette/line"
+)
+
 func NewPalette(r *Runtime) *Palette {
-	p := &Palette{r: r, actions: map[string]bool{}, nouns: map[string]PaletteNoun{
+	p := &Palette{r: r, highlight: -1, actions: map[string]bool{}, nouns: map[string]PaletteNoun{
 		"page": {Source: PagesPaletteSource, DefaultVerb: "open", Argument: "id"},
 	}}
-	p.editors = map[string]*Input{}
-	p.explicitEmpty = map[string]bool{}
-	r.Instance("palette", Kind("palette"))
-	register := func(verb, noun, description string, params map[string]Parameter, fn func(Arguments) error) {
-		p.actions[noun+"."+verb] = true
-		r.Register(Operation{Verb: verb, Noun: noun, Description: description, Parameters: params, Result: "palette state", Run: func(_ *Runtime, _ Context, args Arguments) (any, error) {
+	r.Instance(paletteID, Kind("palette"))
+	register := func(verb, description string, params map[string]Parameter, fn func(Arguments) error) {
+		p.actions["palette."+verb] = true
+		r.Register(Operation{Verb: verb, Noun: "palette", Description: description, Parameters: params, Result: "palette state", Run: func(_ *Runtime, _ Context, args Arguments) (any, error) {
+			if verb != "open" {
+				p.sync()
+			}
 			err := fn(args)
 			if err != nil {
 				p.message = err.Error()
@@ -53,132 +63,35 @@ func NewPalette(r *Runtime) *Palette {
 			return p.state(), err
 		}})
 	}
-	register("open", "palette", "Open the nested verb/noun palette", nil, func(Arguments) error { return p.open() })
-	register("close", "palette", "Cancel the palette without executing", nil, func(Arguments) error { return p.close() })
-	register("move", "palette", "Move the palette selection or argument focus; column switches between the root verb and noun lists", map[string]Parameter{"delta": {Type: "integer"}, "column": {Type: "string", Description: "left or right: jump between the root columns"}, "choice": {Type: "integer", Description: "move the highlighted pick-list choice, or the list selection"}}, func(a Arguments) error {
-		if _, ok := a["choice"]; ok {
-			return p.moveChoice(IntArg(a, "choice", 0))
-		}
-		if column := StringArg(a, "column", ""); column != "" {
-			return p.moveColumn(column)
-		}
-		return p.move(IntArg(a, "delta", 0))
-	})
-	register("select", "palette", "Choose the highlighted entry or advance the argument form", map[string]Parameter{"value": {Type: "string"}}, p.choose)
-	register("back", "palette", "Leave search, go back one level, or cancel at the root", nil, func(Arguments) error { return p.back() })
-	register("search", "palette", "Enter search in the current palette list", map[string]Parameter{"query": {Type: "string"}}, func(a Arguments) error {
+	register("open", "Open the command line", nil, func(Arguments) error { return p.open() })
+	register("close", "Close the command line without running it", nil, func(Arguments) error { return p.close() })
+	register("set", "Replace the command line's text", map[string]Parameter{"text": {Type: "string", Required: true}}, func(a Arguments) error {
 		if err := p.requireOpen(); err != nil {
 			return err
 		}
-		if p.stage == "arguments" {
-			return errors.New("argument forms cannot be searched")
-		}
-		p.searching = true
-		p.query = StringArg(a, "query", "")
-		p.selection = 0
-		p.message = ""
-		editor := p.editor("search")
-		if err := editor.Replace(0, len(editor.Text), p.query); err != nil {
-			return err
-		}
-		p.r.setModalFocus(paletteID, editor.ID)
-		editor.SetMode("insert")
-		return nil
+		return p.setText(StringArg(a, "text", ""))
 	})
-	register("insert", "palette", "Append text to palette search or the focused argument", map[string]Parameter{"text": {Type: "string", Required: true}}, func(a Arguments) error { return p.insert(StringArg(a, "text", "")) })
-	register("delete", "palette", "Delete the last search or argument character, or go back", nil, func(Arguments) error { return p.erase() })
-	register("set", "palette-argument", "Set a selected operation argument using its text representation", map[string]Parameter{"name": {Type: "string", Required: true}, "value": {Type: "string", Required: true}}, func(a Arguments) error { return p.setArgument(StringArg(a, "name", ""), StringArg(a, "value", "")) })
-	register("clear", "palette-argument", "Omit an argument from the selected operation", map[string]Parameter{"name": {Type: "string", Required: true}}, func(a Arguments) error {
-		name := StringArg(a, "name", "")
-		if err := p.argumentField(name); err != nil {
-			return err
-		}
-		editor := p.editor("argument/" + name)
-		if err := editor.Replace(0, len(editor.Text), ""); err != nil {
-			return err
-		}
-		delete(p.explicitEmpty, name)
-		delete(p.drafts, name)
-		p.message = ""
-		return nil
-	})
-	register("execute", "palette", "Execute the selected operation in the context captured on open", nil, func(Arguments) error { return p.execute() })
-	r.DefineGuard("palette-list", func(*Runtime, KeyEvent) bool { return p.stage != "arguments" })
-	// The palette body: rows guarded by self so a field beneath keeps its own.
-	body := r.Define("palette").Focusable().Mode("")
-	for key, delta := range map[string]int{"j": 1, "down": 1, "k": -1, "up": -1, "tab": 1, "shift+tab": -1} {
-		body.Bind(key, Do("palette.move", Arguments{"delta": delta})).When("self")
-	}
-	for _, key := range []string{"h", "left"} {
-		body.Bind(key, Do("palette.move", Arguments{"column": "left"})).When("self")
-	}
-	for _, key := range []string{"l", "right"} {
-		body.Bind(key, Do("palette.move", Arguments{"column": "right"})).When("self")
-	}
-	body.Bind("enter", Do("palette.select")).When("self").
-		Bind("ctrl+enter", Do("palette.execute")).When("self").
-		Bind("esc", Do("palette.back")).When("self").
+	register("move", "Move the completion highlight; from none, 1 lands on the first entry and -1 on the last", map[string]Parameter{"delta": {Type: "integer", Required: true}}, func(a Arguments) error { return p.move(IntArg(a, "delta", 0)) })
+	register("complete", "Append the highlighted completion (or value, or the only one) as the next word", map[string]Parameter{"value": {Type: "string", Description: "A completion's word; omit for the highlighted one"}}, p.complete)
+	register("run", "Append the highlighted completion, else run the command line, or name its first missing word", nil, func(Arguments) error { return p.run() })
+	register("cancel", "Clear the command line, or close it when it is empty", nil, func(Arguments) error { return p.cancel() })
+	register("recall", "Replace the line with an earlier palette command from the action history: 1 older, -1 newer", map[string]Parameter{"delta": {Type: "integer", Required: true}}, func(a Arguments) error { return p.recallLine(IntArg(a, "delta", 0)) })
+	// The palette's keys, all on its own noun: the line beneath is an
+	// ordinary prompt, so the editor's Readline rows answer the rest.
+	// Printable text has its own row so an application's any-mode row
+	// cannot steal typing.
+	r.Define("palette").Focusable().Mode("").
+		Bind("enter", Do("palette.run")).
+		Bind("tab", Do("palette.complete")).
+		Bind("ctrl+n", Do("palette.move", Arguments{"delta": 1})).
+		Bind("ctrl+p", Do("palette.move", Arguments{"delta": -1})).
+		Bind("up", Do("palette.recall", Arguments{"delta": 1})).
+		Bind("down", Do("palette.recall", Arguments{"delta": -1})).
+		Bind("esc", Do("palette.cancel")).
 		Bind("ctrl+c", Do("palette.close")).
-		Bind("backspace", Do("palette.delete")).When("self").
-		Bind("ctrl+h", Do("palette.delete")).When("self").
-		Bind("/", Do("palette.search")).When("palette-list").
-		Pattern(Any, Do("key.ignore")).When("self")
-	// A palette field: the shared editor beneath, palette navigation on top,
-	// and its own text rows so an application's any-mode row cannot steal typing.
-	field := r.Define("palette-field")
-	for _, mode := range []string{"insert", "normal"} {
-		m := field.Mode(mode)
-		for key, delta := range map[string]int{"up": -1, "down": 1, "tab": 1, "shift+tab": -1} {
-			m.Bind(key, Do("palette.move", Arguments{"delta": delta}))
-		}
-		m.Bind("enter", Do("palette.select")).
-			Bind("ctrl+n", Do("palette.move", Arguments{"choice": 1})).
-			Bind("ctrl+p", Do("palette.move", Arguments{"choice": -1})).
-			Bind("ctrl+enter", Do("palette.execute")).
-			Bind("ctrl+c", Do("palette.close")).
-			Bind("backspace", Do("palette.delete")).
-			Bind("ctrl+h", Do("palette.delete"))
-	}
-	field.Mode("insert").
-		Pattern(Printable, Do("palette.insert").FromPayload("text", SourceText)).
-		Pattern(Paste, Do("palette.insert").FromPayload("text", SourceText))
-	field.Mode("normal").
-		Bind("j", Do("palette.move", Arguments{"delta": 1})).
-		Bind("k", Do("palette.move", Arguments{"delta": -1})).
-		Bind("h", Do("palette.move", Arguments{"column": "left"})).
-		Bind("l", Do("palette.move", Arguments{"column": "right"})).
-		Bind("left", Do("palette.move", Arguments{"column": "left"})).
-		Bind("right", Do("palette.move", Arguments{"column": "right"})).
-		Bind("esc", Do("palette.back"))
+		Pattern(Printable, Do("input.insert").FromPayload("text", SourceText)).
+		Pattern(Paste, Do("input.insert").FromPayload("text", SourceText))
 	return p
-}
-
-// moveColumn jumps between the root verb and noun columns; it is a no-op on
-// other stages, where left and right have no meaning.
-func (p *Palette) moveColumn(direction string) error {
-	if err := p.requireOpen(); err != nil {
-		return err
-	}
-	if p.stage != "root" {
-		return nil
-	}
-	options := p.options()
-	split := 0
-	for split < len(options) && strings.HasPrefix(options[split], "verb:") {
-		split++
-	}
-	row := p.selection
-	if row >= split {
-		row -= split
-	}
-	target := p.selection
-	if direction == "left" && split > 0 {
-		target = min(row, split-1)
-	}
-	if direction == "right" && len(options) > split {
-		target = split + min(row, len(options)-split-1)
-	}
-	return p.move(target - p.selection)
 }
 
 func (p *Palette) Open() error {
@@ -190,10 +103,18 @@ func (p *Palette) Close() {
 	_, _ = p.r.Execute(Request{Verb: "close", Noun: "palette"})
 }
 
-// paletteID is the palette's modal instance.
-const paletteID = "palette"
-
 func (p *Palette) IsOpen() bool { return slices.Contains(p.r.modals, paletteID) }
+
+// IsActive reports whether the palette is the top modal.
+func (p *Palette) IsActive() bool { return p.IsOpen() && p.r.TopModal() == paletteID }
+
+// Text is the command line.
+func (p *Palette) Text() string {
+	if p.line == nil {
+		return ""
+	}
+	return string(p.line.Text)
+}
 
 func (p *Palette) open() error {
 	if p.IsOpen() {
@@ -204,23 +125,19 @@ func (p *Palette) open() error {
 		return err
 	}
 	p.origin, p.originMode = origin, mode
-	p.stage = "root"
-	p.section = ""
-	p.first = ""
-	p.query = ""
-	p.searching = true
-	p.selection = 0
-	p.op = Operation{}
-	p.fields = nil
-	p.drafts = map[string]string{}
-	p.field = 0
-	p.message = ""
-	for _, editor := range p.editors {
-		_ = p.r.RemoveInstance(editor.ID)
+	if p.line == nil {
+		p.line = NewInput(paletteLineID, "", false)
+		if err := p.r.AddInput(p.line, Parent(paletteID), Kind("prompt")); err != nil {
+			return err
+		}
 	}
-	p.editors = map[string]*Input{}
-	p.explicitEmpty = map[string]bool{}
-	p.focusEditor()
+	p.highlight, p.marked, p.filter, p.recall, p.draft, p.message = -1, "", "", 0, "", ""
+	p.choiceCache = nil
+	if err := p.line.Replace(0, len(p.line.Text), ""); err != nil {
+		return err
+	}
+	p.seen = ""
+	p.r.setModalFocus(paletteID, p.line.ID)
 	return nil
 }
 
@@ -244,281 +161,127 @@ func (p *Palette) requireOpen() error {
 	return nil
 }
 
-func (p *Palette) options() []string {
-	entries := p.entries()
-	options := make([]string, len(entries))
-	for i, entry := range entries {
-		options[i] = entry.Value
+// highlighted is the highlighted completion, if the highlight still holds.
+func (p *Palette) highlighted(entries []PaletteEntry) (PaletteEntry, bool) {
+	if p.highlight < 0 || p.marked != p.Text() || p.highlight >= len(entries) {
+		return PaletteEntry{}, false
 	}
-	return options
+	return entries[p.highlight], true
 }
 
 func (p *Palette) move(delta int) error {
 	if err := p.requireOpen(); err != nil {
 		return err
 	}
-	count := len(p.options())
-	index := &p.selection
-	if p.stage == "arguments" {
-		count = len(p.fields) + 1
-		index = &p.field
+	entries := p.completions()
+	if len(entries) == 0 {
+		return errors.New("no completions for this word")
 	}
-	if count > 0 {
-		*index = ((*index+delta)%count + count) % count
+	n := len(entries)
+	switch _, ok := p.highlighted(entries); {
+	case ok:
+		p.highlight = ((p.highlight+delta)%n + n) % n
+	case delta > 0:
+		p.highlight = 0
+	default:
+		p.highlight = n - 1
 	}
-	p.choice = 0
-	p.focusEditor()
+	p.marked = p.Text()
 	p.message = ""
 	return nil
 }
 
-func (p *Palette) choose(a Arguments) error {
+func (p *Palette) complete(a Arguments) error {
 	if err := p.requireOpen(); err != nil {
 		return err
 	}
-	if p.stage == "arguments" {
-		if _, ok := a["value"]; ok {
-			return errors.New("select a field with palette.move; set it with palette-argument.set")
-		}
-		if p.field == len(p.fields) {
-			return p.execute()
-		}
-		if name, ok := p.pickField(); ok {
-			if err := p.pick(name); err != nil {
-				return err
-			}
-		}
-		p.choice = 0
-		p.field++
-		p.focusEditor()
-		p.message = ""
-		return nil
-	}
-	entries := p.entries()
-	if value, ok := a["value"].(string); ok {
-		found := false
-		for i, entry := range entries {
-			if entry.Value == value {
-				p.selection = i
-				found = true
+	entries := p.completions()
+	entry, ok := p.highlighted(entries)
+	if value, given := a["value"].(string); given {
+		ok = false
+		for _, e := range entries {
+			if e.Value == value {
+				entry, ok = e, true
 				break
 			}
 		}
-		if !found {
-			return fmt.Errorf("unknown palette choice %q", value)
-		}
-	}
-	if len(entries) == 0 {
-		return errors.New("no matching palette entries")
-	}
-	if p.selection >= len(entries) {
-		p.selection = len(entries) - 1
-	}
-	entry := entries[p.selection]
-	value := entry.Value
-	switch p.stage {
-	case "root":
-		kind, name, _ := strings.Cut(value, ":")
-		p.section = kind + "s"
-		p.first = name
-		p.stage = "second"
-	case "second":
-		if entry.Kind == "instance" {
-			config := p.nouns[p.first]
-			return p.dispatch(Request{Verb: config.DefaultVerb, Noun: p.first, Args: Arguments{config.Argument: entry.ID}})
-		}
-		q := Request{Verb: p.first, Noun: value}
-		if p.section == "nouns" {
-			q.Verb, q.Noun = entry.Verb, p.first
-		}
-		op, ok := p.r.Operations[q.Key()]
 		if !ok {
-			return errors.New("selected operation is no longer registered")
+			return fmt.Errorf("unknown palette completion %q", value)
 		}
-		p.op = op
-		p.fields = nil
-		p.drafts = map[string]string{}
-		p.field = 0
-		p.choice = 0
-		p.choiceCache = nil
-		for name := range op.Parameters {
-			p.fields = append(p.fields, name)
-		}
-		sort.Strings(p.fields)
-		p.stage = "arguments"
-		p.query = ""
-		p.searching = false
-		p.selection = 0
+	}
+	if !ok && len(entries) == 1 {
+		entry, ok = entries[0], true
+	}
+	if !ok {
+		return errors.New("no completion highlighted (ctrl+n / ctrl+p)")
+	}
+	return p.appendWord(entry.Value)
+}
+
+// appendWord replaces the word being typed (or adds one after a space) and
+// a space, so the list moves on to the next word.
+func (p *Palette) appendWord(word string) error {
+	text := p.Text()
+	if _, trailing := tokenize(text); !trailing {
+		i := strings.LastIndexAny(text, " \t")
+		text = text[:i+1]
+	}
+	return p.setText(text + quoteWord(word) + " ")
+}
+
+// setText replaces the line, as typing would.
+func (p *Palette) setText(text string) error {
+	if err := p.line.Replace(0, len(p.line.Text), text); err != nil {
+		return err
+	}
+	p.sync()
+	return nil
+}
+
+func (p *Palette) run() error {
+	if err := p.requireOpen(); err != nil {
+		return err
+	}
+	if entry, ok := p.highlighted(p.completions()); ok {
+		return p.appendWord(entry.Value)
+	}
+	c := p.parse(p.Text())
+	if c.Err != nil {
+		return c.Err
+	}
+	if c.Missing != "" {
+		return fmt.Errorf("missing %s", p.describeMissing(c))
+	}
+	return p.dispatch(c.Request())
+}
+
+// describeMissing names the first missing word with its type for a
+// parameter.
+func (p *Palette) describeMissing(c commandLine) string {
+	param, ok := c.Op.Parameters[c.Missing]
+	if !c.known() || !ok {
+		return c.Missing
+	}
+	out := c.Missing + " (" + param.Type
+	if len(param.Enum) > 0 || param.Source != "" {
+		out += ", pick"
+	}
+	out += ")"
+	if param.Description != "" {
+		out += ": " + param.Description
+	}
+	return out
+}
+
+func (p *Palette) cancel() error {
+	if err := p.requireOpen(); err != nil {
+		return err
+	}
+	if p.Text() != "" {
 		p.message = ""
-		if len(p.fields) == 0 {
-			return p.execute()
-		}
-		p.focusEditor()
+		return p.setText("")
 	}
-	p.query = ""
-	if p.searching {
-		editor := p.editor("search")
-		if err := editor.Replace(0, len(editor.Text), ""); err != nil {
-			return err
-		}
-	}
-	p.selection = 0
-	p.message = ""
-	p.focusEditor()
-	return nil
-}
-
-func (p *Palette) back() error {
-	if err := p.requireOpen(); err != nil {
-		return err
-	}
-	if p.searching {
-		p.searching = false
-		p.query = ""
-		p.selection = 0
-		p.r.setModalFocus(paletteID, "palette")
-		p.message = ""
-		return nil
-	}
-	switch p.stage {
-	case "root":
-		return p.close()
-	case "second":
-		p.stage = "root"
-		p.first = ""
-		p.section = ""
-	case "arguments":
-		p.stage = "second"
-		p.op = Operation{}
-		p.fields = nil
-		p.drafts = map[string]string{}
-		p.field = 0
-		p.choiceCache = nil
-	}
-	p.r.setModalFocus(paletteID, "palette")
-	p.query = ""
-	p.selection = 0
-	p.message = ""
-	return nil
-}
-
-func (p *Palette) argumentField(name string) error {
-	if err := p.requireOpen(); err != nil {
-		return err
-	}
-	if p.stage != "arguments" {
-		return errors.New("no operation argument form is selected")
-	}
-	if _, ok := p.op.Parameters[name]; !ok {
-		return fmt.Errorf("unknown argument %q", name)
-	}
-	return nil
-}
-
-func (p *Palette) setArgument(name, value string) error {
-	if err := p.argumentField(name); err != nil {
-		return err
-	}
-	editor := p.editor("argument/" + name)
-	if err := editor.Replace(0, len(editor.Text), value); err != nil {
-		return err
-	}
-	p.explicitEmpty[name] = value == ""
-	p.drafts[name] = value
-	p.message = ""
-	return nil
-}
-
-func (p *Palette) insert(text string) error {
-	if err := p.requireOpen(); err != nil {
-		return err
-	}
-	if strings.ContainsAny(text, "\r\n") {
-		return errors.New("palette fields accept single-line text")
-	}
-	editor := p.activeEditor()
-	if editor == nil {
-		return errors.New("select a search or argument field before typing")
-	}
-	if _, err := p.r.Execute(Request{Verb: "insert", Noun: "input", Target: editor.ID, Args: Arguments{"text": text}}); err != nil {
-		return err
-	}
-	p.collectEditors()
-	p.choice = 0
-	p.message = ""
-	return nil
-}
-
-func (p *Palette) erase() error {
-	if err := p.requireOpen(); err != nil {
-		return err
-	}
-	editor := p.activeEditor()
-	if editor == nil {
-		if p.stage == "arguments" {
-			return p.move(-1)
-		}
-		return p.back()
-	}
-	if editor.Cursor > 0 {
-		if err := editor.Replace(editor.Cursor-1, editor.Cursor, ""); err != nil {
-			return err
-		}
-	}
-	p.collectEditors()
-	p.choice = 0
-	p.message = ""
-	return nil
-}
-
-func (p *Palette) arguments() (Arguments, error) {
-	p.collectEditors()
-	args := Arguments{}
-	for _, name := range p.fields {
-		param := p.op.Parameters[name]
-		text, present := p.drafts[name]
-		if !present {
-			if param.Required {
-				return nil, fmt.Errorf("%s is required", name)
-			}
-			continue
-		}
-		if err := p.checkChoice(name, text); err != nil {
-			return nil, err
-		}
-		switch param.Type {
-		case "string":
-			args[name] = text
-		case "integer":
-			n, err := strconv.Atoi(text)
-			if err != nil {
-				return nil, fmt.Errorf("%s must be integer", name)
-			}
-			args[name] = n
-		case "boolean":
-			if text != "true" && text != "false" {
-				return nil, fmt.Errorf("%s must be boolean (true or false)", name)
-			}
-			args[name] = text == "true"
-		default:
-			return nil, fmt.Errorf("unsupported argument type %q for %s", param.Type, name)
-		}
-	}
-	return args, nil
-}
-
-func (p *Palette) execute() error {
-	if err := p.requireOpen(); err != nil {
-		return err
-	}
-	if p.stage != "arguments" || p.op.Verb == "" {
-		return errors.New("select an operation before executing")
-	}
-	args, err := p.arguments()
-	if err != nil {
-		return err
-	}
-	return p.dispatch(Request{Verb: p.op.Verb, Noun: p.op.Noun, Args: args})
+	return p.close()
 }
 
 func (p *Palette) dispatch(q Request) error {
@@ -531,8 +294,9 @@ func (p *Palette) dispatch(q Request) error {
 	origin := p.origin.Clone()
 	p.executing = true
 	defer func() { p.executing = false }()
-	// Palette controls act on the live overlay; the recursion guard also covers
-	// selecting palette.select or palette.execute from the palette itself.
+	defer p.sourced()()
+	// Palette controls act on the live line; the recursion guard also
+	// covers a line that names palette.run itself.
 	if p.actions[q.Key()] {
 		_, err := p.r.ExecuteAt(origin, q)
 		return err
@@ -543,9 +307,8 @@ func (p *Palette) dispatch(q Request) error {
 	}
 	_, err := p.r.ExecuteAt(origin, q)
 	if err != nil {
-		// Dismiss before dispatch so focus/push/pop act on the originating focus.
-		// A failure restores this same overlay, including its argument drafts,
-		// its focus and its mode.
+		// Dismiss before dispatch so focus/push/pop act on the originating
+		// focus. A failure reopens this same line with its focus and mode.
 		if restoreErr := p.r.Push(paletteID, focus); restoreErr != nil {
 			return fmt.Errorf("%w (restoring palette: %v)", err, restoreErr)
 		}
@@ -554,17 +317,22 @@ func (p *Palette) dispatch(q Request) error {
 	return err
 }
 
-// HandleKey dispatches one key while the palette is the active modal. The
-// palette and palette-field nouns answer first; the shared editor answers for
-// everything else.
+// sourced records the requests a line runs with the source "palette",
+// over the key that ran it; a macro replay keeps its own source.
+func (p *Palette) sourced() func() {
+	if strings.HasPrefix(p.r.history.source, "macro:") {
+		return func() {}
+	}
+	return p.r.forceSource("palette")
+}
+
+// HandleKey dispatches one key while the palette is the active modal.
 func (p *Palette) HandleKey(key string) (bool, error) {
 	if !p.IsActive() {
 		return false, nil
 	}
-	// Reassert the form's own field even if an external caller moved overlay focus.
-	p.focusEditor()
 	_, err := p.r.Dispatch(MacroKey{Key: key})
-	p.collectEditors()
+	p.sync()
 	if err != nil {
 		p.message = err.Error()
 	}
@@ -572,143 +340,94 @@ func (p *Palette) HandleKey(key string) (bool, error) {
 }
 
 func (p *Palette) state() map[string]any {
-	p.collectEditors()
-	drafts := map[string]string{}
-	for name, value := range p.drafts {
-		drafts[name] = value
+	p.sync()
+	c := p.parse(p.Text())
+	errText := p.message
+	if errText == "" && c.Err != nil {
+		errText = c.Err.Error()
 	}
-	return map[string]any{"open": p.IsOpen(), "origin": p.origin.Clone(), "stage": p.stage, "section": p.section, "first": p.first, "search": p.query, "searching": p.searching, "selection": p.selection, "entries": p.entries(), "operation": p.op.Key(), "arguments": drafts, "field": p.field, "error": p.message}
+	entries := p.completions()
+	highlight := -1
+	if _, ok := p.highlighted(entries); ok {
+		highlight = p.highlight
+	}
+	return map[string]any{"open": p.IsOpen(), "origin": p.origin.Clone(), "line": p.Text(), "words": c.Words, "operation": c.Op.Key(), "implied": c.Implied, "complete": c.Complete(), "missing": c.Missing, "filter": p.filter, "highlight": highlight, "entries": entries, "error": errText}
 }
 
 func (p *Palette) View() string { return p.ViewSized(80, 20) }
 
 func (p *Palette) ViewSized(width, height int) string { return p.viewBlock(width, height).Text }
 
-// viewBlock renders the palette and reports the cursor of the editor it shows:
-// the active argument field or the search line.
+// viewBlock renders the line, what it resolves to, and the completion list
+// grouped by kind, with the line's cursor.
 func (p *Palette) viewBlock(width, height int) Block {
-	if !p.IsOpen() {
+	if !p.IsOpen() || p.line == nil {
 		return Block{}
 	}
-	p.collectEditors()
+	p.sync()
 	var out strings.Builder
-	var cursor *Pos
-	// place records the editor's cursor at the current row after prefix.
-	place := func(prefix string, editor Block) string {
-		if editor.Cursor != nil {
-			cursor = &Pos{X: ansi.StringWidth(prefix) + editor.Cursor.X, Y: strings.Count(out.String(), "\n") + editor.Cursor.Y}
-		}
-		return prefix + editor.Text
+	prefix := ": "
+	line := InputBlock(p.line, max(8, width-ansi.StringWidth(prefix)), 1)
+	cursor := &Pos{X: ansi.StringWidth(prefix) + line.Cursor.X, Y: 0}
+	out.WriteString(prefix + line.Text + "\n")
+	c := p.parse(p.Text())
+	entries := p.completions()
+	switch {
+	case p.message != "":
+		fmt.Fprintf(&out, "Error: %s\n", p.message)
+	case c.Err != nil && len(entries) > 0 && !strings.HasSuffix(p.Text(), " "):
+		// The word being typed is still a prefix: the list shows its
+		// candidates.
+		out.WriteString("  …\n")
+	case c.Err != nil:
+		fmt.Fprintf(&out, "  %s\n", c.Err)
+	case c.Missing != "":
+		fmt.Fprintf(&out, "  missing %s\n", p.describeMissing(c))
+	default:
+		fmt.Fprintf(&out, "  → %s\n", describeRequest(c))
 	}
-	out.WriteString("Command palette\n")
-	if p.stage == "arguments" {
-		fmt.Fprintf(&out, "%s (%s) — %s\n", p.op.Key(), p.op.Kind, p.op.Description)
-		for i, name := range p.fields {
-			param := p.op.Parameters[name]
-			marker := "  "
-			if i == p.field {
-				marker = "> "
-			}
-			kind := "optional"
-			if param.Required {
-				kind = "required"
-			}
-			if param.Free {
-				kind += ", pick or type"
-			} else if len(param.Enum) > 0 || param.Source != "" {
-				kind += ", pick"
-			}
-			value, present := p.drafts[name]
-			if !present {
-				value = "<omitted>"
-			} else {
-				value = strconv.Quote(value)
-			}
-			line := fmt.Sprintf("%s%s (%s, %s): ", marker, name, param.Type, kind)
-			if i == p.field {
-				line = place(line, InputBlock(p.editor("argument/"+name), max(8, width/2), 1))
-			} else {
-				line += value
-			}
-			out.WriteString(line)
-			if param.Description != "" {
-				fmt.Fprintf(&out, " — %s", param.Description)
-			}
-			out.WriteByte('\n')
-			if _, ok := p.pickField(); ok && i == p.field {
-				p.writeChoices(&out, name, max(1, height-len(p.fields)-6))
-			}
+	if len(entries) == 0 {
+		out.WriteString("  No completions\n")
+	}
+	highlight, ok := p.highlight, false
+	if _, ok = p.highlighted(entries); !ok {
+		highlight = -1
+	}
+	limit := max(1, height-4)
+	start := max(0, highlight-limit+1)
+	group := ""
+	for i := start; i < min(len(entries), start+limit); i++ {
+		entry := entries[i]
+		if heading := map[string]string{"verb": "verbs", "noun": "nouns", "choice": "choices"}[entry.Kind]; heading != group {
+			group = heading
+			out.WriteString(heading + "\n")
 		}
 		marker := "  "
-		if p.field == len(p.fields) {
+		if i == highlight {
 			marker = "> "
 		}
-		fmt.Fprintf(&out, "%sExecute\nTab/arrows: field · Ctrl-N/P: choice · Enter: pick/next/execute · Esc: normal/back · Ctrl-C: cancel\n", marker)
-	} else {
-		if p.stage != "root" {
-			fmt.Fprintf(&out, "%s", p.section)
-			if p.first != "" {
-				fmt.Fprintf(&out, " / %s", p.first)
-			}
-			out.WriteByte('\n')
-		}
-		if p.searching {
-			out.WriteString(place(fmt.Sprintf("Search [%s]: ", p.editor("search").Mode), InputBlock(p.editor("search"), max(8, width-20), 1)) + "\n")
-		}
-		entries := p.entries()
-		if len(entries) == 0 {
-			out.WriteString("  No matches\n")
-		}
-		limit := max(1, height-6)
-		if p.stage == "root" {
-			split := 0
-			for split < len(entries) && entries[split].Kind == "verb" {
-				split++
-			}
-			row := p.selection
-			if row >= split {
-				row -= split
-			}
-			start := max(0, row-limit+1)
-			column := max(8, (width-3)/2)
-			fmt.Fprintf(&out, "%-*s  %s\n", column, "VERBS", "NOUNS")
-			for i := start; i < min(max(split, len(entries)-split), start+limit); i++ {
-				left, right := "", ""
-				if i < split {
-					mark := "  "
-					if p.selection == i {
-						mark = "> "
-					}
-					left = mark + entries[i].Label
-				}
-				if split+i < len(entries) {
-					mark := "  "
-					if p.selection == split+i {
-						mark = "> "
-					}
-					right = mark + entries[split+i].Label
-				}
-				fmt.Fprintf(&out, "%-*s  %s\n", column, left, right)
-			}
-		} else {
-			start := max(0, p.selection-limit+1)
-			for i := start; i < min(len(entries), start+limit); i++ {
-				marker := "  "
-				if i == p.selection {
-					marker = "> "
-				}
-				entry := entries[i]
-				label := entry.Label
-				if entry.Kind == "instance" {
-					label = fmt.Sprintf("%s [%s] → %s.%s", label, entry.ID, p.first, p.nouns[p.first].DefaultVerb)
-				}
-				fmt.Fprintf(&out, "%s%s\n", marker, label)
-			}
-		}
-		out.WriteString("j/k: move · ←/→: column · Enter: choose · /: search · Esc: normal/back\n")
+		fmt.Fprintf(&out, "%s%s\n", marker, entry.Label)
 	}
-	if p.message != "" {
-		fmt.Fprintf(&out, "Error: %s\n", p.message)
+	if hidden := len(entries) - min(len(entries), start+limit); hidden > 0 {
+		fmt.Fprintf(&out, "  (%d more)\n", hidden)
 	}
 	return Block{Text: out.String(), Cursor: cursor}
+}
+
+// describeRequest spells the request a complete line runs:
+// "row.transform name=upper", with "(focus)" when the noun was omitted.
+func describeRequest(c commandLine) string {
+	out := c.Op.Key()
+	names := make([]string, 0, len(c.Args))
+	for name := range c.Args {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		out += fmt.Sprintf(" %s=%v", name, c.Args[name])
+	}
+	if c.Implied {
+		out += " (noun from the focus)"
+	}
+	return out
 }

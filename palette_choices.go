@@ -2,137 +2,68 @@ package ochazuke
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 )
 
-// choiceList caches one argument's choices for the open form, so a Source
-// runs once per form rather than once per key.
+// choiceList caches one parameter's choices while the palette is open, so
+// a Source runs once per palette rather than once per key.
 type choiceList struct {
 	choices []Choice
 	err     error
 }
 
-// pickField reports whether the focused argument field is a pick list.
-func (p *Palette) pickField() (string, bool) {
-	if p.stage != "arguments" || p.field >= len(p.fields) {
-		return "", false
-	}
-	name := p.fields[p.field]
-	param := p.op.Parameters[name]
-	return name, len(param.Enum) > 0 || param.Source != ""
-}
-
-// fieldChoices lists an argument's choices in the palette's origin context.
-func (p *Palette) fieldChoices(name string) ([]Choice, error) {
-	if cached, ok := p.choiceCache[name]; ok {
+// paramChoices lists the values a parameter's word completes to in the
+// palette's origin context: the instances of a palette noun for its
+// default verb's argument, true and false for a boolean, else the
+// parameter's Enum and Source.
+func (p *Palette) paramChoices(op Operation, name string) ([]Choice, error) {
+	key := op.Key() + "/" + name
+	if cached, ok := p.choiceCache[key]; ok {
 		return cached.choices, cached.err
 	}
-	choices, err := p.r.Choices(p.origin.Clone(), p.op.Parameters[name])
+	var choices []Choice
+	var err error
+	param := op.Parameters[name]
+	if config, ok := p.nouns[op.Noun]; ok && config.DefaultVerb == op.Verb && config.Argument == name {
+		choices = p.instanceChoices(op.Noun)
+	} else if param.Type == "boolean" {
+		choices = []Choice{{ID: "true", Label: "true"}, {ID: "false", Label: "false"}}
+	} else {
+		choices, err = p.r.Choices(p.origin.Clone(), param)
+	}
 	if p.choiceCache == nil {
 		p.choiceCache = map[string]choiceList{}
 	}
-	p.choiceCache[name] = choiceList{choices, err}
+	p.choiceCache[key] = choiceList{choices, err}
 	return choices, err
 }
 
-// choiceMatches filters a field's choices by its text, search-first like the
-// palette's lists.
-func (p *Palette) choiceMatches(name string) []Choice {
-	choices, _ := p.fieldChoices(name)
-	query := strings.ToLower(string(p.editor("argument/" + name).Text))
-	if query == "" {
-		return choices
+// instanceChoices reads a palette noun's live instances.
+func (p *Palette) instanceChoices(noun string) []Choice {
+	config, ok := p.nouns[noun]
+	if !ok {
+		return nil
 	}
 	var out []Choice
-	for _, c := range choices {
-		if strings.Contains(strings.ToLower(c.ID+" "+c.Label), query) {
-			out = append(out, c)
+	for _, instance := range config.Source(p.r, p.origin.Clone()) {
+		label := instance.Label
+		if label == "" {
+			label = instance.ID
 		}
+		out = append(out, Choice{ID: instance.ID, Label: label})
 	}
 	return out
 }
 
-// moveChoice moves the highlighted choice of a pick field, or the selection
-// of a palette list.
-func (p *Palette) moveChoice(delta int) error {
-	if err := p.requireOpen(); err != nil {
-		return err
+// choiceLabel shows a choice with its id when the label differs.
+func choiceLabel(c Choice) string {
+	if c.Label != "" && c.Label != c.ID {
+		return fmt.Sprintf("%s  %s", c.ID, c.Label)
 	}
-	if p.stage != "arguments" {
-		return p.move(delta)
-	}
-	name, ok := p.pickField()
-	if !ok {
-		return nil
-	}
-	if count := len(p.choiceMatches(name)); count > 0 {
-		p.choice = ((p.choice+delta)%count + count) % count
-	}
-	p.message = ""
-	return nil
+	return c.ID
 }
 
-// pick completes the focused pick field: text that already names a choice
-// stays, otherwise the highlighted match replaces it. With no match the text
-// stays only when the parameter is Free or its source failed.
-func (p *Palette) pick(name string) error {
-	text := string(p.editor("argument/" + name).Text)
-	choices, err := p.fieldChoices(name)
-	if hasChoice(choices, text) {
-		return p.setArgument(name, text)
-	}
-	if matches := p.choiceMatches(name); len(matches) > 0 {
-		p.choice = min(p.choice, len(matches)-1)
-		return p.setArgument(name, matches[p.choice].ID)
-	}
-	if p.op.Parameters[name].Free || err != nil {
-		return nil
-	}
-	return fmt.Errorf("%s: no choice matches %q", name, text)
-}
-
-// checkChoice rejects a drafted value outside a pick field's choices unless
-// the parameter is Free or its source failed.
-func (p *Palette) checkChoice(name, text string) error {
-	param := p.op.Parameters[name]
-	if param.Free || (len(param.Enum) == 0 && param.Source == "") {
-		return nil
-	}
-	choices, err := p.fieldChoices(name)
-	if err != nil || hasChoice(choices, text) {
-		return nil
-	}
-	return choiceError(name, choices)
-}
-
-// writeChoices renders the focused pick field's filtered choices beneath it.
-func (p *Palette) writeChoices(out *strings.Builder, name string, limit int) {
-	_, err := p.fieldChoices(name)
-	if err != nil {
-		fmt.Fprintf(out, "    choices unavailable: %v\n", err)
-	}
-	matches := p.choiceMatches(name)
-	if len(matches) == 0 {
-		if err == nil {
-			out.WriteString("    No matching choices\n")
-		}
-		return
-	}
-	selected := min(p.choice, len(matches)-1)
-	start := max(0, selected-limit+1)
-	for i := start; i < min(len(matches), start+limit); i++ {
-		marker := "    "
-		if i == selected {
-			marker = "  * "
-		}
-		label := matches[i].Label
-		if label != matches[i].ID {
-			label += " [" + matches[i].ID + "]"
-		}
-		fmt.Fprintf(out, "%s%s\n", marker, label)
-	}
-	if hidden := len(matches) - min(len(matches), start+limit) + start; hidden > 0 {
-		fmt.Fprintf(out, "    (%s more)\n", strconv.Itoa(hidden))
-	}
+// hasPrefixFold reports whether s starts with prefix, ignoring case.
+func hasPrefixFold(s, prefix string) bool {
+	return strings.HasPrefix(strings.ToLower(s), strings.ToLower(prefix))
 }

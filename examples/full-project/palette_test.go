@@ -45,18 +45,26 @@ func TestConfiguredPaletteSourcesDispatchRealOperations(t *testing.T) {
 			t.Fatalf("%s.%s: %v", verb, noun, err)
 		}
 	}
+	line := func(text string) error {
+		t.Helper()
+		call("set", "palette", ochazuke.Arguments{"text": text})
+		_, err := m.Runtime.Execute(ochazuke.Request{Verb: "run", Noun: "palette"})
+		return err
+	}
 	call("open", "palette", nil)
-	call("select", "palette", ochazuke.Arguments{"value": "noun:page"})
-	call("select", "palette", ochazuke.Arguments{"value": "instance:paths"})
+	if err := line("page paths"); err != nil {
+		t.Fatal(err)
+	}
 	if m.Runtime.Page != "paths" || m.Palette.IsOpen() {
 		t.Fatal("configured page source did not dispatch page.open")
 	}
 	call("open", "palette", nil)
-	call("select", "palette", ochazuke.Arguments{"value": "noun:input"})
-	if _, err := m.Runtime.Execute(ochazuke.Request{Verb: "select", Noun: "palette", Args: ochazuke.Arguments{"value": "instance:title"}}); err == nil {
+	if err := line("input title"); err == nil {
 		t.Fatal("input source exposed an input from an inactive page")
 	}
-	call("select", "palette", ochazuke.Arguments{"value": "instance:destination"})
+	if err := line("input destination"); err != nil {
+		t.Fatal(err)
+	}
 	if m.Runtime.Context().InputID != "destination" || m.Palette.IsOpen() {
 		t.Fatal("configured input source did not dispatch input.focus")
 	}

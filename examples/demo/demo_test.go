@@ -32,20 +32,13 @@ func TestModelCoalescedTypingPreservesModeTransitions(t *testing.T) {
 	}
 }
 
-func TestModelCoalescedPaletteSearchNavigatesPage(t *testing.T) {
+func TestModelCoalescedPaletteLineNavigatesPage(t *testing.T) {
 	m := New()
 	if err := m.Palette.Open(); err != nil {
 		t.Fatal(err)
 	}
-	typed := func(s string) { keytest.Type(m, s) }
-	enter := func() { keytest.Press(m, "enter") }
-	typed("open")
-	enter()
-	typed("page")
-	enter()
-	typed("playground")
-	enter()
-	enter()
+	keytest.Type(m, "open page playground")
+	keytest.Press(m, "enter")
 	if m.Runtime.Page != "playground" || len(m.Runtime.Modals()) != 0 {
 		t.Fatalf("coalesced palette navigation: page=%q frames=%d; want playground with palette closed", m.Runtime.Page, len(m.Runtime.Modals()))
 	}

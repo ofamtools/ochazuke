@@ -112,7 +112,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.Status = ""
 			}
-			m.Palette.collectEditors()
+			m.Palette.sync()
 		}
 	case tea.BackgroundColorMsg:
 		m.Appearance.Dark = v.IsDark()
@@ -143,7 +143,7 @@ func (m *Model) handleKey(key MacroKey) {
 	} else {
 		m.Status = ""
 	}
-	m.Palette.collectEditors()
+	m.Palette.sync()
 }
 
 // layout is the shell's chrome for the current viewport; page renderers get
@@ -197,9 +197,7 @@ func (m *Model) modalContent(id string, width, height int) (string, Block) {
 	focus := m.Runtime.ModalFocus(id)
 	switch {
 	case id == paletteID && m.Palette.IsOpen():
-		body = m.Palette.viewBlock(width, height)
-		body = body.WithText(strings.TrimPrefix(body.Text, "Command palette\n")).Offset(0, -1)
-		return "Command palette", body
+		return "Command palette", m.Palette.viewBlock(width, height)
 	case m.ModalViews[id].Render != nil:
 		body = m.ModalViews[id].Render(m.Runtime, m.Runtime.Instances[id], width, height)
 	case m.Runtime.Input(focus) != nil:
@@ -330,8 +328,9 @@ func (m *Model) cursor(block Block) *tea.Cursor {
 }
 
 // render composes the page shell and the modal stack. Each composer offsets
-// the child cursor by where it placed the child; a modal hides the cursor of
-// everything beneath it.
+// the child cursor by where it placed the child; a modal hides the terminal
+// cursor of everything beneath it, while the page keeps its highlights
+// (beneath) and the backdrop dims them.
 func (m *Model) render() Block {
 	layout := m.layout()
 	pageTitle := ""
@@ -347,7 +346,9 @@ func (m *Model) render() Block {
 		base = "main"
 	}
 	pageWidth, pageHeight := m.pageSize()
+	restore := m.beneath()
 	page := m.scrolled(base, m.pageContent(pageWidth, pageHeight), pageWidth, pageHeight)
+	restore()
 	if m.Sidebar {
 		titles, selected := m.pageTitles()
 		width, height := layout.BodySize()
@@ -369,6 +370,27 @@ func (m *Model) render() Block {
 		surface = ComposeModalBlock(surface.Text, title, body, hint, m.Width, m.Height, layout.Styles)
 	}
 	return surface
+}
+
+// beneath shows the page renderer the level under the modals as it stands
+// there: the focus and mode the outermost modal opened over, so a grid's
+// cursor cell and selection, a list's selected row and a field's visual
+// selection keep their highlight under a modal, which the backdrop then
+// dims. The fields are set for the render and put back by the returned
+// func; no setter runs, so nothing observes the swap and no state changes.
+func (m *Model) beneath() (restore func()) {
+	r := m.Runtime
+	if len(r.modals) == 0 {
+		return func() {}
+	}
+	focus, mode := r.Focus, r.Mode
+	if outer := r.Instances[r.modals[0]]; outer != nil {
+		r.Focus = outer.Payload.Return
+		if outer.returnMode.Name != "" {
+			r.Mode = outer.returnMode
+		}
+	}
+	return func() { r.Focus, r.Mode = focus, mode }
 }
 
 // scrolled runs a block through the surface's viewport, moving the cursor

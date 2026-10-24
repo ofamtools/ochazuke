@@ -399,12 +399,16 @@ func TestPaletteListsTheNounVerbs(t *testing.T) {
 	if !a.m.Palette.IsActive() || !strings.Contains(view, "transform") {
 		t.Fatalf("palette:\n%s", view)
 	}
-	press(t, a, "enter")
+	// The list completes the next word: the nouns that have transform.
+	keytest.Type(a.m, " ")
 	view = ansi.Strip(a.m.View().Content)
-	for _, noun := range []string{"cell", "column", "selection"} {
-		if !strings.Contains(view, noun) {
+	for _, noun := range []string{"cell", "row", "column"} {
+		if !strings.Contains(view, "  "+noun) {
 			t.Fatalf("transform nouns missing %s:\n%s", noun, view)
 		}
+	}
+	if strings.Contains(view, "  selection") {
+		t.Fatalf("selection offered without a selection:\n%s", view)
 	}
 }
 
@@ -496,26 +500,23 @@ func TestTransformOnEveryCellSetNoun(t *testing.T) {
 	}
 }
 
-// The transform name is a pick list from transformations.list: ctrl+n moves
-// the highlighted choice, typing filters it, enter picks and executes.
-func TestTransformNamePickList(t *testing.T) {
+// The transform name completes from transformations.list: ctrl+n moves a
+// highlight onto the list, typing narrows it, enter on the highlight
+// appends the word and enter on the complete line runs it.
+func TestTransformNameCompletes(t *testing.T) {
 	a := open(t)
 	press(t, a, ":")
-	keytest.Type(a.m, "transform")
-	press(t, a, "enter")
-	keytest.Type(a.m, "cell")
-	press(t, a, "enter")
+	keytest.Type(a.m, "transform cell ")
 	view := ansi.Strip(a.m.View().Content)
-	for _, want := range []string{"pick", "UPPER CASE [upper]", "slug-case [slug]", "Title Case [title]"} {
+	for _, want := range []string{"choices", "upper  UPPER CASE", "slug  slug-case", "title  Title Case"} {
 		if !strings.Contains(view, want) {
-			t.Fatalf("pick list lacks %q:\n%s", want, view)
+			t.Fatalf("completions lack %q:\n%s", want, view)
 		}
 	}
-	keytest.Type(a.m, "case")
-	// lower case, slug-case, Title Case, UPPER CASE: three steps down.
-	press(t, a, "ctrl+n", "ctrl+n", "ctrl+n", "enter")
-	if view := ansi.Strip(a.m.View().Content); !strings.Contains(view, `"upper"`) {
-		t.Fatalf("ctrl+n over the filtered list did not pick upper:\n%s", view)
+	keytest.Type(a.m, "u")
+	press(t, a, "ctrl+n", "enter")
+	if got := a.m.Palette.Text(); got != "transform cell upper " {
+		t.Fatalf("enter on the highlight: %q", got)
 	}
 	press(t, a, "enter")
 	if a.m.Palette.IsOpen() || a.Rows[0][0] != "ANN" || a.r.Focus != "r0:c0" {
@@ -523,9 +524,56 @@ func TestTransformNamePickList(t *testing.T) {
 	}
 }
 
-// paletteFinds reports whether the palette's root search for query shows
-// line, opening it with ctrl+space (: is text in the filter field) and
-// closing it.
+// paletteLine types a command line after : and runs it with enter.
+func paletteLine(t *testing.T, a *App, line string) {
+	t.Helper()
+	press(t, a, ":")
+	keytest.Type(a.m, line)
+	press(t, a, "enter")
+	if a.m.Palette.IsOpen() {
+		t.Fatalf("%q left the palette open", line)
+	}
+}
+
+// A line without a noun transforms the cell; with row, column or
+// selection, the instance of that noun on the focus path; the cursor
+// never moves.
+func TestTransformTargetsFromTheCommandLine(t *testing.T) {
+	a := open(t)
+	press(t, a, "j")
+	paletteLine(t, a, "transform upper")
+	if a.Rows[1][0] != "BO" || a.Rows[1][1] != "b@x.io" || a.Rows[0][0] != "ann" {
+		t.Fatalf("cell: %v", a.Rows[:2])
+	}
+	paletteLine(t, a, "tr ro up")
+	if !reflect.DeepEqual(a.Rows[1], []string{"BO", "B@X.IO", "OPS"}) || a.Rows[2][0] != "cy" {
+		t.Fatalf("row: %v", a.Rows[:3])
+	}
+	press(t, a, "l")
+	paletteLine(t, a, "column transform upper")
+	if a.Rows[0][1] != "A@X.IO" || a.Rows[4][1] != "E@X.IO" || a.Rows[0][2] != "dev" {
+		t.Fatalf("column: %v", a.Rows)
+	}
+	cursor(t, a, grid.Ref{Row: 1, Col: 1})
+	press(t, a, "l", "v", "j")
+	paletteLine(t, a, "transform selection upper")
+	if a.Rows[1][2] != "OPS" || a.Rows[2][2] != "DEV" || a.Rows[0][2] != "dev" || a.Rows[3][2] != "qa" {
+		t.Fatalf("selection: %v", a.Rows)
+	}
+	cursor(t, a, grid.Ref{Row: 2, Col: 2})
+	// The selection ended with the transform: selection is not a noun now.
+	press(t, a, ":")
+	keytest.Type(a.m, "transform selection upper")
+	keytest.Press(a.m, "enter")
+	if !a.m.Palette.IsOpen() || a.m.Status != "selection.transform is not applicable now" {
+		t.Fatalf("selection transform without a selection: open=%v status=%q", a.m.Palette.IsOpen(), a.m.Status)
+	}
+	keytest.Press(a.m, "ctrl+c")
+}
+
+// paletteFinds reports whether the palette shows line after query is typed
+// as its first word, opening it with ctrl+space (: is text in the filter
+// field) and closing it.
 func paletteFinds(t *testing.T, a *App, query, line string) bool {
 	t.Helper()
 	press(t, a, "ctrl+space")
@@ -540,7 +588,7 @@ func paletteFinds(t *testing.T, a *App, query, line string) bool {
 // A modal opened over a selection (the palette) keeps it.
 func TestPaletteOffersGuardedVerbsOnlyWhenTheyApply(t *testing.T) {
 	a := open(t)
-	if paletteFinds(t, a, "selection", "selection") && !paletteFinds(t, a, "selection", "No matches") {
+	if paletteFinds(t, a, "selection", "selection") && !paletteFinds(t, a, "selection", "No completions") {
 		t.Fatal("selection verbs offered without a selection")
 	}
 	if !paletteFinds(t, a, "insertBelow", "insertBelow") || !paletteFinds(t, a, "rename", "rename") {
@@ -550,14 +598,14 @@ func TestPaletteOffersGuardedVerbsOnlyWhenTheyApply(t *testing.T) {
 	if a.r.Focus != filterID {
 		t.Fatalf("focus = %s", a.r.Focus)
 	}
-	if !paletteFinds(t, a, "insertBelow", "No matches") || !paletteFinds(t, a, "rename", "No matches") {
+	if !paletteFinds(t, a, "insertBelow", "No completions") || !paletteFinds(t, a, "rename", "No completions") {
 		t.Fatal("row or column verbs offered in the filter field")
 	}
-	if paletteFinds(t, a, "addColumn", "No matches") {
+	if paletteFinds(t, a, "addColumn", "No completions") {
 		t.Fatal("an unguarded sheet verb was hidden")
 	}
 	press(t, a, "tab", "v", "j")
-	if !paletteFinds(t, a, "selection", "selection") || paletteFinds(t, a, "selection", "No matches") {
+	if !paletteFinds(t, a, "selection", "selection") || paletteFinds(t, a, "selection", "No completions") {
 		t.Fatal("selection verbs hidden during a selection")
 	}
 	// : inside the selection opens the palette, and the verb it runs sees
@@ -566,12 +614,8 @@ func TestPaletteOffersGuardedVerbsOnlyWhenTheyApply(t *testing.T) {
 		t.Fatalf("palette dropped the selection: shape=%q sel=%v", a.grid.Shape(), a.grid.Selected())
 	}
 	press(t, a, ":")
-	keytest.Type(a.m, "transform")
+	keytest.Type(a.m, "transform selection upper")
 	press(t, a, "enter")
-	keytest.Type(a.m, "selection")
-	press(t, a, "enter")
-	keytest.Type(a.m, "upper")
-	press(t, a, "enter", "enter")
 	if a.Rows[0][0] != "ANN" || a.Rows[1][0] != "BO" || a.Rows[2][0] != "cy" || a.grid.Shape() != "" {
 		t.Fatalf("selection transform from the palette: %v shape=%q", a.Rows[:3], a.grid.Shape())
 	}
@@ -643,5 +687,29 @@ func TestDeleteColumnConfirmNamesTheHeader(t *testing.T) {
 	}
 	if _, err := a.r.Execute(ochazuke.Request{Verb: "delete", Noun: "column", Confirmed: true, Args: ochazuke.Arguments{"name": "email"}}); err == nil {
 		t.Fatal("a delete naming another header ran")
+	}
+}
+
+// Under the palette the grid keeps its cursor cell and its selection,
+// dimmed by the backdrop: a snapshot of the backdrop's left edge in the
+// mono theme (faint, the selected cell underlined, the cursor cell
+// reversed). Rendering changes no state: the focus stays on the line.
+func TestGridHighlightsStayVisibleUnderThePalette(t *testing.T) {
+	a := open(t)
+	if _, err := a.r.Execute(ochazuke.Request{Verb: "set", Noun: "appearance", Args: ochazuke.Arguments{"theme": "mono"}}); err != nil {
+		t.Fatal(err)
+	}
+	press(t, a, "v", "j", ":")
+	lines := strings.Split(a.m.View().Content, "\n")
+	var got []string
+	for _, line := range lines[5:7] {
+		got = append(got, line[:strings.Index(line, "│")])
+	}
+	want := []string{"\x1b[2m   1 \x1b[4mann   \x1b[24m a@\x1b[m", "\x1b[2m   2 \x1b[7mbo    \x1b[27m b@\x1b[m"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("backdrop rows = %q, want %q", got, want)
+	}
+	if a.r.Focus != "__palette/line" || a.r.Mode.Name != "insert" {
+		t.Fatalf("rendering moved the focus: %s %s", a.r.Focus, a.r.Mode.Name)
 	}
 }

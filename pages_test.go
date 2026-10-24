@@ -290,9 +290,7 @@ func TestPagePaletteClosesBeforeNavigationDispatch(t *testing.T) {
 	if err := p.Open(); err != nil {
 		t.Fatal(err)
 	}
-	paletteChoose(t, r, "verb:open", "page")
-	paletteRequest(t, r, "set", "palette-argument", Arguments{"name": "id", "value": "beta"})
-	paletteRequest(t, r, "execute", "palette", nil)
+	paletteLine(t, r, "open page beta")
 	if p.IsOpen() || len(r.Modals()) != 0 || r.Page != beta.ID || r.Page != "beta" {
 		t.Fatal("palette navigation was blocked or switched a discarded overlay")
 	}

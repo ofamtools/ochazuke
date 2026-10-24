@@ -90,7 +90,7 @@ The registry identifier is `workspace.greet` (`noun.verb`). The CLI spelling is 
 - In normal mode, `g s` summarizes the workspace and `g h` invokes the parameterized greeting.
 - In the workspace context, `Ctrl-T` sends an insert operation explicitly targeted at the title input.
 - On the Paths page, `g f` focuses the directory input.
-- In normal mode, `Ctrl-J/K` cycles pages and `:` opens the palette. `Ctrl-Space` opens the palette in any editing mode. `Ctrl-Y` opens yank history, and `PgUp` and `PgDn` scroll. Pages are not numbered; use noun-first palette navigation to search by page title or ID.
+- In normal mode, `Ctrl-J/K` cycles pages and `:` opens the palette. `Ctrl-Space` opens the palette in any editing mode. `Ctrl-Y` opens yank history, and `PgUp` and `PgDn` scroll. Pages are not numbered; type `page ` in the palette to complete a page ID (`page paths`).
 
 The framework also supplies visual selection, registers, macro recording and replay, and branching undo. These are runtime/editor features rather than duplicated configuration formats. See the repository [keyboard guide](../../README.md#keyboard-guide).
 
@@ -138,18 +138,18 @@ Type `:` in normal mode, choose `noun:page`, then search for a page title or ID.
 }
 ```
 
-The Go source registry in `app.go` supplies the items. `pages` reads the runtime's live page list; it does not freeze the list when the palette is constructed. `inputs` lists fields on the originating page, excluding palette and picker internals. Focusing an input does not navigate to another page. `rows` lists the list rows whose noun is the configured noun, so `noun:worktree` then `instance:docs` runs `worktree.open {row: "docs"}`.
+The Go source registry in `app.go` supplies the items. `pages` reads the runtime's live page list; it does not freeze the list when the palette is constructed. `inputs` lists fields on the originating page, excluding palette and picker internals. Focusing an input does not navigate to another page. `rows` lists the list rows whose noun is the configured noun, so the line `worktree docs` runs `worktree.open {row: "docs"}`.
 
-A different default requires a registered operation with the configured string argument and no other required arguments. One instance selection supplies exactly that argument. Operations needing more information remain available through the verb list and argument form.
+A different default requires a registered operation with the configured string argument and no other required arguments. An instance word supplies exactly that argument. Operations needing more information take their parameters as further words (`greet workspace Lin`).
 
-An instance and a verb may share a name without ambiguity. Palette selection values are `instance:<id>` and `verb:<verb>` for nouns with instance sources. Published palette `entries` include each item's value, kind, and display label.
+After a noun, a verb wins over an instance of the same name; the instance stays reachable as the default verb's argument (`page open open`). The published palette state (`palette set` returns it) has the parsed `words`, the `operation`, the `missing` word and the completion `entries` with each item's value, kind and label.
 
 For a running application:
 
 ```sh
 go run ./examples/full-project --socket /tmp/ochazuke-full-project/app.sock palette open
-go run ./examples/full-project --socket /tmp/ochazuke-full-project/app.sock palette select --json '{"value":"noun:page"}'
-go run ./examples/full-project --socket /tmp/ochazuke-full-project/app.sock palette select --json '{"value":"instance:paths"}'
+go run ./examples/full-project --socket /tmp/ochazuke-full-project/app.sock palette set --json '{"text":"page paths"}'
+go run ./examples/full-project --socket /tmp/ochazuke-full-project/app.sock palette run
 ```
 
 ### Custom modes use the existing API

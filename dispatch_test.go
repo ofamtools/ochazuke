@@ -63,12 +63,12 @@ func TestDispatchPaletteActiveTakesKeys(t *testing.T) {
 	}
 	keytest.Press(m, "x")
 	dispatchTestState(t, m, in, "abc", calls)
-	if m.Palette.query != "x" || m.Runtime.Quit {
-		t.Fatalf("palette did not take the key: query=%q quit=%t", m.Palette.query, m.Runtime.Quit)
+	if m.Palette.Text() != "x" || m.Runtime.Quit {
+		t.Fatalf("palette did not take the key: query=%q quit=%t", m.Palette.Text(), m.Runtime.Quit)
 	}
 	keytest.Paste(m, "yz")
-	if m.Palette.query != "xyz" {
-		t.Fatalf("paste into the palette: query=%q", m.Palette.query)
+	if m.Palette.Text() != "xyz" {
+		t.Fatalf("paste into the palette: query=%q", m.Palette.Text())
 	}
 }
 
@@ -220,7 +220,7 @@ func TestDispatchPaletteHonorsAnyModeAppBindings(t *testing.T) {
 	}
 	keytest.Press(m, "x")
 	dispatchTestState(t, m, in, "abc", calls)
-	if m.Palette.query != "x" || !m.Palette.IsActive() {
-		t.Fatalf("palette row did not win over the app any-mode row: query=%q active=%t", m.Palette.query, m.Palette.IsActive())
+	if m.Palette.Text() != "x" || !m.Palette.IsActive() {
+		t.Fatalf("palette row did not win over the app any-mode row: query=%q active=%t", m.Palette.Text(), m.Palette.IsActive())
 	}
 }

@@ -9,7 +9,9 @@ import (
 	"testing"
 )
 
-func TestPalettePageInstancesAreLiveAndSearchable(t *testing.T) {
+// A palette noun's instances complete after the noun (and as its default
+// verb's argument), read live on every listing; one runs the default verb.
+func TestPalettePageInstancesAreLive(t *testing.T) {
 	r := NewRuntime()
 	p := NewPalette(r)
 	for i := range 60 {
@@ -18,70 +20,59 @@ func TestPalettePageInstancesAreLiveAndSearchable(t *testing.T) {
 	}
 	paletteRequest(t, r, "open", "page", Arguments{"id": "page-00"})
 	paletteRequest(t, r, "open", "palette", nil)
-	paletteChoose(t, r, "noun:page")
+	paletteRequest(t, r, "set", "palette", Arguments{"text": "page "})
 	instances, verbs := 0, 0
-	for _, entry := range p.entries() {
+	for _, entry := range p.completions() {
 		switch entry.Kind {
-		case "instance":
+		case "choice":
 			instances++
 		case "verb":
 			verbs++
 		}
 	}
 	if instances != 60 || verbs != 3 {
-		t.Fatalf("noun listing has %d instances and %d verbs, want 60 and 3", instances, verbs)
+		t.Fatalf("page completes %d instances and %d verbs, want 60 and 3", instances, verbs)
 	}
 	pageTestRegister(t, r, "late-page").Title = "Newly registered workspace"
-	for _, query := range []string{"Workspace 59", "page-59", "Newly registered"} {
-		paletteRequest(t, r, "search", "palette", Arguments{"query": query})
-		entries := p.entries()
-		wantID := "page-59"
-		if query == "Newly registered" {
-			wantID = "late-page"
-		}
-		if len(entries) != 1 || entries[0].ID != wantID {
-			t.Fatalf("search %q = %#v, want instance %q", query, entries, wantID)
-		}
-		if !strings.Contains(p.View(), entries[0].Label) || !strings.Contains(p.View(), entries[0].ID) {
-			t.Fatalf("view hides instance label or ID: %s", p.View())
-		}
+	paletteRequest(t, r, "set", "palette", Arguments{"text": "page late"})
+	entries := p.completions()
+	if len(entries) != 1 || entries[0].ID != "late-page" || !strings.Contains(entries[0].Label, "Newly registered workspace") {
+		t.Fatalf("live instance = %#v", entries)
 	}
-	r.PageOf("late-page").Title = "Retitled runtime page"
-	paletteRequest(t, r, "search", "palette", Arguments{"query": "Retitled"})
-	state := p.state()
-	entries := state["entries"].([]PaletteEntry)
-	if len(entries) != 1 || entries[0].Value != "instance:late-page" || entries[0].Label != "Retitled runtime page" {
-		t.Fatalf("published choices = %#v", entries)
+	if !strings.Contains(p.View(), "late-page") {
+		t.Fatalf("view hides the instance:\n%s", p.View())
 	}
-	paletteChoose(t, r, entries[0].Value)
+	paletteRequest(t, r, "run", "palette", nil)
 	if p.IsOpen() || r.Page != "late-page" || len(r.Modals()) != 0 {
-		t.Fatalf("instance did not open page and close palette: page=%s frames=%d", r.Page, len(r.Modals()))
+		t.Fatalf("instance did not open its page: page=%s frames=%d", r.Page, len(r.Modals()))
+	}
+	// The default verb's argument completes from the same source.
+	paletteRequest(t, r, "open", "palette", nil)
+	if c := p.parse("open page page-5"); c.Err == nil || !strings.Contains(c.Err.Error(), "ambiguous") {
+		t.Fatalf("page-5 is a prefix of ten pages: %v", c.Err)
+	}
+	paletteLine(t, r, "open page page-59")
+	if r.Page != "page-59" || p.IsOpen() {
+		t.Fatalf("open page page-59: page=%s open=%v", r.Page, p.IsOpen())
 	}
 }
 
+// A verb wins over an instance of the same name after a noun; the instance
+// is still reachable as the verb's argument.
 func TestPaletteNounVerbsAndInstancesDoNotCollide(t *testing.T) {
 	r := NewRuntime()
-	for _, id := range []string{"home", "open", "verb:open", "instance:open"} {
+	for _, id := range []string{"home", "open"} {
 		pageTestRegister(t, r, id)
 	}
 	p := NewPalette(r)
 	paletteRequest(t, r, "open", "page", Arguments{"id": "home"})
 	paletteRequest(t, r, "open", "palette", nil)
-	paletteChoose(t, r, "noun:page", "verb:open")
-	if p.stage != "arguments" || p.op.Key() != "page.open" {
-		t.Fatalf("verb did not retain its ordinary argument form: %#v", p.state())
+	if c := p.parse("page open"); c.Op.Key() != "page.open" || c.Missing != "id" {
+		t.Fatalf("page open = %s missing %q", c.Op.Key(), c.Missing)
 	}
-	paletteRequest(t, r, "set", "palette-argument", Arguments{"name": "id", "value": "open"})
-	paletteRequest(t, r, "execute", "palette", nil)
-	if r.Page != "open" {
-		t.Fatalf("verb form opened %q", r.Page)
-	}
-	for _, id := range []string{"verb:open", "instance:open"} {
-		paletteRequest(t, r, "open", "palette", nil)
-		paletteChoose(t, r, "noun:page", "instance:"+id)
-		if r.Page != id || p.IsOpen() {
-			t.Fatalf("instance %q collided with a verb", id)
-		}
+	paletteLine(t, r, "page open open")
+	if r.Page != "open" || p.IsOpen() {
+		t.Fatalf("page open open: page=%s", r.Page)
 	}
 }
 
@@ -107,7 +98,7 @@ func TestPaletteInstanceUsesConfiguredDefaultAndCapturedOrigin(t *testing.T) {
 		t.Fatal(err)
 	}
 	paletteRequest(t, r, "open", "palette", nil)
-	paletteChoose(t, r, "noun:page", "instance:target")
+	paletteLine(t, r, "page target")
 	if !reflect.DeepEqual(gotContext, origin) || !reflect.DeepEqual(gotArgs, Arguments{"pageID": "target"}) || r.Page != "home" || p.IsOpen() {
 		t.Fatalf("configured dispatch: context=%#v args=%#v page=%s open=%v", gotContext, gotArgs, r.Page, p.IsOpen())
 	}
@@ -125,9 +116,9 @@ func TestPaletteInstanceFailurePreservesModalAndOrigin(t *testing.T) {
 	origin := r.Context()
 	p := NewPalette(r)
 	paletteRequest(t, r, "open", "palette", nil)
-	paletteChoose(t, r, "noun:page")
-	_, err := r.Execute(Request{Verb: "select", Noun: "palette", Args: Arguments{"value": "instance:target"}})
-	if err == nil || !strings.Contains(err.Error(), "modal") || !p.IsOpen() || len(r.Modals()) != 2 || r.Modals()[0].ID != "dialog" || r.Page != "home" || !reflect.DeepEqual(p.origin, origin) {
+	paletteRequest(t, r, "set", "palette", Arguments{"text": "page target"})
+	_, err := r.Execute(Request{Verb: "run", Noun: "palette"})
+	if err == nil || !strings.Contains(err.Error(), "modal") || !p.IsOpen() || len(r.Modals()) != 2 || r.Modals()[0].ID != "dialog" || r.Page != "home" || !reflect.DeepEqual(p.origin, origin) || p.Text() != "page target" {
 		t.Fatalf("failed instance lost modal/origin: err=%v state=%#v", err, p.state())
 	}
 	paletteRequest(t, r, "close", "palette", nil)
@@ -136,7 +127,7 @@ func TestPaletteInstanceFailurePreservesModalAndOrigin(t *testing.T) {
 	}
 	paletteRequest(t, r, "pop", "modal", nil)
 	paletteRequest(t, r, "open", "palette", nil)
-	paletteChoose(t, r, "noun:page", "instance:target")
+	paletteLine(t, r, "page target")
 	if p.IsOpen() || r.Page != "target" {
 		t.Fatal("page instance failed after modal closed")
 	}
@@ -159,15 +150,15 @@ func TestPaletteInstanceUsesRuntimeValidationAndRestoresOnError(t *testing.T) {
 		t.Fatal(err)
 	}
 	paletteRequest(t, r, "open", "palette", nil)
-	paletteChoose(t, r, "noun:thing")
-	_, err := r.Execute(Request{Verb: "select", Noun: "palette", Args: Arguments{"value": "instance:x"}})
-	if err == nil || err.Error() != "thing rejected" || !p.IsOpen() || !reflect.DeepEqual(captured, origin) || !reflect.DeepEqual(sourceContext, origin) || p.stage != "second" {
+	paletteRequest(t, r, "set", "palette", Arguments{"text": "thing x"})
+	_, err := r.Execute(Request{Verb: "run", Noun: "palette"})
+	if err == nil || err.Error() != "thing rejected" || !p.IsOpen() || !reflect.DeepEqual(captured, origin) || !reflect.DeepEqual(sourceContext, origin) || p.Text() != "thing x" {
 		t.Fatalf("failure dispatch/restoration: %v %#v", err, p.state())
 	}
 	op := r.Operations["thing.use"]
 	op.Parameters["id"] = Parameter{Type: "integer", Required: true}
 	captured = Context{}
-	_, err = r.Execute(Request{Verb: "select", Noun: "palette", Args: Arguments{"value": "instance:x"}})
+	_, err = r.Execute(Request{Verb: "run", Noun: "palette"})
 	if err == nil || !strings.Contains(err.Error(), "integer") || !p.IsOpen() || len(captured.Path) != 0 {
 		t.Fatalf("instance bypassed live validation: %v", err)
 	}
@@ -199,7 +190,7 @@ func TestPaletteNounRegistrationValidation(t *testing.T) {
 
 // A verb guarded with Verb(...).When is offered only while its guard holds
 // at the focus and mode the palette opened over; the mode the palette's own
-// field pins does not count. A default verb cannot be guarded.
+// line pins does not count. A default verb cannot be guarded.
 func TestPaletteHidesGuardedVerbs(t *testing.T) {
 	r := NewRuntime()
 	if err := r.DefineMode("selecting", false); err != nil {
@@ -227,12 +218,9 @@ func TestPaletteHidesGuardedVerbs(t *testing.T) {
 		}
 		return out
 	}
-	values := func() []string {
-		var out []string
-		for _, e := range p.entries() {
-			out = append(out, e.Value)
-		}
-		return out
+	values := func(line string) []string {
+		paletteRequest(t, r, "set", "palette", Arguments{"text": line})
+		return completionValues(p)
 	}
 	if err := r.SetFocus("cell"); err != nil {
 		t.Fatal(err)
@@ -241,11 +229,13 @@ func TestPaletteHidesGuardedVerbs(t *testing.T) {
 	if got := offered(); got["chosen.grab"] || got["chosen.drop"] || !got["chosen.count"] || !got["rowish.delete"] {
 		t.Fatalf("normal mode on the sheet offered %v", got)
 	}
-	if v := values(); slices.Contains(v, "verb:grab") || !slices.Contains(v, "noun:chosen") || !slices.Contains(v, "verb:count") {
+	if v := values(""); slices.Contains(v, "verb:grab") || !slices.Contains(v, "noun:chosen") || !slices.Contains(v, "verb:count") {
 		t.Fatalf("root entries: %v", v)
 	}
-	paletteChoose(t, r, "noun:chosen")
-	if v := values(); !reflect.DeepEqual(v, []string{"count"}) {
+	if c := p.parse("grab chosen"); c.Err == nil {
+		t.Fatal("a guarded verb parsed")
+	}
+	if v := values("chosen "); !reflect.DeepEqual(v, []string{"verb:count"}) {
 		t.Fatalf("chosen verbs in normal mode: %v", v)
 	}
 	paletteRequest(t, r, "close", "palette", nil)
@@ -255,8 +245,7 @@ func TestPaletteHidesGuardedVerbs(t *testing.T) {
 	if r.Mode.Name == "selecting" {
 		t.Fatal("the palette field did not take its own mode; the test proves nothing")
 	}
-	paletteChoose(t, r, "noun:chosen")
-	if v := values(); !reflect.DeepEqual(v, []string{"count", "drop", "grab"}) {
+	if v := values("chosen "); !reflect.DeepEqual(v, []string{"verb:count", "verb:drop", "verb:grab"}) {
 		t.Fatalf("chosen verbs while selecting: %v", v)
 	}
 	paletteRequest(t, r, "close", "palette", nil)
@@ -269,7 +258,7 @@ func TestPaletteHidesGuardedVerbs(t *testing.T) {
 	if got := offered(); got["rowish.delete"] || !got["sheet.save"] {
 		t.Fatalf("off the sheet offered %v", got)
 	}
-	if v := values(); slices.Contains(v, "noun:rowish") {
+	if v := values(""); slices.Contains(v, "noun:rowish") {
 		t.Fatalf("a noun with only hidden verbs is listed: %v", v)
 	}
 	paletteRequest(t, r, "close", "palette", nil)
@@ -283,7 +272,7 @@ func TestPaletteHidesGuardedVerbs(t *testing.T) {
 	}
 }
 
-// The root lists the nouns of the focus stack first, the focused noun
+// The first word lists the nouns of the focus stack first, the focused noun
 // first, then the rest of the catalog by name.
 func TestPaletteListsFocusStackNounsFirst(t *testing.T) {
 	r := NewRuntime()
@@ -300,7 +289,7 @@ func TestPaletteListsFocusStackNounsFirst(t *testing.T) {
 	p := NewPalette(r)
 	paletteRequest(t, r, "open", "palette", nil)
 	var nouns []string
-	for _, e := range p.entries() {
+	for _, e := range p.completions() {
 		if e.Kind == "noun" {
 			nouns = append(nouns, e.Label)
 		}

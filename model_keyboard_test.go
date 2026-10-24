@@ -157,8 +157,8 @@ func TestModelMacroRecordsPaletteTypingWithoutStopping(t *testing.T) {
 	r, in := editorTestRuntime(t, "preserve", true)
 	m := NewModel(r)
 	modelType(m, "qq:q", true)
-	if !m.Palette.IsActive() || m.Palette.query != "q" || r.Registers().Macro.Recording != "q" || m.Status != "" {
-		t.Fatalf("palette typing stopped recording: query=%q recording=%q status=%q", m.Palette.query, r.Registers().Macro.Recording, m.Status)
+	if !m.Palette.IsActive() || m.Palette.Text() != "q" || r.Registers().Macro.Recording != "q" || m.Status != "" {
+		t.Fatalf("palette typing stopped recording: query=%q recording=%q status=%q", m.Palette.Text(), r.Registers().Macro.Recording, m.Status)
 	}
 	keytest.Press(m, "ctrl+c")
 	modelType(m, "q", true)

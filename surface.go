@@ -79,7 +79,7 @@ func ComposeModalBlock(background, title string, body Block, footer string, widt
 	// The backdrop is drawn muted as one layer and the panel as a second layer
 	// on top; the canvas owns cell clipping, including wide graphemes under the
 	// panel's edges.
-	backdrop := styles.Muted.Render(fitSurface(strings.ReplaceAll(background, "\t", "    "), width, height))
+	backdrop := dim(fitSurface(strings.ReplaceAll(background, "\t", "    "), width, height), styles.Muted)
 	canvas := lipgloss.NewCanvas(width, height)
 	canvas.Compose(lipgloss.NewCompositor(
 		lipgloss.NewLayer(backdrop),
@@ -88,6 +88,25 @@ func ComposeModalBlock(background, title string, body Block, footer string, widt
 	// Canvas.Render trims trailing blanks; every row must stay exactly width cells.
 	text := fitSurface(canvas.Render(), width, height)
 	return cursor.Offset(left, top).WithText(text)
+}
+
+// dim draws a styled backdrop in the muted style without dropping its own
+// styles: the muted attributes open every line and are opened again after
+// every reset inside it, so a reverse-video cursor or an underlined
+// selection beneath a modal stays visible, dimmed.
+func dim(text string, muted lipgloss.Style) string {
+	sample := muted.Render("x")
+	open := sample[:strings.Index(sample, "x")]
+	if open == "" {
+		return text
+	}
+	lines := strings.Split(text, "\n")
+	for i, line := range lines {
+		line = strings.ReplaceAll(line, "\x1b[0m", "\x1b[0m"+open)
+		line = strings.ReplaceAll(line, "\x1b[m", "\x1b[m"+open)
+		lines[i] = open + line + "\x1b[m"
+	}
+	return strings.Join(lines, "\n")
 }
 
 // modalCells pads or truncates a line to exactly width cells. Trusted styles

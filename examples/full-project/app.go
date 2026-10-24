@@ -12,7 +12,7 @@ func Build(cfg Config) (*ochazuke.Model, error) {
 	r := ochazuke.NewRuntime()
 	workspaceState = map[string]map[string]any{}
 	reservedIDs := map[string]bool{"app": true, "palette": true, "picker": true}
-	reservedNouns := map[string]bool{"editor": true, "prompt": true, "modal": true, "list": true, "palette": true, "palette-field": true, "picker": true, "yank-history": true}
+	reservedNouns := map[string]bool{"editor": true, "prompt": true, "modal": true, "list": true, "palette": true, "picker": true, "yank-history": true}
 	for _, spec := range cfg.Instances {
 		if strings.TrimSpace(spec.Noun) == "" || reservedIDs[spec.ID] || reservedNouns[spec.Noun] {
 			return nil, fmt.Errorf("instance %q / noun %q is empty or reserved", spec.ID, spec.Noun)

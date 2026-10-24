@@ -1,10 +1,6 @@
 package ochazuke
 
-import (
-	"fmt"
-	"sort"
-	"strings"
-)
+import "fmt"
 
 // PaletteInstance is a labeled object whose ID becomes the default action argument.
 type PaletteInstance struct {
@@ -22,7 +18,8 @@ type PaletteNoun struct {
 	Argument    string
 }
 
-// PaletteEntry exposes the exact palette.select value independently of its display label.
+// PaletteEntry is one completion: Value is the word it appends, Kind is
+// verb, noun or choice, Label what the list shows.
 type PaletteEntry struct {
 	Value string `json:"value"`
 	Kind  string `json:"kind"`
@@ -75,73 +72,71 @@ func PagesPaletteSource(r *Runtime, _ Context) []PaletteInstance {
 	return instances
 }
 
-func (p *Palette) entries() []PaletteEntry {
-	var entries []PaletteEntry
-	seen := map[string]bool{}
-	add := func(entry PaletteEntry) {
-		if !seen[entry.Value] {
-			seen[entry.Value] = true
-			entries = append(entries, entry)
-		}
+// completions is the list under the line: the words the next position
+// accepts, grouped verbs, nouns, then parameter choices, narrowed by the
+// word being typed (a prefix, as abbreviation resolves) and by the filter
+// code, if one was typed for this position.
+func (p *Palette) completions() []PaletteEntry {
+	tokens, trailing := tokenize(p.Text())
+	partial := ""
+	if !trailing {
+		partial = tokens[len(tokens)-1].Text
+		tokens = tokens[:len(tokens)-1]
 	}
-	config, instances := p.nouns[p.first]
-	for _, op := range p.r.Catalog() {
-		if !p.offered(op) {
-			continue
-		}
-		if p.stage == "root" {
-			add(PaletteEntry{Value: "verb:" + op.Verb, Kind: "verb", Label: op.Verb, Verb: op.Verb})
-			add(PaletteEntry{Value: "noun:" + op.Noun, Kind: "noun", Label: op.Noun})
-		} else if p.section == "verbs" && op.Verb == p.first {
-			add(PaletteEntry{Value: op.Noun, Kind: "noun", Label: op.Noun})
-		} else if p.section == "nouns" && op.Noun == p.first {
-			value := op.Verb
-			if instances {
-				value = "verb:" + op.Verb
+	ix := p.index()
+	var out []PaletteEntry
+	verbs := func(names []string, noun string) {
+		for _, verb := range names {
+			label := verb
+			if noun != "" {
+				label = verbLabel(ix.ops[noun+"."+verb])
 			}
-			add(PaletteEntry{Value: value, Kind: "verb", Label: verbLabel(op), Verb: op.Verb})
+			out = append(out, PaletteEntry{Value: verb, Kind: "verb", Label: label, Verb: verb})
 		}
 	}
-	if p.stage == "second" && p.section == "nouns" && instances {
-		for _, instance := range config.Source(p.r, p.origin.Clone()) {
-			label := instance.Label
-			if label == "" {
-				label = instance.ID
+	nouns := func(names []string) {
+		for _, noun := range names {
+			out = append(out, PaletteEntry{Value: noun, Kind: "noun", Label: noun})
+		}
+	}
+	choices := func(op Operation, name string) {
+		list, _ := p.paramChoices(op, name)
+		for _, choice := range list {
+			out = append(out, PaletteEntry{Value: choice.ID, Kind: "choice", Label: choiceLabel(choice), ID: choice.ID})
+		}
+	}
+	if len(tokens) == 0 {
+		verbs(optionValues(ix.byVerbs), "")
+		nouns(optionValues(ix.byNouns))
+	} else {
+		c := p.parseTokens(ix, tokens)
+		switch {
+		case c.Err != nil:
+		case len(tokens) == 1 && c.Words[0].Kind == "verb":
+			nouns(ix.verbs[c.Words[0].Value])
+			if c.known() {
+				if next := remainingParams(c); len(next) > 0 {
+					choices(c.Op, next[0])
+				}
 			}
-			add(PaletteEntry{Value: "instance:" + instance.ID, Kind: "instance", Label: label, ID: instance.ID})
-		}
-	}
-	// Nouns on the focus stack the palette opened over come first, the
-	// focused noun first, so the palette lists what is under the cursor
-	// before the rest of the catalog; other entries sort by value.
-	depth := map[string]int{}
-	for i, id := range p.r.Ancestry(focusOf(p.origin)) {
-		if inst := p.r.Instances[id]; inst != nil {
-			if _, seen := depth["noun:"+inst.Noun]; !seen {
-				depth["noun:"+inst.Noun] = i + 1
+		case len(tokens) == 1 && c.Words[0].Kind == "noun":
+			noun := c.Words[0].Value
+			verbs(ix.nouns[noun], noun)
+			if config, ok := p.nouns[noun]; ok {
+				if op, ok := ix.ops[noun+"."+config.DefaultVerb]; ok {
+					choices(op, config.Argument)
+				}
+			}
+		case c.known():
+			if next := remainingParams(c); len(next) > 0 {
+				choices(c.Op, next[0])
 			}
 		}
 	}
-	sort.SliceStable(entries, func(i, j int) bool {
-		if entries[i].Kind != entries[j].Kind {
-			return entries[i].Kind == "verb"
-		}
-		di, dj := depth[entries[i].Value], depth[entries[j].Value]
-		if (di > 0) != (dj > 0) {
-			return di > 0
-		}
-		if di != dj {
-			return di < dj
-		}
-		return entries[i].Value < entries[j].Value
-	})
-	if p.query == "" {
-		return entries
-	}
-	query := strings.ToLower(p.query)
-	filtered := make([]PaletteEntry, 0, len(entries))
-	for _, entry := range entries {
-		if strings.Contains(strings.ToLower(entry.Value+" "+entry.Label), query) {
+	kind := map[string]string{"v": "verb", "n": "noun", "p": "choice"}[p.filter]
+	filtered := out[:0]
+	for _, entry := range out {
+		if (kind == "" || entry.Kind == kind) && hasPrefixFold(entry.Value, partial) {
 			filtered = append(filtered, entry)
 		}
 	}

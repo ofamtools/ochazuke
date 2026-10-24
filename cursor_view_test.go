@@ -290,7 +290,7 @@ func TestModelViewCursorFollowsFocusedInput(t *testing.T) {
 	locate(m.View(), "alpha", 3)
 }
 
-// The palette's search editor and argument editors report their cursor too.
+// The palette's command line reports its cursor too.
 func TestModelViewCursorFollowsPaletteEditor(t *testing.T) {
 	r, in := editorTestRuntime(t, "abc", false)
 	m := NewModel(r)
@@ -300,14 +300,13 @@ func TestModelViewCursorFollowsPaletteEditor(t *testing.T) {
 	if !m.Palette.IsActive() {
 		t.Fatal("palette did not open")
 	}
-	keytest.Press(m, "/")
 	keytest.Press(m, "o")
 	view := m.View()
 	if view.Cursor == nil {
-		t.Fatalf("palette search reported no cursor:\n%s", ansi.Strip(view.Content))
+		t.Fatalf("palette line reported no cursor:\n%s", ansi.Strip(view.Content))
 	}
 	row := strings.Split(ansi.Strip(view.Content), "\n")[view.Cursor.Y]
-	if cell := cellIndex(row, "Search ["); cell < 0 || !strings.Contains(row, "o") || view.Cursor.X <= cell {
-		t.Fatalf("cursor %+v is not on the search row %q", view.Cursor.Position, row)
+	if cell := cellIndex(row, ": o"); cell < 0 || view.Cursor.X != cell+3 {
+		t.Fatalf("cursor %+v is not after the line's text %q", view.Cursor.Position, row)
 	}
 }
