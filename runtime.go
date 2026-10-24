@@ -118,6 +118,9 @@ func NewRuntime() *Runtime {
 	}
 	r.Instance("app")
 	r.Define("modal")
+	// "no-modal" holds while no modal is open: the app's ctrl+c capture row
+	// quits past any inner row, but a modal (the palette) still answers it.
+	r.DefineGuard("no-modal", func(r *Runtime, _ KeyEvent) bool { return len(r.modals) == 0 })
 	registerCore(r)
 	registerJobs(r)
 	registerConfiguration(r)

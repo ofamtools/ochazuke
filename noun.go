@@ -52,7 +52,8 @@ func (n *Noun) tables(mode string) [][]Binding {
 // the key or the mode payload (see Sources). When names a registered guard.
 // Unbind removes the default row with the same mode and keys or pattern.
 // Replay dispatches the key again, fresh, after the row ran (a pending mode
-// that hands an unknown key back to the stack).
+// that hands an unknown key back to the stack). Capture rows are consulted
+// outer-first (app first) before the inner-first walk (see resolve.go).
 //
 // A row is atomic: a Request (one registered operation, its arguments from
 // the row, the key or the payload), a mode transition (Enter, Leave) or an
@@ -71,6 +72,7 @@ type Binding struct {
 	When     string            `json:"when,omitempty"`
 	Unbind   bool              `json:"unbind,omitempty"`
 	Replay   bool              `json:"replay,omitempty"`
+	Capture  bool              `json:"capture,omitempty"`
 }
 
 // Sources a From entry may name: "key" (the key name), "digit" (the key as an

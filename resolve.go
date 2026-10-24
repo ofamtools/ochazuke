@@ -20,11 +20,38 @@ type KeyEvent struct {
 }
 
 // level is one step of the stack walk: an instance (nil for the modal level)
-// and the noun whose tables it reads.
+// and the noun whose tables it reads. A capture level reads only capture
+// rows; a bubbling level reads only the others.
 type level struct {
-	inst *Instance
-	noun *Noun
+	inst    *Instance
+	noun    *Noun
+	capture bool
 }
+
+// walk is the full resolution order for a focus: the capture pass, the
+// stack outer-first (app first, the editor fallback last) reading only
+// capture rows, then the bubbling pass, the stack inner-first reading the
+// rest. The first row that answers in either pass wins, so an app-level
+// capture row (ctrl+c → app.quit) answers before an inner any row (a
+// terminal's passthrough) can swallow the key.
+func (r *Runtime) walk(focus string) []level {
+	inner := r.stack(focus)
+	var out, fallback []level
+	for i := len(inner) - 1; i >= 0; i-- {
+		lv := inner[i]
+		lv.capture = true
+		if lv.inst == nil && lv.noun != nil && lv.noun.Name == "editor" {
+			fallback = append(fallback, lv)
+			continue
+		}
+		out = append(out, lv)
+	}
+	return append(append(out, fallback...), inner...)
+}
+
+// Captured marks a row as a capture row: consulted outer-first before the
+// inner-first walk (config field "capture").
+func (b Binding) Captured() Binding { b.Capture = true; return b }
 
 // stack is the resolution order for a focus: the focused instance outward to
 // app, with the modal noun inserted before app while a modal is open, and
@@ -96,7 +123,7 @@ func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (bool, 
 		fallback = mode.Payload.Request
 	}
 	exclusive := r.pendingModes[mode.Name] || mode.Payload.Shadow != nil
-	for _, lv := range r.stack(focus) {
+	for _, lv := range r.walk(focus) {
 		hit, longer, exact := r.lookup(lv, base, exclusive, prefix, sequence, key, ev)
 		if longer {
 			if exact != nil {
@@ -171,7 +198,7 @@ func (r *Runtime) lookup(lv level, mode string, exclusive bool, prefix, sequence
 	for _, rows := range tables {
 		for i := range rows {
 			row := &rows[i]
-			if row.Unbind {
+			if row.Unbind || row.Capture != lv.capture {
 				continue
 			}
 			if row.Keys != "" && !key.Paste {
@@ -349,7 +376,7 @@ func (r *Runtime) ListBindings(focus string) []Binding {
 }
 
 // bindingRows collects the rows the focus answers to in its current mode in
-// resolution order: innermost level first, each level's instance rows before
+// resolution order: capture rows outer-first, then innermost level first, each level's instance rows before
 // its noun's mode table before its any-mode table, the first row per key or
 // pattern. A level whose unguarded any row answers every key ends the
 // walk, as it does for Dispatch.
@@ -359,9 +386,10 @@ func (r *Runtime) bindingRows(focus string) []Binding {
 	exclusive := r.pendingModes[mode.Name] || mode.Payload.Shadow != nil
 	seen := map[string]bool{}
 	var out []Binding
+	var capture bool
 	take := func(rows []Binding) {
 		for _, b := range rows {
-			if b.Unbind {
+			if b.Unbind || b.Capture != capture {
 				continue
 			}
 			id := b.Keys + "\x00" + b.Pattern
@@ -377,7 +405,8 @@ func (r *Runtime) bindingRows(focus string) []Binding {
 			out = append(out, b)
 		}
 	}
-	for _, lv := range r.stack(focus) {
+	for _, lv := range r.walk(focus) {
+		capture = lv.capture
 		before := len(out)
 		if lv.inst != nil {
 			take(rowsForMode(lv.inst.Bindings, base, exclusive))

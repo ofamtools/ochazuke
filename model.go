@@ -77,7 +77,17 @@ func NewModel(r *Runtime) *Model {
 	defaultRow("normal", "ctrl+j", Do("page.next"))
 	defaultRow("normal", "ctrl+k", Do("page.previous"))
 	defaultRow("", "ctrl+space", Do("palette.open"))
+	// ctrl+c quits from a capture row, so an inner any row (a terminal's
+	// passthrough) cannot swallow it; inside a modal the capture row stands
+	// aside and the bubbling row below answers unless the modal binds ctrl+c.
+	captureQuit := true
+	for _, existing := range app.Bindings[""] {
+		captureQuit = captureQuit && existing.Keys != "ctrl+c"
+	}
 	defaultRow("", "ctrl+c", Do("app.quit"))
+	if captureQuit {
+		r.Define("app").Mode("").Bind("ctrl+c", Do("app.quit").Captured().Guard("no-modal"))
+	}
 	defaultRow("", "pgdown", Do("surface.scroll", Arguments{"lines": 8}))
 	defaultRow("", "pgup", Do("surface.scroll", Arguments{"lines": -8}))
 	return m

@@ -515,7 +515,7 @@ func smokeExample(m *ochazuke.Model) error {
 		}
 		return keys
 	}
-	expect("terminal mode lists the terminal table only", terminalKeys(), []string{"ctrl+a=enter", "any=send", "paste=paste"})
+	expect("terminal mode lists the app capture row and the terminal table", terminalKeys(), []string{"ctrl+a=enter", "ctrl+c=quit", "any=send", "paste=paste"})
 	binding("ctrl+a", "d")
 	expect("leader d detaches to the page", r.Context().Path, []string{"app", "console"})
 	binding("x")
