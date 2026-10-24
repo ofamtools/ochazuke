@@ -31,12 +31,12 @@ Root package `ochazuke` is flat: 31 source files, 21 test files. Each entry list
 
 ### configuration.go
 
-- lines: 77
-- leans on: runtime.go(32), noun.go(4), registers.go(4), cli.go(1)
+- lines: 86
+- leans on: runtime.go(34), noun.go(4), registers.go(4), cli.go(1)
 
 ### demo.go
 
-- lines: 257
+- lines: 263
 - purpose: NewDemo supplies example pages; none of these page names are required by the framework.
 - funcs: NewDemo
 - leans on: runtime.go(78), block.go(34), model.go(19), theme.go(14)
@@ -70,20 +70,20 @@ Root package `ochazuke` is flat: 31 source files, 21 test files. Each entry list
 
 ### input.go
 
-- lines: 278
+- lines: 288
 - purpose: SetMode is the mode-transition hook for both editor operations and set.mode.
 - types: EditNode, Input
-- methods: Input(8)
+- methods: Input(9)
 - funcs: NewInput, RegisterInputOperations
 - leans on: runtime.go(38), block.go(17), editor.go(5), editor_block.go(4)
 
 ### instance.go
 
-- lines: 122
+- lines: 157
 - purpose: Instance is one addressable thing on screen: a page, a list, a list row, a modal body, or an input.
 - types: Instance
-- methods: Runtime(8)
-- leans on: runtime.go(11), noun.go(2)
+- methods: Runtime(12)
+- leans on: runtime.go(20), noun.go(3)
 
 ### layout.go
 
@@ -96,12 +96,12 @@ Root package `ochazuke` is flat: 31 source files, 21 test files. Each entry list
 
 ### list.go
 
-- lines: 251 · tests: list_test.go
-- purpose: ListItem is application-owned identity, display text, and a registered item layer.
+- lines: 268 · tests: list_test.go
+- purpose: ListItem is application-owned identity, display text, and the registered noun the row answers to.
 - types: ListItem, List
 - methods: List(11)
 - funcs: NewList
-- leans on: runtime.go(46), layout.go(2), noun.go(2), registers.go(1)
+- leans on: runtime.go(37), noun.go(10), layout.go(2), registers.go(1)
 
 ### macros.go
 
@@ -121,7 +121,7 @@ Root package `ochazuke` is flat: 31 source files, 21 test files. Each entry list
 
 ### noun.go
 
-- lines: 108 · tests: noun_test.go
+- lines: 110 · tests: noun_test.go
 - purpose: Noun is the behaviour shared by every instance of one kind: the verbs it answers to, its key bindings per mode, and the action handlers that override an oper...
 - types: Noun
 - methods: Runtime(3)
@@ -199,14 +199,14 @@ Root package `ochazuke` is flat: 31 source files, 21 test files. Each entry list
 
 ### resolve.go
 
-- lines: 50
-- purpose: EffectiveBindingsFor is the stack walk phase 5 dispatches through: from the focused instance outward, the first noun that binds a key sequence wins, and with...
+- lines: 56
+- purpose: EffectiveBindingsFor is the stack walk phase 5 dispatches through: from the focused instance outward, the first instance whose own rows or noun bind a key se...
 - methods: Runtime(2)
-- leans on: runtime.go(7), noun.go(2)
+- leans on: runtime.go(7), noun.go(3)
 
 ### runtime.go
 
-- lines: 457 · tests: runtime_test.go
+- lines: 488 · tests: runtime_test.go
 - purpose: Runtime is owned by one event loop.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Binding, Layer, Frame, Runtime
 - methods: Context(1), Operation(1), Request(1), Runtime(14)

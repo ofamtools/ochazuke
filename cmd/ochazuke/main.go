@@ -27,7 +27,7 @@ func run(args []string) error {
 	flags := flag.NewFlagSet("ochazuke", flag.ContinueOnError)
 	socket := flags.String("socket", filepath.Join(cache, "ochazuke", "app.sock"), "Unix socket identifying the running app")
 	flags.Usage = func() {
-		fmt.Fprintln(flags.Output(), "Usage:\n  ochazuke keybinding\n  ochazuke [--socket PATH] run [--headless]\n  ochazuke [--socket PATH] NOUN VERB [--json '{...}'] [--target INPUT_ID]\n\nDiscover actions: ochazuke operations list\nExample: ochazuke input undo --json '{\"steps\":2}'\nEvery registered operation is available as NOUN VERB.")
+		fmt.Fprintln(flags.Output(), "Usage:\n  ochazuke keybinding\n  ochazuke [--socket PATH] run [--headless]\n  ochazuke [--socket PATH] NOUN VERB [--json '{...}'] [--target INSTANCE_ID]\n\nDiscover actions: ochazuke operations list\nExample: ochazuke input undo --json '{\"steps\":2}'\nEvery registered operation is available as NOUN VERB.")
 		flags.PrintDefaults()
 	}
 	if err := flags.Parse(args); err != nil {
@@ -75,7 +75,7 @@ func run(args []string) error {
 	}
 	callFlags := flag.NewFlagSet(rest[0]+" "+rest[1], flag.ContinueOnError)
 	raw := callFlags.String("json", "{}", "Operation arguments as a JSON object")
-	target := callFlags.String("target", "", "Input ID, or focused-input (default current context)")
+	target := callFlags.String("target", "", "Instance ID (input, list, row, page, modal body), or focused-input (default current context)")
 	if err := callFlags.Parse(rest[2:]); err != nil {
 		return err
 	}

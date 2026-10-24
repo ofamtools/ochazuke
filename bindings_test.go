@@ -150,7 +150,7 @@ func TestContextChangesCancelDeferredBindings(t *testing.T) {
 					t.Fatal(err)
 				}
 			} else {
-				r.Frames[0].State["mode"] = "insert"
+				r.Instances["app"].State = "insert"
 			}
 			r.pendingBinding.deadline = time.Now().Add(-time.Second)
 			r.HandleBindingTimeout(msg)

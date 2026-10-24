@@ -73,13 +73,15 @@ func (r *Runtime) syncNouns() {
 		}
 	}
 	for id, inst := range r.Instances {
-		if r.Layers[id] == nil && r.InputPaths[id] == nil {
-			delete(r.Instances, id)
-			continue
-		}
-		inst.Noun = ""
-		if r.Layers[id] != nil {
+		switch {
+		case r.Layers[id] != nil:
 			inst.Noun = id
+		case r.rows[id] != "":
+			// A list row keeps the noun SetItems gave it.
+		case r.InputPaths[id] != nil:
+			inst.Noun = ""
+		default:
+			delete(r.Instances, id)
 		}
 	}
 }

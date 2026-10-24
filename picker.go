@@ -168,7 +168,7 @@ func NewPicker(r *Runtime) *Picker {
 			before := string(p.input.Text)
 			run := operation.Run
 			for i := len(c.Path) - 2; i >= 0; i-- {
-				if action := r.Layers[c.Path[i]].Actions[operation.Key()]; action != nil {
+				if action := r.layerFor(c.Path[i]).Actions[operation.Key()]; action != nil {
 					run = action
 					break
 				}

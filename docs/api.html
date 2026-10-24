@@ -90,12 +90,15 @@ are not focused. See InputBlock.
 </pre><pre>func InputView(in *Input, width, height int) string</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>Instance</code> <small>type</small></summary><pre>Instance is one addressable thing on screen: a page, a list, a list row, a
 modal body, or an input. Its Parent link is what the old Context.Path spelt
 out in full; walking the links from the focused instance outward rebuilds
-that path. State is the instance&#39;s own mode; &#34;&#34; inherits (phase 4 wires it).
+that path. State is the instance&#39;s own mode; &#34;&#34; inherits the nearest
+ancestor&#39;s state, and the root falls back to &#34;normal&#34; (see Runtime.Mode).
+Bindings are this instance&#39;s own rows, resolved above its noun&#39;s table.
 </pre><pre>type Instance struct {
-	ID     string `json:&#34;id&#34;`
-	Noun   string `json:&#34;noun,omitempty&#34;`
-	Parent string `json:&#34;parent,omitempty&#34;`
-	State  string `json:&#34;state,omitempty&#34;`
+	ID       string    `json:&#34;id&#34;`
+	Noun     string    `json:&#34;noun&#34;`
+	Parent   string    `json:&#34;parent,omitempty&#34;`
+	State    string    `json:&#34;state&#34;`
+	Bindings []Binding `json:&#34;bindings,omitempty&#34;`
 }</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>IntArg</code> <small>function / method</small></summary><pre>func IntArg(a Arguments, name string, fallback int) int</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>JSONPointer</code> <small>function / method</small></summary><pre>func JSONPointer(value any, path string) (any, error)</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Layer</code> <small>type</small></summary><pre>type Layer struct {
 	ID       string             `json:&#34;id&#34;`
 	Noun     string             `json:&#34;noun&#34;`
@@ -131,22 +134,27 @@ top panel is the focused one.
 </pre><pre>func (l Layout) Split(leftTitle, leftBody, rightTitle, rightBody string) string</pre><a href="../layout.go">Source file</a></details><details class="entry searchable"><summary><code>Layout.SplitBlock</code> <small>function / method</small></summary><pre>SplitBlock is Split for bodies that may carry a cursor. One body should
 carry it; when both do, the left or top panel wins.
 </pre><pre>func (l Layout) SplitBlock(leftTitle string, leftBody Block, rightTitle string, rightBody Block) Block</pre><a href="../layout.go">Source file</a></details><details class="entry searchable"><summary><code>List</code> <small>type</small></summary><pre>List owns flat selection and scrolling on the runtime&#39;s event loop.
-Its path ends at the list layer; only the selected item&#39;s layer is appended.
+Its path ends at the list layer; only the selected row&#39;s ID is appended.
 </pre><pre>type List struct {
 	// contains filtered or unexported fields
-}</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.Focus</code> <small>function / method</small></summary><pre>Focus replaces the active context with the list path and selected item layer.
+}</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.Focus</code> <small>function / method</small></summary><pre>Focus replaces the active context with the list path and selected row.
 </pre><pre>func (l *List) Focus() error</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.Focused</code> <small>function / method</small></summary><pre>Focused derives focus from the active frame instead of retaining a stale flag.
 </pre><pre>func (l *List) Focused() bool</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.Move</code> <small>function / method</small></summary><pre>Move clamps at either end and does not take focus from another component.
 </pre><pre>func (l *List) Move(delta int)</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.Select</code> <small>function / method</small></summary><pre>Select changes the selected row by stable ID without taking focus.
 </pre><pre>func (l *List) Select(id string) error</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.Selected</code> <small>function / method</small></summary><pre>Selected returns a value copy; empty lists have no selected item.
 </pre><pre>func (l *List) Selected() (ListItem, bool)</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.SetItems</code> <small>function / method</small></summary><pre>SetItems copies rows, preserves selection by ID, and falls back to the nearest
 remaining index if that ID disappears. Invalid updates leave the list unchanged.
+It creates one instance per new row under the list and removes the instances
+of rows that disappear; a retained row keeps its instance and any bindings
+the application put on it.
 </pre><pre>func (l *List) SetItems(items []ListItem) error</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.Snapshot</code> <small>function / method</small></summary><pre>func (l *List) Snapshot() map[string]any</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.View</code> <small>function / method</small></summary><pre>View fits the viewport and updates its scroll offset to keep selection visible.
-</pre><pre>func (l *List) View(width, height int) string</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>ListItem</code> <small>type</small></summary><pre>ListItem is application-owned identity, display text, and a registered item layer.
+</pre><pre>func (l *List) View(width, height int) string</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>ListItem</code> <small>type</small></summary><pre>ListItem is application-owned identity, display text, and the registered
+noun the row answers to. Each row is an Instance whose ID is the item ID and
+whose Parent is the list; its bindings and actions come from its noun.
 </pre><pre>type ListItem struct {
 	ID    string `json:&#34;id&#34;`
 	Label string `json:&#34;label&#34;`
-	Layer string `json:&#34;layer&#34;`
+	Noun  string `json:&#34;noun&#34;`
 }</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>Listen</code> <small>function / method</small></summary><pre>Listen requires a private, current-user-owned socket directory and never removes an existing socket.
 </pre><pre>func Listen(path string, send func(CallMsg)) (*Server, error)</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>MacroKey</code> <small>type</small></summary><pre>type MacroKey struct {
 	Key   string `json:&#34;key&#34;`
@@ -326,11 +334,16 @@ call it after dispatch and send BindingTimeoutMsg to HandleBindingTimeout.
 links alone. It equals Context() whenever every path the application used
 agrees on each instance&#39;s parent; see AmbiguousInstances for the exceptions.
 </pre><pre>func (r *Runtime) ContextFromFocus() Context</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.EffectiveBindings</code> <small>function / method</small></summary><pre>EffectiveBindings overlays complete key sequences, not individual keystrokes.
+Each path element contributes its noun&#39;s rows (a row contributes its noun&#39;s),
+then the instance&#39;s own rows above them.
 </pre><pre>func (r *Runtime) EffectiveBindings(c Context) []Binding</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.EffectiveBindingsFor</code> <small>function / method</small></summary><pre>EffectiveBindingsFor is the stack walk phase 5 dispatches through: from the
-focused instance outward, the first noun that binds a key sequence wins, and
-within one noun a row for the current mode beats an any-mode row. That is
-the precedence EffectiveBindings produces by overlaying outer to inner.
-</pre><pre>func (r *Runtime) EffectiveBindingsFor(focus, mode string) []Binding</pre><a href="../resolve.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Execute</code> <small>function / method</small></summary><pre>func (r *Runtime) Execute(q Request) (any, error)</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.ExecuteAt</code> <small>function / method</small></summary><pre>func (r *Runtime) ExecuteAt(c Context, q Request) (any, error)</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Focus</code> <small>function / method</small></summary><pre>func (r *Runtime) Focus(id string) error</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.FocusID</code> <small>function / method</small></summary><pre>FocusID is the one leaf instance the active frame points at: its input when
+focused instance outward, the first instance whose own rows or noun bind a
+key sequence wins; within one level the instance&#39;s rows beat its noun&#39;s and
+a row for the current mode beats an any-mode row. That is the precedence
+EffectiveBindings produces by overlaying outer to inner.
+</pre><pre>func (r *Runtime) EffectiveBindingsFor(focus, mode string) []Binding</pre><a href="../resolve.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Execute</code> <small>function / method</small></summary><pre>func (r *Runtime) Execute(q Request) (any, error)</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.ExecuteAt</code> <small>function / method</small></summary><pre>func (r *Runtime) ExecuteAt(c Context, q Request) (any, error)</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Focus</code> <small>function / method</small></summary><pre>Focus selects the context that addresses one instance: an input, a list, a
+row, a page or a modal body.
+</pre><pre>func (r *Runtime) Focus(id string) error</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.FocusID</code> <small>function / method</small></summary><pre>FocusID is the one leaf instance the active frame points at: its input when
 it has one, otherwise the last element of its path. Context() stays the
 source of truth in this phase; FocusID mirrors it.
 </pre><pre>func (r *Runtime) FocusID() string</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.HandleBinding</code> <small>function / method</small></summary><pre>HandleBinding waits when a binding is also a prefix. A timeout or mismatch
@@ -339,7 +352,10 @@ runs the longest completed match. A mismatch is consumed when that match exists.
 incomplete prefix. Its result is false for a stale or cancelled timer.
 </pre><pre>func (r *Runtime) HandleBindingTimeout(msg BindingTimeoutMsg) (bool, error)</pre><a href="../bindings.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.HandleCall</code> <small>function / method</small></summary><pre>func (r *Runtime) HandleCall(msg CallMsg)</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.InstancePath</code> <small>function / method</small></summary><pre>InstancePath is Ancestry reversed: app first, id last. It is the shape
 Context.Path has today.
-</pre><pre>func (r *Runtime) InstancePath(id string) []string</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Mode</code> <small>function / method</small></summary><pre>func (r *Runtime) Mode(c Context) string</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Noun</code> <small>function / method</small></summary><pre>Noun returns the registered noun of that name, or nil.
+</pre><pre>func (r *Runtime) InstancePath(id string) []string</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Mode</code> <small>function / method</small></summary><pre>Mode is the interaction mode of a context: the State of its focused
+instance (the input when InputID is set, else the last path element),
+inherited from the nearest ancestor with a non-empty State, else &#34;normal&#34;.
+</pre><pre>func (r *Runtime) Mode(c Context) string</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Noun</code> <small>function / method</small></summary><pre>Noun returns the registered noun of that name, or nil.
 </pre><pre>func (r *Runtime) Noun(name string) *Noun</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.OpenPage</code> <small>function / method</small></summary><pre>OpenPage restores the exact page-owned frame; an open modal blocks navigation.
 </pre><pre>func (r *Runtime) OpenPage(id string) error</pre><a href="../pages.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Pop</code> <small>function / method</small></summary><pre>func (r *Runtime) Pop() error</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Push</code> <small>function / method</small></summary><pre>func (r *Runtime) Push(frame *Frame) error</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Register</code> <small>function / method</small></summary><pre>func (r *Runtime) Register(o Operation)</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.RegisterNoun</code> <small>function / method</small></summary><pre>RegisterNoun declares a noun that has no pre-existing layer. The runtime
 also creates the layer view of the same name so the old API sees it.

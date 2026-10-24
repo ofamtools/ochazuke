@@ -23,5 +23,12 @@
   {"layer": "item-list", "mode": "normal", "keys": "enter", "request": {"verb": "inspect", "noun": "workspace"}},
   {"layer": "item-list", "mode": "normal", "keys": "r", "request": {"verb": "refresh", "noun": "workspace"}},
   {"layer": "item-list", "mode": "normal", "keys": "x", "request": {"verb": "refresh", "noun": "workspace", "args": {"remove": true}}},
-  {"layer": "paths", "mode": "normal", "keys": "g f", "request": {"verb": "focus", "noun": "input", "args": {"id": "destination"}}}
+  {"layer": "paths", "mode": "normal", "keys": "g f", "request": {"verb": "focus", "noun": "input", "args": {"id": "destination"}}},
+  {"layer": "app", "mode": "normal", "keys": "?", "request": {"verb": "open", "noun": "workspace", "args": {"id": "keys"}}},
+  {"layer": "repo", "mode": "normal", "keys": "f", "request": {"verb": "fetch", "noun": "repo"}},
+  {"layer": "worktree", "mode": "normal", "keys": "o", "request": {"verb": "open", "noun": "worktree"}},
+  {"layer": "worktree", "mode": "normal", "keys": "enter", "request": {"verb": "open", "noun": "worktree"}},
+  {"layer": "worktree", "mode": "normal", "keys": "d", "request": {"verb": "remove", "noun": "worktree"}},
+  {"layer": "branch", "mode": "normal", "keys": "c", "request": {"verb": "checkout", "noun": "branch"}},
+  {"layer": "branch", "mode": "normal", "keys": "enter", "request": {"verb": "checkout", "noun": "branch"}}
 ]

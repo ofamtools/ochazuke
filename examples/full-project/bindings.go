@@ -16,7 +16,7 @@ func registerBindings(r *ochazuke.Runtime, cfg Config) error {
 		}
 		seen[key] = true
 		q := spec.Request
-		if q.Target != "" && q.Target != "focused-input" && r.Inputs[q.Target] == nil {
+		if q.Target != "" && q.Target != "focused-input" && len(r.Ancestry(q.Target)) == 0 {
 			return fmt.Errorf("binding %q: unknown target %q", spec.Keys, q.Target)
 		}
 		id := ochazuke.StringArg(q.Args, "id", "")

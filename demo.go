@@ -91,9 +91,15 @@ func NewDemo() *Model {
 		err := r.Focus(ids[index])
 		return r.Context(), err
 	})
-	register("inspect", "selection", "Report the innermost layer handling this action", nil, func(r *Runtime, c Context, a Arguments) (any, error) {
-		r.Frames[len(r.Frames)-1].State["lastLayer"] = "app"
-		return "app", nil
+	register("inspect", "selection", "Report the innermost noun handling this action", nil, func(r *Runtime, c Context, a Arguments) (any, error) {
+		// No noun on the stack overrides this verb: report the focused
+		// instance's noun (a row reports its noun, not its row ID).
+		name := "app"
+		if inst := r.Instances[focusOf(c)]; inst != nil && inst.Noun != "" {
+			name = inst.Noun
+		}
+		r.Frames[len(r.Frames)-1].State["lastLayer"] = name
+		return name, nil
 	})
 	for _, id := range []string{"playground", "agent", "directory"} {
 		name := id

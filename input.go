@@ -32,6 +32,7 @@ type Input struct {
 	groupNode     int
 	goalColumn    int
 	blockChange   *blockChange
+	inst          *Instance // set by AddInput; holds the mode Input.Mode mirrors
 }
 
 func NewInput(id, text string, multiline bool) *Input {
@@ -77,7 +78,7 @@ func (in *Input) SetMode(mode string) {
 	}
 	edited := in.groupNode == in.Head
 	in.endGroup()
-	in.Mode = mode
+	in.storeMode(mode)
 	if isVisual(mode) && !isVisual(old) {
 		in.Anchor = in.Cursor
 	}
@@ -95,6 +96,15 @@ func (in *Input) SetMode(mode string) {
 	in.clampCursor()
 	if edited {
 		in.History[in.Head].Cursor = in.Cursor
+	}
+}
+
+// storeMode writes the mode to the input's instance, the source of truth,
+// and to the Mode mirror the editor reads.
+func (in *Input) storeMode(mode string) {
+	in.Mode = mode
+	if in.inst != nil {
+		in.inst.State = mode
 	}
 }
 
@@ -145,7 +155,7 @@ func (in *Input) Undo(steps int) error {
 	in.endGroup()
 	in.blockChange = nil
 	if isVisual(in.Mode) {
-		in.Mode = "normal"
+		in.storeMode("normal")
 	}
 	in.resetKeys()
 	for ; steps > 0; steps-- {
@@ -172,7 +182,7 @@ func (in *Input) Redo(steps, branch int) error {
 	in.endGroup()
 	in.blockChange = nil
 	if isVisual(in.Mode) {
-		in.Mode = "normal"
+		in.storeMode("normal")
 	}
 	in.resetKeys()
 	for ; steps > 0; steps-- {

@@ -25,7 +25,7 @@ func registerPages(m *ochazuke.Model, specs []PageConfig) error {
 			return fmt.Errorf("page %q: unknown renderer %q", spec.ID, spec.Renderer)
 		}
 		for _, id := range spec.Inputs {
-			path := m.Runtime.InputPaths[id]
+			path := m.Runtime.InstancePath(id)
 			if len(path) < 2 || path[1] != spec.ID {
 				return fmt.Errorf("page %q: input %q is unknown or belongs to another page", spec.ID, id)
 			}

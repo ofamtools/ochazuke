@@ -41,8 +41,9 @@ type PaletteConfig struct {
 }
 
 type LayerConfig struct {
-	ID   string `json:"id"`
-	Noun string `json:"noun"`
+	ID    string   `json:"id"`
+	Noun  string   `json:"noun"`
+	Verbs []string `json:"verbs,omitempty"`
 }
 
 type InputConfig struct {

@@ -63,7 +63,16 @@ func registerConfiguration(r *Runtime) {
 		layer.Bindings = append(layer.Bindings, binding)
 		return binding, nil
 	}})
-	r.Register(Operation{Verb: "select", Noun: "context", Description: "Select a nested noun path; omit input to leave text editing", Parameters: map[string]Parameter{"path": {Type: "string", Required: true, Description: "JSON array of layer IDs, outermost first, beginning with app"}, "input": {Type: "string"}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "select", Noun: "context", Description: "Focus an instance by id, or a nested path; omit input to leave text editing", Parameters: map[string]Parameter{"instance": {Type: "string", Description: "Instance ID: an input, list, row, page or modal body"}, "path": {Type: "string", Description: "JSON array of layer IDs, outermost first, beginning with app (when instance is omitted)"}, "input": {Type: "string"}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		if id := StringArg(a, "instance", ""); id != "" {
+			if err := r.Focus(id); err != nil {
+				return nil, err
+			}
+			return r.Context(), nil
+		}
+		if _, ok := a["path"]; !ok {
+			return nil, errors.New("instance or path is required")
+		}
 		var path []string
 		if err := json.Unmarshal([]byte(StringArg(a, "path", "")), &path); err != nil {
 			return nil, err

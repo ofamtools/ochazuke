@@ -31,7 +31,7 @@ func listFixture(t *testing.T) (*Runtime, *List, *Input, []ListItem) {
 	if err := r.OpenPage("page"); err != nil {
 		t.Fatal(err)
 	}
-	items := []ListItem{{ID: "one", Label: "First item", Layer: "a"}, {ID: "two", Label: "Second item", Layer: "b"}, {ID: "three", Label: "Third item", Layer: "c"}}
+	items := []ListItem{{ID: "one", Label: "First item", Noun: "a"}, {ID: "two", Label: "Second item", Noun: "b"}, {ID: "three", Label: "Third item", Noun: "c"}}
 	list, err := NewList(r, []string{"app", "page", "sidebar"}, items)
 	if err != nil {
 		t.Fatal(err)
@@ -53,8 +53,8 @@ func TestListFocusSelectsItemActionsAndLeavesEditorAlone(t *testing.T) {
 		t.Fatalf("first item action: %v, %v", value, err)
 	}
 	editorTestKeys(t, r, "j")
-	if got := r.Context(); !reflect.DeepEqual(got, Context{Path: []string{"app", "page", "sidebar", "b"}}) {
-		t.Fatalf("item layer was stacked instead of replaced: %+v", got)
+	if got := r.Context(); !reflect.DeepEqual(got, Context{Path: []string{"app", "page", "sidebar", "two"}}) {
+		t.Fatalf("row was stacked instead of replaced: %+v", got)
 	}
 	value, err = r.Execute(Request{Verb: "inspect", Noun: "item"})
 	if err != nil || value != "b" {
@@ -89,7 +89,7 @@ func TestListRefreshRetainsIdentityAndRestoresHiddenContexts(t *testing.T) {
 		t.Fatal(err)
 	}
 	selected, _ := list.Selected()
-	if selected.ID != "two" || r.Context().Path[3] != "b" {
+	if selected.ID != "two" || r.Context().Path[3] != "two" {
 		t.Fatal("refresh followed the index instead of identity")
 	}
 	if err := r.Push(&Frame{ID: "dialog", Context: Context{Path: []string{"app", "dialog"}}}); err != nil {
@@ -104,8 +104,11 @@ func TestListRefreshRetainsIdentityAndRestoresHiddenContexts(t *testing.T) {
 	if err := r.Pop(); err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Equal(r.Context().Path, []string{"app", "page", "sidebar", "a"}) {
+	if !slices.Equal(r.Context().Path, []string{"app", "page", "sidebar", "one"}) {
 		t.Fatalf("modal restored removed row: %+v", r.Context())
+	}
+	if r.Instances["two"] != nil || r.rows["two"] != "" || r.Instances["one"].Parent != "sidebar" || r.Instances["one"].Noun != "a" {
+		t.Fatalf("rows are instances owned by SetItems: %+v %+v", r.Instances["one"], r.Instances["two"])
 	}
 	if err := r.OpenPage("other"); err != nil {
 		t.Fatal(err)
@@ -120,7 +123,7 @@ func TestListRefreshRetainsIdentityAndRestoresHiddenContexts(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !slices.Equal(r.Context().Path, []string{"app", "page", "sidebar"}) {
-		t.Fatalf("empty hidden list restored an item layer: %+v", r.Context())
+		t.Fatalf("empty hidden list restored a row: %+v", r.Context())
 	}
 	if _, ok := list.Selected(); ok {
 		t.Fatal("empty list retained selection")
@@ -129,7 +132,7 @@ func TestListRefreshRetainsIdentityAndRestoresHiddenContexts(t *testing.T) {
 	if err := list.SetItems(items[:1]); err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Equal(r.Context().Path, []string{"app", "page", "sidebar", "a"}) {
+	if !slices.Equal(r.Context().Path, []string{"app", "page", "sidebar", "one"}) {
 		t.Fatal("repopulating a focused empty list did not attach its row")
 	}
 }
@@ -142,10 +145,11 @@ func TestListInvalidRefreshIsAtomicAndRowsAreOwned(t *testing.T) {
 	before := list.Snapshot()
 	context := r.Context()
 	for _, bad := range [][]ListItem{
-		{{ID: "", Layer: "a"}},
+		{{ID: "", Noun: "a"}},
 		{items[0], items[0]},
-		{{ID: "missing", Layer: "unknown"}},
-		{{ID: "cycle", Layer: "sidebar"}},
+		{{ID: "missing", Noun: "unknown"}},
+		{{ID: "sidebar", Noun: "a"}},
+		{{ID: "note", Noun: "a"}},
 	} {
 		if err := list.SetItems(bad); err == nil {
 			t.Fatal("accepted invalid rows")
@@ -159,9 +163,9 @@ func TestListInvalidRefreshIsAtomicAndRowsAreOwned(t *testing.T) {
 	}
 	items[0].ID = "external mutation"
 	snapshot := list.Snapshot()["items"].([]ListItem)
-	snapshot[0].Layer = "unknown"
+	snapshot[0].Noun = "unknown"
 	selected, _ := list.Selected()
-	if selected.ID != "one" || selected.Layer != "a" {
+	if selected.ID != "one" || selected.Noun != "a" {
 		t.Fatal("caller mutated owned rows")
 	}
 }
@@ -170,7 +174,7 @@ func TestListKeepsSelectionVisibleAcrossResizesAndExtremeMoves(t *testing.T) {
 	_, list, _, _ := listFixture(t)
 	items := make([]ListItem, 20)
 	for i := range items {
-		items[i] = ListItem{ID: fmt.Sprint(i), Label: fmt.Sprintf("Row %02d", i), Layer: "a"}
+		items[i] = ListItem{ID: fmt.Sprint(i), Label: fmt.Sprintf("Row %02d", i), Noun: "a"}
 	}
 	if err := list.SetItems(items); err != nil {
 		t.Fatal(err)
@@ -200,7 +204,7 @@ func TestListKeepsSelectionVisibleAcrossResizesAndExtremeMoves(t *testing.T) {
 
 func TestListSelectionCancelsPendingBindingEvenWithSharedItemLayer(t *testing.T) {
 	r, list, _, _ := listFixture(t)
-	if err := list.SetItems([]ListItem{{ID: "one", Layer: "a"}, {ID: "two", Layer: "a"}}); err != nil {
+	if err := list.SetItems([]ListItem{{ID: "one", Noun: "a"}, {ID: "two", Noun: "a"}}); err != nil {
 		t.Fatal(err)
 	}
 	r.Layers["a"].Bindings = []Binding{{Keys: "g g", Request: Request{Verb: "quit", Noun: "app"}}}

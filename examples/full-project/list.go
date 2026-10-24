@@ -20,7 +20,15 @@ func listPageView(r *ochazuke.Runtime, list *ochazuke.List, spec PageConfig, sty
 		id = selected.ID
 	}
 	path := frame.Context.Path
-	status := ansi.Truncate(fmt.Sprintf("Selected: %s · Active: %s", id, path[len(path)-1]), width, "…")
+	noun := "none"
+	if ok {
+		noun = selected.Noun
+	}
+	status := fmt.Sprintf("Selected: %s (%s) · Active: %s", id, noun, path[len(path)-1])
+	if last, ok := frame.State["lastAction"].(string); ok {
+		status += " · " + last
+	}
+	status = ansi.Truncate(status, width, "…")
 	hints := strings.Split(ansi.Wrap(plain(spec.Text), width, ""), "\n")
 	hints = hints[:min(len(hints), min(2, max(0, height-2)))]
 	bodyHeight := height - 1 - len(hints)
@@ -104,12 +112,37 @@ func beside(gap string, blocks ...ochazuke.Block) ochazuke.Block {
 	return out
 }
 
+// bindingsView lists the effective bindings of a context under the instance
+// and noun that own the focus, so the same modal reads differently per row.
+func bindingsView(r *ochazuke.Runtime, origin ochazuke.Context, width int) string {
+	if len(origin.Path) == 0 {
+		return "(no originating context)"
+	}
+	focus := origin.InputID
+	if focus == "" {
+		focus = origin.Path[len(origin.Path)-1]
+	}
+	noun := "input"
+	if inst := r.Instances[focus]; inst != nil && inst.Noun != "" {
+		noun = inst.Noun
+	}
+	lines := []string{fmt.Sprintf("Focus: %s · noun: %s · mode: %s", focus, noun, r.Mode(origin))}
+	for _, b := range r.EffectiveBindings(origin) {
+		line := fmt.Sprintf("%-12s %s.%s", b.Keys, b.Request.Verb, b.Request.Noun)
+		if len(b.Request.Args) > 0 {
+			line += fmt.Sprintf(" %v", map[string]any(b.Request.Args))
+		}
+		lines = append(lines, ansi.Truncate(line, max(1, width), "…"))
+	}
+	return strings.Join(lines, "\n")
+}
+
 func registerModals(m *ochazuke.Model, specs []ModalConfig) error {
 	for _, spec := range specs {
 		if strings.TrimSpace(spec.ID) == "" || m.ModalViews["modal:"+spec.ID].Render != nil {
 			return fmt.Errorf("modal %q is empty or duplicate", spec.ID)
 		}
-		if spec.Renderer != "text" && spec.Renderer != "confirm" {
+		if spec.Renderer != "text" && spec.Renderer != "confirm" && spec.Renderer != "bindings" {
 			return fmt.Errorf("modal %q: unknown renderer %q", spec.ID, spec.Renderer)
 		}
 		if spec.Input != "" && m.Runtime.Inputs[spec.Input] == nil {
@@ -120,6 +153,10 @@ func registerModals(m *ochazuke.Model, specs []ModalConfig) error {
 		}
 		m.ModalViews["modal:"+spec.ID] = ochazuke.ModalView{Title: spec.Title, Render: func(r *ochazuke.Runtime, frame *ochazuke.Frame, w, h int) ochazuke.Block {
 			body := ochazuke.Text(ansi.Wrap(plain(spec.Text), max(1, w), ""))
+			if spec.Renderer == "bindings" {
+				origin, _ := frame.State["origin"].(ochazuke.Context)
+				body = stack(body, ochazuke.Text(""), ochazuke.Text(bindingsView(r, origin, w)))
+			}
 			if spec.Renderer == "confirm" {
 				inputHeight := max(1, h-strings.Count(body.Text, "\n")-3)
 				body = stack(body, ochazuke.Text(""), ochazuke.InputBlock(r.Inputs[frame.Context.InputID], w, inputHeight))

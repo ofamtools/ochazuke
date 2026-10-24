@@ -3,9 +3,10 @@ package ochazuke
 import "sort"
 
 // EffectiveBindingsFor is the stack walk phase 5 dispatches through: from the
-// focused instance outward, the first noun that binds a key sequence wins, and
-// within one noun a row for the current mode beats an any-mode row. That is
-// the precedence EffectiveBindings produces by overlaying outer to inner.
+// focused instance outward, the first instance whose own rows or noun bind a
+// key sequence wins; within one level the instance's rows beat its noun's and
+// a row for the current mode beats an any-mode row. That is the precedence
+// EffectiveBindings produces by overlaying outer to inner.
 func (r *Runtime) EffectiveBindingsFor(focus, mode string) []Binding {
 	r.syncNouns()
 	byKey := map[string]Binding{}
@@ -17,6 +18,11 @@ func (r *Runtime) EffectiveBindingsFor(focus, mode string) []Binding {
 		}
 	}
 	for _, id := range r.Ancestry(focus) {
+		own := groupBindings(r.Instances[id].Bindings)
+		if mode != "" {
+			take(own[mode])
+		}
+		take(own[""])
 		noun := r.Nouns[r.Instances[id].Noun]
 		if noun == nil {
 			continue

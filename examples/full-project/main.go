@@ -29,7 +29,7 @@ func run(args []string) error {
 	socket := flags.String("socket", "", "Unix socket: serve this path with run, or send an operation to the running app")
 	smoke := flags.Bool("smoke", false, "Exercise the example's configured runtime headlessly and exit")
 	flags.Usage = func() {
-		fmt.Fprintln(flags.Output(), "Usage:\n  full-project [--config DIR] [--socket PATH] [run [--headless]]\n  full-project [--config DIR] [--socket PATH] NOUN VERB [--json '{...}'] [--target INPUT]\n  full-project [--config DIR] --smoke\n\nNo command opens the TUI. Operations without --socket use a fresh local runtime; with --socket they affect the live app.")
+		fmt.Fprintln(flags.Output(), "Usage:\n  full-project [--config DIR] [--socket PATH] [run [--headless]]\n  full-project [--config DIR] [--socket PATH] NOUN VERB [--json '{...}'] [--target INSTANCE]\n  full-project [--config DIR] --smoke\n\nNo command opens the TUI. Operations without --socket use a fresh local runtime; with --socket they affect the live app.")
 		flags.PrintDefaults()
 	}
 	if err := flags.Parse(args); err != nil {
@@ -48,7 +48,7 @@ func run(args []string) error {
 		}
 		callFlags := flag.NewFlagSet(rest[0]+" "+rest[1], flag.ContinueOnError)
 		raw := callFlags.String("json", "{}", "Operation arguments as JSON")
-		target := callFlags.String("target", "", "Input ID or focused-input")
+		target := callFlags.String("target", "", "Instance ID (input, list, row, page) or focused-input")
 		if err := callFlags.Parse(rest[2:]); err != nil {
 			return err
 		}
@@ -95,7 +95,7 @@ func run(args []string) error {
 		if err := smokeExample(m); err != nil {
 			return err
 		}
-		fmt.Println("full-project smoke: actions, layered bindings, review mode, page/modal restoration, picker filters, palette, appearance, editing, history, registers, macros and list focus/refresh: PASS")
+		fmt.Println("full-project smoke: actions, layered bindings, review mode, page/modal restoration, picker filters, palette, appearance, editing, history, registers, macros, list focus/refresh and row nouns: PASS")
 		return nil
 	}
 	runFlags := flag.NewFlagSet("run", flag.ContinueOnError)
@@ -389,9 +389,10 @@ func smokeExample(m *ochazuke.Model) error {
 		return fmt.Errorf("smoke rendered page does not show selected paths")
 	}
 	call("open", "page", "", ochazuke.Arguments{"id": "items"})
-	expect("initial list item", r.Context().Path, []string{"app", "items", "item-list", "repo-1"})
+	expect("initial list row", r.Context().Path, []string{"app", "items", "item-list", "repository"})
+	expect("row is an instance of its noun", r.Instances["repository"].Noun, "repo")
 	binding("j")
-	expect("list item replaces leaf", r.Context().Path, []string{"app", "items", "item-list", "worktree-1"})
+	expect("list row replaces leaf", r.Context().Path, []string{"app", "items", "item-list", "main"})
 	binding("r")
 	selected, _ := r.Lists["item-list"].Selected()
 	expect("refresh retains item ID", selected.ID, "main")
@@ -401,10 +402,49 @@ func smokeExample(m *ochazuke.Model) error {
 	call("move", "list", "", ochazuke.Arguments{"id": "item-list", "delta": 1})
 	expect("background move keeps editor", r.Context().InputID, "item-note")
 	binding("tab")
-	expect("list refocus current item", r.Context().Path, []string{"app", "items", "item-list", "worktree-2"})
+	expect("list refocus current row", r.Context().Path, []string{"app", "items", "item-list", "picker-lab"})
 	binding("x")
 	selected, _ = r.Lists["item-list"].Selected()
 	expect("removed row falls back", selected.ID, "release")
+	expect("removed row instance dropped", r.Instances["picker-lab"] == nil, true)
+	// Mixed nouns in one list: each row answers to its noun's verbs and keys.
+	binding("o")
+	expect("worktree verb by key", r.Pages["items"].Frame.State["lastAction"], "open release")
+	call("select", "list", "", ochazuke.Arguments{"item": "repository"})
+	binding("f")
+	expect("repo verb by key", r.Pages["items"].Frame.State["lastAction"], "fetch repository")
+	call("select", "list", "", ochazuke.Arguments{"item": "hotfix"})
+	binding("c")
+	expect("branch verb by key", r.Pages["items"].Frame.State["lastAction"], "checkout hotfix")
+	if _, err := r.Execute(ochazuke.Request{Verb: "open", Noun: "worktree"}); err == nil {
+		failure = fmt.Errorf("smoke noun guard: open.worktree accepted a branch row")
+	}
+	expect("row verb by explicit target", call("open", "worktree", "main", nil), map[string]any{"verb": "open", "noun": "worktree", "row": "main"})
+	keysFor := func(target string) []string {
+		var keys []string
+		rows, _ := call("list", "bindings", target, nil).([]ochazuke.Binding)
+		for _, b := range rows {
+			if b.Request.Noun == "repo" || b.Request.Noun == "worktree" || b.Request.Noun == "branch" {
+				keys = append(keys, b.Keys+"="+b.Request.Verb+"."+b.Request.Noun)
+			}
+		}
+		return keys
+	}
+	expect("bindings of a worktree row", keysFor("main"), []string{"d=remove.worktree", "enter=open.worktree", "o=open.worktree"})
+	expect("bindings of a branch row", keysFor("hotfix"), []string{"c=checkout.branch", "enter=checkout.branch"})
+	expect("bindings of the repo row", keysFor("repository"), []string{"f=fetch.repo"})
+	binding("?")
+	expect("help names the focused noun", strings.Contains(plain(m.View().Content), "noun: branch"), true)
+	expect("help lists the row's verbs", strings.Contains(plain(m.View().Content), "checkout.branch"), true)
+	press("esc")
+	call("select", "context", "", ochazuke.Arguments{"instance": "main"})
+	expect("select.context by instance", r.Context().Path, []string{"app", "items", "item-list", "main"})
+	binding("d")
+	expect("remove.worktree drops the row", r.Instances["main"] == nil, true)
+	binding(":")
+	call("select", "palette", "", ochazuke.Arguments{"value": "noun:worktree"})
+	call("select", "palette", "", ochazuke.Arguments{"value": "instance:docs"})
+	expect("noun-first row action", r.Pages["items"].Frame.State["lastAction"], "open docs")
 	if failure != nil {
 		return failure
 	}

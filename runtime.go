@@ -94,12 +94,13 @@ type Runtime struct {
 	Macro             MacroState
 	dispatchKey       func(MacroKey) error
 	instanceConflicts []string
+	rows              map[string]string // list row instance id -> owning list id
 }
 
 func NewRuntime() *Runtime {
 	r := &Runtime{
 		Layers: map[string]*Layer{"app": {ID: "app", Noun: "app", Actions: map[string]Handler{}}},
-		Nouns:  map[string]*Noun{}, Instances: map[string]*Instance{},
+		Nouns:  map[string]*Noun{}, Instances: map[string]*Instance{}, rows: map[string]string{},
 		Inputs: map[string]*Input{}, InputPaths: map[string][]string{},
 		Lists:  map[string]*List{},
 		Frames: []*Frame{{ID: "main", Context: Context{Path: []string{"app"}}, State: map[string]any{}}},
@@ -120,12 +121,21 @@ func NewRuntime() *Runtime {
 }
 
 func (r *Runtime) Context() Context { return r.Frames[len(r.Frames)-1].Context.Clone() }
+
+// Mode is the interaction mode of a context: the State of its focused
+// instance (the input when InputID is set, else the last path element),
+// inherited from the nearest ancestor with a non-empty State, else "normal".
 func (r *Runtime) Mode(c Context) string {
+	if len(c.Path) == 0 && c.InputID == "" {
+		return "normal"
+	}
+	for _, id := range r.Ancestry(focusOf(c)) {
+		if state := r.Instances[id].State; state != "" {
+			return state
+		}
+	}
 	if in := r.Inputs[c.InputID]; in != nil {
 		return in.Mode
-	}
-	if mode, ok := r.Frames[len(r.Frames)-1].State["mode"].(string); ok {
-		return mode
 	}
 	return "normal"
 }
@@ -169,6 +179,9 @@ func (r *Runtime) AddInput(in *Input, path []string) error {
 	if leaf := path[len(path)-1]; leaf != in.ID {
 		r.link(in.ID, leaf)
 	}
+	// The instance holds the mode; Input.Mode mirrors it for the editor code.
+	in.inst = r.instance(in.ID)
+	in.inst.State = in.Mode
 	return nil
 }
 func (r *Runtime) validateContext(c Context) error {
@@ -177,7 +190,7 @@ func (r *Runtime) validateContext(c Context) error {
 	}
 	seen := map[string]bool{}
 	for _, id := range c.Path {
-		if r.Layers[id] == nil || seen[id] {
+		if !r.isPathElement(id) || seen[id] {
 			return fmt.Errorf("invalid layer %q", id)
 		}
 		seen[id] = true
@@ -192,12 +205,17 @@ func (r *Runtime) validateContext(c Context) error {
 	}
 	return nil
 }
+
+// Focus selects the context that addresses one instance: an input, a list, a
+// row, a page or a modal body.
 func (r *Runtime) Focus(id string) error {
-	path, ok := r.InputPaths[id]
-	if !ok {
-		return fmt.Errorf("unknown input %q", id)
+	if path, ok := r.InputPaths[id]; ok {
+		return r.SelectContext(Context{Path: path, InputID: id})
 	}
-	return r.SelectContext(Context{Path: path, InputID: id})
+	if len(r.Ancestry(id)) == 0 {
+		return fmt.Errorf("unknown instance %q", id)
+	}
+	return r.SelectContext(r.contextOf(id))
 }
 
 // SelectContext changes focus through the same validation and binding boundary.
@@ -249,17 +267,20 @@ func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
 		return nil, err
 	}
 	if q.Target != "" && q.Target != "focused-input" {
-		path, ok := r.InputPaths[q.Target]
-		if !ok {
+		switch {
+		case r.InputPaths[q.Target] != nil:
+			c = Context{Path: append([]string(nil), r.InputPaths[q.Target]...), InputID: q.Target}
+		case len(r.Ancestry(q.Target)) > 0:
+			c = r.contextOf(q.Target)
+		default:
 			return nil, fmt.Errorf("unknown target %q", q.Target)
 		}
-		c = Context{Path: append([]string(nil), path...), InputID: q.Target}
 	}
 	if err := r.validateContext(c); err != nil {
 		return nil, err
 	}
 	for i := len(c.Path) - 1; i >= 0; i-- {
-		if fn := r.Layers[c.Path[i]].Actions[q.Key()]; fn != nil {
+		if fn := r.layerFor(c.Path[i]).Actions[q.Key()]; fn != nil {
 			return fn(r, c, q.Args)
 		}
 	}
@@ -321,21 +342,26 @@ func (r *Runtime) Catalog() []Operation {
 }
 
 // EffectiveBindings overlays complete key sequences, not individual keystrokes.
+// Each path element contributes its noun's rows (a row contributes its noun's),
+// then the instance's own rows above them.
 func (r *Runtime) EffectiveBindings(c Context) []Binding {
 	byKey := map[string]Binding{}
 	mode := r.Mode(c)
-	for _, id := range c.Path {
-		layer := r.Layers[id]
-		for _, b := range layer.Bindings {
+	overlay := func(rows []Binding) {
+		for _, b := range rows {
 			if b.Mode == "" {
 				byKey[b.Keys] = b
 			}
 		}
-		for _, b := range layer.Bindings {
+		for _, b := range rows {
 			if b.Mode == mode && b.Mode != "" {
 				byKey[b.Keys] = b
 			}
 		}
+	}
+	for _, id := range c.Path {
+		overlay(r.layerFor(id).Bindings)
+		overlay(r.instanceBindings(id))
 	}
 	out := make([]Binding, 0, len(byKey))
 	for _, b := range byKey {
@@ -427,10 +453,14 @@ func registerCore(r *Runtime) {
 	r.Register(Operation{Verb: "list", Noun: "operations", Description: "List registered verbs, nouns, and argument schemas", Result: "operation[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) { return r.Catalog(), nil }})
 	r.Register(Operation{Verb: "list", Noun: "bindings", Description: "List effective bindings for the current context", Result: "binding[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) { return r.EffectiveBindings(c), nil }})
 	r.Register(Operation{Verb: "focus", Noun: "input", Description: "Focus a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		err := r.Focus(StringArg(a, "id", ""))
+		id := StringArg(a, "id", "")
+		if r.Inputs[id] == nil {
+			return nil, fmt.Errorf("unknown input %q", id)
+		}
+		err := r.Focus(id)
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "set", Noun: "mode", Description: "Set the focused input or active frame's registered interaction mode", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "set", Noun: "mode", Description: "Set the focused instance's registered interaction mode: the input when one is focused, else the innermost path element", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		mode := StringArg(a, "mode", "")
 		if !r.Modes[mode] {
 			return nil, fmt.Errorf("unknown mode %q", mode)
@@ -439,7 +469,8 @@ func registerCore(r *Runtime) {
 			in.SetMode(mode)
 			mode = in.Mode
 		} else {
-			r.Frames[len(r.Frames)-1].State["mode"] = mode
+			r.syncNouns()
+			r.instance(c.Path[len(c.Path)-1]).State = mode
 		}
 		return mode, nil
 	}})

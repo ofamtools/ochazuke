@@ -30,39 +30,105 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 			return label, nil
 		}
 	}
+	// activeList is the list page that is open, or an error naming the need.
+	activeList := func(r *ochazuke.Runtime) (PageConfig, *ochazuke.List, error) {
+		for _, page := range cfg.Pages {
+			if page.ID == r.ActivePage && page.Renderer == "list" {
+				return page, r.Lists[page.Context.Path[len(page.Context.Path)-1]], nil
+			}
+		}
+		return PageConfig{}, nil, fmt.Errorf("open a list page first")
+	}
+	// removeRow drops one row from the page's sample data and the live list.
+	removeRow := func(r *ochazuke.Runtime, page PageConfig, list *ochazuke.List, id string) error {
+		rows := slices.Clone(itemsByPage[page.ID])
+		for i, row := range rows {
+			if row.ID == id {
+				rows = slices.Delete(rows, i, i+1)
+				break
+			}
+		}
+		if err := list.SetItems(rows); err != nil {
+			return err
+		}
+		itemsByPage[page.ID] = rows
+		return nil
+	}
+	// rowAction is a verb of one row noun. The row is named by args ("row"),
+	// else by the context (a request targeted at a row instance, or a key
+	// pressed on the focused row), else it is the selected row. A row of
+	// another noun is refused. The result is recorded in the page frame, as
+	// the other handlers do.
+	rowAction := func(verb, noun string, apply func(*ochazuke.Runtime, PageConfig, *ochazuke.List, ochazuke.ListItem) error) ochazuke.Handler {
+		return func(r *ochazuke.Runtime, c ochazuke.Context, args ochazuke.Arguments) (any, error) {
+			page, list, err := activeList(r)
+			if err != nil {
+				return nil, err
+			}
+			listID := page.Context.Path[len(page.Context.Path)-1]
+			id := ochazuke.StringArg(args, "row", "")
+			if leaf := c.Path[len(c.Path)-1]; id == "" && c.InputID == "" && r.Instances[leaf] != nil && r.Instances[leaf].Parent == listID {
+				id = leaf
+			}
+			row, ok := list.Selected()
+			if id != "" {
+				ok = false
+				for _, item := range list.Snapshot()["items"].([]ochazuke.ListItem) {
+					if item.ID == id {
+						row, ok = item, true
+					}
+				}
+			}
+			if !ok {
+				return nil, fmt.Errorf("%s.%s: no such row", verb, noun)
+			}
+			if row.Noun != noun {
+				return nil, fmt.Errorf("%s.%s: row %q is a %s", verb, noun, row.ID, row.Noun)
+			}
+			if apply != nil {
+				if err := apply(r, page, list, row); err != nil {
+					return nil, err
+				}
+			}
+			result := map[string]any{"verb": verb, "noun": noun, "row": row.ID}
+			r.Pages[page.ID].Frame.State["lastAction"] = verb + " " + row.ID
+			return result, nil
+		}
+	}
 	return map[string]ochazuke.Handler{
 		"save":        save("workspace saved"),
 		"save-editor": save("editor saved"),
 		"refresh-items": func(r *ochazuke.Runtime, _ ochazuke.Context, args ochazuke.Arguments) (any, error) {
-			for _, page := range cfg.Pages {
-				if page.ID != r.ActivePage || page.Renderer != "list" {
-					continue
-				}
-				list := r.Lists[page.Context.Path[len(page.Context.Path)-1]]
-				rows := slices.Clone(itemsByPage[page.ID])
-				if remove, _ := args["remove"].(bool); remove {
-					selected, ok := list.Selected()
-					if ok {
-						for i, row := range rows {
-							if row.ID == selected.ID {
-								rows = slices.Delete(rows, i, i+1)
-								break
-							}
-						}
+			page, list, err := activeList(r)
+			if err != nil {
+				return nil, fmt.Errorf("open a list page before refreshing items")
+			}
+			if remove, _ := args["remove"].(bool); remove {
+				if selected, ok := list.Selected(); ok {
+					if err := removeRow(r, page, list, selected.ID); err != nil {
+						return nil, err
 					}
-				} else if len(rows) > 1 {
-					first := rows[0]
-					copy(rows, rows[1:])
-					rows[len(rows)-1] = first
 				}
-				if err := list.SetItems(rows); err != nil {
-					return nil, err
-				}
-				itemsByPage[page.ID] = rows
 				return list.Snapshot(), nil
 			}
-			return nil, fmt.Errorf("open a list page before refreshing items")
+			rows := slices.Clone(itemsByPage[page.ID])
+			if len(rows) > 1 {
+				first := rows[0]
+				copy(rows, rows[1:])
+				rows[len(rows)-1] = first
+			}
+			if err := list.SetItems(rows); err != nil {
+				return nil, err
+			}
+			itemsByPage[page.ID] = rows
+			return list.Snapshot(), nil
 		},
+		"fetch-row":    rowAction("fetch", "repo", nil),
+		"open-row":     rowAction("open", "worktree", nil),
+		"checkout-row": rowAction("checkout", "branch", nil),
+		"remove-row": rowAction("remove", "worktree", func(r *ochazuke.Runtime, page PageConfig, list *ochazuke.List, row ochazuke.ListItem) error {
+			return removeRow(r, page, list, row.ID)
+		}),
 		"cycle-input": func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
 			if len(r.Frames) != 1 {
 				return nil, fmt.Errorf("close modals before changing page fields")
@@ -112,7 +178,7 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 			r.Frames[len(r.Frames)-1].State["greeting"] = result
 			return result, nil
 		},
-		"open-modal": func(r *ochazuke.Runtime, _ ochazuke.Context, a ochazuke.Arguments) (any, error) {
+		"open-modal": func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
 			id := ochazuke.StringArg(a, "id", "")
 			for _, spec := range cfg.Modals {
 				if spec.ID != id {
@@ -120,9 +186,10 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 				}
 				context := ochazuke.Context{Path: []string{"app"}}
 				if spec.Input != "" {
-					context = ochazuke.Context{Path: r.InputPaths[spec.Input], InputID: spec.Input}
+					context = ochazuke.Context{Path: r.InstancePath(spec.Input)[:len(r.InstancePath(spec.Input))-1], InputID: spec.Input}
 				}
-				err := r.Push(&ochazuke.Frame{ID: "modal:" + id, Context: context, State: map[string]any{}})
+				// The opening context lets a renderer describe what was focused.
+				err := r.Push(&ochazuke.Frame{ID: "modal:" + id, Context: context, State: map[string]any{"origin": c.Clone()}})
 				return r.Context(), err
 			}
 			return nil, fmt.Errorf("unknown configured modal %q", id)

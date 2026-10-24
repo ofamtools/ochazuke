@@ -39,7 +39,7 @@ The smoke scenario uses the supplied example's IDs. It is not a general validato
 | `pages.go` | Named page and modal renderers |
 | `list.go` | Compose the shared selectable list and a companion editor using existing panels |
 | `config/app.json` | Application title, initial page, custom modes, palette instance sources/default actions, theme, and density |
-| `config/layers.json` | Interaction layers used for action and binding resolution |
+| `config/layers.json` | Interaction layers and row nouns (with their `verbs`) used for action and binding resolution |
 | `config/inputs.json` | Initial values, context paths, multiline/Readline-only flags, and path filters |
 | `config/pages.json` | Page order, titles, initial contexts, renderer names, field lists, and sample list records |
 | `config/actions.json` | Verb/noun schemas, handler names, and layer overrides |
@@ -81,7 +81,7 @@ The registry identifier is `greet.workspace` (`verb.noun`). The CLI spelling is 
 
 - **Workspace** (`overview`) contains the title and notes editors. Edit with `i`, return to normal mode with Escape, and use `u` to undo. Switch pages and return to observe retained input state.
 - **Paths** contains a file input, a directory input, and a multiline paths input. In normal mode, `Ctrl-F` or Enter opens the picker with the focused input's configured filter. Tab cycles fields. File and directory selection are both supported.
-- **Items** contains a reusable flat list and a Readline-only note. From startup, press `Ctrl-J` twice to open it. Tab switches list/editor focus. In the list, `j/k` or arrows select, Enter inspects the active item context, `r` reorders records while preserving the selected ID, and `x` removes the selected sample row. In the editor those letters type text instead. Tab back to the list before using normal-mode page shortcuts.
+- **Items** contains a reusable flat list and a Readline-only note. From startup, press `Ctrl-J` twice to open it. Tab switches list/editor focus. In the list, `j/k` or arrows select, `r` reorders records while preserving the selected ID, and `x` removes the selected sample row. Rows name nouns: on the repository row `f` fetches; on a worktree row `o` or Enter opens and `d` removes; on a branch row `c` or Enter checks out; Enter on the repository row inspects the context. `?` opens a modal listing the focused row's noun and effective keys. In the editor those letters type text instead. Tab back to the list before using normal-mode page shortcuts.
 - **Guide** (`help`) is a retained text page. Help can also open as a modal.
 - `Ctrl-S` invokes the configured save action in any mode. The editor layer overrides the application handler. This example records state in memory; it does not save a project to disk.
 - `Ctrl-H` opens help. `Ctrl-O` opens the editable confirmation modal. From its editor context, `Ctrl-N` opens the details modal. Closing a modal restores its parent context.
@@ -96,9 +96,9 @@ The framework also supplies visual selection, registers, macro recording and rep
 
 The Items records are configuration examples, not live repository/worktree discovery. `actions.go` owns their mutable source data; refresh/removal calls the shared list's `SetItems`. Removing these rows changes only example memory, not files or Git worktrees.
 
-A `list` page declares its list-layer path, one companion input, and `items` with unique `id`, display `label`, and an existing `layer`. Construction validates the records. `inputs.json` supports `readlineOnly: true`, which is applied before input registration.
+A `list` page declares its list-layer path, one companion input, and `items` with unique `id`, display `label`, and a registered `noun`. The nouns (`repo`, `worktree`, `branch`) are declared in `layers.json` with their `verbs`; `actions.json` registers the verbs (`fetch.repo`, `open.worktree`, `remove.worktree`, `checkout.branch`, each taking an optional `row`) and `bindings.json` binds keys per noun. Every row is an instance of its noun with the list as its parent; no per-row layer exists. Construction validates the records. `inputs.json` supports `readlineOnly: true`, which is applied before input registration.
 
-Selecting a row changes only the item leaf, for example `app/items/item-list/repo-1` → `app/items/item-list/worktree-1`. Tab to the note selects `app/items/item-editor` with `inputId: item-note`. Selection changes and refreshes cannot take focus back from that editor. Page and modal restoration retain the updated selection.
+Selecting a row changes only the leaf, which is the row ID, for example `app/items/item-list/repository` → `app/items/item-list/main`. A row verb acts on the row in its context: a key on the focused row, a request with `--target main`, or `{"row": "main"}`. Tab to the note selects `app/items/item-editor` with `inputId: item-note`. Selection changes and refreshes cannot take focus back from that editor. Page and modal restoration retain the updated selection.
 
 Wide windows show list and note beside one another; medium windows stack them; small windows show the pane belonging to the retained page context. Selection remains visible when resizing. All controls use configured bindings or the list's ordinary defaults, with no function keys.
 
@@ -130,12 +130,13 @@ Type `:` in normal mode, choose `noun:page`, then search for a page title or ID.
 {
   "palette": [
     {"noun": "page", "source": "pages", "defaultVerb": "open", "argument": "id"},
-    {"noun": "input", "source": "inputs", "defaultVerb": "focus", "argument": "id"}
+    {"noun": "input", "source": "inputs", "defaultVerb": "focus", "argument": "id"},
+    {"noun": "worktree", "source": "rows", "defaultVerb": "open", "argument": "row"}
   ]
 }
 ```
 
-The Go source registry in `app.go` supplies the items. `pages` reads the runtime's live page list; it does not freeze the list when the palette is constructed. `inputs` lists fields on the originating page, excluding palette and picker internals. Focusing an input does not navigate to another page.
+The Go source registry in `app.go` supplies the items. `pages` reads the runtime's live page list; it does not freeze the list when the palette is constructed. `inputs` lists fields on the originating page, excluding palette and picker internals. Focusing an input does not navigate to another page. `rows` lists the list rows whose noun is the configured noun, so `noun:worktree` then `instance:docs` runs `open.worktree {row: "docs"}`.
 
 A different default requires a registered operation with the configured string argument and no other required arguments. One instance selection supplies exactly that argument. Operations needing more information remain available through the verb list and argument form.
 
@@ -153,7 +154,7 @@ go run ./examples/full-project --socket /tmp/ochazuke-full-project/app.sock pale
 
 `app.json` declares `review`. Startup registers it through `register.mode`. In normal mode, `Ctrl-R` switches the current context to `review` through `set.mode`. In review mode, `s` invokes inspection and Escape sets the mode to `normal`.
 
-Each input holds its own mode. When no input is focused, the active frame holds the mode. There is no mode stack. Setting a mode selects it directly, and modal restoration restores the parent context rather than pushing or popping modes. Custom-mode behavior comes from its bindings; it does not inherit normal-mode editor keys. Any-mode bindings still apply.
+Each instance holds its own mode: an input's instance when an input is focused, otherwise the innermost element of the context (a page, a list row, a modal body), inherited from its ancestors when unset. There is no mode stack. Setting a mode selects it directly, and modal restoration restores the parent context rather than pushing or popping modes. Custom-mode behavior comes from its bindings; it does not inherit normal-mode editor keys. Any-mode bindings still apply.
 Readline-only fields, including the Items note, remain in insert mode even if `set.mode` requests a custom mode. Tab back to the list to use normal-mode page controls.
 
 The framework API is unchanged:

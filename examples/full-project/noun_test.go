@@ -55,7 +55,11 @@ func TestSmokeKeepsNounModelConsistent(t *testing.T) {
 			for key := range r.Operations {
 				var want ochazuke.Handler
 				for i := len(c.Path) - 1; i >= 0 && want == nil; i-- {
-					want = r.Layers[c.Path[i]].Actions[key]
+					layer := r.Layers[c.Path[i]]
+					if layer == nil {
+						layer = r.Layers[r.Instances[c.Path[i]].Noun]
+					}
+					want = layer.Actions[key]
 				}
 				if pointer(r.ActionFor(focus, key)) != pointer(want) {
 					return fmt.Errorf("%s: action %s for %+v resolves differently", label, key, c)

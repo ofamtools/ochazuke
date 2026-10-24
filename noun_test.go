@@ -9,20 +9,15 @@ import (
 	"ochazuke/internal/keytest"
 )
 
-// focusOf is the leaf FocusID reports for a context: its input, else its last
-// path element.
-func focusOf(c Context) string {
-	if c.InputID != "" {
-		return c.InputID
-	}
-	return c.Path[len(c.Path)-1]
-}
-
-// layerActionFor is the ExecuteAt loop: innermost layer on the path that
-// overrides the operation.
+// layerActionFor is the ExecuteAt loop: innermost path element whose layer
+// (for a list row, the layer of its noun) overrides the operation.
 func layerActionFor(r *Runtime, c Context, key string) Handler {
 	for i := len(c.Path) - 1; i >= 0; i-- {
-		if fn := r.Layers[c.Path[i]].Actions[key]; fn != nil {
+		layer := r.Layers[c.Path[i]]
+		if layer == nil {
+			layer = r.Layers[r.Instances[c.Path[i]].Noun]
+		}
+		if fn := layer.Actions[key]; fn != nil {
 			return fn
 		}
 	}
@@ -244,4 +239,151 @@ func TestNounModelMatchesLayerModelInDemo(t *testing.T) {
 	execute("open", "page", Arguments{"id": "playground"})
 	execute("push", "modal", Arguments{"id": "draft", "input": "dialog"})
 	execute("pop", "modal", nil)
+}
+
+// Phase 4: rows are instances of their nouns, any instance is a target, and
+// the mode lives on instances.
+func TestListRowsAreInstancesOfTheirNouns(t *testing.T) {
+	r, list, input, items := listFixture(t)
+	r.Register(Operation{Verb: "inspect", Noun: "item", Run: func(*Runtime, Context, Arguments) (any, error) { return "application", nil }})
+	r.Layers["a"].Actions["inspect.item"] = func(*Runtime, Context, Arguments) (any, error) { return "noun a", nil }
+	r.Layers["a"].Bindings = []Binding{{Mode: "normal", Keys: "x", Request: Request{Verb: "quit", Noun: "app", Args: Arguments{"from": "noun"}}}}
+	for _, item := range items {
+		inst := r.Instances[item.ID]
+		if inst == nil || inst.Noun != item.Noun || inst.Parent != "sidebar" || r.Layers[item.ID] != nil {
+			t.Fatalf("row %s is not an instance of its noun without a layer: %+v", item.ID, inst)
+		}
+	}
+	if err := list.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	assertNounModelAgrees(t, r, "focused row")
+	if got := r.ContextFromFocus().Path; !reflect.DeepEqual(got, []string{"app", "page", "sidebar", "one"}) {
+		t.Fatalf("row path %v", got)
+	}
+	if value, _ := r.Execute(Request{Verb: "inspect", Noun: "item"}); value != "noun a" {
+		t.Fatalf("row action must come from its noun: %v", value)
+	}
+	if b := r.EffectiveBindings(r.Context()); len(b) == 0 || b[len(b)-1].Keys != "x" || StringArg(b[len(b)-1].Request.Args, "from", "") != "noun" {
+		t.Fatalf("row bindings must come from its noun: %+v", b)
+	}
+	// A per-instance override sits above the noun's rows in both walks.
+	r.Instances["one"].Bindings = []Binding{{Keys: "x", Request: Request{Verb: "quit", Noun: "app", Args: Arguments{"from": "instance-any"}}}, {Mode: "normal", Keys: "x", Request: Request{Verb: "quit", Noun: "app", Args: Arguments{"from": "instance-normal"}}}}
+	assertNounModelAgrees(t, r, "instance override")
+	for _, b := range r.EffectiveBindingsFor("one", "normal") {
+		if b.Keys == "x" && StringArg(b.Request.Args, "from", "") != "instance-normal" {
+			t.Fatalf("instance rows must beat the noun's: %+v", b)
+		}
+	}
+	if err := list.SetItems(items[:2]); err != nil {
+		t.Fatal(err)
+	}
+	if r.Instances["three"] != nil || r.Instances["one"].Bindings == nil {
+		t.Fatal("SetItems removes dropped rows and keeps retained instances")
+	}
+	// Any instance is a target: row, list, page and input share one addressing.
+	for target, want := range map[string]Context{
+		"two":     {Path: []string{"app", "page", "sidebar", "two"}},
+		"sidebar": {Path: []string{"app", "page", "sidebar"}},
+		"page":    {Path: []string{"app", "page"}},
+		"note":    {Path: []string{"app", "page", "editor"}, InputID: "note"},
+	} {
+		var got Context
+		r.Register(Operation{Verb: "where-" + target, Noun: "test", Run: func(_ *Runtime, c Context, _ Arguments) (any, error) { got = c; return nil, nil }})
+		if _, err := r.Execute(Request{Verb: "where-" + target, Noun: "test", Target: target}); err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("target %s: %+v; want %+v", target, got, want)
+		}
+	}
+	if _, err := r.Execute(Request{Verb: "quit", Noun: "app", Target: "nowhere"}); err == nil {
+		t.Fatal("unknown target accepted")
+	}
+	if _, err := r.Execute(Request{Verb: "select", Noun: "context", Args: Arguments{"instance": "two"}}); err != nil || r.Context().Path[3] != "two" {
+		t.Fatalf("select.context instance: %v %+v", err, r.Context())
+	}
+	if err := r.Focus(input.ID); err != nil || r.Context().InputID != "note" {
+		t.Fatalf("Focus input: %v", err)
+	}
+	if err := r.Focus("sidebar"); err != nil || r.Context().InputID != "" || r.Context().Path[2] != "sidebar" {
+		t.Fatalf("Focus list: %v %+v", err, r.Context())
+	}
+	snapshot := r.Snapshot()
+	if noun, _ := JSONPointer(snapshot, "/lists/sidebar/items/1/noun"); noun != "b" {
+		t.Fatalf("list rows show their noun: %v", noun)
+	}
+	if noun, _ := JSONPointer(snapshot, "/instances/two/noun"); noun != "b" {
+		t.Fatalf("/instances/<id>/noun: %v", noun)
+	}
+	if state, err := JSONPointer(snapshot, "/instances/two/state"); err != nil || state != "" {
+		t.Fatalf("/instances/<id>/state: %v %v", state, err)
+	}
+}
+
+func TestModeLivesOnInstances(t *testing.T) {
+	r, list, input, _ := listFixture(t)
+	r.Modes["review"] = true
+	if err := list.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Execute(Request{Verb: "set", Noun: "mode", Args: Arguments{"mode": "review"}}); err != nil {
+		t.Fatal(err)
+	}
+	row := r.Context()
+	if r.Instances["one"].State != "review" || r.Frames[0].State["mode"] != nil || r.Mode(row) != "review" {
+		t.Fatalf("set.mode must write the leaf instance: %+v", r.Instances["one"])
+	}
+	list.Move(1)
+	if r.Mode(r.Context()) != "normal" {
+		t.Fatal("another row does not inherit a sibling's state")
+	}
+	// A state higher on the stack is inherited by instances without one.
+	r.Instances["page"].State = "review"
+	if r.Mode(r.Context()) != "review" || r.Mode(Context{Path: []string{"app", "page"}}) != "review" || r.Mode(Context{Path: []string{"app"}}) != "normal" {
+		t.Fatal("mode inherits from the nearest ancestor with a state")
+	}
+	// Mode reads the context it is given, not the top frame.
+	if err := r.Push(&Frame{ID: "dialog", Context: Context{Path: []string{"app", "dialog"}}}); err != nil {
+		t.Fatal(err)
+	}
+	if r.Mode(r.Context()) != "normal" || r.Mode(row) != "review" {
+		t.Fatalf("Mode(c) must follow c: top %q, row %q", r.Mode(r.Context()), r.Mode(row))
+	}
+	if err := r.Pop(); err != nil {
+		t.Fatal(err)
+	}
+	// An input's instance is the source of its mode and Input.Mode mirrors it.
+	if err := r.Focus(input.ID); err != nil {
+		t.Fatal(err)
+	}
+	if r.Instances["note"].State != "insert" || r.Mode(r.Context()) != "insert" {
+		t.Fatalf("readline input instance: %+v", r.Instances["note"])
+	}
+	other := NewInput("other", "ab", false)
+	if err := r.AddInput(other, []string{"app", "page", "editor"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Focus("other"); err != nil {
+		t.Fatal(err)
+	}
+	for _, keys := range [][]string{{"i"}, {"esc"}, {"v"}, {"esc", "i", "x", "esc", "u"}} {
+		editorTestKeys(t, r, keys...)
+		if r.Instances["other"].State != other.Mode || r.Mode(r.Context()) != other.Mode {
+			t.Fatalf("after %v: instance %q, mirror %q", keys, r.Instances["other"].State, other.Mode)
+		}
+	}
+}
+
+func TestInputModeMirrorsInstanceInDemo(t *testing.T) {
+	m := NewDemo()
+	r := m.Runtime
+	for _, key := range []string{"ctrl+j", "i", "h", "esc", "v", "l", "esc", "ctrl+n", "i", "x", "esc", "ctrl+g"} {
+		keytest.Press(m, key)
+		for id, in := range r.Inputs {
+			if inst := r.Instances[id]; inst == nil || inst.State != in.Mode {
+				t.Fatalf("after %s: input %s mode %q, instance %+v", key, id, in.Mode, inst)
+			}
+		}
+	}
 }

@@ -10,15 +10,17 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// ListItem is application-owned identity, display text, and a registered item layer.
+// ListItem is application-owned identity, display text, and the registered
+// noun the row answers to. Each row is an Instance whose ID is the item ID and
+// whose Parent is the list; its bindings and actions come from its noun.
 type ListItem struct {
 	ID    string `json:"id"`
 	Label string `json:"label"`
-	Layer string `json:"layer"`
+	Noun  string `json:"noun"`
 }
 
 // List owns flat selection and scrolling on the runtime's event loop.
-// Its path ends at the list layer; only the selected item's layer is appended.
+// Its path ends at the list layer; only the selected row's ID is appended.
 type List struct {
 	r        *Runtime
 	path     []string
@@ -61,19 +63,34 @@ func NewList(r *Runtime, path []string, items []ListItem) (*List, error) {
 
 // SetItems copies rows, preserves selection by ID, and falls back to the nearest
 // remaining index if that ID disappears. Invalid updates leave the list unchanged.
+// It creates one instance per new row under the list and removes the instances
+// of rows that disappear; a retained row keeps its instance and any bindings
+// the application put on it.
 func (l *List) SetItems(items []ListItem) error {
+	id := l.path[len(l.path)-1]
 	ids := make(map[string]bool, len(items))
 	for _, item := range items {
 		if item.ID == "" || ids[item.ID] {
 			return fmt.Errorf("list item ID %q must be nonempty and unique", item.ID)
 		}
-		if l.r.Layers[item.Layer] == nil || slices.Contains(l.path, item.Layer) {
-			return fmt.Errorf("invalid list item layer %q", item.Layer)
+		if l.r.Noun(item.Noun) == nil {
+			return fmt.Errorf("list item %q: unknown noun %q", item.ID, item.Noun)
+		}
+		if owner := l.r.rows[item.ID]; l.r.Layers[item.ID] != nil || l.r.Inputs[item.ID] != nil || owner != "" && owner != id {
+			return fmt.Errorf("list item ID %q is already another instance", item.ID)
 		}
 		ids[item.ID] = true
 	}
+	for _, old := range l.items {
+		if !ids[old.ID] {
+			delete(l.r.rows, old.ID)
+			delete(l.r.Instances, old.ID)
+		}
+	}
 	for _, item := range items {
-		l.r.link(item.Layer, l.path[len(l.path)-1])
+		l.r.rows[item.ID] = id
+		inst := l.r.instance(item.ID)
+		inst.Noun, inst.Parent = item.Noun, id
 	}
 	previous, _ := l.Selected()
 	selected := min(max(l.selected, 0), len(items)-1)
@@ -121,7 +138,7 @@ func (l *List) Select(id string) error {
 	return fmt.Errorf("unknown list item %q", id)
 }
 
-// Focus replaces the active context with the list path and selected item layer.
+// Focus replaces the active context with the list path and selected row.
 func (l *List) Focus() error { return l.r.SelectContext(l.context()) }
 
 // Focused derives focus from the active frame instead of retaining a stale flag.
@@ -141,21 +158,21 @@ func (l *List) context() Context {
 	path := make([]string, size)
 	copy(path, l.path)
 	if l.selected >= 0 {
-		path[len(l.path)] = l.items[l.selected].Layer
+		path[len(l.path)] = l.items[l.selected].ID
 	}
 	return Context{Path: path}
 }
 
 func (l *List) syncContexts(previous ListItem) {
 	current, _ := l.Selected()
-	if l.Focused() && (previous.ID != current.ID || previous.Layer != current.Layer) {
+	if l.Focused() && (previous.ID != current.ID || previous.Noun != current.Noun) {
 		l.r.CancelPendingBinding()
 	}
 	update := func(frame *Frame) {
 		if !l.contains(frame.Context) {
 			return
 		}
-		if l.selected < 0 && len(frame.Context.Path) == len(l.path) || l.selected >= 0 && len(frame.Context.Path) == len(l.path)+1 && frame.Context.Path[len(l.path)] == l.items[l.selected].Layer {
+		if l.selected < 0 && len(frame.Context.Path) == len(l.path) || l.selected >= 0 && len(frame.Context.Path) == len(l.path)+1 && frame.Context.Path[len(l.path)] == l.items[l.selected].ID {
 			return
 		}
 		frame.Context = l.context()
@@ -233,7 +250,7 @@ func registerLists(r *Runtime) {
 		parameters        map[string]Parameter
 		run               func(*List, Arguments) error
 	}{
-		{"focus", "Focus a list and its selected item layer", map[string]Parameter{"id": {Type: "string", Required: true}}, func(l *List, _ Arguments) error { return l.Focus() }},
+		{"focus", "Focus a list and its selected row", map[string]Parameter{"id": {Type: "string", Required: true}}, func(l *List, _ Arguments) error { return l.Focus() }},
 		{"move", "Move selection without stealing focus", map[string]Parameter{"id": {Type: "string"}, "delta": {Type: "integer", Required: true}}, func(l *List, a Arguments) error { l.Move(IntArg(a, "delta", 0)); return nil }},
 		{"select", "Select a list item by stable ID without stealing focus", map[string]Parameter{"id": {Type: "string"}, "item": {Type: "string", Required: true}}, func(l *List, a Arguments) error { return l.Select(StringArg(a, "item", "")) }},
 	} {

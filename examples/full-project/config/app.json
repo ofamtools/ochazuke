@@ -5,6 +5,7 @@
   "appearance": {"theme": "adaptive", "density": "comfortable"},
   "palette": [
     {"noun": "page", "source": "pages", "defaultVerb": "open", "argument": "id"},
-    {"noun": "input", "source": "inputs", "defaultVerb": "focus", "argument": "id"}
+    {"noun": "input", "source": "inputs", "defaultVerb": "focus", "argument": "id"},
+    {"noun": "worktree", "source": "rows", "defaultVerb": "open", "argument": "row"}
   ]
 }

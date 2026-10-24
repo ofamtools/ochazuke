@@ -26,7 +26,7 @@ Do not hand-edit either generated file. If a map entry is wrong, fix the code or
 | Bubble Tea adapter, page shell, modal renderers | `model.go` |
 | Pages, retained frames, navigation | `pages.go` |
 | Input state, modes, undo | `input.go`, `editing.go`, `editor*.go` |
-| Selectable lists | `list.go` |
+| Selectable lists (rows as instances of nouns) | `list.go` |
 | Yanks, registers, macros, history | `registers.go`, `macros.go`, `yank_history.go` |
 | Command palette (verb/noun, instances) | `palette.go`, `palette_editing.go`, `palette_nouns.go` |
 | Path picker and fuzzy index | `picker.go`, `picker_search.go`, `picker_preview.go`, `picker_view.go` |
@@ -43,7 +43,8 @@ Do not hand-edit either generated file. If a map entry is wrong, fix the code or
 - Modals keep their own frame and existing input instances. Closing one restores interaction state, not a copy of shared data.
 - Offsets count runes, not grapheme clusters. Rendering accounts for cell width.
 - Custom modes are registered names. Unknown modes are not treated as normal or insert.
-- Mode resolution: the focused input's mode wins; otherwise the top frame's `State["mode"]`; otherwise `normal`. See README "Input modes" for the editing-model and field-kind matrix.
+- Mode resolution: the mode is the `State` of the context's focused instance (the input when `InputID` is set, else the last path element), inherited from the nearest ancestor with a non-empty `State`, else `normal`. `Frame.State["mode"]` is gone; `Input.Mode` only mirrors the input's instance. See README "Input modes" for the editing-model and field-kind matrix.
+- List rows are instances of their nouns (`ListItem.Noun`), created and removed by `SetItems`. Never register a layer per row; give the row's noun the verbs and bindings, or put an override on the row instance.
 - Readline keys are always active in insert mode. They are framework defaults, not removable; an application overrides a key by binding it in a layer with `mode: insert`.
 - Never bind function keys (F1 to F12) anywhere, including demos, sandboxes, and tests. Use ordinary keys or Ctrl/Alt combinations and keep help text in sync with the real binding.
 - This is Bubble Tea **v2**. The v1 idioms are gone: no `tea.KeyMsg` struct (`tea.KeyPressMsg` and `tea.PasteMsg`; a paste reaches `dispatchKey` as `[text]`), no `View() string` (`View() tea.View` with `AltScreen` set there, not via program options), no `lipgloss.AdaptiveColor` or renderers (`Appearance.Dark` from `tea.BackgroundColorMsg` feeds `lipgloss.LightDark`), no `github.com/charmbracelet/{bubbletea,lipgloss,bubbles}` imports. Ctrl-Space is `ctrl+space`, not `ctrl+@`. Lip Gloss v2 always emits styles; tests inspecting rendered text use the `mono` theme or `ansi.Strip`.

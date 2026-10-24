@@ -335,26 +335,27 @@ model.ModalViews["picker"] = ochazuke.ModalView{
 
 ### Selectable lists
 
-`List` reuses the existing layer resolver, bindings, and bounded row-rendering helpers. The application owns records and registers the list and item layers before construction:
+`List` reuses the existing resolver, bindings, and bounded row-rendering helpers. The application owns records; each row names a registered noun, and the list turns every row into an instance of that noun. There are no per-row layers to register:
 
 ```go
+// repo and worktree are nouns: r.RegisterNoun(&ochazuke.Noun{Name: "worktree", Verbs: []string{"open"}, ...})
 items, err := ochazuke.NewList(r, []string{"app", "workspace", "sidebar"}, []ochazuke.ListItem{
-    {ID: "repository", Label: "Repository: ochazuke", Layer: "repo-1"},
-    {ID: "main", Label: "Worktree: main", Layer: "worktree-1"},
+    {ID: "repository", Label: "Repository: ochazuke", Noun: "repo"},
+    {ID: "main", Label: "Worktree: main", Noun: "worktree"},
 })
 if err != nil { return err }
 if err := items.Focus(); err != nil { return err }
 ```
 
-The final base-path layer (`sidebar` here) identifies the list in `Runtime.Lists`. Render `items.View(width, height)` inside an existing page or panel. It keeps the selected row visible as selection or viewport size changes. Default normal-mode `j/k` and up/down bindings are ordinary layer bindings; preconfigured list-layer bindings and inner item layers can override them.
+The final base-path layer (`sidebar` here) identifies the list in `Runtime.Lists`. Render `items.View(width, height)` inside an existing page or panel. It keeps the selected row visible as selection or viewport size changes. Default normal-mode `j/k` and up/down bindings are ordinary bindings of the list; a row's noun can override them, and a row instance may carry its own `Bindings` above its noun's.
 
-- `Focus()` selects the base path plus exactly one item layer and clears `InputID`. `Runtime.Focus(inputID)` or `Runtime.SelectContext` switches to another branch; the old selection remains, but its bindings are no longer active.
+- `Focus()` selects the base path plus exactly one row (its ID is the leaf of the path) and clears `InputID`. `Runtime.Focus(id)` or `Runtime.SelectContext` switches to another branch; the old selection remains, but its bindings are no longer active.
 - `Move(delta)` and `Select(itemID)` change selection without stealing focus. `Selected()` returns the selected value and whether one exists.
-- `SetItems(rows)` copies the records and preserves selection by stable ID. A removed selection falls back to its previous index, clamped to the remaining rows. An empty list keeps only the base context. Invalid IDs/layers reject the whole update.
-- Refreshes also update matching retained page and modal-parent contexts, so returning from another page/modal cannot restore a removed item's bindings. Register replacement item layers before refreshing; remove obsolete layers afterward.
+- `SetItems(rows)` copies the records and preserves selection by stable ID. It creates the instance of each new row under the list (`Instance{ID: item.ID, Noun: item.Noun, Parent: <list>}`) and removes the instances of rows that disappear; a retained row keeps its instance. A removed selection falls back to its previous index, clamped to the remaining rows. An empty list keeps only the base context. An empty or duplicate ID, an unregistered noun, or an ID that is already a layer, input or another list's row rejects the whole update.
+- Refreshes also update matching retained page and modal-parent contexts, so returning from another page/modal cannot restore a removed row's bindings.
 - Call these methods on the runtime's event loop. Data loading and domain actions remain application-owned. There is no tree expansion or built-in search provider.
 
-The operation equivalents are `focus.list {id}`, `move.list {id?, delta}`, and `select.list {id?, item}`. Omit `id` to operate on the list in the dispatch context. State is inspectable under `/lists/<id>`. The full-project example's **Items** page demonstrates list/editor focus, refresh, and removal with sample records.
+The operation equivalents are `focus.list {id}`, `move.list {id?, delta}`, and `select.list {id?, item}`. Omit `id` to operate on the list in the dispatch context. State is inspectable under `/lists/<id>` (rows show their `noun`) and `/instances/<rowId>`. The full-project example's **Items** page mixes `repo`, `worktree` and `branch` rows in one list: each row answers to its noun's verbs and keys, and `?` lists the focused row's bindings.
 
 ### Input modes
 
@@ -375,7 +376,7 @@ Shared by every input regardless of these settings:
 - `Ctrl-W` kills one path component, treating `/` and whitespace as boundaries, in every input, not only `path` kinds.
 - One undo tree, named registers, shared yanks, and macros.
 
-Mode resolution for key dispatch: the focused input's mode wins. Without a focused input, the active frame's `State["mode"]` applies. Otherwise the mode is `normal`. The `search` mode string belongs to the palette and picker, not to text inputs.
+Mode resolution for key dispatch: the mode is the `State` of the context's focused instance (the input when `InputID` is set, otherwise the last path element), inherited from the nearest ancestor with a non-empty `State`; the root falls back to `normal`. `set.mode` writes the focused input's instance, or the innermost path element's instance when no input is focused. `Input.Mode` mirrors the input's instance for the editor code; the instance is the source of truth. The `search` mode string belongs to the palette and picker, not to text inputs.
 
 ### API and ownership
 
@@ -396,13 +397,13 @@ result, err := r.Execute(ochazuke.Request{
 })
 ```
 
-`Runtime` is single-owner state. In a running application, call it from Bubble Tea's update loop; external goroutines/processes use `Call`/`CallMsg`, not concurrent `Execute` calls. `ExecuteAt` accepts a captured context for explicit originating-target dispatch. `Input.SetMode` is the mode transition hook; do not assign `Input.Mode` directly.
+`Runtime` is single-owner state. In a running application, call it from Bubble Tea's update loop; external goroutines/processes use `Call`/`CallMsg`, not concurrent `Execute` calls. `Request.Target` names any instance: an input, a list, a list row, a page or a modal body; the request then runs in the context that addresses that instance (its ancestry, plus `InputID` for an input). `focused-input` means the current context. `ExecuteAt` accepts a captured context for explicit originating-target dispatch. `Input.SetMode` is the mode transition hook; do not assign `Input.Mode` directly.
 
 | File | Responsibility |
 |---|---|
 | `runtime.go`, `configuration.go` | Registry, layer resolution, contexts, modal stack, mode/binding configuration, JSON inspection |
 | `input.go`, `editing.go`, `editor*.go` | Input-owned undo, Vim/Readline keys, operators, visual geometry |
-| `list.go` | Flat selectable rows, stable-ID refresh, viewport scrolling, item-layer focus |
+| `list.go` | Flat selectable rows as instances of their nouns, stable-ID refresh, viewport scrolling, row focus |
 | `registers.go`, `macros.go`, `yank_history.go` | App-owned yanks/registers, key recording/replay, history modal |
 | `palette.go`, `palette_editing.go`, `palette_nouns.go` | Verb/noun and live instance navigation, configured defaults, typed arguments, originating context |
 | `picker.go`, `picker_search.go` | Contextual path selection, asynchronous fuzzy indexing, native Git ignores |
@@ -412,11 +413,11 @@ result, err := r.Execute(ochazuke.Request{
 | `model.go` | Bubble Tea adapter, page shell, Bubbles viewports, modal renderers, terminal cursor |
 | `transport.go`, `cli.go`, `cmd/ochazuke` | Private Unix socket and generic CLI dispatch |
 | `demo.go`, `examples/core` | Runnable UI and noninteractive foundation example |
-| `noun.go`, `instance.go`, `resolve.go` | Nouns, instances with parent links, and the focus-stack walk beneath the layer API |
+| `noun.go`, `instance.go`, `resolve.go` | Nouns, instances with parent links, state and overrides, targets, and the focus-stack walk beneath the layer API |
 
 #### Nouns and instances
 
-The layer API now sits on a smaller model. A `Noun` is the behaviour of one kind of thing: its verbs, a binding table keyed by mode (`""` for any mode), and the action handlers that override an operation's default. An `Instance` is one addressable thing on screen (`ID`, `Noun`, `Parent`, `State`); walking `Parent` links from the focused instance outward (`Ancestry`, `InstancePath`) rebuilds what `Context.Path` spells out in full. Every `Layer` is a view over the noun of the same name: the action map is shared and the noun's per-mode table is derived from the layer's rows, so `set.binding` and `list.bindings` are unchanged. `AddInput`, `NewList`, `RegisterPage`, `Push` and `SelectContext` record parent links from the paths they already receive; `FocusID` names the active leaf, `ContextFromFocus` derives the context from it, and `EffectiveBindingsFor` / `ActionFor` resolve through the instance graph with the same precedence as `EffectiveBindings` and `ExecuteAt`. `Context()` remains the source of truth until phase 5 of `docs/MIGRATION-PLAN.md`; `get.state` exposes `/nouns` and `/instances`.
+The layer API now sits on a smaller model. A `Noun` is the behaviour of one kind of thing: its verbs, a binding table keyed by mode (`""` for any mode), and the action handlers that override an operation's default. An `Instance` is one addressable thing on screen (`ID`, `Noun`, `Parent`, `State`, optional `Bindings` of its own); walking `Parent` links from the focused instance outward (`Ancestry`, `InstancePath`) rebuilds what `Context.Path` spells out in full. Every `Layer` is a view over the noun of the same name: the action map is shared and the noun's per-mode table is derived from the layer's rows, so `set.binding` and `list.bindings` are unchanged. List rows are instances without layers: a row's bindings and actions come from its noun, and a path element that is not a layer resolves through its instance's noun. `AddInput`, `NewList`, `RegisterPage`, `Push` and `SelectContext` record parent links from the paths they already receive; `FocusID` names the active leaf, `ContextFromFocus` derives the context from it, `Request.Target` and `select.context {instance}` address any instance, and `EffectiveBindingsFor` / `ActionFor` resolve through the instance graph with the same precedence as `EffectiveBindings` and `ExecuteAt`. An instance's `State` is its mode (see Input modes). `Context()` remains the source of truth until phase 5 of `docs/MIGRATION-PLAN.md`; `get.state` exposes `/nouns` and `/instances/<id>/{noun,state,parent}`.
 
 Local checks:
 

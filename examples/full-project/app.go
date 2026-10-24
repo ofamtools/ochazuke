@@ -16,6 +16,9 @@ func Build(cfg Config) (*ochazuke.Model, error) {
 			return nil, fmt.Errorf("layer %q is empty, duplicate, or reserved", spec.ID)
 		}
 		r.Layers[spec.ID] = &ochazuke.Layer{ID: spec.ID, Noun: spec.Noun, Actions: map[string]ochazuke.Handler{}}
+		if len(spec.Verbs) > 0 {
+			r.Noun(spec.ID).Verbs = spec.Verbs
+		}
 	}
 	for _, name := range cfg.App.Modes {
 		if _, err := r.Execute(ochazuke.Request{Verb: "register", Noun: "mode", Args: ochazuke.Arguments{"name": name}}); err != nil {
@@ -71,21 +74,38 @@ func Build(cfg Config) (*ochazuke.Model, error) {
 }
 
 // Sources stay Go functions; JSON only selects a source and its explicit action.
+// A source is built for the configured noun: "rows" lists the list rows that
+// name that noun, so a palette noun can be a kind of row.
 func registerPalette(m *ochazuke.Model, configs []PaletteConfig) error {
-	sources := map[string]ochazuke.PaletteSource{
-		"pages": ochazuke.PagesPaletteSource,
-		"inputs": func(r *ochazuke.Runtime, origin ochazuke.Context) []ochazuke.PaletteInstance {
-			var instances []ochazuke.PaletteInstance
-			for id := range r.Inputs {
-				path := r.InputPaths[id]
-				if len(origin.Path) > 1 && (len(path) < 2 || path[1] != origin.Path[1]) {
-					continue
+	sources := map[string]func(noun string) ochazuke.PaletteSource{
+		"pages": func(string) ochazuke.PaletteSource { return ochazuke.PagesPaletteSource },
+		"inputs": func(string) ochazuke.PaletteSource {
+			return func(r *ochazuke.Runtime, origin ochazuke.Context) []ochazuke.PaletteInstance {
+				var instances []ochazuke.PaletteInstance
+				for id := range r.Inputs {
+					path := r.InstancePath(id)
+					if len(origin.Path) > 1 && (len(path) < 2 || path[1] != origin.Path[1]) {
+						continue
+					}
+					if !strings.HasPrefix(id, "__palette/") && id != "picker-path" {
+						instances = append(instances, ochazuke.PaletteInstance{ID: id, Label: id})
+					}
 				}
-				if !strings.HasPrefix(id, "__palette/") && id != "picker-path" {
-					instances = append(instances, ochazuke.PaletteInstance{ID: id, Label: id})
-				}
+				return instances
 			}
-			return instances
+		},
+		"rows": func(noun string) ochazuke.PaletteSource {
+			return func(r *ochazuke.Runtime, _ ochazuke.Context) []ochazuke.PaletteInstance {
+				var instances []ochazuke.PaletteInstance
+				for _, list := range r.Lists {
+					for _, item := range list.Snapshot()["items"].([]ochazuke.ListItem) {
+						if item.Noun == noun {
+							instances = append(instances, ochazuke.PaletteInstance{ID: item.ID, Label: item.Label})
+						}
+					}
+				}
+				return instances
+			}
 		},
 	}
 	seen := map[string]bool{}
@@ -98,7 +118,7 @@ func registerPalette(m *ochazuke.Model, configs []PaletteConfig) error {
 			return fmt.Errorf("app.json palette: duplicate noun %q", config.Noun)
 		}
 		seen[config.Noun] = true
-		if err := m.Palette.RegisterNoun(config.Noun, ochazuke.PaletteNoun{Source: source, DefaultVerb: config.DefaultVerb, Argument: config.Argument}); err != nil {
+		if err := m.Palette.RegisterNoun(config.Noun, ochazuke.PaletteNoun{Source: source(config.Noun), DefaultVerb: config.DefaultVerb, Argument: config.Argument}); err != nil {
 			return fmt.Errorf("app.json: %w", err)
 		}
 	}

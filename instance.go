@@ -9,12 +9,15 @@ import (
 // Instance is one addressable thing on screen: a page, a list, a list row, a
 // modal body, or an input. Its Parent link is what the old Context.Path spelt
 // out in full; walking the links from the focused instance outward rebuilds
-// that path. State is the instance's own mode; "" inherits (phase 4 wires it).
+// that path. State is the instance's own mode; "" inherits the nearest
+// ancestor's state, and the root falls back to "normal" (see Runtime.Mode).
+// Bindings are this instance's own rows, resolved above its noun's table.
 type Instance struct {
-	ID     string `json:"id"`
-	Noun   string `json:"noun,omitempty"`
-	Parent string `json:"parent,omitempty"`
-	State  string `json:"state,omitempty"`
+	ID       string    `json:"id"`
+	Noun     string    `json:"noun"`
+	Parent   string    `json:"parent,omitempty"`
+	State    string    `json:"state"`
+	Bindings []Binding `json:"bindings,omitempty"`
 }
 
 // instance returns the instance for id, creating it without a parent.
@@ -95,8 +98,10 @@ func (r *Runtime) InstancePath(id string) []string {
 // FocusID is the one leaf instance the active frame points at: its input when
 // it has one, otherwise the last element of its path. Context() stays the
 // source of truth in this phase; FocusID mirrors it.
-func (r *Runtime) FocusID() string {
-	c := r.Context()
+func (r *Runtime) FocusID() string { return focusOf(r.Context()) }
+
+// focusOf is the leaf instance a context points at.
+func focusOf(c Context) string {
 	if c.InputID != "" {
 		return c.InputID
 	}
@@ -106,17 +111,47 @@ func (r *Runtime) FocusID() string {
 // ContextFromFocus rebuilds the active context from FocusID and the parent
 // links alone. It equals Context() whenever every path the application used
 // agrees on each instance's parent; see AmbiguousInstances for the exceptions.
-func (r *Runtime) ContextFromFocus() Context {
-	focus := r.FocusID()
+func (r *Runtime) ContextFromFocus() Context { return r.contextOf(r.FocusID()) }
+
+// contextOf is the interaction context that addresses one instance: the path
+// elements (layers and list rows) on its ancestry, plus InputID when the
+// instance is an input. An unknown id yields an empty context.
+func (r *Runtime) contextOf(id string) Context {
 	var path []string
-	for _, id := range r.InstancePath(focus) {
-		if r.Layers[id] != nil {
-			path = append(path, id)
+	for _, step := range r.InstancePath(id) {
+		if r.isPathElement(step) {
+			path = append(path, step)
 		}
 	}
 	out := Context{Path: path}
-	if r.Inputs[focus] != nil {
-		out.InputID = focus
+	if r.Inputs[id] != nil {
+		out.InputID = id
 	}
 	return out
+}
+
+// isPathElement reports whether id may appear in Context.Path: a layer, or a
+// list row standing in for its noun.
+func (r *Runtime) isPathElement(id string) bool {
+	return r.Layers[id] != nil || r.rows[id] != ""
+}
+
+// layerFor is the layer view a path element resolves through: the layer of
+// that id, or the layer of a row's noun. It is nil for an unknown element.
+func (r *Runtime) layerFor(id string) *Layer {
+	if layer := r.Layers[id]; layer != nil {
+		return layer
+	}
+	if inst := r.Instances[id]; inst != nil {
+		return r.Layers[inst.Noun]
+	}
+	return nil
+}
+
+// instanceBindings are the rows an instance carries above its noun's table.
+func (r *Runtime) instanceBindings(id string) []Binding {
+	if inst := r.Instances[id]; inst != nil {
+		return inst.Bindings
+	}
+	return nil
 }

@@ -358,17 +358,17 @@ func registerEditorOperations(r *Runtime) {
 					}
 				}
 				in.Cursor = destination
-				in.Mode = "visual"
+				in.storeMode("visual")
 				in.Anchor = oldCursor
 				if motion == "up" || motion == "down" || motion == "first-line" || motion == "last-line" {
-					in.Mode = "visual-line"
+					in.storeMode("visual-line")
 				} else if destination > oldCursor && motion != "word-end" && motion != "line-end" {
 					in.Cursor--
 				} else if destination < oldCursor {
 					in.Anchor--
 				}
 				if destination == oldCursor && motion != "word-end" && motion != "line-end" {
-					in.Mode = oldMode
+					in.storeMode(oldMode)
 					in.resetKeys()
 					return nil
 				}
