@@ -1,6 +1,6 @@
 # UI model: how ochazuke stores and draws the screen
 
-Read from the code at `89de0d6` (feat(focus): focus order is drawing order). Line numbers are that commit's.
+Read from the code at `c45567c` (feat(list): j and k spill across lists on a page), which builds on `89de0d6` (focus order is drawing order). Line numbers are checked against `b2e0aa9` (HEAD, docs only on top of `c45567c`).
 The mtm facts in section 2 come from a dump run against a copy of `matomeru/cmd/mtm` with two projects and two tasks; the real row ids are hex, shortened here.
 
 ## 1. The one store: `Runtime`
@@ -44,8 +44,11 @@ Instances = {
 }
 // startup:            Focus = "alpha"  (main.go:266 projectList.Focus() -> selected row)
 // after j:            Focus = "beta"   (list.move delta 1 -> List.Move -> syncFocus)
+// after j again:      Focus = "tasks"  (spill past the last row; tasks is empty, so focus sits on the list)
+// after k:            Focus = "beta"   (spill back: previous stop's last row)
 // after k, enter:     Focus = "t1"     (project.open -> taskList.Focus())
 // after j:            Focus = "t2"
+// after j:            unchanged        (t2 is the last stop's last row: no wrap at the page end)
 // after }:            Focus = "alpha"  (next stop = projects, lands on its selected row)
 // after } or tab:     Focus = "t2"     (wraps; tasks remembers its selected row)
 // after ):            unchanged        (no noun on this page is a Region)
@@ -59,7 +62,7 @@ Only `list`, `palette` and `terminal` are `Focusable` nouns, and any `*Input` co
 |---|---|---|
 | Instance | instance.go:19 | `ID`, `Noun`, `Parent` (the only tree link, no child list), `Bindings` (rows on this one instance), `Unfocusable` (opt-out), `Label`, `Data`, `Component` (the `*Page`/`*List`/`*Input`/`*Terminal`), `seq` (registration order), `lastFocus` (where focus was inside it, used by landing), `Payload.Return` (a modal's return focus) |
 | Page | pages.go:15 | `Focus` (start focus), `Remembered` (focus while hidden), `Render func(r,w,h) Block`, `mode`, `drawn` / `drawing` (ids Placed in the last / current frame) |
-| List | list.go:29 | `id`, `items []ListItem`, `selected int`, `offset`, `marks`. It has no focus flag: `Focused()` derives it from `r.Focus` (list.go:185) |
+| List | list.go:29 | `id`, `items []ListItem`, `selected int`, `offset`, `marks`, `noSpill` (list.go:36). It has no focus flag: `Focused()` derives it from `r.Focus` (list.go:223) |
 | ListItem | list.go:20 | `ID` (becomes the row instance id), `Label`, `Noun` (the row's noun), `Data` |
 | Terminal | terminal.go:49 | `id`, `stream`, `frame`, `cols`/`rows`. `AddTerminal` (terminal.go:67) makes it an Instance of noun `terminal` (Focusable, Pin "terminal", terminal.go:235) |
 | Input | input.go:16 | `ID`, `Text`, `Cursor`, `Mode`, `pin`. `AddInput` (runtime.go:292) makes it an Instance of noun `editor` (or a Kind); focusable because its Component is `*Input` |
@@ -82,7 +85,7 @@ Model.View (model.go:375) -> Model.render (model.go:416)
 
 - Who decides the draw order of a page's children? Only the app's `Render` function, by the order it calls `View`. `Layout` (layout.go:13) holds no state; `Panel`/`Split` draw strings and take a `focused bool` from the caller.
 - Is the drawn order recorded? Yes, since `89de0d6`. `Placed(id)` (pages.go:44) appends to `page.drawing` during `page.render`, and the deferred swap copies it into `page.drawn`. Only the components that call `Placed` (List, Input, Terminal, grid) are recorded. List rows are not recorded; only the list id is.
-- The highlight: `List.View` reverses the selected row only when `l.Focused()` is true (list.go:254). Otherwise the selected row shows only the `> ` marker.
+- The highlight: `List.View` reverses the selected row only when `l.Focused()` is true (list.go:293). Otherwise the selected row shows only the `> ` marker.
 
 ## 5. Focus: stops, regions, rows
 
@@ -92,14 +95,16 @@ Model.View (model.go:375) -> Model.render (model.go:416)
 | region | an instance whose noun is `Region`: a group that `)`/`(` jump between, never itself a stop | `region` focus.go:573 |
 | row | a list row instance. Focus sits on it, but its noun is not focusable, so its stop is the list | `stopOf` focus.go:66 (nearest focusable ancestor) |
 
-**Where focus sits:** on the **row instance** (`Runtime.Focus = "alpha"`), never on a "focused list" flag. The list counts as focused because the row's ancestry includes it (`holds`, list.go:187). The focus sits on the list itself only when the list is empty. `stopOf("alpha") = "projects"`.
+**Where focus sits:** on the **row instance** (`Runtime.Focus = "alpha"`), never on a "focused list" flag. The list counts as focused because the row's ancestry includes it (`holds`, list.go:225). The focus sits on the list itself only when the list is empty. `stopOf("alpha") = "projects"`.
 
 **Keys and what they move:**
 
 ```js
-{ j: "list.move +1", k: "list.move -1", space: "list.mark" }    // bound on noun "list" (list.go:266-271)
+{ j: "list.move +1", down: "list.move +1", k: "list.move -1", up: "list.move -1",
+  space: "list.mark" }                                           // bound on noun "list" (list.go:303-309)
   // the row doesn't bind j; key lookup walks Ancestry(row) -> list -> page -> app and the list answers.
-  // List.Move changes `selected`, then syncFocus -> RetargetFocus moves Focus to the new row (list.go:202).
+  // list.move (list.go:345) tries spill first; inside the list, List.Move (list.go:135) changes `selected`,
+  // then syncFocus -> RetargetFocus moves Focus to the new row (list.go:240).
   // It stays in the same stop, so the mode is kept (focusMoved, focus.go:111).
 { "}": "focus.next", "{": "focus.previous",                     // bound on noun "app" (focus.go:729-735)
   tab: "focus.next", "shift+tab": "focus.previous",             // same op: tab and } are identical
@@ -109,7 +114,7 @@ Model.View (model.go:375) -> Model.render (model.go:416)
 **The walk, `JumpFocus` (focus.go:662) step by step:**
 1. `root = focusRoot()`: the top modal, else the current page, else app (focus.go:562).
 2. `ring, order = units(root, focusable)` (focus.go:590):
-   a. Walk `Children` depth-first from root. `Children` (instance.go:116) scans the `Instances` map, then sorts by `seq`, so siblings come in registration order.
+   a. Walk `Children` depth-first from root. `Children` (instance.go:121) scans the `Instances` map, then sorts by `seq`, so siblings come in registration order.
    b. The first instance on each branch that is a unit goes into `out`, and the walk does not collect anything below it (a list's rows are never units).
    c. `order[id]` = tree index + len(drawn). Then each instance from `drawnUnder(root)` (= `page.drawn`) lowers the rank of every ancestor up to root to its draw index.
    d. Stable sort `out` by `order`. Drawn stops come first, in draw order. Undrawn stops follow, in tree order.
@@ -117,9 +122,16 @@ Model.View (model.go:375) -> Model.render (model.go:416)
 4. If the focus is not inside any unit (it sits on the page), start from the drawn neighbour (focus.go:689-699).
 5. `next = (index + steps) mod n`, which wraps, then `setFocus(landing(ring[next]))`.
 
-**`landing(id)`** (focus.go:638): the component's `FocusTarget()`, which for a list is its selected row (list.go:192). Otherwise `lastFocus`, if that is still inside the unit. Otherwise, for a region, the landing of its first stop. Otherwise the id itself.
+**`landing(id)`** (focus.go:638): the component's `FocusTarget()`, which for a list is its selected row (list.go:228). Otherwise `lastFocus`, if that is still inside the unit. Otherwise, for a region, the landing of its first stop. Otherwise the id itself.
 
-**Spill / visual order:** the visual-order work landed in `89de0d6` (Placed + `units` ranking, tested in visual_motion_test.go). The "list spill" mentioned in pages.go:29 and :38 (j at the last row continuing into the next drawn list) does not exist yet. `List.Move` clamps at either end (list.go:133). Today `j` on "beta" stays on "beta".
+**Spill (`List.spill`, list.go:154), built in `c45567c`:** `list.move` on a focused list moves past its edge onto the page's next stop in drawing order, using the same `units` ring as `}`.
+- `j`/`down` past the last row: the next focusable thing in drawing order. A list lands on its **first** row; other stops land as `}` does (`landing`).
+- `k`/`up` before the first row: the previous stop. A list lands on its **last** row.
+- Empty lists are passed through: focus stops on the empty list itself, and the next `j`/`k` spills on (`b` empty: `j` on a1 -> `b`, `j` -> c1).
+- No wrap at the page ends: on the first stop's first row or the last stop's last row, the move clamps.
+- `AddList(id, items, NoSpill())` (instance.go:97) opts a list out; its motions clamp inside it.
+- Never spills: a list in a popup/modal (the focus root is not a page), and the programmatic `List.Move` API, which always clamps (list.go:135).
+- Tests: `TestListMoveSpillsAcrossListsInDrawingOrder`, `TestListSpillOptOutAndEmptyList` (visual_motion_test.go:115, :131).
 
 ## 6. Tree of the work page
 
@@ -147,7 +159,7 @@ No page stores a ring or array of focusable items. `Page` has no stop list. The 
 |---|---|---|
 | "each list item is a focusable element" | Each row is an **Instance**, and **Focus does sit on it**. But the row's noun is not `Focusable`, so the row is **not a stop**. The list is the stop | `focusable` focus.go:77, `stopOf` focus.go:66 |
 | "`{`/`}` move by parent" | Correct in effect. `}` jumps to the next **stop** (the list, the row's parent) and lands on that list's selected row | `JumpFocus` focus.go:662, `landing` focus.go:638 |
-| j/k move between items | They change `List.selected`, and `syncFocus` re-points `Focus` at the new row. They never leave the list (clamped) | `List.Move` list.go:134, `syncFocus` list.go:202 |
+| j/k move between items | Inside a list they change `List.selected`, and `syncFocus` re-points `Focus` at the new row. Past an edge they spill to the next/previous stop in drawing order (no wrap; `NoSpill()` and modals clamp) | `List.Move` list.go:135, `spill` list.go:154, `syncFocus` list.go:240 |
 | "array or ring of focusable items per page" | Not stored. Rebuilt per keypress | `units` focus.go:590 |
 | "items know if they are focusable and we iterate" | True: noun.Focusable / `*Input` / `Unfocusable`, iterated over the tree | `focusable` focus.go:77 |
 | order = ? | Drawing order (`Placed` during `Page.Render`), with registration order (`seq`) as the fallback | `units` + `Placed` pages.go:44 |
