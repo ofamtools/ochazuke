@@ -21,6 +21,21 @@
           "rows": "widget"
         },
         {
+          "name": "paint",
+          "description": "Paint a widget",
+          "kind": "application",
+          "params": {
+            "coats": {
+              "type": "integer"
+            },
+            "color": {
+              "type": "string",
+              "required": true
+            }
+          },
+          "result": "JSON value"
+        },
+        {
           "name": "refresh",
           "description": "Reload a widget",
           "kind": "application",

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -41,6 +42,7 @@ func newFixture(t *testing.T) *fixture {
 		}, "List the widgets").Rows("widget").
 		Verb("show", record, "Show a widget").
 		Verb("rename", record, "Rename a widget").
+		Verb("paint", record, "Paint a widget").
 		Verb("remove", record, "Remove a widget").Confirm("Remove {{label}}?").
 		Verb("refresh", func(ochazuke.Ctx) ochazuke.Result {
 			return ochazuke.Pending(func(context.Context) (any, error) { return "fresh", nil })
@@ -61,6 +63,9 @@ func newFixture(t *testing.T) *fixture {
 		"tags":  {Type: "array"},
 	}
 	f.r.Operations["widget.rename"] = op
+	op = f.r.Operations["widget.paint"]
+	op.Parameters = map[string]ochazuke.Parameter{"color": {Type: "string", Required: true}, "coats": {Type: "integer"}}
+	f.r.Operations["widget.paint"] = op
 	page, err := f.r.AddPage("widgets", "Widgets", func(*ochazuke.Runtime, int, int) ochazuke.Block { return ochazuke.Block{} })
 	if err != nil {
 		t.Fatal(err)
@@ -96,6 +101,38 @@ func TestShellTypesFlagsByTheOperationsParameters(t *testing.T) {
 		t.Fatalf("stdout %q (%v)", out, err)
 	}
 	if _, _, err := f.run("", "widget", "rename", "--target", "w1", "--count", "many"); err == nil || !strings.Contains(err.Error(), "--count: ") {
+		t.Fatalf("bad integer: %v", err)
+	}
+}
+
+func TestShellPositionalArguments(t *testing.T) {
+	f := newFixture(t)
+	for _, c := range []struct {
+		args []string
+		want ochazuke.Arguments
+	}{
+		{[]string{"red", "2"}, ochazuke.Arguments{"color": "red", "coats": 2}},
+		{[]string{"red"}, ochazuke.Arguments{"color": "red"}},
+		// A named flag wins; the words fill what is left, wherever the flag is.
+		{[]string{"3", "--color", "blue"}, ochazuke.Arguments{"color": "blue", "coats": 3}},
+		{[]string{"--json", `{"coats":1}`, "green"}, ochazuke.Arguments{"color": "green", "coats": float64(1)}},
+	} {
+		f.calls = nil
+		args := append([]string{"widget", "paint", "--target", "w1"}, c.args...)
+		if _, errOut, err := f.run("", args...); err != nil || len(f.calls) != 1 {
+			t.Fatalf("%v: %v\n%s", c.args, err, errOut)
+		}
+		if got := f.calls[0].Args; len(got) != len(c.want) || fmt.Sprint(got) != fmt.Sprint(c.want) {
+			t.Fatalf("%v: args = %#v, want %#v", c.args, got, c.want)
+		}
+	}
+	if _, _, err := f.run("", "widget", "paint", "--target", "w1", "red", "2", "extra"); err == nil || err.Error() != `unexpected argument "extra"; widget.paint takes 2 positional argument(s): color, coats` {
+		t.Fatalf("too many: %v", err)
+	}
+	if _, _, err := f.run("", "widget", "paint", "--target", "w1", "--coats", "2", "red", "x"); err == nil || err.Error() != `unexpected argument "x"; widget.paint takes 1 positional argument(s): color` {
+		t.Fatalf("too many after a flag: %v", err)
+	}
+	if _, _, err := f.run("", "widget", "paint", "--target", "w1", "red", "many"); err == nil || !strings.HasPrefix(err.Error(), "coats (argument 2): ") {
 		t.Fatalf("bad integer: %v", err)
 	}
 }

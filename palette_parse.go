@@ -219,23 +219,9 @@ func (p *Palette) impliedNoun(ix lineIndex, verb string) string {
 	return ""
 }
 
-// paramOrder lists an operation's parameters in line order: required
-// first, then by name. Parameters is a map, so this is the declared order
-// the grammar can rely on.
-func paramOrder(op Operation) []string {
-	names := make([]string, 0, len(op.Parameters))
-	for name := range op.Parameters {
-		names = append(names, name)
-	}
-	sort.Slice(names, func(i, j int) bool {
-		ri, rj := op.Parameters[names[i]].Required, op.Parameters[names[j]].Required
-		if ri != rj {
-			return ri
-		}
-		return names[i] < names[j]
-	})
-	return names
-}
+// paramOrder lists an operation's parameters in line order
+// (Operation.ParameterOrder).
+func paramOrder(op Operation) []string { return op.ParameterOrder() }
 
 // parse resolves a line in the palette's origin context.
 func (p *Palette) parse(line string) commandLine {

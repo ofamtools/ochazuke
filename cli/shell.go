@@ -27,14 +27,18 @@ import (
 	"github.com/unixsuperhero/ochazuke"
 )
 
-// Shell runs BIN NOUN VERB [--target ID] [--json '{...}'] [--ARG VALUE]
+// Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE]
 // [--yes]: one registered operation in this process through the runtime's
 // CLI entry (Runtime.HandleCall, recorded with the history source "cli"),
 // the same registry the keys and the palette dispatch into. A command's
 // words are the operation key, its --ARG flags are typed by the operation's
 // own parameters, and everything else is the framework's. A VERB may be a
 // unique prefix of one of the noun's verbs (a noun's prefix is resolved by
-// the oden shell, see Mount).
+// the oden shell, see Mount). Bare words after NOUN VERB (not starting with
+// --) are positional arguments: they fill the parameters no --ARG or --json
+// set, in Operation.ParameterOrder (required first, then by name), typed
+// like flags; more words than parameters is an error naming them. Named
+// flags win wherever they appear.
 //
 // After the operation it settles the work the operation scheduled (the
 // pending commands, delivered through Runtime.Deliver as the Bubble Tea
@@ -87,7 +91,7 @@ func New(r *ochazuke.Runtime, bin string, stdin io.Reader, stdout, stderr io.Wri
 
 // DefaultUsage is the usage line of a bin with no global flags of its own.
 func DefaultUsage(bin string) string {
-	return "usage: " + bin + " NOUN VERB [--target ID] [--json '{...}'] [--ARG VALUE] [--yes]\n(operations list prints every NOUN VERB and its parameters)"
+	return "usage: " + bin + " NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--yes]\n(operations list prints every NOUN VERB and its parameters)"
 }
 
 // Run executes one command and prints its result as JSON on Stdout.
@@ -242,9 +246,14 @@ func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, bo
 		return q, false, fmt.Errorf("unknown operation %q (%s %s); operations list prints them", q.Key(), noun, verb)
 	}
 	yes := false
+	var words []string
 	for i := 0; i < len(flags); i++ {
 		name, ok := strings.CutPrefix(flags[i], "--")
-		if !ok || name == "" {
+		if !ok {
+			words = append(words, flags[i])
+			continue
+		}
+		if name == "" {
 			return q, false, fmt.Errorf("unexpected argument %q; %s", flags[i], s.usage())
 		}
 		name, value, inline := strings.Cut(name, "=")
@@ -299,7 +308,40 @@ func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, bo
 			return q, false, fmt.Errorf("--%s: %w", name, err)
 		}
 	}
+	if err := positional(q, op, words); err != nil {
+		return q, false, err
+	}
 	return q, yes, nil
+}
+
+// positional fills the parameters no flag set from words, in
+// Operation.ParameterOrder, typed by each parameter.
+func positional(q ochazuke.Request, op ochazuke.Operation, words []string) error {
+	if len(words) == 0 {
+		return nil
+	}
+	var open []string
+	for _, name := range op.ParameterOrder() {
+		if _, set := q.Args[name]; !set {
+			open = append(open, name)
+		}
+	}
+	if len(words) > len(open) {
+		takes := "no positional arguments"
+		if len(open) > 0 {
+			takes = fmt.Sprintf("%d positional argument(s): %s", len(open), strings.Join(open, ", "))
+		}
+		return fmt.Errorf("unexpected argument %q; %s takes %s", words[len(open)], q.Key(), takes)
+	}
+	for i, word := range words {
+		name := open[i]
+		v, err := typed(op.Parameters[name].Type, word)
+		if err != nil {
+			return fmt.Errorf("%s (argument %d): %w", name, i+1, err)
+		}
+		q.Args[name] = v
+	}
+	return nil
 }
 
 // typed converts a flag value to its parameter's type; object and array

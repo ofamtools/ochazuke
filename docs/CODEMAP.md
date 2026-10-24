@@ -200,7 +200,7 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### palette_parse.go
 
-- lines: 471
+- lines: 457
 - purpose: lineToken is one word of the line; Text is unquoted.
 - types: PaletteWord
 - methods: Palette(9), commandLine(3)
@@ -272,10 +272,10 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### runtime.go
 
-- lines: 614 · tests: runtime_test.go
+- lines: 632 · tests: runtime_test.go
 - purpose: Request names an operation and, optionally, the instance it addresses.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
-- methods: Context(1), Operation(1), Request(1), Runtime(16)
+- methods: Context(1), Operation(2), Request(1), Runtime(16)
 - funcs: NewRuntime, StringArg, IntArg, JSONPointer
 - leans on: instance.go(30), delivery.go(25), noun.go(22), input.go(13)
 
@@ -345,8 +345,8 @@ Importable package `cli`: 3 source files, 1 test files.
 
 ### cli/shell.go
 
-- lines: 409
-- purpose: Shell runs BIN NOUN VERB [--target ID] [--json '{...}'] [--ARG VALUE] [--yes]: one registered operation in this process through the runtime's CLI entry (Runt...
+- lines: 451
+- purpose: Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--yes]: one registered operation in this process through the runtime's CLI en...
 - types: Shell
 - methods: Shell(12)
 - funcs: New, DefaultUsage

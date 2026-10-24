@@ -81,6 +81,24 @@ type Operation struct {
 
 func (o Operation) Key() string { return o.Noun + "." + o.Verb }
 
+// ParameterOrder lists the operation's parameters in positional order:
+// required first, then by name. Parameters is a map, so this is the
+// declared order the palette's words and the CLI's bare arguments fill.
+func (o Operation) ParameterOrder() []string {
+	names := make([]string, 0, len(o.Parameters))
+	for name := range o.Parameters {
+		names = append(names, name)
+	}
+	sort.Slice(names, func(i, j int) bool {
+		ri, rj := o.Parameters[names[i]].Required, o.Parameters[names[j]].Required
+		if ri != rj {
+			return ri
+		}
+		return names[i] < names[j]
+	})
+	return names
+}
+
 // Runtime is owned by one event loop. Transport callers submit messages to
 // that loop. It holds the operation registry (Operations, Modes and their
 // guards), the instance registry (Nouns, Instances and their parent links,
