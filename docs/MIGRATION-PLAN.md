@@ -253,7 +253,7 @@ focus.next / focus.previous   // framework operations, bound to tab / shift+tab 
 ```
 
 - Entries are components, not leaves (a grid is one stop; its cells are not). Landing on an entry focuses the child it remembers.
-- The app sets, reorders and prunes the list when its layout changes; the framework skips entries whose instance no longer exists. No automatic discovery from the tree.
+- Division of labor is HTML's: the consumer may declare the order (like tabindex) and nothing else; the runtime owns every focus change (`focus.next`, `focus.previous`, `focus.set {id}`, restore on page open and modal pop) and skips entries whose instance no longer exists. If a page declares no list, the runtime derives one from the order its focusable children were added, so declaring is only for a wrong default order or a skipped entry. Consumer handlers move focus only through `focus.set`.
 - Tab moves focus by default; a multiline editor that wants a literal tab binds it in its own insert table (inner level wins).
 - Replaces per-page "next field" bindings in the examples. Additive: `Page.Focusables`, two operations.
 
