@@ -88,7 +88,7 @@ The module path is `github.com/unixsuperhero/ochazuke`. An application is a sepa
 6. **Keys are data**: default rows in `Define`, user overrides from a JSON file of rows (`LoadBindings`), `bindings list` prints the effective rows for the focus and mode. No key-name switches in application code either.
 7. **Checks**: `go test -race ./...`, a `--smoke` run that renders one frame (see `examples/csv/main.go`), and `ValidateBindings` in a test so every row is atomic.
 
-What the framework will not do for you: persistence, domain validation, daemon protocol clients. Those stay in the application; reuse `matomeru/internal/daemon` or `gmtm/internal/tuios` for the TUIOS client rather than writing a fifth.
+What the framework will not do for you: persistence, domain validation, daemon protocol clients. Those stay in the application; reuse `matomeru-old/internal/daemon` or `gmtm/internal/tuios` for the TUIOS client rather than writing a fifth.
 
 ## Checks
 

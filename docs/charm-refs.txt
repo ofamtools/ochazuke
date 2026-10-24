@@ -1,6 +1,6 @@
 # One project directory per line. Read by cmd/charmrefs (make codemap).
 /Users/unixsuperhero/proj/gmtm
-/Users/unixsuperhero/proj/matomeru
+/Users/unixsuperhero/proj/matomeru-old
 /Users/unixsuperhero/proj/ochazuke
 /Users/unixsuperhero/proj/redeck
 /Users/unixsuperhero/proj/redeck-astra
