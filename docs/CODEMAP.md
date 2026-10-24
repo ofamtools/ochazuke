@@ -38,19 +38,19 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### confirm.go
 
-- lines: 97
+- lines: 100
 - purpose: The confirm noun: a framework modal a verb with a Confirm prompt opens before it runs.
 - methods: Runtime(2)
 - leans on: runtime.go(21), noun.go(10), instance.go(6), block.go(3)
 
 ### delivery.go
 
-- lines: 425 · tests: delivery_test.go
+- lines: 461 · tests: delivery_test.go
 - purpose: Component is the delivery contract every instance that works off the loop implements through Instance.Component.
 - types: Component (iface), Ticket, Completion, Ctx, AppHandler (func), Result, JobInfo
-- methods: Result(2), Runtime(17), job(1)
+- methods: Result(3), Runtime(18), job(1)
 - funcs: Done, Failed, Pending
-- leans on: runtime.go(41), instance.go(6), noun.go(2), registers.go(2)
+- leans on: runtime.go(43), instance.go(6), noun.go(2), registers.go(2)
 
 ### editing.go
 
@@ -107,11 +107,11 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### instance.go
 
-- lines: 165
+- lines: 173
 - purpose: Instance is one addressable thing on screen: a page, a list, a list row, a modal body, or an input.
 - types: Instance, Payload, InstanceOption (func)
 - methods: Payload(1), Runtime(6)
-- funcs: Parent, Kind, Focus
+- funcs: Parent, Kind, Focus, CloseOnDetach
 - leans on: runtime.go(15), noun.go(4), delivery.go(1), input.go(1)
 
 ### layout.go
@@ -288,9 +288,9 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### terminal.go
 
-- lines: 272 · tests: terminal_test.go
+- lines: 296 · tests: terminal_test.go
 - purpose: TerminalStream is the application's connection to one pane: a daemon client, never a PTY the framework owns.
-- types: TerminalStream (iface), TerminalFrame, Terminal
+- types: TerminalStream (iface), TerminalReleaser (iface), TerminalFrame, Terminal
 - methods: Runtime(3), Terminal(12)
 - leans on: runtime.go(34), noun.go(20), instance.go(9), block.go(6)
 
@@ -393,6 +393,7 @@ Exported type -> file.
 - Styles -> theme.go
 - Terminal -> terminal.go
 - TerminalFrame -> terminal.go
+- TerminalReleaser -> terminal.go
 - TerminalStream -> terminal.go
 - Ticket -> delivery.go
 - Yank -> registers.go
