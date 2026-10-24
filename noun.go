@@ -74,6 +74,10 @@ type Binding struct {
 	Unbind   bool              `json:"unbind,omitempty"`
 	Replay   bool              `json:"replay,omitempty"`
 	Capture  bool              `json:"capture,omitempty"`
+	// Hint replaces "noun.verb: description" in the footer and the help
+	// for a row whose operation says nothing useful on its own (the
+	// terminal leader's mode.enter); bindings list carries it too.
+	Hint string `json:"hint,omitempty"`
 }
 
 // Sources a From entry may name: "key" (the key name), "digit" (the key as an
@@ -171,6 +175,10 @@ func (b Binding) Join(arg string, sources ...string) Binding {
 
 // Guard names the registered guard the row requires.
 func (b Binding) Guard(name string) Binding { b.When = name; return b }
+
+// Hinted sets the row's hint (config field "hint"): the text shown after
+// its key in place of the operation and its description.
+func (b Binding) Hinted(text string) Binding { b.Hint = text; return b }
 
 func (b Binding) from(arg, source string) Binding {
 	from := map[string]string{}

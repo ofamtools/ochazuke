@@ -182,6 +182,19 @@ func TestTerminalBindingsListLeaderRowsAndNoEditorRows(t *testing.T) {
 	if got := keys(); !reflect.DeepEqual(got, []string{"ctrl+a mode.enter", "<any> terminal.send", "<paste> terminal.paste"}) {
 		t.Fatalf("terminal mode rows: %v", got)
 	}
+	if got := BindingHints(r, "pane"); !strings.HasPrefix(got, "ctrl+a leader: d detaches, ctrl+a sends ctrl+a · ") || strings.Contains(got, "mode.enter") {
+		t.Fatalf("terminal mode hints: %q", got)
+	}
+	m := NewModel(r)
+	m.Width, m.Height = 120, 20
+	if footer := m.footer().Text; !strings.Contains(footer, "detach") {
+		t.Fatalf("attached footer: %q", footer)
+	}
+	for _, b := range r.ListBindings("pane") {
+		if b.Keys == "ctrl+a" && b.Hint == "" {
+			t.Fatalf("bindings list drops the leader hint: %+v", b)
+		}
+	}
 	press(t, r, "ctrl+a")
 	if got := keys(); !reflect.DeepEqual(got, []string{"ctrl+a terminal.send", "d terminal.detach", "<any> terminal.send", "<paste> terminal.paste"}) {
 		t.Fatalf("leader_pending rows: %v", got)

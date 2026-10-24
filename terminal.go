@@ -281,7 +281,7 @@ func registerTerminal(r *Runtime) {
 			return r.Context(), err
 		}, "Return focus to the instance around the terminal; the pane keeps running (a CloseOnDetach terminal is removed, its stream released and the focus sent to its FocusOnClose target)").
 		Mode("terminal").
-		Bind("ctrl+a", Enter("leader_pending", Payload{Prefix: "ctrl+a", Request: &leader})).
+		Bind("ctrl+a", Enter("leader_pending", Payload{Prefix: "ctrl+a", Request: &leader}).Hinted("leader: d detaches, ctrl+a sends ctrl+a")).
 		Pattern(Paste, Do("terminal.paste").FromPayload("text", SourceText)).
 		Pattern(Any, Do("terminal.send").FromKey("keys")).
 		Mode("leader_pending").

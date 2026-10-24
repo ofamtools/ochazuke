@@ -260,14 +260,18 @@ func BindingHints(r *Runtime, focus string) string {
 	return strings.Join(hints, " · ")
 }
 
-// rowHint is one row as a hint: its key or pattern, the operation it runs
-// and that operation's description cut at its first clause.
+// rowHint is one row as a hint: its key or pattern, then the row's own Hint
+// when it has one, else the operation it runs and that operation's
+// description cut at its first clause.
 func rowHint(r *Runtime, b Binding) string {
 	key := b.Keys
 	if key == "" {
 		key = "<" + b.Pattern + ">"
 	}
 	hint := modalLabel(key)
+	if b.Hint != "" {
+		return hint + " " + modalLabel(b.Hint)
+	}
 	if b.Request.Verb == "" {
 		return hint
 	}
