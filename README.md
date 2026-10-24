@@ -127,6 +127,17 @@ go run ./examples/full-project --smoke
 
 The default configuration is embedded in the executable. `--config` reads an editable directory instead. The smaller [`examples/core`](examples/core/main.go) remains a headless example of action fallback, modal restoration, and isolated undo.
 
+## CSV example
+
+[`examples/csv`](examples/csv) is the lightweight second consumer from [`docs/CSV-APP-SKETCH.md`](docs/CSV-APP-SKETCH.md): a modal CSV reader and editor built without touching the resolver, the editor spec or the modal stack. It brings its own component, [`grid`](grid/grid.go), a two-dimensional cursor with one instance for the focused cell parented to a row instance parented to a column instance, so the stack under a cell is `[cell, row, column, grid, sheet, app]` and `dd` resolves on `row`, `s` on `column`, `i` on `cell`, `ctrl+s` on `sheet`.
+
+```sh
+go run ./examples/csv examples/csv/testdata/people.csv
+go run ./examples/csv --smoke examples/csv/testdata/people.csv   # render one frame and exit
+```
+
+What it shows: motions with counts (`3j`, `2G`, `gg`) through the grid's `move` verb; a cell edit, rename, filter, add-column, open and save-as all through one prompt modal (`enter` commits, `esc` cancels, `ctrl+o` opens the path picker into the field); three visual modes (`v`, `V`, `ctrl+v`) that share one mode table on the grid noun with `m`/`M`/`ctrl+a` marks; yank, delete and paste through the shared registers with the yank's shape (`V y p` pastes rows, `ctrl+v y p` pastes columns); `transform` as one verb over a map of named transformations (`t u`, `t l`, `t t`, `f` for fill-down) listed by `list.transformations`; every edit as one `Patch` that is also its undo record (`u`, `ctrl+r`); per-verb `Confirm` on `dd` and `D`. The one core addition it needed is `Runtime.StoreYank`/`ReadYank` ([`yank_api.go`](yank_api.go)), so a component outside the package can store a yank of a shape the editor does not know.
+
 ## Pages and default presentation
 
 `run` launches the demo in `examples/demo` (`demo.New()`), not an application you must adopt; the framework package itself holds no application pages. It starts on **Overview**. The framework accepts your own page IDs, renderers, state, inputs, and registered actions.

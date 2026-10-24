@@ -41,7 +41,8 @@ Do not hand-edit either generated file. If a map entry is wrong, fix the code or
 | Path picker and fuzzy index | `picker.go`, `picker_search.go`, `picker_preview.go`, `picker_view.go` |
 | Styling, the one page chrome (`Layout.Shell`, `Header`, `Footer`, tabs), panels, bounded modal composition | `theme.go`, `layout.go`, `surface.go` |
 | Unix socket transport and CLI dispatch | `transport.go`, `cli.go`, `cmd/ochazuke` |
-| Demo and example applications (no application pages in the framework package) | `examples/demo` (`demo.New()`, used by `cmd/ochazuke run` and `cmd/docgen`), `examples/core`, `examples/full-project` |
+| Demo and example applications (no application pages in the framework package) | `examples/demo` (`demo.New()`, used by `cmd/ochazuke run` and `cmd/docgen`), `examples/core`, `examples/full-project`, `examples/csv` (the CSV editor of `docs/CSV-APP-SKETCH.md`) |
+| Grid component (2D cursor, viewport, visual shapes and marks, one instance per focused cell under row and column instances), built on the public API outside the core | `grid/` (`grid.New`, `grid.Register`), `yank_api.go` (`StoreYank`/`ReadYank` for components that yank shapes the editor does not know) |
 
 ## Invariants
 

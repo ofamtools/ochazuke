@@ -1,5 +1,7 @@
 # CSV reader and editor: second-consumer sketch
 
+Status: built as `examples/csv` with the grid component in `grid/` (branch csv-app). The README "CSV example" section lists what the code covers; the sketch below is the brief it followed. Deferred from the sketch: a sourced pick list for the transform name (needs `Parameter.source`, an after-phase-7 item), `title`/`slug` are in the map but unbound, sticky marks across modes, counts on `dd`/`yy`/`u`, and the `A1` reference layer.
+
 A modal TUI CSV reader and editor built on ochazuke. Lightweight on purpose: one file in memory, file I/O only on open and save, no daemon, no database, nothing off the loop. It exercises modes, the editor, registers, confirmation, the palette, and a 2D selection the list does not have, so it is the phase 7 second-consumer candidate: it must be buildable without touching the core.
 
 ## State the app owns
