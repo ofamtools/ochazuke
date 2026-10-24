@@ -95,7 +95,7 @@ func (l *List) SetItems(items []ListItem) error {
 		if inst == nil {
 			inst = l.r.Instance(item.ID, Parent(l.id), Kind(item.Noun))
 		}
-		inst.Noun, inst.Parent = item.Noun, l.id
+		inst.Noun, inst.Parent, inst.Label = item.Noun, l.id, item.Label
 	}
 	previous, _ := l.Selected()
 	selected := min(max(l.selected, 0), len(items)-1)

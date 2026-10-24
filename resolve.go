@@ -298,6 +298,7 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent) error {
 		}
 		q.Args = args
 	}
+	r.rowRequest = true
 	_, err := r.Execute(q)
 	if r.pendingModes[before] && r.modeGeneration == generation && r.Mode.Name == before {
 		r.leaveMode()
@@ -403,7 +404,8 @@ func (r *Runtime) ListBindings(focus string) []Binding {
 // resolution order: capture rows outer-first, then innermost level first, each level's instance rows before
 // its noun's mode table before its any-mode table, the first row per key or
 // pattern. A level whose unguarded any row answers every key ends the
-// walk, as it does for Dispatch.
+// walk, as it does for Dispatch. A row whose operation's verb guard is
+// false at the focus is left out.
 func (r *Runtime) bindingRows(focus string) []Binding {
 	mode := r.Mode
 	base, prefix := baseAndPrefix(mode)
@@ -415,6 +417,9 @@ func (r *Runtime) bindingRows(focus string) []Binding {
 		for _, b := range rows {
 			if b.Unbind || b.Capture != capture {
 				continue
+			}
+			if !r.VerbShown(b.Request.Key(), focus, r.Mode) {
+				continue // guarded off here: hints and bindings list match the palette
 			}
 			id := b.Keys + "\x00" + b.Pattern
 			if prefix != "" {

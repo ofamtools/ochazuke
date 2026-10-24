@@ -13,7 +13,8 @@ import (
 // are this instance's own rows, resolved above its noun's table at the same
 // stack level. Component holds the typed component the instance fronts.
 // Unfocusable opts the instance out of being a focus stop although its noun
-// is Focusable (a disabled panel).
+// is Focusable (a disabled panel). Label is an optional display name a
+// confirm prompt reads as {{label}}.
 type Instance struct {
 	ID          string    `json:"id"`
 	Noun        string    `json:"noun"`
@@ -21,6 +22,7 @@ type Instance struct {
 	Payload     Payload   `json:"payload"`
 	Bindings    []Binding `json:"bindings,omitempty"`
 	Unfocusable bool      `json:"unfocusable,omitempty"`
+	Label       string    `json:"label,omitempty"` // a display name (a list row's label, a header name); {{label}} in a confirm prompt
 	Component   any       `json:"-"`
 	seq         uint64
 	returnMode  ModeState // an open modal's mode to restore on Pop, beside Payload.Return

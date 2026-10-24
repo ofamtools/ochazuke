@@ -57,7 +57,7 @@ type Handler func(*Runtime, Context, Arguments) (any, error)
 // default: Run executes synchronously on the loop) or "application" (App is
 // an AppHandler whose pending work runs off the loop and reports through the
 // delivery contract). Confirm, when set, is a prompt template ({{id}},
-// {{noun}}, {{<arg>}}) shown in a confirm modal before the operation runs.
+// {{noun}}, {{label}}, {{<arg>}}) shown in a confirm modal before the operation runs.
 // Repeatable marks a change (not a motion or navigation) that dot-repeat
 // (history.repeat, bound to . on app in normal mode) may run again; set it
 // on the Operation passed to Register.
@@ -100,6 +100,7 @@ type Runtime struct {
 	predicates     map[string]PredicateFunc // named query predicates (query.go)
 	history        actionHistory            // the executed-request ring and the current source (history.go)
 	origin         string                   // the instance the running request or completion acts for; a modal opens only from the top level
+	rowRequest     bool                     // the next execute is a binding row's own request (runRow's level rule targets it)
 	prefix         pendingPrefix
 	bindingVersion uint64
 	modeGeneration uint64
@@ -356,6 +357,8 @@ func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
 }
 
 func (r *Runtime) execute(c Context, q Request) (any, error) {
+	fromRow := r.rowRequest
+	r.rowRequest = false
 	op, ok := r.Operations[q.Key()]
 	if !ok {
 		return nil, fmt.Errorf("unknown operation %q", q.Key())
@@ -379,15 +382,46 @@ func (r *Runtime) execute(c Context, q Request) (any, error) {
 	if c.InputID != "" && r.Input(c.InputID) == nil {
 		return nil, fmt.Errorf("unknown input %q", c.InputID)
 	}
+	// Guards are applicability: a verb guarded off where the request acts
+	// (its target, else the caller's focus) is refused, from keys, the
+	// palette, the CLI and the API alike.
+	if !r.VerbShown(q.Key(), focus, r.Mode) {
+		return nil, fmt.Errorf("%s is not applicable now", q.Key())
+	}
+	// A request without a target addresses the nearest instance of its
+	// operation's noun on the focus path (row.delete chosen in the palette
+	// while a cell is focused acts for the row; its confirm names the row).
+	// A binding row's own request keeps runRow's rule instead: it targets
+	// the level the row matched at, and a shared operation keeps the focus.
+	// Noun actions still resolve from the caller's focus, so an override on
+	// a level between it and the owner (the notes editor's save) applies.
+	actions := focus
+	if q.Target == "" && !fromRow {
+		if owner := r.nounInstance(q.Noun, focus); owner != "" && owner != focus {
+			c, focus = r.contextOf(owner), owner
+		}
+	}
 	defer r.actingFor(focus)()
 	if op.Confirm != "" && !q.Confirmed {
 		return r.openConfirm(c, q, op)
 	}
-	if fn := r.ActionFor(focus, q.Key()); fn != nil {
+	if fn := r.ActionFor(actions, q.Key()); fn != nil {
 		return fn(r, c, q.Args)
 	}
 	return op.Run(r, c, q.Args)
 }
+
+// nounInstance is the nearest instance of noun on the focus path, "" when
+// none is. app is never chosen: an app verb acts for the focus.
+func (r *Runtime) nounInstance(noun, focus string) string {
+	for _, id := range r.Ancestry(focus) {
+		if id != "app" && r.Instances[id].Noun == noun {
+			return id
+		}
+	}
+	return ""
+}
+
 func validateArguments(op Operation, args Arguments) error {
 	for name, p := range op.Parameters {
 		if _, ok := args[name]; p.Required && !ok {
