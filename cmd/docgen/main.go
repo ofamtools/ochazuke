@@ -85,9 +85,6 @@ func generate() error {
 				if err != nil {
 					return err
 				}
-				if b.Func != nil {
-					request = []byte("(Go: re-dispatch)")
-				}
 				label := mode
 				if label == "" {
 					label = "Any base mode"

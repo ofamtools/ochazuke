@@ -36,3 +36,19 @@ func TestSmokeKeepsPageOnFocusPath(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// Every row the configured project installs, from its binding files and its
+// Go, is a Request to a registered operation or an unbind.
+func TestFullProjectBindingRowsAreAtomic(t *testing.T) {
+	cfg, err := LoadConfig("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, err := Build(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Runtime.ValidateBindings(); err != nil {
+		t.Fatal(err)
+	}
+}

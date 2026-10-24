@@ -113,7 +113,7 @@ func (r *Runtime) storeYank(y Yank, name string, deletion bool) error {
 		return err
 	}
 	g.Active = ""
-	if key == "_" {
+	if isBlackHole(key) {
 		return nil
 	}
 	if appendMode {
@@ -150,7 +150,7 @@ func (r *Runtime) readYank(name string) (Yank, error) {
 	if err != nil {
 		return Yank{}, err
 	}
-	if key == "_" {
+	if isBlackHole(key) {
 		return Yank{Shape: "char"}, nil
 	}
 	return g.Named[key].Yank, nil

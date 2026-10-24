@@ -142,7 +142,7 @@ What it shows: motions with counts (`3j`, `2G`, `gg`) through the grid's `move` 
 
 `run` launches the demo in `examples/demo` (`demo.New()`), not an application you must adopt; the framework package itself holds no application pages. It starts on **Overview**. The framework accepts your own page IDs, renderers, state, inputs, and registered actions.
 
-The shell around a page is one chrome, `Layout.Shell`: a title row with the mode badge right-aligned, a subtitle row (the page tabs, or the page title beside the sidebar), a rule, the body, a rule, the footer and a margin, inside a two-cell gutter. `Layout.PageBlock` renders through the same method, so a page and the application around it reserve the same rows and `Layout.BodySize` is the body a renderer receives (less the sidebar). The footer and every modal's hint line are `BindingHints`: the focused instance's binding rows in resolution order (`ctrl+j next.page · : open.palette`), the same data `bindings list` prints, so a hint can never name a key that is not bound and rebinding a key moves its hint. The last key's error replaces the footer until the next key.
+The shell around a page is one chrome, `Layout.Shell`: a title row with the mode badge right-aligned, a subtitle row (the page tabs, or the page title beside the sidebar), a rule, the body, a rule, the footer and a margin, inside a two-cell gutter. `Layout.PageBlock` renders through the same method, so a page and the application around it reserve the same rows and `Layout.BodySize` is the body a renderer receives (less the sidebar). The footer and every modal's hint line are `BindingHints`: the focused instance's binding rows in resolution order (`ctrl+j next.page: Open the next page · : open.palette: Open the nested verb/noun palette`, each row with its operation's description cut at the first clause), the same data `bindings list` prints, so a hint can never name a key that is not bound and rebinding a key moves its hint. The last key's error replaces the footer until the next key.
 
 | Demo page | Purpose |
 |---|---|
@@ -367,7 +367,7 @@ The operation equivalents are `focus.list {id}`, `move.list {id?, delta}`, `sele
 
 A terminal is an instance of the `terminal` noun whose component shows a pane the application streams in. The framework owns no PTY, shell or daemon: `AddTerminal(id, stream, Parent(page))` takes a `TerminalStream` (`Next(ctx)` blocks for the next `TerminalFrame{Lines, Cursor, Shape, Hidden}`, `Send(keys...)` forwards key names as bindings spell them, `Paste(text)`, `Resize(cols, rows)`), which is the application's daemon client; the examples use an in-process echo stream. Frames arrive through the delivery contract: each read is work owned by the instance (`Runtime.Start`), its completion is delivered to the component when still current, and a frame that completes after the instance closed or a newer read started is dropped. `term.ViewBlock(width, height)` renders the pane into the area a page gives it, tells the stream that size when it changes, and reports the pane's cursor; while the terminal is focused the shell places the real terminal cursor there, shaped as the pane reports (`bar`, `underline`, else block).
 
-The instance starts in the `terminal` base mode, where the noun's `any` and `paste` rows forward every key and paste to the pane, so nothing on the page or the application answers keys while a pane is attached. The leader `ctrl+a` enters `leader_pending`, a one-shot exclusive mode with `Payload{Shadow: terminal, Prefix: "ctrl+a"}`:
+The instance starts in the `terminal` base mode, where the noun's `any` and `paste` rows forward every key and paste to the pane, so nothing on the page or the application answers keys while a pane is attached. The leader `ctrl+a` is an `Enter("leader_pending", Payload{Prefix: "ctrl+a", Request: send ctrl+a})` row: `leader_pending` is a one-shot exclusive mode, the prefix arms the sequence timer and the stored request is what the timer runs:
 
 | Keys | Behavior |
 |---|---|
@@ -378,7 +378,7 @@ The instance starts in the `terminal` base mode, where the noun's `any` and `pas
 | `ctrl+a` then an unbound key | Sends the leader and the key, in order, in one `Send` and returns to terminal mode |
 | `ctrl+a` alone past `BindingTimeout` | Sends the leader alone; the next key starts fresh |
 
-Rebinding the leader is binding another key to the same `Func` row's place: the row reads the key it was pressed with as the prefix. `attach.terminal {id}` focuses a pane from anywhere on its page; `send.terminal {keys}` and `paste.terminal {text}` are the operations the rows run and are available to the CLI. `bindings list` in terminal mode prints the terminal table alone (the leader, `any`, `paste`); in `leader_pending` it prints the leader table, so the footer shows exactly what the pane will do with the next key. The full-project example's **Console** page is a terminal page added from config rows and the public API only.
+Every row under the leader is a `Request`: `d` runs `detach.terminal`, the unbound-key row is `send.terminal` with `keys` joined from the prefix and the key (`Join("keys", SourcePrefix, SourceKey)`), the paste row is `paste.terminal {keys: prefix, text}`, which forwards the leader through `send.terminal` before it pastes. Rebinding the leader is binding another key to the same `Enter` row with that key as its `prefix` and `request`, in Go or in a binding file. `attach.terminal {id}` focuses a pane from anywhere on its page; `send.terminal {keys}` and `paste.terminal {text, keys?}` are the operations the rows run and are available to the CLI. `bindings list` in terminal mode prints the terminal table alone (the leader, `any`, `paste`); in `leader_pending` it prints the leader table, so the footer shows exactly what the pane will do with the next key. The full-project example's **Console** page is a terminal page added from config rows and the public API only.
 
 ### Input modes
 
@@ -666,7 +666,7 @@ Bindings are rows of mode tables. A row names the noun (or one instance) it belo
 ]
 ```
 
-Patterns are `digit`, `alpha`, `printable`, `paste`, `any`, a class minus keys (`alpha-q`) or a set (`one-of:h j k l`). `from` fills an argument from the key (`key`, `digit`, `text`) or the mode payload (`count`, `line`, `steps`, `op`, `opcount`). `when` names a guard (`input`, `multiline`, `count`, `no-count`, `self`, `op:<key>`, or one the application registers with `DefineGuard`). A row with the same noun, mode and keys or pattern replaces the default, a new one adds, `request: null` unbinds. Load a file of rows with `load.bindings {path}` or `Runtime.LoadBindings`; `Runtime.Bind` installs rows from Go and the `Define(...).Mode(...).Bind/Pattern/Unbind` builder writes the same tables.
+Patterns are `digit`, `alpha`, `printable`, `paste`, `any`, a class minus keys (`alpha-q`) or a set (`one-of:h j k l`). `from` fills an argument from the key (`key`, `digit`, `text`) or the mode payload (`count`, `line`, `steps`, `op`, `opcount`, `prefix`); several sources separated by spaces (`"keys": "prefix key"`, `Join` in Go) join their texts with a space. `when` names a guard (`input`, `no-input`, `multiline`, `count`, `no-count`, `self`, `shadow-idle`, `op:<key>`, or one the application registers with `DefineGuard`). A row with the same noun, mode and keys or pattern replaces the default, a new one adds, `request: null` unbinds. Load a file of rows with `load.bindings {path}` or `Runtime.LoadBindings`; `Runtime.Bind` installs rows from Go and the `Define(...).Mode(...).Bind/Pattern/Unbind` builder writes the same tables.
 
 The resolver is one stack walk. For each level from the focused instance outward to `app` (the `modal` noun's level sits just inside `app` while a modal is open) and then the `editor` noun as the fallback every stack ends with:
 
@@ -686,11 +686,39 @@ count_pending:    { "<digit>": append.count, ...normal rows with steps from the 
 operator_pending: { w: operator {motion: "word-forward", steps}, d: operator {motion: "line"} when op:d, g: enter operator_g_pending, any: cancel }
 g_pending:        { g: move first-line {line: count}, any: cancel }
 macro_pending:    { any: start.macro {register: key}, esc: cancel }
-macro_recording:  { any: append the key, then re-dispatch it in the shadowed mode; q: stop only when that mode is a quiet normal }
+macro_recording:  { q: stop.macro when shadow-idle, any | paste: record.macro {key} = append.macro then dispatch.key {mode: "shadow"} }
 "normal g":       { "g g": … the continuations of the sequence; a timer leaves the mode and runs the completed match }
 ```
 
-The editor noun's tables (Readline rows in `insert`, Vim rows in `normal` and the visual modes, the pending modes above) are generated from `editor_bindings.json`, a data file in this row shape plus three generators (`expand` a row over a key map, `extends` one mode from another, `pending` the exclusive modes). `bindings list` prints the rows the focus answers to in its current mode, so every Readline and Vim key appears there for its mode, and the help modal of the full-project example is built from it. Multi-key sequences such as `g g` wait in a prefix mode named `"<mode> <keys so far>"` on the focused instance for up to a configurable timeout (default 400ms); the timer and a mismatching key leave the mode, run the longest completed match, and the mismatching key is then dispatched fresh. Escape cancels the sequence. A paste is one event that matches only `paste` rows, so insert mode inserts it and normal mode ignores it.
+The editor noun's tables (Readline rows in `insert`, Vim rows in `normal` and the visual modes, the pending modes above) are generated from `editor_bindings.json`, a data file in this row shape plus three generators (`expand` a row over a key map, `extends` one mode from another, `pending` the exclusive modes). `bindings list` prints the rows the focus answers to in its current mode, so every Readline and Vim key appears there for its mode, and the help modal of the full-project example is built from it. Multi-key sequences such as `g g` wait in a prefix mode named `"<mode> <keys so far>"` on the focused instance for up to a configurable timeout (default 400ms); the timer and a mismatching key leave the mode, run the longest completed match, and the mismatching key is then dispatched fresh. Escape cancels the sequence through a row like any other: every table that binds a sequence keeps a generated `"<prefix> esc"` → `leave.mode` row for each prefix (`bindings list` shows it in the prefix mode), so the resolver itself never names a key. A paste is one event that matches only `paste` rows, so insert mode inserts it and normal mode ignores it.
+
+## Atomic bindings
+
+A binding row is atomic. A row is a `Request` (one registered operation, its arguments from the row, the key or the mode payload), a mode transition (`Enter`, `Leave`) or `null` (an unbind). There is no row that runs Go code with the key: `Binding` has no such field, and `TestBindingRowsAreAtomic` validates every table of the framework, the model, the picker, the demo and the full-project example (`Runtime.ValidateBindings`) and parses the resolver to check it names no key. The only code that compares key names is the key classifier (`printableKey`) and one key-name-to-text table (`keyText`).
+
+The rule is recommended to any application built on the framework that wants to stay extensible and scriptable. Because every row is a `Request`, every key the user can press is also a CLI command (`NOUN VERB --json`), a palette entry, a macro step, a config override (the same row shape in a binding file replaces or unbinds it) and a help line (`bindings list`, the footer, the help modal), with no hidden branch in Go that a script cannot reach. Composite behavior is an operation that calls operations, so a script or an agent can call the pieces on their own; a condition is a named guard, so a config row can carry it (`"when": "shadow-idle"`) and `bindings list` can show it.
+
+The macro recorder's `q` row, before and after:
+
+```go
+// Before: a Func row that reads the mode and the key in Go. Not a CLI command,
+// not a palette entry, invisible to bindings list and to a binding file.
+Bind("q", Func(func(r *Runtime, ev KeyEvent) error {
+	shadow := ev.Mode.Payload.Shadow
+	if shadow.Name == "normal" && shadow.Payload.empty() {
+		_, err := r.Execute(Request{Verb: "stop", Noun: "macro"})
+		return err
+	}
+	return record(r, ev)
+}))
+
+// After: two atomic rows. q stops under a named guard and falls through to
+// the any row otherwise; recording is an operation that calls two operations.
+Bind("q", Do("stop.macro")).When("shadow-idle").
+Pattern(Any, Do("record.macro").FromKey("key"))      // append.macro {key}, then dispatch.key {key, mode: "shadow"}
+```
+
+The same row in a binding file is `{"noun": "app", "mode": "macro_recording", "keys": "q", "when": "shadow-idle", "request": {"verb": "stop", "noun": "macro"}}`, and `ochazuke macro record --json '{"key": "j"}'` is the recorder's step from the command line.
 
 ## Nested verb/noun command palette
 

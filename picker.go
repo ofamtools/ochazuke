@@ -87,7 +87,7 @@ func NewPicker(r *Runtime) *Picker {
 		"filter": {Type: "string", Description: "any, file or dir; defaults to the originating path field's filter"},
 		"path":   {Type: "string", Description: "Initial path/query; otherwise path value, current paths line, or cwd"},
 	}, p.open)
-	register("move", "Move the highlighted result without editing the path", map[string]Parameter{"delta": {Type: "integer", Required: true}}, func(_ Context, args Arguments) (any, error) {
+	register("move", "Move the highlight; the path is not edited", map[string]Parameter{"delta": {Type: "integer", Required: true}}, func(_ Context, args Arguments) (any, error) {
 		if err := p.require(); err != nil {
 			return nil, err
 		}
@@ -100,13 +100,13 @@ func NewPicker(r *Runtime) *Picker {
 		}
 		return p.browse(filepath.Dir(p.Directory))
 	})
-	register("descend", "Enter the highlighted directory without selecting files", nil, func(_ Context, _ Arguments) (any, error) {
+	register("descend", "Enter the highlighted directory; files are not selected", nil, func(_ Context, _ Arguments) (any, error) {
 		return p.enter(true)
 	})
 	register("enter", "Enter the highlighted directory or select a file", nil, func(_ Context, _ Arguments) (any, error) {
 		return p.enter(false)
 	})
-	register("complete", "Complete the highlighted path without confirming it", nil, func(_ Context, _ Arguments) (any, error) {
+	register("complete", "Complete the highlighted path; nothing is confirmed", nil, func(_ Context, _ Arguments) (any, error) {
 		if err := p.require(); err != nil {
 			return nil, err
 		}
@@ -123,7 +123,7 @@ func NewPicker(r *Runtime) *Picker {
 		}
 		return p.state(), nil
 	})
-	register("choose", "Confirm highlighted path, or explicitly choose current root", map[string]Parameter{"current": {Type: "boolean", Description: "Choose current root instead of the highlight (any/dir only)"}}, func(_ Context, args Arguments) (any, error) {
+	register("choose", "Confirm the highlighted path, or the current root when current is set", map[string]Parameter{"current": {Type: "boolean", Description: "Choose current root instead of the highlight (any/dir only)"}}, func(_ Context, args Arguments) (any, error) {
 		if err := p.require(); err != nil {
 			return nil, err
 		}
@@ -136,7 +136,7 @@ func NewPicker(r *Runtime) *Picker {
 		}
 		return p.choose(filepath.Join(p.Directory, filepath.FromSlash(entry.Path)))
 	})
-	register("close", "Cancel the picker without changing its originating input", nil, func(_ Context, _ Arguments) (any, error) {
+	register("close", "Cancel the picker; its originating input is unchanged", nil, func(_ Context, _ Arguments) (any, error) {
 		if err := p.require(); err != nil {
 			return nil, err
 		}

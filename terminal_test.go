@@ -107,7 +107,7 @@ func TestTerminalLeaderForwardsBoundRunsAndTimeoutForwardsPrefix(t *testing.T) {
 		t.Fatalf("plain keys: %v", stream.sent)
 	}
 	press(t, r, "ctrl+a")
-	if mode() != "leader_pending" || r.Instances["pane"].Payload.Shadow.Name != "terminal" || r.Pending != "ctrl+a" {
+	if mode() != "leader_pending" || r.Instances["pane"].Payload.Return != "terminal" || r.Pending != "ctrl+a" {
 		t.Fatalf("after leader: mode %q payload %+v pending %q", mode(), r.Instances["pane"].Payload, r.Pending)
 	}
 	press(t, r, "c")
@@ -177,11 +177,11 @@ func TestTerminalBindingsListLeaderRowsAndNoEditorRows(t *testing.T) {
 		}
 		return out
 	}
-	if got := keys(); !reflect.DeepEqual(got, []string{"ctrl+a .", "<any> send.terminal", "<paste> paste.terminal"}) {
+	if got := keys(); !reflect.DeepEqual(got, []string{"ctrl+a enter.mode", "<any> send.terminal", "<paste> paste.terminal"}) {
 		t.Fatalf("terminal mode rows: %v", got)
 	}
 	press(t, r, "ctrl+a")
-	if got := keys(); !reflect.DeepEqual(got, []string{"ctrl+a send.terminal", "d detach.terminal", "<any> .", "<paste> ."}) {
+	if got := keys(); !reflect.DeepEqual(got, []string{"ctrl+a send.terminal", "d detach.terminal", "<any> send.terminal", "<paste> paste.terminal"}) {
 		t.Fatalf("leader_pending rows: %v", got)
 	}
 	hints := BindingHints(r, "pane")

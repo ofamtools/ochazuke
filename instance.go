@@ -30,8 +30,7 @@ type Instance struct {
 // the pending operator; Prefix is the key sequence typed so far; Request is a
 // stored request (the completed match a sequence prefix falls back to, or a
 // confirm's deferred action); Prompt is the text a confirm modal shows;
-// Shadow is the mode a shadow mode such as macro_recording or
-// leader_pending re-dispatches in.
+// Shadow is the mode the macro_recording shadow mode re-dispatches in.
 type Payload struct {
 	Return  string     `json:"return,omitempty"`
 	Count   int        `json:"count,omitempty"`

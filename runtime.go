@@ -451,6 +451,11 @@ func validateArguments(op Operation, args Arguments) error {
 			}
 		case "boolean":
 			_, valid = v.(bool)
+		case "object":
+			switch v.(type) {
+			case map[string]any, Arguments, Request, *Request:
+				valid = true
+			}
 		}
 		if !valid {
 			return fmt.Errorf("%s must be %s", name, p.Type)

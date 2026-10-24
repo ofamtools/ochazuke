@@ -113,46 +113,17 @@ func (p *Picker) previewRows(width, height int) []string {
 	return layoutRows(strings.Join(rows, "\n"), width, height)
 }
 
+// bindingHelp is the picker's rows as hints, derived the way the footer is.
 func (p *Picker) bindingHelp() string {
 	if !p.IsOpen() {
 		return ""
 	}
 	var hints []string
 	for _, binding := range p.Runtime.ListBindings(p.input.ID) {
-		request := binding.Request
-		if request.Noun != "picker" {
+		if binding.Request.Noun != "picker" {
 			continue
 		}
-		label := ""
-		switch request.Verb {
-		case "enter":
-			label = "open/select"
-		case "choose":
-			label = "confirm"
-			if current, _ := request.Args["current"].(bool); current {
-				label = "choose root"
-			}
-		case "close":
-			label = "cancel"
-		case "complete":
-			label = "complete"
-		case "parent":
-			label = "parent"
-		case "descend":
-			label = "enter folder"
-		case "move":
-			delta := IntArg(request.Args, "delta", 0)
-			if delta == 1 {
-				label = "next"
-			} else if delta == -1 {
-				label = "previous"
-			} else {
-				label = fmt.Sprintf("move %+d", delta)
-			}
-		}
-		if label != "" {
-			hints = append(hints, modalLabel(binding.Keys)+" "+label)
-		}
+		hints = append(hints, rowHint(p.Runtime, binding))
 	}
 	return strings.Join(hints, " · ")
 }

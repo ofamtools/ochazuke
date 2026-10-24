@@ -147,7 +147,8 @@ func TestPrefixModeTimeoutRestoresBaseMode(t *testing.T) {
 	if got := r.modeState("app"); got.Name != "normal g" || got.Payload.Prefix != "g" || got.Payload.Request == nil || r.Pending != "g" {
 		t.Fatalf("prefix mode: %+v pending=%q", got, r.Pending)
 	}
-	if rows := r.ListBindings("app"); len(rows) != 1 || rows[0].Keys != "g g" {
+	// The continuations and the generated cancel row ("g esc" → leave.mode).
+	if rows := r.ListBindings("app"); len(rows) != 2 || rows[0].Keys != "g esc" || rows[0].Request.Key() != "leave.mode" || rows[1].Keys != "g g" {
 		t.Fatalf("list.bindings in a prefix mode lists the continuations: %+v", rows)
 	}
 	r.prefix.deadline = time.Now().Add(-time.Second)
@@ -182,37 +183,25 @@ func TestMacroRecordingShadowMode(t *testing.T) {
 	}
 }
 
-// leader_pending has the same shape: a shadow mode whose any row forwards
-// the prefix and key and restores the shadowed mode. The terminal arrives in
-// phase 7; this is the mechanism.
+// leader_pending has the same shape in rows alone: an Enter row with the
+// leader as its prefix, and an any row that sends the prefix and the key
+// (Join) and returns to the shadowed mode because the mode is one-shot. The
+// terminal noun binds exactly this; here it is the mechanism on a bare noun.
 func TestLeaderPendingShadowShape(t *testing.T) {
 	r := NewRuntime()
 	var forwarded []string
 	calls := recorder(t, r, "new-window")
-	r.DefineMode("leader_pending", true)
 	r.Register(Operation{Verb: "forward", Noun: "pane", Parameters: map[string]Parameter{"keys": {Type: "string", Required: true}}, Run: func(_ *Runtime, _ Context, a Arguments) (any, error) {
 		forwarded = append(forwarded, StringArg(a, "keys", ""))
 		return nil, nil
 	}})
+	alone := Request{Verb: "forward", Noun: "pane", Args: Arguments{"keys": "ctrl+b"}}
 	r.Define("term").Mode("normal").
-		Bind("ctrl+b", Func(func(r *Runtime, ev KeyEvent) error {
-			shadow := ev.Mode
-			r.enterMode(r.Instances[ev.Focus], "leader_pending", Payload{Shadow: &shadow})
-			return nil
-		})).
+		Bind("ctrl+b", Enter("leader_pending", Payload{Prefix: "ctrl+b", Request: &alone})).
 		Pattern(Any, Do("forward.pane").FromKey("keys")).
 		Mode("leader_pending").
 		Bind("c", Do("new-window.test")).
-		Pattern(Any, Func(func(r *Runtime, ev KeyEvent) error {
-			inst := r.Instances[ev.Focus]
-			shadow := *inst.Payload.Shadow
-			r.leaveMode(inst)
-			_, err := r.Execute(Request{Verb: "forward", Noun: "pane", Args: Arguments{"keys": "ctrl+b " + ev.Key.Key}})
-			if shadow.Name != inst.State {
-				inst.State = shadow.Name
-			}
-			return err
-		}))
+		Pattern(Any, Do("forward.pane").Join("keys", SourcePrefix, SourceKey))
 	r.Instance("pane", Kind("term"))
 	if err := r.Focus("pane"); err != nil {
 		t.Fatal(err)
@@ -224,6 +213,17 @@ func TestLeaderPendingShadowShape(t *testing.T) {
 	}
 	if !reflect.DeepEqual(forwarded, []string{"x", "ctrl+b z", "y"}) || !reflect.DeepEqual(*calls, []string{"new-window"}) || r.Mode(r.Context()) != "normal" {
 		t.Fatalf("leader: forwarded=%v calls=%v mode=%s", forwarded, *calls, r.Mode(r.Context()))
+	}
+	// The Enter row armed the sequence timer; expiry forwards the leader alone.
+	if _, err := r.Dispatch(MacroKey{Key: "ctrl+b"}); err != nil || r.Pending != "ctrl+b" || r.Instances["pane"].Payload.Prefix != "ctrl+b" {
+		t.Fatalf("leader alone: err=%v pending=%q payload=%+v", err, r.Pending, r.Instances["pane"].Payload)
+	}
+	r.prefix.deadline = time.Now().Add(-time.Second)
+	if handled, err := r.HandleBindingTimeout(BindingTimeoutMsg{runtime: r, version: r.bindingVersion}); !handled || err != nil {
+		t.Fatalf("timer: handled=%v err=%v", handled, err)
+	}
+	if !reflect.DeepEqual(forwarded[3:], []string{"ctrl+b"}) || r.Mode(r.Context()) != "normal" || r.Pending != "" {
+		t.Fatalf("timed-out leader: forwarded=%v mode=%s pending=%q", forwarded, r.Mode(r.Context()), r.Pending)
 	}
 }
 

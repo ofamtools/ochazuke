@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"unicode"
 )
@@ -31,25 +32,34 @@ type Noun struct {
 // the key or the mode payload (see Sources). When names a registered guard.
 // Unbind removes the default row with the same mode and keys or pattern.
 // Replay dispatches the key again, fresh, after the row ran (a pending mode
-// that hands an unknown key back to the stack). Func rows exist only where a row must re-dispatch (macro recording, leader).
+// that hands an unknown key back to the stack).
+//
+// A row is atomic: a Request (one registered operation, its arguments from
+// the row, the key or the payload), a mode transition (Enter, Leave) or an
+// unbind. There is no row that runs Go code with the key. Composite
+// behaviour is an operation whose handler calls other operations through
+// Execute (record.macro, paste.terminal under the leader); a condition is a
+// named guard. TestBindingRowsAreAtomic pins this for every table.
 type Binding struct {
-	Noun     string                         `json:"noun,omitempty"`
-	Instance string                         `json:"instance,omitempty"`
-	Mode     string                         `json:"mode,omitempty"`
-	Keys     string                         `json:"keys,omitempty"`
-	Pattern  string                         `json:"pattern,omitempty"`
-	Request  Request                        `json:"request"`
-	From     map[string]string              `json:"from,omitempty"`
-	When     string                         `json:"when,omitempty"`
-	Unbind   bool                           `json:"unbind,omitempty"`
-	Replay   bool                           `json:"replay,omitempty"`
-	Func     func(*Runtime, KeyEvent) error `json:"-"`
+	Noun     string            `json:"noun,omitempty"`
+	Instance string            `json:"instance,omitempty"`
+	Mode     string            `json:"mode,omitempty"`
+	Keys     string            `json:"keys,omitempty"`
+	Pattern  string            `json:"pattern,omitempty"`
+	Request  Request           `json:"request"`
+	From     map[string]string `json:"from,omitempty"`
+	When     string            `json:"when,omitempty"`
+	Unbind   bool              `json:"unbind,omitempty"`
+	Replay   bool              `json:"replay,omitempty"`
 }
 
 // Sources a From entry may name: "key" (the key name), "digit" (the key as an
 // integer), "text" (pasted or typed text), "count" (payload count, at least 1),
 // "line" (payload count, 0 when absent, else the operator count), "steps"
-// (count times operator count), "op" (payload operator), "opcount".
+// (count times operator count), "op" (payload operator), "opcount", "prefix"
+// (the key sequence the pending mode holds). A From value may name several
+// sources separated by spaces ("prefix key"): their texts are joined with a
+// space, the way send.terminal reads a key list.
 const (
 	SourceKey     = "key"
 	SourceDigit   = "digit"
@@ -59,7 +69,14 @@ const (
 	SourceSteps   = "steps"
 	SourceOp      = "op"
 	SourceOpCount = "opcount"
+	SourcePrefix  = "prefix"
 )
+
+// CancelKey is the key every key-sequence prefix answers with leave.mode: a
+// default row "<prefix> esc" is kept in each table that binds a sequence, so
+// Escape cancels a pending prefix without running anything and the resolver
+// never names a key.
+const CancelKey = "esc"
 
 // Pattern names.
 const (
@@ -88,7 +105,10 @@ func Do(operation string, args ...Arguments) Binding {
 	return Binding{Request: q}
 }
 
-// Enter builds a row that enters a pending mode with a typed payload.
+// Enter builds a row that enters a pending mode with a typed payload: the
+// operator fields (Op, Count, OpCount) and, for a leader, Prefix (the key
+// sequence the mode holds, which arms the sequence timer) and Request (what
+// the timer runs when no second key arrives).
 func Enter(mode string, payload ...Payload) Binding {
 	args := Arguments{"mode": mode}
 	for _, p := range payload {
@@ -101,6 +121,12 @@ func Enter(mode string, payload ...Payload) Binding {
 		if p.OpCount != 0 {
 			args["opcount"] = p.OpCount
 		}
+		if p.Prefix != "" {
+			args["prefix"] = p.Prefix
+		}
+		if p.Request != nil {
+			args["request"] = *p.Request
+		}
 	}
 	return Do("enter.mode", args)
 }
@@ -108,15 +134,17 @@ func Enter(mode string, payload ...Payload) Binding {
 // Leave builds a row that returns from a pending mode to the mode it shadowed.
 func Leave() Binding { return Do("leave.mode") }
 
-// Func builds a row that runs Go code with the key event; use it only where a
-// row must re-dispatch the key.
-func Func(fn func(*Runtime, KeyEvent) error) Binding { return Binding{Func: fn} }
-
 // FromKey fills an argument from the pressed key name.
 func (b Binding) FromKey(arg string) Binding { return b.from(arg, SourceKey) }
 
 // FromPayload fills an argument from the mode payload (a Source name).
 func (b Binding) FromPayload(arg, source string) Binding { return b.from(arg, source) }
+
+// Join fills an argument from several sources joined with a space: the
+// leader's any row sends Join("keys", SourcePrefix, SourceKey).
+func (b Binding) Join(arg string, sources ...string) Binding {
+	return b.from(arg, strings.Join(sources, " "))
+}
 
 // Guard names the registered guard the row requires.
 func (b Binding) Guard(name string) Binding { b.When = name; return b }
@@ -230,7 +258,7 @@ func (m *ModeBuilder) Unbind(keysOrPattern string) *ModeBuilder {
 	if isPattern(keysOrPattern) {
 		probe = Binding{Pattern: keysOrPattern}
 	}
-	m.n.Bindings[m.mode] = removeRows(m.n.Bindings[m.mode], probe)
+	m.n.Bindings[m.mode] = withPrefixCancels(removeRows(m.n.Bindings[m.mode], probe))
 	return m
 }
 
@@ -256,7 +284,7 @@ func (m *ModeBuilder) add(row Binding) *ModeBuilder {
 			}
 		}
 	}
-	m.n.Bindings[m.mode] = append(rows, row)
+	m.n.Bindings[m.mode] = withPrefixCancels(append(rows, row))
 	m.last = len(rows)
 	m.r.CancelPendingBinding()
 	return m
@@ -270,6 +298,60 @@ func removeRows(rows []Binding, probe Binding) []Binding {
 		}
 	}
 	return out
+}
+
+// withPrefixCancels keeps one "<prefix> esc" → leave.mode row per proper
+// prefix of every key sequence in a table, and drops the rows it generated
+// for prefixes no sequence continues any more. This is where a prefix mode
+// is created (a sequence row makes its prefixes wait), so this is where its
+// default cancel row lives; a row an application binds to those keys wins.
+func withPrefixCancels(rows []Binding) []Binding {
+	// A table is one mode's rows on a noun, or an instance's rows across
+	// modes, so prefixes are tracked per mode.
+	type prefixKey struct{ mode, prefix string }
+	live := map[prefixKey]Binding{} // the cancel row each live prefix wants
+	bound := map[prefixKey]bool{}
+	var order []prefixKey
+	for _, b := range rows {
+		if b.Keys == "" || b.Unbind {
+			continue
+		}
+		parts := strings.Fields(b.Keys)
+		bound[prefixKey{b.Mode, b.Keys}] = true
+		if isPrefixCancel(b) {
+			continue
+		}
+		for i := 1; i < len(parts); i++ {
+			k := prefixKey{b.Mode, strings.Join(parts[:i], " ")}
+			if _, seen := live[k]; !seen {
+				row := Leave()
+				row.Noun, row.Instance, row.Mode, row.Keys = b.Noun, b.Instance, b.Mode, k.prefix+" "+CancelKey
+				live[k] = row
+				order = append(order, k)
+			}
+		}
+	}
+	out := rows[:0]
+	for _, b := range rows {
+		if isPrefixCancel(b) {
+			if _, ok := live[prefixKey{b.Mode, strings.TrimSuffix(b.Keys, " "+CancelKey)}]; !ok {
+				continue
+			}
+		}
+		out = append(out, b)
+	}
+	for _, k := range order {
+		if !bound[prefixKey{k.mode, k.prefix + " " + CancelKey}] {
+			out = append(out, live[k])
+		}
+	}
+	return out
+}
+
+// isPrefixCancel reports whether a row is the default cancel of a sequence
+// prefix: "<prefix> esc" running leave.mode.
+func isPrefixCancel(b Binding) bool {
+	return strings.HasSuffix(b.Keys, " "+CancelKey) && b.Request.Key() == "leave.mode" && len(b.From) == 0 && b.When == ""
 }
 
 // isPattern reports whether a config "keys" value names a key class.
@@ -297,14 +379,52 @@ func (r *Runtime) Bind(rows ...Binding) error {
 			if !row.Unbind {
 				inst.Bindings = append(inst.Bindings, row)
 			}
+			inst.Bindings = withPrefixCancels(inst.Bindings)
 		default:
 			noun := r.Nouns[row.Noun]
 			noun.Bindings[row.Mode] = removeRows(noun.Bindings[row.Mode], row)
 			if !row.Unbind {
 				noun.Bindings[row.Mode] = append(noun.Bindings[row.Mode], row)
 			}
+			noun.Bindings[row.Mode] = withPrefixCancels(noun.Bindings[row.Mode])
 		}
 		r.CancelPendingBinding()
+	}
+	return nil
+}
+
+// ValidateBindings checks every row of every noun and instance table the
+// way Bind checks a row it installs: keys or a pattern, a registered mode
+// and guard, and a Request to a registered operation with known arguments
+// and sources, or an unbind. Every row is therefore atomic. It is the check
+// behind TestBindingRowsAreAtomic and is for an application to run after it
+// loads its own rows.
+func (r *Runtime) ValidateBindings() error {
+	nouns := make([]string, 0, len(r.Nouns))
+	for name := range r.Nouns {
+		nouns = append(nouns, name)
+	}
+	sort.Strings(nouns)
+	for _, name := range nouns {
+		modes := make([]string, 0, len(r.Nouns[name].Bindings))
+		for mode := range r.Nouns[name].Bindings {
+			modes = append(modes, mode)
+		}
+		sort.Strings(modes)
+		for _, mode := range modes {
+			for _, row := range r.Nouns[name].Bindings[mode] {
+				if _, err := r.validateRow(row); err != nil {
+					return fmt.Errorf("noun %s mode %q row %s%s: %w", name, mode, row.Keys, row.Pattern, err)
+				}
+			}
+		}
+	}
+	for _, inst := range r.instancesInOrder() {
+		for _, row := range inst.Bindings {
+			if _, err := r.validateRow(row); err != nil {
+				return fmt.Errorf("instance %s mode %q row %s%s: %w", inst.ID, row.Mode, row.Keys, row.Pattern, err)
+			}
+		}
 	}
 	return nil
 }
@@ -326,10 +446,10 @@ func (r *Runtime) validateRow(row Binding) (Binding, error) {
 	if row.When != "" && r.guard(row.When) == nil {
 		return row, fmt.Errorf("unknown guard %q", row.When)
 	}
-	if row.Func == nil && row.Request.Verb == "" {
+	if row.Request.Verb == "" {
 		row.Unbind = true
 	}
-	if !row.Unbind && row.Func == nil {
+	if !row.Unbind {
 		op, ok := r.Operations[row.Request.Key()]
 		if !ok {
 			return row, fmt.Errorf("unknown operation %q", row.Request.Key())
@@ -351,10 +471,15 @@ func (r *Runtime) validateRow(row Binding) (Binding, error) {
 			if _, ok := op.Parameters[arg]; !ok {
 				return row, fmt.Errorf("%s has no argument %q", op.Key(), arg)
 			}
-			switch source {
-			case SourceKey, SourceDigit, SourceText, SourceCount, SourceLine, SourceSteps, SourceOp, SourceOpCount:
-			default:
-				return row, fmt.Errorf("unknown argument source %q", source)
+			if len(strings.Fields(source)) == 0 {
+				return row, fmt.Errorf("%s has an empty source", arg)
+			}
+			for _, one := range strings.Fields(source) {
+				switch one {
+				case SourceKey, SourceDigit, SourceText, SourceCount, SourceLine, SourceSteps, SourceOp, SourceOpCount, SourcePrefix:
+				default:
+					return row, fmt.Errorf("unknown argument source %q", one)
+				}
 			}
 		}
 	}
@@ -390,8 +515,10 @@ func (r *Runtime) DefineMode(name string, pending bool) error {
 // Guard is a named condition a row requires. The built-in guards are
 // "input" and "no-input" (the focus is or is not an input), "multiline", "count" and "no-count" (the
 // pending count is present or absent), "self" (the focus is the instance
-// whose level the row sits on, not a descendant) and "op:<key>" (the pending
-// operator). Applications add their own with DefineGuard.
+// whose level the row sits on, not a descendant), "shadow-idle" (the mode a
+// shadow mode such as macro_recording re-dispatches in is normal with an
+// empty payload) and "op:<key>" (the pending operator). Applications add
+// their own with DefineGuard.
 type Guard func(*Runtime, KeyEvent) bool
 
 func builtinGuards() map[string]Guard {
@@ -402,6 +529,10 @@ func builtinGuards() map[string]Guard {
 		"count":     func(r *Runtime, ev KeyEvent) bool { return ev.Mode.Payload.Count > 0 },
 		"no-count":  func(r *Runtime, ev KeyEvent) bool { return ev.Mode.Payload.Count == 0 },
 		"self":      func(r *Runtime, ev KeyEvent) bool { return ev.Focus == ev.Level },
+		"shadow-idle": func(r *Runtime, ev KeyEvent) bool {
+			shadow := ev.Mode.Payload.Shadow
+			return shadow != nil && shadow.Name == "normal" && shadow.Payload.empty()
+		},
 	}
 }
 
@@ -470,6 +601,37 @@ func slicesContains(list []string, s string) bool {
 	}
 	return false
 }
+
+// keyTexts is the one key-name-to-text table: the named keys that stand for
+// a character when a macro register is read as text. Every other key name
+// is its own text. textKeys is the reverse for the control characters, read
+// when a text register is replayed as keys.
+var keyTexts = map[string]string{"esc": "\x1b", "enter": "\n", "tab": "\t", "space": " "}
+
+// keyText is the text a key name stands for in a register.
+func keyText(name string) string {
+	if text, ok := keyTexts[name]; ok {
+		return text
+	}
+	return name
+}
+
+// textKey is the key name a register character replays as: control
+// characters take their key name, printable text is its own key.
+func textKey(ch rune) string {
+	if unicode.IsControl(ch) {
+		for name, text := range keyTexts {
+			if text == string(ch) {
+				return name
+			}
+		}
+	}
+	return string(ch)
+}
+
+// isBlackHole reports whether a register name is the black-hole register,
+// which stores nothing and reads empty.
+func isBlackHole(name string) bool { return name == "_" }
 
 // printableKey reports whether a key name is text the editor inserts as-is.
 func printableKey(key string) bool {

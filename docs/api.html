@@ -7,14 +7,14 @@
 nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
 </style></head><body>
 <header><a href="architecture.html">← Architecture field guide</a><p class="eyebrow">Ochazuke / generated reference</p><h1>Go API</h1><p>Actions and bindings come from a fresh <code>demo.New()</code> (examples/demo). Go declarations and comments come from the package source through Go's standard <code>go/doc</code> library. This is a build-time snapshot, not your running application's customized registry.</p>
-<nav aria-label="Catalogs"><a href="actions.html">Actions (82)</a><a href="bindings.html">Default bindings (417)</a><a href="api.html" aria-current="page">Go API (225)</a><a href="transport.html">CLI &amp; socket</a></nav>
+<nav aria-label="Catalogs"><a href="actions.html">Actions (86)</a><a href="bindings.html">Default bindings (417)</a><a href="api.html" aria-current="page">Go API (235)</a><a href="transport.html">CLI &amp; socket</a></nav>
 <div class="toolbar"><label for="search">Search Go API</label><input id="search" type="search" placeholder="Search this catalog" autocomplete="off"><p id="matches" role="status"></p></div>
 <noscript>All entries are available below. Search requires JavaScript.</noscript></header>
 <main>
 
 
 
-<section id="api"><p class="eyebrow">03 / Exported Go API</p><h2>Go API <span class="count">225</span></h2><p>Generated exported types, functions, methods, constants and variables from the root <code>ochazuke</code> package. Unexported fields and function bodies are omitted. Missing prose means the declaration has no source doc comment. Command entry points under <code>cmd/</code> are not library APIs.</p><p>Go also provides terminal documentation: run <code>go doc -all .</code> or <code>go doc Runtime.Execute</code> from the repository root. This offline reference needs no <code>godoc</code> server or published module.</p>
+<section id="api"><p class="eyebrow">03 / Exported Go API</p><h2>Go API <span class="count">235</span></h2><p>Generated exported types, functions, methods, constants and variables from the root <code>ochazuke</code> package. Unexported fields and function bodies are omitted. Missing prose means the declaration has no source doc comment. Command entry points under <code>cmd/</code> are not library APIs.</p><p>Go also provides terminal documentation: run <code>go doc -all .</code> or <code>go doc Runtime.Execute</code> from the repository root. This offline reference needs no <code>godoc</code> server or published module.</p>
 <details class="entry searchable"><summary><code>AppHandler</code> <small>type</small></summary><pre>AppHandler is the signature of an application verb: it reads the Ctx and
 returns Done, Failed or Pending work. Pending work runs off the loop; its
 completion is delivered to the owning instance through the contract, so a
@@ -34,26 +34,34 @@ key class: digit, alpha, printable, paste, any, a class minus keys
 the key or the mode payload (see Sources). When names a registered guard.
 Unbind removes the default row with the same mode and keys or pattern.
 Replay dispatches the key again, fresh, after the row ran (a pending mode
-that hands an unknown key back to the stack). Func rows exist only where a row must re-dispatch (macro recording, leader).
+that hands an unknown key back to the stack).
+
+A row is atomic: a Request (one registered operation, its arguments from
+the row, the key or the payload), a mode transition (Enter, Leave) or an
+unbind. There is no row that runs Go code with the key. Composite
+behaviour is an operation whose handler calls other operations through
+Execute (record.macro, paste.terminal under the leader); a condition is a
+named guard. TestBindingRowsAreAtomic pins this for every table.
 </pre><pre>type Binding struct {
-	Noun     string                         `json:&#34;noun,omitempty&#34;`
-	Instance string                         `json:&#34;instance,omitempty&#34;`
-	Mode     string                         `json:&#34;mode,omitempty&#34;`
-	Keys     string                         `json:&#34;keys,omitempty&#34;`
-	Pattern  string                         `json:&#34;pattern,omitempty&#34;`
-	Request  Request                        `json:&#34;request&#34;`
-	From     map[string]string              `json:&#34;from,omitempty&#34;`
-	When     string                         `json:&#34;when,omitempty&#34;`
-	Unbind   bool                           `json:&#34;unbind,omitempty&#34;`
-	Replay   bool                           `json:&#34;replay,omitempty&#34;`
-	Func     func(*Runtime, KeyEvent) error `json:&#34;-&#34;`
+	Noun     string            `json:&#34;noun,omitempty&#34;`
+	Instance string            `json:&#34;instance,omitempty&#34;`
+	Mode     string            `json:&#34;mode,omitempty&#34;`
+	Keys     string            `json:&#34;keys,omitempty&#34;`
+	Pattern  string            `json:&#34;pattern,omitempty&#34;`
+	Request  Request           `json:&#34;request&#34;`
+	From     map[string]string `json:&#34;from,omitempty&#34;`
+	When     string            `json:&#34;when,omitempty&#34;`
+	Unbind   bool              `json:&#34;unbind,omitempty&#34;`
+	Replay   bool              `json:&#34;replay,omitempty&#34;`
 }</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Binding.FromKey</code> <small>function / method</small></summary><pre>FromKey fills an argument from the pressed key name.
 </pre><pre>func (b Binding) FromKey(arg string) Binding</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Binding.FromPayload</code> <small>function / method</small></summary><pre>FromPayload fills an argument from the mode payload (a Source name).
 </pre><pre>func (b Binding) FromPayload(arg, source string) Binding</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Binding.Guard</code> <small>function / method</small></summary><pre>Guard names the registered guard the row requires.
-</pre><pre>func (b Binding) Guard(name string) Binding</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>BindingHints</code> <small>function / method</small></summary><pre>BindingHints renders the rows a focus answers to in its current mode as a
-hint line, innermost level first: &#34;ctrl&#43;j next.page · : open.palette&#34;. It
-is the data list.bindings prints, so a hint never names a key that is not
-bound. A Func row shows its key alone.
+</pre><pre>func (b Binding) Guard(name string) Binding</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Binding.Join</code> <small>function / method</small></summary><pre>Join fills an argument from several sources joined with a space: the
+leader&#39;s any row sends Join(&#34;keys&#34;, SourcePrefix, SourceKey).
+</pre><pre>func (b Binding) Join(arg string, sources ...string) Binding</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>BindingHints</code> <small>function / method</small></summary><pre>BindingHints renders the rows a focus answers to in its current mode as a
+hint line, innermost level first: &#34;ctrl&#43;j next.page: Next page · : open.palette: Open the palette&#34;.
+It is the data list.bindings prints, so a hint never names a key that is
+not bound, and each row carries its operation&#39;s description.
 </pre><pre>func BindingHints(r *Runtime, focus string) string</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>BindingTimeoutMsg</code> <small>type</small></summary><pre>BindingTimeoutMsg resolves a pending key sequence on the owning event loop.
 Messages from an older sequence or another runtime are ignored.
 </pre><pre>type BindingTimeoutMsg struct {
@@ -74,7 +82,11 @@ the child&#39;s cells without moving them.
 </pre><pre>type CallMsg struct {
 	Request Request
 	Reply   chan Response
-}</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>Completion</code> <small>type</small></summary><pre>Completion is the message off-loop work sends back. It is delivered to the
+}</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>CancelKey</code> <small>constant</small></summary><pre>CancelKey is the key every key-sequence prefix answers with leave.mode: a
+default row &#34;&lt;prefix&gt; esc&#34; is kept in each table that binds a sequence, so
+Escape cancels a pending prefix without running anything and the resolver
+never names a key.
+</pre><pre>const CancelKey = &#34;esc&#34;</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Completion</code> <small>type</small></summary><pre>Completion is the message off-loop work sends back. It is delivered to the
 owning instance only while its ticket is current.
 </pre><pre>type Completion struct {
 	Ticket
@@ -123,7 +135,10 @@ payload).
 	Cursor   int    `json:&#34;cursor&#34;`
 	Parent   int    `json:&#34;parent&#34;`
 	Children []int  `json:&#34;children&#34;`
-}</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>Enter</code> <small>function / method</small></summary><pre>Enter builds a row that enters a pending mode with a typed payload.
+}</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>Enter</code> <small>function / method</small></summary><pre>Enter builds a row that enters a pending mode with a typed payload: the
+operator fields (Op, Count, OpCount) and, for a leader, Prefix (the key
+sequence the mode holds, which arms the sequence timer) and Request (what
+the timer runs when no second key arrives).
 </pre><pre>func Enter(mode string, payload ...Payload) Binding</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Failed</code> <small>function / method</small></summary><pre>Failed reports a synchronous failure.
 </pre><pre>func Failed(err error) Result</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Focus</code> <small>function / method</small></summary><pre>Focus names the instance a page starts focused on (default: the page
 itself). Other constructors ignore it.
@@ -138,13 +153,13 @@ top; Context() derives the old path view from it.
 </pre><pre>type Frame struct {
 	ID    string `json:&#34;id&#34;`
 	Focus string `json:&#34;focus&#34;`
-}</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Func</code> <small>function / method</small></summary><pre>Func builds a row that runs Go code with the key event; use it only where a
-row must re-dispatch the key.
-</pre><pre>func Func(fn func(*Runtime, KeyEvent) error) Binding</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Guard</code> <small>type</small></summary><pre>Guard is a named condition a row requires. The built-in guards are
+}</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Guard</code> <small>type</small></summary><pre>Guard is a named condition a row requires. The built-in guards are
 &#34;input&#34; and &#34;no-input&#34; (the focus is or is not an input), &#34;multiline&#34;, &#34;count&#34; and &#34;no-count&#34; (the
 pending count is present or absent), &#34;self&#34; (the focus is the instance
-whose level the row sits on, not a descendant) and &#34;op:&lt;key&gt;&#34; (the pending
-operator). Applications add their own with DefineGuard.
+whose level the row sits on, not a descendant), &#34;shadow-idle&#34; (the mode a
+shadow mode such as macro_recording re-dispatches in is normal with an
+empty payload) and &#34;op:&lt;key&gt;&#34; (the pending operator). Applications add
+their own with DefineGuard.
 </pre><pre>type Guard func(*Runtime, KeyEvent) bool</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Handler</code> <small>type</small></summary><pre>type Handler func(*Runtime, Context, Arguments) (any, error)</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Header</code> <small>type</small></summary><pre>Header is the top of the page chrome: the title row with an optional
 right-aligned badge (the shell shows the mode there) and the subtitle row,
 which is a label or, when Tabs is set, the page tabs with Active marked.
@@ -198,7 +213,23 @@ the typed component the instance fronts (a *Page in this phase).
 	// contains filtered or unexported fields
 }</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>InstanceOption</code> <small>type</small></summary><pre>InstanceOption configures the instance constructors: Instance, AddPage,
 AddList, AddInput, AddTerminal and RegisterPage.
-</pre><pre>type InstanceOption func(*instanceSpec)</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>IntArg</code> <small>function / method</small></summary><pre>func IntArg(a Arguments, name string, fallback int) int</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>JSONPointer</code> <small>function / method</small></summary><pre>func JSONPointer(value any, path string) (any, error)</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>KeyEvent</code> <small>type</small></summary><pre>KeyEvent is what a row receives: the key, the mode it was resolved in and
+</pre><pre>type InstanceOption func(*instanceSpec)</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>IntArg</code> <small>function / method</small></summary><pre>func IntArg(a Arguments, name string, fallback int) int</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>JSONPointer</code> <small>function / method</small></summary><pre>func JSONPointer(value any, path string) (any, error)</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>JobInfo</code> <small>type</small></summary><pre>JobInfo is one row of the jobs list: what list.jobs returns and what
+the snapshot&#39;s /jobs holds for running jobs.
+</pre><pre>type JobInfo struct {
+	Job     uint64    `json:&#34;job&#34;`
+	Owner   string    `json:&#34;owner&#34;`
+	Verb    string    `json:&#34;verb&#34;`
+	Slot    string    `json:&#34;slot,omitempty&#34;`
+	Started time.Time `json:&#34;started&#34;`
+	State   string    `json:&#34;state&#34;`
+	Error   string    `json:&#34;error,omitempty&#34;`
+}</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>JobRunning, JobDone, JobFailed, JobCancelled</code> <small>constant</small></summary><pre>Job states as list.jobs and the snapshot report them.
+</pre><pre>const (
+	JobRunning   = &#34;running&#34;
+	JobDone      = &#34;done&#34;
+	JobFailed    = &#34;failed&#34;
+	JobCancelled = &#34;cancelled&#34;
+)</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>KeyEvent</code> <small>type</small></summary><pre>KeyEvent is what a row receives: the key, the mode it was resolved in and
 the focused instance.
 </pre><pre>type KeyEvent struct {
 	Key   MacroKey
@@ -426,8 +457,7 @@ Count and OpCount are the Vim counts before and after an operator; Op is
 the pending operator; Prefix is the key sequence typed so far; Request is a
 stored request (the completed match a sequence prefix falls back to, or a
 confirm&#39;s deferred action); Prompt is the text a confirm modal shows;
-Shadow is the mode a shadow mode such as macro_recording or
-leader_pending re-dispatches in.
+Shadow is the mode the macro_recording shadow mode re-dispatches in.
 </pre><pre>type Payload struct {
 	Return  string     `json:&#34;return,omitempty&#34;`
 	Count   int        `json:&#34;count,omitempty&#34;`
@@ -437,10 +467,15 @@ leader_pending re-dispatches in.
 	Prompt  string     `json:&#34;prompt,omitempty&#34;`
 	Request *Request   `json:&#34;request,omitempty&#34;`
 	Shadow  *ModeState `json:&#34;shadow,omitempty&#34;`
-}</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>Pending</code> <small>function / method</small></summary><pre>Pending schedules work off the loop. The context is cancelled when the
-owning instance closes or newer work on it starts.
+}</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>Pending</code> <small>function / method</small></summary><pre>Pending schedules work off the loop as a job that accumulates: it runs
+beside the owner&#39;s other jobs and its completion is delivered whenever it
+finishes. The context is cancelled when the owning instance closes.
 </pre><pre>func Pending(work func(context.Context) (any, error)) Result</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Picker</code> <small>type</small></summary><pre>Picker owns one modal and one ordinary editor. Background commands only read
 immutable snapshots; HandleMessage is the sole result-application boundary.
+Its work runs as three replacing jobs on the picker instance (the &#34;index&#34;,
+&#34;search&#34; and &#34;preview&#34; slots), so the runtime&#39;s jobs list decides which
+result is current: a newer job in a slot drops the older, and Close
+cancels them all.
 </pre><pre>type Picker struct {
 	Runtime   *Runtime
 	Origin    Context
@@ -453,8 +488,8 @@ immutable snapshots; HandleMessage is the sole result-application boundary.
 	// contains filtered or unexported fields
 }</pre><a href="../picker.go">Source file</a></details><details class="entry searchable"><summary><code>Picker.Close</code> <small>function / method</small></summary><pre>Close cancels indexing, searching and previews; the picker instance stays
 registered for the next open.
-</pre><pre>func (p *Picker) Close()</pre><a href="../picker.go">Source file</a></details><details class="entry searchable"><summary><code>Picker.HandleMessage</code> <small>function / method</small></summary><pre>HandleMessage applies only this picker&#39;s current generation on the UI
-loop; each stream (index, search, preview) keeps its own generation.
+</pre><pre>func (p *Picker) Close()</pre><a href="../picker.go">Source file</a></details><details class="entry searchable"><summary><code>Picker.HandleMessage</code> <small>function / method</small></summary><pre>HandleMessage applies only the current job of each slot (index, search,
+preview) on the UI loop; the runtime&#39;s jobs list says which that is.
 </pre><pre>func (p *Picker) HandleMessage(msg tea.Msg) bool</pre><a href="../picker.go">Source file</a></details><details class="entry searchable"><summary><code>Picker.IsOpen</code> <small>function / method</small></summary><pre>func (p *Picker) IsOpen() bool</pre><a href="../picker.go">Source file</a></details><details class="entry searchable"><summary><code>Picker.PendingCommand</code> <small>function / method</small></summary><pre>PendingCommand is drained by Runtime.PendingCommands after every event,
 including CallMsg. It schedules work, never waits on filesystem or search.
 </pre><pre>func (p *Picker) PendingCommand() tea.Cmd</pre><a href="../picker.go">Source file</a></details><details class="entry searchable"><summary><code>Picker.View</code> <small>function / method</small></summary><pre>func (p *Picker) View(width, height int) string</pre><a href="../picker_view.go">Source file</a></details><details class="entry searchable"><summary><code>Picker.ViewBlock</code> <small>function / method</small></summary><pre>ViewBlock renders the picker and reports the cursor of its path editor on
@@ -501,7 +536,11 @@ it on the stored request, and a script may set it to run unattended.
 }</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>Result</code> <small>type</small></summary><pre>Result is what an application handler returns.
 </pre><pre>type Result struct {
 	// contains filtered or unexported fields
-}</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Result.Then</code> <small>function / method</small></summary><pre>Then runs on the loop when the pending work&#39;s completion is delivered and
+}</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Result.Replacing</code> <small>function / method</small></summary><pre>Replacing puts the pending work in a slot on its owner: starting it
+cancels the owner&#39;s running job in the same slot, and a newer job in the
+slot cancels this one. Use it for replaceable work such as a preview or a
+search, never for independent work.
+</pre><pre>func (res Result) Replacing(slot string) Result</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Result.Then</code> <small>function / method</small></summary><pre>Then runs on the loop when the pending work&#39;s completion is delivered and
 still current; it never runs for a stale or cancelled ticket.
 </pre><pre>func (res Result) Then(fn func(Ctx, any, error)) Result</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime</code> <small>type</small></summary><pre>Runtime is owned by one event loop. Transport callers submit messages to
 that loop. It holds the operation registry (Operations, Modes and their
@@ -522,7 +561,7 @@ TestRuntimeHoldsNoComponentFields pins this list.
 	Pending        string
 	BindingTimeout time.Duration
 	// contains filtered or unexported fields
-}</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Accepts</code> <small>function / method</small></summary><pre>Accepts reports whether a ticket is still the owner&#39;s current generation.
+}</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Accepts</code> <small>function / method</small></summary><pre>Accepts reports whether a ticket names a running job.
 </pre><pre>func (r *Runtime) Accepts(t Ticket) bool</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.ActionFor</code> <small>function / method</small></summary><pre>ActionFor returns the innermost noun handler for an operation key on the
 focus stack, or nil when the operation&#39;s own Run applies.
 </pre><pre>func (r *Runtime) ActionFor(focus, key string) Handler</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.AddInput</code> <small>function / method</small></summary><pre>AddInput registers an editor instance. Options: Parent(id) (default app)
@@ -555,9 +594,9 @@ completed match and invalidates its timer.
 its own table answer, and a row that leaves the mode unchanged returns the
 instance to the mode it shadowed.
 </pre><pre>func (r *Runtime) DefineMode(name string, pending bool) error</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Deliver</code> <small>function / method</small></summary><pre>Deliver routes a message on the loop: a Completion goes to its owner when
-current and is dropped otherwise; any other message is offered to every
-component until one claims it. It reports whether a component consumed
-the message and the delivered completion&#39;s error, if any.
+its job is running and is dropped otherwise; any other message is offered
+to every component until one claims it. It reports whether a component
+consumed the message and the delivered completion&#39;s error, if any.
 </pre><pre>func (r *Runtime) Deliver(msg tea.Msg) (bool, error)</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Dispatch</code> <small>function / method</small></summary><pre>Dispatch resolves one key through the stack walk and runs the first row
 that answers. It reports whether any row claimed the key. Live keys and
 macro playback both arrive here.
@@ -567,8 +606,7 @@ focus stack that overrides the operation handles it; otherwise its Run does.
 page or a modal body. Without a modal, the focus must sit inside the active
 page; a hidden page&#39;s instances are addressed with an explicit target.
 </pre><pre>func (r *Runtime) Focus(id string) error</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.FocusID</code> <small>function / method</small></summary><pre>FocusID is the instance the active frame points at.
-</pre><pre>func (r *Runtime) FocusID() string</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Generation</code> <small>function / method</small></summary><pre>Generation is the instance&#39;s current work generation.
-</pre><pre>func (r *Runtime) Generation(id string) uint64</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.HandleBinding</code> <small>function / method</small></summary><pre>HandleBinding dispatches a named key; kept for callers that only know keys.
+</pre><pre>func (r *Runtime) FocusID() string</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.HandleBinding</code> <small>function / method</small></summary><pre>HandleBinding dispatches a named key; kept for callers that only know keys.
 </pre><pre>func (r *Runtime) HandleBinding(key string) (bool, error)</pre><a href="../resolve.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.HandleBindingTimeout</code> <small>function / method</small></summary><pre>HandleBindingTimeout executes the longest completed match, or clears an
 incomplete prefix. Its result is false for a stale or cancelled timer.
 </pre><pre>func (r *Runtime) HandleBindingTimeout(msg BindingTimeoutMsg) (bool, error)</pre><a href="../bindings.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.HandleCall</code> <small>function / method</small></summary><pre>func (r *Runtime) HandleCall(msg CallMsg)</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Input</code> <small>function / method</small></summary><pre>Input returns the input an instance fronts, or nil.
@@ -577,7 +615,18 @@ incomplete prefix. Its result is false for a stale or cancelled timer.
 Its noun is defined when it does not exist yet. Registering an existing id
 returns it unchanged.
 </pre><pre>func (r *Runtime) Instance(id string, opts ...InstanceOption) *Instance</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.InstancePath</code> <small>function / method</small></summary><pre>InstancePath is Ancestry reversed: app first, id last.
-</pre><pre>func (r *Runtime) InstancePath(id string) []string</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.List</code> <small>function / method</small></summary><pre>List returns the list an instance fronts, or nil.
+</pre><pre>func (r *Runtime) InstancePath(id string) []string</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Issue</code> <small>function / method</small></summary><pre>Issue admits a job for owner and returns its ticket and the context its
+work runs under; the caller runs the work and reports back with a message
+carrying the ticket, checked with Accepts and closed with Settle. A slot
+name cancels the owner&#39;s running job in that slot; &#34;&#34; accumulates. Launch
+and Start build on it for work the runtime runs as a tea.Cmd.
+</pre><pre>func (r *Runtime) Issue(owner, verb, slot string, c Ctx) (Ticket, context.Context, error)</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Jobs</code> <small>function / method</small></summary><pre>Jobs lists every job the runtime knows in start order: the running ones
+and the finished ones retained since the last list.jobs read.
+</pre><pre>func (r *Runtime) Jobs() []JobInfo</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Launch</code> <small>function / method</small></summary><pre>Launch starts a pending result as a job of owner under verb and queues
+its work for the adapter. The completion reaches the owner&#39;s
+Component.HandleMessage and the result&#39;s Then callback when the job is
+still current.
+</pre><pre>func (r *Runtime) Launch(owner, verb string, res Result, c Ctx) (Ticket, error)</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.List</code> <small>function / method</small></summary><pre>List returns the list an instance fronts, or nil.
 </pre><pre>func (r *Runtime) List(id string) *List</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.ListBindings</code> <small>function / method</small></summary><pre>ListBindings prints the rows the focus answers to in its current mode,
 one per key or pattern, sorted by key with pattern rows last.
 </pre><pre>func (r *Runtime) ListBindings(focus string) []Binding</pre><a href="../resolve.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Lists</code> <small>function / method</small></summary><pre>Lists lists the registered lists in registration order.
@@ -603,7 +652,8 @@ runtime&#39;s own queue and every component&#39;s PendingCommand.
 through the delivery contract and removed.
 </pre><pre>func (r *Runtime) Pop() error</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Push</code> <small>function / method</small></summary><pre>Push opens a modal focused on frame.Focus. A frame id that is not already
 an instance becomes one of the modal noun for as long as it is open.
-</pre><pre>func (r *Runtime) Push(frame *Frame) error</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Register</code> <small>function / method</small></summary><pre>Register adds an operation. An operation with App set is of kind
+</pre><pre>func (r *Runtime) Push(frame *Frame) error</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.ReadYank</code> <small>function / method</small></summary><pre>ReadYank reads a register (&#34;&#34; is the active register, else the unnamed one).
+</pre><pre>func (r *Runtime) ReadYank(register string) (Yank, error)</pre><a href="../yank_api.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Register</code> <small>function / method</small></summary><pre>Register adds an operation. An operation with App set is of kind
 application and its Run is the framework&#39;s dispatcher for it.
 </pre><pre>func (r *Runtime) Register(o Operation)</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.RegisterPage</code> <small>function / method</small></summary><pre>RegisterPage registers a page as an instance of kind page under app (the
 instance may already exist, registered through Instance with the inputs
@@ -611,17 +661,34 @@ and lists it holds). Focus names where the page starts: the page itself or
 an instance beneath it. Registration does not activate the page.
 </pre><pre>func (r *Runtime) RegisterPage(page *Page, opts ...InstanceOption) error</pre><a href="../pages.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Registers</code> <small>function / method</small></summary><pre>Registers returns the registers component.
 </pre><pre>func (r *Runtime) Registers() *Registers</pre><a href="../registers.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.SetConfirm</code> <small>function / method</small></summary><pre>SetConfirm sets or clears (empty prompt) the confirm prompt of verb.noun.
-</pre><pre>func (r *Runtime) SetConfirm(key, prompt string) error</pre><a href="../confirm.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Snapshot</code> <small>function / method</small></summary><pre>func (r *Runtime) Snapshot() map[string]any</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Start</code> <small>function / method</small></summary><pre>Start schedules work owned by an instance and returns its ticket. Earlier
-work of the same instance is cancelled: one generation is current at a
-time. The completion reaches the owner&#39;s Component.HandleMessage and the
-optional then callback when it is still current.
-</pre><pre>func (r *Runtime) Start(owner string, work func(context.Context) (any, error), then func(Ctx, any, error), c Ctx) (Ticket, error)</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Terminal</code> <small>function / method</small></summary><pre>Terminal returns the terminal an instance fronts, or nil.
-</pre><pre>func (r *Runtime) Terminal(id string) *Terminal</pre><a href="../terminal.go">Source file</a></details><details class="entry searchable"><summary><code>Server</code> <small>type</small></summary><pre>type Server struct {
+</pre><pre>func (r *Runtime) SetConfirm(key, prompt string) error</pre><a href="../confirm.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Settle</code> <small>function / method</small></summary><pre>Settle records the outcome of a running job and reports whether the ticket
+was current; a stale ticket leaves the list unchanged. Deliver settles the
+completions it routes; a component that runs its own commands settles the
+tickets it issued.
+</pre><pre>func (r *Runtime) Settle(t Ticket, err error) bool</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Snapshot</code> <small>function / method</small></summary><pre>func (r *Runtime) Snapshot() map[string]any</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Start</code> <small>function / method</small></summary><pre>Start schedules accumulating work owned by an instance and returns its
+ticket; it is Launch with Pending(work).Then(then) under the verb &#34;work&#34;.
+</pre><pre>func (r *Runtime) Start(owner string, work func(context.Context) (any, error), then func(Ctx, any, error), c Ctx) (Ticket, error)</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.StoreYank</code> <small>function / method</small></summary><pre>StoreYank puts a yank into the shared registers with the bookkeeping the
+editor&#39;s yank operations use: the named or active register, the unnamed
+register, &#34;0&#34; for a yank or &#34;1&#34;..&#34;9&#34; and &#34;-&#34; for a deletion, and the yank
+history. A component outside the package (a grid) yanks shapes the editor
+does not know (&#34;column&#34;), which set.register refuses, so it stores through
+this call and the editor still sees the text.
+</pre><pre>func (r *Runtime) StoreYank(y Yank, register string, deletion bool) error</pre><a href="../yank_api.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Terminal</code> <small>function / method</small></summary><pre>Terminal returns the terminal an instance fronts, or nil.
+</pre><pre>func (r *Runtime) Terminal(id string) *Terminal</pre><a href="../terminal.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.ValidateBindings</code> <small>function / method</small></summary><pre>ValidateBindings checks every row of every noun and instance table the
+way Bind checks a row it installs: keys or a pattern, a registered mode
+and guard, and a Request to a registered operation with known arguments
+and sources, or an unbind. Every row is therefore atomic. It is the check
+behind TestBindingRowsAreAtomic and is for an application to run after it
+loads its own rows.
+</pre><pre>func (r *Runtime) ValidateBindings() error</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Server</code> <small>type</small></summary><pre>type Server struct {
 	// contains filtered or unexported fields
-}</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>Server.Close</code> <small>function / method</small></summary><pre>func (s *Server) Close() error</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>SourceKey, SourceDigit, SourceText, SourceCount, SourceLine, SourceSteps, SourceOp, SourceOpCount</code> <small>constant</small></summary><pre>Sources a From entry may name: &#34;key&#34; (the key name), &#34;digit&#34; (the key as an
+}</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>Server.Close</code> <small>function / method</small></summary><pre>func (s *Server) Close() error</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>SourceKey, SourceDigit, SourceText, SourceCount, SourceLine, SourceSteps, SourceOp, SourceOpCount, SourcePrefix</code> <small>constant</small></summary><pre>Sources a From entry may name: &#34;key&#34; (the key name), &#34;digit&#34; (the key as an
 integer), &#34;text&#34; (pasted or typed text), &#34;count&#34; (payload count, at least 1),
 &#34;line&#34; (payload count, 0 when absent, else the operator count), &#34;steps&#34;
-(count times operator count), &#34;op&#34; (payload operator), &#34;opcount&#34;.
+(count times operator count), &#34;op&#34; (payload operator), &#34;opcount&#34;, &#34;prefix&#34;
+(the key sequence the pending mode holds). A From value may name several
+sources separated by spaces (&#34;prefix key&#34;): their texts are joined with a
+space, the way send.terminal reads a key list.
 </pre><pre>const (
 	SourceKey     = &#34;key&#34;
 	SourceDigit   = &#34;digit&#34;
@@ -631,6 +698,7 @@ integer), &#34;text&#34; (pasted or typed text), &#34;count&#34; (payload count,
 	SourceSteps   = &#34;steps&#34;
 	SourceOp      = &#34;op&#34;
 	SourceOpCount = &#34;opcount&#34;
+	SourcePrefix  = &#34;prefix&#34;
 )</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>StringArg</code> <small>function / method</small></summary><pre>func StringArg(a Arguments, name, fallback string) string</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Styles</code> <small>type</small></summary><pre>Styles is a render-time value; it does not retain mutable appearance state.
 </pre><pre>type Styles struct {
 	Title        lipgloss.Style
@@ -647,9 +715,9 @@ integer), &#34;text&#34; (pasted or typed text), &#34;count&#34; (payload count,
 }</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>Terminal</code> <small>type</small></summary><pre>Terminal is the component of a terminal instance: it holds the last frame
 the stream delivered, renders it into the area a page gives it and reports
 the pane&#39;s cursor. Frames arrive through the delivery contract as
-Completions owned by the instance, one read at a time, so a frame that
-arrives after Close, or after a newer read started, is stale and dropped
-before it reaches the component.
+Completions owned by the instance in the &#34;read&#34; slot, one read at a time,
+so a frame that arrives after Close, or after a newer read started, is
+stale and dropped before it reaches the component.
 </pre><pre>type Terminal struct {
 	// contains filtered or unexported fields
 }</pre><a href="../terminal.go">Source file</a></details><details class="entry searchable"><summary><code>Terminal.Close</code> <small>function / method</small></summary><pre>Close stops reading; the runtime has already cancelled the read in flight.
@@ -686,12 +754,16 @@ the read. Keys are named as bindings spell them (&#34;ctrl&#43;a&#34;, &#34;d&#3
 	Paste(text string) error
 	Resize(cols, rows int) error
 }</pre><a href="../terminal.go">Source file</a></details><details class="entry searchable"><summary><code>Text</code> <small>function / method</small></summary><pre>Text wraps rendered text that carries no cursor.
-</pre><pre>func Text(s string) Block</pre><a href="../block.go">Source file</a></details><details class="entry searchable"><summary><code>Ticket</code> <small>type</small></summary><pre>Ticket names one piece of pending work: the instance that owns it and the
-generation it was started under. A completion whose generation is no longer
-the owner&#39;s current one is stale and dropped.
+</pre><pre>func Text(s string) Block</pre><a href="../block.go">Source file</a></details><details class="entry searchable"><summary><code>Ticket</code> <small>type</small></summary><pre>Ticket names one job: the instance that owns it, its runtime-wide id and
+the slot it was started in. Slot is &#34;&#34; for a job that accumulates (every
+completion is delivered, in finish order) and a name for a job that
+replaces: a newer job in the same slot on the same owner drops the older.
+A completion is stale, and dropped, only when its job was cancelled by a
+newer job in its slot or by its owner closing.
 </pre><pre>type Ticket struct {
-	Owner      string `json:&#34;owner&#34;`
-	Generation uint64 `json:&#34;generation&#34;`
+	Owner string `json:&#34;owner&#34;`
+	Job   uint64 `json:&#34;job&#34;`
+	Slot  string `json:&#34;slot,omitempty&#34;`
 }</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Yank</code> <small>type</small></summary><pre>Yank retains the geometry needed to paste independently of the source field.
 </pre><pre>type Yank struct {
 	Text  string `json:&#34;text&#34;`

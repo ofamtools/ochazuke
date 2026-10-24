@@ -315,3 +315,11 @@ func pickerEntryPaths(entries []ochazuke.PickerEntry) []string {
 	}
 	return paths
 }
+
+// Every row of the demo's tables is a Request to a registered operation or
+// an unbind; see TestBindingRowsAreAtomic in the framework package.
+func TestDemoBindingRowsAreAtomic(t *testing.T) {
+	if err := New().Runtime.ValidateBindings(); err != nil {
+		t.Fatal(err)
+	}
+}

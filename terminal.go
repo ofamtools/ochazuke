@@ -197,17 +197,18 @@ func (r *Runtime) terminalOf(c Context, args Arguments) (*Terminal, error) {
 }
 
 // registerTerminal defines the terminal noun: the terminal mode, where every
-// key forwards to the pane and the leader (ctrl+a) enters leader_pending,
-// and the leader_pending table, where d detaches, the leader again sends
-// itself, a bound key runs its command and any other key forwards the
-// leader and itself, in that order, and returns to terminal mode. A leader
-// with no second key before BindingTimeout forwards the leader alone.
+// key forwards to the pane and the leader (ctrl+a) enters leader_pending
+// with the leader as its prefix and "send the leader alone" as the request
+// its timer runs, and the leader_pending table, where d detaches, the leader
+// again sends itself, a bound key runs its command and any other key sends
+// the leader and itself (Join of the prefix and the key), in that order; the
+// mode is one-shot, so every row returns to terminal mode. Every row is a
+// Request: rebinding the leader is binding another key to the same
+// Enter row with that key as its prefix.
 func registerTerminal(r *Runtime) {
 	r.DefineMode("terminal", false)
 	r.DefineMode("leader_pending", true)
-	forward := func(keys string) Request {
-		return Request{Verb: "send", Noun: "terminal", Args: Arguments{"keys": keys}}
-	}
+	leader := Request{Verb: "send", Noun: "terminal", Args: Arguments{"keys": "ctrl+a"}}
 	r.Define("terminal").
 		Verb("send", func(r *Runtime, c Context, a Arguments) (any, error) {
 			t, err := r.terminalOf(c, a)
@@ -225,9 +226,14 @@ func registerTerminal(r *Runtime) {
 			if err != nil {
 				return nil, err
 			}
+			if keys := StringArg(a, "keys", ""); keys != "" {
+				if _, err := r.ExecuteAt(c, Request{Verb: "send", Noun: "terminal", Args: Arguments{"id": t.id, "keys": keys}}); err != nil {
+					return nil, err
+				}
+			}
 			text := StringArg(a, "text", "")
 			return text, t.stream.Paste(text)
-		}, "Paste text into the pane").
+		}, "Paste text into the pane, after forwarding any keys given (the leader, under it)").
 		Verb("attach", func(r *Runtime, c Context, a Arguments) (any, error) {
 			t, err := r.terminalOf(c, a)
 			if err != nil {
@@ -245,40 +251,18 @@ func registerTerminal(r *Runtime) {
 			return r.Context(), err
 		}, "Return focus to the instance around the terminal; the pane keeps running").
 		Mode("terminal").
-		Bind("ctrl+a", Func(func(r *Runtime, ev KeyEvent) error {
-			inst := r.Instances[ev.Focus]
-			shadow := ev.Mode
-			fallback := forward(ev.Key.Key)
-			r.enterMode(inst, "leader_pending", Payload{Shadow: &shadow, Prefix: ev.Key.Key, Request: &fallback})
-			r.armPrefix(ev.Focus, "leader_pending", ev.Key.Key)
-			return nil
-		})).
+		Bind("ctrl+a", Enter("leader_pending", Payload{Prefix: "ctrl+a", Request: &leader})).
 		Pattern(Paste, Do("paste.terminal").FromPayload("text", SourceText)).
 		Pattern(Any, Do("send.terminal").FromKey("keys")).
 		Mode("leader_pending").
 		Bind("d", Do("detach.terminal")).
 		Bind("ctrl+a", Do("send.terminal", Arguments{"keys": "ctrl+a"})).
-		Pattern(Paste, Func(func(r *Runtime, ev KeyEvent) error {
-			inst := r.Instances[ev.Focus]
-			prefix := inst.Payload.Prefix
-			r.leaveMode(inst)
-			if _, err := r.Execute(forward(prefix)); err != nil {
-				return err
-			}
-			_, err := r.Execute(Request{Verb: "paste", Noun: "terminal", Args: Arguments{"text": r.argument(SourceText, ev)}})
-			return err
-		})).
-		Pattern(Any, Func(func(r *Runtime, ev KeyEvent) error {
-			inst := r.Instances[ev.Focus]
-			prefix := inst.Payload.Prefix
-			r.leaveMode(inst)
-			_, err := r.Execute(forward(prefix + " " + ev.Key.Key))
-			return err
-		}))
+		Pattern(Paste, Do("paste.terminal").FromPayload("keys", SourcePrefix).FromPayload("text", SourceText)).
+		Pattern(Any, Do("send.terminal").Join("keys", SourcePrefix, SourceKey))
 	// Required-parameter metadata for the rows above and for the CLI.
 	for verb, params := range map[string]map[string]Parameter{
 		"send":   {"id": {Type: "string", Description: "Terminal instance (defaults to the focused one)"}, "keys": {Type: "string", Required: true, Description: "Space-separated key names, forwarded in order"}},
-		"paste":  {"id": {Type: "string", Description: "Terminal instance (defaults to the focused one)"}, "text": {Type: "string", Required: true}},
+		"paste":  {"id": {Type: "string", Description: "Terminal instance (defaults to the focused one)"}, "text": {Type: "string", Required: true}, "keys": {Type: "string", Description: "Space-separated key names forwarded before the text"}},
 		"attach": {"id": {Type: "string", Description: "Terminal instance (defaults to the focused one)"}},
 		"detach": {"id": {Type: "string", Description: "Terminal instance (defaults to the focused one)"}},
 	} {

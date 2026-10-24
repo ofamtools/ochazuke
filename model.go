@@ -226,23 +226,42 @@ func (m *Model) footer() Footer {
 }
 
 // BindingHints renders the rows a focus answers to in its current mode as a
-// hint line, innermost level first: "ctrl+j next.page · : open.palette". It
-// is the data list.bindings prints, so a hint never names a key that is not
-// bound. A Func row shows its key alone.
+// hint line, innermost level first: "ctrl+j next.page: Next page · : open.palette: Open the palette".
+// It is the data list.bindings prints, so a hint never names a key that is
+// not bound, and each row carries its operation's description.
 func BindingHints(r *Runtime, focus string) string {
 	var hints []string
 	for _, b := range r.bindingRows(focus) {
-		key := b.Keys
-		if key == "" {
-			key = "<" + b.Pattern + ">"
-		}
-		hint := modalLabel(key)
-		if b.Request.Verb != "" {
-			hint += " " + modalLabel(b.Request.Key())
-		}
-		hints = append(hints, hint)
+		hints = append(hints, rowHint(r, b))
 	}
 	return strings.Join(hints, " · ")
+}
+
+// rowHint is one row as a hint: its key or pattern, the operation it runs
+// and that operation's description cut at its first clause.
+func rowHint(r *Runtime, b Binding) string {
+	key := b.Keys
+	if key == "" {
+		key = "<" + b.Pattern + ">"
+	}
+	hint := modalLabel(key)
+	if b.Request.Verb == "" {
+		return hint
+	}
+	hint += " " + modalLabel(b.Request.Key())
+	if short := shortDescription(r.Operations[b.Request.Key()].Description); short != "" {
+		hint += ": " + short
+	}
+	return hint
+}
+
+// shortDescription is an operation description cut at its first clause: the
+// text before the first ":", ";", "," or parenthesis, without a final period.
+func shortDescription(description string) string {
+	if i := strings.IndexAny(description, ":;,("); i >= 0 {
+		description = description[:i]
+	}
+	return strings.TrimSuffix(strings.TrimSpace(description), ".")
 }
 
 // View renders the shell as a full-screen tea.View; View().Content is the
