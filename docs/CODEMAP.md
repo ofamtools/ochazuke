@@ -352,8 +352,8 @@ Importable package `cli`: 3 source files, 1 test files.
 
 ### cli/mount.go
 
-- lines: 65
-- purpose: Mount registers every noun of the shell's runtime as an inline command of app that runs the shell with the full noun name, so oden's prefix matching resolves...
+- lines: 84
+- purpose: Mount registers the application nouns of the shell's runtime (a noun with at least one KindApplication verb) as inline commands of app that run the shell wit...
 - methods: Shell(1)
 - funcs: Mount
 - leans on: shell.go(2), catalog.go(1)

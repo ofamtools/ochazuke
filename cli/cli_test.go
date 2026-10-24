@@ -7,6 +7,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -397,5 +398,35 @@ func TestCatalogGolden(t *testing.T) {
 	}
 	if !bytes.Equal(got, want) {
 		t.Fatalf("catalog differs from %s (go test ./cli -update):\n%s", golden, got)
+	}
+}
+
+// Mount makes inline commands of the application nouns only: the
+// framework's nouns (modal, mode, bindings, ...) stay off help and reach
+// the shell through Default, unless named as extras.
+func TestMountMountsOnlyApplicationNouns(t *testing.T) {
+	f := newFixture(t)
+	commands := func(extra ...string) map[string]bool {
+		app := oden.New("tool", nil, oden.WithStdio(strings.NewReader(""), io.Discard, io.Discard), oden.WithPath(t.TempDir()))
+		Mount(app, New(f.r, "tool", strings.NewReader(""), io.Discard, io.Discard), extra...)
+		names := map[string]bool{}
+		for _, e := range app.Catalog().Entries {
+			if e.Kind == oden.KindInline {
+				names[e.Name] = true
+			}
+		}
+		return names
+	}
+	got := commands()
+	if !got["widget"] || !got["catalog"] {
+		t.Fatalf("commands %v lack widget or catalog", got)
+	}
+	for _, noun := range []string{"modal", "mode", "modes", "bindings", "history", "input", "app"} {
+		if got[noun] {
+			t.Fatalf("framework noun %s mounted: %v", noun, got)
+		}
+	}
+	if got := commands("bindings"); !got["bindings"] || got["history"] {
+		t.Fatalf("extra bindings: %v", got)
 	}
 }
