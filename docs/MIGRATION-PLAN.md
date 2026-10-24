@@ -174,3 +174,39 @@ Owner-confirmed items, relayed from the forked design session:
 Noted during phase 7, not done: `Terminal` frames are rows of ANSI, so a cell-buffer source (`x/vt`) would be adapted by the stream, not the framework; a pane that needs a read to restart after a dropped command re-arms only on delivery; hints have no per-row description (rows show `key verb.noun`).
 
 All phases complete.
+
+## After phase 7: delivery contract amendment (owner decision, 2026-10-24, from the forked design session)
+
+Two changes to the phase 6 contract in `delivery.go`. Nothing in the CSV app depends on them; the znbu app does immediately.
+
+### 1. Staleness is per job and opt-in, not per owner
+
+As landed, `Ticket.Generation` is per owning instance, so five independent jobs on one row (fetch, commit, push...) keep only the last completion. Wrong for independent work, right only for replaceable work such as a preview.
+
+```js
+ticket = { owner: "repo-1", job: "j42", slot: null }        // accumulate (default): every completion is delivered, in finish order, with its ticket
+ticket = { owner: "pane-7", job: "j43", slot: "preview" }   // replace (opt-in): a newer job in the same slot on the same owner drops the older
+
+Pending(work)                         // accumulate
+Pending(work).Replacing("preview")    // replace
+```
+
+- A job is dropped only when its owner instance is closed, or when a newer job claims its slot. Never because the user did something else meanwhile.
+- The runtime keeps a jobs list exposed as `jobs.list` → `[{ job, owner, verb, started, state }]`. Status rails and toasts render this list; entries clear on completion or show the error. Palette and help can show "fetch (running)" from the same data.
+- Keep: Done / Failed / Pending results, work off the loop, completions applied on the loop, `Close` cancels and releases.
+
+### 2. Nothing blocks; `await` is a mode
+
+A verb that the user should wait for declares `await` (and a scope). The handler stays plain. While the awaited job is out, the owner (or the app) is in a pending `busy` mode whose table has only cancel rows; the spinner is how `busy` renders (verb name, elapsed, from the payload). Completion, failure or cancel leaves `busy` and restores the shadow.
+
+```js
+verbs: { save: { run: app.save, await: true, scope: "app" }, fetch: { run: app.fetch } }   // fetch is a background job
+state.mode = { name: "busy", job: "j42", shadow: previous, scope: "instance" | "app" }
+modes.busy = { "ctrl+c": "job.cancel", esc: "job.cancel", any: ignore }                   // ignore, not queue, to start
+```
+
+- `scope: "instance"` holds only the owner; `scope: "app"` holds everything (Vim `:w` feel).
+- `await` and `scope` are properties on the verb row, so config can flip them per verb.
+- `bindings list` in `busy` shows exactly the cancel rows.
+
+Order: do change 1 first as a short correctness task (it is a bug in the contract and small); change 2 can land with the CSV app's open-file, which is its first real use.
