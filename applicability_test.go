@@ -113,3 +113,28 @@ func TestRequestAddressesItsNounOnTheFocusPath(t *testing.T) {
 		t.Fatalf("list row label: %q", r2.Instances["a"].Label)
 	}
 }
+
+// {{label}} in a confirm prompt reads a label argument before the target
+// instance's label, as {{<arg>}} does for other names.
+func TestConfirmLabelArgumentWins(t *testing.T) {
+	r, _, _ := applicabilityFixture(t)
+	op := r.Operations["row.delete"]
+	op.Parameters = map[string]Parameter{"label": {Type: "string"}}
+	r.Operations["row.delete"] = op
+	prompt := func(args Arguments) any {
+		v, err := r.Execute(Request{Verb: "delete", Noun: "row", Args: args})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := r.Pop(); err != nil {
+			t.Fatal(err)
+		}
+		return v.(map[string]any)["prompt"]
+	}
+	if got := prompt(nil); got != "Delete row row3 (Row 3)?" {
+		t.Fatalf("instance label: %v", got)
+	}
+	if got := prompt(Arguments{"label": "agent pane 7"}); got != "Delete row row3 (agent pane 7)?" {
+		t.Fatalf("label argument: %v", got)
+	}
+}
