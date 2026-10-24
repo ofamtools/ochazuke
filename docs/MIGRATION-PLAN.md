@@ -258,7 +258,8 @@ page.focusables (optional)                     // explicit order override, the r
 - Modals compute their ring the same way over their own subtree.
 - The runtime owns every focus change, including restore on page open and modal pop; consumer handlers move focus only through `focus.set`.
 - Tab moves focus by default; a multiline editor that wants a literal tab binds it in its own insert table (inner level wins).
-- Additive: `Focusable` on Define and Instance, the three operations, optional `Page.Focusables`.
+- Two levels of jump, two declared properties. `focusable` marks stops; `region` marks groupings (panels) that are never stops themselves. `focus.next {scope: "stop"}` (default) moves component to component, so one press leaves a 3000-row list for the button below it in the same panel; `focus.next {scope: "region"}` moves panel to panel and lands on the first (or remembered) stop inside. Both take `steps` from the count. Owner's default keys: `}` `{` for stops, `)` `(` for regions (the inverse of Vim's sentence/paragraph sizes; chosen deliberately); tab / shift+tab also bound to stops.
+- Additive: `Focusable` and `Region` on Define and Instance, the three operations with a `scope` argument, optional `Page.Focusables`.
 
 ### 2. Bugs and oversights in the resolver
 
