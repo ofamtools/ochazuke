@@ -27,10 +27,11 @@ type MacroState struct {
 // are Func rows on the app noun because they re-dispatch.
 func registerMacros(r *Runtime) {
 	record := func(r *Runtime, ev KeyEvent) error {
-		if len(r.Macro.Keys) >= 10000 {
+		g := r.Registers()
+		if len(g.Macro.Keys) >= 10000 {
 			return errors.New("macro recording exceeds 10000 keys")
 		}
-		r.Macro.Keys = append(r.Macro.Keys, ev.Key)
+		g.Macro.Keys = append(g.Macro.Keys, ev.Key)
 		_, err := r.dispatchIn(ev.Focus, *ev.Mode.Payload.Shadow, ev.Key)
 		return err
 	}
@@ -57,21 +58,23 @@ func registerMacros(r *Runtime) {
 		if key == "_" {
 			return nil, errors.New("cannot record into black-hole register")
 		}
-		if r.Macro.Recording != "" {
+		g := r.Registers()
+		if g.Macro.Recording != "" {
 			return nil, errors.New("macro recording already active")
 		}
-		r.Macro.Recording = key
-		r.Macro.Keys = nil
+		g.Macro.Recording = key
+		g.Macro.Keys = nil
 		if appendMode {
-			r.Macro.Keys = registerMacroKeys(r.Registers[key])
+			g.Macro.Keys = registerMacroKeys(g.Named[key])
 		}
-		return r.Macro, nil
+		return g.Macro, nil
 	})
 	add("stop", "Finish the current macro recording", nil, func(r *Runtime, c Context, a Arguments) (any, error) {
-		if r.Macro.Recording == "" {
+		g := r.Registers()
+		if g.Macro.Recording == "" {
 			return nil, errors.New("no macro recording")
 		}
-		keys := append([]MacroKey(nil), r.Macro.Keys...)
+		keys := append([]MacroKey(nil), g.Macro.Keys...)
 		var text strings.Builder
 		for _, key := range keys {
 			if key.Paste && strings.HasPrefix(key.Key, "[") {
@@ -91,20 +94,21 @@ func registerMacros(r *Runtime) {
 				}
 			}
 		}
-		r.Registers[r.Macro.Recording] = Register{Yank: Yank{Text: text.String(), Shape: "char"}, Keys: keys}
-		r.Macro.Recording = ""
-		r.Macro.Keys = nil
-		return r.Macro, nil
+		g.Named[g.Macro.Recording] = Register{Yank: Yank{Text: text.String(), Shape: "char"}, Keys: keys}
+		g.Macro.Recording = ""
+		g.Macro.Keys = nil
+		return g.Macro, nil
 	})
 	add("replay", "Replay a register through application dispatch; @ repeats last macro", map[string]Parameter{"register": {Type: "string", Required: true}, "steps": {Type: "integer"}}, func(r *Runtime, c Context, a Arguments) (any, error) {
 		err := r.replayMacro(StringArg(a, "register", ""), IntArg(a, "steps", 1))
-		return r.Macro, err
+		return r.Registers().Macro, err
 	})
 }
 
 func (r *Runtime) replayMacro(name string, count int) (err error) {
+	g := r.Registers()
 	if name == "@" {
-		name = r.Macro.Last
+		name = g.Macro.Last
 		if name == "" {
 			return errors.New("no previous macro")
 		}
@@ -116,22 +120,22 @@ func (r *Runtime) replayMacro(name string, count int) (err error) {
 	if count < 1 || count > 10000 {
 		return errors.New("macro count must be between 1 and 10000")
 	}
-	if r.Macro.Depth >= 16 {
+	if g.Macro.Depth >= 16 {
 		return errors.New("macro recursion limit exceeded")
 	}
-	keys := registerMacroKeys(r.Registers[key])
+	keys := registerMacroKeys(g.Named[key])
 	if len(keys) == 0 {
 		return errors.New("macro register is empty")
 	}
-	outer := r.Macro.Depth == 0
+	outer := g.Macro.Depth == 0
 	frameCount := len(r.Frames)
 	if outer {
-		r.Macro.Steps = 0
+		g.Macro.Steps = 0
 	}
-	r.Macro.Last = key
-	r.Macro.Depth++
+	g.Macro.Last = key
+	g.Macro.Depth++
 	defer func() {
-		r.Macro.Depth--
+		g.Macro.Depth--
 		if outer {
 			if err != nil {
 				r.CancelPendingBinding()
@@ -142,7 +146,7 @@ func (r *Runtime) replayMacro(name string, count int) (err error) {
 				}
 			}
 			if inst := r.Instances[r.FocusID()]; inst != nil && (r.pendingModes[inst.State] || inst.Payload.Prefix != "") {
-				if in := r.Inputs[inst.ID]; in != nil {
+				if in := r.Input(inst.ID); in != nil {
 					in.resetKeys()
 				} else {
 					r.leaveMode(inst)
@@ -152,8 +156,8 @@ func (r *Runtime) replayMacro(name string, count int) (err error) {
 	}()
 	for range count {
 		for _, key := range keys {
-			r.Macro.Steps++
-			if r.Macro.Steps > 10000 {
+			g.Macro.Steps++
+			if g.Macro.Steps > 10000 {
 				return errors.New("macro step limit exceeded")
 			}
 			if _, err = r.Dispatch(key); err != nil {

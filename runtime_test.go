@@ -41,7 +41,7 @@ func TestBindingsOverlayAndSequenceCancellation(t *testing.T) {
 	if handled, err := r.HandleBinding("x"); !handled || err != nil {
 		t.Fatalf("binding failed: %v %v", handled, err)
 	}
-	if r.Quit || string(r.Inputs["field"].Text) != "inner" {
+	if r.Quit || string(r.Input("field").Text) != "inner" {
 		t.Fatal("inner mode-independent binding must override outer mode-specific binding")
 	}
 	_, _ = r.HandleBinding("g")
@@ -70,7 +70,7 @@ func TestModalRestoresExactInputInstance(t *testing.T) {
 	_ = r.Push(&Frame{ID: "dialog", Focus: "child"})
 	_, _ = r.Execute(Request{Verb: "insert", Noun: "input", Args: Arguments{"text": "child"}})
 	_ = r.Pop()
-	if r.Inputs[r.Context().InputID] != input || string(input.Text) != "drXaft" || input.Cursor != 3 || input.Mode != "insert" {
+	if r.Input(r.Context().InputID) != input || string(input.Text) != "drXaft" || input.Cursor != 3 || input.Mode != "insert" {
 		t.Fatal("parent editing state was not restored")
 	}
 	_, err := r.Execute(Request{Verb: "undo", Noun: "input"})
@@ -90,7 +90,7 @@ func TestOperationArgumentErrorsDoNotMutateInput(t *testing.T) {
 			t.Fatalf("expected error for %#v", args)
 		}
 	}
-	if string(r.Inputs["field"].Text) != "safe" {
+	if string(r.Input("field").Text) != "safe" {
 		t.Fatal("invalid requests mutated text")
 	}
 }

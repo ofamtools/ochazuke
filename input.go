@@ -301,7 +301,7 @@ func RegisterInputOperations(r *Runtime) {
 	} {
 		fn := spec.fn
 		r.Register(Operation{Verb: spec.verb, Noun: "input", Description: spec.desc, Parameters: spec.params, Result: "input state", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-			in := r.Inputs[c.InputID]
+			in := r.Input(c.InputID)
 			if in == nil {
 				return nil, errors.New("no focused input")
 			}
@@ -312,9 +312,9 @@ func RegisterInputOperations(r *Runtime) {
 		}})
 	}
 	r.Register(Operation{Verb: "cancel", Noun: "input", Description: "Cancel the pending count, operator, prefix or register of the focused instance; a visual selection returns to normal", Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		r.ActiveRegister = ""
+		r.Registers().Active = ""
 		inst := r.Instances[focusOf(c)]
-		if in := r.Inputs[c.InputID]; in != nil {
+		if in := r.Input(c.InputID); in != nil {
 			if isVisual(in.Mode) {
 				in.SetMode("normal")
 			} else {

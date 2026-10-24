@@ -18,7 +18,7 @@ func TestDemoPageKeysDoNotStealInsertEditing(t *testing.T) {
 	}
 	keytest.Type(m, "iabc")
 	keytest.Press(m, "ctrl+k")
-	if got := string(m.Runtime.Inputs["directory"].Text); got != "abc" {
+	if got := string(m.Runtime.Input("directory").Text); got != "abc" {
 		t.Fatalf("insert Ctrl-K text = %q, want abc", got)
 	}
 	if m.Runtime.Page != "playground" {

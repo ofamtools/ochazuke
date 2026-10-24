@@ -149,8 +149,9 @@ func (r *Runtime) Noun(name string) *Noun { return r.Nouns[name] }
 
 // NounBuilder is the declaration surface of one noun.
 type NounBuilder struct {
-	r *Runtime
-	n *Noun
+	r    *Runtime
+	n    *Noun
+	last string // the operation key the last Verb call declared
 }
 
 func (b *NounBuilder) Noun() *Noun { return b.n }
@@ -165,15 +166,35 @@ func (b *NounBuilder) Verbs(verbs ...string) *NounBuilder {
 }
 
 // Verb registers verb.noun as an operation when it is new, else installs the
-// handler as this noun's override of the existing operation.
-func (b *NounBuilder) Verb(verb string, h Handler, description ...string) *NounBuilder {
+// handler as this noun's override of the existing operation. The handler is
+// a Handler (an interaction verb, run on the loop) or an AppHandler
+// (func(Ctx) Result: an application verb whose pending work runs off the
+// loop). An override of an existing operation must be a Handler.
+func (b *NounBuilder) Verb(verb string, h any, description ...string) *NounBuilder {
 	key := verb + "." + b.n.Name
+	run, app := appHandlerOf(h)
 	if _, ok := b.r.Operations[key]; !ok {
-		b.r.Register(Operation{Verb: verb, Noun: b.n.Name, Description: strings.Join(description, " "), Result: "JSON value", Run: h})
+		b.r.Register(Operation{Verb: verb, Noun: b.n.Name, Description: strings.Join(description, " "), Result: "JSON value", Run: run, App: app})
+	} else if run != nil {
+		b.n.Actions[key] = run
 	} else {
-		b.n.Actions[key] = h
+		panic("an application verb cannot override " + key)
 	}
+	b.last = key
 	b.Verbs(verb)
+	return b
+}
+
+// Confirm asks before the last declared verb runs: the prompt template
+// ({{id}}, {{noun}}, {{<arg>}}) opens a confirm modal whose y runs the
+// stored request and n or esc pops it. An empty prompt removes the confirm.
+func (b *NounBuilder) Confirm(prompt string) *NounBuilder {
+	if b.last == "" {
+		panic("Confirm must follow Verb")
+	}
+	if err := b.r.SetConfirm(b.last, prompt); err != nil {
+		panic(err)
+	}
 	return b
 }
 
@@ -367,7 +388,7 @@ func (r *Runtime) DefineMode(name string, pending bool) error {
 }
 
 // Guard is a named condition a row requires. The built-in guards are
-// "input" (the focus is an input), "multiline", "count" and "no-count" (the
+// "input" and "no-input" (the focus is or is not an input), "multiline", "count" and "no-count" (the
 // pending count is present or absent), "self" (the focus is the instance
 // whose level the row sits on, not a descendant) and "op:<key>" (the pending
 // operator). Applications add their own with DefineGuard.
@@ -375,8 +396,9 @@ type Guard func(*Runtime, KeyEvent) bool
 
 func builtinGuards() map[string]Guard {
 	return map[string]Guard{
-		"input":     func(r *Runtime, ev KeyEvent) bool { return r.Inputs[ev.Focus] != nil },
-		"multiline": func(r *Runtime, ev KeyEvent) bool { in := r.Inputs[ev.Focus]; return in != nil && in.Multiline },
+		"input":     func(r *Runtime, ev KeyEvent) bool { return r.Input(ev.Focus) != nil },
+		"no-input":  func(r *Runtime, ev KeyEvent) bool { return r.Input(ev.Focus) == nil },
+		"multiline": func(r *Runtime, ev KeyEvent) bool { in := r.Input(ev.Focus); return in != nil && in.Multiline },
 		"count":     func(r *Runtime, ev KeyEvent) bool { return ev.Mode.Payload.Count > 0 },
 		"no-count":  func(r *Runtime, ev KeyEvent) bool { return ev.Mode.Payload.Count == 0 },
 		"self":      func(r *Runtime, ev KeyEvent) bool { return ev.Focus == ev.Level },

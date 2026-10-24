@@ -21,17 +21,20 @@ Do not hand-edit either generated file. If a map entry is wrong, fix the code or
 
 | Concern | Files |
 |---|---|
-| Operation registry, focus, modal chain, `ExecuteAt`, snapshot | `runtime.go` |
+| Operation registry (kinds), focus, modal chain, `OpenModal`, `ExecuteAt`, snapshot, typed lookups (`Input`, `List`) | `runtime.go` |
+| Delivery contract (`Component`, `Ticket`, `Completion`, `Start`/`Deliver`/`PendingCommands`), application verbs (`Ctx`, `Result`) | `delivery.go` |
+| Per-verb confirm: the `confirm` noun, `SetConfirm`, prompt templates | `confirm.go` |
 | Nouns, the `Define` builder, binding rows, key classes, guards | `noun.go` |
 | Instances, parent links, `Payload`, ancestry, targets | `instance.go` |
 | The stack walk (`Dispatch`), pending modes, key-sequence prefixes, `list.bindings` | `resolve.go`, `bindings.go` |
-| Editor mode tables as data (Readline, Vim, counts, operators, registers, macros) | `editor_bindings.json`, `editor_keys.go` |
+| Editor mode tables as data (Readline, Vim, operators, visual counts) | `editor_bindings.json`, `editor_keys.go` |
+| App-noun rows for counts, registers and macros (`q`, `@`, `"`, digits) | `registers_bindings.json`, loaded by `editor_keys.go` |
 | Binding files, modes, `select.context` | `configuration.go` |
-| Bubble Tea adapter, page shell, modal renderers, scroll offsets | `model.go` |
+| Bubble Tea adapter (delivers messages and drains commands through the runtime), page shell, modal renderers, scroll offsets | `model.go` |
 | Pages as instances, `Runtime.Page`, navigation | `pages.go` |
 | Input state (text, cursor, undo) and the editor handlers | `input.go`, `editing.go`, `editor*.go` |
 | Selectable lists (rows as instances of nouns) | `list.go` |
-| Yanks, registers, macros, history | `registers.go`, `macros.go`, `yank_history.go` |
+| The `registers` component (yanks, named registers, history, active register, macro state), one instance under `app` | `registers.go`, `macros.go`, `yank_history.go` |
 | Command palette (verb/noun, instances) | `palette.go`, `palette_editing.go`, `palette_nouns.go` |
 | Path picker and fuzzy index | `picker.go`, `picker_search.go`, `picker_preview.go`, `picker_view.go` |
 | Styling and bounded modal composition | `theme.go`, `surface.go`, `layout.go` |
@@ -41,7 +44,11 @@ Do not hand-edit either generated file. If a map entry is wrong, fix the code or
 ## Invariants
 
 - `Runtime` is single-owner state. Call it from the Bubble Tea update loop. Other goroutines and processes go through `Call`/`CallMsg`, never concurrent `Execute`.
-- Every keyboard action dispatches a registered operation through one stack walk (`Runtime.Dispatch`): from the focused instance outward to `app` (the `modal` noun before `app` while a modal is open), then the `editor` noun as the fallback of every stack. At each level the instance's own rows sit above its noun's; the mode table is read before the any-mode table; an exact key beats a key class (`digit`, `alpha`, `printable`, `paste`, `alpha-q`, `one-of:…`) beats `any`. The CLI is a generic `NOUN VERB` adapter over the same registry. Adding a feature means registering an operation and a row, never a key case: no key-name switch statements exist in `editing.go` or `editor.go`.
+- `Runtime` holds no component fields: operation registry, nouns, instances and parent links, focus, `Page`, `Frames`, pending-sequence state, `BindingTimeout`, `Quit` and the command queue the adapter drains (`TestRuntimeHoldsNoComponentFields` pins the exact field list). Inputs, lists, pages, the picker and the registers are instances whose `Component` holds the typed object; read them with `r.Input(id)`, `r.List(id)`, `r.PageOf(id)`, `r.Registers()`, never a map on `Runtime`.
+- Components implement the delivery contract (`HandleMessage`, `PendingCommand`, `Close`). Every result carries its owner instance id and a generation (`Ticket`); `Deliver` drops a stale or orphaned `Completion`, `closeInstance` (Pop, `SetItems`, `removeInstance`) cancels outstanding work and calls `Close`. The `Model` drives components from the instance registry; there is no component list on it.
+- An operation is `interaction` (default, runs on the loop) or `application` (an `AppHandler func(Ctx) Result` registered through `Define(noun).Verb`). Application work returned as `Pending` runs off the loop as a `tea.Cmd`; the framework never blocks the loop on application I/O, and the completion lands on the owning instance or is dropped if it closed. Palette, `list.operations`, docs and help show the kind.
+- Confirmation is a property of a verb (`Operation.Confirm`, set by `.Confirm("…")` or `set.confirm`), not a modal per call site: it opens the `confirm` noun's modal with `Payload{Prompt, Request}` parented at the focus; `y` runs the stored request (`Request.Confirmed`), `n`/`esc` pop, other keys are swallowed.
+- Every keyboard action dispatches a registered operation through one stack walk (`Runtime.Dispatch`): from the focused instance outward to `app` (the `modal` noun before `app` while a modal is open), then the `editor` noun as the fallback when an input is on the path (a list row or page focus ends at `app`, so editor rows neither answer nor appear in `list.bindings` there; counts, registers and macros are `app` rows and still do). At each level the instance's own rows sit above its noun's; the mode table is read before the any-mode table; an exact key beats a key class (`digit`, `alpha`, `printable`, `paste`, `alpha-q`, `one-of:…`) beats `any`. The CLI is a generic `NOUN VERB` adapter over the same registry. Adding a feature means registering an operation and a row, never a key case: no key-name switch statements exist in `editing.go` or `editor.go`.
 - Every pending condition is an exclusive mode with a typed `Payload` on the instance: `count_pending`, `operator_pending`, `g_pending`, `register_pending`, `macro_pending`, `replay_pending`, a key-sequence prefix (`"normal g"`), the `macro_recording` shadow. Exclusive means only that mode's table answers (no any-mode rows); one-shot means the answering key consumes the mode before its request runs unless the request is `enter.mode`, `append.count`, `leave.mode` or `cancel.input`. Rows are `Request`s; `Func` rows exist only where a row re-dispatches (recording, leader).
 - Change modes with `Input.SetMode`. Never assign `Input.Mode` directly.
 - Modals keep their own frame and existing input instances. Closing one restores interaction state, not a copy of shared data.

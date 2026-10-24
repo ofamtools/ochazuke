@@ -20,7 +20,7 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 		return func(r *ochazuke.Runtime, c ochazuke.Context, _ ochazuke.Arguments) (any, error) {
 			values := map[string]string{}
 			for _, id := range []string{"title", "notes"} {
-				if input := r.Inputs[id]; input != nil {
+				if input := r.Input(id); input != nil {
 					values[id] = string(input.Text)
 				}
 			}
@@ -34,7 +34,7 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 	activeList := func(r *ochazuke.Runtime) (PageConfig, *ochazuke.List, error) {
 		for _, page := range cfg.Pages {
 			if page.ID == r.Page && page.Renderer == "list" {
-				return page, r.Lists[page.Focus], nil
+				return page, r.List(page.Focus), nil
 			}
 		}
 		return PageConfig{}, nil, fmt.Errorf("open a list page first")
@@ -155,7 +155,7 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 			return nil, fmt.Errorf("no active configured page")
 		},
 		"summarize": func(r *ochazuke.Runtime, _ ochazuke.Context, _ ochazuke.Arguments) (any, error) {
-			notes := r.Inputs["notes"]
+			notes := r.Input("notes")
 			if notes == nil {
 				return nil, fmt.Errorf("summarize requires the notes input")
 			}
@@ -208,7 +208,7 @@ func registerActions(r *ochazuke.Runtime, cfg Config) error {
 			return fmt.Errorf("action verb and noun are required")
 		}
 		for _, id := range requiredInputs[spec.Handler] {
-			if r.Inputs[id] == nil {
+			if r.Input(id) == nil {
 				return fmt.Errorf("handler %q requires input %q", spec.Handler, id)
 			}
 		}
@@ -220,7 +220,7 @@ func registerActions(r *ochazuke.Runtime, cfg Config) error {
 		if spec.On != "" {
 			continue
 		}
-		operation := ochazuke.Operation{Verb: spec.Verb, Noun: spec.Noun, Description: spec.Description, Parameters: spec.Parameters, Result: spec.Result, Run: handlers[spec.Handler]}
+		operation := ochazuke.Operation{Verb: spec.Verb, Noun: spec.Noun, Description: spec.Description, Parameters: spec.Parameters, Result: spec.Result, Confirm: spec.Confirm, Run: handlers[spec.Handler]}
 		if _, exists := r.Operations[operation.Key()]; exists {
 			return fmt.Errorf("duplicate operation %q", operation.Key())
 		}

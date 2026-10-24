@@ -50,10 +50,10 @@ func TestModelPickerProcessesCoalescedTypingAndCalls(t *testing.T) {
 	keytest.Press(m, "ctrl+e")
 	cmd = keytest.Type(m, "/ntt")
 	drain(cmd)
-	if got := string(m.Runtime.Inputs["picker-path"].Text); got != root+"/ntt" {
+	if got := string(m.Runtime.Input("picker-path").Text); got != root+"/ntt" {
 		t.Fatalf("fast typing lost characters: %q", got)
 	}
-	entries := m.Pickers[0].Entries
+	entries := m.Runtime.Instances["picker"].Component.(*Picker).Entries
 	if len(entries) != 1 || entries[0].Path != "nested/target.txt" {
 		t.Fatalf("recursive fuzzy results: %#v", entries)
 	}
@@ -70,9 +70,7 @@ func TestModelPickerHomeProjectsSelectableBeforeRecursiveScan(t *testing.T) {
 	}
 	m := NewDemo()
 	t.Cleanup(func() {
-		for _, p := range m.Pickers {
-			p.stop()
-		}
+		m.Runtime.closeInstance("picker")
 	})
 	// Execute one delivery stage, retaining the next commands instead of
 	// racing the full scan against assertions about the visible shallow list.
@@ -103,7 +101,7 @@ func TestModelPickerHomeProjectsSelectableBeforeRecursiveScan(t *testing.T) {
 	search := stage(cmd)
 	stage(search) // Leave recursion pending.
 	frame := m.Runtime.top()
-	picker := m.Pickers[0]
+	picker := m.Runtime.Instances["picker"].Component.(*Picker)
 	if !reflect.DeepEqual(pickerEntryPaths(picker.Entries), []string{".", "project"}) || !picker.Loading {
 		t.Fatalf("home projects shallow state: %#v loading=%v", picker.Entries, picker.Loading)
 	}
@@ -112,7 +110,7 @@ func TestModelPickerHomeProjectsSelectableBeforeRecursiveScan(t *testing.T) {
 	}
 	keytest.Press(m, "ctrl+n")
 	keytest.Press(m, "ctrl+s")
-	if got, want := string(m.Runtime.Inputs["directory"].Text), filepath.Join(canonical, "proj", "project"); got != want {
+	if got, want := string(m.Runtime.Input("directory").Text), filepath.Join(canonical, "proj", "project"); got != want {
 		t.Fatalf("shallow project selection = %q, want %q", got, want)
 	}
 	if frame == m.Runtime.top() {

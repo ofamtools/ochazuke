@@ -93,7 +93,7 @@ func (p *Palette) entries() []PaletteEntry {
 			if instances {
 				value = "verb:" + op.Verb
 			}
-			add(PaletteEntry{Value: value, Kind: "verb", Label: op.Verb, Verb: op.Verb})
+			add(PaletteEntry{Value: value, Kind: "verb", Label: verbLabel(op), Verb: op.Verb})
 		}
 	}
 	if p.stage == "second" && p.section == "nouns" && instances {
@@ -122,4 +122,17 @@ func (p *Palette) entries() []PaletteEntry {
 		}
 	}
 	return filtered
+}
+
+// verbLabel names a verb in the palette with its kind when it is an
+// application verb and marks a verb that asks for confirmation.
+func verbLabel(op Operation) string {
+	label := op.Verb
+	if op.Kind == KindApplication {
+		label += " · application"
+	}
+	if op.Confirm != "" {
+		label += " · confirm"
+	}
+	return label
 }

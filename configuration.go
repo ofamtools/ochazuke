@@ -50,12 +50,12 @@ func registerConfiguration(r *Runtime) {
 			}
 			id = path[len(path)-1]
 			if input := StringArg(a, "input", ""); input != "" {
-				if r.Inputs[input] == nil || r.Instances[input].Parent != id {
+				if r.Input(input) == nil || r.Instances[input].Parent != id {
 					return nil, errors.New("input does not belong to this interaction path")
 				}
 				id = input
 			}
-			if got := r.InstancePath(id); len(got) == 0 || !samePath(got, path, r.Inputs[id] != nil) {
+			if got := r.InstancePath(id); len(got) == 0 || !samePath(got, path, r.Input(id) != nil) {
 				return nil, fmt.Errorf("invalid path for %q", id)
 			}
 		}

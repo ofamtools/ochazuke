@@ -26,14 +26,21 @@ type level struct {
 }
 
 // stack is the resolution order for a focus: the focused instance outward to
-// app, with the modal noun inserted before app while a modal is open, and the
-// editor noun last as the framework default every stack falls back to.
+// app, with the modal noun inserted before app while a modal is open, and
+// the editor noun last as the framework default when an input (editor,
+// prompt or palette field) is on the path. A list row, a page or a terminal
+// focus ends at app: editor rows neither answer nor appear in list.bindings
+// for it; counts, registers and macros are app rows and still do.
 func (r *Runtime) stack(focus string) []level {
 	ancestry := r.Ancestry(focus)
 	var out []level
 	onStack := map[string]bool{}
+	editing := false
 	for _, id := range ancestry {
 		onStack[id] = true
+		if r.Input(id) != nil {
+			editing = true
+		}
 	}
 	for i, id := range ancestry {
 		inst := r.Instances[id]
@@ -50,7 +57,7 @@ func (r *Runtime) stack(focus string) []level {
 		}
 		out = append(out, level{inst: inst, noun: noun})
 	}
-	if editor := r.Nouns["editor"]; editor != nil {
+	if editor := r.Nouns["editor"]; editor != nil && editing {
 		out = append(out, level{noun: editor})
 	}
 	return out
@@ -65,7 +72,7 @@ func (r *Runtime) Dispatch(key MacroKey) (bool, error) {
 	}
 	focus := r.FocusID()
 	mode := r.modeState(focus)
-	if r.Macro.Recording != "" && r.Macro.Depth == 0 {
+	if r.Registers().Macro.Recording != "" && r.Registers().Macro.Depth == 0 {
 		shadow := mode
 		mode = ModeState{Name: "macro_recording", Payload: Payload{Shadow: &shadow}}
 	}

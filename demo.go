@@ -53,7 +53,6 @@ func NewDemo() *Model {
 	}
 	m = NewModel(r)
 	picker := NewPicker(r)
-	m.Pickers = append(m.Pickers, picker)
 	m.ModalViews["picker"] = ModalView{Title: "Choose a path", Render: func(r *Runtime, f *Frame, w, h int) Block { return picker.ViewBlock(w, h) }}
 	for _, id := range []string{"draft", "nested-draft"} {
 		title := "Draft editor"
@@ -66,7 +65,7 @@ func NewDemo() *Model {
 			if f.ID == "draft" {
 				hint += " · Ctrl-N nest"
 			}
-			editor := InputBlock(r.Inputs[f.Focus], w, max(1, h-2))
+			editor := InputBlock(r.Input(f.Focus), w, max(1, h-2))
 			return editor.Offset(0, 2).WithText(s.Muted.Render(safeText(hint)) + "\n\n" + editor.Text)
 		}}
 	}
@@ -133,7 +132,7 @@ func NewDemo() *Model {
 	// bind puts a row on a noun, or on an input instance when id names one.
 	bind := func(id, mode, key, verb, noun string, args Arguments) {
 		row := Binding{Noun: id, Mode: mode, Keys: key, Request: Request{Verb: verb, Noun: noun, Args: args}}
-		if r.Inputs[id] != nil {
+		if r.Input(id) != nil {
 			row.Noun, row.Instance = "", id
 		}
 		if err := r.Bind(row); err != nil {
@@ -197,7 +196,7 @@ func demoPlayground(m *Model, width, height int, lastNoun string) Block {
 		if active {
 			marker = "› "
 		}
-		body := InputBlock(r.Inputs[id], max(1, w-2-2*s.Padding), h)
+		body := InputBlock(r.Input(id), max(1, w-2-2*s.Padding), h)
 		if !active {
 			body.Cursor = nil
 		}

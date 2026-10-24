@@ -9,6 +9,6 @@
   {"verb": "open", "noun": "workspace", "description": "Open a configured modal, including nested modals", "handler": "open-modal", "result": "object", "parameters": {"id": {"type": "string", "required": true, "description": "Configured modal ID"}}},
   {"verb": "fetch", "noun": "repo", "description": "Fetch the selected repository row", "handler": "fetch-row", "result": "object", "parameters": {"row": {"type": "string", "description": "Row ID (defaults to the selected row)"}}},
   {"verb": "open", "noun": "worktree", "description": "Open the selected worktree row", "handler": "open-row", "result": "object", "parameters": {"row": {"type": "string", "description": "Row ID (defaults to the selected row)"}}},
-  {"verb": "remove", "noun": "worktree", "description": "Remove the selected worktree row from the sample data", "handler": "remove-row", "result": "object", "parameters": {"row": {"type": "string", "description": "Row ID (defaults to the selected row)"}}},
+  {"verb": "remove", "noun": "worktree", "description": "Remove the selected worktree row from the sample data", "handler": "remove-row", "result": "object", "confirm": "Remove worktree {{id}}?", "parameters": {"row": {"type": "string", "description": "Row ID (defaults to the selected row)"}}},
   {"verb": "checkout", "noun": "branch", "description": "Check out the selected branch row", "handler": "checkout-row", "result": "object", "parameters": {"row": {"type": "string", "description": "Row ID (defaults to the selected row)"}}}
 ]

@@ -49,8 +49,8 @@ func TestDispatchMacroPendingBeatsLayerBinding(t *testing.T) {
 		}
 	}
 	dispatchTestState(t, m, in, "abc", calls)
-	if m.Runtime.Macro.Recording != "x" {
-		t.Fatalf("bound key was not taken as the register name: %+v", m.Runtime.Macro)
+	if m.Runtime.Registers().Macro.Recording != "x" {
+		t.Fatalf("bound key was not taken as the register name: %+v", m.Runtime.Registers().Macro)
 	}
 }
 

@@ -138,7 +138,7 @@ func TestPickerInsertsAtCapturedRuneCursorAndRestoresOrigin(t *testing.T) {
 	if got, want := string(origin.Text), "pré"+canonical+"SUFFIX"; got != want {
 		t.Fatalf("insert got %q want %q", got, want)
 	}
-	if p.IsOpen() || r.Context().InputID != origin.ID || r.Inputs[origin.ID] != origin {
+	if p.IsOpen() || r.Context().InputID != origin.ID || r.Input(origin.ID) != origin {
 		t.Fatalf("origin context not restored: %#v", r.Context())
 	}
 	pickerDo(t, r, "undo", "input", nil)

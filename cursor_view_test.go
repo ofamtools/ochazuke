@@ -209,7 +209,7 @@ func TestCursorViewPreservesEditorState(t *testing.T) {
 func TestModelViewCursorFollowsFocusedInput(t *testing.T) {
 	r := NewRuntime()
 	page := pageTestRegister(t, r, "alpha")
-	in := r.Inputs["alpha-input"]
+	in := r.Input("alpha-input")
 	page.Render = func(r *Runtime, width, height int) Block {
 		if r.Context().InputID != in.ID {
 			return Text("no field focused")
@@ -266,7 +266,7 @@ func TestModelViewCursorFollowsFocusedInput(t *testing.T) {
 	if _, err := r.Execute(Request{Verb: "push", Noun: "modal", Args: Arguments{"id": "draft", "input": "modal-input"}}); err != nil {
 		t.Fatal(err)
 	}
-	r.Inputs["modal-input"].Cursor = 2
+	r.Input("modal-input").Cursor = 2
 	view := m.View()
 	locate(view, "xyz", 2)
 	if strings.Contains(strings.Split(ansi.Strip(view.Content), "\n")[view.Cursor.Y], "alpha") {

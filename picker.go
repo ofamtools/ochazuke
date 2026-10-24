@@ -63,7 +63,7 @@ type pickerSearchMsg struct {
 
 func NewPicker(r *Runtime) *Picker {
 	p := &Picker{Runtime: r}
-	r.Instance("picker", Kind("picker"))
+	r.Instance("picker", Kind("picker")).Component = p
 	p.input = NewInput("picker-path", "", false)
 	if err := r.AddInput(p.input, Parent("picker"), Kind("prompt")); err != nil {
 		panic(err)
@@ -177,7 +177,7 @@ func (p *Picker) open(c Context, args Arguments) (any, error) {
 	if p.IsOpen() {
 		return nil, errors.New("picker is already open")
 	}
-	origin := p.Runtime.Inputs[c.InputID]
+	origin := p.Runtime.Input(c.InputID)
 	if origin == nil || origin == p.input {
 		return nil, errors.New("picker needs an originating input")
 	}
@@ -225,7 +225,7 @@ func (p *Picker) open(c Context, args Arguments) (any, error) {
 	inst := p.Runtime.Instances[p.input.ID]
 	p.input = NewInput(p.input.ID, path, false)
 	p.input.pin, p.input.inst = "insert", inst
-	p.Runtime.Inputs[p.input.ID] = p.input
+	inst.Component = p.input
 	p.input.SetMode("insert")
 	inst.State = "insert"
 	p.input.Cursor = len(p.input.Text)
@@ -306,7 +306,7 @@ func (p *Picker) choose(path string) (any, error) {
 	if p.originKind == "paths" && strings.ContainsAny(path, "\r\n") {
 		return nil, errors.New("paths fields cannot contain a filename with a newline")
 	}
-	origin := p.Runtime.Inputs[p.Origin.InputID]
+	origin := p.Runtime.Input(p.Origin.InputID)
 	if origin != p.originInput || string(origin.Text) != p.originText || origin.Kind != p.originKind {
 		return nil, errors.New("originating input changed while picker was open; cancel and reopen to choose safely")
 	}
@@ -440,7 +440,11 @@ func (p *Picker) queueSearch() {
 	})
 }
 
-// PendingCommand must be drained by the Bubble Tea adapter after every event,
+// Close cancels indexing, searching and previews; the picker instance stays
+// registered for the next open.
+func (p *Picker) Close() { p.stop() }
+
+// PendingCommand is drained by Runtime.PendingCommands after every event,
 // including CallMsg. It schedules work, never waits on filesystem or search.
 func (p *Picker) PendingCommand() tea.Cmd {
 	if !p.IsOpen() {
@@ -452,7 +456,8 @@ func (p *Picker) PendingCommand() tea.Cmd {
 	return tea.Batch(commands...)
 }
 
-// HandleMessage applies only this picker's current generation on the UI loop.
+// HandleMessage applies only this picker's current generation on the UI
+// loop; each stream (index, search, preview) keeps its own generation.
 func (p *Picker) HandleMessage(msg tea.Msg) bool {
 	switch result := msg.(type) {
 	case pickerPreviewMsg:

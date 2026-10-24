@@ -102,10 +102,14 @@ func (r *Runtime) installSpecRow(b *NounBuilder, row Binding) error {
 }
 
 // registerEditorNoun installs the framework default tables: the editor noun
-// every stack falls back to, and the prompt noun that pins insert mode.
+// a stack with an input falls back to, the prompt noun that pins insert
+// mode, and the registers component's rows on the app noun.
 func registerEditorNoun(r *Runtime) {
 	if err := r.LoadBindingSpec("editor", editorSpec); err != nil {
 		panic(err)
 	}
 	r.Define("prompt").Pin("insert")
+	if err := r.LoadBindingSpec("app", registersSpec); err != nil {
+		panic(err)
+	}
 }

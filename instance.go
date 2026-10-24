@@ -14,14 +14,16 @@ import (
 // resolved above its noun's table at the same stack level. Component holds
 // the typed component the instance fronts (a *Page in this phase).
 type Instance struct {
-	ID        string    `json:"id"`
-	Noun      string    `json:"noun"`
-	Parent    string    `json:"parent,omitempty"`
-	State     string    `json:"state"`
-	Payload   Payload   `json:"payload"`
-	Bindings  []Binding `json:"bindings,omitempty"`
-	Component any       `json:"-"`
-	seq       uint64
+	ID         string    `json:"id"`
+	Noun       string    `json:"noun"`
+	Parent     string    `json:"parent,omitempty"`
+	State      string    `json:"state"`
+	Payload    Payload   `json:"payload"`
+	Bindings   []Binding `json:"bindings,omitempty"`
+	Component  any       `json:"-"`
+	seq        uint64
+	generation uint64       // current work generation; a Completion from an older one is stale
+	work       *pendingWork // outstanding off-loop work, at most one per instance
 }
 
 // Payload is the small typed state a pending mode carries. Return is the raw
@@ -29,20 +31,22 @@ type Instance struct {
 // Count and OpCount are the Vim counts before and after an operator; Op is
 // the pending operator; Prefix is the key sequence typed so far; Request is a
 // stored request (the completed match a sequence prefix falls back to, or a
-// confirm's deferred action); Shadow is the mode a shadow mode such as
-// macro_recording or leader_pending re-dispatches in.
+// confirm's deferred action); Prompt is the text a confirm modal shows;
+// Shadow is the mode a shadow mode such as macro_recording or
+// leader_pending re-dispatches in.
 type Payload struct {
 	Return  string     `json:"return,omitempty"`
 	Count   int        `json:"count,omitempty"`
 	OpCount int        `json:"opCount,omitempty"`
 	Op      string     `json:"op,omitempty"`
 	Prefix  string     `json:"prefix,omitempty"`
+	Prompt  string     `json:"prompt,omitempty"`
 	Request *Request   `json:"request,omitempty"`
 	Shadow  *ModeState `json:"shadow,omitempty"`
 }
 
 func (p Payload) empty() bool {
-	return p.Count == 0 && p.OpCount == 0 && p.Op == "" && p.Prefix == "" && p.Request == nil && p.Shadow == nil
+	return p.Count == 0 && p.OpCount == 0 && p.Op == "" && p.Prefix == "" && p.Prompt == "" && p.Request == nil && p.Shadow == nil
 }
 
 type instanceSpec struct{ parent, noun string }
@@ -130,7 +134,7 @@ func focusOf(c Context) string {
 func (r *Runtime) contextOf(id string) Context {
 	path := r.InstancePath(id)
 	out := Context{Path: path}
-	if r.Inputs[id] != nil {
+	if r.Input(id) != nil {
 		out.InputID = id
 		out.Path = path[:len(path)-1]
 	}
@@ -150,9 +154,9 @@ func (r *Runtime) ActionFor(focus, key string) Handler {
 	return nil
 }
 
-// removeInstance drops an instance and its own rows.
+// removeInstance closes and drops an instance and its own rows.
 func (r *Runtime) removeInstance(id string) {
+	r.closeInstance(id)
 	delete(r.Instances, id)
 	delete(r.rows, id)
-	delete(r.Inputs, id)
 }

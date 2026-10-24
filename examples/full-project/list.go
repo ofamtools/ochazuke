@@ -37,7 +37,7 @@ func listPageView(r *ochazuke.Runtime, list *ochazuke.List, spec PageConfig, sty
 		cw, ch := ochazuke.PanelContentSize(w, h)
 		return ochazuke.Text(layout.Panel("Sample items", list.View(cw, ch), w, h, list.Focused()))
 	}
-	input := r.Inputs[spec.Inputs[0]]
+	input := r.Input(spec.Inputs[0])
 	editorPanel := func(w, h int) ochazuke.Block {
 		cw, ch := ochazuke.PanelContentSize(w, h)
 		var rows []ochazuke.Block
@@ -60,7 +60,7 @@ func listPageView(r *ochazuke.Runtime, list *ochazuke.List, spec PageConfig, sty
 	} else if bodyHeight >= 8 {
 		topHeight := bodyHeight / 2
 		body = stack(listPanel(width, topHeight), editorPanel(width, bodyHeight-topHeight))
-	} else if r.Inputs[frame.Focus] == nil {
+	} else if r.Input(frame.Focus) == nil {
 		body = listPanel(width, bodyHeight)
 	} else {
 		body = editorPanel(width, bodyHeight)
@@ -132,6 +132,12 @@ func bindingsView(r *ochazuke.Runtime, focus string, width int) string {
 		if len(b.Request.Args) > 0 {
 			line += fmt.Sprintf(" %v", map[string]any(b.Request.Args))
 		}
+		if op, ok := r.Operations[b.Request.Key()]; ok {
+			line += " · " + op.Kind
+			if op.Confirm != "" {
+				line += " · confirm"
+			}
+		}
 		lines = append(lines, ansi.Truncate(line, max(1, width), "…"))
 	}
 	return strings.Join(lines, "\n")
@@ -149,7 +155,7 @@ func registerModals(m *ochazuke.Model, specs []ModalConfig) error {
 		if spec.Renderer != "text" && spec.Renderer != "confirm" && spec.Renderer != "bindings" {
 			return fmt.Errorf("modal %q: unknown renderer %q", spec.ID, spec.Renderer)
 		}
-		if spec.Input != "" && m.Runtime.Inputs[spec.Input] == nil {
+		if spec.Input != "" && m.Runtime.Input(spec.Input) == nil {
 			return fmt.Errorf("modal %q: unknown input %q", spec.ID, spec.Input)
 		}
 		if spec.Renderer == "confirm" && spec.Input == "" {
@@ -162,7 +168,7 @@ func registerModals(m *ochazuke.Model, specs []ModalConfig) error {
 			}
 			if spec.Renderer == "confirm" {
 				inputHeight := max(1, h-strings.Count(body.Text, "\n")-3)
-				body = stack(body, ochazuke.Text(""), ochazuke.InputBlock(r.Inputs[frame.Focus], w, inputHeight))
+				body = stack(body, ochazuke.Text(""), ochazuke.InputBlock(r.Input(frame.Focus), w, inputHeight))
 			}
 			return body
 		}}

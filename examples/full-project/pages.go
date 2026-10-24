@@ -30,7 +30,7 @@ func registerPages(m *ochazuke.Model, specs []PageConfig) error {
 				return fmt.Errorf("page %q: input %q is unknown or belongs to another page", spec.ID, id)
 			}
 		}
-		focusedInput := m.Runtime.Inputs[spec.Focus] != nil
+		focusedInput := m.Runtime.Input(spec.Focus) != nil
 		if focusedInput && !slices.Contains(spec.Inputs, spec.Focus) {
 			return fmt.Errorf("page %q: focused input must appear in inputs", spec.ID)
 		}
@@ -88,7 +88,7 @@ func workspaceView(r *ochazuke.Runtime, frame *ochazuke.Frame, spec PageConfig, 
 	selected, minimum := 0, 2+len(status)
 	for i, id := range spec.Inputs {
 		minimum += 4 // Three panel rows and a separator.
-		if r.Inputs[id].Multiline {
+		if r.Input(id).Multiline {
 			minimum++
 		}
 		if frame.Focus == id {
@@ -108,7 +108,7 @@ func workspaceView(r *ochazuke.Runtime, frame *ochazuke.Frame, spec PageConfig, 
 	extra := max(0, height-minimum)
 	layout := ochazuke.Layout{Styles: styles}
 	for i, id := range inputs {
-		input := r.Inputs[id]
+		input := r.Input(id)
 		panelHeight := 3
 		if input.Multiline {
 			panelHeight = 4 + min(4, extra)

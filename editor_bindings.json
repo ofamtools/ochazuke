@@ -1,5 +1,5 @@
 {
-  "pending": ["count_pending", "visual_count_pending", "operator_pending", "operator_g_pending", "g_pending", "register_pending", "macro_pending", "replay_pending"],
+  "pending": ["count_pending", "visual_count_pending", "operator_pending", "operator_g_pending", "g_pending"],
   "extends": {"visual-line": "visual", "visual-block": "visual", "count_pending": "normal", "visual_count_pending": "visual"},
   "maps": {
     "motion": {"h": "left", "left": "left", "l": "right", "right": "right", "j": "down", "down": "down", "k": "up", "up": "up", "w": "word-forward", "b": "word-backward", "e": "word-end", "0": "line-start", "home": "line-start", "$": "line-end", "end": "line-end", "G": "last-line"},
@@ -21,13 +21,7 @@
     {"mode": "normal", "keys": "p", "request": {"verb": "paste", "noun": "input", "args": {"before": false}}, "from": {"steps": "count"}},
     {"mode": "normal", "keys": "P", "request": {"verb": "paste", "noun": "input", "args": {"before": true}}, "from": {"steps": "count"}},
     {"mode": "normal", "keys": "g", "request": {"verb": "enter", "noun": "mode", "args": {"mode": "g_pending"}}, "from": {"count": "count"}},
-    {"mode": "normal", "keys": "\"", "request": {"verb": "enter", "noun": "mode", "args": {"mode": "register_pending"}}},
-    {"mode": "normal", "keys": "q", "request": {"verb": "enter", "noun": "mode", "args": {"mode": "macro_pending"}}},
-    {"mode": "normal", "keys": "@", "request": {"verb": "enter", "noun": "mode", "args": {"mode": "replay_pending"}}, "from": {"count": "count"}},
-    {"mode": "normal", "pattern": "digit-0", "request": {"verb": "enter", "noun": "mode", "args": {"mode": "count_pending"}}, "from": {"count": "digit"}},
 
-    {"mode": "count_pending", "keys": "0", "request": {"verb": "append", "noun": "count", "args": {"digit": 0}}},
-    {"mode": "count_pending", "pattern": "digit", "request": {"verb": "append", "noun": "count"}, "from": {"digit": "digit"}},
     {"mode": "count_pending", "keys": "esc", "request": {"verb": "cancel", "noun": "input"}},
     {"mode": "count_pending", "pattern": "any", "request": {"verb": "leave", "noun": "mode"}, "replay": true},
 
@@ -43,9 +37,6 @@
     {"mode": "visual", "keys": "P", "request": {"verb": "paste", "noun": "input", "args": {"before": true}}, "from": {"steps": "count"}},
     {"mode": "visual", "keys": "esc", "request": {"verb": "cancel", "noun": "input"}},
     {"mode": "visual", "keys": "g", "request": {"verb": "enter", "noun": "mode", "args": {"mode": "g_pending"}}, "from": {"count": "count"}},
-    {"mode": "visual", "keys": "\"", "request": {"verb": "enter", "noun": "mode", "args": {"mode": "register_pending"}}},
-    {"mode": "visual", "keys": "q", "request": {"verb": "enter", "noun": "mode", "args": {"mode": "macro_pending"}}},
-    {"mode": "visual", "keys": "@", "request": {"verb": "enter", "noun": "mode", "args": {"mode": "replay_pending"}}, "from": {"count": "count"}},
     {"mode": "visual", "pattern": "digit-0", "request": {"verb": "enter", "noun": "mode", "args": {"mode": "visual_count_pending"}}, "from": {"count": "digit"}},
 
     {"mode": "visual_count_pending", "keys": "0", "request": {"verb": "append", "noun": "count", "args": {"digit": 0}}},
@@ -68,15 +59,6 @@
 
     {"mode": "g_pending", "keys": "g", "request": {"verb": "move", "noun": "input", "args": {"motion": "first-line"}}, "from": {"line": "count"}},
     {"mode": "g_pending", "pattern": "any", "request": {"verb": "cancel", "noun": "input"}},
-
-    {"mode": "register_pending", "keys": "esc", "request": {"verb": "cancel", "noun": "input"}},
-    {"mode": "register_pending", "pattern": "any", "request": {"verb": "select", "noun": "register"}, "from": {"name": "key"}},
-
-    {"mode": "macro_pending", "keys": "esc", "request": {"verb": "cancel", "noun": "input"}},
-    {"mode": "macro_pending", "pattern": "any", "request": {"verb": "start", "noun": "macro"}, "from": {"register": "key"}},
-
-    {"mode": "replay_pending", "keys": "esc", "request": {"verb": "cancel", "noun": "input"}},
-    {"mode": "replay_pending", "pattern": "any", "request": {"verb": "replay", "noun": "macro"}, "from": {"register": "key", "steps": "count"}},
 
     {"mode": "insert", "keys": "esc", "request": {"verb": "set", "noun": "mode", "args": {"mode": "normal"}}},
     {"mode": "insert", "expand": "readline-motion", "request": {"verb": "move", "noun": "input", "args": {"motion": "$"}}},

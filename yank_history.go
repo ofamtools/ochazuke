@@ -22,9 +22,10 @@ func registerYankHistory(r *Runtime) {
 		r.Register(Operation{Verb: verb, Noun: "yank-history", Description: description, Parameters: params, Result: "yank history state", Run: fn})
 	}
 	add("open", "Select a previous application yank without inserting it", nil, func(r *Runtime, c Context, a Arguments) (any, error) {
-		r.yankSelection = 0
+		g := r.Registers()
+		g.selection = 0
 		err := r.Push(&Frame{ID: yankHistoryID, Focus: yankHistoryID})
-		return r.YankHistory, err
+		return g.History, err
 	})
 	active := func(r *Runtime) error {
 		if r.top().ID != yankHistoryID {
@@ -36,20 +37,22 @@ func registerYankHistory(r *Runtime) {
 		if err := active(r); err != nil {
 			return nil, err
 		}
-		r.yankSelection = max(0, min(r.yankSelection+IntArg(a, "steps", 0), len(r.YankHistory)-1))
-		return r.yankSelection, nil
+		g := r.Registers()
+		g.selection = max(0, min(g.selection+IntArg(a, "steps", 0), len(g.History)-1))
+		return g.selection, nil
 	})
 	add("select", "Make a history entry the unnamed register and restore origin focus", map[string]Parameter{"index": {Type: "integer"}}, func(r *Runtime, c Context, a Arguments) (any, error) {
 		if err := active(r); err != nil {
 			return nil, err
 		}
-		index := IntArg(a, "index", r.yankSelection)
-		if index < 0 || index >= len(r.YankHistory) {
+		g := r.Registers()
+		index := IntArg(a, "index", g.selection)
+		if index < 0 || index >= len(g.History) {
 			return nil, errors.New("no yank at history index")
 		}
-		y := r.YankHistory[index]
-		r.Registers["\""] = Register{Yank: y}
-		r.ActiveRegister = ""
+		y := g.History[index]
+		g.Named["\""] = Register{Yank: y}
+		g.Active = ""
 		err := r.Pop()
 		return y, err
 	})
@@ -60,15 +63,16 @@ func yankHistoryView(r *Runtime, f *Frame, width, height int) Block {
 
 // yankHistoryText renders the rows around the selection that fit the body.
 func yankHistoryText(r *Runtime, width, height int) string {
-	if len(r.YankHistory) == 0 {
+	g := r.Registers()
+	if len(g.History) == 0 {
 		return "No yanks yet. Yank or kill text in any field."
 	}
-	selection := r.yankSelection
+	selection := g.selection
 	height = max(1, height)
 	offset := max(0, selection-height+1)
 	lines := make([]string, 0, height)
-	for i := offset; i < min(len(r.YankHistory), offset+height); i++ {
-		y := r.YankHistory[i]
+	for i := offset; i < min(len(g.History), offset+height); i++ {
+		y := g.History[i]
 		marker := "  "
 		if i == selection {
 			marker = "› "

@@ -1,0 +1,25 @@
+{
+  "pending": ["register_pending", "macro_pending", "replay_pending", "count_pending"],
+  "extends": {"visual-line": "visual", "visual-block": "visual", "count_pending": "normal", "visual_count_pending": "visual"},
+  "rows": [
+    {"mode": "normal", "keys": "\"", "request": {"verb": "enter", "noun": "mode", "args": {"mode": "register_pending"}}},
+    {"mode": "normal", "keys": "q", "request": {"verb": "enter", "noun": "mode", "args": {"mode": "macro_pending"}}},
+    {"mode": "normal", "keys": "@", "request": {"verb": "enter", "noun": "mode", "args": {"mode": "replay_pending"}}, "from": {"count": "count"}},
+    {"mode": "normal", "pattern": "digit-0", "request": {"verb": "enter", "noun": "mode", "args": {"mode": "count_pending"}}, "from": {"count": "digit"}},
+    {"mode": "count_pending", "keys": "0", "request": {"verb": "append", "noun": "count", "args": {"digit": 0}}},
+    {"mode": "count_pending", "pattern": "digit", "request": {"verb": "append", "noun": "count"}, "from": {"digit": "digit"}},
+    {"mode": "count_pending", "pattern": "any", "when": "no-input", "request": {"verb": "leave", "noun": "mode"}, "replay": true},
+    {"mode": "visual", "keys": "\"", "request": {"verb": "enter", "noun": "mode", "args": {"mode": "register_pending"}}},
+    {"mode": "visual", "keys": "q", "request": {"verb": "enter", "noun": "mode", "args": {"mode": "macro_pending"}}},
+    {"mode": "visual", "keys": "@", "request": {"verb": "enter", "noun": "mode", "args": {"mode": "replay_pending"}}, "from": {"count": "count"}},
+
+    {"mode": "register_pending", "keys": "esc", "request": {"verb": "cancel", "noun": "input"}},
+    {"mode": "register_pending", "pattern": "any", "request": {"verb": "select", "noun": "register"}, "from": {"name": "key"}},
+
+    {"mode": "macro_pending", "keys": "esc", "request": {"verb": "cancel", "noun": "input"}},
+    {"mode": "macro_pending", "pattern": "any", "request": {"verb": "start", "noun": "macro"}, "from": {"register": "key"}},
+
+    {"mode": "replay_pending", "keys": "esc", "request": {"verb": "cancel", "noun": "input"}},
+    {"mode": "replay_pending", "pattern": "any", "request": {"verb": "replay", "noun": "macro"}, "from": {"register": "key", "steps": "count"}}
+  ]
+}

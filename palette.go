@@ -591,7 +591,7 @@ func (p *Palette) viewBlock(width, height int) Block {
 	}
 	out.WriteString("Command palette\n")
 	if p.stage == "arguments" {
-		fmt.Fprintf(&out, "%s — %s\n", p.op.Key(), p.op.Description)
+		fmt.Fprintf(&out, "%s (%s) — %s\n", p.op.Key(), p.op.Kind, p.op.Description)
 		for i, name := range p.fields {
 			param := p.op.Parameters[name]
 			marker := "  "

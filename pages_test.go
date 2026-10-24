@@ -69,7 +69,7 @@ func TestPageSwitchRestoresFrameFocusAndEditingState(t *testing.T) {
 	beta := pageTestRegister(t, r, "beta")
 	paletteRequest(t, r, "open", "page", Arguments{"id": "alpha"})
 	paletteRequest(t, r, "focus", "input", Arguments{"id": "alpha-input"})
-	in := r.Inputs["alpha-input"]
+	in := r.Input("alpha-input")
 	in.Cursor = 2
 	paletteRequest(t, r, "set", "mode", Arguments{"mode": "insert"})
 	paletteRequest(t, r, "insert", "input", Arguments{"text": "X"})
@@ -78,14 +78,14 @@ func TestPageSwitchRestoresFrameFocusAndEditingState(t *testing.T) {
 	paletteRequest(t, r, "open", "page", Arguments{"id": "beta"})
 	paletteRequest(t, r, "set", "mode", Arguments{"mode": "insert"})
 	paletteRequest(t, r, "open", "page", Arguments{"id": "alpha"})
-	if len(r.Frames) != 1 || r.Frames[0] != alpha.Frame || r.Inputs[r.Context().InputID] != in || !reflect.DeepEqual(r.Context(), context) {
+	if len(r.Frames) != 1 || r.Frames[0] != alpha.Frame || r.Input(r.Context().InputID) != in || !reflect.DeepEqual(r.Context(), context) {
 		t.Fatalf("page identity or nested focus was lost: %+v", r.Context())
 	}
 	if got := paletteInputSnapshot(t, in); got != before || r.Mode(r.Context()) != "insert" {
 		t.Fatalf("page editing state was lost: %s", got)
 	}
 	paletteRequest(t, r, "undo", "input", nil)
-	if string(in.Text) != "alpha" || string(r.Inputs["beta-input"].Text) != "beta" {
+	if string(in.Text) != "alpha" || string(r.Input("beta-input").Text) != "beta" {
 		t.Fatal("page switch lost the originating undo history or changed another input")
 	}
 	paletteRequest(t, r, "open", "page", Arguments{"id": "beta"})
@@ -114,7 +114,7 @@ func TestPageBindingsAndActionsFollowActiveContext(t *testing.T) {
 			t.Fatalf("owner=%v; want %s", got, id)
 		}
 	}
-	if string(r.Inputs["alpha-input"].Text) != "ALPHAalpha" || string(r.Inputs["beta-input"].Text) != "BETAbeta" {
+	if string(r.Input("alpha-input").Text) != "ALPHAalpha" || string(r.Input("beta-input").Text) != "BETAbeta" {
 		t.Fatal("page binding was resolved against an inactive page")
 	}
 }
@@ -250,7 +250,7 @@ func TestPageFocusIsolationAllowsExplicitOffscreenEdits(t *testing.T) {
 	if _, err := r.Execute(Request{Verb: "insert", Noun: "input", Target: "beta-input", Args: Arguments{"text": "target-"}}); err != nil {
 		t.Fatal(err)
 	}
-	if r.Page != "alpha" || r.Frames[0] != alpha.Frame || r.Context().InputID != "alpha-input" || string(r.Inputs["alpha-input"].Text) != "alpha" || string(r.Inputs["beta-input"].Text) != "off-target-beta" || r.Pending != "g" {
+	if r.Page != "alpha" || r.Frames[0] != alpha.Frame || r.Context().InputID != "alpha-input" || string(r.Input("alpha-input").Text) != "alpha" || string(r.Input("beta-input").Text) != "off-target-beta" || r.Pending != "g" {
 		t.Fatal("targeted edits navigated or edited the wrong input")
 	}
 	paletteRequest(t, r, "select", "context", Arguments{"path": `["app","alpha","alpha-editor"]`})

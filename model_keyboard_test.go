@@ -35,18 +35,18 @@ func TestModelMacroRegisterTransitionsAndPalette(t *testing.T) {
 					t.Fatal("recording prefix did not prompt for one register character")
 				}
 				modelType(m, "q", batched)
-				if r.Macro.Recording != "q" || !strings.Contains(ansi.Strip(m.View().Content), "REC @q") {
-					t.Fatalf("second q did not immediately start visible recording: %+v", r.Macro)
+				if r.Registers().Macro.Recording != "q" || !strings.Contains(ansi.Strip(m.View().Content), "REC @q") {
+					t.Fatalf("second q did not immediately start visible recording: %+v", r.Registers().Macro)
 				}
 				modelType(m, ":", batched)
-				if m.Status != "" || !m.Palette.IsActive() || r.Macro.Recording != "q" {
-					t.Fatalf("qq: status=%q palette=%t macro=%+v", m.Status, m.Palette.IsActive(), r.Macro)
+				if m.Status != "" || !m.Palette.IsActive() || r.Registers().Macro.Recording != "q" {
+					t.Fatalf("qq: status=%q palette=%t macro=%+v", m.Status, m.Palette.IsActive(), r.Registers().Macro)
 				}
 				if _, err := r.Execute(Request{Verb: "close", Noun: "palette"}); err != nil {
 					t.Fatal(err)
 				}
 				modelType(m, "q", batched)
-				if got := r.Registers["q"].Yank.Text; got != ":" || r.Macro.Recording != "" {
+				if got := r.Registers().Named["q"].Yank.Text; got != ":" || r.Registers().Macro.Recording != "" {
 					t.Fatalf("stop saved %q; want only colon and no recording", got)
 				}
 
@@ -56,8 +56,8 @@ func TestModelMacroRegisterTransitionsAndPalette(t *testing.T) {
 				}
 				fresh := NewModel(freshRuntime)
 				modelType(fresh, "qq:", batched)
-				if fresh.Status != "" || !fresh.Palette.IsActive() || fresh.Runtime.Macro.Recording != "q" {
-					t.Fatalf("uninterrupted qq: status=%q palette=%t recording=%q", fresh.Status, fresh.Palette.IsActive(), fresh.Runtime.Macro.Recording)
+				if fresh.Status != "" || !fresh.Palette.IsActive() || fresh.Runtime.Registers().Macro.Recording != "q" {
+					t.Fatalf("uninterrupted qq: status=%q palette=%t recording=%q", fresh.Status, fresh.Palette.IsActive(), fresh.Runtime.Registers().Macro.Recording)
 				}
 			})
 		}
@@ -70,12 +70,12 @@ func TestModelMacroConsumesOnlyOneRegisterCharacter(t *testing.T) {
 			r, in := editorTestRuntime(t, "one two", true)
 			m := NewModel(r)
 			modelType(m, "qabc", batched)
-			if m.Status != "" || r.Macro.Recording != "a" || in.Pending() != "c" || !strings.Contains(ansi.Strip(m.View().Content), "REC @a") {
-				t.Fatalf("qabc status=%q recording=%q pending=%q", m.Status, r.Macro.Recording, in.Pending())
+			if m.Status != "" || r.Registers().Macro.Recording != "a" || in.Pending() != "c" || !strings.Contains(ansi.Strip(m.View().Content), "REC @a") {
+				t.Fatalf("qabc status=%q recording=%q pending=%q", m.Status, r.Registers().Macro.Recording, in.Pending())
 			}
 			keytest.Press(m, "esc")
 			modelType(m, "q", batched)
-			if got := r.Registers["a"].Yank.Text; got != "bc\x1b" {
+			if got := r.Registers().Named["a"].Yank.Text; got != "bc\x1b" {
 				t.Fatalf("recorded register=%q, want b,c,Escape (not part of register name)", got)
 			}
 		})
@@ -91,10 +91,10 @@ func TestModelMacroRecordingReplayAndLiteralPaste(t *testing.T) {
 			keytest.Paste(m, "qabc:@")
 			keytest.Press(m, "esc")
 			modelType(m, "q2@q", batched)
-			if got := string(in.Text); got != "qabc:qabc:qabc:@@@" || in.Mode != "normal" || m.Status != "" || r.Macro.Recording != "" {
-				t.Fatalf("replay text=%q mode=%q status=%q recording=%q", got, in.Mode, m.Status, r.Macro.Recording)
+			if got := string(in.Text); got != "qabc:qabc:qabc:@@@" || in.Mode != "normal" || m.Status != "" || r.Registers().Macro.Recording != "" {
+				t.Fatalf("replay text=%q mode=%q status=%q recording=%q", got, in.Mode, m.Status, r.Registers().Macro.Recording)
 			}
-			if got := r.Registers["q"].Keys; !reflect.DeepEqual(got, []MacroKey{{Key: "i"}, {Key: "[qabc:@]", Paste: true}, {Key: "esc"}}) {
+			if got := r.Registers().Named["q"].Keys; !reflect.DeepEqual(got, []MacroKey{{Key: "i"}, {Key: "[qabc:@]", Paste: true}, {Key: "esc"}}) {
 				t.Fatalf("recorded keys=%+v; expected literal paste once without stop q", got)
 			}
 		})
@@ -147,8 +147,8 @@ func TestModelPendingMacroDoesNotInterpretPasteAsRegister(t *testing.T) {
 		t.Fatalf("paste consumed register prefix: status=%q mode=%q text=%q", m.Status, r.Mode(r.Context()), string(in.Text))
 	}
 	modelType(m, "q", true)
-	if r.Macro.Recording != "q" || !strings.Contains(ansi.Strip(m.View().Content), "REC @q") {
-		t.Fatalf("next typed register did not start recording: %+v", r.Macro)
+	if r.Registers().Macro.Recording != "q" || !strings.Contains(ansi.Strip(m.View().Content), "REC @q") {
+		t.Fatalf("next typed register did not start recording: %+v", r.Registers().Macro)
 	}
 }
 
@@ -156,18 +156,18 @@ func TestModelMacroRecordsPaletteTypingWithoutStopping(t *testing.T) {
 	r, in := editorTestRuntime(t, "preserve", true)
 	m := NewModel(r)
 	modelType(m, "qq:q", true)
-	if !m.Palette.IsActive() || m.Palette.query != "q" || r.Macro.Recording != "q" || m.Status != "" {
-		t.Fatalf("palette typing stopped recording: query=%q recording=%q status=%q", m.Palette.query, r.Macro.Recording, m.Status)
+	if !m.Palette.IsActive() || m.Palette.query != "q" || r.Registers().Macro.Recording != "q" || m.Status != "" {
+		t.Fatalf("palette typing stopped recording: query=%q recording=%q status=%q", m.Palette.query, r.Registers().Macro.Recording, m.Status)
 	}
 	keytest.Press(m, "ctrl+c")
 	modelType(m, "q", true)
 	want := []MacroKey{{Key: ":"}, {Key: "q"}, {Key: "ctrl+c"}}
-	if got := r.Registers["q"].Keys; !reflect.DeepEqual(got, want) {
+	if got := r.Registers().Named["q"].Keys; !reflect.DeepEqual(got, want) {
 		t.Fatalf("palette macro=%+v; want %+v", got, want)
 	}
 	modelType(m, "@q", true)
-	if r.Macro.Last != "q" || m.Palette.IsOpen() || r.Quit || m.Status != "" || string(in.Text) != "preserve" {
-		t.Fatalf("palette replay last=%q open=%t quit=%t status=%q text=%q", r.Macro.Last, m.Palette.IsOpen(), r.Quit, m.Status, string(in.Text))
+	if r.Registers().Macro.Last != "q" || m.Palette.IsOpen() || r.Quit || m.Status != "" || string(in.Text) != "preserve" {
+		t.Fatalf("palette replay last=%q open=%t quit=%t status=%q text=%q", r.Registers().Macro.Last, m.Palette.IsOpen(), r.Quit, m.Status, string(in.Text))
 	}
 }
 
@@ -205,7 +205,7 @@ func TestNewModelNavigationDefaultsAndRemovedAliases(t *testing.T) {
 	}
 	modelType(m, "i:", true)
 	keytest.Press(m, "ctrl+k")
-	if got := string(r.Inputs["alpha-input"].Text); got != ":" || r.Page != "alpha" || m.Palette.IsActive() {
+	if got := string(r.Input("alpha-input").Text); got != ":" || r.Page != "alpha" || m.Palette.IsActive() {
 		t.Fatalf("insert keys text=%q page=%q palette=%t", got, r.Page, m.Palette.IsActive())
 	}
 	keytest.Press(m, "ctrl+space")

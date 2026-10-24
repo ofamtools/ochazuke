@@ -317,11 +317,10 @@ Filters are `file`, `dir`, and `any`. A `paths` field is an ordinary multiline e
 /tmp/ochazuke picker close
 ```
 
-Applications constructing their own picker register it with the model's event loop:
+Applications constructing their own picker only add its modal renderer; `NewPicker` registers the `picker` instance whose `Component` the runtime drives through the delivery contract:
 
 ```go
 picker := ochazuke.NewPicker(r)
-model.Pickers = append(model.Pickers, picker)
 model.ModalViews["picker"] = ochazuke.ModalView{
     Title: "Choose a path",
     Render: func(_ *ochazuke.Runtime, _ *ochazuke.Frame, w, h int) ochazuke.Block {
@@ -344,7 +343,7 @@ if err != nil { return err }
 if err := items.Focus(); err != nil { return err }
 ```
 
-The id (`sidebar` here) identifies the list in `Runtime.Lists`; the list instance answers to the `list` noun (`Kind` picks another). Render `items.View(width, height)` inside an existing page or panel. It keeps the selected row visible as selection or viewport size changes. Default normal-mode `j/k`, up/down and Space (toggle mark) are rows of the `list` noun; a row's noun sits inside the list on the stack and can override them, and a row instance may carry its own rows above its noun's.
+The id (`sidebar` here) identifies the list instance (`r.List("sidebar")` returns it); the list instance answers to the `list` noun (`Kind` picks another). Render `items.View(width, height)` inside an existing page or panel. It keeps the selected row visible as selection or viewport size changes. Default normal-mode `j/k`, up/down and Space (toggle mark) are rows of the `list` noun; a row's noun sits inside the list on the stack and can override them, and a row instance may carry its own rows above its noun's.
 
 - `Focus()` points the frame at the selected row (or the list when empty). `Runtime.Focus(id)` switches to another instance; the old selection remains, but its rows are no longer active.
 - `Move(delta)` and `Select(itemID)` change selection without stealing focus. `Selected()` returns the selected value and whether one exists.
@@ -395,24 +394,26 @@ result, err := r.Execute(ochazuke.Request{
 })
 ```
 
-`Runtime` is single-owner state: the operation registry, the nouns and instances with their parent links, one focus per frame, the modal chain, the current page and the pending key-sequence state. In a running application, call it from Bubble Tea's update loop; external goroutines/processes use `Call`/`CallMsg`, not concurrent `Execute` calls. `Request.Target` names any instance: an input, a list, a list row, a page or a modal body; the request then runs in the context that addresses that instance (its ancestry, plus `InputID` for an input). `focused-input` means the current focus. `ExecuteAt` accepts a captured context for explicit originating-target dispatch. `Input.SetMode` is the mode transition hook; do not assign `Input.Mode` directly.
+`Runtime` is single-owner state and holds exactly: the operation registry (`Operations`, `Modes`, guards), the nouns and instances with their parent links, one focus per frame, the modal chain (`Frames`), the current `Page`, the pending key-sequence state (`Pending`, `BindingTimeout`), `Quit` and the queue of off-loop commands the adapter drains. It holds no component fields: inputs, lists, pages, the picker and the registers are instances whose `Component` is the typed object, read through `r.Input(id)`, `r.List(id)`, `r.Inputs()`, `r.Lists()`, `r.PageOf(id)` and `r.Registers()`. In a running application, call it from Bubble Tea's update loop; external goroutines/processes use `Call`/`CallMsg`, not concurrent `Execute` calls. `Request.Target` names any instance: an input, a list, a list row, a page or a modal body; the request then runs in the context that addresses that instance (its ancestry, plus `InputID` for an input). `focused-input` means the current focus. `ExecuteAt` accepts a captured context for explicit originating-target dispatch. `Input.SetMode` is the mode transition hook; do not assign `Input.Mode` directly.
 
 | File | Responsibility |
 |---|---|
-| `runtime.go` | Registry, focus, modal chain, `ExecuteAt` through noun actions, JSON inspection |
+| `runtime.go` | Registry (operation kinds), focus, modal chain, `OpenModal`, `ExecuteAt` through noun actions and confirm, typed lookups, JSON inspection |
+| `delivery.go` | The component delivery contract: `Component`, `Ticket`, `Completion`, `Start`, `Deliver`, `PendingCommands`; application verbs (`Ctx`, `Result`, `Done`/`Failed`/`Pending`) |
+| `confirm.go` | The `confirm` noun, `SetConfirm`, prompt templates |
 | `noun.go`, `instance.go` | `Define` builder, binding rows, key classes and guards; instances, parent links, `Payload`, targets |
 | `resolve.go`, `bindings.go` | The stack walk, pending modes, key-sequence prefixes and their timer, `list.bindings` |
-| `editor_bindings.json`, `editor_keys.go` | The editor noun's mode tables as data, loaded at startup |
+| `editor_bindings.json`, `registers_bindings.json`, `editor_keys.go` | The editor noun's mode tables and the app noun's count, register and macro rows as data, loaded at startup |
 | `configuration.go` | `load.bindings`, `register.mode`, `select.context` |
 | `input.go`, `editing.go`, `editor*.go` | Input-owned undo, the editor handlers (motions, operators, kills, insert, paste), visual geometry |
 | `list.go` | Flat selectable rows as instances of their nouns, marks and fan-out, stable-ID refresh, viewport scrolling, row focus |
-| `registers.go`, `macros.go`, `yank_history.go` | App-owned yanks/registers, key recording/replay, history modal |
+| `registers.go`, `macros.go`, `yank_history.go` | The `registers` component: yanks, named registers, history, active register, key recording/replay, history modal |
 | `palette.go`, `palette_editing.go`, `palette_nouns.go` | Verb/noun and live instance navigation, configured defaults, typed arguments, originating context |
 | `picker.go`, `picker_search.go` | Contextual path selection, asynchronous fuzzy indexing, native Git ignores |
 | `pages.go` | Pages as instances of kind `page`, `Runtime.Page`, retained frames, navigation, and focus isolation |
 | `theme.go`, `surface.go` | Appearance operations, Lip Gloss styles, bounded modal composition on a Lip Gloss canvas |
 | `block.go` | `Block` and `Pos`: rendered text plus the focused input's cursor cell |
-| `model.go` | Bubble Tea adapter, page shell, Bubbles viewports, modal renderers, terminal cursor |
+| `model.go` | Bubble Tea adapter (delivers messages and drains commands through the runtime), page shell, Bubbles viewports, modal renderers, terminal cursor |
 | `transport.go`, `cli.go`, `cmd/ochazuke` | Private Unix socket and generic CLI dispatch |
 | `demo.go`, `examples/core` | Runnable UI and noninteractive foundation example |
 
@@ -435,7 +436,50 @@ r.Instance("sidebar", ochazuke.Parent("home"), ochazuke.Kind("panel"))
 r.AddInput(ochazuke.NewInput("path", "", false), ochazuke.Parent("sidebar"), ochazuke.Kind("prompt"))
 ```
 
-`FocusID` names the focused instance and `Frame.Focus` is the source of truth; `Context()` is derived from it. `Request.Target` and `select.context {instance}` address any instance; `ActionFor` resolves noun overrides innermost first. `get.state` exposes `/nouns`, `/instances/<id>/{noun,state,payload,parent}`, `/focus` and `/page`.
+`FocusID` names the focused instance and `Frame.Focus` is the source of truth; `Context()` is derived from it. `Request.Target` and `select.context {instance}` address any instance; `ActionFor` resolves noun overrides innermost first. `get.state` exposes `/nouns`, `/instances/<id>/{noun,state,payload,parent}`, `/inputs/<id>`, `/lists/<id>`, `/components/<id>`, `/focus` and `/page`.
+
+#### Operation kinds and application verbs
+
+Every operation has a `Kind`: `interaction` (the default; `Run` executes synchronously on the loop) or `application`. An application verb is declared with the same builder but an `AppHandler`:
+
+```go
+r.Define("worktree").
+    Verb("sync", func(c ochazuke.Ctx) ochazuke.Result {          // c.Instance is the worktree row: ID, Noun, Payload
+        id := c.Instance.ID
+        return ochazuke.Pending(func(ctx context.Context) (any, error) {
+            return git.Fetch(ctx, id)                           // off the loop; ctx is cancelled if the row closes
+        }).Then(func(c ochazuke.Ctx, v any, err error) {        // back on the loop, only while the ticket is current
+            c.Runtime.List("worktrees").Select(id)
+        })
+    }).
+    Verb("status", func(c ochazuke.Ctx) ochazuke.Result { return ochazuke.Done("clean") })
+```
+
+`Done(v)` and `Failed(err)` answer at once; `Pending(work)` returns a `Ticket{Owner, Generation}` to the caller and schedules the work as a `tea.Cmd`. The framework never blocks the loop on application I/O. The palette, `list.operations`, the generated docs and the example's `?` modal show the kind.
+
+#### Delivery contract
+
+Work that completes later reports through one contract. A component is any `Instance.Component` implementing
+
+```go
+type Component interface {
+    HandleMessage(tea.Msg) bool // apply a result on the loop; true when it was for this component
+    PendingCommand() tea.Cmd    // the work scheduled since the last drain
+    Close()                     // cancel outstanding work, release what is held
+}
+```
+
+Results carry their owner instance id and a generation (`Completion{Ticket, Value, Err}`); `Runtime.Start(owner, work, then, ctx)` issues the ticket, `Runtime.Deliver(msg)` hands a current completion to its owner and drops a stale or orphaned one, and `Runtime.PendingCommands()` batches every component's pending work. Closing an instance (`Pop`, a row dropped by `SetItems`, `removeInstance`) cancels its work and calls `Close`. The `Model` drives components from the instance registry, so an application registers one by setting `Instance.Component` and nothing else. The picker is a component; the registers are one too (its only cancellable work is a recording in progress).
+
+#### Per-verb confirm
+
+Confirmation is a property of a verb, declared once rather than at each call site:
+
+```go
+r.Define("worktree").Verb("remove", removeWorktree).Confirm("Remove {{id}}?")
+```
+
+It compiles to the framework `confirm` noun: running `remove.worktree` opens a confirm modal instead, a modal instance parented at the focus with `Payload{Prompt, Request}`; `y` (or Enter) runs the stored request in its original context, `n` or `esc` pops, every other key is swallowed. Templates expand `{{id}}`, `{{noun}}` and `{{<arg>}}`. `set.confirm {operation, prompt}` adds or removes a prompt at run time (an empty prompt removes it; the full-project example sets one from `actions.json`), and a request with `"confirmed": true` skips the prompt for scripts.
 
 Local checks:
 
@@ -485,7 +529,7 @@ Illustrative state (JavaScript notation, not a Go API contract):
 
 Opening a directory picker pushes another frame. Closing it restores the editor's interaction state. A child can return a result to its parent, such as a selected directory.
 
-In the Go API a frame is `Frame{ID, Focus}`: the modal's id and the instance it points at. `Push` makes a frame id that is not already an instance one of the `modal` noun for as long as it is open, so "Escape pops a modal" is that noun's normal-mode `esc` row and a modal body may carry rows of its own. Mode, cursor, drafts, selection and undo live on the instances the frame points at; scroll offsets live on the `Model`; application data lives with the application.
+In the Go API a frame is `Frame{ID, Focus}`: the modal's id and the instance it points at. `Push` makes a frame id that is not already an instance one of the `modal` noun for as long as it is open, so "Escape pops a modal" is that noun's normal-mode `esc` row and a modal body may carry rows of its own. `OpenModal(kind, Payload{...})` is the payload-carrying form: it creates a body instance of noun `kind` parented at the current focus, with the payload (`Prompt`, a stored `Request`, ...) the kind's rows read through `FromPayload` and `run.request`, and removes it on `Pop` after closing its component. The `confirm` noun is built this way. Mode, cursor, drafts, selection and undo live on the instances the frame points at; scroll offsets live on the `Model`; application data lives with the application.
 
 Invariants:
 
@@ -533,7 +577,7 @@ The first request undoes the focused input's last change; the second requests th
 
 ## Shared yanks, registers, and macros
 
-Selection and undo belong to each input. Yanks, history, registers, and macros belong to `Runtime`, so a yank from notes can be pasted into paths or a modal editor.
+Selection and undo belong to each input. Yanks, history, registers, the active register and macro state belong to the `registers` component, one instance under `app` (`r.Registers()` returns it: `Named`, `History`, `Active`, `Macro`), so a yank from notes can be pasted into paths or a modal editor. It is reached through the `register`, `macro` and `yank-history` operations, never through `Runtime` fields.
 
 ```js
 {
@@ -553,7 +597,7 @@ Selection and undo belong to each input. Yanks, history, registers, and macros b
 - `"a` selects register `a` for the next operation; `"A` appends. The unnamed register is shared; `0` holds the last yank, `1`–`9` hold line/multiline deletions, and `-` holds small deletions. `"_` discards without changing shared yanks or history.
 - Normal `Ctrl-Y` or `open.yank-history` opens history. `j/k` or arrows highlight an entry; Enter makes it the unnamed yank and closes **without inserting**. Then use `p/P` or insert-mode `Ctrl-Y` to paste. Escape cancels. History keeps the newest 100 entries, including duplicates.
 - `qa … q` records into register `a`; `qA` appends. `@a` replays, `3@a` repeats three times, and `@@` repeats the last macro. Mode changes, bindings, focus changes, and modal/palette interactions use the same dispatcher as live keys. Register yanks and macro recordings share storage: replacing one replaces the other.
-- Macro replay is bounded to 16 nested calls and 10,000 dispatched keys. Errors are reported, not swallowed; earlier edits remain undoable rather than being rolled back as a transaction. Recording is the `macro_recording` shadow mode on the `app` noun: each key is appended, then dispatched again in the mode it shadowed; replay runs at depth and is not re-recorded.
+- Macro replay is bounded to 16 nested calls and 10,000 dispatched keys. Errors are reported, not swallowed; earlier edits remain undoable rather than being rolled back as a transaction. Recording is the `macro_recording` shadow mode on the `app` noun: each key is appended, then dispatched again in the mode it shadowed; replay runs at depth and is not re-recorded. The `q`, `@`, `"` and count rows are `app` rows too (`registers_bindings.json`), so a page or list focus records, replays and counts without an input.
 
 ```sh
 /tmp/ochazuke yank-history open

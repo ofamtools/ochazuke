@@ -23,7 +23,7 @@ func TestVisualYankShapesAndAtomicUndo(t *testing.T) {
 			r, in := editorTestRuntime(t, tc.text, true)
 			editorTestKeys(t, r, tc.keys...)
 			editorTestKeys(t, r, "y")
-			if got := r.Registers["\""].Yank; got != tc.want {
+			if got := r.Registers().Named["\""].Yank; got != tc.want {
 				t.Fatalf("yank=%+v want %+v", got, tc.want)
 			}
 			in.Cursor = 0
@@ -69,11 +69,11 @@ func TestLineOperatorsAndChangeUndo(t *testing.T) {
 func TestRegisterAppendBlackHoleAndCrossFieldPaste(t *testing.T) {
 	r, in := editorTestRuntime(t, "abc def", true)
 	editorTestKeys(t, r, "\"", "a", "y", "w", "w", "\"", "A", "y", "e")
-	if got := r.Registers["a"].Yank.Text; got != "abc def" {
+	if got := r.Registers().Named["a"].Yank.Text; got != "abc def" {
 		t.Fatalf("append=%q", got)
 	}
 	editorTestKeys(t, r, "\"", "_", "d", "d")
-	if r.Registers["\""].Yank.Text != "abc def" {
+	if r.Registers().Named["\""].Yank.Text != "abc def" {
 		t.Fatal("black hole changed unnamed register")
 	}
 	second := NewInput("other", "", true)
@@ -95,8 +95,8 @@ func TestRegisterAppendBlackHoleAndCrossFieldPaste(t *testing.T) {
 func TestPathKillGlobalHistoryAndLiteralPaste(t *testing.T) {
 	r, in := editorTestRuntime(t, "/foo/bar-file.txt", false)
 	editorTestKeys(t, r, "A", "ctrl+w")
-	if string(in.Text) != "/foo/" || r.Registers["\""].Yank.Text != "bar-file.txt" {
-		t.Fatalf("path kill: %q %+v", string(in.Text), r.Registers["\""])
+	if string(in.Text) != "/foo/" || r.Registers().Named["\""].Yank.Text != "bar-file.txt" {
+		t.Fatalf("path kill: %q %+v", string(in.Text), r.Registers().Named["\""])
 	}
 	second := NewInput("second", "", false)
 	if err := r.AddInput(second); err != nil {
@@ -106,7 +106,7 @@ func TestPathKillGlobalHistoryAndLiteralPaste(t *testing.T) {
 		t.Fatal(err)
 	}
 	editorTestKeys(t, r, "i", "ctrl+y")
-	if string(second.Text) != "bar-file.txt" || len(r.YankHistory) != 1 {
+	if string(second.Text) != "bar-file.txt" || len(r.Registers().History) != 1 {
 		t.Fatal("global kill paste failed")
 	}
 }
@@ -184,14 +184,14 @@ func TestMacroRecursiveSafeguardAndPrefixPriority(t *testing.T) {
 	if string(in.Text) != "two" || r.Quit {
 		t.Fatal("operator prefix lost to binding")
 	}
-	r.Registers["a"] = Register{Keys: []MacroKey{{Key: "@"}, {Key: "a"}}}
+	r.Registers().Named["a"] = Register{Keys: []MacroKey{{Key: "@"}, {Key: "a"}}}
 	modelEditorKeys(t, m, "@")
 	_, err := r.Dispatch(MacroKey{Key: "a"})
 	if err == nil || !strings.Contains(err.Error(), "recursion") {
 		t.Fatalf("recursive macro: %v", err)
 	}
-	if r.Quit || r.Macro.Depth != 0 || r.Mode(r.Context()) != "normal" || in.Pending() != "" || len(r.Frames) != 1 {
-		t.Fatalf("recursive macro left context: %+v mode=%s", r.Macro, r.Mode(r.Context()))
+	if r.Quit || r.Registers().Macro.Depth != 0 || r.Mode(r.Context()) != "normal" || in.Pending() != "" || len(r.Frames) != 1 {
+		t.Fatalf("recursive macro left context: %+v mode=%s", r.Registers().Macro, r.Mode(r.Context()))
 	}
 }
 func TestYankHistoryModalRestoresFocusWithoutInsertion(t *testing.T) {
@@ -272,12 +272,12 @@ func TestBlockChangeRepeatsInsertionAtomically(t *testing.T) {
 func TestMacroStepLimitAndErrorModalCleanup(t *testing.T) {
 	r, _ := editorTestRuntime(t, "abc", true)
 	m := NewModel(r)
-	r.Registers["a"] = Register{Keys: []MacroKey{{Key: "h"}, {Key: "l"}}}
+	r.Registers().Named["a"] = Register{Keys: []MacroKey{{Key: "h"}, {Key: "l"}}}
 	_, err := r.Execute(Request{Verb: "replay", Noun: "macro", Args: Arguments{"register": "a", "steps": 10000}})
 	if err == nil || !strings.Contains(err.Error(), "step limit") {
 		t.Fatalf("step bound: %v", err)
 	}
-	if r.Macro.Depth != 0 || r.Mode(r.Context()) != "normal" {
+	if r.Registers().Macro.Depth != 0 || r.Mode(r.Context()) != "normal" {
 		t.Fatal("step bound left replay active")
 	}
 	r.Register(Operation{Verb: "fail", Noun: "editor-test", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
@@ -287,7 +287,7 @@ func TestMacroStepLimitAndErrorModalCleanup(t *testing.T) {
 		return nil, fmt.Errorf("expected macro failure")
 	}})
 	r.Define("app").Mode("").Bind("ctrl+t", Do("fail.editor-test"))
-	r.Registers["b"] = Register{Keys: []MacroKey{{Key: "ctrl+t"}}}
+	r.Registers().Named["b"] = Register{Keys: []MacroKey{{Key: "ctrl+t"}}}
 	modelEditorKeys(t, m, "@")
 	_, err = r.Dispatch(MacroKey{Key: "b"})
 	if err == nil || err.Error() != "expected macro failure" || len(r.Frames) != 1 {
@@ -307,7 +307,7 @@ func TestVisualPasteRejectsInvalidCountWithoutMutation(t *testing.T) {
 func TestBlockYankPreservesEmojiGraphemes(t *testing.T) {
 	r, in := editorTestRuntime(t, "a👩‍💻z\nb👩‍💻x", true)
 	editorTestKeys(t, r, "l", "ctrl+v", "j", "y")
-	if got := r.Registers["\""].Yank; got.Text != "👩‍💻\n👩‍💻" || got.Width != 2 {
+	if got := r.Registers().Named["\""].Yank; got.Text != "👩‍💻\n👩‍💻" || got.Width != 2 {
 		t.Fatalf("grapheme yank=%+v", got)
 	}
 	in.Cursor = 0
@@ -336,7 +336,7 @@ func TestAppMacroCountWithoutInputAndUppercaseAppend(t *testing.T) {
 func TestMotionOperatorsReachEOFAndChangeCurrentWord(t *testing.T) {
 	r, in := editorTestRuntime(t, "abc", false)
 	editorTestKeys(t, r, "y", "w")
-	if r.Registers["\""].Yank.Text != "abc" {
+	if r.Registers().Named["\""].Yank.Text != "abc" {
 		t.Fatal("yw dropped final rune")
 	}
 	editorTestKeys(t, r, "d", "w")

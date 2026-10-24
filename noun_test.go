@@ -166,17 +166,17 @@ func TestPrefixModeTimeoutRestoresBaseMode(t *testing.T) {
 func TestMacroRecordingShadowMode(t *testing.T) {
 	r, in := editorTestRuntime(t, "", true)
 	editorTestKeys(t, r, "q", "a")
-	if r.Macro.Recording != "a" || r.Mode(r.Context()) != "normal" {
-		t.Fatalf("recording did not start: %+v", r.Macro)
+	if r.Registers().Macro.Recording != "a" || r.Mode(r.Context()) != "normal" {
+		t.Fatalf("recording did not start: %+v", r.Registers().Macro)
 	}
 	editorTestKeys(t, r, "i", "q", "esc", "2", "q")
-	if string(in.Text) != "q" || r.Macro.Recording != "a" {
-		t.Fatalf("q in insert or count_pending must record and re-dispatch: text=%q %+v", in.Text, r.Macro)
+	if string(in.Text) != "q" || r.Registers().Macro.Recording != "a" {
+		t.Fatalf("q in insert or count_pending must record and re-dispatch: text=%q %+v", in.Text, r.Registers().Macro)
 	}
 	editorTestKeys(t, r, "esc", "q")
 	want := []MacroKey{{Key: "i"}, {Key: "q"}, {Key: "esc"}, {Key: "2"}, {Key: "q"}, {Key: "esc"}}
-	if r.Macro.Recording != "" || !reflect.DeepEqual(r.Registers["a"].Keys, want) {
-		t.Fatalf("recorded %+v; want %+v", r.Registers["a"].Keys, want)
+	if r.Registers().Macro.Recording != "" || !reflect.DeepEqual(r.Registers().Named["a"].Keys, want) {
+		t.Fatalf("recorded %+v; want %+v", r.Registers().Named["a"].Keys, want)
 	}
 	editorTestKeys(t, r, "@", "a")
 	if string(in.Text) != "qq" {
@@ -368,8 +368,8 @@ func TestDemoKeyboardSessionStaysGreen(t *testing.T) {
 	execute("open", "page", Arguments{"id": "playground"})
 	execute("push", "modal", Arguments{"id": "draft", "input": "dialog"})
 	execute("pop", "modal", nil)
-	if string(r.Inputs["directory"].Text) != "hi/tmp" || r.Registers["\""].Yank.Text != "hi/tmp\n" {
-		t.Fatalf("session state: text=%q yank=%q", r.Inputs["directory"].Text, r.Registers["\""].Yank.Text)
+	if string(r.Input("directory").Text) != "hi/tmp" || r.Registers().Named["\""].Yank.Text != "hi/tmp\n" {
+		t.Fatalf("session state: text=%q yank=%q", r.Input("directory").Text, r.Registers().Named["\""].Yank.Text)
 	}
 }
 
@@ -563,7 +563,8 @@ func TestInputModeMirrorsInstanceInDemo(t *testing.T) {
 	r := m.Runtime
 	for _, key := range []string{"ctrl+j", "i", "h", "esc", "v", "l", "esc", "ctrl+n", "i", "x", "esc", "ctrl+g", "2", "d"} {
 		keytest.Press(m, key)
-		for id, in := range r.Inputs {
+		for _, in := range r.Inputs() {
+			id := in.ID
 			inst := r.Instances[id]
 			pending := r.pendingModes[inst.State] || inst.Payload.Prefix != ""
 			if inst == nil || !pending && inst.State != in.Mode || pending && inst.Payload.Return != in.Mode {

@@ -13,7 +13,7 @@ func TestModelCoalescedTypingPreservesModeTransitions(t *testing.T) {
 		t.Fatal(err)
 	}
 	keytest.Type(m, "iabc")
-	in := m.Runtime.Inputs["directory"]
+	in := m.Runtime.Input("directory")
 	if string(in.Text) != "abc/tmp" || in.Mode != "insert" {
 		t.Fatalf("coalesced iabc: text=%q mode=%q; want abc/tmp in insert mode", string(in.Text), in.Mode)
 	}

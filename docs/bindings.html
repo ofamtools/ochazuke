@@ -7,13 +7,13 @@
 nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
 </style></head><body>
 <header><a href="architecture.html">← Architecture field guide</a><p class="eyebrow">Ochazuke / generated reference</p><h1>Default bindings</h1><p>Actions and bindings come from a fresh <code>NewDemo()</code>. Go declarations and comments come from the package source through Go's standard <code>go/doc</code> library. This is a build-time snapshot, not your running application's customized registry.</p>
-<nav aria-label="Catalogs"><a href="actions.html">Actions (76)</a><a href="bindings.html" aria-current="page">Default bindings (404)</a><a href="api.html">Go API (175)</a><a href="transport.html">CLI &amp; socket</a></nav>
+<nav aria-label="Catalogs"><a href="actions.html">Actions (78)</a><a href="bindings.html" aria-current="page">Default bindings (410)</a><a href="api.html">Go API (204)</a><a href="transport.html">CLI &amp; socket</a></nav>
 <div class="toolbar"><label for="search">Search Default bindings</label><input id="search" type="search" placeholder="Search this catalog" autocomplete="off"><p id="matches" role="status"></p></div>
 <noscript>All entries are available below. Search requires JavaScript.</noscript></header>
 <main>
 
 
-<section id="bindings"><p class="eyebrow">02 / Registered defaults</p><h2>Default bindings <span class="count">404</span></h2><p>Every mode-table row of every noun in the demo, including the editor noun's Readline and Vim tables, its pending modes, and the palette, picker, yank-history and modal nouns. These are declarations, not a flattened effective keymap: the resolver walks the focused instance outward to app, then the editor noun as the fallback; at each level the mode table is read before the any-mode table; exact keys beat key classes (<code>&lt;digit&gt;</code>, <code>&lt;alpha&gt;</code>, <code>&lt;printable&gt;</code>, <code>&lt;paste&gt;</code>) beat <code>&lt;any&gt;</code>. A pending mode reads only its own table. <code>ctrl+space</code> is Bubble Tea v2's spelling for Ctrl-Space.</p>
+<section id="bindings"><p class="eyebrow">02 / Registered defaults</p><h2>Default bindings <span class="count">410</span></h2><p>Every mode-table row of every noun in the demo, including the editor noun's Readline and Vim tables, its pending modes, and the palette, picker, yank-history and modal nouns. These are declarations, not a flattened effective keymap: the resolver walks the focused instance outward to app, then the editor noun as the fallback; at each level the mode table is read before the any-mode table; exact keys beat key classes (<code>&lt;digit&gt;</code>, <code>&lt;alpha&gt;</code>, <code>&lt;printable&gt;</code>, <code>&lt;paste&gt;</code>) beat <code>&lt;any&gt;</code>. A pending mode reads only its own table. <code>ctrl+space</code> is Bubble Tea v2's spelling for Ctrl-Space.</p>
 <div class="table-scroll"><table><thead><tr><th>Noun</th><th>Mode</th><th>Keys</th><th>Request</th></tr></thead><tbody><tr class="searchable"><td><code>app</code></td><td>Any base mode</td><td><code>ctrl&#43;space</code></td><td><pre>{
   &#34;verb&#34;: &#34;open&#34;,
   &#34;noun&#34;: &#34;palette&#34;
@@ -32,7 +32,73 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;lines&#34;: -8
   }
-}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>macro_recording</td><td><code>q</code></td><td><pre>(Go: re-dispatch)</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>macro_recording</td><td><code>&lt;any&gt;</code></td><td><pre>(Go: re-dispatch)</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>macro_recording</td><td><code>&lt;paste&gt;</code></td><td><pre>(Go: re-dispatch)</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>:</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>count_pending</td><td><code>0</code></td><td><pre>{
+  &#34;verb&#34;: &#34;append&#34;,
+  &#34;noun&#34;: &#34;count&#34;,
+  &#34;args&#34;: {
+    &#34;digit&#34;: 0
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>count_pending</td><td><code>&lt;digit&gt;</code></td><td><pre>{
+  &#34;verb&#34;: &#34;append&#34;,
+  &#34;noun&#34;: &#34;count&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>count_pending</td><td><code>&lt;any&gt; when no-input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;leave&#34;,
+  &#34;noun&#34;: &#34;mode&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>count_pending</td><td><code>&#34;</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;register_pending&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>count_pending</td><td><code>q</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;macro_pending&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>count_pending</td><td><code>@</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;replay_pending&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>count_pending</td><td><code>&lt;digit-0&gt;</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;count_pending&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>macro_pending</td><td><code>esc</code></td><td><pre>{
+  &#34;verb&#34;: &#34;cancel&#34;,
+  &#34;noun&#34;: &#34;input&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>macro_pending</td><td><code>&lt;any&gt;</code></td><td><pre>{
+  &#34;verb&#34;: &#34;start&#34;,
+  &#34;noun&#34;: &#34;macro&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>macro_recording</td><td><code>q</code></td><td><pre>(Go: re-dispatch)</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>macro_recording</td><td><code>&lt;any&gt;</code></td><td><pre>(Go: re-dispatch)</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>macro_recording</td><td><code>&lt;paste&gt;</code></td><td><pre>(Go: re-dispatch)</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>&#34;</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;register_pending&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>q</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;macro_pending&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>@</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;replay_pending&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>&lt;digit-0&gt;</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;count_pending&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>:</code></td><td><pre>{
   &#34;verb&#34;: &#34;open&#34;,
   &#34;noun&#34;: &#34;palette&#34;
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>ctrl&#43;y</code></td><td><pre>{
@@ -47,6 +113,90 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>?</code></td><td><pre>{
   &#34;verb&#34;: &#34;open&#34;,
   &#34;noun&#34;: &#34;help&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>register_pending</td><td><code>esc</code></td><td><pre>{
+  &#34;verb&#34;: &#34;cancel&#34;,
+  &#34;noun&#34;: &#34;input&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>register_pending</td><td><code>&lt;any&gt;</code></td><td><pre>{
+  &#34;verb&#34;: &#34;select&#34;,
+  &#34;noun&#34;: &#34;register&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>replay_pending</td><td><code>esc</code></td><td><pre>{
+  &#34;verb&#34;: &#34;cancel&#34;,
+  &#34;noun&#34;: &#34;input&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>replay_pending</td><td><code>&lt;any&gt;</code></td><td><pre>{
+  &#34;verb&#34;: &#34;replay&#34;,
+  &#34;noun&#34;: &#34;macro&#34;
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>visual</td><td><code>&#34;</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;register_pending&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>visual</td><td><code>q</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;macro_pending&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>visual</td><td><code>@</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;replay_pending&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>visual-block</td><td><code>&#34;</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;register_pending&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>visual-block</td><td><code>q</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;macro_pending&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>visual-block</td><td><code>@</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;replay_pending&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>visual-line</td><td><code>&#34;</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;register_pending&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>visual-line</td><td><code>q</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;macro_pending&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>visual-line</td><td><code>@</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;replay_pending&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>visual_count_pending</td><td><code>&#34;</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;register_pending&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>visual_count_pending</td><td><code>q</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;macro_pending&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>visual_count_pending</td><td><code>@</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;replay_pending&#34;
+  }
 }</pre></td></tr><tr class="searchable"><td><code>appearance</code></td><td>normal</td><td><code>j</code></td><td><pre>{
   &#34;verb&#34;: &#34;scroll&#34;,
   &#34;noun&#34;: &#34;surface&#34;,
@@ -101,26 +251,32 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;lines&#34;: -1
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>0</code></td><td><pre>{
-  &#34;verb&#34;: &#34;append&#34;,
-  &#34;noun&#34;: &#34;count&#34;,
-  &#34;args&#34;: {
-    &#34;digit&#34;: 0
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>&lt;digit&gt;</code></td><td><pre>{
-  &#34;verb&#34;: &#34;append&#34;,
-  &#34;noun&#34;: &#34;count&#34;
+}</pre></td></tr><tr class="searchable"><td><code>confirm</code></td><td>Any base mode</td><td><code>y</code></td><td><pre>{
+  &#34;verb&#34;: &#34;accept&#34;,
+  &#34;noun&#34;: &#34;confirm&#34;
+}</pre></td></tr><tr class="searchable"><td><code>confirm</code></td><td>Any base mode</td><td><code>enter</code></td><td><pre>{
+  &#34;verb&#34;: &#34;accept&#34;,
+  &#34;noun&#34;: &#34;confirm&#34;
+}</pre></td></tr><tr class="searchable"><td><code>confirm</code></td><td>Any base mode</td><td><code>n</code></td><td><pre>{
+  &#34;verb&#34;: &#34;pop&#34;,
+  &#34;noun&#34;: &#34;modal&#34;
+}</pre></td></tr><tr class="searchable"><td><code>confirm</code></td><td>Any base mode</td><td><code>esc</code></td><td><pre>{
+  &#34;verb&#34;: &#34;pop&#34;,
+  &#34;noun&#34;: &#34;modal&#34;
+}</pre></td></tr><tr class="searchable"><td><code>confirm</code></td><td>Any base mode</td><td><code>&lt;any&gt;</code></td><td><pre>{
+  &#34;verb&#34;: &#34;ignore&#34;,
+  &#34;noun&#34;: &#34;key&#34;
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>esc</code></td><td><pre>{
   &#34;verb&#34;: &#34;cancel&#34;,
   &#34;noun&#34;: &#34;input&#34;
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>&lt;any&gt;</code></td><td><pre>{
   &#34;verb&#34;: &#34;leave&#34;,
   &#34;noun&#34;: &#34;mode&#34;
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>b when input</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>e when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;motion&#34;: &#34;word-backward&#34;
+    &#34;motion&#34;: &#34;word-end&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>h when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
@@ -128,35 +284,29 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;left&#34;
   }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>j when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;down&#34;
+  }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>k when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;up&#34;
   }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>right when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;right&#34;
+  }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>0 when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;line-start&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>home when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;line-start&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>end when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;line-end&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>G when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;last-line&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>left when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
@@ -170,41 +320,11 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;right&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>e when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;word-end&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>$ when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;line-end&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>right when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;right&#34;
-  }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>up when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;up&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>j when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;down&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>down when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;down&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>w when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
@@ -212,23 +332,41 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;word-forward&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>i when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;begin&#34;,
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>b when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;position&#34;: &#34;insert&#34;
+    &#34;motion&#34;: &#34;word-backward&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>a when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;begin&#34;,
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>end when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;position&#34;: &#34;append&#34;
+    &#34;motion&#34;: &#34;line-end&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>I when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;begin&#34;,
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>G when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;position&#34;: &#34;first&#34;
+    &#34;motion&#34;: &#34;last-line&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>down when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;down&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>home when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;line-start&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>$ when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;line-end&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>A when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;begin&#34;,
@@ -248,12 +386,23 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;position&#34;: &#34;above&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>y</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;mode&#34;,
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>i when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;begin&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;mode&#34;: &#34;operator_pending&#34;,
-    &#34;op&#34;: &#34;y&#34;
+    &#34;position&#34;: &#34;insert&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>a when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;begin&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;position&#34;: &#34;append&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>I when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;begin&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;position&#34;: &#34;first&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>d</code></td><td><pre>{
   &#34;verb&#34;: &#34;enter&#34;,
@@ -269,6 +418,19 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
     &#34;mode&#34;: &#34;operator_pending&#34;,
     &#34;op&#34;: &#34;c&#34;
   }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>y</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;operator_pending&#34;,
+    &#34;op&#34;: &#34;y&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>v when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;select&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;shape&#34;: &#34;char&#34;
+  }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>V when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;select&#34;,
   &#34;noun&#34;: &#34;input&#34;,
@@ -280,12 +442,6 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
     &#34;shape&#34;: &#34;block&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>v when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;select&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;shape&#34;: &#34;char&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>x when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;delete&#34;,
@@ -317,30 +473,6 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;mode&#34;: &#34;g_pending&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>&#34;</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;mode&#34;,
-  &#34;args&#34;: {
-    &#34;mode&#34;: &#34;register_pending&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>q</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;mode&#34;,
-  &#34;args&#34;: {
-    &#34;mode&#34;: &#34;macro_pending&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>@</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;mode&#34;,
-  &#34;args&#34;: {
-    &#34;mode&#34;: &#34;replay_pending&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>count_pending</td><td><code>&lt;digit-0&gt;</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;mode&#34;,
-  &#34;args&#34;: {
-    &#34;mode&#34;: &#34;count_pending&#34;
-  }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>g_pending</td><td><code>g when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
@@ -356,6 +488,12 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;mode&#34;: &#34;normal&#34;
   }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>insert</td><td><code>ctrl&#43;p when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;up&#34;
+  }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>insert</td><td><code>ctrl&#43;n when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
@@ -368,18 +506,6 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;down&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>insert</td><td><code>alt&#43;b when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;word-previous&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>insert</td><td><code>alt&#43;f when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;word-next&#34;
-  }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>insert</td><td><code>ctrl&#43;a when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
@@ -391,12 +517,6 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;line-start&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>insert</td><td><code>ctrl&#43;e when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;line-end&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>insert</td><td><code>ctrl&#43;b when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
@@ -416,11 +536,29 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;right&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>insert</td><td><code>right when input</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>insert</td><td><code>up when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;motion&#34;: &#34;right&#34;
+    &#34;motion&#34;: &#34;up&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>insert</td><td><code>alt&#43;b when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;word-previous&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>insert</td><td><code>alt&#43;f when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;word-next&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>insert</td><td><code>ctrl&#43;e when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;line-end&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>insert</td><td><code>end when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
@@ -428,17 +566,11 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;line-end&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>insert</td><td><code>ctrl&#43;p when input</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>insert</td><td><code>right when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;motion&#34;: &#34;up&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>insert</td><td><code>up when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;up&#34;
+    &#34;motion&#34;: &#34;right&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>insert</td><td><code>ctrl&#43;k when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;kill&#34;,
@@ -501,17 +633,11 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>insert</td><td><code>&lt;paste&gt; when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;insert&#34;,
   &#34;noun&#34;: &#34;input&#34;
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>macro_pending</td><td><code>esc</code></td><td><pre>{
-  &#34;verb&#34;: &#34;cancel&#34;,
-  &#34;noun&#34;: &#34;input&#34;
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>macro_pending</td><td><code>&lt;any&gt;</code></td><td><pre>{
-  &#34;verb&#34;: &#34;start&#34;,
-  &#34;noun&#34;: &#34;macro&#34;
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>b when input</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>e when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;motion&#34;: &#34;word-backward&#34;
+    &#34;motion&#34;: &#34;word-end&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>h when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
@@ -519,35 +645,29 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;left&#34;
   }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>j when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;down&#34;
+  }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>k when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;up&#34;
   }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>right when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;right&#34;
+  }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>0 when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;line-start&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>home when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;line-start&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>end when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;line-end&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>G when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;last-line&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>left when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
@@ -561,41 +681,11 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;right&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>e when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;word-end&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>$ when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;line-end&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>right when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;right&#34;
-  }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>up when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;up&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>j when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;down&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>down when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;down&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>w when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
@@ -603,23 +693,41 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;word-forward&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>i when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;begin&#34;,
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>b when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;position&#34;: &#34;insert&#34;
+    &#34;motion&#34;: &#34;word-backward&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>a when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;begin&#34;,
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>end when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;position&#34;: &#34;append&#34;
+    &#34;motion&#34;: &#34;line-end&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>I when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;begin&#34;,
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>G when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;position&#34;: &#34;first&#34;
+    &#34;motion&#34;: &#34;last-line&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>down when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;down&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>home when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;line-start&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>$ when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;line-end&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>A when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;begin&#34;,
@@ -639,12 +747,23 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;position&#34;: &#34;above&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>y</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;mode&#34;,
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>i when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;begin&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;mode&#34;: &#34;operator_pending&#34;,
-    &#34;op&#34;: &#34;y&#34;
+    &#34;position&#34;: &#34;insert&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>a when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;begin&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;position&#34;: &#34;append&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>I when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;begin&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;position&#34;: &#34;first&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>d</code></td><td><pre>{
   &#34;verb&#34;: &#34;enter&#34;,
@@ -660,6 +779,19 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
     &#34;mode&#34;: &#34;operator_pending&#34;,
     &#34;op&#34;: &#34;c&#34;
   }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>y</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;operator_pending&#34;,
+    &#34;op&#34;: &#34;y&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>v when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;select&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;shape&#34;: &#34;char&#34;
+  }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>V when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;select&#34;,
   &#34;noun&#34;: &#34;input&#34;,
@@ -671,12 +803,6 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
     &#34;shape&#34;: &#34;block&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>v when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;select&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;shape&#34;: &#34;char&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>x when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;delete&#34;,
@@ -708,30 +834,6 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;mode&#34;: &#34;g_pending&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>&#34;</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;mode&#34;,
-  &#34;args&#34;: {
-    &#34;mode&#34;: &#34;register_pending&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>q</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;mode&#34;,
-  &#34;args&#34;: {
-    &#34;mode&#34;: &#34;macro_pending&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>@</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;mode&#34;,
-  &#34;args&#34;: {
-    &#34;mode&#34;: &#34;replay_pending&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>normal</td><td><code>&lt;digit-0&gt;</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;mode&#34;,
-  &#34;args&#34;: {
-    &#34;mode&#34;: &#34;count_pending&#34;
-  }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_g_pending</td><td><code>g when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;operator&#34;,
   &#34;noun&#34;: &#34;input&#34;,
@@ -747,41 +849,23 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;digit&#34;: 0
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>h when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;operator&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;left&#34;
-  }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>k when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;operator&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;up&#34;
   }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>right when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;operator&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;right&#34;
+  }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>0 when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;operator&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;line-start&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>home when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;operator&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;line-start&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>end when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;operator&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;line-end&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>G when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;operator&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;last-line&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>left when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;operator&#34;,
@@ -795,41 +879,11 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;right&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>e when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;operator&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;word-end&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>$ when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;operator&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;line-end&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>right when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;operator&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;right&#34;
-  }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>up when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;operator&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;up&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>j when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;operator&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;down&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>down when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;operator&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;down&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>w when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;operator&#34;,
@@ -842,6 +896,54 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;word-backward&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>end when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;operator&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;line-end&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>G when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;operator&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;last-line&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>down when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;operator&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;down&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>home when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;operator&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;line-start&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>$ when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;operator&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;line-end&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>e when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;operator&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;word-end&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>h when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;operator&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;left&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>j when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;operator&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;down&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>y when op:y</code></td><td><pre>{
   &#34;verb&#34;: &#34;operator&#34;,
@@ -879,18 +981,24 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>operator_pending</td><td><code>&lt;any&gt;</code></td><td><pre>{
   &#34;verb&#34;: &#34;cancel&#34;,
   &#34;noun&#34;: &#34;input&#34;
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>register_pending</td><td><code>esc</code></td><td><pre>{
-  &#34;verb&#34;: &#34;cancel&#34;,
-  &#34;noun&#34;: &#34;input&#34;
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>register_pending</td><td><code>&lt;any&gt;</code></td><td><pre>{
-  &#34;verb&#34;: &#34;select&#34;,
-  &#34;noun&#34;: &#34;register&#34;
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>replay_pending</td><td><code>esc</code></td><td><pre>{
-  &#34;verb&#34;: &#34;cancel&#34;,
-  &#34;noun&#34;: &#34;input&#34;
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>replay_pending</td><td><code>&lt;any&gt;</code></td><td><pre>{
-  &#34;verb&#34;: &#34;replay&#34;,
-  &#34;noun&#34;: &#34;macro&#34;
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>left when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;left&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>l when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;right&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>up when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;up&#34;
+  }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>w when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
@@ -902,30 +1010,6 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;word-backward&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>h when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;left&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>k when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;up&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>0 when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;line-start&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>home when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;line-start&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>end when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
@@ -939,23 +1023,17 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;last-line&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>left when input</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>down when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;motion&#34;: &#34;left&#34;
+    &#34;motion&#34;: &#34;down&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>l when input</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>home when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;motion&#34;: &#34;right&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>e when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;word-end&#34;
+    &#34;motion&#34;: &#34;line-start&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>$ when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
@@ -963,17 +1041,17 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;line-end&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>right when input</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>e when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;motion&#34;: &#34;right&#34;
+    &#34;motion&#34;: &#34;word-end&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>up when input</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>h when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;motion&#34;: &#34;up&#34;
+    &#34;motion&#34;: &#34;left&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>j when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
@@ -981,11 +1059,23 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;down&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>down when input</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>k when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;motion&#34;: &#34;down&#34;
+    &#34;motion&#34;: &#34;up&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>right when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;right&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>0 when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;line-start&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>c when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;operator&#34;,
@@ -1080,77 +1170,11 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;mode&#34;: &#34;g_pending&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>&#34;</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;mode&#34;,
-  &#34;args&#34;: {
-    &#34;mode&#34;: &#34;register_pending&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>q</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;mode&#34;,
-  &#34;args&#34;: {
-    &#34;mode&#34;: &#34;macro_pending&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>@</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;mode&#34;,
-  &#34;args&#34;: {
-    &#34;mode&#34;: &#34;replay_pending&#34;
-  }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual</td><td><code>&lt;digit-0&gt;</code></td><td><pre>{
   &#34;verb&#34;: &#34;enter&#34;,
   &#34;noun&#34;: &#34;mode&#34;,
   &#34;args&#34;: {
     &#34;mode&#34;: &#34;visual_count_pending&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>w when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;word-forward&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>b when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;word-backward&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>h when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;left&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>k when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;up&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>0 when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;line-start&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>home when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;line-start&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>end when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;line-end&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>G when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;last-line&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>left when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
@@ -1164,11 +1188,47 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;right&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>e when input</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>up when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;motion&#34;: &#34;word-end&#34;
+    &#34;motion&#34;: &#34;up&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>w when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;word-forward&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>b when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;word-backward&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>end when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;line-end&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>G when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;last-line&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>down when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;down&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>home when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;line-start&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>$ when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
@@ -1176,17 +1236,17 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;line-end&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>right when input</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>e when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;motion&#34;: &#34;right&#34;
+    &#34;motion&#34;: &#34;word-end&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>up when input</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>h when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;motion&#34;: &#34;up&#34;
+    &#34;motion&#34;: &#34;left&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>j when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
@@ -1194,11 +1254,23 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;down&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>down when input</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>k when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;motion&#34;: &#34;down&#34;
+    &#34;motion&#34;: &#34;up&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>right when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;right&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>0 when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;line-start&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>c when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;operator&#34;,
@@ -1293,77 +1365,11 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;mode&#34;: &#34;g_pending&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>&#34;</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;mode&#34;,
-  &#34;args&#34;: {
-    &#34;mode&#34;: &#34;register_pending&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>q</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;mode&#34;,
-  &#34;args&#34;: {
-    &#34;mode&#34;: &#34;macro_pending&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>@</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;mode&#34;,
-  &#34;args&#34;: {
-    &#34;mode&#34;: &#34;replay_pending&#34;
-  }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-block</td><td><code>&lt;digit-0&gt;</code></td><td><pre>{
   &#34;verb&#34;: &#34;enter&#34;,
   &#34;noun&#34;: &#34;mode&#34;,
   &#34;args&#34;: {
     &#34;mode&#34;: &#34;visual_count_pending&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>w when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;word-forward&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>b when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;word-backward&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>h when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;left&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>k when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;up&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>0 when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;line-start&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>home when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;line-start&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>end when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;line-end&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>G when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;last-line&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>left when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
@@ -1377,11 +1383,47 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;right&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>e when input</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>up when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;motion&#34;: &#34;word-end&#34;
+    &#34;motion&#34;: &#34;up&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>w when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;word-forward&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>b when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;word-backward&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>end when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;line-end&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>G when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;last-line&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>down when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;down&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>home when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;line-start&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>$ when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
@@ -1389,17 +1431,17 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;line-end&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>right when input</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>e when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;motion&#34;: &#34;right&#34;
+    &#34;motion&#34;: &#34;word-end&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>up when input</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>h when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;motion&#34;: &#34;up&#34;
+    &#34;motion&#34;: &#34;left&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>j when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
@@ -1407,11 +1449,23 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;down&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>down when input</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>k when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;motion&#34;: &#34;down&#34;
+    &#34;motion&#34;: &#34;up&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>right when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;right&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>0 when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;line-start&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>c when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;operator&#34;,
@@ -1506,24 +1560,6 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;mode&#34;: &#34;g_pending&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>&#34;</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;mode&#34;,
-  &#34;args&#34;: {
-    &#34;mode&#34;: &#34;register_pending&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>q</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;mode&#34;,
-  &#34;args&#34;: {
-    &#34;mode&#34;: &#34;macro_pending&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>@</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;mode&#34;,
-  &#34;args&#34;: {
-    &#34;mode&#34;: &#34;replay_pending&#34;
-  }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual-line</td><td><code>&lt;digit-0&gt;</code></td><td><pre>{
   &#34;verb&#34;: &#34;enter&#34;,
   &#34;noun&#34;: &#34;mode&#34;,
@@ -1545,6 +1581,24 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>&lt;any&gt;</code></td><td><pre>{
   &#34;verb&#34;: &#34;leave&#34;,
   &#34;noun&#34;: &#34;mode&#34;
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>left when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;left&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>l when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;right&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>up when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;up&#34;
+  }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>w when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
@@ -1556,30 +1610,6 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;word-backward&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>h when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;left&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>k when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;up&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>0 when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;line-start&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>home when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;line-start&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>end when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
@@ -1593,23 +1623,17 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;last-line&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>left when input</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>down when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;motion&#34;: &#34;left&#34;
+    &#34;motion&#34;: &#34;down&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>l when input</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>home when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;motion&#34;: &#34;right&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>e when input</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;input&#34;,
-  &#34;args&#34;: {
-    &#34;motion&#34;: &#34;word-end&#34;
+    &#34;motion&#34;: &#34;line-start&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>$ when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
@@ -1617,17 +1641,17 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;line-end&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>right when input</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>e when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;motion&#34;: &#34;right&#34;
+    &#34;motion&#34;: &#34;word-end&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>up when input</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>h when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;motion&#34;: &#34;up&#34;
+    &#34;motion&#34;: &#34;left&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>j when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
@@ -1635,11 +1659,23 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;down&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>down when input</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>k when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;input&#34;,
   &#34;args&#34;: {
-    &#34;motion&#34;: &#34;down&#34;
+    &#34;motion&#34;: &#34;up&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>right when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;right&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>0 when input</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;line-start&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>c when input</code></td><td><pre>{
   &#34;verb&#34;: &#34;operator&#34;,
@@ -1733,24 +1769,6 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;noun&#34;: &#34;mode&#34;,
   &#34;args&#34;: {
     &#34;mode&#34;: &#34;g_pending&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>&#34;</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;mode&#34;,
-  &#34;args&#34;: {
-    &#34;mode&#34;: &#34;register_pending&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>q</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;mode&#34;,
-  &#34;args&#34;: {
-    &#34;mode&#34;: &#34;macro_pending&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>@</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;mode&#34;,
-  &#34;args&#34;: {
-    &#34;mode&#34;: &#34;replay_pending&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>editor</code></td><td>visual_count_pending</td><td><code>&lt;digit-0&gt;</code></td><td><pre>{
   &#34;verb&#34;: &#34;enter&#34;,
@@ -1902,12 +1920,6 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
 }</pre></td></tr><tr class="searchable"><td><code>palette</code></td><td>Any base mode</td><td><code>&lt;any&gt; when self</code></td><td><pre>{
   &#34;verb&#34;: &#34;ignore&#34;,
   &#34;noun&#34;: &#34;key&#34;
-}</pre></td></tr><tr class="searchable"><td><code>palette-field</code></td><td>insert</td><td><code>up</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;palette&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: -1
-  }
 }</pre></td></tr><tr class="searchable"><td><code>palette-field</code></td><td>insert</td><td><code>down</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;palette&#34;,
@@ -1921,6 +1933,12 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
     &#34;delta&#34;: 1
   }
 }</pre></td></tr><tr class="searchable"><td><code>palette-field</code></td><td>insert</td><td><code>shift&#43;tab</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;palette&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>palette-field</code></td><td>insert</td><td><code>up</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;palette&#34;,
   &#34;args&#34;: {

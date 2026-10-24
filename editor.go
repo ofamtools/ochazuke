@@ -273,7 +273,7 @@ func registerEditorOperations(r *Runtime) {
 	}
 	input := func(fn func(*Runtime, *Input, Arguments) error) Handler {
 		return func(r *Runtime, c Context, a Arguments) (any, error) {
-			in := r.Inputs[c.InputID]
+			in := r.Input(c.InputID)
 			if in == nil {
 				return nil, errors.New("no focused input")
 			}
@@ -299,7 +299,7 @@ func registerEditorOperations(r *Runtime) {
 		if op != "y" && op != "d" && op != "c" {
 			return errors.New("operator must be y, d, or c")
 		}
-		if _, _, err := registerName(StringArg(a, "register", r.ActiveRegister)); err != nil {
+		if _, _, err := registerName(StringArg(a, "register", r.Registers().Active)); err != nil {
 			return err
 		}
 		steps := IntArg(a, "steps", 1)
@@ -475,7 +475,7 @@ func registerEditorOperations(r *Runtime) {
 			err = in.pasteYank(y, before, literal, steps)
 		}
 		if err == nil {
-			r.ActiveRegister = ""
+			r.Registers().Active = ""
 			in.resetKeys()
 		}
 		return err
@@ -500,7 +500,7 @@ func registerEditorOperations(r *Runtime) {
 		if _, _, err := registerName(name); err != nil {
 			return nil, err
 		}
-		r.ActiveRegister = name
+		r.Registers().Active = name
 		return name, nil
 	})
 	register("set", "register", "Set a text register; uppercase appends, underscore discards", map[string]Parameter{"name": {Type: "string", Required: true}, "text": {Type: "string", Required: true}, "shape": {Type: "string"}, "width": {Type: "integer"}}, func(r *Runtime, c Context, a Arguments) (any, error) {
@@ -526,6 +526,6 @@ func registerEditorOperations(r *Runtime) {
 	})
 	register("get", "register", "Inspect a shared register", map[string]Parameter{"name": {Type: "string"}}, func(r *Runtime, c Context, a Arguments) (any, error) {
 		key, _, err := registerName(StringArg(a, "name", ""))
-		return r.Registers[key], err
+		return r.Registers().Named[key], err
 	})
 }

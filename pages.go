@@ -59,7 +59,7 @@ func (r *Runtime) RegisterPage(page *Page, opts ...InstanceOption) error {
 	inst := r.Instance(page.ID, append([]InstanceOption{Kind("page")}, opts...)...)
 	inst.Component = page
 	page.Frame = &Frame{ID: page.ID, Focus: page.Focus}
-	if list := r.Lists[page.Focus]; list != nil {
+	if list := r.List(page.Focus); list != nil {
 		// A page that starts on a list starts on its selected row.
 		page.Frame.Focus = list.focusTarget()
 	}

@@ -20,12 +20,14 @@ type ModalView struct {
 	Render func(*Runtime, *Frame, int, int) Block
 }
 
-// Model is the Bubble Tea adapter. Pages and modal instances retain their state in Runtime.
+// Model is the Bubble Tea adapter. Pages and modal instances retain their
+// state in Runtime; components (picker, registers, application components)
+// are instances the runtime drives through the delivery contract, so the
+// adapter holds no component list of its own.
 type Model struct {
 	Runtime    *Runtime
 	Palette    *Palette
 	Appearance *Appearance
-	Pickers    []*Picker
 	ModalViews map[string]ModalView
 	Title      string
 	Width      int
@@ -41,6 +43,7 @@ type Model struct {
 func NewModel(r *Runtime) *Model {
 	m := &Model{Runtime: r, Palette: NewPalette(r), Appearance: NewAppearance(r), ModalViews: map[string]ModalView{}, Title: "Ochazuke", Width: 80, Height: 24, views: map[string]*viewport.Model{}, scroll: map[string]int{}}
 	m.ModalViews[yankHistoryID] = ModalView{Title: "Yank history", Render: yankHistoryView}
+	m.ModalViews["confirm"] = ModalView{Title: "Confirm", Render: confirmView}
 	r.Register(Operation{Verb: "scroll", Noun: "surface", Description: "Scroll the active page or modal without changing focus", Parameters: map[string]Parameter{"lines": {Type: "integer", Required: true}}, Result: "scroll offset", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		frame := r.top()
 		width, height := m.pageSize()
@@ -80,8 +83,10 @@ func NewModel(r *Runtime) *Model {
 }
 func (m *Model) Init() tea.Cmd { return tea.RequestBackgroundColor }
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	for _, picker := range m.Pickers {
-		picker.HandleMessage(msg)
+	// Off-loop results reach their owning instance first; a stale or
+	// orphaned completion is dropped here.
+	if _, err := m.Runtime.Deliver(msg); err != nil {
+		m.Status = err.Error()
 	}
 	switch v := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -113,10 +118,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if cmd := m.Runtime.BindingTimeoutCommand(); cmd != nil {
 		commands = append(commands, cmd)
 	}
-	for _, picker := range m.Pickers {
-		if cmd := picker.PendingCommand(); cmd != nil {
-			commands = append(commands, cmd)
-		}
+	if cmd := m.Runtime.PendingCommands(); cmd != nil {
+		commands = append(commands, cmd)
 	}
 	return m, tea.Batch(commands...)
 }
@@ -173,8 +176,8 @@ func (m *Model) modalContent(frame *Frame, width, height int) (string, Block) {
 		return "Command palette", body
 	case m.ModalViews[frame.ID].Render != nil:
 		body = m.ModalViews[frame.ID].Render(m.Runtime, frame, width, height)
-	case m.Runtime.Inputs[frame.Focus] != nil:
-		body = InputBlock(m.Runtime.Inputs[frame.Focus], width, height)
+	case m.Runtime.Input(frame.Focus) != nil:
+		body = InputBlock(m.Runtime.Input(frame.Focus), width, height)
 	default:
 		body = Text("This modal has no focused input.")
 	}
@@ -248,7 +251,7 @@ func (m *Model) View() tea.View {
 // cursor shapes the block's cursor by the focused input's mode.
 func (m *Model) cursor(block Block) *tea.Cursor {
 	context := m.Runtime.Context()
-	if block.Cursor == nil || m.Runtime.Inputs[context.InputID] == nil {
+	if block.Cursor == nil || m.Runtime.Input(context.InputID) == nil {
 		return nil
 	}
 	cursor := tea.NewCursor(block.Cursor.X, block.Cursor.Y)
@@ -277,8 +280,8 @@ func (m *Model) render() Block {
 	}
 	heading := styles.Title.Render(safeText(m.Title)) + "  " + styles.Muted.Render(safeText(pageTitle))
 	modeLabel := strings.ToUpper(modeLabelOf(m.Runtime.Mode(m.Runtime.Context())))
-	if m.Runtime.Macro.Recording != "" {
-		modeLabel += " · REC @" + m.Runtime.Macro.Recording
+	if m.Runtime.Registers().Macro.Recording != "" {
+		modeLabel += " · REC @" + m.Runtime.Registers().Macro.Recording
 	}
 	mode := styles.Badge.Render(modeLabel)
 	heading = ansi.Truncate(heading, max(0, width-lipgloss.Width(mode)-1), "…")
@@ -308,7 +311,7 @@ func (m *Model) render() Block {
 	currentMode := m.Runtime.Mode(m.Runtime.Context())
 	if currentMode == "insert" {
 		footer = "INSERT · Esc normal · Ctrl-A/E line · Ctrl-W/U/K kill · Ctrl-Space palette"
-		if in := m.Runtime.Inputs[m.Runtime.FocusID()]; in != nil && in.pin == "insert" {
+		if in := m.Runtime.Input(m.Runtime.FocusID()); in != nil && in.pin == "insert" {
 			footer = "READLINE · Ctrl-A/E line · Ctrl-W/U/K kill · Ctrl-Y yank · Ctrl-Space palette"
 		}
 	}
@@ -341,7 +344,7 @@ func (m *Model) render() Block {
 		hint := "Esc normal / close · PgUp/PgDn scroll"
 		if frame == m.Palette.frame {
 			hint = "Esc normal / back · Ctrl-C cancel"
-		} else if in := m.Runtime.Inputs[frame.Focus]; in != nil && in.pin == "insert" {
+		} else if in := m.Runtime.Input(frame.Focus); in != nil && in.pin == "insert" {
 			hint = "Readline editing · PgUp/PgDn scroll"
 		}
 		if frame == m.Runtime.top() && m.Status != "" {

@@ -1,9 +1,55 @@
 package ochazuke
 
 import (
+	_ "embed"
 	"errors"
 	"strings"
+
+	tea "charm.land/bubbletea/v2"
 )
+
+// registersID is the single registers instance under app.
+const registersID = "__registers"
+
+// Registers is the component that owns the shared yanks, named registers,
+// yank history, the register selected for the next operation and the macro
+// state. It is one instance under app, reached through the register, macro
+// and yank-history operations and Runtime.Registers(), never through
+// Runtime fields. Its key rows (q, @, " and the pending modes they enter)
+// sit on the app noun so a page or list focus can record and replay too.
+type Registers struct {
+	Named     map[string]Register
+	History   []Yank
+	Active    string
+	Macro     MacroState
+	selection int // the yank-history modal's highlighted row
+}
+
+// registersSpec is the app noun's register and macro rows as data, in the
+// same shape as editor_bindings.json.
+//
+//go:embed registers_bindings.json
+var registersSpec []byte
+
+func registerRegisters(r *Runtime) {
+	inst := r.Instance(registersID, Kind("registers"))
+	inst.Component = &Registers{Named: map[string]Register{}}
+}
+
+// Registers returns the registers component.
+func (r *Runtime) Registers() *Registers {
+	regs, _ := r.Instances[registersID].Component.(*Registers)
+	return regs
+}
+
+// HandleMessage: the registers do no off-loop work.
+func (g *Registers) HandleMessage(tea.Msg) bool { return false }
+
+// PendingCommand: nothing is ever scheduled.
+func (g *Registers) PendingCommand() tea.Cmd { return nil }
+
+// Close abandons a recording in progress; the registers themselves stay.
+func (g *Registers) Close() { g.Macro.Recording, g.Macro.Keys = "", nil }
 
 // Yank retains the geometry needed to paste independently of the source field.
 type Yank struct {
@@ -58,45 +104,47 @@ func appendYank(a, b Yank) Yank {
 	return Yank{Text: a.Text + b.Text, Shape: "char"}
 }
 func (r *Runtime) storeYank(y Yank, name string, deletion bool) error {
+	g := r.Registers()
 	if name == "" {
-		name = r.ActiveRegister
+		name = g.Active
 	}
 	key, appendMode, err := registerName(name)
 	if err != nil {
 		return err
 	}
-	r.ActiveRegister = ""
+	g.Active = ""
 	if key == "_" {
 		return nil
 	}
 	if appendMode {
-		y = appendYank(r.Registers[key].Yank, y)
+		y = appendYank(g.Named[key].Yank, y)
 	}
-	r.Registers[key] = Register{Yank: y}
-	r.Registers["\""] = Register{Yank: y}
+	g.Named[key] = Register{Yank: y}
+	g.Named["\""] = Register{Yank: y}
 	if deletion {
 		if y.Shape == "line" || strings.Contains(y.Text, "\n") {
 			for n := byte('9'); n > '1'; n-- {
-				r.Registers[string(n)] = r.Registers[string(n-1)]
+				g.Named[string(n)] = g.Named[string(n-1)]
 			}
-			r.Registers["1"] = Register{Yank: y}
+			g.Named["1"] = Register{Yank: y}
 		} else {
-			r.Registers["-"] = Register{Yank: y}
+			g.Named["-"] = Register{Yank: y}
 		}
 	} else {
-		r.Registers["0"] = Register{Yank: y}
+		g.Named["0"] = Register{Yank: y}
 	}
 	if y.Text != "" {
-		r.YankHistory = append([]Yank{y}, r.YankHistory...)
-		if len(r.YankHistory) > 100 {
-			r.YankHistory = r.YankHistory[:100]
+		g.History = append([]Yank{y}, g.History...)
+		if len(g.History) > 100 {
+			g.History = g.History[:100]
 		}
 	}
 	return nil
 }
 func (r *Runtime) readYank(name string) (Yank, error) {
+	g := r.Registers()
 	if name == "" {
-		name = r.ActiveRegister
+		name = g.Active
 	}
 	key, _, err := registerName(name)
 	if err != nil {
@@ -105,5 +153,5 @@ func (r *Runtime) readYank(name string) (Yank, error) {
 	if key == "_" {
 		return Yank{Shape: "char"}, nil
 	}
-	return r.Registers[key].Yank, nil
+	return g.Named[key].Yank, nil
 }

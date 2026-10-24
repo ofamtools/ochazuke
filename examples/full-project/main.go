@@ -95,7 +95,7 @@ func run(args []string) error {
 		if err := smokeExample(m); err != nil {
 			return err
 		}
-		fmt.Println("full-project smoke: actions, noun and instance rows, review mode, page/modal restoration, picker filters, palette, appearance, editing, history, registers, macros, list focus/refresh, row nouns and fan-out: PASS")
+		fmt.Println("full-project smoke: actions, noun and instance rows, review mode, page/modal restoration, picker filters, palette, appearance, editing, history, registers, macros, list focus/refresh, row nouns, confirm and fan-out: PASS")
 		return nil
 	}
 	runFlags := flag.NewFlagSet("run", flag.ContinueOnError)
@@ -141,7 +141,7 @@ var smokeStep func(label string) error
 func smokeExample(m *ochazuke.Model) error {
 	r := m.Runtime
 	for _, id := range []string{"title", "notes", "source", "destination", "attachments", "confirm-note", "details-note"} {
-		if r.Inputs[id] == nil {
+		if r.Input(id) == nil {
 			return fmt.Errorf("smoke requires example input %q", id)
 		}
 	}
@@ -207,7 +207,7 @@ func smokeExample(m *ochazuke.Model) error {
 		}
 	}
 	replace := func(id, text string) {
-		call("replace", "input", id, ochazuke.Arguments{"start": 0, "end": len(r.Inputs[id].Text), "text": text})
+		call("replace", "input", id, ochazuke.Arguments{"start": 0, "end": len(r.Input(id).Text), "text": text})
 	}
 	call("open", "page", "", ochazuke.Arguments{"id": "overview"})
 	call("focus", "input", "", ochazuke.Arguments{"id": "notes"})
@@ -224,7 +224,7 @@ func smokeExample(m *ochazuke.Model) error {
 	binding("g", "h")
 	expect("configured greeting sequence", pageState("overview")["greeting"], "Hello, Ochazuke!")
 	binding("ctrl+t")
-	expect("targeted edit", string(r.Inputs["title"].Text), " [reviewed]Release")
+	expect("targeted edit", string(r.Input("title").Text), " [reviewed]Release")
 	binding("ctrl+r")
 	expect("custom review mode", r.Mode(r.Context()), "review")
 	binding("s")
@@ -233,7 +233,7 @@ func smokeExample(m *ochazuke.Model) error {
 	expect("mode restoration", r.Mode(r.Context()), "normal")
 	call("move", "input", "", ochazuke.Arguments{"motion": "line-start"})
 	call("move", "input", "", ochazuke.Arguments{"motion": "word-forward"})
-	expect("editor motion", r.Inputs["notes"].Cursor, 6)
+	expect("editor motion", r.Input("notes").Cursor, 6)
 	pageState("overview")["selectedItem"] = "release-42"
 	call("open", "page", "", ochazuke.Arguments{"id": "paths"})
 	call("open", "page", "", ochazuke.Arguments{"id": "overview"})
@@ -242,7 +242,7 @@ func smokeExample(m *ochazuke.Model) error {
 	expect("configured field cycling", r.Context().InputID, "title")
 	binding("tab")
 	expect("configured field cycling wrap", r.Context().InputID, "notes")
-	expect("page cursor restoration", r.Inputs["notes"].Cursor, 6)
+	expect("page cursor restoration", r.Input("notes").Cursor, 6)
 	expect("page state restoration", pageState("overview")["selectedItem"], "release-42")
 	binding("ctrl+o")
 	expect("editable modal", r.Context().InputID, "confirm-note")
@@ -255,13 +255,13 @@ func smokeExample(m *ochazuke.Model) error {
 	expect("nested modal renderer", strings.Contains(plain(m.View().Content), "inner"), true)
 	press("esc")
 	expect("modal parent focus", r.Context().InputID, "confirm-note")
-	expect("modal parent text", string(r.Inputs["confirm-note"].Text), "outer")
-	expect("modal parent cursor", r.Inputs["confirm-note"].Cursor, 2)
+	expect("modal parent text", string(r.Input("confirm-note").Text), "outer")
+	expect("modal parent cursor", r.Input("confirm-note").Cursor, 2)
 	press("esc")
 	expect("modal page restoration", r.Context().InputID, "notes")
-	expect("modal cursor restoration", r.Inputs["notes"].Cursor, 6)
+	expect("modal cursor restoration", r.Input("notes").Cursor, 6)
 	call("undo", "input", "details-note", nil)
-	expect("isolated page history", string(r.Inputs["notes"].Text), "alpha beta")
+	expect("isolated page history", string(r.Input("notes").Text), "alpha beta")
 	call("open", "workspace", "", ochazuke.Arguments{"id": "help"})
 	expect("help modal renderer", strings.Contains(plain(m.View().Content), "Workspace help"), true)
 	press("esc")
@@ -271,12 +271,12 @@ func smokeExample(m *ochazuke.Model) error {
 	press("ctrl+k")
 	expect("Ctrl-K previous page", r.Page, "overview")
 	press("qq:")
-	expect("coalesced macro recording", r.Macro.Recording, "q")
+	expect("coalesced macro recording", r.Registers().Macro.Recording, "q")
 	expect("coalesced colon palette", m.Palette.IsOpen(), true)
 	call("close", "palette", "", nil)
 	binding("q")
-	expect("keyboard macro stop", r.Macro.Recording, "")
-	expect("macro records colon only", r.Registers["q"].Keys, []ochazuke.MacroKey{{Key: ":"}})
+	expect("keyboard macro stop", r.Registers().Macro.Recording, "")
+	expect("macro records colon only", r.Registers().Named["q"].Keys, []ochazuke.MacroKey{{Key: ":"}})
 	binding(":")
 	call("select", "palette", "", ochazuke.Arguments{"value": "noun:page"})
 	call("search", "palette", "", ochazuke.Arguments{"query": "paths"})
@@ -306,19 +306,19 @@ func smokeExample(m *ochazuke.Model) error {
 	call("select", "input", "", ochazuke.Arguments{"shape": "char"})
 	call("move", "input", "", ochazuke.Arguments{"motion": "right", "steps": 2})
 	call("yank", "input", "", ochazuke.Arguments{"register": "a"})
-	expect("visual yank register", r.Registers["a"].Yank.Text, "one")
+	expect("visual yank register", r.Registers().Named["a"].Yank.Text, "one")
 	replace("title", "")
 	call("focus", "input", "", ochazuke.Arguments{"id": "title"})
 	call("paste", "input", "", ochazuke.Arguments{"register": "a", "literal": true})
-	expect("shared register paste", string(r.Inputs["title"].Text), "one")
+	expect("shared register paste", string(r.Input("title").Text), "one")
 	call("undo", "input", "", nil)
-	expect("undo", string(r.Inputs["title"].Text), "")
+	expect("undo", string(r.Input("title").Text), "")
 	call("redo", "input", "", nil)
-	expect("redo", string(r.Inputs["title"].Text), "one")
+	expect("redo", string(r.Input("title").Text), "one")
 	call("open", "yank-history", "", nil)
 	call("select", "yank-history", "", ochazuke.Arguments{"index": 0})
 	expect("yank history restores input", r.Context().InputID, "title")
-	expect("yank history selection", r.Registers["\""].Yank.Text, "one")
+	expect("yank history selection", r.Registers().Named["\""].Yank.Text, "one")
 	replace("title", "")
 	call("start", "macro", "", ochazuke.Arguments{"register": "b"})
 	press("i")
@@ -326,7 +326,7 @@ func smokeExample(m *ochazuke.Model) error {
 	press("esc")
 	call("stop", "macro", "", nil)
 	call("replay", "macro", "", ochazuke.Arguments{"register": "b"})
-	expect("macro keyboard replay", string(r.Inputs["title"].Text), "ZZ")
+	expect("macro keyboard replay", string(r.Input("title").Text), "ZZ")
 	if failure != nil {
 		return failure
 	}
@@ -346,7 +346,7 @@ func smokeExample(m *ochazuke.Model) error {
 		return err
 	}
 	call("open", "page", "", ochazuke.Arguments{"id": "paths"})
-	picker := m.Pickers[0]
+	picker := r.Instances["picker"].Component.(*ochazuke.Picker)
 	var drain func(tea.Cmd)
 	drain = func(cmd tea.Cmd) {
 		if cmd == nil {
@@ -359,8 +359,8 @@ func smokeExample(m *ochazuke.Model) error {
 			}
 			return
 		}
-		picker.HandleMessage(msg)
-		drain(picker.PendingCommand())
+		r.Deliver(msg)
+		drain(r.PendingCommands())
 	}
 	for _, item := range []struct{ input, filter, path string }{{"source", "file", "release.txt"}, {"destination", "dir", "output"}, {"attachments", "any", "release.txt"}} {
 		call("focus", "input", "", ochazuke.Arguments{"id": item.input})
@@ -380,7 +380,7 @@ func smokeExample(m *ochazuke.Model) error {
 		}
 		call("move", "picker", "", ochazuke.Arguments{"delta": index - picker.Selected})
 		call("choose", "picker", "", nil)
-		expect("picker committed "+item.input, string(r.Inputs[item.input].Text), filepath.Join(root, item.path))
+		expect("picker committed "+item.input, string(r.Input(item.input).Text), filepath.Join(root, item.path))
 		expect("picker restores input", r.Context().InputID, item.input)
 	}
 	if failure != nil {
@@ -397,17 +397,17 @@ func smokeExample(m *ochazuke.Model) error {
 	binding("j")
 	expect("list row replaces leaf", r.Context().Path, []string{"app", "items", "item-list", "main"})
 	binding("r")
-	selected, _ := r.Lists["item-list"].Selected()
+	selected, _ := r.List("item-list").Selected()
 	expect("refresh retains item ID", selected.ID, "main")
 	binding("tab", "j", "k", "x")
 	expect("list releases input focus", r.Context().Path, []string{"app", "items", "item-editor"})
-	expect("editor receives list keys", string(r.Inputs["item-note"].Text), "jkx")
+	expect("editor receives list keys", string(r.Input("item-note").Text), "jkx")
 	call("move", "list", "", ochazuke.Arguments{"id": "item-list", "delta": 1})
 	expect("background move keeps editor", r.Context().InputID, "item-note")
 	binding("tab")
 	expect("list refocus current row", r.Context().Path, []string{"app", "items", "item-list", "picker-lab"})
 	binding("x")
-	selected, _ = r.Lists["item-list"].Selected()
+	selected, _ = r.List("item-list").Selected()
 	expect("removed row falls back", selected.ID, "release")
 	expect("removed row instance dropped", r.Instances["picker-lab"] == nil, true)
 	// Mixed nouns in one list: each row answers to its noun's verbs and keys.
@@ -443,7 +443,13 @@ func smokeExample(m *ochazuke.Model) error {
 	call("select", "context", "", ochazuke.Arguments{"instance": "main"})
 	expect("select.context by instance", r.Context().Path, []string{"app", "items", "item-list", "main"})
 	binding("d")
-	expect("remove.worktree drops the row", r.Instances["main"] == nil, true)
+	expect("remove.worktree asks first", r.Frames[len(r.Frames)-1].ID, "confirm")
+	expect("confirm names the row", strings.Contains(plain(m.View().Content), "Remove worktree main?"), true)
+	binding("n")
+	expect("n keeps the row", r.Instances["main"] != nil && len(r.Frames) == 1, true)
+	binding("d", "y")
+	expect("remove.worktree drops the row after y", r.Instances["main"] == nil, true)
+	expect("confirm closed", len(r.Frames), 1)
 	binding(":")
 	call("select", "palette", "", ochazuke.Arguments{"value": "noun:worktree"})
 	call("select", "palette", "", ochazuke.Arguments{"value": "instance:docs"})
@@ -458,7 +464,7 @@ func smokeExample(m *ochazuke.Model) error {
 	binding("space")
 	report, _ = call("apply", "list", "", ochazuke.Arguments{"verb": "open"}).(map[string]any)
 	expect("fan-out skips unsupported nouns", report["skipped"], []string{"hotfix: open.branch is not registered"})
-	expect("fan-out keeps marks", len(r.Lists["item-list"].Marked()), 3)
+	expect("fan-out keeps marks", len(r.List("item-list").Marked()), 3)
 	if failure != nil {
 		return failure
 	}

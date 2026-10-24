@@ -76,7 +76,8 @@ type ActionConfig struct {
 	Handler     string                        `json:"handler"`
 	Result      string                        `json:"result"`
 	Parameters  map[string]ochazuke.Parameter `json:"parameters"`
-	On          string                        `json:"on,omitempty"` // a noun whose instances override the operation
+	On          string                        `json:"on,omitempty"`      // a noun whose instances override the operation
+	Confirm     string                        `json:"confirm,omitempty"` // prompt shown before the operation runs ({{id}} expands)
 }
 
 // Bindings are the framework's own row shape: ochazuke.Binding.

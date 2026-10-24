@@ -19,11 +19,11 @@ func main() {
 	exec(ochazuke.Request{Verb: "push", Noun: "modal", Args: ochazuke.Arguments{"id": "picker", "input": "picker"}})
 	exec(ochazuke.Request{Verb: "insert", Noun: "input", Args: ochazuke.Arguments{"text": "y"}})
 	exec(ochazuke.Request{Verb: "pop", Noun: "modal"})
-	if r.Context().InputID != "directory" || string(r.Inputs["directory"].Text) != "x/tmp" {
+	if r.Context().InputID != "directory" || string(r.Input("directory").Text) != "x/tmp" {
 		panic("modal failed to restore editor")
 	}
 	exec(ochazuke.Request{Verb: "undo", Noun: "input", Target: "focused-input"})
-	if string(r.Inputs["directory"].Text) != "/tmp" || string(r.Inputs["picker"].Text) != "y/home" {
+	if string(r.Input("directory").Text) != "/tmp" || string(r.Input("picker").Text) != "y/home" {
 		panic("input histories leaked")
 	}
 	r.Register(ochazuke.Operation{Verb: "inspect", Noun: "selection", Description: "Demonstrate scoped actions", Result: "layer", Run: func(*ochazuke.Runtime, ochazuke.Context, ochazuke.Arguments) (any, error) { return "app", nil }})

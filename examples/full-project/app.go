@@ -60,7 +60,6 @@ func Build(cfg Config) (*ochazuke.Model, error) {
 	m.Title = cfg.App.Title
 	m.Sidebar = true
 	picker := ochazuke.NewPicker(r)
-	m.Pickers = append(m.Pickers, picker)
 	m.ModalViews["picker"] = ochazuke.ModalView{Title: "Choose a path", Render: func(_ *ochazuke.Runtime, _ *ochazuke.Frame, w, h int) ochazuke.Block { return picker.ViewBlock(w, h) }}
 	appearance := ochazuke.Arguments{}
 	if cfg.App.Appearance.Theme != "" {
@@ -102,7 +101,8 @@ func registerPalette(m *ochazuke.Model, configs []PaletteConfig) error {
 		"inputs": func(string) ochazuke.PaletteSource {
 			return func(r *ochazuke.Runtime, origin ochazuke.Context) []ochazuke.PaletteInstance {
 				var instances []ochazuke.PaletteInstance
-				for id := range r.Inputs {
+				for _, in := range r.Inputs() {
+					id := in.ID
 					path := r.InstancePath(id)
 					if len(origin.Path) > 1 && (len(path) < 2 || path[1] != origin.Path[1]) {
 						continue
@@ -117,7 +117,7 @@ func registerPalette(m *ochazuke.Model, configs []PaletteConfig) error {
 		"rows": func(noun string) ochazuke.PaletteSource {
 			return func(r *ochazuke.Runtime, _ ochazuke.Context) []ochazuke.PaletteInstance {
 				var instances []ochazuke.PaletteInstance
-				for _, list := range r.Lists {
+				for _, list := range r.Lists() {
 					for _, item := range list.Snapshot()["items"].([]ochazuke.ListItem) {
 						if item.Noun == noun {
 							instances = append(instances, ochazuke.PaletteInstance{ID: item.ID, Label: item.Label})

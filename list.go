@@ -36,7 +36,7 @@ func NewList(r *Runtime, id string, items []ListItem, opts ...InstanceOption) (*
 	if id == "" {
 		return nil, errors.New("list ID must be nonempty")
 	}
-	if r.Lists[id] != nil || r.Instances[id] != nil {
+	if r.Instances[id] != nil {
 		return nil, fmt.Errorf("list %q is already registered", id)
 	}
 	spec := instanceSpec{parent: "app", noun: "list"}
@@ -53,7 +53,6 @@ func NewList(r *Runtime, id string, items []ListItem, opts ...InstanceOption) (*
 		r.removeInstance(id)
 		return nil, err
 	}
-	r.Lists[id] = list
 	return list, nil
 }
 
@@ -261,13 +260,13 @@ func registerLists(r *Runtime) {
 		Bind("space", Do("mark.list"))
 	resolve := func(c Context, args Arguments) (*List, error) {
 		if id := StringArg(args, "id", ""); id != "" {
-			if list := r.Lists[id]; list != nil {
+			if list := r.List(id); list != nil {
 				return list, nil
 			}
 			return nil, fmt.Errorf("unknown list %q", id)
 		}
 		for _, id := range r.Ancestry(focusOf(c)) {
-			if list := r.Lists[id]; list != nil && c.InputID == "" {
+			if list := r.List(id); list != nil && c.InputID == "" {
 				return list, nil
 			}
 		}
