@@ -1,0 +1,12 @@
+# One project directory per line. Read by cmd/charmrefs (make codemap).
+/Users/unixsuperhero/proj/gmtm
+/Users/unixsuperhero/proj/matomeru
+/Users/unixsuperhero/proj/ochazuke
+/Users/unixsuperhero/proj/redeck
+/Users/unixsuperhero/proj/redeck-astra
+/Users/unixsuperhero/proj/redeck-forms
+/Users/unixsuperhero/proj/session-browser
+/Users/unixsuperhero/proj/tuios
+/Users/unixsuperhero/proj/tuios-deck
+/Users/unixsuperhero/proj/tuios-inbox
+/Users/unixsuperhero/proj/tuios-session-browser
