@@ -485,8 +485,8 @@ func (m *Model) beneath() (restore func()) {
 // so the focused element's lines (Page.focusLines, as this frame drew them)
 // sit inside the height-line viewport with the page's scrolloff above and
 // below; an element taller than the viewport is aligned to its top. A list
-// has already windowed its rows around the selection, so this moves only
-// the page, once.
+// has already windowed its rows around the selection with the same margin
+// (windowOffset), so this moves only the page, once.
 func (m *Model) follow(key, content string, height int) {
 	r := m.Runtime
 	page := r.PageOf(r.Page)

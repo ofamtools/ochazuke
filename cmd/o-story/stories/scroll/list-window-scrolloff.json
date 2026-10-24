@@ -1,7 +1,6 @@
 {
   "name": "a self-windowing list keeps two rows of scrolloff",
   "area": "scroll",
-  "skip": "gap: a list that windows itself (List.View) keeps the selected row inside its window with no margin, so j parks the focus on the window's last row; the page's scrolloff 2 does not reach inside it",
   "width": 30,
   "height": 8,
   "chrome": "none",

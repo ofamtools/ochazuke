@@ -345,3 +345,47 @@ func BenchmarkFocusNextOverManyRows(b *testing.B) {
 		}
 	}
 }
+
+func TestListWindowKeepsScrolloffAroundTheSelection(t *testing.T) {
+	for _, c := range []struct {
+		name                                   string
+		offset, selected, visible, total, want int
+	}{
+		{"moving down stops two rows short of the bottom edge", 0, 5, 7, 50, 1},
+		{"moving up stops two rows short of the top edge", 20, 21, 7, 50, 19},
+		{"a selection inside the margins does not scroll", 10, 13, 7, 50, 10},
+		{"the margin relaxes at the first row", 5, 0, 7, 50, 0},
+		{"the margin relaxes at the last row", 0, 49, 7, 50, 43},
+		{"near the bottom the window stops at the last row", 40, 48, 7, 50, 43},
+		{"a 3-row window caps the margin at one", 0, 3, 3, 50, 2},
+		{"a 4-row window caps the margin at one", 0, 3, 4, 50, 1},
+		{"a 1-row window shows the selection alone", 0, 7, 1, 50, 7},
+		{"a list shorter than its window never scrolls", 0, 4, 7, 5, 0},
+	} {
+		if got := windowOffset(c.offset, c.selected, c.visible, c.total, 2); got != c.want {
+			t.Errorf("%s: windowOffset(%d, %d, %d, %d, 2) = %d, want %d", c.name, c.offset, c.selected, c.visible, c.total, got, c.want)
+		}
+	}
+}
+
+func TestListViewKeepsTwoRowsBelowTheSelection(t *testing.T) {
+	_, list, _, _ := listFixture(t)
+	items := make([]ListItem, 30)
+	for i := range items {
+		items[i] = ListItem{ID: fmt.Sprint(i), Label: fmt.Sprintf("Row %02d", i), Noun: "a"}
+	}
+	if err := list.SetItems(items); err != nil {
+		t.Fatal(err)
+	}
+	if err := list.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	list.Move(10)
+	rows := strings.Split(list.View(20, 8), "\n")
+	if got := strings.TrimSpace(ansi.Strip(rows[4])); got != "Row 10" {
+		t.Fatalf("selected row on line 4 = %q, want Row 10:\n%s", got, strings.Join(rows, "\n"))
+	}
+	if got := strings.TrimSpace(ansi.Strip(rows[6])); got != "Row 12" {
+		t.Fatalf("last window row = %q, want Row 12", got)
+	}
+}

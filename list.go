@@ -272,12 +272,7 @@ func (l *List) View(width, height int) string {
 	if len(l.items) > height && height > 1 {
 		visible--
 	}
-	l.offset = min(l.offset, max(0, len(l.items)-visible))
-	if l.selected < l.offset {
-		l.offset = l.selected
-	} else if l.selected >= l.offset+visible {
-		l.offset = l.selected - visible + 1
-	}
+	l.offset = windowOffset(l.offset, l.selected, visible, len(l.items), l.scrolloff())
 	end := min(len(l.items), l.offset+visible)
 	rows := make([]string, 0, height)
 	// The focused list's selected row is the inverted highlight alone: no
@@ -310,6 +305,23 @@ func (l *List) View(width, height int) string {
 		focus, focusHeight = l.selected-l.offset, 1
 	}
 	return l.r.PlacedAt(l.id, strings.Join(layoutRows(strings.Join(rows, "\n"), width, height), "\n"), focus, focusHeight)
+}
+
+// scrolloff is the margin the list keeps around its selected row inside
+// its own window: the open page's (Page.Scrolloff), else the default 2.
+func (l *List) scrolloff() int {
+	if page := l.r.PageOf(l.r.Page); page != nil {
+		return page.scrolloff()
+	}
+	return 2
+}
+
+// windowOffset is the first row a visible-row window over total rows shows
+// so the selected row keeps margin rows above and below it, the same rule
+// as the page's follow (scrollToShow): the margin shrinks to (visible-1)/2
+// in a short window and relaxes at the list's first and last rows.
+func windowOffset(offset, selected, visible, total, margin int) int {
+	return scrollToShow(offset, selected, selected+1, visible, total, margin)
 }
 
 func registerLists(r *Runtime) {
