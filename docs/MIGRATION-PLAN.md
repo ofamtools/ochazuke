@@ -212,3 +212,32 @@ modes.busy = { "ctrl+c": "job.cancel", esc: "job.cancel", any: ignore }         
 - `bindings list` in `busy` shows exactly the cancel rows.
 
 Order: do change 1 first as a short correctness task (it is a bug in the contract and small); change 2 can land with the CSV app's open-file, which is its first real use.
+
+## After the CSV app: consumer-found fixes (owner decisions, 2026-10-24, from the forked design session)
+
+The CSV app (`examples/csv`, `grid/`) shipped against the core with one 14-line additive change. Its report named three framework gaps; checked against the resolver and runtime, they reduce to this list.
+
+### 1. Mode is global (decision)
+
+Vim has one mode. Phase 5 stored mode per instance (`Instance.State`, `modeState` walking the ancestry, `set.mode` writing to the focused instance), which breaks for components that recreate their focused child on every motion (the grid lost its visual mode on the first `j`).
+
+```js
+Runtime.Mode = { name, payload }          // one field; set.mode writes it; the grid's visual mode survives cursor moves
+focus change → Mode = normal, payload cleared, unless the newly focused noun Pins a mode (prompt → insert, terminal → terminal)
+```
+
+Remove `Instance.State` as mode storage, the ancestry walk in `modeState`, and `Input.Mode` as a separate truth (an input is in the global mode while focused; a pinned noun sets it on focus). Per-instance data that is not mode stays where it is: editor text and undo, grid cursor, selection geometry and marks.
+
+### 2. Bugs and oversights in the resolver
+
+- `enterPrefix` builds `Payload{Prefix, Request}` and drops `Count` and `OpCount`, so `3gg` loses its count. Carry both.
+- `lookup` records the matching level in `ev.Level`; `runRow` then targets `ev.Focus`. A row that matched at the row level should address the row instance by default (`Target = ev.Level`). This also fixes `Confirm("Delete row {{id}}?")`, which printed the cell id.
+- Not a bug: an inner exact match (`y` on cell) runs before an outer longer sequence (`y y` on row) is considered. That is Vim's buffer-local-over-global rule and stays; bind the longer sequence at the inner level.
+
+### 3. Small API additions
+
+- `extends` on `Define` (table inheritance), today only in the editor spec loader. The CSV app copied motions into three tables for lack of it.
+- `OpenModal` able to open a modal that contains an input (the sketch's prompt-noun editor became `AddInput` + `Push`).
+- An exported way to remove an instance (the grid deletes from `r.Instances` directly).
+
+Deferred and expected: `Parameter.source` for the transform pick list (after-phase-7 item 1); save-as through the picker needs the picker to accept a path that does not exist yet.
