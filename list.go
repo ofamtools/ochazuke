@@ -258,14 +258,15 @@ func (l *List) Snapshot() map[string]any {
 
 // View fits the viewport and updates its scroll offset to keep selection
 // visible. Calling it places the list in its page's drawing order (Placed),
-// even at zero height.
+// even at zero height, and reports its selected row's line (PlacedAt) so
+// the page scrolls to keep that row on screen.
 func (l *List) View(width, height int) string {
 	l.r.Placed(l.id)
 	if width <= 0 || height <= 0 {
 		return ""
 	}
 	if len(l.items) == 0 {
-		return strings.Join(layoutRows("(empty list)", width, height), "\n")
+		return l.r.PlacedAt(l.id, strings.Join(layoutRows("(empty list)", width, height), "\n"), 0, height)
 	}
 	visible := height
 	if len(l.items) > height && height > 1 {
@@ -302,7 +303,13 @@ func (l *List) View(width, height int) string {
 	if len(l.items) > height && height > 1 {
 		rows = append(rows, fmt.Sprintf("%d–%d / %d", l.offset+1, end, len(l.items)))
 	}
-	return strings.Join(layoutRows(strings.Join(rows, "\n"), width, height), "\n")
+	// The page keeps the selected row's line on screen; the list has
+	// already kept the row inside its own window above.
+	focus, focusHeight := 0, height
+	if l.selected >= l.offset && l.selected < end {
+		focus, focusHeight = l.selected-l.offset, 1
+	}
+	return l.r.PlacedAt(l.id, strings.Join(layoutRows(strings.Join(rows, "\n"), width, height), "\n"), focus, focusHeight)
 }
 
 func registerLists(r *Runtime) {

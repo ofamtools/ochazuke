@@ -614,8 +614,8 @@ func (r *Runtime) units(root string, unit func(string) bool) (out []string, orde
 	for i, id := range tree {
 		order[id] = len(drawn) + i
 	}
-	for i, id := range drawn {
-		for _, at := range r.Ancestry(id) {
+	for i, placed := range drawn {
+		for _, at := range r.Ancestry(placed.ID) {
 			if at == root {
 				break
 			}
@@ -630,7 +630,7 @@ func (r *Runtime) units(root string, unit func(string) bool) (out []string, orde
 
 // drawnUnder is the last frame's drawing order of the page holding root
 // (root itself or an ancestor), nil when no page holds it or none was drawn.
-func (r *Runtime) drawnUnder(root string) []string {
+func (r *Runtime) drawnUnder(root string) []Placement {
 	for _, id := range r.Ancestry(root) {
 		if page := r.PageOf(id); page != nil {
 			return page.drawn

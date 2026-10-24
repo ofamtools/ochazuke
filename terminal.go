@@ -182,7 +182,8 @@ func (t *Terminal) ViewBlock(width, height int) Block {
 		}
 		rows[i] = modalCells(line, width)
 	}
-	block := Text(strings.Join(rows, "\n"))
+	// The page keeps the pane's top line on screen when it follows the focus.
+	block := Text(t.r.PlacedAt(t.id, strings.Join(rows, "\n"), 0, 1))
 	if !t.frame.Hidden {
 		block.Cursor = &Pos{X: t.frame.Cursor.X, Y: t.frame.Cursor.Y}
 		block = block.Clip(width, height)

@@ -46,12 +46,16 @@ type Model struct {
 	Sidebar bool
 	views   map[string]*viewport.Model
 	scroll  map[string]int // modal ID or page surface key -> scroll offset
-	ticker  jobTicker      // the finished jobs the ticker remembers (ticker.go)
-	now     func() time.Time
+	// followed is the focus each page surface last scrolled to follow, so a
+	// frame scrolls only when the focus moved (pgup and pgdown may leave it
+	// off screen until the next motion).
+	followed map[string]string
+	ticker   jobTicker // the finished jobs the ticker remembers (ticker.go)
+	now      func() time.Time
 }
 
 func NewModel(r *Runtime) *Model {
-	m := &Model{Runtime: r, Palette: NewPalette(r), Appearance: NewAppearance(r), ModalViews: map[string]ModalView{}, Title: "Ochazuke", Width: 80, Height: 24, views: map[string]*viewport.Model{}, scroll: map[string]int{}}
+	m := &Model{Runtime: r, Palette: NewPalette(r), Appearance: NewAppearance(r), ModalViews: map[string]ModalView{}, Title: "Ochazuke", Width: 80, Height: 24, views: map[string]*viewport.Model{}, scroll: map[string]int{}, followed: map[string]string{}}
 	m.ModalViews[yankHistoryID] = ModalView{Title: "Yank history", Render: yankHistoryView}
 	m.ModalViews["confirm"] = ModalView{Title: "Confirm", Render: confirmView}
 	m.ModalViews[helpID] = ModalView{Title: "Keys", Render: bindingHelpView}
@@ -429,7 +433,9 @@ func (m *Model) render() Block {
 	}
 	pageWidth, pageHeight := m.pageSize()
 	restore := m.beneath()
-	page := m.scrolled(base, m.pageContent(pageWidth, pageHeight), pageWidth, pageHeight)
+	content := m.pageContent(pageWidth, pageHeight)
+	m.follow(base, content.Text, pageHeight)
+	page := m.scrolled(base, content, pageWidth, pageHeight)
 	restore()
 	if m.Sidebar {
 		titles, selected := m.pageTitles()
@@ -473,6 +479,46 @@ func (m *Model) beneath() (restore func()) {
 		}
 	}
 	return func() { r.Focus, r.Mode = focus, mode }
+}
+
+// follow scrolls the page surface key, after a frame where the focus moved,
+// so the focused element's lines (Page.focusLines, as this frame drew them)
+// sit inside the height-line viewport with the page's scrolloff above and
+// below; an element taller than the viewport is aligned to its top. A list
+// has already windowed its rows around the selection, so this moves only
+// the page, once.
+func (m *Model) follow(key, content string, height int) {
+	r := m.Runtime
+	page := r.PageOf(r.Page)
+	if page == nil || m.followed[key] == r.Focus {
+		return
+	}
+	m.followed[key] = r.Focus
+	top, bottom, ok := page.focusLines(r, r.Focus)
+	if !ok {
+		return
+	}
+	total := strings.Count(content, "\n") + 1
+	m.scroll[key] = scrollToShow(m.scroll[key], top, bottom, height, total, page.scrolloff())
+}
+
+// scrollToShow is the offset that shows lines [top, bottom) of total in a
+// height-line view at offset with margin lines around them (fewer when the
+// view is too short for both margins), moving as little as it can; a span
+// taller than the view gets its top line first.
+func scrollToShow(offset, top, bottom, height, total, margin int) int {
+	margin = min(margin, max(0, (height-1)/2))
+	if bottom-top > height {
+		offset = top
+	} else {
+		if bottom+margin > offset+height {
+			offset = bottom + margin - height
+		}
+		if top-margin < offset {
+			offset = top - margin
+		}
+	}
+	return min(max(0, offset), max(0, total-height))
 }
 
 // scrolled runs a block through the surface's viewport, moving the cursor
@@ -646,5 +692,8 @@ func InputBlock(in *Input, width, height int) Block {
 		}
 	}
 	writeLineEnd(false, cursor == len(in.Text))
-	return Block{Text: body.String(), Cursor: &Pos{X: cursorColumn - offset, Y: cursorRow - start}}
+	text := body.String()
+	// The page keeps the whole box on screen when it follows the focus.
+	text = in.r.PlacedAt(in.ID, text, 0, strings.Count(text, "\n")+1)
+	return Block{Text: text, Cursor: &Pos{X: cursorColumn - offset, Y: cursorRow - start}}
 }

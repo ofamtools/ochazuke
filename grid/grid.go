@@ -651,7 +651,12 @@ func (g *Grid) View(width, height int) string {
 	for len(lines) < height {
 		lines = append(lines, strings.Repeat(" ", width))
 	}
-	return strings.Join(lines, "\n")
+	// The page keeps the cursor row on screen when it follows the focus.
+	focus, focusHeight := 0, height
+	if g.vrow >= g.offRow && 1+g.vrow-g.offRow < height {
+		focus, focusHeight = 1+g.vrow-g.offRow, 1
+	}
+	return g.r.PlacedAt(g.id, strings.Join(lines, "\n"), focus, focusHeight)
 }
 
 func (g *Grid) columnWidths() []int {

@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -18,19 +19,100 @@ type Page struct {
 	Focus      string                         `json:"focus"`
 	Remembered string                         `json:"remembered"`
 	Render     func(*Runtime, int, int) Block `json:"-"`
-	mode       ModeState
+	// Scrolloff is how many lines the page keeps visible above and below
+	// the focused element when it scrolls to follow the focus: 0 means the
+	// default, 2; a negative value keeps no margin.
+	Scrolloff int `json:"scrolloff,omitempty"`
+	mode      ModeState
 	// drawn is the order the last frame drew the page's focus stops in
-	// (Placed calls during Render); drawing collects the frame in progress.
-	drawn, drawing []string
+	// (Placed calls during Render), with where each landed in the body;
+	// drawing collects the frame in progress.
+	drawn, drawing []Placement
 	rendering      bool
 }
 
+// Placement is one Placed call of a frame: the instance drawn and, when its
+// view reported them (PlacedAt), the lines it covers in the page body and
+// the lines inside it that hold the focus (a list's selected row, a grid's
+// cursor row, an input's whole box, a terminal's top line).
+type Placement struct {
+	ID string `json:"id"`
+	// Line is the body line the view's first line landed on, -1 when the
+	// view reported no text or the page did not draw it; Height is its line
+	// count.
+	Line   int `json:"line"`
+	Height int `json:"height"`
+	// Focus and FocusHeight are the focused lines, relative to Line.
+	Focus       int `json:"focus"`
+	FocusHeight int `json:"focusHeight"`
+}
+
+// placeMark opens the zero-width marker PlacedAt puts on a view's first
+// line (an APC string, which width and truncation treat as no cells), so
+// the page finds the line the view landed on however it was composed; the
+// page strips every marker before the body is shown.
+const placeMark, placeEnd = "\x1b_ochazuke-placed:", "\x1b\\"
+
 // render draws the page through Render and records the order its stops
-// were drawn in, which is the order focus jumps and list spills walk.
+// were drawn in, which is the order focus jumps and list spills walk, and
+// the body line each view landed on.
 func (p *Page) render(r *Runtime, width, height int) Block {
 	p.rendering, p.drawing = true, nil
 	defer func() { p.rendering, p.drawn, p.drawing = false, p.drawing, nil }()
-	return p.Render(r, width, height)
+	block := p.Render(r, width, height)
+	return block.WithText(p.resolve(block.Text))
+}
+
+// resolve sets each marked placement's Line from where its marker sits in
+// the body and returns the body without markers.
+func (p *Page) resolve(text string) string {
+	if !strings.Contains(text, placeMark) {
+		return text
+	}
+	var out strings.Builder
+	line := 0
+	for {
+		at := strings.Index(text, placeMark)
+		if at < 0 {
+			out.WriteString(text)
+			return out.String()
+		}
+		line += strings.Count(text[:at], "\n")
+		out.WriteString(text[:at])
+		text = text[at+len(placeMark):]
+		end := strings.Index(text, placeEnd)
+		if end < 0 {
+			return out.String()
+		}
+		if n, err := strconv.Atoi(text[:end]); err == nil && n >= 0 && n < len(p.drawing) && p.drawing[n].Line < 0 {
+			p.drawing[n].Line = line
+		}
+		text = text[end+len(placeEnd):]
+	}
+}
+
+// scrolloff is the margin the page keeps around the focused element.
+func (p *Page) scrolloff() int {
+	switch {
+	case p.Scrolloff == 0:
+		return 2
+	case p.Scrolloff < 0:
+		return 0
+	}
+	return p.Scrolloff
+}
+
+// focusLines are the body lines [top, bottom) holding the focus in the last
+// frame: the focused part of the nearest placed instance on the focus path.
+func (p *Page) focusLines(r *Runtime, focus string) (top, bottom int, ok bool) {
+	for _, id := range r.Ancestry(focus) {
+		for _, at := range p.drawn {
+			if at.ID == id && at.Line >= 0 {
+				return at.Line + at.Focus, at.Line + at.Focus + max(1, at.FocusHeight), true
+			}
+		}
+	}
+	return 0, 0, false
 }
 
 // Placed records that the instance id is being drawn now, during its page's
@@ -42,17 +124,50 @@ func (p *Page) render(r *Runtime, width, height int) Block {
 // nothing. There is no other way to order stops: an instance no frame drew
 // follows the drawn ones in tree order.
 func (r *Runtime) Placed(id string) {
+	if page := r.renderingPage(id); page != nil {
+		page.drawing = append(page.drawing, Placement{ID: id, Line: -1})
+	}
+}
+
+// PlacedAt records where the view text of instance id holds the focus
+// (lines focus to focus+height of text; a list's selected row, an input's
+// whole box) and returns text marked so its page finds the body line it
+// lands on, which is how the page scrolls to keep the focus visible. Call
+// it with the view's final text after Placed; it amends that placement (or
+// places id, if Placed was not called). Outside a page render it returns
+// text unchanged. List, Input, Terminal and grid views call it.
+func (r *Runtime) PlacedAt(id, text string, focus, height int) string {
+	page := r.renderingPage(id)
+	if page == nil || text == "" {
+		return text
+	}
+	n := len(page.drawing) - 1
+	for n >= 0 && page.drawing[n].ID != id {
+		n--
+	}
+	if n < 0 {
+		page.drawing = append(page.drawing, Placement{ID: id, Line: -1})
+		n = len(page.drawing) - 1
+	}
+	at := &page.drawing[n]
+	at.Height, at.Focus, at.FocusHeight = strings.Count(text, "\n")+1, focus, height
+	return placeMark + strconv.Itoa(n) + placeEnd + text
+}
+
+// renderingPage is the page holding id while that page renders, else nil.
+func (r *Runtime) renderingPage(id string) *Page {
 	if r == nil {
-		return
+		return nil
 	}
 	for _, at := range r.Ancestry(id) {
 		if page := r.PageOf(at); page != nil {
 			if page.rendering {
-				page.drawing = append(page.drawing, id)
+				return page
 			}
-			return
+			return nil
 		}
 	}
+	return nil
 }
 
 // AddPage registers a page instance of kind page under app with a title and
