@@ -70,7 +70,6 @@ func (r *Runtime) AddTerminal(id string, stream TerminalStream, opts ...Instance
 	t := &Terminal{r: r, id: id, stream: stream}
 	inst := r.Instance(id, Parent(spec.parent), Kind(spec.noun))
 	inst.Component = t
-	inst.State = "terminal"
 	t.read()
 	return t, nil
 }
@@ -209,7 +208,7 @@ func registerTerminal(r *Runtime) {
 	r.DefineMode("terminal", false)
 	r.DefineMode("leader_pending", true)
 	leader := Request{Verb: "send", Noun: "terminal", Args: Arguments{"keys": "ctrl+a"}}
-	r.Define("terminal").
+	r.Define("terminal").Pin("terminal").Focusable().
 		Verb("send", func(r *Runtime, c Context, a Arguments) (any, error) {
 			t, err := r.terminalOf(c, a)
 			if err != nil {

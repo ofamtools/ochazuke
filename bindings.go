@@ -18,10 +18,8 @@ type BindingTimeoutMsg struct {
 // CancelPendingBinding leaves a key-sequence prefix mode without running its
 // completed match and invalidates its timer.
 func (r *Runtime) CancelPendingBinding() {
-	if r.prefix.focus != "" {
-		if inst := r.Instances[r.prefix.focus]; inst != nil && inst.State == r.prefix.mode {
-			r.leaveMode(inst)
-		}
+	if r.prefix.focus != "" && r.Mode.Name == r.prefix.mode {
+		r.leaveMode()
 	}
 	r.Pending = ""
 	r.bindingVersion++

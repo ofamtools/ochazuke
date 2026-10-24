@@ -84,7 +84,7 @@ func TestResolveWalksStackInnerToOuter(t *testing.T) {
 	}
 	*calls = nil
 	press("x")
-	r.Instances["row"].State = "insert"
+	r.Mode = ModeState{Name: "insert"}
 	press("x")
 	if want := []string{"row-instance", "row-insert"}; !reflect.DeepEqual(*calls, want) {
 		t.Fatalf("instance and mode rows: got %v; want %v", *calls, want)
@@ -112,8 +112,8 @@ func TestPendingModesAreExclusiveAndOneShot(t *testing.T) {
 	calls := recorder(t, r, "any")
 	r.Define("app").Mode("").Bind("w", Do("test.any"))
 	editorTestKeys(t, r, "d", "w")
-	if string(in.Text) != "two" || len(*calls) != 0 || r.Mode(r.Context()) != "normal" {
-		t.Fatalf("operator_pending leaked: text=%q calls=%v mode=%s", in.Text, *calls, r.Mode(r.Context()))
+	if string(in.Text) != "two" || len(*calls) != 0 || r.Mode.Name != "normal" {
+		t.Fatalf("operator_pending leaked: text=%q calls=%v mode=%s", in.Text, *calls, r.Mode.Name)
 	}
 	editorTestKeys(t, r, "w")
 	if len(*calls) != 1 {
@@ -121,17 +121,17 @@ func TestPendingModesAreExclusiveAndOneShot(t *testing.T) {
 	}
 	// A failing row still leaves the pending mode.
 	editorTestKeys(t, r, "q")
-	if _, err := r.Dispatch(MacroKey{Key: "tab"}); err == nil || r.Mode(r.Context()) != "normal" {
-		t.Fatalf("invalid register must error and leave macro_pending: %v %s", err, r.Mode(r.Context()))
+	if _, err := r.Dispatch(MacroKey{Key: "tab"}); err == nil || r.Mode.Name != "normal" {
+		t.Fatalf("invalid register must error and leave macro_pending: %v %s", err, r.Mode.Name)
 	}
 	// Counts chain through operators and g prefixes with one payload.
 	editorTestKeys(t, r, "u", "2", "d", "g")
-	if got := r.modeState(in.ID); got.Name != "operator_g_pending" || got.Payload.Op != "d" || got.Payload.OpCount != 2 || got.Payload.Return != "normal" {
+	if got := r.Mode; got.Name != "operator_g_pending" || got.Payload.Op != "d" || got.Payload.OpCount != 2 || got.Payload.Return != "normal" {
 		t.Fatalf("payload chain: %+v", got)
 	}
 	editorTestKeys(t, r, "esc")
-	if r.Mode(r.Context()) != "normal" || in.Count() != 0 {
-		t.Fatalf("esc did not cancel: %s %d", r.Mode(r.Context()), in.Count())
+	if r.Mode.Name != "normal" || in.Count() != 0 {
+		t.Fatalf("esc did not cancel: %s %d", r.Mode.Name, in.Count())
 	}
 }
 
@@ -142,9 +142,8 @@ func TestPrefixModeTimeoutRestoresBaseMode(t *testing.T) {
 	r.BindingTimeout = time.Hour
 	calls := recorder(t, r, "g", "gg")
 	r.Define("app").Mode("normal").Bind("g", Do("test.g")).Bind("g g", Do("test.gg"))
-	r.Instances["app"].State = "normal"
 	r.Dispatch(MacroKey{Key: "g"})
-	if got := r.modeState("app"); got.Name != "normal g" || got.Payload.Prefix != "g" || got.Payload.Request == nil || r.Pending != "g" {
+	if got := r.Mode; got.Name != "normal g" || got.Payload.Prefix != "g" || got.Payload.Request == nil || r.Pending != "g" {
 		t.Fatalf("prefix mode: %+v pending=%q", got, r.Pending)
 	}
 	// The continuations and the generated cancel row ("g esc" → mode.leave).
@@ -155,8 +154,8 @@ func TestPrefixModeTimeoutRestoresBaseMode(t *testing.T) {
 	if handled, err := r.HandleBindingTimeout(BindingTimeoutMsg{runtime: r, version: r.bindingVersion}); !handled || err != nil {
 		t.Fatalf("timeout: %v %v", handled, err)
 	}
-	if r.modeState("app").Name != "normal" || !reflect.DeepEqual(*calls, []string{"g"}) || r.Pending != "" {
-		t.Fatalf("timeout did not restore: %s %v", r.modeState("app").Name, *calls)
+	if r.Mode.Name != "normal" || !reflect.DeepEqual(*calls, []string{"g"}) || r.Pending != "" {
+		t.Fatalf("timeout did not restore: %s %v", r.Mode.Name, *calls)
 	}
 }
 
@@ -165,7 +164,7 @@ func TestPrefixModeTimeoutRestoresBaseMode(t *testing.T) {
 func TestMacroRecordingShadowMode(t *testing.T) {
 	r, in := editorTestRuntime(t, "", true)
 	editorTestKeys(t, r, "q", "a")
-	if r.Registers().Macro.Recording != "a" || r.Mode(r.Context()) != "normal" {
+	if r.Registers().Macro.Recording != "a" || r.Mode.Name != "normal" {
 		t.Fatalf("recording did not start: %+v", r.Registers().Macro)
 	}
 	editorTestKeys(t, r, "i", "q", "esc", "2", "q")
@@ -211,19 +210,19 @@ func TestLeaderPendingShadowShape(t *testing.T) {
 			t.Fatalf("%s: %v", key, err)
 		}
 	}
-	if !reflect.DeepEqual(forwarded, []string{"x", "ctrl+b z", "y"}) || !reflect.DeepEqual(*calls, []string{"new-window"}) || r.Mode(r.Context()) != "normal" {
-		t.Fatalf("leader: forwarded=%v calls=%v mode=%s", forwarded, *calls, r.Mode(r.Context()))
+	if !reflect.DeepEqual(forwarded, []string{"x", "ctrl+b z", "y"}) || !reflect.DeepEqual(*calls, []string{"new-window"}) || r.Mode.Name != "normal" {
+		t.Fatalf("leader: forwarded=%v calls=%v mode=%s", forwarded, *calls, r.Mode.Name)
 	}
 	// The Enter row armed the sequence timer; expiry forwards the leader alone.
-	if _, err := r.Dispatch(MacroKey{Key: "ctrl+b"}); err != nil || r.Pending != "ctrl+b" || r.Instances["pane"].Payload.Prefix != "ctrl+b" {
-		t.Fatalf("leader alone: err=%v pending=%q payload=%+v", err, r.Pending, r.Instances["pane"].Payload)
+	if _, err := r.Dispatch(MacroKey{Key: "ctrl+b"}); err != nil || r.Pending != "ctrl+b" || r.Mode.Payload.Prefix != "ctrl+b" {
+		t.Fatalf("leader alone: err=%v pending=%q payload=%+v", err, r.Pending, r.Mode.Payload)
 	}
 	r.prefix.deadline = time.Now().Add(-time.Second)
 	if handled, err := r.HandleBindingTimeout(BindingTimeoutMsg{runtime: r, version: r.bindingVersion}); !handled || err != nil {
 		t.Fatalf("timer: handled=%v err=%v", handled, err)
 	}
-	if !reflect.DeepEqual(forwarded[3:], []string{"ctrl+b"}) || r.Mode(r.Context()) != "normal" || r.Pending != "" {
-		t.Fatalf("timed-out leader: forwarded=%v mode=%s pending=%q", forwarded, r.Mode(r.Context()), r.Pending)
+	if !reflect.DeepEqual(forwarded[3:], []string{"ctrl+b"}) || r.Mode.Name != "normal" || r.Pending != "" {
+		t.Fatalf("timed-out leader: forwarded=%v mode=%s pending=%q", forwarded, r.Mode.Name, r.Pending)
 	}
 }
 
@@ -269,7 +268,7 @@ func TestListBindingsListsEveryEditorKey(t *testing.T) {
 			want[b.Keys+"\x00"+b.Pattern] = true
 		}
 		if r.pendingModes[mode] {
-			r.enterMode(in.inst, mode, Payload{Op: "d"})
+			r.enterMode(mode, Payload{Op: "d"})
 		} else {
 			in.storeMode(mode)
 		}
@@ -376,8 +375,8 @@ func TestListRowsAreInstancesOfTheirNouns(t *testing.T) {
 	if noun, _ := JSONPointer(snapshot, "/instances/two/noun"); noun != "b" {
 		t.Fatalf("/instances/<id>/noun: %v", noun)
 	}
-	if state, err := JSONPointer(snapshot, "/instances/two/state"); err != nil || state != "" {
-		t.Fatalf("/instances/<id>/state: %v %v", state, err)
+	if state, err := JSONPointer(snapshot, "/instances/two/state"); err == nil {
+		t.Fatalf("an instance holds no mode: /instances/<id>/state = %v", state)
 	}
 }
 
@@ -412,7 +411,7 @@ func TestMultiSelectionFanOut(t *testing.T) {
 	}
 }
 
-func TestModeLivesOnInstances(t *testing.T) {
+func TestModeIsGlobal(t *testing.T) {
 	r, list, input, _ := listFixture(t)
 	if err := r.DefineMode("review", false); err != nil {
 		t.Fatal(err)
@@ -423,44 +422,45 @@ func TestModeLivesOnInstances(t *testing.T) {
 	if _, err := r.Execute(Request{Verb: "set", Noun: "mode", Args: Arguments{"mode": "review"}}); err != nil {
 		t.Fatal(err)
 	}
-	row := r.Context()
-	if r.Instances["one"].State != "review" || r.Mode(row) != "review" {
-		t.Fatalf("mode.set must write the leaf instance: %+v", r.Instances["one"])
+	if r.Mode.Name != "review" {
+		t.Fatalf("mode.set must write Runtime.Mode: %+v", r.Mode)
 	}
+	// Another row of the same list is the same focus stop: the mode stays.
 	list.Move(1)
-	if r.Mode(r.Context()) != "normal" {
-		t.Fatal("another row does not inherit a sibling's state")
+	if r.Mode.Name != "review" {
+		t.Fatalf("a move inside one stop must keep the mode: %+v", r.Mode)
 	}
-	// A pending mode entered on an inheriting leaf returns to inheriting.
-	editorTestKeys(t, r, "q")
-	if r.Mode(r.Context()) != "macro_pending" {
-		t.Fatalf("mode %s", r.Mode(r.Context()))
+	// A pending mode returns to the base mode it shadowed.
+	if _, err := r.Execute(Request{Verb: "enter", Noun: "mode", Args: Arguments{"mode": "macro_pending"}}); err != nil {
+		t.Fatal(err)
+	}
+	if r.Mode.Name != "macro_pending" || r.Mode.Payload.Return != "review" {
+		t.Fatalf("mode %+v", r.Mode)
 	}
 	editorTestKeys(t, r, "esc")
-	if r.Instances["two"].State != "" || r.Mode(r.Context()) != "normal" {
-		t.Fatalf("leave must restore the raw state: %q %s", r.Instances["two"].State, r.Mode(r.Context()))
+	if r.Mode.Name != "review" {
+		t.Fatalf("leave must restore the base mode: %+v", r.Mode)
 	}
-	// A state higher on the stack is inherited by instances without one.
-	r.Instances["page"].State = "review"
-	if r.Mode(r.Context()) != "review" || r.Mode(Context{Path: []string{"app", "page"}}) != "review" || r.Mode(Context{Path: []string{"app"}}) != "normal" {
-		t.Fatal("mode inherits from the nearest ancestor with a state")
-	}
-	// Mode reads the context it is given, not the top frame.
+	// Focus moving to another stop resets the mode to normal; closing the
+	// modal restores the interaction state beneath it.
 	if err := r.Push(&Frame{ID: "dialog", Focus: "dialog"}); err != nil {
 		t.Fatal(err)
 	}
-	if r.Mode(r.Context()) != "normal" || r.Mode(row) != "review" {
-		t.Fatalf("Mode(c) must follow c: top %q, row %q", r.Mode(r.Context()), r.Mode(row))
+	if r.Mode.Name != "normal" {
+		t.Fatalf("a modal on another stop starts in normal: %+v", r.Mode)
 	}
 	if err := r.Pop(); err != nil {
 		t.Fatal(err)
 	}
-	// An input's instance is the source of its mode and Input.Mode mirrors it.
+	if r.Mode.Name != "review" {
+		t.Fatalf("pop restores the mode the modal opened over: %+v", r.Mode)
+	}
+	// A pinned noun sets its mode on focus.
 	if err := r.Focus(input.ID); err != nil {
 		t.Fatal(err)
 	}
-	if r.Instances["note"].State != "insert" || r.Mode(r.Context()) != "insert" {
-		t.Fatalf("prompt input instance: %+v", r.Instances["note"])
+	if r.Mode.Name != "insert" || input.Mode != "insert" {
+		t.Fatalf("prompt focus must pin insert: %+v %q", r.Mode, input.Mode)
 	}
 	other := NewInput("other-input", "ab", false)
 	if err := r.AddInput(other, Parent("editor")); err != nil {
@@ -469,10 +469,14 @@ func TestModeLivesOnInstances(t *testing.T) {
 	if err := r.Focus("other-input"); err != nil {
 		t.Fatal(err)
 	}
+	if r.Mode.Name != "normal" {
+		t.Fatalf("an unpinned input starts in normal: %+v", r.Mode)
+	}
+	// While focused, the input's editing mode is the global mode.
 	for _, keys := range [][]string{{"i"}, {"esc"}, {"v"}, {"esc", "i", "x", "esc", "u"}} {
 		editorTestKeys(t, r, keys...)
-		if r.Instances["other-input"].State != other.Mode || r.Mode(r.Context()) != other.Mode {
-			t.Fatalf("after %v: instance %q, mirror %q", keys, r.Instances["other-input"].State, other.Mode)
+		if r.Mode.Name != other.Mode {
+			t.Fatalf("after %v: mode %q, input %q", keys, r.Mode.Name, other.Mode)
 		}
 	}
 }

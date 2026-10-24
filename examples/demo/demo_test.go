@@ -265,18 +265,13 @@ func TestDemoKeyboardSessionStaysGreen(t *testing.T) {
 		t.Fatalf("session state: text=%q yank=%q", r.Input("directory").Text, r.Registers().Named["\""].Yank.Text)
 	}
 }
-func TestInputModeMirrorsInstanceInDemo(t *testing.T) {
+func TestFocusedInputFollowsGlobalModeInDemo(t *testing.T) {
 	m := New()
 	r := m.Runtime
 	for _, key := range []string{"ctrl+j", "i", "h", "esc", "v", "l", "esc", "ctrl+n", "i", "x", "esc", "ctrl+g", "2", "d"} {
 		keytest.Press(m, key)
-		for _, in := range r.Inputs() {
-			id := in.ID
-			inst := r.Instances[id]
-			pending := inst.State != "" && !r.Modes[inst.State] || inst.Payload.Prefix != ""
-			if inst == nil || !pending && inst.State != in.Mode || pending && inst.Payload.Return != in.Mode {
-				t.Fatalf("after %s: input %s mode %q, instance %+v", key, id, in.Mode, inst)
-			}
+		if in := r.Input(r.FocusID()); in != nil && r.BaseMode() != in.Mode {
+			t.Fatalf("after %s: input %s mode %q, global %+v", key, in.ID, in.Mode, r.Mode)
 		}
 	}
 }

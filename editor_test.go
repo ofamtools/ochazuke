@@ -190,8 +190,8 @@ func TestMacroRecursiveSafeguardAndPrefixPriority(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "recursion") {
 		t.Fatalf("recursive macro: %v", err)
 	}
-	if r.Quit || r.Registers().Macro.Depth != 0 || r.Mode(r.Context()) != "normal" || in.Pending() != "" || len(r.Frames) != 1 {
-		t.Fatalf("recursive macro left context: %+v mode=%s", r.Registers().Macro, r.Mode(r.Context()))
+	if r.Quit || r.Registers().Macro.Depth != 0 || r.Mode.Name != "normal" || in.Pending() != "" || len(r.Frames) != 1 {
+		t.Fatalf("recursive macro left context: %+v mode=%s", r.Registers().Macro, r.Mode.Name)
 	}
 }
 func TestYankHistoryModalRestoresFocusWithoutInsertion(t *testing.T) {
@@ -277,7 +277,7 @@ func TestMacroStepLimitAndErrorModalCleanup(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "step limit") {
 		t.Fatalf("step bound: %v", err)
 	}
-	if r.Registers().Macro.Depth != 0 || r.Mode(r.Context()) != "normal" {
+	if r.Registers().Macro.Depth != 0 || r.Mode.Name != "normal" {
 		t.Fatal("step bound left replay active")
 	}
 	r.Register(Operation{Verb: "fail", Noun: "editor-test", Run: func(r *Runtime, c Context, a Arguments) (any, error) {

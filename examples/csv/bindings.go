@@ -32,7 +32,7 @@ func (a *App) bind() {
 			Bind("$", move("row-end")).Bind("end", move("row-end")).
 			Bind("g g", line("top")).Bind("G", line("bottom"))
 	}
-	shape := func(s string) ochazuke.Binding { return ochazuke.Do("selection.shape", ochazuke.Arguments{"shape": s}) }
+	shape := func(s string) ochazuke.Binding { return ochazuke.Do("mode.set", ochazuke.Arguments{"mode": s}) }
 	transform := func(name string) ochazuke.Binding {
 		return ochazuke.Do("selection.transform", ochazuke.Arguments{"name": name})
 	}
@@ -68,7 +68,7 @@ func (a *App) bind() {
 		transforms(m)
 		m.Bind("o", ochazuke.Do("selection.swap")).
 			Bind("v", shape(grid.ShapeBlock)).Bind("V", shape(grid.ShapeRow)).Bind("ctrl+v", shape(grid.ShapeColumn)).
-			Bind("esc", ochazuke.Do("selection.cancel")).
+			Bind("esc", ochazuke.Do("mode.set", ochazuke.Arguments{"mode": "normal"})).
 			Bind("y", ochazuke.Do("selection.yank")).
 			Bind("d", ochazuke.Do("selection.delete")).
 			Bind("p", ochazuke.Do("selection.paste")).

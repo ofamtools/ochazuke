@@ -33,10 +33,21 @@ func (p *Palette) focusEditor() {
 		return
 	}
 	focus := "palette"
-	if in := p.activeEditor(); in != nil {
+	in := p.activeEditor()
+	if in != nil {
 		focus = in.ID
 	}
+	moved := p.r.FocusID() != focus
+	cursor := 0
+	if in != nil {
+		cursor = in.Cursor
+	}
 	p.r.setFocus(p.frame, focus)
+	// A field the palette moves to types again where its cursor was.
+	if in != nil && moved {
+		in.SetMode("insert")
+		in.Cursor = cursor
+	}
 }
 func (p *Palette) collectEditors() {
 	if p.searching {

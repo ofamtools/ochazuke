@@ -209,7 +209,7 @@ func (m *Model) pageTitles() ([]string, int) {
 // modeBadge labels the current mode, with the recording register while a
 // macro is being recorded.
 func (m *Model) modeBadge() string {
-	label := strings.ToUpper(modeLabelOf(m.Runtime.Mode(m.Runtime.Context())))
+	label := strings.ToUpper(modeLabelOf(m.Runtime.Mode.Name))
 	if recording := m.Runtime.Registers().Macro.Recording; recording != "" {
 		label += " · REC @" + recording
 	}
@@ -293,7 +293,7 @@ func (m *Model) cursor(block Block) *tea.Cursor {
 	if m.Runtime.Input(context.InputID) == nil {
 		return nil
 	}
-	switch mode := m.Runtime.Mode(context); {
+	switch mode := m.Runtime.Mode.Name; {
 	case mode == "insert":
 		cursor.Shape = tea.CursorBar
 		cursor.Blink = true

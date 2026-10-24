@@ -98,7 +98,7 @@ func TestTerminalLeaderForwardsBoundRunsAndTimeoutForwardsPrefix(t *testing.T) {
 	r, term, stream := terminalFixture(t)
 	calls := recorder(t, r, "new-window")
 	r.Define("terminal").Mode("leader_pending").Bind("c", Do("test.new-window"))
-	mode := func() string { return r.Mode(r.Context()) }
+	mode := func() string { return r.Mode.Name }
 	if !term.Focused() || mode() != "terminal" {
 		t.Fatalf("focus %q mode %q", r.FocusID(), mode())
 	}
@@ -107,8 +107,8 @@ func TestTerminalLeaderForwardsBoundRunsAndTimeoutForwardsPrefix(t *testing.T) {
 		t.Fatalf("plain keys: %v", stream.sent)
 	}
 	press(t, r, "ctrl+a")
-	if mode() != "leader_pending" || r.Instances["pane"].Payload.Return != "terminal" || r.Pending != "ctrl+a" {
-		t.Fatalf("after leader: mode %q payload %+v pending %q", mode(), r.Instances["pane"].Payload, r.Pending)
+	if mode() != "leader_pending" || r.Mode.Payload.Return != "terminal" || r.Pending != "ctrl+a" {
+		t.Fatalf("after leader: mode %q payload %+v pending %q", mode(), r.Mode.Payload, r.Pending)
 	}
 	press(t, r, "c")
 	if !reflect.DeepEqual(*calls, []string{"new-window"}) || mode() != "terminal" || r.Pending != "" || len(stream.sent) != 3 {
@@ -299,8 +299,8 @@ func TestTerminalCursorLandsInsideThePanel(t *testing.T) {
 	}
 	deliver(TerminalFrame{Lines: []string{"$"}, Cursor: Pos{X: 1, Y: 0}, Hidden: true})
 	press(t, r, "ctrl+a") // normal mode on the page: not a terminal key
-	if r.Mode(r.Context()) != "normal" || len(stream.sent) != 0 {
-		t.Fatalf("detached pane still took keys: mode %q sent %v", r.Mode(r.Context()), stream.sent)
+	if r.Mode.Name != "normal" || len(stream.sent) != 0 {
+		t.Fatalf("detached pane still took keys: mode %q sent %v", r.Mode.Name, stream.sent)
 	}
 	if _, err := r.Execute(Request{Verb: "attach", Noun: "terminal"}); err == nil {
 		t.Fatal("attach without a terminal on the context or an id must fail")

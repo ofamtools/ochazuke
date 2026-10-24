@@ -240,7 +240,7 @@ func demoCommands(m *ochazuke.Model, width int) string {
 	b.WriteString(s.Title.Render("Commands & bindings") + "\n" + s.Muted.Render("Live registry · every action is available as CLI: NOUN VERB") + "\n\n")
 	focus := r.PageOf("playground").Frame.Focus
 	b.WriteString(s.Subtitle.Render("Remembered Playground bindings") + "\n")
-	b.WriteString(s.Muted.Render(strings.Join(r.InstancePath(focus), " → ")+" · "+modeName(r, focus)) + "\n")
+	b.WriteString(s.Muted.Render(strings.Join(r.InstancePath(focus), " → ")+" · "+r.Mode.Name) + "\n")
 	for _, binding := range r.ListBindings(focus) {
 		key := binding.Keys
 		if key == "" {
@@ -277,11 +277,6 @@ func demoAppearance(m *ochazuke.Model, width int) string {
 		s.Accent.Render("t") + " cycle theme    " + s.Accent.Render("d") + " toggle density\n\n" +
 		s.FocusedPanel.Width(max(1, width-2)).Render("Focused surface\n"+s.Muted.Render("Muted context stays readable.")+"  "+s.Badge.Render("NORMAL")) + "\n\n" +
 		s.Muted.Render("Palette: set → appearance\nCLI: appearance set --json '{\"theme\":\"mono\",\"density\":\"compact\"}'")
-}
-
-// modeName is the mode an instance resolves to.
-func modeName(r *ochazuke.Runtime, focus string) string {
-	return r.Mode(ochazuke.Context{Path: r.InstancePath(focus)})
 }
 
 // focusOf is the instance a handler context addresses.

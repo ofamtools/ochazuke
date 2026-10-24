@@ -117,9 +117,20 @@ func (r *Runtime) OpenPage(id string) error {
 	if len(r.Frames) > 1 {
 		return errors.New("close the active modal before opening a page")
 	}
+	from := r.FocusID()
+	stop, path := r.stopOf(from), r.Ancestry(from)
+	r.CancelPendingBinding()
+	if current := r.PageOf(r.Page); current != nil {
+		// The page being left remembers its mode with its focus.
+		current.Frame.mode = ModeState{Name: r.BaseMode()}
+	}
 	r.Frames = []*Frame{page.Frame}
 	r.Page = id
-	r.CancelPendingBinding()
+	if page.Frame.mode.Name != "" {
+		r.restoreMode(page.Frame.mode, path)
+	} else if r.FocusID() != from {
+		r.focusMoved(stop, path, r.FocusID())
+	}
 	return nil
 }
 

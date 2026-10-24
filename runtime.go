@@ -76,8 +76,9 @@ func (o Operation) Key() string { return o.Noun + "." + o.Verb }
 // modal. Focus names the instance that receives keys while the frame is on
 // top; Context() derives the old path view from it.
 type Frame struct {
-	ID    string `json:"id"`
-	Focus string `json:"focus"`
+	ID    string    `json:"id"`
+	Focus string    `json:"focus"`
+	mode  ModeState // the mode the frame beneath was in when this modal opened
 }
 
 // Runtime is owned by one event loop. Transport callers submit messages to
@@ -92,7 +93,8 @@ type Runtime struct {
 	Nouns          map[string]*Noun
 	Instances      map[string]*Instance
 	Frames         []*Frame
-	Page           string // the current page instance; always on the base frame's focus path
+	Page           string    // the current page instance; always on the base frame's focus path
+	Mode           ModeState // the one interaction mode; mode.set writes it, a focus change to another stop resets it
 	Modes          map[string]bool
 	Operations     map[string]Operation
 	Quit           bool
@@ -115,8 +117,8 @@ type Runtime struct {
 func NewRuntime() *Runtime {
 	r := &Runtime{
 		Nouns: map[string]*Noun{}, Instances: map[string]*Instance{}, rows: map[string]string{},
-		Frames: []*Frame{{ID: "main", Focus: "app"}},
-		Modes:  map[string]bool{"normal": true, "insert": true}, Operations: map[string]Operation{},
+		Frames: []*Frame{{ID: "main", Focus: "app"}}, Mode: ModeState{Name: "normal"},
+		Modes: map[string]bool{"normal": true, "insert": true}, Operations: map[string]Operation{},
 		pendingModes:   map[string]bool{},
 		guards:         builtinGuards(),
 		modalInstances: map[string]bool{},
@@ -151,26 +153,134 @@ func (r *Runtime) Context() Context { return r.contextOf(r.top().Focus) }
 // FocusID is the instance the active frame points at.
 func (r *Runtime) FocusID() string { return r.top().Focus }
 
-// Mode is the interaction mode of a context: the State of its focused
-// instance, inherited from the nearest ancestor with a non-empty State, else
-// "normal". Pending modes (operator_pending, a key-sequence prefix, ...) are
-// reported by name; Input.Mode keeps the editing mode they will return to.
-func (r *Runtime) Mode(c Context) string { return r.modeState(focusOf(c)).Name }
-
 // ModeState is a mode name with the payload the mode carries.
 type ModeState struct {
 	Name    string  `json:"name"`
 	Payload Payload `json:"payload"`
 }
 
-// modeState resolves the mode of an instance through ancestor inheritance.
-func (r *Runtime) modeState(focus string) ModeState {
-	for _, id := range r.Ancestry(focus) {
-		if inst := r.Instances[id]; inst.State != "" {
-			return ModeState{Name: inst.State, Payload: inst.Payload}
+// BaseMode is the mode Runtime.Mode stands in: its name, or for a pending
+// mode or a key-sequence prefix the base mode it returns to.
+func (r *Runtime) BaseMode() string {
+	if (r.pendingModes[r.Mode.Name] || r.Mode.Payload.Prefix != "") && r.Mode.Payload.Return != "" {
+		return r.Mode.Payload.Return
+	}
+	return r.Mode.Name
+}
+
+// ModeObserver is implemented by a component that follows the base mode
+// while the focus sits on it or beneath it: the grid starts and ends its
+// selection when a visual shape is entered or left.
+type ModeObserver interface {
+	ModeChanged(from, to string)
+}
+
+// setMode replaces the global mode and tells the observers on the focus path
+// (and on extra, the path focus is leaving) when the base mode changed.
+func (r *Runtime) setMode(m ModeState, extra ...string) {
+	before := r.BaseMode()
+	r.Mode = m
+	r.modeGeneration++
+	after := r.BaseMode()
+	if before == after {
+		return
+	}
+	seen := map[string]bool{}
+	for _, id := range append(r.Ancestry(r.FocusID()), extra...) {
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+		if inst := r.Instances[id]; inst != nil {
+			if obs, ok := inst.Component.(ModeObserver); ok {
+				obs.ModeChanged(before, after)
+			}
 		}
 	}
-	return ModeState{Name: "normal"}
+}
+
+// SetMode sets the global mode by name and clears its payload, as mode.set
+// does: a focused input runs its own transition (insert sessions, visual
+// anchor), and a pinned input stays in its pinned mode.
+func (r *Runtime) SetMode(mode string) error {
+	if !r.Modes[mode] {
+		return fmt.Errorf("unknown mode %q", mode)
+	}
+	if in := r.Input(r.FocusID()); in != nil {
+		in.SetMode(mode)
+		return nil
+	}
+	r.setMode(ModeState{Name: mode})
+	return nil
+}
+
+// stopOf is the focus stop an instance belongs to: the nearest focusable
+// instance on its ancestry (itself included), else the instance itself.
+func (r *Runtime) stopOf(id string) string {
+	for _, step := range r.Ancestry(id) {
+		if r.focusable(step) {
+			return step
+		}
+	}
+	return id
+}
+
+// focusable reports whether an instance is a focus stop: its noun is
+// declared Focusable, or it fronts an input, and it has not opted out.
+func (r *Runtime) focusable(id string) bool {
+	inst := r.Instances[id]
+	if inst == nil || inst.Unfocusable {
+		return false
+	}
+	if _, ok := inst.Component.(*Input); ok {
+		return true
+	}
+	noun := r.Nouns[inst.Noun]
+	return noun != nil && noun.Focusable
+}
+
+// focusMoved applies the mode rule to a focus change. Moving within one
+// focus stop (a grid's cell to the next cell, a list's row to the next row)
+// keeps the mode; moving to another stop resets it to normal with an empty
+// payload, or to the pinned mode of the newly focused noun (prompt pins
+// insert, terminal pins terminal). A focused input then follows the mode.
+func (r *Runtime) focusMoved(fromStop string, fromPath []string, to string) {
+	pin := ""
+	if inst := r.Instances[to]; inst != nil {
+		if noun := r.Nouns[inst.Noun]; noun != nil {
+			pin = noun.Pin
+		}
+	}
+	in := r.Input(to)
+	if in != nil && in.pin != "" {
+		pin = in.pin
+	}
+	switch {
+	case pin != "":
+		if r.BaseMode() != pin || !r.Mode.Payload.empty() {
+			r.setMode(ModeState{Name: pin}, fromPath...)
+		}
+	case fromStop != r.stopOf(to):
+		r.setMode(ModeState{Name: "normal"}, fromPath...)
+	}
+	if in != nil && in.Mode != r.BaseMode() {
+		in.transition(r.BaseMode(), false)
+	}
+}
+
+// moveFocus points a frame at id; when the frame is the active one the mode
+// rule of focusMoved applies.
+func (r *Runtime) moveFocus(frame *Frame, id string) {
+	if frame != r.top() {
+		frame.Focus = id
+		return
+	}
+	from := frame.Focus
+	stop, path := r.stopOf(from), r.Ancestry(from)
+	frame.Focus = id
+	if from != id {
+		r.focusMoved(stop, path, id)
+	}
 }
 
 // Register adds an operation. An operation with App set is of kind
@@ -238,9 +348,9 @@ func (r *Runtime) AddInput(in *Input, opts ...InstanceOption) error {
 		in.SetMode(in.pin)
 	}
 	r.seq++
-	inst := &Instance{ID: in.ID, Noun: spec.noun, Parent: spec.parent, State: in.Mode, Component: in, seq: r.seq}
+	inst := &Instance{ID: in.ID, Noun: spec.noun, Parent: spec.parent, Component: in, seq: r.seq}
 	r.Instances[in.ID] = inst
-	in.inst = inst
+	in.r = r
 	return nil
 }
 
@@ -330,7 +440,7 @@ func (r *Runtime) setFocus(frame *Frame, id string) {
 	if frame.Focus != id {
 		r.CancelPendingBinding()
 	}
-	frame.Focus = id
+	r.moveFocus(frame, id)
 }
 
 // Push opens a modal focused on frame.Focus. A frame id that is not already
@@ -354,8 +464,14 @@ func (r *Runtime) Push(frame *Frame) error {
 		r.Instances[frame.ID] = &Instance{ID: frame.ID, Noun: "modal"}
 		r.modalInstances[frame.ID] = true
 	}
-	r.Frames = append(r.Frames, frame)
+	from := r.FocusID()
+	stop, path := r.stopOf(from), r.Ancestry(from)
 	r.CancelPendingBinding()
+	frame.mode = r.Mode
+	r.Frames = append(r.Frames, frame)
+	if frame.Focus != from {
+		r.focusMoved(stop, path, frame.Focus)
+	}
 	return nil
 }
 
@@ -390,14 +506,28 @@ func (r *Runtime) Pop() error {
 		return errors.New("no modal to close")
 	}
 	frame := r.top()
+	r.CancelPendingBinding()
+	path := r.Ancestry(frame.Focus)
 	r.Frames = r.Frames[:len(r.Frames)-1]
 	if r.modalInstances[frame.ID] {
 		delete(r.modalInstances, frame.ID)
 		r.closeInstance(frame.ID)
 		delete(r.Instances, frame.ID)
 	}
-	r.CancelPendingBinding()
+	r.restoreMode(frame.mode, path)
 	return nil
+}
+
+// restoreMode returns to the mode a modal was opened over; the focused
+// input follows it.
+func (r *Runtime) restoreMode(m ModeState, leaving []string) {
+	if m.Name == "" {
+		m.Name = "normal"
+	}
+	r.setMode(m, leaving...)
+	if in := r.Input(r.FocusID()); in != nil && in.Mode != r.BaseMode() {
+		in.transition(r.BaseMode(), false)
+	}
 }
 func (r *Runtime) Execute(q Request) (any, error) { return r.ExecuteAt(r.Context(), q) }
 
@@ -530,7 +660,7 @@ func (r *Runtime) Snapshot() map[string]any {
 		pages[page.ID] = page
 	}
 	regs := r.Registers()
-	return map[string]any{"frames": r.Frames, "pages": pages, "page": r.Page, "inputs": inputs, "context": r.Context(), "focus": r.FocusID(), "mode": r.Mode(r.Context()), "modes": modes, "bindings": r.ListBindings(r.FocusID()), "pending": r.Pending, "quit": r.Quit,
+	return map[string]any{"frames": r.Frames, "pages": pages, "page": r.Page, "inputs": inputs, "context": r.Context(), "focus": r.FocusID(), "mode": r.Mode.Name, "modeState": r.Mode, "modes": modes, "bindings": r.ListBindings(r.FocusID()), "pending": r.Pending, "quit": r.Quit,
 		"lists": lists, "registers": regs.Named, "yankHistory": regs.History, "activeRegister": regs.Active, "macro": regs.Macro,
 		"nouns": nouns, "instances": r.Instances, "components": r.componentSnapshot(), "jobs": r.runningJobs()}
 }
@@ -585,7 +715,7 @@ func registerCore(r *Runtime) {
 		err := r.Focus(id)
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "set", Noun: "mode", Description: "Set the focused instance's registered interaction mode and clear any pending payload", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "set", Noun: "mode", Description: "Set the global interaction mode (a registered mode) and clear any pending payload", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		mode := StringArg(a, "mode", "")
 		if !r.Modes[mode] {
 			return nil, fmt.Errorf("unknown mode %q", mode)
@@ -595,8 +725,7 @@ func registerCore(r *Runtime) {
 			in.SetMode(mode)
 			return in.Mode, nil
 		}
-		inst := r.Instances[focusOf(c)]
-		inst.State, inst.Payload = mode, Payload{}
+		r.setMode(ModeState{Name: mode})
 		return mode, nil
 	}})
 	r.Register(Operation{Verb: "push", Noun: "modal", Description: "Open a modal focused on a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}, "input": {Type: "string", Required: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {

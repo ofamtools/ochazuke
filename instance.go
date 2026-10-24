@@ -8,24 +8,25 @@ import (
 // Instance is one addressable thing on screen: a page, a list, a list row, a
 // modal body, or an input. Parent links form the focus stack; walking them
 // from the focused instance outward is the path Context.Path spells out.
-// State is the instance's own mode; "" inherits the nearest ancestor's state,
-// and the root falls back to "normal" (see Runtime.Mode). Payload is the
-// typed state of a pending mode. Bindings are this instance's own rows,
-// resolved above its noun's table at the same stack level. Component holds
-// the typed component the instance fronts (a *Page in this phase).
+// An instance holds no mode: the mode is global (Runtime.Mode). Payload is
+// the data a modal body carries (a confirm's prompt and request). Bindings
+// are this instance's own rows, resolved above its noun's table at the same
+// stack level. Component holds the typed component the instance fronts.
+// Unfocusable opts the instance out of being a focus stop although its noun
+// is Focusable (a disabled panel).
 type Instance struct {
-	ID        string    `json:"id"`
-	Noun      string    `json:"noun"`
-	Parent    string    `json:"parent,omitempty"`
-	State     string    `json:"state"`
-	Payload   Payload   `json:"payload"`
-	Bindings  []Binding `json:"bindings,omitempty"`
-	Component any       `json:"-"`
-	seq       uint64
+	ID          string    `json:"id"`
+	Noun        string    `json:"noun"`
+	Parent      string    `json:"parent,omitempty"`
+	Payload     Payload   `json:"payload"`
+	Bindings    []Binding `json:"bindings,omitempty"`
+	Unfocusable bool      `json:"unfocusable,omitempty"`
+	Component   any       `json:"-"`
+	seq         uint64
 }
 
-// Payload is the small typed state a pending mode carries. Return is the raw
-// State the instance had before the pending mode and is restored on leave.
+// Payload is the small typed state a mode carries (Runtime.Mode.Payload).
+// For a pending mode Return is the mode it returns to on leave.
 // Count and OpCount are the Vim counts before and after an operator; Op is
 // the pending operator; Prefix is the key sequence typed so far; Request is a
 // stored request (the completed match a sequence prefix falls back to, or a

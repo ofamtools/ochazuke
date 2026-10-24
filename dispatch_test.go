@@ -36,7 +36,7 @@ func dispatchTestState(t *testing.T, m *Model, in *Input, text string, calls *[]
 }
 
 // modeOf is the focused instance's full mode name (pending modes included).
-func modeOf(m *Model) string { return m.Runtime.Mode(m.Runtime.Context()) }
+func modeOf(m *Model) string { return m.Runtime.Mode.Name }
 
 // Rule: macro_pending is exclusive; the next key names the register, even
 // when an any-mode app row binds it.

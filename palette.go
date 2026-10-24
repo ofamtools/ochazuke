@@ -80,8 +80,8 @@ func NewPalette(r *Runtime) *Palette {
 		if err := editor.Replace(0, len(editor.Text), p.query); err != nil {
 			return err
 		}
-		editor.SetMode("insert")
 		p.r.setFocus(p.frame, editor.ID)
+		editor.SetMode("insert")
 		return nil
 	})
 	register("insert", "palette", "Append text to palette search or the focused argument", map[string]Parameter{"text": {Type: "string", Required: true}}, func(a Arguments) error { return p.insert(StringArg(a, "text", "")) })
@@ -104,7 +104,7 @@ func NewPalette(r *Runtime) *Palette {
 	register("execute", "palette", "Execute the selected operation in the context captured on open", nil, func(Arguments) error { return p.execute() })
 	r.DefineGuard("palette-list", func(*Runtime, KeyEvent) bool { return p.stage != "arguments" })
 	// The palette body: rows guarded by self so a field beneath keeps its own.
-	body := r.Define("palette").Mode("")
+	body := r.Define("palette").Focusable().Mode("")
 	for key, delta := range map[string]int{"j": 1, "down": 1, "k": -1, "up": -1, "tab": 1, "shift+tab": -1} {
 		body.Bind(key, Do("palette.move", Arguments{"delta": delta})).When("self")
 	}

@@ -73,7 +73,7 @@ func TestOpenAndNavigateWithCounts(t *testing.T) {
 	cursor(t, a, grid.Ref{Row: 1, Col: 2})
 	press(t, a, "9", "k")
 	cursor(t, a, grid.Ref{Row: 0, Col: 2})
-	if mode := a.r.Mode(a.r.Context()); mode != "normal" {
+	if mode := a.r.Mode.Name; mode != "normal" {
 		t.Fatalf("mode after motions = %q", mode)
 	}
 	view := ansi.Strip(a.m.View().Content)
@@ -90,7 +90,7 @@ func TestEditCellThroughPrompt(t *testing.T) {
 	if len(a.r.Frames) != 2 || a.r.FocusID() != fieldID || string(a.field.Text) != "bo" {
 		t.Fatalf("prompt: frames=%d focus=%s text=%q", len(a.r.Frames), a.r.FocusID(), string(a.field.Text))
 	}
-	if mode := a.r.Mode(a.r.Context()); mode != "insert" {
+	if mode := a.r.Mode.Name; mode != "insert" {
 		t.Fatalf("prompt mode = %q", mode)
 	}
 	if view := ansi.Strip(a.m.View().Content); !strings.Contains(view, "Edit r1:c0") {
@@ -153,7 +153,7 @@ func TestDeleteRowAsksForConfirmation(t *testing.T) {
 func TestVisualColumnYankAndPaste(t *testing.T) {
 	a := open(t)
 	press(t, a, "l", "ctrl+v")
-	if mode := a.r.Mode(a.r.Context()); mode != grid.ShapeColumn {
+	if mode := a.r.Mode.Name; mode != grid.ShapeColumn {
 		t.Fatalf("mode = %q", mode)
 	}
 	press(t, a, "l")
@@ -168,7 +168,7 @@ func TestVisualColumnYankAndPaste(t *testing.T) {
 	if y.Shape != "column" || !strings.HasPrefix(y.Text, "email\trole\na@x.io\tdev\n") {
 		t.Fatalf("yank = %+v", y)
 	}
-	if mode := a.r.Mode(a.r.Context()); mode != "normal" {
+	if mode := a.r.Mode.Name; mode != "normal" {
 		t.Fatalf("mode after yank = %q", mode)
 	}
 	press(t, a, "0", "p")
@@ -355,7 +355,7 @@ func TestPaletteListsTheNounVerbs(t *testing.T) {
 		"column":    {"delete", "filter", "rename", "sort", "transform"},
 		"row":       {"delete", "duplicate", "insertBelow"},
 		"cell":      {"clear", "edit", "paste", "transform", "yank"},
-		"selection": {"all", "cancel", "clear", "delete", "mark", "paste", "shape", "swap", "transform", "unmark", "yank"},
+		"selection": {"all", "clear", "delete", "mark", "paste", "swap", "transform", "unmark", "yank"},
 		"sheet":     {"addColumn", "open", "redo", "save", "saveAs", "sort", "undo"},
 	} {
 		if got := verbs[noun]; !reflect.DeepEqual(got, want) {
@@ -364,6 +364,13 @@ func TestPaletteListsTheNounVerbs(t *testing.T) {
 	}
 	if op := a.r.Operations["row.delete"]; op.Confirm == "" {
 		t.Fatal("row.delete has no confirm")
+	}
+	// Hints are the bound rows of the mode: a hint never names an unbound key.
+	hints := ochazuke.BindingHints(a.r, "r0:c0")
+	for _, want := range []string{"d d row.delete", "t u selection.transform", "ctrl+s sheet.save", "v mode.set"} {
+		if !strings.Contains(hints, want) {
+			t.Fatalf("hints lack %q: %s", want, hints)
+		}
 	}
 	press(t, a, ":")
 	keytest.Type(a.m, "transform")
@@ -376,13 +383,6 @@ func TestPaletteListsTheNounVerbs(t *testing.T) {
 	for _, noun := range []string{"cell", "column", "selection"} {
 		if !strings.Contains(view, noun) {
 			t.Fatalf("transform nouns missing %s:\n%s", noun, view)
-		}
-	}
-	// Hints are the bound rows: a hint never names an unbound key.
-	hints := ochazuke.BindingHints(a.r, "r0:c0")
-	for _, want := range []string{"d d row.delete", "t u selection.transform", "ctrl+s sheet.save", "v selection.shape"} {
-		if !strings.Contains(hints, want) {
-			t.Fatalf("hints lack %q: %s", want, hints)
 		}
 	}
 }

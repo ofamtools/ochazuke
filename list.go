@@ -258,7 +258,7 @@ func (l *List) View(width, height int) string {
 }
 
 func registerLists(r *Runtime) {
-	r.Define("list").Mode("normal").
+	r.Define("list").Focusable().Mode("normal").
 		Bind("j", Do("list.move", Arguments{"delta": 1})).
 		Bind("down", Do("list.move", Arguments{"delta": 1})).
 		Bind("k", Do("list.move", Arguments{"delta": -1})).

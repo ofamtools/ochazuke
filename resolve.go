@@ -72,7 +72,7 @@ func (r *Runtime) Dispatch(key MacroKey) (bool, error) {
 		return true, err
 	}
 	focus := r.FocusID()
-	mode := r.modeState(focus)
+	mode := r.Mode
 	if r.Registers().Macro.Recording != "" && r.Registers().Macro.Depth == 0 {
 		shadow := mode
 		mode = ModeState{Name: "macro_recording", Payload: Payload{Shadow: &shadow}}
@@ -104,14 +104,14 @@ func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (bool, 
 			} else if prefix == "" {
 				fallback = nil
 			}
-			r.enterPrefix(focus, base, sequence, fallback)
+			r.enterPrefix(base, sequence, fallback)
 			return true, nil
 		}
 		if hit == nil {
 			continue
 		}
 		if prefix != "" {
-			r.leavePrefix(focus)
+			r.leavePrefix()
 		}
 		return true, r.runRow(lv, *hit, ev)
 	}
@@ -120,7 +120,7 @@ func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (bool, 
 		// then the mismatched key is offered fresh to the whole stack. (The
 		// cancel key is a row, "<prefix> esc" → mode.leave, kept by
 		// withPrefixCancels in every table that binds a sequence.)
-		r.leavePrefix(focus)
+		r.leavePrefix()
 		if fallback != nil {
 			if _, err := r.Execute(*fallback); err != nil {
 				return true, err
@@ -218,14 +218,13 @@ func rowsForMode(rows []Binding, mode string, exclusive bool) []Binding {
 var stayingRequests = map[string]bool{"mode.enter": true, "count.append": true, "mode.leave": true, "input.cancel": true, "macro.record": true, "key.dispatch": true}
 
 // runRow executes a row. A pending mode is one-shot: the key that answers it
-// consumes it, so the instance returns to the shadowed mode before the
-// request runs (the request may then enter another pending mode) unless the
-// request itself manages modes.
+// consumes it, so the mode returns to the shadowed mode before the request
+// runs (the request may then enter another pending mode) unless the request
+// itself manages modes.
 func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent) error {
-	inst := r.Instances[ev.Focus]
-	before, generation := inst.State, r.modeGeneration
+	before, generation := r.Mode.Name, r.modeGeneration
 	if r.pendingModes[before] && !stayingRequests[b.Request.Key()] {
-		r.leaveMode(inst)
+		r.leaveMode()
 	}
 	q := b.Request
 	if len(b.From) > 0 {
@@ -239,8 +238,8 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent) error {
 		q.Args = args
 	}
 	_, err := r.Execute(q)
-	if r.pendingModes[before] && r.modeGeneration == generation && r.Instances[ev.Focus] == inst && inst.State == before {
-		r.leaveMode(inst)
+	if r.pendingModes[before] && r.modeGeneration == generation && r.Mode.Name == before {
+		r.leaveMode()
 	}
 	if err == nil && b.Replay && !ev.Key.Paste {
 		_, err = r.Dispatch(ev.Key)
@@ -295,33 +294,31 @@ func (r *Runtime) argument(source string, ev KeyEvent) any {
 	return nil
 }
 
-// enterMode puts the focused instance into a pending mode. The raw State it
-// had (possibly "", inherited) is kept in the payload and restored by leave.
-// A payload with a Prefix is a key sequence in progress, so entering the
-// mode arms the sequence timer.
-func (r *Runtime) enterMode(inst *Instance, name string, payload Payload) {
-	if r.pendingModes[inst.State] || inst.Payload.Prefix != "" {
-		payload.Return = inst.Payload.Return
-	} else {
-		payload.Return = inst.State
-	}
-	inst.State, inst.Payload = name, payload
-	r.modeGeneration++
+// enterMode puts the runtime into a pending mode. The base mode it shadows
+// is kept in the payload and restored by leave. A payload with a Prefix is a
+// key sequence in progress, so entering the mode arms the sequence timer.
+func (r *Runtime) enterMode(name string, payload Payload) {
+	payload.Return = r.BaseMode()
+	r.setMode(ModeState{Name: name, Payload: payload})
 	if payload.Prefix != "" {
-		r.armPrefix(inst.ID, name, payload.Prefix)
+		r.armPrefix(r.FocusID(), name, payload.Prefix)
 	}
 }
 
 // leaveMode restores the mode a pending mode shadowed and disarms the
 // sequence timer when it belongs to that mode.
-func (r *Runtime) leaveMode(inst *Instance) {
-	if r.prefix.focus == inst.ID && r.prefix.mode == inst.State {
+func (r *Runtime) leaveMode() {
+	if r.prefix.mode == r.Mode.Name {
 		r.Pending = ""
 		r.bindingVersion++
 		r.prefix = pendingPrefix{}
 	}
-	inst.State, inst.Payload = inst.Payload.Return, Payload{}
-	r.modeGeneration++
+	r.setMode(ModeState{Name: r.BaseMode()})
+}
+
+// pending reports whether the mode is a pending mode or a sequence prefix.
+func (r *Runtime) pending() bool {
+	return r.pendingModes[r.Mode.Name] || r.Mode.Payload.Prefix != ""
 }
 
 // ListBindings prints the rows the focus answers to in its current mode,
@@ -347,7 +344,7 @@ func (r *Runtime) ListBindings(focus string) []Binding {
 // pattern. A level whose unguarded any row answers every key ends the
 // walk, as it does for Dispatch.
 func (r *Runtime) bindingRows(focus string) []Binding {
-	mode := r.modeState(focus)
+	mode := r.Mode
 	base, prefix := baseAndPrefix(mode)
 	exclusive := r.pendingModes[mode.Name] || mode.Payload.Shadow != nil
 	seen := map[string]bool{}
@@ -409,9 +406,9 @@ type pendingPrefix struct {
 }
 
 // enterPrefix waits for the rest of a key sequence as a pending mode named
-// "<base> <keys so far>" on the focused instance.
-func (r *Runtime) enterPrefix(focus, base, sequence string, fallback *Request) {
-	r.enterMode(r.Instances[focus], base+" "+sequence, Payload{Prefix: sequence, Request: fallback})
+// "<base> <keys so far>".
+func (r *Runtime) enterPrefix(base, sequence string, fallback *Request) {
+	r.enterMode(base+" "+sequence, Payload{Prefix: sequence, Request: fallback})
 }
 
 // armPrefix starts the sequence timer for a pending mode the focus is in:
@@ -428,23 +425,22 @@ func (r *Runtime) armPrefix(focus, mode, sequence string) {
 	r.prefix = pendingPrefix{focus: focus, mode: mode, deadline: time.Now().Add(timeout)}
 }
 
-func (r *Runtime) leavePrefix(focus string) {
-	if inst := r.Instances[focus]; inst != nil && inst.Payload.Prefix != "" {
-		r.leaveMode(inst)
+func (r *Runtime) leavePrefix() {
+	if r.Mode.Payload.Prefix != "" {
+		r.leaveMode()
 	}
 	r.Pending = ""
 	r.bindingVersion++
 	r.prefix = pendingPrefix{}
 }
 
-// prefixStillPending reports whether the recorded prefix instance is still
-// in its prefix mode and focused.
+// prefixStillPending reports whether the runtime is still in the recorded
+// prefix mode with the same focus.
 func (r *Runtime) prefixStillPending() bool {
 	if r.Pending == "" || r.prefix.focus == "" {
 		return false
 	}
-	inst := r.Instances[r.prefix.focus]
-	return inst != nil && inst.State == r.prefix.mode && r.FocusID() == r.prefix.focus
+	return r.Mode.Name == r.prefix.mode && r.FocusID() == r.prefix.focus
 }
 
 // expirePrefix resolves a sequence whose deadline passed before the next key.
@@ -465,9 +461,8 @@ func (r *Runtime) expirePrefix() error {
 
 // finishPrefix leaves the prefix mode and runs the completed match, if any.
 func (r *Runtime) finishPrefix() (bool, error) {
-	inst := r.Instances[r.prefix.focus]
-	fallback := inst.Payload.Request
-	r.leavePrefix(r.prefix.focus)
+	fallback := r.Mode.Payload.Request
+	r.leavePrefix()
 	if fallback == nil {
 		return false, nil
 	}
@@ -478,7 +473,7 @@ func (r *Runtime) finishPrefix() (bool, error) {
 // Pending-mode and dispatch operations shared by every noun.
 
 func registerModeTables(r *Runtime) {
-	r.Register(Operation{Verb: "enter", Noun: "mode", Description: "Enter a pending mode on the focused instance with a typed payload (op, count, opcount; prefix arms the sequence timer, request is what it runs)", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true}, "op": {Type: "string"}, "count": {Type: "integer"}, "opcount": {Type: "integer"}, "prefix": {Type: "string", Description: "Key sequence the mode holds; the timer runs request when no key follows"}, "request": {Type: "object", Description: "Request run when the sequence times out"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "enter", Noun: "mode", Description: "Enter a pending mode with a typed payload (op, count, opcount; prefix arms the sequence timer, request is what it runs)", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true}, "op": {Type: "string"}, "count": {Type: "integer"}, "opcount": {Type: "integer"}, "prefix": {Type: "string", Description: "Key sequence the mode holds; the timer runs request when no key follows"}, "request": {Type: "object", Description: "Request run when the sequence times out"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		mode := StringArg(a, "mode", "")
 		if !r.pendingModes[mode] {
 			return nil, fmt.Errorf("unknown pending mode %q", mode)
@@ -487,11 +482,10 @@ func registerModeTables(r *Runtime) {
 		if err != nil {
 			return nil, err
 		}
-		inst := r.Instances[focusOf(c)]
-		r.enterMode(inst, mode, Payload{Op: StringArg(a, "op", ""), Count: IntArg(a, "count", 0), OpCount: IntArg(a, "opcount", 0), Prefix: StringArg(a, "prefix", ""), Request: request})
-		return r.modeState(inst.ID), nil
+		r.enterMode(mode, Payload{Op: StringArg(a, "op", ""), Count: IntArg(a, "count", 0), OpCount: IntArg(a, "opcount", 0), Prefix: StringArg(a, "prefix", ""), Request: request})
+		return r.Mode, nil
 	}})
-	r.Register(Operation{Verb: "dispatch", Noun: "key", Description: "Dispatch one key through the stack walk; mode \"shadow\" resolves it in the focused instance's own mode beneath a macro recording, so the key is recorded once, and another mode name resolves it in that mode", Parameters: map[string]Parameter{"key": {Type: "string", Required: true, Description: "Key name as bindings spell it; for a paste, the bracketed text"}, "paste": {Type: "boolean", Description: "The key is pasted text"}, "mode": {Type: "string", Description: "Empty for the live walk, \"shadow\" or a mode name"}}, Result: "boolean", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "dispatch", Noun: "key", Description: "Dispatch one key through the stack walk; mode \"shadow\" resolves it in the runtime's own mode beneath a macro recording, so the key is recorded once, and another mode name resolves it in that mode", Parameters: map[string]Parameter{"key": {Type: "string", Required: true, Description: "Key name as bindings spell it; for a paste, the bracketed text"}, "paste": {Type: "boolean", Description: "The key is pasted text"}, "mode": {Type: "string", Description: "Empty for the live walk, \"shadow\" or a mode name"}}, Result: "boolean", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		paste, _ := a["paste"].(bool)
 		key := MacroKey{Key: StringArg(a, "key", ""), Paste: paste}
 		focus := focusOf(c)
@@ -499,41 +493,38 @@ func registerModeTables(r *Runtime) {
 		case "":
 			return r.Dispatch(key)
 		case "shadow":
-			return r.dispatchIn(focus, r.modeState(focus), key)
+			return r.dispatchIn(focus, r.Mode, key)
 		default:
 			if !r.Modes[mode] && !r.pendingModes[mode] {
 				return nil, fmt.Errorf("unknown mode %q", mode)
 			}
-			return r.dispatchIn(focus, ModeState{Name: mode, Payload: r.Instances[focus].Payload}, key)
+			return r.dispatchIn(focus, ModeState{Name: mode, Payload: r.Mode.Payload}, key)
 		}
 	}})
 	r.Register(Operation{Verb: "leave", Noun: "mode", Description: "Return from a pending mode to the mode it shadowed", Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		inst := r.Instances[focusOf(c)]
-		if r.pendingModes[inst.State] || inst.Payload.Prefix != "" {
-			r.leaveMode(inst)
+		if r.pending() {
+			r.leaveMode()
 		}
-		return r.modeState(inst.ID), nil
+		return r.Mode, nil
 	}})
 	r.Register(Operation{Verb: "append", Noun: "count", Description: "Append a digit to the pending count", Parameters: map[string]Parameter{"digit": {Type: "integer", Required: true}}, Result: "count", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		inst := r.Instances[focusOf(c)]
 		digit := IntArg(a, "digit", 0)
 		if digit < 0 || digit > 9 {
 			return nil, errors.New("digit must be 0 to 9")
 		}
-		if inst.Payload.Count > 100000 {
+		if r.Mode.Payload.Count > 100000 {
 			return nil, errors.New("count exceeds 1000000")
 		}
-		inst.Payload.Count = inst.Payload.Count*10 + digit
+		r.Mode.Payload.Count = r.Mode.Payload.Count*10 + digit
 		r.modeGeneration++
-		return inst.Payload.Count, nil
+		return r.Mode.Payload.Count, nil
 	}})
-	r.Register(Operation{Verb: "run", Noun: "request", Description: "Execute the request stored in the focused instance's payload", Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		inst := r.Instances[focusOf(c)]
-		if inst.Payload.Request == nil {
+	r.Register(Operation{Verb: "run", Noun: "request", Description: "Execute the request stored in the mode payload", Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		if r.Mode.Payload.Request == nil {
 			return nil, errors.New("no stored request")
 		}
-		q := *inst.Payload.Request
-		r.leaveMode(inst)
+		q := *r.Mode.Payload.Request
+		r.leaveMode()
 		return r.ExecuteAt(c, q)
 	}})
 }

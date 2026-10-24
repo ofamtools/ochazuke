@@ -164,7 +164,7 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 			return result, nil
 		},
 		"inspect": func(r *ochazuke.Runtime, c ochazuke.Context, _ ochazuke.Arguments) (any, error) {
-			inspection := map[string]any{"page": r.Page, "path": c.Path, "input": c.InputID, "mode": r.Mode(c)}
+			inspection := map[string]any{"page": r.Page, "path": c.Path, "input": c.InputID, "mode": r.Mode.Name}
 			pageState(r.Page)["inspection"] = inspection
 			return inspection, nil
 		},

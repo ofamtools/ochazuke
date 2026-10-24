@@ -10,6 +10,7 @@ package grid
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -62,9 +63,9 @@ func ParseID(id string) (ref Ref, kind string, ok bool) {
 	}
 }
 
-// Selection shapes: the mode names the grid instance carries while a visual
-// selection is active. The shape decides which cells the anchor and cursor
-// span; marks add cells of any shape on top.
+// Selection shapes: the global modes a visual selection is active in, set
+// with mode.set like any other mode. The shape decides which cells the
+// anchor and cursor span; marks add cells of any shape on top.
 const (
 	ShapeBlock  = "visual-block"
 	ShapeRow    = "visual-row"
@@ -144,6 +145,7 @@ func New(r *ochazuke.Runtime, id, parent string, header []string, rows [][]strin
 	for _, noun := range []string{g.Nouns.Cell, g.Nouns.Row, g.Nouns.Column} {
 		r.Define(noun)
 	}
+	r.Define("grid").Focusable()
 	inst := r.Instance(id, ochazuke.Parent(parent), ochazuke.Kind("grid"))
 	inst.Component = g
 	g.SetData(header, rows)
@@ -277,33 +279,45 @@ func (g *Grid) Goto(ref Ref) error {
 	return fmt.Errorf("row %d is not visible", ref.Row)
 }
 
-// Shape is the active selection shape, "" when none.
+func isShape(mode string) bool {
+	return mode == ShapeBlock || mode == ShapeRow || mode == ShapeColumn
+}
+
+// Shape is the active selection shape: the base mode when it is a shape and
+// the focus sits in the grid (or in a modal opened over it), else "".
 func (g *Grid) Shape() string {
-	switch state := g.r.Instances[g.id].State; state {
-	case ShapeBlock, ShapeRow, ShapeColumn:
-		return state
+	if mode := g.r.BaseMode(); isShape(mode) && slices.Contains(g.r.Ancestry(g.r.FocusID()), g.id) {
+		return mode
 	}
 	return ""
 }
 
-// Select starts a selection of shape at the cursor, or switches the shape of
-// the active selection keeping its anchor and marks.
-func (g *Grid) Select(shape string) error {
-	switch shape {
-	case ShapeBlock, ShapeRow, ShapeColumn:
-	default:
-		return fmt.Errorf("unknown selection shape %q", shape)
-	}
-	if g.Shape() == "" {
+// ModeChanged follows the global mode: entering a shape from outside one
+// anchors the selection at the cursor, switching shapes keeps anchor and
+// marks, and leaving the shapes drops the marks.
+func (g *Grid) ModeChanged(from, to string) {
+	switch {
+	case isShape(to) && !isShape(from):
 		g.anchor = g.Cursor()
+	case !isShape(to) && isShape(from):
+		g.marks = map[Ref]bool{}
 	}
-	g.r.Instances[g.id].State = shape
-	return nil
 }
 
-// Cancel ends the selection and drops its marks.
+// Select starts a selection of shape at the cursor, or switches the shape of
+// the active selection keeping its anchor and marks: mode.set to the shape.
+func (g *Grid) Select(shape string) error {
+	if !isShape(shape) {
+		return fmt.Errorf("unknown selection shape %q", shape)
+	}
+	return g.r.SetMode(shape)
+}
+
+// Cancel ends the selection and drops its marks: mode.set normal.
 func (g *Grid) Cancel() {
-	g.r.Instances[g.id].State = ""
+	if g.Shape() != "" {
+		_ = g.r.SetMode("normal")
+	}
 	g.marks = map[Ref]bool{}
 }
 
@@ -343,7 +357,7 @@ func (g *Grid) SelectAll() {
 		return
 	}
 	if g.Shape() == "" {
-		g.r.Instances[g.id].State = ShapeBlock
+		_ = g.Select(ShapeBlock)
 	}
 	g.anchor = Ref{Row: g.visible[0], Col: 0}
 	g.vrow, g.col = len(g.visible)-1, len(g.header)-1

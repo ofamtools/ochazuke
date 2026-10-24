@@ -67,8 +67,8 @@ func TestSelectionShapesAndMarks(t *testing.T) {
 	if err := g.Select(ShapeBlock); err != nil {
 		t.Fatal(err)
 	}
-	if r.Mode(r.Context()) != ShapeBlock {
-		t.Fatalf("mode = %s", r.Mode(r.Context()))
+	if r.Mode.Name != ShapeBlock {
+		t.Fatalf("mode = %s", r.Mode.Name)
 	}
 	g.Move("down", 1, 0)
 	g.Move("right", 1, 0)

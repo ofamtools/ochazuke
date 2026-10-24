@@ -229,10 +229,9 @@ func (p *Picker) open(c Context, args Arguments) (any, error) {
 	// A new modal session gets fresh editor history while retaining its registered ID.
 	inst := p.Runtime.Instances[p.input.ID]
 	p.input = NewInput(p.input.ID, path, false)
-	p.input.pin, p.input.inst = "insert", inst
+	p.input.pin, p.input.r = "insert", p.Runtime
 	inst.Component = p.input
 	p.input.SetMode("insert")
-	inst.State = "insert"
 	p.input.Cursor = len(p.input.Text)
 	p.frame = &Frame{ID: "picker", Focus: p.input.ID}
 	if err := p.Runtime.Push(p.frame); err != nil {

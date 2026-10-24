@@ -81,7 +81,7 @@ func TestPageSwitchRestoresFrameFocusAndEditingState(t *testing.T) {
 	if len(r.Frames) != 1 || r.Frames[0] != alpha.Frame || r.Input(r.Context().InputID) != in || !reflect.DeepEqual(r.Context(), context) {
 		t.Fatalf("page identity or nested focus was lost: %+v", r.Context())
 	}
-	if got := paletteInputSnapshot(t, in); got != before || r.Mode(r.Context()) != "insert" {
+	if got := paletteInputSnapshot(t, in); got != before || r.Mode.Name != "insert" {
 		t.Fatalf("page editing state was lost: %s", got)
 	}
 	paletteRequest(t, r, "undo", "input", nil)
@@ -89,7 +89,7 @@ func TestPageSwitchRestoresFrameFocusAndEditingState(t *testing.T) {
 		t.Fatal("page switch lost the originating undo history or changed another input")
 	}
 	paletteRequest(t, r, "open", "page", Arguments{"id": "beta"})
-	if r.Frames[0] != beta.Frame || r.Mode(r.Context()) != "insert" || r.Context().InputID != "" {
+	if r.Frames[0] != beta.Frame || r.Mode.Name != "insert" || r.Context().InputID != "" {
 		t.Fatal("page-owned frame mode, state, or non-input context was lost")
 	}
 }

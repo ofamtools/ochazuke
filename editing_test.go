@@ -314,8 +314,9 @@ func TestEditorInputIsolationAndCapturedTarget(t *testing.T) {
 	editorTestKeys(t, r, "i", "ctrl+y", "!", "esc")
 	editorTestState(t, second, "beta!XYZ", 4, "normal")
 	editorTestState(t, first, "alpha ", 5, "normal")
-	if first.Count() != 2 || first.Pending() != "g" || r.Instances["editor"].State != "g_pending" {
-		t.Fatal("focus discarded the instance's pending mode")
+	// The mode is global: focusing another input dropped first's pending g.
+	if first.Count() != 0 || first.Pending() != "" || r.Mode.Name != "normal" {
+		t.Fatalf("focus change must reset the mode: %+v", r.Mode)
 	}
 	if _, err := r.Execute(Request{Verb: "undo", Noun: "input", Target: "editor"}); err != nil {
 		t.Fatal(err)
@@ -334,13 +335,13 @@ func TestEditorInputIsolationAndCapturedTarget(t *testing.T) {
 func TestEditorInputPrefixDoesNotUseRuntimePending(t *testing.T) {
 	r, in := editorTestRuntime(t, "abcdef", false)
 	editorTestKeys(t, r, "2")
-	if r.Pending != "" || in.Count() != 2 || r.Instances["editor"].State != "count_pending" {
-		t.Fatalf("runtime pending=%q input count=%d state=%q", r.Pending, in.Count(), r.Instances["editor"].State)
+	if r.Pending != "" || in.Count() != 2 || r.Mode.Name != "count_pending" {
+		t.Fatalf("runtime pending=%q input count=%d state=%q", r.Pending, in.Count(), r.Mode.Name)
 	}
 	editorTestKeys(t, r, "l")
 	editorTestState(t, in, "abcdef", 2, "normal")
-	if r.Pending != "" || in.Count() != 0 || r.Instances["editor"].State != "normal" {
-		t.Fatalf("runtime pending=%q input count=%d state=%q", r.Pending, in.Count(), r.Instances["editor"].State)
+	if r.Pending != "" || in.Count() != 0 || r.Mode.Name != "normal" {
+		t.Fatalf("runtime pending=%q input count=%d state=%q", r.Pending, in.Count(), r.Mode.Name)
 	}
 	editorTestKeys(t, r, "g", "esc")
 	if in.Pending() != "" || r.Pending != "" || in.Mode != "normal" {

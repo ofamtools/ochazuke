@@ -122,7 +122,7 @@ func bindingsView(r *ochazuke.Runtime, focus string, width int) string {
 	if inst := r.Instances[focus]; inst != nil && inst.Noun != "" {
 		noun = inst.Noun
 	}
-	lines := []string{fmt.Sprintf("Focus: %s · noun: %s · mode: %s", focus, noun, r.Mode(r.Context()))}
+	lines := []string{fmt.Sprintf("Focus: %s · noun: %s · mode: %s", focus, noun, r.Mode.Name)}
 	for _, b := range r.ListBindings(focus) {
 		key := b.Keys
 		if key == "" {

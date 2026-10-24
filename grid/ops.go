@@ -7,14 +7,20 @@ import (
 	"ochazuke"
 )
 
-// Register defines the grid and selection operations once per runtime. The
-// grid noun answers move; the selection noun answers shape, cancel, swap,
-// mark, unmark and all. Each resolves the grid from args.id or the nearest
+// Register defines the grid and selection operations and the selection
+// shape modes once per runtime. The grid noun answers move and goto; the
+// selection noun answers swap, mark, unmark and all. A selection starts and
+// ends with mode.set (a shape, or normal); the grid follows the mode. Each resolves the grid from args.id or the nearest
 // grid on the context's ancestry, so a cell, row or column focus reaches it.
 // The application binds keys to these rows; the grid binds nothing itself.
 func Register(r *ochazuke.Runtime) {
 	if _, ok := r.Operations["grid.move"]; ok {
 		return
+	}
+	for _, shape := range []string{ShapeBlock, ShapeRow, ShapeColumn} {
+		if !r.Modes[shape] {
+			_ = r.DefineMode(shape, false)
+		}
 	}
 	id := map[string]ochazuke.Parameter{"id": {Type: "string", Description: "Grid instance (defaults to the one under the focus)"}}
 	with := func(params map[string]ochazuke.Parameter) map[string]ochazuke.Parameter {
@@ -49,12 +55,6 @@ func Register(r *ochazuke.Runtime) {
 	}, func(g *Grid, _ ochazuke.Context, a ochazuke.Arguments) error {
 		return g.Goto(Ref{Row: ochazuke.IntArg(a, "row", 0), Col: ochazuke.IntArg(a, "col", 0)})
 	})
-	op("shape", "selection", "Start a selection of a shape (visual-block, visual-row, visual-column) at the cursor, or switch the active one's shape", map[string]ochazuke.Parameter{
-		"shape": {Type: "string", Required: true},
-	}, func(g *Grid, _ ochazuke.Context, a ochazuke.Arguments) error {
-		return g.Select(ochazuke.StringArg(a, "shape", ""))
-	})
-	op("cancel", "selection", "End the selection and drop its marks", nil, func(g *Grid, _ ochazuke.Context, _ ochazuke.Arguments) error { g.Cancel(); return nil })
 	op("swap", "selection", "Exchange the selection anchor and the cursor", nil, func(g *Grid, _ ochazuke.Context, _ ochazuke.Arguments) error { return g.SwapAnchor() })
 	op("mark", "selection", "Toggle the mark on the cell, row or column under the cursor by the selection shape", nil, func(g *Grid, _ ochazuke.Context, _ ochazuke.Arguments) error {
 		if g.Shape() == "" {

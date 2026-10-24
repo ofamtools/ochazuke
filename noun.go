@@ -12,17 +12,19 @@ import (
 // Noun is the behaviour shared by every instance of one kind: the verbs it
 // answers to, its key bindings per mode, the action handlers that override an
 // operation's default while the noun is on the focus stack, and an optional
-// pinned mode (the prompt noun pins insert).
+// pinned mode (the prompt noun pins insert). Focusable marks every instance
+// of the noun as a focus stop (focus.next and the mode rule read it).
 //
 // Bindings is keyed by mode name. "" holds rows that apply in every base
 // mode; a pending mode (operator_pending, a key-sequence prefix, ...) is
 // exclusive and reads only its own table.
 type Noun struct {
-	Name     string               `json:"name"`
-	Verbs    []string             `json:"verbs,omitempty"`
-	Pin      string               `json:"pin,omitempty"`
-	Bindings map[string][]Binding `json:"bindings"`
-	Actions  map[string]Handler   `json:"-"`
+	Name      string               `json:"name"`
+	Verbs     []string             `json:"verbs,omitempty"`
+	Pin       string               `json:"pin,omitempty"`
+	Focusable bool                 `json:"focusable,omitempty"`
+	Bindings  map[string][]Binding `json:"bindings"`
+	Actions   map[string]Handler   `json:"-"`
 }
 
 // Binding is one row of a mode table, identical in code and config:
@@ -187,6 +189,9 @@ func (b *NounBuilder) Noun() *Noun { return b.n }
 
 // Pin keeps every instance of the noun in one base mode.
 func (b *NounBuilder) Pin(mode string) *NounBuilder { b.n.Pin = mode; return b }
+
+// Focusable makes every instance of the noun a focus stop.
+func (b *NounBuilder) Focusable() *NounBuilder { b.n.Focusable = true; return b }
 
 // Verbs records the verbs the noun answers to, for help and the palette.
 func (b *NounBuilder) Verbs(verbs ...string) *NounBuilder {

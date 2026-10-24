@@ -407,7 +407,7 @@ func TestRuntimeHoldsNoComponentFields(t *testing.T) {
 	}
 	sort.Strings(fields)
 	want := []string{
-		"BindingTimeout", "Frames", "Instances", "Modes", "Nouns", "Operations", "Page", "Pending", "Quit",
+		"BindingTimeout", "Frames", "Instances", "Mode", "Modes", "Nouns", "Operations", "Page", "Pending", "Quit",
 		"bindingVersion", "commands", "deprecations", "guards", "jobSeq", "jobs", "modalInstances", "modeGeneration", "pendingModes", "prefix", "rows", "seq",
 	}
 	if !reflect.DeepEqual(fields, want) {
@@ -459,20 +459,14 @@ func TestEditorFallbackNeedsAnInputOnThePath(t *testing.T) {
 			t.Fatalf("%s on a list row: handled=%v err=%v", key, handled, err)
 		}
 	}
-	if r.Mode(r.Context()) != "normal" {
-		t.Fatalf("mode after unbound editor keys: %s", r.Mode(r.Context()))
+	if r.Mode.Name != "normal" {
+		t.Fatalf("mode after unbound editor keys: %s", r.Mode.Name)
 	}
 	editorTestKeys(t, r, "2", "q")
-	if got := r.modeState("one"); got.Name != "macro_pending" {
+	if got := r.Mode; got.Name != "macro_pending" {
 		t.Fatalf("count and macro rows stay available on a row: %+v", got)
 	}
 	editorTestKeys(t, r, "esc")
-	if err := r.Focus(input.ID); err != nil {
-		t.Fatal(err)
-	}
-	if !slices.ContainsFunc(r.ListBindings(input.ID), func(b Binding) bool { return b.Noun == "editor" }) {
-		t.Fatal("an input keeps the editor fallback")
-	}
 	if !strings.Contains(strings.Join(func() (out []string) {
 		for _, b := range r.ListBindings("one") {
 			out = append(out, b.Keys)
@@ -480,5 +474,11 @@ func TestEditorFallbackNeedsAnInputOnThePath(t *testing.T) {
 		return
 	}(), " "), "q") {
 		t.Fatal("q is an app row")
+	}
+	if err := r.Focus(input.ID); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.ContainsFunc(r.ListBindings(input.ID), func(b Binding) bool { return b.Noun == "editor" }) {
+		t.Fatal("an input keeps the editor fallback")
 	}
 }

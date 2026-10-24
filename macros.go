@@ -148,11 +148,11 @@ func (r *Runtime) replayMacro(name string, count int) (err error) {
 					}
 				}
 			}
-			if inst := r.Instances[r.FocusID()]; inst != nil && (r.pendingModes[inst.State] || inst.Payload.Prefix != "") {
-				if in := r.Input(inst.ID); in != nil {
+			if r.pending() {
+				if in := r.Input(r.FocusID()); in != nil {
 					in.resetKeys()
 				} else {
-					r.leaveMode(inst)
+					r.leaveMode()
 				}
 			}
 		}

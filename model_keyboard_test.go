@@ -144,8 +144,8 @@ func TestModelPendingMacroDoesNotInterpretPasteAsRegister(t *testing.T) {
 	m := NewModel(r)
 	modelType(m, "q", true)
 	keytest.Paste(m, "qabc:")
-	if m.Status != "" || r.Mode(r.Context()) != "macro_pending" || string(in.Text) != "preserve" {
-		t.Fatalf("paste consumed register prefix: status=%q mode=%q text=%q", m.Status, r.Mode(r.Context()), string(in.Text))
+	if m.Status != "" || r.Mode.Name != "macro_pending" || string(in.Text) != "preserve" {
+		t.Fatalf("paste consumed register prefix: status=%q mode=%q text=%q", m.Status, r.Mode.Name, string(in.Text))
 	}
 	modelType(m, "q", true)
 	if r.Registers().Macro.Recording != "q" || !strings.Contains(ansi.Strip(m.View().Content), "REC @q") {
