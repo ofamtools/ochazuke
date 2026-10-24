@@ -1,0 +1,32 @@
+{
+  "name": "NoSpill keeps the focus in its list",
+  "area": "motions",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2,
+        "noSpill": true
+      },
+      {
+        "id": "b",
+        "rows": 2
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "j",
+    "j",
+    "}"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "focus": "a2"
+    },
+    {
+      "focus": "b1"
+    }
+  ]
+}

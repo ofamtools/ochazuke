@@ -1,0 +1,24 @@
+{
+  "name": "marked rows take a * gutter, every row a gutter",
+  "area": "lists",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 4,
+        "marked": [
+          0,
+          2
+        ]
+      }
+    ]
+  },
+  "expect": {
+    "contains": [
+      "* a1",
+      "  a2",
+      "* a3",
+      "  a4"
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "no wrap at the page's ends",
+  "area": "motions",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      },
+      {
+        "id": "b",
+        "rows": 2
+      }
+    ]
+  },
+  "script": [
+    "k",
+    "j",
+    "j",
+    "j",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "a1"
+    },
+    {
+      "focus": "b2"
+    }
+  ]
+}

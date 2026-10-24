@@ -1,0 +1,44 @@
+{
+  "name": "} and { follow drawing order, not registration",
+  "area": "motions",
+  "page": {
+    "order": [
+      "a",
+      "b",
+      "c"
+    ],
+    "lists": [
+      {
+        "id": "c",
+        "rows": 2
+      },
+      {
+        "id": "a",
+        "rows": 2
+      },
+      {
+        "id": "b",
+        "rows": 2
+      }
+    ],
+    "focus": "a1"
+  },
+  "script": [
+    "}",
+    "}",
+    "{"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "b1"
+    },
+    {
+      "after": 2,
+      "focus": "c1"
+    },
+    {
+      "focus": "b1"
+    }
+  ]
+}

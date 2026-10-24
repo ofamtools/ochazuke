@@ -1,0 +1,38 @@
+{
+  "name": "a failed job shows its error",
+  "area": "ticker",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "jobs": [
+      {
+        "verb": "demo.build",
+        "key": "w",
+        "finishOnKey": "W",
+        "failOnKey": "X"
+      },
+      {
+        "verb": "demo.ship",
+        "key": "e",
+        "finishOnKey": "E"
+      }
+    ]
+  },
+  "script": [
+    "w",
+    "X",
+    {
+      "job": "demo.build",
+      "state": "failed"
+    }
+  ],
+  "expect": {
+    "ticker": [
+      "demo.build failed: failed on key"
+    ]
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "name": "the page follows the focus with scrolloff",
+  "area": "scroll",
+  "width": 60,
+  "height": 24,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 10
+      },
+      {
+        "id": "b",
+        "rows": 10
+      },
+      {
+        "id": "c",
+        "rows": 10
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j"
+  ],
+  "expect": {
+    "focus": "b6",
+    "visible": true
+  }
+}

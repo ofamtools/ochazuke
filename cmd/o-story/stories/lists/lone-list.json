@@ -1,0 +1,39 @@
+{
+  "name": "a lone list at 30x8: windowing and highlight",
+  "area": "lists",
+  "width": 30,
+  "height": 8,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "p",
+        "rows": 50,
+        "height": -1,
+        "labels": [
+          "first project",
+          "tuios-deck",
+          "matomeru",
+          "ochazuke",
+          "oden",
+          "gmtm",
+          "redeck",
+          "session-browser"
+        ]
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j"
+  ]
+}

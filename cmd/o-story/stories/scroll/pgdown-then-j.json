@@ -1,0 +1,37 @@
+{
+  "name": "pgdown moves the surface; j brings the focus back",
+  "area": "scroll",
+  "width": 60,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 10
+      },
+      {
+        "id": "b",
+        "rows": 10
+      },
+      {
+        "id": "c",
+        "rows": 10
+      }
+    ]
+  },
+  "script": [
+    "pgdown",
+    "pgdown",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "focus": "a1",
+      "visible": false
+    },
+    {
+      "focus": "a2",
+      "visible": true
+    }
+  ]
+}

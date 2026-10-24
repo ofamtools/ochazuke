@@ -1,0 +1,82 @@
+{
+  "name": "a tall list windows itself",
+  "area": "scroll",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 200,
+        "height": -1
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j"
+  ],
+  "expect": {
+    "focus": "a61",
+    "visible": true,
+    "contains": [
+      "a61"
+    ]
+  }
+}

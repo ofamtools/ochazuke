@@ -1,0 +1,25 @@
+{
+  "name": "a lone ticker strip at 60x3",
+  "area": "ticker",
+  "width": 60,
+  "height": 3,
+  "chrome": "ticker-only",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "jobs": [
+      {
+        "verb": "demo.build",
+        "start": 1
+      },
+      {
+        "verb": "demo.ship",
+        "start": 1
+      }
+    ]
+  }
+}

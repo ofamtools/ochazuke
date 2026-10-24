@@ -1,0 +1,43 @@
+{
+  "name": "a notice stays until notice.clear",
+  "area": "notices",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": "C",
+        "do": "notice.clear"
+      }
+    ]
+  },
+  "script": [
+    "n",
+    "j",
+    "k",
+    "esc",
+    "C"
+  ],
+  "expect": [
+    {
+      "after": 4,
+      "notices": [
+        "notice from a1"
+      ],
+      "contains": [
+        "notice from a1"
+      ]
+    },
+    {
+      "noNotices": true,
+      "lacks": [
+        "notice from a1"
+      ]
+    }
+  ]
+}

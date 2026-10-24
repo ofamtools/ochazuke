@@ -1,0 +1,33 @@
+{
+  "name": "ctrl+c inside a pane goes to the pane",
+  "area": "terminal",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ],
+    "terminal": {
+      "fake": true,
+      "attach": "a1"
+    }
+  },
+  "script": [
+    "enter",
+    {
+      "tick": "terminal"
+    },
+    "ctrl+c",
+    {
+      "tick": "terminal"
+    }
+  ],
+  "expect": {
+    "focus": "page1-pane",
+    "mode": "terminal",
+    "contains": [
+      "<ctrl+c>"
+    ]
+  }
+}

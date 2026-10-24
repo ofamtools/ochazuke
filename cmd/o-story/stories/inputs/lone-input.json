@@ -1,0 +1,30 @@
+{
+  "name": "a lone input: A appends, esc leaves insert",
+  "area": "inputs",
+  "width": 40,
+  "height": 3,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "inputs": [
+      {
+        "id": "name",
+        "label": "name",
+        "text": "hello"
+      }
+    ]
+  },
+  "script": [
+    "A",
+    {
+      "type": " world"
+    },
+    "esc"
+  ],
+  "expect": {
+    "mode": "normal",
+    "contains": [
+      "name: hello world"
+    ]
+  }
+}

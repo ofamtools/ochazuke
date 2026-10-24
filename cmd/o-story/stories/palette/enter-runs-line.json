@@ -1,0 +1,25 @@
+{
+  "name": "enter runs the typed line",
+  "area": "palette",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ]
+  },
+  "script": [
+    ":",
+    {
+      "type": "ping"
+    },
+    "enter"
+  ],
+  "expect": {
+    "notices": [
+      "ping a1"
+    ],
+    "modal": ""
+  }
+}

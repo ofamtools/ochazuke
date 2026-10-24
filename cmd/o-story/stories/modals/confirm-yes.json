@@ -1,0 +1,28 @@
+{
+  "name": "confirm y runs the verb",
+  "area": "modals",
+  "page": {
+    "focus": "a2",
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3,
+        "labels": [
+          "alpha",
+          "beta",
+          "gamma"
+        ]
+      }
+    ]
+  },
+  "script": [
+    "x",
+    "y"
+  ],
+  "expect": {
+    "modal": "",
+    "lacks": [
+      "beta"
+    ]
+  }
+}

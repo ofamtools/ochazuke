@@ -1,0 +1,25 @@
+{
+  "name": "one highlighted row on the page",
+  "area": "lists",
+  "page": {
+    "focus": "b2",
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      },
+      {
+        "id": "b",
+        "rows": 3
+      },
+      {
+        "id": "c",
+        "rows": 3
+      }
+    ]
+  },
+  "expect": {
+    "focus": "b2",
+    "highlighted": 1
+  }
+}

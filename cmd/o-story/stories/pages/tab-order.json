@@ -1,0 +1,50 @@
+{
+  "name": "tab walks stops left to right as drawn",
+  "area": "pages",
+  "page": {
+    "layout": "row",
+    "order": [
+      "a",
+      "b",
+      "c"
+    ],
+    "lists": [
+      {
+        "id": "c",
+        "rows": 2
+      },
+      {
+        "id": "a",
+        "rows": 2
+      },
+      {
+        "id": "b",
+        "rows": 2
+      }
+    ],
+    "focus": "a1"
+  },
+  "script": [
+    "tab",
+    "tab",
+    "tab",
+    "shift+tab"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "b1"
+    },
+    {
+      "after": 2,
+      "focus": "c1"
+    },
+    {
+      "after": 3,
+      "focus": "a1"
+    },
+    {
+      "focus": "c1"
+    }
+  ]
+}

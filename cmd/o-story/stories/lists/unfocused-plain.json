@@ -1,0 +1,24 @@
+{
+  "name": "an unfocused list draws plain rows",
+  "area": "lists",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      },
+      {
+        "id": "b",
+        "rows": 3,
+        "selected": 2
+      }
+    ]
+  },
+  "script": [
+    "}"
+  ],
+  "expect": {
+    "focus": "b3",
+    "highlighted": 1
+  }
+}

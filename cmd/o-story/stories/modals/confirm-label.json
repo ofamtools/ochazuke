@@ -1,0 +1,37 @@
+{
+  "name": "confirm reads {{label}}; n keeps the row",
+  "area": "modals",
+  "page": {
+    "focus": "a2",
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3,
+        "labels": [
+          "alpha",
+          "beta",
+          "gamma"
+        ]
+      }
+    ]
+  },
+  "script": [
+    "x",
+    "n"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "contains": [
+        "Delete beta?"
+      ]
+    },
+    {
+      "modal": "",
+      "focus": "a2",
+      "contains": [
+        "beta"
+      ]
+    }
+  ]
+}

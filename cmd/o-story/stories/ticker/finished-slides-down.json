@@ -1,0 +1,40 @@
+{
+  "name": "a finished job slides below the running",
+  "area": "ticker",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "jobs": [
+      {
+        "verb": "demo.build",
+        "key": "w",
+        "finishOnKey": "W",
+        "failOnKey": "X"
+      },
+      {
+        "verb": "demo.ship",
+        "key": "e",
+        "finishOnKey": "E"
+      }
+    ]
+  },
+  "script": [
+    "w",
+    "e",
+    "E",
+    {
+      "job": "demo.ship",
+      "state": "done"
+    }
+  ],
+  "expect": {
+    "ticker": [
+      "demo.build running",
+      "demo.ship done"
+    ]
+  }
+}

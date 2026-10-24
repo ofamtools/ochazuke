@@ -1,0 +1,23 @@
+{
+  "name": "spill: k at the first row",
+  "area": "motions",
+  "page": {
+    "focus": "b1",
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      },
+      {
+        "id": "b",
+        "rows": 3
+      }
+    ]
+  },
+  "script": [
+    "k"
+  ],
+  "expect": {
+    "focus": "a2"
+  }
+}

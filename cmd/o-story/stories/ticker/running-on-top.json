@@ -1,0 +1,35 @@
+{
+  "name": "running jobs newest first on top",
+  "area": "ticker",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "jobs": [
+      {
+        "verb": "demo.build",
+        "key": "w",
+        "finishOnKey": "W",
+        "failOnKey": "X"
+      },
+      {
+        "verb": "demo.ship",
+        "key": "e",
+        "finishOnKey": "E"
+      }
+    ]
+  },
+  "script": [
+    "w",
+    "e"
+  ],
+  "expect": {
+    "ticker": [
+      "demo.ship running",
+      "demo.build running"
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "? on a row lists its verbs first",
+  "area": "help",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ]
+  },
+  "script": [
+    "?"
+  ],
+  "expect": {
+    "order": [
+      "demo.open",
+      "demo.notify",
+      "list.move"
+    ]
+  }
+}

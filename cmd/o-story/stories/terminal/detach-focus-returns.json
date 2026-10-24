@@ -1,0 +1,32 @@
+{
+  "name": "ctrl+a d detaches; focus returns to the row",
+  "area": "terminal",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ],
+    "terminal": {
+      "fake": true,
+      "attach": "a2"
+    },
+    "focus": "a2"
+  },
+  "script": [
+    "enter",
+    {
+      "tick": "terminal"
+    },
+    "ctrl+a",
+    "d"
+  ],
+  "expect": {
+    "focus": "a2",
+    "mode": "normal",
+    "lacks": [
+      "pane (attached"
+    ]
+  }
+}

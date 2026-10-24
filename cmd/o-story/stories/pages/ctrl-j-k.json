@@ -1,0 +1,42 @@
+{
+  "name": "ctrl+j and ctrl+k switch pages and keep focus",
+  "area": "pages",
+  "pages": [
+    {
+      "id": "p1",
+      "title": "One",
+      "lists": [
+        {
+          "id": "a",
+          "rows": 3
+        }
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Two",
+      "lists": [
+        {
+          "id": "b",
+          "rows": 3
+        }
+      ]
+    }
+  ],
+  "script": [
+    "j",
+    "ctrl+j",
+    "ctrl+k"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "page": "p2",
+      "focus": "b1"
+    },
+    {
+      "page": "p1",
+      "focus": "a2"
+    }
+  ]
+}

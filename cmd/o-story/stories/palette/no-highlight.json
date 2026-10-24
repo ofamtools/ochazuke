@@ -1,0 +1,32 @@
+{
+  "name": "the palette highlights nothing until ctrl+n",
+  "area": "palette",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ]
+  },
+  "script": [
+    ":",
+    "ctrl+n"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "highlighted": 1,
+      "mode": "insert",
+      "lacks": [
+        "> "
+      ]
+    },
+    {
+      "highlighted": 1,
+      "contains": [
+        "> accept"
+      ]
+    }
+  ]
+}

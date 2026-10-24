@@ -396,6 +396,70 @@ Importable package `grid`: 2 source files, 1 test files.
 - funcs: Register, Resolve
 - leans on: grid.go(18)
 
+## Package story
+
+Importable package `story`: 7 source files, 0 test files.
+
+### story/build.go
+
+- lines: 572
+- purpose: Session is one built story: the runtime, the model and the demo state the verbs act on (fake jobs and panes).
+- types: Session, Options
+- methods: Session(12)
+- funcs: Build
+- leans on: story.go(22), run.go(7), fake.go(2)
+
+### story/driver.go
+
+- lines: 237
+- purpose: Tagged is a message from a session's command, tagged with the session's generation so a message of a session that was reset or left never reaches its success...
+- types: Tagged, Driver
+- methods: Driver(8)
+- funcs: Wrap, Unbatch, Classify, NewDriver
+- leans on: story.go(10), build.go(6)
+
+### story/fake.go
+
+- lines: 133
+- purpose: FakeStream is a pane with no process behind it: it echoes what the terminal sends and prints a numbered output line per Emit (the TUI emits one a second; a s...
+- types: FakeStream
+- methods: FakeStream(9)
+
+### story/record.go
+
+- lines: 249
+- purpose: Recording is one live session in a story: the initial story and the ordered events (keys, job deliveries, timer ticks) with their times.
+- types: Recording, Recorder, Store, Entry
+- methods: Recorder(1), Store(10)
+- funcs: NewRecorder, DefaultStore
+- leans on: story.go(11)
+
+### story/run.go
+
+- lines: 247
+- purpose: Golden is a frame as a golden file holds it: each row stripped of escapes behind a gutter that reads "R|" when the row has reverse video and " |" otherwise, ...
+- types: Library, Result, RunOptions
+- methods: Library(2), Result(1)
+- funcs: Golden, Check, Replay
+- leans on: story.go(27), build.go(5), record.go(4), driver.go(1)
+
+### story/story.go
+
+- lines: 353
+- purpose: Story is one scenario file.
+- types: Story, Page, ListSpec, ItemSpec, InputSpec, TermSpec, JobSpec, BindSpec, Event, Expect, Expects
+- methods: Event(3), Expects(2), Story(5)
+- funcs: Slug, Parse, LoadFS, LoadDir, Sort, Find
+
+### story/trim.go
+
+- lines: 99
+- purpose: TrimSpec chooses a window of a recording's (or story's) events.
+- types: TrimSpec
+- methods: Library(1), TrimSpec(1)
+- funcs: WriteStory
+- leans on: story.go(8), build.go(3), driver.go(1), record.go(1)
+
 ## Symbol owners
 
 Exported type -> file.
@@ -486,3 +550,27 @@ Exported type -> file.
 - grid.Option -> grid/grid.go
 - grid.Ref -> grid/grid.go
 - grid.Styles -> grid/grid.go
+- story.BindSpec -> story/story.go
+- story.Driver -> story/driver.go
+- story.Entry -> story/record.go
+- story.Event -> story/story.go
+- story.Expect -> story/story.go
+- story.Expects -> story/story.go
+- story.FakeStream -> story/fake.go
+- story.InputSpec -> story/story.go
+- story.ItemSpec -> story/story.go
+- story.JobSpec -> story/story.go
+- story.Library -> story/run.go
+- story.ListSpec -> story/story.go
+- story.Options -> story/build.go
+- story.Page -> story/story.go
+- story.Recorder -> story/record.go
+- story.Recording -> story/record.go
+- story.Result -> story/run.go
+- story.RunOptions -> story/run.go
+- story.Session -> story/build.go
+- story.Store -> story/record.go
+- story.Story -> story/story.go
+- story.Tagged -> story/driver.go
+- story.TermSpec -> story/story.go
+- story.TrimSpec -> story/trim.go

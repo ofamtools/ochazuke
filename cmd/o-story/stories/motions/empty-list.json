@@ -1,0 +1,43 @@
+{
+  "name": "an empty list is passed through",
+  "area": "motions",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      },
+      {
+        "id": "b",
+        "rows": 0
+      },
+      {
+        "id": "c",
+        "rows": 2
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "j",
+    "k",
+    "k"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "b"
+    },
+    {
+      "after": 2,
+      "focus": "c1"
+    },
+    {
+      "after": 3,
+      "focus": "b"
+    },
+    {
+      "focus": "a1"
+    }
+  ]
+}

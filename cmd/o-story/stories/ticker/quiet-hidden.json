@@ -1,0 +1,39 @@
+{
+  "name": "a quiet verb stays off the ticker",
+  "area": "ticker",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "jobs": [
+      {
+        "verb": "demo.build",
+        "key": "w",
+        "finishOnKey": "W",
+        "failOnKey": "X"
+      },
+      {
+        "verb": "demo.ship",
+        "key": "e",
+        "finishOnKey": "E"
+      },
+      {
+        "verb": "demo.reload",
+        "key": "o",
+        "quiet": true
+      }
+    ]
+  },
+  "script": [
+    "o",
+    "w"
+  ],
+  "expect": {
+    "ticker": [
+      "demo.build running"
+    ]
+  }
+}

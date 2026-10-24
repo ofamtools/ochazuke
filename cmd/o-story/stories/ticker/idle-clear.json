@@ -1,0 +1,47 @@
+{
+  "name": "a finished job clears an idle screen after linger",
+  "area": "ticker",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "jobs": [
+      {
+        "verb": "demo.build",
+        "key": "w",
+        "finishOnKey": "W",
+        "failOnKey": "X"
+      },
+      {
+        "verb": "demo.ship",
+        "key": "e",
+        "finishOnKey": "E"
+      }
+    ]
+  },
+  "script": [
+    "w",
+    "W",
+    {
+      "job": "demo.build",
+      "state": "done"
+    },
+    {
+      "tick": "linger"
+    }
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "ticker": [
+        "demo.build done"
+      ]
+    },
+    {
+      "noTicker": true
+    }
+  ]
+}
