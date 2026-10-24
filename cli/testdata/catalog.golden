@@ -62,6 +62,10 @@
             "count": {
               "type": "integer"
             },
+            "like": {
+              "type": "string",
+              "source": "widget.list"
+            },
             "loud": {
               "type": "boolean"
             },

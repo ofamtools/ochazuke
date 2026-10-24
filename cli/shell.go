@@ -8,7 +8,11 @@
 // The catalog is data for a host that mounts the bin: each noun carries its
 // pin (a pinned noun is modal-only, so a host can skip it without naming
 // it) and each verb whose result lists rows carries rows, the noun those
-// rows belong to (declared with NounBuilder.Rows).
+// rows belong to (declared with NounBuilder.Rows). A parameter's source
+// (a pick list's noun.verb) names an operation of the producing runtime,
+// kept verbatim: a host has no such operation of its own, so it runs the
+// source through the extension's bin (BIN NOUN VERB --json '{}') and reads
+// the choices from its JSON answer.
 package cli
 
 import (

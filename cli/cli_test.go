@@ -64,6 +64,7 @@ func newFixture(t *testing.T) *fixture {
 		"count": {Type: "integer"},
 		"loud":  {Type: "boolean"},
 		"tags":  {Type: "array"},
+		"like":  {Type: "string", Source: "widget.list"},
 	}
 	f.r.Operations["widget.rename"] = op
 	op = f.r.Operations["widget.paint"]
@@ -372,6 +373,13 @@ func TestCatalogGolden(t *testing.T) {
 		}
 	}
 	doc.Nouns, doc.Bindings = nouns, rows
+	// A pick list's source stays the producing runtime's noun.verb,
+	// verbatim: a host runs it through the extension's bin.
+	for _, v := range nouns[0].Verbs {
+		if v.Name == "rename" && v.Params["like"].Source != "widget.list" {
+			t.Fatalf("rename like source = %q", v.Params["like"].Source)
+		}
+	}
 	got, err := json.MarshalIndent(doc, "", "  ")
 	if err != nil {
 		t.Fatal(err)

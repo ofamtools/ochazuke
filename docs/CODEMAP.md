@@ -345,7 +345,7 @@ Importable package `cli`: 3 source files, 1 test files.
 
 ### cli/shell.go
 
-- lines: 498
+- lines: 502
 - purpose: Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--yes]: one registered operation in this process through the runtime's CLI en...
 - types: Shell
 - methods: Shell(10)
