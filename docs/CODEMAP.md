@@ -90,7 +90,7 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### history.go
 
-- lines: 165 · tests: history_test.go
+- lines: 169 · tests: history_test.go
 - purpose: HistoryEntry is one executed request: what ran, where, from which source and how it ended.
 - types: HistoryEntry, HistoryContext, HistoryResult
 - methods: Runtime(5)
@@ -142,12 +142,12 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### model.go
 
-- lines: 545
+- lines: 567
 - purpose: ModalView renders one modal without replacing or inspecting its parent page.
 - types: ModalView, Model
-- methods: Model(16)
+- methods: Model(17)
 - funcs: NewModel, BindingHints, InputView, InputBlock
-- leans on: runtime.go(56), block.go(31), noun.go(15), layout.go(9)
+- leans on: runtime.go(57), block.go(30), noun.go(15), layout.go(9)
 
 ### noun.go
 
@@ -168,39 +168,47 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### palette.go
 
-- lines: 714 · tests: palette_test.go
-- purpose: Palette owns its overlay and drafts; it never edits the originating input.
+- lines: 433 · tests: palette_test.go
+- purpose: Palette is the ex-mode command line: one prompt input whose text is the source of truth, parsed by the grammar in palette_parse.go, with a completion list fo...
 - types: Palette
 - methods: Palette(23)
 - funcs: NewPalette
-- leans on: runtime.go(64), noun.go(42), block.go(13), instance.go(7)
+- leans on: runtime.go(35), block.go(20), noun.go(17), instance.go(6)
 
 ### palette_choices.go
 
-- lines: 138 · tests: palette_choices_test.go
-- purpose: choiceList caches one argument's choices for the open form, so a Source runs once per form rather than once per key.
-- methods: Palette(7)
-- leans on: palette.go(7), params.go(7), block.go(2)
+- lines: 69
+- purpose: choiceList caches one parameter's choices until the line changes, so a Source runs once per edit rather than once per parse.
+- methods: Palette(2)
+- leans on: params.go(8), noun.go(2), palette.go(2), runtime.go(1)
 
 ### palette_editing.go
 
-- lines: 78
-- purpose: IsActive reports whether the palette is the top modal.
-- methods: Palette(6)
-- leans on: palette.go(9), input.go(3), block.go(2), instance.go(2)
+- lines: 115
+- purpose: sync follows the line after an edit: a filter code typed as the current word is consumed into the filter, a filter lapses when the line moves to another word...
+- methods: Palette(4)
+- leans on: block.go(7), runtime.go(5), palette.go(4), palette_parse.go(4)
 
 ### palette_nouns.go
 
-- lines: 172 · tests: palette_nouns_test.go
+- lines: 167 · tests: palette_nouns_test.go
 - purpose: PaletteInstance is a labeled object whose ID becomes the default action argument.
 - types: PaletteInstance, PaletteSource (func), PaletteNoun, PaletteEntry
 - methods: Palette(3)
 - funcs: PagesPaletteSource
-- leans on: instance.go(12), noun.go(10), runtime.go(7), palette.go(3)
+- leans on: instance.go(9), runtime.go(8), palette_parse.go(5), noun.go(3)
+
+### palette_parse.go
+
+- lines: 471
+- purpose: lineToken is one word of the line; Text is unquoted.
+- types: PaletteWord
+- methods: Palette(9), commandLine(3)
+- leans on: block.go(36), instance.go(13), runtime.go(11), palette.go(9)
 
 ### params.go
 
-- lines: 149
+- lines: 149 · tests: params_test.go
 - purpose: Choice is one value a parameter accepts: ID is the argument value, Label what a pick list shows.
 - types: Choice
 - methods: Runtime(2)
@@ -264,7 +272,7 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### runtime.go
 
-- lines: 604 · tests: runtime_test.go
+- lines: 607 · tests: runtime_test.go
 - purpose: Request names an operation and, optionally, the instance it addresses.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
 - methods: Context(1), Operation(1), Request(1), Runtime(16)
@@ -273,7 +281,7 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### surface.go
 
-- lines: 113 · tests: surface_test.go
+- lines: 132 · tests: surface_test.go
 - purpose: ModalSize returns safe body bounds, reserving the same chrome as ComposeModal.
 - funcs: ModalSize, ComposeModal, ComposeModalBlock
 - leans on: block.go(7), model.go(3), theme.go(2)
@@ -302,13 +310,6 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 - methods: Runtime(1), Server(2)
 - funcs: Listen, Call
 - leans on: runtime.go(8), delivery.go(3), cli.go(1), noun.go(1)
-
-### verb_guards_stub.go
-
-- lines: 29 · tests: verb_guards_stub_test.go
-- purpose: VerbGuard names the guard on noun.verb, "" when the verb is unguarded.
-- methods: Runtime(2)
-- leans on: runtime.go(3), instance.go(1), resolve.go(1)
 
 ### yank_api.go
 
@@ -373,6 +374,7 @@ Exported type -> file.
 - PaletteInstance -> palette_nouns.go
 - PaletteNoun -> palette_nouns.go
 - PaletteSource -> palette_nouns.go
+- PaletteWord -> palette_parse.go
 - Parameter -> runtime.go
 - Payload -> instance.go
 - Picker -> picker.go

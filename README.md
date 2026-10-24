@@ -174,9 +174,9 @@ if _, err := tea.NewProgram(model).Run(); err != nil { // Model.View sets AltScr
 }
 ```
 
-Registration does not activate a page; `OpenPage` (or `page.open`) sets `Runtime.Page` and restores the page's frame. Switching reuses the page's exact frame and input instances: selection, focus, modes, drafts, undo history, and scrolling survive a round trip. Normal-mode `Ctrl-J/K` cycles `PageList()`, app's page children in registration order. Rows bound on a page instance or its noun apply while that page holds the focus. Page tabs have no numeric shortcuts; use the palette to search large page sets.
+Registration does not activate a page; `OpenPage` (or `page.open`) sets `Runtime.Page` and restores the page's frame. Switching reuses the page's exact frame and input instances: selection, focus, modes, drafts, undo history, and scrolling survive a round trip. Normal-mode `Ctrl-J/K` cycles `PageList()`, app's page children in registration order. Rows bound on a page instance or its noun apply while that page holds the focus. Page tabs have no numeric shortcuts; type `page ` in the palette to complete a page ID.
 
-Ordinary modals block page switching. The palette closes before dispatching a selected operation, so choosing `open → page` works when no other modal is underneath it. Focusing an inactive page's input does not silently navigate; open that page first. Explicitly targeted editing operations may still update an offscreen input without moving focus.
+Ordinary modals block page switching. The palette closes before dispatching its line, so `open page alpha` works when no other modal is underneath it. Focusing an inactive page's input does not silently navigate; open that page first. Explicitly targeted editing operations may still update an offscreen input without moving focus.
 
 ```sh
 /tmp/ochazuke pages list
@@ -232,7 +232,7 @@ Macro recording consumes exactly one register character after `q`. For `qq:`, th
 | Insert input | Backspace, Delete/`Ctrl-D`, Enter | Delete backward/forward; newline in multiline inputs |
 | Insert input | Escape | Return to normal mode |
 | Normal input | Escape | Cancel a pending operator, count, prefix or register |
-| Normal app/input | `:` | Open palette in search insert mode |
+| Normal app/input | `:` | Open the palette's command line |
 | Any editing mode | `Ctrl-Space` | Open palette without stealing Readline `Ctrl-P` |
 | Normal Playground | `Ctrl-O` | Open the shared picker using the field's filter |
 | Normal path/paths field | Enter | Open picker using the current value/line |
@@ -250,14 +250,27 @@ On terminals where Option does not send Meta sequences, configure Option-as-Meta
 
 ### Palette and selectors
 
-- The palette opens with its search field focused in insert mode: type immediately.
-- Its root displays the actual **VERBS** and **NOUNS** lists side by side. In normal mode, `h/l` and left/right switch columns; `j/k` and up/down move through results; Enter chooses.
-- Choosing a verb lists compatible nouns. Choosing a noun lists its verbs and any configured instances. Moving into a nested list preserves search mode and clears the previous query, so typing immediately filters the new options. For `page`, the instances are the live pages; selecting one executes `page.open` with its ID. Search matches page titles and IDs, so navigation does not depend on numbered tabs.
-- `/` enters search when browsing a list. Search and argument fields use the same Vim/Readline editor and independent undo trees as page inputs. Escape first returns an editing field to normal mode; subsequent Escape goes back.
-- Argument forms show required/optional fields. Tab/arrows change fields; Enter advances and then executes. Empty optional fields are omitted. `set palette-argument` can supply an explicit empty string; `clear palette-argument` omits one.
-- The originating interaction context is captured before the palette opens. Selecting `undo → input` edits the originating input, not the palette's search field.
-- `Ctrl-C` cancels the palette. Errors retain the form and its drafts.
-- Instance sources explicitly declare their default verb and ID argument. The palette does not infer a default from operation order. The [full-project example](examples/full-project/README.md) configures these defaults in JSON.
+- `:` opens the palette: an ex-mode command line, one `prompt` input (insert pinned, the Readline rows edit it: `Ctrl-W` deletes a word, `Ctrl-U` the line). The line's text is the command; there are no stages.
+- Words resolve left to right. The first word is a verb or a noun; the second is the complement (a noun that has the verb, or a verb or instance of the noun); then the operation's parameters in order (required first, then by name). Every word may be a unique prefix (`tr r up`); an ambiguous prefix stays unresolved and the list shows its candidates. A first word that is a prefix of exactly one verb and one noun takes the reading the next words resolve. A value with spaces is quoted (`add note "two words"`).
+- Omit the noun and the verb acts for the nearest instance on the focus path whose noun has it: on a CSV cell `transform upper` changes the cell, `transform row upper` the row under the cursor, `transform column upper` the column, `transform selection upper` the selection (offered only while one exists; verb guards hide verbs the focus does not answer to). The cursor never moves.
+- The list under the line completes the next word, grouped verbs, nouns, then parameter choices, narrowed by the word being typed. Typing `:v`, `:n` or `:p` as the word restricts the list to verbs, nouns or choices; the code is consumed, not appended, and lapses at the next word.
+- Nothing is highlighted until `Ctrl-N`/`Ctrl-P` moves onto the list; typing clears the highlight. Enter or Tab on a highlighted entry appends its word and a space. Enter with nothing highlighted runs the line as typed; an incomplete line stays and the error names its first missing word (`missing name (string, pick)`). Tab with nothing highlighted completes a word that has one completion.
+- `Esc` clears a non-empty line, then closes; `Ctrl-C` closes. Up and Down recall earlier lines from the action history (entries with the source `palette`, which every request a line runs is recorded with).
+- The originating interaction context is captured before the palette opens. `undo input` edits the originating input, not the palette's line. A failing request reopens the palette with the line and the error.
+- Instance sources explicitly declare their default verb and ID argument: `page playground` runs `page.open {id: "playground"}`, and the instances are also the choices of that argument (`open page playground`). The [full-project example](examples/full-project/README.md) configures these defaults in JSON.
+- Scripts drive the line through the same registry: `palette set {text}` replaces the line, `palette run` presses Enter, `palette complete {value}`, `palette move {delta}`, `palette recall {delta}`, `palette cancel`. Each returns the palette state: the `line`, its parsed `words`, the `operation`, `missing` word and the completion `entries`.
+
+```js
+// The grammar, one example per form (focus on the cell r1:c1 of row r1)
+"transform row upper"   // verb noun arg      -> { key: "row.transform", target: "r1",    args: { name: "upper" } }
+"row transform upper"   // noun verb arg      -> same request
+"tr r up"               // unique prefixes    -> same request
+"transform upper"       // noun omitted       -> { key: "cell.transform", target: "r1:c1", args: { name: "upper" } }
+"page playground"       // noun instance      -> { key: "page.open", args: { id: "playground" } }
+"t r up"                // "t" is ambiguous: tidy, transform -> stays, list shows both
+"transform row"         // incomplete         -> "missing name (string, pick)", line stays
+"transform :p"          // filter code        -> line "transform ", list shows only choices
+```
 - The shared path picker uses an editable absolute path and a Readline-only editor. `Ctrl-N/P` moves through results without moving the text cursor. Other Readline bindings still edit the path; `/` and whitespace delimit `Ctrl-W` kills, while dots and hyphens remain part of a filename.
 - Tab completes the highlighted result into the picker's path input without confirming or closing it. Directories receive a trailing separator for continued browsing; the originating field stays unchanged until confirmation.
 - Escape cancels immediately without changing the originating input. `Alt-Up` browses the parent directory. Enter opens a directory/selects a file, and `Ctrl-S` confirms a path. Letters always edit the path; the picker never enters Vim normal mode.
@@ -281,13 +294,11 @@ err := model.Palette.RegisterNoun("page", ochazuke.PaletteNoun{
 if err != nil { return err }
 ```
 
-A `PaletteSource` receives the runtime and originating context and returns `[]PaletteInstance`, each with an `ID` and `Label`. Selecting an instance passes its ID to the configured argument, then dispatches through the normal operation path. The source is queried live so newly registered pages appear without rebuilding the palette.
-
-For nouns with sources, `palette.select` accepts `instance:<id>` or `verb:<verb>`. Its published `entries` distinguish item kinds and labels. For example, `noun:page` followed by `instance:playground` opens Playground without an argument form; `verb:open` still exposes the normal form.
+A `PaletteSource` receives the runtime and originating context and returns `[]PaletteInstance`, each with an `ID` and `Label`. An instance word after the noun passes its ID to the configured argument, then dispatches through the normal operation path. The source is queried live (again after every edit of the line) so newly registered pages appear without rebuilding the palette. After a noun a verb wins over an instance of the same name; the instance stays reachable as the default verb's argument (`page open open`).
 
 #### Argument choices
 
-A `Parameter` with `Enum` (static values) or `Source` (an operation key such as `transformations.list` whose result is `[]string`, `[]{id, label}` or `[]any` of either) becomes a pick list in the palette's argument form: the field's text filters the choices, `Ctrl-N/P` moves the highlight, and Enter completes the field to the highlighted choice and advances. A value outside the choices is refused, by the palette and by `Execute`, unless the parameter sets `Free`. A source is called at execution to validate; if it fails, validation is skipped rather than blocking the operation. `operations.list` publishes the fields, and `ochazuke NOUN VERB --help` prints the choices from the running app.
+A `Parameter` with `Enum` (static values) or `Source` (an operation key such as `transformations.list` whose result is `[]string`, `[]{id, label}` or `[]any` of either) completes in the palette: at that parameter's word the list shows the choices (a boolean completes `true`/`false`), the word is a unique prefix of a choice's id, and `Ctrl-N/P` then Enter or Tab appends a highlighted one. A value outside the choices is refused, by the palette and by `Execute`, unless the parameter sets `Free`. A source is called at execution to validate; if it fails, validation is skipped rather than blocking the operation. `operations.list` publishes the fields, and `ochazuke NOUN VERB --help` prints the choices from the running app.
 
 ```js
 // Parameters of transform.apply
@@ -447,7 +458,7 @@ result, err := r.Execute(ochazuke.Request{
 | `input.go`, `editing.go`, `editor*.go` | Input-owned undo, the editor handlers (motions, operators, kills, insert, paste), visual geometry |
 | `list.go` | Flat selectable rows as instances of their nouns, marks and fan-out, stable-ID refresh, viewport scrolling, row focus |
 | `registers.go`, `macros.go`, `yank_history.go` | The `registers` component: yanks, named registers, history, active register, key recording/replay, history modal |
-| `palette.go`, `palette_editing.go`, `palette_nouns.go`, `palette_choices.go` | Verb/noun and live instance navigation, configured defaults, typed arguments, argument pick lists, originating context |
+| `palette.go`, `palette_parse.go`, `palette_editing.go`, `palette_nouns.go`, `palette_choices.go` | The ex-mode command line: its operations and rows, the grammar (verb/noun either order, prefixes, omitted noun, parameters), completions and filter codes, history recall, instance sources and defaults, parameter choices, originating context |
 | `params.go` | Parameter choices: `Choice`, `ParseChoices`, `Runtime.Choices`, Enum/Source validation at execution |
 | `picker.go`, `picker_search.go` | Contextual path selection, asynchronous fuzzy indexing, native Git ignores |
 | `pages.go` | Pages as instances of kind `page` (`AddPage`, `RegisterPage`), `Runtime.Page`, remembered focus and mode, navigation, and focus isolation |
@@ -554,7 +565,7 @@ The editor/picker expansion also passed the full suite and race detector. Live t
 - Customizable keybindings scoped to modes, components, or the application, plus global bindings.
 - Public operations available through an API and CLI tools, including a central CLI with subcommands.
 - JSON export of application state and individually addressable public values.
-- Nested command palette with two top-level lists: verbs and nouns. Either can be chosen first.
+- Ex-mode command line over the verbs and nouns: either word first, prefixes, completion of the next word.
 
 ## Stateful modal stack
 
@@ -744,15 +755,15 @@ Pattern(Any, Do("macro.record").FromKey("key"))      // macro.append {key}, then
 
 The same row in a binding file is `{"noun": "app", "mode": "macro_recording", "keys": "q", "when": "shadow-idle", "request": {"verb": "stop", "noun": "macro"}}`, and `ochazuke macro record --json '{"key": "j"}'` is the recorder's step from the command line.
 
-## Nested verb/noun command palette
+## Verb/noun command line
 
-The palette's main options are just a list of verbs and a list of nouns, rather than a flat list of complete commands.
+The palette's vocabulary is the registry's verbs and nouns, not a flat list of complete commands. One command line accepts either order:
 
-- Choosing a verb opens a nested list of nouns that support that verb.
-- Choosing a noun opens a nested list of verbs associated with that noun.
-- Both paths select the same registered operation; choosing the order does not change its meaning.
+- A verb first, then a noun that supports it (or no noun: the focus path supplies it).
+- A noun first, then one of its verbs (or one of its instances, for a noun with a source).
+- Both orders name the same registered operation; the order does not change its meaning.
 
-Illustrative relationships and navigation (JavaScript notation, not a Go API contract):
+Illustrative relationships (JavaScript notation, not a Go API contract):
 
 ```js
 {
@@ -761,16 +772,15 @@ Illustrative relationships and navigation (JavaScript notation, not a Go API con
     { verb: "edit", noun: "task" },
     { verb: "edit", noun: "project" }
   ],
-  root: {
-    verbs: ["create", "edit"],
-    nouns: ["task", "project"]
-  },
-  verbFirst: { selected: "edit", nextNouns: ["task", "project"] },
-  nounFirst: { selected: "task", nextVerbs: ["create", "edit"] }
+  firstWord: { verbs: ["create", "edit"], nouns: ["task", "project"] },
+  "edit ":    { nextNouns: ["task", "project"] },   // the complement of the verb
+  "task ":    { nextVerbs: ["create", "edit"] },    // the complement of the noun
+  "edit task": { key: "task.edit" },
+  "task edit": { key: "task.edit" }
 }
 ```
 
-Derive both navigation paths from the shared operation registry so they expose the same supported verb/noun pairs.
+Both completions derive from the shared operation registry, so they expose the same supported verb/noun pairs.
 
 ## Shared command and query API
 

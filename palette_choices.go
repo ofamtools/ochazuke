@@ -5,8 +5,8 @@ import (
 	"strings"
 )
 
-// choiceList caches one parameter's choices while the palette is open, so
-// a Source runs once per palette rather than once per key.
+// choiceList caches one parameter's choices until the line changes, so a
+// Source runs once per edit rather than once per parse.
 type choiceList struct {
 	choices []Choice
 	err     error

@@ -2,6 +2,8 @@
 
 Status: built as `examples/csv` with the grid component in `grid/` (branch csv-app), finished on branch csv-pass. The README "CSV example" section lists what the code covers; the sketch below is the brief it followed. Finished in the csv-pass round: `transform` on row (all four cell-set nouns now have it, rule below), the sourced pick list for the transform name, `t i` title and `t s` slug, verb guards (selection verbs only during a selection, row and column verbs only in the grid), the filter field as the sheet's second focus stop, the column confirm naming the header, `:` inside a selection, a selection held under a modal, and the palette listing the focused noun's verbs first. Still deferred: sticky marks across modes, counts on `dd`/`yy`/`u`, the `A1` reference layer, hiding guarded verbs from the footer hints and `bindings list` (both read `bindingRows` in `resolve.go`; in this app the stack already keeps them consistent), and a confirm prompt that names a column when `column.delete` runs from the palette. One deviation: the filter field is a prompt (Readline, insert pinned), so `{` typed there is text; `shift+tab`, `tab` and `esc` return to the remembered cell, and `{`/`}` from the grid both reach the field (two stops, wrapping) (the template expands request arguments only, so the palette asks for `name`).
 
+Palette as a command line (branch ex-palette): `:` opens one line, and the transform rule reads as words. On a cell `transform upper` changes the cell (the noun is omitted, so the focused cell's noun answers), `transform row upper` (or `tr r up`, or `row transform upper`) the row under the cursor, `transform column upper` the column, and during a selection `transform selection upper` the selected cells; outside one, `selection` is refused as not applicable. The cursor never moves, and under the palette the grid's cursor cell and selection stay visible, dimmed.
+
 Rule: every noun that resolves to a cell set has `transform` and the same `t` rows (`t u`, `t l`, `t t`, `t i`, `t s`): cell (the cell, or the selection when one is active), row (every cell of the row), column (every visible cell of the column), selection (the selected cells). The innermost noun on the stack answers, so with a cell focused `t u` is `cell.transform`; the row's rows answer when the row itself is the focus (`--target r1`, `bindings list` for `r1`), and the palette and CLI reach all four.
 
 A modal TUI CSV reader and editor built on ochazuke. Lightweight on purpose: one file in memory, file I/O only on open and save, no daemon, no database, nothing off the loop. It exercises modes, the editor, registers, confirmation, the palette, and a 2D selection the list does not have, so it is the phase 7 second-consumer candidate: it must be buildable without touching the core.
@@ -57,7 +59,7 @@ define("column", {
 })
 ```
 
-Stack with a cell focused: `[cell, row, column, grid, sheet, app]`. `dd` resolves on row, `s` on column, `i` on cell, `ctrl+s` on sheet. Verbs without bindings are reached through the palette, which is parented at the focus and so lists the focused noun's verbs first, and through the CLI (`csv column trim --target c2`). A user adds a key with one config row. For a large catalog, tag verbs for grouping, and for an open-ended tail use one verb with a sourced parameter (`transform: { params: { name: { source: "list.transforms" } } }`).
+Stack with a cell focused: `[cell, row, column, grid, sheet, app]`. `dd` resolves on row, `s` on column, `i` on cell, `ctrl+s` on sheet. Verbs without bindings are reached through the palette's command line (`sort column`, `column sort`, or `sort` alone, which takes the nearest noun on the focus path that has it), which completes the focused noun's words first, and through the CLI (`csv column trim --target c2`). A user adds a key with one config row. For a large catalog, tag verbs for grouping, and for an open-ended tail use one verb with a sourced parameter (`transform: { params: { name: { source: "list.transforms" } } }`).
 
 ## Page tree
 
@@ -132,7 +134,7 @@ app.transform = ({ instance, selection, args }) =>
   app.apply(cellsOf(instance, selection).map(c => ({ at: c, after: run(args.name, c) })))   // one cell or many
 ```
 
-The palette shows `transform` once, then a pick list of every name. The handler dispatches by which map holds the name: text transforms see only the value, sheet transforms see a read view of the whole sheet. Both return the same patch.
+The palette shows `transform` once; after it (and its noun, or none) the list completes every name from `transformations.list`, and a unique prefix is enough (`transform row up`). The handler dispatches by which map holds the name: text transforms see only the value, sheet transforms see a read view of the whole sheet. Both return the same patch.
 
 
 patch = { cells: [{ at: "r3:c2", before: "x", after: "X" }] }   // also the undo record
