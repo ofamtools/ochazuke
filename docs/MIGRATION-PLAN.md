@@ -222,6 +222,8 @@ The CSV app (`examples/csv`, `grid/`) shipped against the core with one 14-line 
 
 ### 1. Mode is global (decision)
 
+Status: done, commit ef7e52e (phase 8 step 1). `Runtime.Mode {Name, Payload}` is the one mode; `Instance.State` and `modeState` are gone and pending payloads live on `Runtime.Mode`. Refinement: "focus change" means leaving the current focus stop (the nearest `Focusable` instance on the path), so a grid's cell-to-cell or a list's row-to-row move keeps the mode; `Pop` and `page.open` restore the mode they left (the "closing a modal restores interaction state" invariant). `Input.Mode` stays as the editor's cache, kept equal to `BaseMode()` while focused; a focus move does not step the cursor back as esc does. The grid follows the mode through `ModeObserver` (anchor on entering a shape, marks dropped on leaving), so `selection.shape`/`selection.cancel` are gone and the shapes are registered by `grid.Register`.
+
 Vim has one mode. Phase 5 stored mode per instance (`Instance.State`, `modeState` walking the ancestry, `mode.set` writing to the focused instance), which breaks for components that recreate their focused child on every motion (the grid lost its visual mode on the first `j`).
 
 ```js
@@ -232,6 +234,8 @@ focus change → Mode = normal, payload cleared, unless the newly focused noun P
 Remove `Instance.State` as mode storage, the ancestry walk in `modeState`, and `Input.Mode` as a separate truth (an input is in the global mode while focused; a pinned noun sets it on focus). Per-instance data that is not mode stays where it is: editor text and undo, grid cursor, selection geometry and marks.
 
 ### 1b. Focus is a single value (decision)
+
+Status: done, commit 6de3239 (step 2). `Runtime.Focus`; `Frame`, `Frames`, `top()`, `FocusID()` removed, `Runtime.Focus(id)` renamed `SetFocus(id)`. The modal chain is a private id list; each modal's `Payload.Return` (and a private return mode) is restored by `Pop`, falling back to the page, then app. Pages remember focus and mode in `Page.Remembered`. `RemoveInstance` (item 3) landed here because the fallback needs it; `RetargetFocus` is the component-side move (grid cell, list row). `ModalView.Render` takes the modal `*Instance`. Invariant asserted as `Page` is an ancestor of `BaseFocus()`.
 
 Today `Runtime.Frames` is a stack of `{id, focus}` and `FocusID()` reads the top, so a modal can restore where you were. Replace it with one field, like Mode:
 
@@ -244,6 +248,8 @@ modal.pop → Runtime.Focus = payload.return; remove the instance
 `Frames` goes away; what is open is the chain of modal instances (already used for rendering). Runtime then holds `Focus`, `Mode` and `Page` as three plain fields. Invariant kept: `Page` is always an ancestor of `Focus`.
 
 ### 1c. Tab order is computed from focusable components (decision)
+
+Status: done, commit 87f7b79 (step 3). `Focusable()`/`Region()` on `Define`, `Instance.Unfocusable`; inputs are always stops. `focus.next`/`focus.previous {steps, scope: stop|region}`, `focus.set {id}`, `JumpFocus`; `}` `{` `)` `(` `tab` `shift+tab` on the app noun in normal mode (counts through count_pending, which extends normal). Landing uses a component's `FocusTarget()` (list, grid), else the focus last held inside. `page.focusables` (explicit override) is not implemented: no consumer needs it yet.
 
 Like the browser without tabindex: focusability is a property of the kind, order is tree order, an explicit list is only an override.
 
@@ -264,11 +270,15 @@ page.focusables (optional)                     // explicit order override, the r
 
 ### 2. Bugs and oversights in the resolver
 
+Status: done, commit d88e068 (step 4). The prefix payload carries `Count` and `OpCount`. The level-target rule is narrowed: a row addresses its level's instance when the operation's noun is the level's noun (`row.delete` on `row`); shared operations a level binds (`mode.set`, `input.*`, `focus.*`, register and macro rows on app) keep the focus, since retargeting them broke input context and noun overrides.
+
 - `enterPrefix` builds `Payload{Prefix, Request}` and drops `Count` and `OpCount`, so `3gg` loses its count. Carry both.
 - `lookup` records the matching level in `ev.Level`; `runRow` then targets `ev.Focus`. A row that matched at the row level should address the row instance by default (`Target = ev.Level`). This also fixes `Confirm("Delete row {{id}}?")`, which printed the cell id.
 - Not a bug: an inner exact match (`y` on cell) runs before an outer longer sequence (`y y` on row) is considered. That is Vim's buffer-local-over-global rule and stays; bind the longer sequence at the inner level.
 
 ### 3. Small API additions
+
+Status: done, commits 0383be8 and 6de3239 (step 5), CSV app moved over in 1fed198 (step 6). `ModeBuilder.Extends(parent)` is live inheritance (own rows, then the parent chain) and the editor and registers specs now use it instead of copying rows. `OpenModal(kind, payload, WithInput(in, Kind(..)))`. `RemoveInstance(id)`.
 
 - `extends` on `Define` (table inheritance), today only in the editor spec loader. The CSV app copied motions into three tables for lack of it.
 - `OpenModal` able to open a modal that contains an input (the sketch's prompt-noun editor became `AddInput` + `Push`).

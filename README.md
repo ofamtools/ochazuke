@@ -157,7 +157,7 @@ These are suggested starter/demo pages. Domain pages such as Agents, Panes, Proj
 
 ### Registering your own pages
 
-A page is an instance of kind `page` under `app`. `Page` carries a title, the instance it starts focused on (`Focus`, the page itself by default) and a renderer; the runtime keeps its base `Frame` so the page remembers where focus was. Pages, lists, inputs and terminals share one constructor family taking the same options (`Parent`, `Kind`, `Focus`): `r.AddPage(id, title, render, Focus(..))`, `r.AddList(id, items, Parent(..))`, `r.AddInput(in, Parent(..), Kind(..))`, `r.AddTerminal(id, stream, Parent(..))`. `RegisterPage(&Page{...})` and `NewList(r, ...)` are the same registrations for callers that hold the struct or the runtime as a value. Register the page's instances and inputs first when the page starts inside one of them:
+A page is an instance of kind `page` under `app`. `Page` carries a title, the instance it starts focused on (`Focus`, the page itself by default) and a renderer; while another page is open the page remembers its focus and mode (`Page.Remembered`), and `page.open` restores both. Pages, lists, inputs and terminals share one constructor family taking the same options (`Parent`, `Kind`, `Focus`): `r.AddPage(id, title, render, Focus(..))`, `r.AddList(id, items, Parent(..))`, `r.AddInput(in, Parent(..), Kind(..))`, `r.AddTerminal(id, stream, Parent(..))`. `RegisterPage(&Page{...})` and `NewList(r, ...)` are the same registrations for callers that hold the struct or the runtime as a value. Register the page's instances and inputs first when the page starts inside one of them:
 
 ```go
 r := ochazuke.NewRuntime()
@@ -344,7 +344,7 @@ Applications constructing their own picker only add its modal renderer; `NewPick
 picker := ochazuke.NewPicker(r)
 model.ModalViews["picker"] = ochazuke.ModalView{
     Title: "Choose a path",
-    Render: func(_ *ochazuke.Runtime, _ *ochazuke.Frame, w, h int) ochazuke.Block {
+    Render: func(_ *ochazuke.Runtime, _ *ochazuke.Instance, w, h int) ochazuke.Block {
         return picker.ViewBlock(w, h)
     },
 }
@@ -366,10 +366,10 @@ if err := items.Focus(); err != nil { return err }
 
 The id (`sidebar` here) identifies the list instance (`r.List("sidebar")` returns it); the list instance answers to the `list` noun (`Kind` picks another). Render `items.View(width, height)` inside an existing page or panel. It keeps the selected row visible as selection or viewport size changes. Default normal-mode `j/k`, up/down and Space (toggle mark) are rows of the `list` noun; a row's noun sits inside the list on the stack and can override them, and a row instance may carry its own rows above its noun's.
 
-- `Focus()` points the frame at the selected row (or the list when empty). `Runtime.Focus(id)` switches to another instance; the old selection remains, but its rows are no longer active.
+- `Focus()` points the focus at the selected row (or the list when empty). `Runtime.SetFocus(id)` switches to another instance; the old selection remains, but its rows are no longer active. A list is one focus stop: `}` and `tab` leave it for the next stop, and jumping back lands on its selected row (`FocusTarget`).
 - `Move(delta)` and `Select(itemID)` change selection without stealing focus. `Selected()` returns the selected value and whether one exists.
 - `SetItems(rows)` copies the records and preserves selection by stable ID. It creates the instance of each new row under the list (`Instance{ID: item.ID, Noun: item.Noun, Parent: <list>}`) and removes the instances of rows that disappear; a retained row keeps its instance and marks. A removed selection falls back to its previous index, clamped to the remaining rows. An empty list focuses the list itself. An empty or duplicate ID, an unregistered noun, or an ID that is already another instance rejects the whole update.
-- Refreshes also update retained page and modal-parent frames that pointed at the list or a removed row, so returning from another page/modal cannot restore a removed row's rows.
+- Refreshes also move every focus reference (the focus, a page's remembered focus, a modal's return) that pointed at the list or a removed row to the selected row (`RetargetFocus`), so returning from another page/modal cannot restore a removed row's rows.
 - `ToggleMark(id)` and `Marked()` keep a multi-selection. `list.apply {verb}` runs `<row noun>.verb` with the row as target for every marked row (the selected row when none is marked), skipping and reporting rows whose noun lacks the verb.
 - Call these methods on the runtime's event loop. Data loading and domain actions remain application-owned. There is no tree expansion or built-in search provider.
 
@@ -411,7 +411,7 @@ Shared by every input regardless of these settings:
 - `Ctrl-W` kills one path component, treating `/` and whitespace as boundaries, in every input, not only `path` kinds.
 - One undo tree, named registers, shared yanks, and macros.
 
-Mode resolution for key dispatch: the mode is the `State` of the focused instance, inherited from the nearest ancestor with a non-empty `State`; the root falls back to `normal`. `mode.set` writes the focused instance. A pending mode is entered on the focused instance with a typed `Payload` (`Count`, `OpCount`, `Op`, `Prefix`, `Request`, `Shadow`) and leaves back to the raw `State` it replaced (`Payload.Return`), so a row that inherited its mode inherits again afterwards. `Input.Mode` mirrors only the editing mode (normal, insert or a visual mode) for the editor code; the instance is the source of truth and `Runtime.Mode` reports the pending mode by name. A pending mode on a focus without an input still works for what needs no input: `2@a` replays a macro from a page.
+Mode resolution for key dispatch: the mode is global, like Vim's: `Runtime.Mode` is `{Name, Payload}` and `mode.set` (`Runtime.SetMode`) writes it. A pending mode is entered on it with a typed `Payload` (`Count`, `OpCount`, `Op`, `Prefix`, `Request`, `Shadow`) and leaves back to the base mode it replaced (`Payload.Return`, read as `BaseMode()`); a key-sequence prefix carries the count, so `3gg` reaches line 3. A focused input is in the global mode; `Input.Mode` is the editing mode (normal, insert or a visual mode) the editor code reads, kept equal to the base mode while the input is focused. A focus change that leaves the current focus stop resets the mode to `normal` with an empty payload, or to the pinned mode of the newly focused noun (`prompt` pins insert, `terminal` pins terminal); a move inside one stop (a grid's cell to the next, a list's row to the next) keeps it, so a visual selection survives cursor moves. Closing a modal and reopening a page restore the mode they left. A component that follows the mode implements `ModeObserver` (`ModeChanged(from, to)`), called when the base mode changes while the focus is on or beneath it. A pending mode on a focus without an input still works for what needs no input: `2@a` replays a macro from a page.
 
 ### API and ownership
 
@@ -423,7 +423,7 @@ input := ochazuke.NewInput("title", "Example", false)
 if err := r.AddInput(input); err != nil { // Parent("app") and Kind("editor") by default
     panic(err)
 }
-if err := r.Focus("title"); err != nil {
+if err := r.SetFocus("title"); err != nil {
     panic(err)
 }
 result, err := r.Execute(ochazuke.Request{
@@ -432,11 +432,12 @@ result, err := r.Execute(ochazuke.Request{
 })
 ```
 
-`Runtime` is single-owner state and holds exactly: the operation registry (`Operations`, `Modes`, guards), the nouns and instances with their parent links, one focus per frame, the modal chain (`Frames`), the current `Page`, the pending key-sequence state (`Pending`, `BindingTimeout`), `Quit` and the queue of off-loop commands the adapter drains. It holds no component fields: inputs, lists, pages, the picker and the registers are instances whose `Component` is the typed object, read through `r.Input(id)`, `r.List(id)`, `r.Inputs()`, `r.Lists()`, `r.PageOf(id)` and `r.Registers()`. In a running application, call it from Bubble Tea's update loop; external goroutines/processes use `Call`/`CallMsg`, not concurrent `Execute` calls. `Request.Target` names any instance: an input, a list, a list row, a page or a modal body; the request then runs in the context that addresses that instance (its ancestry, plus `InputID` for an input). `focused-input` means the current focus. `ExecuteAt` accepts a captured context for explicit originating-target dispatch. `Input.SetMode` is the mode transition hook; do not assign `Input.Mode` directly.
+`Runtime` is single-owner state and holds exactly: the operation registry (`Operations`, `Modes`, guards), the nouns and instances with their parent links, three plain interaction fields (`Focus`, `Mode`, `Page`), the chain of open modals (each modal instance's `Payload.Return` is the focus it opened over; read it through `Modals`, `TopModal`, `ModalFocus`, `BaseFocus`), the pending key-sequence state (`Pending`, `BindingTimeout`), `Quit` and the queue of off-loop commands the adapter drains. It holds no component fields: inputs, lists, pages, the picker and the registers are instances whose `Component` is the typed object, read through `r.Input(id)`, `r.List(id)`, `r.Inputs()`, `r.Lists()`, `r.PageOf(id)` and `r.Registers()`. In a running application, call it from Bubble Tea's update loop; external goroutines/processes use `Call`/`CallMsg`, not concurrent `Execute` calls. `Request.Target` names any instance: an input, a list, a list row, a page or a modal body; the request then runs in the context that addresses that instance (its ancestry, plus `InputID` for an input). `focused-input` means the current focus. `ExecuteAt` accepts a captured context for explicit originating-target dispatch. `Input.SetMode` is the mode transition hook; do not assign `Input.Mode` directly.
 
 | File | Responsibility |
 |---|---|
-| `runtime.go` | Registry (operation kinds), focus, modal chain, `OpenModal`, `ExecuteAt` through noun actions and confirm, typed lookups, JSON inspection |
+| `runtime.go` | Registry (operation kinds), the global mode (`Mode`, `SetMode`, `BaseMode`, `ModeObserver`), `ExecuteAt` through noun actions and confirm, typed lookups, JSON inspection |
+| `focus.go` | `Runtime.Focus`, the modal chain (`Push`, `OpenModal`/`WithInput`, `Pop`), the mode rule on focus change, `RemoveInstance`, `RetargetFocus`, focus jumps (`focus.next`/`focus.previous`/`focus.set`, `JumpFocus`) |
 | `delivery.go` | The component delivery contract: `Component`, `Ticket`, `Completion`, `Start`, `Deliver`, `PendingCommands`; application verbs (`Ctx`, `Result`, `Done`/`Failed`/`Pending`) |
 | `confirm.go` | The `confirm` noun, `SetConfirm`, prompt templates |
 | `noun.go`, `instance.go` | `Define` builder, binding rows, key classes and guards; instances, parent links, `Payload`, targets |
@@ -449,7 +450,7 @@ result, err := r.Execute(ochazuke.Request{
 | `palette.go`, `palette_editing.go`, `palette_nouns.go`, `palette_choices.go` | Verb/noun and live instance navigation, configured defaults, typed arguments, argument pick lists, originating context |
 | `params.go` | Parameter choices: `Choice`, `ParseChoices`, `Runtime.Choices`, Enum/Source validation at execution |
 | `picker.go`, `picker_search.go` | Contextual path selection, asynchronous fuzzy indexing, native Git ignores |
-| `pages.go` | Pages as instances of kind `page` (`AddPage`, `RegisterPage`), `Runtime.Page`, retained frames, navigation, and focus isolation |
+| `pages.go` | Pages as instances of kind `page` (`AddPage`, `RegisterPage`), `Runtime.Page`, remembered focus and mode, navigation, and focus isolation |
 | `terminal.go` | The `terminal` noun: `AddTerminal`, `TerminalStream`, frames through the delivery contract, the leader contract, pane cursor |
 | `layout.go` | `Layout.Shell`, the one page chrome (title row with badge, tabs or subtitle, body, footer), panels, splits, sidebar |
 | `theme.go`, `surface.go` | Appearance operations, Lip Gloss styles, bounded modal composition on a Lip Gloss canvas |
@@ -460,7 +461,7 @@ result, err := r.Execute(ochazuke.Request{
 
 #### Nouns and instances
 
-A `Noun` is the behaviour of one kind of thing: its verbs, a binding table keyed by mode (`""` for every base mode), an optional pinned mode, and the action handlers that override an operation's default while the noun is on the stack. An `Instance` is one addressable thing on screen (`ID`, `Noun`, `Parent`, `State`, `Payload`, optional `Bindings` of its own); walking `Parent` links from the focused instance outward (`Ancestry`, `InstancePath`) is the stack keys resolve through and what `Context.Path` spells out. Declare with the builder and register instances with options:
+A `Noun` is the behaviour of one kind of thing: its verbs, a binding table keyed by mode (`""` for every base mode), an optional pinned mode, and the action handlers that override an operation's default while the noun is on the stack. An `Instance` is one addressable thing on screen (`ID`, `Noun`, `Parent`, `Payload` for a modal body's data, optional `Bindings` of its own, `Unfocusable` to opt out of being a focus stop); it holds no mode; walking `Parent` links from the focused instance outward (`Ancestry`, `InstancePath`) is the stack keys resolve through and what `Context.Path` spells out. Declare with the builder and register instances with options:
 
 ```go
 r.Define("worktree").
@@ -477,7 +478,7 @@ r.Instance("sidebar", ochazuke.Parent("home"), ochazuke.Kind("panel"))
 r.AddInput(ochazuke.NewInput("path", "", false), ochazuke.Parent("sidebar"), ochazuke.Kind("prompt"))
 ```
 
-`FocusID` names the focused instance and `Frame.Focus` is the source of truth; `Context()` is derived from it. `Request.Target` and `context.select {instance}` address any instance; `ActionFor` resolves noun overrides innermost first. `state.get` exposes `/nouns`, `/instances/<id>/{noun,state,payload,parent}`, `/inputs/<id>`, `/lists/<id>`, `/components/<id>`, `/jobs`, `/focus` and `/page`.
+`Runtime.Focus` names the focused instance and is the source of truth; `Context()` is derived from it. `Request.Target` and `context.select {instance}` address any instance; `ActionFor` resolves noun overrides innermost first. A row that matched at an outer level addresses that level's instance when its operation is the level's own (`d d` → `row.delete` bound on the row noun runs on the row, and its confirm names it); shared operations a level binds (`mode.set`, `input.*`, `focus.*`) keep addressing the focus. `ModeBuilder.Extends(parent)` gives a mode table inheritance: `Define("grid").Mode("visual-row").Extends("visual-block")` reads its own rows, then the parent's, including rows bound on the parent later. `state.get` exposes `/nouns`, `/instances/<id>/{noun,payload,parent}`, `/mode`, `/modeState`, `/modals`, `/inputs/<id>`, `/lists/<id>`, `/components/<id>`, `/jobs`, `/focus` and `/page`.
 
 #### Operation kinds and application verbs
 
@@ -577,30 +578,30 @@ Illustrative state (JavaScript notation, not a Go API contract):
 }
 ```
 
-Opening a directory picker pushes another frame. Closing it restores the editor's interaction state. A child can return a result to its parent, such as a selected directory.
+Opening a directory picker opens another modal. Closing it restores the editor's interaction state. A child can return a result to its parent, such as a selected directory.
 
-In the Go API a frame is `Frame{ID, Focus}`: the modal's id and the instance it points at. `Push` makes a frame id that is not already an instance one of the `modal` noun for as long as it is open, so "Escape pops a modal" is that noun's normal-mode `esc` row and a modal body may carry rows of its own. `OpenModal(kind, Payload{...})` is the payload-carrying form: it creates a body instance of noun `kind` parented at the current focus, with the payload (`Prompt`, a stored `Request`, ...) the kind's rows read through `FromPayload` and `request.run`, and removes it on `Pop` after closing its component. The `confirm` noun is built this way. Mode, cursor, drafts, selection and undo live on the instances the frame points at; scroll offsets live on the `Model`; application data lives with the application.
+In the Go API there are no frames: `Runtime.Focus` is the one focus and an open modal is an instance on the modal chain. `Push(id, focus)` opens modal `id` focused on `focus` and stores the focus (and mode) it opened over in the modal's `Payload.Return`; `Pop` restores both, falling back to the nearest surviving ancestor (ending at the page) when that focus was removed. An id that is not already an instance becomes one of the `modal` noun for as long as it is open, so "Escape pops a modal" is that noun's normal-mode `esc` row and a modal body may carry rows of its own. `OpenModal(kind, Payload{...}, opts...)` is the payload-carrying form: it creates a body instance of noun `kind` parented at the current focus, with the payload (`Prompt`, a stored `Request`, ...) the kind's rows read through `FromPayload` and `request.run`, and removes it (with what it holds) on `Pop` after closing its component. `WithInput(in, Kind("prompt"))` puts an input inside the body and focuses it, so a one-field prompt is one call; the `*Input` keeps its text for the next open. The `confirm` noun is built this way. `RemoveInstance(id)` closes and drops an instance with its descendants and moves every focus reference into it to the nearest surviving ancestor. Cursor, drafts, selection and undo live on the instances; the mode is global; scroll offsets live on the `Model`; application data lives with the application.
+
+Focus moves between focus stops: instances of nouns declared `Focusable()` (list, grid, palette, terminal) and every input, unless the instance sets `Unfocusable`. `focus.next` and `focus.previous {steps, scope}` walk the top modal (else the page) in tree order, children in added order, without descending into a stop (a grid is one stop, not its cells), wrap, and land on the stop's remembered child (its `FocusTarget`, such as the list's selected row, else the focus last held inside). Scope `region` jumps between instances of nouns declared `Region()` (panels, never stops themselves). The app noun binds `}` `{` and `tab` `shift+tab` to stops and `)` `(` to regions in normal mode, all taking a count; an inner level (a multiline editor's insert table, a palette field) binds its own. `focus.set {id}` is how handlers move focus.
 
 Invariants:
 
-- Only the top frame receives keyboard input.
-- Covered frames retain local editing state.
-- Background results target the originating frame, not whichever modal is currently on top.
+- Only the focus (inside the top modal while one is open) receives keyboard input.
+- Covered modals retain local editing state.
+- Background results target the originating instance, not whichever modal is currently on top.
 - Shared application data is separate from modal-local state. Pop restores an interaction, not a stale copy of the entire database.
 - In-memory preservation and persistence across process restarts are separate capabilities. Restart persistence is not yet specified.
 
 ## Extensible interaction modes
 
-Modal windows and editing modes are different concepts. A modal is a stack frame; a mode determines input behavior within a scope.
+Modal windows and editing modes are different concepts. A modal is an instance on the modal chain; the mode is one global value that determines input behavior.
 
 ```js
 {
   modes: ["normal", "insert", "visual", "command", "directory-search"],
-  applicationMode: "normal",
-  activeFrame: {
-    id: "edit-task",
-    mode: "insert"
-  }
+  focus: "edit-task-field",
+  mode: { name: "insert", payload: {} },
+  modals: ["edit-task"]           // edit-task.payload.return = "task-list"
 }
 ```
 
@@ -784,12 +785,12 @@ Live CLI examples:
 /tmp/ochazuke modal pop
 /tmp/ochazuke mode set --json '{"mode":"insert"}'
 /tmp/ochazuke bindings list
-/tmp/ochazuke state get --json '{"path":"/frames"}'
+/tmp/ochazuke state get --json '{"path":"/modals"}'
 /tmp/ochazuke state get --json '{"path":"/inputs/directory/text"}'
 /tmp/ochazuke mode register --json '{"name":"directory-search"}'
 ```
 
-JSON inspection covers registered pages (`page`, `pages`), inputs and histories, modal frames (`frames`, each with its `focus`), modes (pending modes included), nouns with their tables, instances with their state and payload, and the rows the focus answers to (`bindings`). `state.get` accepts a JSON Pointer (`""` for the full state; `~1` escapes `/` and `~0` escapes `~` in a key). Appearance has its own `appearance.get` query. All registered inputs are public state: do not register secrets without adding an explicit export policy. Handlers, renderers, and terminal handles are not serialized.
+JSON inspection covers registered pages (`page`, `pages`), inputs and histories, the focus and the open modals (`focus`, `modals`, each modal instance's `payload.return`), the global mode (`mode`, `modeState`) and the registered modes (pending modes included), nouns with their tables, instances with their payload, and the rows the focus answers to (`bindings`). `state.get` accepts a JSON Pointer (`""` for the full state; `~1` escapes `/` and `~0` escapes `~` in a key). Appearance has its own `appearance.get` query. All registered inputs are public state: do not register secrets without adding an explicit export policy. Handlers, renderers, and terminal handles are not serialized.
 
 ## Live CLI control
 
@@ -806,7 +807,7 @@ Keyboard, Go API, palette, and CLI use the same command semantics. Queries run t
 - Cursor and edit offsets count Unicode runes, not grapheme clusters. Rendering accounts for terminal cell width.
 - Undo trees, yank history, registers, and macros are in memory; they do not persist across restarts.
 - Custom modes are registered names. Applications supply their mode-specific bindings; unknown modes are not silently interpreted as normal or insert.
-- Modal frames preserve their own state and existing input instances. Closing a modal restores interaction state, not a stale copy of shared application data.
+- Modals preserve their own state and existing input instances. Closing a modal restores interaction state, not a stale copy of shared application data.
 - Handler registration and widget construction are Go APIs. User-facing operations, including configuration, palette navigation, field editing, and picker actions, are registered and available through the CLI.
 - Terminals are display and input ownership only: the framework ships no PTY, shell, emulator or daemon client. A `TerminalStream` is the application's; frames are rows of trusted ANSI with a cursor cell, not a cell buffer the framework interprets. Resize, reconnect and session lifetime belong to the stream.
 - The framework package holds no application pages; the demo lives in `examples/demo` and every example is built on the public API.
