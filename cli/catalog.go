@@ -35,7 +35,8 @@ type CatalogNoun struct {
 // CatalogVerb is one ochazuke.Operation. Kind is "application" for a verb
 // whose handler may return pending work, "interaction" otherwise. Rows
 // names the noun whose rows the verb's result lists (ochazuke.Operation.Rows,
-// declared with NounBuilder.Rows), "" when the result is not rows.
+// declared with NounBuilder.Rows), "" when the result is not rows. Quiet
+// marks bookkeeping the jobs ticker hides (NounBuilder.Quiet).
 type CatalogVerb struct {
 	Name        string                        `json:"name"`
 	Description string                        `json:"description,omitempty"`
@@ -45,6 +46,7 @@ type CatalogVerb struct {
 	Confirm     string                        `json:"confirm,omitempty"`
 	Repeatable  bool                          `json:"repeatable,omitempty"`
 	Rows        string                        `json:"rows,omitempty"`
+	Quiet       bool                          `json:"quiet,omitempty"`
 }
 
 // CatalogPage is a page in registration order.
@@ -68,7 +70,7 @@ func Catalog(r *ochazuke.Runtime, name, version string) ([]byte, error) {
 			doc.Nouns = append(doc.Nouns, noun)
 		}
 		noun := &doc.Nouns[len(doc.Nouns)-1]
-		verb := CatalogVerb{Name: op.Verb, Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable, Rows: op.Rows}
+		verb := CatalogVerb{Name: op.Verb, Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable, Rows: op.Rows, Quiet: op.Quiet}
 		if len(op.Parameters) > 0 {
 			verb.Params = op.Parameters
 		}

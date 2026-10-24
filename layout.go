@@ -40,6 +40,23 @@ func (l Layout) BodySize() (width, height int) {
 	return l.Width, l.Height
 }
 
+// BodySizeWith is BodySize less the rows the footer's jobs ticker takes
+// (only with the complete chrome; a small viewport draws no ticker).
+func (l Layout) BodySizeWith(f Footer) (width, height int) {
+	width, height = l.BodySize()
+	return width, height - l.jobRows(f)
+}
+
+// jobRows is how many ticker rows the shell draws: none without the
+// complete chrome, and never the body's last row.
+func (l Layout) jobRows(f Footer) int {
+	if !l.full() {
+		return 0
+	}
+	_, height := l.BodySize()
+	return max(0, min(len(f.Jobs), height-1))
+}
+
 // Page renders title, subtitle, body and footer into exactly Width x Height
 // cells. Body is trusted ANSI; title, subtitle and footer are raw labels.
 // Overlong bodies are clipped; use Panel for a visible overflow marker.
@@ -66,10 +83,13 @@ type Header struct {
 }
 
 // Footer is the bottom row of the page chrome: a raw label, styled as an
-// error when Error is set.
+// error when Error is set. Jobs are the jobs ticker's rows (Model.JobsTicker),
+// drawn above the rule over the footer; the body gives up one row per job
+// row, so no jobs means no rows.
 type Footer struct {
 	Text  string
 	Error bool
+	Jobs  []string
 }
 
 // Shell is the one page chrome: title row, subtitle row, a rule, the body,
@@ -83,7 +103,7 @@ func (l Layout) Shell(h Header, body Block, f Footer) Block {
 		return Block{}
 	}
 	s := l.Styles
-	bw, bh := l.BodySize()
+	bw, bh := l.BodySizeWith(f)
 	bodyRows := layoutRows(body.Text, bw, bh)
 	cursor := body.Clip(bw, bh)
 	footerStyle := s.Muted
@@ -99,6 +119,9 @@ func (l Layout) Shell(h Header, body Block, f Footer) Block {
 		rows = append(rows, pad+l.titleRow(h, bw), pad+l.subtitleRow(h, bw), pad+rule)
 		for _, row := range bodyRows {
 			rows = append(rows, pad+row)
+		}
+		for _, job := range f.Jobs[:l.jobRows(f)] {
+			rows = append(rows, pad+s.Muted.Render(ansi.Truncate(modalLabel(job), max(0, bw), "…")))
 		}
 		rows = append(rows, pad+rule, pad+footer, "")
 	} else {

@@ -74,9 +74,12 @@ type Operation struct {
 	// verb's JSON array of rows of that noun); "" when the result is not
 	// rows. It is data for hosts (the catalog's rows); the runtime does
 	// not read it.
-	Rows string     `json:"rows,omitempty"`
-	Run  Handler    `json:"-"`
-	App  AppHandler `json:"-"`
+	Rows string `json:"rows,omitempty"`
+	// Quiet marks bookkeeping (a list reload) the jobs ticker does not
+	// show; set by NounBuilder.Quiet. The catalog's quiet.
+	Quiet bool       `json:"quiet,omitempty"`
+	Run   Handler    `json:"-"`
+	App   AppHandler `json:"-"`
 }
 
 func (o Operation) Key() string { return o.Noun + "." + o.Verb }

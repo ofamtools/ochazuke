@@ -46,7 +46,7 @@ func newFixture(t *testing.T) *fixture {
 		Verb("remove", record, "Remove a widget").Confirm("Remove {{label}}?").
 		Verb("refresh", func(ochazuke.Ctx) ochazuke.Result {
 			return ochazuke.Pending(func(context.Context) (any, error) { return "fresh", nil })
-		}, "Reload a widget").
+		}, "Reload a widget").Quiet().
 		Verb("break", func(ochazuke.Ctx) ochazuke.Result {
 			return ochazuke.Pending(func(context.Context) (any, error) { return nil, errors.New("disk on fire") })
 		}, "Fail off the loop").

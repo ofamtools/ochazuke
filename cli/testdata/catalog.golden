@@ -45,7 +45,8 @@
           "name": "refresh",
           "description": "Reload a widget",
           "kind": "application",
-          "result": "JSON value"
+          "result": "JSON value",
+          "quiet": true
         },
         {
           "name": "remove",

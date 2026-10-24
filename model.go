@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"slices"
 	"strings"
+	"time"
 	"unicode"
 	"unicode/utf8"
 
@@ -45,6 +46,8 @@ type Model struct {
 	Sidebar bool
 	views   map[string]*viewport.Model
 	scroll  map[string]int // modal ID or page surface key -> scroll offset
+	ticker  jobTicker      // the finished jobs the ticker remembers (ticker.go)
+	now     func() time.Time
 }
 
 func NewModel(r *Runtime) *Model {
@@ -139,6 +142,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Bubble Tea v1 spelled a paste "[text]"; macros and the editor still expect it.
 		m.handleKey(MacroKey{Key: "[" + v.Content + "]", Paste: true})
 	}
+	m.ticker.observe(m.Runtime, m.clock())
 	if m.Runtime.Quit {
 		return m, tea.Quit
 	}
@@ -169,7 +173,8 @@ func (m *Model) layout() Layout {
 	return Layout{Width: m.Width, Height: m.Height, Styles: NewStyles(*m.Appearance)}
 }
 func (m *Model) pageSize() (int, int) {
-	width, height := m.layout().BodySize()
+	layout := m.layout()
+	width, height := layout.BodySizeWith(Footer{Jobs: m.JobsTicker(layout.Width)})
 	if m.Sidebar {
 		width, height = sidebarMainSize(width, height, m.Width < layoutStackAt)
 	}
@@ -263,6 +268,7 @@ func (m *Model) Notify(text string) { m.Notices = append(m.Notices, text) }
 // else the hints for the focus; the notices, when there are any, follow
 // the error or lead the hints.
 func (m *Model) footer() Footer {
+	jobs := m.JobsTicker(m.Width)
 	notice := ""
 	if len(m.Notices) > 0 {
 		notice = "Notice: " + safeText(strings.Join(m.Notices, "; "))
@@ -272,16 +278,16 @@ func (m *Model) footer() Footer {
 		if notice != "" {
 			text += " · " + notice
 		}
-		return Footer{Text: text, Error: true}
+		return Footer{Text: text, Error: true, Jobs: jobs}
 	}
 	hints := BindingHints(m.Runtime, m.Runtime.Focus)
 	switch {
 	case notice == "":
-		return Footer{Text: hints}
+		return Footer{Text: hints, Jobs: jobs}
 	case hints == "":
-		return Footer{Text: notice}
+		return Footer{Text: notice, Jobs: jobs}
 	}
-	return Footer{Text: notice + " · " + hints}
+	return Footer{Text: notice + " · " + hints, Jobs: jobs}
 }
 
 // BindingHints renders the rows a focus answers to in its current mode as a

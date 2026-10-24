@@ -277,6 +277,18 @@ func (b *NounBuilder) Rows(noun string) *NounBuilder {
 	return b
 }
 
+// Quiet marks the last declared verb as bookkeeping (Operation.Quiet): its
+// jobs stay off the jobs ticker. The framework names no quiet verb.
+func (b *NounBuilder) Quiet() *NounBuilder {
+	if b.last == "" {
+		panic("Quiet must follow Verb")
+	}
+	op := b.r.Operations[b.last]
+	op.Quiet = true
+	b.r.Operations[b.last] = op
+	return b
+}
+
 // When guards the last declared verb with a registered guard name: while
 // the guard is false at the focus and mode the verb would run in, the
 // palette does not offer it. The guard reads a KeyEvent whose Focus and
