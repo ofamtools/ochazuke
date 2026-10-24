@@ -164,6 +164,7 @@ func (t *Terminal) View(width, height int) string { return t.ViewBlock(width, he
 // focused. The stream is told the area the first time it is seen and
 // whenever it changes, so the pane is sized to the detail area it fills.
 func (t *Terminal) ViewBlock(width, height int) Block {
+	t.r.Placed(t.id)
 	if width <= 0 || height <= 0 {
 		return Block{}
 	}

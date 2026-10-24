@@ -53,7 +53,7 @@
         │                                   request is what it runs)   │
         │   }           focus.next          Move the focus to the next │
         │                                   focus stop (or region) in  │
-        │                                   tree order, wrapping,      │
+        │                                   drawing order, wrapping,   │
         │                                   landing on its remembered  │
         │                                   child                      │
         │   {           focus.previous      Move the focus to the      │

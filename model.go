@@ -187,7 +187,7 @@ func (m *Model) pageSize() (int, int) {
 }
 func (m *Model) pageContent(width, height int) Block {
 	if page := m.Runtime.PageOf(m.Runtime.Page); page != nil {
-		return page.Render(m.Runtime, width, height)
+		return page.render(m.Runtime, width, height)
 	}
 	return Text("No page selected. Open a registered page through the palette or API.")
 }
@@ -529,6 +529,7 @@ func InputBlock(in *Input, width, height int) Block {
 	if in == nil {
 		return Text("(no focused input)")
 	}
+	in.r.Placed(in.ID)
 	width = max(1, width)
 	height = max(1, height)
 	cursor := min(max(0, in.Cursor), len(in.Text))

@@ -583,6 +583,7 @@ func (g *Grid) Snapshot() map[string]any {
 // gutter. The cursor cell is painted with Styles.Cursor, selected cells with
 // Styles.Selected, marked cells with Styles.Marked.
 func (g *Grid) View(width, height int) string {
+	g.r.Placed(g.id)
 	if width <= 0 || height <= 0 {
 		return ""
 	}

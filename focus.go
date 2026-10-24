@@ -579,15 +579,20 @@ func (r *Runtime) region(id string) bool {
 	return noun != nil && noun.Region
 }
 
-// units lists, in tree order (children in added order, depth-first), the
-// instances under root that unit accepts, without descending into one.
-// order numbers every instance under root in the same walk.
+// units lists the instances under root that unit accepts, without
+// descending into one, in drawing order: the order the page holding root
+// drew them in its last frame (Placed), a unit ranked by the first drawn
+// instance in its subtree. A unit the last frame did not draw (no frame yet,
+// added since, or drawn by no Placed call) follows the drawn ones in tree
+// order (children in added order, depth-first). order ranks every instance
+// under root the same way. No map is iterated: the walk is the tree's and
+// the frame's slices.
 func (r *Runtime) units(root string, unit func(string) bool) (out []string, order map[string]int) {
-	order = map[string]int{}
+	var tree []string
 	var walk func(id string, inside bool)
 	walk = func(id string, inside bool) {
 		for _, child := range r.Children(id) {
-			order[child.ID] = len(order)
+			tree = append(tree, child.ID)
 			if !inside && unit(child.ID) {
 				out = append(out, child.ID)
 				walk(child.ID, true)
@@ -597,7 +602,34 @@ func (r *Runtime) units(root string, unit func(string) bool) (out []string, orde
 		}
 	}
 	walk(root, false)
+	drawn := r.drawnUnder(root)
+	order = make(map[string]int, len(tree))
+	for i, id := range tree {
+		order[id] = len(drawn) + i
+	}
+	for i, id := range drawn {
+		for _, at := range r.Ancestry(id) {
+			if at == root {
+				break
+			}
+			if rank, ok := order[at]; ok && rank > i {
+				order[at] = i
+			}
+		}
+	}
+	slices.SortStableFunc(out, func(a, b string) int { return order[a] - order[b] })
 	return out, order
+}
+
+// drawnUnder is the last frame's drawing order of the page holding root
+// (root itself or an ancestor), nil when no page holds it or none was drawn.
+func (r *Runtime) drawnUnder(root string) []string {
+	for _, id := range r.Ancestry(root) {
+		if page := r.PageOf(id); page != nil {
+			return page.drawn
+		}
+	}
+	return nil
 }
 
 // landing is where a jump to a stop or region puts the focus: the
@@ -623,7 +655,7 @@ func (r *Runtime) landing(id string) string {
 
 // JumpFocus moves the focus steps stops (scope "stop") or regions (scope
 // "region") forward, or backward for negative steps, through the focus
-// root in tree order, wrapping. The current unit is the nearest stop (or
+// root in drawing order (units), wrapping. The current unit is the nearest stop (or
 // region) on the focus path; the next one is the first after that unit's
 // whole subtree. A stop is never descended into (a grid is one stop, its
 // cells are not); the focus lands on the unit's remembered child.
@@ -653,7 +685,7 @@ func (r *Runtime) JumpFocus(steps int, scope string) error {
 	index := slices.Index(ring, current)
 	if index < 0 {
 		// The focus sits outside every unit (on the page or a panel): start
-		// from the units around it in tree order.
+		// from the units around it in drawing order.
 		at, known := order[r.Focus]
 		index = len(ring)
 		for i, id := range ring {
@@ -674,11 +706,11 @@ func (r *Runtime) JumpFocus(steps int, scope string) error {
 
 func registerFocus(r *Runtime) {
 	jump := map[string]Parameter{"steps": {Type: "integer", Description: "How many stops or regions to move (the count; default 1)"}, "scope": {Type: "string", Description: "stop (default): component to component; region: panel to panel"}}
-	r.Register(Operation{Verb: "next", Noun: "focus", Description: "Move the focus to the next focus stop (or region) in tree order, wrapping, landing on its remembered child", Parameters: jump, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "next", Noun: "focus", Description: "Move the focus to the next focus stop (or region) in drawing order, wrapping, landing on its remembered child", Parameters: jump, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		err := r.JumpFocus(max(1, IntArg(a, "steps", 1)), StringArg(a, "scope", "stop"))
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "previous", Noun: "focus", Description: "Move the focus to the previous focus stop (or region) in tree order, wrapping, landing on its remembered child", Parameters: jump, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "previous", Noun: "focus", Description: "Move the focus to the previous focus stop (or region) in drawing order, wrapping, landing on its remembered child", Parameters: jump, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		err := r.JumpFocus(-max(1, IntArg(a, "steps", 1)), StringArg(a, "scope", "stop"))
 		return r.Context(), err
 	}})

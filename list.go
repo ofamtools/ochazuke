@@ -218,8 +218,11 @@ func (l *List) Snapshot() map[string]any {
 	return map[string]any{"id": l.id, "items": slices.Clone(l.items), "selected": l.selected, "selectedId": selected.ID, "offset": l.offset, "focused": l.Focused(), "marked": marked}
 }
 
-// View fits the viewport and updates its scroll offset to keep selection visible.
+// View fits the viewport and updates its scroll offset to keep selection
+// visible. Calling it places the list in its page's drawing order (Placed),
+// even at zero height.
 func (l *List) View(width, height int) string {
+	l.r.Placed(l.id)
 	if width <= 0 || height <= 0 {
 		return ""
 	}

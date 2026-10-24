@@ -19,6 +19,40 @@ type Page struct {
 	Remembered string                         `json:"remembered"`
 	Render     func(*Runtime, int, int) Block `json:"-"`
 	mode       ModeState
+	// drawn is the order the last frame drew the page's focus stops in
+	// (Placed calls during Render); drawing collects the frame in progress.
+	drawn, drawing []string
+	rendering      bool
+}
+
+// render draws the page through Render and records the order its stops
+// were drawn in, which is the order focus jumps and list spills walk.
+func (p *Page) render(r *Runtime, width, height int) Block {
+	p.rendering, p.drawing = true, nil
+	defer func() { p.rendering, p.drawn, p.drawing = false, p.drawing, nil }()
+	return p.Render(r, width, height)
+}
+
+// Placed records that the instance id is being drawn now, during its page's
+// render: the order of these calls in a frame is the page's drawing order,
+// which focus jumps (focus.next, focus.previous) and list spills walk, so
+// motions follow the screen as drawn and cannot drift from it. List, Input
+// (InputBlock), Terminal and grid views call it; a component of the
+// application's own calls it from its view. Outside a page render it does
+// nothing. There is no other way to order stops: an instance no frame drew
+// follows the drawn ones in tree order.
+func (r *Runtime) Placed(id string) {
+	if r == nil {
+		return
+	}
+	for _, at := range r.Ancestry(id) {
+		if page := r.PageOf(at); page != nil {
+			if page.rendering {
+				page.drawing = append(page.drawing, id)
+			}
+			return
+		}
+	}
 }
 
 // AddPage registers a page instance of kind page under app with a title and
