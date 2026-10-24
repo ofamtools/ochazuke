@@ -488,3 +488,14 @@ func TestPaletteRunsInTheCapturedContext(t *testing.T) {
 		t.Fatalf("focus was applied to the palette: %+v", r.Context())
 	}
 }
+
+// The enter hint names both outcomes (the hint cuts at the first comma, so
+// the description has none before its semicolon): nothing is highlighted until
+// palette.move, so appending a completion is the exception.
+func TestPaletteEnterHintLeadsWithRun(t *testing.T) {
+	r, _, _ := lineRuntime(t)
+	hints := BindingHints(r, r.Focus)
+	if !strings.Contains(hints, "enter palette.run: Run the line or append the highlighted completion ·") {
+		t.Fatalf("hints: %q", hints)
+	}
+}

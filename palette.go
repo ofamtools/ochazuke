@@ -73,7 +73,7 @@ func NewPalette(r *Runtime) *Palette {
 	})
 	register("move", "Move the completion highlight; from none, 1 lands on the first entry and -1 on the last", map[string]Parameter{"delta": {Type: "integer", Required: true}}, func(a Arguments) error { return p.move(IntArg(a, "delta", 0)) })
 	register("complete", "Append the highlighted completion (or value, or the only one) as the next word", map[string]Parameter{"value": {Type: "string", Description: "A completion's word; omit for the highlighted one"}}, p.complete)
-	register("run", "Append the highlighted completion, else run the command line, or name its first missing word", nil, func(Arguments) error { return p.run() })
+	register("run", "Run the line or append the highlighted completion; a short line names its first missing word", nil, func(Arguments) error { return p.run() })
 	register("cancel", "Clear the command line, or close it when it is empty", nil, func(Arguments) error { return p.cancel() })
 	register("recall", "Replace the line with an earlier palette command from the action history: 1 older, -1 newer", map[string]Parameter{"delta": {Type: "integer", Required: true}}, func(a Arguments) error { return p.recallLine(IntArg(a, "delta", 0)) })
 	// The palette's keys, all on its own noun: the line beneath is an
