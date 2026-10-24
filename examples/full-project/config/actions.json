@@ -5,5 +5,6 @@
   {"verb": "inspect", "noun": "workspace", "description": "Inspect the active context and workspace state", "handler": "inspect", "result": "object"},
   {"verb": "greet", "noun": "workspace", "description": "Greet a named collaborator", "handler": "greet", "result": "string", "parameters": {"name": {"type": "string", "required": true, "description": "Collaborator name"}, "repeat": {"type": "integer", "description": "Number of greetings (defaults to one)"}}},
   {"verb": "cycle", "noun": "workspace", "description": "Move focus between the active page's inputs", "handler": "cycle-input", "result": "object", "parameters": {"delta": {"type": "integer", "description": "Focus direction (defaults to one)"}}},
+  {"verb": "refresh", "noun": "workspace", "description": "Reorder sample list records or remove the selected row", "handler": "refresh-items", "result": "object", "parameters": {"remove": {"type": "boolean"}}},
   {"verb": "open", "noun": "workspace", "description": "Open a configured modal, including nested modals", "handler": "open-modal", "result": "object", "parameters": {"id": {"type": "string", "required": true, "description": "Configured modal ID"}}}
 ]

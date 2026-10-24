@@ -95,7 +95,7 @@ func run(args []string) error {
 		if err := smokeExample(m); err != nil {
 			return err
 		}
-		fmt.Println("full-project smoke: actions, layered bindings, review mode, page/modal restoration, picker filters, palette, appearance, editing, history, registers and macros: PASS")
+		fmt.Println("full-project smoke: actions, layered bindings, review mode, page/modal restoration, picker filters, palette, appearance, editing, history, registers, macros and list focus/refresh: PASS")
 		return nil
 	}
 	runFlags := flag.NewFlagSet("run", flag.ContinueOnError)
@@ -367,6 +367,26 @@ func smokeExample(m *ochazuke.Model) error {
 	view := plain(m.View())
 	if !strings.Contains(view, "Paths") || !strings.Contains(view, "release.txt") {
 		return fmt.Errorf("smoke rendered page does not show selected paths")
+	}
+	call("open", "page", "", ochazuke.Arguments{"id": "items"})
+	expect("initial list item", r.Context().Path, []string{"app", "items", "item-list", "repo-1"})
+	binding("j")
+	expect("list item replaces leaf", r.Context().Path, []string{"app", "items", "item-list", "worktree-1"})
+	binding("r")
+	selected, _ := r.Lists["item-list"].Selected()
+	expect("refresh retains item ID", selected.ID, "main")
+	binding("tab", "j", "k", "x")
+	expect("list releases input focus", r.Context().Path, []string{"app", "items", "item-editor"})
+	expect("editor receives list keys", string(r.Inputs["item-note"].Text), "jkx")
+	call("move", "list", "", ochazuke.Arguments{"id": "item-list", "delta": 1})
+	expect("background move keeps editor", r.Context().InputID, "item-note")
+	binding("tab")
+	expect("list refocus current item", r.Context().Path, []string{"app", "items", "item-list", "worktree-2"})
+	binding("x")
+	selected, _ = r.Lists["item-list"].Selected()
+	expect("removed row falls back", selected.ID, "release")
+	if failure != nil {
+		return failure
 	}
 	return nil
 }

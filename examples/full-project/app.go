@@ -28,6 +28,7 @@ func Build(cfg Config) (*ochazuke.Model, error) {
 		}
 		input := ochazuke.NewInput(spec.ID, spec.Value, spec.Multiline)
 		input.Kind, input.PathFilter = spec.Kind, spec.PathFilter
+		input.ReadlineOnly = spec.ReadlineOnly
 		if err := r.AddInput(input, spec.Path); err != nil {
 			return nil, fmt.Errorf("input %q: %w", spec.ID, err)
 		}

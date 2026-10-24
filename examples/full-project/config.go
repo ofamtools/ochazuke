@@ -46,21 +46,23 @@ type LayerConfig struct {
 }
 
 type InputConfig struct {
-	ID         string   `json:"id"`
-	Value      string   `json:"value"`
-	Kind       string   `json:"kind"`
-	PathFilter string   `json:"pathFilter"`
-	Multiline  bool     `json:"multiline"`
-	Path       []string `json:"path"`
+	ID           string   `json:"id"`
+	Value        string   `json:"value"`
+	Kind         string   `json:"kind"`
+	PathFilter   string   `json:"pathFilter"`
+	Multiline    bool     `json:"multiline"`
+	ReadlineOnly bool     `json:"readlineOnly"`
+	Path         []string `json:"path"`
 }
 
 type PageConfig struct {
-	ID       string           `json:"id"`
-	Title    string           `json:"title"`
-	Renderer string           `json:"renderer"`
-	Context  ochazuke.Context `json:"context"`
-	Inputs   []string         `json:"inputs"`
-	Text     string           `json:"text"`
+	ID       string              `json:"id"`
+	Title    string              `json:"title"`
+	Renderer string              `json:"renderer"`
+	Context  ochazuke.Context    `json:"context"`
+	Inputs   []string            `json:"inputs"`
+	Text     string              `json:"text"`
+	Items    []ochazuke.ListItem `json:"items,omitempty"`
 }
 
 type ActionConfig struct {

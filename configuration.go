@@ -69,11 +69,9 @@ func registerConfiguration(r *Runtime) {
 			return nil, err
 		}
 		next := Context{Path: path, InputID: StringArg(a, "input", "")}
-		if err := r.validateSelection(next); err != nil {
+		if err := r.SelectContext(next); err != nil {
 			return nil, err
 		}
-		r.Frames[len(r.Frames)-1].Context = next.Clone()
-		r.CancelPendingBinding()
 		return next, nil
 	}})
 }

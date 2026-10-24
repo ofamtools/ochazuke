@@ -18,5 +18,10 @@
   {"layer": "app", "mode": "review", "keys": "esc", "request": {"verb": "set", "noun": "mode", "args": {"mode": "normal"}}},
   {"layer": "app", "mode": "review", "keys": "s", "request": {"verb": "inspect", "noun": "workspace"}},
   {"layer": "workspace", "mode": "normal", "keys": "ctrl+t", "request": {"verb": "insert", "noun": "input", "target": "title", "args": {"text": " [reviewed]"}}},
+  {"layer": "item-list", "keys": "tab", "request": {"verb": "focus", "noun": "input", "args": {"id": "item-note"}}},
+  {"layer": "item-editor", "keys": "tab", "request": {"verb": "focus", "noun": "list", "args": {"id": "item-list"}}},
+  {"layer": "item-list", "mode": "normal", "keys": "enter", "request": {"verb": "inspect", "noun": "workspace"}},
+  {"layer": "item-list", "mode": "normal", "keys": "r", "request": {"verb": "refresh", "noun": "workspace"}},
+  {"layer": "item-list", "mode": "normal", "keys": "x", "request": {"verb": "refresh", "noun": "workspace", "args": {"remove": true}}},
   {"layer": "paths", "mode": "normal", "keys": "g f", "request": {"verb": "focus", "noun": "input", "args": {"id": "destination"}}}
 ]

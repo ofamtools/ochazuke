@@ -37,10 +37,11 @@ The smoke scenario uses the supplied example's IDs. It is not a general validato
 | `actions.go` | Named Go handlers and configured operation registration |
 | `bindings.go` | Install configured key sequences using the framework binding operation |
 | `pages.go` | Named page and modal renderers |
+| `list.go` | Compose the shared selectable list and a companion editor using existing panels |
 | `config/app.json` | Application title, initial page, custom modes, palette instance sources/default actions, theme, and density |
 | `config/layers.json` | Interaction layers used for action and binding resolution |
-| `config/inputs.json` | Initial values, context paths, multiline fields, and path filters |
-| `config/pages.json` | Page order, titles, initial contexts, renderer names, and field lists |
+| `config/inputs.json` | Initial values, context paths, multiline/Readline-only flags, and path filters |
+| `config/pages.json` | Page order, titles, initial contexts, renderer names, field lists, and sample list records |
 | `config/actions.json` | Verb/noun schemas, handler names, and layer overrides |
 | `config/bindings.json` | Layer, mode, key sequence, operation arguments, and explicit targets |
 | `config/modals.json` | Modal titles, renderer names, and editable inputs |
@@ -80,6 +81,7 @@ The registry identifier is `greet.workspace` (`verb.noun`). The CLI spelling is 
 
 - **Workspace** (`overview`) contains the title and notes editors. Edit with `i`, return to normal mode with Escape, and use `u` to undo. Switch pages and return to observe retained input state.
 - **Paths** contains a file input, a directory input, and a multiline paths input. In normal mode, `Ctrl-F` or Enter opens the picker with the focused input's configured filter. Tab cycles fields. File and directory selection are both supported.
+- **Items** contains a reusable flat list and a Readline-only note. From startup, press `Ctrl-J` twice to open it. Tab switches list/editor focus. In the list, `j/k` or arrows select, Enter inspects the active item context, `r` reorders records while preserving the selected ID, and `x` removes the selected sample row. In the editor those letters type text instead. Tab back to the list before using normal-mode page shortcuts.
 - **Guide** (`help`) is a retained text page. Help can also open as a modal.
 - `Ctrl-S` invokes the configured save action in any mode. The editor layer overrides the application handler. This example records state in memory; it does not save a project to disk.
 - `Ctrl-H` opens help. `Ctrl-O` opens the editable confirmation modal. From its editor context, `Ctrl-N` opens the details modal. Closing a modal restores its parent context.
@@ -89,6 +91,16 @@ The registry identifier is `greet.workspace` (`verb.noun`). The CLI spelling is 
 - In normal mode, `Ctrl-J/K` cycles pages and `:` opens the palette. `Ctrl-Space` opens the palette in any editing mode. `Ctrl-Y` opens yank history, and `PgUp` and `PgDn` scroll. Pages are not numbered; use noun-first palette navigation to search by page title or ID.
 
 The framework also supplies visual selection, registers, macro recording and replay, and branching undo. These are runtime/editor features rather than duplicated configuration formats. See the repository [keyboard guide](../../README.md#keyboard-guide).
+
+### List data and focus
+
+The Items records are configuration examples, not live repository/worktree discovery. `actions.go` owns their mutable source data; refresh/removal calls the shared list's `SetItems`. Removing these rows changes only example memory, not files or Git worktrees.
+
+A `list` page declares its list-layer path, one companion input, and `items` with unique `id`, display `label`, and an existing `layer`. Construction validates the records. `inputs.json` supports `readlineOnly: true`, which is applied before input registration.
+
+Selecting a row changes only the item leaf, for example `app/items/item-list/repo-1` → `app/items/item-list/worktree-1`. Tab to the note selects `app/items/item-editor` with `inputId: item-note`. Selection changes and refreshes cannot take focus back from that editor. Page and modal restoration retain the updated selection.
+
+Wide windows show list and note beside one another; medium windows stack them; small windows show the pane belonging to the retained page context. Selection remains visible when resizing. All controls use configured bindings or the list's ordinary defaults, with no function keys.
 
 ### Layout ownership
 
@@ -142,6 +154,7 @@ go run ./examples/full-project --socket /tmp/ochazuke-full-project/app.sock pale
 `app.json` declares `review`. Startup registers it through `register.mode`. In normal mode, `Ctrl-R` switches the current context to `review` through `set.mode`. In review mode, `s` invokes inspection and Escape sets the mode to `normal`.
 
 Each input holds its own mode. When no input is focused, the active frame holds the mode. There is no mode stack. Setting a mode selects it directly, and modal restoration restores the parent context rather than pushing or popping modes. Custom-mode behavior comes from its bindings; it does not inherit normal-mode editor keys. Any-mode bindings still apply.
+Readline-only fields, including the Items note, remain in insert mode even if `set.mode` requests a custom mode. Tab back to the list to use normal-mode page controls.
 
 The framework API is unchanged:
 

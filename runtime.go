@@ -74,6 +74,7 @@ type Runtime struct {
 	Layers         map[string]*Layer
 	Inputs         map[string]*Input
 	InputPaths     map[string][]string
+	Lists          map[string]*List
 	Frames         []*Frame
 	Pages          map[string]*Page
 	PageOrder      []string
@@ -96,6 +97,7 @@ func NewRuntime() *Runtime {
 	r := &Runtime{
 		Layers: map[string]*Layer{"app": {ID: "app", Noun: "app", Actions: map[string]Handler{}}},
 		Inputs: map[string]*Input{}, InputPaths: map[string][]string{},
+		Lists:  map[string]*List{},
 		Frames: []*Frame{{ID: "main", Context: Context{Path: []string{"app"}}, State: map[string]any{}}},
 		Pages:  map[string]*Page{},
 		Modes:  map[string]bool{"normal": true, "insert": true}, Operations: map[string]Operation{},
@@ -105,6 +107,7 @@ func NewRuntime() *Runtime {
 	registerCore(r)
 	registerConfiguration(r)
 	registerPages(r)
+	registerLists(r)
 	RegisterInputOperations(r)
 	registerYankHistory(r)
 	registerMacros(r)
@@ -185,7 +188,11 @@ func (r *Runtime) Focus(id string) error {
 	if !ok {
 		return fmt.Errorf("unknown input %q", id)
 	}
-	next := Context{Path: path, InputID: id}
+	return r.SelectContext(Context{Path: path, InputID: id})
+}
+
+// SelectContext changes focus through the same validation and binding boundary.
+func (r *Runtime) SelectContext(next Context) error {
 	if err := r.validateSelection(next); err != nil {
 		return err
 	}
@@ -332,6 +339,10 @@ func (r *Runtime) Snapshot() map[string]any {
 	for id, in := range r.Inputs {
 		inputs[id] = in.Snapshot()
 	}
+	lists := make(map[string]any, len(r.Lists))
+	for id, list := range r.Lists {
+		lists[id] = list.Snapshot()
+	}
 	layers := map[string]any{}
 	for id, layer := range r.Layers {
 		actions := make([]string, 0, len(layer.Actions))
@@ -348,7 +359,7 @@ func (r *Runtime) Snapshot() map[string]any {
 	sort.Strings(modes)
 	// Registers and macro state belong to the application, never individual fields.
 	return map[string]any{"frames": r.Frames, "pages": r.Pages, "activePage": r.ActivePage, "inputs": inputs, "context": r.Context(), "mode": r.Mode(r.Context()), "modes": modes, "layers": layers, "bindings": r.EffectiveBindings(r.Context()), "pending": r.Pending, "quit": r.Quit,
-		"registers": r.Registers, "yankHistory": r.YankHistory, "activeRegister": r.ActiveRegister, "macro": r.Macro}
+		"lists": lists, "registers": r.Registers, "yankHistory": r.YankHistory, "activeRegister": r.ActiveRegister, "macro": r.Macro}
 }
 func JSONPointer(value any, path string) (any, error) {
 	data, err := json.Marshal(value)

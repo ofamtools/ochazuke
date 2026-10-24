@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"ochazuke"
@@ -9,6 +10,12 @@ import (
 
 // Handler names are application code; operation names and schemas live in config.
 func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
+	itemsByPage := make(map[string][]ochazuke.ListItem)
+	for _, page := range cfg.Pages {
+		if page.Renderer == "list" {
+			itemsByPage[page.ID] = slices.Clone(page.Items)
+		}
+	}
 	save := func(label string) ochazuke.Handler {
 		return func(r *ochazuke.Runtime, c ochazuke.Context, _ ochazuke.Arguments) (any, error) {
 			values := map[string]string{}
@@ -26,6 +33,36 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 	return map[string]ochazuke.Handler{
 		"save":        save("workspace saved"),
 		"save-editor": save("editor saved"),
+		"refresh-items": func(r *ochazuke.Runtime, _ ochazuke.Context, args ochazuke.Arguments) (any, error) {
+			for _, page := range cfg.Pages {
+				if page.ID != r.ActivePage || page.Renderer != "list" {
+					continue
+				}
+				list := r.Lists[page.Context.Path[len(page.Context.Path)-1]]
+				rows := slices.Clone(itemsByPage[page.ID])
+				if remove, _ := args["remove"].(bool); remove {
+					selected, ok := list.Selected()
+					if ok {
+						for i, row := range rows {
+							if row.ID == selected.ID {
+								rows = slices.Delete(rows, i, i+1)
+								break
+							}
+						}
+					}
+				} else if len(rows) > 1 {
+					first := rows[0]
+					copy(rows, rows[1:])
+					rows[len(rows)-1] = first
+				}
+				if err := list.SetItems(rows); err != nil {
+					return nil, err
+				}
+				itemsByPage[page.ID] = rows
+				return list.Snapshot(), nil
+			}
+			return nil, fmt.Errorf("open a list page before refreshing items")
+		},
 		"cycle-input": func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
 			if len(r.Frames) != 1 {
 				return nil, fmt.Errorf("close modals before changing page fields")

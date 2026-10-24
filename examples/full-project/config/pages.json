@@ -1,5 +1,15 @@
 [
   {"id": "overview", "title": "Workspace", "renderer": "workspace", "context": {"path": ["app", "overview", "workspace", "editor"], "inputId": "notes"}, "inputs": ["title", "notes"], "text": "Edit a title and multiline notes. Ctrl-S saves through the editor override; g s summarizes; g h greets; Ctrl-O opens confirmation."},
   {"id": "paths", "title": "Paths", "renderer": "workspace", "context": {"path": ["app", "paths"], "inputId": "source"}, "inputs": ["source", "destination", "attachments"], "text": "File-only, directory-only, and multiple arbitrary paths. Use the picker on each field."},
+  {"id": "items", "title": "Items", "renderer": "list", "context": {"path": ["app", "items", "item-list"]}, "inputs": ["item-note"], "text": "Tab switches list/editor. j/k or arrows select; Enter inspects. r reorders by refresh; x removes the selected sample row.", "items": [
+    {"id": "repository", "label": "Repository: ochazuke", "layer": "repo-1"},
+    {"id": "main", "label": "Worktree: main", "layer": "worktree-1"},
+    {"id": "picker", "label": "Worktree: picker-lab", "layer": "worktree-2"},
+    {"id": "release", "label": "Worktree: release", "layer": "worktree-3"},
+    {"id": "review", "label": "Worktree: review", "layer": "worktree-4"},
+    {"id": "docs", "label": "Worktree: documentation", "layer": "worktree-5"},
+    {"id": "experiment", "label": "Worktree: experiment", "layer": "worktree-6"},
+    {"id": "maintenance", "label": "Worktree: maintenance", "layer": "worktree-7"}
+  ]},
   {"id": "help", "title": "Guide", "renderer": "text", "context": {"path": ["app", "help"]}, "text": "Ctrl-J/K switches pages in normal mode. Tab changes fields. : opens the action palette; choose noun:page to search pages or choose a page verb. Normal mode supports Vim motions, operators, registers, macros, undo, and visual selections. Type q then one register character to start recording; q stops recording. Insert mode edits text. Ctrl-R enters the configured review mode; Esc returns to normal. Ctrl-O opens confirmation and Ctrl-N opens a nested details modal; Esc pops one modal. Ctrl-H opens help. g s summarizes, g h greets, and Ctrl-T demonstrates an explicitly targeted input operation. The JSON files configure pages, layers, fields, actions, bindings, appearance, and modal renderers."}
 ]

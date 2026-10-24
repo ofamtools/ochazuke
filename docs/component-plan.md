@@ -2,7 +2,7 @@
 
 Recorded: 2026-10-23.
 
-This records the discussion about building a Matomeru-like application with Ochazuke. It separates confirmed requirements from proposed APIs and topics still awaiting discussion. The user subsequently authorized and received the Readline-only input and split-picker implementation below; the remaining proposals are not implemented or authorized by this record.
+This records the discussion about building a Matomeru-like application with Ochazuke. It separates confirmed requirements from proposed APIs and topics still awaiting discussion. The user subsequently authorized and received the Readline-only input, split picker, and flat selectable list below; the remaining proposals are not implemented or authorized by this record.
 
 Related explanation: [Extensibility](extensibility.html). Existing project work remains in [TODO.md](../TODO.md); this record does not replace that list.
 
@@ -44,7 +44,7 @@ Production defaults are `Ctrl-N/P` for results, `Alt-Up` for parent, Tab for com
 
 ### Focus selects the innermost item layer
 
-- [ ] Connect reusable component focus and row selection to the existing runtime context path.
+- [x] Connect reusable component focus and row selection to the existing runtime context path.
 
 The user's item1/item2 example describes alternative paths, not two items stacked together:
 
@@ -64,7 +64,7 @@ context = {
 
 The item supplies its own bindings and action overrides. Sidebar, page, and application layers retain shared behavior. The runtime owns these layers; it is not itself an entry in `Context.Path`.
 
-The existing layer resolver already gives inner entries precedence. The remaining component integration is to keep that path synchronized with focus and selection. Each entry must refer to a registered layer.
+Implemented by the shared `List` and `Runtime.SelectContext`. The existing layer resolver supplies inner precedence; list selection replaces its single item leaf. Each entry refers to a registered layer. Input focus and `select.context` use the same context-selection boundary.
 
 Focus moving into an editor changes the active branch and identifies the input. An item that remains selected in an unfocused list must not keep intercepting the editor's keys.
 
@@ -137,15 +137,17 @@ The discussed ownership rule is zero or one attached root model per runtime. Mod
 
 No handler-signature migration or framework-wide naming rename was agreed. `Operation` remains the definition, `Handler` the function type, and `Operation.Run` the default implementation. The confusing use of "action" in prose and `Layer.Actions` was identified, but a rename was only suggested.
 
-## Reusable list/tree direction, not a finalized component API
+## Implemented flat selectable list
 
-The first custom-component discussion favored a generic selectable list rather than separate repository and worktree widgets.
+`NewList(runtime, path, items)` registers a generic `List`, identified by the final base-path layer. `ListItem` contains an application-owned stable `ID`, display `Label`, and registered `Layer`. This is not a repository- or worktree-specific widget.
 
-Proposed shared responsibilities are selection, scrolling, keeping the active row visible, retaining selection by ID across refreshes, and notifying focus changes. Tree expansion is optional if the application needs nested rows.
+The list owns selection and viewport scrolling. `SetItems` preserves selection by ID, falls back to the clamped previous index when that ID disappears, and removes the item layer when empty. `Move` and `Select` do not steal focus. `Focus` activates the list branch; `Focused` derives its answer from the current runtime context rather than retaining an independent focus flag.
 
-The application supplies records and per-item behavior. The framework's existing input editor can supply search; existing layout helpers can draw the surrounding panel. The component contract and exact tree scope are not finalized.
+Matching retained page and modal-parent contexts are refreshed too, so returning to a list does not revive a removed item's bindings. Applications supply records and handlers, and deliver refreshes on the UI loop. Ordinary bindings dispatch `focus.list`, `move.list`, and `select.list`; snapshots are available under `/lists`.
 
-A layout helper arranges supplied content. A list/tree component also owns interaction state. gmtm's `internal/ui/twopane` is an example of a richer component with nested outline navigation, previews, and asynchronous results; it has not been adopted into Ochazuke by this discussion.
+The runtime-attached design was chosen over an application callback adapter to keep focus validation, binding cancellation, and retained-context updates in one shared implementation. Rendering adapts the existing picker row pattern and reuses layout/clipping helpers. No filesystem behavior, new keyboard resolver, or general component event bus was copied.
+
+The full-project example's Items page exercises sample rows, refresh/removal, and a companion Readline-only editor. Tree expansion and inline search remain optional, unimplemented scope. gmtm's richer outline component has not been imported.
 
 ## Confirmed live-terminal input contract
 
@@ -174,7 +176,7 @@ Still undecided:
 
 ### Resume point
 
-The next terminal discussion can settle the undecided cases above. After that, continue with domain detail views, specialized previews, and optional resizable panes, one at a time. The list/tree and inline-completion proposals elsewhere in this record remain proposals; this agreement does not finalize those APIs.
+The next terminal discussion can settle the undecided cases above. After that, continue with domain detail views, specialized previews, and optional resizable panes, one at a time. The flat list is now implemented; tree expansion and inline completion remain undecided. The terminal agreement does not finalize those APIs.
 
 ## Existing capabilities to reuse
 
@@ -201,4 +203,4 @@ These are future conversations, not technical blockers and not approved implemen
 3. Specialized previews: discuss only formats the application actually needs, such as diffs, Markdown, or JSON trees.
 4. Resizable pane workspaces: optional. Existing responsive fixed layouts already work; interactive split manipulation is additional scope.
 
-The Readline-only input and split picker are implemented. Verification includes the Go suite, the full-project smoke command, and an interactive terminal run exercising previews, directory navigation, path kill/yank, remapped help/cancellation, and typing after an attempted normal-mode transition. The terminal component, list/tree API, inline completion, and optional model-access proposals remain unimplemented.
+The Readline-only input, split picker, and flat selectable list are implemented. Verification includes the race-enabled Go suite, the full-project smoke command, and interactive terminal runs. List checks exercised item-layer replacement, stable-ID refresh, removal/empty fallback, editor focus isolation, background updates, modal restoration, remapped navigation, and resizing at 130×32, 80×24, and 60×18. The terminal component, tree expansion, inline completion, and optional model-access proposals remain unimplemented.

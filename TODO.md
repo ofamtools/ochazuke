@@ -6,11 +6,11 @@
 - [ ] Implement the confirmed [component and input requirements](docs/component-plan.md).
   - [x] Add a Readline-only flag to the shared input; preserve path-aware `Ctrl-W` and `Ctrl-Y`.
   - [x] Integrate the preferred split picker from `picker-lab`, with an editable absolute path, configurable bindings, accurate help, and no function keys.
-  - [ ] Connect component focus and item selection to the existing layer path; replace the innermost item layer when focus changes.
+  - [x] Connect component focus and item selection to the existing layer path; replace the innermost item layer when focus changes.
   - [ ] Implement the application terminal component's [live-input contract](docs/component-plan.md#confirmed-live-terminal-input-contract): configurable `Ctrl+A` prefix, prefix then `d` detaches without terminating the session, doubled prefix sends one literal prefix, and ordinary input bypasses outer bindings.
 
 - [ ] Resolve the proposed APIs in the [component design record](docs/component-plan.md) before implementation.
-  - [ ] Define the reusable selectable list/tree contract.
+  - [x] Define and implement the flat selectable list contract; tree expansion remains optional and unspecified.
   - [ ] Design optional inline completion triggers and `search(query)` providers; settle token boundaries, replacement behavior, and async handling.
   - [ ] Finalize optional `Runtime.Model` access and zero-or-one attached model ownership.
   - [ ] Settle remaining terminal details: unknown/incomplete prefix sequences, component API, screen updates, resizing, and connection lifecycle.

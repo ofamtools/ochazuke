@@ -5,5 +5,6 @@
   {"id": "destination", "value": ".", "kind": "path", "pathFilter": "dir", "path": ["app", "paths"]},
   {"id": "attachments", "value": "go.mod\nexamples", "kind": "paths", "pathFilter": "any", "path": ["app", "paths"]},
   {"id": "confirm-note", "value": "Confirm the release checklist", "kind": "text", "multiline": true, "path": ["app", "overview", "workspace", "editor"]},
+  {"id": "item-note", "value": "", "kind": "text", "multiline": true, "readlineOnly": true, "path": ["app", "items", "item-editor"]},
   {"id": "details-note", "value": "Nested modal: edit this independently, then Esc returns to confirmation.", "kind": "text", "multiline": true, "path": ["app", "overview", "workspace", "editor"]}
 ]

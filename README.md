@@ -333,6 +333,29 @@ model.ModalViews["picker"] = ochazuke.ModalView{
 }
 ```
 
+### Selectable lists
+
+`List` reuses the existing layer resolver, bindings, and bounded row-rendering helpers. The application owns records and registers the list and item layers before construction:
+
+```go
+items, err := ochazuke.NewList(r, []string{"app", "workspace", "sidebar"}, []ochazuke.ListItem{
+    {ID: "repository", Label: "Repository: ochazuke", Layer: "repo-1"},
+    {ID: "main", Label: "Worktree: main", Layer: "worktree-1"},
+})
+if err != nil { return err }
+if err := items.Focus(); err != nil { return err }
+```
+
+The final base-path layer (`sidebar` here) identifies the list in `Runtime.Lists`. Render `items.View(width, height)` inside an existing page or panel. It keeps the selected row visible as selection or viewport size changes. Default normal-mode `j/k` and up/down bindings are ordinary layer bindings; preconfigured list-layer bindings and inner item layers can override them.
+
+- `Focus()` selects the base path plus exactly one item layer and clears `InputID`. `Runtime.Focus(inputID)` or `Runtime.SelectContext` switches to another branch; the old selection remains, but its bindings are no longer active.
+- `Move(delta)` and `Select(itemID)` change selection without stealing focus. `Selected()` returns the selected value and whether one exists.
+- `SetItems(rows)` copies the records and preserves selection by stable ID. A removed selection falls back to its previous index, clamped to the remaining rows. An empty list keeps only the base context. Invalid IDs/layers reject the whole update.
+- Refreshes also update matching retained page and modal-parent contexts, so returning from another page/modal cannot restore a removed item's bindings. Register replacement item layers before refreshing; remove obsolete layers afterward.
+- Call these methods on the runtime's event loop. Data loading and domain actions remain application-owned. There is no tree expansion or built-in search provider.
+
+The operation equivalents are `focus.list {id}`, `move.list {id?, delta}`, and `select.list {id?, item}`. Omit `id` to operate on the list in the dispatch context. State is inspectable under `/lists/<id>`. The full-project example's **Items** page demonstrates list/editor focus, refresh, and removal with sample records.
+
 ### API and ownership
 
 Every keyboard action dispatches a registered operation. The CLI is a generic `NOUN VERB` adapter over that same registry; it has no separate list of supported actions. `operations list` returns the current catalog and argument specifications.
@@ -358,6 +381,7 @@ result, err := r.Execute(ochazuke.Request{
 |---|---|
 | `runtime.go`, `configuration.go` | Registry, layer resolution, contexts, modal stack, mode/binding configuration, JSON inspection |
 | `input.go`, `editing.go`, `editor*.go` | Input-owned undo, Vim/Readline keys, operators, visual geometry |
+| `list.go` | Flat selectable rows, stable-ID refresh, viewport scrolling, item-layer focus |
 | `registers.go`, `macros.go`, `yank_history.go` | App-owned yanks/registers, key recording/replay, history modal |
 | `palette.go`, `palette_editing.go`, `palette_nouns.go` | Verb/noun and live instance navigation, configured defaults, typed arguments, originating context |
 | `picker.go`, `picker_search.go` | Contextual path selection, asynchronous fuzzy indexing, native Git ignores |

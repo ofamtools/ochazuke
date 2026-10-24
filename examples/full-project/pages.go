@@ -21,7 +21,7 @@ func plain(text string) string {
 
 func registerPages(m *ochazuke.Model, specs []PageConfig) error {
 	for _, spec := range specs {
-		if spec.Renderer != "workspace" && spec.Renderer != "text" {
+		if spec.Renderer != "workspace" && spec.Renderer != "text" && spec.Renderer != "list" {
 			return fmt.Errorf("page %q: unknown renderer %q", spec.ID, spec.Renderer)
 		}
 		for _, id := range spec.Inputs {
@@ -33,16 +33,30 @@ func registerPages(m *ochazuke.Model, specs []PageConfig) error {
 		if spec.Context.InputID != "" && !slices.Contains(spec.Inputs, spec.Context.InputID) {
 			return fmt.Errorf("page %q: focused input must appear in inputs", spec.ID)
 		}
+		if spec.Renderer == "list" && (len(spec.Inputs) != 1 || spec.Context.InputID != "") {
+			return fmt.Errorf("list page %q requires one companion input and a list-focused context", spec.ID)
+		}
+		var list *ochazuke.List
 		page := &ochazuke.Page{ID: spec.ID, Title: spec.Title, Frame: &ochazuke.Frame{ID: spec.ID, Context: spec.Context, State: map[string]any{}}}
 		page.Render = func(r *ochazuke.Runtime, width, height int) string {
 			styles := ochazuke.NewStyles(*m.Appearance)
 			if spec.Renderer == "text" {
 				return ansi.Wrap(plain(spec.Text), max(1, width), "")
 			}
+			if spec.Renderer == "list" {
+				return listPageView(r, list, spec, styles, width, height)
+			}
 			return workspaceView(r, r.Pages[spec.ID].Frame, spec, styles, width, height)
 		}
 		if err := m.Runtime.RegisterPage(page); err != nil {
 			return fmt.Errorf("page %q: %w", spec.ID, err)
+		}
+		if spec.Renderer == "list" {
+			var err error
+			list, err = ochazuke.NewList(m.Runtime, spec.Context.Path, spec.Items)
+			if err != nil {
+				return fmt.Errorf("page %q: %w", spec.ID, err)
+			}
 		}
 	}
 	return nil

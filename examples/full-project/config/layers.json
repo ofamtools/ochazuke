@@ -3,5 +3,16 @@
   {"id": "workspace", "noun": "workspace"},
   {"id": "editor", "noun": "input"},
   {"id": "paths", "noun": "page"},
+  {"id": "items", "noun": "page"},
+  {"id": "item-list", "noun": "list"},
+  {"id": "item-editor", "noun": "input"},
+  {"id": "repo-1", "noun": "repository"},
+  {"id": "worktree-1", "noun": "worktree"},
+  {"id": "worktree-2", "noun": "worktree"},
+  {"id": "worktree-3", "noun": "worktree"},
+  {"id": "worktree-4", "noun": "worktree"},
+  {"id": "worktree-5", "noun": "worktree"},
+  {"id": "worktree-6", "noun": "worktree"},
+  {"id": "worktree-7", "noun": "worktree"},
   {"id": "help", "noun": "page"}
 ]
