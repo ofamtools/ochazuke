@@ -176,6 +176,38 @@ func (r *Runtime) setFocus(id string) {
 	r.focusMoved(stop, path, id)
 }
 
+// errModalAbove refuses a modal opened from beneath the top modal.
+var errModalAbove = errors.New("a modal is open above this level")
+
+// actingFor records the instance the running request (its target, else the
+// focus) or job completion acts for until restore.
+func (r *Runtime) actingFor(id string) (restore func()) {
+	before := r.origin
+	r.origin = id
+	return func() { r.origin = before }
+}
+
+// openFromTopLevel refuses opening a modal while another is open unless the
+// opener (the running request's target or focus, a completion's owner, else
+// the focus) is inside the top modal: nesting from the top is allowed, a
+// lower level cannot stack a modal over the one above it (first wins). A
+// modal body reopening itself (the palette restoring after a failed run)
+// is its own level and allowed.
+func (r *Runtime) openFromTopLevel(id string) error {
+	top := r.TopModal()
+	if top == "" {
+		return nil
+	}
+	origin := r.origin
+	if origin == "" {
+		origin = r.Focus
+	}
+	if ancestry := r.Ancestry(origin); !slices.Contains(ancestry, top) && (id == "" || !slices.Contains(ancestry, id)) {
+		return errModalAbove
+	}
+	return nil
+}
+
 // focusInTopLevel reports the focus invariant: the focus is inside the top
 // level, the top modal's subtree while a modal is open (else the current
 // page, else app).
@@ -238,6 +270,9 @@ func (r *Runtime) Push(id, focus string) error {
 	if slices.Contains(r.modals, id) {
 		return errors.New("modal is already open")
 	}
+	if err := r.openFromTopLevel(id); err != nil {
+		return err
+	}
 	if focus == "" {
 		focus = "app"
 	}
@@ -299,6 +334,9 @@ func (r *Runtime) OpenModal(kind string, payload Payload, opts ...ModalOption) (
 	}
 	if r.Instances[kind] != nil {
 		return nil, fmt.Errorf("modal %q is already open", kind)
+	}
+	if err := r.openFromTopLevel(""); err != nil {
+		return nil, err
 	}
 	spec := modalSpec{}
 	for _, opt := range opts {

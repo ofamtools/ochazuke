@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"context"
 	"slices"
 	"testing"
 
@@ -360,4 +361,45 @@ func TestFocusNeverLeavesTopModal(t *testing.T) {
 		t.Fatalf("pop to the page: %q", r.Focus)
 	}
 	check("pop to the page")
+}
+
+// A modal opens only from the top level: a request acting for an instance
+// beneath the open modal (its target), or a job completion owned by one, is
+// refused through the normal result path and lands in history; nesting from
+// inside the top modal is allowed; the same kind twice is refused.
+func TestModalOpensOnlyFromTopLevel(t *testing.T) {
+	r, _ := focusFixture(t)
+	r.Register(Operation{Verb: "prompt", Noun: "test", Parameters: map[string]Parameter{"kind": {Type: "string", Required: true}}, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		return r.OpenModal(StringArg(a, "kind", ""), Payload{Prompt: "?"})
+	}})
+	if _, err := r.Execute(Request{Verb: "prompt", Noun: "test", Args: Arguments{"kind": "ask"}}); err != nil {
+		t.Fatal(err)
+	}
+	_, err := r.Execute(Request{Verb: "prompt", Noun: "test", Target: "panel", Args: Arguments{"kind": "lower"}})
+	if err == nil || err.Error() != "a modal is open above this level" || r.TopModal() != "ask" {
+		t.Fatalf("open from beneath the modal: %v top %q", err, r.TopModal())
+	}
+	if e := r.History(1)[0]; e.Result.OK || e.Result.Error != "a modal is open above this level" {
+		t.Fatalf("refusal is in history: %+v", e)
+	}
+	// A completion owned by an instance beneath the modal cannot open one.
+	var completionErr error
+	if _, err := r.Start("panel", func(context.Context) (any, error) { return nil, nil }, func(c Ctx, _ any, _ error) {
+		_, completionErr = c.Runtime.OpenModal("late", Payload{})
+	}, Ctx{Runtime: r, Instance: r.Instances["panel"]}); err != nil {
+		t.Fatal(err)
+	}
+	for _, msg := range runCommands(r.PendingCommands()) {
+		_, _ = r.Deliver(msg)
+	}
+	if completionErr == nil || completionErr.Error() != "a modal is open above this level" {
+		t.Fatalf("completion beneath the modal: %v", completionErr)
+	}
+	// Nesting from the top modal is allowed; the same kind is refused.
+	if _, err := r.Execute(Request{Verb: "prompt", Noun: "test", Args: Arguments{"kind": "nested"}}); err != nil || r.TopModal() != "nested" {
+		t.Fatalf("nested from the top: %v top %q", err, r.TopModal())
+	}
+	if _, err := r.Execute(Request{Verb: "prompt", Noun: "test", Args: Arguments{"kind": "nested"}}); err == nil {
+		t.Fatal("same kind twice must fail")
+	}
 }

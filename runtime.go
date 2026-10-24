@@ -99,6 +99,7 @@ type Runtime struct {
 	guards         map[string]Guard
 	predicates     map[string]PredicateFunc // named query predicates (query.go)
 	history        actionHistory            // the executed-request ring and the current source (history.go)
+	origin         string                   // the instance the running request or completion acts for; a modal opens only from the top level
 	prefix         pendingPrefix
 	bindingVersion uint64
 	modeGeneration uint64
@@ -378,6 +379,7 @@ func (r *Runtime) execute(c Context, q Request) (any, error) {
 	if c.InputID != "" && r.Input(c.InputID) == nil {
 		return nil, fmt.Errorf("unknown input %q", c.InputID)
 	}
+	defer r.actingFor(focus)()
 	if op.Confirm != "" && !q.Confirmed {
 		return r.openConfirm(c, q, op)
 	}

@@ -290,6 +290,7 @@ func (r *Runtime) Deliver(msg tea.Msg) (bool, error) {
 			return true, nil
 		}
 		j := r.jobs[done.Job]
+		defer r.actingFor(done.Owner)()
 		if j.then != nil {
 			j.then(j.ctx, done.Value, done.Err)
 		}
