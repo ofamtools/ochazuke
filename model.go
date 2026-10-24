@@ -51,6 +51,7 @@ func NewModel(r *Runtime) *Model {
 	m := &Model{Runtime: r, Palette: NewPalette(r), Appearance: NewAppearance(r), ModalViews: map[string]ModalView{}, Title: "Ochazuke", Width: 80, Height: 24, views: map[string]*viewport.Model{}, scroll: map[string]int{}}
 	m.ModalViews[yankHistoryID] = ModalView{Title: "Yank history", Render: yankHistoryView}
 	m.ModalViews["confirm"] = ModalView{Title: "Confirm", Render: confirmView}
+	m.ModalViews[helpID] = ModalView{Title: "Keys", Render: bindingHelpView}
 	r.Register(Operation{Verb: "scroll", Noun: "surface", Description: "Scroll the active page or modal without changing focus", Parameters: map[string]Parameter{"lines": {Type: "integer", Required: true}}, Result: "scroll offset", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		key := m.surfaceKey()
 		width, height := m.pageSize()
@@ -88,6 +89,7 @@ func NewModel(r *Runtime) *Model {
 	}
 	defaultRow("normal", ":", Do("palette.open"))
 	defaultRow("normal", "ctrl+y", Do("yank-history.open"))
+	defaultRow("normal", "?", Do("bindings.help"))
 	defaultRow("normal", "ctrl+j", Do("page.next"))
 	defaultRow("normal", "ctrl+k", Do("page.previous"))
 	defaultRow("", "ctrl+space", Do("palette.open"))

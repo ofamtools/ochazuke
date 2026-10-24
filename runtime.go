@@ -163,6 +163,7 @@ func NewRuntime() *Runtime {
 	RegisterInputOperations(r)
 	registerRegisters(r)
 	registerYankHistory(r)
+	registerBindingHelp(r)
 	registerMacros(r)
 	registerModeTables(r)
 	registerEditorNoun(r)
