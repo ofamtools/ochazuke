@@ -268,6 +268,10 @@ page.focusables (optional)                     // explicit order override, the r
 - Two levels of jump, two declared properties. `focusable` marks stops; `region` marks groupings (panels) that are never stops themselves. `focus.next {scope: "stop"}` (default) moves component to component, so one press leaves a 3000-row list for the button below it in the same panel; `focus.next {scope: "region"}` moves panel to panel and lands on the first (or remembered) stop inside. Both take `steps` from the count. Owner's default keys: `}` `{` for stops, `)` `(` for regions (the inverse of Vim's sentence/paragraph sizes; chosen deliberately); tab / shift+tab also bound to stops.
 - Additive: `Focusable` and `Region` on Define and Instance, the three operations with a `scope` argument, optional `Page.Focusables`.
 
+### 1d. Modals are a z-index boundary for resolution (decision)
+
+Found after phase 8: `OpenModal` parents the modal at the focus it opened over, and `stack()` walks that link, so a key inside a modal reached the panel's table beneath it (proved by test). Rule: pages, panels and components are one z-level and only components take focus; a modal is level 2. While a modal is open the walk is [focus … top modal instance] + [modal noun] + [app] (+ editor fallback if an input is on that path); nothing beneath the modal instance is consulted. `Parent` stays for pop/return and rendering. App-level capture rows still apply. `bindings list` and help reflect the same boundary. Assigned to the framework follow-up branch.
+
 ### 2. Bugs and oversights in the resolver
 
 Status: done, commit d88e068 (step 4). The prefix payload carries `Count` and `OpCount`. The level-target rule is narrowed: a row addresses its level's instance when the operation's noun is the level's noun (`row.delete` on `row`); shared operations a level binds (`mode.set`, `input.*`, `focus.*`, register and macro rows on app) keep the focus, since retargeting them broke input context and noun overrides.
