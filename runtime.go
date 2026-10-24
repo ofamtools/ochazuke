@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -18,6 +19,12 @@ type Parameter struct {
 	Type        string `json:"type"`
 	Required    bool   `json:"required,omitempty"`
 	Description string `json:"description,omitempty"`
+	// Enum lists the static choices of a string parameter; Source names an
+	// operation (noun.verb) whose result lists more. Free also accepts a
+	// value outside them.
+	Enum   []string `json:"enum,omitempty"`
+	Source string   `json:"source,omitempty"`
+	Free   bool     `json:"free,omitempty"`
 }
 
 // Request names an operation and, optionally, the instance it addresses.
@@ -401,7 +408,7 @@ func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
 	if !ok {
 		return nil, fmt.Errorf("unknown operation %q", q.Key())
 	}
-	if err := validateArguments(op, q.Args); err != nil {
+	if err := r.checkArguments(op, q.Args); err != nil {
 		return nil, err
 	}
 	if q.Target != "" && q.Target != "focused-input" {
@@ -460,6 +467,9 @@ func validateArguments(op Operation, args Arguments) error {
 		}
 		if !valid {
 			return fmt.Errorf("%s must be %s", name, p.Type)
+		}
+		if s, ok := v.(string); ok && len(p.Enum) > 0 && p.Source == "" && !p.Free && !slices.Contains(p.Enum, s) {
+			return fmt.Errorf("%s must be one of %s", name, strings.Join(p.Enum, ", "))
 		}
 	}
 	return nil

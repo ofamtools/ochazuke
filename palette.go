@@ -31,6 +31,8 @@ type Palette struct {
 	editors       map[string]*Input
 	explicitEmpty map[string]bool
 	nouns         map[string]PaletteNoun
+	choice        int
+	choiceCache   map[string]choiceList
 }
 
 func NewPalette(r *Runtime) *Palette {
@@ -52,7 +54,10 @@ func NewPalette(r *Runtime) *Palette {
 	}
 	register("open", "palette", "Open the nested verb/noun palette", nil, func(Arguments) error { return p.open() })
 	register("close", "palette", "Cancel the palette without executing", nil, func(Arguments) error { return p.close() })
-	register("move", "palette", "Move the palette selection or argument focus; column switches between the root verb and noun lists", map[string]Parameter{"delta": {Type: "integer"}, "column": {Type: "string", Description: "left or right: jump between the root columns"}}, func(a Arguments) error {
+	register("move", "palette", "Move the palette selection or argument focus; column switches between the root verb and noun lists", map[string]Parameter{"delta": {Type: "integer"}, "column": {Type: "string", Description: "left or right: jump between the root columns"}, "choice": {Type: "integer", Description: "move the highlighted pick-list choice, or the list selection"}}, func(a Arguments) error {
+		if _, ok := a["choice"]; ok {
+			return p.moveChoice(IntArg(a, "choice", 0))
+		}
 		if column := StringArg(a, "column", ""); column != "" {
 			return p.moveColumn(column)
 		}
@@ -126,6 +131,8 @@ func NewPalette(r *Runtime) *Palette {
 			m.Bind(key, Do("palette.move", Arguments{"delta": delta}))
 		}
 		m.Bind("enter", Do("palette.select")).
+			Bind("ctrl+n", Do("palette.move", Arguments{"choice": 1})).
+			Bind("ctrl+p", Do("palette.move", Arguments{"choice": -1})).
 			Bind("ctrl+enter", Do("palette.execute")).
 			Bind("ctrl+c", Do("palette.close")).
 			Bind("backspace", Do("palette.delete")).
@@ -271,6 +278,7 @@ func (p *Palette) move(delta int) error {
 	if count > 0 {
 		*index = ((*index+delta)%count + count) % count
 	}
+	p.choice = 0
 	p.focusEditor()
 	p.message = ""
 	return nil
@@ -287,6 +295,12 @@ func (p *Palette) choose(a Arguments) error {
 		if p.field == len(p.fields) {
 			return p.execute()
 		}
+		if name, ok := p.pickField(); ok {
+			if err := p.pick(name); err != nil {
+				return err
+			}
+		}
+		p.choice = 0
 		p.field++
 		p.focusEditor()
 		p.message = ""
@@ -337,6 +351,8 @@ func (p *Palette) choose(a Arguments) error {
 		p.fields = nil
 		p.drafts = map[string]string{}
 		p.field = 0
+		p.choice = 0
+		p.choiceCache = nil
 		for name := range op.Parameters {
 			p.fields = append(p.fields, name)
 		}
@@ -389,6 +405,7 @@ func (p *Palette) back() error {
 		p.fields = nil
 		p.drafts = map[string]string{}
 		p.field = 0
+		p.choiceCache = nil
 	}
 	p.r.setFocus(p.frame, "palette")
 	p.query = ""
@@ -439,6 +456,7 @@ func (p *Palette) insert(text string) error {
 		return err
 	}
 	p.collectEditors()
+	p.choice = 0
 	p.message = ""
 	return nil
 }
@@ -460,6 +478,7 @@ func (p *Palette) erase() error {
 		}
 	}
 	p.collectEditors()
+	p.choice = 0
 	p.message = ""
 	return nil
 }
@@ -475,6 +494,9 @@ func (p *Palette) arguments() (Arguments, error) {
 				return nil, fmt.Errorf("%s is required", name)
 			}
 			continue
+		}
+		if err := p.checkChoice(name, text); err != nil {
+			return nil, err
 		}
 		switch param.Type {
 		case "string":
@@ -602,6 +624,11 @@ func (p *Palette) viewBlock(width, height int) Block {
 			if param.Required {
 				kind = "required"
 			}
+			if param.Free {
+				kind += ", pick or type"
+			} else if len(param.Enum) > 0 || param.Source != "" {
+				kind += ", pick"
+			}
 			value, present := p.drafts[name]
 			if !present {
 				value = "<omitted>"
@@ -619,12 +646,15 @@ func (p *Palette) viewBlock(width, height int) Block {
 				fmt.Fprintf(&out, " — %s", param.Description)
 			}
 			out.WriteByte('\n')
+			if _, ok := p.pickField(); ok && i == p.field {
+				p.writeChoices(&out, name, max(1, height-len(p.fields)-6))
+			}
 		}
 		marker := "  "
 		if p.field == len(p.fields) {
 			marker = "> "
 		}
-		fmt.Fprintf(&out, "%sExecute\nTab/arrows: field · Enter: next/execute · Esc: normal/back · Ctrl-C: cancel\n", marker)
+		fmt.Fprintf(&out, "%sExecute\nTab/arrows: field · Ctrl-N/P: choice · Enter: pick/next/execute · Esc: normal/back · Ctrl-C: cancel\n", marker)
 	} else {
 		if p.stage != "root" {
 			fmt.Fprintf(&out, "%s", p.section)

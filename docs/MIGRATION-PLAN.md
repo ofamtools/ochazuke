@@ -169,6 +169,7 @@ Owner input (relayed from the forked design session): unify the chrome. One `Lay
 Owner-confirmed items, relayed from the forked design session:
 
 1. `Parameter` gains `enum` (static choices) and `source` (a verb that returns choices, such as `list.projects`). Palette argument fields, forms and CLI completion render a pick list from them. Palette modes are unaffected.
+   Status: done for the palette and CLI help (branch param-source). `Parameter.Enum`, `Source` (an operation key, `noun.verb`) and `Free`; palette argument fields become filtered pick lists (`Ctrl-N/P`, Enter picks); `Execute` validates Enum statically and Source lazily, skipping a failing source; `ochazuke NOUN VERB --help` prints choices. Deferred: forms and shell completion.
 2. docgen is retargeted, not dropped: generate a reference manual from the `Define` data (per noun: verbs, params with choices, confirm, interaction or application kind; per noun per mode: key tables; app page children). Hand-written docs stay (architecture guide, input modes, this plan). Delete only stale output: visual-check PNGs, pre-migration architecture-map json and html, layer-era bindings.html and actions.html that docgen regenerates.
 
 Noted during phase 7, not done: `Terminal` frames are rows of ANSI, so a cell-buffer source (`x/vt`) would be adapted by the stream, not the framework; a pane that needs a read to restart after a dropped command re-arms only on delivery; hints have no per-row description (rows show `key noun.verb`).

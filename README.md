@@ -285,6 +285,18 @@ A `PaletteSource` receives the runtime and originating context and returns `[]Pa
 
 For nouns with sources, `palette.select` accepts `instance:<id>` or `verb:<verb>`. Its published `entries` distinguish item kinds and labels. For example, `noun:page` followed by `instance:playground` opens Playground without an argument form; `verb:open` still exposes the normal form.
 
+#### Argument choices
+
+A `Parameter` with `Enum` (static values) or `Source` (an operation key such as `transformations.list` whose result is `[]string`, `[]{id, label}` or `[]any` of either) becomes a pick list in the palette's argument form: the field's text filters the choices, `Ctrl-N/P` moves the highlight, and Enter completes the field to the highlighted choice and advances. A value outside the choices is refused, by the palette and by `Execute`, unless the parameter sets `Free`. A source is called at execution to validate; if it fails, validation is skipped rather than blocking the operation. `operations.list` publishes the fields, and `ochazuke NOUN VERB --help` prints the choices from the running app.
+
+```js
+// Parameters of transform.apply
+{ name: { type: "string", required: true, source: "transformations.list" },
+  case: { type: "string", enum: ["upper", "lower"] },
+  tag:  { type: "string", enum: ["draft"], free: true } }
+// transformations.list returns ["trim", "dedupe"] or [{ id: "trim", label: "Trim spaces" }]
+```
+
 ### Readline-only inputs: the prompt noun
 
 Register an input as an instance of the `prompt` noun:
@@ -434,7 +446,8 @@ result, err := r.Execute(ochazuke.Request{
 | `input.go`, `editing.go`, `editor*.go` | Input-owned undo, the editor handlers (motions, operators, kills, insert, paste), visual geometry |
 | `list.go` | Flat selectable rows as instances of their nouns, marks and fan-out, stable-ID refresh, viewport scrolling, row focus |
 | `registers.go`, `macros.go`, `yank_history.go` | The `registers` component: yanks, named registers, history, active register, key recording/replay, history modal |
-| `palette.go`, `palette_editing.go`, `palette_nouns.go` | Verb/noun and live instance navigation, configured defaults, typed arguments, originating context |
+| `palette.go`, `palette_editing.go`, `palette_nouns.go`, `palette_choices.go` | Verb/noun and live instance navigation, configured defaults, typed arguments, argument pick lists, originating context |
+| `params.go` | Parameter choices: `Choice`, `ParseChoices`, `Runtime.Choices`, Enum/Source validation at execution |
 | `picker.go`, `picker_search.go` | Contextual path selection, asynchronous fuzzy indexing, native Git ignores |
 | `pages.go` | Pages as instances of kind `page` (`AddPage`, `RegisterPage`), `Runtime.Page`, retained frames, navigation, and focus isolation |
 | `terminal.go` | The `terminal` noun: `AddTerminal`, `TerminalStream`, frames through the delivery contract, the leader contract, pane cursor |

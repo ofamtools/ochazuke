@@ -85,6 +85,11 @@ func run(args []string) error {
 	raw := callFlags.String("json", "{}", "Operation arguments as a JSON object")
 	target := callFlags.String("target", "", "Instance ID (input, list, row, page, modal body), or focused-input (default current context)")
 	if err := callFlags.Parse(rest[2:]); err != nil {
+		if err == flag.ErrHelp {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			return operationHelp(ctx, *socket, rest[0], rest[1], callFlags.Output())
+		}
 		return err
 	}
 	if callFlags.NArg() != 0 {
