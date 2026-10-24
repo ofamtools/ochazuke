@@ -29,6 +29,7 @@ type Instance struct {
 	lastFocus   string    // the focus last inside this instance when focus left it; a jump lands there
 	borrowed    string    // an open modal's adopted focus (Push of a focus outside it) and that focus's own parent, restored on Pop
 	lentParent  string
+	closeFocus  string // FocusOnClose: where the focus goes when this instance is removed while it holds the focus
 }
 
 // Payload is the small typed state a mode carries (Runtime.Mode.Payload).
@@ -54,8 +55,8 @@ func (p Payload) empty() bool {
 }
 
 type instanceSpec struct {
-	parent, noun, focus string
-	closeOnDetach       bool
+	parent, noun, focus, closeFocus string
+	closeOnDetach                   bool
 }
 
 // InstanceOption configures the instance constructors: Instance, AddPage,
@@ -79,6 +80,15 @@ func Focus(id string) InstanceOption { return func(s *instanceSpec) { s.focus = 
 // of kept for a later attach. Only AddTerminal reads it.
 func CloseOnDetach() InstanceOption { return func(s *instanceSpec) { s.closeOnDetach = true } }
 
+// FocusOnClose names the instance the focus moves to when this instance is
+// removed while the focus is on it or inside it: a CloseOnDetach detach,
+// Pop of a modal body, a list row dropped by SetItems, RemoveInstance. A
+// target that is gone (or removed with it) falls back to the default (the
+// parent, or the return Pop restores). Every constructor reads it.
+func FocusOnClose(id string) InstanceOption {
+	return func(s *instanceSpec) { s.closeFocus = id }
+}
+
 // Instance registers a plain instance: a page body, a panel, a modal body.
 // Its noun is defined when it does not exist yet. Registering an existing id
 // returns it unchanged.
@@ -95,7 +105,7 @@ func (r *Runtime) Instance(id string, opts ...InstanceOption) *Instance {
 	}
 	r.Define(spec.noun)
 	r.seq++
-	inst := &Instance{ID: id, Noun: spec.noun, Parent: spec.parent, seq: r.seq}
+	inst := &Instance{ID: id, Noun: spec.noun, Parent: spec.parent, seq: r.seq, closeFocus: spec.closeFocus}
 	r.Instances[id] = inst
 	return inst
 }

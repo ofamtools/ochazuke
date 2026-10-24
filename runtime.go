@@ -278,7 +278,7 @@ func (r *Runtime) AddInput(in *Input, opts ...InstanceOption) error {
 		in.SetMode(in.pin)
 	}
 	r.seq++
-	inst := &Instance{ID: in.ID, Noun: spec.noun, Parent: spec.parent, Component: in, seq: r.seq}
+	inst := &Instance{ID: in.ID, Noun: spec.noun, Parent: spec.parent, Component: in, seq: r.seq, closeFocus: spec.closeFocus}
 	r.Instances[in.ID] = inst
 	in.r = r
 	return nil

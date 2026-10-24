@@ -391,3 +391,79 @@ func TestTerminalCloseReleasesStream(t *testing.T) {
 		t.Fatalf("CloseOnDetach: released=%d instance=%v focus=%q", other.released, r.Instances["live"], r.Focus)
 	}
 }
+
+// focusOnCloseFixture is a page holding a list of rows with b selected.
+func focusOnCloseFixture(t *testing.T) *Runtime {
+	t.Helper()
+	r := NewRuntime()
+	r.BindingTimeout = time.Hour
+	r.Define("row")
+	r.Instance("panes")
+	list, err := r.AddList("rows", []ListItem{{ID: "a", Label: "A", Noun: "row"}, {ID: "b", Label: "B", Noun: "row"}}, Parent("panes"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.AddPage("panes", "Panes", func(*Runtime, int, int) Block { return Text("") }, Focus("rows")); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.OpenPage("panes"); err != nil {
+		t.Fatal(err)
+	}
+	if err := list.Select("b"); err != nil {
+		t.Fatal(err)
+	}
+	return r
+}
+
+// A CloseOnDetach terminal with FocusOnClose hands the focus to the named
+// row on the leader detach; a target that does not exist falls back to the
+// parent.
+func TestTerminalFocusOnCloseReturnsToNamedInstance(t *testing.T) {
+	for _, tc := range []struct{ target, want string }{{"b", "b"}, {"missing", "panes"}} {
+		r := focusOnCloseFixture(t)
+		stream := newFakeStream()
+		if _, err := r.AddTerminal("live", stream, Parent("panes"), CloseOnDetach(), FocusOnClose(tc.target)); err != nil {
+			t.Fatal(err)
+		}
+		if err := r.SetFocus("live"); err != nil {
+			t.Fatal(err)
+		}
+		press(t, r, "ctrl+a", "d")
+		if stream.released != 1 || r.Instances["live"] != nil || r.Focus != tc.want {
+			t.Fatalf("FocusOnClose(%q): released=%d instance=%v focus=%q want %q", tc.target, stream.released, r.Instances["live"], r.Focus, tc.want)
+		}
+	}
+}
+
+// FocusOnClose is not terminal-specific: a modal input removed by Pop and an
+// input removed by RemoveInstance both send the focus to their target.
+func TestFocusOnCloseOnPopAndRemoveInstance(t *testing.T) {
+	r := focusOnCloseFixture(t)
+	if err := r.SetFocus("a"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.OpenModal("ask", Payload{}, WithInput(NewInput("answer", "", false), FocusOnClose("b"))); err != nil {
+		t.Fatal(err)
+	}
+	if r.Focus != "answer" {
+		t.Fatalf("modal focus %q", r.Focus)
+	}
+	if err := r.Pop(); err != nil {
+		t.Fatal(err)
+	}
+	if r.Focus != "b" || r.Instances["answer"] != nil {
+		t.Fatalf("Pop: focus=%q", r.Focus)
+	}
+	if err := r.AddInput(NewInput("note", "", false), Parent("panes"), FocusOnClose("a")); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.SetFocus("note"); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.RemoveInstance("note"); err != nil {
+		t.Fatal(err)
+	}
+	if r.Focus != "a" {
+		t.Fatalf("RemoveInstance: focus=%q", r.Focus)
+	}
+}

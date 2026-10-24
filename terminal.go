@@ -79,7 +79,7 @@ func (r *Runtime) AddTerminal(id string, stream TerminalStream, opts ...Instance
 		return nil, fmt.Errorf("unknown parent %q", spec.parent)
 	}
 	t := &Terminal{r: r, id: id, stream: stream, closeOnDetach: spec.closeOnDetach}
-	inst := r.Instance(id, Parent(spec.parent), Kind(spec.noun))
+	inst := r.Instance(id, Parent(spec.parent), Kind(spec.noun), FocusOnClose(spec.closeFocus))
 	inst.Component = t
 	t.read()
 	return t, nil
@@ -268,11 +268,17 @@ func registerTerminal(r *Runtime) {
 			if err != nil {
 				return nil, err
 			}
-			if err = r.SetFocus(r.Instances[t.id].Parent); err == nil && t.closeOnDetach {
+			back := r.Instances[t.id].Parent
+			if t.closeOnDetach {
+				if to := r.closeFocusOf(t.id, r.subtreeSet(t.id)); to != "" {
+					back = to
+				}
+			}
+			if err = r.SetFocus(back); err == nil && t.closeOnDetach {
 				err = r.RemoveInstance(t.id)
 			}
 			return r.Context(), err
-		}, "Return focus to the instance around the terminal; the pane keeps running (a CloseOnDetach terminal is removed and its stream released)").
+		}, "Return focus to the instance around the terminal; the pane keeps running (a CloseOnDetach terminal is removed, its stream released and the focus sent to its FocusOnClose target)").
 		Mode("terminal").
 		Bind("ctrl+a", Enter("leader_pending", Payload{Prefix: "ctrl+a", Request: &leader})).
 		Pattern(Paste, Do("terminal.paste").FromPayload("text", SourceText)).

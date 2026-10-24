@@ -389,6 +389,9 @@ func (r *Runtime) Pop() error {
 	}
 	inst.borrowed, inst.lentParent = "", ""
 	if r.modalInstances[id] {
+		if to := r.closeFocusOf(from, r.subtreeSet(id)); to != "" {
+			back, mode = to, ModeState{}
+		}
 		delete(r.modalInstances, id)
 		r.dropSubtree(id)
 	} else {
@@ -420,6 +423,31 @@ func (r *Runtime) subtree(id string) []string {
 	return append(out, id)
 }
 
+// subtreeSet is subtree as a set.
+func (r *Runtime) subtreeSet(id string) map[string]bool {
+	out := map[string]bool{}
+	for _, one := range r.subtree(id) {
+		out[one] = true
+	}
+	return out
+}
+
+// closeFocusOf is the FocusOnClose target for a focus at from when the
+// instances in gone are removed: the innermost removed instance on from's
+// path that names a target which survives. Empty means the default.
+func (r *Runtime) closeFocusOf(from string, gone map[string]bool) string {
+	for _, id := range r.Ancestry(from) {
+		if !gone[id] {
+			continue
+		}
+		to := r.Instances[id].closeFocus
+		if to != "" && r.Instances[to] != nil && !gone[to] {
+			return to
+		}
+	}
+	return ""
+}
+
 // dropSubtree closes and drops an instance and its descendants without
 // touching focus references.
 func (r *Runtime) dropSubtree(id string) {
@@ -433,7 +461,8 @@ func (r *Runtime) dropSubtree(id string) {
 // RemoveInstance closes an instance and its descendants (components closed,
 // jobs cancelled) and drops them. Every focus reference into the removed
 // subtree (Focus, a page's remembered focus, an open modal's return) moves
-// to the nearest surviving ancestor; an open modal inside the subtree is
+// to the nearest surviving ancestor (the Focus itself to a removed
+// instance's FocusOnClose target when that survives); an open modal inside the subtree is
 // kept and reparented there. app cannot be removed.
 func (r *Runtime) RemoveInstance(id string) error {
 	inst := r.Instances[id]
@@ -458,6 +487,12 @@ func (r *Runtime) RemoveInstance(id string) error {
 	}
 	from := r.Focus
 	stop, path := r.stopOf(from), r.Ancestry(from)
+	back := parent
+	if gone[from] {
+		if to := r.closeFocusOf(from, gone); to != "" {
+			back = to
+		}
+	}
 	for _, page := range r.PageList() {
 		if gone[page.Remembered] {
 			page.Remembered, page.mode = parent, ModeState{}
@@ -478,9 +513,9 @@ func (r *Runtime) RemoveInstance(id string) error {
 	}
 	if gone[from] {
 		r.CancelPendingBinding()
-		parent = r.clampFocus(parent)
-		r.Focus = parent
-		r.focusMoved(stop, path, parent)
+		back = r.clampFocus(back)
+		r.Focus = back
+		r.focusMoved(stop, path, back)
 	}
 	return nil
 }

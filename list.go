@@ -53,7 +53,7 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 		return nil, fmt.Errorf("unknown parent %q", spec.parent)
 	}
 	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}}
-	r.Instance(id, Parent(spec.parent), Kind(spec.noun))
+	r.Instance(id, Parent(spec.parent), Kind(spec.noun), FocusOnClose(spec.closeFocus))
 	r.Instances[id].Component = list
 	if err := list.SetItems(items); err != nil {
 		_ = r.RemoveInstance(id)
