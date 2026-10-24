@@ -131,7 +131,7 @@ Root package `ochazuke` is flat: 42 source files, 32 test files. Each entry list
 
 ### list.go
 
-- lines: 396 · tests: list_test.go
+- lines: 401 · tests: list_test.go
 - purpose: ListItem is application-owned identity, display text, and the registered noun the row answers to.
 - types: ListItem, List
 - methods: List(17), Runtime(1)

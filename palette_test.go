@@ -264,6 +264,11 @@ func TestPaletteEnterRunsUnlessAWordIsHighlighted(t *testing.T) {
 	if _, err := p.HandleKey("enter"); err == nil || !strings.Contains(err.Error(), "ambiguous") || p.Text() != "tr" {
 		t.Fatalf("enter on tr picked a completion or ran: %v line=%q", err, p.Text())
 	}
+	// Nothing is highlighted and no row carries a marker until ctrl+n or
+	// ctrl+p; enter above ran (here: refused) the typed line.
+	if view := p.View(); strings.Contains(view, "> ") || p.state()["highlight"] != -1 {
+		t.Fatalf("a completion is highlighted before ctrl+n:\n%s", view)
+	}
 	paletteKeys(t, p, "ctrl+n")
 	if view := p.View(); !strings.Contains(view, "> transform") {
 		t.Fatalf("ctrl+n did not highlight:\n%s", view)

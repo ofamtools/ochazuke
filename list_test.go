@@ -182,16 +182,19 @@ func TestListKeepsSelectionVisibleAcrossResizesAndExtremeMoves(t *testing.T) {
 	if err := list.SetItems(items); err != nil {
 		t.Fatal(err)
 	}
+	if err := list.Focus(); err != nil {
+		t.Fatal(err)
+	}
 	for _, step := range []struct {
 		delta, width, height int
 		visible              string
 	}{
-		{math.MaxInt, 20, 5, "> Row 19"}, {-1, 20, 3, "> Row 18"}, {math.MinInt, 20, 10, "> Row 00"}, {12, 20, 1, "> Row 12"},
+		{math.MaxInt, 20, 5, "Row 19"}, {-1, 20, 3, "Row 18"}, {math.MinInt, 20, 10, "Row 00"}, {12, 20, 1, "Row 12"},
 	} {
 		list.Move(step.delta)
 		view := list.View(step.width, step.height)
-		if !strings.Contains(ansi.Strip(view), step.visible) {
-			t.Fatalf("selection hidden:\n%s", view)
+		if got := highlightedRows(view); len(got) != 1 || got[0] != step.visible {
+			t.Fatalf("selection hidden (highlighted %q):\n%s", got, view)
 		}
 		rows := strings.Split(view, "\n")
 		if len(rows) != step.height {
@@ -261,5 +264,53 @@ func TestListItemsAndLen(t *testing.T) {
 	}
 	if err := list.SetItems(nil); err != nil || list.Len() != 0 || len(list.Items()) != 0 {
 		t.Fatalf("empty: %v, len %d", err, list.Len())
+	}
+}
+
+// highlightedRows are the stripped, trimmed rows of view drawn in reverse
+// video: the focused list's selected row.
+func highlightedRows(view string) []string {
+	var out []string
+	for _, row := range strings.Split(view, "\n") {
+		if strings.Contains(row, "\x1b[7m") {
+			out = append(out, strings.TrimSpace(ansi.Strip(row)))
+		}
+	}
+	return out
+}
+
+// Only the focused list shows its selected row, by the highlight alone: no
+// list draws a cursor marker, and an unfocused list's rows are plain. Marked
+// rows take a "* " gutter, which every row gets while the list has a mark.
+func TestListOnlyTheFocusedListHighlightsAndNoneDrawsAMarker(t *testing.T) {
+	r, list, _, items := listFixture(t)
+	other, err := NewList(r, "other-list", []ListItem{{ID: "x", Label: "Ex", Noun: "a"}, {ID: "y", Label: "Why", Noun: "a"}}, Parent("page"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := list.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	if got := highlightedRows(list.View(30, 3)); !reflect.DeepEqual(got, []string{"First item"}) {
+		t.Fatalf("focused list highlights %q", got)
+	}
+	plain := other.View(30, 2)
+	if got := highlightedRows(plain); got != nil || ansi.Strip(plain) != plain {
+		t.Fatalf("unfocused list is styled: %q", plain)
+	}
+	if rows := strings.Split(ansi.Strip(list.View(30, 3)+"\n"+plain), "\n"); !strings.HasPrefix(rows[0], "First item") || !strings.HasPrefix(rows[3], "Ex") {
+		t.Fatalf("rows do not start at the left edge or carry a marker: %q", rows)
+	}
+	if err := list.ToggleMark(items[1].ID); err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Split(ansi.Strip(list.View(30, 3)), "\n"); strings.TrimRight(got[0], " ") != "  First item" || strings.TrimRight(got[1], " ") != "* Second item" {
+		t.Fatalf("marked gutter: %q", got)
+	}
+	if err := other.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	if highlightedRows(list.View(30, 3)) != nil || !reflect.DeepEqual(highlightedRows(other.View(30, 2)), []string{"Ex"}) {
+		t.Fatal("the highlight did not follow the focus")
 	}
 }

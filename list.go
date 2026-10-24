@@ -279,16 +279,21 @@ func (l *List) View(width, height int) string {
 	}
 	end := min(len(l.items), l.offset+visible)
 	rows := make([]string, 0, height)
-	focused := l.Focused()
+	// The focused list's selected row is the inverted highlight alone: no
+	// cursor marker, so an unfocused list's rows are plain and only one row
+	// on screen stands out. Marked rows take a "* " gutter, which every row
+	// gets while the list has a mark.
+	focused, gutter := l.Focused(), len(l.marks) > 0
 	for i := l.offset; i < end; i++ {
-		mark := "  "
-		if l.marks[l.items[i].ID] {
-			mark = "* "
+		label := modalLabel(l.items[i].Label)
+		if gutter {
+			mark := "  "
+			if l.marks[l.items[i].ID] {
+				mark = "* "
+			}
+			label = mark + label
 		}
-		if i == l.selected {
-			mark = "> "
-		}
-		row := ansi.Truncate(mark+modalLabel(l.items[i].Label), width, "…")
+		row := ansi.Truncate(label, width, "…")
 		if i == l.selected && focused {
 			row = lipgloss.NewStyle().Reverse(true).Render(row)
 		}
