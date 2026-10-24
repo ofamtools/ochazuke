@@ -49,7 +49,7 @@ define("column", {
     delete: { run: app.deleteColumn, confirm: "Delete column {{id}}?" },
     sort:   app.sortBy,
     filter: app.filter,
-    transform: { run: app.transform, params: { name: { type: "string", source: "list.transformations" } } },
+    transform: { run: app.transform, params: { name: { type: "string", source: "transformations.list" } } },
   },
   bindings: { normal: { r: "rename", D: "delete", s: "sort", "/": "filter" } },
 })
@@ -123,7 +123,7 @@ transformations = {
 }                                                   // grows without touching nouns or bindings
 sheetTransformations = { fillDown: (sheet, cell) => ..., formula: (sheet, cell, expr) => evaluate(expr, sheet) }
 
-transform: { run: app.transform, params: { name: { type: "string", source: "list.transformations" } } }
+transform: { run: app.transform, params: { name: { type: "string", source: "transformations.list" } } }
 bindings: { normal: { "t u": do("transform", { name: "upper" }), "t l": do("transform", { name: "lower" }) } }
 
 app.transform = ({ instance, selection, args }) =>

@@ -108,7 +108,7 @@ When a complete binding is also a prefix of a longer binding, the runtime waits 
 - On timeout, the fallback (the longest completed binding) runs. The sandbox updates the outcome of the last key row rather than adding a key; if nothing runs, it shows that the sequence timed out.
 - If a different key arrives, the completed fallback (if any) runs and the mismatching key is then dispatched fresh through the whole stack, so it still reaches the editor or any row that binds it.
 - A pure prefix (not itself a binding) times out and clears without running anything.
-- While a sequence waits, the focused instance is in a prefix mode named after the base mode and the keys so far (`normal g`); `list.bindings` then lists the continuations.
+- While a sequence waits, the focused instance is in a prefix mode named after the base mode and the keys so far (`normal g`); `bindings.list` then lists the continuations.
 - Escape cancels all deferred work. Late timer events from a cancelled or superseded wait do nothing, and context changes cancel pending sequences.
 
 The timeout defaults to 400ms. Set it with `--timeout DURATION` (for example `--timeout 1s`; zero or negative values are rejected) or press `t` in setup. The timeout is not stored in the bindings JSON, which remains a plain array, so it is not persisted by export. It is kept when bindings are imported, edited, or deleted.
@@ -136,13 +136,13 @@ go run ./examples/csv examples/csv/testdata/people.csv
 go run ./examples/csv --smoke examples/csv/testdata/people.csv   # render one frame and exit
 ```
 
-What it shows: motions with counts (`3j`, `2G`, `gg`) through the grid's `move` verb; a cell edit, rename, filter, add-column, open and save-as all through one prompt modal (`enter` commits, `esc` cancels, `ctrl+o` opens the path picker into the field); three visual modes (`v`, `V`, `ctrl+v`) that share one mode table on the grid noun with `m`/`M`/`ctrl+a` marks; yank, delete and paste through the shared registers with the yank's shape (`V y p` pastes rows, `ctrl+v y p` pastes columns); `transform` as one verb over a map of named transformations (`t u`, `t l`, `t t`, `f` for fill-down) listed by `list.transformations`; every edit as one `Patch` that is also its undo record (`u`, `ctrl+r`); per-verb `Confirm` on `dd` and `D`. The one core addition it needed is `Runtime.StoreYank`/`ReadYank` ([`yank_api.go`](yank_api.go)), so a component outside the package can store a yank of a shape the editor does not know.
+What it shows: motions with counts (`3j`, `2G`, `gg`) through the grid's `move` verb; a cell edit, rename, filter, add-column, open and save-as all through one prompt modal (`enter` commits, `esc` cancels, `ctrl+o` opens the path picker into the field); three visual modes (`v`, `V`, `ctrl+v`) that share one mode table on the grid noun with `m`/`M`/`ctrl+a` marks; yank, delete and paste through the shared registers with the yank's shape (`V y p` pastes rows, `ctrl+v y p` pastes columns); `transform` as one verb over a map of named transformations (`t u`, `t l`, `t t`, `f` for fill-down) listed by `transformations.list`; every edit as one `Patch` that is also its undo record (`u`, `ctrl+r`); per-verb `Confirm` on `dd` and `D`. The one core addition it needed is `Runtime.StoreYank`/`ReadYank` ([`yank_api.go`](yank_api.go)), so a component outside the package can store a yank of a shape the editor does not know.
 
 ## Pages and default presentation
 
 `run` launches the demo in `examples/demo` (`demo.New()`), not an application you must adopt; the framework package itself holds no application pages. It starts on **Overview**. The framework accepts your own page IDs, renderers, state, inputs, and registered actions.
 
-The shell around a page is one chrome, `Layout.Shell`: a title row with the mode badge right-aligned, a subtitle row (the page tabs, or the page title beside the sidebar), a rule, the body, a rule, the footer and a margin, inside a two-cell gutter. `Layout.PageBlock` renders through the same method, so a page and the application around it reserve the same rows and `Layout.BodySize` is the body a renderer receives (less the sidebar). The footer and every modal's hint line are `BindingHints`: the focused instance's binding rows in resolution order (`ctrl+j next.page: Open the next page · : open.palette: Open the nested verb/noun palette`, each row with its operation's description cut at the first clause), the same data `bindings list` prints, so a hint can never name a key that is not bound and rebinding a key moves its hint. The last key's error replaces the footer until the next key.
+The shell around a page is one chrome, `Layout.Shell`: a title row with the mode badge right-aligned, a subtitle row (the page tabs, or the page title beside the sidebar), a rule, the body, a rule, the footer and a margin, inside a two-cell gutter. `Layout.PageBlock` renders through the same method, so a page and the application around it reserve the same rows and `Layout.BodySize` is the body a renderer receives (less the sidebar). The footer and every modal's hint line are `BindingHints`: the focused instance's binding rows in resolution order (`ctrl+j page.next: Open the next page · : palette.open: Open the nested verb/noun palette`, each row with its operation's description cut at the first clause), the same data `bindings list` prints, so a hint can never name a key that is not bound and rebinding a key moves its hint. The last key's error replaces the footer until the next key.
 
 | Demo page | Purpose |
 |---|---|
@@ -174,7 +174,7 @@ if _, err := tea.NewProgram(model).Run(); err != nil { // Model.View sets AltScr
 }
 ```
 
-Registration does not activate a page; `OpenPage` (or `open.page`) sets `Runtime.Page` and restores the page's frame. Switching reuses the page's exact frame and input instances: selection, focus, modes, drafts, undo history, and scrolling survive a round trip. Normal-mode `Ctrl-J/K` cycles `PageList()`, app's page children in registration order. Rows bound on a page instance or its noun apply while that page holds the focus. Page tabs have no numeric shortcuts; use the palette to search large page sets.
+Registration does not activate a page; `OpenPage` (or `page.open`) sets `Runtime.Page` and restores the page's frame. Switching reuses the page's exact frame and input instances: selection, focus, modes, drafts, undo history, and scrolling survive a round trip. Normal-mode `Ctrl-J/K` cycles `PageList()`, app's page children in registration order. Rows bound on a page instance or its noun apply while that page holds the focus. Page tabs have no numeric shortcuts; use the palette to search large page sets.
 
 Ordinary modals block page switching. The palette closes before dispatching a selected operation, so choosing `open → page` works when no other modal is underneath it. Focusing an inactive page's input does not silently navigate; open that page first. Explicitly targeted editing operations may still update an offscreen input without moving focus.
 
@@ -252,7 +252,7 @@ On terminals where Option does not send Meta sequences, configure Option-as-Meta
 
 - The palette opens with its search field focused in insert mode: type immediately.
 - Its root displays the actual **VERBS** and **NOUNS** lists side by side. In normal mode, `h/l` and left/right switch columns; `j/k` and up/down move through results; Enter chooses.
-- Choosing a verb lists compatible nouns. Choosing a noun lists its verbs and any configured instances. Moving into a nested list preserves search mode and clears the previous query, so typing immediately filters the new options. For `page`, the instances are the live pages; selecting one executes `open.page` with its ID. Search matches page titles and IDs, so navigation does not depend on numbered tabs.
+- Choosing a verb lists compatible nouns. Choosing a noun lists its verbs and any configured instances. Moving into a nested list preserves search mode and clears the previous query, so typing immediately filters the new options. For `page`, the instances are the live pages; selecting one executes `page.open` with its ID. Search matches page titles and IDs, so navigation does not depend on numbered tabs.
 - `/` enters search when browsing a list. Search and argument fields use the same Vim/Readline editor and independent undo trees as page inputs. Escape first returns an editing field to normal mode; subsequent Escape goes back.
 - Argument forms show required/optional fields. Tab/arrows change fields; Enter advances and then executes. Empty optional fields are omitted. `set palette-argument` can supply an explicit empty string; `clear palette-argument` omits one.
 - The originating interaction context is captured before the palette opens. Selecting `undo → input` edits the originating input, not the palette's search field.
@@ -264,13 +264,13 @@ On terminals where Option does not send Meta sequences, configure Option-as-Meta
 - Results recursively fuzzy-match the full relative path. Native Git supplies `.gitignore` semantics, including nested rules, negations, repository excludes, and global excludes; Git must be on `PATH`. Non-repositories use temporary Git metadata outside the browsed tree. `.git` and directory symlinks are never traversed.
 - The picker publishes immediate children first, then builds the recursive index in the background. Listed paths remain selectable and Tab-completable while indexing continues. Query edits search the available index; recursive results preserve the highlighted path when it still matches. Canceled or stale results cannot overwrite newer results. A recursive failure keeps usable shallow results and shows `Index incomplete`.
 - Leading `~` and `~/` resolve to the home directory. Explicitly opening a directory excluded by an ancestor repository's ignore rule makes that directory a fresh ignore boundary, so a home-repository rule such as `proj/` does not hide every project. Root-local, nested, and global ignore rules still apply.
-- `Ctrl-S` confirms the highlighted result; an empty query includes a current-directory entry for `any`/`dir`. The action `choose.picker {current:true}` explicitly chooses the root. Changing the originating text while the picker is open rejects selection instead of replacing stale offsets.
+- `Ctrl-S` confirms the highlighted result; an empty query includes a current-directory entry for `any`/`dir`. The action `picker.choose {current:true}` explicitly chooses the root. Changing the originating text while the picker is open rejects selection instead of replacing stale offsets.
 - The split view pairs results with the selected entry's metadata and a text or directory preview. Narrow terminals retain the list and selected-entry metadata. Preview work runs outside the UI loop, limits displayed file content to 64 KiB or directory listings to 128 entries, and ignores stale deliveries after selection changes or reopening. Symlinks show their target without following it; binary and special files do not display raw contents.
-- Controls are ordinary rows of the `picker` noun in `insert` mode; the path field is a `prompt` input beneath it. Override or add them with `r.Define("picker").Mode("insert").Bind(...)` or a binding file row (`"request": null` removes one). The picker help is derived from `list.bindings`, so remapped and removed controls are reflected without changing the renderer. No function keys are assigned.
+- Controls are ordinary rows of the `picker` noun in `insert` mode; the path field is a `prompt` input beneath it. Override or add them with `r.Define("picker").Mode("insert").Bind(...)` or a binding file row (`"request": null` removes one). The picker help is derived from `bindings.list`, so remapped and removed controls are reflected without changing the renderer. No function keys are assigned.
 
 #### Configuring noun instances
 
-`NewPalette` supplies live page instances with `open.page` as their default. Applications can replace that configuration or register sources for their own nouns:
+`NewPalette` supplies live page instances with `page.open` as their default. Applications can replace that configuration or register sources for their own nouns:
 
 ```go
 err := model.Palette.RegisterNoun("page", ochazuke.PaletteNoun{
@@ -283,7 +283,7 @@ if err != nil { return err }
 
 A `PaletteSource` receives the runtime and originating context and returns `[]PaletteInstance`, each with an `ID` and `Label`. Selecting an instance passes its ID to the configured argument, then dispatches through the normal operation path. The source is queried live so newly registered pages appear without rebuilding the palette.
 
-For nouns with sources, `select.palette` accepts `instance:<id>` or `verb:<verb>`. Its published `entries` distinguish item kinds and labels. For example, `noun:page` followed by `instance:playground` opens Playground without an argument form; `verb:open` still exposes the normal form.
+For nouns with sources, `palette.select` accepts `instance:<id>` or `verb:<verb>`. Its published `entries` distinguish item kinds and labels. For example, `noun:page` followed by `instance:playground` opens Playground without an argument form; `verb:open` still exposes the normal form.
 
 ### Readline-only inputs: the prompt noun
 
@@ -296,7 +296,7 @@ if err := r.AddInput(prompt, ochazuke.Kind("prompt")); err != nil {
 }
 ```
 
-`prompt` pins insert mode: registration starts the editor in insert mode and `SetMode`/`set.mode` keep it there. It binds nothing of its own, so the editor's Readline rows apply and Escape, which only returns insert mode to normal, has no effect; a page, modal or noun on the stack may bind Escape to cancel its own UI, as the picker does. Single-line and multiline editing, path-aware kills, shared yanks, and undo/redo use the existing implementation. Inputs of the default `editor` kind keep their Vim/Readline behavior.
+`prompt` pins insert mode: registration starts the editor in insert mode and `SetMode`/`mode.set` keep it there. It binds nothing of its own, so the editor's Readline rows apply and Escape, which only returns insert mode to normal, has no effect; a page, modal or noun on the stack may bind Escape to cancel its own UI, as the picker does. Single-line and multiline editing, path-aware kills, shared yanks, and undo/redo use the existing implementation. Inputs of the default `editor` kind keep their Vim/Readline behavior.
 
 ### Path fields
 
@@ -343,7 +343,7 @@ model.ModalViews["picker"] = ochazuke.ModalView{
 `List` reuses the stack walk, binding rows, and bounded row-rendering helpers. The application owns records; each row names a registered noun, and the list turns every row into an instance of that noun under the list:
 
 ```go
-r.Define("worktree").Verbs("open", "remove").Mode("normal").Bind("o", ochazuke.Do("open.worktree"))
+r.Define("worktree").Verbs("open", "remove").Mode("normal").Bind("o", ochazuke.Do("worktree.open"))
 items, err := ochazuke.NewList(r, "sidebar", []ochazuke.ListItem{
     {ID: "repository", Label: "Repository: ochazuke", Noun: "repo"},
     {ID: "main", Label: "Worktree: main", Noun: "worktree"},
@@ -358,10 +358,10 @@ The id (`sidebar` here) identifies the list instance (`r.List("sidebar")` return
 - `Move(delta)` and `Select(itemID)` change selection without stealing focus. `Selected()` returns the selected value and whether one exists.
 - `SetItems(rows)` copies the records and preserves selection by stable ID. It creates the instance of each new row under the list (`Instance{ID: item.ID, Noun: item.Noun, Parent: <list>}`) and removes the instances of rows that disappear; a retained row keeps its instance and marks. A removed selection falls back to its previous index, clamped to the remaining rows. An empty list focuses the list itself. An empty or duplicate ID, an unregistered noun, or an ID that is already another instance rejects the whole update.
 - Refreshes also update retained page and modal-parent frames that pointed at the list or a removed row, so returning from another page/modal cannot restore a removed row's rows.
-- `ToggleMark(id)` and `Marked()` keep a multi-selection. `apply.list {verb}` runs `verb.<row noun>` with the row as target for every marked row (the selected row when none is marked), skipping and reporting rows whose noun lacks the verb.
+- `ToggleMark(id)` and `Marked()` keep a multi-selection. `list.apply {verb}` runs `<row noun>.verb` with the row as target for every marked row (the selected row when none is marked), skipping and reporting rows whose noun lacks the verb.
 - Call these methods on the runtime's event loop. Data loading and domain actions remain application-owned. There is no tree expansion or built-in search provider.
 
-The operation equivalents are `focus.list {id}`, `move.list {id?, delta}`, `select.list {id?, item}`, `mark.list {id?, item?}` and `apply.list {id?, verb}`. Omit `id` to operate on the list on the focus stack. State is inspectable under `/lists/<id>` (rows show their `noun`, `marked` lists marks) and `/instances/<rowId>`. The full-project example's **Items** page mixes `repo`, `worktree` and `branch` rows in one list: each row answers to its noun's verbs and keys, `?` lists the focused row's rows, and Space plus `apply.list` fans one verb out over several rows.
+The operation equivalents are `list.focus {id}`, `list.move {id?, delta}`, `list.select {id?, item}`, `list.mark {id?, item?}` and `list.apply {id?, verb}`. Omit `id` to operate on the list on the focus stack. State is inspectable under `/lists/<id>` (rows show their `noun`, `marked` lists marks) and `/instances/<rowId>`. The full-project example's **Items** page mixes `repo`, `worktree` and `branch` rows in one list: each row answers to its noun's verbs and keys, `?` lists the focused row's rows, and Space plus `list.apply` fans one verb out over several rows.
 
 ### Terminal instances
 
@@ -372,13 +372,13 @@ The instance starts in the `terminal` base mode, where the noun's `any` and `pas
 | Keys | Behavior |
 |---|---|
 | any key, paste | Forwarded to the pane unchanged (Escape and `Ctrl-C` included) |
-| `ctrl+a` then `d` | `detach.terminal`: focus returns to the terminal's parent; the pane keeps running |
+| `ctrl+a` then `d` | `terminal.detach`: focus returns to the terminal's parent; the pane keeps running |
 | `ctrl+a` then `ctrl+a` | Sends one literal `ctrl+a` |
 | `ctrl+a` then a bound key | Runs that row's request (bind rows into the `terminal` noun's `leader_pending` table in code or config) |
 | `ctrl+a` then an unbound key | Sends the leader and the key, in order, in one `Send` and returns to terminal mode |
 | `ctrl+a` alone past `BindingTimeout` | Sends the leader alone; the next key starts fresh |
 
-Every row under the leader is a `Request`: `d` runs `detach.terminal`, the unbound-key row is `send.terminal` with `keys` joined from the prefix and the key (`Join("keys", SourcePrefix, SourceKey)`), the paste row is `paste.terminal {keys: prefix, text}`, which forwards the leader through `send.terminal` before it pastes. Rebinding the leader is binding another key to the same `Enter` row with that key as its `prefix` and `request`, in Go or in a binding file. `attach.terminal {id}` focuses a pane from anywhere on its page; `send.terminal {keys}` and `paste.terminal {text, keys?}` are the operations the rows run and are available to the CLI. `bindings list` in terminal mode prints the terminal table alone (the leader, `any`, `paste`); in `leader_pending` it prints the leader table, so the footer shows exactly what the pane will do with the next key. The full-project example's **Console** page is a terminal page added from config rows and the public API only.
+Every row under the leader is a `Request`: `d` runs `terminal.detach`, the unbound-key row is `terminal.send` with `keys` joined from the prefix and the key (`Join("keys", SourcePrefix, SourceKey)`), the paste row is `terminal.paste {keys: prefix, text}`, which forwards the leader through `terminal.send` before it pastes. Rebinding the leader is binding another key to the same `Enter` row with that key as its `prefix` and `request`, in Go or in a binding file. `terminal.attach {id}` focuses a pane from anywhere on its page; `terminal.send {keys}` and `terminal.paste {text, keys?}` are the operations the rows run and are available to the CLI. `bindings list` in terminal mode prints the terminal table alone (the leader, `any`, `paste`); in `leader_pending` it prints the leader table, so the footer shows exactly what the pane will do with the next key. The full-project example's **Console** page is a terminal page added from config rows and the public API only.
 
 ### Input modes
 
@@ -387,7 +387,7 @@ Every `Input` has a noun and two field settings, plus behavior all inputs share.
 | Setting | Value | Effect |
 |---|---|---|
 | noun (`Kind`) | `editor` (default) | Vim editing. Starts in `normal`. `i a I A o O` enter `insert`; Escape returns to `normal`. `v V Ctrl-V` enter `visual`, `visual-line`, `visual-block`. Counts, operators, `g`, `"`, `q` and `@` enter the pending modes `count_pending`, `operator_pending`, `g_pending`, `register_pending`, `macro_pending`, `replay_pending`. |
-| noun (`Kind`) | `prompt` | Insert only. Starts in `insert` and `set.mode` keeps it there. Escape has no effect of its own, so a noun on the stack can bind it, as the picker binds cancel. |
+| noun (`Kind`) | `prompt` | Insert only. Starts in `insert` and `mode.set` keeps it there. Escape has no effect of its own, so a noun on the stack can bind it, as the picker binds cancel. |
 | `Kind` | `""` or `text` | Picker opens at the working directory or a supplied path and inserts at the cursor captured when it opened. |
 | `Kind` | `path` | Picker opens at the whole value and replaces it. |
 | `Kind` | `paths` | Forces `Multiline`. Picker opens at the current line and replaces only that line. |
@@ -399,7 +399,7 @@ Shared by every input regardless of these settings:
 - `Ctrl-W` kills one path component, treating `/` and whitespace as boundaries, in every input, not only `path` kinds.
 - One undo tree, named registers, shared yanks, and macros.
 
-Mode resolution for key dispatch: the mode is the `State` of the focused instance, inherited from the nearest ancestor with a non-empty `State`; the root falls back to `normal`. `set.mode` writes the focused instance. A pending mode is entered on the focused instance with a typed `Payload` (`Count`, `OpCount`, `Op`, `Prefix`, `Request`, `Shadow`) and leaves back to the raw `State` it replaced (`Payload.Return`), so a row that inherited its mode inherits again afterwards. `Input.Mode` mirrors only the editing mode (normal, insert or a visual mode) for the editor code; the instance is the source of truth and `Runtime.Mode` reports the pending mode by name. A pending mode on a focus without an input still works for what needs no input: `2@a` replays a macro from a page.
+Mode resolution for key dispatch: the mode is the `State` of the focused instance, inherited from the nearest ancestor with a non-empty `State`; the root falls back to `normal`. `mode.set` writes the focused instance. A pending mode is entered on the focused instance with a typed `Payload` (`Count`, `OpCount`, `Op`, `Prefix`, `Request`, `Shadow`) and leaves back to the raw `State` it replaced (`Payload.Return`), so a row that inherited its mode inherits again afterwards. `Input.Mode` mirrors only the editing mode (normal, insert or a visual mode) for the editor code; the instance is the source of truth and `Runtime.Mode` reports the pending mode by name. A pending mode on a focus without an input still works for what needs no input: `2@a` replays a macro from a page.
 
 ### API and ownership
 
@@ -428,9 +428,9 @@ result, err := r.Execute(ochazuke.Request{
 | `delivery.go` | The component delivery contract: `Component`, `Ticket`, `Completion`, `Start`, `Deliver`, `PendingCommands`; application verbs (`Ctx`, `Result`, `Done`/`Failed`/`Pending`) |
 | `confirm.go` | The `confirm` noun, `SetConfirm`, prompt templates |
 | `noun.go`, `instance.go` | `Define` builder, binding rows, key classes and guards; instances, parent links, `Payload`, targets |
-| `resolve.go`, `bindings.go` | The stack walk, pending modes, key-sequence prefixes and their timer, `list.bindings` |
+| `resolve.go`, `bindings.go` | The stack walk, pending modes, key-sequence prefixes and their timer, `bindings.list` |
 | `editor_bindings.json`, `registers_bindings.json`, `editor_keys.go` | The editor noun's mode tables and the app noun's count, register and macro rows as data, loaded at startup |
-| `configuration.go` | `load.bindings`, `register.mode`, `select.context` |
+| `configuration.go` | `bindings.load`, `mode.register`, `context.select` |
 | `input.go`, `editing.go`, `editor*.go` | Input-owned undo, the editor handlers (motions, operators, kills, insert, paste), visual geometry |
 | `list.go` | Flat selectable rows as instances of their nouns, marks and fan-out, stable-ID refresh, viewport scrolling, row focus |
 | `registers.go`, `macros.go`, `yank_history.go` | The `registers` component: yanks, named registers, history, active register, key recording/replay, history modal |
@@ -452,19 +452,19 @@ A `Noun` is the behaviour of one kind of thing: its verbs, a binding table keyed
 ```go
 r.Define("worktree").
     Verbs("open").
-    Verb("remove", removeWorktree).                        // registers remove.worktree, or overrides it on this noun
-    Action("inspect.selection", inspectWorktree).          // overrides another operation while a worktree is focused
+    Verb("remove", removeWorktree).                        // registers worktree.remove, or overrides it on this noun
+    Action("selection.inspect", inspectWorktree).          // overrides another operation while a worktree is focused
     Mode("normal").
-        Bind("o", ochazuke.Do("open.worktree")).
+        Bind("o", ochazuke.Do("worktree.open")).
         Bind("d", ochazuke.Enter("operator_pending", ochazuke.Payload{Op: "d"})).
-        Pattern(ochazuke.Digit, ochazuke.Do("append.count").FromPayload("digit", ochazuke.SourceDigit)).
-        Bind("enter", ochazuke.Do("open.worktree")).When("self").
+        Pattern(ochazuke.Digit, ochazuke.Do("count.append").FromPayload("digit", ochazuke.SourceDigit)).
+        Bind("enter", ochazuke.Do("worktree.open")).When("self").
         Unbind("x")
 r.Instance("sidebar", ochazuke.Parent("home"), ochazuke.Kind("panel"))
 r.AddInput(ochazuke.NewInput("path", "", false), ochazuke.Parent("sidebar"), ochazuke.Kind("prompt"))
 ```
 
-`FocusID` names the focused instance and `Frame.Focus` is the source of truth; `Context()` is derived from it. `Request.Target` and `select.context {instance}` address any instance; `ActionFor` resolves noun overrides innermost first. `get.state` exposes `/nouns`, `/instances/<id>/{noun,state,payload,parent}`, `/inputs/<id>`, `/lists/<id>`, `/components/<id>`, `/jobs`, `/focus` and `/page`.
+`FocusID` names the focused instance and `Frame.Focus` is the source of truth; `Context()` is derived from it. `Request.Target` and `context.select {instance}` address any instance; `ActionFor` resolves noun overrides innermost first. `state.get` exposes `/nouns`, `/instances/<id>/{noun,state,payload,parent}`, `/inputs/<id>`, `/lists/<id>`, `/components/<id>`, `/jobs`, `/focus` and `/page`.
 
 #### Operation kinds and application verbs
 
@@ -483,7 +483,7 @@ r.Define("worktree").
     Verb("status", func(c ochazuke.Ctx) ochazuke.Result { return ochazuke.Done("clean") })
 ```
 
-`Done(v)` and `Failed(err)` answer at once; `Pending(work)` returns a `Ticket{Owner, Job, Slot}` to the caller and schedules the work as a `tea.Cmd`. The framework never blocks the loop on application I/O. The palette, `list.operations`, the generated docs and the example's `?` modal show the kind.
+`Done(v)` and `Failed(err)` answer at once; `Pending(work)` returns a `Ticket{Owner, Job, Slot}` to the caller and schedules the work as a `tea.Cmd`. The framework never blocks the loop on application I/O. The palette, `operations.list`, the generated docs and the example's `?` modal show the kind.
 
 Jobs on one owner accumulate by default: five independent verbs on one row (fetch, commit, push...) all deliver, in finish order, each with its ticket. `Pending(work).Replacing("preview")` opts into replacement: a newer job in the same slot on the same owner cancels the older one, which is what a preview or a search wants. A job is dropped only when its owner instance closes or a newer job claims its slot, never because the user did something else meanwhile.
 
@@ -492,7 +492,7 @@ ticket = { owner: "repo-1", job: 42 }                      // accumulate: delive
 ticket = { owner: "pane-7", job: 43, slot: "preview" }     // replace: job 44 in slot "preview" on pane-7 cancels 43
 ```
 
-`list.jobs` returns the jobs list, `[{job, owner, verb, slot?, started, state, error?}]` with `state` one of `running`, `done`, `failed`, `cancelled`; `verb` is the operation key for an application verb (`sync.worktree`), `read` for a terminal frame and the slot name for the picker. Finished entries stay in the list until a `list.jobs` read returns them (bounded to the last 32 meanwhile), so a status rail or toast reads each outcome once; `get.state /jobs` shows the running jobs only.
+`jobs.list` returns the jobs list, `[{job, owner, verb, slot?, started, state, error?}]` with `state` one of `running`, `done`, `failed`, `cancelled`; `verb` is the operation key for an application verb (`sync.worktree`), `read` for a terminal frame and the slot name for the picker. Finished entries stay in the list until a `jobs.list` read returns them (bounded to the last 32 meanwhile), so a status rail or toast reads each outcome once; `state.get /jobs` shows the running jobs only.
 
 #### Delivery contract
 
@@ -516,7 +516,7 @@ Confirmation is a property of a verb, declared once rather than at each call sit
 r.Define("worktree").Verb("remove", removeWorktree).Confirm("Remove {{id}}?")
 ```
 
-It compiles to the framework `confirm` noun: running `remove.worktree` opens a confirm modal instead, a modal instance parented at the focus with `Payload{Prompt, Request}`; `y` (or Enter) runs the stored request in its original context, `n` or `esc` pops, every other key is swallowed. Templates expand `{{id}}`, `{{noun}}` and `{{<arg>}}`. `set.confirm {operation, prompt}` adds or removes a prompt at run time (an empty prompt removes it; the full-project example sets one from `actions.json`), and a request with `"confirmed": true` skips the prompt for scripts.
+It compiles to the framework `confirm` noun: running `worktree.remove` opens a confirm modal instead, a modal instance parented at the focus with `Payload{Prompt, Request}`; `y` (or Enter) runs the stored request in its original context, `n` or `esc` pops, every other key is swallowed. Templates expand `{{id}}`, `{{noun}}` and `{{<arg>}}`. `confirm.set {operation, prompt}` adds or removes a prompt at run time (an empty prompt removes it; the full-project example sets one from `actions.json`), and a request with `"confirmed": true` skips the prompt for scripts.
 
 Local checks:
 
@@ -566,7 +566,7 @@ Illustrative state (JavaScript notation, not a Go API contract):
 
 Opening a directory picker pushes another frame. Closing it restores the editor's interaction state. A child can return a result to its parent, such as a selected directory.
 
-In the Go API a frame is `Frame{ID, Focus}`: the modal's id and the instance it points at. `Push` makes a frame id that is not already an instance one of the `modal` noun for as long as it is open, so "Escape pops a modal" is that noun's normal-mode `esc` row and a modal body may carry rows of its own. `OpenModal(kind, Payload{...})` is the payload-carrying form: it creates a body instance of noun `kind` parented at the current focus, with the payload (`Prompt`, a stored `Request`, ...) the kind's rows read through `FromPayload` and `run.request`, and removes it on `Pop` after closing its component. The `confirm` noun is built this way. Mode, cursor, drafts, selection and undo live on the instances the frame points at; scroll offsets live on the `Model`; application data lives with the application.
+In the Go API a frame is `Frame{ID, Focus}`: the modal's id and the instance it points at. `Push` makes a frame id that is not already an instance one of the `modal` noun for as long as it is open, so "Escape pops a modal" is that noun's normal-mode `esc` row and a modal body may carry rows of its own. `OpenModal(kind, Payload{...})` is the payload-carrying form: it creates a body instance of noun `kind` parented at the current focus, with the payload (`Prompt`, a stored `Request`, ...) the kind's rows read through `FromPayload` and `request.run`, and removes it on `Pop` after closing its component. The `confirm` noun is built this way. Mode, cursor, drafts, selection and undo live on the instances the frame points at; scroll offsets live on the `Model`; application data lives with the application.
 
 Invariants:
 
@@ -591,13 +591,13 @@ Modal windows and editing modes are different concepts. A modal is a stack frame
 }
 ```
 
-Applications and extensions register mode names (`register.mode {name, pending?}` or `DefineMode`); the framework does not restrict them to a fixed enum. A base mode reads a noun's mode table and its any-mode table; a pending mode reads only its own table and is left by the key that answers it (see Scoped, customizable keybindings). Rows can be bound inside any mode, pending ones included, on any noun or instance.
+Applications and extensions register mode names (`mode.register {name, pending?}` or `DefineMode`); the framework does not restrict them to a fixed enum. A base mode reads a noun's mode table and its any-mode table; a pending mode reads only its own table and is left by the key that answers it (see Scoped, customizable keybindings). Rows can be bound inside any mode, pending ones included, on any noun or instance.
 
 Text fields, single-line text inputs, and multiline text areas support the basic Vim motions and Readline bindings listed above. Normal mode interprets Vim keys; insert mode interprets Readline keys. Full Vim compatibility is not implied.
 
 ## Input-local editing and undo
 
-Each text input owns its editing state and undo tree. Histories are independent between fields and remain part of preserved modal-local state. An insert session is one undo change, including kills/yanks and open-line creation. Editing after undo creates a new branch without deleting alternatives. `redo.input` accepts optional `steps` and a zero-based `branch` index for its first step; omitted `branch` selects the newest child. API edits outside insert mode create separate changes.
+Each text input owns its editing state and undo tree. Histories are independent between fields and remain part of preserved modal-local state. An insert session is one undo change, including kills/yanks and open-line creation. Editing after undo creates a new branch without deleting alternatives. `input.redo` accepts optional `steps` and a zero-based `branch` index for its first step; omitted `branch` selects the newest child. API edits outside insert mode create separate changes.
 
 Inputs expose editing verbs through the shared operation registry. In particular, `undo` accepts an optional number of steps, defaulting to one change. The input handles its own history; outside callers do not manipulate the tree.
 
@@ -632,7 +632,7 @@ Selection and undo belong to each input. Yanks, history, registers, the active r
 - `v`, `V`, and `Ctrl-V` select characters, whole lines, and display-cell rectangles. Motions extend selections; `y/d/c/p` yank/delete/change/replace. Escape cancels selection. Normal `yy/dd/cc` act on whole lines; motion operators and counts work too.
 - `p/P` preserve the yank's shape. Block operations handle ragged rows and wide glyphs; block change repeats a contiguous first-row insertion across selected rows when leaving insert mode. Each block edit is one undo step. Single-line inputs reject line/block-shaped pastes rather than flattening them.
 - `"a` selects register `a` for the next operation; `"A` appends. The unnamed register is shared; `0` holds the last yank, `1`–`9` hold line/multiline deletions, and `-` holds small deletions. `"_` discards without changing shared yanks or history.
-- Normal `Ctrl-Y` or `open.yank-history` opens history. `j/k` or arrows highlight an entry; Enter makes it the unnamed yank and closes **without inserting**. Then use `p/P` or insert-mode `Ctrl-Y` to paste. Escape cancels. History keeps the newest 100 entries, including duplicates.
+- Normal `Ctrl-Y` or `yank-history.open` opens history. `j/k` or arrows highlight an entry; Enter makes it the unnamed yank and closes **without inserting**. Then use `p/P` or insert-mode `Ctrl-Y` to paste. Escape cancels. History keeps the newest 100 entries, including duplicates.
 - `qa … q` records into register `a`; `qA` appends. `@a` replays, `3@a` repeats three times, and `@@` repeats the last macro. Mode changes, bindings, focus changes, and modal/palette interactions use the same dispatcher as live keys. Register yanks and macro recordings share storage: replacing one replaces the other.
 - Macro replay is bounded to 16 nested calls and 10,000 dispatched keys. Errors are reported, not swallowed; earlier edits remain undoable rather than being rolled back as a transaction. Recording is the `macro_recording` shadow mode on the `app` noun: each key is appended, then dispatched again in the mode it shadowed; replay runs at depth and is not re-recorded. The `q`, `@`, `"` and count rows are `app` rows too (`registers_bindings.json`), so a page or list focus records, replays and counts without an input.
 
@@ -645,7 +645,7 @@ Selection and undo belong to each input. Yanks, history, registers, the active r
 /tmp/ochazuke macro replay --json '{"register":"a","steps":2}'
 ```
 
-`yank.input` captures a selection/current lines; `paste.input` inserts a stored yank. Insert `Ctrl-W/U/K` publish shared kills and `Ctrl-Y` pastes the unnamed text literally. These operations use the same registry as the keyboard, palette, and CLI. All this state is in memory.
+`input.yank` captures a selection/current lines; `input.paste` inserts a stored yank. Insert `Ctrl-W/U/K` publish shared kills and `Ctrl-Y` pastes the unnamed text literally. These operations use the same registry as the keyboard, palette, and CLI. All this state is in memory.
 
 
 ## Scoped, customizable keybindings
@@ -666,7 +666,7 @@ Bindings are rows of mode tables. A row names the noun (or one instance) it belo
 ]
 ```
 
-Patterns are `digit`, `alpha`, `printable`, `paste`, `any`, a class minus keys (`alpha-q`) or a set (`one-of:h j k l`). `from` fills an argument from the key (`key`, `digit`, `text`) or the mode payload (`count`, `line`, `steps`, `op`, `opcount`, `prefix`); several sources separated by spaces (`"keys": "prefix key"`, `Join` in Go) join their texts with a space. `when` names a guard (`input`, `no-input`, `multiline`, `count`, `no-count`, `self`, `shadow-idle`, `op:<key>`, or one the application registers with `DefineGuard`). A row with the same noun, mode and keys or pattern replaces the default, a new one adds, `request: null` unbinds. Load a file of rows with `load.bindings {path}` or `Runtime.LoadBindings`; `Runtime.Bind` installs rows from Go and the `Define(...).Mode(...).Bind/Pattern/Unbind` builder writes the same tables.
+Patterns are `digit`, `alpha`, `printable`, `paste`, `any`, a class minus keys (`alpha-q`) or a set (`one-of:h j k l`). `from` fills an argument from the key (`key`, `digit`, `text`) or the mode payload (`count`, `line`, `steps`, `op`, `opcount`, `prefix`); several sources separated by spaces (`"keys": "prefix key"`, `Join` in Go) join their texts with a space. `when` names a guard (`input`, `no-input`, `multiline`, `count`, `no-count`, `self`, `shadow-idle`, `op:<key>`, or one the application registers with `DefineGuard`). A row with the same noun, mode and keys or pattern replaces the default, a new one adds, `request: null` unbinds. Load a file of rows with `bindings.load {path}` or `Runtime.LoadBindings`; `Runtime.Bind` installs rows from Go and the `Define(...).Mode(...).Bind/Pattern/Unbind` builder writes the same tables.
 
 The resolver is one stack walk. For each level from the focused instance outward to `app` (the `modal` noun's level sits just inside `app` while a modal is open) and then the `editor` noun as the fallback every stack ends with:
 
@@ -678,19 +678,19 @@ for (inst of stack(focus)) {
 }
 ```
 
-Within one level the instance's own rows sit above its noun's, the mode table above the any-mode table, and an exact key beats a class beats `any`; between levels the inner one wins. Application rows therefore beat the editor's defaults for a fresh key, while a pending mode (an operator, a count, a register, a macro prefix, a key sequence) is exclusive: only that mode's tables answer, so `dw` reaches the editor even when the app binds `w`. A pending mode is one-shot: the key that answers it consumes it before the request runs, so `d` then `w` leaves `operator_pending` and the operator's own request decides the next mode; a row whose request is `enter.mode` or `append.count` stays or moves on. Every pending condition is such a mode with a small typed payload:
+Within one level the instance's own rows sit above its noun's, the mode table above the any-mode table, and an exact key beats a class beats `any`; between levels the inner one wins. Application rows therefore beat the editor's defaults for a fresh key, while a pending mode (an operator, a count, a register, a macro prefix, a key sequence) is exclusive: only that mode's tables answer, so `dw` reaches the editor even when the app binds `w`. A pending mode is one-shot: the key that answers it consumes it before the request runs, so `d` then `w` leaves `operator_pending` and the operator's own request decides the next mode; a row whose request is `mode.enter` or `count.append` stays or moves on. Every pending condition is such a mode with a small typed payload:
 
 ```js
-normal:           { i: set.mode insert, d: enter operator_pending {op: "d"}, g: enter g_pending, "<digit-0>": enter count_pending {count: digit}, q: enter macro_pending, '"': enter register_pending }
-count_pending:    { "<digit>": append.count, ...normal rows with steps from the count, esc: cancel, any: leave and re-dispatch }
+normal:           { i: mode.set insert, d: enter operator_pending {op: "d"}, g: enter g_pending, "<digit-0>": enter count_pending {count: digit}, q: enter macro_pending, '"': enter register_pending }
+count_pending:    { "<digit>": count.append, ...normal rows with steps from the count, esc: cancel, any: leave and re-dispatch }
 operator_pending: { w: operator {motion: "word-forward", steps}, d: operator {motion: "line"} when op:d, g: enter operator_g_pending, any: cancel }
 g_pending:        { g: move first-line {line: count}, any: cancel }
-macro_pending:    { any: start.macro {register: key}, esc: cancel }
-macro_recording:  { q: stop.macro when shadow-idle, any | paste: record.macro {key} = append.macro then dispatch.key {mode: "shadow"} }
+macro_pending:    { any: macro.start {register: key}, esc: cancel }
+macro_recording:  { q: macro.stop when shadow-idle, any | paste: macro.record {key} = macro.append then key.dispatch {mode: "shadow"} }
 "normal g":       { "g g": … the continuations of the sequence; a timer leaves the mode and runs the completed match }
 ```
 
-The editor noun's tables (Readline rows in `insert`, Vim rows in `normal` and the visual modes, the pending modes above) are generated from `editor_bindings.json`, a data file in this row shape plus three generators (`expand` a row over a key map, `extends` one mode from another, `pending` the exclusive modes). `bindings list` prints the rows the focus answers to in its current mode, so every Readline and Vim key appears there for its mode, and the help modal of the full-project example is built from it. Multi-key sequences such as `g g` wait in a prefix mode named `"<mode> <keys so far>"` on the focused instance for up to a configurable timeout (default 400ms); the timer and a mismatching key leave the mode, run the longest completed match, and the mismatching key is then dispatched fresh. Escape cancels the sequence through a row like any other: every table that binds a sequence keeps a generated `"<prefix> esc"` → `leave.mode` row for each prefix (`bindings list` shows it in the prefix mode), so the resolver itself never names a key. A paste is one event that matches only `paste` rows, so insert mode inserts it and normal mode ignores it.
+The editor noun's tables (Readline rows in `insert`, Vim rows in `normal` and the visual modes, the pending modes above) are generated from `editor_bindings.json`, a data file in this row shape plus three generators (`expand` a row over a key map, `extends` one mode from another, `pending` the exclusive modes). `bindings list` prints the rows the focus answers to in its current mode, so every Readline and Vim key appears there for its mode, and the help modal of the full-project example is built from it. Multi-key sequences such as `g g` wait in a prefix mode named `"<mode> <keys so far>"` on the focused instance for up to a configurable timeout (default 400ms); the timer and a mismatching key leave the mode, run the longest completed match, and the mismatching key is then dispatched fresh. Escape cancels the sequence through a row like any other: every table that binds a sequence keeps a generated `"<prefix> esc"` → `mode.leave` row for each prefix (`bindings list` shows it in the prefix mode), so the resolver itself never names a key. A paste is one event that matches only `paste` rows, so insert mode inserts it and normal mode ignores it.
 
 ## Atomic bindings
 
@@ -714,8 +714,8 @@ Bind("q", Func(func(r *Runtime, ev KeyEvent) error {
 
 // After: two atomic rows. q stops under a named guard and falls through to
 // the any row otherwise; recording is an operation that calls two operations.
-Bind("q", Do("stop.macro")).When("shadow-idle").
-Pattern(Any, Do("record.macro").FromKey("key"))      // append.macro {key}, then dispatch.key {key, mode: "shadow"}
+Bind("q", Do("macro.stop")).When("shadow-idle").
+Pattern(Any, Do("macro.record").FromKey("key"))      // macro.append {key}, then key.dispatch {key, mode: "shadow"}
 ```
 
 The same row in a binding file is `{"noun": "app", "mode": "macro_recording", "keys": "q", "when": "shadow-idle", "request": {"verb": "stop", "noun": "macro"}}`, and `ochazuke macro record --json '{"key": "j"}'` is the recorder's step from the command line.
@@ -752,6 +752,8 @@ Derive both navigation paths from the shared operation registry so they expose t
 
 One registry describes supported operations, validated argument types/requiredness, and result descriptions. Commands mutate state; queries inspect it. Unknown operations, unknown arguments, and invalid argument types are rejected before handler execution.
 
+An operation key is `noun.verb` (`input.undo`, `worktree.remove`): the same string the CLI spells `NOUN VERB`, the same order as `Define(noun).Verb(verb)`, and ownership reads as a path, so a catalog sorted by key groups by noun. Rows written in the earlier `verb.noun` spelling are rewritten on load for one release and reported by `ValidateBindings`.
+
 Public user actions and registered state are the compatibility surface. Implementation helpers and handler functions are not remotely callable code.
 
 The same registered operation is accessible through:
@@ -774,7 +776,7 @@ Live CLI examples:
 /tmp/ochazuke mode register --json '{"name":"directory-search"}'
 ```
 
-JSON inspection covers registered pages (`page`, `pages`), inputs and histories, modal frames (`frames`, each with its `focus`), modes (pending modes included), nouns with their tables, instances with their state and payload, and the rows the focus answers to (`bindings`). `get.state` accepts a JSON Pointer (`""` for the full state; `~1` escapes `/` and `~0` escapes `~` in a key). Appearance has its own `get.appearance` query. All registered inputs are public state: do not register secrets without adding an explicit export policy. Handlers, renderers, and terminal handles are not serialized.
+JSON inspection covers registered pages (`page`, `pages`), inputs and histories, modal frames (`frames`, each with its `focus`), modes (pending modes included), nouns with their tables, instances with their state and payload, and the rows the focus answers to (`bindings`). `state.get` accepts a JSON Pointer (`""` for the full state; `~1` escapes `/` and `~0` escapes `~` in a key). Appearance has its own `appearance.get` query. All registered inputs are public state: do not register secrets without adding an explicit export policy. Handlers, renderers, and terminal handles are not serialized.
 
 ## Live CLI control
 

@@ -73,7 +73,7 @@ The following simplified data shows the relationships. The complete executable c
 }
 ```
 
-The registry identifier is `greet.workspace` (`verb.noun`). The CLI spelling is `workspace greet` (`NOUN VERB`). A binding, the palette, and a CLI request dispatch the same registered operation.
+The registry identifier is `workspace.greet` (`noun.verb`). The CLI spelling is `workspace greet` (`NOUN VERB`). A binding, the palette, and a CLI request dispatch the same registered operation.
 
 ## Explore the application
 
@@ -98,7 +98,7 @@ The framework also supplies visual selection, registers, macro recording and rep
 
 The Items records are configuration examples, not live repository/worktree discovery. `actions.go` owns their mutable source data; refresh/removal calls the shared list's `SetItems`. Removing these rows changes only example memory, not files or Git worktrees.
 
-A `list` page names its list as the starting `focus`, one companion input, and `items` with unique `id`, display `label`, and a registered `noun`. The nouns (`repo`, `worktree`, `branch`) are declared in `instances.json` with their `verbs`; `actions.json` registers the verbs (`fetch.repo`, `open.worktree`, `remove.worktree`, `checkout.branch`, each taking an optional `row`) and `bindings.json` binds keys per noun. Every row is an instance of its noun with the list as its parent. Space marks rows; `apply.list {verb}` runs `verb.<row noun>` on each marked row and reports the rows whose noun lacks the verb. `inputs.json` supports `"noun": "prompt"` for a Readline-only field.
+A `list` page names its list as the starting `focus`, one companion input, and `items` with unique `id`, display `label`, and a registered `noun`. The nouns (`repo`, `worktree`, `branch`) are declared in `instances.json` with their `verbs`; `actions.json` registers the verbs (`repo.fetch`, `worktree.open`, `worktree.remove`, `branch.checkout`, each taking an optional `row`) and `bindings.json` binds keys per noun. Every row is an instance of its noun with the list as its parent. Space marks rows; `list.apply {verb}` runs `<row noun>.verb` on each marked row and reports the rows whose noun lacks the verb. `inputs.json` supports `"noun": "prompt"` for a Readline-only field.
 
 Selecting a row changes only the leaf, which is the row ID, for example `app/items/item-list/repository` → `app/items/item-list/main`. A row verb acts on the row in its context: a key on the focused row, a request with `--target main`, or `{"row": "main"}`. Tab to the note focuses `item-note` (its path is `app/items/item-editor`). Selection changes and refreshes cannot take focus back from that editor. Page and modal restoration retain the updated selection.
 
@@ -138,7 +138,7 @@ Type `:` in normal mode, choose `noun:page`, then search for a page title or ID.
 }
 ```
 
-The Go source registry in `app.go` supplies the items. `pages` reads the runtime's live page list; it does not freeze the list when the palette is constructed. `inputs` lists fields on the originating page, excluding palette and picker internals. Focusing an input does not navigate to another page. `rows` lists the list rows whose noun is the configured noun, so `noun:worktree` then `instance:docs` runs `open.worktree {row: "docs"}`.
+The Go source registry in `app.go` supplies the items. `pages` reads the runtime's live page list; it does not freeze the list when the palette is constructed. `inputs` lists fields on the originating page, excluding palette and picker internals. Focusing an input does not navigate to another page. `rows` lists the list rows whose noun is the configured noun, so `noun:worktree` then `instance:docs` runs `worktree.open {row: "docs"}`.
 
 A different default requires a registered operation with the configured string argument and no other required arguments. One instance selection supplies exactly that argument. Operations needing more information remain available through the verb list and argument form.
 
@@ -154,10 +154,10 @@ go run ./examples/full-project --socket /tmp/ochazuke-full-project/app.sock pale
 
 ### Custom modes use the existing API
 
-`app.json` declares `review`. Startup registers it through `register.mode`. In normal mode, `Ctrl-R` switches the current context to `review` through `set.mode`. In review mode, `s` invokes inspection and Escape sets the mode to `normal`.
+`app.json` declares `review`. Startup registers it through `mode.register`. In normal mode, `Ctrl-R` switches the current context to `review` through `mode.set`. In review mode, `s` invokes inspection and Escape sets the mode to `normal`.
 
 Each instance holds its own mode: an input's instance when an input is focused, otherwise the innermost element of the context (a page, a list row, a modal body), inherited from its ancestors when unset. There is no mode stack. Setting a mode selects it directly, and modal restoration restores the parent context rather than pushing or popping modes. Custom-mode behavior comes from its bindings; it does not inherit normal-mode editor keys. Any-mode bindings still apply.
-Readline-only fields, including the Items note, remain in insert mode even if `set.mode` requests a custom mode. Tab back to the list to use normal-mode page controls.
+Readline-only fields, including the Items note, remain in insert mode even if `mode.set` requests a custom mode. Tab back to the list to use normal-mode page controls.
 
 The framework API is unchanged:
 

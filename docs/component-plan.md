@@ -64,7 +64,7 @@ context = {
 
 The item supplies its own bindings and action overrides. Sidebar, page, and application layers retain shared behavior. The runtime owns these layers; it is not itself an entry in `Context.Path`.
 
-Implemented by the shared `List` and `Runtime.SelectContext`. The existing layer resolver supplies inner precedence; list selection replaces its single item leaf. Each entry refers to a registered layer. Input focus and `select.context` use the same context-selection boundary.
+Implemented by the shared `List` and `Runtime.SelectContext`. The existing layer resolver supplies inner precedence; list selection replaces its single item leaf. Each entry refers to a registered layer. Input focus and `context.select` use the same context-selection boundary.
 
 Focus moving into an editor changes the active branch and identifies the input. An item that remains selected in an unfocused list must not keep intercepting the editor's keys.
 
@@ -143,7 +143,7 @@ No handler-signature migration or framework-wide naming rename was agreed. `Oper
 
 The list owns selection and viewport scrolling. `SetItems` preserves selection by ID, falls back to the clamped previous index when that ID disappears, and removes the item layer when empty. `Move` and `Select` do not steal focus. `Focus` activates the list branch; `Focused` derives its answer from the current runtime context rather than retaining an independent focus flag.
 
-Matching retained page and modal-parent contexts are refreshed too, so returning to a list does not revive a removed item's bindings. Applications supply records and handlers, and deliver refreshes on the UI loop. Ordinary bindings dispatch `focus.list`, `move.list`, and `select.list`; snapshots are available under `/lists`.
+Matching retained page and modal-parent contexts are refreshed too, so returning to a list does not revive a removed item's bindings. Applications supply records and handlers, and deliver refreshes on the UI loop. Ordinary bindings dispatch `list.focus`, `list.move`, and `list.select`; snapshots are available under `/lists`.
 
 The runtime-attached design was chosen over an application callback adapter to keep focus validation, binding cancellation, and retained-context updates in one shared implementation. Rendering adapts the existing picker row pattern and reuses layout/clipping helpers. No filesystem behavior, new keyboard resolver, or general component event bus was copied.
 

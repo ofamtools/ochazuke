@@ -297,7 +297,7 @@ Frames: [
 <dt id="term-frame">Frame</dt>
 <dd><p>One <code>{ id, context, state }</code> entry in <code>Runtime.Frames</code>. The slice order is both draw order (bottom → top) and input routing: the last frame's Context is the current one. It holds no renderer, pixels, geometry, or numeric z-index.</p></dd>
 <dt id="term-modal">Modal</dt>
-<dd>A Frame pushed above the page by <code>Push</code> (the built-in <code>push.modal</code> operation). While one is open, <code>OpenPage</code> is blocked. <code>pop.modal</code> removes the top one. See <a href="#ctrl-n">Flow 2</a>.</dd>
+<dd>A Frame pushed above the page by <code>Push</code> (the built-in <code>modal.push</code> operation). While one is open, <code>OpenPage</code> is blocked. <code>modal.pop</code> removes the top one. See <a href="#ctrl-n">Flow 2</a>.</dd>
 <dt id="term-registry">Registry</dt>
 <dd>A lookup map keyed by ID: <code>Layers</code>, <code>Inputs</code>, <code>Pages</code>, <code>Operations</code>. A registry says what exists. It does not order anything.</dd>
 </dl>
@@ -335,11 +335,11 @@ Frames: [
 <dt id="term-binding">Binding / key sequence</dt>
 <dd>A <code>{ mode, keys, request }</code> entry. <code>keys</code> may be one key or a sequence such as <code>g g</code>. Ambiguous prefixes wait for a timeout. See the <a href="#stepper">sequence stepper</a>.</dd>
 <dt id="term-request">Request</dt>
-<dd>What a binding produces: <code>{ verb, noun, target, args }</code>, keyed as <code>verb.noun</code>.</dd>
+<dd>What a binding produces: <code>{ verb, noun, target, args }</code>, keyed as <code>noun.verb</code>.</dd>
 <dt id="term-operation">Operation / action / Handler</dt>
-<dd>An <em>Operation</em> is a registered <code>verb.noun</code> with parameters and a default <code>Run</code>. A layer <em>action</em> is a layer's own <em>Handler</em> for that key, which wins when found while searching inner → outer. A <code>Handler</code> has signature <code>func(*Runtime, Context, Arguments) (any, error)</code>.</dd>
+<dd>An <em>Operation</em> is a registered <code>noun.verb</code> with parameters and a default <code>Run</code>. A layer <em>action</em> is a layer's own <em>Handler</em> for that key, which wins when found while searching inner → outer. A <code>Handler</code> has signature <code>func(*Runtime, Context, Arguments) (any, error)</code>.</dd>
 <dt id="term-verb-noun">Verb / noun</dt>
-<dd>A request's verb is the action (<code>push</code>, <code>pop</code>) and its noun is the target kind (<code>modal</code>). Dispatch looks up the complete <code>verb.noun</code> key in each contextual layer's Actions; it does not filter those layers by their <code>Noun</code> field.</dd>
+<dd>A request's verb is the action (<code>push</code>, <code>pop</code>) and its noun is the target kind (<code>modal</code>). Dispatch looks up the complete <code>noun.verb</code> key in each contextual layer's Actions; it does not filter those layers by their <code>Noun</code> field.</dd>
 </dl>
 </div>
 
@@ -370,12 +370,12 @@ Frames: [
 <div class="card">
 <span class="tag">Framework</span>
 <h3>Runtime and Model</h3>
-<p>Owns <code>Context</code>, <code>Frames</code>, <code>Pending</code>, <code>HandleBinding</code>, <code>ExecuteAt</code>, and the built-in <code>push.modal</code> operation.</p>
+<p>Owns <code>Context</code>, <code>Frames</code>, <code>Pending</code>, <code>HandleBinding</code>, <code>ExecuteAt</code>, and the built-in <code>modal.push</code> operation.</p>
 </div>
 <div class="card shu">
 <span class="tag fw">Demo</span>
 <h3>NewDemo</h3>
-<p>Owns the page names, the input IDs <code>directory</code>, <code>notes</code>, and <code>dialog</code>, the <code>next.input</code> handler, and the <code>tab</code> and <code>ctrl+n</code> bindings. The comment at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L12">demo.go:12</a> says the framework requires none of these names.</p>
+<p>Owns the page names, the input IDs <code>directory</code>, <code>notes</code>, and <code>dialog</code>, the <code>input.next</code> handler, and the <code>tab</code> and <code>ctrl+n</code> bindings. The comment at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L12">demo.go:12</a> says the framework requires none of these names.</p>
 </div>
 </div>
 
@@ -509,7 +509,7 @@ result = "complete d w: delete a word"
 <div class="card shu">
 <span class="tag fw">Handlers</span>
 <h3>Inner → outer, first hit wins</h3>
-<p><code>ExecuteAt</code> walks the path from the end back to <code>app</code> and runs the first layer whose <code>Actions</code> map has the key <code>verb.noun</code>. If no layer has one, it runs the operation's registered default <code>Run</code>.</p>
+<p><code>ExecuteAt</code> walks the path from the end back to <code>app</code> and runs the first layer whose <code>Actions</code> map has the key <code>noun.verb</code>. If no layer has one, it runs the operation's registered default <code>Run</code>.</p>
 </div>
 </div>
 <figure class="src">
@@ -537,7 +537,7 @@ result = "complete d w: delete a word"
 }
 return op.Run(r, c, q.Args)</pre>
 </figure>
-<p>The demo uses this split for <code>inspect.selection</code>. The registry default at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L93-L96">demo.go:93-96</a> reports <code>app</code>. The layers <code>playground</code>, <code>agent</code>, and <code>directory</code> override it at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L97-L103">demo.go:97-103</a>.</p>
+<p>The demo uses this split for <code>selection.inspect</code>. The registry default at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L93-L96">demo.go:93-96</a> reports <code>app</code>. The layers <code>playground</code>, <code>agent</code>, and <code>directory</code> override it at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L97-L103">demo.go:97-103</a>.</p>
 <div class="callout"><strong>Note</strong> Bindings overlay complete key sequences, not single keys. A binding for <code>g g</code> replaces another binding for <code>g g</code> and leaves <code>g</code> alone (<a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L297">runtime.go:297</a>).</div>
 </section>
 
@@ -598,13 +598,13 @@ Runtime.Pending: ""</pre></div>
 </li>
 <li>
 <h4>ExecuteAt chooses the handler</h4>
-<p>The request key is <code>next.input</code>. No layer on the path has an <code>Actions["next.input"]</code> entry, so the loop at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L235-L240">runtime.go:235-240</a> falls through to the registered <code>Run</code>. That is the demo's handler.</p>
+<p>The request key is <code>input.next</code>. No layer on the path has an <code>Actions["input.next"]</code> entry, so the loop at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L235-L240">runtime.go:235-240</a> falls through to the registered <code>Run</code>. That is the demo's handler.</p>
 </li>
 <li>
 <h4>The demo handler picks the next field</h4>
 <p>The handler refuses to run unless the active page is <code>playground</code> and no modal is open. It finds the current <code>InputID</code> in the ordered list, adds <code>delta</code> (default 1), wraps, and calls <code>r.Focus</code>.</p>
 <figure class="src">
-<figcaption><span>next.input handler</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L77-L92">demo.go:77-92</a></figcaption>
+<figcaption><span>input.next handler</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L77-L92">demo.go:77-92</a></figcaption>
 <pre tabindex="0" aria-label="Go source excerpt">ids := []string{"directory", "notes", "paths"}
 ...
 index = ((index+IntArg(a, "delta", 1))%len(ids) + len(ids)) % len(ids)
@@ -678,13 +678,13 @@ bind("dialog", "normal", "ctrl+n", "push", "modal", Arguments{"id": "nested-draf
 </li>
 <li>
 <h4>Exact match, then Execute</h4>
-<p><code>ctrl+n</code> is complete with no longer binding, so it is not deferred. <a href="../bindings.go#L140-L144">HandleBinding</a> clears pending state and calls <code>Execute</code> with <code>push.modal</code> and arguments <code>id: "draft"</code>, <code>input: "dialog"</code>.</p>
+<p><code>ctrl+n</code> is complete with no longer binding, so it is not deferred. <a href="../bindings.go#L140-L144">HandleBinding</a> clears pending state and calls <code>Execute</code> with <code>modal.push</code> and arguments <code>id: "draft"</code>, <code>input: "dialog"</code>.</p>
 </li>
 <li>
 <h4>The handler lookup falls to the registry default</h4>
-<p>No demo layer defines an action for <code>push.modal</code>. <code>ExecuteAt</code> validates the arguments, then runs the built-in <code>Run</code> from <code>registerCore</code>. This time the framework supplies the handler too.</p>
+<p>No demo layer defines an action for <code>modal.push</code>. <code>ExecuteAt</code> validates the arguments, then runs the built-in <code>Run</code> from <code>registerCore</code>. This time the framework supplies the handler too.</p>
 <figure class="src">
-<figcaption><span>push.modal operation</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L435-L443">runtime.go:435-443</a></figcaption>
+<figcaption><span>modal.push operation</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L435-L443">runtime.go:435-443</a></figcaption>
 <pre tabindex="0" aria-label="Go source excerpt">id := StringArg(a, "input", "")
 path, ok := r.InputPaths[id]
 if !ok {
@@ -892,11 +892,11 @@ history: ["g", "g"]   // newest first in the right-hand column</pre>
 <tr><th scope="row"><code>ExecuteAt</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L216-L241">runtime.go:216-241</a></td></tr>
 <tr><th scope="row"><code>EffectiveBindings</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L297-L320">runtime.go:297-320</a></td></tr>
 <tr><th scope="row"><code>HandleBinding</code> and timeout delivery</th><td><a href="../bindings.go#L30-L152">bindings.go:30-152</a></td></tr>
-<tr><th scope="row"><code>push.modal</code> operation</th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L435-L443">runtime.go:435-443</a></td></tr>
+<tr><th scope="row"><code>modal.push</code> operation</th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L435-L443">runtime.go:435-443</a></td></tr>
 <tr><th scope="row"><code>Model.Update</code>, <code>dispatchKey</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L70-L160">model.go:70-160</a></td></tr>
 <tr><th scope="row">Default app bindings</th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L56-L66">model.go:56-66</a></td></tr>
 <tr><th scope="row">Demo inputs and paths</th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L22-L26">demo.go:22-26</a></td></tr>
-<tr><th scope="row">Demo <code>next.input</code> handler</th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L77-L92">demo.go:77-92</a></td></tr>
+<tr><th scope="row">Demo <code>input.next</code> handler</th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L77-L92">demo.go:77-92</a></td></tr>
 <tr><th scope="row">Demo <code>tab</code> and <code>ctrl+n</code> bindings</th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L135">demo.go:135</a>, <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L141-L142">141-142</a></td></tr>
 <tr><th scope="row"><code>OpenPage</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/pages.go#L50-L62">pages.go:50-62</a></td></tr>
 <tr><th scope="row"><code>keybindingModel.Update</code> and key dispatch</th><td><a href="../cmd/ochazuke/keybinding.go#L39-L119">keybinding.go:39-119</a></td></tr>

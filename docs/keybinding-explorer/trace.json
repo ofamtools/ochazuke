@@ -26,7 +26,7 @@
     {
       "id": "tab",
       "label": "Tab",
-      "description": "Demo playground, focus on directory, no modal, palette, macro, pending binding or unfinished editor command: Tab runs next.input and focuses notes. A source-backed path, not a recorded run.",
+      "description": "Demo playground, focus on directory, no modal, palette, macro, pending binding or unfinished editor command: Tab runs input.next and focuses notes. A source-backed path, not a recorded run.",
       "steps": [
         {
           "id": "update",
@@ -127,8 +127,8 @@
             240,
             245
           ],
-          "detail": "Looks up the operation \"next.input\", validates arguments and context, tries layer action overrides from innermost outward, then falls back to the operation's Run.",
-          "edge": "No layer overrides next.input, so the registered operation Run executes",
+          "detail": "Looks up the operation \"input.next\", validates arguments and context, tries layer action overrides from innermost outward, then falls back to the operation's Run.",
+          "edge": "No layer overrides input.next, so the registered operation Run executes",
           "expect": [
             "Layers[c.Path[i]]",
             "op.Run(r, c, q.Args)"
@@ -136,7 +136,7 @@
         },
         {
           "id": "next-input",
-          "title": "next.input picks the next field",
+          "title": "input.next picks the next field",
           "module": "demo.go",
           "file": "demo.go",
           "start": 77,
@@ -146,7 +146,7 @@
             91
           ],
           "detail": "Demo operation registered at setup. On the playground page with no modal open, it advances through directory, notes, paths by delta (default 1, wrapping) and calls Runtime.Focus.",
-          "edge": "next.input calls Focus with the chosen input id",
+          "edge": "input.next calls Focus with the chosen input id",
           "expect": [
             "IntArg(a, \"delta\", 1)",
             "r.Focus(ids[index])"
@@ -312,8 +312,8 @@
             240,
             245
           ],
-          "detail": "Looks up \"push.modal\", validates the id and input arguments, then runs the operation (no layer override is assumed here; layer actions are checked first).",
-          "edge": "The push.modal operation Run builds a Frame",
+          "detail": "Looks up \"modal.push\", validates the id and input arguments, then runs the operation (no layer override is assumed here; layer actions are checked first).",
+          "edge": "The modal.push operation Run builds a Frame",
           "expect": [
             "Layers[c.Path[i]]",
             "op.Run(r, c, q.Args)"
@@ -321,7 +321,7 @@
         },
         {
           "id": "push-op",
-          "title": "push.modal builds the frame",
+          "title": "modal.push builds the frame",
           "module": "runtime.go",
           "file": "runtime.go",
           "start": 409,
@@ -331,7 +331,7 @@
             416
           ],
           "detail": "Built-in operation. It resolves the target input's path from InputPaths and pushes a new Frame whose Context focuses that input.",
-          "edge": "push.modal calls Runtime.Push",
+          "edge": "modal.push calls Runtime.Push",
           "expect": [
             "r.InputPaths[id]",
             "r.Push(&Frame{"

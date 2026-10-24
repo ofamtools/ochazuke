@@ -135,7 +135,7 @@ r.Register(ochazuke.Operation{
 </section>
 <section id="dispatch" aria-labelledby="dispatch-heading">
 <h2 id="dispatch-heading">Runtime dispatch</h2>
-<p><code>Runtime.Execute</code> uses the active context and delegates to <code>ExecuteAt</code>. The runtime looks up the operation by <code>verb.noun</code> and validates its arguments before calling a handler.</p>
+<p><code>Runtime.Execute</code> uses the active context and delegates to <code>ExecuteAt</code>. The runtime looks up the operation by <code>noun.verb</code> and validates its arguments before calling a handler.</p>
 <p>After resolving the target and validating the context, <code>ExecuteAt</code> checks <code>Layer.Actions</code> from the deepest active layer toward the application layer. The first matching override handles the request. If no layer overrides it, the runtime calls the operation's registered <code>Run</code> handler.</p>
 <pre tabindex="0" aria-label="Illustrative context and handler lookup"><code>context = {
 	Path: ["app", "project", "editor"],
@@ -145,12 +145,12 @@ r.Register(ochazuke.Operation{
 request = { verb: "save", noun: "workspace" };
 
 handlerLookup = [
-	'Layers.editor.Actions["save.workspace"]',
-	'Layers.project.Actions["save.workspace"]',
-	'Layers.app.Actions["save.workspace"]',
-	'Operations["save.workspace"].Run'
+	'Layers.editor.Actions["workspace.save"]',
+	'Layers.project.Actions["workspace.save"]',
+	'Layers.app.Actions["workspace.save"]',
+	'Operations["workspace.save"].Run'
 ];</code></pre>
-<p>This lets <code>save.workspace</code> behave differently inside an editor without changing the binding. Layer action overrides and key binding overrides are separate mechanisms. A layer action still needs a registered operation and must accept that operation's declared arguments.</p>
+<p>This lets <code>workspace.save</code> behave differently inside an editor without changing the binding. Layer action overrides and key binding overrides are separate mechanisms. A layer action still needs a registered operation and must accept that operation's declared arguments.</p>
 <p>The palette discovers registered operations through the catalog. CLI and socket callers dispatch the same request contract when your application exposes those entry points.</p>
 </section>
 <section id="full-project" aria-labelledby="example-heading">
@@ -164,7 +164,7 @@ handlerLookup = [
 </ul>
 <p>To add new behavior in that application, add a Go handler to <code>handlerRegistry</code> and declare an action that names it. Add a binding if you want a keyboard shortcut. A plain Ochazuke application can register directly, as the counter example does, without adopting this JSON loader.</p>
 <h3>A working application action</h3>
-<p>The existing <code>greet.workspace</code> operation follows this registration path. Run it from the repository root:</p>
+<p>The existing <code>workspace.greet</code> operation follows this registration path. Run it from the repository root:</p>
 <pre tabindex="0" aria-label="Example action command"><code>go run ./examples/full-project workspace greet --json '{"name":"Ada","repeat":2}'</code></pre>
 <p>Output:</p>
 <pre tabindex="0" aria-label="Example action result"><code>"Hello, Ada! Hello, Ada!"</code></pre>
