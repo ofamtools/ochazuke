@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -59,8 +60,19 @@ func (b Binding) Captured() Binding { b.Capture = true; return b }
 // prompt or palette field) is on the path. A list row, a page or a terminal
 // focus ends at app: editor rows neither answer nor appear in bindings.list
 // for it; counts, registers and macros are app rows and still do.
+//
+// The top modal is a resolution boundary (a z-index): while one is open and
+// the focus is inside it, the walk is the instances from the focus up to
+// and including the modal instance, then the modal noun, then app. The
+// levels beneath the modal (its Parent chain, kept for Pop and rendering)
+// are never consulted.
 func (r *Runtime) stack(focus string) []level {
 	ancestry := r.Ancestry(focus)
+	if top := r.TopModal(); top != "" {
+		if i := slices.Index(ancestry, top); i >= 0 && i < len(ancestry)-1 {
+			ancestry = append(ancestry[:i+1:i+1], ancestry[len(ancestry)-1])
+		}
+	}
 	var out []level
 	onStack := map[string]bool{}
 	editing := false

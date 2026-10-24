@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"encoding/json"
+	"slices"
 	"testing"
 
 	"ochazuke/internal/keytest"
@@ -74,5 +75,48 @@ func TestModelCtrlCCapturedOutsideModals(t *testing.T) {
 	keytest.Press(m, "ctrl+c")
 	if !r.Quit || len(stream.sent) != 0 {
 		t.Fatalf("terminal focus: quit=%v sent=%v", r.Quit, stream.sent)
+	}
+}
+
+// The top modal is a resolution boundary: a key inside a modal opened over
+// a panel never reaches the panel's (or the page's) rows, while app rows
+// still answer.
+func TestModalIsResolutionBoundary(t *testing.T) {
+	r, _ := focusFixture(t)
+	pokes := 0
+	r.Register(Operation{Verb: "poke", Noun: "panel", Run: func(*Runtime, Context, Arguments) (any, error) { pokes++; return nil, nil }})
+	calls := recorder(t, r, "app")
+	r.Define("panel").Mode("normal").Bind("z", Do("panel.poke"))
+	r.Define("page").Mode("normal").Bind("y", Do("panel.poke"))
+	r.Define("app").Mode("normal").Bind("v", Do("test.app"))
+	if err := r.SetMode("normal"); err != nil {
+		t.Fatal(err)
+	}
+	press(t, r, "z")
+	if pokes != 1 {
+		t.Fatalf("without a modal the panel row answers: %d", pokes)
+	}
+	if _, err := r.OpenModal("ask", Payload{Prompt: "?"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := r.Ancestry(r.Focus); !slices.Contains(got, "panel") {
+		t.Fatalf("the modal stays parented over the panel: %v", got)
+	}
+	for _, key := range []string{"z", "y"} {
+		if _, err := r.Dispatch(MacroKey{Key: key}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if pokes != 1 {
+		t.Fatalf("a key inside the modal bubbled beneath it: %d", pokes)
+	}
+	press(t, r, "v")
+	if len(*calls) != 1 {
+		t.Fatal("app rows still answer inside a modal")
+	}
+	for _, b := range r.ListBindings(r.Focus) {
+		if b.Noun == "panel" || b.Noun == "page" {
+			t.Fatalf("bindings.list shows a row beneath the modal: %+v", b)
+		}
 	}
 }
