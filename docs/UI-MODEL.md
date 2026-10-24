@@ -127,7 +127,7 @@ Model.View (model.go:375) -> Model.render (model.go:416)
 **Spill (`List.spill`, list.go:154), built in `c45567c`:** `list.move` on a focused list moves past its edge onto the page's next stop in drawing order, using the same `units` ring as `}`.
 - `j`/`down` past the last row: the next focusable thing in drawing order. A list lands on its **first** row; other stops land as `}` does (`landing`).
 - `k`/`up` before the first row: the previous stop. A list lands on its **last** row.
-- Empty lists are passed through: focus stops on the empty list itself, and the next `j`/`k` spills on (`b` empty: `j` on a1 -> `b`, `j` -> c1).
+- Empty lists are passed through: focus stops on the empty list itself, and the next `j`/`k` spills on (lists a, b, c with b empty: `k` on c1 -> `b`, `k` -> a's last row).
 - No wrap at the page ends: on the first stop's first row or the last stop's last row, the move clamps.
 - `AddList(id, items, NoSpill())` (instance.go:97) opts a list out; its motions clamp inside it.
 - Never spills: a list in a popup/modal (the focus root is not a page), and the programmatic `List.Move` API, which always clamps (list.go:135).
