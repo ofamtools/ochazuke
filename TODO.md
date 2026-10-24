@@ -17,6 +17,19 @@
   - [ ] Continue the one-at-a-time discussion: domain detail views, specialized previews, and optional resizable panes.
   - Domain modules, persistence, and terminal-daemon integration remain application-level.
 
+- [ ] Build tools that should be shipped or available thru the repo and whose
+      code should be in the repo.
+  - binding checker - will go into details in a diff file
+    - checks for modes that don't have a binding to leave the mode, or that can
+      get back to normal mode
+    - where layers overlap other keys
+  - binding sandbox/tester - could maybe be rolled into a full-featured binding
+    utility
+  - binding/config designer - load a list of actions, and maybe layers (idk) and
+    just go to town customizing it
+  - color scheme designer/previewer - preloaded with tuios's themes (grouped by
+    light and dark)
+
 - [ ] Add configurable color schemes shared by pages, panels, inputs, and modals.
   - Build on `Appearance` / `Styles`: named palettes, semantic colors, live preview, and config persistence.
   - Check contrast in light/dark terminals, ANSI-16 terminals, and `NO_COLOR`; keep focus visible without color.
