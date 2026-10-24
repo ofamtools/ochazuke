@@ -223,3 +223,28 @@ func TestListSelectionCancelsPendingBindingEvenWithSharedItemLayer(t *testing.T)
 		t.Fatal("old item's pending binding survived selection")
 	}
 }
+
+func TestListItemDataReachesTheRowInstanceAndItsVerb(t *testing.T) {
+	r, list, _, _ := listFixture(t)
+	var seen any
+	r.Define("a").Verb("open", func(c Ctx) Result { seen = c.Instance.Data; return Done(nil) }, "Open")
+	if err := list.SetItems([]ListItem{{ID: "one", Label: "First", Noun: "a", Data: map[string]any{"id": "ext-1"}}, {ID: "two", Label: "Second", Noun: "b"}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Execute(Request{Verb: "open", Noun: "a", Target: "one"}); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(seen, map[string]any{"id": "ext-1"}) || r.Instances["two"].Data != nil {
+		t.Fatalf("data = %v, two = %v", seen, r.Instances["two"].Data)
+	}
+	if item, _ := list.Selected(); !reflect.DeepEqual(item.Data, map[string]any{"id": "ext-1"}) {
+		t.Fatalf("selected = %+v", item)
+	}
+	// A retained row takes the new data.
+	if err := list.SetItems([]ListItem{{ID: "one", Label: "First", Noun: "a", Data: "v2"}}); err != nil {
+		t.Fatal(err)
+	}
+	if r.Instances["one"].Data != "v2" {
+		t.Fatalf("retained row data = %v", r.Instances["one"].Data)
+	}
+}

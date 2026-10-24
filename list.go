@@ -13,10 +13,15 @@ import (
 // ListItem is application-owned identity, display text, and the registered
 // noun the row answers to. Each row is an Instance whose ID is the item ID and
 // whose Parent is the list; its bindings and actions come from its noun.
+// Data is an opaque value the application keeps on the row (a host's
+// record of the row, an extension's own id); SetItems copies it to the
+// row instance's Data, where a verb reads it as Ctx.Instance.Data. The
+// framework never reads it.
 type ListItem struct {
 	ID    string `json:"id"`
 	Label string `json:"label"`
 	Noun  string `json:"noun"`
+	Data  any    `json:"data,omitempty"`
 }
 
 // List owns flat selection, marks and scrolling on the runtime's event loop.
@@ -95,7 +100,7 @@ func (l *List) SetItems(items []ListItem) error {
 		if inst == nil {
 			inst = l.r.Instance(item.ID, Parent(l.id), Kind(item.Noun))
 		}
-		inst.Noun, inst.Parent, inst.Label = item.Noun, l.id, item.Label
+		inst.Noun, inst.Parent, inst.Label, inst.Data = item.Noun, l.id, item.Label, item.Data
 	}
 	previous, _ := l.Selected()
 	selected := min(max(l.selected, 0), len(items)-1)

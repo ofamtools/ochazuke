@@ -14,7 +14,8 @@ import (
 // stack level. Component holds the typed component the instance fronts.
 // Unfocusable opts the instance out of being a focus stop although its noun
 // is Focusable (a disabled panel). Label is an optional display name a
-// confirm prompt reads as {{label}}.
+// confirm prompt reads as {{label}}. Data is an opaque application value
+// (a list row's ListItem.Data); the framework never reads it.
 type Instance struct {
 	ID          string    `json:"id"`
 	Noun        string    `json:"noun"`
@@ -23,6 +24,7 @@ type Instance struct {
 	Bindings    []Binding `json:"bindings,omitempty"`
 	Unfocusable bool      `json:"unfocusable,omitempty"`
 	Label       string    `json:"label,omitempty"` // a display name (a list row's label, a header name); {{label}} in a confirm prompt
+	Data        any       `json:"data,omitempty"`  // an opaque application value (a list row's ListItem.Data)
 	Component   any       `json:"-"`
 	seq         uint64
 	returnMode  ModeState // an open modal's mode to restore on Pop, beside Payload.Return
