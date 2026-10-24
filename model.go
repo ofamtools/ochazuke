@@ -77,9 +77,10 @@ func NewModel(r *Runtime) *Model {
 	defaultRow("normal", "ctrl+j", Do("page.next"))
 	defaultRow("normal", "ctrl+k", Do("page.previous"))
 	defaultRow("", "ctrl+space", Do("palette.open"))
-	// ctrl+c quits from a capture row, so an inner any row (a terminal's
-	// passthrough) cannot swallow it; inside a modal the capture row stands
-	// aside and the bubbling row below answers unless the modal binds ctrl+c.
+	// ctrl+c quits from a capture row, so an inner any row cannot swallow
+	// it; inside a modal the capture row stands aside and the bubbling row
+	// below answers unless the modal binds ctrl+c. In a passthrough mode (an
+	// attached terminal) there is no capture pass: ctrl+c goes to the pane.
 	captureQuit := true
 	for _, existing := range app.Bindings[""] {
 		captureQuit = captureQuit && existing.Keys != "ctrl+c"

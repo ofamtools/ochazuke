@@ -628,6 +628,18 @@ func (r *Runtime) DefineMode(name string, pending bool) error {
 	return nil
 }
 
+// DefinePassthrough marks a defined mode as a passthrough mode: while it is
+// the base mode (a pending mode over it included) capture rows stand aside,
+// so the focused level's rows answer every key. The terminal mode is one:
+// ctrl+c reaches the pane instead of the app's captured quit.
+func (r *Runtime) DefinePassthrough(name string) error {
+	if !r.Modes[name] {
+		return fmt.Errorf("unknown base mode %q", name)
+	}
+	r.passthroughModes[name] = true
+	return nil
+}
+
 // Guard is a named condition a row requires. The built-in guards are
 // "input" and "no-input" (the focus is or is not an input), "multiline", "count" and "no-count" (the
 // pending count is present or absent), "self" (the focus is the instance

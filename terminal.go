@@ -228,6 +228,7 @@ func (r *Runtime) terminalOf(c Context, args Arguments) (*Terminal, error) {
 // Enter row with that key as its prefix.
 func registerTerminal(r *Runtime) {
 	r.DefineMode("terminal", false)
+	_ = r.DefinePassthrough("terminal")
 	r.DefineMode("leader_pending", true)
 	leader := Request{Verb: "send", Noun: "terminal", Args: Arguments{"keys": "ctrl+a"}}
 	r.Define("terminal").Pin("terminal").Focusable().

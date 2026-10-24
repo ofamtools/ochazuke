@@ -34,9 +34,14 @@ type level struct {
 // capture rows, then the bubbling pass, the stack inner-first reading the
 // rest. The first row that answers in either pass wins, so an app-level
 // capture row (ctrl+c → app.quit) answers before an inner any row (a
-// terminal's passthrough) can swallow the key.
+// terminal's passthrough) can swallow the key. While the base mode is a
+// passthrough mode (DefinePassthrough: the terminal) there is no capture
+// pass, so the mode's rows see every key, ctrl+c included.
 func (r *Runtime) walk(focus string) []level {
 	inner := r.stack(focus)
+	if r.passthroughModes[r.BaseMode()] {
+		return inner
+	}
 	var out, fallback []level
 	for i := len(inner) - 1; i >= 0; i-- {
 		lv := inner[i]

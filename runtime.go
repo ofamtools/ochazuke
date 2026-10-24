@@ -85,33 +85,34 @@ func (o Operation) Key() string { return o.Noun + "." + o.Verb }
 // inputs, lists, the picker and the registers are instances, never fields;
 // TestRuntimeHoldsNoComponentFields pins this list.
 type Runtime struct {
-	Nouns          map[string]*Noun
-	Instances      map[string]*Instance
-	Focus          string    // the focused instance; Context() is derived from it
-	Mode           ModeState // the one interaction mode; mode.set writes it, a focus change to another stop resets it
-	Page           string    // the current page instance; always an ancestor of BaseFocus()
-	Modes          map[string]bool
-	Operations     map[string]Operation
-	Quit           bool
-	Pending        string
-	BindingTimeout time.Duration
-	pendingModes   map[string]bool
-	guards         map[string]Guard
-	predicates     map[string]PredicateFunc // named query predicates (query.go)
-	history        actionHistory            // the executed-request ring and the current source (history.go)
-	origin         string                   // the instance the running request or completion acts for; a modal opens only from the top level
-	rowRequest     bool                     // the next execute is a binding row's own request (runRow's level rule targets it)
-	prefix         pendingPrefix
-	bindingVersion uint64
-	modeGeneration uint64
-	rows           map[string]string // list row instance id -> owning list id
-	modals         []string          // the open modal instances, outermost first; each holds its return focus in Payload.Return
-	modalInstances map[string]bool   // instances created by Push or OpenModal, removed by Pop
-	seq            uint64            // instance registration order
-	commands       []tea.Cmd         // off-loop work scheduled since the adapter last drained it
-	jobs           map[uint64]*job   // the jobs list: running jobs and the finished ones retained for jobs.list
-	jobSeq         uint64            // last issued job id
-	deprecations   []string          // rows that named an operation by its old verb.noun spelling, rewritten once
+	Nouns            map[string]*Noun
+	Instances        map[string]*Instance
+	Focus            string    // the focused instance; Context() is derived from it
+	Mode             ModeState // the one interaction mode; mode.set writes it, a focus change to another stop resets it
+	Page             string    // the current page instance; always an ancestor of BaseFocus()
+	Modes            map[string]bool
+	Operations       map[string]Operation
+	Quit             bool
+	Pending          string
+	BindingTimeout   time.Duration
+	pendingModes     map[string]bool
+	passthroughModes map[string]bool // base modes in which capture rows stand aside (DefinePassthrough)
+	guards           map[string]Guard
+	predicates       map[string]PredicateFunc // named query predicates (query.go)
+	history          actionHistory            // the executed-request ring and the current source (history.go)
+	origin           string                   // the instance the running request or completion acts for; a modal opens only from the top level
+	rowRequest       bool                     // the next execute is a binding row's own request (runRow's level rule targets it)
+	prefix           pendingPrefix
+	bindingVersion   uint64
+	modeGeneration   uint64
+	rows             map[string]string // list row instance id -> owning list id
+	modals           []string          // the open modal instances, outermost first; each holds its return focus in Payload.Return
+	modalInstances   map[string]bool   // instances created by Push or OpenModal, removed by Pop
+	seq              uint64            // instance registration order
+	commands         []tea.Cmd         // off-loop work scheduled since the adapter last drained it
+	jobs             map[uint64]*job   // the jobs list: running jobs and the finished ones retained for jobs.list
+	jobSeq           uint64            // last issued job id
+	deprecations     []string          // rows that named an operation by its old verb.noun spelling, rewritten once
 }
 
 func NewRuntime() *Runtime {
@@ -119,11 +120,12 @@ func NewRuntime() *Runtime {
 		Nouns: map[string]*Noun{}, Instances: map[string]*Instance{}, rows: map[string]string{},
 		Focus: "app", Mode: ModeState{Name: "normal"},
 		Modes: map[string]bool{"normal": true, "insert": true}, Operations: map[string]Operation{},
-		pendingModes:   map[string]bool{},
-		guards:         builtinGuards(),
-		predicates:     builtinPredicates(),
-		modalInstances: map[string]bool{},
-		BindingTimeout: DefaultBindingTimeout,
+		pendingModes:     map[string]bool{},
+		passthroughModes: map[string]bool{},
+		guards:           builtinGuards(),
+		predicates:       builtinPredicates(),
+		modalInstances:   map[string]bool{},
+		BindingTimeout:   DefaultBindingTimeout,
 	}
 	r.Instance("app")
 	r.Define("modal")

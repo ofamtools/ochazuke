@@ -11,28 +11,34 @@ import (
 )
 
 // A capture row is consulted outer-first before the inner-first walk, so an
-// inner any row (the terminal's passthrough) does not swallow it. The row
-// comes from config with "capture": true.
+// inner any row does not swallow it. The row comes from config with
+// "capture": true.
 func TestCaptureRowBeatsInnerAnyRow(t *testing.T) {
-	r, _, stream := terminalFixture(t)
+	r := NewRuntime()
+	calls := recorder(t, r, "any", "quit")
+	r.Instance("panel")
+	if err := r.SetFocus("panel"); err != nil {
+		t.Fatal(err)
+	}
+	r.Define("panel").Mode("normal").Pattern(Any, Do("test.any"))
 	press(t, r, "ctrl+c")
-	if r.Quit || len(stream.sent) != 1 {
-		t.Fatalf("without a capture row the terminal takes ctrl+c: quit=%v sent=%v", r.Quit, stream.sent)
+	if r.Quit || len(*calls) != 1 {
+		t.Fatalf("without a capture row the any row takes ctrl+c: quit=%v calls=%v", r.Quit, *calls)
 	}
 	var row Binding
-	if err := json.Unmarshal([]byte(`{"noun": "app", "keys": "ctrl+c", "capture": true, "request": {"verb": "quit", "noun": "app"}}`), &row); err != nil {
+	if err := json.Unmarshal([]byte(`{"noun": "app", "keys": "ctrl+c", "capture": true, "request": {"verb": "quit", "noun": "test"}}`), &row); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.Bind(row); err != nil {
 		t.Fatal(err)
 	}
 	press(t, r, "ctrl+c")
-	if !r.Quit || len(stream.sent) != 1 {
-		t.Fatalf("captured ctrl+c: quit=%v sent=%v", r.Quit, stream.sent)
+	if got := *calls; len(got) != 2 || got[1] != "quit" {
+		t.Fatalf("captured ctrl+c: %v", got)
 	}
 	press(t, r, "x")
-	if len(stream.sent) != 2 {
-		t.Fatalf("other keys still reach the terminal: %v", stream.sent)
+	if got := *calls; len(got) != 3 || got[2] != "any" {
+		t.Fatalf("other keys still reach the any row: %v", got)
 	}
 	listed := false
 	for _, b := range r.ListBindings(r.Focus) {
@@ -62,11 +68,27 @@ func TestCaptureIsOuterFirst(t *testing.T) {
 	}
 }
 
-// The model's ctrl+c is a capture row guarded by no-modal: it quits from a
-// terminal's passthrough, and inside the palette the palette still closes.
+// The model's ctrl+c is a capture row guarded by no-modal: it quits past an
+// inner any row, inside the palette the palette still closes, and in the
+// terminal's passthrough mode there is no capture pass, so ctrl+c (and
+// ctrl+c under the leader) reaches the pane and the app keeps running.
 func TestModelCtrlCCapturedOutsideModals(t *testing.T) {
 	r, _, stream := terminalFixture(t)
 	m := NewModel(r)
+	for _, b := range r.ListBindings(r.Focus) {
+		if b.Keys == "ctrl+c" {
+			t.Fatalf("an attached terminal lists ctrl+c as %s", b.Request.Key())
+		}
+	}
+	keytest.Press(m, "ctrl+c")
+	if r.Quit || !reflect.DeepEqual(stream.sent, [][]string{{"ctrl+c"}}) {
+		t.Fatalf("terminal focus: quit=%v sent=%v", r.Quit, stream.sent)
+	}
+	keytest.Press(m, "ctrl+a")
+	keytest.Press(m, "ctrl+c")
+	if r.Quit || !reflect.DeepEqual(stream.sent[1:], [][]string{{"ctrl+a", "ctrl+c"}}) || r.Mode.Name != "terminal" {
+		t.Fatalf("leader then ctrl+c: quit=%v sent=%v mode=%s", r.Quit, stream.sent, r.Mode.Name)
+	}
 	if err := m.Palette.Open(); err != nil {
 		t.Fatal(err)
 	}
@@ -79,9 +101,16 @@ func TestModelCtrlCCapturedOutsideModals(t *testing.T) {
 	if m.Palette.IsOpen() || r.Quit {
 		t.Fatalf("palette ctrl+c closes it: open=%v quit=%v", m.Palette.IsOpen(), r.Quit)
 	}
+	if err := r.SetFocus("console"); err != nil {
+		t.Fatal(err)
+	}
+	listed := false
+	for _, b := range r.ListBindings(r.Focus) {
+		listed = listed || b.Keys == "ctrl+c" && b.Capture && b.Request.Key() == "app.quit"
+	}
 	keytest.Press(m, "ctrl+c")
-	if !r.Quit || len(stream.sent) != 0 {
-		t.Fatalf("terminal focus: quit=%v sent=%v", r.Quit, stream.sent)
+	if !listed || !r.Quit || len(stream.sent) != 2 {
+		t.Fatalf("detached: listed=%v quit=%v sent=%v", listed, r.Quit, stream.sent)
 	}
 }
 

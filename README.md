@@ -726,7 +726,7 @@ The walk above bubbles: the inner level wins. A row may set `capture: true` (`Ca
 { noun: "app", mode: "", keys: "ctrl+c", capture: true, when: "no-modal", request: { verb: "quit", noun: "app" } }
 ```
 
-That row is the only default capture row: `NewModel` installs it (with the bubbling `ctrl+c` row it always had) so a terminal's `any` passthrough cannot swallow quit. The `no-modal` guard stands it aside while a modal is open, so the palette's own `ctrl+c` still closes the palette. To rebind `ctrl+c`, bind it on `app` before `NewModel`, or unbind it (an unbind removes both rows).
+That row is the only default capture row: `NewModel` installs it (with the bubbling `ctrl+c` row it always had) so an inner `any` row cannot swallow quit. The `no-modal` guard stands it aside while a modal is open, so the palette's own `ctrl+c` still closes the palette. A passthrough mode (`DefinePassthrough`, the `terminal` mode) has no capture pass at all: while it is the base mode, `ctrl+c` goes to the attached pane, and quitting means detaching first (`ctrl+a d`) or a leader row bound to `app.quit`. To rebind `ctrl+c`, bind it on `app` before `NewModel`, or unbind it (an unbind removes both rows).
 
 ## Atomic bindings
 
