@@ -7,16 +7,14 @@ import (
 
 // bind installs the mode tables of the sketch. With a cell focused the stack
 // is [cell, row, column, grid, sheet, app]: dd resolves on row, s on column,
-// i on cell, ctrl+s on sheet. The three visual modes share one table on the
-// grid noun; motions take counts through count_pending, which is exclusive,
-// so the motion rows are installed there too.
+// i on cell, ctrl+s on sheet. A selection is a global mode (the grid's
+// shapes), entered and left with mode.set. The visual-block table on the
+// grid noun holds the selection rows; visual-row and visual-column extend
+// it. Motions take counts through count_pending, which is exclusive, so the
+// cell's count_pending extends its normal table. } and tab leave the grid
+// for the next focus stop (the app noun binds them).
 func (a *App) bind() {
 	r := a.r
-	for _, mode := range []string{grid.ShapeRow, grid.ShapeColumn} {
-		if err := r.DefineMode(mode, false); err != nil {
-			panic(err)
-		}
-	}
 	move := func(motion string) ochazuke.Binding {
 		return ochazuke.Do("grid.move", ochazuke.Arguments{"motion": motion}).FromPayload("steps", ochazuke.SourceCount)
 	}
@@ -49,7 +47,7 @@ func (a *App) bind() {
 		Bind("v", shape(grid.ShapeBlock)).Bind("V", shape(grid.ShapeRow)).Bind("ctrl+v", shape(grid.ShapeColumn))
 	motions(cell)
 	transforms(cell)
-	motions(r.Define("cell").Mode("count_pending"))
+	r.Define("cell").Mode("count_pending").Extends("normal")
 
 	r.Define("row").Mode("normal").
 		Bind("d d", ochazuke.Do("row.delete")).
@@ -62,25 +60,25 @@ func (a *App) bind() {
 		Bind("/", ochazuke.Do("column.filter"))
 
 	visual := r.Define("grid")
-	for _, mode := range []string{grid.ShapeBlock, grid.ShapeRow, grid.ShapeColumn} {
-		m := visual.Mode(mode)
-		motions(m)
-		transforms(m)
-		m.Bind("o", ochazuke.Do("selection.swap")).
-			Bind("v", shape(grid.ShapeBlock)).Bind("V", shape(grid.ShapeRow)).Bind("ctrl+v", shape(grid.ShapeColumn)).
-			Bind("esc", ochazuke.Do("mode.set", ochazuke.Arguments{"mode": "normal"})).
-			Bind("y", ochazuke.Do("selection.yank")).
-			Bind("d", ochazuke.Do("selection.delete")).
-			Bind("p", ochazuke.Do("selection.paste")).
-			Bind("c", ochazuke.Do("selection.clear")).
-			Bind("s", ochazuke.Do("column.sort")).
-			Bind("f", transform("fillDown")).
-			Bind("m", ochazuke.Do("selection.mark")).
-			Bind("M", ochazuke.Do("selection.unmark")).
-			Bind("ctrl+a", ochazuke.Do("selection.all")).
-			// Counts: the app noun enters count_pending from normal only.
-			Pattern("digit-0", ochazuke.Enter("count_pending").FromPayload("count", ochazuke.SourceDigit))
-	}
+	visual.Mode(grid.ShapeRow).Extends(grid.ShapeBlock)
+	visual.Mode(grid.ShapeColumn).Extends(grid.ShapeBlock)
+	m := visual.Mode(grid.ShapeBlock)
+	motions(m)
+	transforms(m)
+	m.Bind("o", ochazuke.Do("selection.swap")).
+		Bind("v", shape(grid.ShapeBlock)).Bind("V", shape(grid.ShapeRow)).Bind("ctrl+v", shape(grid.ShapeColumn)).
+		Bind("esc", ochazuke.Do("mode.set", ochazuke.Arguments{"mode": "normal"})).
+		Bind("y", ochazuke.Do("selection.yank")).
+		Bind("d", ochazuke.Do("selection.delete")).
+		Bind("p", ochazuke.Do("selection.paste")).
+		Bind("c", ochazuke.Do("selection.clear")).
+		Bind("s", ochazuke.Do("column.sort")).
+		Bind("f", transform("fillDown")).
+		Bind("m", ochazuke.Do("selection.mark")).
+		Bind("M", ochazuke.Do("selection.unmark")).
+		Bind("ctrl+a", ochazuke.Do("selection.all")).
+		// Counts: the app noun enters count_pending from normal only.
+		Pattern("digit-0", ochazuke.Enter("count_pending").FromPayload("count", ochazuke.SourceDigit))
 
 	r.Define("sheet").Mode("normal").
 		Bind("ctrl+s", ochazuke.Do("sheet.save")).

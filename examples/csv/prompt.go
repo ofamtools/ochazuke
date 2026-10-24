@@ -10,14 +10,14 @@ import (
 // the framework's prompt noun) in one modal, reused by every verb that needs
 // a line of text: cell edit, rename, add column, filter, open and save-as.
 // enter commits, esc cancels, ctrl+o opens the path picker into the field.
-// The question (label and commit) is application state; the field keeps its
-// own undo tree across uses.
+// OpenModal opens the body and the field in one call; the label rides in the
+// body's payload, the commit is application state, and the *Input keeps its
+// undo tree across uses although its instance closes with the modal.
 
 const promptFrame = "csv-prompt"
 const fieldID = "field"
 
 type question struct {
-	label  string
 	commit func(text string) error
 }
 
@@ -49,16 +49,9 @@ func (a *App) registerPrompt() {
 		Bind("esc", ochazuke.Do("field.cancel")).
 		Bind("ctrl+o", ochazuke.Do("picker.open"))
 	a.field = ochazuke.NewInput(fieldID, "", false)
-	if err := r.AddInput(a.field, ochazuke.Kind("field")); err != nil {
-		panic(err)
-	}
-	a.m.ModalViews[promptFrame] = ochazuke.ModalView{Title: "Prompt", Render: func(r *ochazuke.Runtime, f *ochazuke.Instance, w, h int) ochazuke.Block {
-		label := ""
-		if a.ask != nil {
-			label = a.ask.label
-		}
-		body := ochazuke.InputBlock(a.field, max(1, w), 1)
-		return body.Offset(0, 2).WithText(label + "\n\n" + body.Text)
+	a.m.ModalViews[promptFrame] = ochazuke.ModalView{Title: "Prompt", Render: func(r *ochazuke.Runtime, body *ochazuke.Instance, w, h int) ochazuke.Block {
+		field := ochazuke.InputBlock(a.field, max(1, w), 1)
+		return field.Offset(0, 2).WithText(body.Payload.Prompt + "\n\n" + field.Text)
 	}}
 }
 
@@ -72,13 +65,12 @@ func (a *App) prompt(label, text, kind string, commit func(string) error) error 
 	if err := a.field.Replace(0, len(a.field.Text), text); err != nil {
 		return err
 	}
-	a.field.SetMode("insert")
 	a.field.Cursor = len(a.field.Text)
 	view := a.m.ModalViews[promptFrame]
 	view.Title = label
 	a.m.ModalViews[promptFrame] = view
-	a.ask = &question{label: label, commit: commit}
-	if err := a.r.Push(promptFrame, fieldID); err != nil {
+	a.ask = &question{commit: commit}
+	if _, err := a.r.OpenModal(promptFrame, ochazuke.Payload{Prompt: label}, ochazuke.WithInput(a.field, ochazuke.Kind("field"))); err != nil {
 		a.ask = nil
 		return err
 	}

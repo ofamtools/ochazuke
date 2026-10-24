@@ -73,6 +73,15 @@ func TestOpenAndNavigateWithCounts(t *testing.T) {
 	cursor(t, a, grid.Ref{Row: 1, Col: 2})
 	press(t, a, "9", "k")
 	cursor(t, a, grid.Ref{Row: 0, Col: 2})
+	press(t, a, "4", "g", "g")
+	cursor(t, a, grid.Ref{Row: 3, Col: 2})
+	// The grid is the sheet's only focus stop: } and tab land back on the
+	// cursor cell, never on the sheet or a stale cell.
+	press(t, a, "}", "tab", "{")
+	if a.r.Focus != "r3:c2" {
+		t.Fatalf("focus jump from the grid: %s", a.r.Focus)
+	}
+	press(t, a, "g", "g")
 	if mode := a.r.Mode.Name; mode != "normal" {
 		t.Fatalf("mode after motions = %q", mode)
 	}
