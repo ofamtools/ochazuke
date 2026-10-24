@@ -482,3 +482,30 @@ func TestEditorFallbackNeedsAnInputOnThePath(t *testing.T) {
 		t.Fatal("an input keeps the editor fallback")
 	}
 }
+
+// A completion whose Then removes its own owner (a kill verb dropping its
+// row) settles the job and drops the message instead of panicking.
+func TestDeliverToleratesOwnerRemovedByItsCompletion(t *testing.T) {
+	r := NewRuntime()
+	r.Instance("row", Kind("row"))
+	comp := &slowComponent{r: r, id: "row"}
+	r.Instances["row"].Component = comp
+	removed := false
+	ticket, err := r.Launch("row", "kill", Pending(func(context.Context) (any, error) { return "killed", nil }).Then(func(c Ctx, _ any, _ error) {
+		removed = c.Runtime.RemoveInstance("row") == nil
+	}), Ctx{Runtime: r})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, msg := range runCmd(r.PendingCommands()) {
+		if handled, err := r.Deliver(msg); !handled || err != nil {
+			t.Fatalf("deliver: %v %v", handled, err)
+		}
+	}
+	if !removed || r.Instances["row"] != nil || len(comp.received) != 0 || comp.closed != 1 {
+		t.Fatalf("removed=%v instance=%v received=%+v closed=%d", removed, r.Instances["row"], comp.received, comp.closed)
+	}
+	if jobs := r.Jobs(); len(jobs) != 1 || jobs[0].Job != ticket.Job || jobs[0].State != JobDone {
+		t.Fatalf("job not settled: %+v", jobs)
+	}
+}

@@ -282,8 +282,10 @@ func registerJobs(r *Runtime) {
 
 // Deliver routes a message on the loop: a Completion goes to its owner when
 // its job is running and is dropped otherwise; any other message is offered
-// to every component until one claims it. It reports whether a component
-// consumed the message and the delivered completion's error, if any.
+// to every component until one claims it. A Then callback that removes its
+// own owner is safe: the job is already settled and the completion is not
+// offered to the gone component. It reports whether a component consumed
+// the message and the delivered completion's error, if any.
 func (r *Runtime) Deliver(msg tea.Msg) (bool, error) {
 	if done, ok := msg.(Completion); ok {
 		if !r.Settle(done.Ticket, done.Err) {
@@ -294,8 +296,12 @@ func (r *Runtime) Deliver(msg tea.Msg) (bool, error) {
 		if j.then != nil {
 			j.then(j.ctx, done.Value, done.Err)
 		}
-		if comp, ok := r.Instances[done.Owner].Component.(Component); ok {
-			comp.HandleMessage(done)
+		// The callback may have removed the owner (a kill verb dropping its
+		// own row): the job is settled, so the message is dropped.
+		if inst := r.Instances[done.Owner]; inst != nil {
+			if comp, ok := inst.Component.(Component); ok {
+				comp.HandleMessage(done)
+			}
 		}
 		return true, done.Err
 	}
