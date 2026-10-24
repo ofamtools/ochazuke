@@ -41,7 +41,7 @@ Status: done, commit f4a3ec5. Decisions: `Page.Render` and `ModalView.Render` re
 
 ## Phase 3: nouns and instances under the existing layer API
 
-Status: done. Decisions: `Runtime.Focus(id)` already names the focus method, so the leaf is read through `FocusID()` and derived from `Context()`; nouns are keyed by layer ID (full-project rows share a display noun but have distinct bindings, which phase 4 resolves); an input whose ID is not also a layer is an instance without a noun, since the editor noun arrives in phase 5; a second parent for one instance ID is recorded by `AmbiguousInstances`, not guessed, and the demo and full-project sessions record none.
+Status: done, commit ae3b321. Decisions: `Runtime.Focus(id)` already names the focus method, so the leaf is read through `FocusID()` and derived from `Context()`; nouns are keyed by layer ID (full-project rows share a display noun but have distinct bindings, which phase 4 resolves); an input whose ID is not also a layer is an instance without a noun, since the editor noun arrives in phase 5; a second parent for one instance ID is recorded by `AmbiguousInstances`, not guessed, and the demo and full-project sessions record none.
 
 No behavior change. This phase only adds the new model beneath the old one.
 
