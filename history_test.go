@@ -119,3 +119,85 @@ func TestHistoryRecordsJob(t *testing.T) {
 		t.Fatalf("job entry: %+v", e)
 	}
 }
+
+// d w then . on another line deletes a word there: the request is re-run
+// at the current focus and cursor with its arguments kept.
+func TestDotRepeatsChangeOnAnotherLine(t *testing.T) {
+	r, in := editorTestRuntime(t, "one two\nthree four", true)
+	editorTestKeys(t, r, "d", "w", "j", "0", ".")
+	if got := string(in.Text); got != "two\nfour" {
+		t.Fatalf("text %q", got)
+	}
+	if e := lastEntry(t, r); e.Request.Key() != "history.repeat" || e.Context.Source != "key:." {
+		t.Fatalf("repeat entry: %+v", e)
+	}
+}
+
+// A count on . replaces the recorded count.
+func TestDotCountReplacesRecordedCount(t *testing.T) {
+	r, in := editorTestRuntime(t, "a b c d e f", false)
+	editorTestKeys(t, r, "d", "w", "3", ".")
+	if got := string(in.Text); got != "e f" {
+		t.Fatalf("3. text %q", got)
+	}
+	editorTestKeys(t, r, ".")
+	if got := string(in.Text); got != "" {
+		t.Fatalf("the repeated count is what . repeats next: %q", got)
+	}
+}
+
+// A motion between the change and . is not what . repeats.
+func TestDotDoesNotRepeatMotion(t *testing.T) {
+	r, in := editorTestRuntime(t, "a b c d", false)
+	editorTestKeys(t, r, "d", "w", "w", ".")
+	if got := string(in.Text); got != "b d" {
+		t.Fatalf("text %q", got)
+	}
+	if op := r.Operations["input.move"]; op.Repeatable || !r.Operations["input.operator"].Repeatable {
+		t.Fatal("motions are not repeatable, operators are")
+	}
+	fresh := NewRuntime()
+	if _, err := fresh.Execute(Request{Verb: "repeat", Noun: "history"}); err == nil {
+		t.Fatal("nothing to repeat must fail")
+	}
+}
+
+// The recorded target is dropped unless the request came from the CLI and
+// the instance still exists.
+func TestDotRetargetsToFocusUnlessCLI(t *testing.T) {
+	r, focused := editorTestRuntime(t, "xxxx", false)
+	other := NewInput("other", "yyyy", false)
+	if err := r.AddInput(other); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Execute(Request{Verb: "delete", Noun: "input", Target: "other"}); err != nil {
+		t.Fatal(err)
+	}
+	editorTestKeys(t, r, ".")
+	if string(focused.Text) != "xxx" || string(other.Text) != "yyy" {
+		t.Fatalf("api target re-resolves to focus: %q %q", focused.Text, other.Text)
+	}
+	reply := make(chan Response, 1)
+	r.HandleCall(CallMsg{Request: Request{Verb: "delete", Noun: "input", Target: "other"}, Reply: reply})
+	<-reply
+	editorTestKeys(t, r, ".")
+	if string(focused.Text) != "xxx" || string(other.Text) != "y" {
+		t.Fatalf("cli target is kept: %q %q", focused.Text, other.Text)
+	}
+}
+
+// A confirmed change repeats without asking again: Confirmed is recorded.
+func TestDotDoesNotReaskConfirmation(t *testing.T) {
+	r := NewRuntime()
+	runs := 0
+	r.Register(Operation{Verb: "wipe", Noun: "test", Confirm: "Wipe?", Repeatable: true, Run: func(*Runtime, Context, Arguments) (any, error) { runs++; return nil, nil }})
+	if _, err := r.Execute(Request{Verb: "wipe", Noun: "test"}); err != nil || runs != 0 || len(r.Modals()) != 1 {
+		t.Fatalf("confirm opens: %v runs=%d", err, runs)
+	}
+	if _, err := r.Execute(Request{Verb: "accept", Noun: "confirm"}); err != nil || runs != 1 {
+		t.Fatalf("accept: %v runs=%d", err, runs)
+	}
+	if _, err := r.Execute(Request{Verb: "repeat", Noun: "history"}); err != nil || runs != 2 || len(r.Modals()) != 0 {
+		t.Fatalf("repeat: %v runs=%d modals=%v", err, runs, r.Modals())
+	}
+}

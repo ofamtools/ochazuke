@@ -58,6 +58,9 @@ type Handler func(*Runtime, Context, Arguments) (any, error)
 // an AppHandler whose pending work runs off the loop and reports through the
 // delivery contract). Confirm, when set, is a prompt template ({{id}},
 // {{noun}}, {{<arg>}}) shown in a confirm modal before the operation runs.
+// Repeatable marks a change (not a motion or navigation) that dot-repeat
+// (history.repeat, bound to . on app in normal mode) may run again; set it
+// on the Operation passed to Register.
 type Operation struct {
 	Verb        string               `json:"verb"`
 	Noun        string               `json:"noun"`
@@ -66,6 +69,7 @@ type Operation struct {
 	Result      string               `json:"result"`
 	Kind        string               `json:"kind"`
 	Confirm     string               `json:"confirm,omitempty"`
+	Repeatable  bool                 `json:"repeatable,omitempty"`
 	Run         Handler              `json:"-"`
 	App         AppHandler           `json:"-"`
 }

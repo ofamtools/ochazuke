@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"encoding/json"
+	"errors"
 	"time"
 )
 
@@ -104,7 +105,60 @@ func (r *Runtime) History(n int) []HistoryEntry {
 	return append([]HistoryEntry{}, entries...)
 }
 
+// repeatableOperations are the framework's changes: the editor's text
+// edits. Motions, focus, pages, modals, lists and the history itself are not.
+var repeatableOperations = []string{"input.insert", "input.delete", "input.kill", "input.paste", "input.operator", "input.replace"}
+
+// markRepeatable flags registered framework operations as repeatable.
+func markRepeatable(r *Runtime, keys ...string) {
+	for _, key := range keys {
+		if op, ok := r.Operations[key]; ok {
+			op.Repeatable = true
+			r.Operations[key] = op
+		}
+	}
+}
+
+// repeatRequest is the request dot-repeat runs: the last successful
+// repeatable request with its arguments (and Confirmed) kept. Its target is
+// dropped so it re-resolves to the current focus, unless the request came
+// from the CLI and names an instance that still exists. steps > 0 replaces
+// the recorded count on an operation that takes steps.
+func (r *Runtime) repeatRequest(steps int) (Request, error) {
+	entries := r.history.entries
+	for i := len(entries) - 1; i >= 0; i-- {
+		e := entries[i]
+		op, ok := r.Operations[e.Request.Key()]
+		if !ok || !op.Repeatable || !e.Result.OK {
+			continue
+		}
+		q := e.Request
+		args := Arguments{}
+		for k, v := range q.Args {
+			args[k] = v
+		}
+		if _, takes := op.Parameters["steps"]; takes && steps > 0 {
+			args["steps"] = steps
+		}
+		q.Args = args
+		if q.Target != "" && (e.Context.Source != "cli" || r.Instances[q.Target] == nil) {
+			q.Target = ""
+		}
+		return q, nil
+	}
+	return Request{}, errors.New("nothing to repeat")
+}
+
 func registerHistory(r *Runtime) {
+	markRepeatable(r, repeatableOperations...)
+	r.Register(Operation{Verb: "repeat", Noun: "history", Description: "Dot-repeat: run the last repeatable change again at the current focus, its arguments kept; steps replaces its count", Parameters: map[string]Parameter{"steps": {Type: "integer", Description: "Count replacing the recorded one; 0 keeps it"}}, Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		q, err := r.repeatRequest(IntArg(a, "steps", 0))
+		if err != nil {
+			return nil, err
+		}
+		return r.ExecuteAt(c, q)
+	}})
+	r.Define("app").Mode("normal").Bind(".", Do("history.repeat").FromPayload("steps", SourceLine))
 	r.Register(Operation{Verb: "list", Noun: "history", Description: "List the last executed requests, oldest first, with their context, source and result", Parameters: map[string]Parameter{"last": {Type: "integer", Description: "How many entries (default 50, 0 for all)"}}, Result: "history[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.History(IntArg(a, "last", 50)), nil
 	}})
