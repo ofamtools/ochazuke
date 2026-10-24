@@ -16,8 +16,8 @@ import (
 	"sort"
 	"strings"
 
-	"ochazuke"
-	"ochazuke/examples/demo"
+	"github.com/unixsuperhero/ochazuke"
+	"github.com/unixsuperhero/ochazuke/examples/demo"
 )
 
 type action struct {
@@ -118,7 +118,7 @@ func generate() error {
 		}
 		files = append(files, file)
 	}
-	pkg, err := doc.NewFromFiles(fset, files, "ochazuke")
+	pkg, err := doc.NewFromFiles(fset, files, "github.com/unixsuperhero/ochazuke")
 	if err != nil {
 		return err
 	}

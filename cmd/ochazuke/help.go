@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"ochazuke"
+	"github.com/unixsuperhero/ochazuke"
 )
 
 // choicesFunc resolves a parameter Source (noun.verb) to its choices.

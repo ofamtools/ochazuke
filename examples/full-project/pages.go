@@ -7,7 +7,7 @@ import (
 	"unicode"
 
 	"github.com/charmbracelet/x/ansi"
-	"ochazuke"
+	"github.com/unixsuperhero/ochazuke"
 )
 
 func plain(text string) string {

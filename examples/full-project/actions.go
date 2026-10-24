@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"ochazuke"
+	"github.com/unixsuperhero/ochazuke"
 )
 
 // Handler names are application code; operation names and schemas live in config.

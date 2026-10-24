@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 
-	"ochazuke"
+	"github.com/unixsuperhero/ochazuke"
 )
 
 // The prompt: one single-line input of the field noun (insert pinned, like

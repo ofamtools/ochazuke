@@ -76,6 +76,20 @@ Do not hand-edit either generated file. If a map entry is wrong, fix the code or
 - Never bind function keys (F1 to F12) anywhere, including demos, sandboxes, and tests. Use ordinary keys or Ctrl/Alt combinations and keep help text in sync with the real binding.
 - This is Bubble Tea **v2**. The v1 idioms are gone: no `tea.KeyMsg` struct (`tea.KeyPressMsg` and `tea.PasteMsg`; a paste reaches `Dispatch` as `MacroKey{Key: "[text]", Paste: true}` and matches only `paste` rows), no `View() string` (`View() tea.View` with `AltScreen` set there, not via program options), no `lipgloss.AdaptiveColor` or renderers (`Appearance.Dark` from `tea.BackgroundColorMsg` feeds `lipgloss.LightDark`), no `github.com/charmbracelet/{bubbletea,lipgloss,bubbles}` imports. Ctrl-Space is `ctrl+space`, not `ctrl+@`. Lip Gloss v2 always emits styles; tests inspecting rendered text use the `mono` theme or `ansi.Strip`.
 
+## Building an application on ochazuke
+
+The module path is `github.com/unixsuperhero/ochazuke`. An application is a separate Go module that imports it; `examples/csv` is the reference consumer (built with one 14-line additive change to the core) and `grid/` shows a component built entirely on the public API. Read those two before writing a new app. The sequence an author follows:
+
+1. **Own your state in your own struct** (domain data, persistence, daemon clients). The runtime holds only interaction state. See `examples/csv/app.go` (`App`, the `Patch` shape that is also the undo record).
+2. **Define nouns**: `r.Define("worktree").Verb("remove", app.RemoveWorktree).Confirm("Remove {{label}}?").Mode("normal").Bind("x", Do("worktree.remove"))`. Verbs are application handlers `func(Ctx) Result` returning `Done`, `Failed` or `Pending(work)`; `Pending` runs off the loop and its completion lands on the owning instance. Guards: `.When("selecting")` hides and skips a verb when its guard is false. Parameters with `Enum`/`Source` get pick lists in the palette and CLI help. See `examples/csv/verbs.go`, `bindings.go`.
+3. **Build the tree**: `r.AddPage`, `r.AddList(id, Parent(page))`, `r.AddInput`, `r.AddTerminal(id, Parent(page), stream)`, `grid.New(...)`. Rows of a list are instances of their noun (`ListItem.Noun`); the focused row's noun decides what keys mean. Never a noun per row. See `examples/csv/main.go`.
+4. **Push data, never pull from the UI**: `list.SetItems(rows)` / `grid.SetData(...)` after every domain change; selection is kept by stable id. Handlers receive `ctx.Instance` (id, noun, label, payload) and act on your state, then refresh. See `examples/csv/app.go` `Apply`.
+5. **Prompts and modals**: `r.OpenModal(kind, Payload{...}, WithInput(in, Kind("prompt")))` for a one-line question; `Confirm` on a verb for yes/no. Keys inside a modal never reach the page beneath it.
+6. **Keys are data**: default rows in `Define`, user overrides from a JSON file of rows (`LoadBindings`), `bindings list` prints the effective rows for the focus and mode. No key-name switches in application code either.
+7. **Checks**: `go test -race ./...`, a `--smoke` run that renders one frame (see `examples/csv/main.go`), and `ValidateBindings` in a test so every row is atomic.
+
+What the framework will not do for you: persistence, domain validation, daemon protocol clients. Those stay in the application; reuse `matomeru/internal/daemon` or `gmtm/internal/tuios` for the TUIOS client rather than writing a fifth.
+
 ## Checks
 
 ```sh

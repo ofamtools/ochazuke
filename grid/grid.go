@@ -18,7 +18,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
-	"ochazuke"
+	"github.com/unixsuperhero/ochazuke"
 )
 
 // Ref addresses one cell by its row index in the application's rows and its

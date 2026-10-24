@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/x/ansi"
-	"ochazuke"
-	"ochazuke/grid"
-	"ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke"
+	"github.com/unixsuperhero/ochazuke/grid"
+	"github.com/unixsuperhero/ochazuke/internal/keytest"
 )
 
 const fixture = "testdata/people.csv"

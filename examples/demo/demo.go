@@ -11,7 +11,7 @@ import (
 	"unicode"
 
 	"charm.land/lipgloss/v2"
-	"ochazuke"
+	"github.com/unixsuperhero/ochazuke"
 )
 
 // New supplies the demo application: example pages, modals and bindings on a

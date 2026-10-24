@@ -14,8 +14,8 @@ import (
 	"sort"
 	"strings"
 
-	"ochazuke"
-	"ochazuke/grid"
+	"github.com/unixsuperhero/ochazuke"
+	"github.com/unixsuperhero/ochazuke/grid"
 )
 
 // App is the state the application owns. Domain data never lives on an

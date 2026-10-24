@@ -38,9 +38,9 @@ import (
 	"strconv"
 	"strings"
 
-	"ochazuke"
-	"ochazuke/examples/demo"
-	"ochazuke/grid"
+	"github.com/unixsuperhero/ochazuke"
+	"github.com/unixsuperhero/ochazuke/examples/demo"
+	"github.com/unixsuperhero/ochazuke/grid"
 )
 
 type pair struct{ Verb, Noun string }

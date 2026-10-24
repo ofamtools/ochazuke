@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"ochazuke"
-	"ochazuke/examples/demo"
+	"github.com/unixsuperhero/ochazuke"
+	"github.com/unixsuperhero/ochazuke/examples/demo"
 )
 
 // A binding row is atomic: a Request to one registered operation with its

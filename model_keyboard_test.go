@@ -8,7 +8,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
-	"ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/internal/keytest"
 )
 
 func modelType(m *Model, text string, batched bool) {

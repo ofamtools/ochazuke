@@ -9,7 +9,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
-	"ochazuke"
+	"github.com/unixsuperhero/ochazuke"
 )
 
 // echoStream is the example's pane: an in-process line buffer that echoes

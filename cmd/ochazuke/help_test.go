@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"ochazuke"
+	"github.com/unixsuperhero/ochazuke"
 )
 
 func TestOperationHelpShowsChoices(t *testing.T) {

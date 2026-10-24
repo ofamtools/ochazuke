@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"ochazuke"
+	"github.com/unixsuperhero/ochazuke"
 )
 
 // registerBindings installs the configured rows. The file is the framework's

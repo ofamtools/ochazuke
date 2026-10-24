@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"ochazuke"
+	"github.com/unixsuperhero/ochazuke"
 )
 
 // Register defines the grid and selection operations and the selection

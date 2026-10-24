@@ -6,8 +6,8 @@ import (
 	"sort"
 	"strings"
 
-	"ochazuke"
-	"ochazuke/grid"
+	"github.com/unixsuperhero/ochazuke"
+	"github.com/unixsuperhero/ochazuke/grid"
 )
 
 // registerVerbs declares the nouns of the sketch and their verbs. Keys are

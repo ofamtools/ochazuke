@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"ochazuke"
+	"github.com/unixsuperhero/ochazuke"
 )
 
 // Build composes the framework without coupling its runtime to the file format.

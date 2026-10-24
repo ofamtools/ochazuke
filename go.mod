@@ -1,4 +1,4 @@
-module ochazuke
+module github.com/unixsuperhero/ochazuke
 
 go 1.26.0
 

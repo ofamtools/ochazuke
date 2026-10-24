@@ -9,7 +9,7 @@ import (
 	"time"
 	"unicode"
 
-	"ochazuke"
+	"github.com/unixsuperhero/ochazuke"
 )
 
 type sandboxBinding struct {

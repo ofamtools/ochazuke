@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"ochazuke"
+	"github.com/unixsuperhero/ochazuke"
 )
 
 func TestPaletteConfigurationValidation(t *testing.T) {

@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"ochazuke"
+	"github.com/unixsuperhero/ochazuke"
 )
 
 func main() {

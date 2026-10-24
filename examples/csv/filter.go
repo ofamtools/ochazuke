@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/x/ansi"
-	"ochazuke"
+	"github.com/unixsuperhero/ochazuke"
 )
 
 // The filter field: a persistent single-line input below the grid, the

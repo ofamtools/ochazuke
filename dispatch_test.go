@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/internal/keytest"
 )
 
 // dispatchTestModel is one focused single-line editor holding text, with each

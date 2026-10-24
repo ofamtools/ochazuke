@@ -10,8 +10,8 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-	"ochazuke"
-	"ochazuke/examples/demo"
+	"github.com/unixsuperhero/ochazuke"
+	"github.com/unixsuperhero/ochazuke/examples/demo"
 )
 
 func main() {
@@ -25,8 +25,8 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
-	flags := flag.NewFlagSet("ochazuke", flag.ContinueOnError)
-	socket := flags.String("socket", filepath.Join(cache, "ochazuke", "app.sock"), "Unix socket identifying the running app")
+	flags := flag.NewFlagSet("github.com/unixsuperhero/ochazuke", flag.ContinueOnError)
+	socket := flags.String("socket", filepath.Join(cache, "github.com/unixsuperhero/ochazuke", "app.sock"), "Unix socket identifying the running app")
 	flags.Usage = func() {
 		fmt.Fprintln(flags.Output(), "Usage:\n  ochazuke keybinding\n  ochazuke [--socket PATH] run [--headless]\n  ochazuke [--socket PATH] NOUN VERB [--json '{...}'] [--target INSTANCE_ID]\n\nDiscover actions: ochazuke operations list\nExample: ochazuke input undo --json '{\"steps\":2}'\nEvery registered operation is available as NOUN VERB.")
 		flags.PrintDefaults()

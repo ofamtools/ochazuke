@@ -9,7 +9,7 @@ import (
 	"io/fs"
 	"os"
 
-	"ochazuke"
+	"github.com/unixsuperhero/ochazuke"
 )
 
 //go:embed config/*.json

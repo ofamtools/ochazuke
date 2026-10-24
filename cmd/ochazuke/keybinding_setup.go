@@ -11,7 +11,7 @@ import (
 	"charm.land/bubbles/v2/filepicker"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
-	"ochazuke"
+	"github.com/unixsuperhero/ochazuke"
 )
 
 func (m *keybindingModel) openForm(kind string, values ...string) tea.Cmd {

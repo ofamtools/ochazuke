@@ -9,7 +9,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/rivo/uniseg"
-	"ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/internal/keytest"
 )
 
 // The mask records reverse video (the selection) per terminal cell, not per

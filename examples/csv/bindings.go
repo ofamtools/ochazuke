@@ -1,8 +1,8 @@
 package main
 
 import (
-	"ochazuke"
-	"ochazuke/grid"
+	"github.com/unixsuperhero/ochazuke"
+	"github.com/unixsuperhero/ochazuke/grid"
 )
 
 // bind installs the mode tables of the sketch. With a cell focused the stack

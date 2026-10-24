@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/x/ansi"
-	"ochazuke"
+	"github.com/unixsuperhero/ochazuke"
 )
 
 func sheet(t *testing.T) (*ochazuke.Runtime, *Grid) {

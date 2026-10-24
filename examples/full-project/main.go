@@ -13,7 +13,7 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-	"ochazuke"
+	"github.com/unixsuperhero/ochazuke"
 )
 
 func main() {
