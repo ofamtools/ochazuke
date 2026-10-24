@@ -19,6 +19,9 @@ type HistoryEntry struct {
 	Context HistoryContext `json:"context"`
 	Result  HistoryResult  `json:"result"`
 	Job     uint64         `json:"job,omitempty"`
+	// Depth is how many requests enclose this one: a request an operation
+	// runs while it runs (a choices source, a macro's keys) is one deeper.
+	Depth int `json:"depth,omitempty"`
 }
 
 // HistoryContext is the interaction state a request ran in. Source is
@@ -43,6 +46,7 @@ type actionHistory struct {
 	entries []HistoryEntry
 	seq     uint64
 	source  string
+	depth   int // requests running now
 }
 
 // unrecorded operations only read the history or the state.
@@ -69,7 +73,7 @@ func (r *Runtime) forceSource(source string) (restore func()) {
 }
 
 // record appends one entry, dropping the oldest past HistoryLimit.
-func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, value any, err error) {
+func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, depth int, value any, err error) {
 	if len(q.Args) > 0 {
 		args := make(Arguments, len(q.Args))
 		for k, v := range q.Args {
@@ -78,7 +82,7 @@ func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, value any,
 		q.Args = args
 	}
 	r.history.seq++
-	entry := HistoryEntry{Seq: r.history.seq, At: at, Request: q, Context: ctx, Result: HistoryResult{OK: err == nil}}
+	entry := HistoryEntry{Seq: r.history.seq, At: at, Request: q, Context: ctx, Depth: depth, Result: HistoryResult{OK: err == nil}}
 	if err != nil {
 		entry.Result.Error = err.Error()
 	} else if value != nil {

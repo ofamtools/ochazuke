@@ -351,8 +351,11 @@ func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
 	}
 	at := time.Now()
 	ctx := HistoryContext{Focus: focusOf(c), Page: r.Page, Mode: r.Mode.Name, Source: source}
+	depth := r.history.depth
+	r.history.depth++
 	value, err := r.execute(c, q)
-	r.record(at, q, ctx, value, err)
+	r.history.depth--
+	r.record(at, q, ctx, depth, value, err)
 	return value, err
 }
 
