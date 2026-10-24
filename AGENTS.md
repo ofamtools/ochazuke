@@ -33,7 +33,7 @@ Do not hand-edit either generated file. If a map entry is wrong, fix the code or
 | Editor mode tables as data (Readline, Vim, operators, visual counts) | `editor_bindings.json`, `editor_keys.go` |
 | App-noun rows for counts, registers and macros (`q`, `@`, `"`, digits) | `registers_bindings.json`, loaded by `editor_keys.go` |
 | Binding files, modes, `context.select` | `configuration.go` |
-| Bubble Tea adapter (delivers messages and drains commands through the runtime), renders the shell through `Layout.Shell`, `BindingHints`, modal renderers, scroll offsets, terminal cursor shape | `model.go` |
+| Bubble Tea adapter (delivers messages and drains commands through the runtime), renders the shell through `Layout.Shell`, `BindingHints`, modal renderers, scroll offsets, terminal cursor shape, the footer's `Status` (the last key's error) and `Notices` (persistent lines, `m.Notify(text)`, cleared only by `notice.clear`; `notice.list`; no default keys; hosts put mount warnings there) | `model.go` |
 | Terminal instances: the `terminal` noun, `AddTerminal`, `TerminalStream`, frames through the delivery contract, the leader contract | `terminal.go` |
 | Instance constructors sharing `InstanceOption` (`Parent`, `Kind`, `Focus`, `CloseOnDetach`, `FocusOnClose`): `AddPage`, `AddList`, `AddInput`, `AddTerminal`, `Instance` | `pages.go`, `list.go`, `runtime.go`, `terminal.go`, `instance.go` |
 | Pages as instances, `Runtime.Page`, navigation | `pages.go` |

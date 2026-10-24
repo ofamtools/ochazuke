@@ -34,6 +34,11 @@ type Model struct {
 	Width      int
 	Height     int
 	Status     string
+	// Notices are persistent lines (a host's mount warnings): drawn in the
+	// footer before the hints, kept across keys and errors until notice.clear
+	// (or the application) clears them. Status is the last key's error and
+	// goes with the next key; a notice does not.
+	Notices []string
 	// Sidebar replaces page tabs with a navigation rail. Existing page operations
 	// remain the only navigation state; input focus and modal routing are unchanged.
 	Sidebar bool
@@ -61,6 +66,14 @@ func NewModel(r *Runtime) *Model {
 		view.SetYOffset(view.YOffset() + delta)
 		m.scroll[key] = view.YOffset()
 		return view.YOffset(), nil
+	}})
+	r.Register(Operation{Verb: "list", Noun: "notice", Description: "List the persistent notices shown in the footer", Result: "string[]", Run: func(*Runtime, Context, Arguments) (any, error) {
+		return append([]string{}, m.Notices...), nil
+	}})
+	r.Register(Operation{Verb: "clear", Noun: "notice", Description: "Clear the persistent notices from the footer", Result: "cleared count", Run: func(*Runtime, Context, Arguments) (any, error) {
+		n := len(m.Notices)
+		m.Notices = nil
+		return n, nil
 	}})
 	// Application rows already on the app noun keep precedence over these defaults.
 	app := r.Noun("app")
@@ -239,13 +252,33 @@ func (m *Model) modeBadge() string {
 	return label
 }
 
+// Notify adds a persistent notice to the footer (Notices); notice.clear
+// removes them.
+func (m *Model) Notify(text string) { m.Notices = append(m.Notices, text) }
+
 // footer is the status row: the error of the last key when there is one,
-// else the hints for the focus.
+// else the hints for the focus; the notices, when there are any, follow
+// the error or lead the hints.
 func (m *Model) footer() Footer {
-	if m.Status != "" {
-		return Footer{Text: "Error: " + safeText(m.Status), Error: true}
+	notice := ""
+	if len(m.Notices) > 0 {
+		notice = "Notice: " + safeText(strings.Join(m.Notices, "; "))
 	}
-	return Footer{Text: BindingHints(m.Runtime, m.Runtime.Focus)}
+	if m.Status != "" {
+		text := "Error: " + safeText(m.Status)
+		if notice != "" {
+			text += " · " + notice
+		}
+		return Footer{Text: text, Error: true}
+	}
+	hints := BindingHints(m.Runtime, m.Runtime.Focus)
+	switch {
+	case notice == "":
+		return Footer{Text: hints}
+	case hints == "":
+		return Footer{Text: notice}
+	}
+	return Footer{Text: notice + " · " + hints}
 }
 
 // BindingHints renders the rows a focus answers to in its current mode as a

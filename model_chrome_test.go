@@ -102,3 +102,43 @@ func hintPrefix(row, hints string) bool {
 	text := strings.TrimSuffix(strings.TrimSpace(row), "…")
 	return text != "" && strings.HasPrefix(hints, text)
 }
+
+// A notice stays in the footer across keys and errors until notice.clear;
+// the framework binds no key to it.
+func TestModelNoticePersistsUntilCleared(t *testing.T) {
+	r := NewRuntime()
+	pageTestRegister(t, r, "alpha")
+	m := NewModel(r)
+	if err := r.OpenPage("alpha"); err != nil {
+		t.Fatal(err)
+	}
+	m.Update(tea.WindowSizeMsg{Width: 200, Height: 12})
+	m.Notify("ext: noun x skipped")
+	footer := func() string { return m.footer().Text }
+	if !strings.HasPrefix(footer(), "Notice: ext: noun x skipped · ") {
+		t.Fatalf("footer = %q", footer())
+	}
+	m.Status = "boom" // the last key's error
+	if f := m.footer(); !f.Error || f.Text != "Error: boom · Notice: ext: noun x skipped" {
+		t.Fatalf("with an error: %+v", f)
+	}
+	m.Update(tea.KeyPressMsg{Code: tea.KeyEscape})
+	if m.Status != "" || !strings.Contains(footer(), "Notice: ext: noun x skipped") || !strings.Contains(ansi.Strip(m.View().Content), "Notice: ext: noun x skipped") {
+		t.Fatalf("after the next key: footer %q", footer())
+	}
+	if got, err := r.Execute(Request{Verb: "list", Noun: "notice"}); err != nil || fmt.Sprint(got) != "[ext: noun x skipped]" {
+		t.Fatalf("notice.list = %v, %v", got, err)
+	}
+	if got, err := r.Execute(Request{Verb: "clear", Noun: "notice"}); err != nil || got != 1 || len(m.Notices) != 0 || strings.Contains(footer(), "Notice") {
+		t.Fatalf("notice.clear = %v, %v; footer %q", got, err, footer())
+	}
+	for _, n := range r.Nouns {
+		for _, rows := range n.Bindings {
+			for _, row := range rows {
+				if row.Request.Noun == "notice" {
+					t.Fatalf("%s binds %s", n.Name, row.Request.Key())
+				}
+			}
+		}
+	}
+}

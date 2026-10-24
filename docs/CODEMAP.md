@@ -142,12 +142,12 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### model.go
 
-- lines: 572
+- lines: 605
 - purpose: ModalView renders one modal without replacing or inspecting its parent page.
 - types: ModalView, Model
-- methods: Model(17)
+- methods: Model(18)
 - funcs: NewModel, BindingHints, InputView, InputBlock
-- leans on: runtime.go(57), block.go(30), noun.go(15), layout.go(9)
+- leans on: runtime.go(65), block.go(32), noun.go(17), layout.go(11)
 
 ### noun.go
 
