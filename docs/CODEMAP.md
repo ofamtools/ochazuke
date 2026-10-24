@@ -148,7 +148,7 @@ Root package `ochazuke` is flat: 42 source files, 33 test files. Each entry list
 
 ### model.go
 
-- lines: 699
+- lines: 703
 - purpose: ModalView renders one modal without replacing or inspecting its parent page.
 - types: ModalView, Model, HelpRow
 - methods: Model(19)
@@ -310,12 +310,12 @@ Root package `ochazuke` is flat: 42 source files, 33 test files. Each entry list
 
 ### ticker.go
 
-- lines: 157 · tests: ticker_test.go
+- lines: 169 · tests: ticker_test.go
 - purpose: jobTicker is the Model's short memory of finished jobs: jobs.list deletes finished jobs on read, so the ticker keeps its own copy for JobLinger.
 - types: JobLingerMsg
-- methods: Model(2), jobTicker(4)
+- methods: Model(3), jobTicker(4)
 - funcs: JobsTicker
-- leans on: delivery.go(10), runtime.go(4), model.go(3), instance.go(1)
+- leans on: delivery.go(10), model.go(4), runtime.go(4), instance.go(1)
 
 ### transport.go
 
@@ -411,10 +411,10 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/driver.go
 
-- lines: 285
+- lines: 304
 - purpose: Tagged is a message from a session's command, tagged with the session's generation so a message of a session that was reset or left never reaches its success...
 - types: Tagged, Driver, Step, Ran
-- methods: Driver(10)
+- methods: Driver(11)
 - funcs: Wrap, Unbatch, Classify, NewDriver
 - leans on: story.go(14), build.go(6), run.go(1)
 

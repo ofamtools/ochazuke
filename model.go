@@ -51,11 +51,15 @@ type Model struct {
 	// off screen until the next motion).
 	followed map[string]string
 	ticker   jobTicker // the finished jobs the ticker remembers (ticker.go)
-	now      func() time.Time
+	// Now is the Model's clock: the ticker's memory of finished jobs and
+	// the linger timer read it (time.Now by default, time.Now when nil). A
+	// headless host fakes it, advances it to JobLingerTick's deadline and
+	// delivers that message instead of waiting JobLinger.
+	Now func() time.Time
 }
 
 func NewModel(r *Runtime) *Model {
-	m := &Model{Runtime: r, Palette: NewPalette(r), Appearance: NewAppearance(r), ModalViews: map[string]ModalView{}, Title: "Ochazuke", Width: 80, Height: 24, views: map[string]*viewport.Model{}, scroll: map[string]int{}, followed: map[string]string{}}
+	m := &Model{Runtime: r, Palette: NewPalette(r), Appearance: NewAppearance(r), ModalViews: map[string]ModalView{}, Title: "Ochazuke", Width: 80, Height: 24, views: map[string]*viewport.Model{}, scroll: map[string]int{}, followed: map[string]string{}, Now: time.Now}
 	m.ModalViews[yankHistoryID] = ModalView{Title: "Yank history", Render: yankHistoryView}
 	m.ModalViews["confirm"] = ModalView{Title: "Confirm", Render: confirmView}
 	m.ModalViews[helpID] = ModalView{Title: "Keys", Render: bindingHelpView}

@@ -77,7 +77,11 @@ func Classify(ss *Session, msg tea.Msg) *Event {
 // Driver plays events against a session with no terminal: commands run on
 // goroutines and their messages wait in a pool; a job or tick event takes
 // the first matching message from the pool (waiting for it) and delivers
-// it, so nothing reaches the model except through an event, in order.
+// it, so nothing reaches the model except through an event, in order. The
+// model runs on the driver's fake clock (Model.Now), which stands still
+// between events; a linger tick advances it to the timer's deadline and
+// delivers the timer's message at once (Model.JobLingerTick), so a story
+// never waits JobLinger.
 type Driver struct {
 	S    *Session
 	Opt  Options
@@ -90,6 +94,7 @@ type Driver struct {
 
 	gen     int
 	lastSeq uint64
+	now     time.Time // the fake clock the session's model reads
 	mu      sync.Mutex
 	pool    []Tagged
 	arrive  chan struct{}
@@ -97,7 +102,8 @@ type Driver struct {
 
 // NewDriver starts driving a built session.
 func NewDriver(ss *Session, opt Options) *Driver {
-	d := &Driver{S: ss, Opt: opt, Wait: 6 * time.Second, arrive: make(chan struct{}, 1), gen: 1}
+	d := &Driver{S: ss, Opt: opt, Wait: 6 * time.Second, arrive: make(chan struct{}, 1), gen: 1, now: time.Unix(0, 0).UTC()}
+	d.useClock()
 	d.skipHistory()
 	d.run(ss.R.PendingCommands())
 	return d
@@ -230,7 +236,16 @@ func (d *Driver) step(e Event) error {
 		if !d.S.Emit() {
 			return errors.New("tick output: no fake pane is live")
 		}
-	case e.Tick == "terminal" || e.Tick == "linger" || e.Tick == "binding":
+	case e.Tick == "linger":
+		tick, ok := d.S.M.JobLingerTick()
+		if !ok {
+			return errors.New("tick linger: no linger timer is scheduled")
+		}
+		if tick.At.After(d.now) {
+			d.now = tick.At
+		}
+		d.update(tick)
+	case e.Tick == "terminal" || e.Tick == "binding":
 		if err := d.take(e.Tick+" tick", func(msg tea.Msg) bool {
 			ev := Classify(d.S, msg)
 			return ev != nil && ev.Tick == e.Tick
@@ -254,12 +269,16 @@ func (d *Driver) reset() error {
 		return err
 	}
 	d.S = ss
+	d.useClock()
 	d.gen++
 	d.lastSeq = 0
 	d.skipHistory()
 	d.run(ss.R.PendingCommands())
 	return nil
 }
+
+// useClock points the session's model at the driver's fake clock.
+func (d *Driver) useClock() { d.S.M.Now = func() time.Time { return d.now } }
 
 // skipHistory marks the requests made while building (job starts) as seen.
 func (d *Driver) skipHistory() {

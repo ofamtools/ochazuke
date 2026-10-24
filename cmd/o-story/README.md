@@ -28,8 +28,10 @@ down is choosing a window of actions around the failure.
 Events are keys and also the things that are not keys but change state: a
 job delivering, a framework timer firing. The headless runner never lets a
 message reach the model except through an event, in order, so a run does
-not depend on wall-clock time (a `linger` tick still waits for the real
-timer, about 4s, because the ticker's clock belongs to the model).
+not depend on wall-clock time. The model runs on the runner's fake clock
+(`Model.Now`), which stands still between events; a `linger` tick advances
+it to the timer's deadline and delivers the timer's message
+(`Model.JobLingerTick`) at once, so no story waits the 4s linger.
 
 ## A story file
 

@@ -29,7 +29,7 @@ func tickerFixture(t *testing.T) (*Runtime, *Model, *time.Time) {
 	m := NewModel(r)
 	m.Width, m.Height = 80, 24
 	now := time.Unix(1000, 0)
-	m.now = func() time.Time { return now }
+	m.Now = func() time.Time { return now }
 	return r, m, &now
 }
 
@@ -134,10 +134,36 @@ func TestJobsTickerLingerTickClearsAnIdleScreen(t *testing.T) {
 		t.Fatalf("rescheduled to %v", m.ticker.tickAt)
 	}
 	*now = now.Add(JobLinger)
-	if _, cmd := m.Update(JobLingerMsg{at: m.ticker.tickAt}); cmd != nil {
+	if _, cmd := m.Update(JobLingerMsg{At: m.ticker.tickAt}); cmd != nil {
 		t.Fatalf("a command after the last row went: %T", cmd())
 	}
 	if got := m.JobsTicker(80); len(got) != 0 || !m.ticker.tickAt.IsZero() {
 		t.Fatalf("after the tick: ticker %q, tick at %v", got, m.ticker.tickAt)
+	}
+}
+
+// A host with a fake Now delivers the linger timer itself: JobLingerTick
+// names the deadline in flight, and the message at that time clears it.
+func TestJobLingerTickIsTheTimerInFlight(t *testing.T) {
+	r, m, now := tickerFixture(t)
+	if _, ok := m.JobLingerTick(); ok {
+		t.Fatal("a linger tick before anything finished")
+	}
+	r.Settle(issue(t, r, "thing.build"), nil)
+	m.Update(frameMsg)
+	tick, ok := m.JobLingerTick()
+	if !ok || !tick.At.Equal(now.Add(JobLinger)) {
+		t.Fatalf("JobLingerTick = %v, %v; want %v", tick.At, ok, now.Add(JobLinger))
+	}
+	*now = tick.At
+	m.Update(tick)
+	if _, ok := m.JobLingerTick(); ok || len(m.JobsTicker(80)) != 0 {
+		t.Fatalf("after the tick: in flight %v, ticker %q", ok, m.JobsTicker(80))
+	}
+}
+
+func TestNewModelClockDefaultsToTimeNow(t *testing.T) {
+	if m := NewModel(NewRuntime()); m.Now == nil {
+		t.Fatal("Model.Now is nil")
 	}
 }

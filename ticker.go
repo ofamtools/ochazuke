@@ -29,8 +29,9 @@ type jobTicker struct {
 
 // JobLingerMsg is the ticker's one-shot timer: it fires when the oldest
 // remembered finished job passes JobLinger, so the frame it causes drops
-// the row with no key pressed.
-type JobLingerMsg struct{ at time.Time }
+// the row with no key pressed. At is the deadline it was scheduled for;
+// only the message for the timer in flight clears it.
+type JobLingerMsg struct{ At time.Time }
 
 // lingerCommand schedules a JobLingerMsg for the earliest remembered
 // finished job, unless one is already in flight for it. Nothing lingers,
@@ -44,12 +45,12 @@ func (t *jobTicker) lingerCommand(now time.Time) tea.Cmd {
 		return nil
 	}
 	t.tickAt = next
-	return tea.Tick(next.Sub(now), func(time.Time) tea.Msg { return JobLingerMsg{at: next} })
+	return tea.Tick(next.Sub(now), func(time.Time) tea.Msg { return JobLingerMsg{At: next} })
 }
 
 // fired clears the timer in flight when its message arrives.
 func (t *jobTicker) fired(msg JobLingerMsg) {
-	if msg.at.Equal(t.tickAt) {
+	if msg.At.Equal(t.tickAt) {
 		t.tickAt = time.Time{}
 	}
 }
@@ -149,9 +150,20 @@ func (m *Model) JobsTicker(width int) []string {
 	return JobsTicker(m.ticker.rows(m.Runtime, m.clock()), width)
 }
 
+// JobLingerTick is the linger timer in flight, the message its tea.Tick
+// will deliver at its deadline (At), and false when none is scheduled. A
+// host with a fake Now advances the clock to At and delivers the message
+// itself rather than waiting JobLinger.
+func (m *Model) JobLingerTick() (JobLingerMsg, bool) {
+	if m.ticker.tickAt.IsZero() {
+		return JobLingerMsg{}, false
+	}
+	return JobLingerMsg{At: m.ticker.tickAt}, true
+}
+
 func (m *Model) clock() time.Time {
-	if m.now != nil {
-		return m.now()
+	if m.Now != nil {
+		return m.Now()
 	}
 	return time.Now()
 }
