@@ -3,6 +3,18 @@
 
 ## upcoming
 
+- [ ] Implement the confirmed [component and input requirements](docs/component-plan.md).
+  - [ ] Add a Readline-only flag to the shared input; preserve path-aware `Ctrl-W` and `Ctrl-Y`.
+  - [ ] Integrate the preferred split picker from `picker-lab`, with an editable absolute path, configurable bindings, accurate help, and no function keys.
+  - [ ] Connect component focus and item selection to the existing layer path; replace the innermost item layer when focus changes.
+
+- [ ] Resolve the proposed APIs in the [component design record](docs/component-plan.md) before implementation.
+  - [ ] Define the reusable selectable list/tree contract.
+  - [ ] Design optional inline completion triggers and `search(query)` providers; settle token boundaries, replacement behavior, and async handling.
+  - [ ] Finalize optional `Runtime.Model` access and zero-or-one attached model ownership.
+  - [ ] Continue the one-at-a-time discussion: live terminal component, domain detail views, specialized previews, and optional resizable panes.
+  - Domain modules, persistence, and terminal-daemon integration remain application-level.
+
 - [ ] Add configurable color schemes shared by pages, panels, inputs, and modals.
   - Build on `Appearance` / `Styles`: named palettes, semantic colors, live preview, and config persistence.
   - Check contrast in light/dark terminals, ANSI-16 terminals, and `NO_COLOR`; keep focus visible without color.
