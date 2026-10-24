@@ -48,7 +48,7 @@ func TestConfiguredPaletteSourcesDispatchRealOperations(t *testing.T) {
 	call("open", "palette", nil)
 	call("select", "palette", ochazuke.Arguments{"value": "noun:page"})
 	call("select", "palette", ochazuke.Arguments{"value": "instance:paths"})
-	if m.Runtime.ActivePage != "paths" || m.Palette.IsOpen() {
+	if m.Runtime.Page != "paths" || m.Palette.IsOpen() {
 		t.Fatal("configured page source did not dispatch open.page")
 	}
 	call("open", "palette", nil)

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -28,6 +27,8 @@ type Request struct {
 
 func (q Request) Key() string { return q.Verb + "." + q.Noun }
 
+// Context is the derived view of a focus: the instance ids from app down to
+// the focused instance (Path), and the focused input when there is one.
 type Context struct {
 	Path    []string `json:"path"`
 	InputID string   `json:"inputId,omitempty"`
@@ -50,66 +51,57 @@ type Operation struct {
 
 func (o Operation) Key() string { return o.Verb + "." + o.Noun }
 
-type Binding struct {
-	Mode    string  `json:"mode,omitempty"`
-	Keys    string  `json:"keys"`
-	Request Request `json:"request"`
-}
-
-type Layer struct {
-	ID       string             `json:"id"`
-	Noun     string             `json:"noun"`
-	Bindings []Binding          `json:"bindings"`
-	Actions  map[string]Handler `json:"-"`
-}
-
+// Frame is one entry of the modal stack: the base page frame or an open
+// modal. Focus names the instance that receives keys while the frame is on
+// top; Context() derives the old path view from it.
 type Frame struct {
-	ID      string         `json:"id"`
-	Context Context        `json:"context"`
-	State   map[string]any `json:"state"`
+	ID    string `json:"id"`
+	Focus string `json:"focus"`
 }
 
 // Runtime is owned by one event loop. Transport callers submit messages to that loop.
 type Runtime struct {
-	Layers            map[string]*Layer
-	Nouns             map[string]*Noun
-	Instances         map[string]*Instance
-	Inputs            map[string]*Input
-	InputPaths        map[string][]string
-	Lists             map[string]*List
-	Frames            []*Frame
-	Pages             map[string]*Page
-	PageOrder         []string
-	ActivePage        string
-	Modes             map[string]bool
-	Operations        map[string]Operation
-	Quit              bool
-	Pending           string
-	BindingTimeout    time.Duration
-	pendingBinding    pendingBinding
-	bindingVersion    uint64
-	Registers         map[string]Register
-	YankHistory       []Yank
-	ActiveRegister    string
-	Macro             MacroState
-	dispatchKey       func(MacroKey) error
-	instanceConflicts []string
-	rows              map[string]string // list row instance id -> owning list id
+	Nouns          map[string]*Noun
+	Instances      map[string]*Instance
+	Inputs         map[string]*Input
+	Lists          map[string]*List
+	Frames         []*Frame
+	Page           string // the current page instance; always on the base frame's focus path
+	Modes          map[string]bool
+	Operations     map[string]Operation
+	Quit           bool
+	Pending        string
+	BindingTimeout time.Duration
+	Registers      map[string]Register
+	YankHistory    []Yank
+	ActiveRegister string
+	Macro          MacroState
+	pendingModes   map[string]bool
+	guards         map[string]Guard
+	prefix         pendingPrefix
+	bindingVersion uint64
+	modeGeneration uint64
+	rows           map[string]string // list row instance id -> owning list id
+	modalInstances map[string]bool   // instances created by Push, removed by Pop
+	seq            uint64            // instance registration order
+	yankSelection  int
 }
 
 func NewRuntime() *Runtime {
 	r := &Runtime{
-		Layers: map[string]*Layer{"app": {ID: "app", Noun: "app", Actions: map[string]Handler{}}},
-		Nouns:  map[string]*Noun{}, Instances: map[string]*Instance{}, rows: map[string]string{},
-		Inputs: map[string]*Input{}, InputPaths: map[string][]string{},
+		Nouns: map[string]*Noun{}, Instances: map[string]*Instance{}, rows: map[string]string{},
+		Inputs: map[string]*Input{},
 		Lists:  map[string]*List{},
-		Frames: []*Frame{{ID: "main", Context: Context{Path: []string{"app"}}, State: map[string]any{}}},
-		Pages:  map[string]*Page{},
+		Frames: []*Frame{{ID: "main", Focus: "app"}},
 		Modes:  map[string]bool{"normal": true, "insert": true}, Operations: map[string]Operation{},
+		pendingModes:   map[string]bool{},
+		guards:         builtinGuards(),
+		modalInstances: map[string]bool{},
 		Registers:      map[string]Register{},
 		BindingTimeout: DefaultBindingTimeout,
 	}
-	r.adoptPath([]string{"app"})
+	r.Instance("app")
+	r.Define("modal")
 	registerCore(r)
 	registerConfiguration(r)
 	registerPages(r)
@@ -117,28 +109,44 @@ func NewRuntime() *Runtime {
 	RegisterInputOperations(r)
 	registerYankHistory(r)
 	registerMacros(r)
+	registerModeTables(r)
+	registerEditorNoun(r)
+	// A modal answers esc in normal mode; inputs, pending modes and the
+	// palette settle first because their rows sit inside this level.
+	r.Define("modal").Mode("normal").Bind("esc", Do("pop.modal"))
 	return r
 }
 
-func (r *Runtime) Context() Context { return r.Frames[len(r.Frames)-1].Context.Clone() }
+func (r *Runtime) top() *Frame { return r.Frames[len(r.Frames)-1] }
+
+// Context derives the active frame's path view from its focus.
+func (r *Runtime) Context() Context { return r.contextOf(r.top().Focus) }
+
+// FocusID is the instance the active frame points at.
+func (r *Runtime) FocusID() string { return r.top().Focus }
 
 // Mode is the interaction mode of a context: the State of its focused
-// instance (the input when InputID is set, else the last path element),
-// inherited from the nearest ancestor with a non-empty State, else "normal".
-func (r *Runtime) Mode(c Context) string {
-	if len(c.Path) == 0 && c.InputID == "" {
-		return "normal"
-	}
-	for _, id := range r.Ancestry(focusOf(c)) {
-		if state := r.Instances[id].State; state != "" {
-			return state
+// instance, inherited from the nearest ancestor with a non-empty State, else
+// "normal". Pending modes (operator_pending, a key-sequence prefix, ...) are
+// reported by name; Input.Mode keeps the editing mode they will return to.
+func (r *Runtime) Mode(c Context) string { return r.modeState(focusOf(c)).Name }
+
+// ModeState is a mode name with the payload the mode carries.
+type ModeState struct {
+	Name    string  `json:"name"`
+	Payload Payload `json:"payload"`
+}
+
+// modeState resolves the mode of an instance through ancestor inheritance.
+func (r *Runtime) modeState(focus string) ModeState {
+	for _, id := range r.Ancestry(focus) {
+		if inst := r.Instances[id]; inst.State != "" {
+			return ModeState{Name: inst.State, Payload: inst.Payload}
 		}
 	}
-	if in := r.Inputs[c.InputID]; in != nil {
-		return in.Mode
-	}
-	return "normal"
+	return ModeState{Name: "normal"}
 }
+
 func (r *Runtime) Register(o Operation) {
 	if o.Verb == "" || o.Noun == "" || o.Run == nil {
 		panic("invalid operation registration")
@@ -151,12 +159,23 @@ func (r *Runtime) Register(o Operation) {
 	}
 	r.Operations[o.Key()] = o
 }
-func (r *Runtime) AddInput(in *Input, path []string) error {
-	if in.ID == "" || r.Inputs[in.ID] != nil {
+
+// AddInput registers an editor instance. Options: Parent(id) (default app)
+// and Kind(noun) (default "editor"; "prompt" pins insert mode).
+func (r *Runtime) AddInput(in *Input, opts ...InstanceOption) error {
+	if in.ID == "" || r.Inputs[in.ID] != nil || r.Instances[in.ID] != nil {
 		return errors.New("input ID must be unique and nonempty")
 	}
-	if err := r.validateContext(Context{Path: path, InputID: ""}); err != nil {
-		return err
+	spec := instanceSpec{parent: "app", noun: "editor"}
+	for _, opt := range opts {
+		opt(&spec)
+	}
+	if r.Instances[spec.parent] == nil {
+		return fmt.Errorf("unknown parent %q", spec.parent)
+	}
+	noun := r.Nouns[spec.noun]
+	if noun == nil {
+		return fmt.Errorf("unknown noun %q", spec.noun)
 	}
 	switch in.Kind {
 	case "", "text", "path":
@@ -170,64 +189,58 @@ func (r *Runtime) AddInput(in *Input, path []string) error {
 	default:
 		return errors.New("path filter must be any, file, or dir")
 	}
-	if in.ReadlineOnly {
-		in.SetMode("insert")
+	in.pin = noun.Pin
+	if in.pin != "" {
+		in.SetMode(in.pin)
 	}
 	r.Inputs[in.ID] = in
-	r.InputPaths[in.ID] = append([]string(nil), path...)
-	r.adoptPath(path)
-	if leaf := path[len(path)-1]; leaf != in.ID {
-		r.link(in.ID, leaf)
-	}
-	// The instance holds the mode; Input.Mode mirrors it for the editor code.
-	in.inst = r.instance(in.ID)
-	in.inst.State = in.Mode
-	return nil
-}
-func (r *Runtime) validateContext(c Context) error {
-	if len(c.Path) == 0 || c.Path[0] != "app" {
-		return errors.New("interaction path must start at app")
-	}
-	seen := map[string]bool{}
-	for _, id := range c.Path {
-		if !r.isPathElement(id) || seen[id] {
-			return fmt.Errorf("invalid layer %q", id)
-		}
-		seen[id] = true
-	}
-	if c.InputID != "" {
-		if r.Inputs[c.InputID] == nil {
-			return fmt.Errorf("unknown input %q", c.InputID)
-		}
-		if !slices.Equal(r.InputPaths[c.InputID], c.Path) {
-			return errors.New("input does not belong to this interaction path")
-		}
-	}
+	r.seq++
+	inst := &Instance{ID: in.ID, Noun: spec.noun, Parent: spec.parent, State: in.Mode, seq: r.seq}
+	r.Instances[in.ID] = inst
+	in.inst = inst
 	return nil
 }
 
-// Focus selects the context that addresses one instance: an input, a list, a
-// row, a page or a modal body.
+// Focus points the active frame at one instance: an input, a list, a row, a
+// page or a modal body. Without a modal, the focus must sit inside the active
+// page; a hidden page's instances are addressed with an explicit target.
 func (r *Runtime) Focus(id string) error {
-	if path, ok := r.InputPaths[id]; ok {
-		return r.SelectContext(Context{Path: path, InputID: id})
-	}
-	if len(r.Ancestry(id)) == 0 {
-		return fmt.Errorf("unknown instance %q", id)
-	}
-	return r.SelectContext(r.contextOf(id))
-}
-
-// SelectContext changes focus through the same validation and binding boundary.
-func (r *Runtime) SelectContext(next Context) error {
-	if err := r.validateSelection(next); err != nil {
+	if err := r.validateFocus(id); err != nil {
 		return err
 	}
-	r.adoptPath(next.Path)
-	r.Frames[len(r.Frames)-1].Context = next.Clone()
-	r.CancelPendingBinding()
+	r.setFocus(r.top(), id)
 	return nil
 }
+
+func (r *Runtime) validateFocus(id string) error {
+	ancestry := r.Ancestry(id)
+	if len(ancestry) == 0 || ancestry[len(ancestry)-1] != "app" {
+		return fmt.Errorf("unknown instance %q", id)
+	}
+	if r.PageOf(r.Page) == nil {
+		return nil
+	}
+	if len(r.Frames) == 1 && (len(ancestry) < 2 || ancestry[len(ancestry)-2] != r.Page) {
+		return errors.New("select a context inside the current page; open a modal for a modal input")
+	}
+	for _, step := range ancestry[:len(ancestry)-1] {
+		if r.PageOf(step) != nil && step != r.Page {
+			return fmt.Errorf("open page %q before selecting its context", step)
+		}
+	}
+	return nil
+}
+
+// setFocus moves a frame's focus and drops any key-sequence prefix.
+func (r *Runtime) setFocus(frame *Frame, id string) {
+	if frame.Focus != id {
+		r.CancelPendingBinding()
+	}
+	frame.Focus = id
+}
+
+// Push opens a modal focused on frame.Focus. A frame id that is not already
+// an instance becomes one of the modal noun for as long as it is open.
 func (r *Runtime) Push(frame *Frame) error {
 	if frame == nil || frame.ID == "" {
 		return errors.New("modal ID is required")
@@ -237,13 +250,15 @@ func (r *Runtime) Push(frame *Frame) error {
 			return errors.New("modal is already open")
 		}
 	}
-	if err := r.validateContext(frame.Context); err != nil {
-		return err
+	if frame.Focus == "" {
+		frame.Focus = "app"
 	}
-	r.adoptPath(frame.Context.Path)
-	frame.Context = frame.Context.Clone()
-	if frame.State == nil {
-		frame.State = map[string]any{}
+	if len(r.Ancestry(frame.Focus)) == 0 {
+		return fmt.Errorf("unknown instance %q", frame.Focus)
+	}
+	if r.Instances[frame.ID] == nil {
+		r.Instances[frame.ID] = &Instance{ID: frame.ID, Noun: "modal"}
+		r.modalInstances[frame.ID] = true
 	}
 	r.Frames = append(r.Frames, frame)
 	r.CancelPendingBinding()
@@ -253,11 +268,19 @@ func (r *Runtime) Pop() error {
 	if len(r.Frames) == 1 {
 		return errors.New("no modal to close")
 	}
+	frame := r.top()
 	r.Frames = r.Frames[:len(r.Frames)-1]
+	if r.modalInstances[frame.ID] {
+		delete(r.modalInstances, frame.ID)
+		delete(r.Instances, frame.ID)
+	}
 	r.CancelPendingBinding()
 	return nil
 }
 func (r *Runtime) Execute(q Request) (any, error) { return r.ExecuteAt(r.Context(), q) }
+
+// ExecuteAt runs an operation for a context. The innermost noun on the
+// focus stack that overrides the operation handles it; otherwise its Run does.
 func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
 	op, ok := r.Operations[q.Key()]
 	if !ok {
@@ -267,22 +290,23 @@ func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
 		return nil, err
 	}
 	if q.Target != "" && q.Target != "focused-input" {
-		switch {
-		case r.InputPaths[q.Target] != nil:
-			c = Context{Path: append([]string(nil), r.InputPaths[q.Target]...), InputID: q.Target}
-		case len(r.Ancestry(q.Target)) > 0:
-			c = r.contextOf(q.Target)
-		default:
+		if len(r.Ancestry(q.Target)) == 0 {
 			return nil, fmt.Errorf("unknown target %q", q.Target)
 		}
+		c = r.contextOf(q.Target)
 	}
-	if err := r.validateContext(c); err != nil {
-		return nil, err
+	if len(c.Path) == 0 && c.InputID == "" {
+		return nil, errors.New("interaction path must start at app")
 	}
-	for i := len(c.Path) - 1; i >= 0; i-- {
-		if fn := r.layerFor(c.Path[i]).Actions[q.Key()]; fn != nil {
-			return fn(r, c, q.Args)
-		}
+	focus := focusOf(c)
+	if r.Instances[focus] == nil {
+		return nil, fmt.Errorf("unknown instance %q", focus)
+	}
+	if c.InputID != "" && r.Inputs[c.InputID] == nil {
+		return nil, fmt.Errorf("unknown input %q", c.InputID)
+	}
+	if fn := r.ActionFor(focus, q.Key()); fn != nil {
+		return fn(r, c, q.Args)
 	}
 	return op.Run(r, c, q.Args)
 }
@@ -341,36 +365,6 @@ func (r *Runtime) Catalog() []Operation {
 	return out
 }
 
-// EffectiveBindings overlays complete key sequences, not individual keystrokes.
-// Each path element contributes its noun's rows (a row contributes its noun's),
-// then the instance's own rows above them.
-func (r *Runtime) EffectiveBindings(c Context) []Binding {
-	byKey := map[string]Binding{}
-	mode := r.Mode(c)
-	overlay := func(rows []Binding) {
-		for _, b := range rows {
-			if b.Mode == "" {
-				byKey[b.Keys] = b
-			}
-		}
-		for _, b := range rows {
-			if b.Mode == mode && b.Mode != "" {
-				byKey[b.Keys] = b
-			}
-		}
-	}
-	for _, id := range c.Path {
-		overlay(r.layerFor(id).Bindings)
-		overlay(r.instanceBindings(id))
-	}
-	out := make([]Binding, 0, len(byKey))
-	for _, b := range byKey {
-		out = append(out, b)
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Keys < out[j].Keys })
-	return out
-}
-
 func (r *Runtime) Snapshot() map[string]any {
 	inputs := map[string]any{}
 	for id, in := range r.Inputs {
@@ -380,21 +374,14 @@ func (r *Runtime) Snapshot() map[string]any {
 	for id, list := range r.Lists {
 		lists[id] = list.Snapshot()
 	}
-	layers := map[string]any{}
-	for id, layer := range r.Layers {
-		actions := make([]string, 0, len(layer.Actions))
-		for key := range layer.Actions {
-			actions = append(actions, key)
-		}
-		sort.Strings(actions)
-		layers[id] = map[string]any{"noun": layer.Noun, "bindings": layer.Bindings, "actions": actions}
-	}
-	modes := make([]string, 0, len(r.Modes))
+	modes := make([]string, 0, len(r.Modes)+len(r.pendingModes))
 	for mode := range r.Modes {
 		modes = append(modes, mode)
 	}
+	for mode := range r.pendingModes {
+		modes = append(modes, mode)
+	}
 	sort.Strings(modes)
-	r.syncNouns()
 	nouns := map[string]any{}
 	for name, noun := range r.Nouns {
 		actions := make([]string, 0, len(noun.Actions))
@@ -402,10 +389,14 @@ func (r *Runtime) Snapshot() map[string]any {
 			actions = append(actions, key)
 		}
 		sort.Strings(actions)
-		nouns[name] = map[string]any{"name": name, "verbs": noun.Verbs, "bindings": noun.Bindings, "actions": actions}
+		nouns[name] = map[string]any{"name": name, "verbs": noun.Verbs, "bindings": noun.Bindings, "actions": actions, "pin": noun.Pin}
 	}
 	// Registers and macro state belong to the application, never individual fields.
-	return map[string]any{"frames": r.Frames, "pages": r.Pages, "activePage": r.ActivePage, "inputs": inputs, "context": r.Context(), "mode": r.Mode(r.Context()), "modes": modes, "layers": layers, "bindings": r.EffectiveBindings(r.Context()), "pending": r.Pending, "quit": r.Quit,
+	pages := map[string]any{}
+	for _, page := range r.PageList() {
+		pages[page.ID] = page
+	}
+	return map[string]any{"frames": r.Frames, "pages": pages, "page": r.Page, "inputs": inputs, "context": r.Context(), "focus": r.FocusID(), "mode": r.Mode(r.Context()), "modes": modes, "bindings": r.ListBindings(r.FocusID()), "pending": r.Pending, "quit": r.Quit,
 		"lists": lists, "registers": r.Registers, "yankHistory": r.YankHistory, "activeRegister": r.ActiveRegister, "macro": r.Macro,
 		"nouns": nouns, "instances": r.Instances}
 }
@@ -451,7 +442,7 @@ func registerCore(r *Runtime) {
 		return JSONPointer(r.Snapshot(), StringArg(a, "path", ""))
 	}})
 	r.Register(Operation{Verb: "list", Noun: "operations", Description: "List registered verbs, nouns, and argument schemas", Result: "operation[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) { return r.Catalog(), nil }})
-	r.Register(Operation{Verb: "list", Noun: "bindings", Description: "List effective bindings for the current context", Result: "binding[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) { return r.EffectiveBindings(c), nil }})
+	r.Register(Operation{Verb: "list", Noun: "bindings", Description: "List the rows the current stack and mode answer to, pending modes included", Result: "binding[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) { return r.ListBindings(focusOf(c)), nil }})
 	r.Register(Operation{Verb: "focus", Noun: "input", Description: "Focus a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		id := StringArg(a, "id", "")
 		if r.Inputs[id] == nil {
@@ -460,29 +451,29 @@ func registerCore(r *Runtime) {
 		err := r.Focus(id)
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "set", Noun: "mode", Description: "Set the focused instance's registered interaction mode: the input when one is focused, else the innermost path element", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "set", Noun: "mode", Description: "Set the focused instance's registered interaction mode and clear any pending payload", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		mode := StringArg(a, "mode", "")
 		if !r.Modes[mode] {
 			return nil, fmt.Errorf("unknown mode %q", mode)
 		}
+		r.modeGeneration++
 		if in := r.Inputs[c.InputID]; in != nil {
 			in.SetMode(mode)
-			mode = in.Mode
-		} else {
-			r.syncNouns()
-			r.instance(c.Path[len(c.Path)-1]).State = mode
+			return in.Mode, nil
 		}
+		inst := r.Instances[focusOf(c)]
+		inst.State, inst.Payload = mode, Payload{}
 		return mode, nil
 	}})
 	r.Register(Operation{Verb: "push", Noun: "modal", Description: "Open a modal focused on a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}, "input": {Type: "string", Required: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		id := StringArg(a, "input", "")
-		path, ok := r.InputPaths[id]
-		if !ok {
+		if r.Inputs[id] == nil {
 			return nil, errors.New("unknown modal input")
 		}
-		err := r.Push(&Frame{ID: StringArg(a, "id", ""), Context: Context{Path: path, InputID: id}, State: map[string]any{}})
+		err := r.Push(&Frame{ID: StringArg(a, "id", ""), Focus: id})
 		return r.Context(), err
 	}})
 	r.Register(Operation{Verb: "pop", Noun: "modal", Description: "Close the active modal and restore its parent", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) { err := r.Pop(); return r.Context(), err }})
 	r.Register(Operation{Verb: "quit", Noun: "app", Description: "Exit the application", Result: "boolean", Run: func(r *Runtime, c Context, a Arguments) (any, error) { r.Quit = true; return true, nil }})
+	r.Register(Operation{Verb: "ignore", Noun: "key", Description: "Consume a key without effect; the row a noun binds to swallow keys", Result: "null", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
 }

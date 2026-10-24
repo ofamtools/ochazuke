@@ -25,7 +25,7 @@ type action struct {
 }
 
 type binding struct {
-	Layer, Mode, Keys, Request string
+	Noun, Mode, Keys, Request string
 }
 
 type symbol struct {
@@ -67,22 +67,39 @@ func generate() error {
 	for _, op := range r.Catalog() {
 		data.Actions = append(data.Actions, action{op, origins[op.Key()]})
 	}
-	layers := make([]string, 0, len(r.Layers))
-	for id := range r.Layers {
-		layers = append(layers, id)
+	nouns := make([]string, 0, len(r.Nouns))
+	for name := range r.Nouns {
+		nouns = append(nouns, name)
 	}
-	sort.Strings(layers)
-	for _, id := range layers {
-		for _, b := range r.Layers[id].Bindings {
-			request, err := json.MarshalIndent(b.Request, "", "  ")
-			if err != nil {
-				return err
+	sort.Strings(nouns)
+	for _, name := range nouns {
+		modes := make([]string, 0, len(r.Nouns[name].Bindings))
+		for mode := range r.Nouns[name].Bindings {
+			modes = append(modes, mode)
+		}
+		sort.Strings(modes)
+		for _, mode := range modes {
+			for _, b := range r.Nouns[name].Bindings[mode] {
+				request, err := json.MarshalIndent(b.Request, "", "  ")
+				if err != nil {
+					return err
+				}
+				if b.Func != nil {
+					request = []byte("(Go: re-dispatch)")
+				}
+				label := mode
+				if label == "" {
+					label = "Any base mode"
+				}
+				keys := b.Keys
+				if keys == "" {
+					keys = "<" + b.Pattern + ">"
+				}
+				if b.When != "" {
+					keys += " when " + b.When
+				}
+				data.Bindings = append(data.Bindings, binding{name, label, keys, string(request)})
 			}
-			mode := b.Mode
-			if mode == "" {
-				mode = "Any mode"
-			}
-			data.Bindings = append(data.Bindings, binding{id, mode, b.Keys, string(request)})
 		}
 	}
 
@@ -206,8 +223,8 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
 <p class="empty" hidden>No matching actions.</p></section>
 {{end}}
 {{if eq .Page "bindings"}}
-<section id="bindings"><p class="eyebrow">02 / Registered defaults</p><h2>Default bindings <span class="count">{{len .Bindings}}</span></h2><p>Every registered layer binding in the demo, including palette, picker and yank-history layers. These are declarations, not a flattened effective keymap: descendant layers override ancestors; mode-specific bindings override modeless bindings within a layer. Only layers on the current context path participate.</p><p>The editor's Vim/Readline grammar and macro prefixes are separate from <code>Layer.Bindings</code>. See the <a href="../README.md#keyboard-guide">editor keyboard guide</a> and <a href="../README.md#palette-and-selectors">palette and selector controls</a> for those keys. <code>ctrl+space</code> is Bubble Tea v2's spelling for Ctrl-Space. The palette and unfinished editor grammar can handle keys before binding lookup.</p>
-<div class="table-scroll"><table><thead><tr><th>Layer</th><th>Mode</th><th>Keys</th><th>Request</th></tr></thead><tbody>{{range .Bindings}}<tr class="searchable"><td><code>{{.Layer}}</code></td><td>{{.Mode}}</td><td><code>{{.Keys}}</code></td><td><pre>{{.Request}}</pre></td></tr>{{end}}</tbody></table></div><p class="empty" hidden>No matching registered bindings.</p></section>
+<section id="bindings"><p class="eyebrow">02 / Registered defaults</p><h2>Default bindings <span class="count">{{len .Bindings}}</span></h2><p>Every mode-table row of every noun in the demo, including the editor noun's Readline and Vim tables, its pending modes, and the palette, picker, yank-history and modal nouns. These are declarations, not a flattened effective keymap: the resolver walks the focused instance outward to app, then the editor noun as the fallback; at each level the mode table is read before the any-mode table; exact keys beat key classes (<code>&lt;digit&gt;</code>, <code>&lt;alpha&gt;</code>, <code>&lt;printable&gt;</code>, <code>&lt;paste&gt;</code>) beat <code>&lt;any&gt;</code>. A pending mode reads only its own table. <code>ctrl+space</code> is Bubble Tea v2's spelling for Ctrl-Space.</p>
+<div class="table-scroll"><table><thead><tr><th>Noun</th><th>Mode</th><th>Keys</th><th>Request</th></tr></thead><tbody>{{range .Bindings}}<tr class="searchable"><td><code>{{.Noun}}</code></td><td>{{.Mode}}</td><td><code>{{.Keys}}</code></td><td><pre>{{.Request}}</pre></td></tr>{{end}}</tbody></table></div><p class="empty" hidden>No matching registered bindings.</p></section>
 {{end}}
 {{if eq .Page "api"}}
 <section id="api"><p class="eyebrow">03 / Exported Go API</p><h2>Go API <span class="count">{{len .Symbols}}</span></h2><p>Generated exported types, functions, methods, constants and variables from the root <code>ochazuke</code> package. Unexported fields and function bodies are omitted. Missing prose means the declaration has no source doc comment. Command entry points under <code>cmd/</code> are not library APIs.</p><p>Go also provides terminal documentation: run <code>go doc -all .</code> or <code>go doc Runtime.Execute</code> from the repository root. This offline reference needs no <code>godoc</code> server or published module.</p>

@@ -16,13 +16,13 @@ import (
 var embeddedConfig embed.FS
 
 type Config struct {
-	App      AppConfig
-	Layers   []LayerConfig
-	Inputs   []InputConfig
-	Pages    []PageConfig
-	Actions  []ActionConfig
-	Bindings []BindingConfig
-	Modals   []ModalConfig
+	App       AppConfig
+	Instances []InstanceConfig
+	Inputs    []InputConfig
+	Pages     []PageConfig
+	Actions   []ActionConfig
+	Bindings  []BindingConfig
+	Modals    []ModalConfig
 }
 
 type AppConfig struct {
@@ -40,27 +40,30 @@ type PaletteConfig struct {
 	Argument    string `json:"argument"`
 }
 
-type LayerConfig struct {
-	ID    string   `json:"id"`
-	Noun  string   `json:"noun"`
-	Verbs []string `json:"verbs,omitempty"`
+// InstanceConfig declares an instance (id, noun, parent) or, without an id,
+// a noun on its own (a list row kind).
+type InstanceConfig struct {
+	ID     string   `json:"id,omitempty"`
+	Noun   string   `json:"noun"`
+	Parent string   `json:"parent,omitempty"`
+	Verbs  []string `json:"verbs,omitempty"`
 }
 
 type InputConfig struct {
-	ID           string   `json:"id"`
-	Value        string   `json:"value"`
-	Kind         string   `json:"kind"`
-	PathFilter   string   `json:"pathFilter"`
-	Multiline    bool     `json:"multiline"`
-	ReadlineOnly bool     `json:"readlineOnly"`
-	Path         []string `json:"path"`
+	ID         string `json:"id"`
+	Value      string `json:"value"`
+	Kind       string `json:"kind"`
+	PathFilter string `json:"pathFilter"`
+	Multiline  bool   `json:"multiline"`
+	Noun       string `json:"noun,omitempty"` // editor (default) or prompt
+	Parent     string `json:"parent"`
 }
 
 type PageConfig struct {
 	ID       string              `json:"id"`
 	Title    string              `json:"title"`
 	Renderer string              `json:"renderer"`
-	Context  ochazuke.Context    `json:"context"`
+	Focus    string              `json:"focus"`
 	Inputs   []string            `json:"inputs"`
 	Text     string              `json:"text"`
 	Items    []ochazuke.ListItem `json:"items,omitempty"`
@@ -73,15 +76,11 @@ type ActionConfig struct {
 	Handler     string                        `json:"handler"`
 	Result      string                        `json:"result"`
 	Parameters  map[string]ochazuke.Parameter `json:"parameters"`
-	Layer       string                        `json:"layer"`
+	On          string                        `json:"on,omitempty"` // a noun whose instances override the operation
 }
 
-type BindingConfig struct {
-	Layer   string           `json:"layer"`
-	Mode    string           `json:"mode"`
-	Keys    string           `json:"keys"`
-	Request ochazuke.Request `json:"request"`
-}
+// Bindings are the framework's own row shape: ochazuke.Binding.
+type BindingConfig = ochazuke.Binding
 
 type ModalConfig struct {
 	ID       string `json:"id"`
@@ -110,7 +109,7 @@ func LoadConfig(dir string) (Config, error) {
 		destination any
 	}{
 		{"app.json", &cfg.App},
-		{"layers.json", &cfg.Layers},
+		{"instances.json", &cfg.Instances},
 		{"inputs.json", &cfg.Inputs},
 		{"pages.json", &cfg.Pages},
 		{"actions.json", &cfg.Actions},

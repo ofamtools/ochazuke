@@ -8,11 +8,11 @@ Root package `ochazuke` is flat: 31 source files, 21 test files. Each entry list
 
 ### bindings.go
 
-- lines: 152 · tests: bindings_test.go
-- purpose: BindingTimeoutMsg resolves a pending sequence on the owning event loop.
+- lines: 67 · tests: bindings_test.go
+- purpose: BindingTimeoutMsg resolves a pending key sequence on the owning event loop.
 - types: BindingTimeoutMsg
-- methods: Runtime(6)
-- leans on: runtime.go(17)
+- methods: Runtime(3)
+- leans on: runtime.go(4), resolve.go(1)
 
 ### block.go
 
@@ -31,23 +31,23 @@ Root package `ochazuke` is flat: 31 source files, 21 test files. Each entry list
 
 ### configuration.go
 
-- lines: 86
-- leans on: runtime.go(34), noun.go(4), registers.go(4), cli.go(1)
+- lines: 99
+- purpose: samePath checks a declared path against an instance path, allowing the input itself to be omitted from the declared path.
+- methods: Runtime(1)
+- leans on: runtime.go(27), noun.go(6), registers.go(4), instance.go(1)
 
 ### demo.go
 
-- lines: 263
+- lines: 275
 - purpose: NewDemo supplies example pages; none of these page names are required by the framework.
 - funcs: NewDemo
-- leans on: runtime.go(78), block.go(34), model.go(19), theme.go(14)
+- leans on: runtime.go(58), block.go(34), model.go(19), theme.go(14)
 
 ### editing.go
 
-- lines: 423 · tests: editing_test.go
-- purpose: HandleInputKey interprets editor keys through registered operations.
-- methods: Input(12)
-- funcs: HandleInputKey
-- leans on: block.go(44), runtime.go(18), input.go(12), editor.go(8)
+- lines: 296 · tests: editing_test.go
+- methods: Input(11)
+- leans on: block.go(44), input.go(11), editor.go(6)
 
 ### editor.go
 
@@ -65,25 +65,28 @@ Root package `ochazuke` is flat: 31 source files, 21 test files. Each entry list
 
 ### editor_keys.go
 
-- lines: 115
-- leans on: runtime.go(21), editor.go(4), noun.go(4), input.go(1)
+- lines: 111
+- purpose: LoadBindingSpec installs a spec onto one noun: modes, then rows.
+- methods: Runtime(2)
+- leans on: noun.go(10), runtime.go(9), instance.go(1)
 
 ### input.go
 
-- lines: 288
-- purpose: SetMode is the mode-transition hook for both editor operations and set.mode.
+- lines: 332
+- purpose: Count is the pending Vim count, read from the instance payload.
 - types: EditNode, Input
-- methods: Input(9)
+- methods: Input(11)
 - funcs: NewInput, RegisterInputOperations
-- leans on: runtime.go(38), block.go(17), editor.go(5), editor_block.go(4)
+- leans on: runtime.go(38), block.go(17), instance.go(17), editor.go(6)
 
 ### instance.go
 
-- lines: 157
+- lines: 158
 - purpose: Instance is one addressable thing on screen: a page, a list, a list row, a modal body, or an input.
-- types: Instance
-- methods: Runtime(12)
-- leans on: runtime.go(20), noun.go(3)
+- types: Instance, Payload, InstanceOption (func)
+- methods: Payload(1), Runtime(7)
+- funcs: Parent, Kind
+- leans on: runtime.go(15), noun.go(4)
 
 ### layout.go
 
@@ -96,59 +99,62 @@ Root package `ochazuke` is flat: 31 source files, 21 test files. Each entry list
 
 ### list.go
 
-- lines: 268 · tests: list_test.go
+- lines: 346 · tests: list_test.go
 - purpose: ListItem is application-owned identity, display text, and the registered noun the row answers to.
 - types: ListItem, List
-- methods: List(11)
+- methods: List(13)
 - funcs: NewList
-- leans on: runtime.go(37), noun.go(10), layout.go(2), registers.go(1)
+- leans on: runtime.go(41), noun.go(17), instance.go(11), layout.go(2)
 
 ### macros.go
 
-- lines: 229
+- lines: 187
+- purpose: MacroState is the application-wide recording and replay state.
 - types: MacroKey, MacroState
-- methods: Runtime(2)
-- leans on: runtime.go(37), registers.go(9), block.go(3), noun.go(2)
+- methods: Runtime(1)
+- leans on: runtime.go(22), noun.go(9), registers.go(9), instance.go(4)
 
 ### model.go
 
-- lines: 555 · tests: model_test.go
+- lines: 526 · tests: model_test.go
 - purpose: ModalView renders one modal without replacing or inspecting its parent page.
 - types: ModalView, Model
-- methods: Model(14)
+- methods: Model(13)
 - funcs: NewModel, InputView, InputBlock
-- leans on: runtime.go(91), block.go(31), palette.go(12), theme.go(11)
+- leans on: runtime.go(55), block.go(31), noun.go(12), theme.go(11)
 
 ### noun.go
 
-- lines: 110 · tests: noun_test.go
-- purpose: Noun is the behaviour shared by every instance of one kind: the verbs it answers to, its key bindings per mode, and the action handlers that override an oper...
-- types: Noun
-- methods: Runtime(3)
-- leans on: runtime.go(13)
+- lines: 473 · tests: noun_test.go
+- purpose: Noun is the behaviour shared by every instance of one kind: the verbs it answers to, its key bindings per mode, the action handlers that override an operatio...
+- types: Noun, Binding, NounBuilder, ModeBuilder, Guard (func)
+- methods: Binding(5), ModeBuilder(5), NounBuilder(6), Runtime(7)
+- funcs: Do, Enter, Leave, Func
+- leans on: runtime.go(37), instance.go(11), resolve.go(9), macros.go(2)
 
 ### pages.go
 
-- lines: 128 · tests: pages_test.go
-- purpose: Page retains its base frame and renderer across navigation.
+- lines: 149 · tests: pages_test.go
+- purpose: Page is the component a page instance fronts: a title, the base frame that remembers where focus sits on the page, and a renderer.
 - types: Page
-- methods: Runtime(4)
-- leans on: runtime.go(45), noun.go(4), registers.go(4), block.go(1)
+- methods: Runtime(5)
+- leans on: runtime.go(35), instance.go(5), noun.go(4), registers.go(4)
 
 ### palette.go
 
-- lines: 708 · tests: palette_test.go
+- lines: 695 · tests: palette_test.go
 - purpose: Palette owns its overlay and drafts; it never edits the originating input.
 - types: Palette
 - methods: Palette(23)
 - funcs: NewPalette
-- leans on: runtime.go(74), noun.go(14), block.go(13), input.go(3)
+- leans on: runtime.go(61), noun.go(40), block.go(13), instance.go(5)
 
 ### palette_editing.go
 
-- lines: 94
-- methods: Palette(7)
-- leans on: palette.go(7), input.go(3), runtime.go(3), block.go(2)
+- lines: 67
+- purpose: IsActive reports whether the palette is the top modal.
+- methods: Palette(6)
+- leans on: palette.go(6), input.go(3), block.go(2), instance.go(2)
 
 ### palette_nouns.go
 
@@ -157,16 +163,16 @@ Root package `ochazuke` is flat: 31 source files, 21 test files. Each entry list
 - types: PaletteInstance, PaletteSource (func), PaletteNoun, PaletteEntry
 - methods: Palette(2)
 - funcs: PagesPaletteSource
-- leans on: noun.go(7), runtime.go(5), palette.go(2)
+- leans on: instance.go(9), noun.go(7), runtime.go(5), palette.go(2)
 
 ### picker.go
 
-- lines: 572 · tests: picker_test.go
+- lines: 563 · tests: picker_test.go
 - purpose: Picker owns one modal and one ordinary editor.
 - types: Picker
 - methods: Picker(14)
 - funcs: NewPicker
-- leans on: runtime.go(69), block.go(11), picker_search.go(11), noun.go(7)
+- leans on: runtime.go(59), noun.go(12), block.go(11), picker_search.go(11)
 
 ### picker_preview.go
 
@@ -199,19 +205,20 @@ Root package `ochazuke` is flat: 31 source files, 21 test files. Each entry list
 
 ### resolve.go
 
-- lines: 56
-- purpose: EffectiveBindingsFor is the stack walk phase 5 dispatches through: from the focused instance outward, the first instance whose own rows or noun bind a key se...
-- methods: Runtime(2)
-- leans on: runtime.go(7), noun.go(3)
+- lines: 464
+- purpose: KeyEvent is what a row receives: the key, the mode it was resolved in and the focused instance.
+- types: KeyEvent
+- methods: Runtime(15)
+- leans on: runtime.go(54), instance.go(34), noun.go(32), macros.go(5)
 
 ### runtime.go
 
-- lines: 488 · tests: runtime_test.go
-- purpose: Runtime is owned by one event loop.
-- types: Arguments, Parameter, Request, Context, Handler (func), Operation, Binding, Layer, Frame, Runtime
-- methods: Context(1), Operation(1), Request(1), Runtime(14)
+- lines: 479 · tests: runtime_test.go
+- purpose: Context is the derived view of a focus: the instance ids from app down to the focused instance (Path), and the focused input when there is one.
+- types: Arguments, Parameter, Request, Context, Handler (func), Operation, Frame, Runtime, ModeState
+- methods: Context(1), Operation(1), Request(1), Runtime(16)
 - funcs: NewRuntime, StringArg, IntArg, JSONPointer
-- leans on: noun.go(18), registers.go(12), input.go(4), bindings.go(3)
+- leans on: noun.go(21), instance.go(19), registers.go(13), pages.go(6)
 
 ### surface.go
 
@@ -235,12 +242,13 @@ Root package `ochazuke` is flat: 31 source files, 21 test files. Each entry list
 - types: Response, CallMsg, Server
 - methods: Runtime(1), Server(2)
 - funcs: Listen, Call
-- leans on: runtime.go(8), cli.go(1)
+- leans on: runtime.go(8), cli.go(1), noun.go(1)
 
 ### yank_history.go
 
-- lines: 88
-- leans on: runtime.go(53), noun.go(8), block.go(3), registers.go(3)
+- lines: 80
+- purpose: yankHistoryText renders the rows around the selection that fit the body.
+- leans on: runtime.go(26), noun.go(7), block.go(3), registers.go(3)
 
 ## Symbol owners
 
@@ -248,25 +256,30 @@ Exported type -> file.
 
 - Appearance -> theme.go
 - Arguments -> runtime.go
-- Binding -> runtime.go
+- Binding -> noun.go
 - BindingTimeoutMsg -> bindings.go
 - Block -> block.go
 - CallMsg -> transport.go
 - Context -> runtime.go
 - EditNode -> input.go
 - Frame -> runtime.go
+- Guard -> noun.go
 - Handler -> runtime.go
 - Input -> input.go
 - Instance -> instance.go
-- Layer -> runtime.go
+- InstanceOption -> instance.go
+- KeyEvent -> resolve.go
 - Layout -> layout.go
 - List -> list.go
 - ListItem -> list.go
 - MacroKey -> macros.go
 - MacroState -> macros.go
 - ModalView -> model.go
+- ModeBuilder -> noun.go
+- ModeState -> runtime.go
 - Model -> model.go
 - Noun -> noun.go
+- NounBuilder -> noun.go
 - Operation -> runtime.go
 - Page -> pages.go
 - Palette -> palette.go
@@ -275,6 +288,7 @@ Exported type -> file.
 - PaletteNoun -> palette_nouns.go
 - PaletteSource -> palette_nouns.go
 - Parameter -> runtime.go
+- Payload -> instance.go
 - Picker -> picker.go
 - PickerEntry -> picker_search.go
 - Pos -> block.go

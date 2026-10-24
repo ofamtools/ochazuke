@@ -118,7 +118,7 @@ func (p *Picker) bindingHelp() string {
 		return ""
 	}
 	var hints []string
-	for _, binding := range p.Runtime.EffectiveBindings(p.frame.Context) {
+	for _, binding := range p.Runtime.ListBindings(p.input.ID) {
 		request := binding.Request
 		if request.Noun != "picker" {
 			continue

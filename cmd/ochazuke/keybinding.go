@@ -161,7 +161,10 @@ func (m *keybindingModel) render() string {
 		left = append(left, "", st.Muted.Render("Key names are quoted."))
 		if m.runtime != nil {
 			left = append(left, "Timeout: "+m.runtime.BindingTimeout.String(), "", st.Subtitle.Render("Defined bindings"))
-			for _, binding := range m.runtime.EffectiveBindings(m.runtime.Context()) {
+			for _, binding := range m.runtime.ListBindings(m.runtime.FocusID()) {
+				if binding.Request.Noun != "sandbox" {
+					continue
+				}
 				left = append(left, cleanLabel(binding.Keys)+st.Muted.Render(" → "+cleanLabel(binding.Request.Verb)))
 			}
 		}
@@ -243,19 +246,7 @@ func (m *keybindingModel) installBinding(spec sandboxBinding) {
 	if _, exists := m.runtime.Operations[op.Key()]; !exists {
 		m.runtime.Register(op)
 	}
-	layer := m.runtime.Layers["app"]
-	binding := ochazuke.Binding{Keys: keys, Request: ochazuke.Request{Verb: action, Noun: "sandbox"}}
-	replaced := false
-	for i, existing := range layer.Bindings {
-		if existing.Keys == keys {
-			layer.Bindings[i] = binding
-			replaced = true
-			break
-		}
-	}
-	if !replaced {
-		layer.Bindings = append(layer.Bindings, binding)
-	}
+	m.runtime.Define("app").Mode("").Bind(keys, ochazuke.Do(action+".sandbox"))
 	m.pruneOperations()
 }
 
@@ -263,7 +254,7 @@ func (m *keybindingModel) installBinding(spec sandboxBinding) {
 // replacing a binding does not leave its old action registered.
 func (m *keybindingModel) pruneOperations() {
 	used := map[string]bool{}
-	for _, b := range m.runtime.Layers["app"].Bindings {
+	for _, b := range m.runtime.Noun("app").Bindings[""] {
 		used[ochazuke.Operation{Verb: b.Request.Verb, Noun: b.Request.Noun}.Key()] = true
 	}
 	for key, op := range m.runtime.Operations {

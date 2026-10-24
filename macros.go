@@ -9,39 +9,46 @@ type MacroKey struct {
 	Key   string `json:"key"`
 	Paste bool   `json:"paste,omitempty"`
 }
+
+// MacroState is the application-wide recording and replay state. Awaiting a
+// register name is the macro_pending or replay_pending mode of the focused
+// instance, not a field here.
 type MacroState struct {
 	Recording string     `json:"recording,omitempty"`
-	Pending   string     `json:"pending,omitempty"`
 	Last      string     `json:"last,omitempty"`
 	Keys      []MacroKey `json:"keys,omitempty"`
 	Depth     int        `json:"depth"`
 	Steps     int        `json:"steps"`
-	Count     int        `json:"count,omitempty"`
 }
 
+// Recording is the macro_recording shadow mode: while a register records and
+// no replay is running, every key is appended, then dispatched again in the
+// mode it shadowed; q stops only when that mode is a quiet normal. The rows
+// are Func rows on the app noun because they re-dispatch.
 func registerMacros(r *Runtime) {
+	record := func(r *Runtime, ev KeyEvent) error {
+		if len(r.Macro.Keys) >= 10000 {
+			return errors.New("macro recording exceeds 10000 keys")
+		}
+		r.Macro.Keys = append(r.Macro.Keys, ev.Key)
+		_, err := r.dispatchIn(ev.Focus, *ev.Mode.Payload.Shadow, ev.Key)
+		return err
+	}
+	r.DefineMode("macro_recording", true)
+	r.Define("app").Mode("macro_recording").
+		Bind("q", Func(func(r *Runtime, ev KeyEvent) error {
+			shadow := ev.Mode.Payload.Shadow
+			if shadow.Name == "normal" && shadow.Payload.empty() {
+				_, err := r.Execute(Request{Verb: "stop", Noun: "macro"})
+				return err
+			}
+			return record(r, ev)
+		})).
+		Pattern(Any, Func(record)).
+		Pattern(Paste, Func(record))
 	add := func(verb, description string, params map[string]Parameter, fn Handler) {
 		r.Register(Operation{Verb: verb, Noun: "macro", Description: description, Parameters: params, Result: "macro state", Run: fn})
 	}
-	add("prefix", "Accumulate an application macro count or await a recording/replay register", map[string]Parameter{"key": {Type: "string", Required: true}, "steps": {Type: "integer"}}, func(r *Runtime, c Context, a Arguments) (any, error) {
-		key := StringArg(a, "key", "")
-		if len(key) == 1 && key[0] >= '0' && key[0] <= '9' {
-			if r.Macro.Count > 100000 {
-				return nil, errors.New("macro count exceeds 1000000")
-			}
-			r.Macro.Count = r.Macro.Count*10 + int(key[0]-'0')
-			return r.Macro, nil
-		}
-		if key != "q" && key != "@" && key != "" {
-			return nil, errors.New("macro prefix must be q, @, or a digit")
-		}
-		r.Macro.Pending = key
-		r.Macro.Count = IntArg(a, "steps", 0)
-		if in := r.Inputs[c.InputID]; in != nil {
-			in.resetKeys()
-		}
-		return r.Macro, nil
-	})
 	add("start", "Record application keys into a named register", map[string]Parameter{"register": {Type: "string", Required: true}}, func(r *Runtime, c Context, a Arguments) (any, error) {
 		key, appendMode, err := registerName(StringArg(a, "register", ""))
 		if err != nil {
@@ -54,8 +61,6 @@ func registerMacros(r *Runtime) {
 			return nil, errors.New("macro recording already active")
 		}
 		r.Macro.Recording = key
-		r.Macro.Pending = ""
-		r.Macro.Count = 0
 		r.Macro.Keys = nil
 		if appendMode {
 			r.Macro.Keys = registerMacroKeys(r.Registers[key])
@@ -89,8 +94,6 @@ func registerMacros(r *Runtime) {
 		r.Registers[r.Macro.Recording] = Register{Yank: Yank{Text: text.String(), Shape: "char"}, Keys: keys}
 		r.Macro.Recording = ""
 		r.Macro.Keys = nil
-		r.Macro.Pending = ""
-		r.Macro.Count = 0
 		return r.Macro, nil
 	})
 	add("replay", "Replay a register through application dispatch; @ repeats last macro", map[string]Parameter{"register": {Type: "string", Required: true}, "steps": {Type: "integer"}}, func(r *Runtime, c Context, a Arguments) (any, error) {
@@ -100,8 +103,6 @@ func registerMacros(r *Runtime) {
 }
 
 func (r *Runtime) replayMacro(name string, count int) (err error) {
-	r.Macro.Pending = ""
-	r.Macro.Count = 0
 	if name == "@" {
 		name = r.Macro.Last
 		if name == "" {
@@ -114,9 +115,6 @@ func (r *Runtime) replayMacro(name string, count int) (err error) {
 	}
 	if count < 1 || count > 10000 {
 		return errors.New("macro count must be between 1 and 10000")
-	}
-	if r.dispatchKey == nil {
-		return errors.New("macro replay requires a model dispatcher")
 	}
 	if r.Macro.Depth >= 16 {
 		return errors.New("macro recursion limit exceeded")
@@ -143,9 +141,12 @@ func (r *Runtime) replayMacro(name string, count int) (err error) {
 					}
 				}
 			}
-			r.Macro.Pending = ""
-			if in := r.Inputs[r.Context().InputID]; in != nil {
-				in.resetKeys()
+			if inst := r.Instances[r.FocusID()]; inst != nil && (r.pendingModes[inst.State] || inst.Payload.Prefix != "") {
+				if in := r.Inputs[inst.ID]; in != nil {
+					in.resetKeys()
+				} else {
+					r.leaveMode(inst)
+				}
 			}
 		}
 	}()
@@ -155,7 +156,7 @@ func (r *Runtime) replayMacro(name string, count int) (err error) {
 			if r.Macro.Steps > 10000 {
 				return errors.New("macro step limit exceeded")
 			}
-			if err = r.dispatchKey(key); err != nil {
+			if _, err = r.Dispatch(key); err != nil {
 				return err
 			}
 			if r.Quit {
@@ -165,49 +166,6 @@ func (r *Runtime) replayMacro(name string, count int) (err error) {
 	}
 	return nil
 }
-func (r *Runtime) handleMacroKey(key string) (bool, error) {
-	if r.Mode(r.Context()) != "normal" {
-		return false, nil
-	}
-	execute := func(verb string, args Arguments) (bool, error) {
-		_, err := r.Execute(Request{Verb: verb, Noun: "macro", Args: args})
-		return true, err
-	}
-	if r.Macro.Pending != "" {
-		if key == "esc" {
-			return execute("prefix", Arguments{"key": ""})
-		}
-		pending, count := r.Macro.Pending, max(1, r.Macro.Count)
-		r.Macro.Pending = ""
-		r.Macro.Count = 0
-		if pending == "q" {
-			return execute("start", Arguments{"register": key})
-		}
-		return execute("replay", Arguments{"register": key, "steps": count})
-	}
-	in := r.Inputs[r.Context().InputID]
-	if in == nil && len(key) == 1 && key[0] >= '0' && key[0] <= '9' {
-		return execute("prefix", Arguments{"key": key})
-	}
-	if in != nil && in.Pending != "" {
-		return false, nil
-	}
-	if key == "q" && r.Macro.Recording != "" {
-		return execute("stop", nil)
-	}
-	if key == "q" || key == "@" {
-		steps := max(1, r.Macro.Count)
-		if in != nil {
-			steps = max(1, in.Count)
-		}
-		return execute("prefix", Arguments{"key": key, "steps": steps})
-	}
-	if in == nil && r.Macro.Count > 0 {
-		return execute("prefix", Arguments{"key": ""})
-	}
-	return false, nil
-}
-
 func registerMacroKeys(register Register) []MacroKey {
 	if len(register.Keys) > 0 {
 		return append([]MacroKey(nil), register.Keys...)

@@ -39,11 +39,7 @@ func NewPalette(r *Runtime) *Palette {
 	}}
 	p.editors = map[string]*Input{}
 	p.explicitEmpty = map[string]bool{}
-	r.Layers["palette"] = &Layer{ID: "palette", Noun: "palette", Actions: map[string]Handler{}, Bindings: []Binding{
-		{Keys: "ctrl+c", Request: Request{Verb: "close", Noun: "palette"}},
-		{Keys: "tab", Request: Request{Verb: "move", Noun: "palette", Args: Arguments{"delta": 1}}},
-		{Keys: "shift+tab", Request: Request{Verb: "move", Noun: "palette", Args: Arguments{"delta": -1}}},
-	}}
+	r.Instance("palette", Kind("palette"))
 	register := func(verb, noun, description string, params map[string]Parameter, fn func(Arguments) error) {
 		p.actions[verb+"."+noun] = true
 		r.Register(Operation{Verb: verb, Noun: noun, Description: description, Parameters: params, Result: "palette state", Run: func(_ *Runtime, _ Context, args Arguments) (any, error) {
@@ -51,13 +47,17 @@ func NewPalette(r *Runtime) *Palette {
 			if err != nil {
 				p.message = err.Error()
 			}
-			p.publish()
 			return p.state(), err
 		}})
 	}
 	register("open", "palette", "Open the nested verb/noun palette", nil, func(Arguments) error { return p.open() })
 	register("close", "palette", "Cancel the palette without executing", nil, func(Arguments) error { return p.close() })
-	register("move", "palette", "Move the palette selection or argument focus", map[string]Parameter{"delta": {Type: "integer", Required: true}}, func(a Arguments) error { return p.move(IntArg(a, "delta", 0)) })
+	register("move", "palette", "Move the palette selection or argument focus; column switches between the root verb and noun lists", map[string]Parameter{"delta": {Type: "integer"}, "column": {Type: "string", Description: "left or right: jump between the root columns"}}, func(a Arguments) error {
+		if column := StringArg(a, "column", ""); column != "" {
+			return p.moveColumn(column)
+		}
+		return p.move(IntArg(a, "delta", 0))
+	})
 	register("select", "palette", "Choose the highlighted entry or advance the argument form", map[string]Parameter{"value": {Type: "string"}}, p.choose)
 	register("back", "palette", "Leave search, go back one level, or cancel at the root", nil, func(Arguments) error { return p.back() })
 	register("search", "palette", "Enter search in the current palette list", map[string]Parameter{"query": {Type: "string"}}, func(a Arguments) error {
@@ -76,7 +76,7 @@ func NewPalette(r *Runtime) *Palette {
 			return err
 		}
 		editor.SetMode("insert")
-		p.frame.Context.InputID = editor.ID
+		p.r.setFocus(p.frame, editor.ID)
 		return nil
 	})
 	register("insert", "palette", "Append text to palette search or the focused argument", map[string]Parameter{"text": {Type: "string", Required: true}}, func(a Arguments) error { return p.insert(StringArg(a, "text", "")) })
@@ -97,7 +97,80 @@ func NewPalette(r *Runtime) *Palette {
 		return nil
 	})
 	register("execute", "palette", "Execute the selected operation in the context captured on open", nil, func(Arguments) error { return p.execute() })
+	r.DefineGuard("palette-list", func(*Runtime, KeyEvent) bool { return p.stage != "arguments" })
+	// The palette body: rows guarded by self so a field beneath keeps its own.
+	body := r.Define("palette").Mode("")
+	for key, delta := range map[string]int{"j": 1, "down": 1, "k": -1, "up": -1, "tab": 1, "shift+tab": -1} {
+		body.Bind(key, Do("move.palette", Arguments{"delta": delta})).When("self")
+	}
+	for _, key := range []string{"h", "left"} {
+		body.Bind(key, Do("move.palette", Arguments{"column": "left"})).When("self")
+	}
+	for _, key := range []string{"l", "right"} {
+		body.Bind(key, Do("move.palette", Arguments{"column": "right"})).When("self")
+	}
+	body.Bind("enter", Do("select.palette")).When("self").
+		Bind("ctrl+enter", Do("execute.palette")).When("self").
+		Bind("esc", Do("back.palette")).When("self").
+		Bind("ctrl+c", Do("close.palette")).
+		Bind("backspace", Do("delete.palette")).When("self").
+		Bind("ctrl+h", Do("delete.palette")).When("self").
+		Bind("/", Do("search.palette")).When("palette-list").
+		Pattern(Any, Do("ignore.key")).When("self")
+	// A palette field: the shared editor beneath, palette navigation on top,
+	// and its own text rows so an application's any-mode row cannot steal typing.
+	field := r.Define("palette-field")
+	for _, mode := range []string{"insert", "normal"} {
+		m := field.Mode(mode)
+		for key, delta := range map[string]int{"up": -1, "down": 1, "tab": 1, "shift+tab": -1} {
+			m.Bind(key, Do("move.palette", Arguments{"delta": delta}))
+		}
+		m.Bind("enter", Do("select.palette")).
+			Bind("ctrl+enter", Do("execute.palette")).
+			Bind("ctrl+c", Do("close.palette")).
+			Bind("backspace", Do("delete.palette")).
+			Bind("ctrl+h", Do("delete.palette"))
+	}
+	field.Mode("insert").
+		Pattern(Printable, Do("insert.palette").FromPayload("text", SourceText)).
+		Pattern(Paste, Do("insert.palette").FromPayload("text", SourceText))
+	field.Mode("normal").
+		Bind("j", Do("move.palette", Arguments{"delta": 1})).
+		Bind("k", Do("move.palette", Arguments{"delta": -1})).
+		Bind("h", Do("move.palette", Arguments{"column": "left"})).
+		Bind("l", Do("move.palette", Arguments{"column": "right"})).
+		Bind("left", Do("move.palette", Arguments{"column": "left"})).
+		Bind("right", Do("move.palette", Arguments{"column": "right"})).
+		Bind("esc", Do("back.palette"))
 	return p
+}
+
+// moveColumn jumps between the root verb and noun columns; it is a no-op on
+// other stages, where left and right have no meaning.
+func (p *Palette) moveColumn(direction string) error {
+	if err := p.requireOpen(); err != nil {
+		return err
+	}
+	if p.stage != "root" {
+		return nil
+	}
+	options := p.options()
+	split := 0
+	for split < len(options) && strings.HasPrefix(options[split], "verb:") {
+		split++
+	}
+	row := p.selection
+	if row >= split {
+		row -= split
+	}
+	target := p.selection
+	if direction == "left" && split > 0 {
+		target = min(row, split-1)
+	}
+	if direction == "right" && len(options) > split {
+		target = split + min(row, len(options)-split-1)
+	}
+	return p.move(target - p.selection)
 }
 
 func (p *Palette) Open() error {
@@ -126,7 +199,7 @@ func (p *Palette) open() error {
 		return nil
 	}
 	origin := p.r.Context().Clone()
-	frame := &Frame{ID: "palette", Context: Context{Path: []string{"app", "palette"}}, State: map[string]any{}}
+	frame := &Frame{ID: "palette", Focus: "palette"}
 	if err := p.r.Push(frame); err != nil {
 		return err
 	}
@@ -144,8 +217,7 @@ func (p *Palette) open() error {
 	p.field = 0
 	p.message = ""
 	for _, editor := range p.editors {
-		delete(p.r.Inputs, editor.ID)
-		delete(p.r.InputPaths, editor.ID)
+		p.r.removeInstance(editor.ID)
 	}
 	p.editors = map[string]*Input{}
 	p.explicitEmpty = map[string]bool{}
@@ -157,7 +229,7 @@ func (p *Palette) close() error {
 	if !p.IsOpen() {
 		return nil
 	}
-	if p.r.Frames[len(p.r.Frames)-1] != p.frame {
+	if p.r.top() != p.frame {
 		return errors.New("palette is covered by another modal")
 	}
 	if err := p.r.Pop(); err != nil {
@@ -171,7 +243,7 @@ func (p *Palette) requireOpen() error {
 	if !p.IsOpen() {
 		return errors.New("palette is not open")
 	}
-	if p.r.Frames[len(p.r.Frames)-1] != p.frame {
+	if p.r.top() != p.frame {
 		return errors.New("palette is covered by another modal")
 	}
 	return nil
@@ -300,7 +372,7 @@ func (p *Palette) back() error {
 		p.searching = false
 		p.query = ""
 		p.selection = 0
-		p.frame.Context.InputID = ""
+		p.r.setFocus(p.frame, "palette")
 		p.message = ""
 		return nil
 	}
@@ -318,7 +390,7 @@ func (p *Palette) back() error {
 		p.drafts = map[string]string{}
 		p.field = 0
 	}
-	p.frame.Context.InputID = ""
+	p.r.setFocus(p.frame, "palette")
 	p.query = ""
 	p.selection = 0
 	p.message = ""
@@ -363,7 +435,7 @@ func (p *Palette) insert(text string) error {
 	if editor == nil {
 		return errors.New("select a search or argument field before typing")
 	}
-	if _, err := p.r.ExecuteAt(Context{Path: []string{"app", "palette"}, InputID: editor.ID}, Request{Verb: "insert", Noun: "input", Args: Arguments{"text": text}}); err != nil {
+	if _, err := p.r.Execute(Request{Verb: "insert", Noun: "input", Target: editor.ID, Args: Arguments{"text": text}}); err != nil {
 		return err
 	}
 	p.collectEditors()
@@ -471,98 +543,19 @@ func (p *Palette) dispatch(q Request) error {
 	return err
 }
 
-// HandleKey applies layered overrides before palette navigation or the shared input editor.
+// HandleKey dispatches one key while the palette is the active modal. The
+// palette and palette-field nouns answer first; the shared editor answers for
+// everything else.
 func (p *Palette) HandleKey(key string) (bool, error) {
-	if !p.IsOpen() || p.r.Frames[len(p.r.Frames)-1] != p.frame {
+	if !p.IsActive() {
 		return false, nil
 	}
-	if handled, err := p.r.HandleBinding(key); handled || err != nil {
-		p.collectEditors()
-		p.publish()
-		return handled, err
-	}
-	if p.stage != "arguments" && p.r.Mode(p.frame.Context) == "normal" {
-		switch key {
-		case "h":
-			key = "left"
-		case "j":
-			key = "down"
-		case "k":
-			key = "up"
-		case "l":
-			key = "right"
-		}
-	}
-	if handled, err := p.handleEditorKey(key); handled || err != nil {
-		return handled, err
-	}
-	q := Request{Noun: "palette"}
-	switch key {
-	case "left", "right":
-		if p.stage != "root" {
-			return true, nil
-		}
-		options := p.options()
-		split := 0
-		for split < len(options) && strings.HasPrefix(options[split], "verb:") {
-			split++
-		}
-		row := p.selection
-		if row >= split {
-			row -= split
-		}
-		target := p.selection
-		if key == "left" && split > 0 {
-			target = min(row, split-1)
-		}
-		if key == "right" && len(options) > split {
-			target = split + min(row, len(options)-split-1)
-		}
-		q.Verb = "move"
-		q.Args = Arguments{"delta": target - p.selection}
-	case "esc", "escape":
-		q.Verb = "back"
-	case "ctrl+c":
-		q.Verb = "close"
-	case "up", "shift+tab":
-		q.Verb = "move"
-		q.Args = Arguments{"delta": -1}
-	case "down":
-		q.Verb = "move"
-		q.Args = Arguments{"delta": 1}
-	case "enter":
-		q.Verb = "select"
-	case "tab":
-		q.Verb = "move"
-		q.Args = Arguments{"delta": 1}
-	case "ctrl+enter":
-		q.Verb = "execute"
-	case "backspace", "ctrl+h":
-		q.Verb = "delete"
-	case "ctrl+u":
-		return true, nil
-	default:
-		if p.stage != "arguments" && !p.searching {
-			switch key {
-			case "j":
-				q.Verb = "move"
-				q.Args = Arguments{"delta": 1}
-			case "k":
-				q.Verb = "move"
-				q.Args = Arguments{"delta": -1}
-			case "/":
-				q.Verb = "search"
-			default:
-				return true, nil
-			}
-		} else {
-			return true, nil
-		}
-	}
-	_, err := p.r.Execute(q)
+	// Reassert the form's own field even if an external caller moved overlay focus.
+	p.focusEditor()
+	_, err := p.r.Dispatch(MacroKey{Key: key})
+	p.collectEditors()
 	if err != nil {
 		p.message = err.Error()
-		p.publish()
 	}
 	return true, err
 }
@@ -574,12 +567,6 @@ func (p *Palette) state() map[string]any {
 		drafts[name] = value
 	}
 	return map[string]any{"open": p.IsOpen(), "origin": p.origin.Clone(), "stage": p.stage, "section": p.section, "first": p.first, "search": p.query, "searching": p.searching, "selection": p.selection, "entries": p.entries(), "operation": p.op.Key(), "arguments": drafts, "field": p.field, "error": p.message}
-}
-
-func (p *Palette) publish() {
-	if p.frame != nil {
-		p.frame.State = p.state()
-	}
 }
 
 func (p *Palette) View() string { return p.ViewSized(80, 20) }

@@ -35,9 +35,12 @@ func validateSandboxBinding(binding sandboxBinding) error {
 }
 
 func (m *keybindingModel) bindings() []sandboxBinding {
-	bindings := make([]sandboxBinding, 0, len(m.runtime.Layers["app"].Bindings))
-	for _, b := range m.runtime.Layers["app"].Bindings {
-		bindings = append(bindings, sandboxBinding{Keys: b.Keys, Action: b.Request.Verb})
+	rows := m.runtime.Noun("app").Bindings[""]
+	bindings := make([]sandboxBinding, 0, len(rows))
+	for _, b := range rows {
+		if b.Request.Noun == "sandbox" {
+			bindings = append(bindings, sandboxBinding{Keys: b.Keys, Action: b.Request.Verb})
+		}
 	}
 	return bindings
 }

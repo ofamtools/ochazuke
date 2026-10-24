@@ -10,15 +10,29 @@ import (
 // Build composes the framework without coupling its runtime to the file format.
 func Build(cfg Config) (*ochazuke.Model, error) {
 	r := ochazuke.NewRuntime()
-	reserved := map[string]bool{"palette": true, "picker": true, "yank-history": true}
-	for _, spec := range cfg.Layers {
-		if strings.TrimSpace(spec.ID) == "" || r.Layers[spec.ID] != nil || reserved[spec.ID] {
-			return nil, fmt.Errorf("layer %q is empty, duplicate, or reserved", spec.ID)
+	workspaceState = map[string]map[string]any{}
+	reservedIDs := map[string]bool{"app": true, "palette": true, "picker": true}
+	reservedNouns := map[string]bool{"editor": true, "prompt": true, "modal": true, "list": true, "palette": true, "palette-field": true, "picker": true, "yank-history": true}
+	for _, spec := range cfg.Instances {
+		if strings.TrimSpace(spec.Noun) == "" || reservedIDs[spec.ID] || reservedNouns[spec.Noun] {
+			return nil, fmt.Errorf("instance %q / noun %q is empty or reserved", spec.ID, spec.Noun)
 		}
-		r.Layers[spec.ID] = &ochazuke.Layer{ID: spec.ID, Noun: spec.Noun, Actions: map[string]ochazuke.Handler{}}
-		if len(spec.Verbs) > 0 {
-			r.Noun(spec.ID).Verbs = spec.Verbs
+		if spec.ID == "" {
+			r.Define(spec.Noun).Verbs(spec.Verbs...)
+			continue
 		}
+		if r.Instances[spec.ID] != nil {
+			return nil, fmt.Errorf("instance %q is duplicate", spec.ID)
+		}
+		opts := []ochazuke.InstanceOption{ochazuke.Kind(spec.Noun)}
+		if spec.Parent != "" {
+			if r.Instances[spec.Parent] == nil {
+				return nil, fmt.Errorf("instance %q: unknown parent %q", spec.ID, spec.Parent)
+			}
+			opts = append(opts, ochazuke.Parent(spec.Parent))
+		}
+		r.Instance(spec.ID, opts...)
+		r.Define(spec.Noun).Verbs(spec.Verbs...)
 	}
 	for _, name := range cfg.App.Modes {
 		if _, err := r.Execute(ochazuke.Request{Verb: "register", Noun: "mode", Args: ochazuke.Arguments{"name": name}}); err != nil {
@@ -31,8 +45,14 @@ func Build(cfg Config) (*ochazuke.Model, error) {
 		}
 		input := ochazuke.NewInput(spec.ID, spec.Value, spec.Multiline)
 		input.Kind, input.PathFilter = spec.Kind, spec.PathFilter
-		input.ReadlineOnly = spec.ReadlineOnly
-		if err := r.AddInput(input, spec.Path); err != nil {
+		opts := []ochazuke.InstanceOption{}
+		if spec.Parent != "" {
+			opts = append(opts, ochazuke.Parent(spec.Parent))
+		}
+		if spec.Noun != "" {
+			opts = append(opts, ochazuke.Kind(spec.Noun))
+		}
+		if err := r.AddInput(input, opts...); err != nil {
 			return nil, fmt.Errorf("input %q: %w", spec.ID, err)
 		}
 	}

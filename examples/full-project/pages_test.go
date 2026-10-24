@@ -22,7 +22,7 @@ func TestResponsiveFieldsAndModalRestoration(t *testing.T) {
 	}
 	key := func(k string) { keytest.Press(m, k) }
 	key("ctrl+j")
-	if m.Runtime.ActivePage != "paths" {
+	if m.Runtime.Page != "paths" {
 		t.Fatal("page navigation did not open Paths")
 	}
 	for _, size := range [][2]int{{80, 24}, {60, 18}, {120, 40}} {
@@ -58,7 +58,7 @@ func TestResponsiveFieldsAndModalRestoration(t *testing.T) {
 		t.Fatal("nested modal did not open")
 	}
 	key("ctrl+j")
-	if m.Runtime.ActivePage != "paths" {
+	if m.Runtime.Page != "paths" {
 		t.Fatal("sidebar navigation escaped the active modal")
 	}
 	key("esc")

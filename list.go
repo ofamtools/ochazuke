@@ -19,45 +19,41 @@ type ListItem struct {
 	Noun  string `json:"noun"`
 }
 
-// List owns flat selection and scrolling on the runtime's event loop.
-// Its path ends at the list layer; only the selected row's ID is appended.
+// List owns flat selection, marks and scrolling on the runtime's event loop.
+// Focus sits on the selected row when there is one, else on the list.
 type List struct {
 	r        *Runtime
-	path     []string
+	id       string
 	items    []ListItem
 	selected int
 	offset   int
+	marks    map[string]bool
 }
 
-// NewList registers one list at path's final layer, which is also its operation ID.
-// All layers must already exist. Existing layer bindings override the defaults.
-func NewList(r *Runtime, path []string, items []ListItem) (*List, error) {
-	if len(path) < 2 {
-		return nil, errors.New("list path must include app and a list layer")
+// NewList registers a list instance of the list noun. Options: Parent(id)
+// (default app) and Kind(noun) for a list that answers to its own noun as well.
+func NewList(r *Runtime, id string, items []ListItem, opts ...InstanceOption) (*List, error) {
+	if id == "" {
+		return nil, errors.New("list ID must be nonempty")
 	}
-	if err := r.validateContext(Context{Path: path}); err != nil {
-		return nil, err
-	}
-	id := path[len(path)-1]
-	if r.Lists[id] != nil {
+	if r.Lists[id] != nil || r.Instances[id] != nil {
 		return nil, fmt.Errorf("list %q is already registered", id)
 	}
-	r.adoptPath(path)
-	list := &List{r: r, path: slices.Clone(path), selected: -1}
+	spec := instanceSpec{parent: "app", noun: "list"}
+	for _, opt := range opts {
+		opt(&spec)
+	}
+	if r.Instances[spec.parent] == nil {
+		return nil, fmt.Errorf("unknown parent %q", spec.parent)
+	}
+	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}}
+	r.Instance(id, Parent(spec.parent), Kind(spec.noun))
+	r.Instances[id].Component = list
 	if err := list.SetItems(items); err != nil {
+		r.removeInstance(id)
 		return nil, err
 	}
 	r.Lists[id] = list
-	bindings := make([]Binding, 0, 4+len(r.Layers[id].Bindings))
-	for _, key := range []struct {
-		name  string
-		delta int
-	}{{"j", 1}, {"down", 1}, {"k", -1}, {"up", -1}} {
-		bindings = append(bindings, Binding{Mode: "normal", Keys: key.name, Request: Request{
-			Verb: "move", Noun: "list", Args: Arguments{"id": id, "delta": key.delta},
-		}})
-	}
-	r.Layers[id].Bindings = append(bindings, r.Layers[id].Bindings...)
 	return list, nil
 }
 
@@ -67,7 +63,6 @@ func NewList(r *Runtime, path []string, items []ListItem) (*List, error) {
 // of rows that disappear; a retained row keeps its instance and any bindings
 // the application put on it.
 func (l *List) SetItems(items []ListItem) error {
-	id := l.path[len(l.path)-1]
 	ids := make(map[string]bool, len(items))
 	for _, item := range items {
 		if item.ID == "" || ids[item.ID] {
@@ -76,21 +71,26 @@ func (l *List) SetItems(items []ListItem) error {
 		if l.r.Noun(item.Noun) == nil {
 			return fmt.Errorf("list item %q: unknown noun %q", item.ID, item.Noun)
 		}
-		if owner := l.r.rows[item.ID]; l.r.Layers[item.ID] != nil || l.r.Inputs[item.ID] != nil || owner != "" && owner != id {
+		if owner := l.r.rows[item.ID]; owner != l.id && l.r.Instances[item.ID] != nil {
 			return fmt.Errorf("list item ID %q is already another instance", item.ID)
 		}
 		ids[item.ID] = true
 	}
+	gone := map[string]bool{}
 	for _, old := range l.items {
 		if !ids[old.ID] {
-			delete(l.r.rows, old.ID)
-			delete(l.r.Instances, old.ID)
+			gone[old.ID] = true
+			delete(l.marks, old.ID)
+			l.r.removeInstance(old.ID)
 		}
 	}
 	for _, item := range items {
-		l.r.rows[item.ID] = id
-		inst := l.r.instance(item.ID)
-		inst.Noun, inst.Parent = item.Noun, id
+		l.r.rows[item.ID] = l.id
+		inst := l.r.Instances[item.ID]
+		if inst == nil {
+			inst = l.r.Instance(item.ID, Parent(l.id), Kind(item.Noun))
+		}
+		inst.Noun, inst.Parent = item.Noun, l.id
 	}
 	previous, _ := l.Selected()
 	selected := min(max(l.selected, 0), len(items)-1)
@@ -102,7 +102,7 @@ func (l *List) SetItems(items []ListItem) error {
 	}
 	l.items, l.selected = slices.Clone(items), selected
 	l.offset = min(l.offset, max(0, len(items)-1))
-	l.syncContexts(previous)
+	l.syncFocus(previous, gone)
 	return nil
 }
 
@@ -123,7 +123,7 @@ func (l *List) Move(delta int) {
 	if next != l.selected {
 		previous := l.items[l.selected]
 		l.selected = next
-		l.syncContexts(previous)
+		l.syncFocus(previous, nil)
 	}
 }
 
@@ -138,58 +138,77 @@ func (l *List) Select(id string) error {
 	return fmt.Errorf("unknown list item %q", id)
 }
 
-// Focus replaces the active context with the list path and selected row.
-func (l *List) Focus() error { return l.r.SelectContext(l.context()) }
+// ToggleMark marks or unmarks a row for fan-out verbs.
+func (l *List) ToggleMark(id string) error {
+	if !slices.ContainsFunc(l.items, func(item ListItem) bool { return item.ID == id }) {
+		return fmt.Errorf("unknown list item %q", id)
+	}
+	if l.marks[id] {
+		delete(l.marks, id)
+	} else {
+		l.marks[id] = true
+	}
+	return nil
+}
+
+// Marked lists the marked rows in list order.
+func (l *List) Marked() []ListItem {
+	var out []ListItem
+	for _, item := range l.items {
+		if l.marks[item.ID] {
+			out = append(out, item)
+		}
+	}
+	return out
+}
+
+// Focus points the active frame at the list's selected row, or the list.
+func (l *List) Focus() error { return l.r.Focus(l.focusTarget()) }
 
 // Focused derives focus from the active frame instead of retaining a stale flag.
-func (l *List) Focused() bool {
-	return l.contains(l.r.Frames[len(l.r.Frames)-1].Context)
-}
+func (l *List) Focused() bool { return l.holds(l.r.FocusID()) }
 
-func (l *List) contains(c Context) bool {
-	return c.InputID == "" && (len(c.Path) == len(l.path) || len(c.Path) == len(l.path)+1) && slices.Equal(c.Path[:len(l.path)], l.path)
-}
+func (l *List) holds(focus string) bool { return focus == l.id || l.r.rows[focus] == l.id }
 
-func (l *List) context() Context {
-	size := len(l.path)
+func (l *List) focusTarget() string {
 	if l.selected >= 0 {
-		size++
+		return l.items[l.selected].ID
 	}
-	path := make([]string, size)
-	copy(path, l.path)
-	if l.selected >= 0 {
-		path[len(l.path)] = l.items[l.selected].ID
-	}
-	return Context{Path: path}
+	return l.id
 }
 
-func (l *List) syncContexts(previous ListItem) {
+// syncFocus moves every frame that pointed at this list or one of its rows
+// to the current row, so hidden page frames and modal parents restore the
+// live selection rather than a removed row's bindings.
+func (l *List) syncFocus(previous ListItem, gone map[string]bool) {
 	current, _ := l.Selected()
 	if l.Focused() && (previous.ID != current.ID || previous.Noun != current.Noun) {
 		l.r.CancelPendingBinding()
 	}
+	target := l.focusTarget()
 	update := func(frame *Frame) {
-		if !l.contains(frame.Context) {
+		if frame.Focus == target {
 			return
 		}
-		if l.selected < 0 && len(frame.Context.Path) == len(l.path) || l.selected >= 0 && len(frame.Context.Path) == len(l.path)+1 && frame.Context.Path[len(l.path)] == l.items[l.selected].ID {
-			return
+		if l.holds(frame.Focus) || gone[frame.Focus] || frame.Focus == previous.ID && previous.ID != "" {
+			frame.Focus = target
 		}
-		frame.Context = l.context()
 	}
-	// Hidden page and modal-parent frames must restore the current row, not a
-	// removed item's bindings. Editor contexts never match this component path.
 	for _, frame := range l.r.Frames {
 		update(frame)
 	}
-	for _, page := range l.r.Pages {
+	for _, page := range l.r.PageList() {
 		update(page.Frame)
 	}
 }
 
 func (l *List) Snapshot() map[string]any {
 	selected, _ := l.Selected()
-	return map[string]any{"id": l.path[len(l.path)-1], "items": slices.Clone(l.items), "selected": l.selected, "selectedId": selected.ID, "offset": l.offset, "focused": l.Focused()}
+	marked := make([]string, 0, len(l.marks))
+	for _, item := range l.Marked() {
+		marked = append(marked, item.ID)
+	}
+	return map[string]any{"id": l.id, "items": slices.Clone(l.items), "selected": l.selected, "selectedId": selected.ID, "offset": l.offset, "focused": l.Focused(), "marked": marked}
 }
 
 // View fits the viewport and updates its scroll offset to keep selection visible.
@@ -215,6 +234,9 @@ func (l *List) View(width, height int) string {
 	focused := l.Focused()
 	for i := l.offset; i < end; i++ {
 		mark := "  "
+		if l.marks[l.items[i].ID] {
+			mark = "* "
+		}
 		if i == l.selected {
 			mark = "> "
 		}
@@ -231,6 +253,12 @@ func (l *List) View(width, height int) string {
 }
 
 func registerLists(r *Runtime) {
+	r.Define("list").Mode("normal").
+		Bind("j", Do("move.list", Arguments{"delta": 1})).
+		Bind("down", Do("move.list", Arguments{"delta": 1})).
+		Bind("k", Do("move.list", Arguments{"delta": -1})).
+		Bind("up", Do("move.list", Arguments{"delta": -1})).
+		Bind("space", Do("mark.list"))
 	resolve := func(c Context, args Arguments) (*List, error) {
 		if id := StringArg(args, "id", ""); id != "" {
 			if list := r.Lists[id]; list != nil {
@@ -238,31 +266,81 @@ func registerLists(r *Runtime) {
 			}
 			return nil, fmt.Errorf("unknown list %q", id)
 		}
-		for i := len(c.Path) - 1; i >= 0; i-- {
-			if list := r.Lists[c.Path[i]]; list != nil && list.contains(c) {
+		for _, id := range r.Ancestry(focusOf(c)) {
+			if list := r.Lists[id]; list != nil && c.InputID == "" {
 				return list, nil
 			}
 		}
 		return nil, errors.New("no focused list")
 	}
+	// rowOf names the row an operation addresses: args.item, else the row on
+	// the context, else the selection.
+	rowOf := func(l *List, c Context, args Arguments) (string, error) {
+		if item := StringArg(args, "item", ""); item != "" {
+			return item, nil
+		}
+		if focus := focusOf(c); l.r.rows[focus] == l.id {
+			return focus, nil
+		}
+		if selected, ok := l.Selected(); ok {
+			return selected.ID, nil
+		}
+		return "", errors.New("list has no selected row")
+	}
 	for _, spec := range []struct {
 		verb, description string
 		parameters        map[string]Parameter
-		run               func(*List, Arguments) error
+		run               func(*List, Context, Arguments) (any, error)
 	}{
-		{"focus", "Focus a list and its selected row", map[string]Parameter{"id": {Type: "string", Required: true}}, func(l *List, _ Arguments) error { return l.Focus() }},
-		{"move", "Move selection without stealing focus", map[string]Parameter{"id": {Type: "string"}, "delta": {Type: "integer", Required: true}}, func(l *List, a Arguments) error { l.Move(IntArg(a, "delta", 0)); return nil }},
-		{"select", "Select a list item by stable ID without stealing focus", map[string]Parameter{"id": {Type: "string"}, "item": {Type: "string", Required: true}}, func(l *List, a Arguments) error { return l.Select(StringArg(a, "item", "")) }},
+		{"focus", "Focus a list and its selected row", map[string]Parameter{"id": {Type: "string", Required: true}}, func(l *List, _ Context, _ Arguments) (any, error) { return l.Snapshot(), l.Focus() }},
+		{"move", "Move selection without stealing focus", map[string]Parameter{"id": {Type: "string"}, "delta": {Type: "integer", Required: true}}, func(l *List, _ Context, a Arguments) (any, error) {
+			l.Move(IntArg(a, "delta", 0))
+			return l.Snapshot(), nil
+		}},
+		{"select", "Select a list item by stable ID without stealing focus", map[string]Parameter{"id": {Type: "string"}, "item": {Type: "string", Required: true}}, func(l *List, _ Context, a Arguments) (any, error) {
+			return l.Snapshot(), l.Select(StringArg(a, "item", ""))
+		}},
+		{"mark", "Toggle the mark on a row (the selected row by default) for fan-out verbs", map[string]Parameter{"id": {Type: "string"}, "item": {Type: "string"}}, func(l *List, c Context, a Arguments) (any, error) {
+			id, err := rowOf(l, c, a)
+			if err != nil {
+				return nil, err
+			}
+			return l.Snapshot(), l.ToggleMark(id)
+		}},
+		{"apply", "Run verb.<row noun> for every marked row (the selected row when none is marked), skipping and reporting rows whose noun lacks the verb", map[string]Parameter{"id": {Type: "string"}, "verb": {Type: "string", Required: true}}, func(l *List, c Context, a Arguments) (any, error) {
+			rows := l.Marked()
+			if len(rows) == 0 {
+				if selected, ok := l.Selected(); ok {
+					rows = []ListItem{selected}
+				}
+			}
+			verb := StringArg(a, "verb", "")
+			applied, skipped := []string{}, []string{}
+			var failure error
+			for _, row := range rows {
+				q := Request{Verb: verb, Noun: row.Noun, Target: row.ID}
+				if _, ok := r.Operations[q.Key()]; !ok {
+					skipped = append(skipped, row.ID+": "+q.Key()+" is not registered")
+					continue
+				}
+				if _, err := r.Execute(q); err != nil {
+					skipped = append(skipped, row.ID+": "+err.Error())
+					if failure == nil {
+						failure = err
+					}
+					continue
+				}
+				applied = append(applied, row.ID)
+			}
+			return map[string]any{"verb": verb, "applied": applied, "skipped": skipped}, failure
+		}},
 	} {
 		r.Register(Operation{Verb: spec.verb, Noun: "list", Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
 			list, err := resolve(c, args)
 			if err != nil {
 				return nil, err
 			}
-			if err := spec.run(list, args); err != nil {
-				return nil, err
-			}
-			return list.Snapshot(), nil
+			return spec.run(list, c, args)
 		}})
 	}
 }

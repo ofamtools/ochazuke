@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -9,205 +10,333 @@ import (
 	"ochazuke/internal/keytest"
 )
 
-// layerActionFor is the ExecuteAt loop: innermost path element whose layer
-// (for a list row, the layer of its noun) overrides the operation.
-func layerActionFor(r *Runtime, c Context, key string) Handler {
-	for i := len(c.Path) - 1; i >= 0; i-- {
-		layer := r.Layers[c.Path[i]]
-		if layer == nil {
-			layer = r.Layers[r.Instances[c.Path[i]].Noun]
-		}
-		if fn := layer.Actions[key]; fn != nil {
-			return fn
-		}
-	}
-	return nil
-}
-
-func handlerPointer(fn Handler) uintptr {
-	if fn == nil {
-		return 0
-	}
-	return reflect.ValueOf(fn).Pointer()
-}
-
-// assertNounModelAgrees checks that the instance graph rebuilds the active
-// context and that the noun walk resolves bindings and actions exactly as the
-// layer path does, for every frame the runtime holds.
-func assertNounModelAgrees(t *testing.T, r *Runtime, step string) {
+// recorder registers verb.test operations that append their verb to calls.
+func recorder(t *testing.T, r *Runtime, verbs ...string) *[]string {
 	t.Helper()
-	if got, want := r.ContextFromFocus(), r.Context(); !reflect.DeepEqual(got, want) {
-		t.Fatalf("%s: ContextFromFocus %+v; Context %+v", step, got, want)
+	var calls []string
+	for _, verb := range verbs {
+		r.Register(Operation{Verb: verb, Noun: "test", Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
+			calls = append(calls, verb)
+			return nil, nil
+		}})
 	}
-	if ambiguous := r.AmbiguousInstances(); len(ambiguous) != 0 {
-		t.Fatalf("%s: ambiguous parents: %v", step, ambiguous)
+	return &calls
+}
+
+func TestDefineBuilderBindsVerbsActionsAndRows(t *testing.T) {
+	r := NewRuntime()
+	calls := recorder(t, r, "open", "close")
+	b := r.Define("panel").Verbs("inspect").
+		Verb("toggle", func(*Runtime, Context, Arguments) (any, error) { return "toggled", nil }).
+		Action("quit.app", func(*Runtime, Context, Arguments) (any, error) { return "panel", nil })
+	b.Mode("normal").Bind("o", Do("open.test")).Bind("o", Do("close.test")).Pattern(Digit, Do("open.test")).Unbind("o")
+	noun := r.Noun("panel")
+	if noun == nil || !reflect.DeepEqual(noun.Verbs, []string{"inspect", "toggle"}) || r.Operations["toggle.panel"].Run == nil || noun.Actions["quit.app"] == nil {
+		t.Fatalf("builder did not declare verbs, operations and actions: %+v", noun)
 	}
-	var contexts []Context
-	for _, f := range r.Frames {
-		contexts = append(contexts, f.Context)
+	if rows := noun.Bindings["normal"]; len(rows) != 1 || rows[0].Pattern != Digit || rows[0].Noun != "panel" || rows[0].Mode != "normal" {
+		t.Fatalf("Bind must replace by key and Unbind remove: %+v", rows)
 	}
-	for _, page := range r.Pages {
-		contexts = append(contexts, page.Frame.Context)
+	r.Instance("p", Kind("panel"))
+	if err := r.Focus("p"); err != nil {
+		t.Fatal(err)
 	}
-	for _, c := range contexts {
-		focus := focusOf(c)
-		if got, want := r.EffectiveBindingsFor(focus, r.Mode(c)), r.EffectiveBindings(c); !reflect.DeepEqual(got, want) {
-			t.Fatalf("%s: bindings for %+v differ\n new %v\n old %v", step, c, got, want)
-		}
-		for key := range r.Operations {
-			if got, want := handlerPointer(r.ActionFor(focus, key)), handlerPointer(layerActionFor(r, c, key)); got != want {
-				t.Fatalf("%s: action %s for %+v resolves differently", step, key, c)
+	if v, _ := r.Execute(Request{Verb: "quit", Noun: "app"}); v != "panel" || r.Quit {
+		t.Fatal("noun action must override the operation while on the stack")
+	}
+	r.Dispatch(MacroKey{Key: "7"})
+	if !reflect.DeepEqual(*calls, []string{"open"}) {
+		t.Fatalf("pattern row did not run: %v", *calls)
+	}
+	// Define on an existing noun returns the same table.
+	if r.Define("panel").Noun() != noun {
+		t.Fatal("Define must return the existing noun")
+	}
+}
+
+// The walk: focus outward, instance rows above noun rows at one level, the
+// mode table above the any-mode table, exact above class above any.
+func TestResolveWalksStackInnerToOuter(t *testing.T) {
+	r := NewRuntime()
+	calls := recorder(t, r, "app-normal", "app-any", "page-any", "page-normal", "row-insert", "row-instance", "any-row", "alpha-row")
+	r.Instance("page")
+	r.Instance("list", Parent("page"))
+	r.Instance("row", Parent("list"))
+	r.Define("app").Mode("normal").Bind("x", Do("app-normal.test")).Mode("").Bind("y", Do("app-any.test"))
+	r.Define("page").Mode("").Bind("x", Do("page-any.test")).Mode("normal").Bind("y", Do("page-normal.test")).Pattern(Any, Do("any-row.test")).Pattern(Alpha, Do("alpha-row.test"))
+	r.Define("row").Mode("insert").Bind("x", Do("row-insert.test"))
+	if err := r.Focus("row"); err != nil {
+		t.Fatal(err)
+	}
+	press := func(keys ...string) {
+		t.Helper()
+		for _, key := range keys {
+			if _, err := r.Dispatch(MacroKey{Key: key}); err != nil {
+				t.Fatalf("%s: %v", key, err)
 			}
 		}
 	}
-}
-
-func TestLayerIsAViewOverItsNoun(t *testing.T) {
-	r := NewRuntime()
-	r.Layers["input"] = &Layer{ID: "input"}
-	r.Layers["page"] = &Layer{ID: "page", Actions: map[string]Handler{}}
-	r.Layers["page"].Bindings = []Binding{{Keys: "x", Request: Request{Verb: "quit", Noun: "app"}}, {Mode: "normal", Keys: "y", Request: Request{Verb: "quit", Noun: "app"}}}
-	r.Layers["page"].Actions["quit.app"] = func(*Runtime, Context, Arguments) (any, error) { return "page", nil }
-	noun := r.Noun("page")
-	if noun == nil || len(noun.Bindings[""]) != 1 || len(noun.Bindings["normal"]) != 1 || noun.Bindings["normal"][0].Keys != "y" {
-		t.Fatalf("noun table not derived from layer rows: %+v", noun)
+	press("x", "y", "z", "3")
+	if want := []string{"page-any", "page-normal", "alpha-row", "any-row"}; !reflect.DeepEqual(*calls, want) {
+		t.Fatalf("precedence: got %v; want %v", *calls, want)
 	}
-	if reflect.ValueOf(noun.Actions).Pointer() != reflect.ValueOf(r.Layers["page"].Actions).Pointer() {
-		t.Fatal("noun and layer must share one action map")
-	}
-	if r.Noun("input") == nil || r.Noun("input").Actions != nil {
-		t.Fatal("a layer without actions is a noun without actions")
-	}
-	if _, err := r.Execute(Request{Verb: "set", Noun: "binding", Args: Arguments{"layer": "page", "mode": "insert", "keys": "z", "request": `{"verb":"quit","noun":"app"}`}}); err != nil {
+	// An instance row sits above its noun's rows at the same level.
+	if err := r.Bind(Binding{Instance: "row", Mode: "normal", Keys: "x", Request: Request{Verb: "row-instance", Noun: "test"}}); err != nil {
 		t.Fatal(err)
 	}
-	if rows := r.Noun("page").Bindings["insert"]; len(rows) != 1 || rows[0].Keys != "z" {
-		t.Fatalf("set.binding did not reach the noun table: %+v", rows)
+	*calls = nil
+	press("x")
+	r.Instances["row"].State = "insert"
+	press("x")
+	if want := []string{"row-instance", "row-insert"}; !reflect.DeepEqual(*calls, want) {
+		t.Fatalf("instance and mode rows: got %v; want %v", *calls, want)
 	}
-	if err := r.RegisterNoun(&Noun{Name: "panel", Verbs: []string{"open"}, Bindings: map[string][]Binding{"normal": {{Mode: "normal", Keys: "o", Request: Request{Verb: "quit", Noun: "app"}}}}}); err != nil {
-		t.Fatal(err)
+	listed := map[string]string{}
+	for _, b := range r.ListBindings("row") {
+		listed[b.Keys+b.Pattern] = b.Request.Verb
 	}
-	if layer := r.Layers["panel"]; layer == nil || len(layer.Bindings) != 1 || layer.Actions == nil {
-		t.Fatalf("RegisterNoun must create the layer view: %+v", layer)
-	}
-	if err := r.RegisterNoun(&Noun{Name: "page"}); err == nil {
-		t.Fatal("a noun cannot shadow an existing layer")
-	}
-	if r.Noun("panel").Verbs[0] != "open" {
-		t.Fatal("declared verbs must survive a sync")
-	}
-	delete(r.Layers, "panel")
-	if r.Noun("panel") != nil || r.Instances["panel"] != nil {
-		t.Fatal("a removed layer removes its noun and instance")
-	}
-}
-
-func TestResolveWalksAncestryWithLayerPrecedence(t *testing.T) {
-	r := NewRuntime()
-	for _, id := range []string{"page", "list", "row"} {
-		r.Layers[id] = &Layer{ID: id, Actions: map[string]Handler{}}
-	}
-	quit := func(id string) Request { return Request{Verb: "quit", Noun: "app", Args: Arguments{"from": id}} }
-	r.Layers["app"].Bindings = []Binding{{Mode: "normal", Keys: "x", Request: quit("app-normal")}, {Keys: "y", Request: quit("app-any")}}
-	r.Layers["page"].Bindings = []Binding{{Keys: "x", Request: quit("page-any")}, {Mode: "normal", Keys: "y", Request: quit("page-normal")}, {Mode: "normal", Keys: "y", Request: quit("page-normal-last")}}
-	r.Layers["row"].Bindings = []Binding{{Mode: "insert", Keys: "x", Request: quit("row-insert")}}
-	if err := r.SelectContext(Context{Path: []string{"app", "page", "list", "row"}}); err != nil {
-		t.Fatal(err)
-	}
-	assertNounModelAgrees(t, r, "select")
-	got := map[string]string{}
-	for _, b := range r.EffectiveBindingsFor("row", "normal") {
-		got[b.Keys] = StringArg(b.Request.Args, "from", "")
-	}
-	if want := map[string]string{"x": "page-any", "y": "page-normal-last"}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("precedence: got %v; want %v", got, want)
-	}
-	if b := r.EffectiveBindingsFor("row", "insert"); len(b) != 2 || StringArg(b[0].Request.Args, "from", "") != "row-insert" {
-		t.Fatalf("mode rows of the innermost noun must win: %+v", b)
-	}
-	page := func(*Runtime, Context, Arguments) (any, error) { return "page", nil }
-	r.Layers["page"].Actions["quit.app"] = page
-	if handlerPointer(r.ActionFor("row", "quit.app")) != handlerPointer(page) || r.ActionFor("row", "get.state") != nil || r.ActionFor("nowhere", "quit.app") != nil {
-		t.Fatal("ActionFor must return the innermost override or nil")
+	if listed["x"] != "row-insert" || listed["y"] != "app-any" || listed["any"] != "" {
+		t.Fatalf("list.bindings in insert mode: %v", listed)
 	}
 	if got := r.Ancestry("row"); !reflect.DeepEqual(got, []string{"row", "list", "page", "app"}) {
 		t.Fatalf("ancestry %v", got)
-	}
-	if got := r.InstancePath("row"); !reflect.DeepEqual(got, []string{"app", "page", "list", "row"}) {
-		t.Fatalf("instance path %v", got)
 	}
 	if r.Ancestry("missing") != nil {
 		t.Fatal("unknown instance has no ancestry")
 	}
 }
 
-func TestInstancesForInputsAndSharedIDs(t *testing.T) {
+// Pending modes are exclusive and one-shot; the editor noun is the fallback
+// after app, so the any-mode ctrl+c row still quits from normal mode but
+// nothing outside operator_pending answers while an operator waits.
+func TestPendingModesAreExclusiveAndOneShot(t *testing.T) {
+	r, in := editorTestRuntime(t, "one two", true)
+	calls := recorder(t, r, "any")
+	r.Define("app").Mode("").Bind("w", Do("any.test"))
+	editorTestKeys(t, r, "d", "w")
+	if string(in.Text) != "two" || len(*calls) != 0 || r.Mode(r.Context()) != "normal" {
+		t.Fatalf("operator_pending leaked: text=%q calls=%v mode=%s", in.Text, *calls, r.Mode(r.Context()))
+	}
+	editorTestKeys(t, r, "w")
+	if len(*calls) != 1 {
+		t.Fatal("any-mode row must answer in a base mode")
+	}
+	// A failing row still leaves the pending mode.
+	editorTestKeys(t, r, "q")
+	if _, err := r.Dispatch(MacroKey{Key: "tab"}); err == nil || r.Mode(r.Context()) != "normal" {
+		t.Fatalf("invalid register must error and leave macro_pending: %v %s", err, r.Mode(r.Context()))
+	}
+	// Counts chain through operators and g prefixes with one payload.
+	editorTestKeys(t, r, "u", "2", "d", "g")
+	if got := r.modeState(in.ID); got.Name != "operator_g_pending" || got.Payload.Op != "d" || got.Payload.OpCount != 2 || got.Payload.Return != "normal" {
+		t.Fatalf("payload chain: %+v", got)
+	}
+	editorTestKeys(t, r, "esc")
+	if r.Mode(r.Context()) != "normal" || in.Count() != 0 {
+		t.Fatalf("esc did not cancel: %s %d", r.Mode(r.Context()), in.Count())
+	}
+}
+
+// A key sequence waits in a prefix mode on the focused instance; the timer
+// restores the base mode and runs the completed match.
+func TestPrefixModeTimeoutRestoresBaseMode(t *testing.T) {
 	r := NewRuntime()
-	r.Layers["editor"] = &Layer{ID: "editor"}
-	r.Layers["form"] = &Layer{ID: "form"}
-	if err := r.AddInput(NewInput("editor", "", true), []string{"app", "editor"}); err != nil {
+	r.BindingTimeout = time.Hour
+	calls := recorder(t, r, "g", "gg")
+	r.Define("app").Mode("normal").Bind("g", Do("g.test")).Bind("g g", Do("gg.test"))
+	r.Instances["app"].State = "normal"
+	r.Dispatch(MacroKey{Key: "g"})
+	if got := r.modeState("app"); got.Name != "normal g" || got.Payload.Prefix != "g" || got.Payload.Request == nil || r.Pending != "g" {
+		t.Fatalf("prefix mode: %+v pending=%q", got, r.Pending)
+	}
+	if rows := r.ListBindings("app"); len(rows) != 1 || rows[0].Keys != "g g" {
+		t.Fatalf("list.bindings in a prefix mode lists the continuations: %+v", rows)
+	}
+	r.prefix.deadline = time.Now().Add(-time.Second)
+	if handled, err := r.HandleBindingTimeout(BindingTimeoutMsg{runtime: r, version: r.bindingVersion}); !handled || err != nil {
+		t.Fatalf("timeout: %v %v", handled, err)
+	}
+	if r.modeState("app").Name != "normal" || !reflect.DeepEqual(*calls, []string{"g"}) || r.Pending != "" {
+		t.Fatalf("timeout did not restore: %s %v", r.modeState("app").Name, *calls)
+	}
+}
+
+// Recording is a shadow mode on the app noun: keys are appended and then
+// dispatched in the shadowed mode; q stops only from a quiet normal mode.
+func TestMacroRecordingShadowMode(t *testing.T) {
+	r, in := editorTestRuntime(t, "", true)
+	editorTestKeys(t, r, "q", "a")
+	if r.Macro.Recording != "a" || r.Mode(r.Context()) != "normal" {
+		t.Fatalf("recording did not start: %+v", r.Macro)
+	}
+	editorTestKeys(t, r, "i", "q", "esc", "2", "q")
+	if string(in.Text) != "q" || r.Macro.Recording != "a" {
+		t.Fatalf("q in insert or count_pending must record and re-dispatch: text=%q %+v", in.Text, r.Macro)
+	}
+	editorTestKeys(t, r, "esc", "q")
+	want := []MacroKey{{Key: "i"}, {Key: "q"}, {Key: "esc"}, {Key: "2"}, {Key: "q"}, {Key: "esc"}}
+	if r.Macro.Recording != "" || !reflect.DeepEqual(r.Registers["a"].Keys, want) {
+		t.Fatalf("recorded %+v; want %+v", r.Registers["a"].Keys, want)
+	}
+	editorTestKeys(t, r, "@", "a")
+	if string(in.Text) != "qq" {
+		t.Fatalf("replay (not re-recorded): %q", in.Text)
+	}
+}
+
+// leader_pending has the same shape: a shadow mode whose any row forwards
+// the prefix and key and restores the shadowed mode. The terminal arrives in
+// phase 7; this is the mechanism.
+func TestLeaderPendingShadowShape(t *testing.T) {
+	r := NewRuntime()
+	var forwarded []string
+	calls := recorder(t, r, "new-window")
+	r.DefineMode("leader_pending", true)
+	r.Register(Operation{Verb: "forward", Noun: "pane", Parameters: map[string]Parameter{"keys": {Type: "string", Required: true}}, Run: func(_ *Runtime, _ Context, a Arguments) (any, error) {
+		forwarded = append(forwarded, StringArg(a, "keys", ""))
+		return nil, nil
+	}})
+	r.Define("term").Mode("normal").
+		Bind("ctrl+b", Func(func(r *Runtime, ev KeyEvent) error {
+			shadow := ev.Mode
+			r.enterMode(r.Instances[ev.Focus], "leader_pending", Payload{Shadow: &shadow})
+			return nil
+		})).
+		Pattern(Any, Do("forward.pane").FromKey("keys")).
+		Mode("leader_pending").
+		Bind("c", Do("new-window.test")).
+		Pattern(Any, Func(func(r *Runtime, ev KeyEvent) error {
+			inst := r.Instances[ev.Focus]
+			shadow := *inst.Payload.Shadow
+			r.leaveMode(inst)
+			_, err := r.Execute(Request{Verb: "forward", Noun: "pane", Args: Arguments{"keys": "ctrl+b " + ev.Key.Key}})
+			if shadow.Name != inst.State {
+				inst.State = shadow.Name
+			}
+			return err
+		}))
+	r.Instance("pane", Kind("term"))
+	if err := r.Focus("pane"); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.AddInput(NewInput("title", "", false), []string{"app", "form"}); err != nil {
-		t.Fatal(err)
-	}
-	for _, id := range []string{"editor", "title"} {
-		if err := r.Focus(id); err != nil {
-			t.Fatal(err)
+	for _, key := range []string{"x", "ctrl+b", "c", "ctrl+b", "z", "y"} {
+		if _, err := r.Dispatch(MacroKey{Key: key}); err != nil {
+			t.Fatalf("%s: %v", key, err)
 		}
-		assertNounModelAgrees(t, r, "focus "+id)
-		if r.FocusID() != id {
-			t.Fatalf("FocusID %q; want %q", r.FocusID(), id)
-		}
 	}
-	if inst := r.Instances["title"]; inst.Parent != "form" || inst.Noun != "" {
-		t.Fatalf("input instance: %+v", inst)
+	if !reflect.DeepEqual(forwarded, []string{"x", "ctrl+b z", "y"}) || !reflect.DeepEqual(*calls, []string{"new-window"}) || r.Mode(r.Context()) != "normal" {
+		t.Fatalf("leader: forwarded=%v calls=%v mode=%s", forwarded, *calls, r.Mode(r.Context()))
 	}
-	if inst := r.Instances["editor"]; inst.Parent != "app" || inst.Noun != "editor" {
-		t.Fatalf("shared id instance: %+v", inst)
-	}
-	// A second parent for one id is recorded, not guessed at.
-	if err := r.SelectContext(Context{Path: []string{"app", "editor", "form"}}); err != nil {
+}
+
+// Rows from a file replace, add and unbind defaults on nouns and instances.
+func TestLoadBindingsRowsReplaceAddAndUnbind(t *testing.T) {
+	r, in := editorTestRuntime(t, "abc", false)
+	calls := recorder(t, r, "hello", "digit")
+	rows, err := r.LoadBindings([]byte(`[
+		{"noun": "app", "mode": "normal", "keys": "ctrl+t", "request": {"verb": "hello", "noun": "test"}},
+		{"noun": "editor", "mode": "normal", "keys": "x", "request": null},
+		{"noun": "editor", "mode": "insert", "keys": "esc", "request": {"verb": "hello", "noun": "test"}},
+		{"instance": "editor", "mode": "normal", "pattern": "digit-0", "request": {"verb": "digit", "noun": "test"}}
+	]`))
+	if err != nil || len(rows) != 4 {
 		t.Fatal(err)
 	}
-	if got := r.AmbiguousInstances(); len(got) != 1 || !strings.HasPrefix(got[0], "form: parent app") {
-		t.Fatalf("ambiguity not recorded: %v", got)
+	editorTestKeys(t, r, "ctrl+t", "x", "5", "0", "i", "esc")
+	if !reflect.DeepEqual(*calls, []string{"hello", "digit", "hello"}) || string(in.Text) != "abc" || in.Mode != "insert" {
+		t.Fatalf("rows: calls=%v text=%q mode=%s", *calls, in.Text, in.Mode)
 	}
-	if got := r.ContextFromFocus(); !reflect.DeepEqual(got.Path, []string{"app", "form"}) {
-		t.Fatalf("first parent wins: %+v", got)
+	for _, bad := range []string{
+		`[{"noun": "nowhere", "keys": "x", "request": {"verb": "quit", "noun": "app"}}]`,
+		`[{"noun": "app", "keys": "x", "request": {"verb": "nope", "noun": "app"}}]`,
+		`[{"noun": "app", "pattern": "letters", "request": {"verb": "quit", "noun": "app"}}]`,
+		`[{"noun": "app", "keys": "x", "mode": "unknown", "request": {"verb": "quit", "noun": "app"}}]`,
+		`[{"noun": "app", "keys": "x", "request": {"verb": "move", "noun": "input"}}]`,
+		`[{"noun": "app", "keys": "x", "request": {"verb": "move", "noun": "input", "args": {"motion": "left"}}, "from": {"steps": "nowhere"}}]`,
+	} {
+		if _, err := r.LoadBindings([]byte(bad)); err == nil {
+			t.Fatalf("accepted %s", bad)
+		}
+	}
+}
+
+// Acceptance: every Readline and Vim key the editor answers to appears in
+// list.bindings for its mode on a plain focused input.
+func TestListBindingsListsEveryEditorKey(t *testing.T) {
+	r, in := editorTestRuntime(t, "abc", true)
+	editor := r.Noun("editor")
+	for mode, rows := range editor.Bindings {
+		want := map[string]bool{}
+		for _, b := range rows {
+			want[b.Keys+"\x00"+b.Pattern] = true
+		}
+		if r.pendingModes[mode] {
+			r.enterMode(in.inst, mode, Payload{Op: "d"})
+		} else {
+			in.storeMode(mode)
+		}
+		got := map[string]bool{}
+		for _, b := range r.ListBindings(in.ID) {
+			got[b.Keys+"\x00"+b.Pattern] = true
+		}
+		for key := range want {
+			if !got[key] {
+				t.Fatalf("mode %s: %q missing from list.bindings", mode, strings.ReplaceAll(key, "\x00", "/"))
+			}
+		}
+		in.storeMode("normal")
+	}
+	in.storeMode("insert")
+	for _, key := range []string{"ctrl+a", "ctrl+w", "alt+f", "<printable>", "<paste>"} {
+		if !slices.ContainsFunc(r.ListBindings(in.ID), func(b Binding) bool { return b.Keys == key || "<"+b.Pattern+">" == key }) {
+			t.Fatalf("readline key %q not listed", key)
+		}
 	}
 }
 
 func TestSnapshotExposesNounsAndInstances(t *testing.T) {
 	r := NewDemo().Runtime
-	nouns, err := JSONPointer(r.Snapshot(), "/nouns/playground/bindings/normal")
+	rows, err := JSONPointer(r.Snapshot(), "/nouns/playground/bindings/normal")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rows, ok := nouns.([]any); !ok || len(rows) == 0 {
-		t.Fatalf("playground normal rows: %#v", nouns)
+	if list, ok := rows.([]any); !ok || len(list) == 0 {
+		t.Fatalf("playground normal rows: %#v", rows)
 	}
 	parent, err := JSONPointer(r.Snapshot(), "/instances/directory/parent")
 	if err != nil || parent != "agent" {
 		t.Fatalf("instance parent %v, %v", parent, err)
 	}
+	if page, _ := JSONPointer(r.Snapshot(), "/page"); page != "overview" {
+		t.Fatalf("/page = %v", page)
+	}
 }
 
-// Rule for phase 5: the new walk must agree with the layer path on every
-// context a real session produces. This drives the demo through pages, fields,
-// nested modals, the yank history, the palette, the picker and sequences.
-func TestNounModelMatchesLayerModelInDemo(t *testing.T) {
+// assertPageInvariant: Runtime.Page is an ancestor of the base frame's focus.
+func assertPageInvariant(t *testing.T, r *Runtime, step string) {
+	t.Helper()
+	if r.Page == "" {
+		return
+	}
+	if !slices.Contains(r.Ancestry(r.Frames[0].Focus), r.Page) {
+		t.Fatalf("%s: page %q is not an ancestor of base focus %q", step, r.Page, r.Frames[0].Focus)
+	}
+}
+
+// The demo session the phase 3 equivalence test drove: pages, fields, nested
+// modals, yank history, palette, picker and sequences, every step green and
+// the page invariant holding.
+func TestDemoKeyboardSessionStaysGreen(t *testing.T) {
 	m := NewDemo()
 	r := m.Runtime
 	r.BindingTimeout = time.Hour
-	assertNounModelAgrees(t, r, "start")
 	step := func(label string, run func()) {
 		t.Helper()
 		run()
 		if m.Status != "" {
 			t.Fatalf("%s: %s", label, m.Status)
 		}
-		assertNounModelAgrees(t, r, label)
+		assertPageInvariant(t, r, label)
 	}
 	press := func(keys ...string) {
 		t.Helper()
@@ -239,39 +368,51 @@ func TestNounModelMatchesLayerModelInDemo(t *testing.T) {
 	execute("open", "page", Arguments{"id": "playground"})
 	execute("push", "modal", Arguments{"id": "draft", "input": "dialog"})
 	execute("pop", "modal", nil)
+	if string(r.Inputs["directory"].Text) != "hi/tmp" || r.Registers["\""].Yank.Text != "hi/tmp\n" {
+		t.Fatalf("session state: text=%q yank=%q", r.Inputs["directory"].Text, r.Registers["\""].Yank.Text)
+	}
 }
 
-// Phase 4: rows are instances of their nouns, any instance is a target, and
-// the mode lives on instances.
+// Rows are instances of their nouns, any instance is a target, and the mode
+// lives on instances.
 func TestListRowsAreInstancesOfTheirNouns(t *testing.T) {
 	r, list, input, items := listFixture(t)
 	r.Register(Operation{Verb: "inspect", Noun: "item", Run: func(*Runtime, Context, Arguments) (any, error) { return "application", nil }})
-	r.Layers["a"].Actions["inspect.item"] = func(*Runtime, Context, Arguments) (any, error) { return "noun a", nil }
-	r.Layers["a"].Bindings = []Binding{{Mode: "normal", Keys: "x", Request: Request{Verb: "quit", Noun: "app", Args: Arguments{"from": "noun"}}}}
+	r.Define("a").Action("inspect.item", func(*Runtime, Context, Arguments) (any, error) { return "noun a", nil }).
+		Mode("normal").Bind("x", Do("quit.app"))
 	for _, item := range items {
 		inst := r.Instances[item.ID]
-		if inst == nil || inst.Noun != item.Noun || inst.Parent != "sidebar" || r.Layers[item.ID] != nil {
-			t.Fatalf("row %s is not an instance of its noun without a layer: %+v", item.ID, inst)
+		if inst == nil || inst.Noun != item.Noun || inst.Parent != "sidebar" {
+			t.Fatalf("row %s is not an instance of its noun: %+v", item.ID, inst)
 		}
 	}
 	if err := list.Focus(); err != nil {
 		t.Fatal(err)
 	}
-	assertNounModelAgrees(t, r, "focused row")
-	if got := r.ContextFromFocus().Path; !reflect.DeepEqual(got, []string{"app", "page", "sidebar", "one"}) {
+	if got := r.Context().Path; !reflect.DeepEqual(got, []string{"app", "page", "sidebar", "one"}) {
 		t.Fatalf("row path %v", got)
 	}
 	if value, _ := r.Execute(Request{Verb: "inspect", Noun: "item"}); value != "noun a" {
 		t.Fatalf("row action must come from its noun: %v", value)
 	}
-	if b := r.EffectiveBindings(r.Context()); len(b) == 0 || b[len(b)-1].Keys != "x" || StringArg(b[len(b)-1].Request.Args, "from", "") != "noun" {
-		t.Fatalf("row bindings must come from its noun: %+v", b)
+	keys := func(id string) []string {
+		var out []string
+		for _, b := range r.ListBindings(id) {
+			if b.Request.Noun == "app" {
+				out = append(out, b.Keys)
+			}
+		}
+		return out
 	}
-	// A per-instance override sits above the noun's rows in both walks.
-	r.Instances["one"].Bindings = []Binding{{Keys: "x", Request: Request{Verb: "quit", Noun: "app", Args: Arguments{"from": "instance-any"}}}, {Mode: "normal", Keys: "x", Request: Request{Verb: "quit", Noun: "app", Args: Arguments{"from": "instance-normal"}}}}
-	assertNounModelAgrees(t, r, "instance override")
-	for _, b := range r.EffectiveBindingsFor("one", "normal") {
-		if b.Keys == "x" && StringArg(b.Request.Args, "from", "") != "instance-normal" {
+	if got := keys("one"); !slices.Contains(got, "x") {
+		t.Fatalf("row bindings must come from its noun: %v", got)
+	}
+	// A per-instance override sits above the noun's rows.
+	if err := r.Bind(Binding{Instance: "one", Mode: "normal", Keys: "x", Request: Request{Verb: "ignore", Noun: "key"}}); err != nil {
+		t.Fatal(err)
+	}
+	for _, b := range r.ListBindings("one") {
+		if b.Keys == "x" && b.Request.Noun != "key" {
 			t.Fatalf("instance rows must beat the noun's: %+v", b)
 		}
 	}
@@ -321,9 +462,42 @@ func TestListRowsAreInstancesOfTheirNouns(t *testing.T) {
 	}
 }
 
+// Multi-selection fan-out: a verb over marked rows runs verb.<row noun> per
+// row, skipping and reporting rows whose noun lacks the verb.
+func TestMultiSelectionFanOut(t *testing.T) {
+	r, list, _, _ := listFixture(t)
+	var opened []string
+	r.Define("a").Verb("open", func(_ *Runtime, c Context, _ Arguments) (any, error) {
+		opened = append(opened, focusOf(c))
+		return nil, nil
+	})
+	r.Define("b").Verb("open", func(_ *Runtime, c Context, _ Arguments) (any, error) {
+		opened = append(opened, focusOf(c))
+		return nil, nil
+	})
+	if err := list.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	editorTestKeys(t, r, "space", "j", "space", "j", "space")
+	result, err := r.Execute(Request{Verb: "apply", Noun: "list", Args: Arguments{"verb": "open"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	report := result.(map[string]any)
+	if !reflect.DeepEqual(opened, []string{"one", "two"}) || !reflect.DeepEqual(report["applied"], []string{"one", "two"}) || !reflect.DeepEqual(report["skipped"], []string{"three: open.c is not registered"}) {
+		t.Fatalf("fan-out: opened=%v report=%v", opened, report)
+	}
+	editorTestKeys(t, r, "space")
+	if marked := list.Marked(); len(marked) != 2 || marked[1].ID != "two" {
+		t.Fatalf("toggle mark: %v", marked)
+	}
+}
+
 func TestModeLivesOnInstances(t *testing.T) {
 	r, list, input, _ := listFixture(t)
-	r.Modes["review"] = true
+	if err := r.DefineMode("review", false); err != nil {
+		t.Fatal(err)
+	}
 	if err := list.Focus(); err != nil {
 		t.Fatal(err)
 	}
@@ -331,12 +505,21 @@ func TestModeLivesOnInstances(t *testing.T) {
 		t.Fatal(err)
 	}
 	row := r.Context()
-	if r.Instances["one"].State != "review" || r.Frames[0].State["mode"] != nil || r.Mode(row) != "review" {
+	if r.Instances["one"].State != "review" || r.Mode(row) != "review" {
 		t.Fatalf("set.mode must write the leaf instance: %+v", r.Instances["one"])
 	}
 	list.Move(1)
 	if r.Mode(r.Context()) != "normal" {
 		t.Fatal("another row does not inherit a sibling's state")
+	}
+	// A pending mode entered on an inheriting leaf returns to inheriting.
+	editorTestKeys(t, r, "q")
+	if r.Mode(r.Context()) != "macro_pending" {
+		t.Fatalf("mode %s", r.Mode(r.Context()))
+	}
+	editorTestKeys(t, r, "esc")
+	if r.Instances["two"].State != "" || r.Mode(r.Context()) != "normal" {
+		t.Fatalf("leave must restore the raw state: %q %s", r.Instances["two"].State, r.Mode(r.Context()))
 	}
 	// A state higher on the stack is inherited by instances without one.
 	r.Instances["page"].State = "review"
@@ -344,7 +527,7 @@ func TestModeLivesOnInstances(t *testing.T) {
 		t.Fatal("mode inherits from the nearest ancestor with a state")
 	}
 	// Mode reads the context it is given, not the top frame.
-	if err := r.Push(&Frame{ID: "dialog", Context: Context{Path: []string{"app", "dialog"}}}); err != nil {
+	if err := r.Push(&Frame{ID: "dialog", Focus: "dialog"}); err != nil {
 		t.Fatal(err)
 	}
 	if r.Mode(r.Context()) != "normal" || r.Mode(row) != "review" {
@@ -358,19 +541,19 @@ func TestModeLivesOnInstances(t *testing.T) {
 		t.Fatal(err)
 	}
 	if r.Instances["note"].State != "insert" || r.Mode(r.Context()) != "insert" {
-		t.Fatalf("readline input instance: %+v", r.Instances["note"])
+		t.Fatalf("prompt input instance: %+v", r.Instances["note"])
 	}
-	other := NewInput("other", "ab", false)
-	if err := r.AddInput(other, []string{"app", "page", "editor"}); err != nil {
+	other := NewInput("other-input", "ab", false)
+	if err := r.AddInput(other, Parent("editor")); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Focus("other"); err != nil {
+	if err := r.Focus("other-input"); err != nil {
 		t.Fatal(err)
 	}
 	for _, keys := range [][]string{{"i"}, {"esc"}, {"v"}, {"esc", "i", "x", "esc", "u"}} {
 		editorTestKeys(t, r, keys...)
-		if r.Instances["other"].State != other.Mode || r.Mode(r.Context()) != other.Mode {
-			t.Fatalf("after %v: instance %q, mirror %q", keys, r.Instances["other"].State, other.Mode)
+		if r.Instances["other-input"].State != other.Mode || r.Mode(r.Context()) != other.Mode {
+			t.Fatalf("after %v: instance %q, mirror %q", keys, r.Instances["other-input"].State, other.Mode)
 		}
 	}
 }
@@ -378,10 +561,12 @@ func TestModeLivesOnInstances(t *testing.T) {
 func TestInputModeMirrorsInstanceInDemo(t *testing.T) {
 	m := NewDemo()
 	r := m.Runtime
-	for _, key := range []string{"ctrl+j", "i", "h", "esc", "v", "l", "esc", "ctrl+n", "i", "x", "esc", "ctrl+g"} {
+	for _, key := range []string{"ctrl+j", "i", "h", "esc", "v", "l", "esc", "ctrl+n", "i", "x", "esc", "ctrl+g", "2", "d"} {
 		keytest.Press(m, key)
 		for id, in := range r.Inputs {
-			if inst := r.Instances[id]; inst == nil || inst.State != in.Mode {
+			inst := r.Instances[id]
+			pending := r.pendingModes[inst.State] || inst.Payload.Prefix != ""
+			if inst == nil || !pending && inst.State != in.Mode || pending && inst.Payload.Return != in.Mode {
 				t.Fatalf("after %s: input %s mode %q, instance %+v", key, id, in.Mode, inst)
 			}
 		}

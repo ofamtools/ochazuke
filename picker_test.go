@@ -18,7 +18,7 @@ func pickerFixture(t *testing.T, text, kind, filter string, cursor int) (*Runtim
 	r := NewRuntime()
 	in := NewInput("origin", text, kind == "paths")
 	in.Kind, in.PathFilter, in.Cursor = kind, filter, cursor
-	if err := r.AddInput(in, []string{"app"}); err != nil {
+	if err := r.AddInput(in); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.Focus(in.ID); err != nil {
@@ -40,10 +40,7 @@ func pickerDo(t *testing.T, r *Runtime, verb, noun string, args Arguments) any {
 
 func pickerKey(t *testing.T, r *Runtime, key string) {
 	t.Helper()
-	handled, err := r.HandleBinding(key)
-	if !handled && err == nil {
-		handled, err = HandleInputKey(r, key)
-	}
+	handled, err := r.Dispatch(editorTestKey(key))
 	if err != nil || !handled {
 		t.Fatalf("key %q: handled=%v error=%v", key, handled, err)
 	}

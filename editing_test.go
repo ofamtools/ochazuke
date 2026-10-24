@@ -1,12 +1,15 @@
 package ochazuke
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func editorTestRuntime(t *testing.T, text string, multiline bool) (*Runtime, *Input) {
 	t.Helper()
 	r := NewRuntime()
 	in := NewInput("editor", text, multiline)
-	if err := r.AddInput(in, []string{"app"}); err != nil {
+	if err := r.AddInput(in); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.Focus(in.ID); err != nil {
@@ -15,18 +18,25 @@ func editorTestRuntime(t *testing.T, text string, multiline bool) (*Runtime, *In
 	return r, in
 }
 
+// editorTestKey builds the key event for a test key name; "[text]" is a paste.
+func editorTestKey(key string) MacroKey {
+	if strings.HasPrefix(key, "[") && strings.HasSuffix(key, "]") && len(key) >= 2 {
+		return MacroKey{Key: key, Paste: true}
+	}
+	return MacroKey{Key: key}
+}
+
 func editorTestKeys(t *testing.T, r *Runtime, keys ...string) {
 	t.Helper()
 	for _, key := range keys {
-		handled, err := r.HandleBinding(key)
-		if err == nil && !handled {
-			_, err = HandleInputKey(r, key)
-		}
-		if err != nil {
+		if _, err := r.Dispatch(editorTestKey(key)); err != nil {
 			t.Fatalf("key %q: %v", key, err)
 		}
 	}
 }
+
+// editorTestDispatch reports whether a key was claimed and the error it produced.
+func editorTestDispatch(r *Runtime, key string) (bool, error) { return r.Dispatch(editorTestKey(key)) }
 
 func editorTestExecute(t *testing.T, r *Runtime, verb string, args Arguments) {
 	t.Helper()
@@ -45,8 +55,7 @@ func editorTestState(t *testing.T, in *Input, text string, cursor int, mode stri
 func TestReadlineOnlyKeepsTypingAfterEscapeAndModeChanges(t *testing.T) {
 	r := NewRuntime()
 	in := NewInput("readline", "path", false)
-	in.ReadlineOnly = true
-	if err := r.AddInput(in, []string{"app"}); err != nil {
+	if err := r.AddInput(in, Kind("prompt")); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.Focus(in.ID); err != nil {
@@ -72,8 +81,7 @@ func TestReadlineOnlyKeepsTypingAfterEscapeAndModeChanges(t *testing.T) {
 func TestReadlineOnlyPathKillYankAndMultiline(t *testing.T) {
 	r := NewRuntime()
 	in := NewInput("readline", "/work/src/main.go", true)
-	in.ReadlineOnly = true
-	if err := r.AddInput(in, []string{"app"}); err != nil {
+	if err := r.AddInput(in, Kind("prompt")); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.Focus(in.ID); err != nil {
@@ -152,17 +160,17 @@ func TestEditorEmptyAndSingleLineBoundaries(t *testing.T) {
 	editorTestState(t, in, "", 0, "normal")
 	editorTestKeys(t, r, "i", "backspace", "delete", "ctrl+a", "ctrl+e", "enter")
 	editorTestState(t, in, "", 0, "insert")
-	if handled, err := HandleInputKey(r, "enter"); handled || err != nil {
+	if handled, err := editorTestDispatch(r, "enter"); handled || err != nil {
 		t.Fatalf("single-line enter: handled=%v err=%v", handled, err)
 	}
-	if _, err := HandleInputKey(r, "[a\nb]"); err == nil {
+	if _, err := editorTestDispatch(r, "[a\nb]"); err == nil {
 		t.Fatal("single-line paste accepted a newline")
 	}
 	editorTestState(t, in, "", 0, "insert")
 	editorTestKeys(t, r, "é", "esc", "x")
 	editorTestState(t, in, "", 0, "normal")
 	for _, key := range []string{"o", "O"} {
-		if _, err := HandleInputKey(r, key); err == nil {
+		if _, err := editorTestDispatch(r, key); err == nil {
 			t.Fatalf("single-line %s accepted", key)
 		}
 		editorTestState(t, in, "", 0, "normal")
@@ -293,22 +301,21 @@ func TestEditorStandaloneEditsAndAlternateUndoBranches(t *testing.T) {
 func TestEditorInputIsolationAndCapturedTarget(t *testing.T) {
 	r, first := editorTestRuntime(t, "alpha beta", false)
 	second := NewInput("second", "XYZ", false)
-	if err := r.AddInput(second, []string{"app"}); err != nil {
+	if err := r.AddInput(second); err != nil {
 		t.Fatal(err)
 	}
 	editorTestKeys(t, r, "A", "ctrl+w", "esc", "2", "g")
-	if first.Count != 2 || first.Pending != "g" || r.Registers["\""].Yank.Text != "beta" {
+	if first.Count() != 2 || first.Pending() != "g" || r.Registers["\""].Yank.Text != "beta" {
 		t.Fatalf("first state=%v", first.Snapshot())
 	}
-	r.Pending = "binding prefix"
 	if err := r.Focus(second.ID); err != nil {
 		t.Fatal(err)
 	}
 	editorTestKeys(t, r, "i", "ctrl+y", "!", "esc")
 	editorTestState(t, second, "beta!XYZ", 4, "normal")
 	editorTestState(t, first, "alpha ", 5, "normal")
-	if first.Count != 2 || first.Pending != "g" {
-		t.Fatal("focus discarded input-local prefix")
+	if first.Count() != 2 || first.Pending() != "g" || r.Instances["editor"].State != "g_pending" {
+		t.Fatal("focus discarded the instance's pending mode")
 	}
 	if _, err := r.Execute(Request{Verb: "undo", Noun: "input", Target: "editor"}); err != nil {
 		t.Fatal(err)
@@ -322,36 +329,30 @@ func TestEditorInputIsolationAndCapturedTarget(t *testing.T) {
 	}
 }
 
+// A count or prefix is the focused instance's pending mode; the runtime's
+// key-sequence prefix is separate state and neither disturbs the other.
 func TestEditorInputPrefixDoesNotUseRuntimePending(t *testing.T) {
 	r, in := editorTestRuntime(t, "abcdef", false)
-	r.Pending = "outer"
-	if _, err := HandleInputKey(r, "2"); err != nil {
-		t.Fatal(err)
+	editorTestKeys(t, r, "2")
+	if r.Pending != "" || in.Count() != 2 || r.Instances["editor"].State != "count_pending" {
+		t.Fatalf("runtime pending=%q input count=%d state=%q", r.Pending, in.Count(), r.Instances["editor"].State)
 	}
-	if r.Pending != "outer" || in.Count != 2 {
-		t.Fatalf("runtime pending=%q input count=%d", r.Pending, in.Count)
-	}
-	if _, err := HandleInputKey(r, "l"); err != nil {
-		t.Fatal(err)
-	}
+	editorTestKeys(t, r, "l")
 	editorTestState(t, in, "abcdef", 2, "normal")
-	if r.Pending != "outer" || in.Count != 0 {
-		t.Fatalf("runtime pending=%q input count=%d", r.Pending, in.Count)
+	if r.Pending != "" || in.Count() != 0 || r.Instances["editor"].State != "normal" {
+		t.Fatalf("runtime pending=%q input count=%d state=%q", r.Pending, in.Count(), r.Instances["editor"].State)
 	}
-	if _, err := HandleInputKey(r, "g"); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := HandleInputKey(r, "esc"); err != nil {
-		t.Fatal(err)
-	}
-	if in.Pending != "" || r.Pending != "outer" {
-		t.Fatalf("input prefix=%q runtime prefix=%q", in.Pending, r.Pending)
+	editorTestKeys(t, r, "g", "esc")
+	if in.Pending() != "" || r.Pending != "" || in.Mode != "normal" {
+		t.Fatalf("input prefix=%q runtime prefix=%q", in.Pending(), r.Pending)
 	}
 }
 
 func TestEditorModeHookAndCustomMode(t *testing.T) {
 	r, in := editorTestRuntime(t, "cat", false)
-	r.Modes["search"] = true
+	if err := r.DefineMode("search", false); err != nil {
+		t.Fatal(err)
+	}
 	setMode := func(mode string) {
 		t.Helper()
 		if _, err := r.Execute(Request{Verb: "set", Noun: "mode", Args: Arguments{"mode": mode}}); err != nil {
@@ -364,7 +365,7 @@ func TestEditorModeHookAndCustomMode(t *testing.T) {
 	editorTestKeys(t, r, "u")
 	editorTestState(t, in, "cat", 0, "normal")
 	setMode("search")
-	if handled, err := HandleInputKey(r, "i"); handled || err != nil {
+	if handled, err := editorTestDispatch(r, "i"); handled || err != nil {
 		t.Fatalf("custom mode key: handled=%v err=%v", handled, err)
 	}
 	editorTestState(t, in, "cat", 0, "search")
@@ -378,7 +379,7 @@ func TestEditorModeHookAndCustomMode(t *testing.T) {
 
 func TestEditorBindingPrecedenceAndSnapshot(t *testing.T) {
 	r, in := editorTestRuntime(t, "abc", false)
-	r.Layers["app"].Bindings = []Binding{{Mode: "normal", Keys: "i", Request: Request{Verb: "move", Noun: "input", Args: Arguments{"motion": "right"}}}}
+	r.Define("app").Mode("normal").Bind("i", Do("move.input", Arguments{"motion": "right"}))
 	editorTestKeys(t, r, "i")
 	editorTestState(t, in, "abc", 1, "normal")
 	editorTestKeys(t, r, "2", "g")

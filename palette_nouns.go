@@ -65,9 +65,9 @@ func (p *Palette) RegisterNoun(noun string, config PaletteNoun) error {
 
 // PagesPaletteSource reads the runtime registry on every listing, not at startup.
 func PagesPaletteSource(r *Runtime, _ Context) []PaletteInstance {
-	instances := make([]PaletteInstance, 0, len(r.Pages))
-	for id, page := range r.Pages {
-		instances = append(instances, PaletteInstance{ID: id, Label: page.Title})
+	var instances []PaletteInstance
+	for _, page := range r.PageList() {
+		instances = append(instances, PaletteInstance{ID: page.ID, Label: page.Title})
 	}
 	return instances
 }

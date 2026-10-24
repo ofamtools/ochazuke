@@ -77,7 +77,7 @@ func TestRegisterAppendBlackHoleAndCrossFieldPaste(t *testing.T) {
 		t.Fatal("black hole changed unnamed register")
 	}
 	second := NewInput("other", "", true)
-	if err := r.AddInput(second, []string{"app"}); err != nil {
+	if err := r.AddInput(second); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.Focus(second.ID); err != nil {
@@ -99,7 +99,7 @@ func TestPathKillGlobalHistoryAndLiteralPaste(t *testing.T) {
 		t.Fatalf("path kill: %q %+v", string(in.Text), r.Registers["\""])
 	}
 	second := NewInput("second", "", false)
-	if err := r.AddInput(second, []string{"app"}); err != nil {
+	if err := r.AddInput(second); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.Focus(second.ID); err != nil {
@@ -114,7 +114,7 @@ func TestBlockPasteRaggedUnicodeAndUndo(t *testing.T) {
 	r, in := editorTestRuntime(t, "a界z\nb\nc界x", true)
 	editorTestKeys(t, r, "l", "ctrl+v", "j", "j", "y")
 	second := NewInput("second", "xyz\nq\nuvw", true)
-	if err := r.AddInput(second, []string{"app"}); err != nil {
+	if err := r.AddInput(second); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.Focus(second.ID); err != nil {
@@ -146,7 +146,7 @@ func TestVisualPasteIsOneUndoAndLinePlacement(t *testing.T) {
 func modelEditorKeys(t *testing.T, m *Model, keys ...string) {
 	t.Helper()
 	for _, key := range keys {
-		if err := m.dispatchKey(MacroKey{Key: key}); err != nil {
+		if _, err := m.Runtime.Dispatch(MacroKey{Key: key}); err != nil {
 			t.Fatalf("%q: %v", key, err)
 		}
 	}
@@ -154,17 +154,17 @@ func modelEditorKeys(t *testing.T, m *Model, keys ...string) {
 func TestMacrosDispatchModesCountsFocusAndLiteralPaste(t *testing.T) {
 	r, in := editorTestRuntime(t, "", true)
 	second := NewInput("second", "", true)
-	if err := r.AddInput(second, []string{"app"}); err != nil {
+	if err := r.AddInput(second); err != nil {
 		t.Fatal(err)
 	}
-	r.Layers["app"].Bindings = append(r.Layers["app"].Bindings, Binding{Mode: "normal", Keys: "tab", Request: Request{Verb: "focus", Noun: "input", Args: Arguments{"id": "second"}}})
+	r.Define("app").Mode("normal").Bind("tab", Do("focus.input", Arguments{"id": "second"}))
 	m := NewModel(r)
 	modelEditorKeys(t, m, "q", "a", "i", "X", "esc", "q", "2", "@", "a", "@", "@")
 	if string(in.Text) != "XXXX" || in.Mode != "normal" {
 		t.Fatalf("macro count/transitions: %q %s", string(in.Text), in.Mode)
 	}
 	modelEditorKeys(t, m, "q", "b", "tab", "A")
-	if err := m.dispatchKey(MacroKey{Key: "[ctrl+a]", Paste: true}); err != nil {
+	if _, err := r.Dispatch(MacroKey{Key: "[ctrl+a]", Paste: true}); err != nil {
 		t.Fatal(err)
 	}
 	modelEditorKeys(t, m, "esc", "q")
@@ -179,19 +179,19 @@ func TestMacrosDispatchModesCountsFocusAndLiteralPaste(t *testing.T) {
 func TestMacroRecursiveSafeguardAndPrefixPriority(t *testing.T) {
 	r, in := editorTestRuntime(t, "one two", false)
 	m := NewModel(r)
-	r.Layers["app"].Bindings = append(r.Layers["app"].Bindings, Binding{Mode: "normal", Keys: "w", Request: Request{Verb: "quit", Noun: "app"}}, Binding{Mode: "normal", Keys: "a", Request: Request{Verb: "quit", Noun: "app"}})
+	r.Define("app").Mode("normal").Bind("w", Do("quit.app")).Bind("a", Do("quit.app"))
 	modelEditorKeys(t, m, "d", "w")
 	if string(in.Text) != "two" || r.Quit {
 		t.Fatal("operator prefix lost to binding")
 	}
 	r.Registers["a"] = Register{Keys: []MacroKey{{Key: "@"}, {Key: "a"}}}
 	modelEditorKeys(t, m, "@")
-	err := m.dispatchKey(MacroKey{Key: "a"})
+	_, err := r.Dispatch(MacroKey{Key: "a"})
 	if err == nil || !strings.Contains(err.Error(), "recursion") {
 		t.Fatalf("recursive macro: %v", err)
 	}
-	if r.Quit || r.Macro.Depth != 0 || r.Macro.Pending != "" || in.Pending != "" || len(r.Frames) != 1 {
-		t.Fatalf("recursive macro left context: %+v", r.Macro)
+	if r.Quit || r.Macro.Depth != 0 || r.Mode(r.Context()) != "normal" || in.Pending() != "" || len(r.Frames) != 1 {
+		t.Fatalf("recursive macro left context: %+v mode=%s", r.Macro, r.Mode(r.Context()))
 	}
 }
 func TestYankHistoryModalRestoresFocusWithoutInsertion(t *testing.T) {
@@ -219,7 +219,7 @@ func TestPathsMetadataNormalizesAndEditorRemainsAvailable(t *testing.T) {
 	in := NewInput("paths", "one\ntwo", false)
 	in.Kind = "paths"
 	in.PathFilter = "file"
-	if err := r.AddInput(in, []string{"app"}); err != nil {
+	if err := r.AddInput(in); err != nil {
 		t.Fatal(err)
 	}
 	if !in.Multiline || in.Snapshot()["kind"] != "paths" {
@@ -277,19 +277,19 @@ func TestMacroStepLimitAndErrorModalCleanup(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "step limit") {
 		t.Fatalf("step bound: %v", err)
 	}
-	if r.Macro.Depth != 0 || r.Macro.Pending != "" {
+	if r.Macro.Depth != 0 || r.Mode(r.Context()) != "normal" {
 		t.Fatal("step bound left replay active")
 	}
 	r.Register(Operation{Verb: "fail", Noun: "editor-test", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		if err := r.Push(&Frame{ID: "macro-test-modal", Context: Context{Path: []string{"app"}}}); err != nil {
+		if err := r.Push(&Frame{ID: "macro-test-modal", Focus: "app"}); err != nil {
 			return nil, err
 		}
 		return nil, fmt.Errorf("expected macro failure")
 	}})
-	r.Layers["app"].Bindings = append(r.Layers["app"].Bindings, Binding{Keys: "f1", Request: Request{Verb: "fail", Noun: "editor-test"}})
-	r.Registers["b"] = Register{Keys: []MacroKey{{Key: "f1"}}}
+	r.Define("app").Mode("").Bind("ctrl+t", Do("fail.editor-test"))
+	r.Registers["b"] = Register{Keys: []MacroKey{{Key: "ctrl+t"}}}
 	modelEditorKeys(t, m, "@")
-	err = m.dispatchKey(MacroKey{Key: "b"})
+	_, err = r.Dispatch(MacroKey{Key: "b"})
 	if err == nil || err.Error() != "expected macro failure" || len(r.Frames) != 1 {
 		t.Fatalf("failed replay: frames=%d err=%v", len(r.Frames), err)
 	}
@@ -326,8 +326,8 @@ func TestAppMacroCountWithoutInputAndUppercaseAppend(t *testing.T) {
 	m := NewModel(r)
 	calls := 0
 	r.Register(Operation{Verb: "count", Noun: "editor-test", Run: func(r *Runtime, c Context, a Arguments) (any, error) { calls++; return calls, nil }})
-	r.Layers["app"].Bindings = append(r.Layers["app"].Bindings, Binding{Keys: "f1", Request: Request{Verb: "count", Noun: "editor-test"}})
-	modelEditorKeys(t, m, "q", "a", "f1", "q", "q", "A", "f1", "q", "2", "@", "a", "@", "@")
+	r.Define("app").Mode("").Bind("ctrl+t", Do("count.editor-test"))
+	modelEditorKeys(t, m, "q", "a", "ctrl+t", "q", "q", "A", "ctrl+t", "q", "2", "@", "a", "@", "@")
 	if calls != 8 {
 		t.Fatalf("application macro calls=%d want 8", calls)
 	}

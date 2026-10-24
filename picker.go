@@ -63,26 +63,10 @@ type pickerSearchMsg struct {
 
 func NewPicker(r *Runtime) *Picker {
 	p := &Picker{Runtime: r}
-	layer := &Layer{ID: "picker", Noun: "picker", Actions: map[string]Handler{}}
-	r.Layers["picker"] = layer
+	r.Instance("picker", Kind("picker"))
 	p.input = NewInput("picker-path", "", false)
-	p.input.ReadlineOnly = true
-	if err := r.AddInput(p.input, []string{"app", "picker"}); err != nil {
+	if err := r.AddInput(p.input, Parent("picker"), Kind("prompt")); err != nil {
 		panic(err)
-	}
-	for _, binding := range []struct {
-		mode, key, verb string
-		args            Arguments
-	}{
-		{"insert", "ctrl+n", "move", Arguments{"delta": 1}},
-		{"insert", "ctrl+p", "move", Arguments{"delta": -1}},
-		{"insert", "alt+up", "parent", nil},
-		{"insert", "tab", "complete", nil},
-		{"insert", "enter", "enter", nil},
-		{"insert", "ctrl+s", "choose", nil},
-		{"insert", "esc", "close", nil},
-	} {
-		layer.Bindings = append(layer.Bindings, Binding{Mode: binding.mode, Keys: binding.key, Request: Request{Verb: binding.verb, Noun: "picker", Args: binding.args}})
 	}
 	register := func(verb, description string, params map[string]Parameter, fn func(Context, Arguments) (any, error)) {
 		r.Register(Operation{Verb: verb, Noun: "picker", Description: description, Parameters: params, Result: "picker state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
@@ -129,7 +113,7 @@ func NewPicker(r *Runtime) *Picker {
 		if entry.Dir {
 			return p.browse(path)
 		}
-		if _, err := p.Runtime.ExecuteAt(p.frame.Context, Request{Verb: "replace", Noun: "input", Args: Arguments{"start": 0, "end": len(p.input.Text), "text": path}}); err != nil {
+		if _, err := p.Runtime.Execute(Request{Verb: "replace", Noun: "input", Target: p.input.ID, Args: Arguments{"start": 0, "end": len(p.input.Text), "text": path}}); err != nil {
 			return nil, err
 		}
 		return p.state(), nil
@@ -158,27 +142,33 @@ func NewPicker(r *Runtime) *Picker {
 		return r.Context(), nil
 	})
 
+	picker := r.Define("picker")
+	picker.Mode("insert").
+		Bind("ctrl+n", Do("move.picker", Arguments{"delta": 1})).
+		Bind("ctrl+p", Do("move.picker", Arguments{"delta": -1})).
+		Bind("alt+up", Do("parent.picker")).
+		Bind("tab", Do("complete.picker")).
+		Bind("enter", Do("enter.picker")).
+		Bind("ctrl+s", Do("choose.picker")).
+		Bind("esc", Do("close.picker"))
 	// CLI and keyboard edits share the same dispatch path. Keep ancestor action
 	// semantics and delegate the normal operation, then invalidate search once.
 	for key, operation := range r.Operations {
 		if operation.Noun != "input" {
 			continue
 		}
-		layer.Actions[key] = func(r *Runtime, c Context, args Arguments) (any, error) {
+		picker.Action(key, func(r *Runtime, c Context, args Arguments) (any, error) {
 			before := string(p.input.Text)
 			run := operation.Run
-			for i := len(c.Path) - 2; i >= 0; i-- {
-				if action := r.layerFor(c.Path[i]).Actions[operation.Key()]; action != nil {
-					run = action
-					break
-				}
+			if action := r.ActionFor("app", operation.Key()); action != nil {
+				run = action
 			}
 			result, err := run(r, c, args)
 			if p.IsOpen() && before != string(p.input.Text) {
 				p.pathChanged()
 			}
 			return result, err
-		}
+		})
 	}
 	return p
 }
@@ -232,12 +222,14 @@ func (p *Picker) open(c Context, args Arguments) (any, error) {
 	p.originText, p.originKind = string(origin.Text), origin.Kind
 	p.start, p.end, p.Filter, p.base = start, end, filter, cwd
 	// A new modal session gets fresh editor history while retaining its registered ID.
+	inst := p.Runtime.Instances[p.input.ID]
 	p.input = NewInput(p.input.ID, path, false)
-	p.input.ReadlineOnly = true
+	p.input.pin, p.input.inst = "insert", inst
 	p.Runtime.Inputs[p.input.ID] = p.input
 	p.input.SetMode("insert")
+	inst.State = "insert"
 	p.input.Cursor = len(p.input.Text)
-	p.frame = &Frame{ID: "picker", Context: Context{Path: []string{"app", "picker"}, InputID: p.input.ID}, State: map[string]any{}}
+	p.frame = &Frame{ID: "picker", Focus: p.input.ID}
 	if err := p.Runtime.Push(p.frame); err != nil {
 		return nil, err
 	}
@@ -259,7 +251,7 @@ func (p *Picker) IsOpen() bool {
 }
 
 func (p *Picker) require() error {
-	if !p.IsOpen() || p.Runtime.Frames[len(p.Runtime.Frames)-1] != p.frame {
+	if !p.IsOpen() || p.Runtime.top() != p.frame {
 		return errors.New("picker is not the active modal")
 	}
 	return nil
@@ -294,7 +286,7 @@ func (p *Picker) enter(directoryOnly bool) (any, error) {
 }
 
 func (p *Picker) browse(path string) (any, error) {
-	if _, err := p.Runtime.ExecuteAt(p.frame.Context, Request{Verb: "replace", Noun: "input", Args: Arguments{"start": 0, "end": len(p.input.Text), "text": path + string(filepath.Separator)}}); err != nil {
+	if _, err := p.Runtime.Execute(Request{Verb: "replace", Noun: "input", Target: p.input.ID, Args: Arguments{"start": 0, "end": len(p.input.Text), "text": path + string(filepath.Separator)}}); err != nil {
 		return nil, err
 	}
 	return p.state(), nil
@@ -567,6 +559,5 @@ func (p *Picker) state() map[string]any {
 func (p *Picker) sync() {
 	if p.IsOpen() {
 		p.queuePreview()
-		p.frame.State = p.state()
 	}
 }

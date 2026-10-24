@@ -13,7 +13,7 @@ func (p *Palette) editor(name string) *Input {
 	}
 	in := NewInput("__palette/"+key, "", false)
 	in.SetMode("insert")
-	if err := p.r.AddInput(in, []string{"app", "palette"}); err != nil {
+	if err := p.r.AddInput(in, Parent("palette"), Kind("palette-field")); err != nil {
 		panic(err)
 	}
 	p.editors[key] = in
@@ -32,10 +32,11 @@ func (p *Palette) focusEditor() {
 	if p.frame == nil {
 		return
 	}
-	p.frame.Context = Context{Path: []string{"app", "palette"}}
+	focus := "palette"
 	if in := p.activeEditor(); in != nil {
-		p.frame.Context.InputID = in.ID
+		focus = in.ID
 	}
+	p.r.setFocus(p.frame, focus)
 }
 func (p *Palette) collectEditors() {
 	if p.searching {
@@ -61,34 +62,6 @@ func (p *Palette) collectEditors() {
 		}
 	}
 }
-func (p *Palette) handleEditorKey(key string) (bool, error) {
-	in := p.activeEditor()
-	if in == nil {
-		return false, nil
-	}
-	if p.searching && in.Mode == "normal" && (key == "left" || key == "right") {
-		return false, nil
-	}
-	switch key {
-	case "enter", "tab", "shift+tab", "up", "down", "ctrl+enter", "ctrl+c":
-		return false, nil
-	case "esc", "escape":
-		if in.Mode == "normal" {
-			return false, nil
-		}
-	}
-	// Reassert the form's own input even if an external caller changed overlay focus.
-	p.focusEditor()
-	handled, err := HandleInputKey(p.r, key)
-	p.collectEditors()
-	if err != nil {
-		p.message = err.Error()
-	} else {
-		p.message = ""
-	}
-	p.publish()
-	// Unknown keys in a field stay in its mode; never fall through to literal insertion.
-	_ = handled
-	return true, err
-}
-func (p *Palette) IsActive() bool { return p.IsOpen() && p.r.Frames[len(p.r.Frames)-1] == p.frame }
+
+// IsActive reports whether the palette is the top modal.
+func (p *Palette) IsActive() bool { return p.IsOpen() && p.r.top() == p.frame }

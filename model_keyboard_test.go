@@ -70,8 +70,8 @@ func TestModelMacroConsumesOnlyOneRegisterCharacter(t *testing.T) {
 			r, in := editorTestRuntime(t, "one two", true)
 			m := NewModel(r)
 			modelType(m, "qabc", batched)
-			if m.Status != "" || r.Macro.Recording != "a" || in.Pending != "c" || !strings.Contains(ansi.Strip(m.View().Content), "REC @a") {
-				t.Fatalf("qabc status=%q recording=%q pending=%q", m.Status, r.Macro.Recording, in.Pending)
+			if m.Status != "" || r.Macro.Recording != "a" || in.Pending() != "c" || !strings.Contains(ansi.Strip(m.View().Content), "REC @a") {
+				t.Fatalf("qabc status=%q recording=%q pending=%q", m.Status, r.Macro.Recording, in.Pending())
 			}
 			keytest.Press(m, "esc")
 			modelType(m, "q", batched)
@@ -143,8 +143,8 @@ func TestModelPendingMacroDoesNotInterpretPasteAsRegister(t *testing.T) {
 	m := NewModel(r)
 	modelType(m, "q", true)
 	keytest.Paste(m, "qabc:")
-	if m.Status != "" || r.Macro.Pending != "q" || string(in.Text) != "preserve" {
-		t.Fatalf("paste consumed register prefix: status=%q pending=%q text=%q", m.Status, r.Macro.Pending, string(in.Text))
+	if m.Status != "" || r.Mode(r.Context()) != "macro_pending" || string(in.Text) != "preserve" {
+		t.Fatalf("paste consumed register prefix: status=%q mode=%q text=%q", m.Status, r.Mode(r.Context()), string(in.Text))
 	}
 	modelType(m, "q", true)
 	if r.Macro.Recording != "q" || !strings.Contains(ansi.Strip(m.View().Content), "REC @q") {
@@ -180,17 +180,17 @@ func TestNewModelNavigationDefaultsAndRemovedAliases(t *testing.T) {
 	}
 	m := NewModel(r)
 	keytest.Press(m, "ctrl+j")
-	if r.ActivePage != "beta" {
-		t.Fatalf("Ctrl-J page=%q, want beta", r.ActivePage)
+	if r.Page != "beta" {
+		t.Fatalf("Ctrl-J page=%q, want beta", r.Page)
 	}
 	keytest.Press(m, "ctrl+k")
-	if r.ActivePage != "alpha" {
-		t.Fatalf("Ctrl-K page=%q, want alpha", r.ActivePage)
+	if r.Page != "alpha" {
+		t.Fatalf("Ctrl-K page=%q, want alpha", r.Page)
 	}
 	for _, key := range []string{"ctrl+p", "alt+right", "alt+left"} {
 		keytest.Press(m, key)
-		if r.ActivePage != "alpha" || m.Palette.IsActive() {
-			t.Fatalf("obsolete key %q navigated: page=%q palette=%t", key, r.ActivePage, m.Palette.IsActive())
+		if r.Page != "alpha" || m.Palette.IsActive() {
+			t.Fatalf("obsolete key %q navigated: page=%q palette=%t", key, r.Page, m.Palette.IsActive())
 		}
 	}
 	modelType(m, ":", true)
@@ -205,8 +205,8 @@ func TestNewModelNavigationDefaultsAndRemovedAliases(t *testing.T) {
 	}
 	modelType(m, "i:", true)
 	keytest.Press(m, "ctrl+k")
-	if got := string(r.Inputs["alpha-input"].Text); got != ":" || r.ActivePage != "alpha" || m.Palette.IsActive() {
-		t.Fatalf("insert keys text=%q page=%q palette=%t", got, r.ActivePage, m.Palette.IsActive())
+	if got := string(r.Inputs["alpha-input"].Text); got != ":" || r.Page != "alpha" || m.Palette.IsActive() {
+		t.Fatalf("insert keys text=%q page=%q palette=%t", got, r.Page, m.Palette.IsActive())
 	}
 	keytest.Press(m, "ctrl+space")
 	if !m.Palette.IsActive() {

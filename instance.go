@@ -1,78 +1,98 @@
 package ochazuke
 
 import (
-	"fmt"
 	"slices"
 	"sort"
 )
 
 // Instance is one addressable thing on screen: a page, a list, a list row, a
-// modal body, or an input. Its Parent link is what the old Context.Path spelt
-// out in full; walking the links from the focused instance outward rebuilds
-// that path. State is the instance's own mode; "" inherits the nearest
-// ancestor's state, and the root falls back to "normal" (see Runtime.Mode).
-// Bindings are this instance's own rows, resolved above its noun's table.
+// modal body, or an input. Parent links form the focus stack; walking them
+// from the focused instance outward is the path Context.Path spells out.
+// State is the instance's own mode; "" inherits the nearest ancestor's state,
+// and the root falls back to "normal" (see Runtime.Mode). Payload is the
+// typed state of a pending mode. Bindings are this instance's own rows,
+// resolved above its noun's table at the same stack level. Component holds
+// the typed component the instance fronts (a *Page in this phase).
 type Instance struct {
-	ID       string    `json:"id"`
-	Noun     string    `json:"noun"`
-	Parent   string    `json:"parent,omitempty"`
-	State    string    `json:"state"`
-	Bindings []Binding `json:"bindings,omitempty"`
+	ID        string    `json:"id"`
+	Noun      string    `json:"noun"`
+	Parent    string    `json:"parent,omitempty"`
+	State     string    `json:"state"`
+	Payload   Payload   `json:"payload"`
+	Bindings  []Binding `json:"bindings,omitempty"`
+	Component any       `json:"-"`
+	seq       uint64
 }
 
-// instance returns the instance for id, creating it without a parent.
-func (r *Runtime) instance(id string) *Instance {
-	inst := r.Instances[id]
-	if inst == nil {
-		inst = &Instance{ID: id}
-		if r.Layers[id] != nil {
-			inst.Noun = id
-		}
-		r.Instances[id] = inst
+// Payload is the small typed state a pending mode carries. Return is the raw
+// State the instance had before the pending mode and is restored on leave.
+// Count and OpCount are the Vim counts before and after an operator; Op is
+// the pending operator; Prefix is the key sequence typed so far; Request is a
+// stored request (the completed match a sequence prefix falls back to, or a
+// confirm's deferred action); Shadow is the mode a shadow mode such as
+// macro_recording or leader_pending re-dispatches in.
+type Payload struct {
+	Return  string     `json:"return,omitempty"`
+	Count   int        `json:"count,omitempty"`
+	OpCount int        `json:"opCount,omitempty"`
+	Op      string     `json:"op,omitempty"`
+	Prefix  string     `json:"prefix,omitempty"`
+	Request *Request   `json:"request,omitempty"`
+	Shadow  *ModeState `json:"shadow,omitempty"`
+}
+
+func (p Payload) empty() bool {
+	return p.Count == 0 && p.OpCount == 0 && p.Op == "" && p.Prefix == "" && p.Request == nil && p.Shadow == nil
+}
+
+type instanceSpec struct{ parent, noun string }
+
+// InstanceOption configures Instance, AddInput, NewList and Page registration.
+type InstanceOption func(*instanceSpec)
+
+// Parent places the instance under another instance (default app).
+func Parent(id string) InstanceOption { return func(s *instanceSpec) { s.parent = id } }
+
+// Kind names the noun the instance answers to (default: the instance id for
+// plain instances, "editor" for inputs, "list" for lists, "page" for pages).
+func Kind(noun string) InstanceOption { return func(s *instanceSpec) { s.noun = noun } }
+
+// Instance registers a plain instance: a page body, a panel, a modal body.
+// Its noun is defined when it does not exist yet. Registering an existing id
+// returns it unchanged.
+func (r *Runtime) Instance(id string, opts ...InstanceOption) *Instance {
+	if inst := r.Instances[id]; inst != nil {
+		return inst
 	}
+	spec := instanceSpec{parent: "app", noun: id}
+	if id == "app" {
+		spec.parent = ""
+	}
+	for _, opt := range opts {
+		opt(&spec)
+	}
+	r.Define(spec.noun)
+	r.seq++
+	inst := &Instance{ID: id, Noun: spec.noun, Parent: spec.parent, seq: r.seq}
+	r.Instances[id] = inst
 	return inst
 }
 
-// link records parent as id's parent. The first parent an id is used under
-// wins; a later, different parent is recorded as an ambiguity and the old
-// path semantics stand for that call.
-func (r *Runtime) link(id, parent string) {
-	inst := r.instance(id)
-	switch inst.Parent {
-	case "":
-		inst.Parent = parent
-	case parent:
-	default:
-		note := fmt.Sprintf("%s: parent %s, also used under %s", id, inst.Parent, parent)
-		if !slices.Contains(r.instanceConflicts, note) {
-			r.instanceConflicts = append(r.instanceConflicts, note)
+// Children lists the instances parented at id in registration order.
+func (r *Runtime) Children(id string) []*Instance {
+	var out []*Instance
+	for _, inst := range r.Instances {
+		if inst.Parent == id && inst.ID != id {
+			out = append(out, inst)
 		}
 	}
-}
-
-// adoptPath links every element of a validated interaction path under the
-// element before it. Registration points call it with the paths they receive.
-func (r *Runtime) adoptPath(path []string) {
-	for i, id := range path {
-		if i == 0 {
-			r.instance(id)
-			continue
-		}
-		r.link(id, path[i-1])
-	}
-}
-
-// AmbiguousInstances lists ids that were used under two different parents.
-func (r *Runtime) AmbiguousInstances() []string {
-	out := slices.Clone(r.instanceConflicts)
-	sort.Strings(out)
+	sort.Slice(out, func(i, j int) bool { return out[i].seq < out[j].seq })
 	return out
 }
 
 // Ancestry walks the parent links from id outward: id first, app last. An
 // unknown id yields nil.
 func (r *Runtime) Ancestry(id string) []string {
-	r.syncNouns()
 	var out []string
 	seen := map[string]bool{}
 	for id != "" && !seen[id] {
@@ -87,71 +107,52 @@ func (r *Runtime) Ancestry(id string) []string {
 	return out
 }
 
-// InstancePath is Ancestry reversed: app first, id last. It is the shape
-// Context.Path has today.
+// InstancePath is Ancestry reversed: app first, id last.
 func (r *Runtime) InstancePath(id string) []string {
 	out := r.Ancestry(id)
 	slices.Reverse(out)
 	return out
 }
 
-// FocusID is the one leaf instance the active frame points at: its input when
-// it has one, otherwise the last element of its path. Context() stays the
-// source of truth in this phase; FocusID mirrors it.
-func (r *Runtime) FocusID() string { return focusOf(r.Context()) }
-
 // focusOf is the leaf instance a context points at.
 func focusOf(c Context) string {
 	if c.InputID != "" {
 		return c.InputID
 	}
+	if len(c.Path) == 0 {
+		return ""
+	}
 	return c.Path[len(c.Path)-1]
 }
 
-// ContextFromFocus rebuilds the active context from FocusID and the parent
-// links alone. It equals Context() whenever every path the application used
-// agrees on each instance's parent; see AmbiguousInstances for the exceptions.
-func (r *Runtime) ContextFromFocus() Context { return r.contextOf(r.FocusID()) }
-
-// contextOf is the interaction context that addresses one instance: the path
-// elements (layers and list rows) on its ancestry, plus InputID when the
-// instance is an input. An unknown id yields an empty context.
+// contextOf is the interaction context that addresses one instance: the
+// non-input instances on its ancestry, plus InputID when it is an input.
 func (r *Runtime) contextOf(id string) Context {
-	var path []string
-	for _, step := range r.InstancePath(id) {
-		if r.isPathElement(step) {
-			path = append(path, step)
-		}
-	}
+	path := r.InstancePath(id)
 	out := Context{Path: path}
 	if r.Inputs[id] != nil {
 		out.InputID = id
+		out.Path = path[:len(path)-1]
 	}
 	return out
 }
 
-// isPathElement reports whether id may appear in Context.Path: a layer, or a
-// list row standing in for its noun.
-func (r *Runtime) isPathElement(id string) bool {
-	return r.Layers[id] != nil || r.rows[id] != ""
-}
-
-// layerFor is the layer view a path element resolves through: the layer of
-// that id, or the layer of a row's noun. It is nil for an unknown element.
-func (r *Runtime) layerFor(id string) *Layer {
-	if layer := r.Layers[id]; layer != nil {
-		return layer
-	}
-	if inst := r.Instances[id]; inst != nil {
-		return r.Layers[inst.Noun]
+// ActionFor returns the innermost noun handler for an operation key on the
+// focus stack, or nil when the operation's own Run applies.
+func (r *Runtime) ActionFor(focus, key string) Handler {
+	for _, id := range r.Ancestry(focus) {
+		if noun := r.Nouns[r.Instances[id].Noun]; noun != nil {
+			if fn := noun.Actions[key]; fn != nil {
+				return fn
+			}
+		}
 	}
 	return nil
 }
 
-// instanceBindings are the rows an instance carries above its noun's table.
-func (r *Runtime) instanceBindings(id string) []Binding {
-	if inst := r.Instances[id]; inst != nil {
-		return inst.Bindings
-	}
-	return nil
+// removeInstance drops an instance and its own rows.
+func (r *Runtime) removeInstance(id string) {
+	delete(r.Instances, id)
+	delete(r.rows, id)
+	delete(r.Inputs, id)
 }

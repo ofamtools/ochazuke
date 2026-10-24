@@ -37,7 +37,7 @@ func TestModelCoalescedPaletteSearchNavigatesPage(t *testing.T) {
 	typed("playground")
 	enter()
 	enter()
-	if m.Runtime.ActivePage != "playground" || len(m.Runtime.Frames) != 1 {
-		t.Fatalf("coalesced palette navigation: page=%q frames=%d; want playground with palette closed", m.Runtime.ActivePage, len(m.Runtime.Frames))
+	if m.Runtime.Page != "playground" || len(m.Runtime.Frames) != 1 {
+		t.Fatalf("coalesced palette navigation: page=%q frames=%d; want playground with palette closed", m.Runtime.Page, len(m.Runtime.Frames))
 	}
 }

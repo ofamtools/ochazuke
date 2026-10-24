@@ -7,14 +7,16 @@ import (
 	"testing"
 )
 
+// pageTestRegister builds a page holding one panel with one input: the page
+// instance (noun page), a panel instance beneath it and the input beneath that.
 func pageTestRegister(t *testing.T, r *Runtime, id string) *Page {
 	t.Helper()
-	r.Layers[id] = &Layer{ID: id, Noun: id}
-	r.Layers[id+"-editor"] = &Layer{ID: id + "-editor", Noun: "editor"}
-	if err := r.AddInput(NewInput(id+"-input", id, false), []string{"app", id, id + "-editor"}); err != nil {
+	r.Instance(id)
+	r.Instance(id+"-editor", Parent(id))
+	if err := r.AddInput(NewInput(id+"-input", id, false), Parent(id+"-editor")); err != nil {
 		t.Fatal(err)
 	}
-	page := &Page{ID: id, Title: strings.ToUpper(id), Frame: &Frame{ID: id, Context: Context{Path: []string{"app", id}}}, Render: func(*Runtime, int, int) Block { return Text(id) }}
+	page := &Page{ID: id, Title: strings.ToUpper(id), Render: func(*Runtime, int, int) Block { return Text(id) }}
 	if err := r.RegisterPage(page); err != nil {
 		t.Fatal(err)
 	}
@@ -36,23 +38,22 @@ func TestPageRegistrationAndPublicSnapshot(t *testing.T) {
 	r.Pending = "g"
 	alpha := pageTestRegister(t, r, "alpha")
 	pageTestRegister(t, r, "beta")
-	if r.ActivePage != "" || len(r.Frames) != 1 || r.Frames[0] != original || r.Pending != "g" {
+	if r.Page != "" || len(r.Frames) != 1 || r.Frames[0] != original || r.Pending != "g" {
 		t.Fatal("registering pages changed the active frame or pending sequence")
 	}
-	if !reflect.DeepEqual(r.PageOrder, []string{"alpha", "beta"}) || r.Pages["alpha"] != alpha {
-		t.Fatalf("registration did not retain page order and identity: %v", r.PageOrder)
+	if pages := r.PageList(); len(pages) != 2 || pages[0] != alpha || pages[1].ID != "beta" || r.PageOf("alpha") != alpha {
+		t.Fatalf("registration did not retain page order and identity: %v", pages)
 	}
 	want := []map[string]any{{"id": "alpha", "title": "ALPHA", "active": false}, {"id": "beta", "title": "BETA", "active": false}}
 	if got := paletteRequest(t, r, "list", "pages", nil); !reflect.DeepEqual(got, want) {
 		t.Fatalf("pages=%v; want %v", got, want)
 	}
 	paletteRequest(t, r, "open", "page", Arguments{"id": "alpha"})
-	alpha.Frame.State["draft"] = "retained"
 	want[0]["active"] = true
 	if got := paletteRequest(t, r, "list", "pages", nil); !reflect.DeepEqual(got, want) {
 		t.Fatalf("pages=%v; want %v", got, want)
 	}
-	for path, want := range map[string]any{"/activePage": "alpha", "/pages/alpha/id": "alpha", "/pages/alpha/title": "ALPHA", "/pages/alpha/frame/context/path/1": "alpha", "/pages/alpha/frame/state/draft": "retained"} {
+	for path, want := range map[string]any{"/page": "alpha", "/pages/alpha/id": "alpha", "/pages/alpha/title": "ALPHA", "/pages/alpha/frame/focus": "alpha", "/instances/alpha/noun": "alpha", "/instances/alpha-input/parent": "alpha-editor"} {
 		if got := paletteRequest(t, r, "get", "state", Arguments{"path": path}); !reflect.DeepEqual(got, want) {
 			t.Fatalf("%s=%v; want %v", path, got, want)
 		}
@@ -72,18 +73,15 @@ func TestPageSwitchRestoresFrameFocusAndEditingState(t *testing.T) {
 	in.Cursor = 2
 	paletteRequest(t, r, "set", "mode", Arguments{"mode": "insert"})
 	paletteRequest(t, r, "insert", "input", Arguments{"text": "X"})
-	in.Count, in.Pending = 2, "g"
-	alpha.Frame.State["draft"] = "page draft"
 	before := paletteInputSnapshot(t, in)
 	context := r.Context()
 	paletteRequest(t, r, "open", "page", Arguments{"id": "beta"})
 	paletteRequest(t, r, "set", "mode", Arguments{"mode": "insert"})
-	beta.Frame.State["selection"] = "second row"
 	paletteRequest(t, r, "open", "page", Arguments{"id": "alpha"})
 	if len(r.Frames) != 1 || r.Frames[0] != alpha.Frame || r.Inputs[r.Context().InputID] != in || !reflect.DeepEqual(r.Context(), context) {
 		t.Fatalf("page identity or nested focus was lost: %+v", r.Context())
 	}
-	if got := paletteInputSnapshot(t, in); got != before || alpha.Frame.State["draft"] != "page draft" || r.Mode(r.Context()) != "insert" {
+	if got := paletteInputSnapshot(t, in); got != before || r.Mode(r.Context()) != "insert" {
 		t.Fatalf("page editing state was lost: %s", got)
 	}
 	paletteRequest(t, r, "undo", "input", nil)
@@ -91,7 +89,7 @@ func TestPageSwitchRestoresFrameFocusAndEditingState(t *testing.T) {
 		t.Fatal("page switch lost the originating undo history or changed another input")
 	}
 	paletteRequest(t, r, "open", "page", Arguments{"id": "beta"})
-	if r.Frames[0] != beta.Frame || r.Mode(r.Context()) != "insert" || beta.Frame.State["selection"] != "second row" || r.Context().InputID != "" {
+	if r.Frames[0] != beta.Frame || r.Mode(r.Context()) != "insert" || r.Context().InputID != "" {
 		t.Fatal("page-owned frame mode, state, or non-input context was lost")
 	}
 }
@@ -101,8 +99,10 @@ func TestPageBindingsAndActionsFollowActiveContext(t *testing.T) {
 	r.Register(Operation{Verb: "inspect", Noun: "owner", Run: func(*Runtime, Context, Arguments) (any, error) { return "app", nil }})
 	for _, id := range []string{"alpha", "beta"} {
 		pageTestRegister(t, r, id)
-		r.Layers[id].Bindings = []Binding{{Keys: "x", Request: Request{Verb: "insert", Noun: "input", Args: Arguments{"text": strings.ToUpper(id)}}}}
-		r.Layers[id].Actions = map[string]Handler{"inspect.owner": func(*Runtime, Context, Arguments) (any, error) { return id, nil }}
+		if err := r.Bind(Binding{Instance: id, Keys: "x", Request: Request{Verb: "insert", Noun: "input", Args: Arguments{"text": strings.ToUpper(id)}}}); err != nil {
+			t.Fatal(err)
+		}
+		r.Define(id+"-editor").Action("inspect.owner", func(*Runtime, Context, Arguments) (any, error) { return id, nil })
 	}
 	for _, id := range []string{"alpha", "beta"} {
 		paletteRequest(t, r, "open", "page", Arguments{"id": id})
@@ -124,8 +124,8 @@ func TestPageModalNavigationErrorsAreAtomic(t *testing.T) {
 	alpha := pageTestRegister(t, r, "alpha")
 	pageTestRegister(t, r, "beta")
 	paletteRequest(t, r, "open", "page", Arguments{"id": "alpha"})
-	r.Layers["dialog"] = &Layer{ID: "dialog"}
-	dialog := &Frame{ID: "dialog", Context: Context{Path: []string{"app", "dialog"}}, State: map[string]any{"draft": "unsaved"}}
+	r.Instance("dialog")
+	dialog := &Frame{ID: "dialog", Focus: "dialog"}
 	if err := r.Push(dialog); err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +141,7 @@ func TestPageModalNavigationErrorsAreAtomic(t *testing.T) {
 	}
 	paletteRequest(t, r, "pop", "modal", nil)
 	paletteRequest(t, r, "open", "page", Arguments{"id": "beta"})
-	if r.ActivePage != "beta" || r.Pending != "" {
+	if r.Page != "beta" || r.Pending != "" {
 		t.Fatal("navigation did not resume after closing the modal")
 	}
 }
@@ -156,38 +156,27 @@ func TestPageRegistrationRejectsInvalidPagesAtomically(t *testing.T) {
 		{"empty title", func(p *Page) *Page { p.Title = " "; return p }},
 		{"duplicate ID", func(p *Page) *Page { p.ID = "existing"; return p }},
 		{"duplicate title", func(p *Page) *Page { p.Title = "EXISTING"; return p }},
-		{"nil frame", func(p *Page) *Page { p.Frame = nil; return p }},
 		{"nil renderer", func(p *Page) *Page { p.Render = nil; return p }},
-		{"missing page path", func(p *Page) *Page { p.Frame.Context.Path = []string{"app"}; return p }},
-		{"wrong root", func(p *Page) *Page { p.Frame.Context.Path[0] = "candidate"; return p }},
-		{"wrong page", func(p *Page) *Page { p.Frame.Context.Path[1] = "existing"; return p }},
-		{"missing page layer", func(p *Page) *Page {
-			p.ID = "missing"
-			p.Frame.Context.Path = []string{"app", "missing"}
-			return p
-		}},
-		{"unknown layer", func(p *Page) *Page { p.Frame.Context.Path = append(p.Frame.Context.Path, "missing"); return p }},
-		{"repeated layer", func(p *Page) *Page { p.Frame.Context.Path = append(p.Frame.Context.Path, "candidate"); return p }},
-		{"unknown input", func(p *Page) *Page { p.Frame.Context.InputID = "missing"; return p }},
-		{"wrong input path", func(p *Page) *Page { p.Frame.Context.InputID = "existing-input"; return p }},
+		{"unknown focus", func(p *Page) *Page { p.Focus = "missing"; return p }},
+		{"focus on another page", func(p *Page) *Page { p.Focus = "existing-input"; return p }},
+		{"nested instance", func(p *Page) *Page { p.ID = "existing-editor"; p.Focus = "existing-editor"; return p }},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			r := NewRuntime()
 			pageTestRegister(t, r, "existing")
-			layer := &Layer{ID: "candidate", Noun: "candidate", Bindings: []Binding{{Keys: "q", Request: Request{Verb: "quit", Noun: "app"}}}}
-			r.Layers["candidate"] = layer
+			candidate := r.Instance("candidate")
+			if err := r.Bind(Binding{Noun: "candidate", Keys: "q", Request: Request{Verb: "quit", Noun: "app"}}); err != nil {
+				t.Fatal(err)
+			}
 			r.Pending = "g"
-			candidate := tc.change(&Page{ID: "candidate", Title: "Candidate", Frame: &Frame{Context: Context{Path: []string{"app", "candidate"}}}, Render: func(*Runtime, int, int) Block { return Text("candidate") }})
+			page := tc.change(&Page{ID: "candidate", Title: "Candidate", Focus: "candidate", Render: func(*Runtime, int, int) Block { return Text("candidate") }})
 			before := pageTestSnapshot(t, r)
-			if err := r.RegisterPage(candidate); err == nil {
+			if err := r.RegisterPage(page); err == nil {
 				t.Fatal("invalid page was registered")
 			}
-			if pageTestSnapshot(t, r) != before || !reflect.DeepEqual(r.PageOrder, []string{"existing"}) || r.Layers["candidate"] != layer {
-				t.Fatal("failed registration mutated runtime state or replaced an existing layer")
-			}
-			if candidate != nil && candidate.Frame != nil && candidate.Frame.State != nil {
-				t.Fatal("failed registration mutated the candidate frame")
+			if pageTestSnapshot(t, r) != before || len(r.PageList()) != 1 || r.Instances["candidate"] != candidate || candidate.Component != nil {
+				t.Fatal("failed registration mutated runtime state or replaced an existing instance")
 			}
 		})
 	}
@@ -205,8 +194,8 @@ func TestPageNavigationWrapsAndRejectsInvalidRequests(t *testing.T) {
 	pageTestRegister(t, r, "gamma")
 	for _, step := range []struct{ verb, want string }{{"next", "alpha"}, {"previous", "gamma"}, {"next", "alpha"}, {"next", "beta"}, {"next", "gamma"}, {"previous", "beta"}} {
 		paletteRequest(t, r, step.verb, "page", nil)
-		if r.ActivePage != step.want || r.Frames[0] != r.Pages[step.want].Frame {
-			t.Fatalf("%s: active=%s; want %s", step.verb, r.ActivePage, step.want)
+		if r.Page != step.want || r.Frames[0] != r.PageOf(step.want).Frame {
+			t.Fatalf("%s: active=%s; want %s", step.verb, r.Page, step.want)
 		}
 	}
 	r.Pending = "g"
@@ -220,16 +209,16 @@ func TestPageNavigationWrapsAndRejectsInvalidRequests(t *testing.T) {
 	pageTestRegister(t, single, "only")
 	for _, verb := range []string{"previous", "next", "previous"} {
 		paletteRequest(t, single, verb, "page", nil)
-		if single.ActivePage != "only" {
-			t.Fatalf("single-page %s: active=%s", verb, single.ActivePage)
+		if single.Page != "only" {
+			t.Fatalf("single-page %s: active=%s", verb, single.Page)
 		}
 	}
 	reverse := NewRuntime()
 	pageTestRegister(t, reverse, "alpha")
 	pageTestRegister(t, reverse, "beta")
 	paletteRequest(t, reverse, "previous", "page", nil)
-	if reverse.ActivePage != "beta" {
-		t.Fatalf("previous from no active page: active=%s; want beta", reverse.ActivePage)
+	if reverse.Page != "beta" {
+		t.Fatalf("previous from no active page: active=%s; want beta", reverse.Page)
 	}
 }
 
@@ -261,7 +250,7 @@ func TestPageFocusIsolationAllowsExplicitOffscreenEdits(t *testing.T) {
 	if _, err := r.Execute(Request{Verb: "insert", Noun: "input", Target: "beta-input", Args: Arguments{"text": "target-"}}); err != nil {
 		t.Fatal(err)
 	}
-	if r.ActivePage != "alpha" || r.Frames[0] != alpha.Frame || r.Context().InputID != "alpha-input" || string(r.Inputs["alpha-input"].Text) != "alpha" || string(r.Inputs["beta-input"].Text) != "off-target-beta" || r.Pending != "g" {
+	if r.Page != "alpha" || r.Frames[0] != alpha.Frame || r.Context().InputID != "alpha-input" || string(r.Inputs["alpha-input"].Text) != "alpha" || string(r.Inputs["beta-input"].Text) != "off-target-beta" || r.Pending != "g" {
 		t.Fatal("targeted edits navigated or edited the wrong input")
 	}
 	paletteRequest(t, r, "select", "context", Arguments{"path": `["app","alpha","alpha-editor"]`})
@@ -269,11 +258,11 @@ func TestPageFocusIsolationAllowsExplicitOffscreenEdits(t *testing.T) {
 		t.Fatal("same-page nested noun selection failed")
 	}
 	for _, id := range []string{"palette", "dialog", "picker"} {
-		r.Layers[id] = &Layer{ID: id}
-		if err := r.AddInput(NewInput(id+"-field", "", false), []string{"app", id}); err != nil {
+		r.Instance(id)
+		if err := r.AddInput(NewInput(id+"-field", "", false), Parent(id)); err != nil {
 			t.Fatal(err)
 		}
-		if err := r.Push(&Frame{ID: id, Context: Context{Path: []string{"app", id}}}); err != nil {
+		if err := r.Push(&Frame{ID: id, Focus: id}); err != nil {
 			t.Fatal(err)
 		}
 		paletteRequest(t, r, "focus", "input", Arguments{"id": id + "-field"})
@@ -282,7 +271,7 @@ func TestPageFocusIsolationAllowsExplicitOffscreenEdits(t *testing.T) {
 			t.Fatal(err)
 		}
 		paletteRequest(t, r, "select", "context", Arguments{"path": string(path), "input": id + "-field"})
-		if r.Context().InputID != id+"-field" || r.ActivePage != "alpha" {
+		if r.Context().InputID != id+"-field" || r.Page != "alpha" {
 			t.Fatalf("valid modal context %s was not selected", id)
 		}
 		paletteRequest(t, r, "pop", "modal", nil)
@@ -301,7 +290,7 @@ func TestPagePaletteClosesBeforeNavigationDispatch(t *testing.T) {
 	paletteChoose(t, r, "verb:open", "page")
 	paletteRequest(t, r, "set", "palette-argument", Arguments{"name": "id", "value": "beta"})
 	paletteRequest(t, r, "execute", "palette", nil)
-	if p.IsOpen() || len(r.Frames) != 1 || r.Frames[0] != beta.Frame || r.ActivePage != "beta" {
+	if p.IsOpen() || len(r.Frames) != 1 || r.Frames[0] != beta.Frame || r.Page != "beta" {
 		t.Fatal("palette navigation was blocked or switched a discarded overlay")
 	}
 }

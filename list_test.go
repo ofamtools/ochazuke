@@ -14,16 +14,19 @@ import (
 func listFixture(t *testing.T) (*Runtime, *List, *Input, []ListItem) {
 	t.Helper()
 	r := NewRuntime()
-	for _, id := range []string{"page", "sidebar", "editor", "a", "b", "c", "other", "dialog"} {
-		r.Layers[id] = &Layer{ID: id, Actions: map[string]Handler{}}
+	for _, id := range []string{"page", "other", "dialog"} {
+		r.Instance(id)
+	}
+	r.Instance("editor", Parent("page"))
+	for _, noun := range []string{"a", "b", "c"} {
+		r.Define(noun)
 	}
 	input := NewInput("note", "", false)
-	input.ReadlineOnly = true
-	if err := r.AddInput(input, []string{"app", "page", "editor"}); err != nil {
+	if err := r.AddInput(input, Parent("editor"), Kind("prompt")); err != nil {
 		t.Fatal(err)
 	}
 	for _, id := range []string{"page", "other"} {
-		page := &Page{ID: id, Title: id, Frame: &Frame{ID: id, Context: Context{Path: []string{"app", id}}}, Render: func(*Runtime, int, int) Block { return Text("page") }}
+		page := &Page{ID: id, Title: id, Render: func(*Runtime, int, int) Block { return Text("page") }}
 		if err := r.RegisterPage(page); err != nil {
 			t.Fatal(err)
 		}
@@ -32,7 +35,7 @@ func listFixture(t *testing.T) (*Runtime, *List, *Input, []ListItem) {
 		t.Fatal(err)
 	}
 	items := []ListItem{{ID: "one", Label: "First item", Noun: "a"}, {ID: "two", Label: "Second item", Noun: "b"}, {ID: "three", Label: "Third item", Noun: "c"}}
-	list, err := NewList(r, []string{"app", "page", "sidebar"}, items)
+	list, err := NewList(r, "sidebar", items, Parent("page"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +46,7 @@ func TestListFocusSelectsItemActionsAndLeavesEditorAlone(t *testing.T) {
 	r, list, input, _ := listFixture(t)
 	r.Register(Operation{Verb: "inspect", Noun: "item", Run: func(*Runtime, Context, Arguments) (any, error) { return "application", nil }})
 	for _, id := range []string{"a", "b"} {
-		r.Layers[id].Actions["inspect.item"] = func(*Runtime, Context, Arguments) (any, error) { return id, nil }
+		r.Define(id).Action("inspect.item", func(*Runtime, Context, Arguments) (any, error) { return id, nil })
 	}
 	if _, err := r.Execute(Request{Verb: "focus", Noun: "list", Args: Arguments{"id": "sidebar"}}); err != nil {
 		t.Fatal(err)
@@ -92,7 +95,7 @@ func TestListRefreshRetainsIdentityAndRestoresHiddenContexts(t *testing.T) {
 	if selected.ID != "two" || r.Context().Path[3] != "two" {
 		t.Fatal("refresh followed the index instead of identity")
 	}
-	if err := r.Push(&Frame{ID: "dialog", Context: Context{Path: []string{"app", "dialog"}}}); err != nil {
+	if err := r.Push(&Frame{ID: "dialog", Focus: "dialog"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := list.SetItems([]ListItem{items[2], items[0]}); err != nil {
@@ -116,7 +119,7 @@ func TestListRefreshRetainsIdentityAndRestoresHiddenContexts(t *testing.T) {
 	if err := list.SetItems(nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := list.Focus(); err == nil || r.ActivePage != "other" {
+	if err := list.Focus(); err == nil || r.Page != "other" {
 		t.Fatal("list bypassed cross-page focus validation")
 	}
 	if err := r.OpenPage("page"); err != nil {
@@ -207,7 +210,7 @@ func TestListSelectionCancelsPendingBindingEvenWithSharedItemLayer(t *testing.T)
 	if err := list.SetItems([]ListItem{{ID: "one", Noun: "a"}, {ID: "two", Noun: "a"}}); err != nil {
 		t.Fatal(err)
 	}
-	r.Layers["a"].Bindings = []Binding{{Keys: "g g", Request: Request{Verb: "quit", Noun: "app"}}}
+	r.Define("a").Mode("").Bind("g g", Do("quit.app"))
 	if err := list.Focus(); err != nil {
 		t.Fatal(err)
 	}

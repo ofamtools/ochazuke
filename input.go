@@ -14,31 +14,56 @@ type EditNode struct {
 }
 
 type Input struct {
-	ID            string
-	Text          []rune
-	Cursor        int
-	Mode          string
-	Multiline     bool
-	ReadlineOnly  bool // Set before AddInput to keep this editor in insert mode.
-	Kind          string
-	PathFilter    string
-	Anchor        int
-	History       []EditNode
-	Head          int
-	Count         int
-	Pending       string
-	operatorCount int
-	groupOpen     bool
-	groupNode     int
-	goalColumn    int
-	blockChange   *blockChange
-	inst          *Instance // set by AddInput; holds the mode Input.Mode mirrors
+	ID          string
+	Text        []rune
+	Cursor      int
+	Mode        string // the editing mode: normal, insert or a visual mode; pending modes live on the instance
+	Multiline   bool
+	Kind        string
+	PathFilter  string
+	Anchor      int
+	History     []EditNode
+	Head        int
+	groupOpen   bool
+	groupNode   int
+	goalColumn  int
+	blockChange *blockChange
+	pin         string    // the noun's pinned mode (prompt pins insert)
+	inst        *Instance // set by AddInput; holds the full mode and pending payload
 }
 
 func NewInput(id, text string, multiline bool) *Input {
 	in := &Input{ID: id, Text: []rune(text), Mode: "normal", Multiline: multiline, groupNode: -1, goalColumn: -1}
 	in.History = []EditNode{{Text: text, Parent: -1}}
 	return in
+}
+
+// Count is the pending Vim count, read from the instance payload.
+func (in *Input) Count() int {
+	if in.inst == nil {
+		return 0
+	}
+	return in.inst.Payload.Count
+}
+
+// Pending describes the pending editor mode the way the old grammar did:
+// "d" for an operator, "g" for a g prefix, "dg" for both, "register" while a
+// register name is awaited, "" otherwise.
+func (in *Input) Pending() string {
+	if in.inst == nil {
+		return ""
+	}
+	switch in.inst.State {
+	case "operator_pending":
+		return in.inst.Payload.Op
+	case "operator_g_pending":
+		return in.inst.Payload.Op + "g"
+	case "g_pending":
+		return "g"
+	case "register_pending":
+		return "register"
+	}
+	return ""
 }
 
 func (in *Input) Snapshot() map[string]any {
@@ -56,8 +81,8 @@ func (in *Input) Snapshot() map[string]any {
 	}
 	return map[string]any{
 		"id": in.ID, "text": string(in.Text), "cursor": in.Cursor, "mode": in.Mode,
-		"multiline": in.Multiline, "readlineOnly": in.ReadlineOnly, "history": in.History, "head": in.Head,
-		"count": in.Count, "pending": in.Pending, "kind": in.Kind, "pathFilter": in.PathFilter,
+		"multiline": in.Multiline, "pinned": in.pin, "history": in.History, "head": in.Head,
+		"count": in.Count(), "pending": in.Pending(), "kind": in.Kind, "pathFilter": in.PathFilter,
 		"anchor": in.Anchor, "selection": in.selectionSnapshot(),
 		"insertGroup": in.groupOpen, "row": row, "column": column,
 	}
@@ -66,10 +91,11 @@ func (in *Input) Snapshot() map[string]any {
 // SetMode is the mode-transition hook for both editor operations and set.mode.
 // Direct assignment to Mode cannot delimit insert sessions.
 func (in *Input) SetMode(mode string) {
-	if in.ReadlineOnly {
-		mode = "insert"
+	if in.pin != "" {
+		mode = in.pin
 	}
 	if mode == in.Mode {
+		in.resetKeys()
 		return
 	}
 	old := in.Mode
@@ -99,12 +125,12 @@ func (in *Input) SetMode(mode string) {
 	}
 }
 
-// storeMode writes the mode to the input's instance, the source of truth,
-// and to the Mode mirror the editor reads.
+// storeMode writes the editing mode to the input's instance, the source of
+// truth, clearing any pending mode, and to the Mode mirror the editor reads.
 func (in *Input) storeMode(mode string) {
 	in.Mode = mode
 	if in.inst != nil {
-		in.inst.State = mode
+		in.inst.State, in.inst.Payload = mode, Payload{}
 	}
 }
 
@@ -217,7 +243,13 @@ func (in *Input) endGroup() {
 	in.groupNode = -1
 }
 
-func (in *Input) resetKeys() { in.Count = 0; in.Pending = ""; in.operatorCount = 0 }
+// resetKeys drops a pending count, operator or prefix: the instance returns
+// to the editing mode Input.Mode names.
+func (in *Input) resetKeys() {
+	if in.inst != nil && (in.inst.State != in.Mode || !in.inst.Payload.empty()) {
+		in.inst.State, in.inst.Payload = in.Mode, Payload{}
+	}
+}
 
 func RegisterInputOperations(r *Runtime) {
 	r.Modes["normal"] = true
@@ -266,8 +298,6 @@ func RegisterInputOperations(r *Runtime) {
 			}
 			return nil
 		}},
-		{"prefix", "Accumulate a normal-mode digit or g prefix", map[string]Parameter{"key": {Type: "string", Required: true}}, func(in *Input, a Arguments) error { return in.prefix(StringArg(a, "key", "")) }},
-		{"cancel", "Cancel this input's count and pending motion", nil, func(in *Input, a Arguments) error { in.resetKeys(); return nil }},
 	} {
 		fn := spec.fn
 		r.Register(Operation{Verb: spec.verb, Noun: "input", Description: spec.desc, Parameters: spec.params, Result: "input state", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
@@ -278,11 +308,25 @@ func RegisterInputOperations(r *Runtime) {
 			if err := fn(in, a); err != nil {
 				return nil, err
 			}
-			if spec.verb == "cancel" {
-				r.ActiveRegister = ""
-			}
 			return in.Snapshot(), nil
 		}})
 	}
+	r.Register(Operation{Verb: "cancel", Noun: "input", Description: "Cancel the pending count, operator, prefix or register of the focused instance; a visual selection returns to normal", Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		r.ActiveRegister = ""
+		inst := r.Instances[focusOf(c)]
+		if in := r.Inputs[c.InputID]; in != nil {
+			if isVisual(in.Mode) {
+				in.SetMode("normal")
+			} else {
+				in.resetKeys()
+			}
+			r.modeGeneration++
+			return in.Mode, nil
+		}
+		if r.pendingModes[inst.State] || inst.Payload.Prefix != "" {
+			r.leaveMode(inst)
+		}
+		return r.modeState(inst.ID).Name, nil
+	}})
 	registerEditorOperations(r)
 }

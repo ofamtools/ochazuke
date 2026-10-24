@@ -35,15 +35,15 @@ The smoke scenario uses the supplied example's IDs. It is not a general validato
 | `app.go` | Construct the runtime, register configured objects, and assemble the model |
 | `config.go` | Configuration types, embedded defaults, and JSON parsing |
 | `actions.go` | Named Go handlers and configured operation registration |
-| `bindings.go` | Install configured key sequences using the framework binding operation |
+| `bindings.go` | Validate and install the configured binding rows through `Runtime.Bind` |
 | `pages.go` | Named page and modal renderers |
 | `list.go` | Compose the shared selectable list and a companion editor using existing panels |
 | `config/app.json` | Application title, initial page, custom modes, palette instance sources/default actions, theme, and density |
-| `config/layers.json` | Interaction layers and row nouns (with their `verbs`) used for action and binding resolution |
-| `config/inputs.json` | Initial values, context paths, multiline/Readline-only flags, and path filters |
-| `config/pages.json` | Page order, titles, initial contexts, renderer names, field lists, and sample list records |
-| `config/actions.json` | Verb/noun schemas, handler names, and layer overrides |
-| `config/bindings.json` | Layer, mode, key sequence, operation arguments, and explicit targets |
+| `config/instances.json` | Instances (`id`, `noun`, `parent`) and bare row nouns (with their `verbs`) used for action and binding resolution |
+| `config/inputs.json` | Initial values, parent instance, multiline flag, `noun: "prompt"` for Readline-only fields, and path filters |
+| `config/pages.json` | Page order, titles, starting focus, renderer names, field lists, and sample list records |
+| `config/actions.json` | Verb/noun schemas, handler names, and `on` (the noun whose instances override an operation) |
+| `config/bindings.json` | The framework's binding rows: `noun` or `instance`, `mode`, `keys` or `pattern`, `request` (`null` unbinds), `from`, `when` |
 | `config/modals.json` | Modal titles, renderer names, and editable inputs |
 
 JSON names Go handlers and renderers; it cannot contain executable Go functions. Add behavior to the appropriate registry, then reference that name in configuration. Framework operations are already registered and do not need copies in `actions.json`.
@@ -63,7 +63,7 @@ The following simplified data shows the relationships. The complete executable c
     }
   },
   binding: {
-    layer: "app", mode: "normal", keys: "g h",
+    noun: "app", mode: "normal", keys: "g h",
     request: {
       verb: "greet", noun: "workspace",
       args: { name: "Ochazuke", repeat: 1 }
@@ -83,7 +83,7 @@ The registry identifier is `greet.workspace` (`verb.noun`). The CLI spelling is 
 - **Paths** contains a file input, a directory input, and a multiline paths input. In normal mode, `Ctrl-F` or Enter opens the picker with the focused input's configured filter. Tab cycles fields. File and directory selection are both supported.
 - **Items** contains a reusable flat list and a Readline-only note. From startup, press `Ctrl-J` twice to open it. Tab switches list/editor focus. In the list, `j/k` or arrows select, `r` reorders records while preserving the selected ID, and `x` removes the selected sample row. Rows name nouns: on the repository row `f` fetches; on a worktree row `o` or Enter opens and `d` removes; on a branch row `c` or Enter checks out; Enter on the repository row inspects the context. `?` opens a modal listing the focused row's noun and effective keys. In the editor those letters type text instead. Tab back to the list before using normal-mode page shortcuts.
 - **Guide** (`help`) is a retained text page. Help can also open as a modal.
-- `Ctrl-S` invokes the configured save action in any mode. The editor layer overrides the application handler. This example records state in memory; it does not save a project to disk.
+- `Ctrl-S` invokes the configured save action in any mode. The `notes-editor` noun overrides the application handler while the notes field is focused. This example records state in memory; it does not save a project to disk.
 - `Ctrl-H` opens help. `Ctrl-O` opens the editable confirmation modal. From its editor context, `Ctrl-N` opens the details modal. Closing a modal restores its parent context.
 - In normal mode, `g s` summarizes the workspace and `g h` invokes the parameterized greeting.
 - In the workspace context, `Ctrl-T` sends an insert operation explicitly targeted at the title input.
@@ -96,9 +96,9 @@ The framework also supplies visual selection, registers, macro recording and rep
 
 The Items records are configuration examples, not live repository/worktree discovery. `actions.go` owns their mutable source data; refresh/removal calls the shared list's `SetItems`. Removing these rows changes only example memory, not files or Git worktrees.
 
-A `list` page declares its list-layer path, one companion input, and `items` with unique `id`, display `label`, and a registered `noun`. The nouns (`repo`, `worktree`, `branch`) are declared in `layers.json` with their `verbs`; `actions.json` registers the verbs (`fetch.repo`, `open.worktree`, `remove.worktree`, `checkout.branch`, each taking an optional `row`) and `bindings.json` binds keys per noun. Every row is an instance of its noun with the list as its parent; no per-row layer exists. Construction validates the records. `inputs.json` supports `readlineOnly: true`, which is applied before input registration.
+A `list` page names its list as the starting `focus`, one companion input, and `items` with unique `id`, display `label`, and a registered `noun`. The nouns (`repo`, `worktree`, `branch`) are declared in `instances.json` with their `verbs`; `actions.json` registers the verbs (`fetch.repo`, `open.worktree`, `remove.worktree`, `checkout.branch`, each taking an optional `row`) and `bindings.json` binds keys per noun. Every row is an instance of its noun with the list as its parent. Space marks rows; `apply.list {verb}` runs `verb.<row noun>` on each marked row and reports the rows whose noun lacks the verb. `inputs.json` supports `"noun": "prompt"` for a Readline-only field.
 
-Selecting a row changes only the leaf, which is the row ID, for example `app/items/item-list/repository` → `app/items/item-list/main`. A row verb acts on the row in its context: a key on the focused row, a request with `--target main`, or `{"row": "main"}`. Tab to the note selects `app/items/item-editor` with `inputId: item-note`. Selection changes and refreshes cannot take focus back from that editor. Page and modal restoration retain the updated selection.
+Selecting a row changes only the leaf, which is the row ID, for example `app/items/item-list/repository` → `app/items/item-list/main`. A row verb acts on the row in its context: a key on the focused row, a request with `--target main`, or `{"row": "main"}`. Tab to the note focuses `item-note` (its path is `app/items/item-editor`). Selection changes and refreshes cannot take focus back from that editor. Page and modal restoration retain the updated selection.
 
 Wide windows show list and note beside one another; medium windows stack them; small windows show the pane belonging to the retained page context. Selection remains visible when resizing. All controls use configured bindings or the list's ordinary defaults, with no function keys.
 

@@ -1,7 +1,6 @@
 package ochazuke
 
 import (
-	"fmt"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -36,14 +35,14 @@ type Model struct {
 	// remain the only navigation state; input focus and modal routing are unchanged.
 	Sidebar bool
 	views   map[string]*viewport.Model
+	scroll  map[string]int // frame ID -> scroll offset
 }
 
 func NewModel(r *Runtime) *Model {
-	m := &Model{Runtime: r, Palette: NewPalette(r), Appearance: NewAppearance(r), ModalViews: map[string]ModalView{}, Title: "Ochazuke", Width: 80, Height: 24, views: map[string]*viewport.Model{}}
-	r.dispatchKey = m.dispatchKey
+	m := &Model{Runtime: r, Palette: NewPalette(r), Appearance: NewAppearance(r), ModalViews: map[string]ModalView{}, Title: "Ochazuke", Width: 80, Height: 24, views: map[string]*viewport.Model{}, scroll: map[string]int{}}
 	m.ModalViews[yankHistoryID] = ModalView{Title: "Yank history", Render: yankHistoryView}
 	r.Register(Operation{Verb: "scroll", Noun: "surface", Description: "Scroll the active page or modal without changing focus", Parameters: map[string]Parameter{"lines": {Type: "integer", Required: true}}, Result: "scroll offset", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		frame := r.Frames[len(r.Frames)-1]
+		frame := r.top()
 		width, height := m.pageSize()
 		var content string
 		if len(r.Frames) > 1 {
@@ -56,20 +55,27 @@ func NewModel(r *Runtime) *Model {
 		view := m.viewport(frame, content, width, height)
 		delta := min(max(IntArg(a, "lines", 0), -view.TotalLineCount()), view.TotalLineCount())
 		view.SetYOffset(view.YOffset() + delta)
-		frame.State["scroll"] = view.YOffset()
+		m.scroll[frame.ID] = view.YOffset()
 		return view.YOffset(), nil
 	}})
-	defaults := []Binding{
-		{Mode: "normal", Keys: ":", Request: Request{Verb: "open", Noun: "palette"}},
-		{Mode: "normal", Keys: "ctrl+y", Request: Request{Verb: "open", Noun: "yank-history"}},
-		{Keys: "ctrl+space", Request: Request{Verb: "open", Noun: "palette"}},
-		{Keys: "ctrl+c", Request: Request{Verb: "quit", Noun: "app"}},
-		{Mode: "normal", Keys: "ctrl+j", Request: Request{Verb: "next", Noun: "page"}},
-		{Mode: "normal", Keys: "ctrl+k", Request: Request{Verb: "previous", Noun: "page"}},
-		{Keys: "pgdown", Request: Request{Verb: "scroll", Noun: "surface", Args: Arguments{"lines": 8}}},
-		{Keys: "pgup", Request: Request{Verb: "scroll", Noun: "surface", Args: Arguments{"lines": -8}}},
+	// Application rows already on the app noun keep precedence over these defaults.
+	app := r.Noun("app")
+	defaultRow := func(mode, keys string, row Binding) {
+		for _, existing := range app.Bindings[mode] {
+			if existing.Keys == keys {
+				return
+			}
+		}
+		r.Define("app").Mode(mode).Bind(keys, row)
 	}
-	r.Layers["app"].Bindings = append(defaults, r.Layers["app"].Bindings...)
+	defaultRow("normal", ":", Do("open.palette"))
+	defaultRow("normal", "ctrl+y", Do("open.yank-history"))
+	defaultRow("normal", "ctrl+j", Do("next.page"))
+	defaultRow("normal", "ctrl+k", Do("previous.page"))
+	defaultRow("", "ctrl+space", Do("open.palette"))
+	defaultRow("", "ctrl+c", Do("quit.app"))
+	defaultRow("", "pgdown", Do("scroll.surface", Arguments{"lines": 8}))
+	defaultRow("", "pgup", Do("scroll.surface", Arguments{"lines": -8}))
 	return m
 }
 func (m *Model) Init() tea.Cmd { return tea.RequestBackgroundColor }
@@ -83,7 +89,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.Height = max(1, v.Height)
 	case CallMsg:
 		m.Runtime.HandleCall(v)
-		m.Palette.publish()
 	case BindingTimeoutMsg:
 		if handled, err := m.Runtime.HandleBindingTimeout(v); handled {
 			if err != nil {
@@ -92,7 +97,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Status = ""
 			}
 			m.Palette.collectEditors()
-			m.Palette.publish()
 		}
 	case tea.BackgroundColorMsg:
 		m.Appearance.Dark = v.IsDark()
@@ -117,58 +121,15 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(commands...)
 }
 
+// handleKey dispatches one key through the runtime's stack walk and shows
+// the error, if any, in the status line.
 func (m *Model) handleKey(key MacroKey) {
-	if err := m.dispatchKey(key); err != nil {
+	if _, err := m.Runtime.Dispatch(key); err != nil {
 		m.Status = err.Error()
 	} else {
 		m.Status = ""
 	}
-}
-
-// dispatchKey is shared by live input and macro playback, including modal and
-// layer bindings. Pasted text stays one literal event, never a command sequence.
-func (m *Model) dispatchKey(key MacroKey) error {
-	r := m.Runtime
-	in := r.Inputs[r.Context().InputID]
-	stop := key.Key == "q" && !key.Paste && r.Mode(r.Context()) == "normal" && r.Macro.Pending == "" && (in == nil || in.Pending == "")
-	if r.Macro.Recording != "" && r.Macro.Depth == 0 && !stop {
-		if len(r.Macro.Keys) >= 10000 {
-			return fmt.Errorf("macro recording exceeds 10000 keys")
-		}
-		r.Macro.Keys = append(r.Macro.Keys, key)
-	}
-	if !key.Paste && (r.Macro.Pending != "" || r.Macro.Recording != "" && stop) {
-		handled, err := r.handleMacroKey(key.Key)
-		if handled || err != nil {
-			return err
-		}
-	}
-	if m.Palette.IsActive() {
-		_, err := m.Palette.HandleKey(key.Key)
-		return err
-	}
-	if key.Paste {
-		_, err := HandleInputKey(r, key.Key)
-		return err
-	}
-	// A field's active grammar wins over unrelated app bindings, e.g. dw
-	// when w also switches a page. Fresh keys still honor layer overrides.
-	if !key.Paste && (r.Macro.Pending != "" || in == nil && r.Macro.Count > 0 || in != nil && (in.Pending != "" || in.Count > 0)) {
-		handled, err := HandleInputKey(r, key.Key)
-		if handled || err != nil {
-			return err
-		}
-	}
-	handled, err := r.HandleBinding(key.Key)
-	if handled || err != nil {
-		return err
-	}
-	if key.Key == "esc" && len(r.Frames) > 1 && r.Mode(r.Context()) == "normal" && (in == nil || in.Pending == "" && in.Count == 0) {
-		_, err = r.Execute(Request{Verb: "pop", Noun: "modal"})
-		return err
-	}
-	_, err = HandleInputKey(r, key.Key)
-	return err
+	m.Palette.collectEditors()
 }
 func (m *Model) pageSize() (int, int) {
 	width, height := m.surfaceSize()
@@ -182,7 +143,7 @@ func (m *Model) surfaceSize() (int, int) {
 	return max(1, m.Width-2*pad), max(1, m.Height-6)
 }
 func (m *Model) pageContent(width, height int) Block {
-	if page := m.Runtime.Pages[m.Runtime.ActivePage]; page != nil {
+	if page := m.Runtime.PageOf(m.Runtime.Page); page != nil {
 		return page.Render(m.Runtime, width, height)
 	}
 	return Text("No page selected. Open a registered page through the palette or API.")
@@ -197,7 +158,7 @@ func (m *Model) viewport(frame *Frame, content string, width, height int) *viewp
 	view.SetWidth(max(1, width))
 	view.SetHeight(max(1, height))
 	view.SetContent(content)
-	view.SetYOffset(IntArg(Arguments(frame.State), "scroll", 0))
+	view.SetYOffset(m.scroll[frame.ID])
 	return view
 }
 
@@ -212,12 +173,12 @@ func (m *Model) modalContent(frame *Frame, width, height int) (string, Block) {
 		return "Command palette", body
 	case m.ModalViews[frame.ID].Render != nil:
 		body = m.ModalViews[frame.ID].Render(m.Runtime, frame, width, height)
-	case m.Runtime.Inputs[frame.Context.InputID] != nil:
-		body = InputBlock(m.Runtime.Inputs[frame.Context.InputID], width, height)
+	case m.Runtime.Inputs[frame.Focus] != nil:
+		body = InputBlock(m.Runtime.Inputs[frame.Focus], width, height)
 	default:
 		body = Text("This modal has no focused input.")
 	}
-	if frame != m.Runtime.Frames[len(m.Runtime.Frames)-1] {
+	if frame != m.Runtime.top() {
 		body.Cursor = nil
 	}
 	if view, ok := m.ModalViews[frame.ID]; ok {
@@ -226,25 +187,25 @@ func (m *Model) modalContent(frame *Frame, width, height int) (string, Block) {
 	return frame.ID, body
 }
 func (m *Model) pageTabs(styles Styles, width int) string {
-	order := m.Runtime.PageOrder
+	order := m.Runtime.PageList()
 	if len(order) == 0 {
 		return ""
 	}
 	active := 0
-	for i, id := range order {
-		if id == m.Runtime.ActivePage {
+	for i, page := range order {
+		if page.ID == m.Runtime.Page {
 			active = i
 			break
 		}
 	}
-	title := safeText(m.Runtime.Pages[order[active]].Title)
+	title := safeText(order[active].Title)
 	tabs := ansi.Truncate(styles.ActiveTab.Render(ansi.Truncate(title, max(1, width-4), "…")), width, "")
 	used := ansi.StringWidth(tabs)
 	left, right := active-1, active+1
 	for left >= 0 || right < len(order) {
 		added := false
 		if left >= 0 {
-			tab := styles.Tab.Render(safeText(m.Runtime.Pages[order[left]].Title))
+			tab := styles.Tab.Render(safeText(order[left].Title))
 			if size := ansi.StringWidth(tab); used+size <= width {
 				tabs = tab + tabs
 				used += size
@@ -255,7 +216,7 @@ func (m *Model) pageTabs(styles Styles, width int) string {
 			}
 		}
 		if right < len(order) {
-			tab := styles.Tab.Render(safeText(m.Runtime.Pages[order[right]].Title))
+			tab := styles.Tab.Render(safeText(order[right].Title))
 			if size := ansi.StringWidth(tab); used+size <= width {
 				tabs += tab
 				used += size
@@ -311,11 +272,11 @@ func (m *Model) render() Block {
 	styles := NewStyles(*m.Appearance)
 	width, height := m.surfaceSize()
 	pageTitle := ""
-	if page := m.Runtime.Pages[m.Runtime.ActivePage]; page != nil {
+	if page := m.Runtime.PageOf(m.Runtime.Page); page != nil {
 		pageTitle = page.Title
 	}
 	heading := styles.Title.Render(safeText(m.Title)) + "  " + styles.Muted.Render(safeText(pageTitle))
-	modeLabel := strings.ToUpper(m.Runtime.Mode(m.Runtime.Context()))
+	modeLabel := strings.ToUpper(modeLabelOf(m.Runtime.Mode(m.Runtime.Context())))
 	if m.Runtime.Macro.Recording != "" {
 		modeLabel += " · REC @" + m.Runtime.Macro.Recording
 	}
@@ -331,11 +292,12 @@ func (m *Model) render() Block {
 	pageWidth, pageHeight := m.pageSize()
 	page := m.scrolled(base, m.pageContent(pageWidth, pageHeight), pageWidth, pageHeight)
 	if m.Sidebar {
-		titles := make([]string, len(m.Runtime.PageOrder))
+		pages := m.Runtime.PageList()
+		titles := make([]string, len(pages))
 		selected := 0
-		for i, id := range m.Runtime.PageOrder {
-			titles[i] = m.Runtime.Pages[id].Title
-			if id == m.Runtime.ActivePage {
+		for i, page := range pages {
+			titles[i] = page.Title
+			if page.ID == m.Runtime.Page {
 				selected = i
 			}
 		}
@@ -343,17 +305,21 @@ func (m *Model) render() Block {
 		page = layout.sidebar("Pages", titles, selected, pageTitle, page, width, height, width < layoutStackAt)
 	}
 	footer := "Ctrl-J/K pages · : palette · PgUp/PgDn scroll · Ctrl-C quit"
-	if m.Runtime.Mode(m.Runtime.Context()) == "insert" {
+	currentMode := m.Runtime.Mode(m.Runtime.Context())
+	if currentMode == "insert" {
 		footer = "INSERT · Esc normal · Ctrl-A/E line · Ctrl-W/U/K kill · Ctrl-Space palette"
-		if in := m.Runtime.Inputs[m.Runtime.Context().InputID]; in != nil && in.ReadlineOnly {
+		if in := m.Runtime.Inputs[m.Runtime.FocusID()]; in != nil && in.pin == "insert" {
 			footer = "READLINE · Ctrl-A/E line · Ctrl-W/U/K kill · Ctrl-Y yank · Ctrl-Space palette"
 		}
 	}
 	status := styles.Muted.Render(footer)
-	if m.Runtime.Macro.Pending == "q" {
+	switch currentMode {
+	case "macro_pending":
 		status = styles.Accent.Render("Record macro: choose a register · Esc cancel")
-	} else if m.Runtime.Macro.Pending == "@" {
+	case "replay_pending":
 		status = styles.Accent.Render("Replay macro: choose a register · Esc cancel")
+	case "register_pending":
+		status = styles.Accent.Render("Register: choose a name · Esc cancel")
 	}
 	if m.Runtime.Pending != "" {
 		status = styles.Accent.Render("Pending " + safeText(m.Runtime.Pending) + " · Esc cancel")
@@ -375,10 +341,10 @@ func (m *Model) render() Block {
 		hint := "Esc normal / close · PgUp/PgDn scroll"
 		if frame == m.Palette.frame {
 			hint = "Esc normal / back · Ctrl-C cancel"
-		} else if in := m.Runtime.Inputs[frame.Context.InputID]; in != nil && in.ReadlineOnly {
+		} else if in := m.Runtime.Inputs[frame.Focus]; in != nil && in.pin == "insert" {
 			hint = "Readline editing · PgUp/PgDn scroll"
 		}
-		if frame == m.Runtime.Frames[len(m.Runtime.Frames)-1] && m.Status != "" {
+		if frame == m.Runtime.top() && m.Status != "" {
 			hint = "Error: " + m.Status
 		}
 		surface = ComposeModalBlock(surface.Text, title, body, hint, m.Width, m.Height, styles)
@@ -392,6 +358,11 @@ func (m *Model) scrolled(frame *Frame, content Block, width, height int) Block {
 	view := m.viewport(frame, content.Text, width, height)
 	return content.WithText(view.View()).Offset(0, -view.YOffset()).Clip(width, height)
 }
+
+// modeLabelOf shortens a pending mode name for the badge: "normal g" stays,
+// operator_pending becomes "operator pending".
+func modeLabelOf(mode string) string { return strings.ReplaceAll(mode, "_", " ") }
+
 func fitSurface(content string, width, height int) string {
 	width = max(1, width)
 	height = max(1, height)

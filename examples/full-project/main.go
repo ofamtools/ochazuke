@@ -95,7 +95,7 @@ func run(args []string) error {
 		if err := smokeExample(m); err != nil {
 			return err
 		}
-		fmt.Println("full-project smoke: actions, layered bindings, review mode, page/modal restoration, picker filters, palette, appearance, editing, history, registers, macros, list focus/refresh and row nouns: PASS")
+		fmt.Println("full-project smoke: actions, noun and instance rows, review mode, page/modal restoration, picker filters, palette, appearance, editing, history, registers, macros, list focus/refresh, row nouns and fan-out: PASS")
 		return nil
 	}
 	runFlags := flag.NewFlagSet("run", flag.ContinueOnError)
@@ -146,7 +146,7 @@ func smokeExample(m *ochazuke.Model) error {
 		}
 	}
 	for _, id := range []string{"overview", "paths", "help"} {
-		if r.Pages[id] == nil {
+		if r.PageOf(id) == nil {
 			return fmt.Errorf("smoke requires example page %q", id)
 		}
 	}
@@ -184,9 +184,13 @@ func smokeExample(m *ochazuke.Model) error {
 	// press sends one named key ("ctrl+s", "esc", "tab") or types text rune by
 	// rune, as a Bubble Tea v2 terminal delivers it.
 	press := func(name string) {
-		special := map[string]rune{"esc": tea.KeyEscape, "tab": tea.KeyTab}
+		special := map[string]rune{"esc": tea.KeyEscape, "tab": tea.KeyTab, "space": tea.KeySpace}
 		if code, ok := special[name]; ok {
-			key(tea.KeyPressMsg{Code: code})
+			msg := tea.KeyPressMsg{Code: code}
+			if name == "space" {
+				msg.Text = " "
+			}
+			key(msg)
 			return
 		}
 		if rest, ok := strings.CutPrefix(name, "ctrl+"); ok {
@@ -214,23 +218,23 @@ func smokeExample(m *ochazuke.Model) error {
 	expect("editor override", call("save", "workspace", "", nil), "editor saved")
 	expect("explicit target fallback", call("save", "workspace", "title", nil), "workspace saved")
 	binding("ctrl+s")
-	expect("configured override", r.Pages["overview"].Frame.State["lastAction"], "editor saved")
+	expect("configured override", pageState("overview")["lastAction"], "editor saved")
 	binding("g", "s")
-	expect("multi-key binding", r.Pages["overview"].Frame.State["summary"], "2 words")
+	expect("multi-key binding", pageState("overview")["summary"], "2 words")
 	binding("g", "h")
-	expect("configured greeting sequence", r.Pages["overview"].Frame.State["greeting"], "Hello, Ochazuke!")
+	expect("configured greeting sequence", pageState("overview")["greeting"], "Hello, Ochazuke!")
 	binding("ctrl+t")
 	expect("targeted edit", string(r.Inputs["title"].Text), " [reviewed]Release")
 	binding("ctrl+r")
 	expect("custom review mode", r.Mode(r.Context()), "review")
 	binding("s")
-	expect("review binding inspection", r.Frames[0].State["inspection"], map[string]any{"page": "overview", "path": []string{"app", "overview", "workspace", "editor"}, "input": "notes", "mode": "review"})
+	expect("review binding inspection", pageState("overview")["inspection"], map[string]any{"page": "overview", "path": []string{"app", "overview", "workspace", "editor"}, "input": "notes", "mode": "review"})
 	binding("esc")
 	expect("mode restoration", r.Mode(r.Context()), "normal")
 	call("move", "input", "", ochazuke.Arguments{"motion": "line-start"})
 	call("move", "input", "", ochazuke.Arguments{"motion": "word-forward"})
 	expect("editor motion", r.Inputs["notes"].Cursor, 6)
-	r.Pages["overview"].Frame.State["selectedItem"] = "release-42"
+	pageState("overview")["selectedItem"] = "release-42"
 	call("open", "page", "", ochazuke.Arguments{"id": "paths"})
 	call("open", "page", "", ochazuke.Arguments{"id": "overview"})
 	expect("page focus restoration", r.Context().InputID, "notes")
@@ -239,7 +243,7 @@ func smokeExample(m *ochazuke.Model) error {
 	binding("tab")
 	expect("configured field cycling wrap", r.Context().InputID, "notes")
 	expect("page cursor restoration", r.Inputs["notes"].Cursor, 6)
-	expect("page state restoration", r.Frames[0].State["selectedItem"], "release-42")
+	expect("page state restoration", pageState("overview")["selectedItem"], "release-42")
 	binding("ctrl+o")
 	expect("editable modal", r.Context().InputID, "confirm-note")
 	replace("confirm-note", "outer")
@@ -263,12 +267,11 @@ func smokeExample(m *ochazuke.Model) error {
 	press("esc")
 	expect("help modal restores page", r.Context().InputID, "notes")
 	press("ctrl+j")
-	expect("Ctrl-J next page", r.ActivePage, "paths")
+	expect("Ctrl-J next page", r.Page, "paths")
 	press("ctrl+k")
-	expect("Ctrl-K previous page", r.ActivePage, "overview")
+	expect("Ctrl-K previous page", r.Page, "overview")
 	press("qq:")
 	expect("coalesced macro recording", r.Macro.Recording, "q")
-	expect("coalesced macro register consumed", r.Macro.Pending, "")
 	expect("coalesced colon palette", m.Palette.IsOpen(), true)
 	call("close", "palette", "", nil)
 	binding("q")
@@ -278,7 +281,7 @@ func smokeExample(m *ochazuke.Model) error {
 	call("select", "palette", "", ochazuke.Arguments{"value": "noun:page"})
 	call("search", "palette", "", ochazuke.Arguments{"query": "paths"})
 	call("select", "palette", "", ochazuke.Arguments{"value": "instance:paths"})
-	expect("noun-first page jump", r.ActivePage, "paths")
+	expect("noun-first page jump", r.Page, "paths")
 	expect("noun-first palette closes", m.Palette.IsOpen(), false)
 	binding(":")
 	call("select", "palette", "", ochazuke.Arguments{"value": "noun:page"})
@@ -294,7 +297,7 @@ func smokeExample(m *ochazuke.Model) error {
 	call("select", "palette", "", ochazuke.Arguments{"value": "workspace"})
 	call("set", "palette-argument", "", ochazuke.Arguments{"name": "name", "value": "Lin"})
 	call("execute", "palette", "", nil)
-	expect("palette action", r.Frames[0].State["greeting"], "Hello, Lin!")
+	expect("palette action", pageState("overview")["greeting"], "Hello, Lin!")
 	expect("palette restores page", r.Context().InputID, "notes")
 	call("set", "appearance", "", ochazuke.Arguments{"theme": "mono", "density": "compact"})
 	expect("live appearance", call("get", "appearance", "", nil), ochazuke.Appearance{Theme: "mono", Density: "compact", Dark: true})
@@ -409,13 +412,13 @@ func smokeExample(m *ochazuke.Model) error {
 	expect("removed row instance dropped", r.Instances["picker-lab"] == nil, true)
 	// Mixed nouns in one list: each row answers to its noun's verbs and keys.
 	binding("o")
-	expect("worktree verb by key", r.Pages["items"].Frame.State["lastAction"], "open release")
+	expect("worktree verb by key", pageState("items")["lastAction"], "open release")
 	call("select", "list", "", ochazuke.Arguments{"item": "repository"})
 	binding("f")
-	expect("repo verb by key", r.Pages["items"].Frame.State["lastAction"], "fetch repository")
+	expect("repo verb by key", pageState("items")["lastAction"], "fetch repository")
 	call("select", "list", "", ochazuke.Arguments{"item": "hotfix"})
 	binding("c")
-	expect("branch verb by key", r.Pages["items"].Frame.State["lastAction"], "checkout hotfix")
+	expect("branch verb by key", pageState("items")["lastAction"], "checkout hotfix")
 	if _, err := r.Execute(ochazuke.Request{Verb: "open", Noun: "worktree"}); err == nil {
 		failure = fmt.Errorf("smoke noun guard: open.worktree accepted a branch row")
 	}
@@ -444,7 +447,18 @@ func smokeExample(m *ochazuke.Model) error {
 	binding(":")
 	call("select", "palette", "", ochazuke.Arguments{"value": "noun:worktree"})
 	call("select", "palette", "", ochazuke.Arguments{"value": "instance:docs"})
-	expect("noun-first row action", r.Pages["items"].Frame.State["lastAction"], "open docs")
+	expect("noun-first row action", pageState("items")["lastAction"], "open docs")
+	// Fan-out: mark two rows of different nouns and apply one verb; the row
+	// whose noun lacks the verb is reported, not run.
+	call("select", "list", "", ochazuke.Arguments{"item": "docs"})
+	binding("space", "j", "j", "space")
+	report, _ := call("apply", "list", "", ochazuke.Arguments{"verb": "open"}).(map[string]any)
+	expect("fan-out applied", report["applied"], []string{"docs", "maintenance"})
+	call("select", "list", "", ochazuke.Arguments{"item": "hotfix"})
+	binding("space")
+	report, _ = call("apply", "list", "", ochazuke.Arguments{"verb": "open"}).(map[string]any)
+	expect("fan-out skips unsupported nouns", report["skipped"], []string{"hotfix: open.branch is not registered"})
+	expect("fan-out keeps marks", len(r.Lists["item-list"].Marked()), 3)
 	if failure != nil {
 		return failure
 	}

@@ -1,43 +1,45 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"ochazuke"
 )
 
+// registerBindings installs the configured rows. The file is the framework's
+// row shape; validation beyond the runtime's own covers the example's
+// handlers (a configured modal must exist for open-modal rows).
 func registerBindings(r *ochazuke.Runtime, cfg Config) error {
 	seen := map[string]bool{}
-	for _, spec := range cfg.Bindings {
-		key := spec.Layer + "\x00" + spec.Mode + "\x00" + spec.Keys
+	for _, row := range cfg.Bindings {
+		key := row.Noun + "\x00" + row.Instance + "\x00" + row.Mode + "\x00" + row.Keys + row.Pattern
 		if seen[key] {
-			return fmt.Errorf("duplicate binding %q in layer %q mode %q", spec.Keys, spec.Layer, spec.Mode)
+			return fmt.Errorf("duplicate binding %q on %s%s mode %q", row.Keys+row.Pattern, row.Noun, row.Instance, row.Mode)
 		}
 		seen[key] = true
-		q := spec.Request
+		q := row.Request
 		if q.Target != "" && q.Target != "focused-input" && len(r.Ancestry(q.Target)) == 0 {
-			return fmt.Errorf("binding %q: unknown target %q", spec.Keys, q.Target)
+			return fmt.Errorf("binding %q: unknown target %q", row.Keys, q.Target)
 		}
 		id := ochazuke.StringArg(q.Args, "id", "")
 		switch q.Key() {
 		case "focus.input":
 			if r.Inputs[id] == nil {
-				return fmt.Errorf("binding %q: unknown input %q", spec.Keys, id)
+				return fmt.Errorf("binding %q: unknown input %q", row.Keys, id)
 			}
 		case "open.page":
-			if r.Pages[id] == nil {
-				return fmt.Errorf("binding %q: unknown page %q", spec.Keys, id)
+			if r.PageOf(id) == nil {
+				return fmt.Errorf("binding %q: unknown page %q", row.Keys, id)
 			}
 		case "push.modal":
 			input := ochazuke.StringArg(q.Args, "input", "")
 			if r.Inputs[input] == nil {
-				return fmt.Errorf("binding %q: unknown modal input %q", spec.Keys, input)
+				return fmt.Errorf("binding %q: unknown modal input %q", row.Keys, input)
 			}
 		case "set.mode":
 			mode := ochazuke.StringArg(q.Args, "mode", "")
 			if !r.Modes[mode] {
-				return fmt.Errorf("binding %q: unknown mode %q", spec.Keys, mode)
+				return fmt.Errorf("binding %q: unknown mode %q", row.Keys, mode)
 			}
 		}
 		for _, action := range cfg.Actions {
@@ -52,16 +54,11 @@ func registerBindings(r *ochazuke.Runtime, cfg Config) error {
 				}
 			}
 			if !found {
-				return fmt.Errorf("binding %q: unknown configured modal %q", spec.Keys, id)
+				return fmt.Errorf("binding %q: unknown configured modal %q", row.Keys, id)
 			}
 		}
-		data, err := json.Marshal(q)
-		if err != nil {
-			return err
-		}
-		_, err = r.Execute(ochazuke.Request{Verb: "set", Noun: "binding", Args: ochazuke.Arguments{"layer": spec.Layer, "mode": spec.Mode, "keys": spec.Keys, "request": string(data)}})
-		if err != nil {
-			return fmt.Errorf("binding %q: %w", spec.Keys, err)
+		if err := r.Bind(row); err != nil {
+			return fmt.Errorf("binding %q: %w", row.Keys+row.Pattern, err)
 		}
 	}
 	return nil

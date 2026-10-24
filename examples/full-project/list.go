@@ -13,19 +13,19 @@ func listPageView(r *ochazuke.Runtime, list *ochazuke.List, spec PageConfig, sty
 	if width <= 0 || height <= 0 {
 		return ochazuke.Block{}
 	}
-	frame := r.Pages[spec.ID].Frame
+	frame := r.PageOf(spec.ID).Frame
 	selected, ok := list.Selected()
 	id := "none"
 	if ok {
 		id = selected.ID
 	}
-	path := frame.Context.Path
 	noun := "none"
 	if ok {
 		noun = selected.Noun
 	}
-	status := fmt.Sprintf("Selected: %s (%s) · Active: %s", id, noun, path[len(path)-1])
-	if last, ok := frame.State["lastAction"].(string); ok {
+	state := pageState(spec.ID)
+	status := fmt.Sprintf("Selected: %s (%s) · Active: %s", id, noun, frame.Focus)
+	if last, ok := state["lastAction"].(string); ok {
 		status += " · " + last
 	}
 	status = ansi.Truncate(status, width, "…")
@@ -41,7 +41,7 @@ func listPageView(r *ochazuke.Runtime, list *ochazuke.List, spec PageConfig, sty
 	editorPanel := func(w, h int) ochazuke.Block {
 		cw, ch := ochazuke.PanelContentSize(w, h)
 		var rows []ochazuke.Block
-		if inspection, ok := frame.State["inspection"].(map[string]any); ok && ch > 1 {
+		if inspection, ok := state["inspection"].(map[string]any); ok && ch > 1 {
 			if inspected, ok := inspection["path"].([]string); ok && len(inspected) > 0 {
 				rows = append(rows, ochazuke.Text(ansi.Truncate("Inspected: "+inspected[len(inspected)-1], cw, "…")))
 			}
@@ -60,7 +60,7 @@ func listPageView(r *ochazuke.Runtime, list *ochazuke.List, spec PageConfig, sty
 	} else if bodyHeight >= 8 {
 		topHeight := bodyHeight / 2
 		body = stack(listPanel(width, topHeight), editorPanel(width, bodyHeight-topHeight))
-	} else if frame.Context.InputID == "" {
+	} else if r.Inputs[frame.Focus] == nil {
 		body = listPanel(width, bodyHeight)
 	} else {
 		body = editorPanel(width, bodyHeight)
@@ -112,23 +112,23 @@ func beside(gap string, blocks ...ochazuke.Block) ochazuke.Block {
 	return out
 }
 
-// bindingsView lists the effective bindings of a context under the instance
-// and noun that own the focus, so the same modal reads differently per row.
-func bindingsView(r *ochazuke.Runtime, origin ochazuke.Context, width int) string {
-	if len(origin.Path) == 0 {
-		return "(no originating context)"
-	}
-	focus := origin.InputID
+// bindingsView lists the rows the originating focus answers to, under the
+// instance and noun that own it, so the same modal reads differently per row.
+func bindingsView(r *ochazuke.Runtime, focus string, width int) string {
 	if focus == "" {
-		focus = origin.Path[len(origin.Path)-1]
+		return "(no originating context)"
 	}
 	noun := "input"
 	if inst := r.Instances[focus]; inst != nil && inst.Noun != "" {
 		noun = inst.Noun
 	}
-	lines := []string{fmt.Sprintf("Focus: %s · noun: %s · mode: %s", focus, noun, r.Mode(origin))}
-	for _, b := range r.EffectiveBindings(origin) {
-		line := fmt.Sprintf("%-12s %s.%s", b.Keys, b.Request.Verb, b.Request.Noun)
+	lines := []string{fmt.Sprintf("Focus: %s · noun: %s · mode: %s", focus, noun, r.Mode(r.Context()))}
+	for _, b := range r.ListBindings(focus) {
+		key := b.Keys
+		if key == "" {
+			key = "<" + b.Pattern + ">"
+		}
+		line := fmt.Sprintf("%-12s %s.%s", key, b.Request.Verb, b.Request.Noun)
 		if len(b.Request.Args) > 0 {
 			line += fmt.Sprintf(" %v", map[string]any(b.Request.Args))
 		}
@@ -136,6 +136,10 @@ func bindingsView(r *ochazuke.Runtime, origin ochazuke.Context, width int) strin
 	}
 	return strings.Join(lines, "\n")
 }
+
+// modalOrigins remembers the focus each configured modal was opened from, so
+// the bindings modal can describe it.
+var modalOrigins = map[string]string{}
 
 func registerModals(m *ochazuke.Model, specs []ModalConfig) error {
 	for _, spec := range specs {
@@ -154,12 +158,11 @@ func registerModals(m *ochazuke.Model, specs []ModalConfig) error {
 		m.ModalViews["modal:"+spec.ID] = ochazuke.ModalView{Title: spec.Title, Render: func(r *ochazuke.Runtime, frame *ochazuke.Frame, w, h int) ochazuke.Block {
 			body := ochazuke.Text(ansi.Wrap(plain(spec.Text), max(1, w), ""))
 			if spec.Renderer == "bindings" {
-				origin, _ := frame.State["origin"].(ochazuke.Context)
-				body = stack(body, ochazuke.Text(""), ochazuke.Text(bindingsView(r, origin, w)))
+				body = stack(body, ochazuke.Text(""), ochazuke.Text(bindingsView(r, modalOrigins[frame.ID], w)))
 			}
 			if spec.Renderer == "confirm" {
 				inputHeight := max(1, h-strings.Count(body.Text, "\n")-3)
-				body = stack(body, ochazuke.Text(""), ochazuke.InputBlock(r.Inputs[frame.Context.InputID], w, inputHeight))
+				body = stack(body, ochazuke.Text(""), ochazuke.InputBlock(r.Inputs[frame.Focus], w, inputHeight))
 			}
 			return body
 		}}

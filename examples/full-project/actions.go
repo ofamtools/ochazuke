@@ -24,17 +24,17 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 					values[id] = string(input.Text)
 				}
 			}
-			frame := r.Frames[len(r.Frames)-1]
-			frame.State["saved"] = values
-			frame.State["lastAction"] = label
+			state := pageState(r.Page)
+			state["saved"] = values
+			state["lastAction"] = label
 			return label, nil
 		}
 	}
 	// activeList is the list page that is open, or an error naming the need.
 	activeList := func(r *ochazuke.Runtime) (PageConfig, *ochazuke.List, error) {
 		for _, page := range cfg.Pages {
-			if page.ID == r.ActivePage && page.Renderer == "list" {
-				return page, r.Lists[page.Context.Path[len(page.Context.Path)-1]], nil
+			if page.ID == r.Page && page.Renderer == "list" {
+				return page, r.Lists[page.Focus], nil
 			}
 		}
 		return PageConfig{}, nil, fmt.Errorf("open a list page first")
@@ -65,7 +65,7 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 			if err != nil {
 				return nil, err
 			}
-			listID := page.Context.Path[len(page.Context.Path)-1]
+			listID := page.Focus
 			id := ochazuke.StringArg(args, "row", "")
 			if leaf := c.Path[len(c.Path)-1]; id == "" && c.InputID == "" && r.Instances[leaf] != nil && r.Instances[leaf].Parent == listID {
 				id = leaf
@@ -91,7 +91,7 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 				}
 			}
 			result := map[string]any{"verb": verb, "noun": noun, "row": row.ID}
-			r.Pages[page.ID].Frame.State["lastAction"] = verb + " " + row.ID
+			pageState(page.ID)["lastAction"] = verb + " " + row.ID
 			return result, nil
 		}
 	}
@@ -134,7 +134,7 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 				return nil, fmt.Errorf("close modals before changing page fields")
 			}
 			for _, page := range cfg.Pages {
-				if page.ID != r.ActivePage {
+				if page.ID != r.Page {
 					continue
 				}
 				if len(page.Inputs) == 0 {
@@ -160,12 +160,12 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 				return nil, fmt.Errorf("summarize requires the notes input")
 			}
 			result := fmt.Sprintf("%d words", len(strings.Fields(string(notes.Text))))
-			r.Frames[len(r.Frames)-1].State["summary"] = result
+			pageState(r.Page)["summary"] = result
 			return result, nil
 		},
 		"inspect": func(r *ochazuke.Runtime, c ochazuke.Context, _ ochazuke.Arguments) (any, error) {
-			inspection := map[string]any{"page": r.ActivePage, "path": c.Path, "input": c.InputID, "mode": r.Mode(c)}
-			r.Frames[len(r.Frames)-1].State["inspection"] = inspection
+			inspection := map[string]any{"page": r.Page, "path": c.Path, "input": c.InputID, "mode": r.Mode(c)}
+			pageState(r.Page)["inspection"] = inspection
 			return inspection, nil
 		},
 		"greet": func(r *ochazuke.Runtime, _ ochazuke.Context, a ochazuke.Arguments) (any, error) {
@@ -175,7 +175,7 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 			}
 			greeting := "Hello, " + ochazuke.StringArg(a, "name", "") + "!"
 			result := strings.TrimSuffix(strings.Repeat(greeting+" ", count), " ")
-			r.Frames[len(r.Frames)-1].State["greeting"] = result
+			pageState(r.Page)["greeting"] = result
 			return result, nil
 		},
 		"open-modal": func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
@@ -184,12 +184,13 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 				if spec.ID != id {
 					continue
 				}
-				context := ochazuke.Context{Path: []string{"app"}}
+				focus := "app"
 				if spec.Input != "" {
-					context = ochazuke.Context{Path: r.InstancePath(spec.Input)[:len(r.InstancePath(spec.Input))-1], InputID: spec.Input}
+					focus = spec.Input
 				}
-				// The opening context lets a renderer describe what was focused.
-				err := r.Push(&ochazuke.Frame{ID: "modal:" + id, Context: context, State: map[string]any{"origin": c.Clone()}})
+				// The opening focus lets a renderer describe what was focused.
+				modalOrigins["modal:"+id] = focusOf(c)
+				err := r.Push(&ochazuke.Frame{ID: "modal:" + id, Focus: focus})
 				return r.Context(), err
 			}
 			return nil, fmt.Errorf("unknown configured modal %q", id)
@@ -216,7 +217,7 @@ func registerActions(r *ochazuke.Runtime, cfg Config) error {
 				return fmt.Errorf("action %s.%s: invalid parameter %q type %q", spec.Verb, spec.Noun, name, parameter.Type)
 			}
 		}
-		if spec.Layer != "" {
+		if spec.On != "" {
 			continue
 		}
 		operation := ochazuke.Operation{Verb: spec.Verb, Noun: spec.Noun, Description: spec.Description, Parameters: spec.Parameters, Result: spec.Result, Run: handlers[spec.Handler]}
@@ -226,21 +227,32 @@ func registerActions(r *ochazuke.Runtime, cfg Config) error {
 		r.Register(operation)
 	}
 	for _, spec := range cfg.Actions {
-		if spec.Layer == "" {
+		if spec.On == "" {
 			continue
 		}
 		key := spec.Verb + "." + spec.Noun
-		layer := r.Layers[spec.Layer]
-		if layer == nil {
-			return fmt.Errorf("action %s: unknown layer %q", key, spec.Layer)
+		noun := r.Noun(spec.On)
+		if noun == nil {
+			return fmt.Errorf("action %s: unknown noun %q", key, spec.On)
 		}
 		if _, exists := r.Operations[key]; !exists {
-			return fmt.Errorf("layer action %s has no registered operation", key)
+			return fmt.Errorf("noun action %s has no registered operation", key)
 		}
-		if layer.Actions[key] != nil {
-			return fmt.Errorf("duplicate layer action %s in %q", key, spec.Layer)
+		if noun.Actions[key] != nil {
+			return fmt.Errorf("duplicate noun action %s on %q", key, spec.On)
 		}
-		layer.Actions[key] = handlers[spec.Handler]
+		noun.Actions[key] = handlers[spec.Handler]
 	}
 	return nil
+}
+
+// focusOf is the instance a handler context addresses.
+func focusOf(c ochazuke.Context) string {
+	if c.InputID != "" {
+		return c.InputID
+	}
+	if len(c.Path) == 0 {
+		return ""
+	}
+	return c.Path[len(c.Path)-1]
 }

@@ -12,18 +12,19 @@ import (
 // NewDemo supplies example pages; none of these page names are required by the framework.
 func NewDemo() *Model {
 	r := NewRuntime()
-	for _, id := range []string{"overview", "playground", "commands", "appearance", "agent", "directory", "notes", "paths", "dialog", "nested-dialog", "help"} {
-		r.Layers[id] = &Layer{ID: id, Noun: id, Actions: map[string]Handler{}}
+	for _, id := range []string{"overview", "playground", "commands", "appearance", "help"} {
+		r.Instance(id)
 	}
+	r.Instance("agent", Parent("playground"))
 	for _, item := range []struct {
-		in   *Input
-		path []string
+		in     *Input
+		parent string
 	}{
-		{NewInput("directory", "/tmp", false), []string{"app", "playground", "agent", "directory"}},
-		{NewInput("notes", "A small workspace, with state that stays.\nTry i, type a few words, then Escape and u.\nSwitch pages and come back: your place is kept.", true), []string{"app", "playground", "agent", "notes"}},
-		{NewInput("paths", "/tmp\n.", true), []string{"app", "playground", "agent", "paths"}},
-		{NewInput("dialog", "This draft belongs to the modal.\nThe page remains underneath it.", true), []string{"app", "dialog"}},
-		{NewInput("nested-dialog", "A second modal, with its own history.", true), []string{"app", "nested-dialog"}},
+		{NewInput("directory", "/tmp", false), "agent"},
+		{NewInput("notes", "A small workspace, with state that stays.\nTry i, type a few words, then Escape and u.\nSwitch pages and come back: your place is kept.", true), "agent"},
+		{NewInput("paths", "/tmp\n.", true), "agent"},
+		{NewInput("dialog", "This draft belongs to the modal.\nThe page remains underneath it.", true), "app"},
+		{NewInput("nested-dialog", "A second modal, with its own history.", true), "app"},
 	} {
 		switch item.in.ID {
 		case "directory":
@@ -31,22 +32,22 @@ func NewDemo() *Model {
 		case "paths":
 			item.in.Kind, item.in.PathFilter = "paths", "any"
 		}
-		if err := r.AddInput(item.in, item.path); err != nil {
+		if err := r.AddInput(item.in, Parent(item.parent)); err != nil {
 			panic(err)
 		}
 	}
 	var m *Model
+	lastNoun := ""
 	for _, spec := range []struct {
-		id, title string
-		context   Context
-		render    func(*Runtime, int, int) Block
+		id, title, focus string
+		render           func(*Runtime, int, int) Block
 	}{
-		{"overview", "Overview", Context{Path: []string{"app", "overview"}}, func(r *Runtime, w, h int) Block { return Text(demoOverview(m, w)) }},
-		{"playground", "Playground", Context{Path: []string{"app", "playground", "agent", "directory"}, InputID: "directory"}, func(r *Runtime, w, h int) Block { return demoPlayground(m, w, h) }},
-		{"commands", "Commands", Context{Path: []string{"app", "commands"}}, func(r *Runtime, w, h int) Block { return Text(demoCommands(m, w)) }},
-		{"appearance", "Appearance", Context{Path: []string{"app", "appearance"}}, func(r *Runtime, w, h int) Block { return Text(demoAppearance(m, w)) }},
+		{"overview", "Overview", "overview", func(r *Runtime, w, h int) Block { return Text(demoOverview(m, w)) }},
+		{"playground", "Playground", "directory", func(r *Runtime, w, h int) Block { return demoPlayground(m, w, h, lastNoun) }},
+		{"commands", "Commands", "commands", func(r *Runtime, w, h int) Block { return Text(demoCommands(m, w)) }},
+		{"appearance", "Appearance", "appearance", func(r *Runtime, w, h int) Block { return Text(demoAppearance(m, w)) }},
 	} {
-		if err := r.RegisterPage(&Page{ID: spec.id, Title: spec.title, Frame: &Frame{ID: spec.id, Context: spec.context, State: map[string]any{}}, Render: spec.render}); err != nil {
+		if err := r.RegisterPage(&Page{ID: spec.id, Title: spec.title, Focus: spec.focus, Render: spec.render}); err != nil {
 			panic(err)
 		}
 	}
@@ -65,7 +66,7 @@ func NewDemo() *Model {
 			if f.ID == "draft" {
 				hint += " · Ctrl-N nest"
 			}
-			editor := InputBlock(r.Inputs[f.Context.InputID], w, max(1, h-2))
+			editor := InputBlock(r.Inputs[f.Focus], w, max(1, h-2))
 			return editor.Offset(0, 2).WithText(s.Muted.Render(safeText(hint)) + "\n\n" + editor.Text)
 		}}
 	}
@@ -76,7 +77,7 @@ func NewDemo() *Model {
 		r.Register(Operation{Verb: verb, Noun: noun, Description: description, Parameters: params, Result: "JSON value", Run: fn})
 	}
 	register("next", "input", "Cycle playground field focus", map[string]Parameter{"delta": {Type: "integer"}}, func(r *Runtime, c Context, a Arguments) (any, error) {
-		if r.ActivePage != "playground" || len(r.Frames) > 1 {
+		if r.Page != "playground" || len(r.Frames) > 1 {
 			return nil, errors.New("switch fields on the playground page, with modals closed")
 		}
 		ids := []string{"directory", "notes", "paths"}
@@ -98,18 +99,18 @@ func NewDemo() *Model {
 		if inst := r.Instances[focusOf(c)]; inst != nil && inst.Noun != "" {
 			name = inst.Noun
 		}
-		r.Frames[len(r.Frames)-1].State["lastLayer"] = name
+		lastNoun = name
 		return name, nil
 	})
-	for _, id := range []string{"playground", "agent", "directory"} {
+	for _, id := range []string{"playground", "agent"} {
 		name := id
-		r.Layers[id].Actions["inspect.selection"] = func(r *Runtime, c Context, a Arguments) (any, error) {
-			r.Frames[len(r.Frames)-1].State["lastLayer"] = name
+		r.Define(id).Action("inspect.selection", func(r *Runtime, c Context, a Arguments) (any, error) {
+			lastNoun = name
 			return name, nil
-		}
+		})
 	}
 	register("open", "help", "Open the keyboard guide without losing your place", nil, func(r *Runtime, c Context, a Arguments) (any, error) {
-		err := r.Push(&Frame{ID: "help", Context: Context{Path: []string{"app", "help"}}, State: map[string]any{}})
+		err := r.Push(&Frame{ID: "help", Focus: "help"})
 		return r.Context(), err
 	})
 	register("cycle", "theme", "Cycle through the available default themes", nil, func(r *Runtime, c Context, a Arguments) (any, error) {
@@ -129,8 +130,15 @@ func NewDemo() *Model {
 		}
 		return r.ExecuteAt(c, Request{Verb: "set", Noun: "appearance", Args: Arguments{"density": density}})
 	})
-	bind := func(layer, mode, key, verb, noun string, args Arguments) {
-		r.Layers[layer].Bindings = append(r.Layers[layer].Bindings, Binding{Mode: mode, Keys: key, Request: Request{Verb: verb, Noun: noun, Args: args}})
+	// bind puts a row on a noun, or on an input instance when id names one.
+	bind := func(id, mode, key, verb, noun string, args Arguments) {
+		row := Binding{Noun: id, Mode: mode, Keys: key, Request: Request{Verb: verb, Noun: noun, Args: args}}
+		if r.Inputs[id] != nil {
+			row.Noun, row.Instance = "", id
+		}
+		if err := r.Bind(row); err != nil {
+			panic(err)
+		}
 	}
 	bind("app", "normal", "?", "open", "help", nil)
 	for _, id := range []string{"overview", "commands", "appearance"} {
@@ -165,22 +173,22 @@ func demoOverview(m *Model, width int) string {
 	var b strings.Builder
 	b.WriteString(s.Title.Render("A framework. Your application.") + "\n")
 	b.WriteString(s.Muted.Render("Pages keep their place. Actions share one interface.") + "\n\n")
-	for _, id := range m.Runtime.PageOrder {
+	for _, page := range m.Runtime.PageList() {
 		descriptions := map[string]string{"overview": "Start here: navigation and the framework's structure.", "playground": "Edit text, branch undo history, and open nested modals.", "commands": "Inspect real operations, argument schemas, and bindings.", "appearance": "Change the live theme and spacing defaults."}
-		fmt.Fprintf(&b, "%s\n  %s\n\n", s.Subtitle.Render(m.Runtime.Pages[id].Title), s.Muted.Render(descriptions[id]))
+		fmt.Fprintf(&b, "%s\n  %s\n\n", s.Subtitle.Render(page.Title), s.Muted.Render(descriptions[page.ID]))
 	}
 	b.WriteString(s.Panel.Width(max(1, width-2)).Render("TRY IT\nCtrl-J → i → type → Escape → u\nCtrl-N opens a modal without replacing the page.\n: searches the same actions available through the CLI."))
 	b.WriteString("\n\n" + s.Muted.Render("? keyboard guide · Ctrl-J/K switch pages · Ctrl-C quit"))
 	return b.String()
 }
-func demoPlayground(m *Model, width, height int) Block {
+func demoPlayground(m *Model, width, height int, lastNoun string) Block {
 	r := m.Runtime
 	s := NewStyles(*m.Appearance)
-	frame := r.Pages["playground"].Frame
+	frame := r.PageOf("playground").Frame
 	// Only the focused field carries a cursor; the panel border, padding and
 	// label row move it.
 	field := func(id, label string, w, h int) Block {
-		active := frame.Context.InputID == id
+		active := frame.Focus == id
 		style := s.Panel
 		if active {
 			style = s.FocusedPanel
@@ -198,7 +206,7 @@ func demoPlayground(m *Model, width, height int) Block {
 	var fields Block
 	if height < 18 {
 		labels := map[string]string{"directory": "Directory · path", "notes": "Notes · text", "paths": "Paths · one per line"}
-		id := frame.Context.InputID
+		id := frame.Focus
 		fields = field(id, labels[id], width, max(1, height-9))
 	} else if width >= 76 {
 		left := width / 3
@@ -213,9 +221,9 @@ func demoPlayground(m *Model, width, height int) Block {
 		paths := field("paths", "Paths · one per line", width, 2).Offset(0, lipgloss.Height(directory.Text)+lipgloss.Height(notes.Text))
 		fields = Block{Text: directory.Text + "\n" + notes.Text + "\n" + paths.Text, Cursor: firstCursor(directory, notes, paths)}
 	}
-	status := "App → Playground → Agent → " + strings.Title(frame.Context.Path[len(frame.Context.Path)-1])
-	if layer, ok := frame.State["lastLayer"].(string); ok {
-		status = "Ctrl-X action handled by: " + layer
+	status := "App → Playground → Agent → " + strings.Title(frame.Focus)
+	if lastNoun != "" {
+		status = "Ctrl-X action handled by: " + lastNoun
 	}
 	// Title, subtitle and a blank row sit above the fields.
 	return fields.Offset(0, 3).WithText(s.Title.Render("Widget playground") + "\n" + s.Muted.Render("Shared yanks and registers. Independent edit histories.") + "\n\n" + fields.Text + "\n\n" + s.Accent.Render(safeText(status)) + "\n" + s.Muted.Render("Tab field · i insert · v/V/C-v select · Ctrl-Y yank history\nCtrl-N draft · Ctrl-O path picker · Ctrl-X inspect"))
@@ -225,11 +233,15 @@ func demoCommands(m *Model, width int) string {
 	s := NewStyles(*m.Appearance)
 	var b strings.Builder
 	b.WriteString(s.Title.Render("Commands & bindings") + "\n" + s.Muted.Render("Live registry · every action is available as CLI: NOUN VERB") + "\n\n")
-	context := r.Pages["playground"].Frame.Context
+	focus := r.PageOf("playground").Frame.Focus
 	b.WriteString(s.Subtitle.Render("Remembered Playground bindings") + "\n")
-	b.WriteString(s.Muted.Render(strings.Join(context.Path, " → ")+" · "+r.Mode(context)) + "\n")
-	for _, binding := range r.EffectiveBindings(context) {
-		fmt.Fprintf(&b, "%-13s %s\n", safeText(binding.Keys), s.Accent.Render(safeText(binding.Request.Key())))
+	b.WriteString(s.Muted.Render(strings.Join(r.InstancePath(focus), " → ")+" · "+r.modeState(focus).Name) + "\n")
+	for _, binding := range r.ListBindings(focus) {
+		key := binding.Keys
+		if key == "" {
+			key = "<" + binding.Pattern + ">"
+		}
+		fmt.Fprintf(&b, "%-13s %s\n", safeText(key), s.Accent.Render(safeText(binding.Request.Key())))
 	}
 	b.WriteString("\n" + s.Subtitle.Render("Operation catalog") + "\n")
 	for _, op := range r.Catalog() {

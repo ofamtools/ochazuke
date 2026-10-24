@@ -7,11 +7,12 @@ import (
 
 func main() {
 	r := ochazuke.NewRuntime()
-	for _, id := range []string{"panes", "agent", "directory", "modal"} {
-		r.Layers[id] = &ochazuke.Layer{ID: id, Noun: id, Actions: map[string]ochazuke.Handler{}}
-	}
-	must(r.AddInput(ochazuke.NewInput("directory", "/tmp", false), []string{"app", "panes", "agent", "directory"}))
-	must(r.AddInput(ochazuke.NewInput("picker", "/home", false), []string{"app", "modal"}))
+	r.Instance("panes")
+	r.Instance("agent", ochazuke.Parent("panes"))
+	r.Instance("field", ochazuke.Parent("agent"), ochazuke.Kind("directory"))
+	r.Instance("dialog")
+	must(r.AddInput(ochazuke.NewInput("directory", "/tmp", false), ochazuke.Parent("field")))
+	must(r.AddInput(ochazuke.NewInput("picker", "/home", false), ochazuke.Parent("dialog")))
 	must(r.Focus("directory"))
 	exec := func(q ochazuke.Request) any { v, e := r.Execute(q); must(e); return v }
 	exec(ochazuke.Request{Verb: "insert", Noun: "input", Args: ochazuke.Arguments{"text": "x"}})
@@ -28,14 +29,14 @@ func main() {
 	r.Register(ochazuke.Operation{Verb: "inspect", Noun: "selection", Description: "Demonstrate scoped actions", Result: "layer", Run: func(*ochazuke.Runtime, ochazuke.Context, ochazuke.Arguments) (any, error) { return "app", nil }})
 	for _, id := range []string{"panes", "agent", "directory"} {
 		name := id
-		r.Layers[id].Actions["inspect.selection"] = func(*ochazuke.Runtime, ochazuke.Context, ochazuke.Arguments) (any, error) { return name, nil }
+		r.Define(id).Action("inspect.selection", func(*ochazuke.Runtime, ochazuke.Context, ochazuke.Arguments) (any, error) { return name, nil })
 	}
 	for _, expected := range []string{"directory", "agent", "panes", "app"} {
 		got := exec(ochazuke.Request{Verb: "inspect", Noun: "selection"})
 		if got != expected {
-			panic(fmt.Sprintf("layer: got %v want %s", got, expected))
+			panic(fmt.Sprintf("noun: got %v want %s", got, expected))
 		}
-		delete(r.Layers[expected].Actions, "inspect.selection")
+		delete(r.Noun(expected).Actions, "inspect.selection")
 	}
 	fmt.Println("foundation: directory → agent → panes → app fallback; modal restoration; isolated focused-input undo: PASS")
 }

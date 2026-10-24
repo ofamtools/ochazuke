@@ -30,14 +30,22 @@ func registerPages(m *ochazuke.Model, specs []PageConfig) error {
 				return fmt.Errorf("page %q: input %q is unknown or belongs to another page", spec.ID, id)
 			}
 		}
-		if spec.Context.InputID != "" && !slices.Contains(spec.Inputs, spec.Context.InputID) {
+		focusedInput := m.Runtime.Inputs[spec.Focus] != nil
+		if focusedInput && !slices.Contains(spec.Inputs, spec.Focus) {
 			return fmt.Errorf("page %q: focused input must appear in inputs", spec.ID)
 		}
-		if spec.Renderer == "list" && (len(spec.Inputs) != 1 || spec.Context.InputID != "") {
-			return fmt.Errorf("list page %q requires one companion input and a list-focused context", spec.ID)
+		if spec.Renderer == "list" && (len(spec.Inputs) != 1 || focusedInput) {
+			return fmt.Errorf("list page %q requires one companion input and a list-focused start", spec.ID)
 		}
 		var list *ochazuke.List
-		page := &ochazuke.Page{ID: spec.ID, Title: spec.Title, Frame: &ochazuke.Frame{ID: spec.ID, Context: spec.Context, State: map[string]any{}}}
+		if spec.Renderer == "list" {
+			var err error
+			list, err = ochazuke.NewList(m.Runtime, spec.Focus, spec.Items, ochazuke.Parent(spec.ID))
+			if err != nil {
+				return fmt.Errorf("page %q: %w", spec.ID, err)
+			}
+		}
+		page := &ochazuke.Page{ID: spec.ID, Title: spec.Title, Focus: spec.Focus}
 		page.Render = func(r *ochazuke.Runtime, width, height int) ochazuke.Block {
 			styles := ochazuke.NewStyles(*m.Appearance)
 			if spec.Renderer == "text" {
@@ -46,28 +54,34 @@ func registerPages(m *ochazuke.Model, specs []PageConfig) error {
 			if spec.Renderer == "list" {
 				return listPageView(r, list, spec, styles, width, height)
 			}
-			return workspaceView(r, r.Pages[spec.ID].Frame, spec, styles, width, height)
+			return workspaceView(r, r.PageOf(spec.ID).Frame, spec, styles, width, height)
 		}
 		if err := m.Runtime.RegisterPage(page); err != nil {
 			return fmt.Errorf("page %q: %w", spec.ID, err)
 		}
-		if spec.Renderer == "list" {
-			var err error
-			list, err = ochazuke.NewList(m.Runtime, spec.Context.Path, spec.Items)
-			if err != nil {
-				return fmt.Errorf("page %q: %w", spec.ID, err)
-			}
-		}
 	}
 	return nil
+}
+
+// workspaceState is the example's per-page application state: the last
+// action, summaries, greetings and inspections the renderers show. It is
+// application data, so it lives with the application, not on a frame.
+var workspaceState = map[string]map[string]any{}
+
+func pageState(id string) map[string]any {
+	if workspaceState[id] == nil {
+		workspaceState[id] = map[string]any{}
+	}
+	return workspaceState[id]
 }
 
 // workspaceView keeps all fields visible when they fit. Small windows show the
 // focused field instead; Tab still visits every configured field in order.
 func workspaceView(r *ochazuke.Runtime, frame *ochazuke.Frame, spec PageConfig, styles ochazuke.Styles, width, height int) ochazuke.Block {
 	var status []string
+	state := pageState(spec.ID)
 	for _, key := range []string{"lastAction", "summary", "greeting", "inspection"} {
-		if value, ok := frame.State[key]; ok {
+		if value, ok := state[key]; ok {
 			status = append(status, styles.Accent.Render(ansi.Truncate(plain(fmt.Sprint(value)), width, "…")))
 		}
 	}
@@ -77,7 +91,7 @@ func workspaceView(r *ochazuke.Runtime, frame *ochazuke.Frame, spec PageConfig, 
 		if r.Inputs[id].Multiline {
 			minimum++
 		}
-		if frame.Context.InputID == id {
+		if frame.Focus == id {
 			selected = i
 		}
 	}
@@ -109,7 +123,7 @@ func workspaceView(r *ochazuke.Runtime, frame *ochazuke.Frame, spec PageConfig, 
 			label += " · " + input.PathFilter
 		}
 		// Only the focused field carries a cursor; the panel moves it inside its border.
-		focused := frame.Context.InputID == id
+		focused := frame.Focus == id
 		body := ochazuke.InputBlock(input, contentWidth, contentHeight)
 		if !focused {
 			body.Cursor = nil

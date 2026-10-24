@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -18,7 +19,7 @@ func timedBindings(t *testing.T, keys ...string) (*Runtime, *[]string) {
 			calls = append(calls, key)
 			return nil, nil
 		}})
-		r.Layers["app"].Bindings = append(r.Layers["app"].Bindings, Binding{Keys: key, Request: Request{Verb: key, Noun: "test"}})
+		r.Define("app").Mode("").Bind(key, Do(key+".test"))
 	}
 	return r, &calls
 }
@@ -34,7 +35,7 @@ func bindingKey(t *testing.T, r *Runtime, key string) bool {
 
 func expireBinding(t *testing.T, r *Runtime) {
 	t.Helper()
-	r.pendingBinding.deadline = time.Now().Add(-time.Second)
+	r.prefix.deadline = time.Now().Add(-time.Second)
 	handled, err := r.HandleBindingTimeout(BindingTimeoutMsg{runtime: r, version: r.bindingVersion})
 	if !handled || err != nil {
 		t.Fatalf("timeout handled=%v err=%v", handled, err)
@@ -51,8 +52,8 @@ func TestAmbiguousBindingsChooseLongestCompletedMatch(t *testing.T) {
 		{"single timeout", []string{"g"}, true, "g"},
 		{"double timeout", []string{"g", "g"}, true, "g g"},
 		{"triple complete", []string{"g", "g", "g"}, false, "g g g"},
-		{"single mismatch consumes x", []string{"g", "x"}, false, "g"},
-		{"double mismatch consumes x", []string{"g", "g", "x"}, false, "g g"},
+		{"single mismatch runs the match then x", []string{"g", "x"}, false, "g x"},
+		{"double mismatch runs the match then x", []string{"g", "g", "x"}, false, "g g x"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			r, calls := timedBindings(t, "g", "g g", "g g g", "x")
@@ -70,7 +71,11 @@ func TestAmbiguousBindingsChooseLongestCompletedMatch(t *testing.T) {
 				}
 				expireBinding(t, r)
 			}
-			if !reflect.DeepEqual(*calls, []string{tc.want}) || r.Pending != "" {
+			want := []string{tc.want}
+			if tc.want == "g x" || tc.want == "g g x" {
+				want = []string{strings.TrimSuffix(tc.want, " x"), "x"}
+			}
+			if !reflect.DeepEqual(*calls, want) || r.Pending != "" {
 				t.Fatalf("calls=%v pending=%q", *calls, r.Pending)
 			}
 		})
@@ -132,7 +137,7 @@ func TestPureBindingPrefixesExpireOrRetryWithoutFallback(t *testing.T) {
 func TestLateKeyStartsFreshAfterExpiredFallback(t *testing.T) {
 	r, calls := timedBindings(t, "g", "g g", "x")
 	bindingKey(t, r, "g")
-	r.pendingBinding.deadline = time.Now().Add(-time.Second)
+	r.prefix.deadline = time.Now().Add(-time.Second)
 	bindingKey(t, r, "x")
 	if !reflect.DeepEqual(*calls, []string{"g", "x"}) {
 		t.Fatalf("calls=%v", *calls)
@@ -146,13 +151,13 @@ func TestContextChangesCancelDeferredBindings(t *testing.T) {
 			bindingKey(t, r, "g")
 			msg := BindingTimeoutMsg{runtime: r, version: r.bindingVersion}
 			if change == "frame" {
-				if err := r.Push(&Frame{ID: "modal", Context: Context{Path: []string{"app"}}}); err != nil {
+				if err := r.Push(&Frame{ID: "modal", Focus: "app"}); err != nil {
 					t.Fatal(err)
 				}
 			} else {
 				r.Instances["app"].State = "insert"
 			}
-			r.pendingBinding.deadline = time.Now().Add(-time.Second)
+			r.prefix.deadline = time.Now().Add(-time.Second)
 			r.HandleBindingTimeout(msg)
 			if r.Pending != "" || len(*calls) != 0 {
 				t.Fatalf("pending=%q calls=%v", r.Pending, *calls)

@@ -6,53 +6,91 @@ import (
 	"strings"
 )
 
-// Page retains its base frame and renderer across navigation. Render returns
-// the page body for the given cell bounds as a Block; its cursor, when the page
+// Page is the component a page instance fronts: a title, the base frame that
+// remembers where focus sits on the page, and a renderer. Render returns the
+// page body for the given cell bounds as a Block; its cursor, when the page
 // holds the focused input, is relative to the body's top-left cell. Pages
 // without inputs return Text(body).
 type Page struct {
 	ID     string                         `json:"id"`
 	Title  string                         `json:"title"`
+	Focus  string                         `json:"focus"`
 	Frame  *Frame                         `json:"frame"`
 	Render func(*Runtime, int, int) Block `json:"-"`
 }
 
-// RegisterPage uses an existing layer and does not activate the page.
-func (r *Runtime) RegisterPage(page *Page) error {
+// RegisterPage registers a page as an instance of kind page under app (the
+// instance may already exist, registered through Instance with the inputs
+// and lists it holds). Focus names where the page starts: the page itself or
+// an instance beneath it. Registration does not activate the page.
+func (r *Runtime) RegisterPage(page *Page, opts ...InstanceOption) error {
 	if page == nil || strings.TrimSpace(page.ID) == "" || strings.TrimSpace(page.Title) == "" {
 		return errors.New("page ID and title must be nonempty")
 	}
-	if r.Pages[page.ID] != nil {
+	if r.PageOf(page.ID) != nil {
 		return fmt.Errorf("page ID %q is already registered", page.ID)
 	}
-	for _, id := range r.PageOrder {
-		if r.Pages[id].Title == page.Title {
+	for _, other := range r.PageList() {
+		if other.Title == page.Title {
 			return fmt.Errorf("page title %q is already registered", page.Title)
 		}
 	}
-	if page.Frame == nil || page.Render == nil {
-		return errors.New("page frame and renderer are required")
+	if page.Render == nil {
+		return errors.New("page renderer is required")
 	}
-	path := page.Frame.Context.Path
-	if len(path) < 2 || path[0] != "app" || path[1] != page.ID {
-		return errors.New("page interaction path must start with app and the page ID")
+	if page.Focus == "" {
+		page.Focus = page.ID
 	}
-	if err := r.validateContext(page.Frame.Context); err != nil {
-		return err
+	if inst := r.Instances[page.ID]; inst != nil {
+		if inst.Parent != "app" {
+			return fmt.Errorf("page %q must be registered under app", page.ID)
+		}
+	} else {
+		path := r.InstancePath(page.Focus)
+		if page.Focus != page.ID && (len(path) < 2 || path[1] != page.ID) {
+			return fmt.Errorf("page focus %q must sit beneath page %q", page.Focus, page.ID)
+		}
 	}
-	r.adoptPath(page.Frame.Context.Path)
-	page.Frame.Context = page.Frame.Context.Clone()
-	if page.Frame.State == nil {
-		page.Frame.State = map[string]any{}
+	if page.Focus != page.ID {
+		if path := r.InstancePath(page.Focus); len(path) < 2 || path[1] != page.ID {
+			return fmt.Errorf("page focus %q must sit beneath page %q", page.Focus, page.ID)
+		}
 	}
-	r.Pages[page.ID] = page
-	r.PageOrder = append(r.PageOrder, page.ID)
+	inst := r.Instance(page.ID, append([]InstanceOption{Kind("page")}, opts...)...)
+	inst.Component = page
+	page.Frame = &Frame{ID: page.ID, Focus: page.Focus}
+	if list := r.Lists[page.Focus]; list != nil {
+		// A page that starts on a list starts on its selected row.
+		page.Frame.Focus = list.focusTarget()
+	}
 	return nil
 }
 
-// OpenPage restores the exact page-owned frame; an open modal blocks navigation.
+// PageOf returns the page an instance fronts, or nil.
+func (r *Runtime) PageOf(id string) *Page {
+	if inst := r.Instances[id]; inst != nil {
+		if page, ok := inst.Component.(*Page); ok {
+			return page
+		}
+	}
+	return nil
+}
+
+// PageList lists pages in registration order: app's children of kind page.
+func (r *Runtime) PageList() []*Page {
+	var out []*Page
+	for _, inst := range r.Children("app") {
+		if page, ok := inst.Component.(*Page); ok {
+			out = append(out, page)
+		}
+	}
+	return out
+}
+
+// OpenPage makes a page current and restores its exact base frame; an open
+// modal blocks navigation. Runtime.Page always lies on the base frame's focus.
 func (r *Runtime) OpenPage(id string) error {
-	page := r.Pages[id]
+	page := r.PageOf(id)
 	if page == nil {
 		return fmt.Errorf("unknown page %q", id)
 	}
@@ -60,56 +98,39 @@ func (r *Runtime) OpenPage(id string) error {
 		return errors.New("close the active modal before opening a page")
 	}
 	r.Frames = []*Frame{page.Frame}
-	r.ActivePage = id
+	r.Page = id
 	r.CancelPendingBinding()
 	return nil
 }
 
-// validateSelection guards navigation, not explicitly targeted execution.
-func (r *Runtime) validateSelection(c Context) error {
-	if err := r.validateContext(c); err != nil {
-		return err
-	}
-	if r.Pages[r.ActivePage] != nil {
-		if len(r.Frames) == 1 && (len(c.Path) < 2 || c.Path[1] != r.ActivePage) {
-			return errors.New("select a context inside the active page; open a modal for a modal input")
-		}
-		for _, id := range c.Path[1:] {
-			if r.Pages[id] != nil && id != r.ActivePage {
-				return fmt.Errorf("open page %q before selecting its context", id)
-			}
-		}
-	}
-	return nil
-}
-
 func (r *Runtime) movePage(delta int) error {
-	if len(r.PageOrder) == 0 {
+	pages := r.PageList()
+	if len(pages) == 0 {
 		return errors.New("no pages registered")
 	}
 	index := -1
-	for i, id := range r.PageOrder {
-		if id == r.ActivePage {
+	for i, page := range pages {
+		if page.ID == r.Page {
 			index = i
 			break
 		}
 	}
 	if index == -1 {
 		if delta > 0 {
-			return r.OpenPage(r.PageOrder[0])
+			return r.OpenPage(pages[0].ID)
 		}
-		return r.OpenPage(r.PageOrder[len(r.PageOrder)-1])
+		return r.OpenPage(pages[len(pages)-1].ID)
 	}
-	index = (index + delta + len(r.PageOrder)) % len(r.PageOrder)
-	return r.OpenPage(r.PageOrder[index])
+	index = (index + delta + len(pages)) % len(pages)
+	return r.OpenPage(pages[index].ID)
 }
 
 func registerPages(r *Runtime) {
+	r.Define("page")
 	r.Register(Operation{Verb: "list", Noun: "pages", Description: "List pages in registration order", Result: "page[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		pages := make([]map[string]any, 0, len(r.PageOrder))
-		for _, id := range r.PageOrder {
-			page := r.Pages[id]
-			pages = append(pages, map[string]any{"id": page.ID, "title": page.Title, "active": id == r.ActivePage})
+		pages := make([]map[string]any, 0)
+		for _, page := range r.PageList() {
+			pages = append(pages, map[string]any{"id": page.ID, "title": page.Title, "active": page.ID == r.Page})
 		}
 		return pages, nil
 	}})

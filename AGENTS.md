@@ -21,33 +21,38 @@ Do not hand-edit either generated file. If a map entry is wrong, fix the code or
 
 | Concern | Files |
 |---|---|
-| Operation registry, layers, contexts, modal stack | `runtime.go`, `configuration.go` |
-| Nouns, instances and parent links, focus-stack resolution | `noun.go`, `instance.go`, `resolve.go` |
-| Bubble Tea adapter, page shell, modal renderers | `model.go` |
-| Pages, retained frames, navigation | `pages.go` |
-| Input state, modes, undo | `input.go`, `editing.go`, `editor*.go` |
+| Operation registry, focus, modal chain, `ExecuteAt`, snapshot | `runtime.go` |
+| Nouns, the `Define` builder, binding rows, key classes, guards | `noun.go` |
+| Instances, parent links, `Payload`, ancestry, targets | `instance.go` |
+| The stack walk (`Dispatch`), pending modes, key-sequence prefixes, `list.bindings` | `resolve.go`, `bindings.go` |
+| Editor mode tables as data (Readline, Vim, counts, operators, registers, macros) | `editor_bindings.json`, `editor_keys.go` |
+| Binding files, modes, `select.context` | `configuration.go` |
+| Bubble Tea adapter, page shell, modal renderers, scroll offsets | `model.go` |
+| Pages as instances, `Runtime.Page`, navigation | `pages.go` |
+| Input state (text, cursor, undo) and the editor handlers | `input.go`, `editing.go`, `editor*.go` |
 | Selectable lists (rows as instances of nouns) | `list.go` |
 | Yanks, registers, macros, history | `registers.go`, `macros.go`, `yank_history.go` |
 | Command palette (verb/noun, instances) | `palette.go`, `palette_editing.go`, `palette_nouns.go` |
 | Path picker and fuzzy index | `picker.go`, `picker_search.go`, `picker_preview.go`, `picker_view.go` |
 | Styling and bounded modal composition | `theme.go`, `surface.go`, `layout.go` |
 | Unix socket transport and CLI dispatch | `transport.go`, `cli.go`, `cmd/ochazuke` |
-| Key bindings and timed sequences | `bindings.go` |
 | Demo pages | `demo.go`, `examples/` |
 
 ## Invariants
 
 - `Runtime` is single-owner state. Call it from the Bubble Tea update loop. Other goroutines and processes go through `Call`/`CallMsg`, never concurrent `Execute`.
-- Every keyboard action dispatches a registered operation. The CLI is a generic `NOUN VERB` adapter over the same registry. Adding a feature means registering an operation, not adding a key case.
+- Every keyboard action dispatches a registered operation through one stack walk (`Runtime.Dispatch`): from the focused instance outward to `app` (the `modal` noun before `app` while a modal is open), then the `editor` noun as the fallback of every stack. At each level the instance's own rows sit above its noun's; the mode table is read before the any-mode table; an exact key beats a key class (`digit`, `alpha`, `printable`, `paste`, `alpha-q`, `one-of:…`) beats `any`. The CLI is a generic `NOUN VERB` adapter over the same registry. Adding a feature means registering an operation and a row, never a key case: no key-name switch statements exist in `editing.go` or `editor.go`.
+- Every pending condition is an exclusive mode with a typed `Payload` on the instance: `count_pending`, `operator_pending`, `g_pending`, `register_pending`, `macro_pending`, `replay_pending`, a key-sequence prefix (`"normal g"`), the `macro_recording` shadow. Exclusive means only that mode's table answers (no any-mode rows); one-shot means the answering key consumes the mode before its request runs unless the request is `enter.mode`, `append.count`, `leave.mode` or `cancel.input`. Rows are `Request`s; `Func` rows exist only where a row re-dispatches (recording, leader).
 - Change modes with `Input.SetMode`. Never assign `Input.Mode` directly.
 - Modals keep their own frame and existing input instances. Closing one restores interaction state, not a copy of shared data.
 - Offsets count runes, not grapheme clusters. Rendering accounts for cell width.
 - Custom modes are registered names. Unknown modes are not treated as normal or insert.
-- Mode resolution: the mode is the `State` of the context's focused instance (the input when `InputID` is set, else the last path element), inherited from the nearest ancestor with a non-empty `State`, else `normal`. `Frame.State["mode"]` is gone; `Input.Mode` only mirrors the input's instance. See README "Input modes" for the editing-model and field-kind matrix.
-- List rows are instances of their nouns (`ListItem.Noun`), created and removed by `SetItems`. Never register a layer per row; give the row's noun the verbs and bindings, or put an override on the row instance.
-- Readline keys are always active in insert mode. They are framework defaults, not removable; an application overrides a key by binding it in a layer with `mode: insert`.
+- Mode resolution: the mode is the `State` of the focused instance, inherited from the nearest ancestor with a non-empty `State`, else `normal`; a pending mode is entered on the focused instance and leaves back to the raw `State` it had (`Payload.Return`). `Input.Mode` mirrors only the editing mode (normal, insert, visual*) the pending mode will return to. Focus is one id per frame (`Frame.Focus`, `Runtime.FocusID`); `Context.Path` is derived. There are no layers and no `Frame.State`: application state lives with the application, scroll offsets on the `Model`.
+- `Runtime.Page` is the current page, an instance of kind `page` under `app`; it is always an ancestor of the base frame's focus. Pages are ordered by registration (`PageList`), there is no page map.
+- List rows are instances of their nouns (`ListItem.Noun`), created and removed by `SetItems`. Never define a noun per row; give the row's noun the verbs and rows, or put an override on the row instance. Marked rows fan out through `apply.list {verb}` as `verb.<row noun>` per row.
+- Readline and Vim rows are the `editor` noun's defaults, generated from `editor_bindings.json`; an application overrides a key by binding it on any noun or instance on the stack (rows there resolve before the fallback), or in a binding file (same noun+mode+keys replaces, `"request": null` unbinds). The `prompt` noun pins insert mode. `list.bindings` lists every key the focus answers to in its mode, pending modes included.
 - Never bind function keys (F1 to F12) anywhere, including demos, sandboxes, and tests. Use ordinary keys or Ctrl/Alt combinations and keep help text in sync with the real binding.
-- This is Bubble Tea **v2**. The v1 idioms are gone: no `tea.KeyMsg` struct (`tea.KeyPressMsg` and `tea.PasteMsg`; a paste reaches `dispatchKey` as `[text]`), no `View() string` (`View() tea.View` with `AltScreen` set there, not via program options), no `lipgloss.AdaptiveColor` or renderers (`Appearance.Dark` from `tea.BackgroundColorMsg` feeds `lipgloss.LightDark`), no `github.com/charmbracelet/{bubbletea,lipgloss,bubbles}` imports. Ctrl-Space is `ctrl+space`, not `ctrl+@`. Lip Gloss v2 always emits styles; tests inspecting rendered text use the `mono` theme or `ansi.Strip`.
+- This is Bubble Tea **v2**. The v1 idioms are gone: no `tea.KeyMsg` struct (`tea.KeyPressMsg` and `tea.PasteMsg`; a paste reaches `Dispatch` as `MacroKey{Key: "[text]", Paste: true}` and matches only `paste` rows), no `View() string` (`View() tea.View` with `AltScreen` set there, not via program options), no `lipgloss.AdaptiveColor` or renderers (`Appearance.Dark` from `tea.BackgroundColorMsg` feeds `lipgloss.LightDark`), no `github.com/charmbracelet/{bubbletea,lipgloss,bubbles}` imports. Ctrl-Space is `ctrl+space`, not `ctrl+@`. Lip Gloss v2 always emits styles; tests inspecting rendered text use the `mono` theme or `ansi.Strip`.
 
 ## Checks
 

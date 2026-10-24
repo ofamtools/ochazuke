@@ -1,115 +1,111 @@
 package ochazuke
 
-func editorMotion(key string) string {
-	return map[string]string{"h": "left", "left": "left", "j": "down", "down": "down", "k": "up", "up": "up", "l": "right", "right": "right", "w": "word-forward", "b": "word-backward", "e": "word-end", "0": "line-start", "home": "line-start", "$": "line-end", "end": "line-end", "G": "last-line"}[key]
+import (
+	_ "embed"
+	"encoding/json"
+	"fmt"
+	"strings"
+)
+
+// editorSpec is the editor noun's mode tables as data: the same row shape
+// as a binding config file, plus three generators. "pending" lists the
+// exclusive modes, "extends" copies one mode's rows under another after its
+// own, and a row with "expand" is emitted once per entry of the named map,
+// with the entry's key as the row key and "$" in its arguments replaced by
+// the entry's value. Rows for input operations are guarded by "input".
+//
+//go:embed editor_bindings.json
+var editorSpec []byte
+
+type bindingSpec struct {
+	Pending []string          `json:"pending"`
+	Extends map[string]string `json:"extends"`
+	Maps    map[string]map[string]string
+	Rows    []specRow `json:"rows"`
 }
-func handleNormalEditorKey(r *Runtime, in *Input, key string) (bool, error) {
-	command := func(verb string, args Arguments) (bool, error) {
-		_, err := r.Execute(Request{Verb: verb, Noun: "input", Target: "focused-input", Args: args})
-		return true, err
+
+type specRow struct {
+	Binding
+	Expand string `json:"expand,omitempty"`
+}
+
+// LoadBindingSpec installs a spec onto one noun: modes, then rows.
+func (r *Runtime) LoadBindingSpec(noun string, data []byte) error {
+	var spec bindingSpec
+	if err := json.Unmarshal(data, &spec); err != nil {
+		return fmt.Errorf("binding spec: %w", err)
 	}
-	prefix := func(key string) (bool, error) { return command("prefix", Arguments{"key": key}) }
-	if key == "esc" {
-		if _, err := command("cancel", nil); err != nil {
-			return true, err
+	for _, mode := range spec.Pending {
+		if err := r.DefineMode(mode, true); err != nil {
+			return err
 		}
-		if isVisual(in.Mode) {
-			_, err := r.Execute(Request{Verb: "set", Noun: "mode", Args: Arguments{"mode": "normal"}})
-			return true, err
-		}
-		return true, nil
 	}
-	if in.Pending == "register" {
-		_, err := r.Execute(Request{Verb: "select", Noun: "register", Args: Arguments{"name": key}})
-		if err == nil {
-			_, err = r.Execute(Request{Verb: "prefix", Noun: "input", Args: Arguments{"key": "register-done"}})
-		} else {
-			_, _ = command("cancel", nil)
-		}
-		return true, err
-	}
-	if key == "\"" {
-		return prefix("register")
-	}
-	if len(key) == 1 && key[0] >= '0' && key[0] <= '9' && (key != "0" || in.Count > 0) {
-		return prefix(key)
-	}
-	steps := max(1, in.Count)
-	pending := in.Pending
-	if pending == "g" {
-		if key == "g" {
-			return command("move", Arguments{"motion": "first-line", "line": steps})
-		}
-		return command("cancel", nil)
-	}
-	if pending != "" {
-		op := pending[:1]
-		if op == "y" || op == "d" || op == "c" {
-			steps *= max(1, in.operatorCount)
-			motion := editorMotion(key)
-			line := 0
-			if key == op && len(pending) == 1 {
-				motion = "line"
+	for mode := range spec.Extends {
+		if !r.Modes[mode] && !r.pendingModes[mode] {
+			if err := r.DefineMode(mode, false); err != nil {
+				return err
 			}
-			if key == "g" {
-				if len(pending) == 1 {
-					return prefix("g")
+		}
+	}
+	b := r.Define(noun)
+	for _, row := range spec.Rows {
+		if row.Expand == "" {
+			if err := r.installSpecRow(b, row.Binding); err != nil {
+				return err
+			}
+			continue
+		}
+		entries, ok := spec.Maps[row.Expand]
+		if !ok {
+			return fmt.Errorf("binding spec: unknown map %q", row.Expand)
+		}
+		for key, value := range entries {
+			expanded := row.Binding
+			expanded.Keys = key
+			expanded.Request.Args = Arguments{}
+			for k, v := range row.Request.Args {
+				if s, ok := v.(string); ok {
+					v = strings.ReplaceAll(s, "$", value)
 				}
-				motion = "first-line"
-				line = steps
-			} else if len(pending) > 1 {
-				return command("cancel", nil)
+				expanded.Request.Args[k] = v
 			}
-			if motion == "last-line" {
-				line = in.Count
-				if in.Count == 0 && in.operatorCount > 0 {
-					line = in.operatorCount
-				}
+			if err := r.installSpecRow(b, expanded); err != nil {
+				return err
 			}
-			if motion != "" {
-				return command("operator", Arguments{"operator": op, "motion": motion, "steps": steps, "line": line})
-			}
-			return command("cancel", nil)
 		}
 	}
-	switch key {
-	case "v", "V", "ctrl+v":
-		shape := map[string]string{"v": "char", "V": "line", "ctrl+v": "block"}[key]
-		return command("select", Arguments{"shape": shape})
-	case "y", "d", "c":
-		if isVisual(in.Mode) {
-			return command("operator", Arguments{"operator": key})
+	// A mode extends another by reading its rows after its own.
+	for mode, parent := range spec.Extends {
+		n := b.Noun()
+		n.Bindings[mode] = append(n.Bindings[mode], n.Bindings[parent]...)
+		for i := range n.Bindings[mode] {
+			n.Bindings[mode][i].Mode = mode
 		}
-		return prefix(key)
-	case "p", "P":
-		return command("paste", Arguments{"before": key == "P", "steps": steps})
-	case "g":
-		return prefix(key)
-	case "i", "a", "I", "A", "o", "O":
-		if isVisual(in.Mode) {
-			return command("cancel", nil)
-		}
-		position := map[string]string{"i": "insert", "a": "append", "I": "first", "A": "end", "o": "below", "O": "above"}[key]
-		return command("begin", Arguments{"position": position})
-	case "x", "delete":
-		if isVisual(in.Mode) {
-			return command("operator", Arguments{"operator": "d"})
-		}
-		return command("delete", Arguments{"steps": steps})
-	case "u":
-		return command("undo", Arguments{"steps": steps})
-	case "ctrl+r":
-		return command("redo", Arguments{"steps": steps})
 	}
-	if motion := editorMotion(key); motion != "" {
-		args := Arguments{"motion": motion, "steps": steps}
-		if key == "G" {
-			args["line"] = in.Count
-		}
-		return command("move", args)
+	return nil
+}
+
+// installSpecRow appends a validated row; unlike Bind it keeps earlier rows
+// for the same key, so guarded alternatives coexist in spec order.
+func (r *Runtime) installSpecRow(b *NounBuilder, row Binding) error {
+	if row.Request.Noun == "input" && row.Request.Verb != "cancel" && row.When == "" {
+		row.When = "input"
 	}
-	if in.Count != 0 || in.Pending != "" {
-		return command("cancel", nil)
+	row.Noun, row.Instance = b.Noun().Name, ""
+	row, err := r.validateRow(row)
+	if err != nil {
+		return err
 	}
-	return false, nil
+	n := b.Noun()
+	n.Bindings[row.Mode] = append(n.Bindings[row.Mode], row)
+	return nil
+}
+
+// registerEditorNoun installs the framework default tables: the editor noun
+// every stack falls back to, and the prompt noun that pins insert mode.
+func registerEditorNoun(r *Runtime) {
+	if err := r.LoadBindingSpec("editor", editorSpec); err != nil {
+		panic(err)
+	}
+	r.Define("prompt").Pin("insert")
 }

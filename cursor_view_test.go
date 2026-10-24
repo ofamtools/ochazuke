@@ -193,7 +193,6 @@ func TestCursorViewComposesWithSelection(t *testing.T) {
 func TestCursorViewPreservesEditorState(t *testing.T) {
 	in := NewInput("field", "abcd\nx", true)
 	in.Mode, in.Anchor, in.Cursor, in.goalColumn = "visual-block", 2, 6, 3
-	in.Pending, in.Count, in.operatorCount = "g", 3, 2
 	before := *in
 	before.Text = append([]rune(nil), in.Text...)
 	before.History = append([]EditNode(nil), in.History...)
@@ -260,8 +259,8 @@ func TestModelViewCursorFollowsFocusedInput(t *testing.T) {
 	m.Sidebar = false
 
 	// A modal with its own input reports that input, not the page's.
-	r.Layers["modal"] = &Layer{ID: "modal", Noun: "modal"}
-	if err := r.AddInput(NewInput("modal-input", "xyz", false), []string{"app", "modal"}); err != nil {
+	r.Instance("dialog")
+	if err := r.AddInput(NewInput("modal-input", "xyz", false), Parent("dialog")); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := r.Execute(Request{Verb: "push", Noun: "modal", Args: Arguments{"id": "draft", "input": "modal-input"}}); err != nil {
@@ -274,7 +273,7 @@ func TestModelViewCursorFollowsFocusedInput(t *testing.T) {
 		t.Fatal("modal cursor landed on the page row")
 	}
 	// A modal without an input hides the cursor of everything beneath it.
-	if err := r.Push(&Frame{ID: "note", Context: Context{Path: []string{"app"}}, State: map[string]any{}}); err != nil {
+	if err := r.Push(&Frame{ID: "note", Focus: "app"}); err != nil {
 		t.Fatal(err)
 	}
 	m.ModalViews["note"] = ModalView{Title: "Note", Render: func(*Runtime, *Frame, int, int) Block { return Text("read me") }}

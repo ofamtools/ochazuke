@@ -48,7 +48,7 @@ func TestPaletteVerbAndNounPaths(t *testing.T) {
 		t.Run(section, func(t *testing.T) {
 			r := NewRuntime()
 			in := NewInput("draft", "before", false)
-			if err := r.AddInput(in, []string{"app"}); err != nil {
+			if err := r.AddInput(in); err != nil {
 				t.Fatal(err)
 			}
 			if err := r.Focus("draft"); err != nil {
@@ -118,7 +118,7 @@ func TestPaletteKeyboardUndoUsesCapturedInput(t *testing.T) {
 	origin := NewInput("origin", "base", false)
 	other := NewInput("other", "untouched", false)
 	for _, in := range []*Input{origin, other} {
-		if err := r.AddInput(in, []string{"app"}); err != nil {
+		if err := r.AddInput(in); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -160,7 +160,7 @@ func TestPaletteKeyboardUndoUsesCapturedInput(t *testing.T) {
 func TestPaletteOptionalUndoStepsCanBeOmitted(t *testing.T) {
 	r := NewRuntime()
 	in := NewInput("draft", "a", false)
-	if err := r.AddInput(in, []string{"app"}); err != nil {
+	if err := r.AddInput(in); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.Focus("draft"); err != nil {
@@ -291,7 +291,7 @@ func TestPaletteHandlerFailureRestoresOverlayAndDraft(t *testing.T) {
 func TestPaletteSearchNavigationAndCancellation(t *testing.T) {
 	r := NewRuntime()
 	in := NewInput("draft", "unchanged", false)
-	if err := r.AddInput(in, []string{"app"}); err != nil {
+	if err := r.AddInput(in); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.Focus("draft"); err != nil {
@@ -358,7 +358,7 @@ func TestPaletteRecursiveExecutionIsVisibleAndCancelable(t *testing.T) {
 func TestPaletteSelectedFocusChangesOriginFrame(t *testing.T) {
 	r := NewRuntime()
 	for _, id := range []string{"first", "second"} {
-		if err := r.AddInput(NewInput(id, id, false), []string{"app"}); err != nil {
+		if err := r.AddInput(NewInput(id, id, false)); err != nil {
 			t.Fatal(err)
 		}
 	}

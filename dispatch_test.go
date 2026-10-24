@@ -9,8 +9,10 @@ import (
 )
 
 // dispatchTestModel is one focused single-line editor holding text, with each
-// key bound in the app layer (any mode) to a recorded test operation. These
-// tests lock the order of Model.dispatchKey as it stands before the migration.
+// key bound on the app noun (any mode) to a recorded test operation. These
+// tests lock the stack walk: application rows beat the editor defaults for a
+// fresh key, pending modes are exclusive, modals answer esc, and the palette
+// owns typing while it is open.
 func dispatchTestModel(t *testing.T, text string, keys ...string) (*Model, *Input, *[]string) {
 	t.Helper()
 	r, in := editorTestRuntime(t, text, false)
@@ -21,7 +23,7 @@ func dispatchTestModel(t *testing.T, text string, keys ...string) (*Model, *Inpu
 			calls = append(calls, key)
 			return nil, nil
 		}})
-		r.Layers["app"].Bindings = append(r.Layers["app"].Bindings, Binding{Keys: key, Request: Request{Verb: key, Noun: "test"}})
+		r.Define("app").Mode("").Bind(key, Do(key+".test"))
 	}
 	return NewModel(r), in, &calls
 }
@@ -33,24 +35,29 @@ func dispatchTestState(t *testing.T, m *Model, in *Input, text string, calls *[]
 	}
 }
 
-// Rule: a pending macro prefix consumes the next key before bindings or the editor see it.
+// modeOf is the focused instance's full mode name (pending modes included).
+func modeOf(m *Model) string { return m.Runtime.Mode(m.Runtime.Context()) }
+
+// Rule: macro_pending is exclusive; the next key names the register, even
+// when an any-mode app row binds it.
 func TestDispatchMacroPendingBeatsLayerBinding(t *testing.T) {
 	m, in, calls := dispatchTestModel(t, "abc", "x")
-	keytest.Press(m, "q")
-	if m.Runtime.Macro.Pending != "q" {
-		t.Fatalf("q did not start a macro prefix: %+v", m.Runtime.Macro)
+	for _, step := range []struct{ key, mode string }{{"q", "macro_pending"}, {"x", "normal"}} {
+		keytest.Press(m, step.key)
+		if got := modeOf(m); got != step.mode {
+			t.Fatalf("after %s: mode %q, want %q", step.key, got, step.mode)
+		}
 	}
-	keytest.Press(m, "x")
 	dispatchTestState(t, m, in, "abc", calls)
-	if m.Runtime.Macro.Recording != "x" || m.Runtime.Macro.Pending != "" {
+	if m.Runtime.Macro.Recording != "x" {
 		t.Fatalf("bound key was not taken as the register name: %+v", m.Runtime.Macro)
 	}
 }
 
-// Rule: an active palette takes every key; page bindings and the editor grammar wait.
+// Rule: an active palette takes every key; page rows and the editor grammar wait.
 func TestDispatchPaletteActiveTakesKeys(t *testing.T) {
 	m, in, calls := dispatchTestModel(t, "abc")
-	m.Runtime.Layers["app"].Bindings = append(m.Runtime.Layers["app"].Bindings, Binding{Mode: "normal", Keys: "x", Request: Request{Verb: "quit", Noun: "app"}})
+	m.Runtime.Define("app").Mode("normal").Bind("x", Do("quit.app"))
 	if err := m.Palette.Open(); err != nil {
 		t.Fatal(err)
 	}
@@ -65,47 +72,53 @@ func TestDispatchPaletteActiveTakesKeys(t *testing.T) {
 	}
 }
 
-// Rule: a paste is one literal input event. It never matches a binding, a
-// macro prefix, or an editor command, and normal mode swallows it.
+// Rule: a paste is one literal input event. It matches only paste rows, so
+// insert mode inserts it and normal mode swallows it.
 func TestDispatchPasteIsOneLiteralInput(t *testing.T) {
 	m, in, calls := dispatchTestModel(t, "", "x")
 	keytest.Press(m, "i")
 	keytest.Paste(m, "xq@")
 	dispatchTestState(t, m, in, "xq@", calls)
-	if m.Runtime.Macro.Pending != "" {
-		t.Fatalf("paste started a macro prefix: %+v", m.Runtime.Macro)
+	if got := modeOf(m); got != "insert" {
+		t.Fatalf("paste changed the mode to %q", got)
 	}
 	keytest.Press(m, "esc")
 	keytest.Paste(m, "x")
 	dispatchTestState(t, m, in, "xq@", calls)
 }
 
-// Rule: an editor with a pending operator takes the next key before layer bindings.
+// Rule: operator_pending is exclusive; the motion reaches the editor before
+// any app row. Table: (mode, key) -> (next mode, text).
 func TestDispatchInputPendingOperatorBeatsLayerBinding(t *testing.T) {
 	m, in, calls := dispatchTestModel(t, "one two", "w")
-	keytest.Press(m, "d")
-	if in.Pending != "d" {
-		t.Fatalf("d did not start an operator: pending=%q", in.Pending)
+	for _, step := range []struct{ key, mode, text string }{{"d", "operator_pending", "one two"}, {"w", "normal", "two"}} {
+		keytest.Press(m, step.key)
+		if got := modeOf(m); got != step.mode || string(in.Text) != step.text {
+			t.Fatalf("after %s: mode %q text %q; want %q %q", step.key, got, string(in.Text), step.mode, step.text)
+		}
 	}
-	keytest.Press(m, "w")
 	dispatchTestState(t, m, in, "two", calls)
+	if in.Pending() != "" {
+		t.Fatalf("operator survived: %q", in.Pending())
+	}
 }
 
-// Rule: an editor with a pending count takes the next key before layer bindings.
+// Rule: count_pending is exclusive; the counted motion reaches the editor.
 func TestDispatchInputCountBeatsLayerBinding(t *testing.T) {
 	m, in, calls := dispatchTestModel(t, "one two three", "w")
 	keytest.Press(m, "2")
-	if in.Count != 2 {
-		t.Fatalf("2 did not start a count: count=%d", in.Count)
+	if modeOf(m) != "count_pending" || in.Count() != 2 {
+		t.Fatalf("2 did not start a count: mode=%q count=%d", modeOf(m), in.Count())
 	}
 	keytest.Press(m, "w")
 	dispatchTestState(t, m, in, "one two three", calls)
-	if in.Cursor != 8 || in.Count != 0 {
-		t.Fatalf("2w did not move two words: cursor=%d count=%d", in.Cursor, in.Count)
+	if in.Cursor != 8 || in.Count() != 0 || modeOf(m) != "normal" {
+		t.Fatalf("2w did not move two words: cursor=%d count=%d mode=%s", in.Cursor, in.Count(), modeOf(m))
 	}
 }
 
-// Rule: a fresh key that matches a layer binding runs it instead of the editor grammar.
+// Rule: a fresh key that matches an app row runs it; the editor noun is the
+// outermost fallback.
 func TestDispatchFreshKeyPrefersLayerBinding(t *testing.T) {
 	m, in, calls := dispatchTestModel(t, "one two", "w")
 	keytest.Press(m, "w")
@@ -115,12 +128,13 @@ func TestDispatchFreshKeyPrefersLayerBinding(t *testing.T) {
 	}
 }
 
-// Rule: esc on a modal in normal mode pops it; on the main frame it is a plain editor key.
+// Rule: the modal noun binds esc in normal mode to pop.modal; on the main
+// frame esc finds no row.
 func TestDispatchEscPopsModalInNormalMode(t *testing.T) {
 	m, in, calls := dispatchTestModel(t, "abc")
 	keytest.Press(m, "esc")
 	dispatchTestState(t, m, in, "abc", calls)
-	if err := m.Runtime.Push(&Frame{ID: "modal", Context: Context{Path: []string{"app"}}}); err != nil {
+	if err := m.Runtime.Push(&Frame{ID: "modal", Focus: "app"}); err != nil {
 		t.Fatal(err)
 	}
 	keytest.Press(m, "esc")
@@ -129,70 +143,80 @@ func TestDispatchEscPopsModalInNormalMode(t *testing.T) {
 	}
 }
 
-// Rule: inside a modal, esc first leaves insert mode or clears a pending count;
-// only a quiet normal-mode esc pops the modal.
+// Rule: inside a modal, esc first leaves insert mode or a pending count (the
+// editor's rows for those modes are inner); only a quiet normal esc reaches
+// the modal noun.
 func TestDispatchEscSettlesModalInputBeforePopping(t *testing.T) {
 	r := NewRuntime()
 	in := NewInput("modal-input", "abc", false)
-	if err := r.AddInput(in, []string{"app"}); err != nil {
+	if err := r.AddInput(in); err != nil {
 		t.Fatal(err)
 	}
 	m := NewModel(r)
-	if err := r.Push(&Frame{ID: "modal", Context: Context{Path: []string{"app"}, InputID: in.ID}}); err != nil {
+	if err := r.Push(&Frame{ID: "modal", Focus: in.ID}); err != nil {
 		t.Fatal(err)
 	}
-	keytest.Press(m, "i")
-	keytest.Press(m, "esc")
-	if in.Mode != "normal" || len(r.Frames) != 2 {
-		t.Fatalf("esc in insert mode: mode=%q frames=%d", in.Mode, len(r.Frames))
+	for _, step := range []struct {
+		key, mode string
+		frames    int
+	}{{"i", "insert", 2}, {"esc", "normal", 2}, {"3", "count_pending", 2}, {"esc", "normal", 2}, {"esc", "normal", 1}} {
+		keytest.Press(m, step.key)
+		if got := modeOf(m); got != step.mode || len(r.Frames) != step.frames || m.Status != "" {
+			t.Fatalf("after %s: mode %q frames %d status %q; want %q %d", step.key, got, len(r.Frames), m.Status, step.mode, step.frames)
+		}
 	}
-	keytest.Press(m, "3")
-	keytest.Press(m, "esc")
-	if in.Count != 0 || len(r.Frames) != 2 {
-		t.Fatalf("esc with a pending count: count=%d frames=%d", in.Count, len(r.Frames))
-	}
-	keytest.Press(m, "esc")
-	if len(r.Frames) != 1 || m.Status != "" {
-		t.Fatalf("quiet esc did not pop: frames=%d status=%q", len(r.Frames), m.Status)
+	if in.Count() != 0 {
+		t.Fatalf("count survived esc: %d", in.Count())
 	}
 }
 
-// Rule: a key no binding claims falls through to the editor grammar.
+// Rule: a key no application row claims falls through to the editor.
 func TestDispatchUnmatchedKeyFallsThroughToEditor(t *testing.T) {
 	m, in, calls := dispatchTestModel(t, "abc")
 	keytest.Press(m, "x")
 	dispatchTestState(t, m, in, "bc", calls)
 }
 
-// Current behavior, changes deliberately in phase 5: a binding prefix that the
-// next key fails to complete is dropped. Only the mismatched key reaches the
-// editor; the prefix itself is never offered to the editor grammar. Phase 5
-// hands the unmatched sequence to the innermost grammar before dropping it.
+// Phase 5 rule (changed deliberately from phase 0): a key sequence waits in
+// a prefix mode named after the base mode and the keys so far. A key that
+// fails to complete it leaves the prefix mode and is dispatched again, fresh:
+// here x reaches the editor. The prefix key itself is answered by the
+// prefix mode, so an app any row sees the mismatched key, never the prefix.
 func TestDispatchDropsUnmatchedBindingPrefix(t *testing.T) {
 	m, in, calls := dispatchTestModel(t, "abc", "g g")
 	keytest.Press(m, "g")
 	dispatchTestState(t, m, in, "abc", calls)
-	if m.Runtime.Pending != "g" || in.Pending != "" {
-		t.Fatalf("g did not wait as a binding prefix: pending=%q editor=%q", m.Runtime.Pending, in.Pending)
+	if m.Runtime.Pending != "g" || modeOf(m) != "normal g" || in.Pending() != "" {
+		t.Fatalf("g did not wait as a sequence prefix: pending=%q mode=%q editor=%q", m.Runtime.Pending, modeOf(m), in.Pending())
 	}
 	keytest.Press(m, "x")
 	dispatchTestState(t, m, in, "bc", calls)
-	if m.Runtime.Pending != "" || in.Pending != "" {
-		t.Fatalf("prefix survived the mismatch: pending=%q editor=%q", m.Runtime.Pending, in.Pending)
+	if m.Runtime.Pending != "" || modeOf(m) != "normal" {
+		t.Fatalf("prefix survived the mismatch: pending=%q mode=%q", m.Runtime.Pending, modeOf(m))
 	}
+	// With an any row on the app noun, the mismatched key reaches it and the
+	// prefix key does not.
+	m.Runtime.Register(Operation{Verb: "any", Noun: "test", Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
+		*calls = append(*calls, "any")
+		return nil, nil
+	}})
+	m.Runtime.Define("app").Mode("normal").Pattern(Any, Do("any.test"))
+	keytest.Press(m, "g")
+	keytest.Press(m, "x")
+	dispatchTestState(t, m, in, "bc", calls, "any")
 }
 
-// Current behavior: the palette frame's path still includes app, so an app
-// binding declared for any mode runs inside the open palette and the key
-// never reaches the query. Mode-specific page bindings do not (see above).
+// Phase 5 rule (the phase 0 finding resolved): the palette field's own rows
+// are innermost, so typing reaches the query even when an any-mode app row
+// binds the same key. Table: (open palette) key x -> query "x", no app call.
 func TestDispatchPaletteHonorsAnyModeAppBindings(t *testing.T) {
 	m, in, calls := dispatchTestModel(t, "abc", "x")
 	if err := m.Palette.Open(); err != nil {
 		t.Fatal(err)
 	}
 	keytest.Press(m, "x")
-	dispatchTestState(t, m, in, "abc", calls, "x")
-	if m.Palette.query != "" || !m.Palette.IsActive() {
-		t.Fatalf("any-mode binding did not win over the palette query: query=%q active=%t", m.Palette.query, m.Palette.IsActive())
+	dispatchTestState(t, m, in, "abc", calls)
+	if m.Palette.query != "x" || !m.Palette.IsActive() {
+		t.Fatalf("palette row did not win over the app any-mode row: query=%q active=%t", m.Palette.query, m.Palette.IsActive())
 	}
 }

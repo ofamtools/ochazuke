@@ -96,12 +96,13 @@ func TestSandboxTimeoutResolvesLongestFallback(t *testing.T) {
 	if m.count != 2 || m.results[1] != "sequence timed out" || m.runtime.Pending != "" {
 		t.Fatalf("pure prefix timeout: count=%d result=%q pending=%q", m.count, m.results[1], m.runtime.Pending)
 	}
-	// Mismatch with a completed fallback consumes the key.
+	// Mismatch with a completed fallback runs the fallback, then the
+	// mismatched key is dispatched fresh: its row records the later action.
 	m.runtime.BindingTimeout = time.Minute
 	keytest.Type(m, "g")
 	keytest.Type(m, "k")
-	if m.results[3] != "ACTION: single" {
-		t.Fatalf("mismatch should run fallback: %q", m.results[3])
+	if m.results[3] != "ACTION: other" {
+		t.Fatalf("mismatch should run the fallback and then the key: %q", m.results[3])
 	}
 	// The earlier timer is stale now and must not change anything.
 	count, results := m.count, m.results
