@@ -129,7 +129,9 @@ The default configuration is embedded in the executable. `--config` reads an edi
 
 ## Pages and default presentation
 
-`run` launches the demo, not an application you must adopt. It starts on **Overview**. The framework accepts your own page IDs, renderers, state, inputs, and registered actions.
+`run` launches the demo in `examples/demo` (`demo.New()`), not an application you must adopt; the framework package itself holds no application pages. It starts on **Overview**. The framework accepts your own page IDs, renderers, state, inputs, and registered actions.
+
+The shell around a page is one chrome, `Layout.Shell`: a title row with the mode badge right-aligned, a subtitle row (the page tabs, or the page title beside the sidebar), a rule, the body, a rule, the footer and a margin, inside a two-cell gutter. `Layout.PageBlock` renders through the same method, so a page and the application around it reserve the same rows and `Layout.BodySize` is the body a renderer receives (less the sidebar). The footer and every modal's hint line are `BindingHints`: the focused instance's binding rows in resolution order (`ctrl+j next.page · : open.palette`), the same data `bindings list` prints, so a hint can never name a key that is not bound and rebinding a key moves its hint. The last key's error replaces the footer until the next key.
 
 | Demo page | Purpose |
 |---|---|
@@ -144,20 +146,15 @@ These are suggested starter/demo pages. Domain pages such as Agents, Panes, Proj
 
 ### Registering your own pages
 
-A page is an instance of kind `page` under `app`. `Page` carries a title, the instance it starts focused on (`Focus`, the page itself by default) and a renderer; the runtime keeps its base `Frame` so the page remembers where focus was. Register the page's instances and inputs first when the page starts inside one of them:
+A page is an instance of kind `page` under `app`. `Page` carries a title, the instance it starts focused on (`Focus`, the page itself by default) and a renderer; the runtime keeps its base `Frame` so the page remembers where focus was. Pages, lists, inputs and terminals share one constructor family taking the same options (`Parent`, `Kind`, `Focus`): `r.AddPage(id, title, render, Focus(..))`, `r.AddList(id, items, Parent(..))`, `r.AddInput(in, Parent(..), Kind(..))`, `r.AddTerminal(id, stream, Parent(..))`. `RegisterPage(&Page{...})` and `NewList(r, ...)` are the same registrations for callers that hold the struct or the runtime as a value. Register the page's instances and inputs first when the page starts inside one of them:
 
 ```go
 r := ochazuke.NewRuntime()
 r.Instance("home")                                   // noun "home" is defined with it
 r.AddInput(ochazuke.NewInput("title", "", false), ochazuke.Parent("home"))
-err := r.RegisterPage(&ochazuke.Page{
-    ID: "home",
-    Title: "Home",
-    Focus: "title",
-    Render: func(r *ochazuke.Runtime, width, height int) ochazuke.Block {
-        return ochazuke.Text("Welcome to your application.")
-    },
-})
+_, err := r.AddPage("home", "Home", func(r *ochazuke.Runtime, width, height int) ochazuke.Block {
+    return ochazuke.Text("Welcome to your application.")
+}, ochazuke.Focus("title"))
 if err != nil { panic(err) }
 if err := r.OpenPage("home"); err != nil { panic(err) }
 model := ochazuke.NewModel(r)
@@ -182,7 +179,7 @@ Ordinary modals block page switching. The palette closes before dispatching a se
 
 ### Styling and modal behavior
 
-- Default styling uses restrained teal/green accents, rounded panels, heavier focused borders, page tabs, a mode badge, and a status line.
+- Default styling uses restrained teal/green accents, rounded panels, heavier focused borders, page tabs, a mode badge, and a status line. The status line and modal hints are derived from binding rows (`BindingHints`), never written by hand; the picker's own help line is derived the same way.
 - Themes: `adaptive`, `dark`, `light`, `mono`. Density: `comfortable` or `compact`. Adaptive follows the terminal's detected background; `NO_COLOR` disables theme colors. Focus remains visible through border weight and a tab marker.
 - Modals are centered, content-sized panels, capped at 78 columns and about 75% of the terminal height. They leave a visible, subdued perimeter of the previous screen whenever the terminal can accommodate it. Nested modals retain the previous modal and page underneath.
 - Tiny terminals use reduced chrome rather than overflowing the screen. Bubbles viewports handle overflowing page and modal content; `PgUp/PgDn` scroll the active surface.
@@ -201,7 +198,7 @@ Theme and density changes are atomic and apply immediately to all pages and moda
 
 ### Keyboard guide
 
-The demo starts on Overview in normal mode. Open Playground with `Ctrl-J`; Tab/Shift-Tab cycle its directory, notes, and paths fields. Overview, Commands, and Appearance support `j/k` and up/down scrolling. Demo page shortcuts are normal-mode-only, so insert-mode `Ctrl-K` still kills to line end.
+The demo starts on Overview in normal mode. Open Playground with `Ctrl-J`; Tab/Shift-Tab cycle its directory, notes, and paths fields. Overview, Commands, and Appearance support `j/k` and up/down scrolling. Demo page shortcuts are normal-mode-only, so insert-mode `Ctrl-K` still kills to line end. The footer of every screen is the live version of this table for the focused instance and its mode: the rows `bindings list` prints, innermost first.
 
 Macro recording consumes exactly one register character after `q`. For `qq:`, the first `q` prompts for a register, the second starts recording into `q` and displays `REC @q`, and `:` opens the palette. A normal-mode `q` stops recording. Invalid register input reports an error but does not trap later commands in register selection.
 
@@ -236,6 +233,7 @@ Macro recording consumes exactly one register character after `q`. For `qq:`, th
 | Normal demo | `Ctrl-J/K` | Next/previous page |
 | App or modal | `PgUp/PgDn` | Scroll the active surface |
 | App | `Ctrl-C` | Quit (`q` is reserved for macro recording) |
+| Attached terminal | any key | Forwarded to the pane; `Ctrl-A` is the leader (`d` detach, `Ctrl-A` literal, bound key runs, other key sends both, timeout sends the leader) |
 
 On terminals where Option does not send Meta sequences, configure Option-as-Meta to use `Alt-B/F`. `Ctrl-Space` is received as `ctrl+space` by Bubble Tea v2 (v1 spelled it `ctrl+@`). Every row above is a registered binding: the demo's on its nouns and instances, the editor's in `editor_bindings.json`. `bindings list` prints the rows the focus answers to in its current mode, pending modes included, so `2`, `d` or `"` followed by `bindings list` shows the count, operator or register table.
 
@@ -354,6 +352,23 @@ The id (`sidebar` here) identifies the list instance (`r.List("sidebar")` return
 
 The operation equivalents are `focus.list {id}`, `move.list {id?, delta}`, `select.list {id?, item}`, `mark.list {id?, item?}` and `apply.list {id?, verb}`. Omit `id` to operate on the list on the focus stack. State is inspectable under `/lists/<id>` (rows show their `noun`, `marked` lists marks) and `/instances/<rowId>`. The full-project example's **Items** page mixes `repo`, `worktree` and `branch` rows in one list: each row answers to its noun's verbs and keys, `?` lists the focused row's rows, and Space plus `apply.list` fans one verb out over several rows.
 
+### Terminal instances
+
+A terminal is an instance of the `terminal` noun whose component shows a pane the application streams in. The framework owns no PTY, shell or daemon: `AddTerminal(id, stream, Parent(page))` takes a `TerminalStream` (`Next(ctx)` blocks for the next `TerminalFrame{Lines, Cursor, Shape, Hidden}`, `Send(keys...)` forwards key names as bindings spell them, `Paste(text)`, `Resize(cols, rows)`), which is the application's daemon client; the examples use an in-process echo stream. Frames arrive through the delivery contract: each read is work owned by the instance (`Runtime.Start`), its completion is delivered to the component when still current, and a frame that completes after the instance closed or a newer read started is dropped. `term.ViewBlock(width, height)` renders the pane into the area a page gives it, tells the stream that size when it changes, and reports the pane's cursor; while the terminal is focused the shell places the real terminal cursor there, shaped as the pane reports (`bar`, `underline`, else block).
+
+The instance starts in the `terminal` base mode, where the noun's `any` and `paste` rows forward every key and paste to the pane, so nothing on the page or the application answers keys while a pane is attached. The leader `ctrl+a` enters `leader_pending`, a one-shot exclusive mode with `Payload{Shadow: terminal, Prefix: "ctrl+a"}`:
+
+| Keys | Behavior |
+|---|---|
+| any key, paste | Forwarded to the pane unchanged (Escape and `Ctrl-C` included) |
+| `ctrl+a` then `d` | `detach.terminal`: focus returns to the terminal's parent; the pane keeps running |
+| `ctrl+a` then `ctrl+a` | Sends one literal `ctrl+a` |
+| `ctrl+a` then a bound key | Runs that row's request (bind rows into the `terminal` noun's `leader_pending` table in code or config) |
+| `ctrl+a` then an unbound key | Sends the leader and the key, in order, in one `Send` and returns to terminal mode |
+| `ctrl+a` alone past `BindingTimeout` | Sends the leader alone; the next key starts fresh |
+
+Rebinding the leader is binding another key to the same `Func` row's place: the row reads the key it was pressed with as the prefix. `attach.terminal {id}` focuses a pane from anywhere on its page; `send.terminal {keys}` and `paste.terminal {text}` are the operations the rows run and are available to the CLI. `bindings list` in terminal mode prints the terminal table alone (the leader, `any`, `paste`); in `leader_pending` it prints the leader table, so the footer shows exactly what the pane will do with the next key. The full-project example's **Console** page is a terminal page added from config rows and the public API only.
+
 ### Input modes
 
 Every `Input` has a noun and two field settings, plus behavior all inputs share. Modes are names, not an enum; these are the ones the built-in editor enters.
@@ -410,12 +425,14 @@ result, err := r.Execute(ochazuke.Request{
 | `registers.go`, `macros.go`, `yank_history.go` | The `registers` component: yanks, named registers, history, active register, key recording/replay, history modal |
 | `palette.go`, `palette_editing.go`, `palette_nouns.go` | Verb/noun and live instance navigation, configured defaults, typed arguments, originating context |
 | `picker.go`, `picker_search.go` | Contextual path selection, asynchronous fuzzy indexing, native Git ignores |
-| `pages.go` | Pages as instances of kind `page`, `Runtime.Page`, retained frames, navigation, and focus isolation |
+| `pages.go` | Pages as instances of kind `page` (`AddPage`, `RegisterPage`), `Runtime.Page`, retained frames, navigation, and focus isolation |
+| `terminal.go` | The `terminal` noun: `AddTerminal`, `TerminalStream`, frames through the delivery contract, the leader contract, pane cursor |
+| `layout.go` | `Layout.Shell`, the one page chrome (title row with badge, tabs or subtitle, body, footer), panels, splits, sidebar |
 | `theme.go`, `surface.go` | Appearance operations, Lip Gloss styles, bounded modal composition on a Lip Gloss canvas |
 | `block.go` | `Block` and `Pos`: rendered text plus the focused input's cursor cell |
-| `model.go` | Bubble Tea adapter (delivers messages and drains commands through the runtime), page shell, Bubbles viewports, modal renderers, terminal cursor |
+| `model.go` | Bubble Tea adapter (delivers messages and drains commands through the runtime), renders through `Layout.Shell`, `BindingHints`, Bubbles viewports, modal renderers, terminal cursor |
 | `transport.go`, `cli.go`, `cmd/ochazuke` | Private Unix socket and generic CLI dispatch |
-| `demo.go`, `examples/core` | Runnable UI and noninteractive foundation example |
+| `examples/demo`, `examples/core`, `examples/full-project` | Runnable demo (`demo.New()`), noninteractive foundation example, configured application with list, modal, confirm and terminal pages |
 
 #### Nouns and instances
 
@@ -728,3 +745,5 @@ Keyboard, Go API, palette, and CLI use the same command semantics. Queries run t
 - Custom modes are registered names. Applications supply their mode-specific bindings; unknown modes are not silently interpreted as normal or insert.
 - Modal frames preserve their own state and existing input instances. Closing a modal restores interaction state, not a stale copy of shared application data.
 - Handler registration and widget construction are Go APIs. User-facing operations, including configuration, palette navigation, field editing, and picker actions, are registered and available through the CLI.
+- Terminals are display and input ownership only: the framework ships no PTY, shell, emulator or daemon client. A `TerminalStream` is the application's; frames are rows of trusted ANSI with a cursor cell, not a cell buffer the framework interprets. Resize, reconnect and session lifetime belong to the stream.
+- The framework package holds no application pages; the demo lives in `examples/demo` and every example is built on the public API.

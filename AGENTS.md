@@ -6,7 +6,7 @@ Go application framework on Bubble Tea **v2** (`charm.land/bubbletea/v2` v2.1.0)
 
 1. This file.
 2. `docs/CODEMAP.md`: generated, one entry per source file with declared types, methods, and the sibling files it leans on. Open the two or three files it points at instead of grepping the package.
-3. `docs/MIGRATION-PLAN.md` when working on the v2 move or the nouns-and-instances redesign. Phases are ordered and each ends green and committed.
+3. `docs/MIGRATION-PLAN.md` is the completed migration record (all phases done, each with its commit and decisions). Read it for why something is the way it is and for the after-phase-7 items, not for work in progress.
 4. README.md only for the section you need. The "API and ownership" section has the file-to-responsibility table and the ownership rules below in long form.
 
 Regenerate the maps after adding, removing, or renaming files:
@@ -30,16 +30,18 @@ Do not hand-edit either generated file. If a map entry is wrong, fix the code or
 | Editor mode tables as data (Readline, Vim, operators, visual counts) | `editor_bindings.json`, `editor_keys.go` |
 | App-noun rows for counts, registers and macros (`q`, `@`, `"`, digits) | `registers_bindings.json`, loaded by `editor_keys.go` |
 | Binding files, modes, `select.context` | `configuration.go` |
-| Bubble Tea adapter (delivers messages and drains commands through the runtime), page shell, modal renderers, scroll offsets | `model.go` |
+| Bubble Tea adapter (delivers messages and drains commands through the runtime), renders the shell through `Layout.Shell`, `BindingHints`, modal renderers, scroll offsets, terminal cursor shape | `model.go` |
+| Terminal instances: the `terminal` noun, `AddTerminal`, `TerminalStream`, frames through the delivery contract, the leader contract | `terminal.go` |
+| Instance constructors sharing `InstanceOption` (`Parent`, `Kind`, `Focus`): `AddPage`, `AddList`, `AddInput`, `AddTerminal`, `Instance` | `pages.go`, `list.go`, `runtime.go`, `terminal.go`, `instance.go` |
 | Pages as instances, `Runtime.Page`, navigation | `pages.go` |
 | Input state (text, cursor, undo) and the editor handlers | `input.go`, `editing.go`, `editor*.go` |
 | Selectable lists (rows as instances of nouns) | `list.go` |
 | The `registers` component (yanks, named registers, history, active register, macro state), one instance under `app` | `registers.go`, `macros.go`, `yank_history.go` |
 | Command palette (verb/noun, instances) | `palette.go`, `palette_editing.go`, `palette_nouns.go` |
 | Path picker and fuzzy index | `picker.go`, `picker_search.go`, `picker_preview.go`, `picker_view.go` |
-| Styling and bounded modal composition | `theme.go`, `surface.go`, `layout.go` |
+| Styling, the one page chrome (`Layout.Shell`, `Header`, `Footer`, tabs), panels, bounded modal composition | `theme.go`, `layout.go`, `surface.go` |
 | Unix socket transport and CLI dispatch | `transport.go`, `cli.go`, `cmd/ochazuke` |
-| Demo pages | `demo.go`, `examples/` |
+| Demo and example applications (no application pages in the framework package) | `examples/demo` (`demo.New()`, used by `cmd/ochazuke run` and `cmd/docgen`), `examples/core`, `examples/full-project` |
 
 ## Invariants
 
@@ -58,15 +60,20 @@ Do not hand-edit either generated file. If a map entry is wrong, fix the code or
 - `Runtime.Page` is the current page, an instance of kind `page` under `app`; it is always an ancestor of the base frame's focus. Pages are ordered by registration (`PageList`), there is no page map.
 - List rows are instances of their nouns (`ListItem.Noun`), created and removed by `SetItems`. Never define a noun per row; give the row's noun the verbs and rows, or put an override on the row instance. Marked rows fan out through `apply.list {verb}` as `verb.<row noun>` per row.
 - Readline and Vim rows are the `editor` noun's defaults, generated from `editor_bindings.json`; an application overrides a key by binding it on any noun or instance on the stack (rows there resolve before the fallback), or in a binding file (same noun+mode+keys replaces, `"request": null` unbinds). The `prompt` noun pins insert mode. `list.bindings` lists every key the focus answers to in its mode, pending modes included.
+- Hints derive from bindings. The footer, every modal's hint line and the picker's help are `BindingHints`/`ListBindings` output for the focused instance and mode; there are no hand-written hint strings in the framework, so a hint cannot drift from a row. One chrome: `Model.View` renders through `Layout.Shell`, the same method `Layout.PageBlock` uses; no second set of height or padding constants exists.
+- The framework package holds no application pages. The demo is `examples/demo`; tests that need an application build one from the public API.
+- A terminal is an instance of the `terminal` noun in the `terminal` base mode: its `any`/`paste` rows forward everything to the pane, `ctrl+a` enters `leader_pending` (`Payload{Shadow, Prefix, Request}` plus the sequence timer), under which `d` detaches, `ctrl+a` sends itself, a bound key runs, an unbound key sends leader and key in one `Send`, and the timeout sends the leader alone. Frames reach the component only through `Runtime.Deliver` with a current ticket; the stream (daemon client) is the application's, never the framework's.
 - Never bind function keys (F1 to F12) anywhere, including demos, sandboxes, and tests. Use ordinary keys or Ctrl/Alt combinations and keep help text in sync with the real binding.
 - This is Bubble Tea **v2**. The v1 idioms are gone: no `tea.KeyMsg` struct (`tea.KeyPressMsg` and `tea.PasteMsg`; a paste reaches `Dispatch` as `MacroKey{Key: "[text]", Paste: true}` and matches only `paste` rows), no `View() string` (`View() tea.View` with `AltScreen` set there, not via program options), no `lipgloss.AdaptiveColor` or renderers (`Appearance.Dark` from `tea.BackgroundColorMsg` feeds `lipgloss.LightDark`), no `github.com/charmbracelet/{bubbletea,lipgloss,bubbles}` imports. Ctrl-Space is `ctrl+space`, not `ctrl+@`. Lip Gloss v2 always emits styles; tests inspecting rendered text use the `mono` theme or `ansi.Strip`.
 
 ## Checks
 
 ```sh
+gofmt -l . && go vet ./...
 go test ./...
 go test -race ./...
 go run ./examples/core
+go run ./examples/full-project --smoke
 ```
 
 ## References: other Charm projects under ~/proj
