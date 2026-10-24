@@ -3,6 +3,8 @@ package ochazuke
 import (
 	"context"
 	"errors"
+	"fmt"
+	"slices"
 	"sort"
 	"time"
 
@@ -25,7 +27,8 @@ type Component interface {
 // Ticket names one job: the instance that owns it, its runtime-wide id and
 // the slot it was started in. Slot is "" for a job that accumulates (every
 // completion is delivered, in finish order) and a name for a job that
-// replaces: a newer job in the same slot on the same owner drops the older.
+// replaces: a newer job in the same slot on the same owner (or, with
+// ReplacingAt, on the same scope) drops the older.
 // A completion is stale, and dropped, only when its job was cancelled by a
 // newer job in its slot or by its owner closing.
 type Ticket struct {
@@ -65,6 +68,7 @@ type Result struct {
 	work  func(context.Context) (any, error)
 	then  func(Ctx, any, error)
 	slot  string
+	scope string
 }
 
 // Done reports a synchronous result.
@@ -89,6 +93,18 @@ func Pending(work func(context.Context) (any, error)) Result { return Result{wor
 // search, never for independent work.
 func (res Result) Replacing(slot string) Result { res.slot = slot; return res }
 
+// ReplacingAt is Replacing with the slot scoped to scope, the owner or one
+// of its ancestors: the newest job in (scope, slot) cancels the older one
+// whichever descendant of scope asked, so previews launched from the rows
+// of one list replace each other while another list keeps its own. The job
+// still belongs to the row that asked (its completion and Then land there
+// and closing it cancels the job); Replacing(slot) is ReplacingAt(owner,
+// slot). A scope off the owner's ancestry fails the launch.
+func (res Result) ReplacingAt(scope, slot string) Result {
+	res.scope, res.slot = scope, slot
+	return res
+}
+
 // Then runs on the loop when the pending work's completion is delivered and
 // still current; it never runs for a stale or cancelled ticket.
 func (res Result) Then(fn func(Ctx, any, error)) Result { res.then = fn; return res }
@@ -111,6 +127,7 @@ type JobInfo struct {
 	Owner   string    `json:"owner"`
 	Verb    string    `json:"verb"`
 	Slot    string    `json:"slot,omitempty"`
+	Scope   string    `json:"scope,omitempty"`
 	Started time.Time `json:"started"`
 	State   string    `json:"state"`
 	Error   string    `json:"error,omitempty"`
@@ -132,17 +149,30 @@ func (j *job) ticket() Ticket { return Ticket{Owner: j.Owner, Job: j.Job, Slot: 
 // name cancels the owner's running job in that slot; "" accumulates. Launch
 // and Start build on it for work the runtime runs as a tea.Cmd.
 func (r *Runtime) Issue(owner, verb, slot string, c Ctx) (Ticket, context.Context, error) {
+	return r.IssueAt(owner, owner, verb, slot, c)
+}
+
+// IssueAt is Issue with the slot scoped to scope, owner or one of its
+// ancestors: the running job in (scope, slot) is cancelled whichever
+// instance owns it. See Result.ReplacingAt.
+func (r *Runtime) IssueAt(owner, scope, verb, slot string, c Ctx) (Ticket, context.Context, error) {
 	if r.Instances[owner] == nil {
 		return Ticket{}, nil, errors.New("unknown instance " + owner)
 	}
-	if slot != "" {
-		if old := r.slotJob(owner, slot); old != nil {
-			r.finish(old, JobCancelled, nil)
-		}
+	if scope == "" {
+		scope = owner
+	}
+	if !slices.Contains(r.Ancestry(owner), scope) {
+		return Ticket{}, nil, fmt.Errorf("slot scope %q is not %s or one of its ancestors", scope, owner)
+	}
+	if slot == "" {
+		scope = ""
+	} else if old := r.slotJob(scope, slot); old != nil {
+		r.finish(old, JobCancelled, nil)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	r.jobSeq++
-	j := &job{JobInfo: JobInfo{Job: r.jobSeq, Owner: owner, Verb: verb, Slot: slot, Started: time.Now(), State: JobRunning}, cancel: cancel, ctx: c}
+	j := &job{JobInfo: JobInfo{Job: r.jobSeq, Owner: owner, Verb: verb, Slot: slot, Scope: scope, Started: time.Now(), State: JobRunning}, cancel: cancel, ctx: c}
 	if r.jobs == nil {
 		r.jobs = map[uint64]*job{}
 	}
@@ -158,7 +188,7 @@ func (r *Runtime) Launch(owner, verb string, res Result, c Ctx) (Ticket, error) 
 	if res.work == nil {
 		return Ticket{}, errors.New("Launch needs pending work")
 	}
-	ticket, ctx, err := r.Issue(owner, verb, res.slot, c)
+	ticket, ctx, err := r.IssueAt(owner, res.scope, verb, res.slot, c)
 	if err != nil {
 		return Ticket{}, err
 	}
@@ -214,10 +244,10 @@ func (r *Runtime) finish(j *job, state string, err error) {
 	}
 }
 
-// slotJob is the owner's running job in a slot, or nil.
-func (r *Runtime) slotJob(owner, slot string) *job {
+// slotJob is the running job in a slot of a scope, or nil.
+func (r *Runtime) slotJob(scope, slot string) *job {
 	for _, j := range r.jobs {
-		if j.Owner == owner && j.Slot == slot && j.State == JobRunning {
+		if j.Scope == scope && j.Slot == slot && j.State == JobRunning {
 			return j
 		}
 	}

@@ -509,3 +509,71 @@ func TestDeliverToleratesOwnerRemovedByItsCompletion(t *testing.T) {
 		t.Fatalf("job not settled: %+v", jobs)
 	}
 }
+
+// ReplacingAt(list, slot): previews asked from two rows of one list share
+// the list's slot, so the second cancels the first; another list's slot is
+// its own, the completion lands on the row that asked, and a scope off the
+// owner's ancestry is refused.
+func TestReplacingAtScopesTheSlotToAnAncestor(t *testing.T) {
+	r := NewRuntime()
+	r.Define("row")
+	for _, list := range []string{"left", "right"} {
+		if _, err := r.AddList(list, []ListItem{{ID: list + "1", Noun: "row"}, {ID: list + "2", Noun: "row"}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	landed := map[string]string{}
+	preview := func(row, scope string, release chan struct{}) (Ticket, tea.Cmd) {
+		ticket, err := r.Launch(row, "row.preview", Pending(func(ctx context.Context) (any, error) {
+			select {
+			case <-release:
+				return row, nil
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		}).ReplacingAt(scope, "preview").Then(func(c Ctx, v any, err error) {
+			if err == nil {
+				landed[c.Instance.ID] = v.(string)
+			}
+		}), Ctx{Runtime: r, Instance: r.Instances[row]})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ticket, r.PendingCommands()
+	}
+	r1, r2, r3 := make(chan struct{}), make(chan struct{}), make(chan struct{})
+	first, firstCmd := preview("left1", "left", r1)
+	second, secondCmd := preview("left2", "left", r2)
+	other, otherCmd := preview("right1", "right", r3)
+	if r.Accepts(first) || !r.Accepts(second) || !r.Accepts(other) {
+		t.Fatalf("scoped slot: first=%v second=%v other=%v", r.Accepts(first), r.Accepts(second), r.Accepts(other))
+	}
+	close(r1)
+	close(r2)
+	close(r3)
+	for _, cmd := range []tea.Cmd{firstCmd, secondCmd, otherCmd} {
+		for _, msg := range runCmd(cmd) {
+			r.Deliver(msg)
+		}
+	}
+	if !reflect.DeepEqual(landed, map[string]string{"left2": "left2", "right1": "right1"}) {
+		t.Fatalf("landed: %v", landed)
+	}
+	jobs := r.Jobs()
+	if len(jobs) != 3 || jobs[0].State != JobCancelled || jobs[0].Owner != "left1" || jobs[0].Scope != "left" || jobs[1].Scope != "left" || jobs[2].Scope != "right" {
+		t.Fatalf("jobs: %+v", jobs)
+	}
+	// Per-owner stays the default: two rows' Replacing slots do not interact.
+	a, _ := r.Launch("right1", "x", Pending(func(context.Context) (any, error) { return nil, nil }).Replacing("preview"), Ctx{})
+	b, _ := r.Launch("right2", "x", Pending(func(context.Context) (any, error) { return nil, nil }).Replacing("preview"), Ctx{})
+	if !r.Accepts(a) || !r.Accepts(b) {
+		t.Fatal("per-owner slots must not replace each other")
+	}
+	if got, _ := JSONPointer(r.Snapshot(), "/jobs/0/scope"); got != "right1" {
+		t.Fatalf("snapshot scope: %v", got)
+	}
+	if _, err := r.Launch("left1", "x", Pending(func(context.Context) (any, error) { return nil, nil }).ReplacingAt("right", "preview"), Ctx{}); err == nil {
+		t.Fatal("a scope off the owner's ancestry must fail")
+	}
+	r.PendingCommands()
+}
