@@ -35,7 +35,10 @@ func newFixture(t *testing.T) *fixture {
 		f.calls = append(f.calls, ochazuke.Request{Noun: "widget", Target: id, Args: c.Args})
 		return ochazuke.Done(map[string]any{"target": id, "args": c.Args})
 	}
-	f.r.Define("widget").
+	f.r.Define("widget").Pin("normal").
+		Verb("list", func(ochazuke.Ctx) ochazuke.Result {
+			return ochazuke.Done([]map[string]any{{"id": "w1"}, {"id": "w2"}})
+		}, "List the widgets").Rows("widget").
 		Verb("show", record, "Show a widget").
 		Verb("rename", record, "Rename a widget").
 		Verb("remove", record, "Remove a widget").Confirm("Remove {{label}}?").

@@ -4,6 +4,11 @@
 // the runtime as JSON (Catalog). It knows no noun, verb or key; the
 // application passes in its bin name, usage line and the hooks that reach
 // its own state.
+//
+// The catalog is data for a host that mounts the bin: each noun carries its
+// pin (a pinned noun is modal-only, so a host can skip it without naming
+// it) and each verb whose result lists rows carries rows, the noun those
+// rows belong to (declared with NounBuilder.Rows).
 package cli
 
 import (

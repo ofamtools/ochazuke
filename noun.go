@@ -264,6 +264,19 @@ func (b *NounBuilder) Confirm(prompt string) *NounBuilder {
 	return b
 }
 
+// Rows declares that the last declared verb's result lists rows of noun
+// (Operation.Rows): a host reading the catalog knows which noun a list
+// verb's rows answer to. An empty noun removes the declaration.
+func (b *NounBuilder) Rows(noun string) *NounBuilder {
+	if b.last == "" {
+		panic("Rows must follow Verb")
+	}
+	op := b.r.Operations[b.last]
+	op.Rows = noun
+	b.r.Operations[b.last] = op
+	return b
+}
+
 // When guards the last declared verb with a registered guard name: while
 // the guard is false at the focus and mode the verb would run in, the
 // palette does not offer it. The guard reads a KeyEvent whose Focus and

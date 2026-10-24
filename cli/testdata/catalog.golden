@@ -5,12 +5,20 @@
   "nouns": [
     {
       "name": "widget",
+      "pin": "normal",
       "verbs": [
         {
           "name": "ask",
           "description": "Ask in a modal",
           "kind": "application",
           "result": "JSON value"
+        },
+        {
+          "name": "list",
+          "description": "List the widgets",
+          "kind": "application",
+          "result": "JSON value",
+          "rows": "widget"
         },
         {
           "name": "refresh",

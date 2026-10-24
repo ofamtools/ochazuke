@@ -70,8 +70,13 @@ type Operation struct {
 	Kind        string               `json:"kind"`
 	Confirm     string               `json:"confirm,omitempty"`
 	Repeatable  bool                 `json:"repeatable,omitempty"`
-	Run         Handler              `json:"-"`
-	App         AppHandler           `json:"-"`
+	// Rows names the noun whose rows the verb's result lists (a list
+	// verb's JSON array of rows of that noun); "" when the result is not
+	// rows. It is data for hosts (the catalog's rows); the runtime does
+	// not read it.
+	Rows string     `json:"rows,omitempty"`
+	Run  Handler    `json:"-"`
+	App  AppHandler `json:"-"`
 }
 
 func (o Operation) Key() string { return o.Noun + "." + o.Verb }

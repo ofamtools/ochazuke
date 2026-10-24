@@ -151,10 +151,10 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### noun.go
 
-- lines: 793 · tests: noun_test.go
+- lines: 806 · tests: noun_test.go
 - purpose: Noun is the behaviour shared by every instance of one kind: the verbs it answers to, its key bindings per mode, the action handlers that override an operatio...
 - types: Noun, Binding, NounBuilder, ModeBuilder, Guard (func)
-- methods: Binding(7), ModeBuilder(6), Noun(1), NounBuilder(10), Runtime(12)
+- methods: Binding(7), ModeBuilder(6), Noun(1), NounBuilder(11), Runtime(12)
 - funcs: Do, Enter, Leave
 - leans on: runtime.go(56), instance.go(20), resolve.go(10), input.go(3)
 
@@ -272,7 +272,7 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### runtime.go
 
-- lines: 609 · tests: runtime_test.go
+- lines: 614 · tests: runtime_test.go
 - purpose: Request names an operation and, optionally, the instance it addresses.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
 - methods: Context(1), Operation(1), Request(1), Runtime(16)
@@ -330,7 +330,7 @@ Importable package `cli`: 3 source files, 1 test files.
 
 ### cli/catalog.go
 
-- lines: 90
+- lines: 100
 - purpose: CatalogDoc is the catalog answer: what a runtime registers, grouped by noun, in the runtime's own JSON shapes (ochazuke.Parameter and ochazuke.Binding unchan...
 - types: CatalogDoc, CatalogNoun, CatalogVerb, CatalogPage
 - funcs: Catalog
@@ -345,7 +345,7 @@ Importable package `cli`: 3 source files, 1 test files.
 
 ### cli/shell.go
 
-- lines: 404
+- lines: 409
 - purpose: Shell runs BIN NOUN VERB [--target ID] [--json '{...}'] [--ARG VALUE] [--yes]: one registered operation in this process through the runtime's CLI entry (Runt...
 - types: Shell
 - methods: Shell(12)

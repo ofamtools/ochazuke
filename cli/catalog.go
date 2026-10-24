@@ -23,14 +23,19 @@ type CatalogDoc struct {
 	Pages    []CatalogPage      `json:"pages"`
 }
 
-// CatalogNoun is a noun and its verbs, by verb name.
+// CatalogNoun is a noun and its verbs, by verb name. Pin is the noun's
+// pinned base mode (ochazuke.Noun.Pin), "" for none: a host can tell a
+// modal-only noun from its data without knowing its name.
 type CatalogNoun struct {
 	Name  string        `json:"name"`
+	Pin   string        `json:"pin,omitempty"`
 	Verbs []CatalogVerb `json:"verbs"`
 }
 
 // CatalogVerb is one ochazuke.Operation. Kind is "application" for a verb
-// whose handler may return pending work, "interaction" otherwise.
+// whose handler may return pending work, "interaction" otherwise. Rows
+// names the noun whose rows the verb's result lists (ochazuke.Operation.Rows,
+// declared with NounBuilder.Rows), "" when the result is not rows.
 type CatalogVerb struct {
 	Name        string                        `json:"name"`
 	Description string                        `json:"description,omitempty"`
@@ -39,6 +44,7 @@ type CatalogVerb struct {
 	Result      string                        `json:"result,omitempty"`
 	Confirm     string                        `json:"confirm,omitempty"`
 	Repeatable  bool                          `json:"repeatable,omitempty"`
+	Rows        string                        `json:"rows,omitempty"`
 }
 
 // CatalogPage is a page in registration order.
@@ -55,10 +61,14 @@ func Catalog(r *ochazuke.Runtime, name, version string) ([]byte, error) {
 	doc := CatalogDoc{Schema: Schema, Name: name, Version: version, Nouns: []CatalogNoun{}, Bindings: []ochazuke.Binding{}, Pages: []CatalogPage{}}
 	for _, op := range r.Catalog() {
 		if n := len(doc.Nouns); n == 0 || doc.Nouns[n-1].Name != op.Noun {
-			doc.Nouns = append(doc.Nouns, CatalogNoun{Name: op.Noun})
+			noun := CatalogNoun{Name: op.Noun}
+			if n := r.Nouns[op.Noun]; n != nil {
+				noun.Pin = n.Pin
+			}
+			doc.Nouns = append(doc.Nouns, noun)
 		}
 		noun := &doc.Nouns[len(doc.Nouns)-1]
-		verb := CatalogVerb{Name: op.Verb, Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable}
+		verb := CatalogVerb{Name: op.Verb, Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable, Rows: op.Rows}
 		if len(op.Parameters) > 0 {
 			verb.Params = op.Parameters
 		}
