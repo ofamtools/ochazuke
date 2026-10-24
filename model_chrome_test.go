@@ -76,7 +76,7 @@ func TestModelChromeIsLayoutShellWithHintsFromBindings(t *testing.T) {
 	}
 	keytest.Press(m, "i")
 	rows := strings.Split(ansi.Strip(m.View().Content), "\n")
-	if !strings.HasSuffix(strings.TrimSpace(rows[0]), "INSERT") || !strings.Contains(rows[22], "ctrl+a") {
+	if insert := BindingHints(r, r.FocusID()); !strings.HasSuffix(strings.TrimSpace(rows[0]), "INSERT") || !hintPrefix(rows[22], insert) || !strings.Contains(insert, "ctrl+a") {
 		t.Fatalf("insert mode chrome: title %q footer %q", rows[0], rows[22])
 	}
 	// An error replaces the hints until the next key.
