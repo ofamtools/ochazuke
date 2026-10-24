@@ -145,6 +145,9 @@ func (r *Runtime) validateFocus(id string) error {
 	if len(ancestry) == 0 || ancestry[len(ancestry)-1] != "app" {
 		return fmt.Errorf("unknown instance %q", id)
 	}
+	if top := r.TopModal(); top != "" && !slices.Contains(ancestry, top) {
+		return errors.New("focus is outside the open modal")
+	}
 	if r.PageOf(r.Page) == nil {
 		return nil
 	}
@@ -162,6 +165,7 @@ func (r *Runtime) validateFocus(id string) error {
 // setFocus moves the focus, drops any key-sequence prefix and applies the
 // mode rule.
 func (r *Runtime) setFocus(id string) {
+	id = r.clampFocus(id)
 	from := r.Focus
 	if from == id {
 		return
@@ -170,6 +174,23 @@ func (r *Runtime) setFocus(id string) {
 	stop, path := r.stopOf(from), r.Ancestry(from)
 	r.Focus = id
 	r.focusMoved(stop, path, id)
+}
+
+// focusInTopLevel reports the focus invariant: the focus is inside the top
+// level, the top modal's subtree while a modal is open (else the current
+// page, else app).
+func (r *Runtime) focusInTopLevel() bool {
+	return slices.Contains(r.Ancestry(r.Focus), r.focusRoot())
+}
+
+// clampFocus keeps an internal focus move inside the top modal: a target
+// outside it becomes the modal instance. Explicit focus.set is refused by
+// validateFocus instead.
+func (r *Runtime) clampFocus(id string) string {
+	if top := r.TopModal(); top != "" && !slices.Contains(r.Ancestry(id), top) {
+		return top
+	}
+	return id
 }
 
 // setModalFocus moves the focus an open modal points at: the live focus for
@@ -226,7 +247,7 @@ func (r *Runtime) Push(id, focus string) error {
 	inst := r.Instances[id]
 	if inst == nil {
 		r.seq++
-		inst = &Instance{ID: id, Noun: "modal", seq: r.seq}
+		inst = &Instance{ID: id, Noun: "modal", Parent: "app", seq: r.seq}
 		r.Instances[id] = inst
 		r.modalInstances[id] = true
 	}
@@ -234,6 +255,18 @@ func (r *Runtime) Push(id, focus string) error {
 	inst.Payload.Return = r.Focus
 	inst.returnMode = ModeState{Name: r.BaseMode()}
 	r.modals = append(r.modals, id)
+	// The focus is never outside the top modal: a focus that is not in the
+	// body's subtree is adopted under it while it is open (its own parent
+	// comes back on Pop); one the body sits beneath (app) becomes the body.
+	if ancestry := r.Ancestry(focus); !slices.Contains(ancestry, id) {
+		if slices.Contains(r.Ancestry(id), focus) {
+			focus = id
+		} else {
+			target := r.Instances[focus]
+			inst.borrowed, inst.lentParent = focus, target.Parent
+			target.Parent = id
+		}
+	}
 	r.setFocus(focus)
 	return nil
 }
@@ -310,6 +343,13 @@ func (r *Runtime) Pop() error {
 	stop, path := r.stopOf(from), r.Ancestry(from)
 	back, mode := inst.Payload.Return, inst.returnMode
 	r.modals = r.modals[:len(r.modals)-1]
+	if lent := r.Instances[inst.borrowed]; lent != nil && lent.Parent == id {
+		lent.Parent = inst.lentParent
+		if r.Instances[lent.Parent] == nil {
+			lent.Parent = "app"
+		}
+	}
+	inst.borrowed, inst.lentParent = "", ""
 	if r.modalInstances[id] {
 		delete(r.modalInstances, id)
 		r.dropSubtree(id)
@@ -322,6 +362,7 @@ func (r *Runtime) Pop() error {
 			back = "app"
 		}
 	}
+	back = r.clampFocus(back)
 	r.Focus = back
 	r.rememberLeaving(path, back)
 	if mode.Name == "" {
@@ -399,6 +440,7 @@ func (r *Runtime) RemoveInstance(id string) error {
 	}
 	if gone[from] {
 		r.CancelPendingBinding()
+		parent = r.clampFocus(parent)
 		r.Focus = parent
 		r.focusMoved(stop, path, parent)
 	}

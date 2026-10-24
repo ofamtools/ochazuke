@@ -36,6 +36,9 @@ func assertPageOnFocusPath(t *testing.T, r *Runtime) {
 	if !slices.Contains(r.Ancestry(r.BaseFocus()), r.Page) {
 		t.Fatalf("page %q is not an ancestor of base focus %q", r.Page, r.BaseFocus())
 	}
+	if !r.focusInTopLevel() {
+		t.Fatalf("focus %q is outside the top level %q", r.Focus, r.focusRoot())
+	}
 }
 
 func TestFocusIsOneFieldAndPagesRememberIt(t *testing.T) {
@@ -68,7 +71,8 @@ func TestModalPopRestoresReturnFocus(t *testing.T) {
 	if err := r.Push("dialog", "app"); err != nil {
 		t.Fatal(err)
 	}
-	if r.Focus != "app" || r.Instances["dialog"].Payload.Return != "field" || r.BaseFocus() != "field" {
+	// Push onto app (an instance the body sits beneath) focuses the body.
+	if r.Focus != "dialog" || r.Instances["dialog"].Payload.Return != "field" || r.BaseFocus() != "field" {
 		t.Fatalf("push: focus=%q return=%q", r.Focus, r.Instances["dialog"].Payload.Return)
 	}
 	assertPageOnFocusPath(t, r)
@@ -274,4 +278,86 @@ func TestOpenModalWithInput(t *testing.T) {
 	if _, err := r.OpenModal("ask", Payload{}, WithInput(field, Kind("prompt"))); err != nil {
 		t.Fatalf("reopen: %v", err)
 	}
+}
+
+// The focus never leaves the top modal: explicit focus moves outside it are
+// refused, internal retargeting and removal clamp to the modal, Push adopts
+// a focus outside the body for as long as it is open, and Pop restores.
+// After every step the live focus has the top modal on its path, so the
+// resolver's cut at the modal always applies.
+func TestFocusNeverLeavesTopModal(t *testing.T) {
+	r, _ := focusFixture(t)
+	check := func(label string) {
+		t.Helper()
+		if !r.focusInTopLevel() {
+			t.Fatalf("%s: focus %q outside the top level %q", label, r.Focus, r.focusRoot())
+		}
+		if top := r.TopModal(); top != "" && !slices.Contains(r.Ancestry(r.Focus), top) {
+			t.Fatalf("%s: the walk would not cut at %q", label, top)
+		}
+		assertPageOnFocusPath(t, r)
+	}
+	check("page")
+	if _, err := r.OpenModal("ask", Payload{Prompt: "?"}, WithInput(NewInput("answer", "", false))); err != nil {
+		t.Fatal(err)
+	}
+	check("open modal")
+	if err := r.SetFocus("panel"); err == nil || err.Error() != "focus is outside the open modal" {
+		t.Fatalf("SetFocus outside: %v", err)
+	}
+	if _, err := r.Execute(Request{Verb: "set", Noun: "focus", Args: Arguments{"id": "field"}}); err == nil {
+		t.Fatal("focus.set outside the modal must fail")
+	}
+	check("refused")
+	if err := r.SetFocus("ask"); err != nil {
+		t.Fatal(err)
+	}
+	r.RetargetFocus(func(string) bool { return true }, "panel")
+	if r.Focus != "ask" {
+		t.Fatalf("retarget clamps to the modal: %q", r.Focus)
+	}
+	check("retarget")
+	if err := r.SetFocus("answer"); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.JumpFocus(1, "stop"); err != nil {
+		t.Fatal(err)
+	}
+	check("jump")
+	if err := r.SetFocus("answer"); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.RemoveInstance("answer"); err != nil {
+		t.Fatal(err)
+	}
+	if r.Focus != "ask" {
+		t.Fatalf("removing the focused descendant lands on the modal: %q", r.Focus)
+	}
+	check("remove")
+	// Push with a focus outside the body adopts it while the modal is open.
+	other := NewInput("loose", "", false)
+	if err := r.AddInput(other, Parent("panel")); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Push("legacy", "loose"); err != nil {
+		t.Fatal(err)
+	}
+	if r.Focus != "loose" || r.Instances["loose"].Parent != "legacy" {
+		t.Fatalf("push adopts the focus: focus %q parent %q", r.Focus, r.Instances["loose"].Parent)
+	}
+	check("push")
+	if err := r.Pop(); err != nil {
+		t.Fatal(err)
+	}
+	if r.Focus != "ask" || r.Instances["loose"].Parent != "panel" {
+		t.Fatalf("pop restores the focus and the lent parent: focus %q parent %q", r.Focus, r.Instances["loose"].Parent)
+	}
+	check("pop to the modal below")
+	if err := r.Pop(); err != nil {
+		t.Fatal(err)
+	}
+	if r.Focus != "panel" { // the retarget above also moved the modal's return
+		t.Fatalf("pop to the page: %q", r.Focus)
+	}
+	check("pop to the page")
 }

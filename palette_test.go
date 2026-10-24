@@ -141,9 +141,10 @@ func TestPaletteKeyboardUndoUsesCapturedInput(t *testing.T) {
 	if got := paletteInputSnapshot(t, origin); got != before {
 		t.Fatal("navigation changed originating input")
 	}
-	// Changing overlay focus must not retarget the selected command.
-	if err := r.SetFocus("other"); err != nil {
-		t.Fatal(err)
+	// Changing overlay focus must not retarget the selected command; the
+	// focus cannot leave the open palette at all.
+	if err := r.SetFocus("other"); err == nil || err.Error() != "focus is outside the open modal" {
+		t.Fatalf("focus left the palette: %v", err)
 	}
 	paletteKeys(t, p, "2", "enter", "enter")
 	if got := string(origin.Text); got != "base1" {

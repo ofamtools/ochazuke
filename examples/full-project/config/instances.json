@@ -2,6 +2,8 @@
   {"id": "overview", "noun": "page"},
   {"id": "workspace", "noun": "workspace", "parent": "overview"},
   {"id": "editor", "noun": "notes-editor", "parent": "workspace"},
+  {"id": "modal:confirm", "noun": "notes-editor"},
+  {"id": "modal:details", "noun": "notes-editor"},
   {"id": "paths", "noun": "page"},
   {"id": "items", "noun": "page"},
   {"id": "item-editor", "noun": "item-editor", "parent": "items"},

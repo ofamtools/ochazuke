@@ -25,6 +25,8 @@ type Instance struct {
 	seq         uint64
 	returnMode  ModeState // an open modal's mode to restore on Pop, beside Payload.Return
 	lastFocus   string    // the focus last inside this instance when focus left it; a jump lands there
+	borrowed    string    // an open modal's adopted focus (Push of a focus outside it) and that focus's own parent, restored on Pop
+	lentParent  string
 }
 
 // Payload is the small typed state a mode carries (Runtime.Mode.Payload).
