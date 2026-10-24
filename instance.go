@@ -53,7 +53,10 @@ func (p Payload) empty() bool {
 	return p.Count == 0 && p.OpCount == 0 && p.Op == "" && p.Prefix == "" && p.Prompt == "" && p.Request == nil && p.Shadow == nil
 }
 
-type instanceSpec struct{ parent, noun, focus string }
+type instanceSpec struct {
+	parent, noun, focus string
+	closeOnDetach       bool
+}
 
 // InstanceOption configures the instance constructors: Instance, AddPage,
 // AddList, AddInput, AddTerminal and RegisterPage.
@@ -70,6 +73,11 @@ func Kind(noun string) InstanceOption { return func(s *instanceSpec) { s.noun = 
 // Focus names the instance a page starts focused on (default: the page
 // itself). Other constructors ignore it.
 func Focus(id string) InstanceOption { return func(s *instanceSpec) { s.focus = id } }
+
+// CloseOnDetach makes terminal.detach remove the terminal instance after
+// returning focus, so the stream is released (see TerminalReleaser) instead
+// of kept for a later attach. Only AddTerminal reads it.
+func CloseOnDetach() InstanceOption { return func(s *instanceSpec) { s.closeOnDetach = true } }
 
 // Instance registers a plain instance: a page body, a panel, a modal body.
 // Its noun is defined when it does not exist yet. Registering an existing id

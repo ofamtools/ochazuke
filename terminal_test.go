@@ -15,11 +15,12 @@ import (
 // fakeStream is a line-buffer pane: frames are pushed by the test, keys and
 // pastes are recorded, and Next waits for a frame or the context.
 type fakeStream struct {
-	frames  chan TerminalFrame
-	sent    [][]string
-	pasted  []string
-	resizes [][2]int
-	closed  bool
+	frames   chan TerminalFrame
+	sent     [][]string
+	pasted   []string
+	resizes  [][2]int
+	closed   bool
+	released int
 }
 
 func newFakeStream() *fakeStream { return &fakeStream{frames: make(chan TerminalFrame, 8)} }
@@ -44,6 +45,7 @@ func (f *fakeStream) Resize(cols, rows int) error {
 	f.resizes = append(f.resizes, [2]int{cols, rows})
 	return nil
 }
+func (f *fakeStream) Release() error { f.released++; return nil }
 
 // runCommands executes a batch and returns the messages it produced.
 func runCommands(cmd tea.Cmd) []tea.Msg {
@@ -357,5 +359,35 @@ func TestInstanceConstructorsShareOptions(t *testing.T) {
 	}
 	if kind, _ := JSONPointer(r.Snapshot(), "/components/pane/component"); kind != "terminal" {
 		t.Fatalf("snapshot component kind %v", kind)
+	}
+}
+
+// Closing a terminal releases its stream once: RemoveInstance releases it, a
+// plain detach keeps it for a later attach, and a CloseOnDetach terminal is
+// removed (and released) by detach.
+func TestTerminalCloseReleasesStream(t *testing.T) {
+	r, term, stream := terminalFixture(t)
+	if _, err := r.Execute(Request{Verb: "detach", Noun: "terminal"}); err != nil || stream.released != 0 || r.Terminal("pane") != term {
+		t.Fatalf("plain detach: %v released=%d", err, stream.released)
+	}
+	if err := r.RemoveInstance("pane"); err != nil {
+		t.Fatal(err)
+	}
+	term.Close()
+	if stream.released != 1 || r.Terminal("pane") != nil {
+		t.Fatalf("RemoveInstance: released=%d", stream.released)
+	}
+	other := newFakeStream()
+	if _, err := r.AddTerminal("live", other, Parent("console"), CloseOnDetach()); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.SetFocus("live"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Execute(Request{Verb: "detach", Noun: "terminal"}); err != nil {
+		t.Fatal(err)
+	}
+	if other.released != 1 || r.Instances["live"] != nil || r.Focus != "console" {
+		t.Fatalf("CloseOnDetach: released=%d instance=%v focus=%q", other.released, r.Instances["live"], r.Focus)
 	}
 }

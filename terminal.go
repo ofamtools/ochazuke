@@ -22,6 +22,14 @@ type TerminalStream interface {
 	Resize(cols, rows int) error
 }
 
+// TerminalReleaser is a TerminalStream that holds something to give back
+// when its terminal closes: a daemon size lease, a connection. Terminal.Close
+// calls Release once, so Pop, SetItems, RemoveInstance and a CloseOnDetach
+// detach all release the stream; its error is kept as the terminal's Err.
+type TerminalReleaser interface {
+	Release() error
+}
+
 // TerminalFrame is one rendering of a pane: its rows of trusted ANSI, the
 // cursor cell, the cursor shape the pane reports ("block", "bar",
 // "underline"; "" for the default block) and whether the cursor is hidden.
@@ -47,12 +55,15 @@ type Terminal struct {
 	rows   int
 	err    string
 	closed bool
+	// closeOnDetach removes the instance on terminal.detach (CloseOnDetach).
+	closeOnDetach bool
 }
 
 // AddTerminal registers a terminal instance of the terminal noun fed by
 // stream, in terminal mode: every key forwards to the pane except the
-// leader. Options: Parent(id) (default app) and Kind(noun) for a noun that
-// supplies its own tables. The first frame read is scheduled at once.
+// leader. Options: Parent(id) (default app), Kind(noun) for a noun that
+// supplies its own tables and CloseOnDetach to remove the instance (and
+// release the stream) on detach. The first frame read is scheduled at once.
 func (r *Runtime) AddTerminal(id string, stream TerminalStream, opts ...InstanceOption) (*Terminal, error) {
 	if id == "" || r.Instances[id] != nil {
 		return nil, errors.New("terminal ID must be unique and nonempty")
@@ -67,7 +78,7 @@ func (r *Runtime) AddTerminal(id string, stream TerminalStream, opts ...Instance
 	if r.Instances[spec.parent] == nil {
 		return nil, fmt.Errorf("unknown parent %q", spec.parent)
 	}
-	t := &Terminal{r: r, id: id, stream: stream}
+	t := &Terminal{r: r, id: id, stream: stream, closeOnDetach: spec.closeOnDetach}
 	inst := r.Instance(id, Parent(spec.parent), Kind(spec.noun))
 	inst.Component = t
 	t.read()
@@ -131,8 +142,19 @@ func (t *Terminal) HandleMessage(msg tea.Msg) bool {
 // PendingCommand is nil: reads are scheduled through Runtime.Start.
 func (t *Terminal) PendingCommand() tea.Cmd { return nil }
 
-// Close stops reading; the runtime has already cancelled the read in flight.
-func (t *Terminal) Close() { t.closed = true }
+// Close stops reading and releases a TerminalReleaser stream, once; the
+// runtime has already cancelled the read in flight.
+func (t *Terminal) Close() {
+	if t.closed {
+		return
+	}
+	t.closed = true
+	if rel, ok := t.stream.(TerminalReleaser); ok {
+		if err := rel.Release(); err != nil {
+			t.err = err.Error()
+		}
+	}
+}
 
 // View renders the pane without a cursor; see ViewBlock.
 func (t *Terminal) View(width, height int) string { return t.ViewBlock(width, height).Text }
@@ -246,9 +268,11 @@ func registerTerminal(r *Runtime) {
 			if err != nil {
 				return nil, err
 			}
-			err = r.SetFocus(r.Instances[t.id].Parent)
+			if err = r.SetFocus(r.Instances[t.id].Parent); err == nil && t.closeOnDetach {
+				err = r.RemoveInstance(t.id)
+			}
 			return r.Context(), err
-		}, "Return focus to the instance around the terminal; the pane keeps running").
+		}, "Return focus to the instance around the terminal; the pane keeps running (a CloseOnDetach terminal is removed and its stream released)").
 		Mode("terminal").
 		Bind("ctrl+a", Enter("leader_pending", Payload{Prefix: "ctrl+a", Request: &leader})).
 		Pattern(Paste, Do("terminal.paste").FromPayload("text", SourceText)).
