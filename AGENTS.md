@@ -6,7 +6,8 @@ Go application framework on Bubble Tea **v1.3** (`github.com/charmbracelet/bubbl
 
 1. This file.
 2. `docs/CODEMAP.md`: generated, one entry per source file with declared types, methods, and the sibling files it leans on. Open the two or three files it points at instead of grepping the package.
-3. README.md only for the section you need. The "API and ownership" section has the file-to-responsibility table and the ownership rules below in long form.
+3. `docs/MIGRATION-PLAN.md` when working on the v2 move or the nouns-and-instances redesign. Phases are ordered and each ends green and committed.
+4. README.md only for the section you need. The "API and ownership" section has the file-to-responsibility table and the ownership rules below in long form.
 
 Regenerate the maps after adding, removing, or renaming files:
 
