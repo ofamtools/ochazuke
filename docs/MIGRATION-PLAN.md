@@ -173,6 +173,8 @@ Owner-confirmed items, relayed from the forked design session:
 
 Noted during phase 7, not done: `Terminal` frames are rows of ANSI, so a cell-buffer source (`x/vt`) would be adapted by the stream, not the framework; a pane that needs a read to restart after a dropped command re-arms only on delivery; hints have no per-row description (rows show `key verb.noun`).
 
+Follow-up after the phases (commit ad800ea): binding rows are atomic. `Binding` lost its `Func` field; macro recording is `stop.macro` under the `shadow-idle` guard plus `record.macro` (`append.macro`, then `dispatch.key {mode: "shadow"}`), the terminal leader is an `Enter` row with `prefix` and `request` and `send.terminal` with `Join("keys", prefix, key)`, Escape under a key-sequence prefix is a generated `"<prefix> esc"` → `leave.mode` row, and hints carry the operation description (the per-row description noted above). `TestBindingRowsAreAtomic` and `Runtime.ValidateBindings` enforce it.
+
 All phases complete.
 
 ## After phase 7: delivery contract amendment (owner decision, 2026-10-24, from the forked design session)
