@@ -270,7 +270,9 @@ page.focusables (optional)                     // explicit order override, the r
 
 ### 1d. Modals are a z-index boundary for resolution (decision)
 
-Found after phase 8: `OpenModal` parents the modal at the focus it opened over, and `stack()` walks that link, so a key inside a modal reached the panel's table beneath it (proved by test). Rule: pages, panels and components are one z-level and only components take focus; a modal is level 2. While a modal is open the walk is [focus … top modal instance] + [modal noun] + [app] (+ editor fallback if an input is on that path); nothing beneath the modal instance is consulted. `Parent` stays for pop/return and rendering. App-level capture rows still apply. `bindings list` and help reflect the same boundary. Assigned to the framework follow-up branch.
+Found after phase 8: `OpenModal` parents the modal at the focus it opened over, and `stack()` walks that link, so a key inside a modal reached the panel's table beneath it (proved by test). Rule: pages, panels and components are one z-level and only components take focus; a modal is level 2. While a modal is open the walk is [focus … top modal instance] + [modal noun] + [app] (+ editor fallback if an input is on that path); nothing beneath the modal instance is consulted. `Parent` stays for pop/return and rendering. App-level capture rows still apply. `bindings list` and help reflect the same boundary. Assigned to the framework follow-up branch (landed as 037fff6).
+
+Invariant (owner): focus is never outside the top level. While any modal is open, `Runtime.Focus` is within the top modal's subtree; `focus.set` to an outside target is an error, internal retargeting clamps to the modal instance, Push/OpenModal always leave focus inside the new modal, pop restores a return focus that is by construction inside the next level down. Asserted by test.
 
 ### 2. Bugs and oversights in the resolver
 
