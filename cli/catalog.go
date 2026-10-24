@@ -78,9 +78,11 @@ type CatalogPage struct {
 }
 
 // Catalog describes r as indented JSON: every operation grouped by noun
-// (nouns and verbs sorted), every noun's binding rows (noun, then mode,
-// sorted; rows in table order, with noun and mode filled in, the
-// LoadBindings shape) and the pages in registration order.
+// (nouns and verbs sorted; params are a map, which encoding/json writes
+// sorted), every noun's binding rows (sorted by mode, noun, key, then
+// request, stably; noun and mode filled in, the LoadBindings shape) and the
+// pages in registration order (their tab order). The same runtime gives the
+// same bytes on every run.
 func Catalog(r *ochazuke.Runtime, name, version string) ([]byte, error) {
 	doc := CatalogDoc{Schema: Schema, Name: name, Version: version, Nouns: []CatalogNoun{}, Bindings: []ochazuke.Binding{}, Pages: []CatalogPage{}}
 	for _, op := range r.Catalog() {
@@ -120,8 +122,30 @@ func Catalog(r *ochazuke.Runtime, name, version string) ([]byte, error) {
 			}
 		}
 	}
+	// Rows sort by mode, noun, key, then request, stably: equal rows keep
+	// table order, and no map order reaches the output.
+	sort.SliceStable(doc.Bindings, func(i, j int) bool {
+		a, b := doc.Bindings[i], doc.Bindings[j]
+		if a.Mode != b.Mode {
+			return a.Mode < b.Mode
+		}
+		if a.Noun != b.Noun {
+			return a.Noun < b.Noun
+		}
+		if a.Keys != b.Keys {
+			return a.Keys < b.Keys
+		}
+		return requestKey(a.Request) < requestKey(b.Request)
+	})
 	for _, page := range r.PageList() {
 		doc.Pages = append(doc.Pages, CatalogPage{ID: page.ID, Title: page.Title})
 	}
 	return json.MarshalIndent(doc, "", "  ")
+}
+
+// requestKey orders requests by their JSON, whose object keys
+// encoding/json writes sorted.
+func requestKey(req ochazuke.Request) string {
+	data, _ := json.Marshal(req)
+	return string(data)
 }

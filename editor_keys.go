@@ -4,6 +4,8 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 )
 
@@ -59,7 +61,10 @@ func (r *Runtime) LoadBindingSpec(noun string, data []byte) error {
 		if !ok {
 			return fmt.Errorf("binding spec: unknown map %q", row.Expand)
 		}
-		for key, value := range entries {
+		// Keys in sorted order: map order would make the table, and every
+		// catalog and hint drawn from it, differ between runs.
+		for _, key := range slices.Sorted(maps.Keys(entries)) {
+			value := entries[key]
 			expanded := row.Binding
 			expanded.Keys = key
 			expanded.Request.Args = Arguments{}

@@ -74,7 +74,7 @@ Root package `ochazuke` is flat: 42 source files, 33 test files. Each entry list
 
 ### editor_keys.go
 
-- lines: 111
+- lines: 116
 - purpose: LoadBindingSpec installs a spec onto one noun: modes, then rows.
 - methods: Runtime(2)
 - leans on: noun.go(9), runtime.go(9), delivery.go(2), instance.go(1)
@@ -345,7 +345,7 @@ Importable package `cli`: 4 source files, 2 test files.
 
 ### cli/catalog.go
 
-- lines: 127
+- lines: 151
 - purpose: CatalogDoc is the catalog answer: what a runtime registers, grouped by noun, in the runtime's own JSON shapes (ochazuke.Parameter and ochazuke.Binding unchan...
 - types: CatalogDoc, CatalogNoun, CatalogVerb, CatalogPage
 - funcs: Catalog
