@@ -279,3 +279,18 @@ Deferred and expected: `Parameter.source` for the transform pick list (after-pha
 ### 4. Follow-up: operation keys are `noun.verb` (b4a1ffe)
 
 Keys were `verb.noun` (`undo.input`) while the CLI spelled the same operation `input undo` and the builder `Define("input").Verb("undo")`. Commit b4a1ffe flipped the key to `noun.verb` so all four agree, ownership reads as a path and a catalog sorted by key groups by noun. `cmd/renamekeys` did the rename (165 keys, 550 mentions) and is kept for the next one; `go run ./cmd/renamekeys -check -skip bindings_test.go` proves no old spelling remains. The old spelling still loads for one release: it is rewritten and reported by `ValidateBindings`, which now returns the deprecation list. Remove `modernRequest` and the `deprecations` field after that release.
+
+## Principles borrowed from the DOM (owner decisions, 2026-10-24, from the forked design session)
+
+The instance tree is a DOM. These apply its rules; each is additive and data-shaped.
+
+1. **Capture phase.** The stack walk is bubbling (inner first). A row may set `capture: true` to be consulted outer-first before the walk, for the few app-level keys an inner component must not swallow (global quit, help toggle, the terminal pane's escape hatch). One flag, one extra pass.
+2. **Tree queries as predicate values, no strings.** A query is an array of named predicates, ANDed: `instances.query([noun("worktree"), within("sidebar")])`, Go `r.Query(Noun("worktree"), Within("sidebar"))`, wire form `[["noun","worktree"],["within","sidebar"]]`. Framework predicates: `noun`, `id`, `kind`, `within`, `child-of`, `focusable`, `region`, `state`, plus `any`, `all`, `not`. Each is `func(*Instance, *Runtime) bool` registered by name, so an app adds `marked()` and the CLI gets it. The CLI may accept a convenience string and parse it to the array at the edge; nothing inside stores or reads a string form.
+3. **Style cascade over the same predicates.** A style rule is predicates plus a style; specificity is the predicate count (`[noun("cell"), marked()]` beats `[noun("cell")]`). States and marks act as pseudo-classes (`focus`, `selected`, `disabled`). Replaces the single global `Appearance` and is the backbone of the color scheme designer in TODO.md.
+4. **Component boundaries (shadow DOM).** A noun may declare `boundary: true`; queries, focus walks and style selectors stop at it unless the caller opts in. Focus already behaves this way (a grid is one stop); this extends the rule to queries and styles so a page-level selector never reaches cells by accident.
+5. **Jump list (history).** Every `focus.set` and `page.open` pushes onto a history; `focus.back` / `focus.forward` walk it (Vim ctrl+o / ctrl+i). Makes `}` reversible across pages.
+6. **Events out.** The runtime emits `focus`, `mode`, `page`, `modal`, `job` change events on one stream: the CLI's `subscribe`, logging, and test assertions by event rather than by snapshot. This is the only part of an "event bus" the framework owns; domain events stay in the application.
+
+Not copied: box model / flex layout (Lip Gloss owns layout; a declarative layout tree is a separate project) and attribute-soup `dataset` (typed payloads are better).
+
+Order: 1 and 2 with the phase 8 follow-up (tiny); 3 and 4 when the color scheme work starts; 5 and 6 when the znbu app needs them.
