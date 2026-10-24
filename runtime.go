@@ -125,6 +125,7 @@ func NewRuntime() *Runtime {
 	registerModeTables(r)
 	registerEditorNoun(r)
 	registerConfirm(r)
+	registerTerminal(r)
 	// A modal answers esc in normal mode; inputs, pending modes and the
 	// palette settle first because their rows sit inside this level.
 	r.Define("modal").Mode("normal").Bind("esc", Do("pop.modal"))

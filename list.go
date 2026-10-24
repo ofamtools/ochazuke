@@ -30,9 +30,15 @@ type List struct {
 	marks    map[string]bool
 }
 
-// NewList registers a list instance of the list noun. Options: Parent(id)
-// (default app) and Kind(noun) for a list that answers to its own noun as well.
+// NewList is AddList for callers that hold the runtime as a value.
 func NewList(r *Runtime, id string, items []ListItem, opts ...InstanceOption) (*List, error) {
+	return r.AddList(id, items, opts...)
+}
+
+// AddList registers a list instance of the list noun with its rows. Options:
+// Parent(id) (default app) and Kind(noun) for a list that answers to its
+// own noun as well.
+func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (*List, error) {
 	if id == "" {
 		return nil, errors.New("list ID must be nonempty")
 	}

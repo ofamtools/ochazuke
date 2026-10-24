@@ -300,8 +300,14 @@ func (r *Runtime) enterMode(inst *Instance, name string, payload Payload) {
 	r.modeGeneration++
 }
 
-// leaveMode restores the mode a pending mode shadowed.
+// leaveMode restores the mode a pending mode shadowed and disarms the
+// sequence timer when it belongs to that mode.
 func (r *Runtime) leaveMode(inst *Instance) {
+	if r.prefix.focus == inst.ID && r.prefix.mode == inst.State {
+		r.Pending = ""
+		r.bindingVersion++
+		r.prefix = pendingPrefix{}
+	}
 	inst.State, inst.Payload = inst.Payload.Return, Payload{}
 	r.modeGeneration++
 }
@@ -396,13 +402,21 @@ func (r *Runtime) enterPrefix(focus, base, sequence string, fallback *Request) {
 	inst := r.Instances[focus]
 	name := base + " " + sequence
 	r.enterMode(inst, name, Payload{Prefix: sequence, Request: fallback})
+	r.armPrefix(focus, name, sequence)
+}
+
+// armPrefix starts the sequence timer for a pending mode the focus is in:
+// when BindingTimeout passes before the next key, finishPrefix leaves the
+// mode and runs the request stored in its payload. The terminal leader arms
+// it with the request that forwards the leader alone.
+func (r *Runtime) armPrefix(focus, mode, sequence string) {
 	timeout := r.BindingTimeout
 	if timeout <= 0 {
 		timeout = DefaultBindingTimeout
 	}
 	r.Pending = sequence
 	r.bindingVersion++
-	r.prefix = pendingPrefix{focus: focus, mode: name, deadline: time.Now().Add(timeout)}
+	r.prefix = pendingPrefix{focus: focus, mode: mode, deadline: time.Now().Add(timeout)}
 }
 
 func (r *Runtime) leavePrefix(focus string) {

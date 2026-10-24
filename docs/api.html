@@ -7,14 +7,14 @@
 nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
 </style></head><body>
 <header><a href="architecture.html">← Architecture field guide</a><p class="eyebrow">Ochazuke / generated reference</p><h1>Go API</h1><p>Actions and bindings come from a fresh <code>demo.New()</code> (examples/demo). Go declarations and comments come from the package source through Go's standard <code>go/doc</code> library. This is a build-time snapshot, not your running application's customized registry.</p>
-<nav aria-label="Catalogs"><a href="actions.html">Actions (78)</a><a href="bindings.html">Default bindings (410)</a><a href="api.html" aria-current="page">Go API (207)</a><a href="transport.html">CLI &amp; socket</a></nav>
+<nav aria-label="Catalogs"><a href="actions.html">Actions (82)</a><a href="bindings.html">Default bindings (417)</a><a href="api.html" aria-current="page">Go API (225)</a><a href="transport.html">CLI &amp; socket</a></nav>
 <div class="toolbar"><label for="search">Search Go API</label><input id="search" type="search" placeholder="Search this catalog" autocomplete="off"><p id="matches" role="status"></p></div>
 <noscript>All entries are available below. Search requires JavaScript.</noscript></header>
 <main>
 
 
 
-<section id="api"><p class="eyebrow">03 / Exported Go API</p><h2>Go API <span class="count">207</span></h2><p>Generated exported types, functions, methods, constants and variables from the root <code>ochazuke</code> package. Unexported fields and function bodies are omitted. Missing prose means the declaration has no source doc comment. Command entry points under <code>cmd/</code> are not library APIs.</p><p>Go also provides terminal documentation: run <code>go doc -all .</code> or <code>go doc Runtime.Execute</code> from the repository root. This offline reference needs no <code>godoc</code> server or published module.</p>
+<section id="api"><p class="eyebrow">03 / Exported Go API</p><h2>Go API <span class="count">225</span></h2><p>Generated exported types, functions, methods, constants and variables from the root <code>ochazuke</code> package. Unexported fields and function bodies are omitted. Missing prose means the declaration has no source doc comment. Command entry points under <code>cmd/</code> are not library APIs.</p><p>Go also provides terminal documentation: run <code>go doc -all .</code> or <code>go doc Runtime.Execute</code> from the repository root. This offline reference needs no <code>godoc</code> server or published module.</p>
 <details class="entry searchable"><summary><code>AppHandler</code> <small>type</small></summary><pre>AppHandler is the signature of an application verb: it reads the Ctx and
 returns Done, Failed or Pending work. Pending work runs off the loop; its
 completion is delivered to the owning instance through the contract, so a
@@ -125,7 +125,9 @@ payload).
 	Children []int  `json:&#34;children&#34;`
 }</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>Enter</code> <small>function / method</small></summary><pre>Enter builds a row that enters a pending mode with a typed payload.
 </pre><pre>func Enter(mode string, payload ...Payload) Binding</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Failed</code> <small>function / method</small></summary><pre>Failed reports a synchronous failure.
-</pre><pre>func Failed(err error) Result</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Footer</code> <small>type</small></summary><pre>Footer is the bottom row of the page chrome: a raw label, styled as an
+</pre><pre>func Failed(err error) Result</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Focus</code> <small>function / method</small></summary><pre>Focus names the instance a page starts focused on (default: the page
+itself). Other constructors ignore it.
+</pre><pre>func Focus(id string) InstanceOption</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>Footer</code> <small>type</small></summary><pre>Footer is the bottom row of the page chrome: a raw label, styled as an
 error when Error is set.
 </pre><pre>type Footer struct {
 	Text  string
@@ -194,7 +196,8 @@ the typed component the instance fronts (a *Page in this phase).
 	Bindings  []Binding `json:&#34;bindings,omitempty&#34;`
 	Component any       `json:&#34;-&#34;`
 	// contains filtered or unexported fields
-}</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>InstanceOption</code> <small>type</small></summary><pre>InstanceOption configures Instance, AddInput, NewList and Page registration.
+}</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>InstanceOption</code> <small>type</small></summary><pre>InstanceOption configures the instance constructors: Instance, AddPage,
+AddList, AddInput, AddTerminal and RegisterPage.
 </pre><pre>type InstanceOption func(*instanceSpec)</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>IntArg</code> <small>function / method</small></summary><pre>func IntArg(a Arguments, name string, fallback int) int</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>JSONPointer</code> <small>function / method</small></summary><pre>func JSONPointer(value any, path string) (any, error)</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>KeyEvent</code> <small>type</small></summary><pre>KeyEvent is what a row receives: the key, the mode it was resolved in and
 the focused instance.
 </pre><pre>type KeyEvent struct {
@@ -203,7 +206,8 @@ the focused instance.
 	Focus string
 	Level string // the instance whose level is answering, &#34;&#34; for a noun-only level
 }</pre><a href="../resolve.go">Source file</a></details><details class="entry searchable"><summary><code>Kind</code> <small>function / method</small></summary><pre>Kind names the noun the instance answers to (default: the instance id for
-plain instances, &#34;editor&#34; for inputs, &#34;list&#34; for lists, &#34;page&#34; for pages).
+plain instances, &#34;editor&#34; for inputs, &#34;list&#34; for lists, &#34;page&#34; for pages,
+&#34;terminal&#34; for terminals).
 </pre><pre>func Kind(noun string) InstanceOption</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>KindInteraction, KindApplication</code> <small>constant</small></summary><pre>Operation kinds.
 </pre><pre>const (
 	KindInteraction = &#34;interaction&#34; // runs synchronously on the loop (default)
@@ -324,8 +328,7 @@ string. The terminal cursor follows the focused input through the page or
 modal that holds it: a bar in insert mode, a block in normal mode and an
 underline in visual modes. It is hidden when no input is focused.
 </pre><pre>func (m *Model) View() tea.View</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>NewAppearance</code> <small>function / method</small></summary><pre>NewAppearance registers appearance operations once per runtime.
-</pre><pre>func NewAppearance(r *Runtime) *Appearance</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>NewInput</code> <small>function / method</small></summary><pre>func NewInput(id, text string, multiline bool) *Input</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>NewList</code> <small>function / method</small></summary><pre>NewList registers a list instance of the list noun. Options: Parent(id)
-(default app) and Kind(noun) for a list that answers to its own noun as well.
+</pre><pre>func NewAppearance(r *Runtime) *Appearance</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>NewInput</code> <small>function / method</small></summary><pre>func NewInput(id, text string, multiline bool) *Input</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>NewList</code> <small>function / method</small></summary><pre>NewList is AddList for callers that hold the runtime as a value.
 </pre><pre>func NewList(r *Runtime, id string, items []ListItem, opts ...InstanceOption) (*List, error)</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>NewModel</code> <small>function / method</small></summary><pre>func NewModel(r *Runtime) *Model</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>NewPalette</code> <small>function / method</small></summary><pre>func NewPalette(r *Runtime) *Palette</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>NewPicker</code> <small>function / method</small></summary><pre>func NewPicker(r *Runtime) *Picker</pre><a href="../picker.go">Source file</a></details><details class="entry searchable"><summary><code>NewRuntime</code> <small>function / method</small></summary><pre>func NewRuntime() *Runtime</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>NewStyles</code> <small>function / method</small></summary><pre>NewStyles keeps layout and focus cues usable without terminal color support.
 </pre><pre>func NewStyles(a Appearance) Styles</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>Noun</code> <small>type</small></summary><pre>Noun is the behaviour shared by every instance of one kind: the verbs it
 answers to, its key bindings per mode, the action handlers that override an
@@ -524,7 +527,19 @@ TestRuntimeHoldsNoComponentFields pins this list.
 focus stack, or nil when the operation&#39;s own Run applies.
 </pre><pre>func (r *Runtime) ActionFor(focus, key string) Handler</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.AddInput</code> <small>function / method</small></summary><pre>AddInput registers an editor instance. Options: Parent(id) (default app)
 and Kind(noun) (default &#34;editor&#34;; &#34;prompt&#34; pins insert mode).
-</pre><pre>func (r *Runtime) AddInput(in *Input, opts ...InstanceOption) error</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Ancestry</code> <small>function / method</small></summary><pre>Ancestry walks the parent links from id outward: id first, app last. An
+</pre><pre>func (r *Runtime) AddInput(in *Input, opts ...InstanceOption) error</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.AddList</code> <small>function / method</small></summary><pre>AddList registers a list instance of the list noun with its rows. Options:
+Parent(id) (default app) and Kind(noun) for a list that answers to its
+own noun as well.
+</pre><pre>func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (*List, error)</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.AddPage</code> <small>function / method</small></summary><pre>AddPage registers a page instance of kind page under app with a title and
+a renderer. Options: Focus(id) names where the page starts (the page
+itself or an instance beneath it, registered first) and Kind(noun) a noun
+of the application&#39;s own. Registration does not activate the page; see
+OpenPage. It is RegisterPage for callers that do not hold a *Page.
+</pre><pre>func (r *Runtime) AddPage(id, title string, render func(*Runtime, int, int) Block, opts ...InstanceOption) (*Page, error)</pre><a href="../pages.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.AddTerminal</code> <small>function / method</small></summary><pre>AddTerminal registers a terminal instance of the terminal noun fed by
+stream, in terminal mode: every key forwards to the pane except the
+leader. Options: Parent(id) (default app) and Kind(noun) for a noun that
+supplies its own tables. The first frame read is scheduled at once.
+</pre><pre>func (r *Runtime) AddTerminal(id string, stream TerminalStream, opts ...InstanceOption) (*Terminal, error)</pre><a href="../terminal.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Ancestry</code> <small>function / method</small></summary><pre>Ancestry walks the parent links from id outward: id first, app last. An
 unknown id yields nil.
 </pre><pre>func (r *Runtime) Ancestry(id string) []string</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Bind</code> <small>function / method</small></summary><pre>Bind installs rows from config or code onto their noun or instance tables:
 the same mode and keys or pattern replaces, a new one adds, Unbind removes.
@@ -600,7 +615,8 @@ an instance beneath it. Registration does not activate the page.
 work of the same instance is cancelled: one generation is current at a
 time. The completion reaches the owner&#39;s Component.HandleMessage and the
 optional then callback when it is still current.
-</pre><pre>func (r *Runtime) Start(owner string, work func(context.Context) (any, error), then func(Ctx, any, error), c Ctx) (Ticket, error)</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Server</code> <small>type</small></summary><pre>type Server struct {
+</pre><pre>func (r *Runtime) Start(owner string, work func(context.Context) (any, error), then func(Ctx, any, error), c Ctx) (Ticket, error)</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Terminal</code> <small>function / method</small></summary><pre>Terminal returns the terminal an instance fronts, or nil.
+</pre><pre>func (r *Runtime) Terminal(id string) *Terminal</pre><a href="../terminal.go">Source file</a></details><details class="entry searchable"><summary><code>Server</code> <small>type</small></summary><pre>type Server struct {
 	// contains filtered or unexported fields
 }</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>Server.Close</code> <small>function / method</small></summary><pre>func (s *Server) Close() error</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>SourceKey, SourceDigit, SourceText, SourceCount, SourceLine, SourceSteps, SourceOp, SourceOpCount</code> <small>constant</small></summary><pre>Sources a From entry may name: &#34;key&#34; (the key name), &#34;digit&#34; (the key as an
 integer), &#34;text&#34; (pasted or typed text), &#34;count&#34; (payload count, at least 1),
@@ -628,7 +644,48 @@ integer), &#34;text&#34; (pasted or typed text), &#34;count&#34; (payload count,
 	ActiveTab    lipgloss.Style
 	Badge        lipgloss.Style
 	Padding      int
-}</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>Text</code> <small>function / method</small></summary><pre>Text wraps rendered text that carries no cursor.
+}</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>Terminal</code> <small>type</small></summary><pre>Terminal is the component of a terminal instance: it holds the last frame
+the stream delivered, renders it into the area a page gives it and reports
+the pane&#39;s cursor. Frames arrive through the delivery contract as
+Completions owned by the instance, one read at a time, so a frame that
+arrives after Close, or after a newer read started, is stale and dropped
+before it reaches the component.
+</pre><pre>type Terminal struct {
+	// contains filtered or unexported fields
+}</pre><a href="../terminal.go">Source file</a></details><details class="entry searchable"><summary><code>Terminal.Close</code> <small>function / method</small></summary><pre>Close stops reading; the runtime has already cancelled the read in flight.
+</pre><pre>func (t *Terminal) Close()</pre><a href="../terminal.go">Source file</a></details><details class="entry searchable"><summary><code>Terminal.Err</code> <small>function / method</small></summary><pre>Err is the stream&#39;s last error, &#34;&#34; when it is healthy.
+</pre><pre>func (t *Terminal) Err() string</pre><a href="../terminal.go">Source file</a></details><details class="entry searchable"><summary><code>Terminal.Focused</code> <small>function / method</small></summary><pre>Focused reports whether keys go to this pane.
+</pre><pre>func (t *Terminal) Focused() bool</pre><a href="../terminal.go">Source file</a></details><details class="entry searchable"><summary><code>Terminal.Frame</code> <small>function / method</small></summary><pre>Frame is the last frame the stream delivered.
+</pre><pre>func (t *Terminal) Frame() TerminalFrame</pre><a href="../terminal.go">Source file</a></details><details class="entry searchable"><summary><code>Terminal.HandleMessage</code> <small>function / method</small></summary><pre>HandleMessage stores a frame delivered to this terminal and schedules the
+next read. A stream error ends reading; a cancelled read is silent.
+</pre><pre>func (t *Terminal) HandleMessage(msg tea.Msg) bool</pre><a href="../terminal.go">Source file</a></details><details class="entry searchable"><summary><code>Terminal.ID</code> <small>function / method</small></summary><pre>ID is the terminal&#39;s instance id.
+</pre><pre>func (t *Terminal) ID() string</pre><a href="../terminal.go">Source file</a></details><details class="entry searchable"><summary><code>Terminal.PendingCommand</code> <small>function / method</small></summary><pre>PendingCommand is nil: reads are scheduled through Runtime.Start.
+</pre><pre>func (t *Terminal) PendingCommand() tea.Cmd</pre><a href="../terminal.go">Source file</a></details><details class="entry searchable"><summary><code>Terminal.Size</code> <small>function / method</small></summary><pre>Size is the area the pane was last told to fill.
+</pre><pre>func (t *Terminal) Size() (cols, rows int)</pre><a href="../terminal.go">Source file</a></details><details class="entry searchable"><summary><code>Terminal.View</code> <small>function / method</small></summary><pre>View renders the pane without a cursor; see ViewBlock.
+</pre><pre>func (t *Terminal) View(width, height int) string</pre><a href="../terminal.go">Source file</a></details><details class="entry searchable"><summary><code>Terminal.ViewBlock</code> <small>function / method</small></summary><pre>ViewBlock renders the pane&#39;s cells into exactly width x height cells and
+reports the pane&#39;s cursor; compose the cursor only while the terminal is
+focused. The stream is told the area the first time it is seen and
+whenever it changes, so the pane is sized to the detail area it fills.
+</pre><pre>func (t *Terminal) ViewBlock(width, height int) Block</pre><a href="../terminal.go">Source file</a></details><details class="entry searchable"><summary><code>TerminalFrame</code> <small>type</small></summary><pre>TerminalFrame is one rendering of a pane: its rows of trusted ANSI, the
+cursor cell, the cursor shape the pane reports (&#34;block&#34;, &#34;bar&#34;,
+&#34;underline&#34;; &#34;&#34; for the default block) and whether the cursor is hidden.
+</pre><pre>type TerminalFrame struct {
+	Lines  []string `json:&#34;lines&#34;`
+	Cursor Pos      `json:&#34;cursor&#34;`
+	Shape  string   `json:&#34;shape,omitempty&#34;`
+	Hidden bool     `json:&#34;hidden,omitempty&#34;`
+}</pre><a href="../terminal.go">Source file</a></details><details class="entry searchable"><summary><code>TerminalStream</code> <small>type</small></summary><pre>TerminalStream is the application&#39;s connection to one pane: a daemon
+client, never a PTY the framework owns. The framework reads frames from
+it, forwards keys and pasted text to it and tells it the pane&#39;s size.
+Next blocks until the pane changes and returns its next frame; it returns
+ctx&#39;s error when the terminal instance closes or newer work supersedes
+the read. Keys are named as bindings spell them (&#34;ctrl&#43;a&#34;, &#34;d&#34;, &#34;esc&#34;).
+</pre><pre>type TerminalStream interface {
+	Next(ctx context.Context) (TerminalFrame, error)
+	Send(keys ...string) error
+	Paste(text string) error
+	Resize(cols, rows int) error
+}</pre><a href="../terminal.go">Source file</a></details><details class="entry searchable"><summary><code>Text</code> <small>function / method</small></summary><pre>Text wraps rendered text that carries no cursor.
 </pre><pre>func Text(s string) Block</pre><a href="../block.go">Source file</a></details><details class="entry searchable"><summary><code>Ticket</code> <small>type</small></summary><pre>Ticket names one piece of pending work: the instance that owns it and the
 generation it was started under. A completion whose generation is no longer
 the owner&#39;s current one is stale and dropped.

@@ -19,6 +19,26 @@ type Page struct {
 	Render func(*Runtime, int, int) Block `json:"-"`
 }
 
+// AddPage registers a page instance of kind page under app with a title and
+// a renderer. Options: Focus(id) names where the page starts (the page
+// itself or an instance beneath it, registered first) and Kind(noun) a noun
+// of the application's own. Registration does not activate the page; see
+// OpenPage. It is RegisterPage for callers that do not hold a *Page.
+func (r *Runtime) AddPage(id, title string, render func(*Runtime, int, int) Block, opts ...InstanceOption) (*Page, error) {
+	spec := instanceSpec{parent: "app", noun: "page"}
+	for _, opt := range opts {
+		opt(&spec)
+	}
+	if spec.parent != "app" {
+		return nil, fmt.Errorf("page %q must be registered under app", id)
+	}
+	page := &Page{ID: id, Title: title, Focus: spec.focus, Render: render}
+	if err := r.RegisterPage(page, Kind(spec.noun)); err != nil {
+		return nil, err
+	}
+	return page, nil
+}
+
 // RegisterPage registers a page as an instance of kind page under app (the
 // instance may already exist, registered through Instance with the inputs
 // and lists it holds). Focus names where the page starts: the page itself or

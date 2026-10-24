@@ -40,13 +40,12 @@ func registerPages(m *ochazuke.Model, specs []PageConfig) error {
 		var list *ochazuke.List
 		if spec.Renderer == "list" {
 			var err error
-			list, err = ochazuke.NewList(m.Runtime, spec.Focus, spec.Items, ochazuke.Parent(spec.ID))
+			list, err = m.Runtime.AddList(spec.Focus, spec.Items, ochazuke.Parent(spec.ID))
 			if err != nil {
 				return fmt.Errorf("page %q: %w", spec.ID, err)
 			}
 		}
-		page := &ochazuke.Page{ID: spec.ID, Title: spec.Title, Focus: spec.Focus}
-		page.Render = func(r *ochazuke.Runtime, width, height int) ochazuke.Block {
+		render := func(r *ochazuke.Runtime, width, height int) ochazuke.Block {
 			styles := ochazuke.NewStyles(*m.Appearance)
 			if spec.Renderer == "text" {
 				return ochazuke.Text(ansi.Wrap(plain(spec.Text), max(1, width), ""))
@@ -56,7 +55,7 @@ func registerPages(m *ochazuke.Model, specs []PageConfig) error {
 			}
 			return workspaceView(r, r.PageOf(spec.ID).Frame, spec, styles, width, height)
 		}
-		if err := m.Runtime.RegisterPage(page); err != nil {
+		if _, err := m.Runtime.AddPage(spec.ID, spec.Title, render, ochazuke.Focus(spec.Focus)); err != nil {
 			return fmt.Errorf("page %q: %w", spec.ID, err)
 		}
 	}

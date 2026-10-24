@@ -53,7 +53,7 @@ func New() *ochazuke.Model {
 		{"commands", "Commands", "commands", func(r *ochazuke.Runtime, w, h int) ochazuke.Block { return ochazuke.Text(demoCommands(m, w)) }},
 		{"appearance", "Appearance", "appearance", func(r *ochazuke.Runtime, w, h int) ochazuke.Block { return ochazuke.Text(demoAppearance(m, w)) }},
 	} {
-		if err := r.RegisterPage(&ochazuke.Page{ID: spec.id, Title: spec.title, Focus: spec.focus, Render: spec.render}); err != nil {
+		if _, err := r.AddPage(spec.id, spec.title, spec.render, ochazuke.Focus(spec.focus)); err != nil {
 			panic(err)
 		}
 	}

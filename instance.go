@@ -49,17 +49,23 @@ func (p Payload) empty() bool {
 	return p.Count == 0 && p.OpCount == 0 && p.Op == "" && p.Prefix == "" && p.Prompt == "" && p.Request == nil && p.Shadow == nil
 }
 
-type instanceSpec struct{ parent, noun string }
+type instanceSpec struct{ parent, noun, focus string }
 
-// InstanceOption configures Instance, AddInput, NewList and Page registration.
+// InstanceOption configures the instance constructors: Instance, AddPage,
+// AddList, AddInput, AddTerminal and RegisterPage.
 type InstanceOption func(*instanceSpec)
 
 // Parent places the instance under another instance (default app).
 func Parent(id string) InstanceOption { return func(s *instanceSpec) { s.parent = id } }
 
 // Kind names the noun the instance answers to (default: the instance id for
-// plain instances, "editor" for inputs, "list" for lists, "page" for pages).
+// plain instances, "editor" for inputs, "list" for lists, "page" for pages,
+// "terminal" for terminals).
 func Kind(noun string) InstanceOption { return func(s *instanceSpec) { s.noun = noun } }
+
+// Focus names the instance a page starts focused on (default: the page
+// itself). Other constructors ignore it.
+func Focus(id string) InstanceOption { return func(s *instanceSpec) { s.focus = id } }
 
 // Instance registers a plain instance: a page body, a panel, a modal body.
 // Its noun is defined when it does not exist yet. Registering an existing id

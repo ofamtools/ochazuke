@@ -257,14 +257,23 @@ func (m *Model) View() tea.View {
 	return v
 }
 
-// cursor shapes the block's cursor by the focused input's mode.
+// cursor shapes the block's cursor by the focused input's mode, or by the
+// focused terminal's reported shape.
 func (m *Model) cursor(block Block) *tea.Cursor {
-	context := m.Runtime.Context()
-	if block.Cursor == nil || m.Runtime.Input(context.InputID) == nil {
+	if block.Cursor == nil {
 		return nil
 	}
+	context := m.Runtime.Context()
 	cursor := tea.NewCursor(block.Cursor.X, block.Cursor.Y)
 	cursor.Blink = false
+	// A focused pane shows its own cursor, shaped as the pane reports.
+	if term := m.Runtime.Terminal(m.Runtime.FocusID()); term != nil {
+		cursor.Shape = term.cursorShape()
+		return cursor
+	}
+	if m.Runtime.Input(context.InputID) == nil {
+		return nil
+	}
 	switch mode := m.Runtime.Mode(context); {
 	case mode == "insert":
 		cursor.Shape = tea.CursorBar
