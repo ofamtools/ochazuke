@@ -24,6 +24,7 @@ type Instance struct {
 	Component   any       `json:"-"`
 	seq         uint64
 	returnMode  ModeState // an open modal's mode to restore on Pop, beside Payload.Return
+	lastFocus   string    // the focus last inside this instance when focus left it; a jump lands there
 }
 
 // Payload is the small typed state a mode carries (Runtime.Mode.Payload).

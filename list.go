@@ -175,6 +175,9 @@ func (l *List) Focused() bool { return l.holds(l.r.Focus) }
 
 func (l *List) holds(focus string) bool { return focus == l.id || l.r.rows[focus] == l.id }
 
+// FocusTarget is where a focus jump to the list lands: its selected row.
+func (l *List) FocusTarget() string { return l.focusTarget() }
+
 func (l *List) focusTarget() string {
 	if l.selected >= 0 {
 		return l.items[l.selected].ID

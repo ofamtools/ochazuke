@@ -92,6 +92,7 @@ func (r *Runtime) focusable(id string) bool {
 // payload, or to the pinned mode of the newly focused noun (prompt pins
 // insert, terminal pins terminal). A focused input then follows the mode.
 func (r *Runtime) focusMoved(fromStop string, fromPath []string, to string) {
+	r.rememberLeaving(fromPath, to)
 	pin := ""
 	if inst := r.Instances[to]; inst != nil {
 		if noun := r.Nouns[inst.Noun]; noun != nil {
@@ -322,6 +323,7 @@ func (r *Runtime) Pop() error {
 		}
 	}
 	r.Focus = back
+	r.rememberLeaving(path, back)
 	if mode.Name == "" {
 		r.focusMoved(stop, path, back)
 	} else {
@@ -414,4 +416,175 @@ func (r *Runtime) PageFocus(id string) string {
 		return r.BaseFocus()
 	}
 	return page.Remembered
+}
+
+// rememberLeaving records, on every instance the focus is leaving (on the
+// old path, not on the new one), where the focus was inside it, so a jump
+// back to that stop or region lands there.
+func (r *Runtime) rememberLeaving(fromPath []string, to string) {
+	if len(fromPath) == 0 {
+		return
+	}
+	staying := map[string]bool{}
+	for _, id := range r.Ancestry(to) {
+		staying[id] = true
+	}
+	for _, id := range fromPath[1:] {
+		if inst := r.Instances[id]; inst != nil && !staying[id] {
+			inst.lastFocus = fromPath[0]
+		}
+	}
+}
+
+// FocusTargeter is a component that knows where focus lands inside it: a
+// list on its selected row, a grid on its cursor cell.
+type FocusTargeter interface {
+	FocusTarget() string
+}
+
+// focusRoot is the subtree focus jumps cycle through: the top modal, else
+// the current page, else app.
+func (r *Runtime) focusRoot() string {
+	if top := r.TopModal(); top != "" {
+		return top
+	}
+	if r.PageOf(r.Page) != nil {
+		return r.Page
+	}
+	return "app"
+}
+
+// region reports whether an instance is a focus region.
+func (r *Runtime) region(id string) bool {
+	inst := r.Instances[id]
+	if inst == nil {
+		return false
+	}
+	noun := r.Nouns[inst.Noun]
+	return noun != nil && noun.Region
+}
+
+// units lists, in tree order (children in added order, depth-first), the
+// instances under root that unit accepts, without descending into one.
+// order numbers every instance under root in the same walk.
+func (r *Runtime) units(root string, unit func(string) bool) (out []string, order map[string]int) {
+	order = map[string]int{}
+	var walk func(id string, inside bool)
+	walk = func(id string, inside bool) {
+		for _, child := range r.Children(id) {
+			order[child.ID] = len(order)
+			if !inside && unit(child.ID) {
+				out = append(out, child.ID)
+				walk(child.ID, true)
+				continue
+			}
+			walk(child.ID, inside)
+		}
+	}
+	walk(root, false)
+	return out, order
+}
+
+// landing is where a jump to a stop or region puts the focus: the
+// component's own target, else the focus it last held inside, else (for a
+// region) its first stop, else the instance itself.
+func (r *Runtime) landing(id string) string {
+	inst := r.Instances[id]
+	if t, ok := inst.Component.(FocusTargeter); ok {
+		if target := t.FocusTarget(); r.Instances[target] != nil {
+			return target
+		}
+	}
+	if last := inst.lastFocus; last != "" && last != id && slices.Contains(r.Ancestry(last), id) {
+		return last
+	}
+	if r.region(id) {
+		if stops, _ := r.units(id, r.focusable); len(stops) > 0 {
+			return r.landing(stops[0])
+		}
+	}
+	return id
+}
+
+// JumpFocus moves the focus steps stops (scope "stop") or regions (scope
+// "region") forward, or backward for negative steps, through the focus
+// root in tree order, wrapping. The current unit is the nearest stop (or
+// region) on the focus path; the next one is the first after that unit's
+// whole subtree. A stop is never descended into (a grid is one stop, its
+// cells are not); the focus lands on the unit's remembered child.
+func (r *Runtime) JumpFocus(steps int, scope string) error {
+	unit := r.focusable
+	switch scope {
+	case "", "stop":
+	case "region":
+		unit = r.region
+	default:
+		return fmt.Errorf("unknown focus scope %q", scope)
+	}
+	root := r.focusRoot()
+	ring, order := r.units(root, unit)
+	if len(ring) == 0 || steps == 0 {
+		return nil
+	}
+	current := ""
+	for _, id := range r.Ancestry(r.Focus) {
+		if id == root {
+			break
+		}
+		if unit(id) {
+			current = id
+		}
+	}
+	index := slices.Index(ring, current)
+	if index < 0 {
+		// The focus sits outside every unit (on the page or a panel): start
+		// from the units around it in tree order.
+		at, known := order[r.Focus]
+		index = len(ring)
+		for i, id := range ring {
+			if known && order[id] > at {
+				index = i
+				break
+			}
+		}
+		if steps > 0 {
+			index--
+		}
+	}
+	n := len(ring)
+	next := ((index+steps)%n + n) % n
+	r.setFocus(r.landing(ring[next]))
+	return nil
+}
+
+func registerFocus(r *Runtime) {
+	jump := map[string]Parameter{"steps": {Type: "integer", Description: "How many stops or regions to move (the count; default 1)"}, "scope": {Type: "string", Description: "stop (default): component to component; region: panel to panel"}}
+	r.Register(Operation{Verb: "next", Noun: "focus", Description: "Move the focus to the next focus stop (or region) in tree order, wrapping, landing on its remembered child", Parameters: jump, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		err := r.JumpFocus(max(1, IntArg(a, "steps", 1)), StringArg(a, "scope", "stop"))
+		return r.Context(), err
+	}})
+	r.Register(Operation{Verb: "previous", Noun: "focus", Description: "Move the focus to the previous focus stop (or region) in tree order, wrapping, landing on its remembered child", Parameters: jump, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		err := r.JumpFocus(-max(1, IntArg(a, "steps", 1)), StringArg(a, "scope", "stop"))
+		return r.Context(), err
+	}})
+	r.Register(Operation{Verb: "set", Noun: "focus", Description: "Focus an instance; the one way handlers move focus", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		err := r.SetFocus(StringArg(a, "id", ""))
+		return r.Context(), err
+	}})
+	// Owner defaults: } { move stop to stop, ) ( region to region, tab and
+	// shift+tab stop to stop; all take a count. An inner level (a
+	// multiline editor's insert table, a palette field) binds its own.
+	steps := func(op string, args ...Arguments) Binding {
+		return Do(op, args...).FromPayload("steps", SourceCount)
+	}
+	region := Arguments{"scope": "region"}
+	for _, mode := range []string{"normal", "count_pending"} {
+		r.Define("app").Mode(mode).
+			Bind("}", steps("focus.next")).
+			Bind("{", steps("focus.previous")).
+			Bind(")", steps("focus.next", region)).
+			Bind("(", steps("focus.previous", region)).
+			Bind("tab", steps("focus.next")).
+			Bind("shift+tab", steps("focus.previous"))
+	}
 }

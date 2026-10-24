@@ -132,3 +132,119 @@ func TestRemoveInstanceFixesFocusAndClosesComponents(t *testing.T) {
 		t.Fatal("removing an unknown instance must fail")
 	}
 }
+
+// jumpFixture: page > [left (region) > [sidebar (list), note (input)],
+// status (plain), right (region) > [items (list)]].
+func jumpFixture(t *testing.T) (*Runtime, *List, *List) {
+	t.Helper()
+	r := NewRuntime()
+	r.Define("panel").Region()
+	r.Instance("page")
+	r.Instance("left", Parent("page"), Kind("panel"))
+	r.Define("row")
+	sidebar, err := r.AddList("sidebar", []ListItem{{ID: "s1", Label: "one", Noun: "row"}, {ID: "s2", Label: "two", Noun: "row"}}, Parent("left"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := r.AddInput(NewInput("note", "", false), Parent("left")); err != nil {
+		t.Fatal(err)
+	}
+	r.Instance("status", Parent("page"))
+	r.Instance("right", Parent("page"), Kind("panel"))
+	items, err := r.AddList("items", []ListItem{{ID: "i1", Label: "one", Noun: "row"}, {ID: "i2", Label: "two", Noun: "row"}}, Parent("right"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.AddPage("page", "Page", func(*Runtime, int, int) Block { return Text("") }, Focus("sidebar")); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.OpenPage("page"); err != nil {
+		t.Fatal(err)
+	}
+	return r, sidebar, items
+}
+
+func TestFocusJumpsStopToStopInTreeOrder(t *testing.T) {
+	r, sidebar, items := jumpFixture(t)
+	if r.Focus != "s1" {
+		t.Fatalf("start focus %q", r.Focus)
+	}
+	sidebar.Move(1)
+	items.Move(1)
+	for _, step := range []struct {
+		keys []string
+		want string
+	}{
+		{[]string{"}"}, "note"},    // the list is one stop; its rows are not
+		{[]string{"}"}, "i2"},      // status is not focusable; land on the selected row
+		{[]string{"}"}, "s2"},      // wrap
+		{[]string{"{"}, "i2"},      // backward wraps too
+		{[]string{"2", "{"}, "s2"}, // a count is steps
+		{[]string{"tab"}, "note"},  // tab is a stop jump
+		{[]string{"shift+tab"}, "s2"},
+		{[]string{")"}, "i2"}, // region to region, landing on the first stop
+		{[]string{"("}, "s2"}, // back to the left region's remembered focus
+	} {
+		for _, key := range step.keys {
+			if _, err := r.Dispatch(MacroKey{Key: key}); err != nil {
+				t.Fatalf("%v: %v", step.keys, err)
+			}
+		}
+		if r.Focus != step.want {
+			t.Fatalf("after %v: focus %q, want %q", step.keys, r.Focus, step.want)
+		}
+	}
+	// From a focus outside every stop, } takes the first stop after it.
+	if err := r.SetFocus("status"); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.JumpFocus(1, "stop"); err != nil || r.Focus != "i2" {
+		t.Fatalf("from status: %q %v", r.Focus, err)
+	}
+	if err := r.SetFocus("status"); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.JumpFocus(-1, "stop"); err != nil || r.Focus != "note" {
+		t.Fatalf("back from status: %q %v", r.Focus, err)
+	}
+	// An instance can opt out.
+	r.Instances["note"].Unfocusable = true
+	if err := r.SetFocus("s2"); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.JumpFocus(1, "stop"); err != nil || r.Focus != "i2" {
+		t.Fatalf("opted-out input still a stop: %q", r.Focus)
+	}
+	// focus.set is the operation handlers use.
+	if _, err := r.Execute(Request{Verb: "set", Noun: "focus", Args: Arguments{"id": "status"}}); err != nil || r.Focus != "status" {
+		t.Fatalf("focus.set: %q %v", r.Focus, err)
+	}
+}
+
+func TestFocusJumpsStayInsideTheModal(t *testing.T) {
+	r, _, _ := jumpFixture(t)
+	r.Instance("dialog")
+	for _, id := range []string{"first", "second"} {
+		if err := r.AddInput(NewInput(id, "", false), Parent("dialog")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := r.Push("dialog", "first"); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"second", "first"} {
+		if _, err := r.Dispatch(MacroKey{Key: "tab"}); err != nil {
+			t.Fatal(err)
+		}
+		if r.Focus != want {
+			t.Fatalf("modal ring: focus %q, want %q", r.Focus, want)
+		}
+	}
+	// In insert mode tab is not a jump: the app row is a normal-mode row.
+	if err := r.SetMode("insert"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Dispatch(MacroKey{Key: "tab"}); err != nil || r.Focus != "first" {
+		t.Fatalf("insert tab moved focus to %q", r.Focus)
+	}
+}

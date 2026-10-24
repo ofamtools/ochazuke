@@ -451,6 +451,10 @@ func sortRefs(set map[Ref]bool) []Ref {
 
 // Focus instances.
 
+// FocusTarget is where a focus jump to the grid lands: the cursor cell, or
+// the grid when it is empty.
+func (g *Grid) FocusTarget() string { return g.focusTarget() }
+
 // focusTarget is the instance the focus should sit on: the cursor cell, or
 // the grid when it is empty.
 func (g *Grid) focusTarget() string {

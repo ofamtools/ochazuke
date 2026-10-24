@@ -13,7 +13,8 @@ import (
 // answers to, its key bindings per mode, the action handlers that override an
 // operation's default while the noun is on the focus stack, and an optional
 // pinned mode (the prompt noun pins insert). Focusable marks every instance
-// of the noun as a focus stop (focus.next and the mode rule read it).
+// of the noun as a focus stop (focus.next and the mode rule read it); Region
+// marks a grouping that focus.next {scope: "region"} jumps between.
 //
 // Bindings is keyed by mode name. "" holds rows that apply in every base
 // mode; a pending mode (operator_pending, a key-sequence prefix, ...) is
@@ -23,6 +24,7 @@ type Noun struct {
 	Verbs     []string             `json:"verbs,omitempty"`
 	Pin       string               `json:"pin,omitempty"`
 	Focusable bool                 `json:"focusable,omitempty"`
+	Region    bool                 `json:"region,omitempty"`
 	Bindings  map[string][]Binding `json:"bindings"`
 	Actions   map[string]Handler   `json:"-"`
 }
@@ -192,6 +194,10 @@ func (b *NounBuilder) Pin(mode string) *NounBuilder { b.n.Pin = mode; return b }
 
 // Focusable makes every instance of the noun a focus stop.
 func (b *NounBuilder) Focusable() *NounBuilder { b.n.Focusable = true; return b }
+
+// Region makes every instance of the noun a focus region: a grouping (a
+// panel) that focus.next {scope: "region"} jumps between, never a stop.
+func (b *NounBuilder) Region() *NounBuilder { b.n.Region = true; return b }
 
 // Verbs records the verbs the noun answers to, for help and the palette.
 func (b *NounBuilder) Verbs(verbs ...string) *NounBuilder {

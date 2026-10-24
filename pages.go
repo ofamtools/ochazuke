@@ -133,6 +133,7 @@ func (r *Runtime) OpenPage(id string) error {
 	r.Focus = page.Remembered
 	r.Page = id
 	if page.mode.Name != "" {
+		r.rememberLeaving(path, r.Focus)
 		r.restoreMode(page.mode, path)
 	} else if r.Focus != from {
 		r.focusMoved(stop, path, r.Focus)
