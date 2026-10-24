@@ -319,12 +319,12 @@ Root package `ochazuke` is flat: 42 source files, 32 test files. Each entry list
 
 ### transport.go
 
-- lines: 147
+- lines: 173
 - purpose: CallMsg is delivered to the UI loop; only that loop may call Runtime.Execute.
-- types: Response, CallMsg, Server
+- types: Response, CallMsg, Lines, Server
 - methods: Runtime(1), Server(2)
 - funcs: Listen, Call
-- leans on: runtime.go(8), delivery.go(3), cli.go(1), noun.go(1)
+- leans on: runtime.go(8), delivery.go(4), cli.go(1), noun.go(1)
 
 ### yank_api.go
 
@@ -360,7 +360,7 @@ Importable package `cli`: 4 source files, 2 test files.
 
 ### cli/rows.go
 
-- lines: 90 · tests: rows_test.go
+- lines: 92 · tests: rows_test.go
 - purpose: Row is one line of a state answer (CatalogDoc.State) or of a list asked for JSON Lines: the list noun it belongs to, its id (what --target takes), its label ...
 - types: Row, Lines, RowReader
 - methods: RowReader(1)
@@ -429,6 +429,7 @@ Exported type -> file.
 - JobLingerMsg -> ticker.go
 - KeyEvent -> resolve.go
 - Layout -> layout.go
+- Lines -> transport.go
 - List -> list.go
 - ListItem -> list.go
 - MacroKey -> macros.go

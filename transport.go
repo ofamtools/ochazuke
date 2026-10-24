@@ -36,6 +36,14 @@ func (r *Runtime) HandleCall(msg CallMsg) {
 		response = Response{Error: err.Error()}
 	}
 	// Detach live slices/maps before another message can mutate application state.
+	if lines, ok := result.(Lines); ok && response.Error == "" {
+		response.Result, err = detachLines(lines) // still Lines, fields in order
+		if err != nil {
+			response = Response{Error: err.Error()}
+		}
+		msg.Reply <- response
+		return
+	}
 	data, err := json.Marshal(response)
 	if err != nil {
 		response = Response{Error: err.Error()}
@@ -43,6 +51,24 @@ func (r *Runtime) HandleCall(msg CallMsg) {
 		response = Response{Error: err.Error()}
 	}
 	msg.Reply <- response
+}
+
+// Lines is a result printed as JSON Lines (one compact value per line, no
+// outer array) by a CLI, so a reader can decode it as it arrives; over
+// JSON it is an array. HandleCall keeps the type through its copy.
+type Lines []any
+
+// detachLines copies lines as encoded JSON values.
+func detachLines(lines Lines) (Lines, error) {
+	out := make(Lines, len(lines))
+	for i, v := range lines {
+		data, err := json.Marshal(v)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = json.RawMessage(data)
+	}
+	return out, nil
 }
 
 type Server struct {

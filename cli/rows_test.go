@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"strings"
@@ -79,6 +80,21 @@ func TestShellPrintsLines(t *testing.T) {
 		t.Fatal(err)
 	}
 	if want := `{"noun":"n","id":"1","label":"one"}` + "\n" + `{"noun":"n","id":"2"}` + "\n"; out.String() != want {
+		t.Fatalf("got %q", out.String())
+	}
+}
+
+// A synchronous verb's Lines survive the call's copy and print a line each.
+func TestShellPrintsLinesFromAVerb(t *testing.T) {
+	r := ochazuke.NewRuntime()
+	r.Define("thing").Verb("state", func(ochazuke.Ctx) ochazuke.Result {
+		return ochazuke.Done(Lines{Row{Noun: "thing", ID: "1"}})
+	}, "rows")
+	var out bytes.Buffer
+	if err := New(r, "tool", strings.NewReader(""), &out, &out).Run(context.Background(), []string{"thing", "state"}); err != nil {
+		t.Fatal(err)
+	}
+	if out.String() != `{"noun":"thing","id":"1"}`+"\n" {
 		t.Fatalf("got %q", out.String())
 	}
 }

@@ -7,6 +7,8 @@ import (
 	"errors"
 	"io"
 	"time"
+
+	"github.com/unixsuperhero/ochazuke"
 )
 
 // Row is one line of a state answer (CatalogDoc.State) or of a list asked
@@ -22,8 +24,8 @@ type Row struct {
 }
 
 // Lines is a result the shell prints as JSON Lines: one compact JSON value
-// per line, no outer array, so a reader can decode it as it arrives.
-type Lines []any
+// per line, no outer array (ochazuke.Lines).
+type Lines = ochazuke.Lines
 
 // ErrNoRows is Next's error at the end of a stream that had lines but not
 // one decodable Row: the answer is not rows at all.
