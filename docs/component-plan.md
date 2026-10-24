@@ -174,6 +174,8 @@ Detaching returns control and focus to the surrounding application and restores 
 
 The terminal-daemon client and protocol remain application-level. The component coordinates display and input ownership with Ochazuke's layout, focus, and event loop. This does not require a second root model.
 
+The user chose daemon-backed terminals. The daemon owns the PTYs, running processes, and persistent terminal state. Ochazuke attaches to those sessions, displays their output, and forwards input and resize requests through the application's adapter. Detaching or closing Ochazuke leaves the daemon sessions running. The widget does not launch or own a local shell process.
+
 Still undecided:
 
 - The exact component/provider API, screen-update representation, resize behavior, and disconnect/reconnect lifecycle.
