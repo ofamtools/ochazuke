@@ -230,6 +230,18 @@ focus change → Mode = normal, payload cleared, unless the newly focused noun P
 
 Remove `Instance.State` as mode storage, the ancestry walk in `modeState`, and `Input.Mode` as a separate truth (an input is in the global mode while focused; a pinned noun sets it on focus). Per-instance data that is not mode stays where it is: editor text and undo, grid cursor, selection geometry and marks.
 
+### 1b. Focus is a single value (decision)
+
+Today `Runtime.Frames` is a stack of `{id, focus}` and `FocusID()` reads the top, so a modal can restore where you were. Replace it with one field, like Mode:
+
+```js
+Runtime.Focus = "confirm#1"                                       // one field
+modal instance payload = { return: "r4:c2", request: {...} }      // Payload.Return already exists
+modal.pop → Runtime.Focus = payload.return; remove the instance
+```
+
+`Frames` goes away; what is open is the chain of modal instances (already used for rendering). Runtime then holds `Focus`, `Mode` and `Page` as three plain fields. Invariant kept: `Page` is always an ancestor of `Focus`.
+
 ### 2. Bugs and oversights in the resolver
 
 - `enterPrefix` builds `Payload{Prefix, Request}` and drops `Count` and `OpCount`, so `3gg` loses its count. Carry both.
