@@ -81,7 +81,7 @@ func TestSetupTimeoutEditPreservedAndInvalidatesStaleTimer(t *testing.T) {
 	keytest.Press(m, "ctrl+g")
 	typeKeys := func(s string) { keytest.Type(m, s) }
 	typeKeys("t")
-	if m.form != "timeout" || !strings.Contains(m.View().Content, "400ms, 1s") {
+	if m.form != "timeout" || !strings.Contains(m.View().Content, "1000ms, 1s") {
 		t.Fatalf("timeout editor not shown: form=%q", m.form)
 	}
 	keytest.Press(m, "ctrl+u")

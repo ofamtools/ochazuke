@@ -2,8 +2,10 @@ package ochazuke
 
 import (
 	"encoding/json"
+	"reflect"
 	"slices"
 	"testing"
+	"time"
 
 	"ochazuke/internal/keytest"
 )
@@ -123,5 +125,83 @@ func TestModalIsResolutionBoundary(t *testing.T) {
 		if b.Noun == "panel" || b.Noun == "page" {
 			t.Fatalf("bindings.list shows a row beneath the modal: %+v", b)
 		}
+	}
+}
+
+// sequenceFixture focuses a panel inside app with a long timeout; inner
+// rows sit on the panel noun, outer rows on app.
+func sequenceFixture(t *testing.T) (*Runtime, *[]string) {
+	t.Helper()
+	r := NewRuntime()
+	r.BindingTimeout = time.Hour
+	calls := recorder(t, r, "inner", "outer")
+	r.Instance("panel")
+	if err := r.SetFocus("panel"); err != nil {
+		t.Fatal(err)
+	}
+	return r, calls
+}
+
+func expire(t *testing.T, r *Runtime) {
+	t.Helper()
+	r.prefix.deadline = time.Now().Add(-time.Second)
+	if err := r.expirePrefix(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Sequences scan the whole stack per key (typeahead): a longer sequence at
+// any level waits, the innermost exact match is the fallback.
+func TestSequencesScanTheWholeStack(t *testing.T) {
+	// inner x + outer x x: x waits, x x runs outer, timeout runs inner x.
+	r, calls := sequenceFixture(t)
+	r.Define("panel").Mode("normal").Bind("x", Do("test.inner"))
+	r.Define("app").Mode("normal").Bind("x x", Do("test.outer"))
+	press(t, r, "x")
+	if r.Pending != "x" || len(*calls) != 0 {
+		t.Fatalf("x waits: pending %q calls %v", r.Pending, *calls)
+	}
+	press(t, r, "x")
+	press(t, r, "x")
+	expire(t, r)
+	if got := *calls; !reflect.DeepEqual(got, []string{"outer", "inner"}) {
+		t.Fatalf("x x then x timeout: %v", got)
+	}
+
+	// inner g x + outer exact g: timeout runs outer g.
+	r, calls = sequenceFixture(t)
+	r.Define("panel").Mode("normal").Bind("g x", Do("test.inner"))
+	r.Define("app").Mode("normal").Bind("g", Do("test.outer"))
+	press(t, r, "g")
+	expire(t, r)
+	press(t, r, "g", "x")
+	if got := *calls; !reflect.DeepEqual(got, []string{"outer", "inner"}) {
+		t.Fatalf("g timeout, then g x: %v", got)
+	}
+
+	// inner g x + outer g g: g g runs outer.
+	r, calls = sequenceFixture(t)
+	r.Define("panel").Mode("normal").Bind("g x", Do("test.inner"))
+	r.Define("app").Mode("normal").Bind("g g", Do("test.outer"))
+	press(t, r, "g", "g", "g", "x")
+	if got := *calls; !reflect.DeepEqual(got, []string{"outer", "inner"}) {
+		t.Fatalf("g g then g x: %v", got)
+	}
+}
+
+// A row whose operation is guarded off does not answer: the walk goes on to
+// the next level, as the listings hide it.
+func TestGuardedOffRowFallsThrough(t *testing.T) {
+	r, calls := sequenceFixture(t)
+	r.DefineGuard("never", func(*Runtime, KeyEvent) bool { return false })
+	guardVerb(r, "test.inner", "never")
+	r.Define("panel").Mode("normal").Bind("d", Do("test.inner"))
+	r.Define("app").Mode("normal").Bind("d", Do("test.outer"))
+	press(t, r, "d")
+	if got := *calls; !reflect.DeepEqual(got, []string{"outer"}) {
+		t.Fatalf("d: %v", got)
+	}
+	if _, err := r.Execute(Request{Verb: "inner", Noun: "test"}); err == nil {
+		t.Fatal("a direct call still gets the refusal")
 	}
 }

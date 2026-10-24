@@ -396,7 +396,7 @@
     {
       "id": "sequence",
       "label": "g g",
-      "description": "Sandbox configured with g g=go-top and no longer sequence: press g twice within the binding timeout (default 400 ms). The first key waits; the second executes. This is a source-backed path, not a live key log.",
+      "description": "Sandbox configured with g g=go-top and no longer sequence: press g twice within the binding timeout (default 1000 ms). The first key waits; the second executes. This is a source-backed path, not a live key log.",
       "steps": [
         {
           "id": "key-msg",
@@ -444,7 +444,7 @@
             121,
             138
           ],
-          "detail": "A longer binding shares the prefix, so nothing executes. The runtime saves the context, sets Pending to \"g\", bumps bindingVersion and stores a deadline of now + BindingTimeout (default 400ms). If \"g\" were also bound, it would be saved as the fallback.",
+          "detail": "A longer binding shares the prefix, so nothing executes. The runtime saves the context, sets Pending to \"g\", bumps bindingVersion and stores a deadline of now + BindingTimeout (default 1000ms). If \"g\" were also bound, it would be saved as the fallback.",
           "edge": "Control returns to handleKey with Pending set",
           "expect": [
             "longer",

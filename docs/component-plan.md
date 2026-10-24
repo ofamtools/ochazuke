@@ -168,7 +168,7 @@ These are sequential keystrokes, not a three-key chord. Every completed sequence
 
 After expiration, the next key starts ordinary input handling rather than completing the expired sequence. For example, `Ctrl+A`, a pause beyond the timeout, then `d` sends `Ctrl+A` and `d` to the terminal instead of detaching.
 
-The terminal prefix uses `Runtime.BindingTimeout`, including its `DefaultBindingTimeout` fallback, currently 400 ms. There is no separate terminal timeout setting and no change to the existing default. This supersedes the earlier 500 ms choice.
+The terminal prefix uses `Runtime.BindingTimeout`, including its `DefaultBindingTimeout` fallback, currently 1000 ms (Neovim's timeoutlen). There is no separate terminal timeout setting and no change to the existing default. This supersedes the earlier 500 ms choice.
 
 Detaching returns control and focus to the surrounding application and restores its normal binding resolution. It does not terminate the terminal session or its running process.
 

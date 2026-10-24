@@ -256,11 +256,11 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### resolve.go
 
-- lines: 628 · tests: resolve_test.go
+- lines: 676 · tests: resolve_test.go
 - purpose: KeyEvent is what a row receives: the key, the mode it was resolved in and the focused instance.
 - types: KeyEvent
 - methods: Binding(1), Runtime(19)
-- leans on: runtime.go(76), noun.go(39), instance.go(34), delivery.go(11)
+- leans on: runtime.go(77), noun.go(42), instance.go(36), delivery.go(11)
 
 ### runtime.go
 

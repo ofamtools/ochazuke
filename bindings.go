@@ -6,7 +6,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-const DefaultBindingTimeout = 400 * time.Millisecond
+const DefaultBindingTimeout = 1000 * time.Millisecond
 
 // BindingTimeoutMsg resolves a pending key sequence on the owning event loop.
 // Messages from an older sequence or another runtime are ignored.

@@ -282,7 +282,7 @@ Status: done, commit d88e068 (step 4). The prefix payload carries `Count` and `O
 
 - `enterPrefix` builds `Payload{Prefix, Request}` and drops `Count` and `OpCount`, so `3gg` loses its count. Carry both.
 - `lookup` records the matching level in `ev.Level`; `runRow` then targets `ev.Focus`. A row that matched at the row level should address the row instance by default (`Target = ev.Level`). This also fixes `Confirm("Delete row {{id}}?")`, which printed the cell id.
-- Not a bug: an inner exact match (`y` on cell) runs before an outer longer sequence (`y y` on row) is considered. That is Vim's buffer-local-over-global rule and stays; bind the longer sequence at the inner level.
+- Changed (owner decision, followup branch): sequences scan the whole stack per key, Vim typeahead semantics. An inner exact match (`y` on cell) no longer runs before an outer longer sequence (`y y` on row): any level with a sequence extending the keys makes the walk wait, with the innermost exact match as the fallback on timeout (now 1000ms, Neovim's `timeoutlen`) or mismatch; inner still wins ties. A level answering with a key class (a terminal's `any`) ends the scan.
 
 ### 3. Small API additions
 

@@ -179,9 +179,13 @@ func TestDispatchUnmatchedKeyFallsThroughToEditor(t *testing.T) {
 
 // Phase 5 rule (changed deliberately from phase 0): a key sequence waits in
 // a prefix mode named after the base mode and the keys so far. A key that
-// fails to complete it leaves the prefix mode and is dispatched again, fresh:
-// here x reaches the editor. The prefix key itself is answered by the
-// prefix mode, so an app any row sees the mismatched key, never the prefix.
+// fails to complete it leaves the prefix mode, runs the innermost exact
+// match on the whole stack (typeahead: here the editor's own g, which enters
+// g_pending), and is dispatched again, fresh: g_pending's any row cancels,
+// so g x leaves the text alone, as Vim's unmapped gx would. (Before the
+// whole-stack scan the editor's g was not the fallback and x deleted.) The
+// prefix key itself is answered by the prefix mode, so an app any row sees
+// the mismatched key, never the prefix.
 func TestDispatchDropsUnmatchedBindingPrefix(t *testing.T) {
 	m, in, calls := dispatchTestModel(t, "abc", "g g")
 	keytest.Press(m, "g")
@@ -190,7 +194,7 @@ func TestDispatchDropsUnmatchedBindingPrefix(t *testing.T) {
 		t.Fatalf("g did not wait as a sequence prefix: pending=%q mode=%q editor=%q", m.Runtime.Pending, modeOf(m), in.Pending())
 	}
 	keytest.Press(m, "x")
-	dispatchTestState(t, m, in, "bc", calls)
+	dispatchTestState(t, m, in, "abc", calls)
 	if m.Runtime.Pending != "" || modeOf(m) != "normal" {
 		t.Fatalf("prefix survived the mismatch: pending=%q mode=%q", m.Runtime.Pending, modeOf(m))
 	}
@@ -203,7 +207,7 @@ func TestDispatchDropsUnmatchedBindingPrefix(t *testing.T) {
 	m.Runtime.Define("app").Mode("normal").Pattern(Any, Do("test.any"))
 	keytest.Press(m, "g")
 	keytest.Press(m, "x")
-	dispatchTestState(t, m, in, "bc", calls, "any")
+	dispatchTestState(t, m, in, "abc", calls, "any")
 }
 
 // Phase 5 rule (the phase 0 finding resolved): the palette field's own rows

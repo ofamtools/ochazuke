@@ -110,11 +110,11 @@ func (m *keybindingModel) handleTimeout(msg ochazuke.BindingTimeoutMsg) {
 	}
 }
 
-// parseBindingTimeout parses a positive duration such as 400ms or 1s.
+// parseBindingTimeout parses a positive duration such as 1000ms or 1s.
 func parseBindingTimeout(value string) (time.Duration, error) {
 	d, err := time.ParseDuration(strings.TrimSpace(value))
 	if err != nil {
-		return 0, fmt.Errorf("timeout must be a duration such as 400ms or 1s")
+		return 0, fmt.Errorf("timeout must be a duration such as 1000ms or 1s")
 	}
 	if d <= 0 {
 		return 0, fmt.Errorf("timeout must be greater than zero")

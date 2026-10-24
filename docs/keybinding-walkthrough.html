@@ -838,7 +838,7 @@ history: ["g", "g"]   // newest first in the right-hand column</pre>
 </div>
 
 <h3>Timed longest match: when <code>g</code>, <code>g g</code> and <code>g g g</code> are all bound</h3>
-<p>The walkthrough above binds only <code>g g</code>, so the first <kbd>g</kbd> is a pure prefix. If a complete binding is <em>also</em> a prefix of a longer one, the runtime now defers it instead of running it at once. The timeout defaults to 400ms and is set with <code>--timeout</code> or <kbd>t</kbd> in setup.</p>
+<p>The walkthrough above binds only <code>g g</code>, so the first <kbd>g</kbd> is a pure prefix. If a complete binding is <em>also</em> a prefix of a longer one, the runtime now defers it instead of running it at once. The timeout defaults to 1000ms and is set with <code>--timeout</code> or <kbd>t</kbd> in setup.</p>
 <ul>
 <li><strong>Defer.</strong> With <code>g</code>, <code>g g</code> and <code>g g g</code> bound, the first <kbd>g</kbd> is complete but ambiguous. It is stored as the fallback and a timer is scheduled. The second <kbd>g</kbd> is a valid continuation: it refreshes the timer and <code>g g</code> becomes the fallback. The third <kbd>g</kbd> has no longer continuation, so <code>g g g</code> runs immediately.</li>
 <li><strong>Timeout.</strong> The timer arrives as a Bubble Tea message, so the runtime is only mutated inside <code>Update</code>. On timeout the longest completed fallback runs. A pure prefix with no completed fallback clears without running; the sandbox shows <code>sequence timed out</code>. The outcome is written to the last key row; no key is invented.</li>

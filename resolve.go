@@ -139,20 +139,16 @@ func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (bool, 
 		fallback = mode.Payload.Request
 	}
 	exclusive := r.pendingModes[mode.Name] || mode.Payload.Shadow != nil
-	for _, lv := range r.walk(focus) {
-		hit, longer, exact := r.lookup(lv, base, exclusive, prefix, sequence, key, ev)
-		if longer {
-			if exact != nil {
-				fallback = &exact.Request
-			} else if prefix == "" {
-				fallback = nil
-			}
-			r.enterPrefix(base, sequence, fallback)
-			return true, nil
+	wait := func(exact *Binding) (bool, error) {
+		if exact != nil {
+			fallback = &exact.Request
+		} else if prefix == "" {
+			fallback = nil
 		}
-		if hit == nil {
-			continue
-		}
+		r.enterPrefix(base, sequence, fallback)
+		return true, nil
+	}
+	run := func(lv level, hit *Binding) (bool, error) {
 		if prefix != "" {
 			r.leavePrefix()
 		}
@@ -160,6 +156,48 @@ func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (bool, 
 			ev.Level = lv.inst.ID
 		}
 		return true, r.runRow(lv, *hit, ev)
+	}
+	levels := r.walk(focus)
+	// The capture pass: outer-first, the first level that answers wins.
+	for len(levels) > 0 && levels[0].capture {
+		lv := levels[0]
+		levels = levels[1:]
+		hit, longer, exact := r.lookup(lv, base, exclusive, prefix, sequence, key, ev)
+		if longer {
+			return wait(exact)
+		}
+		if hit != nil {
+			return run(lv, hit)
+		}
+	}
+	// The bubbling pass scans the whole stack per key (Vim typeahead): a
+	// sequence extending the keys at any level, inner or outer, waits, with
+	// the innermost exact match as the fallback on timeout or mismatch;
+	// otherwise the innermost hit runs. A level answering with a key class
+	// (a terminal's any) ends the scan: outer sequences never steal its keys.
+	var (
+		hitLv      level
+		hit, exact *Binding
+		anyLonger  bool
+	)
+	for _, lv := range levels {
+		h, longer, e := r.lookup(lv, base, exclusive, prefix, sequence, key, ev)
+		anyLonger = anyLonger || longer
+		if exact == nil && e != nil {
+			exact = e
+		}
+		if hit == nil && h != nil {
+			hit, hitLv = h, lv
+			if h.Keys == "" {
+				break
+			}
+		}
+	}
+	if anyLonger {
+		return wait(exact)
+	}
+	if hit != nil {
+		return run(hitLv, hit)
 	}
 	if prefix != "" {
 		// An unmatched sequence hands its keys on: the completed match runs,
@@ -219,6 +257,9 @@ func (r *Runtime) lookup(lv level, mode string, exclusive bool, prefix, sequence
 			row := &rows[i]
 			if row.Unbind || row.Capture != lv.capture {
 				continue
+			}
+			if !r.VerbShown(row.Request.Key(), ev.Focus, ev.Mode) {
+				continue // guarded off here: the walk goes on, as the listings hide it
 			}
 			if row.Keys != "" && !key.Paste {
 				if row.Keys == sequence {

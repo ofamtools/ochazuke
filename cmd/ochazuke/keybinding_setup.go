@@ -278,7 +278,7 @@ func (m *keybindingModel) setupView() string {
 		body = []string{label(m.field == 0, "Keys (e.g. ctrl+s or g g)"), m.fields[0].View(), "", label(m.field == 1, "Action identifier"), m.fields[1].View()}
 	case m.form == "timeout":
 		title, footer = "Sequence timeout", "Enter save · Esc cancel"
-		body = []string{label(true, "Duration (e.g. 400ms, 1s)"), m.fields[0].View(), st.Muted.Render("Not saved in JSON.")}
+		body = []string{label(true, "Duration (e.g. 1000ms, 1s)"), m.fields[0].View(), st.Muted.Render("Not saved in JSON.")}
 	default:
 		title, footer = strings.ToUpper(m.form[:1])+m.form[1:]+" bindings", "^O browse · Enter confirm · Esc cancel"
 		body = []string{label(true, "JSON file path"), m.fields[0].View()}
