@@ -44,15 +44,23 @@ func (l Layout) BodySize() (width, height int) {
 // cells. Body is trusted ANSI; title, subtitle and footer are raw labels.
 // Overlong bodies are clipped; use Panel for a visible overflow marker.
 func (l Layout) Page(title, subtitle, body, footer string) string {
+	return l.PageBlock(title, subtitle, Text(body), footer).Text
+}
+
+// PageBlock is Page for a body that may carry a cursor; the cursor is moved by
+// the page chrome around the body.
+func (l Layout) PageBlock(title, subtitle string, body Block, footer string) Block {
 	if l.Width <= 0 || l.Height <= 0 {
-		return ""
+		return Block{}
 	}
 	s := l.Styles
 	bw, bh := l.BodySize()
-	bodyRows := layoutRows(body, bw, bh)
+	bodyRows := layoutRows(body.Text, bw, bh)
+	cursor := body.Clip(bw, bh)
 	footer = s.Muted.Render(ansi.Truncate(modalLabel(footer), max(0, bw), "…"))
 	var rows []string
 	if l.full() {
+		cursor = cursor.Offset(layoutGutter, 3) // gutter; title, subtitle and rule rows
 		pad := strings.Repeat(" ", layoutGutter)
 		rule := s.Muted.Render(strings.Repeat("─", bw))
 		rows = append(rows,
@@ -70,9 +78,9 @@ func (l Layout) Page(title, subtitle, body, footer string) string {
 		}
 	}
 	for i := range rows {
-		rows[i] = modalCells(rows[i], 0, l.Width)
+		rows[i] = modalCells(rows[i], l.Width)
 	}
-	return strings.Join(rows, "\n")
+	return cursor.WithText(strings.Join(rows, "\n"))
 }
 
 // PanelContentSize returns the body cells available inside a Panel, excluding
@@ -95,12 +103,18 @@ func PanelContentSize(width, height int) (int, int) {
 // raw label. Content that does not fit is clipped and marked with "…" (columns)
 // or a "… N more" last row (lines). Below 3x3 cells the border is dropped.
 func (l Layout) Panel(title, body string, width, height int, focused bool) string {
+	return l.PanelBlock(title, Text(body), width, height, focused).Text
+}
+
+// PanelBlock is Panel for a body that may carry a cursor; the cursor is moved
+// inside the border and padding.
+func (l Layout) PanelBlock(title string, body Block, width, height int, focused bool) Block {
 	if width <= 0 || height <= 0 {
-		return ""
+		return Block{}
 	}
 	s := l.Styles
 	if width < 3 || height < 3 {
-		return strings.Join(layoutRows(body, width, height), "\n")
+		return body.Clip(width, height).WithText(strings.Join(layoutRows(body.Text, width, height), "\n"))
 	}
 	frame := s.Panel
 	titleStyle := s.Title
@@ -111,7 +125,7 @@ func (l Layout) Panel(title, body string, width, height int, focused bool) strin
 	edge := lipgloss.NewStyle().Foreground(frame.GetBorderTopForeground())
 	inner := width - 2
 	cw, ih := PanelContentSize(width, height)
-	rows := layoutRows(layoutClip(body, ih, s), cw, ih)
+	rows := layoutRows(layoutClip(body.Text, ih, s), cw, ih)
 
 	label := ""
 	if inner >= 5 {
@@ -129,13 +143,19 @@ func (l Layout) Panel(title, body string, width, height int, focused bool) strin
 		out = append(out, edge.Render(b.Left)+margin+row+margin+edge.Render(b.Right))
 	}
 	out = append(out, edge.Render(b.BottomLeft+strings.Repeat(b.Bottom, inner)+b.BottomRight))
-	return strings.Join(out, "\n")
+	return body.Clip(cw, ih).Offset(1+len(margin), 1).WithText(strings.Join(out, "\n"))
 }
 
 // Split renders two panels filling BodySize: side by side (left ~40%) when the
 // viewport is at least 72 cells wide, otherwise stacked (top ~40%). The left or
 // top panel is the focused one.
 func (l Layout) Split(leftTitle, leftBody, rightTitle, rightBody string) string {
+	return l.SplitBlock(leftTitle, Text(leftBody), rightTitle, Text(rightBody)).Text
+}
+
+// SplitBlock is Split for bodies that may carry a cursor. One body should
+// carry it; when both do, the left or top panel wins.
+func (l Layout) SplitBlock(leftTitle string, leftBody Block, rightTitle string, rightBody Block) Block {
 	bw, bh := l.BodySize()
 	return l.panelPair(leftTitle, leftBody, rightTitle, rightBody, bw, bh, (bw-1)*2/5, l.Width < layoutStackAt)
 }
@@ -145,12 +165,17 @@ func (l Layout) Split(leftTitle, leftBody, rightTitle, rightBody string) string 
 // trusted ANSI. Selection is zero-based and clamped for rendering. The caller
 // owns selection and key handling; this method keeps the selected item visible.
 func (l Layout) Sidebar(title string, items []string, selected int, mainTitle, mainBody string) string {
+	return l.SidebarBlock(title, items, selected, mainTitle, Text(mainBody)).Text
+}
+
+// SidebarBlock is Sidebar for a main body that may carry a cursor.
+func (l Layout) SidebarBlock(title string, items []string, selected int, mainTitle string, mainBody Block) Block {
 	bw, bh := l.BodySize()
 	return l.sidebar(title, items, selected, mainTitle, mainBody, bw, bh, l.Width < layoutStackAt)
 }
 
 // sidebar also composes a model-owned content region without a second page shell.
-func (l Layout) sidebar(title string, items []string, selected int, mainTitle, mainBody string, width, height int, stacked bool) string {
+func (l Layout) sidebar(title string, items []string, selected int, mainTitle string, mainBody Block, width, height int, stacked bool) Block {
 	regionHeight := height
 	if stacked {
 		height = height * 2 / 5
@@ -181,7 +206,7 @@ func (l Layout) sidebar(title string, items []string, selected int, mainTitle, m
 			rows = append(rows, l.Styles.Muted.Render(fmt.Sprintf("… %d–%d / %d", start+1, end, len(items))))
 		}
 	}
-	return l.panelPair(title, strings.Join(rows, "\n"), mainTitle, mainBody, width, regionHeight, 28, stacked)
+	return l.panelPair(title, Text(strings.Join(rows, "\n")), mainTitle, mainBody, width, regionHeight, 28, stacked)
 }
 
 func sidebarMainSize(width, height int, stacked bool) (int, int) {
@@ -193,23 +218,27 @@ func sidebarMainSize(width, height int, stacked bool) (int, int) {
 	return PanelContentSize(width, height)
 }
 
-func (l Layout) panelPair(leftTitle, leftBody, rightTitle, rightBody string, bw, bh, leftWidth int, stacked bool) string {
+// panelPair places the left (or top) panel at the origin and the right panel
+// one cell to its right (or the bottom panel below it).
+func (l Layout) panelPair(leftTitle string, leftBody Block, rightTitle string, rightBody Block, bw, bh, leftWidth int, stacked bool) Block {
 	if bw <= 0 || bh <= 0 {
-		return ""
+		return Block{}
 	}
 	if !stacked {
 		rw := bw - 1 - leftWidth
-		left := strings.Split(l.Panel(leftTitle, leftBody, leftWidth, bh, true), "\n")
-		right := strings.Split(l.Panel(rightTitle, rightBody, rw, bh, false), "\n")
+		left := l.PanelBlock(leftTitle, leftBody, leftWidth, bh, true)
+		right := l.PanelBlock(rightTitle, rightBody, rw, bh, false).Offset(leftWidth+1, 0)
+		leftRows, rightRows := strings.Split(left.Text, "\n"), strings.Split(right.Text, "\n")
 		rows := make([]string, bh)
 		for i := range rows {
-			rows[i] = layoutRow(left, i, leftWidth) + " " + layoutRow(right, i, rw)
+			rows[i] = layoutRow(leftRows, i, leftWidth) + " " + layoutRow(rightRows, i, rw)
 		}
-		return strings.Join(rows, "\n")
+		return Block{Text: strings.Join(rows, "\n"), Cursor: firstCursor(left, right)}
 	}
 	th := bh * 2 / 5
-	return l.Panel(leftTitle, leftBody, bw, th, true) + joinIfBoth(th, bh-th) +
-		l.Panel(rightTitle, rightBody, bw, bh-th, false)
+	top := l.PanelBlock(leftTitle, leftBody, bw, th, true)
+	bottom := l.PanelBlock(rightTitle, rightBody, bw, bh-th, false).Offset(0, th)
+	return Block{Text: top.Text + joinIfBoth(th, bh-th) + bottom.Text, Cursor: firstCursor(top, bottom)}
 }
 
 func joinIfBoth(a, b int) string {
@@ -221,7 +250,7 @@ func joinIfBoth(a, b int) string {
 
 func layoutRow(rows []string, i, width int) string {
 	if i < len(rows) {
-		return modalCells(rows[i], 0, width)
+		return modalCells(rows[i], width)
 	}
 	return strings.Repeat(" ", width)
 }
@@ -238,7 +267,7 @@ func layoutRows(body string, width, height int) []string {
 				line = ansi.Truncate(line, width, "…")
 			}
 		}
-		rows[i] = modalCells(line, 0, width)
+		rows[i] = modalCells(line, width)
 	}
 	return rows
 }

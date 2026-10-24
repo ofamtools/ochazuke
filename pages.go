@@ -6,12 +6,15 @@ import (
 	"strings"
 )
 
-// Page retains its base frame and renderer across navigation.
+// Page retains its base frame and renderer across navigation. Render returns
+// the page body for the given cell bounds as a Block; its cursor, when the page
+// holds the focused input, is relative to the body's top-left cell. Pages
+// without inputs return Text(body).
 type Page struct {
-	ID     string                          `json:"id"`
-	Title  string                          `json:"title"`
-	Frame  *Frame                          `json:"frame"`
-	Render func(*Runtime, int, int) string `json:"-"`
+	ID     string                         `json:"id"`
+	Title  string                         `json:"title"`
+	Frame  *Frame                         `json:"frame"`
+	Render func(*Runtime, int, int) Block `json:"-"`
 }
 
 // RegisterPage uses an existing layer and does not activate the page.

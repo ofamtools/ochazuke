@@ -182,3 +182,37 @@ func TestNoColorKeepsVisibleFocusCues(t *testing.T) {
 		t.Fatalf("focus depends only on color: panel=%q focused=%q tab=%q active=%q", panel, focused, tab, active)
 	}
 }
+
+// A modal's cursor is the body's cursor moved by the panel; the backdrop's is dropped.
+func TestModalBlockOffsetsBodyCursor(t *testing.T) {
+	styles := NewStyles(Appearance{Theme: "mono"})
+	in := NewInput("field", "ab\ncd", true)
+	in.Cursor = 4
+	for _, size := range [][2]int{{56, 18}, {80, 24}, {9, 7}, {19, 9}} {
+		width, height := size[0], size[1]
+		cw, ch := ModalSize(width, height)
+		body := InputBlock(in, cw, ch)
+		view := ComposeModalBlock(strings.Repeat(strings.Repeat("b", width)+"\n", height), "Draft", body, "Esc close", width, height, styles)
+		rows := strings.Split(ansi.Strip(view.Text), "\n")
+		if len(rows) != height {
+			t.Fatalf("%dx%d: got %d rows", width, height, len(rows))
+		}
+		for i, row := range rows {
+			if ansi.StringWidth(row) != width {
+				t.Fatalf("%dx%d: row %d has %d cells", width, height, i, ansi.StringWidth(row))
+			}
+		}
+		if view.Cursor == nil {
+			t.Fatalf("%dx%d: modal lost the body cursor", width, height)
+		}
+		if cell := cellIndex(rows[view.Cursor.Y], "cd"); cell < 0 || cell+1 != view.Cursor.X {
+			t.Fatalf("%dx%d: cursor %+v is not on the d of cd:\n%s", width, height, view.Cursor, ansi.Strip(view.Text))
+		}
+		if ComposeModal(strings.Repeat("b", width), "Draft", body.Text, "Esc close", width, height, styles) == "" {
+			t.Fatal("string wrapper rendered nothing")
+		}
+	}
+	if ComposeModalBlock("page", "T", InputBlock(in, 4, 2), "F", 2, 2, styles).Cursor != nil {
+		t.Fatal("tiny terminal reported a cursor")
+	}
+}

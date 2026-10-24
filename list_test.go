@@ -23,7 +23,7 @@ func listFixture(t *testing.T) (*Runtime, *List, *Input, []ListItem) {
 		t.Fatal(err)
 	}
 	for _, id := range []string{"page", "other"} {
-		page := &Page{ID: id, Title: id, Frame: &Frame{ID: id, Context: Context{Path: []string{"app", id}}}, Render: func(*Runtime, int, int) string { return "page" }}
+		page := &Page{ID: id, Title: id, Frame: &Frame{ID: id, Context: Context{Path: []string{"app", id}}}, Render: func(*Runtime, int, int) Block { return Text("page") }}
 		if err := r.RegisterPage(page); err != nil {
 			t.Fatal(err)
 		}

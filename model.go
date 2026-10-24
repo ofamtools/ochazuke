@@ -14,9 +14,11 @@ import (
 )
 
 // ModalView renders one modal without replacing or inspecting its parent page.
+// Render returns the body as a Block; its cursor, when the modal holds the
+// focused input, is relative to the body's top-left cell.
 type ModalView struct {
 	Title  string
-	Render func(*Runtime, *Frame, int, int) string
+	Render func(*Runtime, *Frame, int, int) Block
 }
 
 // Model is the Bubble Tea adapter. Pages and modal instances retain their state in Runtime.
@@ -46,9 +48,10 @@ func NewModel(r *Runtime) *Model {
 		var content string
 		if len(r.Frames) > 1 {
 			width, height = ModalSize(m.Width, m.Height)
-			_, content = m.modalContent(frame, width, height)
+			_, body := m.modalContent(frame, width, height)
+			content = body.Text
 		} else {
-			content = m.pageContent(width, height)
+			content = m.pageContent(width, height).Text
 		}
 		view := m.viewport(frame, content, width, height)
 		delta := min(max(IntArg(a, "lines", 0), -view.TotalLineCount()), view.TotalLineCount())
@@ -178,11 +181,11 @@ func (m *Model) surfaceSize() (int, int) {
 	pad := NewStyles(*m.Appearance).Padding
 	return max(1, m.Width-2*pad), max(1, m.Height-6)
 }
-func (m *Model) pageContent(width, height int) string {
+func (m *Model) pageContent(width, height int) Block {
 	if page := m.Runtime.Pages[m.Runtime.ActivePage]; page != nil {
 		return page.Render(m.Runtime, width, height)
 	}
-	return "No page selected. Open a registered page through the palette or API."
+	return Text("No page selected. Open a registered page through the palette or API.")
 }
 func (m *Model) viewport(frame *Frame, content string, width, height int) *viewport.Model {
 	view := m.views[frame.ID]
@@ -197,17 +200,30 @@ func (m *Model) viewport(frame *Frame, content string, width, height int) *viewp
 	view.SetYOffset(IntArg(Arguments(frame.State), "scroll", 0))
 	return view
 }
-func (m *Model) modalContent(frame *Frame, width, height int) (string, string) {
-	if frame == m.Palette.frame {
-		return "Command palette", strings.TrimPrefix(m.Palette.ViewSized(width, height), "Command palette\n")
+
+// modalContent renders a modal body. Only the top frame's input is focused, so
+// a covered modal reports no cursor.
+func (m *Model) modalContent(frame *Frame, width, height int) (string, Block) {
+	var body Block
+	switch {
+	case frame == m.Palette.frame:
+		body = m.Palette.viewBlock(width, height)
+		body = body.WithText(strings.TrimPrefix(body.Text, "Command palette\n")).Offset(0, -1)
+		return "Command palette", body
+	case m.ModalViews[frame.ID].Render != nil:
+		body = m.ModalViews[frame.ID].Render(m.Runtime, frame, width, height)
+	case m.Runtime.Inputs[frame.Context.InputID] != nil:
+		body = InputBlock(m.Runtime.Inputs[frame.Context.InputID], width, height)
+	default:
+		body = Text("This modal has no focused input.")
+	}
+	if frame != m.Runtime.Frames[len(m.Runtime.Frames)-1] {
+		body.Cursor = nil
 	}
 	if view, ok := m.ModalViews[frame.ID]; ok {
-		return view.Title, view.Render(m.Runtime, frame, width, height)
+		return view.Title, body
 	}
-	if input := m.Runtime.Inputs[frame.Context.InputID]; input != nil {
-		return frame.ID, InputView(input, width, height)
-	}
-	return frame.ID, "This modal has no focused input."
+	return frame.ID, body
 }
 func (m *Model) pageTabs(styles Styles, width int) string {
 	order := m.Runtime.PageOrder
@@ -256,13 +272,42 @@ func (m *Model) pageTabs(styles Styles, width int) string {
 	return tabs
 }
 
-// View renders the shell as a full-screen tea.View; View().Content is the string.
+// View renders the shell as a full-screen tea.View; View().Content is the
+// string. The terminal cursor follows the focused input through the page or
+// modal that holds it: a bar in insert mode, a block in normal mode and an
+// underline in visual modes. It is hidden when no input is focused.
 func (m *Model) View() tea.View {
-	v := tea.NewView(m.render())
+	block := m.render()
+	v := tea.NewView(block.Text)
 	v.AltScreen = true
+	v.Cursor = m.cursor(block)
 	return v
 }
-func (m *Model) render() string {
+
+// cursor shapes the block's cursor by the focused input's mode.
+func (m *Model) cursor(block Block) *tea.Cursor {
+	context := m.Runtime.Context()
+	if block.Cursor == nil || m.Runtime.Inputs[context.InputID] == nil {
+		return nil
+	}
+	cursor := tea.NewCursor(block.Cursor.X, block.Cursor.Y)
+	cursor.Blink = false
+	switch mode := m.Runtime.Mode(context); {
+	case mode == "insert":
+		cursor.Shape = tea.CursorBar
+		cursor.Blink = true
+	case isVisual(mode):
+		cursor.Shape = tea.CursorUnderline
+	default:
+		cursor.Shape = tea.CursorBlock
+	}
+	return cursor
+}
+
+// render composes the page shell and the modal stack. Each composer offsets
+// the child cursor by where it placed the child; a modal hides the cursor of
+// everything beneath it.
+func (m *Model) render() Block {
 	styles := NewStyles(*m.Appearance)
 	width, height := m.surfaceSize()
 	pageTitle := ""
@@ -284,8 +329,7 @@ func (m *Model) render() string {
 	}
 	base := m.Runtime.Frames[0]
 	pageWidth, pageHeight := m.pageSize()
-	content := m.pageContent(pageWidth, pageHeight)
-	page := m.viewport(base, content, pageWidth, pageHeight).View()
+	page := m.scrolled(base, m.pageContent(pageWidth, pageHeight), pageWidth, pageHeight)
 	if m.Sidebar {
 		titles := make([]string, len(m.Runtime.PageOrder))
 		selected := 0
@@ -318,14 +362,16 @@ func (m *Model) render() string {
 		status = styles.Error.Render("Error: " + safeText(m.Status))
 	}
 	inset := lipgloss.NewStyle().PaddingLeft(styles.Padding).PaddingRight(styles.Padding)
-	background := strings.Join([]string{inset.Render(heading), inset.Render(tabs), "", inset.Render(page), "", inset.Render(status)}, "\n")
-	background = fitSurface(background, m.Width, m.Height)
+	// Heading, tabs and a blank row sit above the page; the inset adds Padding cells on the left.
+	surface := page.Offset(styles.Padding, 3).Clip(m.Width, m.Height)
+	background := strings.Join([]string{inset.Render(heading), inset.Render(tabs), "", inset.Render(page.Text), "", inset.Render(status)}, "\n")
+	surface.Text = fitSurface(background, m.Width, m.Height)
 	for _, frame := range m.Runtime.Frames[1:] {
 		modalWidth, modalHeight := ModalSize(m.Width, m.Height)
 		title, body := m.modalContent(frame, modalWidth, modalHeight)
-		bodyHeight := min(modalHeight, max(1, lipgloss.Height(body)))
-		bodyWidth := min(modalWidth, max(1, lipgloss.Width(body)))
-		body = m.viewport(frame, body, bodyWidth, bodyHeight).View()
+		bodyHeight := min(modalHeight, max(1, lipgloss.Height(body.Text)))
+		bodyWidth := min(modalWidth, max(1, lipgloss.Width(body.Text)))
+		body = m.scrolled(frame, body, bodyWidth, bodyHeight)
 		hint := "Esc normal / close · PgUp/PgDn scroll"
 		if frame == m.Palette.frame {
 			hint = "Esc normal / back · Ctrl-C cancel"
@@ -335,9 +381,16 @@ func (m *Model) render() string {
 		if frame == m.Runtime.Frames[len(m.Runtime.Frames)-1] && m.Status != "" {
 			hint = "Error: " + m.Status
 		}
-		background = ComposeModal(background, title, body, hint, m.Width, m.Height, styles)
+		surface = ComposeModalBlock(surface.Text, title, body, hint, m.Width, m.Height, styles)
 	}
-	return background
+	return surface
+}
+
+// scrolled runs a block through the frame's viewport, moving the cursor with
+// the scrolled content and dropping it when it scrolls out of view.
+func (m *Model) scrolled(frame *Frame, content Block, width, height int) Block {
+	view := m.viewport(frame, content.Text, width, height)
+	return content.WithText(view.View()).Offset(0, -view.YOffset()).Clip(width, height)
 }
 func fitSurface(content string, width, height int) string {
 	width = max(1, width)
@@ -370,10 +423,17 @@ func safeText(s string) string {
 	}, s)
 }
 
-// InputView inverts the cursor's grapheme without changing text or editing state.
-func InputView(in *Input, width, height int) string {
+// InputView renders an input's visible text without a cursor, for inputs that
+// are not focused. See InputBlock.
+func InputView(in *Input, width, height int) string { return InputBlock(in, width, height).Text }
+
+// InputBlock renders width x height cells of an input around its cursor and
+// reports where the cursor sits, without changing text or editing state.
+// Visual selections are painted in reverse video; the cursor itself is left
+// to the terminal, so compose this block only for the focused input.
+func InputBlock(in *Input, width, height int) Block {
 	if in == nil {
-		return "(no focused input)"
+		return Text("(no focused input)")
 	}
 	width = max(1, width)
 	height = max(1, height)
@@ -402,18 +462,18 @@ func InputView(in *Input, width, height int) string {
 	offset := max(0, cursorColumn+min(width, cursorWidth)-width)
 	var body strings.Builder
 	rowIndex, column := 0, 0
-	write := func(text string, cells int, reversed bool) {
+	write := func(text string, cells int, selected bool) {
 		lo, hi := max(column, offset), min(column+cells, offset+width)
 		visible := rowIndex >= start && rowIndex < start+height
 		if visible && (hi > lo || cells == 0 && column >= offset && column < offset+width) {
 			if lo != column || hi != column+cells {
 				text = strings.Repeat(" ", hi-lo)
 			}
-			if reversed {
+			if selected {
 				body.WriteString("\x1b[7m")
 			}
 			body.WriteString(text)
-			if reversed {
+			if selected {
 				body.WriteString("\x1b[27m")
 			}
 		}
@@ -425,6 +485,8 @@ func InputView(in *Input, width, height int) string {
 	if block {
 		top, bottom, left, right = in.blockBounds()
 	}
+	// A line end still gets a blank cell under the cursor so the terminal
+	// cursor lands on a rendered cell and the text keeps the same shape.
 	writeLineEnd := func(selected, onCursor bool) {
 		end := column
 		blockRow := block && rowIndex >= top && rowIndex <= bottom
@@ -447,13 +509,7 @@ func InputView(in *Input, width, height int) string {
 					next = min(next, right)
 				}
 			}
-			atCursor := onCursor && column == cursorColumn
-			if onCursor && column < cursorColumn {
-				next = min(next, cursorColumn)
-			} else if atCursor {
-				next = min(next, column+1)
-			}
-			write(strings.Repeat(" ", next-column), next-column, reversed != atCursor)
+			write(strings.Repeat(" ", next-column), next-column, reversed)
 		}
 	}
 	clusters.Reset()
@@ -477,22 +533,23 @@ func InputView(in *Input, width, height int) string {
 			column = 0
 			continue
 		}
-		// Reverse video composes by toggling it on the selected cursor cell.
+		// A block selection crossing part of a wide grapheme blanks the cells
+		// so the selected half can be painted on its own.
 		if selected && block && w > 0 && (column < left || column+w > right) {
 			before := max(0, left-column)
 			middle := min(column+w, right) - max(column, left)
 			after := max(0, column+w-right)
 			if before > 0 {
-				write(strings.Repeat(" ", before), before, onCursor)
+				write(strings.Repeat(" ", before), before, false)
 			}
-			write(strings.Repeat(" ", middle), middle, !onCursor)
+			write(strings.Repeat(" ", middle), middle, true)
 			if after > 0 {
-				write(strings.Repeat(" ", after), after, onCursor)
+				write(strings.Repeat(" ", after), after, false)
 			}
 		} else {
-			write(text, w, selected != onCursor)
+			write(text, w, selected)
 		}
 	}
 	writeLineEnd(false, cursor == len(in.Text))
-	return body.String()
+	return Block{Text: body.String(), Cursor: &Pos{X: cursorColumn - offset, Y: cursorRow - start}}
 }

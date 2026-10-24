@@ -156,8 +156,8 @@ err := r.RegisterPage(&ochazuke.Page{
         Context: ochazuke.Context{Path: []string{"app", "home"}},
         State: map[string]any{},
     },
-    Render: func(r *ochazuke.Runtime, width, height int) string {
-        return "Welcome to your application."
+    Render: func(r *ochazuke.Runtime, width, height int) ochazuke.Block {
+        return ochazuke.Text("Welcome to your application.")
     },
 })
 if err != nil { panic(err) }
@@ -190,8 +190,8 @@ Ordinary modals block page switching. The palette closes before dispatching a se
 - Tiny terminals use reduced chrome rather than overflowing the screen. Bubbles viewports handle overflowing page and modal content; `PgUp/PgDn` scroll the active surface.
 - In an input modal, Escape returns insert mode to normal; another Escape closes the modal. A pending normal-mode motion/count is canceled before closing. `Ctrl-G` closes demo drafts directly. Palette and picker cancellation retain their own documented behavior.
 - App-specific modal rendering is registered through `Model.ModalViews[frameID] = ModalView{Title, Render}`. The framework owns positioning and composition; the renderer receives the modal frame and available content dimensions.
-- Render callbacks may return trusted Lip Gloss ANSI styling. Sanitize external text before rendering it; built-in input and filesystem labels already do so.
-- Input cursors invert the existing grapheme rather than inserting a marker, so moving the cursor does not shift following text. Empty positions use a styled blank cell. Wide/combining graphemes, terminal-cell clipping, and visual-selection styling share the same renderer.
+- Render callbacks return a `Block{Text, Cursor}` and may use trusted Lip Gloss ANSI styling in `Text`. Sanitize external text before rendering it; built-in input and filesystem labels already do so. `Text(s)` wraps content that has no cursor.
+- The terminal cursor is real, not painted. `InputBlock(in, w, h)` reports the cursor cell of the input it renders; compose it only for the focused input and use `InputView` for the rest. Every composer (`Layout.PageBlock/PanelBlock/SplitBlock/SidebarBlock`, `ComposeModalBlock`, the shell) moves the child's cursor by where it placed the child, so `Model.View` can set `tea.View.Cursor`: a bar in insert mode, a block in normal mode, an underline in visual modes, hidden when no input is focused or a modal without an input covers it. Wide/combining graphemes, terminal-cell clipping, and visual-selection reverse video share the same renderer; moving the cursor never shifts following text.
 
 ```sh
 /tmp/ochazuke themes list
@@ -327,8 +327,8 @@ picker := ochazuke.NewPicker(r)
 model.Pickers = append(model.Pickers, picker)
 model.ModalViews["picker"] = ochazuke.ModalView{
     Title: "Choose a path",
-    Render: func(_ *ochazuke.Runtime, _ *ochazuke.Frame, w, h int) string {
-        return picker.View(w, h)
+    Render: func(_ *ochazuke.Runtime, _ *ochazuke.Frame, w, h int) ochazuke.Block {
+        return picker.ViewBlock(w, h)
     },
 }
 ```
@@ -407,8 +407,9 @@ result, err := r.Execute(ochazuke.Request{
 | `palette.go`, `palette_editing.go`, `palette_nouns.go` | Verb/noun and live instance navigation, configured defaults, typed arguments, originating context |
 | `picker.go`, `picker_search.go` | Contextual path selection, asynchronous fuzzy indexing, native Git ignores |
 | `pages.go` | Page registration, retained frames, navigation, and focus isolation |
-| `theme.go`, `surface.go` | Appearance operations, Lip Gloss styles, bounded modal composition |
-| `model.go` | Bubble Tea adapter, page shell, Bubbles viewports, modal renderers |
+| `theme.go`, `surface.go` | Appearance operations, Lip Gloss styles, bounded modal composition on a Lip Gloss canvas |
+| `block.go` | `Block` and `Pos`: rendered text plus the focused input's cursor cell |
+| `model.go` | Bubble Tea adapter, page shell, Bubbles viewports, modal renderers, terminal cursor |
 | `transport.go`, `cli.go`, `cmd/ochazuke` | Private Unix socket and generic CLI dispatch |
 | `demo.go`, `examples/core` | Runnable UI and noninteractive foundation example |
 

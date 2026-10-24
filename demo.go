@@ -39,12 +39,12 @@ func NewDemo() *Model {
 	for _, spec := range []struct {
 		id, title string
 		context   Context
-		render    func(*Runtime, int, int) string
+		render    func(*Runtime, int, int) Block
 	}{
-		{"overview", "Overview", Context{Path: []string{"app", "overview"}}, func(r *Runtime, w, h int) string { return demoOverview(m, w) }},
-		{"playground", "Playground", Context{Path: []string{"app", "playground", "agent", "directory"}, InputID: "directory"}, func(r *Runtime, w, h int) string { return demoPlayground(m, w, h) }},
-		{"commands", "Commands", Context{Path: []string{"app", "commands"}}, func(r *Runtime, w, h int) string { return demoCommands(m, w) }},
-		{"appearance", "Appearance", Context{Path: []string{"app", "appearance"}}, func(r *Runtime, w, h int) string { return demoAppearance(m, w) }},
+		{"overview", "Overview", Context{Path: []string{"app", "overview"}}, func(r *Runtime, w, h int) Block { return Text(demoOverview(m, w)) }},
+		{"playground", "Playground", Context{Path: []string{"app", "playground", "agent", "directory"}, InputID: "directory"}, func(r *Runtime, w, h int) Block { return demoPlayground(m, w, h) }},
+		{"commands", "Commands", Context{Path: []string{"app", "commands"}}, func(r *Runtime, w, h int) Block { return Text(demoCommands(m, w)) }},
+		{"appearance", "Appearance", Context{Path: []string{"app", "appearance"}}, func(r *Runtime, w, h int) Block { return Text(demoAppearance(m, w)) }},
 	} {
 		if err := r.RegisterPage(&Page{ID: spec.id, Title: spec.title, Frame: &Frame{ID: spec.id, Context: spec.context, State: map[string]any{}}, Render: spec.render}); err != nil {
 			panic(err)
@@ -53,23 +53,24 @@ func NewDemo() *Model {
 	m = NewModel(r)
 	picker := NewPicker(r)
 	m.Pickers = append(m.Pickers, picker)
-	m.ModalViews["picker"] = ModalView{Title: "Choose a path", Render: func(r *Runtime, f *Frame, w, h int) string { return picker.View(w, h) }}
+	m.ModalViews["picker"] = ModalView{Title: "Choose a path", Render: func(r *Runtime, f *Frame, w, h int) Block { return picker.ViewBlock(w, h) }}
 	for _, id := range []string{"draft", "nested-draft"} {
 		title := "Draft editor"
 		if id == "nested-draft" {
 			title = "Nested draft"
 		}
-		m.ModalViews[id] = ModalView{Title: title, Render: func(r *Runtime, f *Frame, w, h int) string {
+		m.ModalViews[id] = ModalView{Title: title, Render: func(r *Runtime, f *Frame, w, h int) Block {
 			s := NewStyles(*m.Appearance)
 			hint := "i edit · Escape normal / close · Ctrl-G close"
 			if f.ID == "draft" {
 				hint += " · Ctrl-N nest"
 			}
-			return s.Muted.Render(safeText(hint)) + "\n\n" + InputView(r.Inputs[f.Context.InputID], w, max(1, h-2))
+			editor := InputBlock(r.Inputs[f.Context.InputID], w, max(1, h-2))
+			return editor.Offset(0, 2).WithText(s.Muted.Render(safeText(hint)) + "\n\n" + editor.Text)
 		}}
 	}
-	m.ModalViews["help"] = ModalView{Title: "Keyboard guide", Render: func(r *Runtime, f *Frame, w, h int) string {
-		return "NAVIGATION\nCtrl-J / K    Next / previous page (normal mode)\n:             Search command palette\nCtrl-Space    Palette in any editing mode\nPgUp / PgDn   Scroll the active surface\n\nPLAYGROUND\nTab / S-Tab   Next / previous field\nCtrl-N        Open a draft; repeat inside to nest\nCtrl-O        Choose a path using the field's filter\nEnter         Open picker in path / paths fields\n\nNORMAL INPUT\nh j k l       Move (same as arrows)\nw b e         Word motions\n0 $ / gg G    Line / document bounds\ni a I A       Begin inserting\no O           Open a line\nv / V / C-v   Character / line / block selection\nyy / p / P    Yank line / paste after / before\nCtrl-Y        Yank history\n\"a            Select register a\nq then a      Start recording immediately in register a\nq / @a        Stop recording / replay macro a\nu / Ctrl-R    Undo / redo\n\nINSERT INPUT\nCtrl-A / E    Line start / end\nCtrl-P / N    Previous / next line (picker: result)\nAlt-B / F     Word movement\nCtrl-W/U/K    Kill path word / line start / line end\nCtrl-Y        Paste app yank\nEscape        Return to normal"
+	m.ModalViews["help"] = ModalView{Title: "Keyboard guide", Render: func(r *Runtime, f *Frame, w, h int) Block {
+		return Text("NAVIGATION\nCtrl-J / K    Next / previous page (normal mode)\n:             Search command palette\nCtrl-Space    Palette in any editing mode\nPgUp / PgDn   Scroll the active surface\n\nPLAYGROUND\nTab / S-Tab   Next / previous field\nCtrl-N        Open a draft; repeat inside to nest\nCtrl-O        Choose a path using the field's filter\nEnter         Open picker in path / paths fields\n\nNORMAL INPUT\nh j k l       Move (same as arrows)\nw b e         Word motions\n0 $ / gg G    Line / document bounds\ni a I A       Begin inserting\no O           Open a line\nv / V / C-v   Character / line / block selection\nyy / p / P    Yank line / paste after / before\nCtrl-Y        Yank history\n\"a            Select register a\nq then a      Start recording immediately in register a\nq / @a        Stop recording / replay macro a\nu / Ctrl-R    Undo / redo\n\nINSERT INPUT\nCtrl-A / E    Line start / end\nCtrl-P / N    Previous / next line (picker: result)\nAlt-B / F     Word movement\nCtrl-W/U/K    Kill path word / line start / line end\nCtrl-Y        Paste app yank\nEscape        Return to normal")
 	}}
 	register := func(verb, noun, description string, params map[string]Parameter, fn Handler) {
 		r.Register(Operation{Verb: verb, Noun: noun, Description: description, Parameters: params, Result: "JSON value", Run: fn})
@@ -166,11 +167,13 @@ func demoOverview(m *Model, width int) string {
 	b.WriteString("\n\n" + s.Muted.Render("? keyboard guide · Ctrl-J/K switch pages · Ctrl-C quit"))
 	return b.String()
 }
-func demoPlayground(m *Model, width, height int) string {
+func demoPlayground(m *Model, width, height int) Block {
 	r := m.Runtime
 	s := NewStyles(*m.Appearance)
 	frame := r.Pages["playground"].Frame
-	field := func(id, label string, w, h int) string {
+	// Only the focused field carries a cursor; the panel border, padding and
+	// label row move it.
+	field := func(id, label string, w, h int) Block {
 		active := frame.Context.InputID == id
 		style := s.Panel
 		if active {
@@ -180,10 +183,13 @@ func demoPlayground(m *Model, width, height int) string {
 		if active {
 			marker = "› "
 		}
-		body := InputView(r.Inputs[id], max(1, w-2-2*s.Padding), h)
-		return style.Padding(0, s.Padding).Width(max(1, w-2)).Render(s.Subtitle.Render(marker+label) + "\n" + body)
+		body := InputBlock(r.Inputs[id], max(1, w-2-2*s.Padding), h)
+		if !active {
+			body.Cursor = nil
+		}
+		return body.Offset(1+s.Padding, 2).WithText(style.Padding(0, s.Padding).Width(max(1, w-2)).Render(s.Subtitle.Render(marker+label) + "\n" + body.Text))
 	}
-	var fields string
+	var fields Block
 	if height < 18 {
 		labels := map[string]string{"directory": "Directory · path", "notes": "Notes · text", "paths": "Paths · one per line"}
 		id := frame.Context.InputID
@@ -191,16 +197,22 @@ func demoPlayground(m *Model, width, height int) string {
 	} else if width >= 76 {
 		left := width / 3
 		right := width - left - 2
-		paths := field("directory", "Directory · path", left, 1) + "\n" + field("paths", "Paths · one per line", left, 3)
-		fields = lipgloss.JoinHorizontal(lipgloss.Top, paths, "  ", field("notes", "Notes · text", right, 7))
+		directory := field("directory", "Directory · path", left, 1)
+		paths := field("paths", "Paths · one per line", left, 3).Offset(0, lipgloss.Height(directory.Text))
+		notes := field("notes", "Notes · text", right, 7).Offset(left+2, 0)
+		fields = Block{Text: lipgloss.JoinHorizontal(lipgloss.Top, directory.Text+"\n"+paths.Text, "  ", notes.Text), Cursor: firstCursor(directory, paths, notes)}
 	} else {
-		fields = field("directory", "Directory · path", width, 1) + "\n" + field("notes", "Notes · text", width, 2) + "\n" + field("paths", "Paths · one per line", width, 2)
+		directory := field("directory", "Directory · path", width, 1)
+		notes := field("notes", "Notes · text", width, 2).Offset(0, lipgloss.Height(directory.Text))
+		paths := field("paths", "Paths · one per line", width, 2).Offset(0, lipgloss.Height(directory.Text)+lipgloss.Height(notes.Text))
+		fields = Block{Text: directory.Text + "\n" + notes.Text + "\n" + paths.Text, Cursor: firstCursor(directory, notes, paths)}
 	}
 	status := "App → Playground → Agent → " + strings.Title(frame.Context.Path[len(frame.Context.Path)-1])
 	if layer, ok := frame.State["lastLayer"].(string); ok {
 		status = "Ctrl-X action handled by: " + layer
 	}
-	return s.Title.Render("Widget playground") + "\n" + s.Muted.Render("Shared yanks and registers. Independent edit histories.") + "\n\n" + fields + "\n\n" + s.Accent.Render(safeText(status)) + "\n" + s.Muted.Render("Tab field · i insert · v/V/C-v select · Ctrl-Y yank history\nCtrl-N draft · Ctrl-O path picker · Ctrl-X inspect")
+	// Title, subtitle and a blank row sit above the fields.
+	return fields.Offset(0, 3).WithText(s.Title.Render("Widget playground") + "\n" + s.Muted.Render("Shared yanks and registers. Independent edit histories.") + "\n\n" + fields.Text + "\n\n" + s.Accent.Render(safeText(status)) + "\n" + s.Muted.Render("Tab field · i insert · v/V/C-v select · Ctrl-Y yank history\nCtrl-N draft · Ctrl-O path picker · Ctrl-X inspect"))
 }
 func demoCommands(m *Model, width int) string {
 	r := m.Runtime

@@ -140,9 +140,9 @@ func TestModelSidebarHonorsPageRenderBounds(t *testing.T) {
 		t.Fatal(err)
 	}
 	area := 0
-	page.Render = func(_ *Runtime, width, height int) string {
+	page.Render = func(_ *Runtime, width, height int) Block {
 		area = width * height
-		return strings.TrimSuffix(strings.Repeat(strings.Repeat("░", width)+"\n", height), "\n")
+		return Text(strings.TrimSuffix(strings.Repeat(strings.Repeat("░", width)+"\n", height), "\n"))
 	}
 	for _, size := range [][2]int{{120, 40}, {80, 24}, {60, 18}} {
 		m.Width, m.Height = size[0], size[1]
@@ -159,5 +159,69 @@ func TestModelSidebarHonorsPageRenderBounds(t *testing.T) {
 				t.Fatalf("unbounded sidebar row: %q", row)
 			}
 		}
+	}
+}
+
+// An input's cursor travels through the panel border and padding and then the
+// page gutter and header rows; the string wrappers render the same cells.
+func TestPageAndPanelOffsetTheInputCursor(t *testing.T) {
+	l := Layout{Width: 48, Height: 15, Styles: NewStyles(Appearance{Theme: "mono"})}
+	in := NewInput("field", "hello\nworld", true)
+	in.Cursor = 8 // Row 1, column 2.
+	bw, bh := l.BodySize()
+	cw, ch := PanelContentSize(bw, bh)
+	editor := InputBlock(in, cw, ch)
+	if editor.Cursor == nil || *editor.Cursor != (Pos{2, 1}) {
+		t.Fatalf("input cursor = %+v", editor.Cursor)
+	}
+	panel := l.PanelBlock("Editor", editor, bw, bh, true)
+	margin := (bw - 2 - cw) / 2
+	if panel.Cursor == nil || *panel.Cursor != (Pos{1 + margin + 2, 1 + 1}) {
+		t.Fatalf("panel cursor = %+v, want border and margin offsets", panel.Cursor)
+	}
+	page := l.PageBlock("Tasks", "Workspace", panel, "Esc back")
+	want := Pos{layoutGutter + 1 + margin + 2, 3 + 1 + 1}
+	if page.Cursor == nil || *page.Cursor != want {
+		t.Fatalf("page cursor = %+v, want %+v", page.Cursor, want)
+	}
+	rows := strings.Split(ansi.Strip(page.Text), "\n")
+	if len(rows) != 15 {
+		t.Fatalf("got %d rows, want 15", len(rows))
+	}
+	for i, row := range rows {
+		if ansi.StringWidth(row) != 48 {
+			t.Fatalf("row %d has %d cells", i, ansi.StringWidth(row))
+		}
+	}
+	if cell := cellIndex(rows[want.Y], "world"); cell+2 != want.X {
+		t.Fatalf("cursor %+v is not on the r of world (column %d):\n%s", want, cell+2, ansi.Strip(page.Text))
+	}
+	if text := l.Page("Tasks", "Workspace", l.Panel("Editor", InputView(in, cw, ch), bw, bh, true), "Esc back"); text != page.Text {
+		t.Fatal("string wrappers render different cells than the block composers")
+	}
+	// Split and Sidebar move the right or bottom panel's cursor by the left one.
+	for _, width := range []int{80, 48} {
+		wide := Layout{Width: width, Height: 24, Styles: l.Styles}
+		bw, bh := wide.BodySize()
+		split := wide.SplitBlock("Files", Text("main.go"), "Editor", InputBlock(in, 10, 2))
+		sidebar := wide.SidebarBlock("Pages", []string{"Home"}, 0, "Editor", InputBlock(in, 10, 2))
+		for name, block := range map[string]Block{"split": split, "sidebar": sidebar} {
+			if block.Cursor == nil {
+				t.Fatalf("%dx%d %s lost the cursor", width, 24, name)
+			}
+			row := strings.Split(ansi.Strip(block.Text), "\n")[block.Cursor.Y]
+			if cell := cellIndex(row, "world"); cell < 0 || cell+2 != block.Cursor.X {
+				t.Fatalf("%dx%d %s cursor %+v is not on world in %q", width, 24, name, block.Cursor, row)
+			}
+		}
+		if width >= layoutStackAt && split.Cursor.X <= (bw-1)*2/5 || width < layoutStackAt && split.Cursor.Y <= bh*2/5 {
+			t.Fatalf("%d: split cursor %+v is inside the left panel", width, split.Cursor)
+		}
+		if left := wide.SplitBlock("Editor", InputBlock(in, 10, 2), "Files", Text("main.go")); left.Cursor == nil || left.Cursor.X != 1+1+2 { // border, centering margin, column
+			t.Fatalf("left panel cursor = %+v", left.Cursor)
+		}
+	}
+	if (Layout{Width: 0, Height: 0}).PageBlock("T", "S", InputBlock(in, 4, 2), "F").Cursor != nil {
+		t.Fatal("empty viewport reported a cursor")
 	}
 }

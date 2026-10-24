@@ -57,7 +57,11 @@ func registerYankHistory(r *Runtime) {
 		return y, err
 	})
 }
-func yankHistoryView(r *Runtime, f *Frame, width, height int) string {
+func yankHistoryView(r *Runtime, f *Frame, width, height int) Block {
+	return Text(yankHistoryText(r, f, width, height))
+}
+
+func yankHistoryText(r *Runtime, f *Frame, width, height int) string {
 	if len(r.YankHistory) == 0 {
 		return "No yanks yet. Yank or kill text in any field."
 	}

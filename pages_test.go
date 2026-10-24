@@ -14,7 +14,7 @@ func pageTestRegister(t *testing.T, r *Runtime, id string) *Page {
 	if err := r.AddInput(NewInput(id+"-input", id, false), []string{"app", id, id + "-editor"}); err != nil {
 		t.Fatal(err)
 	}
-	page := &Page{ID: id, Title: strings.ToUpper(id), Frame: &Frame{ID: id, Context: Context{Path: []string{"app", id}}}, Render: func(*Runtime, int, int) string { return id }}
+	page := &Page{ID: id, Title: strings.ToUpper(id), Frame: &Frame{ID: id, Context: Context{Path: []string{"app", id}}}, Render: func(*Runtime, int, int) Block { return Text(id) }}
 	if err := r.RegisterPage(page); err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +178,7 @@ func TestPageRegistrationRejectsInvalidPagesAtomically(t *testing.T) {
 			layer := &Layer{ID: "candidate", Noun: "candidate", Bindings: []Binding{{Keys: "q", Request: Request{Verb: "quit", Noun: "app"}}}}
 			r.Layers["candidate"] = layer
 			r.Pending = "g"
-			candidate := tc.change(&Page{ID: "candidate", Title: "Candidate", Frame: &Frame{Context: Context{Path: []string{"app", "candidate"}}}, Render: func(*Runtime, int, int) string { return "candidate" }})
+			candidate := tc.change(&Page{ID: "candidate", Title: "Candidate", Frame: &Frame{Context: Context{Path: []string{"app", "candidate"}}}, Render: func(*Runtime, int, int) Block { return Text("candidate") }})
 			before := pageTestSnapshot(t, r)
 			if err := r.RegisterPage(candidate); err == nil {
 				t.Fatal("invalid page was registered")

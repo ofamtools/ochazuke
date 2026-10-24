@@ -9,18 +9,23 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-func (p *Picker) View(width, height int) string {
+func (p *Picker) View(width, height int) string { return p.ViewBlock(width, height).Text }
+
+// ViewBlock renders the picker and reports the cursor of its path editor on
+// the first row, after the label.
+func (p *Picker) ViewBlock(width, height int) Block {
 	if width <= 0 || height <= 0 {
-		return ""
+		return Block{}
 	}
 	label := fmt.Sprintf("Path [%s]: ", p.Filter)
 	if width < 24 {
 		label = "Path: "
 	}
 	label = ansi.Truncate(label, max(0, width-1), "")
-	rows := []string{label + InputView(p.input, width-ansi.StringWidth(label), 1)}
+	editor := InputBlock(p.input, width-ansi.StringWidth(label), 1).Offset(ansi.StringWidth(label), 0).Clip(width, 1)
+	rows := []string{label + editor.Text}
 	if height == 1 {
-		return strings.Join(layoutRows(rows[0], width, height), "\n")
+		return editor.WithText(strings.Join(layoutRows(rows[0], width, height), "\n"))
 	}
 	help := p.bindingHelp()
 	var helpRows []string
@@ -53,7 +58,7 @@ func (p *Picker) View(width, height int) string {
 		}
 	}
 	rows = append(rows, helpRows...)
-	return strings.Join(layoutRows(strings.Join(rows, "\n"), width, height), "\n")
+	return editor.WithText(strings.Join(layoutRows(strings.Join(rows, "\n"), width, height), "\n"))
 }
 
 func (p *Picker) resultRows(width, height int) []string {
@@ -79,7 +84,7 @@ func (p *Picker) resultRows(width, height int) []string {
 		if i == p.Selected {
 			mark = "> "
 		}
-		row := modalCells(ansi.Truncate(mark+safeText(name), width, "…"), 0, width)
+		row := modalCells(ansi.Truncate(mark+safeText(name), width, "…"), width)
 		if i == p.Selected {
 			row = lipgloss.NewStyle().Reverse(true).Render(row)
 		}

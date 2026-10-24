@@ -38,10 +38,10 @@ func registerPages(m *ochazuke.Model, specs []PageConfig) error {
 		}
 		var list *ochazuke.List
 		page := &ochazuke.Page{ID: spec.ID, Title: spec.Title, Frame: &ochazuke.Frame{ID: spec.ID, Context: spec.Context, State: map[string]any{}}}
-		page.Render = func(r *ochazuke.Runtime, width, height int) string {
+		page.Render = func(r *ochazuke.Runtime, width, height int) ochazuke.Block {
 			styles := ochazuke.NewStyles(*m.Appearance)
 			if spec.Renderer == "text" {
-				return ansi.Wrap(plain(spec.Text), max(1, width), "")
+				return ochazuke.Text(ansi.Wrap(plain(spec.Text), max(1, width), ""))
 			}
 			if spec.Renderer == "list" {
 				return listPageView(r, list, spec, styles, width, height)
@@ -64,7 +64,7 @@ func registerPages(m *ochazuke.Model, specs []PageConfig) error {
 
 // workspaceView keeps all fields visible when they fit. Small windows show the
 // focused field instead; Tab still visits every configured field in order.
-func workspaceView(r *ochazuke.Runtime, frame *ochazuke.Frame, spec PageConfig, styles ochazuke.Styles, width, height int) string {
+func workspaceView(r *ochazuke.Runtime, frame *ochazuke.Frame, spec PageConfig, styles ochazuke.Styles, width, height int) ochazuke.Block {
 	var status []string
 	for _, key := range []string{"lastAction", "summary", "greeting", "inspection"} {
 		if value, ok := frame.State[key]; ok {
@@ -84,12 +84,12 @@ func workspaceView(r *ochazuke.Runtime, frame *ochazuke.Frame, spec PageConfig, 
 	minimum-- // No separator after the last field.
 	inputs := spec.Inputs
 	compact := len(inputs) > 0 && minimum > height
-	var rows []string
+	var rows []ochazuke.Block
 	if compact {
 		inputs = inputs[selected : selected+1]
-		rows = append(rows, styles.Subtitle.Render(ansi.Truncate(fmt.Sprintf("Field %d/%d · Tab / Shift-Tab", selected+1, len(spec.Inputs)), width, "…")))
+		rows = append(rows, ochazuke.Text(styles.Subtitle.Render(ansi.Truncate(fmt.Sprintf("Field %d/%d · Tab / Shift-Tab", selected+1, len(spec.Inputs)), width, "…"))))
 	} else {
-		rows = append(rows, styles.Muted.Render(ansi.Truncate(plain(spec.Text), width, "…")), "")
+		rows = append(rows, ochazuke.Text(styles.Muted.Render(ansi.Truncate(plain(spec.Text), width, "…"))), ochazuke.Text(""))
 	}
 	extra := max(0, height-minimum)
 	layout := ochazuke.Layout{Styles: styles}
@@ -108,38 +108,19 @@ func workspaceView(r *ochazuke.Runtime, frame *ochazuke.Frame, spec PageConfig, 
 		if input.Kind == "path" || input.Kind == "paths" {
 			label += " · " + input.PathFilter
 		}
-		body := ochazuke.InputView(input, contentWidth, contentHeight)
-		rows = append(rows, layout.Panel(label, body, width, panelHeight, frame.Context.InputID == id))
+		// Only the focused field carries a cursor; the panel moves it inside its border.
+		focused := frame.Context.InputID == id
+		body := ochazuke.InputBlock(input, contentWidth, contentHeight)
+		if !focused {
+			body.Cursor = nil
+		}
+		rows = append(rows, layout.PanelBlock(label, body, width, panelHeight, focused))
 		if i < len(inputs)-1 {
-			rows = append(rows, "")
+			rows = append(rows, ochazuke.Text(""))
 		}
 	}
-	rows = append(rows, status...)
-	return strings.Join(rows, "\n")
-}
-
-func registerModals(m *ochazuke.Model, specs []ModalConfig) error {
-	for _, spec := range specs {
-		if strings.TrimSpace(spec.ID) == "" || m.ModalViews["modal:"+spec.ID].Render != nil {
-			return fmt.Errorf("modal %q is empty or duplicate", spec.ID)
-		}
-		if spec.Renderer != "text" && spec.Renderer != "confirm" {
-			return fmt.Errorf("modal %q: unknown renderer %q", spec.ID, spec.Renderer)
-		}
-		if spec.Input != "" && m.Runtime.Inputs[spec.Input] == nil {
-			return fmt.Errorf("modal %q: unknown input %q", spec.ID, spec.Input)
-		}
-		if spec.Renderer == "confirm" && spec.Input == "" {
-			return fmt.Errorf("modal %q: confirm renderer requires an input", spec.ID)
-		}
-		m.ModalViews["modal:"+spec.ID] = ochazuke.ModalView{Title: spec.Title, Render: func(r *ochazuke.Runtime, frame *ochazuke.Frame, w, h int) string {
-			body := ansi.Wrap(plain(spec.Text), max(1, w), "")
-			if spec.Renderer == "confirm" {
-				inputHeight := max(1, h-strings.Count(body, "\n")-3)
-				body += "\n\n" + ochazuke.InputView(r.Inputs[frame.Context.InputID], w, inputHeight)
-			}
-			return body
-		}}
+	for _, line := range status {
+		rows = append(rows, ochazuke.Text(line))
 	}
-	return nil
+	return stack(rows...)
 }

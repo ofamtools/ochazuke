@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"errors"
 	"fmt"
+	"github.com/charmbracelet/x/ansi"
 	"sort"
 	"strconv"
 	"strings"
@@ -583,12 +584,24 @@ func (p *Palette) publish() {
 
 func (p *Palette) View() string { return p.ViewSized(80, 20) }
 
-func (p *Palette) ViewSized(width, height int) string {
+func (p *Palette) ViewSized(width, height int) string { return p.viewBlock(width, height).Text }
+
+// viewBlock renders the palette and reports the cursor of the editor it shows:
+// the active argument field or the search line.
+func (p *Palette) viewBlock(width, height int) Block {
 	if !p.IsOpen() {
-		return ""
+		return Block{}
 	}
 	p.collectEditors()
 	var out strings.Builder
+	var cursor *Pos
+	// place records the editor's cursor at the current row after prefix.
+	place := func(prefix string, editor Block) string {
+		if editor.Cursor != nil {
+			cursor = &Pos{X: ansi.StringWidth(prefix) + editor.Cursor.X, Y: strings.Count(out.String(), "\n") + editor.Cursor.Y}
+		}
+		return prefix + editor.Text
+	}
 	out.WriteString("Command palette\n")
 	if p.stage == "arguments" {
 		fmt.Fprintf(&out, "%s — %s\n", p.op.Key(), p.op.Description)
@@ -608,10 +621,13 @@ func (p *Palette) ViewSized(width, height int) string {
 			} else {
 				value = strconv.Quote(value)
 			}
+			line := fmt.Sprintf("%s%s (%s, %s): ", marker, name, param.Type, kind)
 			if i == p.field {
-				value = InputView(p.editor("argument/"+name), max(8, width/2), 1)
+				line = place(line, InputBlock(p.editor("argument/"+name), max(8, width/2), 1))
+			} else {
+				line += value
 			}
-			fmt.Fprintf(&out, "%s%s (%s, %s): %s", marker, name, param.Type, kind, value)
+			out.WriteString(line)
 			if param.Description != "" {
 				fmt.Fprintf(&out, " — %s", param.Description)
 			}
@@ -631,7 +647,7 @@ func (p *Palette) ViewSized(width, height int) string {
 			out.WriteByte('\n')
 		}
 		if p.searching {
-			fmt.Fprintf(&out, "Search [%s]: %s\n", p.editor("search").Mode, InputView(p.editor("search"), max(8, width-20), 1))
+			out.WriteString(place(fmt.Sprintf("Search [%s]: ", p.editor("search").Mode), InputBlock(p.editor("search"), max(8, width-20), 1)) + "\n")
 		}
 		entries := p.entries()
 		if len(entries) == 0 {
@@ -688,5 +704,5 @@ func (p *Palette) ViewSized(width, height int) string {
 	if p.message != "" {
 		fmt.Fprintf(&out, "Error: %s\n", p.message)
 	}
-	return out.String()
+	return Block{Text: out.String(), Cursor: cursor}
 }
