@@ -44,6 +44,8 @@ func newFixture(t *testing.T) *fixture {
 		Verb("show", record, "Show a widget").
 		Verb("rename", record, "Rename a widget").
 		Verb("paint", record, "Paint a widget").
+		Verb("link", record, "Link a widget by name").Positional("name").
+		Verb("tag", record, "Tag a widget").
 		Verb("remove", record, "Remove a widget").Confirm("Remove {{label}}?").
 		Verb("refresh", func(ochazuke.Ctx) ochazuke.Result {
 			return ochazuke.Pending(func(context.Context) (any, error) { return "fresh", nil })
@@ -71,6 +73,11 @@ func newFixture(t *testing.T) *fixture {
 	op = f.r.Operations["widget.paint"]
 	op.Parameters = map[string]ochazuke.Parameter{"color": {Type: "string", Required: true}, "coats": {Type: "integer"}}
 	f.r.Operations["widget.paint"] = op
+	for _, verb := range []string{"widget.link", "widget.tag"} {
+		op = f.r.Operations[verb]
+		op.Parameters = map[string]ochazuke.Parameter{"all": {Type: "boolean"}, "name": {Type: "string"}, "aim": {Type: "string"}}
+		f.r.Operations[verb] = op
+	}
 	page, err := f.r.AddPage("widgets", "Widgets", func(*ochazuke.Runtime, int, int) ochazuke.Block { return ochazuke.Block{} })
 	if err != nil {
 		t.Fatal(err)
@@ -107,6 +114,39 @@ func TestShellTypesFlagsByTheOperationsParameters(t *testing.T) {
 	}
 	if _, _, err := f.run("", "widget", "rename", "--target", "w1", "--count", "many"); err == nil || !strings.Contains(err.Error(), "--count: ") {
 		t.Fatalf("bad integer: %v", err)
+	}
+}
+
+// Positional("name") puts name first, ahead of aim and the boolean all;
+// without it the order is required, then by name, and a boolean takes no
+// bare word unless Positional names it.
+func TestShellPositionalOrderIsDeclared(t *testing.T) {
+	f := newFixture(t)
+	if got := f.r.Operations["widget.link"].ParameterOrder(); fmt.Sprint(got) != "[name aim all]" {
+		t.Fatalf("link order %v", got)
+	}
+	if got := f.r.Operations["widget.tag"].ParameterOrder(); fmt.Sprint(got) != "[aim all name]" {
+		t.Fatalf("tag order %v", got)
+	}
+	for _, c := range []struct {
+		args []string
+		want ochazuke.Arguments
+	}{
+		{[]string{"widget", "link", "foo"}, ochazuke.Arguments{"name": "foo"}},
+		{[]string{"widget", "link", "foo", "up"}, ochazuke.Arguments{"name": "foo", "aim": "up"}},
+		{[]string{"widget", "tag", "up", "foo"}, ochazuke.Arguments{"aim": "up", "name": "foo"}},
+		{[]string{"widget", "tag", "up", "--all"}, ochazuke.Arguments{"all": true, "aim": "up"}},
+	} {
+		f.calls = nil
+		if _, errOut, err := f.run("", append(c.args, "--target", "w1")...); err != nil || len(f.calls) != 1 {
+			t.Fatalf("%v: %v\n%s", c.args, err, errOut)
+		}
+		if got := f.calls[0].Args; fmt.Sprint(got) != fmt.Sprint(c.want) {
+			t.Fatalf("%v: args = %#v, want %#v", c.args, got, c.want)
+		}
+	}
+	if _, _, err := f.run("", "widget", "tag", "--target", "w1", "a", "b", "c"); err == nil || err.Error() != `unexpected argument "c"; widget.tag takes 2 positional argument(s): aim, name` {
+		t.Fatalf("a boolean took a bare word: %v", err)
 	}
 }
 

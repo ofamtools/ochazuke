@@ -77,20 +77,34 @@ type Operation struct {
 	Rows string `json:"rows,omitempty"`
 	// Quiet marks bookkeeping (a list reload) the jobs ticker does not
 	// show; set by NounBuilder.Quiet. The catalog's quiet.
-	Quiet bool       `json:"quiet,omitempty"`
-	Run   Handler    `json:"-"`
-	App   AppHandler `json:"-"`
+	Quiet bool `json:"quiet,omitempty"`
+	// Positional names the parameters bare words fill first, in this
+	// order (NounBuilder.Positional), ahead of ParameterOrder's
+	// required-then-by-name rest. The CLI gives a boolean a bare word only
+	// when it is named here. The catalog's positional.
+	Positional []string   `json:"positional,omitempty"`
+	Run        Handler    `json:"-"`
+	App        AppHandler `json:"-"`
 }
 
 func (o Operation) Key() string { return o.Noun + "." + o.Verb }
 
 // ParameterOrder lists the operation's parameters in positional order:
-// required first, then by name. Parameters is a map, so this is the
-// declared order the palette's words and the CLI's bare arguments fill.
+// the Positional names first, in their order, then the rest required
+// first, then by name. Parameters is a map, so this is the declared order
+// the palette's words and the CLI's bare arguments fill.
 func (o Operation) ParameterOrder() []string {
 	names := make([]string, 0, len(o.Parameters))
+	var first []string
+	for _, name := range o.Positional {
+		if _, ok := o.Parameters[name]; ok && !slices.Contains(first, name) {
+			first = append(first, name)
+		}
+	}
 	for name := range o.Parameters {
-		names = append(names, name)
+		if !slices.Contains(first, name) {
+			names = append(names, name)
+		}
 	}
 	sort.Slice(names, func(i, j int) bool {
 		ri, rj := o.Parameters[names[i]].Required, o.Parameters[names[j]].Required
@@ -99,7 +113,7 @@ func (o Operation) ParameterOrder() []string {
 		}
 		return names[i] < names[j]
 	})
-	return names
+	return append(first, names...)
 }
 
 // Runtime is owned by one event loop. Transport callers submit messages to

@@ -20,6 +20,26 @@
           "result": "JSON value"
         },
         {
+          "name": "link",
+          "description": "Link a widget by name",
+          "kind": "application",
+          "params": {
+            "aim": {
+              "type": "string"
+            },
+            "all": {
+              "type": "boolean"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "result": "JSON value",
+          "positional": [
+            "name"
+          ]
+        },
+        {
           "name": "list",
           "description": "List the widgets",
           "kind": "application",
@@ -84,6 +104,23 @@
           "name": "show",
           "description": "Show a widget",
           "kind": "application",
+          "result": "JSON value"
+        },
+        {
+          "name": "tag",
+          "description": "Tag a widget",
+          "kind": "application",
+          "params": {
+            "aim": {
+              "type": "string"
+            },
+            "all": {
+              "type": "boolean"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
           "result": "JSON value"
         }
       ]

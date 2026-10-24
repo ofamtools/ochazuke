@@ -289,6 +289,20 @@ func (b *NounBuilder) Quiet() *NounBuilder {
 	return b
 }
 
+// Positional names the parameters of the last declared verb that bare
+// words fill first, in order (Operation.Positional): Positional("name")
+// makes BIN project link foo set name even though the boolean all sorts
+// first. The CLI gives a boolean a bare word only when it is named here.
+func (b *NounBuilder) Positional(names ...string) *NounBuilder {
+	if b.last == "" {
+		panic("Positional must follow Verb")
+	}
+	op := b.r.Operations[b.last]
+	op.Positional = slices.Clone(names)
+	b.r.Operations[b.last] = op
+	return b
+}
+
 // When guards the last declared verb with a registered guard name: while
 // the guard is false at the focus and mode the verb would run in, the
 // palette does not offer it. The guard reads a KeyEvent whose Focus and

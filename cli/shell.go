@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -351,13 +352,18 @@ func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, bo
 }
 
 // positional fills the parameters no flag set from words, in
-// Operation.ParameterOrder, typed by each parameter.
+// Operation.ParameterOrder, typed by each parameter. A boolean takes a
+// bare word only when Operation.Positional names it; otherwise it is set
+// with --NAME.
 func positional(q ochazuke.Request, op ochazuke.Operation, words []string) error {
 	if len(words) == 0 {
 		return nil
 	}
 	var open []string
 	for _, name := range op.ParameterOrder() {
+		if op.Parameters[name].Type == "boolean" && !slices.Contains(op.Positional, name) {
+			continue
+		}
 		if _, set := q.Args[name]; !set {
 			open = append(open, name)
 		}
