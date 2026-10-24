@@ -35,6 +35,10 @@ Store and daemon client are lifted from `matomeru-old/internal/store` and `inter
 - Attach: `AddTerminal(id, Parent(panesPage), stream)` with the daemon's `stream-pane`; the terminal noun's leader contract handles detach. Size lease released on `Close`.
 - Everything else runs on the loop and returns `Done`.
 
+## A launch ends with the pane on screen (owner rule)
+
+`agent.launch` and `pane.new` are not done when the job completes. The completion handler opens the panes page, refreshes the list, focuses the new pane's row, and attaches (`pane.attach`); preview only if attach is undesirable. Test: after launch, `Runtime.Page == "panes"`, focus is the new row, a terminal instance exists. The header lists every page tab with the active one marked, so page switching is discoverable.
+
 ## Session inference (znbu requirement)
 
 Never show a session picker. `project → session name` is a pure function in the app; the destination is shown in the launch confirm prompt (`Launch into session {{session}}?` via `{{<arg>}}`).
