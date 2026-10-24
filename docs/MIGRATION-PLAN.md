@@ -4,6 +4,10 @@ Design source: the published assessment "Ochazuke C4 assessment and Scope redesi
 
 Order matters: the v2 move goes first because it is mechanical and small (Tea is imported by model.go, bindings.go and picker*.go only), and because the router rewrite in phase 5 must be designed against v2 key semantics, not v1.
 
+## Principle: fresh core, transplanted widgets
+
+Roughly 650 of 6,300 source lines change shape: layer, frame, page and context plumbing, `dispatchKey`, per-row list layers, the view and modal composition. The editor, undo tree, registers, macros, picker, palette, registry, transport and the 4,200 lines of tests stay. So the new core (nouns, instances, resolution, delivery) is written as new files from the design document, the widgets are wired onto it, and the old plumbing is deleted once nothing references it. No rewrite of what already works.
+
 ## Phase 0: lock behavior
 
 Goal: make the tests version-independent and capture today's dispatch order before touching anything.
@@ -33,6 +37,8 @@ Goal: make the tests version-independent and capture today's dispatch order befo
 
 No behavior change. This phase only adds the new model beneath the old one.
 
+Write the new core as new files from the design, not as edits to runtime.go: `noun.go` (Noun, registration, verb and binding declaration), `instance.go` (Instance, parent links, focus, derived ancestry), `resolve.go` (the stack walk, used by phase 5). runtime.go only gains the wiring that builds nouns and instances from existing layers. The old plumbing is deleted in phase 5, not rewritten in place, so runtime.go shrinks to the registry and Execute.
+
 - Add `Noun{Name, Verbs, Bindings map[state][]Binding, Actions, Grammar}` and `Instance{ID, Noun, Parent, State}`.
 - Build them at registration: every existing `Layer` becomes a noun of the same name plus one instance of the same id. `AddInput`, `NewList`, `RegisterPage`, palette and picker registration set `Parent` from the path they already receive.
 - `Runtime.Focus` is one instance id. `Context()` is derived: ancestors of focus, plus `InputID` when the focused instance is an input. Keep `Layer` as a read view over its noun for callers and tests.
@@ -53,12 +59,12 @@ No behavior change. This phase only adds the new model beneath the old one.
 - `prompt` noun replaces `ReadlineOnly`: editor grammar, state pinned to insert, Escape unbound.
 - Palette becomes a noun on a modal instance; "esc pops a modal" becomes a `modal` noun binding; macro recording becomes a transient noun pushed on focus.
 - Multi-selection fan-out: a verb over marked rows runs `verb.<row noun>` per row, skipping and reporting unsupported nouns.
-- Replace `dispatchKey` with the walk. Delete `InputPaths`, `Frame.State`, `validateContext`, `validateSelection`, `Layer`.
+- Replace `dispatchKey` with the walk in `resolve.go`. Delete `InputPaths`, `Frame.State`, `validateContext`, `validateSelection`, `Layer` and the layer code in runtime.go, pages.go and configuration.go. Deletion, not editing: anything still needed is already in the new files.
 - Acceptance: phase 0 golden tests pass against the new walk, with the one intended change (unmatched prefix handoff) updated deliberately.
 
 ## Phase 6: component delivery contract and operation kinds
 
-- Generalize the picker's `HandleMessage`/`PendingCommand`/generation pattern into a contract every component implements: result carries owner id and generation; stale results rejected; closing an instance cancels outstanding work and releases held resources.
+- In a new `delivery.go`, generalize the picker's `HandleMessage`/`PendingCommand`/generation pattern into a contract every component implements: result carries owner id and generation; stale results rejected; closing an instance cancels outstanding work and releases held resources.
 - Tag each `Operation` as `interaction` (runs on the loop) or `application` (dispatched to an application handler that performs I/O off the loop and reports through the contract). Palette, CLI and help show the kind.
 - Acceptance: a fake slow application command cannot block key handling; a closed picker's late result is dropped.
 
