@@ -12,38 +12,43 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
+// pickerID is the picker's instance, the owner of its index, search and
+// preview jobs.
+const pickerID = "picker"
+
 // Picker owns one modal and one ordinary editor. Background commands only read
 // immutable snapshots; HandleMessage is the sole result-application boundary.
+// Its work runs as three replacing jobs on the picker instance (the "index",
+// "search" and "preview" slots), so the runtime's jobs list decides which
+// result is current: a newer job in a slot drops the older, and Close
+// cancels them all.
 type Picker struct {
-	Runtime       *Runtime
-	Origin        Context
-	Directory     string
-	Filter        string
-	Entries       []PickerEntry
-	Selected      int
-	Error         string
-	Loading       bool
-	frame         *Frame
-	input         *Input
-	originInput   *Input
-	originText    string
-	originKind    string
-	start, end    int
-	base          string
-	query         string
-	indexed       []PickerEntry
-	indexReady    bool
-	indexRunning  bool
-	fullIndex     tea.Cmd
-	indexID       uint64
-	searchID      uint64
-	indexFailed   bool
-	cancelIndex   context.CancelFunc
-	cancelSearch  context.CancelFunc
-	preview       pickerPreview
-	previewID     uint64
-	cancelPreview context.CancelFunc
-	pending       []tea.Cmd
+	Runtime      *Runtime
+	Origin       Context
+	Directory    string
+	Filter       string
+	Entries      []PickerEntry
+	Selected     int
+	Error        string
+	Loading      bool
+	frame        *Frame
+	input        *Input
+	originInput  *Input
+	originText   string
+	originKind   string
+	start, end   int
+	base         string
+	query        string
+	indexed      []PickerEntry
+	indexReady   bool
+	indexRunning bool
+	fullIndex    func() // the recursive index, queued once shallow results are published
+	indexID      uint64 // the current job in the index slot
+	searchID     uint64 // the current job in the search slot
+	indexFailed  bool
+	preview      pickerPreview
+	previewID    uint64 // the current job in the preview slot
+	pending      []tea.Cmd
 }
 
 type pickerIndexMsg struct {
@@ -63,9 +68,9 @@ type pickerSearchMsg struct {
 
 func NewPicker(r *Runtime) *Picker {
 	p := &Picker{Runtime: r}
-	r.Instance("picker", Kind("picker")).Component = p
+	r.Instance(pickerID, Kind("picker")).Component = p
 	p.input = NewInput("picker-path", "", false)
-	if err := r.AddInput(p.input, Parent("picker"), Kind("prompt")); err != nil {
+	if err := r.AddInput(p.input, Parent(pickerID), Kind("prompt")); err != nil {
 		panic(err)
 	}
 	register := func(verb, description string, params map[string]Parameter, fn func(Context, Arguments) (any, error)) {
@@ -371,23 +376,39 @@ func pickerLocation(base, value string) (string, string, error) {
 	}
 }
 
+// issue starts a replacing job in one of the picker's slots and returns its
+// id and context; the older job in the slot, if any, is cancelled.
+func (p *Picker) issue(slot string) (uint64, context.Context) {
+	ticket, ctx, err := p.Runtime.Issue(pickerID, slot, slot, Ctx{})
+	if err != nil {
+		panic(err)
+	}
+	return ticket.Job, ctx
+}
+
+// cancel drops the running job in one of the picker's slots.
+func (p *Picker) cancel(slot string) {
+	if j := p.Runtime.slotJob(pickerID, slot); j != nil {
+		p.Runtime.finish(j, JobCancelled, nil)
+	}
+}
+
+// accept settles a result for one of the picker's slots and reports whether
+// it was the slot's current job; a stale result is dropped.
+func (p *Picker) accept(slot string, id uint64, err error) bool {
+	return p.IsOpen() && p.Runtime.Settle(Ticket{Owner: pickerID, Job: id, Slot: slot}, err)
+}
+
 func (p *Picker) pathChanged() {
 	p.Entries, p.Selected = nil, 0
 	if !p.indexFailed {
 		p.Error = ""
 	}
-	if p.cancelSearch != nil {
-		p.cancelSearch()
-		p.cancelSearch = nil
-	}
-	p.searchID++
+	p.cancel("search")
 	root, query, err := pickerLocation(p.base, string(p.input.Text))
 	if err != nil {
 		p.Error, p.Loading = err.Error(), false
-		if p.cancelIndex != nil {
-			p.cancelIndex()
-		}
-		p.indexID++
+		p.cancel("index")
 		p.indexReady = false
 		p.indexRunning, p.fullIndex = false, nil
 		p.Directory = ""
@@ -396,24 +417,11 @@ func (p *Picker) pathChanged() {
 	}
 	p.query, p.Loading = query, true
 	if root != p.Directory {
-		if p.cancelIndex != nil {
-			p.cancelIndex()
-		}
-		p.indexID++
 		p.Directory, p.indexed, p.indexReady = root, nil, false
 		p.indexFailed = false
 		p.Error, p.indexRunning = "", true
-		ctx, cancel := context.WithCancel(context.Background())
-		p.cancelIndex = cancel
-		id := p.indexID
-		p.fullIndex = func() tea.Msg {
-			entries, err := indexPicker(ctx, root)
-			return pickerIndexMsg{picker: p, id: id, entries: entries, err: err}
-		}
-		p.pending = append(p.pending, func() tea.Msg {
-			entries, err := indexPickerEntries(ctx, root, false)
-			return pickerIndexMsg{picker: p, id: id, shallow: true, entries: entries, err: err}
-		})
+		p.fullIndex = func() { p.queueIndex(root, false) }
+		p.queueIndex(root, true)
 	} else if p.indexReady {
 		p.queueSearch()
 	} else {
@@ -422,14 +430,27 @@ func (p *Picker) pathChanged() {
 	p.sync()
 }
 
+// queueIndex starts an index of root in the index slot: the shallow listing
+// first, the recursive walk once shallow results have been published.
+func (p *Picker) queueIndex(root string, shallow bool) {
+	id, ctx := p.issue("index")
+	p.indexID = id
+	p.pending = append(p.pending, func() tea.Msg {
+		var entries []PickerEntry
+		var err error
+		if shallow {
+			entries, err = indexPickerEntries(ctx, root, false)
+		} else {
+			entries, err = indexPicker(ctx, root)
+		}
+		return pickerIndexMsg{picker: p, id: id, shallow: shallow, entries: entries, err: err}
+	})
+}
+
 func (p *Picker) queueSearch() {
-	if p.cancelSearch != nil {
-		p.cancelSearch()
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	p.cancelSearch = cancel
-	p.searchID++
-	id, entries, query, filter := p.searchID, p.indexed, p.query, p.Filter
+	id, ctx := p.issue("search")
+	p.searchID = id
+	entries, query, filter := p.indexed, p.query, p.Filter
 	p.Loading = true
 	p.pending = append(p.pending, func() tea.Msg {
 		results, err := searchPicker(ctx, entries, query, filter)
@@ -456,27 +477,23 @@ func (p *Picker) PendingCommand() tea.Cmd {
 	return tea.Batch(commands...)
 }
 
-// HandleMessage applies only this picker's current generation on the UI
-// loop; each stream (index, search, preview) keeps its own generation.
+// HandleMessage applies only the current job of each slot (index, search,
+// preview) on the UI loop; the runtime's jobs list says which that is.
 func (p *Picker) HandleMessage(msg tea.Msg) bool {
 	switch result := msg.(type) {
 	case pickerPreviewMsg:
 		if result.picker != p {
 			return false
 		}
-		if !p.IsOpen() || result.id != p.previewID {
+		if !p.accept("preview", result.id, nil) {
 			return true
-		}
-		if p.cancelPreview != nil {
-			p.cancelPreview()
-			p.cancelPreview = nil
 		}
 		p.preview = result.preview
 	case pickerIndexMsg:
 		if result.picker != p {
 			return false
 		}
-		if !p.IsOpen() || result.id != p.indexID {
+		if !p.accept("index", result.id, result.err) {
 			return true
 		}
 		if result.shallow && p.indexReady {
@@ -487,7 +504,7 @@ func (p *Picker) HandleMessage(msg tea.Msg) bool {
 			p.indexFailed, p.indexRunning, p.fullIndex = true, false, nil
 			// Keep the independently completed shallow index and any search
 			// against it; a recursive failure must not erase usable paths.
-			p.Loading = p.cancelSearch != nil
+			p.Loading = p.Runtime.slotJob(pickerID, "search") != nil
 		} else {
 			p.Error = ""
 			p.indexed, p.indexReady = result.entries, true
@@ -498,12 +515,8 @@ func (p *Picker) HandleMessage(msg tea.Msg) bool {
 		if result.picker != p {
 			return false
 		}
-		if !p.IsOpen() || result.id != p.searchID {
+		if !p.accept("search", result.id, result.err) {
 			return true
-		}
-		if p.cancelSearch != nil {
-			p.cancelSearch()
-			p.cancelSearch = nil
 		}
 		p.Loading = p.indexRunning
 		if result.err != nil {
@@ -525,7 +538,7 @@ func (p *Picker) HandleMessage(msg tea.Msg) bool {
 			}
 			// Start recursion only after shallow results have been published.
 			if p.fullIndex != nil {
-				p.pending = append(p.pending, p.fullIndex)
+				p.fullIndex()
 				p.fullIndex = nil
 			}
 		}
@@ -536,22 +549,11 @@ func (p *Picker) HandleMessage(msg tea.Msg) bool {
 	return true
 }
 
+// stop cancels the picker's jobs in every slot and drops the queued
+// commands; a late result of a cancelled job is stale.
 func (p *Picker) stop() {
-	if p.cancelIndex != nil {
-		p.cancelIndex()
-	}
-	if p.cancelSearch != nil {
-		p.cancelSearch()
-		p.cancelSearch = nil
-	}
-	if p.cancelPreview != nil {
-		p.cancelPreview()
-		p.cancelPreview = nil
-	}
-	p.previewID++
+	p.Runtime.cancelJobs(pickerID)
 	p.preview = pickerPreview{}
-	p.indexID++
-	p.searchID++
 	p.pending = nil
 	p.fullIndex, p.indexRunning = nil, false
 	p.Loading = false

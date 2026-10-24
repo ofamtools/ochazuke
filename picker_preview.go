@@ -2,7 +2,6 @@ package ochazuke
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"os"
@@ -37,18 +36,13 @@ func (p *Picker) queuePreview() {
 	if path == p.preview.path {
 		return
 	}
-	if p.cancelPreview != nil {
-		p.cancelPreview()
-		p.cancelPreview = nil
-	}
-	p.previewID++
+	p.cancel("preview")
 	p.preview = pickerPreview{path: path, loading: path != ""}
 	if path == "" {
 		return
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	p.cancelPreview = cancel
-	id := p.previewID
+	id, ctx := p.issue("preview")
+	p.previewID = id
 	p.pending = append(p.pending, func() tea.Msg {
 		preview := pickerPreview{path: path}
 		if ctx.Err() == nil {

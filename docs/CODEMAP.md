@@ -45,12 +45,12 @@ Root package `ochazuke` is flat: 33 source files, 21 test files. Each entry list
 
 ### delivery.go
 
-- lines: 276 · tests: delivery_test.go
+- lines: 424 · tests: delivery_test.go
 - purpose: Component is the delivery contract every instance that works off the loop implements through Instance.Component.
-- types: Component (iface), Ticket, Completion, Ctx, AppHandler (func), Result
-- methods: Result(1), Runtime(10)
+- types: Component (iface), Ticket, Completion, Ctx, AppHandler (func), Result, JobInfo
+- methods: Result(2), Runtime(17), job(1)
 - funcs: Done, Failed, Pending
-- leans on: runtime.go(28), instance.go(7), input.go(1), list.go(1)
+- leans on: runtime.go(41), instance.go(6), noun.go(2), registers.go(2)
 
 ### editing.go
 
@@ -90,12 +90,12 @@ Root package `ochazuke` is flat: 33 source files, 21 test files. Each entry list
 
 ### instance.go
 
-- lines: 168
+- lines: 166
 - purpose: Instance is one addressable thing on screen: a page, a list, a list row, a modal body, or an input.
 - types: Instance, Payload, InstanceOption (func)
 - methods: Payload(1), Runtime(7)
 - funcs: Parent, Kind, Focus
-- leans on: runtime.go(15), noun.go(4), delivery.go(2), input.go(1)
+- leans on: runtime.go(15), noun.go(4), delivery.go(1), input.go(1)
 
 ### layout.go
 
@@ -176,16 +176,16 @@ Root package `ochazuke` is flat: 33 source files, 21 test files. Each entry list
 
 ### picker.go
 
-- lines: 568 · tests: picker_test.go
+- lines: 570 · tests: picker_test.go
 - purpose: Picker owns one modal and one ordinary editor.
 - types: Picker
-- methods: Picker(15)
+- methods: Picker(19)
 - funcs: NewPicker
-- leans on: runtime.go(58), noun.go(12), block.go(11), picker_search.go(11)
+- leans on: runtime.go(65), noun.go(12), picker_search.go(12), block.go(11)
 
 ### picker_preview.go
 
-- lines: 132 · tests: picker_preview_test.go
+- lines: 126 · tests: picker_preview_test.go
 - methods: Picker(1)
 - leans on: picker.go(2)
 
@@ -222,12 +222,12 @@ Root package `ochazuke` is flat: 33 source files, 21 test files. Each entry list
 
 ### runtime.go
 
-- lines: 594 · tests: runtime_test.go
+- lines: 597 · tests: runtime_test.go
 - purpose: Request names an operation and, optionally, the instance it addresses.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Frame, Runtime, ModeState
 - methods: Context(1), Operation(1), Request(1), Runtime(22)
 - funcs: NewRuntime, StringArg, IntArg, JSONPointer
-- leans on: instance.go(45), delivery.go(22), noun.go(22), input.go(12)
+- leans on: instance.go(45), delivery.go(24), noun.go(22), input.go(12)
 
 ### surface.go
 
@@ -291,6 +291,7 @@ Exported type -> file.
 - Input -> input.go
 - Instance -> instance.go
 - InstanceOption -> instance.go
+- JobInfo -> delivery.go
 - KeyEvent -> resolve.go
 - Layout -> layout.go
 - List -> list.go

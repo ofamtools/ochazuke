@@ -35,9 +35,9 @@ type TerminalFrame struct {
 // Terminal is the component of a terminal instance: it holds the last frame
 // the stream delivered, renders it into the area a page gives it and reports
 // the pane's cursor. Frames arrive through the delivery contract as
-// Completions owned by the instance, one read at a time, so a frame that
-// arrives after Close, or after a newer read started, is stale and dropped
-// before it reaches the component.
+// Completions owned by the instance in the "read" slot, one read at a time,
+// so a frame that arrives after Close, or after a newer read started, is
+// stale and dropped before it reaches the component.
 type Terminal struct {
 	r      *Runtime
 	id     string
@@ -106,7 +106,7 @@ func (t *Terminal) read() {
 		return
 	}
 	stream := t.stream
-	t.r.Start(t.id, func(ctx context.Context) (any, error) { return stream.Next(ctx) }, nil, Ctx{})
+	t.r.Launch(t.id, "read", Pending(func(ctx context.Context) (any, error) { return stream.Next(ctx) }).Replacing("read"), Ctx{})
 }
 
 // HandleMessage stores a frame delivered to this terminal and schedules the

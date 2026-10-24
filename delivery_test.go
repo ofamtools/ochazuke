@@ -65,51 +65,70 @@ func runCmd(cmd tea.Cmd) []tea.Msg {
 	return []tea.Msg{msg}
 }
 
-// The contract: a late result after Close is dropped, a result with an old
-// generation is dropped, a current one is delivered to the owner.
-func TestComponentDeliveryDropsStaleAndClosedResults(t *testing.T) {
+// The contract: jobs on one owner accumulate by default, so every
+// completion lands with its ticket in finish order; a job in a slot is
+// replaced by a newer job in the same slot; a result for a closed owner is
+// dropped and an orphaned completion is consumed silently.
+func TestComponentDeliveryAccumulatesIndependentJobs(t *testing.T) {
 	r := NewRuntime()
 	r.Instance("job", Kind("job"))
 	comp := &slowComponent{r: r, id: "job"}
 	r.Instances["job"].Component = comp
-
-	// An old generation: starting newer work supersedes it.
-	oldRelease := make(chan struct{})
-	oldTicket, oldCmd := comp.start("old", oldRelease)
-	newRelease := make(chan struct{})
-	newTicket, newCmd := comp.start("new", newRelease)
-	if oldTicket.Generation >= newTicket.Generation || r.Generation("job") != newTicket.Generation {
-		t.Fatalf("generations: old=%d new=%d current=%d", oldTicket.Generation, newTicket.Generation, r.Generation("job"))
+	values := []string{"fetch", "commit", "push", "pull", "status"}
+	releases := map[string]chan struct{}{}
+	tickets := map[string]Ticket{}
+	var cmds []tea.Cmd
+	for _, value := range values {
+		releases[value] = make(chan struct{})
+		ticket, cmd := comp.start(value, releases[value])
+		tickets[value] = ticket
+		cmds = append(cmds, cmd)
 	}
-	// The superseded context is cancelled, so the old command returns at once.
-	for _, msg := range runCmd(oldCmd) {
-		if handled, _ := r.Deliver(msg); !handled {
-			t.Fatal("a stale completion is consumed, not offered elsewhere")
+	for _, value := range values {
+		if ticket := tickets[value]; ticket.Owner != "job" || ticket.Slot != "" || !r.Accepts(ticket) {
+			t.Fatalf("%s: ticket %+v is not a running accumulate job", value, ticket)
 		}
 	}
-	if len(comp.received) != 0 {
-		t.Fatalf("stale generation delivered: %+v", comp.received)
+	if jobs := r.runningJobs(); len(jobs) != 5 || jobs[0].Verb != "work" || jobs[4].Job != tickets["status"].Job {
+		t.Fatalf("running jobs: %+v", jobs)
 	}
-	close(newRelease)
-	for _, msg := range runCmd(newCmd) {
-		r.Deliver(msg)
+	// Finish in an order different from the start order: every result lands.
+	finish := []string{"push", "fetch", "status", "commit", "pull"}
+	for _, value := range finish {
+		close(releases[value])
+		for _, msg := range runCmd(cmds[slices.Index(values, value)]) {
+			if handled, err := r.Deliver(msg); !handled || err != nil {
+				t.Fatalf("deliver %s: %v %v", value, handled, err)
+			}
+		}
 	}
-	if len(comp.received) != 1 || comp.received[0].Value != "new" || comp.received[0].Generation != newTicket.Generation {
-		t.Fatalf("current generation not delivered: %+v", comp.received)
+	var got []string
+	for _, done := range comp.received {
+		if done.Ticket != tickets[done.Value.(string)] {
+			t.Fatalf("completion %v carries ticket %+v, want %+v", done.Value, done.Ticket, tickets[done.Value.(string)])
+		}
+		got = append(got, done.Value.(string))
 	}
-
+	if !reflect.DeepEqual(got, finish) {
+		t.Fatalf("delivered %v in finish order %v", got, finish)
+	}
+	if jobs := r.runningJobs(); len(jobs) != 0 {
+		t.Fatalf("jobs still running: %+v", jobs)
+	}
 	// A late result after Close is dropped and the work is cancelled.
 	lateRelease := make(chan struct{})
-	_, lateCmd := comp.start("late", lateRelease)
+	late, lateCmd := comp.start("late", lateRelease)
 	r.closeInstance("job")
-	if comp.closed != 1 || r.Instances["job"].work != nil {
-		t.Fatalf("Close: closed=%d work=%v", comp.closed, r.Instances["job"].work)
+	if comp.closed != 1 || r.Accepts(late) || len(r.runningJobs()) != 0 {
+		t.Fatalf("Close: closed=%d accepts=%v running=%+v", comp.closed, r.Accepts(late), r.runningJobs())
 	}
 	msgs := runCmd(lateCmd) // returns promptly: the context was cancelled
 	for _, msg := range msgs {
-		r.Deliver(msg)
+		if handled, err := r.Deliver(msg); !handled || err != nil {
+			t.Fatal("a stale completion is consumed, not offered elsewhere")
+		}
 	}
-	if len(comp.received) != 1 {
+	if len(comp.received) != 5 {
 		t.Fatalf("late result delivered after Close: %+v", comp.received)
 	}
 	// The instance registry drives the component list: a removed instance
@@ -118,11 +137,110 @@ func TestComponentDeliveryDropsStaleAndClosedResults(t *testing.T) {
 	if comp.closed != 2 {
 		t.Fatalf("removeInstance must close the component: %d", comp.closed)
 	}
-	if handled, _ := r.Deliver(Completion{Ticket: Ticket{Owner: "job", Generation: 1}}); !handled {
+	if handled, _ := r.Deliver(Completion{Ticket: Ticket{Owner: "job", Job: 1}}); !handled {
 		t.Fatal("an orphaned completion is dropped silently")
 	}
 	if handled, _ := r.Deliver(tea.WindowSizeMsg{}); handled {
 		t.Fatal("an unclaimed message is reported unhandled")
+	}
+}
+
+// Replacing(slot): starting a newer job in a slot cancels the older one on
+// the same owner, so only the newest completion lands; another slot and
+// another owner are untouched.
+func TestComponentDeliveryReplacesJobsInASlot(t *testing.T) {
+	r := NewRuntime()
+	r.Instance("pane", Kind("pane"))
+	r.Instance("other", Kind("pane"))
+	pane := &slowComponent{r: r, id: "pane"}
+	other := &slowComponent{r: r, id: "other"}
+	r.Instances["pane"].Component, r.Instances["other"].Component = pane, other
+	start := func(owner, slot, value string, release chan struct{}) (Ticket, tea.Cmd) {
+		ticket, err := r.Launch(owner, "preview", Pending(func(ctx context.Context) (any, error) {
+			select {
+			case <-release:
+				return value, nil
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		}).Replacing(slot), Ctx{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ticket, r.PendingCommands()
+	}
+	oldRelease, newRelease, indexRelease, otherRelease := make(chan struct{}), make(chan struct{}), make(chan struct{}), make(chan struct{})
+	oldTicket, oldCmd := start("pane", "preview", "old", oldRelease)
+	indexTicket, indexCmd := start("pane", "index", "index", indexRelease)
+	otherTicket, otherCmd := start("other", "preview", "other", otherRelease)
+	newTicket, newCmd := start("pane", "preview", "new", newRelease)
+	if r.Accepts(oldTicket) || !r.Accepts(newTicket) || !r.Accepts(indexTicket) || !r.Accepts(otherTicket) || oldTicket.Slot != "preview" {
+		t.Fatalf("slot claim: old=%v new=%v index=%v other=%v", r.Accepts(oldTicket), r.Accepts(newTicket), r.Accepts(indexTicket), r.Accepts(otherTicket))
+	}
+	// The replaced job is cancelled, so its command returns at once, and the
+	// list records it as cancelled until read.
+	for _, msg := range runCmd(oldCmd) {
+		if handled, err := r.Deliver(msg); !handled || err != nil {
+			t.Fatalf("stale completion: %v %v", handled, err)
+		}
+	}
+	if len(pane.received) != 0 {
+		t.Fatalf("replaced job delivered: %+v", pane.received)
+	}
+	if jobs := r.Jobs(); len(jobs) != 4 || jobs[0].State != JobCancelled || jobs[0].Job != oldTicket.Job || jobs[3].State != JobRunning {
+		t.Fatalf("jobs after replace: %+v", jobs)
+	}
+	close(newRelease)
+	close(indexRelease)
+	close(otherRelease)
+	for _, cmd := range []tea.Cmd{newCmd, indexCmd, otherCmd} {
+		for _, msg := range runCmd(cmd) {
+			r.Deliver(msg)
+		}
+	}
+	if len(pane.received) != 2 || pane.received[0].Value != "new" || pane.received[0].Ticket != newTicket || pane.received[1].Value != "index" || len(other.received) != 1 || other.received[0].Value != "other" {
+		t.Fatalf("delivered: pane=%+v other=%+v", pane.received, other.received)
+	}
+	// list.jobs returns the finished entries once, then drops them.
+	value, err := r.Execute(Request{Verb: "list", Noun: "jobs"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	listed := value.([]JobInfo)
+	states := map[string]int{}
+	for _, j := range listed {
+		states[j.State]++
+	}
+	if len(listed) != 4 || states[JobCancelled] != 1 || states[JobDone] != 3 || listed[0].Verb != "preview" || listed[0].Owner != "pane" || listed[0].Started.IsZero() {
+		t.Fatalf("list.jobs: %+v", listed)
+	}
+	if again, _ := r.Execute(Request{Verb: "list", Noun: "jobs"}); len(again.([]JobInfo)) != 0 {
+		t.Fatalf("finished jobs retained after a read: %+v", again)
+	}
+	// A failed job reports its error and a running one shows in the snapshot.
+	failRelease := make(chan struct{})
+	failTicket, err := r.Launch("pane", "fetch", Pending(func(ctx context.Context) (any, error) {
+		<-failRelease
+		return nil, errors.New("boom")
+	}), Ctx{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	failCmd := r.PendingCommands()
+	if got, err := JSONPointer(r.Snapshot(), "/jobs/0/verb"); err != nil || got != "fetch" {
+		t.Fatalf("/jobs: %v %v", got, err)
+	}
+	close(failRelease)
+	for _, msg := range runCmd(failCmd) {
+		if handled, err := r.Deliver(msg); !handled || err == nil {
+			t.Fatalf("failed job: %v %v", handled, err)
+		}
+	}
+	if jobs := r.Jobs(); len(jobs) != 1 || jobs[0].Job != failTicket.Job || jobs[0].State != JobFailed || jobs[0].Error != "boom" {
+		t.Fatalf("failed job listed: %+v", jobs)
+	}
+	if _, err := r.Launch("nobody", "x", Pending(func(context.Context) (any, error) { return nil, nil }), Ctx{}); err == nil {
+		t.Fatal("Launch on an unknown instance must fail")
 	}
 }
 
@@ -290,7 +408,7 @@ func TestRuntimeHoldsNoComponentFields(t *testing.T) {
 	sort.Strings(fields)
 	want := []string{
 		"BindingTimeout", "Frames", "Instances", "Modes", "Nouns", "Operations", "Page", "Pending", "Quit",
-		"bindingVersion", "commands", "guards", "modalInstances", "modeGeneration", "pendingModes", "prefix", "rows", "seq",
+		"bindingVersion", "commands", "guards", "jobSeq", "jobs", "modalInstances", "modeGeneration", "pendingModes", "prefix", "rows", "seq",
 	}
 	if !reflect.DeepEqual(fields, want) {
 		t.Fatalf("Runtime fields:\n got %v\nwant %v", fields, want)

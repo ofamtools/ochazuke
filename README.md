@@ -453,7 +453,7 @@ r.Instance("sidebar", ochazuke.Parent("home"), ochazuke.Kind("panel"))
 r.AddInput(ochazuke.NewInput("path", "", false), ochazuke.Parent("sidebar"), ochazuke.Kind("prompt"))
 ```
 
-`FocusID` names the focused instance and `Frame.Focus` is the source of truth; `Context()` is derived from it. `Request.Target` and `select.context {instance}` address any instance; `ActionFor` resolves noun overrides innermost first. `get.state` exposes `/nouns`, `/instances/<id>/{noun,state,payload,parent}`, `/inputs/<id>`, `/lists/<id>`, `/components/<id>`, `/focus` and `/page`.
+`FocusID` names the focused instance and `Frame.Focus` is the source of truth; `Context()` is derived from it. `Request.Target` and `select.context {instance}` address any instance; `ActionFor` resolves noun overrides innermost first. `get.state` exposes `/nouns`, `/instances/<id>/{noun,state,payload,parent}`, `/inputs/<id>`, `/lists/<id>`, `/components/<id>`, `/jobs`, `/focus` and `/page`.
 
 #### Operation kinds and application verbs
 
@@ -465,14 +465,23 @@ r.Define("worktree").
         id := c.Instance.ID
         return ochazuke.Pending(func(ctx context.Context) (any, error) {
             return git.Fetch(ctx, id)                           // off the loop; ctx is cancelled if the row closes
-        }).Then(func(c ochazuke.Ctx, v any, err error) {        // back on the loop, only while the ticket is current
+        }).Then(func(c ochazuke.Ctx, v any, err error) {        // back on the loop, only while the job is current
             c.Runtime.List("worktrees").Select(id)
         })
     }).
     Verb("status", func(c ochazuke.Ctx) ochazuke.Result { return ochazuke.Done("clean") })
 ```
 
-`Done(v)` and `Failed(err)` answer at once; `Pending(work)` returns a `Ticket{Owner, Generation}` to the caller and schedules the work as a `tea.Cmd`. The framework never blocks the loop on application I/O. The palette, `list.operations`, the generated docs and the example's `?` modal show the kind.
+`Done(v)` and `Failed(err)` answer at once; `Pending(work)` returns a `Ticket{Owner, Job, Slot}` to the caller and schedules the work as a `tea.Cmd`. The framework never blocks the loop on application I/O. The palette, `list.operations`, the generated docs and the example's `?` modal show the kind.
+
+Jobs on one owner accumulate by default: five independent verbs on one row (fetch, commit, push...) all deliver, in finish order, each with its ticket. `Pending(work).Replacing("preview")` opts into replacement: a newer job in the same slot on the same owner cancels the older one, which is what a preview or a search wants. A job is dropped only when its owner instance closes or a newer job claims its slot, never because the user did something else meanwhile.
+
+```js
+ticket = { owner: "repo-1", job: 42 }                      // accumulate: delivered whenever it finishes
+ticket = { owner: "pane-7", job: 43, slot: "preview" }     // replace: job 44 in slot "preview" on pane-7 cancels 43
+```
+
+`list.jobs` returns the jobs list, `[{job, owner, verb, slot?, started, state, error?}]` with `state` one of `running`, `done`, `failed`, `cancelled`; `verb` is the operation key for an application verb (`sync.worktree`), `read` for a terminal frame and the slot name for the picker. Finished entries stay in the list until a `list.jobs` read returns them (bounded to the last 32 meanwhile), so a status rail or toast reads each outcome once; `get.state /jobs` shows the running jobs only.
 
 #### Delivery contract
 
@@ -486,7 +495,7 @@ type Component interface {
 }
 ```
 
-Results carry their owner instance id and a generation (`Completion{Ticket, Value, Err}`); `Runtime.Start(owner, work, then, ctx)` issues the ticket, `Runtime.Deliver(msg)` hands a current completion to its owner and drops a stale or orphaned one, and `Runtime.PendingCommands()` batches every component's pending work. Closing an instance (`Pop`, a row dropped by `SetItems`, `removeInstance`) cancels its work and calls `Close`. The `Model` drives components from the instance registry, so an application registers one by setting `Instance.Component` and nothing else. The picker is a component; the registers are one too (its only cancellable work is a recording in progress).
+Results carry their owner instance id, job id and slot (`Completion{Ticket, Value, Err}`); `Runtime.Launch(owner, verb, result, ctx)` starts a `Pending` result as a job and queues its `tea.Cmd` (`Start(owner, work, then, ctx)` is the accumulating shorthand), `Runtime.Deliver(msg)` settles a running job's completion and hands it to its owner, dropping a stale (cancelled) or orphaned one, and `Runtime.PendingCommands()` batches every component's pending work. A component that runs its own commands uses the ticket-level form: `Issue(owner, verb, slot, ctx)` returns the ticket and the work context, `Accepts(ticket)` asks whether the job is still running and `Settle(ticket, err)` records its outcome. Closing an instance (`Pop`, a row dropped by `SetItems`, `removeInstance`) cancels its jobs and calls `Close`. The `Model` drives components from the instance registry, so an application registers one by setting `Instance.Component` and nothing else. The picker is a component whose index, search and preview are three replacing slots on the `picker` instance; the registers are one too (its only cancellable work is a recording in progress); a terminal's frame reads are one replacing `read` slot.
 
 #### Per-verb confirm
 

@@ -214,10 +214,10 @@ func TestTerminalFramesArriveThroughDeliveryAndStaleFramesDrop(t *testing.T) {
 	if term.Frame().Lines[1] != "go.mod" || term.Frame().Shape != "bar" {
 		t.Fatalf("frame not stored: %+v", term.Frame())
 	}
-	// The read is re-armed under a newer generation.
+	// The read is re-armed as a newer job in the read slot.
 	next := r.PendingCommands()
-	if next == nil || r.Generation("pane") != done.Generation+1 {
-		t.Fatalf("next read: cmd=%v generation=%d", next != nil, r.Generation("pane"))
+	if jobs := r.runningJobs(); next == nil || len(jobs) != 1 || jobs[0].Job <= done.Job || jobs[0].Owner != "pane" || jobs[0].Slot != "read" {
+		t.Fatalf("next read: cmd=%v jobs=%+v", next != nil, jobs)
 	}
 	if term.ViewBlock(40, 10); !reflect.DeepEqual(stream.resizes, [][2]int{{40, 10}}) {
 		t.Fatalf("resize: %v", stream.resizes)

@@ -14,16 +14,14 @@ import (
 // resolved above its noun's table at the same stack level. Component holds
 // the typed component the instance fronts (a *Page in this phase).
 type Instance struct {
-	ID         string    `json:"id"`
-	Noun       string    `json:"noun"`
-	Parent     string    `json:"parent,omitempty"`
-	State      string    `json:"state"`
-	Payload    Payload   `json:"payload"`
-	Bindings   []Binding `json:"bindings,omitempty"`
-	Component  any       `json:"-"`
-	seq        uint64
-	generation uint64       // current work generation; a Completion from an older one is stale
-	work       *pendingWork // outstanding off-loop work, at most one per instance
+	ID        string    `json:"id"`
+	Noun      string    `json:"noun"`
+	Parent    string    `json:"parent,omitempty"`
+	State     string    `json:"state"`
+	Payload   Payload   `json:"payload"`
+	Bindings  []Binding `json:"bindings,omitempty"`
+	Component any       `json:"-"`
+	seq       uint64
 }
 
 // Payload is the small typed state a pending mode carries. Return is the raw

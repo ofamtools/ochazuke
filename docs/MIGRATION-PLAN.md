@@ -181,6 +181,8 @@ Two changes to the phase 6 contract in `delivery.go`. Nothing in the CSV app dep
 
 ### 1. Staleness is per job and opt-in, not per owner
 
+Status: done on branch `delivery-jobs`. `Ticket{Owner, Job, Slot}` replaces `Ticket{Owner, Generation}` (and `Runtime.Generation`); `Pending(work)` accumulates, `Pending(work).Replacing(slot)` replaces; `Runtime.Launch(owner, verb, result, ctx)` starts a job, `Issue`/`Accepts`/`Settle` are the ticket-level form for components that run their own commands (the picker's `index`, `search` and `preview` slots; the terminal's `read` slot). The verb is `list.jobs` (noun `jobs`), not `jobs.list`, to match `list.operations` and `list.bindings`; the job id is a number. Finished entries are retained until a `list.jobs` read returns them, at most 32; `get.state /jobs` shows running jobs. Tests: `TestComponentDeliveryAccumulatesIndependentJobs`, `TestComponentDeliveryReplacesJobsInASlot`; the picker tests are unchanged.
+
 As landed, `Ticket.Generation` is per owning instance, so five independent jobs on one row (fetch, commit, push...) keep only the last completion. Wrong for independent work, right only for replaceable work such as a preview.
 
 ```js

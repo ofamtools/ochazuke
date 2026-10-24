@@ -100,6 +100,8 @@ type Runtime struct {
 	modalInstances map[string]bool   // instances created by Push or OpenModal, removed by Pop
 	seq            uint64            // instance registration order
 	commands       []tea.Cmd         // off-loop work scheduled since the adapter last drained it
+	jobs           map[uint64]*job   // the jobs list: running jobs and the finished ones retained for list.jobs
+	jobSeq         uint64            // last issued job id
 }
 
 func NewRuntime() *Runtime {
@@ -115,6 +117,7 @@ func NewRuntime() *Runtime {
 	r.Instance("app")
 	r.Define("modal")
 	registerCore(r)
+	registerJobs(r)
 	registerConfiguration(r)
 	registerPages(r)
 	registerLists(r)
@@ -513,7 +516,7 @@ func (r *Runtime) Snapshot() map[string]any {
 	regs := r.Registers()
 	return map[string]any{"frames": r.Frames, "pages": pages, "page": r.Page, "inputs": inputs, "context": r.Context(), "focus": r.FocusID(), "mode": r.Mode(r.Context()), "modes": modes, "bindings": r.ListBindings(r.FocusID()), "pending": r.Pending, "quit": r.Quit,
 		"lists": lists, "registers": regs.Named, "yankHistory": regs.History, "activeRegister": regs.Active, "macro": regs.Macro,
-		"nouns": nouns, "instances": r.Instances, "components": r.componentSnapshot()}
+		"nouns": nouns, "instances": r.Instances, "components": r.componentSnapshot(), "jobs": r.runningJobs()}
 }
 func JSONPointer(value any, path string) (any, error) {
 	data, err := json.Marshal(value)
