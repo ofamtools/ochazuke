@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="How Ochazuke applications add actions, register Go handlers, connect configuration, and dispatch requests through the runtime.">
+<title>Ochazuke · Extensibility</title>
+<style>
+:root{--paper:#f3f0e7;--card:#fcfaf4;--ink:#24382f;--muted:#626960;--line:#cccfc0;--green:#284e3c;--accent:#a63d27;--mono:Menlo,Consolas,"Liberation Mono",monospace;--serif:Palatino,"Palatino Linotype",Georgia,serif;--sans:"Avenir Next",Avenir,"Segoe UI",sans-serif}
+*{box-sizing:border-box}
+html{scroll-padding-top:24px}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.65 var(--sans)}
+header,main,footer{width:min(100% - 48px,1040px);margin:auto}
+header{padding:32px 0 44px}
+nav{display:flex;flex-wrap:wrap;gap:12px 24px}
+nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
+a{color:var(--green);text-underline-offset:4px}
+a:focus-visible,pre:focus-visible,.table-scroll:focus-visible{outline:3px solid var(--accent);outline-offset:4px}
+h1,h2{font-family:var(--serif);font-weight:400;line-height:1.1;letter-spacing:-.035em}
+h1{font-size:clamp(44px,7vw,80px);margin:20px 0}
+h2{font-size:clamp(30px,4vw,42px);margin:0 0 20px}
+h3{font-size:20px;margin:28px 0 12px}
+p{max-width:78ch;margin:0 0 18px}
+.eyebrow{color:var(--muted);text-transform:uppercase;letter-spacing:.14em;font-size:12px;margin:40px 0 12px}
+.lead{font-size:21px;max-width:65ch}
+.contents{margin-top:28px;font-size:14px}
+section{padding:36px 0;border-top:1px solid var(--line)}
+code{font-family:var(--mono);font-size:.9em;overflow-wrap:anywhere}
+pre{max-width:100%;overflow:auto;margin:20px 0;padding:24px;background:var(--card);border:1px solid var(--line);border-left:3px solid var(--green);border-radius:4px;tab-size:4;line-height:1.6}
+pre code{font-size:14px;overflow-wrap:normal}
+.table-scroll{overflow-x:auto;margin:24px 0}
+table{width:100%;border-collapse:collapse;text-align:left}
+th,td{padding:14px 16px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--card);font-size:14px}
+li{margin-bottom:12px}
+ul,ol{padding-left:24px}
+.note{border-left:3px solid var(--accent);padding:8px 0 8px 20px;margin:24px 0}
+.note p:last-child{margin-bottom:0}
+.caption,footer{color:var(--muted);font-size:14px}
+footer{padding:28px 0 40px;border-top:1px solid var(--line)}
+.skip{position:absolute;left:24px;top:-100px;background:var(--card);padding:12px;z-index:1}
+.skip:focus{top:8px}
+@media(max-width:600px){header,main,footer{width:calc(100% - 32px)}header{padding-top:24px}nav{gap:10px 18px}.lead{font-size:18px}pre{padding:16px}th,td{padding:10px}section{padding:28px 0}}
+</style>
+</head>
+<body>
+<a class="skip" href="#extension-model">Skip to explanation</a>
+<header>
+<nav aria-label="Project docs">
+<a href="architecture-map.html">Architecture map</a>
+<a href="architecture.html">Architecture guide</a>
+<a href="keybinding-walkthrough.html">Key walkthrough</a>
+<a href="extensibility.html" aria-current="page">Extensibility</a>
+</nav>
+<p class="eyebrow">Ochazuke / Application extensions</p>
+<h1>Extensibility</h1>
+<p class="lead">Add behavior to your application without changing Ochazuke itself. Go handlers implement the behavior; configuration connects it to operations and keys.</p>
+<nav class="contents" aria-label="On this page">
+<a href="#extension-model">Code or configuration?</a>
+<a href="#register">A new action</a>
+<a href="#requests">Requests and bindings</a>
+<a href="#dispatch">Runtime dispatch</a>
+<a href="#full-project">Full-project example</a>
+<a href="#boundaries">Current boundaries</a>
+</nav>
+</header>
+<main>
+<section id="extension-model" aria-labelledby="extension-heading">
+<h2 id="extension-heading">Code or configuration?</h2>
+<p>The framework is extensible through its operation registry. Your application supplies handlers, and the runtime exposes them through the same command system as built-in operations.</p>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Extension options">
+<table>
+<thead><tr><th scope="col">What you want to change</th><th scope="col">What you write</th></tr></thead>
+<tbody>
+<tr><td>Bindings, arguments, modes, and pages or modals using existing renderers</td><td>Application configuration, as demonstrated by <code>examples/full-project</code></td></tr>
+<tr><td>New business logic, integrations, or rendering behavior</td><td>Go code registered with the runtime or application renderer registry</td></tr>
+</tbody>
+</table>
+</div>
+<p>Configuration connects existing behavior. It does not execute scripts or load plugins. The JSON configuration loader in <code>full-project</code> is application code built on the framework's registration APIs.</p>
+</section>
+<section id="register" aria-labelledby="register-heading">
+<h2 id="register-heading">A new action</h2>
+<p>Your component owns its data and registers operations that act on it. This example belongs inside your application's setup function, where <code>r</code> is an existing <code>*ochazuke.Runtime</code>.</p>
+<pre tabindex="0" aria-label="Go operation registration example"><code>count := 0
+
+r.Register(ochazuke.Operation{
+	Verb:        "increment",
+	Noun:        "counter",
+	Description: "Increase the counter",
+	Parameters: map[string]ochazuke.Parameter{
+		"by": {Type: "integer"},
+	},
+	Result: "integer",
+	Run: func(
+		_ *ochazuke.Runtime,
+		_ ochazuke.Context,
+		args ochazuke.Arguments,
+	) (any, error) {
+		count += ochazuke.IntArg(args, "by", 1)
+		return count, nil
+	},
+})</code></pre>
+<p>This registers <code>increment.counter</code> in <code>Runtime.Operations</code>. The handler captures the component's state. Ochazuke's core dispatch code does not need a new case for counters.</p>
+<div class="note"><p>Registering an action makes it callable. It does not create a UI for its state. Your page renderer reads <code>count</code> to display it.</p></div>
+<p>The handler receives the runtime, the resolved context, and validated arguments. It returns a result or an error. In this example, omitting <code>by</code> increments the counter by one.</p>
+</section>
+<section id="requests" aria-labelledby="requests-heading">
+<h2 id="requests-heading">Requests and bindings</h2>
+<p>A key binding, palette selection, or API caller uses the same request shape. These examples use simplified JavaScript-style data to make the structure visible.</p>
+<pre tabindex="0" aria-label="Request example"><code>{
+	verb: "increment",
+	noun: "counter",
+	args: { by: 5 }
+}</code></pre>
+<p>A <code>full-project</code> binding can associate that request with a key sequence. This is an example mapping, not a framework default.</p>
+<pre tabindex="0" aria-label="Binding configuration example"><code>{
+	layer: "app",
+	mode: "normal",
+	keys: "g c",
+	request: {
+		verb: "increment",
+		noun: "counter",
+		args: { by: 5 }
+	}
+}</code></pre>
+<p class="caption">Actual JSON configuration requires quoted property names. The <code>layer</code> field selects where the example application's loader installs the binding; the core <code>Binding</code> lives inside that layer.</p>
+<p>Application code can also call the registered operation directly on the runtime's owning event loop:</p>
+<pre tabindex="0" aria-label="Direct Go request example"><code>result, err := r.Execute(ochazuke.Request{
+	Verb: "increment",
+	Noun: "counter",
+	Args: ochazuke.Arguments{"by": 5},
+})</code></pre>
+<p>Starting from zero, a successful call returns <code>5</code> and leaves <code>count</code> equal to <code>5</code>. The result and the component state are separate from rendering.</p>
+</section>
+<section id="dispatch" aria-labelledby="dispatch-heading">
+<h2 id="dispatch-heading">Runtime dispatch</h2>
+<p><code>Runtime.Execute</code> uses the active context and delegates to <code>ExecuteAt</code>. The runtime looks up the operation by <code>verb.noun</code> and validates its arguments before calling a handler.</p>
+<p>After resolving the target and validating the context, <code>ExecuteAt</code> checks <code>Layer.Actions</code> from the deepest active layer toward the application layer. The first matching override handles the request. If no layer overrides it, the runtime calls the operation's registered <code>Run</code> handler.</p>
+<pre tabindex="0" aria-label="Illustrative context and handler lookup"><code>context = {
+	Path: ["app", "project", "editor"],
+	InputID: "notes"
+};
+
+request = { verb: "save", noun: "workspace" };
+
+handlerLookup = [
+	'Layers.editor.Actions["save.workspace"]',
+	'Layers.project.Actions["save.workspace"]',
+	'Layers.app.Actions["save.workspace"]',
+	'Operations["save.workspace"].Run'
+];</code></pre>
+<p>This lets <code>save.workspace</code> behave differently inside an editor without changing the binding. Layer action overrides and key binding overrides are separate mechanisms. A layer action still needs a registered operation and must accept that operation's declared arguments.</p>
+<p>The palette discovers registered operations through the catalog. CLI and socket callers dispatch the same request contract when your application exposes those entry points.</p>
+</section>
+<section id="full-project" aria-labelledby="example-heading">
+<h2 id="example-heading">The full-project example</h2>
+<p>The example application keeps implementation, declarations, and bindings in separate files:</p>
+<ul>
+<li><a href="../examples/full-project/actions.go"><code>actions.go</code></a> contains <code>handlerRegistry</code>, the application's Go handler map.</li>
+<li><a href="../examples/full-project/config/actions.json"><code>config/actions.json</code></a> declares operation names, parameters, and handler names.</li>
+<li><code>registerActions</code> in <code>actions.go</code> resolves those names and calls <code>Runtime.Register</code>. Entries with a layer attach an override instead.</li>
+<li><a href="../examples/full-project/config/bindings.json"><code>config/bindings.json</code></a> connects key sequences to operation requests.</li>
+</ul>
+<p>To add new behavior in that application, add a Go handler to <code>handlerRegistry</code> and declare an action that names it. Add a binding if you want a keyboard shortcut. A plain Ochazuke application can register directly, as the counter example does, without adopting this JSON loader.</p>
+<h3>A working application action</h3>
+<p>The existing <code>greet.workspace</code> operation follows this registration path. Run it from the repository root:</p>
+<pre tabindex="0" aria-label="Example action command"><code>go run ./examples/full-project workspace greet --json '{"name":"Ada","repeat":2}'</code></pre>
+<p>Output:</p>
+<pre tabindex="0" aria-label="Example action result"><code>"Hello, Ada! Hello, Ada!"</code></pre>
+</section>
+<section id="boundaries" aria-labelledby="boundaries-heading">
+<h2 id="boundaries-heading">Current boundaries</h2>
+<ul>
+<li>New Go handlers require rebuilding the application. Hot-loaded scripts, a plugin loader, and configuration-defined external-command actions are not implemented.</li>
+<li>Handlers run synchronously on the owning event loop. Slow work must not block that loop. Background work should return results to the loop rather than mutate runtime state from another goroutine.</li>
+<li><code>Runtime.Register</code> rejects invalid or duplicate registrations with a panic. Register each operation once; use layer actions for context-specific overrides.</li>
+</ul>
+<p>The extension point is the operation contract: a name, an argument schema, and a handler. Your application retains ownership of its domain data and presentation.</p>
+</section>
+</main>
+<footer>
+<p>Source: <a href="../runtime.go"><code>runtime.go</code></a> and <a href="../examples/full-project/actions.go"><code>examples/full-project/actions.go</code></a>. The counter and binding snippets are illustrative, not built-in operations or live runtime state.</p>
+<nav aria-label="Related documentation"><a href="architecture-map.html">Back to the architecture map</a><a href="actions.html">Action catalog</a><a href="api.html">Go API</a><a href="transport.html">CLI &amp; socket</a></nav>
+</footer>
+</body>
+</html>
