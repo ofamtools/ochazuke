@@ -242,20 +242,23 @@ modal.pop → Runtime.Focus = payload.return; remove the instance
 
 `Frames` goes away; what is open is the chain of modal instances (already used for rendering). Runtime then holds `Focus`, `Mode` and `Page` as three plain fields. Invariant kept: `Page` is always an ancestor of `Focus`.
 
-### 1c. Pages and modals own a tab order (decision)
+### 1c. Tab order is computed from focusable components (decision)
 
-Like HTML tabindex: each page (and each modal) carries an app-managed ordered list of focusable entries; the framework only cycles it.
+Like the browser without tabindex: focusability is a property of the kind, order is tree order, an explicit list is only an override.
 
 ```js
-page  = { id: "sheet", focusables: ["sidebar", "grid", "search"] }
-modal = { id: "csv-prompt", focusables: ["field"] }
-focus.next / focus.previous   // framework operations, bound to tab / shift+tab on app; cycle the active page's or top modal's list
+define("grid", { focusable: true }); define("status", { focusable: false })   // declared on the noun
+instance = { id: "sidebar", noun: "list", focusable: false }                   // instance-level opt-out (disabled panel)
+ring(page) = page.children in added order, depth-first, filtered to focusable; the walk stops at the first focusable instance on each branch (a grid is one stop, its cells are not)
+focus.next / focus.previous / focus.set {id}   // runtime operations; tab / shift+tab bound on app
+page.focusables (optional)                     // explicit order override, the rare case
 ```
 
-- Entries are components, not leaves (a grid is one stop; its cells are not). Landing on an entry focuses the child it remembers.
-- Division of labor is HTML's: the consumer may declare the order (like tabindex) and nothing else; the runtime owns every focus change (`focus.next`, `focus.previous`, `focus.set {id}`, restore on page open and modal pop) and skips entries whose instance no longer exists. If a page declares no list, the runtime derives one from the order its focusable children were added, so declaring is only for a wrong default order or a skipped entry. Consumer handlers move focus only through `focus.set`.
+- Nothing is stored by default; the ring is computed when Tab is pressed. Hiding a panel removes its stop because the instance is gone or marked unfocusable. No list to maintain.
+- Modals compute their ring the same way over their own subtree.
+- The runtime owns every focus change, including restore on page open and modal pop; consumer handlers move focus only through `focus.set`.
 - Tab moves focus by default; a multiline editor that wants a literal tab binds it in its own insert table (inner level wins).
-- Replaces per-page "next field" bindings in the examples. Additive: `Page.Focusables`, two operations.
+- Additive: `Focusable` on Define and Instance, the three operations, optional `Page.Focusables`.
 
 ### 2. Bugs and oversights in the resolver
 
