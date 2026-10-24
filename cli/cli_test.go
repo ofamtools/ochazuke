@@ -47,6 +47,9 @@ func newFixture(t *testing.T) *fixture {
 		Verb("refresh", func(ochazuke.Ctx) ochazuke.Result {
 			return ochazuke.Pending(func(context.Context) (any, error) { return "fresh", nil })
 		}, "Reload a widget").
+		Verb("break", func(ochazuke.Ctx) ochazuke.Result {
+			return ochazuke.Pending(func(context.Context) (any, error) { return nil, errors.New("disk on fire") })
+		}, "Fail off the loop").
 		Verb("ask", func(c ochazuke.Ctx) ochazuke.Result {
 			_, err := c.Runtime.OpenModal("question", ochazuke.Payload{Prompt: "Name?"})
 			if err != nil {
@@ -210,6 +213,36 @@ func TestShellSettlesPendingWork(t *testing.T) {
 	}
 	if jobs := f.r.Jobs(); len(jobs) != 1 || jobs[0].State != ochazuke.JobDone {
 		t.Fatalf("jobs = %+v", jobs)
+	}
+	// The delivered value is the result, not the ticket.
+	if out.String() != "\"fresh\"\n" {
+		t.Fatalf("stdout %q", out.String())
+	}
+	out.Reset()
+	errOut.Reset()
+	err := sh.Run(context.Background(), []string{"widget", "break", "--target", "w1"})
+	if err == nil || err.Error() != "disk on fire" || oden.ExitCode(err) != 1 || out.Len() != 0 || !strings.Contains(errOut.String(), "job #2 widget.break failed") {
+		t.Fatalf("failed job: %v (exit %d), stdout %q, stderr %q", err, oden.ExitCode(err), out.String(), errOut.String())
+	}
+}
+
+func TestSettleDeliversScheduledWork(t *testing.T) {
+	f := newFixture(t)
+	if _, err := f.r.Execute(ochazuke.Request{Verb: "refresh", Noun: "widget", Target: "w1"}); err != nil {
+		t.Fatal(err)
+	}
+	rounds := 0
+	if err := Settle(f.r, func() error { rounds++; return nil }); err != nil || rounds < 2 {
+		t.Fatalf("settle: %v, rounds %d", err, rounds)
+	}
+	if jobs := f.r.Jobs(); len(jobs) != 1 || jobs[0].State != ochazuke.JobDone {
+		t.Fatalf("jobs = %+v", jobs)
+	}
+	if _, err := f.r.Execute(ochazuke.Request{Verb: "break", Noun: "widget", Target: "w1"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := Settle(f.r, nil); err == nil || err.Error() != "disk on fire" {
+		t.Fatalf("failed job: %v", err)
 	}
 }
 

@@ -14,6 +14,12 @@
           "result": "JSON value"
         },
         {
+          "name": "break",
+          "description": "Fail off the loop",
+          "kind": "application",
+          "result": "JSON value"
+        },
+        {
           "name": "list",
           "description": "List the widgets",
           "kind": "application",

@@ -40,10 +40,12 @@ import (
 // like flags; more words than parameters is an error naming them. Named
 // flags win wherever they appear.
 //
-// After the operation it settles the work the operation scheduled (the
-// pending commands, delivered through Runtime.Deliver as the Bubble Tea
+// After the operation it settles the work the operation scheduled (Settle:
+// the pending commands, delivered through Runtime.Deliver as the Bubble Tea
 // loop would), so an application verb's job finishes before the process
-// exits. A confirm modal the operation opened is answered: --yes runs
+// exits, and prints the job's delivered value instead of its ticket (the
+// values in job order when the command started several). A failed job is
+// the command's error (a non-zero exit) and nothing is printed. A confirm modal the operation opened is answered: --yes runs
 // confirm.accept, otherwise the prompt is printed and a line read from
 // Stdin (y or yes accepts; anything else, or end of input, declines with
 // modal.pop and a non-zero exit). Any other modal (a prompt, the palette)
@@ -117,7 +119,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		if err := s.Reveal(q.Target); err != nil {
 			return fmt.Errorf("target %s: %w", q.Target, err)
 		}
-		if err := s.settle(); err != nil {
+		if err := Settle(r, s.Settle); err != nil {
 			return fmt.Errorf("target %s: %w", q.Target, err)
 		}
 	}
@@ -128,7 +130,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 			q.Target = candidates[0]
 		}
 	}
-	jobs := len(r.Jobs())
+	last := lastJob(r)
 	value, err := s.call(q)
 	if err != nil {
 		if len(candidates) > 1 {
@@ -154,14 +156,44 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 			return err
 		}
 	}
-	settled := s.settle()
-	for _, j := range r.Jobs()[min(jobs, len(r.Jobs())):] {
-		fmt.Fprintf(s.stderr(), "job #%d %s %s\n", j.Job, j.Verb, j.State)
+	// The jobs the command started are the running jobs newer than the
+	// call; their delivered values are the command's result, not the ticket.
+	launched := map[uint64]bool{}
+	for _, j := range r.Jobs() {
+		if j.Job > last && j.State == ochazuke.JobRunning {
+			launched[j.Job] = true
+		}
 	}
-	if err := s.print(value); err != nil {
-		return err
+	var results []any
+	settled := settle(r, s.Settle, func(c ochazuke.Completion) {
+		if launched[c.Job] && c.Err == nil {
+			results = append(results, c.Value)
+		}
+	})
+	for _, j := range r.Jobs() {
+		if j.Job > last {
+			fmt.Fprintf(s.stderr(), "job #%d %s %s\n", j.Job, j.Verb, j.State)
+		}
 	}
-	return settled
+	if settled != nil {
+		return settled
+	}
+	switch {
+	case len(launched) == 1 && len(results) == 1:
+		value = results[0]
+	case len(launched) > 1 && len(results) > 0:
+		value = results
+	}
+	return s.print(value)
+}
+
+// lastJob is the newest job id the runtime lists, 0 for none.
+func lastJob(r *ochazuke.Runtime) uint64 {
+	var last uint64
+	for _, j := range r.Jobs() {
+		last = max(last, j.Job)
+	}
+	return last
 }
 
 func (s *Shell) usage() string {
@@ -390,38 +422,53 @@ func (s *Shell) accepts(prompt string) bool {
 	return false
 }
 
-// settle runs the scheduled work until none is left, delivering every
-// message on this goroutine as the Bubble Tea loop would, and returns the
-// errors of the completions it delivered.
-func (s *Shell) settle() error {
+// Settle runs r's scheduled work until none is left, delivering every
+// message on this goroutine as the Bubble Tea loop would (Runtime.Deliver),
+// and returns the errors of the completions it delivered, a failed job's
+// among them. before, when set, runs before each round and its errors join
+// the result. A host without a screen (a CLI, --smoke, a test) settles with
+// it instead of driving a Bubble Tea program.
+func Settle(r *ochazuke.Runtime, before func() error) error {
+	return settle(r, before, nil)
+}
+
+// settle is Settle, handing every current completion it delivers to seen.
+func settle(r *ochazuke.Runtime, before func() error, seen func(ochazuke.Completion)) error {
 	var errs []error
 	for {
-		if s.Settle != nil {
-			errs = append(errs, s.Settle())
+		if before != nil {
+			errs = append(errs, before())
 		}
-		cmd := s.Runtime.PendingCommands()
+		cmd := r.PendingCommands()
 		if cmd == nil {
 			break
 		}
-		errs = append(errs, s.deliver(cmd))
+		errs = append(errs, deliver(r, cmd, seen))
 	}
 	return errors.Join(errs...)
 }
 
-func (s *Shell) deliver(cmd tea.Cmd) error {
+func deliver(r *ochazuke.Runtime, cmd tea.Cmd, seen func(ochazuke.Completion)) error {
 	switch msg := cmd().(type) {
 	case tea.BatchMsg:
 		var errs []error
 		for _, c := range msg {
 			if c != nil {
-				errs = append(errs, s.deliver(c))
+				errs = append(errs, deliver(r, c, seen))
 			}
 		}
 		return errors.Join(errs...)
 	case nil:
 		return nil
+	case ochazuke.Completion:
+		current := r.Accepts(msg.Ticket)
+		_, err := r.Deliver(msg)
+		if current && seen != nil {
+			seen(msg)
+		}
+		return err
 	default:
-		_, err := s.Runtime.Deliver(msg)
+		_, err := r.Deliver(msg)
 		return err
 	}
 }
