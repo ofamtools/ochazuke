@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"ochazuke"
 )
 
@@ -108,7 +108,7 @@ func run(args []string) error {
 			return fmt.Errorf("unexpected run arguments")
 		}
 	}
-	options := []tea.ProgramOption{tea.WithAltScreen()}
+	options := []tea.ProgramOption{}
 	if *headless {
 		options = []tea.ProgramOption{tea.WithInput(nil), tea.WithoutRenderer(), tea.WithoutSignalHandler()}
 	}
@@ -163,7 +163,7 @@ func smokeExample(m *ochazuke.Model) error {
 		}
 		return value
 	}
-	key := func(message tea.KeyMsg) {
+	key := func(message tea.KeyPressMsg) {
 		if failure != nil {
 			return
 		}
@@ -172,14 +172,25 @@ func smokeExample(m *ochazuke.Model) error {
 			failure = fmt.Errorf("smoke key %q: %s", message.String(), m.Status)
 		}
 	}
+	// press sends one named key ("ctrl+s", "esc", "tab") or types text rune by
+	// rune, as a Bubble Tea v2 terminal delivers it.
+	press := func(name string) {
+		special := map[string]rune{"esc": tea.KeyEscape, "tab": tea.KeyTab}
+		if code, ok := special[name]; ok {
+			key(tea.KeyPressMsg{Code: code})
+			return
+		}
+		if rest, ok := strings.CutPrefix(name, "ctrl+"); ok {
+			key(tea.KeyPressMsg{Code: []rune(rest)[0], Mod: tea.ModCtrl})
+			return
+		}
+		for _, r := range name {
+			key(tea.KeyPressMsg{Code: r, Text: string(r)})
+		}
+	}
 	binding := func(keys ...string) {
-		special := map[string]tea.KeyType{"ctrl+s": tea.KeyCtrlS, "ctrl+t": tea.KeyCtrlT, "ctrl+r": tea.KeyCtrlR, "ctrl+o": tea.KeyCtrlO, "ctrl+n": tea.KeyCtrlN, "esc": tea.KeyEsc, "tab": tea.KeyTab}
 		for _, k := range keys {
-			if kind, ok := special[k]; ok {
-				key(tea.KeyMsg{Type: kind})
-			} else {
-				key(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)})
-			}
+			press(k)
 		}
 	}
 	replace := func(id, text string) {
@@ -228,25 +239,25 @@ func smokeExample(m *ochazuke.Model) error {
 	binding("ctrl+n")
 	expect("nested editable modal", r.Context().InputID, "details-note")
 	replace("details-note", "inner")
-	expect("nested modal renderer", strings.Contains(plain(m.View()), "inner"), true)
-	key(tea.KeyMsg{Type: tea.KeyEsc})
+	expect("nested modal renderer", strings.Contains(plain(m.View().Content), "inner"), true)
+	press("esc")
 	expect("modal parent focus", r.Context().InputID, "confirm-note")
 	expect("modal parent text", string(r.Inputs["confirm-note"].Text), "outer")
 	expect("modal parent cursor", r.Inputs["confirm-note"].Cursor, 2)
-	key(tea.KeyMsg{Type: tea.KeyEsc})
+	press("esc")
 	expect("modal page restoration", r.Context().InputID, "notes")
 	expect("modal cursor restoration", r.Inputs["notes"].Cursor, 6)
 	call("undo", "input", "details-note", nil)
 	expect("isolated page history", string(r.Inputs["notes"].Text), "alpha beta")
 	call("open", "workspace", "", ochazuke.Arguments{"id": "help"})
-	expect("help modal renderer", strings.Contains(plain(m.View()), "Workspace help"), true)
-	key(tea.KeyMsg{Type: tea.KeyEsc})
+	expect("help modal renderer", strings.Contains(plain(m.View().Content), "Workspace help"), true)
+	press("esc")
 	expect("help modal restores page", r.Context().InputID, "notes")
-	key(tea.KeyMsg{Type: tea.KeyCtrlJ})
+	press("ctrl+j")
 	expect("Ctrl-J next page", r.ActivePage, "paths")
-	key(tea.KeyMsg{Type: tea.KeyCtrlK})
+	press("ctrl+k")
 	expect("Ctrl-K previous page", r.ActivePage, "overview")
-	key(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("qq:")})
+	press("qq:")
 	expect("coalesced macro recording", r.Macro.Recording, "q")
 	expect("coalesced macro register consumed", r.Macro.Pending, "")
 	expect("coalesced colon palette", m.Palette.IsOpen(), true)
@@ -277,7 +288,7 @@ func smokeExample(m *ochazuke.Model) error {
 	expect("palette action", r.Frames[0].State["greeting"], "Hello, Lin!")
 	expect("palette restores page", r.Context().InputID, "notes")
 	call("set", "appearance", "", ochazuke.Arguments{"theme": "mono", "density": "compact"})
-	expect("live appearance", call("get", "appearance", "", nil), ochazuke.Appearance{Theme: "mono", Density: "compact"})
+	expect("live appearance", call("get", "appearance", "", nil), ochazuke.Appearance{Theme: "mono", Density: "compact", Dark: true})
 	replace("notes", "one two")
 	call("move", "input", "", ochazuke.Arguments{"motion": "first-line"})
 	call("select", "input", "", ochazuke.Arguments{"shape": "char"})
@@ -298,9 +309,9 @@ func smokeExample(m *ochazuke.Model) error {
 	expect("yank history selection", r.Registers["\""].Yank.Text, "one")
 	replace("title", "")
 	call("start", "macro", "", ochazuke.Arguments{"register": "b"})
-	key(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("i")})
-	key(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("Z")})
-	key(tea.KeyMsg{Type: tea.KeyEsc})
+	press("i")
+	press("Z")
+	press("esc")
 	call("stop", "macro", "", nil)
 	call("replay", "macro", "", ochazuke.Arguments{"register": "b"})
 	expect("macro keyboard replay", string(r.Inputs["title"].Text), "ZZ")
@@ -364,7 +375,7 @@ func smokeExample(m *ochazuke.Model) error {
 		return failure
 	}
 	m.Update(tea.WindowSizeMsg{Width: 160, Height: 42})
-	view := plain(m.View())
+	view := plain(m.View().Content)
 	if !strings.Contains(view, "Paths") || !strings.Contains(view, "release.txt") {
 		return fmt.Errorf("smoke rendered page does not show selected paths")
 	}

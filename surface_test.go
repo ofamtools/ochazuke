@@ -16,7 +16,7 @@ func TestAppearanceUpdatesAreAtomicSnapshots(t *testing.T) {
 		t.Fatal(err)
 	}
 	snapshot, ok := result.(Appearance)
-	if !ok || snapshot != (Appearance{Theme: "dark", Density: "compact"}) {
+	if !ok || snapshot != (Appearance{Theme: "dark", Density: "compact", Dark: true}) {
 		t.Fatalf("set returned %T %#v, want an appearance value", result, result)
 	}
 	for _, args := range []Arguments{
@@ -31,7 +31,7 @@ func TestAppearanceUpdatesAreAtomicSnapshots(t *testing.T) {
 		if _, err := r.Execute(Request{Verb: "set", Noun: "appearance", Args: args}); err == nil {
 			t.Fatalf("accepted invalid appearance %#v", args)
 		}
-		if *a != (Appearance{Theme: "dark", Density: "compact"}) {
+		if *a != (Appearance{Theme: "dark", Density: "compact", Dark: true}) {
 			t.Fatalf("invalid update %#v partially mutated appearance: %#v", args, *a)
 		}
 	}
@@ -46,7 +46,7 @@ func TestAppearanceUpdatesAreAtomicSnapshots(t *testing.T) {
 	if _, err := r.Execute(Request{Verb: "set", Noun: "appearance", Args: Arguments{"theme": "light"}}); err != nil {
 		t.Fatal(err)
 	}
-	if *a != (Appearance{Theme: "light", Density: "compact"}) || before != snapshot {
+	if *a != (Appearance{Theme: "light", Density: "compact", Dark: true}) || before != snapshot {
 		t.Fatalf("partial update lost density or mutated prior snapshot: live=%#v before=%#v set=%#v", *a, before, snapshot)
 	}
 	before.Theme = "mono"

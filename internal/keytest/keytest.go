@@ -6,8 +6,9 @@ package keytest
 
 import (
 	"strings"
+	"unicode/utf8"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 // Model is the part of a Bubble Tea model that receives keys.
@@ -15,40 +16,60 @@ type Model interface {
 	Update(tea.Msg) (tea.Model, tea.Cmd)
 }
 
-// Msg builds the Bubble Tea v1 message for one key. A name with an "alt+"
-// prefix sets the Alt flag; a name Bubble Tea knows ("esc", "ctrl+j", "space")
-// becomes that key type; anything else is literal runes. Literal text skips
-// the name lookup, so Msg("ctrl+s", true, false) types the six characters.
-// Multi-rune literal text is one coalesced message, as a terminal sends fast
-// typing or a paste; Model.Update splits coalesced typing, never a paste.
-func Msg(name string, literal, paste bool) tea.KeyMsg {
-	if literal || paste {
-		return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(name), Paste: paste}
+// Msg builds the Bubble Tea v2 message for one key. Paste text becomes a
+// tea.PasteMsg. Otherwise leading "ctrl+", "alt+", "shift+" (and the other
+// modifier names Bubble Tea prints) set Mod; a name Bubble Tea knows ("esc",
+// "space", "pgup") becomes that key code; a single rune is a printable key
+// whose Text is set when no modifier is held. Literal text skips the name
+// lookup, so Msg("ctrl+s", true, false) is the six-character text "ctrl+s".
+// Bubble Tea v2 never coalesces typed runes into one key press, so Type and
+// Press split multi-rune text into one message per rune instead.
+func Msg(name string, literal, paste bool) tea.Msg {
+	if paste {
+		return tea.PasteMsg{Content: name}
 	}
-	msg := tea.KeyMsg{Type: tea.KeyRunes}
-	if rest, ok := strings.CutPrefix(name, "alt+"); ok && rest != "" {
-		msg.Alt, name = true, rest
+	if literal {
+		return tea.KeyPressMsg{Code: firstRune(name), Text: name}
 	}
-	if t, ok := keyTypes[name]; ok {
-		msg.Type = t
-		return msg
+	var mod tea.KeyMod
+	for {
+		prefix, rest, ok := strings.Cut(name, "+")
+		m, known := modifiers[prefix]
+		if !ok || !known || rest == "" {
+			break
+		}
+		mod, name = mod|m, rest
 	}
-	msg.Runes = []rune(name)
+	if code, ok := keyCodes[name]; ok {
+		return tea.KeyPressMsg{Code: code, Mod: mod}
+	}
+	msg := tea.KeyPressMsg{Code: firstRune(name), Mod: mod}
+	if mod == 0 {
+		msg.Text = name
+	}
 	return msg
 }
 
 // Press sends one named key, such as "ctrl+x", "esc" or "q", and returns the
-// command the model produced.
+// command the model produced. Unknown multi-rune text is typed rune by rune.
 func Press(m Model, name string) tea.Cmd {
+	if _, known := keyCodes[name]; !known && !strings.Contains(name, "+") && utf8.RuneCountInString(name) > 1 {
+		return Type(m, name)
+	}
 	_, cmd := m.Update(Msg(name, false, false))
 	return cmd
 }
 
-// Type sends text as one coalesced literal message, the way a terminal
-// delivers fast typing. The model splits it into single keys.
+// Type sends text as single-rune literal key presses, the way Bubble Tea v2
+// delivers typing, and batches the commands they produce.
 func Type(m Model, text string) tea.Cmd {
-	_, cmd := m.Update(Msg(text, true, false))
-	return cmd
+	var commands []tea.Cmd
+	for _, r := range text {
+		if _, cmd := m.Update(Msg(string(r), true, false)); cmd != nil {
+			commands = append(commands, cmd)
+		}
+	}
+	return tea.Batch(commands...)
 }
 
 // Paste sends text as one bracketed paste event.
@@ -57,17 +78,36 @@ func Paste(m Model, text string) tea.Cmd {
 	return cmd
 }
 
-// keyTypes maps every name Bubble Tea v1 prints for a non-rune key back to its
-// type, derived from tea.Key.String so the names match what Model.Update sees.
-var keyTypes = func() map[string]tea.KeyType {
-	names := map[string]tea.KeyType{"space": tea.KeySpace}
-	for t := tea.KeyType(-128); t <= 127; t++ {
-		if t == tea.KeyRunes || t == tea.KeySpace {
-			continue
+func firstRune(s string) rune {
+	r, _ := utf8.DecodeRuneInString(s)
+	return r
+}
+
+var modifiers = map[string]tea.KeyMod{
+	"ctrl":  tea.ModCtrl,
+	"alt":   tea.ModAlt,
+	"shift": tea.ModShift,
+	"meta":  tea.ModMeta,
+	"hyper": tea.ModHyper,
+	"super": tea.ModSuper,
+}
+
+// keyCodes maps every name Bubble Tea v2 prints for a special key back to its
+// code, derived from tea.Key.String so the names match what Model.Update sees.
+// Special codes are the control characters and the range above KeyExtended.
+var keyCodes = func() map[string]rune {
+	names := map[string]rune{}
+	add := func(code rune) {
+		s := (tea.Key{Code: code}).String()
+		if utf8.RuneCountInString(s) > 1 && !strings.Contains(s, "+") {
+			names[s] = code
 		}
-		if s := (tea.Key{Type: t}).String(); s != "" {
-			names[s] = t
-		}
+	}
+	for code := rune(0); code < 128; code++ {
+		add(code)
+	}
+	for code := tea.KeyExtended; code <= tea.KeyExtended+1024; code++ {
+		add(code)
 	}
 	return names
 }()

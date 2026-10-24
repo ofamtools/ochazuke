@@ -6,9 +6,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/viewport"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/rivo/uniseg"
 )
@@ -52,14 +52,14 @@ func NewModel(r *Runtime) *Model {
 		}
 		view := m.viewport(frame, content, width, height)
 		delta := min(max(IntArg(a, "lines", 0), -view.TotalLineCount()), view.TotalLineCount())
-		view.SetYOffset(view.YOffset + delta)
-		frame.State["scroll"] = view.YOffset
-		return view.YOffset, nil
+		view.SetYOffset(view.YOffset() + delta)
+		frame.State["scroll"] = view.YOffset()
+		return view.YOffset(), nil
 	}})
 	defaults := []Binding{
 		{Mode: "normal", Keys: ":", Request: Request{Verb: "open", Noun: "palette"}},
 		{Mode: "normal", Keys: "ctrl+y", Request: Request{Verb: "open", Noun: "yank-history"}},
-		{Keys: "ctrl+@", Request: Request{Verb: "open", Noun: "palette"}},
+		{Keys: "ctrl+space", Request: Request{Verb: "open", Noun: "palette"}},
 		{Keys: "ctrl+c", Request: Request{Verb: "quit", Noun: "app"}},
 		{Mode: "normal", Keys: "ctrl+j", Request: Request{Verb: "next", Noun: "page"}},
 		{Mode: "normal", Keys: "ctrl+k", Request: Request{Verb: "previous", Noun: "page"}},
@@ -69,7 +69,7 @@ func NewModel(r *Runtime) *Model {
 	r.Layers["app"].Bindings = append(defaults, r.Layers["app"].Bindings...)
 	return m
 }
-func (m *Model) Init() tea.Cmd { return nil }
+func (m *Model) Init() tea.Cmd { return tea.RequestBackgroundColor }
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	for _, picker := range m.Pickers {
 		picker.HandleMessage(msg)
@@ -91,28 +91,13 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.Palette.collectEditors()
 			m.Palette.publish()
 		}
-	case tea.KeyMsg:
-		if v.Type == tea.KeyRunes && !v.Paste && !v.Alt && len(v.Runes) > 1 {
-			var commands []tea.Cmd
-			for i := range v.Runes {
-				single := v
-				single.Runes = v.Runes[i : i+1]
-				_, cmd := m.Update(single)
-				if cmd != nil {
-					commands = append(commands, cmd)
-				}
-				if m.Runtime.Quit {
-					break
-				}
-			}
-			return m, tea.Batch(commands...)
-		}
-		err := m.dispatchKey(MacroKey{Key: v.String(), Paste: v.Paste})
-		if err != nil {
-			m.Status = err.Error()
-		} else {
-			m.Status = ""
-		}
+	case tea.BackgroundColorMsg:
+		m.Appearance.Dark = v.IsDark()
+	case tea.KeyPressMsg:
+		m.handleKey(MacroKey{Key: v.String()})
+	case tea.PasteMsg:
+		// Bubble Tea v1 spelled a paste "[text]"; macros and the editor still expect it.
+		m.handleKey(MacroKey{Key: "[" + v.Content + "]", Paste: true})
 	}
 	if m.Runtime.Quit {
 		return m, tea.Quit
@@ -127,6 +112,14 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 	return m, tea.Batch(commands...)
+}
+
+func (m *Model) handleKey(key MacroKey) {
+	if err := m.dispatchKey(key); err != nil {
+		m.Status = err.Error()
+	} else {
+		m.Status = ""
+	}
 }
 
 // dispatchKey is shared by live input and macro playback, including modal and
@@ -194,12 +187,12 @@ func (m *Model) pageContent(width, height int) string {
 func (m *Model) viewport(frame *Frame, content string, width, height int) *viewport.Model {
 	view := m.views[frame.ID]
 	if view == nil {
-		v := viewport.New(width, height)
+		v := viewport.New(viewport.WithWidth(width), viewport.WithHeight(height))
 		view = &v
 		m.views[frame.ID] = view
 	}
-	view.Width = max(1, width)
-	view.Height = max(1, height)
+	view.SetWidth(max(1, width))
+	view.SetHeight(max(1, height))
 	view.SetContent(content)
 	view.SetYOffset(IntArg(Arguments(frame.State), "scroll", 0))
 	return view
@@ -263,7 +256,13 @@ func (m *Model) pageTabs(styles Styles, width int) string {
 	return tabs
 }
 
-func (m *Model) View() string {
+// View renders the shell as a full-screen tea.View; View().Content is the string.
+func (m *Model) View() tea.View {
+	v := tea.NewView(m.render())
+	v.AltScreen = true
+	return v
+}
+func (m *Model) render() string {
 	styles := NewStyles(*m.Appearance)
 	width, height := m.surfaceSize()
 	pageTitle := ""

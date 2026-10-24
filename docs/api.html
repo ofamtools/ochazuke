@@ -16,9 +16,12 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
 
 <section id="api"><p class="eyebrow">03 / Exported Go API</p><h2>Go API <span class="count">115</span></h2><p>Generated exported types, functions, methods, constants and variables from the root <code>ochazuke</code> package. Unexported fields and function bodies are omitted. Missing prose means the declaration has no source doc comment. Command entry points under <code>cmd/</code> are not library APIs.</p><p>Go also provides terminal documentation: run <code>go doc -all .</code> or <code>go doc Runtime.Execute</code> from the repository root. This offline reference needs no <code>godoc</code> server or published module.</p>
 <details class="entry searchable"><summary><code>Appearance</code> <small>type</small></summary><pre>Appearance is event-loop-owned configuration. Operation results are value snapshots.
+Dark is the terminal background reported by tea.BackgroundColorMsg; the
+adaptive theme assumes a dark background until that message arrives.
 </pre><pre>type Appearance struct {
 	Theme   string `json:&#34;theme&#34;`
 	Density string `json:&#34;density&#34;`
+	Dark    bool   `json:&#34;dark&#34;`
 }</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>Arguments</code> <small>type</small></summary><pre>type Arguments map[string]any</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Binding</code> <small>type</small></summary><pre>type Binding struct {
 	Mode    string  `json:&#34;mode,omitempty&#34;`
 	Keys    string  `json:&#34;keys&#34;`
@@ -141,7 +144,8 @@ Modal chrome uses one horizontal padding cell regardless of page density.
 	// remain the only navigation state; input focus and modal routing are unchanged.
 	Sidebar bool
 	// contains filtered or unexported fields
-}</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>Model.Init</code> <small>function / method</small></summary><pre>func (m *Model) Init() tea.Cmd</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>Model.Update</code> <small>function / method</small></summary><pre>func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd)</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>Model.View</code> <small>function / method</small></summary><pre>func (m *Model) View() string</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>NewAppearance</code> <small>function / method</small></summary><pre>NewAppearance registers appearance operations once per runtime.
+}</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>Model.Init</code> <small>function / method</small></summary><pre>func (m *Model) Init() tea.Cmd</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>Model.Update</code> <small>function / method</small></summary><pre>func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd)</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>Model.View</code> <small>function / method</small></summary><pre>View renders the shell as a full-screen tea.View; View().Content is the string.
+</pre><pre>func (m *Model) View() tea.View</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>NewAppearance</code> <small>function / method</small></summary><pre>NewAppearance registers appearance operations once per runtime.
 </pre><pre>func NewAppearance(r *Runtime) *Appearance</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>NewDemo</code> <small>function / method</small></summary><pre>NewDemo supplies example pages; none of these page names are required by the framework.
 </pre><pre>func NewDemo() *Model</pre><a href="../demo.go">Source file</a></details><details class="entry searchable"><summary><code>NewInput</code> <small>function / method</small></summary><pre>func NewInput(id, text string, multiline bool) *Input</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>NewList</code> <small>function / method</small></summary><pre>NewList registers one list at path&#39;s final layer, which is also its operation ID.
 All layers must already exist. Existing layer bindings override the defaults.

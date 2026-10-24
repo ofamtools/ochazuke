@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"ochazuke"
 )
 
@@ -57,8 +57,6 @@ func run(args []string) error {
 		options := []tea.ProgramOption{}
 		if *headless {
 			options = append(options, tea.WithInput(nil), tea.WithoutRenderer(), tea.WithoutSignalHandler())
-		} else {
-			options = append(options, tea.WithAltScreen())
 		}
 		program := tea.NewProgram(model, options...)
 		server, err := ochazuke.Listen(*socket, func(msg ochazuke.CallMsg) { program.Send(msg) })

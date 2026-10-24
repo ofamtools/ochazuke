@@ -9,7 +9,7 @@ import (
 	"strings"
 	"syscall"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 // Picker owns one modal and one ordinary editor. Background commands only read

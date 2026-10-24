@@ -5,7 +5,8 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 	"ochazuke"
 	"ochazuke/internal/keytest"
 )
@@ -17,7 +18,8 @@ func TestKeybindingHistory(t *testing.T) {
 	}
 	keytest.Press(m, "tab")
 	keytest.Press(m, "alt+a")
-	view := m.View()
+	// Lip Gloss v2 renders styles unconditionally; Bubble Tea downsamples on output.
+	view := ansi.Strip(m.View().Content)
 	newest := strings.Index(view, `202  "alt+a"`)
 	previous := strings.Index(view, `201  "tab"`)
 	if newest < 0 || previous <= newest {
@@ -62,7 +64,7 @@ func TestSandboxBindings(t *testing.T) {
 		if got := m.results[(m.count-1)%keyHistorySize]; got != step.want {
 			t.Fatalf("key %q: got %q, want %q", step.key, got, step.want)
 		}
-		if !strings.Contains(m.View(), step.want) {
+		if !strings.Contains(m.View().Content, step.want) {
 			t.Fatalf("missing visible outcome %q", step.want)
 		}
 	}
@@ -158,7 +160,7 @@ func TestSandboxResizeKeepsLatestOutcomeVisible(t *testing.T) {
 	}
 	keytest.Type(m, "x")
 	m.Update(tea.WindowSizeMsg{Width: 60, Height: 18})
-	view := m.View()
+	view := m.View().Content
 	latest, _, found := strings.Cut(view, "History")
 	if !found || !strings.Contains(latest, "ACTION: save") {
 		t.Fatalf("stacked layout hid the latest outcome:\n%s", view)

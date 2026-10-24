@@ -1,8 +1,8 @@
 package ochazuke
 
 import (
+	tea "charm.land/bubbletea/v2"
 	"fmt"
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
 	"strings"
 	"testing"
@@ -201,7 +201,7 @@ func TestYankHistoryModalRestoresFocusWithoutInsertion(t *testing.T) {
 	if len(r.Frames) != 2 {
 		t.Fatal("no yank modal")
 	}
-	view := m.View()
+	view := m.View().Content
 	if !strings.Contains(ansi.Strip(view), "Yank history") {
 		t.Fatal("history renderer absent")
 	}
@@ -250,7 +250,7 @@ func TestSelectionViewEscapesControlsAndFollowsCursor(t *testing.T) {
 	}
 	m := NewModel(r)
 	m.Update(tea.WindowSizeMsg{Width: 24, Height: 10})
-	_ = m.View()
+	_ = m.View().Content
 }
 
 func TestBlockChangeRepeatsInsertionAtomically(t *testing.T) {

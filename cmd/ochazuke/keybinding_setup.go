@@ -8,9 +8,9 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/charmbracelet/bubbles/filepicker"
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/filepicker"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
 	"ochazuke"
 )
 
@@ -34,7 +34,7 @@ func (m *keybindingModel) replaceBindings(bindings []sandboxBinding) {
 }
 
 func (m *keybindingModel) updateSetup(msg tea.Msg) (tea.Model, tea.Cmd) {
-	key, isKey := msg.(tea.KeyMsg)
+	key, isKey := msg.(tea.KeyPressMsg)
 	if strings.HasPrefix(m.form, "browse-") {
 		if isKey && key.String() == "esc" {
 			m.form = strings.TrimPrefix(m.form, "browse-")
@@ -196,7 +196,7 @@ func (m *keybindingModel) submitForm() {
 
 // styles and layout are render-time values derived from the viewport.
 func (m *keybindingModel) styles() ochazuke.Styles {
-	return ochazuke.NewStyles(ochazuke.Appearance{Theme: "adaptive", Density: "compact"})
+	return ochazuke.NewStyles(ochazuke.Appearance{Theme: "adaptive", Density: "compact", Dark: m.dark})
 }
 
 func (m *keybindingModel) layout() ochazuke.Layout {
@@ -218,7 +218,7 @@ func cleanLabel(s string) string {
 func (m *keybindingModel) resizeForm() {
 	cw, ch := ochazuke.ModalSize(m.width, m.height)
 	for i := range m.fields {
-		m.fields[i].Width = max(1, cw-4)
+		m.fields[i].SetWidth(max(1, cw-4))
 	}
 	if strings.HasPrefix(m.form, "browse-") {
 		m.picker.SetHeight(max(1, ch-1))

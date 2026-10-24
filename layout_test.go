@@ -146,7 +146,7 @@ func TestModelSidebarHonorsPageRenderBounds(t *testing.T) {
 	}
 	for _, size := range [][2]int{{120, 40}, {80, 24}, {60, 18}} {
 		m.Width, m.Height = size[0], size[1]
-		view := ansi.Strip(m.View())
+		view := ansi.Strip(m.View().Content)
 		if strings.Count(view, "░") != area || !strings.Contains(view, "▸ ALPHA") {
 			t.Fatalf("%dx%d: sidebar clipped the page's advertised body area:\n%s", size[0], size[1], view)
 		}

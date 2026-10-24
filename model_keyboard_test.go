@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 	"ochazuke/internal/keytest"
 )
@@ -31,11 +31,11 @@ func TestModelMacroRegisterTransitionsAndPalette(t *testing.T) {
 				}
 				m := NewModel(r)
 				modelType(m, "q", batched)
-				if !strings.Contains(ansi.Strip(m.View()), "choose a register") {
+				if !strings.Contains(ansi.Strip(m.View().Content), "choose a register") {
 					t.Fatal("recording prefix did not prompt for one register character")
 				}
 				modelType(m, "q", batched)
-				if r.Macro.Recording != "q" || !strings.Contains(ansi.Strip(m.View()), "REC @q") {
+				if r.Macro.Recording != "q" || !strings.Contains(ansi.Strip(m.View().Content), "REC @q") {
 					t.Fatalf("second q did not immediately start visible recording: %+v", r.Macro)
 				}
 				modelType(m, ":", batched)
@@ -70,7 +70,7 @@ func TestModelMacroConsumesOnlyOneRegisterCharacter(t *testing.T) {
 			r, in := editorTestRuntime(t, "one two", true)
 			m := NewModel(r)
 			modelType(m, "qabc", batched)
-			if m.Status != "" || r.Macro.Recording != "a" || in.Pending != "c" || !strings.Contains(ansi.Strip(m.View()), "REC @a") {
+			if m.Status != "" || r.Macro.Recording != "a" || in.Pending != "c" || !strings.Contains(ansi.Strip(m.View().Content), "REC @a") {
 				t.Fatalf("qabc status=%q recording=%q pending=%q", m.Status, r.Macro.Recording, in.Pending)
 			}
 			keytest.Press(m, "esc")
@@ -147,7 +147,7 @@ func TestModelPendingMacroDoesNotInterpretPasteAsRegister(t *testing.T) {
 		t.Fatalf("paste consumed register prefix: status=%q pending=%q text=%q", m.Status, r.Macro.Pending, string(in.Text))
 	}
 	modelType(m, "q", true)
-	if r.Macro.Recording != "q" || !strings.Contains(ansi.Strip(m.View()), "REC @q") {
+	if r.Macro.Recording != "q" || !strings.Contains(ansi.Strip(m.View().Content), "REC @q") {
 		t.Fatalf("next typed register did not start recording: %+v", r.Macro)
 	}
 }
@@ -208,7 +208,7 @@ func TestNewModelNavigationDefaultsAndRemovedAliases(t *testing.T) {
 	if got := string(r.Inputs["alpha-input"].Text); got != ":" || r.ActivePage != "alpha" || m.Palette.IsActive() {
 		t.Fatalf("insert keys text=%q page=%q palette=%t", got, r.ActivePage, m.Palette.IsActive())
 	}
-	keytest.Press(m, "ctrl+@")
+	keytest.Press(m, "ctrl+space")
 	if !m.Palette.IsActive() {
 		t.Fatal("Ctrl-Space did not open palette from insert mode")
 	}
@@ -227,7 +227,7 @@ func TestModelPageChromeKeepsActiveTabVisibleWithManyPages(t *testing.T) {
 		}
 		for _, width := range []int{32, 80, 120} {
 			m.Update(tea.WindowSizeMsg{Width: width, Height: 24})
-			lines := strings.Split(ansi.Strip(m.View()), "\n")
+			lines := strings.Split(ansi.Strip(m.View().Content), "\n")
 			tabs := lines[1]
 			if !strings.Contains(tabs, "› "+strings.ToUpper(active)) {
 				t.Fatalf("active page missing from %d-column tabs: %q", width, tabs)

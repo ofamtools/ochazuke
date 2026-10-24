@@ -1,6 +1,6 @@
 # Ochazuke
 
-A Go application framework on Charmbracelet Bubble Tea v1.3, with retained pages, default Lip Gloss styling, partial-screen modals, layered actions and bindings, modal text editing, a nested command palette, and live CLI control.
+A Go application framework on Charmbracelet Bubble Tea v2 (`charm.land/bubbletea/v2`, Lip Gloss v2, Bubbles v2), with retained pages, default Lip Gloss styling, partial-screen modals, layered actions and bindings, modal text editing, a nested command palette, and live CLI control.
 
 Status: working standalone framework and demo. Neither gmtm nor Matomeru is changed. Existing editors are retained; Bubbles provides the new page/modal scrolling viewports.
 
@@ -85,7 +85,7 @@ Preload setup from a file with `ochazuke keybinding --bindings=path/to/bindings.
 ]
 ```
 
-Names come directly from Bubble Tea's `tea.KeyMsg.String()`, quoted in the log to make whitespace visible. Ctrl-C and Ctrl-G are reserved and cannot be bound. Keys that the terminal encodes identically cannot be distinguished by the sandbox.
+Names come directly from Bubble Tea's `tea.KeyPressMsg.String()` (a paste shows as `[text]`), quoted in the log to make whitespace visible. Ctrl-C and Ctrl-G are reserved and cannot be bound. Keys that the terminal encodes identically cannot be distinguished by the sandbox.
 
 You can also preload dummy actions with repeatable `--bind 'KEYS=ACTION'` options. These override matching keys from `--bindings`, regardless of flag order:
 
@@ -163,7 +163,7 @@ err := r.RegisterPage(&ochazuke.Page{
 if err != nil { panic(err) }
 if err := r.OpenPage("home"); err != nil { panic(err) }
 model := ochazuke.NewModel(r)
-if _, err := tea.NewProgram(model, tea.WithAltScreen()).Run(); err != nil {
+if _, err := tea.NewProgram(model).Run(); err != nil { // Model.View sets AltScreen
     panic(err)
 }
 ```
@@ -239,7 +239,7 @@ Macro recording consumes exactly one register character after `q`. For `qq:`, th
 | App or modal | `PgUp/PgDn` | Scroll the active surface |
 | App | `Ctrl-C` | Quit (`q` is reserved for macro recording) |
 
-On terminals where Option does not send Meta sequences, configure Option-as-Meta to use `Alt-B/F`. `Ctrl-Space` is received as `ctrl+@` by Bubble Tea. These shortcuts are registered bindings, not hard-coded global overrides.
+On terminals where Option does not send Meta sequences, configure Option-as-Meta to use `Alt-B/F`. `Ctrl-Space` is received as `ctrl+space` by Bubble Tea v2 (v1 spelled it `ctrl+@`). These shortcuts are registered bindings, not hard-coded global overrides.
 
 ### Palette and selectors
 

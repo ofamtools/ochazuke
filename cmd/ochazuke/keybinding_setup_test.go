@@ -81,7 +81,7 @@ func TestSetupTimeoutEditPreservedAndInvalidatesStaleTimer(t *testing.T) {
 	keytest.Press(m, "ctrl+g")
 	typeKeys := func(s string) { keytest.Type(m, s) }
 	typeKeys("t")
-	if m.form != "timeout" || !strings.Contains(m.View(), "400ms, 1s") {
+	if m.form != "timeout" || !strings.Contains(m.View().Content, "400ms, 1s") {
 		t.Fatalf("timeout editor not shown: form=%q", m.form)
 	}
 	keytest.Press(m, "ctrl+u")
@@ -93,7 +93,7 @@ func TestSetupTimeoutEditPreservedAndInvalidatesStaleTimer(t *testing.T) {
 	keytest.Press(m, "ctrl+u")
 	typeKeys("1s")
 	keytest.Press(m, "enter")
-	if m.form != "" || m.runtime.BindingTimeout != time.Second || !strings.Contains(m.View(), "Timeout: 1s") {
+	if m.form != "" || m.runtime.BindingTimeout != time.Second || !strings.Contains(m.View().Content, "Timeout: 1s") {
 		t.Fatalf("timeout not applied: %q %v", m.notice, m.runtime.BindingTimeout)
 	}
 	// Edit rebuilds the runtime but keeps the timeout and drops stale timers.

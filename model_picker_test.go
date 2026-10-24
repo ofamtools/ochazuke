@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"ochazuke/internal/keytest"
 )
 
@@ -108,7 +108,7 @@ func TestModelPickerHomeProjectsSelectableBeforeRecursiveScan(t *testing.T) {
 	if !reflect.DeepEqual(pickerEntryPaths(entries), []string{".", "project"}) || frame.State["loading"] != true {
 		t.Fatalf("home projects shallow state: %#v", frame.State)
 	}
-	if view := m.View(); !strings.Contains(view, "project") || !strings.Contains(view, "Indexing/searching") {
+	if view := m.View().Content; !strings.Contains(view, "project") || !strings.Contains(view, "Indexing/searching") {
 		t.Fatalf("shallow project missing from modal:\n%s", view)
 	}
 	keytest.Press(m, "ctrl+n")

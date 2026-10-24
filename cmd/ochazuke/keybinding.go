@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/filepicker"
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/filepicker"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
 	"ochazuke"
 )
 
@@ -30,22 +30,26 @@ type keybindingModel struct {
 	notice        string
 	path          string
 	picker        filepicker.Model
+	dark          bool
 }
 
-func (m *keybindingModel) Init() tea.Cmd { return nil }
+func (m *keybindingModel) Init() tea.Cmd { return tea.RequestBackgroundColor }
 
 func (m *keybindingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if size, ok := msg.(tea.WindowSizeMsg); ok {
 		m.width, m.height = size.Width, size.Height
 		m.resizeForm()
 	}
-	if key, ok := msg.(tea.KeyMsg); ok && key.Type == tea.KeyCtrlC {
+	if key, ok := msg.(tea.KeyPressMsg); ok && key.String() == "ctrl+c" {
 		return m, tea.Quit
+	}
+	if bg, ok := msg.(tea.BackgroundColorMsg); ok {
+		m.dark = bg.IsDark()
 	}
 	if !m.sandbox {
 		return m.updateSetup(msg)
 	}
-	if key, ok := msg.(tea.KeyMsg); ok && key.String() == "ctrl+g" {
+	if key, ok := msg.(tea.KeyPressMsg); ok && key.String() == "ctrl+g" {
 		m.sandbox = false
 		if m.runtime != nil {
 			m.runtime.CancelPendingBinding()
@@ -57,39 +61,28 @@ func (m *keybindingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width, m.height = msg.Width, msg.Height
 	case ochazuke.BindingTimeoutMsg:
 		m.handleTimeout(msg)
-	case tea.KeyMsg:
-		return m, m.handleKey(msg)
+	case tea.KeyPressMsg:
+		return m, m.handleKey(msg.String(), false)
+	case tea.PasteMsg:
+		return m, m.handleKey("["+msg.Content+"]", true)
 	}
 	return m, nil
 }
 
 // handleKey records one key and returns the commands (quit or timer) it needs.
-// A multi-rune message is split into single keys whose commands are batched.
-func (m *keybindingModel) handleKey(msg tea.KeyMsg) tea.Cmd {
-	if msg.Type == tea.KeyRunes && !msg.Paste && !msg.Alt && len(msg.Runes) > 1 {
-		cmds := make([]tea.Cmd, 0, len(msg.Runes))
-		for i := range msg.Runes {
-			key := msg
-			key.Runes = msg.Runes[i : i+1]
-			cmds = append(cmds, m.handleKey(key))
-		}
-		return tea.Batch(cmds...)
-	}
-	m.history[m.count%keyHistorySize] = msg.String()
+func (m *keybindingModel) handleKey(key string, paste bool) tea.Cmd {
+	m.history[m.count%keyHistorySize] = key
 	m.count++
 	index := (m.count - 1) % keyHistorySize
 	m.results[index] = "unmatched"
-	if msg.Type == tea.KeyCtrlC {
-		return tea.Quit
-	}
-	if msg.Paste {
+	if paste {
 		m.results[index] = "paste (not dispatched)"
 		return nil
 	}
 	if m.runtime == nil {
 		return nil
 	}
-	handled, err := m.runtime.HandleBinding(msg.String())
+	handled, err := m.runtime.HandleBinding(key)
 	switch {
 	case err != nil:
 		m.results[index] = "error: " + err.Error()
@@ -129,7 +122,13 @@ func parseBindingTimeout(value string) (time.Duration, error) {
 	return d, nil
 }
 
-func (m *keybindingModel) View() string {
+func (m *keybindingModel) View() tea.View {
+	v := tea.NewView(m.render())
+	v.AltScreen = true
+	return v
+}
+
+func (m *keybindingModel) render() string {
 	if !m.sandbox {
 		return m.setupView()
 	}
@@ -181,7 +180,7 @@ func (m *keybindingModel) View() string {
 }
 
 func runKeybinding(args []string) error {
-	m := &keybindingModel{width: 80, height: 24, runtime: ochazuke.NewRuntime(), editing: -1}
+	m := &keybindingModel{width: 80, height: 24, runtime: ochazuke.NewRuntime(), editing: -1, dark: true}
 	flags := flag.NewFlagSet("keybinding", flag.ContinueOnError)
 	config := flags.String("bindings", "", "JSON bindings file to load into setup")
 	timeout := flags.Duration("timeout", 400*time.Millisecond, "Wait for a longer key sequence before running the longest completed binding (not saved in JSON)")
@@ -214,7 +213,7 @@ func runKeybinding(args []string) error {
 			return err
 		}
 	}
-	_, err := tea.NewProgram(m, tea.WithAltScreen()).Run()
+	_, err := tea.NewProgram(m).Run()
 	return err
 }
 

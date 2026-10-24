@@ -2,20 +2,24 @@ package ochazuke
 
 import (
 	"fmt"
+	"image/color"
 	"os"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 // Appearance is event-loop-owned configuration. Operation results are value snapshots.
+// Dark is the terminal background reported by tea.BackgroundColorMsg; the
+// adaptive theme assumes a dark background until that message arrives.
 type Appearance struct {
 	Theme   string `json:"theme"`
 	Density string `json:"density"`
+	Dark    bool   `json:"dark"`
 }
 
 // NewAppearance registers appearance operations once per runtime.
 func NewAppearance(r *Runtime) *Appearance {
-	a := &Appearance{Theme: "adaptive", Density: "comfortable"}
+	a := &Appearance{Theme: "adaptive", Density: "comfortable", Dark: true}
 	r.Register(Operation{Verb: "get", Noun: "appearance", Description: "Get theme and density", Result: "appearance", Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
 		return *a, nil
 	}})
@@ -67,7 +71,7 @@ type Styles struct {
 // NewStyles keeps layout and focus cues usable without terminal color support.
 func NewStyles(a Appearance) Styles {
 	plain := a.Theme == "mono" || os.Getenv("NO_COLOR") != ""
-	color := func(light, dark string) lipgloss.TerminalColor {
+	color := func(light, dark string) color.Color {
 		if plain {
 			return lipgloss.NoColor{}
 		}
@@ -77,7 +81,7 @@ func NewStyles(a Appearance) Styles {
 		case "dark":
 			return lipgloss.Color(dark)
 		default:
-			return lipgloss.AdaptiveColor{Light: light, Dark: dark}
+			return lipgloss.LightDark(a.Dark)(lipgloss.Color(light), lipgloss.Color(dark))
 		}
 	}
 	text := color("#253D39", "#DCE9E3")

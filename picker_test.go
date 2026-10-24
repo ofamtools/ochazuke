@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 func pickerFixture(t *testing.T, text, kind, filter string, cursor int) (*Runtime, *Picker, *Input) {

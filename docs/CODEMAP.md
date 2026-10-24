@@ -96,12 +96,12 @@ Root package `ochazuke` is flat: 27 source files, 20 test files. Each entry list
 
 ### model.go
 
-- lines: 499 · tests: model_test.go
+- lines: 498 · tests: model_test.go
 - purpose: ModalView renders one modal without replacing or inspecting its parent page.
 - types: ModalView, Model
-- methods: Model(10)
+- methods: Model(12)
 - funcs: NewModel, InputView
-- leans on: runtime.go(83), palette.go(12), theme.go(10), editor.go(4)
+- leans on: runtime.go(82), palette.go(12), theme.go(11), editor.go(4)
 
 ### pages.go
 
@@ -190,7 +190,7 @@ Root package `ochazuke` is flat: 27 source files, 20 test files. Each entry list
 
 ### theme.go
 
-- lines: 109
+- lines: 113
 - purpose: Appearance is event-loop-owned configuration.
 - types: Appearance, Styles
 - funcs: NewAppearance, NewStyles

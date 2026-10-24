@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 	"ochazuke"
 	"ochazuke/internal/keytest"
@@ -27,7 +27,7 @@ func TestResponsiveFieldsAndModalRestoration(t *testing.T) {
 	}
 	for _, size := range [][2]int{{80, 24}, {60, 18}, {120, 40}} {
 		m.Update(tea.WindowSizeMsg{Width: size[0], Height: size[1]})
-		view := ansi.Strip(m.View())
+		view := ansi.Strip(m.View().Content)
 		if !strings.Contains(view, "▸ Paths") || !strings.Contains(view, "go.mod") {
 			t.Fatalf("sidebar or selected field disappeared:\n%s", view)
 		}
@@ -44,12 +44,12 @@ func TestResponsiveFieldsAndModalRestoration(t *testing.T) {
 	m.Update(tea.WindowSizeMsg{Width: 60, Height: 18})
 	key("tab")
 	key("tab")
-	if m.Runtime.Context().InputID != "attachments" || !strings.Contains(ansi.Strip(m.View()), "examples") {
-		t.Fatalf("compact layout hid the newly focused field:\n%s", m.View())
+	if m.Runtime.Context().InputID != "attachments" || !strings.Contains(ansi.Strip(m.View().Content), "examples") {
+		t.Fatalf("compact layout hid the newly focused field:\n%s", m.View().Content)
 	}
 	key("ctrl+s")
-	if !strings.Contains(ansi.Strip(m.View()), "workspace saved") {
-		t.Fatalf("compact layout hid action feedback:\n%s", m.View())
+	if !strings.Contains(ansi.Strip(m.View().Content), "workspace saved") {
+		t.Fatalf("compact layout hid action feedback:\n%s", m.View().Content)
 	}
 	before := m.Runtime.Context().Clone()
 	key("ctrl+o")
@@ -63,15 +63,15 @@ func TestResponsiveFieldsAndModalRestoration(t *testing.T) {
 	}
 	key("esc")
 	key("esc")
-	if len(m.Runtime.Frames) != 1 || !reflect.DeepEqual(m.Runtime.Context(), before) || !strings.Contains(ansi.Strip(m.View()), "examples") {
-		t.Fatalf("modal close failed to restore selected field: %+v\n%s", m.Runtime.Context(), m.View())
+	if len(m.Runtime.Frames) != 1 || !reflect.DeepEqual(m.Runtime.Context(), before) || !strings.Contains(ansi.Strip(m.View().Content), "examples") {
+		t.Fatalf("modal close failed to restore selected field: %+v\n%s", m.Runtime.Context(), m.View().Content)
 	}
 	if _, err := m.Runtime.Execute(ochazuke.Request{Verb: "open", Noun: "page", Args: ochazuke.Arguments{"id": "help"}}); err != nil {
 		t.Fatal(err)
 	}
-	initial := ansi.Strip(m.View())
+	initial := ansi.Strip(m.View().Content)
 	key("pgdown")
-	if ansi.Strip(m.View()) == initial || !strings.Contains(ansi.Strip(m.View()), "▸ Guide") {
+	if ansi.Strip(m.View().Content) == initial || !strings.Contains(ansi.Strip(m.View().Content), "▸ Guide") {
 		t.Fatal("scrolling guide moved the sidebar or failed to reveal more content")
 	}
 }

@@ -1,6 +1,6 @@
 # Ochazuke: agent guide
 
-Go application framework on Bubble Tea **v1.3** (`github.com/charmbracelet/bubbletea`), Lip Gloss v1, Bubbles v0.21. Single flat package `ochazuke` at the repo root plus `cmd/`, `examples/`, `docs/`.
+Go application framework on Bubble Tea **v2** (`charm.land/bubbletea/v2` v2.1.0), Lip Gloss v2 (`charm.land/lipgloss/v2` v2.0.6), Bubbles v2 (`charm.land/bubbles/v2` v2.2.1). Single flat package `ochazuke` at the repo root plus `cmd/`, `examples/`, `docs/`.
 
 ## Read in this order
 
@@ -45,7 +45,7 @@ Do not hand-edit either generated file. If a map entry is wrong, fix the code or
 - Mode resolution: the focused input's mode wins; otherwise the top frame's `State["mode"]`; otherwise `normal`. See README "Input modes" for the editing-model and field-kind matrix.
 - Readline keys are always active in insert mode. They are framework defaults, not removable; an application overrides a key by binding it in a layer with `mode: insert`.
 - Never bind function keys (F1 to F12) anywhere, including demos, sandboxes, and tests. Use ordinary keys or Ctrl/Alt combinations and keep help text in sync with the real binding.
-- This is Bubble Tea **v1**. Do not import v2 idioms from the reference projects below (`tea.KeyPressMsg`, `tea.View` structs, `charm.land/...` paths).
+- This is Bubble Tea **v2**. The v1 idioms are gone: no `tea.KeyMsg` struct (`tea.KeyPressMsg` and `tea.PasteMsg`; a paste reaches `dispatchKey` as `[text]`), no `View() string` (`View() tea.View` with `AltScreen` set there, not via program options), no `lipgloss.AdaptiveColor` or renderers (`Appearance.Dark` from `tea.BackgroundColorMsg` feeds `lipgloss.LightDark`), no `github.com/charmbracelet/{bubbletea,lipgloss,bubbles}` imports. Ctrl-Space is `ctrl+space`, not `ctrl+@`. Lip Gloss v2 always emits styles; tests inspecting rendered text use the `mono` theme or `ansi.Strip`.
 
 ## Checks
 
@@ -59,7 +59,7 @@ go run ./examples/core
 
 Facts (versions, import counts, entry points, docs present) are generated into `docs/CHARM-INVENTORY.md` from `docs/charm-refs.txt`. This section is the judgment: which project to open for which question, and which two files to read first.
 
-Version split matters. Only `gmtm` and this repo are on Bubble Tea v1. Everything else is v2 (`charm.land/bubbletea/v2`, `charm.land/lipgloss/v2`).
+Version split matters. Only `gmtm` is still on Bubble Tea v1. This repo and everything else are v2 (`charm.land/bubbletea/v2`, `charm.land/lipgloss/v2`).
 
 | Project | Open it for | Read first |
 |---|---|---|

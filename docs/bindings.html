@@ -13,7 +13,7 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
 <main>
 
 
-<section id="bindings"><p class="eyebrow">02 / Registered defaults</p><h2>Default bindings <span class="count">51</span></h2><p>Every registered layer binding in the demo, including palette, picker and yank-history layers. These are declarations, not a flattened effective keymap: descendant layers override ancestors; mode-specific bindings override modeless bindings within a layer. Only layers on the current context path participate.</p><p>The editor's Vim/Readline grammar and macro prefixes are separate from <code>Layer.Bindings</code>. See the <a href="../README.md#keyboard-guide">editor keyboard guide</a> and <a href="../README.md#palette-and-selectors">palette and selector controls</a> for those keys. <code>ctrl+@</code> is Bubble Tea's spelling for Ctrl-Space. The palette and unfinished editor grammar can handle keys before binding lookup.</p>
+<section id="bindings"><p class="eyebrow">02 / Registered defaults</p><h2>Default bindings <span class="count">51</span></h2><p>Every registered layer binding in the demo, including palette, picker and yank-history layers. These are declarations, not a flattened effective keymap: descendant layers override ancestors; mode-specific bindings override modeless bindings within a layer. Only layers on the current context path participate.</p><p>The editor's Vim/Readline grammar and macro prefixes are separate from <code>Layer.Bindings</code>. See the <a href="../README.md#keyboard-guide">editor keyboard guide</a> and <a href="../README.md#palette-and-selectors">palette and selector controls</a> for those keys. <code>ctrl+space</code> is Bubble Tea v2's spelling for Ctrl-Space. The palette and unfinished editor grammar can handle keys before binding lookup.</p>
 <div class="table-scroll"><table><thead><tr><th>Layer</th><th>Mode</th><th>Keys</th><th>Request</th></tr></thead><tbody><tr class="searchable"><td><code>__yank-history</code></td><td>Any mode</td><td><code>j</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;yank-history&#34;,
@@ -50,7 +50,7 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>ctrl&#43;y</code></td><td><pre>{
   &#34;verb&#34;: &#34;open&#34;,
   &#34;noun&#34;: &#34;yank-history&#34;
-}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>Any mode</td><td><code>ctrl&#43;@</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>Any mode</td><td><code>ctrl&#43;space</code></td><td><pre>{
   &#34;verb&#34;: &#34;open&#34;,
   &#34;noun&#34;: &#34;palette&#34;
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>Any mode</td><td><code>ctrl&#43;c</code></td><td><pre>{
@@ -241,7 +241,7 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
     &#34;id&#34;: &#34;draft&#34;,
     &#34;input&#34;: &#34;dialog&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>playground</code></td><td>normal</td><td><code>f2</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>playground</code></td><td>normal</td><td><code>ctrl&#43;x</code></td><td><pre>{
   &#34;verb&#34;: &#34;inspect&#34;,
   &#34;noun&#34;: &#34;selection&#34;
 }</pre></td></tr></tbody></table></div><p class="empty" hidden>No matching registered bindings.</p></section>
