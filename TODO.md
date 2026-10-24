@@ -13,7 +13,7 @@
   - [x] Define and implement the flat selectable list contract; tree expansion remains optional and unspecified.
   - [ ] Design optional inline completion triggers and `search(query)` providers; settle token boundaries, replacement behavior, and async handling.
   - [ ] Finalize optional `Runtime.Model` access and zero-or-one attached model ownership.
-  - [ ] Settle remaining terminal details: unknown/incomplete prefix sequences, component API, screen updates, resizing, and connection lifecycle.
+  - [ ] Settle remaining terminal details: incomplete prefix sequences, component API, screen updates, resizing, and connection lifecycle.
   - [ ] Continue the one-at-a-time discussion: domain detail views, specialized previews, and optional resizable panes.
   - Domain modules, persistence, and terminal-daemon integration remain application-level.
 

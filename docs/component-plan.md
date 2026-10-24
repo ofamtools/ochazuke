@@ -161,8 +161,9 @@ The terminal component has a live-input state that captures keyboard input for t
 | `Ctrl+A` | Enter pending-prefix handling without forwarding the prefix |
 | `Ctrl+A`, then `d` | Detach from live mode |
 | `Ctrl+A`, then `Ctrl+A` | Send one literal `Ctrl+A` to the inner process |
+| Prefix, then an unbound key | Forward both the configured prefix and the second key, in order, without a hint |
 
-These are sequential keystrokes, not a three-key chord. Both completed sequences clear pending-prefix state. No other live-mode shortcuts were agreed.
+These are sequential keystrokes, not a three-key chord. Every completed sequence clears pending-prefix state. An unbound `Ctrl+C` after the prefix follows the same forwarding rule; there is no separate prefix-cancel shortcut. The user chose forwarding both keys instead of TUIOS's behavior of consuming the prefix and forwarding only the unbound second key.
 
 Detaching returns control and focus to the surrounding application and restores its normal binding resolution. It does not terminate the terminal session or its running process.
 
@@ -170,7 +171,6 @@ The terminal-daemon client and protocol remain application-level. The component 
 
 Still undecided:
 
-- What happens after an unrecognized prefix sequence, such as `Ctrl+A`, then `x`.
 - Whether a pending prefix times out, and how incomplete sequences are handled.
 - The exact component/provider API, screen-update representation, resize behavior, and disconnect/reconnect lifecycle.
 
@@ -198,7 +198,7 @@ Current operation argument validation accepts strings, integers, and booleans. C
 
 These are future conversations, not technical blockers and not approved implementation tasks. Continue one component at a time.
 
-1. Live terminal component: the input contract above is settled. Remaining topics are unknown/incomplete prefix sequences, component API, screen display, resizing, and connection lifecycle.
+1. Live terminal component: the input contract above is settled. Remaining topics are incomplete prefix sequences, component API, screen display, resizing, and connection lifecycle.
 2. Domain detail views: determine which are ordinary application renderers inside existing panels rather than new reusable widgets.
 3. Specialized previews: discuss only formats the application actually needs, such as diffs, Markdown, or JSON trees.
 4. Resizable pane workspaces: optional. Existing responsive fixed layouts already work; interactive split manipulation is additional scope.
