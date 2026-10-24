@@ -277,6 +277,21 @@ func (b *NounBuilder) Rows(noun string) *NounBuilder {
 	return b
 }
 
+// State marks the last declared verb as the runtime's state source
+// (Operation.State): one call answers every list's rows, keyed by the noun
+// whose row source verb they replace. A host reading the catalog's state
+// runs it once instead of one row source per list. The framework names no
+// state verb.
+func (b *NounBuilder) State() *NounBuilder {
+	if b.last == "" {
+		panic("State must follow Verb")
+	}
+	op := b.r.Operations[b.last]
+	op.State = true
+	b.r.Operations[b.last] = op
+	return b
+}
+
 // Quiet marks the last declared verb as bookkeeping (Operation.Quiet): its
 // jobs stay off the jobs ticker. The framework names no quiet verb.
 func (b *NounBuilder) Quiet() *NounBuilder {

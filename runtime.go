@@ -75,6 +75,12 @@ type Operation struct {
 	// rows. It is data for hosts (the catalog's rows); the runtime does
 	// not read it.
 	Rows string `json:"rows,omitempty"`
+	// State marks the verb whose answer is the whole state of a host's
+	// lists in one call (NounBuilder.State): a JSON object keyed by the
+	// noun whose row source the host would otherwise run, each value that
+	// verb's rows ({"agent": [{id, label}, ...], ...}). Data for hosts
+	// (the catalog's state); the runtime does not read it.
+	State bool `json:"state,omitempty"`
 	// Quiet marks bookkeeping (a list reload) the jobs ticker does not
 	// show; set by NounBuilder.Quiet. The catalog's quiet.
 	Quiet bool `json:"quiet,omitempty"`

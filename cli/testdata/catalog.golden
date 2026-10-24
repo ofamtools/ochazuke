@@ -2,6 +2,7 @@
   "schema": 1,
   "name": "tool",
   "version": "1.2.3",
+  "state": "widget.state",
   "nouns": [
     {
       "name": "widget",
@@ -103,6 +104,12 @@
         {
           "name": "show",
           "description": "Show a widget",
+          "kind": "application",
+          "result": "JSON value"
+        },
+        {
+          "name": "state",
+          "description": "Every list's rows in one call",
           "kind": "application",
           "result": "JSON value"
         },

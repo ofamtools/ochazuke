@@ -14,10 +14,24 @@ const Schema = 1
 // noun, in the runtime's own JSON shapes (ochazuke.Parameter and
 // ochazuke.Binding unchanged). Nothing in it is invented: every field reads
 // a registry the runtime already has.
+//
+// State is the state source, "NOUN.VERB", "" for none: the first verb (in
+// catalog order) declared with NounBuilder.State. Its JSON answer is every
+// list's rows in one process, an object keyed by the noun whose row source
+// (the verb declaring rows, else list) a host would run for that list:
+//
+//	{"agent": [{"id": "agent/a1", "label": "ada"}, ...], "skill": [...]}
+//
+// A host runs it once, keeps the answer as its cached state and refreshes
+// it when it chooses; a list whose noun is missing from the answer falls
+// back to its own row source, as every list does for an extension without
+// a state verb. A boolean parameter fresh on the state verb, when declared,
+// asks the extension to bypass its own caches (an explicit refresh).
 type CatalogDoc struct {
 	Schema   int                `json:"schema"`
 	Name     string             `json:"name"`
 	Version  string             `json:"version"`
+	State    string             `json:"state,omitempty"`
 	Nouns    []CatalogNoun      `json:"nouns"`
 	Bindings []ochazuke.Binding `json:"bindings"`
 	Pages    []CatalogPage      `json:"pages"`
@@ -70,6 +84,9 @@ func Catalog(r *ochazuke.Runtime, name, version string) ([]byte, error) {
 				noun.Pin = n.Pin
 			}
 			doc.Nouns = append(doc.Nouns, noun)
+		}
+		if op.State && doc.State == "" {
+			doc.State = op.Key()
 		}
 		noun := &doc.Nouns[len(doc.Nouns)-1]
 		verb := CatalogVerb{Name: op.Verb, Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable, Rows: op.Rows, Quiet: op.Quiet, Positional: op.Positional}

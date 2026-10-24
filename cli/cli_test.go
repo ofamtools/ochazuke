@@ -41,6 +41,9 @@ func newFixture(t *testing.T) *fixture {
 		Verb("list", func(ochazuke.Ctx) ochazuke.Result {
 			return ochazuke.Done([]map[string]any{{"id": "w1"}, {"id": "w2"}})
 		}, "List the widgets").Rows("widget").
+		Verb("state", func(ochazuke.Ctx) ochazuke.Result {
+			return ochazuke.Done(map[string]any{"widget": []map[string]any{{"id": "w1"}, {"id": "w2"}}})
+		}, "Every list's rows in one call").State().
 		Verb("show", record, "Show a widget").
 		Verb("rename", record, "Rename a widget").
 		Verb("paint", record, "Paint a widget").
@@ -391,8 +394,8 @@ func TestCatalogGolden(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &doc); err != nil {
 		t.Fatal(err)
 	}
-	if doc.Schema != 1 || doc.Name != "tool" || doc.Version != "1.2.3" {
-		t.Fatalf("header = %d %q %q", doc.Schema, doc.Name, doc.Version)
+	if doc.Schema != 1 || doc.Name != "tool" || doc.Version != "1.2.3" || doc.State != "widget.state" {
+		t.Fatalf("header = %d %q %q state %q", doc.Schema, doc.Name, doc.Version, doc.State)
 	}
 	// The framework's own nouns are in it; the golden keeps the test
 	// noun's part so a framework verb does not churn it.

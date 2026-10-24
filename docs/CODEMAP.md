@@ -81,7 +81,7 @@ Root package `ochazuke` is flat: 42 source files, 32 test files. Each entry list
 
 ### focus.go
 
-- lines: 736 · tests: focus_test.go
+- lines: 743 · tests: focus_test.go
 - purpose: Context derives the path view of the focus.
 - types: ModalOption (func), FocusTargeter (iface)
 - methods: Runtime(35)
@@ -113,12 +113,12 @@ Root package `ochazuke` is flat: 42 source files, 32 test files. Each entry list
 
 ### instance.go
 
-- lines: 190
+- lines: 206
 - purpose: Instance is one addressable thing on screen: a page, a list, a list row, a modal body, or an input.
 - types: Instance, Payload, InstanceOption (func)
-- methods: Payload(1), Runtime(6)
+- methods: Payload(1), Runtime(7)
 - funcs: Parent, Kind, Focus, CloseOnDetach, FocusOnClose, NoSpill
-- leans on: runtime.go(15), noun.go(4), delivery.go(1), input.go(1)
+- leans on: runtime.go(16), noun.go(4), delivery.go(1), input.go(1)
 
 ### layout.go
 
@@ -157,10 +157,10 @@ Root package `ochazuke` is flat: 42 source files, 32 test files. Each entry list
 
 ### noun.go
 
-- lines: 832 · tests: noun_test.go
+- lines: 847 · tests: noun_test.go
 - purpose: Noun is the behaviour shared by every instance of one kind: the verbs it answers to, its key bindings per mode, the action handlers that override an operatio...
 - types: Noun, Binding, NounBuilder, ModeBuilder, Guard (func)
-- methods: Binding(7), ModeBuilder(6), Noun(1), NounBuilder(13), Runtime(12)
+- methods: Binding(7), ModeBuilder(6), Noun(1), NounBuilder(14), Runtime(12)
 - funcs: Do, Enter, Leave
 - leans on: runtime.go(56), instance.go(20), resolve.go(10), input.go(3)
 
@@ -278,7 +278,7 @@ Root package `ochazuke` is flat: 42 source files, 32 test files. Each entry list
 
 ### runtime.go
 
-- lines: 650 · tests: runtime_test.go
+- lines: 656 · tests: runtime_test.go
 - purpose: Request names an operation and, optionally, the instance it addresses.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
 - methods: Context(1), Operation(2), Request(1), Runtime(16)
@@ -345,7 +345,7 @@ Importable package `cli`: 3 source files, 1 test files.
 
 ### cli/catalog.go
 
-- lines: 104
+- lines: 121
 - purpose: CatalogDoc is the catalog answer: what a runtime registers, grouped by noun, in the runtime's own JSON shapes (ochazuke.Parameter and ochazuke.Binding unchan...
 - types: CatalogDoc, CatalogNoun, CatalogVerb, CatalogPage
 - funcs: Catalog
