@@ -134,6 +134,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.Palette.sync()
 		}
+	case JobLingerMsg:
+		m.ticker.fired(v)
 	case tea.BackgroundColorMsg:
 		m.Appearance.Dark = v.IsDark()
 	case tea.KeyPressMsg:
@@ -151,6 +153,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		commands = append(commands, cmd)
 	}
 	if cmd := m.Runtime.PendingCommands(); cmd != nil {
+		commands = append(commands, cmd)
+	}
+	if cmd := m.ticker.lingerCommand(m.clock()); cmd != nil {
 		commands = append(commands, cmd)
 	}
 	return m, tea.Batch(commands...)

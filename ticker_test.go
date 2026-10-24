@@ -113,3 +113,31 @@ func TestJobsTickerTruncatesAndTakesRowsFromTheBody(t *testing.T) {
 		t.Fatalf("ticker rows %q, rule %q", got, rows[21])
 	}
 }
+
+// A finished job schedules one JobLingerMsg at JobLinger; the message alone
+// (no key) drops the row, and nothing is scheduled once nothing lingers.
+func TestJobsTickerLingerTickClearsAnIdleScreen(t *testing.T) {
+	r, m, now := tickerFixture(t)
+	r.Settle(issue(t, r, "thing.build"), nil)
+	if _, cmd := m.Update(frameMsg); cmd == nil {
+		t.Fatal("no command scheduled for the finished job")
+	}
+	if want := now.Add(JobLinger); !m.ticker.tickAt.Equal(want) {
+		t.Fatalf("tick at %v, want %v", m.ticker.tickAt, want)
+	}
+	if got := m.JobsTicker(80); len(got) != 1 || got[0] != "thing.build done" {
+		t.Fatalf("ticker = %q", got)
+	}
+	// A second frame while the timer is in flight schedules nothing new.
+	m.Update(frameMsg)
+	if !m.ticker.tickAt.Equal(now.Add(JobLinger)) {
+		t.Fatalf("rescheduled to %v", m.ticker.tickAt)
+	}
+	*now = now.Add(JobLinger)
+	if _, cmd := m.Update(JobLingerMsg{at: m.ticker.tickAt}); cmd != nil {
+		t.Fatalf("a command after the last row went: %T", cmd())
+	}
+	if got := m.JobsTicker(80); len(got) != 0 || !m.ticker.tickAt.IsZero() {
+		t.Fatalf("after the tick: ticker %q, tick at %v", got, m.ticker.tickAt)
+	}
+}

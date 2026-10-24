@@ -148,7 +148,7 @@ Root package `ochazuke` is flat: 42 source files, 31 test files. Each entry list
 
 ### model.go
 
-- lines: 644
+- lines: 649
 - purpose: ModalView renders one modal without replacing or inspecting its parent page.
 - types: ModalView, Model, HelpRow
 - methods: Model(18)
@@ -310,9 +310,10 @@ Root package `ochazuke` is flat: 42 source files, 31 test files. Each entry list
 
 ### ticker.go
 
-- lines: 127 · tests: ticker_test.go
+- lines: 157 · tests: ticker_test.go
 - purpose: jobTicker is the Model's short memory of finished jobs: jobs.list deletes finished jobs on read, so the ticker keeps its own copy for JobLinger.
-- methods: Model(2), jobTicker(2)
+- types: JobLingerMsg
+- methods: Model(2), jobTicker(4)
 - funcs: JobsTicker
 - leans on: delivery.go(10), runtime.go(4), model.go(3), instance.go(1)
 
@@ -415,6 +416,7 @@ Exported type -> file.
 - Instance -> instance.go
 - InstanceOption -> instance.go
 - JobInfo -> delivery.go
+- JobLingerMsg -> ticker.go
 - KeyEvent -> resolve.go
 - Layout -> layout.go
 - List -> list.go

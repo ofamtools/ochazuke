@@ -4,6 +4,7 @@ import (
 	"slices"
 	"time"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -11,9 +12,10 @@ import (
 const JobTickerRows = 2
 
 // JobLinger is how long a finished job stays on the ticker after the
-// frame that first saw it finished. There is no timer: the row goes at
-// the first frame (any message: a key, a completion, a terminal frame)
-// after that, or sooner when a newer job pushes it off.
+// frame that first saw it finished. The Model schedules one JobLingerMsg
+// for the earliest remembered finish (Model.lingerCommand), so the row
+// goes on an idle screen; any earlier frame past the deadline drops it
+// too, and a newer job can push it off sooner.
 const JobLinger = 4 * time.Second
 
 // jobTicker is the Model's short memory of finished jobs: jobs.list deletes
@@ -22,6 +24,34 @@ const JobLinger = 4 * time.Second
 type jobTicker struct {
 	finished []tickerJob     // newest finish first
 	seen     map[uint64]bool // finished jobs already remembered (or expired)
+	tickAt   time.Time       // the deadline of the JobLingerMsg in flight, zero when none
+}
+
+// JobLingerMsg is the ticker's one-shot timer: it fires when the oldest
+// remembered finished job passes JobLinger, so the frame it causes drops
+// the row with no key pressed.
+type JobLingerMsg struct{ at time.Time }
+
+// lingerCommand schedules a JobLingerMsg for the earliest remembered
+// finished job, unless one is already in flight for it. Nothing lingers,
+// nothing is scheduled: there is no periodic tick.
+func (t *jobTicker) lingerCommand(now time.Time) tea.Cmd {
+	if len(t.finished) == 0 {
+		return nil
+	}
+	next := t.finished[len(t.finished)-1].at.Add(JobLinger)
+	if !t.tickAt.IsZero() && !next.Before(t.tickAt) {
+		return nil
+	}
+	t.tickAt = next
+	return tea.Tick(next.Sub(now), func(time.Time) tea.Msg { return JobLingerMsg{at: next} })
+}
+
+// fired clears the timer in flight when its message arrives.
+func (t *jobTicker) fired(msg JobLingerMsg) {
+	if msg.at.Equal(t.tickAt) {
+		t.tickAt = time.Time{}
+	}
 }
 
 type tickerJob struct {
