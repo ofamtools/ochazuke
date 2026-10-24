@@ -398,25 +398,25 @@ Importable package `grid`: 2 source files, 1 test files.
 
 ## Package story
 
-Importable package `story`: 7 source files, 0 test files.
+Importable package `story`: 8 source files, 0 test files.
 
 ### story/build.go
 
-- lines: 572
+- lines: 588
 - purpose: Session is one built story: the runtime, the model and the demo state the verbs act on (fake jobs and panes).
 - types: Session, Options
-- methods: Session(12)
+- methods: Session(13)
 - funcs: Build
 - leans on: story.go(22), run.go(7), fake.go(2)
 
 ### story/driver.go
 
-- lines: 237
+- lines: 285
 - purpose: Tagged is a message from a session's command, tagged with the session's generation so a message of a session that was reset or left never reaches its success...
-- types: Tagged, Driver
-- methods: Driver(8)
+- types: Tagged, Driver, Step, Ran
+- methods: Driver(10)
 - funcs: Wrap, Unbatch, Classify, NewDriver
-- leans on: story.go(10), build.go(6)
+- leans on: story.go(14), build.go(6), run.go(1)
 
 ### story/fake.go
 
@@ -436,12 +436,12 @@ Importable package `story`: 7 source files, 0 test files.
 
 ### story/run.go
 
-- lines: 247
+- lines: 250
 - purpose: Golden is a frame as a golden file holds it: each row stripped of escapes behind a gutter that reads "R|" when the row has reverse video and " |" otherwise, ...
 - types: Library, Result, RunOptions
 - methods: Library(2), Result(1)
 - funcs: Golden, Check, Replay
-- leans on: story.go(27), build.go(5), record.go(4), driver.go(1)
+- leans on: story.go(27), build.go(5), record.go(4), driver.go(2)
 
 ### story/story.go
 
@@ -453,12 +453,21 @@ Importable package `story`: 7 source files, 0 test files.
 
 ### story/trim.go
 
-- lines: 99
+- lines: 110
 - purpose: TrimSpec chooses a window of a recording's (or story's) events.
 - types: TrimSpec
 - methods: Library(1), TrimSpec(1)
 - funcs: WriteStory
-- leans on: story.go(8), build.go(3), driver.go(1), record.go(1)
+- leans on: story.go(8), build.go(6), driver.go(2), record.go(1)
+
+### story/verbs.go
+
+- lines: 136
+- purpose: Minimum is what a set of stories exercises: per mode and noun the noun.verb requests their keys resolved to (the minimum a component needs to be full-feature...
+- types: Minimum, Edge
+- methods: Minimum(2)
+- funcs: Derive
+- leans on: story.go(8), driver.go(2)
 
 ## Symbol owners
 
@@ -552,6 +561,7 @@ Exported type -> file.
 - grid.Styles -> grid/grid.go
 - story.BindSpec -> story/story.go
 - story.Driver -> story/driver.go
+- story.Edge -> story/verbs.go
 - story.Entry -> story/record.go
 - story.Event -> story/story.go
 - story.Expect -> story/story.go
@@ -562,13 +572,16 @@ Exported type -> file.
 - story.JobSpec -> story/story.go
 - story.Library -> story/run.go
 - story.ListSpec -> story/story.go
+- story.Minimum -> story/verbs.go
 - story.Options -> story/build.go
 - story.Page -> story/story.go
+- story.Ran -> story/driver.go
 - story.Recorder -> story/record.go
 - story.Recording -> story/record.go
 - story.Result -> story/run.go
 - story.RunOptions -> story/run.go
 - story.Session -> story/build.go
+- story.Step -> story/driver.go
 - story.Store -> story/record.go
 - story.Story -> story/story.go
 - story.Tagged -> story/driver.go
