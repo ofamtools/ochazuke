@@ -1,6 +1,9 @@
 package ochazuke
 
 import (
+	"flag"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -109,5 +112,77 @@ func TestHelpDoesNotShadowInsertOrTerminal(t *testing.T) {
 	keytest.Press(m, "?")
 	if r.TopModal() != "" || len(stream.sent) == 0 || stream.sent[len(stream.sent)-1][0] != "?" {
 		t.Fatalf("terminal ?: modal %q sent %v", r.TopModal(), stream.sent)
+	}
+}
+
+var updateHelp = flag.Bool("update-help", false, "rewrite testdata/help-80.golden")
+
+// The help modal at 80 columns for a task-like row: the key column is as
+// wide as the longest literal key, pattern rows read short (1-9), the
+// operation column is fixed, and every description reads in the rest.
+func TestHelpGoldenAt80Columns(t *testing.T) {
+	r := NewRuntime()
+	noop := func(Ctx) Result { return Done(nil) }
+	r.Define("task").
+		Verb("open", noop, "Open the task's page").
+		Verb("done", noop, "Mark the task done and move it to the archive").
+		Verb("edit", noop, "Edit the task's title in a prompt").
+		Verb("note", noop, "Add a note to the task").
+		Verb("delete", noop, "Delete the task after a confirm").
+		Mode("normal").
+		Bind("enter", Do("task.open")).
+		Bind("x", Do("task.done")).
+		Bind("e", Do("task.edit")).
+		Bind("n", Do("task.note")).
+		Bind("d d", Do("task.delete"))
+	if _, err := r.AddPage("main", "Main", func(r *Runtime, w, h int) Block { return Text(r.List("tasks").View(w, h)) }); err != nil {
+		t.Fatal(err)
+	}
+	list, err := r.AddList("tasks", []ListItem{{ID: "t1", Label: "write the brief", Noun: "task"}}, Parent("main"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := NewModel(r)
+	if err := r.OpenPage("main"); err != nil {
+		t.Fatal(err)
+	}
+	if err := list.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	m.Width, m.Height = 80, 72
+	keytest.Press(m, "?")
+	if r.TopModal() != helpID {
+		t.Fatalf("top modal %q, status %q", r.TopModal(), m.Status)
+	}
+	var lines []string
+	for _, line := range strings.Split(ansi.Strip(m.View().Content), "\n") {
+		lines = append(lines, strings.TrimRight(line, " "))
+	}
+	got := []byte(strings.Join(lines, "\n") + "\n")
+	golden := filepath.Join("testdata", "help-80.golden")
+	if *updateHelp {
+		if err := os.MkdirAll("testdata", 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(golden, got, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want, err := os.ReadFile(golden)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(want) {
+		t.Fatalf("help differs from %s (go test -run TestHelpGoldenAt80Columns -update-help):\n%s", golden, got)
+	}
+}
+
+// Pattern rows read short in the key column; literal keys stay as they are.
+func TestHelpKeyShortensPatterns(t *testing.T) {
+	for key, want := range map[string]string{"<digit>": "0-9", "<digit-0>": "1-9", "<alpha>": "a-z", "<alpha-q>": "a-z -q", "<printable>": "char", "<any>": "any", "<one-of:h l>": "h/l", "<": "<", "shift+tab": "shift+tab"} {
+		got, literal := helpKey(key)
+		if got != want || literal != (got == key) {
+			t.Fatalf("helpKey(%q) = %q, %v; want %q", key, got, literal, want)
+		}
 	}
 }

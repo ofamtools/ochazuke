@@ -1,0 +1,72 @@
+  ◆ Ochazuke                                                           NORMAL
+   › Main
+  ────────────────────────────────────────────────────────────────────────────
+  > write the brief
+
+
+
+
+
+        ╭──────────────────────────────────────────────────────────────╮
+        │ Keys                                                         │
+        │ > enter       task.open           Open the task's page       │
+        │   x           task.done           Mark the task done and     │
+        │                                   move it to the archive     │
+        │   e           task.edit           Edit the task's title in a │
+        │                                   prompt                     │
+        │   n           task.note           Add a note to the task     │
+        │   d d         task.delete         Delete the task after a    │
+        │                                   confirm                    │
+        │   d esc       mode.leave          Return from a pending mode │
+        │                                   to the mode it shadowed    │
+        │   j           list.move           Move selection without     │
+        │                                   stealing focus             │
+        │   down        list.move           Move selection without     │
+        │                                   stealing focus             │
+        │   k           list.move           Move selection without     │
+        │                                   stealing focus             │
+        │   up          list.move           Move selection without     │
+        │                                   stealing focus             │
+        │   space       list.mark           Toggle the mark on a row   │
+        │                                   (the selected row by       │
+        │                                   default) for fan-out verbs │
+        │   ctrl+c      app.quit            Exit the application       │
+        │   "           mode.enter          Enter a pending mode with  │
+        │                                   a typed payload (op,       │
+        │                                   count, opcount; prefix     │
+        │                                   arms the sequence timer,   │
+        │                                   request is what it runs)   │
+        │   q           mode.enter          Enter a pending mode with  │
+        │                                   a typed payload (op,       │
+        │                                   count, opcount; prefix     │
+        │                                   arms the sequence timer,   │
+        │                                   request is what it runs)   │
+        │   @           mode.enter          Enter a pending mode with  │
+        │                                   a typed payload (op,       │
+        │                                   count, opcount; prefix     │
+        │                                   arms the sequence timer,   │
+        │                                   request is what it runs)   │
+        │   1-9         mode.enter          Enter a pending mode with  │
+        │                                   a typed payload (op,       │
+        │                                   count, opcount; prefix     │
+        │                                   arms the sequence timer,   │
+        │                                   request is what it runs)   │
+        │   }           focus.next          Move the focus to the next │
+        │                                   focus stop (or region) in  │
+        │                                   tree order, wrapping,      │
+        │                                   landing on its remembered  │
+        │                                   child                      │
+        │   {           focus.previous      Move the focus to the      │
+        │                                   previous focus stop (or    │
+        │ 1–18 / 31                                                    │
+        │ j list.move · down list.move · k list.move · up list.move ·… │
+        ╰──────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+  ────────────────────────────────────────────────────────────────────────────
+  j list.move · down list.move · k list.move · up list.move · space list.mark…
+

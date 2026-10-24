@@ -90,9 +90,9 @@ Root package `ochazuke` is flat: 42 source files, 31 test files. Each entry list
 
 ### help.go
 
-- lines: 58 · tests: help_test.go
+- lines: 198 · tests: help_test.go
 - purpose: registerBindingHelp adds bindings.help: a modal listing BindingHelp for the focus it opens over, one row per binding (key, noun.verb, description), grouped b...
-- leans on: runtime.go(8), instance.go(5), list.go(4), block.go(3)
+- leans on: runtime.go(8), noun.go(7), instance.go(5), block.go(4)
 
 ### history.go
 
