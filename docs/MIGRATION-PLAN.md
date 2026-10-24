@@ -60,7 +60,32 @@ Write the new core as new files from the design, not as edits to runtime.go: `no
 
 ## Phase 5: one stack walk, everything is a noun
 
-- Resolution: for each instance from focus outward, noun bindings for the current state, then any-state bindings, then the noun's grammar. First hit wins. Sequence pending state keyed by (focus, state). Unmatched sequence is offered to the innermost grammar before being dropped.
+Amendment (from the forked design session, 2026-10-24; to be confirmed by the owner in the migration session before this phase starts): the walk reads **mode tables only, no grammar hooks**. Every pending condition is an exclusive mode with a small typed payload, and the resolver is one lookup per stack level.
+
+```js
+// resolver, complete
+for (inst of stack(focus)) {
+  table = nouns[inst.noun].bindings[state.mode.name]
+  hit = table[key] ?? table[classOf(key)] ?? table.any     // exact, then class (digit, alpha, printable, alpha-q, one-of), then any
+  if (hit) return hit(key, state, inst)
+}
+
+// modes carry payload {register, count, op, shadow}
+normal:           { i: set.mode insert, d: enter operator_pending{op:delete}, g: enter g_pending, <digit>: count.append, q: enter macro_pending }
+operator_pending: { w: motion.apply word, d: line.apply, any: enter normal }
+g_pending:        { g: move first-line, any: enter normal }          // "g g" is sugar for this; the ambiguity timeout is a timer cmd that fires set.mode with the fallback, same generation guard as today
+macro_pending:    { <alpha>: macro.start{register:key}, any: enter normal }
+macro_recording:  { any: macro.append(key) then re-dispatch in payload.shadow and store the next mode back in shadow,
+                    q: stop only when shadow is normal with empty payload }   // replay keeps the depth flag so replayed keys are not re-recorded
+leader_pending:   { <bound>: run command, any: forward prefix+key to the pane, restore shadow }   // terminal leader, same shape
+```
+
+Binding row shape, identical in code and config: `{noun, mode, keys | pattern, request | null, argsFromKey?}`. Same noun+mode+pattern replaces a default, a new pattern adds, `null` unbinds. `list.bindings` prints exactly this for the current stack and mode. Go sketch: `r.Noun("editor").Mode("normal").Bind("d", Enter("operator_pending", Payload{Op: "delete"})).Bind(Digit, Do("count.append"))`; `.When(ShadowIs("normal"))` for guarded rows; `Func(...)` only where re-dispatch is needed (recording, leader).
+
+Consequences: `list.bindings` and help are complete, including pending modes; the phase 0 goldens become table rows (mode, key, next mode, action); users can rebind inside pending modes; the routers in `dispatchKey` become rows. Care points: payload is a struct, not a map; generate the editor noun's tables from a compact spec; help in a shadow mode shows the shadow's bindings plus the mode's own rows (a presentation rule, not a resolver rule). The phase 0 finding that the macro grammar is consulted twice per key disappears by construction.
+
+
+- Resolution (superseded by the amendment above if confirmed): for each instance from focus outward, noun bindings for the current state, then any-state bindings, then the noun's grammar. First hit wins. Sequence pending state keyed by (focus, state). Unmatched sequence is offered to the innermost grammar before being dropped.
 - Move the Readline switch and the Vim switch from editing.go into the `editor` noun (bindings for Readline, grammar for counts, operators, pending motions). `list.bindings` now reports them.
 - `prompt` noun replaces `ReadlineOnly`: editor grammar, state pinned to insert, Escape unbound.
 - Palette becomes a noun on a modal instance; "esc pops a modal" becomes a `modal` noun binding; macro recording becomes a transient noun pushed on focus.
