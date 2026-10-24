@@ -6,15 +6,15 @@
 #bindings table{min-width:680px}#bindings th:nth-child(-n+3),#bindings td:nth-child(-n+3){white-space:nowrap}
 nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
 </style></head><body>
-<header><a href="architecture.html">← Architecture field guide</a><p class="eyebrow">Ochazuke / generated reference</p><h1>Go API</h1><p>Actions and bindings come from a fresh <code>NewDemo()</code>. Go declarations and comments come from the package source through Go's standard <code>go/doc</code> library. This is a build-time snapshot, not your running application's customized registry.</p>
-<nav aria-label="Catalogs"><a href="actions.html">Actions (78)</a><a href="bindings.html">Default bindings (410)</a><a href="api.html" aria-current="page">Go API (204)</a><a href="transport.html">CLI &amp; socket</a></nav>
+<header><a href="architecture.html">← Architecture field guide</a><p class="eyebrow">Ochazuke / generated reference</p><h1>Go API</h1><p>Actions and bindings come from a fresh <code>demo.New()</code> (examples/demo). Go declarations and comments come from the package source through Go's standard <code>go/doc</code> library. This is a build-time snapshot, not your running application's customized registry.</p>
+<nav aria-label="Catalogs"><a href="actions.html">Actions (78)</a><a href="bindings.html">Default bindings (410)</a><a href="api.html" aria-current="page">Go API (207)</a><a href="transport.html">CLI &amp; socket</a></nav>
 <div class="toolbar"><label for="search">Search Go API</label><input id="search" type="search" placeholder="Search this catalog" autocomplete="off"><p id="matches" role="status"></p></div>
 <noscript>All entries are available below. Search requires JavaScript.</noscript></header>
 <main>
 
 
 
-<section id="api"><p class="eyebrow">03 / Exported Go API</p><h2>Go API <span class="count">204</span></h2><p>Generated exported types, functions, methods, constants and variables from the root <code>ochazuke</code> package. Unexported fields and function bodies are omitted. Missing prose means the declaration has no source doc comment. Command entry points under <code>cmd/</code> are not library APIs.</p><p>Go also provides terminal documentation: run <code>go doc -all .</code> or <code>go doc Runtime.Execute</code> from the repository root. This offline reference needs no <code>godoc</code> server or published module.</p>
+<section id="api"><p class="eyebrow">03 / Exported Go API</p><h2>Go API <span class="count">207</span></h2><p>Generated exported types, functions, methods, constants and variables from the root <code>ochazuke</code> package. Unexported fields and function bodies are omitted. Missing prose means the declaration has no source doc comment. Command entry points under <code>cmd/</code> are not library APIs.</p><p>Go also provides terminal documentation: run <code>go doc -all .</code> or <code>go doc Runtime.Execute</code> from the repository root. This offline reference needs no <code>godoc</code> server or published module.</p>
 <details class="entry searchable"><summary><code>AppHandler</code> <small>type</small></summary><pre>AppHandler is the signature of an application verb: it reads the Ctx and
 returns Done, Failed or Pending work. Pending work runs off the loop; its
 completion is delivered to the owning instance through the contract, so a
@@ -50,7 +50,11 @@ that hands an unknown key back to the stack). Func rows exist only where a row m
 }</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Binding.FromKey</code> <small>function / method</small></summary><pre>FromKey fills an argument from the pressed key name.
 </pre><pre>func (b Binding) FromKey(arg string) Binding</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Binding.FromPayload</code> <small>function / method</small></summary><pre>FromPayload fills an argument from the mode payload (a Source name).
 </pre><pre>func (b Binding) FromPayload(arg, source string) Binding</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Binding.Guard</code> <small>function / method</small></summary><pre>Guard names the registered guard the row requires.
-</pre><pre>func (b Binding) Guard(name string) Binding</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>BindingTimeoutMsg</code> <small>type</small></summary><pre>BindingTimeoutMsg resolves a pending key sequence on the owning event loop.
+</pre><pre>func (b Binding) Guard(name string) Binding</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>BindingHints</code> <small>function / method</small></summary><pre>BindingHints renders the rows a focus answers to in its current mode as a
+hint line, innermost level first: &#34;ctrl&#43;j next.page · : open.palette&#34;. It
+is the data list.bindings prints, so a hint never names a key that is not
+bound. A Func row shows its key alone.
+</pre><pre>func BindingHints(r *Runtime, focus string) string</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>BindingTimeoutMsg</code> <small>type</small></summary><pre>BindingTimeoutMsg resolves a pending key sequence on the owning event loop.
 Messages from an older sequence or another runtime are ignored.
 </pre><pre>type BindingTimeoutMsg struct {
 	// contains filtered or unexported fields
@@ -121,7 +125,12 @@ payload).
 	Children []int  `json:&#34;children&#34;`
 }</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>Enter</code> <small>function / method</small></summary><pre>Enter builds a row that enters a pending mode with a typed payload.
 </pre><pre>func Enter(mode string, payload ...Payload) Binding</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Failed</code> <small>function / method</small></summary><pre>Failed reports a synchronous failure.
-</pre><pre>func Failed(err error) Result</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Frame</code> <small>type</small></summary><pre>Frame is one entry of the modal stack: the base page frame or an open
+</pre><pre>func Failed(err error) Result</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Footer</code> <small>type</small></summary><pre>Footer is the bottom row of the page chrome: a raw label, styled as an
+error when Error is set.
+</pre><pre>type Footer struct {
+	Text  string
+	Error bool
+}</pre><a href="../layout.go">Source file</a></details><details class="entry searchable"><summary><code>Frame</code> <small>type</small></summary><pre>Frame is one entry of the modal stack: the base page frame or an open
 modal. Focus names the instance that receives keys while the frame is on
 top; Context() derives the old path view from it.
 </pre><pre>type Frame struct {
@@ -134,7 +143,17 @@ row must re-dispatch the key.
 pending count is present or absent), &#34;self&#34; (the focus is the instance
 whose level the row sits on, not a descendant) and &#34;op:&lt;key&gt;&#34; (the pending
 operator). Applications add their own with DefineGuard.
-</pre><pre>type Guard func(*Runtime, KeyEvent) bool</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Handler</code> <small>type</small></summary><pre>type Handler func(*Runtime, Context, Arguments) (any, error)</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Input</code> <small>type</small></summary><pre>type Input struct {
+</pre><pre>type Guard func(*Runtime, KeyEvent) bool</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Handler</code> <small>type</small></summary><pre>type Handler func(*Runtime, Context, Arguments) (any, error)</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Header</code> <small>type</small></summary><pre>Header is the top of the page chrome: the title row with an optional
+right-aligned badge (the shell shows the mode there) and the subtitle row,
+which is a label or, when Tabs is set, the page tabs with Active marked.
+Every field is a raw label.
+</pre><pre>type Header struct {
+	Title    string
+	Badge    string
+	Subtitle string
+	Tabs     []string
+	Active   int
+}</pre><a href="../layout.go">Source file</a></details><details class="entry searchable"><summary><code>Input</code> <small>type</small></summary><pre>type Input struct {
 	ID         string
 	Text       []rune
 	Cursor     int
@@ -208,7 +227,13 @@ raw label. Content that does not fit is clipped and marked with &#34;…&#34; (c
 or a &#34;… N more&#34; last row (lines). Below 3x3 cells the border is dropped.
 </pre><pre>func (l Layout) Panel(title, body string, width, height int, focused bool) string</pre><a href="../layout.go">Source file</a></details><details class="entry searchable"><summary><code>Layout.PanelBlock</code> <small>function / method</small></summary><pre>PanelBlock is Panel for a body that may carry a cursor; the cursor is moved
 inside the border and padding.
-</pre><pre>func (l Layout) PanelBlock(title string, body Block, width, height int, focused bool) Block</pre><a href="../layout.go">Source file</a></details><details class="entry searchable"><summary><code>Layout.Sidebar</code> <small>function / method</small></summary><pre>Sidebar renders a 28-cell navigation rail beside the main panel. Below 72
+</pre><pre>func (l Layout) PanelBlock(title string, body Block, width, height int, focused bool) Block</pre><a href="../layout.go">Source file</a></details><details class="entry searchable"><summary><code>Layout.Shell</code> <small>function / method</small></summary><pre>Shell is the one page chrome: title row, subtitle row, a rule, the body,
+a rule, the footer and a bottom margin, inside a gutter, into exactly
+Width x Height cells. Viewports too small for the chrome keep the body
+and, from three rows up, the footer. The shell and PageBlock both render
+through it, so a page and the application around it reserve the same
+rows. The body&#39;s cursor is moved by the chrome around it.
+</pre><pre>func (l Layout) Shell(h Header, body Block, f Footer) Block</pre><a href="../layout.go">Source file</a></details><details class="entry searchable"><summary><code>Layout.Sidebar</code> <small>function / method</small></summary><pre>Sidebar renders a 28-cell navigation rail beside the main panel. Below 72
 columns it stacks above the main panel. Items are raw labels; mainBody is
 trusted ANSI. Selection is zero-based and clamped for rendering. The caller
 owns selection and key handling; this method keeps the selected item visible.
@@ -299,8 +324,7 @@ string. The terminal cursor follows the focused input through the page or
 modal that holds it: a bar in insert mode, a block in normal mode and an
 underline in visual modes. It is hidden when no input is focused.
 </pre><pre>func (m *Model) View() tea.View</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>NewAppearance</code> <small>function / method</small></summary><pre>NewAppearance registers appearance operations once per runtime.
-</pre><pre>func NewAppearance(r *Runtime) *Appearance</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>NewDemo</code> <small>function / method</small></summary><pre>NewDemo supplies example pages; none of these page names are required by the framework.
-</pre><pre>func NewDemo() *Model</pre><a href="../demo.go">Source file</a></details><details class="entry searchable"><summary><code>NewInput</code> <small>function / method</small></summary><pre>func NewInput(id, text string, multiline bool) *Input</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>NewList</code> <small>function / method</small></summary><pre>NewList registers a list instance of the list noun. Options: Parent(id)
+</pre><pre>func NewAppearance(r *Runtime) *Appearance</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>NewInput</code> <small>function / method</small></summary><pre>func NewInput(id, text string, multiline bool) *Input</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>NewList</code> <small>function / method</small></summary><pre>NewList registers a list instance of the list noun. Options: Parent(id)
 (default app) and Kind(noun) for a list that answers to its own noun as well.
 </pre><pre>func NewList(r *Runtime, id string, items []ListItem, opts ...InstanceOption) (*List, error)</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>NewModel</code> <small>function / method</small></summary><pre>func NewModel(r *Runtime) *Model</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>NewPalette</code> <small>function / method</small></summary><pre>func NewPalette(r *Runtime) *Palette</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>NewPicker</code> <small>function / method</small></summary><pre>func NewPicker(r *Runtime) *Picker</pre><a href="../picker.go">Source file</a></details><details class="entry searchable"><summary><code>NewRuntime</code> <small>function / method</small></summary><pre>func NewRuntime() *Runtime</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>NewStyles</code> <small>function / method</small></summary><pre>NewStyles keeps layout and focus cues usable without terminal color support.
 </pre><pre>func NewStyles(a Appearance) Styles</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>Noun</code> <small>type</small></summary><pre>Noun is the behaviour shared by every instance of one kind: the verbs it
@@ -540,7 +564,7 @@ returns it unchanged.
 </pre><pre>func (r *Runtime) Instance(id string, opts ...InstanceOption) *Instance</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.InstancePath</code> <small>function / method</small></summary><pre>InstancePath is Ancestry reversed: app first, id last.
 </pre><pre>func (r *Runtime) InstancePath(id string) []string</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.List</code> <small>function / method</small></summary><pre>List returns the list an instance fronts, or nil.
 </pre><pre>func (r *Runtime) List(id string) *List</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.ListBindings</code> <small>function / method</small></summary><pre>ListBindings prints the rows the focus answers to in its current mode,
-one per key or pattern, innermost level first.
+one per key or pattern, sorted by key with pattern rows last.
 </pre><pre>func (r *Runtime) ListBindings(focus string) []Binding</pre><a href="../resolve.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Lists</code> <small>function / method</small></summary><pre>Lists lists the registered lists in registration order.
 </pre><pre>func (r *Runtime) Lists() []*List</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.LoadBindingSpec</code> <small>function / method</small></summary><pre>LoadBindingSpec installs a spec onto one noun: modes, then rows.
 </pre><pre>func (r *Runtime) LoadBindingSpec(noun string, data []byte) error</pre><a href="../editor_keys.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.LoadBindings</code> <small>function / method</small></summary><pre>LoadBindings installs rows from a JSON array in the binding row shape and

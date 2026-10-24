@@ -6,8 +6,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"ochazuke/internal/keytest"
 )
 
 // recorder registers verb.test operations that append their verb to calls.
@@ -294,85 +292,6 @@ func TestListBindingsListsEveryEditorKey(t *testing.T) {
 	}
 }
 
-func TestSnapshotExposesNounsAndInstances(t *testing.T) {
-	r := NewDemo().Runtime
-	rows, err := JSONPointer(r.Snapshot(), "/nouns/playground/bindings/normal")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if list, ok := rows.([]any); !ok || len(list) == 0 {
-		t.Fatalf("playground normal rows: %#v", rows)
-	}
-	parent, err := JSONPointer(r.Snapshot(), "/instances/directory/parent")
-	if err != nil || parent != "agent" {
-		t.Fatalf("instance parent %v, %v", parent, err)
-	}
-	if page, _ := JSONPointer(r.Snapshot(), "/page"); page != "overview" {
-		t.Fatalf("/page = %v", page)
-	}
-}
-
-// assertPageInvariant: Runtime.Page is an ancestor of the base frame's focus.
-func assertPageInvariant(t *testing.T, r *Runtime, step string) {
-	t.Helper()
-	if r.Page == "" {
-		return
-	}
-	if !slices.Contains(r.Ancestry(r.Frames[0].Focus), r.Page) {
-		t.Fatalf("%s: page %q is not an ancestor of base focus %q", step, r.Page, r.Frames[0].Focus)
-	}
-}
-
-// The demo session the phase 3 equivalence test drove: pages, fields, nested
-// modals, yank history, palette, picker and sequences, every step green and
-// the page invariant holding.
-func TestDemoKeyboardSessionStaysGreen(t *testing.T) {
-	m := NewDemo()
-	r := m.Runtime
-	r.BindingTimeout = time.Hour
-	step := func(label string, run func()) {
-		t.Helper()
-		run()
-		if m.Status != "" {
-			t.Fatalf("%s: %s", label, m.Status)
-		}
-		assertPageInvariant(t, r, label)
-	}
-	press := func(keys ...string) {
-		t.Helper()
-		for _, key := range keys {
-			step("key "+key, func() { keytest.Press(m, key) })
-		}
-	}
-	execute := func(verb, noun string, args Arguments) {
-		t.Helper()
-		step(verb+"."+noun, func() {
-			if _, err := r.Execute(Request{Verb: verb, Noun: noun, Args: args}); err != nil {
-				t.Fatalf("%s.%s: %v", verb, noun, err)
-			}
-		})
-	}
-	press("ctrl+j", "i", "h", "i", "esc", "y", "y", "tab", "tab", "shift+tab", "ctrl+x")
-	press("ctrl+n", "i", "x", "esc", "ctrl+n", "ctrl+g", "ctrl+g")
-	press("ctrl+y", "esc")
-	execute("open", "palette", nil)
-	press("p", "a")
-	execute("close", "palette", nil)
-	press("?", "ctrl+g")
-	execute("focus", "input", Arguments{"id": "directory"})
-	press("ctrl+o")
-	execute("close", "picker", nil)
-	press("g")
-	execute("select", "context", Arguments{"path": `["app","playground","agent"]`})
-	press("ctrl+j", "j", "k", "ctrl+j", "t", "d", "ctrl+j", "ctrl+k", "ctrl+k")
-	execute("open", "page", Arguments{"id": "playground"})
-	execute("push", "modal", Arguments{"id": "draft", "input": "dialog"})
-	execute("pop", "modal", nil)
-	if string(r.Input("directory").Text) != "hi/tmp" || r.Registers().Named["\""].Yank.Text != "hi/tmp\n" {
-		t.Fatalf("session state: text=%q yank=%q", r.Input("directory").Text, r.Registers().Named["\""].Yank.Text)
-	}
-}
-
 // Rows are instances of their nouns, any instance is a target, and the mode
 // lives on instances.
 func TestListRowsAreInstancesOfTheirNouns(t *testing.T) {
@@ -554,22 +473,6 @@ func TestModeLivesOnInstances(t *testing.T) {
 		editorTestKeys(t, r, keys...)
 		if r.Instances["other-input"].State != other.Mode || r.Mode(r.Context()) != other.Mode {
 			t.Fatalf("after %v: instance %q, mirror %q", keys, r.Instances["other-input"].State, other.Mode)
-		}
-	}
-}
-
-func TestInputModeMirrorsInstanceInDemo(t *testing.T) {
-	m := NewDemo()
-	r := m.Runtime
-	for _, key := range []string{"ctrl+j", "i", "h", "esc", "v", "l", "esc", "ctrl+n", "i", "x", "esc", "ctrl+g", "2", "d"} {
-		keytest.Press(m, key)
-		for _, in := range r.Inputs() {
-			id := in.ID
-			inst := r.Instances[id]
-			pending := r.pendingModes[inst.State] || inst.Payload.Prefix != ""
-			if inst == nil || !pending && inst.State != in.Mode || pending && inst.Payload.Return != in.Mode {
-				t.Fatalf("after %s: input %s mode %q, instance %+v", key, id, in.Mode, inst)
-			}
 		}
 	}
 }

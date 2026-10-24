@@ -11,6 +11,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"ochazuke"
+	"ochazuke/examples/demo"
 )
 
 func main() {
@@ -53,7 +54,7 @@ func run(args []string) error {
 		if runFlags.NArg() != 0 {
 			return fmt.Errorf("unexpected run arguments")
 		}
-		model := ochazuke.NewDemo()
+		model := demo.New()
 		options := []tea.ProgramOption{}
 		if *headless {
 			options = append(options, tea.WithInput(nil), tea.WithoutRenderer(), tea.WithoutSignalHandler())

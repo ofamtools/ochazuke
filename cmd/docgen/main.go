@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"ochazuke"
+	"ochazuke/examples/demo"
 )
 
 type action struct {
@@ -61,8 +62,8 @@ func generate() error {
 	record("NewModel")
 	ochazuke.NewPicker(r)
 	record("NewPicker")
-	r = ochazuke.NewDemo().Runtime
-	record("NewDemo")
+	r = demo.New().Runtime
+	record("demo.New")
 	data := catalog{}
 	for _, op := range r.Catalog() {
 		data.Actions = append(data.Actions, action{op, origins[op.Key()]})
@@ -212,7 +213,7 @@ const page = `<!doctype html>
 #bindings table{min-width:680px}#bindings th:nth-child(-n+3),#bindings td:nth-child(-n+3){white-space:nowrap}
 nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
 </style></head><body>
-<header><a href="architecture.html">← Architecture field guide</a><p class="eyebrow">Ochazuke / generated reference</p><h1>{{.Title}}</h1><p>Actions and bindings come from a fresh <code>NewDemo()</code>. Go declarations and comments come from the package source through Go's standard <code>go/doc</code> library. This is a build-time snapshot, not your running application's customized registry.</p>
+<header><a href="architecture.html">← Architecture field guide</a><p class="eyebrow">Ochazuke / generated reference</p><h1>{{.Title}}</h1><p>Actions and bindings come from a fresh <code>demo.New()</code> (examples/demo). Go declarations and comments come from the package source through Go's standard <code>go/doc</code> library. This is a build-time snapshot, not your running application's customized registry.</p>
 <nav aria-label="Catalogs"><a href="actions.html"{{if eq .Page "actions"}} aria-current="page"{{end}}>Actions ({{len .Actions}})</a><a href="bindings.html"{{if eq .Page "bindings"}} aria-current="page"{{end}}>Default bindings ({{len .Bindings}})</a><a href="api.html"{{if eq .Page "api"}} aria-current="page"{{end}}>Go API ({{len .Symbols}})</a><a href="transport.html"{{if eq .Page "transport"}} aria-current="page"{{end}}>CLI &amp; socket</a></nav>
 {{if ne .Page "transport"}}<div class="toolbar"><label for="search">Search {{.Title}}</label><input id="search" type="search" placeholder="Search this catalog" autocomplete="off"><p id="matches" role="status"></p></div>
 <noscript>All entries are available below. Search requires JavaScript.</noscript>{{end}}</header>
