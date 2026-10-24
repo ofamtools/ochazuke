@@ -81,12 +81,12 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### focus.go
 
-- lines: 669 · tests: focus_test.go
+- lines: 704 · tests: focus_test.go
 - purpose: Context derives the path view of the focus.
 - types: ModalOption (func), FocusTargeter (iface)
-- methods: Runtime(32)
+- methods: Runtime(34)
 - funcs: WithInput
-- leans on: runtime.go(67), instance.go(52), noun.go(11), pages.go(7)
+- leans on: runtime.go(70), instance.go(52), noun.go(11), pages.go(7)
 
 ### history.go
 
@@ -107,7 +107,7 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### instance.go
 
-- lines: 173
+- lines: 183
 - purpose: Instance is one addressable thing on screen: a page, a list, a list row, a modal body, or an input.
 - types: Instance, Payload, InstanceOption (func)
 - methods: Payload(1), Runtime(6)
@@ -130,7 +130,7 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 - types: ListItem, List
 - methods: List(14), Runtime(1)
 - funcs: NewList
-- leans on: runtime.go(40), noun.go(17), instance.go(15), delivery.go(2)
+- leans on: runtime.go(40), noun.go(17), instance.go(16), delivery.go(2)
 
 ### macros.go
 
@@ -142,7 +142,7 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### model.go
 
-- lines: 567
+- lines: 572
 - purpose: ModalView renders one modal without replacing or inspecting its parent page.
 - types: ModalView, Model
 - methods: Model(17)
@@ -151,12 +151,12 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### noun.go
 
-- lines: 773 · tests: noun_test.go
+- lines: 793 · tests: noun_test.go
 - purpose: Noun is the behaviour shared by every instance of one kind: the verbs it answers to, its key bindings per mode, the action handlers that override an operatio...
 - types: Noun, Binding, NounBuilder, ModeBuilder, Guard (func)
-- methods: Binding(6), ModeBuilder(6), Noun(1), NounBuilder(10), Runtime(11)
+- methods: Binding(7), ModeBuilder(6), Noun(1), NounBuilder(10), Runtime(12)
 - funcs: Do, Enter, Leave
-- leans on: runtime.go(55), instance.go(20), resolve.go(10), input.go(3)
+- leans on: runtime.go(56), instance.go(20), resolve.go(10), input.go(3)
 
 ### pages.go
 
@@ -264,7 +264,7 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### resolve.go
 
-- lines: 676 · tests: resolve_test.go
+- lines: 681 · tests: resolve_test.go
 - purpose: KeyEvent is what a row receives: the key, the mode it was resolved in and the focused instance.
 - types: KeyEvent
 - methods: Binding(1), Runtime(19)
@@ -272,7 +272,7 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### runtime.go
 
-- lines: 607 · tests: runtime_test.go
+- lines: 609 · tests: runtime_test.go
 - purpose: Request names an operation and, optionally, the instance it addresses.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
 - methods: Context(1), Operation(1), Request(1), Runtime(16)
@@ -288,11 +288,11 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### terminal.go
 
-- lines: 296 · tests: terminal_test.go
+- lines: 303 · tests: terminal_test.go
 - purpose: TerminalStream is the application's connection to one pane: a daemon client, never a PTY the framework owns.
 - types: TerminalStream (iface), TerminalReleaser (iface), TerminalFrame, Terminal
 - methods: Runtime(3), Terminal(12)
-- leans on: runtime.go(34), noun.go(20), instance.go(9), block.go(6)
+- leans on: runtime.go(34), noun.go(20), instance.go(10), block.go(6)
 
 ### theme.go
 
@@ -323,6 +323,53 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 - lines: 84
 - purpose: yankHistoryText renders the rows around the selection that fit the body.
 - leans on: runtime.go(24), noun.go(7), registers.go(7), block.go(3)
+
+## Package cli
+
+Importable package `cli`: 3 source files, 1 test files.
+
+### cli/catalog.go
+
+- lines: 90
+- purpose: CatalogDoc is the catalog answer: what a runtime registers, grouped by noun, in the runtime's own JSON shapes (ochazuke.Parameter and ochazuke.Binding unchan...
+- types: CatalogDoc, CatalogNoun, CatalogVerb, CatalogPage
+- funcs: Catalog
+
+### cli/mount.go
+
+- lines: 65
+- purpose: Mount registers every noun of the shell's runtime as an inline command of app that runs the shell with the full noun name, so oden's prefix matching resolves...
+- methods: Shell(1)
+- funcs: Mount
+- leans on: shell.go(2), catalog.go(1)
+
+### cli/shell.go
+
+- lines: 404
+- purpose: Shell runs BIN NOUN VERB [--target ID] [--json '{...}'] [--ARG VALUE] [--yes]: one registered operation in this process through the runtime's CLI entry (Runt...
+- types: Shell
+- methods: Shell(12)
+- funcs: New, DefaultUsage
+
+## Package grid
+
+Importable package `grid`: 2 source files, 1 test files.
+
+### grid/grid.go
+
+- lines: 705 · tests: grid_test.go
+- purpose: Ref addresses one cell by its row index in the application's rows and its column index in the header.
+- types: Ref, Styles, Grid, Nouns, Option (func)
+- methods: Grid(38), Ref(1)
+- funcs: RowID, ColID, ParseID, DefaultStyles, WithNouns, WithInstanceRows, New, Of, Bounds
+- leans on: ops.go(1)
+
+### grid/ops.go
+
+- lines: 121
+- purpose: Register defines the grid and selection operations and the selection shape modes once per runtime.
+- funcs: Register, Resolve
+- leans on: grid.go(18)
 
 ## Symbol owners
 
@@ -397,3 +444,13 @@ Exported type -> file.
 - TerminalStream -> terminal.go
 - Ticket -> delivery.go
 - Yank -> registers.go
+- cli.CatalogDoc -> cli/catalog.go
+- cli.CatalogNoun -> cli/catalog.go
+- cli.CatalogPage -> cli/catalog.go
+- cli.CatalogVerb -> cli/catalog.go
+- cli.Shell -> cli/shell.go
+- grid.Grid -> grid/grid.go
+- grid.Nouns -> grid/grid.go
+- grid.Option -> grid/grid.go
+- grid.Ref -> grid/grid.go
+- grid.Styles -> grid/grid.go

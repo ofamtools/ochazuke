@@ -1,0 +1,320 @@
+package cli
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"flag"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/unixsuperhero/ochazuke"
+	"github.com/unixsuperhero/oden"
+)
+
+var update = flag.Bool("update", false, "rewrite testdata/catalog.golden")
+
+// fixture is a runtime with one test noun, widget, on a page with a list of
+// two rows, and the requests its verbs saw.
+type fixture struct {
+	r     *ochazuke.Runtime
+	calls []ochazuke.Request
+}
+
+func newFixture(t *testing.T) *fixture {
+	t.Helper()
+	f := &fixture{r: ochazuke.NewRuntime()}
+	record := func(c ochazuke.Ctx) ochazuke.Result {
+		if c.Instance == nil || c.Instance.Noun != "widget" {
+			return ochazuke.Failed(errors.New("no widget"))
+		}
+		id := c.Instance.ID
+		f.calls = append(f.calls, ochazuke.Request{Noun: "widget", Target: id, Args: c.Args})
+		return ochazuke.Done(map[string]any{"target": id, "args": c.Args})
+	}
+	f.r.Define("widget").
+		Verb("show", record, "Show a widget").
+		Verb("rename", record, "Rename a widget").
+		Verb("remove", record, "Remove a widget").Confirm("Remove {{label}}?").
+		Verb("refresh", func(ochazuke.Ctx) ochazuke.Result {
+			return ochazuke.Pending(func(context.Context) (any, error) { return "fresh", nil })
+		}, "Reload a widget").
+		Verb("ask", func(c ochazuke.Ctx) ochazuke.Result {
+			_, err := c.Runtime.OpenModal("question", ochazuke.Payload{Prompt: "Name?"})
+			if err != nil {
+				return ochazuke.Failed(err)
+			}
+			return ochazuke.Done(nil)
+		}, "Ask in a modal").
+		Mode("normal").Bind("enter", ochazuke.Do("widget.show")).Bind("x", ochazuke.Do("widget.remove"))
+	op := f.r.Operations["widget.rename"]
+	op.Parameters = map[string]ochazuke.Parameter{
+		"name":  {Type: "string", Required: true},
+		"count": {Type: "integer"},
+		"loud":  {Type: "boolean"},
+		"tags":  {Type: "array"},
+	}
+	f.r.Operations["widget.rename"] = op
+	page, err := f.r.AddPage("widgets", "Widgets", func(*ochazuke.Runtime, int, int) ochazuke.Block { return ochazuke.Block{} })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.r.AddList("widgets/list", []ochazuke.ListItem{{ID: "w1", Label: "one", Noun: "widget"}, {ID: "w2", Label: "two", Noun: "widget"}}, ochazuke.Parent(page.ID)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.r.ValidateBindings(); err != nil {
+		t.Fatal(err)
+	}
+	return f
+}
+
+// run runs one shell command with stdin.
+func (f *fixture) run(stdin string, args ...string) (string, string, error) {
+	var out, errOut bytes.Buffer
+	err := New(f.r, "tool", strings.NewReader(stdin), &out, &errOut).Run(context.Background(), args)
+	return out.String(), errOut.String(), err
+}
+
+func TestShellTypesFlagsByTheOperationsParameters(t *testing.T) {
+	f := newFixture(t)
+	out, errOut, err := f.run("", "widget", "rename", "--target", "w1", "--name", "uno", "--count=3", "--loud", "--tags", `["a","b"]`)
+	if err != nil {
+		t.Fatalf("rename: %v\n%s", err, errOut)
+	}
+	args := f.calls[0].Args
+	if f.calls[0].Target != "w1" || args["name"] != "uno" || args["count"] != 3 || args["loud"] != true || len(args["tags"].([]any)) != 2 {
+		t.Fatalf("call = %+v", f.calls[0])
+	}
+	var got struct{ Target string }
+	if err := json.Unmarshal([]byte(out), &got); err != nil || got.Target != "w1" {
+		t.Fatalf("stdout %q (%v)", out, err)
+	}
+	if _, _, err := f.run("", "widget", "rename", "--target", "w1", "--count", "many"); err == nil || !strings.Contains(err.Error(), "--count: ") {
+		t.Fatalf("bad integer: %v", err)
+	}
+}
+
+func TestShellJSONArgumentsAndHistorySource(t *testing.T) {
+	f := newFixture(t)
+	if _, errOut, err := f.run("", "widget", "rename", "--target", "w2", "--json", `{"name":"dos","count":2}`); err != nil {
+		t.Fatalf("rename: %v\n%s", err, errOut)
+	}
+	if a := f.calls[0].Args; a["name"] != "dos" || a["count"] != float64(2) {
+		t.Fatalf("args = %+v", a)
+	}
+	out, _, err := f.run("", "history", "list")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var entries []ochazuke.HistoryEntry
+	if err := json.Unmarshal([]byte(out), &entries); err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, e := range entries {
+		found = found || (e.Request.Key() == "widget.rename" && e.Context.Source == "cli")
+	}
+	if !found {
+		t.Fatalf("history lacks the cli rename: %+v", entries)
+	}
+	// A list result prints one compact element per line.
+	if !strings.HasPrefix(out, "[\n  {") || strings.Count(out, "\n") != len(entries)+2 {
+		t.Fatalf("list output:\n%s", out)
+	}
+}
+
+func TestShellVerbPrefix(t *testing.T) {
+	f := newFixture(t)
+	if _, errOut, err := f.run("", "widget", "sh", "--target", "w1"); err != nil || len(f.calls) != 1 {
+		t.Fatalf("widget sh: %v %+v\n%s", err, f.calls, errOut)
+	}
+	if _, _, err := f.run("", "widget", "re", "--target", "w1"); err == nil || err.Error() != "widget re is ambiguous: refresh, remove, rename" {
+		t.Fatalf("widget re: %v", err)
+	}
+}
+
+func TestShellConfirm(t *testing.T) {
+	f := newFixture(t)
+	_, errOut, err := f.run("n\n", "widget", "remove", "--target", "w1")
+	if err == nil || err.Error() != "declined: Remove one?" || !strings.Contains(errOut, "Remove one? [y/N]") {
+		t.Fatalf("declined: %v %q", err, errOut)
+	}
+	if len(f.calls) != 0 || f.r.TopModal() != "" {
+		t.Fatalf("calls %+v, modal %q", f.calls, f.r.TopModal())
+	}
+	if _, _, err := f.run("", "widget", "remove", "--target", "w1"); err == nil || len(f.calls) != 0 {
+		t.Fatalf("end of input: %v %+v", err, f.calls)
+	}
+	if _, errOut, err := f.run("YES\n", "widget", "remove", "--target", "w1"); err != nil || len(f.calls) != 1 {
+		t.Fatalf("stdin yes: %v %+v\n%s", err, f.calls, errOut)
+	}
+	if _, errOut, err := f.run("", "widget", "remove", "--target", "w2", "--yes"); err != nil || len(f.calls) != 2 || strings.Contains(errOut, "[y/N]") {
+		t.Fatalf("--yes: %v %+v %q", err, f.calls, errOut)
+	}
+}
+
+func TestShellSettlesPendingWork(t *testing.T) {
+	f := newFixture(t)
+	settles := 0
+	var out, errOut bytes.Buffer
+	sh := New(f.r, "tool", strings.NewReader(""), &out, &errOut)
+	sh.Settle = func() error { settles++; return nil }
+	if err := sh.Run(context.Background(), []string{"widget", "refresh", "--target", "w1"}); err != nil {
+		t.Fatalf("refresh: %v\n%s", err, errOut.String())
+	}
+	if !strings.Contains(errOut.String(), "job #1 widget.refresh done") || settles < 2 {
+		t.Fatalf("stderr %q, settles %d", errOut.String(), settles)
+	}
+	if jobs := f.r.Jobs(); len(jobs) != 1 || jobs[0].State != ochazuke.JobDone {
+		t.Fatalf("jobs = %+v", jobs)
+	}
+}
+
+func TestShellOwnersRevealAndPrepare(t *testing.T) {
+	f := newFixture(t)
+	var out, errOut bytes.Buffer
+	sh := New(f.r, "tool", strings.NewReader(""), &out, &errOut)
+	// Two rows and no owner: the error names them.
+	if err := sh.Run(context.Background(), []string{"widget", "show"}); err == nil || !strings.Contains(err.Error(), "pass --target, one of: w1, w2") {
+		t.Fatalf("no target: %v", err)
+	}
+	sh.Owners = map[string]string{"widget": "w2"}
+	if err := sh.Run(context.Background(), []string{"widget", "show"}); err != nil || f.calls[0].Target != "w2" {
+		t.Fatalf("owner: %v %+v", err, f.calls)
+	}
+	prepared := 0
+	sh.Prepare = func(context.Context) error { prepared++; return nil }
+	sh.Reveal = func(id string) error {
+		return f.r.List("widgets/list").SetItems([]ochazuke.ListItem{{ID: id, Label: "late", Noun: "widget"}})
+	}
+	if err := sh.Run(context.Background(), []string{"widget", "show", "--target", "w9"}); err != nil || f.calls[1].Target != "w9" || prepared != 1 {
+		t.Fatalf("reveal: %v %+v, prepared %d", err, f.calls, prepared)
+	}
+}
+
+func TestShellErrors(t *testing.T) {
+	f := newFixture(t)
+	for _, c := range []struct {
+		args []string
+		want string
+	}{
+		{[]string{"nope", "list"}, `unknown operation "nope.list"`},
+		{[]string{"widget", "fly"}, `unknown operation "widget.fly"`},
+		{[]string{"widget", "show", "--target", "w99"}, `unknown target "w99"`},
+		{[]string{"widget", "rename", "--target", "w1", "--colour", "red"}, `widget.rename has no parameter "colour"`},
+		{[]string{"widget", "rename", "--target", "w1", "--name"}, "--name needs a value"},
+		{[]string{"widget", "show", "w1"}, `unexpected argument "w1"`},
+		{[]string{"widget", "show", "--json", "[1]"}, "arguments"},
+		{[]string{"widget"}, "usage: tool NOUN VERB"},
+		{[]string{"widget", "ask", "--target", "w1"}, "widget.ask opened a question modal, which needs the TUI; pass its arguments instead (tool operations list)"},
+	} {
+		_, _, err := f.run("", c.args...)
+		if err == nil || !strings.Contains(err.Error(), c.want) || oden.ExitCode(err) != 1 {
+			t.Errorf("tool %s: err = %v (exit %d), want %q", strings.Join(c.args, " "), err, oden.ExitCode(err), c.want)
+		}
+	}
+}
+
+// bins writes executable scripts into a fresh PATH directory.
+func bins(t *testing.T, scripts map[string]string) string {
+	t.Helper()
+	dir := t.TempDir()
+	for name, body := range scripts {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("#!/bin/sh\n"+body+"\n"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return dir
+}
+
+// tool runs one invocation of an oden app named tool with the fixture mounted.
+func (f *fixture) tool(dir string, args ...string) (string, string, error) {
+	var out, errOut bytes.Buffer
+	app := oden.New("tool", args, oden.WithBuiltins(), oden.WithStdio(strings.NewReader(""), &out, &errOut), oden.WithPath(dir))
+	sh := New(f.r, "tool", strings.NewReader(""), &out, &errOut)
+	sh.Version = "1.2.3"
+	Mount(app, sh)
+	err := app.Run(context.Background())
+	return out.String(), errOut.String(), err
+}
+
+func TestMountResolvesNounPrefixesAndShadowsBins(t *testing.T) {
+	marker := filepath.Join(t.TempDir(), "ran")
+	dir := bins(t, map[string]string{"tool-widget": "touch " + marker, "tool-web": `echo "web $*"; exit 7`})
+	f := newFixture(t)
+	if _, errOut, err := f.tool(dir, "wid", "sh", "--target", "w1"); err != nil || len(f.calls) != 1 {
+		t.Fatalf("tool wid sh: %v %+v\n%s", err, f.calls, errOut)
+	}
+	if _, err := os.Stat(marker); err == nil {
+		t.Fatal("the tool-widget bin ran instead of the noun")
+	}
+	out, _, err := f.tool(dir, "help")
+	if err != nil || !strings.Contains(out, "shadows external "+filepath.Join(dir, "tool-widget")) || !strings.Contains(out, "\n  catalog ") {
+		t.Fatalf("help: %v\n%s", err, out)
+	}
+	if out, _, err := f.tool(dir, "which", "widget"); err != nil || out != "widget inline noun\n" {
+		t.Fatalf("which widget: %v %q", err, out)
+	}
+	if out, _, err := f.tool(dir, "web", "x"); oden.ExitCode(err) != 7 || out != "web x\n" {
+		t.Fatalf("tool web: %v %q", err, out)
+	}
+	if _, errOut, err := f.tool(dir, "w", "show"); oden.ExitCode(err) != 1 || !strings.Contains(errOut, `"w" is ambiguous`) {
+		t.Fatalf("tool w: %v %q", err, errOut)
+	}
+}
+
+func TestCatalogGolden(t *testing.T) {
+	f := newFixture(t)
+	out, _, err := f.tool(t.TempDir(), "catalog")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc CatalogDoc
+	if err := json.Unmarshal([]byte(out), &doc); err != nil {
+		t.Fatal(err)
+	}
+	if doc.Schema != 1 || doc.Name != "tool" || doc.Version != "1.2.3" {
+		t.Fatalf("header = %d %q %q", doc.Schema, doc.Name, doc.Version)
+	}
+	// The framework's own nouns are in it; the golden keeps the test
+	// noun's part so a framework verb does not churn it.
+	seen := map[string]bool{}
+	nouns := doc.Nouns[:0]
+	for _, n := range doc.Nouns {
+		seen[n.Name] = true
+		if n.Name == "widget" {
+			nouns = append(nouns, n)
+		}
+	}
+	if !seen["confirm"] || !seen["history"] {
+		t.Fatalf("framework nouns missing: %v", seen)
+	}
+	rows := doc.Bindings[:0]
+	for _, b := range doc.Bindings {
+		if b.Noun == "widget" {
+			rows = append(rows, b)
+		}
+	}
+	doc.Nouns, doc.Bindings = nouns, rows
+	got, err := json.MarshalIndent(doc, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got = append(got, '\n')
+	golden := filepath.Join("testdata", "catalog.golden")
+	if *update {
+		if err := os.WriteFile(golden, got, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want, err := os.ReadFile(golden)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Fatalf("catalog differs from %s (go test ./cli -update):\n%s", golden, got)
+	}
+}

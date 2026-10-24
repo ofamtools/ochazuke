@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "name": "tool",
+  "version": "1.2.3",
+  "nouns": [
+    {
+      "name": "widget",
+      "verbs": [
+        {
+          "name": "ask",
+          "description": "Ask in a modal",
+          "kind": "application",
+          "result": "JSON value"
+        },
+        {
+          "name": "refresh",
+          "description": "Reload a widget",
+          "kind": "application",
+          "result": "JSON value"
+        },
+        {
+          "name": "remove",
+          "description": "Remove a widget",
+          "kind": "application",
+          "result": "JSON value",
+          "confirm": "Remove {{label}}?"
+        },
+        {
+          "name": "rename",
+          "description": "Rename a widget",
+          "kind": "application",
+          "params": {
+            "count": {
+              "type": "integer"
+            },
+            "loud": {
+              "type": "boolean"
+            },
+            "name": {
+              "type": "string",
+              "required": true
+            },
+            "tags": {
+              "type": "array"
+            }
+          },
+          "result": "JSON value"
+        },
+        {
+          "name": "show",
+          "description": "Show a widget",
+          "kind": "application",
+          "result": "JSON value"
+        }
+      ]
+    }
+  ],
+  "bindings": [
+    {
+      "noun": "widget",
+      "mode": "normal",
+      "keys": "enter",
+      "request": {
+        "verb": "show",
+        "noun": "widget"
+      }
+    },
+    {
+      "noun": "widget",
+      "mode": "normal",
+      "keys": "x",
+      "request": {
+        "verb": "remove",
+        "noun": "widget"
+      }
+    }
+  ],
+  "pages": [
+    {
+      "id": "widgets",
+      "title": "Widgets"
+    }
+  ]
+}
