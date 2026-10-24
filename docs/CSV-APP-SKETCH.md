@@ -47,12 +47,7 @@ define("column", {
     delete: { run: app.deleteColumn, confirm: "Delete column {{id}}?" },
     sort:   app.sortBy,
     filter: app.filter,
-    // transformations: no bindings, palette and CLI only
-    trim: app.liftText(v => v.trim()), upper: app.liftText(v => v.toUpperCase()), lower: app.liftText(v => v.toLowerCase()),
-    dedupe: app.dedupe, fillDown: app.fillDown,
-    split:   { run: app.split,   params: { on: { type: "string" } } },
-    replace: { run: app.replace, params: { find: { type: "string" }, with: { type: "string" } } },
-    toDate:  { run: app.toDate,  params: { format: { type: "string", enum: ["iso", "us", "eu"] } } },
+    transform: { run: app.transform, params: { name: { type: "string", source: "list.transformations" } } },
   },
   bindings: { normal: { r: "rename", D: "delete", s: "sort", "/": "filter" } },
 })
@@ -103,18 +98,38 @@ visualCommon = {
 modes["visual-block"] = modes["visual-row"] = modes["visual-column"] = visualCommon
 ```
 
-Verbs receive the resolved cell set. The shared register stores yanks with their shape, as the editor's registers already do for block and line yanks, so `V y p` pastes rows, `ctrl+v y p` pastes columns, a block paste fills a rectangle. Open decisions: delete versus clear on a column selection (`D` versus `d`), and whether row and column modes move only along their axis (recommended, matching Vim's `V`).
-
-## Transformations: two tiers, one patch
+Verbs receive the resolved cell set. The shared register stores yanks with their shape, as the editor's registers already do for block and line yanks, so `V y p` pastes rows, `ctrl+v y p` pastes columns, a block paste fills a rectangle. Non-adjacent selection, which Excel handles badly: the selection payload carries a `marks` set.
 
 ```js
-// tier 1: pure text transforms lifted over the target
-app.liftText = fn => ({ instance, selection }) =>
-  app.apply(cellsOf(instance, selection).map(c => ({ at: c, after: fn(app.get(c)) })))
+state.mode = { name: "visual-block", anchor, cursor, marks: new Set(["r2:c1", "r9:c4"]) }
+visualCommon += { m: "selection.toggleMark", M: "selection.clearMarks", "ctrl+a": "selection.all" }   // toggle by current shape
+cellsOf(selection) = union(rangeFor(shape, anchor, cursor), marks)
+```
 
-// tier 2: sheet transforms read the whole sheet (formulas, fillDown, derive) and return the same patch
-app.formula = ({ instance, args }) =>
-  app.apply([{ at: instance.id, after: evaluate(args.expr, app.sheetView()) }])    // sum(B2:B9), A1*2
+Every verb takes a cell set, so marks cost nothing downstream; they survive a shape switch and cursor moves, and `esc` drops them with the mode. Sticky marks across modes would move to app state with a visible indicator; start without that.
+
+Open decisions: delete versus clear on a column selection (`D` versus `d`), and whether row and column modes move only along their axis (recommended, matching Vim's `V`).
+
+## Transformations: a map, one verb, one patch
+
+Transformations are data, not verbs. One verb applies them; bindings are that verb with the name filled in.
+
+```js
+transformations = {
+  trim: v => v.trim(), upper: v => v.toUpperCase(), lower: v => v.toLowerCase(),
+  title: v => v.replace(/\b\w/g, c => c.toUpperCase()), slug: v => v.toLowerCase().replace(/\W+/g, "-"),
+}                                                   // grows without touching nouns or bindings
+sheetTransformations = { fillDown: (sheet, cell) => ..., formula: (sheet, cell, expr) => evaluate(expr, sheet) }
+
+transform: { run: app.transform, params: { name: { type: "string", source: "list.transformations" } } }
+bindings: { normal: { "t u": do("transform", { name: "upper" }), "t l": do("transform", { name: "lower" }) } }
+
+app.transform = ({ instance, selection, args }) =>
+  app.apply(cellsOf(instance, selection).map(c => ({ at: c, after: run(args.name, c) })))   // one cell or many
+```
+
+The palette shows `transform` once, then a pick list of every name. The handler dispatches by which map holds the name: text transforms see only the value, sheet transforms see a read view of the whole sheet. Both return the same patch.
+
 
 patch = { cells: [{ at: "r3:c2", before: "x", after: "X" }] }   // also the undo record
 app.apply = patch => { record before; write after; dirty = true; undo.push(patch); grid.refresh() }
