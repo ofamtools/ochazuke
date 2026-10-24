@@ -31,8 +31,9 @@ func TestModelMacroRegisterTransitionsAndPalette(t *testing.T) {
 				}
 				m := NewModel(r)
 				modelType(m, "q", batched)
-				if !strings.Contains(ansi.Strip(m.View().Content), "choose a register") {
-					t.Fatal("recording prefix did not prompt for one register character")
+				// The footer is the macro_pending table itself: any key starts recording.
+				if !strings.Contains(ansi.Strip(m.View().Content), "<any> start.macro") {
+					t.Fatal("recording prefix did not show the macro_pending rows")
 				}
 				modelType(m, "q", batched)
 				if r.Registers().Macro.Recording != "q" || !strings.Contains(ansi.Strip(m.View().Content), "REC @q") {

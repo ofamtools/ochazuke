@@ -134,16 +134,18 @@ func (m *Model) handleKey(key MacroKey) {
 	}
 	m.Palette.collectEditors()
 }
+
+// layout is the shell's chrome for the current viewport; page renderers get
+// its BodySize, less the sidebar when one is shown.
+func (m *Model) layout() Layout {
+	return Layout{Width: m.Width, Height: m.Height, Styles: NewStyles(*m.Appearance)}
+}
 func (m *Model) pageSize() (int, int) {
-	width, height := m.surfaceSize()
+	width, height := m.layout().BodySize()
 	if m.Sidebar {
-		width, height = sidebarMainSize(width, height, width < layoutStackAt)
+		width, height = sidebarMainSize(width, height, m.Width < layoutStackAt)
 	}
 	return max(1, width), max(1, height)
-}
-func (m *Model) surfaceSize() (int, int) {
-	pad := NewStyles(*m.Appearance).Padding
-	return max(1, m.Width-2*pad), max(1, m.Height-6)
 }
 func (m *Model) pageContent(width, height int) Block {
 	if page := m.Runtime.PageOf(m.Runtime.Page); page != nil {
@@ -189,51 +191,58 @@ func (m *Model) modalContent(frame *Frame, width, height int) (string, Block) {
 	}
 	return frame.ID, body
 }
-func (m *Model) pageTabs(styles Styles, width int) string {
-	order := m.Runtime.PageList()
-	if len(order) == 0 {
-		return ""
-	}
+
+// pageTitles lists the page titles in order and the index of the current page.
+func (m *Model) pageTitles() ([]string, int) {
+	pages := m.Runtime.PageList()
+	titles := make([]string, len(pages))
 	active := 0
-	for i, page := range order {
+	for i, page := range pages {
+		titles[i] = page.Title
 		if page.ID == m.Runtime.Page {
 			active = i
-			break
 		}
 	}
-	title := safeText(order[active].Title)
-	tabs := ansi.Truncate(styles.ActiveTab.Render(ansi.Truncate(title, max(1, width-4), "…")), width, "")
-	used := ansi.StringWidth(tabs)
-	left, right := active-1, active+1
-	for left >= 0 || right < len(order) {
-		added := false
-		if left >= 0 {
-			tab := styles.Tab.Render(safeText(order[left].Title))
-			if size := ansi.StringWidth(tab); used+size <= width {
-				tabs = tab + tabs
-				used += size
-				left--
-				added = true
-			} else {
-				left = -1
-			}
-		}
-		if right < len(order) {
-			tab := styles.Tab.Render(safeText(order[right].Title))
-			if size := ansi.StringWidth(tab); used+size <= width {
-				tabs += tab
-				used += size
-				right++
-				added = true
-			} else {
-				right = len(order)
-			}
-		}
-		if !added {
-			break
-		}
+	return titles, active
+}
+
+// modeBadge labels the current mode, with the recording register while a
+// macro is being recorded.
+func (m *Model) modeBadge() string {
+	label := strings.ToUpper(modeLabelOf(m.Runtime.Mode(m.Runtime.Context())))
+	if recording := m.Runtime.Registers().Macro.Recording; recording != "" {
+		label += " · REC @" + recording
 	}
-	return tabs
+	return label
+}
+
+// footer is the status row: the error of the last key when there is one,
+// else the hints for the focus.
+func (m *Model) footer() Footer {
+	if m.Status != "" {
+		return Footer{Text: "Error: " + safeText(m.Status), Error: true}
+	}
+	return Footer{Text: BindingHints(m.Runtime, m.Runtime.FocusID())}
+}
+
+// BindingHints renders the rows a focus answers to in its current mode as a
+// hint line, innermost level first: "ctrl+j next.page · : open.palette". It
+// is the data list.bindings prints, so a hint never names a key that is not
+// bound. A Func row shows its key alone.
+func BindingHints(r *Runtime, focus string) string {
+	var hints []string
+	for _, b := range r.bindingRows(focus) {
+		key := b.Keys
+		if key == "" {
+			key = "<" + b.Pattern + ">"
+		}
+		hint := modalLabel(key)
+		if b.Request.Verb != "" {
+			hint += " " + modalLabel(b.Request.Key())
+		}
+		hints = append(hints, hint)
+	}
+	return strings.Join(hints, " · ")
 }
 
 // View renders the shell as a full-screen tea.View; View().Content is the
@@ -272,85 +281,37 @@ func (m *Model) cursor(block Block) *tea.Cursor {
 // the child cursor by where it placed the child; a modal hides the cursor of
 // everything beneath it.
 func (m *Model) render() Block {
-	styles := NewStyles(*m.Appearance)
-	width, height := m.surfaceSize()
+	layout := m.layout()
 	pageTitle := ""
 	if page := m.Runtime.PageOf(m.Runtime.Page); page != nil {
 		pageTitle = page.Title
 	}
-	heading := styles.Title.Render(safeText(m.Title)) + "  " + styles.Muted.Render(safeText(pageTitle))
-	modeLabel := strings.ToUpper(modeLabelOf(m.Runtime.Mode(m.Runtime.Context())))
-	if m.Runtime.Registers().Macro.Recording != "" {
-		modeLabel += " · REC @" + m.Runtime.Registers().Macro.Recording
-	}
-	mode := styles.Badge.Render(modeLabel)
-	heading = ansi.Truncate(heading, max(0, width-lipgloss.Width(mode)-1), "…")
-	gap := max(1, m.Width-lipgloss.Width(heading)-lipgloss.Width(mode)-2*styles.Padding)
-	heading += strings.Repeat(" ", gap) + mode
-	tabs := ""
+	header := Header{Title: m.Title, Subtitle: pageTitle, Badge: m.modeBadge()}
 	if !m.Sidebar {
-		tabs = m.pageTabs(styles, width)
+		header.Tabs, header.Active = m.pageTitles()
 	}
 	base := m.Runtime.Frames[0]
 	pageWidth, pageHeight := m.pageSize()
 	page := m.scrolled(base, m.pageContent(pageWidth, pageHeight), pageWidth, pageHeight)
 	if m.Sidebar {
-		pages := m.Runtime.PageList()
-		titles := make([]string, len(pages))
-		selected := 0
-		for i, page := range pages {
-			titles[i] = page.Title
-			if page.ID == m.Runtime.Page {
-				selected = i
-			}
-		}
-		layout := Layout{Styles: styles}
-		page = layout.sidebar("Pages", titles, selected, pageTitle, page, width, height, width < layoutStackAt)
+		titles, selected := m.pageTitles()
+		width, height := layout.BodySize()
+		page = layout.sidebar("Pages", titles, selected, pageTitle, page, width, height, m.Width < layoutStackAt)
 	}
-	footer := "Ctrl-J/K pages · : palette · PgUp/PgDn scroll · Ctrl-C quit"
-	currentMode := m.Runtime.Mode(m.Runtime.Context())
-	if currentMode == "insert" {
-		footer = "INSERT · Esc normal · Ctrl-A/E line · Ctrl-W/U/K kill · Ctrl-Space palette"
-		if in := m.Runtime.Input(m.Runtime.FocusID()); in != nil && in.pin == "insert" {
-			footer = "READLINE · Ctrl-A/E line · Ctrl-W/U/K kill · Ctrl-Y yank · Ctrl-Space palette"
-		}
-	}
-	status := styles.Muted.Render(footer)
-	switch currentMode {
-	case "macro_pending":
-		status = styles.Accent.Render("Record macro: choose a register · Esc cancel")
-	case "replay_pending":
-		status = styles.Accent.Render("Replay macro: choose a register · Esc cancel")
-	case "register_pending":
-		status = styles.Accent.Render("Register: choose a name · Esc cancel")
-	}
-	if m.Runtime.Pending != "" {
-		status = styles.Accent.Render("Pending " + safeText(m.Runtime.Pending) + " · Esc cancel")
-	}
-	if m.Status != "" {
-		status = styles.Error.Render("Error: " + safeText(m.Status))
-	}
-	inset := lipgloss.NewStyle().PaddingLeft(styles.Padding).PaddingRight(styles.Padding)
-	// Heading, tabs and a blank row sit above the page; the inset adds Padding cells on the left.
-	surface := page.Offset(styles.Padding, 3).Clip(m.Width, m.Height)
-	background := strings.Join([]string{inset.Render(heading), inset.Render(tabs), "", inset.Render(page.Text), "", inset.Render(status)}, "\n")
-	surface.Text = fitSurface(background, m.Width, m.Height)
+	surface := layout.Shell(header, page, m.footer())
 	for _, frame := range m.Runtime.Frames[1:] {
 		modalWidth, modalHeight := ModalSize(m.Width, m.Height)
 		title, body := m.modalContent(frame, modalWidth, modalHeight)
 		bodyHeight := min(modalHeight, max(1, lipgloss.Height(body.Text)))
 		bodyWidth := min(modalWidth, max(1, lipgloss.Width(body.Text)))
 		body = m.scrolled(frame, body, bodyWidth, bodyHeight)
-		hint := "Esc normal / close · PgUp/PgDn scroll"
-		if frame == m.Palette.frame {
-			hint = "Esc normal / back · Ctrl-C cancel"
-		} else if in := m.Runtime.Input(frame.Focus); in != nil && in.pin == "insert" {
-			hint = "Readline editing · PgUp/PgDn scroll"
-		}
+		// The hint is the modal focus's own binding rows; it may widen the
+		// panel up to a readable width but never past the modal bounds.
+		hint := ansi.Truncate(BindingHints(m.Runtime, frame.Focus), min(modalWidth, max(bodyWidth, 48)), "…")
 		if frame == m.Runtime.top() && m.Status != "" {
 			hint = "Error: " + m.Status
 		}
-		surface = ComposeModalBlock(surface.Text, title, body, hint, m.Width, m.Height, styles)
+		surface = ComposeModalBlock(surface.Text, title, body, hint, m.Width, m.Height, layout.Styles)
 	}
 	return surface
 }

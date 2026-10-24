@@ -307,8 +307,28 @@ func (r *Runtime) leaveMode(inst *Instance) {
 }
 
 // ListBindings prints the rows the focus answers to in its current mode,
-// one per key or pattern, innermost level first.
+// one per key or pattern, sorted by key with pattern rows last.
 func (r *Runtime) ListBindings(focus string) []Binding {
+	out := r.bindingRows(focus)
+	sort.SliceStable(out, func(i, j int) bool {
+		a, b := out[i], out[j]
+		if (a.Keys == "") != (b.Keys == "") {
+			return a.Keys != ""
+		}
+		if a.Keys != b.Keys {
+			return a.Keys < b.Keys
+		}
+		return a.Pattern < b.Pattern
+	})
+	return out
+}
+
+// bindingRows collects the rows the focus answers to in its current mode in
+// resolution order: innermost level first, each level's instance rows before
+// its noun's mode table before its any-mode table, the first row per key or
+// pattern. A level whose unguarded any row answers every key ends the
+// walk, as it does for Dispatch.
+func (r *Runtime) bindingRows(focus string) []Binding {
 	mode := r.modeState(focus)
 	base, prefix := baseAndPrefix(mode)
 	exclusive := r.pendingModes[mode.Name] || mode.Payload.Shadow != nil
@@ -333,6 +353,7 @@ func (r *Runtime) ListBindings(focus string) []Binding {
 		}
 	}
 	for _, lv := range r.stack(focus) {
+		before := len(out)
 		if lv.inst != nil {
 			take(rowsForMode(lv.inst.Bindings, base, exclusive))
 		}
@@ -342,18 +363,22 @@ func (r *Runtime) ListBindings(focus string) []Binding {
 				take(lv.noun.Bindings[""])
 			}
 		}
+		if answersEveryKey(out[before:]) {
+			break
+		}
 	}
-	sort.SliceStable(out, func(i, j int) bool {
-		a, b := out[i], out[j]
-		if (a.Keys == "") != (b.Keys == "") {
-			return a.Keys != ""
-		}
-		if a.Keys != b.Keys {
-			return a.Keys < b.Keys
-		}
-		return a.Pattern < b.Pattern
-	})
 	return out
+}
+
+// answersEveryKey reports whether a level's rows include an unguarded any
+// row, which answers every key before an outer level is consulted.
+func answersEveryKey(rows []Binding) bool {
+	for _, b := range rows {
+		if b.Pattern == Any && b.When == "" {
+			return true
+		}
+	}
+	return false
 }
 
 // Key-sequence prefixes.

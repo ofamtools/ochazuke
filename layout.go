@@ -50,6 +50,35 @@ func (l Layout) Page(title, subtitle, body, footer string) string {
 // PageBlock is Page for a body that may carry a cursor; the cursor is moved by
 // the page chrome around the body.
 func (l Layout) PageBlock(title, subtitle string, body Block, footer string) Block {
+	return l.Shell(Header{Title: title, Subtitle: subtitle}, body, Footer{Text: footer})
+}
+
+// Header is the top of the page chrome: the title row with an optional
+// right-aligned badge (the shell shows the mode there) and the subtitle row,
+// which is a label or, when Tabs is set, the page tabs with Active marked.
+// Every field is a raw label.
+type Header struct {
+	Title    string
+	Badge    string
+	Subtitle string
+	Tabs     []string
+	Active   int
+}
+
+// Footer is the bottom row of the page chrome: a raw label, styled as an
+// error when Error is set.
+type Footer struct {
+	Text  string
+	Error bool
+}
+
+// Shell is the one page chrome: title row, subtitle row, a rule, the body,
+// a rule, the footer and a bottom margin, inside a gutter, into exactly
+// Width x Height cells. Viewports too small for the chrome keep the body
+// and, from three rows up, the footer. The shell and PageBlock both render
+// through it, so a page and the application around it reserve the same
+// rows. The body's cursor is moved by the chrome around it.
+func (l Layout) Shell(h Header, body Block, f Footer) Block {
 	if l.Width <= 0 || l.Height <= 0 {
 		return Block{}
 	}
@@ -57,16 +86,17 @@ func (l Layout) PageBlock(title, subtitle string, body Block, footer string) Blo
 	bw, bh := l.BodySize()
 	bodyRows := layoutRows(body.Text, bw, bh)
 	cursor := body.Clip(bw, bh)
-	footer = s.Muted.Render(ansi.Truncate(modalLabel(footer), max(0, bw), "…"))
+	footerStyle := s.Muted
+	if f.Error {
+		footerStyle = s.Error
+	}
+	footer := footerStyle.Render(ansi.Truncate(modalLabel(f.Text), max(0, bw), "…"))
 	var rows []string
 	if l.full() {
 		cursor = cursor.Offset(layoutGutter, 3) // gutter; title, subtitle and rule rows
 		pad := strings.Repeat(" ", layoutGutter)
 		rule := s.Muted.Render(strings.Repeat("─", bw))
-		rows = append(rows,
-			pad+s.Accent.Render("◆ ")+s.Title.Render(ansi.Truncate(modalLabel(title), max(0, bw-2), "…")),
-			pad+s.Subtitle.Render(ansi.Truncate(modalLabel(subtitle), bw, "…")),
-			pad+rule)
+		rows = append(rows, pad+l.titleRow(h, bw), pad+l.subtitleRow(h, bw), pad+rule)
 		for _, row := range bodyRows {
 			rows = append(rows, pad+row)
 		}
@@ -81,6 +111,76 @@ func (l Layout) PageBlock(title, subtitle string, body Block, footer string) Blo
 		rows[i] = modalCells(rows[i], l.Width)
 	}
 	return cursor.WithText(strings.Join(rows, "\n"))
+}
+
+// titleRow renders the title with the badge right-aligned in width cells.
+func (l Layout) titleRow(h Header, width int) string {
+	s := l.Styles
+	badge := ""
+	if h.Badge != "" {
+		badge = s.Badge.Render(ansi.Truncate(modalLabel(h.Badge), max(0, width-3), "…"))
+	}
+	reserved := 0
+	if badge != "" {
+		reserved = ansi.StringWidth(badge) + 1
+	}
+	title := s.Accent.Render("◆ ") + s.Title.Render(ansi.Truncate(modalLabel(h.Title), max(0, width-2-reserved), "…"))
+	if badge == "" {
+		return title
+	}
+	gap := max(1, width-ansi.StringWidth(title)-ansi.StringWidth(badge))
+	return title + strings.Repeat(" ", gap) + badge
+}
+
+// subtitleRow renders the tabs when there are any, else the subtitle label.
+func (l Layout) subtitleRow(h Header, width int) string {
+	if len(h.Tabs) > 0 {
+		return l.tabs(h.Tabs, h.Active, width)
+	}
+	return l.Styles.Subtitle.Render(ansi.Truncate(modalLabel(h.Subtitle), width, "…"))
+}
+
+// tabs renders the active tab and as many neighbours as fit in width cells,
+// growing outward from the active one.
+func (l Layout) tabs(titles []string, active, width int) string {
+	if len(titles) == 0 {
+		return ""
+	}
+	s := l.Styles
+	active = min(max(0, active), len(titles)-1)
+	title := modalLabel(titles[active])
+	tabs := ansi.Truncate(s.ActiveTab.Render(ansi.Truncate(title, max(1, width-4), "…")), width, "")
+	used := ansi.StringWidth(tabs)
+	left, right := active-1, active+1
+	for left >= 0 || right < len(titles) {
+		added := false
+		if left >= 0 {
+			tab := s.Tab.Render(modalLabel(titles[left]))
+			if size := ansi.StringWidth(tab); used+size <= width {
+				tabs = tab + tabs
+				used += size
+				left--
+				added = true
+			} else {
+				left = -1
+			}
+		}
+		if right < len(titles) {
+			tab := s.Tab.Render(modalLabel(titles[right]))
+			if size := ansi.StringWidth(tab); used+size <= width {
+				tabs += tab
+				used += size
+				right++
+				added = true
+			} else {
+				right = len(titles)
+			}
+		}
+		if !added {
+			break
+		}
+	}
+	return tabs
 }
 
 // PanelContentSize returns the body cells available inside a Panel, excluding
