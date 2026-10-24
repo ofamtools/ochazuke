@@ -242,6 +242,21 @@ modal.pop → Runtime.Focus = payload.return; remove the instance
 
 `Frames` goes away; what is open is the chain of modal instances (already used for rendering). Runtime then holds `Focus`, `Mode` and `Page` as three plain fields. Invariant kept: `Page` is always an ancestor of `Focus`.
 
+### 1c. Pages and modals own a tab order (decision)
+
+Like HTML tabindex: each page (and each modal) carries an app-managed ordered list of focusable entries; the framework only cycles it.
+
+```js
+page  = { id: "sheet", focusables: ["sidebar", "grid", "search"] }
+modal = { id: "csv-prompt", focusables: ["field"] }
+focus.next / focus.previous   // framework operations, bound to tab / shift+tab on app; cycle the active page's or top modal's list
+```
+
+- Entries are components, not leaves (a grid is one stop; its cells are not). Landing on an entry focuses the child it remembers.
+- The app sets, reorders and prunes the list when its layout changes; the framework skips entries whose instance no longer exists. No automatic discovery from the tree.
+- Tab moves focus by default; a multiline editor that wants a literal tab binds it in its own insert table (inner level wins).
+- Replaces per-page "next field" bindings in the examples. Additive: `Page.Focusables`, two operations.
+
 ### 2. Bugs and oversights in the resolver
 
 - `enterPrefix` builds `Payload{Prefix, Request}` and drops `Count` and `OpCount`, so `3gg` loses its count. Carry both.
