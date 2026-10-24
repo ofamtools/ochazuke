@@ -706,6 +706,16 @@ macro_recording:  { q: macro.stop when shadow-idle, any | paste: macro.record {k
 
 The editor noun's tables (Readline rows in `insert`, Vim rows in `normal` and the visual modes, the pending modes above) are generated from `editor_bindings.json`, a data file in this row shape plus three generators (`expand` a row over a key map, `extends` one mode from another, `pending` the exclusive modes). `bindings list` prints the rows the focus answers to in its current mode, so every Readline and Vim key appears there for its mode, and the help modal of the full-project example is built from it. Multi-key sequences such as `g g` wait in a prefix mode named `"<mode> <keys so far>"` on the focused instance for up to a configurable timeout (default 400ms); the timer and a mismatching key leave the mode, run the longest completed match, and the mismatching key is then dispatched fresh. Escape cancels the sequence through a row like any other: every table that binds a sequence keeps a generated `"<prefix> esc"` → `mode.leave` row for each prefix (`bindings list` shows it in the prefix mode), so the resolver itself never names a key. A paste is one event that matches only `paste` rows, so insert mode inserts it and normal mode ignores it.
 
+### Capture rows
+
+The walk above bubbles: the inner level wins. A row may set `capture: true` (`Captured()` in Go) to be consulted in a capture pass before it, outer-first (`app` first, the editor fallback last), for the few app-level keys an inner component must not swallow. The first capture row that answers wins; `bindings list` shows capture rows first.
+
+```js
+{ noun: "app", mode: "", keys: "ctrl+c", capture: true, when: "no-modal", request: { verb: "quit", noun: "app" } }
+```
+
+That row is the only default capture row: `NewModel` installs it (with the bubbling `ctrl+c` row it always had) so a terminal's `any` passthrough cannot swallow quit. The `no-modal` guard stands it aside while a modal is open, so the palette's own `ctrl+c` still closes the palette. To rebind `ctrl+c`, bind it on `app` before `NewModel`, or unbind it (an unbind removes both rows).
+
 ## Atomic bindings
 
 A binding row is atomic. A row is a `Request` (one registered operation, its arguments from the row, the key or the mode payload), a mode transition (`Enter`, `Leave`) or `null` (an unbind). There is no row that runs Go code with the key: `Binding` has no such field, and `TestBindingRowsAreAtomic` validates every table of the framework, the model, the picker, the demo and the full-project example (`Runtime.ValidateBindings`) and parses the resolver to check it names no key. The only code that compares key names is the key classifier (`printableKey`) and one key-name-to-text table (`keyText`).
@@ -791,6 +801,34 @@ Live CLI examples:
 ```
 
 JSON inspection covers registered pages (`page`, `pages`), inputs and histories, the focus and the open modals (`focus`, `modals`, each modal instance's `payload.return`), the global mode (`mode`, `modeState`) and the registered modes (pending modes included), nouns with their tables, instances with their payload, and the rows the focus answers to (`bindings`). `state.get` accepts a JSON Pointer (`""` for the full state; `~1` escapes `/` and `~0` escapes `~` in a key). Appearance has its own `appearance.get` query. All registered inputs are public state: do not register secrets without adding an explicit export policy. Handlers, renderers, and terminal handles are not serialized.
+
+## Tree queries
+
+The instance tree is queried with predicate values, never a selector string. A query is a list of predicates, ANDed; the result is in tree order (`app` first, depth-first, siblings in the order they were added).
+
+```js
+// Go: r.Query(ByNoun("worktree"), Within("sidebar"), Not(Where("marked", "")))
+instances.query({ where: [["noun", "worktree"], ["within", "sidebar"], ["not", [["marked"]]]] })
+// → [{ id: "wt1", noun: "worktree", parent: "sidebar" }, ...]
+```
+
+Predicates: `noun`, `id`, `kind` (the component an instance fronts, lowercased: `input`, `list`, `page`, `terminal`; `row` for a list row, `modal` for a modal body, else `instance`), `within` (any ancestor), `child-of` (the direct parent), `focusable`, `region`, `state` (the global mode), and the combinators `any`, `all`, `not` over nested lists. A predicate is `Predicate{Name, Arg, Of}`; an application adds its own with `RegisterPredicate(name, func(inst, r, arg) bool)` and the CLI can use it at once.
+
+## Action history and dot-repeat
+
+Every executed request but `history.list` and `state.get` is appended to a 500-entry ring:
+
+```js
+{ seq: 42, at: "2026-10-24T10:00:00Z",
+  request: { verb: "operator", noun: "input", args: { operator: "d", motion: "word-forward", steps: 1 } },
+  context: { focus: "editor", page: "main", mode: "normal", source: "key:w" },   // or "macro:a", "palette", "cli", "api"
+  result: { ok: true, value: { ... } },                                         // or { ok: false, error: "..." }
+  job: 7 }                                                                      // when an application verb launched work
+```
+
+Read it with `history.list {last}` (default 50) or `state get /history` (the last 50). The resolver records `key:<keys>`, a macro replay `macro:<register>`, the transport `cli`, everything else `api`; a caller sets its own with `Runtime.Sourced(source)` (outermost caller wins, so keys inside a replay stay `macro:a`).
+
+Dot-repeat rides on it. `.` on `app` in normal mode runs `history.repeat {steps}`: the last successful request whose operation is `Repeatable` runs again with its arguments kept, at the current focus (the recorded target is dropped unless the request came from the CLI and the instance still exists), with a count on `.` replacing the recorded `steps` (`3.`). A confirmed request repeats without asking again (`confirmed: true` is in the record). The repeatable operations are the editor's changes: `input.insert`, `input.delete`, `input.kill`, `input.paste`, `input.operator`, `input.replace`; motions, focus, pages, modals, lists and the history are not. An application marks its own with `Operation.Repeatable` on `Register`. Dot repeats one request, so after typing `hello` in insert mode `.` inserts the last `o`, not the whole insert; macros stay key-based.
 
 ## Live CLI control
 
