@@ -147,6 +147,35 @@ The application supplies records and per-item behavior. The framework's existing
 
 A layout helper arranges supplied content. A list/tree component also owns interaction state. gmtm's `internal/ui/twopane` is an example of a richer component with nested outline navigation, previews, and asynchronous results; it has not been adopted into Ochazuke by this discussion.
 
+## Confirmed live-terminal input contract
+
+The user confirmed these controls after the initial design record. This is an agreed behavior contract, not implemented terminal support.
+
+The terminal component has a live-input state that captures keyboard input for the inner terminal process. Its only default control prefix is `Ctrl+A`; the prefix is configurable. Ordinary input must not fall through to the surrounding application, page, or sidebar bindings.
+
+| Input | Agreed behavior |
+|---|---|
+| Ordinary input outside a pending prefix sequence, including Escape and `Ctrl+C` | Forward unchanged to the inner terminal process |
+| `Ctrl+A` | Enter pending-prefix handling without forwarding the prefix |
+| `Ctrl+A`, then `d` | Detach from live mode |
+| `Ctrl+A`, then `Ctrl+A` | Send one literal `Ctrl+A` to the inner process |
+
+These are sequential keystrokes, not a three-key chord. Both completed sequences clear pending-prefix state. No other live-mode shortcuts were agreed.
+
+Detaching returns control and focus to the surrounding application and restores its normal binding resolution. It does not terminate the terminal session or its running process.
+
+The terminal-daemon client and protocol remain application-level. The component coordinates display and input ownership with Ochazuke's layout, focus, and event loop. This does not require a second root model.
+
+Still undecided:
+
+- What happens after an unrecognized prefix sequence, such as `Ctrl+A`, then `x`.
+- Whether a pending prefix times out, and how incomplete sequences are handled.
+- The exact component/provider API, screen-update representation, resize behavior, and disconnect/reconnect lifecycle.
+
+### Resume point
+
+The next terminal discussion can settle the undecided cases above. After that, continue with domain detail views, specialized previews, and optional resizable panes, one at a time. The list/tree and inline-completion proposals elsewhere in this record remain proposals; this agreement does not finalize those APIs.
+
 ## Existing capabilities to reuse
 
 | Capability | Current implementation |
@@ -167,7 +196,7 @@ Current operation argument validation accepts strings, integers, and booleans. C
 
 These are future conversations, not technical blockers and not approved implementation tasks. Continue one component at a time.
 
-1. Live terminal component: daemon ownership, screen display, input forwarding, resizing, and attach/detach lifecycle.
+1. Live terminal component: the input contract above is settled. Remaining topics are unknown/incomplete prefix sequences, component API, screen display, resizing, and connection lifecycle.
 2. Domain detail views: determine which are ordinary application renderers inside existing panels rather than new reusable widgets.
 3. Specialized previews: discuss only formats the application actually needs, such as diffs, Markdown, or JSON trees.
 4. Resizable pane workspaces: optional. Existing responsive fixed layouts already work; interactive split manipulation is additional scope.
