@@ -23,9 +23,13 @@ func pageTestRegister(t *testing.T, r *Runtime, id string) *Page {
 	return page
 }
 
+// pageTestSnapshot is the state a rejected request must not change; the
+// action history records the rejection by design, so it is left out.
 func pageTestSnapshot(t *testing.T, r *Runtime) string {
 	t.Helper()
-	data, err := json.Marshal(r.Snapshot())
+	snapshot := r.Snapshot()
+	delete(snapshot, "history")
+	data, err := json.Marshal(snapshot)
 	if err != nil {
 		t.Fatal(err)
 	}

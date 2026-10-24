@@ -152,7 +152,10 @@ func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (bool, 
 		// withPrefixCancels in every table that binds a sequence.)
 		r.leavePrefix()
 		if fallback != nil {
-			if _, err := r.Execute(*fallback); err != nil {
+			restore := r.Sourced("key:" + prefix)
+			_, err := r.Execute(*fallback)
+			restore()
+			if err != nil {
 				return true, err
 			}
 		}
@@ -252,6 +255,11 @@ var stayingRequests = map[string]bool{"mode.enter": true, "count.append": true, 
 // runs (the request may then enter another pending mode) unless the request
 // itself manages modes.
 func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent) error {
+	keys := b.Keys
+	if keys == "" {
+		keys = ev.Key.Key
+	}
+	defer r.Sourced("key:" + keys)()
 	before, generation := r.Mode.Name, r.modeGeneration
 	if r.pendingModes[before] && !stayingRequests[b.Request.Key()] {
 		r.leaveMode()
@@ -503,6 +511,7 @@ func (r *Runtime) expirePrefix() error {
 // finishPrefix leaves the prefix mode and runs the completed match, if any.
 func (r *Runtime) finishPrefix() (bool, error) {
 	fallback := r.Mode.Payload.Request
+	defer r.Sourced("key:" + r.Pending)()
 	r.leavePrefix()
 	if fallback == nil {
 		return false, nil

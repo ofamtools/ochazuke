@@ -137,6 +137,7 @@ func (r *Runtime) replayMacro(name string, count int) (err error) {
 	}
 	g.Macro.Last = key
 	g.Macro.Depth++
+	defer r.forceSource("macro:" + key)()
 	defer func() {
 		g.Macro.Depth--
 		if outer {

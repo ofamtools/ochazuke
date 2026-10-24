@@ -28,7 +28,9 @@ type CallMsg struct {
 }
 
 func (r *Runtime) HandleCall(msg CallMsg) {
+	restore := r.Sourced("cli")
 	result, err := r.Execute(msg.Request)
+	restore()
 	response := Response{Result: result}
 	if err != nil {
 		response = Response{Error: err.Error()}

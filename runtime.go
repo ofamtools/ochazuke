@@ -94,6 +94,7 @@ type Runtime struct {
 	pendingModes   map[string]bool
 	guards         map[string]Guard
 	predicates     map[string]PredicateFunc // named query predicates (query.go)
+	history        actionHistory            // the executed-request ring and the current source (history.go)
 	prefix         pendingPrefix
 	bindingVersion uint64
 	modeGeneration uint64
@@ -138,6 +139,7 @@ func NewRuntime() *Runtime {
 	registerTerminal(r)
 	registerFocus(r)
 	registerQuery(r)
+	registerHistory(r)
 	// A modal answers esc in normal mode; inputs, pending modes and the
 	// palette settle first because their rows sit inside this level.
 	r.Define("modal").Mode("normal").Bind("esc", Do("modal.pop"))
@@ -331,7 +333,24 @@ func (r *Runtime) Execute(q Request) (any, error) { return r.ExecuteAt(r.Context
 
 // ExecuteAt runs an operation for a context. The innermost noun on the
 // focus stack that overrides the operation handles it; otherwise its Run does.
+// Every request but history.list and state.get is appended to the action
+// history with the context it ran in and its result.
 func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
+	if unrecorded[q.Key()] {
+		return r.execute(c, q)
+	}
+	source := r.history.source
+	if source == "" {
+		source = "api"
+	}
+	at := time.Now()
+	ctx := HistoryContext{Focus: focusOf(c), Page: r.Page, Mode: r.Mode.Name, Source: source}
+	value, err := r.execute(c, q)
+	r.record(at, q, ctx, value, err)
+	return value, err
+}
+
+func (r *Runtime) execute(c Context, q Request) (any, error) {
 	op, ok := r.Operations[q.Key()]
 	if !ok {
 		return nil, fmt.Errorf("unknown operation %q", q.Key())
@@ -465,7 +484,7 @@ func (r *Runtime) Snapshot() map[string]any {
 	regs := r.Registers()
 	return map[string]any{"modals": r.modalIDs(), "pages": pages, "page": r.Page, "inputs": inputs, "context": r.Context(), "focus": r.Focus, "mode": r.Mode.Name, "modeState": r.Mode, "modes": modes, "bindings": r.ListBindings(r.Focus), "pending": r.Pending, "quit": r.Quit,
 		"lists": lists, "registers": regs.Named, "yankHistory": regs.History, "activeRegister": regs.Active, "macro": regs.Macro,
-		"nouns": nouns, "instances": r.Instances, "components": r.componentSnapshot(), "jobs": r.runningJobs()}
+		"nouns": nouns, "instances": r.Instances, "components": r.componentSnapshot(), "jobs": r.runningJobs(), "history": r.History(50)}
 }
 func JSONPointer(value any, path string) (any, error) {
 	data, err := json.Marshal(value)
