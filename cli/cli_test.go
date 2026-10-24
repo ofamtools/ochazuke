@@ -42,7 +42,7 @@ func newFixture(t *testing.T) *fixture {
 			return ochazuke.Done([]map[string]any{{"id": "w1"}, {"id": "w2"}})
 		}, "List the widgets").Rows("widget").
 		Verb("state", func(ochazuke.Ctx) ochazuke.Result {
-			return ochazuke.Done(map[string]any{"widget": []map[string]any{{"id": "w1"}, {"id": "w2"}}})
+			return ochazuke.Done(Lines{Row{Noun: "widget", ID: "w1"}, Row{Noun: "widget", ID: "w2"}})
 		}, "Every list's rows in one call").State().
 		Verb("show", record, "Show a widget").
 		Verb("rename", record, "Rename a widget").

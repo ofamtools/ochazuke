@@ -278,10 +278,10 @@ func (b *NounBuilder) Rows(noun string) *NounBuilder {
 }
 
 // State marks the last declared verb as the runtime's state source
-// (Operation.State): one call answers every list's rows, keyed by the noun
-// whose row source verb they replace. A host reading the catalog's state
-// runs it once instead of one row source per list. The framework names no
-// state verb.
+// (Operation.State): one call answers every list's rows as JSON Lines, each
+// line tagged with the list noun (see cli.CatalogDoc). A host reading the
+// catalog's state runs it once instead of one row source per list. The
+// framework names no state verb.
 func (b *NounBuilder) State() *NounBuilder {
 	if b.last == "" {
 		panic("State must follow Verb")

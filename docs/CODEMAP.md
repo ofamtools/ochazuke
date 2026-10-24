@@ -278,7 +278,7 @@ Root package `ochazuke` is flat: 42 source files, 32 test files. Each entry list
 
 ### runtime.go
 
-- lines: 656 · tests: runtime_test.go
+- lines: 655 · tests: runtime_test.go
 - purpose: Request names an operation and, optionally, the instance it addresses.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
 - methods: Context(1), Operation(2), Request(1), Runtime(16)
@@ -341,11 +341,11 @@ Root package `ochazuke` is flat: 42 source files, 32 test files. Each entry list
 
 ## Package cli
 
-Importable package `cli`: 3 source files, 1 test files.
+Importable package `cli`: 4 source files, 2 test files.
 
 ### cli/catalog.go
 
-- lines: 121
+- lines: 127
 - purpose: CatalogDoc is the catalog answer: what a runtime registers, grouped by noun, in the runtime's own JSON shapes (ochazuke.Parameter and ochazuke.Binding unchan...
 - types: CatalogDoc, CatalogNoun, CatalogVerb, CatalogPage
 - funcs: Catalog
@@ -358,13 +358,23 @@ Importable package `cli`: 3 source files, 1 test files.
 - funcs: Mount
 - leans on: shell.go(2), catalog.go(1)
 
+### cli/rows.go
+
+- lines: 90 · tests: rows_test.go
+- purpose: Row is one line of a state answer (CatalogDoc.State) or of a list asked for JSON Lines: the list noun it belongs to, its id (what --target takes), its label ...
+- types: Row, Lines, RowReader
+- methods: RowReader(1)
+- funcs: NewRowReader
+- leans on: shell.go(1)
+
 ### cli/shell.go
 
-- lines: 508
+- lines: 520
 - purpose: Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--yes]: one registered operation in this process through the runtime's CLI en...
 - types: Shell
 - methods: Shell(10)
 - funcs: New, DefaultUsage, Settle
+- leans on: rows.go(1)
 
 ## Package grid
 
@@ -465,6 +475,9 @@ Exported type -> file.
 - cli.CatalogNoun -> cli/catalog.go
 - cli.CatalogPage -> cli/catalog.go
 - cli.CatalogVerb -> cli/catalog.go
+- cli.Lines -> cli/rows.go
+- cli.Row -> cli/rows.go
+- cli.RowReader -> cli/rows.go
 - cli.Shell -> cli/shell.go
 - grid.Grid -> grid/grid.go
 - grid.Nouns -> grid/grid.go

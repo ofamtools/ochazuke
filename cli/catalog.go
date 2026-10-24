@@ -16,17 +16,23 @@ const Schema = 1
 // a registry the runtime already has.
 //
 // State is the state source, "NOUN.VERB", "" for none: the first verb (in
-// catalog order) declared with NounBuilder.State. Its JSON answer is every
-// list's rows in one process, an object keyed by the noun whose row source
-// (the verb declaring rows, else list) a host would run for that list:
+// catalog order) declared with NounBuilder.State. Its answer is every
+// list's rows in one process, as JSON Lines (Lines of Row): one object per
+// line, no outer array, each tagged with the list noun whose row source (the
+// verb declaring rows, else list) a host would otherwise run:
 //
-//	{"agent": [{"id": "agent/a1", "label": "ada"}, ...], "skill": [...]}
+//	{"noun":"agent","id":"agent/a1","label":"ada"}
+//	{"noun":"skill","id":"skill/s1","label":"review [claude]","data":{...}}
 //
-// A host runs it once, keeps the answer as its cached state and refreshes
-// it when it chooses; a list whose noun is missing from the answer falls
-// back to its own row source, as every list does for an extension without
-// a state verb. A boolean parameter fresh on the state verb, when declared,
-// asks the extension to bypass its own caches (an explicit refresh).
+// data is optional (a host's list needs id and label; show prints the
+// record). The answer covers every list: a noun with no lines has no rows.
+// A host decodes it as it arrives (RowReader), skipping a malformed line
+// silently; only a failed exec or a stream with nothing decodable is an
+// error. It runs the verb once, keeps the rows as its cached state and
+// refreshes them when it chooses; an extension without a state verb keeps
+// per-list row sources. A boolean parameter fresh on the state verb, when
+// declared, asks the extension to bypass its own caches (an explicit
+// refresh).
 type CatalogDoc struct {
 	Schema   int                `json:"schema"`
 	Name     string             `json:"name"`

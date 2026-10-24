@@ -483,10 +483,22 @@ func deliver(r *ochazuke.Runtime, cmd tea.Cmd, seen func(ochazuke.Completion)) e
 	}
 }
 
-// print writes the result as JSON: an array one compact element per line
-// (bindings list, history list read as tables), anything else indented.
+// print writes the result as JSON: Lines as JSON Lines, an array one
+// compact element per line (bindings list, history list read as tables),
+// anything else indented.
 func (s *Shell) print(value any) error {
 	w := s.stdout()
+	if lines, ok := value.(Lines); ok {
+		bw := bufio.NewWriter(w)
+		for _, line := range lines {
+			data, err := json.Marshal(line)
+			if err != nil {
+				return err
+			}
+			bw.Write(append(data, '\n'))
+		}
+		return bw.Flush()
+	}
 	if items, ok := value.([]any); ok && len(items) > 0 {
 		lines := make([]string, len(items))
 		for i, item := range items {
