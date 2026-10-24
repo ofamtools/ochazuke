@@ -142,6 +142,20 @@ o-story run --from spill-bug [--expect '{"focus":"b1"}']   # headless; asserts o
 Every chrome or motion rule has a story here; a UI bug is reproduced as a
 story before it is fixed.
 
+## Catalog
+
+`o-story catalog` answers like every family tool (ochazuke/cli, schema 1):
+data nouns `story` (list, show, run, state), `recording` (list, show), `verb`
+and `edge` (list, the rows of `o-story verbs`). Every list returns
+`{id, label, data}` rows; `story state` prints all of them as JSON Lines.
+
+```
+o-story story list               # id AREA/NAME, data {area, size, chrome, steps, skipped, expect?}
+o-story story run --target lists/lone-list
+o-story recording show --target recording/1
+o-story story state              # {"noun":"verb","id":"verb/normal/list.move",...} per line
+```
+
 ## Minimum verbs per component
 
 Every key resolves to a `noun.verb`, so the verbs the core stories exercise

@@ -11,6 +11,8 @@
 //	o-story replay REF
 //	o-story trim REF [--from I] [--to J] [--at K] [--as NAME] [--snapshot]
 //	o-story verbs
+//	o-story catalog                 the nouns (story, recording, verb, edge) as JSON
+//	o-story NOUN VERB [--target ID] story list|show|run|state, recording list|show, verb list, edge list
 //
 // REF is a history number (1 newest) or a saved recording's name.
 // Stories come from the embedded stories/ (or --dir) and from
@@ -32,6 +34,7 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	ocli "github.com/unixsuperhero/ochazuke/cli"
 	"github.com/unixsuperhero/ochazuke/story"
 	"github.com/unixsuperhero/oden"
 )
@@ -72,6 +75,7 @@ func (t *Tool) Main(args []string) error {
 		oden.Command{Name: "trim", Summary: "trim REF: write a story of a window of the recording's events", Run: func(_ context.Context, a []string) error { return t.Trim(a) }},
 		oden.Command{Name: "verbs", Summary: "the noun.verb set the core stories' scripts resolve to, by noun", Run: func(_ context.Context, a []string) error { return t.Verbs(a) }},
 	)
+	ocli.Mount(app, t.shell())
 	return app.Run(context.Background())
 }
 
