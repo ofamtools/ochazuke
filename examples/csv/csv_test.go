@@ -77,7 +77,7 @@ func TestOpenAndNavigateWithCounts(t *testing.T) {
 		t.Fatalf("mode after motions = %q", mode)
 	}
 	view := ansi.Strip(a.m.View().Content)
-	for _, want := range []string{"people.csv", "5 rows × 3 columns", "r0:c2", " 1 ann", "i edit.cell"} {
+	for _, want := range []string{"people.csv", "5 rows × 3 columns", "r0:c2", " 1 ann", "i cell.edit"} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("view lacks %q:\n%s", want, view)
 		}
@@ -235,7 +235,7 @@ func TestTransformUpperOnBlockPlusMark(t *testing.T) {
 	}
 	names, err := a.r.Execute(ochazuke.Request{Verb: "list", Noun: "transformations"})
 	if err != nil || !reflect.DeepEqual(names, []string{"lower", "slug", "title", "trim", "upper", "fillDown"}) {
-		t.Fatalf("list.transformations = %v, %v", names, err)
+		t.Fatalf("transformations.list = %v, %v", names, err)
 	}
 	if _, err := a.r.Execute(ochazuke.Request{Verb: "transform", Noun: "selection", Args: ochazuke.Arguments{"name": "nope"}}); err == nil {
 		t.Fatal("unknown transformation accepted")
@@ -362,8 +362,8 @@ func TestPaletteListsTheNounVerbs(t *testing.T) {
 			t.Fatalf("%s verbs = %v, want %v", noun, got, want)
 		}
 	}
-	if op := a.r.Operations["delete.row"]; op.Confirm == "" {
-		t.Fatal("delete.row has no confirm")
+	if op := a.r.Operations["row.delete"]; op.Confirm == "" {
+		t.Fatal("row.delete has no confirm")
 	}
 	press(t, a, ":")
 	keytest.Type(a.m, "transform")
@@ -380,7 +380,7 @@ func TestPaletteListsTheNounVerbs(t *testing.T) {
 	}
 	// Hints are the bound rows: a hint never names an unbound key.
 	hints := ochazuke.BindingHints(a.r, "r0:c0")
-	for _, want := range []string{"d d delete.row", "t u transform.selection", "ctrl+s save.sheet", "v shape.selection"} {
+	for _, want := range []string{"d d row.delete", "t u selection.transform", "ctrl+s sheet.save", "v selection.shape"} {
 		if !strings.Contains(hints, want) {
 			t.Fatalf("hints lack %q: %s", want, hints)
 		}
@@ -423,7 +423,7 @@ func TestEmptySheetStartsOnTheGrid(t *testing.T) {
 // cell instances, is a Request to a registered operation or an unbind; see
 // TestBindingRowsAreAtomic in the framework package.
 func TestCSVBindingRowsAreAtomic(t *testing.T) {
-	if err := open(t).r.ValidateBindings(); err != nil {
+	if _, err := open(t).r.ValidateBindings(); err != nil {
 		t.Fatal(err)
 	}
 }

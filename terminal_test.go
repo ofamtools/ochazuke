@@ -97,7 +97,7 @@ func press(t *testing.T, r *Runtime, keys ...string) {
 func TestTerminalLeaderForwardsBoundRunsAndTimeoutForwardsPrefix(t *testing.T) {
 	r, term, stream := terminalFixture(t)
 	calls := recorder(t, r, "new-window")
-	r.Define("terminal").Mode("leader_pending").Bind("c", Do("new-window.test"))
+	r.Define("terminal").Mode("leader_pending").Bind("c", Do("test.new-window"))
 	mode := func() string { return r.Mode(r.Context()) }
 	if !term.Focused() || mode() != "terminal" {
 		t.Fatalf("focus %q mode %q", r.FocusID(), mode())
@@ -161,7 +161,7 @@ func TestTerminalLeaderForwardsBoundRunsAndTimeoutForwardsPrefix(t *testing.T) {
 	}
 }
 
-// list.bindings in terminal mode is the terminal table alone: the leader, the
+// bindings.list in terminal mode is the terminal table alone: the leader, the
 // any and paste rows, no editor rows and no app rows beneath the any row. In
 // leader_pending it is the leader table.
 func TestTerminalBindingsListLeaderRowsAndNoEditorRows(t *testing.T) {
@@ -177,15 +177,15 @@ func TestTerminalBindingsListLeaderRowsAndNoEditorRows(t *testing.T) {
 		}
 		return out
 	}
-	if got := keys(); !reflect.DeepEqual(got, []string{"ctrl+a enter.mode", "<any> send.terminal", "<paste> paste.terminal"}) {
+	if got := keys(); !reflect.DeepEqual(got, []string{"ctrl+a mode.enter", "<any> terminal.send", "<paste> terminal.paste"}) {
 		t.Fatalf("terminal mode rows: %v", got)
 	}
 	press(t, r, "ctrl+a")
-	if got := keys(); !reflect.DeepEqual(got, []string{"ctrl+a send.terminal", "d detach.terminal", "<any> send.terminal", "<paste> paste.terminal"}) {
+	if got := keys(); !reflect.DeepEqual(got, []string{"ctrl+a terminal.send", "d terminal.detach", "<any> terminal.send", "<paste> terminal.paste"}) {
 		t.Fatalf("leader_pending rows: %v", got)
 	}
 	hints := BindingHints(r, "pane")
-	if !strings.Contains(hints, "d detach.terminal") || strings.Contains(hints, "quit.app") {
+	if !strings.Contains(hints, "d terminal.detach") || strings.Contains(hints, "app.quit") {
 		t.Fatalf("hints: %q", hints)
 	}
 }

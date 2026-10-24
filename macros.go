@@ -22,16 +22,16 @@ type MacroState struct {
 }
 
 // Recording is the macro_recording shadow mode: while a register records and
-// no replay is running, every key runs record.macro, which appends the key
+// no replay is running, every key runs macro.record, which appends the key
 // and dispatches it again in the mode it shadowed; q stops only when that
 // mode is a quiet normal (the shadow-idle guard) and is recorded otherwise.
 // The rows are Requests on the app noun like every other row.
 func registerMacros(r *Runtime) {
 	r.DefineMode("macro_recording", true)
 	r.Define("app").Mode("macro_recording").
-		Bind("q", Do("stop.macro")).When("shadow-idle").
-		Pattern(Any, Do("record.macro").FromKey("key")).
-		Pattern(Paste, Do("record.macro", Arguments{"paste": true}).FromKey("key"))
+		Bind("q", Do("macro.stop")).When("shadow-idle").
+		Pattern(Any, Do("macro.record").FromKey("key")).
+		Pattern(Paste, Do("macro.record", Arguments{"paste": true}).FromKey("key"))
 	keyParams := map[string]Parameter{
 		"key":   {Type: "string", Required: true, Description: "Key name as bindings spell it; for a paste, the bracketed text"},
 		"paste": {Type: "boolean", Description: "The key is pasted text"},
@@ -51,7 +51,7 @@ func registerMacros(r *Runtime) {
 		g.Macro.Keys = append(g.Macro.Keys, MacroKey{Key: StringArg(a, "key", ""), Paste: paste})
 		return g.Macro, nil
 	})
-	add("record", "Record one key: append it to the recording, then dispatch it in the shadowed mode (append.macro, then dispatch.key)", keyParams, func(r *Runtime, c Context, a Arguments) (any, error) {
+	add("record", "Record one key: append it to the recording, then dispatch it in the shadowed mode (macro.append, then key.dispatch)", keyParams, func(r *Runtime, c Context, a Arguments) (any, error) {
 		if _, err := r.ExecuteAt(c, Request{Verb: "append", Noun: "macro", Args: a}); err != nil {
 			return nil, err
 		}

@@ -239,9 +239,9 @@ func TestDemoKeyboardSessionStaysGreen(t *testing.T) {
 	}
 	execute := func(verb, noun string, args ochazuke.Arguments) {
 		t.Helper()
-		step(verb+"."+noun, func() {
+		step(noun+"."+verb, func() {
 			if _, err := r.Execute(ochazuke.Request{Verb: verb, Noun: noun, Args: args}); err != nil {
-				t.Fatalf("%s.%s: %v", verb, noun, err)
+				t.Fatalf("%s.%s: %v", noun, verb, err)
 			}
 		})
 	}
@@ -319,7 +319,7 @@ func pickerEntryPaths(entries []ochazuke.PickerEntry) []string {
 // Every row of the demo's tables is a Request to a registered operation or
 // an unbind; see TestBindingRowsAreAtomic in the framework package.
 func TestDemoBindingRowsAreAtomic(t *testing.T) {
-	if err := New().Runtime.ValidateBindings(); err != nil {
+	if _, err := New().Runtime.ValidateBindings(); err != nil {
 		t.Fatal(err)
 	}
 }

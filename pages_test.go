@@ -102,7 +102,7 @@ func TestPageBindingsAndActionsFollowActiveContext(t *testing.T) {
 		if err := r.Bind(Binding{Instance: id, Keys: "x", Request: Request{Verb: "insert", Noun: "input", Args: Arguments{"text": strings.ToUpper(id)}}}); err != nil {
 			t.Fatal(err)
 		}
-		r.Define(id+"-editor").Action("inspect.owner", func(*Runtime, Context, Arguments) (any, error) { return id, nil })
+		r.Define(id+"-editor").Action("owner.inspect", func(*Runtime, Context, Arguments) (any, error) { return id, nil })
 	}
 	for _, id := range []string{"alpha", "beta"} {
 		paletteRequest(t, r, "open", "page", Arguments{"id": id})

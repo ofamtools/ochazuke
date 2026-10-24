@@ -23,7 +23,7 @@ func dispatchTestModel(t *testing.T, text string, keys ...string) (*Model, *Inpu
 			calls = append(calls, key)
 			return nil, nil
 		}})
-		r.Define("app").Mode("").Bind(key, Do(key+".test"))
+		r.Define("app").Mode("").Bind(key, Do("test."+key))
 	}
 	return NewModel(r), in, &calls
 }
@@ -57,7 +57,7 @@ func TestDispatchMacroPendingBeatsLayerBinding(t *testing.T) {
 // Rule: an active palette takes every key; page rows and the editor grammar wait.
 func TestDispatchPaletteActiveTakesKeys(t *testing.T) {
 	m, in, calls := dispatchTestModel(t, "abc")
-	m.Runtime.Define("app").Mode("normal").Bind("x", Do("quit.app"))
+	m.Runtime.Define("app").Mode("normal").Bind("x", Do("app.quit"))
 	if err := m.Palette.Open(); err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +128,7 @@ func TestDispatchFreshKeyPrefersLayerBinding(t *testing.T) {
 	}
 }
 
-// Rule: the modal noun binds esc in normal mode to pop.modal; on the main
+// Rule: the modal noun binds esc in normal mode to modal.pop; on the main
 // frame esc finds no row.
 func TestDispatchEscPopsModalInNormalMode(t *testing.T) {
 	m, in, calls := dispatchTestModel(t, "abc")
@@ -200,7 +200,7 @@ func TestDispatchDropsUnmatchedBindingPrefix(t *testing.T) {
 		*calls = append(*calls, "any")
 		return nil, nil
 	}})
-	m.Runtime.Define("app").Mode("normal").Pattern(Any, Do("any.test"))
+	m.Runtime.Define("app").Mode("normal").Pattern(Any, Do("test.any"))
 	keytest.Press(m, "g")
 	keytest.Press(m, "x")
 	dispatchTestState(t, m, in, "bc", calls, "any")

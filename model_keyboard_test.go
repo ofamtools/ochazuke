@@ -32,7 +32,7 @@ func TestModelMacroRegisterTransitionsAndPalette(t *testing.T) {
 				m := NewModel(r)
 				modelType(m, "q", batched)
 				// The footer is the macro_pending table itself: any key starts recording.
-				if !strings.Contains(ansi.Strip(m.View().Content), "<any> start.macro") {
+				if !strings.Contains(ansi.Strip(m.View().Content), "<any> macro.start") {
 					t.Fatal("recording prefix did not show the macro_pending rows")
 				}
 				modelType(m, "q", batched)

@@ -26,10 +26,10 @@ func TestDefineBuilderBindsVerbsActionsAndRows(t *testing.T) {
 	calls := recorder(t, r, "open", "close")
 	b := r.Define("panel").Verbs("inspect").
 		Verb("toggle", func(*Runtime, Context, Arguments) (any, error) { return "toggled", nil }).
-		Action("quit.app", func(*Runtime, Context, Arguments) (any, error) { return "panel", nil })
-	b.Mode("normal").Bind("o", Do("open.test")).Bind("o", Do("close.test")).Pattern(Digit, Do("open.test")).Unbind("o")
+		Action("app.quit", func(*Runtime, Context, Arguments) (any, error) { return "panel", nil })
+	b.Mode("normal").Bind("o", Do("test.open")).Bind("o", Do("test.close")).Pattern(Digit, Do("test.open")).Unbind("o")
 	noun := r.Noun("panel")
-	if noun == nil || !reflect.DeepEqual(noun.Verbs, []string{"inspect", "toggle"}) || r.Operations["toggle.panel"].Run == nil || noun.Actions["quit.app"] == nil {
+	if noun == nil || !reflect.DeepEqual(noun.Verbs, []string{"inspect", "toggle"}) || r.Operations["panel.toggle"].Run == nil || noun.Actions["app.quit"] == nil {
 		t.Fatalf("builder did not declare verbs, operations and actions: %+v", noun)
 	}
 	if rows := noun.Bindings["normal"]; len(rows) != 1 || rows[0].Pattern != Digit || rows[0].Noun != "panel" || rows[0].Mode != "normal" {
@@ -60,9 +60,9 @@ func TestResolveWalksStackInnerToOuter(t *testing.T) {
 	r.Instance("page")
 	r.Instance("list", Parent("page"))
 	r.Instance("row", Parent("list"))
-	r.Define("app").Mode("normal").Bind("x", Do("app-normal.test")).Mode("").Bind("y", Do("app-any.test"))
-	r.Define("page").Mode("").Bind("x", Do("page-any.test")).Mode("normal").Bind("y", Do("page-normal.test")).Pattern(Any, Do("any-row.test")).Pattern(Alpha, Do("alpha-row.test"))
-	r.Define("row").Mode("insert").Bind("x", Do("row-insert.test"))
+	r.Define("app").Mode("normal").Bind("x", Do("test.app-normal")).Mode("").Bind("y", Do("test.app-any"))
+	r.Define("page").Mode("").Bind("x", Do("test.page-any")).Mode("normal").Bind("y", Do("test.page-normal")).Pattern(Any, Do("test.any-row")).Pattern(Alpha, Do("test.alpha-row"))
+	r.Define("row").Mode("insert").Bind("x", Do("test.row-insert"))
 	if err := r.Focus("row"); err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +94,7 @@ func TestResolveWalksStackInnerToOuter(t *testing.T) {
 		listed[b.Keys+b.Pattern] = b.Request.Verb
 	}
 	if listed["x"] != "row-insert" || listed["y"] != "app-any" || listed["any"] != "" {
-		t.Fatalf("list.bindings in insert mode: %v", listed)
+		t.Fatalf("bindings.list in insert mode: %v", listed)
 	}
 	if got := r.Ancestry("row"); !reflect.DeepEqual(got, []string{"row", "list", "page", "app"}) {
 		t.Fatalf("ancestry %v", got)
@@ -110,7 +110,7 @@ func TestResolveWalksStackInnerToOuter(t *testing.T) {
 func TestPendingModesAreExclusiveAndOneShot(t *testing.T) {
 	r, in := editorTestRuntime(t, "one two", true)
 	calls := recorder(t, r, "any")
-	r.Define("app").Mode("").Bind("w", Do("any.test"))
+	r.Define("app").Mode("").Bind("w", Do("test.any"))
 	editorTestKeys(t, r, "d", "w")
 	if string(in.Text) != "two" || len(*calls) != 0 || r.Mode(r.Context()) != "normal" {
 		t.Fatalf("operator_pending leaked: text=%q calls=%v mode=%s", in.Text, *calls, r.Mode(r.Context()))
@@ -141,15 +141,15 @@ func TestPrefixModeTimeoutRestoresBaseMode(t *testing.T) {
 	r := NewRuntime()
 	r.BindingTimeout = time.Hour
 	calls := recorder(t, r, "g", "gg")
-	r.Define("app").Mode("normal").Bind("g", Do("g.test")).Bind("g g", Do("gg.test"))
+	r.Define("app").Mode("normal").Bind("g", Do("test.g")).Bind("g g", Do("test.gg"))
 	r.Instances["app"].State = "normal"
 	r.Dispatch(MacroKey{Key: "g"})
 	if got := r.modeState("app"); got.Name != "normal g" || got.Payload.Prefix != "g" || got.Payload.Request == nil || r.Pending != "g" {
 		t.Fatalf("prefix mode: %+v pending=%q", got, r.Pending)
 	}
-	// The continuations and the generated cancel row ("g esc" → leave.mode).
-	if rows := r.ListBindings("app"); len(rows) != 2 || rows[0].Keys != "g esc" || rows[0].Request.Key() != "leave.mode" || rows[1].Keys != "g g" {
-		t.Fatalf("list.bindings in a prefix mode lists the continuations: %+v", rows)
+	// The continuations and the generated cancel row ("g esc" → mode.leave).
+	if rows := r.ListBindings("app"); len(rows) != 2 || rows[0].Keys != "g esc" || rows[0].Request.Key() != "mode.leave" || rows[1].Keys != "g g" {
+		t.Fatalf("bindings.list in a prefix mode lists the continuations: %+v", rows)
 	}
 	r.prefix.deadline = time.Now().Add(-time.Second)
 	if handled, err := r.HandleBindingTimeout(BindingTimeoutMsg{runtime: r, version: r.bindingVersion}); !handled || err != nil {
@@ -198,10 +198,10 @@ func TestLeaderPendingShadowShape(t *testing.T) {
 	alone := Request{Verb: "forward", Noun: "pane", Args: Arguments{"keys": "ctrl+b"}}
 	r.Define("term").Mode("normal").
 		Bind("ctrl+b", Enter("leader_pending", Payload{Prefix: "ctrl+b", Request: &alone})).
-		Pattern(Any, Do("forward.pane").FromKey("keys")).
+		Pattern(Any, Do("pane.forward").FromKey("keys")).
 		Mode("leader_pending").
-		Bind("c", Do("new-window.test")).
-		Pattern(Any, Do("forward.pane").Join("keys", SourcePrefix, SourceKey))
+		Bind("c", Do("test.new-window")).
+		Pattern(Any, Do("pane.forward").Join("keys", SourcePrefix, SourceKey))
 	r.Instance("pane", Kind("term"))
 	if err := r.Focus("pane"); err != nil {
 		t.Fatal(err)
@@ -259,7 +259,7 @@ func TestLoadBindingsRowsReplaceAddAndUnbind(t *testing.T) {
 }
 
 // Acceptance: every Readline and Vim key the editor answers to appears in
-// list.bindings for its mode on a plain focused input.
+// bindings.list for its mode on a plain focused input.
 func TestListBindingsListsEveryEditorKey(t *testing.T) {
 	r, in := editorTestRuntime(t, "abc", true)
 	editor := r.Noun("editor")
@@ -279,7 +279,7 @@ func TestListBindingsListsEveryEditorKey(t *testing.T) {
 		}
 		for key := range want {
 			if !got[key] {
-				t.Fatalf("mode %s: %q missing from list.bindings", mode, strings.ReplaceAll(key, "\x00", "/"))
+				t.Fatalf("mode %s: %q missing from bindings.list", mode, strings.ReplaceAll(key, "\x00", "/"))
 			}
 		}
 		in.storeMode("normal")
@@ -297,8 +297,8 @@ func TestListBindingsListsEveryEditorKey(t *testing.T) {
 func TestListRowsAreInstancesOfTheirNouns(t *testing.T) {
 	r, list, input, items := listFixture(t)
 	r.Register(Operation{Verb: "inspect", Noun: "item", Run: func(*Runtime, Context, Arguments) (any, error) { return "application", nil }})
-	r.Define("a").Action("inspect.item", func(*Runtime, Context, Arguments) (any, error) { return "noun a", nil }).
-		Mode("normal").Bind("x", Do("quit.app"))
+	r.Define("a").Action("item.inspect", func(*Runtime, Context, Arguments) (any, error) { return "noun a", nil }).
+		Mode("normal").Bind("x", Do("app.quit"))
 	for _, item := range items {
 		inst := r.Instances[item.ID]
 		if inst == nil || inst.Noun != item.Noun || inst.Parent != "sidebar" {
@@ -361,7 +361,7 @@ func TestListRowsAreInstancesOfTheirNouns(t *testing.T) {
 		t.Fatal("unknown target accepted")
 	}
 	if _, err := r.Execute(Request{Verb: "select", Noun: "context", Args: Arguments{"instance": "two"}}); err != nil || r.Context().Path[3] != "two" {
-		t.Fatalf("select.context instance: %v %+v", err, r.Context())
+		t.Fatalf("context.select instance: %v %+v", err, r.Context())
 	}
 	if err := r.Focus(input.ID); err != nil || r.Context().InputID != "note" {
 		t.Fatalf("Focus input: %v", err)
@@ -381,7 +381,7 @@ func TestListRowsAreInstancesOfTheirNouns(t *testing.T) {
 	}
 }
 
-// Multi-selection fan-out: a verb over marked rows runs verb.<row noun> per
+// Multi-selection fan-out: a verb over marked rows runs <row noun>.verb per
 // row, skipping and reporting rows whose noun lacks the verb.
 func TestMultiSelectionFanOut(t *testing.T) {
 	r, list, _, _ := listFixture(t)
@@ -403,7 +403,7 @@ func TestMultiSelectionFanOut(t *testing.T) {
 		t.Fatal(err)
 	}
 	report := result.(map[string]any)
-	if !reflect.DeepEqual(opened, []string{"one", "two"}) || !reflect.DeepEqual(report["applied"], []string{"one", "two"}) || !reflect.DeepEqual(report["skipped"], []string{"three: open.c is not registered"}) {
+	if !reflect.DeepEqual(opened, []string{"one", "two"}) || !reflect.DeepEqual(report["applied"], []string{"one", "two"}) || !reflect.DeepEqual(report["skipped"], []string{"three: c.open is not registered"}) {
 		t.Fatalf("fan-out: opened=%v report=%v", opened, report)
 	}
 	editorTestKeys(t, r, "space")
@@ -425,7 +425,7 @@ func TestModeLivesOnInstances(t *testing.T) {
 	}
 	row := r.Context()
 	if r.Instances["one"].State != "review" || r.Mode(row) != "review" {
-		t.Fatalf("set.mode must write the leaf instance: %+v", r.Instances["one"])
+		t.Fatalf("mode.set must write the leaf instance: %+v", r.Instances["one"])
 	}
 	list.Move(1)
 	if r.Mode(r.Context()) != "normal" {

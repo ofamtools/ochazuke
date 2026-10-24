@@ -379,7 +379,7 @@ func TestEditorModeHookAndCustomMode(t *testing.T) {
 
 func TestEditorBindingPrecedenceAndSnapshot(t *testing.T) {
 	r, in := editorTestRuntime(t, "abc", false)
-	r.Define("app").Mode("normal").Bind("i", Do("move.input", Arguments{"motion": "right"}))
+	r.Define("app").Mode("normal").Bind("i", Do("input.move", Arguments{"motion": "right"}))
 	editorTestKeys(t, r, "i")
 	editorTestState(t, in, "abc", 1, "normal")
 	editorTestKeys(t, r, "2", "g")

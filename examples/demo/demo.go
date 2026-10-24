@@ -109,7 +109,7 @@ func New() *ochazuke.Model {
 	})
 	for _, id := range []string{"playground", "agent"} {
 		name := id
-		r.Define(id).Action("inspect.selection", func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
+		r.Define(id).Action("selection.inspect", func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
 			lastNoun = name
 			return name, nil
 		})

@@ -346,7 +346,7 @@ func (a *App) Transform(name string, cells []grid.Ref) (Patch, error) {
 	text, isText := textTransformations[name]
 	sheet, isSheet := sheetTransformations[name]
 	if !isText && !isSheet {
-		return Patch{}, fmt.Errorf("unknown transformation %q; list.transformations names them", name)
+		return Patch{}, fmt.Errorf("unknown transformation %q; transformations.list names them", name)
 	}
 	var p Patch
 	for _, ref := range cells {

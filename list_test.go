@@ -46,7 +46,7 @@ func TestListFocusSelectsItemActionsAndLeavesEditorAlone(t *testing.T) {
 	r, list, input, _ := listFixture(t)
 	r.Register(Operation{Verb: "inspect", Noun: "item", Run: func(*Runtime, Context, Arguments) (any, error) { return "application", nil }})
 	for _, id := range []string{"a", "b"} {
-		r.Define(id).Action("inspect.item", func(*Runtime, Context, Arguments) (any, error) { return id, nil })
+		r.Define(id).Action("item.inspect", func(*Runtime, Context, Arguments) (any, error) { return id, nil })
 	}
 	if _, err := r.Execute(Request{Verb: "focus", Noun: "list", Args: Arguments{"id": "sidebar"}}); err != nil {
 		t.Fatal(err)
@@ -210,7 +210,7 @@ func TestListSelectionCancelsPendingBindingEvenWithSharedItemLayer(t *testing.T)
 	if err := list.SetItems([]ListItem{{ID: "one", Noun: "a"}, {ID: "two", Noun: "a"}}); err != nil {
 		t.Fatal(err)
 	}
-	r.Define("a").Mode("").Bind("g g", Do("quit.app"))
+	r.Define("a").Mode("").Bind("g g", Do("app.quit"))
 	if err := list.Focus(); err != nil {
 		t.Fatal(err)
 	}

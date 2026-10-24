@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"unicode"
@@ -38,7 +39,7 @@ type Noun struct {
 // the row, the key or the payload), a mode transition (Enter, Leave) or an
 // unbind. There is no row that runs Go code with the key. Composite
 // behaviour is an operation whose handler calls other operations through
-// Execute (record.macro, paste.terminal under the leader); a condition is a
+// Execute (macro.record, terminal.paste under the leader); a condition is a
 // named guard. TestBindingRowsAreAtomic pins this for every table.
 type Binding struct {
 	Noun     string            `json:"noun,omitempty"`
@@ -59,7 +60,7 @@ type Binding struct {
 // (count times operator count), "op" (payload operator), "opcount", "prefix"
 // (the key sequence the pending mode holds). A From value may name several
 // sources separated by spaces ("prefix key"): their texts are joined with a
-// space, the way send.terminal reads a key list.
+// space, the way terminal.send reads a key list.
 const (
 	SourceKey     = "key"
 	SourceDigit   = "digit"
@@ -72,7 +73,7 @@ const (
 	SourcePrefix  = "prefix"
 )
 
-// CancelKey is the key every key-sequence prefix answers with leave.mode: a
+// CancelKey is the key every key-sequence prefix answers with mode.leave: a
 // default row "<prefix> esc" is kept in each table that binds a sequence, so
 // Escape cancels a pending prefix without running anything and the resolver
 // never names a key.
@@ -90,9 +91,9 @@ const (
 // same reports whether two rows address the same key or pattern.
 func (b Binding) same(o Binding) bool { return b.Keys == o.Keys && b.Pattern == o.Pattern }
 
-// Do builds a row that runs "verb.noun" with optional arguments.
+// Do builds a row that runs "noun.verb" with optional arguments.
 func Do(operation string, args ...Arguments) Binding {
-	verb, noun, _ := strings.Cut(operation, ".")
+	noun, verb, _ := strings.Cut(operation, ".")
 	q := Request{Verb: verb, Noun: noun}
 	for _, a := range args {
 		if q.Args == nil {
@@ -128,11 +129,11 @@ func Enter(mode string, payload ...Payload) Binding {
 			args["request"] = *p.Request
 		}
 	}
-	return Do("enter.mode", args)
+	return Do("mode.enter", args)
 }
 
 // Leave builds a row that returns from a pending mode to the mode it shadowed.
-func Leave() Binding { return Do("leave.mode") }
+func Leave() Binding { return Do("mode.leave") }
 
 // FromKey fills an argument from the pressed key name.
 func (b Binding) FromKey(arg string) Binding { return b.from(arg, SourceKey) }
@@ -193,13 +194,13 @@ func (b *NounBuilder) Verbs(verbs ...string) *NounBuilder {
 	return b
 }
 
-// Verb registers verb.noun as an operation when it is new, else installs the
+// Verb registers noun.verb as an operation when it is new, else installs the
 // handler as this noun's override of the existing operation. The handler is
 // a Handler (an interaction verb, run on the loop) or an AppHandler
 // (func(Ctx) Result: an application verb whose pending work runs off the
 // loop). An override of an existing operation must be a Handler.
 func (b *NounBuilder) Verb(verb string, h any, description ...string) *NounBuilder {
-	key := verb + "." + b.n.Name
+	key := b.n.Name + "." + verb
 	run, app := appHandlerOf(h)
 	if _, ok := b.r.Operations[key]; !ok {
 		b.r.Register(Operation{Verb: verb, Noun: b.n.Name, Description: strings.Join(description, " "), Result: "JSON value", Run: run, App: app})
@@ -226,7 +227,7 @@ func (b *NounBuilder) Confirm(prompt string) *NounBuilder {
 	return b
 }
 
-// Action overrides any operation ("verb.noun") while this noun is on the stack.
+// Action overrides any operation ("noun.verb") while this noun is on the stack.
 func (b *NounBuilder) Action(key string, h Handler) *NounBuilder { b.n.Actions[key] = h; return b }
 
 // Mode selects the table rows are bound into; "" is the any-mode table.
@@ -273,6 +274,7 @@ func (m *ModeBuilder) When(guard string) *ModeBuilder {
 
 func (m *ModeBuilder) add(row Binding) *ModeBuilder {
 	row.Noun, row.Instance, row.Mode = m.n.Name, "", m.mode
+	row.Request = m.r.modernRequest(row.Request)
 	rows := m.n.Bindings[m.mode]
 	if row.When == "" {
 		for i, existing := range rows {
@@ -300,7 +302,7 @@ func removeRows(rows []Binding, probe Binding) []Binding {
 	return out
 }
 
-// withPrefixCancels keeps one "<prefix> esc" → leave.mode row per proper
+// withPrefixCancels keeps one "<prefix> esc" → mode.leave row per proper
 // prefix of every key sequence in a table, and drops the rows it generated
 // for prefixes no sequence continues any more. This is where a prefix mode
 // is created (a sequence row makes its prefixes wait), so this is where its
@@ -351,7 +353,7 @@ func withPrefixCancels(rows []Binding) []Binding {
 // isPrefixCancel reports whether a row is the default cancel of a sequence
 // prefix: "<prefix> esc" running leave.mode.
 func isPrefixCancel(b Binding) bool {
-	return strings.HasSuffix(b.Keys, " "+CancelKey) && b.Request.Key() == "leave.mode" && len(b.From) == 0 && b.When == ""
+	return strings.HasSuffix(b.Keys, " "+CancelKey) && b.Request.Key() == "mode.leave" && len(b.From) == 0 && b.When == ""
 }
 
 // isPattern reports whether a config "keys" value names a key class.
@@ -399,7 +401,7 @@ func (r *Runtime) Bind(rows ...Binding) error {
 // and sources, or an unbind. Every row is therefore atomic. It is the check
 // behind TestBindingRowsAreAtomic and is for an application to run after it
 // loads its own rows.
-func (r *Runtime) ValidateBindings() error {
+func (r *Runtime) ValidateBindings() ([]string, error) {
 	nouns := make([]string, 0, len(r.Nouns))
 	for name := range r.Nouns {
 		nouns = append(nouns, name)
@@ -412,21 +414,45 @@ func (r *Runtime) ValidateBindings() error {
 		}
 		sort.Strings(modes)
 		for _, mode := range modes {
-			for _, row := range r.Nouns[name].Bindings[mode] {
-				if _, err := r.validateRow(row); err != nil {
-					return fmt.Errorf("noun %s mode %q row %s%s: %w", name, mode, row.Keys, row.Pattern, err)
+			rows := r.Nouns[name].Bindings[mode]
+			for i, row := range rows {
+				normalized, err := r.validateRow(row)
+				if err != nil {
+					return nil, fmt.Errorf("noun %s mode %q row %s%s: %w", name, mode, row.Keys, row.Pattern, err)
 				}
+				rows[i].Request = normalized.Request
 			}
 		}
 	}
 	for _, inst := range r.instancesInOrder() {
-		for _, row := range inst.Bindings {
-			if _, err := r.validateRow(row); err != nil {
-				return fmt.Errorf("instance %s mode %q row %s%s: %w", inst.ID, row.Mode, row.Keys, row.Pattern, err)
+		for i, row := range inst.Bindings {
+			normalized, err := r.validateRow(row)
+			if err != nil {
+				return nil, fmt.Errorf("instance %s mode %q row %s%s: %w", inst.ID, row.Mode, row.Keys, row.Pattern, err)
 			}
+			inst.Bindings[i].Request = normalized.Request
 		}
 	}
-	return nil
+	return append([]string(nil), r.deprecations...), nil
+}
+
+// modernRequest accepts the pre-noun.verb spelling for one release: a row
+// built as Do("undo.input") parses as noun "undo", verb "input". When that
+// key is unknown but its reversal is registered, the request is rewritten
+// and the move recorded once per key; ValidateBindings returns the list.
+func (r *Runtime) modernRequest(q Request) Request {
+	if _, ok := r.Operations[q.Key()]; ok {
+		return q
+	}
+	reversed := Request{Verb: q.Noun, Noun: q.Verb, Target: q.Target, Args: q.Args}
+	if _, ok := r.Operations[reversed.Key()]; !ok {
+		return q
+	}
+	warning := fmt.Sprintf("operation %q is spelled noun.verb: use %q", q.Key(), reversed.Key())
+	if !slices.Contains(r.deprecations, warning) {
+		r.deprecations = append(r.deprecations, warning)
+	}
+	return reversed
 }
 
 // validateRow checks a row against the registry and normalizes it.
@@ -450,6 +476,7 @@ func (r *Runtime) validateRow(row Binding) (Binding, error) {
 		row.Unbind = true
 	}
 	if !row.Unbind {
+		row.Request = r.modernRequest(row.Request)
 		op, ok := r.Operations[row.Request.Key()]
 		if !ok {
 			return row, fmt.Errorf("unknown operation %q", row.Request.Key())

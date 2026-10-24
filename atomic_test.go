@@ -31,8 +31,12 @@ func TestBindingRowsAreAtomic(t *testing.T) {
 	ochazuke.NewModel(r)
 	ochazuke.NewPicker(r)
 	for name, rt := range map[string]*ochazuke.Runtime{"runtime+model+picker": r, "demo": demo.New().Runtime} {
-		if err := rt.ValidateBindings(); err != nil {
+		warnings, err := rt.ValidateBindings()
+		if err != nil {
 			t.Fatalf("%s: %v", name, err)
+		}
+		if len(warnings) != 0 {
+			t.Fatalf("%s: rows still use the verb.noun spelling: %v", name, warnings)
 		}
 	}
 

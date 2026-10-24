@@ -71,14 +71,14 @@ func NewModel(r *Runtime) *Model {
 		}
 		r.Define("app").Mode(mode).Bind(keys, row)
 	}
-	defaultRow("normal", ":", Do("open.palette"))
-	defaultRow("normal", "ctrl+y", Do("open.yank-history"))
-	defaultRow("normal", "ctrl+j", Do("next.page"))
-	defaultRow("normal", "ctrl+k", Do("previous.page"))
-	defaultRow("", "ctrl+space", Do("open.palette"))
-	defaultRow("", "ctrl+c", Do("quit.app"))
-	defaultRow("", "pgdown", Do("scroll.surface", Arguments{"lines": 8}))
-	defaultRow("", "pgup", Do("scroll.surface", Arguments{"lines": -8}))
+	defaultRow("normal", ":", Do("palette.open"))
+	defaultRow("normal", "ctrl+y", Do("yank-history.open"))
+	defaultRow("normal", "ctrl+j", Do("page.next"))
+	defaultRow("normal", "ctrl+k", Do("page.previous"))
+	defaultRow("", "ctrl+space", Do("palette.open"))
+	defaultRow("", "ctrl+c", Do("app.quit"))
+	defaultRow("", "pgdown", Do("surface.scroll", Arguments{"lines": 8}))
+	defaultRow("", "pgup", Do("surface.scroll", Arguments{"lines": -8}))
 	return m
 }
 func (m *Model) Init() tea.Cmd { return tea.RequestBackgroundColor }
@@ -226,8 +226,8 @@ func (m *Model) footer() Footer {
 }
 
 // BindingHints renders the rows a focus answers to in its current mode as a
-// hint line, innermost level first: "ctrl+j next.page: Next page · : open.palette: Open the palette".
-// It is the data list.bindings prints, so a hint never names a key that is
+// hint line, innermost level first: "ctrl+j page.next: Next page · : palette.open: Open the palette".
+// It is the data bindings.list prints, so a hint never names a key that is
 // not bound, and each row carries its operation's description.
 func BindingHints(r *Runtime, focus string) string {
 	var hints []string

@@ -93,7 +93,7 @@ func (res Result) Replacing(slot string) Result { res.slot = slot; return res }
 // still current; it never runs for a stale or cancelled ticket.
 func (res Result) Then(fn func(Ctx, any, error)) Result { res.then = fn; return res }
 
-// Job states as list.jobs and the snapshot report them.
+// Job states as jobs.list and the snapshot report them.
 const (
 	JobRunning   = "running"
 	JobDone      = "done"
@@ -104,7 +104,7 @@ const (
 // jobHistory bounds the finished jobs the list retains between reads.
 const jobHistory = 32
 
-// JobInfo is one row of the jobs list: what list.jobs returns and what
+// JobInfo is one row of the jobs list: what jobs.list returns and what
 // the snapshot's /jobs holds for running jobs.
 type JobInfo struct {
 	Job     uint64    `json:"job"`
@@ -247,7 +247,7 @@ func (r *Runtime) jobList(keep func(*job) bool) []*job {
 }
 
 // Jobs lists every job the runtime knows in start order: the running ones
-// and the finished ones retained since the last list.jobs read.
+// and the finished ones retained since the last jobs.list read.
 func (r *Runtime) Jobs() []JobInfo {
 	out := []JobInfo{}
 	for _, j := range r.jobList(func(*job) bool { return true }) {
@@ -266,7 +266,7 @@ func (r *Runtime) runningJobs() []JobInfo {
 }
 
 // registerJobs adds list.jobs. Finished entries (done, failed, cancelled)
-// stay in the list until a list.jobs read returns them, bounded to
+// stay in the list until a jobs.list read returns them, bounded to
 // jobHistory entries meanwhile; the snapshot's /jobs shows running jobs only.
 func registerJobs(r *Runtime) {
 	r.Register(Operation{Verb: "list", Noun: "jobs", Description: "List off-loop jobs: running ones and those finished since the last read (done, failed or cancelled, with the error)", Result: "job[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {

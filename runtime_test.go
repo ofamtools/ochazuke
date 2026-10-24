@@ -17,16 +17,16 @@ func TestNounActionResolutionAndMissingOnlyFallback(t *testing.T) {
 	r.Register(Operation{Verb: "show", Noun: "owner", Run: func(*Runtime, Context, Arguments) (any, error) { return "app", nil }})
 	for _, id := range []string{"page", "agent", "directory"} {
 		name := id
-		r.Define(id).Action("show.owner", func(*Runtime, Context, Arguments) (any, error) { return name, nil })
+		r.Define(id).Action("owner.show", func(*Runtime, Context, Arguments) (any, error) { return name, nil })
 	}
 	for _, want := range []string{"directory", "agent", "page", "app"} {
 		got, err := r.Execute(Request{Verb: "show", Noun: "owner"})
 		if err != nil || got != want {
 			t.Fatalf("got %v, %v; want %q", got, err, want)
 		}
-		delete(r.Noun(want).Actions, "show.owner")
+		delete(r.Noun(want).Actions, "owner.show")
 	}
-	r.Define("directory").Action("show.owner", func(*Runtime, Context, Arguments) (any, error) { return nil, errors.New("directory failed") })
+	r.Define("directory").Action("owner.show", func(*Runtime, Context, Arguments) (any, error) { return nil, errors.New("directory failed") })
 	if _, err := r.Execute(Request{Verb: "show", Noun: "owner"}); err == nil || err.Error() != "directory failed" {
 		t.Fatalf("must not fall back on action failure: %v", err)
 	}
@@ -36,8 +36,8 @@ func TestBindingsOverlayAndSequenceCancellation(t *testing.T) {
 	r.Instance("panel")
 	_ = r.AddInput(NewInput("field", "", false), Parent("panel"))
 	_ = r.Focus("field")
-	r.Define("app").Mode("normal").Bind("x", Do("quit.app")).Mode("").Bind("g g", Do("quit.app"))
-	r.Define("panel").Mode("").Bind("x", Do("insert.input", Arguments{"text": "inner"}))
+	r.Define("app").Mode("normal").Bind("x", Do("app.quit")).Mode("").Bind("g g", Do("app.quit"))
+	r.Define("panel").Mode("").Bind("x", Do("input.insert", Arguments{"text": "inner"}))
 	if handled, err := r.HandleBinding("x"); !handled || err != nil {
 		t.Fatalf("binding failed: %v %v", handled, err)
 	}

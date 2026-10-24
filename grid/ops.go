@@ -13,7 +13,7 @@ import (
 // grid on the context's ancestry, so a cell, row or column focus reaches it.
 // The application binds keys to these rows; the grid binds nothing itself.
 func Register(r *ochazuke.Runtime) {
-	if _, ok := r.Operations["move.grid"]; ok {
+	if _, ok := r.Operations["grid.move"]; ok {
 		return
 	}
 	id := map[string]ochazuke.Parameter{"id": {Type: "string", Description: "Grid instance (defaults to the one under the focus)"}}

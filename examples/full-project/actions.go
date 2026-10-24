@@ -80,10 +80,10 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 				}
 			}
 			if !ok {
-				return nil, fmt.Errorf("%s.%s: no such row", verb, noun)
+				return nil, fmt.Errorf("%s.%s: no such row", noun, verb)
 			}
 			if row.Noun != noun {
-				return nil, fmt.Errorf("%s.%s: row %q is a %s", verb, noun, row.ID, row.Noun)
+				return nil, fmt.Errorf("%s.%s: row %q is a %s", noun, verb, row.ID, row.Noun)
 			}
 			if apply != nil {
 				if err := apply(r, page, list, row); err != nil {
@@ -202,7 +202,7 @@ func registerActions(r *ochazuke.Runtime, cfg Config) error {
 	requiredInputs := map[string][]string{"save": {"title", "notes"}, "save-editor": {"title", "notes"}, "summarize": {"notes"}}
 	for _, spec := range cfg.Actions {
 		if handlers[spec.Handler] == nil {
-			return fmt.Errorf("action %s.%s: unknown handler %q", spec.Verb, spec.Noun, spec.Handler)
+			return fmt.Errorf("action %s.%s: unknown handler %q", spec.Noun, spec.Verb, spec.Handler)
 		}
 		if strings.TrimSpace(spec.Verb) == "" || strings.TrimSpace(spec.Noun) == "" {
 			return fmt.Errorf("action verb and noun are required")
@@ -214,7 +214,7 @@ func registerActions(r *ochazuke.Runtime, cfg Config) error {
 		}
 		for name, parameter := range spec.Parameters {
 			if name == "" || (parameter.Type != "string" && parameter.Type != "integer" && parameter.Type != "boolean") {
-				return fmt.Errorf("action %s.%s: invalid parameter %q type %q", spec.Verb, spec.Noun, name, parameter.Type)
+				return fmt.Errorf("action %s.%s: invalid parameter %q type %q", spec.Noun, spec.Verb, name, parameter.Type)
 			}
 		}
 		if spec.On != "" {
@@ -230,7 +230,7 @@ func registerActions(r *ochazuke.Runtime, cfg Config) error {
 		if spec.On == "" {
 			continue
 		}
-		key := spec.Verb + "." + spec.Noun
+		key := spec.Noun + "." + spec.Verb
 		noun := r.Noun(spec.On)
 		if noun == nil {
 			return fmt.Errorf("action %s: unknown noun %q", key, spec.On)

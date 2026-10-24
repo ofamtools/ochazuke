@@ -252,13 +252,13 @@ func registerTerminal(r *Runtime) {
 		}, "Return focus to the instance around the terminal; the pane keeps running").
 		Mode("terminal").
 		Bind("ctrl+a", Enter("leader_pending", Payload{Prefix: "ctrl+a", Request: &leader})).
-		Pattern(Paste, Do("paste.terminal").FromPayload("text", SourceText)).
-		Pattern(Any, Do("send.terminal").FromKey("keys")).
+		Pattern(Paste, Do("terminal.paste").FromPayload("text", SourceText)).
+		Pattern(Any, Do("terminal.send").FromKey("keys")).
 		Mode("leader_pending").
-		Bind("d", Do("detach.terminal")).
-		Bind("ctrl+a", Do("send.terminal", Arguments{"keys": "ctrl+a"})).
-		Pattern(Paste, Do("paste.terminal").FromPayload("keys", SourcePrefix).FromPayload("text", SourceText)).
-		Pattern(Any, Do("send.terminal").Join("keys", SourcePrefix, SourceKey))
+		Bind("d", Do("terminal.detach")).
+		Bind("ctrl+a", Do("terminal.send", Arguments{"keys": "ctrl+a"})).
+		Pattern(Paste, Do("terminal.paste").FromPayload("keys", SourcePrefix).FromPayload("text", SourceText)).
+		Pattern(Any, Do("terminal.send").Join("keys", SourcePrefix, SourceKey))
 	// Required-parameter metadata for the rows above and for the CLI.
 	for verb, params := range map[string]map[string]Parameter{
 		"send":   {"id": {Type: "string", Description: "Terminal instance (defaults to the focused one)"}, "keys": {Type: "string", Required: true, Description: "Space-separated key names, forwarded in order"}},
@@ -266,8 +266,8 @@ func registerTerminal(r *Runtime) {
 		"attach": {"id": {Type: "string", Description: "Terminal instance (defaults to the focused one)"}},
 		"detach": {"id": {Type: "string", Description: "Terminal instance (defaults to the focused one)"}},
 	} {
-		op := r.Operations[verb+".terminal"]
+		op := r.Operations["terminal."+verb]
 		op.Parameters, op.Result = params, "JSON value"
-		r.Operations[verb+".terminal"] = op
+		r.Operations["terminal."+verb] = op
 	}
 }

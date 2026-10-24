@@ -45,9 +45,9 @@ func (a *App) registerPrompt() {
 			return nil, r.Pop()
 		}, "Close the prompt without running the question").
 		Mode("insert").
-		Bind("enter", ochazuke.Do("commit.field")).
-		Bind("esc", ochazuke.Do("cancel.field")).
-		Bind("ctrl+o", ochazuke.Do("open.picker"))
+		Bind("enter", ochazuke.Do("field.commit")).
+		Bind("esc", ochazuke.Do("field.cancel")).
+		Bind("ctrl+o", ochazuke.Do("picker.open"))
 	a.field = ochazuke.NewInput(fieldID, "", false)
 	if err := r.AddInput(a.field, ochazuke.Kind("field")); err != nil {
 		panic(err)

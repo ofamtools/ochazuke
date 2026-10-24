@@ -30,7 +30,7 @@ type level struct {
 // app, with the modal noun inserted before app while a modal is open, and
 // the editor noun last as the framework default when an input (editor,
 // prompt or palette field) is on the path. A list row, a page or a terminal
-// focus ends at app: editor rows neither answer nor appear in list.bindings
+// focus ends at app: editor rows neither answer nor appear in bindings.list
 // for it; counts, registers and macros are app rows and still do.
 func (r *Runtime) stack(focus string) []level {
 	ancestry := r.Ancestry(focus)
@@ -118,7 +118,7 @@ func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (bool, 
 	if prefix != "" {
 		// An unmatched sequence hands its keys on: the completed match runs,
 		// then the mismatched key is offered fresh to the whole stack. (The
-		// cancel key is a row, "<prefix> esc" → leave.mode, kept by
+		// cancel key is a row, "<prefix> esc" → mode.leave, kept by
 		// withPrefixCancels in every table that binds a sequence.)
 		r.leavePrefix(focus)
 		if fallback != nil {
@@ -215,7 +215,7 @@ func rowsForMode(rows []Binding, mode string, exclusive bool) []Binding {
 
 // stayingRequests are the operations that manage the pending mode
 // themselves, or re-dispatch the key inside it (recording).
-var stayingRequests = map[string]bool{"enter.mode": true, "append.count": true, "leave.mode": true, "cancel.input": true, "record.macro": true, "dispatch.key": true}
+var stayingRequests = map[string]bool{"mode.enter": true, "count.append": true, "mode.leave": true, "input.cancel": true, "macro.record": true, "key.dispatch": true}
 
 // runRow executes a row. A pending mode is one-shot: the key that answers it
 // consumes it, so the instance returns to the shadowed mode before the

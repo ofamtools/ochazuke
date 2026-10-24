@@ -40,7 +40,7 @@ A row is atomic: a Request (one registered operation, its arguments from
 the row, the key or the payload), a mode transition (Enter, Leave) or an
 unbind. There is no row that runs Go code with the key. Composite
 behaviour is an operation whose handler calls other operations through
-Execute (record.macro, paste.terminal under the leader); a condition is a
+Execute (macro.record, terminal.paste under the leader); a condition is a
 named guard. TestBindingRowsAreAtomic pins this for every table.
 </pre><pre>type Binding struct {
 	Noun     string            `json:&#34;noun,omitempty&#34;`
@@ -59,8 +59,8 @@ named guard. TestBindingRowsAreAtomic pins this for every table.
 </pre><pre>func (b Binding) Guard(name string) Binding</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Binding.Join</code> <small>function / method</small></summary><pre>Join fills an argument from several sources joined with a space: the
 leader&#39;s any row sends Join(&#34;keys&#34;, SourcePrefix, SourceKey).
 </pre><pre>func (b Binding) Join(arg string, sources ...string) Binding</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>BindingHints</code> <small>function / method</small></summary><pre>BindingHints renders the rows a focus answers to in its current mode as a
-hint line, innermost level first: &#34;ctrl&#43;j next.page: Next page · : open.palette: Open the palette&#34;.
-It is the data list.bindings prints, so a hint never names a key that is
+hint line, innermost level first: &#34;ctrl&#43;j page.next: Next page · : palette.open: Open the palette&#34;.
+It is the data bindings.list prints, so a hint never names a key that is
 not bound, and each row carries its operation&#39;s description.
 </pre><pre>func BindingHints(r *Runtime, focus string) string</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>BindingTimeoutMsg</code> <small>type</small></summary><pre>BindingTimeoutMsg resolves a pending key sequence on the owning event loop.
 Messages from an older sequence or another runtime are ignored.
@@ -82,7 +82,7 @@ the child&#39;s cells without moving them.
 </pre><pre>type CallMsg struct {
 	Request Request
 	Reply   chan Response
-}</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>CancelKey</code> <small>constant</small></summary><pre>CancelKey is the key every key-sequence prefix answers with leave.mode: a
+}</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>CancelKey</code> <small>constant</small></summary><pre>CancelKey is the key every key-sequence prefix answers with mode.leave: a
 default row &#34;&lt;prefix&gt; esc&#34; is kept in each table that binds a sequence, so
 Escape cancels a pending prefix without running anything and the resolver
 never names a key.
@@ -128,7 +128,7 @@ payload).
 	Printable = &#34;printable&#34;
 	Paste     = &#34;paste&#34;
 	Any       = &#34;any&#34;
-)</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Do</code> <small>function / method</small></summary><pre>Do builds a row that runs &#34;verb.noun&#34; with optional arguments.
+)</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Do</code> <small>function / method</small></summary><pre>Do builds a row that runs &#34;noun.verb&#34; with optional arguments.
 </pre><pre>func Do(operation string, args ...Arguments) Binding</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Done</code> <small>function / method</small></summary><pre>Done reports a synchronous result.
 </pre><pre>func Done(value any) Result</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>EditNode</code> <small>type</small></summary><pre>type EditNode struct {
 	Text     string `json:&#34;text&#34;`
@@ -213,7 +213,7 @@ the typed component the instance fronts (a *Page in this phase).
 	// contains filtered or unexported fields
 }</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>InstanceOption</code> <small>type</small></summary><pre>InstanceOption configures the instance constructors: Instance, AddPage,
 AddList, AddInput, AddTerminal and RegisterPage.
-</pre><pre>type InstanceOption func(*instanceSpec)</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>IntArg</code> <small>function / method</small></summary><pre>func IntArg(a Arguments, name string, fallback int) int</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>JSONPointer</code> <small>function / method</small></summary><pre>func JSONPointer(value any, path string) (any, error)</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>JobInfo</code> <small>type</small></summary><pre>JobInfo is one row of the jobs list: what list.jobs returns and what
+</pre><pre>type InstanceOption func(*instanceSpec)</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>IntArg</code> <small>function / method</small></summary><pre>func IntArg(a Arguments, name string, fallback int) int</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>JSONPointer</code> <small>function / method</small></summary><pre>func JSONPointer(value any, path string) (any, error)</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>JobInfo</code> <small>type</small></summary><pre>JobInfo is one row of the jobs list: what jobs.list returns and what
 the snapshot&#39;s /jobs holds for running jobs.
 </pre><pre>type JobInfo struct {
 	Job     uint64    `json:&#34;job&#34;`
@@ -223,7 +223,7 @@ the snapshot&#39;s /jobs holds for running jobs.
 	Started time.Time `json:&#34;started&#34;`
 	State   string    `json:&#34;state&#34;`
 	Error   string    `json:&#34;error,omitempty&#34;`
-}</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>JobRunning, JobDone, JobFailed, JobCancelled</code> <small>constant</small></summary><pre>Job states as list.jobs and the snapshot report them.
+}</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>JobRunning, JobDone, JobFailed, JobCancelled</code> <small>constant</small></summary><pre>Job states as jobs.list and the snapshot report them.
 </pre><pre>const (
 	JobRunning   = &#34;running&#34;
 	JobDone      = &#34;done&#34;
@@ -378,19 +378,19 @@ exclusive and reads only its own table.
 }</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>NounBuilder</code> <small>type</small></summary><pre>NounBuilder is the declaration surface of one noun.
 </pre><pre>type NounBuilder struct {
 	// contains filtered or unexported fields
-}</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>NounBuilder.Action</code> <small>function / method</small></summary><pre>Action overrides any operation (&#34;verb.noun&#34;) while this noun is on the stack.
+}</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>NounBuilder.Action</code> <small>function / method</small></summary><pre>Action overrides any operation (&#34;noun.verb&#34;) while this noun is on the stack.
 </pre><pre>func (b *NounBuilder) Action(key string, h Handler) *NounBuilder</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>NounBuilder.Confirm</code> <small>function / method</small></summary><pre>Confirm asks before the last declared verb runs: the prompt template
 ({{id}}, {{noun}}, {{&lt;arg&gt;}}) opens a confirm modal whose y runs the
 stored request and n or esc pops it. An empty prompt removes the confirm.
 </pre><pre>func (b *NounBuilder) Confirm(prompt string) *NounBuilder</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>NounBuilder.Mode</code> <small>function / method</small></summary><pre>Mode selects the table rows are bound into; &#34;&#34; is the any-mode table.
 </pre><pre>func (b *NounBuilder) Mode(mode string) *ModeBuilder</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>NounBuilder.Noun</code> <small>function / method</small></summary><pre>func (b *NounBuilder) Noun() *Noun</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>NounBuilder.Pin</code> <small>function / method</small></summary><pre>Pin keeps every instance of the noun in one base mode.
-</pre><pre>func (b *NounBuilder) Pin(mode string) *NounBuilder</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>NounBuilder.Verb</code> <small>function / method</small></summary><pre>Verb registers verb.noun as an operation when it is new, else installs the
+</pre><pre>func (b *NounBuilder) Pin(mode string) *NounBuilder</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>NounBuilder.Verb</code> <small>function / method</small></summary><pre>Verb registers noun.verb as an operation when it is new, else installs the
 handler as this noun&#39;s override of the existing operation. The handler is
 a Handler (an interaction verb, run on the loop) or an AppHandler
 (func(Ctx) Result: an application verb whose pending work runs off the
 loop). An override of an existing operation must be a Handler.
 </pre><pre>func (b *NounBuilder) Verb(verb string, h any, description ...string) *NounBuilder</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>NounBuilder.Verbs</code> <small>function / method</small></summary><pre>Verbs records the verbs the noun answers to, for help and the palette.
-</pre><pre>func (b *NounBuilder) Verbs(verbs ...string) *NounBuilder</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Operation</code> <small>type</small></summary><pre>Operation is one registered verb.noun. Kind is &#34;interaction&#34; (the
+</pre><pre>func (b *NounBuilder) Verbs(verbs ...string) *NounBuilder</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Operation</code> <small>type</small></summary><pre>Operation is one registered noun.verb. Kind is &#34;interaction&#34; (the
 default: Run executes synchronously on the loop) or &#34;application&#34; (App is
 an AppHandler whose pending work runs off the loop and reports through the
 delivery contract). Confirm, when set, is a prompt template ({{id}},
@@ -426,7 +426,7 @@ palette and palette-field nouns answer first; the shared editor answers for
 everything else.
 </pre><pre>func (p *Palette) HandleKey(key string) (bool, error)</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.IsActive</code> <small>function / method</small></summary><pre>IsActive reports whether the palette is the top modal.
 </pre><pre>func (p *Palette) IsActive() bool</pre><a href="../palette_editing.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.IsOpen</code> <small>function / method</small></summary><pre>func (p *Palette) IsOpen() bool</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.Open</code> <small>function / method</small></summary><pre>func (p *Palette) Open() error</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.RegisterNoun</code> <small>function / method</small></summary><pre>RegisterNoun adds or replaces a live instance source without changing operation forms.
-</pre><pre>func (p *Palette) RegisterNoun(noun string, config PaletteNoun) error</pre><a href="../palette_nouns.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.View</code> <small>function / method</small></summary><pre>func (p *Palette) View() string</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.ViewSized</code> <small>function / method</small></summary><pre>func (p *Palette) ViewSized(width, height int) string</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>PaletteEntry</code> <small>type</small></summary><pre>PaletteEntry exposes the exact select.palette value independently of its display label.
+</pre><pre>func (p *Palette) RegisterNoun(noun string, config PaletteNoun) error</pre><a href="../palette_nouns.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.View</code> <small>function / method</small></summary><pre>func (p *Palette) View() string</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.ViewSized</code> <small>function / method</small></summary><pre>func (p *Palette) ViewSized(width, height int) string</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>PaletteEntry</code> <small>type</small></summary><pre>PaletteEntry exposes the exact palette.select value independently of its display label.
 </pre><pre>type PaletteEntry struct {
 	Value string `json:&#34;value&#34;`
 	Kind  string `json:&#34;kind&#34;`
@@ -621,7 +621,7 @@ carrying the ticket, checked with Accepts and closed with Settle. A slot
 name cancels the owner&#39;s running job in that slot; &#34;&#34; accumulates. Launch
 and Start build on it for work the runtime runs as a tea.Cmd.
 </pre><pre>func (r *Runtime) Issue(owner, verb, slot string, c Ctx) (Ticket, context.Context, error)</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Jobs</code> <small>function / method</small></summary><pre>Jobs lists every job the runtime knows in start order: the running ones
-and the finished ones retained since the last list.jobs read.
+and the finished ones retained since the last jobs.list read.
 </pre><pre>func (r *Runtime) Jobs() []JobInfo</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Launch</code> <small>function / method</small></summary><pre>Launch starts a pending result as a job of owner under verb and queues
 its work for the adapter. The completion reaches the owner&#39;s
 Component.HandleMessage and the result&#39;s Then callback when the job is
@@ -660,7 +660,7 @@ instance may already exist, registered through Instance with the inputs
 and lists it holds). Focus names where the page starts: the page itself or
 an instance beneath it. Registration does not activate the page.
 </pre><pre>func (r *Runtime) RegisterPage(page *Page, opts ...InstanceOption) error</pre><a href="../pages.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Registers</code> <small>function / method</small></summary><pre>Registers returns the registers component.
-</pre><pre>func (r *Runtime) Registers() *Registers</pre><a href="../registers.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.SetConfirm</code> <small>function / method</small></summary><pre>SetConfirm sets or clears (empty prompt) the confirm prompt of verb.noun.
+</pre><pre>func (r *Runtime) Registers() *Registers</pre><a href="../registers.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.SetConfirm</code> <small>function / method</small></summary><pre>SetConfirm sets or clears (empty prompt) the confirm prompt of noun.verb.
 </pre><pre>func (r *Runtime) SetConfirm(key, prompt string) error</pre><a href="../confirm.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Settle</code> <small>function / method</small></summary><pre>Settle records the outcome of a running job and reports whether the ticket
 was current; a stale ticket leaves the list unchanged. Deliver settles the
 completions it routes; a component that runs its own commands settles the
@@ -671,7 +671,7 @@ ticket; it is Launch with Pending(work).Then(then) under the verb &#34;work&#34;
 editor&#39;s yank operations use: the named or active register, the unnamed
 register, &#34;0&#34; for a yank or &#34;1&#34;..&#34;9&#34; and &#34;-&#34; for a deletion, and the yank
 history. A component outside the package (a grid) yanks shapes the editor
-does not know (&#34;column&#34;), which set.register refuses, so it stores through
+does not know (&#34;column&#34;), which register.set refuses, so it stores through
 this call and the editor still sees the text.
 </pre><pre>func (r *Runtime) StoreYank(y Yank, register string, deletion bool) error</pre><a href="../yank_api.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Terminal</code> <small>function / method</small></summary><pre>Terminal returns the terminal an instance fronts, or nil.
 </pre><pre>func (r *Runtime) Terminal(id string) *Terminal</pre><a href="../terminal.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.ValidateBindings</code> <small>function / method</small></summary><pre>ValidateBindings checks every row of every noun and instance table the
@@ -680,7 +680,7 @@ and guard, and a Request to a registered operation with known arguments
 and sources, or an unbind. Every row is therefore atomic. It is the check
 behind TestBindingRowsAreAtomic and is for an application to run after it
 loads its own rows.
-</pre><pre>func (r *Runtime) ValidateBindings() error</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Server</code> <small>type</small></summary><pre>type Server struct {
+</pre><pre>func (r *Runtime) ValidateBindings() ([]string, error)</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Server</code> <small>type</small></summary><pre>type Server struct {
 	// contains filtered or unexported fields
 }</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>Server.Close</code> <small>function / method</small></summary><pre>func (s *Server) Close() error</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>SourceKey, SourceDigit, SourceText, SourceCount, SourceLine, SourceSteps, SourceOp, SourceOpCount, SourcePrefix</code> <small>constant</small></summary><pre>Sources a From entry may name: &#34;key&#34; (the key name), &#34;digit&#34; (the key as an
 integer), &#34;text&#34; (pasted or typed text), &#34;count&#34; (payload count, at least 1),
@@ -688,7 +688,7 @@ integer), &#34;text&#34; (pasted or typed text), &#34;count&#34; (payload count,
 (count times operator count), &#34;op&#34; (payload operator), &#34;opcount&#34;, &#34;prefix&#34;
 (the key sequence the pending mode holds). A From value may name several
 sources separated by spaces (&#34;prefix key&#34;): their texts are joined with a
-space, the way send.terminal reads a key list.
+space, the way terminal.send reads a key list.
 </pre><pre>const (
 	SourceKey     = &#34;key&#34;
 	SourceDigit   = &#34;digit&#34;

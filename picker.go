@@ -149,13 +149,13 @@ func NewPicker(r *Runtime) *Picker {
 
 	picker := r.Define("picker")
 	picker.Mode("insert").
-		Bind("ctrl+n", Do("move.picker", Arguments{"delta": 1})).
-		Bind("ctrl+p", Do("move.picker", Arguments{"delta": -1})).
-		Bind("alt+up", Do("parent.picker")).
-		Bind("tab", Do("complete.picker")).
-		Bind("enter", Do("enter.picker")).
-		Bind("ctrl+s", Do("choose.picker")).
-		Bind("esc", Do("close.picker"))
+		Bind("ctrl+n", Do("picker.move", Arguments{"delta": 1})).
+		Bind("ctrl+p", Do("picker.move", Arguments{"delta": -1})).
+		Bind("alt+up", Do("picker.parent")).
+		Bind("tab", Do("picker.complete")).
+		Bind("enter", Do("picker.enter")).
+		Bind("ctrl+s", Do("picker.choose")).
+		Bind("esc", Do("picker.close"))
 	// CLI and keyboard edits share the same dispatch path. Keep ancestor action
 	// semantics and delegate the normal operation, then invalidate search once.
 	for key, operation := range r.Operations {

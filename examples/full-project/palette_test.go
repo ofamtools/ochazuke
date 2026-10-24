@@ -49,7 +49,7 @@ func TestConfiguredPaletteSourcesDispatchRealOperations(t *testing.T) {
 	call("select", "palette", ochazuke.Arguments{"value": "noun:page"})
 	call("select", "palette", ochazuke.Arguments{"value": "instance:paths"})
 	if m.Runtime.Page != "paths" || m.Palette.IsOpen() {
-		t.Fatal("configured page source did not dispatch open.page")
+		t.Fatal("configured page source did not dispatch page.open")
 	}
 	call("open", "palette", nil)
 	call("select", "palette", ochazuke.Arguments{"value": "noun:input"})
@@ -58,6 +58,6 @@ func TestConfiguredPaletteSourcesDispatchRealOperations(t *testing.T) {
 	}
 	call("select", "palette", ochazuke.Arguments{"value": "instance:destination"})
 	if m.Runtime.Context().InputID != "destination" || m.Palette.IsOpen() {
-		t.Fatal("configured input source did not dispatch focus.input")
+		t.Fatal("configured input source did not dispatch input.focus")
 	}
 }

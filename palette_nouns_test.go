@@ -67,7 +67,7 @@ func TestPaletteNounVerbsAndInstancesDoNotCollide(t *testing.T) {
 	paletteRequest(t, r, "open", "page", Arguments{"id": "home"})
 	paletteRequest(t, r, "open", "palette", nil)
 	paletteChoose(t, r, "noun:page", "verb:open")
-	if p.stage != "arguments" || p.op.Key() != "open.page" {
+	if p.stage != "arguments" || p.op.Key() != "page.open" {
 		t.Fatalf("verb did not retain its ordinary argument form: %#v", p.state())
 	}
 	paletteRequest(t, r, "set", "palette-argument", Arguments{"name": "id", "value": "open"})
@@ -97,7 +97,7 @@ func TestPaletteInstanceUsesConfiguredDefaultAndCapturedOrigin(t *testing.T) {
 		t.Fatal("instance bypassed layered dispatch")
 		return nil, nil
 	}})
-	r.Define("home-editor").Action("inspect.page", func(_ *Runtime, context Context, args Arguments) (any, error) {
+	r.Define("home-editor").Action("page.inspect", func(_ *Runtime, context Context, args Arguments) (any, error) {
 		gotContext, gotArgs = context, args
 		return nil, nil
 	})
@@ -164,7 +164,7 @@ func TestPaletteInstanceUsesRuntimeValidationAndRestoresOnError(t *testing.T) {
 	if err == nil || err.Error() != "thing rejected" || !p.IsOpen() || !reflect.DeepEqual(captured, origin) || !reflect.DeepEqual(sourceContext, origin) || p.stage != "second" {
 		t.Fatalf("failure dispatch/restoration: %v %#v", err, p.state())
 	}
-	op := r.Operations["use.thing"]
+	op := r.Operations["thing.use"]
 	op.Parameters["id"] = Parameter{Type: "integer", Required: true}
 	captured = Context{}
 	_, err = r.Execute(Request{Verb: "select", Noun: "palette", Args: Arguments{"value": "instance:x"}})

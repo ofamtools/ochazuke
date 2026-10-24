@@ -14,11 +14,11 @@ import (
 // from, n or esc pops, every other key is swallowed.
 func registerConfirm(r *Runtime) {
 	r.Define("confirm").Mode("").
-		Bind("y", Do("accept.confirm")).
-		Bind("enter", Do("accept.confirm")).
-		Bind("n", Do("pop.modal")).
-		Bind("esc", Do("pop.modal")).
-		Pattern(Any, Do("ignore.key"))
+		Bind("y", Do("confirm.accept")).
+		Bind("enter", Do("confirm.accept")).
+		Bind("n", Do("modal.pop")).
+		Bind("esc", Do("modal.pop")).
+		Pattern(Any, Do("key.ignore"))
 	r.Register(Operation{Verb: "accept", Noun: "confirm", Description: "Run the request the open confirm modal holds and close it", Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		inst := r.Instances[r.top().ID]
 		if inst == nil || inst.Noun != "confirm" || inst.Payload.Request == nil {
@@ -30,7 +30,7 @@ func registerConfirm(r *Runtime) {
 		}
 		return r.Execute(q)
 	}})
-	r.Register(Operation{Verb: "set", Noun: "confirm", Description: "Add or remove the confirm prompt of an operation ({{id}}, {{noun}} and {{<arg>}} expand); an empty prompt removes it", Parameters: map[string]Parameter{"operation": {Type: "string", Required: true, Description: "verb.noun"}, "prompt": {Type: "string"}}, Result: "operation", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "set", Noun: "confirm", Description: "Add or remove the confirm prompt of an operation ({{id}}, {{noun}} and {{<arg>}} expand); an empty prompt removes it", Parameters: map[string]Parameter{"operation": {Type: "string", Required: true, Description: "noun.verb"}, "prompt": {Type: "string"}}, Result: "operation", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		key := StringArg(a, "operation", "")
 		if err := r.SetConfirm(key, StringArg(a, "prompt", "")); err != nil {
 			return nil, err
@@ -39,7 +39,7 @@ func registerConfirm(r *Runtime) {
 	}})
 }
 
-// SetConfirm sets or clears (empty prompt) the confirm prompt of verb.noun.
+// SetConfirm sets or clears (empty prompt) the confirm prompt of noun.verb.
 func (r *Runtime) SetConfirm(key, prompt string) error {
 	op, ok := r.Operations[key]
 	if !ok {

@@ -23,20 +23,20 @@ func registerBindings(r *ochazuke.Runtime, cfg Config) error {
 		}
 		id := ochazuke.StringArg(q.Args, "id", "")
 		switch q.Key() {
-		case "focus.input":
+		case "input.focus":
 			if r.Input(id) == nil {
 				return fmt.Errorf("binding %q: unknown input %q", row.Keys, id)
 			}
-		case "open.page":
+		case "page.open":
 			if r.PageOf(id) == nil {
 				return fmt.Errorf("binding %q: unknown page %q", row.Keys, id)
 			}
-		case "push.modal":
+		case "modal.push":
 			input := ochazuke.StringArg(q.Args, "input", "")
 			if r.Input(input) == nil {
 				return fmt.Errorf("binding %q: unknown modal input %q", row.Keys, input)
 			}
-		case "set.mode":
+		case "mode.set":
 			mode := ochazuke.StringArg(q.Args, "mode", "")
 			if !r.Modes[mode] {
 				return fmt.Errorf("binding %q: unknown mode %q", row.Keys, mode)

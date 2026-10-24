@@ -29,14 +29,14 @@ func main() {
 	r.Register(ochazuke.Operation{Verb: "inspect", Noun: "selection", Description: "Demonstrate scoped actions", Result: "layer", Run: func(*ochazuke.Runtime, ochazuke.Context, ochazuke.Arguments) (any, error) { return "app", nil }})
 	for _, id := range []string{"panes", "agent", "directory"} {
 		name := id
-		r.Define(id).Action("inspect.selection", func(*ochazuke.Runtime, ochazuke.Context, ochazuke.Arguments) (any, error) { return name, nil })
+		r.Define(id).Action("selection.inspect", func(*ochazuke.Runtime, ochazuke.Context, ochazuke.Arguments) (any, error) { return name, nil })
 	}
 	for _, expected := range []string{"directory", "agent", "panes", "app"} {
 		got := exec(ochazuke.Request{Verb: "inspect", Noun: "selection"})
 		if got != expected {
 			panic(fmt.Sprintf("noun: got %v want %s", got, expected))
 		}
-		delete(r.Noun(expected).Actions, "inspect.selection")
+		delete(r.Noun(expected).Actions, "selection.inspect")
 	}
 	fmt.Println("foundation: directory → agent → panes → app fallback; modal restoration; isolated focused-input undo: PASS")
 }

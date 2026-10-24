@@ -246,7 +246,7 @@ func (m *keybindingModel) installBinding(spec sandboxBinding) {
 	if _, exists := m.runtime.Operations[op.Key()]; !exists {
 		m.runtime.Register(op)
 	}
-	m.runtime.Define("app").Mode("").Bind(keys, ochazuke.Do(action+".sandbox"))
+	m.runtime.Define("app").Mode("").Bind(keys, ochazuke.Do("sandbox."+action))
 	m.pruneOperations()
 }
 

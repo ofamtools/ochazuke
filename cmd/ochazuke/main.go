@@ -55,6 +55,13 @@ func run(args []string) error {
 			return fmt.Errorf("unexpected run arguments")
 		}
 		model := demo.New()
+		warnings, err := model.Runtime.ValidateBindings()
+		if err != nil {
+			return err
+		}
+		for _, warning := range warnings {
+			fmt.Fprintln(os.Stderr, "ochazuke: deprecated:", warning)
+		}
 		options := []tea.ProgramOption{}
 		if *headless {
 			options = append(options, tea.WithInput(nil), tea.WithoutRenderer(), tea.WithoutSignalHandler())

@@ -128,7 +128,7 @@ func bindingsView(r *ochazuke.Runtime, focus string, width int) string {
 		if key == "" {
 			key = "<" + b.Pattern + ">"
 		}
-		line := fmt.Sprintf("%-12s %s.%s", key, b.Request.Verb, b.Request.Noun)
+		line := fmt.Sprintf("%-12s %s", key, b.Request.Key())
 		if len(b.Request.Args) > 0 {
 			line += fmt.Sprintf(" %v", map[string]any(b.Request.Args))
 		}

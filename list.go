@@ -259,11 +259,11 @@ func (l *List) View(width, height int) string {
 
 func registerLists(r *Runtime) {
 	r.Define("list").Mode("normal").
-		Bind("j", Do("move.list", Arguments{"delta": 1})).
-		Bind("down", Do("move.list", Arguments{"delta": 1})).
-		Bind("k", Do("move.list", Arguments{"delta": -1})).
-		Bind("up", Do("move.list", Arguments{"delta": -1})).
-		Bind("space", Do("mark.list"))
+		Bind("j", Do("list.move", Arguments{"delta": 1})).
+		Bind("down", Do("list.move", Arguments{"delta": 1})).
+		Bind("k", Do("list.move", Arguments{"delta": -1})).
+		Bind("up", Do("list.move", Arguments{"delta": -1})).
+		Bind("space", Do("list.mark"))
 	resolve := func(c Context, args Arguments) (*List, error) {
 		if id := StringArg(args, "id", ""); id != "" {
 			if list := r.List(id); list != nil {
@@ -312,7 +312,7 @@ func registerLists(r *Runtime) {
 			}
 			return l.Snapshot(), l.ToggleMark(id)
 		}},
-		{"apply", "Run verb.<row noun> for every marked row (the selected row when none is marked), skipping and reporting rows whose noun lacks the verb", map[string]Parameter{"id": {Type: "string"}, "verb": {Type: "string", Required: true}}, func(l *List, c Context, a Arguments) (any, error) {
+		{"apply", "Run <row noun>.verb for every marked row (the selected row when none is marked), skipping and reporting rows whose noun lacks the verb", map[string]Parameter{"id": {Type: "string"}, "verb": {Type: "string", Required: true}}, func(l *List, c Context, a Arguments) (any, error) {
 			rows := l.Marked()
 			if len(rows) == 0 {
 				if selected, ok := l.Selected(); ok {

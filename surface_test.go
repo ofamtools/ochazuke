@@ -64,7 +64,7 @@ func TestListedThemesCanBeSelected(t *testing.T) {
 	}
 	themes, ok := got.([]string)
 	if !ok {
-		t.Fatalf("list.themes returned %T", got)
+		t.Fatalf("themes.list returned %T", got)
 	}
 	seen := map[string]bool{}
 	for _, theme := range themes {

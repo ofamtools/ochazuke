@@ -31,7 +31,7 @@ type Request struct {
 	Confirmed bool      `json:"confirmed,omitempty"`
 }
 
-func (q Request) Key() string { return q.Verb + "." + q.Noun }
+func (q Request) Key() string { return q.Noun + "." + q.Verb }
 
 // Context is the derived view of a focus: the instance ids from app down to
 // the focused instance (Path), and the focused input when there is one.
@@ -46,7 +46,7 @@ func (c Context) Clone() Context {
 
 type Handler func(*Runtime, Context, Arguments) (any, error)
 
-// Operation is one registered verb.noun. Kind is "interaction" (the
+// Operation is one registered noun.verb. Kind is "interaction" (the
 // default: Run executes synchronously on the loop) or "application" (App is
 // an AppHandler whose pending work runs off the loop and reports through the
 // delivery contract). Confirm, when set, is a prompt template ({{id}},
@@ -63,7 +63,7 @@ type Operation struct {
 	App         AppHandler           `json:"-"`
 }
 
-func (o Operation) Key() string { return o.Verb + "." + o.Noun }
+func (o Operation) Key() string { return o.Noun + "." + o.Verb }
 
 // Frame is one entry of the modal stack: the base page frame or an open
 // modal. Focus names the instance that receives keys while the frame is on
@@ -100,8 +100,9 @@ type Runtime struct {
 	modalInstances map[string]bool   // instances created by Push or OpenModal, removed by Pop
 	seq            uint64            // instance registration order
 	commands       []tea.Cmd         // off-loop work scheduled since the adapter last drained it
-	jobs           map[uint64]*job   // the jobs list: running jobs and the finished ones retained for list.jobs
+	jobs           map[uint64]*job   // the jobs list: running jobs and the finished ones retained for jobs.list
 	jobSeq         uint64            // last issued job id
+	deprecations   []string          // rows that named an operation by its old verb.noun spelling, rewritten once
 }
 
 func NewRuntime() *Runtime {
@@ -131,7 +132,7 @@ func NewRuntime() *Runtime {
 	registerTerminal(r)
 	// A modal answers esc in normal mode; inputs, pending modes and the
 	// palette settle first because their rows sit inside this level.
-	r.Define("modal").Mode("normal").Bind("esc", Do("pop.modal"))
+	r.Define("modal").Mode("normal").Bind("esc", Do("modal.pop"))
 	return r
 }
 

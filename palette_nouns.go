@@ -22,7 +22,7 @@ type PaletteNoun struct {
 	Argument    string
 }
 
-// PaletteEntry exposes the exact select.palette value independently of its display label.
+// PaletteEntry exposes the exact palette.select value independently of its display label.
 type PaletteEntry struct {
 	Value string `json:"value"`
 	Kind  string `json:"kind"`
@@ -48,7 +48,7 @@ func (p *Palette) RegisterNoun(noun string, config PaletteNoun) error {
 	}
 	op, ok := p.r.Operations[Request{Verb: config.DefaultVerb, Noun: noun}.Key()]
 	if !ok {
-		return fmt.Errorf("palette noun %q: unknown default action %q", noun, config.DefaultVerb+"."+noun)
+		return fmt.Errorf("palette noun %q: unknown default action %q", noun, noun+"."+config.DefaultVerb)
 	}
 	param, ok := op.Parameters[config.Argument]
 	if !ok || param.Type != "string" {

@@ -19,7 +19,7 @@ func timedBindings(t *testing.T, keys ...string) (*Runtime, *[]string) {
 			calls = append(calls, key)
 			return nil, nil
 		}})
-		r.Define("app").Mode("").Bind(key, Do(key+".test"))
+		r.Define("app").Mode("").Bind(key, Do("test."+key))
 	}
 	return r, &calls
 }
@@ -181,5 +181,39 @@ func TestModelExecutesTimedBindingOnEventLoop(t *testing.T) {
 	m.Update(msg)
 	if !reflect.DeepEqual(*calls, []string{"g"}) || r.Pending != "" {
 		t.Fatalf("calls=%v pending=%q", *calls, r.Pending)
+	}
+}
+
+// A row that names an operation by the pre-noun.verb spelling still binds
+// for one release: it is rewritten to the registered key and reported by
+// ValidateBindings, through the builder, Bind and the JSON loader alike.
+func TestOldVerbNounSpellingIsRewrittenOnce(t *testing.T) {
+	r := NewRuntime()
+	r.Define("app").Mode("normal").Bind("u", Do("undo.input"))
+	if err := r.Bind(Binding{Noun: "app", Mode: "normal", Keys: "ctrl+r", Request: Request{Verb: "input", Noun: "redo"}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.LoadBindings([]byte(`[{"noun":"app","mode":"normal","keys":"x","request":{"verb":"input","noun":"delete"}}]`)); err != nil {
+		t.Fatal(err)
+	}
+	keys := map[string]string{}
+	for _, row := range r.Noun("app").Bindings["normal"] {
+		if row.Keys == "u" || row.Keys == "ctrl+r" || row.Keys == "x" {
+			keys[row.Keys] = row.Request.Key()
+		}
+	}
+	want := map[string]string{"u": "input.undo", "ctrl+r": "input.redo", "x": "input.delete"}
+	if !reflect.DeepEqual(keys, want) {
+		t.Fatalf("rows = %v, want %v", keys, want)
+	}
+	warnings, err := r.ValidateBindings()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(warnings) != 3 || !strings.Contains(warnings[0], `"undo.input"`) || !strings.Contains(warnings[0], `"input.undo"`) {
+		t.Fatalf("warnings = %q", warnings)
+	}
+	if err := r.Bind(Binding{Noun: "app", Keys: "q", Request: Request{Verb: "nothing", Noun: "input"}}); err == nil || !strings.Contains(err.Error(), `unknown operation "input.nothing"`) {
+		t.Fatalf("unknown operation error = %v", err)
 	}
 }

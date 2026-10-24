@@ -91,6 +91,9 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
+	if err := reportDeprecations(m.Runtime); err != nil {
+		return err
+	}
 	if *smoke {
 		if err := smokeExample(m); err != nil {
 			return err
@@ -162,10 +165,10 @@ func smokeExample(m *ochazuke.Model) error {
 		}
 		value, err := r.Execute(ochazuke.Request{Verb: verb, Noun: noun, Target: target, Args: args})
 		if err != nil {
-			failure = fmt.Errorf("smoke %s.%s: %w", verb, noun, err)
+			failure = fmt.Errorf("smoke %s.%s: %w", noun, verb, err)
 		}
 		if smokeStep != nil && failure == nil {
-			failure = smokeStep(verb + "." + noun)
+			failure = smokeStep(noun + "." + verb)
 		}
 		return value
 	}
@@ -436,7 +439,7 @@ func smokeExample(m *ochazuke.Model) error {
 	binding("c")
 	expect("branch verb by key", pageState("items")["lastAction"], "checkout hotfix")
 	if _, err := r.Execute(ochazuke.Request{Verb: "open", Noun: "worktree"}); err == nil {
-		failure = fmt.Errorf("smoke noun guard: open.worktree accepted a branch row")
+		failure = fmt.Errorf("smoke noun guard: worktree.open accepted a branch row")
 	}
 	expect("row verb by explicit target", call("open", "worktree", "main", nil), map[string]any{"verb": "open", "noun": "worktree", "row": "main"})
 	keysFor := func(target string) []string {
@@ -444,27 +447,27 @@ func smokeExample(m *ochazuke.Model) error {
 		rows, _ := call("list", "bindings", target, nil).([]ochazuke.Binding)
 		for _, b := range rows {
 			if b.Request.Noun == "repo" || b.Request.Noun == "worktree" || b.Request.Noun == "branch" {
-				keys = append(keys, b.Keys+"="+b.Request.Verb+"."+b.Request.Noun)
+				keys = append(keys, b.Keys+"="+b.Request.Key())
 			}
 		}
 		return keys
 	}
-	expect("bindings of a worktree row", keysFor("main"), []string{"d=remove.worktree", "enter=open.worktree", "o=open.worktree"})
-	expect("bindings of a branch row", keysFor("hotfix"), []string{"c=checkout.branch", "enter=checkout.branch"})
-	expect("bindings of the repo row", keysFor("repository"), []string{"f=fetch.repo"})
+	expect("bindings of a worktree row", keysFor("main"), []string{"d=worktree.remove", "enter=worktree.open", "o=worktree.open"})
+	expect("bindings of a branch row", keysFor("hotfix"), []string{"c=branch.checkout", "enter=branch.checkout"})
+	expect("bindings of the repo row", keysFor("repository"), []string{"f=repo.fetch"})
 	binding("?")
 	expect("help names the focused noun", strings.Contains(plain(m.View().Content), "noun: branch"), true)
-	expect("help lists the row's verbs", strings.Contains(plain(m.View().Content), "checkout.branch"), true)
+	expect("help lists the row's verbs", strings.Contains(plain(m.View().Content), "branch.checkout"), true)
 	press("esc")
 	call("select", "context", "", ochazuke.Arguments{"instance": "main"})
-	expect("select.context by instance", r.Context().Path, []string{"app", "items", "item-list", "main"})
+	expect("context.select by instance", r.Context().Path, []string{"app", "items", "item-list", "main"})
 	binding("d")
-	expect("remove.worktree asks first", r.Frames[len(r.Frames)-1].ID, "confirm")
+	expect("worktree.remove asks first", r.Frames[len(r.Frames)-1].ID, "confirm")
 	expect("confirm names the row", strings.Contains(plain(m.View().Content), "Remove worktree main?"), true)
 	binding("n")
 	expect("n keeps the row", r.Instances["main"] != nil && len(r.Frames) == 1, true)
 	binding("d", "y")
-	expect("remove.worktree drops the row after y", r.Instances["main"] == nil, true)
+	expect("worktree.remove drops the row after y", r.Instances["main"] == nil, true)
 	expect("confirm closed", len(r.Frames), 1)
 	binding(":")
 	call("select", "palette", "", ochazuke.Arguments{"value": "noun:worktree"})
@@ -479,7 +482,7 @@ func smokeExample(m *ochazuke.Model) error {
 	call("select", "list", "", ochazuke.Arguments{"item": "hotfix"})
 	binding("space")
 	report, _ = call("apply", "list", "", ochazuke.Arguments{"verb": "open"}).(map[string]any)
-	expect("fan-out skips unsupported nouns", report["skipped"], []string{"hotfix: open.branch is not registered"})
+	expect("fan-out skips unsupported nouns", report["skipped"], []string{"hotfix: branch.open is not registered"})
 	expect("fan-out keeps marks", len(r.List("item-list").Marked()), 3)
 	if failure != nil {
 		return failure
@@ -550,4 +553,17 @@ func runCommands(cmd tea.Cmd) []tea.Msg {
 		return nil
 	}
 	return []tea.Msg{msg}
+}
+
+// reportDeprecations prints, once at startup, every binding row that still
+// names its operation by the pre-noun.verb spelling; the row was rewritten.
+func reportDeprecations(r *ochazuke.Runtime) error {
+	warnings, err := r.ValidateBindings()
+	if err != nil {
+		return err
+	}
+	for _, warning := range warnings {
+		fmt.Fprintln(os.Stderr, "full-project: deprecated:", warning)
+	}
+	return nil
 }

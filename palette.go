@@ -41,7 +41,7 @@ func NewPalette(r *Runtime) *Palette {
 	p.explicitEmpty = map[string]bool{}
 	r.Instance("palette", Kind("palette"))
 	register := func(verb, noun, description string, params map[string]Parameter, fn func(Arguments) error) {
-		p.actions[verb+"."+noun] = true
+		p.actions[noun+"."+verb] = true
 		r.Register(Operation{Verb: verb, Noun: noun, Description: description, Parameters: params, Result: "palette state", Run: func(_ *Runtime, _ Context, args Arguments) (any, error) {
 			err := fn(args)
 			if err != nil {
@@ -101,47 +101,47 @@ func NewPalette(r *Runtime) *Palette {
 	// The palette body: rows guarded by self so a field beneath keeps its own.
 	body := r.Define("palette").Mode("")
 	for key, delta := range map[string]int{"j": 1, "down": 1, "k": -1, "up": -1, "tab": 1, "shift+tab": -1} {
-		body.Bind(key, Do("move.palette", Arguments{"delta": delta})).When("self")
+		body.Bind(key, Do("palette.move", Arguments{"delta": delta})).When("self")
 	}
 	for _, key := range []string{"h", "left"} {
-		body.Bind(key, Do("move.palette", Arguments{"column": "left"})).When("self")
+		body.Bind(key, Do("palette.move", Arguments{"column": "left"})).When("self")
 	}
 	for _, key := range []string{"l", "right"} {
-		body.Bind(key, Do("move.palette", Arguments{"column": "right"})).When("self")
+		body.Bind(key, Do("palette.move", Arguments{"column": "right"})).When("self")
 	}
-	body.Bind("enter", Do("select.palette")).When("self").
-		Bind("ctrl+enter", Do("execute.palette")).When("self").
-		Bind("esc", Do("back.palette")).When("self").
-		Bind("ctrl+c", Do("close.palette")).
-		Bind("backspace", Do("delete.palette")).When("self").
-		Bind("ctrl+h", Do("delete.palette")).When("self").
-		Bind("/", Do("search.palette")).When("palette-list").
-		Pattern(Any, Do("ignore.key")).When("self")
+	body.Bind("enter", Do("palette.select")).When("self").
+		Bind("ctrl+enter", Do("palette.execute")).When("self").
+		Bind("esc", Do("palette.back")).When("self").
+		Bind("ctrl+c", Do("palette.close")).
+		Bind("backspace", Do("palette.delete")).When("self").
+		Bind("ctrl+h", Do("palette.delete")).When("self").
+		Bind("/", Do("palette.search")).When("palette-list").
+		Pattern(Any, Do("key.ignore")).When("self")
 	// A palette field: the shared editor beneath, palette navigation on top,
 	// and its own text rows so an application's any-mode row cannot steal typing.
 	field := r.Define("palette-field")
 	for _, mode := range []string{"insert", "normal"} {
 		m := field.Mode(mode)
 		for key, delta := range map[string]int{"up": -1, "down": 1, "tab": 1, "shift+tab": -1} {
-			m.Bind(key, Do("move.palette", Arguments{"delta": delta}))
+			m.Bind(key, Do("palette.move", Arguments{"delta": delta}))
 		}
-		m.Bind("enter", Do("select.palette")).
-			Bind("ctrl+enter", Do("execute.palette")).
-			Bind("ctrl+c", Do("close.palette")).
-			Bind("backspace", Do("delete.palette")).
-			Bind("ctrl+h", Do("delete.palette"))
+		m.Bind("enter", Do("palette.select")).
+			Bind("ctrl+enter", Do("palette.execute")).
+			Bind("ctrl+c", Do("palette.close")).
+			Bind("backspace", Do("palette.delete")).
+			Bind("ctrl+h", Do("palette.delete"))
 	}
 	field.Mode("insert").
-		Pattern(Printable, Do("insert.palette").FromPayload("text", SourceText)).
-		Pattern(Paste, Do("insert.palette").FromPayload("text", SourceText))
+		Pattern(Printable, Do("palette.insert").FromPayload("text", SourceText)).
+		Pattern(Paste, Do("palette.insert").FromPayload("text", SourceText))
 	field.Mode("normal").
-		Bind("j", Do("move.palette", Arguments{"delta": 1})).
-		Bind("k", Do("move.palette", Arguments{"delta": -1})).
-		Bind("h", Do("move.palette", Arguments{"column": "left"})).
-		Bind("l", Do("move.palette", Arguments{"column": "right"})).
-		Bind("left", Do("move.palette", Arguments{"column": "left"})).
-		Bind("right", Do("move.palette", Arguments{"column": "right"})).
-		Bind("esc", Do("back.palette"))
+		Bind("j", Do("palette.move", Arguments{"delta": 1})).
+		Bind("k", Do("palette.move", Arguments{"delta": -1})).
+		Bind("h", Do("palette.move", Arguments{"column": "left"})).
+		Bind("l", Do("palette.move", Arguments{"column": "right"})).
+		Bind("left", Do("palette.move", Arguments{"column": "left"})).
+		Bind("right", Do("palette.move", Arguments{"column": "right"})).
+		Bind("esc", Do("palette.back"))
 	return p
 }
 
@@ -282,7 +282,7 @@ func (p *Palette) choose(a Arguments) error {
 	}
 	if p.stage == "arguments" {
 		if _, ok := a["value"]; ok {
-			return errors.New("select a field with move.palette; set it with set.palette-argument")
+			return errors.New("select a field with palette.move; set it with palette-argument.set")
 		}
 		if p.field == len(p.fields) {
 			return p.execute()
@@ -522,7 +522,7 @@ func (p *Palette) dispatch(q Request) error {
 	p.executing = true
 	defer func() { p.executing = false }()
 	// Palette controls act on the live overlay; the recursion guard also covers
-	// selecting select.palette or execute.palette from the palette itself.
+	// selecting palette.select or palette.execute from the palette itself.
 	if p.actions[q.Key()] {
 		_, err := p.r.ExecuteAt(origin, q)
 		return err
@@ -681,7 +681,7 @@ func (p *Palette) viewBlock(width, height int) Block {
 				entry := entries[i]
 				label := entry.Label
 				if entry.Kind == "instance" {
-					label = fmt.Sprintf("%s [%s] → %s.%s", label, entry.ID, p.nouns[p.first].DefaultVerb, p.first)
+					label = fmt.Sprintf("%s [%s] → %s.%s", label, entry.ID, p.first, p.nouns[p.first].DefaultVerb)
 				}
 				fmt.Fprintf(&out, "%s%s\n", marker, label)
 			}

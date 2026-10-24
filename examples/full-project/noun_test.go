@@ -48,7 +48,7 @@ func TestFullProjectBindingRowsAreAtomic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := m.Runtime.ValidateBindings(); err != nil {
+	if _, err := m.Runtime.ValidateBindings(); err != nil {
 		t.Fatal(err)
 	}
 }

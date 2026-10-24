@@ -201,7 +201,7 @@ func TestComponentDeliveryReplacesJobsInASlot(t *testing.T) {
 	if len(pane.received) != 2 || pane.received[0].Value != "new" || pane.received[0].Ticket != newTicket || pane.received[1].Value != "index" || len(other.received) != 1 || other.received[0].Value != "other" {
 		t.Fatalf("delivered: pane=%+v other=%+v", pane.received, other.received)
 	}
-	// list.jobs returns the finished entries once, then drops them.
+	// jobs.list returns the finished entries once, then drops them.
 	value, err := r.Execute(Request{Verb: "list", Noun: "jobs"})
 	if err != nil {
 		t.Fatal(err)
@@ -212,7 +212,7 @@ func TestComponentDeliveryReplacesJobsInASlot(t *testing.T) {
 		states[j.State]++
 	}
 	if len(listed) != 4 || states[JobCancelled] != 1 || states[JobDone] != 3 || listed[0].Verb != "preview" || listed[0].Owner != "pane" || listed[0].Started.IsZero() {
-		t.Fatalf("list.jobs: %+v", listed)
+		t.Fatalf("jobs.list: %+v", listed)
 	}
 	if again, _ := r.Execute(Request{Verb: "list", Noun: "jobs"}); len(again.([]JobInfo)) != 0 {
 		t.Fatalf("finished jobs retained after a read: %+v", again)
@@ -264,7 +264,7 @@ func TestApplicationVerbRunsOffTheLoop(t *testing.T) {
 			landed = append(landed, c.Instance.ID+"="+value.(string))
 		})
 	}, "Sync a row off the loop").Verb("now", func(c Ctx) Result { return Done("now " + c.Instance.ID) })
-	if op := r.Operations["sync.a"]; op.Kind != KindApplication || r.Operations["now.a"].Kind != KindApplication || r.Operations["move.list"].Kind != KindInteraction {
+	if op := r.Operations["a.sync"]; op.Kind != KindApplication || r.Operations["a.now"].Kind != KindApplication || r.Operations["list.move"].Kind != KindInteraction {
 		t.Fatalf("kinds: %+v", op)
 	}
 	if v, err := r.Execute(Request{Verb: "now", Noun: "a", Target: "one"}); err != nil || v != "now one" {
@@ -323,22 +323,22 @@ func TestApplicationVerbRunsOffTheLoop(t *testing.T) {
 	if _, err := r.Execute(Request{Verb: "fail", Noun: "b", Target: "two"}); err == nil || err.Error() != "nope" {
 		t.Fatalf("Failed: %v", err)
 	}
-	if list := r.Catalog(); !slices.ContainsFunc(list, func(op Operation) bool { return op.Key() == "sync.a" && op.Kind == KindApplication }) {
-		t.Fatal("list.operations must show the kind")
+	if list := r.Catalog(); !slices.ContainsFunc(list, func(op Operation) bool { return op.Key() == "a.sync" && op.Kind == KindApplication }) {
+		t.Fatal("operations.list must show the kind")
 	}
 }
 
 // Confirm compiles to the framework confirm noun: a modal instance parented
 // at the focus with the prompt and the stored request in its payload; y runs
-// it, n and esc pop, other keys are swallowed; set.confirm adds or removes it.
+// it, n and esc pop, other keys are swallowed; confirm.set adds or removes it.
 func TestConfirmCompilesToAModalWithPayload(t *testing.T) {
 	r, list, _, _ := listFixture(t)
 	var removed []string
 	r.Define("a").Verb("remove", func(_ *Runtime, c Context, _ Arguments) (any, error) {
 		removed = append(removed, focusOf(c))
 		return nil, nil
-	}).Confirm("Remove {{noun}} {{id}}?").Mode("normal").Bind("d", Do("remove.a"))
-	if r.Operations["remove.a"].Confirm == "" {
+	}).Confirm("Remove {{noun}} {{id}}?").Mode("normal").Bind("d", Do("a.remove"))
+	if r.Operations["a.remove"].Confirm == "" {
 		t.Fatal("Confirm must mark the operation")
 	}
 	if err := list.Focus(); err != nil {
@@ -349,7 +349,7 @@ func TestConfirmCompilesToAModalWithPayload(t *testing.T) {
 	if len(r.Frames) != 2 || r.FocusID() != "confirm" || inst == nil || inst.Parent != "one" || inst.Payload.Prompt != "Remove a one?" || inst.Payload.Request == nil || !inst.Payload.Request.Confirmed || inst.Payload.Request.Target != "one" {
 		t.Fatalf("confirm modal: frames=%d focus=%s inst=%+v", len(r.Frames), r.FocusID(), inst)
 	}
-	if rows := r.ListBindings("confirm"); !slices.ContainsFunc(rows, func(b Binding) bool { return b.Keys == "y" && b.Request.Key() == "accept.confirm" }) {
+	if rows := r.ListBindings("confirm"); !slices.ContainsFunc(rows, func(b Binding) bool { return b.Keys == "y" && b.Request.Key() == "confirm.accept" }) {
 		t.Fatalf("confirm rows: %+v", rows)
 	}
 	editorTestKeys(t, r, "d", "x") // swallowed: no second confirm, no removal
@@ -373,19 +373,19 @@ func TestConfirmCompilesToAModalWithPayload(t *testing.T) {
 	if _, err := r.Execute(Request{Verb: "remove", Noun: "a", Target: "one", Confirmed: true}); err != nil || len(removed) != 2 {
 		t.Fatalf("confirmed request: %v %v", err, removed)
 	}
-	if _, err := r.Execute(Request{Verb: "set", Noun: "confirm", Args: Arguments{"operation": "remove.a", "prompt": ""}}); err != nil || r.Operations["remove.a"].Confirm != "" {
-		t.Fatalf("set.confirm removal: %v", err)
+	if _, err := r.Execute(Request{Verb: "set", Noun: "confirm", Args: Arguments{"operation": "a.remove", "prompt": ""}}); err != nil || r.Operations["a.remove"].Confirm != "" {
+		t.Fatalf("confirm.set removal: %v", err)
 	}
 	editorTestKeys(t, r, "d")
 	if len(r.Frames) != 1 || len(removed) != 3 {
 		t.Fatal("a removed confirm runs the verb directly")
 	}
-	if _, err := r.Execute(Request{Verb: "set", Noun: "confirm", Args: Arguments{"operation": "remove.a", "prompt": "Sure?"}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "set", Noun: "confirm", Args: Arguments{"operation": "a.remove", "prompt": "Sure?"}}); err != nil {
 		t.Fatal(err)
 	}
 	editorTestKeys(t, r, "d")
 	if r.FocusID() != "confirm" || r.Instances["confirm"].Payload.Prompt != "Sure?" {
-		t.Fatal("set.confirm must add a prompt")
+		t.Fatal("confirm.set must add a prompt")
 	}
 	if body, err := r.OpenModal("confirm", Payload{}); err == nil || body != nil {
 		t.Fatal("a second modal of the same kind is refused while open")
@@ -408,7 +408,7 @@ func TestRuntimeHoldsNoComponentFields(t *testing.T) {
 	sort.Strings(fields)
 	want := []string{
 		"BindingTimeout", "Frames", "Instances", "Modes", "Nouns", "Operations", "Page", "Pending", "Quit",
-		"bindingVersion", "commands", "guards", "jobSeq", "jobs", "modalInstances", "modeGeneration", "pendingModes", "prefix", "rows", "seq",
+		"bindingVersion", "commands", "deprecations", "guards", "jobSeq", "jobs", "modalInstances", "modeGeneration", "pendingModes", "prefix", "rows", "seq",
 	}
 	if !reflect.DeepEqual(fields, want) {
 		t.Fatalf("Runtime fields:\n got %v\nwant %v", fields, want)

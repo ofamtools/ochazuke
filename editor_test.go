@@ -157,7 +157,7 @@ func TestMacrosDispatchModesCountsFocusAndLiteralPaste(t *testing.T) {
 	if err := r.AddInput(second); err != nil {
 		t.Fatal(err)
 	}
-	r.Define("app").Mode("normal").Bind("tab", Do("focus.input", Arguments{"id": "second"}))
+	r.Define("app").Mode("normal").Bind("tab", Do("input.focus", Arguments{"id": "second"}))
 	m := NewModel(r)
 	modelEditorKeys(t, m, "q", "a", "i", "X", "esc", "q", "2", "@", "a", "@", "@")
 	if string(in.Text) != "XXXX" || in.Mode != "normal" {
@@ -179,7 +179,7 @@ func TestMacrosDispatchModesCountsFocusAndLiteralPaste(t *testing.T) {
 func TestMacroRecursiveSafeguardAndPrefixPriority(t *testing.T) {
 	r, in := editorTestRuntime(t, "one two", false)
 	m := NewModel(r)
-	r.Define("app").Mode("normal").Bind("w", Do("quit.app")).Bind("a", Do("quit.app"))
+	r.Define("app").Mode("normal").Bind("w", Do("app.quit")).Bind("a", Do("app.quit"))
 	modelEditorKeys(t, m, "d", "w")
 	if string(in.Text) != "two" || r.Quit {
 		t.Fatal("operator prefix lost to binding")
@@ -286,7 +286,7 @@ func TestMacroStepLimitAndErrorModalCleanup(t *testing.T) {
 		}
 		return nil, fmt.Errorf("expected macro failure")
 	}})
-	r.Define("app").Mode("").Bind("ctrl+t", Do("fail.editor-test"))
+	r.Define("app").Mode("").Bind("ctrl+t", Do("editor-test.fail"))
 	r.Registers().Named["b"] = Register{Keys: []MacroKey{{Key: "ctrl+t"}}}
 	modelEditorKeys(t, m, "@")
 	_, err = r.Dispatch(MacroKey{Key: "b"})
@@ -326,7 +326,7 @@ func TestAppMacroCountWithoutInputAndUppercaseAppend(t *testing.T) {
 	m := NewModel(r)
 	calls := 0
 	r.Register(Operation{Verb: "count", Noun: "editor-test", Run: func(r *Runtime, c Context, a Arguments) (any, error) { calls++; return calls, nil }})
-	r.Define("app").Mode("").Bind("ctrl+t", Do("count.editor-test"))
+	r.Define("app").Mode("").Bind("ctrl+t", Do("editor-test.count"))
 	modelEditorKeys(t, m, "q", "a", "ctrl+t", "q", "q", "A", "ctrl+t", "q", "2", "@", "a", "@", "@")
 	if calls != 8 {
 		t.Fatalf("application macro calls=%d want 8", calls)

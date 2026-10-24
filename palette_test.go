@@ -102,7 +102,7 @@ func TestPaletteNestedSearch(t *testing.T) {
 				t.Fatalf("nested query = %q, want %q", p.query, path.nested)
 			}
 			paletteKeys(t, p, "enter")
-			if p.stage != "arguments" || p.op.Key() != "insert.input" {
+			if p.stage != "arguments" || p.op.Key() != "input.insert" {
 				t.Fatalf("selected stage=%q operation=%q", p.stage, p.op.Key())
 			}
 			paletteKeys(t, p, "hello")

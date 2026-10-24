@@ -18,10 +18,10 @@ func (a *App) bind() {
 		}
 	}
 	move := func(motion string) ochazuke.Binding {
-		return ochazuke.Do("move.grid", ochazuke.Arguments{"motion": motion}).FromPayload("steps", ochazuke.SourceCount)
+		return ochazuke.Do("grid.move", ochazuke.Arguments{"motion": motion}).FromPayload("steps", ochazuke.SourceCount)
 	}
 	line := func(motion string) ochazuke.Binding {
-		return ochazuke.Do("move.grid", ochazuke.Arguments{"motion": motion}).FromPayload("line", ochazuke.SourceLine)
+		return ochazuke.Do("grid.move", ochazuke.Arguments{"motion": motion}).FromPayload("line", ochazuke.SourceLine)
 	}
 	motions := func(m *ochazuke.ModeBuilder) {
 		m.Bind("h", move("left")).Bind("left", move("left")).
@@ -32,61 +32,61 @@ func (a *App) bind() {
 			Bind("$", move("row-end")).Bind("end", move("row-end")).
 			Bind("g g", line("top")).Bind("G", line("bottom"))
 	}
-	shape := func(s string) ochazuke.Binding { return ochazuke.Do("shape.selection", ochazuke.Arguments{"shape": s}) }
+	shape := func(s string) ochazuke.Binding { return ochazuke.Do("selection.shape", ochazuke.Arguments{"shape": s}) }
 	transform := func(name string) ochazuke.Binding {
-		return ochazuke.Do("transform.selection", ochazuke.Arguments{"name": name})
+		return ochazuke.Do("selection.transform", ochazuke.Arguments{"name": name})
 	}
 	transforms := func(m *ochazuke.ModeBuilder) {
 		m.Bind("t u", transform("upper")).Bind("t l", transform("lower")).Bind("t t", transform("trim"))
 	}
 
 	cell := r.Define("cell").Mode("normal").
-		Bind("i", ochazuke.Do("edit.cell")).Bind("enter", ochazuke.Do("edit.cell")).
-		Bind("x", ochazuke.Do("clear.cell")).
-		Bind("y", ochazuke.Do("yank.cell")).Bind("p", ochazuke.Do("paste.cell")).
+		Bind("i", ochazuke.Do("cell.edit")).Bind("enter", ochazuke.Do("cell.edit")).
+		Bind("x", ochazuke.Do("cell.clear")).
+		Bind("y", ochazuke.Do("cell.yank")).Bind("p", ochazuke.Do("cell.paste")).
 		// y y lives beside y: a sequence waits only for rows at the same level.
-		Bind("y y", ochazuke.Do("duplicate.row")).
+		Bind("y y", ochazuke.Do("row.duplicate")).
 		Bind("v", shape(grid.ShapeBlock)).Bind("V", shape(grid.ShapeRow)).Bind("ctrl+v", shape(grid.ShapeColumn))
 	motions(cell)
 	transforms(cell)
 	motions(r.Define("cell").Mode("count_pending"))
 
 	r.Define("row").Mode("normal").
-		Bind("d d", ochazuke.Do("delete.row")).
-		Bind("o", ochazuke.Do("insertBelow.row"))
+		Bind("d d", ochazuke.Do("row.delete")).
+		Bind("o", ochazuke.Do("row.insertBelow"))
 
 	r.Define("column").Mode("normal").
-		Bind("r", ochazuke.Do("rename.column")).
-		Bind("D", ochazuke.Do("delete.column")).
-		Bind("s", ochazuke.Do("sort.column")).
-		Bind("/", ochazuke.Do("filter.column"))
+		Bind("r", ochazuke.Do("column.rename")).
+		Bind("D", ochazuke.Do("column.delete")).
+		Bind("s", ochazuke.Do("column.sort")).
+		Bind("/", ochazuke.Do("column.filter"))
 
 	visual := r.Define("grid")
 	for _, mode := range []string{grid.ShapeBlock, grid.ShapeRow, grid.ShapeColumn} {
 		m := visual.Mode(mode)
 		motions(m)
 		transforms(m)
-		m.Bind("o", ochazuke.Do("swap.selection")).
+		m.Bind("o", ochazuke.Do("selection.swap")).
 			Bind("v", shape(grid.ShapeBlock)).Bind("V", shape(grid.ShapeRow)).Bind("ctrl+v", shape(grid.ShapeColumn)).
-			Bind("esc", ochazuke.Do("cancel.selection")).
-			Bind("y", ochazuke.Do("yank.selection")).
-			Bind("d", ochazuke.Do("delete.selection")).
-			Bind("p", ochazuke.Do("paste.selection")).
-			Bind("c", ochazuke.Do("clear.selection")).
-			Bind("s", ochazuke.Do("sort.column")).
+			Bind("esc", ochazuke.Do("selection.cancel")).
+			Bind("y", ochazuke.Do("selection.yank")).
+			Bind("d", ochazuke.Do("selection.delete")).
+			Bind("p", ochazuke.Do("selection.paste")).
+			Bind("c", ochazuke.Do("selection.clear")).
+			Bind("s", ochazuke.Do("column.sort")).
 			Bind("f", transform("fillDown")).
-			Bind("m", ochazuke.Do("mark.selection")).
-			Bind("M", ochazuke.Do("unmark.selection")).
-			Bind("ctrl+a", ochazuke.Do("all.selection")).
+			Bind("m", ochazuke.Do("selection.mark")).
+			Bind("M", ochazuke.Do("selection.unmark")).
+			Bind("ctrl+a", ochazuke.Do("selection.all")).
 			// Counts: the app noun enters count_pending from normal only.
 			Pattern("digit-0", ochazuke.Enter("count_pending").FromPayload("count", ochazuke.SourceDigit))
 	}
 
 	r.Define("sheet").Mode("normal").
-		Bind("ctrl+s", ochazuke.Do("save.sheet")).
-		Bind("ctrl+o", ochazuke.Do("open.sheet")).
-		Bind("+", ochazuke.Do("addColumn.sheet")).
-		Bind("S", ochazuke.Do("sort.sheet")).
-		Bind("u", ochazuke.Do("undo.sheet")).
-		Bind("ctrl+r", ochazuke.Do("redo.sheet"))
+		Bind("ctrl+s", ochazuke.Do("sheet.save")).
+		Bind("ctrl+o", ochazuke.Do("sheet.open")).
+		Bind("+", ochazuke.Do("sheet.addColumn")).
+		Bind("S", ochazuke.Do("sheet.sort")).
+		Bind("u", ochazuke.Do("sheet.undo")).
+		Bind("ctrl+r", ochazuke.Do("sheet.redo"))
 }

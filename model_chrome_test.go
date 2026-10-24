@@ -53,7 +53,7 @@ func TestModelChromeIsLayoutShellWithHintsFromBindings(t *testing.T) {
 				if sidebar && !strings.Contains(view, "▸ ALPHA") || !sidebar && !strings.Contains(rows[1], "› ALPHA") {
 					t.Fatalf("page navigation missing (sidebar=%t):\n%s", sidebar, view)
 				}
-				if footer := rows[size[1]-2]; !hintPrefix(footer, BindingHints(r, r.FocusID())) || !strings.Contains(BindingHints(r, r.FocusID()), "ctrl+j next.page") {
+				if footer := rows[size[1]-2]; !hintPrefix(footer, BindingHints(r, r.FocusID())) || !strings.Contains(BindingHints(r, r.FocusID()), "ctrl+j page.next") {
 					t.Fatalf("footer is not the focus's binding hints: %q", footer)
 				}
 			})
@@ -61,13 +61,13 @@ func TestModelChromeIsLayoutShellWithHintsFromBindings(t *testing.T) {
 	}
 	m.Sidebar = false
 	m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
-	// The hint is the same data list.bindings prints: a rebound key moves with it.
+	// The hint is the same data bindings.list prints: a rebound key moves with it.
 	if err := r.Bind(Binding{Noun: "app", Mode: "normal", Keys: "ctrl+j", Request: Request{Verb: "previous", Noun: "page"}}); err != nil {
 		t.Fatal(err)
 	}
 	footer := strings.Split(ansi.Strip(m.View().Content), "\n")[22]
 	hints := BindingHints(r, r.FocusID())
-	if !hintPrefix(footer, hints) || !strings.Contains(hints, "ctrl+j previous.page") || strings.Contains(hints, "ctrl+j next.page") {
+	if !hintPrefix(footer, hints) || !strings.Contains(hints, "ctrl+j page.previous") || strings.Contains(hints, "ctrl+j page.next") {
 		t.Fatalf("footer did not follow the rebinding: %q (%q)", footer, hints)
 	}
 	// An input in insert mode shows the mode badge and lists the editor rows.
@@ -91,7 +91,7 @@ func TestModelChromeIsLayoutShellWithHintsFromBindings(t *testing.T) {
 		t.Fatal(err)
 	}
 	m.ModalViews["note"] = ModalView{Title: "Note", Render: func(*Runtime, *Frame, int, int) Block { return Text("read me") }}
-	if view := ansi.Strip(m.View().Content); !strings.Contains(view, "esc pop.modal") {
+	if view := ansi.Strip(m.View().Content); !strings.Contains(view, "esc modal.pop") {
 		t.Fatalf("modal hint is not derived from the modal rows:\n%s", view)
 	}
 }

@@ -62,9 +62,9 @@ func (a *App) registerVerbs() {
 		}), "Sort the rows by the column under the cursor").
 		Verb("undo", verb(func(ochazuke.Context, ochazuke.Arguments) (any, error) { return a.state(), a.UndoPatch() }), "Revert the last sheet edit").
 		Verb("redo", verb(func(ochazuke.Context, ochazuke.Arguments) (any, error) { return a.state(), a.RedoPatch() }), "Replay the last undone sheet edit")
-	params("open.sheet", path)
-	params("saveAs.sheet", path)
-	params("addColumn.sheet", name)
+	params("sheet.open", path)
+	params("sheet.saveAs", path)
+	params("sheet.addColumn", name)
 
 	// cells resolves the cells a verb acts on: the selection when one is
 	// active, else the focused cell. A visual verb ends the selection.
@@ -123,7 +123,7 @@ func (a *App) registerVerbs() {
 		return a.state(), nil
 	})
 	register := map[string]ochazuke.Parameter{"register": {Type: "string", Description: "Register name; the active register, else the unnamed one"}}
-	transformParams := map[string]ochazuke.Parameter{"name": {Type: "string", Required: true, Description: "A transformation; list.transformations names them"}}
+	transformParams := map[string]ochazuke.Parameter{"name": {Type: "string", Required: true, Description: "A transformation; transformations.list names them"}}
 
 	r.Define("cell").
 		Verb("edit", verb(func(c ochazuke.Context, args ochazuke.Arguments) (any, error) {
@@ -142,9 +142,9 @@ func (a *App) registerVerbs() {
 		Verb("yank", yank, "Yank the cell into the shared registers").
 		Verb("paste", paste, "Paste the register at the cell by its shape: a block fills, rows go below, columns go after").
 		Verb("transform", transform, "Apply a named transformation to the cell, or to the selection when one is active")
-	params("yank.cell", register)
-	params("paste.cell", register)
-	params("transform.cell", transformParams)
+	params("cell.yank", register)
+	params("cell.paste", register)
+	params("cell.transform", transformParams)
 
 	rowOf := func(c ochazuke.Context) (int, error) {
 		at := a.grid.At(c)
@@ -245,9 +245,9 @@ func (a *App) registerVerbs() {
 			a.Apply(p)
 			return a.state(), nil
 		}), "Apply a named transformation to every visible cell of the column")
-	params("rename.column", name)
-	params("filter.column", map[string]ochazuke.Parameter{"query": {Type: "string", Description: "Omit to be asked in a prompt"}})
-	params("transform.column", transformParams)
+	params("column.rename", name)
+	params("column.filter", map[string]ochazuke.Parameter{"query": {Type: "string", Description: "Omit to be asked in a prompt"}})
+	params("column.transform", transformParams)
 
 	// The selection noun: the grid registered shape, cancel, swap, mark,
 	// unmark and all; the application adds the verbs that edit.
@@ -285,10 +285,10 @@ func (a *App) registerVerbs() {
 		Verb("paste", paste, "Paste the register over the selection's first cell by its shape").
 		Verb("clear", clear, "Empty the selected cells").
 		Verb("transform", transform, "Apply a named transformation to the selected cells")
-	params("yank.selection", register)
-	params("delete.selection", register)
-	params("paste.selection", register)
-	params("transform.selection", transformParams)
+	params("selection.yank", register)
+	params("selection.delete", register)
+	params("selection.paste", register)
+	params("selection.transform", transformParams)
 
 	r.Define("transformations").
 		Verb("list", verb(func(ochazuke.Context, ochazuke.Arguments) (any, error) { return TransformationNames(), nil }), "Name the transformations transform accepts")
