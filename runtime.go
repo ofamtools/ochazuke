@@ -71,31 +71,35 @@ type Frame struct {
 
 // Runtime is owned by one event loop. Transport callers submit messages to that loop.
 type Runtime struct {
-	Layers         map[string]*Layer
-	Inputs         map[string]*Input
-	InputPaths     map[string][]string
-	Lists          map[string]*List
-	Frames         []*Frame
-	Pages          map[string]*Page
-	PageOrder      []string
-	ActivePage     string
-	Modes          map[string]bool
-	Operations     map[string]Operation
-	Quit           bool
-	Pending        string
-	BindingTimeout time.Duration
-	pendingBinding pendingBinding
-	bindingVersion uint64
-	Registers      map[string]Register
-	YankHistory    []Yank
-	ActiveRegister string
-	Macro          MacroState
-	dispatchKey    func(MacroKey) error
+	Layers            map[string]*Layer
+	Nouns             map[string]*Noun
+	Instances         map[string]*Instance
+	Inputs            map[string]*Input
+	InputPaths        map[string][]string
+	Lists             map[string]*List
+	Frames            []*Frame
+	Pages             map[string]*Page
+	PageOrder         []string
+	ActivePage        string
+	Modes             map[string]bool
+	Operations        map[string]Operation
+	Quit              bool
+	Pending           string
+	BindingTimeout    time.Duration
+	pendingBinding    pendingBinding
+	bindingVersion    uint64
+	Registers         map[string]Register
+	YankHistory       []Yank
+	ActiveRegister    string
+	Macro             MacroState
+	dispatchKey       func(MacroKey) error
+	instanceConflicts []string
 }
 
 func NewRuntime() *Runtime {
 	r := &Runtime{
 		Layers: map[string]*Layer{"app": {ID: "app", Noun: "app", Actions: map[string]Handler{}}},
+		Nouns:  map[string]*Noun{}, Instances: map[string]*Instance{},
 		Inputs: map[string]*Input{}, InputPaths: map[string][]string{},
 		Lists:  map[string]*List{},
 		Frames: []*Frame{{ID: "main", Context: Context{Path: []string{"app"}}, State: map[string]any{}}},
@@ -104,6 +108,7 @@ func NewRuntime() *Runtime {
 		Registers:      map[string]Register{},
 		BindingTimeout: DefaultBindingTimeout,
 	}
+	r.adoptPath([]string{"app"})
 	registerCore(r)
 	registerConfiguration(r)
 	registerPages(r)
@@ -160,6 +165,10 @@ func (r *Runtime) AddInput(in *Input, path []string) error {
 	}
 	r.Inputs[in.ID] = in
 	r.InputPaths[in.ID] = append([]string(nil), path...)
+	r.adoptPath(path)
+	if leaf := path[len(path)-1]; leaf != in.ID {
+		r.link(in.ID, leaf)
+	}
 	return nil
 }
 func (r *Runtime) validateContext(c Context) error {
@@ -196,6 +205,7 @@ func (r *Runtime) SelectContext(next Context) error {
 	if err := r.validateSelection(next); err != nil {
 		return err
 	}
+	r.adoptPath(next.Path)
 	r.Frames[len(r.Frames)-1].Context = next.Clone()
 	r.CancelPendingBinding()
 	return nil
@@ -212,6 +222,7 @@ func (r *Runtime) Push(frame *Frame) error {
 	if err := r.validateContext(frame.Context); err != nil {
 		return err
 	}
+	r.adoptPath(frame.Context.Path)
 	frame.Context = frame.Context.Clone()
 	if frame.State == nil {
 		frame.State = map[string]any{}
@@ -357,9 +368,20 @@ func (r *Runtime) Snapshot() map[string]any {
 		modes = append(modes, mode)
 	}
 	sort.Strings(modes)
+	r.syncNouns()
+	nouns := map[string]any{}
+	for name, noun := range r.Nouns {
+		actions := make([]string, 0, len(noun.Actions))
+		for key := range noun.Actions {
+			actions = append(actions, key)
+		}
+		sort.Strings(actions)
+		nouns[name] = map[string]any{"name": name, "verbs": noun.Verbs, "bindings": noun.Bindings, "actions": actions}
+	}
 	// Registers and macro state belong to the application, never individual fields.
 	return map[string]any{"frames": r.Frames, "pages": r.Pages, "activePage": r.ActivePage, "inputs": inputs, "context": r.Context(), "mode": r.Mode(r.Context()), "modes": modes, "layers": layers, "bindings": r.EffectiveBindings(r.Context()), "pending": r.Pending, "quit": r.Quit,
-		"lists": lists, "registers": r.Registers, "yankHistory": r.YankHistory, "activeRegister": r.ActiveRegister, "macro": r.Macro}
+		"lists": lists, "registers": r.Registers, "yankHistory": r.YankHistory, "activeRegister": r.ActiveRegister, "macro": r.Macro,
+		"nouns": nouns, "instances": r.Instances}
 }
 func JSONPointer(value any, path string) (any, error) {
 	data, err := json.Marshal(value)

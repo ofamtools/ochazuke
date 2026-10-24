@@ -22,6 +22,7 @@ Do not hand-edit either generated file. If a map entry is wrong, fix the code or
 | Concern | Files |
 |---|---|
 | Operation registry, layers, contexts, modal stack | `runtime.go`, `configuration.go` |
+| Nouns, instances and parent links, focus-stack resolution | `noun.go`, `instance.go`, `resolve.go` |
 | Bubble Tea adapter, page shell, modal renderers | `model.go` |
 | Pages, retained frames, navigation | `pages.go` |
 | Input state, modes, undo | `input.go`, `editing.go`, `editor*.go` |

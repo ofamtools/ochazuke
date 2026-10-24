@@ -40,6 +40,7 @@ func (r *Runtime) RegisterPage(page *Page) error {
 	if err := r.validateContext(page.Frame.Context); err != nil {
 		return err
 	}
+	r.adoptPath(page.Frame.Context.Path)
 	page.Frame.Context = page.Frame.Context.Clone()
 	if page.Frame.State == nil {
 		page.Frame.State = map[string]any{}

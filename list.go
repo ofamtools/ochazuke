@@ -40,6 +40,7 @@ func NewList(r *Runtime, path []string, items []ListItem) (*List, error) {
 	if r.Lists[id] != nil {
 		return nil, fmt.Errorf("list %q is already registered", id)
 	}
+	r.adoptPath(path)
 	list := &List{r: r, path: slices.Clone(path), selected: -1}
 	if err := list.SetItems(items); err != nil {
 		return nil, err
@@ -70,6 +71,9 @@ func (l *List) SetItems(items []ListItem) error {
 			return fmt.Errorf("invalid list item layer %q", item.Layer)
 		}
 		ids[item.ID] = true
+	}
+	for _, item := range items {
+		l.r.link(item.Layer, l.path[len(l.path)-1])
 	}
 	previous, _ := l.Selected()
 	selected := min(max(l.selected, 0), len(items)-1)

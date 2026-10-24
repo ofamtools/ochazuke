@@ -412,6 +412,11 @@ result, err := r.Execute(ochazuke.Request{
 | `model.go` | Bubble Tea adapter, page shell, Bubbles viewports, modal renderers, terminal cursor |
 | `transport.go`, `cli.go`, `cmd/ochazuke` | Private Unix socket and generic CLI dispatch |
 | `demo.go`, `examples/core` | Runnable UI and noninteractive foundation example |
+| `noun.go`, `instance.go`, `resolve.go` | Nouns, instances with parent links, and the focus-stack walk beneath the layer API |
+
+#### Nouns and instances
+
+The layer API now sits on a smaller model. A `Noun` is the behaviour of one kind of thing: its verbs, a binding table keyed by mode (`""` for any mode), and the action handlers that override an operation's default. An `Instance` is one addressable thing on screen (`ID`, `Noun`, `Parent`, `State`); walking `Parent` links from the focused instance outward (`Ancestry`, `InstancePath`) rebuilds what `Context.Path` spells out in full. Every `Layer` is a view over the noun of the same name: the action map is shared and the noun's per-mode table is derived from the layer's rows, so `set.binding` and `list.bindings` are unchanged. `AddInput`, `NewList`, `RegisterPage`, `Push` and `SelectContext` record parent links from the paths they already receive; `FocusID` names the active leaf, `ContextFromFocus` derives the context from it, and `EffectiveBindingsFor` / `ActionFor` resolve through the instance graph with the same precedence as `EffectiveBindings` and `ExecuteAt`. `Context()` remains the source of truth until phase 5 of `docs/MIGRATION-PLAN.md`; `get.state` exposes `/nouns` and `/instances`.
 
 Local checks:
 

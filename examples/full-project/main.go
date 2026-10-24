@@ -132,6 +132,9 @@ func run(args []string) error {
 	return err
 }
 
+// smokeStep, when set by a test, runs after every smoke operation and key.
+var smokeStep func(label string) error
+
 // smokeExample drives real operations and keyboard dispatch, never substitute handlers.
 // It deliberately names the shipped fixture: edited configs must keep this contract
 // to use --smoke, while ordinary TUI/CLI execution accepts any valid configuration.
@@ -161,6 +164,9 @@ func smokeExample(m *ochazuke.Model) error {
 		if err != nil {
 			failure = fmt.Errorf("smoke %s.%s: %w", verb, noun, err)
 		}
+		if smokeStep != nil && failure == nil {
+			failure = smokeStep(verb + "." + noun)
+		}
 		return value
 	}
 	key := func(message tea.KeyPressMsg) {
@@ -170,6 +176,9 @@ func smokeExample(m *ochazuke.Model) error {
 		m.Update(message)
 		if m.Status != "" {
 			failure = fmt.Errorf("smoke key %q: %s", message.String(), m.Status)
+		}
+		if smokeStep != nil && failure == nil {
+			failure = smokeStep("key " + message.String())
 		}
 	}
 	// press sends one named key ("ctrl+s", "esc", "tab") or types text rune by
