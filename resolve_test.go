@@ -68,6 +68,11 @@ func TestModelCtrlCCapturedOutsideModals(t *testing.T) {
 	if err := m.Palette.Open(); err != nil {
 		t.Fatal(err)
 	}
+	for _, b := range r.ListBindings(r.Focus) {
+		if b.Keys == "ctrl+c" && b.Request.Key() != "palette.close" {
+			t.Fatalf("inside the palette ctrl+c lists %s", b.Request.Key())
+		}
+	}
 	keytest.Press(m, "ctrl+c")
 	if m.Palette.IsOpen() || r.Quit {
 		t.Fatalf("palette ctrl+c closes it: open=%v quit=%v", m.Palette.IsOpen(), r.Quit)

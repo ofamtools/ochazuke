@@ -418,6 +418,13 @@ func (r *Runtime) bindingRows(focus string) []Binding {
 			if b.Unbind || b.Capture != capture {
 				continue
 			}
+			if capture && b.When != "" {
+				// A capture row standing aside (ctrl+c's no-modal inside the
+				// palette) must not shadow the inner row it lets through.
+				if check := r.guard(b.When); check == nil || !check(r, KeyEvent{Mode: r.Mode, Focus: focus}) {
+					continue
+				}
+			}
 			if !r.VerbShown(b.Request.Key(), focus, r.Mode) {
 				continue // guarded off here: hints and bindings list match the palette
 			}
