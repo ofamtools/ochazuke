@@ -126,7 +126,7 @@ func TestDeleteRowAsksForConfirmation(t *testing.T) {
 	if len(a.r.Modals()) != 1 || a.r.Focus != "confirm" {
 		t.Fatalf("confirm not open: frames=%d focus=%s", len(a.r.Modals()), a.r.Focus)
 	}
-	if view := ansi.Strip(a.m.View().Content); !strings.Contains(view, "Delete row r1:c0?") {
+	if view := ansi.Strip(a.m.View().Content); !strings.Contains(view, "Delete row r1?") {
 		t.Fatalf("confirm prompt missing:\n%s", view)
 	}
 	press(t, a, "n")

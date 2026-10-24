@@ -480,3 +480,62 @@ func TestModeIsGlobal(t *testing.T) {
 		}
 	}
 }
+
+// A count typed before a key sequence reaches the row the sequence runs:
+// 3gg is line 3 (the prefix mode carries Count and OpCount).
+func TestSequencePrefixCarriesCount(t *testing.T) {
+	r := NewRuntime()
+	r.BindingTimeout = time.Hour
+	var lines []int
+	r.Define("test").Verb("line", func(_ *Runtime, _ Context, a Arguments) (any, error) {
+		lines = append(lines, IntArg(a, "line", -1))
+		return nil, nil
+	})
+	op := r.Operations["test.line"]
+	op.Parameters = map[string]Parameter{"line": {Type: "integer"}}
+	r.Operations["test.line"] = op
+	row := Do("test.line").FromPayload("line", SourceLine)
+	r.Define("app").Mode("normal").Bind("g g", row).Mode("count_pending").Bind("g g", row)
+	for _, key := range []string{"3", "g", "g", "g", "g"} {
+		if _, err := r.Dispatch(MacroKey{Key: key}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if !reflect.DeepEqual(lines, []int{3, 0}) || r.Mode.Name != "normal" {
+		t.Fatalf("lines %v mode %+v", lines, r.Mode)
+	}
+}
+
+// A row that matched at an outer level addresses that level's instance
+// when the operation is the level's own, so a confirm names it.
+func TestRowAddressesItsLevelInstance(t *testing.T) {
+	r := NewRuntime()
+	var targets []string
+	r.Define("row").Verb("drop", func(_ *Runtime, c Context, _ Arguments) (any, error) {
+		targets = append(targets, focusOf(c))
+		return nil, nil
+	}).Confirm("Drop {{id}}?").Mode("normal").Bind("d d", Do("row.drop")).Bind("m", Do("mode.set", Arguments{"mode": "insert"}))
+	r.Instance("r1", Kind("row"))
+	r.Instance("r1:c0", Parent("r1"), Kind("cell"))
+	if err := r.SetFocus("r1:c0"); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"d", "d"} {
+		if _, err := r.Dispatch(MacroKey{Key: key}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if inst := r.Instances["confirm"]; inst == nil || inst.Payload.Prompt != "Drop r1?" {
+		t.Fatalf("confirm %+v", inst)
+	}
+	if _, err := r.Dispatch(MacroKey{Key: "y"}); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(targets, []string{"r1"}) || r.Focus != "r1:c0" {
+		t.Fatalf("targets %v focus %q", targets, r.Focus)
+	}
+	// A shared operation bound on the level still addresses the focus.
+	if _, err := r.Dispatch(MacroKey{Key: "m"}); err != nil || r.Mode.Name != "insert" {
+		t.Fatalf("mode.set from the row level: %v %+v", err, r.Mode)
+	}
+}

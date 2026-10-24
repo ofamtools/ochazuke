@@ -113,6 +113,9 @@ func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (bool, 
 		if prefix != "" {
 			r.leavePrefix()
 		}
+		if lv.inst != nil {
+			ev.Level = lv.inst.ID
+		}
 		return true, r.runRow(lv, *hit, ev)
 	}
 	if prefix != "" {
@@ -227,6 +230,13 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent) error {
 		r.leaveMode()
 	}
 	q := b.Request
+	if q.Target == "" && ev.Level != "" && ev.Level != ev.Focus && lv.noun != nil && lv.noun.Name == q.Noun {
+		// A row addresses the instance of the level it matched at when the
+		// operation is that level's own: d d → row.delete on the row noun
+		// deletes that row and its confirm names it. Shared operations a
+		// level binds (mode.set, input.*, focus.next) keep the focus.
+		q.Target = ev.Level
+	}
 	if len(b.From) > 0 {
 		args := Arguments{}
 		for k, v := range q.Args {
@@ -408,7 +418,7 @@ type pendingPrefix struct {
 // enterPrefix waits for the rest of a key sequence as a pending mode named
 // "<base> <keys so far>".
 func (r *Runtime) enterPrefix(base, sequence string, fallback *Request) {
-	r.enterMode(base+" "+sequence, Payload{Prefix: sequence, Request: fallback})
+	r.enterMode(base+" "+sequence, Payload{Prefix: sequence, Request: fallback, Count: r.Mode.Payload.Count, OpCount: r.Mode.Payload.OpCount})
 }
 
 // armPrefix starts the sequence timer for a pending mode the focus is in:
