@@ -1,5 +1,7 @@
 package ochazuke
 
+import "strings"
+
 // guardVerb guards noun.verb with a named row guard. On the csv-pass merge
 // its body becomes Define(noun).Verb-builder When, or:
 //
@@ -7,10 +9,13 @@ package ochazuke
 //	if r.Nouns[noun].Guards == nil { r.Nouns[noun].Guards = map[string]string{} }
 //	r.Nouns[noun].Guards[verb] = guard
 func guardVerb(r *Runtime, key, guard string) {
-	guards := map[string]string{}
-	if existing, ok := stubVerbGuards.Load(r); ok {
-		guards = existing.(map[string]string)
+	noun, verb, _ := strings.Cut(key, ".")
+	n := r.Nouns[noun]
+	if n == nil {
+		n = r.Define(noun).Noun()
 	}
-	guards[key] = guard
-	stubVerbGuards.Store(r, guards)
+	if n.Guards == nil {
+		n.Guards = map[string]string{}
+	}
+	n.Guards[verb] = guard
 }
