@@ -54,6 +54,9 @@ func (p *Palette) RegisterNoun(noun string, config PaletteNoun) error {
 	if !ok || param.Type != "string" {
 		return fmt.Errorf("palette noun %q: default action %s requires a string instance argument; got %q", noun, op.Key(), config.Argument)
 	}
+	if guard := p.r.VerbGuard(op.Key()); guard != "" {
+		return fmt.Errorf("palette noun %q: default action %s is guarded by %q; a default verb is never guarded", noun, op.Key(), guard)
+	}
 	for name, param := range op.Parameters {
 		if name != config.Argument && param.Required {
 			return fmt.Errorf("palette noun %q: default action %s also requires argument %q", noun, op.Key(), name)
@@ -83,6 +86,9 @@ func (p *Palette) entries() []PaletteEntry {
 	}
 	config, instances := p.nouns[p.first]
 	for _, op := range p.r.Catalog() {
+		if !p.offered(op) {
+			continue
+		}
 		if p.stage == "root" {
 			add(PaletteEntry{Value: "verb:" + op.Verb, Kind: "verb", Label: op.Verb, Verb: op.Verb})
 			add(PaletteEntry{Value: "noun:" + op.Noun, Kind: "noun", Label: op.Noun})
@@ -105,9 +111,27 @@ func (p *Palette) entries() []PaletteEntry {
 			add(PaletteEntry{Value: "instance:" + instance.ID, Kind: "instance", Label: label, ID: instance.ID})
 		}
 	}
-	sort.Slice(entries, func(i, j int) bool {
+	// Nouns on the focus stack the palette opened over come first, the
+	// focused noun first, so the palette lists what is under the cursor
+	// before the rest of the catalog; other entries sort by value.
+	depth := map[string]int{}
+	for i, id := range p.r.Ancestry(focusOf(p.origin)) {
+		if inst := p.r.Instances[id]; inst != nil {
+			if _, seen := depth["noun:"+inst.Noun]; !seen {
+				depth["noun:"+inst.Noun] = i + 1
+			}
+		}
+	}
+	sort.SliceStable(entries, func(i, j int) bool {
 		if entries[i].Kind != entries[j].Kind {
 			return entries[i].Kind == "verb"
+		}
+		di, dj := depth[entries[i].Value], depth[entries[j].Value]
+		if (di > 0) != (dj > 0) {
+			return di > 0
+		}
+		if di != dj {
+			return di < dj
 		}
 		return entries[i].Value < entries[j].Value
 	})
@@ -122,6 +146,16 @@ func (p *Palette) entries() []PaletteEntry {
 		}
 	}
 	return filtered
+}
+
+// offered reports whether the palette lists an operation: a verb whose
+// guard (Verb(...).When) is false at the focus and mode the palette opened
+// over is left out; a palette noun's default verb always stays.
+func (p *Palette) offered(op Operation) bool {
+	if config, ok := p.nouns[op.Noun]; ok && config.DefaultVerb == op.Verb {
+		return true
+	}
+	return p.r.VerbShown(op.Key(), focusOf(p.origin), p.originMode)
 }
 
 // verbLabel names a verb in the palette with its kind when it is an

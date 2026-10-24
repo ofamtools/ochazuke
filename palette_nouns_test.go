@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -193,5 +194,118 @@ func TestPaletteNounRegistrationValidation(t *testing.T) {
 				t.Fatalf("error = %v, want %q", err, test.message)
 			}
 		})
+	}
+}
+
+// A verb guarded with Verb(...).When is offered only while its guard holds
+// at the focus and mode the palette opened over; the mode the palette's own
+// field pins does not count. A default verb cannot be guarded.
+func TestPaletteHidesGuardedVerbs(t *testing.T) {
+	r := NewRuntime()
+	if err := r.DefineMode("selecting", false); err != nil {
+		t.Fatal(err)
+	}
+	r.DefineGuard("selecting", func(_ *Runtime, ev KeyEvent) bool { return ev.Mode.Name == "selecting" })
+	r.DefineGuard("on-sheet", func(r *Runtime, ev KeyEvent) bool { return slices.Contains(r.Ancestry(ev.Focus), "sheet") })
+	run := func(*Runtime, Context, Arguments) (any, error) { return nil, nil }
+	r.Define("sheet").Verb("save", run)
+	r.Define("chosen").Verb("grab", run).When("selecting").Verb("drop", run).When("selecting").Verb("count", run)
+	r.Define("rowish").Verb("delete", run).When("on-sheet")
+	r.Instance("sheet")
+	r.Instance("cell", Parent("sheet"))
+	r.Instance("elsewhere")
+	if r.VerbGuard("chosen.grab") != "selecting" || r.VerbGuard("chosen.count") != "" {
+		t.Fatalf("guards: %v", r.Nouns["chosen"].Guards)
+	}
+	p := NewPalette(r)
+	offered := func() map[string]bool {
+		out := map[string]bool{}
+		for _, op := range r.Catalog() {
+			if p.offered(op) {
+				out[op.Key()] = true
+			}
+		}
+		return out
+	}
+	values := func() []string {
+		var out []string
+		for _, e := range p.entries() {
+			out = append(out, e.Value)
+		}
+		return out
+	}
+	if err := r.SetFocus("cell"); err != nil {
+		t.Fatal(err)
+	}
+	paletteRequest(t, r, "open", "palette", nil)
+	if got := offered(); got["chosen.grab"] || got["chosen.drop"] || !got["chosen.count"] || !got["rowish.delete"] {
+		t.Fatalf("normal mode on the sheet offered %v", got)
+	}
+	if v := values(); slices.Contains(v, "verb:grab") || !slices.Contains(v, "noun:chosen") || !slices.Contains(v, "verb:count") {
+		t.Fatalf("root entries: %v", v)
+	}
+	paletteChoose(t, r, "noun:chosen")
+	if v := values(); !reflect.DeepEqual(v, []string{"count"}) {
+		t.Fatalf("chosen verbs in normal mode: %v", v)
+	}
+	paletteRequest(t, r, "close", "palette", nil)
+
+	r.Mode = ModeState{Name: "selecting"}
+	paletteRequest(t, r, "open", "palette", nil)
+	if r.Mode.Name == "selecting" {
+		t.Fatal("the palette field did not take its own mode; the test proves nothing")
+	}
+	paletteChoose(t, r, "noun:chosen")
+	if v := values(); !reflect.DeepEqual(v, []string{"count", "drop", "grab"}) {
+		t.Fatalf("chosen verbs while selecting: %v", v)
+	}
+	paletteRequest(t, r, "close", "palette", nil)
+
+	r.Mode = ModeState{Name: "normal"}
+	if err := r.SetFocus("elsewhere"); err != nil {
+		t.Fatal(err)
+	}
+	paletteRequest(t, r, "open", "palette", nil)
+	if got := offered(); got["rowish.delete"] || !got["sheet.save"] {
+		t.Fatalf("off the sheet offered %v", got)
+	}
+	if v := values(); slices.Contains(v, "noun:rowish") {
+		t.Fatalf("a noun with only hidden verbs is listed: %v", v)
+	}
+	paletteRequest(t, r, "close", "palette", nil)
+
+	// A palette noun's default verb is never guarded.
+	r.Register(Operation{Verb: "use", Noun: "rowish", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}}, Run: run})
+	r.Define("rowish").Verb("use", run).When("on-sheet")
+	err := p.RegisterNoun("rowish", PaletteNoun{Source: func(*Runtime, Context) []PaletteInstance { return nil }, DefaultVerb: "use", Argument: "id"})
+	if err == nil || !strings.Contains(err.Error(), "never guarded") {
+		t.Fatalf("guarded default verb accepted: %v", err)
+	}
+}
+
+// The root lists the nouns of the focus stack first, the focused noun
+// first, then the rest of the catalog by name.
+func TestPaletteListsFocusStackNounsFirst(t *testing.T) {
+	r := NewRuntime()
+	run := func(*Runtime, Context, Arguments) (any, error) { return nil, nil }
+	for _, noun := range []string{"sheet", "zcell", "arow", "unrelated"} {
+		r.Define(noun).Verb("poke", run)
+	}
+	r.Instance("sheet", Kind("sheet"))
+	r.Instance("r1", Parent("sheet"), Kind("arow"))
+	r.Instance("r1:c1", Parent("r1"), Kind("zcell"))
+	if err := r.SetFocus("r1:c1"); err != nil {
+		t.Fatal(err)
+	}
+	p := NewPalette(r)
+	paletteRequest(t, r, "open", "palette", nil)
+	var nouns []string
+	for _, e := range p.entries() {
+		if e.Kind == "noun" {
+			nouns = append(nouns, e.Label)
+		}
+	}
+	if len(nouns) < 5 || !reflect.DeepEqual(nouns[:4], []string{"zcell", "arow", "sheet", "app"}) || slices.Index(nouns, "unrelated") < 4 {
+		t.Fatalf("noun order = %v", nouns)
 	}
 }

@@ -15,6 +15,7 @@ import (
 type Palette struct {
 	r             *Runtime
 	origin        Context
+	originMode    ModeState
 	stage         string
 	section       string
 	first         string
@@ -198,11 +199,11 @@ func (p *Palette) open() error {
 	if p.IsOpen() {
 		return nil
 	}
-	origin := p.r.Context().Clone()
+	origin, mode := p.r.Context().Clone(), p.r.Mode
 	if err := p.r.Push(paletteID, paletteID); err != nil {
 		return err
 	}
-	p.origin = origin
+	p.origin, p.originMode = origin, mode
 	p.stage = "root"
 	p.section = ""
 	p.first = ""

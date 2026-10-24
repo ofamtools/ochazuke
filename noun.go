@@ -27,6 +27,7 @@ type Noun struct {
 	Region    bool                 `json:"region,omitempty"`
 	Bindings  map[string][]Binding `json:"bindings"`
 	Extends   map[string]string    `json:"extends,omitempty"`
+	Guards    map[string]string    `json:"guards,omitempty"`
 	Actions   map[string]Handler   `json:"-"`
 }
 
@@ -253,6 +254,49 @@ func (b *NounBuilder) Confirm(prompt string) *NounBuilder {
 		panic(err)
 	}
 	return b
+}
+
+// When guards the last declared verb with a registered guard name: while
+// the guard is false at the focus and mode the verb would run in, the
+// palette does not offer it. The guard reads a KeyEvent whose Focus and
+// Level are that focus and whose Mode is that mode. A palette noun's
+// default verb is never guarded (RegisterNoun refuses one). An empty name
+// removes the guard.
+func (b *NounBuilder) When(guard string) *NounBuilder {
+	if b.last == "" {
+		panic("When must follow Verb")
+	}
+	_, verb, _ := strings.Cut(b.last, ".")
+	if b.n.Guards == nil {
+		b.n.Guards = map[string]string{}
+	}
+	if guard == "" {
+		delete(b.n.Guards, verb)
+	} else {
+		b.n.Guards[verb] = guard
+	}
+	return b
+}
+
+// VerbGuard names the guard on noun.verb, "" when the verb is unguarded.
+func (r *Runtime) VerbGuard(key string) string {
+	noun, verb, _ := strings.Cut(key, ".")
+	if n := r.Nouns[noun]; n != nil {
+		return n.Guards[verb]
+	}
+	return ""
+}
+
+// VerbShown reports whether noun.verb is offered at a focus in a mode: true
+// for an unguarded verb or one whose guard holds there. A guard name that
+// is not registered hides nothing.
+func (r *Runtime) VerbShown(key, focus string, mode ModeState) bool {
+	name := r.VerbGuard(key)
+	if name == "" {
+		return true
+	}
+	guard := r.guard(name)
+	return guard == nil || guard(r, KeyEvent{Mode: mode, Focus: focus, Level: focus})
 }
 
 // Action overrides any operation ("noun.verb") while this noun is on the stack.
