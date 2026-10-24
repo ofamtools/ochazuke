@@ -251,13 +251,15 @@ On terminals where Option does not send Meta sequences, configure Option-as-Meta
 - The originating interaction context is captured before the palette opens. Selecting `undo → input` edits the originating input, not the palette's search field.
 - `Ctrl-C` cancels the palette. Errors retain the form and its drafts.
 - Instance sources explicitly declare their default verb and ID argument. The palette does not infer a default from operation order. The [full-project example](examples/full-project/README.md) configures these defaults in JSON.
-- The shared path picker opens with its path field in insert mode. `Ctrl-N/P` moves through results without moving the text cursor. Other Readline bindings still edit the path; `/` and whitespace delimit `Ctrl-W` kills, while dots and hyphens remain part of a filename.
+- The shared path picker uses an editable absolute path and a Readline-only editor. `Ctrl-N/P` moves through results without moving the text cursor. Other Readline bindings still edit the path; `/` and whitespace delimit `Ctrl-W` kills, while dots and hyphens remain part of a filename.
 - Tab completes the highlighted result into the picker's path input without confirming or closing it. Directories receive a trailing separator for continued browsing; the originating field stays unchanged until confirmation.
-- Escape first enters normal mode. There, `h/left` browses the parent, `l/right` enters a directory, and `j/k` match up/down. Enter opens a directory/selects a file, and `Ctrl-S` confirms a path. Escape in normal mode cancels.
+- Escape cancels immediately without changing the originating input. `Alt-Up` browses the parent directory. Enter opens a directory/selects a file, and `Ctrl-S` confirms a path. Letters always edit the path; the picker never enters Vim normal mode.
 - Results recursively fuzzy-match the full relative path. Native Git supplies `.gitignore` semantics, including nested rules, negations, repository excludes, and global excludes; Git must be on `PATH`. Non-repositories use temporary Git metadata outside the browsed tree. `.git` and directory symlinks are never traversed.
 - The picker publishes immediate children first, then builds the recursive index in the background. Listed paths remain selectable and Tab-completable while indexing continues. Query edits search the available index; recursive results preserve the highlighted path when it still matches. Canceled or stale results cannot overwrite newer results. A recursive failure keeps usable shallow results and shows `Index incomplete`.
 - Leading `~` and `~/` resolve to the home directory. Explicitly opening a directory excluded by an ancestor repository's ignore rule makes that directory a fresh ignore boundary, so a home-repository rule such as `proj/` does not hide every project. Root-local, nested, and global ignore rules still apply.
 - `Ctrl-S` confirms the highlighted result; an empty query includes a current-directory entry for `any`/`dir`. The action `choose.picker {current:true}` explicitly chooses the root. Changing the originating text while the picker is open rejects selection instead of replacing stale offsets.
+- The split view pairs results with the selected entry's metadata and a text or directory preview. Narrow terminals retain the list and selected-entry metadata. Preview work runs outside the UI loop, limits displayed file content to 64 KiB or directory listings to 128 entries, and ignores stale deliveries after selection changes or reopening. Symlinks show their target without following it; binary and special files do not display raw contents.
+- Controls are ordinary bindings on the `picker` layer in `insert` mode. Override/add them through `set.binding`; remove defaults or replace the complete map through `r.Layers["picker"].Bindings`. The picker help is derived from effective bindings, so remapped and removed controls are reflected without changing the renderer. No function keys are assigned.
 
 #### Configuring noun instances
 
@@ -275,6 +277,20 @@ if err != nil { return err }
 A `PaletteSource` receives the runtime and originating context and returns `[]PaletteInstance`, each with an `ID` and `Label`. Selecting an instance passes its ID to the configured argument, then dispatches through the normal operation path. The source is queried live so newly registered pages appear without rebuilding the palette.
 
 For nouns with sources, `select.palette` accepts `instance:<id>` or `verb:<verb>`. Its published `entries` distinguish item kinds and labels. For example, `noun:page` followed by `instance:playground` opens Playground without an argument form; `verb:open` still exposes the normal form.
+
+### Readline-only inputs
+
+Enable the shared editor's opt-in flag before registering an input:
+
+```go
+prompt := ochazuke.NewInput("prompt", "", false)
+prompt.ReadlineOnly = true
+if err := r.AddInput(prompt, []string{"app"}); err != nil {
+    return err
+}
+```
+
+Registration starts the editor in insert mode. Escape does not switch to Vim editing or move the cursor; `SetMode` and `set.mode` keep the effective mode at `insert`. An application layer may bind Escape to cancel its own UI, as the picker does. Single-line and multiline editing, path-aware kills, shared yanks, and undo/redo use the existing implementation. Inputs without this flag retain their normal Vim/Readline behavior.
 
 ### Path fields
 

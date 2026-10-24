@@ -19,6 +19,7 @@ type Input struct {
 	Cursor        int
 	Mode          string
 	Multiline     bool
+	ReadlineOnly  bool // Set before AddInput to keep this editor in insert mode.
 	Kind          string
 	PathFilter    string
 	Anchor        int
@@ -54,7 +55,7 @@ func (in *Input) Snapshot() map[string]any {
 	}
 	return map[string]any{
 		"id": in.ID, "text": string(in.Text), "cursor": in.Cursor, "mode": in.Mode,
-		"multiline": in.Multiline, "history": in.History, "head": in.Head,
+		"multiline": in.Multiline, "readlineOnly": in.ReadlineOnly, "history": in.History, "head": in.Head,
 		"count": in.Count, "pending": in.Pending, "kind": in.Kind, "pathFilter": in.PathFilter,
 		"anchor": in.Anchor, "selection": in.selectionSnapshot(),
 		"insertGroup": in.groupOpen, "row": row, "column": column,
@@ -64,6 +65,9 @@ func (in *Input) Snapshot() map[string]any {
 // SetMode is the mode-transition hook for both editor operations and set.mode.
 // Direct assignment to Mode cannot delimit insert sessions.
 func (in *Input) SetMode(mode string) {
+	if in.ReadlineOnly {
+		mode = "insert"
+	}
 	if mode == in.Mode {
 		return
 	}

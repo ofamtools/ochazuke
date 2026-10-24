@@ -2,7 +2,7 @@
 
 Recorded: 2026-10-23.
 
-This records the discussion about building a Matomeru-like application with Ochazuke. It separates confirmed requirements from proposed APIs and topics still awaiting discussion. It does not authorize implementation or claim that the proposed changes already exist.
+This records the discussion about building a Matomeru-like application with Ochazuke. It separates confirmed requirements from proposed APIs and topics still awaiting discussion. The user subsequently authorized and received the Readline-only input and split-picker implementation below; the remaining proposals are not implemented or authorized by this record.
 
 Related explanation: [Extensibility](extensibility.html). Existing project work remains in [TODO.md](../TODO.md); this record does not replace that list.
 
@@ -10,13 +10,13 @@ Related explanation: [Extensibility](extensibility.html). Existing project work 
 
 ### Readline-only input is a flag
 
-- [ ] Add a Readline-only editing option to the existing input implementation.
+- [x] Add a Readline-only editing option to the existing input implementation.
 
-The user explicitly confirmed that this is a flag, not a separate editor. The input must remain a text editor rather than enter Vim normal mode. Starting in insert mode alone is insufficient because Escape currently switches to normal mode.
+The user explicitly confirmed that this is a flag, not a separate editor. The input remains a text editor rather than entering Vim normal mode. Starting in insert mode alone would be insufficient because ordinary Vim-enabled inputs switch to normal mode on Escape.
 
 Existing single-line and multiline inputs already share Vim-style normal editing, Readline insert editing, undo history, and registers. Reuse that implementation.
 
-The exact exported field name and the behavior of Escape outside an active completion list remain to be designed. Preserve existing behavior for inputs that do not enable the flag.
+Implemented as `Input.ReadlineOnly`, set before `Runtime.AddInput`. Registration starts insert mode, and `SetMode` preserves it. Unbound Escape does not change mode or cursor position; applications can bind Escape to their own cancellation operation. Inputs that do not enable the flag retain their existing behavior. Undo/redo, multiline editing, and path-aware kill/yank remain shared.
 
 ### Preserve path-aware word deletion
 
@@ -34,13 +34,13 @@ The `|` marks the cursor in this illustration. Editing policy, path-value rules,
 
 ### Keep the chosen split picker design
 
-- [ ] Integrate the preferred split picker design into the shared picker.
+- [x] Integrate the preferred split picker design into the shared picker.
 
 The user prefers the split presentation. Its top field should be an editable absolute path, not merely a field labeled "Find". Bindings must remain configurable rather than become fixed renderer behavior. Function keys are not acceptable controls.
 
-Current status: the new designs exist in `.worktrees/picker-lab` on branch `prototype/picker-lab`. They run through `picker-prototype`; they have not replaced the production `Picker` in the main checkout.
+Implemented in the production `Picker`: result list on the left and selected-entry metadata plus an asynchronous text/directory preview on the right, with a compact list/metadata fallback on narrow terminals. The initial path expands to an absolute path and stays editable through the shared Readline-only input. Preview reads are bounded and stale deliveries cannot replace a newer selection. The exploratory variants remain separate in `.worktrees/picker-lab`.
 
-The integration must reconcile the chosen presentation with the existing picker operations and input editor. The prototype's shortcuts are not approved production defaults. Help text should describe effective bindings, not hardcoded keys. The exact remapping/unbinding API remains unsettled.
+Production defaults are `Ctrl-N/P` for results, `Alt-Up` for parent, Tab for completion, Enter for open/select, `Ctrl-S` for confirmation, and Escape for immediate cancellation. They are ordinary `picker`-layer insert-mode bindings, not renderer shortcuts. `set.binding` overrides/adds bindings; the existing `Layer.Bindings` slice supports removing or replacing defaults. Help derives from effective bindings. No additional remapping API or function-key controls were introduced.
 
 ### Focus selects the innermost item layer
 
@@ -201,4 +201,4 @@ These are future conversations, not technical blockers and not approved implemen
 3. Specialized previews: discuss only formats the application actually needs, such as diffs, Markdown, or JSON trees.
 4. Resizable pane workspaces: optional. Existing responsive fixed layouts already work; interactive split manipulation is additional scope.
 
-No code changes were made for these decisions. The most recent full-project smoke run during the discussion passed, covering actions, layered bindings, modes, page/modal restoration, picker filters, palette, editing, history, registers, and macros. That run does not verify the unimplemented features above.
+The Readline-only input and split picker are implemented. Verification includes the Go suite, the full-project smoke command, and an interactive terminal run exercising previews, directory navigation, path kill/yank, remapped help/cancellation, and typing after an attempted normal-mode transition. The terminal component, list/tree API, inline completion, and optional model-access proposals remain unimplemented.

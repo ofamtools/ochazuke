@@ -96,34 +96,31 @@ func pickerHighlight(t *testing.T, r *Runtime, p *Picker, path string) {
 }
 
 func TestPickerTabCompletesHighlightedPathWithoutChoosing(t *testing.T) {
-	for _, mode := range []string{"insert", "normal"} {
-		for _, directory := range []bool{false, true} {
-			t.Run(fmt.Sprintf("%s/directory=%v", mode, directory), func(t *testing.T) {
-				root := t.TempDir()
-				pickerFile(t, root, "nested/target.txt", "")
-				r, p, origin := pickerFixture(t, "unchanged", "text", "any", 0)
-				pickerDo(t, r, "open", "picker", Arguments{"path": root})
-				pickerDrain(t, p)
-				path := "nested/target.txt"
-				if directory {
-					path = "nested"
-				}
-				pickerHighlight(t, r, p, path)
-				want := filepath.Join(p.Directory, filepath.FromSlash(path))
-				if directory {
-					want += string(filepath.Separator)
-				}
-				p.input.SetMode(mode)
-				pickerKey(t, r, "tab")
-				pickerDrain(t, p)
-				if got := string(p.input.Text); got != want {
-					t.Fatalf("completed path = %q, want %q", got, want)
-				}
-				if !p.IsOpen() || string(origin.Text) != "unchanged" {
-					t.Fatal("completion confirmed or closed the picker")
-				}
-			})
-		}
+	for _, directory := range []bool{false, true} {
+		t.Run(fmt.Sprintf("directory=%v", directory), func(t *testing.T) {
+			root := t.TempDir()
+			pickerFile(t, root, "nested/target.txt", "")
+			r, p, origin := pickerFixture(t, "unchanged", "text", "any", 0)
+			pickerDo(t, r, "open", "picker", Arguments{"path": root})
+			pickerDrain(t, p)
+			path := "nested/target.txt"
+			if directory {
+				path = "nested"
+			}
+			pickerHighlight(t, r, p, path)
+			want := filepath.Join(p.Directory, filepath.FromSlash(path))
+			if directory {
+				want += string(filepath.Separator)
+			}
+			pickerKey(t, r, "tab")
+			pickerDrain(t, p)
+			if got := string(p.input.Text); got != want {
+				t.Fatalf("completed path = %q, want %q", got, want)
+			}
+			if !p.IsOpen() || string(origin.Text) != "unchanged" {
+				t.Fatal("completion confirmed or closed the picker")
+			}
+		})
 	}
 }
 
@@ -270,16 +267,12 @@ func TestPickerInsertSelectionReadlineAndEscapeCancellation(t *testing.T) {
 		t.Fatal("insert Backspace navigated instead of editing")
 	}
 	pickerKey(t, r, "esc")
-	if !p.IsOpen() || p.input.Mode != "normal" {
-		t.Fatal("first Escape must only leave insert mode")
-	}
-	pickerKey(t, r, "esc")
 	if p.IsOpen() || string(origin.Text) != "untouched" || origin.Cursor != 4 || r.Context().InputID != origin.ID {
 		t.Fatal("cancel did not preserve originating editor/context")
 	}
 }
 
-func TestPickerNormalDirectionalKeysBrowseAndConfirmHighlightedDirectory(t *testing.T) {
+func TestPickerBrowsesAndConfirmsHighlightedDirectory(t *testing.T) {
 	root := t.TempDir()
 	pickerFile(t, root, "child/grandchild/file", "")
 	canonical, err := filepath.EvalSymlinks(root)
@@ -289,35 +282,24 @@ func TestPickerNormalDirectionalKeysBrowseAndConfirmHighlightedDirectory(t *test
 	r, p, origin := pickerFixture(t, "", "path", "dir", 0)
 	pickerDo(t, r, "open", "picker", Arguments{"path": root})
 	pickerDrain(t, p)
-	pickerKey(t, r, "esc")
-	pickerKey(t, r, "j")
+	pickerKey(t, r, "ctrl+n")
 	if p.Entries[p.Selected].Path != "child" {
-		t.Fatalf("j got %v", p.Entries[p.Selected])
+		t.Fatalf("next result got %v", p.Entries[p.Selected])
 	}
-	pickerKey(t, r, "l")
+	pickerKey(t, r, "enter")
 	pickerDrain(t, p)
 	if p.Directory != filepath.Join(canonical, "child") {
-		t.Fatalf("l directory %q", p.Directory)
+		t.Fatalf("opened directory %q", p.Directory)
 	}
-	pickerKey(t, r, "h")
+	pickerKey(t, r, "alt+up")
 	pickerDrain(t, p)
 	if p.Directory != canonical {
-		t.Fatalf("h directory %q", p.Directory)
+		t.Fatalf("parent directory %q", p.Directory)
 	}
-	pickerKey(t, r, "down")
-	pickerKey(t, r, "right")
-	pickerDrain(t, p)
-	if p.Directory != filepath.Join(canonical, "child") {
-		t.Fatalf("right directory %q", p.Directory)
-	}
-	pickerKey(t, r, "left")
-	pickerDrain(t, p)
-	pickerKey(t, r, "j")
-	pickerKey(t, r, "k")
-	pickerKey(t, r, "down")
-	pickerKey(t, r, "up")
+	pickerKey(t, r, "ctrl+n")
+	pickerKey(t, r, "ctrl+p")
 	if p.Selected != 0 {
-		t.Fatalf("k/up selection %d", p.Selected)
+		t.Fatalf("previous selection %d", p.Selected)
 	}
 	pickerHighlight(t, r, p, "child")
 	pickerKey(t, r, "ctrl+s")
@@ -327,9 +309,6 @@ func TestPickerNormalDirectionalKeysBrowseAndConfirmHighlightedDirectory(t *test
 
 	pickerDo(t, r, "open", "picker", Arguments{"path": root})
 	pickerDrain(t, p)
-	if !strings.Contains(p.View(100, 20), "current directory") {
-		t.Fatal("current root is not a clearly labeled selection")
-	}
 	pickerDo(t, r, "choose", "picker", Arguments{"current": true})
 	if string(origin.Text) != canonical {
 		t.Fatalf("current root got %q", string(origin.Text))

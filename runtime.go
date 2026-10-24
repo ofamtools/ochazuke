@@ -152,6 +152,9 @@ func (r *Runtime) AddInput(in *Input, path []string) error {
 	default:
 		return errors.New("path filter must be any, file, or dir")
 	}
+	if in.ReadlineOnly {
+		in.SetMode("insert")
+	}
 	r.Inputs[in.ID] = in
 	r.InputPaths[in.ID] = append([]string(nil), path...)
 	return nil
@@ -401,6 +404,7 @@ func registerCore(r *Runtime) {
 		}
 		if in := r.Inputs[c.InputID]; in != nil {
 			in.SetMode(mode)
+			mode = in.Mode
 		} else {
 			r.Frames[len(r.Frames)-1].State["mode"] = mode
 		}

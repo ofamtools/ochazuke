@@ -302,6 +302,9 @@ func (m *Model) View() string {
 	footer := "Ctrl-J/K pages · : palette · PgUp/PgDn scroll · Ctrl-C quit"
 	if m.Runtime.Mode(m.Runtime.Context()) == "insert" {
 		footer = "INSERT · Esc normal · Ctrl-A/E line · Ctrl-W/U/K kill · Ctrl-Space palette"
+		if in := m.Runtime.Inputs[m.Runtime.Context().InputID]; in != nil && in.ReadlineOnly {
+			footer = "READLINE · Ctrl-A/E line · Ctrl-W/U/K kill · Ctrl-Y yank · Ctrl-Space palette"
+		}
 	}
 	status := styles.Muted.Render(footer)
 	if m.Runtime.Macro.Pending == "q" {
@@ -327,6 +330,8 @@ func (m *Model) View() string {
 		hint := "Esc normal / close · PgUp/PgDn scroll"
 		if frame == m.Palette.frame {
 			hint = "Esc normal / back · Ctrl-C cancel"
+		} else if in := m.Runtime.Inputs[frame.Context.InputID]; in != nil && in.ReadlineOnly {
+			hint = "Readline editing · PgUp/PgDn scroll"
 		}
 		if frame == m.Runtime.Frames[len(m.Runtime.Frames)-1] && m.Status != "" {
 			hint = "Error: " + m.Status

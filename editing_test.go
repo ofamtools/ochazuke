@@ -42,6 +42,49 @@ func editorTestState(t *testing.T, in *Input, text string, cursor int, mode stri
 	}
 }
 
+func TestReadlineOnlyKeepsTypingAfterEscapeAndModeChanges(t *testing.T) {
+	r := NewRuntime()
+	in := NewInput("readline", "path", false)
+	in.ReadlineOnly = true
+	if err := r.AddInput(in, []string{"app"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Focus(in.ID); err != nil {
+		t.Fatal(err)
+	}
+	editorTestKeys(t, r, "ctrl+e", "esc", "j", "k")
+	editorTestState(t, in, "pathjk", 6, "insert")
+	for _, mode := range []string{"normal", "visual", "visual-line", "visual-block"} {
+		result, err := r.Execute(Request{Verb: "set", Noun: "mode", Args: Arguments{"mode": mode}})
+		if err != nil || result != "insert" {
+			t.Fatalf("set mode %s: result=%v err=%v", mode, result, err)
+		}
+		editorTestState(t, in, "pathjk", 6, "insert")
+	}
+	editorTestKeys(t, r, "[猫]")
+	editorTestState(t, in, "pathjk猫", 7, "insert")
+	editorTestExecute(t, r, "undo", nil)
+	editorTestState(t, in, "path", 0, "insert")
+	editorTestExecute(t, r, "redo", nil)
+	editorTestState(t, in, "pathjk猫", 7, "insert")
+}
+
+func TestReadlineOnlyPathKillYankAndMultiline(t *testing.T) {
+	r := NewRuntime()
+	in := NewInput("readline", "/work/src/main.go", true)
+	in.ReadlineOnly = true
+	if err := r.AddInput(in, []string{"app"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Focus(in.ID); err != nil {
+		t.Fatal(err)
+	}
+	editorTestKeys(t, r, "ctrl+e", "ctrl+w")
+	editorTestState(t, in, "/work/src/", 10, "insert")
+	editorTestKeys(t, r, "ctrl+y", "enter", "j", "esc", "k")
+	editorTestState(t, in, "/work/src/main.go\njk", 20, "insert")
+}
+
 func TestEditorUnicodeModesAndGroupedUndo(t *testing.T) {
 	r, in := editorTestRuntime(t, "猫", false)
 	editorTestKeys(t, r, "z", "界", "[not inserted]")

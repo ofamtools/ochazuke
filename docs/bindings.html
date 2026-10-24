@@ -7,13 +7,13 @@
 nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
 </style></head><body>
 <header><a href="architecture.html">← Architecture field guide</a><p class="eyebrow">Ochazuke / generated reference</p><h1>Default bindings</h1><p>Actions and bindings come from a fresh <code>NewDemo()</code>. Go declarations and comments come from the package source through Go's standard <code>go/doc</code> library. This is a build-time snapshot, not your running application's customized registry.</p>
-<nav aria-label="Catalogs"><a href="actions.html">Actions (68)</a><a href="bindings.html" aria-current="page">Default bindings (58)</a><a href="api.html">Go API (96)</a><a href="transport.html">CLI &amp; socket</a></nav>
+<nav aria-label="Catalogs"><a href="actions.html">Actions (68)</a><a href="bindings.html" aria-current="page">Default bindings (51)</a><a href="api.html">Go API (103)</a><a href="transport.html">CLI &amp; socket</a></nav>
 <div class="toolbar"><label for="search">Search Default bindings</label><input id="search" type="search" placeholder="Search this catalog" autocomplete="off"><p id="matches" role="status"></p></div>
 <noscript>All entries are available below. Search requires JavaScript.</noscript></header>
 <main>
 
 
-<section id="bindings"><p class="eyebrow">02 / Registered defaults</p><h2>Default bindings <span class="count">58</span></h2><p>Every registered layer binding in the demo, including palette, picker and yank-history layers. These are declarations, not a flattened effective keymap: descendant layers override ancestors; mode-specific bindings override modeless bindings within a layer. Only layers on the current context path participate.</p><p>The editor's Vim/Readline grammar and macro prefixes are separate from <code>Layer.Bindings</code>. See the <a href="../README.md#keyboard-guide">editor keyboard guide</a> and <a href="../README.md#palette-and-selectors">palette and selector controls</a> for those keys. <code>ctrl+@</code> is Bubble Tea's spelling for Ctrl-Space. The palette and unfinished editor grammar can handle keys before binding lookup.</p>
+<section id="bindings"><p class="eyebrow">02 / Registered defaults</p><h2>Default bindings <span class="count">51</span></h2><p>Every registered layer binding in the demo, including palette, picker and yank-history layers. These are declarations, not a flattened effective keymap: descendant layers override ancestors; mode-specific bindings override modeless bindings within a layer. Only layers on the current context path participate.</p><p>The editor's Vim/Readline grammar and macro prefixes are separate from <code>Layer.Bindings</code>. See the <a href="../README.md#keyboard-guide">editor keyboard guide</a> and <a href="../README.md#palette-and-selectors">palette and selector controls</a> for those keys. <code>ctrl+@</code> is Bubble Tea's spelling for Ctrl-Space. The palette and unfinished editor grammar can handle keys before binding lookup.</p>
 <div class="table-scroll"><table><thead><tr><th>Layer</th><th>Mode</th><th>Keys</th><th>Request</th></tr></thead><tbody><tr class="searchable"><td><code>__yank-history</code></td><td>Any mode</td><td><code>j</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;yank-history&#34;,
@@ -195,42 +195,6 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
 }</pre></td></tr><tr class="searchable"><td><code>paths</code></td><td>normal</td><td><code>enter</code></td><td><pre>{
   &#34;verb&#34;: &#34;open&#34;,
   &#34;noun&#34;: &#34;picker&#34;
-}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>j</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;picker&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: 1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>down</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;picker&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: 1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>k</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;picker&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: -1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>up</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;picker&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: -1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>h</code></td><td><pre>{
-  &#34;verb&#34;: &#34;parent&#34;,
-  &#34;noun&#34;: &#34;picker&#34;
-}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>left</code></td><td><pre>{
-  &#34;verb&#34;: &#34;parent&#34;,
-  &#34;noun&#34;: &#34;picker&#34;
-}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>l</code></td><td><pre>{
-  &#34;verb&#34;: &#34;descend&#34;,
-  &#34;noun&#34;: &#34;picker&#34;
-}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>right</code></td><td><pre>{
-  &#34;verb&#34;: &#34;descend&#34;,
-  &#34;noun&#34;: &#34;picker&#34;
 }</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>insert</td><td><code>ctrl&#43;n</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;picker&#34;,
@@ -243,16 +207,19 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;delta&#34;: -1
   }
-}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>Any mode</td><td><code>tab</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>insert</td><td><code>alt&#43;up</code></td><td><pre>{
+  &#34;verb&#34;: &#34;parent&#34;,
+  &#34;noun&#34;: &#34;picker&#34;
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>insert</td><td><code>tab</code></td><td><pre>{
   &#34;verb&#34;: &#34;complete&#34;,
   &#34;noun&#34;: &#34;picker&#34;
-}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>Any mode</td><td><code>enter</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>insert</td><td><code>enter</code></td><td><pre>{
   &#34;verb&#34;: &#34;enter&#34;,
   &#34;noun&#34;: &#34;picker&#34;
-}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>Any mode</td><td><code>ctrl&#43;s</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>insert</td><td><code>ctrl&#43;s</code></td><td><pre>{
   &#34;verb&#34;: &#34;choose&#34;,
   &#34;noun&#34;: &#34;picker&#34;
-}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>normal</td><td><code>esc</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>picker</code></td><td>insert</td><td><code>esc</code></td><td><pre>{
   &#34;verb&#34;: &#34;close&#34;,
   &#34;noun&#34;: &#34;picker&#34;
 }</pre></td></tr><tr class="searchable"><td><code>playground</code></td><td>Any mode</td><td><code>tab</code></td><td><pre>{

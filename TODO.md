@@ -4,8 +4,8 @@
 ## upcoming
 
 - [ ] Implement the confirmed [component and input requirements](docs/component-plan.md).
-  - [ ] Add a Readline-only flag to the shared input; preserve path-aware `Ctrl-W` and `Ctrl-Y`.
-  - [ ] Integrate the preferred split picker from `picker-lab`, with an editable absolute path, configurable bindings, accurate help, and no function keys.
+  - [x] Add a Readline-only flag to the shared input; preserve path-aware `Ctrl-W` and `Ctrl-Y`.
+  - [x] Integrate the preferred split picker from `picker-lab`, with an editable absolute path, configurable bindings, accurate help, and no function keys.
   - [ ] Connect component focus and item selection to the existing layer path; replace the innermost item layer when focus changes.
   - [ ] Implement the application terminal component's [live-input contract](docs/component-plan.md#confirmed-live-terminal-input-contract): configurable `Ctrl+A` prefix, prefix then `d` detaches without terminating the session, doubled prefix sends one literal prefix, and ordinary input bypasses outer bindings.
 

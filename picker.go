@@ -10,38 +10,40 @@ import (
 	"syscall"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/x/ansi"
 )
 
 // Picker owns one modal and one ordinary editor. Background commands only read
 // immutable snapshots; HandleMessage is the sole result-application boundary.
 type Picker struct {
-	Runtime      *Runtime
-	Origin       Context
-	Directory    string
-	Filter       string
-	Entries      []PickerEntry
-	Selected     int
-	Error        string
-	Loading      bool
-	frame        *Frame
-	input        *Input
-	originInput  *Input
-	originText   string
-	originKind   string
-	start, end   int
-	base         string
-	query        string
-	indexed      []PickerEntry
-	indexReady   bool
-	indexRunning bool
-	fullIndex    tea.Cmd
-	indexID      uint64
-	searchID     uint64
-	indexFailed  bool
-	cancelIndex  context.CancelFunc
-	cancelSearch context.CancelFunc
-	pending      []tea.Cmd
+	Runtime       *Runtime
+	Origin        Context
+	Directory     string
+	Filter        string
+	Entries       []PickerEntry
+	Selected      int
+	Error         string
+	Loading       bool
+	frame         *Frame
+	input         *Input
+	originInput   *Input
+	originText    string
+	originKind    string
+	start, end    int
+	base          string
+	query         string
+	indexed       []PickerEntry
+	indexReady    bool
+	indexRunning  bool
+	fullIndex     tea.Cmd
+	indexID       uint64
+	searchID      uint64
+	indexFailed   bool
+	cancelIndex   context.CancelFunc
+	cancelSearch  context.CancelFunc
+	preview       pickerPreview
+	previewID     uint64
+	cancelPreview context.CancelFunc
+	pending       []tea.Cmd
 }
 
 type pickerIndexMsg struct {
@@ -64,6 +66,7 @@ func NewPicker(r *Runtime) *Picker {
 	layer := &Layer{ID: "picker", Noun: "picker", Actions: map[string]Handler{}}
 	r.Layers["picker"] = layer
 	p.input = NewInput("picker-path", "", false)
+	p.input.ReadlineOnly = true
 	if err := r.AddInput(p.input, []string{"app", "picker"}); err != nil {
 		panic(err)
 	}
@@ -71,13 +74,13 @@ func NewPicker(r *Runtime) *Picker {
 		mode, key, verb string
 		args            Arguments
 	}{
-		{"normal", "j", "move", Arguments{"delta": 1}}, {"normal", "down", "move", Arguments{"delta": 1}},
-		{"normal", "k", "move", Arguments{"delta": -1}}, {"normal", "up", "move", Arguments{"delta": -1}},
-		{"normal", "h", "parent", nil}, {"normal", "left", "parent", nil},
-		{"normal", "l", "descend", nil}, {"normal", "right", "descend", nil},
-		{"insert", "ctrl+n", "move", Arguments{"delta": 1}}, {"insert", "ctrl+p", "move", Arguments{"delta": -1}},
-		{"", "tab", "complete", nil},
-		{"", "enter", "enter", nil}, {"", "ctrl+s", "choose", nil}, {"normal", "esc", "close", nil},
+		{"insert", "ctrl+n", "move", Arguments{"delta": 1}},
+		{"insert", "ctrl+p", "move", Arguments{"delta": -1}},
+		{"insert", "alt+up", "parent", nil},
+		{"insert", "tab", "complete", nil},
+		{"insert", "enter", "enter", nil},
+		{"insert", "ctrl+s", "choose", nil},
+		{"insert", "esc", "close", nil},
 	} {
 		layer.Bindings = append(layer.Bindings, Binding{Mode: binding.mode, Keys: binding.key, Request: Request{Verb: binding.verb, Noun: "picker", Args: binding.args}})
 	}
@@ -220,12 +223,17 @@ func (p *Picker) open(c Context, args Arguments) (any, error) {
 	if strings.ContainsAny(path, "\r\n") {
 		return nil, errors.New("picker path input cannot contain newlines")
 	}
+	path, err = pickerAbsolutePath(cwd, path)
+	if err != nil {
+		return nil, err
+	}
 	p.stop()
 	p.Origin, p.originInput = c.Clone(), origin
 	p.originText, p.originKind = string(origin.Text), origin.Kind
 	p.start, p.end, p.Filter, p.base = start, end, filter, cwd
 	// A new modal session gets fresh editor history while retaining its registered ID.
 	p.input = NewInput(p.input.ID, path, false)
+	p.input.ReadlineOnly = true
 	p.Runtime.Inputs[p.input.ID] = p.input
 	p.input.SetMode("insert")
 	p.input.Cursor = len(p.input.Text)
@@ -320,19 +328,30 @@ func (p *Picker) choose(path string) (any, error) {
 	return path, nil
 }
 
-// pickerLocation uses the longest existing directory prefix as the root and the
-// remaining relative full path as the fuzzy query. It never trims path spaces.
-func pickerLocation(base, value string) (string, string, error) {
+func pickerAbsolutePath(base, value string) (string, error) {
 	path := value
 	if path == "~" || strings.HasPrefix(path, "~/") {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			return "", "", fmt.Errorf("resolve home directory: %w", err)
+			return "", fmt.Errorf("resolve home directory: %w", err)
 		}
 		path = filepath.Join(home, strings.TrimPrefix(path, "~"))
 	}
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(base, path)
+	}
+	if strings.HasSuffix(value, string(filepath.Separator)) && !strings.HasSuffix(path, string(filepath.Separator)) {
+		path += string(filepath.Separator)
+	}
+	return path, nil
+}
+
+// pickerLocation uses the longest existing directory prefix as the root and the
+// remaining relative full path as the fuzzy query. It never trims path spaces.
+func pickerLocation(base, value string) (string, string, error) {
+	path, err := pickerAbsolutePath(base, value)
+	if err != nil {
+		return "", "", err
 	}
 	path = filepath.Clean(path)
 	root := path
@@ -444,6 +463,18 @@ func (p *Picker) PendingCommand() tea.Cmd {
 // HandleMessage applies only this picker's current generation on the UI loop.
 func (p *Picker) HandleMessage(msg tea.Msg) bool {
 	switch result := msg.(type) {
+	case pickerPreviewMsg:
+		if result.picker != p {
+			return false
+		}
+		if !p.IsOpen() || result.id != p.previewID {
+			return true
+		}
+		if p.cancelPreview != nil {
+			p.cancelPreview()
+			p.cancelPreview = nil
+		}
+		p.preview = result.preview
 	case pickerIndexMsg:
 		if result.picker != p {
 			return false
@@ -516,6 +547,12 @@ func (p *Picker) stop() {
 		p.cancelSearch()
 		p.cancelSearch = nil
 	}
+	if p.cancelPreview != nil {
+		p.cancelPreview()
+		p.cancelPreview = nil
+	}
+	p.previewID++
+	p.preview = pickerPreview{}
 	p.indexID++
 	p.searchID++
 	p.pending = nil
@@ -529,40 +566,7 @@ func (p *Picker) state() map[string]any {
 
 func (p *Picker) sync() {
 	if p.IsOpen() {
+		p.queuePreview()
 		p.frame.State = p.state()
 	}
-}
-
-func (p *Picker) View(width, height int) string {
-	var b strings.Builder
-	fmt.Fprintf(&b, "Path [%s]: %s\n", p.Filter, InputView(p.input, max(1, width-13), 1))
-	b.WriteString("Enter open/select · Ctrl-S confirm · Esc normal/cancel\n")
-	b.WriteString("Ctrl-N/P results · normal hjkl/←↓↑→ browse\n")
-	if p.Loading {
-		b.WriteString("Indexing/searching…\n")
-	}
-	if p.Error != "" {
-		fmt.Fprintf(&b, "Error: %s\n", safeText(p.Error))
-	}
-	if !p.Loading && p.Error == "" && len(p.Entries) == 0 {
-		b.WriteString("(no matching paths)\n")
-	}
-	limit := max(1, height-4)
-	start := max(0, p.Selected-limit+1)
-	end := min(len(p.Entries), start+limit)
-	for i := start; i < end; i++ {
-		mark, suffix := "  ", ""
-		if i == p.Selected {
-			mark = "> "
-		}
-		if p.Entries[i].Dir {
-			suffix = "/"
-		}
-		name := strings.ReplaceAll(p.Entries[i].Path, "\n", "\\n")
-		if name == "." {
-			name = ". (current directory)"
-		}
-		fmt.Fprintf(&b, "%s\n", ansi.Truncate(mark+safeText(name)+suffix, max(1, width), "…"))
-	}
-	return b.String()
 }
