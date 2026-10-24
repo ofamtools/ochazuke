@@ -26,7 +26,22 @@ type Noun struct {
 	Focusable bool                 `json:"focusable,omitempty"`
 	Region    bool                 `json:"region,omitempty"`
 	Bindings  map[string][]Binding `json:"bindings"`
+	Extends   map[string]string    `json:"extends,omitempty"`
 	Actions   map[string]Handler   `json:"-"`
+}
+
+// tables is what one mode reads on the noun: its own rows, then the rows of
+// the mode it extends, and so on up the chain (table inheritance: a row
+// bound on the child wins, a row bound later on the parent is inherited).
+func (n *Noun) tables(mode string) [][]Binding {
+	var out [][]Binding
+	seen := map[string]bool{}
+	for mode != "" && !seen[mode] {
+		seen[mode] = true
+		out = append(out, n.Bindings[mode])
+		mode = n.Extends[mode]
+	}
+	return out
 }
 
 // Binding is one row of a mode table, identical in code and config:
@@ -243,6 +258,23 @@ func (b *NounBuilder) Action(key string, h Handler) *NounBuilder { b.n.Actions[k
 
 // Mode selects the table rows are bound into; "" is the any-mode table.
 func (b *NounBuilder) Mode(mode string) *ModeBuilder { return &ModeBuilder{NounBuilder: b, mode: mode} }
+
+// Extends makes the selected mode's table read parent's rows after its own,
+// as the editor spec's "extends" does: three motion tables become one
+// table and two that extend it. A mode extends one parent; Extends("")
+// removes the link.
+func (m *ModeBuilder) Extends(parent string) *ModeBuilder {
+	if m.n.Extends == nil {
+		m.n.Extends = map[string]string{}
+	}
+	if parent == "" {
+		delete(m.n.Extends, m.mode)
+	} else {
+		m.n.Extends[m.mode] = parent
+	}
+	m.r.CancelPendingBinding()
+	return m
+}
 
 // ModeBuilder binds rows into one mode table of a noun.
 type ModeBuilder struct {

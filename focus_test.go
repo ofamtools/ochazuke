@@ -248,3 +248,30 @@ func TestFocusJumpsStayInsideTheModal(t *testing.T) {
 		t.Fatalf("insert tab moved focus to %q", r.Focus)
 	}
 }
+
+// OpenModal with an input: the body holds the input, the input is focused
+// in its pinned mode, and Pop drops both and restores focus; the *Input
+// keeps its text and may be opened again.
+func TestOpenModalWithInput(t *testing.T) {
+	r, _ := focusFixture(t)
+	field := NewInput("answer", "draft", false)
+	body, err := r.OpenModal("ask", Payload{Prompt: "Name?"}, WithInput(field, Kind("prompt")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if body.Parent != "field" || r.Instances["answer"].Parent != "ask" || r.Focus != "answer" || r.Mode.Name != "insert" {
+		t.Fatalf("open: parent=%q focus=%q mode=%q", body.Parent, r.Focus, r.Mode.Name)
+	}
+	if _, err := r.Execute(Request{Verb: "insert", Noun: "input", Args: Arguments{"text": "!"}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Pop(); err != nil {
+		t.Fatal(err)
+	}
+	if r.Instances["ask"] != nil || r.Instances["answer"] != nil || r.Focus != "field" || string(field.Text) != "!draft" {
+		t.Fatalf("pop: focus=%q text=%q", r.Focus, string(field.Text))
+	}
+	if _, err := r.OpenModal("ask", Payload{}, WithInput(field, Kind("prompt"))); err != nil {
+		t.Fatalf("reopen: %v", err)
+	}
+}

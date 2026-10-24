@@ -572,19 +572,18 @@ func registerFocus(r *Runtime) {
 		return r.Context(), err
 	}})
 	// Owner defaults: } { move stop to stop, ) ( region to region, tab and
-	// shift+tab stop to stop; all take a count. An inner level (a
-	// multiline editor's insert table, a palette field) binds its own.
+	// shift+tab stop to stop; all take a count (the app's count_pending
+	// extends normal). An inner level (a multiline editor's insert table, a
+	// palette field) binds its own.
 	steps := func(op string, args ...Arguments) Binding {
 		return Do(op, args...).FromPayload("steps", SourceCount)
 	}
 	region := Arguments{"scope": "region"}
-	for _, mode := range []string{"normal", "count_pending"} {
-		r.Define("app").Mode(mode).
-			Bind("}", steps("focus.next")).
-			Bind("{", steps("focus.previous")).
-			Bind(")", steps("focus.next", region)).
-			Bind("(", steps("focus.previous", region)).
-			Bind("tab", steps("focus.next")).
-			Bind("shift+tab", steps("focus.previous"))
-	}
+	r.Define("app").Mode("normal").
+		Bind("}", steps("focus.next")).
+		Bind("{", steps("focus.previous")).
+		Bind(")", steps("focus.next", region)).
+		Bind("(", steps("focus.previous", region)).
+		Bind("tab", steps("focus.next")).
+		Bind("shift+tab", steps("focus.previous"))
 }

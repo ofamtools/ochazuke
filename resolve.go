@@ -153,7 +153,7 @@ func (r *Runtime) lookup(lv level, mode string, exclusive bool, prefix, sequence
 		tables = append(tables, rowsForMode(lv.inst.Bindings, mode, exclusive))
 	}
 	if lv.noun != nil {
-		tables = append(tables, lv.noun.Bindings[mode])
+		tables = append(tables, lv.noun.tables(mode)...)
 		if !exclusive {
 			tables = append(tables, lv.noun.Bindings[""])
 		}
@@ -383,7 +383,9 @@ func (r *Runtime) bindingRows(focus string) []Binding {
 			take(rowsForMode(lv.inst.Bindings, base, exclusive))
 		}
 		if lv.noun != nil {
-			take(lv.noun.Bindings[base])
+			for _, rows := range lv.noun.tables(base) {
+				take(rows)
+			}
 			if !exclusive {
 				take(lv.noun.Bindings[""])
 			}

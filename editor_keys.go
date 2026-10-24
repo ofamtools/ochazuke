@@ -76,11 +76,7 @@ func (r *Runtime) LoadBindingSpec(noun string, data []byte) error {
 	}
 	// A mode extends another by reading its rows after its own.
 	for mode, parent := range spec.Extends {
-		n := b.Noun()
-		n.Bindings[mode] = append(n.Bindings[mode], n.Bindings[parent]...)
-		for i := range n.Bindings[mode] {
-			n.Bindings[mode][i].Mode = mode
-		}
+		b.Mode(mode).Extends(parent)
 	}
 	return nil
 }

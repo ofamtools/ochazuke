@@ -539,3 +539,28 @@ func TestRowAddressesItsLevelInstance(t *testing.T) {
 		t.Fatalf("mode.set from the row level: %v %+v", err, r.Mode)
 	}
 }
+
+// Extends on Define: a mode reads its own rows, then its parent's, including
+// rows bound on the parent later; a row of its own wins.
+func TestDefineExtendsInheritsTables(t *testing.T) {
+	r := NewRuntime()
+	calls := recorder(t, r, "base", "own", "late")
+	if err := r.DefineMode("visual-row", false); err != nil {
+		t.Fatal(err)
+	}
+	r.Define("app").Mode("visual-block").Bind("h", Do("test.base")).Bind("x", Do("test.base"))
+	r.Define("app").Mode("visual-row").Extends("visual-block").Bind("x", Do("test.own"))
+	r.Define("app").Mode("visual-block").Bind("l", Do("test.late"))
+	r.Mode = ModeState{Name: "visual-row"}
+	for _, key := range []string{"h", "x", "l"} {
+		if _, err := r.Dispatch(MacroKey{Key: key}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if want := []string{"base", "own", "late"}; !reflect.DeepEqual(*calls, want) {
+		t.Fatalf("calls %v, want %v", *calls, want)
+	}
+	if n := r.Noun("app"); n.Extends["visual-row"] != "visual-block" {
+		t.Fatalf("extends %v", n.Extends)
+	}
+}
