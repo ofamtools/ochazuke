@@ -10,6 +10,8 @@ Roughly 650 of 6,300 source lines change shape: layer, frame, page and context p
 
 ## Phase 0: lock behavior
 
+Status: done, commit 19b7a0f.
+
 Goal: make the tests version-independent and capture today's dispatch order before touching anything.
 
 - Add a test helper `press(m, "ctrl+x")` that builds a Tea key message from the same key strings bindings use. Replace the 82 direct `tea.KeyMsg` / `tea.Key*` constructions in 8 test files with it. Swapping Tea versions later changes one function.
@@ -17,6 +19,8 @@ Goal: make the tests version-independent and capture today's dispatch order befo
 - Acceptance: tests pass on v1 with no production code changed.
 
 ## Phase 1: Bubble Tea v2, mechanical
+
+Status: done, commit 5666536. Decisions: paste still reaches dispatchKey as `[text]` (phase 5 may revisit); Ctrl-Space is `ctrl+space`; go directive 1.26.
 
 - `go.mod`: `charm.land/bubbletea/v2`, `charm.land/lipgloss/v2`, `charm.land/bubbles/v2`; bump `go` directive as the modules require.
 - `Model.View()` returns `tea.View`; `AltScreen` set on the view, `tea.WithAltScreen` removed from cmd and examples.
