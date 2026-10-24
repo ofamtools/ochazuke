@@ -93,6 +93,7 @@ type Runtime struct {
 	BindingTimeout time.Duration
 	pendingModes   map[string]bool
 	guards         map[string]Guard
+	predicates     map[string]PredicateFunc // named query predicates (query.go)
 	prefix         pendingPrefix
 	bindingVersion uint64
 	modeGeneration uint64
@@ -113,6 +114,7 @@ func NewRuntime() *Runtime {
 		Modes: map[string]bool{"normal": true, "insert": true}, Operations: map[string]Operation{},
 		pendingModes:   map[string]bool{},
 		guards:         builtinGuards(),
+		predicates:     builtinPredicates(),
 		modalInstances: map[string]bool{},
 		BindingTimeout: DefaultBindingTimeout,
 	}
@@ -135,6 +137,7 @@ func NewRuntime() *Runtime {
 	registerConfirm(r)
 	registerTerminal(r)
 	registerFocus(r)
+	registerQuery(r)
 	// A modal answers esc in normal mode; inputs, pending modes and the
 	// palette settle first because their rows sit inside this level.
 	r.Define("modal").Mode("normal").Bind("esc", Do("modal.pop"))
@@ -384,6 +387,11 @@ func validateArguments(op Operation, args Arguments) error {
 			}
 		case "boolean":
 			_, valid = v.(bool)
+		case "array":
+			switch v.(type) {
+			case []any, []Predicate:
+				valid = true
+			}
 		case "object":
 			switch v.(type) {
 			case map[string]any, Arguments, Request, *Request:
