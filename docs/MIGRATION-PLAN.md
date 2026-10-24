@@ -316,3 +316,14 @@ Status of 1, 2, 6a and dot-repeat (followup branch): done. 1: `Binding.Capture` 
 Not copied: box model / flex layout (Lip Gloss owns layout; a declarative layout tree is a separate project) and attribute-soup `dataset` (typed payloads are better).
 
 Order: 1 and 2 with the phase 8 follow-up (tiny); 3 and 4 when the color scheme work starts; 5 and 6 when the znbu app needs them.
+
+## Matomeru-found fixes (from the step 4 panes page, 2026-10-24)
+
+The second real consumer (matomeru on ochazuke, `~/proj/matomeru`) reported these after step 4 (panes page: list, preview, attach, detach, kill). All are framework items; the app worked around each.
+
+1. **Bug: a completion that removes its own owner crashes `Deliver`.** `pane.kill` completes, its handler removes the row instance, delivery then dereferences the owner. `Deliver` must tolerate an owner that disappeared during the completion (settle the job, drop the message, no panic). Test: completion handler calls `RemoveInstance(owner)`.
+2. **Bug: `Terminal.Close` does not notify its stream.** Detach moved focus but left the daemon lease held; the app overrode `terminal.detach` through a noun Action to release it. `Close` (and therefore detach, pop, RemoveInstance) must call the stream's release so every consumer gets it. Test with a fake stream recording release.
+3. **Replace slots are per owner only.** Previews of different rows do not cancel each other (`j p j p` keeps both captures), so the app launched previews on the list instance. Allow a slot to be scoped to an ancestor: `Pending(work).Replacing("preview").On(listID)` (or `ReplacingAt(owner, slot)`), so the newest preview under one list wins regardless of which row asked. Keep per-owner as the default.
+4. **`{{label}}` in confirm templates ignores a `label` argument.** It reads the target instance's label only; a request that supplies `label` in args should win (args already win for `{{<arg>}}`).
+
+Also noted: `pane.new` (plain shell pane without an agent) was not in the brief; add it to the matomeru brief if wanted. Palette polish: the enter hint reads "Append the highlighted completion" even with nothing highlighted; describe enter as "run the line, or append the highlighted completion".
