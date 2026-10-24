@@ -60,9 +60,9 @@ Write the new core as new files from the design, not as edits to runtime.go: `no
 - Per-instance binding overrides allowed above the noun's bindings.
 - Acceptance: the full-project Items page works with mixed nouns in one list; `?` shows different verbs for different rows.
 
-## Phase 5: one stack walk, everything is a noun
+## Phase 5: one stack walk over mode tables, everything is a noun
 
-Amendment (from the forked design session, 2026-10-24; to be confirmed by the owner in the migration session before this phase starts): the walk reads **mode tables only, no grammar hooks**. Every pending condition is an exclusive mode with a small typed payload, and the resolver is one lookup per stack level.
+Design confirmed by the owner on 2026-10-24 (confirmation relayed through the forked design session). The walk reads **mode tables only, no grammar hooks**. Every pending condition is an exclusive mode with a small typed payload, and the resolver is one lookup per stack level.
 
 ```js
 // resolver, complete
@@ -84,16 +84,18 @@ leader_pending:   { <bound>: run command, any: forward prefix+key to the pane, r
 
 Binding row shape, identical in code and config: `{noun, mode, keys | pattern, request | null, argsFromKey?}`. Same noun+mode+pattern replaces a default, a new pattern adds, `null` unbinds. `list.bindings` prints exactly this for the current stack and mode. Go sketch: `r.Noun("editor").Mode("normal").Bind("d", Enter("operator_pending", Payload{Op: "delete"})).Bind(Digit, Do("count.append"))`; `.When(ShadowIs("normal"))` for guarded rows; `Func(...)` only where re-dispatch is needed (recording, leader).
 
-Consequences: `list.bindings` and help are complete, including pending modes; the phase 0 goldens become table rows (mode, key, next mode, action); users can rebind inside pending modes; the routers in `dispatchKey` become rows. Care points: payload is a struct, not a map; generate the editor noun's tables from a compact spec; help in a shadow mode shows the shadow's bindings plus the mode's own rows (a presentation rule, not a resolver rule). The phase 0 finding that the macro grammar is consulted twice per key disappears by construction.
+Work:
 
-
-- Resolution (superseded by the amendment above if confirmed): for each instance from focus outward, noun bindings for the current state, then any-state bindings, then the noun's grammar. First hit wins. Sequence pending state keyed by (focus, state). Unmatched sequence is offered to the innermost grammar before being dropped.
-- Move the Readline switch and the Vim switch from editing.go into the `editor` noun (bindings for Readline, grammar for counts, operators, pending motions). `list.bindings` now reports them.
-- `prompt` noun replaces `ReadlineOnly`: editor grammar, state pinned to insert, Escape unbound.
-- Palette becomes a noun on a modal instance; "esc pops a modal" becomes a `modal` noun binding; macro recording becomes a transient noun pushed on focus.
+- Implement the resolver above in `resolve.go` (phase 3 left `EffectiveBindingsFor`/`ActionFor` there; extend the row shape with patterns and `null`, and the mode with a typed payload). Replace `dispatchKey` with it.
+- Move the Readline switch and the Vim switch from editing.go into the `editor` noun's mode tables, generated from a compact spec: Readline rows in `insert`, Vim rows in `normal` and the visual modes, with `operator_pending`, `g_pending`, count and register handling as pending modes with payload. `list.bindings` and help now report all of it, pending modes included.
+- `prompt` noun replaces `ReadlineOnly`: editor tables, mode pinned to insert, Escape unbound so a page or modal can bind it.
+- Palette becomes a noun on a modal instance; "esc pops a modal" becomes a row in the `modal` noun; macro recording becomes the `macro_recording` shadow mode (replay keeps the depth flag). The terminal leader, when phase 7 adds it, is `leader_pending` with the same shape.
 - Multi-selection fan-out: a verb over marked rows runs `verb.<row noun>` per row, skipping and reporting unsupported nouns.
-- Replace `dispatchKey` with the walk in `resolve.go`. Delete `InputPaths`, `Frame.State`, `validateContext`, `validateSelection`, `Layer` and the layer code in runtime.go, pages.go and configuration.go. Deletion, not editing: anything still needed is already in the new files.
-- Acceptance: phase 0 golden tests pass against the new walk, with the one intended change (unmatched prefix handoff) updated deliberately.
+- Delete `InputPaths`, `Frame.State`, `validateContext`, `validateSelection`, `Layer` and the layer code in runtime.go, pages.go and configuration.go. Deletion, not editing: anything still needed is already in the new files.
+
+Consequences and care points: the phase 0 goldens become table rows (mode, key, next mode, action); users can rebind inside pending modes; payload is a struct, not a map; help in a shadow mode shows the shadow's bindings plus the mode's own rows (a presentation rule, not a resolver rule); the phase 0 finding that the macro grammar is consulted twice per key disappears by construction.
+
+Acceptance: phase 0 golden tests pass against the new walk, with the one intended change (unmatched prefix handed to the innermost mode's `any` row instead of dropped) updated deliberately; `list.bindings` lists every key the editor answers to.
 
 ## Phase 6: component delivery contract and operation kinds
 
