@@ -274,6 +274,8 @@ Found after phase 8: `OpenModal` parents the modal at the focus it opened over, 
 
 Invariant (owner): focus is never outside the top level. While any modal is open, `Runtime.Focus` is within the top modal's subtree; `focus.set` to an outside target is an error, internal retargeting clamps to the modal instance, Push/OpenModal always leave focus inside the new modal, pop restores a return focus that is by construction inside the next level down. Asserted by test.
 
+Rule (owner): a modal opens only from the current top level. With a modal open, an open request whose origin is not inside the top modal's subtree is refused ("a modal is open above this level"); first wins, no queue. Same-kind dedupe stays. Nesting from inside the top modal (prompt → picker) is allowed. Refusals surface through the normal result path (CLI, API, job completions) and in history.
+
 ### 2. Bugs and oversights in the resolver
 
 Status: done, commit d88e068 (step 4). The prefix payload carries `Count` and `OpCount`. The level-target rule is narrowed: a row addresses its level's instance when the operation's noun is the level's noun (`row.delete` on `row`); shared operations a level binds (`mode.set`, `input.*`, `focus.*`, register and macro rows on app) keep the focus, since retargeting them broke input context and noun overrides.
