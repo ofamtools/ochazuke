@@ -33,7 +33,9 @@ type App struct {
 	m     *ochazuke.Model
 	grid  *grid.Grid
 	field *ochazuke.Input
-	ask   *question
+	// filterIn is the filter field below the grid (filter.go).
+	filterIn *ochazuke.Input
+	ask      *question
 }
 
 // FilterState is the row filter the sheet shows through: view state, not an edit.
@@ -261,6 +263,7 @@ func (a *App) Load(path string) error {
 		}
 	}
 	a.Dirty, a.Undo, a.Redo, a.Filter = false, nil, nil, FilterState{}
+	a.syncFilterField()
 	a.grid.SetFilter(nil)
 	a.grid.SetData(a.Header, a.Rows)
 	return nil
@@ -339,6 +342,27 @@ func TransformationNames() []string {
 	sort.Strings(text)
 	sort.Strings(sheet)
 	return append(text, sheet...)
+}
+
+// transformationLabels describe each transformation in the pick list.
+var transformationLabels = map[string]string{
+	"upper":    "UPPER CASE",
+	"lower":    "lower case",
+	"trim":     "trim surrounding spaces",
+	"title":    "Title Case",
+	"slug":     "slug-case",
+	"fillDown": "fill down from the top selected cell",
+}
+
+// TransformationChoices is transformations.list: every name with a label,
+// in TransformationNames order, the shape a parameter Source returns.
+func TransformationChoices() []ochazuke.Choice {
+	names := TransformationNames()
+	out := make([]ochazuke.Choice, len(names))
+	for i, name := range names {
+		out[i] = ochazuke.Choice{ID: name, Label: transformationLabels[name]}
+	}
+	return out
 }
 
 // Transform builds the patch that applies a named transformation to cells.

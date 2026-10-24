@@ -64,13 +64,16 @@ func New(path string) (*App, error) {
 	// The sheet instance is registered first so the grid can sit under it;
 	// AddPage then adopts it as the page of the sheet noun.
 	r.Instance("sheet", ochazuke.Kind("sheet"))
-	g, err := grid.New(r, "grid", "sheet", nil, nil)
+	g, err := grid.New(r, "grid", "sheet", nil, nil, grid.WithInstanceRows(a.instanceRows))
 	if err != nil {
 		return nil, err
 	}
 	a.grid = g
 	a.registerPrompt()
 	a.registerVerbs()
+	if err := a.registerFilter(); err != nil {
+		return nil, err
+	}
 	a.bind()
 	picker := ochazuke.NewPicker(r)
 	a.m.ModalViews["picker"] = ochazuke.ModalView{Title: "Choose a path", Render: func(_ *ochazuke.Runtime, _ *ochazuke.Instance, w, h int) ochazuke.Block {
@@ -97,9 +100,11 @@ func New(path string) (*App, error) {
 // Model is the Bubble Tea model the application runs.
 func (a *App) Model() *ochazuke.Model { return a.m }
 
-// render is the sheet page: a status line, then the grid.
+// render is the sheet page: a status line, the grid, the filter field.
 func (a *App) render(_ *ochazuke.Runtime, width, height int) ochazuke.Block {
 	s := ochazuke.NewStyles(*a.m.Appearance)
 	status := ansi.Truncate(strings.ReplaceAll(a.title(), "\n", " "), width, "…")
-	return ochazuke.Text(s.Muted.Render(status) + "\n" + a.grid.View(width, max(1, height-1)))
+	body := s.Muted.Render(status) + "\n" + strings.TrimRight(a.grid.View(width, max(1, height-2)), "\n")
+	filter := a.filterLine(width).Offset(0, strings.Count(body, "\n")+1)
+	return filter.WithText(body + "\n" + filter.Text)
 }

@@ -31,11 +31,12 @@ func (a *App) bind() {
 			Bind("g g", line("top")).Bind("G", line("bottom"))
 	}
 	shape := func(s string) ochazuke.Binding { return ochazuke.Do("mode.set", ochazuke.Arguments{"mode": s}) }
-	transform := func(name string) ochazuke.Binding {
-		return ochazuke.Do("selection.transform", ochazuke.Arguments{"name": name})
-	}
-	transforms := func(m *ochazuke.ModeBuilder) {
-		m.Bind("t u", transform("upper")).Bind("t l", transform("lower")).Bind("t t", transform("trim"))
+	// Every noun that resolves to a cell set (cell, row, column, selection)
+	// has transform and the same t rows; the one on the stack answers.
+	transforms := func(m *ochazuke.ModeBuilder, noun string) {
+		for _, kn := range [][2]string{{"t u", "upper"}, {"t l", "lower"}, {"t t", "trim"}, {"t i", "title"}, {"t s", "slug"}} {
+			m.Bind(kn[0], ochazuke.Do(noun+".transform", ochazuke.Arguments{"name": kn[1]}))
+		}
 	}
 
 	cell := r.Define("cell").Mode("normal").
@@ -46,16 +47,16 @@ func (a *App) bind() {
 		Bind("y y", ochazuke.Do("row.duplicate")).
 		Bind("v", shape(grid.ShapeBlock)).Bind("V", shape(grid.ShapeRow)).Bind("ctrl+v", shape(grid.ShapeColumn))
 	motions(cell)
-	transforms(cell)
+	transforms(cell, "cell")
 	r.Define("cell").Mode("count_pending").Extends("normal")
 
-	r.Define("row").Mode("normal").
+	row := r.Define("row").Mode("normal").
 		Bind("d d", ochazuke.Do("row.delete")).
 		Bind("o", ochazuke.Do("row.insertBelow"))
+	transforms(row, "row")
 
 	r.Define("column").Mode("normal").
 		Bind("r", ochazuke.Do("column.rename")).
-		Bind("D", ochazuke.Do("column.delete")).
 		Bind("s", ochazuke.Do("column.sort")).
 		Bind("/", ochazuke.Do("column.filter"))
 
@@ -64,7 +65,7 @@ func (a *App) bind() {
 	visual.Mode(grid.ShapeColumn).Extends(grid.ShapeBlock)
 	m := visual.Mode(grid.ShapeBlock)
 	motions(m)
-	transforms(m)
+	transforms(m, "selection")
 	m.Bind("o", ochazuke.Do("selection.swap")).
 		Bind("v", shape(grid.ShapeBlock)).Bind("V", shape(grid.ShapeRow)).Bind("ctrl+v", shape(grid.ShapeColumn)).
 		Bind("esc", ochazuke.Do("mode.set", ochazuke.Arguments{"mode": "normal"})).
@@ -73,10 +74,11 @@ func (a *App) bind() {
 		Bind("p", ochazuke.Do("selection.paste")).
 		Bind("c", ochazuke.Do("selection.clear")).
 		Bind("s", ochazuke.Do("column.sort")).
-		Bind("f", transform("fillDown")).
+		Bind("f", ochazuke.Do("selection.transform", ochazuke.Arguments{"name": "fillDown"})).
 		Bind("m", ochazuke.Do("selection.mark")).
 		Bind("M", ochazuke.Do("selection.unmark")).
 		Bind("ctrl+a", ochazuke.Do("selection.all")).
+		Bind(":", ochazuke.Do("palette.open")).
 		// Counts: the app noun enters count_pending from normal only.
 		Pattern("digit-0", ochazuke.Enter("count_pending").FromPayload("count", ochazuke.SourceDigit))
 
@@ -87,4 +89,17 @@ func (a *App) bind() {
 		Bind("S", ochazuke.Do("sheet.sort")).
 		Bind("u", ochazuke.Do("sheet.undo")).
 		Bind("ctrl+r", ochazuke.Do("sheet.redo"))
+}
+
+// instanceRows are the rows the grid puts on its focus instances: D on the
+// column instance deletes that column with its header as the argument the
+// confirm prompt names ("Delete column c2 (email)?"). A noun table cannot
+// carry the header; the instance row is rebuilt on every sync.
+func (a *App) instanceRows(kind string, at grid.Ref) []ochazuke.Binding {
+	if kind != "column" || at.Col < 0 || at.Col >= len(a.Header) {
+		return nil
+	}
+	row := ochazuke.Do("column.delete", ochazuke.Arguments{"name": a.Header[at.Col]})
+	row.Mode, row.Keys = "normal", "D"
+	return []ochazuke.Binding{row}
 }

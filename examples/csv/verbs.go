@@ -123,7 +123,7 @@ func (a *App) registerVerbs() {
 		return a.state(), nil
 	})
 	register := map[string]ochazuke.Parameter{"register": {Type: "string", Description: "Register name; the active register, else the unnamed one"}}
-	transformParams := map[string]ochazuke.Parameter{"name": {Type: "string", Required: true, Description: "A transformation; transformations.list names them"}}
+	transformParams := map[string]ochazuke.Parameter{"name": {Type: "string", Required: true, Source: "transformations.list", Description: "A transformation; transformations.list names them"}}
 
 	r.Define("cell").
 		Verb("edit", verb(func(c ochazuke.Context, args ochazuke.Arguments) (any, error) {
@@ -161,12 +161,12 @@ func (a *App) registerVerbs() {
 			}
 			a.Apply(Patch{Rows: []RowChange{{Index: i, Before: append([]string(nil), a.Rows[i]...)}}})
 			return a.state(), nil
-		}), "Delete the row under the cursor").Confirm("Delete row {{id}}?").
+		}), "Delete the row under the cursor").Confirm("Delete row {{id}}?").When(grid.GuardInGrid).
 		Verb("insertBelow", verb(func(c ochazuke.Context, args ochazuke.Arguments) (any, error) {
 			i := a.grid.At(c).Row
 			a.Apply(Patch{Rows: []RowChange{{Index: i + 1, After: make([]string, len(a.Header))}}})
 			return a.state(), a.grid.Goto(grid.Ref{Row: i + 1, Col: a.grid.Cursor().Col})
-		}), "Insert an empty row below the cursor").
+		}), "Insert an empty row below the cursor").When(grid.GuardInGrid).
 		Verb("duplicate", verb(func(c ochazuke.Context, args ochazuke.Arguments) (any, error) {
 			i, err := rowOf(c)
 			if err != nil {
@@ -174,7 +174,24 @@ func (a *App) registerVerbs() {
 			}
 			a.Apply(Patch{Rows: []RowChange{{Index: i + 1, After: append([]string(nil), a.Rows[i]...)}}})
 			return a.state(), nil
-		}), "Copy the row below itself")
+		}), "Copy the row below itself").When(grid.GuardInGrid).
+		Verb("transform", verb(func(c ochazuke.Context, args ochazuke.Arguments) (any, error) {
+			i, err := rowOf(c)
+			if err != nil {
+				return nil, err
+			}
+			set := make([]grid.Ref, 0, len(a.Header))
+			for j := range a.Header {
+				set = append(set, grid.Ref{Row: i, Col: j})
+			}
+			p, err := a.Transform(ochazuke.StringArg(args, "name", ""), set)
+			if err != nil {
+				return nil, err
+			}
+			a.Apply(p)
+			return a.state(), nil
+		}), "Apply a named transformation to every cell of the row").When(grid.GuardInGrid)
+	params("row.transform", transformParams)
 
 	colOf := func(c ochazuke.Context) (int, error) {
 		at := a.grid.At(c)
@@ -202,23 +219,26 @@ func (a *App) registerVerbs() {
 				return a.state(), rename(n)
 			}
 			return nil, a.prompt("Rename column "+grid.ColID(j), a.Header[j], "", rename)
-		}), "Rename the column under the cursor").
+		}), "Rename the column under the cursor").When(grid.GuardInGrid).
 		Verb("delete", verb(func(c ochazuke.Context, args ochazuke.Arguments) (any, error) {
 			j, err := colOf(c)
 			if err != nil {
 				return nil, err
 			}
+			if n := ochazuke.StringArg(args, "name", ""); n != a.Header[j] {
+				return nil, fmt.Errorf("column %s is %q, not %q", grid.ColID(j), a.Header[j], n)
+			}
 			before := a.column(j)
 			a.Apply(Patch{Columns: []ColumnChange{{Index: j, Before: &before}}})
 			return a.state(), nil
-		}), "Delete the column under the cursor").Confirm("Delete column {{id}}?").
+		}), "Delete the column under the cursor").Confirm("Delete column {{id}} ({{name}})?").When(grid.GuardInGrid).
 		Verb("sort", verb(func(c ochazuke.Context, args ochazuke.Arguments) (any, error) {
 			j, err := colOf(c)
 			if err != nil {
 				return nil, err
 			}
 			return a.state(), a.sortBy(j)
-		}), "Sort the rows by this column").
+		}), "Sort the rows by this column").When(grid.GuardInGrid).
 		Verb("filter", verb(func(c ochazuke.Context, args ochazuke.Arguments) (any, error) {
 			j, err := colOf(c)
 			if err != nil {
@@ -227,8 +247,8 @@ func (a *App) registerVerbs() {
 			if q, ok := args["query"].(string); ok {
 				return a.state(), a.filterBy(j, q)
 			}
-			return nil, a.prompt("Filter "+a.Header[j]+" by", a.Filter.Query, "", func(text string) error { return a.filterBy(j, text) })
-		}), "Show only rows whose cell in this column contains the query; an empty query shows every row").
+			return nil, a.focusFilter()
+		}), "Show only rows whose cell in this column contains the query (omit it to type one in the filter field); an empty query shows every row").When(grid.GuardInGrid).
 		Verb("transform", verb(func(c ochazuke.Context, args ochazuke.Arguments) (any, error) {
 			j, err := colOf(c)
 			if err != nil {
@@ -244,15 +264,19 @@ func (a *App) registerVerbs() {
 			}
 			a.Apply(p)
 			return a.state(), nil
-		}), "Apply a named transformation to every visible cell of the column")
+		}), "Apply a named transformation to every visible cell of the column").When(grid.GuardInGrid)
 	params("column.rename", name)
-	params("column.filter", map[string]ochazuke.Parameter{"query": {Type: "string", Description: "Omit to be asked in a prompt"}})
+	// name is the column's header: the confirm prompt names it and the
+	// delete refuses a column whose header differs. The D row on each
+	// column instance fills it (see columnRows).
+	params("column.delete", map[string]ochazuke.Parameter{"name": {Type: "string", Required: true, Description: "The column's header, which the confirm names; D fills it"}})
+	params("column.filter", map[string]ochazuke.Parameter{"query": {Type: "string", Description: "Omit to type it in the filter field"}})
 	params("column.transform", transformParams)
 
 	// The selection noun: the grid registered shape, cancel, swap, mark,
 	// unmark and all; the application adds the verbs that edit.
 	r.Define("selection").
-		Verb("yank", yank, "Yank the selected cells with their shape").
+		Verb("yank", yank, "Yank the selected cells with their shape").When(grid.GuardSelecting).
 		Verb("delete", verb(func(c ochazuke.Context, args ochazuke.Arguments) (any, error) {
 			set := a.grid.Selected()
 			if len(set) == 0 {
@@ -281,17 +305,17 @@ func (a *App) registerVerbs() {
 			a.grid.Cancel()
 			a.Apply(p)
 			return a.state(), r.StoreYank(y, ochazuke.StringArg(args, "register", ""), true)
-		}), "Delete the selection into the registers: rows and columns are removed, a block is emptied").
-		Verb("paste", paste, "Paste the register over the selection's first cell by its shape").
-		Verb("clear", clear, "Empty the selected cells").
-		Verb("transform", transform, "Apply a named transformation to the selected cells")
+		}), "Delete the selection into the registers: rows and columns are removed, a block is emptied").When(grid.GuardSelecting).
+		Verb("paste", paste, "Paste the register over the selection's first cell by its shape").When(grid.GuardSelecting).
+		Verb("clear", clear, "Empty the selected cells").When(grid.GuardSelecting).
+		Verb("transform", transform, "Apply a named transformation to the selected cells").When(grid.GuardSelecting)
 	params("selection.yank", register)
 	params("selection.delete", register)
 	params("selection.paste", register)
 	params("selection.transform", transformParams)
 
 	r.Define("transformations").
-		Verb("list", verb(func(ochazuke.Context, ochazuke.Arguments) (any, error) { return TransformationNames(), nil }), "Name the transformations transform accepts")
+		Verb("list", verb(func(ochazuke.Context, ochazuke.Arguments) (any, error) { return TransformationChoices(), nil }), "List the transformations transform accepts: ids with labels, the transform name's pick list")
 }
 
 // sortBy orders the rows by a column, stably, as one row-replacing patch.
@@ -321,6 +345,7 @@ func (a *App) filterBy(j int, query string) error {
 		return errors.New("no column to filter by")
 	}
 	a.Filter = FilterState{Col: j, Query: query}
+	a.syncFilterField()
 	if query == "" {
 		a.grid.SetFilter(nil)
 		return nil

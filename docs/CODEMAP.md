@@ -151,12 +151,12 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### noun.go
 
-- lines: 729 · tests: noun_test.go
+- lines: 773 · tests: noun_test.go
 - purpose: Noun is the behaviour shared by every instance of one kind: the verbs it answers to, its key bindings per mode, the action handlers that override an operatio...
 - types: Noun, Binding, NounBuilder, ModeBuilder, Guard (func)
-- methods: Binding(6), ModeBuilder(6), Noun(1), NounBuilder(9), Runtime(9)
+- methods: Binding(6), ModeBuilder(6), Noun(1), NounBuilder(10), Runtime(11)
 - funcs: Do, Enter, Leave
-- leans on: runtime.go(52), instance.go(19), resolve.go(9), input.go(3)
+- leans on: runtime.go(55), instance.go(20), resolve.go(10), input.go(3)
 
 ### pages.go
 
@@ -168,12 +168,12 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### palette.go
 
-- lines: 713 · tests: palette_test.go
+- lines: 714 · tests: palette_test.go
 - purpose: Palette owns its overlay and drafts; it never edits the originating input.
 - types: Palette
 - methods: Palette(23)
 - funcs: NewPalette
-- leans on: runtime.go(63), noun.go(42), block.go(13), instance.go(7)
+- leans on: runtime.go(64), noun.go(42), block.go(13), instance.go(7)
 
 ### palette_choices.go
 
@@ -191,12 +191,12 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### palette_nouns.go
 
-- lines: 138 · tests: palette_nouns_test.go
+- lines: 172 · tests: palette_nouns_test.go
 - purpose: PaletteInstance is a labeled object whose ID becomes the default action argument.
 - types: PaletteInstance, PaletteSource (func), PaletteNoun, PaletteEntry
-- methods: Palette(2)
+- methods: Palette(3)
 - funcs: PagesPaletteSource
-- leans on: instance.go(10), noun.go(7), runtime.go(6), palette.go(2)
+- leans on: instance.go(12), noun.go(10), runtime.go(7), palette.go(3)
 
 ### params.go
 

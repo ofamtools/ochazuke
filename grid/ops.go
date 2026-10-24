@@ -33,8 +33,8 @@ func Register(r *ochazuke.Runtime) {
 		}
 		return out
 	}
-	op := func(verb, noun, description string, params map[string]ochazuke.Parameter, fn func(*Grid, ochazuke.Context, ochazuke.Arguments) error) {
-		r.Register(ochazuke.Operation{Verb: verb, Noun: noun, Description: description, Parameters: with(params), Result: "grid state", Run: func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
+	op := func(verb, noun, description string, params map[string]ochazuke.Parameter, fn func(*Grid, ochazuke.Context, ochazuke.Arguments) error) *ochazuke.NounBuilder {
+		b := r.Define(noun).Verb(verb, func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
 			g, err := Resolve(r, c, a)
 			if err != nil {
 				return nil, err
@@ -43,8 +43,24 @@ func Register(r *ochazuke.Runtime) {
 				return nil, err
 			}
 			return g.Snapshot(), nil
-		}})
+		}, description)
+		o := r.Operations[noun+"."+verb]
+		o.Parameters, o.Result = with(params), "grid state"
+		r.Operations[o.Key()] = o
+		return b
 	}
+	// The grid's guards: "in-grid" holds while the focus is a grid or sits
+	// beneath one; "selecting" while, in addition, the mode is a selection
+	// shape. The selection verbs are offered only while selecting; an
+	// application guards its row and column verbs with in-grid.
+	r.DefineGuard(GuardInGrid, func(r *ochazuke.Runtime, ev ochazuke.KeyEvent) bool { return under(r, ev.Focus) })
+	r.DefineGuard(GuardSelecting, func(r *ochazuke.Runtime, ev ochazuke.KeyEvent) bool {
+		mode := ev.Mode.Name
+		if ev.Mode.Payload.Return != "" {
+			mode = ev.Mode.Payload.Return
+		}
+		return isShape(mode) && under(r, ev.Focus)
+	})
 	op("move", "grid", "Move the cursor: left, right, up, down, row-start, row-end, top, bottom; line is the 1-based row for top and bottom", map[string]ochazuke.Parameter{
 		"motion": {Type: "string", Required: true}, "steps": {Type: "integer"}, "line": {Type: "integer"},
 	}, func(g *Grid, _ ochazuke.Context, a ochazuke.Arguments) error {
@@ -55,16 +71,32 @@ func Register(r *ochazuke.Runtime) {
 	}, func(g *Grid, _ ochazuke.Context, a ochazuke.Arguments) error {
 		return g.Goto(Ref{Row: ochazuke.IntArg(a, "row", 0), Col: ochazuke.IntArg(a, "col", 0)})
 	})
-	op("swap", "selection", "Exchange the selection anchor and the cursor", nil, func(g *Grid, _ ochazuke.Context, _ ochazuke.Arguments) error { return g.SwapAnchor() })
+	op("swap", "selection", "Exchange the selection anchor and the cursor", nil, func(g *Grid, _ ochazuke.Context, _ ochazuke.Arguments) error { return g.SwapAnchor() }).When(GuardSelecting)
 	op("mark", "selection", "Toggle the mark on the cell, row or column under the cursor by the selection shape", nil, func(g *Grid, _ ochazuke.Context, _ ochazuke.Arguments) error {
 		if g.Shape() == "" {
 			return errors.New("start a selection before marking")
 		}
 		g.ToggleMark()
 		return nil
-	})
-	op("unmark", "selection", "Clear the marks, keeping the selection", nil, func(g *Grid, _ ochazuke.Context, _ ochazuke.Arguments) error { g.ClearMarks(); return nil })
-	op("all", "selection", "Span the whole visible sheet", nil, func(g *Grid, _ ochazuke.Context, _ ochazuke.Arguments) error { g.SelectAll(); return nil })
+	}).When(GuardSelecting)
+	op("unmark", "selection", "Clear the marks, keeping the selection", nil, func(g *Grid, _ ochazuke.Context, _ ochazuke.Arguments) error { g.ClearMarks(); return nil }).When(GuardSelecting)
+	op("all", "selection", "Span the whole visible sheet", nil, func(g *Grid, _ ochazuke.Context, _ ochazuke.Arguments) error { g.SelectAll(); return nil }).When(GuardSelecting)
+}
+
+// The guard names Register defines.
+const (
+	GuardInGrid    = "in-grid"
+	GuardSelecting = "selecting"
+)
+
+// under reports whether a focus is a grid or sits beneath one.
+func under(r *ochazuke.Runtime, focus string) bool {
+	for _, id := range r.Ancestry(focus) {
+		if Of(r, id) != nil {
+			return true
+		}
+	}
+	return false
 }
 
 // Resolve finds the grid an operation addresses: args.id, else the nearest

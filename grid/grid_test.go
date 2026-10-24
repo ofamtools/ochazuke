@@ -183,3 +183,50 @@ func TestViewScrollsBothAxes(t *testing.T) {
 		t.Fatal("ParseID accepted junk")
 	}
 }
+
+// A modal opened over a selection holds it: closing the modal restores the
+// shape with its anchor and marks. Leaving the shape inside the grid drops
+// them as before. The selection verbs are guarded by "selecting", the
+// guards Register defines.
+func TestModalOverSelectionHoldsIt(t *testing.T) {
+	r, g := sheet(t)
+	if err := g.Select(ShapeBlock); err != nil {
+		t.Fatal(err)
+	}
+	if err := g.Move("down", 1, 0); err != nil {
+		t.Fatal(err)
+	}
+	g.ToggleMark()
+	if err := g.Move("right", 1, 0); err != nil {
+		t.Fatal(err)
+	}
+	want := g.Selected()
+	focus := ochazuke.KeyEvent{Focus: r.Focus, Level: r.Focus, Mode: r.Mode}
+	if r.VerbGuard("selection.mark") != GuardSelecting || !r.VerbShown("selection.mark", focus.Focus, focus.Mode) {
+		t.Fatalf("selection.mark guard = %q", r.VerbGuard("selection.mark"))
+	}
+	if err := r.Push("dialog", "app"); err != nil {
+		t.Fatal(err)
+	}
+	if r.Mode.Name == ShapeBlock || g.Shape() != "" {
+		t.Fatalf("the modal kept the shape: %s", r.Mode.Name)
+	}
+	if r.VerbShown("selection.mark", "app", r.Mode) {
+		t.Fatal("selection.mark shown outside the grid")
+	}
+	if err := r.Pop(); err != nil {
+		t.Fatal(err)
+	}
+	if g.Shape() != ShapeBlock || !reflect.DeepEqual(g.Selected(), want) || len(g.Marks()) != 1 {
+		t.Fatalf("after pop: shape=%q selected=%v want %v marks=%v", g.Shape(), g.Selected(), want, g.Marks())
+	}
+	if err := r.SetMode("normal"); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.SetMode(ShapeBlock); err != nil {
+		t.Fatal(err)
+	}
+	if len(g.Marks()) != 0 || len(g.Selected()) != 1 {
+		t.Fatalf("a fresh selection kept the old one: marks=%v selected=%v", g.Marks(), g.Selected())
+	}
+}

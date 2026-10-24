@@ -75,11 +75,15 @@ func TestOpenAndNavigateWithCounts(t *testing.T) {
 	cursor(t, a, grid.Ref{Row: 0, Col: 2})
 	press(t, a, "4", "g", "g")
 	cursor(t, a, grid.Ref{Row: 3, Col: 2})
-	// The grid is the sheet's only focus stop: } and tab land back on the
-	// cursor cell, never on the sheet or a stale cell.
-	press(t, a, "}", "tab", "{")
+	// The sheet has two focus stops, the grid and the filter field: } lands
+	// on the field and tab returns to the remembered cell.
+	press(t, a, "}")
+	if a.r.Focus != filterID {
+		t.Fatalf("} from the grid: %s", a.r.Focus)
+	}
+	press(t, a, "tab")
 	if a.r.Focus != "r3:c2" {
-		t.Fatalf("focus jump from the grid: %s", a.r.Focus)
+		t.Fatalf("tab from the filter field: %s", a.r.Focus)
 	}
 	press(t, a, "g", "g")
 	if mode := a.r.Mode.Name; mode != "normal" {
@@ -243,7 +247,15 @@ func TestTransformUpperOnBlockPlusMark(t *testing.T) {
 		}
 	}
 	names, err := a.r.Execute(ochazuke.Request{Verb: "list", Noun: "transformations"})
-	if err != nil || !reflect.DeepEqual(names, []string{"lower", "slug", "title", "trim", "upper", "fillDown"}) {
+	choices, _ := ochazuke.ParseChoices(names)
+	var ids []string
+	for _, c := range choices {
+		ids = append(ids, c.ID)
+		if c.Label == c.ID {
+			t.Fatalf("choice %s has no label", c.ID)
+		}
+	}
+	if err != nil || !reflect.DeepEqual(ids, []string{"lower", "slug", "title", "trim", "upper", "fillDown"}) {
 		t.Fatalf("transformations.list = %v, %v", names, err)
 	}
 	if _, err := a.r.Execute(ochazuke.Request{Verb: "transform", Noun: "selection", Args: ochazuke.Arguments{"name": "nope"}}); err == nil {
@@ -362,10 +374,10 @@ func TestPaletteListsTheNounVerbs(t *testing.T) {
 	}
 	for noun, want := range map[string][]string{
 		"column":    {"delete", "filter", "rename", "sort", "transform"},
-		"row":       {"delete", "duplicate", "insertBelow"},
+		"row":       {"delete", "duplicate", "insertBelow", "transform"},
 		"cell":      {"clear", "edit", "paste", "transform", "yank"},
 		"selection": {"all", "clear", "delete", "mark", "paste", "swap", "transform", "unmark", "yank"},
-		"sheet":     {"addColumn", "open", "redo", "save", "saveAs", "sort", "undo"},
+		"sheet":     {"addColumn", "filter", "open", "redo", "save", "saveAs", "sort", "undo"},
 	} {
 		if got := verbs[noun]; !reflect.DeepEqual(got, want) {
 			t.Fatalf("%s verbs = %v, want %v", noun, got, want)
@@ -376,7 +388,7 @@ func TestPaletteListsTheNounVerbs(t *testing.T) {
 	}
 	// Hints are the bound rows of the mode: a hint never names an unbound key.
 	hints := ochazuke.BindingHints(a.r, "r0:c0")
-	for _, want := range []string{"d d row.delete", "t u selection.transform", "ctrl+s sheet.save", "v mode.set"} {
+	for _, want := range []string{"d d row.delete", "t u cell.transform", "ctrl+s sheet.save", "v mode.set"} {
 		if !strings.Contains(hints, want) {
 			t.Fatalf("hints lack %q: %s", want, hints)
 		}
@@ -434,5 +446,202 @@ func TestEmptySheetStartsOnTheGrid(t *testing.T) {
 func TestCSVBindingRowsAreAtomic(t *testing.T) {
 	if _, err := open(t).r.ValidateBindings(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// Every noun that resolves to a cell set has transform and the same t rows:
+// cell (the cell), row (every cell of the row), column (every visible cell),
+// selection (the selected cells). t i and t s run title and slug.
+func TestTransformOnEveryCellSetNoun(t *testing.T) {
+	a := open(t)
+	for _, noun := range []string{"cell", "row", "column", "selection"} {
+		if _, ok := a.r.Operations[noun+".transform"]; !ok {
+			t.Fatalf("%s has no transform", noun)
+		}
+		if p := a.r.Operations[noun+".transform"].Parameters["name"]; p.Source != "transformations.list" {
+			t.Fatalf("%s.transform name source = %q", noun, p.Source)
+		}
+	}
+	for _, focus := range []string{"r0:c0", "r0"} {
+		hints := ochazuke.BindingHints(a.r, focus)
+		noun := map[string]string{"r0:c0": "cell", "r0": "row"}[focus]
+		for _, keys := range []string{"t u", "t l", "t t", "t i", "t s"} {
+			if !strings.Contains(hints, keys+" "+noun+".transform") {
+				t.Fatalf("%s lacks %q %s.transform: %s", focus, keys, noun, hints)
+			}
+		}
+	}
+	press(t, a, "j")
+	if _, err := a.r.Execute(ochazuke.Request{Verb: "transform", Noun: "row", Target: "r1", Args: ochazuke.Arguments{"name": "upper"}}); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(a.Rows[1], []string{"BO", "B@X.IO", "OPS"}) || a.Rows[0][0] != "ann" || len(a.Undo[0].Cells) != 3 {
+		t.Fatalf("row upper: %v undo=%+v", a.Rows[1], a.Undo)
+	}
+	press(t, a, "G")
+	if err := a.r.SetFocus("r4:c0"); err != nil {
+		t.Fatal(err)
+	}
+	a.Rows[4][0] = "  eve ADAMS-o'neil "
+	press(t, a, "t", "i")
+	if a.Rows[4][0] != "Eve Adams-o'neil" {
+		t.Fatalf("title: %q", a.Rows[4][0])
+	}
+	press(t, a, "t", "s")
+	if a.Rows[4][0] != "eve-adams-o-neil" {
+		t.Fatalf("slug: %q", a.Rows[4][0])
+	}
+	if _, err := a.r.Execute(ochazuke.Request{Verb: "transform", Noun: "cell", Args: ochazuke.Arguments{"name": "nope"}}); err == nil || !strings.Contains(err.Error(), "must be one of") {
+		t.Fatalf("a name outside the source accepted: %v", err)
+	}
+}
+
+// The transform name is a pick list from transformations.list: ctrl+n moves
+// the highlighted choice, typing filters it, enter picks and executes.
+func TestTransformNamePickList(t *testing.T) {
+	a := open(t)
+	press(t, a, ":")
+	keytest.Type(a.m, "transform")
+	press(t, a, "enter")
+	keytest.Type(a.m, "cell")
+	press(t, a, "enter")
+	view := ansi.Strip(a.m.View().Content)
+	for _, want := range []string{"pick", "UPPER CASE [upper]", "slug-case [slug]", "Title Case [title]"} {
+		if !strings.Contains(view, want) {
+			t.Fatalf("pick list lacks %q:\n%s", want, view)
+		}
+	}
+	keytest.Type(a.m, "case")
+	// lower case, slug-case, Title Case, UPPER CASE: three steps down.
+	press(t, a, "ctrl+n", "ctrl+n", "ctrl+n", "enter")
+	if view := ansi.Strip(a.m.View().Content); !strings.Contains(view, `"upper"`) {
+		t.Fatalf("ctrl+n over the filtered list did not pick upper:\n%s", view)
+	}
+	press(t, a, "enter")
+	if a.m.Palette.IsOpen() || a.Rows[0][0] != "ANN" || a.r.Focus != "r0:c0" {
+		t.Fatalf("executed: open=%v cell=%q focus=%s", a.m.Palette.IsOpen(), a.Rows[0][0], a.r.Focus)
+	}
+}
+
+// paletteFinds reports whether the palette's root search for query shows
+// line, opening it with ctrl+space (: is text in the filter field) and
+// closing it.
+func paletteFinds(t *testing.T, a *App, query, line string) bool {
+	t.Helper()
+	press(t, a, "ctrl+space")
+	keytest.Type(a.m, query)
+	view := ansi.Strip(a.m.View().Content)
+	a.m.Palette.Close()
+	return strings.Contains(view, line)
+}
+
+// Guarded verbs: selection verbs are offered only during a visual
+// selection, row and column verbs only while the focus is in the grid.
+// A modal opened over a selection (the palette) keeps it.
+func TestPaletteOffersGuardedVerbsOnlyWhenTheyApply(t *testing.T) {
+	a := open(t)
+	if paletteFinds(t, a, "selection", "selection") && !paletteFinds(t, a, "selection", "No matches") {
+		t.Fatal("selection verbs offered without a selection")
+	}
+	if !paletteFinds(t, a, "insertBelow", "insertBelow") || !paletteFinds(t, a, "rename", "rename") {
+		t.Fatal("row or column verbs hidden on a cell")
+	}
+	press(t, a, "}")
+	if a.r.Focus != filterID {
+		t.Fatalf("focus = %s", a.r.Focus)
+	}
+	if !paletteFinds(t, a, "insertBelow", "No matches") || !paletteFinds(t, a, "rename", "No matches") {
+		t.Fatal("row or column verbs offered in the filter field")
+	}
+	if paletteFinds(t, a, "addColumn", "No matches") {
+		t.Fatal("an unguarded sheet verb was hidden")
+	}
+	press(t, a, "tab", "v", "j")
+	if !paletteFinds(t, a, "selection", "selection") || paletteFinds(t, a, "selection", "No matches") {
+		t.Fatal("selection verbs hidden during a selection")
+	}
+	// : inside the selection opens the palette, and the verb it runs sees
+	// the selection the palette opened over.
+	if a.grid.Shape() != grid.ShapeBlock || len(a.grid.Selected()) != 2 {
+		t.Fatalf("palette dropped the selection: shape=%q sel=%v", a.grid.Shape(), a.grid.Selected())
+	}
+	press(t, a, ":")
+	keytest.Type(a.m, "transform")
+	press(t, a, "enter")
+	keytest.Type(a.m, "selection")
+	press(t, a, "enter")
+	keytest.Type(a.m, "upper")
+	press(t, a, "enter", "enter")
+	if a.Rows[0][0] != "ANN" || a.Rows[1][0] != "BO" || a.Rows[2][0] != "cy" || a.grid.Shape() != "" {
+		t.Fatalf("selection transform from the palette: %v shape=%q", a.Rows[:3], a.grid.Shape())
+	}
+}
+
+// The filter field is the sheet's second focus stop: } and tab land on it
+// in insert, enter filters by the cursor column and returns to the cell,
+// shift+tab and esc return without filtering, / focuses it with the
+// current query, and a query set by script shows in it.
+func TestFilterFieldIsASecondFocusStop(t *testing.T) {
+	a := open(t)
+	press(t, a, "l", "l", "j", "}")
+	if a.r.Focus != filterID || a.r.Mode.Name != "insert" {
+		t.Fatalf("} : focus=%s mode=%s", a.r.Focus, a.r.Mode.Name)
+	}
+	if view := ansi.Strip(a.m.View().Content); !strings.Contains(view, "filter role: ") {
+		t.Fatalf("filter line missing:\n%s", view)
+	}
+	keytest.Type(a.m, "dev")
+	press(t, a, "shift+tab")
+	if a.r.Focus != "r1:c2" || a.grid.VisibleCount() != 5 {
+		t.Fatalf("shift+tab: focus=%s visible=%d", a.r.Focus, a.grid.VisibleCount())
+	}
+	press(t, a, "{")
+	if a.r.Focus != filterID || string(a.filterIn.Text) != "dev" {
+		t.Fatalf("{ : focus=%s text=%q", a.r.Focus, string(a.filterIn.Text))
+	}
+	press(t, a, "enter")
+	if a.grid.VisibleCount() != 3 || a.Filter.Col != 2 || a.Filter.Query != "dev" || a.r.Mode.Name != "normal" {
+		t.Fatalf("enter: visible=%d filter=%+v mode=%s", a.grid.VisibleCount(), a.Filter, a.r.Mode.Name)
+	}
+	// The cursor's row r1 (ops) is hidden: the cursor moved to a shown row.
+	if !strings.HasSuffix(a.r.Focus, ":c2") {
+		t.Fatalf("enter returned to %s", a.r.Focus)
+	}
+	press(t, a, "/")
+	if a.r.Focus != filterID || a.filterIn.Cursor != 3 {
+		t.Fatalf("/ : focus=%s cursor=%d", a.r.Focus, a.filterIn.Cursor)
+	}
+	press(t, a, "esc")
+	if !strings.HasSuffix(a.r.Focus, ":c2") {
+		t.Fatalf("esc returned to %s", a.r.Focus)
+	}
+	if _, err := a.r.Execute(ochazuke.Request{Verb: "filter", Noun: "column", Args: ochazuke.Arguments{"query": ""}}); err != nil {
+		t.Fatal(err)
+	}
+	if string(a.filterIn.Text) != "" || a.grid.VisibleCount() != 5 {
+		t.Fatalf("cleared: text=%q visible=%d", string(a.filterIn.Text), a.grid.VisibleCount())
+	}
+}
+
+// The column delete confirm names the column and its header; the D row on
+// the column instance carries the header, so a rename shows the new name.
+func TestDeleteColumnConfirmNamesTheHeader(t *testing.T) {
+	a := open(t)
+	press(t, a, "l", "D")
+	if view := ansi.Strip(a.m.View().Content); !strings.Contains(view, "Delete column c1 (email)?") {
+		t.Fatalf("confirm prompt:\n%s", view)
+	}
+	press(t, a, "n", "r")
+	keytest.Type(a.m, "2")
+	press(t, a, "enter", "D")
+	if view := ansi.Strip(a.m.View().Content); !strings.Contains(view, "Delete column c1 (email2)?") {
+		t.Fatalf("confirm after rename:\n%s", view)
+	}
+	press(t, a, "y")
+	if !reflect.DeepEqual(a.Header, []string{"name", "role"}) {
+		t.Fatalf("header = %v", a.Header)
+	}
+	if _, err := a.r.Execute(ochazuke.Request{Verb: "delete", Noun: "column", Confirmed: true, Args: ochazuke.Arguments{"name": "email"}}); err == nil {
+		t.Fatal("a delete naming another header ran")
 	}
 }

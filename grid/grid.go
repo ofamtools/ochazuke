@@ -107,6 +107,7 @@ type Grid struct {
 	offCol  int
 	anchor  Ref
 	marks   map[Ref]bool
+	held    bool     // a modal opened over the selection; its close resumes it
 	live    []string // the column, row and cell instances of the focus, outermost first
 	// Nouns are the nouns the focus instances answer to. Set them before the
 	// first Refresh (New reads them from the options).
@@ -114,6 +115,8 @@ type Grid struct {
 	Styles Styles
 	// MaxCellWidth caps a column's rendered width.
 	MaxCellWidth int
+	// instanceRows is the WithInstanceRows hook.
+	instanceRows func(kind string, at Ref) []ochazuke.Binding
 }
 
 // Nouns names the three nouns the focus instances are created with.
@@ -125,6 +128,16 @@ type Option func(*Grid)
 // WithNouns names the cell, row and column nouns (default cell, row, column).
 func WithNouns(cell, row, column string) Option {
 	return func(g *Grid) { g.Nouns = Nouns{Cell: cell, Row: row, Column: column} }
+}
+
+// WithInstanceRows gives the focus instances rows of their own: fn is called
+// with "column", "row" or "cell" and the cursor whenever the grid syncs its
+// instances (a move, SetData, a filter), and its rows replace that
+// instance's rows. Rows carry instance data a noun table cannot, such as
+// the column's header as an argument the verb's confirm prompt names.
+// A row Bind refuses is skipped; test the hook's rows against the registry.
+func WithInstanceRows(fn func(kind string, at Ref) []ochazuke.Binding) Option {
+	return func(g *Grid) { g.instanceRows = fn }
 }
 
 // New registers a grid instance of the grid noun under parent, defines the
@@ -290,13 +303,23 @@ func (g *Grid) Shape() string {
 
 // ModeChanged follows the global mode: entering a shape from outside one
 // anchors the selection at the cursor, switching shapes keeps anchor and
-// marks, and leaving the shapes drops the marks.
+// marks, and leaving the shapes drops the marks. A modal opened over a
+// selection (the palette, a prompt) leaves the shape with the focus outside
+// the grid: the selection is held, not dropped, and the shape the modal
+// restores on close resumes it with its anchor and marks.
 func (g *Grid) ModeChanged(from, to string) {
+	inside := slices.Contains(g.r.Ancestry(g.r.Focus), g.id)
 	switch {
 	case isShape(to) && !isShape(from):
-		g.anchor = g.Cursor()
-	case !isShape(to) && isShape(from):
+		if !g.held {
+			g.anchor = g.Cursor()
+		}
+		g.held = false
+	case !isShape(to) && isShape(from) && !inside:
+		g.held = true
+	case !isShape(to) && inside:
 		g.marks = map[Ref]bool{}
+		g.held = false
 	}
 }
 
@@ -510,6 +533,16 @@ func (g *Grid) syncInstances() {
 			parent = id
 		}
 		g.live = want
+	}
+	if g.instanceRows != nil {
+		for i, id := range g.live {
+			inst := g.r.Instances[id]
+			inst.Bindings = nil
+			for _, row := range g.instanceRows([]string{"column", "row", "cell"}[i], cursor) {
+				row.Instance, row.Noun = id, ""
+				_ = g.r.Bind(row)
+			}
+		}
 	}
 	g.r.RetargetFocus(func(id string) bool { return id == g.id }, g.focusTarget())
 }
