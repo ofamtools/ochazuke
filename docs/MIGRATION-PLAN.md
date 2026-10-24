@@ -62,6 +62,18 @@ Status: done, commit 7c6bd0f. Decisions: `ListItem.Layer` was renamed to `ListIt
 - Per-instance binding overrides allowed above the noun's bindings.
 - Acceptance: the full-project Items page works with mixed nouns in one list; `?` shows different verbs for different rows.
 
+## Author-facing API points (inputs to phases 5 to 7)
+
+From a usage sketch of the finished framework done with the owner in the forked design session on 2026-10-24. These shape constructors; each phase applies the ones it touches.
+
+1. **Declaration verb.** `r.Noun("x")` reads like a trigger. Declare with `r.Define("worktree")` (verbs, bindings, handlers); keep noun and verb as the user-facing vocabulary in the palette and CLI. Phase 5.
+2. **Unified instance constructors** taking Parent and Noun: `r.Page(id, title, Noun(...), render)`, `r.List(id, Parent(page))`, `r.Input(id, Parent(page), Noun("prompt"))`, `r.Terminal(id, Parent(page), stream)`. Today these are four unrelated registration paths. Phases 5 and 7.
+3. **Binding argument sources.** `FromKey("register")` (planned), plus `FromPayload("id")` to read the focused instance's or modal's payload, and `Run(FromPayload("request"))` to execute a stored Request. Phase 5.
+4. **Modal payload and per-verb confirm.** `ctx.OpenModal(kind, Payload{...})` creates one instance parented at the focus. Confirmation is a property of a verb, not a noun per call site: `Define("worktree").Verb("remove", h).Confirm("Remove {{id}}?")` compiles to a framework `confirm` noun whose `y` runs the stored request and `n` pops. Config can add or remove a Confirm on any verb. Phases 5 and 6.
+5. **Application handler signature.** `ctx` carries the Instance (id, noun, payload); `Result` expresses done, failed, or pending with a generation. The phase 6 delivery contract appears at the author API, and application verbs run off the loop. Phase 6.
+
+Already decided: per-instance overrides allowed and rare; verb names shared across nouns with the pair as the atom; the `list` noun owns only list verbs; multi-selection fans out `verb.<row noun>` per row.
+
 ## Phase 5: one stack walk over mode tables, everything is a noun
 
 Design confirmed by the owner on 2026-10-24 (confirmation relayed through the forked design session). The walk reads **mode tables only, no grammar hooks**. Every pending condition is an exclusive mode with a small typed payload, and the resolver is one lookup per stack level.
