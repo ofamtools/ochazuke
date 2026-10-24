@@ -416,11 +416,17 @@ func (r *Runtime) Pop() error {
 
 // subtree lists id and its descendants, descendants first.
 func (r *Runtime) subtree(id string) []string {
+	kids := r.childIndex()
 	var out []string
-	for _, child := range r.Children(id) {
-		out = append(out, r.subtree(child.ID)...)
+	var walk func(string)
+	walk = func(id string) {
+		for _, child := range kids[id] {
+			walk(child.ID)
+		}
+		out = append(out, id)
 	}
-	return append(out, id)
+	walk(id)
+	return out
 }
 
 // subtreeSet is subtree as a set.
@@ -589,9 +595,10 @@ func (r *Runtime) region(id string) bool {
 // the frame's slices.
 func (r *Runtime) units(root string, unit func(string) bool) (out []string, order map[string]int) {
 	var tree []string
+	kids := r.childIndex()
 	var walk func(id string, inside bool)
 	walk = func(id string, inside bool) {
-		for _, child := range r.Children(id) {
+		for _, child := range kids[id] {
 			tree = append(tree, child.ID)
 			if !inside && unit(child.ID) {
 				out = append(out, child.ID)

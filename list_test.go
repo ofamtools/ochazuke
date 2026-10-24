@@ -314,3 +314,34 @@ func TestListOnlyTheFocusedListHighlightsAndNoneDrawsAMarker(t *testing.T) {
 		t.Fatal("the highlight did not follow the focus")
 	}
 }
+
+// BenchmarkFocusNextOverManyRows is } across lists of thousands of rows:
+// the focus walk indexes children once per walk, not once per node.
+func BenchmarkFocusNextOverManyRows(b *testing.B) {
+	r := NewRuntime()
+	r.Define("a")
+	if err := r.RegisterPage(&Page{ID: "page", Title: "page", Render: func(*Runtime, int, int) Block { return Text("") }}); err != nil {
+		b.Fatal(err)
+	}
+	if err := r.OpenPage("page"); err != nil {
+		b.Fatal(err)
+	}
+	for l := 0; l < 4; l++ {
+		items := make([]ListItem, 1000)
+		for i := range items {
+			items[i] = ListItem{ID: fmt.Sprintf("l%d/%d", l, i), Label: "row", Noun: "a"}
+		}
+		if _, err := NewList(r, fmt.Sprintf("l%d", l), items, Parent("page")); err != nil {
+			b.Fatal(err)
+		}
+	}
+	if err := r.List("l0").Focus(); err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	for b.Loop() {
+		if _, err := r.Execute(Request{Noun: "focus", Verb: "next"}); err != nil {
+			b.Fatal(err)
+		}
+	}
+}

@@ -129,6 +129,22 @@ func (r *Runtime) Children(id string) []*Instance {
 	return out
 }
 
+// childIndex is Children for every instance at once, one pass over the
+// instances: a walk of a tree asks it once instead of scanning the whole
+// map per node (a page of thousands of rows made that quadratic).
+func (r *Runtime) childIndex() map[string][]*Instance {
+	out := map[string][]*Instance{}
+	for _, inst := range r.Instances {
+		if inst.Parent != inst.ID {
+			out[inst.Parent] = append(out[inst.Parent], inst)
+		}
+	}
+	for _, kids := range out {
+		sort.Slice(kids, func(i, j int) bool { return kids[i].seq < kids[j].seq })
+	}
+	return out
+}
+
 // Ancestry walks the parent links from id outward: id first, app last. An
 // unknown id yields nil.
 func (r *Runtime) Ancestry(id string) []string {
