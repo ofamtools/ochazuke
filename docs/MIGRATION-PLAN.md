@@ -122,6 +122,15 @@ Consequences and care points: the phase 0 goldens become table rows (mode, key, 
 
 Acceptance: phase 0 golden tests pass against the new walk, with the one intended change (unmatched prefix handed to the innermost mode's `any` row instead of dropped) updated deliberately; `list.bindings` lists every key the editor answers to.
 
+## Runtime end state (owner input relayed from the forked design session, 2026-10-24)
+
+After phase 6, `Runtime` is: operation registry + instance registry (nouns, instances, parent links) + focus + `Page` + modal chain + pending-sequence state. No component-specific fields.
+
+1. `Runtime.Inputs` and `Runtime.Lists` go away: inputs and lists are instances with typed payloads looked up through the instance registry. Phase 6.
+2. `Registers`, `YankHistory`, `ActiveRegister` and `Macro` move off `Runtime` into one `registers` component under the phase 6 delivery contract, reached through operations, not fields. Phase 6.
+3. Pages are instances of kind `page` under `app` with an explicit `Runtime.Page`; done in phase 5.
+4. Binding config is the row file loaded by `load.bindings` and printed by `list.bindings`; done in phase 5.
+
 ## Phase 6: component delivery contract and operation kinds
 
 - In a new `delivery.go`, generalize the picker's `HandleMessage`/`PendingCommand`/generation pattern into a contract every component implements: result carries owner id and generation; stale results rejected; closing an instance cancels outstanding work and releases held resources.
@@ -130,7 +139,17 @@ Acceptance: phase 0 golden tests pass against the new walk, with the one intende
 
 ## Phase 7: prove it
 
+Owner input (relayed from the forked design session): unify the chrome. One `Layout.Page` used by the shell instead of `Model.View` and `Layout` each reserving rows with their own padding; footer and modal hint lines derived from the resolver's effective bindings for the current stack and mode, as picker_view.go already does, so hints are the same data `list.bindings` prints; delete the hard-coded hint strings in model.go and the duplicate height constants.
+
+
 - Move `demo.go` out of the root package into `examples/demo`.
 - Add a second page to `examples/full-project` without editing model.go or runtime.go. That is the architectural acceptance check.
 - Add a live terminal instance (`terminal` noun, passthrough grammar, leader binding) fed by a fake stream in tests. The real daemon client comes with the application, not the framework.
 - Acceptance: both checks pass; README and AGENTS.md describe nouns and instances instead of layers.
+
+## After phase 7
+
+Owner-confirmed items, relayed from the forked design session:
+
+1. `Parameter` gains `enum` (static choices) and `source` (a verb that returns choices, such as `list.projects`). Palette argument fields, forms and CLI completion render a pick list from them. Palette modes are unaffected.
+2. docgen is retargeted, not dropped: generate a reference manual from the `Define` data (per noun: verbs, params with choices, confirm, interaction or application kind; per noun per mode: key tables; app page children). Hand-written docs stay (architecture guide, input modes, this plan). Delete only stale output: visual-check PNGs, pre-migration architecture-map json and html, layer-era bindings.html and actions.html that docgen regenerates.
