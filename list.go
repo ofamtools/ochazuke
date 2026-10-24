@@ -116,6 +116,12 @@ func (l *List) SetItems(items []ListItem) error {
 	return nil
 }
 
+// Items returns a copy of the rows in display order.
+func (l *List) Items() []ListItem { return slices.Clone(l.items) }
+
+// Len is the number of rows.
+func (l *List) Len() int { return len(l.items) }
+
 // Selected returns a value copy; empty lists have no selected item.
 func (l *List) Selected() (ListItem, bool) {
 	if l.selected < 0 {

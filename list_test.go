@@ -248,3 +248,18 @@ func TestListItemDataReachesTheRowInstanceAndItsVerb(t *testing.T) {
 		t.Fatalf("retained row data = %v", r.Instances["one"].Data)
 	}
 }
+
+func TestListItemsAndLen(t *testing.T) {
+	_, list, _, items := listFixture(t)
+	if list.Len() != 3 || !reflect.DeepEqual(list.Items(), items) {
+		t.Fatalf("len %d, items %+v", list.Len(), list.Items())
+	}
+	got := list.Items()
+	got[0].Label = "changed"
+	if list.Items()[0].Label != "First item" {
+		t.Fatal("Items exposed the list's own slice")
+	}
+	if err := list.SetItems(nil); err != nil || list.Len() != 0 || len(list.Items()) != 0 {
+		t.Fatalf("empty: %v, len %d", err, list.Len())
+	}
+}
