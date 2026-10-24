@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -105,5 +106,63 @@ func TestFocusJumpsBeforeAFrameUseTreeOrder(t *testing.T) {
 		if err := r.JumpFocus(1, "stop"); err != nil || focusedList(r) != want {
 			t.Fatalf("drawn a, b then undrawn c: got %q want %q (%v)", focusedList(r), want, err)
 		}
+	}
+}
+
+// Edge spill: j past the last row of a list on a page lands on the next
+// list's first row, k before the first row on the previous list's last row,
+// and the page's ends stay put. up and down are j and k.
+func TestListMoveSpillsAcrossListsInDrawingOrder(t *testing.T) {
+	m, r := visualPage(t, []string{"b", "a"}, map[string]int{"a": 2, "b": 3}, []string{"a", "b"})
+	for _, step := range []struct{ key, want string }{
+		{"k", "a1"}, {"j", "a2"}, {"j", "b1"}, {"k", "a2"}, {"down", "b1"}, {"j", "b2"}, {"j", "b3"}, {"j", "b3"},
+		{"up", "b2"}, {"k", "b1"}, {"k", "a2"}, {"k", "a1"}, {"k", "a1"},
+	} {
+		keytest.Press(m, step.key)
+		m.View()
+		if r.Focus != step.want {
+			t.Fatalf("%s: focus %q, want %q", step.key, r.Focus, step.want)
+		}
+	}
+}
+
+// NoSpill traps a list's motions; a list in a modal never spills; an empty
+// list is passed through to the next stop.
+func TestListSpillOptOutAndEmptyList(t *testing.T) {
+	r := NewRuntime()
+	r.Instance("page")
+	if _, err := r.AddList("a", []ListItem{{ID: "a1", Label: "a1", Noun: "list"}}, Parent("page"), NoSpill()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.AddList("b", nil, Parent("page")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.AddList("c", []ListItem{{ID: "c1", Label: "c1", Noun: "list"}, {ID: "c2", Label: "c2", Noun: "list"}}, Parent("page")); err != nil {
+		t.Fatal(err)
+	}
+	render := func(*Runtime, int, int) Block { return Text("") }
+	if _, err := r.AddPage("page", "Page", render, Focus("a")); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.OpenPage("page"); err != nil {
+		t.Fatal(err)
+	}
+	m := NewModel(r)
+	for _, step := range []struct{ key, want string }{{"j", "a1"}, {"}", "b"}, {"j", "c1"}, {"k", "b"}, {"k", "a1"}, {"}", "b"}, {"k", "a1"}} {
+		keytest.Press(m, step.key)
+		if r.Focus != step.want {
+			t.Fatalf("%s: focus %q, want %q", step.key, r.Focus, step.want)
+		}
+	}
+	keytest.Press(m, "?")
+	top := r.TopModal()
+	if top == "" {
+		t.Fatal("? opened no modal")
+	}
+	for range 200 {
+		keytest.Press(m, "j")
+	}
+	if r.TopModal() != top || !slices.Contains(r.Ancestry(r.Focus), top) {
+		t.Fatalf("j in a modal list left it: top %q focus %q", r.TopModal(), r.Focus)
 	}
 }

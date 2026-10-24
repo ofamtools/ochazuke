@@ -19,14 +19,18 @@
         │                                   confirm                    │
         │   d esc       mode.leave          Return from a pending mode │
         │                                   to the mode it shadowed    │
-        │   j           list.move           Move selection without     │
-        │                                   stealing focus             │
-        │   down        list.move           Move selection without     │
-        │                                   stealing focus             │
-        │   k           list.move           Move selection without     │
-        │                                   stealing focus             │
-        │   up          list.move           Move selection without     │
-        │                                   stealing focus             │
+        │   j           list.move           Move the selection; past   │
+        │                                   the edge, on to the next   │
+        │                                   stop on the page           │
+        │   down        list.move           Move the selection; past   │
+        │                                   the edge, on to the next   │
+        │                                   stop on the page           │
+        │   k           list.move           Move the selection; past   │
+        │                                   the edge, on to the next   │
+        │                                   stop on the page           │
+        │   up          list.move           Move the selection; past   │
+        │                                   the edge, on to the next   │
+        │                                   stop on the page           │
         │   space       list.mark           Toggle the mark on a row   │
         │                                   (the selected row by       │
         │                                   default) for fan-out verbs │
@@ -54,11 +58,7 @@
         │   }           focus.next          Move the focus to the next │
         │                                   focus stop (or region) in  │
         │                                   drawing order, wrapping,   │
-        │                                   landing on its remembered  │
-        │                                   child                      │
-        │   {           focus.previous      Move the focus to the      │
-        │                                   previous focus stop (or    │
-        │ 1–18 / 31                                                    │
+        │ 1–17 / 31                                                    │
         │ j list.move · down list.move · k list.move · up list.move ·… │
         ╰──────────────────────────────────────────────────────────────╯
 

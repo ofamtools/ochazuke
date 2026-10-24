@@ -113,11 +113,11 @@ Root package `ochazuke` is flat: 42 source files, 32 test files. Each entry list
 
 ### instance.go
 
-- lines: 185
+- lines: 190
 - purpose: Instance is one addressable thing on screen: a page, a list, a list row, a modal body, or an input.
 - types: Instance, Payload, InstanceOption (func)
 - methods: Payload(1), Runtime(6)
-- funcs: Parent, Kind, Focus, CloseOnDetach, FocusOnClose
+- funcs: Parent, Kind, Focus, CloseOnDetach, FocusOnClose, NoSpill
 - leans on: runtime.go(15), noun.go(4), delivery.go(1), input.go(1)
 
 ### layout.go
@@ -131,10 +131,10 @@ Root package `ochazuke` is flat: 42 source files, 32 test files. Each entry list
 
 ### list.go
 
-- lines: 356 · tests: list_test.go
+- lines: 396 · tests: list_test.go
 - purpose: ListItem is application-owned identity, display text, and the registered noun the row answers to.
 - types: ListItem, List
-- methods: List(16), Runtime(1)
+- methods: List(17), Runtime(1)
 - funcs: NewList
 - leans on: runtime.go(40), noun.go(17), instance.go(16), delivery.go(2)
 

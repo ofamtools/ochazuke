@@ -58,7 +58,7 @@ func (p Payload) empty() bool {
 
 type instanceSpec struct {
 	parent, noun, focus, closeFocus string
-	closeOnDetach                   bool
+	closeOnDetach, noSpill          bool
 }
 
 // InstanceOption configures the instance constructors: Instance, AddPage,
@@ -90,6 +90,11 @@ func CloseOnDetach() InstanceOption { return func(s *instanceSpec) { s.closeOnDe
 func FocusOnClose(id string) InstanceOption {
 	return func(s *instanceSpec) { s.closeFocus = id }
 }
+
+// NoSpill makes a list trap its motions: list.move past its last (first)
+// row stays on that row instead of moving the focus to the next (previous)
+// stop on the page. For a list that must keep the focus, such as a picker.
+func NoSpill() InstanceOption { return func(s *instanceSpec) { s.noSpill = true } }
 
 // Instance registers a plain instance: a page body, a panel, a modal body.
 // Its noun is defined when it does not exist yet. Registering an existing id

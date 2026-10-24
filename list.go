@@ -33,6 +33,7 @@ type List struct {
 	selected int
 	offset   int
 	marks    map[string]bool
+	noSpill  bool // NoSpill: list.move clamps at the edges instead of spilling
 }
 
 // NewList is AddList for callers that hold the runtime as a value.
@@ -41,8 +42,8 @@ func NewList(r *Runtime, id string, items []ListItem, opts ...InstanceOption) (*
 }
 
 // AddList registers a list instance of the list noun with its rows. Options:
-// Parent(id) (default app) and Kind(noun) for a list that answers to its
-// own noun as well.
+// Parent(id) (default app), Kind(noun) for a list that answers to its
+// own noun as well, and NoSpill() for a list whose motions stay inside it.
 func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (*List, error) {
 	if id == "" {
 		return nil, errors.New("list ID must be nonempty")
@@ -57,7 +58,7 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 	if r.Instances[spec.parent] == nil {
 		return nil, fmt.Errorf("unknown parent %q", spec.parent)
 	}
-	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}}
+	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}, noSpill: spec.noSpill}
 	r.Instance(id, Parent(spec.parent), Kind(spec.noun), FocusOnClose(spec.closeFocus))
 	r.Instances[id].Component = list
 	if err := list.SetItems(items); err != nil {
@@ -141,6 +142,43 @@ func (l *List) Move(delta int) {
 		l.selected = next
 		l.syncFocus(previous, nil)
 	}
+}
+
+// spill is list.move past an edge of a focused list on a page: delta beyond
+// the last row moves the focus to the next stop in drawing order (a list on
+// its first row), before the first row to the previous stop (a list on its
+// last row); other stops land as a focus jump does. It reports false, and
+// the move clamps, for a list that opted out (NoSpill), a list not holding
+// the focus, one in a modal, and at the page's first and last stop: motions
+// never wrap.
+func (l *List) spill(delta int) bool {
+	inside := l.selected >= 0 && l.selected+delta >= 0 && l.selected+delta < len(l.items)
+	if delta == 0 || inside || l.noSpill || !l.Focused() {
+		return false
+	}
+	root := l.r.focusRoot()
+	if l.r.PageOf(root) == nil {
+		return false
+	}
+	ring, _ := l.r.units(root, l.r.focusable)
+	i := slices.Index(ring, l.id)
+	step := 1
+	if delta < 0 {
+		step = -1
+	}
+	if i < 0 || i+step < 0 || i+step >= len(ring) {
+		return false
+	}
+	next := ring[i+step]
+	if other := l.r.List(next); other != nil && other.Len() > 0 {
+		row := 0
+		if step < 0 {
+			row = other.Len() - 1
+		}
+		other.Move(row - other.selected)
+	}
+	l.r.setFocus(l.r.landing(next))
+	return true
 }
 
 // Select changes the selected row by stable ID without taking focus.
@@ -303,8 +341,10 @@ func registerLists(r *Runtime) {
 		run               func(*List, Context, Arguments) (any, error)
 	}{
 		{"focus", "Focus a list and its selected row", map[string]Parameter{"id": {Type: "string", Required: true}}, func(l *List, _ Context, _ Arguments) (any, error) { return l.Snapshot(), l.Focus() }},
-		{"move", "Move selection without stealing focus", map[string]Parameter{"id": {Type: "string"}, "delta": {Type: "integer", Required: true}}, func(l *List, _ Context, a Arguments) (any, error) {
-			l.Move(IntArg(a, "delta", 0))
+		{"move", "Move the selection; past the edge, on to the next stop on the page", map[string]Parameter{"id": {Type: "string"}, "delta": {Type: "integer", Required: true}}, func(l *List, _ Context, a Arguments) (any, error) {
+			if delta := IntArg(a, "delta", 0); !l.spill(delta) {
+				l.Move(delta)
+			}
 			return l.Snapshot(), nil
 		}},
 		{"select", "Select a list item by stable ID without stealing focus", map[string]Parameter{"id": {Type: "string"}, "item": {Type: "string", Required: true}}, func(l *List, _ Context, a Arguments) (any, error) {
