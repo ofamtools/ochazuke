@@ -38,10 +38,11 @@ The smoke scenario uses the supplied example's IDs. It is not a general validato
 | `bindings.go` | Validate and install the configured binding rows through `Runtime.Bind` |
 | `pages.go` | Named page and modal renderers |
 | `list.go` | Compose the shared selectable list and a companion editor using existing panels |
+| `terminal.go` | The echo stream (the example's stand-in for a daemon client) and the console page renderer around a terminal instance |
 | `config/app.json` | Application title, initial page, custom modes, palette instance sources/default actions, theme, and density |
 | `config/instances.json` | Instances (`id`, `noun`, `parent`) and bare row nouns (with their `verbs`) used for action and binding resolution |
 | `config/inputs.json` | Initial values, parent instance, multiline flag, `noun: "prompt"` for Readline-only fields, and path filters |
-| `config/pages.json` | Page order, titles, starting focus, renderer names, field lists, and sample list records |
+| `config/pages.json` | Page order, titles, starting focus, renderer names (`workspace`, `text`, `list`, `terminal`), field lists, and sample list records |
 | `config/actions.json` | Verb/noun schemas, handler names, and `on` (the noun whose instances override an operation) |
 | `config/bindings.json` | The framework's binding rows: `noun` or `instance`, `mode`, `keys` or `pattern`, `request` (`null` unbinds), `from`, `when` |
 | `config/modals.json` | Modal titles, renderer names, and editable inputs |
@@ -83,6 +84,7 @@ The registry identifier is `greet.workspace` (`verb.noun`). The CLI spelling is 
 - **Paths** contains a file input, a directory input, and a multiline paths input. In normal mode, `Ctrl-F` or Enter opens the picker with the focused input's configured filter. Tab cycles fields. File and directory selection are both supported.
 - **Items** contains a reusable flat list and a Readline-only note. From startup, press `Ctrl-J` twice to open it. Tab switches list/editor focus. In the list, `j/k` or arrows select, `r` reorders records while preserving the selected ID, and `x` removes the selected sample row. Rows name nouns: on the repository row `f` fetches; on a worktree row `o` or Enter opens and `d` removes; on a branch row `c` or Enter checks out; Enter on the repository row inspects the context. `?` opens a modal listing the focused row's noun and effective keys. In the editor those letters type text instead. Tab back to the list before using normal-mode page shortcuts.
 - **Guide** (`help`) is a retained text page. Help can also open as a modal.
+- **Console** (`console`) holds a terminal instance (`pane`) under the page, fed by the example's echo stream. Opening the page attaches: every key goes to the pane, `ctrl+a` is the leader. Under it `d` detaches (focus returns to the page; Enter re-attaches), `:` opens the palette, `?` lists the pane's keys, `Ctrl-J/K` switch pages, `ctrl+a` sends itself and any other key sends the leader and itself. A leader left alone past the binding timeout is sent on its own. The page was added without touching the framework package: `pages.json`, `instances.json`, `bindings.json`, `terminal.go` and the `terminal` renderer branch in `pages.go`.
 - `Ctrl-S` invokes the configured save action in any mode. The `notes-editor` noun overrides the application handler while the notes field is focused. This example records state in memory; it does not save a project to disk.
 - `Ctrl-H` opens help. `Ctrl-O` opens the editable confirmation modal. From its editor context, `Ctrl-N` opens the details modal. Closing a modal restores its parent context.
 - In normal mode, `g s` summarizes the workspace and `g h` invokes the parameterized greeting.

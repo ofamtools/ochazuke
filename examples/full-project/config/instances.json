@@ -6,6 +6,7 @@
   {"id": "items", "noun": "page"},
   {"id": "item-editor", "noun": "item-editor", "parent": "items"},
   {"id": "help", "noun": "page"},
+  {"id": "console", "noun": "page"},
   {"noun": "repo", "verbs": ["fetch"]},
   {"noun": "worktree", "verbs": ["open", "remove"]},
   {"noun": "branch", "verbs": ["checkout"]}

@@ -21,7 +21,7 @@ func plain(text string) string {
 
 func registerPages(m *ochazuke.Model, specs []PageConfig) error {
 	for _, spec := range specs {
-		if spec.Renderer != "workspace" && spec.Renderer != "text" && spec.Renderer != "list" {
+		if spec.Renderer != "workspace" && spec.Renderer != "text" && spec.Renderer != "list" && spec.Renderer != "terminal" {
 			return fmt.Errorf("page %q: unknown renderer %q", spec.ID, spec.Renderer)
 		}
 		for _, id := range spec.Inputs {
@@ -36,6 +36,19 @@ func registerPages(m *ochazuke.Model, specs []PageConfig) error {
 		}
 		if spec.Renderer == "list" && (len(spec.Inputs) != 1 || focusedInput) {
 			return fmt.Errorf("list page %q requires one companion input and a list-focused start", spec.ID)
+		}
+		// A terminal page starts on its pane, which it creates under the page
+		// fed by the application's stream; the framework owns no PTY.
+		var term *ochazuke.Terminal
+		if spec.Renderer == "terminal" {
+			if len(spec.Inputs) != 0 || spec.Focus == "" || m.Runtime.Instances[spec.Focus] != nil {
+				return fmt.Errorf("terminal page %q requires a fresh pane id as focus and no inputs", spec.ID)
+			}
+			var err error
+			term, err = m.Runtime.AddTerminal(spec.Focus, newEchoStream(), ochazuke.Parent(spec.ID))
+			if err != nil {
+				return fmt.Errorf("page %q: %w", spec.ID, err)
+			}
 		}
 		var list *ochazuke.List
 		if spec.Renderer == "list" {
@@ -52,6 +65,9 @@ func registerPages(m *ochazuke.Model, specs []PageConfig) error {
 			}
 			if spec.Renderer == "list" {
 				return listPageView(r, list, spec, styles, width, height)
+			}
+			if spec.Renderer == "terminal" {
+				return terminalPageView(r, term, spec, styles, width, height)
 			}
 			return workspaceView(r, r.PageOf(spec.ID).Frame, spec, styles, width, height)
 		}

@@ -95,7 +95,7 @@ func run(args []string) error {
 		if err := smokeExample(m); err != nil {
 			return err
 		}
-		fmt.Println("full-project smoke: actions, noun and instance rows, review mode, page/modal restoration, picker filters, palette, appearance, editing, history, registers, macros, list focus/refresh, row nouns, confirm and fan-out: PASS")
+		fmt.Println("full-project smoke: actions, noun and instance rows, review mode, page/modal restoration, picker filters, palette, appearance, editing, history, registers, macros, list focus/refresh, row nouns, confirm, fan-out and the console terminal: PASS")
 		return nil
 	}
 	runFlags := flag.NewFlagSet("run", flag.ContinueOnError)
@@ -145,7 +145,7 @@ func smokeExample(m *ochazuke.Model) error {
 			return fmt.Errorf("smoke requires example input %q", id)
 		}
 	}
-	for _, id := range []string{"overview", "paths", "help"} {
+	for _, id := range []string{"overview", "paths", "help", "console"} {
 		if r.PageOf(id) == nil {
 			return fmt.Errorf("smoke requires example page %q", id)
 		}
@@ -169,11 +169,27 @@ func smokeExample(m *ochazuke.Model) error {
 		}
 		return value
 	}
+	// pending holds the commands Update returned, as a Bubble Tea program
+	// would run them: the pane's frame reads among them. frames runs them and
+	// delivers what they produce.
+	var pending []tea.Cmd
+	update := func(msg tea.Msg) {
+		if _, cmd := m.Update(msg); cmd != nil {
+			pending = append(pending, cmd)
+		}
+	}
+	frames := func() {
+		cmds := append(pending, r.PendingCommands())
+		pending = nil
+		for _, msg := range runCommands(tea.Batch(cmds...)) {
+			update(msg)
+		}
+	}
 	key := func(message tea.KeyPressMsg) {
 		if failure != nil {
 			return
 		}
-		m.Update(message)
+		update(message)
 		if m.Status != "" {
 			failure = fmt.Errorf("smoke key %q: %s", message.String(), m.Status)
 		}
@@ -184,7 +200,7 @@ func smokeExample(m *ochazuke.Model) error {
 	// press sends one named key ("ctrl+s", "esc", "tab") or types text rune by
 	// rune, as a Bubble Tea v2 terminal delivers it.
 	press := func(name string) {
-		special := map[string]rune{"esc": tea.KeyEscape, "tab": tea.KeyTab, "space": tea.KeySpace}
+		special := map[string]rune{"esc": tea.KeyEscape, "tab": tea.KeyTab, "space": tea.KeySpace, "enter": tea.KeyEnter}
 		if code, ok := special[name]; ok {
 			msg := tea.KeyPressMsg{Code: code}
 			if name == "space" {
@@ -360,7 +376,7 @@ func smokeExample(m *ochazuke.Model) error {
 			return
 		}
 		r.Deliver(msg)
-		drain(r.PendingCommands())
+		drain(picker.PendingCommand())
 	}
 	for _, item := range []struct{ input, filter, path string }{{"source", "file", "release.txt"}, {"destination", "dir", "output"}, {"attachments", "any", "release.txt"}} {
 		call("focus", "input", "", ochazuke.Arguments{"id": item.input})
@@ -468,5 +484,70 @@ func smokeExample(m *ochazuke.Model) error {
 	if failure != nil {
 		return failure
 	}
+	// The console page: a terminal instance under the page, fed by the
+	// example's echo stream, driven only through the public API and rows.
+	call("open", "page", "", ochazuke.Arguments{"id": "console"})
+	expect("console starts on its pane", r.FocusID(), "pane")
+	expect("pane keys are terminal mode", r.Mode(r.Context()), "terminal")
+	term := r.Terminal("pane")
+	frames()
+	expect("first frame delivered", len(term.Frame().Lines) > 0, true)
+	binding("l", "s", "enter")
+	frames()
+	paneText := func() string { return strings.Join(term.Frame().Lines, "\n") }
+	expect("pane echoes what was sent", strings.Contains(paneText(), "echo: ls"), true)
+	binding("ctrl+a", "x")
+	frames()
+	expect("unbound leader key forwards leader and key", strings.HasSuffix(paneText(), "$ <ctrl+a>x"), true)
+	expect("back in terminal mode", r.Mode(r.Context()), "terminal")
+	binding("ctrl+a", ":")
+	expect("leader-bound key opens the palette", m.Palette.IsOpen(), true)
+	call("close", "palette", "", nil)
+	expect("palette returns to the pane", r.FocusID(), "pane")
+	terminalKeys := func() []string {
+		var keys []string
+		rows, _ := call("list", "bindings", "pane", nil).([]ochazuke.Binding)
+		for _, b := range rows {
+			keys = append(keys, b.Keys+b.Pattern+"="+b.Request.Verb)
+		}
+		return keys
+	}
+	expect("terminal mode lists the terminal table only", terminalKeys(), []string{"ctrl+a=", "any=send", "paste=paste"})
+	binding("ctrl+a", "d")
+	expect("leader d detaches to the page", r.Context().Path, []string{"app", "console"})
+	binding("x")
+	expect("detached pane takes no keys", strings.HasSuffix(paneText(), "$ <ctrl+a>x"), true)
+	binding("enter")
+	expect("enter re-attaches", r.FocusID(), "pane")
+	update(tea.WindowSizeMsg{Width: 100, Height: 30})
+	// Rendering sizes the pane to its panel, which the stream answers with a
+	// frame; a read with nothing changed would wait, as it does in a program.
+	m.View()
+	frames()
+	rendered := m.View()
+	expect("pane renders inside the page", strings.Contains(plain(rendered.Content), "echo: ls"), true)
+	expect("pane cursor is the real cursor", rendered.Cursor != nil && rendered.Cursor.Shape == tea.CursorBar, true)
+	if failure != nil {
+		return failure
+	}
 	return nil
+}
+
+// runCommands executes a command tree synchronously and returns its messages.
+func runCommands(cmd tea.Cmd) []tea.Msg {
+	if cmd == nil {
+		return nil
+	}
+	msg := cmd()
+	if batch, ok := msg.(tea.BatchMsg); ok {
+		var out []tea.Msg
+		for _, child := range batch {
+			out = append(out, runCommands(child)...)
+		}
+		return out
+	}
+	if msg == nil {
+		return nil
+	}
+	return []tea.Msg{msg}
 }

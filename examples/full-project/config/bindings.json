@@ -30,5 +30,10 @@
   {"noun": "worktree", "mode": "normal", "keys": "enter", "request": {"verb": "open", "noun": "worktree"}},
   {"noun": "worktree", "mode": "normal", "keys": "d", "request": {"verb": "remove", "noun": "worktree"}},
   {"noun": "branch", "mode": "normal", "keys": "c", "request": {"verb": "checkout", "noun": "branch"}},
-  {"noun": "branch", "mode": "normal", "keys": "enter", "request": {"verb": "checkout", "noun": "branch"}}
+  {"noun": "branch", "mode": "normal", "keys": "enter", "request": {"verb": "checkout", "noun": "branch"}},
+  {"instance": "console", "mode": "normal", "keys": "enter", "request": {"verb": "attach", "noun": "terminal", "args": {"id": "pane"}}},
+  {"noun": "terminal", "mode": "leader_pending", "keys": ":", "request": {"verb": "open", "noun": "palette"}},
+  {"noun": "terminal", "mode": "leader_pending", "keys": "?", "request": {"verb": "open", "noun": "workspace", "args": {"id": "keys"}}},
+  {"noun": "terminal", "mode": "leader_pending", "keys": "ctrl+j", "request": {"verb": "next", "noun": "page"}},
+  {"noun": "terminal", "mode": "leader_pending", "keys": "ctrl+k", "request": {"verb": "previous", "noun": "page"}}
 ]
