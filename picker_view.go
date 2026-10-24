@@ -123,7 +123,7 @@ func (p *Picker) bindingHelp() string {
 		if binding.Request.Noun != "picker" {
 			continue
 		}
-		hints = append(hints, rowHint(p.Runtime, binding))
+		hints = append(hints, rowHint(binding))
 	}
 	return strings.Join(hints, " · ")
 }

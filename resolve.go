@@ -29,6 +29,18 @@ type level struct {
 	capture bool
 }
 
+// name is the noun a level answers as: its noun table's, else its
+// instance's.
+func (lv level) name() string {
+	if lv.noun != nil {
+		return lv.noun.Name
+	}
+	if lv.inst != nil {
+		return lv.inst.Noun
+	}
+	return ""
+}
+
 // walk is the full resolution order for a focus: the capture pass, the
 // stack outer-first (app first, the editor fallback last) reading only
 // capture rows, then the bubbling pass, the stack inner-first reading the
@@ -453,12 +465,30 @@ func (r *Runtime) ListBindings(focus string) []Binding {
 // walk, as it does for Dispatch. A row whose operation's verb guard is
 // false at the focus is left out.
 func (r *Runtime) bindingRows(focus string) []Binding {
+	rows := r.levelRows(focus)
+	out := make([]Binding, len(rows))
+	for i, row := range rows {
+		out[i] = row.Binding
+	}
+	return out
+}
+
+// levelRow is one row of bindingRows with the noun of the level that
+// answers with it (the instance's noun, "modal", "editor").
+type levelRow struct {
+	Binding
+	level string
+}
+
+// levelRows is bindingRows with each row's level.
+func (r *Runtime) levelRows(focus string) []levelRow {
 	mode := r.Mode
 	base, prefix := baseAndPrefix(mode)
 	exclusive := r.pendingModes[mode.Name] || mode.Payload.Shadow != nil
 	seen := map[string]bool{}
-	var out []Binding
+	var out []levelRow
 	var capture bool
+	var name string
 	take := func(rows []Binding) {
 		for _, b := range rows {
 			if b.Unbind || b.Capture != capture {
@@ -484,11 +514,12 @@ func (r *Runtime) bindingRows(focus string) []Binding {
 				continue
 			}
 			seen[id] = true
-			out = append(out, b)
+			out = append(out, levelRow{Binding: b, level: name})
 		}
 	}
 	for _, lv := range r.walk(focus) {
 		capture = lv.capture
+		name = lv.name()
 		before := len(out)
 		if lv.inst != nil {
 			take(rowsForMode(lv.inst.Bindings, base, exclusive))
@@ -510,7 +541,7 @@ func (r *Runtime) bindingRows(focus string) []Binding {
 
 // answersEveryKey reports whether a level's rows include an unguarded any
 // row, which answers every key before an outer level is consulted.
-func answersEveryKey(rows []Binding) bool {
+func answersEveryKey(rows []levelRow) bool {
 	for _, b := range rows {
 		if b.Pattern == Any && b.When == "" {
 			return true

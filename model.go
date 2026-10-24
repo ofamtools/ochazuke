@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -282,46 +283,76 @@ func (m *Model) footer() Footer {
 }
 
 // BindingHints renders the rows a focus answers to in its current mode as a
-// hint line, innermost level first: "ctrl+j page.next: Next page · : palette.open: Open the palette".
+// hint line, innermost level first: "ctrl+j page.next · : palette.open".
 // It is the data bindings.list prints, so a hint never names a key that is
-// not bound, and each row carries its operation's description.
+// not bound; the descriptions are in BindingHelp (the ? modal).
 func BindingHints(r *Runtime, focus string) string {
 	var hints []string
 	for _, b := range r.bindingRows(focus) {
-		hints = append(hints, rowHint(r, b))
+		hints = append(hints, rowHint(b))
 	}
 	return strings.Join(hints, " · ")
 }
 
 // rowHint is one row as a hint: its key or pattern, then the row's own Hint
-// when it has one, else the operation it runs and that operation's
-// description cut at its first clause.
-func rowHint(r *Runtime, b Binding) string {
-	key := b.Keys
-	if key == "" {
-		key = "<" + b.Pattern + ">"
-	}
-	hint := modalLabel(key)
+// when it has one, else the operation it runs (noun.verb).
+func rowHint(b Binding) string {
+	hint := modalLabel(rowKey(b))
 	if b.Hint != "" {
 		return hint + " " + modalLabel(b.Hint)
 	}
 	if b.Request.Verb == "" {
 		return hint
 	}
-	hint += " " + modalLabel(b.Request.Key())
-	if short := shortDescription(r.Operations[b.Request.Key()].Description); short != "" {
-		hint += ": " + short
-	}
-	return hint
+	return hint + " " + modalLabel(b.Request.Key())
 }
 
-// shortDescription is an operation description cut at its first clause: the
-// text before the first ":", ";", "," or parenthesis, without a final period.
-func shortDescription(description string) string {
-	if i := strings.IndexAny(description, ":;,("); i >= 0 {
-		description = description[:i]
+// rowKey is a row's key sequence, or its pattern as <pattern>.
+func rowKey(b Binding) string {
+	if b.Keys == "" {
+		return "<" + b.Pattern + ">"
 	}
-	return strings.TrimSuffix(strings.TrimSpace(description), ".")
+	return b.Keys
+}
+
+// HelpRow is one binding as the help shows it: the key, the operation it
+// runs (noun.verb, or the row's Hint when it has one), the operation's
+// description and the noun of the level that answers with it.
+type HelpRow struct {
+	Key         string `json:"key"`
+	Operation   string `json:"operation"`
+	Description string `json:"description,omitempty"`
+	Noun        string `json:"noun"`
+}
+
+// BindingHelp lists the rows a focus answers to in its current mode with
+// their descriptions, grouped by the noun of the level that answers, from
+// the innermost instance outward (a capture row sits with its own level,
+// so app's ctrl+c comes after the focused row's verbs).
+func BindingHelp(r *Runtime, focus string) []HelpRow {
+	rows := r.levelRows(focus)
+	var order []string
+	for _, capture := range []bool{false, true} {
+		for _, row := range rows {
+			if row.Capture == capture && !slices.Contains(order, row.level) {
+				order = append(order, row.level)
+			}
+		}
+	}
+	var out []HelpRow
+	for _, noun := range order {
+		for _, row := range rows {
+			if row.level != noun {
+				continue
+			}
+			op := row.Hint
+			if op == "" && row.Request.Verb != "" {
+				op = row.Request.Key()
+			}
+			out = append(out, HelpRow{Key: rowKey(row.Binding), Operation: op, Description: r.Operations[row.Request.Key()].Description, Noun: noun})
+		}
+	}
+	return out
 }
 
 // View renders the shell as a full-screen tea.View; View().Content is the

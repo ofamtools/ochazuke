@@ -489,13 +489,17 @@ func TestPaletteRunsInTheCapturedContext(t *testing.T) {
 	}
 }
 
-// The enter hint names both outcomes (the hint cuts at the first comma, so
-// the description has none before its semicolon): nothing is highlighted until
-// palette.move, so appending a completion is the exception.
+// The footer hint is the key and noun.verb only; the description (both
+// outcomes of enter: nothing is highlighted until palette.move, so appending
+// a completion is the exception) is in BindingHelp, the ? modal's rows.
 func TestPaletteEnterHintLeadsWithRun(t *testing.T) {
 	r, _, _ := lineRuntime(t)
 	hints := BindingHints(r, r.Focus)
-	if !strings.Contains(hints, "enter palette.run: Run the line or append the highlighted completion ·") {
+	if !strings.HasPrefix(hints, "enter palette.run · ") || strings.Contains(hints, ":") {
 		t.Fatalf("hints: %q", hints)
+	}
+	help := BindingHelp(r, r.Focus)
+	if len(help) == 0 || help[0].Key != "enter" || help[0].Operation != "palette.run" || !strings.HasPrefix(help[0].Description, "Run the line or append the highlighted completion") || help[0].Noun != "palette" {
+		t.Fatalf("help: %+v", help)
 	}
 }

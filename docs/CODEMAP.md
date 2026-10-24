@@ -142,12 +142,12 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### model.go
 
-- lines: 605
+- lines: 636
 - purpose: ModalView renders one modal without replacing or inspecting its parent page.
-- types: ModalView, Model
+- types: ModalView, Model, HelpRow
 - methods: Model(18)
-- funcs: NewModel, BindingHints, InputView, InputBlock
-- leans on: runtime.go(65), block.go(32), noun.go(17), layout.go(11)
+- funcs: NewModel, BindingHints, BindingHelp, InputView, InputBlock
+- leans on: runtime.go(69), block.go(32), noun.go(21), layout.go(11)
 
 ### noun.go
 
@@ -264,11 +264,11 @@ Root package `ochazuke` is flat: 40 source files, 29 test files. Each entry list
 
 ### resolve.go
 
-- lines: 681 · tests: resolve_test.go
+- lines: 712 · tests: resolve_test.go
 - purpose: KeyEvent is what a row receives: the key, the mode it was resolved in and the focused instance.
 - types: KeyEvent
-- methods: Binding(1), Runtime(19)
-- leans on: runtime.go(77), noun.go(42), instance.go(36), delivery.go(11)
+- methods: Binding(1), Runtime(20), level(1)
+- leans on: runtime.go(78), noun.go(45), instance.go(36), delivery.go(11)
 
 ### runtime.go
 
@@ -393,6 +393,7 @@ Exported type -> file.
 - Guard -> noun.go
 - Handler -> runtime.go
 - Header -> layout.go
+- HelpRow -> model.go
 - HistoryContext -> history.go
 - HistoryEntry -> history.go
 - HistoryResult -> history.go
