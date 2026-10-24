@@ -7,22 +7,23 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"ochazuke"
+	"ochazuke/internal/keytest"
 )
 
 func TestKeybindingHistory(t *testing.T) {
 	m := &keybindingModel{width: 80, height: 24, sandbox: true}
 	for range keyHistorySize {
-		m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("x")})
+		keytest.Type(m, "x")
 	}
-	m.Update(tea.KeyMsg{Type: tea.KeyTab})
-	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("a"), Alt: true})
+	keytest.Press(m, "tab")
+	keytest.Press(m, "alt+a")
 	view := m.View()
 	newest := strings.Index(view, `202  "alt+a"`)
 	previous := strings.Index(view, `201  "tab"`)
 	if newest < 0 || previous <= newest {
 		t.Fatalf("expected normalized keys newest first after history wraps:\n%s", view)
 	}
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+	cmd := keytest.Press(m, "ctrl+c")
 	if cmd == nil {
 		t.Fatal("Ctrl-C did not exit")
 	}
@@ -39,30 +40,33 @@ func TestSandboxBindings(t *testing.T) {
 		}
 	}
 	for _, step := range []struct {
-		key  tea.KeyMsg
-		want string
+		key   string
+		paste bool
+		want  string
 	}{
-		{tea.KeyMsg{Type: tea.KeyCtrlS}, "ACTION: save"},
-		{tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("z")}, "unmatched"},
-		{tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("g")}, "pending: g"},
-		{tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("g")}, "ACTION: go-top"},
-		{tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("gg")}, "ACTION: go-top"},
-		{tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("g")}, "pending: g"},
-		{tea.KeyMsg{Type: tea.KeyEsc}, "sequence cancelled"},
-		{tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("x")}, "ACTION: new"},
-		{tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("x"), Paste: true}, "paste (not dispatched)"},
+		{"ctrl+s", false, "ACTION: save"},
+		{"z", false, "unmatched"},
+		{"g", false, "pending: g"},
+		{"g", false, "ACTION: go-top"},
+		{"gg", false, "ACTION: go-top"},
+		{"g", false, "pending: g"},
+		{"esc", false, "sequence cancelled"},
+		{"x", false, "ACTION: new"},
+		{"x", true, "paste (not dispatched)"},
 	} {
-		m.Update(step.key)
+		if step.paste {
+			keytest.Paste(m, step.key)
+		} else {
+			keytest.Press(m, step.key)
+		}
 		if got := m.results[(m.count-1)%keyHistorySize]; got != step.want {
-			t.Fatalf("key %q: got %q, want %q", step.key.String(), got, step.want)
+			t.Fatalf("key %q: got %q, want %q", step.key, got, step.want)
 		}
 		if !strings.Contains(m.View(), step.want) {
 			t.Fatalf("missing visible outcome %q", step.want)
 		}
 	}
 }
-
-func runeKey(s string) tea.KeyMsg { return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)} }
 
 func TestSandboxTimeoutResolvesLongestFallback(t *testing.T) {
 	m := &keybindingModel{width: 100, height: 24, sandbox: true, runtime: ochazuke.NewRuntime()}
@@ -72,7 +76,7 @@ func TestSandboxTimeoutResolvesLongestFallback(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	_, cmd := m.Update(runeKey("g"))
+	cmd := keytest.Type(m, "g")
 	if cmd == nil || m.results[0] != "pending: g" {
 		t.Fatalf("ambiguous g should defer with a timer: cmd=%v result=%q", cmd != nil, m.results[0])
 	}
@@ -85,15 +89,15 @@ func TestSandboxTimeoutResolvesLongestFallback(t *testing.T) {
 		t.Fatalf("timeout should run the fallback in the same row: count=%d result=%q", m.count, m.results[0])
 	}
 	// A pure prefix times out and clears without inventing a key row.
-	_, cmd = m.Update(runeKey("q"))
+	cmd = keytest.Type(m, "q")
 	m.Update(cmd().(ochazuke.BindingTimeoutMsg))
 	if m.count != 2 || m.results[1] != "sequence timed out" || m.runtime.Pending != "" {
 		t.Fatalf("pure prefix timeout: count=%d result=%q pending=%q", m.count, m.results[1], m.runtime.Pending)
 	}
 	// Mismatch with a completed fallback consumes the key.
 	m.runtime.BindingTimeout = time.Minute
-	m.Update(runeKey("g"))
-	m.Update(runeKey("k"))
+	keytest.Type(m, "g")
+	keytest.Type(m, "k")
 	if m.results[3] != "ACTION: single" {
 		t.Fatalf("mismatch should run fallback: %q", m.results[3])
 	}
@@ -112,11 +116,11 @@ func TestSandboxCoalescedKeysBatchTimers(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	_, cmd := m.Update(runeKey("g"))
+	cmd := keytest.Type(m, "g")
 	if cmd == nil {
 		t.Fatal("single ambiguous key should schedule a timer")
 	}
-	_, cmd = m.Update(runeKey("gg"))
+	cmd = keytest.Type(m, "gg")
 	if cmd == nil || m.results[1] != "ACTION: double" || m.results[2] != "pending: g" {
 		t.Fatalf("coalesced keys lost their commands or results: %v", m.results[:3])
 	}
@@ -152,7 +156,7 @@ func TestSandboxResizeKeepsLatestOutcomeVisible(t *testing.T) {
 	if err := m.addBinding("x=save"); err != nil {
 		t.Fatal(err)
 	}
-	m.Update(runeKey("x"))
+	keytest.Type(m, "x")
 	m.Update(tea.WindowSizeMsg{Width: 60, Height: 18})
 	view := m.View()
 	latest, _, found := strings.Cut(view, "History")

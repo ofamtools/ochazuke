@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	"ochazuke/internal/keytest"
 )
 
 func timedBindings(t *testing.T, keys ...string) (*Runtime, *[]string) {
@@ -165,7 +165,7 @@ func TestModelExecutesTimedBindingOnEventLoop(t *testing.T) {
 	r, calls := timedBindings(t, "g", "g g")
 	r.BindingTimeout = time.Millisecond
 	m := NewModel(r)
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("g")})
+	cmd := keytest.Type(m, "g")
 	if cmd == nil || len(*calls) != 0 {
 		t.Fatalf("missing timer or premature action: %v", *calls)
 	}

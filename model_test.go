@@ -1,8 +1,9 @@
 package ochazuke
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
 	"testing"
+
+	"ochazuke/internal/keytest"
 )
 
 func TestModelCoalescedTypingPreservesModeTransitions(t *testing.T) {
@@ -11,12 +12,12 @@ func TestModelCoalescedTypingPreservesModeTransitions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("iabc")})
+	keytest.Type(m, "iabc")
 	in := m.Runtime.Inputs["directory"]
 	if string(in.Text) != "abc/tmp" || in.Mode != "insert" {
 		t.Fatalf("coalesced iabc: text=%q mode=%q; want abc/tmp in insert mode", string(in.Text), in.Mode)
 	}
-	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("ctrl+a"), Paste: true})
+	keytest.Paste(m, "ctrl+a")
 	if string(in.Text) != "abcctrl+a/tmp" {
 		t.Fatalf("paste interpreted as command: %q", string(in.Text))
 	}
@@ -27,8 +28,8 @@ func TestModelCoalescedPaletteSearchNavigatesPage(t *testing.T) {
 	if err := m.Palette.Open(); err != nil {
 		t.Fatal(err)
 	}
-	typed := func(s string) { m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)}) }
-	enter := func() { m.Update(tea.KeyMsg{Type: tea.KeyEnter}) }
+	typed := func(s string) { keytest.Type(m, s) }
+	enter := func() { keytest.Press(m, "enter") }
 	typed("open")
 	enter()
 	typed("page")

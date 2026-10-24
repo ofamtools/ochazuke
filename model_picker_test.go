@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"ochazuke/internal/keytest"
 )
 
 func TestModelPickerProcessesCoalescedTypingAndCalls(t *testing.T) {
@@ -46,8 +47,8 @@ func TestModelPickerProcessesCoalescedTypingAndCalls(t *testing.T) {
 		t.Fatal(response.Error)
 	}
 	drain(cmd)
-	m.Update(tea.KeyMsg{Type: tea.KeyCtrlE})
-	_, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("/ntt")})
+	keytest.Press(m, "ctrl+e")
+	cmd = keytest.Type(m, "/ntt")
 	drain(cmd)
 	if got := string(m.Runtime.Inputs["picker-path"].Text); got != root+"/ntt" {
 		t.Fatalf("fast typing lost characters: %q", got)
@@ -110,8 +111,8 @@ func TestModelPickerHomeProjectsSelectableBeforeRecursiveScan(t *testing.T) {
 	if view := m.View(); !strings.Contains(view, "project") || !strings.Contains(view, "Indexing/searching") {
 		t.Fatalf("shallow project missing from modal:\n%s", view)
 	}
-	m.Update(tea.KeyMsg{Type: tea.KeyCtrlN})
-	m.Update(tea.KeyMsg{Type: tea.KeyCtrlS})
+	keytest.Press(m, "ctrl+n")
+	keytest.Press(m, "ctrl+s")
 	if got, want := string(m.Runtime.Inputs["directory"].Text), filepath.Join(canonical, "proj", "project"); got != want {
 		t.Fatalf("shallow project selection = %q, want %q", got, want)
 	}

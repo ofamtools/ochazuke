@@ -9,40 +9,40 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"ochazuke"
+	"ochazuke/internal/keytest"
 )
 
 func TestBindingSetupRoundTrip(t *testing.T) {
 	m := &keybindingModel{width: 100, height: 24, runtime: ochazuke.NewRuntime()}
-	typeText := func(s string) { m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)}) }
-	key := func(k tea.KeyType) { m.Update(tea.KeyMsg{Type: k}) }
+	typeText := func(s string) { keytest.Type(m, s) }
+	key := func(k string) { keytest.Press(m, k) }
 	typeText("a")
 	typeText("ctrl+s")
-	key(tea.KeyEnter)
+	key("enter")
 	typeText("save")
-	key(tea.KeyEnter)
+	key("enter")
 	if got := m.bindings(); !reflect.DeepEqual(got, []sandboxBinding{{Keys: "ctrl+s", Action: "save"}}) {
 		t.Fatalf("created bindings: %+v", got)
 	}
-	key(tea.KeyEnter)
-	key(tea.KeyCtrlS)
+	key("enter")
+	key("ctrl+s")
 	if !m.sandbox || m.results[0] != "ACTION: save" {
 		t.Fatalf("sandbox did not execute save: %+v", m.results[0])
 	}
-	key(tea.KeyCtrlG)
+	key("ctrl+g")
 	if m.sandbox {
 		t.Fatal("ctrl+g did not return to setup")
 	}
 	typeText("e")
-	key(tea.KeyTab)
-	key(tea.KeyCtrlU)
+	key("tab")
+	key("ctrl+u")
 	typeText("updated")
-	key(tea.KeyEnter)
+	key("enter")
 	path := filepath.Join(t.TempDir(), "bindings.json")
 	m.path = path
 	typeText("o")
-	key(tea.KeyEnter)
+	key("enter")
 	if m.form != "" {
 		t.Fatalf("export failed: %s", m.notice)
 	}
@@ -51,18 +51,18 @@ func TestBindingSetupRoundTrip(t *testing.T) {
 		t.Fatal("delete did not remove binding")
 	}
 	typeText("i")
-	key(tea.KeyEnter)
+	key("enter")
 	if got := m.bindings(); !reflect.DeepEqual(got, []sandboxBinding{{Keys: "ctrl+s", Action: "updated"}}) {
 		t.Fatalf("imported: %+v", got)
 	}
 	typeText("o")
-	key(tea.KeyEnter)
+	key("enter")
 	if m.form != "overwrite" {
 		t.Fatalf("expected overwrite confirmation, got %q", m.form)
 	}
 	typeText("n")
-	key(tea.KeyEnter)
-	key(tea.KeyCtrlS)
+	key("enter")
+	key("ctrl+s")
 	if m.results[1] != "ACTION: updated" {
 		t.Fatalf("imported action: %q", m.results[1])
 	}
@@ -76,23 +76,23 @@ func TestSetupTimeoutEditPreservedAndInvalidatesStaleTimer(t *testing.T) {
 		}
 	}
 	m.runtime.BindingTimeout = 5 * time.Millisecond
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("g")})
+	cmd := keytest.Type(m, "g")
 	stale := cmd().(ochazuke.BindingTimeoutMsg)
-	m.Update(tea.KeyMsg{Type: tea.KeyCtrlG})
-	typeKeys := func(s string) { m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)}) }
+	keytest.Press(m, "ctrl+g")
+	typeKeys := func(s string) { keytest.Type(m, s) }
 	typeKeys("t")
 	if m.form != "timeout" || !strings.Contains(m.View(), "400ms, 1s") {
 		t.Fatalf("timeout editor not shown: form=%q", m.form)
 	}
-	m.Update(tea.KeyMsg{Type: tea.KeyCtrlU})
+	keytest.Press(m, "ctrl+u")
 	typeKeys("0s")
-	m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	keytest.Press(m, "enter")
 	if m.form != "timeout" || m.runtime.BindingTimeout != 5*time.Millisecond {
 		t.Fatalf("invalid timeout accepted: %q %v", m.notice, m.runtime.BindingTimeout)
 	}
-	m.Update(tea.KeyMsg{Type: tea.KeyCtrlU})
+	keytest.Press(m, "ctrl+u")
 	typeKeys("1s")
-	m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	keytest.Press(m, "enter")
 	if m.form != "" || m.runtime.BindingTimeout != time.Second || !strings.Contains(m.View(), "Timeout: 1s") {
 		t.Fatalf("timeout not applied: %q %v", m.notice, m.runtime.BindingTimeout)
 	}
@@ -163,27 +163,27 @@ func TestBindingFileBrowserSelectsDirectoryAndFile(t *testing.T) {
 	m.openForm("export", filepath.Join(dir, "bindings.json"))
 	browse := func() {
 		t.Helper()
-		_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyCtrlO})
+		cmd := keytest.Press(m, "ctrl+o")
 		if cmd == nil {
 			t.Fatal("browser did not load directory")
 		}
 		m.Update(cmd())
-		m.Update(tea.KeyMsg{Type: tea.KeyCtrlS})
+		keytest.Press(m, "ctrl+s")
 	}
 	browse()
 	want := filepath.Join(out, "bindings.json")
 	if m.form != "export" || m.fields[0].Value() != want {
 		t.Fatalf("directory selection: form=%q path=%q", m.form, m.fields[0].Value())
 	}
-	m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	keytest.Press(m, "enter")
 	m.openForm("import", want)
 	browse()
 	if m.form != "import" || m.fields[0].Value() != want {
 		t.Fatalf("file selection: form=%q path=%q", m.form, m.fields[0].Value())
 	}
-	m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("x")})
+	keytest.Press(m, "enter")
+	keytest.Press(m, "enter")
+	keytest.Type(m, "x")
 	if m.results[0] != "ACTION: selected" {
 		t.Fatalf("selected file's action: %q", m.results[0])
 	}

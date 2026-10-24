@@ -8,6 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
 	"ochazuke"
+	"ochazuke/internal/keytest"
 )
 
 func TestResponsiveFieldsAndModalRestoration(t *testing.T) {
@@ -19,8 +20,8 @@ func TestResponsiveFieldsAndModalRestoration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	key := func(k tea.KeyType) { m.Update(tea.KeyMsg{Type: k}) }
-	key(tea.KeyCtrlJ)
+	key := func(k string) { keytest.Press(m, k) }
+	key("ctrl+j")
 	if m.Runtime.ActivePage != "paths" {
 		t.Fatal("page navigation did not open Paths")
 	}
@@ -41,27 +42,27 @@ func TestResponsiveFieldsAndModalRestoration(t *testing.T) {
 		}
 	}
 	m.Update(tea.WindowSizeMsg{Width: 60, Height: 18})
-	key(tea.KeyTab)
-	key(tea.KeyTab)
+	key("tab")
+	key("tab")
 	if m.Runtime.Context().InputID != "attachments" || !strings.Contains(ansi.Strip(m.View()), "examples") {
 		t.Fatalf("compact layout hid the newly focused field:\n%s", m.View())
 	}
-	key(tea.KeyCtrlS)
+	key("ctrl+s")
 	if !strings.Contains(ansi.Strip(m.View()), "workspace saved") {
 		t.Fatalf("compact layout hid action feedback:\n%s", m.View())
 	}
 	before := m.Runtime.Context().Clone()
-	key(tea.KeyCtrlO)
-	key(tea.KeyCtrlN)
+	key("ctrl+o")
+	key("ctrl+n")
 	if len(m.Runtime.Frames) != 3 {
 		t.Fatal("nested modal did not open")
 	}
-	key(tea.KeyCtrlJ)
+	key("ctrl+j")
 	if m.Runtime.ActivePage != "paths" {
 		t.Fatal("sidebar navigation escaped the active modal")
 	}
-	key(tea.KeyEsc)
-	key(tea.KeyEsc)
+	key("esc")
+	key("esc")
 	if len(m.Runtime.Frames) != 1 || !reflect.DeepEqual(m.Runtime.Context(), before) || !strings.Contains(ansi.Strip(m.View()), "examples") {
 		t.Fatalf("modal close failed to restore selected field: %+v\n%s", m.Runtime.Context(), m.View())
 	}
@@ -69,7 +70,7 @@ func TestResponsiveFieldsAndModalRestoration(t *testing.T) {
 		t.Fatal(err)
 	}
 	initial := ansi.Strip(m.View())
-	key(tea.KeyPgDown)
+	key("pgdown")
 	if ansi.Strip(m.View()) == initial || !strings.Contains(ansi.Strip(m.View()), "▸ Guide") {
 		t.Fatal("scrolling guide moved the sidebar or failed to reveal more content")
 	}

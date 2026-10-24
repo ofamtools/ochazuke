@@ -8,15 +8,16 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
+	"ochazuke/internal/keytest"
 )
 
 func modelType(m *Model, text string, batched bool) {
 	if batched {
-		m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(text)})
+		keytest.Type(m, text)
 		return
 	}
 	for _, ch := range text {
-		m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{ch}})
+		keytest.Type(m, string(ch))
 	}
 }
 
@@ -72,7 +73,7 @@ func TestModelMacroConsumesOnlyOneRegisterCharacter(t *testing.T) {
 			if m.Status != "" || r.Macro.Recording != "a" || in.Pending != "c" || !strings.Contains(ansi.Strip(m.View()), "REC @a") {
 				t.Fatalf("qabc status=%q recording=%q pending=%q", m.Status, r.Macro.Recording, in.Pending)
 			}
-			m.Update(tea.KeyMsg{Type: tea.KeyEscape})
+			keytest.Press(m, "esc")
 			modelType(m, "q", batched)
 			if got := r.Registers["a"].Yank.Text; got != "bc\x1b" {
 				t.Fatalf("recorded register=%q, want b,c,Escape (not part of register name)", got)
@@ -87,8 +88,8 @@ func TestModelMacroRecordingReplayAndLiteralPaste(t *testing.T) {
 			r, in := editorTestRuntime(t, "", true)
 			m := NewModel(r)
 			modelType(m, "qqi", batched)
-			m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("qabc:@"), Paste: true})
-			m.Update(tea.KeyMsg{Type: tea.KeyEscape})
+			keytest.Paste(m, "qabc:@")
+			keytest.Press(m, "esc")
 			modelType(m, "q2@q", batched)
 			if got := string(in.Text); got != "qabc:qabc:qabc:@@@" || in.Mode != "normal" || m.Status != "" || r.Macro.Recording != "" {
 				t.Fatalf("replay text=%q mode=%q status=%q recording=%q", got, in.Mode, m.Status, r.Macro.Recording)
@@ -125,7 +126,7 @@ func TestModelNonCharacterRegisterErrorDoesNotTrapCommands(t *testing.T) {
 			r, in := editorTestRuntime(t, "preserve", true)
 			m := NewModel(r)
 			modelType(m, prefix, true)
-			m.Update(tea.KeyMsg{Type: tea.KeyTab})
+			keytest.Press(m, "tab")
 			if m.Status == "" {
 				t.Fatalf("non-character register error=%q", m.Status)
 			}
@@ -141,7 +142,7 @@ func TestModelPendingMacroDoesNotInterpretPasteAsRegister(t *testing.T) {
 	r, in := editorTestRuntime(t, "preserve", true)
 	m := NewModel(r)
 	modelType(m, "q", true)
-	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("qabc:"), Paste: true})
+	keytest.Paste(m, "qabc:")
 	if m.Status != "" || r.Macro.Pending != "q" || string(in.Text) != "preserve" {
 		t.Fatalf("paste consumed register prefix: status=%q pending=%q text=%q", m.Status, r.Macro.Pending, string(in.Text))
 	}
@@ -158,7 +159,7 @@ func TestModelMacroRecordsPaletteTypingWithoutStopping(t *testing.T) {
 	if !m.Palette.IsActive() || m.Palette.query != "q" || r.Macro.Recording != "q" || m.Status != "" {
 		t.Fatalf("palette typing stopped recording: query=%q recording=%q status=%q", m.Palette.query, r.Macro.Recording, m.Status)
 	}
-	m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+	keytest.Press(m, "ctrl+c")
 	modelType(m, "q", true)
 	want := []MacroKey{{Key: ":"}, {Key: "q"}, {Key: "ctrl+c"}}
 	if got := r.Registers["q"].Keys; !reflect.DeepEqual(got, want) {
@@ -178,18 +179,18 @@ func TestNewModelNavigationDefaultsAndRemovedAliases(t *testing.T) {
 		t.Fatal(err)
 	}
 	m := NewModel(r)
-	m.Update(tea.KeyMsg{Type: tea.KeyCtrlJ})
+	keytest.Press(m, "ctrl+j")
 	if r.ActivePage != "beta" {
 		t.Fatalf("Ctrl-J page=%q, want beta", r.ActivePage)
 	}
-	m.Update(tea.KeyMsg{Type: tea.KeyCtrlK})
+	keytest.Press(m, "ctrl+k")
 	if r.ActivePage != "alpha" {
 		t.Fatalf("Ctrl-K page=%q, want alpha", r.ActivePage)
 	}
-	for _, msg := range []tea.KeyMsg{{Type: tea.KeyCtrlP}, {Type: tea.KeyRight, Alt: true}, {Type: tea.KeyLeft, Alt: true}} {
-		m.Update(msg)
+	for _, key := range []string{"ctrl+p", "alt+right", "alt+left"} {
+		keytest.Press(m, key)
 		if r.ActivePage != "alpha" || m.Palette.IsActive() {
-			t.Fatalf("obsolete key %q navigated: page=%q palette=%t", msg.String(), r.ActivePage, m.Palette.IsActive())
+			t.Fatalf("obsolete key %q navigated: page=%q palette=%t", key, r.ActivePage, m.Palette.IsActive())
 		}
 	}
 	modelType(m, ":", true)
@@ -203,11 +204,11 @@ func TestNewModelNavigationDefaultsAndRemovedAliases(t *testing.T) {
 		t.Fatal(err)
 	}
 	modelType(m, "i:", true)
-	m.Update(tea.KeyMsg{Type: tea.KeyCtrlK})
+	keytest.Press(m, "ctrl+k")
 	if got := string(r.Inputs["alpha-input"].Text); got != ":" || r.ActivePage != "alpha" || m.Palette.IsActive() {
 		t.Fatalf("insert keys text=%q page=%q palette=%t", got, r.ActivePage, m.Palette.IsActive())
 	}
-	m.Update(tea.KeyMsg{Type: tea.KeyCtrlAt})
+	keytest.Press(m, "ctrl+@")
 	if !m.Palette.IsActive() {
 		t.Fatal("Ctrl-Space did not open palette from insert mode")
 	}
