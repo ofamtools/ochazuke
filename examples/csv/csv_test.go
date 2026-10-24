@@ -418,3 +418,12 @@ func TestEmptySheetStartsOnTheGrid(t *testing.T) {
 		t.Fatalf("view:\n%s", view)
 	}
 }
+
+// Every row the CSV app and the grid install, on their nouns and on the
+// cell instances, is a Request to a registered operation or an unbind; see
+// TestBindingRowsAreAtomic in the framework package.
+func TestCSVBindingRowsAreAtomic(t *testing.T) {
+	if err := open(t).r.ValidateBindings(); err != nil {
+		t.Fatal(err)
+	}
+}
