@@ -153,8 +153,9 @@ type Result struct {
 	Story   *Story
 	Failed  []string
 	Err     error
-	Skipped bool // the story carries a skip ("gap: ..."): it ran but cannot fail
-	Updated bool // --update wrote the golden
+	Skipped bool   // the story carries a skip ("gap: ..."): it ran but cannot fail
+	Updated bool   // --update wrote the golden
+	Trace   []Step // the window's steps (the base's prefix excluded)
 }
 
 // OK reports a pass (or a skip).
@@ -168,8 +169,8 @@ type RunOptions struct {
 
 // Run plays a story headless and checks it: each per-step expect after its
 // step, the final expect at the end, else the golden frame.
-func (lib Library) Run(s *Story, opt RunOptions) Result {
-	res := Result{Story: s, Skipped: s.Skip != ""}
+func (lib Library) Run(s *Story, opt RunOptions) (res Result) {
+	res = Result{Story: s, Skipped: s.Skip != ""}
 	story, prefix, err := lib.Resolve(s)
 	if err != nil {
 		res.Err = err
@@ -186,6 +187,8 @@ func (lib Library) Run(s *Story, opt RunOptions) Result {
 		res.Err = fmt.Errorf("base: %w", err)
 		return res
 	}
+	d.Trace = nil
+	defer func() { res.Trace = d.Trace }()
 	var final []Expect
 	steps := map[int][]Expect{}
 	for _, e := range story.Expect {

@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 
+	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/unixsuperhero/ochazuke"
@@ -31,6 +32,7 @@ type Session struct {
 	streams []*FakeStream
 	jobs    map[string][]chan error // verb -> running jobs, oldest first
 	done    chan struct{}
+	cursor  *tea.Cursor
 }
 
 // Options change how a session renders, never what it does.
@@ -477,17 +479,27 @@ func (ss *Session) Frame() string {
 	w, h := ss.Story.Size()
 	ss.size()
 	var rows []string
+	view := ss.M.View()
+	ss.cursor = view.Cursor
 	switch ss.Story.Chrome {
 	case "none":
-		all := strings.Split(ss.M.View().Content, "\n")
+		all := strings.Split(view.Content, "\n")
 		for i := 3; i < 3+h && i < len(all); i++ {
 			rows = append(rows, ansi.Cut(all[i], 2, 2+w))
 		}
+		if c := ss.cursor; c != nil {
+			moved := *c
+			moved.X, moved.Y = c.X-2, c.Y-3
+			ss.cursor = &moved
+		}
 	case "ticker-only":
-		ss.M.View()
 		rows = ss.M.JobsTicker(w)
+		ss.cursor = nil
 	default:
-		rows = strings.Split(ss.M.View().Content, "\n")
+		rows = strings.Split(view.Content, "\n")
+	}
+	if c := ss.cursor; c != nil && (c.X < 0 || c.Y < 0 || c.X >= w || c.Y >= h) {
+		ss.cursor = nil
 	}
 	if len(rows) > h {
 		rows = rows[:h]
@@ -503,6 +515,10 @@ func (ss *Session) Frame() string {
 	}
 	return strings.Join(rows, "\n")
 }
+
+// Cursor is the terminal cursor of the last Frame, relative to the
+// story's area, or nil.
+func (ss *Session) Cursor() *tea.Cursor { return ss.cursor }
 
 // Snapshot bakes the session's current state into a page set: lists with
 // their rows, selection and marks, the focus and the page offset. It

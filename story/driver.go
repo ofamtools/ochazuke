@@ -84,15 +84,21 @@ type Driver struct {
 	Wait time.Duration // how long a job or tick event waits for its message
 	Quit bool          // the script quit the story (q, ctrl+c)
 
-	gen    int
-	mu     sync.Mutex
-	pool   []Tagged
-	arrive chan struct{}
+	// Trace is one Step per event played: the mode before and after and
+	// the top-level noun.verb requests the event ran.
+	Trace []Step
+
+	gen     int
+	lastSeq uint64
+	mu      sync.Mutex
+	pool    []Tagged
+	arrive  chan struct{}
 }
 
 // NewDriver starts driving a built session.
 func NewDriver(ss *Session, opt Options) *Driver {
 	d := &Driver{S: ss, Opt: opt, Wait: 6 * time.Second, arrive: make(chan struct{}, 1), gen: 1}
+	d.skipHistory()
 	d.run(ss.R.PendingCommands())
 	return d
 }
@@ -162,11 +168,44 @@ func (d *Driver) take(what string, match func(tea.Msg) bool) error {
 	}
 }
 
-// Step plays one event.
+// Step is what one event did: the mode it was read in, the mode after it
+// and the top-level requests it ran (noun.verb in the mode each ran in).
+type Step struct {
+	Event  Event
+	Before string
+	After  string
+	Ran    []Ran
+}
+
+// Ran is one request a step ran.
+type Ran struct {
+	Mode string
+	Verb string // noun.verb
+	OK   bool
+}
+
+// Step plays one event and appends its Step to Trace.
 func (d *Driver) Step(e Event) error {
 	if d.Quit {
 		return nil
 	}
+	before := d.S.R.Mode.Name
+	err := d.step(e)
+	step := Step{Event: e, Before: before, After: d.S.R.Mode.Name}
+	for _, h := range d.S.R.History(0) {
+		if h.Seq <= d.lastSeq {
+			continue
+		}
+		d.lastSeq = h.Seq
+		if h.Depth == 0 {
+			step.Ran = append(step.Ran, Ran{Mode: h.Context.Mode, Verb: h.Request.Key(), OK: h.Result.OK})
+		}
+	}
+	d.Trace = append(d.Trace, step)
+	return err
+}
+
+func (d *Driver) step(e Event) error {
 	switch {
 	case e.Key != "":
 		d.update(keytest.Msg(e.Key, false, false))
@@ -216,8 +255,17 @@ func (d *Driver) reset() error {
 	}
 	d.S = ss
 	d.gen++
+	d.lastSeq = 0
+	d.skipHistory()
 	d.run(ss.R.PendingCommands())
 	return nil
+}
+
+// skipHistory marks the requests made while building (job starts) as seen.
+func (d *Driver) skipHistory() {
+	for _, h := range d.S.R.History(0) {
+		d.lastSeq = max(d.lastSeq, h.Seq)
+	}
 }
 
 // Play runs events in order, calling after (when set) with the count of

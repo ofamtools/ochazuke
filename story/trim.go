@@ -81,10 +81,21 @@ func (lib Library) Trim(base string, initial *Story, events []Event, t TrimSpec)
 		out.Width, out.Height = initial.Size()
 		out.Chrome = initial.Chrome
 		out.Pages = pages
+		// The window must play from the baked state alone.
+		baked, err := Build(out, Options{Mono: true})
+		if err != nil {
+			return nil, warn, err
+		}
+		d.Close()
+		d = NewDriver(baked, Options{Mono: true})
+		defer d.Close()
 	} else {
 		out.Base, out.Start = base, from
 	}
 	if err := d.Play(window, nil); err != nil {
+		if t.Snapshot {
+			return nil, warn, fmt.Errorf("the snapshot cannot carry this before-state (trim without --snapshot): %w", err)
+		}
 		return nil, warn, fmt.Errorf("window: %w", err)
 	}
 	out.Expect = Expects{{Focus: d.S.R.Focus, Mode: d.S.R.Mode.Name}}
