@@ -2,6 +2,10 @@
 
 Go application framework on Bubble Tea **v2** (`charm.land/bubbletea/v2` v2.1.0), Lip Gloss v2 (`charm.land/lipgloss/v2` v2.0.6), Bubbles v2 (`charm.land/bubbles/v2` v2.2.1). Single flat package `ochazuke` at the repo root plus `cmd/`, `examples/`, `docs/`.
 
+## Plans and todos
+
+Family plans, todos and the roadmap live in `~/hub/o-plans/` (`README.md` is the index). Read it before planning work; add or update items there. Do not add a TODO.md or docs/plans/ to this repo.
+
 ## Read in this order
 
 1. This file.
