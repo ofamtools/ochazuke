@@ -1,0 +1,6 @@
+ |pane             harness      state        cwd
+ |work/claude      claude-code  idle         ~/proj/matomeru
+R|work/codex       codex        working      ~/proj/ochazuke
+ |main/shell                                 ~/hub
+ |9332c352/review  claude-code  needs_input  ~/proj/nabe
+ |

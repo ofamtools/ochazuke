@@ -286,7 +286,7 @@ func rowsOf(l ListSpec) []ochazuke.ListItem {
 	var out []ochazuke.ListItem
 	if len(l.Items) > 0 {
 		for _, it := range l.Items {
-			out = append(out, ochazuke.ListItem{ID: it.ID, Label: it.Label, Noun: Demo})
+			out = append(out, ochazuke.ListItem{ID: it.ID, Label: it.Label, Noun: Demo, Cells: it.Cells})
 		}
 		return out
 	}
@@ -311,6 +311,9 @@ func (ss *Session) addPage(p *Page) error {
 		opts = append(opts, ochazuke.Parent(p.ID))
 		if l.NoSpill {
 			opts = append(opts, ochazuke.NoSpill())
+		}
+		if len(l.Columns) > 0 {
+			opts = append(opts, ochazuke.Columns(l.Columns...))
 		}
 		items := rowsOf(l)
 		list, err := r.AddList(l.ID, items, opts...)
@@ -380,6 +383,9 @@ func (ss *Session) render(p *Page, width, height int) ochazuke.Block {
 			h = max(1, rest)
 		case h == 0:
 			h = max(1, list.Len())
+			if len(list.Columns()) > 0 {
+				h++ // the header line
+			}
 		}
 		text := list.View(w, h)
 		if !p.NoHead {
@@ -543,14 +549,14 @@ func (ss *Session) Snapshot() ([]*Page, []string) {
 		p.Lists = nil
 		for _, l := range src.Lists {
 			list := ss.lists[l.ID]
-			spec := ListSpec{ID: l.ID, NoSpill: l.NoSpill, Height: l.Height}
+			spec := ListSpec{ID: l.ID, NoSpill: l.NoSpill, Height: l.Height, Columns: list.Columns()}
 			marked := map[string]bool{}
 			for _, it := range list.Marked() {
 				marked[it.ID] = true
 			}
 			sel, _ := list.Selected()
 			for i, it := range list.Items() {
-				spec.Items = append(spec.Items, ItemSpec{ID: it.ID, Label: it.Label})
+				spec.Items = append(spec.Items, ItemSpec{ID: it.ID, Label: it.Label, Cells: it.Cells})
 				if it.ID == sel.ID {
 					spec.Selected = i
 				}

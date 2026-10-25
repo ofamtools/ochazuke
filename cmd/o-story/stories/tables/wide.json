@@ -1,0 +1,76 @@
+{
+  "name": "table wide: every column at its natural width",
+  "area": "tables",
+  "width": 80,
+  "height": 6,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "pane"
+          },
+          {
+            "title": "harness",
+            "priority": 2
+          },
+          {
+            "title": "state",
+            "priority": 1
+          },
+          {
+            "title": "cwd",
+            "min": 8,
+            "priority": 3
+          }
+        ],
+        "items": [
+          {
+            "id": "t1",
+            "label": "work/claude",
+            "cells": [
+              "work/claude",
+              "claude-code",
+              "idle",
+              "~/proj/matomeru"
+            ]
+          },
+          {
+            "id": "t2",
+            "label": "work/codex",
+            "cells": [
+              "work/codex",
+              "codex",
+              "working",
+              "~/proj/ochazuke"
+            ]
+          },
+          {
+            "id": "t3",
+            "label": "main/shell",
+            "cells": [
+              "main/shell",
+              "",
+              "",
+              "~/hub"
+            ]
+          },
+          {
+            "id": "t4",
+            "label": "9332c352/review",
+            "cells": [
+              "9332c352/review",
+              "claude-code",
+              "needs_input",
+              "~/proj/nabe"
+            ]
+          }
+        ],
+        "selected": 1
+      }
+    ]
+  }
+}

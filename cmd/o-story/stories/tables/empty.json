@@ -1,0 +1,33 @@
+{
+  "name": "table empty: the header over an empty list",
+  "area": "tables",
+  "width": 40,
+  "height": 4,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "pane"
+          },
+          {
+            "title": "harness",
+            "priority": 2
+          },
+          {
+            "title": "state",
+            "priority": 1
+          },
+          {
+            "title": "cwd",
+            "min": 8,
+            "priority": 3
+          }
+        ]
+      }
+    ]
+  }
+}

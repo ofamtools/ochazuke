@@ -29,6 +29,10 @@ type Noun struct {
 	Extends   map[string]string    `json:"extends,omitempty"`
 	Guards    map[string]string    `json:"guards,omitempty"`
 	Actions   map[string]Handler   `json:"-"`
+	// Columns are the table columns a list of the noun's rows draws
+	// (NounBuilder.Columns, the catalog's columns): declared data a host
+	// passes to Columns when it builds the list, never applied on its own.
+	Columns []Column `json:"columns,omitempty"`
 }
 
 // tables is what one mode reads on the noun: its own rows, then the rows of
@@ -220,6 +224,15 @@ func (b *NounBuilder) Pin(mode string) *NounBuilder { b.n.Pin = mode; return b }
 
 // Focusable makes every instance of the noun a focus stop.
 func (b *NounBuilder) Focusable() *NounBuilder { b.n.Focusable = true; return b }
+
+// Columns declares the table columns a list of the noun's rows draws, in
+// order, each row's ListItem.Cells the same order (Noun.Columns). The
+// catalog carries them, so a host mounting the noun's rows draws a table;
+// an application passes r.Noun(noun).Columns to the Columns list option.
+func (b *NounBuilder) Columns(cols ...Column) *NounBuilder {
+	b.n.Columns = slices.Clone(cols)
+	return b
+}
 
 // Region makes every instance of the noun a focus region: a grouping (a
 // panel) that focus.next {scope: "region"} jumps between, never a stop.

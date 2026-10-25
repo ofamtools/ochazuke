@@ -16,12 +16,16 @@ import (
 // Data is an opaque value the application keeps on the row (a host's
 // record of the row, an extension's own id); SetItems copies it to the
 // row instance's Data, where a verb reads it as Ctx.Instance.Data. The
-// framework never reads it.
+// framework never reads it. Cells are the row's text per column when the
+// list has columns (a table, Columns); Label stays the row's name for the
+// palette, search and {{label}}, and is the first cell of a row without
+// cells.
 type ListItem struct {
-	ID    string `json:"id"`
-	Label string `json:"label"`
-	Noun  string `json:"noun"`
-	Data  any    `json:"data,omitempty"`
+	ID    string   `json:"id"`
+	Label string   `json:"label"`
+	Noun  string   `json:"noun"`
+	Data  any      `json:"data,omitempty"`
+	Cells []string `json:"cells,omitempty"`
 }
 
 // List owns flat selection, marks and scrolling on the runtime's event loop.
@@ -33,7 +37,8 @@ type List struct {
 	selected int
 	offset   int
 	marks    map[string]bool
-	noSpill  bool // NoSpill: list.move clamps at the edges instead of spilling
+	noSpill  bool     // NoSpill: list.move clamps at the edges instead of spilling
+	columns  []Column // Columns: a table; none draws the labels
 }
 
 // NewList is AddList for callers that hold the runtime as a value.
@@ -43,7 +48,8 @@ func NewList(r *Runtime, id string, items []ListItem, opts ...InstanceOption) (*
 
 // AddList registers a list instance of the list noun with its rows. Options:
 // Parent(id) (default app), Kind(noun) for a list that answers to its
-// own noun as well, and NoSpill() for a list whose motions stay inside it.
+// own noun as well, NoSpill() for a list whose motions stay inside it, and
+// Columns(...) for a table.
 func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (*List, error) {
 	if id == "" {
 		return nil, errors.New("list ID must be nonempty")
@@ -58,7 +64,7 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 	if r.Instances[spec.parent] == nil {
 		return nil, fmt.Errorf("unknown parent %q", spec.parent)
 	}
-	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}, noSpill: spec.noSpill}
+	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}, noSpill: spec.noSpill, columns: slices.Clone(spec.columns)}
 	r.Instance(id, Parent(spec.parent), Kind(spec.noun), FocusOnClose(spec.closeFocus))
 	r.Instances[id].Component = list
 	if err := list.SetItems(items); err != nil {
@@ -253,17 +259,24 @@ func (l *List) Snapshot() map[string]any {
 	for _, item := range l.Marked() {
 		marked = append(marked, item.ID)
 	}
-	return map[string]any{"id": l.id, "items": slices.Clone(l.items), "selected": l.selected, "selectedId": selected.ID, "offset": l.offset, "focused": l.Focused(), "marked": marked}
+	out := map[string]any{"id": l.id, "items": slices.Clone(l.items), "selected": l.selected, "selectedId": selected.ID, "offset": l.offset, "focused": l.Focused(), "marked": marked}
+	if len(l.columns) > 0 {
+		out["columns"] = slices.Clone(l.columns)
+	}
+	return out
 }
 
 // View fits the viewport and updates its scroll offset to keep selection
-// visible. Calling it places the list in its page's drawing order (Placed),
+// visible; a list with columns draws as a table (tableView). Calling it places the list in its page's drawing order (Placed),
 // even at zero height, and reports its selected row's line (PlacedAt) so
 // the page scrolls to keep that row on screen.
 func (l *List) View(width, height int) string {
 	l.r.Placed(l.id)
 	if width <= 0 || height <= 0 {
 		return ""
+	}
+	if len(l.columns) > 0 {
+		return l.tableView(width, height)
 	}
 	if len(l.items) == 0 {
 		return l.r.PlacedAt(l.id, strings.Join(layoutRows("(empty list)", width, height), "\n"), 0, height)

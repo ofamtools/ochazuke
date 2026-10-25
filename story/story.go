@@ -17,6 +17,8 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/unixsuperhero/ochazuke"
 )
 
 // Story is one scenario file.
@@ -75,12 +77,16 @@ type ListSpec struct {
 	Height   int        `json:"height,omitempty"` // rows drawn; 0 = every row, -1 = the rest of the page
 	Selected int        `json:"selected,omitempty"`
 	Marked   []int      `json:"marked,omitempty"`
+	// Columns make the list a table (ochazuke.Columns); rows bring their
+	// cells in Items.
+	Columns []ochazuke.Column `json:"columns,omitempty"`
 }
 
-// ItemSpec is an explicit row.
+// ItemSpec is an explicit row; Cells are its table cells.
 type ItemSpec struct {
-	ID    string `json:"id"`
-	Label string `json:"label"`
+	ID    string   `json:"id"`
+	Label string   `json:"label"`
+	Cells []string `json:"cells,omitempty"`
 }
 
 // InputSpec is one single-line input drawn under the lists.

@@ -59,6 +59,7 @@ func (p Payload) empty() bool {
 type instanceSpec struct {
 	parent, noun, focus, closeFocus string
 	closeOnDetach, noSpill          bool
+	columns                         []Column
 }
 
 // InstanceOption configures the instance constructors: Instance, AddPage,

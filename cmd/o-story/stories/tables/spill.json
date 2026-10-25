@@ -1,0 +1,99 @@
+{
+  "name": "table spill: j/k cross between a table and a plain list",
+  "area": "tables",
+  "page": {
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "pane"
+          },
+          {
+            "title": "harness",
+            "priority": 2
+          },
+          {
+            "title": "state",
+            "priority": 1
+          },
+          {
+            "title": "cwd",
+            "min": 8,
+            "priority": 3
+          }
+        ],
+        "items": [
+          {
+            "id": "t1",
+            "label": "work/claude",
+            "cells": [
+              "work/claude",
+              "claude-code",
+              "idle",
+              "~/proj/matomeru"
+            ]
+          },
+          {
+            "id": "t2",
+            "label": "work/codex",
+            "cells": [
+              "work/codex",
+              "codex",
+              "working",
+              "~/proj/ochazuke"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "b",
+        "rows": 2
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "j",
+    "j",
+    "k",
+    "k"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "t2",
+      "highlighted": 1
+    },
+    {
+      "after": 2,
+      "focus": "b1",
+      "highlighted": 1
+    },
+    {
+      "after": 3,
+      "focus": "b2"
+    },
+    {
+      "after": 4,
+      "focus": "b1"
+    },
+    {
+      "after": 5,
+      "focus": "t2",
+      "highlighted": 1
+    },
+    {
+      "focus": "t2",
+      "highlighted": 1,
+      "order": [
+        "pane",
+        "work/claude",
+        "work/codex",
+        "b",
+        "b1",
+        "b2"
+      ]
+    }
+  ]
+}

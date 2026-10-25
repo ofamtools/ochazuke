@@ -1,0 +1,66 @@
+{
+  "name": "table truncation: cells cut at display width with an ellipsis",
+  "area": "tables",
+  "width": 50,
+  "height": 6,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "pane",
+            "min": 10
+          },
+          {
+            "title": "harness",
+            "priority": 2
+          },
+          {
+            "title": "state",
+            "priority": 1
+          },
+          {
+            "title": "cwd",
+            "min": 8,
+            "priority": 3
+          }
+        ],
+        "items": [
+          {
+            "id": "t1",
+            "label": "work/claude",
+            "cells": [
+              "work/claude",
+              "claude-code",
+              "idle",
+              "~/proj/matomeru/very/long/path/to/somewhere/deep"
+            ]
+          },
+          {
+            "id": "t2",
+            "label": "\u65e5\u672c\u8a9e\u306e\u30da\u30a4\u30f3",
+            "cells": [
+              "\u65e5\u672c\u8a9e\u306e\u30da\u30a4\u30f3\u540d\u524d\u304c\u3068\u3066\u3082\u9577\u3044",
+              "codex",
+              "working",
+              "~/proj/ochazuke"
+            ]
+          },
+          {
+            "id": "t3",
+            "label": "main/shell",
+            "cells": [
+              "main/shell",
+              "",
+              "",
+              "~/hub"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
