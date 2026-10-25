@@ -62,7 +62,7 @@ func main() {
 func (t *Tool) Main(args []string) error {
 	app := oden.New("o-story", args, oden.WithBuiltins(), oden.WithStdio(os.Stdin, t.Stdout, t.Stderr), oden.WithDefault(func(_ context.Context, a []string) error {
 		if len(a) > 0 {
-			return fmt.Errorf("unknown command %q (try %s help)", a[0], t.Prog)
+			return oden.ErrNotFound
 		}
 		return t.TUI(nil)
 	}))
