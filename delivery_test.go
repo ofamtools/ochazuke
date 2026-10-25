@@ -510,6 +510,43 @@ func TestDeliverToleratesOwnerRemovedByItsCompletion(t *testing.T) {
 	}
 }
 
+func TestDeliverCompletesSlowJobAfterHistoryFills(t *testing.T) {
+	r := NewRuntime()
+	r.Instance("loader", Kind("loader"))
+	comp := &slowComponent{r: r, id: "loader"}
+	r.Instances["loader"].Component = comp
+	var loaded any
+	_, err := r.Start("loader", func(context.Context) (any, error) {
+		return "slow rows", nil
+	}, func(_ Ctx, value any, _ error) {
+		loaded = value
+	}, Ctx{Runtime: r})
+	if err != nil {
+		t.Fatal(err)
+	}
+	slow := r.PendingCommands()
+	for range 40 {
+		if _, err := r.Start("loader", func(context.Context) (any, error) {
+			return "fast rows", nil
+		}, nil, Ctx{Runtime: r}); err != nil {
+			t.Fatal(err)
+		}
+		for _, msg := range runCmd(r.PendingCommands()) {
+			if handled, err := r.Deliver(msg); !handled || err != nil {
+				t.Fatalf("fast delivery: %v %v", handled, err)
+			}
+		}
+	}
+	for _, msg := range runCmd(slow) {
+		if handled, err := r.Deliver(msg); !handled || err != nil {
+			t.Fatalf("slow delivery: %v %v", handled, err)
+		}
+	}
+	if loaded != "slow rows" || len(comp.received) != 41 || comp.received[40].Value != "slow rows" {
+		t.Fatalf("loaded=%v received=%+v", loaded, comp.received)
+	}
+}
+
 // ReplacingAt(list, slot): previews asked from two rows of one list share
 // the list's slot, so the second cancels the first; another list's slot is
 // its own, the completion lands on the row that asked, and a scope off the

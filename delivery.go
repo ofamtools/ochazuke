@@ -318,10 +318,11 @@ func registerJobs(r *Runtime) {
 // the message and the delivered completion's error, if any.
 func (r *Runtime) Deliver(msg tea.Msg) (bool, error) {
 	if done, ok := msg.(Completion); ok {
+		// Settling may evict this job from the bounded history.
+		j := r.jobs[done.Job]
 		if !r.Settle(done.Ticket, done.Err) {
 			return true, nil
 		}
-		j := r.jobs[done.Job]
 		defer r.actingFor(done.Owner)()
 		if j.then != nil {
 			j.then(j.ctx, done.Value, done.Err)

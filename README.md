@@ -520,6 +520,8 @@ job    = { owner: "row-3", job: 45, slot: "preview", scope: "panes" } // Replaci
 
 `jobs.list` returns the jobs list, `[{job, owner, verb, slot?, scope?, started, state, error?}]` (`scope` is the slot's scope: the owner for `Replacing`, the ancestor for `ReplacingAt`) with `state` one of `running`, `done`, `failed`, `cancelled`; `verb` is the operation key for an application verb (`sync.worktree`), `read` for a terminal frame and the slot name for the picker. Finished entries stay in the list until a `jobs.list` read returns them (bounded to the last 32 meanwhile), so a status rail or toast reads each outcome once; `state.get /jobs` shows the running jobs only.
 
+History eviction does not suppress completion delivery: a slow job still runs its `Then` callback and reaches its owning component even when newer jobs fill the retained history before it finishes.
+
 #### Delivery contract
 
 Work that completes later reports through one contract. A component is any `Instance.Component` implementing
