@@ -327,6 +327,16 @@ func BindingHints(r *Runtime, focus string) string {
 		if b.Hidden || r.Operations[b.Request.Key()].Motion {
 			continue
 		}
+		if isPrefixCancel(b) && r.Mode.Payload.Prefix == "" {
+			continue // "d esc" matters only once d is pending
+		}
+		if b.When != "" {
+			// A row whose guard is false here would not answer: no hint
+			// (bindings list keeps it, as the guard may hold for the key).
+			if check := r.guard(b.When); check == nil || !check(r, KeyEvent{Mode: r.Mode, Focus: focus}) {
+				continue
+			}
+		}
 		same := fmt.Sprintf("%s\x00%v\x00%v\x00%s", b.Request.Key(), b.Request.Args, b.From, b.Hint)
 		if index[same] && b.Request.Verb != "" {
 			continue

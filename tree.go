@@ -1009,8 +1009,8 @@ func registerTrees(r *Runtime) {
 		})
 	}
 	r.Define("outline").
-		Verb("expand", on(func(t *Tree, c Ctx) error { return t.expand(c.Context) }), "Expand the node, or step onto its first child when it is open").
-		Verb("collapse", on(func(t *Tree, c Ctx) error { return t.collapse(c.Context) }), "Collapse the node, or step onto its parent when it is closed").
+		Verb("expand", on(func(t *Tree, c Ctx) error { return t.expand(c.Context) }), "Expand the node, or step onto its first child when it is open").Motion().
+		Verb("collapse", on(func(t *Tree, c Ctx) error { return t.collapse(c.Context) }), "Collapse the node, or step onto its parent when it is closed").Motion().
 		Verb("fold", on(func(t *Tree, c Ctx) error {
 			id := t.target(c.Context)
 			if id == "" || !t.hasChildren(id) {
