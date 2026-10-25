@@ -70,6 +70,10 @@ func Classify(ss *Session, msg tea.Msg) *Event {
 		return &Event{Tick: "linger"}
 	case ochazuke.BindingTimeoutMsg:
 		return &Event{Tick: "binding"}
+	case ochazuke.TreeDebounceMsg:
+		if t := ss.R.Tree(v.Tree); t != nil && t.DebounceCurrent(v) {
+			return &Event{Tick: "debounce"}
+		}
 	}
 	return nil
 }
@@ -283,7 +287,7 @@ func (d *Driver) step(e Event) error {
 			d.now = tick.At
 		}
 		d.update(tick)
-	case e.Tick == "terminal" || e.Tick == "binding":
+	case e.Tick == "terminal" || e.Tick == "binding" || e.Tick == "debounce":
 		if err := d.take(e.Tick+" tick", func(msg tea.Msg) bool {
 			ev := Classify(d.S, msg)
 			return ev != nil && ev.Tick == e.Tick

@@ -26,8 +26,11 @@ type Session struct {
 	// Reset is set by demo.reset; the host (TUI or Driver) rebuilds.
 	Reset bool
 
-	pages   map[string]*Page
-	lists   map[string]*ochazuke.List
+	pages map[string]*Page
+	lists map[string]*ochazuke.List
+	trees map[string]*ochazuke.Tree
+	// Writes is the log of every change an editable tree wrote.
+	Writes  []string
 	inputs  map[string]*ochazuke.Input
 	streams []*FakeStream
 	jobs    map[string][]chan error // verb -> running jobs, oldest first
@@ -53,7 +56,7 @@ func Build(s *Story, opt Options) (*Session, error) {
 	if opt.Mono {
 		m.Appearance.Theme = "mono"
 	}
-	ss := &Session{Story: s, R: r, M: m, pages: map[string]*Page{}, lists: map[string]*ochazuke.List{}, inputs: map[string]*ochazuke.Input{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
+	ss := &Session{Story: s, R: r, M: m, pages: map[string]*Page{}, lists: map[string]*ochazuke.List{}, trees: map[string]*ochazuke.Tree{}, inputs: map[string]*ochazuke.Input{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
 	if err := ss.defineDemo(pages); err != nil {
 		return nil, err
 	}
@@ -337,6 +340,32 @@ func (ss *Session) addPage(p *Page) error {
 			focus = list.FocusTarget()
 		}
 	}
+	for _, ts := range p.Trees {
+		tree, err := r.AddTree(ts.ID, ts.Nodes, ochazuke.Parent(p.ID))
+		if err != nil {
+			return fmt.Errorf("tree %s: %w", ts.ID, err)
+		}
+		for _, id := range ts.Collapsed {
+			if err := tree.SetCollapsed(id, true); err != nil {
+				return err
+			}
+		}
+		if ts.Editable {
+			fail := ts.FailWrites
+			tree.OnChange = func(c ochazuke.TreeChange) error {
+				if fail > 0 {
+					fail--
+					return errors.New("store unavailable")
+				}
+				ss.Writes = append(ss.Writes, c.String())
+				return nil
+			}
+		}
+		ss.trees[ts.ID] = tree
+		if focus == "" && len(ts.Nodes) > 0 {
+			focus = tree.FocusTarget()
+		}
+	}
 	for _, in := range p.Inputs {
 		input := ochazuke.NewInput(in.ID, in.Text, false)
 		if err := r.AddInput(input, ochazuke.Parent(p.ID)); err != nil {
@@ -345,6 +374,19 @@ func (ss *Session) addPage(p *Page) error {
 		ss.inputs[in.ID] = input
 		if focus == "" {
 			focus = in.ID
+		}
+	}
+	if p.Focus == "" && len(p.Order) > 0 {
+		// The first stop in drawing order is focused, a tree or a list.
+		for _, id := range p.Order {
+			if t := ss.trees[id]; t != nil && t.List().Len() > 0 {
+				focus = t.FocusTarget()
+				break
+			}
+			if l := ss.lists[id]; l != nil {
+				focus = l.FocusTarget()
+				break
+			}
 		}
 	}
 	ss.pages[p.ID] = p
@@ -368,6 +410,13 @@ func (ss *Session) render(p *Page, width, height int) ochazuke.Block {
 		for _, l := range p.Lists {
 			order = append(order, l.ID)
 		}
+		for _, t := range p.Trees {
+			order = append(order, t.ID)
+		}
+	}
+	treeSpec := map[string]TreeSpec{}
+	for _, t := range p.Trees {
+		treeSpec[t.ID] = t
 	}
 	spec := map[string]ListSpec{}
 	for _, l := range p.Lists {
@@ -411,6 +460,22 @@ func (ss *Session) render(p *Page, width, height int) ochazuke.Block {
 		used += strings.Count(text, "\n") + 1
 	} else {
 		for _, id := range order {
+			if tree, ok := ss.trees[id]; ok {
+				h := treeSpec[id].Height
+				switch {
+				case h < 0:
+					h = max(1, height-used-head)
+				case h == 0:
+					h = max(1, tree.List().Len())
+				}
+				block := tree.Block(width, h)
+				if !p.NoHead {
+					block = block.Offset(0, 1).WithText(id + "\n" + block.Text)
+				}
+				parts = append(parts, block)
+				used += strings.Count(block.Text, "\n") + 1
+				continue
+			}
 			if _, ok := ss.lists[id]; !ok {
 				continue
 			}

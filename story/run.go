@@ -93,6 +93,9 @@ func Check(ss *Session, e Expect) []string {
 	if (e.Notices != nil || e.NoNotices) && !slices.Equal(ss.M.Notices, e.Notices) {
 		failf("notices %q, want %q", ss.M.Notices, e.Notices)
 	}
+	if e.Writes != nil && !slices.Equal(ss.Writes, *e.Writes) && (len(ss.Writes) > 0 || len(*e.Writes) > 0) {
+		failf("writes %q, want %q", ss.Writes, *e.Writes)
+	}
 	if len(bad) > 0 {
 		bad = append(bad, "frame:\n"+Golden(frame))
 	}

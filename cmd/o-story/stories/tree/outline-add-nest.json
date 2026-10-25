@@ -1,0 +1,16 @@
+{
+  "name": "outline: o adds a line written at once, tab nests it, esc keeps the text",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {"id": "t", "editable": true, "nodes": [{"id": "a", "label": "alpha"}]}
+    ]
+  },
+  "script": ["o", {"type": "beta"}, "tab", "esc", "O", {"type": "zero"}, "esc"],
+  "expect": [
+    {"after": 1, "mode": "insert", "writes": ["add t-n1 under root at 1: "]},
+    {"after": 3, "mode": "insert", "writes": ["add t-n1 under root at 1: ", "rename t-n1: beta", "move t-n1 under a at 0"]},
+    {"after": 4, "mode": "normal", "focus": "t-n1", "contains": ["▾ alpha", "    beta"]},
+    {"focus": "t-n2", "mode": "normal", "order": ["alpha", "zero", "beta"], "writes": ["add t-n1 under root at 1: ", "rename t-n1: beta", "move t-n1 under a at 0", "add t-n2 under a at 0: ", "rename t-n2: zero"]}
+  ]
+}

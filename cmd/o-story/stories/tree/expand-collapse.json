@@ -1,0 +1,24 @@
+{
+  "name": "tree: h collapses, l expands, motions stay visual",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "nodes": [
+          {"id": "p1", "label": "project one"},
+          {"id": "s1", "parent": "p1", "label": "session a"},
+          {"id": "w1", "parent": "s1", "label": "pane shell"},
+          {"id": "p2", "label": "project two"}
+        ]
+      }
+    ]
+  },
+  "script": ["h", "j", "k", "l", "j", "j"],
+  "expect": [
+    {"after": 1, "focus": "p1", "contains": ["▸ project one", "project two"], "lacks": ["session a"]},
+    {"after": 2, "focus": "p2"},
+    {"after": 4, "focus": "p1", "contains": ["▾ project one", "▾ session a", "pane shell"]},
+    {"focus": "w1", "highlighted": 1}
+  ]
+}

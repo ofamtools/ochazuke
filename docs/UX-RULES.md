@@ -241,6 +241,19 @@ tiers above them. When the two disagree, fix one in the same commit.
   identical from a key, the palette and the CLI. Story:
   `modals/confirm-yes.json`; needed for the palette and CLI paths.
 
+### R11. Trees and outlines
+
+- **R11.1** A tree's rows are a list: j/k move and spill in drawing order,
+  one highlighted row; `h`/`l` collapse and expand. Story:
+  `tree/expand-collapse.json`, `tree/spill-to-list.json`.
+- **R11.2** Every structural edit of an outline is written before the next
+  key; typing is written after the pause and when the line is left; esc
+  never discards. Story: `tree/outline-add-nest.json`, `tree/debounce.json`.
+- **R11.3** Undo and redo are written changes. Story: `tree/undo-redo.json`.
+- **R11.4** Pasted indented text nests. Story: `tree/paste-nests.json`.
+- **R11.5** A failed write keeps the text, marks the row and retries on the
+  next change. Story: `tree/failed-write.json`.
+
 ---
 
 ## Part B. Principles

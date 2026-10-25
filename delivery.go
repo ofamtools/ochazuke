@@ -337,7 +337,13 @@ func (r *Runtime) Deliver(msg tea.Msg) (bool, error) {
 		return true, done.Err
 	}
 	for _, inst := range r.components() {
-		if inst.Component.(Component).HandleMessage(msg) {
+		comp := inst.Component.(Component)
+		if comp.HandleMessage(msg) {
+			// A component that keeps background failures (a tree's timed
+			// write) reports the one this message caused.
+			if f, ok := comp.(interface{ Failure() error }); ok {
+				return true, f.Failure()
+			}
 			return true, nil
 		}
 	}

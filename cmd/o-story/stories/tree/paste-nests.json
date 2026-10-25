@@ -1,0 +1,21 @@
+{
+  "name": "outline: a pasted indented block becomes nested rows",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {"id": "t", "editable": true, "nodes": [{"id": "a", "label": "alpha"}]}
+    ]
+  },
+  "script": [{"paste": "one\n  two\n    three\n\tfour\nfive"}],
+  "expect": {
+    "focus": "t-n5",
+    "order": ["alpha", "one", "two", "three", "four", "five"],
+    "writes": [
+      "add t-n1 under root at 1: one",
+      "add t-n2 under t-n1 at 0: two",
+      "add t-n3 under t-n2 at 0: three",
+      "add t-n4 under t-n1 at 1: four",
+      "add t-n5 under root at 2: five"
+    ]
+  }
+}

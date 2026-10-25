@@ -155,6 +155,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	m.ticker.observe(m.Runtime, m.clock())
 	if m.Runtime.Quit {
+		// Quitting writes what components still hold (an open outline line).
+		for _, inst := range m.Runtime.components() {
+			if f, ok := inst.Component.(interface{ Flush() error }); ok {
+				_ = f.Flush()
+			}
+		}
 		return m, tea.Quit
 	}
 	var commands []tea.Cmd

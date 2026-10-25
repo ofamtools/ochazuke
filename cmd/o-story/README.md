@@ -53,13 +53,15 @@ it to the timer's deadline and delivers the timer's message
     layout: "stack",              // or "row": lists side by side
     focus: "b1", offset: 0, noHeadings: false,
     inputs: [{ id: "name", label: "name", text: "hello" }],
+    trees: [{ id: "t", editable: true, failWrites: 0, collapsed: ["p1"],
+              nodes: [{ id: "p1", label: "one" }, { id: "c1", parent: "p1", label: "child" }] }],
     terminal: { fake: true, attach: "a1", height: 6 },
     jobs: [{ verb: "demo.build", key: "w", finishOnKey: "W", failOnKey: "X", quiet: false, start: 0 }],
     bind: [{ noun: "demo", mode: "normal", keys: "C", do: "notice.clear" }],
   },
   script: ["j", "j", { type: "ping" }, { paste: "text" },
            { job: "demo.build", state: "done" },
-           { tick: "linger" }],   // tick: linger | binding | terminal | output
+           { tick: "linger" }],   // tick: linger | binding | terminal | output | debounce
   expect: { focus: "b1", visible: true },
   // or per step: [{ after: 2, focus: "b1" }, { ticker: [] }]  (after N = after the Nth event)
 }
@@ -68,7 +70,8 @@ it to the timer's deadline and delivers the timer's message
 Expect fields: `focus`, `mode`, `modal` (top modal id, `""` none), `page`,
 `visible` (the focused label is on screen), `highlighted` (rows with reverse
 video), `contains`, `lacks`, `order` (substrings in this order),
-`ticker`/`noTicker`, `notices`/`noNotices`. A story with no final expect is
+`ticker`/`noTicker`, `notices`/`noNotices`, `writes` (every change an
+editable tree wrote, `TreeChange.String`, in order; `[]` none). A story with no final expect is
 compared with `<name>.golden`: the frame in the mono theme, each row behind a
 gutter that reads `R|` when the row has reverse video and ` |` otherwise.
 
@@ -211,6 +214,7 @@ Conformance:
 |---|---|---|
 | insert | input | `input.insert` |
 | insert | mode | `mode.set` |
+| insert | outline | `outline.indent` `outline.leave` |
 | insert | palette | `palette.move` `palette.run` |
 | normal | bindings | `bindings.help` |
 | normal | confirm | `confirm.accept` |
@@ -220,6 +224,7 @@ Conformance:
 | normal | list | `list.move` |
 | normal | modal | `modal.pop` |
 | normal | notice | `notice.clear` |
+| normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.indent` `outline.paste` `outline.redo` `outline.undo` |
 | normal | page | `page.next` `page.previous` |
 | normal | palette | `palette.open` |
 | normal | surface | `surface.scroll` |
@@ -229,11 +234,17 @@ Conformance:
 Mode edges (from → to via):
 
 - `insert` → `normal` via `mode.set`
+- `insert` → `normal` via `outline.leave`
 - `insert` → `normal` via `palette.run`
+- `insert` → `normal` via `row esc`
 - `leader_pending` → `normal` via `terminal.detach`
 - `normal` → `insert` via `input.begin`
+- `normal` → `insert` via `outline.add`
+- `normal` → `insert` via `outline.edit`
 - `normal` → `insert` via `palette.open`
+- `normal` → `normal d` via `row d`
 - `normal` → `terminal` via `demo.open`
+- `normal d` → `normal` via `outline.delete`
 - `terminal` → `leader_pending` via `mode.enter`
 
 <!-- verbs:end -->

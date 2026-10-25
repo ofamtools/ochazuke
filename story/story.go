@@ -59,6 +59,7 @@ type Page struct {
 	Offset int         `json:"offset,omitempty"` // page scroll offset after the first frame
 	NoHead bool        `json:"noHeadings,omitempty"`
 	Lists  []ListSpec  `json:"lists,omitempty"`
+	Trees  []TreeSpec  `json:"trees,omitempty"`
 	Inputs []InputSpec `json:"inputs,omitempty"`
 	Term   *TermSpec   `json:"terminal,omitempty"`
 	Jobs   []JobSpec   `json:"jobs,omitempty"`
@@ -80,6 +81,19 @@ type ListSpec struct {
 	// Columns make the list a table (ochazuke.Columns); rows bring their
 	// cells in Items.
 	Columns []ochazuke.Column `json:"columns,omitempty"`
+}
+
+// TreeSpec is one tree: its nodes (parents before children), drawn in the
+// page's order with the lists. Editable makes it an outline whose changes
+// the session logs (the writes expect); FailWrites makes the first N writes
+// fail.
+type TreeSpec struct {
+	ID         string              `json:"id"`
+	Nodes      []ochazuke.TreeNode `json:"nodes,omitempty"`
+	Editable   bool                `json:"editable,omitempty"`
+	FailWrites int                 `json:"failWrites,omitempty"`
+	Collapsed  []string            `json:"collapsed,omitempty"`
+	Height     int                 `json:"height,omitempty"` // rows drawn; 0 = every visible row, -1 = the rest of the page
 }
 
 // ItemSpec is an explicit row; Cells are its table cells.
@@ -134,7 +148,7 @@ type Event struct {
 	Paste string `json:"paste,omitempty"`
 	Job   string `json:"job,omitempty"`   // noun.verb of the job that delivered
 	State string `json:"state,omitempty"` // done or failed
-	Tick  string `json:"tick,omitempty"`  // linger, binding, terminal (a pane frame) or output (fake output line)
+	Tick  string `json:"tick,omitempty"`  // linger, binding, terminal (a pane frame), output (fake output line) or debounce (a tree line's pause)
 }
 
 // UnmarshalJSON reads a bare string as a key press.
@@ -191,6 +205,9 @@ type Expect struct {
 	NoTicker    bool     `json:"noTicker,omitempty"`
 	Notices     []string `json:"notices,omitempty"`
 	NoNotices   bool     `json:"noNotices,omitempty"`
+	// Writes is every change the page's editable trees wrote, in order
+	// (TreeChange.String); [] expects none.
+	Writes *[]string `json:"writes,omitempty"`
 }
 
 // Expects is one final Expect or a list of per-step ones.

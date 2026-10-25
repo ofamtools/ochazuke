@@ -1,0 +1,16 @@
+{
+  "name": "outline: typing writes once after the pause; leaving the line writes at once",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {"id": "t", "editable": true, "nodes": [{"id": "a", "label": "alpha"}]}
+    ]
+  },
+  "script": ["i", {"type": "bc"}, {"tick": "debounce"}, {"type": "de"}, "esc"],
+  "expect": [
+    {"after": 2, "writes": []},
+    {"after": 3, "writes": ["rename a: alphabc"]},
+    {"after": 4, "writes": ["rename a: alphabc"]},
+    {"focus": "a", "mode": "normal", "writes": ["rename a: alphabc", "rename a: alphabcde"]}
+  ]
+}

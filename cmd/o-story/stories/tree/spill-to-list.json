@@ -1,0 +1,17 @@
+{
+  "name": "tree: j past the last row spills into the list drawn below",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {"id": "t", "nodes": [{"id": "p1", "label": "one"}, {"id": "c1", "parent": "p1", "label": "child"}]}
+    ],
+    "lists": [{"id": "b", "rows": 2}],
+    "order": ["t", "b"]
+  },
+  "script": ["j", "j", "k"],
+  "expect": [
+    {"after": 1, "focus": "c1"},
+    {"after": 2, "focus": "b1"},
+    {"focus": "c1"}
+  ]
+}

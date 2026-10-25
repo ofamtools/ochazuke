@@ -1,0 +1,14 @@
+{
+  "name": "outline: a failed write keeps the text, marks the row and retries on the next change",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {"id": "t", "editable": true, "failWrites": 1, "nodes": [{"id": "a", "label": "alpha"}]}
+    ]
+  },
+  "script": ["i", {"type": "x"}, "esc", "o", "esc"],
+  "expect": [
+    {"after": 3, "contains": ["alphax", "!"], "writes": []},
+    {"lacks": ["!"], "writes": ["rename a: alphax", "add t-n1 under root at 1: "]}
+  ]
+}

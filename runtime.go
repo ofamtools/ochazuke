@@ -188,6 +188,7 @@ func NewRuntime() *Runtime {
 	registerConfiguration(r)
 	registerPages(r)
 	registerLists(r)
+	registerTrees(r)
 	RegisterInputOperations(r)
 	registerRegisters(r)
 	registerYankHistory(r)
