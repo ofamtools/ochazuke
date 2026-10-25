@@ -359,8 +359,11 @@ func (f *fixture) tool(dir string, args ...string) (string, string, error) {
 }
 
 func TestMountResolvesNounPrefixesAndShadowsBins(t *testing.T) {
+	// tool-widget answers no catalog, so the widget noun merges it as a
+	// pass-through: noun verbs (and their prefixes) still win.
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
 	marker := filepath.Join(t.TempDir(), "ran")
-	dir := bins(t, map[string]string{"tool-widget": "touch " + marker, "tool-web": `echo "web $*"; exit 7`})
+	dir := bins(t, map[string]string{"tool-widget": `case "$1" in catalog|commands) exit 1;; esac; touch ` + marker, "tool-web": `echo "web $*"; exit 7`})
 	f := newFixture(t)
 	if _, errOut, err := f.tool(dir, "wid", "sh", "--target", "w1"); err != nil || len(f.calls) != 1 {
 		t.Fatalf("tool wid sh: %v %+v\n%s", err, f.calls, errOut)
@@ -369,7 +372,7 @@ func TestMountResolvesNounPrefixesAndShadowsBins(t *testing.T) {
 		t.Fatal("the tool-widget bin ran instead of the noun")
 	}
 	out, _, err := f.tool(dir, "help")
-	if err != nil || !strings.Contains(out, "shadows external "+filepath.Join(dir, "tool-widget")) || !strings.Contains(out, "\n  catalog ") {
+	if err != nil || !strings.Contains(out, "merges external "+filepath.Join(dir, "tool-widget")) || !strings.Contains(out, "\n  catalog ") {
 		t.Fatalf("help: %v\n%s", err, out)
 	}
 	if out, _, err := f.tool(dir, "which", "widget"); err != nil || out != "widget inline noun\n" {
