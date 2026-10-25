@@ -62,8 +62,8 @@ Only `list`, `palette` and `terminal` are `Focusable` nouns, and any `*Input` co
 |---|---|---|
 | Instance | instance.go:19 | `ID`, `Noun`, `Parent` (the only tree link, no child list), `Bindings` (rows on this one instance), `Unfocusable` (opt-out), `Label`, `Data`, `Component` (the `*Page`/`*List`/`*Input`/`*Terminal`), `seq` (registration order), `lastFocus` (where focus was inside it, used by landing), `Payload.Return` (a modal's return focus) |
 | Page | pages.go:15 | `Focus` (start focus), `Remembered` (focus while hidden), `Render func(r,w,h) Block`, `mode`, `drawn` / `drawing` (ids Placed in the last / current frame) |
-| List | list.go:29 | `id`, `items []ListItem`, `selected int`, `offset`, `marks`, `noSpill` (list.go:36). It has no focus flag: `Focused()` derives it from `r.Focus` (list.go:223) |
-| ListItem | list.go:20 | `ID` (becomes the row instance id), `Label`, `Noun` (the row's noun), `Data` |
+| List | list.go:29 | `id`, `items []ListItem`, `selected int`, `offset`, `marks`, `noSpill` (list.go:36), `columns` (a table, table.go). It has no focus flag: `Focused()` derives it from `r.Focus` (list.go:223) |
+| ListItem | list.go:20 | `ID` (becomes the row instance id), `Label`, `Noun` (the row's noun), `Data`, `Cells` (a table's text per column) |
 | Terminal | terminal.go:49 | `id`, `stream`, `frame`, `cols`/`rows`. `AddTerminal` (terminal.go:67) makes it an Instance of noun `terminal` (Focusable, Pin "terminal", terminal.go:235) |
 | Input | input.go:16 | `ID`, `Text`, `Cursor`, `Mode`, `pin`. `AddInput` (runtime.go:292) makes it an Instance of noun `editor` (or a Kind); focusable because its Component is `*Input` |
 | Modal | none | A modal is a plain Instance listed in `Runtime.modals`; `Push` (focus.go:266) or `OpenModal` (focus.go:331) creates it. Its look is a `ModalView{Title, Render}` (model.go:21) in `Model.ModalViews` |
@@ -86,6 +86,14 @@ Model.View (model.go:375) -> Model.render (model.go:416)
 - Who decides the draw order of a page's children? Only the app's `Render` function, by the order it calls `View`. `Layout` (layout.go:13) holds no state; `Panel`/`Split` draw strings and take a `focused bool` from the caller.
 - Is the drawn order recorded? Yes, since `89de0d6`. `Placed(id)` (pages.go:44) appends to `page.drawing` during `page.render`, and the deferred swap copies it into `page.drawn`. Only the components that call `Placed` (List, Input, Terminal, grid) are recorded. List rows are not recorded; only the list id is.
 - The highlight: `List.View` reverses the selected row only when `l.Focused()` is true (list.go:293). Otherwise the selected row shows only the `> ` marker.
+
+### Tables
+
+A table is a `List` with columns, not another widget, so focus, selection, marks, the window and scrolloff, spill and the one highlight are the list's own. `AddList(id, items, Columns(cols...))` (or `List.SetColumns`) gives a list its `[]Column{Title, Width, Min, Align, Priority}`; each `ListItem.Cells` holds the row's text per column in the same order, and `Label` stays the row's name for the palette, search and `{{label}}` (it is the first cell of a row with no cells). A list without columns draws exactly as before.
+
+`List.View` on a table (`tableView`, table.go) draws a bold header line, then the rows at widths from `tableLayout`: a column with `Width` is fixed, a flexible one (`Width` 0) needs `Min` (default 10 cells, or its title's width when wider, never more than its widest cell) and grows toward its widest cell from the left while room is left; two spaces between columns. When the least widths do not fit, the column with the largest `Priority` drops (ties: the rightmost), until one is left, which is cut. Cells are cut at their display width with `…` (`ansi.Truncate`); `AlignRight` pads on the left. The focused list's selected row is reversed across the whole width; the `* ` mark gutter prefixes the header and every row while the list has a mark. The header takes one line of the list's height, and the selected row's placed line accounts for it, so the page's follow is unchanged.
+
+A noun declares its table with `NounBuilder.Columns(...)` (`Noun.Columns`): data only, never applied by the runtime. The CLI catalog carries it as `columns` on the noun (`cli.CatalogNoun.Columns`), state rows bring `cells` (`cli.Row.Cells`), and a host that mounts the noun's rows passes the columns to `Columns` (nabe does). Stories: `cmd/o-story/stories/tables/` (wide, narrow with dropped columns, truncation, empty, spill between a table and a plain list).
 
 ## 5. Focus: stops, regions, rows
 
