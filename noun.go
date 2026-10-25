@@ -82,6 +82,9 @@ type Binding struct {
 	// for a row whose operation says nothing useful on its own (the
 	// terminal leader's mode.enter); bindings list carries it too.
 	Hint string `json:"hint,omitempty"`
+	// Hidden keeps the row off the footer's hint line (counts, registers,
+	// macros, ctrl+c); ? help and bindings list still show it.
+	Hidden bool `json:"hidden,omitempty"`
 }
 
 // Sources a From entry may name: "key" (the key name), "digit" (the key as an
@@ -183,6 +186,10 @@ func (b Binding) Guard(name string) Binding { b.When = name; return b }
 // Hinted sets the row's hint (config field "hint"): the text shown after
 // its key in place of the operation and its description.
 func (b Binding) Hinted(text string) Binding { b.Hint = text; return b }
+
+// Hide keeps the row off the footer (config field "hidden"); ? help and
+// bindings list still show it.
+func (b Binding) Hide() Binding { b.Hidden = true; return b }
 
 func (b Binding) from(arg, source string) Binding {
 	from := map[string]string{}
@@ -313,6 +320,18 @@ func (b *NounBuilder) Quiet() *NounBuilder {
 	}
 	op := b.r.Operations[b.last]
 	op.Quiet = true
+	b.r.Operations[b.last] = op
+	return b
+}
+
+// Motion marks the last declared verb as a motion (Operation.Motion): the
+// footer leaves its rows to ? help, as it does for list.move.
+func (b *NounBuilder) Motion() *NounBuilder {
+	if b.last == "" {
+		panic("Motion must follow Verb")
+	}
+	op := b.r.Operations[b.last]
+	op.Motion = true
 	b.r.Operations[b.last] = op
 	return b
 }

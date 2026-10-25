@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 	"time"
@@ -99,7 +100,7 @@ func NewModel(r *Runtime) *Model {
 		r.Define("app").Mode(mode).Bind(keys, row)
 	}
 	defaultRow("normal", ":", Do("palette.open"))
-	defaultRow("normal", "ctrl+y", Do("yank-history.open"))
+	defaultRow("normal", "ctrl+y", Do("yank-history.open").Hide())
 	defaultRow("normal", "?", Do("bindings.help"))
 	defaultRow("normal", "ctrl+j", Do("page.next"))
 	defaultRow("normal", "ctrl+k", Do("page.previous"))
@@ -112,9 +113,9 @@ func NewModel(r *Runtime) *Model {
 	for _, existing := range app.Bindings[""] {
 		captureQuit = captureQuit && existing.Keys != "ctrl+c"
 	}
-	defaultRow("", "ctrl+c", Do("app.quit"))
+	defaultRow("", "ctrl+c", Do("app.quit").Hide())
 	if captureQuit {
-		r.Define("app").Mode("").Bind("ctrl+c", Do("app.quit").Captured().Guard("no-modal"))
+		r.Define("app").Mode("").Bind("ctrl+c", Do("app.quit").Captured().Guard("no-modal").Hide())
 	}
 	defaultRow("", "pgdown", Do("surface.scroll", Arguments{"lines": 8}))
 	defaultRow("", "pgup", Do("surface.scroll", Arguments{"lines": -8}))
@@ -304,15 +305,54 @@ func (m *Model) footer() Footer {
 }
 
 // BindingHints renders the rows a focus answers to in its current mode as a
-// hint line, innermost level first: "ctrl+j page.next · : palette.open".
+// hint line, from the innermost level outward (the focused instance's rows,
+// its noun's, then its parents' up to the page and app):
+// "enter demo.open · : palette.open · ? bindings.help". Motions
+// (Operation.Motion) and hidden rows (counts, registers, macros, ctrl+c)
+// are left to ? help, and of rows that run the same request only the first
+// (innermost) key is shown.
 // It is the data bindings.list prints, so a hint never names a key that is
 // not bound; the descriptions are in BindingHelp (the ? modal).
 func BindingHints(r *Runtime, focus string) string {
 	var hints []string
-	for _, b := range r.bindingRows(focus) {
+	index := map[string]bool{}
+	for _, row := range r.groupedRows(focus) {
+		b := row.Binding
+		if b.Hidden || r.Operations[b.Request.Key()].Motion {
+			continue
+		}
+		same := fmt.Sprintf("%s\x00%v\x00%v\x00%s", b.Request.Key(), b.Request.Args, b.From, b.Hint)
+		if index[same] && b.Request.Verb != "" {
+			continue
+		}
+		index[same] = true
 		hints = append(hints, rowHint(b))
 	}
 	return strings.Join(hints, " · ")
+}
+
+// groupedRows is levelRows grouped by the noun of the level that answers,
+// innermost first, a capture row with its own level (app's ctrl+c comes
+// after the focused row's verbs).
+func (r *Runtime) groupedRows(focus string) []levelRow {
+	rows := r.levelRows(focus)
+	var order []string
+	for _, capture := range []bool{false, true} {
+		for _, row := range rows {
+			if row.Capture == capture && !slices.Contains(order, row.level) {
+				order = append(order, row.level)
+			}
+		}
+	}
+	out := make([]levelRow, 0, len(rows))
+	for _, noun := range order {
+		for _, row := range rows {
+			if row.level == noun {
+				out = append(out, row)
+			}
+		}
+	}
+	return out
 }
 
 // rowHint is one row as a hint: its key or pattern, then the row's own Hint
@@ -351,27 +391,13 @@ type HelpRow struct {
 // the innermost instance outward (a capture row sits with its own level,
 // so app's ctrl+c comes after the focused row's verbs).
 func BindingHelp(r *Runtime, focus string) []HelpRow {
-	rows := r.levelRows(focus)
-	var order []string
-	for _, capture := range []bool{false, true} {
-		for _, row := range rows {
-			if row.Capture == capture && !slices.Contains(order, row.level) {
-				order = append(order, row.level)
-			}
-		}
-	}
 	var out []HelpRow
-	for _, noun := range order {
-		for _, row := range rows {
-			if row.level != noun {
-				continue
-			}
-			op := row.Hint
-			if op == "" && row.Request.Verb != "" {
-				op = row.Request.Key()
-			}
-			out = append(out, HelpRow{Key: rowKey(row.Binding), Operation: op, Description: r.Operations[row.Request.Key()].Description, Noun: noun})
+	for _, row := range r.groupedRows(focus) {
+		op := row.Hint
+		if op == "" && row.Request.Verb != "" {
+			op = row.Request.Key()
 		}
+		out = append(out, HelpRow{Key: rowKey(row.Binding), Operation: op, Description: r.Operations[row.Request.Key()].Description, Noun: row.level})
 	}
 	return out
 }

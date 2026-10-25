@@ -83,6 +83,12 @@ type Operation struct {
 	// Quiet marks bookkeeping (a list reload) the jobs ticker does not
 	// show; set by NounBuilder.Quiet. The catalog's quiet.
 	Quiet bool `json:"quiet,omitempty"`
+	// Motion marks movement (list.move, focus.next, surface.scroll,
+	// page.next): the footer's hint line leaves its rows out, since motions
+	// are standard and the footer is for the verbs the focus offers; ?
+	// help and bindings list keep them. Set by NounBuilder.Motion; the
+	// framework's own motions are marked as they register (motionOps).
+	Motion bool `json:"motion,omitempty"`
 	// Positional names the parameters bare words fill first, in this
 	// order (NounBuilder.Positional), ahead of ParameterOrder's
 	// required-then-by-name rest. The CLI gives a boolean a bare word only
@@ -261,6 +267,15 @@ func (r *Runtime) SetMode(mode string) error {
 	return nil
 }
 
+// motionOps are the framework's own motions (Operation.Motion): moving a
+// selection, a cursor, the focus between stops, the page or the viewport.
+var motionOps = map[string]bool{
+	"list.move": true, "focus.next": true, "focus.previous": true,
+	"surface.scroll": true, "page.next": true, "page.previous": true,
+	"input.move": true, "picker.move": true, "palette.move": true,
+	"yank-history.move": true, "grid.move": true, "grid.goto": true,
+}
+
 // Register adds an operation. An operation with App set is of kind
 // application and its Run is the framework's dispatcher for it.
 func (r *Runtime) Register(o Operation) {
@@ -275,6 +290,9 @@ func (r *Runtime) Register(o Operation) {
 	}
 	if o.Verb == "" || o.Noun == "" || o.Run == nil {
 		panic("invalid operation registration")
+	}
+	if motionOps[o.Key()] {
+		o.Motion = true
 	}
 	if _, exists := r.Operations[o.Key()]; exists {
 		panic("duplicate operation: " + o.Key())

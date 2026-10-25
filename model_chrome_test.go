@@ -53,7 +53,7 @@ func TestModelChromeIsLayoutShellWithHintsFromBindings(t *testing.T) {
 				if sidebar && !strings.Contains(view, "▸ ALPHA") || !sidebar && !strings.Contains(rows[1], "› ALPHA") {
 					t.Fatalf("page navigation missing (sidebar=%t):\n%s", sidebar, view)
 				}
-				if footer := rows[size[1]-2]; !hintPrefix(footer, BindingHints(r, r.Focus)) || !strings.Contains(BindingHints(r, r.Focus), "ctrl+j page.next") {
+				if footer := rows[size[1]-2]; !hintPrefix(footer, BindingHints(r, r.Focus)) || !strings.Contains(BindingHints(r, r.Focus), "? bindings.help") || strings.Contains(BindingHints(r, r.Focus), "page.next") {
 					t.Fatalf("footer is not the focus's binding hints: %q", footer)
 				}
 			})
@@ -62,12 +62,12 @@ func TestModelChromeIsLayoutShellWithHintsFromBindings(t *testing.T) {
 	m.Sidebar = false
 	m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
 	// The hint is the same data bindings.list prints: a rebound key moves with it.
-	if err := r.Bind(Binding{Noun: "app", Mode: "normal", Keys: "ctrl+j", Request: Request{Verb: "previous", Noun: "page"}}); err != nil {
+	if err := r.Bind(Binding{Noun: "app", Mode: "normal", Keys: "?", Request: Request{Verb: "open", Noun: "yank-history"}}); err != nil {
 		t.Fatal(err)
 	}
 	footer := strings.Split(ansi.Strip(m.View().Content), "\n")[22]
 	hints := BindingHints(r, r.Focus)
-	if !hintPrefix(footer, hints) || !strings.Contains(hints, "ctrl+j page.previous") || strings.Contains(hints, "ctrl+j page.next") {
+	if !hintPrefix(footer, hints) || !strings.Contains(hints, "? yank-history.open") || strings.Contains(hints, "? bindings.help") {
 		t.Fatalf("footer did not follow the rebinding: %q (%q)", footer, hints)
 	}
 	// An input in insert mode shows the mode badge and lists the editor rows.
@@ -76,7 +76,7 @@ func TestModelChromeIsLayoutShellWithHintsFromBindings(t *testing.T) {
 	}
 	keytest.Press(m, "i")
 	rows := strings.Split(ansi.Strip(m.View().Content), "\n")
-	if insert := BindingHints(r, r.Focus); !strings.HasSuffix(strings.TrimSpace(rows[0]), "INSERT") || !hintPrefix(rows[22], insert) || !strings.Contains(insert, "ctrl+a") {
+	if insert := BindingHints(r, r.Focus); !strings.HasSuffix(strings.TrimSpace(rows[0]), "INSERT") || !hintPrefix(rows[22], insert) || !strings.Contains(insert, "ctrl+w") || strings.Contains(insert, "input.move") {
 		t.Fatalf("insert mode chrome: title %q footer %q", rows[0], rows[22])
 	}
 	// An error replaces the hints until the next key.

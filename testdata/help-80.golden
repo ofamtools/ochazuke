@@ -59,7 +59,7 @@
         │                                   focus stop (or region) in  │
         │                                   drawing order, wrapping,   │
         │ 1–17 / 31                                                    │
-        │ j list.move · down list.move · k list.move · up list.move ·… │
+        │ space list.mark · esc modal.pop · : palette.open · ? bindin… │
         ╰──────────────────────────────────────────────────────────────╯
 
 
@@ -68,5 +68,5 @@
 
 
   ────────────────────────────────────────────────────────────────────────────
-  j list.move · down list.move · k list.move · up list.move · space list.mark…
+  space list.mark · esc modal.pop · : palette.open · ? bindings.help
 

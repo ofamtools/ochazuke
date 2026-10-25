@@ -164,6 +164,9 @@ tiers above them. When the two disagree, fix one in the same commit.
   focused instance and mode. No literal hint string exists in framework
   code. Check: grep `model.go`, `terminal.go`, `picker*.go` for quoted
   key names in view code.
+- **R6.1a** The footer leaves out motions (`Operation.Motion`) and
+  `Hidden` rows, orders hints innermost level outward, and shows one key per
+  request; `?` still lists every row. Story: `chrome/footer-no-motions.json`.
 - **R6.2** A row's `Hint` replaces the `noun.verb` text in the footer;
   descriptions appear only in help and `bindings.list`. Story: needed
   (`chrome/hint-replaces-operation`).

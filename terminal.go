@@ -284,13 +284,13 @@ func registerTerminal(r *Runtime) {
 		}, "Return focus to the instance around the terminal; the pane keeps running (a CloseOnDetach terminal is removed, its stream released and the focus sent to its FocusOnClose target)").
 		Mode("terminal").
 		Bind("ctrl+a", Enter("leader_pending", Payload{Prefix: "ctrl+a", Request: &leader}).Hinted("leader: d detaches, ctrl+a sends ctrl+a")).
-		Pattern(Paste, Do("terminal.paste").FromPayload("text", SourceText)).
-		Pattern(Any, Do("terminal.send").FromKey("keys")).
+		Pattern(Paste, Do("terminal.paste").FromPayload("text", SourceText).Hide()).
+		Pattern(Any, Do("terminal.send").FromKey("keys").Hide()).
 		Mode("leader_pending").
 		Bind("d", Do("terminal.detach")).
 		Bind("ctrl+a", Do("terminal.send", Arguments{"keys": "ctrl+a"})).
-		Pattern(Paste, Do("terminal.paste").FromPayload("keys", SourcePrefix).FromPayload("text", SourceText)).
-		Pattern(Any, Do("terminal.send").Join("keys", SourcePrefix, SourceKey))
+		Pattern(Paste, Do("terminal.paste").FromPayload("keys", SourcePrefix).FromPayload("text", SourceText).Hide()).
+		Pattern(Any, Do("terminal.send").Join("keys", SourcePrefix, SourceKey).Hide())
 	// Required-parameter metadata for the rows above and for the CLI.
 	for verb, params := range map[string]map[string]Parameter{
 		"send":   {"id": {Type: "string", Description: "Terminal instance (defaults to the focused one)"}, "keys": {Type: "string", Required: true, Description: "Space-separated key names, forwarded in order"}},

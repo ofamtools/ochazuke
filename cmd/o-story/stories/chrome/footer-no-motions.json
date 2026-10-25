@@ -1,0 +1,31 @@
+{
+  "name": "footer: the focused row's verbs first, no motions",
+  "area": "chrome",
+  "width": 120,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ]
+  },
+  "script": [
+    "j"
+  ],
+  "expect": {
+    "focus": "a2",
+    "order": [
+      "demo.open",
+      "palette.open"
+    ],
+    "lacks": [
+      "list.move",
+      "focus.next",
+      "focus.previous",
+      "page.next",
+      "ctrl+c",
+      "mode.enter"
+    ]
+  }
+}

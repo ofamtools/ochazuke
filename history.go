@@ -162,7 +162,7 @@ func registerHistory(r *Runtime) {
 		}
 		return r.ExecuteAt(c, q)
 	}})
-	r.Define("app").Mode("normal").Bind(".", Do("history.repeat").FromPayload("steps", SourceLine))
+	r.Define("app").Mode("normal").Bind(".", Do("history.repeat").FromPayload("steps", SourceLine).Hide())
 	r.Register(Operation{Verb: "list", Noun: "history", Description: "List the last executed requests, oldest first, with their context, source and result", Parameters: map[string]Parameter{"last": {Type: "integer", Description: "How many entries (default 50, 0 for all)"}}, Result: "history[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.History(IntArg(a, "last", 50)), nil
 	}})
