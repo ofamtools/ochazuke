@@ -16,7 +16,7 @@
     "order": [
       "demo.open",
       "demo.notify",
-      "list.move"
+      "list.mark"
     ]
   }
 }

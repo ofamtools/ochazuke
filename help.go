@@ -18,7 +18,8 @@ const (
 
 // registerBindingHelp adds bindings.help: a modal listing BindingHelp for
 // the focus it opens over, one row per binding (key, noun.verb,
-// description), grouped by noun from the innermost instance outward. The
+// description), grouped by level from the innermost instance outward, each
+// level under its noun's label and the motions last under "movement". The
 // rows are a list of the "binding" noun, which has no verbs: j/k move,
 // esc closes (the modal noun's row). NewModel binds ? to it in normal mode.
 func registerBindingHelp(r *Runtime) {
@@ -131,8 +132,16 @@ func bindingHelpView(r *Runtime, _ *Instance, width, height int) Block {
 	opWidth := min(helpOpWidth, max(1, width-mark-keyWidth-gap))
 	descWidth := width - mark - keyWidth - gap - opWidth - gap
 	lines := make([][]string, len(items))
+	headed := make([]bool, len(items))
+	section := ""
 	for i, it := range items {
 		row := it.Data.(HelpRow)
+		if row.Section != section {
+			// A section label opens each level's rows: the noun, or movement.
+			section = row.Section
+			headed[i] = true
+			lines[i] = append(lines[i], lipgloss.NewStyle().Faint(true).Render(section))
+		}
 		key, _ := helpKey(row.Key)
 		cols := [][]string{helpColumn(key, keyWidth), helpColumn(row.Operation, opWidth), helpColumn(row.Description, descWidth)}
 		n := max(len(cols[0]), len(cols[1]), len(cols[2]))
@@ -179,12 +188,12 @@ func bindingHelpView(r *Runtime, _ *Instance, width, height int) Block {
 	var out []string
 	end := list.offset
 	for i := list.offset; i < len(items) && len(out) < visible; i++ {
-		for _, line := range lines[i] {
+		for j, line := range lines[i] {
 			if len(out) == visible {
 				break
 			}
 			line = ansi.Truncate(line, width, "…")
-			if i == list.selected && list.Focused() {
+			if i == list.selected && list.Focused() && !(j == 0 && headed[i]) {
 				line = lipgloss.NewStyle().Reverse(true).Render(line)
 			}
 			out = append(out, line)

@@ -9,6 +9,7 @@
 
         ╭──────────────────────────────────────────────────────────────╮
         │ Keys                                                         │
+        │ task                                                         │
         │ > enter       task.open           Open the task's page       │
         │   x           task.done           Mark the task done and     │
         │                                   move it to the archive     │
@@ -19,21 +20,11 @@
         │                                   confirm                    │
         │   d esc       mode.leave          Return from a pending mode │
         │                                   to the mode it shadowed    │
-        │   j           list.move           Move the selection; past   │
-        │                                   the edge, on to the next   │
-        │                                   stop on the page           │
-        │   down        list.move           Move the selection; past   │
-        │                                   the edge, on to the next   │
-        │                                   stop on the page           │
-        │   k           list.move           Move the selection; past   │
-        │                                   the edge, on to the next   │
-        │                                   stop on the page           │
-        │   up          list.move           Move the selection; past   │
-        │                                   the edge, on to the next   │
-        │                                   stop on the page           │
+        │ list                                                         │
         │   space       list.mark           Toggle the mark on a row   │
         │                                   (the selected row by       │
         │                                   default) for fan-out verbs │
+        │ app                                                          │
         │   ctrl+c      app.quit            Exit the application       │
         │   "           mode.enter          Enter a pending mode with  │
         │                                   a typed payload (op,       │
@@ -55,10 +46,19 @@
         │                                   count, opcount; prefix     │
         │                                   arms the sequence timer,   │
         │                                   request is what it runs)   │
-        │   }           focus.next          Move the focus to the next │
-        │                                   focus stop (or region) in  │
-        │                                   drawing order, wrapping,   │
-        │ 1–17 / 31                                                    │
+        │   .           history.repeat      Dot-repeat: run the last   │
+        │                                   repeatable change again at │
+        │                                   the current focus, its     │
+        │                                   arguments kept; steps      │
+        │                                   replaces its count         │
+        │   :           palette.open        Open the command line      │
+        │   ctrl+y      yank-history.open   Select a previous          │
+        │                                   application yank without   │
+        │                                   inserting it               │
+        │   ?           bindings.help       Open the keys the focus    │
+        │                                   answers to, with the       │
+        │                                   operation each runs and    │
+        │ 1–16 / 31                                                    │
         │ space list.mark · esc modal.pop · : palette.open · ? bindin… │
         ╰──────────────────────────────────────────────────────────────╯
 

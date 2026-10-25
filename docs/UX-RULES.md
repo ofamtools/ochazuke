@@ -171,8 +171,10 @@ tiers above them. When the two disagree, fix one in the same commit.
   descriptions appear only in help and `bindings.list`. Story: needed
   (`chrome/hint-replaces-operation`).
 - **R6.3** `?` opens the help modal over the focus, grouped by the answering
-  level's noun innermost first, app rows last, and only in normal mode.
-  Story: `help/row-verbs-first.json`; golden `testdata/help-80.golden`.
+  level's noun innermost first under a section label, app rows after the
+  levels, motions last under `movement`, and only in normal mode.
+  Story: `help/row-verbs-first.json`, `help/levels-innermost-first.json`;
+  golden `testdata/help-80.golden`.
 - **R6.4** `Status` shows the last key's error and clears on the next key;
   `Notices` persist until `notice.clear`. Story: `notices/persist.json`;
   needed for the status-clears case.

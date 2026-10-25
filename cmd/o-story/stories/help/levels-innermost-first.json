@@ -1,0 +1,29 @@
+{
+  "name": "? groups rows by level, innermost first, movement last",
+  "area": "help",
+  "width": 120,
+  "height": 70,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ]
+  },
+  "script": [
+    "?"
+  ],
+  "expect": {
+    "modal": "bindings-help",
+    "order": [
+      "demo.open",
+      "list.mark",
+      "palette.open",
+      "bindings.help",
+      "movement",
+      "list.move",
+      "focus.next"
+    ]
+  }
+}

@@ -378,28 +378,42 @@ func rowKey(b Binding) string {
 
 // HelpRow is one binding as the help shows it: the key, the operation it
 // runs (noun.verb, or the row's Hint when it has one), the operation's
-// description and the noun of the level that answers with it.
+// description, the noun of the level that answers with it, and the help's
+// section: that noun, or "movement" for a motion (Operation.Motion).
 type HelpRow struct {
 	Key         string `json:"key"`
 	Operation   string `json:"operation"`
 	Description string `json:"description,omitempty"`
 	Noun        string `json:"noun"`
+	Section     string `json:"section,omitempty"`
 }
+
+// MovementSection is the help section that holds every motion, after the
+// app's rows.
+const MovementSection = "movement"
 
 // BindingHelp lists the rows a focus answers to in its current mode with
 // their descriptions, grouped by the noun of the level that answers, from
-// the innermost instance outward (a capture row sits with its own level,
-// so app's ctrl+c comes after the focused row's verbs).
+// the innermost instance outward (the focused instance's rows, its noun's,
+// its parents' up to the page, then app; a capture row sits with its own
+// level, so app's ctrl+c comes after the focused row's verbs), and the
+// motions of every level last, under "movement".
 func BindingHelp(r *Runtime, focus string) []HelpRow {
-	var out []HelpRow
+	var out, motions []HelpRow
 	for _, row := range r.groupedRows(focus) {
 		op := row.Hint
 		if op == "" && row.Request.Verb != "" {
 			op = row.Request.Key()
 		}
-		out = append(out, HelpRow{Key: rowKey(row.Binding), Operation: op, Description: r.Operations[row.Request.Key()].Description, Noun: row.level})
+		help := HelpRow{Key: rowKey(row.Binding), Operation: op, Description: r.Operations[row.Request.Key()].Description, Noun: row.level, Section: row.level}
+		if r.Operations[row.Request.Key()].Motion {
+			help.Section = MovementSection
+			motions = append(motions, help)
+			continue
+		}
+		out = append(out, help)
 	}
-	return out
+	return append(out, motions...)
 }
 
 // View renders the shell as a full-screen tea.View; View().Content is the
