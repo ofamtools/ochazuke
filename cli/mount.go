@@ -7,56 +7,76 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/unixsuperhero/ochazuke"
 	"github.com/unixsuperhero/oden"
 )
 
-// Mount registers the application nouns of the shell's runtime (a noun
-// with at least one KindApplication verb) as inline commands of app that
-// run the shell with the full noun name, so oden's prefix matching
-// resolves nouns (BIN ta launch is task launch) and a noun wins over a
-// same-named BIN-<noun> executable on PATH, which help lists as shadowed.
-// The framework's own nouns (modal, mode, input, ...) are not mounted, so
-// their names neither crowd help nor make an application noun's prefix
-// ambiguous; they stay reachable as BIN NOUN VERB through an app.Default
-// that runs the shell. extra names framework nouns to mount anyway (mtm
-// mounts bindings and history so bind li resolves). It also adds the
-// command catalog, which prints Catalog of the runtime under the shell's
-// Bin and Version (after the nouns, so a noun named catalog wins). Mount
-// leaves app.Default to the application.
+// Mount maps the runtime registry to oden command groups and operation metadata.
+// Oden owns command resolution and help; the shell owns operation execution.
+// The catalog command follows the nouns so a noun named catalog wins.
+// extra also declares empty command groups before their operations are registered.
+// Mount leaves app.Default to the application.
 func Mount(app *oden.App, sh *Shell, extra ...string) {
-	verbs := map[string][]string{}
-	mounted := map[string]bool{}
+	groups := map[string][]oden.Command{}
 	for _, noun := range extra {
-		mounted[noun] = true
+		groups[noun] = []oden.Command{}
 	}
-	for _, op := range sh.Runtime.Operations {
-		verbs[op.Noun] = append(verbs[op.Noun], op.Verb)
-		if op.Kind == ochazuke.KindApplication {
-			mounted[op.Noun] = true
+	for noun := range sh.Runtime.Nouns {
+		groups[noun] = []oden.Command{}
+	}
+	for _, op := range sh.Runtime.Catalog() {
+		parameters := make([]oden.Parameter, 0, len(op.Parameters))
+		for _, name := range op.ParameterOrder() {
+			p := op.Parameters[name]
+			parameters = append(parameters, oden.Parameter{
+				Name: name, Type: p.Type, Description: p.Description,
+				Required: p.Required, Choices: p.Enum, Source: p.Source, Free: p.Free,
+			})
 		}
-	}
-	for noun := range verbs {
-		if !mounted[noun] {
-			delete(verbs, noun)
+		kind := op.Kind
+		if kind == "" {
+			kind = "interaction"
 		}
+		details := fmt.Sprintf("Kind: %s", kind)
+		if op.Result != "" {
+			details += "\nResult: " + op.Result
+		}
+		if op.Confirm != "" {
+			details += "\nConfirmation: " + op.Confirm
+		}
+		noun, verb := op.Noun, op.Verb
+		groups[noun] = append(groups[noun], oden.Command{
+			Name: verb, Summary: op.Description, Source: op.Key(),
+			Usage:      "[ARG...] [--target ID] [--json ...] [--ARG VALUE] [--yes]",
+			Parameters: parameters, Details: details,
+			Run: func(ctx context.Context, args []string) error {
+				return sh.Run(ctx, append([]string{noun, verb}, args...))
+			},
+		})
 	}
-	nouns := make([]string, 0, len(verbs))
-	for noun := range verbs {
+	nouns := make([]string, 0, len(groups))
+	for noun := range groups {
 		nouns = append(nouns, noun)
 	}
 	sort.Strings(nouns)
 	for _, noun := range nouns {
-		sort.Strings(verbs[noun])
+		verbs := make([]string, 0, len(groups[noun]))
+		for _, command := range groups[noun] {
+			verbs = append(verbs, command.Name)
+		}
 		app.Add(oden.Command{
-			Name:    noun,
-			Summary: strings.Join(verbs[noun], " "),
-			Source:  "noun",
-			Run: func(ctx context.Context, rest []string) error {
-				return sh.Run(ctx, append([]string{noun}, rest...))
-			},
+			Name: noun, Summary: strings.Join(verbs, " "),
+			Source: "noun", Children: groups[noun],
 		})
 	}
+	app.HelpText = `CLI execution:
+  Each call uses a fresh local runtime, not an already-running TUI.
+  --target selects an instance; some operations require an existing instance.
+  --yes accepts confirmation; otherwise the CLI asks on stdin.
+  Supply prompt values as arguments: non-confirmation UI prompts need the TUI.
+  Bare arguments fill parameters in the order shown; named flags take precedence.
+  Boolean parameters use named flags unless explicitly declared positional.
+  Results are JSON; scheduled work settles before the command exits.
+  Interaction verbs may require UI state and can have no lasting CLI effect.`
 	app.Add(oden.Command{
 		Name:    "catalog",
 		Summary: "print the nouns, verbs, bindings and pages as JSON",

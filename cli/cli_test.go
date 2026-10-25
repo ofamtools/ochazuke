@@ -326,7 +326,6 @@ func TestShellErrors(t *testing.T) {
 		{[]string{"widget", "rename", "--target", "w1", "--name"}, "--name needs a value"},
 		{[]string{"widget", "show", "w1"}, `unexpected argument "w1"`},
 		{[]string{"widget", "show", "--json", "[1]"}, "arguments"},
-		{[]string{"widget"}, "usage: tool NOUN VERB"},
 		{[]string{"widget", "ask", "--target", "w1"}, "widget.ask opened a question modal, which needs the TUI; pass its arguments instead (tool operations list)"},
 	} {
 		_, _, err := f.run("", c.args...)
@@ -444,32 +443,77 @@ func TestCatalogGolden(t *testing.T) {
 	}
 }
 
-// Mount makes inline commands of the application nouns only: the
-// framework's nouns (modal, mode, bindings, ...) stay off help and reach
-// the shell through Default, unless named as extras.
-func TestMountMountsOnlyApplicationNouns(t *testing.T) {
-	f := newFixture(t)
-	commands := func(extra ...string) map[string]bool {
-		app := oden.New("tool", nil, oden.WithStdio(strings.NewReader(""), io.Discard, io.Discard), oden.WithPath(t.TempDir()))
-		Mount(app, New(f.r, "tool", strings.NewReader(""), io.Discard, io.Discard), extra...)
-		names := map[string]bool{}
-		for _, e := range app.Catalog().Entries {
-			if e.Kind == oden.KindInline {
-				names[e.Name] = true
+func TestMountContextualHelpAndDispatch(t *testing.T) {
+	for _, args := range [][]string{
+		{"help"}, {"widget"}, {"widget", "-h"}, {"widget", "--help"},
+		{"widget", "rename", "-h"}, {"widget", "rename", "--help"},
+		{"binding"}, {"orphan"}, {"widget", "list"},
+	} {
+		t.Run(strings.Join(args, " "), func(t *testing.T) {
+			f := newFixture(t)
+			f.r.Define("binding")
+			op := f.r.Operations["widget.rename"]
+			op.Parameters["name"] = ochazuke.Parameter{
+				Type: "string", Required: true, Description: "Widget name",
+				Enum: []string{"one", "two"}, Source: "widget.list", Free: true,
 			}
-		}
-		return names
-	}
-	got := commands()
-	if !got["widget"] || !got["catalog"] {
-		t.Fatalf("commands %v lack widget or catalog", got)
-	}
-	for _, noun := range []string{"modal", "mode", "modes", "bindings", "history", "input", "app"} {
-		if got[noun] {
-			t.Fatalf("framework noun %s mounted: %v", noun, got)
-		}
-	}
-	if got := commands("bindings"); !got["bindings"] || got["history"] {
-		t.Fatalf("extra bindings: %v", got)
+			f.r.Operations["widget.rename"] = op
+			orphan := f.r.Operations["widget.list"]
+			orphan.Noun = "orphan"
+			f.r.Operations["orphan.list"] = orphan
+			var out bytes.Buffer
+			app := oden.New("tool", args, oden.WithBuiltins(),
+				oden.WithStdio(strings.NewReader(""), &out, io.Discard),
+				oden.WithPath(t.TempDir()))
+			sh := New(f.r, "tool", strings.NewReader(""), &out, io.Discard)
+			prepared := 0
+			executing := len(args) == 2 && args[1] == "list"
+			sh.Prepare = func(context.Context) error {
+				prepared++
+				if !executing {
+					return errors.New("help must not prepare the runtime")
+				}
+				return nil
+			}
+			Mount(app, sh)
+			if err := app.Run(context.Background()); err != nil {
+				t.Fatal(err)
+			}
+			text := out.String()
+			if executing {
+				if prepared != 1 || !strings.Contains(text, `"w1"`) || !strings.Contains(text, `"w2"`) {
+					t.Fatalf("operation did not dispatch: prepared %d, output %s", prepared, text)
+				}
+				return
+			}
+			if prepared != 0 || len(f.calls) != 0 {
+				t.Fatalf("help executed runtime: prepared %d, calls %v", prepared, f.calls)
+			}
+			if args[0] == "help" {
+				for _, noun := range []string{"widget", "modal", "mode", "bindings", "history", "input", "app", "binding", "orphan"} {
+					if !strings.Contains(text, noun) {
+						t.Errorf("root help lacks %s: %s", noun, text)
+					}
+				}
+				return
+			}
+			if args[0] != "widget" {
+				return
+			}
+			for _, want := range []string{"Rename a widget", "name", "string", "Widget name", "one", "two", "widget.list"} {
+				if !strings.Contains(text, want) {
+					t.Errorf("contextual help lacks %q: %s", want, text)
+				}
+			}
+			if strings.Contains(text, "Undo the last") || strings.Contains(text, "input undo") {
+				t.Errorf("unrelated noun in help: %s", text)
+			}
+			if len(args) < 3 && !strings.Contains(text, "List the widgets") {
+				t.Errorf("noun help lacks sibling verb: %s", text)
+			}
+			if len(args) == 3 && strings.Contains(text, "List the widgets") {
+				t.Errorf("leaf help includes sibling verb: %s", text)
+			}
+		})
 	}
 }

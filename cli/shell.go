@@ -103,13 +103,13 @@ func DefaultUsage(bin string) string {
 
 // Run executes one command and prints its result as JSON on Stdout.
 func (s *Shell) Run(ctx context.Context, args []string) error {
+	if len(args) < 2 {
+		return errors.New(s.usage())
+	}
 	if s.Prepare != nil {
 		if err := s.Prepare(ctx); err != nil {
 			return err
 		}
-	}
-	if len(args) < 2 {
-		return errors.New(s.usage())
 	}
 	r := s.Runtime
 	verb, err := s.verb(args[0], args[1])

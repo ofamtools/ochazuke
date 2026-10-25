@@ -428,6 +428,14 @@ Mode resolution for key dispatch: the mode is global, like Vim's: `Runtime.Mode`
 
 Every keyboard action dispatches a registered operation. The CLI is a generic `NOUN VERB` adapter over that same registry; it has no separate list of supported actions. `operations list` returns the current catalog and argument specifications.
 
+`cli.Mount` maps every registered noun and operation into oden command groups
+and dispatch metadata, including parameter schemas. Oden owns contextual help
+rendering and command resolution: `BIN NOUN` and `BIN NOUN -h`/`--help`
+show that noun's verbs and schemas; `BIN NOUN VERB --help` describes only
+that operation. The adapter only maps the registry and delegates execution to
+`cli.Shell`. Help never enters `Shell.Prepare`, so it does not start a daemon
+or execute an operation.
+
 ```go
 r := ochazuke.NewRuntime()
 input := ochazuke.NewInput("title", "Example", false)

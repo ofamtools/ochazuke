@@ -43,6 +43,12 @@
 
 ## done
 
+- [x] Show contextual CLI help for every runtime noun and verb before daemon preparation.
+  - Oden owns help rendering and command resolution/dispatch metadata; `cli.Mount` only maps the runtime registry to groups, operations, and parameter schemas.
+  - Consumer regressions in `cli/cli_test.go` cover framework nouns, contextual help without `Shell.Prepare`, and real operation delegation.
+  - Shared implementation is in the actual `../oden` repository (`oden.go`, `help.go`, `catalog.go`, `builtins.go`); adapters contain no help renderer.
+  - Migrated the manual mounts in `o-ai`, `o-qbt`, and `o-inventory`, preserving output wrappers and shortcuts. Verified actual-source builds of these consumers and mtm; the active matomeru checkout was not edited.
+
 - [x] Add reusable Lip Gloss layouts and apply them to the keybinding sandbox.
   - `Layout.Page`: title, subtitle, bounded body, and persistent footer.
   - `Layout.Panel`: titled, focused panels with visible overflow; `Layout.Split`: side-by-side panes that stack in narrow windows.
