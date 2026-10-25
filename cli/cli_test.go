@@ -517,3 +517,25 @@ func TestMountContextualHelpAndDispatch(t *testing.T) {
 		})
 	}
 }
+
+func TestMountUnknownWordsReportNotFound(t *testing.T) {
+	f := newFixture(t)
+	dir := t.TempDir()
+	_, errOut, err := f.tool(dir, "widgets", "list")
+	if oden.ExitCode(err) != 1 || !strings.HasPrefix(errOut, "tool: command \"widgets\" not found\ndid you mean: widget\n") || !strings.Contains(errOut, "\n  widget ") {
+		t.Fatalf("tool widgets: %v\n%s", err, errOut)
+	}
+	_, errOut, err = f.tool(dir, "widget", "fly")
+	if oden.ExitCode(err) != 1 || !strings.HasPrefix(errOut, "tool widget: subcommand \"fly\" not found\n") || !strings.Contains(errOut, "List the widgets") || len(f.calls) != 0 {
+		t.Fatalf("tool widget fly: %v %v\n%s", err, f.calls, errOut)
+	}
+}
+
+func TestUsagePointsAtHelp(t *testing.T) {
+	sh := New(newFixture(t).r, "tool", strings.NewReader(""), io.Discard, io.Discard)
+	err := sh.Run(context.Background(), nil)
+	want := "(tool help lists the commands; tool NOUN --help lists a noun's verbs and parameters)"
+	if err == nil || !strings.HasSuffix(err.Error(), "\n"+want) || strings.Contains(err.Error(), "operations list") {
+		t.Fatalf("usage: %v", err)
+	}
+}

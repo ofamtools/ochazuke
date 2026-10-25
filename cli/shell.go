@@ -96,9 +96,16 @@ func New(r *ochazuke.Runtime, bin string, stdin io.Reader, stdout, stderr io.Wri
 	return &Shell{Runtime: r, Bin: bin, Usage: DefaultUsage(bin), Stdin: stdin, Stdout: stdout, Stderr: stderr}
 }
 
-// DefaultUsage is the usage line of a bin with no global flags of its own.
+// DefaultUsage is the usage line of a bin with no global flags of its own,
+// followed by UsageHint.
 func DefaultUsage(bin string) string {
-	return "usage: " + bin + " NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--yes]\n(operations list prints every NOUN VERB and its parameters)"
+	return "usage: " + bin + " NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--yes]\n" + UsageHint(bin)
+}
+
+// UsageHint is the line under a usage line that points at oden's help: the
+// command list and one noun's verbs and parameters.
+func UsageHint(bin string) string {
+	return "(" + bin + " help lists the commands; " + bin + " NOUN --help lists a noun's verbs and parameters)"
 }
 
 // Run executes one command and prints its result as JSON on Stdout.
