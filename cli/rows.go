@@ -13,14 +13,17 @@ import (
 
 // Row is one line of a state answer (CatalogDoc.State) or of a list asked
 // for JSON Lines: the list noun it belongs to, its id (what --target
-// takes), its label and, optionally, the record.
+// takes), its label and, optionally, the record and its table cells (one
+// per column its noun declares, CatalogNoun.Columns; ochazuke.ListItem.Cells).
 //
 //	{"noun":"skill","id":"skill/s1","label":"review [claude]","data":{...}}
+//	{"noun":"pane","id":"w1","label":"work/claude","cells":["work/claude","idle","~/proj"]}
 type Row struct {
-	Noun  string `json:"noun"`
-	ID    string `json:"id"`
-	Label string `json:"label,omitempty"`
-	Data  any    `json:"data,omitempty"`
+	Noun  string   `json:"noun"`
+	ID    string   `json:"id"`
+	Label string   `json:"label,omitempty"`
+	Data  any      `json:"data,omitempty"`
+	Cells []string `json:"cells,omitempty"`
 }
 
 // Lines is a result the shell prints as JSON Lines: one compact JSON value

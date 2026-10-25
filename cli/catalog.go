@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"slices"
 	"sort"
 
 	"github.com/unixsuperhero/ochazuke"
@@ -25,7 +26,8 @@ const Schema = 1
 //	{"noun":"skill","id":"skill/s1","label":"review [claude]","data":{...}}
 //
 // data is optional (a host's list needs id and label; show prints the
-// record). The answer covers every list: a noun with no lines has no rows.
+// record); cells are the row's text per column of its noun's columns
+// (CatalogNoun.Columns), optional too. The answer covers every list: a noun with no lines has no rows.
 // A host decodes it as it arrives (RowReader), skipping a malformed line
 // silently; only a failed exec or a stream with nothing decodable is an
 // error. It runs the verb once, keeps the rows as its cached state and
@@ -45,11 +47,16 @@ type CatalogDoc struct {
 
 // CatalogNoun is a noun and its verbs, by verb name. Pin is the noun's
 // pinned base mode (ochazuke.Noun.Pin), "" for none: a host can tell a
-// modal-only noun from its data without knowing its name.
+// modal-only noun from its data without knowing its name. Columns are the
+// table columns a list of the noun's rows draws (ochazuke.Noun.Columns,
+// declared with NounBuilder.Columns), in order; each row's cells (Row.Cells)
+// follow that order. A host passes them to ochazuke.Columns when it mounts
+// the noun's rows; a noun without them draws its labels.
 type CatalogNoun struct {
-	Name  string        `json:"name"`
-	Pin   string        `json:"pin,omitempty"`
-	Verbs []CatalogVerb `json:"verbs"`
+	Name    string            `json:"name"`
+	Pin     string            `json:"pin,omitempty"`
+	Columns []ochazuke.Column `json:"columns,omitempty"`
+	Verbs   []CatalogVerb     `json:"verbs"`
 }
 
 // CatalogVerb is one ochazuke.Operation. Kind is "application" for a verb
@@ -89,7 +96,7 @@ func Catalog(r *ochazuke.Runtime, name, version string) ([]byte, error) {
 		if n := len(doc.Nouns); n == 0 || doc.Nouns[n-1].Name != op.Noun {
 			noun := CatalogNoun{Name: op.Noun}
 			if n := r.Nouns[op.Noun]; n != nil {
-				noun.Pin = n.Pin
+				noun.Pin, noun.Columns = n.Pin, slices.Clone(n.Columns)
 			}
 			doc.Nouns = append(doc.Nouns, noun)
 		}
