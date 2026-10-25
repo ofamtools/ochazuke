@@ -23,8 +23,13 @@ type host struct {
 	idx   *ochazuke.Model
 	field *ochazuke.Input
 	want  int // index of the story the index asked to open, -1 none
-	w, h  int
-	msg   string // the index's last message (saved as, kept in history)
+	wantP int // index of the story the index asked to play, -1 none
+	play  *player
+	// playTick is a timer a play verb asked for (autoplay, a recording's
+	// poll); Update collects it after the verb ran.
+	playTick tea.Cmd
+	w, h     int
+	msg      string // the index's last message (saved as, kept in history)
 
 	cur      *story.Session
 	rec      *story.Recorder
@@ -39,7 +44,7 @@ type replayMsg struct{ gen, i int }
 type startReplay struct{ rec *story.Recording }
 
 func newHost(lib story.Library) (*host, error) {
-	h := &host{lib: lib, store: lib.Store, want: -1, w: 80, h: 24}
+	h := &host{lib: lib, store: lib.Store, want: -1, wantP: -1, w: 80, h: 24}
 	r := ochazuke.NewRuntime()
 	h.idx = ochazuke.NewModel(r)
 	h.idx.Title = "o-story"
@@ -52,8 +57,17 @@ func newHost(lib story.Library) (*host, error) {
 			h.want = i
 			return ochazuke.Done(nil)
 		}, "Open the story in the real chrome; q leaves it").
+		Verb("play", func(c ochazuke.Ctx) ochazuke.Result {
+			i, ok := c.Instance.Data.(int)
+			if !ok {
+				return ochazuke.Failed(errors.New("not a story row"))
+			}
+			h.wantP = i
+			return ochazuke.Done(nil)
+		}, "Play the story's script step by step beside its frame; i records from any step").
 		Mode("normal").
 		Bind("enter", ochazuke.Do("entry.open")).
+		Bind("p", ochazuke.Do("entry.play")).
 		Bind("q", ochazuke.Do("app.quit"))
 	h.field = ochazuke.NewInput("save-name", "", false)
 	r.Define("field").Pin("insert").
@@ -96,13 +110,17 @@ func newHost(lib story.Library) (*host, error) {
 		}
 	}
 	render := func(r *ochazuke.Runtime, w, _ int) ochazuke.Block {
+		s := ochazuke.NewStyles(*h.idx.Appearance)
 		var parts []string
 		if h.msg != "" {
-			parts = append(parts, ansi.Truncate(h.msg, w, "…"), "")
+			parts = append(parts, s.Subtitle.Render(ansi.Truncate(h.msg, w, "…")), "")
 		}
-		for _, a := range areas {
+		for i, a := range areas {
+			if i > 0 {
+				parts = append(parts, "")
+			}
 			l := r.List("area-" + a)
-			parts = append(parts, a, l.View(w, l.Len()))
+			parts = append(parts, areaHeading(s, a, l.Len(), w), indent(l.View(max(1, w-areaIndent), l.Len()), areaIndent))
 		}
 		return ochazuke.Text(strings.Join(parts, "\n"))
 	}
@@ -111,6 +129,9 @@ func newHost(lib story.Library) (*host, error) {
 		opts = append(opts, ochazuke.Focus("s0"))
 	}
 	if _, err := r.AddPage("index", "Stories", render, opts...); err != nil {
+		return nil, err
+	}
+	if err := h.definePlay(r); err != nil {
 		return nil, err
 	}
 	if err := r.OpenPage("index"); err != nil {
@@ -180,12 +201,19 @@ func (h *host) leave() tea.Cmd {
 		h.msg = "recording not written: " + err.Error()
 		return nil
 	}
+	h.askName(path)
+	return nil
+}
+
+// askName opens the save-as prompt for the recording just written to path.
+func (h *host) askName(path string) error {
 	h.last = path
 	h.msg = ""
 	h.field.Text = nil
 	h.field.Cursor = 0
 	if _, err := h.idx.Runtime.OpenModal("save", ochazuke.Payload{Prompt: "save as:"}, ochazuke.WithInput(h.field, ochazuke.Kind("field"))); err != nil {
 		h.msg = "kept in history: " + path
+		return err
 	}
 	return nil
 }
@@ -261,9 +289,17 @@ func (h *host) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return h, nil
 		}
 		return h, h.replayStep()
+	case playTick:
+		return h, h.onPlayTick(v)
+	case recordTick:
+		return h, h.onRecordTick(v)
 	case tea.KeyPressMsg, tea.PasteMsg:
 		if h.cur != nil {
 			return h, h.deliver(msg)
+		}
+		if h.play != nil && h.play.recording {
+			h.recordKey(msg)
+			return h, nil
 		}
 	case tea.BackgroundColorMsg:
 		if h.cur != nil {
@@ -278,6 +314,14 @@ func (h *host) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		s := h.lib.Stories[h.want]
 		h.want = -1
 		return h, tea.Batch(cmd, h.open(s, nil))
+	}
+	if h.wantP >= 0 {
+		s := h.lib.Stories[h.wantP]
+		h.wantP = -1
+		h.openPlay(s)
+	}
+	if h.playTick != nil {
+		cmd, h.playTick = tea.Batch(cmd, h.playTick), nil
 	}
 	return h, cmd
 }
@@ -325,13 +369,7 @@ func (h *host) View() tea.View {
 	if h.replay != nil {
 		title = fmt.Sprintf(" ▶ replay %d/%d ", h.replayAt, len(h.replay.Events))
 	}
-	title = ansi.Truncate(title, w, "…")
-	box := []string{"┌" + title + strings.Repeat("─", max(0, w-ansi.StringWidth(title))) + "┐"}
-	for _, row := range strings.Split(frame, "\n") {
-		box = append(box, "│"+row+"│")
-	}
-	foot := ansi.Truncate(fmt.Sprintf(" %dx%d ", w, ht), w, "")
-	box = append(box, "└"+strings.Repeat("─", max(0, w-ansi.StringWidth(foot)))+foot+"┘")
+	box := boxFrame(frame, title, fmt.Sprintf(" %dx%d ", w, ht), w)
 	left, top := max(0, (h.w-w-2)/2), max(0, (h.h-ht-2)/2)
 	lines := make([]string, top, top+len(box))
 	pad := strings.Repeat(" ", left)
@@ -346,4 +384,29 @@ func (h *host) View() tea.View {
 		v.Cursor = &moved
 	}
 	return v
+}
+
+// areaIndent is how far a section's rows sit in from its heading.
+const areaIndent = 2
+
+// areaHeading is one section's title row: the area in the accent, a muted
+// rule filling the line, and the story count at the right edge.
+func areaHeading(s ochazuke.Styles, area string, n, width int) string {
+	title := s.Accent.Render(strings.ToUpper(area))
+	count := s.Muted.Render(fmt.Sprintf("%d", n))
+	rule := width - ansi.StringWidth(title) - ansi.StringWidth(count) - 2
+	if rule < 1 {
+		return ansi.Truncate(title+" "+count, width, "…")
+	}
+	return title + " " + s.Muted.Render(strings.Repeat("─", rule)) + " " + count
+}
+
+// indent shifts every line of text right by n cells.
+func indent(text string, n int) string {
+	pad := strings.Repeat(" ", n)
+	lines := strings.Split(text, "\n")
+	for i := range lines {
+		lines[i] = pad + lines[i]
+	}
+	return strings.Join(lines, "\n")
 }

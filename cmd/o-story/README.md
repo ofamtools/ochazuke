@@ -104,6 +104,35 @@ visibly 40x12). Press keys as in any app. `r` resets the story; `q` or
 `ctrl+c` returns to the index. Inside an attached fake pane `ctrl+c` goes to
 the pane (the passthrough rule), so leave with `ctrl+a d` then `q`.
 
+`p` on a story plays its script instead: the script runs one event at a
+time, headless, with the story's frame boxed on the right and the script
+as a column on the left. Each row is the event and, once played, what it
+ran (`list.move`) or what the script asserts after it, `✓` green when it
+holds and `✗` red when it does not; a row with nothing to assert shows no
+mark. The last row is the end: the final expect, else `frame = golden`.
+The row the player stands on is marked `▸`, and the current position's
+failures are listed under the column.
+
+| key | does |
+|---|---|
+| `space` `l` `right` | play the next event |
+| `h` `left` | back one step (the session is rebuilt and replayed) |
+| `r` | start over |
+| `f` | play everything that is left now |
+| `a` | play on at the set speed (400ms); again pauses |
+| `+` `-` | halve or double the delay (40ms to 4s) |
+| `i` | record from here |
+| `s` | write the script so far as a recording and ask for a name |
+| `q` `esc` | back to the index |
+
+Recording (`i`) makes the current step the starting state: the unplayed
+rest of the script is dropped, and every key you press goes to the story
+and appears in the column as it happens, as do the jobs that deliver and
+the fake pane's output lines. `ctrl+g` stops recording (the play keys are
+the story's while it runs); `h` and `r` then replay through the recorded
+events like any script, and `s` saves them (the base's events first) to
+the history ring, with the usual `save as:` prompt.
+
 ## Recording
 
 Every TUI session in a story is recorded:

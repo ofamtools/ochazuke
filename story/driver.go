@@ -195,8 +195,46 @@ func (d *Driver) Step(e Event) error {
 	if d.Quit {
 		return nil
 	}
+	return d.traced(e, func() error { return d.step(e) })
+}
+
+// Arrived delivers every pooled message of this generation that is an
+// event (a job's completion, a pane frame, a framework timer) in arrival
+// order, each as a traced step, and returns the events it played. A live
+// recorder calls it between keys so the session follows its jobs without
+// a script naming them; a scripted run never needs it.
+func (d *Driver) Arrived() []Event {
+	d.mu.Lock()
+	var msgs []tea.Msg
+	kept := d.pool[:0]
+	for _, t := range d.pool {
+		if t.Gen == d.gen && Classify(d.S, t.Msg) != nil {
+			msgs = append(msgs, t.Msg)
+		} else {
+			kept = append(kept, t)
+		}
+	}
+	d.pool = kept
+	d.mu.Unlock()
+	var events []Event
+	for _, msg := range msgs {
+		if d.Quit {
+			break
+		}
+		ev := Classify(d.S, msg)
+		if ev == nil {
+			continue
+		}
+		d.traced(*ev, func() error { d.update(msg); return nil })
+		events = append(events, *ev)
+	}
+	return events
+}
+
+// traced plays e through play and appends what it did to Trace.
+func (d *Driver) traced(e Event, play func() error) error {
 	before := d.S.R.Mode.Name
-	err := d.step(e)
+	err := play()
 	step := Step{Event: e, Before: before, After: d.S.R.Mode.Name}
 	for _, h := range d.S.R.History(0) {
 		if h.Seq <= d.lastSeq {
