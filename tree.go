@@ -624,12 +624,8 @@ func (t *Tree) closeLine(refocus bool) error {
 	if t.editing == "" {
 		return nil
 	}
-	err := t.flush()
-	id, before, after := t.editing, t.before, t.written
-	if before != after {
-		t.undo = append(t.undo, treeEdit{undo: []TreeChange{{Op: TreeRename, ID: id, Text: before}}})
-		t.redo = nil
-	}
+	err := t.seal()
+	id := t.editing
 	in := t.input
 	t.input, t.editing = nil, ""
 	if t.r.Instances[in.ID] != nil {
@@ -648,6 +644,19 @@ func (t *Tree) closeLine(refocus bool) error {
 		if t.r.Mode.Name != "normal" {
 			_ = t.r.SetMode("normal")
 		}
+	}
+	return err
+}
+
+// seal writes the open line and records its typing so far as one undo
+// step, so a structural edit made while the line is open (tab) undoes
+// after it, not before.
+func (t *Tree) seal() error {
+	err := t.flush()
+	if t.editing != "" && t.before != t.written {
+		t.undo = append(t.undo, treeEdit{undo: []TreeChange{{Op: TreeRename, ID: t.editing, Text: t.before}}})
+		t.redo = nil
+		t.before = t.written
 	}
 	return err
 }
@@ -702,7 +711,7 @@ func (t *Tree) shift(c Context, indent bool) error {
 	if id == "" {
 		return errors.New("tree has no selected node")
 	}
-	if err := t.flush(); err != nil {
+	if err := t.seal(); err != nil {
 		t.fail(err)
 	}
 	parent := t.parentOf(id)

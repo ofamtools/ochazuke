@@ -1,0 +1,16 @@
+{
+  "name": "outline: tab while typing, then u undoes the nest, not the typing",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {"id": "t", "editable": true, "nodes": [{"id": "a", "label": "alpha"}]}
+    ]
+  },
+  "script": ["o", {"type": "beta"}, "tab", "esc", "u"],
+  "expect": {
+    "focus": "t-n1",
+    "contains": ["beta"],
+    "lacks": ["▾ alpha"],
+    "writes": ["add t-n1 under root at 1: ", "rename t-n1: beta", "move t-n1 under a at 0", "move t-n1 under root at 1"]
+  }
+}
