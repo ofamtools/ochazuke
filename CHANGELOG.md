@@ -70,6 +70,7 @@ Draft, from the `integrate/next` branch (seven branches on `3133e23` plus fixes)
 - `Result.Label(label)` names one job of a verb (`Pending(work).Label("claude")`): `JobInfo.Label` in `jobs.list`, the ticker entry reads `noun.verb label state`, the shell's stderr line `job #N noun.verb label STATE`. Story `ticker/job-label`.
 - `cli.CatalogDoc.ListColumns(noun)` and `CatalogDoc.RowSource(noun)`: the columns a host's list of a catalog noun's rows draws, following the row source verb (`rows`, else `list`) to the noun its rows answer to. A host mounts with `ochazuke.Columns(doc.ListColumns(noun)...)`; this is nabe's `columnsOf`/`rowSource`, which nabe can now drop.
 - `bindings stops` (`Runtime.StopBindings`): the effective rows of every focus stop, app-wide, each read at the focus a jump lands on and in the mode it would have there: pages in tab order, stops in drawing order, open modals, then `app`. `bindings list --all` stays the export of every stored row; `stops` is what answers where.
+- Fixed: focusing a list row instance (`SetFocus`/`focus.set`, `RetargetFocus`, a `FocusOnClose` landing, a page starting on a row, `Pop`) left the list's selection, and its highlight, on the old row while keys answered for the new one. The focused row is now selected. Story `lists/focus-set-selects-row`; `lists/one-highlight` checks the highlighted row is the focused one.
 
 ### Also since v0.1.1
 

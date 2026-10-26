@@ -229,20 +229,22 @@ func (e Event) String() string {
 // Expect is what must hold after a step (After events) or at the end
 // (After 0). Every field is optional.
 type Expect struct {
-	After       int      `json:"after,omitempty"`
-	Focus       string   `json:"focus,omitempty"`
-	Mode        string   `json:"mode,omitempty"`
-	Modal       *string  `json:"modal,omitempty"` // top modal instance, "" for none
-	Page        string   `json:"page,omitempty"`
-	Visible     *bool    `json:"visible,omitempty"` // the focused element's label is on screen
-	Highlighted *int     `json:"highlighted,omitempty"`
-	Contains    []string `json:"contains,omitempty"`
-	Lacks       []string `json:"lacks,omitempty"`
-	Order       []string `json:"order,omitempty"` // substrings that appear on screen in this order
-	Ticker      []string `json:"ticker,omitempty"`
-	NoTicker    bool     `json:"noTicker,omitempty"`
-	Notices     []string `json:"notices,omitempty"`
-	NoNotices   bool     `json:"noNotices,omitempty"`
+	After       int     `json:"after,omitempty"`
+	Focus       string  `json:"focus,omitempty"`
+	Mode        string  `json:"mode,omitempty"`
+	Modal       *string `json:"modal,omitempty"` // top modal instance, "" for none
+	Page        string  `json:"page,omitempty"`
+	Visible     *bool   `json:"visible,omitempty"` // the focused element's label is on screen
+	Highlighted *int    `json:"highlighted,omitempty"`
+	// HighlightedText is text every highlighted row holds (the selected row's label).
+	HighlightedText string   `json:"highlightedText,omitempty"`
+	Contains        []string `json:"contains,omitempty"`
+	Lacks           []string `json:"lacks,omitempty"`
+	Order           []string `json:"order,omitempty"` // substrings that appear on screen in this order
+	Ticker          []string `json:"ticker,omitempty"`
+	NoTicker        bool     `json:"noTicker,omitempty"`
+	Notices         []string `json:"notices,omitempty"`
+	NoNotices       bool     `json:"noNotices,omitempty"`
 	// Colored maps on-screen text to a "#RRGGBB" foreground some row holding
 	// that text draws in; NoColor lists foregrounds no cell may use.
 	Colored map[string]string `json:"colored,omitempty"`

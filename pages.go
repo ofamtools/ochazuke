@@ -230,6 +230,8 @@ func (r *Runtime) RegisterPage(page *Page, opts ...InstanceOption) error {
 	inst := r.Instance(page.ID, append([]InstanceOption{Kind("page")}, opts...)...)
 	inst.Component = page
 	page.Remembered = page.Focus
+	// A page that starts on a row starts with that row selected.
+	r.selectFocusedRow(page.Focus)
 	if list := r.List(page.Focus); list != nil {
 		// A page that starts on a list starts on its selected row.
 		page.Remembered = list.focusTarget()
@@ -280,6 +282,7 @@ func (r *Runtime) OpenPage(id string) error {
 		page.Remembered, page.mode = page.ID, ModeState{}
 	}
 	r.Focus = page.Remembered
+	r.selectFocusedRow(r.Focus)
 	r.Page = id
 	if page.mode.Name != "" {
 		r.rememberLeaving(path, r.Focus)

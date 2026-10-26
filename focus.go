@@ -173,7 +173,22 @@ func (r *Runtime) setFocus(id string) {
 	r.CancelPendingBinding()
 	stop, path := r.stopOf(from), r.Ancestry(from)
 	r.Focus = id
+	r.selectFocusedRow(id)
 	r.focusMoved(stop, path, id)
+}
+
+// selectFocusedRow makes a focused list row its list's selection (by its
+// stable id), so the highlight, List.Selected and the keys that answer
+// agree however the focus got there: focus.set, RetargetFocus, a jump, a
+// FocusOnClose landing. Moving within the list already selects first.
+func (r *Runtime) selectFocusedRow(id string) {
+	inst := r.Instances[id]
+	if inst == nil {
+		return
+	}
+	if l := r.List(inst.Parent); l != nil {
+		l.selectID(id)
+	}
 }
 
 // errModalAbove refuses a modal opened from beneath the top modal.
@@ -405,6 +420,7 @@ func (r *Runtime) Pop() error {
 	}
 	back = r.clampFocus(back)
 	r.Focus = back
+	r.selectFocusedRow(back)
 	r.rememberLeaving(path, back)
 	if mode.Name == "" {
 		r.focusMoved(stop, path, back)
@@ -550,6 +566,7 @@ func (r *Runtime) removeInstance(id string, kids map[string][]*Instance, pages [
 		r.CancelPendingBinding()
 		back = r.clampFocus(back)
 		r.Focus = back
+		r.selectFocusedRow(back)
 		r.focusMoved(stop, path, back)
 	}
 	return nil

@@ -66,6 +66,20 @@ func Check(ss *Session, e Expect) []string {
 			failf("%d highlighted rows, want %d", n, *e.Highlighted)
 		}
 	}
+	if e.HighlightedText != "" {
+		n := 0
+		for _, row := range strings.Split(frame, "\n") {
+			if strings.Contains(row, reverse) {
+				n++
+				if !strings.Contains(ansi.Strip(row), e.HighlightedText) {
+					failf("highlighted row %q lacks %q", strings.TrimSpace(ansi.Strip(row)), e.HighlightedText)
+				}
+			}
+		}
+		if n == 0 {
+			failf("no highlighted row, want one holding %q", e.HighlightedText)
+		}
+	}
 	for _, s := range e.Contains {
 		if !strings.Contains(screen, s) {
 			failf("screen lacks %q", s)

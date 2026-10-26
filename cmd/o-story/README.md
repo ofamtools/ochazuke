@@ -72,7 +72,7 @@ it to the timer's deadline and delivers the timer's message
 
 Expect fields: `focus`, `mode`, `modal` (top modal id, `""` none), `page`,
 `visible` (the focused label is on screen), `highlighted` (rows with reverse
-video), `contains`, `lacks`, `order` (substrings in this order),
+video), `highlightedText` (text every highlighted row holds), `contains`, `lacks`, `order` (substrings in this order),
 `ticker`/`noTicker`, `notices`/`noNotices`, `writes` (every change an
 editable tree wrote, `TreeChange.String`, in order; `[]` none). A story with no final expect is
 compared with `<name>.golden`: the frame in the mono theme, each row behind a
@@ -227,7 +227,7 @@ Conformance:
 | normal | confirm | `confirm.accept` |
 | normal | demo | `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.launch` `demo.notify` `demo.open` `demo.reload` `demo.ship` |
 | normal | detail | `detail.scroll` |
-| normal | focus | `focus.next` `focus.previous` |
+| normal | focus | `focus.next` `focus.previous` `focus.set` |
 | normal | form | `form.choose` `form.leave` `form.next` `form.redo` `form.undo` |
 | normal | form-option | `form-option.pick` |
 | normal | input | `input.begin` |

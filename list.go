@@ -201,6 +201,15 @@ func (l *List) Select(id string) error {
 	return fmt.Errorf("unknown list item %q", id)
 }
 
+// selectID selects the row with id without touching the focus: the
+// runtime calls it when the focus lands on the row. An unknown id is
+// ignored.
+func (l *List) selectID(id string) {
+	if i := slices.IndexFunc(l.items, func(item ListItem) bool { return item.ID == id }); i >= 0 {
+		l.selected = i
+	}
+}
+
 // ToggleMark marks or unmarks a row for fan-out verbs.
 func (l *List) ToggleMark(id string) error {
 	if !slices.ContainsFunc(l.items, func(item ListItem) bool { return item.ID == id }) {

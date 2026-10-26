@@ -389,3 +389,50 @@ func TestListViewKeepsTwoRowsBelowTheSelection(t *testing.T) {
 		t.Fatalf("last window row = %q, want Row 12", got)
 	}
 }
+
+// Focusing a row instance selects it in its list, however the focus got
+// there (focus.set, RetargetFocus, a FocusOnClose landing): the highlight,
+// Selected and the keys that answer agree.
+func TestFocusingARowSelectsIt(t *testing.T) {
+	r := NewRuntime()
+	r.Define("a")
+	if _, err := r.AddPage("page", "Page", func(*Runtime, int, int) Block { return Text("") }); err != nil {
+		t.Fatal(err)
+	}
+	var items []ListItem
+	for _, id := range []string{"r1", "r2", "r3", "r4"} {
+		items = append(items, ListItem{ID: id, Label: "row " + id, Noun: "a"})
+	}
+	list, err := r.AddList("rows", items, Parent("page"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	selected := func(want string) {
+		t.Helper()
+		if got, _ := list.Selected(); got.ID != want || r.Focus != want {
+			t.Fatalf("selected %q, focus %q, want %q", got.ID, r.Focus, want)
+		}
+		if got := highlightedRows(list.View(30, 4)); !reflect.DeepEqual(got, []string{"row " + want}) {
+			t.Fatalf("highlighted %q, want row %s", got, want)
+		}
+	}
+	if err := r.SetFocus("r3"); err != nil {
+		t.Fatal(err)
+	}
+	selected("r3")
+	if _, err := r.Execute(Request{Noun: "focus", Verb: "set", Args: Arguments{"id": "r2"}}); err != nil {
+		t.Fatal(err)
+	}
+	selected("r2")
+	r.RetargetFocus(func(id string) bool { return id == "r2" }, "r4")
+	selected("r4")
+	// A modal that lands back on a row when it closes selects that row.
+	r.Instance("sheet", Parent("page"), FocusOnClose("r1"))
+	if err := r.SetFocus("sheet"); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.RemoveInstance("sheet"); err != nil {
+		t.Fatal(err)
+	}
+	selected("r1")
+}
