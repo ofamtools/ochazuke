@@ -145,7 +145,8 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	last := lastJob(r)
 	value, err := s.call(q)
 	if err != nil {
-		if len(candidates) > 1 {
+		var bad *ochazuke.ArgumentError
+		if len(candidates) > 1 && !errors.As(err, &bad) {
 			return fmt.Errorf("%w; pass --target, one of: %s", err, listed(candidates))
 		}
 		return err
@@ -415,6 +416,9 @@ func (s *Shell) call(q ochazuke.Request) (any, error) {
 	s.Runtime.HandleCall(ochazuke.CallMsg{Request: q, Reply: reply})
 	res := <-reply
 	if res.Error != "" {
+		if res.Argument {
+			return nil, &ochazuke.ArgumentError{Err: errors.New(res.Error)}
+		}
 		return nil, errors.New(res.Error)
 	}
 	return res.Result, nil

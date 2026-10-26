@@ -299,6 +299,10 @@ func TestShellOwnersRevealAndPrepare(t *testing.T) {
 	if err := sh.Run(context.Background(), []string{"widget", "show"}); err == nil || !strings.Contains(err.Error(), "pass --target, one of: w1, w2") {
 		t.Fatalf("no target: %v", err)
 	}
+	// A bad argument is not the target's fault: no candidates are listed.
+	if err := sh.Run(context.Background(), []string{"widget", "paint"}); err == nil || strings.Contains(err.Error(), "--target") {
+		t.Fatalf("argument error names targets: %v", err)
+	}
 	sh.Owners = map[string]string{"widget": "w2"}
 	if err := sh.Run(context.Background(), []string{"widget", "show"}); err != nil || f.calls[0].Target != "w2" {
 		t.Fatalf("owner: %v %+v", err, f.calls)

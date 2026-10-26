@@ -20,6 +20,9 @@ const maxRequestBytes = 1 << 20
 type Response struct {
 	Result any    `json:"result,omitempty"`
 	Error  string `json:"error,omitempty"`
+	// Argument is true when Error is an ArgumentError: the request was
+	// refused for its arguments, before any instance was chosen.
+	Argument bool `json:"argument,omitempty"`
 }
 
 // CallMsg is delivered to the UI loop; only that loop may call Runtime.Execute.
@@ -34,7 +37,8 @@ func (r *Runtime) HandleCall(msg CallMsg) {
 	restore()
 	response := Response{Result: result}
 	if err != nil {
-		response = Response{Error: err.Error()}
+		var bad *ArgumentError
+		response = Response{Error: err.Error(), Argument: errors.As(err, &bad)}
 	}
 	// Detach live slices/maps before another message can mutate application state.
 	if lines, ok := result.(Lines); ok && response.Error == "" {

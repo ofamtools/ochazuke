@@ -441,7 +441,7 @@ func (r *Runtime) execute(c Context, q Request) (any, error) {
 		return nil, fmt.Errorf("unknown operation %q", q.Key())
 	}
 	if err := r.checkArguments(op, q.Args); err != nil {
-		return nil, err
+		return nil, &ArgumentError{err}
 	}
 	if q.Target != "" && q.Target != "focused-input" {
 		if len(r.Ancestry(q.Target)) == 0 {

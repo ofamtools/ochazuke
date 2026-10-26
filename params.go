@@ -111,6 +111,15 @@ func (r *Runtime) Choices(c Context, p Parameter) ([]Choice, error) {
 	return append(out, more...), nil
 }
 
+// ArgumentError is a request refused for its arguments (a missing required
+// one, a wrong type, a value outside the enum or the source's choices)
+// before any instance was chosen, so a caller never blames the target for
+// it (the CLI adds no "pass --target" hint).
+type ArgumentError struct{ Err error }
+
+func (e *ArgumentError) Error() string { return e.Err.Error() }
+func (e *ArgumentError) Unwrap() error { return e.Err }
+
 // checkArguments is validateArguments plus the lazy Source check: a string
 // argument of a parameter with a Source must be one of the source's choices
 // at execution time. A source that fails skips the check rather than
