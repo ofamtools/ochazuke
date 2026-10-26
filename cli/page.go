@@ -970,7 +970,7 @@ func (v *PageView) listPanel(layout ochazuke.Layout, pl *pageList, width, height
 	}
 	rows := max(0, ch-len(notes))
 	text := pl.list.View(cw, rows)
-	if pl.list.Len() == 0 && rows > 0 {
+	if pl.list.Len() == 0 && rows > 0 && !pl.list.Filtering() {
 		note := "no rows"
 		if pl.loading && !pl.loaded {
 			note = "loading…"
@@ -985,6 +985,9 @@ func (v *PageView) listPanel(layout ochazuke.Layout, pl *pageList, width, height
 		text = strings.TrimRight(text, "\n") + "\n" + strings.Join(notes, "\n")
 	}
 	title := fmt.Sprintf("%s (%d)", pl.title(), pl.list.Len())
+	if pl.list.Filter() != "" {
+		title = fmt.Sprintf("%s (%d/%d)", pl.title(), pl.list.Shown(), pl.list.Len())
+	}
 	if pl.loading && pl.loaded {
 		title += " · refreshing…"
 	}

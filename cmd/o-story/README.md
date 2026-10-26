@@ -268,6 +268,7 @@ Conformance:
 | insert | palette | `palette.move` `palette.run` |
 | insert | setting-value | `setting-value.cancel` `setting-value.commit` |
 | insert | settings | `settings.edit` |
+| list_filter | list | `list.filter-clear` `list.filter-erase` `list.filter-keep` `list.filter-type` `list.move` |
 | normal | bindings | `bindings.help` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
@@ -277,7 +278,7 @@ Conformance:
 | normal | form | `form.choose` `form.leave` `form.next` `form.redo` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
 | normal | input | `input.begin` `input.undo` |
-| normal | list | `list.move` |
+| normal | list | `list.filter-clear` `list.filter-open` `list.move` |
 | normal | markdown | `markdown.redo` `markdown.toggle` `markdown.undo` |
 | normal | modal | `modal.pop` |
 | normal | mode | `mode.enter` |
@@ -310,6 +311,8 @@ Mode edges (from → to via):
 - `insert` → `normal` via `settings.edit`
 - `leader_pending` → `normal` via `terminal.detach`
 - `leader_pending` → `terminal` via `terminal.send`
+- `list_filter` → `normal` via `list.filter-clear`
+- `list_filter` → `normal` via `list.filter-keep`
 - `normal` → `count_pending` via `mode.enter`
 - `normal` → `insert` via `form.suggest`
 - `normal` → `insert` via `input.begin`
@@ -322,6 +325,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `setting.add`
 - `normal` → `insert` via `setting.edit`
 - `normal` → `insert` via `settings.close`
+- `normal` → `list_filter` via `list.filter-open`
 - `normal` → `normal d` via `row d`
 - `normal` → `terminal` via `command.run`
 - `normal` → `terminal` via `demo.open`

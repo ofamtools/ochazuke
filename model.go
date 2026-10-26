@@ -159,6 +159,7 @@ func newModel(r *Runtime) *Model {
 	defaultRow("normal", "'", Do("page.pick").Guard("no-modal")) // a page opens only with no modal open
 	defaultRow("normal", "ctrl+j", Do("page.next"))
 	defaultRow("normal", "ctrl+k", Do("page.previous"))
+	defaultRow("normal", "/", filterOpenRow())
 	defaultRow("", "ctrl+space", Do("palette.open"))
 	// ctrl+c quits from a capture row, so an inner any row cannot swallow
 	// it; inside a modal the capture row stands aside and the bubbling row

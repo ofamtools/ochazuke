@@ -268,7 +268,7 @@ func TestTableWidthsFollowTheItems(t *testing.T) {
 		t.Fatal(err)
 	}
 	fresh := func() string {
-		cp := &List{r: r, id: "l", items: list.items, selected: list.selected, offset: list.offset, marks: list.marks, columns: list.columns}
+		cp := &List{r: r, id: "l", all: list.all, items: list.items, selected: list.selected, offset: list.offset, marks: list.marks, columns: list.columns}
 		return cp.View(40, 5)
 	}
 	check := func(step string) {
@@ -515,4 +515,21 @@ func TestHolderIndexMatchesScan(t *testing.T) {
 	}
 	delete(r.Instances, "direct")
 	check("removed")
+}
+
+// BenchmarkListFilter is one keystroke of the filter line on a list of n
+// rows: the query grows by a character and every row is matched again.
+func BenchmarkListFilter(b *testing.B) {
+	for _, n := range []int{2000, 16000} {
+		b.Run(fmt.Sprint(n), func(b *testing.B) {
+			m := framePage(b, n, false)
+			list := m.Runtime.List("p/rows")
+			queries := []string{"row 1", "row 12", "row 1"}
+			i := 0
+			for b.Loop() {
+				list.SetFilter(queries[i%len(queries)])
+				i++
+			}
+		})
+	}
 }

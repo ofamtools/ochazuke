@@ -1,0 +1,59 @@
+{
+  "name": "list filter: up/down and ctrl+n/ctrl+p move among the matches and clamp instead of spilling",
+  "area": "lists",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 5,
+        "labels": [
+          "alpha",
+          "beta",
+          "gamma",
+          "alphabet",
+          "delta"
+        ]
+      },
+      {
+        "id": "b",
+        "rows": 2
+      }
+    ]
+  },
+  "script": [
+    "/",
+    "a",
+    "l",
+    "down",
+    "down",
+    "ctrl+p",
+    "up",
+    "up"
+  ],
+  "expect": [
+    {
+      "after": 4,
+      "mode": "list_filter",
+      "focus": "a4"
+    },
+    {
+      "after": 5,
+      "mode": "list_filter",
+      "focus": "a4"
+    },
+    {
+      "after": 6,
+      "mode": "list_filter",
+      "focus": "a1"
+    },
+    {
+      "after": 8,
+      "mode": "list_filter",
+      "focus": "a1",
+      "contains": [
+        "/al",
+        "2 of 5"
+      ]
+    }
+  ]
+}

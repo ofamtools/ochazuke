@@ -116,7 +116,7 @@ func newHost(lib story.Library) (*host, error) {
 				parts = append(parts, "")
 			}
 			l := r.List("area-" + a)
-			parts = append(parts, areaHeading(s, a, l.Len(), w), indent(l.View(max(1, w-areaIndent), l.Len()+1), areaIndent))
+			parts = append(parts, areaHeading(s, a, l.Len(), w), indent(l.View(max(1, w-areaIndent), l.Height()+1), areaIndent))
 		}
 		return ochazuke.Text(strings.Join(parts, "\n"))
 	}

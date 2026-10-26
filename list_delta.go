@@ -29,12 +29,13 @@ func (p ListPatch) Empty() bool { return len(p.Upsert) == 0 && len(p.Remove) == 
 // selection and the marks follow their ids, and only a removed row's
 // instance is closed. An empty patch does nothing; an invalid one (an
 // index out of order or out of range, a repeated id) leaves the list
-// unchanged.
+// unchanged. The patch applies to every row, the ones a filter hides
+// included, and SetItems filters the result again.
 func (l *List) Patch(p ListPatch) error {
 	if p.Empty() {
 		return nil
 	}
-	items, err := PatchItems(l.items, p)
+	items, err := PatchItems(l.all, p)
 	if err != nil {
 		return fmt.Errorf("list %s: %w", l.id, err)
 	}

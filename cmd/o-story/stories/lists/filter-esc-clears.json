@@ -1,0 +1,125 @@
+{
+  "name": "list filter: esc in the line clears the filter and goes back to the row / found; after enter, esc clears it and stays",
+  "area": "lists",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 5,
+        "labels": [
+          "alpha",
+          "beta",
+          "gamma",
+          "alphabet",
+          "delta"
+        ]
+      },
+      {
+        "id": "b",
+        "rows": 2
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "j",
+    "/",
+    "d",
+    "e",
+    "j",
+    "enter",
+    "/",
+    "esc",
+    "j",
+    "j",
+    "/",
+    "b",
+    "esc",
+    "/",
+    "b",
+    "enter",
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 6,
+      "mode": "list_filter",
+      "contains": [
+        "no matches",
+        "(no matches)"
+      ]
+    },
+    {
+      "after": 7,
+      "mode": "normal",
+      "focus": "a",
+      "contains": [
+        "/dej",
+        "(no matches)"
+      ]
+    },
+    {
+      "after": 9,
+      "mode": "normal",
+      "focus": "a1",
+      "contains": [
+        "alpha",
+        "beta",
+        "gamma",
+        "alphabet",
+        "delta"
+      ],
+      "lacks": [
+        "/dej"
+      ]
+    },
+    {
+      "after": 13,
+      "mode": "list_filter",
+      "focus": "a2",
+      "contains": [
+        "/b",
+        "2 of 5"
+      ]
+    },
+    {
+      "after": 14,
+      "mode": "normal",
+      "focus": "a3",
+      "contains": [
+        "alpha",
+        "beta",
+        "gamma",
+        "alphabet",
+        "delta"
+      ],
+      "lacks": [
+        "/b"
+      ]
+    },
+    {
+      "after": 17,
+      "mode": "normal",
+      "focus": "a2",
+      "contains": [
+        "/b",
+        "2 of 5"
+      ]
+    },
+    {
+      "after": 18,
+      "mode": "normal",
+      "focus": "a2",
+      "contains": [
+        "alpha",
+        "beta",
+        "gamma",
+        "alphabet",
+        "delta"
+      ],
+      "lacks": [
+        "/b"
+      ]
+    }
+  ]
+}

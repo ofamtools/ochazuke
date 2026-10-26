@@ -1,0 +1,132 @@
+{
+  "name": "list filter: rows that land while a filter is kept are filtered (SetItems re-applies it), the title counts shown/all",
+  "area": "catalog",
+  "width": 100,
+  "height": 16,
+  "page": {
+    "id": "ai",
+    "title": "AI",
+    "catalog": {
+      "nouns": [
+        {
+          "name": "skill",
+          "columns": [
+            {
+              "title": "Name",
+              "min": 8
+            },
+            {
+              "title": "Origin"
+            }
+          ],
+          "verbs": [
+            {
+              "name": "list",
+              "rows": "skill"
+            }
+          ]
+        }
+      ],
+      "page": {
+        "title": "AI",
+        "lists": [
+          {
+            "id": "ai/skills",
+            "noun": "skill",
+            "title": "skills"
+          }
+        ]
+      },
+      "answers": {
+        "skill.list": [
+          {
+            "id": "s1",
+            "name": "architect",
+            "cells": [
+              "architect",
+              "claude"
+            ]
+          },
+          {
+            "id": "s2",
+            "name": "review",
+            "cells": [
+              "review",
+              "ai-tools"
+            ]
+          },
+          {
+            "id": "s3",
+            "name": "reader",
+            "cells": [
+              "reader",
+              "claude"
+            ]
+          }
+        ]
+      },
+      "pending": true
+    }
+  },
+  "script": [
+    "/",
+    "r",
+    "e",
+    "enter",
+    {
+      "job": "catalog-load",
+      "state": "done"
+    },
+    "j",
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "mode": "list_filter",
+      "contains": [
+        "/re"
+      ]
+    },
+    {
+      "after": 4,
+      "mode": "normal",
+      "contains": [
+        "/re"
+      ]
+    },
+    {
+      "after": 5,
+      "mode": "normal",
+      "focus": "ai/skills/s2",
+      "contains": [
+        "/re",
+        "2 of 3",
+        "skills (2/3)",
+        "review",
+        "reader"
+      ],
+      "lacks": [
+        "architect"
+      ]
+    },
+    {
+      "after": 6,
+      "focus": "ai/skills/s3"
+    },
+    {
+      "after": 7,
+      "mode": "normal",
+      "focus": "ai/skills/s3",
+      "contains": [
+        "architect",
+        "review",
+        "reader",
+        "skills (3)"
+      ],
+      "lacks": [
+        "/re"
+      ]
+    }
+  ]
+}

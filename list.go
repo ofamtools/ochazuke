@@ -36,7 +36,11 @@ type ListItem struct {
 type List struct {
 	r        *Runtime
 	id       string
-	items    []ListItem
+	all      []ListItem // every row, as SetItems gave them
+	items    []ListItem // the rows shown: all, or the ones the filter lets through (list_filter.go)
+	query    string     // the filter query; "" shows every row
+	hay      []string   // each row's filter text (filterHay), built on the first filter; nil after SetItems
+	back     string     // the row selected when the filter line opened, which filter-clear selects again
 	selected int
 	offset   int
 	marks    map[string]bool
@@ -81,6 +85,7 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 
 // SetItems copies rows, preserves selection by ID, and falls back to the nearest
 // remaining index if that ID disappears. Invalid updates leave the list unchanged.
+// A filter (SetFilter) stays and applies to the new rows.
 // It creates one instance per new row under the list and removes the instances
 // of rows that disappear; a retained row keeps its instance and any bindings
 // the application put on it. Rows whose cells are unchanged keep a table's
@@ -101,7 +106,7 @@ func (l *List) SetItems(items []ListItem) error {
 	}
 	gone := map[string]bool{}
 	var drop []string
-	for _, old := range l.items {
+	for _, old := range l.all {
 		if !ids[old.ID] {
 			gone[old.ID] = true
 			delete(l.marks, old.ID)
@@ -118,27 +123,28 @@ func (l *List) SetItems(items []ListItem) error {
 		inst.Noun, inst.Parent, inst.Label, inst.Data = item.Noun, l.id, item.Label, item.Data
 	}
 	previous, _ := l.Selected()
-	selected := min(max(l.selected, 0), len(items)-1)
-	for i, item := range items {
-		if item.ID == previous.ID {
-			selected = i
-			break
-		}
-	}
-	if !sameCells(l.items, items) {
+	at := l.selected
+	if !sameCells(l.all, items) {
 		l.widest = nil // a table remeasures; rows drawing the same cells keep the widths
 	}
-	l.items, l.selected = slices.Clone(items), selected
-	l.offset = min(l.offset, max(0, len(items)-1))
+	l.all, l.hay = slices.Clone(items), nil
+	// The filter applies to the new rows; the selection stays on its row
+	// when it still shows, else on the shown row nearest its old index.
+	l.refilter(previous.ID)
+	if l.selected >= 0 && l.items[l.selected].ID != previous.ID || l.selected < 0 && len(l.items) > 0 {
+		l.selected = min(max(at, 0), len(l.items)-1)
+	}
 	l.syncFocus(previous, gone)
 	return nil
 }
 
-// Items returns a copy of the rows in display order.
-func (l *List) Items() []ListItem { return slices.Clone(l.items) }
+// Items returns a copy of every row in display order, the ones a filter
+// hides included.
+func (l *List) Items() []ListItem { return slices.Clone(l.all) }
 
-// Len is the number of rows.
-func (l *List) Len() int { return len(l.items) }
+// Len is the number of rows, the ones a filter hides included (Shown
+// counts the rest).
+func (l *List) Len() int { return len(l.all) }
 
 // Selected returns a value copy; empty lists have no selected item.
 func (l *List) Selected() (ListItem, bool) {
@@ -187,10 +193,10 @@ func (l *List) spill(delta int) bool {
 		return false
 	}
 	next := ring[i+step]
-	if other := l.r.List(next); other != nil && other.Len() > 0 {
+	if other := l.r.List(next); other != nil && other.Shown() > 0 {
 		row := 0
 		if step < 0 {
-			row = other.Len() - 1
+			row = other.Shown() - 1
 		}
 		other.Move(row - other.selected)
 	}
@@ -198,8 +204,10 @@ func (l *List) spill(delta int) bool {
 	return true
 }
 
-// Select changes the selected row by stable ID without taking focus.
+// Select changes the selected row by stable ID without taking focus. A
+// row the filter hides is shown by clearing the filter.
 func (l *List) Select(id string) error {
+	l.reveal(id)
 	for i, item := range l.items {
 		if item.ID == id {
 			l.Move(i - l.selected)
@@ -210,10 +218,16 @@ func (l *List) Select(id string) error {
 }
 
 // selectID selects the row with id without touching the focus: the
-// runtime calls it when the focus lands on the row. An unknown id is
-// ignored.
+// runtime calls it when the focus lands on the row (a row the filter
+// hides clears the filter). An unknown id is ignored.
 func (l *List) selectID(id string) {
-	if i := slices.IndexFunc(l.items, func(item ListItem) bool { return item.ID == id }); i >= 0 {
+	at := func(item ListItem) bool { return item.ID == id }
+	i := slices.IndexFunc(l.items, at)
+	if i < 0 && l.query != "" {
+		l.reveal(id)
+		i = slices.IndexFunc(l.items, at)
+	}
+	if i >= 0 {
 		l.selected = i
 	}
 }
@@ -224,7 +238,7 @@ func (l *List) ToggleMark(id string) error {
 	if l.noMarks {
 		return fmt.Errorf("list %s takes no marks", l.id)
 	}
-	if !slices.ContainsFunc(l.items, func(item ListItem) bool { return item.ID == id }) {
+	if !slices.ContainsFunc(l.all, func(item ListItem) bool { return item.ID == id }) {
 		return fmt.Errorf("unknown list item %q", id)
 	}
 	if l.marks[id] {
@@ -235,10 +249,20 @@ func (l *List) ToggleMark(id string) error {
 	return nil
 }
 
-// Marked lists the marked rows in list order.
-func (l *List) Marked() []ListItem {
+// Marked lists the marked rows in list order, the ones a filter hides
+// included (a mark survives the filter).
+func (l *List) Marked() []ListItem { return l.markedIn(l.all) }
+
+// markedShown lists the marked rows the filter shows: what list.apply
+// fans out to, so a key acts on the rows on screen.
+func (l *List) markedShown() []ListItem { return l.markedIn(l.items) }
+
+func (l *List) markedIn(rows []ListItem) []ListItem {
+	if len(l.marks) == 0 {
+		return nil
+	}
 	var out []ListItem
-	for _, item := range l.items {
+	for _, item := range rows {
 		if l.marks[item.ID] {
 			out = append(out, item)
 		}
@@ -285,6 +309,9 @@ func (l *List) Snapshot() map[string]any {
 	return out
 }
 
+// The state's items are the rows shown (selected indexes them); with a
+// filter, "filter" is its query and "total" counts every row.
+
 // state is Snapshot without the copy, the result of the list verbs (a
 // move, a select, a mark): its items share the list's rows, which SetItems
 // replaces whole and never edits in place, so a keypress on a list of many
@@ -299,6 +326,9 @@ func (l *List) state() map[string]any {
 		}
 	}
 	out := map[string]any{"id": l.id, "items": slices.Clip(l.items), "selected": l.selected, "selectedId": selected.ID, "offset": l.offset, "focused": l.Focused(), "marked": marked}
+	if l.query != "" {
+		out["filter"], out["total"] = l.query, len(l.all)
+	}
 	if len(l.columns) > 0 {
 		out["columns"] = slices.Clone(l.columns)
 	}
@@ -314,11 +344,38 @@ func (l *List) View(width, height int) string {
 	if width <= 0 || height <= 0 {
 		return ""
 	}
-	if len(l.columns) > 0 {
-		return l.tableView(width, height)
+	// The filter line, while typed or kept, takes the list's first line.
+	line := ""
+	if height > 1 {
+		if line = l.filterLine(width); line != "" {
+			height--
+		}
 	}
+	var text string
+	var focus, focusHeight int
+	switch {
+	case len(l.columns) > 0:
+		text, focus, focusHeight = l.tableView(width, height)
+	default:
+		text, focus, focusHeight = l.rowsView(width, height)
+	}
+	if line != "" {
+		text = line + "\n" + text
+		if focusHeight == height {
+			focusHeight++ // the whole list
+		} else {
+			focus++
+		}
+	}
+	return l.r.PlacedAt(l.id, text, focus, focusHeight)
+}
+
+// rowsView is View for a list without columns: the rows in the list's
+// window and the "x–y / n" line when they overflow, with the line of the
+// selected row (else 0 and the whole height) the page keeps on screen.
+func (l *List) rowsView(width, height int) (string, int, int) {
 	if len(l.items) == 0 {
-		return l.r.PlacedAt(l.id, strings.Join(layoutRows(l.emptyLine(), width, height), "\n"), 0, height)
+		return strings.Join(layoutRows(l.emptyLine(), width, height), "\n"), 0, height
 	}
 	visible := height
 	if len(l.items) > height && height > 1 {
@@ -356,17 +413,21 @@ func (l *List) View(width, height int) string {
 	if l.selected >= l.offset && l.selected < end {
 		focus, focusHeight = l.selected-l.offset, 1
 	}
-	return l.r.PlacedAt(l.id, strings.Join(layoutRows(strings.Join(rows, "\n"), width, height), "\n"), focus, focusHeight)
+	return strings.Join(layoutRows(strings.Join(rows, "\n"), width, height), "\n"), focus, focusHeight
 }
 
 // emptyLine is what an empty list draws: "(empty list)", in reverse video
 // while the list has the focus, so a spill into it shows where the next key
 // lands (one thing stands out, UX review 2 F5).
 func (l *List) emptyLine() string {
-	if l.Focused() {
-		return lipgloss.NewStyle().Reverse(true).Render("(empty list)")
+	text := "(empty list)"
+	if len(l.all) > 0 {
+		text = "(no matches)" // every row is filtered out
 	}
-	return "(empty list)"
+	if l.Focused() {
+		return lipgloss.NewStyle().Reverse(true).Render(text)
+	}
+	return text
 }
 
 // scrolloff is the margin the list keeps around its selected row inside
@@ -443,7 +504,7 @@ func registerLists(r *Runtime) {
 		run               func(*List, Context, Arguments) (any, error)
 	}{
 		{"focus", "Focus a list and its selected row", map[string]Parameter{"id": {Type: "string", Required: true}}, func(l *List, _ Context, _ Arguments) (any, error) { return l.state(), l.Focus() }},
-		{"move", "Move the selection; past the edge, on to the next stop on the page", map[string]Parameter{"id": {Type: "string"}, "delta": {Type: "integer", Required: true}, "steps": {Type: "integer", Description: "Repeat count (3j); stops at the list's edge, and spills as one move only from the edge"}}, func(l *List, _ Context, a Arguments) (any, error) {
+		{"move", "Move the selection; past the edge, on to the next stop on the page", map[string]Parameter{"id": {Type: "string"}, "delta": {Type: "integer", Required: true}, "steps": {Type: "integer", Description: "Repeat count (3j); stops at the list's edge, and spills as one move only from the edge"}, "clamp": {Type: "boolean", Description: "Stop at the list's edges instead of spilling (the filter line's moves)"}}, func(l *List, _ Context, a Arguments) (any, error) {
 			delta, steps := IntArg(a, "delta", 0), max(1, IntArg(a, "steps", 1))
 			if steps > 1 && l.selected >= 0 {
 				if to := min(max(l.selected+delta*steps, 0), len(l.items)-1); to != l.selected {
@@ -451,7 +512,7 @@ func registerLists(r *Runtime) {
 					return l.state(), nil
 				}
 			}
-			if !l.spill(delta) {
+			if clamp, _ := a["clamp"].(bool); clamp || !l.spill(delta) {
 				l.Move(delta)
 			}
 			return l.state(), nil
@@ -466,8 +527,10 @@ func registerLists(r *Runtime) {
 			}
 			return l.state(), l.ToggleMark(id)
 		}},
-		{"apply", "Run <row noun>.verb for every marked row (the selected row when none is marked), skipping and reporting rows whose noun lacks the verb", map[string]Parameter{"id": {Type: "string"}, "verb": {Type: "string", Required: true}}, func(l *List, c Context, a Arguments) (any, error) {
-			rows := l.Marked()
+		{"apply", "Run <row noun>.verb for every marked row the filter shows (the selected row when none is), skipping and reporting rows whose noun lacks the verb", map[string]Parameter{"id": {Type: "string"}, "verb": {Type: "string", Required: true}}, func(l *List, c Context, a Arguments) (any, error) {
+			// Only the marked rows the filter shows: a mark on a hidden row
+			// waits for the filter to clear.
+			rows := l.markedShown()
 			if len(rows) == 0 {
 				if selected, ok := l.Selected(); ok {
 					rows = []ListItem{selected}
@@ -506,4 +569,5 @@ func registerLists(r *Runtime) {
 		r.Nouns["list"].Guards = map[string]string{}
 	}
 	r.Nouns["list"].Guards["mark"] = "list-marks"
+	registerListFilter(r)
 }

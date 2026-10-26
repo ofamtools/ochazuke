@@ -1,0 +1,100 @@
+{
+  "name": "list filter: a table filters by any cell, not only the label; the columns keep their widths",
+  "area": "tables",
+  "page": {
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "pane"
+          },
+          {
+            "title": "harness",
+            "priority": 2
+          },
+          {
+            "title": "state",
+            "priority": 1
+          },
+          {
+            "title": "cwd",
+            "min": 8,
+            "priority": 3
+          }
+        ],
+        "items": [
+          {
+            "id": "t1",
+            "label": "work/claude",
+            "cells": [
+              "work/claude",
+              "claude-code",
+              "idle",
+              "~/proj/matomeru"
+            ]
+          },
+          {
+            "id": "t2",
+            "label": "work/codex",
+            "cells": [
+              "work/codex",
+              "codex",
+              "working",
+              "~/proj/ochazuke"
+            ]
+          },
+          {
+            "id": "t3",
+            "label": "play/pi",
+            "cells": [
+              "play/pi",
+              "pi",
+              "idle",
+              "~/proj/nabe"
+            ]
+          },
+          {
+            "id": "t4",
+            "label": "work/long-named-pane",
+            "cells": [
+              "work/long-named-pane",
+              "claude-code",
+              "working",
+              "~/proj/o-plans"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "b",
+        "rows": 2
+      }
+    ]
+  },
+  "script": [
+    "/",
+    "i",
+    "d",
+    "l",
+    "e"
+  ],
+  "expect": [
+    {
+      "after": 5,
+      "mode": "list_filter",
+      "focus": "t1",
+      "contains": [
+        "/idle",
+        "2 of 4",
+        "pane",
+        "work/claude",
+        "play/pi"
+      ],
+      "lacks": [
+        "work/codex",
+        "long-named"
+      ]
+    }
+  ]
+}

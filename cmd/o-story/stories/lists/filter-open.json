@@ -1,0 +1,69 @@
+{
+  "name": "list filter: / opens the query line above the rows, typing narrows them",
+  "area": "lists",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 5,
+        "labels": [
+          "alpha",
+          "beta",
+          "gamma",
+          "alphabet",
+          "delta"
+        ]
+      },
+      {
+        "id": "b",
+        "rows": 2
+      }
+    ]
+  },
+  "script": [
+    "/",
+    "a",
+    "l"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "mode": "list_filter",
+      "focus": "a1",
+      "contains": [
+        "alpha",
+        "beta",
+        "gamma",
+        "alphabet",
+        "delta",
+        "enter list.filter-keep",
+        "esc list.filter-clear"
+      ]
+    },
+    {
+      "after": 2,
+      "mode": "list_filter",
+      "contains": [
+        "/a",
+        "5 of 5"
+      ]
+    },
+    {
+      "after": 3,
+      "mode": "list_filter",
+      "focus": "a1",
+      "contains": [
+        "/al",
+        "2 of 5",
+        "alpha",
+        "alphabet"
+      ],
+      "lacks": [
+        "beta",
+        "gamma",
+        "delta"
+      ],
+      "highlighted": 2
+    }
+  ]
+}

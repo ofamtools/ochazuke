@@ -184,7 +184,7 @@ func tableLine(cols []Column, row []string, shown, widths []int) string {
 // when no column has a title), then
 // the rows in the list's window, the "x–y / n" line when they overflow;
 // the focused list's selected row is reversed across the whole width.
-func (l *List) tableView(width, height int) string {
+func (l *List) tableView(width, height int) (string, int, int) {
 	// Columns without titles (a list of name and value) draw no header.
 	header := height > 1 && slices.ContainsFunc(l.columns, func(c Column) bool { return c.Title != "" })
 	body := height
@@ -209,7 +209,7 @@ func (l *List) tableView(width, height int) string {
 	top := len(lines)
 	if len(l.items) == 0 {
 		lines = append(lines, l.emptyLine())
-		return l.r.PlacedAt(l.id, strings.Join(layoutRows(strings.Join(lines, "\n"), width, height), "\n"), 0, height)
+		return strings.Join(layoutRows(strings.Join(lines, "\n"), width, height), "\n"), 0, height
 	}
 	if l.tall() {
 		return l.tallView(lines, width, height, body, shown, widths)
@@ -247,7 +247,7 @@ func (l *List) tableView(width, height int) string {
 	if l.selected >= l.offset && l.selected < end {
 		focus, focusHeight = top+l.selected-l.offset, 1
 	}
-	return l.r.PlacedAt(l.id, strings.Join(layoutRows(strings.Join(lines, "\n"), width, height), "\n"), focus, focusHeight)
+	return strings.Join(layoutRows(strings.Join(lines, "\n"), width, height), "\n"), focus, focusHeight
 }
 
 // cellWidths is the widest cell per column over every row, measured once
@@ -257,8 +257,10 @@ func (l *List) tableView(width, height int) string {
 // column count remeasures.
 func (l *List) cellWidths() []int {
 	if l.widest == nil || len(l.widest) != len(l.columns) {
-		rows := make([][]string, len(l.items))
-		for i, item := range l.items {
+		// Every row, the ones a filter hides included, so the columns
+		// keep their widths while the filter narrows the rows.
+		rows := make([][]string, len(l.all))
+		for i, item := range l.all {
 			rows[i] = cells(item, len(l.columns))
 		}
 		l.widest = cellWidths(rows, len(l.columns))
@@ -368,7 +370,7 @@ func tableRowLines(cols []Column, row []string, shown, widths []int) []string {
 // when it starts inside a section, that section's label is repeated on
 // its first line. The focused list's selected row is reversed across the
 // whole width on every line, its section label not.
-func (l *List) tallView(lines []string, width, height, body int, shown, widths []int) string {
+func (l *List) tallView(lines []string, width, height, body int, shown, widths []int) (string, int, int) {
 	section := lipgloss.NewStyle().Bold(true).Underline(true)
 	gutter := len(l.marks) > 0
 	rows := make([][]string, len(l.items))
@@ -452,5 +454,5 @@ func (l *List) tallView(lines []string, width, height, body int, shown, widths [
 	if visible < body {
 		lines = append(lines, fmt.Sprintf("%d–%d / %d", l.offset+1, end, len(l.items)))
 	}
-	return l.r.PlacedAt(l.id, strings.Join(layoutRows(strings.Join(lines, "\n"), width, height), "\n"), focus, focusHeight)
+	return strings.Join(layoutRows(strings.Join(lines, "\n"), width, height), "\n"), focus, focusHeight
 }

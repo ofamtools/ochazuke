@@ -465,7 +465,7 @@ func (c *Commands) render(r *ochazuke.Runtime, width, height int) ochazuke.Block
 		left := (width - 1) * 2 / 5
 		return beside(listPanel(left, height), sidePanel(width-left-1, height), left, height)
 	}
-	top := min(c.list.Len()+3, height*2/5)
+	top := min(c.list.Height()+3, height*2/5)
 	return below(listPanel(width, top), sidePanel(width, height-top), top)
 }
 

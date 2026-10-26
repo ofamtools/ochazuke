@@ -635,7 +635,7 @@ func (c *recordChooser) ModalBlock(s Styles, width, height int) Block {
 	if list == nil {
 		return Text("")
 	}
-	return Text(list.View(width, min(height, max(1, list.Len()))))
+	return Text(list.View(width, min(height, max(1, list.Height()))))
 }
 
 // choose opens the chooser for a choice field: its choices as a list, the

@@ -1,0 +1,68 @@
+{
+  "name": "list filter: backspace erases, and on an empty query leaves the filter line",
+  "area": "lists",
+  "width": 170,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 5,
+        "labels": [
+          "alpha",
+          "beta",
+          "gamma",
+          "alphabet",
+          "delta"
+        ]
+      },
+      {
+        "id": "b",
+        "rows": 2
+      }
+    ]
+  },
+  "script": [
+    "/",
+    "g",
+    "backspace",
+    "backspace",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "mode": "list_filter",
+      "focus": "a3",
+      "contains": [
+        "/g",
+        "1 of 5"
+      ]
+    },
+    {
+      "after": 3,
+      "mode": "list_filter",
+      "focus": "a3",
+      "contains": [
+        "alpha",
+        "beta",
+        "delta"
+      ]
+    },
+    {
+      "after": 4,
+      "mode": "normal",
+      "focus": "a3",
+      "lacks": [
+        "esc list.filter-clear"
+      ],
+      "contains": [
+        "/ filter"
+      ]
+    },
+    {
+      "after": 5,
+      "mode": "normal",
+      "focus": "a4"
+    }
+  ]
+}

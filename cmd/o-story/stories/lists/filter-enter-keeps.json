@@ -1,0 +1,98 @@
+{
+  "name": "list filter: enter keeps the filter in normal mode, j/k move among the matches, / edits it again",
+  "area": "lists",
+  "width": 140,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 5,
+        "labels": [
+          "alpha",
+          "beta",
+          "gamma",
+          "alphabet",
+          "delta"
+        ]
+      },
+      {
+        "id": "b",
+        "rows": 2
+      }
+    ]
+  },
+  "script": [
+    "/",
+    "l",
+    "enter",
+    "j",
+    "j",
+    "k",
+    "/",
+    "x"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "focus": "a1",
+      "contains": [
+        "/l",
+        "3 of 5"
+      ]
+    },
+    {
+      "after": 3,
+      "mode": "normal",
+      "focus": "a1",
+      "contains": [
+        "/l",
+        "3 of 5",
+        "alpha",
+        "alphabet",
+        "delta",
+        "esc list.filter-clear"
+      ],
+      "lacks": [
+        "beta",
+        "gamma"
+      ],
+      "highlighted": 1
+    },
+    {
+      "after": 4,
+      "mode": "normal",
+      "focus": "a4"
+    },
+    {
+      "after": 5,
+      "mode": "normal",
+      "focus": "a5"
+    },
+    {
+      "after": 6,
+      "mode": "normal",
+      "focus": "a4"
+    },
+    {
+      "after": 7,
+      "mode": "list_filter",
+      "focus": "a4",
+      "contains": [
+        "/l",
+        "3 of 5"
+      ]
+    },
+    {
+      "after": 8,
+      "mode": "list_filter",
+      "focus": "a",
+      "contains": [
+        "/lx",
+        "no matches"
+      ],
+      "lacks": [
+        "alphabet"
+      ]
+    }
+  ]
+}
