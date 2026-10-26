@@ -64,6 +64,18 @@ type Model struct {
 // NewModel returns the Bubble Tea model that renders and drives r.
 func NewModel(r *Runtime) *Model {
 	m := &Model{Runtime: r, Palette: NewPalette(r), Appearance: NewAppearance(r), ModalViews: map[string]ModalView{}, Title: "Ochazuke", Width: 80, Height: 24, views: map[string]*viewport.Model{}, scroll: map[string]int{}, followed: map[string]string{}, Now: time.Now}
+	// Config problems (a skipped bindings row) are persistent notices,
+	// each once, taken back when a reload no longer finds them.
+	if c := r.Config(); c != nil && c.Report == nil {
+		c.Report = func(problem string) {
+			if !slices.Contains(m.Notices, problem) {
+				m.Notify(problem)
+			}
+		}
+		c.Withdraw = func(problem string) {
+			m.Notices = slices.DeleteFunc(m.Notices, func(n string) bool { return n == problem })
+		}
+	}
 	m.ModalViews[yankHistoryID] = ModalView{Title: "Yank history", Render: yankHistoryView}
 	m.ModalViews["confirm"] = ModalView{Title: "Confirm", Render: confirmView}
 	m.ModalViews[helpID] = ModalView{Title: "Keys", Render: bindingHelpView}
@@ -124,7 +136,13 @@ func NewModel(r *Runtime) *Model {
 	defaultRow("", "pgup", Do("surface.scroll", Arguments{"lines": -8}))
 	return m
 }
-func (m *Model) Init() tea.Cmd { return tea.RequestBackgroundColor }
+
+// Init applies the user bindings file (Runtime.EnsureUserBindings), after
+// the application defined its own rows, and asks for the background colour.
+func (m *Model) Init() tea.Cmd {
+	m.Runtime.EnsureUserBindings()
+	return tea.RequestBackgroundColor
+}
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Off-loop results reach their owning instance first; a stale or
 	// orphaned completion is dropped here.

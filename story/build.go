@@ -51,6 +51,8 @@ func Build(s *Story, opt Options) (*Session, error) {
 		return nil, errors.New("story has no page")
 	}
 	r := ochazuke.NewRuntime()
+	// A story is a sandbox: it reads and writes no user config files.
+	r.Config().Disable()
 	m := ochazuke.NewModel(r)
 	m.Title = "o-story"
 	if opt.Mono {

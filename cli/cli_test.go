@@ -599,3 +599,24 @@ func TestUsagePointsAtHelp(t *testing.T) {
 		t.Fatalf("usage: %v", err)
 	}
 }
+
+// The user bindings file applies to the CLI: bindings list shows the
+// override, and a skipped row is a warning on stderr, not a failure.
+func TestShellAppliesTheUserBindingsFile(t *testing.T) {
+	f := newFixture(t)
+	dir := t.TempDir()
+	f.r.Config().Dir = dir
+	file := `[{"noun": "widget", "mode": "normal", "keys": "ctrl+t", "request": {"noun": "widget", "verb": "show"}},
+		{"noun": "widget", "mode": "normal", "keys": "ctrl+u", "request": {"noun": "widget", "verb": "nope"}}]`
+	if err := os.WriteFile(filepath.Join(dir, "bindings.json"), []byte(file), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	out, errOut, err := f.run("", "bindings", "list", "--all")
+	if err != nil || !strings.Contains(out, `"ctrl+t"`) || !strings.Contains(errOut, `warning: bindings.json: row 2 ctrl+u: unknown operation "widget.nope" (skipped)`) {
+		t.Fatalf("out %s\nstderr %s\nerr %v", out, errOut, err)
+	}
+	out, _, err = f.run("", "bindings", "path")
+	if err != nil || !strings.Contains(out, filepath.Join(dir, "bindings.json")) {
+		t.Fatalf("path %s %v", out, err)
+	}
+}
