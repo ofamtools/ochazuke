@@ -164,12 +164,13 @@ func New() *ochazuke.Model {
 		return r.Context(), err
 	})
 	// Theme and density are user settings: settings.json keeps them across
-	// runs, settings.edit (s on the Appearance page) edits them in place,
+	// runs, settings.edit (s on the Appearance page) opens the Settings
+	// page, which saves each change as it is made (q goes back here),
 	// and t and d step them. theme is the framework's setting (its choices
 	// are the built-in themes and the user's themes.json), declared here so
 	// it exists before the Model starts; the Model applies it. density is
 	// the demo's own: the observer applies every change, wherever it came
-	// from (the editor, d, the CLI's settings set).
+	// from (the Settings page, d, the CLI's settings set).
 	r.EnsureConfigSettings()
 	if err := r.DeclareSetting(
 		ochazuke.Setting{Name: "density", Type: ochazuke.SettingString, Default: "comfortable", Description: "Spacing", Enum: []string{"comfortable", "compact"}},

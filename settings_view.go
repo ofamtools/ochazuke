@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+
+	"github.com/charmbracelet/x/ansi"
 )
 
 // The Settings page: settings.edit opens (or switches to) a framework page
@@ -317,16 +319,22 @@ func refreshSettingsPage(r *Runtime) {
 		list := r.List(settingsTableID(key))
 		if list == nil {
 			var err error
-			list, err = r.AddList(settingsTableID(key), nil, Parent(SettingsPageID), NoMarks(), Columns(
-				Column{Title: "Setting", Priority: 3},
-				Column{Title: "Value", Priority: 3},
-				Column{Title: "Default", Priority: 1},
-				Column{Title: "Source", Priority: 2},
-			))
-			if err != nil {
+			if list, err = r.AddList(settingsTableID(key), nil, Parent(SettingsPageID), NoMarks()); err != nil {
 				continue
 			}
 		}
+		// The names keep their width (up to 24 cells) and the source fits
+		// settings.json; the default narrows and goes first.
+		names := 0
+		for _, item := range items {
+			names = max(names, ansi.StringWidth(item.Cells[0]))
+		}
+		list.SetColumns(
+			Column{Title: "Setting", Priority: 3, Min: min(names, 24)},
+			Column{Title: "Value", Priority: 3},
+			Column{Title: "Default", Priority: 1},
+			Column{Title: "Source", Priority: 2, Min: len(SettingsFile)},
+		)
 		_ = list.SetItems(items)
 	}
 }
