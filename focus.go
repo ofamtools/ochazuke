@@ -416,12 +416,22 @@ func (r *Runtime) Pop() error {
 
 // subtree lists id and its descendants, descendants first.
 func (r *Runtime) subtree(id string) []string {
-	kids := r.childIndex()
+	return r.subtreeFrom(id, r.childIndex())
+}
+
+// subtreeFrom is subtree over a childIndex taken earlier: a removal of many
+// instances (SetItems dropping rows) takes the index once instead of
+// scanning every instance per removal. A child the index lists is walked
+// only while it is still registered under that parent, so an index taken
+// before earlier removals and reparentings in the same batch stays exact.
+func (r *Runtime) subtreeFrom(id string, kids map[string][]*Instance) []string {
 	var out []string
 	var walk func(string)
 	walk = func(id string) {
 		for _, child := range kids[id] {
-			walk(child.ID)
+			if r.Instances[child.ID] == child && child.Parent == id {
+				walk(child.ID)
+			}
 		}
 		out = append(out, id)
 	}
@@ -471,6 +481,25 @@ func (r *Runtime) dropSubtree(id string) {
 // instance's FocusOnClose target when that survives); an open modal inside the subtree is
 // kept and reparented there. app cannot be removed.
 func (r *Runtime) RemoveInstance(id string) error {
+	return r.removeInstance(id, r.childIndex(), r.PageList())
+}
+
+// removeInstances is RemoveInstance of each id in order, with one
+// childIndex and one PageList for the whole batch: the instances removed
+// must not include a page (rows of a list, never app's children), so the
+// page list stays the same throughout. Errors are ignored, as SetItems
+// ignores them.
+func (r *Runtime) removeInstances(ids []string) {
+	if len(ids) == 0 {
+		return
+	}
+	kids, pages := r.childIndex(), r.PageList()
+	for _, id := range ids {
+		_ = r.removeInstance(id, kids, pages)
+	}
+}
+
+func (r *Runtime) removeInstance(id string, kids map[string][]*Instance, pages []*Page) error {
 	inst := r.Instances[id]
 	if inst == nil {
 		return fmt.Errorf("unknown instance %q", id)
@@ -480,7 +509,7 @@ func (r *Runtime) RemoveInstance(id string) error {
 	}
 	parent := inst.Parent
 	gone := map[string]bool{}
-	for _, one := range r.subtree(id) {
+	for _, one := range r.subtreeFrom(id, kids) {
 		if slices.Contains(r.modals, one) {
 			continue
 		}
@@ -499,7 +528,7 @@ func (r *Runtime) RemoveInstance(id string) error {
 			back = to
 		}
 	}
-	for _, page := range r.PageList() {
+	for _, page := range pages {
 		if gone[page.Remembered] {
 			page.Remembered, page.mode = parent, ModeState{}
 		}
@@ -509,7 +538,7 @@ func (r *Runtime) RemoveInstance(id string) error {
 			m.Payload.Return, m.returnMode = parent, ModeState{}
 		}
 	}
-	for _, one := range r.subtree(id) {
+	for _, one := range r.subtreeFrom(id, kids) {
 		if !gone[one] {
 			continue
 		}

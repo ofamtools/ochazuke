@@ -94,13 +94,15 @@ func (l *List) SetItems(items []ListItem) error {
 		ids[item.ID] = true
 	}
 	gone := map[string]bool{}
+	var drop []string
 	for _, old := range l.items {
 		if !ids[old.ID] {
 			gone[old.ID] = true
 			delete(l.marks, old.ID)
-			_ = l.r.RemoveInstance(old.ID)
+			drop = append(drop, old.ID)
 		}
 	}
+	l.r.removeInstances(drop)
 	for _, item := range items {
 		l.r.rows[item.ID] = l.id
 		inst := l.r.Instances[item.ID]
