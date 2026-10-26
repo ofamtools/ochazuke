@@ -232,7 +232,7 @@ func TestLoadBindingsRowsReplaceAddAndUnbind(t *testing.T) {
 	calls := recorder(t, r, "hello", "digit")
 	rows, err := r.LoadBindings([]byte(`[
 		{"noun": "app", "mode": "normal", "keys": "ctrl+t", "request": {"verb": "hello", "noun": "test"}},
-		{"noun": "editor", "mode": "normal", "keys": "x", "when": "input", "request": null},
+		{"noun": "editor", "mode": "normal", "keys": "x", "request": null},
 		{"noun": "editor", "mode": "insert", "keys": "esc", "request": {"verb": "hello", "noun": "test"}},
 		{"instance": "editor", "mode": "normal", "pattern": "digit-0", "request": {"verb": "digit", "noun": "test"}}
 	]`))

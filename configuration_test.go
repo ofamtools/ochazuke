@@ -203,7 +203,8 @@ func guardFixture(t *testing.T) (*Runtime, *Model, *[]string, string, *bool, []s
 	r.DefineGuard("flag", func(*Runtime, KeyEvent) bool { return *flag })
 	r.Define("app").Mode("normal").
 		Bind("a", Do("test.alpha")).When("flag").
-		Bind("a", Do("test.beta"))
+		Bind("a", Do("test.beta")).
+		Bind("c", Do("test.alpha")).When("flag")
 	return r, m, calls, dir, flag, appNormal(t, r)
 }
 
@@ -240,25 +241,31 @@ func TestUserBindingsGuardIsPartOfTheRowIdentity(t *testing.T) {
 		t.Fatalf("defaults: %v", got)
 	}
 	steps := []struct {
-		name string
-		file string
-		key  string
-		want []string // flag on, flag off
+		name   string
+		file   string
+		key    string
+		want   []string // flag on, flag off
+		notice string
 	}{
-		{"guarded row replaces the guarded default", `[{"noun": "app", "mode": "normal", "keys": "a", "when": "flag", "request": {"noun": "test", "verb": "gamma"}}]`, "a", []string{"gamma", "beta"}},
-		{"unguarded row replaces the unguarded default", `[{"noun": "app", "mode": "normal", "keys": "a", "request": {"noun": "test", "verb": "gamma"}}]`, "a", []string{"alpha", "gamma"}},
-		{"guarded unbind", `[{"noun": "app", "mode": "normal", "keys": "a", "when": "flag", "request": null}]`, "a", []string{"beta", "beta"}},
-		{"unguarded unbind", `[{"noun": "app", "mode": "normal", "keys": "a", "request": null}]`, "a", []string{"alpha"}},
-		{"new guarded row answers before the unguarded default", `[{"noun": "app", "mode": "normal", "keys": "b", "when": "flag", "request": {"noun": "test", "verb": "gamma"}}]`, "b", []string{"gamma", "beta"}},
+		{"guarded row replaces the guarded default", `[{"noun": "app", "mode": "normal", "keys": "a", "when": "flag", "request": {"noun": "test", "verb": "gamma"}}]`, "a", []string{"gamma", "beta"}, ""},
+		{"unguarded row replaces the unguarded default", `[{"noun": "app", "mode": "normal", "keys": "a", "request": {"noun": "test", "verb": "gamma"}}]`, "a", []string{"alpha", "gamma"}, ""},
+		{"guarded unbind", `[{"noun": "app", "mode": "normal", "keys": "a", "when": "flag", "request": null}]`, "a", []string{"beta", "beta"}, ""},
+		{"unguarded unbind", `[{"noun": "app", "mode": "normal", "keys": "a", "request": null}]`, "a", []string{"alpha"}, `unbinds only the row without when; the default test.alpha row (when "flag") stays`},
+		{"unguarded row added behind a guarded default", `[{"noun": "app", "mode": "normal", "keys": "c", "request": {"noun": "test", "verb": "gamma"}}]`, "c", []string{"alpha", "gamma"}, `the default test.alpha row (when "flag") answers first while its guard holds; to replace it, add "when": "flag"`},
+		{"new guarded row answers before the unguarded default", `[{"noun": "app", "mode": "normal", "keys": "b", "when": "flag", "request": {"noun": "test", "verb": "gamma"}}]`, "b", []string{"gamma", "beta"}, ""},
 		{"both rows from one file", `[
 			{"noun": "app", "mode": "normal", "keys": "a", "request": {"noun": "test", "verb": "gamma"}},
 			{"noun": "app", "mode": "normal", "keys": "a", "when": "flag", "request": {"noun": "test", "verb": "beta"}}
-		]`, "a", []string{"beta", "gamma"}},
+		]`, "a", []string{"beta", "gamma"}, ""},
 	}
 	for _, step := range steps {
 		writeConfig(t, dir, BindingsFile, step.file)
-		if problems := r.ReloadUserBindings(); len(problems) != 0 {
+		problems := r.ReloadUserBindings()
+		switch {
+		case step.notice == "" && len(problems) != 0:
 			t.Fatalf("%s: %v", step.name, problems)
+		case step.notice != "" && (len(problems) != 1 || !strings.Contains(problems[0], step.notice)):
+			t.Fatalf("%s: notices %q, want one with %q", step.name, problems, step.notice)
 		}
 		if got := pressBoth(m, calls, flag, step.key); !slices.Equal(got, step.want) {
 			t.Fatalf("%s: calls %v, want %v", step.name, got, step.want)
@@ -324,5 +331,85 @@ func TestCtrlCRowsUnbindOneAtATime(t *testing.T) {
 	}
 	if got := quits(); len(got) != 0 {
 		t.Fatalf("after both unbinds: %q", got)
+	}
+}
+
+// The editor's implicit input guard is not part of a row's identity: a
+// user row without when replaces or unbinds the editor default on its keys
+// (an input operation keeps the guard, as the default had), the same row
+// with the guard spelled out is the same row, and reload restores the
+// default.
+func TestUserRowsReplaceEditorDefaultsDespiteTheImplicitGuard(t *testing.T) {
+	r, in := editorTestRuntime(t, "abc", false)
+	calls := recorder(t, r, "hello")
+	dir := t.TempDir()
+	r.Config().Dir = dir
+	x := func() []Binding {
+		var out []Binding
+		for _, b := range r.Nouns["editor"].Bindings["normal"] {
+			if b.Keys == "x" {
+				out = append(out, b)
+			}
+		}
+		return out
+	}
+	defaults := x()
+	if len(defaults) != 1 || defaults[0].When != ImplicitGuard {
+		t.Fatalf("default x rows: %+v", defaults)
+	}
+	for _, file := range []string{
+		`[{"noun": "editor", "mode": "normal", "keys": "x", "request": {"noun": "test", "verb": "hello"}}]`,
+		`[{"noun": "editor", "mode": "normal", "keys": "x", "when": "input", "request": {"noun": "test", "verb": "hello"}}]`,
+	} {
+		writeConfig(t, dir, BindingsFile, file)
+		if problems := r.ReloadUserBindings(); len(problems) != 0 {
+			t.Fatal(problems)
+		}
+		if got := x(); len(got) != 1 || got[0].Request.Key() != "test.hello" {
+			t.Fatalf("%s: x rows %+v", file, got)
+		}
+	}
+	editorTestKeys(t, r, "x")
+	if !slices.Equal(*calls, []string{"hello"}) || string(in.Text) != "abc" {
+		t.Fatalf("calls %v text %q", *calls, in.Text)
+	}
+	writeConfig(t, dir, BindingsFile, `[{"noun": "editor", "mode": "normal", "keys": "x", "request": {"noun": "input", "verb": "delete", "args": {"direction": "backward"}}}]`)
+	if problems := r.ReloadUserBindings(); len(problems) != 0 {
+		t.Fatal(problems)
+	}
+	if got := x(); len(got) != 1 || got[0].When != ImplicitGuard || got[0].Request.Args["direction"] != "backward" {
+		t.Fatalf("an input operation override: %+v", got)
+	}
+	writeConfig(t, dir, BindingsFile, `[{"noun": "editor", "mode": "normal", "keys": "x", "request": null}]`)
+	if problems := r.ReloadUserBindings(); len(problems) != 0 {
+		t.Fatal(problems)
+	}
+	if got := x(); len(got) != 0 {
+		t.Fatalf("unbind left %+v", got)
+	}
+	writeConfig(t, dir, BindingsFile, `[]`)
+	r.ReloadUserBindings()
+	if got := x(); !reflect.DeepEqual(got, defaults) {
+		t.Fatalf("reload: %+v, want %+v", got, defaults)
+	}
+	// In code too: the builder's Unbind without a guard removes it.
+	r.Define("editor").Mode("normal").Unbind("x")
+	if got := x(); len(got) != 0 {
+		t.Fatalf("builder Unbind left %+v", got)
+	}
+}
+
+// A user rebind of ctrl+c without when replaces the bubbling row; the
+// notice says the capture row guarded by no-modal still answers first.
+func TestUserCtrlCRebindExplainsTheCaptureRow(t *testing.T) {
+	r, _, _, dir := configFixture(t)
+	writeConfig(t, dir, BindingsFile, `[{"noun": "app", "keys": "ctrl+c", "request": {"noun": "test", "verb": "gamma"}}]`)
+	problems := r.ReloadUserBindings()
+	if len(problems) != 1 || !strings.Contains(problems[0], `the default app.quit row (when "no-modal", capture) answers first while its guard holds; to replace it, add "when": "no-modal"`) {
+		t.Fatalf("notices %q", problems)
+	}
+	writeConfig(t, dir, BindingsFile, `[{"noun": "app", "keys": "ctrl+c", "when": "no-modal", "capture": true, "request": {"noun": "test", "verb": "gamma"}}]`)
+	if problems := r.ReloadUserBindings(); len(problems) != 0 {
+		t.Fatalf("replacing the capture row: %q", problems)
 	}
 }

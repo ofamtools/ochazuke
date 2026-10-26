@@ -89,10 +89,8 @@ func (r *Runtime) LoadBindingSpec(noun string, data []byte) error {
 // installSpecRow appends a validated row; unlike Bind it keeps earlier rows
 // for the same key, so guarded alternatives coexist in spec order.
 func (r *Runtime) installSpecRow(b *NounBuilder, row Binding) error {
-	if row.Request.Noun == "input" && row.Request.Verb != "cancel" && row.When == "" {
-		row.When = "input"
-	}
 	row.Noun, row.Instance = b.Noun().Name, ""
+	row = withImplicitGuard(row)
 	row, err := r.validateRow(row)
 	if err != nil {
 		return err

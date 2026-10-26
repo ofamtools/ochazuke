@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -318,8 +319,12 @@ func (r *Runtime) ReloadUserBindings() []string {
 	}
 	rows, problems := r.readUserBindings(path)
 	for _, f := range rows {
-		if err := r.applyUserRow(f.row); err != nil {
+		notice, err := r.applyUserRow(f.row)
+		switch {
+		case err != nil:
 			problems = append(problems, rowProblem(f.n, f.row, err))
+		case notice != "":
+			problems = append(problems, fmt.Sprintf("%s: row %d %s: %s", BindingsFile, f.n, f.row.Keys+f.row.Pattern, notice))
 		}
 	}
 	if _, err := r.ValidateBindings(); err != nil {
@@ -390,12 +395,15 @@ func (r *Runtime) readUserBindings(path string) ([]fileRow, []string) {
 	return rows, problems
 }
 
-// applyUserRow installs one user row and logs the rows it replaced.
-func (r *Runtime) applyUserRow(row Binding) error {
+// applyUserRow installs one user row and logs the rows it replaced. The
+// notice, when not empty, says why the row will not answer everywhere it
+// looks like it should: a guarded row on its keys answers first.
+func (r *Runtime) applyUserRow(row Binding) (string, error) {
 	normalized, err := r.validateRow(row)
 	if err != nil {
-		return err
+		return "", err
 	}
+	normalized = withImplicitGuard(normalized)
 	var replaced []Binding
 	at := -1
 	for i, b := range r.tableRows(normalized) {
@@ -409,11 +417,51 @@ func (r *Runtime) applyUserRow(row Binding) error {
 		}
 	}
 	if err := r.Bind(row); err != nil {
-		return err
+		return "", err
 	}
 	c := r.Config()
 	c.applied = append(c.applied, appliedRow{row: normalized, replaced: replaced, at: at})
-	return nil
+	return shadowNotice(r.tableRows(normalized), normalized, len(replaced) > 0), nil
+}
+
+// shadowNotice explains a user row that a guarded row on the same keys in
+// its table answers before, so the row does not silently stand behind it:
+// a capture row on its keys (it answers first in the capture pass while
+// its guard holds, even when this row replaced the bubbling one), a
+// guarded row ahead of a row that was added rather than replacing one,
+// or, for an unbind without when, the guarded rows it left in place.
+func shadowNotice(rows []Binding, row Binding, replaced bool) string {
+	describe := func(b Binding) string {
+		capture := ""
+		if b.Capture {
+			capture = ", capture"
+		}
+		return fmt.Sprintf("the default %s row (when %q%s)", b.Request.Key(), b.When, capture)
+	}
+	if row.Unbind {
+		if row.identityGuard() != "" {
+			return ""
+		}
+		for _, b := range rows {
+			if b.sameKeys(row) && b.identityGuard() != "" {
+				return fmt.Sprintf("unbinds only the row without when; %s stays (add \"when\": %q to unbind it too)", describe(b), b.When)
+			}
+		}
+		return ""
+	}
+	at := slices.IndexFunc(rows, row.same)
+	for i, b := range rows {
+		if !b.sameKeys(row) || b.same(row) || b.identityGuard() == "" {
+			continue
+		}
+		if b.Capture && !row.Capture {
+			return fmt.Sprintf("%s answers first while its guard holds; to replace it, add \"when\": %q (and \"capture\": true to keep it ahead of inner rows)", describe(b), b.When)
+		}
+		if !replaced && i < at && b.Capture == row.Capture {
+			return fmt.Sprintf("%s answers first while its guard holds; to replace it, add \"when\": %q", describe(b), b.When)
+		}
+	}
+	return ""
 }
 
 // tableRows are the rows of the table a row belongs to.

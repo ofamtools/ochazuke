@@ -62,7 +62,9 @@ func (n *Noun) tables(mode string) [][]Binding {
 // and guard: a row replaces only the row with the same identity, so a row
 // with When and the unguarded row on the same keys coexist, and Unbind
 // removes only the row with the same identity (an unbind row without When
-// removes the unguarded row, never a guarded one).
+// removes the unguarded row, never a guarded one). The editor noun's
+// implicit "input" guard is not part of the identity (see
+// withImplicitGuard).
 // Replay dispatches the key again, fresh, after the row ran (a pending mode
 // that hands an unknown key back to the stack). Capture rows are consulted
 // outer-first (app first) before the inner-first walk (see resolve.go).
@@ -135,9 +137,52 @@ const (
 )
 
 // same reports whether two rows have the same identity: mode, keys or
-// pattern, and guard. The table (noun or instance) is the caller's.
+// pattern, and guard (identityGuard). The table (noun or instance) is the
+// caller's.
 func (b Binding) same(o Binding) bool {
-	return b.Mode == o.Mode && b.Keys == o.Keys && b.Pattern == o.Pattern && b.When == o.When
+	return b.Mode == o.Mode && b.Keys == o.Keys && b.Pattern == o.Pattern && b.identityGuard() == o.identityGuard()
+}
+
+// sameKeys reports whether two rows answer the same mode and keys or
+// pattern, whatever their guards.
+func (b Binding) sameKeys(o Binding) bool {
+	return b.Mode == o.Mode && b.Keys == o.Keys && b.Pattern == o.Pattern
+}
+
+// ImplicitGuard is the guard the framework puts on every editor noun row
+// that runs an input operation (input.cancel aside): such a row answers
+// only while the focus is an input itself, not a non-input instance an
+// application parented under one. It is the framework's, not the user's:
+// it is not part of a row's identity, so a row without when replaces or
+// unbinds the default it shadows, and a user row that runs an input
+// operation on the editor noun gets it too, as the default it replaces had.
+const ImplicitGuard = "input"
+
+// withImplicitGuard gives an editor noun row that runs an input operation
+// the implicit guard when it names none.
+func withImplicitGuard(row Binding) Binding {
+	if row.Noun == "editor" && row.Instance == "" && row.When == "" && implicitlyGuarded(row) {
+		row.When = ImplicitGuard
+	}
+	return row
+}
+
+// implicitlyGuarded reports whether a row's request is one the editor
+// noun's rows guard implicitly.
+func implicitlyGuarded(row Binding) bool {
+	return row.Request.Noun == "input" && row.Request.Verb != "cancel"
+}
+
+// identityGuard is the guard that is part of the row's identity: When,
+// except the implicit guard on the editor noun, which counts as none
+// whether the framework added it or the row spells it out (the editor
+// noun is consulted only with an input on the focus path, where the guard
+// is the framework's detail, not a second row).
+func (b Binding) identityGuard() string {
+	if b.When == ImplicitGuard && b.Noun == "editor" && b.Instance == "" {
+		return ""
+	}
+	return b.When
 }
 
 // placeRow puts row into a table by identity: in place of the row with the
@@ -160,10 +205,10 @@ func placeRow(rows []Binding, row Binding) ([]Binding, *Binding) {
 		return out, &displaced
 	}
 	at := len(rows)
-	if row.When != "" {
-		fallback := row
-		fallback.When = ""
-		if i := slices.IndexFunc(rows, func(b Binding) bool { return b.same(fallback) && b.Capture == row.Capture }); i >= 0 {
+	if row.identityGuard() != "" {
+		if i := slices.IndexFunc(rows, func(b Binding) bool {
+			return b.sameKeys(row) && b.identityGuard() == "" && b.Capture == row.Capture
+		}); i >= 0 {
 			at = i
 		}
 	}
@@ -530,9 +575,9 @@ func (m *ModeBuilder) Unbind(keysOrPattern string) *ModeBuilder {
 // UnbindGuarded removes the row with these keys or this pattern and this
 // guard ("" is the unguarded row).
 func (m *ModeBuilder) UnbindGuarded(keysOrPattern, guard string) *ModeBuilder {
-	probe := Binding{Mode: m.mode, Keys: strings.Join(strings.Fields(keysOrPattern), " "), When: guard}
+	probe := Binding{Noun: m.n.Name, Mode: m.mode, Keys: strings.Join(strings.Fields(keysOrPattern), " "), When: guard}
 	if isPattern(keysOrPattern) {
-		probe = Binding{Mode: m.mode, Pattern: keysOrPattern, When: guard}
+		probe.Keys, probe.Pattern = "", keysOrPattern
 	}
 	m.n.Bindings[m.mode] = withPrefixCancels(removeRows(m.n.Bindings[m.mode], probe))
 	m.last, m.displaced = len(m.n.Bindings[m.mode]), nil
@@ -562,6 +607,7 @@ func (m *ModeBuilder) When(guard string) *ModeBuilder {
 func (m *ModeBuilder) add(row Binding) *ModeBuilder {
 	row.Noun, row.Instance, row.Mode = m.n.Name, "", m.mode
 	row.Request = m.r.modernRequest(row.Request)
+	row = withImplicitGuard(row)
 	rows, displaced := placeRow(m.n.Bindings[m.mode], row)
 	rows = withPrefixCancels(rows)
 	m.n.Bindings[m.mode], m.displaced = rows, displaced
@@ -601,7 +647,7 @@ func withPrefixCancels(rows []Binding) []Binding {
 			continue
 		}
 		parts := strings.Fields(b.Keys)
-		if b.When == "" {
+		if b.identityGuard() == "" {
 			// A guarded row on "<prefix> esc" may stand aside; the
 			// unguarded cancel stays behind it.
 			bound[prefixKey{b.Mode, b.Keys}] = true
@@ -667,6 +713,7 @@ func (r *Runtime) Bind(rows ...Binding) error {
 		if err != nil {
 			return err
 		}
+		row = withImplicitGuard(row)
 		switch {
 		case row.Instance != "":
 			inst := r.Instances[row.Instance]
