@@ -398,7 +398,7 @@ Root package `ochazuke` is flat: 49 source files, 45 test files. Each entry list
 
 ## Package cli
 
-Importable package `cli`: 5 source files, 5 test files.
+Importable package `cli`: 9 source files, 6 test files.
 
 ### cli/catalog.go
 
@@ -422,6 +422,31 @@ Importable package `cli`: 5 source files, 5 test files.
 - methods: Shell(1)
 - funcs: Mount
 - leans on: catalog.go(2), shell.go(2)
+
+### cli/pty.go
+
+- lines: 356 · tests: pty_test.go
+- purpose: PtyStream is an ochazuke.TerminalStream for a local process: the command runs in a pseudo-terminal (xpty), its output is replayed into a terminal emulator (x...
+- types: PtyStream
+- methods: PtyStream(15), byteQueue(3)
+- funcs: StartPty
+- leans on: pty_unix.go(2), shell.go(2), ptykeys.go(1), rows.go(1)
+
+### cli/pty_unix.go
+
+- lines: 39
+- purpose: configureCommand makes the command the leader of a new session whose controlling terminal is the pty (the slave is its fd 0), so its process group id is its ...
+
+### cli/pty_windows.go
+
+- lines: 15
+- purpose: configureCommand leaves the command as it is: ConPTY owns the console.
+- leans on: pty_unix.go(2)
+
+### cli/ptykeys.go
+
+- lines: 62
+- purpose: keyEvent parses one key name: modifiers joined by "+" before a named key or one character ("ctrl+a", "shift+tab", "alt+b", "A", "+", "é").
 
 ### cli/rows.go
 
@@ -642,6 +667,7 @@ Exported type -> file.
 - cli.CatalogPage -> cli/catalog.go
 - cli.CatalogVerb -> cli/catalog.go
 - cli.Lines -> cli/rows.go
+- cli.PtyStream -> cli/pty.go
 - cli.Row -> cli/rows.go
 - cli.RowReader -> cli/rows.go
 - cli.Shell -> cli/shell.go

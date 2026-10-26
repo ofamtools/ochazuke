@@ -7,7 +7,15 @@ require (
 	charm.land/bubbletea/v2 v2.1.0
 	charm.land/lipgloss/v2 v2.0.6
 	github.com/charmbracelet/x/ansi v0.11.9
+	github.com/charmbracelet/x/vt v0.1.0
+	github.com/charmbracelet/x/xpty v0.1.4
 	github.com/rivo/uniseg v0.4.7
+)
+
+require (
+	github.com/charmbracelet/x/conpty v0.2.0 // indirect
+	github.com/charmbracelet/x/exp/ordered v0.1.0 // indirect
+	github.com/creack/pty v1.1.24 // indirect
 )
 
 require (
