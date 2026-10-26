@@ -1,0 +1,32 @@
+{
+  "name": "focus.set on a row selects it: the highlight follows the focus",
+  "area": "lists",
+  "page": {
+    "focus": "a2",
+    "lists": [
+      {
+        "id": "a",
+        "rows": 5
+      }
+    ],
+    "bind": [
+      {
+        "noun": "app",
+        "mode": "normal",
+        "keys": "z",
+        "do": "focus.set",
+        "args": {
+          "id": "a4"
+        }
+      }
+    ]
+  },
+  "script": [
+    "z"
+  ],
+  "expect": {
+    "focus": "a4",
+    "highlighted": 1,
+    "highlightedText": "a4"
+  }
+}

@@ -16,6 +16,11 @@ import (
 // extra also declares empty command groups before their operations are registered.
 // Mount leaves app.Default to the application.
 func Mount(app *oden.App, sh *Shell, extra ...string) {
+	// The user's actions.json verbs are commands too, so oden's help and
+	// dispatch know them.
+	for _, problem := range sh.Runtime.EnsureUserActions() {
+		fmt.Fprintln(sh.stderr(), "warning:", problem)
+	}
 	groups := map[string][]oden.Command{}
 	for _, noun := range extra {
 		groups[noun] = []oden.Command{}
@@ -46,7 +51,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 		noun, verb := op.Noun, op.Verb
 		groups[noun] = append(groups[noun], oden.Command{
 			Name: verb, Summary: op.Description, Source: op.Key(),
-			Usage:      "[ARG...] [--target ID] [--json ...] [--ARG VALUE] [--yes]",
+			Usage:      "[ARG...] [--target ID] [--json ...] [--ARG VALUE] [--format F] [--yes]",
 			Parameters: parameters, Details: details,
 			Run: func(ctx context.Context, args []string) error {
 				return sh.Run(ctx, append([]string{noun, verb}, args...))
@@ -75,7 +80,9 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
   Supply prompt values as arguments: non-confirmation UI prompts need the TUI.
   Bare arguments fill parameters in the order shown; named flags take precedence.
   Boolean parameters use named flags unless explicitly declared positional.
-  Results are JSON; scheduled work settles before the command exits.
+  Results are JSON; --format table|markdown|toon prints a list's rows as a
+  table from the noun's columns (table cuts to the width on a terminal).
+  Scheduled work settles before the command exits.
   Interaction verbs may require UI state and can have no lasting CLI effect.`
 	app.Add(oden.Command{
 		Name:    "catalog",

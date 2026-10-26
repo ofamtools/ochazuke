@@ -2,8 +2,10 @@ package story
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os/exec"
 	"slices"
 	"strings"
 
@@ -11,6 +13,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/unixsuperhero/ochazuke"
+	"github.com/unixsuperhero/ochazuke/cli"
 )
 
 // Demo is the one application noun a story has: page instances and rows
@@ -29,9 +32,12 @@ type Session struct {
 	pages map[string]*Page
 	lists map[string]*ochazuke.List
 	trees map[string]*ochazuke.Tree
+	// records are the page-drawn record editors by id.
+	records map[string]*ochazuke.RecordEditor
 	// Writes is the log of every change an editable tree wrote.
 	Writes  []string
 	inputs  map[string]*ochazuke.Input
+	details map[string]*ochazuke.Detail
 	streams []*FakeStream
 	jobs    map[string][]chan error // verb -> running jobs, oldest first
 	done    chan struct{}
@@ -51,12 +57,30 @@ func Build(s *Story, opt Options) (*Session, error) {
 		return nil, errors.New("story has no page")
 	}
 	r := ochazuke.NewRuntime()
+	// A story is a sandbox: it reads and writes no user config files.
+	r.Config().Disable()
+	if err := r.DeclareSetting(s.Settings...); err != nil {
+		return nil, err
+	}
 	m := ochazuke.NewModel(r)
 	m.Title = "o-story"
 	if opt.Mono {
 		m.Appearance.Theme = "mono"
 	}
-	ss := &Session{Story: s, R: r, M: m, pages: map[string]*Page{}, lists: map[string]*ochazuke.List{}, trees: map[string]*ochazuke.Tree{}, inputs: map[string]*ochazuke.Input{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
+	if len(s.Themes) > 0 {
+		schemes, problems := ochazuke.ParseSchemes(s.Themes)
+		m.Appearance.Schemes = ochazuke.NewSchemeSet(schemes)
+		for _, p := range problems {
+			m.Notify(p)
+		}
+	}
+	if s.Theme != "" {
+		m.Appearance.Theme = s.Theme
+	}
+	if s.Accent != "" {
+		m.Appearance.Accent = lipgloss.Color(s.Accent)
+	}
+	ss := &Session{Story: s, R: r, M: m, pages: map[string]*Page{}, lists: map[string]*ochazuke.List{}, trees: map[string]*ochazuke.Tree{}, records: map[string]*ochazuke.RecordEditor{}, inputs: map[string]*ochazuke.Input{}, details: map[string]*ochazuke.Detail{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
 	if err := ss.defineDemo(pages); err != nil {
 		return nil, err
 	}
@@ -77,6 +101,18 @@ func Build(s *Story, opt Options) (*Session, error) {
 	if err := r.OpenPage(open); err != nil {
 		return nil, err
 	}
+	for _, rs := range ss.pages[open].Records {
+		if rs.Modal {
+			if _, err := r.OpenRecordEditor(rs.ID, ss.recordSpec(rs)); err != nil {
+				return nil, fmt.Errorf("record %s: %w", rs.ID, err)
+			}
+		}
+	}
+	if cs := ss.pages[open].Chooser; cs != nil {
+		if _, err := r.OpenChooser(chooserSpec(cs)); err != nil {
+			return nil, fmt.Errorf("chooser: %w", err)
+		}
+	}
 	ss.size()
 	m.View()
 	page := ss.pages[open]
@@ -96,6 +132,25 @@ func Build(s *Story, opt Options) (*Session, error) {
 		}
 	}
 	return ss, nil
+}
+
+// chooserSpec is the framework spec of a story's chooser.
+func chooserSpec(cs *ChooserSpec) ochazuke.ChooserSpec {
+	spec := ochazuke.ChooserSpec{Kind: cs.Kind, Title: cs.Title, Keep: cs.Keep}
+	if spec.Kind == "" {
+		spec.Kind = "story-chooser"
+	}
+	previews := map[string]string{}
+	for _, row := range cs.Rows {
+		spec.Rows = append(spec.Rows, ochazuke.ChooserRow{ID: row.ID, Label: row.Label, Cells: row.Cells})
+		if row.Preview != "" {
+			previews[row.ID] = row.Preview
+		}
+	}
+	if len(previews) > 0 {
+		spec.Preview = func(row ochazuke.ChooserRow) string { return previews[row.ID] }
+	}
+	return spec
 }
 
 // Close releases every fake job and pane goroutine.
@@ -147,6 +202,7 @@ func (ss *Session) defineDemo(pages []*Page) error {
 					finish := make(chan error, 1)
 					ss.jobs[key] = append(ss.jobs[key], finish)
 					done := ss.done
+					label := j.Label
 					return ochazuke.Pending(func(ctx context.Context) (any, error) {
 						select {
 						case err := <-finish:
@@ -156,7 +212,7 @@ func (ss *Session) defineDemo(pages []*Page) error {
 						case <-done:
 							return nil, errors.New("story closed")
 						}
-					})
+					}).Label(label)
 				}, "A fake job that runs until its finish key")
 				if j.Quiet {
 					d.Quiet()
@@ -348,6 +404,12 @@ func rowsOf(l ListSpec) []ochazuke.ListItem {
 }
 
 func (ss *Session) addPage(p *Page) error {
+	if p.Commands != nil {
+		return ss.addCommandsPage(p)
+	}
+	if p.Catalog != nil {
+		return ss.addCatalogPage(p)
+	}
 	r := ss.R
 	r.Instance(p.ID, ochazuke.Kind(Demo))
 	focus := p.Focus
@@ -356,6 +418,9 @@ func (ss *Session) addPage(p *Page) error {
 		opts = append(opts, ochazuke.Parent(p.ID))
 		if l.NoSpill {
 			opts = append(opts, ochazuke.NoSpill())
+		}
+		if l.NoMarks {
+			opts = append(opts, ochazuke.NoMarks())
 		}
 		if len(l.Columns) > 0 {
 			opts = append(opts, ochazuke.Columns(l.Columns...))
@@ -408,6 +473,24 @@ func (ss *Session) addPage(p *Page) error {
 			focus = tree.FocusTarget()
 		}
 	}
+	for _, rs := range p.Records {
+		if rs.Modal {
+			continue
+		}
+		// Leaving the editor lands on the page's first list.
+		back := ""
+		if len(p.Lists) > 0 {
+			back = ss.lists[p.Lists[0].ID].FocusTarget()
+		}
+		ed, err := r.AddRecordEditor(rs.ID, ss.recordSpec(rs), ochazuke.Parent(p.ID), ochazuke.FocusOnClose(back))
+		if err != nil {
+			return fmt.Errorf("record %s: %w", rs.ID, err)
+		}
+		ss.records[rs.ID] = ed
+		if focus == "" {
+			focus = ed.FocusTarget()
+		}
+	}
 	for _, in := range p.Inputs {
 		input := ochazuke.NewInput(in.ID, in.Text, false)
 		if err := r.AddInput(input, ochazuke.Parent(p.ID)); err != nil {
@@ -417,6 +500,13 @@ func (ss *Session) addPage(p *Page) error {
 		if focus == "" {
 			focus = in.ID
 		}
+	}
+	if p.Detail != nil {
+		d, err := r.AddDetail(p.ID+"-detail", func() string { return ss.detailItem(p) }, ochazuke.Parent(p.ID))
+		if err != nil {
+			return fmt.Errorf("detail: %w", err)
+		}
+		ss.details[p.ID] = d
 	}
 	if p.Focus == "" && len(p.Order) > 0 {
 		// The first stop in drawing order is focused, a tree or a list.
@@ -444,9 +534,150 @@ func (ss *Session) addPage(p *Page) error {
 	return err
 }
 
-// render draws a page: the lists (stacked, or side by side in a row), then
-// the inputs, then the pane when attached.
+// recordSpec is a record editor's spec from the story: its values loaded,
+// its writes logged (the first FailWrites fail).
+// addCommandsPage adds cli's Commands page over the spec's entries; a run
+// starts a fake pane instead of a process.
+func (ss *Session) addCommandsPage(p *Page) error {
+	start := func(*exec.Cmd, int, int) (ochazuke.TerminalStream, error) {
+		stream := newFakeStream(ss.done)
+		ss.streams = append(ss.streams, stream)
+		return stream, nil
+	}
+	if _, err := cli.AddCommands(ss.M, storyCommands{*p.Commands}, cli.CommandsConfig{ID: p.ID, Title: p.Title, Start: start}); err != nil {
+		return fmt.Errorf("commands page %s: %w", p.ID, err)
+	}
+	ss.pages[p.ID] = p
+	return nil
+}
+
+// addCatalogPage mounts the spec's data page over its canned answers.
+func (ss *Session) addCatalogPage(p *Page) error {
+	spec := p.Catalog
+	page := spec.Page
+	page.ID = p.ID // the story page's id (the one Build opens)
+	if page.Title == "" {
+		page.Title = cmpString(p.Title, p.ID)
+	}
+	doc := cli.CatalogDoc{Schema: cli.Schema, Name: "story", State: spec.State, Nouns: spec.Nouns, Pages: []cli.CatalogPage{page}}
+	fetch := func(_ context.Context, noun, verb string) ([]byte, error) {
+		raw, ok := spec.Answers[noun+"."+verb]
+		if !ok {
+			return nil, fmt.Errorf("exit status 1: %s %s has no answer", noun, verb)
+		}
+		var text string
+		if json.Unmarshal(raw, &text) == nil {
+			return []byte(text), nil
+		}
+		return raw, nil
+	}
+	v, err := cli.MountPage(ss.M, doc, page, cli.PageConfig{Fetch: fetch})
+	if err != nil {
+		return fmt.Errorf("catalog page %s: %w", page.ID, err)
+	}
+	if err := v.Reload(); err != nil {
+		return fmt.Errorf("catalog page %s: %w", page.ID, err)
+	}
+	// q leaves the story, as on every demo page (its rows are not demo's).
+	if err := ss.R.Bind(ochazuke.Binding{Instance: page.ID, Mode: "normal", Keys: "q", Request: ochazuke.Request{Noun: "app", Verb: "quit"}}); err != nil {
+		return err
+	}
+	if !spec.Pending {
+		_ = cli.Settle(ss.R, nil) // a failed load is the page's to show
+	}
+	ss.pages[p.ID] = p
+	return nil
+}
+
+func cmpString(a, b string) string {
+	if a != "" {
+		return a
+	}
+	return b
+}
+
+// storyCommands is a CommandSource from a story file: its commands never
+// start (the page's Start hands out fake panes).
+type storyCommands struct{ spec CommandsSpec }
+
+func (s storyCommands) Commands() []cli.CommandEntry { return s.spec.Entries }
+
+func (s storyCommands) Help(_ context.Context, name string) (string, error) {
+	if text, ok := s.spec.Help[name]; ok {
+		return text, nil
+	}
+	return "", fmt.Errorf("no help for %s", name)
+}
+
+func (s storyCommands) Command(name string, args []string) (*exec.Cmd, error) {
+	return exec.Command(name, args...), nil
+}
+
+func (ss *Session) recordSpec(rs RecordSpec) ochazuke.RecordSpec {
+	fail := rs.FailWrites
+	return ochazuke.RecordSpec{
+		Title:  rs.Title,
+		Fields: rs.Fields,
+		Insert: rs.Insert,
+		Load:   func() (ochazuke.Record, error) { return ochazuke.Record(rs.Values), nil },
+		Save: func(w ochazuke.RecordWrite) ochazuke.Result {
+			if fail > 0 {
+				fail--
+				return ochazuke.Failed(errors.New("store unavailable"))
+			}
+			ss.Writes = append(ss.Writes, w.String())
+			return ochazuke.Done(nil)
+		},
+	}
+}
+
+// render draws a page: the main column, with the detail to its right when
+// the page has one.
 func (ss *Session) render(p *Page, width, height int) ochazuke.Block {
+	d := ss.details[p.ID]
+	if d == nil {
+		return ss.renderMain(p, width, height)
+	}
+	dw := p.Detail.Width
+	if dw <= 0 {
+		dw = width / 2
+	}
+	dw = min(max(1, dw), max(1, width-2))
+	main := ss.renderMain(p, width-dw-1, height)
+	item := ss.detailItem(p)
+	lines := make([]string, p.Detail.Lines)
+	for i := range lines {
+		lines[i] = fmt.Sprintf("%s line %d", item, i+1)
+	}
+	body, marker := d.Window(strings.Join(lines, "\n"), dw, max(1, height-1))
+	head := "detail"
+	if marker != "" {
+		head += " " + marker
+	}
+	left := lipgloss.NewStyle().Width(width - dw - 1).Render(main.Text)
+	right := lipgloss.NewStyle().Width(dw).Render(head + "\n" + body)
+	return main.WithText(lipgloss.JoinHorizontal(lipgloss.Top, left, " ", right))
+}
+
+// detailItem is the row the detail is about: the focused row when it is a
+// list's (a tree's rows are its list's), else the first list's selection.
+func (ss *Session) detailItem(p *Page) string {
+	r := ss.R
+	focus := r.BaseFocus()
+	if inst := r.Instances[focus]; inst != nil && r.List(inst.Parent) != nil {
+		return focus
+	}
+	for _, l := range p.Lists {
+		if sel, ok := ss.lists[l.ID].Selected(); ok {
+			return sel.ID
+		}
+	}
+	return ""
+}
+
+// renderMain draws the lists (stacked, or side by side in a row), then the
+// inputs, then the pane when attached.
+func (ss *Session) renderMain(p *Page, width, height int) ochazuke.Block {
 	order := p.Order
 	if len(order) == 0 {
 		for _, l := range p.Lists {
@@ -455,6 +686,13 @@ func (ss *Session) render(p *Page, width, height int) ochazuke.Block {
 		for _, t := range p.Trees {
 			order = append(order, t.ID)
 		}
+		for _, rs := range p.Records {
+			order = append(order, rs.ID)
+		}
+	}
+	recordSpec := map[string]RecordSpec{}
+	for _, rs := range p.Records {
+		recordSpec[rs.ID] = rs
 	}
 	treeSpec := map[string]TreeSpec{}
 	for _, t := range p.Trees {
@@ -488,6 +726,24 @@ func (ss *Session) render(p *Page, width, height int) ochazuke.Block {
 	if !p.NoHead {
 		head = 1
 	}
+	if p.Layout == "split" && len(order) >= 2 {
+		// The first two lists in Layout.SplitFocusBlock, the panel whose
+		// list holds the focus drawn focused.
+		l := ochazuke.Layout{Width: ss.M.Width, Height: ss.M.Height, Styles: ochazuke.NewStyles(*ss.M.Appearance)}
+		side := ochazuke.SplitNone
+		for _, at := range ss.R.Ancestry(ss.R.Focus) {
+			switch at {
+			case order[0]:
+				side = ochazuke.SplitLeft
+			case order[1]:
+				side = ochazuke.SplitRight
+			}
+		}
+		body := func(id string) ochazuke.Block {
+			return ochazuke.Text(ss.lists[id].View(max(1, width/2), max(1, height-2)))
+		}
+		return l.SplitFocusBlock(side, order[0], body(order[0]), order[1], body(order[1]))
+	}
 	if p.Layout == "row" && len(order) > 0 {
 		w := max(1, (width-(len(order)-1))/len(order))
 		var cols []string
@@ -511,6 +767,23 @@ func (ss *Session) render(p *Page, width, height int) ochazuke.Block {
 					h = max(1, tree.List().Len())
 				}
 				block := tree.Block(width, h)
+				if !p.NoHead {
+					block = block.Offset(0, 1).WithText(id + "\n" + block.Text)
+				}
+				parts = append(parts, block)
+				used += strings.Count(block.Text, "\n") + 1
+				continue
+			}
+			if ed, ok := ss.records[id]; ok {
+				if ed.Closed() {
+					continue
+				}
+				h := recordSpec[id].Height
+				if h <= 0 {
+					h = max(1, height-used-head)
+				}
+				ed.Styles = ochazuke.NewStyles(*ss.M.Appearance)
+				block := ed.Block(width, h)
 				if !p.NoHead {
 					block = block.Offset(0, 1).WithText(id + "\n" + block.Text)
 				}
@@ -544,7 +817,7 @@ func (ss *Session) render(p *Page, width, height int) ochazuke.Block {
 		}
 		state := "pane (detached)"
 		if t.Focused() {
-			state = "pane (attached: ctrl+a d detaches)"
+			state = "pane (attached: " + ss.R.TerminalLeader() + " d detaches)"
 		}
 		block := t.ViewBlock(width, h)
 		if !t.Focused() {
@@ -573,7 +846,8 @@ func stack(parts []ochazuke.Block) ochazuke.Block {
 // size sets the model's viewport so the story's area is what the chrome
 // mode shows: the whole shell (full), the page body alone (none: the
 // shell is made exactly as much larger as its chrome and the body is cut
-// out), or the ticker rows alone (ticker-only).
+// out), or the ticker alone (ticker-only: the rule line above the footer,
+// where the ticker rides, cut out of a full shell).
 func (ss *Session) size() {
 	w, h := ss.Story.Size()
 	switch ss.Story.Chrome {
@@ -606,7 +880,8 @@ func (ss *Session) Frame() string {
 			ss.cursor = &moved
 		}
 	case "ticker-only":
-		rows = ss.M.JobsTicker(w)
+		all := strings.Split(view.Content, "\n")
+		rows = []string{ansi.Cut(all[len(all)-3], 2, 2+w)}
 		ss.cursor = nil
 	default:
 		rows = strings.Split(view.Content, "\n")

@@ -1,0 +1,72 @@
+{
+  "name": "form: a modal editor opens over the focus in insert; esc twice leaves and gives the focus back",
+  "area": "forms",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "records": [
+      {
+        "id": "task",
+        "title": "Edit task",
+        "modal": true,
+        "insert": true,
+        "fields": [
+          {
+            "name": "title",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "status",
+            "type": "string",
+            "required": true,
+            "enum": [
+              "todo",
+              "doing",
+              "done"
+            ]
+          },
+          {
+            "name": "estimate",
+            "type": "integer"
+          },
+          {
+            "name": "notes",
+            "type": "string",
+            "multiline": true
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    {
+      "type": "x"
+    },
+    "esc",
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "modal": "task",
+      "mode": "insert",
+      "contains": [
+        "Edit task",
+        "title"
+      ]
+    },
+    {
+      "modal": "",
+      "focus": "a1",
+      "mode": "normal",
+      "writes": [
+        "write title=x"
+      ]
+    }
+  ]
+}

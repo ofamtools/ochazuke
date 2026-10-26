@@ -32,9 +32,20 @@ const Schema = 1
 // silently; only a failed exec or a stream with nothing decodable is an
 // error. It runs the verb once, keeps the rows as its cached state and
 // refreshes them when it chooses; an extension without a state verb keeps
-// per-list row sources. A boolean parameter fresh on the state verb, when
+// per-list row sources. The same rows print as tables for a person or an
+// agent (BIN NOUN VERB --format table|markdown|toon, see Formats), one per
+// noun in its columns. A boolean parameter fresh on the state verb, when
 // declared, asks the extension to bypass its own caches (an explicit
 // refresh).
+//
+// Pages are in registration order (tab order). A page the extension draws
+// in Go is {id, title}; a data page (DeclarePage) also carries its layout,
+// lists, and detail (CatalogPage), and a host builds it with MountPage,
+// with no Go code of the extension's: each list's rows come from its
+// source (or the state answer, filed by Row.Noun) and draw in the columns
+// their noun declares. A data page's widgets (pages[].widgets,
+// CatalogWidget: kv, status, table) are drawn above its lists by the
+// framework from their sources' JSON answers.
 type CatalogDoc struct {
 	Schema   int                `json:"schema"`
 	Name     string             `json:"name"`
@@ -50,8 +61,10 @@ type CatalogDoc struct {
 // modal-only noun from its data without knowing its name. Columns are the
 // table columns a list of the noun's rows draws (ochazuke.Noun.Columns,
 // declared with NounBuilder.Columns), in order; each row's cells (Row.Cells)
-// follow that order. A host passes them to ochazuke.Columns when it mounts
-// the noun's rows; a noun without them draws its labels.
+// follow that order. A host mounting a list of a noun's rows passes
+// CatalogDoc.ListColumns(noun) to ochazuke.Columns (it follows the noun's
+// row source to the noun its rows answer to); a noun without them draws its
+// labels.
 type CatalogNoun struct {
 	Name    string            `json:"name"`
 	Pin     string            `json:"pin,omitempty"`
@@ -59,7 +72,15 @@ type CatalogNoun struct {
 	Verbs   []CatalogVerb     `json:"verbs"`
 }
 
-// CatalogVerb is one ochazuke.Operation. Kind is "application" for a verb
+// CatalogVerb is one ochazuke.Operation. Params are the operation's
+// ochazuke.Parameter values as they are: type, required, description, the
+// static enum, the source (an operation, NOUN.VERB, whose result lists more
+// choices) and free. Free (omitted when false) says the choices are
+// suggestions and any value is accepted (mtm's --model); a parameter with an
+// enum or a source and no free accepts only its choices, so a host may
+// refuse other values before running the verb.
+//
+// Kind is "application" for a verb
 // whose handler may return pending work, "interaction" otherwise. Rows
 // names the noun whose rows the verb's result lists (ochazuke.Operation.Rows,
 // declared with NounBuilder.Rows), "" when the result is not rows. Quiet
@@ -78,10 +99,56 @@ type CatalogVerb struct {
 	Positional  []string                      `json:"positional,omitempty"`
 }
 
-// CatalogPage is a page in registration order.
-type CatalogPage struct {
-	ID    string `json:"id"`
-	Title string `json:"title"`
+// RowSourceVerb is the verb whose answer is a noun's own rows when none of
+// the noun's verbs declares Rows.
+const RowSourceVerb = "list"
+
+// RowSource is the verb whose JSON answer lists a noun's rows and the noun
+// those rows answer to: the first verb declaring Rows (CatalogVerb.Rows),
+// else a verb named list (RowSourceVerb), whose rows are the noun's own.
+// Both are "" when the noun has neither or is not in the catalog.
+func (d CatalogDoc) RowSource(noun string) (verb, rows string) {
+	n, ok := d.noun(noun)
+	if !ok {
+		return "", ""
+	}
+	for _, v := range n.Verbs {
+		if v.Rows != "" {
+			return v.Name, v.Rows
+		}
+	}
+	for _, v := range n.Verbs {
+		if v.Name == RowSourceVerb {
+			return v.Name, n.Name
+		}
+	}
+	return "", ""
+}
+
+// ListColumns is the table a host's list of noun's rows draws: the
+// declared columns (CatalogNoun.Columns) of the noun its row source's rows
+// answer to (RowSource), in order. A noun without a row source (a host
+// lists its verbs instead) or whose rows declare no columns gets none, a
+// plain list. Mount a list with ochazuke.Columns(doc.ListColumns(noun)...);
+// no columns leaves it plain, so the call needs no check.
+func (d CatalogDoc) ListColumns(noun string) []ochazuke.Column {
+	verb, rows := d.RowSource(noun)
+	if verb == "" {
+		return nil
+	}
+	if n, ok := d.noun(rows); ok {
+		return slices.Clone(n.Columns)
+	}
+	return nil
+}
+
+func (d CatalogDoc) noun(name string) (CatalogNoun, bool) {
+	for _, n := range d.Nouns {
+		if n.Name == name {
+			return n, true
+		}
+	}
+	return CatalogNoun{}, false
 }
 
 // Catalog describes r as indented JSON: every operation grouped by noun
@@ -144,9 +211,7 @@ func Catalog(r *ochazuke.Runtime, name, version string) ([]byte, error) {
 		}
 		return requestKey(a.Request) < requestKey(b.Request)
 	})
-	for _, page := range r.PageList() {
-		doc.Pages = append(doc.Pages, CatalogPage{ID: page.ID, Title: page.Title})
-	}
+	doc.Pages = declaredPages(r)
 	return json.MarshalIndent(doc, "", "  ")
 }
 

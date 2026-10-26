@@ -1,0 +1,29 @@
+{
+  "name": "a NoMarks list is read-only: space marks nothing and no hint offers it",
+  "area": "lists",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3,
+        "noMarks": true
+      }
+    ]
+  },
+  "script": [
+    "space",
+    "j",
+    "space"
+  ],
+  "expect": {
+    "focus": "a2",
+    "contains": [
+      "a1",
+      "a2"
+    ],
+    "lacks": [
+      "* a",
+      "list.mark"
+    ]
+  }
+}

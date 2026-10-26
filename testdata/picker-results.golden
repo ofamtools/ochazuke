@@ -1,0 +1,24 @@
+-- width 60 --
+Results 2/5
+  path                                size  modified
+  . (current directory)
+> cmd/                                      2026-10-03 14:05
+  go.mod                               412  2026-10-01 14:05
+  docs/a-rather-long-file-name-fo…     18K  2026-10-03 14:05
+  testdata/big.bin                    3.0M  2026-10-03 14:05
+-- width 34 --
+Results 2/5
+  path                        size
+  . (current directory)
+> cmd/
+  go.mod                       412
+  docs/a-rather-long-file…     18K
+  testdata/big.bin            3.0M
+-- width 20 --
+Results 2/5
+  path
+  . (current direct…
+> cmd/
+  go.mod
+  docs/a-rather-lon…
+  testdata/big.bin

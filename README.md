@@ -183,7 +183,7 @@ if _, err := tea.NewProgram(model).Run(); err != nil { // Model.View sets AltScr
 }
 ```
 
-Registration does not activate a page; `OpenPage` (or `page.open`) sets `Runtime.Page` and restores the page's frame. Switching reuses the page's exact frame and input instances: selection, focus, modes, drafts, undo history, and scrolling survive a round trip. Normal-mode `Ctrl-J/K` cycles `PageList()`, app's page children in registration order. Rows bound on a page instance or its noun apply while that page holds the focus. Page tabs have no numeric shortcuts; type `page ` in the palette to complete a page ID.
+Registration does not activate a page; `OpenPage` (or `page.open`) sets `Runtime.Page` and restores the page's frame. Switching reuses the page's exact frame and input instances: selection, focus, modes, drafts, undo history, and scrolling survive a round trip. Normal-mode `Ctrl-J/K` cycles `PageList()`, app's page children in registration order. Rows bound on a page instance or its noun apply while that page holds the focus. Page tabs have no numeric shortcuts; `'` (`page.pick`) opens a chooser of every page in registration order (type to filter by title, enter opens), or type `page ` in the palette to complete a page ID. When the tabs do not fit, the row windows around the active tab and shows `‹N` / `N›` for the pages hidden on each side.
 
 Ordinary modals block page switching. The palette closes before dispatching its line, so `open page alpha` works when no other modal is underneath it. Focusing an inactive page's input does not silently navigate; open that page first. Explicitly targeted editing operations may still update an offscreen input without moving focus.
 
@@ -200,7 +200,7 @@ Ordinary modals block page switching. The palette closes before dispatching its 
 ### Styling and modal behavior
 
 - Default styling uses restrained teal/green accents, rounded panels, heavier focused borders, page tabs, a mode badge, and a status line. The status line and modal hints are derived from binding rows (`BindingHints`), never written by hand; the picker's own help line is derived the same way.
-- Themes: `adaptive`, `dark`, `light`, `mono`. Density: `comfortable` or `compact`. Adaptive follows the terminal's detected background; `NO_COLOR` disables theme colors. Focus remains visible through border weight and a tab marker.
+- Themes: `adaptive`, `dark`, `light`, `mono`, plus the user's colour schemes (below). Density: `comfortable` or `compact`. Adaptive follows the terminal's detected background; `NO_COLOR` disables theme colors. Focus remains visible through border weight and a tab marker.
 - Modals are centered, content-sized panels, capped at 78 columns and about 75% of the terminal height. They leave a visible, subdued perimeter of the previous screen whenever the terminal can accommodate it. Nested modals retain the previous modal and page underneath.
 - Tiny terminals use reduced chrome rather than overflowing the screen. Bubbles viewports handle overflowing page and modal content; `PgUp/PgDn` scroll the active surface.
 - In an input modal, Escape returns insert mode to normal; another Escape closes the modal. A pending normal-mode operator/count is canceled before closing. "Escape pops a modal" is one row: the `modal` noun's normal-mode `esc`, which sits inside `app` and outside the editor and palette tables. `Ctrl-G` closes demo drafts directly. Palette and picker cancellation retain their own documented behavior.
@@ -214,7 +214,35 @@ Ordinary modals block page switching. The palette closes before dispatching its 
 /tmp/ochazuke appearance set --json '{"theme":"dark","density":"compact"}'
 ```
 
-Theme and density changes are atomic and apply immediately to all pages and modals. They are in-memory settings, not persisted preferences. `NewStyles(*model.Appearance)` supplies the same style vocabulary to application renderers.
+Theme and density changes are atomic and apply immediately to all pages and modals. `appearance set` changes them for the session. `NewStyles(*model.Appearance)` supplies the same style vocabulary to application renderers.
+
+#### Colour schemes
+
+The `theme` setting selects the colour scheme and persists in `settings.json`. The framework declares it (`Runtime.EnsureConfigSettings`, called by `Model.Init` and the CLI shell) unless the application declared a setting of that name, which it then applies itself. Its choices are the built-in themes followed by the schemes in `themes.json`, a file beside `settings.json` (`themes path` prints it):
+
+```json
+{
+  "kombu": {
+    "background": "dark",
+    "accent": "#C9A227",
+    "border": "#5C4A1E",
+    "error": {"light": "#B3261E", "dark": "#FF6F61"}
+  }
+}
+```
+
+| Role | Draws |
+|---|---|
+| `text` | Body text and the title |
+| `muted` | Hints, inactive tabs, the dimmed backdrop under a modal |
+| `accent` | The active tab, the badge, the subtitle, focused panel and modal borders |
+| `border` | Unfocused panel borders |
+| `surface` | The background of the active tab and the badge |
+| `error` | Errors. It must differ from `accent` and `muted`. |
+
+Each role is `"#RRGGBB"`, `"#RGB"`, an ANSI index `"0"` to `"255"` (for 16- and 256-colour terminals), or `{"light": ..., "dark": ...}`. `background` picks the side: `adaptive` (the default, the terminal's), `light` or `dark`. A role left out keeps the built-in palette's. The selected row stays reverse video in every scheme, so it reads without colour.
+
+A scheme that does not validate is skipped and reported as a notice. That covers an unknown role, a bad colour or background, a built-in's name, and an error colour equal to the accent or muted one. A `theme` value that names a skipped scheme reads its default, so the screen falls back to `adaptive`. After editing the file, `themes reload` reads it again and withdraws fixed notices. `Appearance.Accent` still goes on top of any scheme. `mono` and `NO_COLOR` draw no colour whatever the scheme. An application can supply its own schemes with `model.Appearance.Schemes = ochazuke.NewSchemeSet(...)` (`ParseSchemes` reads the file format).
 
 ### Keyboard guide
 
@@ -286,6 +314,7 @@ On terminals where Option does not send Meta sequences, configure Option-as-Meta
 - Tab completes the highlighted result into the picker's path input without confirming or closing it. Directories receive a trailing separator for continued browsing; the originating field stays unchanged until confirmation.
 - Escape cancels immediately without changing the originating input. `Alt-Up` browses the parent directory. Enter opens a directory/selects a file, and `Ctrl-S` confirms a path. Letters always edit the path; the picker never enters Vim normal mode.
 - Results recursively fuzzy-match the full relative path. Native Git supplies `.gitignore` semantics, including nested rules, negations, repository excludes, and global excludes; Git must be on `PATH`. Non-repositories use temporary Git metadata outside the browsed tree. `.git` and directory symlinks are never traversed.
+- Results are a table (path, size, modified) laid out by the same code as a list with columns (`table.go`): a header under the `Results n/m` line, the size right-aligned, `…` cuts, and modified then size dropping as the results pane narrows; the path takes the rest. Size and modification time are statted lazily: the index walk never stats; only the rows the table draws are looked up, off the loop in the picker's `stat` slot, cached per path (an LRU of 4096, cleared when a new index starts); a row draws blank cells until its stat lands, and the fixed column widths keep anything from moving. Directories show no size. The selected result keeps the picker's own `> ` marker and is the one reversed row.
 - The picker publishes immediate children first, then builds the recursive index in the background. Listed paths remain selectable and Tab-completable while indexing continues. Query edits search the available index; recursive results preserve the highlighted path when it still matches. Canceled or stale results cannot overwrite newer results. A recursive failure keeps usable shallow results and shows `Index incomplete`.
 - Leading `~` and `~/` resolve to the home directory. Explicitly opening a directory excluded by an ancestor repository's ignore rule makes that directory a fresh ignore boundary, so a home-repository rule such as `proj/` does not hide every project. Root-local, nested, and global ignore rules still apply.
 - `Ctrl-S` confirms the highlighted result; an empty query includes a current-directory entry for `any`/`dir`. The action `picker.choose {current:true}` explicitly chooses the root. Changing the originating text while the picker is open rejects selection instead of replacing stale offsets.
@@ -412,7 +441,7 @@ The instance starts in the `terminal` base mode, where the noun's `any` and `pas
 | `ctrl+a` then an unbound key | Sends the leader and the key, in order, in one `Send` and returns to terminal mode |
 | `ctrl+a` alone past `BindingTimeout` | Sends the leader alone; the next key starts fresh |
 
-Every row under the leader is a `Request`: `d` runs `terminal.detach`, the unbound-key row is `terminal.send` with `keys` joined from the prefix and the key (`Join("keys", SourcePrefix, SourceKey)`), the paste row is `terminal.paste {keys: prefix, text}`, which forwards the leader through `terminal.send` before it pastes. Rebinding the leader is binding another key to the same `Enter` row with that key as its `prefix` and `request`, in Go or in a binding file. `terminal.attach {id}` focuses a pane from anywhere on its page; `terminal.send {keys}` and `terminal.paste {text, keys?}` are the operations the rows run and are available to the CLI. `bindings list` in terminal mode prints the terminal table alone (the leader, `any`, `paste`); in `leader_pending` it prints the leader table, so the footer shows exactly what the pane will do with the next key. The leader row carries a `hint` (`Binding.Hinted`, config field `hint`), so the attached footer reads `ctrl+a leader: d detaches, ctrl+a sends ctrl+a` instead of its `mode.enter` operation; any row may set one, and `bindings list` returns it with the row. The full-project example's **Console** page is a terminal page added from config rows and the public API only.
+Every row under the leader is a `Request`: `d` runs `terminal.detach`, the unbound-key row is `terminal.send` with `keys` joined from the prefix and the key (`Join("keys", SourcePrefix, SourceKey)`), the paste row is `terminal.paste {keys: prefix, text}`, which forwards the leader through `terminal.send` before it pastes. The leader is a setting: `terminal-leader` (`TerminalLeaderSetting`, default `ctrl+a`, one `ctrl+` or `alt+` key) is declared by `Runtime.EnsureTerminalLeader()` unless the application declared it (an application with terminals calls it at setup; `cli.AddCommands` does; an application without terminals never shows the setting), read from `settings.json` and followed on every change (`settings set terminal-leader ctrl+b`, the settings editor, another process's write). Applying it (`Runtime.SetTerminalLeader(key)`, `Runtime.TerminalLeader()`) rewrites the rows, which stay data: every row on any noun that enters `leader_pending` on one key with that key as its prefix (the framework's and an application's own, such as a leader row with a richer hint) moves to the new key with its prefix and timeout request, the `leader_pending` row that sends the old leader now sends the new one on the new key, hints naming the old leader name the new one, and the application's other `leader_pending` rows (`d`, its own keys) stay. The old leader becomes ordinary input that reaches the pane. `AddTerminal` applies it too, so leader rows defined after `Init` move. `terminal.attach {id}` focuses a pane from anywhere on its page; `terminal.send {keys}` and `terminal.paste {text, keys?}` are the operations the rows run and are available to the CLI. `bindings list` in terminal mode prints the terminal table alone (the leader, `any`, `paste`); in `leader_pending` it prints the leader table, so the footer shows exactly what the pane will do with the next key. The leader row carries a `hint` (`Binding.Hinted`, config field `hint`), so the attached footer reads `ctrl+a leader: d detaches, ctrl+a sends ctrl+a` instead of its `mode.enter` operation; any row may set one, and `bindings list` returns it with the row. The full-project example's **Console** page is a terminal page added from config rows and the public API only.
 
 ### Input modes
 
@@ -481,7 +510,8 @@ result, err := r.Execute(ochazuke.Request{
 | `palette_results.go` | Palette-only JSON object-array results: inferred frequency-ranked columns, read-only table modal, empty results |
 | `params.go` | Parameter choices: `Choice`, `ParseChoices`, `Runtime.Choices`, Enum/Source validation at execution |
 | `picker.go`, `picker_search.go` | Contextual path selection, asynchronous fuzzy indexing, native Git ignores |
-| `pages.go` | Pages as instances of kind `page` (`AddPage`, `RegisterPage`), `Runtime.Page`, remembered focus and mode, navigation, and focus isolation |
+| `pages.go` | Pages as instances of kind `page` (`AddPage`, `RegisterPage`), `Runtime.Page`, remembered focus and mode, navigation, the page picker (`page.pick`), and focus isolation |
+| `chooser.go` | The chooser: a palette-shaped modal of rows (`OpenChooser`, `ChooserSpec`, `ChooserRow`), its ranking and its rows on the `chooser` noun |
 | `terminal.go` | The `terminal` noun: `AddTerminal`, `TerminalStream`, frames through the delivery contract, the leader contract, pane cursor |
 | `layout.go` | `Layout.Shell`, the one page chrome (title row with badge, tabs or subtitle, body, footer), panels, splits, sidebar |
 | `theme.go`, `surface.go` | Appearance operations, Lip Gloss styles, bounded modal composition on a Lip Gloss canvas |
@@ -716,6 +746,8 @@ Bindings are rows of mode tables. A row names the noun (or one instance) it belo
 
 `bindings list --all` returns every stored noun and instance binding row across every mode, including inactive contexts, guarded rows, and bindings shadowed at the current focus. Noun names, their mode tables, and instance IDs have deterministic order; row order within each table is preserved. The result is a JSON array in the format accepted by `bindings load`, not an operation catalog or a full application snapshot. Operations, guards, instances, mode definitions, and mode inheritance must already exist in the receiving application. Without `--all`, the operation still lists only the rows the current focus and mode answer to. The socket CLI accepts `ochazuke bindings list --all` or `--json '{"all":true}'`.
 
+`bindings stops` is the app-wide effective keyboard: one entry per focus stop, `{page, stop, focus, mode, bindings}`, the rows `bindings list` would print with the focus on that stop. The order is fixed: the pages in tab order, each page's stops in drawing order (as `}` walks them), the open modals' stops, then `app` in normal mode. Each stop is read at the focus a jump lands on and in the mode the focus would have there (the current mode at the current focus, else the stop's pinned mode, else normal); nothing moves. The two differ in kind: `--all` exports what is stored (every table, every mode, shadowed and inactive rows included, loadable with `bindings load`), `stops` reports what answers (after shadowing, guards and the modal boundary), per place.
+
 Patterns are `digit`, `alpha`, `printable`, `paste`, `any`, a class minus keys (`alpha-q`) or a set (`one-of:h j k l`). `from` fills an argument from the key (`key`, `digit`, `text`) or the mode payload (`count`, `line`, `steps`, `op`, `opcount`, `prefix`); several sources separated by spaces (`"keys": "prefix key"`, `Join` in Go) join their texts with a space. `when` names a guard (`input`, `no-input`, `multiline`, `count`, `no-count`, `self`, `shadow-idle`, `op:<key>`, or one the application registers with `DefineGuard`). A verb takes a guard too: `Define(noun).Verb(verb, h).When(guard)` (`Noun.Guards`, `Runtime.VerbGuard`, `Runtime.VerbShown`) keeps the palette from offering the verb while the guard is false at the focus and mode the palette opened over; a palette noun's default verb is never guarded (`RegisterNoun` refuses one). The palette lists the nouns of that focus stack first, the focused noun first. A row with the same noun, mode and keys or pattern replaces the default, a new one adds, `request: null` unbinds. Load a file of rows with `bindings.load {path}` or `Runtime.LoadBindings`; `Runtime.Bind` installs rows from Go and the `Define(...).Mode(...).Bind/Pattern/Unbind` builder writes the same tables.
 
 The resolver is one stack walk. For each level from the focused instance outward to `app` (the `modal` noun's level sits just inside `app` while a modal is open) and then the `editor` noun as the fallback every stack ends with:
@@ -864,6 +896,60 @@ Every executed request but `history.list` and `state.get` is appended to a 500-e
 Read it with `history.list {last}` (default 50) or `state get /history` (the last 50). The resolver records `key:<keys>`, a macro replay `macro:<register>`, the transport `cli`, everything else `api`; a caller sets its own with `Runtime.Sourced(source)` (outermost caller wins, so keys inside a replay stay `macro:a`).
 
 Dot-repeat rides on it. `.` on `app` in normal mode runs `history.repeat {steps}`: the last successful request whose operation is `Repeatable` runs again with its arguments kept, at the current focus (the recorded target is dropped unless the request came from the CLI and the instance still exists), with a count on `.` replacing the recorded `steps` (`3.`). A confirmed request repeats without asking again (`confirmed: true` is in the record). The repeatable operations are the editor's changes: `input.insert`, `input.delete`, `input.kill`, `input.paste`, `input.operator`, `input.replace`; motions, focus, pages, modals, lists and the history are not. An application marks its own with `Operation.Repeatable` on `Register`. Dot repeats one request, so after typing `hello` in insert mode `.` inserts the last `o`, not the whole insert; macros stay key-based.
+
+### Persisted history
+
+A TUI's history survives restarts. `Model.Init` calls `Runtime.EnsureHistory`, which reads `history.jsonl` from the application's state directory and keeps appending to it:
+
+| | |
+|---|---|
+| File | `$XDG_STATE_HOME/<app>/history.jsonl`, else `~/.local/state/<app>/history.jsonl` (`Config.StateDir` overrides the directory; `history path` prints it) |
+| Format | One entry per line, in the shape above, without the result value (`ok` and the error stay). |
+| Kept | Palette lines: entries with the source `palette`, the commands the user ran, failed ones included. Other operations that completed, such as `page.open`, `list.select`, `settings.set` and an application's verbs. |
+| Never kept | Text editing and its plumbing: every operation of the `input`, `editor`, `key`, `count`, `register`, `macro`, `yank-history`, `mode`, `palette` and `terminal` nouns, so nothing typed or pasted into an input, a prompt, the palette line or a terminal reaches the file. Failed operations that did not come from the palette. |
+| Arguments | An argument whose name contains `text`, `value`, `keys`, `password`, `secret` or `token` is left out of the line. An operation keeps them only when it sets `Operation.PersistArgs` (`NounBuilder.PersistArgs()`). `settings.set` does, so `set settings theme kombu` comes back whole. |
+| Bound | The `history-limit` setting (integer, default 500, `0` keeps nothing). The framework declares it when the history is persisted, unless the application declared a setting of that name. It also bounds the ring. |
+| Restore | The last `history-limit` entries go into the ring before the session's own, marked `restored: true`. Palette Up/Down recalls their lines; dot-repeat skips them. |
+| Writes | Each entry is marshalled on the loop and appended by one writer goroutine, never on the loop. When the file reaches twice the limit, and at load, it is rewritten with the last `history-limit` lines through a temp file and a rename. `Config.Flush` (the Model calls it on quit) drains the writer. |
+| Problems | Lines that do not parse are skipped. The file gets one notice and is rewritten without them. A write error is one notice, and later entries are not saved. |
+| Off | No file without a state directory: `Config.Disable()` (o-story sessions), a test binary, or an application that sets `Config.NoHistoryFile`. The CLI shell neither reads nor writes the file. |
+
+The in-memory ring still records everything for `history.list` and dot-repeat. Only the file is filtered. `NoHistoryFile` turns the file off entirely.
+
+## User actions (actions.json)
+
+`actions.json` sits beside `bindings.json` in the config directory (`actions path` prints it). Each entry adds a verb to a noun the application already defines; the verb runs an external command. It is an ordinary application verb (`noun.verb`), so a `bindings.json` row, the palette, the CLI (`APP NOUN VERB`), `?` help and the catalog all see it. `Model.Init`, `cli.Mount` and the CLI shell install the file before the user bindings, so a row can name an action.
+
+```json
+[
+  {"noun": "worktree", "verb": "open", "description": "Open in the editor",
+   "command": ["code", "--goto", "{{data.path}}"], "label": "{{label}}"},
+  {"noun": "worktree", "verb": "prune", "base": "wt", "target": "{{data}}",
+   "confirm": "Prune {{label}}?", "parameters": {"force": {"type": "boolean"}}, "timeout": "30s"},
+  {"noun": "app", "verb": "deploy", "command": ["deploy", "{{env}}"], "json": true,
+   "parameters": {"env": {"type": "string", "required": true, "enum": ["staging", "prod"]}},
+   "positional": ["env"], "confirm": "Deploy to {{env}}?"}
+]
+```
+
+| Field | Meaning |
+|---|---|
+| `noun`, `verb` | The existing noun and the new verb (one word). A verb the noun already has is refused |
+| `command` | An argv template, run directly, never through a shell. A string is split on spaces |
+| `base` | The JSON convention instead of `command`: `BASE NOUN VERB --json ARGS [--target TARGET]`, the shape every ochazuke CLI accepts. `call` ("noun verb") names another noun and verb, `target` is a template for `--target` (left out when it expands to nothing) |
+| `json` | With `command`: append `--json ARGS` |
+| `parameters`, `positional` | Parameters in the `Parameter` shape (`string`, `integer` or `boolean`; `required`, `enum`, `source`, `free`, `description`) and the order bare words fill them, so the palette, the CLI and help show them |
+| `confirm` | A confirm prompt, as `NounBuilder.Confirm` takes (`{{label}}`, `{{target}}`, `{{<arg>}}`) |
+| `label` | The job's label on the ticker and in `jobs list` (default the program's name) |
+| `dir`, `timeout`, `quiet`, `description` | Working directory, a duration after which the command is killed, keep the job off the ticker, the help line |
+
+Templates (`{{name}}`) in `command`, `base`, `target`, `label` and `dir` expand to `target` or `id` (the instance the verb runs on), `label` (its label, else its id), `noun`, `verb`, `data` (the instance's `Data`: a string as is, else JSON), `data.KEY` (one field of `Data` as a JSON object), `args` (the arguments as one JSON object) or a declared parameter. An unknown placeholder makes the entry malformed. An argv word that is one placeholder and expands to nothing is left out, so an optional parameter disappears instead of passing `""`. The command also gets `OCHAZUKE_ACTION`, `OCHAZUKE_TARGET`, `OCHAZUKE_LABEL` and `OCHAZUKE_ARGS` in its environment and no standard input.
+
+The work runs off the loop as a job (`Pending(...).Label(label)`): the ticker shows `noun.verb label running`, the context is cancelled when the owning instance closes, and the command's standard output is the job's result: one JSON document, a list when every line is JSON (JSON Lines), else the trimmed text. A non-zero exit fails the job with the last line of standard error. The CLI shell prints the result as it prints any job's.
+
+A malformed entry (an unknown field, noun or placeholder, a bad type, `command` and `base` together) is skipped and is a persistent notice (a CLI `warning:`); the rest still install. `actions reload` reads the file again (the last load's verbs go first) and reapplies the user bindings; `actions list` prints the installed entries.
+
+Security: commands come only from the user's own `actions.json` in the config directory. A catalog, a binding row, a socket call or an application's data can name an action's verb, as they can any verb, but never define or change what it runs: there is no operation that loads actions from another path, the catalog publishes the verb's parameters and never its command, and a sandbox (`Config.Disable`, o-story, a test binary) reads no file. Values reach the command as argv words, not shell text; if an entry runs `sh -c` itself, pass values as positional arguments (`"sh", "-c", "git log \"$1\"", "sh", "{{data.path}}"`) rather than inside the script.
 
 ## Live CLI control
 

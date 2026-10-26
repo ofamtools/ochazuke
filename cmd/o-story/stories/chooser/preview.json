@@ -1,0 +1,74 @@
+{
+  "name": "chooser: the preview column follows the highlight at a fixed width",
+  "area": "chooser",
+  "width": 100,
+  "height": 16,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "chooser": {
+      "kind": "context",
+      "title": "Context",
+      "rows": [
+        {
+          "id": "p1",
+          "label": "prompt: first prompt",
+          "preview": "first answer"
+        },
+        {
+          "id": "p2",
+          "label": "prompt: second prompt",
+          "preview": "second answer in a longer paragraph that wraps across the preview column's lines"
+        },
+        {
+          "id": "u1",
+          "label": "https://example.com"
+        }
+      ]
+    }
+  },
+  "script": [
+    "ctrl+n",
+    "ctrl+n",
+    "ctrl+p",
+    "ctrl+p"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "modal": "context",
+      "contains": [
+        "│ second answer"
+      ],
+      "lacks": [
+        "first answer"
+      ]
+    },
+    {
+      "after": 2,
+      "lacks": [
+        "first answer",
+        "second answer"
+      ]
+    },
+    {
+      "after": 3,
+      "contains": [
+        "│ second answer"
+      ]
+    },
+    {
+      "modal": "context",
+      "contains": [
+        "│ first answer"
+      ],
+      "lacks": [
+        "second answer"
+      ]
+    }
+  ]
+}

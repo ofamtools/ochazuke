@@ -267,6 +267,43 @@ func TestShellJSONArgumentsAndHistorySource(t *testing.T) {
 	}
 }
 
+// TestShellBareJSONAsksForJSONOutput: --json with no value (last, or before
+// another --flag) is the output format, which the shell always prints, so it
+// is accepted and ignored; --json '{...}' stays the arguments, directly and
+// through the oden mount.
+func TestShellBareJSONAsksForJSONOutput(t *testing.T) {
+	for _, args := range [][]string{
+		{"widget", "rename", "--target", "w1", "--name", "uno", "--json"},
+		{"widget", "rename", "--json", "--target", "w1", "--name", "uno"},
+		{"widget", "rename", "--json", "--target", "w1", "uno"},
+	} {
+		f := newFixture(t)
+		out, errOut, err := f.run("", args...)
+		if err != nil || len(f.calls) != 1 || f.calls[0].Args["name"] != "uno" || len(f.calls[0].Args) != 1 {
+			t.Fatalf("%s: %v %+v\n%s", strings.Join(args, " "), err, f.calls, errOut)
+		}
+		var got struct{ Target string }
+		if err := json.Unmarshal([]byte(out), &got); err != nil || got.Target != "w1" {
+			t.Fatalf("%s: stdout %q (%v)", strings.Join(args, " "), out, err)
+		}
+	}
+	f := newFixture(t)
+	if _, errOut, err := f.run("", "widget", "rename", "--json", `{"name":"dos"}`, "--target", "w2"); err != nil || len(f.calls) != 1 || f.calls[0].Args["name"] != "dos" {
+		t.Fatalf("--json arguments: %v %+v\n%s", err, f.calls, errOut)
+	}
+	if _, _, err := f.run("", "widget", "rename", "--target", "w1", "--json", "uno"); err == nil {
+		t.Fatal("--json WORD is still the arguments and must fail to parse")
+	}
+	f = newFixture(t)
+	var out bytes.Buffer
+	app := oden.New("tool", []string{"widget", "rename", "--target", "w1", "--name", "tres", "--json"},
+		oden.WithStdio(strings.NewReader(""), &out, io.Discard), oden.WithPath(t.TempDir()))
+	Mount(app, New(f.r, "tool", strings.NewReader(""), &out, io.Discard))
+	if err := app.Run(context.Background()); err != nil || len(f.calls) != 1 || f.calls[0].Args["name"] != "tres" {
+		t.Fatalf("mounted bare --json: %v %+v\n%s", err, f.calls, out.String())
+	}
+}
+
 func TestShellVerbPrefix(t *testing.T) {
 	f := newFixture(t)
 	if _, errOut, err := f.run("", "widget", "sh", "--target", "w1"); err != nil || len(f.calls) != 1 {
@@ -306,7 +343,8 @@ func TestShellSettlesPendingWork(t *testing.T) {
 	if err := sh.Run(context.Background(), []string{"widget", "refresh", "--target", "w1"}); err != nil {
 		t.Fatalf("refresh: %v\n%s", err, errOut.String())
 	}
-	if !strings.Contains(errOut.String(), "job #1 widget.refresh done") || settles < 2 {
+	// widget.refresh is quiet: a success prints no job line.
+	if errOut.Len() != 0 || settles < 2 {
 		t.Fatalf("stderr %q, settles %d", errOut.String(), settles)
 	}
 	if jobs := f.r.Jobs(); len(jobs) != 1 || jobs[0].State != ochazuke.JobDone {
@@ -321,6 +359,66 @@ func TestShellSettlesPendingWork(t *testing.T) {
 	err := sh.Run(context.Background(), []string{"widget", "break", "--target", "w1"})
 	if err == nil || err.Error() != "disk on fire" || oden.ExitCode(err) != 1 || out.Len() != 0 || !strings.Contains(errOut.String(), "job #2 widget.break failed") {
 		t.Fatalf("failed job: %v (exit %d), stdout %q, stderr %q", err, oden.ExitCode(err), out.String(), errOut.String())
+	}
+}
+
+// TestShellJobLinesFollowQuiet: the shell reports a job's end on stderr as
+// the jobs ticker would show it: a quiet verb's success prints nothing, any
+// other job prints its line, and a failure prints even for a quiet verb.
+func TestShellJobLinesFollowQuiet(t *testing.T) {
+	f := newFixture(t)
+	f.r.Define("widget").
+		Verb("sync", func(ochazuke.Ctx) ochazuke.Result {
+			return ochazuke.Pending(func(context.Context) (any, error) { return "synced", nil })
+		}, "Sync a widget off the loop").
+		Verb("probe", func(ochazuke.Ctx) ochazuke.Result {
+			return ochazuke.Pending(func(context.Context) (any, error) { return nil, errors.New("probe lost") })
+		}, "Probe a widget, quietly").Quiet()
+	for _, c := range []struct {
+		verb, stderr string
+		fails        bool
+	}{
+		{"refresh", "", false},
+		{"sync", "job #2 widget.sync done\n", false},
+		{"break", "job #3 widget.break failed\n", true},
+		{"probe", "job #4 widget.probe failed\n", true},
+	} {
+		_, errOut, err := f.run("", "widget", c.verb, "--target", "w1")
+		if (err != nil) != c.fails || errOut != c.stderr {
+			t.Errorf("%s: err %v, stderr %q, want %q", c.verb, err, errOut, c.stderr)
+		}
+	}
+}
+
+// TestShellKeepsTheHandlersKeyOrder: a verb's result prints its keys in the
+// order its value marshals in (a struct's field order, not sorted), whether
+// the verb answers at once (Done, through HandleCall's copy) or off the
+// loop (Pending, the delivered value), and so does each element of a list.
+func TestShellKeepsTheHandlersKeyOrder(t *testing.T) {
+	type report struct {
+		Zeta  string `json:"zeta"`
+		Alpha int    `json:"alpha"`
+		Mid   bool   `json:"mid"`
+	}
+	value := report{Zeta: "z", Alpha: 1, Mid: true}
+	f := newFixture(t)
+	f.r.Define("widget").
+		Verb("report", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(value) }, "Report at once").
+		Verb("later", func(ochazuke.Ctx) ochazuke.Result {
+			return ochazuke.Pending(func(context.Context) (any, error) { return value, nil })
+		}, "Report off the loop").
+		Verb("reports", func(ochazuke.Ctx) ochazuke.Result {
+			return ochazuke.Done([]report{value, value})
+		}, "Report a list at once")
+	want := "{\n  \"zeta\": \"z\",\n  \"alpha\": 1,\n  \"mid\": true\n}\n"
+	for _, verb := range []string{"report", "later"} {
+		if out, errOut, err := f.run("", "widget", verb, "--target", "w1"); err != nil || out != want {
+			t.Errorf("%s: %v\n%s\nstdout %q, want %q", verb, err, errOut, out, want)
+		}
+	}
+	line := `{"zeta":"z","alpha":1,"mid":true}`
+	if out, _, err := f.run("", "widget", "reports", "--target", "w1"); err != nil || out != "[\n  "+line+",\n  "+line+"\n]\n" {
+		t.Errorf("reports: %v, stdout %q", err, out)
 	}
 }
 
@@ -597,5 +695,122 @@ func TestUsagePointsAtHelp(t *testing.T) {
 	want := "(tool help lists the commands; tool NOUN --help lists a noun's verbs and parameters)"
 	if err == nil || !strings.HasSuffix(err.Error(), "\n"+want) || strings.Contains(err.Error(), "operations list") {
 		t.Fatalf("usage: %v", err)
+	}
+}
+
+// The user bindings file applies to the CLI: bindings list shows the
+// override, and a skipped row is a warning on stderr, not a failure.
+func TestShellAppliesTheUserBindingsFile(t *testing.T) {
+	f := newFixture(t)
+	dir := t.TempDir()
+	f.r.Config().Dir = dir
+	file := `[{"noun": "widget", "mode": "normal", "keys": "ctrl+t", "request": {"noun": "widget", "verb": "show"}},
+		{"noun": "widget", "mode": "normal", "keys": "ctrl+u", "request": {"noun": "widget", "verb": "nope"}}]`
+	if err := os.WriteFile(filepath.Join(dir, "bindings.json"), []byte(file), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	out, errOut, err := f.run("", "bindings", "list", "--all")
+	if err != nil || !strings.Contains(out, `"ctrl+t"`) || !strings.Contains(errOut, `warning: bindings.json: row 2 ctrl+u: unknown operation "widget.nope" (skipped)`) {
+		t.Fatalf("out %s\nstderr %s\nerr %v", out, errOut, err)
+	}
+	out, _, err = f.run("", "bindings", "path")
+	if err != nil || !strings.Contains(out, filepath.Join(dir, "bindings.json")) {
+		t.Fatalf("path %s %v", out, err)
+	}
+}
+
+// settings set NAME VALUE takes bare words, validates and writes the file.
+func TestShellSetsASetting(t *testing.T) {
+	f := newFixture(t)
+	dir := t.TempDir()
+	f.r.Config().Dir = dir
+	if err := f.r.DeclareSetting(ochazuke.Setting{Name: "scrolloff", Type: ochazuke.SettingInteger, Default: 2, Description: "Rows around the focus"}); err != nil {
+		t.Fatal(err)
+	}
+	out, _, err := f.run("", "settings", "set", "scrolloff", "5")
+	if err != nil || !strings.Contains(out, `"value": 5`) {
+		t.Fatalf("set: %s %v", out, err)
+	}
+	if _, _, err := f.run("", "settings", "set", "scrolloff", "many"); err == nil || !strings.Contains(err.Error(), "must be an integer") {
+		t.Fatalf("bad value: %v", err)
+	}
+	if _, _, err := f.run("", "settings", "get", "nope"); err == nil {
+		t.Fatal("got an unknown setting")
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "settings.json"))
+	if err != nil || !strings.Contains(string(data), `"scrolloff": 5`) {
+		t.Fatalf("file %s %v", data, err)
+	}
+}
+
+// A resolver maps a foreign id to its row; Reveal still loads the rows a
+// resolver cannot find yet, and the confirm names the resolved row.
+func TestShellResolveTargetComposesWithReveal(t *testing.T) {
+	f := newFixture(t)
+	var out, errOut bytes.Buffer
+	sh := New(f.r, "tool", strings.NewReader(""), &out, &errOut)
+	f.r.ResolveTarget = func(id string) (string, error) {
+		if !strings.HasPrefix(id, "ext:") {
+			return "", nil
+		}
+		row := "w" + strings.TrimPrefix(id, "ext:")
+		if f.r.Instances[row] == nil {
+			return "", fmt.Errorf("no row holds %s", id)
+		}
+		return row, nil
+	}
+	revealed := 0
+	if err := sh.Run(context.Background(), []string{"widget", "show", "--target", "ext:2"}); err != nil || f.calls[0].Target != "w2" {
+		t.Fatalf("resolved target: %v %+v", err, f.calls)
+	}
+	sh.Reveal = func(id string) error {
+		revealed++
+		return f.r.List("widgets/list").SetItems([]ochazuke.ListItem{{ID: "w1", Noun: "widget"}, {ID: "w7", Label: "seventh", Noun: "widget"}})
+	}
+	if err := sh.Run(context.Background(), []string{"widget", "show", "--target", "ext:1"}); err != nil || f.calls[1].Target != "w1" || revealed != 0 {
+		t.Fatalf("a resolvable target skips Reveal: %v %+v, revealed %d", err, f.calls, revealed)
+	}
+	if err := sh.Run(context.Background(), []string{"widget", "remove", "--target", "ext:7", "--yes"}); err != nil || f.calls[2].Target != "w7" || revealed != 1 {
+		t.Fatalf("Reveal then the resolver: %v %+v, revealed %d", err, f.calls, revealed)
+	}
+	sh.Reveal = nil
+	if err := sh.Run(context.Background(), []string{"widget", "show", "--target", "ext:9"}); err == nil || !strings.Contains(err.Error(), `target "ext:9": no row holds ext:9`) {
+		t.Fatalf("a resolver error is the refusal: %v", err)
+	}
+	if err := sh.Run(context.Background(), []string{"widget", "show", "--target", "nope"}); err == nil || !strings.Contains(err.Error(), `unknown target "nope"`) {
+		t.Fatalf("an unresolved target: %v", err)
+	}
+}
+
+// The user's actions.json verbs are commands: Mount installs them before
+// oden sees the registry, so help lists them and dispatch runs them; the
+// command's JSON output is the printed result and a bad entry is one
+// warning.
+func TestMountRunsUserActions(t *testing.T) {
+	f := newFixture(t)
+	dir := t.TempDir()
+	f.r.Config().Dir = dir
+	file := `[{"noun": "widget", "verb": "open", "description": "Open a widget with echo", "command": ["echo", "{\"opened\": \"{{target}}\", \"mode\": \"{{mode}}\"}"], "parameters": {"mode": {"type": "string", "enum": ["ro", "rw"]}}},
+		{"noun": "nope", "verb": "x", "command": "true"}]`
+	if err := os.WriteFile(filepath.Join(dir, "actions.json"), []byte(file), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	run := func(args ...string) (string, string) {
+		t.Helper()
+		var out, errOut bytes.Buffer
+		app := oden.New("tool", args, oden.WithBuiltins(), oden.WithStdio(strings.NewReader(""), &out, &errOut), oden.WithPath(t.TempDir()))
+		Mount(app, New(f.r, "tool", strings.NewReader(""), &out, &errOut))
+		if err := app.Run(context.Background()); err != nil {
+			t.Fatalf("%v: %v\n%s", args, err, errOut.String())
+		}
+		return out.String(), errOut.String()
+	}
+	help, errOut := run("widget", "--help")
+	if !strings.Contains(help, "Open a widget with echo") || !strings.Contains(errOut, `warning: actions.json: action 2 (nope.x): unknown noun "nope"`) {
+		t.Fatalf("help %s\nstderr %s", help, errOut)
+	}
+	out, errOut := run("widget", "open", "--target", "w1", "--mode", "rw")
+	if !strings.Contains(out, `"opened": "w1"`) || !strings.Contains(out, `"mode": "rw"`) || strings.Count(errOut, "warning:") != 0 {
+		t.Fatalf("out %s\nstderr %s", out, errOut)
 	}
 }

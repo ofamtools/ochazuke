@@ -389,3 +389,97 @@ func TestListViewKeepsTwoRowsBelowTheSelection(t *testing.T) {
 		t.Fatalf("last window row = %q, want Row 12", got)
 	}
 }
+
+// Focusing a row instance selects it in its list, however the focus got
+// there (focus.set, RetargetFocus, a FocusOnClose landing): the highlight,
+// Selected and the keys that answer agree.
+func TestFocusingARowSelectsIt(t *testing.T) {
+	r := NewRuntime()
+	r.Define("a")
+	if _, err := r.AddPage("page", "Page", func(*Runtime, int, int) Block { return Text("") }); err != nil {
+		t.Fatal(err)
+	}
+	var items []ListItem
+	for _, id := range []string{"r1", "r2", "r3", "r4"} {
+		items = append(items, ListItem{ID: id, Label: "row " + id, Noun: "a"})
+	}
+	list, err := r.AddList("rows", items, Parent("page"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	selected := func(want string) {
+		t.Helper()
+		if got, _ := list.Selected(); got.ID != want || r.Focus != want {
+			t.Fatalf("selected %q, focus %q, want %q", got.ID, r.Focus, want)
+		}
+		if got := highlightedRows(list.View(30, 4)); !reflect.DeepEqual(got, []string{"row " + want}) {
+			t.Fatalf("highlighted %q, want row %s", got, want)
+		}
+	}
+	if err := r.SetFocus("r3"); err != nil {
+		t.Fatal(err)
+	}
+	selected("r3")
+	if _, err := r.Execute(Request{Noun: "focus", Verb: "set", Args: Arguments{"id": "r2"}}); err != nil {
+		t.Fatal(err)
+	}
+	selected("r2")
+	r.RetargetFocus(func(id string) bool { return id == "r2" }, "r4")
+	selected("r4")
+	// A modal that lands back on a row when it closes selects that row.
+	r.Instance("sheet", Parent("page"), FocusOnClose("r1"))
+	if err := r.SetFocus("sheet"); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.RemoveInstance("sheet"); err != nil {
+		t.Fatal(err)
+	}
+	selected("r1")
+}
+
+// A list (or tree) added with NoMarks is a read-only view: space does not
+// mark its rows (list.mark is guarded off, so the row is skipped and left
+// off the hints), list.mark refuses, and a plain list still marks.
+func TestNoMarksListTakesNoMarks(t *testing.T) {
+	r := NewRuntime()
+	r.Define("a")
+	if _, err := r.AddPage("page", "Page", func(*Runtime, int, int) Block { return Text("") }); err != nil {
+		t.Fatal(err)
+	}
+	view, err := r.AddList("view", []ListItem{{ID: "v1", Label: "v", Noun: "a"}}, Parent("page"), NoMarks())
+	if err != nil {
+		t.Fatal(err)
+	}
+	marks, err := r.AddList("marks", []ListItem{{ID: "m1", Label: "m", Noun: "a"}}, Parent("page"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tree, err := r.AddTree("tree", []TreeNode{{ID: "t1", Label: "t"}}, Parent("page"), NoMarks())
+	if err != nil {
+		t.Fatal(err)
+	}
+	answers := func(focus string) bool {
+		return slices.ContainsFunc(r.ListBindings(focus), func(b Binding) bool { return b.Keys == "space" })
+	}
+	for _, tc := range []struct {
+		focus string
+		list  *List
+		marks bool
+	}{{"v1", view, false}, {"m1", marks, true}, {tree.FocusTarget(), tree.List(), false}} {
+		if err := r.SetFocus(tc.focus); err != nil {
+			t.Fatal(err)
+		}
+		if answers(tc.focus) != tc.marks {
+			t.Fatalf("%s: space listed = %v, want %v", tc.focus, !tc.marks, tc.marks)
+		}
+		if _, err := r.Dispatch(MacroKey{Key: "space"}); err != nil && tc.marks {
+			t.Fatalf("%s: space: %v", tc.focus, err)
+		}
+		if got := len(tc.list.Marked()) > 0; got != tc.marks {
+			t.Fatalf("%s: marked = %v, want %v", tc.focus, got, tc.marks)
+		}
+	}
+	if _, err := r.Execute(Request{Noun: "list", Verb: "mark", Args: Arguments{"id": "view", "item": "v1"}}); err == nil {
+		t.Fatal("list.mark marked a NoMarks list")
+	}
+}

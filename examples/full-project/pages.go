@@ -45,6 +45,7 @@ func registerPages(m *ochazuke.Model, specs []PageConfig) error {
 				return fmt.Errorf("terminal page %q requires a fresh pane id as focus and no inputs", spec.ID)
 			}
 			var err error
+			m.Runtime.EnsureTerminalLeader()
 			term, err = m.Runtime.AddTerminal(spec.Focus, newEchoStream(), ochazuke.Parent(spec.ID))
 			if err != nil {
 				return fmt.Errorf("page %q: %w", spec.ID, err)

@@ -38,7 +38,9 @@ type List struct {
 	offset   int
 	marks    map[string]bool
 	noSpill  bool     // NoSpill: list.move clamps at the edges instead of spilling
+	noMarks  bool     // NoMarks: a read-only view, its rows take no marks
 	columns  []Column // Columns: a table; none draws the labels
+	widest   []int    // a table's widest cell per column over the items (cellWidths); nil after SetItems
 }
 
 // NewList is AddList for callers that hold the runtime as a value.
@@ -64,7 +66,7 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 	if r.Instances[spec.parent] == nil {
 		return nil, fmt.Errorf("unknown parent %q", spec.parent)
 	}
-	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}, noSpill: spec.noSpill, columns: slices.Clone(spec.columns)}
+	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}, noSpill: spec.noSpill, noMarks: spec.noMarks, columns: slices.Clone(spec.columns)}
 	r.Instance(id, Parent(spec.parent), Kind(spec.noun), FocusOnClose(spec.closeFocus))
 	r.Instances[id].Component = list
 	if err := list.SetItems(items); err != nil {
@@ -94,13 +96,15 @@ func (l *List) SetItems(items []ListItem) error {
 		ids[item.ID] = true
 	}
 	gone := map[string]bool{}
+	var drop []string
 	for _, old := range l.items {
 		if !ids[old.ID] {
 			gone[old.ID] = true
 			delete(l.marks, old.ID)
-			_ = l.r.RemoveInstance(old.ID)
+			drop = append(drop, old.ID)
 		}
 	}
+	l.r.removeInstances(drop)
 	for _, item := range items {
 		l.r.rows[item.ID] = l.id
 		inst := l.r.Instances[item.ID]
@@ -117,7 +121,7 @@ func (l *List) SetItems(items []ListItem) error {
 			break
 		}
 	}
-	l.items, l.selected = slices.Clone(items), selected
+	l.items, l.selected, l.widest = slices.Clone(items), selected, nil
 	l.offset = min(l.offset, max(0, len(items)-1))
 	l.syncFocus(previous, gone)
 	return nil
@@ -198,8 +202,21 @@ func (l *List) Select(id string) error {
 	return fmt.Errorf("unknown list item %q", id)
 }
 
-// ToggleMark marks or unmarks a row for fan-out verbs.
+// selectID selects the row with id without touching the focus: the
+// runtime calls it when the focus lands on the row. An unknown id is
+// ignored.
+func (l *List) selectID(id string) {
+	if i := slices.IndexFunc(l.items, func(item ListItem) bool { return item.ID == id }); i >= 0 {
+		l.selected = i
+	}
+}
+
+// ToggleMark marks or unmarks a row for fan-out verbs; a list added with
+// NoMarks refuses.
 func (l *List) ToggleMark(id string) error {
+	if l.noMarks {
+		return fmt.Errorf("list %s takes no marks", l.id)
+	}
 	if !slices.ContainsFunc(l.items, func(item ListItem) bool { return item.ID == id }) {
 		return fmt.Errorf("unknown list item %q", id)
 	}
@@ -279,7 +296,7 @@ func (l *List) View(width, height int) string {
 		return l.tableView(width, height)
 	}
 	if len(l.items) == 0 {
-		return l.r.PlacedAt(l.id, strings.Join(layoutRows("(empty list)", width, height), "\n"), 0, height)
+		return l.r.PlacedAt(l.id, strings.Join(layoutRows(l.emptyLine(), width, height), "\n"), 0, height)
 	}
 	visible := height
 	if len(l.items) > height && height > 1 {
@@ -320,6 +337,16 @@ func (l *List) View(width, height int) string {
 	return l.r.PlacedAt(l.id, strings.Join(layoutRows(strings.Join(rows, "\n"), width, height), "\n"), focus, focusHeight)
 }
 
+// emptyLine is what an empty list draws: "(empty list)", in reverse video
+// while the list has the focus, so a spill into it shows where the next key
+// lands (one thing stands out, UX review 2 F5).
+func (l *List) emptyLine() string {
+	if l.Focused() {
+		return lipgloss.NewStyle().Reverse(true).Render("(empty list)")
+	}
+	return "(empty list)"
+}
+
 // scrolloff is the margin the list keeps around its selected row inside
 // its own window: the open page's (Page.Scrolloff), else the default 2.
 func (l *List) scrolloff() int {
@@ -338,12 +365,28 @@ func windowOffset(offset, selected, visible, total, margin int) int {
 }
 
 func registerLists(r *Runtime) {
+	// j/k take a count (3j): the list's count_pending extends its normal
+	// table, so these rows answer with the count in the payload.
+	move := func(delta int) Binding {
+		return Do("list.move", Arguments{"delta": delta}).FromPayload("steps", SourceCount)
+	}
 	r.Define("list").Focusable().Mode("normal").
-		Bind("j", Do("list.move", Arguments{"delta": 1})).
-		Bind("down", Do("list.move", Arguments{"delta": 1})).
-		Bind("k", Do("list.move", Arguments{"delta": -1})).
-		Bind("up", Do("list.move", Arguments{"delta": -1})).
-		Bind("space", Do("list.mark"))
+		Bind("j", move(1)).
+		Bind("down", move(1)).
+		Bind("k", move(-1)).
+		Bind("up", move(-1)).
+		Bind("space", Do("list.mark")).
+		Mode("count_pending").Extends("normal")
+	// list.mark is guarded off on a list added with NoMarks, so space does
+	// not answer there and no hint offers it.
+	r.DefineGuard("list-marks", func(r *Runtime, ev KeyEvent) bool {
+		for _, id := range r.Ancestry(ev.Focus) {
+			if list := r.List(id); list != nil {
+				return !list.noMarks
+			}
+		}
+		return true
+	})
 	resolve := func(c Context, args Arguments) (*List, error) {
 		if id := StringArg(args, "id", ""); id != "" {
 			if list := r.List(id); list != nil {
@@ -378,8 +421,15 @@ func registerLists(r *Runtime) {
 		run               func(*List, Context, Arguments) (any, error)
 	}{
 		{"focus", "Focus a list and its selected row", map[string]Parameter{"id": {Type: "string", Required: true}}, func(l *List, _ Context, _ Arguments) (any, error) { return l.Snapshot(), l.Focus() }},
-		{"move", "Move the selection; past the edge, on to the next stop on the page", map[string]Parameter{"id": {Type: "string"}, "delta": {Type: "integer", Required: true}}, func(l *List, _ Context, a Arguments) (any, error) {
-			if delta := IntArg(a, "delta", 0); !l.spill(delta) {
+		{"move", "Move the selection; past the edge, on to the next stop on the page", map[string]Parameter{"id": {Type: "string"}, "delta": {Type: "integer", Required: true}, "steps": {Type: "integer", Description: "Repeat count (3j); stops at the list's edge, and spills as one move only from the edge"}}, func(l *List, _ Context, a Arguments) (any, error) {
+			delta, steps := IntArg(a, "delta", 0), max(1, IntArg(a, "steps", 1))
+			if steps > 1 && l.selected >= 0 {
+				if to := min(max(l.selected+delta*steps, 0), len(l.items)-1); to != l.selected {
+					l.Move(to - l.selected)
+					return l.Snapshot(), nil
+				}
+			}
+			if !l.spill(delta) {
 				l.Move(delta)
 			}
 			return l.Snapshot(), nil
@@ -430,4 +480,8 @@ func registerLists(r *Runtime) {
 			return spec.run(list, c, args)
 		}})
 	}
+	if r.Nouns["list"].Guards == nil {
+		r.Nouns["list"].Guards = map[string]string{}
+	}
+	r.Nouns["list"].Guards["mark"] = "list-marks"
 }

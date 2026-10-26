@@ -71,3 +71,28 @@ func TestNounColumnsAreDeclaredData(t *testing.T) {
 		t.Fatalf("noun columns %v", got)
 	}
 }
+
+// TestTableText: the plain-text layout cuts and drops by Priority at a
+// width, and at width 0 keeps every column at its natural width, a fixed
+// Width included; control characters become spaces.
+func TestTableText(t *testing.T) {
+	cols := []Column{{Title: "name"}, {Title: "size", Align: AlignRight, Priority: 2}, {Title: "path", Width: 6, Priority: 1}}
+	rows := [][]string{{"alpha", "12", "/very/long/path"}, {"b\tc", "3456"}}
+	got := strings.Join(TableText(cols, rows, 0), "\n")
+	want := "name   size  path\n" +
+		"alpha    12  /very/long/path\n" +
+		"b c    3456"
+	if got != want {
+		t.Fatalf("width 0:\n%s\nwant:\n%s", got, want)
+	}
+	got = strings.Join(TableText(cols, rows, 14), "\n")
+	want = "name   path\n" +
+		"alpha  /very…\n" +
+		"b c"
+	if got != want {
+		t.Fatalf("width 14:\n%s\nwant:\n%s", got, want)
+	}
+	if TableText(nil, rows, 0) != nil {
+		t.Fatal("no columns should be no lines")
+	}
+}

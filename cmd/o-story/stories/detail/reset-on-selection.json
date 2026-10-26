@@ -1,0 +1,19 @@
+{
+  "name": "detail: a new selection starts its detail at the top",
+  "area": "detail",
+  "width": 60,
+  "height": 12,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [{"id": "a", "rows": 4}],
+    "detail": {"lines": 50}
+  },
+  "script": ["5", "J", "j", "k", "j", "J"],
+  "expect": [
+    {"after": 2, "contains": ["detail 6–16 / 50"]},
+    {"after": 3, "focus": "a2", "contains": ["detail 1–11 / 50", "a2 line 1"]},
+    {"after": 4, "focus": "a1", "contains": ["detail 1–11 / 50", "a1 line 1"]},
+    {"focus": "a2", "contains": ["detail 2–12 / 50", "a2 line 2"]}
+  ]
+}

@@ -17,6 +17,7 @@ package cli
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -33,7 +34,7 @@ import (
 )
 
 // Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE]
-// [--yes]: one registered operation in this process through the runtime's
+// [--format F] [--yes]: one registered operation in this process through the runtime's
 // CLI entry (Runtime.HandleCall, recorded with the history source "cli"),
 // the same registry the keys and the palette dispatch into. A command's
 // words are the operation key, its --ARG flags are typed by the operation's
@@ -41,7 +42,8 @@ import (
 // unique prefix of one of the noun's verbs (a noun's prefix is resolved by
 // the oden shell, see Mount). Bare words after NOUN VERB (not starting with
 // --) are positional arguments: they fill the parameters no --ARG or --json
-// set, in Operation.ParameterOrder (required first, then by name), typed
+// set (a bare --json, with no value after it, asks for the JSON output the
+// shell always prints and is accepted and ignored), in Operation.ParameterOrder (required first, then by name), typed
 // like flags; more words than parameters is an error naming them. Named
 // flags win wherever they appear.
 //
@@ -50,7 +52,12 @@ import (
 // loop would), so an application verb's job finishes before the process
 // exits, and prints the job's delivered value instead of its ticket (the
 // values in job order when the command started several). A failed job is
-// the command's error (a non-zero exit) and nothing is printed. A confirm modal the operation opened is answered: --yes runs
+// the command's error (a non-zero exit) and nothing is printed. Each job
+// the command started is reported on Stderr as "job #N noun.verb STATE"
+// ("job #N noun.verb LABEL STATE" for a labelled job),
+// except a job of a quiet verb (Operation.Quiet, as the jobs ticker hides
+// it) that did not fail: a failure always prints. A confirm modal the
+// operation opened is answered: --yes runs
 // confirm.accept, otherwise the prompt is printed and a line read from
 // Stdin (y or yes accepts; anything else, or end of input, declines with
 // modal.pop and a non-zero exit). Any other modal (a prompt, the palette)
@@ -62,6 +69,18 @@ import (
 // instance of the noun when exactly one exists. With several the command
 // runs as given and, if it fails, the error lists them to pass as --target;
 // with none it runs as given.
+//
+// The result prints as JSON unless --format names another of Formats
+// (json, table, markdown, toon; the grammars are on Formats). A tabular
+// result (an array of objects: a list verb's rows, a state verb's Lines of
+// Row, bindings list) prints one table per noun, in the columns the noun
+// declares over the rows' cells, else the records' fields; table cuts to
+// the terminal's width and drops columns by Priority only when Stdout is a
+// terminal (Width), markdown and toon never cut. A result that is not
+// tabular prints as JSON with a note on Stderr. --format combines with
+// --json '{...}' (the arguments); a bare --json asks for json and refuses
+// another --format; an operation declaring its own format parameter takes
+// --format as that argument and prints JSON.
 //
 // Errors are returned for oden.Report: every failure is exit status 1
 // (oden.ExitCode of a plain error).
@@ -78,7 +97,11 @@ type Shell struct {
 	Prepare func(ctx context.Context) error
 	// Reveal, when set, makes an instance exist for a --target no list
 	// shows yet (the application loads the rows that hold it); the shell
-	// settles what it scheduled and resolves the target again.
+	// settles what it scheduled and resolves the target again. A target
+	// the runtime already resolves (an instance, or a foreign id
+	// Runtime.ResolveTarget maps to one) skips it; after it, ExecuteAt
+	// consults ResolveTarget again, so the two compose: Reveal loads the
+	// rows, the resolver maps the foreign id to the row that holds it.
 	Reveal func(target string) error
 	// Owners maps a noun with no instance of its own to the instance its
 	// verbs act for; a command of that noun without --target targets it.
@@ -87,6 +110,10 @@ type Shell struct {
 	// without a screen removes the terminals an operation attached); its
 	// errors join the command's.
 	Settle func() error
+	// Width is the width --format table cuts to: 0 (the default) is the
+	// terminal's width when Stdout is a terminal and no cut otherwise; a
+	// negative Width never cuts.
+	Width int
 
 	in *bufio.Reader
 }
@@ -99,7 +126,7 @@ func New(r *ochazuke.Runtime, bin string, stdin io.Reader, stdout, stderr io.Wri
 // DefaultUsage is the usage line of a bin with no global flags of its own,
 // followed by UsageHint.
 func DefaultUsage(bin string) string {
-	return "usage: " + bin + " NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--yes]\n" + UsageHint(bin)
+	return "usage: " + bin + " NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--format " + strings.Join(Formats, "|") + "] [--yes]\n" + UsageHint(bin)
 }
 
 // UsageHint is the line under a usage line that points at oden's help: the
@@ -108,7 +135,8 @@ func UsageHint(bin string) string {
 	return "(" + bin + " help lists the commands; " + bin + " NOUN --help lists a noun's verbs and parameters)"
 }
 
-// Run executes one command and prints its result as JSON on Stdout.
+// Run executes one command and prints its result on Stdout, as JSON
+// unless --format names another format.
 func (s *Shell) Run(ctx context.Context, args []string) error {
 	if len(args) < 2 {
 		return errors.New(s.usage())
@@ -119,15 +147,26 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		}
 	}
 	r := s.Runtime
+	// The user's actions.json adds verbs (Mount usually installed them
+	// already); its rows may be named by bindings.json, so it goes first.
+	for _, problem := range r.EnsureUserActions() {
+		fmt.Fprintln(s.stderr(), "warning:", problem)
+	}
+	// The user bindings file applies to the CLI too, so bindings list
+	// shows the effective rows; a skipped row is a warning, not an error.
+	for _, problem := range r.EnsureUserBindings() {
+		fmt.Fprintln(s.stderr(), "warning:", problem)
+	}
+	r.EnsureConfigSettings()
 	verb, err := s.verb(args[0], args[1])
 	if err != nil {
 		return err
 	}
-	q, yes, err := s.request(args[0], verb, args[2:])
+	q, opts, err := s.request(args[0], verb, args[2:])
 	if err != nil {
 		return err
 	}
-	if q.Target != "" && q.Target != "focused-input" && r.Instances[q.Target] == nil && s.Reveal != nil {
+	if q.Target != "" && q.Target != "focused-input" && !resolves(r, q.Target) && s.Reveal != nil {
 		if err := s.Reveal(q.Target); err != nil {
 			return fmt.Errorf("target %s: %w", q.Target, err)
 		}
@@ -159,7 +198,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		if top.Noun != "confirm" {
 			return fmt.Errorf("%s opened a %s modal, which needs the TUI; pass its arguments instead (%s operations list)", q.Key(), top.Noun, s.Bin)
 		}
-		if !yes && !s.accepts(top.Payload.Prompt) {
+		if !opts.yes && !s.accepts(top.Payload.Prompt) {
 			if _, err := s.call(ochazuke.Request{Verb: "pop", Noun: "modal"}); err != nil {
 				return err
 			}
@@ -184,8 +223,12 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		}
 	})
 	for _, j := range r.Jobs() {
-		if j.Job > last {
-			fmt.Fprintf(s.stderr(), "job #%d %s %s\n", j.Job, j.Verb, j.State)
+		if j.Job > last && (j.State == ochazuke.JobFailed || !r.Operations[j.Verb].Quiet) {
+			name := j.Verb
+			if j.Label != "" {
+				name += " " + j.Label
+			}
+			fmt.Fprintf(s.stderr(), "job #%d %s %s\n", j.Job, name, j.State)
 		}
 	}
 	if settled != nil {
@@ -197,7 +240,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	case len(launched) > 1 && len(results) > 0:
 		value = results
 	}
-	return s.print(value)
+	return s.output(q, opts.format, value)
 }
 
 // lastJob is the newest job id the runtime lists, 0 for none.
@@ -281,16 +324,29 @@ func listed(ids []string) string {
 	return fmt.Sprintf("%s and %d more", strings.Join(ids[:maxCandidates], ", "), len(ids)-maxCandidates)
 }
 
-// request builds the operation request: --target, --json and --yes are the
-// shell's; every other --NAME VALUE (or --NAME=VALUE) is an argument typed
-// by the operation's parameter of that name.
-func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, bool, error) {
+// options are the shell's own flags of a command: --yes and the output
+// format.
+type options struct {
+	yes    bool
+	format string
+}
+
+// request builds the operation request: --target, --json, --format and
+// --yes are the shell's; every other --NAME VALUE (or --NAME=VALUE) is an
+// argument typed by the operation's parameter of that name. --json VALUE
+// is the arguments as a JSON object; a bare --json (last, or followed by
+// another --flag) asks for JSON output, the default, and is otherwise
+// ignored. --format VALUE (one of Formats) picks the output; with a bare
+// --json only json agrees. An operation that declares a format parameter
+// of its own takes --format as that argument, and the shell prints JSON.
+func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, options, error) {
 	q := ochazuke.Request{Noun: noun, Verb: verb, Args: ochazuke.Arguments{}}
+	var opts options
 	op, ok := s.Runtime.Operations[q.Key()]
 	if !ok {
-		return q, false, fmt.Errorf("unknown operation %q (%s %s); operations list prints them", q.Key(), noun, verb)
+		return q, opts, fmt.Errorf("unknown operation %q (%s %s); operations list prints them", q.Key(), noun, verb)
 	}
-	yes := false
+	bareJSON := false
 	var words []string
 	for i := 0; i < len(flags); i++ {
 		name, ok := strings.CutPrefix(flags[i], "--")
@@ -299,7 +355,7 @@ func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, bo
 			continue
 		}
 		if name == "" {
-			return q, false, fmt.Errorf("unexpected argument %q; %s", flags[i], s.usage())
+			return q, opts, fmt.Errorf("unexpected argument %q; %s", flags[i], s.usage())
 		}
 		name, value, inline := strings.Cut(name, "=")
 		takeValue := func() (string, error) {
@@ -314,23 +370,37 @@ func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, bo
 		}
 		switch {
 		case name == "yes":
-			yes = true
+			opts.yes = true
+			continue
+		case name == "format" && !hasParameter(op, "format"):
+			v, err := takeValue()
+			if err != nil {
+				return q, opts, err
+			}
+			if !slices.Contains(Formats, v) {
+				return q, opts, fmt.Errorf("--format %q: one of %s", v, strings.Join(Formats, ", "))
+			}
+			opts.format = v
 			continue
 		case name == "target":
 			v, err := takeValue()
 			if err != nil {
-				return q, false, err
+				return q, opts, err
 			}
 			q.Target = v
+			continue
+		case name == "json" && !inline && (i+1 >= len(flags) || strings.HasPrefix(flags[i+1], "--")):
+			// A bare --json asks for JSON output, the default.
+			bareJSON = true
 			continue
 		case name == "json":
 			v, err := takeValue()
 			if err != nil {
-				return q, false, err
+				return q, opts, err
 			}
 			args, err := ochazuke.ParseArguments(v)
 			if err != nil {
-				return q, false, err
+				return q, opts, err
 			}
 			for k, v := range args {
 				q.Args[k] = v
@@ -339,7 +409,7 @@ func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, bo
 		}
 		p, ok := op.Parameters[name]
 		if !ok {
-			return q, false, fmt.Errorf("%s has no parameter %q", q.Key(), name)
+			return q, opts, fmt.Errorf("%s has no parameter %q", q.Key(), name)
 		}
 		if p.Type == "boolean" && !inline && (i+1 >= len(flags) || strings.HasPrefix(flags[i+1], "--")) {
 			q.Args[name] = true
@@ -347,16 +417,25 @@ func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, bo
 		}
 		v, err := takeValue()
 		if err != nil {
-			return q, false, err
+			return q, opts, err
 		}
 		if q.Args[name], err = typed(p.Type, v); err != nil {
-			return q, false, fmt.Errorf("--%s: %w", name, err)
+			return q, opts, fmt.Errorf("--%s: %w", name, err)
 		}
 	}
 	if err := positional(q, op, words); err != nil {
-		return q, false, err
+		return q, opts, err
 	}
-	return q, yes, nil
+	if bareJSON && opts.format != "" && opts.format != "json" {
+		return q, opts, fmt.Errorf("a bare --json asks for JSON output and --format %s for another; pass one (--json '{...}' passes arguments)", opts.format)
+	}
+	return q, opts, nil
+}
+
+// hasParameter reports whether op declares a parameter called name.
+func hasParameter(op ochazuke.Operation, name string) bool {
+	_, ok := op.Parameters[name]
+	return ok
 }
 
 // positional fills the parameters no flag set from words, in
@@ -510,6 +589,25 @@ func (s *Shell) print(value any) error {
 		}
 		return bw.Flush()
 	}
+	if raw, ok := value.(json.RawMessage); ok {
+		// HandleCall's result: an encoded value in the handler's key order.
+		var items []json.RawMessage
+		if json.Unmarshal(raw, &items) == nil && len(items) > 0 {
+			value = items
+		}
+	}
+	if items, ok := value.([]json.RawMessage); ok {
+		lines := make([]string, len(items))
+		for i, item := range items {
+			var b bytes.Buffer
+			if err := json.Compact(&b, item); err != nil {
+				return err
+			}
+			lines[i] = b.String()
+		}
+		_, err := fmt.Fprintf(w, "[\n  %s\n]\n", strings.Join(lines, ",\n  "))
+		return err
+	}
 	if items, ok := value.([]any); ok && len(items) > 0 {
 		lines := make([]string, len(items))
 		for i, item := range items {
@@ -528,4 +626,11 @@ func (s *Shell) print(value any) error {
 	}
 	_, err = fmt.Fprintf(w, "%s\n", data)
 	return err
+}
+
+// resolves reports whether target names an instance now, directly or
+// through Runtime.ResolveTarget.
+func resolves(r *ochazuke.Runtime, target string) bool {
+	_, err := r.TargetInstance(target)
+	return err == nil
 }

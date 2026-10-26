@@ -1,0 +1,99 @@
+{
+  "name": "a catalog list whose source fails says why; the other list still loads",
+  "area": "catalog",
+  "width": 100,
+  "height": 22,
+  "page": {
+    "id": "ai",
+    "title": "AI",
+    "catalog": {
+      "nouns": [
+        {
+          "name": "skill",
+          "columns": [
+            {
+              "title": "Name",
+              "min": 8
+            },
+            {
+              "title": "Origin"
+            }
+          ],
+          "verbs": [
+            {
+              "name": "list",
+              "rows": "skill"
+            },
+            {
+              "name": "show"
+            }
+          ]
+        },
+        {
+          "name": "mcp",
+          "verbs": [
+            {
+              "name": "tools",
+              "rows": "mcp-tool"
+            }
+          ]
+        },
+        {
+          "name": "mcp-tool",
+          "verbs": [
+            {
+              "name": "show"
+            }
+          ]
+        }
+      ],
+      "page": {
+        "title": "AI",
+        "lists": [
+          {
+            "id": "ai/skills",
+            "noun": "skill"
+          },
+          {
+            "id": "ai/tools",
+            "noun": "mcp",
+            "source": "mcp.tools",
+            "title": "tools"
+          }
+        ]
+      },
+      "answers": {
+        "skill.list": [
+          {
+            "id": "s1",
+            "name": "architect",
+            "cells": [
+              "architect",
+              "claude"
+            ],
+            "path": "~/.claude/skills/architect",
+            "origin": "claude"
+          },
+          {
+            "id": "s2",
+            "name": "review",
+            "cells": [
+              "review",
+              "ai-tools"
+            ],
+            "path": "~/proj/ai-tools/review",
+            "origin": "ai-tools"
+          }
+        ]
+      }
+    }
+  },
+  "script": [],
+  "expect": {
+    "contains": [
+      "architect",
+      "mcp tools: exit status 1: mcp tools has no answer",
+      "tools (0)"
+    ]
+  }
+}

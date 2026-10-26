@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -66,6 +67,20 @@ func Check(ss *Session, e Expect) []string {
 			failf("%d highlighted rows, want %d", n, *e.Highlighted)
 		}
 	}
+	if e.HighlightedText != "" {
+		n := 0
+		for _, row := range strings.Split(frame, "\n") {
+			if strings.Contains(row, reverse) {
+				n++
+				if !strings.Contains(ansi.Strip(row), e.HighlightedText) {
+					failf("highlighted row %q lacks %q", strings.TrimSpace(ansi.Strip(row)), e.HighlightedText)
+				}
+			}
+		}
+		if n == 0 {
+			failf("no highlighted row, want one holding %q", e.HighlightedText)
+		}
+	}
 	for _, s := range e.Contains {
 		if !strings.Contains(screen, s) {
 			failf("screen lacks %q", s)
@@ -93,6 +108,54 @@ func Check(ss *Session, e Expect) []string {
 	if (e.Notices != nil || e.NoNotices) && !slices.Equal(ss.M.Notices, e.Notices) {
 		failf("notices %q, want %q", ss.M.Notices, e.Notices)
 	}
+	rows := strings.Split(frame, "\n")
+	for text, hex := range e.Colored {
+		sgr, err := foreground(hex)
+		if err != nil {
+			failf("colored %q: %v", text, err)
+			continue
+		}
+		found, drawn := false, false
+		for _, row := range rows {
+			if strings.Contains(ansi.Strip(row), text) {
+				found = true
+				drawn = drawn || strings.Contains(row, sgr)
+			}
+		}
+		switch {
+		case !found:
+			failf("colored: screen lacks %q", text)
+		case !drawn:
+			failf("colored: no row with %q is drawn in %s", text, hex)
+		}
+	}
+	for text, want := range e.Styled {
+		hex, negate := strings.CutPrefix(want, "!")
+		sgr, err := foreground(hex)
+		if err != nil {
+			failf("styled %q: %v", text, err)
+			continue
+		}
+		run := regexp.MustCompile(`\x1b\[([0-9;:]*)m` + regexp.QuoteMeta(text))
+		found, drawn := false, false
+		for _, m := range run.FindAllStringSubmatch(frame, -1) {
+			found = true
+			drawn = drawn || strings.Contains(";"+m[1]+";", ";"+sgr+";")
+		}
+		switch {
+		case !found:
+			failf("styled: no styled run starts with %q", text)
+		case drawn == negate:
+			failf("styled: %q drawn in %s = %v, want %v", text, hex, drawn, !negate)
+		}
+	}
+	for _, hex := range e.NoColor {
+		if sgr, err := foreground(hex); err != nil {
+			failf("noColor %q: %v", hex, err)
+		} else if strings.Contains(frame, sgr) {
+			failf("noColor: the frame draws in %s", hex)
+		}
+	}
 	if e.Writes != nil && !slices.Equal(ss.Writes, *e.Writes) && (len(ss.Writes) > 0 || len(*e.Writes) > 0) {
 		failf("writes %q, want %q", ss.Writes, *e.Writes)
 	}
@@ -100,6 +163,16 @@ func Check(ss *Session, e Expect) []string {
 		bad = append(bad, "frame:\n"+Golden(frame))
 	}
 	return bad
+}
+
+// foreground is the SGR parameters of a "#RRGGBB" foreground as Lip Gloss
+// writes it ("38;2;R;G;B").
+func foreground(hex string) (string, error) {
+	var r, g, b uint8
+	if _, err := fmt.Sscanf(hex, "#%02x%02x%02x", &r, &g, &b); err != nil || len(hex) != 7 {
+		return "", fmt.Errorf("want #RRGGBB, got %q", hex)
+	}
+	return fmt.Sprintf("38;2;%d;%d;%d", r, g, b), nil
 }
 
 // Library is every story a run can name (embedded and the user's) and the

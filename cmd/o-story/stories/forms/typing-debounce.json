@@ -1,0 +1,87 @@
+{
+  "name": "form: typing is written once after the pause; leaving insert writes at once",
+  "area": "forms",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "records": [
+      {
+        "id": "task",
+        "fields": [
+          {
+            "name": "title",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "status",
+            "type": "string",
+            "required": true,
+            "enum": [
+              "todo",
+              "doing",
+              "done"
+            ]
+          },
+          {
+            "name": "estimate",
+            "type": "integer"
+          },
+          {
+            "name": "notes",
+            "type": "string",
+            "multiline": true
+          }
+        ],
+        "values": {
+          "title": "buy milk",
+          "status": "todo"
+        }
+      }
+    ],
+    "focus": "task/title"
+  },
+  "script": [
+    "A",
+    {
+      "type": " now"
+    },
+    {
+      "tick": "debounce"
+    },
+    {
+      "type": "!"
+    },
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "writes": []
+    },
+    {
+      "after": 3,
+      "writes": [
+        "write title=\"buy milk now\""
+      ]
+    },
+    {
+      "after": 4,
+      "writes": [
+        "write title=\"buy milk now\""
+      ]
+    },
+    {
+      "focus": "task/title",
+      "mode": "normal",
+      "writes": [
+        "write title=\"buy milk now\"",
+        "write title=\"buy milk now!\""
+      ]
+    }
+  ]
+}

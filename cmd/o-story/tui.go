@@ -48,7 +48,7 @@ func newHost(lib story.Library) (*host, error) {
 	r := ochazuke.NewRuntime()
 	h.idx = ochazuke.NewModel(r)
 	h.idx.Title = "o-story"
-	r.Define("entry").
+	r.Define("entry").Columns(withoutArea(storyColumns)...).
 		Verb("open", func(c ochazuke.Ctx) ochazuke.Result {
 			i, ok := c.Instance.Data.(int)
 			if !ok {
@@ -98,14 +98,10 @@ func newHost(lib story.Library) (*host, error) {
 		if _, ok := byArea[s.Area]; !ok {
 			areas = append(areas, s.Area)
 		}
-		label := s.Name
-		if s.Skip != "" {
-			label += "  (gap)"
-		}
-		byArea[s.Area] = append(byArea[s.Area], ochazuke.ListItem{ID: fmt.Sprintf("s%d", i), Label: label, Noun: "entry", Data: i})
+		byArea[s.Area] = append(byArea[s.Area], ochazuke.ListItem{ID: fmt.Sprintf("s%d", i), Label: s.Name, Noun: "entry", Data: i, Cells: withoutArea(storyCells(s))})
 	}
 	for _, a := range areas {
-		if _, err := r.AddList("area-"+a, byArea[a], ochazuke.Parent("index")); err != nil {
+		if _, err := r.AddList("area-"+a, byArea[a], ochazuke.Parent("index"), ochazuke.Columns(r.Noun("entry").Columns...)); err != nil {
 			return nil, err
 		}
 	}
@@ -120,7 +116,7 @@ func newHost(lib story.Library) (*host, error) {
 				parts = append(parts, "")
 			}
 			l := r.List("area-" + a)
-			parts = append(parts, areaHeading(s, a, l.Len(), w), indent(l.View(max(1, w-areaIndent), l.Len()), areaIndent))
+			parts = append(parts, areaHeading(s, a, l.Len(), w), indent(l.View(max(1, w-areaIndent), l.Len()+1), areaIndent))
 		}
 		return ochazuke.Text(strings.Join(parts, "\n"))
 	}

@@ -1,0 +1,123 @@
+{
+  "name": "a catalog split page: the detail beside the lists follows the selected row, then the list the focus spills into",
+  "area": "catalog",
+  "width": 100,
+  "height": 22,
+  "page": {
+    "id": "ai",
+    "title": "AI",
+    "catalog": {
+      "nouns": [
+        {
+          "name": "skill",
+          "columns": [
+            {
+              "title": "Name",
+              "min": 8
+            },
+            {
+              "title": "Origin"
+            }
+          ],
+          "verbs": [
+            {
+              "name": "list",
+              "rows": "skill"
+            },
+            {
+              "name": "show"
+            }
+          ]
+        },
+        {
+          "name": "mcp",
+          "verbs": [
+            {
+              "name": "tools",
+              "rows": "mcp-tool"
+            }
+          ]
+        },
+        {
+          "name": "mcp-tool",
+          "verbs": [
+            {
+              "name": "show"
+            }
+          ]
+        }
+      ],
+      "page": {
+        "title": "AI",
+        "lists": [
+          {
+            "id": "ai/skills",
+            "noun": "skill"
+          },
+          {
+            "id": "ai/tools",
+            "noun": "mcp",
+            "source": "mcp.tools",
+            "title": "tools"
+          }
+        ],
+        "layout": "split",
+        "detail": {
+          "title": "record"
+        }
+      },
+      "answers": {
+        "skill.list": [
+          {
+            "id": "s1",
+            "name": "architect",
+            "cells": [
+              "architect",
+              "claude"
+            ],
+            "path": "~/.claude/skills/architect",
+            "origin": "claude"
+          },
+          {
+            "id": "s2",
+            "name": "review",
+            "cells": [
+              "review",
+              "ai-tools"
+            ],
+            "path": "~/proj/ai-tools/review",
+            "origin": "ai-tools"
+          }
+        ],
+        "mcp.tools": "{\"noun\":\"mcp\",\"id\":\"t1\",\"label\":\"tuios_send_text\",\"data\":{\"server\":\"tuios\"}}\n{\"noun\":\"mcp\",\"id\":\"t2\",\"label\":\"tuios_capture\",\"data\":{\"server\":\"tuios\"}}\n"
+      }
+    }
+  },
+  "script": [
+    "j",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "ai/skills/s2",
+      "contains": [
+        "skill (2)",
+        "tools (2)",
+        "record \u00b7 review",
+        "origin  ai-tools",
+        "path    ~/proj/ai-tools/review"
+      ]
+    },
+    {
+      "focus": "ai/tools/t1",
+      "contains": [
+        "record \u00b7 tuios_send_text",
+        "server  tuios"
+      ],
+      "lacks": [
+        "record \u00b7 review"
+      ]
+    }
+  ]
+}

@@ -88,6 +88,11 @@ type Operation struct {
 	// Quiet marks bookkeeping (a list reload) the jobs ticker does not
 	// show; set by NounBuilder.Quiet. The catalog's quiet.
 	Quiet bool `json:"quiet,omitempty"`
+	// PersistArgs lets the history file keep this operation's arguments
+	// named like text (text, value, keys, args, password, secret, token), which
+	// it otherwise leaves out; set by NounBuilder.PersistArgs. Only for an
+	// operation whose arguments are never typed secrets (settings.set).
+	PersistArgs bool `json:"persistArgs,omitempty"`
 	// Motion marks movement (list.move, focus.next, surface.scroll,
 	// page.next): the footer's hint line leaves its rows out, since motions
 	// are standard and the footer is for the verbs the focus offers; ?
@@ -141,16 +146,23 @@ func (o Operation) ParameterOrder() []string {
 // inputs, lists, the picker and the registers are instances, never fields;
 // TestRuntimeHoldsNoComponentFields pins this list.
 type Runtime struct {
-	Nouns            map[string]*Noun
-	Instances        map[string]*Instance
-	Focus            string    // the focused instance; Context() is derived from it
-	Mode             ModeState // the one interaction mode; mode.set writes it, a focus change to another stop resets it
-	Page             string    // the current page instance; always an ancestor of BaseFocus()
-	Modes            map[string]bool
-	Operations       map[string]Operation
-	Quit             bool
-	Pending          string
-	BindingTimeout   time.Duration
+	Nouns          map[string]*Noun
+	Instances      map[string]*Instance
+	Focus          string    // the focused instance; Context() is derived from it
+	Mode           ModeState // the one interaction mode; mode.set writes it, a focus change to another stop resets it
+	Page           string    // the current page instance; always an ancestor of BaseFocus()
+	Modes          map[string]bool
+	Operations     map[string]Operation
+	Quit           bool
+	Pending        string
+	BindingTimeout time.Duration
+	// ResolveTarget, when set, maps a request target that is not an
+	// instance (a foreign id: an extension's row id, a database key) to
+	// the instance that stands for it; ExecuteAt consults it (TargetInstance)
+	// before refusing an unknown target, so keys, the palette, the CLI and
+	// the API all accept the foreign id. An error refuses the request with
+	// it; "" and no error leaves the target unknown.
+	ResolveTarget    func(target string) (string, error)
 	pendingModes     map[string]bool
 	passthroughModes map[string]bool // base modes in which capture rows stand aside (DefinePassthrough)
 	guards           map[string]Guard
@@ -192,9 +204,15 @@ func NewRuntime() *Runtime {
 	registerCore(r)
 	registerJobs(r)
 	registerConfiguration(r)
+	registerChooser(r)
+	registerConfig(r)
+	registerActions(r)
+	registerSettings(r)
+	registerSettingsEditor(r)
 	registerPages(r)
 	registerLists(r)
 	registerTrees(r)
+	registerForms(r)
 	RegisterInputOperations(r)
 	registerRegisters(r)
 	registerYankHistory(r)
@@ -205,6 +223,7 @@ func NewRuntime() *Runtime {
 	registerConfirm(r)
 	registerTerminal(r)
 	registerFocus(r)
+	registerDetail(r)
 	registerQuery(r)
 	registerHistory(r)
 	// A modal answers esc in normal mode; inputs, pending modes and the
@@ -281,6 +300,7 @@ var motionOps = map[string]bool{
 	"surface.scroll": true, "page.next": true, "page.previous": true,
 	"input.move": true, "picker.move": true, "palette.move": true,
 	"yank-history.move": true, "grid.move": true, "grid.goto": true,
+	"detail.scroll": true,
 }
 
 // Register adds an operation. An operation with App set is of kind
@@ -444,9 +464,11 @@ func (r *Runtime) execute(c Context, q Request) (any, error) {
 		return nil, &ArgumentError{err}
 	}
 	if q.Target != "" && q.Target != "focused-input" {
-		if len(r.Ancestry(q.Target)) == 0 {
-			return nil, fmt.Errorf("unknown target %q", q.Target)
+		id, err := r.TargetInstance(q.Target)
+		if err != nil {
+			return nil, err
 		}
+		q.Target = id
 		c = r.contextOf(q.Target)
 	}
 	if len(c.Path) == 0 && c.InputID == "" {
@@ -486,6 +508,28 @@ func (r *Runtime) execute(c Context, q Request) (any, error) {
 		return fn(r, c, q.Args)
 	}
 	return op.Run(r, c, q.Args)
+}
+
+// TargetInstance is the instance a request target names: the target when
+// it is an instance, else what ResolveTarget maps it to. An unknown target
+// is an error naming it.
+func (r *Runtime) TargetInstance(target string) (string, error) {
+	if len(r.Ancestry(target)) > 0 {
+		return target, nil
+	}
+	if r.ResolveTarget != nil {
+		id, err := r.ResolveTarget(target)
+		if err != nil {
+			return "", fmt.Errorf("target %q: %w", target, err)
+		}
+		if id != "" {
+			if len(r.Ancestry(id)) == 0 {
+				return "", fmt.Errorf("target %q resolved to %q, which is not an instance", target, id)
+			}
+			return id, nil
+		}
+	}
+	return "", fmt.Errorf("unknown target %q", target)
 }
 
 // nounInstance is the nearest instance of noun on the focus path, "" when
@@ -650,6 +694,9 @@ func registerCore(r *Runtime) {
 			return r.allBindings(), nil
 		}
 		return r.ListBindings(focusOf(c)), nil
+	}})
+	r.Register(Operation{Verb: "stops", Noun: "bindings", Description: "List the rows every focus stop answers to, app-wide: each page's stops in drawing order, the open modals', then app; each with the focus and mode it is read at", Result: "stop bindings[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		return r.StopBindings(), nil
 	}})
 	r.Register(Operation{Verb: "focus", Noun: "input", Description: "Focus a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		id := StringArg(a, "id", "")

@@ -40,21 +40,29 @@ func (l Layout) BodySize() (width, height int) {
 	return l.Width, l.Height
 }
 
-// BodySizeWith is BodySize less the rows the footer's jobs ticker takes
-// (only with the complete chrome; a small viewport draws no ticker).
+// BodySizeWith is the body's size with the footer f: BodySize, since the
+// jobs ticker rides the rule line above the footer and takes no body row,
+// so a job starting or lingering out never moves or hides the body (UX
+// review 2 F13).
 func (l Layout) BodySizeWith(f Footer) (width, height int) {
-	width, height = l.BodySize()
-	return width, height - l.jobRows(f)
+	return l.BodySize()
 }
 
-// jobRows is how many ticker rows the shell draws: none without the
-// complete chrome, and never the body's last row.
-func (l Layout) jobRows(f Footer) int {
-	if !l.full() {
-		return 0
+// TickerRule is the rule line above the footer, width cells: the plain rule
+// with no jobs; with jobs, "── " then the ticker entries (Footer.Jobs, at
+// most JobTickerRows) joined by " · ", cut with "…" so at least " ─" of
+// rule is left, and the rest of the row filled with rule characters, all
+// muted, so the chrome still reads as a rule.
+func (l Layout) TickerRule(jobs []string, width int) string {
+	muted := l.Styles.Muted
+	const lead = "── "
+	room := width - ansi.StringWidth(lead) - 2
+	if len(jobs) == 0 || room < 1 {
+		return muted.Render(strings.Repeat("─", max(0, width)))
 	}
-	_, height := l.BodySize()
-	return max(0, min(len(f.Jobs), height-1))
+	text := ansi.Truncate(modalLabel(strings.Join(jobs[:min(len(jobs), JobTickerRows)], " · ")), room, "…")
+	fill := width - ansi.StringWidth(lead) - ansi.StringWidth(text) - 1
+	return muted.Render(lead + text + " " + strings.Repeat("─", fill))
 }
 
 // Page renders title, subtitle, body and footer into exactly Width x Height
@@ -83,9 +91,9 @@ type Header struct {
 }
 
 // Footer is the bottom row of the page chrome: a raw label, styled as an
-// error when Error is set. Jobs are the jobs ticker's rows (Model.JobsTicker),
-// drawn above the rule over the footer; the body gives up one row per job
-// row, so no jobs means no rows.
+// error when Error is set. Jobs are the jobs ticker's entries
+// (Model.JobsTicker), drawn in the rule line above the footer (TickerRule);
+// the body keeps its size, and no jobs means the plain rule.
 type Footer struct {
 	Text  string
 	Error bool
@@ -120,10 +128,7 @@ func (l Layout) Shell(h Header, body Block, f Footer) Block {
 		for _, row := range bodyRows {
 			rows = append(rows, pad+row)
 		}
-		for _, job := range f.Jobs[:l.jobRows(f)] {
-			rows = append(rows, pad+s.Muted.Render(ansi.Truncate(modalLabel(job), max(0, bw), "…")))
-		}
-		rows = append(rows, pad+rule, pad+footer, "")
+		rows = append(rows, pad+l.TickerRule(f.Jobs, bw), pad+footer, "")
 	} else {
 		rows = append(rows, bodyRows...)
 		if l.Height >= 3 {
@@ -164,24 +169,83 @@ func (l Layout) subtitleRow(h Header, width int) string {
 }
 
 // tabs renders the active tab and as many neighbours as fit in width cells,
-// growing outward from the active one.
+// alternating left and right of it. When pages are hidden, the row shows
+// "‹N" at the left edge and "N›" at the right, N the pages hidden on that
+// side; the markers' cells are reserved before neighbours are added, so the
+// active tab is always on the row and the counts add up to the hidden pages.
 func (l Layout) tabs(titles []string, active, width int) string {
 	if len(titles) == 0 {
 		return ""
 	}
 	s := l.Styles
 	active = min(max(0, active), len(titles)-1)
-	title := modalLabel(titles[active])
-	tabs := ansi.Truncate(s.ActiveTab.Render(ansi.Truncate(title, max(1, width-4), "…")), width, "")
-	used := ansi.StringWidth(tabs)
+	cells := make([]string, len(titles))
+	total := 0
+	for i, title := range titles {
+		if i == active {
+			cells[i] = s.ActiveTab.Render(modalLabel(title))
+		} else {
+			cells[i] = s.Tab.Render(modalLabel(title))
+		}
+		total += ansi.StringWidth(cells[i])
+	}
+	if total <= width {
+		return strings.Join(cells, "")
+	}
+	leftMarker := func(n int) string { return s.Tab.Render(fmt.Sprintf("‹%d", n)) }
+	rightMarker := func(n int) string { return s.Tab.Render(fmt.Sprintf("%d›", n)) }
+	// Reserve a marker on each side that may hide pages, as wide as its
+	// largest count; once a side shows every page, give its cells back and
+	// fit again (the other side may then take more).
+	hideLeft, hideRight := active > 0, active < len(titles)-1
+	var first, last int
+	for range 3 {
+		budget := width
+		if hideLeft {
+			budget -= ansi.StringWidth(leftMarker(active))
+		}
+		if hideRight {
+			budget -= ansi.StringWidth(rightMarker(len(titles) - 1 - active))
+		}
+		first, last = l.tabWindow(cells, titles, active, budget)
+		left, right := first > 0, last < len(titles)-1
+		if left == hideLeft && right == hideRight {
+			break
+		}
+		hideLeft, hideRight = left, right
+	}
+	var b strings.Builder
+	if first > 0 {
+		b.WriteString(leftMarker(first))
+	}
+	if first == last && first == active {
+		// The active tab alone: cut it to what the markers leave.
+		room := width - ansi.StringWidth(b.String())
+		if last < len(titles)-1 {
+			room -= ansi.StringWidth(rightMarker(len(titles) - 1 - last))
+		}
+		b.WriteString(ansi.Truncate(s.ActiveTab.Render(ansi.Truncate(modalLabel(titles[active]), max(1, room-4), "…")), max(0, room), ""))
+	} else {
+		b.WriteString(strings.Join(cells[first:last+1], ""))
+	}
+	if last < len(titles)-1 {
+		b.WriteString(rightMarker(len(titles) - 1 - last))
+	}
+	return ansi.Truncate(b.String(), width, "")
+}
+
+// tabWindow is the run of tabs around active that fits in budget cells,
+// adding neighbours left and right in turn until neither side fits.
+func (l Layout) tabWindow(cells, titles []string, active, budget int) (first, last int) {
+	first, last = active, active
+	used := ansi.StringWidth(cells[active])
 	left, right := active-1, active+1
 	for left >= 0 || right < len(titles) {
 		added := false
 		if left >= 0 {
-			tab := s.Tab.Render(modalLabel(titles[left]))
-			if size := ansi.StringWidth(tab); used+size <= width {
-				tabs = tab + tabs
+			if size := ansi.StringWidth(cells[left]); used+size <= budget {
 				used += size
+				first = left
 				left--
 				added = true
 			} else {
@@ -189,10 +253,9 @@ func (l Layout) tabs(titles []string, active, width int) string {
 			}
 		}
 		if right < len(titles) {
-			tab := s.Tab.Render(modalLabel(titles[right]))
-			if size := ansi.StringWidth(tab); used+size <= width {
-				tabs += tab
+			if size := ansi.StringWidth(cells[right]); used+size <= budget {
 				used += size
+				last = right
 				right++
 				added = true
 			} else {
@@ -203,7 +266,7 @@ func (l Layout) tabs(titles []string, active, width int) string {
 			break
 		}
 	}
-	return tabs
+	return first, last
 }
 
 // PanelContentSize returns the body cells available inside a Panel, excluding
@@ -271,7 +334,7 @@ func (l Layout) PanelBlock(title string, body Block, width, height int, focused 
 
 // Split renders two panels filling BodySize: side by side (left ~40%) when the
 // viewport is at least 72 cells wide, otherwise stacked (top ~40%). The left or
-// top panel is the focused one.
+// top panel is the focused one; SplitFocusBlock takes which.
 func (l Layout) Split(leftTitle, leftBody, rightTitle, rightBody string) string {
 	return l.SplitBlock(leftTitle, Text(leftBody), rightTitle, Text(rightBody)).Text
 }
@@ -279,8 +342,26 @@ func (l Layout) Split(leftTitle, leftBody, rightTitle, rightBody string) string 
 // SplitBlock is Split for bodies that may carry a cursor. One body should
 // carry it; when both do, the left or top panel wins.
 func (l Layout) SplitBlock(leftTitle string, leftBody Block, rightTitle string, rightBody Block) Block {
+	return l.SplitFocusBlock(SplitLeft, leftTitle, leftBody, rightTitle, rightBody)
+}
+
+// SplitSide names the panel of a split that draws focused.
+type SplitSide int
+
+const (
+	SplitLeft  SplitSide = iota // the left (or top) panel, Split's default
+	SplitRight                  // the right (or bottom) panel
+	SplitNone                   // neither: the focus is elsewhere
+)
+
+// SplitFocusBlock is SplitBlock with the focused panel named: the one
+// holding the focus draws in the focused style (accent title and border),
+// the other plain, so a view whose focus moves between its panes (o-json's
+// tree and detail) shows where it is. When both bodies carry a cursor, the
+// focused panel's wins.
+func (l Layout) SplitFocusBlock(focused SplitSide, leftTitle string, leftBody Block, rightTitle string, rightBody Block) Block {
 	bw, bh := l.BodySize()
-	return l.panelPair(leftTitle, leftBody, rightTitle, rightBody, bw, bh, (bw-1)*2/5, l.Width < layoutStackAt)
+	return l.panelPair(leftTitle, leftBody, rightTitle, rightBody, bw, bh, (bw-1)*2/5, l.Width < layoutStackAt, focused)
 }
 
 // Sidebar renders a 28-cell navigation rail beside the main panel. Below 72
@@ -329,7 +410,7 @@ func (l Layout) sidebar(title string, items []string, selected int, mainTitle st
 			rows = append(rows, l.Styles.Muted.Render(fmt.Sprintf("… %d–%d / %d", start+1, end, len(items))))
 		}
 	}
-	return l.panelPair(title, Text(strings.Join(rows, "\n")), mainTitle, mainBody, width, regionHeight, 28, stacked)
+	return l.panelPair(title, Text(strings.Join(rows, "\n")), mainTitle, mainBody, width, regionHeight, 28, stacked, SplitLeft)
 }
 
 func sidebarMainSize(width, height int, stacked bool) (int, int) {
@@ -343,25 +424,32 @@ func sidebarMainSize(width, height int, stacked bool) (int, int) {
 
 // panelPair places the left (or top) panel at the origin and the right panel
 // one cell to its right (or the bottom panel below it).
-func (l Layout) panelPair(leftTitle string, leftBody Block, rightTitle string, rightBody Block, bw, bh, leftWidth int, stacked bool) Block {
+func (l Layout) panelPair(leftTitle string, leftBody Block, rightTitle string, rightBody Block, bw, bh, leftWidth int, stacked bool, focused SplitSide) Block {
 	if bw <= 0 || bh <= 0 {
 		return Block{}
 	}
+	leftFocused, rightFocused := focused == SplitLeft, focused == SplitRight
+	cursor := func(first, second Block) *Pos {
+		if rightFocused {
+			return firstCursor(second, first)
+		}
+		return firstCursor(first, second)
+	}
 	if !stacked {
 		rw := bw - 1 - leftWidth
-		left := l.PanelBlock(leftTitle, leftBody, leftWidth, bh, true)
-		right := l.PanelBlock(rightTitle, rightBody, rw, bh, false).Offset(leftWidth+1, 0)
+		left := l.PanelBlock(leftTitle, leftBody, leftWidth, bh, leftFocused)
+		right := l.PanelBlock(rightTitle, rightBody, rw, bh, rightFocused).Offset(leftWidth+1, 0)
 		leftRows, rightRows := strings.Split(left.Text, "\n"), strings.Split(right.Text, "\n")
 		rows := make([]string, bh)
 		for i := range rows {
 			rows[i] = layoutRow(leftRows, i, leftWidth) + " " + layoutRow(rightRows, i, rw)
 		}
-		return Block{Text: strings.Join(rows, "\n"), Cursor: firstCursor(left, right)}
+		return Block{Text: strings.Join(rows, "\n"), Cursor: cursor(left, right)}
 	}
 	th := bh * 2 / 5
-	top := l.PanelBlock(leftTitle, leftBody, bw, th, true)
-	bottom := l.PanelBlock(rightTitle, rightBody, bw, bh-th, false).Offset(0, th)
-	return Block{Text: top.Text + joinIfBoth(th, bh-th) + bottom.Text, Cursor: firstCursor(top, bottom)}
+	top := l.PanelBlock(leftTitle, leftBody, bw, th, leftFocused)
+	bottom := l.PanelBlock(rightTitle, rightBody, bw, bh-th, rightFocused).Offset(0, th)
+	return Block{Text: top.Text + joinIfBoth(th, bh-th) + bottom.Text, Cursor: cursor(top, bottom)}
 }
 
 func joinIfBoth(a, b int) string {

@@ -250,7 +250,7 @@ func TestDemoKeyboardSessionStaysGreen(t *testing.T) {
 	execute("close", "picker", nil)
 	press("g")
 	execute("select", "context", ochazuke.Arguments{"path": `["app","playground","agent"]`})
-	press("ctrl+j", "j", "k", "ctrl+j", "t", "d", "ctrl+j", "ctrl+k", "ctrl+k")
+	press("ctrl+j", "j", "k", "ctrl+j", "t", "d", "a", "a", "ctrl+j", "ctrl+k", "ctrl+k")
 	execute("open", "page", ochazuke.Arguments{"id": "playground"})
 	execute("push", "modal", ochazuke.Arguments{"id": "draft", "input": "dialog"})
 	execute("pop", "modal", nil)
@@ -309,5 +309,75 @@ func pickerEntryPaths(entries []ochazuke.PickerEntry) []string {
 func TestDemoBindingRowsAreAtomic(t *testing.T) {
 	if _, err := New().Runtime.ValidateBindings(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// Theme and density are settings: t on the Appearance page and the
+// editor (s) save them to settings.json in the config directory, and a
+// new session starts with them.
+func TestDemoAppearanceIsSavedAsSettings(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, "config"))
+	t.Setenv("XDG_STATE_HOME", filepath.Join(home, "state"))
+	m := New()
+	r := m.Runtime
+	r.Config().App = "ochazuke-demo"
+	if _, err := r.Execute(ochazuke.Request{Verb: "open", Noun: "page", Args: ochazuke.Arguments{"id": "appearance"}}); err != nil {
+		t.Fatal(err)
+	}
+	keytest.Press(m, "t")
+	if m.Appearance.Theme != "dark" {
+		t.Fatalf("t: theme %q status %q", m.Appearance.Theme, m.Status)
+	}
+	keytest.Press(m, "s")
+	keytest.Press(m, "j")
+	keytest.Press(m, "enter")
+	keytest.Press(m, "esc")
+	if r.TopModal() != "" || m.Appearance.Density != "compact" {
+		t.Fatalf("editor: modal %q density %q status %q", r.TopModal(), m.Appearance.Density, m.Status)
+	}
+	data, err := os.ReadFile(filepath.Join(home, "config", "ochazuke-demo", "settings.json"))
+	if err != nil || !strings.Contains(string(data), `"theme": "dark"`) || !strings.Contains(string(data), `"density": "compact"`) {
+		t.Fatalf("settings.json %s %v", data, err)
+	}
+	next := New()
+	next.Runtime.Config().App = "ochazuke-demo"
+	next.Init()
+	t.Cleanup(func() { _ = next.Runtime.Config().Flush() })
+	if next.Runtime.Settings().String("theme") != "dark" || next.Appearance.Theme != "dark" || next.Appearance.Density != "compact" {
+		t.Fatalf("a new session: setting %q appearance %+v", next.Runtime.Settings().String("theme"), *next.Appearance)
+	}
+}
+
+// The Record page opens on its editor: typing is written as it is made, a
+// status is chosen rather than typed, q leaves and e edits again.
+func TestDemoRecordPageWritesAsYouType(t *testing.T) {
+	m := New()
+	r := m.Runtime
+	if _, err := r.Execute(ochazuke.Request{Verb: "open", Noun: "page", Args: ochazuke.Arguments{"id": "task"}}); err != nil {
+		t.Fatal(err)
+	}
+	if r.Focus != "task-form/title" {
+		t.Fatalf("focus %s, want the title field", r.Focus)
+	}
+	keytest.Press(m, "A")
+	keytest.Type(m, "!")
+	keytest.Press(m, "esc")
+	keytest.Press(m, "j")
+	keytest.Press(m, "enter")
+	keytest.Press(m, "j")
+	keytest.Press(m, "enter")
+	view := ansi.Strip(m.View().Content)
+	if !strings.Contains(view, `title="Water the plants!" status="doing"`) {
+		t.Fatalf("store not written:\n%s", view)
+	}
+	keytest.Press(m, "q")
+	if r.Focus != "task" || !strings.Contains(ansi.Strip(m.View().Content), "e edits the record again") {
+		t.Fatalf("focus %s after q", r.Focus)
+	}
+	keytest.Press(m, "e")
+	if r.Focus != "task-form/title" || m.Status != "" {
+		t.Fatalf("focus %s status %q after e", r.Focus, m.Status)
 	}
 }

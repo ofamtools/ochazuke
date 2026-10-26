@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"charm.land/lipgloss/v2"
@@ -61,7 +62,59 @@ func (p *Picker) ViewBlock(width, height int) Block {
 	return editor.WithText(strings.Join(layoutRows(strings.Join(rows, "\n"), width, height), "\n"))
 }
 
+// pickerColumns are the picker results table: the path takes the room the
+// size and modified columns leave, and those drop (modified first) when
+// the results pane is narrow. Size and modified have fixed widths, so a
+// stat landing (picker_stats.go) never moves a column.
+var pickerColumns = []Column{
+	{Title: "path", Min: 16},
+	{Title: "size", Width: 6, Align: AlignRight, Priority: 1},
+	{Title: "modified", Width: 16, Priority: 2},
+}
+
+// pickerCells is an entry's row of the results table; size and modified
+// stay blank until the entry's stat has landed (picker_stats.go).
+func pickerCells(entry PickerEntry, stat pickerStat) []string {
+	name := strings.ReplaceAll(entry.Path, "\n", "\\n")
+	if name == "." {
+		name = ". (current directory)"
+	} else if entry.Dir {
+		name += "/"
+	}
+	size, modified := "", ""
+	if stat.ok {
+		if !entry.Dir {
+			size = pickerSize(stat.size)
+		}
+		modified = stat.modified.Local().Format("2006-01-02 15:04")
+	}
+	return []string{safeText(name), size, modified}
+}
+
+// pickerSize is a byte count in at most six cells: 512, 1.5K, 34K, 2.0M.
+func pickerSize(n int64) string {
+	if n < 1024 {
+		return strconv.FormatInt(n, 10)
+	}
+	value := float64(n)
+	for _, unit := range []string{"K", "M", "G", "T"} {
+		value /= 1024
+		if value < 1024 || unit == "T" {
+			if value < 10 {
+				return fmt.Sprintf("%.1f%s", value, unit)
+			}
+			return fmt.Sprintf("%.0f%s", value, unit)
+		}
+	}
+	return ""
+}
+
+// resultRows draws the results as a table (pickerColumns): the count line,
+// the header, then the rows in the window around the selection, the
+// selected row marked "> " and reversed across the width.
 func (p *Picker) resultRows(width, height int) []string {
+	// The rows this frame can draw, which the stat job follows.
+	p.drawnRows = max(0, height-min(2, max(0, height-1)))
 	if len(p.Entries) == 0 {
 		return layoutRows("(no matching paths)", width, height)
 	}
@@ -69,22 +122,27 @@ func (p *Picker) resultRows(width, height int) []string {
 	if height > 1 {
 		rows = append(rows, fmt.Sprintf("Results %d/%d", p.Selected+1, len(p.Entries)))
 	}
-	limit := max(0, height-len(rows))
-	start := max(0, p.Selected-limit+1)
-	end := min(len(p.Entries), start+limit)
+	const mark = 2
+	// The path's natural width is the whole row, so it takes every cell
+	// the other columns leave and the columns stay put while scrolling.
+	shown, widths := tableLayoutOf(pickerColumns, []int{width, 0, 0}, max(1, width-mark))
+	if height > 2 {
+		titles := make([]string, len(pickerColumns))
+		for i, c := range pickerColumns {
+			titles[i] = c.Title
+		}
+		head := strings.TrimRight(strings.Repeat(" ", mark)+tableLine(pickerColumns, titles, shown, widths), " ")
+		rows = append(rows, lipgloss.NewStyle().Bold(true).Render(ansi.Truncate(head, width, "…")))
+	}
+	start, end := p.window(p.drawnRows)
 	for i := start; i < end; i++ {
-		entry := p.Entries[i]
-		name := strings.ReplaceAll(entry.Path, "\n", "\\n")
-		if name == "." {
-			name = ". (current directory)"
-		} else if entry.Dir {
-			name += "/"
-		}
-		mark := "  "
+		prefix := "  "
 		if i == p.Selected {
-			mark = "> "
+			prefix = "> "
 		}
-		row := modalCells(ansi.Truncate(mark+safeText(name), width, "…"), width)
+		stat, _ := p.stats.get(p.statKey(p.Entries[i]))
+		line := prefix + tableLine(pickerColumns, pickerCells(p.Entries[i], stat), shown, widths)
+		row := modalCells(ansi.Truncate(line, width, "…"), width)
 		if i == p.Selected {
 			row = lipgloss.NewStyle().Reverse(true).Render(row)
 		}

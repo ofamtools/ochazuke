@@ -44,20 +44,44 @@ it to the timer's deadline and delivers the timer's message
   width: 80, height: 24,          // the story's area; default 80x24
   chrome: "full",                 // "full" | "none" (page body only) | "ticker-only"
   skip: "gap: ...",               // optional: a known framework gap; runs, cannot fail
+  theme: "kombu", accent: "#E8833A", // a theme other than mono, the Appearance accent override
+  themes: { kombu: { background: "dark", accent: "#C9A227" } }, // schemes in the themes.json shape;
+                                  // one that does not validate is a notice (chrome/scheme-*)
   page: {                         // or pages: [{ id, title, ... }, ...]
     lists: [{ id: "a", rows: 2 },                  // rows a1, a2
-            { id: "b", rows: 3, noSpill: false },
+            { id: "b", rows: 3, noSpill: false, noMarks: false },
             { id: "c", rows: 10, height: -1,       // 0 every row, -1 rest of the page
               labels: ["first project", "tuios-deck"], selected: 1, marked: [0] }],
     order: ["a", "b", "c"],       // drawing order (default: as listed)
-    layout: "stack",              // or "row": lists side by side
+    layout: "stack",              // or "row": lists side by side; "split": the first two lists in Layout.SplitFocusBlock
     focus: "b1", offset: 0, noHeadings: false,
     inputs: [{ id: "name", label: "name", text: "hello" }],
     trees: [{ id: "t", editable: true, failWrites: 0, collapsed: ["p1"],
               nodes: [{ id: "p1", label: "one" }, { id: "c1", parent: "p1", label: "child" }] }],
     terminal: { fake: true, attach: "a1", height: 6 },
-    jobs: [{ verb: "demo.build", key: "w", finishOnKey: "W", failOnKey: "X", quiet: false, start: 0 }],
+    jobs: [{ verb: "demo.build", key: "w", finishOnKey: "W", failOnKey: "X", quiet: false, start: 0, label: "" }],
     bind: [{ noun: "demo", mode: "normal", keys: "C", do: "notice.clear" }],
+    detail: { lines: 50, width: 0 }, // a scrollable detail (AddDetail) on the right:
+                                     // "detail 1–11 / 50", then "<row> line N" about the
+                                     // focused list row (width 0 = half the page)
+    commands: {                      // instead of the above: cli's Commands page
+      entries: [{ name: "greet", kind: "inline", summary: "say hello", source: "main.go:12", help: "usage: …" },
+                { name: "web", kind: "external", source: "/bin/hello-web" }],
+      help: { web: "usage: hello web [PORT]" },  // what command help fetches (a job)
+    },                               // rows command:<name>; a run opens a fake pane, its terminal page1/run/N
+    catalog: {                       // instead of the above: a catalog data page (cli.MountPage)
+      nouns: [{ name: "skill", columns: [{ title: "Name" }], verbs: [{ name: "list", rows: "skill" }] }],
+      state: "",                     // the catalog's state source, NOUN.VERB
+      page: { layout: "split", lists: [{ id: "ai/skills", noun: "skill" }], detail: { fields: ["path"] },
+              widgets: [{ id: "sync", kind: "status", source: "sync.status" }] },  // kv | status | table
+      answers: { "skill.list": [{ id: "s1", name: "architect", path: "~/x" }] },  // stdout per NOUN.VERB (a string is the text: JSON Lines)
+      pending: false,                // true leaves the loads to the script: { job: "catalog-load", state: "done" }
+    },                               // rows <list>/<id>; the page id is the story page's
+    chooser: {                       // a chooser (OpenChooser) open over the focus at the start
+      kind: "dirs", title: "Directory", keep: [1],  // keep: the cell columns cut last
+      rows: [{ id: "m", label: "matomeru", cells: ["matomeru", "~/proj/matomeru", "main"],
+               preview: "text" }],    // any row with a preview gives the chooser a Preview
+    },                               // enter picks and closes
   },
   script: ["j", "j", { type: "ping" }, { paste: "text" },
            { job: "demo.build", state: "done" },
@@ -69,8 +93,8 @@ it to the timer's deadline and delivers the timer's message
 
 Expect fields: `focus`, `mode`, `modal` (top modal id, `""` none), `page`,
 `visible` (the focused label is on screen), `highlighted` (rows with reverse
-video), `contains`, `lacks`, `order` (substrings in this order),
-`ticker`/`noTicker`, `notices`/`noNotices`, `writes` (every change an
+video), `highlightedText` (text every highlighted row holds), `contains`, `lacks`, `order` (substrings in this order),
+`ticker`/`noTicker`, `notices`/`noNotices`, `styled` (text → `#RRGGBB`, or `!#RRGGBB`, for the styled run the text starts: cell-exact where `colored` is row-wide), `writes` (every change an
 editable tree wrote, `TreeChange.String`, in order; `[]` none). A story with no final expect is
 compared with `<name>.golden`: the frame in the mono theme, each row behind a
 gutter that reads `R|` when the row has reverse video and ` |` otherwise.
@@ -78,8 +102,8 @@ gutter that reads `R|` when the row has reverse video and ` |` otherwise.
 Chrome: `full` is the whole shell at width x height. `none` cuts the page
 body out of a shell made exactly as much larger as its chrome, so a
 one-component story shows that component and nothing else. `ticker-only`
-draws the model's ticker rows alone (the ticker is the model's chrome, so
-this is the simplest honest strip).
+draws the ticker alone: the rule line above the footer, where the ticker
+rides, cut out of a full shell (give the story height 1).
 
 ### The page builder and the demo noun
 
@@ -88,7 +112,12 @@ One builder (`story.Build`) makes every page; the only application noun is
 page: `q` quits (leaves the story), `r` resets it, `enter` opens a row
 (attaches the fake pane on the terminal's attach row), `n` adds a notice,
 `x` deletes the row behind a confirm (`Delete {{label}}?`), and each job
-spec adds `demo.<name>` with its keys. `demo.ping` is for the palette.
+spec adds `demo.<name>` with its keys. `demo.ping` is for the palette. A `commands`
+page is the exception: it is `cli.AddCommands` itself, its rows of the
+`command` noun (`enter` runs, `i` help, `x` stop), its runs fake panes.
+A `catalog` page is the other: it is `cli.MountPage` itself, its rows of
+the catalog's nouns (no verbs unless a list lists them; `q` on the page quits), its loads served
+from `answers`.
 
 ### The fakes
 
@@ -97,7 +126,7 @@ spec adds `demo.<name>` with its keys. `demo.ping` is for the palette.
   queues one frame and the pane hands them out in order, so frames depend on
   event order only.
 - **Job**: `demo.<name>` runs until its `finishOnKey` (or `failOnKey`) is
-  pressed, so ticker stories need no daemon.
+  pressed, so ticker stories need no daemon; `label` is its `Result.Label`.
 
 ## The TUI
 
@@ -180,9 +209,13 @@ story before it is fixed.
 data nouns `story` (list, show, run, state), `recording` (list, show), `verb`
 and `edge` (list, the rows of `o-story verbs`). Every list returns
 `{id, label, data}` rows; `story state` prints all of them as JSON Lines.
+The `story` noun declares its table (`storyColumns`: story, area, size,
+steps, gap) and its rows carry `cells`, so `--format table` and nabe show
+the same columns the TUI index draws (each area a table without the area
+column, size then steps dropping first as the terminal narrows).
 
 ```
-o-story story list               # id AREA/NAME, data {area, size, chrome, steps, skipped, expect?}
+o-story story list               # id AREA/NAME, data {area, size, chrome, steps, skipped, expect?}, cells
 o-story story run --target lists/lone-list
 o-story recording show --target recording/1
 o-story story state              # {"noun":"verb","id":"verb/normal/list.move",...} per line
@@ -212,37 +245,59 @@ Conformance:
 
 | mode | noun | verbs |
 |---|---|---|
-| insert | input | `input.insert` |
+| count_pending | count | `count.append` |
+| insert | chooser | `chooser.cancel` `chooser.move` `chooser.pick` |
+| insert | form | `form.next` |
+| insert | input | `input.insert` `input.kill` |
 | insert | mode | `mode.set` |
 | insert | outline | `outline.indent` `outline.leave` |
 | insert | palette | `palette.move` `palette.run` |
+| insert | setting-value | `setting-value.commit` |
 | normal | bindings | `bindings.help` |
+| normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
-| normal | demo | `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.notify` `demo.open` `demo.reload` `demo.ship` |
-| normal | focus | `focus.next` `focus.previous` |
+| normal | demo | `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.launch` `demo.notify` `demo.open` `demo.reload` `demo.ship` |
+| normal | detail | `detail.scroll` |
+| normal | focus | `focus.next` `focus.previous` `focus.set` |
+| normal | form | `form.choose` `form.leave` `form.next` `form.redo` `form.suggest` `form.undo` |
+| normal | form-option | `form-option.pick` |
 | normal | input | `input.begin` |
 | normal | list | `list.move` |
 | normal | modal | `modal.pop` |
+| normal | mode | `mode.enter` |
 | normal | notice | `notice.clear` |
-| normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.indent` `outline.paste` `outline.redo` `outline.undo` |
-| normal | page | `page.next` `page.previous` |
+| normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.indent` `outline.move` `outline.paste` `outline.redo` `outline.undo` |
+| normal | page | `page.next` `page.pick` `page.previous` |
 | normal | palette | `palette.open` |
+| normal | setting | `setting.cycle` `setting.edit` `setting.reset` |
+| normal | settings | `settings.edit` |
 | normal | surface | `surface.scroll` |
 | terminal | mode | `mode.enter` |
 | terminal | terminal | `terminal.detach` `terminal.send` |
 
 Mode edges (from → to via):
 
+- `count_pending` → `normal` via `detail.scroll`
+- `count_pending` → `normal` via `list.move`
+- `insert` → `normal` via `chooser.cancel`
+- `insert` → `normal` via `chooser.pick`
 - `insert` → `normal` via `mode.set`
 - `insert` → `normal` via `outline.leave`
 - `insert` → `normal` via `palette.run`
 - `insert` → `normal` via `row esc`
+- `insert` → `normal` via `setting-value.commit`
 - `leader_pending` → `normal` via `terminal.detach`
+- `leader_pending` → `terminal` via `terminal.send`
+- `normal` → `count_pending` via `mode.enter`
+- `normal` → `insert` via `form.suggest`
 - `normal` → `insert` via `input.begin`
 - `normal` → `insert` via `outline.add`
 - `normal` → `insert` via `outline.edit`
+- `normal` → `insert` via `page.pick`
 - `normal` → `insert` via `palette.open`
+- `normal` → `insert` via `setting.edit`
 - `normal` → `normal d` via `row d`
+- `normal` → `terminal` via `command.run`
 - `normal` → `terminal` via `demo.open`
 - `normal d` → `normal` via `outline.delete`
 - `terminal` → `leader_pending` via `mode.enter`

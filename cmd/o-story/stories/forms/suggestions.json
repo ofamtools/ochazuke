@@ -1,0 +1,82 @@
+{
+  "name": "form: a free field with suggestions types freely, enter opens the chooser over them, a pick fills the field",
+  "area": "forms",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "records": [
+      {
+        "id": "tool",
+        "fields": [
+          {
+            "name": "model",
+            "type": "string",
+            "free": true,
+            "enum": [
+              "opus",
+              "sonnet",
+              "haiku"
+            ]
+          },
+          {
+            "name": "title",
+            "type": "string"
+          }
+        ],
+        "values": {
+          "model": "opus"
+        }
+      }
+    ],
+    "focus": "tool/model"
+  },
+  "script": [
+    "A",
+    "ctrl+u",
+    {
+      "type": "gpt-x"
+    },
+    "esc",
+    "enter",
+    {
+      "type": "hai"
+    },
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 4,
+      "focus": "tool/model",
+      "contains": [
+        "gpt-x"
+      ],
+      "writes": [
+        "write model=gpt-x"
+      ]
+    },
+    {
+      "after": 5,
+      "modal": "form-suggestions",
+      "contains": [
+        "Suggest model",
+        "sonnet",
+        "haiku"
+      ]
+    },
+    {
+      "modal": "",
+      "focus": "tool/model",
+      "contains": [
+        "haiku"
+      ],
+      "writes": [
+        "write model=gpt-x",
+        "write model=haiku"
+      ]
+    }
+  ]
+}

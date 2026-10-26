@@ -58,7 +58,7 @@
         │                                                 register     │
         │                                                 typed next   │
         │                                                 (@a), count  │
-        │ 1–11 / 31                                                    │
+        │ 1–11 / 32                                                    │
         │ space list.mark · esc modal.pop · : palette.open · ? bindin… │
         ╰──────────────────────────────────────────────────────────────╯
 

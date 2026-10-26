@@ -328,6 +328,18 @@ func (b *NounBuilder) Quiet() *NounBuilder {
 	return b
 }
 
+// PersistArgs marks the last declared verb's text-like arguments as safe
+// to keep in the history file (Operation.PersistArgs).
+func (b *NounBuilder) PersistArgs() *NounBuilder {
+	if b.last == "" {
+		panic("PersistArgs must follow Verb")
+	}
+	op := b.r.Operations[b.last]
+	op.PersistArgs = true
+	b.r.Operations[b.last] = op
+	return b
+}
+
 // Motion marks the last declared verb as a motion (Operation.Motion): the
 // footer leaves its rows to ? help, as it does for list.move.
 func (b *NounBuilder) Motion() *NounBuilder {
@@ -858,6 +870,20 @@ func textKey(ch rune) string {
 // isBlackHole reports whether a register name is the black-hole register,
 // which stores nothing and reads empty.
 func isBlackHole(name string) bool { return name == "_" }
+
+// leaderKey reports whether a key name can be a terminal leader: one
+// ctrl+ or alt+ combination, so no text the pane needs is taken.
+func leaderKey(key string) bool {
+	if strings.ContainsAny(key, " \t") {
+		return false
+	}
+	for _, mod := range []string{"ctrl+", "alt+"} {
+		if rest, ok := strings.CutPrefix(key, mod); ok && rest != "" {
+			return true
+		}
+	}
+	return false
+}
 
 // printableKey reports whether a key name is text the editor inserts as-is.
 func printableKey(key string) bool {

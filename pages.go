@@ -19,6 +19,15 @@ type Page struct {
 	Focus      string                         `json:"focus"`
 	Remembered string                         `json:"remembered"`
 	Render     func(*Runtime, int, int) Block `json:"-"`
+	// OnOpen, when set, runs on the loop each time OpenPage makes this page
+	// current from another page (or from none: the first page opened), after
+	// the focus and mode are restored; from is the page left, "" for none.
+	// Reopening the current page does not run it. An application refreshes
+	// what the page shows here (SetItems, or Launch a reload job owned by
+	// one of its instances) instead of polling. Every way a page opens goes
+	// through OpenPage: page.open, page.next/previous, ctrl+j/k, the page
+	// picker.
+	OnOpen func(r *Runtime, from string) `json:"-"`
 	// Scrolloff is how many lines the page keeps visible above and below
 	// the focused element when it scrolls to follow the focus: 0 means the
 	// default, 2; a negative value keeps no margin.
@@ -121,8 +130,10 @@ func (p *Page) focusLines(r *Runtime, focus string) (top, bottom int, ok bool) {
 // motions follow the screen as drawn and cannot drift from it. List, Input
 // (InputBlock), Terminal and grid views call it; a component of the
 // application's own calls it from its view. Outside a page render it does
-// nothing. There is no other way to order stops: an instance no frame drew
-// follows the drawn ones in tree order.
+// nothing. There is no other way to order stops: before the first frame the
+// order is the tree's, and once a frame drew any stop, a stop the last
+// frame did not draw is skipped (it is not on screen). A stop drawn by an
+// application view that never calls Placed is therefore skipped too.
 func (r *Runtime) Placed(id string) {
 	if page := r.renderingPage(id); page != nil {
 		page.drawing = append(page.drawing, Placement{ID: id, Line: -1})
@@ -230,6 +241,8 @@ func (r *Runtime) RegisterPage(page *Page, opts ...InstanceOption) error {
 	inst := r.Instance(page.ID, append([]InstanceOption{Kind("page")}, opts...)...)
 	inst.Component = page
 	page.Remembered = page.Focus
+	// A page that starts on a row starts with that row selected.
+	r.selectFocusedRow(page.Focus)
 	if list := r.List(page.Focus); list != nil {
 		// A page that starts on a list starts on its selected row.
 		page.Remembered = list.focusTarget()
@@ -280,12 +293,17 @@ func (r *Runtime) OpenPage(id string) error {
 		page.Remembered, page.mode = page.ID, ModeState{}
 	}
 	r.Focus = page.Remembered
+	r.selectFocusedRow(r.Focus)
+	left := r.Page
 	r.Page = id
 	if page.mode.Name != "" {
 		r.rememberLeaving(path, r.Focus)
 		r.restoreMode(page.mode, path)
 	} else if r.Focus != from {
 		r.focusMoved(stop, path, r.Focus)
+	}
+	if page.OnOpen != nil && left != id {
+		page.OnOpen(r, left)
 	}
 	return nil
 }
@@ -325,6 +343,13 @@ func registerPages(r *Runtime) {
 		err := r.OpenPage(StringArg(a, "id", ""))
 		return r.Context(), err
 	}})
+	r.Register(Operation{Verb: "pick", Noun: "page", Description: "Choose a page from all pages in registration order: type to filter, enter opens", Result: "chooser state", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		chooser, err := r.OpenPagePicker()
+		if err != nil {
+			return nil, err
+		}
+		return chooser.state(), nil
+	}})
 	r.Register(Operation{Verb: "next", Noun: "page", Description: "Open the next page, wrapping in registration order", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		err := r.movePage(1)
 		return r.Context(), err
@@ -333,4 +358,34 @@ func registerPages(r *Runtime) {
 		err := r.movePage(-1)
 		return r.Context(), err
 	}})
+}
+
+// pagePickerID is the page picker's modal kind.
+const pagePickerID = "page-picker"
+
+// OpenPagePicker opens the page chooser (page.pick): every page in
+// registration order, filtered by title as the query is typed; enter opens
+// the highlighted page, esc closes.
+func (r *Runtime) OpenPagePicker() (*Chooser, error) {
+	pages := r.PageList()
+	rows := make([]ChooserRow, 0, len(pages))
+	for _, page := range pages {
+		label := page.Title
+		if label == "" {
+			label = page.ID
+		}
+		rows = append(rows, ChooserRow{ID: page.ID, Label: label})
+	}
+	return r.OpenChooser(ChooserSpec{
+		Kind:  pagePickerID,
+		Title: "Pages",
+		Rows:  rows,
+		Empty: "no pages",
+		Choose: func(row ChooserRow) Result {
+			if err := r.OpenPage(row.ID); err != nil {
+				return Failed(err)
+			}
+			return Done(r.Context())
+		},
+	})
 }

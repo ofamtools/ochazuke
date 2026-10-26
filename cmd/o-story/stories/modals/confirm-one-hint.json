@@ -1,0 +1,32 @@
+{
+  "name": "the confirm modal names its keys once, from its rows",
+  "area": "modals",
+  "page": {
+    "focus": "a2",
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3,
+        "labels": [
+          "alpha",
+          "beta",
+          "gamma"
+        ]
+      }
+    ]
+  },
+  "script": [
+    "x"
+  ],
+  "expect": {
+    "modal": "confirm",
+    "contains": [
+      "Delete beta?",
+      "│ y confirm.accept · n modal.pop │"
+    ],
+    "lacks": [
+      "y yes",
+      "key.ignore"
+    ]
+  }
+}

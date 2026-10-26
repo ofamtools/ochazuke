@@ -1,0 +1,59 @@
+{
+  "name": "x stops a run after a confirm and is offered only while one exists",
+  "area": "commands",
+  "width": 100,
+  "height": 16,
+  "page": {
+    "title": "Commands",
+    "commands": {
+      "entries": [
+        {
+          "name": "greet",
+          "kind": "inline",
+          "summary": "say hello",
+          "source": "main.go:12",
+          "help": "usage: hello greet [NAME]\n\nsay hello"
+        },
+        {
+          "name": "web",
+          "kind": "external",
+          "summary": "hello-web on PATH",
+          "source": "/bin/hello-web"
+        }
+      ],
+      "help": {
+        "web": "usage: hello web [PORT]"
+      }
+    }
+  },
+  "script": [
+    "enter",
+    {
+      "tick": "terminal"
+    },
+    "ctrl+a",
+    "d",
+    "x",
+    "y"
+  ],
+  "expect": [
+    {
+      "after": 5,
+      "contains": [
+        "Stop greet?"
+      ]
+    },
+    {
+      "focus": "command:greet",
+      "mode": "normal",
+      "contains": [
+        "greet · help",
+        "usage: hello greet [NAME]"
+      ],
+      "lacks": [
+        "x command.stop",
+        "fake pane"
+      ]
+    }
+  ]
+}

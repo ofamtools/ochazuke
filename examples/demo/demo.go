@@ -1,4 +1,4 @@
-// Package demo is the runnable example behind `ochazuke run`: four pages, nested
+// Package demo is the runnable example behind `ochazuke run`: six pages, nested
 // draft modals, the picker and the keyboard guide, built only from the public
 // API. The framework package holds no application pages.
 package demo
@@ -6,11 +6,14 @@ package demo
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"sort"
+	"strconv"
 	"strings"
 	"unicode"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/unixsuperhero/ochazuke"
 )
 
@@ -18,8 +21,20 @@ import (
 // fresh runtime. None of these page names are required by the framework.
 func New() *ochazuke.Model {
 	r := ochazuke.NewRuntime()
-	for _, id := range []string{"overview", "playground", "commands", "appearance", "help"} {
+	for _, id := range []string{"overview", "playground", "commands", "appearance", "library", "task", "help"} {
 		r.Instance(id)
+	}
+	r.Define("entry")
+	entries, err := r.AddList("library/entries", libraryItems(), ochazuke.Parent("library"))
+	if err != nil {
+		panic(err)
+	}
+	detail, err := r.AddDetail("library/detail", func() string {
+		selected, _ := entries.Selected()
+		return selected.ID
+	}, ochazuke.Parent("library"))
+	if err != nil {
+		panic(err)
 	}
 	r.Instance("agent", ochazuke.Parent("playground"))
 	for _, item := range []struct {
@@ -44,6 +59,7 @@ func New() *ochazuke.Model {
 	}
 	var m *ochazuke.Model
 	lastNoun := ""
+	task := &demoTask{stored: ochazuke.Record{"title": "Water the plants", "status": "todo", "estimate": "2"}}
 	for _, spec := range []struct {
 		id, title, focus string
 		render           func(*ochazuke.Runtime, int, int) ochazuke.Block
@@ -52,6 +68,8 @@ func New() *ochazuke.Model {
 		{"playground", "Playground", "directory", func(r *ochazuke.Runtime, w, h int) ochazuke.Block { return demoPlayground(m, w, h, lastNoun) }},
 		{"commands", "Commands", "commands", func(r *ochazuke.Runtime, w, h int) ochazuke.Block { return ochazuke.Text(demoCommands(m, w)) }},
 		{"appearance", "Appearance", "appearance", func(r *ochazuke.Runtime, w, h int) ochazuke.Block { return ochazuke.Text(demoAppearance(m, w)) }},
+		{"library", "Library", "library/entries", func(r *ochazuke.Runtime, w, h int) ochazuke.Block { return demoLibrary(m, entries, detail, w, h) }},
+		{"task", "Record", "task", func(r *ochazuke.Runtime, w, h int) ochazuke.Block { return task.view(m, w, h) }},
 	} {
 		if _, err := r.AddPage(spec.id, spec.title, spec.render, ochazuke.Focus(spec.focus)); err != nil {
 			panic(err)
@@ -120,22 +138,48 @@ func New() *ochazuke.Model {
 		err := r.Push("help", "help")
 		return r.Context(), err
 	})
-	register("cycle", "theme", "Cycle through the available default themes", nil, func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
-		themes := []string{"adaptive", "dark", "light", "mono"}
+	// Theme and density are user settings: settings.json keeps them across
+	// runs, settings.edit (s on the Appearance page) edits them in place,
+	// and t and d step them. theme is the framework's setting (its choices
+	// are the built-in themes and the user's themes.json), declared here so
+	// it exists before the Model starts; the Model applies it. density is
+	// the demo's own: the observer applies every change, wherever it came
+	// from (the editor, d, the CLI's settings set).
+	r.EnsureConfigSettings()
+	if err := r.DeclareSetting(
+		ochazuke.Setting{Name: "density", Type: ochazuke.SettingString, Default: "comfortable", Description: "Spacing", Enum: []string{"comfortable", "compact"}},
+	); err != nil {
+		panic(err)
+	}
+	applyDensity := func(_ string, value any) {
+		_, _ = r.Execute(ochazuke.Request{Verb: "set", Noun: "appearance", Args: ochazuke.Arguments{"density": value}})
+	}
+	r.Settings().Observe("density", applyDensity)
+	applyDensity("density", r.Settings().String("density"))
+	register("cycle", "theme", "Cycle through the colour schemes: the built-in themes, then themes.json's", nil, func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
+		themes := m.Appearance.ThemeNames()
 		next := 0
 		for i, name := range themes {
 			if name == m.Appearance.Theme {
 				next = (i + 1) % len(themes)
 			}
 		}
-		return r.ExecuteAt(c, ochazuke.Request{Verb: "set", Noun: "appearance", Args: ochazuke.Arguments{"theme": themes[next]}})
+		return r.ExecuteAt(c, ochazuke.Request{Verb: "set", Noun: "settings", Args: ochazuke.Arguments{"name": "theme", "value": themes[next]}})
+	})
+	register("cycle", "accent", "Toggle an orange accent over the theme (Appearance.Accent), as an app does for a pin state", nil, func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
+		if m.Appearance.Accent != nil {
+			m.Appearance.Accent = nil
+			return "theme", nil
+		}
+		m.Appearance.Accent = lipgloss.Color(demoAccent)
+		return demoAccent, nil
 	})
 	register("cycle", "density", "Toggle comfortable and compact spacing", nil, func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
 		density := "compact"
 		if m.Appearance.Density == "compact" {
 			density = "comfortable"
 		}
-		return r.ExecuteAt(c, ochazuke.Request{Verb: "set", Noun: "appearance", Args: ochazuke.Arguments{"density": density}})
+		return r.ExecuteAt(c, ochazuke.Request{Verb: "set", Noun: "settings", Args: ochazuke.Arguments{"name": "density", "value": density}})
 	})
 	// bind puts a row on a noun, or on an input instance when id names one.
 	bind := func(id, mode, key, verb, noun string, args ochazuke.Arguments) {
@@ -169,10 +213,86 @@ func New() *ochazuke.Model {
 	bind("playground", "normal", "ctrl+x", "inspect", "selection", nil)
 	bind("appearance", "normal", "t", "cycle", "theme", nil)
 	bind("appearance", "normal", "d", "cycle", "density", nil)
+	bind("appearance", "normal", "s", "edit", "settings", nil)
+	bind("appearance", "normal", "a", "cycle", "accent", nil)
+	r.Define("task").Verb("edit", func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
+		return nil, task.edit(r)
+	}, "Edit the sample record again")
+	bind("task", "normal", "e", "edit", "task", nil)
+	if err := task.edit(r); err != nil {
+		panic(err)
+	}
 	if err := r.OpenPage("overview"); err != nil {
 		panic(err)
 	}
 	return m
+}
+
+// demoTask is the Record page's application state: the stored record (the
+// demo's "database") and the editor over it while it is open.
+type demoTask struct {
+	stored ochazuke.Record
+	writes int
+	editor *ochazuke.RecordEditor
+}
+
+// taskFields is the record's schema: a required title, a status chosen
+// from three, a whole-number estimate that must be under 100, and notes.
+func taskFields() []ochazuke.RecordField {
+	return []ochazuke.RecordField{
+		{Name: "title", Parameter: ochazuke.Parameter{Type: "string", Required: true}},
+		{Name: "status", Parameter: ochazuke.Parameter{Type: "string", Required: true, Enum: []string{"todo", "doing", "done"}}},
+		{Name: "estimate", Label: "estimate (hours)", Parameter: ochazuke.Parameter{Type: "integer"}, Validate: func(v string) error {
+			if n, err := strconv.Atoi(v); err == nil && n >= 100 {
+				return errors.New("under 100")
+			}
+			return nil
+		}},
+		{Name: "notes", Multiline: true},
+	}
+}
+
+// edit opens the record editor on the Record page; leaving it keeps the
+// page, which offers e to edit again.
+func (t *demoTask) edit(r *ochazuke.Runtime) error {
+	if t.editor != nil && !t.editor.Closed() {
+		return t.editor.Focus()
+	}
+	ed, err := r.AddRecordEditor("task-form", ochazuke.RecordSpec{
+		Fields: taskFields(),
+		Load:   func() (ochazuke.Record, error) { return maps.Clone(t.stored), nil },
+		Save: func(w ochazuke.RecordWrite) ochazuke.Result {
+			t.stored = maps.Clone(w.Values)
+			t.writes++
+			return ochazuke.Done(nil)
+		},
+	}, ochazuke.Parent("task"), ochazuke.FocusOnClose("task"))
+	if err != nil {
+		return err
+	}
+	t.editor = ed
+	if r.Page != "task" {
+		// The page opens on the first field.
+		r.PageOf("task").Remembered = ed.FocusTarget()
+		return nil
+	}
+	return ed.Focus()
+}
+
+func (t *demoTask) view(m *ochazuke.Model, width, height int) ochazuke.Block {
+	s := ochazuke.NewStyles(*m.Appearance)
+	head := s.Title.Render("Record editor") + "\n" + s.Muted.Render("Every change is written as you type; there is no save key.") + "\n\n"
+	var stored []string
+	for _, f := range taskFields() {
+		stored = append(stored, f.Name+"="+strconv.Quote(t.stored[f.Name]))
+	}
+	foot := "\n\n" + s.Muted.Render(ansi.Truncate(fmt.Sprintf("stored (%d writes): %s", t.writes, strings.Join(stored, " ")), width, "…"))
+	if t.editor == nil || t.editor.Closed() {
+		return ochazuke.Text(head + s.Muted.Render("The editor is closed; e edits the record again.") + foot)
+	}
+	t.editor.Styles = s
+	block := t.editor.Block(width, max(1, height-6))
+	return block.Offset(0, 3).WithText(head + block.Text + foot)
 }
 
 func demoOverview(m *ochazuke.Model, width int) string {
@@ -181,7 +301,7 @@ func demoOverview(m *ochazuke.Model, width int) string {
 	b.WriteString(s.Title.Render("A framework. Your application.") + "\n")
 	b.WriteString(s.Muted.Render("Pages keep their place. Actions share one interface.") + "\n\n")
 	for _, page := range m.Runtime.PageList() {
-		descriptions := map[string]string{"overview": "Start here: navigation and the framework's structure.", "playground": "Edit text, branch undo history, and open nested modals.", "commands": "Inspect real operations, argument schemas, and bindings.", "appearance": "Change the live theme and spacing defaults."}
+		descriptions := map[string]string{"overview": "Start here: navigation and the framework's structure.", "playground": "Edit text, branch undo history, and open nested modals.", "commands": "Inspect real operations, argument schemas, and bindings.", "appearance": "Change the live theme and spacing defaults.", "task": "Edit a record written as you type: choices, undo, no save key."}
 		fmt.Fprintf(&b, "%s\n  %s\n\n", s.Subtitle.Render(page.Title), s.Muted.Render(descriptions[page.ID]))
 	}
 	b.WriteString(s.Panel.Width(max(1, width-2)).Render("TRY IT\nCtrl-J → i → type → Escape → u\nCtrl-N opens a modal without replacing the page.\n: searches the same actions available through the CLI."))
@@ -273,13 +393,91 @@ func demoCommands(m *ochazuke.Model, width int) string {
 }
 func demoAppearance(m *ochazuke.Model, width int) string {
 	s := ochazuke.NewStyles(*m.Appearance)
+	accent := "theme"
+	if m.Appearance.Accent != nil {
+		accent = demoAccent
+	}
 	panel := s.Panel.Width(max(1, width-2))
 	return s.Title.Render("Make it feel like your terminal") + "\n" + s.Muted.Render("These settings apply to every page and modal immediately.") + "\n\n" +
-		panel.Render(s.Subtitle.Render("Theme   ")+s.Accent.Render(m.Appearance.Theme)+"\nAdaptive · Dark · Light · Mono\n\n"+s.Subtitle.Render("Density ")+s.Accent.Render(m.Appearance.Density)+"\nComfortable · Compact") + "\n\n" +
-		s.Accent.Render("t") + " cycle theme    " + s.Accent.Render("d") + " toggle density\n\n" +
+		panel.Render(s.Subtitle.Render("Theme   ")+s.Accent.Render(m.Appearance.Theme)+"\nAdaptive · Dark · Light · Mono\n\n"+s.Subtitle.Render("Density ")+s.Accent.Render(m.Appearance.Density)+"\nComfortable · Compact\n\n"+s.Subtitle.Render("Accent  ")+s.Accent.Render(accent)+"\nThe theme's, or an override (mono stays colourless)") + "\n\n" +
+		s.Accent.Render("t") + " cycle theme    " + s.Accent.Render("d") + " toggle density    " + s.Accent.Render("a") + " toggle accent    " + s.Accent.Render("s") + " edit settings\n" +
+		s.Muted.Render("Saved in settings.json as you change them: "+settingsPath(m.Runtime)) + "\n\n" +
 		s.FocusedPanel.Width(max(1, width-2)).Render("Focused surface\n"+s.Muted.Render("Muted context stays readable.")+"  "+s.Badge.Render("NORMAL")) + "\n\n" +
-		s.Muted.Render("Palette: set → appearance\nCLI: appearance set --json '{\"theme\":\"mono\",\"density\":\"compact\"}'")
+		s.Muted.Render("Palette: settings set theme mono\nCLI: settings set theme mono")
 }
+
+// settingsPath is where the settings live, or why they do not persist.
+func settingsPath(r *ochazuke.Runtime) string {
+	if path := r.Config().Path(ochazuke.SettingsFile); path != "" {
+		return path
+	}
+	return "(no config directory: this session only)"
+}
+
+// libraryEntries are the Library page's rows and the long text each one's
+// detail shows.
+var libraryEntries = []struct{ id, title, text string }{
+	{"pages", "Pages", "A page is an instance under app. It remembers its focus and mode while another page is open, and its renderer draws the body for the cell bounds it is given."},
+	{"lists", "Lists", "List rows are instances of their nouns. The focused row's noun decides what keys mean, so a list of tasks and a list of files answer different verbs to the same key."},
+	{"modals", "Modals", "A modal opens over the focus and gives it back when it closes. Keys inside a modal never reach the page beneath it, and the page stays drawn, dimmed, behind it."},
+	{"details", "Details", "A detail is the text beside a list about its selected row. J and K scroll it a line while the list keeps the focus; counts work, so 10J moves ten lines. A new row starts at the top."},
+}
+
+func libraryItems() []ochazuke.ListItem {
+	items := make([]ochazuke.ListItem, 0, len(libraryEntries))
+	for _, e := range libraryEntries {
+		items = append(items, ochazuke.ListItem{ID: e.id, Label: e.title, Noun: "entry"})
+	}
+	return items
+}
+
+// libraryText is a long detail: the entry's summary, then numbered notes,
+// so every entry overflows a terminal-sized panel.
+func libraryText(id string) string {
+	for _, e := range libraryEntries {
+		if e.id != id {
+			continue
+		}
+		var b strings.Builder
+		b.WriteString(strings.ToUpper(e.title) + "\n\n" + e.text + "\n")
+		for i := 1; i <= 60; i++ {
+			fmt.Fprintf(&b, "\n%2d. %s note %d.", i, e.title, i)
+		}
+		return b.String()
+	}
+	return ""
+}
+
+// demoLibrary draws the entries on the left and the selected entry's
+// detail on the right (stacked below 72 columns), the detail's position
+// marker in its panel title when it overflows.
+func demoLibrary(m *ochazuke.Model, entries *ochazuke.List, detail *ochazuke.Detail, width, height int) ochazuke.Block {
+	layout := ochazuke.Layout{Styles: ochazuke.NewStyles(*m.Appearance)}
+	listPanel := func(w, h int) string {
+		cw, ch := ochazuke.PanelContentSize(w, h)
+		return layout.Panel("Entries", entries.View(cw, ch), w, h, entries.Focused())
+	}
+	detailPanel := func(w, h int) string {
+		cw, ch := ochazuke.PanelContentSize(w, h)
+		selected, _ := entries.Selected()
+		body, marker := detail.Window(libraryText(selected.ID), cw, ch)
+		title := "Detail"
+		if marker != "" {
+			title += " · " + marker
+		}
+		return layout.Panel(title, body, w, h, false)
+	}
+	if width >= 72 {
+		left := (width - 1) * 2 / 5
+		return ochazuke.Text(lipgloss.JoinHorizontal(lipgloss.Top, listPanel(left, height), " ", detailPanel(width-left-1, height)))
+	}
+	top := min(len(libraryEntries)+2, height/2)
+	return ochazuke.Text(listPanel(width, top) + "\n" + detailPanel(width, height-top))
+}
+
+// demoAccent is the override the Appearance page toggles: the orange an
+// application might use for "showing everything".
+const demoAccent = "#E8833A"
 
 // focusOf is the instance a handler context addresses.
 func focusOf(c ochazuke.Context) string {

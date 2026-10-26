@@ -111,6 +111,53 @@ func (r *Runtime) Choices(c Context, p Parameter) ([]Choice, error) {
 	return append(out, more...), nil
 }
 
+// loadChoices lists a parameter's choices like Choices without blocking
+// the loop on an application Source: its Enum, then the Source's result,
+// where a Source verb that returns Pending runs off the loop as a job of
+// owner (closing owner cancels it) and done runs when it lands. done runs
+// at once when nothing is pending, and never for a cancelled load; it
+// reports whether a load is in flight.
+func (r *Runtime) loadChoices(c Context, p Parameter, owner string, done func([]Choice, error)) bool {
+	var enum []Choice
+	for _, id := range p.Enum {
+		enum = append(enum, Choice{ID: id, Label: id})
+	}
+	op, ok := r.Operations[p.Source]
+	if p.Source == "" || !ok || op.App == nil || op.Confirm != "" {
+		choices, err := r.Choices(c, p)
+		done(choices, err)
+		return false
+	}
+	parse := func(value any, err error) ([]Choice, error) {
+		if err != nil {
+			return enum, fmt.Errorf("choices source %q: %w", p.Source, err)
+		}
+		more, err := ParseChoices(value)
+		if err != nil {
+			return enum, fmt.Errorf("choices source %q: %w", p.Source, err)
+		}
+		return append(slices.Clone(enum), more...), nil
+	}
+	ctx := Ctx{Runtime: r, Context: c, Instance: r.Instances[focusOf(c)]}
+	res := op.App(ctx)
+	if res.err != nil || res.work == nil {
+		done(parse(res.value, res.err))
+		return false
+	}
+	inner := res.then
+	res = res.Then(func(c Ctx, value any, err error) {
+		if inner != nil {
+			inner(c, value, err)
+		}
+		done(parse(value, err))
+	})
+	if _, err := r.Launch(owner, op.Key(), res, ctx); err != nil {
+		done(enum, fmt.Errorf("choices source %q: %w", p.Source, err))
+		return false
+	}
+	return true
+}
+
 // ArgumentError is a request refused for its arguments (a missing required
 // one, a wrong type, a value outside the enum or the source's choices)
 // before any instance was chosen, so a caller never blames the target for

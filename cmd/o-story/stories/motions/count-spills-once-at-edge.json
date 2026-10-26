@@ -1,0 +1,34 @@
+{
+  "name": "a count on the last row spills to the next stop as one move",
+  "area": "motions",
+  "page": {
+    "order": [
+      "a",
+      "b"
+    ],
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      },
+      {
+        "id": "b",
+        "rows": 3
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "5",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "a2"
+    },
+    {
+      "focus": "b1"
+    }
+  ]
+}

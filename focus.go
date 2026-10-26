@@ -173,7 +173,22 @@ func (r *Runtime) setFocus(id string) {
 	r.CancelPendingBinding()
 	stop, path := r.stopOf(from), r.Ancestry(from)
 	r.Focus = id
+	r.selectFocusedRow(id)
 	r.focusMoved(stop, path, id)
+}
+
+// selectFocusedRow makes a focused list row its list's selection (by its
+// stable id), so the highlight, List.Selected and the keys that answer
+// agree however the focus got there: focus.set, RetargetFocus, a jump, a
+// FocusOnClose landing. Moving within the list already selects first.
+func (r *Runtime) selectFocusedRow(id string) {
+	inst := r.Instances[id]
+	if inst == nil {
+		return
+	}
+	if l := r.List(inst.Parent); l != nil {
+		l.selectID(id)
+	}
 }
 
 // errModalAbove refuses a modal opened from beneath the top modal.
@@ -405,6 +420,7 @@ func (r *Runtime) Pop() error {
 	}
 	back = r.clampFocus(back)
 	r.Focus = back
+	r.selectFocusedRow(back)
 	r.rememberLeaving(path, back)
 	if mode.Name == "" {
 		r.focusMoved(stop, path, back)
@@ -416,12 +432,22 @@ func (r *Runtime) Pop() error {
 
 // subtree lists id and its descendants, descendants first.
 func (r *Runtime) subtree(id string) []string {
-	kids := r.childIndex()
+	return r.subtreeFrom(id, r.childIndex())
+}
+
+// subtreeFrom is subtree over a childIndex taken earlier: a removal of many
+// instances (SetItems dropping rows) takes the index once instead of
+// scanning every instance per removal. A child the index lists is walked
+// only while it is still registered under that parent, so an index taken
+// before earlier removals and reparentings in the same batch stays exact.
+func (r *Runtime) subtreeFrom(id string, kids map[string][]*Instance) []string {
 	var out []string
 	var walk func(string)
 	walk = func(id string) {
 		for _, child := range kids[id] {
-			walk(child.ID)
+			if r.Instances[child.ID] == child && child.Parent == id {
+				walk(child.ID)
+			}
 		}
 		out = append(out, id)
 	}
@@ -471,6 +497,25 @@ func (r *Runtime) dropSubtree(id string) {
 // instance's FocusOnClose target when that survives); an open modal inside the subtree is
 // kept and reparented there. app cannot be removed.
 func (r *Runtime) RemoveInstance(id string) error {
+	return r.removeInstance(id, r.childIndex(), r.PageList())
+}
+
+// removeInstances is RemoveInstance of each id in order, with one
+// childIndex and one PageList for the whole batch: the instances removed
+// must not include a page (rows of a list, never app's children), so the
+// page list stays the same throughout. Errors are ignored, as SetItems
+// ignores them.
+func (r *Runtime) removeInstances(ids []string) {
+	if len(ids) == 0 {
+		return
+	}
+	kids, pages := r.childIndex(), r.PageList()
+	for _, id := range ids {
+		_ = r.removeInstance(id, kids, pages)
+	}
+}
+
+func (r *Runtime) removeInstance(id string, kids map[string][]*Instance, pages []*Page) error {
 	inst := r.Instances[id]
 	if inst == nil {
 		return fmt.Errorf("unknown instance %q", id)
@@ -480,7 +525,7 @@ func (r *Runtime) RemoveInstance(id string) error {
 	}
 	parent := inst.Parent
 	gone := map[string]bool{}
-	for _, one := range r.subtree(id) {
+	for _, one := range r.subtreeFrom(id, kids) {
 		if slices.Contains(r.modals, one) {
 			continue
 		}
@@ -499,7 +544,7 @@ func (r *Runtime) RemoveInstance(id string) error {
 			back = to
 		}
 	}
-	for _, page := range r.PageList() {
+	for _, page := range pages {
 		if gone[page.Remembered] {
 			page.Remembered, page.mode = parent, ModeState{}
 		}
@@ -509,7 +554,7 @@ func (r *Runtime) RemoveInstance(id string) error {
 			m.Payload.Return, m.returnMode = parent, ModeState{}
 		}
 	}
-	for _, one := range r.subtree(id) {
+	for _, one := range r.subtreeFrom(id, kids) {
 		if !gone[one] {
 			continue
 		}
@@ -521,6 +566,7 @@ func (r *Runtime) RemoveInstance(id string) error {
 		r.CancelPendingBinding()
 		back = r.clampFocus(back)
 		r.Focus = back
+		r.selectFocusedRow(back)
 		r.focusMoved(stop, path, back)
 	}
 	return nil
@@ -588,9 +634,11 @@ func (r *Runtime) region(id string) bool {
 // units lists the instances under root that unit accepts, without
 // descending into one, in drawing order: the order the page holding root
 // drew them in its last frame (Placed), a unit ranked by the first drawn
-// instance in its subtree. A unit the last frame did not draw (no frame yet,
-// added since, or drawn by no Placed call) follows the drawn ones in tree
-// order (children in added order, depth-first). order ranks every instance
+// instance in its subtree. Before the page's first frame (or in the CLI,
+// where none is drawn) every unit counts, in tree order (children in added
+// order, depth-first); once a frame drew any of them, a unit the last frame
+// did not draw (hidden, or drawn by no Placed call) is skipped, except in
+// a modal, whose stops the page frame never records. order ranks every instance
 // under root the same way. No map is iterated: the walk is the tree's and
 // the frame's slices.
 func (r *Runtime) units(root string, unit func(string) bool) (out []string, order map[string]int) {
@@ -624,8 +672,26 @@ func (r *Runtime) units(root string, unit func(string) bool) (out []string, orde
 			}
 		}
 	}
+	if len(drawn) > 0 && !r.insideModal(root) {
+		// Once the page has drawn a frame, a unit it did not draw is not
+		// on screen (a hidden panel, a collapsed pane): jumps and spills
+		// skip it rather than land the focus somewhere invisible.
+		out = slices.DeleteFunc(out, func(id string) bool { return order[id] >= len(drawn) })
+	}
 	slices.SortStableFunc(out, func(a, b string) int { return order[a] - order[b] })
 	return out, order
+}
+
+// insideModal reports whether id is an open modal or beneath one. A modal's
+// stops are not recorded in its page's frame, so they are never skipped as
+// undrawn.
+func (r *Runtime) insideModal(id string) bool {
+	for _, at := range r.Ancestry(id) {
+		if slices.Contains(r.modals, at) {
+			return true
+		}
+	}
+	return false
 }
 
 // drawnUnder is the last frame's drawing order of the page holding root

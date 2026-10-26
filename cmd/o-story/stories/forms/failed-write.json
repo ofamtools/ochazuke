@@ -1,0 +1,75 @@
+{
+  "name": "form: a failed write keeps the value, says so, and is retried at the next write",
+  "area": "forms",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "records": [
+      {
+        "id": "task",
+        "fields": [
+          {
+            "name": "title",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "status",
+            "type": "string",
+            "required": true,
+            "enum": [
+              "todo",
+              "doing",
+              "done"
+            ]
+          },
+          {
+            "name": "estimate",
+            "type": "integer"
+          },
+          {
+            "name": "notes",
+            "type": "string",
+            "multiline": true
+          }
+        ],
+        "values": {
+          "title": "buy milk",
+          "status": "todo"
+        },
+        "failWrites": 1
+      }
+    ],
+    "focus": "task/title"
+  },
+  "script": [
+    "A",
+    {
+      "type": "!"
+    },
+    "esc",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "contains": [
+        "buy milk!",
+        "! not saved: store unavailable"
+      ],
+      "writes": []
+    },
+    {
+      "lacks": [
+        "not saved"
+      ],
+      "writes": [
+        "write title=\"buy milk!\""
+      ]
+    }
+  ]
+}

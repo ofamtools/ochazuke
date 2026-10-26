@@ -74,7 +74,7 @@ Only `list`, `palette` and `terminal` are `Focusable` nouns, and any `*Input` co
 
 ```
 Model.View (model.go:375) -> Model.render (model.go:416)
-  header = { Title, Subtitle: page.Title, Tabs: pageTitles() }   // tabs in registration order (Children("app"))
+  header = { Title, Subtitle: page.Title, Tabs: pageTitles() }   // tabs in registration order (Children("app")); when they overflow, a window around the active tab with ‹N / N› hidden counts (Layout.tabs)
   beneath()                     // while a modal is open, the page draws with the focus under the modal
   pageContent -> page.render (pages.go:30) -> Page.Render(r,w,h)  // THE APP'S FUNCTION draws its children
        mtm renderWork (main.go:324): "projects (n)", projectList.View, "tasks: ...", taskList.View
@@ -94,6 +94,12 @@ A table is a `List` with columns, not another widget, so focus, selection, marks
 `List.View` on a table (`tableView`, table.go) draws a bold header line, then the rows at widths from `tableLayout`: a column with `Width` is fixed, a flexible one (`Width` 0) needs `Min` (default 10 cells, or its title's width when wider, never more than its widest cell) and grows toward its widest cell from the left while room is left; two spaces between columns. When the least widths do not fit, the column with the largest `Priority` drops (ties: the rightmost), until one is left, which is cut. Cells are cut at their display width with `…` (`ansi.Truncate`); `AlignRight` pads on the left. The focused list's selected row is reversed across the whole width; the `* ` mark gutter prefixes the header and every row while the list has a mark. The header takes one line of the list's height, and the selected row's placed line accounts for it, so the page's follow is unchanged.
 
 A noun declares its table with `NounBuilder.Columns(...)` (`Noun.Columns`): data only, never applied by the runtime. The CLI catalog carries it as `columns` on the noun (`cli.CatalogNoun.Columns`), state rows bring `cells` (`cli.Row.Cells`), and a host that mounts the noun's rows passes the columns to `Columns` (nabe does). Stories: `cmd/o-story/stories/tables/` (wide, narrow with dropped columns, truncation, empty, spill between a table and a plain list).
+
+### Details
+
+A detail is the read-only text beside (or below) a list about its selected row, which scrolls while the list keeps the focus. `AddDetail(id, item, Parent(page))` registers an instance of the `detail` noun whose component (`Detail`, detail.go) holds the offset, the item it belongs to and the last window's size; `Runtime` gains no field. `item` is a func naming what the detail shows now (the selected row's id). The page's `Render` draws it with `Detail.Window(text, width, height)`: the text is wrapped to the width, the window cut at the offset, and the marker (`12–40 / 300`) returned when it overflows, for the app to put in its panel title. A new item starts at the top, checked on every `Window` and every scroll, so `j` then `J` typed before the next frame scrolls the new row from its top; the same item keeps its offset while its text refreshes, clamped to the new length. A detail is not a focus stop.
+
+`J` and `K` are `app` rows in normal mode running `detail.scroll {lines: ±1}` with the count (`10J`), guarded by `detail-scrolls`: no modal is open, the page holding the focus has a detail (its first, in tree order) that overflowed in the last frame, and the focus is not inside it. Being on `app`, they are the same key on every page and stand aside for any inner noun that binds `J`/`K` (the outline's `outline.move`). `detail.scroll` is a motion, so it stays off the footer, except the `J` row's own hint, `J/K detail`, shown while the guard holds; `K` is hidden. Stories: `cmd/o-story/stories/detail/`.
 
 ## 5. Focus: stops, regions, rows
 

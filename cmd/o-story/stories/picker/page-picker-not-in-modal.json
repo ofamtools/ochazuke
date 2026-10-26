@@ -1,0 +1,15 @@
+{
+  "name": "' does not open the page picker over a modal (? help); esc, then ' does",
+  "area": "picker",
+  "width": 80,
+  "height": 16,
+  "pages": [
+    {"id": "p01", "title": "Alpha", "lists": [{"id": "l01", "rows": 1}]},
+    {"id": "p02", "title": "Bravo", "lists": [{"id": "l02", "rows": 1}]}
+  ],
+  "script": ["?", "'", "esc", "'"],
+  "expect": [
+    {"after": 2, "modal": "bindings-help", "lacks": ["Pages"]},
+    {"modal": "page-picker", "contains": ["Bravo"]}
+  ]
+}

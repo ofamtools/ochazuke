@@ -1,0 +1,11 @@
+#!/bin/sh
+# hello-web is an external command: oden finds it on PATH as "web".
+if [ "$1" = --help ]; then
+  echo "usage: hello web [PORT]"
+  echo
+  echo "Pretend to serve on PORT (default 8080) until interrupted."
+  exit 0
+fi
+echo "web: serving on :${1:-8080} (parent $ODEN_PARENT, root $ODEN_ROOT)"
+echo "press ctrl+c to stop"
+while :; do sleep 1; done

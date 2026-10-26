@@ -69,6 +69,7 @@ type Result struct {
 	then  func(Ctx, any, error)
 	slot  string
 	scope string
+	label string
 }
 
 // Done reports a synchronous result.
@@ -105,6 +106,12 @@ func (res Result) ReplacingAt(scope, slot string) Result {
 	return res
 }
 
+// Label names this job for people reading the jobs list: the ticker shows
+// it after the verb ("agent.launch claude running") and jobs.list carries
+// it. It says which of a verb's jobs this is (the program a launch starts,
+// the file a build writes); "" leaves the verb alone.
+func (res Result) Label(label string) Result { res.label = label; return res }
+
 // Then runs on the loop when the pending work's completion is delivered and
 // still current; it never runs for a stale or cancelled ticket.
 func (res Result) Then(fn func(Ctx, any, error)) Result { res.then = fn; return res }
@@ -126,6 +133,7 @@ type JobInfo struct {
 	Job     uint64    `json:"job"`
 	Owner   string    `json:"owner"`
 	Verb    string    `json:"verb"`
+	Label   string    `json:"label,omitempty"`
 	Slot    string    `json:"slot,omitempty"`
 	Scope   string    `json:"scope,omitempty"`
 	Started time.Time `json:"started"`
@@ -198,6 +206,7 @@ func (r *Runtime) Launch(owner, verb string, res Result, c Ctx) (Ticket, error) 
 			return nil
 		}
 	}
+	r.jobs[ticket.Job].Label = res.label
 	work := res.work
 	r.commands = append(r.commands, func() tea.Msg {
 		value, err := work(ctx)
@@ -451,6 +460,7 @@ const (
 func (r *Runtime) runApplication(op Operation, c Context, args Arguments) (any, error) {
 	inst := r.Instances[focusOf(c)]
 	ctx := Ctx{Runtime: r, Context: c, Args: args, Instance: inst}
+	ancestry := r.Ancestry(inst.ID)
 	res := op.App(ctx)
 	switch {
 	case res.err != nil:
@@ -458,7 +468,29 @@ func (r *Runtime) runApplication(op Operation, c Context, args Arguments) (any, 
 	case res.work == nil:
 		return res.value, nil
 	}
-	return r.Launch(inst.ID, op.Key(), res, ctx)
+	owner := inst.ID
+	if r.Instances[owner] == nil {
+		// The handler removed its own instance (a chooser's pick closes
+		// its modal, input and all, before Choose launches): the job
+		// belongs to the nearest instance that was above it and survives,
+		// the focus the modal opened over, so its completion still lands.
+		owner = r.survivor(ancestry)
+		if res.scope == inst.ID {
+			res.scope = owner
+		}
+	}
+	return r.Launch(owner, op.Key(), res, ctx)
+}
+
+// survivor is the first instance of an ancestry captured earlier that
+// still exists, else app.
+func (r *Runtime) survivor(ancestry []string) string {
+	for _, id := range ancestry {
+		if r.Instances[id] != nil {
+			return id
+		}
+	}
+	return "app"
 }
 
 // appHandlerOf accepts the handler shapes Verb and Register take.

@@ -1,0 +1,85 @@
+{
+  "name": "form: u undoes the record's last change in any field, ctrl+r redoes it; each is written",
+  "area": "forms",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "records": [
+      {
+        "id": "task",
+        "fields": [
+          {
+            "name": "title",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "status",
+            "type": "string",
+            "required": true,
+            "enum": [
+              "todo",
+              "doing",
+              "done"
+            ]
+          },
+          {
+            "name": "estimate",
+            "type": "integer"
+          },
+          {
+            "name": "notes",
+            "type": "string",
+            "multiline": true
+          }
+        ],
+        "values": {
+          "title": "buy milk",
+          "status": "todo"
+        }
+      }
+    ],
+    "focus": "task/title"
+  },
+  "script": [
+    "A",
+    {
+      "type": "!"
+    },
+    "esc",
+    "j",
+    "enter",
+    "j",
+    "j",
+    "enter",
+    "u",
+    "u",
+    "ctrl+r"
+  ],
+  "expect": [
+    {
+      "after": 9,
+      "focus": "task/status",
+      "contains": [
+        "todo ▾"
+      ]
+    },
+    {
+      "focus": "task/title",
+      "contains": [
+        "buy milk!"
+      ],
+      "writes": [
+        "write title=\"buy milk!\"",
+        "write status=done",
+        "write status=todo",
+        "write title=\"buy milk\"",
+        "write title=\"buy milk!\""
+      ]
+    }
+  ]
+}

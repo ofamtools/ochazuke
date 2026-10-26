@@ -1,0 +1,15 @@
+-- width 40
+pane         state        cwd
+work/claude  idle         ~/proj/ochazu…
+notes        needs_input  ~/hub/o-plans…
+bare row
+-- width 30
+pane         state
+work/claude  idle
+notes        needs_input
+bare row
+-- width 16
+pane
+work/claude
+notes
+bare row

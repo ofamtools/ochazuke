@@ -64,3 +64,89 @@ func (r *Runtime) HandleBindingTimeout(msg BindingTimeoutMsg) (bool, error) {
 	_, err := r.finishPrefix()
 	return true, err
 }
+
+// guardedOff reports whether a row's guard (Binding.When) is false at the
+// focus, so the row would not answer there: ? help leaves it out, as the
+// footer's hints do (bindings list keeps it, as the guard may hold for the
+// key).
+func (r *Runtime) guardedOff(b Binding, focus string) bool {
+	if b.When == "" {
+		return false
+	}
+	check := r.guard(b.When)
+	return check == nil || !check(r, KeyEvent{Mode: r.Mode, Focus: focus})
+}
+
+// StopBindings is one entry of bindings.stops: the rows a focus stop
+// answers to (ListBindings at Focus in Mode), with the page it sits on.
+// Stop is the stop instance, Focus where a jump to it lands (its
+// remembered child, a list's selected row), Mode the mode the focus has
+// there. The last entry is app itself (Stop and Focus "app").
+type StopBindings struct {
+	Page     string    `json:"page,omitempty"`
+	Stop     string    `json:"stop"`
+	Focus    string    `json:"focus"`
+	Mode     string    `json:"mode"`
+	Bindings []Binding `json:"bindings"`
+}
+
+// StopBindings is the app-wide keyboard: the effective rows of every focus
+// stop, as ListBindings gives them for the focus a jump to the stop lands
+// on. The order is fixed: the pages in tab order (PageList), each page's
+// stops in drawing order (the order focus.next walks, undrawn stops after
+// in tree order), then the open modals bottom to top with theirs, then app
+// in normal mode. The mode is the one the focus would have there: the
+// current mode at the current focus, else the stop's pinned mode (a prompt
+// is insert, a terminal terminal), else normal. Nothing moves: the focus
+// and mode are back as they were on return.
+//
+// It differs from bindings.list --all, which exports every stored row
+// (each noun's and instance's tables, every mode, as configuration JSON),
+// active or not: this answers "what does each key do where", after
+// shadowing, guards and the modal boundary.
+func (r *Runtime) StopBindings() []StopBindings {
+	saved := r.Mode
+	defer func() { r.Mode = saved }()
+	current := r.stopOf(r.Focus)
+	out := []StopBindings{}
+	add := func(page, stop string) {
+		focus, mode := r.landing(stop), ModeState{Name: r.pinnedMode(r.landing(stop))}
+		if stop == current {
+			focus, mode = r.Focus, saved
+		}
+		r.Mode = mode
+		out = append(out, StopBindings{Page: page, Stop: stop, Focus: focus, Mode: mode.Name, Bindings: r.ListBindings(focus)})
+	}
+	for _, page := range r.PageList() {
+		stops, _ := r.units(page.ID, r.focusable)
+		for _, stop := range stops {
+			add(page.ID, stop)
+		}
+	}
+	for _, modal := range r.modals {
+		stops, _ := r.units(modal, r.focusable)
+		if len(stops) == 0 {
+			stops = []string{modal}
+		}
+		for _, stop := range stops {
+			add("", stop)
+		}
+	}
+	r.Mode = ModeState{Name: "normal"}
+	out = append(out, StopBindings{Stop: "app", Focus: "app", Mode: "normal", Bindings: r.ListBindings("app")})
+	return out
+}
+
+// pinnedMode is the mode a focus on id starts in: its input's or noun's
+// pinned mode, else normal (focusMoved's rule for a move between stops).
+func (r *Runtime) pinnedMode(id string) string {
+	if in := r.Input(id); in != nil && in.pin != "" {
+		return in.pin
+	}
+	if inst := r.Instances[id]; inst != nil {
+		if noun := r.Nouns[inst.Noun]; noun != nil && noun.Pin != "" {
+			return noun.Pin
+		}
+	}
+	return "normal"
+}

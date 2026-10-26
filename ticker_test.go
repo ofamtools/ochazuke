@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"context"
 	"errors"
 	"reflect"
 	"strings"
@@ -95,7 +96,10 @@ func TestJobsTickerHidesQuietAndFrameworkJobs(t *testing.T) {
 	}
 }
 
-func TestJobsTickerTruncatesAndTakesRowsFromTheBody(t *testing.T) {
+// The ticker rides the rule line above the footer: the page keeps its full
+// height and every body row stays drawn, so a job starting or lingering out
+// never moves or hides the body (UX review 2 F13).
+func TestJobsTickerTruncatesAndRidesTheRuleLine(t *testing.T) {
 	r, m, _ := tickerFixture(t)
 	r.Settle(issue(t, r, "thing.build"), errors.New("a very long failure message that will not fit"))
 	m.Update(frameMsg)
@@ -103,14 +107,27 @@ func TestJobsTickerTruncatesAndTakesRowsFromTheBody(t *testing.T) {
 		t.Fatalf("truncated = %q", got)
 	}
 	_, full := m.layout().BodySize()
+	before := strings.Split(ansi.Strip(m.View().Content), "\n")
 	issue(t, r, "thing.ship")
 	m.Update(frameMsg)
-	if _, h := m.pageSize(); h != full-2 {
-		t.Fatalf("page height %d with two ticker rows, want %d", h, full-2)
+	if _, h := m.pageSize(); h != full {
+		t.Fatalf("page height %d with two ticker entries, want %d (unchanged)", h, full)
 	}
 	rows := strings.Split(ansi.Strip(m.View().Content), "\n")
-	if got := []string{strings.TrimSpace(rows[19]), strings.TrimSpace(rows[20])}; got[0] != "thing.ship running" || !strings.HasPrefix(got[1], "thing.build failed: a very long") || !strings.HasPrefix(strings.TrimSpace(rows[21]), "─") {
-		t.Fatalf("ticker rows %q, rule %q", got, rows[21])
+	for i := 3; i < 3+full; i++ {
+		if rows[i] != before[i] {
+			t.Fatalf("body row %d changed: %q, was %q", i, rows[i], before[i])
+		}
+	}
+	rule := strings.TrimSpace(rows[3+full])
+	want := "── thing.ship running · thing.build failed: a very long"
+	if !strings.HasPrefix(rule, want) || !strings.HasSuffix(rule, "… ─") || ansi.StringWidth(rows[3+full]) != m.Width {
+		t.Fatalf("rule line %q, want %q…, then \"… ─\", %d cells", rule, want, m.Width)
+	}
+	m.Width = 120
+	wide := strings.Split(ansi.Strip(m.View().Content), "\n")[3+full]
+	if rule := strings.TrimRight(wide, " "); !strings.HasSuffix(rule, "will not fit "+strings.Repeat("─", 120-2-ansi.StringWidth(rule[:strings.Index(rule, "fit ")+4]))) {
+		t.Fatalf("wide rule line %q, want the entries then rule characters to the body's edge", rule)
 	}
 }
 
@@ -166,4 +183,24 @@ func TestNewModelClockDefaultsToTimeNow(t *testing.T) {
 	if m := NewModel(NewRuntime()); m.Now == nil {
 		t.Fatal("Model.Now is nil")
 	}
+}
+
+// A job's Label rides between the verb and the state on the ticker and in
+// jobs.list: which of a verb's jobs this is.
+func TestJobsTickerShowsJobLabel(t *testing.T) {
+	r, m, _ := tickerFixture(t)
+	ticket, err := r.Launch("owner", "thing.build", Pending(func(context.Context) (any, error) { return nil, nil }).Label("claude"), Ctx{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tickerIs(t, m, "thing.build claude running")
+	value, err := r.Execute(Request{Verb: "list", Noun: "jobs"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if jobs := value.([]JobInfo); len(jobs) != 1 || jobs[0].Label != "claude" {
+		t.Fatalf("jobs.list = %+v, want the label", jobs)
+	}
+	r.Settle(ticket, nil)
+	tickerIs(t, m, "thing.build claude done")
 }

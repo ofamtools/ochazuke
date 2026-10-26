@@ -24,6 +24,15 @@ type ModalView struct {
 	Render func(*Runtime, *Instance, int, int) Block
 }
 
+// ModalBody is a modal body component that draws itself: a modal whose
+// instance's Component implements it needs no ModalView (a record editor
+// opened as a modal, its chooser, a Chooser). A ModalView for the id still
+// wins.
+type ModalBody interface {
+	ModalTitle() string
+	ModalBlock(s Styles, width, height int) Block
+}
+
 // Model is the Bubble Tea adapter. Pages and modal instances retain their
 // state in Runtime; components (picker, registers, application components)
 // are instances the runtime drives through the delivery contract, so the
@@ -64,10 +73,31 @@ type Model struct {
 // NewModel returns the Bubble Tea model that renders and drives r.
 func NewModel(r *Runtime) *Model {
 	m := &Model{Runtime: r, Palette: NewPalette(r), Appearance: NewAppearance(r), ModalViews: map[string]ModalView{}, Title: "Ochazuke", Width: 80, Height: 24, views: map[string]*viewport.Model{}, scroll: map[string]int{}, followed: map[string]string{}, Now: time.Now}
+	// Config problems (a skipped bindings row) are persistent notices,
+	// each once, taken back when a reload no longer finds them.
+	if c := r.Config(); c != nil && c.Report == nil {
+		c.Report = func(problem string) {
+			if !slices.Contains(m.Notices, problem) {
+				m.Notify(problem)
+			}
+		}
+		c.Withdraw = func(problem string) {
+			m.Notices = slices.DeleteFunc(m.Notices, func(n string) bool { return n == problem })
+		}
+	}
+	// The framework's theme setting (EnsureConfigSettings) drives the
+	// scheme; an application that declared its own theme applies it itself.
+	r.Settings().Observe(ThemeSetting, func(_ string, v any) {
+		if name, ok := v.(string); ok && r.Config().FrameworkTheme() {
+			m.Appearance.Theme = name
+		}
+	})
 	m.ModalViews[yankHistoryID] = ModalView{Title: "Yank history", Render: yankHistoryView}
 	m.ModalViews["confirm"] = ModalView{Title: "Confirm", Render: confirmView}
 	m.ModalViews[helpID] = ModalView{Title: "Keys", Render: bindingHelpView}
 	m.ModalViews[paletteResultsID] = ModalView{Title: "Results", Render: paletteResultsView}
+	m.ModalViews[settingsEditorID] = ModalView{Title: "Settings", Render: settingsEditorView}
+	m.ModalViews[settingPromptID] = ModalView{Title: "Set", Render: settingPromptView}
 	r.Register(Operation{Verb: "scroll", Noun: "surface", Description: "Scroll the active page or modal without changing focus", Parameters: map[string]Parameter{"lines": {Type: "integer", Required: true}}, Result: "scroll offset", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		key := m.surfaceKey()
 		width, height := m.pageSize()
@@ -106,6 +136,7 @@ func NewModel(r *Runtime) *Model {
 	defaultRow("normal", ":", Do("palette.open"))
 	defaultRow("normal", "ctrl+y", Do("yank-history.open").Hide())
 	defaultRow("normal", "?", Do("bindings.help"))
+	defaultRow("normal", "'", Do("page.pick").Guard("no-modal")) // a page opens only with no modal open
 	defaultRow("normal", "ctrl+j", Do("page.next"))
 	defaultRow("normal", "ctrl+k", Do("page.previous"))
 	defaultRow("", "ctrl+space", Do("palette.open"))
@@ -125,7 +156,23 @@ func NewModel(r *Runtime) *Model {
 	defaultRow("", "pgup", Do("surface.scroll", Arguments{"lines": -8}))
 	return m
 }
-func (m *Model) Init() tea.Cmd { return tea.RequestBackgroundColor }
+
+// Init installs the user actions file (Runtime.EnsureUserActions) and
+// applies the user bindings file (Runtime.EnsureUserBindings), after the
+// application defined its own nouns and rows, declares the framework's settings
+// (EnsureConfigSettings), reads settings.json (its problems are notices),
+// draws themes.json's schemes and the theme setting's (applyThemeSetting),
+// restores and persists the action history (EnsureHistory), starts the settings.json poll (SettingsPoll) when the
+// application declared settings, and asks for the background colour.
+func (m *Model) Init() tea.Cmd {
+	m.Runtime.EnsureUserActions()
+	m.Runtime.EnsureUserBindings()
+	m.Runtime.EnsureConfigSettings()
+	m.Runtime.Settings().ensure()
+	m.applyThemeSetting()
+	m.Runtime.EnsureHistory()
+	return tea.Batch(tea.RequestBackgroundColor, m.settingsPoll())
+}
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Off-loop results reach their owning instance first; a stale or
 	// orphaned completion is dropped here.
@@ -149,6 +196,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case JobLingerMsg:
 		m.ticker.fired(v)
+	case SettingsPollMsg:
+		m.Runtime.Settings().ReloadIfChanged()
 	case tea.BackgroundColorMsg:
 		m.Appearance.Dark = v.IsDark()
 	case tea.KeyPressMsg:
@@ -177,7 +226,26 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if cmd := m.ticker.lingerCommand(m.clock()); cmd != nil {
 		commands = append(commands, cmd)
 	}
+	if _, ok := msg.(SettingsPollMsg); ok {
+		commands = append(commands, m.settingsPoll())
+	}
 	return m, tea.Batch(commands...)
+}
+
+// applyThemeSetting draws the user's schemes and, when settings.json names
+// one in the framework's theme setting, selects it (else the theme the
+// application set stays).
+func (m *Model) applyThemeSetting() {
+	c := m.Runtime.Config()
+	m.Appearance.Schemes = NewSchemeSet(c.Schemes())
+	if !c.FrameworkTheme() {
+		return
+	}
+	if v, err := m.Runtime.Settings().Get(ThemeSetting); err == nil && v.Set {
+		if name, ok := v.Value.(string); ok {
+			m.Appearance.Theme = name
+		}
+	}
 }
 
 // handleKey dispatches one key through the runtime's stack walk and shows
@@ -246,6 +314,13 @@ func (m *Model) modalContent(id string, width, height int) (string, Block) {
 		return "Command palette", m.Palette.viewBlock(width, height)
 	case m.ModalViews[id].Render != nil:
 		body = m.ModalViews[id].Render(m.Runtime, m.Runtime.Instances[id], width, height)
+	case m.modalBody(id) != nil:
+		mb := m.modalBody(id)
+		body = mb.ModalBlock(NewStyles(*m.Appearance), width, height)
+		if id != m.Runtime.TopModal() {
+			body.Cursor = nil
+		}
+		return mb.ModalTitle(), body
 	case m.Runtime.Input(focus) != nil:
 		body = InputBlock(m.Runtime.Input(focus), width, height)
 	default:
@@ -258,6 +333,16 @@ func (m *Model) modalContent(id string, width, height int) (string, Block) {
 		return view.Title, body
 	}
 	return id, body
+}
+
+// modalBody is the modal instance's self-drawing component, or nil.
+func (m *Model) modalBody(id string) ModalBody {
+	if inst := m.Runtime.Instances[id]; inst != nil {
+		if mb, ok := inst.Component.(ModalBody); ok {
+			return mb
+		}
+	}
+	return nil
 }
 
 // pageTitles lists the page titles in order and the index of the current page.
@@ -310,7 +395,8 @@ func (m *Model) footerNotice() string {
 
 // footer is the status row: the error of the last key when there is one,
 // else the hints for the focus; the notices, when there are any, follow
-// the error or lead the hints.
+// the error or lead the hints. The jobs ticker's entries ride along for
+// the rule line above it (Layout.TickerRule).
 func (m *Model) footer() Footer {
 	jobs := m.JobsTicker(m.Width)
 	notice := m.footerNotice()
@@ -336,7 +422,9 @@ func (m *Model) footer() Footer {
 // its noun's, then its parents' up to the page and app):
 // "enter demo.open · : palette.open · ? bindings.help". Motions
 // (Operation.Motion) and hidden rows (counts, registers, macros, ctrl+c)
-// are left to ? help, and of rows that run the same request only the first
+// are left to ? help, except a motion row with its own Hint (J reads
+// "J/K detail"; a hint that starts with the row's key and a slash is shown
+// alone), and of rows that run the same request only the first
 // (innermost) key is shown.
 // It is the data bindings.list prints, so a hint never names a key that is
 // not bound; the descriptions are in BindingHelp (the ? modal).
@@ -345,8 +433,8 @@ func BindingHints(r *Runtime, focus string) string {
 	index := map[string]bool{}
 	for _, row := range r.groupedRows(focus) {
 		b := row.Binding
-		if b.Hidden || r.Operations[b.Request.Key()].Motion {
-			continue
+		if b.Hidden || r.Operations[b.Request.Key()].Motion && b.Hint == "" {
+			continue // a motion with its own Hint (J/K detail) shows
 		}
 		if isPrefixCancel(b) && r.Mode.Payload.Prefix == "" {
 			continue // "d esc" matters only once d is pending
@@ -396,6 +484,9 @@ func (r *Runtime) groupedRows(focus string) []levelRow {
 // when it has one, else the operation it runs (noun.verb).
 func rowHint(b Binding) string {
 	hint := modalLabel(rowKey(b))
+	if b.Hint != "" && strings.HasPrefix(b.Hint, rowKey(b)+"/") {
+		return modalLabel(b.Hint) // the hint names its keys: "J/K detail"
+	}
 	if b.Hint != "" {
 		return hint + " " + modalLabel(b.Hint)
 	}
@@ -452,7 +543,7 @@ func BindingHelp(r *Runtime, focus string) []HelpRow {
 		}
 	}
 	for _, row := range rows {
-		if isPrefixCancel(row.Binding) && !sequences[row.Mode+"\x00"+strings.TrimSuffix(row.Keys, " "+CancelKey)] {
+		if isPrefixCancel(row.Binding) && !sequences[row.Mode+"\x00"+strings.TrimSuffix(row.Keys, " "+CancelKey)] || r.guardedOff(row.Binding, focus) {
 			continue
 		}
 		op := row.Hint

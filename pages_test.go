@@ -295,3 +295,36 @@ func TestPagePaletteClosesBeforeNavigationDispatch(t *testing.T) {
 		t.Fatal("palette navigation was blocked or switched a discarded overlay")
 	}
 }
+
+// Page.OnOpen runs each time OpenPage makes the page current from another
+// page, after the focus is restored, with the page left; reopening the
+// current page does not run it.
+func TestPageOnOpenRunsWhenThePageOpens(t *testing.T) {
+	r := NewRuntime()
+	var opened []string
+	for _, id := range []string{"one", "two"} {
+		page, err := r.AddPage(id, strings.ToUpper(id), func(*Runtime, int, int) Block { return Text(id) })
+		if err != nil {
+			t.Fatal(err)
+		}
+		page.OnOpen = func(r *Runtime, from string) {
+			opened = append(opened, from+">"+id+"@"+r.Page)
+		}
+	}
+	if err := r.OpenPage("one"); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.OpenPage("one"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Execute(Request{Noun: "page", Verb: "next"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Execute(Request{Noun: "page", Verb: "open", Args: Arguments{"id": "one"}}); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{">one@one", "one>two@two", "two>one@one"}
+	if !reflect.DeepEqual(opened, want) {
+		t.Fatalf("opened %q, want %q", opened, want)
+	}
+}

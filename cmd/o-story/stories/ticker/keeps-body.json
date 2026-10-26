@@ -1,0 +1,40 @@
+{
+  "name": "ticker in the rule line: a running job never moves or hides the list",
+  "area": "ticker",
+  "width": 40,
+  "height": 12,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 8
+      }
+    ],
+    "jobs": [
+      {
+        "verb": "demo.build",
+        "key": "w",
+        "finishOnKey": "W"
+      }
+    ]
+  },
+  "script": [
+    "w"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "ticker": [
+        "demo.build running"
+      ],
+      "order": [
+        "a1",
+        "a2",
+        "a3",
+        "a4",
+        "a5",
+        "── demo.build running ─"
+      ]
+    }
+  ]
+}

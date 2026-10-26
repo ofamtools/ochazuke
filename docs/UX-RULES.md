@@ -180,13 +180,24 @@ tiers above them. When the two disagree, fix one in the same commit.
   most half the width with `(+N more)`, so the hints always keep the rest.
   Story: `notices/persist.json`, `notices/footer-keeps-hints.json`;
   needed for the status-clears case.
-- **R6.5** The jobs ticker: at most two rows, running newest first on top,
-  finished below, a finished row lingers four seconds, quiet verbs hidden,
-  no jobs no rows. Story: the eight stories under `ticker/`.
+- **R6.5** The jobs ticker rides the rule line above the footer: at most
+  two entries joined by ` · `, the rest of the line still rule characters;
+  it takes no row, so the body never shrinks, moves or loses a row while a
+  job runs. Running newest first, finished after, a finished entry lingers
+  four seconds, quiet verbs hidden, no jobs the plain rule. Story: the
+  stories under `ticker/` (`ticker/keeps-body.json` pins every body row in
+  place, the bottom one included).
 - **R6.6** One chrome: everything renders through `Layout.Shell`; no second
   set of height or padding constants. Check: the diff.
 - **R6.7** Help wraps a long cell inside its column rather than overflowing
   the modal width. Golden: `testdata/help-80.golden`.
+- **R6.8** The tab row never drops a page silently: when the tabs do not
+  fit, `‹N` at the left edge and `N›` at the right count the pages hidden on
+  each side, the active tab is always on the row, and the shown tabs plus
+  the counts are every page; with every tab fitting there are no markers.
+  Story: `pages/tabs-{50,80,120}-{start,middle,end}.json`,
+  `pages/tabs-fit.json`, `pages/tabs-50-step.json`; unit test
+  `TestTabsMarkHiddenPagesOnEachSide`.
 
 ### R7. Palette
 
@@ -201,6 +212,16 @@ tiers above them. When the two disagree, fix one in the same commit.
   focus path that has the verb. Story: needed (`palette/noun-from-focus-path`).
 - **R7.5** Up and down recall history; requests a line ran are recorded with
   source `palette`. Story: needed (`palette/history-recall`).
+- **R7.6** A chooser is not the palette: its search input opens in insert,
+  the top match is highlighted from the first frame and after every edit,
+  enter takes the highlighted row, `ctrl+n`/`ctrl+p` move it clamped (up
+  from no highlight stays), esc closes over the focus and mode it opened on.
+  Every page is reachable from the page picker (`'`, `page.pick`) in
+  registration order. Story: `picker/page-picker-filter-open.json`,
+  `picker/page-picker-esc.json`, `picker/page-picker-move.json`,
+  `picker/page-picker-footer.json`; ranking in `chooser_test.go`. `'`
+  answers only with no modal open (a page cannot open beneath one):
+  `picker/page-picker-not-in-modal.json`.
 
 ### R8. Terminal
 
@@ -208,7 +229,10 @@ tiers above them. When the two disagree, fix one in the same commit.
   mode. Story: `terminal/ctrl-c-reaches-pane.json`.
 - **R8.2** `ctrl+a` enters `leader_pending`; `d` detaches, `ctrl+a` sends
   itself, an unbound key sends leader and key in one `Send`, the timeout
-  sends the leader alone. Story: needed (`terminal/leader-*`, one per case).
+  sends the leader alone. The leader is the `terminal-leader` setting.
+  Stories: `terminal/detach-focus-returns`, `leader-twice-sends-one`,
+  `leader-unbound-forwards-both`, `leader-timeout-sends-leader`,
+  `leader-setting-footer`, `leader-setting-detach`.
 - **R8.3** Frames reach the component only through `Deliver` with a current
   ticket; a frame for a closed terminal is dropped. Story:
   `terminal/output-ticks.json`.

@@ -1,0 +1,41 @@
+{
+  "name": "a stop the frame did not draw is skipped by } and j",
+  "area": "motions",
+  "page": {
+    "order": [
+      "a",
+      "c"
+    ],
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      },
+      {
+        "id": "b",
+        "rows": 2
+      },
+      {
+        "id": "c",
+        "rows": 2
+      }
+    ],
+    "focus": "c2"
+  },
+  "script": [
+    "j",
+    "}"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "c2"
+    },
+    {
+      "focus": "a1",
+      "lacks": [
+        "b1"
+      ]
+    }
+  ]
+}

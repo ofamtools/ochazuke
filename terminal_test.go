@@ -480,3 +480,99 @@ func TestFocusOnCloseOnPopAndRemoveInstance(t *testing.T) {
 		t.Fatalf("RemoveInstance: focus=%q", r.Focus)
 	}
 }
+
+// The terminal-leader setting moves the leader: EnsureTerminalLeader
+// declares it, settings.json's value applies, the old leader becomes ordinary
+// input, the new one detaches, sends itself, forwards with an unbound key
+// and alone on timeout, the hint names it, an application's leader_pending
+// row stays, and a change applies at once. A key that is not a ctrl+ or
+// alt+ combination is refused.
+func TestTerminalLeaderSetting(t *testing.T) {
+	r, _, stream := terminalFixture(t)
+	calls := recorder(t, r, "zoom")
+	r.Define("terminal").Mode("leader_pending").Bind("z", Do("test.zoom"))
+	dir := t.TempDir()
+	r.Config().Dir = dir
+	writeConfig(t, dir, SettingsFile, `{"terminal-leader": "ctrl+b"}`)
+	m := NewModel(r)
+	r.EnsureTerminalLeader()
+	m.Init()
+	if got := r.TerminalLeader(); got != "ctrl+b" {
+		t.Fatalf("leader %q", got)
+	}
+	if got := BindingHints(r, "pane"); !strings.HasPrefix(got, "ctrl+b leader: d detaches, ctrl+b sends ctrl+b") {
+		t.Fatalf("hint %q", got)
+	}
+	press(t, r, "ctrl+a", "ctrl+b", "ctrl+b", "ctrl+b", "x", "ctrl+b", "z")
+	want := [][]string{{"ctrl+a"}, {"ctrl+b"}, {"ctrl+b", "x"}}
+	if !reflect.DeepEqual(stream.sent, want) || !reflect.DeepEqual(*calls, []string{"zoom"}) || r.Mode.Name != "terminal" {
+		t.Fatalf("sent %v calls %v mode %q", stream.sent, *calls, r.Mode.Name)
+	}
+	press(t, r, "ctrl+b")
+	if r.Pending != "ctrl+b" {
+		t.Fatalf("pending %q", r.Pending)
+	}
+	r.prefix.deadline = time.Now().Add(-time.Second)
+	if handled, err := r.HandleBindingTimeout(BindingTimeoutMsg{runtime: r, version: r.bindingVersion}); !handled || err != nil {
+		t.Fatalf("timer: %v %v", handled, err)
+	}
+	if got := stream.sent[3:]; !reflect.DeepEqual(got, [][]string{{"ctrl+b"}}) {
+		t.Fatalf("timeout sent %v", got)
+	}
+	press(t, r, "ctrl+b", "d")
+	if r.Focus != "console" || r.Mode.Name != "normal" {
+		t.Fatalf("detach: focus %q mode %q", r.Focus, r.Mode.Name)
+	}
+	s := r.Settings()
+	if err := s.Set(TerminalLeaderSetting, "x"); err == nil || !strings.Contains(err.Error(), "ctrl+ or alt+") {
+		t.Fatalf("plain key accepted: %v", err)
+	}
+	if err := s.Set(TerminalLeaderSetting, "alt+a"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Execute(Request{Verb: "attach", Noun: "terminal", Args: Arguments{"id": "pane"}}); err != nil {
+		t.Fatal(err)
+	}
+	press(t, r, "ctrl+b", "alt+a", "alt+a", "alt+a", "d")
+	if got := stream.sent[4:]; !reflect.DeepEqual(got, [][]string{{"ctrl+b"}, {"alt+a"}}) || r.Focus != "console" {
+		t.Fatalf("after the change: sent %v focus %q", got, r.Focus)
+	}
+	keys := map[string]bool{}
+	for _, b := range r.Nouns["terminal"].Bindings["leader_pending"] {
+		keys[b.Keys] = true
+	}
+	if keys["ctrl+a"] || keys["ctrl+b"] || !keys["alt+a"] || !keys["z"] {
+		t.Fatalf("leader_pending keys %v", keys)
+	}
+	if err := r.SetTerminalLeader("ctrl+a d"); err == nil {
+		t.Fatal("a sequence accepted as the leader")
+	}
+}
+
+// A leader row an application defines with its own hint moves with the
+// setting too, and a terminal added later applies a value set before it.
+func TestTerminalLeaderMovesApplicationLeaderRows(t *testing.T) {
+	r := NewRuntime()
+	leader := Request{Verb: "send", Noun: "terminal", Args: Arguments{"keys": "ctrl+a"}}
+	r.Define("terminal").Mode("terminal").Bind("ctrl+a", Enter("leader_pending", Payload{Prefix: "ctrl+a", Request: &leader}).Hinted("leader: v vim · d detach"))
+	if err := r.DeclareSetting(Setting{Name: TerminalLeaderSetting, Type: SettingString, Default: "ctrl+t"}); err != nil {
+		t.Fatal(err)
+	}
+	r.Instance("console")
+	if _, err := r.AddTerminal("pane", newFakeStream(), Parent("console")); err != nil {
+		t.Fatal(err)
+	}
+	var row Binding
+	for _, b := range r.Nouns["terminal"].Bindings["terminal"] {
+		if b.Keys == "ctrl+t" {
+			row = b
+		}
+	}
+	q, _ := row.Request.Args["request"].(Request)
+	if row.Hint != "leader: v vim · d detach" || row.Request.Args["prefix"] != "ctrl+t" || q.Args["keys"] != "ctrl+t" || leader.Args["keys"] != "ctrl+a" {
+		t.Fatalf("row %+v request %+v", row, q)
+	}
+	if _, err := r.ValidateBindings(); err != nil {
+		t.Fatal(err)
+	}
+}
