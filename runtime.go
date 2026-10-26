@@ -89,7 +89,7 @@ type Operation struct {
 	// show; set by NounBuilder.Quiet. The catalog's quiet.
 	Quiet bool `json:"quiet,omitempty"`
 	// PersistArgs lets the history file keep this operation's arguments
-	// named like text (text, value, keys, password, secret, token), which
+	// named like text (text, value, keys, args, password, secret, token), which
 	// it otherwise leaves out; set by NounBuilder.PersistArgs. Only for an
 	// operation whose arguments are never typed secrets (settings.set).
 	PersistArgs bool `json:"persistArgs,omitempty"`

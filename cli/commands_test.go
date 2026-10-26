@@ -261,6 +261,50 @@ func TestCommandsStopReleasesTheRun(t *testing.T) {
 	}
 }
 
+// A session on the Commands page leaves only the runs in history.jsonl:
+// a command's arguments (they can carry a secret) are dropped, as the
+// history file drops text-like arguments, and nothing typed into the pty
+// (the terminal noun's entries, the key that started the run aside) is
+// written.
+func TestCommandsHistoryFileKeepsNoArgsOrPtyKeys(t *testing.T) {
+	src := &fakeCommands{argv: map[string][]string{"echo": {"cat"}, "greet": {"printf", "hello %s\\n"}}}
+	m, _ := commandsModel(t, src)
+	r := m.Runtime
+	state := t.TempDir()
+	r.Config().Dir, r.Config().StateDir = t.TempDir(), state
+	m.Init()
+	t.Cleanup(func() { _ = r.Config().Flush() })
+	d := newDriver(t, m)
+	d.key("j", "enter")
+	d.until("the attached pane", contains("echo · running · attached"))
+	d.key("p", "w", "9", "z", "enter")
+	d.until("cat's echo", func(f string) bool { return strings.Count(f, "pw9z") >= 2 })
+	d.key("ctrl+a", "d", "k")
+	restore := r.Sourced("palette")
+	_, err := d.exec(ochazuke.Request{Noun: "command", Verb: "run", Args: ochazuke.Arguments{"name": "greet", "args": "--token=s3cret"}})
+	restore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	d.until("greet's output", contains("hello --token=s3cret"))
+	if err := r.Config().Flush(); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(state, ochazuke.HistoryFile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(data)
+	if !strings.Contains(text, `"name":"greet"`) || !strings.Contains(text, `"verb":"run"`) {
+		t.Fatalf("the runs are missing:\n%s", text)
+	}
+	for _, leak := range []string{"s3cret", "pw9z", `"noun":"terminal"`, `"key:p"`, `"key:9"`} {
+		if strings.Contains(text, leak) {
+			t.Fatalf("the file holds %q:\n%s", leak, text)
+		}
+	}
+}
+
 // odenApp is an oden tool with an inline command, a group and an external
 // tool-ext on a PATH of its own.
 func odenApp(t *testing.T) *oden.App {

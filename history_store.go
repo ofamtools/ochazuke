@@ -29,8 +29,9 @@ var unpersistedNouns = map[string]bool{
 }
 
 // textLikeArgs are the argument names whose values the history file leaves
-// out unless the operation sets PersistArgs: what a user typed.
-var textLikeArgs = []string{"text", "value", "keys", "password", "secret", "token"}
+// out unless the operation sets PersistArgs: what a user typed (args is a
+// command line, as command.run takes, which can carry a secret).
+var textLikeArgs = []string{"text", "value", "keys", "args", "password", "secret", "token"}
 
 // persistable is the line an entry writes, or false when it writes none.
 // The file keeps palette lines (source "palette", failed ones too, so a
