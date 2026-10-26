@@ -58,6 +58,9 @@ it to the timer's deadline and delivers the timer's message
     terminal: { fake: true, attach: "a1", height: 6 },
     jobs: [{ verb: "demo.build", key: "w", finishOnKey: "W", failOnKey: "X", quiet: false, start: 0 }],
     bind: [{ noun: "demo", mode: "normal", keys: "C", do: "notice.clear" }],
+    detail: { lines: 50, width: 0 }, // a scrollable detail (AddDetail) on the right:
+                                     // "detail 1–11 / 50", then "<row> line N" about the
+                                     // focused list row (width 0 = half the page)
   },
   script: ["j", "j", { type: "ping" }, { paste: "text" },
            { job: "demo.build", state: "done" },
@@ -212,6 +215,7 @@ Conformance:
 
 | mode | noun | verbs |
 |---|---|---|
+| count_pending | count | `count.append` |
 | insert | input | `input.insert` |
 | insert | mode | `mode.set` |
 | insert | outline | `outline.indent` `outline.leave` |
@@ -219,12 +223,14 @@ Conformance:
 | normal | bindings | `bindings.help` |
 | normal | confirm | `confirm.accept` |
 | normal | demo | `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.notify` `demo.open` `demo.reload` `demo.ship` |
+| normal | detail | `detail.scroll` |
 | normal | focus | `focus.next` `focus.previous` |
 | normal | input | `input.begin` |
 | normal | list | `list.move` |
 | normal | modal | `modal.pop` |
+| normal | mode | `mode.enter` |
 | normal | notice | `notice.clear` |
-| normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.indent` `outline.paste` `outline.redo` `outline.undo` |
+| normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.indent` `outline.move` `outline.paste` `outline.redo` `outline.undo` |
 | normal | page | `page.next` `page.previous` |
 | normal | palette | `palette.open` |
 | normal | surface | `surface.scroll` |
@@ -233,11 +239,13 @@ Conformance:
 
 Mode edges (from → to via):
 
+- `count_pending` → `normal` via `detail.scroll`
 - `insert` → `normal` via `mode.set`
 - `insert` → `normal` via `outline.leave`
 - `insert` → `normal` via `palette.run`
 - `insert` → `normal` via `row esc`
 - `leader_pending` → `normal` via `terminal.detach`
+- `normal` → `count_pending` via `mode.enter`
 - `normal` → `insert` via `input.begin`
 - `normal` → `insert` via `outline.add`
 - `normal` → `insert` via `outline.edit`

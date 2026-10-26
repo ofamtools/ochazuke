@@ -32,6 +32,7 @@ type Session struct {
 	// Writes is the log of every change an editable tree wrote.
 	Writes  []string
 	inputs  map[string]*ochazuke.Input
+	details map[string]*ochazuke.Detail
 	streams []*FakeStream
 	jobs    map[string][]chan error // verb -> running jobs, oldest first
 	done    chan struct{}
@@ -56,7 +57,7 @@ func Build(s *Story, opt Options) (*Session, error) {
 	if opt.Mono {
 		m.Appearance.Theme = "mono"
 	}
-	ss := &Session{Story: s, R: r, M: m, pages: map[string]*Page{}, lists: map[string]*ochazuke.List{}, trees: map[string]*ochazuke.Tree{}, inputs: map[string]*ochazuke.Input{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
+	ss := &Session{Story: s, R: r, M: m, pages: map[string]*Page{}, lists: map[string]*ochazuke.List{}, trees: map[string]*ochazuke.Tree{}, inputs: map[string]*ochazuke.Input{}, details: map[string]*ochazuke.Detail{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
 	if err := ss.defineDemo(pages); err != nil {
 		return nil, err
 	}
@@ -418,6 +419,13 @@ func (ss *Session) addPage(p *Page) error {
 			focus = in.ID
 		}
 	}
+	if p.Detail != nil {
+		d, err := r.AddDetail(p.ID+"-detail", func() string { return ss.detailItem(p) }, ochazuke.Parent(p.ID))
+		if err != nil {
+			return fmt.Errorf("detail: %w", err)
+		}
+		ss.details[p.ID] = d
+	}
 	if p.Focus == "" && len(p.Order) > 0 {
 		// The first stop in drawing order is focused, a tree or a list.
 		for _, id := range p.Order {
@@ -444,9 +452,53 @@ func (ss *Session) addPage(p *Page) error {
 	return err
 }
 
-// render draws a page: the lists (stacked, or side by side in a row), then
-// the inputs, then the pane when attached.
+// render draws a page: the main column, with the detail to its right when
+// the page has one.
 func (ss *Session) render(p *Page, width, height int) ochazuke.Block {
+	d := ss.details[p.ID]
+	if d == nil {
+		return ss.renderMain(p, width, height)
+	}
+	dw := p.Detail.Width
+	if dw <= 0 {
+		dw = width / 2
+	}
+	dw = min(max(1, dw), max(1, width-2))
+	main := ss.renderMain(p, width-dw-1, height)
+	item := ss.detailItem(p)
+	lines := make([]string, p.Detail.Lines)
+	for i := range lines {
+		lines[i] = fmt.Sprintf("%s line %d", item, i+1)
+	}
+	body, marker := d.Window(strings.Join(lines, "\n"), dw, max(1, height-1))
+	head := "detail"
+	if marker != "" {
+		head += " " + marker
+	}
+	left := lipgloss.NewStyle().Width(width - dw - 1).Render(main.Text)
+	right := lipgloss.NewStyle().Width(dw).Render(head + "\n" + body)
+	return main.WithText(lipgloss.JoinHorizontal(lipgloss.Top, left, " ", right))
+}
+
+// detailItem is the row the detail is about: the focused row when it is a
+// list's (a tree's rows are its list's), else the first list's selection.
+func (ss *Session) detailItem(p *Page) string {
+	r := ss.R
+	focus := r.BaseFocus()
+	if inst := r.Instances[focus]; inst != nil && r.List(inst.Parent) != nil {
+		return focus
+	}
+	for _, l := range p.Lists {
+		if sel, ok := ss.lists[l.ID].Selected(); ok {
+			return sel.ID
+		}
+	}
+	return ""
+}
+
+// renderMain draws the lists (stacked, or side by side in a row), then the
+// inputs, then the pane when attached.
+func (ss *Session) renderMain(p *Page, width, height int) ochazuke.Block {
 	order := p.Order
 	if len(order) == 0 {
 		for _, l := range p.Lists {

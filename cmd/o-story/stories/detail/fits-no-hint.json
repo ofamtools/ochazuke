@@ -1,0 +1,11 @@
+{
+  "name": "detail: a detail that fits has no marker and no J/K hint",
+  "area": "detail",
+  "width": 160,
+  "page": {
+    "lists": [{"id": "a", "rows": 4}],
+    "detail": {"lines": 3}
+  },
+  "script": ["J"],
+  "expect": {"focus": "a1", "contains": ["a1 line 3", "demo.open"], "lacks": ["J/K detail", "detail.scroll", " / 3"]}
+}

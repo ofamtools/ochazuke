@@ -64,6 +64,7 @@ type Page struct {
 	Term   *TermSpec   `json:"terminal,omitempty"`
 	Jobs   []JobSpec   `json:"jobs,omitempty"`
 	Bind   []BindSpec  `json:"bind,omitempty"`
+	Detail *DetailSpec `json:"detail,omitempty"`
 	Open   bool        `json:"open,omitempty"` // the page opened first (default the first page)
 }
 
@@ -101,6 +102,15 @@ type ItemSpec struct {
 	ID    string   `json:"id"`
 	Label string   `json:"label"`
 	Cells []string `json:"cells,omitempty"`
+}
+
+// DetailSpec is a scrollable detail (ochazuke.AddDetail) drawn to the
+// right of the page: a "detail" heading with its position marker, then
+// Lines lines ("<item> line N") about the selected row of the focused list
+// (else the first list's).
+type DetailSpec struct {
+	Lines int `json:"lines"`
+	Width int `json:"width,omitempty"` // columns; default half the page
 }
 
 // InputSpec is one single-line input drawn under the lists.
