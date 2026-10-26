@@ -573,7 +573,8 @@ func stack(parts []ochazuke.Block) ochazuke.Block {
 // size sets the model's viewport so the story's area is what the chrome
 // mode shows: the whole shell (full), the page body alone (none: the
 // shell is made exactly as much larger as its chrome and the body is cut
-// out), or the ticker rows alone (ticker-only).
+// out), or the ticker alone (ticker-only: the rule line above the footer,
+// where the ticker rides, cut out of a full shell).
 func (ss *Session) size() {
 	w, h := ss.Story.Size()
 	switch ss.Story.Chrome {
@@ -606,7 +607,8 @@ func (ss *Session) Frame() string {
 			ss.cursor = &moved
 		}
 	case "ticker-only":
-		rows = ss.M.JobsTicker(w)
+		all := strings.Split(view.Content, "\n")
+		rows = []string{ansi.Cut(all[len(all)-3], 2, 2+w)}
 		ss.cursor = nil
 	default:
 		rows = strings.Split(view.Content, "\n")

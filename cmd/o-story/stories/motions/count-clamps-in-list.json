@@ -1,0 +1,28 @@
+{
+  "name": "a count past the last row stops on it, it does not spill",
+  "area": "motions",
+  "page": {
+    "order": [
+      "a",
+      "b"
+    ],
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      },
+      {
+        "id": "b",
+        "rows": 2
+      }
+    ],
+    "focus": "a1"
+  },
+  "script": [
+    "9",
+    "j"
+  ],
+  "expect": {
+    "focus": "a3"
+  }
+}

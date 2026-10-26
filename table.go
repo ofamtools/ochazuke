@@ -187,7 +187,7 @@ func (l *List) tableView(width, height int) string {
 	}
 	top := len(lines)
 	if len(l.items) == 0 {
-		lines = append(lines, "(empty list)")
+		lines = append(lines, l.emptyLine())
 		return l.r.PlacedAt(l.id, strings.Join(layoutRows(strings.Join(lines, "\n"), width, height), "\n"), 0, height)
 	}
 	visible := body

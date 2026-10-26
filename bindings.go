@@ -64,3 +64,15 @@ func (r *Runtime) HandleBindingTimeout(msg BindingTimeoutMsg) (bool, error) {
 	_, err := r.finishPrefix()
 	return true, err
 }
+
+// guardedOff reports whether a row's guard (Binding.When) is false at the
+// focus, so the row would not answer there: ? help leaves it out, as the
+// footer's hints do (bindings list keeps it, as the guard may hold for the
+// key).
+func (r *Runtime) guardedOff(b Binding, focus string) bool {
+	if b.When == "" {
+		return false
+	}
+	check := r.guard(b.When)
+	return check == nil || !check(r, KeyEvent{Mode: r.Mode, Focus: focus})
+}

@@ -78,8 +78,8 @@ gutter that reads `R|` when the row has reverse video and ` |` otherwise.
 Chrome: `full` is the whole shell at width x height. `none` cuts the page
 body out of a shell made exactly as much larger as its chrome, so a
 one-component story shows that component and nothing else. `ticker-only`
-draws the model's ticker rows alone (the ticker is the model's chrome, so
-this is the simplest honest strip).
+draws the ticker alone: the rule line above the footer, where the ticker
+rides, cut out of a full shell (give the story height 1).
 
 ### The page builder and the demo noun
 
@@ -223,6 +223,7 @@ Conformance:
 | normal | input | `input.begin` |
 | normal | list | `list.move` |
 | normal | modal | `modal.pop` |
+| normal | mode | `mode.enter` |
 | normal | notice | `notice.clear` |
 | normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.indent` `outline.paste` `outline.redo` `outline.undo` |
 | normal | page | `page.next` `page.previous` |
@@ -233,11 +234,13 @@ Conformance:
 
 Mode edges (from → to via):
 
+- `count_pending` → `normal` via `list.move`
 - `insert` → `normal` via `mode.set`
 - `insert` → `normal` via `outline.leave`
 - `insert` → `normal` via `palette.run`
 - `insert` → `normal` via `row esc`
 - `leader_pending` → `normal` via `terminal.detach`
+- `normal` → `count_pending` via `mode.enter`
 - `normal` → `insert` via `input.begin`
 - `normal` → `insert` via `outline.add`
 - `normal` → `insert` via `outline.edit`

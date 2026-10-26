@@ -180,9 +180,13 @@ tiers above them. When the two disagree, fix one in the same commit.
   most half the width with `(+N more)`, so the hints always keep the rest.
   Story: `notices/persist.json`, `notices/footer-keeps-hints.json`;
   needed for the status-clears case.
-- **R6.5** The jobs ticker: at most two rows, running newest first on top,
-  finished below, a finished row lingers four seconds, quiet verbs hidden,
-  no jobs no rows. Story: the eight stories under `ticker/`.
+- **R6.5** The jobs ticker rides the rule line above the footer: at most
+  two entries joined by ` · `, the rest of the line still rule characters;
+  it takes no row, so the body never shrinks, moves or loses a row while a
+  job runs. Running newest first, finished after, a finished entry lingers
+  four seconds, quiet verbs hidden, no jobs the plain rule. Story: the
+  stories under `ticker/` (`ticker/keeps-body.json` pins every body row in
+  place, the bottom one included).
 - **R6.6** One chrome: everything renders through `Layout.Shell`; no second
   set of height or padding constants. Check: the diff.
 - **R6.7** Help wraps a long cell inside its column rather than overflowing
