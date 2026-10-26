@@ -46,7 +46,7 @@ it to the timer's deadline and delivers the timer's message
   skip: "gap: ...",               // optional: a known framework gap; runs, cannot fail
   page: {                         // or pages: [{ id, title, ... }, ...]
     lists: [{ id: "a", rows: 2 },                  // rows a1, a2
-            { id: "b", rows: 3, noSpill: false },
+            { id: "b", rows: 3, noSpill: false, noMarks: false },
             { id: "c", rows: 10, height: -1,       // 0 every row, -1 rest of the page
               labels: ["first project", "tuios-deck"], selected: 1, marked: [0] }],
     order: ["a", "b", "c"],       // drawing order (default: as listed)

@@ -38,6 +38,7 @@ type List struct {
 	offset   int
 	marks    map[string]bool
 	noSpill  bool     // NoSpill: list.move clamps at the edges instead of spilling
+	noMarks  bool     // NoMarks: a read-only view, its rows take no marks
 	columns  []Column // Columns: a table; none draws the labels
 	widest   []int    // a table's widest cell per column over the items (cellWidths); nil after SetItems
 }
@@ -65,7 +66,7 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 	if r.Instances[spec.parent] == nil {
 		return nil, fmt.Errorf("unknown parent %q", spec.parent)
 	}
-	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}, noSpill: spec.noSpill, columns: slices.Clone(spec.columns)}
+	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}, noSpill: spec.noSpill, noMarks: spec.noMarks, columns: slices.Clone(spec.columns)}
 	r.Instance(id, Parent(spec.parent), Kind(spec.noun), FocusOnClose(spec.closeFocus))
 	r.Instances[id].Component = list
 	if err := list.SetItems(items); err != nil {
@@ -210,8 +211,12 @@ func (l *List) selectID(id string) {
 	}
 }
 
-// ToggleMark marks or unmarks a row for fan-out verbs.
+// ToggleMark marks or unmarks a row for fan-out verbs; a list added with
+// NoMarks refuses.
 func (l *List) ToggleMark(id string) error {
+	if l.noMarks {
+		return fmt.Errorf("list %s takes no marks", l.id)
+	}
 	if !slices.ContainsFunc(l.items, func(item ListItem) bool { return item.ID == id }) {
 		return fmt.Errorf("unknown list item %q", id)
 	}
@@ -372,6 +377,16 @@ func registerLists(r *Runtime) {
 		Bind("up", move(-1)).
 		Bind("space", Do("list.mark")).
 		Mode("count_pending").Extends("normal")
+	// list.mark is guarded off on a list added with NoMarks, so space does
+	// not answer there and no hint offers it.
+	r.DefineGuard("list-marks", func(r *Runtime, ev KeyEvent) bool {
+		for _, id := range r.Ancestry(ev.Focus) {
+			if list := r.List(id); list != nil {
+				return !list.noMarks
+			}
+		}
+		return true
+	})
 	resolve := func(c Context, args Arguments) (*List, error) {
 		if id := StringArg(args, "id", ""); id != "" {
 			if list := r.List(id); list != nil {
@@ -465,4 +480,8 @@ func registerLists(r *Runtime) {
 			return spec.run(list, c, args)
 		}})
 	}
+	if r.Nouns["list"].Guards == nil {
+		r.Nouns["list"].Guards = map[string]string{}
+	}
+	r.Nouns["list"].Guards["mark"] = "list-marks"
 }

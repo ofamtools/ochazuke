@@ -379,6 +379,9 @@ func (ss *Session) addPage(p *Page) error {
 		if l.NoSpill {
 			opts = append(opts, ochazuke.NoSpill())
 		}
+		if l.NoMarks {
+			opts = append(opts, ochazuke.NoMarks())
+		}
 		if len(l.Columns) > 0 {
 			opts = append(opts, ochazuke.Columns(l.Columns...))
 		}

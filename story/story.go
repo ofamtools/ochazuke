@@ -87,7 +87,8 @@ type ListSpec struct {
 	Labels   []string   `json:"labels,omitempty"`
 	Items    []ItemSpec `json:"items,omitempty"` // explicit ids and labels (a snapshot writes these)
 	NoSpill  bool       `json:"noSpill,omitempty"`
-	Height   int        `json:"height,omitempty"` // rows drawn; 0 = every row, -1 = the rest of the page
+	NoMarks  bool       `json:"noMarks,omitempty"` // a read-only view: space does not mark
+	Height   int        `json:"height,omitempty"`  // rows drawn; 0 = every row, -1 = the rest of the page
 	Selected int        `json:"selected,omitempty"`
 	Marked   []int      `json:"marked,omitempty"`
 	// Columns make the list a table (ochazuke.Columns); rows bring their

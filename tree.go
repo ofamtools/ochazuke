@@ -153,7 +153,8 @@ type Tree struct {
 }
 
 // AddTree registers a tree under Parent (default app) with its nodes.
-// Columns(...) makes its rows a table; NoSpill keeps motions inside it.
+// Columns(...) makes its rows a table; NoSpill keeps motions inside it;
+// NoMarks makes it a read-only view whose rows take no marks.
 func (r *Runtime) AddTree(id string, nodes []TreeNode, opts ...InstanceOption) (*Tree, error) {
 	if id == "" || r.Instances[id] != nil {
 		return nil, fmt.Errorf("tree ID %q must be nonempty and unused", id)
@@ -171,6 +172,9 @@ func (r *Runtime) AddTree(id string, nodes []TreeNode, opts ...InstanceOption) (
 	listOpts := []InstanceOption{Parent(id)}
 	if spec.noSpill {
 		listOpts = append(listOpts, NoSpill())
+	}
+	if spec.noMarks {
+		listOpts = append(listOpts, NoMarks())
 	}
 	if len(spec.columns) > 0 {
 		listOpts = append(listOpts, Columns(spec.columns...))

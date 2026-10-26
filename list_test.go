@@ -436,3 +436,50 @@ func TestFocusingARowSelectsIt(t *testing.T) {
 	}
 	selected("r1")
 }
+
+// A list (or tree) added with NoMarks is a read-only view: space does not
+// mark its rows (list.mark is guarded off, so the row is skipped and left
+// off the hints), list.mark refuses, and a plain list still marks.
+func TestNoMarksListTakesNoMarks(t *testing.T) {
+	r := NewRuntime()
+	r.Define("a")
+	if _, err := r.AddPage("page", "Page", func(*Runtime, int, int) Block { return Text("") }); err != nil {
+		t.Fatal(err)
+	}
+	view, err := r.AddList("view", []ListItem{{ID: "v1", Label: "v", Noun: "a"}}, Parent("page"), NoMarks())
+	if err != nil {
+		t.Fatal(err)
+	}
+	marks, err := r.AddList("marks", []ListItem{{ID: "m1", Label: "m", Noun: "a"}}, Parent("page"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tree, err := r.AddTree("tree", []TreeNode{{ID: "t1", Label: "t"}}, Parent("page"), NoMarks())
+	if err != nil {
+		t.Fatal(err)
+	}
+	answers := func(focus string) bool {
+		return slices.ContainsFunc(r.ListBindings(focus), func(b Binding) bool { return b.Keys == "space" })
+	}
+	for _, tc := range []struct {
+		focus string
+		list  *List
+		marks bool
+	}{{"v1", view, false}, {"m1", marks, true}, {tree.FocusTarget(), tree.List(), false}} {
+		if err := r.SetFocus(tc.focus); err != nil {
+			t.Fatal(err)
+		}
+		if answers(tc.focus) != tc.marks {
+			t.Fatalf("%s: space listed = %v, want %v", tc.focus, !tc.marks, tc.marks)
+		}
+		if _, err := r.Dispatch(MacroKey{Key: "space"}); err != nil && tc.marks {
+			t.Fatalf("%s: space: %v", tc.focus, err)
+		}
+		if got := len(tc.list.Marked()) > 0; got != tc.marks {
+			t.Fatalf("%s: marked = %v, want %v", tc.focus, got, tc.marks)
+		}
+	}
+	if _, err := r.Execute(Request{Noun: "list", Verb: "mark", Args: Arguments{"id": "view", "item": "v1"}}); err == nil {
+		t.Fatal("list.mark marked a NoMarks list")
+	}
+}

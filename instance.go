@@ -58,7 +58,7 @@ func (p Payload) empty() bool {
 
 type instanceSpec struct {
 	parent, noun, focus, closeFocus string
-	closeOnDetach, noSpill          bool
+	closeOnDetach, noSpill, noMarks bool
 	columns                         []Column
 }
 
@@ -96,6 +96,12 @@ func FocusOnClose(id string) InstanceOption {
 // row stays on that row instead of moving the focus to the next (previous)
 // stop on the page. For a list that must keep the focus, such as a picker.
 func NoSpill() InstanceOption { return func(s *instanceSpec) { s.noSpill = true } }
+
+// NoMarks makes a list (or a tree's list) a read-only view: its rows take
+// no marks, so space does not answer with list.mark there (the verb's
+// guard, list-marks, is false; the footer and ? help leave it out) and
+// list.mark refuses. list.apply still runs on the selected row.
+func NoMarks() InstanceOption { return func(s *instanceSpec) { s.noMarks = true } }
 
 // Instance registers a plain instance: a page body, a panel, a modal body.
 // Its noun is defined when it does not exist yet. Registering an existing id
