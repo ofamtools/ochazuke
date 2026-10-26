@@ -96,3 +96,64 @@ func TestTableText(t *testing.T) {
 		t.Fatal("no columns should be no lines")
 	}
 }
+
+// Max caps a flexible column's growth; the room it leaves goes to the
+// other flexible columns.
+func TestTableMaxCapsAFlexibleColumn(t *testing.T) {
+	cols := []Column{{Title: "args", Max: 6}, {Title: "description"}}
+	rows := [][]string{{strings.Repeat("x", 30), strings.Repeat("y", 60)}}
+	_, widths := tableLayout(cols, rows, 40)
+	if !slices.Equal(widths, []int{6, 32}) {
+		t.Fatalf("widths %v, want [6 32]", widths)
+	}
+}
+
+// A Wrap column's long cell wraps onto further lines of its row; the
+// other cells sit on the first line, and the selected row is highlighted
+// on every one of its lines. A Section opens a run of rows with a label
+// line, repeated at the top when the window starts inside the section.
+func TestTableWrapsCellsAndLabelsSections(t *testing.T) {
+	r := NewRuntime()
+	r.Define("row")
+	r.Instance("page", Kind("page"))
+	cols := []Column{{Title: "key"}, {Title: "text", Min: 8, Wrap: true}}
+	l, err := r.AddList("t", []ListItem{
+		{ID: "a", Noun: "row", Cells: []string{"a", "one two three four"}, Section: "first"},
+		{ID: "b", Noun: "row", Cells: []string{"b", "five"}, Section: "first"},
+		{ID: "c", Noun: "row", Cells: []string{"c", "six seven"}, Section: "second"},
+	}, Parent("page"), Columns(cols...))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	strip := func(text string) []string {
+		var out []string
+		for _, line := range strings.Split(ansi.Strip(text), "\n") {
+			out = append(out, strings.TrimRight(line, " "))
+		}
+		return out
+	}
+	text := l.View(13, 10)
+	want := []string{"key  text", "first", "a    one two", "     three", "     four", "b    five", "second", "c    six", "     seven", ""}
+	if got := strip(text); !slices.Equal(got, want) {
+		t.Fatalf("view\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+	if lit := highlightedLines(text); !slices.Equal(lit, []string{"a    one two", "three", "four"}) {
+		t.Fatalf("highlighted %q", lit)
+	}
+	l.Move(1)
+	l.Move(1)
+	got := strip(l.View(13, 5))
+	want = []string{"key  text", "second", "c    six", "     seven", "3–3 / 3"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("scrolled view\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+	l.Move(-1)
+	got = strip(l.View(13, 5))
+	want = []string{"key  text", "first", "b    five", "second", "2–2 / 3"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("window inside a section\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+}

@@ -4,6 +4,8 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -73,9 +75,12 @@ func TestHelpListsTheFocusedRowsVerbsFirst(t *testing.T) {
 			t.Fatalf("ctrl+c grouped under %q", row.Noun)
 		}
 	}
-	frame := ansi.Strip(m.View().Content)
-	if !strings.Contains(frame, "Keys") || !strings.Contains(strings.Join(strings.Fields(frame), " "), "> enter widget.open") {
-		t.Fatalf("frame:\n%s", frame)
+	raw := m.View().Content
+	frame := ansi.Strip(raw)
+	if lit := highlightedLines(raw); !strings.Contains(frame, "Keys") || !slices.ContainsFunc(lit, func(l string) bool {
+		return strings.HasPrefix(strings.Join(strings.Fields(l), " "), "enter widget.open Open the")
+	}) {
+		t.Fatalf("frame (highlighted %q):\n%s", lit, frame)
 	}
 	// Read-only: enter does not run widget.open beneath the modal.
 	keytest.Press(m, "j")
@@ -101,17 +106,33 @@ func TestHelpKeepsOwnerGroupVisibleWhileScrolling(t *testing.T) {
 		keytest.Press(m, "j")
 		bindingHelpView(r, nil, 80, 5)
 	}
-	frame := ansi.Strip(bindingHelpView(r, nil, 80, 5).Text)
+	raw := bindingHelpView(r, nil, 80, 5).Text
+	frame := ansi.Strip(raw)
 	lines := strings.Split(frame, "\n")
-	if strings.TrimSpace(lines[0]) != "widget" {
-		t.Fatalf("scrolled help lost its binding owner:\n%s", frame)
+	if strings.Join(strings.Fields(lines[0]), " ") != "key operation arguments description" || strings.TrimSpace(lines[1]) != "widget" {
+		t.Fatalf("scrolled help lost its header or binding owner:\n%s", frame)
 	}
-	if !strings.Contains(strings.Join(strings.Fields(frame), " "), "> c mode.set") {
-		t.Fatalf("selected binding is not visible beneath its owner:\n%s", frame)
+	if lit := highlightedLines(raw); len(lit) == 0 || !strings.HasPrefix(strings.Join(strings.Fields(lit[0]), " "), "c mode.set") {
+		t.Fatalf("selected binding is not highlighted beneath its owner (%q):\n%s", lit, frame)
 	}
 	if len(lines) > 5 {
 		t.Fatalf("help exceeds the viewport:\n%s", frame)
 	}
+}
+
+// reverseSGR matches an SGR sequence that turns reverse video on.
+var reverseSGR = regexp.MustCompile(`\x1b\[(?:[0-9;]*;)?7m`)
+
+// highlightedLines is the text of every reverse-video line, stripped (and
+// cut from a modal's border).
+func highlightedLines(raw string) []string {
+	var out []string
+	for _, line := range strings.Split(raw, "\n") {
+		if reverseSGR.MatchString(line) {
+			out = append(out, strings.TrimSpace(strings.Trim(ansi.Strip(line), "│ ")))
+		}
+	}
+	return out
 }
 
 // ? is a normal-mode row: in insert mode it is typed, and in a passthrough

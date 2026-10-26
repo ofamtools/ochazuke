@@ -115,9 +115,9 @@ Root package `ochazuke` is flat: 54 source files, 51 test files. Each entry list
 
 ### help.go
 
-- lines: 272 · tests: help_test.go
+- lines: 169 · tests: help_test.go
 - purpose: registerBindingHelp adds bindings.help: a modal listing BindingHelp for the focus it opens over, one row per binding (key, noun.verb, arguments, description)...
-- leans on: runtime.go(13), noun.go(11), instance.go(6), model.go(6)
+- leans on: runtime.go(13), noun.go(11), instance.go(6), list.go(4)
 
 ### history.go
 
@@ -163,7 +163,7 @@ Root package `ochazuke` is flat: 54 source files, 51 test files. Each entry list
 
 ### list.go
 
-- lines: 487 · tests: list_test.go
+- lines: 490 · tests: list_test.go
 - purpose: ListItem is application-owned identity, display text, and the registered noun the row answers to.
 - types: ListItem, List
 - methods: List(20), Runtime(1)
@@ -372,12 +372,12 @@ Root package `ochazuke` is flat: 54 source files, 51 test files. Each entry list
 
 ### table.go
 
-- lines: 295 · tests: table_test.go
+- lines: 454 · tests: table_test.go
 - purpose: Align is a column's alignment: AlignLeft (the zero value) or AlignRight.
 - types: Align, Column
-- methods: List(4)
+- methods: List(6)
 - funcs: Columns, TableText
-- leans on: list.go(6), surface.go(4), instance.go(2), layout.go(2)
+- leans on: list.go(8), surface.go(6), layout.go(3), instance.go(2)
 
 ### terminal.go
 

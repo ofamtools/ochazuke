@@ -33,12 +33,19 @@ const (
 // dropping when the width is short: the column with the largest Priority
 // drops first, ties the rightmost first; 0, the default, is the most
 // important, and the last column left never drops (it is cut instead).
+// Max caps a flexible column's growth (0: up to its widest cell). Wrap
+// makes List.View wrap a cell longer than its column onto further lines
+// of the row instead of cutting it: the row is as tall as its tallest
+// wrapped cell, the other cells sit on its first line (TableText still
+// cuts).
 type Column struct {
 	Title    string `json:"title"`
 	Width    int    `json:"width,omitempty"`
 	Min      int    `json:"min,omitempty"`
+	Max      int    `json:"max,omitempty"`
 	Align    Align  `json:"align,omitempty"`
 	Priority int    `json:"priority,omitempty"`
+	Wrap     bool   `json:"wrap,omitempty"`
 }
 
 // tableGap is the space between two columns; defaultColumnMin a flexible
@@ -101,6 +108,9 @@ func tableLayoutOf(cols []Column, widest []int, width int) (shown, widths []int)
 	for i, c := range cols {
 		title := ansi.StringWidth(c.Title)
 		natural[i] = max(title, widest[i])
+		if c.Width == 0 && c.Max > 0 {
+			natural[i] = min(natural[i], max(c.Max, title))
+		}
 		switch {
 		case c.Width > 0:
 			natural[i], least[i] = c.Width, c.Width
@@ -199,6 +209,9 @@ func (l *List) tableView(width, height int) string {
 		lines = append(lines, l.emptyLine())
 		return l.r.PlacedAt(l.id, strings.Join(layoutRows(strings.Join(lines, "\n"), width, height), "\n"), 0, height)
 	}
+	if l.tall() {
+		return l.tallView(lines, width, height, body, shown, widths)
+	}
 	visible := body
 	if len(l.items) > body && body > 1 {
 		visible--
@@ -292,4 +305,150 @@ func TableText(cols []Column, rows [][]string, width int) []string {
 		lines = append(lines, strings.TrimRight(tableLine(cols, row, shown, widths), " "))
 	}
 	return lines
+}
+
+// tall reports whether the table's rows can take more than one line: a
+// column wraps, or a row opens a section.
+func (l *List) tall() bool {
+	for _, c := range l.columns {
+		if c.Wrap {
+			return true
+		}
+	}
+	for _, item := range l.items {
+		if item.Section != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// wrapCell wraps a cell into lines of at most width cells, breaking at
+// spaces and after dots (a noun.verb breaks at its dot).
+func wrapCell(text string, width int) []string {
+	if width <= 0 {
+		return []string{""}
+	}
+	return strings.Split(ansi.Wrap(text, width, "."), "\n")
+}
+
+// tableRowLines lays one row out on as many lines as its tallest wrapped
+// cell; a cell of a column without Wrap sits on the first line, cut.
+func tableRowLines(cols []Column, row []string, shown, widths []int) []string {
+	parts := make([][]string, len(shown))
+	n := 1
+	for j, i := range shown {
+		if cols[i].Wrap {
+			parts[j] = wrapCell(row[i], widths[j])
+		} else {
+			parts[j] = []string{row[i]}
+		}
+		n = max(n, len(parts[j]))
+	}
+	lines := make([]string, n)
+	cell := make([]string, len(cols))
+	for k := range n {
+		for j, i := range shown {
+			cell[i] = ""
+			if k < len(parts[j]) {
+				cell[i] = parts[j][k]
+			}
+		}
+		lines[k] = tableLine(cols, cell, shown, widths)
+	}
+	return lines
+}
+
+// tallView is tableView for rows of more than one line (wrapped cells,
+// section labels). Each row is its section label when it opens one, then
+// its lines. The window starts at the list's offset, never below the
+// selected row, and moves down only until the selected row fits whole;
+// when it starts inside a section, that section's label is repeated on
+// its first line. The focused list's selected row is reversed across the
+// whole width on every line, its section label not.
+func (l *List) tallView(lines []string, width, height, body int, shown, widths []int) string {
+	section := lipgloss.NewStyle().Bold(true).Underline(true)
+	gutter := len(l.marks) > 0
+	rows := make([][]string, len(l.items))
+	opens := make([]bool, len(l.items))
+	total := 0
+	for i, item := range l.items {
+		opens[i] = item.Section != "" && (i == 0 || l.items[i-1].Section != item.Section)
+		for k, line := range tableRowLines(l.columns, cells(item, len(l.columns)), shown, widths) {
+			if gutter {
+				prefix := "  "
+				if k == 0 && l.marks[item.ID] {
+					prefix = "* "
+				}
+				line = prefix + line
+			}
+			rows[i] = append(rows[i], line)
+		}
+		total += len(rows[i])
+		if opens[i] {
+			total++
+		}
+	}
+	visible := body
+	if len(l.items) > 1 && body > 1 && total > body {
+		visible--
+	}
+	visible = max(visible, 1)
+	sticky := func(from int) bool {
+		return visible > 1 && l.items[from].Section != "" && !opens[from]
+	}
+	fits := func(from int) bool {
+		n := 0
+		if sticky(from) {
+			n++
+		}
+		for i := from; i <= l.selected; i++ {
+			n += len(rows[i])
+			if opens[i] {
+				n++
+			}
+		}
+		return n <= visible
+	}
+	l.offset = max(0, min(l.offset, l.selected))
+	for l.offset < l.selected && !fits(l.offset) {
+		l.offset++
+	}
+	top := len(lines)
+	var out []string
+	if sticky(l.offset) {
+		out = append(out, section.Render(modalLabel(l.items[l.offset].Section)))
+	}
+	focused := l.Focused()
+	focus, focusHeight := 0, height
+	end := l.offset
+	for i := l.offset; i < len(l.items) && len(out) < visible; i++ {
+		if opens[i] {
+			out = append(out, section.Render(modalLabel(l.items[i].Section)))
+		}
+		if i == l.selected && len(out) < visible {
+			focus, focusHeight = top+len(out), min(len(rows[i]), visible-len(out))
+		}
+		for k, line := range rows[i] {
+			if len(out) == visible {
+				break
+			}
+			if k == 0 {
+				end = i + 1
+			}
+			line = ansi.Truncate(line, width, "…")
+			if i == l.selected && focused {
+				line += strings.Repeat(" ", max(0, width-ansi.StringWidth(line)))
+				line = lipgloss.NewStyle().Reverse(true).Render(line)
+			} else {
+				line = strings.TrimRight(line, " ")
+			}
+			out = append(out, line)
+		}
+	}
+	lines = append(lines, out...)
+	if visible < body {
+		lines = append(lines, fmt.Sprintf("%d–%d / %d", l.offset+1, end, len(l.items)))
+	}
+	return l.r.PlacedAt(l.id, strings.Join(layoutRows(strings.Join(lines, "\n"), width, height), "\n"), focus, focusHeight)
 }

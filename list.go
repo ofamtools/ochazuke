@@ -19,13 +19,16 @@ import (
 // framework never reads it. Cells are the row's text per column when the
 // list has columns (a table, Columns); Label stays the row's name for the
 // palette, search and {{label}}, and is the first cell of a row without
-// cells.
+// cells. Section groups a table's rows: List.View draws the section as a
+// label line above the first row of each run of rows with the same
+// Section (a list without columns ignores it).
 type ListItem struct {
-	ID    string   `json:"id"`
-	Label string   `json:"label"`
-	Noun  string   `json:"noun"`
-	Data  any      `json:"data,omitempty"`
-	Cells []string `json:"cells,omitempty"`
+	ID      string   `json:"id"`
+	Label   string   `json:"label"`
+	Noun    string   `json:"noun"`
+	Data    any      `json:"data,omitempty"`
+	Cells   []string `json:"cells,omitempty"`
+	Section string   `json:"section,omitempty"`
 }
 
 // List owns flat selection, marks and scrolling on the runtime's event loop.
