@@ -743,6 +743,35 @@ func TestShellSetsASetting(t *testing.T) {
 	}
 }
 
+// config export DIR takes the directory as a bare word and --force as a
+// flag; config path prints the directories.
+func TestShellExportsTheConfig(t *testing.T) {
+	f := newFixture(t)
+	dir := t.TempDir()
+	f.r.Config().Dir = dir
+	out := filepath.Join(t.TempDir(), "ref")
+	got, _, err := f.run("", "config", "export", out)
+	if err != nil || !strings.Contains(got, filepath.Join(out, ochazuke.BindingsReferenceFile)) {
+		t.Fatalf("export: %s %v", got, err)
+	}
+	if _, err := os.Stat(filepath.Join(out, ochazuke.ThemesExampleFile)); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := f.run("", "config", "export", dir); err == nil || !strings.Contains(err.Error(), "--force") {
+		t.Fatalf("export over the live files: %v", err)
+	}
+	if _, _, err := f.run("", "config", "export", dir, "--force"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "settings.json")); err != nil {
+		t.Fatal("--force did not write settings.json")
+	}
+	got, _, err = f.run("", "config", "path")
+	if err != nil || !strings.Contains(got, filepath.Join(dir, ochazuke.ReferenceDir)) {
+		t.Fatalf("path: %s %v", got, err)
+	}
+}
+
 // A resolver maps a foreign id to its row; Reveal still loads the rows a
 // resolver cannot find yet, and the confirm names the resolved row.
 func TestShellResolveTargetComposesWithReveal(t *testing.T) {

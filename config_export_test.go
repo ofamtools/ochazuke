@@ -381,3 +381,49 @@ func jsonFields(v any) []string {
 	}
 	return out
 }
+
+// The README names every file written, where the live files are, warns
+// that copying defaults pins them, and lists every action placeholder.
+func TestConfigExportReadmeExplainsEachFile(t *testing.T) {
+	r, dir := exportFixture(t)
+	r.Config().App = "demo"
+	got, err := r.ExportConfig("", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(got.Dir, ReferenceReadme))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(data)
+	for _, want := range []string{"# demo configuration reference", "`" + dir + "`", "pins", "demo config path"} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("README lacks %q:\n%s", want, text)
+		}
+	}
+	for _, f := range got.Files {
+		if name := filepath.Base(f); name != ReferenceReadme && !strings.Contains(text, "`"+name+"`") {
+			t.Fatalf("README does not explain %s", name)
+		}
+	}
+	for _, name := range liveFiles {
+		if !strings.Contains(text, "`"+name+"`") {
+			t.Fatalf("README does not name the live %s", name)
+		}
+	}
+	listed := map[string]bool{}
+	for _, p := range actionPlaceholderHelp {
+		listed[p[0]] = true
+		if !strings.Contains(text, "`{{"+p[0]+"}}`") {
+			t.Fatalf("README lacks the placeholder %s", p[0])
+		}
+	}
+	for name := range actionPlaceholders {
+		if !listed[name] {
+			t.Fatalf("placeholder %s is not described", name)
+		}
+	}
+	if len(listed) != len(actionPlaceholders)+2 { // data.KEY and PARAMETER
+		t.Fatalf("described placeholders %v, the checker knows %v", listed, actionPlaceholders)
+	}
+}

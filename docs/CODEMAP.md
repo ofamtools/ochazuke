@@ -64,11 +64,11 @@ Root package `ochazuke` is flat: 59 source files, 57 test files. Each entry list
 
 ### config_export.go
 
-- lines: 323 · tests: config_export_test.go
+- lines: 406 · tests: config_export_test.go
 - purpose: ConfigPaths are where the application's user files live: Config is the config directory (bindings.json, settings.json, actions.json, themes.json), State the ...
 - types: ConfigPaths, ConfigExport
-- methods: Config(2), Runtime(2)
-- leans on: configuration.go(15), runtime.go(13), scheme.go(4), delivery.go(2)
+- methods: Config(2), Runtime(3)
+- leans on: configuration.go(25), runtime.go(14), scheme.go(8), actions.go(3)
 
 ### configuration.go
 

@@ -21,6 +21,7 @@ const (
 	BindingsReferenceFile = "bindings.reference.json"
 	ActionsExampleFile    = "actions.example.json"
 	ThemesExampleFile     = "themes.example.json"
+	ReferenceReadme       = "README.md"
 )
 
 // ConfigPaths are where the application's user files live: Config is the
@@ -89,7 +90,7 @@ func (r *Runtime) ExportConfig(dir string, force bool) (ConfigExport, error) {
 	if !force {
 		for _, f := range files {
 			if live := c.liveFile(filepath.Join(abs, f.name)); live != "" {
-				return ConfigExport{}, fmt.Errorf("%s is the live %s; export elsewhere or pass force to overwrite it", filepath.Join(abs, f.name), live)
+				return ConfigExport{}, fmt.Errorf("%s is the live %s; export elsewhere, or pass --force to overwrite it", filepath.Join(abs, f.name), live)
 			}
 		}
 	}
@@ -123,12 +124,94 @@ func (r *Runtime) exportFiles() ([]exportFile, error) {
 		return nil, err
 	}
 	return []exportFile{
+		{ReferenceReadme, r.referenceReadme(len(settings), len(r.allBindings()))},
 		{SettingsFile, current},
 		{SettingsReferenceFile, reference},
 		{BindingsReferenceFile, bindings},
 		{ActionsExampleFile, []byte(actionsExample)},
 		{ThemesExampleFile, themesExample()},
 	}, nil
+}
+
+// actionPlaceholderHelp describes every template name an action may use,
+// in the order the README lists them; a test keeps it equal to
+// actionPlaceholders.
+var actionPlaceholderHelp = [][2]string{
+	{"target", "the id of the instance the verb runs on"},
+	{"id", "the same as target"},
+	{"label", "the instance's label, else its id"},
+	{"noun", "the action's noun"},
+	{"verb", "the action's verb"},
+	{"data", "the instance's Data: a string as is, else JSON"},
+	{"data.KEY", "one field of Data when Data is a JSON object"},
+	{"args", "the arguments as one JSON object"},
+	{"PARAMETER", "the value of a parameter the entry declares (by its name)"},
+}
+
+// referenceReadme is the export directory's README.md: what each file is,
+// where the live files are, and why copying defaults pins them.
+func (r *Runtime) referenceReadme(settings, rows int) []byte {
+	c := r.Config()
+	app := c.App
+	if app == "" {
+		app = "APP"
+	}
+	paths := c.Paths()
+	var b strings.Builder
+	line := func(format string, a ...any) { fmt.Fprintf(&b, format+"\n", a...) }
+	line("# %s configuration reference", app)
+	line("")
+	line("Written by `%s config export`. Nothing in this directory is read by %s: it is a reference to copy from. Export again to refresh it; the files here are replaced.", app, app)
+	line("")
+	line("## Live files")
+	line("")
+	if paths.Config == "" {
+		line("This application has no config directory, so it reads none of these files.")
+	} else {
+		line("%s reads these from the config directory `%s` (`%s config path` prints it):", app, paths.Config, app)
+		line("")
+		line("| File | What it holds | Reload |")
+		line("|---|---|---|")
+		line("| `%s` | Key rows that replace (same noun or instance, mode and keys) or unbind (`\"request\": null`) the defaults | `%s bindings reload`, or restart |", BindingsFile, app)
+		line("| `%s` | Values of the declared settings, by name | read again when it changes |", SettingsFile)
+		line("| `%s` | Verbs that run external commands | `%s actions reload`, or restart |", ActionsFile, app)
+		line("| `%s` | Colour schemes the `%s` setting can name | `%s themes reload`, or restart |", ThemesFile, ThemeSetting, app)
+	}
+	if paths.State != "" {
+		line("")
+		line("The state directory `%s` holds `%s` (the action history) and `%s` (pane dividers). %s writes them; they are not configuration.", paths.State, HistoryFile, PanesFile, app)
+	}
+	line("")
+	line("## Files here")
+	line("")
+	line("| File | What it is | Use |")
+	line("|---|---|---|")
+	line("| `%s` | Every declared setting (%d) at its current value | Copy the lines you want to change into the live `%s` |", SettingsFile, settings, SettingsFile)
+	line("| `%s` | Each setting's type, default, allowed values (`enum`), description and current value (`set` is true when the live file holds it) | Read it to see what a setting takes |", SettingsReferenceFile)
+	line("| `%s` | Every key row (%d) of every noun, instance and mode, in the `bindings.json` row shape (`%s bindings list --all`) | Copy a row into the live `%s` and change its keys or request |", BindingsReferenceFile, rows, app, BindingsFile)
+	line("| `%s` | Two example actions on the `app` noun that use every field | Adapt an entry into the live `%s` |", ActionsExampleFile, ActionsFile)
+	line("| `%s` | Two example colour schemes using every role | Adapt a scheme into the live `%s` |", ThemesExampleFile, ThemesFile)
+	line("")
+	line("## Copying defaults pins them")
+	line("")
+	line("A value or row in a live file overrides the default from then on. If you copy a whole file in, every default it holds is pinned: when a later version of %s changes a default, you keep the old one. Copy only what you change.", app)
+	line("")
+	line("The bindings reference shows the rows as they are now, the live `%s` rows included. A row in `%s` replaces every row on the same keys in its table, so of two rows that share keys there (a row with `when` and its fallback) only the last one copied stands.", BindingsFile, BindingsFile)
+	line("")
+	line("## Action templates")
+	line("")
+	line("`{{name}}` in `command`, `base`, `target`, `label` and `dir` expands to:")
+	line("")
+	for _, p := range actionPlaceholderHelp {
+		line("- `{{%s}}`: %s", p[0], p[1])
+	}
+	line("")
+	line("An argv word that is one placeholder and expands to nothing is left out. Parameters are `string`, `integer` or `boolean`; `required`, `enum`, `source` (an operation, noun.verb, listing more choices), `free` (accept a value outside them) and `description` are optional.")
+	line("")
+	line("## Theme roles")
+	line("")
+	line("`background` is `adaptive`, `light` or `dark`. `text`, `muted`, `accent`, `border`, `surface` and `error` are each one colour or `{\"light\": ..., \"dark\": ...}`; a colour is `#RRGGBB`, `#RGB` or an ANSI index `0` to `255`. A role left out keeps the built-in palette's. `error` must differ from `accent` and `muted`. The built-in themes are %s.", strings.Join(BuiltinThemes, ", "))
+	return []byte(b.String())
 }
 
 // actionsExample is actions.example.json: one entry in the command form
