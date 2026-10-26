@@ -13,9 +13,17 @@ import (
 )
 
 // Formats are the values of the shell's --format: json (the default, the
-// shell's JSON output unchanged) and table (plain-text columns, read from
-// the same column declarations a list draws).
-var Formats = []string{"json", "table"}
+// shell's JSON output unchanged), table (plain-text columns, read from the
+// same column declarations a list draws) and markdown (a GitHub table).
+//
+// markdown, exactly: per table a header line "| title | title |", a rule
+// line with "---" per column ("---:" for a right-aligned one), then one
+// line per row "| cell | cell |"; nothing is padded or cut. In a title or
+// cell a backslash is written \\ and a | is \|, a line break (\n, \r\n
+// or \r) is <br>, any other control character a space. With several
+// tables each starts with "## NOUN" and a blank line, and a blank line
+// separates them.
+var Formats = []string{"json", "table", "markdown"}
 
 // A tabular result is an array (a JSON array, or Lines) whose elements are
 // all JSON objects: a list verb's rows ({id, label, data}), a state verb's
@@ -291,6 +299,8 @@ func (s *Shell) output(q ochazuke.Request, format string, value any) error {
 	switch format {
 	case "table":
 		writeTables(&b, tables, s.tableWidth())
+	case "markdown":
+		writeMarkdown(&b, tables)
 	}
 	_, err := fmt.Fprint(s.stdout(), b.String())
 	return err
@@ -327,6 +337,50 @@ func writeTables(b *strings.Builder, tables []table, width int) {
 		}
 		for _, line := range ochazuke.TableText(t.cols, t.rows, width) {
 			b.WriteString(line + "\n")
+		}
+	}
+}
+
+// markdownCell escapes a title or cell for a GitHub table row.
+var markdownCell = strings.NewReplacer(`\`, `\\`, "|", `\|`, "\r\n", "<br>", "\n", "<br>", "\r", "<br>")
+
+// writeMarkdown writes each table as a GitHub table (see Formats).
+func writeMarkdown(b *strings.Builder, tables []table) {
+	cell := func(text string) string {
+		return strings.Map(func(r rune) rune {
+			if r < 0x20 || r == 0x7f {
+				return ' '
+			}
+			return r
+		}, markdownCell.Replace(text))
+	}
+	line := func(cells []string) { b.WriteString("| " + strings.Join(cells, " | ") + " |\n") }
+	titled := len(tables) > 1
+	for i, t := range tables {
+		if i > 0 {
+			b.WriteString("\n")
+		}
+		if titled && t.noun != "" {
+			b.WriteString("## " + t.noun + "\n\n")
+		}
+		if len(t.cols) == 0 {
+			continue
+		}
+		head, rule := make([]string, len(t.cols)), make([]string, len(t.cols))
+		for j, c := range t.cols {
+			head[j], rule[j] = cell(c.Title), "---"
+			if c.Align == ochazuke.AlignRight {
+				rule[j] = "---:"
+			}
+		}
+		line(head)
+		line(rule)
+		for _, row := range t.rows {
+			cells := make([]string, len(t.cols))
+			for j := range cells {
+				cells[j] = cell(row[j])
+			}
+			line(cells)
 		}
 	}
 }

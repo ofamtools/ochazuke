@@ -115,7 +115,7 @@ func New(r *ochazuke.Runtime, bin string, stdin io.Reader, stdout, stderr io.Wri
 // DefaultUsage is the usage line of a bin with no global flags of its own,
 // followed by UsageHint.
 func DefaultUsage(bin string) string {
-	return "usage: " + bin + " NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--format json|table] [--yes]\n" + UsageHint(bin)
+	return "usage: " + bin + " NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--format " + strings.Join(Formats, "|") + "] [--yes]\n" + UsageHint(bin)
 }
 
 // UsageHint is the line under a usage line that points at oden's help: the

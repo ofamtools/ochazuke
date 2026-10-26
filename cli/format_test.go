@@ -100,6 +100,23 @@ func TestFormatTable(t *testing.T) {
 	checkGolden(t, "format-table.golden", goldenFormat(t, "table", -1, formatCommands...))
 }
 
+// TestFormatMarkdown: the same tables as GitHub tables; a state's Lines
+// are one table per noun under "## NOUN".
+func TestFormatMarkdown(t *testing.T) {
+	checkGolden(t, "format-markdown.golden", goldenFormat(t, "markdown", 20, formatCommands...))
+}
+
+// TestFormatMarkdownEscapes: a backslash, a pipe and line breaks in a
+// cell cannot break the row; other control characters are spaces.
+func TestFormatMarkdownEscapes(t *testing.T) {
+	var b strings.Builder
+	writeMarkdown(&b, []table{{cols: []ochazuke.Column{{Title: "a|b"}, {Title: "n", Align: ochazuke.AlignRight}}, rows: [][]string{{`x\|y`, "1\r\n2\n3\r4\t5"}}}})
+	want := "| a\\|b | n |\n| --- | ---: |\n| x\\\\\\|y | 1<br>2<br>3<br>4 5 |\n"
+	if b.String() != want {
+		t.Fatalf("got  %q\nwant %q", b.String(), want)
+	}
+}
+
 // TestFormatTableWidth: at a terminal's width cells cut with "…" and the
 // columns drop by Priority (cwd first, then state); without one nothing
 // is cut however long the line.
@@ -168,7 +185,7 @@ func TestFormatFlags(t *testing.T) {
 	if got, _, err := runFormat(t, -1, "pane", "list", "--format", "table", "--json", `{}`); err != nil || got != table {
 		t.Fatalf("--format table --json ARGS: %v\n%s", err, got)
 	}
-	if _, _, err := runFormat(t, -1, "pane", "list", "--format", "yaml"); err == nil || !strings.Contains(err.Error(), `--format "yaml": one of json, table`) {
+	if _, _, err := runFormat(t, -1, "pane", "list", "--format", "yaml"); err == nil || !strings.Contains(err.Error(), `--format "yaml": one of json, table, markdown`) {
 		t.Fatalf("unknown format: %v", err)
 	}
 	if _, _, err := runFormat(t, -1, "pane", "list", "--json", "--format", "table"); err == nil || !strings.Contains(err.Error(), "bare --json") {
