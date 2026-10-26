@@ -232,3 +232,46 @@ func TestListFilterAppSlashWins(t *testing.T) {
 		t.Fatalf("the app's / should answer: mode %s", r.Mode.Name)
 	}
 }
+
+// Patch on a filtered list patches every row, the hidden ones too, and
+// filters the result: a hidden row changed to match shows, a shown row
+// changed not to match hides, the selection stays by id.
+func TestListFilterPatch(t *testing.T) {
+	r, _, list := filterFixture(t)
+	list.SetFilter("al")
+	if err := list.Select("r4"); err != nil {
+		t.Fatal(err)
+	}
+	err := list.Patch(ListPatch{Upsert: []ListItem{
+		{ID: "r3", Label: "gamma pal", Noun: "a"}, // hidden, now matches
+		{ID: "r1", Label: "omega", Noun: "a"},     // shown, now hidden
+	}, Remove: []string{"r2"}}) // hidden, removed
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := shownIDs(list); !reflect.DeepEqual(got, []string{"r3", "r4"}) {
+		t.Fatalf("shown %v", got)
+	}
+	var all []string
+	for _, item := range list.Items() {
+		all = append(all, item.ID)
+	}
+	if !reflect.DeepEqual(all, []string{"r1", "r3", "r4", "r5"}) || list.Len() != 4 || list.Shown() != 2 {
+		t.Fatalf("items %v len %d shown %d", all, list.Len(), list.Shown())
+	}
+	if r.Instances["r5"] == nil || r.Instances["r2"] != nil {
+		t.Fatal("a hidden row keeps its instance; only the removed one closes")
+	}
+	if sel, _ := list.Selected(); sel.ID != "r4" || r.Focus != "r4" {
+		t.Fatalf("selection %s focus %s", sel.ID, r.Focus)
+	}
+}
+
+func TestListFilterVerbsAreBuiltin(t *testing.T) {
+	r := NewRuntime()
+	for _, verb := range []string{"filter", "filter-open", "filter-type", "filter-erase", "filter-keep", "filter-clear"} {
+		if op, ok := r.Operations["list."+verb]; !ok || !op.Builtin {
+			t.Errorf("list.%s builtin = %v (registered %v)", verb, op.Builtin, ok)
+		}
+	}
+}

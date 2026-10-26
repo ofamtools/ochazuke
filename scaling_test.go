@@ -515,6 +515,36 @@ func TestHolderIndexMatchesScan(t *testing.T) {
 	}
 	delete(r.Instances, "direct")
 	check("removed")
+	// List.Patch removing and adding rows, and a row's own child.
+	r.Instance("y2/child", Parent("y2")).Component = closeLog{id: "y2/child", log: &log}
+	if err := list.Patch(ListPatch{Upsert: []ListItem{{ID: "z1", Label: "z1", Noun: "a"}}, Remove: []string{"y2", "y5"}}); err != nil {
+		t.Fatal(err)
+	}
+	check("patched")
+	// The Settings page registers its lists and detail when it opens and
+	// removes them when it closes.
+	r.Config().Dir = t.TempDir()
+	if err := r.DeclareSetting(Setting{Name: "wrap", Type: SettingBoolean, Default: false, Description: "Wrap"}, Setting{Name: "ext.x.n", Type: SettingInteger, Default: 1, Description: "N"}); err != nil {
+		t.Fatal(err)
+	}
+	NewModel(r)
+	if err := r.OpenPage("p"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Execute(Request{Noun: "settings", Verb: "edit"}); err != nil {
+		t.Fatal(err)
+	}
+	if r.Page != SettingsPageID {
+		t.Fatalf("settings.edit: page %s", r.Page)
+	}
+	check("settings open")
+	if _, err := r.Execute(Request{Noun: "settings", Verb: "close"}); err != nil {
+		t.Fatal(err)
+	}
+	if r.Instances[SettingsPageID] != nil {
+		t.Fatal("settings.close keeps the page")
+	}
+	check("settings closed")
 }
 
 // BenchmarkListFilter is one keystroke of the filter line on a list of n

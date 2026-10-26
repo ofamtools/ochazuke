@@ -206,7 +206,7 @@ Root package `ochazuke` is flat: 61 source files, 61 test files. Each entry list
 
 ### list_filter.go
 
-- lines: 320 · tests: list_filter_test.go
+- lines: 324 · tests: list_filter_test.go
 - purpose: filterOpenRow is the row that opens the filter line: "/" on app in normal mode guarded by list-filterable, like J/K detail, so an application's own "/" on an...
 - methods: List(10), Runtime(1)
 - leans on: runtime.go(33), list.go(28), noun.go(23), instance.go(6)

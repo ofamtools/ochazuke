@@ -1,0 +1,149 @@
+{
+  "name": "settings page: / filters the shown section's rows; enter keeps, esc clears",
+  "area": "settings",
+  "width": 80,
+  "settings": [
+    {
+      "name": "scrolloff",
+      "type": "integer",
+      "default": 2,
+      "description": "Rows kept above and below the focus"
+    },
+    {
+      "name": "theme",
+      "type": "string",
+      "default": "dark",
+      "description": "Colour theme",
+      "enum": [
+        "dark",
+        "light",
+        "mono"
+      ]
+    },
+    {
+      "name": "ext.ai.poll-every",
+      "type": "duration",
+      "default": "30s",
+      "description": "How often the AI extension refreshes its rows"
+    },
+    {
+      "name": "ext.ai.model",
+      "type": "string",
+      "default": "large",
+      "description": "Model the AI extension asks",
+      "enum": [
+        "small",
+        "large"
+      ]
+    },
+    {
+      "name": "ext.git.fetch",
+      "type": "boolean",
+      "default": true,
+      "description": "Fetch before listing branches"
+    },
+    {
+      "name": "tab-width",
+      "type": "integer",
+      "default": 4,
+      "description": "Columns per tab"
+    }
+  ],
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": ",",
+        "do": "settings.edit"
+      }
+    ]
+  },
+  "script": [
+    ",",
+    "/",
+    "t",
+    "enter",
+    "j",
+    "esc",
+    "/",
+    "z",
+    "backspace",
+    "backspace"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "mode": "list_filter",
+      "focus": "__settings/row/scrolloff",
+      "contains": [
+        "enter list.filter-keep"
+      ]
+    },
+    {
+      "after": 3,
+      "mode": "list_filter",
+      "focus": "__settings/row/theme",
+      "contains": [
+        "/t",
+        "2 of 3",
+        "theme",
+        "tab-width"
+      ],
+      "lacks": [
+        "scrolloff"
+      ]
+    },
+    {
+      "after": 4,
+      "mode": "normal",
+      "focus": "__settings/row/theme",
+      "contains": [
+        "/t",
+        "2 of 3"
+      ]
+    },
+    {
+      "after": 5,
+      "focus": "__settings/row/tab-width",
+      "contains": [
+        "Columns per tab"
+      ]
+    },
+    {
+      "after": 6,
+      "mode": "normal",
+      "focus": "__settings/row/tab-width",
+      "contains": [
+        "scrolloff",
+        "theme",
+        "tab-width"
+      ],
+      "lacks": [
+        "/t"
+      ]
+    },
+    {
+      "after": 8,
+      "mode": "list_filter",
+      "contains": [
+        "/z",
+        "no matches"
+      ]
+    },
+    {
+      "after": 10,
+      "mode": "normal",
+      "focus": "__settings/row/tab-width",
+      "page": "__settings",
+      "lacks": [
+        "/z"
+      ]
+    }
+  ]
+}

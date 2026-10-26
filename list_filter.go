@@ -88,7 +88,11 @@ func (l *List) Shown() int { return len(l.items) }
 func (l *List) SetFilter(query string) {
 	previous, _ := l.Selected()
 	l.query = query
-	l.refilter(previous.ID)
+	keep := previous.ID
+	if keep == "" {
+		keep = l.back // nothing matched: widening the query finds the row / started on
+	}
+	l.refilter(keep)
 	l.syncFocus(previous, nil)
 }
 
