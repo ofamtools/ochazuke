@@ -26,26 +26,17 @@
         │                                   default) for fan-out verbs │
         │ app                                                          │
         │   ctrl+c      app.quit            Exit the application       │
-        │   "           mode.enter          Enter a pending mode with  │
-        │                                   a typed payload (op,       │
-        │                                   count, opcount; prefix     │
-        │                                   arms the sequence timer,   │
-        │                                   request is what it runs)   │
-        │   q           mode.enter          Enter a pending mode with  │
-        │                                   a typed payload (op,       │
-        │                                   count, opcount; prefix     │
-        │                                   arms the sequence timer,   │
-        │                                   request is what it runs)   │
-        │   @           mode.enter          Enter a pending mode with  │
-        │                                   a typed payload (op,       │
-        │                                   count, opcount; prefix     │
-        │                                   arms the sequence timer,   │
-        │                                   request is what it runs)   │
-        │   1-9         mode.enter          Enter a pending mode with  │
-        │                                   a typed payload (op,       │
-        │                                   count, opcount; prefix     │
-        │                                   arms the sequence timer,   │
-        │                                   request is what it runs)   │
+        │   "           mode.enter          Pick the register the next │
+        │                                   yank, delete or paste uses │
+        │                                   ("a)                       │
+        │   q           mode.enter          Record a macro into the    │
+        │                                   register typed next (qa);  │
+        │                                   q again stops              │
+        │   @           mode.enter          Replay the macro in the    │
+        │                                   register typed next (@a),  │
+        │                                   count times                │
+        │   1-9         mode.enter          Start a count for the next │
+        │                                   key (3j)                   │
         │   .           history.repeat      Dot-repeat: run the last   │
         │                                   repeatable change again at │
         │                                   the current focus, its     │
@@ -58,7 +49,16 @@
         │   ?           bindings.help       Open the keys the focus    │
         │                                   answers to, with the       │
         │                                   operation each runs and    │
-        │ 1–16 / 31                                                    │
+        │                                   its description            │
+        │   ctrl+space  palette.open        Open the command line      │
+        │ movement                                                     │
+        │   j           list.move           Move the selection; past   │
+        │                                   the edge, on to the next   │
+        │                                   stop on the page           │
+        │   down        list.move           Move the selection; past   │
+        │                                   the edge, on to the next   │
+        │                                   stop on the page           │
+        │ 1–19 / 31                                                    │
         │ space list.mark · esc modal.pop · : palette.open · ? bindin… │
         ╰──────────────────────────────────────────────────────────────╯
 

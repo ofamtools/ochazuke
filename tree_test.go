@@ -59,6 +59,12 @@ func TestReadOnlyTreeHidesOutlineVerbs(t *testing.T) {
 			t.Fatalf("read-only tree answers %s with %s", b.Keys, b.Request.Key())
 		}
 	}
+	// Its help has no "d esc": the sequence it cancels does not answer.
+	for _, row := range BindingHelp(r, r.Focus) {
+		if row.Key == "d esc" {
+			t.Fatalf("read-only tree help lists %+v", row)
+		}
+	}
 	if warnings, err := r.ValidateBindings(); err != nil || len(warnings) > 0 {
 		t.Fatal(warnings, err)
 	}

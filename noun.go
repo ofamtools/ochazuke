@@ -85,6 +85,10 @@ type Binding struct {
 	// Hidden keeps the row off the footer's hint line (counts, registers,
 	// macros, ctrl+c); ? help and bindings list still show it.
 	Hidden bool `json:"hidden,omitempty"`
+	// Help replaces the operation's description in ? help and bindings
+	// list for a row whose operation is generic (mode.enter into a
+	// register, macro or count mode).
+	Help string `json:"help,omitempty"`
 }
 
 // Sources a From entry may name: "key" (the key name), "digit" (the key as an

@@ -436,12 +436,32 @@ const MovementSection = "movement"
 // motions of every level last, under "movement".
 func BindingHelp(r *Runtime, focus string) []HelpRow {
 	var out, motions []HelpRow
-	for _, row := range r.groupedRows(focus) {
+	rows := r.groupedRows(focus)
+	// A generated prefix cancel ("d esc") is listed only while a sequence
+	// on its prefix answers here: a read-only outline's guarded "d d" takes
+	// its "d esc" out of the help with it.
+	sequences := map[string]bool{}
+	for _, row := range rows {
+		if !isPrefixCancel(row.Binding) {
+			parts := strings.Fields(row.Keys)
+			for i := 1; i < len(parts); i++ {
+				sequences[row.Mode+"\x00"+strings.Join(parts[:i], " ")] = true
+			}
+		}
+	}
+	for _, row := range rows {
+		if isPrefixCancel(row.Binding) && !sequences[row.Mode+"\x00"+strings.TrimSuffix(row.Keys, " "+CancelKey)] {
+			continue
+		}
 		op := row.Hint
 		if op == "" && row.Request.Verb != "" {
 			op = row.Request.Key()
 		}
-		help := HelpRow{Key: rowKey(row.Binding), Operation: op, Description: r.Operations[row.Request.Key()].Description, Noun: row.level, Section: row.level}
+		desc := r.Operations[row.Request.Key()].Description
+		if row.Help != "" {
+			desc = row.Help
+		}
+		help := HelpRow{Key: rowKey(row.Binding), Operation: op, Description: desc, Noun: row.level, Section: row.level}
 		if r.Operations[row.Request.Key()].Motion {
 			help.Section = MovementSection
 			motions = append(motions, help)
