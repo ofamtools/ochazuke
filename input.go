@@ -16,13 +16,16 @@ type EditNode struct {
 
 // Input is a single- or multi-line modal text field with an undo tree.
 type Input struct {
-	ID          string
-	Text        []rune
-	Cursor      int
-	Mode        string // the editing mode: normal, insert or a visual mode; pending modes live on the instance
-	Multiline   bool
-	Kind        string
-	PathFilter  string
+	ID         string
+	Text       []rune
+	Cursor     int
+	Mode       string // the editing mode: normal, insert or a visual mode; pending modes live on the instance
+	Multiline  bool
+	Kind       string
+	PathFilter string
+	// Completions are the input's completion triggers (Completions, the
+	// AddInput option); none falls back to its noun's.
+	Completions []CompletionTrigger
 	Anchor      int
 	History     []EditNode
 	Head        int

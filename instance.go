@@ -62,6 +62,7 @@ type instanceSpec struct {
 	parent, noun, focus, closeFocus string
 	closeOnDetach, noSpill, noMarks bool
 	columns                         []Column
+	completions                     []CompletionTrigger
 }
 
 // InstanceOption configures the instance constructors: Instance, AddPage,

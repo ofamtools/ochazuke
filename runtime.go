@@ -339,8 +339,9 @@ func (r *Runtime) Register(o Operation) {
 	r.Operations[o.Key()] = o
 }
 
-// AddInput registers an editor instance. Options: Parent(id) (default app)
-// and Kind(noun) (default "editor"; "prompt" pins insert mode).
+// AddInput registers an editor instance. Options: Parent(id) (default app),
+// Kind(noun) (default "editor"; "prompt" pins insert mode) and
+// Completions(triggers...).
 func (r *Runtime) AddInput(in *Input, opts ...InstanceOption) error {
 	if in.ID == "" || r.Instances[in.ID] != nil {
 		return errors.New("input ID must be unique and nonempty")
@@ -367,6 +368,12 @@ func (r *Runtime) AddInput(in *Input, opts ...InstanceOption) error {
 	case "", "any", "file", "dir":
 	default:
 		return errors.New("path filter must be any, file, or dir")
+	}
+	if len(spec.completions) > 0 {
+		in.Completions = spec.completions
+	}
+	if err := validTriggers(in.Completions); err != nil {
+		return err
 	}
 	in.pin = noun.Pin
 	if in.pin != "" {
