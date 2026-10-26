@@ -163,6 +163,10 @@ const commandHasRun = "command-has-run"
 
 // define registers the command noun: its columns, verbs and row keys.
 func (c *Commands) define() {
+	c.m.Runtime.Builtin(c.register)
+}
+
+func (c *Commands) register() {
 	r := c.m.Runtime
 	r.DefineGuard(commandHasRun, func(r *ochazuke.Runtime, ev ochazuke.KeyEvent) bool {
 		name, err := c.nameAt(r, ev.Focus, nil)

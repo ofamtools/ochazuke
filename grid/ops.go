@@ -17,6 +17,10 @@ func Register(r *ochazuke.Runtime) {
 	if _, ok := r.Operations["grid.move"]; ok {
 		return
 	}
+	r.Builtin(func() { register(r) })
+}
+
+func register(r *ochazuke.Runtime) {
 	for _, shape := range []string{ShapeBlock, ShapeRow, ShapeColumn} {
 		if !r.Modes[shape] {
 			_ = r.DefineMode(shape, false)

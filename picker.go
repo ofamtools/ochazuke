@@ -76,6 +76,12 @@ type pickerSearchMsg struct {
 
 // NewPicker returns the picker for r.
 func NewPicker(r *Runtime) *Picker {
+	var p *Picker
+	r.Builtin(func() { p = newPicker(r) })
+	return p
+}
+
+func newPicker(r *Runtime) *Picker {
 	p := &Picker{Runtime: r}
 	r.Instance(pickerID, Kind("picker")).Component = p
 	p.input = NewInput("picker-path", "", false)

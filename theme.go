@@ -35,6 +35,12 @@ type Appearance struct {
 
 // NewAppearance registers appearance operations once per runtime.
 func NewAppearance(r *Runtime) *Appearance {
+	var a *Appearance
+	r.Builtin(func() { a = newAppearance(r) })
+	return a
+}
+
+func newAppearance(r *Runtime) *Appearance {
 	a := &Appearance{Theme: "adaptive", Density: "comfortable", Dark: true}
 	r.Register(Operation{Verb: "get", Noun: "appearance", Description: "Get theme and density", Result: "appearance", Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
 		return *a, nil

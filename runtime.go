@@ -88,6 +88,15 @@ type Operation struct {
 	// Quiet marks bookkeeping (a list reload) the jobs ticker does not
 	// show; set by NounBuilder.Quiet. The catalog's quiet.
 	Quiet bool `json:"quiet,omitempty"`
+	// Builtin marks an operation the framework registered itself: every
+	// one NewRuntime and NewModel register, and those a framework
+	// constructor registers later (NewPicker, NewPalette, grid.Register,
+	// markdown.Register, cli.AddCommands), each inside Runtime.Builtin. An
+	// application's verb is never builtin, even on a framework noun
+	// (history.capture-hook). Data for hosts (the catalog's builtin): a
+	// host mounting another tool's verbs skips these, which every
+	// ochazuke tool has; the runtime does not read it.
+	Builtin bool `json:"builtin,omitempty"`
 	// PersistArgs lets the history file keep this operation's arguments
 	// named like text (text, value, keys, args, password, secret, token), which
 	// it otherwise leaves out; set by NounBuilder.PersistArgs. Only for an
@@ -213,7 +222,14 @@ type Runtime struct {
 
 // NewRuntime returns a runtime with the framework nouns registered and focus on the app instance.
 func NewRuntime() *Runtime {
-	r := &Runtime{
+	r := newRuntime()
+	r.Builtin(r.registerFramework)
+	return r
+}
+
+// newRuntime is a runtime with no operations, focus on app.
+func newRuntime() *Runtime {
+	return &Runtime{
 		Nouns: map[string]*Noun{}, Instances: map[string]*Instance{}, rows: map[string]string{},
 		Focus: "app", Mode: ModeState{Name: "normal"},
 		Modes: map[string]bool{"normal": true, "insert": true}, Operations: map[string]Operation{},
@@ -224,6 +240,10 @@ func NewRuntime() *Runtime {
 		modalInstances:   map[string]bool{},
 		BindingTimeout:   DefaultBindingTimeout,
 	}
+}
+
+// registerFramework registers the framework nouns and operations.
+func (r *Runtime) registerFramework() {
 	r.Instance("app")
 	r.Define("modal")
 	// "no-modal" holds while no modal is open: the app's ctrl+c capture row
@@ -261,7 +281,28 @@ func NewRuntime() *Runtime {
 	// A modal answers esc in normal mode; inputs, pending modes and the
 	// palette settle first because their rows sit inside this level.
 	r.Define("modal").Mode("normal").Bind("esc", Do("modal.pop"))
-	return r
+}
+
+// Builtin runs register and marks every operation it registered as the
+// framework's own (Operation.Builtin). NewRuntime and NewModel wrap their
+// registrations in it, and so does every framework constructor that
+// registers operations after them (NewPicker, NewPalette, NewAppearance,
+// grid.Register, markdown.Register, cli.AddCommands), so an operation
+// registered lazily is marked too. Operations registered before it, or by
+// the application at any other time, keep Builtin false. Calls nest. It is
+// for framework packages; an application's own verbs are not builtin.
+func (r *Runtime) Builtin(register func()) {
+	before := make(map[string]bool, len(r.Operations))
+	for key := range r.Operations {
+		before[key] = true
+	}
+	register()
+	for key, op := range r.Operations {
+		if !before[key] && !op.Builtin {
+			op.Builtin = true
+			r.Operations[key] = op
+		}
+	}
 }
 
 // ModeState is a mode name with the payload the mode carries.

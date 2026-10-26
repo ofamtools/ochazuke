@@ -47,6 +47,12 @@ const (
 
 // NewPalette returns the command palette for r.
 func NewPalette(r *Runtime) *Palette {
+	var p *Palette
+	r.Builtin(func() { p = newPalette(r) })
+	return p
+}
+
+func newPalette(r *Runtime) *Palette {
 	p := &Palette{r: r, highlight: -1, actions: map[string]bool{}, nouns: map[string]PaletteNoun{
 		"page": {Source: PagesPaletteSource, DefaultVerb: "open", Argument: "id"},
 	}}

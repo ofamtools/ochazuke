@@ -471,6 +471,10 @@ func Register(r *ochazuke.Runtime) {
 	if _, ok := r.Operations[DocNoun+".toggle"]; ok {
 		return
 	}
+	r.Builtin(func() { register(r) })
+}
+
+func register(r *ochazuke.Runtime) {
 	on := func(run func(*Doc) error) ochazuke.Handler {
 		return func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
 			d, err := resolve(r, c, a)

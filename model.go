@@ -75,6 +75,13 @@ type Model struct {
 
 // NewModel returns the Bubble Tea model that renders and drives r.
 func NewModel(r *Runtime) *Model {
+	var m *Model
+	r.Builtin(func() { m = newModel(r) })
+	return m
+}
+
+// newModel is NewModel; the operations it registers are builtin.
+func newModel(r *Runtime) *Model {
 	m := &Model{Runtime: r, Palette: NewPalette(r), Appearance: NewAppearance(r), ModalViews: map[string]ModalView{}, Title: "Ochazuke", Width: 80, Height: 24, views: map[string]*viewport.Model{}, scroll: map[string]int{}, followed: map[string]string{}, Now: time.Now}
 	// The Model shows what handlers tell the user: notices in the footer,
 	// the status in the status line. Messages posted before it existed

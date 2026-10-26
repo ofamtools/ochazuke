@@ -230,3 +230,17 @@ func TestModalOverSelectionHoldsIt(t *testing.T) {
 		t.Fatalf("a fresh selection kept the old one: marks=%v selected=%v", g.Marks(), g.Selected())
 	}
 }
+
+func TestRegisterMarksBuiltin(t *testing.T) {
+	r := ochazuke.NewRuntime()
+	r.Define("sheet").Verb("save", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) })
+	Register(r)
+	for key, op := range r.Operations {
+		if op.Builtin == (key == "sheet.save") {
+			t.Errorf("%s: builtin %v", key, op.Builtin)
+		}
+	}
+	if !r.Operations["grid.move"].Builtin {
+		t.Fatal("grid.move not builtin")
+	}
+}
