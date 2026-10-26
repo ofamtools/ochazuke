@@ -197,10 +197,13 @@ type Config struct {
 	leaderObserved bool
 }
 
-// appliedRow is one installed user row and the default rows it displaced.
+// appliedRow is one installed user row and the row with its identity it
+// displaced (none when it added a row), with that row's index, so the undo
+// puts it back where it stood.
 type appliedRow struct {
 	row      Binding // normalized, as Bind installed it
 	replaced []Binding
+	at       int
 }
 
 func registerConfig(r *Runtime) {
@@ -394,16 +397,22 @@ func (r *Runtime) applyUserRow(row Binding) error {
 		return err
 	}
 	var replaced []Binding
-	for _, b := range r.tableRows(normalized) {
-		if b.same(normalized) && !isPrefixCancel(b) {
-			replaced = append(replaced, b)
+	at := -1
+	for i, b := range r.tableRows(normalized) {
+		if b.same(normalized) {
+			// A generated prefix cancel is not logged: withPrefixCancels
+			// brings it back on its own.
+			if !isPrefixCancel(b) {
+				replaced, at = []Binding{b}, i
+			}
+			break
 		}
 	}
 	if err := r.Bind(row); err != nil {
 		return err
 	}
 	c := r.Config()
-	c.applied = append(c.applied, appliedRow{row: normalized, replaced: replaced})
+	c.applied = append(c.applied, appliedRow{row: normalized, replaced: replaced, at: at})
 	return nil
 }
 
@@ -422,7 +431,10 @@ func (r *Runtime) unapplyUserBindings() {
 		a := c.applied[i]
 		restore := func(rows []Binding) []Binding {
 			rows = removeRows(rows, a.row)
-			return withPrefixCancels(append(rows, a.replaced...))
+			for _, b := range a.replaced {
+				rows = insertRow(rows, a.at, b)
+			}
+			return withPrefixCancels(rows)
 		}
 		switch {
 		case a.row.Instance != "":

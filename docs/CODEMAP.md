@@ -72,11 +72,11 @@ Root package `ochazuke` is flat: 59 source files, 57 test files. Each entry list
 
 ### configuration.go
 
-- lines: 442 · tests: configuration_test.go
+- lines: 454 · tests: configuration_test.go
 - purpose: samePath checks a declared path against an instance path, allowing the input itself to be omitted from the declared path.
 - types: Config
 - methods: Config(8), Runtime(9)
-- leans on: runtime.go(48), noun.go(25), delivery.go(9), instance.go(7)
+- leans on: runtime.go(48), noun.go(27), delivery.go(9), instance.go(7)
 
 ### confirm.go
 
@@ -214,10 +214,10 @@ Root package `ochazuke` is flat: 59 source files, 57 test files. Each entry list
 
 ### noun.go
 
-- lines: 968 · tests: noun_test.go
+- lines: 1033 · tests: noun_test.go
 - purpose: Noun is the behaviour shared by every instance of one kind: the verbs it answers to, its key bindings per mode, the action handlers that override an operatio...
 - types: Noun, Binding, NounBuilder, ModeBuilder, Guard (func)
-- methods: Binding(9), ModeBuilder(6), Noun(1), NounBuilder(17), Runtime(13)
+- methods: Binding(9), ModeBuilder(7), Noun(1), NounBuilder(17), Runtime(13)
 - funcs: Do, Enter, Leave
 - leans on: runtime.go(57), instance.go(22), resolve.go(11), table.go(5)
 
@@ -413,11 +413,11 @@ Root package `ochazuke` is flat: 59 source files, 57 test files. Each entry list
 
 ### terminal.go
 
-- lines: 490 · tests: terminal_test.go
+- lines: 499 · tests: terminal_test.go
 - purpose: TerminalStream is the application's connection to one pane: a daemon client, never a PTY the framework owns.
 - types: TerminalStream (iface), TerminalReleaser (iface), TerminalFrame, Terminal
 - methods: Runtime(7), Terminal(12)
-- leans on: runtime.go(47), noun.go(31), instance.go(10), block.go(6)
+- leans on: runtime.go(47), noun.go(32), instance.go(10), block.go(6)
 
 ### theme.go
 

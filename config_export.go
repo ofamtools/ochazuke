@@ -196,7 +196,7 @@ func (r *Runtime) referenceReadme(settings, rows int) []byte {
 	line("")
 	line("A value or row in a live file overrides the default from then on. If you copy a whole file in, every default it holds is pinned: when a later version of %s changes a default, you keep the old one. Copy only what you change.", app)
 	line("")
-	line("The bindings reference shows the rows as they are now, the live `%s` rows included. A row in `%s` replaces every row on the same keys in its table, so of two rows that share keys there (a row with `when` and its fallback) only the last one copied stands.", BindingsFile, BindingsFile)
+	line("The bindings reference shows the rows as they are now, the live `%s` rows included. A row in `%s` replaces the row with the same noun or instance, mode, keys and `when`: to change a row that has a `when`, copy it with its `when`. A row without `when` replaces only the unguarded row on its keys, and `\"request\": null` unbinds only the row with the same `when`.", BindingsFile, BindingsFile)
 	line("")
 	line("## Action templates")
 	line("")

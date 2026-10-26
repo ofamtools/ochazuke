@@ -393,7 +393,8 @@ func (r *Runtime) SetTerminalLeader(key string) error {
 }
 
 // rekeyRows rebinds the rows match picks (returning the old leader) to
-// key and drops the unguarded rows of the table already on key.
+// key and drops the rows of the table a moved row now has the identity of
+// (on key, with its mode and guard).
 func rekeyRows(rows []Binding, key string, match func(Binding) (string, bool)) []Binding {
 	moved := map[int]bool{}
 	for i, b := range rows {
@@ -405,9 +406,17 @@ func rekeyRows(rows []Binding, key string, match func(Binding) (string, bool)) [
 	if len(moved) == 0 {
 		return rows
 	}
+	taken := func(b Binding) bool {
+		for i := range moved {
+			if rows[i].same(b) {
+				return true
+			}
+		}
+		return false
+	}
 	out := make([]Binding, 0, len(rows))
 	for i, b := range rows {
-		if !moved[i] && b.Keys == key && b.When == "" {
+		if !moved[i] && taken(b) {
 			continue
 		}
 		out = append(out, b)

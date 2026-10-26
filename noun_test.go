@@ -232,7 +232,7 @@ func TestLoadBindingsRowsReplaceAddAndUnbind(t *testing.T) {
 	calls := recorder(t, r, "hello", "digit")
 	rows, err := r.LoadBindings([]byte(`[
 		{"noun": "app", "mode": "normal", "keys": "ctrl+t", "request": {"verb": "hello", "noun": "test"}},
-		{"noun": "editor", "mode": "normal", "keys": "x", "request": null},
+		{"noun": "editor", "mode": "normal", "keys": "x", "when": "input", "request": null},
 		{"noun": "editor", "mode": "insert", "keys": "esc", "request": {"verb": "hello", "noun": "test"}},
 		{"instance": "editor", "mode": "normal", "pattern": "digit-0", "request": {"verb": "digit", "noun": "test"}}
 	]`))
@@ -566,5 +566,43 @@ func TestDefineExtendsInheritsTables(t *testing.T) {
 	}
 	if n := r.Noun("app"); n.Extends["visual-row"] != "visual-block" {
 		t.Fatalf("extends %v", n.Extends)
+	}
+}
+
+// In code the guard is part of the identity too: Bind then When places the
+// row under its guard (the unguarded row it first replaced comes back),
+// rows on the same keys with different guards coexist, and Unbind and
+// UnbindGuarded each remove one.
+func TestBuilderRowIdentityIncludesTheGuard(t *testing.T) {
+	r := NewRuntime()
+	recorder(t, r, "alpha", "beta", "gamma")
+	r.DefineGuard("flag", func(*Runtime, KeyEvent) bool { return true })
+	b := r.Define("widget").Mode("normal")
+	rows := func() []string {
+		var out []string
+		for _, row := range r.Nouns["widget"].Bindings["normal"] {
+			out = append(out, row.Keys+"/"+row.When+"/"+row.Request.Key())
+		}
+		return out
+	}
+	b.Bind("a", Do("test.beta")).Bind("a", Do("test.alpha")).When("flag")
+	if got := rows(); !reflect.DeepEqual(got, []string{"a/flag/test.alpha", "a//test.beta"}) {
+		t.Fatalf("Bind then When: %v", got)
+	}
+	b.Bind("a", Do("test.gamma").Guard("flag"))
+	if got := rows(); !reflect.DeepEqual(got, []string{"a/flag/test.gamma", "a//test.beta"}) {
+		t.Fatalf("a guarded row replaces the guarded row: %v", got)
+	}
+	b.Bind("a", Do("test.alpha"))
+	if got := rows(); !reflect.DeepEqual(got, []string{"a/flag/test.gamma", "a//test.alpha"}) {
+		t.Fatalf("an unguarded row replaces the unguarded row: %v", got)
+	}
+	b.UnbindGuarded("a", "flag")
+	if got := rows(); !reflect.DeepEqual(got, []string{"a//test.alpha"}) {
+		t.Fatalf("UnbindGuarded: %v", got)
+	}
+	b.Bind("a", Do("test.gamma")).When("flag").Unbind("a")
+	if got := rows(); !reflect.DeepEqual(got, []string{"a/flag/test.gamma"}) {
+		t.Fatalf("Unbind: %v", got)
 	}
 }

@@ -58,7 +58,11 @@ func (n *Noun) tables(mode string) [][]Binding {
 // key class: digit, alpha, printable, paste, any, a class minus keys
 // ("alpha-q"), or a set ("one-of:h j k l"). From fills request arguments from
 // the key or the mode payload (see Sources). When names a registered guard.
-// Unbind removes the default row with the same mode and keys or pattern.
+// A row's identity is its table (noun or instance), mode, keys or pattern
+// and guard: a row replaces only the row with the same identity, so a row
+// with When and the unguarded row on the same keys coexist, and Unbind
+// removes only the row with the same identity (an unbind row without When
+// removes the unguarded row, never a guarded one).
 // Replay dispatches the key again, fresh, after the row ran (a pending mode
 // that hands an unknown key back to the stack). Capture rows are consulted
 // outer-first (app first) before the inner-first walk (see resolve.go).
@@ -130,8 +134,50 @@ const (
 	Any       = "any"
 )
 
-// same reports whether two rows address the same key or pattern.
-func (b Binding) same(o Binding) bool { return b.Keys == o.Keys && b.Pattern == o.Pattern }
+// same reports whether two rows have the same identity: mode, keys or
+// pattern, and guard. The table (noun or instance) is the caller's.
+func (b Binding) same(o Binding) bool {
+	return b.Mode == o.Mode && b.Keys == o.Keys && b.Pattern == o.Pattern && b.When == o.When
+}
+
+// placeRow puts row into a table by identity: in place of the row with the
+// same identity (any further row with it is dropped), else, for a guarded
+// row, before the first unguarded row on the same keys in the same pass
+// (capture or not), which would otherwise answer first and leave it dead,
+// else at the end. It returns the table and the row it displaced, if any.
+func placeRow(rows []Binding, row Binding) ([]Binding, *Binding) {
+	if i := slices.IndexFunc(rows, row.same); i >= 0 {
+		displaced := rows[i]
+		out := make([]Binding, 0, len(rows))
+		for j, b := range rows {
+			switch {
+			case j == i:
+				out = append(out, row)
+			case !b.same(row):
+				out = append(out, b)
+			}
+		}
+		return out, &displaced
+	}
+	at := len(rows)
+	if row.When != "" {
+		fallback := row
+		fallback.When = ""
+		if i := slices.IndexFunc(rows, func(b Binding) bool { return b.same(fallback) && b.Capture == row.Capture }); i >= 0 {
+			at = i
+		}
+	}
+	return insertRow(rows, at, row), nil
+}
+
+// insertRow inserts row at index at (clamped to the table).
+func insertRow(rows []Binding, at int, row Binding) []Binding {
+	at = max(0, min(at, len(rows)))
+	out := make([]Binding, 0, len(rows)+1)
+	out = append(out, rows[:at]...)
+	out = append(out, row)
+	return append(out, rows[at:]...)
+}
 
 // Do builds a row that runs "noun.verb" with optional arguments.
 func Do(operation string, args ...Arguments) Binding {
@@ -457,10 +503,13 @@ type ModeBuilder struct {
 	*NounBuilder
 	mode string
 	last int
+	// displaced is the row the last add replaced, put back if When then
+	// gives the new row another identity.
+	displaced *Binding
 }
 
-// Bind adds an exact-key (or key-sequence) row, replacing an unguarded row
-// with the same keys.
+// Bind adds an exact-key (or key-sequence) row, replacing the row with the
+// same keys and guard (Binding.Guard, or When after Bind).
 func (m *ModeBuilder) Bind(keys string, row Binding) *ModeBuilder {
 	row.Keys, row.Pattern = strings.Join(strings.Fields(keys), " "), ""
 	return m.add(row)
@@ -472,44 +521,51 @@ func (m *ModeBuilder) Pattern(pattern string, row Binding) *ModeBuilder {
 	return m.add(row)
 }
 
-// Unbind removes the rows with these keys or this pattern.
+// Unbind removes the unguarded row with these keys or this pattern; a
+// guarded row on them stays (UnbindGuarded removes that one).
 func (m *ModeBuilder) Unbind(keysOrPattern string) *ModeBuilder {
-	probe := Binding{Keys: strings.Join(strings.Fields(keysOrPattern), " ")}
+	return m.UnbindGuarded(keysOrPattern, "")
+}
+
+// UnbindGuarded removes the row with these keys or this pattern and this
+// guard ("" is the unguarded row).
+func (m *ModeBuilder) UnbindGuarded(keysOrPattern, guard string) *ModeBuilder {
+	probe := Binding{Mode: m.mode, Keys: strings.Join(strings.Fields(keysOrPattern), " "), When: guard}
 	if isPattern(keysOrPattern) {
-		probe = Binding{Pattern: keysOrPattern}
+		probe = Binding{Mode: m.mode, Pattern: keysOrPattern, When: guard}
 	}
 	m.n.Bindings[m.mode] = withPrefixCancels(removeRows(m.n.Bindings[m.mode], probe))
+	m.last, m.displaced = len(m.n.Bindings[m.mode]), nil
 	return m
 }
 
-// When guards the last bound row with a registered guard name.
+// When guards the last bound row with a registered guard name. The guard is
+// part of the row's identity, so the row is placed again under it: a row it
+// replaced as an unguarded row comes back, and it replaces the row with the
+// same keys and this guard instead.
 func (m *ModeBuilder) When(guard string) *ModeBuilder {
 	rows := m.n.Bindings[m.mode]
-	if m.last < len(rows) {
-		rows[m.last].When = guard
+	if m.last < 0 || m.last >= len(rows) || rows[m.last].When == guard {
+		return m
 	}
-	return m
+	row := rows[m.last]
+	if m.displaced != nil {
+		rows[m.last] = *m.displaced
+	} else {
+		rows = append(rows[:m.last:m.last], rows[m.last+1:]...)
+	}
+	m.n.Bindings[m.mode] = rows
+	row.When = guard
+	return m.add(row)
 }
 
 func (m *ModeBuilder) add(row Binding) *ModeBuilder {
 	row.Noun, row.Instance, row.Mode = m.n.Name, "", m.mode
 	row.Request = m.r.modernRequest(row.Request)
-	rows := m.n.Bindings[m.mode]
-	if row.When == "" {
-		for i, existing := range rows {
-			if existing.same(row) && existing.When == "" {
-				rows[i] = row
-				m.n.Bindings[m.mode] = rows
-				m.last = i
-				if m.r.rowTouchesPending(row) {
-					m.r.CancelPendingBinding()
-				}
-				return m
-			}
-		}
-	}
-	m.n.Bindings[m.mode] = withPrefixCancels(append(rows, row))
-	m.last = len(rows)
+	rows, displaced := placeRow(m.n.Bindings[m.mode], row)
+	rows = withPrefixCancels(rows)
+	m.n.Bindings[m.mode], m.displaced = rows, displaced
+	m.last = slices.IndexFunc(rows, row.same)
 	// As Runtime.Bind: a key sequence in progress is kept unless the row
 	// is on it.
 	if m.r.rowTouchesPending(row) {
@@ -545,7 +601,11 @@ func withPrefixCancels(rows []Binding) []Binding {
 			continue
 		}
 		parts := strings.Fields(b.Keys)
-		bound[prefixKey{b.Mode, b.Keys}] = true
+		if b.When == "" {
+			// A guarded row on "<prefix> esc" may stand aside; the
+			// unguarded cancel stays behind it.
+			bound[prefixKey{b.Mode, b.Keys}] = true
+		}
 		if isPrefixCancel(b) {
 			continue
 		}
@@ -592,8 +652,11 @@ func isPattern(s string) bool {
 	return strings.HasPrefix(s, "one-of:")
 }
 
-// Bind installs rows from config or code onto their noun or instance tables:
-// the same mode and keys or pattern replaces, a new one adds, Unbind removes.
+// Bind installs rows from config or code onto their noun or instance tables
+// by identity (mode, keys or pattern, and When): the row with the same
+// identity is replaced in place, a new row is added (a guarded one before
+// the unguarded row on its keys, so it answers first while its guard
+// holds), and an unbind row removes only the row with its identity.
 // A key sequence in progress (d of d d) is kept unless a row added or
 // removed is on it: in its mode, with the keys typed so far, a sequence
 // extending them or one they extend. Such a row cancels the sequence, so
@@ -607,24 +670,26 @@ func (r *Runtime) Bind(rows ...Binding) error {
 		switch {
 		case row.Instance != "":
 			inst := r.Instances[row.Instance]
-			inst.Bindings = removeRows(inst.Bindings, row)
-			if !row.Unbind {
-				inst.Bindings = append(inst.Bindings, row)
-			}
-			inst.Bindings = withPrefixCancels(inst.Bindings)
+			inst.Bindings = withPrefixCancels(bindRow(inst.Bindings, row))
 		default:
 			noun := r.Nouns[row.Noun]
-			noun.Bindings[row.Mode] = removeRows(noun.Bindings[row.Mode], row)
-			if !row.Unbind {
-				noun.Bindings[row.Mode] = append(noun.Bindings[row.Mode], row)
-			}
-			noun.Bindings[row.Mode] = withPrefixCancels(noun.Bindings[row.Mode])
+			noun.Bindings[row.Mode] = withPrefixCancels(bindRow(noun.Bindings[row.Mode], row))
 		}
 		if r.rowTouchesPending(row) {
 			r.CancelPendingBinding()
 		}
 	}
 	return nil
+}
+
+// bindRow applies one validated row to a table: an unbind removes the row
+// with its identity, any other row is placed by identity (placeRow).
+func bindRow(rows []Binding, row Binding) []Binding {
+	if row.Unbind {
+		return removeRows(rows, row)
+	}
+	rows, _ = placeRow(rows, row)
+	return rows
 }
 
 // rowTouchesPending reports whether binding row changes what the key

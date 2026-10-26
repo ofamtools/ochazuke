@@ -179,28 +179,40 @@ func TestConfigExportBindingsRoundTripThroughBindingsLoad(t *testing.T) {
 	if fileRows, problems := r.readUserBindings(path); len(problems) > 0 || len(fileRows) != len(rows) {
 		t.Fatalf("bindings.json reader: %d rows, problems %v", len(fileRows), problems)
 	}
+	stored := func() []string {
+		var out []string
+		for _, row := range r.allBindings() {
+			out = append(out, canonical(t, row))
+		}
+		return out
+	}
+	before := stored()
 	if _, err := r.Execute(Request{Verb: "load", Noun: "bindings", Args: Arguments{"path": path}}); err != nil {
 		t.Fatalf("bindings.load of the reference: %v", err)
 	}
 	if _, err := r.ValidateBindings(); err != nil {
 		t.Fatal(err)
 	}
-	// Loaded back, each row stands as it was, except where one table has
-	// two rows on the same keys (a guarded row and its fallback): a loaded
-	// row replaces every row on its keys, so the last one stands.
-	table := func(b Binding) string { return b.Noun + "/" + b.Instance + "/" + b.Mode + "/" + b.Keys + b.Pattern }
-	shared := map[string]int{}
-	for _, row := range rows {
-		shared[table(row)]++
-	}
-	stored := map[string]bool{}
-	for _, row := range r.allBindings() {
-		stored[canonical(t, row)] = true
-	}
-	for _, row := range rows {
-		if shared[table(row)] == 1 && !stored[canonical(t, row)] {
-			t.Fatalf("row %s changed on load", canonical(t, row))
+	// Loaded back, every row stands as it was and where it was, the rows
+	// sharing keys under different guards included (0 in operator_pending:
+	// the count digit with when, the line-start motion without).
+	after := stored()
+	if !slices.Equal(after, before) {
+		for i := range min(len(after), len(before)) {
+			if after[i] != before[i] {
+				t.Fatalf("row %d changed on load:\n%s\nwas\n%s", i, after[i], before[i])
+			}
 		}
+		t.Fatalf("%d rows after the load, %d before", len(after), len(before))
+	}
+	guarded := map[string]bool{}
+	for _, row := range rows {
+		if row.Noun == "editor" && row.Mode == "operator_pending" && row.Keys == "0" {
+			guarded[row.When] = true
+		}
+	}
+	if len(guarded) < 2 {
+		t.Fatalf("the reference lacks the two 0 rows of operator_pending: %v", guarded)
 	}
 }
 
