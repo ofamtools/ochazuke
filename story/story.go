@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/unixsuperhero/ochazuke"
+	"github.com/unixsuperhero/ochazuke/cli"
 )
 
 // Story is one scenario file.
@@ -80,7 +81,10 @@ type Page struct {
 	Jobs    []JobSpec    `json:"jobs,omitempty"`
 	Bind    []BindSpec   `json:"bind,omitempty"`
 	Detail  *DetailSpec  `json:"detail,omitempty"`
-	Open    bool         `json:"open,omitempty"` // the page opened first (default the first page)
+	// Commands makes the page cli's Commands page (cli.AddCommands) over
+	// these entries instead of a synthetic one; a run opens a fake pane.
+	Commands *CommandsSpec `json:"commands,omitempty"`
+	Open     bool          `json:"open,omitempty"` // the page opened first (default the first page)
 }
 
 // ListSpec is one list: rows a1..aN labelled by id unless Labels or Items
@@ -143,6 +147,13 @@ type ItemSpec struct {
 type DetailSpec struct {
 	Lines int `json:"lines"`
 	Width int `json:"width,omitempty"` // columns; default half the page
+}
+
+// CommandsSpec is a Commands page: its entries (cli.CommandEntry as JSON)
+// and the help text command help fetches for an entry without its own.
+type CommandsSpec struct {
+	Entries []cli.CommandEntry `json:"entries"`
+	Help    map[string]string  `json:"help,omitempty"`
 }
 
 // InputSpec is one single-line input drawn under the lists.

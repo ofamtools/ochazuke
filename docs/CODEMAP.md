@@ -415,7 +415,7 @@ Root package `ochazuke` is flat: 51 source files, 47 test files. Each entry list
 
 ## Package cli
 
-Importable package `cli`: 5 source files, 5 test files.
+Importable package `cli`: 12 source files, 7 test files.
 
 ### cli/catalog.go
 
@@ -424,6 +424,15 @@ Importable package `cli`: 5 source files, 5 test files.
 - types: CatalogDoc, CatalogNoun, CatalogVerb, CatalogPage
 - methods: CatalogDoc(3)
 - funcs: Catalog
+
+### cli/commands.go
+
+- lines: 526 · tests: commands_test.go
+- purpose: CommandEntry is one row of the Commands page: a command a tool can run, as oden's catalog lists it.
+- types: CommandEntry, CommandSource (iface), CommandsConfig, Commands
+- methods: Commands(21)
+- funcs: AddCommands
+- leans on: shell.go(2), pty.go(1)
 
 ### cli/format.go
 
@@ -439,6 +448,39 @@ Importable package `cli`: 5 source files, 5 test files.
 - methods: Shell(1)
 - funcs: Mount
 - leans on: catalog.go(2), shell.go(2)
+
+### cli/odencommands.go
+
+- lines: 179
+- purpose: odenCommands is the CommandSource of an oden App: its catalog (inline commands and <bin>-<name> externals on PATH, with what each shadows).
+- methods: odenCommands(8)
+- funcs: OdenCommands
+- leans on: commands.go(5), catalog.go(2), shell.go(1)
+
+### cli/pty.go
+
+- lines: 356 · tests: pty_test.go
+- purpose: PtyStream is an ochazuke.TerminalStream for a local process: the command runs in a pseudo-terminal (xpty), its output is replayed into a terminal emulator (x...
+- types: PtyStream
+- methods: PtyStream(15), byteQueue(3)
+- funcs: StartPty
+- leans on: pty_windows.go(2), shell.go(2), ptykeys.go(1), rows.go(1)
+
+### cli/pty_unix.go
+
+- lines: 39
+- purpose: configureCommand makes the command the leader of a new session whose controlling terminal is the pty (the slave is its fd 0), so its process group id is its ...
+- leans on: pty_windows.go(2)
+
+### cli/pty_windows.go
+
+- lines: 15
+- purpose: configureCommand leaves the command as it is: ConPTY owns the console.
+
+### cli/ptykeys.go
+
+- lines: 62
+- purpose: keyEvent parses one key name: modifiers joined by "+" before a named key or one character ("ctrl+a", "shift+tab", "alt+b", "A", "+", "é").
 
 ### cli/rows.go
 
@@ -457,6 +499,13 @@ Importable package `cli`: 5 source files, 5 test files.
 - methods: Shell(10)
 - funcs: New, DefaultUsage, UsageHint, Settle
 - leans on: format.go(3), rows.go(1)
+
+### cli/tui.go
+
+- lines: 45
+- purpose: NewCommandsModel is a model on a fresh runtime whose open page is app's Commands page (AddCommands over OdenCommands(app, self...)), titled with the app's name.
+- funcs: NewCommandsModel, TUI
+- leans on: commands.go(4), odencommands.go(1)
 
 ## Package grid
 
@@ -484,12 +533,12 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/build.go
 
-- lines: 866
+- lines: 903
 - purpose: Session is one built story: the runtime, the model and the demo state the verbs act on (fake jobs and panes).
 - types: Session, Options
-- methods: Session(17)
+- methods: Session(18), storyCommands(3)
 - funcs: Build
-- leans on: story.go(29), run.go(9), fake.go(2)
+- leans on: story.go(31), run.go(9), fake.go(3)
 
 ### story/driver.go
 
@@ -527,9 +576,9 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/story.go
 
-- lines: 430
+- lines: 441
 - purpose: Story is one scenario file.
-- types: Story, Page, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, InputSpec, TermSpec, JobSpec, BindSpec, Event, Expect, Expects
+- types: Story, Page, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, CommandsSpec, InputSpec, TermSpec, JobSpec, BindSpec, Event, Expect, Expects
 - methods: Event(3), Expects(2), Story(5)
 - funcs: Slug, Parse, LoadFS, LoadDir, Sort, Find
 
@@ -661,7 +710,12 @@ Exported type -> file.
 - cli.CatalogNoun -> cli/catalog.go
 - cli.CatalogPage -> cli/catalog.go
 - cli.CatalogVerb -> cli/catalog.go
+- cli.CommandEntry -> cli/commands.go
+- cli.CommandSource -> cli/commands.go
+- cli.Commands -> cli/commands.go
+- cli.CommandsConfig -> cli/commands.go
 - cli.Lines -> cli/rows.go
+- cli.PtyStream -> cli/pty.go
 - cli.Row -> cli/rows.go
 - cli.RowReader -> cli/rows.go
 - cli.Shell -> cli/shell.go
@@ -671,6 +725,7 @@ Exported type -> file.
 - grid.Ref -> grid/grid.go
 - grid.Styles -> grid/grid.go
 - story.BindSpec -> story/story.go
+- story.CommandsSpec -> story/story.go
 - story.DetailSpec -> story/story.go
 - story.Driver -> story/driver.go
 - story.Edge -> story/verbs.go

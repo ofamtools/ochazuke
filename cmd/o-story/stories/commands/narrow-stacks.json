@@ -1,0 +1,44 @@
+{
+  "name": "a narrow screen stacks the table over the run",
+  "area": "commands",
+  "width": 60,
+  "height": 20,
+  "page": {
+    "title": "Commands",
+    "commands": {
+      "entries": [
+        {
+          "name": "greet",
+          "kind": "inline",
+          "summary": "say hello",
+          "source": "main.go:12",
+          "help": "usage: hello greet [NAME]\n\nsay hello"
+        },
+        {
+          "name": "web",
+          "kind": "external",
+          "summary": "hello-web on PATH",
+          "source": "/bin/hello-web"
+        }
+      ],
+      "help": {
+        "web": "usage: hello web [PORT]"
+      }
+    }
+  },
+  "script": [
+    "enter",
+    {
+      "tick": "terminal"
+    }
+  ],
+  "expect": {
+    "mode": "terminal",
+    "contains": [
+      "╭─ Commands",
+      "greet  inline",
+      "greet · running · attached",
+      "fake pane: keys echo here"
+    ]
+  }
+}

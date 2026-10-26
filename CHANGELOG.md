@@ -13,6 +13,13 @@ Draft, from the `integrate/next` branch (seven branches on `3133e23` plus fixes)
 - `Model.Init` now loads the user bindings file and the settings and batches the settings poll with `tea.RequestBackgroundColor`. A host that drives the `Model` without calling `Init` (headless tests) gets neither.
 - New default row: `'` on `app` in normal mode runs `page.pick` (only with no modal open). An app that bound `'` keeps its own row.
 
+### The oden TUI seam (`feat/oden-seam`)
+
+- `cli.StartPty` / `cli.PtyStream`: a `TerminalStream` for a local process, run in a pseudo-terminal (`charmbracelet/x/xpty`) and emulated with `charmbracelet/x/vt`; frames carry the cursor cell, shape and visibility; `Resize`, keys and bracketed paste reach the program; `Release` hangs up and kills the process group and closes the pty, once. New dependencies: `x/xpty` v0.1.4 (with `creack/pty`), `x/vt` v0.1.0.
+- `cli.AddCommands` / `CommandSource` / `OdenCommands`: the `command` noun and a Commands page over an oden tool's catalog (inline commands and `<bin>-<name>` on PATH, with shadowing); `command run` opens the command in a terminal under its row, attached (`ctrl+a d` detaches), `command help` shows its help in the detail (an external's `--help` as a job), `which`, `stop` (confirmed).
+- `cli.TUI(app)` as an oden `Default` gives any oden tool that page; `cli.NewCommandsModel` for hosts and smoke runs. `examples/hello` uses it.
+- o-story: a page with `commands` is the Commands page; stories `commands/*`.
+
 ### Lists, help and the ticker (`fix/uxr2-batch`)
 
 - Counts on `list.move` (`3j`, `5k`): moves that many rows, stops at the edge, spills as one move only from the edge.

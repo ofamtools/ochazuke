@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os/exec"
 	"slices"
 	"strings"
 
@@ -11,6 +12,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/unixsuperhero/ochazuke"
+	"github.com/unixsuperhero/ochazuke/cli"
 )
 
 // Demo is the one application noun a story has: page instances and rows
@@ -377,6 +379,9 @@ func rowsOf(l ListSpec) []ochazuke.ListItem {
 }
 
 func (ss *Session) addPage(p *Page) error {
+	if p.Commands != nil {
+		return ss.addCommandsPage(p)
+	}
 	r := ss.R
 	r.Instance(p.ID, ochazuke.Kind(Demo))
 	focus := p.Focus
@@ -503,6 +508,38 @@ func (ss *Session) addPage(p *Page) error {
 
 // recordSpec is a record editor's spec from the story: its values loaded,
 // its writes logged (the first FailWrites fail).
+// addCommandsPage adds cli's Commands page over the spec's entries; a run
+// starts a fake pane instead of a process.
+func (ss *Session) addCommandsPage(p *Page) error {
+	start := func(*exec.Cmd, int, int) (ochazuke.TerminalStream, error) {
+		stream := newFakeStream(ss.done)
+		ss.streams = append(ss.streams, stream)
+		return stream, nil
+	}
+	if _, err := cli.AddCommands(ss.M, storyCommands{*p.Commands}, cli.CommandsConfig{ID: p.ID, Title: p.Title, Start: start}); err != nil {
+		return fmt.Errorf("commands page %s: %w", p.ID, err)
+	}
+	ss.pages[p.ID] = p
+	return nil
+}
+
+// storyCommands is a CommandSource from a story file: its commands never
+// start (the page's Start hands out fake panes).
+type storyCommands struct{ spec CommandsSpec }
+
+func (s storyCommands) Commands() []cli.CommandEntry { return s.spec.Entries }
+
+func (s storyCommands) Help(_ context.Context, name string) (string, error) {
+	if text, ok := s.spec.Help[name]; ok {
+		return text, nil
+	}
+	return "", fmt.Errorf("no help for %s", name)
+}
+
+func (s storyCommands) Command(name string, args []string) (*exec.Cmd, error) {
+	return exec.Command(name, args...), nil
+}
+
 func (ss *Session) recordSpec(rs RecordSpec) ochazuke.RecordSpec {
 	fail := rs.FailWrites
 	return ochazuke.RecordSpec{

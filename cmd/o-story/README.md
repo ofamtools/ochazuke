@@ -64,6 +64,11 @@ it to the timer's deadline and delivers the timer's message
     detail: { lines: 50, width: 0 }, // a scrollable detail (AddDetail) on the right:
                                      // "detail 1–11 / 50", then "<row> line N" about the
                                      // focused list row (width 0 = half the page)
+    commands: {                      // instead of the above: cli's Commands page
+      entries: [{ name: "greet", kind: "inline", summary: "say hello", source: "main.go:12", help: "usage: …" },
+                { name: "web", kind: "external", source: "/bin/hello-web" }],
+      help: { web: "usage: hello web [PORT]" },  // what command help fetches (a job)
+    },                               // rows command:<name>; a run opens a fake pane, its terminal page1/run/N
   },
   script: ["j", "j", { type: "ping" }, { paste: "text" },
            { job: "demo.build", state: "done" },
@@ -94,7 +99,9 @@ One builder (`story.Build`) makes every page; the only application noun is
 page: `q` quits (leaves the story), `r` resets it, `enter` opens a row
 (attaches the fake pane on the terminal's attach row), `n` adds a notice,
 `x` deletes the row behind a confirm (`Delete {{label}}?`), and each job
-spec adds `demo.<name>` with its keys. `demo.ping` is for the palette.
+spec adds `demo.<name>` with its keys. `demo.ping` is for the palette. A `commands`
+page is the exception: it is `cli.AddCommands` itself, its rows of the
+`command` noun (`enter` runs, `i` help, `x` stop), its runs fake panes.
 
 ### The fakes
 
@@ -227,6 +234,7 @@ Conformance:
 | insert | palette | `palette.move` `palette.run` |
 | insert | setting-value | `setting-value.commit` |
 | normal | bindings | `bindings.help` |
+| normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
 | normal | demo | `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.launch` `demo.notify` `demo.open` `demo.reload` `demo.ship` |
 | normal | detail | `detail.scroll` |
@@ -267,6 +275,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `palette.open`
 - `normal` → `insert` via `setting.edit`
 - `normal` → `normal d` via `row d`
+- `normal` → `terminal` via `command.run`
 - `normal` → `terminal` via `demo.open`
 - `normal d` → `normal` via `outline.delete`
 - `terminal` → `leader_pending` via `mode.enter`
