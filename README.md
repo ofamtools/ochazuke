@@ -1012,39 +1012,50 @@ Security: commands come only from the user's own `actions.json` in the config di
 
 ## Settings and the Settings page
 
-An application declares its settings (`Runtime.DeclareSetting(Setting{Name, Type, Default, Description, Enum, Section})`); their values live in `settings.json` beside `bindings.json`, and the `settings` noun reads and writes them from the CLI and the palette (`settings list|get|set|reset|reload|path`). Each change is checked against the type and the allowed values and written at once.
+An application declares its settings (`Runtime.DeclareSetting(Setting{Name, Type, Default, Description, Enum, Section})`); their values live in `settings.json` beside `bindings.json`, and the `settings` noun reads and writes them from the CLI and the palette (`settings list|get|set|reset|reload|path`). Each change is checked against the type and the allowed values and written at once. The types are `string` (with `Enum`, one of a set), `integer`, `number`, `boolean`, `duration` (`"400ms"`) and `list` (`SettingList`: strings, a JSON array in the file; `settings set paths '["~/proj","~/hub"]'`; `Settings.Strings` reads a copy).
 
 `settings.edit` opens the **Settings page**, or switches to it when it is already a tab. There is no default key: an application binds it (matomeru binds `,`, the demo `s` on Appearance), and pressing it on the Settings page does nothing.
 
 ```
-╭─ Sections ─────╮ ╭━ General (4) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
-│ General        │ ┃ Setting    Value  Default  Source                     ┃
-│ ext.ai         │ ┃ scrolloff  2      2        default                    ┃
-│ ext.git        │ ┃ theme      dark   dark     default                    ┃
-│                │ ┃ wrap       false  false    default                    ┃
-│                │ ┃ editor     vi     vi       default                    ┃
-│                │ ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
-│                │ ╭─ theme ───────────────────────────────────────────────╮
-│                │ │ Colour theme                                          │
-│                │ │                                                       │
-│                │ │ name     theme                                        │
-│                │ │ type     enum (string)                                │
-│                │ │ allowed  dark, light, mono                            │
-│                │ │ value    dark                                         │
-│                │ │ default  dark                                         │
-│                │ │ source   default                                      │
-╰────────────────╯ ╰───────────────────────────────────────────────────────╯
+ › General  ext.ai  ext.git
+╭━ General (6) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
+┃ scrolloff •  ‹ 3 ›                                                       ┃
+┃ theme        ‹ dark ›                                                    ┃
+┃ wrap         ‹ false ›                                                   ┃
+┃ paths        2 items                                                     ┃
+┃              ~/proj                                                      ┃
+┃              ~/hub                                                       ┃
+┃ ignore       (none)                                                      ┃
+┃ editor       vi                                                          ┃
+╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
+╭─ theme ──────────────────────────────────────────────────────────────────╮
+│ Colour theme                                                             │
+│                                                                          │
+│ Default is dark. Not in settings.json, so the default applies.           │
+│ Takes one of dark, light, mono.                                          │
+╰──────────────────────────────────────────────────────────────────────────╯
 ```
 
 | Part | What it shows |
 |---|---|
-| Sections (rail) | The settings without a section first, as **General**, then each section in the order its first setting was declared. A setting's section is its `Section`, else its name before the last dot (`ext.ai.poll-every` is in `ext.ai`), else General (`Setting.SectionName`). Moving in the rail changes the table; `enter`, `l` or `right` moves into it, and `tab`, `shift+tab`, `}` and `{` move between the two |
-| Table | The section's settings: the name (without the section's prefix), the value, the default, and the source: `default`, `settings.json`, or `default (file value invalid)` when the file holds a value that does not validate |
-| Detail | The selected setting's description, full name, type, allowed values, value, default and source; `J`/`K` scroll it when it overflows, and `>`/`<` move the divider |
+| Tabs | One tab per section: the settings without a section first, as **General**, then each section in the order its first setting was declared. A setting's section is its `Section`, else its name before the last dot (`ext.ai.poll-every` is in `ext.ai`), else General (`Setting.SectionName`). `tab` and `]` show the next section, `shift+tab` and `[` the previous, wrapping (`settings.section {step}`, or `{name}` from the palette); each section keeps its selected row. With one section there is no tab row |
+| Rows | One row per setting, no header: the name on the left (without the section's prefix; a `•` after it when the value is not the default), the value on the right. `‹ value ›` marks a value `h`/`l` steps (boolean, enum, number); text and durations show as they are, empty text as `(empty)`. A list setting's row shows its item count (`2 items`, `(none)` when empty), and each item is a row directly beneath it with the name column blank |
+| Description | The selected setting's description, then `Default is X.` and where the value comes from: `Not in settings.json, so the default applies.`, `Set in settings.json.`, or `settings.json holds an invalid value (why), so the default applies.`; then what it takes. On an item row it starts with `Item 2 of 3.` `J`/`K` scroll it when it overflows, and `>`/`<` move the divider |
 
-Editing saves each change as it is made; there is no save key. On a row: `enter` flips a boolean, takes an enum's next value, and otherwise opens a one-line prompt prefilled with the value (`enter` sets it; a value that does not validate keeps the prompt open with the error in the status; `esc` closes it unchanged). `l`, `right` and `space` step a boolean, an enum or a number forward, `h` and `left` back (one `h/l setting.cycle` hint), `r` resets to the default. A value another process writes (the CLI's `settings set`) shows within a second.
+Editing saves each change as it is made; there is no save key.
 
-`q` or `esc` (`settings.close`) goes back to the page the Settings page was opened from, with the focus and mode it was left in. `settings.edit` registers the page (`SettingsPageID`, title Settings) when it opens and `settings.close` removes it, so it is a tab, in the page picker and on `page.next` only while it is open. An application that wants a permanent Settings tab calls `Runtime.AddSettingsPage()` where it registers its pages; `settings.close` then goes back without removing it.
+| Keys | On a setting row | On a list item row |
+|---|---|---|
+| `enter` | flip a boolean, take an enum's next value, add an item to a list, else open a one-line prompt prefilled with the value | edit the item (`i` too) |
+| `l` `right` `space` / `h` `left` | step a boolean, an enum or a number forward / back (one `h/l setting.cycle` hint) | |
+| `n` | on a list, add an item at the end | add an item after this one |
+| `d d` | | delete the item |
+| `r` | reset to the default (`backspace`, `delete` too) | reset the whole list |
+| `u` | take back the last change made on the page (`ctrl+z` too; offered only when there is one) | the same |
+
+The prompt (`setting-prompt`): `enter` sets the value; one that does not validate (or an empty item) keeps the prompt open with the error in the status; `esc` closes it unchanged. A value another process writes (the CLI's `settings set`) shows within a second.
+
+`q` or `esc` (`settings.close`) goes back to the page the Settings page was opened from, with the focus and mode it was left in; the next `settings.edit` reopens on the section and row it was left on. `settings.edit` registers the page (`SettingsPageID`, title Settings) when it opens and `settings.close` removes it, so it is a tab, in the page picker and on `page.next` only while it is open. An application that wants a permanent Settings tab calls `Runtime.AddSettingsPage()` where it registers its pages; `settings.close` then goes back without removing it.
 
 ## Configuration reference (config export)
 
