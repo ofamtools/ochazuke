@@ -148,16 +148,16 @@ Root package `ochazuke` is flat: 44 source files, 35 test files. Each entry list
 
 ### model.go
 
-- lines: 760
+- lines: 799
 - purpose: ModalView renders one modal without replacing or inspecting its parent page.
 - types: ModalView, Model, HelpRow
-- methods: Model(19), Runtime(1)
+- methods: Model(20), Runtime(1)
 - funcs: NewModel, BindingHints, BindingHelp, InputView, InputBlock
-- leans on: runtime.go(78), block.go(33), noun.go(24), instance.go(12)
+- leans on: runtime.go(78), block.go(33), noun.go(29), instance.go(12)
 
 ### noun.go
 
-- lines: 879 · tests: noun_test.go
+- lines: 883 · tests: noun_test.go
 - purpose: Noun is the behaviour shared by every instance of one kind: the verbs it answers to, its key bindings per mode, the action handlers that override an operatio...
 - types: Noun, Binding, NounBuilder, ModeBuilder, Guard (func)
 - methods: Binding(8), ModeBuilder(6), Noun(1), NounBuilder(16), Runtime(12)
@@ -214,10 +214,10 @@ Root package `ochazuke` is flat: 44 source files, 35 test files. Each entry list
 
 ### params.go
 
-- lines: 149 · tests: params_test.go
+- lines: 158 · tests: params_test.go
 - purpose: Choice is one value a parameter accepts: ID is the argument value, Label what a pick list shows.
-- types: Choice
-- methods: Runtime(2)
+- types: Choice, ArgumentError
+- methods: ArgumentError(2), Runtime(2)
 - funcs: ParseChoices
 - leans on: runtime.go(9), noun.go(2), palette_nouns.go(2)
 
@@ -328,7 +328,7 @@ Root package `ochazuke` is flat: 44 source files, 35 test files. Each entry list
 
 ### transport.go
 
-- lines: 175
+- lines: 179
 - purpose: Response is the reply to a socket call: a result or an error message.
 - types: Response, CallMsg, Lines, Server
 - methods: Runtime(1), Server(2)
@@ -337,10 +337,10 @@ Root package `ochazuke` is flat: 44 source files, 35 test files. Each entry list
 
 ### tree.go
 
-- lines: 1076 · tests: tree_test.go
+- lines: 1120 · tests: tree_test.go
 - purpose: TreeNode is one node of a tree.
-- types: TreeNode, TreeChange, TreeDebounceMsg, Tree
-- methods: Runtime(3), Tree(50), TreeChange(1)
+- types: TreeNode, TreeChange, TreeDebounceMsg, TreeAction, Tree
+- methods: Runtime(3), Tree(52), TreeChange(1)
 - leans on: instance.go(49), runtime.go(37), noun.go(30), block.go(28)
 
 ### yank_api.go
@@ -386,7 +386,7 @@ Importable package `cli`: 4 source files, 3 test files.
 
 ### cli/shell.go
 
-- lines: 527
+- lines: 531
 - purpose: Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--yes]: one registered operation in this process through the runtime's CLI en...
 - types: Shell
 - methods: Shell(10)
@@ -419,12 +419,12 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/build.go
 
-- lines: 659
+- lines: 701
 - purpose: Session is one built story: the runtime, the model and the demo state the verbs act on (fake jobs and panes).
 - types: Session, Options
-- methods: Session(13)
+- methods: Session(14)
 - funcs: Build
-- leans on: story.go(23), run.go(7), fake.go(2)
+- leans on: story.go(23), run.go(8), fake.go(2)
 
 ### story/driver.go
 
@@ -493,6 +493,7 @@ Exported type -> file.
 - Align -> table.go
 - AppHandler -> delivery.go
 - Appearance -> theme.go
+- ArgumentError -> params.go
 - Arguments -> runtime.go
 - Binding -> noun.go
 - BindingTimeoutMsg -> bindings.go
@@ -565,6 +566,7 @@ Exported type -> file.
 - TerminalStream -> terminal.go
 - Ticket -> delivery.go
 - Tree -> tree.go
+- TreeAction -> tree.go
 - TreeChange -> tree.go
 - TreeDebounceMsg -> tree.go
 - TreeNode -> tree.go

@@ -529,7 +529,7 @@ func TestMountUnknownWordsReportNotFound(t *testing.T) {
 	f := newFixture(t)
 	dir := t.TempDir()
 	_, errOut, err := f.tool(dir, "widgets", "list")
-	if oden.ExitCode(err) != 1 || !strings.HasPrefix(errOut, "tool: command \"widgets\" not found\ndid you mean: widget\n") || !strings.Contains(errOut, "\n  widget ") {
+	if oden.ExitCode(err) != 1 || errOut != "tool: command \"widgets\" not found\ndid you mean: widget\n(tool --help lists every command)\n" {
 		t.Fatalf("tool widgets: %v\n%s", err, errOut)
 	}
 	_, errOut, err = f.tool(dir, "widget", "fly")
