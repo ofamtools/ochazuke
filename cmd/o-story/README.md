@@ -79,7 +79,8 @@ it to the timer's deadline and delivers the timer's message
     },                               // rows <list>/<id>; the page id is the story page's
     chooser: {                       // a chooser (OpenChooser) open over the focus at the start
       kind: "dirs", title: "Directory", keep: [1],  // keep: the cell columns cut last
-      rows: [{ id: "m", label: "matomeru", cells: ["matomeru", "~/proj/matomeru", "main"] }],
+      rows: [{ id: "m", label: "matomeru", cells: ["matomeru", "~/proj/matomeru", "main"],
+               preview: "text" }],    // any row with a preview gives the chooser a Preview
     },                               // enter picks and closes
   },
   script: ["j", "j", { type: "ping" }, { paste: "text" },

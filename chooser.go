@@ -52,7 +52,8 @@ type ChooserRow struct {
 // and trailing rows and before the fixed rows; typing never matches or
 // ranks it, it is the default only when nothing else matches, and Enter on
 // it creates. Empty is the line shown while there are no rows at all
-// ("loading…"). Keep names the cell columns cut last.
+// ("loading…"). Keep names the cell columns cut last. Preview draws a
+// preview of the highlighted row beside the rows when there is room.
 type ChooserSpec struct {
 	Kind        string
 	Title       string
@@ -67,7 +68,15 @@ type ChooserSpec struct {
 	// the cells do not fit (a directory chooser's path): the others narrow
 	// to their minimum first, then the kept ones, widest first.
 	Keep []int
+	// Preview, when set, draws the highlighted row's text beside the rows
+	// (wrapped, cut at the bottom) once the chooser is ChooserPreviewMin
+	// cells wide; narrower, the rows take the whole width.
+	Preview func(ChooserRow) string
 }
+
+// ChooserPreviewMin is the width from which a chooser with a Preview
+// draws it beside the rows.
+const ChooserPreviewMin = 60
 
 // chooserNoun is the noun of every chooser's search input; its rows are
 // the chooser's keys.
@@ -422,10 +431,55 @@ func (c *Chooser) state() map[string]any {
 
 // View draws the search line, then the rows with the highlighted one in
 // reverse video, with what Enter would create when nothing is highlighted
-// after the matches (before the fixed rows). Its cursor is the search
-// input's.
+// after the matches (before the fixed rows); with a Preview and the
+// width for it, the highlighted row's preview on the right. Its cursor is
+// the search input's.
 func (c *Chooser) View(width, height int) Block {
 	c.sync()
+	if c.spec.Preview == nil || width < ChooserPreviewMin {
+		return c.rowsView(width, height)
+	}
+	// The preview column keeps its width whatever it holds, so the panel
+	// does not change size as the highlight moves.
+	listWidth := width * 3 / 5
+	previewWidth := width - listWidth - 3
+	left := c.rowsView(listWidth, height)
+	text := ""
+	if row, ok := c.Highlighted(); ok {
+		text = c.spec.Preview(row)
+	}
+	right := previewLines(text, previewWidth, height)
+	lines := strings.Split(left.Text, "\n")
+	for len(lines) < len(right) {
+		lines = append(lines, "")
+	}
+	for i, line := range lines {
+		side := ""
+		if i < len(right) {
+			side = right[i]
+		}
+		lines[i] = line + strings.Repeat(" ", max(0, listWidth-ansi.StringWidth(line))) + " │ " + side + strings.Repeat(" ", max(0, previewWidth-ansi.StringWidth(side)))
+	}
+	return left.WithText(strings.Join(lines, "\n"))
+}
+
+// previewLines is a preview's text wrapped to width, at most height lines,
+// the last one marking a cut with ….
+func previewLines(text string, width, height int) []string {
+	if width < 1 || height < 1 || strings.TrimSpace(text) == "" {
+		return nil
+	}
+	text = strings.ReplaceAll(strings.TrimRight(ansi.Strip(text), "\n"), "\t", "  ")
+	wrapped := strings.Split(ansi.Wrap(text, width, " -/"), "\n")
+	if len(wrapped) > height {
+		wrapped = wrapped[:height]
+		wrapped[height-1] = "…"
+	}
+	return wrapped
+}
+
+// rowsView is View's search line and rows, width cells wide.
+func (c *Chooser) rowsView(width, height int) Block {
 	const prefix = "› "
 	line := InputBlock(c.input, max(8, width-ansi.StringWidth(prefix)), 1).Offset(ansi.StringWidth(prefix), 0)
 	lines := []string{prefix + line.Text}

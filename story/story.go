@@ -94,7 +94,8 @@ type Page struct {
 }
 
 // ChooserSpec is a chooser opened over the page's focus: its rows and the
-// columns cut last (Keep). Picking a row closes it.
+// columns cut last (Keep). A row with a Preview gives the chooser a
+// preview column (ochazuke.ChooserSpec.Preview). Picking a row closes it.
 type ChooserSpec struct {
 	Kind  string           `json:"kind,omitempty"` // default "story-chooser"
 	Title string           `json:"title,omitempty"`
@@ -102,11 +103,13 @@ type ChooserSpec struct {
 	Keep  []int            `json:"keep,omitempty"`
 }
 
-// ChooserRowSpec is one chooser row; Cells draw it as columns.
+// ChooserRowSpec is one chooser row; Cells draw it as columns, Preview is
+// its preview text.
 type ChooserRowSpec struct {
-	ID    string   `json:"id"`
-	Label string   `json:"label"`
-	Cells []string `json:"cells,omitempty"`
+	ID      string   `json:"id"`
+	Label   string   `json:"label"`
+	Cells   []string `json:"cells,omitempty"`
+	Preview string   `json:"preview,omitempty"`
 }
 
 // ListSpec is one list: rows a1..aN labelled by id unless Labels or Items

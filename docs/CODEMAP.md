@@ -24,10 +24,10 @@ Root package `ochazuke` is flat: 52 source files, 49 test files. Each entry list
 
 ### chooser.go
 
-- lines: 616 · tests: chooser_test.go
+- lines: 670 · tests: chooser_test.go
 - purpose: ChooserRow is one choice.
 - types: ChooserRow, ChooserSpec, Chooser
-- methods: Chooser(24), Runtime(3)
+- methods: Chooser(25), Runtime(3)
 - leans on: delivery.go(25), noun.go(14), table.go(14), instance.go(13)
 
 ### cli.go
@@ -558,7 +558,7 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/build.go
 
-- lines: 969
+- lines: 976
 - purpose: Session is one built story: the runtime, the model and the demo state the verbs act on (fake jobs and panes).
 - types: Session, Options
 - methods: Session(19), storyCommands(3)
@@ -601,7 +601,7 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/story.go
 
-- lines: 479
+- lines: 482
 - purpose: Story is one scenario file.
 - types: Story, Page, ChooserSpec, ChooserRowSpec, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, CommandsSpec, CatalogSpec, InputSpec, TermSpec, JobSpec, BindSpec, Event, Expect, Expects
 - methods: Event(3), Expects(2), Story(5)

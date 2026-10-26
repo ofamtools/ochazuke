@@ -390,3 +390,59 @@ func TestChooserKeepDrawsTheKeptColumnWhole(t *testing.T) {
 		t.Fatalf("without keep the path is cut too:\n%s", v)
 	}
 }
+
+// A chooser narrower than ChooserPreviewMin draws no preview (mtm's
+// context picker test).
+func TestChooserPreviewNeedsTheWidth(t *testing.T) {
+	c := &Chooser{spec: ChooserSpec{Rows: []ChooserRow{{ID: "a", Label: "a"}}, Preview: func(ChooserRow) string { return "preview text" }, Filter: func(string, ChooserRow) bool { return true }},
+		input: NewInput("q", "", false)}
+	c.refilter()
+	if v := c.View(ChooserPreviewMin-1, 6).Text; strings.Contains(v, "preview text") {
+		t.Fatalf("narrow:\n%s", v)
+	}
+	if v := c.View(ChooserPreviewMin, 6).Text; !strings.Contains(v, "│ preview text") {
+		t.Fatalf("wide:\n%s", v)
+	}
+}
+
+// The preview follows the highlight, keeps its column's width whatever it
+// holds, wraps, and marks a cut at the bottom with ….
+func TestChooserPreviewFollowsTheHighlightAtAFixedWidth(t *testing.T) {
+	previews := map[string]string{
+		"a": "first answer",
+		"b": strings.Repeat("word ", 40),
+		"c": "",
+	}
+	_, m, c, _ := chooserTest(t, ChooserSpec{
+		Rows:    []ChooserRow{{ID: "a", Label: "alpha"}, {ID: "b", Label: "bravo"}, {ID: "c", Label: "charlie"}},
+		Preview: func(row ChooserRow) string { return previews[row.ID] },
+	})
+	widths := func(v string) []int {
+		var w []int
+		for _, line := range strings.Split(ansi.Strip(v), "\n") {
+			w = append(w, ansi.StringWidth(line))
+		}
+		return w
+	}
+	first := c.View(80, 6).Text
+	if !strings.Contains(first, "│ first answer") {
+		t.Fatalf("top match's preview:\n%s", first)
+	}
+	keytest.Press(m, "ctrl+n")
+	second := c.View(80, 6).Text
+	if strings.Contains(second, "first answer") || !strings.Contains(second, "│ word word") || !strings.Contains(second, "│ …") {
+		t.Fatalf("moved preview, wrapped and cut:\n%s", second)
+	}
+	keytest.Press(m, "ctrl+n")
+	third := c.View(80, 6).Text
+	if strings.Contains(third, "word") {
+		t.Fatalf("an empty preview draws nothing:\n%s", third)
+	}
+	for _, v := range []string{first, second, third} {
+		for _, w := range widths(v) {
+			if w != 80 {
+				t.Fatalf("every line is the full width (%v):\n%s", widths(v), v)
+			}
+		}
+	}
+}

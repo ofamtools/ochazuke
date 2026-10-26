@@ -140,8 +140,15 @@ func chooserSpec(cs *ChooserSpec) ochazuke.ChooserSpec {
 	if spec.Kind == "" {
 		spec.Kind = "story-chooser"
 	}
+	previews := map[string]string{}
 	for _, row := range cs.Rows {
 		spec.Rows = append(spec.Rows, ochazuke.ChooserRow{ID: row.ID, Label: row.Label, Cells: row.Cells})
+		if row.Preview != "" {
+			previews[row.ID] = row.Preview
+		}
+	}
+	if len(previews) > 0 {
+		spec.Preview = func(row ochazuke.ChooserRow) string { return previews[row.ID] }
 	}
 	return spec
 }
