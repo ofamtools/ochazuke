@@ -475,12 +475,12 @@ Importable package `cli`: 14 source files, 8 test files.
 
 ### cli/page.go
 
-- lines: 949 · tests: page_test.go
+- lines: 965 · tests: page_test.go
 - purpose: CatalogPage is a page in registration order.
 - types: CatalogPage, CatalogList, CatalogDetail, PageConfig, PageView
 - methods: CatalogPage(1), PageView(27), pageList(1)
 - funcs: DeclarePage, MountPages, MountPage, DecodeRows
-- leans on: rows.go(15), commands.go(10), catalog.go(4), widget.go(4)
+- leans on: rows.go(17), commands.go(10), catalog.go(4), widget.go(4)
 
 ### cli/pty.go
 

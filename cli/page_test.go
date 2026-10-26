@@ -215,6 +215,78 @@ func TestMountPageFailedLoadKeepsRows(t *testing.T) {
 	}
 }
 
+func TestPageConfigOnRowsFollowsEveryLanding(t *testing.T) {
+	type landing struct {
+		list string
+		ids  []string
+	}
+	var got []landing
+	onRows := func(list string, rows []Row) {
+		var ids []string
+		for _, row := range rows {
+			ids = append(ids, row.ID+"="+row.Label)
+		}
+		got = append(got, landing{list, ids})
+	}
+	m, v := mountedPage(t, pageDoc("", false), PageConfig{Fetch: answers(pageAnswers), OnRows: onRows}, 90, 30)
+	if err := v.Reload(); err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 0 {
+		t.Fatalf("OnRows runs when rows land, not when a load starts: %v", got)
+	}
+	if err := Settle(m.Runtime, nil); err != nil {
+		t.Fatal(err)
+	}
+	byList := map[string][]string{}
+	for _, l := range got {
+		byList[l.list] = l.ids
+	}
+	if len(got) != 2 || strings.Join(byList["ai/skills"], ",") != "s1=architect,s2=review" || strings.Join(byList["ai/tools"], ",") != "t1=tuios_send_text,t2=tuios_capture" {
+		t.Fatalf("one call per list with its rows as filed, got %v", got)
+	}
+	// A host push lands too, as filed: a repeated id dropped, a missing label the id.
+	got = nil
+	if err := v.SetRows("ai/skills", []Row{{ID: "s3"}, {ID: "s3", Label: "again"}}); err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].list != "ai/skills" || strings.Join(got[0].ids, ",") != "s3=s3" {
+		t.Fatalf("SetRows calls OnRows with the filed rows, got %v", got)
+	}
+	// A failed reload keeps the rows and calls nothing.
+	got = nil
+	v.cfg.Fetch = answers(map[string]string{})
+	if err := v.Reload(); err != nil {
+		t.Fatal(err)
+	}
+	_ = Settle(m.Runtime, nil)
+	if len(got) != 0 {
+		t.Fatalf("a failed load lands no rows, got %v", got)
+	}
+}
+
+func TestPageConfigOnRowsFollowsAStateAnswer(t *testing.T) {
+	doc := pageDoc(LayoutStack, false)
+	doc.State = "skill.state"
+	doc.Nouns[3].Verbs = append(doc.Nouns[3].Verbs, CatalogVerb{Name: "state"})
+	got := map[string]int{}
+	cfg := PageConfig{
+		Fetch:  answers(map[string]string{"skill.state": "{\"noun\":\"skill\",\"id\":\"s9\"}\n"}),
+		OnRows: func(list string, rows []Row) { got[list] = len(rows) + 1 },
+	}
+	m, v := mountedPage(t, doc, cfg, 90, 24)
+	if err := v.Reload(); err != nil {
+		t.Fatal(err)
+	}
+	if err := Settle(m.Runtime, nil); err != nil {
+		t.Fatal(err)
+	}
+	// skills got one row, tools none (emptied), admin lists verbs and takes no rows.
+	if got["ai/skills"] != 2 || got["ai/tools"] != 1 || len(got) != 2 {
+		t.Fatalf("a state answer lands on every row list, an empty one included, got %v", got)
+	}
+}
+
 func TestMountPageGroupsLayout(t *testing.T) {
 	m, v := mountedPage(t, pageDoc(LayoutGroups, false), PageConfig{Fetch: answers(pageAnswers)}, 100, 20)
 	if err := v.Reload(); err != nil {

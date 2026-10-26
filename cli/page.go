@@ -165,6 +165,14 @@ type PageConfig struct {
 	// value for a widget); it runs off the loop and honours ctx. Nil means
 	// the host pushes rows itself (PageView.SetRows, SetState).
 	Fetch func(ctx context.Context, noun, verb string) ([]byte, error)
+	// OnRows, when set, runs on the loop after a list's rows land: a
+	// reload's answer (one call per list, or a state answer filed under
+	// each list, an empty one included), or the host's own SetRows or
+	// SetState. list is the CatalogList's id and rows are the rows as
+	// filed (empty and repeated ids dropped, a missing label the id), so a
+	// host can follow a list's rows (re-sync a pick list) without wrapping
+	// Reload. A failed load keeps the rows and does not call it.
+	OnRows func(list string, rows []Row)
 }
 
 // PageView is a mounted data page: its lists of rows (instances of the
@@ -474,7 +482,7 @@ func (v *PageView) SetStatus(line string) { v.status = line }
 
 // SetRows replaces a list's rows: instance ids "<list>/<row id>", an empty
 // or repeated id dropped, a missing label the id. It marks the list
-// loaded and clears its error.
+// loaded, clears its error and calls PageConfig.OnRows.
 func (v *PageView) SetRows(list string, rows []Row) error {
 	pl := v.list(list)
 	if pl == nil {
@@ -489,6 +497,7 @@ func (v *PageView) SetRows(list string, rows []Row) error {
 		delete(v.rows, k)
 	}
 	pl.rowIDs = pl.rowIDs[:0]
+	filed := make([]Row, 0, len(rows))
 	for _, row := range rows {
 		if row.ID == "" || seen[row.ID] {
 			continue
@@ -500,10 +509,17 @@ func (v *PageView) SetRows(list string, rows []Row) error {
 		id := pl.spec.ID + "/" + row.ID
 		v.rows[id] = row
 		pl.rowIDs = append(pl.rowIDs, id)
+		filed = append(filed, row)
 		items = append(items, ochazuke.ListItem{ID: id, Label: row.Label, Noun: pl.rowNoun, Data: row.ID, Cells: row.Cells})
 	}
 	pl.loaded, pl.err = true, ""
-	return pl.list.SetItems(items)
+	if err := pl.list.SetItems(items); err != nil {
+		return err
+	}
+	if v.cfg.OnRows != nil {
+		v.cfg.OnRows(list, filed)
+	}
+	return nil
 }
 
 // SetState files a state answer's rows (CatalogDoc.State) under the lists

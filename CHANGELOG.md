@@ -79,6 +79,10 @@ Draft, from the `integrate/next` branch (branches on `3133e23` plus fixes). A mi
 - `ModalBody` (`ModalTitle`, `ModalBlock`): a modal whose component draws itself needs no `ModalView`. The record editor, its choice list and the framework `Chooser` draw through it.
 - `Appearance.Accent` (code only) overrides the theme's accent colour, e.g. for a pin state; mono and `NO_COLOR` stay colourless.
 
+### Form suggestions and page row hooks (`feat/form-hooks`)
+
+- `cli.PageConfig.OnRows func(list string, rows []cli.Row)`: runs on the loop after a list's rows land (a reload's answer, a state answer filed under each list, an empty one included, or the host's `SetRows`/`SetState`), with the rows as filed; a failed load does not call it. A host follows a list's rows without wrapping `Reload` (nabe's `followReload`).
+
 ### List scaling (`fix/list-scaling`)
 
 - `SetItems` removes dropped rows in one batch (one child index for the batch, not a tree scan per row), trees index node positions, depths and child counts, and tables measure their cells once per item set and draw only the window. Benchmarks in `scaling_test.go` (`SetItemsReplace`, `TreeBuild`, `TreeExpand`, `TableView`) now scale linearly.
