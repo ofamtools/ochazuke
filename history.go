@@ -1,7 +1,6 @@
 package ochazuke
 
 import (
-	"encoding/json"
 	"errors"
 	"time"
 )
@@ -9,8 +8,10 @@ import (
 // HistoryLimit bounds the action history ring.
 const HistoryLimit = 500
 
-// HistoryEntry is one executed request: what ran, where, from which source
-// and how it ended. Value is the result as JSON at the time it ran; Job is
+// HistoryEntry is one user action: what ran, where, from which source, how
+// it ended and, when it moved the interaction, from where to where (Moved).
+// It holds ids and the request, never the data the operation returned, so
+// an entry costs the same over a list of ten rows or ten thousand. Job is
 // the job id an application verb launched.
 type HistoryEntry struct {
 	Seq     uint64         `json:"seq"`
@@ -18,6 +19,7 @@ type HistoryEntry struct {
 	Request Request        `json:"request"`
 	Context HistoryContext `json:"context"`
 	Result  HistoryResult  `json:"result"`
+	Moved   *HistoryMove   `json:"moved,omitempty"`
 	Job     uint64         `json:"job,omitempty"`
 	// Depth is how many requests enclose this one: a request an operation
 	// runs while it runs (a choices source, a macro's keys) is one deeper.
@@ -36,11 +38,32 @@ type HistoryContext struct {
 	Source string `json:"source"`
 }
 
-// HistoryResult is the outcome: ok with the value, or the error.
+// HistoryResult is the outcome: ok, or the error. The value the operation
+// returned is the caller's (the CLI prints it), not the history's.
 type HistoryResult struct {
-	OK    bool            `json:"ok"`
-	Value json.RawMessage `json:"value,omitempty"`
-	Error string          `json:"error,omitempty"`
+	OK    bool   `json:"ok"`
+	Error string `json:"error,omitempty"`
+}
+
+// HistoryPlace is where the interaction stands: the focused instance (a
+// list's focus is its selected row), the page and the mode.
+type HistoryPlace struct {
+	Focus string `json:"focus"`
+	Page  string `json:"page,omitempty"`
+	Mode  string `json:"mode"`
+}
+
+// HistoryMove is how a request moved the interaction: j on a list moves
+// the focus from row A to row B, page.next from one page to the next, a
+// modal's open into the modal and its close back out.
+type HistoryMove struct {
+	From HistoryPlace `json:"from"`
+	To   HistoryPlace `json:"to"`
+}
+
+// place is where the interaction stands now.
+func (r *Runtime) place() HistoryPlace {
+	return HistoryPlace{Focus: r.Focus, Page: r.Page, Mode: r.Mode.Name}
 }
 
 // actionHistory is the ring ExecuteAt appends to and the source the current
@@ -85,8 +108,11 @@ func (r *Runtime) forceSource(source string) (restore func()) {
 }
 
 // record appends one entry, dropping the oldest past the ring's limit, and
-// sends it to the history file when the history is persisted.
-func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, depth int, value any, err error) {
+// sends it to the history file when the history is persisted. from is the
+// place before the request ran; the entry's Moved is set when it changed.
+// The value is read only for the job a Ticket names: encoding it would cost
+// what the value weighs (a list's snapshot) on every key.
+func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, depth int, from HistoryPlace, value any, err error) {
 	if len(q.Args) > 0 {
 		args := make(Arguments, len(q.Args))
 		for k, v := range q.Args {
@@ -98,10 +124,9 @@ func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, depth int,
 	entry := HistoryEntry{Seq: r.history.seq, At: at, Request: q, Context: ctx, Depth: depth, Result: HistoryResult{OK: err == nil}}
 	if err != nil {
 		entry.Result.Error = err.Error()
-	} else if value != nil {
-		if data, jerr := json.Marshal(value); jerr == nil {
-			entry.Result.Value = data
-		}
+	}
+	if to := r.place(); to != from {
+		entry.Moved = &HistoryMove{From: from, To: to}
 	}
 	if ticket, ok := value.(Ticket); ok {
 		entry.Job = ticket.Job

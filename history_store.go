@@ -37,8 +37,7 @@ var textLikeArgs = []string{"text", "value", "keys", "args", "password", "secret
 // The file keeps palette lines (source "palette", failed ones too, so a
 // mistyped line can be recalled and fixed) and other completed operations,
 // never text editing (unpersistedNouns); arguments named like text are
-// dropped unless the operation opts in, and result values are dropped
-// (ok and the error stay).
+// dropped unless the operation opts in.
 func (r *Runtime) persistable(e HistoryEntry) (HistoryEntry, bool) {
 	if unpersistedNouns[e.Request.Noun] {
 		return e, false
@@ -50,7 +49,6 @@ func (r *Runtime) persistable(e HistoryEntry) (HistoryEntry, bool) {
 	if !known {
 		return e, false
 	}
-	e.Result.Value = nil
 	if len(e.Request.Args) > 0 && !op.PersistArgs {
 		args := Arguments{}
 		for name, v := range e.Request.Args {
