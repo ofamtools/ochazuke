@@ -267,6 +267,43 @@ func TestShellJSONArgumentsAndHistorySource(t *testing.T) {
 	}
 }
 
+// TestShellBareJSONAsksForJSONOutput: --json with no value (last, or before
+// another --flag) is the output format, which the shell always prints, so it
+// is accepted and ignored; --json '{...}' stays the arguments, directly and
+// through the oden mount.
+func TestShellBareJSONAsksForJSONOutput(t *testing.T) {
+	for _, args := range [][]string{
+		{"widget", "rename", "--target", "w1", "--name", "uno", "--json"},
+		{"widget", "rename", "--json", "--target", "w1", "--name", "uno"},
+		{"widget", "rename", "--json", "--target", "w1", "uno"},
+	} {
+		f := newFixture(t)
+		out, errOut, err := f.run("", args...)
+		if err != nil || len(f.calls) != 1 || f.calls[0].Args["name"] != "uno" || len(f.calls[0].Args) != 1 {
+			t.Fatalf("%s: %v %+v\n%s", strings.Join(args, " "), err, f.calls, errOut)
+		}
+		var got struct{ Target string }
+		if err := json.Unmarshal([]byte(out), &got); err != nil || got.Target != "w1" {
+			t.Fatalf("%s: stdout %q (%v)", strings.Join(args, " "), out, err)
+		}
+	}
+	f := newFixture(t)
+	if _, errOut, err := f.run("", "widget", "rename", "--json", `{"name":"dos"}`, "--target", "w2"); err != nil || len(f.calls) != 1 || f.calls[0].Args["name"] != "dos" {
+		t.Fatalf("--json arguments: %v %+v\n%s", err, f.calls, errOut)
+	}
+	if _, _, err := f.run("", "widget", "rename", "--target", "w1", "--json", "uno"); err == nil {
+		t.Fatal("--json WORD is still the arguments and must fail to parse")
+	}
+	f = newFixture(t)
+	var out bytes.Buffer
+	app := oden.New("tool", []string{"widget", "rename", "--target", "w1", "--name", "tres", "--json"},
+		oden.WithStdio(strings.NewReader(""), &out, io.Discard), oden.WithPath(t.TempDir()))
+	Mount(app, New(f.r, "tool", strings.NewReader(""), &out, io.Discard))
+	if err := app.Run(context.Background()); err != nil || len(f.calls) != 1 || f.calls[0].Args["name"] != "tres" {
+		t.Fatalf("mounted bare --json: %v %+v\n%s", err, f.calls, out.String())
+	}
+}
+
 func TestShellVerbPrefix(t *testing.T) {
 	f := newFixture(t)
 	if _, errOut, err := f.run("", "widget", "sh", "--target", "w1"); err != nil || len(f.calls) != 1 {

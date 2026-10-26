@@ -42,7 +42,8 @@ import (
 // unique prefix of one of the noun's verbs (a noun's prefix is resolved by
 // the oden shell, see Mount). Bare words after NOUN VERB (not starting with
 // --) are positional arguments: they fill the parameters no --ARG or --json
-// set, in Operation.ParameterOrder (required first, then by name), typed
+// set (a bare --json, with no value after it, asks for the JSON output the
+// shell always prints and is accepted and ignored), in Operation.ParameterOrder (required first, then by name), typed
 // like flags; more words than parameters is an error naming them. Named
 // flags win wherever they appear.
 //
@@ -288,7 +289,9 @@ func listed(ids []string) string {
 
 // request builds the operation request: --target, --json and --yes are the
 // shell's; every other --NAME VALUE (or --NAME=VALUE) is an argument typed
-// by the operation's parameter of that name.
+// by the operation's parameter of that name. --json VALUE is the arguments
+// as a JSON object; a bare --json (last, or followed by another --flag)
+// asks for JSON output, which the shell always prints, and is ignored.
 func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, bool, error) {
 	q := ochazuke.Request{Noun: noun, Verb: verb, Args: ochazuke.Arguments{}}
 	op, ok := s.Runtime.Operations[q.Key()]
@@ -327,6 +330,10 @@ func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, bo
 				return q, false, err
 			}
 			q.Target = v
+			continue
+		case name == "json" && !inline && (i+1 >= len(flags) || strings.HasPrefix(flags[i+1], "--")):
+			// A bare --json asks for JSON output, which the shell
+			// always prints.
 			continue
 		case name == "json":
 			v, err := takeValue()
