@@ -309,7 +309,8 @@ func (m *Model) footerNotice() string {
 
 // footer is the status row: the error of the last key when there is one,
 // else the hints for the focus; the notices, when there are any, follow
-// the error or lead the hints.
+// the error or lead the hints. The jobs ticker's entries ride along for
+// the rule line above it (Layout.TickerRule).
 func (m *Model) footer() Footer {
 	jobs := m.JobsTicker(m.Width)
 	notice := m.footerNotice()

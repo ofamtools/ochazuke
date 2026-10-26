@@ -1,5 +1,5 @@
 {
-  "name": "ticker over the body: a running job never moves the list",
+  "name": "ticker in the rule line: a running job never moves or hides the list",
   "area": "ticker",
   "width": 40,
   "height": 12,
@@ -26,6 +26,14 @@
       "after": 1,
       "ticker": [
         "demo.build running"
+      ],
+      "order": [
+        "a1",
+        "a2",
+        "a3",
+        "a4",
+        "a5",
+        "── demo.build running ─"
       ]
     }
   ]

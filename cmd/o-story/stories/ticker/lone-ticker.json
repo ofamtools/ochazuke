@@ -1,8 +1,8 @@
 {
-  "name": "a lone ticker strip at 60x3",
+  "name": "a lone ticker strip at 60x1",
   "area": "ticker",
   "width": 60,
-  "height": 3,
+  "height": 1,
   "chrome": "ticker-only",
   "page": {
     "lists": [

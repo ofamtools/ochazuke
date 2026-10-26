@@ -8,8 +8,9 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// JobTickerRows is the most rows the jobs ticker draws, over the body's
-// last rows above the footer.
+// JobTickerRows is the most entries the jobs ticker shows; they ride the
+// rule line above the footer (Layout.TickerRule), so the ticker takes no
+// row of its own.
 const JobTickerRows = 2
 
 // JobLinger is how long a finished job stays on the ticker after the
@@ -92,11 +93,10 @@ func (t *jobTicker) observe(r *Runtime, now time.Time) {
 	}
 }
 
-// rows are the ticker's jobs, top row first: the running jobs newest
+// rows are the ticker's jobs, first entry first: the running jobs newest
 // first, then the remembered finished jobs newest finish first, at most
-// JobTickerRows. A running job stays on top; when it finishes it falls
-// below the running ones (Tetris), and a newer job pushes the bottom row
-// off. A job finished since the last observe counts as finished now.
+// JobTickerRows. A running job stays first; when it finishes it falls
+// after the running ones, and a newer job pushes the last entry off. A job finished since the last observe counts as finished now.
 func (t *jobTicker) rows(r *Runtime, now time.Time) []JobInfo {
 	var running, fresh []JobInfo
 	for _, j := range r.Jobs() {
@@ -119,8 +119,9 @@ func (t *jobTicker) rows(r *Runtime, now time.Time) []JobInfo {
 	return out[:min(len(out), JobTickerRows)]
 }
 
-// JobsTicker renders ticker rows: one message per row, "noun.verb state",
-// with ": error" on a failure, truncated to width.
+// JobsTicker renders the ticker's entries: one message per job,
+// "noun.verb state", with ": error" on a failure, each truncated to width
+// (Layout.TickerRule joins them into the rule line).
 func JobsTicker(jobs []JobInfo, width int) []string {
 	lines := make([]string, 0, len(jobs))
 	for _, j := range jobs {
@@ -144,9 +145,9 @@ func safeLine(s string) string {
 	return string(out)
 }
 
-// JobsTicker is the ticker the shell draws above the footer for the
-// current frame, as plain lines at most width cells: zero rows when no
-// job shows.
+// JobsTicker is the ticker the shell draws in the rule line above the
+// footer for the current frame, as plain entries at most width cells each:
+// none when no job shows.
 func (m *Model) JobsTicker(width int) []string {
 	return JobsTicker(m.ticker.rows(m.Runtime, m.clock()), width)
 }

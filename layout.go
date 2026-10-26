@@ -41,21 +41,28 @@ func (l Layout) BodySize() (width, height int) {
 }
 
 // BodySizeWith is the body's size with the footer f: BodySize, since the
-// jobs ticker draws over the body's last rows rather than taking rows from
-// it, so a job starting or lingering out never moves the body (UX review 2
-// F13; no jobs, no ticker rows).
+// jobs ticker rides the rule line above the footer and takes no body row,
+// so a job starting or lingering out never moves or hides the body (UX
+// review 2 F13).
 func (l Layout) BodySizeWith(f Footer) (width, height int) {
 	return l.BodySize()
 }
 
-// jobRows is how many ticker rows the shell draws over the body's bottom:
-// none without the complete chrome, and never the body's first row.
-func (l Layout) jobRows(f Footer) int {
-	if !l.full() {
-		return 0
+// TickerRule is the rule line above the footer, width cells: the plain rule
+// with no jobs; with jobs, "── " then the ticker entries (Footer.Jobs, at
+// most JobTickerRows) joined by " · ", cut with "…" so at least " ─" of
+// rule is left, and the rest of the row filled with rule characters, all
+// muted, so the chrome still reads as a rule.
+func (l Layout) TickerRule(jobs []string, width int) string {
+	muted := l.Styles.Muted
+	const lead = "── "
+	room := width - ansi.StringWidth(lead) - 2
+	if len(jobs) == 0 || room < 1 {
+		return muted.Render(strings.Repeat("─", max(0, width)))
 	}
-	_, height := l.BodySize()
-	return max(0, min(len(f.Jobs), height-1))
+	text := ansi.Truncate(modalLabel(strings.Join(jobs[:min(len(jobs), JobTickerRows)], " · ")), room, "…")
+	fill := width - ansi.StringWidth(lead) - ansi.StringWidth(text) - 1
+	return muted.Render(lead + text + " " + strings.Repeat("─", fill))
 }
 
 // Page renders title, subtitle, body and footer into exactly Width x Height
@@ -84,9 +91,9 @@ type Header struct {
 }
 
 // Footer is the bottom row of the page chrome: a raw label, styled as an
-// error when Error is set. Jobs are the jobs ticker's rows (Model.JobsTicker),
-// drawn over the body's last rows, above the rule over the footer; the body
-// keeps its size, and no jobs means no rows.
+// error when Error is set. Jobs are the jobs ticker's entries
+// (Model.JobsTicker), drawn in the rule line above the footer (TickerRule);
+// the body keeps its size, and no jobs means the plain rule.
 type Footer struct {
 	Text  string
 	Error bool
@@ -118,14 +125,10 @@ func (l Layout) Shell(h Header, body Block, f Footer) Block {
 		pad := strings.Repeat(" ", layoutGutter)
 		rule := s.Muted.Render(strings.Repeat("─", bw))
 		rows = append(rows, pad+l.titleRow(h, bw), pad+l.subtitleRow(h, bw), pad+rule)
-		jobs := f.Jobs[:l.jobRows(f)]
-		for _, row := range bodyRows[:len(bodyRows)-len(jobs)] {
+		for _, row := range bodyRows {
 			rows = append(rows, pad+row)
 		}
-		for _, job := range jobs {
-			rows = append(rows, pad+modalCells(s.Muted.Render(ansi.Truncate(modalLabel(job), max(0, bw), "…")), bw))
-		}
-		rows = append(rows, pad+rule, pad+footer, "")
+		rows = append(rows, pad+l.TickerRule(f.Jobs, bw), pad+footer, "")
 	} else {
 		rows = append(rows, bodyRows...)
 		if l.Height >= 3 {

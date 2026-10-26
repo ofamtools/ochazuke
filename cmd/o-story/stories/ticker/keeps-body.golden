@@ -6,7 +6,7 @@ R|  a1
  |  a2
  |  a3
  |  a4
- |  demo.build running
- |  ────────────────────────────────────
+ |  a5
+ |  ── demo.build running ──────────────
  |  q app.quit · r demo.reset · enter d…
  |
