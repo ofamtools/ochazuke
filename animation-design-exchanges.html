@@ -145,8 +145,8 @@ body{display:grid;place-items:center}
 
 .hud{position:absolute;right:20px;top:16px;font:13px var(--mono);color:var(--faint);background:#000a;padding:8px 12px;border-radius:6px;transition:opacity .4s;z-index:10}
 .hud.off{opacity:0}
-.paused-tag{position:absolute;left:20px;top:16px;font:13px var(--mono);color:var(--gold);z-index:10;display:none}
-.paused .paused-tag{display:block}
+.tc{position:absolute;left:20px;top:16px;font:13px var(--mono);color:var(--gold);background:#000a;padding:8px 12px;border-radius:6px;z-index:10;opacity:0;transition:opacity .3s}
+.tc.on,.paused .tc{opacity:1}
 </style>
 </head>
 <body>
@@ -157,8 +157,8 @@ body{display:grid;place-items:center}
   <div class="progress" id="progress"></div>
   <div class="brand">ochazuke · design log</div>
   <div class="overlay" id="overlay"></div>
-  <div class="hud" id="hud">space pause · ← → chapter · r restart · h hide</div>
-  <div class="paused-tag">❚❚ paused</div>
+  <div class="hud" id="hud">space pause · ← → step · shift ← → chapter · , . 1s · &lt; &gt; 5s · home chapter start · r restart · h hide</div>
+  <div class="tc" id="tc"></div>
 </div>
 <script>
 // ── config ────────────────────────────────────────────────────────────────
@@ -507,16 +507,19 @@ const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls)
 const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const EASE = "cubic-bezier(.2,.7,.2,1)";
 const anims = [];
+let marks = [];   // seek points in the current segment (ms)
+const mark = t => marks.push(t);
 let seen = new WeakSet();
-// Every animation is created up front with a delay. Only the first one on a
-// node fills backwards; later ones fill forwards, so they cannot override the
-// earlier ones before they start.
+// Every animation is created up front with a delay and held paused; the
+// player sets their time from its own clock, so seeking is exact. Only the
+// first one on a node fills backwards; later ones fill forwards, so they
+// cannot override the earlier ones before they start.
 function A(node, frames, delay, duration, easing = EASE) {
   const fill = seen.has(node) ? "forwards" : "both";
   seen.add(node);
   const a = node.animate(frames, { delay, duration, easing, fill });
-  a.playbackRate = SPEED;
-  if (paused) { a.pause(); held.push(a); }
+  a.pause();
+  a.currentTime = 0;
   anims.push(a);
   return a;
 }
@@ -754,6 +757,7 @@ function beatThread(host, beat, t0) {
   items.forEach(it => it.panel?.fit());
 
   let t = t0;
+  mark(t);
   fadeIn(layer, t, 400);
   t += 200;
   let scroll = 0;
@@ -761,6 +765,7 @@ function beatThread(host, beat, t0) {
   const shown = [];
 
   for (const it of items) {
+    mark(t);
     // scroll so the whole message is in view, and quiet the ones above
     const bottom = it.node.offsetTop + it.node.offsetHeight;
     const target = Math.max(0, bottom - vh + 8);
@@ -791,6 +796,7 @@ function beatThread(host, beat, t0) {
     }
 
     if (it.panel) {
+      mark(t);
       const prev = current[it.slot];
       if (prev) A(prev.root, [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateX(-30px)" }], t, 450, "ease-in");
       current[it.slot] = it.panel;
@@ -799,6 +805,7 @@ function beatThread(host, beat, t0) {
     }
 
     if (it.msg.who === "model") {
+      if (it.marks.length) mark(t);
       for (const m of it.marks) {
         const d = Math.max(600, Math.min(2200, m.textContent.length * 14));
         underline(m, t, d, 3, "#bdb7ab", "#f6f1e7");
@@ -834,6 +841,7 @@ function beatSplit(host, beat, t0) {
   const size = Math.min(...panels.map(p => parseFloat(p.root.querySelector(".stack").style.fontSize)));
   panels.forEach(p => p.root.querySelector(".stack").style.fontSize = size + "px");
   let t = t0;
+  mark(t);
   fadeIn(layer, t, 300);
   const ends = panels.map((p, i) => p.play(t + i * 250));
   t = Math.max(...ends) + 2200;
@@ -854,6 +862,7 @@ function beatQuote(host, beat, t0) {
   layer.append(big);
   host.append(layer);
   let t = t0;
+  mark(t);
   fadeIn(layer, t, 300);
   fadeUp(layer.firstChild, t + 200, 500, 8);
   fadeUp(big, t + 500, 1000, 30);
@@ -911,6 +920,7 @@ function beatReaders(host, beat, t0) {
   });
 
   let t = t0;
+  mark(t);
   fadeIn(layer, t, 300);
   A(card, [{ opacity: 0, transform: "scale(.95)" }, { opacity: 1, transform: "none" }], t + 200, 800);
   t += 1300;
@@ -926,6 +936,7 @@ function beatReaders(host, beat, t0) {
   });
   t += routes.length * 650 + 1800;
 
+  mark(t);
   const per = Math.min(50, 3000 / units.length);
   units.forEach((w, i) => A(w, [{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], t + i * per, 380));
   t += units.length * per + 300;
@@ -985,15 +996,17 @@ function buildOpener() {
 function buildOutro() {
   const o = $("overlay");
   o.innerHTML = `<div class="kicker">where it landed</div>
-    <div class="head">A Bubble Tea app framework where <span class="m">the whole interaction model is inspectable data.</span></div>
+    <div class="head" style="font-size:78px">A Bubble Tea app framework where <span class="m">the whole interaction model is inspectable data,</span> <span class="m">which is not something that exists today.</span></div>
     <div class="sub">nouns · modes · rows · payloads — print them, diff them, test them as tables</div>`;
   hideChrome(true);
   A(o, [{ opacity: 0 }, { opacity: 1 }], 0, 700, "ease-out");
   fadeUp(o.children[0], 500, 700);
   fadeUp(o.children[1], 800, 900, 28);
-  A(o.querySelector(".m"), [{ backgroundSize: "0% 5px" }, { backgroundSize: "100% 5px" }], 2000, 1800, "ease-in-out");
-  fadeUp(o.children[2], 4000, 800);
-  return 9000;
+  const [m1, m2] = o.querySelectorAll(".m");
+  A(m1, [{ backgroundSize: "0% 5px" }, { backgroundSize: "100% 5px" }], 2000, 1800, "ease-in-out");
+  A(m2, [{ backgroundSize: "0% 5px" }, { backgroundSize: "100% 5px" }], 4100, 1500, "ease-in-out");
+  fadeUp(o.children[2], 6000, 800);
+  return 11000;
 }
 
 function buildChapter({ ch, ci }) {
@@ -1014,48 +1027,95 @@ function buildChapter({ ch, ci }) {
   A($("top"), [{ opacity: 0, transform: "translateY(-10px)" }, { opacity: 1, transform: "none" }], 2600, 600);
 
   let t = 2900;
+  // the chapter card itself is step 0; each beat marks its own start
   for (const beat of ch.beats) t = BEATS[beat.type]($("content"), beat, t) + 200;
   A(progress.children[ci].firstChild, [{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], 0, t, "linear");
   return t;
 }
 
 // ── player ────────────────────────────────────────────────────────────────
-let held = [], cur = 0, paused = false, clock = 0, endAt = 0, last = performance.now();
+// One clock per segment drives every animation (all held paused), so a seek
+// to any time, forwards or backwards, lands on exactly that frame.
+let cur = 0, paused = false, clock = 0, endAt = 0, last = performance.now(), tcTimer = 0;
 function clear() {
   anims.splice(0).forEach(a => a.cancel());
-  held = [];
+  marks = [];
   seen = new WeakSet();
   $("content").innerHTML = "";
   $("overlay").innerHTML = "";
 }
-function go(i) {
+function go(i, at = 0) {
   cur = Math.max(0, Math.min(SHOW.length - 1, i));
   clear();
   const seg = SHOW[cur];
   const build = { intro: buildIntro, opener: buildOpener, outro: buildOutro, chapter: buildChapter }[seg.kind];
+  mark(0);
   endAt = build(seg);
-  clock = 0;
+  // points closer than 400ms collapse into the first
+  marks = marks.sort((a, b) => a - b).filter((m, i, all) => i === 0 || m - all[i - 1] >= 400);
+  seek(at === "end" ? marks[marks.length - 1] : at);
+}
+function seek(ms) {
+  clock = Math.max(0, Math.min(endAt, ms));
+  for (const a of anims) a.currentTime = clock;
+  showTime();
+}
+// ms past the end of this segment carry into the next; before 0, into the previous
+function seekBy(ms) {
+  const to = clock + ms;
+  if (to > endAt && cur < SHOW.length - 1) return go(cur + 1, to - endAt);
+  if (to < 0 && cur > 0) { go(cur - 1); return seek(endAt + to); }
+  seek(to);
+}
+// steps between seek points: a message, a beat, a phase of a beat
+function step(dir) {
+  if (dir > 0) {
+    const next = marks.find(m => m > clock + 50);
+    return next === undefined ? go(cur + 1) : seek(next);
+  }
+  // pressed right after landing on a point, keep going back
+  const prev = [...marks].reverse().find(m => m < clock - 700);
+  return prev === undefined ? (cur > 0 ? go(cur - 1, "end") : seek(0)) : seek(prev);
+}
+function fmt(ms) { const s = ms / 1000; return `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, "0")}`; }
+function showTime() {
+  const seg = SHOW[cur];
+  const name = seg.kind === "chapter" ? String(seg.ci + 1).padStart(2, "0") : seg.kind;
+  const at = marks.filter(m => m <= clock).length;
+  $("tc").textContent = `${paused ? "❚❚ " : ""}${name} · ${fmt(clock)} / ${fmt(endAt)} · step ${at}/${marks.length}`;
+  $("tc").classList.add("on");
+  clearTimeout(tcTimer);
+  tcTimer = setTimeout(() => $("tc").classList.remove("on"), 1400);
 }
 function tick(now) {
   const dt = now - last; last = now;
   if (!paused) {
     clock += dt * SPEED;
     if (clock >= endAt && cur < SHOW.length - 1) go(cur + 1);
+    else for (const a of anims) a.currentTime = Math.min(clock, endAt);
   }
   requestAnimationFrame(tick);
 }
 function setPaused(p) {
   paused = p;
   $("stage").classList.toggle("paused", p);
-  if (p) { held = anims.filter(a => a.playState === "running"); held.forEach(a => a.pause()); }
-  else { held.forEach(a => a.play()); held = []; }
+  showTime();
 }
 addEventListener("keydown", e => {
-  if (e.key === " ") { e.preventDefault(); setPaused(!paused); }
-  else if (e.key === "ArrowRight") go(cur + 1);
-  else if (e.key === "ArrowLeft") go(cur - 1);
-  else if (e.key === "r" || e.key === "R") go(0);
-  else if (e.key === "h" || e.key === "H") $("hud").classList.toggle("off");
+  const k = e.key;
+  if (k === " ") { e.preventDefault(); setPaused(!paused); }
+  else if (k === "ArrowRight") e.shiftKey ? go(cur + 1) : step(1);
+  else if (k === "ArrowLeft") e.shiftKey ? go(clock > 1500 ? cur : cur - 1) : step(-1);
+  else if (k === ".") seekBy(1000);
+  else if (k === ",") seekBy(-1000);
+  else if (k === ">") seekBy(5000);
+  else if (k === "<") seekBy(-5000);
+  else if (k === "Home") seek(0);
+  else if (k === "End") seek(marks[marks.length - 1]);
+  else if (k === "r" || k === "R") go(0);
+  else if (k === "h" || k === "H") $("hud").classList.toggle("off");
+  else return;
+  e.preventDefault();
 });
 
 function scale() {
