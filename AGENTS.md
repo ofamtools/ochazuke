@@ -112,6 +112,19 @@ go run ./examples/core
 go run ./examples/full-project --smoke
 ```
 
+## Releasing
+
+Semver tags on `main`; the family bins require the tag. ochazuke requires a tagged oden: release oden first when ochazuke needs an unreleased oden change.
+
+1. Pick the version (`v0.x.y`: minor for API changes, patch for fixes).
+2. Add a `## vX.Y.Z (DATE)` section to CHANGELOG.md above o-inventory's dated entries, with the highlights.
+3. Run the checks above with `GOWORK=off` (the build a fresh clone gets) and `go mod tidy` (no diff); commit and push.
+4. `git tag -a vX.Y.Z -m "..."` on that exact commit, `git push origin vX.Y.Z`, `gh release create vX.Y.Z --notes ...`. Never move or delete a pushed tag; fix forward with the next patch.
+5. Check the proxy: `GOPROXY=https://proxy.golang.org GOFLAGS=-mod=mod go list -m github.com/unixsuperhero/ochazuke@vX.Y.Z`.
+6. Bump consumers (matomeru, nabe, the o-* bins, mtm-mermaid): `go get github.com/unixsuperhero/ochazuke@vX.Y.Z && go mod tidy`, gate with `GOWORK=off`, commit and push.
+
+Local development uses an untracked `go.work` (`go work init . && go work use ../oden`), ignored via `.gitignore`, so builds use the sibling checkouts while `GOWORK=off` uses the tags. Never commit a `replace` to a local path or a shared `~/proj/go.work`.
+
 ## References: other Charm projects under ~/proj
 
 Facts (versions, import counts, entry points, docs present) are generated into `docs/CHARM-INVENTORY.md` from `docs/charm-refs.txt`. This section is the judgment: which project to open for which question, and which two files to read first.
