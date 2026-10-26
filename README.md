@@ -995,6 +995,32 @@ A malformed entry (an unknown field, noun or placeholder, a bad type, `command` 
 
 Security: commands come only from the user's own `actions.json` in the config directory. A catalog, a binding row, a socket call or an application's data can name an action's verb, as they can any verb, but never define or change what it runs: there is no operation that loads actions from another path, the catalog publishes the verb's parameters and never its command, and a sandbox (`Config.Disable`, o-story, a test binary) reads no file. Values reach the command as argv words, not shell text; if an entry runs `sh -c` itself, pass values as positional arguments (`"sh", "-c", "git log \"$1\"", "sh", "{{data.path}}"`) rather than inside the script.
 
+## Configuration reference (config export)
+
+Every application has a `config` noun. `config path` prints where the user files live; `config export [DIR]` writes a complete reference of the user configuration to copy from:
+
+```sh
+APP config path                  # {"config": "~/.config/APP", "state": "~/.local/state/APP", "reference": "~/.config/APP/reference"}
+APP config export                # writes ~/.config/APP/reference/
+APP config export ./ref          # anywhere else
+APP config export ~/.config/APP --force   # into the live directory: only with --force
+```
+
+| File written | What it holds |
+|---|---|
+| `README.md` | What each file is, where the live files are (`Config.Directory()`), and the warning below |
+| `settings.json` | Every declared setting at its current value, in declaration order; valid to copy in as is |
+| `settings.reference.json` | Per setting: `name`, `type`, `default`, `enum`, `description`, `value`, `set` (the `settings list` shape) |
+| `bindings.reference.json` | Every stored key row of every noun, instance and mode in the `bindings.load` row shape (`bindings list --all`), to copy into `bindings.json` |
+| `actions.example.json` | Two actions on the `app` noun (`example-run` in the command form, `example-call` in the base form) using every field; installs with no notice |
+| `themes.example.json` | `example` (the built-in palette, every role as `{light, dark}`) and `example-dark` (one colour per role); installs with no notice |
+
+The framework's settings (`theme`, `history-limit`) are declared before the export, so they are in the files. Each file is written atomically (a temp file renamed over it), and a file that would land on a live config file (`bindings.json`, `settings.json`, `actions.json`, `themes.json` in the config directory, through a symbolic link too) is refused before anything is written unless `--force`. The result is `{dir, files, config, state}`. Without a config directory (`Config.Disable`, a test binary) the export needs a DIR. The README lists the action placeholders and the theme roles.
+
+Copying a default into a live file pins it: a later version that changes the default does not reach that user. Copy only what you change. A `bindings.json` row replaces every row on its keys in its table, so of two stored rows on the same keys (a row with `when` and its fallback, such as `0` in `operator_pending`) only the last one loaded stands.
+
+Go: `Runtime.ExportConfig(dir, force) (ConfigExport, error)`, `Config.Paths() ConfigPaths`; constants `ReferenceDir`, `ReferenceReadme`, `SettingsReferenceFile`, `BindingsReferenceFile`, `ActionsExampleFile`, `ThemesExampleFile`.
+
 ## Live CLI control
 
 The live transport is a local Unix socket. Its parent directory must be owned by the current user and have no group/other access; the socket is mode `0600`. Startup refuses to overwrite an existing socket. Use different `--socket` paths for different instances. After an unclean exit, verify the old instance is stopped before removing a stale socket.
