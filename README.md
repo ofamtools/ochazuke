@@ -181,7 +181,7 @@ if _, err := tea.NewProgram(model).Run(); err != nil { // Model.View sets AltScr
 }
 ```
 
-Registration does not activate a page; `OpenPage` (or `page.open`) sets `Runtime.Page` and restores the page's frame. Switching reuses the page's exact frame and input instances: selection, focus, modes, drafts, undo history, and scrolling survive a round trip. Normal-mode `Ctrl-J/K` cycles `PageList()`, app's page children in registration order. Rows bound on a page instance or its noun apply while that page holds the focus. Page tabs have no numeric shortcuts; type `page ` in the palette to complete a page ID.
+Registration does not activate a page; `OpenPage` (or `page.open`) sets `Runtime.Page` and restores the page's frame. Switching reuses the page's exact frame and input instances: selection, focus, modes, drafts, undo history, and scrolling survive a round trip. Normal-mode `Ctrl-J/K` cycles `PageList()`, app's page children in registration order. Rows bound on a page instance or its noun apply while that page holds the focus. Page tabs have no numeric shortcuts; `'` (`page.pick`) opens a chooser of every page in registration order (type to filter by title, enter opens), or type `page ` in the palette to complete a page ID. When the tabs do not fit, the row windows around the active tab and shows `‹N` / `N›` for the pages hidden on each side.
 
 Ordinary modals block page switching. The palette closes before dispatching its line, so `open page alpha` works when no other modal is underneath it. Focusing an inactive page's input does not silently navigate; open that page first. Explicitly targeted editing operations may still update an offscreen input without moving focus.
 
@@ -476,7 +476,8 @@ result, err := r.Execute(ochazuke.Request{
 | `palette.go`, `palette_parse.go`, `palette_editing.go`, `palette_nouns.go`, `palette_choices.go` | The ex-mode command line: its operations and rows, the grammar (verb/noun either order, prefixes, omitted noun, parameters), completions and filter codes, history recall, instance sources and defaults, parameter choices, originating context |
 | `params.go` | Parameter choices: `Choice`, `ParseChoices`, `Runtime.Choices`, Enum/Source validation at execution |
 | `picker.go`, `picker_search.go` | Contextual path selection, asynchronous fuzzy indexing, native Git ignores |
-| `pages.go` | Pages as instances of kind `page` (`AddPage`, `RegisterPage`), `Runtime.Page`, remembered focus and mode, navigation, and focus isolation |
+| `pages.go` | Pages as instances of kind `page` (`AddPage`, `RegisterPage`), `Runtime.Page`, remembered focus and mode, navigation, the page picker (`page.pick`), and focus isolation |
+| `chooser.go` | The chooser: a palette-shaped modal of rows (`OpenChooser`, `ChooserSpec`, `ChooserRow`), its ranking and its rows on the `chooser` noun |
 | `terminal.go` | The `terminal` noun: `AddTerminal`, `TerminalStream`, frames through the delivery contract, the leader contract, pane cursor |
 | `layout.go` | `Layout.Shell`, the one page chrome (title row with badge, tabs or subtitle, body, footer), panels, splits, sidebar |
 | `theme.go`, `surface.go` | Appearance operations, Lip Gloss styles, bounded modal composition on a Lip Gloss canvas |
