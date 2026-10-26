@@ -49,6 +49,7 @@ Draft, from the `integrate/next` branch (branches on `3133e23` plus fixes). A mi
 
 - The tab row windows around the active tab with `‹N` and `N›` counts for the pages hidden on each side.
 - The framework chooser, lifted from mtm: `Runtime.OpenChooser(ChooserSpec{Kind, Title, Rows, Filter, Choose, Create, CreateLabel, CreateRow, Empty})`, `Runtime.Chooser(kind)`, `ChooserRow`, `Chooser.SetRows`/`Matches`/`Highlighted`/`Query`/`Moved`; keys are rows on the `chooser` noun (insert pinned). mtm must delete `cmd/mtm/chooser.go` when it adopts this version: both register the `chooser` noun, and a second registration panics.
+- `ChooserSpec.Keep []int` (from mtm, UX review 2 F22): the cell columns a narrow chooser cuts last; the other columns narrow to their minimum (6) first. mtm's directory chooser passes `Keep: []int{1}` (the path).
 - The page picker: `page.pick`, `Runtime.OpenPagePicker()`, on `'`; every page in registration order, type to filter, enter opens, esc closes.
 
 ### User configuration (`feat/user-config`)

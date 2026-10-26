@@ -1,0 +1,45 @@
+{
+  "name": "chooser: a kept column (the path) is cut last, the branch narrows first",
+  "area": "chooser",
+  "width": 60,
+  "height": 14,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "chooser": {
+      "kind": "dirs",
+      "title": "Directory",
+      "keep": [1],
+      "rows": [
+        {
+          "id": "m",
+          "label": "matomeru",
+          "cells": ["matomeru", "~/proj/matomeru", "feat/a-very-long-branch-name", "2d"]
+        },
+        {
+          "id": "o",
+          "label": "ochazuke",
+          "cells": ["ochazuke", "~/proj/ochazuke", "main", "1h"]
+        }
+      ]
+    }
+  },
+  "script": [
+    "ctrl+n"
+  ],
+  "expect": {
+    "modal": "dirs",
+    "contains": [
+      "~/proj/matomeru",
+      "~/proj/ochazuke",
+      "feat/a-ver…"
+    ],
+    "lacks": [
+      "a-very-long-branch-name"
+    ]
+  }
+}

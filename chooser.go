@@ -52,7 +52,7 @@ type ChooserRow struct {
 // and trailing rows and before the fixed rows; typing never matches or
 // ranks it, it is the default only when nothing else matches, and Enter on
 // it creates. Empty is the line shown while there are no rows at all
-// ("loading…").
+// ("loading…"). Keep names the cell columns cut last.
 type ChooserSpec struct {
 	Kind        string
 	Title       string
@@ -63,6 +63,10 @@ type ChooserSpec struct {
 	CreateLabel func(query string) string
 	CreateRow   bool
 	Empty       string
+	// Keep names the columns (indexes into ChooserRow.Cells) cut last when
+	// the cells do not fit (a directory chooser's path): the others narrow
+	// to their minimum first, then the kept ones, widest first.
+	Keep []int
 }
 
 // chooserNoun is the noun of every chooser's search input; its rows are
@@ -455,7 +459,7 @@ func (c *Chooser) View(width, height int) Block {
 	case c.cursor >= scroll:
 		offset = c.cursor - scroll + 1
 	}
-	widths := fitWidths(c.cellWidths(), width-2)
+	widths := fitWidths(c.cellWidths(), width-2, c.spec.Keep...)
 	draw := func(i int) {
 		text := c.matches[i].Label
 		if cells := c.matches[i].Cells; len(cells) > 0 {
@@ -508,8 +512,9 @@ func (c *Chooser) cellWidths() []int {
 
 // fitWidths narrows the widest columns, one cell at a time and never
 // below 6, until the columns and their two-space gaps fit in avail, so no
-// one wide column pushes the rest off.
-func fitWidths(widths []int, avail int) []int {
+// one wide column pushes the rest off. The keep columns narrow only once
+// every other column is at its minimum.
+func fitWidths(widths []int, avail int, keep ...int) []int {
 	widths = slices.Clone(widths)
 	total := func() int {
 		n := 2 * max(0, len(widths)-1)
@@ -518,17 +523,27 @@ func fitWidths(widths []int, avail int) []int {
 		}
 		return n
 	}
-	for total() > avail {
-		widest := 0
+	widest := func(skipKept bool) int {
+		at := -1
 		for i, w := range widths {
-			if w > widths[widest] {
-				widest = i
+			if skipKept && slices.Contains(keep, i) {
+				continue
+			}
+			if w > 6 && (at < 0 || w > widths[at]) {
+				at = i
 			}
 		}
-		if widths[widest] <= 6 {
+		return at
+	}
+	for total() > avail {
+		at := widest(true)
+		if at < 0 {
+			at = widest(false)
+		}
+		if at < 0 {
 			break
 		}
-		widths[widest]--
+		widths[at]--
 	}
 	return widths
 }

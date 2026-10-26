@@ -77,6 +77,10 @@ it to the timer's deadline and delivers the timer's message
       answers: { "skill.list": [{ id: "s1", name: "architect", path: "~/x" }] },  // stdout per NOUN.VERB (a string is the text: JSON Lines)
       pending: false,                // true leaves the loads to the script: { job: "catalog-load", state: "done" }
     },                               // rows <list>/<id>; the page id is the story page's
+    chooser: {                       // a chooser (OpenChooser) open over the focus at the start
+      kind: "dirs", title: "Directory", keep: [1],  // keep: the cell columns cut last
+      rows: [{ id: "m", label: "matomeru", cells: ["matomeru", "~/proj/matomeru", "main"] }],
+    },                               // enter picks and closes
   },
   script: ["j", "j", { type: "ping" }, { paste: "text" },
            { job: "demo.build", state: "done" },

@@ -348,3 +348,45 @@ func TestChooserJobBelongsToTheOpener(t *testing.T) {
 		t.Fatalf("completion: landed %q, jobs %+v", landed, r.Jobs())
 	}
 }
+
+// Keep (mtm UX review 2 F22): the directory chooser cuts the branch and
+// projects columns before the path; without a kept column the widest goes
+// first.
+func TestFitWidthsCutsKeptColumnsLast(t *testing.T) {
+	widths := []int{10, 24, 18, 8, 16} // name, path, branch, used, projects
+	got := fitWidths(widths, 70, 1)
+	if got[1] != 24 {
+		t.Fatalf("kept path cut: %v", got)
+	}
+	n := 2 * (len(got) - 1)
+	for _, w := range got {
+		n += w
+	}
+	if n > 70 {
+		t.Fatalf("does not fit: %v (%d)", got, n)
+	}
+	if plain := fitWidths(widths, 70); plain[1] >= 24 {
+		t.Fatalf("without keep the widest (path) narrows first: %v", plain)
+	}
+	// Once the others are at their minimum, the kept column narrows too.
+	if tight := fitWidths(widths, 50, 1); tight[1] >= 24 || tight[0] != 6 || tight[2] != 6 {
+		t.Fatalf("tight: %v", tight)
+	}
+}
+
+func TestChooserKeepDrawsTheKeptColumnWhole(t *testing.T) {
+	rows := []ChooserRow{
+		{ID: "m", Label: "matomeru", Cells: []string{"matomeru", "~/proj/matomeru", "feat/a-very-long-branch-name", "2d"}},
+		{ID: "o", Label: "ochazuke", Cells: []string{"ochazuke", "~/proj/ochazuke", "main", "1h"}},
+	}
+	keep := &Chooser{spec: ChooserSpec{Rows: rows, Keep: []int{1}, Filter: func(string, ChooserRow) bool { return true }}, input: NewInput("q", "", false)}
+	keep.refilter()
+	if v := ansi.Strip(keep.View(50, 6).Text); !strings.Contains(v, "~/proj/matomeru") || strings.Contains(v, "a-very-long-branch-name") {
+		t.Fatalf("keep:\n%s", v)
+	}
+	plain := &Chooser{spec: ChooserSpec{Rows: rows, Filter: func(string, ChooserRow) bool { return true }}, input: NewInput("q", "", false)}
+	plain.refilter()
+	if v := ansi.Strip(plain.View(44, 6).Text); strings.Contains(v, "~/proj/matomeru") {
+		t.Fatalf("without keep the path is cut too:\n%s", v)
+	}
+}

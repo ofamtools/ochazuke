@@ -87,7 +87,26 @@ type Page struct {
 	// Catalog makes the page a catalog data page (cli.MountPage) instead
 	// of a synthetic one.
 	Catalog *CatalogSpec `json:"catalog,omitempty"`
+	// Chooser opens a chooser (ochazuke.OpenChooser) over the page's
+	// focus when the story starts.
+	Chooser *ChooserSpec `json:"chooser,omitempty"`
 	Open    bool         `json:"open,omitempty"` // the page opened first (default the first page)
+}
+
+// ChooserSpec is a chooser opened over the page's focus: its rows and the
+// columns cut last (Keep). Picking a row closes it.
+type ChooserSpec struct {
+	Kind  string           `json:"kind,omitempty"` // default "story-chooser"
+	Title string           `json:"title,omitempty"`
+	Rows  []ChooserRowSpec `json:"rows"`
+	Keep  []int            `json:"keep,omitempty"`
+}
+
+// ChooserRowSpec is one chooser row; Cells draw it as columns.
+type ChooserRowSpec struct {
+	ID    string   `json:"id"`
+	Label string   `json:"label"`
+	Cells []string `json:"cells,omitempty"`
 }
 
 // ListSpec is one list: rows a1..aN labelled by id unless Labels or Items

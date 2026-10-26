@@ -108,6 +108,11 @@ func Build(s *Story, opt Options) (*Session, error) {
 			}
 		}
 	}
+	if cs := ss.pages[open].Chooser; cs != nil {
+		if _, err := r.OpenChooser(chooserSpec(cs)); err != nil {
+			return nil, fmt.Errorf("chooser: %w", err)
+		}
+	}
 	ss.size()
 	m.View()
 	page := ss.pages[open]
@@ -127,6 +132,18 @@ func Build(s *Story, opt Options) (*Session, error) {
 		}
 	}
 	return ss, nil
+}
+
+// chooserSpec is the framework spec of a story's chooser.
+func chooserSpec(cs *ChooserSpec) ochazuke.ChooserSpec {
+	spec := ochazuke.ChooserSpec{Kind: cs.Kind, Title: cs.Title, Keep: cs.Keep}
+	if spec.Kind == "" {
+		spec.Kind = "story-chooser"
+	}
+	for _, row := range cs.Rows {
+		spec.Rows = append(spec.Rows, ochazuke.ChooserRow{ID: row.ID, Label: row.Label, Cells: row.Cells})
+	}
+	return spec
 }
 
 // Close releases every fake job and pane goroutine.
