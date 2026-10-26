@@ -217,10 +217,11 @@ Conformance:
 |---|---|---|
 | count_pending | count | `count.append` |
 | insert | chooser | `chooser.cancel` `chooser.move` `chooser.pick` |
-| insert | input | `input.insert` |
+| insert | input | `input.insert` `input.kill` |
 | insert | mode | `mode.set` |
 | insert | outline | `outline.indent` `outline.leave` |
 | insert | palette | `palette.move` `palette.run` |
+| insert | setting-value | `setting-value.commit` |
 | normal | bindings | `bindings.help` |
 | normal | confirm | `confirm.accept` |
 | normal | demo | `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.notify` `demo.open` `demo.reload` `demo.ship` |
@@ -234,6 +235,8 @@ Conformance:
 | normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.indent` `outline.move` `outline.paste` `outline.redo` `outline.undo` |
 | normal | page | `page.next` `page.pick` `page.previous` |
 | normal | palette | `palette.open` |
+| normal | setting | `setting.cycle` `setting.edit` `setting.reset` |
+| normal | settings | `settings.edit` |
 | normal | surface | `surface.scroll` |
 | terminal | mode | `mode.enter` |
 | terminal | terminal | `terminal.detach` `terminal.send` |
@@ -248,6 +251,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `outline.leave`
 - `insert` → `normal` via `palette.run`
 - `insert` → `normal` via `row esc`
+- `insert` → `normal` via `setting-value.commit`
 - `leader_pending` → `normal` via `terminal.detach`
 - `normal` → `count_pending` via `mode.enter`
 - `normal` → `insert` via `input.begin`
@@ -255,6 +259,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `outline.edit`
 - `normal` → `insert` via `page.pick`
 - `normal` → `insert` via `palette.open`
+- `normal` → `insert` via `setting.edit`
 - `normal` → `normal d` via `row d`
 - `normal` → `terminal` via `demo.open`
 - `normal d` → `normal` via `outline.delete`

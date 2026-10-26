@@ -1,0 +1,27 @@
+{
+  "name": "settings editor: enter on a duration opens a prompt; a bad value keeps it open",
+  "area": "settings",
+  "width": 100,
+  "settings": [
+    {"name": "debounce", "type": "duration", "default": "400ms", "description": "Wait before writing"}
+  ],
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "bind": [{"noun": "demo", "keys": "S", "do": "settings.edit"}]
+  },
+  "script": ["S", "enter", "ctrl+u", {"type": "soon"}, "enter", "ctrl+u", {"type": "2s"}, "enter"],
+  "expect": [
+    {
+      "after": 1,
+      "lacks": ["setting.cycle"]
+    },
+    {
+      "after": 2,
+      "modal": "setting-prompt",
+      "mode": "insert",
+      "contains": ["debounce (duration)", "400ms", "enter setting-value.commit", "esc setting-value.cancel"]
+    },
+    {"after": 5, "modal": "setting-prompt", "contains": ["must be a duration"]},
+    {"modal": "settings-editor", "focus": "__settings/debounce", "mode": "normal", "contains": ["2s *"]}
+  ]
+}

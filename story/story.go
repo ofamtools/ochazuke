@@ -36,7 +36,10 @@ type Story struct {
 	Base   string  `json:"base,omitempty"`
 	Start  int     `json:"start,omitempty"`
 	Script []Event `json:"script,omitempty"`
-	Expect Expects `json:"expect,omitempty"`
+	// Settings are declared on the session's runtime; with no config
+	// directory (stories read no user files) their values last the session.
+	Settings []ochazuke.Setting `json:"settings,omitempty"`
+	Expect   Expects            `json:"expect,omitempty"`
 
 	// Path is where the file was loaded from (not part of the data); rel
 	// is the path inside fsys, disk the directory fsys reads when it is on

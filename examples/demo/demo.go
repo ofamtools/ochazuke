@@ -133,22 +133,38 @@ func New() *ochazuke.Model {
 		err := r.Push("help", "help")
 		return r.Context(), err
 	})
+	// Theme and density are user settings: settings.json keeps them across
+	// runs, settings.edit (s on the Appearance page) edits them in place,
+	// and t and d step them. The observer applies every change, wherever
+	// it came from (the editor, t/d, the CLI's settings set).
+	themes := []string{"adaptive", "dark", "light", "mono"}
+	if err := r.DeclareSetting(
+		ochazuke.Setting{Name: "theme", Type: ochazuke.SettingString, Default: "adaptive", Description: "Colour theme", Enum: themes},
+		ochazuke.Setting{Name: "density", Type: ochazuke.SettingString, Default: "comfortable", Description: "Spacing", Enum: []string{"comfortable", "compact"}},
+	); err != nil {
+		panic(err)
+	}
+	applySetting := func(name string, value any) {
+		_, _ = r.Execute(ochazuke.Request{Verb: "set", Noun: "appearance", Args: ochazuke.Arguments{name: value}})
+	}
+	r.Settings().Observe("", applySetting)
+	applySetting("theme", r.Settings().String("theme"))
+	applySetting("density", r.Settings().String("density"))
 	register("cycle", "theme", "Cycle through the available default themes", nil, func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
-		themes := []string{"adaptive", "dark", "light", "mono"}
 		next := 0
 		for i, name := range themes {
 			if name == m.Appearance.Theme {
 				next = (i + 1) % len(themes)
 			}
 		}
-		return r.ExecuteAt(c, ochazuke.Request{Verb: "set", Noun: "appearance", Args: ochazuke.Arguments{"theme": themes[next]}})
+		return r.ExecuteAt(c, ochazuke.Request{Verb: "set", Noun: "settings", Args: ochazuke.Arguments{"name": "theme", "value": themes[next]}})
 	})
 	register("cycle", "density", "Toggle comfortable and compact spacing", nil, func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
 		density := "compact"
 		if m.Appearance.Density == "compact" {
 			density = "comfortable"
 		}
-		return r.ExecuteAt(c, ochazuke.Request{Verb: "set", Noun: "appearance", Args: ochazuke.Arguments{"density": density}})
+		return r.ExecuteAt(c, ochazuke.Request{Verb: "set", Noun: "settings", Args: ochazuke.Arguments{"name": "density", "value": density}})
 	})
 	// bind puts a row on a noun, or on an input instance when id names one.
 	bind := func(id, mode, key, verb, noun string, args ochazuke.Arguments) {
@@ -182,6 +198,7 @@ func New() *ochazuke.Model {
 	bind("playground", "normal", "ctrl+x", "inspect", "selection", nil)
 	bind("appearance", "normal", "t", "cycle", "theme", nil)
 	bind("appearance", "normal", "d", "cycle", "density", nil)
+	bind("appearance", "normal", "s", "edit", "settings", nil)
 	if err := r.OpenPage("overview"); err != nil {
 		panic(err)
 	}
@@ -289,9 +306,18 @@ func demoAppearance(m *ochazuke.Model, width int) string {
 	panel := s.Panel.Width(max(1, width-2))
 	return s.Title.Render("Make it feel like your terminal") + "\n" + s.Muted.Render("These settings apply to every page and modal immediately.") + "\n\n" +
 		panel.Render(s.Subtitle.Render("Theme   ")+s.Accent.Render(m.Appearance.Theme)+"\nAdaptive · Dark · Light · Mono\n\n"+s.Subtitle.Render("Density ")+s.Accent.Render(m.Appearance.Density)+"\nComfortable · Compact") + "\n\n" +
-		s.Accent.Render("t") + " cycle theme    " + s.Accent.Render("d") + " toggle density\n\n" +
+		s.Accent.Render("t") + " cycle theme    " + s.Accent.Render("d") + " toggle density    " + s.Accent.Render("s") + " edit settings\n" +
+		s.Muted.Render("Saved in settings.json as you change them: "+settingsPath(m.Runtime)) + "\n\n" +
 		s.FocusedPanel.Width(max(1, width-2)).Render("Focused surface\n"+s.Muted.Render("Muted context stays readable.")+"  "+s.Badge.Render("NORMAL")) + "\n\n" +
-		s.Muted.Render("Palette: set → appearance\nCLI: appearance set --json '{\"theme\":\"mono\",\"density\":\"compact\"}'")
+		s.Muted.Render("Palette: settings set theme mono\nCLI: settings set theme mono")
+}
+
+// settingsPath is where the settings live, or why they do not persist.
+func settingsPath(r *ochazuke.Runtime) string {
+	if path := r.Config().Path(ochazuke.SettingsFile); path != "" {
+		return path
+	}
+	return "(no config directory: this session only)"
 }
 
 // libraryEntries are the Library page's rows and the long text each one's

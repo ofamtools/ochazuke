@@ -125,6 +125,11 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		}
 	}
 	r := s.Runtime
+	// The user bindings file applies to the CLI too, so bindings list
+	// shows the effective rows; a skipped row is a warning, not an error.
+	for _, problem := range r.EnsureUserBindings() {
+		fmt.Fprintln(s.stderr(), "warning:", problem)
+	}
 	verb, err := s.verb(args[0], args[1])
 	if err != nil {
 		return err
