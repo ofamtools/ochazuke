@@ -15,34 +15,36 @@ func detailLines(item string, n int) string {
 }
 
 func TestDetailWindowResetsOnNewItemAndKeepsOnRefresh(t *testing.T) {
-	d := &Detail{}
-	body, marker := d.Window("a", detailLines("a", 30), 0, 5)
+	item := "a"
+	d := &Detail{about: func() string { return item }}
+	body, marker := d.Window(detailLines("a", 30), 0, 5)
 	if body != detailLines("a", 5) || marker != "1–5 / 30" {
 		t.Fatalf("first window = %q, %q", body, marker)
 	}
 	d.Scroll(10)
-	if _, marker = d.Window("a", detailLines("a", 30), 0, 5); marker != "11–15 / 30" {
+	if _, marker = d.Window(detailLines("a", 30), 0, 5); marker != "11–15 / 30" {
 		t.Fatalf("after scroll marker = %q", marker)
 	}
 	// The same item refreshing keeps the offset, clamped to the new text.
-	if _, marker = d.Window("a", detailLines("a", 12), 0, 5); marker != "8–12 / 12" {
+	if _, marker = d.Window(detailLines("a", 12), 0, 5); marker != "8–12 / 12" {
 		t.Fatalf("refresh marker = %q", marker)
 	}
 	// A new item starts at its top.
-	if body, marker = d.Window("b", detailLines("b", 30), 0, 5); !strings.HasPrefix(body, "b line 1\n") || marker != "1–5 / 30" {
+	item = "b"
+	if body, marker = d.Window(detailLines("b", 30), 0, 5); !strings.HasPrefix(body, "b line 1\n") || marker != "1–5 / 30" {
 		t.Fatalf("new item = %q, %q", body, marker)
 	}
 	if d.Scroll(-3) != 0 || d.Scroll(100) != 25 {
 		t.Fatalf("scroll clamps to [0, total-height]: %d", d.Offset())
 	}
-	if _, marker = d.Window("b", "short", 0, 5); marker != "" || d.Overflows() {
+	if _, marker = d.Window("short", 0, 5); marker != "" || d.Overflows() {
 		t.Fatalf("text that fits has no marker: %q", marker)
 	}
 }
 
 func TestDetailWindowWrapsToWidth(t *testing.T) {
 	d := &Detail{}
-	_, marker := d.Window("a", strings.Repeat("word ", 20), 10, 3)
+	_, marker := d.Window(strings.Repeat("word ", 20), 10, 3)
 	if marker == "" || d.total < 8 {
 		t.Fatalf("wrapped lines count as rows: total=%d marker=%q", d.total, marker)
 	}
@@ -59,13 +61,13 @@ func detailModel(t *testing.T, lines int) (*Model, *List, *Detail) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	d, err := r.AddDetail("p/detail", Parent("p"))
+	d, err := r.AddDetail("p/detail", func() string { sel, _ := list.Selected(); return sel.ID }, Parent("p"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	render := func(r *Runtime, w, h int) Block {
 		sel, _ := list.Selected()
-		body, marker := d.Window(sel.ID, detailLines(sel.ID, lines), w/2, h)
+		body, marker := d.Window(detailLines(sel.ID, lines), w/2, h)
 		return Text(list.View(w/2, h) + "\n" + marker + "\n" + body)
 	}
 	if _, err := r.AddPage("p", "P", render, Focus("p/list")); err != nil {
@@ -94,11 +96,12 @@ func TestDetailJKScrollWithFocusInTheList(t *testing.T) {
 	if hints := BindingHints(r, r.Focus); !strings.Contains(hints, "J/K detail") || strings.Contains(hints, "detail.scroll") {
 		t.Fatalf("hints = %q; want one J/K detail row", hints)
 	}
-	// Selecting another row starts its detail at the top.
+	// Selecting another row starts its detail at the top, even when J
+	// follows before a frame.
 	m.handleKey(MacroKey{Key: "j"})
-	m.View()
-	if d.Offset() != 0 || d.Item() != "b" {
-		t.Fatalf("new selection: offset=%d item=%q", d.Offset(), d.Item())
+	m.handleKey(MacroKey{Key: "J"})
+	if d.Offset() != 1 || d.Item() != "b" {
+		t.Fatalf("new selection then J: offset=%d item=%q", d.Offset(), d.Item())
 	}
 }
 

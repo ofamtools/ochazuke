@@ -10,10 +10,13 @@ import (
 
 // Detail is the component a detail instance fronts: a page's read-only
 // detail region (the text beside or below a list about its selected row)
-// that scrolls while the focus stays in the list. The application draws
-// it through Window, naming the item the text is about; the framework
-// keeps the offset. A new item starts at the top; the same item keeps its
-// offset while its text refreshes (clamped to the new length). J and K on
+// that scrolls while the focus stays in the list. The application names
+// the item the detail is about with the func it gives AddDetail (the
+// selected row's id) and draws the text through Window; the framework
+// keeps the offset. A new item starts at the top, checked on every Window
+// and every scroll, so a scroll typed before the next frame lands on the
+// new item; the same item keeps its offset while its text refreshes
+// (clamped to the new length). J and K on
 // the app noun (detail.scroll, counts work: 10J) scroll the current page's
 // detail while it overflows and the focus is on the page outside it; a
 // focused noun that binds J or K (the outline) keeps them, as inner rows
@@ -21,8 +24,10 @@ import (
 type Detail struct {
 	r  *Runtime
 	id string
-	// item is what the last Window showed; offset its first visible line;
+	// about names the item the detail shows now; item is the one the
+	// offset belongs to; offset its first visible line;
 	// total and height the wrapped line count and window of that frame.
+	about         func() string
 	item          string
 	offset        int
 	total, height int
@@ -32,8 +37,10 @@ type Detail struct {
 const detailNoun = "detail"
 
 // AddDetail registers a detail instance under its parent (Parent(page) or
-// an instance beneath the page) and returns its component.
-func (r *Runtime) AddDetail(id string, opts ...InstanceOption) (*Detail, error) {
+// an instance beneath the page) and returns its component. item names what
+// the detail shows now (the selected row's id); a different answer than
+// the last one starts the detail at the top. A nil item never resets.
+func (r *Runtime) AddDetail(id string, item func() string, opts ...InstanceOption) (*Detail, error) {
 	if id == "" {
 		return nil, errors.New("detail ID must be nonempty")
 	}
@@ -47,7 +54,7 @@ func (r *Runtime) AddDetail(id string, opts ...InstanceOption) (*Detail, error) 
 	if r.Instances[spec.parent] == nil {
 		return nil, fmt.Errorf("unknown parent %q", spec.parent)
 	}
-	d := &Detail{r: r, id: id}
+	d := &Detail{r: r, id: id, about: item}
 	r.Instance(id, Parent(spec.parent), Kind(spec.noun)).Component = d
 	return d, nil
 }
@@ -68,13 +75,9 @@ func (d *Detail) ID() string { return d.id }
 // Window returns the lines of text the detail shows in a width by height
 // window (text wrapped to width first when width > 0, so a line is a row
 // on screen) and the position marker, "12–40 / 300", when the text
-// overflows the window ("" when it fits). item names what the text is
-// about (the selected row's id): a different item than the last call's
-// starts at the top.
-func (d *Detail) Window(item, text string, width, height int) (body, marker string) {
-	if item != d.item {
-		d.item, d.offset = item, 0
-	}
+// overflows the window ("" when it fits).
+func (d *Detail) Window(text string, width, height int) (body, marker string) {
+	d.sync()
 	text = strings.ReplaceAll(text, "\t", "    ")
 	if width > 0 {
 		text = ansi.Wrap(text, width, "")
@@ -105,14 +108,33 @@ func (d *Detail) Overflows() bool { return d.height > 0 && d.total > d.height }
 // Offset is the first visible line, from 0.
 func (d *Detail) Offset() int { return d.offset }
 
-// Item is the item the last Window showed.
+// Item is the item the offset belongs to.
 func (d *Detail) Item() string { return d.item }
 
 // Scroll moves the window by lines (down when positive), clamped to the
-// text the last Window measured, and returns the new offset.
+// text the last Window measured, and returns the new offset. A new item
+// starts at the top first.
 func (d *Detail) Scroll(lines int) int {
+	if d.sync() {
+		// The new item's text is not measured yet: scroll freely, the
+		// next Window clamps.
+		d.offset = max(0, lines)
+		return d.offset
+	}
 	d.offset = d.clamp(d.offset + lines)
 	return d.offset
+}
+
+// sync starts a new item at the top and reports whether it was new.
+func (d *Detail) sync() bool {
+	if d.about == nil {
+		return false
+	}
+	if item := d.about(); item != d.item {
+		d.item, d.offset = item, 0
+		return true
+	}
+	return false
 }
 
 func (d *Detail) clamp(offset int) int {
