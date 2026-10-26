@@ -6,6 +6,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
+// DefaultBindingTimeout is how long a pending multi-key binding waits for its next key.
 const DefaultBindingTimeout = 1000 * time.Millisecond
 
 // BindingTimeoutMsg resolves a pending key sequence on the owning event loop.

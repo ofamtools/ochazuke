@@ -45,6 +45,7 @@ const (
 	paletteLineID = "__palette/line"
 )
 
+// NewPalette returns the command palette for r.
 func NewPalette(r *Runtime) *Palette {
 	p := &Palette{r: r, highlight: -1, actions: map[string]bool{}, nouns: map[string]PaletteNoun{
 		"page": {Source: PagesPaletteSource, DefaultVerb: "open", Argument: "id"},

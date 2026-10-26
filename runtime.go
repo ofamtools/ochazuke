@@ -13,8 +13,10 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
+// Arguments are a request's named arguments, keyed by parameter name.
 type Arguments map[string]any
 
+// Parameter describes one argument of an operation: its type, whether it is required, and its choices.
 type Parameter struct {
 	Type        string `json:"type"`
 	Required    bool   `json:"required,omitempty"`
@@ -38,6 +40,7 @@ type Request struct {
 	Confirmed bool      `json:"confirmed,omitempty"`
 }
 
+// Key returns the request's operation as noun.verb.
 func (q Request) Key() string { return q.Noun + "." + q.Verb }
 
 // Context is the derived view of a focus: the instance ids from app down to
@@ -47,10 +50,12 @@ type Context struct {
 	InputID string   `json:"inputId,omitempty"`
 }
 
+// Clone returns a copy whose Path does not share the original's backing array.
 func (c Context) Clone() Context {
 	return Context{Path: append([]string(nil), c.Path...), InputID: c.InputID}
 }
 
+// Handler runs an interaction operation on the UI loop and returns its result.
 type Handler func(*Runtime, Context, Arguments) (any, error)
 
 // Operation is one registered noun.verb. Kind is "interaction" (the
@@ -166,6 +171,7 @@ type Runtime struct {
 	deprecations     []string          // rows that named an operation by its old verb.noun spelling, rewritten once
 }
 
+// NewRuntime returns a runtime with the framework nouns registered and focus on the app instance.
 func NewRuntime() *Runtime {
 	r := &Runtime{
 		Nouns: map[string]*Noun{}, Instances: map[string]*Instance{}, rows: map[string]string{},
@@ -402,6 +408,7 @@ func (r *Runtime) instancesInOrder() []*Instance {
 	return out
 }
 
+// Execute runs an operation at the current focus context; see ExecuteAt.
 func (r *Runtime) Execute(q Request) (any, error) { return r.ExecuteAt(r.Context(), q) }
 
 // ExecuteAt runs an operation for a context. The innermost noun on the

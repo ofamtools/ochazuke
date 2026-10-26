@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// EditNode is one state in an input's undo tree: its text, cursor, parent and children.
 type EditNode struct {
 	Text     string `json:"text"`
 	Cursor   int    `json:"cursor"`
@@ -13,6 +14,7 @@ type EditNode struct {
 	Children []int  `json:"children"`
 }
 
+// Input is a single- or multi-line modal text field with an undo tree.
 type Input struct {
 	ID          string
 	Text        []rune
@@ -32,6 +34,7 @@ type Input struct {
 	r           *Runtime // set by AddInput; while the input is focused its mode is r.Mode
 }
 
+// NewInput returns an input in normal mode holding text, with text as its undo root.
 func NewInput(id, text string, multiline bool) *Input {
 	in := &Input{ID: id, Text: []rune(text), Mode: "normal", Multiline: multiline, groupNode: -1, goalColumn: -1}
 	in.History = []EditNode{{Text: text, Parent: -1}}

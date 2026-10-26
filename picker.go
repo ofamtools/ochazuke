@@ -66,6 +66,7 @@ type pickerSearchMsg struct {
 	err     error
 }
 
+// NewPicker returns the picker for r.
 func NewPicker(r *Runtime) *Picker {
 	p := &Picker{Runtime: r}
 	r.Instance(pickerID, Kind("picker")).Component = p

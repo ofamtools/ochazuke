@@ -4,6 +4,12 @@ A Go application framework on Charmbracelet Bubble Tea v2 (`charm.land/bubbletea
 
 Status: working standalone framework and demo. Neither gmtm nor Matomeru is changed. Existing editors are retained; Bubbles provides the new page/modal scrolling viewports.
 
+Module `github.com/unixsuperhero/ochazuke`; requires Go 1.26 or newer. It builds on [oden](https://github.com/unixsuperhero/oden) for CLI resolution.
+
+```sh
+go get github.com/unixsuperhero/ochazuke@latest
+```
+
 ## Explore the architecture
 
 Open the [interactive architecture field guide](docs/architecture.html) locally:
@@ -38,7 +44,7 @@ The HTML API catalog uses the standard `go/doc` library, with no documentation-s
 
 ## Run on macOS
 
-Requires Go 1.25 or newer.
+Requires Go 1.26 or newer.
 
 ```sh
 go run ./cmd/ochazuke run

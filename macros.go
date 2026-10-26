@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// MacroKey is one recorded key of a macro; Paste marks pasted text.
 type MacroKey struct {
 	Key   string `json:"key"`
 	Paste bool   `json:"paste,omitempty"`

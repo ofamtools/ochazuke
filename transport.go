@@ -16,6 +16,7 @@ import (
 
 const maxRequestBytes = 1 << 20
 
+// Response is the reply to a socket call: a result or an error message.
 type Response struct {
 	Result any    `json:"result,omitempty"`
 	Error  string `json:"error,omitempty"`
@@ -71,6 +72,7 @@ func detachLines(lines Lines) (Lines, error) {
 	return out, nil
 }
 
+// Server serves runtime requests over a Unix socket; see Listen.
 type Server struct {
 	listener net.Listener
 	done     chan struct{}
