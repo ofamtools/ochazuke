@@ -328,12 +328,12 @@ Root package `ochazuke` is flat: 44 source files, 36 test files. Each entry list
 
 ### transport.go
 
-- lines: 179
+- lines: 191
 - purpose: Response is the reply to a socket call: a result or an error message.
 - types: Response, CallMsg, Lines, Server
 - methods: Runtime(1), Server(2)
 - funcs: Listen, Call
-- leans on: runtime.go(8), delivery.go(4), cli.go(1), noun.go(1)
+- leans on: runtime.go(8), delivery.go(6), cli.go(1), noun.go(1)
 
 ### tree.go
 
@@ -386,7 +386,7 @@ Importable package `cli`: 4 source files, 3 test files.
 
 ### cli/shell.go
 
-- lines: 531
+- lines: 562
 - purpose: Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--yes]: one registered operation in this process through the runtime's CLI en...
 - types: Shell
 - methods: Shell(10)
