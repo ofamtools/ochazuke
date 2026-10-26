@@ -1,0 +1,65 @@
+{
+  "name": "enter runs a command attached; ctrl+a d returns to its row",
+  "area": "commands",
+  "width": 100,
+  "height": 16,
+  "page": {
+    "title": "Commands",
+    "commands": {
+      "entries": [
+        {
+          "name": "greet",
+          "kind": "inline",
+          "summary": "say hello",
+          "source": "main.go:12",
+          "help": "usage: hello greet [NAME]\n\nsay hello"
+        },
+        {
+          "name": "web",
+          "kind": "external",
+          "summary": "hello-web on PATH",
+          "source": "/bin/hello-web"
+        }
+      ],
+      "help": {
+        "web": "usage: hello web [PORT]"
+      }
+    }
+  },
+  "script": [
+    "enter",
+    {
+      "tick": "terminal"
+    },
+    "h",
+    {
+      "tick": "terminal"
+    },
+    "ctrl+a",
+    "d"
+  ],
+  "expect": [
+    {
+      "after": 4,
+      "focus": "page1/run/1",
+      "mode": "terminal",
+      "contains": [
+        "greet · running · attached",
+        "fake pane: keys echo here",
+        "$ h",
+        "ctrl+a leader"
+      ]
+    },
+    {
+      "focus": "command:greet",
+      "mode": "normal",
+      "contains": [
+        "greet · running · enter attaches",
+        "x command.stop"
+      ],
+      "lacks": [
+        "· attached"
+      ]
+    }
+  ]
+}

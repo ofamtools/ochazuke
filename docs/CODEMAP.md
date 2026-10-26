@@ -447,18 +447,18 @@ Importable package `cli`: 12 source files, 7 test files.
 - types: PtyStream
 - methods: PtyStream(15), byteQueue(3)
 - funcs: StartPty
-- leans on: pty_unix.go(2), shell.go(2), ptykeys.go(1), rows.go(1)
+- leans on: pty_windows.go(2), shell.go(2), ptykeys.go(1), rows.go(1)
 
 ### cli/pty_unix.go
 
 - lines: 39
 - purpose: configureCommand makes the command the leader of a new session whose controlling terminal is the pty (the slave is its fd 0), so its process group id is its ...
+- leans on: pty_windows.go(2)
 
 ### cli/pty_windows.go
 
 - lines: 15
 - purpose: configureCommand leaves the command as it is: ConPTY owns the console.
-- leans on: pty_unix.go(2)
 
 ### cli/ptykeys.go
 
@@ -516,12 +516,12 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/build.go
 
-- lines: 859
+- lines: 896
 - purpose: Session is one built story: the runtime, the model and the demo state the verbs act on (fake jobs and panes).
 - types: Session, Options
-- methods: Session(17)
+- methods: Session(18), storyCommands(3)
 - funcs: Build
-- leans on: story.go(29), run.go(9), fake.go(2)
+- leans on: story.go(31), run.go(9), fake.go(3)
 
 ### story/driver.go
 
@@ -559,9 +559,9 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/story.go
 
-- lines: 426
+- lines: 437
 - purpose: Story is one scenario file.
-- types: Story, Page, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, InputSpec, TermSpec, JobSpec, BindSpec, Event, Expect, Expects
+- types: Story, Page, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, CommandsSpec, InputSpec, TermSpec, JobSpec, BindSpec, Event, Expect, Expects
 - methods: Event(3), Expects(2), Story(5)
 - funcs: Slug, Parse, LoadFS, LoadDir, Sort, Find
 
@@ -705,6 +705,7 @@ Exported type -> file.
 - grid.Ref -> grid/grid.go
 - grid.Styles -> grid/grid.go
 - story.BindSpec -> story/story.go
+- story.CommandsSpec -> story/story.go
 - story.DetailSpec -> story/story.go
 - story.Driver -> story/driver.go
 - story.Edge -> story/verbs.go

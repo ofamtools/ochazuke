@@ -1,0 +1,67 @@
+{
+  "name": "i shows an inline command's help at once and fetches an external's",
+  "area": "commands",
+  "width": 100,
+  "height": 16,
+  "page": {
+    "title": "Commands",
+    "commands": {
+      "entries": [
+        {
+          "name": "greet",
+          "kind": "inline",
+          "summary": "say hello",
+          "source": "main.go:12",
+          "help": "usage: hello greet [NAME]\n\nsay hello"
+        },
+        {
+          "name": "web",
+          "kind": "external",
+          "summary": "hello-web on PATH",
+          "source": "/bin/hello-web"
+        }
+      ],
+      "help": {
+        "web": "usage: hello web [PORT]"
+      }
+    }
+  },
+  "script": [
+    "i",
+    "j",
+    "i",
+    {
+      "job": "command.help",
+      "state": "done"
+    }
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "contains": [
+        "greet · help",
+        "usage: hello greet [NAME]",
+        "enter command.run",
+        "i command.help"
+      ],
+      "lacks": [
+        "x command.stop"
+      ]
+    },
+    {
+      "after": 2,
+      "contains": [
+        "web · help",
+        "source: /bin/hello-web",
+        "enter runs it · i shows its help"
+      ]
+    },
+    {
+      "focus": "command:web",
+      "contains": [
+        "web · help",
+        "usage: hello web [PORT]"
+      ]
+    }
+  ]
+}
