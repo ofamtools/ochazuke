@@ -140,22 +140,24 @@ func New() *ochazuke.Model {
 	})
 	// Theme and density are user settings: settings.json keeps them across
 	// runs, settings.edit (s on the Appearance page) edits them in place,
-	// and t and d step them. The observer applies every change, wherever
-	// it came from (the editor, t/d, the CLI's settings set).
-	themes := []string{"adaptive", "dark", "light", "mono"}
+	// and t and d step them. theme is the framework's setting (its choices
+	// are the built-in themes and the user's themes.json), declared here so
+	// it exists before the Model starts; the Model applies it. density is
+	// the demo's own: the observer applies every change, wherever it came
+	// from (the editor, d, the CLI's settings set).
+	r.EnsureConfigSettings()
 	if err := r.DeclareSetting(
-		ochazuke.Setting{Name: "theme", Type: ochazuke.SettingString, Default: "adaptive", Description: "Colour theme", Enum: themes},
 		ochazuke.Setting{Name: "density", Type: ochazuke.SettingString, Default: "comfortable", Description: "Spacing", Enum: []string{"comfortable", "compact"}},
 	); err != nil {
 		panic(err)
 	}
-	applySetting := func(name string, value any) {
-		_, _ = r.Execute(ochazuke.Request{Verb: "set", Noun: "appearance", Args: ochazuke.Arguments{name: value}})
+	applyDensity := func(_ string, value any) {
+		_, _ = r.Execute(ochazuke.Request{Verb: "set", Noun: "appearance", Args: ochazuke.Arguments{"density": value}})
 	}
-	r.Settings().Observe("", applySetting)
-	applySetting("theme", r.Settings().String("theme"))
-	applySetting("density", r.Settings().String("density"))
-	register("cycle", "theme", "Cycle through the available default themes", nil, func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
+	r.Settings().Observe("density", applyDensity)
+	applyDensity("density", r.Settings().String("density"))
+	register("cycle", "theme", "Cycle through the colour schemes: the built-in themes, then themes.json's", nil, func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
+		themes := m.Appearance.ThemeNames()
 		next := 0
 		for i, name := range themes {
 			if name == m.Appearance.Theme {

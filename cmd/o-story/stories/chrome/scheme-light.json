@@ -1,0 +1,72 @@
+{
+  "name": "chrome: the built-in light scheme draws every role from its light side, whatever the terminal reports",
+  "area": "chrome",
+  "width": 80,
+  "theme": "light",
+  "pages": [
+    {
+      "id": "work",
+      "lists": [
+        {
+          "id": "a",
+          "rows": 2
+        }
+      ],
+      "jobs": [
+        {
+          "verb": "demo.build",
+          "key": "w",
+          "failOnKey": "X"
+        }
+      ]
+    },
+    {
+      "id": "notes",
+      "lists": [
+        {
+          "id": "b",
+          "rows": 1
+        }
+      ]
+    }
+  ],
+  "script": [
+    "x",
+    "n",
+    "w",
+    "X",
+    {
+      "job": "demo.build",
+      "state": "failed"
+    }
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "modal": "confirm",
+      "colored": {
+        "◆ o-story": "#253D39",
+        "› work": "#17695E",
+        "╭": "#17695E"
+      },
+      "noColor": [
+        "#78BFA5",
+        "#DCE9E3"
+      ]
+    },
+    {
+      "modal": "",
+      "contains": [
+        "Error:"
+      ],
+      "colored": {
+        "Error:": "#AB3D36",
+        "› work": "#17695E"
+      },
+      "noColor": [
+        "#E99B8D",
+        "#78BFA5"
+      ]
+    }
+  ]
+}

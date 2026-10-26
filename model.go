@@ -85,6 +85,13 @@ func NewModel(r *Runtime) *Model {
 			m.Notices = slices.DeleteFunc(m.Notices, func(n string) bool { return n == problem })
 		}
 	}
+	// The framework's theme setting (EnsureConfigSettings) drives the
+	// scheme; an application that declared its own theme applies it itself.
+	r.Settings().Observe(ThemeSetting, func(_ string, v any) {
+		if name, ok := v.(string); ok && r.Config().FrameworkTheme() {
+			m.Appearance.Theme = name
+		}
+	})
 	m.ModalViews[yankHistoryID] = ModalView{Title: "Yank history", Render: yankHistoryView}
 	m.ModalViews["confirm"] = ModalView{Title: "Confirm", Render: confirmView}
 	m.ModalViews[helpID] = ModalView{Title: "Keys", Render: bindingHelpView}
@@ -152,12 +159,14 @@ func NewModel(r *Runtime) *Model {
 // Init applies the user bindings file (Runtime.EnsureUserBindings), after
 // the application defined its own rows, declares the framework's settings
 // (EnsureConfigSettings), reads settings.json (its problems are notices),
+// draws themes.json's schemes and the theme setting's (applyThemeSetting),
 // restores and persists the action history (EnsureHistory), starts the settings.json poll (SettingsPoll) when the
 // application declared settings, and asks for the background colour.
 func (m *Model) Init() tea.Cmd {
 	m.Runtime.EnsureUserBindings()
 	m.Runtime.EnsureConfigSettings()
 	m.Runtime.Settings().ensure()
+	m.applyThemeSetting()
 	m.Runtime.EnsureHistory()
 	return tea.Batch(tea.RequestBackgroundColor, m.settingsPoll())
 }
@@ -218,6 +227,22 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		commands = append(commands, m.settingsPoll())
 	}
 	return m, tea.Batch(commands...)
+}
+
+// applyThemeSetting draws the user's schemes and, when settings.json names
+// one in the framework's theme setting, selects it (else the theme the
+// application set stays).
+func (m *Model) applyThemeSetting() {
+	c := m.Runtime.Config()
+	m.Appearance.Schemes = NewSchemeSet(c.Schemes())
+	if !c.FrameworkTheme() {
+		return
+	}
+	if v, err := m.Runtime.Settings().Get(ThemeSetting); err == nil && v.Set {
+		if name, ok := v.Value.(string); ok {
+			m.Appearance.Theme = name
+		}
+	}
 }
 
 // handleKey dispatches one key through the runtime's stack walk and shows

@@ -167,6 +167,14 @@ type Config struct {
 	// history is the history file's writer once EnsureHistory started it.
 	history        *historyStore
 	historyStarted bool
+	// schemes are themes.json's valid schemes, themeProblems its last
+	// read's problems; themeSetting is set when the framework declared the
+	// theme setting (the application did not).
+	schemes       map[string]Scheme
+	themeProblems []string
+	themesLoaded  bool
+	themesPath    string
+	themeSetting  bool
 	// bindingsLoaded is set once the user bindings were applied (Model.Init,
 	// the CLI shell); bindings.reload applies them again.
 	bindingsLoaded bool

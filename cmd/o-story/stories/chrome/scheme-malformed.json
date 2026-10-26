@@ -1,0 +1,62 @@
+{
+  "name": "chrome: a scheme that does not validate is a notice and the theme falls back to adaptive",
+  "area": "chrome",
+  "width": 80,
+  "theme": "broken",
+  "themes": {
+    "broken": {
+      "accent": "teal"
+    },
+    "clash": {
+      "accent": "#C9A227",
+      "error": "#c9a227"
+    }
+  },
+  "pages": [
+    {
+      "id": "work",
+      "lists": [
+        {
+          "id": "a",
+          "rows": 2
+        }
+      ],
+      "jobs": [
+        {
+          "verb": "demo.build",
+          "key": "w",
+          "failOnKey": "X"
+        }
+      ]
+    },
+    {
+      "id": "notes",
+      "lists": [
+        {
+          "id": "b",
+          "rows": 1
+        }
+      ]
+    }
+  ],
+  "script": [
+    "x"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "modal": "confirm",
+      "colored": {
+        "› work": "#78BFA5",
+        "╭": "#78BFA5"
+      },
+      "noColor": [
+        "#C9A227"
+      ],
+      "notices": [
+        "themes.json: broken: accent: \"teal\" is not #RRGGBB, #RGB or an ANSI index 0-255 (skipped)",
+        "themes.json: clash: error must differ from accent, so errors stay distinct (skipped)"
+      ]
+    }
+  ]
+}

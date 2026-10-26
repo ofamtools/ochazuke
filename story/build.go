@@ -64,6 +64,13 @@ func Build(s *Story, opt Options) (*Session, error) {
 	if opt.Mono {
 		m.Appearance.Theme = "mono"
 	}
+	if len(s.Themes) > 0 {
+		schemes, problems := ochazuke.ParseSchemes(s.Themes)
+		m.Appearance.Schemes = ochazuke.NewSchemeSet(schemes)
+		for _, p := range problems {
+			m.Notify(p)
+		}
+	}
 	if s.Theme != "" {
 		m.Appearance.Theme = s.Theme
 	}

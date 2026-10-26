@@ -198,7 +198,7 @@ Ordinary modals block page switching. The palette closes before dispatching its 
 ### Styling and modal behavior
 
 - Default styling uses restrained teal/green accents, rounded panels, heavier focused borders, page tabs, a mode badge, and a status line. The status line and modal hints are derived from binding rows (`BindingHints`), never written by hand; the picker's own help line is derived the same way.
-- Themes: `adaptive`, `dark`, `light`, `mono`. Density: `comfortable` or `compact`. Adaptive follows the terminal's detected background; `NO_COLOR` disables theme colors. Focus remains visible through border weight and a tab marker.
+- Themes: `adaptive`, `dark`, `light`, `mono`, plus the user's colour schemes (below). Density: `comfortable` or `compact`. Adaptive follows the terminal's detected background; `NO_COLOR` disables theme colors. Focus remains visible through border weight and a tab marker.
 - Modals are centered, content-sized panels, capped at 78 columns and about 75% of the terminal height. They leave a visible, subdued perimeter of the previous screen whenever the terminal can accommodate it. Nested modals retain the previous modal and page underneath.
 - Tiny terminals use reduced chrome rather than overflowing the screen. Bubbles viewports handle overflowing page and modal content; `PgUp/PgDn` scroll the active surface.
 - In an input modal, Escape returns insert mode to normal; another Escape closes the modal. A pending normal-mode operator/count is canceled before closing. "Escape pops a modal" is one row: the `modal` noun's normal-mode `esc`, which sits inside `app` and outside the editor and palette tables. `Ctrl-G` closes demo drafts directly. Palette and picker cancellation retain their own documented behavior.
@@ -212,7 +212,35 @@ Ordinary modals block page switching. The palette closes before dispatching its 
 /tmp/ochazuke appearance set --json '{"theme":"dark","density":"compact"}'
 ```
 
-Theme and density changes are atomic and apply immediately to all pages and modals. They are in-memory settings, not persisted preferences. `NewStyles(*model.Appearance)` supplies the same style vocabulary to application renderers.
+Theme and density changes are atomic and apply immediately to all pages and modals. `appearance set` changes them for the session. `NewStyles(*model.Appearance)` supplies the same style vocabulary to application renderers.
+
+#### Colour schemes
+
+The `theme` setting selects the colour scheme and persists in `settings.json`. The framework declares it (`Runtime.EnsureConfigSettings`, called by `Model.Init` and the CLI shell) unless the application declared a setting of that name, which it then applies itself. Its choices are the built-in themes followed by the schemes in `themes.json`, a file beside `settings.json` (`themes path` prints it):
+
+```json
+{
+  "kombu": {
+    "background": "dark",
+    "accent": "#C9A227",
+    "border": "#5C4A1E",
+    "error": {"light": "#B3261E", "dark": "#FF6F61"}
+  }
+}
+```
+
+| Role | Draws |
+|---|---|
+| `text` | Body text and the title |
+| `muted` | Hints, inactive tabs, the dimmed backdrop under a modal |
+| `accent` | The active tab, the badge, the subtitle, focused panel and modal borders |
+| `border` | Unfocused panel borders |
+| `surface` | The background of the active tab and the badge |
+| `error` | Errors. It must differ from `accent` and `muted`. |
+
+Each role is `"#RRGGBB"`, `"#RGB"`, an ANSI index `"0"` to `"255"` (for 16- and 256-colour terminals), or `{"light": ..., "dark": ...}`. `background` picks the side: `adaptive` (the default, the terminal's), `light` or `dark`. A role left out keeps the built-in palette's. The selected row stays reverse video in every scheme, so it reads without colour.
+
+A scheme that does not validate is skipped and reported as a notice. That covers an unknown role, a bad colour or background, a built-in's name, and an error colour equal to the accent or muted one. A `theme` value that names a skipped scheme reads its default, so the screen falls back to `adaptive`. After editing the file, `themes reload` reads it again and withdraws fixed notices. `Appearance.Accent` still goes on top of any scheme. `mono` and `NO_COLOR` draw no colour whatever the scheme. An application can supply its own schemes with `model.Appearance.Schemes = ochazuke.NewSchemeSet(...)` (`ParseSchemes` reads the file format).
 
 ### Keyboard guide
 

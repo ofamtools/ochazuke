@@ -32,10 +32,14 @@ type Story struct {
 	// Theme renders the story in a theme other than mono (adaptive, dark,
 	// light); Accent ("#RRGGBB") is the Appearance accent override. Goldens
 	// stay escape-free, so a coloured story asserts colours with colored.
-	Theme  string  `json:"theme,omitempty"`
-	Accent string  `json:"accent,omitempty"`
-	Page   *Page   `json:"page,omitempty"`
-	Pages  []*Page `json:"pages,omitempty"`
+	Theme  string `json:"theme,omitempty"`
+	Accent string `json:"accent,omitempty"`
+	// Themes are colour schemes in the themes.json shape the session adds
+	// to the built-in themes (Theme may name one); a scheme that does not
+	// validate is a notice, as in an application.
+	Themes json.RawMessage `json:"themes,omitempty"`
+	Page   *Page           `json:"page,omitempty"`
+	Pages  []*Page         `json:"pages,omitempty"`
 	// Base and Start make a trimmed story: replay the base's events before
 	// Start headless, then play Script as the window under test.
 	Base   string  `json:"base,omitempty"`

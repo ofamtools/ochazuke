@@ -44,6 +44,9 @@ it to the timer's deadline and delivers the timer's message
   width: 80, height: 24,          // the story's area; default 80x24
   chrome: "full",                 // "full" | "none" (page body only) | "ticker-only"
   skip: "gap: ...",               // optional: a known framework gap; runs, cannot fail
+  theme: "kombu", accent: "#E8833A", // a theme other than mono, the Appearance accent override
+  themes: { kombu: { background: "dark", accent: "#C9A227" } }, // schemes in the themes.json shape;
+                                  // one that does not validate is a notice (chrome/scheme-*)
   page: {                         // or pages: [{ id, title, ... }, ...]
     lists: [{ id: "a", rows: 2 },                  // rows a1, a2
             { id: "b", rows: 3, noSpill: false, noMarks: false },
