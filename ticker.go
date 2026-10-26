@@ -120,12 +120,17 @@ func (t *jobTicker) rows(r *Runtime, now time.Time) []JobInfo {
 }
 
 // JobsTicker renders the ticker's entries: one message per job,
-// "noun.verb state", with ": error" on a failure, each truncated to width
+// "noun.verb state" ("noun.verb label state" when the job has a Label),
+// with ": error" on a failure, each truncated to width
 // (Layout.TickerRule joins them into the rule line).
 func JobsTicker(jobs []JobInfo, width int) []string {
 	lines := make([]string, 0, len(jobs))
 	for _, j := range jobs {
-		line := j.Verb + " " + j.State
+		line := j.Verb + " "
+		if j.Label != "" {
+			line += j.Label + " "
+		}
+		line += j.State
 		if j.Error != "" {
 			line += ": " + j.Error
 		}

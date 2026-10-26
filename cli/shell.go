@@ -53,7 +53,8 @@ import (
 // exits, and prints the job's delivered value instead of its ticket (the
 // values in job order when the command started several). A failed job is
 // the command's error (a non-zero exit) and nothing is printed. Each job
-// the command started is reported on Stderr as "job #N noun.verb STATE",
+// the command started is reported on Stderr as "job #N noun.verb STATE"
+// ("job #N noun.verb LABEL STATE" for a labelled job),
 // except a job of a quiet verb (Operation.Quiet, as the jobs ticker hides
 // it) that did not fail: a failure always prints. A confirm modal the
 // operation opened is answered: --yes runs
@@ -213,7 +214,11 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	})
 	for _, j := range r.Jobs() {
 		if j.Job > last && (j.State == ochazuke.JobFailed || !r.Operations[j.Verb].Quiet) {
-			fmt.Fprintf(s.stderr(), "job #%d %s %s\n", j.Job, j.Verb, j.State)
+			name := j.Verb
+			if j.Label != "" {
+				name += " " + j.Label
+			}
+			fmt.Fprintf(s.stderr(), "job #%d %s %s\n", j.Job, name, j.State)
 		}
 	}
 	if settled != nil {

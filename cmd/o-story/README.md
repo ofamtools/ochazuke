@@ -56,7 +56,7 @@ it to the timer's deadline and delivers the timer's message
     trees: [{ id: "t", editable: true, failWrites: 0, collapsed: ["p1"],
               nodes: [{ id: "p1", label: "one" }, { id: "c1", parent: "p1", label: "child" }] }],
     terminal: { fake: true, attach: "a1", height: 6 },
-    jobs: [{ verb: "demo.build", key: "w", finishOnKey: "W", failOnKey: "X", quiet: false, start: 0 }],
+    jobs: [{ verb: "demo.build", key: "w", finishOnKey: "W", failOnKey: "X", quiet: false, start: 0, label: "" }],
     bind: [{ noun: "demo", mode: "normal", keys: "C", do: "notice.clear" }],
     detail: { lines: 50, width: 0 }, // a scrollable detail (AddDetail) on the right:
                                      // "detail 1–11 / 50", then "<row> line N" about the
@@ -100,7 +100,7 @@ spec adds `demo.<name>` with its keys. `demo.ping` is for the palette.
   queues one frame and the pane hands them out in order, so frames depend on
   event order only.
 - **Job**: `demo.<name>` runs until its `finishOnKey` (or `failOnKey`) is
-  pressed, so ticker stories need no daemon.
+  pressed, so ticker stories need no daemon; `label` is its `Result.Label`.
 
 ## The TUI
 
@@ -225,7 +225,7 @@ Conformance:
 | insert | setting-value | `setting-value.commit` |
 | normal | bindings | `bindings.help` |
 | normal | confirm | `confirm.accept` |
-| normal | demo | `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.notify` `demo.open` `demo.reload` `demo.ship` |
+| normal | demo | `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.launch` `demo.notify` `demo.open` `demo.reload` `demo.ship` |
 | normal | detail | `detail.scroll` |
 | normal | focus | `focus.next` `focus.previous` |
 | normal | form | `form.choose` `form.leave` `form.next` `form.redo` `form.undo` |

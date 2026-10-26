@@ -168,6 +168,7 @@ func (ss *Session) defineDemo(pages []*Page) error {
 					finish := make(chan error, 1)
 					ss.jobs[key] = append(ss.jobs[key], finish)
 					done := ss.done
+					label := j.Label
 					return ochazuke.Pending(func(ctx context.Context) (any, error) {
 						select {
 						case err := <-finish:
@@ -177,7 +178,7 @@ func (ss *Session) defineDemo(pages []*Page) error {
 						case <-done:
 							return nil, errors.New("story closed")
 						}
-					})
+					}).Label(label)
 				}, "A fake job that runs until its finish key")
 				if j.Quiet {
 					d.Quiet()

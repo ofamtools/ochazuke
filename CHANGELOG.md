@@ -65,6 +65,10 @@ Draft, from the `integrate/next` branch (seven branches on `3133e23` plus fixes)
 - `'` (`page.pick`) answers only with no modal open (guard `no-modal`). Without the guard it opened the page picker over `?` help, the settings editor and a record editor, and choosing a page then failed. Story `picker/page-picker-not-in-modal`.
 - The catalog's `free` flag is now pinned by a test and documented on `CatalogVerb`. A free sourced parameter (mtm's `--model`) is published as `"free": true`, so a host (nabe) can tell it from a closed one. The field was already written through `ochazuke.Parameter`'s JSON tag; nothing tested or documented it.
 
+### Small gaps (`fix/small-gaps`)
+
+- `Result.Label(label)` names one job of a verb (`Pending(work).Label("claude")`): `JobInfo.Label` in `jobs.list`, the ticker entry reads `noun.verb label state`, the shell's stderr line `job #N noun.verb label STATE`. Story `ticker/job-label`.
+
 ### Also since v0.1.1
 
 - Framework `bindings list --all` lists every stored noun and instance binding table as configuration JSON, including inactive modes and contexts. The default listing remains focus- and mode-specific. The CSV example now exposes framework operations through `csv NOUN VERB`, including `csv bindings list --all`; the socket CLI also accepts `--all`.

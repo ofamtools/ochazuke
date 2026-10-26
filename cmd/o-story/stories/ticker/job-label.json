@@ -1,0 +1,28 @@
+{
+  "name": "a job's label sits between the verb and the state",
+  "area": "ticker",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "jobs": [
+      {
+        "verb": "demo.launch",
+        "key": "w",
+        "finishOnKey": "W",
+        "label": "claude"
+      }
+    ]
+  },
+  "script": [
+    "w"
+  ],
+  "expect": {
+    "ticker": [
+      "demo.launch claude running"
+    ]
+  }
+}

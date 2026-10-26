@@ -69,6 +69,7 @@ type Result struct {
 	then  func(Ctx, any, error)
 	slot  string
 	scope string
+	label string
 }
 
 // Done reports a synchronous result.
@@ -105,6 +106,12 @@ func (res Result) ReplacingAt(scope, slot string) Result {
 	return res
 }
 
+// Label names this job for people reading the jobs list: the ticker shows
+// it after the verb ("agent.launch claude running") and jobs.list carries
+// it. It says which of a verb's jobs this is (the program a launch starts,
+// the file a build writes); "" leaves the verb alone.
+func (res Result) Label(label string) Result { res.label = label; return res }
+
 // Then runs on the loop when the pending work's completion is delivered and
 // still current; it never runs for a stale or cancelled ticket.
 func (res Result) Then(fn func(Ctx, any, error)) Result { res.then = fn; return res }
@@ -126,6 +133,7 @@ type JobInfo struct {
 	Job     uint64    `json:"job"`
 	Owner   string    `json:"owner"`
 	Verb    string    `json:"verb"`
+	Label   string    `json:"label,omitempty"`
 	Slot    string    `json:"slot,omitempty"`
 	Scope   string    `json:"scope,omitempty"`
 	Started time.Time `json:"started"`
@@ -193,6 +201,7 @@ func (r *Runtime) Launch(owner, verb string, res Result, c Ctx) (Ticket, error) 
 		return Ticket{}, err
 	}
 	r.jobs[ticket.Job].then = res.then
+	r.jobs[ticket.Job].Label = res.label
 	work := res.work
 	r.commands = append(r.commands, func() tea.Msg {
 		value, err := work(ctx)

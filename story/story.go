@@ -164,6 +164,7 @@ type JobSpec struct {
 	FailOnKey   string `json:"failOnKey,omitempty"`
 	Quiet       bool   `json:"quiet,omitempty"`
 	Start       int    `json:"start,omitempty"` // jobs started when the story opens
+	Label       string `json:"label,omitempty"` // the job's Result.Label
 }
 
 // BindSpec is an extra binding row: keys on noun in mode run do.

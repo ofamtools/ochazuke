@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"context"
 	"errors"
 	"reflect"
 	"strings"
@@ -182,4 +183,24 @@ func TestNewModelClockDefaultsToTimeNow(t *testing.T) {
 	if m := NewModel(NewRuntime()); m.Now == nil {
 		t.Fatal("Model.Now is nil")
 	}
+}
+
+// A job's Label rides between the verb and the state on the ticker and in
+// jobs.list: which of a verb's jobs this is.
+func TestJobsTickerShowsJobLabel(t *testing.T) {
+	r, m, _ := tickerFixture(t)
+	ticket, err := r.Launch("owner", "thing.build", Pending(func(context.Context) (any, error) { return nil, nil }).Label("claude"), Ctx{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tickerIs(t, m, "thing.build claude running")
+	value, err := r.Execute(Request{Verb: "list", Noun: "jobs"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if jobs := value.([]JobInfo); len(jobs) != 1 || jobs[0].Label != "claude" {
+		t.Fatalf("jobs.list = %+v, want the label", jobs)
+	}
+	r.Settle(ticket, nil)
+	tickerIs(t, m, "thing.build claude done")
 }
