@@ -57,6 +57,7 @@ type Yank struct {
 	Shape string `json:"shape"`
 	Width int    `json:"width,omitempty"`
 }
+
 // Register holds a yank and, when a macro was recorded into it, its keys.
 type Register struct {
 	Yank Yank       `json:"yank"`
