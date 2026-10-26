@@ -18,6 +18,11 @@ const maxRequestBytes = 1 << 20
 
 // Response is the reply to a socket call: a result or an error message.
 type Response struct {
+	// Result is the operation's result. From HandleCall it is detached
+	// from application state: Lines stays Lines (each line encoded), any
+	// other value is its JSON encoding as a json.RawMessage, so object
+	// keys keep the order the handler's value marshals in (a struct's
+	// field order); a nil or null result is nil.
 	Result any    `json:"result,omitempty"`
 	Error  string `json:"error,omitempty"`
 	// Argument is true when Error is an ArgumentError: the request was
@@ -49,11 +54,18 @@ func (r *Runtime) HandleCall(msg CallMsg) {
 		msg.Reply <- response
 		return
 	}
-	data, err := json.Marshal(response)
-	if err != nil {
-		response = Response{Error: err.Error()}
-	} else if err = json.Unmarshal(data, &response); err != nil {
-		response = Response{Error: err.Error()}
+	// Marshal once and keep the bytes: decoding them into an any would
+	// sort an object's keys.
+	if response.Error == "" && result != nil {
+		data, err := json.Marshal(result)
+		switch {
+		case err != nil:
+			response = Response{Error: err.Error()}
+		case string(data) == "null":
+			response.Result = nil
+		default:
+			response.Result = json.RawMessage(data)
+		}
 	}
 	msg.Reply <- response
 }

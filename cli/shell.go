@@ -17,6 +17,7 @@ package cli
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -41,7 +42,8 @@ import (
 // unique prefix of one of the noun's verbs (a noun's prefix is resolved by
 // the oden shell, see Mount). Bare words after NOUN VERB (not starting with
 // --) are positional arguments: they fill the parameters no --ARG or --json
-// set, in Operation.ParameterOrder (required first, then by name), typed
+// set (a bare --json, with no value after it, asks for the JSON output the
+// shell always prints and is accepted and ignored), in Operation.ParameterOrder (required first, then by name), typed
 // like flags; more words than parameters is an error naming them. Named
 // flags win wherever they appear.
 //
@@ -50,7 +52,11 @@ import (
 // loop would), so an application verb's job finishes before the process
 // exits, and prints the job's delivered value instead of its ticket (the
 // values in job order when the command started several). A failed job is
-// the command's error (a non-zero exit) and nothing is printed. A confirm modal the operation opened is answered: --yes runs
+// the command's error (a non-zero exit) and nothing is printed. Each job
+// the command started is reported on Stderr as "job #N noun.verb STATE",
+// except a job of a quiet verb (Operation.Quiet, as the jobs ticker hides
+// it) that did not fail: a failure always prints. A confirm modal the
+// operation opened is answered: --yes runs
 // confirm.accept, otherwise the prompt is printed and a line read from
 // Stdin (y or yes accepts; anything else, or end of input, declines with
 // modal.pop and a non-zero exit). Any other modal (a prompt, the palette)
@@ -184,7 +190,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		}
 	})
 	for _, j := range r.Jobs() {
-		if j.Job > last {
+		if j.Job > last && (j.State == ochazuke.JobFailed || !r.Operations[j.Verb].Quiet) {
 			fmt.Fprintf(s.stderr(), "job #%d %s %s\n", j.Job, j.Verb, j.State)
 		}
 	}
@@ -283,7 +289,9 @@ func listed(ids []string) string {
 
 // request builds the operation request: --target, --json and --yes are the
 // shell's; every other --NAME VALUE (or --NAME=VALUE) is an argument typed
-// by the operation's parameter of that name.
+// by the operation's parameter of that name. --json VALUE is the arguments
+// as a JSON object; a bare --json (last, or followed by another --flag)
+// asks for JSON output, which the shell always prints, and is ignored.
 func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, bool, error) {
 	q := ochazuke.Request{Noun: noun, Verb: verb, Args: ochazuke.Arguments{}}
 	op, ok := s.Runtime.Operations[q.Key()]
@@ -322,6 +330,10 @@ func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, bo
 				return q, false, err
 			}
 			q.Target = v
+			continue
+		case name == "json" && !inline && (i+1 >= len(flags) || strings.HasPrefix(flags[i+1], "--")):
+			// A bare --json asks for JSON output, which the shell
+			// always prints.
 			continue
 		case name == "json":
 			v, err := takeValue()
@@ -509,6 +521,25 @@ func (s *Shell) print(value any) error {
 			bw.Write(append(data, '\n'))
 		}
 		return bw.Flush()
+	}
+	if raw, ok := value.(json.RawMessage); ok {
+		// HandleCall's result: an encoded value in the handler's key order.
+		var items []json.RawMessage
+		if json.Unmarshal(raw, &items) == nil && len(items) > 0 {
+			value = items
+		}
+	}
+	if items, ok := value.([]json.RawMessage); ok {
+		lines := make([]string, len(items))
+		for i, item := range items {
+			var b bytes.Buffer
+			if err := json.Compact(&b, item); err != nil {
+				return err
+			}
+			lines[i] = b.String()
+		}
+		_, err := fmt.Fprintf(w, "[\n  %s\n]\n", strings.Join(lines, ",\n  "))
+		return err
 	}
 	if items, ok := value.([]any); ok && len(items) > 0 {
 		lines := make([]string, len(items))
