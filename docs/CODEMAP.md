@@ -154,10 +154,10 @@ Root package `ochazuke` is flat: 54 source files, 52 test files. Each entry list
 
 ### layout.go
 
-- lines: 496 · tests: layout_test.go
+- lines: 539 · tests: layout_test.go
 - purpose: Layout renders page chrome, bounded panels and panel pairs for a viewport.
 - types: Layout, Header, Footer, SplitSide
-- methods: Layout(20)
+- methods: Layout(21)
 - funcs: PanelContentSize
 - leans on: block.go(50), surface.go(13), theme.go(12), table.go(11)
 

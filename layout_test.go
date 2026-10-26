@@ -304,3 +304,82 @@ func TestSplitFocusBlockTakesTheFocusedSide(t *testing.T) {
 		}
 	}
 }
+
+// splitDivider is the cell (side by side) or row (stacked) where the second
+// panel of a mono split starts: the column of the second top-left corner on
+// the first body row, or the row of the second top-left corner.
+func splitDivider(t *testing.T, view string, stacked bool) int {
+	t.Helper()
+	rows := strings.Split(ansi.Strip(view), "\n")
+	if stacked {
+		seen := 0
+		for i, row := range rows {
+			if strings.Contains(row, "╭") {
+				seen++
+				if seen == 2 {
+					return i
+				}
+			}
+		}
+		t.Fatalf("no second panel:\n%s", strings.Join(rows, "\n"))
+	}
+	for _, row := range rows {
+		if strings.Count(row, "╭") == 2 {
+			runes := []rune(row)
+			for i := len(runes) - 1; i >= 0; i-- {
+				if runes[i] == '╭' {
+					return i
+				}
+			}
+		}
+	}
+	t.Fatalf("no panel pair:\n%s", strings.Join(rows, "\n"))
+	return 0
+}
+
+func TestSplitShiftMovesTheDividerWithinLimits(t *testing.T) {
+	styles := NewStyles(Appearance{Theme: "mono"})
+	for _, tc := range []struct {
+		width, height int
+		stacked       bool
+	}{{100, 30, false}, {60, 40, true}} {
+		bw, bh := Layout{Width: tc.width, Height: tc.height}.BodySize()
+		at := func(shift int) int {
+			l := Layout{Width: tc.width, Height: tc.height, Styles: styles, Shift: shift}
+			view := l.Split("Files", "left", "Preview", "right")
+			rows := strings.Split(view, "\n")
+			if len(rows) != bh {
+				t.Fatalf("shift %d: %d rows, want %d", shift, len(rows), bh)
+			}
+			for i, row := range rows {
+				if w := ansi.StringWidth(row); w != bw {
+					t.Fatalf("shift %d row %d: %d cells, want %d", shift, i, w, bw)
+				}
+			}
+			return splitDivider(t, view, tc.stacked)
+		}
+		base, grown, shrunk := at(0), at(PaneStep), at(-PaneStep)
+		if !(shrunk < base && base < grown) {
+			t.Fatalf("%dx%d: divider at shrink %d, default %d, grow %d; want rising", tc.width, tc.height, shrunk, base, grown)
+		}
+		least, total, gutter := PaneMinWidth, bw-1, 1 // the gap cell side by side
+		if tc.stacked {
+			least, total, gutter = PaneMinHeight, bh, 0
+		}
+		if got, want := at(1000), gutter+total-least; got != want {
+			t.Fatalf("%dx%d: grown past the limit, divider %d, want %d", tc.width, tc.height, got, want)
+		}
+		if got, want := at(-1000), gutter+least; got != want {
+			t.Fatalf("%dx%d: shrunk past the limit, divider %d, want %d", tc.width, tc.height, got, want)
+		}
+	}
+}
+
+func TestDivideKeepsTheDefaultWhenTooSmall(t *testing.T) {
+	if got := (Layout{Shift: 20}).Divide(10, 20, PaneMinWidth); got != 10 {
+		t.Fatalf("a split narrower than two minimum panels moved: %d", got)
+	}
+	if got := (Layout{}).Divide(37, 95, PaneMinWidth); got != 37 {
+		t.Fatalf("no shift moved the divider: %d", got)
+	}
+}
