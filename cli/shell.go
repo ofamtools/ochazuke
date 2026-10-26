@@ -50,7 +50,11 @@ import (
 // loop would), so an application verb's job finishes before the process
 // exits, and prints the job's delivered value instead of its ticket (the
 // values in job order when the command started several). A failed job is
-// the command's error (a non-zero exit) and nothing is printed. A confirm modal the operation opened is answered: --yes runs
+// the command's error (a non-zero exit) and nothing is printed. Each job
+// the command started is reported on Stderr as "job #N noun.verb STATE",
+// except a job of a quiet verb (Operation.Quiet, as the jobs ticker hides
+// it) that did not fail: a failure always prints. A confirm modal the
+// operation opened is answered: --yes runs
 // confirm.accept, otherwise the prompt is printed and a line read from
 // Stdin (y or yes accepts; anything else, or end of input, declines with
 // modal.pop and a non-zero exit). Any other modal (a prompt, the palette)
@@ -184,7 +188,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		}
 	})
 	for _, j := range r.Jobs() {
-		if j.Job > last {
+		if j.Job > last && (j.State == ochazuke.JobFailed || !r.Operations[j.Verb].Quiet) {
 			fmt.Fprintf(s.stderr(), "job #%d %s %s\n", j.Job, j.Verb, j.State)
 		}
 	}

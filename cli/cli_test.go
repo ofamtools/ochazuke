@@ -306,7 +306,8 @@ func TestShellSettlesPendingWork(t *testing.T) {
 	if err := sh.Run(context.Background(), []string{"widget", "refresh", "--target", "w1"}); err != nil {
 		t.Fatalf("refresh: %v\n%s", err, errOut.String())
 	}
-	if !strings.Contains(errOut.String(), "job #1 widget.refresh done") || settles < 2 {
+	// widget.refresh is quiet: a success prints no job line.
+	if errOut.Len() != 0 || settles < 2 {
 		t.Fatalf("stderr %q, settles %d", errOut.String(), settles)
 	}
 	if jobs := f.r.Jobs(); len(jobs) != 1 || jobs[0].State != ochazuke.JobDone {
@@ -321,6 +322,34 @@ func TestShellSettlesPendingWork(t *testing.T) {
 	err := sh.Run(context.Background(), []string{"widget", "break", "--target", "w1"})
 	if err == nil || err.Error() != "disk on fire" || oden.ExitCode(err) != 1 || out.Len() != 0 || !strings.Contains(errOut.String(), "job #2 widget.break failed") {
 		t.Fatalf("failed job: %v (exit %d), stdout %q, stderr %q", err, oden.ExitCode(err), out.String(), errOut.String())
+	}
+}
+
+// TestShellJobLinesFollowQuiet: the shell reports a job's end on stderr as
+// the jobs ticker would show it: a quiet verb's success prints nothing, any
+// other job prints its line, and a failure prints even for a quiet verb.
+func TestShellJobLinesFollowQuiet(t *testing.T) {
+	f := newFixture(t)
+	f.r.Define("widget").
+		Verb("sync", func(ochazuke.Ctx) ochazuke.Result {
+			return ochazuke.Pending(func(context.Context) (any, error) { return "synced", nil })
+		}, "Sync a widget off the loop").
+		Verb("probe", func(ochazuke.Ctx) ochazuke.Result {
+			return ochazuke.Pending(func(context.Context) (any, error) { return nil, errors.New("probe lost") })
+		}, "Probe a widget, quietly").Quiet()
+	for _, c := range []struct {
+		verb, stderr string
+		fails        bool
+	}{
+		{"refresh", "", false},
+		{"sync", "job #2 widget.sync done\n", false},
+		{"break", "job #3 widget.break failed\n", true},
+		{"probe", "job #4 widget.probe failed\n", true},
+	} {
+		_, errOut, err := f.run("", "widget", c.verb, "--target", "w1")
+		if (err != nil) != c.fails || errOut != c.stderr {
+			t.Errorf("%s: err %v, stderr %q, want %q", c.verb, err, errOut, c.stderr)
+		}
 	}
 }
 
