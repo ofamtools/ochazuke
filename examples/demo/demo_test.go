@@ -319,6 +319,7 @@ func TestDemoAppearanceIsSavedAsSettings(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, "config"))
+	t.Setenv("XDG_STATE_HOME", filepath.Join(home, "state"))
 	m := New()
 	r := m.Runtime
 	r.Config().App = "ochazuke-demo"
@@ -343,6 +344,7 @@ func TestDemoAppearanceIsSavedAsSettings(t *testing.T) {
 	next := New()
 	next.Runtime.Config().App = "ochazuke-demo"
 	next.Init()
+	t.Cleanup(func() { _ = next.Runtime.Config().Flush() })
 	if next.Runtime.Settings().String("theme") != "dark" || next.Appearance.Theme != "dark" || next.Appearance.Density != "compact" {
 		t.Fatalf("a new session: setting %q appearance %+v", next.Runtime.Settings().String("theme"), *next.Appearance)
 	}

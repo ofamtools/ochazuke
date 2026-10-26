@@ -863,6 +863,22 @@ Read it with `history.list {last}` (default 50) or `state get /history` (the las
 
 Dot-repeat rides on it. `.` on `app` in normal mode runs `history.repeat {steps}`: the last successful request whose operation is `Repeatable` runs again with its arguments kept, at the current focus (the recorded target is dropped unless the request came from the CLI and the instance still exists), with a count on `.` replacing the recorded `steps` (`3.`). A confirmed request repeats without asking again (`confirmed: true` is in the record). The repeatable operations are the editor's changes: `input.insert`, `input.delete`, `input.kill`, `input.paste`, `input.operator`, `input.replace`; motions, focus, pages, modals, lists and the history are not. An application marks its own with `Operation.Repeatable` on `Register`. Dot repeats one request, so after typing `hello` in insert mode `.` inserts the last `o`, not the whole insert; macros stay key-based.
 
+### Persisted history
+
+A TUI's history survives restarts. `Model.Init` calls `Runtime.EnsureHistory`, which reads `history.jsonl` from the application's state directory and keeps appending to it:
+
+| | |
+|---|---|
+| File | `$XDG_STATE_HOME/<app>/history.jsonl`, else `~/.local/state/<app>/history.jsonl` (`Config.StateDir` overrides the directory; `history path` prints it) |
+| Format | One entry per line, in the shape above. A result value larger than 1 KiB is left out of the line; the request, context and `ok` stay. |
+| Bound | The `history-limit` setting (integer, default 500, `0` keeps nothing). The framework declares it when the history is persisted, unless the application declared a setting of that name. It also bounds the ring. |
+| Restore | The last `history-limit` entries go into the ring before the session's own, marked `restored: true`. Palette Up/Down recalls their lines; dot-repeat skips them. |
+| Writes | Each entry is marshalled on the loop and appended by one writer goroutine, never on the loop. When the file reaches twice the limit, and at load, it is rewritten with the last `history-limit` lines through a temp file and a rename. `Config.Flush` (the Model calls it on quit) drains the writer. |
+| Problems | Lines that do not parse are skipped. The file gets one notice and is rewritten without them. A write error is one notice, and later entries are not saved. |
+| Off | No file without a state directory: `Config.Disable()` (o-story sessions), a test binary, or an application that sets `Config.NoHistoryFile`. The CLI shell neither reads nor writes the file. |
+
+Typed text reaches the history as `input.insert` arguments. An application whose prompts take secrets sets `NoHistoryFile`.
+
 ## Live CLI control
 
 The live transport is a local Unix socket. Its parent directory must be owned by the current user and have no group/other access; the socket is mode `0600`. Startup refuses to overwrite an existing socket. Use different `--socket` paths for different instances. After an unclean exit, verify the old instance is stopped before removing a stale socket.

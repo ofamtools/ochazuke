@@ -157,7 +157,16 @@ type Config struct {
 	// longer holds (bindings.reload of a fixed file); NewModel sets it to
 	// drop the notice.
 	Withdraw func(problem string)
+	// StateDir, when set, is the state directory (the history file);
+	// else $XDG_STATE_HOME/<App>, else ~/.local/state/<App>.
+	StateDir string
+	// NoHistoryFile keeps the action history in memory only: an
+	// application opts out of history.jsonl.
+	NoHistoryFile bool
 
+	// history is the history file's writer once EnsureHistory started it.
+	history        *historyStore
+	historyStarted bool
 	// bindingsLoaded is set once the user bindings were applied (Model.Init,
 	// the CLI shell); bindings.reload applies them again.
 	bindingsLoaded bool
@@ -238,8 +247,9 @@ func (c *Config) Path(name string) string {
 }
 
 // Disable gives the runtime no config directory (App and Dir empty): a
-// sandbox such as an o-story session reads and writes no user files.
-func (c *Config) Disable() { c.App, c.Dir = "", "" }
+// sandbox such as an o-story session reads and writes no user files, and
+// keeps no history file.
+func (c *Config) Disable() { c.App, c.Dir, c.StateDir = "", "", "" }
 
 func (c *Config) report(problem string) {
 	if c.Report != nil {

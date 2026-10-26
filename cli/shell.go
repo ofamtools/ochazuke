@@ -148,6 +148,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	for _, problem := range r.EnsureUserBindings() {
 		fmt.Fprintln(s.stderr(), "warning:", problem)
 	}
+	r.EnsureConfigSettings()
 	verb, err := s.verb(args[0], args[1])
 	if err != nil {
 		return err

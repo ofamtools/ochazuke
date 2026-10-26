@@ -22,6 +22,9 @@ type HistoryEntry struct {
 	// Depth is how many requests enclose this one: a request an operation
 	// runs while it runs (a choices source, a macro's keys) is one deeper.
 	Depth int `json:"depth,omitempty"`
+	// Restored marks an entry read from the history file at start
+	// (EnsureHistory): an earlier session ran it. Dot-repeat skips it.
+	Restored bool `json:"restored,omitempty"`
 }
 
 // HistoryContext is the interaction state a request ran in. Source is
@@ -47,6 +50,15 @@ type actionHistory struct {
 	seq     uint64
 	source  string
 	depth   int // requests running now
+	limit   int // the ring's bound while persisted (history-limit); 0 is HistoryLimit
+}
+
+// ringLimit is how many entries the ring keeps.
+func (h *actionHistory) ringLimit() int {
+	if h.limit > 0 {
+		return h.limit
+	}
+	return HistoryLimit
 }
 
 // unrecorded operations only read the history or the state.
@@ -72,7 +84,8 @@ func (r *Runtime) forceSource(source string) (restore func()) {
 	return func() { r.history.source = before }
 }
 
-// record appends one entry, dropping the oldest past HistoryLimit.
+// record appends one entry, dropping the oldest past the ring's limit, and
+// sends it to the history file when the history is persisted.
 func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, depth int, value any, err error) {
 	if len(q.Args) > 0 {
 		args := make(Arguments, len(q.Args))
@@ -94,10 +107,11 @@ func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, depth int,
 		entry.Job = ticket.Job
 	}
 	h := &r.history
-	if len(h.entries) >= HistoryLimit {
-		h.entries = append(h.entries[:0], h.entries[len(h.entries)-HistoryLimit+1:]...)
+	if n := h.ringLimit(); len(h.entries) >= n {
+		h.entries = append(h.entries[:0], h.entries[len(h.entries)-n+1:]...)
 	}
 	h.entries = append(h.entries, entry)
+	r.persist(entry)
 }
 
 // History returns the last n entries, oldest first (all of them for n <= 0).
@@ -133,7 +147,7 @@ func (r *Runtime) repeatRequest(steps int) (Request, error) {
 	for i := len(entries) - 1; i >= 0; i-- {
 		e := entries[i]
 		op, ok := r.Operations[e.Request.Key()]
-		if !ok || !op.Repeatable || !e.Result.OK {
+		if !ok || !op.Repeatable || !e.Result.OK || e.Restored {
 			continue
 		}
 		q := e.Request
@@ -165,5 +179,12 @@ func registerHistory(r *Runtime) {
 	r.Define("app").Mode("normal").Bind(".", Do("history.repeat").FromPayload("steps", SourceLine).Hide())
 	r.Register(Operation{Verb: "list", Noun: "history", Description: "List the last executed requests, oldest first, with their context, source and result", Parameters: map[string]Parameter{"last": {Type: "integer", Description: "How many entries (default 50, 0 for all)"}}, Result: "history[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.History(IntArg(a, "last", 50)), nil
+	}})
+	r.Register(Operation{Verb: "path", Noun: "history", Description: "Print the history file: $XDG_STATE_HOME/<app>/history.jsonl, else ~/.local/state/<app>/history.jsonl", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		path := r.Config().HistoryPath()
+		if path == "" {
+			return nil, errors.New("this application does not keep its history")
+		}
+		return path, nil
 	}})
 }

@@ -60,6 +60,14 @@ func TestConfigDirectoryFollowsXDGThenHome(t *testing.T) {
 	if got := c.Path(SettingsFile); got != filepath.Join(home, ".config", "demo", "settings.json") {
 		t.Fatalf("home path %q", got)
 	}
+	t.Setenv("XDG_STATE_HOME", filepath.Join(home, "state"))
+	if got := c.HistoryPath(); got != filepath.Join(home, "state", "demo", HistoryFile) {
+		t.Fatalf("xdg state path %q", got)
+	}
+	t.Setenv("XDG_STATE_HOME", "")
+	if got := c.HistoryPath(); got != filepath.Join(home, ".local", "state", "demo", HistoryFile) {
+		t.Fatalf("home state path %q", got)
+	}
 	c.Dir = "/elsewhere"
 	if got := c.Path(BindingsFile); got != "/elsewhere/bindings.json" {
 		t.Fatalf("dir path %q", got)
