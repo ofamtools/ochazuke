@@ -39,6 +39,7 @@ type List struct {
 	marks    map[string]bool
 	noSpill  bool     // NoSpill: list.move clamps at the edges instead of spilling
 	columns  []Column // Columns: a table; none draws the labels
+	widest   []int    // a table's widest cell per column over the items (cellWidths); nil after SetItems
 }
 
 // NewList is AddList for callers that hold the runtime as a value.
@@ -94,13 +95,15 @@ func (l *List) SetItems(items []ListItem) error {
 		ids[item.ID] = true
 	}
 	gone := map[string]bool{}
+	var drop []string
 	for _, old := range l.items {
 		if !ids[old.ID] {
 			gone[old.ID] = true
 			delete(l.marks, old.ID)
-			_ = l.r.RemoveInstance(old.ID)
+			drop = append(drop, old.ID)
 		}
 	}
+	l.r.removeInstances(drop)
 	for _, item := range items {
 		l.r.rows[item.ID] = l.id
 		inst := l.r.Instances[item.ID]
@@ -117,7 +120,7 @@ func (l *List) SetItems(items []ListItem) error {
 			break
 		}
 	}
-	l.items, l.selected = slices.Clone(items), selected
+	l.items, l.selected, l.widest = slices.Clone(items), selected, nil
 	l.offset = min(l.offset, max(0, len(items)-1))
 	l.syncFocus(previous, gone)
 	return nil

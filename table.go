@@ -80,14 +80,27 @@ func cells(item ListItem, n int) []string {
 // one is left; the room left grows flexible columns toward their natural
 // width (widest cell or title), one cell at a time from the left.
 func tableLayout(cols []Column, rows [][]string, width int) (shown, widths []int) {
+	return tableLayoutOf(cols, cellWidths(rows, len(cols)), width)
+}
+
+// cellWidths is each column's widest cell over the rows.
+func cellWidths(rows [][]string, n int) []int {
+	out := make([]int, n)
+	for _, row := range rows {
+		for i := range out {
+			out[i] = max(out[i], ansi.StringWidth(row[i]))
+		}
+	}
+	return out
+}
+
+// tableLayoutOf is tableLayout given each column's widest cell (cellWidths).
+func tableLayoutOf(cols []Column, widest []int, width int) (shown, widths []int) {
 	natural := make([]int, len(cols))
 	least := make([]int, len(cols))
 	for i, c := range cols {
 		title := ansi.StringWidth(c.Title)
-		natural[i] = title
-		for _, row := range rows {
-			natural[i] = max(natural[i], ansi.StringWidth(row[i]))
-		}
+		natural[i] = max(title, widest[i])
 		switch {
 		case c.Width > 0:
 			natural[i], least[i] = c.Width, c.Width
@@ -175,11 +188,7 @@ func (l *List) tableView(width, height int) string {
 	for i, c := range l.columns {
 		titles[i] = modalLabel(c.Title)
 	}
-	rows := make([][]string, len(l.items))
-	for i, item := range l.items {
-		rows[i] = cells(item, len(l.columns))
-	}
-	shown, widths := tableLayout(l.columns, rows, max(1, width-mark))
+	shown, widths := tableLayoutOf(l.columns, l.cellWidths(), max(1, width-mark))
 	var lines []string
 	if header {
 		head := strings.Repeat(" ", mark) + tableLine(l.columns, titles, shown, widths)
@@ -199,7 +208,7 @@ func (l *List) tableView(width, height int) string {
 	end := min(len(l.items), l.offset+visible)
 	focused := l.Focused()
 	for i := l.offset; i < end; i++ {
-		line := tableLine(l.columns, rows[i], shown, widths)
+		line := tableLine(l.columns, cells(l.items[i], len(l.columns)), shown, widths)
 		if gutter {
 			prefix := "  "
 			if l.marks[l.items[i].ID] {
@@ -224,4 +233,20 @@ func (l *List) tableView(width, height int) string {
 		focus, focusHeight = top+l.selected-l.offset, 1
 	}
 	return l.r.PlacedAt(l.id, strings.Join(layoutRows(strings.Join(lines, "\n"), width, height), "\n"), focus, focusHeight)
+}
+
+// cellWidths is the widest cell per column over every row, measured once
+// per item set: a frame draws only the rows in its window, while the
+// widths depend on all of them. A row's cells depend only on the item and
+// the number of columns, so SetItems drops the cache and a change in the
+// column count remeasures.
+func (l *List) cellWidths() []int {
+	if l.widest == nil || len(l.widest) != len(l.columns) {
+		rows := make([][]string, len(l.items))
+		for i, item := range l.items {
+			rows[i] = cells(item, len(l.columns))
+		}
+		l.widest = cellWidths(rows, len(l.columns))
+	}
+	return l.widest
 }
