@@ -81,6 +81,9 @@ type Page struct {
 	Jobs    []JobSpec    `json:"jobs,omitempty"`
 	Bind    []BindSpec   `json:"bind,omitempty"`
 	Detail  *DetailSpec  `json:"detail,omitempty"`
+	// Markdown is a Markdown document (markdown.New) drawn in the page's
+	// order with the lists, its task items a focus stop.
+	Markdown *MarkdownSpec `json:"markdown,omitempty"`
 	// Commands makes the page cli's Commands page (cli.AddCommands) over
 	// these entries instead of a synthetic one; a run opens a fake pane.
 	Commands *CommandsSpec `json:"commands,omitempty"`
@@ -172,6 +175,19 @@ type ItemSpec struct {
 type DetailSpec struct {
 	Lines int `json:"lines"`
 	Width int `json:"width,omitempty"` // columns; default half the page
+}
+
+// MarkdownSpec is a Markdown document drawn in the page's order with the
+// lists (its id, default "markdown", names it in Order) at the page's
+// width. Its source holds Text; every toggle it writes is logged (the
+// writes expect, "toggle LINE [x] TEXT"). External is what the source
+// holds from the first toggle on, a change made elsewhere after the page
+// loaded, so a story can show a toggle found again or refused.
+type MarkdownSpec struct {
+	ID       string  `json:"id,omitempty"`
+	Text     string  `json:"text"`
+	External *string `json:"external,omitempty"`
+	Height   int     `json:"height,omitempty"` // lines drawn; 0 = every line, -1 = the rest of the page
 }
 
 // CommandsSpec is a Commands page: its entries (cli.CommandEntry as JSON)
@@ -310,9 +326,9 @@ type Expect struct {
 	// ("#RRGGBB"): the SGR right before the text sets that foreground,
 	// cell-exact where Colored is row-wide. "!#RRGGBB" expects any other.
 	Styled map[string]string `json:"styled,omitempty"`
-	// Writes is every change the page's editable trees and record editors
-	// wrote, in order (TreeChange.String, RecordWrite.String); [] expects
-	// none.
+	// Writes is every change the page's editable trees, record editors and
+	// Markdown documents wrote, in order (TreeChange.String,
+	// RecordWrite.String, "toggle LINE [x] TEXT"); [] expects none.
 	Writes *[]string `json:"writes,omitempty"`
 }
 

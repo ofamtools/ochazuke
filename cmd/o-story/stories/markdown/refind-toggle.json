@@ -1,0 +1,32 @@
+{
+  "name": "markdown: an item that moved on disk is found again by its text and toggled",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "# Release checklist\n\nWork through these before **v0.4.0** ships. Each box is saved back to the file the moment it is toggled.\n\n- [x] Changelog section written\n- [ ] Gate green with `GOWORK=off`, which builds what a fresh clone gets from the module proxy\n  - [ ] go vet\n  - [x] go test -race\n1. [ ] Tag the release commit\n\n```sh\n- [ ] this line is code, not a task\n```\n",
+      "external": "# Release checklist\n\n- [ ] Announce it\n- [x] Changelog section written\n- [ ] Gate green with `GOWORK=off`, which builds what a fresh clone gets from the module proxy\n  - [ ] go vet\n  - [x] go test -race\n1. [ ] Tag the release commit\n\n```sh\n- [ ] this line is code, not a task\n```\n"
+    }
+  },
+  "script": [
+    "j",
+    "j",
+    "x"
+  ],
+  "expect": [
+    {
+      "highlighted": 1,
+      "highlightedText": "[x] go vet",
+      "contains": [
+        "Announce it"
+      ],
+      "lacks": [
+        "not toggled"
+      ],
+      "writes": [
+        "toggle 6 [x] go vet"
+      ]
+    }
+  ]
+}

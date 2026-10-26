@@ -14,6 +14,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"github.com/unixsuperhero/ochazuke"
 	"github.com/unixsuperhero/ochazuke/cli"
+	"github.com/unixsuperhero/ochazuke/markdown"
 )
 
 // Demo is the one application noun a story has: page instances and rows
@@ -34,10 +35,12 @@ type Session struct {
 	trees map[string]*ochazuke.Tree
 	// records are the page-drawn record editors by id.
 	records map[string]*ochazuke.RecordEditor
-	// Writes is the log of every change an editable tree wrote.
+	// Writes is the log of every change an editable tree, record editor or
+	// Markdown document wrote.
 	Writes  []string
 	inputs  map[string]*ochazuke.Input
 	details map[string]*ochazuke.Detail
+	docs    map[string]*markdown.Doc // the page's Markdown document by page id
 	streams []*FakeStream
 	jobs    map[string][]chan error // verb -> running jobs, oldest first
 	done    chan struct{}
@@ -80,7 +83,7 @@ func Build(s *Story, opt Options) (*Session, error) {
 	if s.Accent != "" {
 		m.Appearance.Accent = lipgloss.Color(s.Accent)
 	}
-	ss := &Session{Story: s, R: r, M: m, pages: map[string]*Page{}, lists: map[string]*ochazuke.List{}, trees: map[string]*ochazuke.Tree{}, records: map[string]*ochazuke.RecordEditor{}, inputs: map[string]*ochazuke.Input{}, details: map[string]*ochazuke.Detail{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
+	ss := &Session{Story: s, R: r, M: m, pages: map[string]*Page{}, lists: map[string]*ochazuke.List{}, trees: map[string]*ochazuke.Tree{}, records: map[string]*ochazuke.RecordEditor{}, inputs: map[string]*ochazuke.Input{}, details: map[string]*ochazuke.Detail{}, docs: map[string]*markdown.Doc{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
 	if err := ss.defineDemo(pages); err != nil {
 		return nil, err
 	}
@@ -501,6 +504,16 @@ func (ss *Session) addPage(p *Page) error {
 			focus = in.ID
 		}
 	}
+	if p.Markdown != nil {
+		doc, err := markdown.New(r, markdownID(p), p.ID, ss.markdownSource(p.Markdown))
+		if err != nil {
+			return fmt.Errorf("markdown: %w", err)
+		}
+		ss.docs[p.ID] = doc
+		if focus == "" && len(doc.Tasks()) > 0 {
+			focus = doc.FocusTarget()
+		}
+	}
 	if p.Detail != nil {
 		d, err := r.AddDetail(p.ID+"-detail", func() string { return ss.detailItem(p) }, ochazuke.Parent(p.ID))
 		if err != nil {
@@ -519,6 +532,10 @@ func (ss *Session) addPage(p *Page) error {
 				focus = l.FocusTarget()
 				break
 			}
+			if doc := ss.docs[p.ID]; doc != nil && id == doc.ID() && len(doc.Tasks()) > 0 {
+				focus = doc.FocusTarget()
+				break
+			}
 		}
 	}
 	ss.pages[p.ID] = p
@@ -532,6 +549,40 @@ func (ss *Session) addPage(p *Page) error {
 	}
 	_, err := r.AddPage(p.ID, title, func(r *ochazuke.Runtime, w, h int) ochazuke.Block { return ss.render(p, w, h) }, opts...)
 	return err
+}
+
+// markdownID is the page's Markdown document's id.
+func markdownID(p *Page) string {
+	if p.Markdown.ID != "" {
+		return p.Markdown.ID
+	}
+	return "markdown"
+}
+
+// markdownSource holds the spec's text (External from the first toggle
+// on) and logs every save as "toggle LINE [x] TEXT".
+func (ss *Session) markdownSource(spec *MarkdownSpec) markdown.Source {
+	stored, loads := spec.Text, 0
+	return markdown.Source{
+		Load: func() (string, error) {
+			loads++
+			if loads == 2 && spec.External != nil {
+				stored = *spec.External
+			}
+			return stored, nil
+		},
+		Save: func(text string) error {
+			entry := "write"
+			for _, t := range markdown.Tasks(text) {
+				if t.Box < len(stored) && stored[t.Box] != text[t.Box] {
+					entry = fmt.Sprintf("toggle %d [%c] %s", t.Line, text[t.Box], t.Text)
+				}
+			}
+			ss.Writes = append(ss.Writes, entry)
+			stored = text
+			return nil
+		},
+	}
 }
 
 // recordSpec is a record editor's spec from the story: its values loaded,
@@ -689,6 +740,9 @@ func (ss *Session) renderMain(p *Page, width, height int) ochazuke.Block {
 		for _, rs := range p.Records {
 			order = append(order, rs.ID)
 		}
+		if p.Markdown != nil {
+			order = append(order, markdownID(p))
+		}
 	}
 	recordSpec := map[string]RecordSpec{}
 	for _, rs := range p.Records {
@@ -758,6 +812,19 @@ func (ss *Session) renderMain(p *Page, width, height int) ochazuke.Block {
 		used += strings.Count(text, "\n") + 1
 	} else {
 		for _, id := range order {
+			if doc := ss.docs[p.ID]; doc != nil && id == doc.ID() {
+				h := p.Markdown.Height
+				if h < 0 {
+					h = max(1, height-used-head)
+				}
+				text := doc.View(width, h, *ss.M.Appearance)
+				if !p.NoHead {
+					text = id + "\n" + text
+				}
+				parts = append(parts, ochazuke.Text(text))
+				used += strings.Count(text, "\n") + 1
+				continue
+			}
 			if tree, ok := ss.trees[id]; ok {
 				h := treeSpec[id].Height
 				switch {

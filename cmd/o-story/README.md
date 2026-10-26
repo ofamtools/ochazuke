@@ -64,6 +64,10 @@ it to the timer's deadline and delivers the timer's message
     detail: { lines: 50, width: 0 }, // a scrollable detail (AddDetail) on the right:
                                      // "detail 1–11 / 50", then "<row> line N" about the
                                      // focused list row (width 0 = half the page)
+    markdown: { id: "markdown", text: "- [ ] milk\n", external: "…", height: 0 },
+                                     // a markdown.Doc drawn in the page's order (its id in order);
+                                     // toggles log "toggle LINE [x] TEXT" (writes); external is
+                                     // what the source holds from the first toggle on
     commands: {                      // instead of the above: cli's Commands page
       entries: [{ name: "greet", kind: "inline", summary: "say hello", source: "main.go:12", help: "usage: …" },
                 { name: "web", kind: "external", source: "/bin/hello-web" }],
@@ -263,6 +267,7 @@ Conformance:
 | normal | form-option | `form-option.pick` |
 | normal | input | `input.begin` |
 | normal | list | `list.move` |
+| normal | markdown | `markdown.redo` `markdown.toggle` `markdown.undo` |
 | normal | modal | `modal.pop` |
 | normal | mode | `mode.enter` |
 | normal | notice | `notice.clear` |

@@ -381,3 +381,39 @@ func TestDemoRecordPageWritesAsYouType(t *testing.T) {
 		t.Fatalf("focus %s status %q after e", r.Focus, m.Status)
 	}
 }
+
+// The Checklist page opens on its first task item; j moves the one
+// highlight, x toggles the item in the page's source and u puts it back.
+func TestDemoChecklistToggles(t *testing.T) {
+	m := New()
+	r := m.Runtime
+	m.Appearance.Theme = "mono"
+	m.Width, m.Height = 80, 30
+	if _, err := r.Execute(ochazuke.Request{Verb: "open", Noun: "page", Args: ochazuke.Arguments{"id": "checklist"}}); err != nil {
+		t.Fatal(err)
+	}
+	if r.Focus != "checklist/doc/task/0" {
+		t.Fatalf("focus %s, want the first task item", r.Focus)
+	}
+	highlighted := func() []string {
+		var out []string
+		for _, line := range strings.Split(m.View().Content, "\n") {
+			if strings.Contains(line, "\x1b[7m") {
+				out = append(out, strings.TrimSpace(ansi.Strip(line)))
+			}
+		}
+		return out
+	}
+	keytest.Press(m, "j")
+	if got := highlighted(); len(got) != 1 || !strings.HasPrefix(got[0], "[ ] Run the gate") {
+		t.Fatalf("after j: %q", got)
+	}
+	keytest.Press(m, "x")
+	if got := highlighted(); len(got) != 1 || !strings.HasPrefix(got[0], "[x] Run the gate") || m.Status != "" {
+		t.Fatalf("after x: %q status %q", got, m.Status)
+	}
+	keytest.Press(m, "u")
+	if got := highlighted(); len(got) != 1 || !strings.HasPrefix(got[0], "[ ] Run the gate") {
+		t.Fatalf("after u: %q", got)
+	}
+}

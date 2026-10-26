@@ -1,0 +1,47 @@
+{
+  "name": "markdown: x toggles the selected item in the source, u and ctrl+r undo and redo it",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "# Release checklist\n\nWork through these before **v0.4.0** ships. Each box is saved back to the file the moment it is toggled.\n\n- [x] Changelog section written\n- [ ] Gate green with `GOWORK=off`, which builds what a fresh clone gets from the module proxy\n  - [ ] go vet\n  - [x] go test -race\n1. [ ] Tag the release commit\n\n```sh\n- [ ] this line is code, not a task\n```\n"
+    }
+  },
+  "script": [
+    "j",
+    "j",
+    "x",
+    "u",
+    "ctrl+r"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "highlighted": 1,
+      "highlightedText": "[x] go vet",
+      "writes": [
+        "toggle 7 [x] go vet"
+      ]
+    },
+    {
+      "after": 4,
+      "highlightedText": "[ ] go vet",
+      "writes": [
+        "toggle 7 [x] go vet",
+        "toggle 7 [ ] go vet"
+      ]
+    },
+    {
+      "highlightedText": "[x] go vet",
+      "contains": [
+        "x markdown.toggle"
+      ],
+      "writes": [
+        "toggle 7 [x] go vet",
+        "toggle 7 [ ] go vet",
+        "toggle 7 [x] go vet"
+      ]
+    }
+  ]
+}
