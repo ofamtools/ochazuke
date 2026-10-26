@@ -398,7 +398,7 @@ Root package `ochazuke` is flat: 49 source files, 45 test files. Each entry list
 
 ## Package cli
 
-Importable package `cli`: 9 source files, 6 test files.
+Importable package `cli`: 12 source files, 7 test files.
 
 ### cli/catalog.go
 
@@ -407,6 +407,15 @@ Importable package `cli`: 9 source files, 6 test files.
 - types: CatalogDoc, CatalogNoun, CatalogVerb, CatalogPage
 - methods: CatalogDoc(3)
 - funcs: Catalog
+
+### cli/commands.go
+
+- lines: 526 · tests: commands_test.go
+- purpose: CommandEntry is one row of the Commands page: a command a tool can run, as oden's catalog lists it.
+- types: CommandEntry, CommandSource (iface), CommandsConfig, Commands
+- methods: Commands(21)
+- funcs: AddCommands
+- leans on: shell.go(2), pty.go(1)
 
 ### cli/format.go
 
@@ -423,6 +432,14 @@ Importable package `cli`: 9 source files, 6 test files.
 - funcs: Mount
 - leans on: catalog.go(2), shell.go(2)
 
+### cli/odencommands.go
+
+- lines: 179
+- purpose: odenCommands is the CommandSource of an oden App: its catalog (inline commands and <bin>-<name> externals on PATH, with what each shadows).
+- methods: odenCommands(8)
+- funcs: OdenCommands
+- leans on: commands.go(5), catalog.go(2), shell.go(1)
+
 ### cli/pty.go
 
 - lines: 356 · tests: pty_test.go
@@ -430,18 +447,18 @@ Importable package `cli`: 9 source files, 6 test files.
 - types: PtyStream
 - methods: PtyStream(15), byteQueue(3)
 - funcs: StartPty
-- leans on: pty_unix.go(2), shell.go(2), ptykeys.go(1), rows.go(1)
+- leans on: pty_windows.go(2), shell.go(2), ptykeys.go(1), rows.go(1)
 
 ### cli/pty_unix.go
 
 - lines: 39
 - purpose: configureCommand makes the command the leader of a new session whose controlling terminal is the pty (the slave is its fd 0), so its process group id is its ...
+- leans on: pty_windows.go(2)
 
 ### cli/pty_windows.go
 
 - lines: 15
 - purpose: configureCommand leaves the command as it is: ConPTY owns the console.
-- leans on: pty_unix.go(2)
 
 ### cli/ptykeys.go
 
@@ -465,6 +482,13 @@ Importable package `cli`: 9 source files, 6 test files.
 - methods: Shell(10)
 - funcs: New, DefaultUsage, UsageHint, Settle
 - leans on: format.go(3), rows.go(1)
+
+### cli/tui.go
+
+- lines: 45
+- purpose: NewCommandsModel is a model on a fresh runtime whose open page is app's Commands page (AddCommands over OdenCommands(app, self...)), titled with the app's name.
+- funcs: NewCommandsModel, TUI
+- leans on: commands.go(4), odencommands.go(1)
 
 ## Package grid
 
@@ -666,6 +690,10 @@ Exported type -> file.
 - cli.CatalogNoun -> cli/catalog.go
 - cli.CatalogPage -> cli/catalog.go
 - cli.CatalogVerb -> cli/catalog.go
+- cli.CommandEntry -> cli/commands.go
+- cli.CommandSource -> cli/commands.go
+- cli.Commands -> cli/commands.go
+- cli.CommandsConfig -> cli/commands.go
 - cli.Lines -> cli/rows.go
 - cli.PtyStream -> cli/pty.go
 - cli.Row -> cli/rows.go
