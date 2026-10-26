@@ -959,6 +959,14 @@ CLI commands enter Bubble Tea's message loop. The event loop remains the sole ow
 
 Keyboard, Go API, palette, and CLI use the same command semantics. Queries run through the same event loop and return detached JSON values. The wire protocol accepts one newline-terminated request per connection and returns `{ "result": ... }` or `{ "error": "..." }`. The CLI prints the result as JSON and returns a nonzero exit code for errors.
 
+### Output formats
+
+Every command of an importable shell (`cli.Shell`, an app built with `cli.Mount`) takes `--format json|table|markdown|toon` (`cli.Formats`). `json` is the default and prints exactly what the shell always printed. For a list or state verb's rows (an array of objects, or `Lines` of `Row`) the other formats print one table per noun: the noun's declared columns over the rows' `cells`, else the records' fields with `id` and `label` first. `table` cuts cells with `…` and drops columns by `Priority` only when stdout is a terminal (`Shell.Width` overrides); `markdown` is a GitHub table; `toon` is `NOUN[N]{col,...}:` and one line per row, quoting only values with a comma, a quote or a line break. A result that is not tabular prints JSON with a note on stderr. `--format` combines with `--json '{...}'`; a verb with its own `format` parameter keeps `--format` as that argument. `ochazuke.TableText(cols, rows, width)` is the same layout for Go callers.
+
+### A TUI for an oden tool
+
+`cli.TUI(app)` as an oden `Default` gives any oden tool a Commands page over its catalog (inline commands and `<bin>-<name>` executables on `PATH`): `command run` opens the command in a terminal under its row, attached (`ctrl+a d` detaches), `command help` shows its help in the detail beside the list. The terminal is a local pseudo-terminal (`cli.StartPty`). `examples/hello` is the smallest such tool (`go run ./examples/hello`).
+
 ## Scope and limits
 
 - Standalone Go module and example application; no gmtm/Matomeru integration.
