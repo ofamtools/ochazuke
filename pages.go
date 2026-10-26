@@ -19,6 +19,15 @@ type Page struct {
 	Focus      string                         `json:"focus"`
 	Remembered string                         `json:"remembered"`
 	Render     func(*Runtime, int, int) Block `json:"-"`
+	// OnOpen, when set, runs on the loop each time OpenPage makes this page
+	// current from another page (or from none: the first page opened), after
+	// the focus and mode are restored; from is the page left, "" for none.
+	// Reopening the current page does not run it. An application refreshes
+	// what the page shows here (SetItems, or Launch a reload job owned by
+	// one of its instances) instead of polling. Every way a page opens goes
+	// through OpenPage: page.open, page.next/previous, ctrl+j/k, the page
+	// picker.
+	OnOpen func(r *Runtime, from string) `json:"-"`
 	// Scrolloff is how many lines the page keeps visible above and below
 	// the focused element when it scrolls to follow the focus: 0 means the
 	// default, 2; a negative value keeps no margin.
@@ -283,12 +292,16 @@ func (r *Runtime) OpenPage(id string) error {
 	}
 	r.Focus = page.Remembered
 	r.selectFocusedRow(r.Focus)
+	left := r.Page
 	r.Page = id
 	if page.mode.Name != "" {
 		r.rememberLeaving(path, r.Focus)
 		r.restoreMode(page.mode, path)
 	} else if r.Focus != from {
 		r.focusMoved(stop, path, r.Focus)
+	}
+	if page.OnOpen != nil && left != id {
+		page.OnOpen(r, left)
 	}
 	return nil
 }
