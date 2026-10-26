@@ -50,9 +50,12 @@ type Model struct {
 	// keys and errors until notice.clear (or the application) clears them.
 	// The footer shows the newest before the hints, cut to half the width,
 	// with "(+N more)" for the rest (notice.list has them all), so notices
-	// never hide the hints. Status is the last key's error and goes with
-	// the next key; a notice does not.
-	Notices []string
+	// never hide the hints. Status is the last key's error (or what a
+	// handler set with ctx.Status) and goes with the next key; a notice
+	// does not. The Model is the runtime's UI sink (Runtime.UI), so
+	// ctx.Notify and ctx.Status land here.
+	Notices   []string
+	noticeIDs []NoticeID // the UI's id of each notice, 0 for one appended to Notices directly
 	// Sidebar replaces page tabs with a navigation rail. Existing page operations
 	// remain the only navigation state; input focus and modal routing are unchanged.
 	Sidebar bool
@@ -73,16 +76,25 @@ type Model struct {
 // NewModel returns the Bubble Tea model that renders and drives r.
 func NewModel(r *Runtime) *Model {
 	m := &Model{Runtime: r, Palette: NewPalette(r), Appearance: NewAppearance(r), ModalViews: map[string]ModalView{}, Title: "Ochazuke", Width: 80, Height: 24, views: map[string]*viewport.Model{}, scroll: map[string]int{}, followed: map[string]string{}, Now: time.Now}
+	// The Model shows what handlers tell the user: notices in the footer,
+	// the status in the status line. Messages posted before it existed
+	// (setup) are replayed now.
+	r.UI().Attach(modelSink{m})
 	// Config problems (a skipped bindings row) are persistent notices,
 	// each once, taken back when a reload no longer finds them.
 	if c := r.Config(); c != nil && c.Report == nil {
+		reported := map[string]NoticeID{}
 		c.Report = func(problem string) {
-			if !slices.Contains(m.Notices, problem) {
-				m.Notify(problem)
+			if id, ok := reported[problem]; ok && slices.Contains(m.noticeIDs, id) {
+				return
 			}
+			reported[problem] = r.UI().Notify(problem)
 		}
 		c.Withdraw = func(problem string) {
-			m.Notices = slices.DeleteFunc(m.Notices, func(n string) bool { return n == problem })
+			if id, ok := reported[problem]; ok {
+				delete(reported, problem)
+				r.UI().ClearNotice(id)
+			}
 		}
 	}
 	// The framework's theme setting (EnsureConfigSettings) drives the
@@ -120,7 +132,7 @@ func NewModel(r *Runtime) *Model {
 	}})
 	r.Register(Operation{Verb: "clear", Noun: "notice", Description: "Clear the persistent notices from the footer", Result: "cleared count", Run: func(*Runtime, Context, Arguments) (any, error) {
 		n := len(m.Notices)
-		m.Notices = nil
+		m.Notices, m.noticeIDs = nil, nil
 		return n, nil
 	}})
 	// Application rows already on the app noun keep precedence over these defaults.
@@ -186,13 +198,15 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case CallMsg:
 		m.Runtime.HandleCall(v)
 	case BindingTimeoutMsg:
+		status := m.Status
+		m.Status = "" // what the timed-out request sets stands
 		if handled, err := m.Runtime.HandleBindingTimeout(v); handled {
 			if err != nil {
 				m.Status = err.Error()
-			} else {
-				m.Status = ""
 			}
 			m.Palette.sync()
+		} else {
+			m.Status = status
 		}
 	case JobLingerMsg:
 		m.ticker.fired(v)
@@ -251,10 +265,9 @@ func (m *Model) applyThemeSetting() {
 // handleKey dispatches one key through the runtime's stack walk and shows
 // the error, if any, in the status line.
 func (m *Model) handleKey(key MacroKey) {
+	m.Status = "" // a key clears the status; what its handler sets stands
 	if _, err := m.Runtime.Dispatch(key); err != nil {
 		m.Status = err.Error()
-	} else {
-		m.Status = ""
 	}
 	m.Palette.sync()
 }
@@ -369,9 +382,44 @@ func (m *Model) modeBadge() string {
 	return label
 }
 
-// Notify adds a persistent notice to the footer (Notices); notice.clear
+// Notify adds a persistent notice to the footer (Notices) through the
+// runtime's UI, as ctx.Notify does, and returns its id; notice.clear
 // removes them.
-func (m *Model) Notify(text string) { m.Notices = append(m.Notices, text) }
+func (m *Model) Notify(text string) NoticeID { return m.Runtime.UI().Notify(text) }
+
+// modelSink is the Model as the runtime's UISink.
+type modelSink struct{ m *Model }
+
+// Notify appends the notice to the footer's.
+func (s modelSink) Notify(id NoticeID, text string) {
+	m := s.m
+	m.alignNoticeIDs()
+	m.Notices = append(m.Notices, text)
+	m.noticeIDs = append(m.noticeIDs, id)
+}
+
+// ClearNotice removes the notice posted as id.
+func (s modelSink) ClearNotice(id NoticeID) {
+	m := s.m
+	m.alignNoticeIDs()
+	if i := slices.Index(m.noticeIDs, id); i >= 0 {
+		m.Notices = slices.Delete(m.Notices, i, i+1)
+		m.noticeIDs = slices.Delete(m.noticeIDs, i, i+1)
+	}
+}
+
+// Status replaces the status line.
+func (s modelSink) Status(text string) { s.m.Status = text }
+
+// alignNoticeIDs keeps one id per notice when the application changed
+// Notices itself: a notice it appended has no id (0), one it dropped from
+// the end takes its id along.
+func (m *Model) alignNoticeIDs() {
+	for len(m.noticeIDs) < len(m.Notices) {
+		m.noticeIDs = append(m.noticeIDs, 0)
+	}
+	m.noticeIDs = m.noticeIDs[:len(m.Notices)]
+}
 
 // footerNotice is the newest notice as the footer shows it: at most half
 // the width, with how many older ones notice.list holds, so a notice never

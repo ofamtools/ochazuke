@@ -215,6 +215,7 @@ func NewRuntime() *Runtime {
 	registerForms(r)
 	RegisterInputOperations(r)
 	registerRegisters(r)
+	registerUI(r)
 	registerYankHistory(r)
 	registerBindingHelp(r)
 	registerMacros(r)

@@ -82,6 +82,12 @@ import (
 // another --format; an operation declaring its own format parameter takes
 // --format as that argument and prints JSON.
 //
+// What handlers tell the user while the command runs (ctx.Notify,
+// ctx.Status, Runtime.UI, a job's Then included) prints on Stderr as
+// "notice: TEXT" and "status: TEXT" lines beside the "warning:" lines; the
+// shell is the runtime's UI sink until Run returns (messages posted before
+// any sink attached print first).
+//
 // Errors are returned for oden.Report: every failure is exit status 1
 // (oden.ExitCode of a plain error).
 type Shell struct {
@@ -141,6 +147,10 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	if len(args) < 2 {
 		return errors.New(s.usage())
 	}
+	// What handlers tell the user (ctx.Notify, ctx.Status) prints on
+	// Stderr while the command runs, setup's messages first.
+	previous := s.Runtime.UI().Attach(stderrSink{s.stderr()})
+	defer s.Runtime.UI().Attach(previous)
 	if s.Prepare != nil {
 		if err := s.Prepare(ctx); err != nil {
 			return err
@@ -264,6 +274,20 @@ func (s *Shell) stdout() io.Writer {
 		return os.Stdout
 	}
 	return s.Stdout
+}
+
+// stderrSink prints what handlers tell the user as lines on Stderr, beside
+// the shell's warning: lines: "notice: TEXT" and "status: TEXT". A line
+// cannot be taken back, so a cleared notice or an empty status prints
+// nothing.
+type stderrSink struct{ w io.Writer }
+
+func (s stderrSink) Notify(_ ochazuke.NoticeID, text string) { fmt.Fprintln(s.w, "notice:", text) }
+func (s stderrSink) ClearNotice(ochazuke.NoticeID)           {}
+func (s stderrSink) Status(text string) {
+	if text != "" {
+		fmt.Fprintln(s.w, "status:", text)
+	}
 }
 
 func (s *Shell) stderr() io.Writer {

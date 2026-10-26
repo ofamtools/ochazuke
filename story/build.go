@@ -71,7 +71,7 @@ func Build(s *Story, opt Options) (*Session, error) {
 		schemes, problems := ochazuke.ParseSchemes(s.Themes)
 		m.Appearance.Schemes = ochazuke.NewSchemeSet(schemes)
 		for _, p := range problems {
-			m.Notify(p)
+			r.UI().Notify(p)
 		}
 	}
 	if s.Theme != "" {
@@ -170,11 +170,11 @@ func (ss *Session) defineDemo(pages []*Page) error {
 		Verb("reset", func(ochazuke.Ctx) ochazuke.Result { ss.Reset = true; return ochazuke.Done(nil) }, "Rebuild the story from its file").
 		Verb("open", ss.open, "Open the row: attach the fake pane when the story has one for it").
 		Verb("notify", func(c ochazuke.Ctx) ochazuke.Result {
-			ss.M.Notify("notice from " + label(c.Instance))
+			c.Notify("notice from " + label(c.Instance))
 			return ochazuke.Done(nil)
 		}, "Add a persistent notice naming the row").
 		Verb("ping", func(c ochazuke.Ctx) ochazuke.Result {
-			ss.M.Notify("ping " + label(c.Instance))
+			c.Notify("ping " + label(c.Instance))
 			return ochazuke.Done(nil)
 		}, "Add a notice saying ping and the row").
 		Verb("delete", ss.delete, "Remove the row from its list").Confirm("Delete {{label}}?").

@@ -28,6 +28,10 @@ type Response struct {
 	// Argument is true when Error is an ArgumentError: the request was
 	// refused for its arguments, before any instance was chosen.
 	Argument bool `json:"argument,omitempty"`
+	// Messages are what the call told the user while it ran (ctx.Notify,
+	// ctx.ClearNotice, ctx.Status), in order; the runtime's sink got them
+	// too. Messages posted later, by a job's Then, reach only the sink.
+	Messages []UIMessage `json:"messages,omitempty"`
 }
 
 // CallMsg is delivered to the UI loop; only that loop may call Runtime.Execute.
@@ -38,36 +42,43 @@ type CallMsg struct {
 
 func (r *Runtime) HandleCall(msg CallMsg) {
 	restore := r.Sourced("cli")
+	stop := r.UI().capture()
 	result, err := r.Execute(msg.Request)
+	messages := stop()
 	restore()
-	response := Response{Result: result}
+	response := callResponse(result, err)
+	response.Messages = messages
+	msg.Reply <- response
+}
+
+// callResponse is the reply for an executed call, its result detached from
+// application state.
+func callResponse(result any, err error) Response {
 	if err != nil {
 		var bad *ArgumentError
-		response = Response{Error: err.Error(), Argument: errors.As(err, &bad)}
+		return Response{Error: err.Error(), Argument: errors.As(err, &bad)}
 	}
 	// Detach live slices/maps before another message can mutate application state.
-	if lines, ok := result.(Lines); ok && response.Error == "" {
-		response.Result, err = detachLines(lines) // still Lines, fields in order
+	if lines, ok := result.(Lines); ok {
+		detached, err := detachLines(lines) // still Lines, fields in order
 		if err != nil {
-			response = Response{Error: err.Error()}
+			return Response{Error: err.Error()}
 		}
-		msg.Reply <- response
-		return
+		return Response{Result: detached}
+	}
+	if result == nil {
+		return Response{}
 	}
 	// Marshal once and keep the bytes: decoding them into an any would
 	// sort an object's keys.
-	if response.Error == "" && result != nil {
-		data, err := json.Marshal(result)
-		switch {
-		case err != nil:
-			response = Response{Error: err.Error()}
-		case string(data) == "null":
-			response.Result = nil
-		default:
-			response.Result = json.RawMessage(data)
-		}
+	data, err := json.Marshal(result)
+	switch {
+	case err != nil:
+		return Response{Error: err.Error()}
+	case string(data) == "null":
+		return Response{}
 	}
-	msg.Reply <- response
+	return Response{Result: json.RawMessage(data)}
 }
 
 // Lines is a result printed as JSON Lines (one compact value per line, no
@@ -164,10 +175,22 @@ func (s *Server) serve(conn net.Conn, send func(CallMsg)) {
 	}
 }
 
+// Call runs q in the application listening on the socket at path and
+// returns its result (CallResponse keeps the messages too).
 func Call(ctx context.Context, path string, q Request) (any, error) {
-	conn, err := (&net.Dialer{}).DialContext(ctx, "unix", path)
+	response, err := CallResponse(ctx, path, q)
 	if err != nil {
 		return nil, err
+	}
+	return response.Result, nil
+}
+
+// CallResponse is Call returning the whole Response: the result and the
+// Messages the call told the user. A failed call is an error.
+func CallResponse(ctx context.Context, path string, q Request) (Response, error) {
+	conn, err := (&net.Dialer{}).DialContext(ctx, "unix", path)
+	if err != nil {
+		return Response{}, err
 	}
 	defer conn.Close()
 	deadline := time.Now().Add(10 * time.Second)
@@ -178,14 +201,14 @@ func Call(ctx context.Context, path string, q Request) (any, error) {
 	stop := context.AfterFunc(ctx, func() { conn.Close() })
 	defer stop()
 	if err = json.NewEncoder(conn).Encode(q); err != nil {
-		return nil, err
+		return Response{}, err
 	}
 	var response Response
 	if err = json.NewDecoder(conn).Decode(&response); err != nil {
-		return nil, err
+		return Response{}, err
 	}
 	if response.Error != "" {
-		return nil, fmt.Errorf("%s", response.Error)
+		return response, fmt.Errorf("%s", response.Error)
 	}
-	return response.Result, nil
+	return response, nil
 }
