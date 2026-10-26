@@ -1,0 +1,78 @@
+{
+  "name": "form: an invalid value is not written and its label says why",
+  "area": "forms",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "records": [
+      {
+        "id": "task",
+        "fields": [
+          {
+            "name": "title",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "status",
+            "type": "string",
+            "required": true,
+            "enum": [
+              "todo",
+              "doing",
+              "done"
+            ]
+          },
+          {
+            "name": "estimate",
+            "type": "integer"
+          },
+          {
+            "name": "notes",
+            "type": "string",
+            "multiline": true
+          }
+        ],
+        "values": {
+          "title": "buy milk",
+          "status": "todo"
+        }
+      }
+    ],
+    "focus": "task/estimate"
+  },
+  "script": [
+    "i",
+    {
+      "type": "x"
+    },
+    "esc",
+    "A",
+    "ctrl+u",
+    {
+      "type": "3"
+    },
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "contains": [
+        "estimate · not written: a whole number"
+      ],
+      "writes": []
+    },
+    {
+      "lacks": [
+        "not written"
+      ],
+      "writes": [
+        "write estimate=3"
+      ]
+    }
+  ]
+}

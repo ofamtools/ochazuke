@@ -250,7 +250,7 @@ func TestDemoKeyboardSessionStaysGreen(t *testing.T) {
 	execute("close", "picker", nil)
 	press("g")
 	execute("select", "context", ochazuke.Arguments{"path": `["app","playground","agent"]`})
-	press("ctrl+j", "j", "k", "ctrl+j", "t", "d", "ctrl+j", "ctrl+k", "ctrl+k")
+	press("ctrl+j", "j", "k", "ctrl+j", "t", "d", "a", "a", "ctrl+j", "ctrl+k", "ctrl+k")
 	execute("open", "page", ochazuke.Arguments{"id": "playground"})
 	execute("push", "modal", ochazuke.Arguments{"id": "draft", "input": "dialog"})
 	execute("pop", "modal", nil)
@@ -345,5 +345,37 @@ func TestDemoAppearanceIsSavedAsSettings(t *testing.T) {
 	next.Init()
 	if next.Runtime.Settings().String("theme") != "dark" || next.Appearance.Theme != "dark" || next.Appearance.Density != "compact" {
 		t.Fatalf("a new session: setting %q appearance %+v", next.Runtime.Settings().String("theme"), *next.Appearance)
+	}
+}
+
+// The Record page opens on its editor: typing is written as it is made, a
+// status is chosen rather than typed, q leaves and e edits again.
+func TestDemoRecordPageWritesAsYouType(t *testing.T) {
+	m := New()
+	r := m.Runtime
+	if _, err := r.Execute(ochazuke.Request{Verb: "open", Noun: "page", Args: ochazuke.Arguments{"id": "task"}}); err != nil {
+		t.Fatal(err)
+	}
+	if r.Focus != "task-form/title" {
+		t.Fatalf("focus %s, want the title field", r.Focus)
+	}
+	keytest.Press(m, "A")
+	keytest.Type(m, "!")
+	keytest.Press(m, "esc")
+	keytest.Press(m, "j")
+	keytest.Press(m, "enter")
+	keytest.Press(m, "j")
+	keytest.Press(m, "enter")
+	view := ansi.Strip(m.View().Content)
+	if !strings.Contains(view, `title="Water the plants!" status="doing"`) {
+		t.Fatalf("store not written:\n%s", view)
+	}
+	keytest.Press(m, "q")
+	if r.Focus != "task" || !strings.Contains(ansi.Strip(m.View().Content), "e edits the record again") {
+		t.Fatalf("focus %s after q", r.Focus)
+	}
+	keytest.Press(m, "e")
+	if r.Focus != "task-form/title" || m.Status != "" {
+		t.Fatalf("focus %s status %q after e", r.Focus, m.Status)
 	}
 }

@@ -217,6 +217,7 @@ Conformance:
 |---|---|---|
 | count_pending | count | `count.append` |
 | insert | chooser | `chooser.cancel` `chooser.move` `chooser.pick` |
+| insert | form | `form.next` |
 | insert | input | `input.insert` `input.kill` |
 | insert | mode | `mode.set` |
 | insert | outline | `outline.indent` `outline.leave` |
@@ -227,6 +228,8 @@ Conformance:
 | normal | demo | `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.notify` `demo.open` `demo.reload` `demo.ship` |
 | normal | detail | `detail.scroll` |
 | normal | focus | `focus.next` `focus.previous` |
+| normal | form | `form.choose` `form.leave` `form.next` `form.redo` `form.undo` |
+| normal | form-option | `form-option.pick` |
 | normal | input | `input.begin` |
 | normal | list | `list.move` |
 | normal | modal | `modal.pop` |

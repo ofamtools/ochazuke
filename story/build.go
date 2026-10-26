@@ -29,6 +29,8 @@ type Session struct {
 	pages map[string]*Page
 	lists map[string]*ochazuke.List
 	trees map[string]*ochazuke.Tree
+	// records are the page-drawn record editors by id.
+	records map[string]*ochazuke.RecordEditor
 	// Writes is the log of every change an editable tree wrote.
 	Writes  []string
 	inputs  map[string]*ochazuke.Input
@@ -62,7 +64,13 @@ func Build(s *Story, opt Options) (*Session, error) {
 	if opt.Mono {
 		m.Appearance.Theme = "mono"
 	}
-	ss := &Session{Story: s, R: r, M: m, pages: map[string]*Page{}, lists: map[string]*ochazuke.List{}, trees: map[string]*ochazuke.Tree{}, inputs: map[string]*ochazuke.Input{}, details: map[string]*ochazuke.Detail{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
+	if s.Theme != "" {
+		m.Appearance.Theme = s.Theme
+	}
+	if s.Accent != "" {
+		m.Appearance.Accent = lipgloss.Color(s.Accent)
+	}
+	ss := &Session{Story: s, R: r, M: m, pages: map[string]*Page{}, lists: map[string]*ochazuke.List{}, trees: map[string]*ochazuke.Tree{}, records: map[string]*ochazuke.RecordEditor{}, inputs: map[string]*ochazuke.Input{}, details: map[string]*ochazuke.Detail{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
 	if err := ss.defineDemo(pages); err != nil {
 		return nil, err
 	}
@@ -82,6 +90,13 @@ func Build(s *Story, opt Options) (*Session, error) {
 	}
 	if err := r.OpenPage(open); err != nil {
 		return nil, err
+	}
+	for _, rs := range ss.pages[open].Records {
+		if rs.Modal {
+			if _, err := r.OpenRecordEditor(rs.ID, ss.recordSpec(rs)); err != nil {
+				return nil, fmt.Errorf("record %s: %w", rs.ID, err)
+			}
+		}
 	}
 	ss.size()
 	m.View()
@@ -414,6 +429,24 @@ func (ss *Session) addPage(p *Page) error {
 			focus = tree.FocusTarget()
 		}
 	}
+	for _, rs := range p.Records {
+		if rs.Modal {
+			continue
+		}
+		// Leaving the editor lands on the page's first list.
+		back := ""
+		if len(p.Lists) > 0 {
+			back = ss.lists[p.Lists[0].ID].FocusTarget()
+		}
+		ed, err := r.AddRecordEditor(rs.ID, ss.recordSpec(rs), ochazuke.Parent(p.ID), ochazuke.FocusOnClose(back))
+		if err != nil {
+			return fmt.Errorf("record %s: %w", rs.ID, err)
+		}
+		ss.records[rs.ID] = ed
+		if focus == "" {
+			focus = ed.FocusTarget()
+		}
+	}
 	for _, in := range p.Inputs {
 		input := ochazuke.NewInput(in.ID, in.Text, false)
 		if err := r.AddInput(input, ochazuke.Parent(p.ID)); err != nil {
@@ -455,6 +488,26 @@ func (ss *Session) addPage(p *Page) error {
 	}
 	_, err := r.AddPage(p.ID, title, func(r *ochazuke.Runtime, w, h int) ochazuke.Block { return ss.render(p, w, h) }, opts...)
 	return err
+}
+
+// recordSpec is a record editor's spec from the story: its values loaded,
+// its writes logged (the first FailWrites fail).
+func (ss *Session) recordSpec(rs RecordSpec) ochazuke.RecordSpec {
+	fail := rs.FailWrites
+	return ochazuke.RecordSpec{
+		Title:  rs.Title,
+		Fields: rs.Fields,
+		Insert: rs.Insert,
+		Load:   func() (ochazuke.Record, error) { return ochazuke.Record(rs.Values), nil },
+		Save: func(w ochazuke.RecordWrite) ochazuke.Result {
+			if fail > 0 {
+				fail--
+				return ochazuke.Failed(errors.New("store unavailable"))
+			}
+			ss.Writes = append(ss.Writes, w.String())
+			return ochazuke.Done(nil)
+		},
+	}
 }
 
 // render draws a page: the main column, with the detail to its right when
@@ -512,6 +565,13 @@ func (ss *Session) renderMain(p *Page, width, height int) ochazuke.Block {
 		for _, t := range p.Trees {
 			order = append(order, t.ID)
 		}
+		for _, rs := range p.Records {
+			order = append(order, rs.ID)
+		}
+	}
+	recordSpec := map[string]RecordSpec{}
+	for _, rs := range p.Records {
+		recordSpec[rs.ID] = rs
 	}
 	treeSpec := map[string]TreeSpec{}
 	for _, t := range p.Trees {
@@ -568,6 +628,23 @@ func (ss *Session) renderMain(p *Page, width, height int) ochazuke.Block {
 					h = max(1, tree.List().Len())
 				}
 				block := tree.Block(width, h)
+				if !p.NoHead {
+					block = block.Offset(0, 1).WithText(id + "\n" + block.Text)
+				}
+				parts = append(parts, block)
+				used += strings.Count(block.Text, "\n") + 1
+				continue
+			}
+			if ed, ok := ss.records[id]; ok {
+				if ed.Closed() {
+					continue
+				}
+				h := recordSpec[id].Height
+				if h <= 0 {
+					h = max(1, height-used-head)
+				}
+				ed.Styles = ochazuke.NewStyles(*ss.M.Appearance)
+				block := ed.Block(width, h)
 				if !p.NoHead {
 					block = block.Offset(0, 1).WithText(id + "\n" + block.Text)
 				}
