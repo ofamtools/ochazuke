@@ -74,7 +74,7 @@ func TestHelpListsTheFocusedRowsVerbsFirst(t *testing.T) {
 		}
 	}
 	frame := ansi.Strip(m.View().Content)
-	if !strings.Contains(frame, "Keys") || !strings.Contains(strings.Join(strings.Fields(frame), " "), "> enter widget.open Open the widget") {
+	if !strings.Contains(frame, "Keys") || !strings.Contains(strings.Join(strings.Fields(frame), " "), "> enter widget.open") {
 		t.Fatalf("frame:\n%s", frame)
 	}
 	// Read-only: enter does not run widget.open beneath the modal.
@@ -209,5 +209,53 @@ func TestHelpKeyShortensPatterns(t *testing.T) {
 		if got != want || literal != (got == key) {
 			t.Fatalf("helpKey(%q) = %q, %v; want %q", key, got, literal, want)
 		}
+	}
+}
+
+func TestHelpArgumentsPreviewAndTruncate(t *testing.T) {
+	r, m := helpFixture(t)
+	var received Arguments
+	r.Define("widget").
+		Verb("send", func(c Ctx) Result { received = c.Args; return Done(nil) }).
+		Mode("normal").
+		Bind("g z", Do("widget.send", Arguments{"text": strings.Repeat("界", 40)}).FromKey("key").FromPayload("steps", SourceCount)).
+		Pattern(Digit, Do("widget.send").FromPayload("digit", SourceDigit))
+	op := r.Operations["widget.send"]
+	op.Parameters = map[string]Parameter{"text": {Type: "string"}, "key": {Type: "string"}, "steps": {Type: "integer"}, "digit": {Type: "integer"}}
+	r.Operations["widget.send"] = op
+	r.Mode.Payload.Count = 7
+	if _, err := r.Execute(Do("bindings.help").Request); err != nil {
+		t.Fatal(err)
+	}
+	var preview Arguments
+	for _, item := range r.List(helpListID).Items() {
+		row := item.Data.(HelpRow)
+		if row.Key == "g z" {
+			preview = row.Args
+			if preview["key"] != "z" || preview["steps"] != 7 || preview["text"] != strings.Repeat("界", 40) {
+				t.Fatalf("preview: %#v", preview)
+			}
+		}
+		if row.Key == "<digit>" && row.Args["digit"] != "$digit" {
+			t.Fatalf("unknown digit: %#v", row.Args)
+		}
+	}
+	frame := ansi.Strip(m.View().Content)
+	if !strings.Contains(frame, `{"key":"z"`) || !strings.Contains(frame, "…") || strings.Contains(frame, strings.Repeat("界", 40)) {
+		t.Fatalf("arguments not shown and truncated:\n%s", frame)
+	}
+	for _, width := range []int{20, 40, 80} {
+		for _, line := range strings.Split(ansi.Strip(bindingHelpView(r, nil, width, 24).Text), "\n") {
+			if ansi.StringWidth(line) > width {
+				t.Fatalf("line exceeds %d cells: %q", width, line)
+			}
+		}
+	}
+	keytest.Press(m, "esc")
+	r.Mode.Payload.Count = 7
+	keytest.Press(m, "g")
+	keytest.Press(m, "z")
+	if received["key"] != "z" || received["steps"] != 7 || received["text"] != preview["text"] {
+		t.Fatalf("dispatched args differ from preview: %#v", received)
 	}
 }

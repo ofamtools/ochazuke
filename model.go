@@ -413,15 +413,16 @@ func rowKey(b Binding) string {
 }
 
 // HelpRow is one binding as the help shows it: the key, the operation it
-// runs (noun.verb, or the row's Hint when it has one), the operation's
-// description, the noun of the level that answers with it, and the help's
+// runs (noun.verb, or the row's Hint when it has one), arguments resolved
+// when help opens, its description, the answering noun, and the help's
 // section: that noun, or "movement" for a motion (Operation.Motion).
 type HelpRow struct {
-	Key         string `json:"key"`
-	Operation   string `json:"operation"`
-	Description string `json:"description,omitempty"`
-	Noun        string `json:"noun"`
-	Section     string `json:"section,omitempty"`
+	Key         string    `json:"key"`
+	Operation   string    `json:"operation"`
+	Args        Arguments `json:"args,omitempty"`
+	Description string    `json:"description,omitempty"`
+	Noun        string    `json:"noun"`
+	Section     string    `json:"section,omitempty"`
 }
 
 // MovementSection is the help section that holds every motion, after the
@@ -462,6 +463,7 @@ func BindingHelp(r *Runtime, focus string) []HelpRow {
 			desc = row.Help
 		}
 		help := HelpRow{Key: rowKey(row.Binding), Operation: op, Description: desc, Noun: row.level, Section: row.level}
+		help.Args = bindingHelpArgs(r, row.Binding, focus)
 		if r.Operations[row.Request.Key()].Motion {
 			help.Section = MovementSection
 			motions = append(motions, help)

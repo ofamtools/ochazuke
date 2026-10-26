@@ -1,0 +1,19 @@
+{
+  "name": "help shows and truncates binding arguments",
+  "area": "help",
+  "width": 80,
+  "height": 100,
+  "page": {
+    "lists": [{"id": "a", "rows": 3}],
+    "bind": [
+      {"noun": "demo", "keys": "s", "do": "input.insert", "args": {"text": "a very long argument that must not wrap into the next help line"}},
+      {"noun": "demo", "keys": "t", "do": "history.list", "args": {"last": 7}}
+    ]
+  },
+  "script": ["?"],
+  "expect": {
+    "modal": "bindings-help",
+    "contains": ["{\"text\":", "…", "{\"last\":7}"],
+    "lacks": ["a very long argument that must not wrap into the next help line"]
+  }
+}

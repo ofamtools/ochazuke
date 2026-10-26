@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -17,7 +18,7 @@ const (
 )
 
 // registerBindingHelp adds bindings.help: a modal listing BindingHelp for
-// the focus it opens over, one row per binding (key, noun.verb,
+// the focus it opens over, one row per binding (key, noun.verb, arguments,
 // description), grouped by level from the innermost instance outward, each
 // level under its noun's label and the motions last under "movement". The
 // rows are a list of the "binding" noun, which has no verbs: j/k move,
@@ -38,6 +39,54 @@ func registerBindingHelp(r *Runtime) {
 	}})
 }
 
+// bindingHelpArgs previews arguments without executing the binding. Pattern
+// keys are unknown until pressed; keep those sources explicit instead.
+func bindingHelpArgs(r *Runtime, b Binding, focus string) Arguments {
+	args := Arguments{}
+	for name, value := range b.Request.Args {
+		args[name] = value
+	}
+	key := ""
+	if keys := strings.Fields(b.Keys); len(keys) > 0 {
+		key = keys[len(keys)-1]
+	}
+	ev := KeyEvent{Key: MacroKey{Key: key}, Mode: r.Mode, Focus: focus}
+	for name, source := range b.From {
+		parts := strings.Fields(source)
+		values := make([]any, len(parts))
+		for i, part := range parts {
+			if b.Pattern != "" && (part == SourceKey || part == SourceDigit || part == SourceText) {
+				values[i] = "$" + part
+			} else {
+				values[i] = r.argument(part, ev)
+			}
+		}
+		if len(values) == 1 {
+			args[name] = values[0]
+		} else {
+			var texts []string
+			for _, value := range values {
+				if value != nil {
+					texts = append(texts, fmt.Sprint(value))
+				}
+			}
+			args[name] = strings.Join(texts, " ")
+		}
+	}
+	return args
+}
+
+func helpArgsText(args Arguments) string {
+	if len(args) == 0 {
+		return ""
+	}
+	text, err := json.Marshal(args)
+	if err != nil {
+		return safeText(fmt.Sprint(args))
+	}
+	return string(text)
+}
+
 // helpOpWidth is the help's fixed operation column; a longer operation
 // wraps into it, and the description takes the rest of the width.
 const helpOpWidth = 18
@@ -47,7 +96,7 @@ const helpOpWidth = 18
 func helpItems(rows []HelpRow) []ListItem {
 	items := make([]ListItem, len(rows))
 	for i, row := range rows {
-		label := row.Key + "  " + row.Operation + "  " + row.Description
+		label := strings.Join([]string{row.Key, row.Operation, helpArgsText(row.Args), row.Description}, "  ")
 		items[i] = ListItem{ID: fmt.Sprintf("__bindings-help/%d", i), Label: label, Noun: "binding", Data: row}
 	}
 	return items
@@ -109,10 +158,8 @@ func helpColumn(text string, width int) []string {
 	return strings.Split(ansi.Wrap(text, width, "."), "\n")
 }
 
-// bindingHelpView renders the help modal's list in three columns: the key
-// column as wide as the longest literal key, the fixed operation column,
-// and the description in the rest; a cell longer than its column wraps
-// into it, so a row may take several lines.
+// bindingHelpView renders key, operation, arguments and description columns.
+// Arguments stay on one line and truncate; the other columns wrap.
 func bindingHelpView(r *Runtime, _ *Instance, width, height int) Block {
 	list := r.List(helpListID)
 	if list == nil || width <= 0 || height <= 0 {
@@ -130,7 +177,11 @@ func bindingHelpView(r *Runtime, _ *Instance, width, height int) Block {
 	}
 	const mark, gap = 2, 2
 	opWidth := min(helpOpWidth, max(1, width-mark-keyWidth-gap))
+	argsWidth := min(22, max(0, (width-mark-keyWidth-gap-opWidth-gap-gap)/2))
 	descWidth := width - mark - keyWidth - gap - opWidth - gap
+	if argsWidth > 0 {
+		descWidth -= argsWidth + gap
+	}
 	lines := make([][]string, len(items))
 	headed := make([]bool, len(items))
 	heading := lipgloss.NewStyle().Bold(true).Underline(true)
@@ -159,6 +210,13 @@ func bindingHelpView(r *Runtime, _ *Instance, width, height int) Block {
 				prefix = "> "
 			}
 			line := prefix + cell(0, keyWidth) + "  " + cell(1, opWidth)
+			if argsWidth > 0 {
+				args := ""
+				if j == 0 {
+					args = ansi.Truncate(helpArgsText(row.Args), argsWidth, "…")
+				}
+				line += "  " + args + strings.Repeat(" ", max(0, argsWidth-ansi.StringWidth(args)))
+			}
 			if descWidth > 0 {
 				line += "  " + cell(2, descWidth)
 			}

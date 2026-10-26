@@ -1,6 +1,7 @@
 {
   "name": "? on a row lists its verbs first",
   "area": "help",
+  "height": 64,
   "page": {
     "lists": [
       {

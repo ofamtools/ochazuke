@@ -2,7 +2,7 @@
   "name": "? groups rows by level, innermost first, movement last",
   "area": "help",
   "width": 120,
-  "height": 70,
+  "height": 140,
   "page": {
     "lists": [
       {
