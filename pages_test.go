@@ -328,3 +328,65 @@ func TestPageOnOpenRunsWhenThePageOpens(t *testing.T) {
 		t.Fatalf("opened %q, want %q", opened, want)
 	}
 }
+
+// pageIDs names the pages a list holds.
+func pageIDs(pages []*Page) string {
+	var ids []string
+	for _, p := range pages {
+		ids = append(ids, p.ID)
+	}
+	return strings.Join(ids, " ")
+}
+
+// PageList is app's page children in registration order without scanning
+// the instances: it agrees with Children("app") through a page whose
+// instance was made before an earlier page's registration, thousands of
+// rows, a removed page and a re-registered one, and it never names a row.
+func TestPageListFollowsRegistrationAndRemoval(t *testing.T) {
+	r := NewRuntime()
+	r.Define("a")
+	render := func(*Runtime, int, int) Block { return Text("") }
+	reference := func() string {
+		var ids []string
+		for _, inst := range r.Children("app") {
+			if p, ok := inst.Component.(*Page); ok {
+				ids = append(ids, p.ID)
+			}
+		}
+		return strings.Join(ids, " ")
+	}
+	check := func(want string) {
+		t.Helper()
+		if got := pageIDs(r.PageList()); got != want || got != reference() {
+			t.Fatalf("PageList %q, want %q, Children says %q", got, want, reference())
+		}
+	}
+	r.Instance("early") // its instance first, registered as a page last
+	for _, id := range []string{"one", "two"} {
+		if err := r.RegisterPage(&Page{ID: id, Title: id, Render: render}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := r.RegisterPage(&Page{ID: "early", Title: "early", Render: render}); err != nil {
+		t.Fatal(err)
+	}
+	check("early one two")
+	if _, err := r.AddList("rows", benchRows("r", 5000), Parent("two")); err != nil {
+		t.Fatal(err)
+	}
+	check("early one two")
+	if err := r.OpenPage("two"); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.RemoveInstance("one"); err != nil {
+		t.Fatal(err)
+	}
+	check("early two")
+	if err := r.RegisterPage(&Page{ID: "one", Title: "one", Render: render}); err != nil {
+		t.Fatal(err)
+	}
+	check("early two one")
+	if r.Instances["app"].Component.(*appPages) == nil || len(r.Instances["app"].Component.(*appPages).ids) != 3 {
+		t.Fatalf("page order %+v", r.Instances["app"].Component)
+	}
+}

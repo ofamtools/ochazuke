@@ -64,7 +64,7 @@ func builtinPredicates() map[string]PredicateFunc {
 
 // kindOf names the component an instance fronts.
 func (r *Runtime) kindOf(inst *Instance) string {
-	if inst.Component != nil {
+	if _, order := inst.Component.(*appPages); inst.Component != nil && !order {
 		t := reflect.TypeOf(inst.Component)
 		for t.Kind() == reflect.Pointer {
 			t = t.Elem()

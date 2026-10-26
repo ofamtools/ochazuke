@@ -92,7 +92,7 @@ Root package `ochazuke` is flat: 59 source files, 58 test files. Each entry list
 - types: Component (iface), Ticket, Completion, Ctx, AppHandler (func), Result, JobInfo
 - methods: Result(4), Runtime(19), job(1)
 - funcs: Done, Failed, Pending
-- leans on: runtime.go(44), instance.go(6), noun.go(2), registers.go(2)
+- leans on: runtime.go(44), instance.go(6), noun.go(2), pages.go(2)
 
 ### detail.go
 
@@ -223,11 +223,11 @@ Root package `ochazuke` is flat: 59 source files, 58 test files. Each entry list
 
 ### pages.go
 
-- lines: 448 · tests: pages_test.go
+- lines: 511 · tests: pages_test.go
 - purpose: Page is the component a page instance fronts: a title, the instance it starts focused on (Focus), the focus it remembers while another page is open (Remember...
 - types: Page, Placement
-- methods: Page(4), Runtime(12)
-- leans on: runtime.go(47), instance.go(32), delivery.go(11), chooser.go(5)
+- methods: Page(4), Runtime(14)
+- leans on: runtime.go(49), instance.go(34), delivery.go(15), chooser.go(5)
 
 ### palette.go
 
@@ -336,7 +336,7 @@ Root package `ochazuke` is flat: 59 source files, 58 test files. Each entry list
 - types: Predicate, PredicateFunc (func), QueryMatch
 - methods: Runtime(7)
 - funcs: Where, ByNoun, ByID, ByKind, Within, ChildOf, IsFocusable, IsRegion, InState, AnyOf, AllOf, Not, ParsePredicates
-- leans on: instance.go(24), runtime.go(22), noun.go(6), delivery.go(3)
+- leans on: instance.go(24), runtime.go(22), noun.go(6), delivery.go(4)
 
 ### record_editor.go
 

@@ -379,3 +379,21 @@ func TestPageFrameScalesLinearly(t *testing.T) {
 		}
 	}
 }
+
+// BenchmarkPageList asks for the pages on a page of n rows: it reads app's
+// page order, so it should not grow with n.
+func BenchmarkPageList(b *testing.B) {
+	for _, n := range []int{2000, 8000} {
+		b.Run(fmt.Sprint(n), func(b *testing.B) {
+			r := benchPage(b)
+			if _, err := r.AddList("l", benchRows("r", n), Parent("page")); err != nil {
+				b.Fatal(err)
+			}
+			for b.Loop() {
+				if len(r.PageList()) != 1 {
+					b.Fatal("one page")
+				}
+			}
+		})
+	}
+}
