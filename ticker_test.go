@@ -95,7 +95,10 @@ func TestJobsTickerHidesQuietAndFrameworkJobs(t *testing.T) {
 	}
 }
 
-func TestJobsTickerTruncatesAndTakesRowsFromTheBody(t *testing.T) {
+// The ticker draws over the body's last rows: the page keeps its full
+// height, so a job starting or lingering out never moves the body (UX review
+// 2 F13).
+func TestJobsTickerTruncatesAndDrawsOverTheBodyBottom(t *testing.T) {
 	r, m, _ := tickerFixture(t)
 	r.Settle(issue(t, r, "thing.build"), errors.New("a very long failure message that will not fit"))
 	m.Update(frameMsg)
@@ -105,8 +108,8 @@ func TestJobsTickerTruncatesAndTakesRowsFromTheBody(t *testing.T) {
 	_, full := m.layout().BodySize()
 	issue(t, r, "thing.ship")
 	m.Update(frameMsg)
-	if _, h := m.pageSize(); h != full-2 {
-		t.Fatalf("page height %d with two ticker rows, want %d", h, full-2)
+	if _, h := m.pageSize(); h != full {
+		t.Fatalf("page height %d with two ticker rows, want %d (unchanged)", h, full)
 	}
 	rows := strings.Split(ansi.Strip(m.View().Content), "\n")
 	if got := []string{strings.TrimSpace(rows[19]), strings.TrimSpace(rows[20])}; got[0] != "thing.ship running" || !strings.HasPrefix(got[1], "thing.build failed: a very long") || !strings.HasPrefix(strings.TrimSpace(rows[21]), "─") {

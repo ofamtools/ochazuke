@@ -40,15 +40,16 @@ func (l Layout) BodySize() (width, height int) {
 	return l.Width, l.Height
 }
 
-// BodySizeWith is BodySize less the rows the footer's jobs ticker takes
-// (only with the complete chrome; a small viewport draws no ticker).
+// BodySizeWith is the body's size with the footer f: BodySize, since the
+// jobs ticker draws over the body's last rows rather than taking rows from
+// it, so a job starting or lingering out never moves the body (UX review 2
+// F13; no jobs, no ticker rows).
 func (l Layout) BodySizeWith(f Footer) (width, height int) {
-	width, height = l.BodySize()
-	return width, height - l.jobRows(f)
+	return l.BodySize()
 }
 
-// jobRows is how many ticker rows the shell draws: none without the
-// complete chrome, and never the body's last row.
+// jobRows is how many ticker rows the shell draws over the body's bottom:
+// none without the complete chrome, and never the body's first row.
 func (l Layout) jobRows(f Footer) int {
 	if !l.full() {
 		return 0
@@ -84,8 +85,8 @@ type Header struct {
 
 // Footer is the bottom row of the page chrome: a raw label, styled as an
 // error when Error is set. Jobs are the jobs ticker's rows (Model.JobsTicker),
-// drawn above the rule over the footer; the body gives up one row per job
-// row, so no jobs means no rows.
+// drawn over the body's last rows, above the rule over the footer; the body
+// keeps its size, and no jobs means no rows.
 type Footer struct {
 	Text  string
 	Error bool
@@ -117,11 +118,12 @@ func (l Layout) Shell(h Header, body Block, f Footer) Block {
 		pad := strings.Repeat(" ", layoutGutter)
 		rule := s.Muted.Render(strings.Repeat("─", bw))
 		rows = append(rows, pad+l.titleRow(h, bw), pad+l.subtitleRow(h, bw), pad+rule)
-		for _, row := range bodyRows {
+		jobs := f.Jobs[:l.jobRows(f)]
+		for _, row := range bodyRows[:len(bodyRows)-len(jobs)] {
 			rows = append(rows, pad+row)
 		}
-		for _, job := range f.Jobs[:l.jobRows(f)] {
-			rows = append(rows, pad+s.Muted.Render(ansi.Truncate(modalLabel(job), max(0, bw), "…")))
+		for _, job := range jobs {
+			rows = append(rows, pad+modalCells(s.Muted.Render(ansi.Truncate(modalLabel(job), max(0, bw), "…")), bw))
 		}
 		rows = append(rows, pad+rule, pad+footer, "")
 	} else {

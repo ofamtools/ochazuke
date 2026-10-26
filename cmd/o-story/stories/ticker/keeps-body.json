@@ -1,0 +1,32 @@
+{
+  "name": "ticker over the body: a running job never moves the list",
+  "area": "ticker",
+  "width": 40,
+  "height": 12,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 8
+      }
+    ],
+    "jobs": [
+      {
+        "verb": "demo.build",
+        "key": "w",
+        "finishOnKey": "W"
+      }
+    ]
+  },
+  "script": [
+    "w"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "ticker": [
+        "demo.build running"
+      ]
+    }
+  ]
+}

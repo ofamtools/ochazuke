@@ -8,7 +8,8 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// JobTickerRows is the most rows the jobs ticker takes above the footer.
+// JobTickerRows is the most rows the jobs ticker draws, over the body's
+// last rows above the footer.
 const JobTickerRows = 2
 
 // JobLinger is how long a finished job stays on the ticker after the
