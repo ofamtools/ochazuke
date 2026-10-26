@@ -51,6 +51,9 @@ type Page struct {
 	// RegisterPage record them; pageDetail drops removed ones), so finding
 	// the page's detail does not walk its rows.
 	details []*Detail
+	// height is the body height the last frame drew the page at (Render's
+	// height): a page motion's page on a list that does not window itself.
+	height int
 }
 
 // Placement is one Placed call of a frame: the instance drawn and, when its
@@ -79,7 +82,7 @@ const placeMark, placeEnd = "\x1b_ochazuke-placed:", "\x1b\\"
 // were drawn in, which is the order focus jumps and list spills walk, and
 // the body line each view landed on.
 func (p *Page) render(r *Runtime, width, height int) Block {
-	p.rendering, p.drawing, p.splitting = true, nil, false
+	p.rendering, p.drawing, p.splitting, p.height = true, nil, false, height
 	defer func() {
 		p.rendering, p.drawn, p.drawing = false, p.drawing, nil
 		p.split, p.splitting = p.splitting, false

@@ -221,6 +221,7 @@ func (l *List) tableView(width, height int) (string, int, int) {
 	visible = max(visible, 0)
 	l.offset = windowOffset(l.offset, l.selected, max(1, visible), len(l.items), l.scrolloff())
 	end := min(len(l.items), l.offset+visible)
+	l.window, l.windowed = visible, len(l.items) > visible
 	focused := l.Focused()
 	for i := l.offset; i < end; i++ {
 		line := tableLine(l.columns, cells(l.items[i], len(l.columns)), shown, widths)
@@ -451,6 +452,7 @@ func (l *List) tallView(lines []string, width, height, body int, shown, widths [
 		}
 	}
 	lines = append(lines, out...)
+	l.window, l.windowed = max(1, end-l.offset), visible < body
 	if visible < body {
 		lines = append(lines, fmt.Sprintf("%d–%d / %d", l.offset+1, end, len(l.items)))
 	}

@@ -170,6 +170,13 @@ tiers above them. When the two disagree, fix one in the same commit.
   filtered filters the new rows, marks survive, and `list.apply` fans out
   to the marked rows shown. Story: `lists/filter-marks-survive.json`,
   `catalog/filter-setitems.json`; test `TestListFilterSetItemsMarksAndApply`.
+- **R5.8** Every focused list answers `gg`/`G` (first/last row, a count is
+  the row number), `ctrl+d`/`ctrl+u` (half a page, a count is rows) and
+  `ctrl+f`/`ctrl+b` (a page, a count is pages) in normal mode; a page is the
+  list's own window, else the page body; the window moves with the
+  selection; they clamp at the list's edges and never spill; a row noun's
+  own binding of the key answers first. Story: `lists/page-motions.json`;
+  tests `TestListGotoEndsAndCounts`, `TestListPageMotionsClampWithoutSpilling`.
 
 ### R6. Chrome: footer, hints, help, ticker, notices
 

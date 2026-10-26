@@ -1,0 +1,51 @@
+{
+  "name": "page motions: ctrl+d/u half a page, ctrl+f/b a page, G and gg the ends, 5G row 5",
+  "area": "lists",
+  "width": 30,
+  "height": 8,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "p",
+        "rows": 50,
+        "height": -1
+      }
+    ]
+  },
+  "script": [
+    "ctrl+d",
+    "ctrl+d",
+    "ctrl+u",
+    "ctrl+f",
+    "ctrl+b",
+    "G",
+    "ctrl+d",
+    "g",
+    "g",
+    "5",
+    "G",
+    "1",
+    "2",
+    "g",
+    "g",
+    "ctrl+b",
+    "2",
+    "ctrl+f"
+  ],
+  "expect": [
+    {"after": 1, "focus": "p4", "visible": true},
+    {"after": 2, "focus": "p7", "visible": true},
+    {"after": 3, "focus": "p4", "visible": true},
+    {"after": 4, "focus": "p11", "visible": true},
+    {"after": 5, "focus": "p4", "visible": true},
+    {"after": 6, "focus": "p50", "contains": ["44–50 / 50"]},
+    {"after": 7, "focus": "p50"},
+    {"after": 9, "focus": "p1", "contains": ["1–7 / 50"]},
+    {"after": 11, "focus": "p5"},
+    {"after": 15, "focus": "p12"},
+    {"after": 16, "focus": "p5"},
+    {"after": 18, "focus": "p19", "visible": true}
+  ]
+}

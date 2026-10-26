@@ -48,6 +48,8 @@ type List struct {
 	noMarks  bool     // NoMarks: a read-only view, its rows take no marks
 	columns  []Column // Columns: a table; none draws the labels
 	widest   []int    // a table's widest cell per column over the items (cellWidths); nil after SetItems
+	window   int      // rows the last frame showed (list_motions.go's page); 0 before any frame
+	windowed bool     // the last frame windowed the rows (more rows than fit)
 }
 
 // NewList is AddList for callers that hold the runtime as a value.
@@ -383,6 +385,7 @@ func (l *List) rowsView(width, height int) (string, int, int) {
 	}
 	l.offset = windowOffset(l.offset, l.selected, visible, len(l.items), l.scrolloff())
 	end := min(len(l.items), l.offset+visible)
+	l.window, l.windowed = visible, len(l.items) > visible
 	rows := make([]string, 0, height)
 	// The focused list's selected row is the inverted highlight alone: no
 	// cursor marker, so an unfocused list's rows are plain and only one row
@@ -569,5 +572,6 @@ func registerLists(r *Runtime) {
 		r.Nouns["list"].Guards = map[string]string{}
 	}
 	r.Nouns["list"].Guards["mark"] = "list-marks"
+	registerListMotions(r)
 	registerListFilter(r)
 }

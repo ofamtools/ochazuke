@@ -278,7 +278,7 @@ Conformance:
 | normal | form | `form.choose` `form.leave` `form.next` `form.redo` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
 | normal | input | `input.begin` `input.undo` |
-| normal | list | `list.filter-clear` `list.filter-open` `list.move` |
+| normal | list | `list.filter-clear` `list.filter-open` `list.goto` `list.move` `list.scroll` |
 | normal | markdown | `markdown.redo` `markdown.toggle` `markdown.undo` |
 | normal | modal | `modal.pop` |
 | normal | mode | `mode.enter` |
@@ -296,10 +296,14 @@ Conformance:
 
 Mode edges (from → to via):
 
+- `count_pending` → `count_pending g` via `row g`
 - `count_pending` → `normal` via `detail.scroll`
+- `count_pending` → `normal` via `list.goto`
 - `count_pending` → `normal` via `list.move`
+- `count_pending` → `normal` via `list.scroll`
 - `count_pending` → `normal` via `pane.grow`
 - `count_pending` → `normal` via `pane.shrink`
+- `count_pending g` → `normal` via `list.goto`
 - `insert` → `normal` via `chooser.cancel`
 - `insert` → `normal` via `chooser.pick`
 - `insert` → `normal` via `mode.set`
@@ -327,10 +331,12 @@ Mode edges (from → to via):
 - `normal` → `insert` via `settings.close`
 - `normal` → `list_filter` via `list.filter-open`
 - `normal` → `normal d` via `row d`
+- `normal` → `normal g` via `row g`
 - `normal` → `terminal` via `command.run`
 - `normal` → `terminal` via `demo.open`
 - `normal d` → `normal` via `outline.delete`
 - `normal d` → `normal` via `setting-item.delete`
+- `normal g` → `normal` via `list.goto`
 - `terminal` → `leader_pending` via `mode.enter`
 
 <!-- verbs:end -->

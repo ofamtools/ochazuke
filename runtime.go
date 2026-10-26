@@ -374,7 +374,7 @@ var motionOps = map[string]bool{
 	"surface.scroll": true, "page.next": true, "page.previous": true,
 	"input.move": true, "picker.move": true, "palette.move": true,
 	"yank-history.move": true, "grid.move": true, "grid.goto": true,
-	"detail.scroll": true,
+	"detail.scroll": true, "list.goto": true, "list.scroll": true,
 }
 
 // frameworkHistoryKinds are the framework's operations whose history kind

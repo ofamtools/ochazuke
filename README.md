@@ -292,6 +292,8 @@ Macro recording consumes exactly one register character after `q`. For `qq:`, th
 | Normal Playground | `Ctrl-X` | Inspect the handling noun |
 | Normal app | `?` | Open the scrollable keyboard guide |
 | Normal list | `/` | Filter the list's rows (see Filtering a list) |
+| Normal list | `gg`, `G`, `NG`/`Ngg` | First row, last row, row N (`list.goto`; clamps, never spills) |
+| Normal list | `Ctrl-D/U`, `Ctrl-F/B` | Half a page / a page down and up, the window moving with the selection (`list.scroll`; `3 Ctrl-D` is 3 rows, `2 Ctrl-F` two pages) |
 | Normal Appearance | `t`, `d` | Cycle theme / density |
 | Normal demo | `Ctrl-J/K` | Next/previous page |
 | Normal page with a list/detail split | `>`, `<`, `=` | Grow / shrink the list pane by 5% (counts: `3>`), reset the divider; remembered per page |
@@ -440,6 +442,18 @@ The id (`sidebar` here) identifies the list instance (`r.List("sidebar")` return
 - `ToggleMark(id)` and `Marked()` keep a multi-selection. `list.apply {verb}` runs `<row noun>.verb` with the row as target for every marked row (the selected row when none is marked), skipping and reporting rows whose noun lacks the verb.
 - Call these methods on the runtime's event loop. Data loading and domain actions remain application-owned. There is no tree expansion or built-in search provider.
 
+#### Moving through a list
+
+Every list (page lists, tables, trees, a catalog page's lists, the Settings page's, lists in modals such as `?` help) answers the Vim paging motions in normal mode, rows of the `list` noun beside `j`/`k`, so a row noun, the list instance or a component that binds the same keys answers first:
+
+| Keys | Operation | Does |
+|---|---|---|
+| `g g` / `G` | `list.goto {position, row}` | The first / last row; with a count the row of that number (`5G`, `5gg`), clamped |
+| `ctrl+d` / `ctrl+u` | `list.scroll {delta, half}` | Half a page down / up; a count is rows (`3 ctrl+d`) |
+| `ctrl+f` / `ctrl+b` | `list.scroll {delta}` | A page down / up; a count is pages |
+
+A page is the rows the list's own window showed in the last frame when the list windows itself, else the height of the page body it is drawn on (a list drawn at its full length on a scrolling page), else the rows it showed (a list in a modal), else 10 before any frame. The window moves with the selection by the rows moved, so the selected row keeps its line (Vim's `ctrl+d`), and the scrolloff margin then applies as for `j`/`k`. None of them spills to the next stop: at the list's edges they stop quietly. They are motions: off the footer, under `movement` in `?` help. `pgup`/`pgdn` still scroll the surface without moving the focus. Story: `lists/page-motions`.
+
 #### Filtering a list
 
 Every list filters: `/` on a focused list (a page list, a table, a catalog page's list, the Settings page's, a list in a modal) opens a query line above its rows, and typing keeps the rows whose label or cells hold every word of the query, ignoring case, in list order:
@@ -464,7 +478,7 @@ In normal mode `esc` on a filtered list clears the filter (`list.filter-clear`, 
 
 The filter hides rows from drawing and from motions (`j`/`k`, counts, spills) and never removes them: their instances, marks and data stay. `SetItems` and `List.Patch` (which patches every row, hidden ones included) while filtered filter the new rows and keep the selection by id; `list.apply` fans out to the marked rows the filter shows (a mark on a hidden row waits); a command that lands on a hidden row (`Select`, `focus.set`, a job's focus) clears the filter. `Items()` and `Len()` are every row; `Shown()` counts the shown ones, `Filter()` is the query, `Filtering()` reports the line, `SetFilter(q)` sets it, and `Height()` (`Len()` plus the line) is what a host sizing a list to its rows passes to `View`. The CLI form is `list filter --target LIST --query Q` (an empty query clears); the state at `/lists/<id>` then has `filter` and `total`, and its `items` are the shown rows. Stories: `lists/filter-*`, `catalog/filter-setitems`, `tables/filter-by-cell`, `settings/filter`.
 
-The operation equivalents are `list.focus {id}`, `list.move {id?, delta, clamp?}`, `list.select {id?, item}`, `list.mark {id?, item?}`, `list.apply {id?, verb}` and `list.filter {id?, query}`. Omit `id` to operate on the list on the focus stack. State is inspectable under `/lists/<id>` (rows show their `noun`, `marked` lists marks) and `/instances/<rowId>`. The full-project example's **Items** page mixes `repo`, `worktree` and `branch` rows in one list: each row answers to its noun's verbs and keys, `?` lists the focused row's rows, and Space plus `list.apply` fans one verb out over several rows.
+The operation equivalents are `list.focus {id}`, `list.move {id?, delta, clamp?}`, `list.goto {id?, position?, row?}`, `list.scroll {id?, delta, half?, steps?}`, `list.select {id?, item}`, `list.mark {id?, item?}`, `list.apply {id?, verb}` and `list.filter {id?, query}`. Omit `id` to operate on the list on the focus stack. State is inspectable under `/lists/<id>` (rows show their `noun`, `marked` lists marks) and `/instances/<rowId>`. The full-project example's **Items** page mixes `repo`, `worktree` and `branch` rows in one list: each row answers to its noun's verbs and keys, `?` lists the focused row's rows, and Space plus `list.apply` fans one verb out over several rows.
 
 ### Terminal instances
 
