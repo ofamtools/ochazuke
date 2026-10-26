@@ -83,7 +83,8 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 // remaining index if that ID disappears. Invalid updates leave the list unchanged.
 // It creates one instance per new row under the list and removes the instances
 // of rows that disappear; a retained row keeps its instance and any bindings
-// the application put on it.
+// the application put on it. Rows whose cells are unchanged keep a table's
+// measured widths. A record-level change is Patch.
 func (l *List) SetItems(items []ListItem) error {
 	ids := make(map[string]bool, len(items))
 	for _, item := range items {
@@ -124,7 +125,10 @@ func (l *List) SetItems(items []ListItem) error {
 			break
 		}
 	}
-	l.items, l.selected, l.widest = slices.Clone(items), selected, nil
+	if !sameCells(l.items, items) {
+		l.widest = nil // a table remeasures; rows drawing the same cells keep the widths
+	}
+	l.items, l.selected = slices.Clone(items), selected
 	l.offset = min(l.offset, max(0, len(items)-1))
 	l.syncFocus(previous, gone)
 	return nil
