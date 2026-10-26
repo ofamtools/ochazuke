@@ -1,0 +1,50 @@
+{
+  "name": "form: labels above values, the focused choice highlighted, an invalid value labelled",
+  "area": "forms",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "focus": "task/status",
+    "records": [
+      {
+        "id": "task",
+        "fields": [
+          {
+            "name": "title",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "status",
+            "type": "string",
+            "required": true,
+            "enum": [
+              "todo",
+              "doing",
+              "done"
+            ]
+          },
+          {
+            "name": "estimate",
+            "type": "integer"
+          },
+          {
+            "name": "notes",
+            "type": "string",
+            "multiline": true
+          }
+        ],
+        "values": {
+          "title": "buy milk",
+          "status": "doing",
+          "estimate": "soon",
+          "notes": "two litres\nsemi-skimmed"
+        }
+      }
+    ]
+  }
+}

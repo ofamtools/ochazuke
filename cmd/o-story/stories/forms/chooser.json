@@ -1,0 +1,81 @@
+{
+  "name": "form: a choice field is edited through the chooser, never as free text",
+  "area": "forms",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "records": [
+      {
+        "id": "task",
+        "fields": [
+          {
+            "name": "title",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "status",
+            "type": "string",
+            "required": true,
+            "enum": [
+              "todo",
+              "doing",
+              "done"
+            ]
+          },
+          {
+            "name": "estimate",
+            "type": "integer"
+          },
+          {
+            "name": "notes",
+            "type": "string",
+            "multiline": true
+          }
+        ],
+        "values": {
+          "title": "buy milk",
+          "status": "todo"
+        }
+      }
+    ],
+    "focus": "task/status"
+  },
+  "script": [
+    "w",
+    "enter",
+    "j",
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "contains": [
+        "todo ▾"
+      ],
+      "writes": []
+    },
+    {
+      "after": 2,
+      "modal": "form-choose",
+      "contains": [
+        "Choose status",
+        "doing"
+      ]
+    },
+    {
+      "modal": "",
+      "focus": "task/status",
+      "contains": [
+        "doing ▾"
+      ],
+      "writes": [
+        "write status=doing"
+      ]
+    }
+  ]
+}

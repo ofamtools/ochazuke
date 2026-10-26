@@ -1,0 +1,87 @@
+{
+  "name": "form: fields are stops; tab while typing moves on and keeps typing; q leaves to the list",
+  "area": "forms",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "records": [
+      {
+        "id": "task",
+        "fields": [
+          {
+            "name": "title",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "status",
+            "type": "string",
+            "required": true,
+            "enum": [
+              "todo",
+              "doing",
+              "done"
+            ]
+          },
+          {
+            "name": "estimate",
+            "type": "integer"
+          },
+          {
+            "name": "notes",
+            "type": "string",
+            "multiline": true
+          }
+        ],
+        "values": {
+          "title": "buy milk",
+          "status": "todo"
+        }
+      }
+    ],
+    "focus": "task/title"
+  },
+  "script": [
+    "tab",
+    "tab",
+    "i",
+    {
+      "type": "3"
+    },
+    "tab",
+    {
+      "type": "hi"
+    },
+    "esc",
+    "q"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "task/status"
+    },
+    {
+      "after": 5,
+      "focus": "task/notes",
+      "mode": "insert",
+      "writes": [
+        "write estimate=3"
+      ]
+    },
+    {
+      "focus": "a1",
+      "mode": "normal",
+      "lacks": [
+        "estimate"
+      ],
+      "writes": [
+        "write estimate=3",
+        "write notes=hi"
+      ]
+    }
+  ]
+}

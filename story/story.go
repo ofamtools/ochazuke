@@ -49,22 +49,25 @@ type Story struct {
 
 // Page is one synthetic page: lists, inputs, a fake terminal and jobs.
 type Page struct {
-	ID     string      `json:"id,omitempty"`
-	Title  string      `json:"title,omitempty"`
-	Height int         `json:"height,omitempty"` // legacy spelling of the story's height (first page only)
-	Width  int         `json:"width,omitempty"`
-	Layout string      `json:"layout,omitempty"` // stack (default) or row: lists side by side
-	Order  []string    `json:"order,omitempty"`  // drawing order of list ids; default the order given
-	Focus  string      `json:"focus,omitempty"`  // instance id focused when the page opens
-	Offset int         `json:"offset,omitempty"` // page scroll offset after the first frame
-	NoHead bool        `json:"noHeadings,omitempty"`
-	Lists  []ListSpec  `json:"lists,omitempty"`
-	Trees  []TreeSpec  `json:"trees,omitempty"`
-	Inputs []InputSpec `json:"inputs,omitempty"`
-	Term   *TermSpec   `json:"terminal,omitempty"`
-	Jobs   []JobSpec   `json:"jobs,omitempty"`
-	Bind   []BindSpec  `json:"bind,omitempty"`
-	Open   bool        `json:"open,omitempty"` // the page opened first (default the first page)
+	ID     string     `json:"id,omitempty"`
+	Title  string     `json:"title,omitempty"`
+	Height int        `json:"height,omitempty"` // legacy spelling of the story's height (first page only)
+	Width  int        `json:"width,omitempty"`
+	Layout string     `json:"layout,omitempty"` // stack (default) or row: lists side by side
+	Order  []string   `json:"order,omitempty"`  // drawing order of list ids; default the order given
+	Focus  string     `json:"focus,omitempty"`  // instance id focused when the page opens
+	Offset int        `json:"offset,omitempty"` // page scroll offset after the first frame
+	NoHead bool       `json:"noHeadings,omitempty"`
+	Lists  []ListSpec `json:"lists,omitempty"`
+	Trees  []TreeSpec `json:"trees,omitempty"`
+	// Records are record editors (forms), drawn in the page's order with
+	// the lists, or opened as a modal over the page.
+	Records []RecordSpec `json:"records,omitempty"`
+	Inputs  []InputSpec  `json:"inputs,omitempty"`
+	Term    *TermSpec    `json:"terminal,omitempty"`
+	Jobs    []JobSpec    `json:"jobs,omitempty"`
+	Bind    []BindSpec   `json:"bind,omitempty"`
+	Open    bool         `json:"open,omitempty"` // the page opened first (default the first page)
 }
 
 // ListSpec is one list: rows a1..aN labelled by id unless Labels or Items
@@ -94,6 +97,22 @@ type TreeSpec struct {
 	FailWrites int                 `json:"failWrites,omitempty"`
 	Collapsed  []string            `json:"collapsed,omitempty"`
 	Height     int                 `json:"height,omitempty"` // rows drawn; 0 = every visible row, -1 = the rest of the page
+}
+
+// RecordSpec is one record editor: its fields (ochazuke.RecordField as
+// JSON), the values it loads, and whether it opens as a modal over the
+// page's focus (Modal) instead of being drawn in the page. Every write is
+// logged (the writes expect, RecordWrite.String); FailWrites makes the
+// first N fail.
+type RecordSpec struct {
+	ID         string                 `json:"id"`
+	Title      string                 `json:"title,omitempty"`
+	Fields     []ochazuke.RecordField `json:"fields"`
+	Values     map[string]string      `json:"values,omitempty"`
+	Modal      bool                   `json:"modal,omitempty"`
+	Insert     bool                   `json:"insert,omitempty"`
+	FailWrites int                    `json:"failWrites,omitempty"`
+	Height     int                    `json:"height,omitempty"` // lines drawn; 0 = the rest of the page
 }
 
 // ItemSpec is an explicit row; Cells are its table cells.
@@ -148,7 +167,7 @@ type Event struct {
 	Paste string `json:"paste,omitempty"`
 	Job   string `json:"job,omitempty"`   // noun.verb of the job that delivered
 	State string `json:"state,omitempty"` // done or failed
-	Tick  string `json:"tick,omitempty"`  // linger, binding, terminal (a pane frame), output (fake output line) or debounce (a tree line's pause)
+	Tick  string `json:"tick,omitempty"`  // linger, binding, terminal (a pane frame), output (fake output line) or debounce (a tree line's or a form's pause)
 }
 
 // UnmarshalJSON reads a bare string as a key press.
@@ -205,8 +224,9 @@ type Expect struct {
 	NoTicker    bool     `json:"noTicker,omitempty"`
 	Notices     []string `json:"notices,omitempty"`
 	NoNotices   bool     `json:"noNotices,omitempty"`
-	// Writes is every change the page's editable trees wrote, in order
-	// (TreeChange.String); [] expects none.
+	// Writes is every change the page's editable trees and record editors
+	// wrote, in order (TreeChange.String, RecordWrite.String); [] expects
+	// none.
 	Writes *[]string `json:"writes,omitempty"`
 }
 

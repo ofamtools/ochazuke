@@ -55,6 +55,10 @@ it to the timer's deadline and delivers the timer's message
     inputs: [{ id: "name", label: "name", text: "hello" }],
     trees: [{ id: "t", editable: true, failWrites: 0, collapsed: ["p1"],
               nodes: [{ id: "p1", label: "one" }, { id: "c1", parent: "p1", label: "child" }] }],
+    records: [{ id: "task", modal: false, insert: false, failWrites: 0, height: 0,
+                fields: [{ name: "title", required: true }, { name: "status", enum: ["todo", "done"] },
+                         { name: "estimate", type: "integer" }, { name: "notes", multiline: true }],
+                values: { title: "buy milk" } }],   // a record editor (form): drawn in order, or a modal
     terminal: { fake: true, attach: "a1", height: 6 },
     jobs: [{ verb: "demo.build", key: "w", finishOnKey: "W", failOnKey: "X", quiet: false, start: 0 }],
     bind: [{ noun: "demo", mode: "normal", keys: "C", do: "notice.clear" }],
@@ -71,7 +75,8 @@ Expect fields: `focus`, `mode`, `modal` (top modal id, `""` none), `page`,
 `visible` (the focused label is on screen), `highlighted` (rows with reverse
 video), `contains`, `lacks`, `order` (substrings in this order),
 `ticker`/`noTicker`, `notices`/`noNotices`, `writes` (every change an
-editable tree wrote, `TreeChange.String`, in order; `[]` none). A story with no final expect is
+editable tree or a record editor wrote, `TreeChange.String` or
+`RecordWrite.String`, in order; `[]` none). A story with no final expect is
 compared with `<name>.golden`: the frame in the mono theme, each row behind a
 gutter that reads `R|` when the row has reverse video and ` |` otherwise.
 
@@ -212,7 +217,8 @@ Conformance:
 
 | mode | noun | verbs |
 |---|---|---|
-| insert | input | `input.insert` |
+| insert | form | `form.next` |
+| insert | input | `input.insert` `input.kill` |
 | insert | mode | `mode.set` |
 | insert | outline | `outline.indent` `outline.leave` |
 | insert | palette | `palette.move` `palette.run` |
@@ -220,6 +226,8 @@ Conformance:
 | normal | confirm | `confirm.accept` |
 | normal | demo | `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.notify` `demo.open` `demo.reload` `demo.ship` |
 | normal | focus | `focus.next` `focus.previous` |
+| normal | form | `form.choose` `form.leave` `form.next` `form.redo` `form.undo` |
+| normal | form-option | `form-option.pick` |
 | normal | input | `input.begin` |
 | normal | list | `list.move` |
 | normal | modal | `modal.pop` |

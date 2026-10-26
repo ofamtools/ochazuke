@@ -24,6 +24,14 @@ type ModalView struct {
 	Render func(*Runtime, *Instance, int, int) Block
 }
 
+// ModalBody is a modal body component that draws itself: a modal whose
+// instance's Component implements it needs no ModalView (a record editor
+// opened as a modal, its chooser). A ModalView for the id still wins.
+type ModalBody interface {
+	ModalTitle() string
+	ModalBlock(s Styles, width, height int) Block
+}
+
 // Model is the Bubble Tea adapter. Pages and modal instances retain their
 // state in Runtime; components (picker, registers, application components)
 // are instances the runtime drives through the delivery contract, so the
@@ -245,6 +253,13 @@ func (m *Model) modalContent(id string, width, height int) (string, Block) {
 		return "Command palette", m.Palette.viewBlock(width, height)
 	case m.ModalViews[id].Render != nil:
 		body = m.ModalViews[id].Render(m.Runtime, m.Runtime.Instances[id], width, height)
+	case m.modalBody(id) != nil:
+		mb := m.modalBody(id)
+		body = mb.ModalBlock(NewStyles(*m.Appearance), width, height)
+		if id != m.Runtime.TopModal() {
+			body.Cursor = nil
+		}
+		return mb.ModalTitle(), body
 	case m.Runtime.Input(focus) != nil:
 		body = InputBlock(m.Runtime.Input(focus), width, height)
 	default:
@@ -257,6 +272,16 @@ func (m *Model) modalContent(id string, width, height int) (string, Block) {
 		return view.Title, body
 	}
 	return id, body
+}
+
+// modalBody is the modal instance's self-drawing component, or nil.
+func (m *Model) modalBody(id string) ModalBody {
+	if inst := m.Runtime.Instances[id]; inst != nil {
+		if mb, ok := inst.Component.(ModalBody); ok {
+			return mb
+		}
+	}
+	return nil
 }
 
 // pageTitles lists the page titles in order and the index of the current page.

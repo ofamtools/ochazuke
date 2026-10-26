@@ -311,3 +311,35 @@ func TestDemoBindingRowsAreAtomic(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// The Record page opens on its editor: typing is written as it is made, a
+// status is chosen rather than typed, q leaves and e edits again.
+func TestDemoRecordPageWritesAsYouType(t *testing.T) {
+	m := New()
+	r := m.Runtime
+	if _, err := r.Execute(ochazuke.Request{Verb: "open", Noun: "page", Args: ochazuke.Arguments{"id": "task"}}); err != nil {
+		t.Fatal(err)
+	}
+	if r.Focus != "task-form/title" {
+		t.Fatalf("focus %s, want the title field", r.Focus)
+	}
+	keytest.Press(m, "A")
+	keytest.Type(m, "!")
+	keytest.Press(m, "esc")
+	keytest.Press(m, "j")
+	keytest.Press(m, "enter")
+	keytest.Press(m, "j")
+	keytest.Press(m, "enter")
+	view := ansi.Strip(m.View().Content)
+	if !strings.Contains(view, `title="Water the plants!" status="doing"`) {
+		t.Fatalf("store not written:\n%s", view)
+	}
+	keytest.Press(m, "q")
+	if r.Focus != "task" || !strings.Contains(ansi.Strip(m.View().Content), "e edits the record again") {
+		t.Fatalf("focus %s after q", r.Focus)
+	}
+	keytest.Press(m, "e")
+	if r.Focus != "task-form/title" || m.Status != "" {
+		t.Fatalf("focus %s status %q after e", r.Focus, m.Status)
+	}
+}
