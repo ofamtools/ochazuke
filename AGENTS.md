@@ -31,7 +31,7 @@ Do not hand-edit either generated file. If a map entry is wrong, fix the code or
 | Nouns, the `Define` builder, binding rows, key classes, guards | `noun.go` |
 | Instances, parent links, `Payload`, ancestry, targets | `instance.go` |
 | `Runtime.Focus`, the modal chain (`Push`, `OpenModal`/`WithInput`, `Pop`, `Modals`, `ModalFocus`, `BaseFocus`), the mode rule on focus change, `RemoveInstance`, `RetargetFocus`, focus jumps (`focus.next`/`previous`/`set`, `JumpFocus`, `Focusable`/`Region` stops) | `focus.go` |
-| The stack walk (`Dispatch`), capture rows (`Binding.Capture`, outer-first before the walk), pending modes, key-sequence prefixes, `bindings.list` | `resolve.go`, `bindings.go` |
+| The stack walk (`Dispatch`), capture rows (`Binding.Capture`, outer-first before the walk), pending modes, key-sequence prefixes, `bindings.list` (focus-scoped; `--all` exports every stored row), `bindings.stops` (`Runtime.StopBindings`: the effective rows of every stop app-wide, pages in tab order, stops in drawing order, open modals, then `app`) | `resolve.go`, `bindings.go` |
 | Tree queries: `Predicate`, `Query`, `RegisterPredicate`, `instances.query` | `query.go` |
 | Action history ring (`HistoryEntry`, `history.list`, `/history`, `Sourced`), dot-repeat (`Operation.Repeatable`, `history.repeat`, `.`) | `history.go` |
 | Editor mode tables as data (Readline, Vim, operators, visual counts) | `editor_bindings.json`, `editor_keys.go` |

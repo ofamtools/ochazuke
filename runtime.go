@@ -658,6 +658,9 @@ func registerCore(r *Runtime) {
 		}
 		return r.ListBindings(focusOf(c)), nil
 	}})
+	r.Register(Operation{Verb: "stops", Noun: "bindings", Description: "List the rows every focus stop answers to, app-wide: each page's stops in drawing order, the open modals', then app; each with the focus and mode it is read at", Result: "stop bindings[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		return r.StopBindings(), nil
+	}})
 	r.Register(Operation{Verb: "focus", Noun: "input", Description: "Focus a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		id := StringArg(a, "id", "")
 		if r.Input(id) == nil {
