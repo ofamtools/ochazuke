@@ -86,6 +86,10 @@ type CatalogNoun struct {
 // declared with NounBuilder.Rows), "" when the result is not rows. Quiet
 // marks bookkeeping the jobs ticker hides (NounBuilder.Quiet). Positional
 // names the parameters bare words fill first (NounBuilder.Positional).
+// History is the kind of history entry the verb records
+// (ochazuke.Operation.HistoryKindOf: action, change or fetch); a host that
+// mounts the verb sets it on its own operation (Operation.HistoryKind), so
+// its fetches stay out of the user's history there too.
 type CatalogVerb struct {
 	Name        string                        `json:"name"`
 	Description string                        `json:"description,omitempty"`
@@ -97,6 +101,7 @@ type CatalogVerb struct {
 	Rows        string                        `json:"rows,omitempty"`
 	Quiet       bool                          `json:"quiet,omitempty"`
 	Positional  []string                      `json:"positional,omitempty"`
+	History     string                        `json:"history,omitempty"`
 }
 
 // RowSourceVerb is the verb whose answer is a noun's own rows when none of
@@ -171,7 +176,7 @@ func Catalog(r *ochazuke.Runtime, name, version string) ([]byte, error) {
 			doc.State = op.Key()
 		}
 		noun := &doc.Nouns[len(doc.Nouns)-1]
-		verb := CatalogVerb{Name: op.Verb, Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable, Rows: op.Rows, Quiet: op.Quiet, Positional: op.Positional}
+		verb := CatalogVerb{Name: op.Verb, Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable, Rows: op.Rows, Quiet: op.Quiet, Positional: op.Positional, History: op.HistoryKindOf()}
 		if len(op.Parameters) > 0 {
 			verb.Params = op.Parameters
 		}

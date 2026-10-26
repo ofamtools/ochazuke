@@ -123,7 +123,7 @@ func TestHistoryIsBounded(t *testing.T) {
 	m := historyModel(t, config, state)
 	r := m.Runtime
 	for range 10 {
-		if _, err := r.Execute(Request{Verb: "list", Noun: "modes"}); err != nil {
+		if _, err := r.Execute(Request{Verb: "clear", Noun: "notice"}); err != nil {
 			t.Fatal(err)
 		}
 	}

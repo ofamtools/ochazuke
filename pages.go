@@ -256,6 +256,7 @@ func (r *Runtime) RegisterPage(page *Page, opts ...InstanceOption) error {
 	}
 	inst := r.Instance(page.ID, append([]InstanceOption{Kind("page")}, opts...)...)
 	inst.Component = page
+	r.addPageOrder(inst)
 	page.details = r.pageDetails(page.ID)
 	page.Remembered = page.Focus
 	// A page that starts on a row starts with that row selected.
@@ -278,14 +279,76 @@ func (r *Runtime) PageOf(id string) *Page {
 }
 
 // PageList lists pages in registration order: app's children of kind page.
+// It reads the app instance's page order (appPages), so a frame that asks
+// several times costs the number of pages, not of instances; without one
+// (an application gave app a component of its own) it scans the instances.
 func (r *Runtime) PageList() []*Page {
-	var out []*Page
-	for _, inst := range r.Children("app") {
-		if page, ok := inst.Component.(*Page); ok {
-			out = append(out, page)
+	order := r.appPages()
+	if order == nil {
+		var out []*Page
+		for _, inst := range r.Children("app") {
+			if page, ok := inst.Component.(*Page); ok {
+				out = append(out, page)
+			}
+		}
+		return out
+	}
+	out := make([]*Page, 0, len(order.ids))
+	kept := order.ids[:0]
+	for _, id := range order.ids {
+		inst := r.Instances[id]
+		page, ok := (*Page)(nil), false
+		if inst != nil {
+			page, ok = inst.Component.(*Page)
+		}
+		if !ok {
+			continue // removed, or no longer a page: dropped from the order
+		}
+		kept = append(kept, id)
+		if inst.Parent == "app" {
+			out = append(out, page) // a page an open modal borrowed is not app's child meanwhile
 		}
 	}
+	clear(order.ids[len(kept):])
+	order.ids = kept
 	return out
+}
+
+// appPages is the app instance's component: the ids of the registered
+// pages in instance registration order, the order Children("app") gives.
+// RegisterPage adds a page; PageList drops one whose instance is gone.
+type appPages struct{ ids []string }
+
+// appPages is app's page order, made on first use; nil when app holds a
+// component of another type.
+func (r *Runtime) appPages() *appPages {
+	app := r.Instances["app"]
+	if app == nil {
+		return nil
+	}
+	if app.Component == nil {
+		app.Component = &appPages{}
+	}
+	order, _ := app.Component.(*appPages)
+	return order
+}
+
+// addPageOrder files a registered page's instance in app's page order by
+// its registration sequence.
+func (r *Runtime) addPageOrder(inst *Instance) {
+	order := r.appPages()
+	if order == nil {
+		return
+	}
+	order.ids = slices.DeleteFunc(order.ids, func(id string) bool { return id == inst.ID })
+	at := slices.IndexFunc(order.ids, func(id string) bool {
+		other := r.Instances[id]
+		return other != nil && other.seq > inst.seq
+	})
+	if at < 0 {
+		at = len(order.ids)
+	}
+	order.ids = slices.Insert(order.ids, at, inst.ID)
 }
 
 // OpenPage makes a page current and restores the focus and mode it was left

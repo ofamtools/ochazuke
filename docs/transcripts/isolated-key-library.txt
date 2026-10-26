@@ -1,0 +1,2203 @@
+ ▐▛███▛█   Claude Code v2.1.310
+▝▜██████▀  Opus 5.5 · Claude Max
+ ▝▝   ▝▝   ~/hub
+
+
+❯ /clear                                                                        
+
+❯ # Find and evaluate the "key in, event out" proposal for ochazuke             
+                                                                                
+  Read-only research. Do not edit any file, commit, or run anything that writes 
+  outside a scratch directory you create.                                       
+                                                                                
+  ## Goal                                                                       
+  At some point an earlier agent session (Claude Code, Codex, or another        
+  harness) proposed changing ochazuke's key handling from "key in, action out"  
+  to "key in, event out". Find that conversation, quote what was proposed,      
+  reconstruct *why* the proposing agent suggested it (what problem it was       
+  solving, what it had just been working on, what alternatives it weighed),     
+  then compare it with ochazuke as it exists today and give me pros, cons, and  
+  a recommendation.                                                             
+                                                                                
+  this should be the logs:                                                      
+  @~/.claude/projects/-Users-unixsuperhero-proj-ochazuke/a07fe9fb-8e99-493e-8a7 
+  f-14f3f8e55d43.jsonl                                                          
+  - Claude Code sessions: `~/.claude/projects/*/*.jsonl` (one JSON object per   
+  line; user/assistant turns are in `message.content`). Project dirs for this   
+  work include ones named after `~/proj/ochazuke`, `~/proj/matomeru*`,          
+  `~/proj/gmtm`, `~/hub`.                                                       
+  - Other harness logs if present: `~/.omp/`, `~/.local/share/` subdirs of      
+  agent tools.                                                                  
+  - A `session-find` skill may exist (`~/.claude/skills/session-find`); use it  
+  if it helps.                                                                  
+                                                                                
+  Search with ripgrep over the JSONL and docs, case-insensitive, for phrases    
+  like: `event out`, `action out`, `key in`, `keys in`, `returns an event`,     
+  `returns a request`, `Resolve(`, `resolve the key`, `dispatch returns`, `pure 
+  keymap`, `keymap as a function`, `intercept`, `before it runs`. Likely        
+  dates: 2026-10-19 through 2026-10-26, before and during the Bubble Tea v2 /   
+  nouns migration (`~/proj/ochazuke/docs/MIGRATION-PLAN.md`). The earlier apps  
+  were `~/proj/matomeru-old` and `~/proj/gmtm`. Report every candidate hit      
+  (file, line, date, session) before narrowing to the one where it was actually 
+  proposed. Read the surrounding turns, enough to understand what the agent     
+  was doing and the user's reaction.                                            
+                                                                                
+  ## How key handling works today (verified 2026-10-26, ochazuke v0.4.0,        
+  `~/proj/ochazuke`)                                                            
+  - `Model.Update` (`model.go`, around line 217) turns a `tea.KeyPressMsg` into 
+  `MacroKey{Key: v.String()}`, or a paste into `MacroKey{Key: "[text]", Paste:  
+  true}`, then calls `m.handleKey` → `Runtime.Dispatch`.                        
+  - `resolve.go` (stdlib-only imports) does the stack walk:                     
+    - from the focused instance out to `app`;                                   
+    - capture rows;                                                             
+    - modes, pending modes and key sequences;                                   
+    - guards and key classes.                                                   
+  - Binding rows are data: each is a `Request` naming an operation (`{noun,     
+  verb, args}`), never code (`TestBindingRowsAreAtomic`).                       
+  - **Today it's "key in, action run":** `Dispatch` resolves the row and        
+  immediately executes it (`runRow` → `Execute`). It returns only (claimed      
+  bool, error); the caller never sees the resolved request before it runs.      
+  - Pieces of "event out" already exist:                                        
+    - rows are requests;                                                        
+    - history records each executed request with its source (`key:x`);          
+    - `bindings.list` / `bindings stops` list the rows that answer.             
+    - But there's no "what would this key do" call.                             
+  - Coupling to the UI:                                                         
+    - key names use Bubble Tea v2's spelling;                                   
+    - the sequence timeout is a `tea.Cmd` (`BindingTimeoutCommand` in           
+  `bindings.go`, the only Bubble Tea import on the key path);                   
+    - spatial motions and some guards (`detail-scrolls`, `pane-split`) depend   
+  on the last frame's drawing order (`Runtime.Placed`, `focus.go` ~636–676).    
+  This last dependency is deliberate: "motions are visual".                     
+  - Recent related changes:                                                     
+    - UI services on `Ctx` in v0.4.0 (`ctx.Notify`/`Status`, `r.UI()`, sinks);  
+    - `actions.json`: user-config verbs that run external commands;             
+    - `Binding.FromRow`: a row's data as an argument;                           
+    - persisted history that never stores typed text;                           
+    - inline completion as an inner binding level (branch `feat/completion`);   
+    - the resolver value-objects prototype                                      
+  (`~/hub/o-plans/plans/ochazuke-resolver-value-objects.md` plus its patch;     
+  deliberately not merged).                                                     
+                                                                                
+  ## The coordinator's current sketch and notes (to evaluate, not assume)       
+  ```go                                                                         
+  ev, ok := r.Resolve(key) // which row, the Request with args filled,          
+  mode/prefix changes; no side effects                                          
+  r.Run(ev)                // execute it; Dispatch == Resolve then Run, so      
+  nothing breaks                                                                
+  ```                                                                           
+  - **Claimed pros:** inspectable ("what would `d d` do here?" for help,        
+  previews, the CLI); interceptable (a host can log, confirm, remap or forward  
+  before running); testable without side effects; resolve-here-run-there.       
+  - **Known complications:**                                                    
+    - Pending modes mutate state as keys arrive (prefixes like `g`, counts,     
+  registers, macro recording), so `Resolve` must return "enter this pending     
+  state" as part of the event and can't be fully pure.                          
+    - Macro replay re-dispatches keys.                                          
+    - Capture rows and passthrough modes (the terminal) must keep working.      
+    - Guards read live state.                                                   
+                                                                                
+  ## What I want back                                                           
+  1. **The proposal:** where and when, quoted verbatim, with the session file   
+  and line.                                                                     
+  2. **The proposer's thinking:** what it was working on, the problem it named, 
+  its alternatives, and what the user said. Say what you infer versus what the  
+  transcript says.                                                              
+  3. **Comparison with today's code:** which parts of the proposal already      
+  exist, which conflict with later decisions (cite `~/proj/ochazuke/AGENTS.md`  
+  invariants and `~/hub/o-plans/plans/component-plan.md`), and which would be   
+  new.                                                                          
+  4. **Pros and cons:** concrete, tied to real code paths (resolve.go,          
+  model.go, history, macros, help, CLI `key.dispatch`), including costs and     
+  risks.                                                                        
+  5. **A recommendation:** do it, don't, or a smaller version; the minimum API; 
+  and which tests would pin it.                                                 
+  6. **Open questions for me.**                                                 
+                                                                                
+  Keep it under about 1,200 words plus quotes.                                  
+  ⎿  Referenced ../.claude/projects/-Users-unixsuperhero-proj-ochazuke/a07fe9fb-
+     8e99-493e-8a7f-14f3f8e55d43.jsonl (not read: too large, 9.2MB)
+
+  Ran 5 shell commands (ctrl+o to expand)
+
+⏺ Found one strong candidate (2026-10-24, "Events out, not just keys in"). Now
+  I'm widening the search to other sessions to rule out a separate Resolve/Run
+  proposal.
+
+  Ran 5 shell commands (ctrl+o to expand)
+
+⏺ Context is clear. Now checking what exists today in ochazuke for item 6, the
+  history ring, and Dispatch.
+
+  Ran 4 shell commands (ctrl+o to expand)
+
+⏺ I couldn't find any session that proposed "key in, event out" as a split
+  between resolving a key and running it. The idea you remember is "Events out, 
+  not just keys in", and that was something else: a stream of state-change
+  notifications. You liked it, it became a plan decision, and only its first
+  piece, the action history ring, was built. The Resolve/Run sketch first
+  appears in the coordinator session today (2026-10-26), after you asked about
+  it.
+
+  1. The proposal
+
+  Where: ~/.claude/projects/-Users-unixsuperhero-proj-ochazuke/a07fe9fb-8e99-493
+  e-8a7f-14f3f8e55d43.jsonl, line 2876, 2026-10-24 10:59 UTC, assistant turn. It
+  was item 6 of 6 in a reply to your question "are there any other principles
+  from html and the dom that would benefit us to apply them here?" (line 2872):
+
+  ▎ 6. Events out, not just keys in. The DOM fires focusin, change, input. A 
+  ▎ runtime event stream with focus, mode, page, modal, job changes gives you 
+  ▎ logging, the CLI's subscribe, test assertions by event instead of by 
+  ▎ snapshot, and the only part of the znbu "event bus" the framework should 
+  ▎ own.
+
+  Every candidate hit:
+
+  Session : line: a07fe9fb:2876
+  Date: 10-24 10:59
+  What it is: The proposal (above)
+  ────────────────────────────────────────
+  Session : line: a07fe9fb:2928
+  Date: 10-24 11:04
+  What it is: Your reaction
+  ────────────────────────────────────────
+  Session : line: a07fe9fb:2933
+  Date: 10-24 11:04
+  What it is: Written into docs/MIGRATION-PLAN.md as item 6 (commit b6d5b4b)
+  ────────────────────────────────────────
+  Session : line: a07fe9fb:3023
+  Date: 10-24 11:20
+  What it is: Item 6a added: "Action history (first piece of events out…)"
+  (aac54b3)
+  ────────────────────────────────────────
+  Session : line: a07fe9fb subagents ab7b2c:28/35, a1c782:74
+  Date: 10-24
+  What it is: Subagents reading those plan lines back
+  ────────────────────────────────────────
+  Session : line: f90e7056 (hub):5095 → 5151
+  Date: 10-26 16:00
+  What it is: You asked "did we ever make the change where it's key in action
+  out
+  or key in event out?"; the coordinator coined the Resolve/Run sketch (5106)
+  and wrote this prompt (5130/5151)
+  ────────────────────────────────────────
+  Session : line: ochazuke 3d5546fa/adc59b:204, 9ab6ef42/ad71f6:122, matomeru
+  a506ed:171, omp 2026-10-23
+  Date: 10-23/24
+  What it is: False positives: the test string "timer executed action outside
+  event loop"
+  ────────────────────────────────────────
+  Session : line: many "before it runs" / "returns a request" hits
+  Date: 10-19 → 10-26
+  What it is: False positives: the confirm.go header, v0.4.0 notes on Status,
+  Request.Key docs
+
+  I searched 209 Claude JSONL files under the ochazuke, matomeru, gmtm and hub
+  project directories, plus the Codex and omp sessions that mention ochazuke.
+  None of them contains Resolve(key, "dispatch returns", "pure keymap", "keymap
+  as a function", or any proposal to return the resolved row before it runs.
+
+  2. The proposer's thinking
+
+  What the transcript says:
+  - What it had been doing: briefing two agents, one for phase 8 ("state-model":
+    single focus, focusable nouns, }/{) and one for parameter choices. Before
+    that it had spent about 15 minutes with you on focus groups, the parent
+    chain as a stack, and how Bubble Tea handles focus (lines 2738–2822).
+  - Its framing: "a few are nearly free because the instance tree already is a
+    DOM." Item 1 in the same list was event bubbling and capture, which became
+    Binding.Capture. Item 6 is the outbound half of the same idea.
+  - Its scope: "the only part of the znbu 'event bus' the framework should own."
+    The plan text says "domain events stay in the application."
+  - Its order: "jump list and events when the znbu app needs them."
+  - What it ruled out: only the box model/flex layout and dataset. It didn't
+    weigh any alternative to item 6.
+  - Your reaction: "but absolutely everything in your list makes perfect sense.
+    especially events out. like that whole principle is great." Fifteen minutes
+    later you asked "do we have a history of actions triggered and context?"
+    (line 3003). That produced item 6a, the history ring, which is now built
+    (history.go).
+
+  What I infer:
+  - The problem it named was observability (logging, subscribe, tests asserting
+    on events), not interception. It never touched Dispatch's shape.
+  - The "key in / action out" wording seems to have formed later in memory from
+    "keys in" plus "action history". I didn't find it in any transcript.
+
+  3. Comparison with today's code
+
+  Already exists
+  - Rows are requests (AGENTS.md invariant: "A binding row is atomic").
+  - History with its source (Sourced, history.list, /history, persisted
+    history.jsonl).
+  - bindings.list, bindings.stops and the ? help (BindingHelp).
+  - dispatchIn(focus, mode, key) already takes focus and mode as values
+    (resolve.go:148). That is the natural seam for a split.
+
+  Conflicts with later decisions
+  - AGENTS.md: "Every keyboard action dispatches a registered operation through
+    one stack walk (Runtime.Dispatch)". A public Run(ev) that hosts can rewrite
+    or swap out makes a second entry point.
+  - AGENTS.md: "Confirmation is a property of a verb… not a modal per call
+    site". A host-side "confirm before running" hook duplicates that.
+  - component-plan.md:209: "a new general-purpose event bus is not an agreed
+    requirement". Background work goes through CallMsg. This applies to a broad
+    interception or event API, not to a read-only explain.
+  - "Motions are visual" (Runtime.Placed): a Resolve run off-screen, from the
+    CLI or tests without a frame, can't be pure for spatial motions and guards
+    like pane-split.
+
+  Would be new
+  - Any "what would this key do" call.
+  - Item 6's change-event stream. It's still unbuilt: there's no subscribe in
+    the code.
+
+  4. Pros and cons, tied to the code
+
+  Pros
+  - Help and CLI: bindings explain "d d" could report the row, its level, the
+    request with the target filled in (the ev.Level retarget in runRow), its
+    FromRow arguments, and whether a confirm will follow. Today the ? help can
+    only list candidate rows, not say which one wins.
+  - Tests: they could assert on the resolved request without running handlers.
+    Many keytest cases would get simpler.
+  - Debugging: the hardest cases are capture-pass versus bubbling and the
+    innermost key class (the terminal's any) stopping the scan. An explain call
+    shows the winning level directly.
+
+  Cons and risks
+  - One key isn't one event. dispatchIn has four outcomes, not one:
+    - run a row;
+    - wait: enterPrefix with a fallback request, and nothing executes;
+    - flush: an unmatched prefix runs its fallback, then calls r.Dispatch(key)
+      again;
+    - unclaimed.
+      On top of that, runRow itself re-dispatches the key when Binding.Replay is
+      set, and leaves pending modes before and after. So Resolve has to return
+      a tagged union, and Run can produce more events.
+  - Side effects inside the resolve step:
+    - expirePrefix() at the top of Dispatch can execute a fallback;
+    - the macro-recording shadow mode is built on the fly;
+    - r.rowRequest = true;
+    - the Sourced("key:…") label.
+  - Live state: guards inside lookup and r.argument for FromRow read live data.
+    That's fine for "what would happen now", but an event saved and run later
+    could be stale (a row deleted, focus moved).
+  - Macros: they record keys, not events. Dot-repeat already replays requests. A
+    public Run(ev) adds a third replay form that sits beside the other two
+    without any rule tying them together.
+  - Cost: resolve.go is the most heavily tested part of the runtime. Splitting
+    dispatchIn touches every pending-mode path, and the resolver value-objects
+    prototype was set aside for the same reason.
+
+  5. Recommendation
+
+  Do a smaller version: split internally, expose a read-only explain, and add no
+  public interception.
+
+  // resolve.go — no side effects; Dispatch == apply(resolve(...))
+  type StepKind string // "run" | "wait" | "flush" | "none"
+  type Step struct {
+      Kind     StepKind
+      Level    string   // instance id the row matched at
+      Binding  *Binding // the row (Keys, Capture, Replay)
+      Request  *Request // target and FromRow arguments filled in
+      Fallback *Request // wait/flush: what the prefix would run
+  }
+  func (r *Runtime) resolveIn(focus string, mode ModeState, key MacroKey) Step
+  // unexported
+
+  // public, read-only: walks a key sequence on a copy of ModeState
+  func (r *Runtime) Explain(keys string) []Step
+  // operation: bindings.explain {keys, focus?}; CLI: ochazuke bindings explain 
+  "d d"
+
+  - Keep Dispatch as the only thing that runs keys.
+  - Expiry and macro shadowing stay in Dispatch. Explain builds the shadow mode
+    itself, without calling expirePrefix.
+  - Treat item 6 (the event stream) as separate work, still waiting for znbu as
+    planned.
+
+  Tests that would pin it
+  - TestDispatchEqualsResolveThenApply: for each existing keytest fixture,
+    resolveIn then apply produces the same history entries, mode and focus as
+    Dispatch.
+  - TestExplainHasNoSideEffects: compare Mode, Focus, pending state, History(0)
+    length, registers and macro state before and after Explain.
+  - TestExplainSequence: on a list row, d d gives a run step with row.delete
+    targeted at that row. g alone gives wait with its fallback. g x gives flush
+    and then x's step.
+  - Explain cases for:
+    - capture precedence;
+    - the terminal key class ending the scan;
+    - a Replay row reported as producing a second step;
+    - a step under the macro_recording shadow.
+  - TestBindingRowsAreAtomic stays as it is.
+
+  6. Open questions for you
+
+  1. Was your goal interception (a host vetoing or rewriting before a row runs),
+     or inspection (help, CLI, tests)? Inspection fits the invariants;
+     interception needs a new decision.
+  2. Should Explain without a drawn frame refuse spatial motions, or answer from
+     the last Placed?
+  3. Should item 6's change-event stream be pulled forward with this, or keep
+     waiting for znbu?
+  4. Should the v0.5.0 completion release wait on this, as the coordinator
+     suggested, or ship without it? I'd ship without it.
+
+✻ Sautéed for 3m 18s · done 12:14 PM
+
+❯ save as md file and open it with mdoc cli tool                                
+
+⏺ Skill(mdoc)
+  ⎿  Successfully loaded skill
+
+  Listed 1 directory (ctrl+o to expand)
+
+⏺ Write(~/claude/docs/response-v03.md)
+  ⎿  Wrote 131 lines to ~/claude/docs/response-v03.md
+      1 # The "key in, event out" proposal for ochazuke
+      3 I couldn't find any session that proposed "key in, event out" as 
+        a split between resolving a key and running it. The idea you reme
+        g else: a stream of state-change notifications. You liked it, it 
+        ory ring, was built. The `Resolve`/`Run` sketch first appears in 
+        the coordinator session today (2026-10-26), after you asked about
+      4 
+      5 ## 1. The proposal
+      7 **Where:** `~/.claude/projects/-Users-unixsuperhero-proj-ochazuke
+        24 10:59 UTC, assistant turn. 
+     … +219 lines (ctrl+o to expand)
+
+  Searched for 1 pattern, ran 2 shell commands (ctrl+o to expand)
+
+⏺ The mdoc server rejected the publish with a 500, so I'm checking whether the
+  server is healthy.
+
+  Ran 5 shell commands (ctrl+o to expand)
+
+⏺ The server hit a race ("Documents changed while rendering; retry the import").
+  The transaction rolled back, so nothing was saved, and I'm retrying once.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ The report is saved and published, and it opened at
+  http://127.0.0.1:4387/items/904 under the title "Key In, Event Out: Proposal
+  Review".
+
+  - File: ~/claude/docs/response-v03.md. response.md and response-v02.md already
+    existed, so it took the next free name.
+  - No preview: mdoc-render isn't installed (command not found), so I published
+    without rendering it first.
+  - First publish failed: the first mdoc run returned HTTP 500. The server log
+    said "Documents changed while rendering; retry the import." and that write
+    was rolled back. I retried once, and that run saved the document.
+
+✻ Crunched for 1m 5s · done 12:16 PM
+
+❯ so i wnat to go over it to make sure i understand mine and the previous       
+  agent's misunderstanding.  and regarding the open questions, my intention was 
+  just that it seemed more flexible.                                            
+                                                                                
+  my assumption was it was the resolver that returned events, like you          
+  understood.  but after reading your doc, it sounds like they originally meant 
+  that a keypress becomes a KeyPress event where target is the targey (focused  
+  component)                                                                    
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Not quite. A keypress turned into an event with a target is the DOM's keydown,
+  and that's item 1 on the same list, event bubbling. Item 6, "events out",
+  points the other way: the runtime announcing what changed after it happened.
+  Three ideas got blended, and only one of them is unbuilt.
+
+  The three ideas
+
+  1. Keys in, as events with a target. This is item 1, bubbling and capture, and
+  it's already built. In the DOM, a keydown goes to the focused element and
+  bubbles up through its parents. ochazuke does the same thing today:
+
+  // resolve.go:17
+  type KeyEvent struct {
+          Key   MacroKey
+          Mode  ModeState
+          Focus string // the target: the focused instance
+          Level string // the instance whose level is answering
+  }
+
+  Dispatch walks from Focus out to app (bubbling). Capture rows go first, outer
+  to inner (capture phase). So the keypress-as-event-with-a-target model you're
+  describing is already how keys come in.
+
+  2. Events out. This is item 6, what the 10-24 agent proposed, and it's not
+  built. "Out" means out of the runtime to anyone listening, after something has
+  already happened. The DOM analogy was focusin and change: you don't send
+  those, the browser tells you about them. In ochazuke these would be events
+  like:
+
+  {type: "focus", from: "row-7", to: "row-8"}
+  {type: "mode",  from: "normal", to: "insert"}
+  {type: "modal", opened: "confirm"}
+  {type: "job",   id: 3, state: "done"}
+
+  Listeners (logging, ochazuke subscribe, tests) watch these but can't stop or
+  change anything. The history ring (item 6a) is the part that got built, and it
+  records executed requests, not state changes.
+
+  3. The resolver returns an event instead of running it. That's the Resolve/Run
+  split. Nobody proposed it before 10-26. The coordinator wrote it when you
+  asked, reading "event out" as the output of the key handler.
+
+  Where the readings went wrong
+
+  - Yours and the coordinator's: "keys in, events out" read as a description of
+    one function, with a key going in and an event coming out instead of an
+    action. That makes "out" the return value of Dispatch.
+  - The original: two separate directions of flow. Keys come into the runtime,
+    which already worked. Change events go out of the runtime to observers,
+    which was new. "Out" meant notifications, not a return value.
+  - Your new reading: "keypress becomes a KeyPress event with the focused
+    component as its target" matches item 1, which is already done. It isn't
+    item 6.
+
+  The same d d on a list row shows the difference:
+
+  ┌──────────────────┬──────────────────────────────────────────────────────┐
+  │       Idea       │                     What happens                     │
+  ├──────────────────┼──────────────────────────────────────────────────────┤
+  │                  │ KeyEvent{Key: "d", Focus: "row-7"} walks row → list  │
+  │ Keys in (built)  │ → page → app. The first d waits as a prefix. The     │
+  │                  │ second resolves to row.delete targeted at row-7,     │
+  │                  │ which runs.                                          │
+  ├──────────────────┼──────────────────────────────────────────────────────┤
+  │ Events out (item │ Afterwards, listeners hear modal opened: confirm.    │
+  │  6, not built)   │ After y, they hear focus row-7 → row-8. History      │
+  │                  │ already records row.delete row-7, source key:d d.    │
+  ├──────────────────┼──────────────────────────────────────────────────────┤
+  │ Resolve/Run (new │ Before anything runs, the caller gets back {run:     │
+  │  idea)           │ row.delete, target: row-7} and decides whether to    │
+  │                  │ run it.                                              │
+  └──────────────────┴──────────────────────────────────────────────────────┘
+
+  On "it seemed more flexible"
+
+  That's a fair instinct. The flexibility a split buys is a gap between deciding
+  and doing, where other code can look, log, change or cancel. Here's where
+  those needs stand:
+
+  - Look before running: nothing does this today. The smaller version in the doc
+    (an internal split plus a read-only bindings explain) covers it.
+  - Cancel or confirm: Operation.Confirm covers it.
+  - Remap: bindings.json covers it.
+  - Run somewhere else: CallMsg and the CLI's key.dispatch cover it.
+  - Log: history covers it.
+
+  So I'd keep the recommendation. The internal split gives you the flexible seam
+  without promising a public interception API. If a real case shows up later
+  where a host needs to step in between resolving and running, making resolveIn
+  public is a small change at that point.
+
+✻ Brewed for 34s · done 12:28 PM
+
+❯ okay, i think i get it. so the idea is, as far as number two goes, in your    
+  three ideas list, what the original agent proposed is basically that side     
+  effects are what are returned and the app itself can choose whether or not it 
+  wants to perform that side effect or not.                                     
+
+⏺ No, that's still idea 3, or close to it. What you're describing is what Elm
+  and Bubble Tea do with tea.Cmd: the handler returns the side effect as data,
+  and the app decides whether to run it.
+
+  In item 6 the side effect has already happened by the time the event goes out.
+  The event is a report, not an offer:
+
+  - Idea 3 (returned effect): "pressing d d would delete row-7. Want me to?" The
+    app can say no.
+  - Item 6 (event out): "row-7 was deleted, and focus moved to row-8." Nobody
+    can say no. Listeners can only react: log it, update a status line, stream
+    it to ochazuke subscribe, or check it in a test.
+
+  A newspaper versus a permission slip. Item 6 is the newspaper: it tells
+  everyone what happened, so nobody has to poll state or reach into the runtime
+  to find out.
+
+  The DOM fits this too. focusin fires after focus has moved, and change fires
+  after the value has changed. You can't cancel either of them. (The DOM does
+  have cancellable events, like keydown with preventDefault(), but those are the
+  input side, idea 1, not what item 6 borrowed.)
+
+✻ Cogitated for 10s · done 12:31 PM
+
+❯ so the agent that also misunderstood what i was talking about was wrong in    
+  the sense that apps are not able to decide and intercept events. they just    
+  see the side effect. they just learn about the side effect after the fact.    
+
+⏺ Mostly, but the coordinator's mistake was a bit different. It didn't misread
+  item 6, because it never found item 6. You asked about "key in, event out", it
+  couldn't find anything written down, and it built a design that fit the
+  phrase: Resolve returns the event, and Run performs it. Its "interceptable: a
+  host can log, confirm, remap or forward before running" is a correct
+  description of that design. It just isn't what the 10-24 agent proposed.
+
+  So the corrected picture is:
+
+  - What was proposed (item 6): apps can't decide or intercept. They learn about
+    changes after the fact: focus moved, mode changed, a modal opened, a job
+    finished.
+  - What the coordinator sketched (idea 3): apps can decide before anything
+    runs. That's a separate idea, made up on 10-26, not a version of item 6.
+  - Interception points that already exist: a verb's Confirm, user remaps in
+    bindings.json, and guards on rows. Those are where "should this run?" gets
+    decided today. No proposal on the table adds a general hook for it.
+✻ Baked for 7s · done 12:32 PM
+
+❯ okay, but if we wanted to completely isolate the modal event handling, then   
+  this is something we would want to do right, like move the actual execution   
+  out of the resolver and the runner. like like move that stuff out of ochazu k 
+  is like move the acting part of the event handling outside of the library.    
+                                                                                
+  right?                                                                        
+
+⏺ Half right. Pulling the acting out of the resolver is exactly what isolating
+  modal key handling takes. Pulling it out of ochazuke is a separate decision,
+  and I don't think you want it. (I'm reading "modal" as Vim-style modes like
+  normal, insert and pending, not modal dialogs.)
+
+  The part that's right
+
+  To isolate the mode engine (modes, prefixes like g, counts, capture,
+  bubbling), it must stop executing things. Then it becomes a state machine:
+
+  // (state, key) in → (new state, what to do) out. Nothing runs.
+  next, step := keymap.Feed(state, key, env)
+
+  - state holds the mode, the pending prefix, the count and the macro-recording
+    flag.
+  - step is run / wait / flush / none, plus the request, as in the doc.
+  - env is read-only: the walk from the focus outward, guard answers, and the
+    drawing order for spatial motions.
+
+  That engine would be pure, testable on its own, and usable by a program that
+  has nothing else from ochazuke. resolve.go already imports only the standard
+  library, which is a good sign this can be done.
+
+  The part I'd push back on
+
+  Executing a request means ExecuteAt: the operation registry, Confirm, history,
+  dot-repeat, Sourced, and the CLI and socket running the same operations.
+  That's ochazuke's core, not plumbing around the resolver. If apps executed
+  requests themselves:
+
+  - every app would rebuild confirm, history and dot-repeat, or lose them;
+  - a key and ochazuke task done from the CLI could start behaving differently,
+    which breaks the "keys and CLI are the same operation" invariant.
+
+  So the better split is two layers inside ochazuke:
+
+  1. The keymap engine (new package, pure): keys in, steps out.
+  2. The runtime (existing): takes a step and runs it through ExecuteAt.
+     Dispatch becomes "feed the engine, then run the step."
+
+  An app that wants full control can use only the engine and run the steps
+  itself. Everyone else keeps today's behavior.
+
+  What makes it real work
+
+  - Mode changes are operations today. mode.enter, count.append, macro.record
+    and mode.leave run through Execute like any verb (the stayingRequests list
+    in resolve.go). In a pure engine they become internal state changes, so the
+    engine owns mode state instead of the runtime.
+  - One key can produce several steps. A flushed prefix runs its fallback and
+    then replays the key. A Replay row runs, then re-dispatches. So Feed returns
+    a list of steps, not one.
+  - Guards and spatial motions read live data. The engine takes them as answers
+    in env rather than reading the runtime, and the runtime supplies them.
+
+  It's a real refactor of resolve.go and the mode operations, about the size of
+  the value-objects prototype you set aside. It's worth doing if you want the
+  mode engine reusable outside ochazuke or tested in isolation. If you only want
+  "what would this key do?", the smaller internal split from the doc gets that
+  for much less.
+
+✻ Churned for 32s · done 12:36 PM
+
+❯ okay, can we first of all i don't want to do this with ochazuke but i do want 
+  to model it like i do want to write a proof of concept with the example csv   
+  app. what would that look like in practice? yeah, let's just let's start      
+  there. write it outside of this project or write it outside of ochazuke. like 
+  make a new project called like o-modal or something.                          
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ I'll build a new Go module at ~/proj/o-modal—a pure mode engine package plus a
+  CSV app that executes it. First, checking the Bubble Tea v2 API in the module
+  cache to ensure it builds offline.
+
+  Listed 1 directory, ran 1 shell command (ctrl+o to expand)
+
+⏺ Writing the engine now: modal/ is standard-library only, and its Feed takes
+  (state, environment, key) and returns (new state, steps).
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Write(~/proj/o-modal/modal/modal.go)
+  ⎿  Wrote 319 lines to ~/proj/o-modal/modal/modal.go
+       1 // Package modal is a modal key engine with no side effects: a k
+       2 // with the current State and a snapshot of the host's Env, and 
+       3 // and the Steps the host should run come out. The engine never 
+         runs an
+          Step.
+       6 // The engine owns everything that is about keys rather than abo
+       7 // application: modes, key-sequence prefixes and their fallback,
+          counts,
+         se is a
+      10 package modal
+     … +347 lines (ctrl+o to expand)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Write(~/proj/o-modal/modal/machine.go)
+  ⎿  Wrote 98 lines to ~/proj/o-modal/modal/machine.go
+       1 package modal
+       2 
+       4 
+       5 // Machine is the host side of the loop: Press feeds a key throu
+         gh the
+         s turn into
+       7 // effects, and it is optional: a host can call Keymap.Feed itse
+         lf to look
+       9 type Machine struct {
+      10   Keymap Keymap
+     … +97 lines (ctrl+o to expand)
+
+⏺ Write(~/proj/o-modal/modal/modal_test.go)
+  ⎿  Wrote 219 lines to ~/proj/o-modal/modal/modal_test.go
+       1 package modal
+       2 
+       3 import (
+       4   "reflect"
+       5   "testing"
+       6 )
+       7 
+       8 func testKeymap() Keymap {
+       9   return Keymap{
+      10     Counting: []string{"normal"},
+     … +231 lines (ctrl+o to expand)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Engine tests pass. One test's comment didn't match what it actually checked,
+  so I'm making it a real "Env changes between replayed keys" check.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Now the CSV app. The keymap is a JSON file (rows are data), and the app's Run
+  is the only code that changes the sheet.
+
+⏺ Write(~/proj/o-modal/cmd/csv/keymap.json)
+  ⎿  Wrote 52 lines to ~/proj/o-modal/cmd/csv/keymap.json
+       1 {
+       3   "layers": {
+       4     "cell": [
+         ove", "args": {"dir": "left"}}},
+         ove", "args": {"dir": "left"}}},
+       7       {"mode": "normal", "keys": "l",     "do": {"op": "cursor.m
+       8       {"mode": "normal", "keys": "right", "do": {"op": "cursor.m
+         ove", "args": {"dir": "right"}}},
+         ove", "args": {"dir": "down"}}},
+         ove", "args": {"dir": "down"}}},
+     … +78 lines (ctrl+o to expand)
+
+⏺ Write(~/proj/o-modal/cmd/csv/sheet.go)
+  ⎿  Wrote 261 lines to ~/proj/o-modal/cmd/csv/sheet.go
+       1 package main
+       2 
+       3 import (
+       4   "encoding/csv"
+       5   "fmt"
+       6   "os"
+       7   "strings"
+       8 
+       9   "github.com/unixsuperhero/o-modal/modal"
+      10 )
+     … +261 lines (ctrl+o to expand)
+
+⏺ Write(~/proj/o-modal/cmd/csv/app.go)
+  ⎿  Wrote 138 lines to ~/proj/o-modal/cmd/csv/app.go
+       1 package main
+       2 
+       3 import (
+       4   _ "embed"
+       5   "encoding/json"
+       6   "fmt"
+       7   "sort"
+       8   "strings"
+       9 
+      10   "github.com/unixsuperhero/o-modal/modal"
+     … +135 lines (ctrl+o to expand)
+
+⏺ Write(~/proj/o-modal/cmd/csv/main.go)
+  ⎿  Wrote 79 lines to ~/proj/o-modal/cmd/csv/main.go
+      1 // Command csv is a small CSV editor built on the modal engine, t
+      2 // keys resolving to steps that the application then chooses to r
+        un.
+      3 //
+      5 //      csv --keys "j d d y" FILE     run keys headless, print ea
+        ch key's steps and the sheet
+        o; run nothing
+      7 //
+      8 // In --keys, the word <wait> stands for the sequence timer firin
+      9 package main
+     … +76 lines (ctrl+o to expand)
+
+⏺ Write(~/proj/o-modal/cmd/csv/tui.go)
+  ⎿  Wrote 101 lines to ~/proj/o-modal/cmd/csv/tui.go
+       1 package main
+       2 
+       3 import (
+       4   "fmt"
+       5   "strings"
+       6   "time"
+       7 
+       8   tea "charm.land/bubbletea/v2"
+       9   "charm.land/lipgloss/v2"
+      10 )
+     … +97 lines (ctrl+o to expand)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Works end to end. Two small polish items: the engine should say what it did
+  itself (e.g. "recorded @a: j t u" instead of "mode normal"), and replayed keys
+  should be indented in the log.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ All tests pass. Now a quick live check of the TUI in a tmux pane.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Write(~/proj/o-modal/README.md)
+  ⎿  Wrote 48 lines to ~/proj/o-modal/README.md
+       1 # o-modal
+       3 A proof of concept: a modal key engine that runs nothing. A key 
+         goes in with the current state and a snapshot of the host's envi
+         ronment; a new state and a list of steps come out. The host deci
+       4 
+       5 ```go
+         esult
+       7 state = res.State
+       8 for _, step := range res.Steps {
+      10 }
+     … +61 lines (ctrl+o to expand)
+
+  Ran 2 shell commands (ctrl+o to expand)
+⏺ I built the proof of concept at ~/proj/o-modal, with no changes to ochazuke.
+  The key handling never runs anything: a key goes in, and a new state plus a
+  list of steps comes out. The CSV app decides what to do with each step. go 
+  test -race ./... passes, and I also drove the TUI live in tmux. I ran git init
+  but haven't committed anything.
+
+  res := keymap.Feed(state, env, key) // no side effects
+  state = res.State
+  for _, step := range res.Steps { sheet.Run(step) } // the app's choice
+
+  How it's split
+
+  - modal/modal.go (standard library only) is the engine. It owns everything
+    about keys:
+    - modes;
+    - sequences like d d, g g and t u, with a fallback (y alone yanks the cell,
+      y y duplicates the row);
+    - counts, carried on the step as args.count;
+    - capture rows (ctrl+c from any mode);
+    - the text key class for insert mode;
+    - guards, answered by the app;
+    - macros (q a … q, @ a).
+  - modal/machine.go is an optional loop: Press feeds a key and runs its steps,
+    Expire is the sequence timer, and Preview resolves keys without running
+    anything.
+  - cmd/csv/keymap.json holds all the bindings as data.
+  - cmd/csv/sheet.go is the app. Sheet.Run(step) is the only code that changes
+    the sheet, and it knows nothing about keys.
+
+  Try it:
+
+  cd ~/proj/o-modal
+  go run ./cmd/csv cmd/csv/testdata/people.csv        # TUI; ctrl+e = preview
+  go run ./cmd/csv --explain "3 d d" cmd/csv/testdata/people.csv
+  #   row.delete {count=3} @row
+  go run ./cmd/csv --keys "q a t u j q 3 @ a" cmd/csv/testdata/people.csv
+
+  The TUI shows a log of what the engine returned for each key, which makes the
+  "steps out" idea visible. In preview mode (ctrl+e), the keys you type show
+  "would run: row.delete {count=3}" and nothing changes.
+
+  What the prototype taught us
+
+  1. The app can intercept on its own, with no hook API. row.delete sets the
+     request aside and switches to a confirm mode, so y runs it and n drops it.
+     Preview is the app choosing not to run anything. Both are ordinary app
+     code.
+  2. Replays can't be fully worked out in advance. When a sequence breaks off (y
+     j) or a macro replays, the engine returns "feed these keys back in later"
+     rather than final steps. Each replayed key has to see the sheet as the
+     earlier steps left it. A test pins this: 2@a of a recorded d d deletes one
+     row, then stops when only one row is left. As a result, previewing a macro
+     is approximate, because every key in it is resolved against the current
+     sheet.
+  3. Mode has two writers. The engine changes modes through rows, and the app
+     changes them too, entering insert or confirm by setting Machine.State.Mode.
+     That works, but it's a design question if this ever goes back into
+     ochazuke: should every mode change be a step the engine returns?
+  4. A fallback that is itself an engine operation is dropped. If the single-key
+     version of a sequence switches modes, there's no fallback for it. That's a
+     known gap; nothing in the CSV app hits it.
+
+  It doesn't cover visual mode, movement by screen position, or a command
+  palette.
+
+✻ Brewed for 6m 2s · done 12:44 PM
+
+❯ Ji'm also curious about modes. and for replays, similar to the shadow         
+  technique, can we also do something like that that would not affect the main  
+  state of the app, but would effectively duplicate it and change it in the     
+  background kind of like running in headless mode                              
+
+⏺ Yes. Since the sheet is plain data, the app can fork it, run the keys on the
+  copy with a second machine, and show the result. That makes the preview exact,
+  macros and confirms included. I'll build that, then answer the modes
+  question.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ I left a scratch block at the top of the macro test. Cleaning it up, counting
+  row.delete steps in both versions, then running the suite.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ Preview works on the copy. There's one rendering glitch: the "ran:" line sits
+  after the table's padding. Fixing that and updating the README.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+⏺ Yes, and it's in ~/proj/o-modal now. The preview copies the whole app, runs
+  the keys on the copy headlessly, and shows the result. The real sheet and
+  engine state are never touched. go test -race ./... passes, and I checked the
+  preview live in tmux.
+
+  How the copy works
+
+  - Sheet.Fork() deep-copies the rows, the undo and redo stacks, and any delete
+    waiting for y/n.
+    - The undo stacks have to be copied too. Undo puts an old snapshot back as
+      the live rows, and later edits change it in place, so a shared stack would
+      let the copy corrupt the real undo history. TestForkKeepsUndoApart checks
+      this.
+  - App.Simulate(keys) gives the copy its own machine, starting from the real
+    engine state. Every step actually runs, on the copy:
+    - each replayed key sees what the steps before it did to the copy;
+    - confirms really ask and really answer.
+  - Effects outside the sheet can't be copied. You can copy memory, but not the
+    file system. The copy has DryRun set, so ctrl+s there only reports "would
+    save …". TestSimulatedSaveWritesNothing checks the file stays unchanged.
+
+  ctrl+e in the TUI and --explain now use this. The preview shows the copy's
+  table, the steps that ran on it, and its mode:
+
+  $ csv --explain "j 2 d d y t u ctrl+s" people.csv
+  cursor.move {dir=down} @cell
+  row.delete {count=2} @row
+  confirm.yes @sheet
+  cell.transform {name=upper} @cell
+  sheet.save @sheet
+
+  mode normal (on a copy; people.csv is unchanged)
+   ann    │ a@x.io │ dev  │
+  [DEE   ]│ d@x.io │ qa   │
+     eve  │ e@x.io │ dev  │
+  would save people.csv
+
+  TestSimulationIsExactWherePreviewGuesses shows why this beats the earlier
+  preview. With 2 rows and macro a = d d y, 2 @ a:
+  - the earlier key-only preview predicts two deletes;
+  - the copy shows one, because the second d d sees only one row left, its guard
+    turns false, and nothing happens.
+
+  That's the "approximate" gap from last time, now closed.
+
+  For ochazuke, the catch is effects outside memory. ochazuke has commands from
+  actions.json, background jobs, file writes and the socket. A copy is only safe
+  if every such effect goes through a channel the copy can turn into "would do
+  X". The v0.4.0 UI sinks work that way for notices; nothing does for the rest
+  yet.
+
+  Modes
+
+  Right now the mode has two writers:
+
+  1. The engine, through rows. esc → modal.mode {mode: normal} is applied inside
+     Feed and never reaches the app.
+  2. The app, inside a step. cell.edit sets insert mode, and row.delete sets
+     confirm mode, by writing Machine.State.Mode directly.
+
+  The test above shows what that costs. The key-only preview can't know that d d
+  will put the app into confirm mode, so it reads the next y as a normal-mode y
+  and gets the answer wrong. The copy gets it right only because it really runs
+  the step.
+
+  There are two ways to get down to one writer:
+
+  - Keymap-owned: confirm mode comes from the keymap. A when guard or a row
+    means d d itself enters confirm mode. The engine always knows the mode, but
+    the decision to ask, which belongs to the app, moves into key data.
+  - Engine-applied (my pick): the app returns its mode change instead of setting
+    it. Run(step) returns, say, []Request{{Op: "modal.mode", Args: {mode: 
+    "confirm"}}}, and the machine applies it through the engine. The engine
+    stays the only writer and can clear any pending prefix or count on the way
+    in. The app still decides, and a log or a recorder sees mode changes as
+    data.
+
+  Either way, a key-only preview still can't predict an app's decision, because
+  only running the step reveals it. That's why the copy is the exact tool, and a
+  cheap preview can only explain what the keys mean.
+
+  Want me to make the engine-applied change in o-modal? It's small: change Run's
+  signature, add one Machine method, and update the two places in sheet.go that
+  set the mode.
+
+✻ Cogitated for 1m 54s · done 12:51 PM
+
+❯ also with replays, isn't that an app decision and not a decision for the      
+  framework or library? so in that case, the app controls what's sent into the  
+  library anyway so it's something that the app has complete control over.      
+
+⏺ Yes for macros, but not for every replay. The engine replays keys for two
+  different reasons, and only one of them is the app's decision.
+
+  Macros: yes, the app's
+
+  The app owns the input loop. Every key reaches the engine because the app
+  called Press. So the app can record keys before handing them over, and replay
+  a macro by pressing them again. The engine doesn't need to know macros exist.
+
+  The trigger keys don't need special engine support either. The q then a part
+  ("the next key names a register") is just a mode, which the engine already
+  handles generically:
+
+  {"mode": "normal",   "keys": "q",   "do": {"op": "macro.toggle"}},
+  {"mode": "normal",   "keys": "@",   "do": {"op": "macro.choose"}},
+  {"mode": "register", "class": "text", "do": {"op": "macro.register"}}
+
+  - macro.toggle starts recording by entering the register mode; pressed during
+    a recording, it stops.
+  - macro.register {text: "a"} names the register, then either starts the
+    recording or replays it.
+  - The count works the same way: 3 @ a arrives as count=3.
+
+  Moving macros out would delete a lot from the engine: OpRecord, OpReplay,
+  Await, Recording, Tape, Macros and Replaying all go. The engine would be left
+  with modes, sequences, counts, capture, classes and guards, which are things
+  every app needs the same way. Recording also gets simpler. Keys the engine
+  feeds back internally never pass through the app's Press, so the app's
+  recorder only ever sees keys a person typed, and Replaying isn't needed.
+
+  Sequence replays: no, the engine's
+
+  y j is different. The y y sequence broke off at j, so the fallback (yank) runs
+  and then j has to be offered again as a fresh key. That's part of what a
+  sequence means, not an app choice. Every app needs the same answer, and only
+  the engine knows a sequence was pending. That replay stays in the engine as
+  Step.Replay.
+
+  The app could still do the re-feeding itself if you wanted the machine loop to
+  go away entirely. The engine would return "run the fallback, then feed j
+  again", and the app's own loop would follow it. Either way, the engine decides
+  that it happens, and the app does it.
+
+  For ochazuke, the line sits elsewhere
+
+  In ochazuke, macros live in the framework (registers.go, the macro_recording
+  shadow mode in Dispatch). There the framework is the app shell. Every ochazuke
+  app gets macros for free, just like history and dot-repeat, so putting them
+  there makes sense.
+
+  The split you're pointing at is between two layers. A key engine like o-modal
+  should only do what every app needs from keys. A framework like ochazuke can
+  add opinionated features on top, such as macros, confirm and history, and it
+  would build them from the engine's generic parts.
+
+  Want me to move macros out of the o-modal engine into the CSV app? I'd keep
+  the existing macro tests as the check: the same keys should produce the same
+  results.
+
+✻ Worked for 26s · done 12:52 PM
+
+❯ show me two snippets. one with the engine changing the mode and one with the  
+  app because if it is how i imagine it, then changing the mode on the engine   
+  side is data, right? it's defined on the row on the row.                      
+
+⏺ Yes. When the engine changes the mode, the change is data on the row. When the
+  app changes it, the change is code inside the step it runs. Here are both.
+  One thing to know first: the CSV keymap doesn't use the engine form at all
+  yet, so the first snippet comes from the engine's test keymap.
+
+  Engine side: data on the row
+
+  // modal_test.go's keymap, written as JSON
+  {"mode": "normal", "keys": "i",   "do": {"op": "modal.mode", "args": {"mode":
+  "insert"}}},
+  {"mode": "insert", "keys": "esc", "do": {"op": "modal.mode", "args": {"mode":
+  "normal"}}}
+
+  // modal/modal.go, apply(): the engine handles it itself; no Step reaches the 
+  app
+  case OpMode:
+          st.Mode, _ = row.Do.Args["mode"].(string)
+          st.Count = 0
+          return Result{State: st, Claimed: true, Note: "mode " + st.Mode}
+
+  Everything about the change is written in the keymap: i in normal mode means
+  insert, every time. That makes it knowable without running anything. A
+  key-only preview, the ? help and a binding list can all show "esc → normal
+  mode".
+
+  App side: code inside the step
+
+  // cmd/csv/keymap.json: the row names an app operation and says nothing about 
+  modes
+  {"mode": "normal", "keys": "i",   "do": {"op": "cell.edit"}},
+  {"mode": "normal", "keys": "d d", "when": "many-rows", "do": {"op":
+  "row.delete"}}
+
+  // cmd/csv/sheet.go, Sheet.Run(): the app decides while the step runs
+  case "cell.edit":
+          s.Edit = s.cell()
+          setMode("insert")
+
+  case "row.delete":
+          if q.Args["confirmed"] != true {
+                  s.Pending = &q
+                  s.Status = fmt.Sprintf("delete %d row(s) from %q? y/n", n,
+  s.Rows[s.R][0])
+                  setMode("confirm")
+                  return nil
+          }
+          // ...delete
+
+  Here the row only says "run row.delete". Whether that ends up in confirm mode
+  is decided at run time, and it depends on state the keymap can't see
+  (confirmed). That's the flexibility, and it's also why only running the step
+  reveals the mode.
+
+  Why the CSV app uses the app form for i
+
+  A row is one request. i has to do two things: load the cell into the editor
+  buffer (app work) and enter insert mode. An engine modal.mode row can't also
+  run cell.edit, so cell.edit sets the mode itself.
+
+  If you want mode changes to be data while a row still runs an app operation,
+  there's a third shape. The row carries both:
+
+  {"mode": "normal", "keys": "i", "do": {"op": "cell.edit"}, "then": "insert"}
+
+  The engine would emit the cell.edit step and switch to insert itself. The mode
+  change stays visible in the keymap, and the app only loads the buffer.
+  row.delete would stay app-side, because "ask first?" really is a run-time
+  decision.
+
+✻ Brewed for 21s · done 12:56 PM
+
+❯ no, i think there's another way to handle this. so first i think that we      
+  shouldn't return a single event. we should return an array of events. and     
+  probably always. that would just simplify things. so instead of returning     
+  either a single event or an array of events, just always return an event an   
+  event that would mostly be just a single element.                             
+                                                                                
+  but i still think we should return set mode set mode as an event and let the  
+  app determine if they want to change the mode or not how does that work? does 
+  that simplify things for us? does that accomplish our goals?                  
+
+⏺ Yes, on both counts, and the first part is already done. Feed always returns a
+  list: Result.Steps []Step, usually with one element. What changes is that the
+  engine's own mode changes would become events in that list too, rather than
+  being applied silently.
+
+  How it works
+
+  The engine stops writing the mode. It reads the mode as input, the same way it
+  reads guards:
+
+  type Env struct {
+          Mode  string                // the app's current mode: input, like 
+  guards
+          Walk  []string
+          Guard func(string) bool
+  }
+  type State struct {             // only key-level memory is left
+          Prefix   string
+          Fallback *Step
+          Count    int
+  }
+
+  The mode change stays data on the row, and it comes out as an ordinary event:
+
+  {"mode": "insert", "keys": "esc", "do": {"op": "mode.set", "args": {"mode":
+  "normal"}}}
+
+  res := km.Feed(st, env, "esc")
+  // res.Steps == [{Request: {Op: "mode.set", Args: {mode: "normal"}}, Layer: 
+  "cell", Keys: "esc"}]
+
+  The app handles it like any other operation:
+
+  case "mode.set":
+          if str("mode") == "insert" && s.ReadOnly {
+                  s.Status = "read-only"
+                  return nil                // the app refuses it
+          }
+          s.Mode = str("mode")
+
+  The app's own decisions use the same path. row.delete sets s.Mode = "confirm"
+  itself, or emits mode.set itself.
+
+  Does it simplify things?
+
+  Yes:
+
+  - One writer. Only the app changes the mode. The setMode callback goes away,
+    along with OpMode and its special case in apply.
+  - Every mode change is visible. It shows up in the log, history and recordings
+    as a mode.set event, whether it came from a row or from app code.
+  - The engine shrinks to key memory only: prefix, fallback and count. Add your
+    macros-in-the-app idea and it's down to those three fields.
+
+  Does it meet the goals?
+
+  ┌─────────────────┬───────────────────────────────────────────────────────┐
+  │      Goal       │                        Result                         │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ Mode changes    │ Yes: still on the row                                 │
+  │ defined as data │                                                       │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ App can         │ Yes, including mode changes, which it can't refuse    │
+  │ intercept or    │ today                                                 │
+  │ refuse          │                                                       │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ Single writer   │ Yes                                                   │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ Exact preview   │ The copy-and-run preview: unchanged, still exact      │
+  ├─────────────────┼───────────────────────────────────────────────────────┤
+  │ Key-only        │ Has to assume the app accepts each mode.set. That's   │
+  │ preview         │ reasonable for row-defined ones, but it still can't   │
+  │                 │ see app decisions like confirm                        │
+  └─────────────────┴───────────────────────────────────────────────────────┘
+
+  Three details to settle
+
+  1. Ordering within one key is already safe. If a broken-off sequence returns
+     [fallback, replay j] and the fallback is a mode.set, j is fed only after
+     the app has run it, so j resolves in the new mode. The Replay step
+     guarantees that.
+  2. A mode change while a sequence is pending. If the app switches modes on its
+     own (a job finishes, a modal opens), the engine's leftover g… or count
+     should be dropped. The engine can detect this by remembering which mode the
+     prefix started in and clearing it when Env.Mode no longer matches. That's
+     about three lines.
+  3. i still needs two things: load the cell into the buffer, and enter insert
+     mode. There are two options:
+     - cell.edit emits or sets the mode itself, in app code. Rows stay atomic,
+       one key and one operation, which matches ochazuke's invariant.
+     - A row's do becomes a list, [{cell.edit}, {mode.set insert}]. It fits
+       naturally now that steps are always a list, and the mode change stays
+       visible as data. The cost: one key produces two operations, which
+       complicates undo grouping and dot-repeat.
+
+     I'd keep rows atomic and let cell.edit set the mode. Either way, the mode
+     change is reported as an event.
+
+  Want me to make this change in o-modal? It would move the mode into Env, make
+  mode.set an ordinary event, and drop it from the pure preview. The existing
+  tests would pin that the behavior stays the same.
+
+✻ Baked for 32s · done 1:00 PM
+
+❯ one, if you drop the mode change or mode.set in the ordinary in the pure      
+  pre-preview, does that mean in the preview we wouldn't track mode changes.    
+  that's one. two. isn't it aren't we already returning an array of steps? so i 
+  don't understand your point with with three dot two now for dot repeat, for   
+  undo grouping and dot repeat, i think certain events that are at the engine   
+  level shouldn't be marked replayable and i think the key press i i think      
+  replaying should always be key press just feeding in keys and then let the    
+  let the engine feed you know output whatever the steps would be based on      
+  state that's the whole point is that repeating isn't coupled to a specific    
+  state it's just replaying keys, keystrokes.                                   
+
+⏺ 1. Does the pure preview track mode changes?
+
+  Yes. "Drop it from the pure preview" was bad wording on my part. The pure
+  preview would still track every mode change that comes from a row. When it
+  sees a mode.set event, it applies it to its own copy of the mode and resolves
+  the next key in the new mode. Its assumption is "the app accepts every
+  mode.set".
+
+  What it still can't track is a mode change the app makes inside its own code,
+  like row.delete entering confirm mode. That needs the copy-and-run preview.
+  This is unchanged from today.
+
+  2. Aren't we already returning an array?
+
+  Yes, one array per key. My point 3.2 was about something else: the number of
+  requests one binding row may carry.
+
+  - Per key (already a list): one key can already yield several steps, for
+    example a fallback plus a replay.
+  - Per row (one request today): {"keys": "i", "do": {...}} holds exactly one
+    request.
+
+  Since a key's output is already a list, letting a row's do be a list as well
+  ([{cell.edit}, {mode.set insert}]) costs the engine nothing. My worry was undo
+  and dot-repeat grouping when one row does two things. Your point 3 removes
+  that worry.
+
+  3. Dot-repeat as replayed keys
+
+  That's how Vim does it: . replays the keystrokes of the last change, not a
+  saved command. And you're right that this is what decouples it from state. .
+  on a different cell acts on that cell, because the keys are resolved fresh
+  against wherever you are now.
+
+  It needs one rule to decide which keys make up "the last change":
+
+  ▎ A change is a round trip that starts and ends idle in normal mode (no 
+  ▎ pending sequence, no count) and ran at least one repeatable step along the 
+  ▎ way.
+
+  The app marks which operations count as repeatable:
+
+  ┌───────────────────────────────┬─────────────────────────────────────────┐
+  │        Not repeatable         │               Repeatable                │
+  ├───────────────────────────────┼─────────────────────────────────────────┤
+  │ cursor.move, cursor.line,     │ cell.clear, cell.paste, cell.transform, │
+  │ mode.set, cell.yank,          │  row.delete, row.duplicate, edit.commit │
+  │ sheet.save                    │                                         │
+  └───────────────────────────────┴─────────────────────────────────────────┘
+
+  With that rule:
+
+  ┌──────────────┬──────────────┬───────────────────────────────────────────┐
+  │     Keys     │ Last change  │                    Why                    │
+  ├──────────────┼──────────────┼───────────────────────────────────────────┤
+  │ j j          │ unchanged    │ No repeatable step                        │
+  ├──────────────┼──────────────┼───────────────────────────────────────────┤
+  │ t u          │ t u          │                                           │
+  ├──────────────┼──────────────┼───────────────────────────────────────────┤
+  │ 3 d d y      │ 3 d d y      │ The confirm answer belongs to the round   │
+  │              │              │ trip                                      │
+  ├──────────────┼──────────────┼───────────────────────────────────────────┤
+  │ i a b c      │ i a b c      │ The whole insert session is one change    │
+  │ enter        │ enter        │                                           │
+  ├──────────────┼──────────────┼───────────────────────────────────────────┤
+  │ y j          │ unchanged    │ The yank isn't repeatable; the j is a     │
+  │              │              │ move                                      │
+  └──────────────┴──────────────┴───────────────────────────────────────────┘
+
+  The same round trip gives you undo grouping for free. Take one undo snapshot
+  at the start of a round trip, and undo then reverts a whole insert session at
+  once, like Vim.
+
+  This all lives in the app, next to the macros: a key buffer, the repeatable
+  flags, and a check of Result.State for "idle". The engine only has to report
+  that it's idle. Its steps aren't replayable or not replayable; the app's
+  operations are.
+
+  Two details to settle:
+
+  - A count on .: in Vim, 3 . replaces the original count instead of multiplying
+    it. With replayed keys that means removing the leading digits from the
+    saved change and putting the new count in front. Simple, but it needs a
+    decision.
+  - Confirms get replayed: replaying d d y answers the confirm automatically.
+    That's the same choice ochazuke made ("confirmations are not re-asked"). If
+    a destructive operation should ask again, the app can drop keys typed in
+    confirm mode from the saved change.
+
+  Want me to build both in o-modal: mode.set as an ordinary event with the app
+  as the only writer, then . as replayed keys with this round-trip rule? The
+  current tests would check that behavior doesn't change. New tests would cover
+  . after t u, after an insert session, after 3 d d y, and on a different cell.
+
+✻ Brewed for 32s · done 1:08 PM
+
+❯ for number one, i don't understand. confirm mode should still be a mode       
+  that's tracked by our library. also intercepting and determining whether or   
+  not to like basically what i'm trying to say is confirm shouldn't be handled  
+  by the library. it should be in the steps returned and then that should be an 
+  app's a concern of the app. how does that change things? it simplifies        
+  things, right?                                                                
+                                                                                
+  and does that work universally?                                               
+
+⏺ Yes, and it's what the prototype already does. The library has no idea what a
+  confirm is. It only knows modes, and confirm is one more mode in the keymap.
+  So yes, it simplifies things, and it works almost everywhere, with three
+  conditions listed below.
+
+  How the parts divide
+
+  ┌────────────┬─────────┬─────────────────────────────────────────────────┐
+  │   Piece    │  Who    │                   What it is                    │
+  │            │ owns it │                                                 │
+  ├────────────┼─────────┼─────────────────────────────────────────────────┤
+  │            │         │ Rows in the keymap: {"mode": "confirm", "keys": │
+  │ confirm as │ Library │  "y", "do": {"op": "confirm.yes"}}. The engine  │
+  │  a mode    │         │ resolves keys in confirm mode like any other    │
+  │            │         │ mode                                            │
+  ├────────────┼─────────┼─────────────────────────────────────────────────┤
+  │ Deciding   │ App     │ d d returns the step row.delete. The app's Run  │
+  │ to ask     │         │ parks it and switches the mode to confirm       │
+  ├────────────┼─────────┼─────────────────────────────────────────────────┤
+  │ Answering  │ App     │ y returns confirm.yes; the app runs the parked  │
+  │            │         │ request and switches the mode back              │
+  └────────────┴─────────┴─────────────────────────────────────────────────┘
+
+  The library tracks confirm mode once the app has entered it. It never decides
+  to enter it.
+
+  What I meant in point 1
+
+  The pure preview never runs anything, so it never sees the app's decision to
+  ask. For d d y:
+
+  - The pure preview sees d d produce a row.delete step. It doesn't run it, so
+    the mode stays normal. It then reads y as a normal-mode y, the start of y y,
+    which is wrong.
+  - The copy-and-run preview runs row.delete on the copy. The copy enters
+    confirm mode, so y resolves to confirm.yes, which is right.
+
+  That isn't a flaw in the design. It follows directly from "confirming is the
+  app's call": a decision made in app code can only be seen by running app code.
+  If the pure preview ever needs to get this right, the app can declare it as
+  data, for example "row.delete": {"confirm": true} in an operation table the
+  preview reads. Without that, use the copy.
+
+  Does it work universally?
+
+  Yes, under three conditions:
+
+  1. Every request goes through the app's one Run. Requests from keys, a
+     palette, a CLI or a socket all pass the same interception point, so they
+     all get confirmed. A path that skips Run skips the confirm.
+  2. The app handles "no one there to ask." In headless mode or from the CLI,
+     there's no user to press y. The app needs a rule: refuse unless the request
+     carries confirmed: true, or a --yes flag. The library can't decide this
+     for it.
+  3. The app remembers which mode to return to. Today confirm.no hard-codes
+     normal mode. If a confirm can open from insert mode, or while another
+     dialog is open, the app has to remember where it came from, either as a
+     "return mode" field or a small mode stack. The engine only ever reads one
+     current mode, so this belongs to the app.
+
+  These work without anything extra:
+
+  - Macros and .: the replayed keys include the y, so they answer the confirm
+    the same way every time.
+  - Capture rows: ctrl+c still quits from confirm mode, because it's a "*" row.
+  - Unrelated keys in confirm mode: they're unclaimed because confirm mode has
+    no rows for them, which is the behavior you'd want.
+  - The copy-and-run preview: exact, because it runs the app's code on the copy.
+
+✻ Sautéed for 38s · done 1:12 PM
+
+❯ maybe preview mode could fork. and then it would be weird because now we're   
+  replaying keys on two different modes, but it would help get the whole        
+  picture.                                                                      
+
+⏺ That works, and it's a real technique: a branching preview. Wherever the
+  outcome depends on a decision the preview can't see, it splits and follows
+  both possibilities, and you see every way the keys could play out.
+
+  How it would work
+
+  The preview needs to know where to split, because any app step could change
+  the mode. The bounded version has the app declare which modes an operation may
+  enter, as data:
+
+  "operations": {
+    "row.delete": {"may": ["confirm"]},
+    "cell.edit":  {"may": ["insert"]}
+  }
+
+  The preview then walks the keys, splitting at each step that declares
+  outcomes. Each branch carries its own copy of the engine state and its own
+  mode. For d d y it would show:
+
+  d d y
+  ├─ row.delete → mode confirm  (app asks)
+  │   └─ y → confirm.yes → mode normal
+  └─ row.delete → mode normal   (app doesn't ask)
+      └─ y → wait "y"  (y y duplicates; timeout yanks)
+
+  Both branches run on the same keys in different modes. That's the weirdness
+  you mean, and it's also the whole point: you see that y means something
+  completely different depending on the app's choice.
+
+  What it adds beyond the copy
+
+  ┌──────────────┬───────────────────────────────┬──────────────────────────┐
+  │   Preview    │            Answers            │           Cost           │
+  ├──────────────┼───────────────────────────────┼──────────────────────────┤
+  │ Pure         │ What the keys mean if no app  │ Cheapest; wrong after    │
+  │              │ step changes the mode         │ app decisions            │
+  ├──────────────┼───────────────────────────────┼──────────────────────────┤
+  │ Copy-and-run │ What will happen, here and    │ Runs app code on a copy; │
+  │              │ now                           │  exact, one path         │
+  ├──────────────┼───────────────────────────────┼──────────────────────────┤
+  │ Branching    │ Everything that could happen  │ No app code; the number  │
+  │              │                               │ of paths can grow        │
+  └──────────────┴───────────────────────────────┴──────────────────────────┘
+
+  The three combine well. The copy finds the real path, and the branching
+  preview shows the alternatives next to it, with the real one highlighted.
+
+  The branching one is most useful for things the others can't do:
+
+  - Help and teaching: "in this spot, y either confirms or starts y y."
+  - Checking the keymap: it can find keys whose meaning flips depending on an
+    app decision, which are the places most likely to surprise a user. For
+    example, it would flag the y after d d.
+  - Tests: it walks every declared path without setting up app state for each
+    one.
+
+  Costs
+
+  - The number of paths can blow up. Every splitting step doubles them. In
+    practice there are few such steps, and two branches that reach the same mode
+    and pending state can be merged. A cap of about 8 branches with a "+N more"
+    note keeps it bounded.
+  - The declarations can go stale. If row.delete starts entering a mode it
+    doesn't declare, the branching preview silently misses it. A test can catch
+    this by running each operation on a copy and checking that every mode it
+    enters is declared.
+  - Branches only cover modes. They don't show what a branch does to the data
+    (which rows a delete removes). For that, combine it with the copy: the copy
+    shows the data change on the real path, and the branches show the mode
+    alternatives.
+
+  My recommendation
+
+  Build it as a third preview on top of the other two, not instead of them. The
+  engine needs no changes: branching is a loop over Feed with copied states,
+  plus the app's may table. Start with may on the two operations that already
+  change modes, row.delete and cell.edit. Then add the check that flags keys
+  whose meaning flips between branches, since that's the most useful thing a
+  branching preview tells you.
+
+  Want me to add it to o-modal along with the earlier changes (mode.set as an
+  event, macros and . as replayed keys in the app)? I'd do them in order, each
+  with its own tests.
+
+✻ Brewed for 24s · done 1:14 PM
+
+❯ well, each of the three would run in different scenarios, right? so we would  
+  want to keep all of them. or is one of them not applicable? and also, as far  
+  as like testing goes and keeping a ceiling on the branching, there should     
+  also be a way to either either before sending the key that would result in a  
+  fork or after somehow saying like hey we want this branch or these n          
+  branches.                                                                     
+                                                                                
+  so that should be built into the api.                                         
+
+⏺ Keep all three scenarios, but you only need two implementations. The pure
+  preview is the branching preview with every split resolved to "the app doesn't
+  change the mode". That makes it one setting of branch selection rather than
+  its own code.
+
+  When each one is the right tool
+
+  ┌──────────────────────────────┬───────────────┬─────────────────────────┐
+  │           Scenario           │      Use      │  Why the others don't   │
+  │                              │               │           fit           │
+  ├──────────────────────────────┼───────────────┼─────────────────────────┤
+  │ Help, docs, keymap checks, a │ Pure, or      │ No app state exists to  │
+  │  CLI with no app running     │ branching     │ copy                    │
+  ├──────────────────────────────┼───────────────┼─────────────────────────┤
+  │ "What will this do right     │               │ Only running real code  │
+  │ now?" in the running app     │ Copy-and-run  │ shows real decisions    │
+  │                              │               │ and data changes        │
+  ├──────────────────────────────┼───────────────┼─────────────────────────┤
+  │ "What could this do?"        │               │                         │
+  │ (teaching, finding           │ Branching     │ The copy follows only   │
+  │ surprises, tests over every  │               │ one path                │
+  │ path)                        │               │                         │
+  └──────────────────────────────┴───────────────┴─────────────────────────┘
+
+  Copy-and-run also needs an app that can be copied. The CSV sheet can be, but
+  an app with a database or a running process may not. So branching is the
+  fallback that always works, and the copy is the exact answer when it's
+  available.
+
+  Choosing branches in the API
+
+  You're right that this belongs in the API. Both of your timings fit as two
+  ways to call the same walker.
+
+  Before: a chooser called at each split
+
+  type Fork struct {
+          Key     int        // index of the key that caused it
+          Step    Step       // the step whose outcome is unknown
+          Options []string   // modes from the app's "may" table, plus "" for 
+  unchanged
+  }
+
+  // Choose returns the options to follow; Follow lists the built-in policies.
+  type Choose func(Fork) []string
+
+  var (
+          FollowAll  Choose = func(f Fork) []string { return f.Options }
+          FollowNone Choose = func(Fork) []string { return []string{""} } // = 
+  the pure preview
+  )
+
+  // Pick follows exactly the named outcomes, in order, at each fork. For tests:
+  //   Pick("row.delete=confirm")          only the branch where the app asks
+  func Pick(choices ...string) Choose
+
+  paths, more := km.Explore(st, env, keys, may, chooser, limit)
+
+  After: name the branches you want from the results
+
+  type Path struct {
+          Choices []string  // e.g. ["row.delete=confirm"]: its address
+          Steps   []Step
+          State   State
+          Mode    string
+  }
+
+  // Paths come back labelled; a test or UI keeps the ones it wants.
+  paths.Where("row.delete=confirm")
+
+  Interactive: decide as keys arrive
+
+  w := km.Walk(st, env, may)
+  w.Press("d"); w.Press("d")      // w.Forks() now lists the pending split
+  w.Take("row.delete=confirm")    // keep that branch only (or several)
+  w.Press("y")
+
+  The limit is the ceiling. When reaching a split would push the number of paths
+  past it, the walker stops splitting, keeps going down the paths it already
+  has, and reports more (how many it dropped). Paths that reach the same mode
+  and pending state are merged first, so the limit only applies to real
+  differences.
+
+  Choice addresses make tests readable
+
+  Each branch has a stable address made of its choices, such as
+  row.delete=confirm. That gives three kinds of test:
+
+  - Assert one path: Pick("row.delete=confirm") on d d y must end with
+    confirm.yes and mode normal.
+  - Assert every path: with FollowAll, d d y must produce exactly the two
+    addresses row.delete=confirm and row.delete=.
+  - Check the declarations against reality: run copy-and-run on the same keys,
+    read the choices it actually made, and assert that path exists among the
+    branches. That catches a stale may table automatically.
+
+  The order I'd build it in
+
+  1. mode.set as an event, with the app as the only mode writer.
+  2. Macros and . as replayed keys in the app.
+  3. Explore/Walk with Choose, Pick, Path.Choices and the limit, with
+     Machine.Preview rewritten as Explore with FollowNone.
+  4. The check that copy-and-run's path appears among the branches.
+
+  Each step lands with its own tests, and the earlier tests stay as they are.
+  Want me to start on step 1?
+✻ Worked for 28s · done 1:20 PM
+
+❯ yeah, i would get rid of pure, or like you said, just make it a flag or       
+  something when branching. what is the may table? should it be called options  
+  or something related to mode like mode changes or in modes something like     
+  that                                                                          
+
+⏺ What the "may table" is
+
+  It's a small piece of data the app hands to the branching preview. For each
+  operation, it lists the modes that running it might switch to:
+
+  "row.delete": {"may": ["confirm"]}
+
+  It exists because of the rule we settled: deciding to change the mode happens
+  in app code, and the preview doesn't run app code. Without the table, the
+  preview can't tell which steps might change the mode, so it has to either
+  split at every step or never split. With it, the preview splits only where the
+  app says a split can happen.
+
+  A better name
+
+  "May" is vague, and "options" is too general (the Fork type already uses
+  Options). The name should say it's about modes, and it should separate two
+  cases the table currently mixes:
+
+  - Sometimes: row.delete enters confirm mode only if the app decides to ask.
+    The preview splits here.
+  - Always: cell.edit always enters insert mode. The preview shouldn't split; it
+    should just follow the change.
+
+  I'd use two fields on an operation entry:
+
+  "operations": {
+    "row.delete":  {"mayEnter": ["confirm"]},
+    "cell.edit":   {"enters": "insert"},
+    "edit.commit": {"enters": "normal"},
+    "confirm.yes": {"enters": "normal"}
+  }
+
+  - enters is a certain change: no split, the preview just switches modes.
+  - mayEnter is a possible change: split into "entered X" for each listed mode,
+    plus "stayed".
+
+  It reads as plain English ("row.delete may enter confirm", "cell.edit enters
+  insert"), and the matching Fork field becomes Fork.Modes instead of Options.
+
+  I'd put it on the operation, not on the keymap row, because the decision
+  belongs to the operation no matter which key triggers it. d d from a key, from
+  a macro, or from a palette all lead to the same row.delete, and all share one
+  declaration.
+
+  No separate pure preview
+
+  There's no separate "pure" preview. It becomes the no-split policy in the
+  chooser:
+
+  paths, _ := km.Explore(st, env, keys, ops, modal.NoForks, limit)
+
+  NoForks still follows every enters, because those changes are certain. At each
+  mayEnter, it takes "stayed". FollowAll takes every option, and Pick(...)
+  takes the named ones.
+
+  One case to decide is confirm.yes returning to whatever mode the confirm
+  opened from, rather than always to normal. That needs a value meaning "the
+  mode before", such as "enters": "@previous". I'd leave it out until the app
+  actually opens a confirm from somewhere other than normal mode.
+
+✻ Cooked for 20s · done 1:25 PM
+
+❯ never mind, i see. choose is just to define the options and pick pic like a   
+  specific one.                                                                 
+
+⏺ Close. One correction: Choose doesn't define the options. The options come
+  from the operation table (mayEnter). Choose is the policy that picks which of
+  those options to follow at each fork:
+
+  type Choose func(Fork) []string   // given a fork and its modes, return the 
+  ones to follow
+
+  The built-in policies are just ready-made Choose functions:
+
+  ┌────────────────────────────┬─────────────────────────────────────────────┐
+  │           Policy           │            At each fork, follows            │
+  ├────────────────────────────┼─────────────────────────────────────────────┤
+  │ FollowAll                  │ every listed mode, plus "stayed"            │
+  ├────────────────────────────┼─────────────────────────────────────────────┤
+  │ NoForks                    │ "stayed" only (this replaces the pure       │
+  │                            │ preview)                                    │
+  ├────────────────────────────┼─────────────────────────────────────────────┤
+  │ Pick("row.delete=confirm") │ exactly the named outcome                   │
+  └────────────────────────────┴─────────────────────────────────────────────┘
+
+  So Pick is one kind of Choose, the one you'd use in tests to follow a single
+  named branch. And because Choose is just a function, a test or UI can write
+  its own, for example "always follow confirm, never insert".
+
+✻ Worked for 7s · done 1:25 PM
+
+❯ yes, i do not like may as a name, and i feel like that key/table should be    
+  nested under a preview: key.  just call it possibleModes or something         
+
+⏺ Agreed, nesting it under preview is right. It's preview-only data: the app's
+  real code makes the actual change, and nothing else reads this.
+
+  The certain case (cell.edit always enters insert) is preview-only too, so it
+  belongs in the same place. With one field, the cleanest rule is that
+  possibleModes lists every outcome, and "stays in the current mode" is written
+  out explicitly:
+
+  "operations": {
+    "row.delete":  {"preview": {"possibleModes": ["confirm", "unchanged"]}},
+    "cell.edit":   {"preview": {"possibleModes": ["insert"]}},
+    "edit.commit": {"preview": {"possibleModes": ["normal"]}},
+    "confirm.yes": {"preview": {"possibleModes": ["normal"]}}
+  }
+
+  - One entry is a certain change: no fork, the preview just follows it.
+  - Several entries fork into exactly those branches.
+  - No entry means the operation never changes the mode.
+
+  That keeps it to one name, and a reader can see every branch without knowing
+  an unwritten rule about a hidden "stayed" option. unchanged becomes a reserved
+  word, so a mode can't be named that.
+
+  The branch addresses follow the same naming: row.delete=confirm and
+  row.delete=unchanged, so Pick("row.delete=unchanged") reads plainly in a test.
+
+✻ Cogitated for 12s · done 1:27 PM
+
+❯ okay. now if we applied this to ochazuke, which i don't want to do right now, 
+  how would that affect it?                                                     
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ The engine side would fit ochazuke fairly well. ochazuke already treats mode
+  changes as operations (mode.enter, mode.leave, mode.set), and resolve.go
+  already imports only the standard library. The expensive parts are three
+  earlier ochazuke decisions this would reverse, and the copy-and-run preview,
+  which ochazuke can't support in general.
+
+  Who plays "the app"
+
+  In o-modal there are two layers: the engine and the CSV app. In ochazuke there
+  would be three:
+
+  ┌───────────────┬─────────────────────────────────────────────────────────┐
+  │    o-modal    │                        ochazuke                         │
+  ├───────────────┼─────────────────────────────────────────────────────────┤
+  │ Engine        │ A new pure package pulled out of resolve.go             │
+  │ (modal)       │                                                         │
+  ├───────────────┼─────────────────────────────────────────────────────────┤
+  │ "The app      │ Mostly the Runtime: confirm, history, macros,           │
+  │ decides"      │ dot-repeat. Sometimes an application's handler          │
+  ├───────────────┼─────────────────────────────────────────────────────────┤
+  │ CSV Sheet.Run │ Runtime.ExecuteAt and the handlers it calls             │
+  └───────────────┴─────────────────────────────────────────────────────────┘
+
+  So "the app decides" mostly lands in the framework, not the application.
+  That's fine, since ochazuke is the app shell.
+
+  What maps over cleanly
+
+  - Steps out: dispatchIn becomes a pure function that returns steps, and
+    Dispatch becomes "resolve, then run". Binding.Replay and the re-dispatch
+    when a sequence breaks off both become Step.Replay.
+  - mode.set as an event: the operations already exist. What changes is that the
+    Runtime becomes the only writer. Today several places write the mode:
+    setMode, SetMode, leaveMode, enterPrefix, and runRow leaving a pending mode
+    before and after.
+  - Atomic rows: unchanged. TestBindingRowsAreAtomic stays.
+  - ochazuke bindings explain "d d": this is the branching preview with NoForks
+    or FollowAll. The ? help and the pending-key hints in the footer could use
+    it too.
+  - The timer: stays in the host (BindingTimeoutCommand), as in o-modal.
+
+  What it would overturn
+
+  1. Pending conditions stop being modes. AGENTS.md says: "Every pending
+     condition is an exclusive mode with a typed Payload on Runtime.Mode",
+     meaning count_pending, g_pending, register_pending, "normal g", and the
+     macro_recording shadow. In the o-modal design, prefix and count are engine
+     memory, and Runtime.Mode holds only modes a user would recognize.
+     Everything that reads pending modes would have to read engine state
+     instead: the footer hints, bindings.list tables per pending mode, and
+     terminal.go's leader_pending check.
+  2. Dot-repeat would replay keys instead of requests. MIGRATION-PLAN.md:311
+     says history.repeat "re-executes the last repeatable request", and the
+     decision then was "macros stay key-based; dot is request-based". Your
+     round-trip rule reverses that. Operation.Repeatable survives as the
+     "repeatable" flag. The "confirmations are not re-asked" behavior then comes
+     from the replayed y, not from a stored confirmed: true.
+  3. Macros move out of Dispatch. Today recording is a shadow mode set up inside
+     Dispatch. It would become a recorder at the entry point, Model.Update or a
+     wrapper around Dispatch, which sees only typed keys.
+
+  Where ochazuke differs from the CSV app
+
+  - Confirm isn't just a mode. In ochazuke it opens the confirm noun's modal.
+    Focus moves into the modal, and the stack walk changes (the top modal is a
+    boundary). So the preview's possible outcomes are more than modes: a branch
+    can also open a modal, move focus or change page. preview.possibleModes
+    would have to grow into something like preview.possibleOutcomes, or a
+    sibling possibleModals.
+  - Confirm declarations could be automatic. Every verb with Operation.Confirm
+    set opens the confirm modal, so the framework can add that preview entry
+    itself. That removes the largest source of stale declarations.
+  - Spatial motions and guards read the last frame (Runtime.Placed). The
+    engine's input would have to carry the drawing order, and the branches would
+    share the current one, which goes stale once a branch opens a modal.
+
+  The copy-and-run preview
+
+  This one is hard to bring over in general. Forking the Runtime is the easy
+  part, because nouns, instances, focus, mode and registers are data. But
+  application state lives inside handler closures (the CSV grid, list rows), and
+  some handlers reach outside the process: actions.json commands, jobs, files,
+  the socket. None of that can be copied.
+
+  It would have to be opt-in:
+
+  - An application implements a fork hook for its own state.
+  - Every outside effect goes through a channel the copy can turn into "would do
+    X". The v0.4.0 UI sinks already do this for notices and status, but nothing
+    does it for commands, jobs or files yet.
+  - Without the hook, explain uses the branching preview only. That works for
+    every app, because it never runs application code.
+
+  How I'd stage it, if you decide to
+
+  1. Pull the pure resolver out of resolve.go, with Dispatch as "resolve, then
+     run" and no behavior change. The existing keytest suite is the check.
+  2. Add bindings explain on the branching preview, with automatic entries for
+     verbs that confirm.
+  3. Make the Runtime the only mode writer, and move pending conditions out of
+     Runtime.Mode. This is where the AGENTS.md invariant gets rewritten.
+  4. Switch macros and . to replayed keys. This is where the dot-repeat decision
+     gets revisited.
+  5. Add the opt-in fork hook and the effect channels, only if a real app needs
+     exact previews.
+
+  Steps 1 and 2 are low-risk and useful on their own. Steps 3 and 4 are where
+  the real cost and the decisions are.
+
+✻ Worked for 46s · done 1:30 PM
+
+❯ write this to o/ochazuke/docs/                                                
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ Write(~/proj/ochazuke/docs/KEY-ENGINE-PROPOSAL.md)
+  ⎿  Wrote 132 lines to ~/proj/ochazuke/docs/KEY-ENGINE-PROPOSAL.md
+       1 # Key engine proposal: keys in, steps out
+       3 Status: proposal, not scheduled (2026-10-26). Prototyped outside
+         `cmd/csv/`). Nothing here is decided for ochazuke.
+       5 ## Background
+       7 - "Events out, not just keys in" (2026-10-24, item 6 in `MIGRATI
+         ON-PLAN.md`) is about change notifications the runtime emits *af
+         This proposal is about the key handler returning what to do inst
+       8 - Today `Runtime.Dispatch` resolves a key and runs the row at on
+         )`.
+      10 ## The design, as prototyped in o-modal
+     … +208 lines (ctrl+o to expand)
+
+⏺ I need to correct the doc: several items it lists as "prototyped" haven't been
+  built in o-modal yet. Marking which parts are built and which are only
+  designed.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ I saved the proposal as ~/proj/ochazuke/docs/KEY-ENGINE-PROPOSAL.md. There's
+  no ~/o directory, so I assumed you meant ~/proj/ochazuke/docs/, and I matched
+  the uppercase .md names already there, like MIGRATION-PLAN.md.
+
+  It's written to make sense without this conversation:
+  - the background, and how this differs from the 10-24 "events out" item;
+  - the full design we settled on, including the branching API with Choose,
+    Pick, Where, Walk and the limit, and the preview.possibleModes format with
+    the unchanged rule;
+  - how it would land in ochazuke: what maps over cleanly, the three decisions
+    it would reverse, where ochazuke differs from the CSV app, and why
+    copy-and-run would have to be opt-in;
+  - a five-step order to build it in, and the open questions.
+
+  The doc separates what o-modal has actually built from what's only designed so
+  far:
+  - Built: the pure engine and the copy-and-run preview.
+  - Designed only: mode.set as an event, macros and . in the app, and the
+    branching preview. The o-modal engine still changes modes and records macros
+    itself.
+
+  I haven't committed it. ochazuke also has three untracked files that aren't
+  mine (animation-interactions-as-data.html and two files under
+  docs/transcripts/); I left them alone.
+
+✻ Cogitated for 54s · done 1:43 PM
+
+❯ for automatic entries for preview where it could fork on a confirm i would    
+  call that like when when defining it in code, i would call those like a       
+  forking bind or a fork bind or forkable bind, something like that.            
+                                                                                
+  i would i i don't think you're right about a few things. why do you think     
+  pending can pending conditions stop being modes, first of all? dot repeat     
+  should absolutely replay keys in ochazuku ochazuke today. like that should be 
+  an easy decision and an an easy change. and i'm not so sure your approach to  
+  macros is right.                                                              
+                                                                                
+  i do think it sh it will have to move out of the framework probably, or the   
+  library. i would have to think about this some more and maybe we could talk   
+  about it. so for the possible outcomes and possible modals, i don't think     
+  that matters in previews. so a, we could just mark it as a side effect or a   
+  possible side effect. like basically, if it were in a test, i would stub at   
+  the boundary and at the boundary i would say like hey this is being called    
+  and just leave it at that and that should also apply to the copy and run      
+  preview. also, and this may be unrelated, but for previews, especially with   
+  the live app, i was thinking, shouldn't we have like a sandbox? maybe not     
+  like a literal sandbox, but move copies of things, especially things with     
+  side effects like files, into a temp directory so that we can write them and  
+  apply certain side effects just to a temp file and not, you know, the live    
+  files.                                                                        
+                                                                                
+  as far as side effects go, how does haskell deal with it? i know they use     
+  monads somehow. can you explain it to me without being too technical?         
+
+⏺ Fork binds
+
+  ForkBind reads well. One placement detail: a confirm belongs to the operation,
+  so row.delete asks whether it came from a key, the palette or the CLI. So I'd
+  mark the verb, and have every binding that points at it become a fork bind
+  automatically:
+
+  Define("row").Verb("delete", del).Confirm("Delete row?") // a confirm verb 
+  forks
+  Define("row").Verb("archive", arc).Forks("confirm")      // an explicit fork, 
+  same mechanism
+  // Bind("d d", Do("row.delete")) is then a fork bind, with nothing extra on 
+  the row
+
+  Pending conditions: you're right, they don't have to stop being modes
+
+  I made that choice for o-modal, and then presented it as necessary for
+  ochazuke. It isn't. The alternative fits your model just as well. The engine
+  emits mode.set "normal g" when a sequence starts, and mode.set normal when it
+  finishes or times out, and the Runtime applies them like any other mode
+  change. Pending conditions stay modes with a payload, as AGENTS.md says today.
+  bindings.list per pending mode, the footer hints and terminal.go's
+  leader_pending all keep working.
+
+  The costs are small:
+  - more mode.set events, one per prefix key;
+  - a pending mode the host could refuse, which is meaningless, so the host just
+    accepts them.
+
+  That's a better trade than rewriting an invariant. I'd drop "overturn 1" from
+  the doc.
+
+  Dot-repeat as keys: agreed
+
+  It's a contained change. Operation.Repeatable already marks the changes, and
+  history already records source: key:…. What's needed is a recorder at the
+  entry to Dispatch that uses the round-trip rule.
+
+  One question first: what should . do after a change made from the palette or
+  CLI? There are no keys to replay. Vim doesn't repeat : commands with ., so
+  "palette and CLI changes don't count" is a reasonable answer.
+
+  Macros
+
+  Agreed, let's talk them through separately. The open part is where recording
+  happens (Model.Update, or a wrapper around Dispatch) and whether it leaves the
+  library entirely. When you've thought about it, tell me what feels off about
+  the approach and we'll go from there.
+
+  Side effects in previews: stub at the boundary
+
+  That's simpler, and better. It gives one rule for both previews:
+
+  ▎ A preview models only what changes how the next key resolves: the mode, and 
+  ▎ in ochazuke the focus. Everything else is a side effect, stubbed at the 
+  ▎ boundary and recorded: "called row.delete → would ask for confirmation", 
+  ▎ "would run git fetch", "would write people.csv".
+
+  So possibleModes stays, because the mode changes what y means. "Possible
+  modals" and "possible outcomes" go away: they're just side effects. A test
+  does the same thing at the same boundary: stub it, then assert it was called.
+
+  A sandbox for live previews
+
+  Yes, and it's the right step up from stubbing files. Stubbing says "would
+  write people.csv". A sandbox actually writes it, to a copy, so you can see the
+  result.
+
+  - Copy on first write: the preview's file layer reads real files, but the
+    first write to a path copies it into a temp directory, and every later read
+    or write of that path uses the copy. At the end the preview can show a diff
+    against the real files, then delete the temp directory.
+  - This needs a file layer: the app has to reach files through an interface
+    (open, write, rename) instead of os directly, so the preview can swap in the
+    overlay.
+  - External commands are the limit. git push, network calls and other processes
+    can't be sandboxed this way. A command run in the temp directory can still
+    touch absolute paths or the network. Those stay stubbed unless the operation
+    is declared safe to run in the sandbox.
+
+  How Haskell handles side effects
+
+  In Haskell, a function isn't allowed to do anything. It can only compute a
+  value from its inputs. So how does a program ever print or write a file?
+
+  It returns a recipe instead of doing the thing. A function that "writes a
+  file" actually returns a value that describes writing the file: a note saying
+  "write this text to this path". Nothing happens when the function runs. You
+  get the note back.
+
+  The runtime is the only cook. Your program as a whole hands one big recipe to
+  the Haskell runtime, and only the runtime carries it out. Everything before
+  that is just building recipes.
+
+  A monad is the "and then" glue. Recipes need to be chained: "read the file,
+  and then with what you read, write a summary". The second step depends on the
+  first one's result, which doesn't exist until the recipe is actually run. A
+  monad is the standard way to say "do this, then pass its result to the next
+  step" while still only describing the work. The do notation you see in Haskell
+  code is a readable way of writing that chain.
+
+  Why this matters for us: a recipe can be carried out more than one way.
+  Advanced Haskell code uses one recipe with different interpreters:
+
+  - the real one actually writes files;
+  - a test one records "write was called with these arguments", which is your
+    stub at the boundary;
+  - a preview one writes into a temp directory, which is your sandbox.
+
+  That's what we've been building:
+  - Feed returning steps is "return a recipe instead of acting";
+  - the app's Run is the cook;
+  - the copy, the stubs and the sandbox are different interpreters of the same
+    recipe.
+
+  Bubble Tea's tea.Cmd is a small version of the same idea. Update returns a
+  command describing work, and the Bubble Tea runtime is what runs it.
+
+✻ Baked for 47s · done 2:01 PM
+
+❯ append your response to the previous doc.                                     
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ I added the response to the end of ~/proj/ochazuke/docs/KEY-ENGINE-PROPOSAL.md
+  as a new section, "Follow-up (2026-10-26)". Everything above it is unchanged;
+  the new section opens by saying which two earlier points it replaces:
+
+  - Pending conditions: they can stay modes after all, so "What it would
+    overturn", item 1, no longer applies.
+  - Possible modals and outcomes: these are now side effects that get stubbed
+    and recorded, not preview declarations.
+
+  The section also covers fork binds, dot-repeat as replayed keys, macros (still
+  open), the stub-at-the-boundary rule, the sandbox, and the Haskell
+  explanation. It isn't committed.
+
+✻ Cooked for 22s · done 2:01 PM
+
+❯ what do you mean a recorder at the entry to dispatch? where is dispatch? is   
+  it in the framework or in the app?                                            
+  and vim absolutely replays :commands...maybe just neovim...i'll check..   but 
+  opening the palette, etc.  is just results in the app or ochazuke from a      
+  keypress.  so notthing changes...just replay keys                             
+
+⏺ Where Dispatch lives
+
+  It's in the framework: Runtime.Dispatch in ochazuke's resolve.go:131. Every
+  key reaches it from framework code:
+
+  - Model.Update (model.go, around line 217) turns a Bubble Tea key press into a
+    MacroKey and calls m.handleKey → Runtime.Dispatch.
+  - Macro playback calls Dispatch once per recorded key.
+  - The key.dispatch operation (used by the CLI) calls it too.
+
+  An app never calls it directly. It defines nouns, verbs and bindings, and
+  ochazuke's model feeds the keys in.
+
+  "A recorder at the entry" meant a few lines at the top of Dispatch, or in
+  Model.handleKey just before it, that append each incoming key to a buffer.
+  When a round trip ends idle in normal mode, and something repeatable ran
+  during it, that buffer becomes "the last change", and . presses those keys
+  again. It's all framework code. Apps get . for free, the way they get history
+  today.
+
+  The palette and .
+
+  You're right that nothing special is needed. Opening the palette is a keypress
+  (:), and typing the command and pressing enter are keypresses too. The
+  palette is just one more stop on the round trip: it starts idle in normal
+  mode, passes through the palette, runs a repeatable operation, and ends back
+  in idle normal. So . replays : t r a n s f o r m … enter like any other
+  change. One rule covers it.
+
+  On Vim: :help . says "Repeat last change… Does not repeat a command-line
+  command", and Vim has a separate @: for that. I believe Neovim is the same,
+  but it's worth checking. Either way, it doesn't matter here, since ochazuke
+  doesn't need to copy Vim on this.
+
+  Two real edge cases:
+
+  - CLI and socket requests have no keys, so they never enter a round trip. .
+    replays the last change made from the keyboard.
+  - Replay inside the palette uses the palette's current state. If the typed
+    text relies on history recall (up arrow) or picking the top fuzzy match, the
+    replay picks whatever the history or match is now. That's consistent with
+    "replay keys, not state", but it can surprise someone.
+
+  The doc still has the open question saying palette changes might not count.
+  Want me to replace it with this?
+
+✻ Cooked for 26s · done 2:07 PM
+❯ also, for the sandbox stuff, that's only in the application layer, right? so  
+  that doesn't affect the library or framework. right?                          
+  do me a favor and try to save the transcript for this. like i i want to save  
+  our discussion about the key handling framework and your your responses       
+  verbatim because i really like that what i've been trying to describe is      
+  exactly what haskell does, and it's also similar to what bubble t does.       
+                                                                                
+  so please save the conversation, part of the conversation starting from when  
+  we started this discussion about the isolated framework and how it affects oh 
+  chazuke, maybe it m it might have started before then, but this isolated      
+  library, i want all of our conversation about that, hopefully verbatim. .     
+
+⏺ Opus 5.5's safeguards stopped the response above · continuing once 
+  with that noted
+
+  Ran 1 shell command (ctrl+o to expand)
+
+⏺ API Error: Opus 5.5's safeguards flagged this message 
+  (https://www.anthropic.com/legal/aup). This sometimes happens with 
+  safe, normal conversations. Claude Code can't respond to this message 
+  with Opus 5.5.
+
+  Double press esc to edit your last message, or try a different model 
+  with /model.
+
+  Send feedback with /feedback or learn more: 
+  https://support.claude.com/en/articles/8106465
+
+  Details: `[reasoning_extraction]`
+
+  Request ID: req_011CgRJf3nQTubwqwYSmWXP1
+
+  Message ID: msg_011CgRJf44mQPdPJKWPJd6Hv
+
+  Made 1 scratchpad edit +38 (ctrl+o to expand)
+
+⏺ API Error: Opus 5.5's safeguards flagged this message 
+  (https://www.anthropic.com/legal/aup). This sometimes happens with 
+  safe, normal conversations. Claude Code can't respond to this message 
+  with Opus 5.5.
+
+  Double press esc to edit your last message, or try a different model 
+  with /model.
+
+  Send feedback with /feedback or learn more: 
+  https://support.claude.com/en/articles/8106465
+
+  Details: `[reasoning_extraction]`
+
+  Request ID: req_011CgRJgReagbdRzK8ZsGYaJ
+
+  Message ID: msg_011CgRJgRwBrTkgst4HAFELR
+
+⏺ API Error: Opus 5.5's safeguards flagged this message 
+  (https://www.anthropic.com/legal/aup). This sometimes happens with 
+  safe, normal conversations. Claude Code can't respond to this message 
+  with Opus 5.5.
+
+  Double press esc to edit your last message, or try a different model 
+  with /model.
+
+  Send feedback with /feedback or learn more: 
+  https://support.claude.com/en/articles/8106465
+
+  Details: `[reasoning_extraction]`
+
+  Request ID: req_011CgRJh27FvQ6XnDZCfCr6A
+
+  Message ID: msg_011CgRJh2QcEQUexk3cxkwkM
+
+✻ Churned for 35s · done 2:16 PM

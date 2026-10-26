@@ -248,7 +248,8 @@ const actionsExample = `[
     "parameters": {
       "name": {"type": "string", "source": "settings.names", "free": true, "description": "A setting name; free accepts one the source does not list"}
     },
-    "quiet": true
+    "quiet": true,
+    "history": "fetch"
   }
 ]
 `

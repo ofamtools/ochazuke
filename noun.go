@@ -451,6 +451,20 @@ func (b *NounBuilder) PersistArgs() *NounBuilder {
 	return b
 }
 
+// Fetch marks the last declared verb as a data request (Operation.HistoryKind
+// HistoryFetch): a state, list or show verb. Its calls are history entries
+// of kind fetch, which history.list leaves out by default and the ring
+// bounds apart from the user's actions and changes.
+func (b *NounBuilder) Fetch() *NounBuilder {
+	if b.last == "" {
+		panic("Fetch must follow Verb")
+	}
+	op := b.r.Operations[b.last]
+	op.HistoryKind = HistoryFetch
+	b.r.Operations[b.last] = op
+	return b
+}
+
 // Motion marks the last declared verb as a motion (Operation.Motion): the
 // footer leaves its rows to ? help, as it does for list.move.
 func (b *NounBuilder) Motion() *NounBuilder {

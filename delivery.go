@@ -421,8 +421,8 @@ func (r *Runtime) componentSnapshot() map[string]any {
 	out := map[string]any{}
 	for _, inst := range r.Instances {
 		comp := inst.Component
-		if comp == nil {
-			continue
+		if _, order := comp.(*appPages); comp == nil || order {
+			continue // app's page order is the runtime's own bookkeeping
 		}
 		kind := ""
 		switch comp.(type) {

@@ -1,23 +1,51 @@
 package ochazuke
 
 import (
-	"encoding/json"
 	"errors"
+	"fmt"
+	"slices"
+	"strings"
 	"time"
 )
 
 // HistoryLimit bounds the action history ring.
 const HistoryLimit = 500
 
-// HistoryEntry is one executed request: what ran, where, from which source
-// and how it ended. Value is the result as JSON at the time it ran; Job is
-// the job id an application verb launched.
+// HistoryFetchLimit bounds the fetches the ring keeps apart from the user's
+// actions and changes, so a host polling a state verb never pushes those out.
+const HistoryFetchLimit = 100
+
+// The kinds of history entry (HistoryEntry.Kind, Operation.HistoryKind).
+// An action is the user's interaction (a motion, a focus, page or modal
+// move, a mode, the palette's line), a change is an edit or a mutating verb
+// (what dot-repeat reads), a fetch asks for data (a state, list or show
+// verb, a reload, a host calling an extension). HistorySystem is reserved
+// for what the runtime does on its own (a resize, a job that finished); no
+// entry has it yet.
+const (
+	HistoryAction = "action"
+	HistoryChange = "change"
+	HistoryFetch  = "fetch"
+	HistorySystem = "system"
+)
+
+// historyUserKinds are the kinds history.list and /history show by default.
+var historyUserKinds = []string{HistoryAction, HistoryChange}
+
+// HistoryEntry is one user action: what ran, where, from which source, how
+// it ended and, when it moved the interaction, from where to where (Moved).
+// It holds ids and the request, never the data the operation returned, so
+// an entry costs the same over a list of ten rows or ten thousand. Kind is
+// the operation's HistoryKind. Job is the job id an application verb
+// launched.
 type HistoryEntry struct {
 	Seq     uint64         `json:"seq"`
 	At      time.Time      `json:"at"`
+	Kind    string         `json:"kind,omitempty"`
 	Request Request        `json:"request"`
 	Context HistoryContext `json:"context"`
 	Result  HistoryResult  `json:"result"`
+	Moved   *HistoryMove   `json:"moved,omitempty"`
 	Job     uint64         `json:"job,omitempty"`
 	// Depth is how many requests enclose this one: a request an operation
 	// runs while it runs (a choices source, a macro's keys) is one deeper.
@@ -36,17 +64,43 @@ type HistoryContext struct {
 	Source string `json:"source"`
 }
 
-// HistoryResult is the outcome: ok with the value, or the error.
+// HistoryResult is the outcome: ok, or the error. The value the operation
+// returned is the caller's (the CLI prints it), not the history's; a
+// reference to it (a hash into a content-addressed store) would go here,
+// beside ok.
 type HistoryResult struct {
-	OK    bool            `json:"ok"`
-	Value json.RawMessage `json:"value,omitempty"`
-	Error string          `json:"error,omitempty"`
+	OK    bool   `json:"ok"`
+	Error string `json:"error,omitempty"`
+}
+
+// HistoryPlace is where the interaction stands: the focused instance (a
+// list's focus is its selected row), the page and the mode.
+type HistoryPlace struct {
+	Focus string `json:"focus"`
+	Page  string `json:"page,omitempty"`
+	Mode  string `json:"mode"`
+}
+
+// HistoryMove is how a request moved the interaction: j on a list moves
+// the focus from row A to row B, page.next from one page to the next, a
+// modal's open into the modal and its close back out.
+type HistoryMove struct {
+	From HistoryPlace `json:"from"`
+	To   HistoryPlace `json:"to"`
+}
+
+// place is where the interaction stands now.
+func (r *Runtime) place() HistoryPlace {
+	return HistoryPlace{Focus: r.Focus, Page: r.Page, Mode: r.Mode.Name}
 }
 
 // actionHistory is the ring ExecuteAt appends to and the source the current
-// caller set (empty: "api").
+// caller set (empty: "api"). entries holds the user's actions and changes
+// and the lines typed into the palette whatever they ran; fetches holds the
+// other fetches, under their own bound (HistoryFetchLimit). Seq orders both.
 type actionHistory struct {
 	entries []HistoryEntry
+	fetches []HistoryEntry
 	seq     uint64
 	source  string
 	depth   int // requests running now
@@ -61,8 +115,19 @@ func (h *actionHistory) ringLimit() int {
 	return HistoryLimit
 }
 
-// unrecorded operations only read the history or the state.
-var unrecorded = map[string]bool{"history.list": true, "state.get": true}
+// fetchRing reports whether an entry goes to the fetch ring: a fetch the
+// user did not type into the palette.
+func fetchRing(e HistoryEntry) bool {
+	return e.Kind == HistoryFetch && e.Context.Source != "palette"
+}
+
+// appendBounded appends e and drops the oldest entries past n.
+func appendBounded(entries []HistoryEntry, e HistoryEntry, n int) []HistoryEntry {
+	if len(entries) >= n {
+		entries = append(entries[:0], entries[len(entries)-n+1:]...)
+	}
+	return append(entries, e)
+}
 
 // Sourced sets the source the requests executed until restore is called
 // are recorded with, unless an outer caller already set one (a row run by a
@@ -85,8 +150,11 @@ func (r *Runtime) forceSource(source string) (restore func()) {
 }
 
 // record appends one entry, dropping the oldest past the ring's limit, and
-// sends it to the history file when the history is persisted.
-func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, depth int, value any, err error) {
+// sends it to the history file when the history is persisted. from is the
+// place before the request ran; the entry's Moved is set when it changed.
+// The value is read only for the job a Ticket names: encoding it would cost
+// what the value weighs (a list's snapshot) on every key.
+func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, depth int, from HistoryPlace, value any, err error) {
 	if len(q.Args) > 0 {
 		args := make(Arguments, len(q.Args))
 		for k, v := range q.Args {
@@ -95,36 +163,88 @@ func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, depth int,
 		q.Args = args
 	}
 	r.history.seq++
-	entry := HistoryEntry{Seq: r.history.seq, At: at, Request: q, Context: ctx, Depth: depth, Result: HistoryResult{OK: err == nil}}
+	entry := HistoryEntry{Seq: r.history.seq, At: at, Kind: r.historyKind(q), Request: q, Context: ctx, Depth: depth, Result: HistoryResult{OK: err == nil}}
 	if err != nil {
 		entry.Result.Error = err.Error()
-	} else if value != nil {
-		if data, jerr := json.Marshal(value); jerr == nil {
-			entry.Result.Value = data
-		}
+	}
+	if to := r.place(); to != from {
+		entry.Moved = &HistoryMove{From: from, To: to}
 	}
 	if ticket, ok := value.(Ticket); ok {
 		entry.Job = ticket.Job
 	}
 	h := &r.history
-	if n := h.ringLimit(); len(h.entries) >= n {
-		h.entries = append(h.entries[:0], h.entries[len(h.entries)-n+1:]...)
+	if fetchRing(entry) {
+		h.fetches = appendBounded(h.fetches, entry, HistoryFetchLimit)
+	} else {
+		h.entries = appendBounded(h.entries, entry, h.ringLimit())
 	}
-	h.entries = append(h.entries, entry)
 	r.persist(entry)
 }
 
-// History returns the last n entries, oldest first (all of them for n <= 0).
-func (r *Runtime) History(n int) []HistoryEntry {
-	entries := r.history.entries
-	if n > 0 && n < len(entries) {
-		entries = entries[len(entries)-n:]
+// historyKind is the kind of entry q records: its operation's HistoryKind,
+// an action for a request no operation answers.
+func (r *Runtime) historyKind(q Request) string {
+	if op, ok := r.Operations[q.Key()]; ok {
+		return op.HistoryKindOf()
 	}
-	return append([]HistoryEntry{}, entries...)
+	return HistoryAction
 }
 
-// repeatableOperations are the framework's changes: the editor's text
-// edits. Motions, focus, pages, modals, lists and the history itself are not.
+// History returns the last n entries of every kind, oldest first (all of
+// them for n <= 0): the user's and the fetches, merged by Seq.
+func (r *Runtime) History(n int) []HistoryEntry { return r.HistoryOf(n) }
+
+// HistoryOf returns the last n entries of the given kinds (every kind when
+// none is given), oldest first; n <= 0 returns all of them.
+func (r *Runtime) HistoryOf(n int, kinds ...string) []HistoryEntry {
+	h := &r.history
+	keep := func(e HistoryEntry) bool { return len(kinds) == 0 || slices.Contains(kinds, e.Kind) }
+	var out []HistoryEntry
+	i, j := len(h.entries)-1, len(h.fetches)-1
+	for (n <= 0 || len(out) < n) && (i >= 0 || j >= 0) {
+		var e HistoryEntry
+		if j < 0 || i >= 0 && h.entries[i].Seq > h.fetches[j].Seq {
+			e, i = h.entries[i], i-1
+		} else {
+			e, j = h.fetches[j], j-1
+		}
+		if keep(e) {
+			out = append(out, e)
+		}
+	}
+	slices.Reverse(out)
+	if out == nil {
+		out = []HistoryEntry{}
+	}
+	return out
+}
+
+// historyKinds reads history.list's kind argument: "all", or kinds
+// separated by commas; empty is the user's (actions and changes).
+func historyKinds(arg string) ([]string, error) {
+	switch arg {
+	case "":
+		return historyUserKinds, nil
+	case "all":
+		return nil, nil
+	}
+	var kinds []string
+	for _, k := range strings.Split(arg, ",") {
+		k = strings.TrimSpace(k)
+		switch k {
+		case HistoryAction, HistoryChange, HistoryFetch, HistorySystem:
+			kinds = append(kinds, k)
+		default:
+			return nil, fmt.Errorf("unknown history kind %q (action, change, fetch, system or all)", k)
+		}
+	}
+	return kinds, nil
+}
+
+// repeatableOperations are the framework's repeatable changes: the
+// editor's text edits. Motions, focus, pages, modals, lists and the history
+// itself are not.
 var repeatableOperations = []string{"input.insert", "input.delete", "input.kill", "input.paste", "input.operator", "input.replace"}
 
 // markRepeatable flags registered framework operations as repeatable.
@@ -146,6 +266,9 @@ func (r *Runtime) repeatRequest(steps int) (Request, error) {
 	entries := r.history.entries
 	for i := len(entries) - 1; i >= 0; i-- {
 		e := entries[i]
+		if e.Kind != HistoryChange {
+			continue
+		}
 		op, ok := r.Operations[e.Request.Key()]
 		if !ok || !op.Repeatable || !e.Result.OK || e.Restored {
 			continue
@@ -177,8 +300,12 @@ func registerHistory(r *Runtime) {
 		return r.ExecuteAt(c, q)
 	}})
 	r.Define("app").Mode("normal").Bind(".", Do("history.repeat").FromPayload("steps", SourceLine).Hide())
-	r.Register(Operation{Verb: "list", Noun: "history", Description: "List the last executed requests, oldest first, with their context, source and result", Parameters: map[string]Parameter{"last": {Type: "integer", Description: "How many entries (default 50, 0 for all)"}}, Result: "history[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		return r.History(IntArg(a, "last", 50)), nil
+	r.Register(Operation{Verb: "list", Noun: "history", Description: "List the last executed requests, oldest first, with their kind, context, source and result; by default the user's actions and changes", Parameters: map[string]Parameter{"last": {Type: "integer", Description: "How many entries (default 50, 0 for all)"}, "kind": {Type: "string", Description: "Kinds separated by commas (action, change, fetch, system) or all; default action,change"}}, Result: "history[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		kinds, err := historyKinds(StringArg(a, "kind", ""))
+		if err != nil {
+			return nil, err
+		}
+		return r.HistoryOf(IntArg(a, "last", 50), kinds...), nil
 	}})
 	r.Register(Operation{Verb: "path", Noun: "history", Description: "Print the history file: $XDG_STATE_HOME/<app>/history.jsonl, else ~/.local/state/<app>/history.jsonl", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		path := r.Config().HistoryPath()

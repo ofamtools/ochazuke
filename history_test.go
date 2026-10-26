@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 )
 
@@ -21,7 +22,7 @@ func TestHistoryRecordsRequestsWithSource(t *testing.T) {
 	r, _ := editorTestRuntime(t, "one two", false)
 	editorTestKeys(t, r, "x")
 	e := lastEntry(t, r)
-	if e.Request.Key() != "input.delete" || e.Context.Source != "key:x" || e.Context.Focus != "editor" || e.Context.Mode != "normal" || !e.Result.OK || len(e.Result.Value) == 0 {
+	if e.Request.Key() != "input.delete" || e.Context.Source != "key:x" || e.Context.Focus != "editor" || e.Context.Mode != "normal" || !e.Result.OK {
 		t.Fatalf("key entry: %+v", e)
 	}
 	// g enters g_pending; the second g is the row that answers there (the
@@ -66,8 +67,9 @@ func TestHistoryMacroReplaySource(t *testing.T) {
 	}
 }
 
-// history.list and state.get are not recorded; the ring keeps the last
-// HistoryLimit entries; the snapshot shows the last 50 at /history.
+// The ring keeps the last HistoryLimit entries; history.list and state.get
+// are fetches, recorded apart and left out of history.list's default view
+// and the snapshot, which shows the last 50 actions and changes at /history.
 func TestHistoryRingListAndSnapshot(t *testing.T) {
 	r := NewRuntime()
 	for range HistoryLimit + 10 {
@@ -87,8 +89,11 @@ func TestHistoryRingListAndSnapshot(t *testing.T) {
 	if err != nil || len(state.([]any)) != 50 {
 		t.Fatalf("/history: %v", err)
 	}
-	if e := lastEntry(t, r); e.Seq != HistoryLimit+10 {
-		t.Fatalf("history.list or state.get was recorded: %+v", e.Request)
+	if e := r.HistoryOf(1, historyUserKinds...); len(e) != 1 || e[0].Seq != HistoryLimit+10 {
+		t.Fatalf("history.list or state.get is in the user's view: %+v", e)
+	}
+	if e := lastEntry(t, r); e.Kind != HistoryFetch || e.Request.Key() != "state.get" {
+		t.Fatalf("state.get is not the last fetch: %+v", e)
 	}
 	data, err := json.Marshal(lastEntry(t, r))
 	if err != nil {
@@ -98,7 +103,7 @@ func TestHistoryRingListAndSnapshot(t *testing.T) {
 	if err := json.Unmarshal(data, &shape); err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range []string{"seq", "at", "request", "context", "result"} {
+	for _, key := range []string{"seq", "at", "kind", "request", "context", "result"} {
 		if _, ok := shape[key]; !ok {
 			t.Fatalf("entry lacks %s: %s", key, data)
 		}
@@ -199,5 +204,73 @@ func TestDotDoesNotReaskConfirmation(t *testing.T) {
 	}
 	if _, err := r.Execute(Request{Verb: "repeat", Noun: "history"}); err != nil || runs != 2 || len(r.Modals()) != 0 {
 		t.Fatalf("repeat: %v runs=%d modals=%v", err, runs, r.Modals())
+	}
+}
+
+// countedData counts how often it is encoded: a row's Data in the motion
+// test below, so an entry that encoded the list's snapshot would show.
+type countedData struct{ n *int }
+
+func (d countedData) MarshalJSON() ([]byte, error) {
+	*d.n++
+	return []byte("1"), nil
+}
+
+// A motion over a large list is an entry with the request and the move
+// (row A to row B), never the list: nothing of its rows is encoded, and
+// the entry is the same size at 10 rows and 10,000.
+func TestHistoryMotionRecordsTheMoveNotTheList(t *testing.T) {
+	r := NewRuntime()
+	r.Define("a")
+	if err := r.RegisterPage(&Page{ID: "page", Title: "page", Render: func(*Runtime, int, int) Block { return Text("") }}); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.OpenPage("page"); err != nil {
+		t.Fatal(err)
+	}
+	encoded := 0
+	items := make([]ListItem, 10000)
+	for i := range items {
+		items[i] = ListItem{ID: fmt.Sprintf("r%d", i), Label: "row", Noun: "a", Data: countedData{&encoded}}
+	}
+	list, err := r.AddList("l", items, Parent("page"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := list.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	for range 3 {
+		if _, err := r.Execute(Request{Verb: "move", Noun: "list", Args: Arguments{"delta": 1}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if encoded != 0 {
+		t.Fatalf("history encoded the rows %d times", encoded)
+	}
+	e := lastEntry(t, r)
+	if e.Request.Key() != "list.move" || !e.Result.OK || e.Moved == nil || e.Moved.From.Focus != "r2" || e.Moved.To.Focus != "r3" || e.Moved.To.Page != "page" {
+		t.Fatalf("move entry: %+v moved %+v", e, e.Moved)
+	}
+	line, err := json.Marshal(e)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(line) > 512 {
+		t.Fatalf("entry is %d bytes: %s", len(line), line)
+	}
+	// A request that moves nothing has no Moved; a non-motion lands too.
+	if _, err := r.Execute(Request{Verb: "mark", Noun: "list"}); err != nil {
+		t.Fatal(err)
+	}
+	out, err := r.Execute(Request{Verb: "list", Noun: "history", Args: Arguments{"last": 1}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := out.([]HistoryEntry); len(got) != 1 || got[0].Request.Key() != "list.mark" || !got[0].Result.OK || got[0].Moved != nil {
+		t.Fatalf("history.list: %+v", got)
+	}
+	if encoded != 0 {
+		t.Fatalf("history encoded the rows %d times", encoded)
 	}
 }

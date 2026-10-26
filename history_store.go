@@ -19,6 +19,13 @@ const HistoryFile = "history.jsonl"
 // and reads no file.
 const HistorySetting = "history-limit"
 
+// HistoryFetchesSetting is the declared boolean setting that lets the
+// history file keep fetches (entries of kind fetch the user did not type
+// into the palette). Off by default: a host polling a state verb would
+// fill the file and push the user's own entries out of it, and nothing
+// reads a fetch back after a restart.
+const HistoryFetchesSetting = "history-fetches"
+
 // unpersistedNouns are the nouns whose entries never reach the history
 // file: text editing and its plumbing (the input and editor, raw keys,
 // counts, registers, macros, yank history, modes), the palette's own line
@@ -36,12 +43,17 @@ var textLikeArgs = []string{"text", "value", "keys", "args", "password", "secret
 // persistable is the line an entry writes, or false when it writes none.
 // The file keeps palette lines (source "palette", failed ones too, so a
 // mistyped line can be recalled and fixed) and other completed operations,
-// never text editing (unpersistedNouns); arguments named like text are
-// dropped unless the operation opts in, and result values are dropped
-// (ok and the error stay).
+// never text editing (unpersistedNouns), and fetches only while
+// history-fetches is on; arguments named like text are dropped unless the
+// operation opts in.
 func (r *Runtime) persistable(e HistoryEntry) (HistoryEntry, bool) {
 	if unpersistedNouns[e.Request.Noun] {
 		return e, false
+	}
+	if fetchRing(e) {
+		if v, _ := r.Settings().Value(HistoryFetchesSetting); v != true {
+			return e, false
+		}
 	}
 	if !e.Result.OK && e.Context.Source != "palette" {
 		return e, false
@@ -50,7 +62,6 @@ func (r *Runtime) persistable(e HistoryEntry) (HistoryEntry, bool) {
 	if !known {
 		return e, false
 	}
-	e.Result.Value = nil
 	if len(e.Request.Args) > 0 && !op.PersistArgs {
 		args := Arguments{}
 		for name, v := range e.Request.Args {
@@ -157,6 +168,9 @@ func (r *Runtime) EnsureConfigSettings() {
 	if c.HistoryPath() != "" && s.find(HistorySetting) == nil {
 		_ = r.DeclareSetting(Setting{Name: HistorySetting, Type: SettingInteger, Default: HistoryLimit, Description: "Action history entries kept across restarts (0 keeps none)"})
 	}
+	if c.HistoryPath() != "" && s.find(HistoryFetchesSetting) == nil {
+		_ = r.DeclareSetting(Setting{Name: HistoryFetchesSetting, Type: SettingBoolean, Default: false, Description: "Keep data requests (fetches) in the history file too"})
+	}
 }
 
 // historyLimitSetting is the history-limit value, HistoryLimit when the
@@ -240,6 +254,9 @@ func (r *Runtime) restoreHistory(path string, limit int) [][]byte {
 			continue
 		}
 		e.Restored = true
+		if e.Kind == "" {
+			e.Kind = r.historyKind(e.Request)
+		}
 		lines = append(lines, line)
 		entries = append(entries, e)
 	}
@@ -255,21 +272,25 @@ func (r *Runtime) restoreHistory(path string, limit int) [][]byte {
 		}
 	}
 	// The restored entries go before what this session recorded, which is
-	// renumbered after them so seq keeps rising.
+	// renumbered after them so seq keeps rising; each goes to its ring.
 	h := &r.history
 	var seq uint64
 	for _, e := range entries {
 		seq = max(seq, e.Seq)
 	}
-	current := h.entries
+	current := r.History(0)
 	for i := range current {
 		seq++
 		current[i].Seq = seq
 	}
 	h.seq = seq
-	h.entries = append(entries, current...)
-	if n := h.ringLimit(); len(h.entries) > n {
-		h.entries = append([]HistoryEntry(nil), h.entries[len(h.entries)-n:]...)
+	h.entries, h.fetches = nil, nil
+	for _, e := range append(entries, current...) {
+		if fetchRing(e) {
+			h.fetches = appendBounded(h.fetches, e, HistoryFetchLimit)
+		} else {
+			h.entries = appendBounded(h.entries, e, h.ringLimit())
+		}
 	}
 	return lines
 }
