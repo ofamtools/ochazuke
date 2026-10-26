@@ -191,6 +191,13 @@ tiers above them. When the two disagree, fix one in the same commit.
   set of height or padding constants. Check: the diff.
 - **R6.7** Help wraps a long cell inside its column rather than overflowing
   the modal width. Golden: `testdata/help-80.golden`.
+- **R6.8** The tab row never drops a page silently: when the tabs do not
+  fit, `‹N` at the left edge and `N›` at the right count the pages hidden on
+  each side, the active tab is always on the row, and the shown tabs plus
+  the counts are every page; with every tab fitting there are no markers.
+  Story: `pages/tabs-{50,80,120}-{start,middle,end}.json`,
+  `pages/tabs-fit.json`, `pages/tabs-50-step.json`; unit test
+  `TestTabsMarkHiddenPagesOnEachSide`.
 
 ### R7. Palette
 
@@ -205,6 +212,14 @@ tiers above them. When the two disagree, fix one in the same commit.
   focus path that has the verb. Story: needed (`palette/noun-from-focus-path`).
 - **R7.5** Up and down recall history; requests a line ran are recorded with
   source `palette`. Story: needed (`palette/history-recall`).
+- **R7.6** A chooser is not the palette: its search input opens in insert,
+  the top match is highlighted from the first frame and after every edit,
+  enter takes the highlighted row, `ctrl+n`/`ctrl+p` move it clamped (up
+  from no highlight stays), esc closes over the focus and mode it opened on.
+  Every page is reachable from the page picker (`'`, `page.pick`) in
+  registration order. Story: `picker/page-picker-filter-open.json`,
+  `picker/page-picker-esc.json`, `picker/page-picker-move.json`,
+  `picker/page-picker-footer.json`; ranking in `chooser_test.go`.
 
 ### R8. Terminal
 

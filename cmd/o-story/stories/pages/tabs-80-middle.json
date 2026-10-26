@@ -1,0 +1,517 @@
+{
+  "name": "tab row at 80 columns marks hidden pages, active at the middle",
+  "area": "pages",
+  "width": 80,
+  "height": 8,
+  "pages": [
+    {
+      "id": "p01",
+      "title": "Alpha",
+      "lists": [
+        {
+          "id": "l01",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p02",
+      "title": "Bravo",
+      "lists": [
+        {
+          "id": "l02",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p03",
+      "title": "Charlie",
+      "lists": [
+        {
+          "id": "l03",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p04",
+      "title": "Delta",
+      "lists": [
+        {
+          "id": "l04",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p05",
+      "title": "Echo",
+      "lists": [
+        {
+          "id": "l05",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p06",
+      "title": "Foxtrot",
+      "lists": [
+        {
+          "id": "l06",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p07",
+      "title": "Golf",
+      "lists": [
+        {
+          "id": "l07",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p08",
+      "title": "Hotel",
+      "lists": [
+        {
+          "id": "l08",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p09",
+      "title": "India",
+      "lists": [
+        {
+          "id": "l09",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p10",
+      "title": "Juliett",
+      "lists": [
+        {
+          "id": "l10",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p11",
+      "title": "Kilo",
+      "lists": [
+        {
+          "id": "l11",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p12",
+      "title": "Lima",
+      "lists": [
+        {
+          "id": "l12",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p13",
+      "title": "Mike",
+      "lists": [
+        {
+          "id": "l13",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p14",
+      "title": "November",
+      "lists": [
+        {
+          "id": "l14",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p15",
+      "title": "Oscar",
+      "lists": [
+        {
+          "id": "l15",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p16",
+      "title": "Papa",
+      "lists": [
+        {
+          "id": "l16",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p17",
+      "title": "Quebec",
+      "lists": [
+        {
+          "id": "l17",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p18",
+      "title": "Romeo",
+      "lists": [
+        {
+          "id": "l18",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p19",
+      "title": "Sierra",
+      "lists": [
+        {
+          "id": "l19",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p20",
+      "title": "Tango",
+      "lists": [
+        {
+          "id": "l20",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p21",
+      "title": "Uniform",
+      "lists": [
+        {
+          "id": "l21",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p22",
+      "title": "Victor",
+      "lists": [
+        {
+          "id": "l22",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p23",
+      "title": "Whiskey",
+      "lists": [
+        {
+          "id": "l23",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p24",
+      "title": "Xray",
+      "lists": [
+        {
+          "id": "l24",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p25",
+      "title": "Yankee",
+      "lists": [
+        {
+          "id": "l25",
+          "rows": 1
+        }
+      ],
+      "open": true
+    },
+    {
+      "id": "p26",
+      "title": "Zulu",
+      "lists": [
+        {
+          "id": "l26",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p27",
+      "title": "Alpha 2",
+      "lists": [
+        {
+          "id": "l27",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p28",
+      "title": "Bravo 2",
+      "lists": [
+        {
+          "id": "l28",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p29",
+      "title": "Charlie 2",
+      "lists": [
+        {
+          "id": "l29",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p30",
+      "title": "Delta 2",
+      "lists": [
+        {
+          "id": "l30",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p31",
+      "title": "Echo 2",
+      "lists": [
+        {
+          "id": "l31",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p32",
+      "title": "Foxtrot 2",
+      "lists": [
+        {
+          "id": "l32",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p33",
+      "title": "Golf 2",
+      "lists": [
+        {
+          "id": "l33",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p34",
+      "title": "Hotel 2",
+      "lists": [
+        {
+          "id": "l34",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p35",
+      "title": "India 2",
+      "lists": [
+        {
+          "id": "l35",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p36",
+      "title": "Juliett 2",
+      "lists": [
+        {
+          "id": "l36",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p37",
+      "title": "Kilo 2",
+      "lists": [
+        {
+          "id": "l37",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p38",
+      "title": "Lima 2",
+      "lists": [
+        {
+          "id": "l38",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p39",
+      "title": "Mike 2",
+      "lists": [
+        {
+          "id": "l39",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p40",
+      "title": "November 2",
+      "lists": [
+        {
+          "id": "l40",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p41",
+      "title": "Oscar 2",
+      "lists": [
+        {
+          "id": "l41",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p42",
+      "title": "Papa 2",
+      "lists": [
+        {
+          "id": "l42",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p43",
+      "title": "Quebec 2",
+      "lists": [
+        {
+          "id": "l43",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p44",
+      "title": "Romeo 2",
+      "lists": [
+        {
+          "id": "l44",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p45",
+      "title": "Sierra 2",
+      "lists": [
+        {
+          "id": "l45",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p46",
+      "title": "Tango 2",
+      "lists": [
+        {
+          "id": "l46",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p47",
+      "title": "Uniform 2",
+      "lists": [
+        {
+          "id": "l47",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p48",
+      "title": "Victor 2",
+      "lists": [
+        {
+          "id": "l48",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p49",
+      "title": "Whiskey 2",
+      "lists": [
+        {
+          "id": "l49",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p50",
+      "title": "Xray 2",
+      "lists": [
+        {
+          "id": "l50",
+          "rows": 1
+        }
+      ]
+    }
+  ],
+  "expect": {
+    "page": "p25",
+    "order": [
+      "\u203920",
+      "\u203a Yankee",
+      "22\u203a"
+    ]
+  }
+}

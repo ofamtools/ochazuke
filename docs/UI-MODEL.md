@@ -74,7 +74,7 @@ Only `list`, `palette` and `terminal` are `Focusable` nouns, and any `*Input` co
 
 ```
 Model.View (model.go:375) -> Model.render (model.go:416)
-  header = { Title, Subtitle: page.Title, Tabs: pageTitles() }   // tabs in registration order (Children("app"))
+  header = { Title, Subtitle: page.Title, Tabs: pageTitles() }   // tabs in registration order (Children("app")); when they overflow, a window around the active tab with ‹N / N› hidden counts (Layout.tabs)
   beneath()                     // while a modal is open, the page draws with the focus under the modal
   pageContent -> page.render (pages.go:30) -> Page.Render(r,w,h)  // THE APP'S FUNCTION draws its children
        mtm renderWork (main.go:324): "projects (n)", projectList.View, "tasks: ...", taskList.View

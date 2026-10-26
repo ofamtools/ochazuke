@@ -325,6 +325,13 @@ func registerPages(r *Runtime) {
 		err := r.OpenPage(StringArg(a, "id", ""))
 		return r.Context(), err
 	}})
+	r.Register(Operation{Verb: "pick", Noun: "page", Description: "Choose a page from all pages in registration order: type to filter, enter opens", Result: "chooser state", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		chooser, err := r.OpenPagePicker()
+		if err != nil {
+			return nil, err
+		}
+		return chooser.state(), nil
+	}})
 	r.Register(Operation{Verb: "next", Noun: "page", Description: "Open the next page, wrapping in registration order", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		err := r.movePage(1)
 		return r.Context(), err
@@ -333,4 +340,34 @@ func registerPages(r *Runtime) {
 		err := r.movePage(-1)
 		return r.Context(), err
 	}})
+}
+
+// pagePickerID is the page picker's modal kind.
+const pagePickerID = "page-picker"
+
+// OpenPagePicker opens the page chooser (page.pick): every page in
+// registration order, filtered by title as the query is typed; enter opens
+// the highlighted page, esc closes.
+func (r *Runtime) OpenPagePicker() (*Chooser, error) {
+	pages := r.PageList()
+	rows := make([]ChooserRow, 0, len(pages))
+	for _, page := range pages {
+		label := page.Title
+		if label == "" {
+			label = page.ID
+		}
+		rows = append(rows, ChooserRow{ID: page.ID, Label: label})
+	}
+	return r.OpenChooser(ChooserSpec{
+		Kind:  pagePickerID,
+		Title: "Pages",
+		Rows:  rows,
+		Empty: "no pages",
+		Choose: func(row ChooserRow) Result {
+			if err := r.OpenPage(row.ID); err != nil {
+				return Failed(err)
+			}
+			return Done(r.Context())
+		},
+	})
 }

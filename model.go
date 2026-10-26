@@ -105,6 +105,7 @@ func NewModel(r *Runtime) *Model {
 	defaultRow("normal", ":", Do("palette.open"))
 	defaultRow("normal", "ctrl+y", Do("yank-history.open").Hide())
 	defaultRow("normal", "?", Do("bindings.help"))
+	defaultRow("normal", "'", Do("page.pick"))
 	defaultRow("normal", "ctrl+j", Do("page.next"))
 	defaultRow("normal", "ctrl+k", Do("page.previous"))
 	defaultRow("", "ctrl+space", Do("palette.open"))
@@ -243,6 +244,12 @@ func (m *Model) modalContent(id string, width, height int) (string, Block) {
 	switch {
 	case id == paletteID && m.Palette.IsOpen():
 		return "Command palette", m.Palette.viewBlock(width, height)
+	case m.Runtime.Chooser(id) != nil:
+		body = m.Runtime.Chooser(id).View(width, height)
+		if id != m.Runtime.TopModal() {
+			body.Cursor = nil
+		}
+		return m.Runtime.Chooser(id).Title(), body
 	case m.ModalViews[id].Render != nil:
 		body = m.ModalViews[id].Render(m.Runtime, m.Runtime.Instances[id], width, height)
 	case m.Runtime.Input(focus) != nil:
