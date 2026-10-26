@@ -606,7 +606,7 @@ Importable package `cli`: 18 source files, 12 test files.
 
 ### cli/statecache.go
 
-- lines: 517
+- lines: 524
 - purpose: StateCache is how an extension's shell keeps the versions of its state answer's lists that deltas are computed against (the --since protocol, StateDeltaVersi...
 - types: StateCache
 - methods: StateCache(4), currentList(1), stateStore(8)
