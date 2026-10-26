@@ -236,7 +236,7 @@ func pagePickerTest(t *testing.T, n int) (*Runtime, *Model) {
 	return r, m
 }
 
-func TestPagePickerListsEveryPageInRegistrationOrderAndOpensOne(t *testing.T) {
+func TestPagePickerListsEveryPageAndOpensOne(t *testing.T) {
 	r, m := pagePickerTest(t, 50)
 	keytest.Press(m, "'")
 	c := r.Chooser(pagePickerID)
@@ -244,7 +244,7 @@ func TestPagePickerListsEveryPageInRegistrationOrderAndOpensOne(t *testing.T) {
 		t.Fatalf("' did not open the page picker: modal %q mode %q", r.TopModal(), r.Mode.Name)
 	}
 	ids := chooserIDs(c)
-	if len(ids) != 50 || ids[0] != "p01" || ids[49] != "p50" {
+	if len(ids) != 50 || ids[0] != "p02" || ids[48] != "p50" || ids[49] != "p01" {
 		t.Fatalf("rows %v", ids)
 	}
 	keytest.Type(m, "37")
@@ -257,12 +257,40 @@ func TestPagePickerListsEveryPageInRegistrationOrderAndOpensOne(t *testing.T) {
 	}
 }
 
+// The page picker lists the pages visited before, most recent first, then
+// the never-visited ones in registration order, then the current page,
+// marked; enter on the first row goes back to the page last left.
+func TestPagePickerListsRecentPagesFirstAndTheCurrentPageLast(t *testing.T) {
+	r, m := pagePickerTest(t, 6)
+	for _, id := range []string{"p03", "p05", "p04"} {
+		if err := r.OpenPage(id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	keytest.Press(m, "'")
+	c := r.Chooser(pagePickerID)
+	if got, want := chooserIDs(c), []string{"p05", "p03", "p01", "p02", "p06", "p04"}; !slices.Equal(got, want) {
+		t.Fatalf("rows %v, want %v", got, want)
+	}
+	if view := ansi.Strip(m.View().Content); !strings.Contains(view, "Page 04  current") || strings.Contains(view, "Page 05  current") {
+		t.Fatalf("the current page is not the one marked:\n%s", view)
+	}
+	keytest.Press(m, "enter")
+	if r.Page != "p05" {
+		t.Fatalf("enter on the first row opened %q, want the page last left, p05", r.Page)
+	}
+	keytest.Press(m, "'")
+	if got, want := chooserIDs(r.Chooser(pagePickerID)), []string{"p04", "p03", "p01", "p02", "p06", "p05"}; !slices.Equal(got, want) {
+		t.Fatalf("after going back: rows %v, want %v", got, want)
+	}
+}
+
 func TestPagePickerCtrlNMovesAndEscKeepsThePage(t *testing.T) {
 	r, m := pagePickerTest(t, 5)
 	keytest.Press(m, "'")
 	keytest.Press(m, "ctrl+n")
 	keytest.Press(m, "ctrl+n")
-	if row, _ := r.Chooser(pagePickerID).Highlighted(); row.ID != "p03" {
+	if row, _ := r.Chooser(pagePickerID).Highlighted(); row.ID != "p04" {
 		t.Fatalf("highlight %q", row.ID)
 	}
 	keytest.Press(m, "esc")
@@ -272,7 +300,7 @@ func TestPagePickerCtrlNMovesAndEscKeepsThePage(t *testing.T) {
 	keytest.Press(m, "'")
 	keytest.Press(m, "ctrl+n")
 	keytest.Press(m, "enter")
-	if r.Page != "p02" {
+	if r.Page != "p03" {
 		t.Fatalf("enter on the moved highlight opened %q", r.Page)
 	}
 }

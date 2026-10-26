@@ -1,0 +1,85 @@
+{
+  "name": "the page picker lists recent pages first and the current page last, marked; enter goes back",
+  "area": "picker",
+  "width": 80,
+  "height": 16,
+  "pages": [
+    {
+      "id": "p01",
+      "title": "Alpha",
+      "lists": [
+        {
+          "id": "l01",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p02",
+      "title": "Bravo",
+      "lists": [
+        {
+          "id": "l02",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p03",
+      "title": "Charlie",
+      "lists": [
+        {
+          "id": "l03",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p04",
+      "title": "Delta",
+      "lists": [
+        {
+          "id": "l04",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p05",
+      "title": "Echo",
+      "lists": [
+        {
+          "id": "l05",
+          "rows": 1
+        }
+      ]
+    }
+  ],
+  "script": [
+    "ctrl+j",
+    "ctrl+j",
+    "'",
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "modal": "page-picker",
+      "order": [
+        "Pages",
+        "› ",
+        "Bravo",
+        "Alpha",
+        "Delta",
+        "Echo",
+        "Charlie  current"
+      ],
+      "highlighted": 2
+    },
+    {
+      "page": "p02",
+      "modal": "",
+      "mode": "normal"
+    }
+  ]
+}

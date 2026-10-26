@@ -198,11 +198,11 @@ Root package `ochazuke` is flat: 54 source files, 51 test files. Each entry list
 
 ### pages.go
 
-- lines: 391 · tests: pages_test.go
+- lines: 436 · tests: pages_test.go
 - purpose: Page is the component a page instance fronts: a title, the instance it starts focused on (Focus), the focus it remembers while another page is open (Remember...
 - types: Page, Placement
-- methods: Page(4), Runtime(10)
-- leans on: runtime.go(45), instance.go(32), delivery.go(11), chooser.go(5)
+- methods: Page(4), Runtime(12)
+- leans on: runtime.go(47), instance.go(32), delivery.go(11), chooser.go(5)
 
 ### palette.go
 

@@ -1,8 +1,10 @@
 package ochazuke
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -33,6 +35,9 @@ type Page struct {
 	// default, 2; a negative value keeps no margin.
 	Scrolloff int `json:"scrolloff,omitempty"`
 	mode      ModeState
+	// visited orders the page picker: the stamp of the last OpenPage that
+	// made this page current (larger is more recent), 0 for never.
+	visited uint64
 	// drawn is the order the last frame drew the page's focus stops in
 	// (Placed calls during Render), with where each landed in the body;
 	// drawing collects the frame in progress.
@@ -296,6 +301,7 @@ func (r *Runtime) OpenPage(id string) error {
 	r.selectFocusedRow(r.Focus)
 	left := r.Page
 	r.Page = id
+	page.visited = r.lastPageVisit() + 1
 	if page.mode.Name != "" {
 		r.rememberLeaving(path, r.Focus)
 		r.restoreMode(page.mode, path)
@@ -343,7 +349,7 @@ func registerPages(r *Runtime) {
 		err := r.OpenPage(StringArg(a, "id", ""))
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "pick", Noun: "page", Description: "Choose a page from all pages in registration order: type to filter, enter opens", Result: "chooser state", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "pick", Noun: "page", Description: "Choose a page, most recently visited first and the current one last: type to filter, enter opens", Result: "chooser state", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		chooser, err := r.OpenPagePicker()
 		if err != nil {
 			return nil, err
@@ -360,21 +366,60 @@ func registerPages(r *Runtime) {
 	}})
 }
 
+// lastPageVisit is the newest page visit stamp, 0 before any page opened.
+func (r *Runtime) lastPageVisit() uint64 {
+	var last uint64
+	for _, page := range r.PageList() {
+		last = max(last, page.visited)
+	}
+	return last
+}
+
+// pagePickerOrder is the page picker's row order: visited pages but the
+// current one by recency, never-visited pages in registration order, the
+// current page last.
+func (r *Runtime) pagePickerOrder() []*Page {
+	var visited, fresh []*Page
+	var current *Page
+	for _, page := range r.PageList() {
+		switch {
+		case page.ID == r.Page:
+			current = page
+		case page.visited > 0:
+			visited = append(visited, page)
+		default:
+			fresh = append(fresh, page)
+		}
+	}
+	slices.SortStableFunc(visited, func(a, b *Page) int { return cmp.Compare(b.visited, a.visited) })
+	out := append(visited, fresh...)
+	if current != nil {
+		out = append(out, current)
+	}
+	return out
+}
+
 // pagePickerID is the page picker's modal kind.
 const pagePickerID = "page-picker"
 
-// OpenPagePicker opens the page chooser (page.pick): every page in
-// registration order, filtered by title as the query is typed; enter opens
-// the highlighted page, esc closes.
+// OpenPagePicker opens the page chooser (page.pick): the pages visited
+// before, most recent first, then the pages never visited in registration
+// order, then the current page, marked "current", so the highlighted first
+// row is the page last left and enter goes back to it. Typing filters by
+// title; enter opens the highlighted page, esc closes.
 func (r *Runtime) OpenPagePicker() (*Chooser, error) {
-	pages := r.PageList()
+	pages := r.pagePickerOrder()
 	rows := make([]ChooserRow, 0, len(pages))
 	for _, page := range pages {
 		label := page.Title
 		if label == "" {
 			label = page.ID
 		}
-		rows = append(rows, ChooserRow{ID: page.ID, Label: label})
+		row := ChooserRow{ID: page.ID, Label: label}
+		if page.ID == r.Page {
+			row.Cells = []string{label, "current"}
+		}
+		rows = append(rows, row)
 	}
 	return r.OpenChooser(ChooserSpec{
 		Kind:  pagePickerID,

@@ -216,8 +216,11 @@ tiers above them. When the two disagree, fix one in the same commit.
   the top match is highlighted from the first frame and after every edit,
   enter takes the highlighted row, `ctrl+n`/`ctrl+p` move it clamped (up
   from no highlight stays), esc closes over the focus and mode it opened on.
-  Every page is reachable from the page picker (`'`, `page.pick`) in
-  registration order. Story: `picker/page-picker-filter-open.json`,
+  Every page is reachable from the page picker (`'`, `page.pick`): pages
+  visited before, most recent first, then the never-visited in
+  registration order, the current page last and marked `current`, so enter
+  goes back to the page last left. Story: `picker/page-picker-filter-open.json`,
+  `picker/page-picker-recent-first.json`,
   `picker/page-picker-esc.json`, `picker/page-picker-move.json`,
   `picker/page-picker-footer.json`; ranking in `chooser_test.go`. `'`
   answers only with no modal open (a page cannot open beneath one):
