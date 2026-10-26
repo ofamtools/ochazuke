@@ -59,7 +59,15 @@ type CatalogNoun struct {
 	Verbs   []CatalogVerb     `json:"verbs"`
 }
 
-// CatalogVerb is one ochazuke.Operation. Kind is "application" for a verb
+// CatalogVerb is one ochazuke.Operation. Params are the operation's
+// ochazuke.Parameter values as they are: type, required, description, the
+// static enum, the source (an operation, NOUN.VERB, whose result lists more
+// choices) and free. Free (omitted when false) says the choices are
+// suggestions and any value is accepted (mtm's --model); a parameter with an
+// enum or a source and no free accepts only its choices, so a host may
+// refuse other values before running the verb.
+//
+// Kind is "application" for a verb
 // whose handler may return pending work, "interaction" otherwise. Rows
 // names the noun whose rows the verb's result lists (ochazuke.Operation.Rows,
 // declared with NounBuilder.Rows), "" when the result is not rows. Quiet

@@ -398,11 +398,11 @@ Root package `ochazuke` is flat: 49 source files, 43 test files. Each entry list
 
 ## Package cli
 
-Importable package `cli`: 4 source files, 3 test files.
+Importable package `cli`: 4 source files, 4 test files.
 
 ### cli/catalog.go
 
-- lines: 158
+- lines: 166
 - purpose: CatalogDoc is the catalog answer: what a runtime registers, grouped by noun, in the runtime's own JSON shapes (ochazuke.Parameter and ochazuke.Binding unchan...
 - types: CatalogDoc, CatalogNoun, CatalogVerb, CatalogPage
 - funcs: Catalog
