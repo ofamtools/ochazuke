@@ -467,7 +467,7 @@ func releadRow(b Binding, old, key string) Binding {
 // EnsureTerminalLeader declares the terminal-leader setting unless the
 // application declared one, and applies it: an application with terminal
 // panes calls it at setup (cli.AddCommands does), so settings.json, the
-// settings editor and the CLI's settings set know the setting before the
+// Settings page and the CLI's settings set know the setting before the
 // first pane opens. An application without terminals does not, and its
 // settings list stays free of it.
 func (r *Runtime) EnsureTerminalLeader() {

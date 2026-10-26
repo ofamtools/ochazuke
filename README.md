@@ -443,7 +443,7 @@ The instance starts in the `terminal` base mode, where the noun's `any` and `pas
 | `ctrl+a` then an unbound key | Sends the leader and the key, in order, in one `Send` and returns to terminal mode |
 | `ctrl+a` alone past `BindingTimeout` | Sends the leader alone; the next key starts fresh |
 
-Every row under the leader is a `Request`: `d` runs `terminal.detach`, the unbound-key row is `terminal.send` with `keys` joined from the prefix and the key (`Join("keys", SourcePrefix, SourceKey)`), the paste row is `terminal.paste {keys: prefix, text}`, which forwards the leader through `terminal.send` before it pastes. The leader is a setting: `terminal-leader` (`TerminalLeaderSetting`, default `ctrl+a`, one `ctrl+` or `alt+` key) is declared by `Runtime.EnsureTerminalLeader()` unless the application declared it (an application with terminals calls it at setup; `cli.AddCommands` does; an application without terminals never shows the setting), read from `settings.json` and followed on every change (`settings set terminal-leader ctrl+b`, the settings editor, another process's write). Applying it (`Runtime.SetTerminalLeader(key)`, `Runtime.TerminalLeader()`) rewrites the rows, which stay data: every row on any noun that enters `leader_pending` on one key with that key as its prefix (the framework's and an application's own, such as a leader row with a richer hint) moves to the new key with its prefix and timeout request, the `leader_pending` row that sends the old leader now sends the new one on the new key, hints naming the old leader name the new one, and the application's other `leader_pending` rows (`d`, its own keys) stay. The old leader becomes ordinary input that reaches the pane. `AddTerminal` applies it too, so leader rows defined after `Init` move. `terminal.attach {id}` focuses a pane from anywhere on its page; `terminal.send {keys}` and `terminal.paste {text, keys?}` are the operations the rows run and are available to the CLI. `bindings list` in terminal mode prints the terminal table alone (the leader, `any`, `paste`); in `leader_pending` it prints the leader table, so the footer shows exactly what the pane will do with the next key. The leader row carries a `hint` (`Binding.Hinted`, config field `hint`), so the attached footer reads `ctrl+a leader: d detaches, ctrl+a sends ctrl+a` instead of its `mode.enter` operation; any row may set one, and `bindings list` returns it with the row. The full-project example's **Console** page is a terminal page added from config rows and the public API only.
+Every row under the leader is a `Request`: `d` runs `terminal.detach`, the unbound-key row is `terminal.send` with `keys` joined from the prefix and the key (`Join("keys", SourcePrefix, SourceKey)`), the paste row is `terminal.paste {keys: prefix, text}`, which forwards the leader through `terminal.send` before it pastes. The leader is a setting: `terminal-leader` (`TerminalLeaderSetting`, default `ctrl+a`, one `ctrl+` or `alt+` key) is declared by `Runtime.EnsureTerminalLeader()` unless the application declared it (an application with terminals calls it at setup; `cli.AddCommands` does; an application without terminals never shows the setting), read from `settings.json` and followed on every change (`settings set terminal-leader ctrl+b`, the Settings page, another process's write). Applying it (`Runtime.SetTerminalLeader(key)`, `Runtime.TerminalLeader()`) rewrites the rows, which stay data: every row on any noun that enters `leader_pending` on one key with that key as its prefix (the framework's and an application's own, such as a leader row with a richer hint) moves to the new key with its prefix and timeout request, the `leader_pending` row that sends the old leader now sends the new one on the new key, hints naming the old leader name the new one, and the application's other `leader_pending` rows (`d`, its own keys) stay. The old leader becomes ordinary input that reaches the pane. `AddTerminal` applies it too, so leader rows defined after `Init` move. `terminal.attach {id}` focuses a pane from anywhere on its page; `terminal.send {keys}` and `terminal.paste {text, keys?}` are the operations the rows run and are available to the CLI. `bindings list` in terminal mode prints the terminal table alone (the leader, `any`, `paste`); in `leader_pending` it prints the leader table, so the footer shows exactly what the pane will do with the next key. The leader row carries a `hint` (`Binding.Hinted`, config field `hint`), so the attached footer reads `ctrl+a leader: d detaches, ctrl+a sends ctrl+a` instead of its `mode.enter` operation; any row may set one, and `bindings list` returns it with the row. The full-project example's **Console** page is a terminal page added from config rows and the public API only.
 
 ### Markdown and checklists
 
@@ -994,6 +994,42 @@ The work runs off the loop as a job (`Pending(...).Label(label)`): the ticker sh
 A malformed entry (an unknown field, noun or placeholder, a bad type, `command` and `base` together) is skipped and is a persistent notice (a CLI `warning:`); the rest still install. `actions reload` reads the file again (the last load's verbs go first) and reapplies the user bindings; `actions list` prints the installed entries.
 
 Security: commands come only from the user's own `actions.json` in the config directory. A catalog, a binding row, a socket call or an application's data can name an action's verb, as they can any verb, but never define or change what it runs: there is no operation that loads actions from another path, the catalog publishes the verb's parameters and never its command, and a sandbox (`Config.Disable`, o-story, a test binary) reads no file. Values reach the command as argv words, not shell text; if an entry runs `sh -c` itself, pass values as positional arguments (`"sh", "-c", "git log \"$1\"", "sh", "{{data.path}}"`) rather than inside the script.
+
+## Settings and the Settings page
+
+An application declares its settings (`Runtime.DeclareSetting(Setting{Name, Type, Default, Description, Enum, Section})`); their values live in `settings.json` beside `bindings.json`, and the `settings` noun reads and writes them from the CLI and the palette (`settings list|get|set|reset|reload|path`). Each change is checked against the type and the allowed values and written at once.
+
+`settings.edit` opens the **Settings page**, or switches to it when it is already a tab. There is no default key: an application binds it (matomeru binds `,`, the demo `s` on Appearance), and pressing it on the Settings page does nothing.
+
+```
+╭─ Sections ─────╮ ╭━ General (4) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
+│ General        │ ┃ Setting    Value  Default  Source                     ┃
+│ ext.ai         │ ┃ scrolloff  2      2        default                    ┃
+│ ext.git        │ ┃ theme      dark   dark     default                    ┃
+│                │ ┃ wrap       false  false    default                    ┃
+│                │ ┃ editor     vi     vi       default                    ┃
+│                │ ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
+│                │ ╭─ theme ───────────────────────────────────────────────╮
+│                │ │ Colour theme                                          │
+│                │ │                                                       │
+│                │ │ name     theme                                        │
+│                │ │ type     enum (string)                                │
+│                │ │ allowed  dark, light, mono                            │
+│                │ │ value    dark                                         │
+│                │ │ default  dark                                         │
+│                │ │ source   default                                      │
+╰────────────────╯ ╰───────────────────────────────────────────────────────╯
+```
+
+| Part | What it shows |
+|---|---|
+| Sections (rail) | The settings without a section first, as **General**, then each section in the order its first setting was declared. A setting's section is its `Section`, else its name before the last dot (`ext.ai.poll-every` is in `ext.ai`), else General (`Setting.SectionName`). Moving in the rail changes the table; `enter`, `l` or `right` moves into it, and `tab`, `shift+tab`, `}` and `{` move between the two |
+| Table | The section's settings: the name (without the section's prefix), the value, the default, and the source: `default`, `settings.json`, or `default (file value invalid)` when the file holds a value that does not validate |
+| Detail | The selected setting's description, full name, type, allowed values, value, default and source; `J`/`K` scroll it when it overflows, and `>`/`<` move the divider |
+
+Editing saves each change as it is made; there is no save key. On a row: `enter` flips a boolean, takes an enum's next value, and otherwise opens a one-line prompt prefilled with the value (`enter` sets it; a value that does not validate keeps the prompt open with the error in the status; `esc` closes it unchanged). `l`, `right` and `space` step a boolean, an enum or a number forward, `h` and `left` back (one `h/l setting.cycle` hint), `r` resets to the default. A value another process writes (the CLI's `settings set`) shows within a second.
+
+`q` or `esc` (`settings.close`) goes back to the page the Settings page was opened from, with the focus and mode it was left in. `settings.edit` registers the page (`SettingsPageID`, title Settings) when it opens and `settings.close` removes it, so it is a tab, in the page picker and on `page.next` only while it is open. An application that wants a permanent Settings tab calls `Runtime.AddSettingsPage()` where it registers its pages; `settings.close` then goes back without removing it.
 
 ## Configuration reference (config export)
 

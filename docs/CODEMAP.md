@@ -96,11 +96,11 @@ Root package `ochazuke` is flat: 59 source files, 57 test files. Each entry list
 
 ### detail.go
 
-- lines: 217 · tests: detail_test.go
+- lines: 265 · tests: detail_test.go
 - purpose: Detail is the component a detail instance fronts: a page's read-only detail region (the text beside or below a list about its selected row) that scrolls whil...
 - types: Detail
-- methods: Detail(9), Runtime(3)
-- leans on: runtime.go(16), instance.go(7), noun.go(5), delivery.go(4)
+- methods: Detail(9), Runtime(6)
+- leans on: runtime.go(19), instance.go(7), delivery.go(5), noun.go(5)
 
 ### editing.go
 
@@ -205,12 +205,12 @@ Root package `ochazuke` is flat: 59 source files, 57 test files. Each entry list
 
 ### model.go
 
-- lines: 945
+- lines: 946
 - purpose: ModalView renders one modal without replacing or inspecting its parent page.
 - types: ModalView, ModalBody (iface), Model, HelpRow
 - methods: Model(23), Runtime(1), modelSink(3)
 - funcs: NewModel, BindingHints, BindingHelp, InputView, InputBlock
-- leans on: runtime.go(91), block.go(34), noun.go(33), theme.go(16)
+- leans on: runtime.go(91), block.go(34), noun.go(33), theme.go(19)
 
 ### noun.go
 
@@ -223,7 +223,7 @@ Root package `ochazuke` is flat: 59 source files, 57 test files. Each entry list
 
 ### pages.go
 
-- lines: 443 · tests: pages_test.go
+- lines: 448 · tests: pages_test.go
 - purpose: Page is the component a page instance fronts: a title, the instance it starts focused on (Focus), the focus it remembers while another page is open (Remember...
 - types: Page, Placement
 - methods: Page(4), Runtime(12)
@@ -383,7 +383,7 @@ Root package `ochazuke` is flat: 59 source files, 57 test files. Each entry list
 
 ### settings.go
 
-- lines: 593 · tests: settings_test.go
+- lines: 599 · tests: settings_test.go
 - purpose: Setting is one declared user preference: its name, type, default, the line the settings list shows and, for a string, the allowed values.
 - types: Setting, SettingValue, Settings, SettingsPollMsg
 - methods: Model(1), Runtime(2), Settings(26)
@@ -391,9 +391,10 @@ Root package `ochazuke` is flat: 59 source files, 57 test files. Each entry list
 
 ### settings_view.go
 
-- lines: 234
-- purpose: settingItems is one table row per declared setting.
-- leans on: runtime.go(41), settings.go(24), noun.go(19), instance.go(15)
+- lines: 580
+- purpose: settingsPage is the Settings page's state, kept with the settings.
+- methods: Runtime(1), Setting(1)
+- leans on: runtime.go(53), settings.go(41), noun.go(26), instance.go(23)
 
 ### surface.go
 
