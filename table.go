@@ -250,3 +250,46 @@ func (l *List) cellWidths() []int {
 	}
 	return l.widest
 }
+
+// TableText lays a table out as plain text lines, the header line first,
+// with the layout a list with columns draws (List.View) and no styling,
+// gutter or highlight: a printer outside the TUI (the command line's
+// --format table) reads the same column declarations. At width > 0 the
+// columns that do not fit drop by Priority and cells cut with "…" at their
+// width; at width <= 0 nothing drops or cuts, every column is as wide as
+// its widest cell or title (Width and Min are ignored). A row with fewer
+// cells than columns has empty ones; control characters in a cell become
+// spaces; trailing spaces are trimmed. No columns is no lines.
+func TableText(cols []Column, rows [][]string, width int) []string {
+	if len(cols) == 0 {
+		return nil
+	}
+	clean := make([][]string, len(rows))
+	for r, row := range rows {
+		clean[r] = make([]string, len(cols))
+		for i := range min(len(cols), len(row)) {
+			clean[r][i] = modalLabel(row[i])
+		}
+	}
+	titles := make([]string, len(cols))
+	for i, c := range cols {
+		titles[i] = modalLabel(c.Title)
+	}
+	layout := cols
+	if width <= 0 {
+		layout = make([]Column, len(cols))
+		widest := cellWidths(clean, len(cols))
+		width = tableGap * (len(cols) - 1)
+		for i, c := range cols {
+			layout[i] = Column{Title: titles[i], Align: c.Align}
+			width += max(1, ansi.StringWidth(titles[i]), widest[i])
+		}
+	}
+	shown, widths := tableLayout(layout, clean, width)
+	lines := make([]string, 0, len(rows)+1)
+	lines = append(lines, strings.TrimRight(tableLine(cols, titles, shown, widths), " "))
+	for _, row := range clean {
+		lines = append(lines, strings.TrimRight(tableLine(cols, row, shown, widths), " "))
+	}
+	return lines
+}
