@@ -24,10 +24,10 @@ Root package `ochazuke` is flat: 49 source files, 43 test files. Each entry list
 
 ### chooser.go
 
-- lines: 594 · tests: chooser_test.go
+- lines: 599 · tests: chooser_test.go
 - purpose: ChooserRow is one choice.
 - types: ChooserRow, ChooserSpec, Chooser
-- methods: Chooser(22), Runtime(3)
+- methods: Chooser(24), Runtime(3)
 - leans on: delivery.go(25), noun.go(14), instance.go(13), runtime.go(13)
 
 ### cli.go
@@ -165,12 +165,12 @@ Root package `ochazuke` is flat: 49 source files, 43 test files. Each entry list
 
 ### model.go
 
-- lines: 865
+- lines: 860
 - purpose: ModalView renders one modal without replacing or inspecting its parent page.
 - types: ModalView, ModalBody (iface), Model, HelpRow
 - methods: Model(21), Runtime(1)
 - funcs: NewModel, BindingHints, BindingHelp, InputView, InputBlock
-- leans on: runtime.go(87), block.go(34), noun.go(32), instance.go(12)
+- leans on: runtime.go(83), block.go(34), noun.go(32), instance.go(12)
 
 ### noun.go
 

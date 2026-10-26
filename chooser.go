@@ -178,6 +178,11 @@ func (c *Chooser) Kind() string { return c.spec.Kind }
 // Title is the chooser modal's title.
 func (c *Chooser) Title() string { return c.spec.Title }
 
+// ModalTitle and ModalBlock make a chooser a self-drawing modal body
+// (ModalBody), drawn like a record editor and its chooser.
+func (c *Chooser) ModalTitle() string                           { return c.Title() }
+func (c *Chooser) ModalBlock(_ Styles, width, height int) Block { return c.View(width, height) }
+
 // close pops the chooser's modal so a callback may open the next one.
 func (c *Chooser) close() error {
 	if c.r.TopModal() != c.spec.Kind {

@@ -26,7 +26,8 @@ type ModalView struct {
 
 // ModalBody is a modal body component that draws itself: a modal whose
 // instance's Component implements it needs no ModalView (a record editor
-// opened as a modal, its chooser). A ModalView for the id still wins.
+// opened as a modal, its chooser, a Chooser). A ModalView for the id still
+// wins.
 type ModalBody interface {
 	ModalTitle() string
 	ModalBlock(s Styles, width, height int) Block
@@ -280,12 +281,6 @@ func (m *Model) modalContent(id string, width, height int) (string, Block) {
 	switch {
 	case id == paletteID && m.Palette.IsOpen():
 		return "Command palette", m.Palette.viewBlock(width, height)
-	case m.Runtime.Chooser(id) != nil:
-		body = m.Runtime.Chooser(id).View(width, height)
-		if id != m.Runtime.TopModal() {
-			body.Cursor = nil
-		}
-		return m.Runtime.Chooser(id).Title(), body
 	case m.ModalViews[id].Render != nil:
 		body = m.ModalViews[id].Render(m.Runtime, m.Runtime.Instances[id], width, height)
 	case m.modalBody(id) != nil:
