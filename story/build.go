@@ -53,6 +53,9 @@ func Build(s *Story, opt Options) (*Session, error) {
 	r := ochazuke.NewRuntime()
 	// A story is a sandbox: it reads and writes no user config files.
 	r.Config().Disable()
+	if err := r.DeclareSetting(s.Settings...); err != nil {
+		return nil, err
+	}
 	m := ochazuke.NewModel(r)
 	m.Title = "o-story"
 	if opt.Mono {

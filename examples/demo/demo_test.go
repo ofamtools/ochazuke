@@ -311,3 +311,39 @@ func TestDemoBindingRowsAreAtomic(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// Theme and density are settings: t on the Appearance page and the
+// editor (s) save them to settings.json in the config directory, and a
+// new session starts with them.
+func TestDemoAppearanceIsSavedAsSettings(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, "config"))
+	m := New()
+	r := m.Runtime
+	r.Config().App = "ochazuke-demo"
+	if _, err := r.Execute(ochazuke.Request{Verb: "open", Noun: "page", Args: ochazuke.Arguments{"id": "appearance"}}); err != nil {
+		t.Fatal(err)
+	}
+	keytest.Press(m, "t")
+	if m.Appearance.Theme != "dark" {
+		t.Fatalf("t: theme %q status %q", m.Appearance.Theme, m.Status)
+	}
+	keytest.Press(m, "s")
+	keytest.Press(m, "j")
+	keytest.Press(m, "enter")
+	keytest.Press(m, "esc")
+	if r.TopModal() != "" || m.Appearance.Density != "compact" {
+		t.Fatalf("editor: modal %q density %q status %q", r.TopModal(), m.Appearance.Density, m.Status)
+	}
+	data, err := os.ReadFile(filepath.Join(home, "config", "ochazuke-demo", "settings.json"))
+	if err != nil || !strings.Contains(string(data), `"theme": "dark"`) || !strings.Contains(string(data), `"density": "compact"`) {
+		t.Fatalf("settings.json %s %v", data, err)
+	}
+	next := New()
+	next.Runtime.Config().App = "ochazuke-demo"
+	next.Init()
+	if next.Runtime.Settings().String("theme") != "dark" || next.Appearance.Theme != "dark" || next.Appearance.Density != "compact" {
+		t.Fatalf("a new session: setting %q appearance %+v", next.Runtime.Settings().String("theme"), *next.Appearance)
+	}
+}

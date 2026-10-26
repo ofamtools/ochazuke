@@ -1,0 +1,29 @@
+{
+  "name": "settings editor: each key saves at once, no save key",
+  "area": "settings",
+  "width": 100,
+  "settings": [
+    {"name": "scrolloff", "type": "integer", "default": 2, "description": "Rows kept around the focus"},
+    {"name": "theme", "type": "string", "default": "dark", "description": "Colour theme", "enum": ["dark", "light", "mono"]},
+    {"name": "wrap", "type": "boolean", "default": false, "description": "Wrap long lines"}
+  ],
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "bind": [{"noun": "demo", "keys": "S", "do": "settings.edit"}]
+  },
+  "script": ["S", "l", "j", "enter", "j", "space", "r", "esc"],
+  "expect": [
+    {
+      "after": 1,
+      "modal": "settings-editor",
+      "focus": "__settings/scrolloff",
+      "order": ["Settings", "Setting", "Value", "Default", "Description", "scrolloff", "2", "Rows kept around the focus", "theme", "dark", "Colour theme (dark, light, mono)", "wrap", "false"],
+      "contains": ["enter setting.edit", "l setting.cycle", "r setting.reset"]
+    },
+    {"after": 2, "contains": ["3 *"]},
+    {"after": 4, "focus": "__settings/theme", "contains": ["light *"]},
+    {"after": 6, "focus": "__settings/wrap", "contains": ["true *"]},
+    {"after": 7, "lacks": ["true *"], "contains": ["light *", "3 *"]},
+    {"modal": "", "focus": "a1"}
+  ]
+}

@@ -79,6 +79,8 @@ func NewModel(r *Runtime) *Model {
 	m.ModalViews[yankHistoryID] = ModalView{Title: "Yank history", Render: yankHistoryView}
 	m.ModalViews["confirm"] = ModalView{Title: "Confirm", Render: confirmView}
 	m.ModalViews[helpID] = ModalView{Title: "Keys", Render: bindingHelpView}
+	m.ModalViews[settingsEditorID] = ModalView{Title: "Settings", Render: settingsEditorView}
+	m.ModalViews[settingPromptID] = ModalView{Title: "Set", Render: settingPromptView}
 	r.Register(Operation{Verb: "scroll", Noun: "surface", Description: "Scroll the active page or modal without changing focus", Parameters: map[string]Parameter{"lines": {Type: "integer", Required: true}}, Result: "scroll offset", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		key := m.surfaceKey()
 		width, height := m.pageSize()

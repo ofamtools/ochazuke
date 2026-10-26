@@ -8,6 +8,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/charmbracelet/x/ansi"
+	"github.com/unixsuperhero/ochazuke/internal/keytest"
 )
 
 func settingsFixture(t *testing.T) (*Runtime, *Model, string) {
@@ -180,14 +183,92 @@ func TestSettingsPollPicksUpAnotherProcessWrite(t *testing.T) {
 	}
 }
 
-// No config directory: defaults only, set fails, nothing is polled.
+// No config directory: values last for the session, nothing is polled.
 func TestSettingsWithoutADirectory(t *testing.T) {
 	r := NewRuntime()
 	if err := r.DeclareSetting(Setting{Name: "n", Type: SettingInteger, Default: 3}); err != nil {
 		t.Fatal(err)
 	}
 	m := NewModel(r)
-	if r.Settings().Int("n") != 3 || r.Settings().Set("n", 4) == nil || m.settingsPoll() != nil {
-		t.Fatal("a runtime without a directory wrote or polled")
+	if r.Settings().Int("n") != 3 || r.Settings().Set("n", 4) != nil || r.Settings().Int("n") != 4 || m.settingsPoll() != nil {
+		t.Fatal("a runtime without a directory kept no value or polled")
+	}
+}
+
+// The editor edits in place: each key saves at once, no save key; a typed
+// value that does not validate keeps the prompt open with the error.
+func TestSettingsEditorSavesEachChange(t *testing.T) {
+	r, m, dir := settingsFixture(t)
+	r.Define("app").Mode("normal").Bind("ctrl+o", Do("settings.edit"))
+	m.Width, m.Height = 100, 24
+	m.Init()
+	keytest.Press(m, "ctrl+o")
+	if r.TopModal() != settingsEditorID || r.Focus != settingRowPrefix+"scrolloff" {
+		t.Fatalf("modal %q focus %q status %q", r.TopModal(), r.Focus, m.Status)
+	}
+	frame := ansi.Strip(m.View().Content)
+	for _, want := range []string{"Settings", "Setting", "Value", "scrolloff", "Rows kept above and below the focus", "dark, light, mono"} {
+		if !strings.Contains(frame, want) {
+			t.Fatalf("frame lacks %q:\n%s", want, frame)
+		}
+	}
+	keytest.Press(m, "l")
+	keytest.Press(m, "l")
+	if r.Settings().Int("scrolloff") != 4 || readSettingsFile(t, dir)["scrolloff"] != 4.0 {
+		t.Fatalf("l l: %d", r.Settings().Int("scrolloff"))
+	}
+	keytest.Press(m, "j")
+	keytest.Press(m, "enter")
+	if r.Settings().String("theme") != "light" {
+		t.Fatalf("enter on theme: %q", r.Settings().String("theme"))
+	}
+	keytest.Press(m, "h")
+	keytest.Press(m, "h")
+	if r.Settings().String("theme") != "mono" {
+		t.Fatalf("h h wraps: %q", r.Settings().String("theme"))
+	}
+	keytest.Press(m, "l")
+	keytest.Press(m, "j")
+	keytest.Press(m, "space")
+	if !r.Settings().Bool("wrap") {
+		t.Fatal("space on wrap")
+	}
+	keytest.Press(m, "j")
+	if strings.Contains(BindingHints(r, r.Focus), "setting.cycle") {
+		t.Fatalf("a duration row offers cycle: %s", BindingHints(r, r.Focus))
+	}
+	keytest.Press(m, "enter")
+	if r.TopModal() != settingPromptID || string(r.Input(settingValueID).Text) != "400ms" {
+		t.Fatalf("prompt %q %q", r.TopModal(), r.Focus)
+	}
+	keytest.Press(m, "ctrl+u")
+	keytest.Type(m, "soon")
+	keytest.Press(m, "enter")
+	if r.TopModal() != settingPromptID || !strings.Contains(m.Status, "must be a duration") {
+		t.Fatalf("bad value: modal %q status %q", r.TopModal(), m.Status)
+	}
+	keytest.Press(m, "ctrl+u")
+	keytest.Type(m, "2s")
+	keytest.Press(m, "enter")
+	if r.TopModal() != settingsEditorID || r.Focus != settingRowPrefix+"debounce" || r.Settings().Duration("debounce") != 2*time.Second {
+		t.Fatalf("commit: modal %q focus %q %v", r.TopModal(), r.Focus, r.Settings().Duration("debounce"))
+	}
+	if !strings.Contains(ansi.Strip(m.View().Content), "2s *") {
+		t.Fatalf("the row does not show the set value:\n%s", ansi.Strip(m.View().Content))
+	}
+	keytest.Press(m, "r")
+	if r.Settings().Duration("debounce") != 400*time.Millisecond {
+		t.Fatal("r did not reset")
+	}
+	keytest.Press(m, "enter")
+	keytest.Press(m, "esc")
+	keytest.Press(m, "esc")
+	keytest.Press(m, "esc")
+	if r.TopModal() != "" {
+		t.Fatalf("esc left %q open", r.TopModal())
+	}
+	want := map[string]any{"scrolloff": 4.0, "theme": "dark", "wrap": true}
+	if got := readSettingsFile(t, dir); !reflect.DeepEqual(got, want) {
+		t.Fatalf("file %v", got)
 	}
 }

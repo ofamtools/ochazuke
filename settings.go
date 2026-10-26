@@ -51,7 +51,8 @@ type SettingValue struct {
 // when the config directory changes), written atomically (a temp file
 // renamed over it) on every Set and Reset, and keeps every key it holds:
 // an unknown or invalid key is reported and written back unchanged, never
-// dropped. Model polls the file (SettingsPoll) so a value another process
+// dropped. Without a config directory the values last for the session.
+// Model polls the file (SettingsPoll) so a value another process
 // set (the CLI) reaches a running TUI.
 type Settings struct {
 	config    *Config
@@ -136,10 +137,15 @@ func (s *Settings) Value(name string) (any, bool) {
 	if one == nil {
 		return nil, false
 	}
-	if v, ok := s.values[name]; ok {
-		return v, true
+	return s.current(*one), true
+}
+
+// current is the value without reading the file.
+func (s *Settings) current(one Setting) any {
+	if v, ok := s.values[one.Name]; ok {
+		return v
 	}
-	return one.Default, true
+	return one.Default
 }
 
 // String is a string setting's value ("" when undeclared or another type).
@@ -266,7 +272,7 @@ func (s *Settings) Reload() []string {
 	before := map[string]any{}
 	if s.loaded {
 		for _, one := range s.declared {
-			before[one.Name], _ = s.Value(one.Name)
+			before[one.Name] = s.current(one)
 		}
 	}
 	s.load()
@@ -295,7 +301,7 @@ func (s *Settings) ReloadIfChanged() bool {
 func (s *Settings) Problems() []string { s.ensure(); return slices.Clone(s.problems) }
 
 func (s *Settings) changed(name string, old any) {
-	now, _ := s.Value(name)
+	now := s.current(*s.find(name))
 	if now == old {
 		return
 	}
@@ -307,10 +313,13 @@ func (s *Settings) changed(name string, old any) {
 }
 
 // ensure reads the file on first use, and again when the config directory
-// changed since.
+// changed since (Config.App set after a first read), telling the observers.
 func (s *Settings) ensure() {
-	if !s.loaded || s.path != s.config.Path(SettingsFile) {
+	switch {
+	case !s.loaded:
 		s.load()
+	case s.path != s.config.Path(SettingsFile):
+		s.Reload()
 	}
 }
 
@@ -397,7 +406,9 @@ func (s *Settings) withdrawFor(name string) {
 // same directory, renamed over the old one.
 func (s *Settings) write(raw map[string]json.RawMessage) error {
 	if s.path == "" {
-		return errors.New("this application has no config directory")
+		// No config directory (a sandbox): the values live for the session.
+		s.raw = raw
+		return nil
 	}
 	if s.broken != nil {
 		return fmt.Errorf("%s does not parse; fix or remove it first: %w", s.path, s.broken)
