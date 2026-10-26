@@ -328,6 +328,18 @@ func (b *NounBuilder) Quiet() *NounBuilder {
 	return b
 }
 
+// PersistArgs marks the last declared verb's text-like arguments as safe
+// to keep in the history file (Operation.PersistArgs).
+func (b *NounBuilder) PersistArgs() *NounBuilder {
+	if b.last == "" {
+		panic("PersistArgs must follow Verb")
+	}
+	op := b.r.Operations[b.last]
+	op.PersistArgs = true
+	b.r.Operations[b.last] = op
+	return b
+}
+
 // Motion marks the last declared verb as a motion (Operation.Motion): the
 // footer leaves its rows to ? help, as it does for list.move.
 func (b *NounBuilder) Motion() *NounBuilder {

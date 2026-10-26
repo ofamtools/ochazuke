@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -18,9 +19,58 @@ const HistoryFile = "history.jsonl"
 // and reads no file.
 const HistorySetting = "history-limit"
 
-// historyValueLimit is the largest result value a history line keeps; a
-// larger value is left out of the file (the line keeps ok and the request).
-const historyValueLimit = 1024
+// unpersistedNouns are the nouns whose entries never reach the history
+// file: text editing and its plumbing (the input and editor, raw keys,
+// counts, registers, macros, yank history, modes), the palette's own line
+// editing, and the keys sent to a terminal.
+var unpersistedNouns = map[string]bool{
+	"input": true, "editor": true, "key": true, "count": true, "register": true, "macro": true,
+	"yank-history": true, "mode": true, "palette": true, "terminal": true,
+}
+
+// textLikeArgs are the argument names whose values the history file leaves
+// out unless the operation sets PersistArgs: what a user typed.
+var textLikeArgs = []string{"text", "value", "keys", "password", "secret", "token"}
+
+// persistable is the line an entry writes, or false when it writes none.
+// The file keeps palette lines (source "palette", failed ones too, so a
+// mistyped line can be recalled and fixed) and other completed operations,
+// never text editing (unpersistedNouns); arguments named like text are
+// dropped unless the operation opts in, and result values are dropped
+// (ok and the error stay).
+func (r *Runtime) persistable(e HistoryEntry) (HistoryEntry, bool) {
+	if unpersistedNouns[e.Request.Noun] {
+		return e, false
+	}
+	if !e.Result.OK && e.Context.Source != "palette" {
+		return e, false
+	}
+	op, known := r.Operations[e.Request.Key()]
+	if !known {
+		return e, false
+	}
+	e.Result.Value = nil
+	if len(e.Request.Args) > 0 && !op.PersistArgs {
+		args := Arguments{}
+		for name, v := range e.Request.Args {
+			if !textLike(name) {
+				args[name] = v
+			}
+		}
+		e.Request.Args = args
+	}
+	return e, true
+}
+
+func textLike(name string) bool {
+	name = strings.ToLower(name)
+	for _, t := range textLikeArgs {
+		if strings.Contains(name, t) {
+			return true
+		}
+	}
+	return false
+}
 
 // historyStore appends history lines off the loop: the loop marshals an
 // entry and sends the line, one writer goroutine appends it and, when the
@@ -238,8 +288,9 @@ func (r *Runtime) persist(entry HistoryEntry) {
 		}
 		return
 	}
-	if len(entry.Result.Value) > historyValueLimit {
-		entry.Result.Value = nil
+	entry, ok := r.persistable(entry)
+	if !ok {
+		return
 	}
 	line, err := json.Marshal(entry)
 	if err != nil {

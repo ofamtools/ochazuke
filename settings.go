@@ -546,7 +546,7 @@ func registerSettings(r *Runtime) {
 	r.Register(Operation{Verb: "get", Noun: "settings", Description: "Show one setting and its value", Parameters: map[string]Parameter{"name": name}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.Settings().Get(StringArg(a, "name", ""))
 	}})
-	r.Register(Operation{Verb: "set", Noun: "settings", Description: "Set a setting, checked against its type and allowed values, and save settings.json", Parameters: map[string]Parameter{"name": name, "value": {Type: "string", Required: true, Description: "The value: text, a number, true or false, or a duration such as 400ms"}}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "set", Noun: "settings", PersistArgs: true, Description: "Set a setting, checked against its type and allowed values, and save settings.json", Parameters: map[string]Parameter{"name": name, "value": {Type: "string", Required: true, Description: "The value: text, a number, true or false, or a duration such as 400ms"}}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		s := r.Settings()
 		if err := s.Set(StringArg(a, "name", ""), a["value"]); err != nil {
 			return nil, err

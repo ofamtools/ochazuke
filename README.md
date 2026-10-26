@@ -898,14 +898,17 @@ A TUI's history survives restarts. `Model.Init` calls `Runtime.EnsureHistory`, w
 | | |
 |---|---|
 | File | `$XDG_STATE_HOME/<app>/history.jsonl`, else `~/.local/state/<app>/history.jsonl` (`Config.StateDir` overrides the directory; `history path` prints it) |
-| Format | One entry per line, in the shape above. A result value larger than 1 KiB is left out of the line; the request, context and `ok` stay. |
+| Format | One entry per line, in the shape above, without the result value (`ok` and the error stay). |
+| Kept | Palette lines: entries with the source `palette`, the commands the user ran, failed ones included. Other operations that completed, such as `page.open`, `list.select`, `settings.set` and an application's verbs. |
+| Never kept | Text editing and its plumbing: every operation of the `input`, `editor`, `key`, `count`, `register`, `macro`, `yank-history`, `mode`, `palette` and `terminal` nouns, so nothing typed or pasted into an input, a prompt, the palette line or a terminal reaches the file. Failed operations that did not come from the palette. |
+| Arguments | An argument whose name contains `text`, `value`, `keys`, `password`, `secret` or `token` is left out of the line. An operation keeps them only when it sets `Operation.PersistArgs` (`NounBuilder.PersistArgs()`). `settings.set` does, so `set settings theme kombu` comes back whole. |
 | Bound | The `history-limit` setting (integer, default 500, `0` keeps nothing). The framework declares it when the history is persisted, unless the application declared a setting of that name. It also bounds the ring. |
 | Restore | The last `history-limit` entries go into the ring before the session's own, marked `restored: true`. Palette Up/Down recalls their lines; dot-repeat skips them. |
 | Writes | Each entry is marshalled on the loop and appended by one writer goroutine, never on the loop. When the file reaches twice the limit, and at load, it is rewritten with the last `history-limit` lines through a temp file and a rename. `Config.Flush` (the Model calls it on quit) drains the writer. |
 | Problems | Lines that do not parse are skipped. The file gets one notice and is rewritten without them. A write error is one notice, and later entries are not saved. |
 | Off | No file without a state directory: `Config.Disable()` (o-story sessions), a test binary, or an application that sets `Config.NoHistoryFile`. The CLI shell neither reads nor writes the file. |
 
-Typed text reaches the history as `input.insert` arguments. An application whose prompts take secrets sets `NoHistoryFile`.
+The in-memory ring still records everything for `history.list` and dot-repeat. Only the file is filtered. `NoHistoryFile` turns the file off entirely.
 
 ## Live CLI control
 

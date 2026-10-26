@@ -121,10 +121,10 @@ Root package `ochazuke` is flat: 51 source files, 47 test files. Each entry list
 
 ### history_store.go
 
-- lines: 346 · tests: history_store_test.go
-- purpose: historyStore appends history lines off the loop: the loop marshals an entry and sends the line, one writer goroutine appends it and, when the file holds twic...
-- methods: Config(3), Runtime(5), historyStore(3)
-- leans on: configuration.go(7), history.go(6), runtime.go(6), settings.go(5)
+- lines: 397 · tests: history_store_test.go
+- purpose: persistable is the line an entry writes, or false when it writes none.
+- methods: Config(3), Runtime(6), historyStore(3)
+- leans on: runtime.go(14), history.go(8), configuration.go(7), settings.go(5)
 
 ### input.go
 
@@ -181,10 +181,10 @@ Root package `ochazuke` is flat: 51 source files, 47 test files. Each entry list
 
 ### noun.go
 
-- lines: 883 · tests: noun_test.go
+- lines: 895 · tests: noun_test.go
 - purpose: Noun is the behaviour shared by every instance of one kind: the verbs it answers to, its key bindings per mode, the action handlers that override an operatio...
 - types: Noun, Binding, NounBuilder, ModeBuilder, Guard (func)
-- methods: Binding(8), ModeBuilder(6), Noun(1), NounBuilder(16), Runtime(12)
+- methods: Binding(8), ModeBuilder(6), Noun(1), NounBuilder(17), Runtime(12)
 - funcs: Do, Enter, Leave
 - leans on: runtime.go(56), instance.go(20), resolve.go(10), table.go(5)
 
@@ -311,7 +311,7 @@ Root package `ochazuke` is flat: 51 source files, 47 test files. Each entry list
 
 ### runtime.go
 
-- lines: 696 · tests: runtime_test.go
+- lines: 701 · tests: runtime_test.go
 - purpose: Arguments are a request's named arguments, keyed by parameter name.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
 - methods: Context(1), Operation(2), Request(1), Runtime(16)

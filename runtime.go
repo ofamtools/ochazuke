@@ -88,6 +88,11 @@ type Operation struct {
 	// Quiet marks bookkeeping (a list reload) the jobs ticker does not
 	// show; set by NounBuilder.Quiet. The catalog's quiet.
 	Quiet bool `json:"quiet,omitempty"`
+	// PersistArgs lets the history file keep this operation's arguments
+	// named like text (text, value, keys, password, secret, token), which
+	// it otherwise leaves out; set by NounBuilder.PersistArgs. Only for an
+	// operation whose arguments are never typed secrets (settings.set).
+	PersistArgs bool `json:"persistArgs,omitempty"`
 	// Motion marks movement (list.move, focus.next, surface.scroll,
 	// page.next): the footer's hint line leaves its rows out, since motions
 	// are standard and the footer is for the verbs the focus offers; ?

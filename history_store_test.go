@@ -196,16 +196,98 @@ func TestHistoryLimitZeroKeepsNone(t *testing.T) {
 	}
 }
 
-// A large result value stays out of the file; the line keeps the request.
-func TestHistoryFileDropsLargeValues(t *testing.T) {
-	state := t.TempDir()
-	m := historyModel(t, t.TempDir(), state)
-	if _, err := m.Runtime.Execute(Request{Verb: "list", Noun: "operations"}); err != nil {
+// fileText is the history file after the writer drained, "" when absent.
+func fileText(t *testing.T, r *Runtime) string {
+	t.Helper()
+	if err := r.Config().Flush(); err != nil {
 		t.Fatal(err)
 	}
-	_ = m.Runtime.Config().Flush()
-	lines := historyLines(t, filepath.Join(state, HistoryFile))
-	if len(lines) != 1 || len(lines[0]) > 2*historyValueLimit || bytes.Contains(lines[0], []byte(`"value"`)) {
-		t.Fatalf("line: %d bytes", len(lines[0]))
+	data, err := os.ReadFile(r.Config().HistoryPath())
+	if err != nil && !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+	return string(data)
+}
+
+// Typing into an input and into a prompt, pasting included, writes
+// nothing of it to the file: editing operations are never persisted.
+func TestHistoryFileKeepsNoTyping(t *testing.T) {
+	state := t.TempDir()
+	r := NewRuntime()
+	r.Config().Dir, r.Config().StateDir = t.TempDir(), state
+	notes := NewInput("notes", "", false)
+	if err := r.AddInput(notes); err != nil {
+		t.Fatal(err)
+	}
+	m := NewModel(r)
+	m.Init()
+	t.Cleanup(func() { _ = r.Config().Flush() })
+	if err := r.SetFocus("notes"); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"i", "h", "u", "n", "t", "e", "r", "2", "[pasted-secret]", "backspace", "esc", "x", "u"} {
+		m.handleKey(editorTestKey(key))
+	}
+	field := NewInput("answer", "", false)
+	if _, err := r.OpenModal("ask", Payload{Prompt: "Password?"}, WithInput(field, Kind("prompt"))); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"s", "3", "c", "r", "[et]", "left", "ctrl+w"} {
+		m.handleKey(editorTestKey(key))
+	}
+	if len(notes.Text) == 0 || len(r.History(0)) == 0 {
+		t.Fatalf("nothing was typed: %q", string(notes.Text))
+	}
+	text := fileText(t, r)
+	for _, typed := range []string{"hunter", "pasted-secret", "s3cr", `"noun":"input"`, `"noun":"key"`, `"noun":"register"`} {
+		if strings.Contains(text, typed) {
+			t.Fatalf("the file holds %q:\n%s", typed, text)
+		}
+	}
+}
+
+// A line run from the palette is written (its text-like arguments only
+// when the operation opts in) and recalled after a restart.
+func TestHistoryFileKeepsPaletteLines(t *testing.T) {
+	config, state := t.TempDir(), t.TempDir()
+	m := historyModel(t, config, state)
+	r := m.Runtime
+	if err := r.DeclareSetting(Setting{Name: "wrap", Type: SettingBoolean, Default: false}); err != nil {
+		t.Fatal(err)
+	}
+	runPaletteLine(t, r, Request{Verb: "set", Noun: "settings", Args: Arguments{"name": "wrap", "value": "true"}})
+	text := fileText(t, r)
+	if !strings.Contains(text, `"value":"true"`) || strings.Contains(text, `"result":{"ok":true,"value"`) {
+		t.Fatalf("file: %s", text)
+	}
+	next := historyModel(t, config, state)
+	if _, err := next.Runtime.Execute(Request{Verb: "open", Noun: "palette"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := next.Palette.recallLine(1); err != nil || next.Palette.Text() != "set settings wrap true" {
+		t.Fatalf("recall %q %v", next.Palette.Text(), err)
+	}
+}
+
+// Arguments named like text are dropped from the file unless the
+// operation sets PersistArgs; result values are never written.
+func TestHistoryFileDropsTextArgsUnlessOptedIn(t *testing.T) {
+	m := historyModel(t, t.TempDir(), t.TempDir())
+	r := m.Runtime
+	str := Parameter{Type: "string"}
+	r.Register(Operation{Verb: "save", Noun: "note", Parameters: map[string]Parameter{"id": str, "text": str, "api_token": str}, Run: func(*Runtime, Context, Arguments) (any, error) { return "echoed", nil }})
+	r.Define("tag").Verb("add", func(Ctx) Result { return Done("echoed") }).PersistArgs()
+	op := r.Operations["tag.add"]
+	op.Parameters = map[string]Parameter{"text": str}
+	r.Operations["tag.add"] = op
+	if _, err := r.Execute(Request{Verb: "save", Noun: "note", Args: Arguments{"id": "n1", "text": "my diary", "api_token": "abc123"}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Execute(Request{Verb: "add", Noun: "tag", Args: Arguments{"text": "groceries"}}); err != nil {
+		t.Fatal(err)
+	}
+	text := fileText(t, r)
+	if !strings.Contains(text, `"id":"n1"`) || strings.Contains(text, "my diary") || strings.Contains(text, "abc123") || !strings.Contains(text, `"text":"groceries"`) || strings.Contains(text, "echoed") {
+		t.Fatalf("file: %s", text)
 	}
 }
