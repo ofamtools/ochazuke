@@ -122,12 +122,12 @@ Root package `ochazuke` is flat: 44 source files, 36 test files. Each entry list
 
 ### layout.go
 
-- lines: 410 · tests: layout_test.go
+- lines: 413 · tests: layout_test.go
 - purpose: Layout renders page chrome, bounded panels and panel pairs for a viewport.
 - types: Layout, Header, Footer
 - methods: Layout(18)
 - funcs: PanelContentSize
-- leans on: block.go(45), surface.go(14), theme.go(11), delivery.go(2)
+- leans on: block.go(45), surface.go(13), theme.go(12), pages.go(1)
 
 ### list.go
 
@@ -148,7 +148,7 @@ Root package `ochazuke` is flat: 44 source files, 36 test files. Each entry list
 
 ### model.go
 
-- lines: 799
+- lines: 800
 - purpose: ModalView renders one modal without replacing or inspecting its parent page.
 - types: ModalView, Model, HelpRow
 - methods: Model(20), Runtime(1)
@@ -319,7 +319,7 @@ Root package `ochazuke` is flat: 44 source files, 36 test files. Each entry list
 
 ### ticker.go
 
-- lines: 170 · tests: ticker_test.go
+- lines: 171 · tests: ticker_test.go
 - purpose: jobTicker is the Model's short memory of finished jobs: jobs.list deletes finished jobs on read, so the ticker keeps its own copy for JobLinger.
 - types: JobLingerMsg
 - methods: Model(3), jobTicker(4)
@@ -419,7 +419,7 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/build.go
 
-- lines: 701
+- lines: 703
 - purpose: Session is one built story: the runtime, the model and the demo state the verbs act on (fake jobs and panes).
 - types: Session, Options
 - methods: Session(14)
