@@ -298,3 +298,81 @@ func TestFromRowPassesRowData(t *testing.T) {
 		}
 	}
 }
+
+// Bind keeps a key sequence in progress when the rows it installs are not
+// on it: binding x mid d d leaves d pending, so the second d completes it.
+func TestBindKeepsAnUnrelatedPendingPrefix(t *testing.T) {
+	r, calls := timedBindings(t, "d d", "x", "u")
+	r.Define("app").Mode("normal").Bind("u", Do("test.x"))
+	bindingKey(t, r, "d")
+	if r.Pending != "d" {
+		t.Fatalf("pending=%q", r.Pending)
+	}
+	for _, row := range []Binding{
+		{Noun: "app", Mode: "normal", Keys: "z", Request: Do("test.x").Request},
+		{Noun: "app", Mode: "insert", Keys: "d d", Request: Do("test.x").Request},
+		{Noun: "app", Mode: "normal", Keys: "g d", Request: Do("test.x").Request},
+		{Noun: "app", Mode: "normal", Pattern: Digit, Request: Do("test.x").Request},
+		{Noun: "app", Mode: "normal", Keys: "u", Unbind: true},
+	} {
+		if err := r.Bind(row); err != nil {
+			t.Fatal(err)
+		}
+		if r.Pending != "d" || r.Mode.Payload.Prefix != "d" {
+			t.Fatalf("binding %s%s cancelled the prefix: pending=%q mode=%q", row.Keys, row.Pattern, r.Pending, r.Mode.Name)
+		}
+	}
+	// The builder's Bind (Define(noun).Mode(m).Bind) keeps it the same way.
+	r.Define("app").Mode("normal").Bind("y", Do("test.x")).Mode("").Bind("g g", Do("test.x"))
+	if r.Pending != "d" || r.Mode.Payload.Prefix != "d" {
+		t.Fatalf("the builder's Bind cancelled the prefix: pending=%q mode=%q", r.Pending, r.Mode.Name)
+	}
+	bindingKey(t, r, "d")
+	if !reflect.DeepEqual(*calls, []string{"d d"}) || r.Pending != "" || r.Mode.Name != "normal" {
+		t.Fatalf("calls=%v pending=%q mode=%q", *calls, r.Pending, r.Mode.Name)
+	}
+}
+
+// A row on the pending sequence cancels it: one extending it (d x), the
+// keys typed so far (d), the sequence it completes, unbound (d d). The
+// mode returns to its base and the next keys resolve against the new rows.
+func TestBindCancelsAPendingPrefixItTouches(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		row  Binding
+		keys []string
+		want []string
+	}{
+		{"extends", Binding{Noun: "app", Mode: "normal", Keys: "d x", Request: Do("test.u").Request}, []string{"d", "x", "d", "d"}, []string{"u", "d d"}},
+		{"equals", Binding{Noun: "app", Mode: "normal", Keys: "d", Request: Do("test.u").Request}, []string{"d", "d"}, []string{"d d"}},
+		{"unbinds", Binding{Noun: "app", Mode: "", Keys: "d d", Unbind: true}, []string{"x"}, []string{"x"}},
+		{"builder extends", Binding{Noun: "app", Mode: "normal", Keys: "d x", Request: Do("test.u").Request}, []string{"d", "x"}, []string{"u"}},
+		{"builder replaces", Binding{Noun: "app", Mode: "", Keys: "d d", Request: Do("test.u").Request}, []string{"d", "d"}, []string{"u"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r, calls := timedBindings(t, "d d", "x", "u")
+			bindingKey(t, r, "d")
+			var err error
+			if strings.HasPrefix(tc.name, "builder") {
+				r.Define(tc.row.Noun).Mode(tc.row.Mode).Bind(tc.row.Keys, Binding{Request: tc.row.Request})
+			} else {
+				err = r.Bind(tc.row)
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if r.Pending != "" || r.Mode.Name != "normal" || r.Mode.Payload.Prefix != "" {
+				t.Fatalf("not cancelled: pending=%q mode=%q", r.Pending, r.Mode.Name)
+			}
+			if len(*calls) != 0 {
+				t.Fatalf("cancel ran something: %v", *calls)
+			}
+			for _, k := range tc.keys {
+				bindingKey(t, r, k)
+			}
+			if !reflect.DeepEqual(*calls, tc.want) {
+				t.Fatalf("calls=%v, want %v", *calls, tc.want)
+			}
+		})
+	}
+}

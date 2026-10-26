@@ -206,12 +206,12 @@ Root package `ochazuke` is flat: 58 source files, 56 test files. Each entry list
 
 ### noun.go
 
-- lines: 931 · tests: noun_test.go
+- lines: 968 · tests: noun_test.go
 - purpose: Noun is the behaviour shared by every instance of one kind: the verbs it answers to, its key bindings per mode, the action handlers that override an operatio...
 - types: Noun, Binding, NounBuilder, ModeBuilder, Guard (func)
-- methods: Binding(9), ModeBuilder(6), Noun(1), NounBuilder(17), Runtime(12)
+- methods: Binding(9), ModeBuilder(6), Noun(1), NounBuilder(17), Runtime(13)
 - funcs: Do, Enter, Leave
-- leans on: runtime.go(56), instance.go(22), resolve.go(10), table.go(5)
+- leans on: runtime.go(57), instance.go(22), resolve.go(11), table.go(5)
 
 ### pages.go
 

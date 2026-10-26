@@ -501,13 +501,20 @@ func (m *ModeBuilder) add(row Binding) *ModeBuilder {
 				rows[i] = row
 				m.n.Bindings[m.mode] = rows
 				m.last = i
+				if m.r.rowTouchesPending(row) {
+					m.r.CancelPendingBinding()
+				}
 				return m
 			}
 		}
 	}
 	m.n.Bindings[m.mode] = withPrefixCancels(append(rows, row))
 	m.last = len(rows)
-	m.r.CancelPendingBinding()
+	// As Runtime.Bind: a key sequence in progress is kept unless the row
+	// is on it.
+	if m.r.rowTouchesPending(row) {
+		m.r.CancelPendingBinding()
+	}
 	return m
 }
 
@@ -587,6 +594,10 @@ func isPattern(s string) bool {
 
 // Bind installs rows from config or code onto their noun or instance tables:
 // the same mode and keys or pattern replaces, a new one adds, Unbind removes.
+// A key sequence in progress (d of d d) is kept unless a row added or
+// removed is on it: in its mode, with the keys typed so far, a sequence
+// extending them or one they extend. Such a row cancels the sequence, so
+// the next key starts fresh against the new tables.
 func (r *Runtime) Bind(rows ...Binding) error {
 	for _, row := range rows {
 		row, err := r.validateRow(row)
@@ -609,9 +620,35 @@ func (r *Runtime) Bind(rows ...Binding) error {
 			}
 			noun.Bindings[row.Mode] = withPrefixCancels(noun.Bindings[row.Mode])
 		}
-		r.CancelPendingBinding()
+		if r.rowTouchesPending(row) {
+			r.CancelPendingBinding()
+		}
 	}
 	return nil
+}
+
+// rowTouchesPending reports whether binding row changes what the key
+// sequence in progress resolves to. A sequence prefix ("normal d") is
+// touched by a row in its base mode (or any mode) whose keys equal the
+// keys typed so far, extend them or are extended by them; a named
+// pending mode holding a sequence (the terminal leader) by any row in
+// that mode. Pattern rows never answer inside a sequence. A stale
+// sequence (its focus or mode gone) counts as touched, so it is cleared.
+func (r *Runtime) rowTouchesPending(row Binding) bool {
+	if r.Pending == "" {
+		return false
+	}
+	if !r.prefixStillPending() {
+		return true
+	}
+	if row.Mode == r.Mode.Name {
+		return true
+	}
+	base, sequence := baseAndPrefix(r.Mode)
+	if base == r.Mode.Name || row.Keys == "" || row.Mode != "" && row.Mode != base {
+		return false
+	}
+	return row.Keys == sequence || strings.HasPrefix(row.Keys, sequence+" ") || strings.HasPrefix(sequence, row.Keys+" ")
 }
 
 // ValidateBindings checks every row of every noun and instance table the
