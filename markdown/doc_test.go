@@ -196,8 +196,10 @@ func TestToggleRefindsAfterExternalChange(t *testing.T) {
 	}
 }
 
-// An item gone (or its text changed) on disk refuses the toggle with a
-// message and writes nothing; the view shows the source as it is now.
+// An item gone (or its text changed) on disk refuses the toggle and
+// writes nothing; the refusal is the status line (ctx.Status), not an
+// error, and the view shows the source as it is now. Doc.Toggle itself
+// returns ErrRefused.
 func TestToggleRefusesWhenTheItemIsGone(t *testing.T) {
 	for name, changed := range map[string]string{
 		"gone":    "- [ ] milk\n",
@@ -206,21 +208,31 @@ func TestToggleRefusesWhenTheItemIsGone(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			path := writeFile(t, "- [ ] milk\n- [ ] bread\n")
 			r, d := newDoc(t, File(path))
+			sink := &ochazuke.RecordingSink{}
+			r.UI().Attach(sink)
 			if err := press(t, r, "j"); err != nil {
 				t.Fatal(err)
 			}
 			if err := os.WriteFile(path, []byte(changed), 0o600); err != nil {
 				t.Fatal(err)
 			}
-			err := press(t, r, "x")
-			if err == nil || !strings.Contains(err.Error(), `"bread"`) {
-				t.Fatalf("toggle: %v", err)
+			if err := press(t, r, "x"); err != nil {
+				t.Fatalf("a refusal is not an error: %v", err)
+			}
+			if got := sink.LastStatus(); !strings.HasPrefix(got, "not toggled") || !strings.Contains(got, `"bread"`) {
+				t.Fatalf("status %q", got)
 			}
 			if got := readFile(t, path); got != changed {
 				t.Fatalf("wrote %q", got)
 			}
 			if d.Text() != changed {
 				t.Fatal("the view must show the source as it is now")
+			}
+			if err := os.WriteFile(path, []byte("- [ ] tea\n"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if err := d.Toggle(); !errors.Is(err, ErrRefused) {
+				t.Fatalf("Doc.Toggle: %v, want ErrRefused", err)
 			}
 		})
 	}

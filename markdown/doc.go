@@ -68,6 +68,11 @@ func writeAtomic(path string, data []byte) error {
 	return err
 }
 
+// ErrRefused wraps a toggle, undo or redo the Doc would not make because
+// the item is gone, its text changed or the match is ambiguous in the
+// source as it is now; nothing was written.
+var ErrRefused = errors.New("not toggled")
+
 // Nouns: the Doc instance (its verbs and keys) and its task rows.
 const (
 	DocNoun  = "markdown"
@@ -83,7 +88,10 @@ const (
 // Before writing, the Doc loads the source again: when it changed since
 // the Doc read it, the item is found again by its text (and its place
 // among items with the same text), and when it is gone or its text
-// changed the toggle is refused with an error naming it, nothing written.
+// changed the toggle is refused (ErrRefused, naming it), nothing written.
+// The verbs report a refusal as the status line (ctx.Status: the footer in
+// the TUI, a status: line on the CLI) rather than as an error, since the
+// Doc did act: it shows the source as it is now.
 //
 // The Doc is an instance of the markdown noun with a list child (id/tasks,
 // added NoMarks) whose rows are instances of markdown-task, one per item;
@@ -313,7 +321,7 @@ func (d *Doc) apply(text string, nth int, want byte) (from byte, wrote bool, err
 		}
 	}
 	if !ok {
-		return 0, false, fmt.Errorf("not toggled: %q changed or is gone in the source", text)
+		return 0, false, fmt.Errorf("%w: %q changed or is gone in the source", ErrRefused, text)
 	}
 	_ = d.Select(i)
 	from = current[t.Box]
@@ -448,11 +456,20 @@ func scrollToShow(offset, top, bottom, height, total, margin int) int {
 
 // Snapshot is the Doc's state as the verbs return it.
 func (d *Doc) Snapshot() map[string]any {
+	return d.snapshot("")
+}
+
+// snapshot is Snapshot with the refusal, if any, under "refused".
+func (d *Doc) snapshot(refused string) map[string]any {
 	selected := -1
 	if i := d.selected(); i >= 0 {
 		selected = i
 	}
-	return map[string]any{"id": d.id, "tasks": d.Tasks(), "selected": selected, "undo": len(d.undo), "redo": len(d.redo)}
+	out := map[string]any{"id": d.id, "tasks": d.Tasks(), "selected": selected, "undo": len(d.undo), "redo": len(d.redo)}
+	if refused != "" {
+		out["refused"] = refused
+	}
+	return out
 }
 
 // Register defines the markdown nouns, their verbs and keys once per
@@ -468,7 +485,12 @@ func Register(r *ochazuke.Runtime) {
 			if err != nil {
 				return nil, err
 			}
-			err = run(d)
+			if err = run(d); errors.Is(err, ErrRefused) {
+				// A refusal is news, not a failure: the status line
+				// says it and the result carries it.
+				ochazuke.Ctx{Runtime: r, Context: c, Args: a}.Status(err.Error())
+				return d.snapshot(err.Error()), nil
+			}
 			return d.Snapshot(), err
 		}
 	}

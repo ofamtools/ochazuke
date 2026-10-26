@@ -587,10 +587,10 @@ Importable package `markdown`: 3 source files, 2 test files.
 
 ### markdown/doc.go
 
-- lines: 507 · tests: doc_test.go
+- lines: 529 · tests: doc_test.go
 - purpose: Source is where a Doc's Markdown lives: Load reads it as it is now and Save stores a new text.
 - types: Source, Doc
-- methods: Doc(22)
+- methods: Doc(23)
 - funcs: File, New, Of, Register
 - leans on: tasks.go(20), render.go(2)
 
