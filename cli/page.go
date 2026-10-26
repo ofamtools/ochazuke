@@ -165,6 +165,14 @@ type PageConfig struct {
 	// value for a widget); it runs off the loop and honours ctx. Nil means
 	// the host pushes rows itself (PageView.SetRows, SetState).
 	Fetch func(ctx context.Context, noun, verb string) ([]byte, error)
+	// FetchFlags, when set beside Fetch, runs the state verb like Fetch with flags
+	// appended to its command line (the state delta protocol: --since-cache
+	// ID --since LIST=HASH,...; StateFlags). When the catalog declares
+	// stateDelta, Reload asks through it for what changed since the rows it
+	// holds and applies the answer (ApplyState); without it, or against a
+	// catalog without stateDelta (an extension built with an older
+	// ochazuke), every reload is a full answer through Fetch.
+	FetchFlags func(ctx context.Context, noun, verb string, flags []string) ([]byte, error)
 	// OnRows, when set, runs on the loop after a list's rows land: a
 	// reload's answer (one call per list, or a state answer filed under
 	// each list, an empty one included), or the host's own SetRows or
@@ -189,8 +197,10 @@ type PageView struct {
 	groups  *ochazuke.List
 	detail  *ochazuke.Detail
 	widgets []*widgetState
-	current int            // the list the detail and the groups rail follow
-	rows    map[string]Row // row instance id -> the row it shows
+	current int               // the list the detail and the groups rail follow
+	rows    map[string]Row    // row instance id -> the row it shows
+	hashes  map[string]string // row instance id -> its record hash (RecordHash), from a delta answer
+	cache   string            // the cache id of the last delta answer
 	status  string
 }
 
@@ -200,6 +210,7 @@ type pageList struct {
 	noun, verb  string   // the row source (the extension's names); verb "" lists the noun's verbs
 	rowNoun     string   // the host noun the rows answer to
 	rowIDs      []string // the row instances SetRows made, keys of PageView.rows
+	hash        string   // the rows' content hash (ListHash) from a delta answer, "" unknown
 	list        *ochazuke.List
 	err         string
 	loaded      bool
@@ -242,7 +253,7 @@ func MountPage(m *ochazuke.Model, doc CatalogDoc, p CatalogPage, cfg PageConfig)
 		return nil, err
 	}
 	r := m.Runtime
-	v := &PageView{m: m, doc: doc, spec: p, cfg: cfg, rows: map[string]Row{}}
+	v := &PageView{m: m, doc: doc, spec: p, cfg: cfg, rows: map[string]Row{}, hashes: map[string]string{}}
 	for _, w := range p.Widgets {
 		v.widgets = append(v.widgets, &widgetState{spec: w})
 	}
@@ -482,7 +493,8 @@ func (v *PageView) SetStatus(line string) { v.status = line }
 
 // SetRows replaces a list's rows: instance ids "<list>/<row id>", an empty
 // or repeated id dropped, a missing label the id. It marks the list
-// loaded, clears its error and calls PageConfig.OnRows.
+// loaded, clears its error and calls PageConfig.OnRows. Rows the host
+// pushes have no hashes: the next delta reload asks for the list in full.
 func (v *PageView) SetRows(list string, rows []Row) error {
 	pl := v.list(list)
 	if pl == nil {
@@ -491,14 +503,22 @@ func (v *PageView) SetRows(list string, rows []Row) error {
 	if pl.verbsListed {
 		return fmt.Errorf("list %s lists its noun's verbs", list)
 	}
+	return v.setRows(pl, rows, nil)
+}
+
+// setRows is SetRows with each row's record hash (by index; nil for none),
+// which sets the list's content hash.
+func (v *PageView) setRows(pl *pageList, rows []Row, hashes []string) error {
 	items := make([]ochazuke.ListItem, 0, len(rows))
 	seen := map[string]bool{}
 	for _, k := range pl.rowIDs {
 		delete(v.rows, k)
+		delete(v.hashes, k)
 	}
 	pl.rowIDs = pl.rowIDs[:0]
 	filed := make([]Row, 0, len(rows))
-	for _, row := range rows {
+	var records []string
+	for i, row := range rows {
 		if row.ID == "" || seen[row.ID] {
 			continue
 		}
@@ -508,18 +528,31 @@ func (v *PageView) SetRows(list string, rows []Row) error {
 		}
 		id := pl.spec.ID + "/" + row.ID
 		v.rows[id] = row
+		if hashes != nil {
+			v.hashes[id] = hashes[i]
+			records = append(records, hashes[i])
+		}
 		pl.rowIDs = append(pl.rowIDs, id)
 		filed = append(filed, row)
-		items = append(items, ochazuke.ListItem{ID: id, Label: row.Label, Noun: pl.rowNoun, Data: row.ID, Cells: row.Cells})
+		items = append(items, v.item(pl, row))
 	}
-	pl.loaded, pl.err = true, ""
+	pl.loaded, pl.err, pl.hash = true, "", ""
+	if hashes != nil {
+		pl.hash = ListHash(records)
+	}
 	if err := pl.list.SetItems(items); err != nil {
+		pl.hash = ""
 		return err
 	}
 	if v.cfg.OnRows != nil {
-		v.cfg.OnRows(list, filed)
+		v.cfg.OnRows(pl.spec.ID, filed)
 	}
 	return nil
+}
+
+// item is the list row of a row (its label filled in).
+func (v *PageView) item(pl *pageList, row Row) ochazuke.ListItem {
+	return ochazuke.ListItem{ID: pl.spec.ID + "/" + row.ID, Label: row.Label, Noun: pl.rowNoun, Data: row.ID, Cells: row.Cells}
 }
 
 // SetState files a state answer's rows (CatalogDoc.State) under the lists
@@ -552,13 +585,19 @@ func (v *PageView) SetError(list string, err error) {
 // Reload fetches the page's rows off the loop (PageConfig.Fetch): one
 // state call when the catalog has a state source, else one call per list,
 // and one per widget with a source, each a job under LoadVerb in its own
-// slot (a newer load replaces an older one). Without Fetch it does
-// nothing.
+// slot (a newer load replaces an older one). A state call asks for what
+// changed since the rows the page holds when the host gave FetchFlags and
+// the catalog declares stateDelta (ApplyState; a mismatched list is
+// fetched again in full); Refresh asks for every list in full. Without
+// Fetch it does nothing.
 func (v *PageView) Reload() error {
 	if v.cfg.Fetch == nil {
 		return nil
 	}
 	werr := v.reloadWidgets()
+	if noun, verb, ok := strings.Cut(v.doc.State, "."); ok && v.speaksDelta() {
+		return errors.Join(werr, v.reloadState(noun, verb, true))
+	}
 	if noun, verb, ok := strings.Cut(v.doc.State, "."); ok {
 		for _, pl := range v.lists {
 			pl.loading = !pl.verbsListed
@@ -610,8 +649,15 @@ func (v *PageView) Reload() error {
 // launch runs Fetch(noun, verb) as a job of owner in slot.
 func (v *PageView) launch(owner, slot, noun, verb string, done func([]byte, error)) error {
 	fetch := v.cfg.Fetch
-	res := ochazuke.Pending(func(ctx context.Context) (any, error) {
+	return v.launchWith(owner, slot, noun, verb, func(ctx context.Context) ([]byte, error) {
 		return fetch(ctx, noun, verb)
+	}, done)
+}
+
+// launchWith runs fetch as a job of owner in slot, labelled noun.verb.
+func (v *PageView) launchWith(owner, slot, noun, verb string, fetch func(context.Context) ([]byte, error), done func([]byte, error)) error {
+	res := ochazuke.Pending(func(ctx context.Context) (any, error) {
+		return fetch(ctx)
 	}).Replacing(slot).Label(noun + "." + verb).Then(func(_ ochazuke.Ctx, value any, err error) {
 		out, _ := value.([]byte)
 		if err != nil {

@@ -487,7 +487,7 @@ Root package `ochazuke` is flat: 60 source files, 59 test files. Each entry list
 
 ## Package cli
 
-Importable package `cli`: 17 source files, 10 test files.
+Importable package `cli`: 18 source files, 11 test files.
 
 ### cli/catalog.go
 
@@ -532,12 +532,19 @@ Importable package `cli`: 17 source files, 10 test files.
 
 ### cli/page.go
 
-- lines: 970 · tests: page_test.go
+- lines: 1016 · tests: page_test.go
 - purpose: CatalogPage is a page in registration order.
 - types: CatalogPage, CatalogList, CatalogDetail, PageConfig, PageView
-- methods: CatalogPage(1), PageView(27), pageList(1)
+- methods: CatalogPage(1), PageView(30), pageList(1)
 - funcs: DeclarePage, MountPages, MountPage, DecodeRows
-- leans on: rows.go(17), commands.go(10), catalog.go(4), widget.go(4)
+- leans on: rows.go(19), commands.go(10), catalog.go(4), widget.go(4)
+
+### cli/pagestate.go
+
+- lines: 188 · tests: pagestate_test.go
+- purpose: speaksDelta reports whether Reload asks for deltas: the host gave FetchFlags and the catalog declares the protocol (CatalogDoc.StateDelta).
+- methods: PageView(6)
+- leans on: state.go(12), page.go(7), rows.go(3)
 
 ### cli/pty.go
 
@@ -565,12 +572,12 @@ Importable package `cli`: 17 source files, 10 test files.
 
 ### cli/rows.go
 
-- lines: 95 · tests: rows_test.go
+- lines: 132 · tests: rows_test.go
 - purpose: Row is one line of a state answer (CatalogDoc.State) or of a list asked for JSON Lines: the list noun it belongs to, its id (what --target takes), its label ...
 - types: Row, Lines, RowReader
-- methods: RowReader(1)
+- methods: RowReader(2)
 - funcs: NewRowReader
-- leans on: shell.go(1)
+- leans on: state.go(3), shell.go(1)
 
 ### cli/shell.go
 

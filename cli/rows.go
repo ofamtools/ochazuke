@@ -38,11 +38,25 @@ var ErrNoRows = errors.New("no line decodes as a row ({noun, id, label})")
 // is not a Row with a noun and an id is skipped silently, never an error;
 // only the stream's read error, or a stream of nothing but such lines
 // (ErrNoRows), is one.
+//
+// A delta answer (the state delta protocol, StateDeltaVersion: its first
+// line is the header) is read too: Next hands out its rows as they come,
+// and Answer, once the stream is done, is the whole answer (its lists,
+// rows and record hashes) for PageView.ApplyState. Its header and list
+// lines are not rows and not skipped: an answer of unchanged lists has no
+// rows and is no error.
 type RowReader struct {
 	lines            chan []byte
 	err              error
 	decoded, skipped int
+	started          bool
+	answer           StateAnswer
 }
+
+// Answer is what the stream answered so far: a delta answer's lists, rows
+// and record hashes (Delta true), else Delta false and no rows (a plain
+// answer's rows are Next's).
+func (rr *RowReader) Answer() StateAnswer { return rr.answer }
 
 // NewRowReader starts reading r; the caller drains it with Next until done.
 func NewRowReader(r io.Reader) *RowReader {
@@ -69,7 +83,7 @@ func (rr *RowReader) Next(max int, wait time.Duration) (rows []Row, done bool, e
 		select {
 		case line, ok := <-rr.lines:
 			if !ok {
-				if rr.err == nil && rr.decoded == 0 && rr.skipped > 0 {
+				if rr.err == nil && rr.decoded == 0 && rr.skipped > 0 && !rr.answer.Delta {
 					return rows, true, ErrNoRows
 				}
 				return rows, true, rr.err
@@ -78,6 +92,29 @@ func (rr *RowReader) Next(max int, wait time.Duration) (rows []Row, done bool, e
 				timeout = time.After(wait)
 			}
 			if len(bytes.TrimSpace(line)) == 0 {
+				continue
+			}
+			first := !rr.started
+			rr.started = true
+			if rr.answer.Delta || first {
+				l, ok := decodeStateLine(line, rr.answer.Delta)
+				switch {
+				case ok && l.header != nil && first:
+					rr.answer.Delta, rr.answer.Cache = true, l.header.Cache
+					continue
+				case ok && l.list != nil && rr.answer.Delta:
+					rr.answer.Lists = append(rr.answer.Lists, *l.list)
+					continue
+				case ok && l.row != nil:
+					if rr.answer.Delta {
+						rr.answer.Rows = append(rr.answer.Rows, *l.row)
+						rr.answer.Hashes = append(rr.answer.Hashes, l.hash)
+					}
+					rr.decoded++
+					rows = append(rows, *l.row)
+					continue
+				}
+				rr.skipped++
 				continue
 			}
 			var row Row
