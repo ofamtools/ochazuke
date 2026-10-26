@@ -230,7 +230,7 @@ func TestSettingsPageSavesEachChange(t *testing.T) {
 		t.Fatalf("page %q focus %q modal %q status %q", r.Page, r.Focus, r.TopModal(), m.Status)
 	}
 	frame := ansi.Strip(m.View().Content)
-	for _, want := range []string{"Sections", "General (5)", "Setting", "Value", "Default", "Source", "scrolloff", "Rows kept above and below the focus", "a whole number"} {
+	for _, want := range []string{"General (5)", "scrolloff", "‹ 2 ›", "Rows kept above and below the focus", "Default is 2.", "a whole number"} {
 		if !strings.Contains(frame, want) {
 			t.Fatalf("frame lacks %q:\n%s", want, frame)
 		}
@@ -240,8 +240,8 @@ func TestSettingsPageSavesEachChange(t *testing.T) {
 	if r.Settings().Int("scrolloff") != 4 || readSettingsFile(t, dir)["scrolloff"] != 4.0 {
 		t.Fatalf("l l: %d", r.Settings().Int("scrolloff"))
 	}
-	if !strings.Contains(ansi.Strip(m.View().Content), "settings.json") {
-		t.Fatalf("the source column does not say settings.json:\n%s", ansi.Strip(m.View().Content))
+	if frame := ansi.Strip(m.View().Content); !strings.Contains(frame, "scrolloff •") || !strings.Contains(frame, "Set in settings.json.") {
+		t.Fatalf("no dot or source after a change:\n%s", frame)
 	}
 	keytest.Press(m, "j")
 	keytest.Press(m, "enter")
@@ -398,5 +398,36 @@ func TestListSetting(t *testing.T) {
 	s.Reload()
 	if !reflect.DeepEqual(s.Strings("ignore"), []string{"*.tmp"}) || !reflect.DeepEqual(s.Strings("paths"), []string{"~/proj"}) {
 		t.Fatalf("reload %q %q %q", s.Strings("ignore"), s.Strings("paths"), s.Problems())
+	}
+}
+
+// The description says why the default applies when settings.json holds a
+// value that does not validate; undo on the page puts back what the file
+// held, even that invalid value.
+func TestSettingsPageSourceAndUndo(t *testing.T) {
+	r, m, dir := settingsPageFixture(t)
+	writeConfig(t, dir, SettingsFile, `{"scrolloff": "lots"}`)
+	r.Settings().Reload()
+	keytest.Press(m, "ctrl+o")
+	frame := ansi.Strip(m.View().Content)
+	if !strings.Contains(frame, "settings.json holds an invalid value (must be an integer), so the default") {
+		t.Fatalf("source:\n%s", frame)
+	}
+	keytest.Press(m, "l")
+	if r.Settings().Int("scrolloff") != 3 {
+		t.Fatalf("l: %d", r.Settings().Int("scrolloff"))
+	}
+	keytest.Press(m, "u")
+	if got := readSettingsFile(t, dir)["scrolloff"]; got != "lots" || r.Settings().Int("scrolloff") != 2 {
+		t.Fatalf("undo wrote %v, reads %d", got, r.Settings().Int("scrolloff"))
+	}
+	if !strings.Contains(ansi.Strip(m.View().Content), "holds an invalid value") {
+		t.Fatal("undo did not bring back the invalid value's problem")
+	}
+	if _, err := r.Execute(Request{Noun: "settings", Verb: "undo"}); err == nil {
+		t.Fatal("undo with nothing to undo succeeded")
+	}
+	if _, err := r.Execute(Request{Noun: "settings", Verb: "section", Args: Arguments{"name": "nope"}}); err == nil {
+		t.Fatal("an unknown section was shown")
 	}
 }

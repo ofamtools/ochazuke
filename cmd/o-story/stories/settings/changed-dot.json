@@ -1,0 +1,23 @@
+{
+  "name": "settings page: a • after the name marks a value that is not the default; the description says the default and the source",
+  "area": "settings",
+  "width": 100,
+  "settings": [
+    {"name": "scrolloff", "type": "integer", "default": 2, "description": "Rows kept above and below the focus"},
+    {"name": "wrap", "type": "boolean", "default": false, "description": "Wrap long lines"}
+  ],
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "bind": [{"noun": "demo", "keys": "S", "do": "settings.edit"}]
+  },
+  "script": ["S", "l", "h", "l", "backspace", "j", "space", "delete"],
+  "expect": [
+    {"after": 1, "contains": ["scrolloff    ‹ 2 ›", "Default is 2. Not in settings.json, so the default applies.", "Takes a whole number."], "lacks": ["•"]},
+    {"after": 2, "contains": ["scrolloff •  ‹ 3 ›", "Default is 2. Set in settings.json."]},
+    {"after": 3, "contains": ["scrolloff    ‹ 2 ›", "Default is 2. Set in settings.json."], "lacks": ["•"]},
+    {"after": 4, "contains": ["scrolloff •  ‹ 3 ›"]},
+    {"after": 5, "contains": ["scrolloff    ‹ 2 ›", "Not in settings.json"], "lacks": ["•"]},
+    {"after": 7, "contains": ["wrap •       ‹ true ›", "Default is false. Set in settings.json.", "Takes true or false."]},
+    {"contains": ["wrap         ‹ false ›"], "lacks": ["•"]}
+  ]
+}

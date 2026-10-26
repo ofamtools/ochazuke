@@ -1,0 +1,18 @@
+{
+  "name": "settings page: an empty item is refused and keeps the prompt; esc leaves the list as it was",
+  "area": "settings",
+  "width": 100,
+  "settings": [
+    {"name": "ignore", "type": "list", "default": [], "description": "Names left out of every listing"}
+  ],
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "bind": [{"noun": "demo", "keys": "S", "do": "settings.edit"}]
+  },
+  "script": ["S", "n", "enter", "esc"],
+  "expect": [
+    {"after": 1, "contains": ["ignore    (none)"]},
+    {"after": 3, "modal": "setting-prompt", "contains": ["an item cannot be empty"]},
+    {"modal": "", "focus": "__settings/row/ignore", "mode": "normal", "contains": ["ignore    (none)"], "lacks": ["•"]}
+  ]
+}

@@ -266,7 +266,7 @@ Conformance:
 | insert | mode | `mode.set` |
 | insert | outline | `outline.indent` `outline.leave` |
 | insert | palette | `palette.move` `palette.run` |
-| insert | setting-value | `setting-value.commit` |
+| insert | setting-value | `setting-value.cancel` `setting-value.commit` |
 | insert | settings | `settings.edit` |
 | normal | bindings | `bindings.help` |
 | normal | command | `command.help` `command.run` `command.stop` |
@@ -286,8 +286,9 @@ Conformance:
 | normal | page | `page.next` `page.pick` `page.previous` |
 | normal | palette | `palette.open` |
 | normal | pane | `pane.grow` `pane.reset` `pane.shrink` |
-| normal | setting | `setting.cycle` `setting.edit` `setting.reset` |
-| normal | settings | `settings.close` `settings.edit` |
+| normal | setting | `setting.add` `setting.cycle` `setting.edit` `setting.reset` |
+| normal | setting-item | `setting-item.add` `setting-item.delete` `setting-item.edit` `setting-item.reset` |
+| normal | settings | `settings.close` `settings.edit` `settings.section` `settings.undo` |
 | normal | surface | `surface.scroll` |
 | terminal | mode | `mode.enter` |
 | terminal | terminal | `terminal.detach` `terminal.send` |
@@ -304,6 +305,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `outline.leave`
 - `insert` → `normal` via `palette.run`
 - `insert` → `normal` via `row esc`
+- `insert` → `normal` via `setting-value.cancel`
 - `insert` → `normal` via `setting-value.commit`
 - `insert` → `normal` via `settings.edit`
 - `leader_pending` → `normal` via `terminal.detach`
@@ -315,12 +317,16 @@ Mode edges (from → to via):
 - `normal` → `insert` via `outline.edit`
 - `normal` → `insert` via `page.pick`
 - `normal` → `insert` via `palette.open`
+- `normal` → `insert` via `setting-item.add`
+- `normal` → `insert` via `setting-item.edit`
+- `normal` → `insert` via `setting.add`
 - `normal` → `insert` via `setting.edit`
 - `normal` → `insert` via `settings.close`
 - `normal` → `normal d` via `row d`
 - `normal` → `terminal` via `command.run`
 - `normal` → `terminal` via `demo.open`
 - `normal d` → `normal` via `outline.delete`
+- `normal d` → `normal` via `setting-item.delete`
 - `terminal` → `leader_pending` via `mode.enter`
 
 <!-- verbs:end -->

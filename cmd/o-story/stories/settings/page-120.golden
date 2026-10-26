@@ -1,24 +1,24 @@
  |  ◆ o-story                                                                                                    NORMAL
  |   Tasks  › Settings
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  ╭─ Sections ───────────╮ ╭━ General (4) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
- |  │ General              │ ┃ Setting    Value  Default  Source                                                       ┃
- |  │ ext.ai               │ ┃ scrolloff  2      2        default                                                      ┃
-R|  │ ext.git              │ ┃ theme      dark   dark     default                                                      ┃
- |  │                      │ ┃ wrap       false  false    default                                                      ┃
- |  │                      │ ┃ editor     vi     vi       default                                                      ┃
- |  │                      │ ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
- |  │                      │ ╭─ theme ─────────────────────────────────────────────────────────────────────────────────╮
- |  │                      │ │ Colour theme                                                                            │
- |  │                      │ │                                                                                         │
- |  │                      │ │ name     theme                                                                          │
- |  │                      │ │ type     enum (string)                                                                  │
- |  │                      │ │ allowed  dark, light, mono                                                              │
- |  │                      │ │ value    dark                                                                           │
- |  │                      │ │ default  dark                                                                           │
- |  │                      │ │ source   default                                                                        │
- |  │                      │ │                                                                                         │
- |  ╰──────────────────────╯ ╰─────────────────────────────────────────────────────────────────────────────────────────╯
+ |   › General  ext.ai  ext.git
+ |  ╭━ General (6) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
+ |  ┃ scrolloff •  ‹ 3 ›                                                                                               ┃
+ |  ┃ theme        ‹ dark ›                                                                                            ┃
+ |  ┃ wrap         ‹ false ›                                                                                           ┃
+ |  ┃ paths        2 items                                                                                             ┃
+R|  ┃              ~/proj                                                                                              ┃
+ |  ┃              ~/hub                                                                                               ┃
+ |  ┃ ignore       (none)                                                                                              ┃
+ |  ┃ editor       vi                                                                                                  ┃
+ |  ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
+ |  ╭─ paths ──────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ |  │ Item 1 of 2.                                                                                                     │
+ |  │ Directories searched for projects, in order                                                                      │
+ |  │                                                                                                                  │
+ |  │ Default is ~/proj, ~/hub. Not in settings.json, so the default applies.                                          │
+ |  │ Takes a list of text items.                                                                                      │
+ |  ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  enter setting.edit · h/l setting.cycle · r setting.reset · q settings.close · >/< resize · : palette.open · ? bindi…
+ |  enter/i setting-item.edit · n setting-item.add · d d setting-item.delete · r setting-item.reset · tab settings.sect…
  |

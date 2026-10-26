@@ -1,8 +1,11 @@
 package ochazuke
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
@@ -10,18 +13,29 @@ import (
 )
 
 // The Settings page: settings.edit opens (or switches to) a framework page
-// of the declared settings. A rail of sections on the left (the settings
-// without a section first, under SettingsGeneral, then each section in the
-// order its first setting was declared), the selected section's table on
-// the right (setting, value, default, source) and below it a detail of the
-// selected setting (description, type, allowed values; J/K scroll it).
-// Every change is saved as it is made; there is no save key. On a row,
-// enter edits (a boolean flips, an enum takes its next value, any other
-// type opens a one-line prompt prefilled with the value: enter sets it, esc
-// leaves it), l/h and space step a boolean, an enum or a number, r resets
-// to the default. q or esc (settings.close) goes back to the page the
-// Settings page was opened from, with its remembered focus and mode. A
-// value another process sets (the poll) redraws the open tables.
+// of the declared settings. Its sections are tabs across the top (the
+// settings without a section first, under SettingsGeneral, then each
+// section in the order its first setting was declared; tab, shift+tab, ]
+// and [ step through them, wrapping). Below the tabs the shown section is
+// one list of rows, a setting a row: its name on the left (a • after a
+// name whose value is not the default), its value on the right (‹ value ›
+// for one h/l steps). A list setting's row reads its item count, and each
+// item is a row beneath it with the name column blank. Under the list the
+// selected setting's description says what its default is, where its
+// value comes from (the default, settings.json, or the default because
+// settings.json holds an invalid value) and what it takes; J/K scroll it.
+//
+// Every change is saved as it is made; there is no save key. On a setting
+// row enter edits (a boolean flips, an enum takes its next value, a list
+// takes a new item, any other type opens a one-line prompt prefilled with
+// the value), l/h and space step a boolean, an enum or a number, n adds an
+// item to a list, r (or backspace, delete) resets to the default. On an
+// item row enter or i edits the item, n adds one after it, d d deletes
+// it, r resets the whole list. u (or ctrl+z) takes back the last change
+// made on the page. q or esc (settings.close) goes back to the page the
+// Settings page was opened from, with its remembered focus and mode; the
+// page reopens on the section and row it was left on. A value another
+// process sets (the poll) redraws the open lists.
 //
 // settings.edit registers the page on first use and settings.close
 // removes it again, so it is a tab only while it is open; an application
@@ -32,13 +46,15 @@ const (
 	// SettingsGeneral titles the section of the settings without one.
 	SettingsGeneral = "General"
 
-	settingsPageNoun    = "settings-page"
-	settingsSectionNoun = "settings-section"
-	settingsRailID      = "__settings/sections"
-	settingsDetailID    = "__settings/detail"
-	settingPromptID     = "setting-prompt"
-	settingValueID      = "__settings/value"
-	settingRowPrefix    = "__settings/row/"
+	settingsPageNoun  = "settings-page"
+	settingItemNoun   = "setting-item"
+	settingsDetailID  = "__settings/detail"
+	settingPromptID   = "setting-prompt"
+	settingValueID    = "__settings/value"
+	settingRowPrefix  = "__settings/row/"
+	settingItemPrefix = "__settings/item/"
+	// settingsUndoLimit bounds the page's undo list.
+	settingsUndoLimit = 50
 )
 
 // settingsPage is the Settings page's state, kept with the settings.
@@ -49,6 +65,26 @@ type settingsPage struct {
 	// settings.edit registered the page, so settings.close removes it.
 	from  string
 	owned bool
+	// section is the shown section; last the row the page was left on,
+	// where it reopens.
+	section string
+	last    string
+	// undo is every change made on the page, oldest first.
+	undo []settingUndo
+}
+
+// settingUndo is one change made on the Settings page: the setting and
+// what settings.json held for it before (had false: nothing).
+type settingUndo struct {
+	name string
+	raw  json.RawMessage
+	had  bool
+}
+
+// settingItemRef is an item row's Data: the list setting and the item.
+type settingItemRef struct {
+	Name  string `json:"name"`
+	Index int    `json:"index"`
 }
 
 // SectionName is the section the Settings page files the setting under:
@@ -88,9 +124,25 @@ func registerSettingsEditor(r *Runtime) {
 	r.Register(Operation{Verb: "close", Noun: "settings", Description: "Leave the Settings page for the page it was opened from", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.Context(), closeSettingsPage(r)
 	}})
+	r.Register(Operation{Verb: "section", Noun: "settings", Description: "Show the next or previous section of the Settings page (wrapping), or the one named", Parameters: map[string]Parameter{
+		"step": {Type: "integer", Description: "1 for the next section, -1 for the previous"},
+		"name": {Type: "string", Description: "The section to show (General for the settings without one)"},
+	}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		return r.Context(), showSettingsSection(r, StringArg(a, "name", ""), IntArg(a, "step", 1))
+	}})
+	r.Register(Operation{Verb: "undo", Noun: "settings", Description: "Take back the last change made on the Settings page", Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		return undoSettingChange(r)
+	}})
 	r.DefineGuard("setting-steps", func(r *Runtime, ev KeyEvent) bool {
 		one := focusedSetting(r, ev.Focus)
 		return one != nil && settingSteps(*one)
+	})
+	r.DefineGuard("setting-list", func(r *Runtime, ev KeyEvent) bool {
+		one := focusedSetting(r, ev.Focus)
+		return one != nil && one.Type == SettingList
+	})
+	r.DefineGuard("settings-undo", func(r *Runtime, ev KeyEvent) bool {
+		return len(r.Settings().page.undo) > 0
 	})
 	r.Register(Operation{Verb: "cycle", Noun: "setting", Description: "Step a boolean, an enum or a number to its next or previous value", Parameters: map[string]Parameter{"step": {Type: "integer", Description: "1 for the next value, -1 for the previous"}}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		one := focusedSetting(r, focusOf(c))
@@ -99,29 +151,49 @@ func registerSettingsEditor(r *Runtime) {
 		}
 		return stepSetting(r, *one, IntArg(a, "step", 1))
 	}})
+	focused := func(c Context) (*Setting, error) {
+		if one := focusedSetting(r, focusOf(c)); one != nil {
+			return one, nil
+		}
+		return nil, errors.New("no setting is focused")
+	}
+	reset := func(r *Runtime, c Context, a Arguments) (any, error) {
+		one, err := focused(c)
+		if err != nil {
+			return nil, err
+		}
+		if err := pageChange(r, one.Name, func() error { return r.Settings().Reset(one.Name) }); err != nil {
+			return nil, err
+		}
+		_ = r.SetFocus(settingRowPrefix + one.Name)
+		return r.Settings().Get(one.Name)
+	}
 	r.Define("setting").
 		Verb("edit", func(r *Runtime, c Context, a Arguments) (any, error) {
-			one := focusedSetting(r, focusOf(c))
-			if one == nil {
-				return nil, errors.New("no setting is focused")
+			one, err := focused(c)
+			if err != nil {
+				return nil, err
 			}
-			if one.Type == SettingBoolean || len(one.Enum) > 0 {
+			switch {
+			case one.Type == SettingList:
+				return nil, openItemPrompt(r, *one, -1, len(r.Settings().Strings(one.Name)))
+			case one.Type == SettingBoolean || len(one.Enum) > 0:
 				return stepSetting(r, *one, 1)
 			}
 			return nil, openSettingPrompt(r, *one)
-		}, "Edit the setting: flip a boolean, take an enum's next value, else type a new value").
+		}, "Edit the setting: flip a boolean, take an enum's next value, add an item to a list, else type a new value").
 		Verbs("cycle").
-		Verb("reset", func(r *Runtime, c Context, a Arguments) (any, error) {
-			one := focusedSetting(r, focusOf(c))
-			if one == nil {
-				return nil, errors.New("no setting is focused")
-			}
-			if err := r.Settings().Reset(one.Name); err != nil {
+		Verb("add", func(r *Runtime, c Context, a Arguments) (any, error) {
+			one, err := focused(c)
+			if err != nil {
 				return nil, err
 			}
-			refreshSettingsPage(r)
-			return r.Settings().Get(one.Name)
-		}, "Reset the setting to its default").
+			if one.Type != SettingList {
+				return nil, fmt.Errorf("%s is not a list", one.Name)
+			}
+			return nil, openItemPrompt(r, *one, -1, len(r.Settings().Strings(one.Name)))
+		}, "Add an item at the end of a list setting").
+		Verb("reset", reset, "Reset the setting to its default").
 		Mode("normal").
 		Bind("enter", Do("setting.edit")).
 		// One hint for every step key: h/l setting.cycle.
@@ -130,14 +202,88 @@ func registerSettingsEditor(r *Runtime) {
 		Bind("space", Do("setting.cycle", Arguments{"step": 1}).Guard("setting-steps").Hide()).
 		Bind("h", Do("setting.cycle", Arguments{"step": -1}).Guard("setting-steps").Hinted("h/l setting.cycle")).
 		Bind("left", Do("setting.cycle", Arguments{"step": -1}).Guard("setting-steps").Hide()).
-		Bind("r", Do("setting.reset"))
-	// The rail's rows move into the section's table, as a groups rail
-	// does (cli.MountPage); tab, shift+tab, } and { move between them too.
-	r.Define(settingsSectionNoun).Mode("normal").
-		Bind("enter", Do("focus.next")).
-		Bind("l", Do("focus.next")).
-		Bind("right", Do("focus.next"))
+		Bind("n", Do("setting.add").Guard("setting-list")).
+		Bind("r", Do("setting.reset")).
+		Bind("backspace", Do("setting.reset").Hide()).
+		Bind("delete", Do("setting.reset").Hide())
+	item := func(c Context) (*Setting, settingItemRef, error) {
+		inst := r.Instances[focusOf(c)]
+		if inst == nil || inst.Noun != settingItemNoun {
+			return nil, settingItemRef{}, errors.New("no list item is focused")
+		}
+		ref, _ := inst.Data.(settingItemRef)
+		one := r.Settings().find(ref.Name)
+		if one == nil {
+			return nil, ref, r.Settings().unknown(ref.Name)
+		}
+		return one, ref, nil
+	}
+	r.Define(settingItemNoun).
+		Verb("edit", func(r *Runtime, c Context, a Arguments) (any, error) {
+			one, ref, err := item(c)
+			if err != nil {
+				return nil, err
+			}
+			return nil, openItemPrompt(r, *one, ref.Index, -1)
+		}, "Edit the list item").
+		Verb("add", func(r *Runtime, c Context, a Arguments) (any, error) {
+			one, ref, err := item(c)
+			if err != nil {
+				return nil, err
+			}
+			return nil, openItemPrompt(r, *one, -1, ref.Index+1)
+		}, "Add an item to the list after this one").
+		Verb("delete", func(r *Runtime, c Context, a Arguments) (any, error) {
+			one, ref, err := item(c)
+			if err != nil {
+				return nil, err
+			}
+			items := r.Settings().Strings(one.Name)
+			if ref.Index < 0 || ref.Index >= len(items) {
+				return nil, fmt.Errorf("%s has no item %d", one.Name, ref.Index+1)
+			}
+			items = slices.Delete(items, ref.Index, ref.Index+1)
+			if err := pageChange(r, one.Name, func() error { return r.Settings().Set(one.Name, items) }); err != nil {
+				return nil, err
+			}
+			// The focus stays at the same place: the next item, else the
+			// one before, else the setting's row.
+			switch {
+			case ref.Index < len(items):
+				_ = r.SetFocus(settingItemID(one.Name, ref.Index))
+			case len(items) > 0:
+				_ = r.SetFocus(settingItemID(one.Name, len(items)-1))
+			default:
+				_ = r.SetFocus(settingRowPrefix + one.Name)
+			}
+			return r.Settings().Get(one.Name)
+		}, "Delete the list item").
+		Verb("reset", func(r *Runtime, c Context, a Arguments) (any, error) {
+			one, _, err := item(c)
+			if err != nil {
+				return nil, err
+			}
+			if err := pageChange(r, one.Name, func() error { return r.Settings().Reset(one.Name) }); err != nil {
+				return nil, err
+			}
+			if r.Instances[r.Focus] == nil || r.Instances[r.Focus].Noun != settingItemNoun {
+				_ = r.SetFocus(settingRowPrefix + one.Name)
+			}
+			return r.Settings().Get(one.Name)
+		}, "Reset the whole list to its default").
+		Mode("normal").
+		Bind("enter", Do("setting-item.edit").Hinted("enter/i setting-item.edit")).
+		Bind("i", Do("setting-item.edit").Hide()).
+		Bind("n", Do("setting-item.add")).
+		Bind("d d", Do("setting-item.delete")).
+		Bind("r", Do("setting-item.reset"))
 	r.Define(settingsPageNoun).Mode("normal").
+		Bind("tab", Do("settings.section", Arguments{"step": 1})).
+		Bind("]", Do("settings.section", Arguments{"step": 1}).Hide()).
+		Bind("shift+tab", Do("settings.section", Arguments{"step": -1}).Hide()).
+		Bind("[", Do("settings.section", Arguments{"step": -1}).Hide()).
+		Bind("u", Do("settings.undo").Guard("settings-undo")).
+		Bind("ctrl+z", Do("settings.undo").Guard("settings-undo").Hide()).
 		Bind("q", Do("settings.close")).
 		Bind("esc", Do("settings.close"))
 	r.Define("setting-value").Pin("insert").
@@ -147,16 +293,20 @@ func registerSettingsEditor(r *Runtime) {
 			if body == nil || body.ID != settingPromptID || in == nil || body.Payload.Request == nil {
 				return nil, errors.New("no setting prompt is open")
 			}
-			name := StringArg(body.Payload.Request.Args, "name", "")
+			args := body.Payload.Request.Args
+			name := StringArg(args, "name", "")
 			// A value that does not validate keeps the prompt open with
 			// the error, so it can be corrected.
-			if err := r.Settings().Set(name, string(in.Text)); err != nil {
+			focus, err := commitSettingPrompt(r, name, args, string(in.Text))
+			if err != nil {
 				return nil, err
 			}
 			if err := r.Pop(); err != nil {
 				return nil, err
 			}
-			refreshSettingsPage(r)
+			if focus != "" {
+				_ = r.SetFocus(focus)
+			}
 			return r.Settings().Get(name)
 		}, "Set the setting to the typed value and close the prompt").
 		Verb("cancel", func(r *Runtime, c Context, a Arguments) (any, error) {
@@ -171,6 +321,103 @@ func registerSettingsEditor(r *Runtime) {
 	r.Settings().Observe("", func(string, any) { refreshSettingsPage(r) })
 }
 
+// commitSettingPrompt applies the prompt's text: the value of a setting,
+// an edited item (index) or a new one (insert); it returns the row to
+// focus once the prompt closes ("" keeps the one it opened over).
+func commitSettingPrompt(r *Runtime, name string, args Arguments, text string) (string, error) {
+	s := r.Settings()
+	index, edit := args["index"]
+	insert, add := args["insert"]
+	if !edit && !add {
+		return "", pageChange(r, name, func() error { return s.Set(name, text) })
+	}
+	if strings.TrimSpace(text) == "" {
+		return "", errors.New("an item cannot be empty")
+	}
+	items := s.Strings(name)
+	at := 0
+	if edit {
+		at, _ = index.(int)
+		if at < 0 || at >= len(items) {
+			return "", fmt.Errorf("%s has no item %d", name, at+1)
+		}
+		items[at] = text
+	} else {
+		at, _ = insert.(int)
+		at = min(max(0, at), len(items))
+		items = slices.Insert(items, at, text)
+	}
+	if err := pageChange(r, name, func() error { return s.Set(name, items) }); err != nil {
+		return "", err
+	}
+	return settingItemID(name, at), nil
+}
+
+// pageChange runs a change the Settings page makes to one setting and puts
+// what settings.json held before on the page's undo list when it moved.
+func pageChange(r *Runtime, name string, change func() error) error {
+	s := r.Settings()
+	s.ensure()
+	before, had := s.raw[name]
+	if err := change(); err != nil {
+		return err
+	}
+	if now, has := s.raw[name]; has == had && bytes.Equal(now, before) {
+		return nil
+	}
+	view := &s.page
+	view.undo = append(view.undo, settingUndo{name: name, raw: before, had: had})
+	if len(view.undo) > settingsUndoLimit {
+		view.undo = view.undo[len(view.undo)-settingsUndoLimit:]
+	}
+	return nil
+}
+
+// undoSettingChange puts back what settings.json held before the page's
+// last change and shows that setting's row.
+func undoSettingChange(r *Runtime) (any, error) {
+	s := r.Settings()
+	view := &s.page
+	if len(view.undo) == 0 {
+		return nil, errors.New("no change on the settings page to undo")
+	}
+	last := view.undo[len(view.undo)-1]
+	if err := s.restore(last.name, last.raw, last.had); err != nil {
+		return nil, err
+	}
+	view.undo = view.undo[:len(view.undo)-1]
+	if one := s.find(last.name); one != nil && r.PageOf(SettingsPageID) != nil {
+		view.section = one.SectionName()
+		_ = r.SetFocus(settingRowPrefix + last.name)
+	}
+	return s.Get(last.name)
+}
+
+// restore writes back what settings.json held for a setting (had false:
+// nothing), as it was, even a value that does not validate.
+func (s *Settings) restore(name string, raw json.RawMessage, had bool) error {
+	s.ensure()
+	one := s.find(name)
+	if one == nil {
+		return s.unknown(name)
+	}
+	old, _ := s.Value(name)
+	next := maps.Clone(s.raw)
+	if had {
+		next[name] = raw
+	} else {
+		delete(next, name)
+	}
+	if err := s.write(next); err != nil {
+		return err
+	}
+	delete(s.values, name)
+	s.withdrawFor(name)
+	s.parse(*one)
+	s.changed(name, old)
+	return nil
+}
+
 // AddSettingsPage registers the Settings page as a permanent page, a tab
 // in registration order like the application's own; settings.edit then
 // switches to it and settings.close goes back without removing it.
@@ -182,7 +429,8 @@ func (r *Runtime) AddSettingsPage() (*Page, error) {
 }
 
 // ensureSettingsPage registers the page when it is not yet (owned when
-// settings.edit does) and brings its sections and rows up to date.
+// settings.edit does) and brings its lists up to date. A new page opens on
+// the row the last one was left on.
 func ensureSettingsPage(r *Runtime, owned bool) (*Page, error) {
 	view := &r.Settings().page
 	if page := r.PageOf(SettingsPageID); page != nil {
@@ -190,12 +438,16 @@ func ensureSettingsPage(r *Runtime, owned bool) (*Page, error) {
 		return page, nil
 	}
 	r.Instance(SettingsPageID, Parent("app"), Kind(settingsPageNoun))
-	if _, err := r.AddList(settingsRailID, nil, Parent(SettingsPageID), Kind("list"), NoSpill(), NoMarks()); err != nil {
-		_ = r.RemoveInstance(SettingsPageID)
-		return nil, err
-	}
 	refreshSettingsPage(r)
-	page := &Page{ID: SettingsPageID, Title: "Settings", Focus: settingsTableID(firstSection(r)), Render: settingsPageView}
+	sections := settingSections(r.Settings())
+	if !slices.Contains(sections, view.section) && len(sections) > 0 {
+		view.section = sections[0]
+	}
+	focus := settingsListID(view.section)
+	if inst := r.Instances[view.last]; inst != nil && view.last != "" {
+		focus = view.last
+	}
+	page := &Page{ID: SettingsPageID, Title: "Settings", Focus: focus, Render: settingsPageView}
 	page.OnOpen = func(r *Runtime, from string) {
 		view.from = from
 		refreshSettingsPage(r)
@@ -214,13 +466,16 @@ func ensureSettingsPage(r *Runtime, owned bool) (*Page, error) {
 
 // closeSettingsPage goes back to the page the Settings page was opened
 // from (else the first other page) and removes the page when settings.edit
-// registered it.
+// registered it, remembering the row it was left on.
 func closeSettingsPage(r *Runtime) error {
 	if r.PageOf(SettingsPageID) == nil {
 		return errors.New("the settings page is not open")
 	}
 	view := &r.Settings().page
 	if r.Page == SettingsPageID {
+		if inst := r.Instances[r.BaseFocus()]; inst != nil && (inst.Noun == "setting" || inst.Noun == settingItemNoun) {
+			view.last = inst.ID
+		}
 		back := view.from
 		if back == SettingsPageID || r.PageOf(back) == nil {
 			back = ""
@@ -245,6 +500,45 @@ func closeSettingsPage(r *Runtime) error {
 	return nil
 }
 
+// showSettingsSection shows the named section, else the one step away
+// from the shown one (wrapping), and focuses its selected row.
+func showSettingsSection(r *Runtime, name string, step int) error {
+	if r.PageOf(SettingsPageID) == nil {
+		return errors.New("the settings page is not open")
+	}
+	sections := settingSections(r.Settings())
+	if len(sections) == 0 {
+		return errors.New("this application declares no settings")
+	}
+	key := currentSection(r)
+	if name != "" {
+		key = ""
+		if name != SettingsGeneral {
+			key = name
+		}
+		if !slices.Contains(sections, key) {
+			titles := make([]string, len(sections))
+			for i, k := range sections {
+				titles[i] = sectionTitle(k)
+			}
+			return fmt.Errorf("no settings section %q: one of %s", name, strings.Join(titles, ", "))
+		}
+	} else {
+		i := slices.Index(sections, key)
+		n := len(sections)
+		key = sections[((i+step)%n+n)%n]
+	}
+	r.Settings().page.section = key
+	list := r.List(settingsListID(key))
+	if list == nil {
+		return nil
+	}
+	if item, ok := list.Selected(); ok {
+		return r.SetFocus(item.ID)
+	}
+	return r.SetFocus(settingsListID(key))
+}
+
 // settingSections is every section in order: "" (SettingsGeneral) first
 // when it has settings, then the others in the order their first setting
 // was declared.
@@ -265,13 +559,6 @@ func settingSections(s *Settings) []string {
 	return out
 }
 
-func firstSection(r *Runtime) string {
-	if sections := settingSections(r.Settings()); len(sections) > 0 {
-		return sections[0]
-	}
-	return ""
-}
-
 func sectionTitle(key string) string {
 	if key == "" {
 		return SettingsGeneral
@@ -279,122 +566,147 @@ func sectionTitle(key string) string {
 	return key
 }
 
-func settingsTableID(key string) string {
+func settingsListID(key string) string {
 	if key == "" {
-		return "__settings/table"
+		return "__settings/list"
 	}
-	return "__settings/table/" + key
+	return "__settings/list/" + key
 }
 
-func settingsSectionRowID(key string) string {
-	if key == "" {
-		return "__settings/section"
-	}
-	return "__settings/section/" + key
+func settingItemID(name string, index int) string {
+	return fmt.Sprintf("%s%s/%d", settingItemPrefix, name, index)
 }
 
-// refreshSettingsPage brings the open page up to date: a rail row and a
-// table per section (a section declared since gets both), each table's
-// rows; selections stay on their settings.
+// refreshSettingsPage brings the open page up to date: a list per section
+// (a section declared since gets one), each list's rows; selections stay
+// on their rows.
 func refreshSettingsPage(r *Runtime) {
-	rail := r.List(settingsRailID)
-	if rail == nil {
+	if r.Instances[SettingsPageID] == nil {
 		return
 	}
 	s := r.Settings()
-	sections := settingSections(s)
-	rows := make([]ListItem, len(sections))
-	for i, key := range sections {
-		rows[i] = ListItem{ID: settingsSectionRowID(key), Label: sectionTitle(key), Noun: settingsSectionNoun, Data: key}
-	}
-	_ = rail.SetItems(rows)
 	values := s.List()
-	for _, key := range sections {
+	for _, key := range settingSections(s) {
 		var items []ListItem
+		names := 0
 		for _, v := range values {
 			if v.SectionName() == key {
-				items = append(items, settingItem(s, key, v))
+				row := settingItem(s, key, v)
+				names = max(names, ansi.StringWidth(strings.TrimSuffix(row.Cells[0], " •")))
+				items = append(items, row)
+				if list, ok := v.Value.([]string); ok {
+					for i, text := range list {
+						items = append(items, ListItem{
+							ID: settingItemID(v.Name, i), Label: text, Noun: settingItemNoun,
+							Data: settingItemRef{Name: v.Name, Index: i}, Cells: []string{"", textCell(text)},
+						})
+					}
+				}
 			}
 		}
-		list := r.List(settingsTableID(key))
+		list := r.List(settingsListID(key))
 		if list == nil {
 			var err error
-			if list, err = r.AddList(settingsTableID(key), nil, Parent(SettingsPageID), NoMarks()); err != nil {
+			if list, err = r.AddList(settingsListID(key), nil, Parent(SettingsPageID), NoMarks()); err != nil {
 				continue
 			}
 		}
-		// The names keep their width (up to 24 cells) and the source fits
-		// settings.json; the default narrows and goes first.
-		names := 0
-		for _, item := range items {
-			names = max(names, ansi.StringWidth(item.Cells[0]))
-		}
+		// No titles, so no header. The name column is as wide as the
+		// longest name and its dot (up to 30 cells, then a name is cut),
+		// whether a dot shows or not, so a change never moves the values;
+		// the value takes the rest.
 		list.SetColumns(
-			Column{Title: "Setting", Priority: 3, Min: min(names, 24)},
-			Column{Title: "Value", Priority: 3},
-			Column{Title: "Default", Priority: 1},
-			Column{Title: "Source", Priority: 2, Min: len(SettingsFile)},
+			Column{Width: min(names+2, 30)},
+			Column{Min: 6, Priority: 1},
 		)
 		_ = list.SetItems(items)
 	}
 }
 
-// settingItem is one table row: the name without its section's prefix,
-// the value, the default and where the value comes from.
+// settingItem is one setting's row: the name without its section's prefix
+// (a • after it when the value is not the default) and the value.
 func settingItem(s *Settings, section string, v SettingValue) ListItem {
 	name := strings.TrimPrefix(v.Name, section+".")
 	if section == "" || name == "" {
 		name = v.Name
 	}
-	value := settingCell(v.Value)
+	if settingDiffers(s, v.Name) {
+		name += " •"
+	}
+	value := settingValueCell(v)
 	return ListItem{
 		ID: settingRowPrefix + v.Name, Label: name + "  " + value, Noun: "setting", Data: v.Name,
-		Cells: []string{name, value, settingCell(v.Default), settingSource(s, v)},
+		Cells: []string{name, value},
 	}
 }
 
-// settingSource is where a setting's value comes from: settings.json, or
-// the default (also when the file holds a value that does not validate).
-func settingSource(s *Settings, v SettingValue) string {
-	switch {
-	case v.Set:
-		return SettingsFile
-	case s.raw[v.Name] != nil:
-		return "default (file value invalid)"
+// settingDiffers reports whether a setting's value is not its default.
+func settingDiffers(s *Settings, name string) bool {
+	one := s.find(name)
+	return one != nil && !sameSetting(s.current(*one), one.Default)
+}
+
+// settingValueCell is a setting's value as its row shows it: ‹ value ›
+// for one h/l steps, a list's item count, (empty) for empty text.
+func settingValueCell(v SettingValue) string {
+	if list, ok := v.Value.([]string); ok {
+		return itemCount(len(list))
 	}
-	return "default"
+	text := textCell(settingCell(v.Value))
+	if settingSteps(v.Setting) {
+		return "‹ " + text + " ›"
+	}
+	return text
+}
+
+func itemCount(n int) string {
+	switch n {
+	case 0:
+		return "(none)"
+	case 1:
+		return "1 item"
+	}
+	return fmt.Sprintf("%d items", n)
+}
+
+// textCell is text as a cell shows it: (empty) for none.
+func textCell(text string) string {
+	if text == "" {
+		return "(empty)"
+	}
+	return text
 }
 
 func settingCell(v any) string {
-	if s, ok := v.(string); ok {
-		return s
+	switch t := v.(type) {
+	case string:
+		return t
+	case []string:
+		return strings.Join(t, ", ")
 	}
 	return fmt.Sprint(v)
 }
 
-// currentSection is the section the page shows: the focused table's, else
-// the rail's selected row's. Focus in a table moves the rail with it.
+// currentSection is the section the page shows: the focused list's (the
+// focus moves the tabs with it), else the one last shown.
 func currentSection(r *Runtime) string {
-	rail := r.List(settingsRailID)
-	if rail == nil {
-		return ""
-	}
-	for _, key := range settingSections(r.Settings()) {
-		if list := r.List(settingsTableID(key)); list != nil && list.Focused() {
-			_ = rail.Select(settingsSectionRowID(key))
+	s := r.Settings()
+	sections := settingSections(s)
+	for _, key := range sections {
+		if list := r.List(settingsListID(key)); list != nil && list.Focused() {
+			s.page.section = key
 			return key
 		}
 	}
-	if item, ok := rail.Selected(); ok {
-		key, _ := item.Data.(string)
-		return key
+	if slices.Contains(sections, s.page.section) || len(sections) == 0 {
+		return s.page.section
 	}
-	return firstSection(r)
+	return sections[0]
 }
 
-// selectedSettingRow is the detail's item: the shown table's selected row.
+// selectedSettingRow is the detail's item: the shown list's selected row.
 func selectedSettingRow(r *Runtime) string {
-	if list := r.List(settingsTableID(currentSection(r))); list != nil {
+	if list := r.List(settingsListID(currentSection(r))); list != nil {
 		if item, ok := list.Selected(); ok {
 			return item.ID
 		}
@@ -402,37 +714,66 @@ func selectedSettingRow(r *Runtime) string {
 	return ""
 }
 
-// settingDetail is the detail of one setting: its description, then its
-// name, type, allowed values, value, default and source.
-func settingDetail(s *Settings, name string) (title, text string) {
+// settingOfRow is the setting and item (-1 for the setting's own row) a
+// row id names.
+func settingOfRow(r *Runtime, id string) (string, int) {
+	if name, ok := strings.CutPrefix(id, settingRowPrefix); ok {
+		return name, -1
+	}
+	if inst := r.Instances[id]; inst != nil {
+		if ref, ok := inst.Data.(settingItemRef); ok {
+			return ref.Name, ref.Index
+		}
+	}
+	return "", -1
+}
+
+// settingDetail is the description of one setting below the list: what it
+// does, its default and where its value comes from, and what it takes; on
+// an item row, which item it is first.
+func settingDetail(s *Settings, name string, index int) (title, text string) {
 	v, err := s.Get(name)
 	if err != nil {
 		return "Detail", "no setting selected"
 	}
-	kind := v.Type
-	if len(v.Enum) > 0 {
-		kind = "enum (string)"
-	}
-	facts := [][2]string{
-		{"name", v.Name},
-		{"type", kind},
-		{"allowed", settingAllowed(v.Setting)},
-		{"value", settingCell(v.Value)},
-		{"default", settingCell(v.Default)},
-		{"source", settingSource(s, v)},
-	}
-	width := 0
-	for _, f := range facts {
-		width = max(width, len(f[0]))
-	}
 	var lines []string
+	if list, ok := v.Value.([]string); ok && index >= 0 {
+		lines = append(lines, fmt.Sprintf("Item %d of %d.", index+1, len(list)))
+	}
 	if v.Description != "" {
-		lines = append(lines, v.Description, "")
+		lines = append(lines, v.Description)
 	}
-	for _, f := range facts {
-		lines = append(lines, f[0]+strings.Repeat(" ", width-len(f[0]))+"  "+f[1])
+	if len(lines) > 0 {
+		lines = append(lines, "")
 	}
+	def := textCell(settingCell(v.Default))
+	if list, ok := v.Default.([]string); ok && len(list) == 0 {
+		def = "(none)"
+	}
+	lines = append(lines,
+		"Default is "+def+". "+settingSource(s, v),
+		"Takes "+settingAllowed(v.Setting)+".")
 	return v.Name, strings.Join(lines, "\n")
+}
+
+// settingSource says where a setting's value comes from: settings.json,
+// or the default (also when the file holds a value that does not validate,
+// with the reason).
+func settingSource(s *Settings, v SettingValue) string {
+	switch {
+	case v.Set:
+		return "Set in " + SettingsFile + "."
+	case s.raw[v.Name] != nil:
+		prefix := SettingsFile + ": " + v.Name + ": "
+		for _, p := range s.problems {
+			if why, ok := strings.CutPrefix(p, prefix); ok {
+				why = strings.TrimSuffix(why, ", using the default (kept)")
+				return SettingsFile + " holds an invalid value (" + why + "), so the default applies."
+			}
+		}
+		return SettingsFile + " holds an invalid value, so the default applies."
+	}
+	return "Not in " + SettingsFile + ", so the default applies."
 }
 
 // settingAllowed says what values a setting takes.
@@ -440,15 +781,17 @@ func settingAllowed(one Setting) string {
 	var out string
 	switch {
 	case len(one.Enum) > 0:
-		out = strings.Join(one.Enum, ", ")
+		out = "one of " + strings.Join(one.Enum, ", ")
 	case one.Type == SettingBoolean:
-		out = "true, false"
+		out = "true or false"
 	case one.Type == SettingInteger:
 		out = "a whole number"
 	case one.Type == SettingNumber:
 		out = "a number"
 	case one.Type == SettingDuration:
 		out = "a duration such as 400ms or 2s"
+	case one.Type == SettingList:
+		out = "a list of text items"
 	default:
 		out = "any text"
 	}
@@ -458,7 +801,7 @@ func settingAllowed(one Setting) string {
 	return out
 }
 
-// focusedSetting is the declared setting of the focused table row.
+// focusedSetting is the declared setting of the focused setting row.
 func focusedSetting(r *Runtime, focus string) *Setting {
 	inst := r.Instances[focus]
 	if inst == nil || inst.Noun != "setting" {
@@ -497,10 +840,9 @@ func stepSetting(r *Runtime, one Setting, step int) (any, error) {
 	default:
 		return nil, fmt.Errorf("%s is a %s: enter edits it", one.Name, one.Type)
 	}
-	if err := s.Set(one.Name, next); err != nil {
+	if err := pageChange(r, one.Name, func() error { return s.Set(one.Name, next) }); err != nil {
 		return nil, err
 	}
-	refreshSettingsPage(r)
 	return s.Get(one.Name)
 }
 
@@ -515,12 +857,33 @@ func openSettingPrompt(r *Runtime, one Setting) error {
 	return err
 }
 
-// settingsPageView draws the page: the rail of sections on the left, the
-// shown section's table over the selected setting's detail on the right
-// (the divider follows the pane keys).
+// openItemPrompt opens the value prompt for a list's item: index >= 0
+// edits that item (prefilled), else a new item goes in at insert.
+func openItemPrompt(r *Runtime, one Setting, index, insert int) error {
+	items := r.Settings().Strings(one.Name)
+	text, args := "", Arguments{"name": one.Name}
+	prompt := fmt.Sprintf("%s (list): new item %d", one.Name, insert+1)
+	if index >= 0 {
+		if index >= len(items) {
+			return fmt.Errorf("%s has no item %d", one.Name, index+1)
+		}
+		text, args["index"] = items[index], index
+		prompt = fmt.Sprintf("%s (list): item %d of %d", one.Name, index+1, len(items))
+	} else {
+		args["insert"] = insert
+	}
+	in := NewInput(settingValueID, text, false)
+	in.Cursor = len(in.Text)
+	request := &Request{Noun: "settings", Verb: "set", Args: args}
+	_, err := r.OpenModal(settingPromptID, Payload{Prompt: prompt, Request: request}, WithInput(in, Kind("setting-value")))
+	return err
+}
+
+// settingsPageView draws the page: the sections as tabs (when there is
+// more than one), the shown section's rows over the selected setting's
+// description (the divider follows the pane keys).
 func settingsPageView(r *Runtime, width, height int) Block {
-	rail := r.List(settingsRailID)
-	if rail == nil || width <= 0 || height <= 0 {
+	if r.Instances[SettingsPageID] == nil || width <= 0 || height <= 0 {
 		return Block{}
 	}
 	styles := NewStyles(Appearance{Theme: "adaptive", Dark: true})
@@ -529,43 +892,51 @@ func settingsPageView(r *Runtime, width, height int) Block {
 	}
 	layout := r.PaneLayout(SettingsPageID, Layout{Styles: styles})
 	key := currentSection(r)
-	railWidth := min(24, max(12, (width-1)/4))
-	rw, rh := PanelContentSize(railWidth, height)
-	left := layout.PanelBlock("Sections", Text(rail.View(rw, rh)), railWidth, height, rail.Focused())
-
-	right := Block{}
-	mainWidth := width - railWidth - 1
-	if table := r.List(settingsTableID(key)); table != nil && mainWidth > 0 {
-		// The table takes its rows (header and border included) up to
-		// three fifths of the height; the detail the rest.
-		th := layout.Divide(min(max(table.Len()+3, PaneMinHeight), height*3/5), height, PaneMinHeight)
-		tw, tth := PanelContentSize(mainWidth, th)
-		tableBody := Text(table.View(tw, tth))
-		dw, dch := PanelContentSize(mainWidth, height-th)
-		detail := r.Detail(settingsDetailID)
-		title, text := "Detail", ""
-		if name := strings.TrimPrefix(selectedSettingRow(r), settingRowPrefix); name != "" {
-			title, text = settingDetail(r.Settings(), name)
+	sections := settingSections(r.Settings())
+	var rows []string
+	if len(sections) > 1 && height > PaneMinHeight {
+		titles := make([]string, len(sections))
+		for i, k := range sections {
+			titles[i] = sectionTitle(k)
 		}
-		body, marker := "", ""
-		if detail != nil {
-			body, marker = detail.Window(text, dw, dch)
-		}
-		if marker != "" {
-			title += " · " + marker
-		}
-		focused := SplitNone
-		if table.Focused() {
-			focused = SplitLeft
-		}
-		tableTitle := fmt.Sprintf("%s (%d)", sectionTitle(key), table.Len())
-		right = layout.panelPair(tableTitle, tableBody, title, Text(body), mainWidth, height, th, true, focused)
+		rows = append(rows, layout.tabs(titles, slices.Index(sections, key), width))
 	}
-	leftRows, rightRows := strings.Split(left.Text, "\n"), strings.Split(right.Text, "\n")
-	rows := make([]string, height)
-	for i := range rows {
-		rows[i] = layoutRow(leftRows, i, railWidth) + " " + layoutRow(rightRows, i, max(0, mainWidth))
+	body := height - len(rows)
+	table := r.List(settingsListID(key))
+	if table == nil {
+		return Text(strings.Join(rows, "\n"))
 	}
+	// The rows take what they need (border included) up to three fifths
+	// of the height; the description the rest.
+	th := layout.Divide(min(max(table.Len()+2, PaneMinHeight), body*3/5), body, PaneMinHeight)
+	tw, tth := PanelContentSize(width, th)
+	tableBody := Text(table.View(tw, tth))
+	dw, dch := PanelContentSize(width, body-th)
+	detail := r.Detail(settingsDetailID)
+	title, text := "Detail", ""
+	if name, index := settingOfRow(r, selectedSettingRow(r)); name != "" {
+		title, text = settingDetail(r.Settings(), name, index)
+	}
+	content, marker := "", ""
+	if detail != nil {
+		content, marker = detail.Window(text, dw, dch)
+	}
+	if marker != "" {
+		title += " · " + marker
+	}
+	focused := SplitNone
+	if table.Focused() {
+		focused = SplitLeft
+	}
+	count := 0
+	for _, one := range r.Settings().declared {
+		if one.SectionName() == key {
+			count++
+		}
+	}
+	tableTitle := fmt.Sprintf("%s (%d)", sectionTitle(key), count)
+	pair := layout.panelPair(tableTitle, tableBody, title, Text(content), width, body, th, true, focused)
+	rows = append(rows, strings.Split(pair.Text, "\n")...)
 	return Text(strings.Join(rows, "\n"))
 }
 

@@ -13,8 +13,8 @@
   "expect": [
     {"after": 5, "page": "two", "focus": "name", "mode": "insert"},
     {"after": 6, "page": "__settings", "focus": "__settings/row/wrap", "mode": "normal", "contains": ["One", "Two", "Settings"]},
-    {"after": 7, "contains": ["wrap     true"]},
-    {"after": 8, "page": "two", "focus": "name", "mode": "insert", "lacks": ["Settings", "Sections"]},
+    {"after": 7, "contains": ["wrap •  ‹ true ›"]},
+    {"after": 8, "page": "two", "focus": "name", "mode": "insert", "lacks": ["Settings", "wrap"]},
     {"after": 9, "page": "__settings"},
     {"page": "two", "focus": "name", "mode": "insert"}
   ]

@@ -1,0 +1,20 @@
+{
+  "name": "settings page: it reopens on the section and row it was left on",
+  "area": "settings",
+  "width": 100,
+  "settings": [
+    {"name": "scrolloff", "type": "integer", "default": 2},
+    {"name": "ext.ai.poll-every", "type": "duration", "default": "30s"},
+    {"name": "ext.ai.model", "type": "string", "default": "large", "enum": ["small", "large"]}
+  ],
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "bind": [{"noun": "demo", "keys": ",", "do": "settings.edit"}]
+  },
+  "script": [",", "tab", "j", "q", ","],
+  "expect": [
+    {"after": 3, "focus": "__settings/row/ext.ai.model"},
+    {"after": 4, "page": "page1", "focus": "a1"},
+    {"page": "__settings", "focus": "__settings/row/ext.ai.model", "contains": ["› ext.ai", "model"], "lacks": ["scrolloff"]}
+  ]
+}

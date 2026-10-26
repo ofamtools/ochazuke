@@ -201,7 +201,7 @@ Root package `ochazuke` is flat: 59 source files, 58 test files. Each entry list
 - purpose: MacroKey is one recorded key of a macro; Paste marks pasted text.
 - types: MacroKey, MacroState
 - methods: Runtime(1)
-- leans on: runtime.go(31), registers.go(15), noun.go(14), block.go(3)
+- leans on: runtime.go(31), noun.go(17), registers.go(15), block.go(3)
 
 ### model.go
 
@@ -210,11 +210,11 @@ Root package `ochazuke` is flat: 59 source files, 58 test files. Each entry list
 - types: ModalView, ModalBody (iface), Model, HelpRow
 - methods: Model(23), Runtime(1), modelSink(3)
 - funcs: NewModel, BindingHints, BindingHelp, InputView, InputBlock
-- leans on: runtime.go(91), block.go(34), noun.go(33), theme.go(19)
+- leans on: runtime.go(91), block.go(34), noun.go(34), theme.go(19)
 
 ### noun.go
 
-- lines: 1094 · tests: noun_test.go
+- lines: 1103 · tests: noun_test.go
 - purpose: Noun is the behaviour shared by every instance of one kind: the verbs it answers to, its key bindings per mode, the action handlers that override an operatio...
 - types: Noun, Binding, NounBuilder, ModeBuilder, Guard (func)
 - methods: Binding(11), ModeBuilder(7), Noun(1), NounBuilder(18), Runtime(13)
@@ -361,7 +361,7 @@ Root package `ochazuke` is flat: 59 source files, 58 test files. Each entry list
 - purpose: KeyEvent is what a row receives: the key, the mode it was resolved in and the focused instance.
 - types: KeyEvent
 - methods: Binding(1), Runtime(21), level(1)
-- leans on: runtime.go(79), noun.go(51), instance.go(41), delivery.go(11)
+- leans on: runtime.go(79), noun.go(52), instance.go(41), delivery.go(11)
 
 ### runtime.go
 
@@ -391,10 +391,10 @@ Root package `ochazuke` is flat: 59 source files, 58 test files. Each entry list
 
 ### settings_view.go
 
-- lines: 580
+- lines: 951
 - purpose: settingsPage is the Settings page's state, kept with the settings.
-- methods: Runtime(1), Setting(1)
-- leans on: runtime.go(53), settings.go(41), noun.go(26), instance.go(23)
+- methods: Runtime(1), Setting(1), Settings(1)
+- leans on: runtime.go(97), settings.go(70), noun.go(47), instance.go(24)
 
 ### surface.go
 

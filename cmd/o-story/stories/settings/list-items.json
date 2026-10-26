@@ -1,0 +1,231 @@
+{
+  "name": "settings page: a list's items are rows under its name; n adds, enter and i edit, d d deletes, r resets the list",
+  "area": "settings",
+  "width": 100,
+  "settings": [
+    {
+      "name": "paths",
+      "type": "list",
+      "default": [
+        "~/proj",
+        "~/hub"
+      ],
+      "description": "Directories searched for projects, in order"
+    },
+    {
+      "name": "ignore",
+      "type": "list",
+      "default": [],
+      "description": "Names left out of every listing"
+    },
+    {
+      "name": "wrap",
+      "type": "boolean",
+      "default": false,
+      "description": "Wrap long lines"
+    }
+  ],
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": "S",
+        "do": "settings.edit"
+      }
+    ]
+  },
+  "script": [
+    "S",
+    "j",
+    "n",
+    {
+      "type": "~/work"
+    },
+    "enter",
+    "i",
+    "ctrl+u",
+    {
+      "type": "~/play"
+    },
+    "enter",
+    "k",
+    "d",
+    "d",
+    "j",
+    "d",
+    "d",
+    "r",
+    "j",
+    "j",
+    "enter",
+    {
+      "type": "*.tmp"
+    },
+    "enter",
+    "d",
+    "d"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "__settings/row/paths",
+      "order": [
+        "paths",
+        "2 items",
+        "~/proj",
+        "~/hub",
+        "ignore",
+        "(none)",
+        "wrap",
+        "‹ false ›",
+        "Directories searched for projects, in order",
+        "Default is ~/proj, ~/hub.",
+        "Takes a list of text items."
+      ],
+      "contains": [
+        "enter setting.edit",
+        "n setting.add",
+        "r setting.reset"
+      ],
+      "lacks": [
+        "setting.cycle"
+      ]
+    },
+    {
+      "after": 2,
+      "focus": "__settings/item/paths/0",
+      "contains": [
+        "Item 1 of 2.",
+        "enter/i setting-item.edit",
+        "n setting-item.add",
+        "d d setting-item.delete",
+        "r setting-item.reset"
+      ]
+    },
+    {
+      "after": 3,
+      "modal": "setting-prompt",
+      "mode": "insert",
+      "contains": [
+        "paths (list): new item 2"
+      ]
+    },
+    {
+      "after": 5,
+      "modal": "",
+      "focus": "__settings/item/paths/1",
+      "order": [
+        "paths •",
+        "3 items",
+        "~/proj",
+        "~/work",
+        "~/hub"
+      ],
+      "contains": [
+        "Item 2 of 3.",
+        "Set in settings.json."
+      ]
+    },
+    {
+      "after": 6,
+      "modal": "setting-prompt",
+      "contains": [
+        "paths (list): item 2 of 3",
+        "~/work"
+      ]
+    },
+    {
+      "after": 9,
+      "modal": "",
+      "focus": "__settings/item/paths/1",
+      "order": [
+        "~/proj",
+        "~/play",
+        "~/hub"
+      ],
+      "lacks": [
+        "~/work"
+      ]
+    },
+    {
+      "after": 12,
+      "focus": "__settings/item/paths/0",
+      "order": [
+        "paths •",
+        "2 items",
+        "~/play",
+        "~/hub",
+        "ignore",
+        "Item 1 of 2."
+      ]
+    },
+    {
+      "after": 15,
+      "focus": "__settings/item/paths/0",
+      "order": [
+        "paths •",
+        "1 item",
+        "~/play",
+        "ignore",
+        "Item 1 of 1."
+      ]
+    },
+    {
+      "after": 16,
+      "focus": "__settings/item/paths/0",
+      "order": [
+        "paths",
+        "2 items",
+        "~/proj",
+        "~/hub",
+        "Not in settings.json"
+      ],
+      "lacks": [
+        "•",
+        "~/play"
+      ]
+    },
+    {
+      "after": 18,
+      "focus": "__settings/row/ignore",
+      "contains": [
+        "(none)",
+        "Default is (none)."
+      ]
+    },
+    {
+      "after": 19,
+      "modal": "setting-prompt",
+      "contains": [
+        "ignore (list): new item 1"
+      ]
+    },
+    {
+      "after": 21,
+      "modal": "",
+      "focus": "__settings/item/ignore/0",
+      "order": [
+        "ignore •",
+        "1 item",
+        "*.tmp",
+        "wrap"
+      ]
+    },
+    {
+      "focus": "__settings/row/ignore",
+      "contains": [
+        "(none)"
+      ],
+      "lacks": [
+        "*.tmp",
+        "•"
+      ]
+    }
+  ]
+}

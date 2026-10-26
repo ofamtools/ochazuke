@@ -23,8 +23,8 @@
       "contains": ["debounce (duration)", "400ms", "enter setting-value.commit", "esc setting-value.cancel"]
     },
     {"after": 5, "modal": "setting-prompt", "contains": ["must be a duration"]},
-    {"after": 8, "modal": "", "page": "__settings", "focus": "__settings/row/debounce", "mode": "normal", "contains": ["debounce  2s", "settings.json"]},
+    {"after": 8, "modal": "", "page": "__settings", "focus": "__settings/row/debounce", "mode": "normal", "contains": ["debounce •  2s", "Set in settings.json."]},
     {"after": 10, "modal": "setting-prompt", "contains": ["editor (string)", "vi"]},
-    {"modal": "", "focus": "__settings/row/editor", "mode": "normal", "contains": ["editor    nvim"]}
+    {"modal": "", "focus": "__settings/row/editor", "mode": "normal", "contains": ["editor •    nvim"]}
   ]
 }
