@@ -32,7 +32,9 @@ const Schema = 1
 // silently; only a failed exec or a stream with nothing decodable is an
 // error. It runs the verb once, keeps the rows as its cached state and
 // refreshes them when it chooses; an extension without a state verb keeps
-// per-list row sources. A boolean parameter fresh on the state verb, when
+// per-list row sources. The same rows print as tables for a person or an
+// agent (BIN NOUN VERB --format table|markdown|toon, see Formats), one per
+// noun in its columns. A boolean parameter fresh on the state verb, when
 // declared, asks the extension to bypass its own caches (an explicit
 // refresh).
 type CatalogDoc struct {

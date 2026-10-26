@@ -75,9 +75,9 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
   Supply prompt values as arguments: non-confirmation UI prompts need the TUI.
   Bare arguments fill parameters in the order shown; named flags take precedence.
   Boolean parameters use named flags unless explicitly declared positional.
-  Results are JSON; --format table prints rows as a table (cut to the
-  terminal's width on a terminal). Scheduled work settles before the
-  command exits.
+  Results are JSON; --format table|markdown|toon prints a list's rows as a
+  table from the noun's columns (table cuts to the width on a terminal).
+  Scheduled work settles before the command exits.
   Interaction verbs may require UI state and can have no lasting CLI effect.`
 	app.Add(oden.Command{
 		Name:    "catalog",

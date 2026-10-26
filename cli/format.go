@@ -59,7 +59,8 @@ var Formats = []string{"json", "table", "markdown", "toon"}
 // JSON literal, an object or array is its compact JSON. A field column of
 // numbers only is right-aligned.
 
-// table is one group of a tabular result.
+// table is one group of a tabular result, as --format table, markdown and
+// toon print it: the shell output formats over a noun's declared columns.
 type table struct {
 	noun string
 	cols []ochazuke.Column

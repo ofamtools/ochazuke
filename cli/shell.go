@@ -69,11 +69,17 @@ import (
 // runs as given and, if it fails, the error lists them to pass as --target;
 // with none it runs as given.
 //
-// The result prints as JSON unless --format names another of Formats:
-// table lays a tabular result (an array of objects, a list or state verb's
-// rows) out in the columns its noun declares (see Formats and tablesOf),
-// cut to the terminal's width only when Stdout is a terminal (Width). A
-// result that is not tabular prints as JSON with a note on Stderr.
+// The result prints as JSON unless --format names another of Formats
+// (json, table, markdown, toon; the grammars are on Formats). A tabular
+// result (an array of objects: a list verb's rows, a state verb's Lines of
+// Row, bindings list) prints one table per noun, in the columns the noun
+// declares over the rows' cells, else the records' fields; table cuts to
+// the terminal's width and drops columns by Priority only when Stdout is a
+// terminal (Width), markdown and toon never cut. A result that is not
+// tabular prints as JSON with a note on Stderr. --format combines with
+// --json '{...}' (the arguments); a bare --json asks for json and refuses
+// another --format; an operation declaring its own format parameter takes
+// --format as that argument and prints JSON.
 //
 // Errors are returned for oden.Report: every failure is exit status 1
 // (oden.ExitCode of a plain error).

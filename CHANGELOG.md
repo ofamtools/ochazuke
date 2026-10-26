@@ -26,6 +26,13 @@ Draft, from the `integrate/next` branch (seven branches on `3133e23` plus fixes)
 - Immediate results keep the handler's key order (the `Response.Result` change above); o-csv no longer needs Pending verbs for header order.
 - A bare `--json` (last, or before another flag) asks for the JSON output the shell always prints and is ignored, instead of eating the next word as arguments.
 
+### CLI output formats (`feat/cli-format`)
+
+- `--format json|table|markdown|toon` on every shell command (`cli.Formats`; json stays the default, byte for byte). A list or state verb's rows (an array of objects, `Lines` of `Row` included) print one table per noun: the noun's declared columns over the rows' `cells`, else the records' fields (id and label first, data's fields last).
+- `table` cuts with `…` and drops columns by `Priority` only when stdout is a terminal (`Shell.Width` overrides); `markdown` is a GitHub table; `toon` is `NOUN[N]{col,...}:` and a line per row, quoting only values with a comma, a quote or a line break (the o-qbt rule). A non-tabular result prints JSON with a stderr note.
+- `--format` combines with `--json '{...}'`; a bare `--json` with another format is an error; a verb with its own `format` parameter (o-qbt, o-ai) keeps `--format` as that argument.
+- `ochazuke.TableText(cols, rows, width)`: the list's column layout as plain text lines (width 0: no cut).
+
 ### Page details (`feat/detail-scroll`)
 
 - `Runtime.AddDetail(id, item func() string, Parent(page))`, `Runtime.Detail(id)`, `Detail.Window(text, width, height)` (wraps, windows, returns a `12–40 / 300` marker), `Detail.Scroll`/`Offset`/`Overflows`/`Marker`/`Item`.

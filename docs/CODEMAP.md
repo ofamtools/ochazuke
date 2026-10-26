@@ -334,12 +334,12 @@ Root package `ochazuke` is flat: 49 source files, 44 test files. Each entry list
 
 ### table.go
 
-- lines: 252 · tests: table_test.go
+- lines: 295 · tests: table_test.go
 - purpose: Align is a column's alignment: AlignLeft (the zero value) or AlignRight.
 - types: Align, Column
 - methods: List(4)
-- funcs: Columns
-- leans on: list.go(6), instance.go(2), layout.go(2), surface.go(2)
+- funcs: Columns, TableText
+- leans on: list.go(6), surface.go(4), instance.go(2), layout.go(2)
 
 ### terminal.go
 
@@ -398,18 +398,25 @@ Root package `ochazuke` is flat: 49 source files, 44 test files. Each entry list
 
 ## Package cli
 
-Importable package `cli`: 4 source files, 4 test files.
+Importable package `cli`: 5 source files, 5 test files.
 
 ### cli/catalog.go
 
-- lines: 166
+- lines: 168
 - purpose: CatalogDoc is the catalog answer: what a runtime registers, grouped by noun, in the runtime's own JSON shapes (ochazuke.Parameter and ochazuke.Binding unchan...
 - types: CatalogDoc, CatalogNoun, CatalogVerb, CatalogPage
 - funcs: Catalog
 
+### cli/format.go
+
+- lines: 438 · tests: format_test.go
+- purpose: table is one group of a tabular result, as --format table, markdown and toon print it: the shell output formats over a noun's declared columns.
+- methods: Shell(2)
+- leans on: shell.go(2)
+
 ### cli/mount.go
 
-- lines: 104
+- lines: 106
 - purpose: Mount maps the runtime registry to oden command groups and operation metadata.
 - methods: Shell(1)
 - funcs: Mount
@@ -426,12 +433,12 @@ Importable package `cli`: 4 source files, 4 test files.
 
 ### cli/shell.go
 
-- lines: 567
-- purpose: Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--yes]: one registered operation in this process through the runtime's CLI en...
+- lines: 614
+- purpose: Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--format F] [--yes]: one registered operation in this process through the run...
 - types: Shell
 - methods: Shell(10)
 - funcs: New, DefaultUsage, UsageHint, Settle
-- leans on: rows.go(1)
+- leans on: format.go(3), rows.go(1)
 
 ## Package grid
 
