@@ -554,12 +554,18 @@ func TestCatalogGolden(t *testing.T) {
 	if doc.Schema != 1 || doc.Name != "tool" || doc.Version != "1.2.3" || doc.State != "widget.state" {
 		t.Fatalf("header = %d %q %q state %q", doc.Schema, doc.Name, doc.Version, doc.State)
 	}
-	// The framework's own nouns are in it; the golden keeps the test
-	// noun's part so a framework verb does not churn it.
+	// The framework's own nouns are in it, their verbs builtin (the
+	// outline's application verbs too); the golden keeps the test noun's
+	// part so a framework verb does not churn it.
 	seen := map[string]bool{}
 	nouns := doc.Nouns[:0]
 	for _, n := range doc.Nouns {
 		seen[n.Name] = true
+		for _, v := range n.Verbs {
+			if v.Builtin != (n.Name != "widget") {
+				t.Errorf("%s.%s builtin = %v", n.Name, v.Name, v.Builtin)
+			}
+		}
 		if n.Name == "widget" {
 			nouns = append(nouns, n)
 		}
@@ -598,6 +604,43 @@ func TestCatalogGolden(t *testing.T) {
 	}
 	if !bytes.Equal(got, want) {
 		t.Fatalf("catalog differs from %s (go test ./cli -update):\n%s", golden, got)
+	}
+}
+
+// The outline's verbs are application verbs and builtin; a tool's own verb
+// on a framework noun is not builtin.
+func TestCatalogMarksBuiltinVerbs(t *testing.T) {
+	r := ochazuke.NewRuntime()
+	done := func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }
+	r.Define("history").Verb("capture-hook", done, "Capture a hook")
+	r.Define("gadget").Verb("spin", done, "Spin a gadget")
+	ochazuke.NewModel(r)
+	out, err := Catalog(r, "tool", "1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc CatalogDoc
+	if err := json.Unmarshal(out, &doc); err != nil {
+		t.Fatal(err)
+	}
+	verb := func(noun, name string) CatalogVerb {
+		n, _ := doc.noun(noun)
+		for _, v := range n.Verbs {
+			if v.Name == name {
+				return v
+			}
+		}
+		t.Fatalf("%s.%s not in the catalog", noun, name)
+		return CatalogVerb{}
+	}
+	if v := verb("outline", "add"); !v.Builtin || v.Kind != ochazuke.KindApplication {
+		t.Fatalf("outline.add = %+v", v)
+	}
+	if v := verb("history", "list"); !v.Builtin {
+		t.Fatalf("history.list = %+v", v)
+	}
+	if v := verb("history", "capture-hook"); v.Builtin {
+		t.Fatalf("history.capture-hook = %+v", v)
 	}
 }
 

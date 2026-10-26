@@ -45,6 +45,12 @@ const Schema = 1
 // catalog without it (an extension built with an older ochazuke, or
 // StateCache.Off) takes no --since: the host asks for full answers.
 //
+// Every ochazuke tool's catalog lists the framework's own nouns and verbs
+// (outline, chooser, settings, history, palette, ...) beside the tool's;
+// each framework verb carries builtin (CatalogVerb.Builtin), so a host
+// mounting the tool's verbs reads AppNouns and never mounts the
+// framework's (an ai-outline group) as the tool's.
+//
 // Pages are in registration order (tab order). A page the extension draws
 // in Go is {id, title}; a data page (DeclarePage) also carries its layout,
 // lists, and detail (CatalogPage), and a host builds it with MountPage,
@@ -99,6 +105,14 @@ type CatalogNoun struct {
 // (ochazuke.Operation.HistoryKindOf: action, change or fetch); a host that
 // mounts the verb sets it on its own operation (Operation.HistoryKind), so
 // its fetches stay out of the user's history there too.
+//
+// Builtin marks a verb the framework registers in every ochazuke tool
+// (ochazuke.Operation.Builtin): the outline, chooser, settings, palette
+// and the other framework nouns' verbs, some of them application verbs
+// (outline.add). A host mounting a tool's verbs skips them (AppNouns,
+// AppVerbs); a tool's own verb on a framework noun (history.capture-hook)
+// is not builtin and mounts. A catalog written before the field reads
+// every verb as not builtin.
 type CatalogVerb struct {
 	Name        string                        `json:"name"`
 	Description string                        `json:"description,omitempty"`
@@ -111,6 +125,7 @@ type CatalogVerb struct {
 	Quiet       bool                          `json:"quiet,omitempty"`
 	Positional  []string                      `json:"positional,omitempty"`
 	History     string                        `json:"history,omitempty"`
+	Builtin     bool                          `json:"builtin"`
 }
 
 // RowSourceVerb is the verb whose answer is a noun's own rows when none of
@@ -192,7 +207,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool) ([]byte, err
 			doc.State = op.Key()
 		}
 		noun := &doc.Nouns[len(doc.Nouns)-1]
-		verb := CatalogVerb{Name: op.Verb, Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable, Rows: op.Rows, Quiet: op.Quiet, Positional: op.Positional, History: op.HistoryKindOf()}
+		verb := CatalogVerb{Name: op.Verb, Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable, Rows: op.Rows, Quiet: op.Quiet, Positional: op.Positional, History: op.HistoryKindOf(), Builtin: op.Builtin}
 		if len(op.Parameters) > 0 {
 			verb.Params = op.Parameters
 		}

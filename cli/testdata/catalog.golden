@@ -14,14 +14,16 @@
           "description": "Ask in a modal",
           "kind": "application",
           "result": "JSON value",
-          "history": "change"
+          "history": "change",
+          "builtin": false
         },
         {
           "name": "break",
           "description": "Fail off the loop",
           "kind": "application",
           "result": "JSON value",
-          "history": "change"
+          "history": "change",
+          "builtin": false
         },
         {
           "name": "link",
@@ -42,7 +44,8 @@
           "positional": [
             "name"
           ],
-          "history": "change"
+          "history": "change",
+          "builtin": false
         },
         {
           "name": "list",
@@ -50,7 +53,8 @@
           "kind": "application",
           "result": "JSON value",
           "rows": "widget",
-          "history": "fetch"
+          "history": "fetch",
+          "builtin": false
         },
         {
           "name": "paint",
@@ -66,7 +70,8 @@
             }
           },
           "result": "JSON value",
-          "history": "change"
+          "history": "change",
+          "builtin": false
         },
         {
           "name": "refresh",
@@ -74,7 +79,8 @@
           "kind": "application",
           "result": "JSON value",
           "quiet": true,
-          "history": "change"
+          "history": "change",
+          "builtin": false
         },
         {
           "name": "remove",
@@ -82,7 +88,8 @@
           "kind": "application",
           "result": "JSON value",
           "confirm": "Remove {{label}}?",
-          "history": "change"
+          "history": "change",
+          "builtin": false
         },
         {
           "name": "rename",
@@ -108,21 +115,24 @@
             }
           },
           "result": "JSON value",
-          "history": "change"
+          "history": "change",
+          "builtin": false
         },
         {
           "name": "show",
           "description": "Show a widget",
           "kind": "application",
           "result": "JSON value",
-          "history": "change"
+          "history": "change",
+          "builtin": false
         },
         {
           "name": "state",
           "description": "Every list's rows in one call",
           "kind": "application",
           "result": "JSON value",
-          "history": "fetch"
+          "history": "fetch",
+          "builtin": false
         },
         {
           "name": "tag",
@@ -140,7 +150,8 @@
             }
           },
           "result": "JSON value",
-          "history": "change"
+          "history": "change",
+          "builtin": false
         }
       ]
     }

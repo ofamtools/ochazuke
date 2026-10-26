@@ -491,7 +491,7 @@ Importable package `cli`: 18 source files, 12 test files.
 
 ### cli/catalog.go
 
-- lines: 247
+- lines: 262
 - purpose: CatalogDoc is the catalog answer: what a runtime registers, grouped by noun, in the runtime's own JSON shapes (ochazuke.Parameter and ochazuke.Binding unchan...
 - types: CatalogDoc, CatalogNoun, CatalogVerb
 - methods: CatalogDoc(3)
