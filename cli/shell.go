@@ -17,6 +17,7 @@ package cli
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -513,6 +514,25 @@ func (s *Shell) print(value any) error {
 			bw.Write(append(data, '\n'))
 		}
 		return bw.Flush()
+	}
+	if raw, ok := value.(json.RawMessage); ok {
+		// HandleCall's result: an encoded value in the handler's key order.
+		var items []json.RawMessage
+		if json.Unmarshal(raw, &items) == nil && len(items) > 0 {
+			value = items
+		}
+	}
+	if items, ok := value.([]json.RawMessage); ok {
+		lines := make([]string, len(items))
+		for i, item := range items {
+			var b bytes.Buffer
+			if err := json.Compact(&b, item); err != nil {
+				return err
+			}
+			lines[i] = b.String()
+		}
+		_, err := fmt.Fprintf(w, "[\n  %s\n]\n", strings.Join(lines, ",\n  "))
+		return err
 	}
 	if items, ok := value.([]any); ok && len(items) > 0 {
 		lines := make([]string, len(items))

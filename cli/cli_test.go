@@ -353,6 +353,38 @@ func TestShellJobLinesFollowQuiet(t *testing.T) {
 	}
 }
 
+// TestShellKeepsTheHandlersKeyOrder: a verb's result prints its keys in the
+// order its value marshals in (a struct's field order, not sorted), whether
+// the verb answers at once (Done, through HandleCall's copy) or off the
+// loop (Pending, the delivered value), and so does each element of a list.
+func TestShellKeepsTheHandlersKeyOrder(t *testing.T) {
+	type report struct {
+		Zeta  string `json:"zeta"`
+		Alpha int    `json:"alpha"`
+		Mid   bool   `json:"mid"`
+	}
+	value := report{Zeta: "z", Alpha: 1, Mid: true}
+	f := newFixture(t)
+	f.r.Define("widget").
+		Verb("report", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(value) }, "Report at once").
+		Verb("later", func(ochazuke.Ctx) ochazuke.Result {
+			return ochazuke.Pending(func(context.Context) (any, error) { return value, nil })
+		}, "Report off the loop").
+		Verb("reports", func(ochazuke.Ctx) ochazuke.Result {
+			return ochazuke.Done([]report{value, value})
+		}, "Report a list at once")
+	want := "{\n  \"zeta\": \"z\",\n  \"alpha\": 1,\n  \"mid\": true\n}\n"
+	for _, verb := range []string{"report", "later"} {
+		if out, errOut, err := f.run("", "widget", verb, "--target", "w1"); err != nil || out != want {
+			t.Errorf("%s: %v\n%s\nstdout %q, want %q", verb, err, errOut, out, want)
+		}
+	}
+	line := `{"zeta":"z","alpha":1,"mid":true}`
+	if out, _, err := f.run("", "widget", "reports", "--target", "w1"); err != nil || out != "[\n  "+line+",\n  "+line+"\n]\n" {
+		t.Errorf("reports: %v, stdout %q", err, out)
+	}
+}
+
 func TestSettleDeliversScheduledWork(t *testing.T) {
 	f := newFixture(t)
 	if _, err := f.r.Execute(ochazuke.Request{Verb: "refresh", Noun: "widget", Target: "w1"}); err != nil {
