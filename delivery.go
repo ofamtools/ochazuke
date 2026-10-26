@@ -137,7 +137,7 @@ type JobInfo struct {
 type job struct {
 	JobInfo
 	cancel context.CancelFunc
-	then   func(Ctx, any, error)
+	then   func(Ctx, any, error) error
 	ctx    Ctx
 }
 
@@ -192,7 +192,12 @@ func (r *Runtime) Launch(owner, verb string, res Result, c Ctx) (Ticket, error) 
 	if err != nil {
 		return Ticket{}, err
 	}
-	r.jobs[ticket.Job].then = res.then
+	if res.then != nil {
+		r.jobs[ticket.Job].then = func(c Ctx, value any, err error) error {
+			res.then(c, value, err)
+			return nil
+		}
+	}
 	work := res.work
 	r.commands = append(r.commands, func() tea.Msg {
 		value, err := work(ctx)
@@ -324,8 +329,9 @@ func (r *Runtime) Deliver(msg tea.Msg) (bool, error) {
 			return true, nil
 		}
 		defer r.actingFor(done.Owner)()
+		var callbackErr error
 		if j.then != nil {
-			j.then(j.ctx, done.Value, done.Err)
+			callbackErr = j.then(j.ctx, done.Value, done.Err)
 		}
 		// The callback may have removed the owner (a kill verb dropping its
 		// own row): the job is settled, so the message is dropped.
@@ -334,7 +340,10 @@ func (r *Runtime) Deliver(msg tea.Msg) (bool, error) {
 				comp.HandleMessage(done)
 			}
 		}
-		return true, done.Err
+		if done.Err != nil {
+			return true, done.Err
+		}
+		return true, callbackErr
 	}
 	for _, inst := range r.components() {
 		comp := inst.Component.(Component)

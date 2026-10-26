@@ -306,7 +306,36 @@ func (p *Palette) dispatch(q Request) error {
 	if err := p.close(); err != nil {
 		return err
 	}
-	_, err := p.r.ExecuteAt(origin, q)
+	value, err := p.r.ExecuteAt(origin, q)
+	if err == nil {
+		present := func(value any) error {
+			if p.r.TopModal() != "" {
+				return nil // A command or a newer interaction already opened a modal.
+			}
+			op := p.r.Operations[q.Key()]
+			if value == nil && (q.Verb == "list" || op.Rows != "") {
+				value = []any{}
+			}
+			return p.showResults(q.Key(), value)
+		}
+		if ticket, pending := value.(Ticket); pending {
+			if job := p.r.jobs[ticket.Job]; job != nil {
+				then := job.then
+				job.then = func(c Ctx, value any, workErr error) error {
+					var callbackErr error
+					if then != nil {
+						callbackErr = then(c, value, workErr)
+					}
+					if workErr != nil || callbackErr != nil || p.r.Instances[ticket.Owner] == nil {
+						return callbackErr
+					}
+					return present(value)
+				}
+			}
+		} else {
+			err = present(value)
+		}
+	}
 	if err != nil {
 		// Dismiss before dispatch so focus/push/pop act on the originating
 		// focus. A failure reopens this same line with its focus and mode.

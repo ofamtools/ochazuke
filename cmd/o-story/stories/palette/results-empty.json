@@ -1,0 +1,7 @@
+{
+  "name": "palette empty list shows no rows",
+  "area": "palette",
+  "page": {"lists": [{"id": "a", "rows": 3}]},
+  "script": [":", {"type": "jobs list"}, "enter"],
+  "expect": {"modal": "palette-results", "contains": ["Results", "No rows"]}
+}

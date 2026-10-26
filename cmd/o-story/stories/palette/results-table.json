@@ -1,0 +1,13 @@
+{
+  "name": "palette list command opens read-only results table",
+  "area": "palette",
+  "width": 120,
+  "height": 30,
+  "page": {"lists": [{"id": "a", "rows": 3}]},
+  "script": [":", {"type": "operations list"}, "enter", "enter", "j", "esc"],
+  "expect": [
+    {"after": 3, "modal": "palette-results", "contains": ["Results", "description", "noun", "kind"]},
+    {"after": 4, "modal": "palette-results"},
+    {"modal": "", "focus": "a1"}
+  ]
+}
