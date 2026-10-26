@@ -1,0 +1,128 @@
+{
+  "name": "panes: the divider stops at the limit and the next key moves it at once; neither pane collapses",
+  "area": "panes",
+  "width": 100,
+  "height": 22,
+  "page": {
+    "id": "ai",
+    "title": "AI",
+    "catalog": {
+      "nouns": [
+        {
+          "name": "skill",
+          "columns": [
+            {
+              "title": "Name",
+              "min": 8
+            },
+            {
+              "title": "Origin"
+            }
+          ],
+          "verbs": [
+            {
+              "name": "list",
+              "rows": "skill"
+            },
+            {
+              "name": "show"
+            }
+          ]
+        },
+        {
+          "name": "mcp",
+          "verbs": [
+            {
+              "name": "tools",
+              "rows": "mcp-tool"
+            }
+          ]
+        },
+        {
+          "name": "mcp-tool",
+          "verbs": [
+            {
+              "name": "show"
+            }
+          ]
+        }
+      ],
+      "page": {
+        "title": "AI",
+        "lists": [
+          {
+            "id": "ai/skills",
+            "noun": "skill"
+          },
+          {
+            "id": "ai/tools",
+            "noun": "mcp",
+            "source": "mcp.tools",
+            "title": "tools"
+          }
+        ],
+        "layout": "split",
+        "detail": {
+          "title": "record"
+        }
+      },
+      "answers": {
+        "skill.list": [
+          {
+            "id": "s1",
+            "name": "architect",
+            "cells": [
+              "architect",
+              "claude"
+            ],
+            "path": "~/.claude/skills/architect",
+            "origin": "claude"
+          },
+          {
+            "id": "s2",
+            "name": "review",
+            "cells": [
+              "review",
+              "ai-tools"
+            ],
+            "path": "~/proj/ai-tools/review",
+            "origin": "ai-tools"
+          }
+        ],
+        "mcp.tools": "{\"noun\":\"mcp\",\"id\":\"t1\",\"label\":\"tuios_send_text\",\"data\":{\"server\":\"tuios\"}}\n{\"noun\":\"mcp\",\"id\":\"t2\",\"label\":\"tuios_capture\",\"data\":{\"server\":\"tuios\"}}\n"
+      }
+    }
+  },
+  "script": [
+    "9",
+    ">",
+    "<",
+    "1",
+    "2",
+    "<"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "shift": 30,
+      "contains": [
+        "╭━ skill (2) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮ ╭─ record",
+        "╭─ record · architect"
+      ]
+    },
+    {
+      "after": 3,
+      "shift": 25,
+      "contains": [
+        "╭━ skill (2) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮ ╭─ record"
+      ]
+    },
+    {
+      "shift": -30,
+      "contains": [
+        "╭━ skill (2) ━━╮ ╭─ record",
+        "╭─ record · architect"
+      ]
+    }
+  ]
+}

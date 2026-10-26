@@ -49,7 +49,11 @@ type Story struct {
 	// Settings are declared on the session's runtime; with no config
 	// directory (stories read no user files) their values last the session.
 	Settings []ochazuke.Setting `json:"settings,omitempty"`
-	Expect   Expects            `json:"expect,omitempty"`
+	// State gives the session a state directory of its own (a temp dir,
+	// removed when the session ends), kept across a restart event, so a
+	// story shows what the application remembers (pane dividers).
+	State  bool    `json:"state,omitempty"`
+	Expect Expects `json:"expect,omitempty"`
 
 	// Path is where the file was loaded from (not part of the data); rel
 	// is the path inside fsys, disk the directory fsys reads when it is on
@@ -244,6 +248,9 @@ type Event struct {
 	Job   string `json:"job,omitempty"`   // noun.verb of the job that delivered
 	State string `json:"state,omitempty"` // done or failed
 	Tick  string `json:"tick,omitempty"`  // linger, binding, terminal (a pane frame), output (fake output line) or debounce (a tree line's or a form's pause)
+	// Restart quits the session and builds it again from the story with
+	// the same state directory (State), as a user reopening the app.
+	Restart bool `json:"restart,omitempty"`
 }
 
 // UnmarshalJSON reads a bare string as a key press.
@@ -259,7 +266,7 @@ func (e *Event) UnmarshalJSON(b []byte) error {
 
 // MarshalJSON writes an untimed key press as a bare string.
 func (e Event) MarshalJSON() ([]byte, error) {
-	if e.T == 0 && e.Key != "" && e.Type == "" && e.Paste == "" && e.Job == "" && e.Tick == "" {
+	if e.T == 0 && e.Key != "" && e.Type == "" && e.Paste == "" && e.Job == "" && e.Tick == "" && !e.Restart {
 		return json.Marshal(e.Key)
 	}
 	type plain Event
@@ -279,6 +286,8 @@ func (e Event) String() string {
 		return "job " + e.Job + " " + e.State
 	case e.Tick != "":
 		return "tick " + e.Tick
+	case e.Restart:
+		return "restart"
 	}
 	return "(empty)"
 }
@@ -286,13 +295,15 @@ func (e Event) String() string {
 // Expect is what must hold after a step (After events) or at the end
 // (After 0). Every field is optional.
 type Expect struct {
-	After       int     `json:"after,omitempty"`
-	Focus       string  `json:"focus,omitempty"`
-	Mode        string  `json:"mode,omitempty"`
-	Modal       *string `json:"modal,omitempty"` // top modal instance, "" for none
-	Page        string  `json:"page,omitempty"`
-	Visible     *bool   `json:"visible,omitempty"` // the focused element's label is on screen
-	Highlighted *int    `json:"highlighted,omitempty"`
+	After int     `json:"after,omitempty"`
+	Focus string  `json:"focus,omitempty"`
+	Mode  string  `json:"mode,omitempty"`
+	Modal *string `json:"modal,omitempty"` // top modal instance, "" for none
+	Page  string  `json:"page,omitempty"`
+	// Shift is the current page's pane divider (Runtime.PaneShift).
+	Shift       *int  `json:"shift,omitempty"`
+	Visible     *bool `json:"visible,omitempty"` // the focused element's label is on screen
+	Highlighted *int  `json:"highlighted,omitempty"`
 	// HighlightedText is text every highlighted row holds (the selected row's label).
 	HighlightedText string   `json:"highlightedText,omitempty"`
 	Contains        []string `json:"contains,omitempty"`

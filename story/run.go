@@ -50,6 +50,9 @@ func Check(ss *Session, e Expect) []string {
 	if e.Page != "" && r.Page != e.Page {
 		failf("page %q, want %q", r.Page, e.Page)
 	}
+	if e.Shift != nil && r.PaneShift(r.Page) != *e.Shift {
+		failf("pane shift %d, want %d", r.PaneShift(r.Page), *e.Shift)
+	}
 	if e.Visible != nil {
 		lbl := label(r.Instances[r.Focus])
 		if on := strings.Contains(screen, lbl); on != *e.Visible {

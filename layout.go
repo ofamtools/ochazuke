@@ -13,6 +13,37 @@ import (
 type Layout struct {
 	Width, Height int
 	Styles        Styles
+	// Shift moves the divider of every split this layout draws, in percent
+	// points of the split's length: positive grows the first (left or top)
+	// panel, negative the second, 0 is the split's default. It is the
+	// page's remembered divider (Runtime.PaneLayout sets it; pane.grow,
+	// pane.shrink and pane.reset change it). Divide applies it.
+	Shift int
+}
+
+// The pane limits: PaneStep is the percent points one pane.grow or
+// pane.shrink moves a divider; PaneShiftLimit bounds Layout.Shift either
+// way; Divide keeps PaneMinWidth cells on each side of a side-by-side split
+// and PaneMinHeight rows on each side of a stacked one, so neither panel
+// collapses.
+const (
+	PaneStep       = 5
+	PaneShiftLimit = 30
+	PaneMinWidth   = 16
+	PaneMinHeight  = 3
+)
+
+// Divide is where a split of total cells puts its divider: first is the
+// split's default size of its first (left or top) panel, moved by Shift
+// percent points of total and clamped so each panel keeps least cells. A
+// split with no shift, or too small for two panels of least cells, keeps
+// first. A layout of its own (a page body split by hand) calls it with its
+// default; Split and its kin call it for theirs.
+func (l Layout) Divide(first, total, least int) int {
+	if l.Shift == 0 || total < 2*least {
+		return first
+	}
+	return min(max(first+l.Shift*total/100, least), total-least)
 }
 
 const (
@@ -333,8 +364,9 @@ func (l Layout) PanelBlock(title string, body Block, width, height int, focused 
 }
 
 // Split renders two panels filling BodySize: side by side (left ~40%) when the
-// viewport is at least 72 cells wide, otherwise stacked (top ~40%). The left or
-// top panel is the focused one; SplitFocusBlock takes which.
+// viewport is at least 72 cells wide, otherwise stacked (top ~40%), the
+// divider moved by Shift (Divide). The left or top panel is the focused one;
+// SplitFocusBlock takes which.
 func (l Layout) Split(leftTitle, leftBody, rightTitle, rightBody string) string {
 	return l.SplitBlock(leftTitle, Text(leftBody), rightTitle, Text(rightBody)).Text
 }
@@ -361,7 +393,12 @@ const (
 // focused panel's wins.
 func (l Layout) SplitFocusBlock(focused SplitSide, leftTitle string, leftBody Block, rightTitle string, rightBody Block) Block {
 	bw, bh := l.BodySize()
-	return l.panelPair(leftTitle, leftBody, rightTitle, rightBody, bw, bh, (bw-1)*2/5, l.Width < layoutStackAt, focused)
+	stacked := l.Width < layoutStackAt
+	first := l.Divide((bw-1)*2/5, bw-1, PaneMinWidth)
+	if stacked {
+		first = l.Divide(bh*2/5, bh, PaneMinHeight)
+	}
+	return l.panelPair(leftTitle, leftBody, rightTitle, rightBody, bw, bh, first, stacked, focused)
 }
 
 // Sidebar renders a 28-cell navigation rail beside the main panel. Below 72
@@ -410,7 +447,11 @@ func (l Layout) sidebar(title string, items []string, selected int, mainTitle st
 			rows = append(rows, l.Styles.Muted.Render(fmt.Sprintf("… %d–%d / %d", start+1, end, len(items))))
 		}
 	}
-	return l.panelPair(title, Text(strings.Join(rows, "\n")), mainTitle, mainBody, width, regionHeight, 28, stacked, SplitLeft)
+	first := 28
+	if stacked {
+		first = regionHeight * 2 / 5
+	}
+	return l.panelPair(title, Text(strings.Join(rows, "\n")), mainTitle, mainBody, width, regionHeight, first, stacked, SplitLeft)
 }
 
 func sidebarMainSize(width, height int, stacked bool) (int, int) {
@@ -423,8 +464,9 @@ func sidebarMainSize(width, height int, stacked bool) (int, int) {
 }
 
 // panelPair places the left (or top) panel at the origin and the right panel
-// one cell to its right (or the bottom panel below it).
-func (l Layout) panelPair(leftTitle string, leftBody Block, rightTitle string, rightBody Block, bw, bh, leftWidth int, stacked bool, focused SplitSide) Block {
+// one cell to its right (or the bottom panel below it); first is the left
+// panel's width, or the top panel's height when stacked.
+func (l Layout) panelPair(leftTitle string, leftBody Block, rightTitle string, rightBody Block, bw, bh, first int, stacked bool, focused SplitSide) Block {
 	if bw <= 0 || bh <= 0 {
 		return Block{}
 	}
@@ -436,6 +478,7 @@ func (l Layout) panelPair(leftTitle string, leftBody Block, rightTitle string, r
 		return firstCursor(first, second)
 	}
 	if !stacked {
+		leftWidth := first
 		rw := bw - 1 - leftWidth
 		left := l.PanelBlock(leftTitle, leftBody, leftWidth, bh, leftFocused)
 		right := l.PanelBlock(rightTitle, rightBody, rw, bh, rightFocused).Offset(leftWidth+1, 0)
@@ -446,7 +489,7 @@ func (l Layout) panelPair(leftTitle string, leftBody Block, rightTitle string, r
 		}
 		return Block{Text: strings.Join(rows, "\n"), Cursor: cursor(left, right)}
 	}
-	th := bh * 2 / 5
+	th := first
 	top := l.PanelBlock(leftTitle, leftBody, bw, th, leftFocused)
 	bottom := l.PanelBlock(rightTitle, rightBody, bw, bh-th, rightFocused).Offset(0, th)
 	return Block{Text: top.Text + joinIfBoth(th, bh-th) + bottom.Text, Cursor: cursor(top, bottom)}

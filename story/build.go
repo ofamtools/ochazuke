@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"slices"
 	"strings"
@@ -28,6 +29,9 @@ type Session struct {
 	M     *ochazuke.Model
 	// Reset is set by demo.reset; the host (TUI or Driver) rebuilds.
 	Reset bool
+	// StateDir is the state directory of a story with State, "" without;
+	// Close removes it unless the session is restarting into it.
+	StateDir string
 
 	pages map[string]*Page
 	lists map[string]*ochazuke.List
@@ -51,14 +55,27 @@ type Options struct {
 
 // Build makes a session from a story's pages. A trimmed story's base is
 // resolved by the caller (Resolve) before Build.
-func Build(s *Story, opt Options) (*Session, error) {
+func Build(s *Story, opt Options) (*Session, error) { return build(s, opt, "") }
+
+// build is Build with the state directory a restart keeps ("" makes one
+// for a story with State).
+func build(s *Story, opt Options, stateDir string) (*Session, error) {
 	pages := s.AllPages()
 	if len(pages) == 0 {
 		return nil, errors.New("story has no page")
 	}
+	if s.State && stateDir == "" {
+		dir, err := os.MkdirTemp("", "o-story-state-")
+		if err != nil {
+			return nil, err
+		}
+		stateDir = dir
+	}
 	r := ochazuke.NewRuntime()
-	// A story is a sandbox: it reads and writes no user config files.
+	// A story is a sandbox: it reads and writes no user config files,
+	// and state only in its own directory.
 	r.Config().Disable()
+	r.Config().StateDir = stateDir
 	if err := r.DeclareSetting(s.Settings...); err != nil {
 		return nil, err
 	}
@@ -80,7 +97,7 @@ func Build(s *Story, opt Options) (*Session, error) {
 	if s.Accent != "" {
 		m.Appearance.Accent = lipgloss.Color(s.Accent)
 	}
-	ss := &Session{Story: s, R: r, M: m, pages: map[string]*Page{}, lists: map[string]*ochazuke.List{}, trees: map[string]*ochazuke.Tree{}, records: map[string]*ochazuke.RecordEditor{}, inputs: map[string]*ochazuke.Input{}, details: map[string]*ochazuke.Detail{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
+	ss := &Session{Story: s, R: r, M: m, StateDir: stateDir, pages: map[string]*Page{}, lists: map[string]*ochazuke.List{}, trees: map[string]*ochazuke.Tree{}, records: map[string]*ochazuke.RecordEditor{}, inputs: map[string]*ochazuke.Input{}, details: map[string]*ochazuke.Detail{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
 	if err := ss.defineDemo(pages); err != nil {
 		return nil, err
 	}
@@ -154,11 +171,17 @@ func chooserSpec(cs *ChooserSpec) ochazuke.ChooserSpec {
 }
 
 // Close releases every fake job and pane goroutine.
-func (ss *Session) Close() {
+func (ss *Session) Close() { ss.close(false) }
+
+// close ends the session, removing its state directory unless keep.
+func (ss *Session) close(keep bool) {
 	select {
 	case <-ss.done:
 	default:
 		close(ss.done)
+	}
+	if ss.StateDir != "" && !keep {
+		os.RemoveAll(ss.StateDir)
 	}
 }
 
@@ -729,7 +752,7 @@ func (ss *Session) renderMain(p *Page, width, height int) ochazuke.Block {
 	if p.Layout == "split" && len(order) >= 2 {
 		// The first two lists in Layout.SplitFocusBlock, the panel whose
 		// list holds the focus drawn focused.
-		l := ochazuke.Layout{Width: ss.M.Width, Height: ss.M.Height, Styles: ochazuke.NewStyles(*ss.M.Appearance)}
+		l := ss.R.PaneLayout(p.ID, ochazuke.Layout{Width: ss.M.Width, Height: ss.M.Height, Styles: ochazuke.NewStyles(*ss.M.Appearance)})
 		side := ochazuke.SplitNone
 		for _, at := range ss.R.Ancestry(ss.R.Focus) {
 			switch at {

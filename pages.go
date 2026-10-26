@@ -43,6 +43,10 @@ type Page struct {
 	// drawing collects the frame in progress.
 	drawn, drawing []Placement
 	rendering      bool
+	// split is set when the last frame drew a list/detail split through
+	// Runtime.PaneLayout (splitting collects the frame in progress); the
+	// pane keys answer only then.
+	split, splitting bool
 }
 
 // Placement is one Placed call of a frame: the instance drawn and, when its
@@ -71,8 +75,11 @@ const placeMark, placeEnd = "\x1b_ochazuke-placed:", "\x1b\\"
 // were drawn in, which is the order focus jumps and list spills walk, and
 // the body line each view landed on.
 func (p *Page) render(r *Runtime, width, height int) Block {
-	p.rendering, p.drawing = true, nil
-	defer func() { p.rendering, p.drawn, p.drawing = false, p.drawing, nil }()
+	p.rendering, p.drawing, p.splitting = true, nil, false
+	defer func() {
+		p.rendering, p.drawn, p.drawing = false, p.drawing, nil
+		p.split, p.splitting = p.splitting, false
+	}()
 	block := p.Render(r, width, height)
 	return block.WithText(p.resolve(block.Text))
 }

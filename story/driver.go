@@ -278,6 +278,8 @@ func (d *Driver) step(e Event) error {
 		if err != nil {
 			return err
 		}
+	case e.Restart:
+		return d.rebuild(true)
 	case e.Tick == "output":
 		if !d.S.Emit() {
 			return errors.New("tick output: no fake pane is live")
@@ -308,9 +310,17 @@ func (d *Driver) step(e Event) error {
 }
 
 // reset rebuilds the session from its story (demo.reset, r).
-func (d *Driver) reset() error {
-	d.S.Close()
-	ss, err := Build(d.S.Story, d.Opt)
+func (d *Driver) reset() error { return d.rebuild(false) }
+
+// rebuild builds the session again from its story; a restart keeps the
+// state directory, a reset starts with a new one.
+func (d *Driver) rebuild(restart bool) error {
+	dir := ""
+	if restart {
+		dir = d.S.StateDir
+	}
+	d.S.close(restart)
+	ss, err := build(d.S.Story, d.Opt, dir)
 	if err != nil {
 		return err
 	}

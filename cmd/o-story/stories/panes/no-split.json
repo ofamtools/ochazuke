@@ -1,0 +1,23 @@
+{
+  "name": "panes: a page without a split has no resize keys: > does nothing and no hint offers it",
+  "area": "panes",
+  "width": 100,
+  "height": 22,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ]
+  },
+  "script": [
+    ">"
+  ],
+  "expect": {
+    "shift": 0,
+    "lacks": [
+      "resize"
+    ]
+  }
+}

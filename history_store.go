@@ -375,26 +375,10 @@ func (s *historyStore) run(lines [][]byte, limit int) {
 
 // writeHistoryFile replaces the file atomically with lines.
 func writeHistoryFile(path string, lines [][]byte) error {
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return err
-	}
-	tmp, err := os.CreateTemp(dir, ".history-*.jsonl")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tmp.Name())
 	var buf bytes.Buffer
 	for _, line := range lines {
 		buf.Write(line)
 		buf.WriteByte('\n')
 	}
-	if _, err := tmp.Write(buf.Bytes()); err != nil {
-		tmp.Close()
-		return err
-	}
-	if err := tmp.Close(); err != nil {
-		return err
-	}
-	return os.Rename(tmp.Name(), path)
+	return writeAtomic(path, ".history-*.jsonl", buf.Bytes())
 }

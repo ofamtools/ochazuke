@@ -842,6 +842,11 @@ func (v *PageView) ListsRender(_ *ochazuke.Runtime, width, height int) ochazuke.
 		}
 	}
 	layout := ochazuke.Layout{Styles: ochazuke.NewStyles(*v.m.Appearance)}
+	if v.detail != nil {
+		// The lists/detail split follows the page's divider (pane.grow,
+		// pane.shrink), and the pane keys answer on this page.
+		layout = v.m.Runtime.PaneLayout(v.spec.ID, layout)
+	}
 	if len(v.widgets) == 0 {
 		return v.body(layout, width, height)
 	}
@@ -862,7 +867,7 @@ func (v *PageView) body(layout ochazuke.Layout, width, height int) ochazuke.Bloc
 		right := v.listsAndDetail(layout, []*pageList{v.lists[v.current]}, width-rail-1, height, false)
 		return beside(left, right, rail, height)
 	case v.spec.Layout == LayoutSplit && v.detail != nil && width >= 72:
-		left := (width - 1) * 2 / 5
+		left := layout.Divide((width-1)*2/5, width-1, ochazuke.PaneMinWidth)
 		lists := v.stackLists(layout, v.lists, left, height)
 		return beside(lists, v.detailPanel(layout, width-left-1, height), left, height)
 	}
@@ -878,9 +883,9 @@ func (v *PageView) listsAndDetail(layout ochazuke.Layout, lists []*pageList, wid
 	if !stack {
 		dh = max(3, height*2/5)
 	}
-	dh = min(dh, height)
-	top := v.stackLists(layout, lists, width, height-dh)
-	return below(top, v.detailPanel(layout, width, dh), height-dh)
+	th := layout.Divide(height-min(dh, height), height, ochazuke.PaneMinHeight)
+	top := v.stackLists(layout, lists, width, th)
+	return below(top, v.detailPanel(layout, width, height-th), th)
 }
 
 // stackLists draws lists one under the other, sharing height evenly.

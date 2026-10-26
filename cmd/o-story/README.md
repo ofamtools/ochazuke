@@ -47,6 +47,8 @@ it to the timer's deadline and delivers the timer's message
   theme: "kombu", accent: "#E8833A", // a theme other than mono, the Appearance accent override
   themes: { kombu: { background: "dark", accent: "#C9A227" } }, // schemes in the themes.json shape;
                                   // one that does not validate is a notice (chrome/scheme-*)
+  state: true,                    // a temp state directory of its own (removed at the end), kept
+                                  // across { restart: true } events: what the app remembers (panes.json)
   page: {                         // or pages: [{ id, title, ... }, ...]
     lists: [{ id: "a", rows: 2 },                  // rows a1, a2
             { id: "b", rows: 3, noSpill: false, noMarks: false },
@@ -85,13 +87,15 @@ it to the timer's deadline and delivers the timer's message
   },
   script: ["j", "j", { type: "ping" }, { paste: "text" },
            { job: "demo.build", state: "done" },
-           { tick: "linger" }],   // tick: linger | binding | terminal | output | debounce
+           { tick: "linger" },    // tick: linger | binding | terminal | output | debounce
+           { restart: true }],    // quit and build the story again (same state directory)
   expect: { focus: "b1", visible: true },
   // or per step: [{ after: 2, focus: "b1" }, { ticker: [] }]  (after N = after the Nth event)
 }
 ```
 
 Expect fields: `focus`, `mode`, `modal` (top modal id, `""` none), `page`,
+`shift` (the current page's pane divider, `Runtime.PaneShift`),
 `visible` (the focused label is on screen), `highlighted` (rows with reverse
 video), `highlightedText` (text every highlighted row holds), `contains`, `lacks`, `order` (substrings in this order),
 `ticker`/`noTicker`, `notices`/`noNotices`, `styled` (text → `#RRGGBB`, or `!#RRGGBB`, for the styled run the text starts: cell-exact where `colored` is row-wide), `writes` (every change an
@@ -269,6 +273,7 @@ Conformance:
 | normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.indent` `outline.move` `outline.paste` `outline.redo` `outline.undo` |
 | normal | page | `page.next` `page.pick` `page.previous` |
 | normal | palette | `palette.open` |
+| normal | pane | `pane.grow` `pane.reset` `pane.shrink` |
 | normal | setting | `setting.cycle` `setting.edit` `setting.reset` |
 | normal | settings | `settings.edit` |
 | normal | surface | `surface.scroll` |
@@ -279,6 +284,8 @@ Mode edges (from → to via):
 
 - `count_pending` → `normal` via `detail.scroll`
 - `count_pending` → `normal` via `list.move`
+- `count_pending` → `normal` via `pane.grow`
+- `count_pending` → `normal` via `pane.shrink`
 - `insert` → `normal` via `chooser.cancel`
 - `insert` → `normal` via `chooser.pick`
 - `insert` → `normal` via `mode.set`
