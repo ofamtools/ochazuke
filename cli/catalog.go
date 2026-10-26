@@ -38,6 +38,13 @@ const Schema = 1
 // declared, asks the extension to bypass its own caches (an explicit
 // refresh).
 //
+// StateDelta, when set, is the state delta protocol version the state
+// verb speaks (StateDeltaVersion; the shell answers it, StateCache): a host
+// may send --since and get, per list, unchanged, the changed rows or the
+// list in full, each with its content hash (see StateDeltaVersion). A
+// catalog without it (an extension built with an older ochazuke, or
+// StateCache.Off) takes no --since: the host asks for full answers.
+//
 // Pages are in registration order (tab order). A page the extension draws
 // in Go is {id, title}; a data page (DeclarePage) also carries its layout,
 // lists, and detail (CatalogPage), and a host builds it with MountPage,
@@ -47,13 +54,15 @@ const Schema = 1
 // CatalogWidget: kv, status, table) are drawn above its lists by the
 // framework from their sources' JSON answers.
 type CatalogDoc struct {
-	Schema   int                `json:"schema"`
-	Name     string             `json:"name"`
-	Version  string             `json:"version"`
-	State    string             `json:"state,omitempty"`
-	Nouns    []CatalogNoun      `json:"nouns"`
-	Bindings []ochazuke.Binding `json:"bindings"`
-	Pages    []CatalogPage      `json:"pages"`
+	Schema  int    `json:"schema"`
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	State   string `json:"state,omitempty"`
+	// StateDelta is the state delta protocol version (StateDeltaVersion), 0 for none.
+	StateDelta int                `json:"stateDelta,omitempty"`
+	Nouns      []CatalogNoun      `json:"nouns"`
+	Bindings   []ochazuke.Binding `json:"bindings"`
+	Pages      []CatalogPage      `json:"pages"`
 }
 
 // CatalogNoun is a noun and its verbs, by verb name. Pin is the noun's
@@ -160,9 +169,16 @@ func (d CatalogDoc) noun(name string) (CatalogNoun, bool) {
 // (nouns and verbs sorted; params are a map, which encoding/json writes
 // sorted), every noun's binding rows (sorted by mode, noun, key, then
 // request, stably; noun and mode filled in, the LoadBindings shape) and the
-// pages in registration order (their tab order). The same runtime gives the
-// same bytes on every run.
+// pages in registration order (their tab order). A catalog with a state
+// verb declares the state delta protocol (StateDelta), which a Shell
+// answers. The same runtime gives the same bytes on every run.
 func Catalog(r *ochazuke.Runtime, name, version string) ([]byte, error) {
+	return catalog(r, name, version, true)
+}
+
+// catalog is Catalog; delta declares the state delta protocol (a state
+// verb run through a Shell whose StateCache is on).
+func catalog(r *ochazuke.Runtime, name, version string, delta bool) ([]byte, error) {
 	doc := CatalogDoc{Schema: Schema, Name: name, Version: version, Nouns: []CatalogNoun{}, Bindings: []ochazuke.Binding{}, Pages: []CatalogPage{}}
 	for _, op := range r.Catalog() {
 		if n := len(doc.Nouns); n == 0 || doc.Nouns[n-1].Name != op.Noun {
@@ -216,6 +232,9 @@ func Catalog(r *ochazuke.Runtime, name, version string) ([]byte, error) {
 		}
 		return requestKey(a.Request) < requestKey(b.Request)
 	})
+	if delta && doc.State != "" {
+		doc.StateDelta = StateDeltaVersion
+	}
 	doc.Pages = declaredPages(r)
 	return json.MarshalIndent(doc, "", "  ")
 }

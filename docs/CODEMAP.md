@@ -487,16 +487,16 @@ Root package `ochazuke` is flat: 60 source files, 59 test files. Each entry list
 
 ## Package cli
 
-Importable package `cli`: 14 source files, 9 test files.
+Importable package `cli`: 17 source files, 10 test files.
 
 ### cli/catalog.go
 
-- lines: 228
+- lines: 247
 - purpose: CatalogDoc is the catalog answer: what a runtime registers, grouped by noun, in the runtime's own JSON shapes (ochazuke.Parameter and ochazuke.Binding unchan...
 - types: CatalogDoc, CatalogNoun, CatalogVerb
 - methods: CatalogDoc(3)
 - funcs: Catalog
-- leans on: page.go(3)
+- leans on: statecache.go(4), page.go(3), state.go(1)
 
 ### cli/commands.go
 
@@ -520,7 +520,7 @@ Importable package `cli`: 14 source files, 9 test files.
 - purpose: Mount maps the runtime registry to oden command groups and operation metadata.
 - methods: Shell(1)
 - funcs: Mount
-- leans on: catalog.go(2), shell.go(2)
+- leans on: statecache.go(3), catalog.go(2), shell.go(2)
 
 ### cli/odencommands.go
 
@@ -574,12 +574,37 @@ Importable package `cli`: 14 source files, 9 test files.
 
 ### cli/shell.go
 
-- lines: 660
+- lines: 699
 - purpose: Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--format F] [--yes]: one registered operation in this process through the run...
 - types: Shell
 - methods: Shell(10), stderrSink(3)
 - funcs: New, DefaultUsage, UsageHint, Settle
-- leans on: format.go(3), rows.go(1)
+- leans on: state.go(5), format.go(3), rows.go(2), shellstate.go(2)
+
+### cli/shellstate.go
+
+- lines: 183
+- purpose: sinceRequest is a state call's --since and --since-cache (the delta protocol, StateDeltaVersion).
+- methods: Shell(4)
+- leans on: statecache.go(20), state.go(9), shell.go(6), rows.go(5)
+
+### cli/state.go
+
+- lines: 274 · tests: state_test.go
+- purpose: StateList is one list's line of a delta answer.
+- types: StateList, StateAnswer
+- methods: StateAnswer(3)
+- funcs: RecordHash, ListHash, FormatSince, ParseSince, StateFlags, DecodeState
+- leans on: rows.go(3), shell.go(2), page.go(1)
+
+### cli/statecache.go
+
+- lines: 468
+- purpose: StateCache is how an extension's shell keeps the versions of its state answer's lists that deltas are computed against (the --since protocol, StateDeltaVersi...
+- types: StateCache
+- methods: StateCache(4), currentList(1), stateStore(8)
+- funcs: StatFingerprint
+- leans on: state.go(13), shell.go(2)
 
 ### cli/tui.go
 
@@ -860,6 +885,9 @@ Exported type -> file.
 - cli.Row -> cli/rows.go
 - cli.RowReader -> cli/rows.go
 - cli.Shell -> cli/shell.go
+- cli.StateAnswer -> cli/state.go
+- cli.StateCache -> cli/statecache.go
+- cli.StateList -> cli/state.go
 - grid.Grid -> grid/grid.go
 - grid.Nouns -> grid/grid.go
 - grid.Option -> grid/grid.go

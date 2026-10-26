@@ -89,7 +89,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 		Summary: "print the nouns, verbs, bindings and pages as JSON",
 		Source:  "cli",
 		Run: func(context.Context, []string) error {
-			data, err := Catalog(sh.Runtime, sh.Bin, sh.version())
+			data, err := catalog(sh.Runtime, sh.Bin, sh.version(), !sh.StateCache.Off)
 			if err != nil {
 				return err
 			}

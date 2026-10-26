@@ -116,6 +116,10 @@ type Shell struct {
 	// without a screen removes the terminals an operation attached); its
 	// errors join the command's.
 	Settle func() error
+	// StateCache is where the state verb's answers are kept for deltas
+	// (--since, StateDeltaVersion); the zero value caches under
+	// $XDG_CACHE_HOME/<Bin>/state.
+	StateCache StateCache
 	// Width is the width --format table cuts to: 0 (the default) is the
 	// terminal's width when Stdout is a terminal and no cut otherwise; a
 	// negative Width never cuts.
@@ -191,6 +195,14 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 			q.Target = candidates[0]
 		}
 	}
+	var fingerprint string
+	if opts.since != nil {
+		var lines Lines
+		var ok bool
+		if lines, fingerprint, ok = s.stateShortcut(q, *opts.since); ok {
+			return s.print(lines)
+		}
+	}
 	last := lastJob(r)
 	value, err := s.call(q)
 	if err != nil {
@@ -249,6 +261,13 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		value = results[0]
 	case len(launched) > 1 && len(results) > 0:
 		value = results
+	}
+	if opts.since != nil {
+		lines, err := s.stateDelta(q, *opts.since, fingerprint, value)
+		if err != nil {
+			return err
+		}
+		return s.print(lines)
 	}
 	return s.output(q, opts.format, value)
 }
@@ -353,6 +372,7 @@ func listed(ids []string) string {
 type options struct {
 	yes    bool
 	format string
+	since  *sinceRequest // --since on a state verb (stateDelta)
 }
 
 // request builds the operation request: --target, --json, --format and
@@ -406,6 +426,22 @@ func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, op
 			}
 			opts.format = v
 			continue
+		case (name == SinceFlag || name == SinceCacheFlag) && s.speaksDelta(op, name):
+			v, err := takeValue()
+			if err != nil {
+				return q, opts, err
+			}
+			if opts.since == nil {
+				opts.since = &sinceRequest{hashes: map[string]string{}}
+			}
+			if name == SinceCacheFlag {
+				opts.since.cache = v
+				continue
+			}
+			if opts.since.hashes, err = ParseSince(v); err != nil {
+				return q, opts, err
+			}
+			continue
 		case name == "target":
 			v, err := takeValue()
 			if err != nil {
@@ -449,6 +485,9 @@ func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, op
 	}
 	if err := positional(q, op, words); err != nil {
 		return q, opts, err
+	}
+	if opts.since != nil && opts.format != "" && opts.format != "json" {
+		return q, opts, fmt.Errorf("--%s answers JSON Lines; --format %s prints a table", SinceFlag, opts.format)
 	}
 	if bareJSON && opts.format != "" && opts.format != "json" {
 		return q, opts, fmt.Errorf("a bare --json asks for JSON output and --format %s for another; pass one (--json '{...}' passes arguments)", opts.format)
