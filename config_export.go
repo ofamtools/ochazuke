@@ -19,6 +19,8 @@ const ReferenceDir = "reference"
 const (
 	SettingsReferenceFile = "settings.reference.json"
 	BindingsReferenceFile = "bindings.reference.json"
+	ActionsExampleFile    = "actions.example.json"
+	ThemesExampleFile     = "themes.example.json"
 )
 
 // ConfigPaths are where the application's user files live: Config is the
@@ -124,7 +126,83 @@ func (r *Runtime) exportFiles() ([]exportFile, error) {
 		{SettingsFile, current},
 		{SettingsReferenceFile, reference},
 		{BindingsReferenceFile, bindings},
+		{ActionsExampleFile, []byte(actionsExample)},
+		{ThemesExampleFile, themesExample()},
 	}, nil
+}
+
+// actionsExample is actions.example.json: one entry in the command form
+// and one in the base form, together every field an action takes. Both go
+// on the app noun, which every application has, under verbs no
+// application defines, so the file installs as it is.
+const actionsExample = `[
+  {
+    "noun": "app",
+    "verb": "example-run",
+    "description": "Example: run a program with the instance's fields as argv words",
+    "command": ["printf", "%s %s %s\\n", "{{label}}", "{{mode}}", "{{data.path}}"],
+    "json": true,
+    "label": "example {{label}}",
+    "confirm": "Run on {{label}} ({{mode}})?",
+    "parameters": {
+      "mode": {"type": "string", "required": true, "enum": ["fast", "full"], "description": "How to run"},
+      "count": {"type": "integer", "description": "How many times"},
+      "verbose": {"type": "boolean", "description": "Say more"}
+    },
+    "positional": ["mode", "count"],
+    "dir": "{{data.dir}}",
+    "timeout": "30s",
+    "quiet": false
+  },
+  {
+    "noun": "app",
+    "verb": "example-call",
+    "description": "Example: call another ochazuke CLI as BASE NOUN VERB --json ARGS --target TARGET",
+    "base": ["other-app"],
+    "call": "item show",
+    "target": "{{data.id}}",
+    "label": "{{noun}}.{{verb}} {{target}}",
+    "parameters": {
+      "name": {"type": "string", "source": "settings.names", "free": true, "description": "A setting name; free accepts one the source does not list"}
+    },
+    "quiet": true
+  }
+]
+`
+
+// themesExample is themes.example.json: "example" is the built-in palette
+// with every role as a light and a dark colour, "example-dark" a dark
+// scheme with one colour per role, an ANSI index among them.
+func themesExample() []byte {
+	var b bytes.Buffer
+	pair := func(c SchemeColor) string { return fmt.Sprintf(`{"light": %q, "dark": %q}`, c.Light, c.Dark) }
+	s := defaultScheme
+	b.WriteString("{\n  \"example\": {\n")
+	fmt.Fprintf(&b, "    \"background\": %q,\n", s.Background)
+	roles := []struct {
+		name string
+		c    SchemeColor
+	}{{"text", s.Text}, {"muted", s.Muted}, {"accent", s.Accent}, {"border", s.Border}, {"surface", s.Surface}, {"error", s.Error}}
+	for i, role := range roles {
+		fmt.Fprintf(&b, "    %q: %s", role.name, pair(role.c))
+		if i < len(roles)-1 {
+			b.WriteString(",")
+		}
+		b.WriteString("\n")
+	}
+	b.WriteString(`  },
+  "example-dark": {
+    "background": "dark",
+    "text": "#DCE9E3",
+    "muted": "#93A7A1",
+    "accent": "#C9A227",
+    "border": "240",
+    "surface": "#172720",
+    "error": "#FF8A80"
+  }
+}
+`)
+	return b.Bytes()
 }
 
 // settingsObject is settings.json holding every setting at its value, in

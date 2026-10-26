@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -290,4 +291,93 @@ func TestConfigExportWithoutAConfigDirectory(t *testing.T) {
 	if err != nil || got.Dir != out || got.Config != "" {
 		t.Fatalf("export %+v %v", got, err)
 	}
+}
+
+// The example files are valid as they are: copied in as actions.json and
+// themes.json they install with no notice, and between them they use
+// every field an action and a scheme take.
+func TestConfigExportExamplesInstallWithoutNotices(t *testing.T) {
+	r, _ := exportFixture(t)
+	out := t.TempDir()
+	if _, err := r.ExportConfig(out, false); err != nil {
+		t.Fatal(err)
+	}
+	actions, _ := os.ReadFile(filepath.Join(out, ActionsExampleFile))
+	themes, _ := os.ReadFile(filepath.Join(out, ThemesExampleFile))
+
+	live := NewRuntime()
+	live.Config().Dir = t.TempDir()
+	var notices []string
+	live.Config().Report = func(p string) { notices = append(notices, p) }
+	writeConfig(t, live.Config().Dir, ActionsFile, string(actions))
+	writeConfig(t, live.Config().Dir, ThemesFile, string(themes))
+	if problems := live.EnsureUserActions(); len(problems) > 0 {
+		t.Fatalf("actions example: %v", problems)
+	}
+	if problems := live.ReloadThemes(); len(problems) > 0 {
+		t.Fatalf("themes example: %v", problems)
+	}
+	if len(notices) > 0 {
+		t.Fatalf("notices: %v", notices)
+	}
+	installed := live.UserActions()
+	if len(installed) != 2 || live.Operations["app.example-run"].Noun == "" || live.Operations["app.example-call"].Noun == "" {
+		t.Fatalf("installed %+v", installed)
+	}
+	if names := live.Config().themeNames(); !slices.Contains(names, "example") || !slices.Contains(names, "example-dark") {
+		t.Fatalf("theme names %v", names)
+	}
+
+	// Every Action field and every Parameter field appears in the file.
+	var entries []map[string]json.RawMessage
+	if err := json.Unmarshal(actions, &entries); err != nil {
+		t.Fatal(err)
+	}
+	seen, params := map[string]bool{}, map[string]bool{}
+	for _, e := range entries {
+		for k := range e {
+			seen[k] = true
+		}
+		var ps map[string]map[string]any
+		_ = json.Unmarshal(e["parameters"], &ps)
+		for _, p := range ps {
+			for k := range p {
+				params[k] = true
+			}
+		}
+	}
+	for _, f := range jsonFields(Action{}) {
+		if !seen[f] {
+			t.Errorf("actions example lacks %q", f)
+		}
+	}
+	for _, f := range jsonFields(Parameter{}) {
+		if !params[f] {
+			t.Errorf("actions example lacks parameter field %q", f)
+		}
+	}
+	var schemes map[string]map[string]any
+	if err := json.Unmarshal(themes, &schemes); err != nil {
+		t.Fatal(err)
+	}
+	for _, role := range append([]string{"background"}, jsonFields(Scheme{})...) {
+		for name, s := range schemes {
+			if _, ok := s[role]; !ok {
+				t.Errorf("scheme %s lacks %q", name, role)
+			}
+		}
+	}
+}
+
+// jsonFields are a struct's JSON field names.
+func jsonFields(v any) []string {
+	var out []string
+	rt := reflect.TypeOf(v)
+	for i := range rt.NumField() {
+		name, _, _ := strings.Cut(rt.Field(i).Tag.Get("json"), ",")
+		if name != "" && name != "-" {
+			out = append(out, name)
+		}
+	}
+	return out
 }
