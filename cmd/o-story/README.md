@@ -69,6 +69,13 @@ it to the timer's deadline and delivers the timer's message
                 { name: "web", kind: "external", source: "/bin/hello-web" }],
       help: { web: "usage: hello web [PORT]" },  // what command help fetches (a job)
     },                               // rows command:<name>; a run opens a fake pane, its terminal page1/run/N
+    catalog: {                       // instead of the above: a catalog data page (cli.MountPage)
+      nouns: [{ name: "skill", columns: [{ title: "Name" }], verbs: [{ name: "list", rows: "skill" }] }],
+      state: "",                     // the catalog's state source, NOUN.VERB
+      page: { layout: "split", lists: [{ id: "ai/skills", noun: "skill" }], detail: { fields: ["path"] } },
+      answers: { "skill.list": [{ id: "s1", name: "architect", path: "~/x" }] },  // stdout per NOUN.VERB (a string is the text: JSON Lines)
+      pending: false,                // true leaves the loads to the script: { job: "catalog-load", state: "done" }
+    },                               // rows <list>/<id>; the page id is the story page's
   },
   script: ["j", "j", { type: "ping" }, { paste: "text" },
            { job: "demo.build", state: "done" },
@@ -102,6 +109,9 @@ page: `q` quits (leaves the story), `r` resets it, `enter` opens a row
 spec adds `demo.<name>` with its keys. `demo.ping` is for the palette. A `commands`
 page is the exception: it is `cli.AddCommands` itself, its rows of the
 `command` noun (`enter` runs, `i` help, `x` stop), its runs fake panes.
+A `catalog` page is the other: it is `cli.MountPage` itself, its rows of
+the catalog's nouns (no verbs unless a list lists them; `q` on the page quits), its loads served
+from `answers`.
 
 ### The fakes
 

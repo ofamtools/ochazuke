@@ -415,15 +415,16 @@ Root package `ochazuke` is flat: 51 source files, 47 test files. Each entry list
 
 ## Package cli
 
-Importable package `cli`: 12 source files, 7 test files.
+Importable package `cli`: 13 source files, 8 test files.
 
 ### cli/catalog.go
 
-- lines: 222
+- lines: 221
 - purpose: CatalogDoc is the catalog answer: what a runtime registers, grouped by noun, in the runtime's own JSON shapes (ochazuke.Parameter and ochazuke.Binding unchan...
-- types: CatalogDoc, CatalogNoun, CatalogVerb, CatalogPage
+- types: CatalogDoc, CatalogNoun, CatalogVerb
 - methods: CatalogDoc(3)
 - funcs: Catalog
+- leans on: page.go(3)
 
 ### cli/commands.go
 
@@ -457,6 +458,15 @@ Importable package `cli`: 12 source files, 7 test files.
 - funcs: OdenCommands
 - leans on: commands.go(5), catalog.go(2), shell.go(1)
 
+### cli/page.go
+
+- lines: 922 · tests: page_test.go
+- purpose: CatalogPage is a page in registration order.
+- types: CatalogPage, CatalogList, CatalogDetail, PageConfig, PageView
+- methods: CatalogPage(1), PageView(27), pageList(1)
+- funcs: DeclarePage, MountPages, MountPage, DecodeRows
+- leans on: rows.go(15), commands.go(9), catalog.go(4), shell.go(2)
+
 ### cli/pty.go
 
 - lines: 356 · tests: pty_test.go
@@ -464,18 +474,18 @@ Importable package `cli`: 12 source files, 7 test files.
 - types: PtyStream
 - methods: PtyStream(15), byteQueue(3)
 - funcs: StartPty
-- leans on: pty_unix.go(2), shell.go(2), ptykeys.go(1), rows.go(1)
+- leans on: pty_windows.go(2), shell.go(2), ptykeys.go(1), rows.go(1)
 
 ### cli/pty_unix.go
 
 - lines: 39
 - purpose: configureCommand makes the command the leader of a new session whose controlling terminal is the pty (the slave is its fd 0), so its process group id is its ...
+- leans on: pty_windows.go(2)
 
 ### cli/pty_windows.go
 
 - lines: 15
 - purpose: configureCommand leaves the command as it is: ConPTY owns the console.
-- leans on: pty_unix.go(2)
 
 ### cli/ptykeys.go
 
@@ -533,12 +543,12 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/build.go
 
-- lines: 903
+- lines: 952
 - purpose: Session is one built story: the runtime, the model and the demo state the verbs act on (fake jobs and panes).
 - types: Session, Options
-- methods: Session(18), storyCommands(3)
+- methods: Session(19), storyCommands(3)
 - funcs: Build
-- leans on: story.go(31), run.go(9), fake.go(3)
+- leans on: story.go(33), run.go(9), fake.go(3)
 
 ### story/driver.go
 
@@ -576,9 +586,9 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/story.go
 
-- lines: 441
+- lines: 460
 - purpose: Story is one scenario file.
-- types: Story, Page, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, CommandsSpec, InputSpec, TermSpec, JobSpec, BindSpec, Event, Expect, Expects
+- types: Story, Page, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, CommandsSpec, CatalogSpec, InputSpec, TermSpec, JobSpec, BindSpec, Event, Expect, Expects
 - methods: Event(3), Expects(2), Story(5)
 - funcs: Slug, Parse, LoadFS, LoadDir, Sort, Find
 
@@ -706,15 +716,19 @@ Exported type -> file.
 - TreeDebounceMsg -> tree.go
 - TreeNode -> tree.go
 - Yank -> registers.go
+- cli.CatalogDetail -> cli/page.go
 - cli.CatalogDoc -> cli/catalog.go
+- cli.CatalogList -> cli/page.go
 - cli.CatalogNoun -> cli/catalog.go
-- cli.CatalogPage -> cli/catalog.go
+- cli.CatalogPage -> cli/page.go
 - cli.CatalogVerb -> cli/catalog.go
 - cli.CommandEntry -> cli/commands.go
 - cli.CommandSource -> cli/commands.go
 - cli.Commands -> cli/commands.go
 - cli.CommandsConfig -> cli/commands.go
 - cli.Lines -> cli/rows.go
+- cli.PageConfig -> cli/page.go
+- cli.PageView -> cli/page.go
 - cli.PtyStream -> cli/pty.go
 - cli.Row -> cli/rows.go
 - cli.RowReader -> cli/rows.go
@@ -725,6 +739,7 @@ Exported type -> file.
 - grid.Ref -> grid/grid.go
 - grid.Styles -> grid/grid.go
 - story.BindSpec -> story/story.go
+- story.CatalogSpec -> story/story.go
 - story.CommandsSpec -> story/story.go
 - story.DetailSpec -> story/story.go
 - story.Driver -> story/driver.go

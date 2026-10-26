@@ -37,6 +37,13 @@ const Schema = 1
 // noun in its columns. A boolean parameter fresh on the state verb, when
 // declared, asks the extension to bypass its own caches (an explicit
 // refresh).
+//
+// Pages are in registration order (tab order). A page the extension draws
+// in Go is {id, title}; a data page (DeclarePage) also carries its layout,
+// lists, and detail (CatalogPage), and a host builds it with MountPage,
+// with no Go code of the extension's: each list's rows come from its
+// source (or the state answer, filed by Row.Noun) and draw in the columns
+// their noun declares.
 type CatalogDoc struct {
 	Schema   int                `json:"schema"`
 	Name     string             `json:"name"`
@@ -88,12 +95,6 @@ type CatalogVerb struct {
 	Rows        string                        `json:"rows,omitempty"`
 	Quiet       bool                          `json:"quiet,omitempty"`
 	Positional  []string                      `json:"positional,omitempty"`
-}
-
-// CatalogPage is a page in registration order.
-type CatalogPage struct {
-	ID    string `json:"id"`
-	Title string `json:"title"`
 }
 
 // RowSourceVerb is the verb whose answer is a noun's own rows when none of
@@ -208,9 +209,7 @@ func Catalog(r *ochazuke.Runtime, name, version string) ([]byte, error) {
 		}
 		return requestKey(a.Request) < requestKey(b.Request)
 	})
-	for _, page := range r.PageList() {
-		doc.Pages = append(doc.Pages, CatalogPage{ID: page.ID, Title: page.Title})
-	}
+	doc.Pages = declaredPages(r)
 	return json.MarshalIndent(doc, "", "  ")
 }
 

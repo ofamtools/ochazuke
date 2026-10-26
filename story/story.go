@@ -84,7 +84,10 @@ type Page struct {
 	// Commands makes the page cli's Commands page (cli.AddCommands) over
 	// these entries instead of a synthetic one; a run opens a fake pane.
 	Commands *CommandsSpec `json:"commands,omitempty"`
-	Open     bool          `json:"open,omitempty"` // the page opened first (default the first page)
+	// Catalog makes the page a catalog data page (cli.MountPage) instead
+	// of a synthetic one.
+	Catalog *CatalogSpec `json:"catalog,omitempty"`
+	Open    bool         `json:"open,omitempty"` // the page opened first (default the first page)
 }
 
 // ListSpec is one list: rows a1..aN labelled by id unless Labels or Items
@@ -154,6 +157,22 @@ type DetailSpec struct {
 type CommandsSpec struct {
 	Entries []cli.CommandEntry `json:"entries"`
 	Help    map[string]string  `json:"help,omitempty"`
+}
+
+// CatalogSpec is a data page as an extension's catalog declares it: the
+// catalog's nouns (columns, verbs, rows) and state source, the page
+// (cli.CatalogPage; its id is the story page's, its title defaults to it), and
+// each verb's answer by NOUN.VERB, the stdout the page's Fetch returns (a
+// JSON string is the text itself, so JSON Lines fit; any other value its
+// JSON). A verb without an answer fails. The loads settle before the story
+// starts unless Pending, which leaves them to the script (job
+// catalog-load).
+type CatalogSpec struct {
+	State   string                     `json:"state,omitempty"`
+	Nouns   []cli.CatalogNoun          `json:"nouns"`
+	Page    cli.CatalogPage            `json:"page"`
+	Answers map[string]json.RawMessage `json:"answers,omitempty"`
+	Pending bool                       `json:"pending,omitempty"`
 }
 
 // InputSpec is one single-line input drawn under the lists.

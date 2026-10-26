@@ -85,6 +85,12 @@ Draft, from the `integrate/next` branch (seven branches on `3133e23` plus fixes)
 - `Layout.SplitFocusBlock(side, …)` with `SplitLeft`/`SplitRight`/`SplitNone`: a split whose focused panel is named (accent title and border; its cursor wins), for a view whose focus moves between panes (o-json). `Split`/`SplitBlock` keep the left focused. Story `chrome/split-focused-side`; o-story gains `layout: "split"` and the cell-exact `styled` expectation.
 - `NoMarks()` (an `InstanceOption` for `AddList` and `AddTree`): a read-only view whose rows take no marks; `space` no longer answers with `list.mark` there (the verb is guarded by `list-marks`, so the footer and `?` leave it out) and `list.mark`/`List.ToggleMark` refuse. Replaces o-json's hidden `key.ignore` row. Story `lists/no-marks`.
 
+### Catalog pages (`feat/catalog-pages`)
+
+- Data pages: `cli.CatalogPage` gains `layout` (`stack`, `split`, `groups`), `lists` (`{id, noun, source, title}`) and `detail` (`{title, fields}`). An extension declares one with `cli.DeclarePage(r, p)` and `cli.Catalog` publishes it whole; a Go-drawn page stays `{id, title}`.
+- A host builds it with no Go code of the extension's: `cli.MountPage(m, doc, p, cli.PageConfig{Noun, Fetch})` / `cli.MountPages(m, doc, cfg)` return a `*cli.PageView` (`ListsRender`, `Reload`, `SetRows`, `SetState`, `SetError`, `SetStatus`, `Row`, `List`). Loads are quiet `catalog-load` jobs; rows are `<list>/<row id>` instances of the host's noun with `Data` the row's id. `cli.DecodeRows` reads a list answer (array or JSON Lines). This is nabe's hand-built mount page as framework code.
+- o-story: a page with `catalog` is a mounted data page over canned `answers`; stories `catalog/*`.
+
 ### Also since v0.1.1
 
 - Framework `bindings list --all` lists every stored noun and instance binding table as configuration JSON, including inactive modes and contexts. The default listing remains focus- and mode-specific. The CSV example now exposes framework operations through `csv NOUN VERB`, including `csv bindings list --all`; the socket CLI also accepts `--all`.

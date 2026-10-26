@@ -1,0 +1,130 @@
+{
+  "name": "a catalog groups page: the rail picks the list drawn beside it, l enters it and h comes back",
+  "area": "catalog",
+  "width": 100,
+  "height": 22,
+  "page": {
+    "id": "ai",
+    "title": "AI",
+    "catalog": {
+      "nouns": [
+        {
+          "name": "skill",
+          "columns": [
+            {
+              "title": "Name",
+              "min": 8
+            },
+            {
+              "title": "Origin"
+            }
+          ],
+          "verbs": [
+            {
+              "name": "list",
+              "rows": "skill"
+            },
+            {
+              "name": "show"
+            }
+          ]
+        },
+        {
+          "name": "mcp",
+          "verbs": [
+            {
+              "name": "tools",
+              "rows": "mcp-tool"
+            }
+          ]
+        },
+        {
+          "name": "mcp-tool",
+          "verbs": [
+            {
+              "name": "show"
+            }
+          ]
+        }
+      ],
+      "page": {
+        "title": "AI",
+        "lists": [
+          {
+            "id": "ai/skills",
+            "noun": "skill"
+          },
+          {
+            "id": "ai/tools",
+            "noun": "mcp",
+            "source": "mcp.tools",
+            "title": "tools"
+          }
+        ],
+        "layout": "groups",
+        "detail": {
+          "title": "record"
+        }
+      },
+      "answers": {
+        "skill.list": [
+          {
+            "id": "s1",
+            "name": "architect",
+            "cells": [
+              "architect",
+              "claude"
+            ],
+            "path": "~/.claude/skills/architect",
+            "origin": "claude"
+          },
+          {
+            "id": "s2",
+            "name": "review",
+            "cells": [
+              "review",
+              "ai-tools"
+            ],
+            "path": "~/proj/ai-tools/review",
+            "origin": "ai-tools"
+          }
+        ],
+        "mcp.tools": "{\"noun\":\"mcp\",\"id\":\"t1\",\"label\":\"tuios_send_text\",\"data\":{\"server\":\"tuios\"}}\n{\"noun\":\"mcp\",\"id\":\"t2\",\"label\":\"tuios_capture\",\"data\":{\"server\":\"tuios\"}}\n"
+      }
+    }
+  },
+  "script": [
+    "j",
+    "l",
+    "j",
+    "j",
+    "h"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "ai/groups/ai/tools",
+      "contains": [
+        "Groups",
+        "tuios_send_text"
+      ],
+      "lacks": [
+        "architect"
+      ]
+    },
+    {
+      "after": 2,
+      "focus": "ai/tools/t1"
+    },
+    {
+      "after": 4,
+      "focus": "ai/tools/t2"
+    },
+    {
+      "focus": "ai/groups/ai/tools",
+      "contains": [
+        "record \u00b7 tuios_capture"
+      ]
+    }
+  ]
+}

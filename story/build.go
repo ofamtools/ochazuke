@@ -2,6 +2,7 @@ package story
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os/exec"
@@ -382,6 +383,9 @@ func (ss *Session) addPage(p *Page) error {
 	if p.Commands != nil {
 		return ss.addCommandsPage(p)
 	}
+	if p.Catalog != nil {
+		return ss.addCatalogPage(p)
+	}
 	r := ss.R
 	r.Instance(p.ID, ochazuke.Kind(Demo))
 	focus := p.Focus
@@ -521,6 +525,51 @@ func (ss *Session) addCommandsPage(p *Page) error {
 	}
 	ss.pages[p.ID] = p
 	return nil
+}
+
+// addCatalogPage mounts the spec's data page over its canned answers.
+func (ss *Session) addCatalogPage(p *Page) error {
+	spec := p.Catalog
+	page := spec.Page
+	page.ID = p.ID // the story page's id (the one Build opens)
+	if page.Title == "" {
+		page.Title = cmpString(p.Title, p.ID)
+	}
+	doc := cli.CatalogDoc{Schema: cli.Schema, Name: "story", State: spec.State, Nouns: spec.Nouns, Pages: []cli.CatalogPage{page}}
+	fetch := func(_ context.Context, noun, verb string) ([]byte, error) {
+		raw, ok := spec.Answers[noun+"."+verb]
+		if !ok {
+			return nil, fmt.Errorf("exit status 1: %s %s has no answer", noun, verb)
+		}
+		var text string
+		if json.Unmarshal(raw, &text) == nil {
+			return []byte(text), nil
+		}
+		return raw, nil
+	}
+	v, err := cli.MountPage(ss.M, doc, page, cli.PageConfig{Fetch: fetch})
+	if err != nil {
+		return fmt.Errorf("catalog page %s: %w", page.ID, err)
+	}
+	if err := v.Reload(); err != nil {
+		return fmt.Errorf("catalog page %s: %w", page.ID, err)
+	}
+	// q leaves the story, as on every demo page (its rows are not demo's).
+	if err := ss.R.Bind(ochazuke.Binding{Instance: page.ID, Mode: "normal", Keys: "q", Request: ochazuke.Request{Noun: "app", Verb: "quit"}}); err != nil {
+		return err
+	}
+	if !spec.Pending {
+		_ = cli.Settle(ss.R, nil) // a failed load is the page's to show
+	}
+	ss.pages[p.ID] = p
+	return nil
+}
+
+func cmpString(a, b string) string {
+	if a != "" {
+		return a
+	}
+	return b
 }
 
 // storyCommands is a CommandSource from a story file: its commands never
