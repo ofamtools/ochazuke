@@ -450,9 +450,10 @@ func libraryText(id string) string {
 
 // demoLibrary draws the entries on the left and the selected entry's
 // detail on the right (stacked below 72 columns), the detail's position
-// marker in its panel title when it overflows.
+// marker in its panel title when it overflows. The divider follows the
+// page's pane keys (> and <, = resets) through PaneLayout and Divide.
 func demoLibrary(m *ochazuke.Model, entries *ochazuke.List, detail *ochazuke.Detail, width, height int) ochazuke.Block {
-	layout := ochazuke.Layout{Styles: ochazuke.NewStyles(*m.Appearance)}
+	layout := m.Runtime.PaneLayout("library", ochazuke.Layout{Styles: ochazuke.NewStyles(*m.Appearance)})
 	listPanel := func(w, h int) string {
 		cw, ch := ochazuke.PanelContentSize(w, h)
 		return layout.Panel("Entries", entries.View(cw, ch), w, h, entries.Focused())
@@ -468,10 +469,10 @@ func demoLibrary(m *ochazuke.Model, entries *ochazuke.List, detail *ochazuke.Det
 		return layout.Panel(title, body, w, h, false)
 	}
 	if width >= 72 {
-		left := (width - 1) * 2 / 5
+		left := layout.Divide((width-1)*2/5, width-1, ochazuke.PaneMinWidth)
 		return ochazuke.Text(lipgloss.JoinHorizontal(lipgloss.Top, listPanel(left, height), " ", detailPanel(width-left-1, height)))
 	}
-	top := min(len(libraryEntries)+2, height/2)
+	top := layout.Divide(min(len(libraryEntries)+2, height/2), height, ochazuke.PaneMinHeight)
 	return ochazuke.Text(listPanel(width, top) + "\n" + detailPanel(width, height-top))
 }
 

@@ -729,7 +729,7 @@ func (ss *Session) renderMain(p *Page, width, height int) ochazuke.Block {
 	if p.Layout == "split" && len(order) >= 2 {
 		// The first two lists in Layout.SplitFocusBlock, the panel whose
 		// list holds the focus drawn focused.
-		l := ochazuke.Layout{Width: ss.M.Width, Height: ss.M.Height, Styles: ochazuke.NewStyles(*ss.M.Appearance)}
+		l := ss.R.PaneLayout(p.ID, ochazuke.Layout{Width: ss.M.Width, Height: ss.M.Height, Styles: ochazuke.NewStyles(*ss.M.Appearance)})
 		side := ochazuke.SplitNone
 		for _, at := range ss.R.Ancestry(ss.R.Focus) {
 			switch at {

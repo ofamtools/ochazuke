@@ -509,3 +509,52 @@ func TestWidgetsArePublishedAndChecked(t *testing.T) {
 		t.Error("a widget id declared twice was accepted")
 	}
 }
+
+// TestMountPageSplitFollowsThePaneKeys: > on a split catalog page moves
+// the lists/detail divider right, < back, side by side and stacked; a
+// page without a detail draws no split and > does nothing there.
+func TestMountPageSplitFollowsThePaneKeys(t *testing.T) {
+	// divider is the cell (side by side) or line (stacked) of the detail
+	// panel's top-left corner.
+	divider := func(f string, stacked bool) int {
+		for i, line := range strings.Split(f, "\n") {
+			if at := strings.Index(line, " record"); at >= 0 {
+				if stacked {
+					return i
+				}
+				return len([]rune(line[:strings.LastIndex(line[:at], "╭")]))
+			}
+		}
+		t.Fatalf("no detail panel:\n%s", f)
+		return 0
+	}
+	for _, tc := range []struct {
+		layout  string
+		width   int
+		stacked bool
+	}{{LayoutSplit, 100, false}, {"", 100, true}, {LayoutSplit, 60, true}} {
+		m, v := mountedPage(t, pageDoc(tc.layout, true), PageConfig{Fetch: answers(pageAnswers)}, tc.width, 30)
+		if err := v.Reload(); err != nil {
+			t.Fatal(err)
+		}
+		if err := Settle(m.Runtime, nil); err != nil {
+			t.Fatal(err)
+		}
+		before := divider(frameOf(m), tc.stacked)
+		press(m, ">")
+		grown := divider(frameOf(m), tc.stacked)
+		press(m, "<", "<")
+		shrunk := divider(frameOf(m), tc.stacked)
+		if !(shrunk < before && before < grown) {
+			t.Fatalf("%q at %d: divider shrunk %d, default %d, grown %d", tc.layout, tc.width, shrunk, before, grown)
+		}
+		if !strings.Contains(frameOf(m), ">/< resize") {
+			t.Fatalf("%q at %d: no resize hint:\n%s", tc.layout, tc.width, frameOf(m))
+		}
+	}
+	m, _ := mountedPage(t, pageDoc(LayoutSplit, false), PageConfig{Fetch: answers(pageAnswers)}, 100, 30)
+	press(m, ">")
+	if shift := m.Runtime.PaneShift("ai"); shift != 0 || strings.Contains(frameOf(m), "resize") {
+		t.Fatalf("no detail, no split: shift %d\n%s", shift, frameOf(m))
+	}
+}
