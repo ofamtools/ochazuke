@@ -1,5 +1,3 @@
-# Ochazuke
-
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
@@ -18,7 +16,6 @@
 
 Ochazuke builds on Charmbracelet Bubble Tea v2 (`charm.land/bubbletea/v2`, Lip Gloss v2, Bubbles v2) and adds retained pages, default Lip Gloss styling, partial-screen modals, nouns and instances with one stack walk for actions and bindings, modal text editing, a nested command palette, and live CLI control.
 
-Status: working standalone framework and demo. Neither gmtm nor Matomeru is changed. Existing editors are retained; Bubbles provides the new page/modal scrolling viewports.
 
 Module `github.com/unixsuperhero/ochazuke`; requires Go 1.26 or newer. It builds on [oden](https://github.com/unixsuperhero/oden) for CLI resolution.
 
