@@ -174,6 +174,10 @@ func New() *ochazuke.Model {
 	r.EnsureConfigSettings()
 	if err := r.DeclareSetting(
 		ochazuke.Setting{Name: "density", Type: ochazuke.SettingString, Default: "comfortable", Description: "Spacing", Enum: []string{"comfortable", "compact"}},
+		// Two list settings show the Settings page's item rows: one with
+		// items, one empty. The demo reads neither; they are there to edit.
+		ochazuke.Setting{Name: "projects.paths", Type: ochazuke.SettingList, Default: []string{"~/proj", "~/hub"}, Description: "Directories searched for projects, in order"},
+		ochazuke.Setting{Name: "projects.ignore", Type: ochazuke.SettingList, Default: []string{}, Description: "Names left out of every project listing"},
 	); err != nil {
 		panic(err)
 	}
