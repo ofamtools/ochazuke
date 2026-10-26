@@ -389,10 +389,10 @@ Root package `ochazuke` is flat: 54 source files, 52 test files. Each entry list
 
 ### theme.go
 
-- lines: 157 · tests: theme_test.go
+- lines: 174 · tests: theme_test.go
 - purpose: Appearance is event-loop-owned configuration.
 - types: Appearance, Styles
-- methods: Appearance(1)
+- methods: Appearance(2)
 - funcs: NewAppearance, NewStyles
 - leans on: runtime.go(22), delivery.go(5), noun.go(5), registers.go(5)
 
@@ -565,6 +565,16 @@ Importable package `grid`: 2 source files, 1 test files.
 - purpose: Register defines the grid and selection operations and the selection shape modes once per runtime.
 - funcs: Register, Resolve
 - leans on: grid.go(18)
+
+## Package markdown
+
+Importable package `markdown`: 1 source files, 1 test files.
+
+### markdown/render.go
+
+- lines: 140 · tests: render_test.go
+- purpose: StyleOf is the Glamour style an appearance draws Markdown in.
+- funcs: StyleOf, Block
 
 ## Package story
 

@@ -89,6 +89,23 @@ func (a Appearance) ThemeNames() []string {
 	return append(names, a.Schemes.Names()...)
 }
 
+// Background is the background the appearance draws on, "light" or "dark"
+// (an adaptive scheme follows Dark), and whether it draws no colour at all
+// (the mono theme or NO_COLOR). A renderer with its own palette, such as
+// the markdown package's Glamour styles, picks from it.
+func (a Appearance) Background() (background string, plain bool) {
+	scheme, plain := a.scheme()
+	plain = plain || os.Getenv("NO_COLOR") != ""
+	switch scheme.Background {
+	case "light", "dark":
+		return scheme.Background, plain
+	}
+	if a.Dark {
+		return "dark", plain
+	}
+	return "light", plain
+}
+
 // Styles is a render-time value; it does not retain mutable appearance state.
 type Styles struct {
 	Title        lipgloss.Style
