@@ -334,7 +334,7 @@ func (l Layout) PanelBlock(title string, body Block, width, height int, focused 
 
 // Split renders two panels filling BodySize: side by side (left ~40%) when the
 // viewport is at least 72 cells wide, otherwise stacked (top ~40%). The left or
-// top panel is the focused one.
+// top panel is the focused one; SplitFocusBlock takes which.
 func (l Layout) Split(leftTitle, leftBody, rightTitle, rightBody string) string {
 	return l.SplitBlock(leftTitle, Text(leftBody), rightTitle, Text(rightBody)).Text
 }
@@ -342,8 +342,26 @@ func (l Layout) Split(leftTitle, leftBody, rightTitle, rightBody string) string 
 // SplitBlock is Split for bodies that may carry a cursor. One body should
 // carry it; when both do, the left or top panel wins.
 func (l Layout) SplitBlock(leftTitle string, leftBody Block, rightTitle string, rightBody Block) Block {
+	return l.SplitFocusBlock(SplitLeft, leftTitle, leftBody, rightTitle, rightBody)
+}
+
+// SplitSide names the panel of a split that draws focused.
+type SplitSide int
+
+const (
+	SplitLeft  SplitSide = iota // the left (or top) panel, Split's default
+	SplitRight                  // the right (or bottom) panel
+	SplitNone                   // neither: the focus is elsewhere
+)
+
+// SplitFocusBlock is SplitBlock with the focused panel named: the one
+// holding the focus draws in the focused style (accent title and border),
+// the other plain, so a view whose focus moves between its panes (o-json's
+// tree and detail) shows where it is. When both bodies carry a cursor, the
+// focused panel's wins.
+func (l Layout) SplitFocusBlock(focused SplitSide, leftTitle string, leftBody Block, rightTitle string, rightBody Block) Block {
 	bw, bh := l.BodySize()
-	return l.panelPair(leftTitle, leftBody, rightTitle, rightBody, bw, bh, (bw-1)*2/5, l.Width < layoutStackAt)
+	return l.panelPair(leftTitle, leftBody, rightTitle, rightBody, bw, bh, (bw-1)*2/5, l.Width < layoutStackAt, focused)
 }
 
 // Sidebar renders a 28-cell navigation rail beside the main panel. Below 72
@@ -392,7 +410,7 @@ func (l Layout) sidebar(title string, items []string, selected int, mainTitle st
 			rows = append(rows, l.Styles.Muted.Render(fmt.Sprintf("… %d–%d / %d", start+1, end, len(items))))
 		}
 	}
-	return l.panelPair(title, Text(strings.Join(rows, "\n")), mainTitle, mainBody, width, regionHeight, 28, stacked)
+	return l.panelPair(title, Text(strings.Join(rows, "\n")), mainTitle, mainBody, width, regionHeight, 28, stacked, SplitLeft)
 }
 
 func sidebarMainSize(width, height int, stacked bool) (int, int) {
@@ -406,25 +424,32 @@ func sidebarMainSize(width, height int, stacked bool) (int, int) {
 
 // panelPair places the left (or top) panel at the origin and the right panel
 // one cell to its right (or the bottom panel below it).
-func (l Layout) panelPair(leftTitle string, leftBody Block, rightTitle string, rightBody Block, bw, bh, leftWidth int, stacked bool) Block {
+func (l Layout) panelPair(leftTitle string, leftBody Block, rightTitle string, rightBody Block, bw, bh, leftWidth int, stacked bool, focused SplitSide) Block {
 	if bw <= 0 || bh <= 0 {
 		return Block{}
 	}
+	leftFocused, rightFocused := focused == SplitLeft, focused == SplitRight
+	cursor := func(first, second Block) *Pos {
+		if rightFocused {
+			return firstCursor(second, first)
+		}
+		return firstCursor(first, second)
+	}
 	if !stacked {
 		rw := bw - 1 - leftWidth
-		left := l.PanelBlock(leftTitle, leftBody, leftWidth, bh, true)
-		right := l.PanelBlock(rightTitle, rightBody, rw, bh, false).Offset(leftWidth+1, 0)
+		left := l.PanelBlock(leftTitle, leftBody, leftWidth, bh, leftFocused)
+		right := l.PanelBlock(rightTitle, rightBody, rw, bh, rightFocused).Offset(leftWidth+1, 0)
 		leftRows, rightRows := strings.Split(left.Text, "\n"), strings.Split(right.Text, "\n")
 		rows := make([]string, bh)
 		for i := range rows {
 			rows[i] = layoutRow(leftRows, i, leftWidth) + " " + layoutRow(rightRows, i, rw)
 		}
-		return Block{Text: strings.Join(rows, "\n"), Cursor: firstCursor(left, right)}
+		return Block{Text: strings.Join(rows, "\n"), Cursor: cursor(left, right)}
 	}
 	th := bh * 2 / 5
-	top := l.PanelBlock(leftTitle, leftBody, bw, th, true)
-	bottom := l.PanelBlock(rightTitle, rightBody, bw, bh-th, false).Offset(0, th)
-	return Block{Text: top.Text + joinIfBoth(th, bh-th) + bottom.Text, Cursor: firstCursor(top, bottom)}
+	top := l.PanelBlock(leftTitle, leftBody, bw, th, leftFocused)
+	bottom := l.PanelBlock(rightTitle, rightBody, bw, bh-th, rightFocused).Offset(0, th)
+	return Block{Text: top.Text + joinIfBoth(th, bh-th) + bottom.Text, Cursor: cursor(top, bottom)}
 }
 
 func joinIfBoth(a, b int) string {

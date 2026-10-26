@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -126,6 +127,26 @@ func Check(ss *Session, e Expect) []string {
 			failf("colored: screen lacks %q", text)
 		case !drawn:
 			failf("colored: no row with %q is drawn in %s", text, hex)
+		}
+	}
+	for text, want := range e.Styled {
+		hex, negate := strings.CutPrefix(want, "!")
+		sgr, err := foreground(hex)
+		if err != nil {
+			failf("styled %q: %v", text, err)
+			continue
+		}
+		run := regexp.MustCompile(`\x1b\[([0-9;:]*)m` + regexp.QuoteMeta(text))
+		found, drawn := false, false
+		for _, m := range run.FindAllStringSubmatch(frame, -1) {
+			found = true
+			drawn = drawn || strings.Contains(";"+m[1]+";", ";"+sgr+";")
+		}
+		switch {
+		case !found:
+			failf("styled: no styled run starts with %q", text)
+		case drawn == negate:
+			failf("styled: %q drawn in %s = %v, want %v", text, hex, drawn, !negate)
 		}
 	}
 	for _, hex := range e.NoColor {

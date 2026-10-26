@@ -606,6 +606,24 @@ func (ss *Session) renderMain(p *Page, width, height int) ochazuke.Block {
 	if !p.NoHead {
 		head = 1
 	}
+	if p.Layout == "split" && len(order) >= 2 {
+		// The first two lists in Layout.SplitFocusBlock, the panel whose
+		// list holds the focus drawn focused.
+		l := ochazuke.Layout{Width: ss.M.Width, Height: ss.M.Height, Styles: ochazuke.NewStyles(*ss.M.Appearance)}
+		side := ochazuke.SplitNone
+		for _, at := range ss.R.Ancestry(ss.R.Focus) {
+			switch at {
+			case order[0]:
+				side = ochazuke.SplitLeft
+			case order[1]:
+				side = ochazuke.SplitRight
+			}
+		}
+		body := func(id string) ochazuke.Block {
+			return ochazuke.Text(ss.lists[id].View(max(1, width/2), max(1, height-2)))
+		}
+		return l.SplitFocusBlock(side, order[0], body(order[0]), order[1], body(order[1]))
+	}
 	if p.Layout == "row" && len(order) > 0 {
 		w := max(1, (width-(len(order)-1))/len(order))
 		var cols []string

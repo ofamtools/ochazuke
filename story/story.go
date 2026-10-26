@@ -61,7 +61,7 @@ type Page struct {
 	Title  string     `json:"title,omitempty"`
 	Height int        `json:"height,omitempty"` // legacy spelling of the story's height (first page only)
 	Width  int        `json:"width,omitempty"`
-	Layout string     `json:"layout,omitempty"` // stack (default) or row: lists side by side
+	Layout string     `json:"layout,omitempty"` // stack (default), row (lists side by side) or split (the first two lists in Layout.SplitFocusBlock, the focused one's panel focused)
 	Order  []string   `json:"order,omitempty"`  // drawing order of list ids; default the order given
 	Focus  string     `json:"focus,omitempty"`  // instance id focused when the page opens
 	Offset int        `json:"offset,omitempty"` // page scroll offset after the first frame
@@ -249,6 +249,10 @@ type Expect struct {
 	// that text draws in; NoColor lists foregrounds no cell may use.
 	Colored map[string]string `json:"colored,omitempty"`
 	NoColor []string          `json:"noColor,omitempty"`
+	// Styled maps on-screen text to whether it starts a run drawn in Hex
+	// ("#RRGGBB"): the SGR right before the text sets that foreground,
+	// cell-exact where Colored is row-wide. "!#RRGGBB" expects any other.
+	Styled map[string]string `json:"styled,omitempty"`
 	// Writes is every change the page's editable trees and record editors
 	// wrote, in order (TreeChange.String, RecordWrite.String); [] expects
 	// none.

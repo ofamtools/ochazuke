@@ -1,0 +1,27 @@
+{
+  "name": "chrome: a split draws the panel holding the focus focused, left or right",
+  "area": "chrome",
+  "width": 80,
+  "theme": "adaptive",
+  "page": {
+    "layout": "split",
+    "lists": [
+      {
+        "id": "tree",
+        "rows": 2
+      },
+      {
+        "id": "detail",
+        "rows": 2
+      }
+    ],
+    "focus": "detail1"
+  },
+  "expect": {
+    "focus": "detail1",
+    "styled": {
+      " detail ": "#78BFA5",
+      " tree ": "!#78BFA5"
+    }
+  }
+}

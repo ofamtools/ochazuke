@@ -276,3 +276,31 @@ func TestTabsMarkHiddenPagesOnEachSide(t *testing.T) {
 		t.Fatalf("everything fits, yet markers: %q", row)
 	}
 }
+
+// SplitFocusBlock draws the named panel focused (accent title) and the
+// other plain, side by side and stacked; SplitBlock keeps the left focused.
+// With both bodies carrying a cursor, the focused panel's wins.
+func TestSplitFocusBlockTakesTheFocusedSide(t *testing.T) {
+	for _, width := range []int{100, 60} {
+		l := Layout{Width: width, Height: 20, Styles: NewStyles(Appearance{Theme: "adaptive"})}
+		accent := func(title string) string { return l.Styles.Accent.Render(" " + title + " ") }
+		withCursor := func(text string) Block { return Block{Text: text, Cursor: &Pos{}} }
+		for _, tc := range []struct {
+			side          SplitSide
+			left, right   bool
+			cursorOnRight bool
+		}{{SplitLeft, true, false, false}, {SplitRight, false, true, true}, {SplitNone, false, false, false}} {
+			b := l.SplitFocusBlock(tc.side, "Tree", withCursor("left"), "Detail", withCursor("right"))
+			if strings.Contains(b.Text, accent("Tree")) != tc.left || strings.Contains(b.Text, accent("Detail")) != tc.right {
+				t.Fatalf("width %d side %d: focused titles left=%v right=%v", width, tc.side, strings.Contains(b.Text, accent("Tree")), strings.Contains(b.Text, accent("Detail")))
+			}
+			left := l.SplitFocusBlock(SplitLeft, "Tree", withCursor("left"), "Detail", withCursor("right"))
+			if tc.cursorOnRight && (b.Cursor == nil || *b.Cursor == *left.Cursor) || !tc.cursorOnRight && b.Cursor != nil && *b.Cursor != *left.Cursor {
+				t.Fatalf("width %d side %d: cursor %+v (left focused %+v)", width, tc.side, b.Cursor, left.Cursor)
+			}
+		}
+		if a, b := l.SplitBlock("Tree", Text("x"), "Detail", Text("y")), l.SplitFocusBlock(SplitLeft, "Tree", Text("x"), "Detail", Text("y")); a.Text != b.Text {
+			t.Fatal("SplitBlock is not SplitFocusBlock(SplitLeft)")
+		}
+	}
+}

@@ -50,7 +50,7 @@ it to the timer's deadline and delivers the timer's message
             { id: "c", rows: 10, height: -1,       // 0 every row, -1 rest of the page
               labels: ["first project", "tuios-deck"], selected: 1, marked: [0] }],
     order: ["a", "b", "c"],       // drawing order (default: as listed)
-    layout: "stack",              // or "row": lists side by side
+    layout: "stack",              // or "row": lists side by side; "split": the first two lists in Layout.SplitFocusBlock
     focus: "b1", offset: 0, noHeadings: false,
     inputs: [{ id: "name", label: "name", text: "hello" }],
     trees: [{ id: "t", editable: true, failWrites: 0, collapsed: ["p1"],
@@ -73,7 +73,7 @@ it to the timer's deadline and delivers the timer's message
 Expect fields: `focus`, `mode`, `modal` (top modal id, `""` none), `page`,
 `visible` (the focused label is on screen), `highlighted` (rows with reverse
 video), `highlightedText` (text every highlighted row holds), `contains`, `lacks`, `order` (substrings in this order),
-`ticker`/`noTicker`, `notices`/`noNotices`, `writes` (every change an
+`ticker`/`noTicker`, `notices`/`noNotices`, `styled` (text → `#RRGGBB`, or `!#RRGGBB`, for the styled run the text starts: cell-exact where `colored` is row-wide), `writes` (every change an
 editable tree wrote, `TreeChange.String`, in order; `[]` none). A story with no final expect is
 compared with `<name>.golden`: the frame in the mono theme, each row behind a
 gutter that reads `R|` when the row has reverse video and ` |` otherwise.
