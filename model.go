@@ -336,7 +336,9 @@ func (m *Model) footer() Footer {
 // its noun's, then its parents' up to the page and app):
 // "enter demo.open · : palette.open · ? bindings.help". Motions
 // (Operation.Motion) and hidden rows (counts, registers, macros, ctrl+c)
-// are left to ? help, and of rows that run the same request only the first
+// are left to ? help, except a motion row with its own Hint (J reads
+// "J/K detail"; a hint that starts with the row's key and a slash is shown
+// alone), and of rows that run the same request only the first
 // (innermost) key is shown.
 // It is the data bindings.list prints, so a hint never names a key that is
 // not bound; the descriptions are in BindingHelp (the ? modal).
@@ -345,8 +347,8 @@ func BindingHints(r *Runtime, focus string) string {
 	index := map[string]bool{}
 	for _, row := range r.groupedRows(focus) {
 		b := row.Binding
-		if b.Hidden || r.Operations[b.Request.Key()].Motion {
-			continue
+		if b.Hidden || r.Operations[b.Request.Key()].Motion && b.Hint == "" {
+			continue // a motion with its own Hint (J/K detail) shows
 		}
 		if isPrefixCancel(b) && r.Mode.Payload.Prefix == "" {
 			continue // "d esc" matters only once d is pending
@@ -396,6 +398,9 @@ func (r *Runtime) groupedRows(focus string) []levelRow {
 // when it has one, else the operation it runs (noun.verb).
 func rowHint(b Binding) string {
 	hint := modalLabel(rowKey(b))
+	if b.Hint != "" && strings.HasPrefix(b.Hint, rowKey(b)+"/") {
+		return modalLabel(b.Hint) // the hint names its keys: "J/K detail"
+	}
 	if b.Hint != "" {
 		return hint + " " + modalLabel(b.Hint)
 	}

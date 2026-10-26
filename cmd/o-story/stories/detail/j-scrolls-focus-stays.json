@@ -1,0 +1,14 @@
+{
+  "name": "detail: J scrolls the detail a line, the list keeps the focus",
+  "area": "detail",
+  "width": 160,
+  "page": {
+    "lists": [{"id": "a", "rows": 4}],
+    "detail": {"lines": 50}
+  },
+  "script": ["J", "J", "K", "J"],
+  "expect": [
+    {"after": 1, "focus": "a1", "contains": ["detail 2–", " / 50", "a1 line 2"], "lacks": ["a1 line 1 "]},
+    {"focus": "a1", "highlighted": 1, "contains": ["detail 3–", "J/K detail"], "lacks": ["detail.scroll"]}
+  ]
+}

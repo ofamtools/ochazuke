@@ -1,0 +1,217 @@
+package ochazuke
+
+import (
+	"errors"
+	"fmt"
+	"strings"
+
+	"github.com/charmbracelet/x/ansi"
+)
+
+// Detail is the component a detail instance fronts: a page's read-only
+// detail region (the text beside or below a list about its selected row)
+// that scrolls while the focus stays in the list. The application names
+// the item the detail is about with the func it gives AddDetail (the
+// selected row's id) and draws the text through Window; the framework
+// keeps the offset. A new item starts at the top, checked on every Window
+// and every scroll, so a scroll typed before the next frame lands on the
+// new item; the same item keeps its offset while its text refreshes
+// (clamped to the new length). J and K on
+// the app noun (detail.scroll, counts work: 10J) scroll the current page's
+// detail while it overflows and the focus is on the page outside it; a
+// focused noun that binds J or K (the outline) keeps them, as inner rows
+// answer first. A detail is not a focus stop.
+type Detail struct {
+	r  *Runtime
+	id string
+	// about names the item the detail shows now; item is the one the
+	// offset belongs to; offset its first visible line;
+	// total and height the wrapped line count and window of that frame.
+	about         func() string
+	item          string
+	offset        int
+	total, height int
+}
+
+// detailNoun is the noun of every detail instance.
+const detailNoun = "detail"
+
+// AddDetail registers a detail instance under its parent (Parent(page) or
+// an instance beneath the page) and returns its component. item names what
+// the detail shows now (the selected row's id); a different answer than
+// the last one starts the detail at the top. A nil item never resets.
+func (r *Runtime) AddDetail(id string, item func() string, opts ...InstanceOption) (*Detail, error) {
+	if id == "" {
+		return nil, errors.New("detail ID must be nonempty")
+	}
+	if r.Instances[id] != nil {
+		return nil, fmt.Errorf("detail %q is already registered", id)
+	}
+	spec := instanceSpec{parent: "app", noun: detailNoun}
+	for _, opt := range opts {
+		opt(&spec)
+	}
+	if r.Instances[spec.parent] == nil {
+		return nil, fmt.Errorf("unknown parent %q", spec.parent)
+	}
+	d := &Detail{r: r, id: id, about: item}
+	r.Instance(id, Parent(spec.parent), Kind(spec.noun)).Component = d
+	return d, nil
+}
+
+// Detail returns the detail an instance fronts, or nil.
+func (r *Runtime) Detail(id string) *Detail {
+	if inst := r.Instances[id]; inst != nil {
+		if d, ok := inst.Component.(*Detail); ok {
+			return d
+		}
+	}
+	return nil
+}
+
+// ID is the detail's instance id.
+func (d *Detail) ID() string { return d.id }
+
+// Window returns the lines of text the detail shows in a width by height
+// window (text wrapped to width first when width > 0, so a line is a row
+// on screen) and the position marker, "12–40 / 300", when the text
+// overflows the window ("" when it fits).
+func (d *Detail) Window(text string, width, height int) (body, marker string) {
+	d.sync()
+	text = strings.ReplaceAll(text, "\t", "    ")
+	if width > 0 {
+		text = ansi.Wrap(text, width, "")
+	}
+	lines := strings.Split(text, "\n")
+	if text == "" {
+		lines = nil
+	}
+	d.total, d.height = len(lines), max(0, height)
+	d.offset = d.clamp(d.offset)
+	end := min(len(lines), d.offset+d.height)
+	body = strings.Join(lines[d.offset:end], "\n")
+	return body, d.Marker()
+}
+
+// Marker is the position marker of the last Window: first and last
+// visible lines and the total, "12–40 / 300", or "" when the text fits.
+func (d *Detail) Marker() string {
+	if !d.Overflows() {
+		return ""
+	}
+	return fmt.Sprintf("%d–%d / %d", d.offset+1, min(d.total, d.offset+d.height), d.total)
+}
+
+// Overflows reports whether the last Window had more lines than it showed.
+func (d *Detail) Overflows() bool { return d.height > 0 && d.total > d.height }
+
+// Offset is the first visible line, from 0.
+func (d *Detail) Offset() int { return d.offset }
+
+// Item is the item the offset belongs to.
+func (d *Detail) Item() string { return d.item }
+
+// Scroll moves the window by lines (down when positive), clamped to the
+// text the last Window measured, and returns the new offset. A new item
+// starts at the top first.
+func (d *Detail) Scroll(lines int) int {
+	if d.sync() {
+		// The new item's text is not measured yet: scroll freely, the
+		// next Window clamps.
+		d.offset = max(0, lines)
+		return d.offset
+	}
+	d.offset = d.clamp(d.offset + lines)
+	return d.offset
+}
+
+// sync starts a new item at the top and reports whether it was new.
+func (d *Detail) sync() bool {
+	if d.about == nil {
+		return false
+	}
+	if item := d.about(); item != d.item {
+		d.item, d.offset = item, 0
+		return true
+	}
+	return false
+}
+
+func (d *Detail) clamp(offset int) int {
+	return min(max(0, offset), max(0, d.total-d.height))
+}
+
+// pageDetail is the first detail on the page holding focus, else nil.
+func (r *Runtime) pageDetail(focus string) *Detail {
+	page := ""
+	for _, id := range r.Ancestry(focus) {
+		if r.PageOf(id) != nil {
+			page = id
+			break
+		}
+	}
+	if page == "" {
+		return nil
+	}
+	var walk func(id string) *Detail
+	walk = func(id string) *Detail {
+		for _, child := range r.Children(id) {
+			if d, ok := child.Component.(*Detail); ok {
+				return d
+			}
+			if d := walk(child.ID); d != nil {
+				return d
+			}
+		}
+		return nil
+	}
+	return walk(page)
+}
+
+// detailScrolls is the guard of the J/K rows: no modal is open, the page
+// holding the focus has a detail that overflows, and the focus is not in
+// that detail.
+func detailScrolls(r *Runtime, ev KeyEvent) bool {
+	if r.TopModal() != "" {
+		return false
+	}
+	d := r.pageDetail(ev.Focus)
+	if d == nil || !d.Overflows() {
+		return false
+	}
+	for _, id := range r.Ancestry(ev.Focus) {
+		if id == d.id {
+			return false
+		}
+	}
+	return true
+}
+
+func registerDetail(r *Runtime) {
+	r.Define(detailNoun)
+	r.DefineGuard("detail-scrolls", detailScrolls)
+	r.Register(Operation{Verb: "scroll", Noun: detailNoun, Motion: true, Description: "Scroll the page's detail by lines times count without moving the focus",
+		Parameters: map[string]Parameter{
+			"lines": {Type: "integer", Description: "Lines to move, down when positive (default 1)"},
+			"count": {Type: "integer", Description: "Repeat count (default 1)"},
+			"id":    {Type: "string", Description: "The detail instance (default the first detail on the focused page)"},
+		}, Result: "detail offset", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+			d := r.Detail(StringArg(a, "id", ""))
+			if StringArg(a, "id", "") == "" {
+				d = r.pageDetail(r.BaseFocus())
+			}
+			if d == nil {
+				return nil, errors.New("no detail on this page")
+			}
+			return d.Scroll(IntArg(a, "lines", 1) * max(1, IntArg(a, "count", 1))), nil
+		}})
+	// J and K on app, so every page has them and an inner noun's J or K
+	// (the outline's moves) answers first. One hint row: J reads
+	// "J/K detail" while the detail overflows; K stays off the footer.
+	scroll := func(lines int) Binding {
+		return Do(detailNoun+".scroll", Arguments{"lines": lines}).FromPayload("count", SourceCount).Guard("detail-scrolls")
+	}
+	r.Define("app").Mode("normal").
+		Bind("J", scroll(1).Hinted("J/K detail")).
+		Bind("K", scroll(-1).Hide())
+}

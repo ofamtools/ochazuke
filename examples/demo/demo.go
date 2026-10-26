@@ -18,8 +18,20 @@ import (
 // fresh runtime. None of these page names are required by the framework.
 func New() *ochazuke.Model {
 	r := ochazuke.NewRuntime()
-	for _, id := range []string{"overview", "playground", "commands", "appearance", "help"} {
+	for _, id := range []string{"overview", "playground", "commands", "appearance", "library", "help"} {
 		r.Instance(id)
+	}
+	r.Define("entry")
+	entries, err := r.AddList("library/entries", libraryItems(), ochazuke.Parent("library"))
+	if err != nil {
+		panic(err)
+	}
+	detail, err := r.AddDetail("library/detail", func() string {
+		selected, _ := entries.Selected()
+		return selected.ID
+	}, ochazuke.Parent("library"))
+	if err != nil {
+		panic(err)
 	}
 	r.Instance("agent", ochazuke.Parent("playground"))
 	for _, item := range []struct {
@@ -52,6 +64,7 @@ func New() *ochazuke.Model {
 		{"playground", "Playground", "directory", func(r *ochazuke.Runtime, w, h int) ochazuke.Block { return demoPlayground(m, w, h, lastNoun) }},
 		{"commands", "Commands", "commands", func(r *ochazuke.Runtime, w, h int) ochazuke.Block { return ochazuke.Text(demoCommands(m, w)) }},
 		{"appearance", "Appearance", "appearance", func(r *ochazuke.Runtime, w, h int) ochazuke.Block { return ochazuke.Text(demoAppearance(m, w)) }},
+		{"library", "Library", "library/entries", func(r *ochazuke.Runtime, w, h int) ochazuke.Block { return demoLibrary(m, entries, detail, w, h) }},
 	} {
 		if _, err := r.AddPage(spec.id, spec.title, spec.render, ochazuke.Focus(spec.focus)); err != nil {
 			panic(err)
@@ -279,6 +292,67 @@ func demoAppearance(m *ochazuke.Model, width int) string {
 		s.Accent.Render("t") + " cycle theme    " + s.Accent.Render("d") + " toggle density\n\n" +
 		s.FocusedPanel.Width(max(1, width-2)).Render("Focused surface\n"+s.Muted.Render("Muted context stays readable.")+"  "+s.Badge.Render("NORMAL")) + "\n\n" +
 		s.Muted.Render("Palette: set → appearance\nCLI: appearance set --json '{\"theme\":\"mono\",\"density\":\"compact\"}'")
+}
+
+// libraryEntries are the Library page's rows and the long text each one's
+// detail shows.
+var libraryEntries = []struct{ id, title, text string }{
+	{"pages", "Pages", "A page is an instance under app. It remembers its focus and mode while another page is open, and its renderer draws the body for the cell bounds it is given."},
+	{"lists", "Lists", "List rows are instances of their nouns. The focused row's noun decides what keys mean, so a list of tasks and a list of files answer different verbs to the same key."},
+	{"modals", "Modals", "A modal opens over the focus and gives it back when it closes. Keys inside a modal never reach the page beneath it, and the page stays drawn, dimmed, behind it."},
+	{"details", "Details", "A detail is the text beside a list about its selected row. J and K scroll it a line while the list keeps the focus; counts work, so 10J moves ten lines. A new row starts at the top."},
+}
+
+func libraryItems() []ochazuke.ListItem {
+	items := make([]ochazuke.ListItem, 0, len(libraryEntries))
+	for _, e := range libraryEntries {
+		items = append(items, ochazuke.ListItem{ID: e.id, Label: e.title, Noun: "entry"})
+	}
+	return items
+}
+
+// libraryText is a long detail: the entry's summary, then numbered notes,
+// so every entry overflows a terminal-sized panel.
+func libraryText(id string) string {
+	for _, e := range libraryEntries {
+		if e.id != id {
+			continue
+		}
+		var b strings.Builder
+		b.WriteString(strings.ToUpper(e.title) + "\n\n" + e.text + "\n")
+		for i := 1; i <= 60; i++ {
+			fmt.Fprintf(&b, "\n%2d. %s note %d.", i, e.title, i)
+		}
+		return b.String()
+	}
+	return ""
+}
+
+// demoLibrary draws the entries on the left and the selected entry's
+// detail on the right (stacked below 72 columns), the detail's position
+// marker in its panel title when it overflows.
+func demoLibrary(m *ochazuke.Model, entries *ochazuke.List, detail *ochazuke.Detail, width, height int) ochazuke.Block {
+	layout := ochazuke.Layout{Styles: ochazuke.NewStyles(*m.Appearance)}
+	listPanel := func(w, h int) string {
+		cw, ch := ochazuke.PanelContentSize(w, h)
+		return layout.Panel("Entries", entries.View(cw, ch), w, h, entries.Focused())
+	}
+	detailPanel := func(w, h int) string {
+		cw, ch := ochazuke.PanelContentSize(w, h)
+		selected, _ := entries.Selected()
+		body, marker := detail.Window(libraryText(selected.ID), cw, ch)
+		title := "Detail"
+		if marker != "" {
+			title += " · " + marker
+		}
+		return layout.Panel(title, body, w, h, false)
+	}
+	if width >= 72 {
+		left := (width - 1) * 2 / 5
+		return ochazuke.Text(lipgloss.JoinHorizontal(lipgloss.Top, listPanel(left, height), " ", detailPanel(width-left-1, height)))
+	}
+	top := min(len(libraryEntries)+2, height/2)
+	return ochazuke.Text(listPanel(width, top) + "\n" + detailPanel(width, height-top))
 }
 
 // focusOf is the instance a handler context addresses.

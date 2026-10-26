@@ -95,6 +95,12 @@ A table is a `List` with columns, not another widget, so focus, selection, marks
 
 A noun declares its table with `NounBuilder.Columns(...)` (`Noun.Columns`): data only, never applied by the runtime. The CLI catalog carries it as `columns` on the noun (`cli.CatalogNoun.Columns`), state rows bring `cells` (`cli.Row.Cells`), and a host that mounts the noun's rows passes the columns to `Columns` (nabe does). Stories: `cmd/o-story/stories/tables/` (wide, narrow with dropped columns, truncation, empty, spill between a table and a plain list).
 
+### Details
+
+A detail is the read-only text beside (or below) a list about its selected row, which scrolls while the list keeps the focus. `AddDetail(id, item, Parent(page))` registers an instance of the `detail` noun whose component (`Detail`, detail.go) holds the offset, the item it belongs to and the last window's size; `Runtime` gains no field. `item` is a func naming what the detail shows now (the selected row's id). The page's `Render` draws it with `Detail.Window(text, width, height)`: the text is wrapped to the width, the window cut at the offset, and the marker (`12–40 / 300`) returned when it overflows, for the app to put in its panel title. A new item starts at the top, checked on every `Window` and every scroll, so `j` then `J` typed before the next frame scrolls the new row from its top; the same item keeps its offset while its text refreshes, clamped to the new length. A detail is not a focus stop.
+
+`J` and `K` are `app` rows in normal mode running `detail.scroll {lines: ±1}` with the count (`10J`), guarded by `detail-scrolls`: no modal is open, the page holding the focus has a detail (its first, in tree order) that overflowed in the last frame, and the focus is not inside it. Being on `app`, they are the same key on every page and stand aside for any inner noun that binds `J`/`K` (the outline's `outline.move`). `detail.scroll` is a motion, so it stays off the footer, except the `J` row's own hint, `J/K detail`, shown while the guard holds; `K` is hidden. Stories: `cmd/o-story/stories/detail/`.
+
 ## 5. Focus: stops, regions, rows
 
 | term | what it is | decided by |

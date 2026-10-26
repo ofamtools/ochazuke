@@ -1,0 +1,19 @@
+{
+  "name": "detail: the outline's J/K still move its rows, the detail stays put",
+  "area": "detail",
+  "width": 100,
+  "page": {
+    "trees": [
+      {"id": "t", "editable": true, "nodes": [{"id": "n1", "label": "one"}, {"id": "n2", "label": "two"}, {"id": "n3", "label": "three"}]}
+    ],
+    "lists": [{"id": "a", "rows": 2}],
+    "order": ["t", "a"],
+    "detail": {"lines": 50}
+  },
+  "script": ["J", "K", "}", "J"],
+  "expect": [
+    {"after": 1, "focus": "n1", "order": ["two", "one", "three"], "contains": ["detail 1–"]},
+    {"after": 2, "focus": "n1", "order": ["one", "two", "three"], "contains": ["detail 1–"]},
+    {"focus": "a1", "contains": ["detail 2–"]}
+  ]
+}

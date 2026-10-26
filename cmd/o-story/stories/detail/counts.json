@@ -1,0 +1,18 @@
+{
+  "name": "detail: counts scroll many lines (10J, 3K)",
+  "area": "detail",
+  "width": 60,
+  "height": 12,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [{"id": "a", "rows": 4}],
+    "detail": {"lines": 50}
+  },
+  "script": ["1", "0", "J", "3", "K", "9", "9", "J"],
+  "expect": [
+    {"after": 3, "focus": "a1", "mode": "normal", "contains": ["detail 11–21 / 50", "a1 line 11"]},
+    {"after": 5, "contains": ["detail 8–18 / 50"]},
+    {"focus": "a1", "contains": ["detail 40–50 / 50", "a1 line 50"]}
+  ]
+}

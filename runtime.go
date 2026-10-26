@@ -205,6 +205,7 @@ func NewRuntime() *Runtime {
 	registerConfirm(r)
 	registerTerminal(r)
 	registerFocus(r)
+	registerDetail(r)
 	registerQuery(r)
 	registerHistory(r)
 	// A modal answers esc in normal mode; inputs, pending modes and the
@@ -281,6 +282,7 @@ var motionOps = map[string]bool{
 	"surface.scroll": true, "page.next": true, "page.previous": true,
 	"input.move": true, "picker.move": true, "palette.move": true,
 	"yank-history.move": true, "grid.move": true, "grid.goto": true,
+	"detail.scroll": true,
 }
 
 // Register adds an operation. An operation with App set is of kind
