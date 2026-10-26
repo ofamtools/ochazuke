@@ -156,3 +156,5 @@ Version split matters. Only `gmtm` is still on Bubble Tea v1. This repo and ever
 - `github.com/charmbracelet/x/vt`: in-process terminal emulator (gmtm). `x/xpty`: cross-platform PTY (tuios).
 - `github.com/charmbracelet/colorprofile`: detects terminal color depth and downsamples.
 - `github.com/charmbracelet/fang`: styled help and errors for Cobra CLIs (tuios-session-browser).
+
+UX review loop: the `ux-reviewer` (read-only punch list against `docs/UX-RULES.md`) and `ux-applier` agents live in `~/hub/ai/agents/` and are linked into `~/.claude/agents/`, so they work from any directory; this repo keeps the rules (`docs/UX-RULES.md`) and the stories they use.
