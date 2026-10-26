@@ -34,22 +34,24 @@ type ListItem struct {
 // List owns flat selection, marks and scrolling on the runtime's event loop.
 // Focus sits on the selected row when there is one, else on the list.
 type List struct {
-	r        *Runtime
-	id       string
-	all      []ListItem // every row, as SetItems gave them
-	items    []ListItem // the rows shown: all, or the ones the filter lets through (list_filter.go)
-	query    string     // the filter query; "" shows every row
-	hay      []string   // each row's filter text (filterHay), built on the first filter; nil after SetItems
-	back     string     // the row selected when the filter line opened, which filter-clear selects again
-	selected int
-	offset   int
-	marks    map[string]bool
-	noSpill  bool     // NoSpill: list.move clamps at the edges instead of spilling
-	noMarks  bool     // NoMarks: a read-only view, its rows take no marks
-	columns  []Column // Columns: a table; none draws the labels
-	widest   []int    // a table's widest cell per column over the items (cellWidths); nil after SetItems
-	window   int      // rows the last frame showed (list_motions.go's page); 0 before any frame
-	windowed bool     // the last frame windowed the rows (more rows than fit)
+	r         *Runtime
+	id        string
+	all       []ListItem // every row, as SetItems gave them
+	items     []ListItem // the rows shown: all, or the ones the filter lets through (list_filter.go)
+	query     string     // the filter query; "" shows every row
+	hay       []string   // each row's filter text (filterHay), built on the first filter; nil after SetItems
+	back      string     // the row selected when the filter line opened, which filter-clear selects again
+	selected  int
+	offset    int
+	marks     map[string]bool
+	noSpill   bool     // NoSpill: list.move clamps at the edges instead of spilling
+	noMarks   bool     // NoMarks: a read-only view, its rows take no marks
+	columns   []Column // Columns: a table; none draws the labels
+	widest    []int    // a table's widest cell per column over the items (cellWidths); nil after SetItems
+	window    int      // rows the last frame showed (list_motions.go's page); 0 before any frame
+	windowed  bool     // the last frame windowed the rows (more rows than fit)
+	colOffset int      // a table's column offset (table_columns.go); 0 unscrolled
+	colWidth  int      // the width the last frame laid the table's columns out at
 }
 
 // NewList is AddList for callers that hold the runtime as a value.
@@ -333,6 +335,7 @@ func (l *List) state() map[string]any {
 	}
 	if len(l.columns) > 0 {
 		out["columns"] = slices.Clone(l.columns)
+		out["columnOffset"] = l.colOffset
 	}
 	return out
 }

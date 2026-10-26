@@ -177,6 +177,11 @@ tiers above them. When the two disagree, fix one in the same commit.
   selection; they clamp at the list's edges and never spill; a row noun's
   own binding of the key answers first. Story: `lists/page-motions.json`;
   tests `TestListGotoEndsAndCounts`, `TestListPageMotionsClampWithoutSpilling`.
+- **R5.9** A table that hides a column scrolls its columns: `$` shows the
+  last column, `^` and `0` (without a count) go back, `z l`/`z h` move one
+  column; the first column stays; the keys do not answer (and `z` does not
+  wait) on a table that fits or a plain list. Story:
+  `tables/column-motions.json`; tests `TestColumnMotions*`.
 
 ### R6. Chrome: footer, hints, help, ticker, notices
 

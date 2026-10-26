@@ -72,6 +72,7 @@ func (l *List) page(rows int) {
 }
 
 func registerListMotions(r *Runtime) {
+	registerColumnMotions(r)
 	goTo := func(position string) Binding {
 		return Do("list.goto", Arguments{"position": position}).FromPayload("row", SourceLine)
 	}

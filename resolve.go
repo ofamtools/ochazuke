@@ -293,7 +293,10 @@ func (r *Runtime) lookup(lv level, mode string, exclusive bool, prefix, sequence
 						exact = row
 					}
 					candidates = append(candidates, candidate{row, -1})
-				} else if strings.HasPrefix(row.Keys, sequence+" ") {
+				} else if strings.HasPrefix(row.Keys, sequence+" ") && !isPrefixCancel(*row) {
+					// A prefix's generated cancel alone never makes it
+					// wait: with every sequence on the prefix guarded off,
+					// the key answers as if none were bound.
 					longer = true
 				}
 				continue

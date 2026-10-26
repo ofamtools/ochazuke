@@ -101,10 +101,12 @@ func cellWidths(rows [][]string, n int) []int {
 	return out
 }
 
-// tableLayoutOf is tableLayout given each column's widest cell (cellWidths).
-func tableLayoutOf(cols []Column, widest []int, width int) (shown, widths []int) {
-	natural := make([]int, len(cols))
-	least := make([]int, len(cols))
+// columnSizes is each column's natural width (its widest cell or title,
+// Width when fixed, capped by Max) and its least width before it drops
+// (Width, else Min, else defaultColumnMin or its title's width).
+func columnSizes(cols []Column, widest []int) (natural, least []int) {
+	natural = make([]int, len(cols))
+	least = make([]int, len(cols))
 	for i, c := range cols {
 		title := ansi.StringWidth(c.Title)
 		natural[i] = max(title, widest[i])
@@ -121,6 +123,14 @@ func tableLayoutOf(cols []Column, widest []int, width int) (shown, widths []int)
 		}
 		least[i] = max(1, least[i])
 		natural[i] = max(1, natural[i])
+	}
+	return natural, least
+}
+
+// tableLayoutOf is tableLayout given each column's widest cell (cellWidths).
+func tableLayoutOf(cols []Column, widest []int, width int) (shown, widths []int) {
+	natural, least := columnSizes(cols, widest)
+	for i := range cols {
 		shown = append(shown, i)
 	}
 	need := func() int {
@@ -139,15 +149,24 @@ func tableLayoutOf(cols []Column, widest []int, width int) (shown, widths []int)
 		}
 		shown = slices.Delete(shown, drop, drop+1)
 	}
-	widths = make([]int, len(shown))
+	return shown, growColumns(shown, natural, least, width)
+}
+
+// growColumns gives the shown columns their least widths, then the room
+// left grows the flexible ones toward their natural width, one cell at a
+// time from the left; a lone column wider than width is cut to it.
+func growColumns(shown, natural, least []int, width int) []int {
+	widths := make([]int, len(shown))
+	need := tableGap * (len(shown) - 1)
 	for j, i := range shown {
 		widths[j] = least[i]
+		need += least[i]
 	}
 	if len(shown) == 1 && widths[0] > width {
 		widths[0] = max(1, width)
-		return shown, widths
+		return widths
 	}
-	room := width - need()
+	room := width - need
 	for room > 0 {
 		grew := false
 		for j, i := range shown {
@@ -161,7 +180,7 @@ func tableLayoutOf(cols []Column, widest []int, width int) (shown, widths []int)
 			break
 		}
 	}
-	return shown, widths
+	return widths
 }
 
 // tableLine lays one row's cells out at the widths: each cut with "…" at
@@ -200,7 +219,7 @@ func (l *List) tableView(width, height int) (string, int, int) {
 	for i, c := range l.columns {
 		titles[i] = modalLabel(c.Title)
 	}
-	shown, widths := tableLayoutOf(l.columns, l.cellWidths(), max(1, width-mark))
+	shown, widths := l.columnLayout(max(1, width-mark))
 	var lines []string
 	if header {
 		head := strings.Repeat(" ", mark) + tableLine(l.columns, titles, shown, widths)

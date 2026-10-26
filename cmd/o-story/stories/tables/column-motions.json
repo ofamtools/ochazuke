@@ -1,0 +1,152 @@
+{
+  "name": "column motions: $ shows the last column, z h / z l one column, ^ and 0 back; the first column stays",
+  "area": "tables",
+  "width": 44,
+  "height": 6,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "pane"
+          },
+          {
+            "title": "harness",
+            "priority": 2
+          },
+          {
+            "title": "state",
+            "priority": 1
+          },
+          {
+            "title": "cwd",
+            "min": 8,
+            "priority": 3
+          },
+          {
+            "title": "branch",
+            "priority": 4
+          }
+        ],
+        "items": [
+          {
+            "id": "t1",
+            "label": "work/claude",
+            "cells": [
+              "work/claude",
+              "claude-code",
+              "idle",
+              "~/proj/matomeru",
+              "main"
+            ]
+          },
+          {
+            "id": "t2",
+            "label": "work/codex",
+            "cells": [
+              "work/codex",
+              "codex",
+              "working",
+              "~/proj/ochazuke",
+              "feat/list-motions"
+            ]
+          },
+          {
+            "id": "t3",
+            "label": "main/shell",
+            "cells": [
+              "main/shell",
+              "",
+              "",
+              "~/hub",
+              "docs/readme-header"
+            ]
+          },
+          {
+            "id": "t4",
+            "label": "9332c352/review",
+            "cells": [
+              "9332c352/review",
+              "claude-code",
+              "needs_input",
+              "~/proj/nabe",
+              "prototype/picker-lab"
+            ]
+          }
+        ],
+        "selected": 1
+      }
+    ]
+  },
+  "script": [
+    "$",
+    "z",
+    "h",
+    "z",
+    "l",
+    "0",
+    "$",
+    "^",
+    "$"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "contains": [
+        "branch",
+        "feat/list\u2026",
+        "work/codex"
+      ],
+      "lacks": [
+        "harness"
+      ]
+    },
+    {
+      "after": 3,
+      "contains": [
+        "harness",
+        "work/codex"
+      ],
+      "lacks": [
+        "branch"
+      ]
+    },
+    {
+      "after": 5,
+      "contains": [
+        "branch"
+      ],
+      "lacks": [
+        "harness"
+      ]
+    },
+    {
+      "after": 6,
+      "contains": [
+        "harness"
+      ],
+      "lacks": [
+        "branch"
+      ]
+    },
+    {
+      "after": 7,
+      "contains": [
+        "branch"
+      ],
+      "focus": "t2"
+    },
+    {
+      "after": 8,
+      "contains": [
+        "harness"
+      ],
+      "lacks": [
+        "branch"
+      ]
+    }
+  ]
+}
