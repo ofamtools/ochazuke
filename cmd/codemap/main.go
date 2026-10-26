@@ -86,7 +86,7 @@ func subpackages(root string) []string {
 
 // mapDir parses one package directory: every file's entry, the non-test
 // file names in order, and the owner file of each declared name.
-func mapDir(dir string) (map[string]*fileInfo, []string, map[string]string) {
+func mapDir(dir string) (map[string]*fileInfo, []string, map[string][]string) {
 	fset := token.NewFileSet()
 	pkgs, err := parser.ParseDir(fset, dir, func(fi os.FileInfo) bool {
 		return strings.HasSuffix(fi.Name(), ".go")
@@ -107,24 +107,28 @@ func mapDir(dir string) (map[string]*fileInfo, []string, map[string]string) {
 			astFiles[name] = f
 		}
 	}
-	// owner index: declared name -> file (non-test only)
-	owner := map[string]string{}
-	for _, fi := range files {
+	// owner index: declared name -> the non-test files declaring it, in name
+	// order. A name has several owners when build-constrained files declare
+	// it once per platform (pty_unix.go, pty_windows.go); ParseDir ignores
+	// build tags, so every variant is here and each one is credited.
+	owner := map[string][]string{}
+	for _, name := range sortedKeys(files) {
+		fi := files[name]
 		if fi.isTest {
 			continue
 		}
-		for n := range fi.declared {
-			owner[n] = fi.name
+		for _, n := range sortedKeys(fi.declared) {
+			owner[n] = append(owner[n], name)
 		}
 	}
-	for name, f := range astFiles {
-		fi := files[name]
+	for _, name := range sortedKeys(astFiles) {
+		f, fi := astFiles[name], files[name]
 		ast.Inspect(f, func(n ast.Node) bool {
 			id, ok := n.(*ast.Ident)
-			if !ok {
+			if !ok || fi.declared[id.Name] {
 				return true
 			}
-			if o, ok := owner[id.Name]; ok && o != name {
+			for _, o := range owner[id.Name] {
 				fi.refs[o]++
 			}
 			return true
@@ -178,14 +182,27 @@ func writeFiles(b *bytes.Buffer, files map[string]*fileInfo, names []string, pre
 
 // symbols lists "- Type -> file" for every exported type, qualified for a
 // subpackage.
-func symbols(files map[string]*fileInfo, owner map[string]string, qual, prefix string) []string {
+func symbols(files map[string]*fileInfo, owner map[string][]string, qual, prefix string) []string {
 	var syms []string
-	for n, o := range owner {
-		if ast.IsExported(n) && isType(files[o], n) {
-			syms = append(syms, fmt.Sprintf("- %s%s -> %s%s", qual, n, prefix, o))
+	for _, n := range sortedKeys(owner) {
+		for _, o := range owner[n] {
+			if ast.IsExported(n) && isType(files[o], n) {
+				syms = append(syms, fmt.Sprintf("- %s%s -> %s%s", qual, n, prefix, o))
+			}
 		}
 	}
 	return syms
+}
+
+// sortedKeys returns a map's keys in order, so nothing the map holds reaches
+// the output in Go's random iteration order.
+func sortedKeys[V any](m map[string]V) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func collect(fi *fileInfo, f *ast.File) {
