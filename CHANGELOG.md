@@ -68,6 +68,7 @@ Draft, from the `integrate/next` branch (seven branches on `3133e23` plus fixes)
 ### Small gaps (`fix/small-gaps`)
 
 - `Result.Label(label)` names one job of a verb (`Pending(work).Label("claude")`): `JobInfo.Label` in `jobs.list`, the ticker entry reads `noun.verb label state`, the shell's stderr line `job #N noun.verb label STATE`. Story `ticker/job-label`.
+- `cli.CatalogDoc.ListColumns(noun)` and `CatalogDoc.RowSource(noun)`: the columns a host's list of a catalog noun's rows draws, following the row source verb (`rows`, else `list`) to the noun its rows answer to. A host mounts with `ochazuke.Columns(doc.ListColumns(noun)...)`; this is nabe's `columnsOf`/`rowSource`, which nabe can now drop.
 
 ### Also since v0.1.1
 

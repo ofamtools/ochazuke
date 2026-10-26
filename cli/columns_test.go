@@ -85,3 +85,49 @@ func TestRowCellsRoundTrip(t *testing.T) {
 		t.Fatalf("cells %v %v", rows[0].Cells, rows[1].Cells)
 	}
 }
+
+// TestCatalogListColumns: a host's list of a noun's rows takes the columns
+// of the noun its row source's rows answer to; a noun without a row source
+// or without columns gets a plain list.
+func TestCatalogListColumns(t *testing.T) {
+	r := ochazuke.NewRuntime()
+	noop := func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }
+	cols := []ochazuke.Column{{Title: "pane"}, {Title: "state", Priority: 1}}
+	r.Define("pane").Columns(cols...).Verb("list", noop, "List panes")
+	r.Define("worktree").Columns(ochazuke.Column{Title: "ignored"}).Verb("panes", noop, "Panes of a worktree").Rows("pane")
+	r.Define("tool").Columns(ochazuke.Column{Title: "verb rows"}).Verb("run", noop, "Run")
+	r.Define("plain").Verb("list", noop, "List plain rows")
+	data, err := Catalog(r, "tool", "v1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc CatalogDoc
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	for noun, want := range map[string][]ochazuke.Column{"pane": cols, "worktree": cols, "tool": nil, "plain": nil, "missing": nil} {
+		if got := doc.ListColumns(noun); !slices.Equal(got, want) {
+			t.Errorf("ListColumns(%s) = %+v, want %+v", noun, got, want)
+		}
+	}
+	if verb, rows := doc.RowSource("worktree"); verb != "panes" || rows != "pane" {
+		t.Errorf("RowSource(worktree) = %s, %s", verb, rows)
+	}
+	// Mounted with the columns, a list draws the header; none, a plain list.
+	host := ochazuke.NewRuntime()
+	host.Define("pane")
+	list, err := host.AddList("panes", []ochazuke.ListItem{{ID: "p1", Label: "one", Noun: "pane", Cells: []string{"one", "idle"}}}, ochazuke.Columns(doc.ListColumns("worktree")...))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := list.Columns(); !slices.Equal(got, cols) {
+		t.Fatalf("mounted list columns = %+v", got)
+	}
+	plain, err := host.AddList("tools", nil, ochazuke.Columns(doc.ListColumns("tool")...))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plain.Columns() != nil {
+		t.Fatalf("a verb-row list got columns: %+v", plain.Columns())
+	}
+}

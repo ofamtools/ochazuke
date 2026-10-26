@@ -52,8 +52,10 @@ type CatalogDoc struct {
 // modal-only noun from its data without knowing its name. Columns are the
 // table columns a list of the noun's rows draws (ochazuke.Noun.Columns,
 // declared with NounBuilder.Columns), in order; each row's cells (Row.Cells)
-// follow that order. A host passes them to ochazuke.Columns when it mounts
-// the noun's rows; a noun without them draws its labels.
+// follow that order. A host mounting a list of a noun's rows passes
+// CatalogDoc.ListColumns(noun) to ochazuke.Columns (it follows the noun's
+// row source to the noun its rows answer to); a noun without them draws its
+// labels.
 type CatalogNoun struct {
 	Name    string            `json:"name"`
 	Pin     string            `json:"pin,omitempty"`
@@ -92,6 +94,58 @@ type CatalogVerb struct {
 type CatalogPage struct {
 	ID    string `json:"id"`
 	Title string `json:"title"`
+}
+
+// RowSourceVerb is the verb whose answer is a noun's own rows when none of
+// the noun's verbs declares Rows.
+const RowSourceVerb = "list"
+
+// RowSource is the verb whose JSON answer lists a noun's rows and the noun
+// those rows answer to: the first verb declaring Rows (CatalogVerb.Rows),
+// else a verb named list (RowSourceVerb), whose rows are the noun's own.
+// Both are "" when the noun has neither or is not in the catalog.
+func (d CatalogDoc) RowSource(noun string) (verb, rows string) {
+	n, ok := d.noun(noun)
+	if !ok {
+		return "", ""
+	}
+	for _, v := range n.Verbs {
+		if v.Rows != "" {
+			return v.Name, v.Rows
+		}
+	}
+	for _, v := range n.Verbs {
+		if v.Name == RowSourceVerb {
+			return v.Name, n.Name
+		}
+	}
+	return "", ""
+}
+
+// ListColumns is the table a host's list of noun's rows draws: the
+// declared columns (CatalogNoun.Columns) of the noun its row source's rows
+// answer to (RowSource), in order. A noun without a row source (a host
+// lists its verbs instead) or whose rows declare no columns gets none, a
+// plain list. Mount a list with ochazuke.Columns(doc.ListColumns(noun)...);
+// no columns leaves it plain, so the call needs no check.
+func (d CatalogDoc) ListColumns(noun string) []ochazuke.Column {
+	verb, rows := d.RowSource(noun)
+	if verb == "" {
+		return nil
+	}
+	if n, ok := d.noun(rows); ok {
+		return slices.Clone(n.Columns)
+	}
+	return nil
+}
+
+func (d CatalogDoc) noun(name string) (CatalogNoun, bool) {
+	for _, n := range d.Nouns {
+		if n.Name == name {
+			return n, true
+		}
+	}
+	return CatalogNoun{}, false
 }
 
 // Catalog describes r as indented JSON: every operation grouped by noun
