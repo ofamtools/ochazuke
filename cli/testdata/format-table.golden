@@ -1,0 +1,19 @@
+$ tool pane list --format table
+pane         state        cwd
+work/claude  idle         ~/proj/ochazuke
+notes        needs_input  ~/hub/o-plans/plans
+bare row
+$ tool item list --format table
+id  label  path   size  tags   data.id
+a   alpha  /a, b    12  ["x"]
+b   beta   /b|c   3456         dup
+$ tool item none --format table
+$ tool thing state --format table
+pane
+pane         state  cwd
+work/claude  idle   ~/proj
+notes        done   ~
+
+item
+id  label  note
+a   alpha  line one line "two"

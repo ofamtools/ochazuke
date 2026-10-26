@@ -34,7 +34,7 @@ import (
 )
 
 // Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE]
-// [--yes]: one registered operation in this process through the runtime's
+// [--format F] [--yes]: one registered operation in this process through the runtime's
 // CLI entry (Runtime.HandleCall, recorded with the history source "cli"),
 // the same registry the keys and the palette dispatch into. A command's
 // words are the operation key, its --ARG flags are typed by the operation's
@@ -69,6 +69,12 @@ import (
 // runs as given and, if it fails, the error lists them to pass as --target;
 // with none it runs as given.
 //
+// The result prints as JSON unless --format names another of Formats:
+// table lays a tabular result (an array of objects, a list or state verb's
+// rows) out in the columns its noun declares (see Formats and tablesOf),
+// cut to the terminal's width only when Stdout is a terminal (Width). A
+// result that is not tabular prints as JSON with a note on Stderr.
+//
 // Errors are returned for oden.Report: every failure is exit status 1
 // (oden.ExitCode of a plain error).
 type Shell struct {
@@ -93,6 +99,10 @@ type Shell struct {
 	// without a screen removes the terminals an operation attached); its
 	// errors join the command's.
 	Settle func() error
+	// Width is the width --format table cuts to: 0 (the default) is the
+	// terminal's width when Stdout is a terminal and no cut otherwise; a
+	// negative Width never cuts.
+	Width int
 
 	in *bufio.Reader
 }
@@ -105,7 +115,7 @@ func New(r *ochazuke.Runtime, bin string, stdin io.Reader, stdout, stderr io.Wri
 // DefaultUsage is the usage line of a bin with no global flags of its own,
 // followed by UsageHint.
 func DefaultUsage(bin string) string {
-	return "usage: " + bin + " NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--yes]\n" + UsageHint(bin)
+	return "usage: " + bin + " NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--format json|table] [--yes]\n" + UsageHint(bin)
 }
 
 // UsageHint is the line under a usage line that points at oden's help: the
@@ -114,7 +124,8 @@ func UsageHint(bin string) string {
 	return "(" + bin + " help lists the commands; " + bin + " NOUN --help lists a noun's verbs and parameters)"
 }
 
-// Run executes one command and prints its result as JSON on Stdout.
+// Run executes one command and prints its result on Stdout, as JSON
+// unless --format names another format.
 func (s *Shell) Run(ctx context.Context, args []string) error {
 	if len(args) < 2 {
 		return errors.New(s.usage())
@@ -134,7 +145,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	q, yes, err := s.request(args[0], verb, args[2:])
+	q, opts, err := s.request(args[0], verb, args[2:])
 	if err != nil {
 		return err
 	}
@@ -170,7 +181,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		if top.Noun != "confirm" {
 			return fmt.Errorf("%s opened a %s modal, which needs the TUI; pass its arguments instead (%s operations list)", q.Key(), top.Noun, s.Bin)
 		}
-		if !yes && !s.accepts(top.Payload.Prompt) {
+		if !opts.yes && !s.accepts(top.Payload.Prompt) {
 			if _, err := s.call(ochazuke.Request{Verb: "pop", Noun: "modal"}); err != nil {
 				return err
 			}
@@ -208,7 +219,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	case len(launched) > 1 && len(results) > 0:
 		value = results
 	}
-	return s.print(value)
+	return s.output(q, opts.format, value)
 }
 
 // lastJob is the newest job id the runtime lists, 0 for none.
@@ -292,18 +303,29 @@ func listed(ids []string) string {
 	return fmt.Sprintf("%s and %d more", strings.Join(ids[:maxCandidates], ", "), len(ids)-maxCandidates)
 }
 
-// request builds the operation request: --target, --json and --yes are the
-// shell's; every other --NAME VALUE (or --NAME=VALUE) is an argument typed
-// by the operation's parameter of that name. --json VALUE is the arguments
-// as a JSON object; a bare --json (last, or followed by another --flag)
-// asks for JSON output, which the shell always prints, and is ignored.
-func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, bool, error) {
+// options are the shell's own flags of a command: --yes and the output
+// format.
+type options struct {
+	yes    bool
+	format string
+}
+
+// request builds the operation request: --target, --json, --format and
+// --yes are the shell's; every other --NAME VALUE (or --NAME=VALUE) is an
+// argument typed by the operation's parameter of that name. --json VALUE
+// is the arguments as a JSON object; a bare --json (last, or followed by
+// another --flag) asks for JSON output, the default, and is otherwise
+// ignored. --format VALUE (one of Formats) picks the output; with a bare
+// --json only json agrees. An operation that declares a format parameter
+// of its own takes --format as that argument, and the shell prints JSON.
+func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, options, error) {
 	q := ochazuke.Request{Noun: noun, Verb: verb, Args: ochazuke.Arguments{}}
+	var opts options
 	op, ok := s.Runtime.Operations[q.Key()]
 	if !ok {
-		return q, false, fmt.Errorf("unknown operation %q (%s %s); operations list prints them", q.Key(), noun, verb)
+		return q, opts, fmt.Errorf("unknown operation %q (%s %s); operations list prints them", q.Key(), noun, verb)
 	}
-	yes := false
+	bareJSON := false
 	var words []string
 	for i := 0; i < len(flags); i++ {
 		name, ok := strings.CutPrefix(flags[i], "--")
@@ -312,7 +334,7 @@ func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, bo
 			continue
 		}
 		if name == "" {
-			return q, false, fmt.Errorf("unexpected argument %q; %s", flags[i], s.usage())
+			return q, opts, fmt.Errorf("unexpected argument %q; %s", flags[i], s.usage())
 		}
 		name, value, inline := strings.Cut(name, "=")
 		takeValue := func() (string, error) {
@@ -327,27 +349,37 @@ func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, bo
 		}
 		switch {
 		case name == "yes":
-			yes = true
+			opts.yes = true
+			continue
+		case name == "format" && !hasParameter(op, "format"):
+			v, err := takeValue()
+			if err != nil {
+				return q, opts, err
+			}
+			if !slices.Contains(Formats, v) {
+				return q, opts, fmt.Errorf("--format %q: one of %s", v, strings.Join(Formats, ", "))
+			}
+			opts.format = v
 			continue
 		case name == "target":
 			v, err := takeValue()
 			if err != nil {
-				return q, false, err
+				return q, opts, err
 			}
 			q.Target = v
 			continue
 		case name == "json" && !inline && (i+1 >= len(flags) || strings.HasPrefix(flags[i+1], "--")):
-			// A bare --json asks for JSON output, which the shell
-			// always prints.
+			// A bare --json asks for JSON output, the default.
+			bareJSON = true
 			continue
 		case name == "json":
 			v, err := takeValue()
 			if err != nil {
-				return q, false, err
+				return q, opts, err
 			}
 			args, err := ochazuke.ParseArguments(v)
 			if err != nil {
-				return q, false, err
+				return q, opts, err
 			}
 			for k, v := range args {
 				q.Args[k] = v
@@ -356,7 +388,7 @@ func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, bo
 		}
 		p, ok := op.Parameters[name]
 		if !ok {
-			return q, false, fmt.Errorf("%s has no parameter %q", q.Key(), name)
+			return q, opts, fmt.Errorf("%s has no parameter %q", q.Key(), name)
 		}
 		if p.Type == "boolean" && !inline && (i+1 >= len(flags) || strings.HasPrefix(flags[i+1], "--")) {
 			q.Args[name] = true
@@ -364,16 +396,25 @@ func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, bo
 		}
 		v, err := takeValue()
 		if err != nil {
-			return q, false, err
+			return q, opts, err
 		}
 		if q.Args[name], err = typed(p.Type, v); err != nil {
-			return q, false, fmt.Errorf("--%s: %w", name, err)
+			return q, opts, fmt.Errorf("--%s: %w", name, err)
 		}
 	}
 	if err := positional(q, op, words); err != nil {
-		return q, false, err
+		return q, opts, err
 	}
-	return q, yes, nil
+	if bareJSON && opts.format != "" && opts.format != "json" {
+		return q, opts, fmt.Errorf("a bare --json asks for JSON output and --format %s for another; pass one (--json '{...}' passes arguments)", opts.format)
+	}
+	return q, opts, nil
+}
+
+// hasParameter reports whether op declares a parameter called name.
+func hasParameter(op ochazuke.Operation, name string) bool {
+	_, ok := op.Parameters[name]
+	return ok
 }
 
 // positional fills the parameters no flag set from words, in
