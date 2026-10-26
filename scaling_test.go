@@ -247,3 +247,38 @@ func TestTreeIndexMatchesScans(t *testing.T) {
 		}
 	}
 }
+
+// TestTableWidthsFollowTheItems checks the cached column widths: SetItems
+// remeasures them, and so does a change in the number of columns.
+func TestTableWidthsFollowTheItems(t *testing.T) {
+	r := NewRuntime()
+	r.Define("a")
+	rows := func(cells ...[]string) []ListItem {
+		out := make([]ListItem, len(cells))
+		for i, c := range cells {
+			out[i] = ListItem{ID: fmt.Sprint(i), Label: c[0], Noun: "a", Cells: c}
+		}
+		return out
+	}
+	list, err := r.AddList("l", rows([]string{"ab", "x"}), Columns(Column{Title: "A", Min: 1}, Column{Title: "B"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fresh := func() string {
+		cp := &List{r: r, id: "l", items: list.items, selected: list.selected, offset: list.offset, marks: list.marks, columns: list.columns}
+		return cp.View(40, 5)
+	}
+	check := func(step string) {
+		t.Helper()
+		if got, want := list.View(40, 5), fresh(); got != want {
+			t.Fatalf("%s: cached view\n%s\nwant\n%s", step, got, want)
+		}
+	}
+	check("first frame")
+	if err := list.SetItems(rows([]string{"a much wider cell", "x"}, []string{"c", "y"})); err != nil {
+		t.Fatal(err)
+	}
+	check("after SetItems")
+	list.SetColumns(Column{Title: "A", Min: 1}, Column{Title: "B"}, Column{Title: "C"})
+	check("after SetColumns")
+}
