@@ -127,7 +127,7 @@ func NewModel(r *Runtime) *Model {
 	defaultRow("normal", ":", Do("palette.open"))
 	defaultRow("normal", "ctrl+y", Do("yank-history.open").Hide())
 	defaultRow("normal", "?", Do("bindings.help"))
-	defaultRow("normal", "'", Do("page.pick"))
+	defaultRow("normal", "'", Do("page.pick").Guard("no-modal")) // a page opens only with no modal open
 	defaultRow("normal", "ctrl+j", Do("page.next"))
 	defaultRow("normal", "ctrl+k", Do("page.previous"))
 	defaultRow("", "ctrl+space", Do("palette.open"))

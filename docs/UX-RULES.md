@@ -219,7 +219,9 @@ tiers above them. When the two disagree, fix one in the same commit.
   Every page is reachable from the page picker (`'`, `page.pick`) in
   registration order. Story: `picker/page-picker-filter-open.json`,
   `picker/page-picker-esc.json`, `picker/page-picker-move.json`,
-  `picker/page-picker-footer.json`; ranking in `chooser_test.go`.
+  `picker/page-picker-footer.json`; ranking in `chooser_test.go`. `'`
+  answers only with no modal open (a page cannot open beneath one):
+  `picker/page-picker-not-in-modal.json`.
 
 ### R8. Terminal
 

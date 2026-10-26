@@ -170,7 +170,7 @@ Root package `ochazuke` is flat: 49 source files, 43 test files. Each entry list
 - types: ModalView, ModalBody (iface), Model, HelpRow
 - methods: Model(21), Runtime(1)
 - funcs: NewModel, BindingHints, BindingHelp, InputView, InputBlock
-- leans on: runtime.go(87), block.go(34), noun.go(31), instance.go(12)
+- leans on: runtime.go(87), block.go(34), noun.go(32), instance.go(12)
 
 ### noun.go
 
