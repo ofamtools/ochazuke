@@ -89,6 +89,31 @@ func TestHelpListsTheFocusedRowsVerbsFirst(t *testing.T) {
 	}
 }
 
+func TestHelpKeepsOwnerGroupVisibleWhileScrolling(t *testing.T) {
+	r, m := helpFixture(t)
+	widget := r.Define("widget").Mode("normal")
+	for _, key := range []string{"a", "b", "c", "d", "e", "f"} {
+		widget.Bind(key, Do("widget.open"))
+	}
+	widget.Bind("c", Do("mode.set", Arguments{"mode": "normal"}))
+	keytest.Press(m, "?")
+	for range 4 {
+		keytest.Press(m, "j")
+		bindingHelpView(r, nil, 80, 5)
+	}
+	frame := ansi.Strip(bindingHelpView(r, nil, 80, 5).Text)
+	lines := strings.Split(frame, "\n")
+	if strings.TrimSpace(lines[0]) != "widget" {
+		t.Fatalf("scrolled help lost its binding owner:\n%s", frame)
+	}
+	if !strings.Contains(strings.Join(strings.Fields(frame), " "), "> c mode.set") {
+		t.Fatalf("selected binding is not visible beneath its owner:\n%s", frame)
+	}
+	if len(lines) > 5 {
+		t.Fatalf("help exceeds the viewport:\n%s", frame)
+	}
+}
+
 // ? is a normal-mode row: in insert mode it is typed, and in a passthrough
 // mode (an attached terminal) it reaches the pane.
 func TestHelpDoesNotShadowInsertOrTerminal(t *testing.T) {

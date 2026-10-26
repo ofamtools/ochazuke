@@ -101,6 +101,59 @@ func (f *fixture) run(stdin string, args ...string) (string, string, error) {
 	return out.String(), errOut.String(), err
 }
 
+func TestShellListsAllBindingTables(t *testing.T) {
+	f := newFixture(t)
+	f.r.Define("detached").Mode("insert").
+		Bind("ctrl+x", ochazuke.Do("key.ignore").Guard("input"))
+	if err := f.r.Bind(ochazuke.Binding{
+		Instance: "w2", Mode: "insert", Keys: "ctrl+z",
+		Request: ochazuke.Request{Noun: "key", Verb: "ignore"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	current, _, err := f.run("", "bindings", "list")
+	if err != nil {
+		t.Fatal(err)
+	}
+	explicit, _, err := f.run("", "bindings", "list", "--all=false")
+	if err != nil || explicit != current {
+		t.Fatalf("--all=false changed the active listing: %v\n%s", err, explicit)
+	}
+	out, _, err := f.run("", "bindings", "list", "--all")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rows []ochazuke.Binding
+	if err := json.Unmarshal([]byte(out), &rows); err != nil {
+		t.Fatal(err)
+	}
+	var detached, instance bool
+	for _, row := range rows {
+		if row.Noun == "detached" && row.Mode == "insert" && row.Keys == "ctrl+x" {
+			detached = row.Instance == "" && row.When == "input" && row.Request.Key() == "key.ignore"
+		}
+		if row.Instance == "w2" && row.Mode == "insert" && row.Keys == "ctrl+z" {
+			instance = row.Noun == "" && row.Request.Key() == "key.ignore"
+		}
+	}
+	if !detached || !instance {
+		t.Fatalf("missing inactive noun or instance bindings:\n%s", out)
+	}
+	if strings.Contains(current, "ctrl+x") || strings.Contains(current, "ctrl+z") {
+		t.Fatalf("inactive bindings leaked into the default listing:\n%s", current)
+	}
+	if _, err := f.r.Execute(ochazuke.Request{Noun: "mode", Verb: "set", Args: ochazuke.Arguments{"mode": "insert"}}); err != nil {
+		t.Fatal(err)
+	}
+	again, _, err := f.run("", "bindings", "list", "--all")
+	if err != nil || again != out {
+		t.Fatalf("all tables depend on the active mode or map iteration: %v", err)
+	}
+	if _, err := f.r.LoadBindings([]byte(out)); err != nil {
+		t.Fatalf("export is not loadable binding JSON: %v", err)
+	}
+}
+
 func TestShellTypesFlagsByTheOperationsParameters(t *testing.T) {
 	f := newFixture(t)
 	out, errOut, err := f.run("", "widget", "rename", "--target", "w1", "--name", "uno", "--count=3", "--loud", "--tags", `["a","b"]`)

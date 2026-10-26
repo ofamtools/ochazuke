@@ -645,7 +645,12 @@ func registerCore(r *Runtime) {
 		return JSONPointer(r.Snapshot(), StringArg(a, "path", ""))
 	}})
 	r.Register(Operation{Verb: "list", Noun: "operations", Description: "List registered verbs, nouns, kinds (interaction or application), confirm prompts and argument schemas", Result: "operation[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) { return r.Catalog(), nil }})
-	r.Register(Operation{Verb: "list", Noun: "bindings", Description: "List the rows the current stack and mode answer to, pending modes included", Result: "binding[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) { return r.ListBindings(focusOf(c)), nil }})
+	r.Register(Operation{Verb: "list", Noun: "bindings", Description: "List the rows the current stack and mode answer to; all includes every stored noun and instance mode table", Parameters: map[string]Parameter{"all": {Type: "boolean", Description: "Return every stored binding row, including inactive modes and contexts, in configuration JSON format"}}, Result: "binding[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		if all, _ := a["all"].(bool); all {
+			return r.allBindings(), nil
+		}
+		return r.ListBindings(focusOf(c)), nil
+	}})
 	r.Register(Operation{Verb: "focus", Noun: "input", Description: "Focus a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		id := StringArg(a, "id", "")
 		if r.Input(id) == nil {

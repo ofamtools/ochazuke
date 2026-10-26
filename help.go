@@ -133,6 +133,7 @@ func bindingHelpView(r *Runtime, _ *Instance, width, height int) Block {
 	descWidth := width - mark - keyWidth - gap - opWidth - gap
 	lines := make([][]string, len(items))
 	headed := make([]bool, len(items))
+	heading := lipgloss.NewStyle().Bold(true).Underline(true)
 	section := ""
 	for i, it := range items {
 		row := it.Data.(HelpRow)
@@ -140,7 +141,7 @@ func bindingHelpView(r *Runtime, _ *Instance, width, height int) Block {
 			// A section label opens each level's rows: the noun, or movement.
 			section = row.Section
 			headed[i] = true
-			lines[i] = append(lines[i], lipgloss.NewStyle().Faint(true).Render(section))
+			lines[i] = append(lines[i], heading.Render(section))
 		}
 		key, _ := helpKey(row.Key)
 		cols := [][]string{helpColumn(key, keyWidth), helpColumn(row.Operation, opWidth), helpColumn(row.Description, descWidth)}
@@ -177,6 +178,9 @@ func bindingHelpView(r *Runtime, _ *Instance, width, height int) Block {
 	list.offset = min(list.offset, list.selected)
 	fits := func(from int) bool {
 		n := 0
+		if visible > 1 && !headed[from] {
+			n++
+		}
 		for i := from; i <= list.selected; i++ {
 			n += len(lines[i])
 		}
@@ -186,6 +190,9 @@ func bindingHelpView(r *Runtime, _ *Instance, width, height int) Block {
 		list.offset++
 	}
 	var out []string
+	if visible > 1 && !headed[list.offset] {
+		out = append(out, heading.Render(items[list.offset].Data.(HelpRow).Section))
+	}
 	end := list.offset
 	for i := list.offset; i < len(items) && len(out) < visible; i++ {
 		for j, line := range lines[i] {

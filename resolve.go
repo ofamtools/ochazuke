@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"sort"
 	"strconv"
@@ -455,6 +456,26 @@ func (r *Runtime) ListBindings(focus string) []Binding {
 		}
 		return a.Pattern < b.Pattern
 	})
+	return out
+}
+
+func (r *Runtime) allBindings() []Binding {
+	out := []Binding{}
+	for _, name := range slices.Sorted(maps.Keys(r.Nouns)) {
+		noun := r.Nouns[name]
+		for _, mode := range slices.Sorted(maps.Keys(noun.Bindings)) {
+			for _, row := range noun.Bindings[mode] {
+				row.Noun, row.Instance, row.Mode = name, "", mode
+				out = append(out, row)
+			}
+		}
+	}
+	for _, id := range slices.Sorted(maps.Keys(r.Instances)) {
+		for _, row := range r.Instances[id].Bindings {
+			row.Noun, row.Instance = "", id
+			out = append(out, row)
+		}
+	}
 	return out
 }
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/unixsuperhero/ochazuke"
+	"github.com/unixsuperhero/ochazuke/cli"
 	"github.com/unixsuperhero/ochazuke/grid"
 )
 
@@ -24,7 +26,7 @@ func run(args []string) error {
 	flags := flag.NewFlagSet("csv", flag.ContinueOnError)
 	smoke := flags.Bool("smoke", false, "Open the file, render one 80x24 frame to stdout and exit")
 	flags.Usage = func() {
-		fmt.Fprintln(flags.Output(), "Usage:\n  csv [--smoke] [FILE.csv]\n\nA modal CSV editor on ochazuke. h j k l move (with counts), i edits a cell, dd deletes a row, v V ctrl+v select, t u/l/t transform, u undoes, ctrl+s saves, : opens the palette.")
+		fmt.Fprintln(flags.Output(), "Usage:\n  csv [--smoke] [FILE.csv]\n  csv NOUN VERB [--ARG VALUE]\n\nA modal CSV editor on ochazuke. h j k l move (with counts), i edits a cell, dd deletes a row, v V ctrl+v select, t u/l/t transform, u undoes, ctrl+s saves, : opens the palette.\n\nExport every binding row: csv bindings list --all")
 		flags.PrintDefaults()
 	}
 	if err := flags.Parse(args); err != nil {
@@ -33,8 +35,12 @@ func run(args []string) error {
 		}
 		return err
 	}
-	if flags.NArg() > 1 {
-		return errors.New("expected at most one CSV file")
+	if flags.NArg() >= 2 {
+		app, err := New("")
+		if err != nil {
+			return err
+		}
+		return cli.New(app.r, "csv", os.Stdin, os.Stdout, os.Stderr).Run(context.Background(), flags.Args())
 	}
 	path := ""
 	if flags.NArg() == 1 {

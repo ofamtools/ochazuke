@@ -84,6 +84,7 @@ func run(args []string) error {
 	callFlags := flag.NewFlagSet(rest[0]+" "+rest[1], flag.ContinueOnError)
 	raw := callFlags.String("json", "{}", "Operation arguments as a JSON object")
 	target := callFlags.String("target", "", "Instance ID (input, list, row, page, modal body), or focused-input (default current context)")
+	all := callFlags.Bool("all", false, "Pass the operation's all boolean argument")
 	if err := callFlags.Parse(rest[2:]); err != nil {
 		if err == flag.ErrHelp {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -99,6 +100,11 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
+	callFlags.Visit(func(f *flag.Flag) {
+		if f.Name == "all" {
+			operationArgs["all"] = *all
+		}
+	})
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	result, err := ochazuke.Call(ctx, *socket, ochazuke.Request{Noun: rest[0], Verb: rest[1], Target: *target, Args: operationArgs})
