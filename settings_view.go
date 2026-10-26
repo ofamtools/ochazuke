@@ -908,7 +908,7 @@ func settingsPageView(r *Runtime, width, height int) Block {
 	}
 	// The rows take what they need (border included) up to three fifths
 	// of the height; the description the rest.
-	th := layout.Divide(min(max(table.Len()+2, PaneMinHeight), body*3/5), body, PaneMinHeight)
+	th := layout.Divide(min(max(table.Height()+2, PaneMinHeight), body*3/5), body, PaneMinHeight)
 	tw, tth := PanelContentSize(width, th)
 	tableBody := Text(table.View(tw, tth))
 	dw, dch := PanelContentSize(width, body-th)

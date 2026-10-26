@@ -82,7 +82,13 @@
       "mode": "list_filter",
       "focus": "__settings/row/scrolloff",
       "contains": [
-        "enter list.filter-keep"
+        "enter list.filter-keep",
+        "scrolloff",
+        "theme",
+        "tab-width"
+      ],
+      "lacks": [
+        "1–"
       ]
     },
     {
