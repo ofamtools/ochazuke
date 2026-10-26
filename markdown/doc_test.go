@@ -197,9 +197,8 @@ func TestToggleRefindsAfterExternalChange(t *testing.T) {
 }
 
 // An item gone (or its text changed) on disk refuses the toggle and
-// writes nothing; the refusal is the status line (ctx.Status), not an
-// error, and the view shows the source as it is now. Doc.Toggle itself
-// returns ErrRefused.
+// writes nothing; the refusal is the key's error (wrapping ErrRefused),
+// posted nowhere else, and the view shows the source as it is now.
 func TestToggleRefusesWhenTheItemIsGone(t *testing.T) {
 	for name, changed := range map[string]string{
 		"gone":    "- [ ] milk\n",
@@ -216,11 +215,12 @@ func TestToggleRefusesWhenTheItemIsGone(t *testing.T) {
 			if err := os.WriteFile(path, []byte(changed), 0o600); err != nil {
 				t.Fatal(err)
 			}
-			if err := press(t, r, "x"); err != nil {
-				t.Fatalf("a refusal is not an error: %v", err)
+			err := press(t, r, "x")
+			if !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), `"bread"`) {
+				t.Fatalf("toggle: %v, want ErrRefused naming the item", err)
 			}
-			if got := sink.LastStatus(); !strings.HasPrefix(got, "not toggled") || !strings.Contains(got, `"bread"`) {
-				t.Fatalf("status %q", got)
+			if msgs := sink.Messages(); len(msgs) != 0 {
+				t.Fatalf("a refusal is the error alone, posted %v", msgs)
 			}
 			if got := readFile(t, path); got != changed {
 				t.Fatalf("wrote %q", got)
