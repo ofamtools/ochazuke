@@ -124,6 +124,7 @@ type Tree struct {
 	id        string
 	list      *List
 	nodes     []TreeNode
+	idx       *treeIndex // lookups over nodes, built on demand; nil after any change to their order or parents
 	collapsed map[string]bool
 
 	// OnChange makes the tree editable and receives each change as it is
@@ -255,7 +256,7 @@ func (t *Tree) SetNodes(nodes []TreeNode) error {
 		}
 	}
 	walk("")
-	t.nodes = ordered
+	t.nodes, t.idx = ordered, nil
 	return t.refresh("")
 }
 
@@ -305,8 +306,68 @@ func (t *Tree) Select(id string) error {
 	return t.refresh(id)
 }
 
+// treeIndex is what the tree looks up per node, built in one pass over
+// the nodes: each id's position (its first, as slices.Index finds), the
+// number of children under each id ("" counts the roots) and each node's
+// depth. A tree of thousands of nodes asked each by a scan made every
+// refresh quadratic.
+type treeIndex struct {
+	at    map[string]int
+	kids  map[string]int
+	depth []int
+}
+
+// lookup is the index over the current nodes, rebuilt after a change.
+func (t *Tree) lookup() *treeIndex {
+	if t.idx != nil {
+		return t.idx
+	}
+	x := &treeIndex{at: make(map[string]int, len(t.nodes)), kids: map[string]int{}, depth: make([]int, len(t.nodes))}
+	for i, n := range t.nodes {
+		if _, ok := x.at[n.ID]; !ok {
+			x.at[n.ID] = i
+		}
+		x.kids[n.Parent]++
+	}
+	// depth[i] counts the parent ids up node i's chain, as walking
+	// parentOf did: a root is 0, and a parent that is not a node still
+	// counts but ends the chain.
+	done := make([]bool, len(t.nodes))
+	var chain []int
+	for i := range t.nodes {
+		chain = chain[:0]
+		j, d := i, 0
+		for {
+			if done[j] {
+				d = x.depth[j]
+				break
+			}
+			chain = append(chain, j)
+			parent := t.nodes[j].Parent
+			p, ok := x.at[parent]
+			if parent == "" {
+				d = -1
+				break
+			}
+			if !ok {
+				break
+			}
+			j = p
+		}
+		for k := len(chain) - 1; k >= 0; k-- {
+			d++
+			x.depth[chain[k]], done[chain[k]] = d, true
+		}
+	}
+	t.idx = x
+	return x
+}
+
 func (t *Tree) index(id string) int {
-	return slices.IndexFunc(t.nodes, func(n TreeNode) bool { return n.ID == id })
+	if i, ok := t.lookup().at[id]; ok {
+		return i
+	}
+	return -1
 }
 
 func (t *Tree) parentOf(id string) string {
@@ -317,16 +378,13 @@ func (t *Tree) parentOf(id string) string {
 }
 
 func (t *Tree) depth(id string) int {
-	d := 0
-	for p := t.parentOf(id); p != ""; p = t.parentOf(p) {
-		d++
+	if i := t.index(id); i >= 0 {
+		return t.lookup().depth[i]
 	}
-	return d
+	return 0
 }
 
-func (t *Tree) hasChildren(id string) bool {
-	return slices.ContainsFunc(t.nodes, func(n TreeNode) bool { return n.Parent == id })
-}
+func (t *Tree) hasChildren(id string) bool { return t.lookup().kids[id] > 0 }
 
 func (t *Tree) children(parent string) []string {
 	var out []string
@@ -555,7 +613,7 @@ func (t *Tree) apply(c TreeChange) (TreeChange, error) {
 		}
 		parent, index := t.nodes[i].Parent, slices.Index(t.children(t.nodes[i].Parent), c.ID)
 		sub := slices.Clone(t.nodes[i:t.subtreeEnd(i)])
-		t.nodes = slices.Delete(t.nodes, i, i+len(sub))
+		t.nodes, t.idx = slices.Delete(t.nodes, i, i+len(sub)), nil
 		sub[0].Parent = c.Parent
 		t.insert(c.Parent, c.Index, sub)
 		return TreeChange{Op: TreeMove, ID: c.ID, Parent: parent, Index: index}, nil
@@ -567,6 +625,7 @@ func (t *Tree) apply(c TreeChange) (TreeChange, error) {
 		n := t.nodes[i]
 		index := slices.Index(t.children(n.Parent), c.ID)
 		t.nodes = slices.Delete(t.nodes, i, t.subtreeEnd(i))
+		t.idx = nil
 		delete(t.collapsed, c.ID)
 		return TreeChange{Op: TreeAdd, ID: n.ID, Parent: n.Parent, Index: index, Text: n.Label}, nil
 	}
@@ -583,7 +642,7 @@ func (t *Tree) insert(parent string, index int, sub []TreeNode) {
 	case parent != "":
 		pos = t.subtreeEnd(t.index(parent))
 	}
-	t.nodes = slices.Insert(t.nodes, pos, sub...)
+	t.nodes, t.idx = slices.Insert(t.nodes, pos, sub...), nil
 }
 
 // commit applies changes, writes them and records one undo step.

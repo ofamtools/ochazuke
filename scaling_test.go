@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
@@ -212,6 +213,37 @@ func TestSetItemsRemovesRowsAsRemoveInstanceDoes(t *testing.T) {
 		got, want := state(r1, l1, log1), state(r2, l2, log2)
 		if !reflect.DeepEqual(got, want) {
 			t.Fatalf("modal %v: batched removal\n got %v\nwant %v", modal, got, want)
+		}
+	}
+}
+
+// TestTreeIndexMatchesScans checks the tree's index against the scans it
+// replaced: position, depth (a missing parent counts once) and children.
+func TestTreeIndexMatchesScans(t *testing.T) {
+	tree := &Tree{nodes: append(benchNodes(40), TreeNode{ID: "orphan", Parent: "gone"}, TreeNode{ID: "under", Parent: "orphan"})}
+	scanParent := func(id string) string {
+		for _, n := range tree.nodes {
+			if n.ID == id {
+				return n.Parent
+			}
+		}
+		return ""
+	}
+	for _, n := range append(tree.nodes, TreeNode{ID: "missing"}, TreeNode{ID: ""}) {
+		want := slices.IndexFunc(tree.nodes, func(m TreeNode) bool { return m.ID == n.ID })
+		if got := tree.index(n.ID); got != want {
+			t.Errorf("index(%q) = %d, want %d", n.ID, got, want)
+		}
+		d := 0
+		for p := scanParent(n.ID); p != ""; p = scanParent(p) {
+			d++
+		}
+		if got := tree.depth(n.ID); got != d {
+			t.Errorf("depth(%q) = %d, want %d", n.ID, got, d)
+		}
+		kids := slices.ContainsFunc(tree.nodes, func(m TreeNode) bool { return m.Parent == n.ID })
+		if got := tree.hasChildren(n.ID); got != kids {
+			t.Errorf("hasChildren(%q) = %v, want %v", n.ID, got, kids)
 		}
 	}
 }
