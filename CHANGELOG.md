@@ -81,6 +81,7 @@ Draft, from the `integrate/next` branch (branches on `3133e23` plus fixes). A mi
 
 ### Form suggestions and page row hooks (`feat/form-hooks`)
 
+- Record editor: a field whose `Parameter` is `Free` with `Enum` or `Source` is a text field with suggestions (noun `FormSuggestNoun`, `form-suggest`): typing stays free text and a value outside the suggestions is written as typed; `enter` (normal) or `ctrl+space` runs the new verb `form.suggest`, which opens the framework chooser (`FormSuggestionsKind`, `form-suggestions`) over the Enum then the Source verb's result, loaded off the loop as a job of the chooser when the Source is Pending; a pick (or the typed query, `+ use "…"`) fills the field and is written at once. Before, such a field was plain text with no suggestions (mtm's tool forms lost their pick lists). Such a field is one line high. Story `forms/suggestions`.
 - `cli.PageConfig.OnRows func(list string, rows []cli.Row)`: runs on the loop after a list's rows land (a reload's answer, a state answer filed under each list, an empty one included, or the host's `SetRows`/`SetState`), with the rows as filed; a failed load does not call it. A host follows a list's rows without wrapping `Reload` (nabe's `followReload`).
 
 ### List scaling (`fix/list-scaling`)

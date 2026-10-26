@@ -246,12 +246,12 @@ Root package `ochazuke` is flat: 53 source files, 50 test files. Each entry list
 
 ### params.go
 
-- lines: 158 · tests: params_test.go
+- lines: 205 · tests: params_test.go
 - purpose: Choice is one value a parameter accepts: ID is the argument value, Label what a pick list shows.
 - types: Choice, ArgumentError
-- methods: ArgumentError(2), Runtime(2)
+- methods: ArgumentError(2), Runtime(3)
 - funcs: ParseChoices
-- leans on: runtime.go(9), noun.go(2), palette_nouns.go(2)
+- leans on: runtime.go(14), delivery.go(2), instance.go(2), noun.go(2)
 
 ### picker.go
 
@@ -301,12 +301,12 @@ Root package `ochazuke` is flat: 53 source files, 50 test files. Each entry list
 
 ### record_editor.go
 
-- lines: 903 · tests: record_editor_test.go
+- lines: 995 · tests: record_editor_test.go
 - purpose: Record is one record's values by field name, as an editor loads and writes them.
 - types: Record, RecordField, RecordWrite, RecordSpec, RecordDebounceMsg, RecordEditor
-- methods: RecordEditor(35), RecordWrite(1), Runtime(5), recordChooser(2), recordField(2)
+- methods: RecordEditor(37), RecordWrite(1), Runtime(5), recordChooser(2), recordField(2)
 - funcs: RecordFields
-- leans on: runtime.go(41), instance.go(32), noun.go(25), block.go(17)
+- leans on: runtime.go(47), noun.go(35), instance.go(34), block.go(17)
 
 ### registers.go
 

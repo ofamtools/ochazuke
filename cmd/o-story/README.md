@@ -259,7 +259,7 @@ Conformance:
 | normal | demo | `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.launch` `demo.notify` `demo.open` `demo.reload` `demo.ship` |
 | normal | detail | `detail.scroll` |
 | normal | focus | `focus.next` `focus.previous` `focus.set` |
-| normal | form | `form.choose` `form.leave` `form.next` `form.redo` `form.undo` |
+| normal | form | `form.choose` `form.leave` `form.next` `form.redo` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
 | normal | input | `input.begin` |
 | normal | list | `list.move` |
@@ -289,6 +289,7 @@ Mode edges (from → to via):
 - `leader_pending` → `normal` via `terminal.detach`
 - `leader_pending` → `terminal` via `terminal.send`
 - `normal` → `count_pending` via `mode.enter`
+- `normal` → `insert` via `form.suggest`
 - `normal` → `insert` via `input.begin`
 - `normal` → `insert` via `outline.add`
 - `normal` → `insert` via `outline.edit`

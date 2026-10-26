@@ -389,3 +389,158 @@ func TestRecordNormalModeEditWritesAtOnce(t *testing.T) {
 		t.Fatalf("writes %v, want %s last", *writes, want)
 	}
 }
+
+// suggestFixture is a placed editor over a free model field with
+// suggestions (from source, else three enum values) and a title.
+func suggestFixture(t *testing.T, source string) (*Runtime, *Model, *RecordEditor, *[]string) {
+	t.Helper()
+	r := NewRuntime()
+	m := NewModel(r)
+	m.Width, m.Height = 80, 24
+	var ed *RecordEditor
+	if _, err := r.AddPage("main", "Main", func(r *Runtime, w, h int) Block { return ed.Block(w, h) }); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.OpenPage("main"); err != nil {
+		t.Fatal(err)
+	}
+	model := Parameter{Type: "string", Free: true, Enum: []string{"opus", "sonnet", "haiku"}}
+	if source != "" {
+		model = Parameter{Type: "string", Free: true, Source: source}
+	}
+	var writes []string
+	spec := RecordSpec{
+		Fields: []RecordField{{Name: "model", Parameter: model}, {Name: "title"}},
+		Load:   func() (Record, error) { return Record{"model": "opus"}, nil },
+		Save:   func(w RecordWrite) Result { writes = append(writes, w.String()); return Done(nil) },
+	}
+	var err error
+	if ed, err = r.AddRecordEditor("ed", spec, Parent("main")); err != nil {
+		t.Fatal(err)
+	}
+	if err := ed.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	m.View()
+	return r, m, ed, &writes
+}
+
+// A free field with an Enum is a text field: typing stays free and a value
+// outside the suggestions is written as typed.
+func TestRecordFreeFieldWithSuggestionsTypesFreely(t *testing.T) {
+	r, m, ed, writes := suggestFixture(t, "")
+	if inst := r.Instances["ed/model"]; inst.Noun != FormSuggestNoun || r.Input("ed/model") == nil {
+		t.Fatalf("the model field is %+v, want a form-suggest input", inst)
+	}
+	ops := map[string]bool{}
+	for _, row := range BindingHelp(r, "ed/model") {
+		ops[row.Key+" "+row.Operation] = true
+	}
+	if !ops["enter form.suggest"] || !ops["ctrl+space form.suggest"] {
+		t.Fatalf("help lacks the suggest keys: %v", ops)
+	}
+	if s := screen(m); !strings.Contains(s, "enter form.suggest") {
+		t.Fatalf("the footer hints the suggest key:\n%s", s)
+	}
+	keytest.Press(m, "A")
+	keytest.Press(m, "ctrl+u")
+	keytest.Type(m, "gpt-x")
+	keytest.Press(m, "esc")
+	if want := []string{"write model=gpt-x"}; !slices.Equal(*writes, want) || ed.Problem("model") != "" {
+		t.Fatalf("writes %v problem %q, want %v", *writes, ed.Problem("model"), want)
+	}
+}
+
+// enter in normal mode opens the framework chooser over the Enum; a pick
+// fills the field, is written at once and the focus is back on the field.
+func TestRecordSuggestionsPickFillsTheField(t *testing.T) {
+	r, m, ed, writes := suggestFixture(t, "")
+	keytest.Press(m, "enter")
+	c := r.Chooser(FormSuggestionsKind)
+	if c == nil || r.TopModal() != FormSuggestionsKind {
+		t.Fatalf("top modal %q, want the suggestions chooser", r.TopModal())
+	}
+	if s := screen(m); !strings.Contains(s, "Suggest model") || !strings.Contains(s, "sonnet") || !strings.Contains(s, "haiku") {
+		t.Fatalf("chooser not drawn:\n%s", s)
+	}
+	keytest.Type(m, "son")
+	keytest.Press(m, "enter")
+	if r.TopModal() != "" || r.Focus != "ed/model" || r.Mode.Name != "normal" {
+		t.Fatalf("modal %q focus %s mode %s after the pick", r.TopModal(), r.Focus, r.Mode.Name)
+	}
+	if ed.Values()["model"] != "sonnet" || !slices.Equal(*writes, []string{"write model=sonnet"}) {
+		t.Fatalf("values %v writes %v", ed.Values(), *writes)
+	}
+	// A query nothing matches is taken as typed; ctrl+space opens from insert and insert comes back.
+	keytest.Press(m, "A")
+	keytest.Press(m, "ctrl+space")
+	if r.TopModal() != FormSuggestionsKind {
+		t.Fatalf("ctrl+space in insert: top modal %q", r.TopModal())
+	}
+	keytest.Type(m, "zz-local")
+	keytest.Press(m, "enter")
+	if r.Focus != "ed/model" || r.Mode.Name != "insert" || ed.Values()["model"] != "zz-local" {
+		t.Fatalf("focus %s mode %s values %v", r.Focus, r.Mode.Name, ed.Values())
+	}
+	if want := "write model=zz-local"; len(*writes) != 2 || (*writes)[1] != want {
+		t.Fatalf("writes %v, want %s last", *writes, want)
+	}
+	// u undoes the pick like any written change.
+	keytest.Press(m, "esc")
+	keytest.Press(m, "u")
+	if ed.Values()["model"] != "sonnet" {
+		t.Fatalf("undo after a pick: %v", ed.Values())
+	}
+}
+
+// A Source verb that returns Pending loads off the loop as a job of the
+// chooser: loading… until it lands, then its rows; esc cancels a load.
+func TestRecordSuggestionsLoadOffTheLoop(t *testing.T) {
+	release := make(chan struct{}, 2)
+	calls := 0
+	r, m, ed, writes := suggestFixture(t, "harness.models")
+	r.Define("harness").Verb("models", func(Ctx) Result {
+		calls++
+		return Pending(func(ctx context.Context) (any, error) {
+			select {
+			case <-release:
+				return []string{"opus", "gpt-5"}, nil
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		})
+	})
+	cmd := keytest.Press(m, "enter")
+	if calls != 1 || r.TopModal() != FormSuggestionsKind {
+		t.Fatalf("calls %d top %q", calls, r.TopModal())
+	}
+	if s := screen(m); !strings.Contains(s, "loading…") {
+		t.Fatalf("before the load lands the chooser says loading:\n%s", s)
+	}
+	release <- struct{}{}
+	for _, msg := range runCmd(cmd) {
+		if _, ok := msg.(Completion); ok {
+			m.Update(msg)
+		}
+	}
+	if s := screen(m); !strings.Contains(s, "gpt-5") {
+		t.Fatalf("the source's rows did not land:\n%s", s)
+	}
+	keytest.Type(m, "gpt")
+	keytest.Press(m, "enter")
+	if ed.Values()["model"] != "gpt-5" || !slices.Equal(*writes, []string{"write model=gpt-5"}) {
+		t.Fatalf("values %v writes %v", ed.Values(), *writes)
+	}
+	// esc closes the chooser and cancels a load in flight.
+	keytest.Press(m, "enter")
+	keytest.Press(m, "esc")
+	cancelled := false
+	for _, j := range r.Jobs() {
+		if j.Verb == "harness.models" && j.State == JobCancelled {
+			cancelled = true
+		}
+	}
+	if !cancelled || r.TopModal() != "" {
+		t.Fatalf("jobs %+v top %q, want the load cancelled", r.Jobs(), r.TopModal())
+	}
+}

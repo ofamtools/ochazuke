@@ -21,8 +21,14 @@ type Record map[string]string
 // the same description a verb's parameter carries (Type, Required, Enum,
 // Source, Free, Description), so a form can come from a verb's catalog
 // parameters (RecordFields). A field with Enum or Source (and not Free), or
-// of Type boolean, is edited through a chooser, never as free text; the
-// rest are text inputs, Multiline ones several lines high.
+// of Type boolean, is edited through a chooser, never as free text. A Free
+// field with Enum or Source is a text field with suggestions (form-suggest):
+// typing stays free text, enter in normal mode or ctrl+space opens the
+// framework chooser over the suggestions (the Enum, then the Source's
+// result, loaded off the loop when the Source verb is Pending), a pick
+// fills the field and is written at once, and a value outside the
+// suggestions is written as typed; it is one line high (Multiline is
+// ignored). The rest are text inputs, Multiline ones several lines high.
 type RecordField struct {
 	Name  string `json:"name"`
 	Label string `json:"label,omitempty"` // shown above the value (default Name)
@@ -98,8 +104,14 @@ const (
 	FormTextNoun   = "form-text"
 	FormChoiceNoun = "form-choice"
 	FormOptionNoun = "form-option"
-	formChooseID   = "form-choose"
-	formChooseList = "__form-choose/list"
+	// FormSuggestNoun is a free text field with suggestions: an input
+	// whose enter (normal) and ctrl+space open the suggestions chooser.
+	FormSuggestNoun = "form-suggest"
+	formChooseID    = "form-choose"
+	formChooseList  = "__form-choose/list"
+	// FormSuggestionsKind is the suggestions chooser's modal kind
+	// (Runtime.Chooser(FormSuggestionsKind) while it is open).
+	FormSuggestionsKind = "form-suggestions"
 )
 
 // formWriteVerb names a pending write's job.
@@ -119,6 +131,7 @@ type recordField struct {
 	before  string // the written value when the current edit began
 	choices []Choice
 	choose  bool
+	suggest bool // a free text field with suggestions
 }
 
 func (f *recordField) text() string {
@@ -243,6 +256,7 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 	for _, field := range spec.Fields {
 		f := &recordField{RecordField: field, id: id + "/" + field.Name}
 		f.choose = field.Type == "boolean" || ((len(field.Enum) > 0 || field.Source != "") && !field.Free)
+		f.suggest = !f.choose && (len(field.Enum) > 0 || field.Source != "")
 		v := values[field.Name]
 		e.written[field.Name], f.before = v, v
 		if f.choose {
@@ -250,10 +264,15 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 			r.Instance(f.id, Parent(id), Kind(FormChoiceNoun))
 		} else {
 			noun := FormFieldNoun
-			if field.Multiline {
+			multiline := field.Multiline && !f.suggest
+			switch {
+			case f.suggest:
+				noun = FormSuggestNoun
+			case multiline:
 				noun = FormTextNoun
 			}
-			f.input = NewInput(f.id, v, field.Multiline)
+			f.Multiline = multiline
+			f.input = NewInput(f.id, v, multiline)
 			f.input.Cursor = len(f.input.Text)
 			if err := r.AddInput(f.input, Parent(id), Kind(noun)); err != nil {
 				_ = r.RemoveInstance(id)
@@ -261,7 +280,9 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 			}
 		}
 		e.fields = append(e.fields, f)
-		e.loadChoices(f)
+		if f.choose {
+			e.loadChoices(f)
+		}
 	}
 	e.seen = e.snapshot()
 	e.focus = r.Focus
@@ -652,6 +673,63 @@ func (e *RecordEditor) choose(f *recordField) error {
 	return list.Focus()
 }
 
+// suggest opens the framework chooser over a free field's suggestions:
+// the Enum at once, the Source's result when it lands (the load is a job
+// of the chooser, so closing it cancels the load). A pick fills the field
+// and writes it at once; with a query nothing matches, enter (or the
+// create row) takes the query as typed.
+func (e *RecordEditor) suggest(f *recordField) error {
+	if f == nil || !f.suggest {
+		return errors.New("the focused field has no suggestions")
+	}
+	fill := func(v string) Result {
+		if err := e.fill(f, v); err != nil {
+			return Failed(err)
+		}
+		return Done(v)
+	}
+	c, err := e.r.OpenChooser(ChooserSpec{
+		Kind:        FormSuggestionsKind,
+		Title:       "Suggest " + f.label(),
+		Empty:       "loading…",
+		Choose:      func(row ChooserRow) Result { return fill(row.ID) },
+		Create:      fill,
+		CreateRow:   true,
+		CreateLabel: func(query string) string { return "use " + strconv.Quote(query) },
+	})
+	if err != nil {
+		return err
+	}
+	e.r.loadChoices(e.r.contextOf(f.id), f.Parameter, FormSuggestionsKind, func(choices []Choice, err error) {
+		if e.r.Chooser(FormSuggestionsKind) != c {
+			return
+		}
+		f.choices = choices
+		rows := make([]ChooserRow, len(choices))
+		for i, ch := range choices {
+			rows[i] = ChooserRow{ID: ch.ID, Label: choiceLabel(ch)}
+		}
+		switch {
+		case err != nil && len(rows) == 0:
+			c.spec.Empty = "no suggestions: " + err.Error()
+		case len(rows) == 0:
+			c.spec.Empty = "no suggestions"
+		}
+		c.SetRows(rows)
+	})
+	return nil
+}
+
+// fill sets a text field to a suggestion (the chooser has closed and the
+// focus is back on the field) and writes it at once.
+func (e *RecordEditor) fill(f *recordField, v string) error {
+	if err := e.set(f, v); err != nil {
+		return err
+	}
+	e.seen = e.snapshot()
+	return e.seal(f)
+}
+
 // pick sets the chooser's field to a choice, writes it at once and closes
 // the chooser.
 func (e *RecordEditor) pick(f *recordField, v string) error {
@@ -848,6 +926,7 @@ func registerForms(r *Runtime) {
 		Verb("next", on(func(e *RecordEditor, _ Context, a Arguments) error { return e.move(1, boolArg(a, "insert")) }), "Focus the next field; the field left is written").Motion().
 		Verb("previous", on(func(e *RecordEditor, _ Context, a Arguments) error { return e.move(-1, boolArg(a, "insert")) }), "Focus the previous field; the field left is written").Motion().
 		Verb("choose", on(func(e *RecordEditor, c Context, _ Arguments) error { return e.choose(e.fieldOn(focusOf(c))) }), "Choose the field's value from its choices").
+		Verb("suggest", on(func(e *RecordEditor, c Context, _ Arguments) error { return e.suggest(e.fieldOn(focusOf(c))) }), "Fill the field from its suggestions; typing stays free").
 		Mode("normal").
 		Bind("q", Do("form.leave")).
 		Bind("esc", Do("form.leave")).
@@ -868,6 +947,19 @@ func registerForms(r *Runtime) {
 		Bind("enter", Do("form.next", Arguments{"insert": true})).
 		Bind("tab", Do("form.next", Arguments{"insert": true})).
 		Bind("shift+tab", Do("form.previous", Arguments{"insert": true}))
+	r.Define(FormSuggestNoun).
+		Mode("normal").
+		Bind("j", Do("form.next")).
+		Bind("down", Do("form.next")).
+		Bind("k", Do("form.previous")).
+		Bind("up", Do("form.previous")).
+		Bind("enter", Do("form.suggest")).
+		Bind("ctrl+space", Do("form.suggest")).
+		Mode("insert").
+		Bind("enter", Do("form.next", Arguments{"insert": true})).
+		Bind("tab", Do("form.next", Arguments{"insert": true})).
+		Bind("shift+tab", Do("form.previous", Arguments{"insert": true})).
+		Bind("ctrl+space", Do("form.suggest"))
 	r.Define(FormTextNoun).
 		Mode("insert").
 		Bind("tab", Do("form.next", Arguments{"insert": true})).
