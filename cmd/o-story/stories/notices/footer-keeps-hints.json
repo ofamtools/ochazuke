@@ -1,0 +1,25 @@
+{
+  "name": "a long notice takes at most half the footer; the newest shows with a count, the hints keep the rest",
+  "area": "notices",
+  "width": 80,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "labels": ["first row", "a row whose label is long enough to fill the whole footer line on its own, twice over"]
+      }
+    ]
+  },
+  "script": ["n", "j", "n"],
+  "expect": [
+    {
+      "after": 1,
+      "contains": ["Notice: notice from first row · q app.quit"]
+    },
+    {
+      "notices": ["notice from first row", "notice from a row whose label is long enough to fill the whole footer line on its own, twice over"],
+      "contains": ["(+1 more) · q app.quit"],
+      "lacks": ["Notice: notice from first row"]
+    }
+  ]
+}

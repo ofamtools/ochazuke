@@ -37,10 +37,12 @@ type Model struct {
 	Width      int
 	Height     int
 	Status     string
-	// Notices are persistent lines (a host's mount warnings): drawn in the
-	// footer before the hints, kept across keys and errors until notice.clear
-	// (or the application) clears them. Status is the last key's error and
-	// goes with the next key; a notice does not.
+	// Notices are persistent lines (a host's mount warnings), kept across
+	// keys and errors until notice.clear (or the application) clears them.
+	// The footer shows the newest before the hints, cut to half the width,
+	// with "(+N more)" for the rest (notice.list has them all), so notices
+	// never hide the hints. Status is the last key's error and goes with
+	// the next key; a notice does not.
 	Notices []string
 	// Sidebar replaces page tabs with a navigation rail. Existing page operations
 	// remain the only navigation state; input focus and modal routing are unchanged.
@@ -285,15 +287,32 @@ func (m *Model) modeBadge() string {
 // removes them.
 func (m *Model) Notify(text string) { m.Notices = append(m.Notices, text) }
 
+// footerNotice is the newest notice as the footer shows it: at most half
+// the width, with how many older ones notice.list holds, so a notice never
+// takes over the footer and the hints keep the rest of the line.
+func (m *Model) footerNotice() string {
+	n := len(m.Notices)
+	if n == 0 {
+		return ""
+	}
+	text := "Notice: " + safeText(m.Notices[n-1])
+	more := ""
+	if n > 1 {
+		more = fmt.Sprintf(" (+%d more)", n-1)
+	}
+	if m.Width > 0 {
+		limit := max(16, m.Width/2) - ansi.StringWidth(more)
+		text = ansi.Truncate(text, max(8, limit), "…")
+	}
+	return text + more
+}
+
 // footer is the status row: the error of the last key when there is one,
 // else the hints for the focus; the notices, when there are any, follow
 // the error or lead the hints.
 func (m *Model) footer() Footer {
 	jobs := m.JobsTicker(m.Width)
-	notice := ""
-	if len(m.Notices) > 0 {
-		notice = "Notice: " + safeText(strings.Join(m.Notices, "; "))
-	}
+	notice := m.footerNotice()
 	if m.Status != "" {
 		text := "Error: " + safeText(m.Status)
 		if notice != "" {

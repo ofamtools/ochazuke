@@ -176,7 +176,9 @@ tiers above them. When the two disagree, fix one in the same commit.
   Story: `help/row-verbs-first.json`, `help/levels-innermost-first.json`;
   golden `testdata/help-80.golden`.
 - **R6.4** `Status` shows the last key's error and clears on the next key;
-  `Notices` persist until `notice.clear`. Story: `notices/persist.json`;
+  `Notices` persist until `notice.clear`; the footer shows the newest at
+  most half the width with `(+N more)`, so the hints always keep the rest.
+  Story: `notices/persist.json`, `notices/footer-keeps-hints.json`;
   needed for the status-clears case.
 - **R6.5** The jobs ticker: at most two rows, running newest first on top,
   finished below, a finished row lingers four seconds, quiet verbs hidden,
