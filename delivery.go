@@ -385,16 +385,41 @@ func (r *Runtime) PendingCommands() tea.Cmd {
 }
 
 // components lists the instances whose Component implements the contract,
-// in registration order.
+// in registration order. It walks the holder index (every instance that is
+// not a list row), so a page of many rows costs nothing per message: rows
+// are instances without components. A list row holds no Component; put one
+// on an instance of its own (AddTerminal under the row does). The index is
+// rebuilt from the registry when its count disagrees with it, which only
+// code writing r.Instances directly causes.
 func (r *Runtime) components() []*Instance {
+	if len(r.Instances) != len(r.rows)+len(r.holders) {
+		r.reindexHolders()
+	}
 	var out []*Instance
-	for _, inst := range r.Instances {
-		if _, ok := inst.Component.(Component); ok {
-			out = append(out, inst)
+	for _, id := range r.holders {
+		if inst := r.Instances[id]; inst != nil {
+			if _, ok := inst.Component.(Component); ok {
+				out = append(out, inst)
+			}
 		}
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].seq < out[j].seq })
 	return out
+}
+
+// reindexHolders rebuilds the holder index from the registry: every
+// instance that is not a list row, by registration sequence.
+func (r *Runtime) reindexHolders() {
+	var all []*Instance
+	for id, inst := range r.Instances {
+		if _, row := r.rows[id]; !row {
+			all = append(all, inst)
+		}
+	}
+	sort.Slice(all, func(i, j int) bool { return all[i].seq < all[j].seq })
+	r.holders = r.holders[:0]
+	for _, inst := range all {
+		r.holders = append(r.holders, inst.ID)
+	}
 }
 
 // closeInstance cancels an instance's jobs and closes its component. Pop,

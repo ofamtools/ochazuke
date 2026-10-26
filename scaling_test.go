@@ -397,3 +397,122 @@ func BenchmarkPageList(b *testing.B) {
 		})
 	}
 }
+
+// updateKey is one keypress through the Bubble Tea adapter: Update runs the
+// key, then delivers and drains through the runtime (Deliver,
+// PendingCommands), as a real program does.
+func updateKey(m *Model, key string) {
+	_, _ = m.Update(tea.KeyPressMsg{Code: rune(key[0]), Text: key})
+}
+
+// BenchmarkUpdateKey is one Update (a j or k) on a page of n rows, without
+// a frame: the delivery path walks the component holders, not the rows.
+func BenchmarkUpdateKey(b *testing.B) {
+	for _, n := range []int{2000, 16000} {
+		b.Run(fmt.Sprint(n), func(b *testing.B) {
+			m := framePage(b, n, false)
+			keys := []string{"j", "k"}
+			i := 0
+			for b.Loop() {
+				updateKey(m, keys[i%2])
+				i++
+			}
+		})
+	}
+}
+
+// TestUpdateCostIsFlatInRows guards the per-Update cost of a large page:
+// list rows are instances without components, so delivering a message and
+// draining the components' commands must not visit them (components()
+// once scanned and sorted every instance on every Update). Eight times the
+// rows must cost about the same; the bound is loose (x3) and each size
+// takes the fastest of several rounds.
+func TestUpdateCostIsFlatInRows(t *testing.T) {
+	if testing.Short() {
+		t.Skip("timing")
+	}
+	const small, large, rounds, keys = 2000, 16000, 9, 40
+	models := [2]*Model{framePage(t, small, false), framePage(t, large, false)}
+	best := [2]time.Duration{}
+	for round := 0; round < rounds; round++ {
+		for i, m := range models {
+			start := time.Now()
+			for k := 0; k < keys; k++ {
+				updateKey(m, []string{"j", "k"}[k%2])
+			}
+			if took := time.Since(start); round == 0 || took < best[i] {
+				best[i] = took
+			}
+		}
+	}
+	if ratio := float64(best[1]) / float64(best[0]); ratio > 3 {
+		t.Errorf("%d rows took %v, %d rows %v (x%.1f) for %d keys; want about x1", small, best[0], large, best[1], ratio, keys)
+	}
+}
+
+// TestHolderIndexMatchesScan pins components() (the holder index) to a
+// scan of every instance in registration order, through the ways
+// instances come and go: constructors, rows, a component set after the
+// instance, modals, removal, SetItems, and a direct write to r.Instances.
+func TestHolderIndexMatchesScan(t *testing.T) {
+	r := NewRuntime()
+	r.Define("a")
+	var log []string
+	scan := func() []string {
+		var all []*Instance
+		for _, inst := range r.Instances {
+			if _, ok := inst.Component.(Component); ok {
+				all = append(all, inst)
+			}
+		}
+		slices.SortFunc(all, func(a, b *Instance) int { return int(a.seq) - int(b.seq) })
+		var out []string
+		for _, inst := range all {
+			out = append(out, inst.ID)
+		}
+		return out
+	}
+	check := func(when string) {
+		t.Helper()
+		var got []string
+		for _, inst := range r.components() {
+			got = append(got, inst.ID)
+		}
+		if want := scan(); !reflect.DeepEqual(got, want) {
+			t.Fatalf("%s: components() = %v, want %v", when, got, want)
+		}
+	}
+	page, err := r.AddPage("p", "P", func(*Runtime, int, int) Block { return Text("") })
+	if err != nil || page == nil {
+		t.Fatal(err)
+	}
+	r.Instance("c1", Parent("p")).Component = closeLog{id: "c1", log: &log}
+	list, err := r.AddList("p/l", benchRows("x", 50), Parent("p"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Instance("x3/child", Parent("x3")).Component = closeLog{id: "x3/child", log: &log}
+	check("built")
+	if err := r.AddInput(NewInput("in", "", false), Parent("p")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.OpenModal("dialog", Payload{}, WithInput(NewInput("dialog/in", "", false))); err != nil {
+		t.Fatal(err)
+	}
+	check("modal open")
+	if err := r.Pop(); err != nil {
+		t.Fatal(err)
+	}
+	check("modal closed")
+	if err := list.SetItems(benchRows("y", 20)); err != nil {
+		t.Fatal(err)
+	}
+	check("rows replaced (x3/child gone with its row)")
+	r.Instances["direct"] = &Instance{ID: "direct", Noun: "a", Parent: "app", Component: closeLog{id: "direct", log: &log}, seq: 1 << 40}
+	check("direct write")
+	if err := r.RemoveInstance("c1"); err != nil {
+		t.Fatal(err)
+	}
+	delete(r.Instances, "direct")
+	check("removed")
+}

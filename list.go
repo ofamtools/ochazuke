@@ -277,13 +277,28 @@ func (l *List) syncFocus(previous ListItem, gone map[string]bool) {
 	}, l.focusTarget())
 }
 
+// Snapshot is the list's state with a copy of its rows (the snapshot's
+// /lists entry); changing it never reaches the list.
 func (l *List) Snapshot() map[string]any {
+	out := l.state()
+	out["items"] = slices.Clone(l.items)
+	return out
+}
+
+// state is Snapshot without the copy, the result of the list verbs (a
+// move, a select, a mark): its items share the list's rows, which SetItems
+// replaces whole and never edits in place, so a keypress on a list of many
+// rows copies none of them. A verb's result is read, never written: the
+// CLI and the API encode it, a key drops it.
+func (l *List) state() map[string]any {
 	selected, _ := l.Selected()
 	marked := make([]string, 0, len(l.marks))
-	for _, item := range l.Marked() {
-		marked = append(marked, item.ID)
+	if len(l.marks) > 0 {
+		for _, item := range l.Marked() {
+			marked = append(marked, item.ID)
+		}
 	}
-	out := map[string]any{"id": l.id, "items": slices.Clone(l.items), "selected": l.selected, "selectedId": selected.ID, "offset": l.offset, "focused": l.Focused(), "marked": marked}
+	out := map[string]any{"id": l.id, "items": slices.Clip(l.items), "selected": l.selected, "selectedId": selected.ID, "offset": l.offset, "focused": l.Focused(), "marked": marked}
 	if len(l.columns) > 0 {
 		out["columns"] = slices.Clone(l.columns)
 	}
@@ -427,29 +442,29 @@ func registerLists(r *Runtime) {
 		parameters        map[string]Parameter
 		run               func(*List, Context, Arguments) (any, error)
 	}{
-		{"focus", "Focus a list and its selected row", map[string]Parameter{"id": {Type: "string", Required: true}}, func(l *List, _ Context, _ Arguments) (any, error) { return l.Snapshot(), l.Focus() }},
+		{"focus", "Focus a list and its selected row", map[string]Parameter{"id": {Type: "string", Required: true}}, func(l *List, _ Context, _ Arguments) (any, error) { return l.state(), l.Focus() }},
 		{"move", "Move the selection; past the edge, on to the next stop on the page", map[string]Parameter{"id": {Type: "string"}, "delta": {Type: "integer", Required: true}, "steps": {Type: "integer", Description: "Repeat count (3j); stops at the list's edge, and spills as one move only from the edge"}}, func(l *List, _ Context, a Arguments) (any, error) {
 			delta, steps := IntArg(a, "delta", 0), max(1, IntArg(a, "steps", 1))
 			if steps > 1 && l.selected >= 0 {
 				if to := min(max(l.selected+delta*steps, 0), len(l.items)-1); to != l.selected {
 					l.Move(to - l.selected)
-					return l.Snapshot(), nil
+					return l.state(), nil
 				}
 			}
 			if !l.spill(delta) {
 				l.Move(delta)
 			}
-			return l.Snapshot(), nil
+			return l.state(), nil
 		}},
 		{"select", "Select a list item by stable ID without stealing focus", map[string]Parameter{"id": {Type: "string"}, "item": {Type: "string", Required: true}}, func(l *List, _ Context, a Arguments) (any, error) {
-			return l.Snapshot(), l.Select(StringArg(a, "item", ""))
+			return l.state(), l.Select(StringArg(a, "item", ""))
 		}},
 		{"mark", "Toggle the mark on a row (the selected row by default) for fan-out verbs", map[string]Parameter{"id": {Type: "string"}, "item": {Type: "string"}}, func(l *List, c Context, a Arguments) (any, error) {
 			id, err := rowOf(l, c, a)
 			if err != nil {
 				return nil, err
 			}
-			return l.Snapshot(), l.ToggleMark(id)
+			return l.state(), l.ToggleMark(id)
 		}},
 		{"apply", "Run <row noun>.verb for every marked row (the selected row when none is marked), skipping and reporting rows whose noun lacks the verb", map[string]Parameter{"id": {Type: "string"}, "verb": {Type: "string", Required: true}}, func(l *List, c Context, a Arguments) (any, error) {
 			rows := l.Marked()

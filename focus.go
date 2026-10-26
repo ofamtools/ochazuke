@@ -298,7 +298,7 @@ func (r *Runtime) Push(id, focus string) error {
 	if inst == nil {
 		r.seq++
 		inst = &Instance{ID: id, Noun: "modal", Parent: "app", seq: r.seq}
-		r.Instances[id] = inst
+		r.register(inst)
 		r.modalInstances[id] = true
 	}
 	r.CancelPendingBinding()
@@ -363,12 +363,12 @@ func (r *Runtime) OpenModal(kind string, payload Payload, opts ...ModalOption) (
 	r.Define(kind)
 	r.seq++
 	inst := &Instance{ID: kind, Noun: kind, Parent: r.Focus, Payload: payload, seq: r.seq}
-	r.Instances[kind] = inst
+	r.register(inst)
 	r.modalInstances[kind] = true
 	focus := kind
 	if spec.input != nil {
 		if err := r.AddInput(spec.input, append(spec.opts, Parent(kind))...); err != nil {
-			delete(r.Instances, kind)
+			r.unregister(kind)
 			delete(r.modalInstances, kind)
 			return nil, err
 		}
@@ -485,8 +485,7 @@ func (r *Runtime) closeFocusOf(from string, gone map[string]bool) string {
 func (r *Runtime) dropSubtree(id string) {
 	for _, one := range r.subtree(id) {
 		r.closeInstance(one)
-		delete(r.Instances, one)
-		delete(r.rows, one)
+		r.unregister(one)
 	}
 }
 
@@ -559,8 +558,7 @@ func (r *Runtime) removeInstance(id string, kids map[string][]*Instance, pages [
 			continue
 		}
 		r.closeInstance(one)
-		delete(r.Instances, one)
-		delete(r.rows, one)
+		r.unregister(one)
 	}
 	if gone[from] {
 		r.CancelPendingBinding()

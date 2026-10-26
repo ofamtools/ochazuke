@@ -124,8 +124,32 @@ func (r *Runtime) Instance(id string, opts ...InstanceOption) *Instance {
 	r.Define(spec.noun)
 	r.seq++
 	inst := &Instance{ID: id, Noun: spec.noun, Parent: spec.parent, seq: r.seq, closeFocus: spec.closeFocus}
-	r.Instances[id] = inst
+	r.register(inst)
 	return inst
+}
+
+// register files a new instance in the registry and, unless it is a list
+// row (SetItems files r.rows before it creates the row), in the holder
+// index components() walks, so delivery costs the number of non-row
+// instances, never the number of rows.
+func (r *Runtime) register(inst *Instance) {
+	r.Instances[inst.ID] = inst
+	if r.rows[inst.ID] == "" {
+		r.holders = append(r.holders, inst.ID)
+	}
+}
+
+// unregister drops an instance from the registry, the row index and the
+// holder index.
+func (r *Runtime) unregister(id string) {
+	delete(r.Instances, id)
+	if _, row := r.rows[id]; row {
+		delete(r.rows, id)
+		return
+	}
+	if i := slices.Index(r.holders, id); i >= 0 {
+		r.holders = slices.Delete(r.holders, i, i+1)
+	}
 }
 
 // Children lists the instances parented at id in registration order.

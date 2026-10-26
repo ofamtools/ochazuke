@@ -211,6 +211,7 @@ type Runtime struct {
 	bindingVersion   uint64
 	modeGeneration   uint64
 	rows             map[string]string // list row instance id -> owning list id
+	holders          []string          // every instance that is not a list row, in registration order: the ones that may hold a Component (components())
 	modals           []string          // the open modal instances, outermost first; each holds its return focus in Payload.Return
 	modalInstances   map[string]bool   // instances created by Push or OpenModal, removed by Pop
 	seq              uint64            // instance registration order
@@ -489,7 +490,7 @@ func (r *Runtime) AddInput(in *Input, opts ...InstanceOption) error {
 	}
 	r.seq++
 	inst := &Instance{ID: in.ID, Noun: spec.noun, Parent: spec.parent, Component: in, seq: r.seq, closeFocus: spec.closeFocus}
-	r.Instances[in.ID] = inst
+	r.register(inst)
 	in.r = r
 	return nil
 }

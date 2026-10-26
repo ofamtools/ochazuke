@@ -87,12 +87,12 @@ Root package `ochazuke` is flat: 60 source files, 60 test files. Each entry list
 
 ### delivery.go
 
-- lines: 509 · tests: delivery_test.go
+- lines: 534 · tests: delivery_test.go
 - purpose: Component is the delivery contract every instance that works off the loop implements through Instance.Component.
 - types: Component (iface), Ticket, Completion, Ctx, AppHandler (func), Result, JobInfo
-- methods: Result(4), Runtime(19), job(1)
+- methods: Result(4), Runtime(20), job(1)
 - funcs: Done, Failed, Pending
-- leans on: runtime.go(44), instance.go(6), noun.go(2), pages.go(2)
+- leans on: runtime.go(45), instance.go(7), noun.go(2), pages.go(2)
 
 ### detail.go
 
@@ -131,7 +131,7 @@ Root package `ochazuke` is flat: 60 source files, 60 test files. Each entry list
 
 ### focus.go
 
-- lines: 809 · tests: focus_test.go
+- lines: 807 · tests: focus_test.go
 - purpose: Context derives the path view of the focus.
 - types: ModalOption (func), FocusTargeter (iface)
 - methods: Runtime(40)
@@ -170,12 +170,12 @@ Root package `ochazuke` is flat: 60 source files, 60 test files. Each entry list
 
 ### instance.go
 
-- lines: 303
+- lines: 327
 - purpose: Instance is one addressable thing on screen: a page, a list, a list row, a modal body, or an input.
 - types: Instance, Payload, InstanceOption (func)
-- methods: Payload(1), Runtime(8)
+- methods: Payload(1), Runtime(10)
 - funcs: Parent, Kind, Focus, CloseOnDetach, FocusOnClose, NoSpill, NoMarks
-- leans on: runtime.go(17), noun.go(5), completion.go(1), delivery.go(1)
+- leans on: runtime.go(19), noun.go(5), completion.go(1), delivery.go(1)
 
 ### layout.go
 
@@ -188,10 +188,10 @@ Root package `ochazuke` is flat: 60 source files, 60 test files. Each entry list
 
 ### list.go
 
-- lines: 494 · tests: list_test.go
+- lines: 509 · tests: list_test.go
 - purpose: ListItem is application-owned identity, display text, and the registered noun the row answers to.
 - types: ListItem, List
-- methods: List(20), Runtime(1)
+- methods: List(21), Runtime(1)
 - funcs: NewList
 - leans on: runtime.go(39), instance.go(17), noun.go(16), delivery.go(2)
 
@@ -374,7 +374,7 @@ Root package `ochazuke` is flat: 60 source files, 60 test files. Each entry list
 
 ### runtime.go
 
-- lines: 848 · tests: runtime_test.go
+- lines: 849 · tests: runtime_test.go
 - purpose: Arguments are a request's named arguments, keyed by parameter name.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
 - methods: Context(1), Operation(3), Request(1), Runtime(19)
