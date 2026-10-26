@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/charmbracelet/x/ansi"
@@ -56,6 +57,7 @@ func (r *Runtime) AddDetail(id string, item func() string, opts ...InstanceOptio
 	}
 	d := &Detail{r: r, id: id, about: item}
 	r.Instance(id, Parent(spec.parent), Kind(spec.noun)).Component = d
+	r.recordDetail(d)
 	return d, nil
 }
 
@@ -141,31 +143,77 @@ func (d *Detail) clamp(offset int) int {
 	return min(max(0, offset), max(0, d.total-d.height))
 }
 
-// pageDetail is the first detail on the page holding focus, else nil.
+// pageDetail is the first detail on the page holding focus (depth first,
+// children in registration order), else nil. It reads the page's recorded
+// details rather than walking the page's subtree: the J/K guard runs on
+// every frame's hints and every J/K, and a walk asking Children per node
+// was quadratic in the number of rows.
 func (r *Runtime) pageDetail(focus string) *Detail {
-	page := ""
+	var page *Page
 	for _, id := range r.Ancestry(focus) {
-		if r.PageOf(id) != nil {
-			page = id
+		if page = r.PageOf(id); page != nil {
 			break
 		}
 	}
-	if page == "" {
+	if page == nil {
 		return nil
 	}
-	var walk func(id string) *Detail
-	walk = func(id string) *Detail {
-		for _, child := range r.Children(id) {
-			if d, ok := child.Component.(*Detail); ok {
-				return d
-			}
-			if d := walk(child.ID); d != nil {
-				return d
-			}
+	var best *Detail
+	var bestPath []uint64
+	live := page.details[:0]
+	for _, d := range page.details {
+		if inst := r.Instances[d.id]; inst == nil || inst.Component != d {
+			continue // removed, or the id now fronts something else
 		}
-		return nil
+		live = append(live, d)
+		path := r.seqPath(d.id, page.ID)
+		if path != nil && (best == nil || slices.Compare(path, bestPath) < 0) {
+			best, bestPath = d, path
+		}
 	}
-	return walk(page)
+	clear(page.details[len(live):])
+	page.details = live
+	return best
+}
+
+// recordDetail notes d on the page above it, when that page is registered;
+// RegisterPage collects the details already beneath a page it registers.
+func (r *Runtime) recordDetail(d *Detail) {
+	for _, id := range r.Ancestry(d.id) {
+		if page := r.PageOf(id); page != nil {
+			page.details = append(page.details, d)
+			return
+		}
+	}
+}
+
+// pageDetails is every detail beneath page, for RegisterPage.
+func (r *Runtime) pageDetails(page string) []*Detail {
+	var out []*Detail
+	for _, inst := range r.Instances {
+		if d, ok := inst.Component.(*Detail); ok && r.seqPath(inst.ID, page) != nil {
+			out = append(out, d)
+		}
+	}
+	return out
+}
+
+// seqPath is the registration stamps of the instances from page's child
+// down to id, nil when page is not a proper ancestor of id. Comparing two
+// paths orders their instances as a depth-first walk of page meets them.
+func (r *Runtime) seqPath(id, page string) []uint64 {
+	var out []uint64
+	for _, one := range r.Ancestry(id) {
+		if one == page {
+			if len(out) == 0 {
+				return nil
+			}
+			slices.Reverse(out)
+			return out
+		}
+		out = append(out, r.Instances[one].seq)
+	}
+	return nil
 }
 
 // detailScrolls is the guard of the J/K rows: no modal is open, the page

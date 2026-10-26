@@ -47,6 +47,10 @@ type Page struct {
 	// Runtime.PaneLayout (splitting collects the frame in progress); the
 	// pane keys answer only then.
 	split, splitting bool
+	// details are the detail components beneath the page (AddDetail and
+	// RegisterPage record them; pageDetail drops removed ones), so finding
+	// the page's detail does not walk its rows.
+	details []*Detail
 }
 
 // Placement is one Placed call of a frame: the instance drawn and, when its
@@ -252,6 +256,7 @@ func (r *Runtime) RegisterPage(page *Page, opts ...InstanceOption) error {
 	}
 	inst := r.Instance(page.ID, append([]InstanceOption{Kind("page")}, opts...)...)
 	inst.Component = page
+	page.details = r.pageDetails(page.ID)
 	page.Remembered = page.Focus
 	// A page that starts on a row starts with that row selected.
 	r.selectFocusedRow(page.Focus)

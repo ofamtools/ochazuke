@@ -132,3 +132,81 @@ func TestDetailRowsStandAsideForAnInnerJK(t *testing.T) {
 		t.Fatalf("K at the top stays at 0: %d", d.Offset())
 	}
 }
+
+// TestPageDetailFollowsTheTree pins the page's recorded details to the
+// walk they replaced: a detail added before or after its page registers is
+// found, the first one depth first (children in registration order) wins,
+// and a removed detail, or its id reused by another instance, drops out.
+func TestPageDetailFollowsTheTree(t *testing.T) {
+	r := NewRuntime()
+	r.Define("thing")
+	r.Instance("p")
+	if _, err := r.AddList("p/list", []ListItem{{ID: "a", Label: "a", Noun: "thing"}}, Parent("p")); err != nil {
+		t.Fatal(err)
+	}
+	panel := r.Instance("p/panel", Parent("p"))
+	// Before the page registers, beneath a panel registered after the list.
+	inner, err := r.AddDetail("p/panel/detail", nil, Parent(panel.ID))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.AddPage("p", "P", func(*Runtime, int, int) Block { return Text("") }, Focus("p/list")); err != nil {
+		t.Fatal(err)
+	}
+	if got := r.pageDetail("a"); got != inner {
+		t.Fatalf("detail before the page registered: got %v", got)
+	}
+	// After: a detail directly under the page, registered later than the
+	// panel, comes after the panel's detail in a depth-first walk; one under
+	// the list (registered before the panel) comes first.
+	late, err := r.AddDetail("p/detail", nil, Parent("p"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := r.pageDetail("a"); got != inner {
+		t.Fatalf("later sibling detail: got %v, want the panel's", got)
+	}
+	early, err := r.AddDetail("p/list/detail", nil, Parent("p/list"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := r.pageDetail("a"); got != early {
+		t.Fatalf("detail under the list: got %v", got)
+	}
+	if err := r.RemoveInstance(early.ID()); err != nil {
+		t.Fatal(err)
+	}
+	if got := r.pageDetail("a"); got != inner {
+		t.Fatalf("after removing the list's detail: got %v", got)
+	}
+	if err := r.RemoveInstance(panel.ID); err != nil {
+		t.Fatal(err)
+	}
+	if got := r.pageDetail("a"); got != late {
+		t.Fatalf("after removing the panel: got %v", got)
+	}
+	if err := r.RemoveInstance(late.ID()); err != nil {
+		t.Fatal(err)
+	}
+	r.Instance("p/detail", Parent("p"))
+	if got := r.pageDetail("a"); got != nil {
+		t.Fatalf("removed detail's id reused by a plain instance: got %v", got)
+	}
+	if page := r.PageOf("p"); len(page.details) != 0 {
+		t.Fatalf("stale details kept: %d", len(page.details))
+	}
+	// A detail on another page is not this page's.
+	r.Instance("q")
+	if _, err := r.AddDetail("q/detail", nil, Parent("q")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.AddPage("q", "Q", func(*Runtime, int, int) Block { return Text("") }); err != nil {
+		t.Fatal(err)
+	}
+	if got := r.pageDetail("a"); got != nil {
+		t.Fatalf("another page's detail: got %v", got)
+	}
+	if got := r.pageDetail("q"); got == nil || got.ID() != "q/detail" {
+		t.Fatalf("q's own detail: got %v", got)
+	}
+}
