@@ -1,0 +1,26 @@
+{
+  "name": "settings page: , opens it as a tab, focus on the first setting",
+  "area": "settings",
+  "settings": [
+    {"name": "scrolloff", "type": "integer", "default": 2, "description": "Rows kept above and below the focus when a page scrolls to follow it."},
+    {"name": "theme", "type": "string", "default": "dark", "description": "Colour theme", "enum": ["dark", "light", "mono"]},
+    {"name": "wrap", "type": "boolean", "default": false, "description": "Wrap long lines"},
+    {"name": "editor", "type": "string", "default": "vi", "description": "The command that opens a file"},
+    {"name": "ext.ai.poll-every", "type": "duration", "default": "30s", "description": "How often the AI extension refreshes its rows"},
+    {"name": "ext.ai.model", "type": "string", "default": "large", "description": "Model the AI extension asks", "enum": ["small", "large"]},
+    {"name": "ext.git.fetch", "type": "boolean", "default": true, "description": "Fetch before listing branches"}
+  ],
+  "page": {
+    "title": "Tasks",
+    "lists": [{"id": "a", "rows": 3}],
+    "focus": "a2",
+    "bind": [{"noun": "demo", "keys": ",", "do": "settings.edit"}]
+  },
+  "script": [",", ","],
+  "expect": [
+    {"after": 1, "page": "__settings", "modal": "", "mode": "normal", "focus": "__settings/row/scrolloff",
+     "order": ["Tasks", "Settings", "Sections", "General (4)", "scrolloff", "theme", "wrap", "editor", "scrolloff"],
+     "contains": ["ext.ai", "ext.git", "q settings.close"]},
+    {"page": "__settings", "focus": "__settings/row/scrolloff"}
+  ]
+}

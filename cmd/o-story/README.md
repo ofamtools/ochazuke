@@ -267,6 +267,7 @@ Conformance:
 | insert | outline | `outline.indent` `outline.leave` |
 | insert | palette | `palette.move` `palette.run` |
 | insert | setting-value | `setting-value.commit` |
+| insert | settings | `settings.edit` |
 | normal | bindings | `bindings.help` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
@@ -304,6 +305,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `palette.run`
 - `insert` → `normal` via `row esc`
 - `insert` → `normal` via `setting-value.commit`
+- `insert` → `normal` via `settings.edit`
 - `leader_pending` → `normal` via `terminal.detach`
 - `leader_pending` → `terminal` via `terminal.send`
 - `normal` → `count_pending` via `mode.enter`
@@ -314,6 +316,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `page.pick`
 - `normal` → `insert` via `palette.open`
 - `normal` → `insert` via `setting.edit`
+- `normal` → `insert` via `settings.close`
 - `normal` → `normal d` via `row d`
 - `normal` → `terminal` via `command.run`
 - `normal` → `terminal` via `demo.open`

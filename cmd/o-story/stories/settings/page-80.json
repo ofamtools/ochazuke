@@ -1,0 +1,20 @@
+{
+  "name": "settings page at 80 columns: sections, table, detail",
+  "area": "settings",
+  "width": 80,
+  "settings": [
+    {"name": "scrolloff", "type": "integer", "default": 2, "description": "Rows kept above and below the focus when a page scrolls to follow it."},
+    {"name": "theme", "type": "string", "default": "dark", "description": "Colour theme", "enum": ["dark", "light", "mono"]},
+    {"name": "wrap", "type": "boolean", "default": false, "description": "Wrap long lines"},
+    {"name": "editor", "type": "string", "default": "vi", "description": "The command that opens a file"},
+    {"name": "ext.ai.poll-every", "type": "duration", "default": "30s", "description": "How often the AI extension refreshes its rows"},
+    {"name": "ext.ai.model", "type": "string", "default": "large", "description": "Model the AI extension asks", "enum": ["small", "large"]},
+    {"name": "ext.git.fetch", "type": "boolean", "default": true, "description": "Fetch before listing branches"}
+  ],
+  "page": {
+    "title": "Tasks",
+    "lists": [{"id": "a", "rows": 3}],
+    "bind": [{"noun": "demo", "keys": ",", "do": "settings.edit"}]
+  },
+  "script": [",", "j"]
+}

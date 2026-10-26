@@ -1,0 +1,24 @@
+ |  ◆ o-story                                                            NORMAL
+ |   Tasks  › Settings
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  ╭─ Sections ─────╮ ╭━ General (4) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
+ |  │ General        │ ┃ Setting    Value  Default  Source                     ┃
+ |  │ ext.ai         │ ┃ scrolloff  2      2        default                    ┃
+R|  │ ext.git        │ ┃ theme      dark   dark     default                    ┃
+ |  │                │ ┃ wrap       false  false    default                    ┃
+ |  │                │ ┃ editor     vi     vi       default                    ┃
+ |  │                │ ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
+ |  │                │ ╭─ theme ───────────────────────────────────────────────╮
+ |  │                │ │ Colour theme                                          │
+ |  │                │ │                                                       │
+ |  │                │ │ name     theme                                        │
+ |  │                │ │ type     enum (string)                                │
+ |  │                │ │ allowed  dark, light, mono                            │
+ |  │                │ │ value    dark                                         │
+ |  │                │ │ default  dark                                         │
+ |  │                │ │ source   default                                      │
+ |  │                │ │                                                       │
+ |  ╰────────────────╯ ╰───────────────────────────────────────────────────────╯
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  enter setting.edit · h/l setting.cycle · r setting.reset · q settings.close…
+ |

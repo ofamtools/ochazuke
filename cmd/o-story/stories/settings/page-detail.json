@@ -1,0 +1,20 @@
+{
+  "name": "settings page: the detail shows the whole description; J/K scroll it, the focus stays",
+  "area": "settings",
+  "settings": [
+    {"name": "poll", "type": "duration", "default": "30s", "description": "How often the rows refresh. A shorter wait shows changes sooner and costs more calls; a longer one is quieter. The first refresh runs when the page opens, whatever the wait. Zero turns the refresh off: the rows then change only when you reload them. Values below one second are rounded up to one second so a typo cannot flood the daemon."},
+    {"name": "colour", "type": "string", "default": "auto", "description": "Colour mode", "enum": ["auto", "always", "never"]}
+  ],
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "bind": [{"noun": "demo", "keys": "S", "do": "settings.edit"}]
+  },
+  "script": ["S", "J", "J", "K", "j"],
+  "expect": [
+    {"after": 1, "focus": "__settings/row/poll", "contains": ["How often the rows refresh", "J/K detail"]},
+    {"after": 2, "focus": "__settings/row/poll", "contains": ["poll · 2–"], "lacks": ["How often the rows refresh"]},
+    {"after": 3, "contains": ["poll · 3–"]},
+    {"after": 4, "contains": ["poll · 2–"]},
+    {"focus": "__settings/row/colour", "contains": ["colour", "Colour mode", "enum (string)", "auto, always, never", "default"], "lacks": ["J/K detail"]}
+  ]
+}
