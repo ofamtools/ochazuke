@@ -73,8 +73,8 @@ func TestFocusJumpsFollowDrawingOrder(t *testing.T) {
 }
 
 // Before any frame (a CLI, a headless test) the walk is tree order; a frame
-// that draws in another order takes over, and an undrawn stop follows the
-// drawn ones.
+// that draws in another order takes over, and a stop the frame did not draw
+// is skipped (it is not on screen) until a frame draws it again.
 func TestFocusJumpsBeforeAFrameUseTreeOrder(t *testing.T) {
 	r := NewRuntime()
 	r.Instance("page")
@@ -102,9 +102,16 @@ func TestFocusJumpsBeforeAFrameUseTreeOrder(t *testing.T) {
 	m := NewModel(r)
 	m.Width, m.Height = 60, 30
 	m.View()
-	for _, want := range []string{"b", "c", "a"} {
+	for _, want := range []string{"b", "a", "b"} {
 		if err := r.JumpFocus(1, "stop"); err != nil || focusedList(r) != want {
-			t.Fatalf("drawn a, b then undrawn c: got %q want %q (%v)", focusedList(r), want, err)
+			t.Fatalf("drawn a, b, c undrawn: got %q want %q (%v)", focusedList(r), want, err)
+		}
+	}
+	draw = []string{"a", "c", "b"}
+	m.View()
+	for _, want := range []string{"a", "c", "b"} {
+		if err := r.JumpFocus(1, "stop"); err != nil || focusedList(r) != want {
+			t.Fatalf("c drawn again: got %q want %q (%v)", focusedList(r), want, err)
 		}
 	}
 }

@@ -130,8 +130,10 @@ func (p *Page) focusLines(r *Runtime, focus string) (top, bottom int, ok bool) {
 // motions follow the screen as drawn and cannot drift from it. List, Input
 // (InputBlock), Terminal and grid views call it; a component of the
 // application's own calls it from its view. Outside a page render it does
-// nothing. There is no other way to order stops: an instance no frame drew
-// follows the drawn ones in tree order.
+// nothing. There is no other way to order stops: before the first frame the
+// order is the tree's, and once a frame drew any stop, a stop the last
+// frame did not draw is skipped (it is not on screen). A stop drawn by an
+// application view that never calls Placed is therefore skipped too.
 func (r *Runtime) Placed(id string) {
 	if page := r.renderingPage(id); page != nil {
 		page.drawing = append(page.drawing, Placement{ID: id, Line: -1})

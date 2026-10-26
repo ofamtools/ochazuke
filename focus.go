@@ -634,9 +634,11 @@ func (r *Runtime) region(id string) bool {
 // units lists the instances under root that unit accepts, without
 // descending into one, in drawing order: the order the page holding root
 // drew them in its last frame (Placed), a unit ranked by the first drawn
-// instance in its subtree. A unit the last frame did not draw (no frame yet,
-// added since, or drawn by no Placed call) follows the drawn ones in tree
-// order (children in added order, depth-first). order ranks every instance
+// instance in its subtree. Before the page's first frame (or in the CLI,
+// where none is drawn) every unit counts, in tree order (children in added
+// order, depth-first); once a frame drew any of them, a unit the last frame
+// did not draw (hidden, or drawn by no Placed call) is skipped, except in
+// a modal, whose stops the page frame never records. order ranks every instance
 // under root the same way. No map is iterated: the walk is the tree's and
 // the frame's slices.
 func (r *Runtime) units(root string, unit func(string) bool) (out []string, order map[string]int) {
@@ -670,8 +672,26 @@ func (r *Runtime) units(root string, unit func(string) bool) (out []string, orde
 			}
 		}
 	}
+	if len(drawn) > 0 && !r.insideModal(root) {
+		// Once the page has drawn a frame, a unit it did not draw is not
+		// on screen (a hidden panel, a collapsed pane): jumps and spills
+		// skip it rather than land the focus somewhere invisible.
+		out = slices.DeleteFunc(out, func(id string) bool { return order[id] >= len(drawn) })
+	}
 	slices.SortStableFunc(out, func(a, b string) int { return order[a] - order[b] })
 	return out, order
+}
+
+// insideModal reports whether id is an open modal or beneath one. A modal's
+// stops are not recorded in its page's frame, so they are never skipped as
+// undrawn.
+func (r *Runtime) insideModal(id string) bool {
+	for _, at := range r.Ancestry(id) {
+		if slices.Contains(r.modals, at) {
+			return true
+		}
+	}
+	return false
 }
 
 // drawnUnder is the last frame's drawing order of the page holding root
