@@ -67,8 +67,9 @@ func TestHistoryMacroReplaySource(t *testing.T) {
 	}
 }
 
-// history.list and state.get are not recorded; the ring keeps the last
-// HistoryLimit entries; the snapshot shows the last 50 at /history.
+// The ring keeps the last HistoryLimit entries; history.list and state.get
+// are fetches, recorded apart and left out of history.list's default view
+// and the snapshot, which shows the last 50 actions and changes at /history.
 func TestHistoryRingListAndSnapshot(t *testing.T) {
 	r := NewRuntime()
 	for range HistoryLimit + 10 {
@@ -88,8 +89,11 @@ func TestHistoryRingListAndSnapshot(t *testing.T) {
 	if err != nil || len(state.([]any)) != 50 {
 		t.Fatalf("/history: %v", err)
 	}
-	if e := lastEntry(t, r); e.Seq != HistoryLimit+10 {
-		t.Fatalf("history.list or state.get was recorded: %+v", e.Request)
+	if e := r.HistoryOf(1, historyUserKinds...); len(e) != 1 || e[0].Seq != HistoryLimit+10 {
+		t.Fatalf("history.list or state.get is in the user's view: %+v", e)
+	}
+	if e := lastEntry(t, r); e.Kind != HistoryFetch || e.Request.Key() != "state.get" {
+		t.Fatalf("state.get is not the last fetch: %+v", e)
 	}
 	data, err := json.Marshal(lastEntry(t, r))
 	if err != nil {
@@ -99,7 +103,7 @@ func TestHistoryRingListAndSnapshot(t *testing.T) {
 	if err := json.Unmarshal(data, &shape); err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range []string{"seq", "at", "request", "context", "result"} {
+	for _, key := range []string{"seq", "at", "kind", "request", "context", "result"} {
 		if _, ok := shape[key]; !ok {
 			t.Fatalf("entry lacks %s: %s", key, data)
 		}

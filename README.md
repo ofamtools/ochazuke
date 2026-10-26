@@ -927,10 +927,10 @@ Predicates: `noun`, `id`, `kind` (the component an instance fronts, lowercased: 
 
 ## Action history and dot-repeat
 
-Every executed request but `history.list` and `state.get` is appended to a 500-entry ring:
+Every executed request is one entry in the action history, with a kind:
 
 ```js
-{ seq: 42, at: "2026-10-24T10:00:00Z",
+{ seq: 42, at: "2026-10-24T10:00:00Z", kind: "change",                          // action, change or fetch
   request: { verb: "operator", noun: "input", args: { operator: "d", motion: "word-forward", steps: 1 } },
   context: { focus: "editor", page: "main", mode: "normal", source: "key:w" },   // or "macro:a", "palette", "cli", "api"
   result: { ok: true },                                                         // or { ok: false, error: "..." }
@@ -941,9 +941,20 @@ Every executed request but `history.list` and `state.get` is appended to a 500-e
 
 An entry is the user action, not the data: the value the operation returned stays with the caller (the CLI prints it) and is never encoded into the history, so `j` over a list of ten thousand rows records the same small entry as over ten. A move is the ids it went between (`moved`).
 
-Read it with `history.list {last}` (default 50) or `state get /history` (the last 50). The resolver records `key:<keys>`, a macro replay `macro:<register>`, the transport `cli`, everything else `api`; a caller sets its own with `Runtime.Sourced(source)` (outermost caller wins, so keys inside a replay stay `macro:a`).
+| Kind | What | Examples |
+|---|---|---|
+| `action` | The user's interaction: motions, focus, page and modal moves, modes, the palette's own keys | `list.move`, `focus.next`, `page.open`, `modal.pop`, `mode.enter` |
+| `change` | Edits and verbs that change something; dot-repeat reads these | `input.delete`, `settings.set`, an application verb (`worktree.remove`) |
+| `fetch` | Requests for data: state, list and show verbs, reloads, a host calling an extension | `state.get`, `jobs.list`, `bindings.list`, a verb declaring `Rows` or `State` |
+| `system` | Reserved for what the runtime does on its own (a resize, a finished job); nothing records it yet | |
 
-Dot-repeat rides on it. `.` on `app` in normal mode runs `history.repeat {steps}`: the last successful request whose operation is `Repeatable` runs again with its arguments kept, at the current focus (the recorded target is dropped unless the request came from the CLI and the instance still exists), with a count on `.` replacing the recorded `steps` (`3.`). A confirmed request repeats without asking again (`confirmed: true` is in the record). The repeatable operations are the editor's changes: `input.insert`, `input.delete`, `input.kill`, `input.paste`, `input.operator`, `input.replace`; motions, focus, pages, modals, lists and the history are not. An application marks its own with `Operation.Repeatable` on `Register`. Dot repeats one request, so after typing `hello` in insert mode `.` inserts the last `o`, not the whole insert; macros stay key-based.
+The kind comes from the operation (`Operation.HistoryKindOf`): its `HistoryKind` when set (`NounBuilder.Fetch()` sets `fetch`; actions.json and the catalog carry it as `history`), else `fetch` for a verb declaring `Rows` or `State`, `change` for a `Repeatable` one, `action` for a `Motion`, `change` for any other application verb (an extension verb that declares nothing may change something, so it is kept with the user's entries), and `action` for any other interaction verb. A host that mounts another CLI's verbs copies each catalog verb's `history` to its operation.
+
+The ring keeps the last 500 actions and changes (`history-limit`) and, apart, the last 100 fetches (`HistoryFetchLimit`), so a host polling a state verb never pushes the user's entries out. A fetch typed into the palette is the user's line: it stays with the actions and changes, and palette Up/Down recalls it.
+
+Read it with `history.list {last, kind}` (default the last 50 actions and changes; `kind` is a comma list or `all`) or `state get /history` (the last 50 actions and changes); `Runtime.History(n)` returns every kind and `Runtime.HistoryOf(n, kinds...)` the ones named. The resolver records `key:<keys>`, a macro replay `macro:<register>`, the transport `cli`, everything else `api`; a caller sets its own with `Runtime.Sourced(source)` (outermost caller wins, so keys inside a replay stay `macro:a`).
+
+Dot-repeat rides on it. `.` on `app` in normal mode runs `history.repeat {steps}`: the last successful change whose operation is `Repeatable` runs again with its arguments kept, at the current focus (the recorded target is dropped unless the request came from the CLI and the instance still exists), with a count on `.` replacing the recorded `steps` (`3.`). A confirmed request repeats without asking again (`confirmed: true` is in the record). The repeatable operations are the editor's changes: `input.insert`, `input.delete`, `input.kill`, `input.paste`, `input.operator`, `input.replace`; motions, focus, pages, modals, lists and the history are not. An application marks its own with `Operation.Repeatable` on `Register`. Dot repeats one request, so after typing `hello` in insert mode `.` inserts the last `o`, not the whole insert; macros stay key-based.
 
 ### Persisted history
 
@@ -953,7 +964,7 @@ A TUI's history survives restarts. `Model.Init` calls `Runtime.EnsureHistory`, w
 |---|---|
 | File | `$XDG_STATE_HOME/<app>/history.jsonl`, else `~/.local/state/<app>/history.jsonl` (`Config.StateDir` overrides the directory; `history path` prints it) |
 | Format | One entry per line, in the shape above. |
-| Kept | Palette lines: entries with the source `palette`, the commands the user ran, failed ones included. Other operations that completed, such as `page.open`, `list.select`, `settings.set` and an application's verbs. |
+| Kept | Palette lines: entries with the source `palette`, the commands the user ran, failed ones included. Other operations that completed, such as `page.open`, `list.select`, `settings.set` and an application's verbs. Fetches only while the `history-fetches` setting is on (default off: a host polling would fill the file, and nothing reads a fetch back after a restart). |
 | Never kept | Text editing and its plumbing: every operation of the `input`, `editor`, `key`, `count`, `register`, `macro`, `yank-history`, `mode`, `palette` and `terminal` nouns, so nothing typed or pasted into an input, a prompt, the palette line or a terminal reaches the file. Failed operations that did not come from the palette. |
 | Arguments | An argument whose name contains `text`, `value`, `keys`, `password`, `secret` or `token` is left out of the line. An operation keeps them only when it sets `Operation.PersistArgs` (`NounBuilder.PersistArgs()`). `settings.set` does, so `set settings theme kombu` comes back whole. |
 | Bound | The `history-limit` setting (integer, default 500, `0` keeps nothing). The framework declares it when the history is persisted, unless the application declared a setting of that name. It also bounds the ring. |
@@ -962,7 +973,7 @@ A TUI's history survives restarts. `Model.Init` calls `Runtime.EnsureHistory`, w
 | Problems | Lines that do not parse are skipped. The file gets one notice and is rewritten without them. A write error is one notice, and later entries are not saved. |
 | Off | No file without a state directory: `Config.Disable()` (o-story sessions), a test binary, or an application that sets `Config.NoHistoryFile`. The CLI shell neither reads nor writes the file. |
 
-The in-memory ring still records everything for `history.list` and dot-repeat. Only the file is filtered. `NoHistoryFile` turns the file off entirely.
+The in-memory ring still records every kind for `history.list` and dot-repeat. Only the file is filtered. `NoHistoryFile` turns the file off entirely.
 
 ## User actions (actions.json)
 

@@ -99,6 +99,12 @@ type Operation struct {
 	// help and bindings list keep them. Set by NounBuilder.Motion; the
 	// framework's own motions are marked as they register (motionOps).
 	Motion bool `json:"motion,omitempty"`
+	// HistoryKind is the kind of entry the operation records
+	// (HistoryAction, HistoryChange, HistoryFetch); empty derives it
+	// (HistoryKindOf). Set it to HistoryFetch on a verb that only asks for
+	// data (NounBuilder.Fetch, the catalog's history), so history.list's
+	// default view and the bounded ring leave its calls to the fetches.
+	HistoryKind string `json:"historyKind,omitempty"`
 	// Positional names the parameters bare words fill first, in this
 	// order (NounBuilder.Positional), ahead of ParameterOrder's
 	// required-then-by-name rest. The CLI gives a boolean a bare word only
@@ -109,6 +115,28 @@ type Operation struct {
 }
 
 func (o Operation) Key() string { return o.Noun + "." + o.Verb }
+
+// HistoryKindOf is the kind of history entry the operation records: its
+// HistoryKind when set; else a fetch for a verb that answers rows (Rows,
+// State), a change for a Repeatable one, an action for a Motion, a change
+// for any other application verb (work that may change something outside
+// the runtime: the safe reading of an extension verb that declares
+// nothing), and an action for any other interaction verb.
+func (o Operation) HistoryKindOf() string {
+	switch {
+	case o.HistoryKind != "":
+		return o.HistoryKind
+	case o.Rows != "" || o.State:
+		return HistoryFetch
+	case o.Repeatable:
+		return HistoryChange
+	case o.Motion:
+		return HistoryAction
+	case o.Kind == KindApplication:
+		return HistoryChange
+	}
+	return HistoryAction
+}
 
 // ParameterOrder lists the operation's parameters in positional order:
 // the Positional names first, in their order, then the rest required
@@ -307,6 +335,35 @@ var motionOps = map[string]bool{
 	"detail.scroll": true,
 }
 
+// frameworkHistoryKinds are the framework's operations whose history kind
+// is not the derived one (Operation.HistoryKindOf): the reads and reloads
+// are fetches, the interaction verbs that change a setting, a register, a
+// record or a pane are changes, and the application verbs that only close
+// or fold are actions.
+var frameworkHistoryKinds = map[string]string{
+	"actions.list": HistoryFetch, "actions.path": HistoryFetch, "actions.reload": HistoryFetch,
+	"appearance.get": HistoryFetch, "bindings.check": HistoryFetch, "bindings.list": HistoryFetch,
+	"bindings.path": HistoryFetch, "bindings.reload": HistoryFetch, "bindings.stops": HistoryFetch,
+	"config.path": HistoryFetch, "history.list": HistoryFetch, "history.path": HistoryFetch,
+	"instances.query": HistoryFetch, "jobs.list": HistoryFetch, "modes.list": HistoryFetch,
+	"notice.list": HistoryFetch, "operations.list": HistoryFetch, "pages.list": HistoryFetch,
+	"register.get": HistoryFetch, "settings.get": HistoryFetch, "settings.list": HistoryFetch,
+	"settings.names": HistoryFetch, "settings.path": HistoryFetch, "settings.reload": HistoryFetch,
+	"state.get": HistoryFetch, "themes.list": HistoryFetch, "themes.path": HistoryFetch,
+	"themes.reload": HistoryFetch,
+
+	"appearance.set": HistoryChange, "bindings.load": HistoryChange, "confirm.set": HistoryChange,
+	"config.export": HistoryChange, "form-option.pick": HistoryChange, "form.redo": HistoryChange,
+	"form.suggest": HistoryChange, "form.undo": HistoryChange, "input.redo": HistoryChange,
+	"input.undo": HistoryChange, "input.yank": HistoryChange, "mode.register": HistoryChange,
+	"register.set": HistoryChange, "setting-value.commit": HistoryChange, "setting.cycle": HistoryChange,
+	"setting.edit": HistoryChange, "setting.reset": HistoryChange, "settings.reset": HistoryChange,
+	"settings.set": HistoryChange, "terminal.paste": HistoryChange, "terminal.send": HistoryChange,
+	"yank-history.select": HistoryChange,
+
+	"chooser.cancel": HistoryAction, "outline.fold": HistoryAction,
+}
+
 // Register adds an operation. An operation with App set is of kind
 // application and its Run is the framework's dispatcher for it.
 func (r *Runtime) Register(o Operation) {
@@ -324,6 +381,14 @@ func (r *Runtime) Register(o Operation) {
 	}
 	if motionOps[o.Key()] {
 		o.Motion = true
+	}
+	if kind := frameworkHistoryKinds[o.Key()]; kind != "" && o.HistoryKind == "" {
+		o.HistoryKind = kind
+	}
+	switch o.HistoryKind {
+	case "", HistoryAction, HistoryChange, HistoryFetch:
+	default:
+		panic("unknown history kind " + o.HistoryKind)
 	}
 	if _, exists := r.Operations[o.Key()]; exists {
 		panic("duplicate operation: " + o.Key())
@@ -444,12 +509,9 @@ func (r *Runtime) Execute(q Request) (any, error) { return r.ExecuteAt(r.Context
 
 // ExecuteAt runs an operation for a context. The innermost noun on the
 // focus stack that overrides the operation handles it; otherwise its Run does.
-// Every request but history.list and state.get is appended to the action
-// history with the context it ran in and its result.
+// Every request is appended to the action history with its kind, the
+// context it ran in, its outcome and where it moved the interaction.
 func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
-	if unrecorded[q.Key()] {
-		return r.execute(c, q)
-	}
 	source := r.history.source
 	if source == "" {
 		source = "api"
@@ -657,7 +719,7 @@ func (r *Runtime) Snapshot() map[string]any {
 	regs := r.Registers()
 	return map[string]any{"modals": r.modalIDs(), "pages": pages, "page": r.Page, "inputs": inputs, "context": r.Context(), "focus": r.Focus, "mode": r.Mode.Name, "modeState": r.Mode, "modes": modes, "bindings": r.ListBindings(r.Focus), "pending": r.Pending, "quit": r.Quit,
 		"lists": lists, "registers": regs.Named, "yankHistory": regs.History, "activeRegister": regs.Active, "macro": regs.Macro,
-		"nouns": nouns, "instances": r.Instances, "components": r.componentSnapshot(), "jobs": r.runningJobs(), "history": r.History(50)}
+		"nouns": nouns, "instances": r.Instances, "components": r.componentSnapshot(), "jobs": r.runningJobs(), "history": r.HistoryOf(50, historyUserKinds...)}
 }
 func JSONPointer(value any, path string) (any, error) {
 	data, err := json.Marshal(value)

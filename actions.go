@@ -41,7 +41,9 @@ const ActionsFile = "actions.json"
 // arguments as JSON) or a declared parameter's value. An argv element that
 // is exactly one placeholder and expands to nothing is left out, so an
 // optional parameter disappears instead of passing "". Confirm is a
-// confirm prompt template, as NounBuilder.Confirm takes.
+// confirm prompt template, as NounBuilder.Confirm takes. History is the
+// kind of history entry it records (Operation.HistoryKind): "fetch" for a
+// command that only reads; empty is a change, as for any application verb.
 //
 // Actions are read only from the user's own actions.json (Config.Path):
 // never from a catalog, a binding row, a socket call or an application's
@@ -62,6 +64,7 @@ type Action struct {
 	Dir         string               `json:"dir,omitempty"`
 	Timeout     string               `json:"timeout,omitempty"`
 	Quiet       bool                 `json:"quiet,omitempty"`
+	History     string               `json:"history,omitempty"`
 }
 
 // Key is the action's operation key, noun.verb.
@@ -128,6 +131,11 @@ func (a Action) check(r *Runtime) error {
 		if _, ok := a.Parameters[name]; !ok {
 			return fmt.Errorf("positional %q is not a declared parameter", name)
 		}
+	}
+	switch a.History {
+	case "", HistoryAction, HistoryChange, HistoryFetch:
+	default:
+		return fmt.Errorf("history %q must be action, change or fetch", a.History)
 	}
 	if a.Timeout != "" {
 		if d, err := time.ParseDuration(a.Timeout); err != nil || d <= 0 {
@@ -406,7 +414,7 @@ func (r *Runtime) installAction(a Action) {
 	if description == "" {
 		description = "Run " + filepath.Base(a.firstWord()) + " (" + ActionsFile + ")"
 	}
-	r.Register(Operation{Verb: a.Verb, Noun: a.Noun, Description: description, Parameters: params, Result: "JSON value", Positional: slices.Clone(a.Positional), Quiet: a.Quiet, Confirm: a.Confirm, App: a.handler()})
+	r.Register(Operation{Verb: a.Verb, Noun: a.Noun, Description: description, Parameters: params, Result: "JSON value", Positional: slices.Clone(a.Positional), Quiet: a.Quiet, HistoryKind: a.History, Confirm: a.Confirm, App: a.handler()})
 	r.Nouns[a.Noun].Verbs = append(r.Nouns[a.Noun].Verbs, a.Verb)
 	c := r.Config()
 	c.actions = append(c.actions, a)
