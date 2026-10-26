@@ -233,8 +233,11 @@ func TestModelPageChromeKeepsActiveTabVisibleWithManyPages(t *testing.T) {
 			if !strings.Contains(tabs, "› "+strings.ToUpper(active)) {
 				t.Fatalf("active page missing from %d-column tabs: %q", width, tabs)
 			}
-			if strings.ContainsAny(tabs, "0123456789") || ansi.StringWidth(tabs) > width || len(lines) != 24 {
-				t.Fatalf("unbounded or numbered chrome: %q (%d lines)", tabs, len(lines))
+			if ansi.StringWidth(tabs) > width || len(lines) != 24 {
+				t.Fatalf("unbounded chrome: %q (%d lines)", tabs, len(lines))
+			}
+			if shown, hidden := tabCounts(tabs); shown+hidden != 65 {
+				t.Fatalf("%d-column tabs show %d and mark %d hidden of 65: %q", width, shown, hidden, tabs)
 			}
 		}
 	}

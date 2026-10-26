@@ -164,24 +164,83 @@ func (l Layout) subtitleRow(h Header, width int) string {
 }
 
 // tabs renders the active tab and as many neighbours as fit in width cells,
-// growing outward from the active one.
+// alternating left and right of it. When pages are hidden, the row shows
+// "‹N" at the left edge and "N›" at the right, N the pages hidden on that
+// side; the markers' cells are reserved before neighbours are added, so the
+// active tab is always on the row and the counts add up to the hidden pages.
 func (l Layout) tabs(titles []string, active, width int) string {
 	if len(titles) == 0 {
 		return ""
 	}
 	s := l.Styles
 	active = min(max(0, active), len(titles)-1)
-	title := modalLabel(titles[active])
-	tabs := ansi.Truncate(s.ActiveTab.Render(ansi.Truncate(title, max(1, width-4), "…")), width, "")
-	used := ansi.StringWidth(tabs)
+	cells := make([]string, len(titles))
+	total := 0
+	for i, title := range titles {
+		if i == active {
+			cells[i] = s.ActiveTab.Render(modalLabel(title))
+		} else {
+			cells[i] = s.Tab.Render(modalLabel(title))
+		}
+		total += ansi.StringWidth(cells[i])
+	}
+	if total <= width {
+		return strings.Join(cells, "")
+	}
+	leftMarker := func(n int) string { return s.Tab.Render(fmt.Sprintf("‹%d", n)) }
+	rightMarker := func(n int) string { return s.Tab.Render(fmt.Sprintf("%d›", n)) }
+	// Reserve a marker on each side that may hide pages, as wide as its
+	// largest count; once a side shows every page, give its cells back and
+	// fit again (the other side may then take more).
+	hideLeft, hideRight := active > 0, active < len(titles)-1
+	var first, last int
+	for range 3 {
+		budget := width
+		if hideLeft {
+			budget -= ansi.StringWidth(leftMarker(active))
+		}
+		if hideRight {
+			budget -= ansi.StringWidth(rightMarker(len(titles) - 1 - active))
+		}
+		first, last = l.tabWindow(cells, titles, active, budget)
+		left, right := first > 0, last < len(titles)-1
+		if left == hideLeft && right == hideRight {
+			break
+		}
+		hideLeft, hideRight = left, right
+	}
+	var b strings.Builder
+	if first > 0 {
+		b.WriteString(leftMarker(first))
+	}
+	if first == last && first == active {
+		// The active tab alone: cut it to what the markers leave.
+		room := width - ansi.StringWidth(b.String())
+		if last < len(titles)-1 {
+			room -= ansi.StringWidth(rightMarker(len(titles) - 1 - last))
+		}
+		b.WriteString(ansi.Truncate(s.ActiveTab.Render(ansi.Truncate(modalLabel(titles[active]), max(1, room-4), "…")), max(0, room), ""))
+	} else {
+		b.WriteString(strings.Join(cells[first:last+1], ""))
+	}
+	if last < len(titles)-1 {
+		b.WriteString(rightMarker(len(titles) - 1 - last))
+	}
+	return ansi.Truncate(b.String(), width, "")
+}
+
+// tabWindow is the run of tabs around active that fits in budget cells,
+// adding neighbours left and right in turn until neither side fits.
+func (l Layout) tabWindow(cells, titles []string, active, budget int) (first, last int) {
+	first, last = active, active
+	used := ansi.StringWidth(cells[active])
 	left, right := active-1, active+1
 	for left >= 0 || right < len(titles) {
 		added := false
 		if left >= 0 {
-			tab := s.Tab.Render(modalLabel(titles[left]))
-			if size := ansi.StringWidth(tab); used+size <= width {
-				tabs = tab + tabs
+			if size := ansi.StringWidth(cells[left]); used+size <= budget {
 				used += size
+				first = left
 				left--
 				added = true
 			} else {
@@ -189,10 +248,9 @@ func (l Layout) tabs(titles []string, active, width int) string {
 			}
 		}
 		if right < len(titles) {
-			tab := s.Tab.Render(modalLabel(titles[right]))
-			if size := ansi.StringWidth(tab); used+size <= width {
-				tabs += tab
+			if size := ansi.StringWidth(cells[right]); used+size <= budget {
 				used += size
+				last = right
 				right++
 				added = true
 			} else {
@@ -203,7 +261,7 @@ func (l Layout) tabs(titles []string, active, width int) string {
 			break
 		}
 	}
-	return tabs
+	return first, last
 }
 
 // PanelContentSize returns the body cells available inside a Panel, excluding

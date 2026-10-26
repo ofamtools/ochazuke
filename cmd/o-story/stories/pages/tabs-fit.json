@@ -1,0 +1,51 @@
+{
+  "name": "tab row with every page fitting shows no markers",
+  "area": "pages",
+  "width": 80,
+  "height": 8,
+  "pages": [
+    {
+      "id": "p01",
+      "title": "Alpha",
+      "lists": [
+        {
+          "id": "l01",
+          "rows": 1
+        }
+      ]
+    },
+    {
+      "id": "p02",
+      "title": "Bravo",
+      "lists": [
+        {
+          "id": "l02",
+          "rows": 1
+        }
+      ],
+      "open": true
+    },
+    {
+      "id": "p03",
+      "title": "Charlie",
+      "lists": [
+        {
+          "id": "l03",
+          "rows": 1
+        }
+      ]
+    }
+  ],
+  "expect": {
+    "order": [
+      "Alpha",
+      "› Bravo",
+      "Charlie"
+    ],
+    "lacks": [
+      "‹",
+      "1›",
+      "2›"
+    ]
+  }
+}

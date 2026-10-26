@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -223,5 +224,55 @@ func TestPageAndPanelOffsetTheInputCursor(t *testing.T) {
 	}
 	if (Layout{Width: 0, Height: 0}).PageBlock("T", "S", InputBlock(in, 4, 2), "F").Cursor != nil {
 		t.Fatal("empty viewport reported a cursor")
+	}
+}
+
+// tabCounts reads a stripped tab row: the tabs it shows and the pages its
+// ‹N and N› markers say are hidden.
+func tabCounts(row string) (shown, hidden int) {
+	for _, field := range strings.Fields(row) {
+		var n int
+		switch {
+		case strings.HasPrefix(field, "‹"):
+			fmt.Sscanf(strings.TrimPrefix(field, "‹"), "%d", &n)
+			hidden += n
+		case strings.HasSuffix(field, "›") && field != "›":
+			fmt.Sscanf(strings.TrimSuffix(field, "›"), "%d", &n)
+			hidden += n
+		case field == "›":
+		default:
+			shown++
+		}
+	}
+	return shown, hidden
+}
+
+var rightMarker = regexp.MustCompile(`[0-9]+›`)
+
+func TestTabsMarkHiddenPagesOnEachSide(t *testing.T) {
+	l := Layout{Styles: NewStyles(Appearance{Theme: "mono"})}
+	titles := make([]string, 50)
+	for i := range titles {
+		titles[i] = fmt.Sprintf("p%02d", i+1)
+	}
+	for _, width := range []int{30, 50, 80, 120} {
+		for _, active := range []int{0, 24, 49} {
+			row := ansi.Strip(l.tabs(titles, active, width))
+			if w := ansi.StringWidth(row); w > width {
+				t.Fatalf("width %d active %d: row is %d cells: %q", width, active, w, row)
+			}
+			if !strings.Contains(row, "› "+titles[active]) {
+				t.Fatalf("width %d: active %s missing: %q", width, titles[active], row)
+			}
+			if shown, hidden := tabCounts(row); shown+hidden != len(titles) {
+				t.Fatalf("width %d active %d: %d shown + %d hidden != %d: %q", width, active, shown, hidden, len(titles), row)
+			}
+			if active == 0 && strings.Contains(row, "‹") || active == 49 && rightMarker.MatchString(row) {
+				t.Fatalf("width %d active %d: marker on a side with nothing hidden: %q", width, active, row)
+			}
+		}
+	}
+	if row := ansi.Strip(l.tabs(titles[:3], 1, 80)); strings.ContainsAny(row, "‹") || strings.Count(row, "›") != 1 {
+		t.Fatalf("everything fits, yet markers: %q", row)
 	}
 }
