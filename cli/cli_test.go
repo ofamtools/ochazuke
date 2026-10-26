@@ -620,3 +620,27 @@ func TestShellAppliesTheUserBindingsFile(t *testing.T) {
 		t.Fatalf("path %s %v", out, err)
 	}
 }
+
+// settings set NAME VALUE takes bare words, validates and writes the file.
+func TestShellSetsASetting(t *testing.T) {
+	f := newFixture(t)
+	dir := t.TempDir()
+	f.r.Config().Dir = dir
+	if err := f.r.DeclareSetting(ochazuke.Setting{Name: "scrolloff", Type: ochazuke.SettingInteger, Default: 2, Description: "Rows around the focus"}); err != nil {
+		t.Fatal(err)
+	}
+	out, _, err := f.run("", "settings", "set", "scrolloff", "5")
+	if err != nil || !strings.Contains(out, `"value": 5`) {
+		t.Fatalf("set: %s %v", out, err)
+	}
+	if _, _, err := f.run("", "settings", "set", "scrolloff", "many"); err == nil || !strings.Contains(err.Error(), "must be an integer") {
+		t.Fatalf("bad value: %v", err)
+	}
+	if _, _, err := f.run("", "settings", "get", "nope"); err == nil {
+		t.Fatal("got an unknown setting")
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "settings.json"))
+	if err != nil || !strings.Contains(string(data), `"scrolloff": 5`) {
+		t.Fatalf("file %s %v", data, err)
+	}
+}

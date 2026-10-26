@@ -138,10 +138,13 @@ func NewModel(r *Runtime) *Model {
 }
 
 // Init applies the user bindings file (Runtime.EnsureUserBindings), after
-// the application defined its own rows, and asks for the background colour.
+// the application defined its own rows, reads settings.json (its problems
+// are notices), starts the settings.json poll (SettingsPoll) when the
+// application declared settings, and asks for the background colour.
 func (m *Model) Init() tea.Cmd {
 	m.Runtime.EnsureUserBindings()
-	return tea.RequestBackgroundColor
+	m.Runtime.Settings().ensure()
+	return tea.Batch(tea.RequestBackgroundColor, m.settingsPoll())
 }
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Off-loop results reach their owning instance first; a stale or
@@ -166,6 +169,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case JobLingerMsg:
 		m.ticker.fired(v)
+	case SettingsPollMsg:
+		m.Runtime.Settings().ReloadIfChanged()
 	case tea.BackgroundColorMsg:
 		m.Appearance.Dark = v.IsDark()
 	case tea.KeyPressMsg:
@@ -193,6 +198,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	if cmd := m.ticker.lingerCommand(m.clock()); cmd != nil {
 		commands = append(commands, cmd)
+	}
+	if _, ok := msg.(SettingsPollMsg); ok {
+		commands = append(commands, m.settingsPoll())
 	}
 	return m, tea.Batch(commands...)
 }

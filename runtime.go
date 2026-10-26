@@ -193,6 +193,7 @@ func NewRuntime() *Runtime {
 	registerJobs(r)
 	registerConfiguration(r)
 	registerConfig(r)
+	registerSettings(r)
 	registerPages(r)
 	registerLists(r)
 	registerTrees(r)

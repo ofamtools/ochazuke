@@ -161,6 +161,7 @@ type Config struct {
 	// bindingsLoaded is set once the user bindings were applied (Model.Init,
 	// the CLI shell); bindings.reload applies them again.
 	bindingsLoaded bool
+	settings       *Settings
 	// applied is the undo log of the user rows installed from the file,
 	// in order: reload takes them out, newest first, and restores the rows
 	// each one replaced before it reads the file again.
