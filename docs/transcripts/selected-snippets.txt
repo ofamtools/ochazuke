@@ -1,0 +1,530 @@
+Selected design exchanges
+
+Extracted from the marked areas and the endings of the saved transcripts.
+Overlapping exports are represented once. snippets.txt is unchanged.
+
+These are verbatim historical exchanges, not a description of the current API.
+Some proposals were revised later, including grammar hooks and overlay modes.
+The original wording, wrapping, and claims are preserved, not fact-checked.
+Source ranges are inclusive line numbers in the named files.
+
+Caret lines (^^^^) mark the passages I think carry the most impact.
+The markers and extra spacing are editorial; quoted text is unchanged.
+
+#### The dynamic keyboard model
+Source: cannot-with-markers.txt:3030-3090
+
+❯ how will the old/new code for keyboard compare to each other.  i always       
+  imagined it would be very simple.  a small register for in-progress sequence  
+  mappings, get the bindings for current mode, see if there's a binding for     
+  either the new sequence or the key pressed, (or a paritial match for a        
+  sequence) then handle the match if there's one, or apply the partial sequence 
+  logic...and based on the action for a match, trigger it with all the          
+  context/state.  it should be almost completely dynamic                        
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+⏺ Your mental model is already most of HandleBinding today. What makes the
+  current code bigger is everything wrapped around it, because Vim, Readline,
+  the palette and macros are not bindings, so dispatchKey has to decide who gets
+  the key before the binding loop ever runs.
+
+  Today
+
+  // model.go dispatchKey: four routers in a fixed order, then the loop you described
+  if (macroRecording) record(key)
+  if (macroPending || stopKey)   return macroGrammar(key)       // router 1: Go switch
+  if (paletteActive)             return paletteGrammar(key)     // router 2: Go switch
+  if (paste)                     return editorGrammar(key)      // router 3
+  if (editorPending || count)    return editorGrammar(key)      // router 4: Go switch, Vim + Readline
+  if (handleBinding(key))        return                         // ← your loop
+  if (key == "esc" && modal && normal) pop()                    // hard-coded
+  return editorGrammar(key)                                     // fallthrough
+
+  // bindings.go HandleBinding: your loop, with the pending register
+  seq = pending ? pending + " " + key : key
+  for (b of effectiveBindings(context))          // mode-filtered, inner layer wins
+    exact  ||= b.keys == seq
+    longer ||= b.keys.startsWith(seq + " ")
+  if (longer)  { pending = seq; armTimeout(); remember exact as fallback }
+  else if (exact) execute(exact.request, context)
+  else if (pending) { finishPending(); drop prefix; retry key }
+
+  After phase 5
+
+  // resolve.go: one loop, no routers, because grammars became nouns
+  seq = pending ? pending + " " + key : key
+  for (inst of stack(focus)) {                   // item, component, page, app
+    noun = nouns[inst.noun]
+    for (b of [...noun.bindings[state], ...noun.bindings["*"]]) {
+      if (b.keys == seq)                 return execute(b.request, inst)   // full context: instance, noun, state
+      if (b.keys.startsWith(seq + " "))  longer = true
+    }
+    if (noun.grammar?.(seq, state, inst)) return                           // editor, palette, terminal, macro
+  }
+  if (longer) { pending = seq; armTimeout() }
+  else if (pending) { pending = ""; innermostGrammar(seq) }               // prefix handed back, not dropped
+
+  That is your description: a pending register, the bindings for the current
+  state along the stack, exact or partial match, then trigger with the instance
+  and state as context. Macro recording wraps the call. Escape-closes-modal is a
+  binding on the modal noun. The editor's Vim and Readline keys are bindings on
+  the editor noun, and only counts, operators and pending motions remain as its
+  grammar hook.
+
+  What changes dynamically is also what you'd expect: enabling a noun, rebinding
+  a key, or changing state alters the next lookup with no code path involved,
+  and list.bindings prints the same table the loop reads. The one piece of real
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  logic that stays is the timeout for ambiguous sequences, which is already
+  written and does not change.
+
+
+
+
+
+
+#### Replacing conditionals with modes
+Source: my-modal-binding-design.txt:3208-3298
+
+❯ in these fork, i only want to talk, no code changes                           
+                                                                                
+  you see in both versions of the dispatchKey or key->action handler/mapper     
+  i think for the first one, at least, can completely eliminate those           
+  conditionals/guards.                                                          
+                                                                                
+  how?  by using modes.                                                         
+  ^^^^^^^^^^^^^^^^^^^^^
+  example:                                                                      
+                                                                                
+  current mode: normal                                                          
+  key: q -> Handler == AppOrGlobalState.mode = 'macro_pending'                  
+  key: (macro_pending) ctrl+c -> Handler == AppOrGlobalState.mode = 'normal'    
+  key: q -> same handler ...mode is macro_pending                               
+  key: q -> Handler App.state.mode = 'macro_recording'                          
+                                                                                
+  //side note...we should have ranges, like alpha, or numbers, maybe...?  but   
+  also somehow be able to say...KeyRange.alphas.without(Key.q) (or something)   
+  it's pseudocode ^_~                                                           
+                                                                                
+  // or like this...                                                            
+  key: (macro_recording mode) not(q) -> Handler { macro.append(key) } (or       
+  something)                                                                    
+  key: (macro_recording mode) q -> Handler { App.state.mode = 'normal' }        
+
+⏺ Yes. That is the Vim model taken to its conclusion: every "pending" condition
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  is a mode with its own keymap, and the guards vanish because the lookup key
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  includes the mode.
+  ^^^^^^^^^^^^^^^^^^^
+
+  Today's first router, as mode tables
+
+  modes = {
+    normal: {
+      "q":        set.mode("macro_pending"),
+      "@":        set.mode("macro_replay_pending"),
+      digit:      count.append,                    // class match
+      "d":        set.mode("operator_pending", { op: "delete" }),
+      "g":        set.mode("g_pending"),           // yes, even multi-key 
+  sequences
+      ...
+    },
+    macro_pending: {
+      alpha:      macro.start({ register: key }),  // → mode "macro_recording"
+      "ctrl+c":   set.mode("normal"),
+      any:        set.mode("normal"),              // unknown key cancels
+    },
+    macro_recording: {                             // see the overlay note below
+      "q":        macro.stop,                      // → mode "normal"
+    },
+    operator_pending: {
+      "w": motion.apply("word"), "$": motion.apply("line-end"), "d": line.apply,
+      esc: set.mode("normal"), any: set.mode("normal"),
+    },
+    g_pending: {
+      "g": move("first-line"), "G": ..., any: set.mode("normal"),
+    },
+  }
+
+  dispatch(key) = (modes[state.mode][key] ?? modes[state.mode][classOf(key)] ??
+  modes[state.mode].any)(key, state)
+
+  Every conditional in dispatchKey became a row. Even the sequence register is
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  gone: g g is the g binding inside g_pending, and the 400ms ambiguity timeout
+  is just a timer command that fires set.mode("normal") with the fallback
+  action. The state that handlers need, like which operator or register or the
+  count so far, rides along as a payload on the mode.
+
+  Key classes are a predicate language on the left-hand side, resolved exact
+  first, then class, then any:
+
+  "q"                      // exact
+  digit, alpha, printable  // named classes
+  not("q")                 // complement
+  anyOf("h","j","k","l")
+  alpha.without("q")       // your example
+
+  The one thing that is not a plain mode: recording. In macro_recording keys
+  must still do what they do, and also be appended. If recording replaced the
+  keymap, j would stop moving. So recording is an overlay mode: it observes the
+  key, appends it, then lets the resolution continue into the underlying mode.
+  That is the Emacs minor mode again, and the one distinction the design needs
+  to keep:
+
+  exclusive mode:  replaces the keymap           // normal, insert, 
+  operator_pending, macro_pending
+  overlay mode:    sees every key, then passes it // macro_recording, 
+  leader_pending for the terminal pane
+
+  With that split, the whole key path is a mode stack, a lookup, and handlers
+  that mutate state or run operations. No if chain, and list.bindings prints the
+  real tables for whatever mode you are in, including operator_pending, which
+  no help screen shows today.
+
+
+
+
+
+
+#### Shadow mode keeps one mechanism, without hooks
+Source: my-modal-binding-design.txt:3302-3396
+
+❯ i didn't think about the macro_recording...but it can be a plain mode...if we 
+  can override state...                                                         
+                                                                                
+  () { record_key(key); typeKey(key, state, override: mode => normal) }         
+
+⏺ That works, and it keeps one mechanism. The detail that makes it hold is the
+  override target: it is not always normal. While recording you press i, type
+  text, press esc, then dw. The key must execute in whatever mode you would be
+  in without recording, so the recording mode carries that as payload:
+
+  state.mode = { name: "macro_recording", register: "a", shadow: { name:
+  "insert" } }
+
+  modes.macro_recording = {
+    any: (key, state) => {
+      macro.append(key)
+      next = dispatch(key, { ...state, mode: state.mode.shadow })   // run as 
+  the shadowed mode
+      state.mode.shadow = next.mode                                  // insert →
+  normal, operator_pending, g_pending ...
+    },
+    "q": stop only when shadow is normal with no payload; otherwise fall into
+  any
+  }
+
+  So shadow is the mode the key would have been in, updated after every key. The
+  stop q binding is guarded on the shadow, which is the same rule dispatchKey
+  computes by hand today: q in normal mode with nothing pending anywhere. Replay
+  sets a depth flag so a replayed key is not re-recorded, as now.
+
+  What this buys over an "overlay" concept: nothing new for the resolver to
+  know. macro_recording is an ordinary exclusive mode whose any handler happens
+  to re-dispatch with a different mode. The resolver stays lookup(mode, key),
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  and the only state that exists is the mode name and its payload. Terminal
+  leader-pending works the same way: ctrl+a sets { name: "leader_pending", 
+  shadow: terminal }, bound keys run commands, any forwards prefix plus key to
+  the pane and restores the shadow.
+
+  One consequence to accept: help in recording mode should show the shadow's
+  bindings plus q, which is a presentation rule, not a resolver one.
+
+✻ Baked for 29s · done 2:26 AM
+
+❯ i love the shadow mode idea.  do you think this is a better design?           
+
+⏺ Yes, and by a clear margin over what phase 5 of the plan says today.
+
+  What the plan has. Nouns with bindings per state, plus a grammar hook per noun
+  for the parts that did not fit in a table: the editor's counts, operators and
+  pending motions, the palette's search, the terminal's passthrough, macro
+  recording. The hook is an escape hatch. Anything behind it is Go code the
+  resolver cannot see, cannot list in help, and cannot rebind.
+
+  What the shadow design does. It removes the escape hatch. Every pending
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  condition is a mode with a payload, every key goes through lookup(mode, key)
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  with exact, class, any precedence, and handlers only mutate state or run
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  operations. There is no second kind of thing.
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  // the entire resolver
+  stack(focus).forEach(inst =>
+    table = nouns[inst.noun].bindings[state.mode.name]
+    hit   = table[key] ?? table[classOf(key)] ?? table.any
+    if (hit) return hit(key, state, inst))
+
+  Nouns and modes compose cleanly: the stack says whose tables to consult, the
+  mode says which table. operator_pending on an editor instance and
+  leader_pending on a terminal instance are just rows.
+
+  Why it is better, concretely
+
+  - list.bindings and help become complete for the first time. Today they omit
+    everything in the Go switches.
+  - A user can rebind inside operator_pending or macro_pending, which no
+    Vim-style TUI I know of lets you do from config.
+  - Testing becomes table-driven: a mode, a key, an expected next mode and
+    action. The eleven phase 0 goldens turn into rows.
+  - Adding the terminal pane, or znbu's : command input, adds tables, not
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    routers.
+    ^^^^^^^^
+
+  Where to be careful
+
+  - The payload needs a shape: register, count, operator, shadow. Keep it one
+    small struct, not a map, so the mode machine stays inspectable.
+  - Vim's compound commands like "a3dw are a chain of modes passing payload
+    along. That is fine, Vim itself is that state machine, but the tables for
+    the editor noun will be the largest in the system. Generate them from a
+    compact spec rather than hand-writing rows.
+  - Ambiguity timeouts become timer commands that fire a mode change. The
+    generation guard the sequence engine already has carries over unchanged.
+
+  What I would change in the plan. Phase 5's "stack walk with grammar hooks"
+  becomes "stack walk over mode tables, no hooks", with modes carrying payload
+  and shadow. Phase 0's goldens still apply. Phases 1 to 4 are unaffected. Since
+  this fork is talk only, that amendment belongs in the original session before
+  it reaches phase 5. Say the word and I'll send it the design in one message.
+
+
+
+
+
+
+#### The target is captured as data
+Source: fucking-right.txt:3908-3946
+
+❯ what confuses me is the first know calls remove on a worktree....how does it  
+  know it's not removing a worktree that shouldn't be removd?                   
+
+⏺ It knows because the target is captured as data at the moment you press the
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  key, and carried along explicitly. Nothing later asks "what is focused now".
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  // 1. focus is on a row; the key resolves through that row's noun
+  focus = { id: "wt-main", noun: "worktree" }
+  press "x"  →  worktree.normal["x"]  →  Request{ verb: "remove", noun:
+  "worktree", target: "wt-main" }
+
+  // 2. the verb has Confirm, so the framework opens a confirm instance holding 
+  that exact request
+  modal = { id: "confirm#1", noun: "confirm", parent: "wt-main",
+            payload: { prompt: "Remove worktree wt-main?",
+                       request: { verb: "remove", noun: "worktree", target:
+  "wt-main", args: { confirmed: true } } } }
+
+  // 3. y runs the stored request, not "remove whatever is focused"
+  press "y"  →  Run(payload.request)  →  RemoveWorktree(ctx{ Instance: wt-main
+  }, args)
+
+  Three things make this safe:
+
+  - The target is frozen in the request. target: "wt-main" was written when x
+    was pressed. Even if focus could move while the modal is open (it cannot,
+    the modal is the focus), y would still remove wt-main.
+  - The handler gets the instance, never a guess. ctx.Instance.ID is the id from
+    the request. The handler does not read the list's selection.
+  - Whether it should be removed is the handler's job. Is it the main worktree,
+    is it dirty, does it have an agent attached. That is domain logic in
+    app.RemoveWorktree, and it refuses by returning a failed result with a
+    message. The framework only guarantees that the handler is asked about the
+    right worktree, with the user having confirmed that specific one.
+
+  The thing the framework deliberately does not do is let a binding run against
+  an implicit "current" object. Every request that reaches a handler names its
+  target, and the CLI form ochazuke worktree remove --target wt-main is the same
+  request with the same guarantee.
+
+
+
+
+
+
+#### Define is clean because it is just data
+Source: fucking-right.txt:3961-4009
+
+❯ i will take your word for it....i think part of the confusion is i'm not      
+  typically a go developer                                                      
+
+⏺ That makes sense, and it is a fair reason. Go's builder chains and ctx-first
+  handlers hide the shape. The same declarations in the JS-style you prefer:
+
+  define("worktree", {
+    verbs: {
+      open:   app.openWorktree,
+      remove: { run: app.removeWorktree, confirm: "Remove worktree {{id}}?" },
+      star:   app.star,
+    },
+    bindings: {
+      normal: { o: "open", x: "remove", s: "star" },
+    },
+  })
+
+  // handlers always receive the thing they act on, never look it up
+  app.removeWorktree = ({ instance, args }) => {
+    if (instance.id === "wt-main") return fail("main worktree cannot be 
+  removed")
+    return git.removeWorktree(instance.id)
+  }
+
+  // instances: where things live
+  page    = addPage("panes", { noun: "panes-page" })
+  sidebar = addList("sidebar", { parent: page })
+  sidebar.setItems([
+    { id: "repo-1",  noun: "repo" },
+    { id: "wt-main", noun: "worktree" },
+  ])
+
+  From here on I'll lead with that form and show Go only when the actual API is
+  being decided. The Go will be the implementation detail. The data shape is the
+                                                     ^^^^^^^^^^^^^^^^^^^^^^
+  design, and it reads the same in either language.
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+✻ Cogitated for 15s · done 2:47 AM
+
+❯ the define() is beautiful...so clean                                          
+
+⏺ It is clean because it is just data. That one object is the same shape the
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  config file uses, the same shape list.bindings prints, and the same shape the
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  palette and help read. There is nothing in it the framework has to interpret
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  specially.
+  ^^^^^^^^^^
+
+  That is also why it is worth guarding. The temptation during phase 5 will be
+  to add a grammar or onKey escape hatch to define for the hard editor cases.
+  The shadow-mode design exists so that never happens. If a future need cannot
+  be expressed as a mode table row, the answer is a new mode, not a hook.
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+
+
+
+
+#### Why inspectable data gives this attempt better odds
+Source: cannot-with-markers.txt:5537-5571
+
+❯ oh...got it.  i'm actually excited.  do you think it will be successful?      
+
+⏺ Better odds than the two attempts before it, and for reasons I can point at
+  rather than hope.
+
+  What is different this time
+
+  - The behavior lock exists. Eleven goldens and the equivalence tests caught
+    nothing during a 5,000-line rewrite because the agent kept them green the
+    whole way. gmtm and matomeru had no equivalent.
+  - The design is data. Nouns, modes, rows and payloads are things you can
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    print, diff and test as tables. The previous attempts' key handling was
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    control flow, which is why it grew switches in the shell.
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  - Every phase has shipped green, reviewed and pushed within the hour it was
+    planned for. That is the opposite of the five-day sprint that buried
+    matomeru.
+  - You understood every decision well enough to correct them. The shadow mode,
+    the explicit page field, and the transformations map all came from you
+    reading the design and saying what you wanted.
+
+  What could still sink it
+
+  - Scope. The moment the CSV app grows a plugin system or a formula language
+    before the grid works, it is matomeru again. The sketch is small on purpose.
+  - No consumer for too long. Phase 7's second page is the first real proof, and
+    the CSV app is the second. Until a consumer exists, the framework is a
+    hypothesis.
+  - The editor tables are the largest thing in the system. If they turn out to
+    need a hook after all, the "no escape hatch" rule gets tested. The shadow
+    design is there so they don't.
+
+  So: yes, with the condition that the CSV app ships before anything else gets
+  added to the framework. If it does, you will have a Bubble Tea app framework
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  where the whole interaction model is inspectable data, which is not something
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  that exists today.
+  ^^^^^^^^^^^^^^^^^^
+
+
+
+
+
+
+#### Binding checker, sandbox, and designer become possible
+Source: cannot-with-markers.txt:5596-5651
+
+❯ have you read the the to-do md? because do you think that the binding         
+  verifier tool or like the full end the full spectrum like binding utility     
+  will be a possible and b useful                                               
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ Read it now. The three binding items in that TODO were hard before phase 5 and
+  are close to free after it, because the whole interaction model is data now.
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  Binding checker: possible, and it is a graph problem. Every mode table is a
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  set of rows, and every row that calls set.mode or enter is an edge. The checks
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  you listed become:
+
+  graph = { normal: ["insert", "operator_pending", "macro_pending"],
+  operator_pending: ["normal"], ... }
+
+  checks = {
+    trapped:    modes with no path back to "normal",                        // 
+  your first bullet
+    noExit:     modes with no row for esc and no `any` fallback,
+    shadowed:   same key bound at two stack levels, inner silently wins,   // 
+  your "layers overlap" bullet
+    prefixClash: "g" bound and "g g" bound in the same table (timeout ambiguity,
+  flagged not forbidden),
+    dangling:   rows naming an operation or mode that is not registered,
+    unreachable: modes no row ever enters,
+  }
+
+  That is a few hundred lines over the Define data, and it should run two ways:
+  as a go test so a bad row fails CI, and as ochazuke bindings check so a user's
+  config file is checked before it loads. It also runs against the editor spec,
+  which is the table most likely to hide a trap.
+
+  Sandbox and designer: the same tool. The sandbox already exists and now has
+  real data to stand on. The designer is a table editor over rows of {noun, 
+  mode, keys, request}, with the checker running live and the sandbox as the
+  preview pane. That is a grid of rows with a pick list per column, which is the
+  CSV app with three fixed columns. Building the CSV grid first gives you the
+  designer for almost nothing.
+
+  So the full-spectrum utility is one noun:
+
+  define("bindings", { verbs: { list, check, set, unset, sandbox, export, import
+  } })
+
+  Two other things in that TODO changed meaning this session:
+
+  - "Finalize optional Runtime.Model access" is now decided the other way. No
+    backpointer. Components reach what they need through the delivery contract.
+  - "Define actions via config to call a CLI" fits the phase 6 operation kinds
+    exactly. An application-kind verb can be declared in config as { verb, noun,
+    exec: "base noun verb --json {{args}}" }, runs off the loop, and reports
+    through the contract. That makes any CLI a noun with no Go.
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  The color scheme designer is the same pattern again, a table of semantic
+  colors with the sandbox as preview, and can wait until the CSV grid exists.
+
