@@ -1,0 +1,50 @@
+{
+  "name": "terminal-leader ctrl+b: the footer names it and ctrl+a is ordinary input",
+  "area": "terminal",
+  "settings": [
+    {
+      "name": "terminal-leader",
+      "type": "string",
+      "default": "ctrl+b"
+    }
+  ],
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ],
+    "terminal": {
+      "fake": true,
+      "attach": "a1"
+    }
+  },
+  "script": [
+    "enter",
+    {
+      "tick": "terminal"
+    },
+    "ctrl+a",
+    {
+      "tick": "terminal"
+    },
+    "ctrl+b",
+    "ctrl+b",
+    {
+      "tick": "terminal"
+    }
+  ],
+  "expect": {
+    "focus": "page1-pane",
+    "mode": "terminal",
+    "contains": [
+      "<ctrl+a><ctrl+b>",
+      "pane (attached: ctrl+b d detaches)",
+      "ctrl+b leader: d detaches, ctrl+b sends ctrl+b"
+    ],
+    "lacks": [
+      "ctrl+a leader"
+    ]
+  }
+}

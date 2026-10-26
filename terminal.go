@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -81,6 +83,7 @@ func (r *Runtime) AddTerminal(id string, stream TerminalStream, opts ...Instance
 	t := &Terminal{r: r, id: id, stream: stream, closeOnDetach: spec.closeOnDetach}
 	inst := r.Instance(id, Parent(spec.parent), Kind(spec.noun), FocusOnClose(spec.closeFocus))
 	inst.Component = t
+	r.applyTerminalLeader()
 	t.read()
 	return t, nil
 }
@@ -226,8 +229,8 @@ func (r *Runtime) terminalOf(c Context, args Arguments) (*Terminal, error) {
 // again sends itself, a bound key runs its command and any other key sends
 // the leader and itself (Join of the prefix and the key), in that order; the
 // mode is one-shot, so every row returns to terminal mode. Every row is a
-// Request: rebinding the leader is binding another key to the same
-// Enter row with that key as its prefix.
+// Request. The leader is ctrl+a until the terminal-leader setting (or
+// SetTerminalLeader) moves it.
 func registerTerminal(r *Runtime) {
 	r.DefineMode("terminal", false)
 	_ = r.DefinePassthrough("terminal")
@@ -302,4 +305,186 @@ func registerTerminal(r *Runtime) {
 		op.Parameters, op.Result = params, "JSON value"
 		r.Operations["terminal."+verb] = op
 	}
+}
+
+// The terminal leader setting: the key that enters leader_pending.
+const (
+	TerminalLeaderSetting = "terminal-leader"
+	DefaultTerminalLeader = "ctrl+a"
+)
+
+// validLeader is the terminal-leader setting's check.
+func validLeader(v any) error {
+	if key, _ := v.(string); !leaderKey(key) {
+		return errors.New(`must be one ctrl+ or alt+ key, such as "ctrl+b"`)
+	}
+	return nil
+}
+
+// TerminalLeader is the key the terminal noun's leader row binds (the
+// terminal-leader setting once applied), DefaultTerminalLeader when the
+// noun has no leader row.
+func (r *Runtime) TerminalLeader() string {
+	if n := r.Nouns["terminal"]; n != nil {
+		for _, b := range n.Bindings["terminal"] {
+			if key, ok := leaderRow(b); ok {
+				return key
+			}
+		}
+	}
+	return DefaultTerminalLeader
+}
+
+// leaderRow reports whether a row is a leader: it enters leader_pending on
+// one key that is its own prefix. It returns the key.
+func leaderRow(b Binding) (string, bool) {
+	if b.Keys == "" || b.Unbind || b.Request.Key() != "mode.enter" || b.Request.Args["mode"] != "leader_pending" {
+		return "", false
+	}
+	if prefix, _ := b.Request.Args["prefix"].(string); prefix != b.Keys {
+		return "", false
+	}
+	return b.Keys, true
+}
+
+// SetTerminalLeader moves every leader to key: on every noun, each row
+// that enters leader_pending on one key (the framework's terminal row and
+// an application's own, such as a richer hint) is rebound to key with key
+// as its prefix and its timeout request, and the leader_pending row that
+// sends the old leader to the pane now sends key on key. Hints that name
+// the old leader name the new one. A row already bound to key in those
+// tables gives way. The rows stay data: this rewrites them as a binding
+// file would. The terminal-leader setting calls it; a key that is not one
+// ctrl+ or alt+ combination is refused.
+func (r *Runtime) SetTerminalLeader(key string) error {
+	if err := validLeader(key); err != nil {
+		return fmt.Errorf("terminal leader %q: %w", key, err)
+	}
+	names := make([]string, 0, len(r.Nouns))
+	for name := range r.Nouns {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	for _, name := range names {
+		n := r.Nouns[name]
+		olds := map[string]bool{}
+		for _, mode := range slices.Sorted(maps.Keys(n.Bindings)) {
+			n.Bindings[mode] = rekeyRows(n.Bindings[mode], key, func(b Binding) (string, bool) {
+				old, ok := leaderRow(b)
+				if ok && old != key {
+					olds[old] = true
+					return old, true
+				}
+				return "", false
+			})
+		}
+		if len(olds) == 0 {
+			continue
+		}
+		n.Bindings["leader_pending"] = rekeyRows(n.Bindings["leader_pending"], key, func(b Binding) (string, bool) {
+			if olds[b.Keys] && b.Request.Key() == "terminal.send" && b.Request.Args["keys"] == b.Keys {
+				return b.Keys, true
+			}
+			return "", false
+		})
+	}
+	r.CancelPendingBinding()
+	return nil
+}
+
+// rekeyRows rebinds the rows match picks (returning the old leader) to
+// key and drops the unguarded rows of the table already on key.
+func rekeyRows(rows []Binding, key string, match func(Binding) (string, bool)) []Binding {
+	moved := map[int]bool{}
+	for i, b := range rows {
+		if old, ok := match(b); ok {
+			rows[i] = releadRow(b, old, key)
+			moved[i] = true
+		}
+	}
+	if len(moved) == 0 {
+		return rows
+	}
+	out := make([]Binding, 0, len(rows))
+	for i, b := range rows {
+		if !moved[i] && b.Keys == key && b.When == "" {
+			continue
+		}
+		out = append(out, b)
+	}
+	return out
+}
+
+// releadRow is a leader row (or the row sending the leader) moved from old
+// to key: its keys, its prefix, the key it or its timeout request sends,
+// and its hint and help text.
+func releadRow(b Binding, old, key string) Binding {
+	b.Keys = key
+	args := maps.Clone(b.Request.Args)
+	if _, ok := args["prefix"]; ok {
+		args["prefix"] = key
+	}
+	if args["keys"] == old {
+		args["keys"] = key
+	}
+	switch q := args["request"].(type) {
+	case Request:
+		if q.Args["keys"] == old {
+			q.Args = maps.Clone(q.Args)
+			q.Args["keys"] = key
+			args["request"] = q
+		}
+	case *Request:
+		if q != nil && q.Args["keys"] == old {
+			c := *q
+			c.Args = maps.Clone(q.Args)
+			c.Args["keys"] = key
+			args["request"] = &c
+		}
+	case map[string]any:
+		if a, ok := q["args"].(map[string]any); ok && a["keys"] == old {
+			q, a = maps.Clone(q), maps.Clone(a)
+			a["keys"] = key
+			q["args"] = a
+			args["request"] = q
+		}
+	}
+	b.Request.Args = args
+	b.Hint = strings.ReplaceAll(b.Hint, old, key)
+	b.Help = strings.ReplaceAll(b.Help, old, key)
+	return b
+}
+
+// EnsureTerminalLeader declares the terminal-leader setting unless the
+// application declared one, and applies it: an application with terminal
+// panes calls it at setup (cli.AddCommands does), so settings.json, the
+// settings editor and the CLI's settings set know the setting before the
+// first pane opens. An application without terminals does not, and its
+// settings list stays free of it.
+func (r *Runtime) EnsureTerminalLeader() {
+	if r.Settings().find(TerminalLeaderSetting) == nil {
+		_ = r.DeclareSetting(Setting{Name: TerminalLeaderSetting, Type: SettingString, Default: DefaultTerminalLeader, Description: "Terminal leader key: then d detaches, the leader again sends it to the pane", Validate: validLeader})
+	}
+	r.applyTerminalLeader()
+}
+
+// applyTerminalLeader moves the leader to the terminal-leader setting's
+// value when the setting is declared (an application's declaration with
+// a value that is not a leader key keeps the default), and follows it.
+// EnsureConfigSettings and AddTerminal call it, so leader rows an
+// application defines after Init move too.
+func (r *Runtime) applyTerminalLeader() {
+	c, s := r.Config(), r.Settings()
+	if c == nil || s.find(TerminalLeaderSetting) == nil {
+		return
+	}
+	if !c.leaderObserved {
+		c.leaderObserved = true
+		s.Observe(TerminalLeaderSetting, func(string, any) { r.applyTerminalLeader() })
+	}
+	key := s.String(TerminalLeaderSetting)
+	if !leaderKey(key) {
+		key = DefaultTerminalLeader
+	}
+	_ = r.SetTerminalLeader(key)
 }

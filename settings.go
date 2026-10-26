@@ -34,6 +34,10 @@ type Setting struct {
 	Default     any      `json:"default"`
 	Description string   `json:"description,omitempty"`
 	Enum        []string `json:"enum,omitempty"`
+	// Validate, when set, checks a value of the right type further: Set
+	// refuses a value it rejects and a file value it rejects reads the
+	// default, as a value of the wrong type does.
+	Validate func(value any) error `json:"-"`
 }
 
 // SettingValue is a setting with its current value, as settings.list and
@@ -442,8 +446,20 @@ func (s *Settings) write(raw map[string]json.RawMessage) error {
 }
 
 // coerceSetting turns a value into the setting's type: a JSON value of the
-// type, or a string to parse (a CLI or palette word).
+// type, or a string to parse (a CLI or palette word), then applies the
+// setting's Validate.
 func coerceSetting(one Setting, value any) (any, error) {
+	v, err := coerceType(one, value)
+	if err == nil && one.Validate != nil {
+		err = one.Validate(v)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+func coerceType(one Setting, value any) (any, error) {
 	text, isText := value.(string)
 	switch one.Type {
 	case SettingString:

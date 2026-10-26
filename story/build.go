@@ -817,7 +817,7 @@ func (ss *Session) renderMain(p *Page, width, height int) ochazuke.Block {
 		}
 		state := "pane (detached)"
 		if t.Focused() {
-			state = "pane (attached: ctrl+a d detaches)"
+			state = "pane (attached: " + ss.R.TerminalLeader() + " d detaches)"
 		}
 		block := t.ViewBlock(width, h)
 		if !t.Focused() {

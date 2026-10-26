@@ -1,0 +1,43 @@
+{
+  "name": "ctrl+a then an unbound key sends both, in order, and returns to terminal mode",
+  "area": "terminal",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ],
+    "terminal": {
+      "fake": true,
+      "attach": "a1"
+    }
+  },
+  "script": [
+    "enter",
+    {
+      "tick": "terminal"
+    },
+    "ctrl+a",
+    "x",
+    {
+      "tick": "terminal"
+    },
+    "esc",
+    {
+      "tick": "terminal"
+    },
+    "ctrl+a",
+    "ctrl+c",
+    {
+      "tick": "terminal"
+    }
+  ],
+  "expect": {
+    "focus": "page1-pane",
+    "mode": "terminal",
+    "contains": [
+      "<ctrl+a>x<esc><ctrl+a><ctrl+c>"
+    ]
+  }
+}

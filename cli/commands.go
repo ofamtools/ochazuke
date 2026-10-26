@@ -114,6 +114,8 @@ func AddCommands(m *ochazuke.Model, src CommandSource, cfg CommandsConfig) (*Com
 		c.start = func(cmd *exec.Cmd, cols, rows int) (ochazuke.TerminalStream, error) { return StartPty(cmd, cols, rows) }
 	}
 	c.define()
+	// Runs open in terminals: the leader is the user's terminal-leader.
+	r.EnsureTerminalLeader()
 	r.Instance(c.page)
 	var items []ochazuke.ListItem
 	for _, e := range src.Commands() {

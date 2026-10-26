@@ -1,0 +1,22 @@
+{
+  "name": "ctrl+a left alone past the binding timeout sends ctrl+a alone; the next key starts fresh",
+  "area": "terminal",
+  "page": {
+    "lists": [{"id": "a", "rows": 3}],
+    "terminal": {"fake": true, "attach": "a1"}
+  },
+  "script": [
+    "enter",
+    {"tick": "terminal"},
+    "ctrl+a",
+    {"tick": "binding"},
+    {"tick": "terminal"},
+    "d",
+    {"tick": "terminal"}
+  ],
+  "expect": {
+    "focus": "page1-pane",
+    "mode": "terminal",
+    "contains": ["<ctrl+a>d", "pane (attached: ctrl+a d detaches)"]
+  }
+}

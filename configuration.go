@@ -190,6 +190,8 @@ type Config struct {
 	actions        []Action
 	actionProblems []string
 	actionsLoaded  bool
+	// leaderObserved is set once the terminal-leader setting is observed.
+	leaderObserved bool
 }
 
 // appliedRow is one installed user row and the default rows it displaced.

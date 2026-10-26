@@ -1,0 +1,21 @@
+{
+  "name": "terminal-leader ctrl+b: ctrl+b d detaches and the focus returns to the row",
+  "area": "terminal",
+  "settings": [{"name": "terminal-leader", "type": "string", "default": "ctrl+b"}],
+  "page": {
+    "lists": [{"id": "a", "rows": 3}],
+    "terminal": {"fake": true, "attach": "a2"},
+    "focus": "a2"
+  },
+  "script": [
+    "enter",
+    {"tick": "terminal"},
+    "ctrl+b",
+    "d"
+  ],
+  "expect": {
+    "focus": "a2",
+    "mode": "normal",
+    "lacks": ["pane (attached"]
+  }
+}

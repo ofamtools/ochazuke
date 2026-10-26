@@ -47,7 +47,7 @@ Root package `ochazuke` is flat: 53 source files, 50 test files. Each entry list
 
 ### configuration.go
 
-- lines: 437 · tests: configuration_test.go
+- lines: 439 · tests: configuration_test.go
 - purpose: samePath checks a declared path against an instance path, allowing the input itself to be omitted from the declared path.
 - types: Config
 - methods: Config(8), Runtime(9)
@@ -129,7 +129,7 @@ Root package `ochazuke` is flat: 53 source files, 50 test files. Each entry list
 
 ### history_store.go
 
-- lines: 398 · tests: history_store_test.go
+- lines: 400 · tests: history_store_test.go
 - purpose: persistable is the line an entry writes, or false when it writes none.
 - methods: Config(3), Runtime(6), historyStore(3)
 - leans on: runtime.go(14), history.go(8), configuration.go(7), settings.go(5)
@@ -189,7 +189,7 @@ Root package `ochazuke` is flat: 53 source files, 50 test files. Each entry list
 
 ### noun.go
 
-- lines: 895 · tests: noun_test.go
+- lines: 909 · tests: noun_test.go
 - purpose: Noun is the behaviour shared by every instance of one kind: the verbs it answers to, its key bindings per mode, the action handlers that override an operatio...
 - types: Noun, Binding, NounBuilder, ModeBuilder, Guard (func)
 - methods: Binding(8), ModeBuilder(6), Noun(1), NounBuilder(17), Runtime(12)
@@ -344,7 +344,7 @@ Root package `ochazuke` is flat: 53 source files, 50 test files. Each entry list
 
 ### settings.go
 
-- lines: 577 · tests: settings_test.go
+- lines: 593 · tests: settings_test.go
 - purpose: Setting is one declared user preference: its name, type, default, the line the settings list shows and, for a string, the allowed values.
 - types: Setting, SettingValue, Settings, SettingsPollMsg
 - methods: Model(1), Runtime(2), Settings(26)
@@ -374,11 +374,11 @@ Root package `ochazuke` is flat: 53 source files, 50 test files. Each entry list
 
 ### terminal.go
 
-- lines: 305 · tests: terminal_test.go
+- lines: 490 · tests: terminal_test.go
 - purpose: TerminalStream is the application's connection to one pane: a daemon client, never a PTY the framework owns.
 - types: TerminalStream (iface), TerminalReleaser (iface), TerminalFrame, Terminal
-- methods: Runtime(3), Terminal(12)
-- leans on: runtime.go(34), noun.go(20), instance.go(10), block.go(6)
+- methods: Runtime(7), Terminal(12)
+- leans on: runtime.go(47), noun.go(31), instance.go(10), block.go(6)
 
 ### theme.go
 
@@ -443,7 +443,7 @@ Importable package `cli`: 14 source files, 8 test files.
 
 ### cli/commands.go
 
-- lines: 526 · tests: commands_test.go
+- lines: 528 · tests: commands_test.go
 - purpose: CommandEntry is one row of the Commands page: a command a tool can run, as oden's catalog lists it.
 - types: CommandEntry, CommandSource (iface), CommandsConfig, Commands
 - methods: Commands(21)

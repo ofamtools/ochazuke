@@ -66,6 +66,13 @@ Draft, from the `integrate/next` branch (branches on `3133e23` plus fixes). A mi
 - A malformed entry is skipped and is a notice (a CLI `warning:`). Commands come only from the user's own file, never from a catalog, a row or a call; the catalog never carries a command (README "User actions").
 - A confirm prompt's `{{target}}` now expands to the instance id, as `{{id}}` does.
 
+### Terminal leader setting (`feat/config-actions`)
+
+- `terminal-leader` (`TerminalLeaderSetting`, default `DefaultTerminalLeader` `ctrl+a`): the terminal leader is a declared setting, one `ctrl+` or `alt+` key. `Runtime.EnsureTerminalLeader()` declares it unless the app did and applies settings.json's value and every later change; an app with terminals calls it at setup (`cli.AddCommands` and the full-project example do), so an app without terminals never lists it. `EnsureConfigSettings` (Init) applies an app-declared one. `Runtime.SetTerminalLeader(key)` rewrites the rows (every noun's single-key `leader_pending` entry row with its prefix and timeout request, the self-send row, hints naming the old leader); application `leader_pending` rows stay. `Runtime.TerminalLeader()`. `AddTerminal` applies it, so leader rows defined after `Init` move too. The old leader is ordinary input to the pane.
+- `Setting.Validate` (code only): a further check after the type; `Set` refuses a value it rejects, a file value it rejects reads the default.
+- o-story: the attached pane's line names the current leader; stories `terminal/leader-twice-sends-one`, `leader-unbound-forwards-both`, `leader-timeout-sends-leader`, `leader-setting-footer`, `leader-setting-detach`.
+- mtm: its leader row moves with the setting, but `terminal.keys`' modal labels still print `ctrl+a` literally; it should read `Runtime.TerminalLeader()`.
+
 ### Record editor (`feat/record-editor`)
 
 - Schema-driven forms written as you type: `RecordSpec{Title, Fields, Load, Save, Debounce, Insert, OnLeave}`, `RecordField{Name, Label, Parameter, Multiline, Validate}`, `RecordFields(op)` from a verb's parameters, `Runtime.AddRecordEditor` (placed on a page) and `Runtime.OpenRecordEditor` (a modal), `Runtime.RecordEditor(id)`, `Record`, `RecordWrite`, `RecordDebounceMsg`, `DefaultRecordDebounce`. Invalid values are never written; enum, sourced and boolean fields are chosen from a list; `u`/`ctrl+r` undo and redo as writes; no save key. Nouns `form`, `form-field`, `form-text`, `form-choice`, `form-option`.

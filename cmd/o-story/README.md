@@ -287,6 +287,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `row esc`
 - `insert` → `normal` via `setting-value.commit`
 - `leader_pending` → `normal` via `terminal.detach`
+- `leader_pending` → `terminal` via `terminal.send`
 - `normal` → `count_pending` via `mode.enter`
 - `normal` → `insert` via `input.begin`
 - `normal` → `insert` via `outline.add`

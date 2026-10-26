@@ -229,7 +229,10 @@ tiers above them. When the two disagree, fix one in the same commit.
   mode. Story: `terminal/ctrl-c-reaches-pane.json`.
 - **R8.2** `ctrl+a` enters `leader_pending`; `d` detaches, `ctrl+a` sends
   itself, an unbound key sends leader and key in one `Send`, the timeout
-  sends the leader alone. Story: needed (`terminal/leader-*`, one per case).
+  sends the leader alone. The leader is the `terminal-leader` setting.
+  Stories: `terminal/detach-focus-returns`, `leader-twice-sends-one`,
+  `leader-unbound-forwards-both`, `leader-timeout-sends-leader`,
+  `leader-setting-footer`, `leader-setting-detach`.
 - **R8.3** Frames reach the component only through `Deliver` with a current
   ticket; a frame for a closed terminal is dropped. Story:
   `terminal/output-ticks.json`.
