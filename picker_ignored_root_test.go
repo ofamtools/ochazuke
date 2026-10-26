@@ -41,7 +41,7 @@ func TestPickerExplicitRootInsideIgnoredAncestor(t *testing.T) {
 		if recursive {
 			want = append(want, PickerEntry{Path: "visible/main.go"})
 		}
-		if !reflect.DeepEqual(pickerEntryShapes(entries), want) {
+		if !reflect.DeepEqual(entries, want) {
 			t.Fatalf("recursive=%v explicit ignored root entries = %#v, want %#v", recursive, entries, want)
 		}
 	}

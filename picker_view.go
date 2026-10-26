@@ -64,15 +64,17 @@ func (p *Picker) ViewBlock(width, height int) Block {
 
 // pickerColumns are the picker results table: the path takes the room the
 // size and modified columns leave, and those drop (modified first) when
-// the results pane is narrow.
+// the results pane is narrow. Size and modified have fixed widths, so a
+// stat landing (picker_stats.go) never moves a column.
 var pickerColumns = []Column{
 	{Title: "path", Min: 16},
 	{Title: "size", Width: 6, Align: AlignRight, Priority: 1},
 	{Title: "modified", Width: 16, Priority: 2},
 }
 
-// pickerCells is an entry's row of the results table.
-func pickerCells(entry PickerEntry) []string {
+// pickerCells is an entry's row of the results table; size and modified
+// stay blank until the entry's stat has landed (picker_stats.go).
+func pickerCells(entry PickerEntry, stat pickerStat) []string {
 	name := strings.ReplaceAll(entry.Path, "\n", "\\n")
 	if name == "." {
 		name = ". (current directory)"
@@ -80,11 +82,11 @@ func pickerCells(entry PickerEntry) []string {
 		name += "/"
 	}
 	size, modified := "", ""
-	if !entry.Dir {
-		size = pickerSize(entry.Size)
-	}
-	if !entry.Modified.IsZero() {
-		modified = entry.Modified.Local().Format("2006-01-02 15:04")
+	if stat.ok {
+		if !entry.Dir {
+			size = pickerSize(stat.size)
+		}
+		modified = stat.modified.Local().Format("2006-01-02 15:04")
 	}
 	return []string{safeText(name), size, modified}
 }
@@ -111,6 +113,8 @@ func pickerSize(n int64) string {
 // the header, then the rows in the window around the selection, the
 // selected row marked "> " and reversed across the width.
 func (p *Picker) resultRows(width, height int) []string {
+	// The rows this frame can draw, which the stat job follows.
+	p.drawnRows = max(0, height-min(2, max(0, height-1)))
 	if len(p.Entries) == 0 {
 		return layoutRows("(no matching paths)", width, height)
 	}
@@ -130,15 +134,14 @@ func (p *Picker) resultRows(width, height int) []string {
 		head := strings.TrimRight(strings.Repeat(" ", mark)+tableLine(pickerColumns, titles, shown, widths), " ")
 		rows = append(rows, lipgloss.NewStyle().Bold(true).Render(ansi.Truncate(head, width, "…")))
 	}
-	limit := max(0, height-len(rows))
-	start := max(0, p.Selected-limit+1)
-	end := min(len(p.Entries), start+limit)
+	start, end := p.window(p.drawnRows)
 	for i := start; i < end; i++ {
 		prefix := "  "
 		if i == p.Selected {
 			prefix = "> "
 		}
-		line := prefix + tableLine(pickerColumns, pickerCells(p.Entries[i]), shown, widths)
+		stat, _ := p.stats.get(p.statKey(p.Entries[i]))
+		line := prefix + tableLine(pickerColumns, pickerCells(p.Entries[i], stat), shown, widths)
 		row := modalCells(ansi.Truncate(line, width, "…"), width)
 		if i == p.Selected {
 			row = lipgloss.NewStyle().Reverse(true).Render(row)

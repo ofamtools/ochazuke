@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
@@ -19,8 +20,8 @@ const pickerID = "picker"
 
 // Picker owns one modal and one ordinary editor. Background commands only read
 // immutable snapshots; HandleMessage is the sole result-application boundary.
-// Its work runs as three replacing jobs on the picker instance (the "index",
-// "search" and "preview" slots), so the runtime's jobs list decides which
+// Its work runs as four replacing jobs on the picker instance (the "index",
+// "search", "preview" and "stat" slots), so the runtime's jobs list decides which
 // result is current: a newer job in a slot drops the older, and Close
 // cancels them all.
 type Picker struct {
@@ -49,6 +50,13 @@ type Picker struct {
 	preview      pickerPreview
 	previewID    uint64 // the current job in the preview slot
 	pending      []tea.Cmd
+	// The results table's lazy stats (picker_stats.go): the cache, the
+	// paths of the stat job in flight, the rows the last frame drew and
+	// the stat function (os.Lstat; tests count calls).
+	stats     *pickerStats
+	statting  map[string]bool
+	drawnRows int
+	statFunc  func(string) (fs.FileInfo, error)
 }
 
 type pickerIndexMsg struct {
@@ -422,6 +430,9 @@ func (p *Picker) pathChanged() {
 // queueIndex starts an index of root in the index slot: the shallow listing
 // first, the recursive walk once shallow results have been published.
 func (p *Picker) queueIndex(root string, shallow bool) {
+	if shallow {
+		p.resetStats()
+	}
 	id, ctx := p.issue("index")
 	p.indexID = id
 	p.pending = append(p.pending, func() tea.Msg {
@@ -461,6 +472,7 @@ func (p *Picker) PendingCommand() tea.Cmd {
 		p.stop()
 		return nil
 	}
+	p.queueStats()
 	commands := p.pending
 	p.pending = nil
 	return tea.Batch(commands...)
@@ -478,6 +490,12 @@ func (p *Picker) HandleMessage(msg tea.Msg) bool {
 			return true
 		}
 		p.preview = result.preview
+	case pickerStatMsg:
+		if result.picker != p {
+			return false
+		}
+		p.applyStats(result)
+		return true
 	case pickerIndexMsg:
 		if result.picker != p {
 			return false
@@ -543,6 +561,7 @@ func (p *Picker) HandleMessage(msg tea.Msg) bool {
 func (p *Picker) stop() {
 	p.Runtime.cancelJobs(pickerID)
 	p.preview = pickerPreview{}
+	p.statting = nil
 	p.pending = nil
 	p.fullIndex, p.indexRunning = nil, false
 	p.Loading = false

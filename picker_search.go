@@ -18,13 +18,10 @@ import (
 )
 
 // PickerEntry is relative to the indexed root. Symlinks are selectable files,
-// never traversal edges. Size and Modified come from the walk's lstat (a
-// symlink's own), zero when it failed; the results table shows them.
+// never traversal edges.
 type PickerEntry struct {
-	Path     string    `json:"path"`
-	Dir      bool      `json:"dir"`
-	Size     int64     `json:"size,omitempty"`
-	Modified time.Time `json:"modified,omitzero"`
+	Path string `json:"path"`
+	Dir  bool   `json:"dir"`
 }
 
 // One native Git process streams exact ignore decisions for the entire walk.
@@ -191,11 +188,7 @@ func indexPickerEntries(ctx context.Context, root string, recursive bool) ([]Pic
 		if err != nil {
 			return err
 		}
-		item := PickerEntry{Path: filepath.ToSlash(relative), Dir: entry.IsDir()}
-		if info, err := entry.Info(); err == nil {
-			item.Size, item.Modified = info.Size(), info.ModTime()
-		}
-		entries = append(entries, item)
+		entries = append(entries, PickerEntry{Path: filepath.ToSlash(relative), Dir: entry.IsDir()})
 		if !recursive && entry.IsDir() {
 			return filepath.SkipDir
 		}
