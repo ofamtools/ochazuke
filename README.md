@@ -1,6 +1,22 @@
 # Ochazuke
 
-A Go application framework on Charmbracelet Bubble Tea v2 (`charm.land/bubbletea/v2`, Lip Gloss v2, Bubbles v2), with retained pages, default Lip Gloss styling, partial-screen modals, nouns and instances with one stack walk for actions and bindings, modal text editing, a nested command palette, and live CLI control.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
+    <img alt="ochazuke" src="assets/logo-light.svg" width="360">
+  </picture>
+  <br>
+  <a href="https://github.com/unixsuperhero/ochazuke/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/unixsuperhero/ochazuke"></a>
+  <a href="https://pkg.go.dev/github.com/unixsuperhero/ochazuke"><img alt="Go Reference" src="https://pkg.go.dev/badge/github.com/unixsuperhero/ochazuke.svg"></a>
+  <a href="go.mod"><img alt="Go version" src="https://img.shields.io/github/go-mod/go-version/unixsuperhero/ochazuke"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/unixsuperhero/ochazuke"></a>
+</p>
+
+<p align="center">A Go TUI framework on Bubble Tea v2 where nouns, verbs and keybindings are data, so every action in your app is also a command you can run from the shell.</p>
+
+<p align="center"><img alt="The CSV example: moving through 3,000 rows, a palette command on a whole column, a filter, a sort and an edit with undo" src="assets/demo.gif" width="720"></p>
+
+Ochazuke builds on Charmbracelet Bubble Tea v2 (`charm.land/bubbletea/v2`, Lip Gloss v2, Bubbles v2) and adds retained pages, default Lip Gloss styling, partial-screen modals, nouns and instances with one stack walk for actions and bindings, modal text editing, a nested command palette, and live CLI control.
 
 Status: working standalone framework and demo. Neither gmtm nor Matomeru is changed. Existing editors are retained; Bubbles provides the new page/modal scrolling viewports.
 
