@@ -267,7 +267,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		if err != nil {
 			return err
 		}
-		return s.print(lines)
+		return s.printVerbatim(lines)
 	}
 	return s.output(q, opts.format, value)
 }

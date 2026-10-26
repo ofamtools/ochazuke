@@ -413,3 +413,31 @@ func (f *fakeT) Fatal(args ...any) {
 	runtime.Goexit()
 }
 func (f *fakeT) Fatalf(format string, args ...any) { f.Fatal(fmt.Sprintf(format, args...)) }
+
+// A state verb answering off the loop (Pending) gets deltas too.
+func TestStateDeltaFromAPendingVerb(t *testing.T) {
+	dir := t.TempDir()
+	run := func(label string, flags ...string) StateAnswer {
+		r := ochazuke.NewRuntime()
+		r.Config().Disable()
+		r.Define("status").Verb("state", func(ochazuke.Ctx) ochazuke.Result {
+			return ochazuke.Pending(func(context.Context) (any, error) {
+				return Lines{Row{Noun: "skill", ID: "s1", Label: label}, Row{Noun: "skill", ID: "s2", Label: "two <b>"}}, nil
+			})
+		}, "rows").State()
+		var out, errOut bytes.Buffer
+		sh := New(r, "tool", strings.NewReader(""), &out, &errOut)
+		sh.StateCache.Dir = dir
+		if err := sh.Run(context.Background(), append([]string{"status", "state"}, flags...)); err != nil {
+			t.Fatal(err, errOut.String())
+		}
+		return decode(t, out.String())
+	}
+	h := newHost()
+	h.apply(t, run("one", h.flags()...))
+	a := run("uno", h.flags()...)
+	if l, _ := a.List("skill"); l.Answer != AnswerDelta || len(a.Rows) != 1 || a.Rows[0].Label != "uno" {
+		t.Fatalf("pending delta = %+v %+v", a.Lists, a.Rows)
+	}
+	h.apply(t, a)
+}

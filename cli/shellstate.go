@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -150,6 +152,10 @@ func encodedLines(value any) ([]json.RawMessage, error) {
 	if lines, ok := value.(Lines); ok {
 		out := make([]json.RawMessage, len(lines))
 		for i, line := range lines {
+			if raw, ok := line.(json.RawMessage); ok && bytes.IndexByte(raw, '\n') < 0 {
+				out[i] = raw // HandleCall's copy: encoded and on one line
+				continue
+			}
 			data, err := json.Marshal(line)
 			if err != nil {
 				return nil, err
@@ -180,4 +186,23 @@ func encodedLines(value any) ([]json.RawMessage, error) {
 		items[i] = data
 	}
 	return items, nil
+}
+
+// printVerbatim prints a delta answer: an encoded line (json.RawMessage)
+// byte for byte, so the bytes a host hashes are the bytes the record hash
+// was taken of; any other line as JSON.
+func (s *Shell) printVerbatim(lines Lines) error {
+	w := bufio.NewWriter(s.stdout())
+	for _, line := range lines {
+		data, ok := line.(json.RawMessage)
+		if !ok {
+			var err error
+			if data, err = json.Marshal(line); err != nil {
+				return err
+			}
+		}
+		w.Write(data)
+		w.WriteByte('\n')
+	}
+	return w.Flush()
 }

@@ -53,7 +53,7 @@ var pageAnswers = map[string]string{
 	"mcp.tools":  "{\"noun\":\"mcp\",\"id\":\"t1\",\"label\":\"tuios_send_text\"}\nnot json\n{\"noun\":\"mcp\",\"id\":\"t2\",\"label\":\"tuios_capture\"}\n",
 }
 
-func mountedPage(t *testing.T, doc CatalogDoc, cfg PageConfig, w, h int) (*ochazuke.Model, *PageView) {
+func mountedPage(t testing.TB, doc CatalogDoc, cfg PageConfig, w, h int) (*ochazuke.Model, *PageView) {
 	t.Helper()
 	r := ochazuke.NewRuntime()
 	r.Config().Disable()

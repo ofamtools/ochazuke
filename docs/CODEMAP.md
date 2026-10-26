@@ -487,7 +487,7 @@ Root package `ochazuke` is flat: 60 source files, 59 test files. Each entry list
 
 ## Package cli
 
-Importable package `cli`: 18 source files, 11 test files.
+Importable package `cli`: 18 source files, 12 test files.
 
 ### cli/catalog.go
 
@@ -590,10 +590,10 @@ Importable package `cli`: 18 source files, 11 test files.
 
 ### cli/shellstate.go
 
-- lines: 183
+- lines: 208
 - purpose: sinceRequest is a state call's --since and --since-cache (the delta protocol, StateDeltaVersion).
-- methods: Shell(4)
-- leans on: statecache.go(20), state.go(9), shell.go(6), rows.go(5)
+- methods: Shell(5)
+- leans on: statecache.go(20), state.go(9), shell.go(7), rows.go(6)
 
 ### cli/state.go
 
@@ -606,7 +606,7 @@ Importable package `cli`: 18 source files, 11 test files.
 
 ### cli/statecache.go
 
-- lines: 468
+- lines: 517
 - purpose: StateCache is how an extension's shell keeps the versions of its state answer's lists that deltas are computed against (the --since protocol, StateDeltaVersi...
 - types: StateCache
 - methods: StateCache(4), currentList(1), stateStore(8)

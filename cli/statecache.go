@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -385,8 +386,8 @@ func splitState(lines []json.RawMessage) (order []string, lists map[string]*curr
 	lists = map[string]*currentList{}
 	seen := map[string]map[string]bool{}
 	for _, line := range lines {
-		var key struct{ Noun, ID string }
-		if json.Unmarshal(line, &key) != nil || key.Noun == "" || key.ID == "" {
+		key, ok := rowKey(line)
+		if !ok {
 			continue
 		}
 		l := lists[key.Noun]
@@ -465,4 +466,52 @@ func diffList(name string, cur *currentList, baseHash string, base version, ok b
 		}
 	}
 	return StateList{List: name, Answer: AnswerDelta, Base: baseHash, Hash: cur.hash, Rows: len(cur.records), At: at, Removed: removed}, rows
+}
+
+// rowKeyOf is a row line's list and id.
+type rowKeyOf struct{ Noun, ID string }
+
+// rowKey reads a row line's noun and id: from the head a Row encodes
+// ({"noun":"…","id":"…"…) without decoding the record, else by decoding
+// the line. ok is false for a line that is not a row.
+func rowKey(line []byte) (rowKeyOf, bool) {
+	if rest, ok := bytes.CutPrefix(line, []byte(`{"noun":`)); ok {
+		if noun, rest, ok := jsonString(rest); ok {
+			if rest, ok := bytes.CutPrefix(rest, []byte(`,"id":`)); ok {
+				if id, _, ok := jsonString(rest); ok && noun != "" && id != "" {
+					return rowKeyOf{noun, id}, true
+				}
+			}
+		}
+	}
+	var key rowKeyOf
+	if json.Unmarshal(line, &key) != nil || key.Noun == "" || key.ID == "" {
+		return rowKeyOf{}, false
+	}
+	return key, true
+}
+
+// jsonString reads the JSON string b starts with and what follows it.
+func jsonString(b []byte) (string, []byte, bool) {
+	if len(b) == 0 || b[0] != '"' {
+		return "", nil, false
+	}
+	escaped := false
+	for i := 1; i < len(b); i++ {
+		switch b[i] {
+		case '\\':
+			escaped = true
+			i++
+		case '"':
+			if !escaped {
+				return string(b[1:i]), b[i+1:], true
+			}
+			var s string
+			if json.Unmarshal(b[:i+1], &s) != nil {
+				return "", nil, false
+			}
+			return s, b[i+1:], true
+		}
+	}
+	return "", nil, false
 }
