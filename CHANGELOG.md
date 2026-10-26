@@ -71,6 +71,7 @@ Draft, from the `integrate/next` branch (seven branches on `3133e23` plus fixes)
 - `cli.CatalogDoc.ListColumns(noun)` and `CatalogDoc.RowSource(noun)`: the columns a host's list of a catalog noun's rows draws, following the row source verb (`rows`, else `list`) to the noun its rows answer to. A host mounts with `ochazuke.Columns(doc.ListColumns(noun)...)`; this is nabe's `columnsOf`/`rowSource`, which nabe can now drop.
 - `bindings stops` (`Runtime.StopBindings`): the effective rows of every focus stop, app-wide, each read at the focus a jump lands on and in the mode it would have there: pages in tab order, stops in drawing order, open modals, then `app`. `bindings list --all` stays the export of every stored row; `stops` is what answers where.
 - Fixed: focusing a list row instance (`SetFocus`/`focus.set`, `RetargetFocus`, a `FocusOnClose` landing, a page starting on a row, `Pop`) left the list's selection, and its highlight, on the old row while keys answered for the new one. The focused row is now selected. Story `lists/focus-set-selects-row`; `lists/one-highlight` checks the highlighted row is the focused one.
+- Fixed: the confirm modal drew its keys twice, a hand-written `y yes · n no` under the prompt and the derived hint line (with `<any> key.ignore`). The body is the prompt alone and the swallowing row is hidden, so the hint line reads `y confirm.accept · n modal.pop`. Story `modals/confirm-one-hint`.
 
 ### Also since v0.1.1
 

@@ -18,7 +18,7 @@ func registerConfirm(r *Runtime) {
 		Bind("enter", Do("confirm.accept")).
 		Bind("n", Do("modal.pop")).
 		Bind("esc", Do("modal.pop")).
-		Pattern(Any, Do("key.ignore"))
+		Pattern(Any, Do("key.ignore").Hide())
 	r.Register(Operation{Verb: "accept", Noun: "confirm", Description: "Run the request the open confirm modal holds and close it", Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		inst := r.Instances[r.TopModal()]
 		if inst == nil || inst.Noun != "confirm" || inst.Payload.Request == nil {
@@ -91,10 +91,12 @@ func (r *Runtime) openConfirm(c Context, q Request, op Operation) (any, error) {
 	return map[string]any{"confirm": body.ID, "prompt": prompt, "request": stored}, nil
 }
 
-// confirmView renders the confirm modal body.
+// confirmView renders the confirm modal body: the prompt alone. Its keys
+// are the modal's hint line (BindingHints), never a second hand-written
+// line; the swallowing any row is hidden from it.
 func confirmView(r *Runtime, inst *Instance, width, height int) Block {
 	if inst == nil {
 		return Text("")
 	}
-	return Text(inst.Payload.Prompt + "\n\ny yes · n no")
+	return Text(inst.Payload.Prompt)
 }
