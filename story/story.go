@@ -23,12 +23,17 @@ import (
 
 // Story is one scenario file.
 type Story struct {
-	Name   string  `json:"name"`
-	Area   string  `json:"area"`
-	Skip   string  `json:"skip,omitempty"` // "gap: ..." marks a known framework gap; the story runs but cannot fail the suite
-	Width  int     `json:"width,omitempty"`
-	Height int     `json:"height,omitempty"`
-	Chrome string  `json:"chrome,omitempty"` // full (default), none (page body only) or ticker-only
+	Name   string `json:"name"`
+	Area   string `json:"area"`
+	Skip   string `json:"skip,omitempty"` // "gap: ..." marks a known framework gap; the story runs but cannot fail the suite
+	Width  int    `json:"width,omitempty"`
+	Height int    `json:"height,omitempty"`
+	Chrome string `json:"chrome,omitempty"` // full (default), none (page body only) or ticker-only
+	// Theme renders the story in a theme other than mono (adaptive, dark,
+	// light); Accent ("#RRGGBB") is the Appearance accent override. Goldens
+	// stay escape-free, so a coloured story asserts colours with colored.
+	Theme  string  `json:"theme,omitempty"`
+	Accent string  `json:"accent,omitempty"`
 	Page   *Page   `json:"page,omitempty"`
 	Pages  []*Page `json:"pages,omitempty"`
 	// Base and Start make a trimmed story: replay the base's events before
@@ -224,6 +229,10 @@ type Expect struct {
 	NoTicker    bool     `json:"noTicker,omitempty"`
 	Notices     []string `json:"notices,omitempty"`
 	NoNotices   bool     `json:"noNotices,omitempty"`
+	// Colored maps on-screen text to a "#RRGGBB" foreground some row holding
+	// that text draws in; NoColor lists foregrounds no cell may use.
+	Colored map[string]string `json:"colored,omitempty"`
+	NoColor []string          `json:"noColor,omitempty"`
 	// Writes is every change the page's editable trees and record editors
 	// wrote, in order (TreeChange.String, RecordWrite.String); [] expects
 	// none.

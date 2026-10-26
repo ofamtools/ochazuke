@@ -135,6 +135,14 @@ func New() *ochazuke.Model {
 		}
 		return r.ExecuteAt(c, ochazuke.Request{Verb: "set", Noun: "appearance", Args: ochazuke.Arguments{"theme": themes[next]}})
 	})
+	register("cycle", "accent", "Toggle an orange accent over the theme (Appearance.Accent), as an app does for a pin state", nil, func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
+		if m.Appearance.Accent != nil {
+			m.Appearance.Accent = nil
+			return "theme", nil
+		}
+		m.Appearance.Accent = lipgloss.Color(demoAccent)
+		return demoAccent, nil
+	})
 	register("cycle", "density", "Toggle comfortable and compact spacing", nil, func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
 		density := "compact"
 		if m.Appearance.Density == "compact" {
@@ -174,6 +182,7 @@ func New() *ochazuke.Model {
 	bind("playground", "normal", "ctrl+x", "inspect", "selection", nil)
 	bind("appearance", "normal", "t", "cycle", "theme", nil)
 	bind("appearance", "normal", "d", "cycle", "density", nil)
+	bind("appearance", "normal", "a", "cycle", "accent", nil)
 	r.Define("task").Verb("edit", func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
 		return nil, task.edit(r)
 	}, "Edit the sample record again")
@@ -352,13 +361,21 @@ func demoCommands(m *ochazuke.Model, width int) string {
 }
 func demoAppearance(m *ochazuke.Model, width int) string {
 	s := ochazuke.NewStyles(*m.Appearance)
+	accent := "theme"
+	if m.Appearance.Accent != nil {
+		accent = demoAccent
+	}
 	panel := s.Panel.Width(max(1, width-2))
 	return s.Title.Render("Make it feel like your terminal") + "\n" + s.Muted.Render("These settings apply to every page and modal immediately.") + "\n\n" +
-		panel.Render(s.Subtitle.Render("Theme   ")+s.Accent.Render(m.Appearance.Theme)+"\nAdaptive · Dark · Light · Mono\n\n"+s.Subtitle.Render("Density ")+s.Accent.Render(m.Appearance.Density)+"\nComfortable · Compact") + "\n\n" +
-		s.Accent.Render("t") + " cycle theme    " + s.Accent.Render("d") + " toggle density\n\n" +
+		panel.Render(s.Subtitle.Render("Theme   ")+s.Accent.Render(m.Appearance.Theme)+"\nAdaptive · Dark · Light · Mono\n\n"+s.Subtitle.Render("Density ")+s.Accent.Render(m.Appearance.Density)+"\nComfortable · Compact\n\n"+s.Subtitle.Render("Accent  ")+s.Accent.Render(accent)+"\nThe theme's, or an override (mono stays colourless)") + "\n\n" +
+		s.Accent.Render("t") + " cycle theme    " + s.Accent.Render("d") + " toggle density    " + s.Accent.Render("a") + " toggle accent\n\n" +
 		s.FocusedPanel.Width(max(1, width-2)).Render("Focused surface\n"+s.Muted.Render("Muted context stays readable.")+"  "+s.Badge.Render("NORMAL")) + "\n\n" +
 		s.Muted.Render("Palette: set → appearance\nCLI: appearance set --json '{\"theme\":\"mono\",\"density\":\"compact\"}'")
 }
+
+// demoAccent is the override the Appearance page toggles: the orange an
+// application might use for "showing everything".
+const demoAccent = "#E8833A"
 
 // focusOf is the instance a handler context addresses.
 func focusOf(c ochazuke.Context) string {

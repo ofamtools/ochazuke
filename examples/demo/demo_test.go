@@ -250,7 +250,7 @@ func TestDemoKeyboardSessionStaysGreen(t *testing.T) {
 	execute("close", "picker", nil)
 	press("g")
 	execute("select", "context", ochazuke.Arguments{"path": `["app","playground","agent"]`})
-	press("ctrl+j", "j", "k", "ctrl+j", "t", "d", "ctrl+j", "ctrl+k", "ctrl+k")
+	press("ctrl+j", "j", "k", "ctrl+j", "t", "d", "a", "a", "ctrl+j", "ctrl+k", "ctrl+k")
 	execute("open", "page", ochazuke.Arguments{"id": "playground"})
 	execute("push", "modal", ochazuke.Arguments{"id": "draft", "input": "dialog"})
 	execute("pop", "modal", nil)

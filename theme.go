@@ -11,10 +11,18 @@ import (
 // Appearance is event-loop-owned configuration. Operation results are value snapshots.
 // Dark is the terminal background reported by tea.BackgroundColorMsg; the
 // adaptive theme assumes a dark background until that message arrives.
+//
+// Accent replaces the theme's accent colour when it is not nil: the title,
+// panel and modal borders, the active tab, the badge and every highlight
+// drawn in the accent take it, so an application can say "you are looking
+// at everything" by colour alone (a pin state). Semantic colours (errors)
+// and the muted text keep their meaning. The mono theme and NO_COLOR stay
+// colourless. Applications set it in code; the appearance verbs leave it.
 type Appearance struct {
-	Theme   string `json:"theme"`
-	Density string `json:"density"`
-	Dark    bool   `json:"dark"`
+	Theme   string      `json:"theme"`
+	Density string      `json:"density"`
+	Dark    bool        `json:"dark"`
+	Accent  color.Color `json:"-"`
 }
 
 // NewAppearance registers appearance operations once per runtime.
@@ -88,6 +96,10 @@ func NewStyles(a Appearance) Styles {
 	muted := color("#657672", "#93A7A1")
 	accent := color("#17695E", "#78BFA5")
 	border := color("#A7BAB2", "#465D55")
+	title := text
+	if a.Accent != nil && !plain {
+		accent, border, title = a.Accent, a.Accent, a.Accent
+	}
 	surface := color("#EEF3EF", "#172720")
 	padding := 1
 	if a.Density == "compact" {
@@ -98,7 +110,7 @@ func NewStyles(a Appearance) Styles {
 	focusedBorder.Top, focusedBorder.Bottom = "━", "━"
 	focusedBorder.Left, focusedBorder.Right = "┃", "┃"
 	return Styles{
-		Title:        lipgloss.NewStyle().Bold(true).Foreground(text),
+		Title:        lipgloss.NewStyle().Bold(true).Foreground(title),
 		Subtitle:     lipgloss.NewStyle().Foreground(accent),
 		Muted:        lipgloss.NewStyle().Foreground(muted).Faint(true),
 		Accent:       lipgloss.NewStyle().Foreground(accent).Bold(true),

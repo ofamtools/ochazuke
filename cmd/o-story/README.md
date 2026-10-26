@@ -43,6 +43,7 @@ it to the timer's deadline and delivers the timer's message
 { name: "spill: j at the last row", area: "motions",
   width: 80, height: 24,          // the story's area; default 80x24
   chrome: "full",                 // "full" | "none" (page body only) | "ticker-only"
+  theme: "adaptive", accent: "#E8833A",  // optional: a theme other than mono, an accent override
   skip: "gap: ...",               // optional: a known framework gap; runs, cannot fail
   page: {                         // or pages: [{ id, title, ... }, ...]
     lists: [{ id: "a", rows: 2 },                  // rows a1, a2
@@ -74,7 +75,9 @@ it to the timer's deadline and delivers the timer's message
 Expect fields: `focus`, `mode`, `modal` (top modal id, `""` none), `page`,
 `visible` (the focused label is on screen), `highlighted` (rows with reverse
 video), `contains`, `lacks`, `order` (substrings in this order),
-`ticker`/`noTicker`, `notices`/`noNotices`, `writes` (every change an
+`ticker`/`noTicker`, `notices`/`noNotices`, `colored` (text → `#RRGGBB`: a
+row holding the text is drawn in that foreground) and `noColor` (foregrounds
+no cell uses), for a story with a `theme`, `writes` (every change an
 editable tree or a record editor wrote, `TreeChange.String` or
 `RecordWrite.String`, in order; `[]` none). A story with no final expect is
 compared with `<name>.golden`: the frame in the mono theme, each row behind a

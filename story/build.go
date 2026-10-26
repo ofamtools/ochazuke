@@ -58,6 +58,12 @@ func Build(s *Story, opt Options) (*Session, error) {
 	if opt.Mono {
 		m.Appearance.Theme = "mono"
 	}
+	if s.Theme != "" {
+		m.Appearance.Theme = s.Theme
+	}
+	if s.Accent != "" {
+		m.Appearance.Accent = lipgloss.Color(s.Accent)
+	}
 	ss := &Session{Story: s, R: r, M: m, pages: map[string]*Page{}, lists: map[string]*ochazuke.List{}, trees: map[string]*ochazuke.Tree{}, records: map[string]*ochazuke.RecordEditor{}, inputs: map[string]*ochazuke.Input{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
 	if err := ss.defineDemo(pages); err != nil {
 		return nil, err
