@@ -1,8 +1,10 @@
 package ochazuke
 
 import (
+	"encoding/json"
 	"slices"
 	"sort"
+	"strings"
 )
 
 // Instance is one addressable thing on screen: a page, a list, a list row, a
@@ -210,4 +212,90 @@ func (r *Runtime) ActionFor(focus, key string) Handler {
 		}
 	}
 	return nil
+}
+
+// rowSourceField is the field a "row:<field>" binding source names.
+func rowSourceField(source string) (string, bool) {
+	return strings.CutPrefix(source, SourceRow+":")
+}
+
+// rowData is the Data of the row a key acted on: the innermost instance
+// carrying Data from the focus out to the level that answered (to app for
+// a noun-only level).
+func (r *Runtime) rowData(ev KeyEvent) any {
+	for id := ev.Focus; id != ""; {
+		inst := r.Instances[id]
+		if inst == nil {
+			return nil
+		}
+		if inst.Data != nil {
+			return inst.Data
+		}
+		if id == ev.Level {
+			return nil
+		}
+		id = inst.Parent
+	}
+	return nil
+}
+
+// jsonShaped is an application value as its JSON decoding (a struct a
+// map[string]any, numbers float64), so a whole row passes as an object
+// argument the way the CLI would send it; a map[string]any stays as it is.
+func jsonShaped(data any) any {
+	switch data.(type) {
+	case nil, map[string]any, string, bool, int, float64:
+		return data
+	}
+	raw, err := json.Marshal(data)
+	if err != nil {
+		return nil
+	}
+	var out any
+	if json.Unmarshal(raw, &out) != nil {
+		return nil
+	}
+	return out
+}
+
+// validRowField reports whether a row source's field is dot-separated
+// non-empty names ("path", "repo.path").
+func validRowField(field string) bool {
+	for _, part := range strings.Split(field, ".") {
+		if strings.TrimSpace(part) == "" || strings.ContainsAny(part, " \t") {
+			return false
+		}
+	}
+	return true
+}
+
+// dataField reads a dotted field of an application value: a map's key, or
+// a struct's JSON field (the value read through its JSON encoding, so
+// numbers are float64); nil when a step is missing.
+func dataField(data any, field string) any {
+	for _, name := range strings.Split(field, ".") {
+		switch m := data.(type) {
+		case nil:
+			return nil
+		case map[string]any:
+			data = m[name]
+		case map[string]string:
+			v, ok := m[name]
+			if !ok {
+				return nil
+			}
+			data = v
+		default:
+			raw, err := json.Marshal(data)
+			if err != nil {
+				return nil
+			}
+			var decoded map[string]any
+			if json.Unmarshal(raw, &decoded) != nil {
+				return nil
+			}
+			data = decoded[name]
+		}
+	}
+	return data
 }

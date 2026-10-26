@@ -217,3 +217,84 @@ func TestOldVerbNounSpellingIsRewrittenOnce(t *testing.T) {
 		t.Fatalf("unknown operation error = %v", err)
 	}
 }
+
+// FromRow passes the acted-on row's Data as arguments: a map key, a
+// struct's JSON field, a nested field, the whole value (JSON-shaped, an
+// object argument); a row bound on the
+// list reads the focused row; a missing field leaves the argument out.
+// ValidateBindings accepts row and row:<field> and rejects a bad field.
+func TestFromRowPassesRowData(t *testing.T) {
+	type tree struct {
+		Path string `json:"path"`
+		Repo struct {
+			Name string `json:"name"`
+		} `json:"repo"`
+	}
+	r := NewRuntime()
+	var got []Arguments
+	record := func(c Ctx) Result { got = append(got, c.Args); return Done(nil) }
+	r.Define("worktree").Verb("open", record)
+	op := r.Operations["worktree.open"]
+	op.Parameters = map[string]Parameter{"path": {Type: "string"}, "repo": {Type: "string"}, "row": {Type: "object"}}
+	r.Operations["worktree.open"] = op
+	onList := Do("worktree.open").FromRow("path", "path").FromRow("row", "")
+	onList.Noun, onList.Mode, onList.Keys = "list", "normal", "O"
+	if err := r.Bind(
+		Binding{Noun: "worktree", Mode: "normal", Keys: "o", Request: Do("worktree.open").Request, From: map[string]string{"path": "row:path", "repo": "row:repo.name"}},
+		onList,
+	); err != nil {
+		t.Fatal(err)
+	}
+	r.Instance("page", Kind("page"))
+	var st tree
+	st.Path, st.Repo.Name = "/src/b", "beta"
+	list, err := r.AddList("trees", []ListItem{
+		{ID: "a", Label: "a", Noun: "worktree", Data: map[string]any{"path": "/src/a", "repo": map[string]any{"name": "alpha"}}},
+		{ID: "b", Label: "b", Noun: "worktree", Data: st},
+		{ID: "c", Label: "c", Noun: "worktree"},
+	}, Parent("page"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := list.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	press := func(key string) {
+		t.Helper()
+		if _, err := r.Dispatch(MacroKey{Key: key}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	press("o")
+	list.Move(1)
+	press("o")
+	press("O")
+	list.Move(1)
+	press("o")
+	want := []Arguments{
+		{"path": "/src/a", "repo": "alpha"},
+		{"path": "/src/b", "repo": "beta"},
+		{"path": "/src/b", "row": map[string]any{"path": "/src/b", "repo": map[string]any{"name": "beta"}}},
+		{},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("arguments\n got %#v\nwant %#v", got, want)
+	}
+	if _, err := r.LoadBindings([]byte(`[{"noun":"worktree","mode":"normal","keys":"P","request":{"noun":"worktree","verb":"open"},"from":{"path":"row:path"}}]`)); err != nil {
+		t.Fatal(err)
+	}
+	list.Move(-2)
+	press("P")
+	if last := got[len(got)-1]; !reflect.DeepEqual(last, Arguments{"path": "/src/a"}) {
+		t.Fatalf("binding file row: %#v", last)
+	}
+	if _, err := r.ValidateBindings(); err != nil {
+		t.Fatal(err)
+	}
+	for _, source := range []string{"row:", "row:a..b", "rows:path"} {
+		err := r.Bind(Binding{Noun: "worktree", Mode: "normal", Keys: "p", Request: Do("worktree.open").Request, From: map[string]string{"path": source}})
+		if err == nil || !strings.Contains(err.Error(), "unknown argument source") {
+			t.Fatalf("source %q: %v", source, err)
+		}
+	}
+}

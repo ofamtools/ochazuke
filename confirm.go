@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -55,13 +56,38 @@ var promptField = regexp.MustCompile(`\{\{\s*(\w+)\s*\}\}`)
 // openConfirm opens the confirm modal for a request instead of running it.
 // The stored request targets the instance the request addressed, so y runs
 // it there even though the confirm body is focused.
+//
+// The prompt's {{id}}, {{target}}, {{noun}} and {{label}} describe that
+// instance when the request addresses one: an explicit target, or an
+// instance of the verb's noun on the focus path. A request that addresses
+// none (a CLI call with positional words, the palette away from any such
+// row) would name app, so they read the request instead: {{noun}} the
+// verb's noun, {{id}}, {{target}} and {{label}} the argument of that name,
+// else the request's first argument in parameter order (ParameterOrder,
+// then the others by name), and the focus as before when there are no
+// arguments. A label argument always wins for {{label}};
+// {{<arg>}} is that argument everywhere.
 func (r *Runtime) openConfirm(c Context, q Request, op Operation) (any, error) {
 	inst := r.Instances[focusOf(c)]
 	stored := q
 	stored.Confirmed = true
 	stored.Target = inst.ID
+	addressed := q.Target != "" || inst.Noun == op.Noun
 	prompt := promptField.ReplaceAllStringFunc(op.Confirm, func(m string) string {
 		name := promptField.FindStringSubmatch(m)[1]
+		if !addressed {
+			switch name {
+			case "noun":
+				return op.Noun
+			case "id", "target", "label":
+				if v, ok := q.Args[name]; ok {
+					return fmt.Sprint(v)
+				}
+				if v, ok := firstArgument(op, q.Args); ok {
+					return fmt.Sprint(v)
+				}
+			}
+		}
 		switch name {
 		case "id", "target":
 			return inst.ID
@@ -89,6 +115,25 @@ func (r *Runtime) openConfirm(c Context, q Request, op Operation) (any, error) {
 		return nil, err
 	}
 	return map[string]any{"confirm": body.ID, "prompt": prompt, "request": stored}, nil
+}
+
+// firstArgument is the request's first argument with a value: in the
+// operation's parameter order, then any other argument by name.
+func firstArgument(op Operation, args Arguments) (any, bool) {
+	for _, name := range op.ParameterOrder() {
+		if v, ok := args[name]; ok {
+			return v, true
+		}
+	}
+	names := make([]string, 0, len(args))
+	for name := range args {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	if len(names) == 0 {
+		return nil, false
+	}
+	return args[names[0]], true
 }
 
 // confirmView renders the confirm modal body: the prompt alone. Its keys

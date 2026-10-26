@@ -353,7 +353,11 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent) error {
 			args[k] = v
 		}
 		for arg, source := range b.From {
-			args[arg] = r.argument(source, ev)
+			// A row source with no value (no Data, no such field) leaves
+			// the argument out rather than passing null.
+			if v := r.argument(source, ev); v != nil {
+				args[arg] = v
+			}
 		}
 		q.Args = args
 	}
@@ -411,6 +415,11 @@ func (r *Runtime) argument(source string, ev KeyEvent) any {
 		return p.OpCount
 	case SourcePrefix:
 		return p.Prefix
+	case SourceRow:
+		return jsonShaped(r.rowData(ev))
+	}
+	if field, ok := rowSourceField(source); ok {
+		return dataField(r.rowData(ev), field)
 	}
 	return nil
 }

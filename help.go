@@ -58,7 +58,9 @@ func bindingHelpArgs(r *Runtime, b Binding, focus string) Arguments {
 			}
 		}
 		if len(values) == 1 {
-			args[name] = values[0]
+			if values[0] != nil {
+				args[name] = values[0]
+			}
 		} else {
 			var texts []string
 			for _, value := range values {

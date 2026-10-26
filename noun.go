@@ -95,9 +95,10 @@ type Binding struct {
 // integer), "text" (pasted or typed text), "count" (payload count, at least 1),
 // "line" (payload count, 0 when absent, else the operator count), "steps"
 // (count times operator count), "op" (payload operator), "opcount", "prefix"
-// (the key sequence the pending mode holds). A From value may name several
-// sources separated by spaces ("prefix key"): their texts are joined with a
-// space, the way terminal.send reads a key list.
+// (the key sequence the pending mode holds), "row" (the row's Data, see
+// FromRow) and "row:<field>" (one field of it). A From value may name
+// several sources separated by spaces ("prefix key"): their texts are
+// joined with a space, the way terminal.send reads a key list.
 const (
 	SourceKey     = "key"
 	SourceDigit   = "digit"
@@ -108,6 +109,7 @@ const (
 	SourceOp      = "op"
 	SourceOpCount = "opcount"
 	SourcePrefix  = "prefix"
+	SourceRow     = "row"
 )
 
 // CancelKey is the key every key-sequence prefix answers with mode.leave: a
@@ -177,6 +179,21 @@ func (b Binding) FromKey(arg string) Binding { return b.from(arg, SourceKey) }
 
 // FromPayload fills an argument from the mode payload (a Source name).
 func (b Binding) FromPayload(arg, source string) Binding { return b.from(arg, source) }
+
+// FromRow fills an argument from the Data of the row the key acted on:
+// the innermost instance carrying Data from the focus out to the level the
+// row answered at (a list row's ListItem.Data, also when the row is bound
+// on the list). field names a key of that value (a map's key, a struct's
+// JSON field name; dots walk nested values, "repo.path"); "" passes the
+// whole value. A struct is read through its JSON encoding, so the value
+// is what the CLI would send (numbers float64, the whole row an object). A row without Data, or without the field, leaves the
+// argument out. The source is "row:<field>" (or "row") in a binding file.
+func (b Binding) FromRow(arg, field string) Binding {
+	if field == "" {
+		return b.from(arg, SourceRow)
+	}
+	return b.from(arg, SourceRow+":"+field)
+}
 
 // Join fills an argument from several sources joined with a space: the
 // leader's any row sends Join("keys", SourcePrefix, SourceKey).
@@ -702,9 +719,11 @@ func (r *Runtime) validateRow(row Binding) (Binding, error) {
 			}
 			for _, one := range strings.Fields(source) {
 				switch one {
-				case SourceKey, SourceDigit, SourceText, SourceCount, SourceLine, SourceSteps, SourceOp, SourceOpCount, SourcePrefix:
+				case SourceKey, SourceDigit, SourceText, SourceCount, SourceLine, SourceSteps, SourceOp, SourceOpCount, SourcePrefix, SourceRow:
 				default:
-					return row, fmt.Errorf("unknown argument source %q", one)
+					if field, ok := rowSourceField(one); !ok || !validRowField(field) {
+						return row, fmt.Errorf("unknown argument source %q", one)
+					}
 				}
 			}
 		}

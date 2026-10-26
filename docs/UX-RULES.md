@@ -136,7 +136,8 @@ tiers above them. When the two disagree, fix one in the same commit.
   needed (`modals/refuse-from-beneath`).
 - **R4.5** A confirm modal: `y` runs the stored request, `n`/`esc` pop, every
   other key is swallowed, `{{label}}` reads the argument before the target's
-  label. Story: `modals/confirm-yes.json`, `modals/confirm-label.json`;
+  label, and a request addressing no instance of the verb's noun reads its
+  arguments (`TestConfirmWithoutTargetReadsArguments`). Story: `modals/confirm-yes.json`, `modals/confirm-label.json`;
   needed for the swallow case.
 - **R4.6** The backdrop is dimmed and the terminal cursor is hidden beneath a
   modal, but the page's highlights (selected row, grid cursor cell) remain
