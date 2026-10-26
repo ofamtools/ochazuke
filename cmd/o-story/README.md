@@ -212,6 +212,7 @@ Conformance:
 
 | mode | noun | verbs |
 |---|---|---|
+| insert | chooser | `chooser.cancel` `chooser.move` `chooser.pick` |
 | insert | input | `input.insert` |
 | insert | mode | `mode.set` |
 | insert | outline | `outline.indent` `outline.leave` |
@@ -225,7 +226,7 @@ Conformance:
 | normal | modal | `modal.pop` |
 | normal | notice | `notice.clear` |
 | normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.indent` `outline.paste` `outline.redo` `outline.undo` |
-| normal | page | `page.next` `page.previous` |
+| normal | page | `page.next` `page.pick` `page.previous` |
 | normal | palette | `palette.open` |
 | normal | surface | `surface.scroll` |
 | terminal | mode | `mode.enter` |
@@ -233,6 +234,8 @@ Conformance:
 
 Mode edges (from → to via):
 
+- `insert` → `normal` via `chooser.cancel`
+- `insert` → `normal` via `chooser.pick`
 - `insert` → `normal` via `mode.set`
 - `insert` → `normal` via `outline.leave`
 - `insert` → `normal` via `palette.run`
@@ -241,6 +244,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `input.begin`
 - `normal` → `insert` via `outline.add`
 - `normal` → `insert` via `outline.edit`
+- `normal` → `insert` via `page.pick`
 - `normal` → `insert` via `palette.open`
 - `normal` → `normal d` via `row d`
 - `normal` → `terminal` via `demo.open`

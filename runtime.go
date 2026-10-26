@@ -192,6 +192,7 @@ func NewRuntime() *Runtime {
 	registerCore(r)
 	registerJobs(r)
 	registerConfiguration(r)
+	registerChooser(r)
 	registerPages(r)
 	registerLists(r)
 	registerTrees(r)
