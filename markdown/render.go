@@ -39,23 +39,49 @@ func StyleOf(a ochazuke.Appearance) string {
 	return StyleDark
 }
 
+// Option changes how Block and a Doc render Markdown.
+type Option func(*options)
+
+// options are the rendering choices; the zero value is Glamour's default.
+type options struct {
+	newlines bool
+}
+
+func optionsOf(opts []Option) options {
+	var o options
+	for _, opt := range opts {
+		if opt != nil {
+			opt(&o)
+		}
+	}
+	return o
+}
+
+// PreserveNewlines keeps every newline inside a paragraph a line break
+// (Glamour's WithPreservedNewLines), so text written as plain lines draws
+// one line per source line instead of joining a paragraph's lines into
+// one. Lines longer than the width still wrap. Code blocks and tables are
+// drawn the same either way.
+func PreserveNewlines() Option { return func(o *options) { o.newlines = true } }
+
 // Block renders Markdown text width cells wide in the appearance's style
 // (StyleOf), without Glamour's blank first and last lines. The result is
-// cached by text, width and style, so a view may call it every frame. Put
-// it in a detail (ochazuke.AddDetail) to scroll it with J and K:
+// cached by text, width, style and options, so a view may call it every
+// frame. Put it in a detail (ochazuke.AddDetail) to scroll it with J and K:
 //
 //	body, marker := detail.Window(markdown.Block(text, w, a).Text, w, h)
-func Block(text string, width int, a ochazuke.Appearance) ochazuke.Block {
-	return ochazuke.Text(strings.Join(render(text, 0, width, StyleOf(a)).lines, "\n"))
+func Block(text string, width int, a ochazuke.Appearance, opts ...Option) ochazuke.Block {
+	return ochazuke.Text(strings.Join(render(text, 0, width, StyleOf(a), optionsOf(opts)).lines, "\n"))
 }
 
 // renderKey names one rendering: the text, how many task markers it
-// carries (marked), the width and the style.
+// carries (marked), the width, the style and the options.
 type renderKey struct {
 	text  string
 	tasks int
 	width int
 	style string
+	opts  options
 }
 
 // rendering is a cached rendering: its lines, markers stripped, and per
@@ -68,6 +94,7 @@ type rendering struct {
 type rendererKey struct {
 	width int
 	style string
+	opts  options
 }
 
 // cacheSize bounds the rendered texts kept: a frame renders each visible
@@ -84,15 +111,15 @@ var cache = struct {
 // render is the cached rendering of text as lines no wider than width;
 // tasks is how many task markers text carries (0 for none). The lines are
 // shared: a caller copies before changing one.
-func render(text string, tasks, width int, style string) rendering {
+func render(text string, tasks, width int, style string, opts options) rendering {
 	width = max(1, width)
-	key := renderKey{text, tasks, width, style}
+	key := renderKey{text, tasks, width, style, opts}
 	cache.Lock()
 	defer cache.Unlock()
 	if out, ok := cache.renderings[key]; ok {
 		return out
 	}
-	lines := renderUncached(text, width, style)
+	lines := renderUncached(text, width, style, opts)
 	out := rendering{lines: lines, spans: spans(lines, tasks)}
 	if len(cache.order) >= cacheSize {
 		delete(cache.renderings, cache.order[0])
@@ -106,15 +133,19 @@ func render(text string, tasks, width int, style string) rendering {
 // renderUncached runs Glamour (the caller holds the cache lock, which also
 // serialises the shared renderers). A text Glamour cannot render is shown
 // as it is, wrapped.
-func renderUncached(text string, width int, style string) []string {
+func renderUncached(text string, width int, style string, opts options) []string {
 	if strings.TrimSpace(text) == "" {
 		return nil
 	}
-	rk := rendererKey{width, style}
+	rk := rendererKey{width, style, opts}
 	tr := cache.renderers[rk]
 	if tr == nil {
+		ropts := []glamour.TermRendererOption{glamour.WithStyles(styleConfig(style)), glamour.WithWordWrap(width)}
+		if opts.newlines {
+			ropts = append(ropts, glamour.WithPreservedNewLines())
+		}
 		var err error
-		tr, err = glamour.NewTermRenderer(glamour.WithStyles(styleConfig(style)), glamour.WithWordWrap(width))
+		tr, err = glamour.NewTermRenderer(ropts...)
 		if err == nil {
 			if len(cache.renderers) >= 16 {
 				clear(cache.renderers)

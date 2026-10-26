@@ -1,0 +1,12 @@
+{
+  "name": "markdown: a note of plain lines at 80 columns with preserveNewlines, a code fence and a table drawn as without it",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "preserveNewlines": true,
+      "text": "Standup notes\nwritten as plain lines\none thought per line\n\n- [ ] ship the fix\n  and tell the lane\n- [x] review the branch\n\n```sh\ngo test ./...\ngo vet ./...\n```\n\n| owner | task |\n|---|---|\n| ana | docs |\n"
+    }
+  }
+}

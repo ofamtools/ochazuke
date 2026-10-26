@@ -102,7 +102,8 @@ type Doc struct {
 	list  *ochazuke.List
 	text  string
 	tasks []Task
-	mark  string // text with the task markers, for rendering
+	mark  string  // text with the task markers, for rendering
+	opts  options // how View renders (New's options)
 	undo  []edit
 	redo  []edit
 	// offset is the first line View shows when it windows the document.
@@ -119,7 +120,9 @@ type edit struct {
 
 // New loads a Doc from src and places it under parent (a page or an
 // instance beneath it). It registers the markdown nouns once per runtime.
-func New(r *ochazuke.Runtime, id, parent string, src Source) (*Doc, error) {
+// The options are View's (PreserveNewlines); they change only how the
+// document is drawn, never which items it has or what a toggle writes.
+func New(r *ochazuke.Runtime, id, parent string, src Source, opts ...Option) (*Doc, error) {
 	if id == "" || r.Instances[id] != nil {
 		return nil, fmt.Errorf("markdown id %q must be unique and nonempty", id)
 	}
@@ -134,7 +137,7 @@ func New(r *ochazuke.Runtime, id, parent string, src Source) (*Doc, error) {
 		return nil, fmt.Errorf("load markdown: %w", err)
 	}
 	Register(r)
-	d := &Doc{r: r, id: id, src: src}
+	d := &Doc{r: r, id: id, src: src, opts: optionsOf(opts)}
 	r.Instance(id, ochazuke.Parent(parent), ochazuke.Kind(DocNoun)).Component = d
 	list, err := r.AddList(d.ListID(), nil, ochazuke.Parent(id), ochazuke.NoMarks())
 	if err != nil {
@@ -373,7 +376,7 @@ func find(before, now []Task, text string, nth int) (Task, int, bool) {
 func (d *Doc) View(width, height int, a ochazuke.Appearance) string {
 	id := d.ListID()
 	d.r.Placed(id)
-	rend := render(d.mark, min(len(d.tasks), maxMarkers), width, StyleOf(a))
+	rend := render(d.mark, min(len(d.tasks), maxMarkers), width, StyleOf(a), d.opts)
 	lines := append([]string(nil), rend.lines...)
 	focus, focusHeight := 0, len(lines)
 	if i := d.selected(); i >= 0 && i < len(rend.spans) && rend.spans[i][0] >= 0 {

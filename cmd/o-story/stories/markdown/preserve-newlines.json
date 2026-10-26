@@ -1,0 +1,39 @@
+{
+  "name": "markdown: with preserveNewlines every line of a note is a line on screen; x still toggles only the box",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "preserveNewlines": true,
+      "text": "Standup notes\nwritten as plain lines\none thought per line\n\n- [ ] ship the fix\n  and tell the lane\n- [x] review the branch\n\n```sh\ngo test ./...\ngo vet ./...\n```\n\n| owner | task |\n|---|---|\n| ana | docs |\n"
+    }
+  },
+  "script": [
+    "j",
+    "x"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "highlighted": 1,
+      "highlightedText": "[x] review the branch",
+      "order": [
+        "Standup notes",
+        "written as plain lines",
+        "one thought per line",
+        "ship the fix",
+        "and tell the lane"
+      ],
+      "lacks": [
+        "Standup notes written"
+      ]
+    },
+    {
+      "highlightedText": "[ ] review the branch",
+      "writes": [
+        "toggle 7 [ ] review the branch"
+      ]
+    }
+  ]
+}

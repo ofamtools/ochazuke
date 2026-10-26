@@ -532,7 +532,11 @@ func (ss *Session) addPage(p *Page) error {
 		}
 	}
 	if p.Markdown != nil {
-		doc, err := markdown.New(r, markdownID(p), p.ID, ss.markdownSource(p.Markdown))
+		var opts []markdown.Option
+		if p.Markdown.PreserveNewlines {
+			opts = append(opts, markdown.PreserveNewlines())
+		}
+		doc, err := markdown.New(r, markdownID(p), p.ID, ss.markdownSource(p.Markdown), opts...)
 		if err != nil {
 			return fmt.Errorf("markdown: %w", err)
 		}

@@ -1,0 +1,24 @@
+ |  ◆ o-story                                                            NORMAL
+ |   › page1
+ |  ────────────────────────────────────────────────────────────────────────────
+ |    Standup notes
+ |    written as plain lines
+ |    one thought per line
+ |
+R|    [ ] ship the fix
+R|    and tell the lane
+ |    [x] review the branch
+ |
+ |      go test ./...
+ |      go vet ./...
+ |
+ |     owner                              | task
+ |    ------------------------------------|-----------------------------------
+ |     ana                                | docs
+ |
+ |
+ |
+ |
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  x markdown.toggle · u markdown.undo · ctrl+r markdown.redo · q app.quit · r…
+ |

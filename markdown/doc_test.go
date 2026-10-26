@@ -80,14 +80,14 @@ func readFile(t *testing.T, path string) string {
 	return string(b)
 }
 
-func newDoc(t *testing.T, src Source) (*ochazuke.Runtime, *Doc) {
+func newDoc(t *testing.T, src Source, opts ...Option) (*ochazuke.Runtime, *Doc) {
 	t.Helper()
 	r := ochazuke.NewRuntime()
 	ochazuke.NewModel(r)
 	if _, err := r.AddPage("notes", "Notes", func(*ochazuke.Runtime, int, int) ochazuke.Block { return ochazuke.Text("") }); err != nil {
 		t.Fatal(err)
 	}
-	d, err := New(r, "doc", "notes", src)
+	d, err := New(r, "doc", "notes", src, opts...)
 	if err != nil {
 		t.Fatal(err)
 	}

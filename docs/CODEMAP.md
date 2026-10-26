@@ -600,22 +600,23 @@ Importable package `grid`: 2 source files, 1 test files.
 
 ## Package markdown
 
-Importable package `markdown`: 3 source files, 2 test files.
+Importable package `markdown`: 3 source files, 3 test files.
 
 ### markdown/doc.go
 
-- lines: 515 · tests: doc_test.go
+- lines: 518 · tests: doc_test.go
 - purpose: Source is where a Doc's Markdown lives: Load reads it as it is now and Save stores a new text.
 - types: Source, Doc
 - methods: Doc(22)
 - funcs: File, New, Of, Register
-- leans on: tasks.go(20), render.go(2)
+- leans on: tasks.go(20), render.go(5)
 
 ### markdown/render.go
 
-- lines: 156 · tests: render_test.go
+- lines: 187 · tests: render_test.go
 - purpose: StyleOf is the Glamour style an appearance draws Markdown in.
-- funcs: StyleOf, Block
+- types: Option (func)
+- funcs: StyleOf, PreserveNewlines, Block
 - leans on: tasks.go(3)
 
 ### markdown/tasks.go
@@ -632,7 +633,7 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/build.go
 
-- lines: 1091
+- lines: 1095
 - purpose: Session is one built story: the runtime, the model and the demo state the verbs act on (fake jobs and panes).
 - types: Session, Options
 - methods: Session(21), storyCommands(3)
@@ -675,7 +676,7 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/story.go
 
-- lines: 520
+- lines: 523
 - purpose: Story is one scenario file.
 - types: Story, Page, ChooserSpec, ChooserRowSpec, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, MarkdownSpec, CommandsSpec, CatalogSpec, InputSpec, CompletionSpec, TermSpec, JobSpec, BindSpec, Event, Expect, Expects
 - methods: Event(3), Expects(2), Story(5)
@@ -842,6 +843,7 @@ Exported type -> file.
 - grid.Ref -> grid/grid.go
 - grid.Styles -> grid/grid.go
 - markdown.Doc -> markdown/doc.go
+- markdown.Option -> markdown/render.go
 - markdown.Source -> markdown/doc.go
 - markdown.Task -> markdown/tasks.go
 - story.BindSpec -> story/story.go

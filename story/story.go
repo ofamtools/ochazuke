@@ -192,6 +192,9 @@ type MarkdownSpec struct {
 	Text     string  `json:"text"`
 	External *string `json:"external,omitempty"`
 	Height   int     `json:"height,omitempty"` // lines drawn; 0 = every line, -1 = the rest of the page
+	// PreserveNewlines draws every source line of a paragraph as a line
+	// (markdown.PreserveNewlines).
+	PreserveNewlines bool `json:"preserveNewlines,omitempty"`
 }
 
 // CommandsSpec is a Commands page: its entries (cli.CommandEntry as JSON)
