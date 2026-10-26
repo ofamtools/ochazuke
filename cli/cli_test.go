@@ -781,3 +781,36 @@ func TestShellResolveTargetComposesWithReveal(t *testing.T) {
 		t.Fatalf("an unresolved target: %v", err)
 	}
 }
+
+// The user's actions.json verbs are commands: Mount installs them before
+// oden sees the registry, so help lists them and dispatch runs them; the
+// command's JSON output is the printed result and a bad entry is one
+// warning.
+func TestMountRunsUserActions(t *testing.T) {
+	f := newFixture(t)
+	dir := t.TempDir()
+	f.r.Config().Dir = dir
+	file := `[{"noun": "widget", "verb": "open", "description": "Open a widget with echo", "command": ["echo", "{\"opened\": \"{{target}}\", \"mode\": \"{{mode}}\"}"], "parameters": {"mode": {"type": "string", "enum": ["ro", "rw"]}}},
+		{"noun": "nope", "verb": "x", "command": "true"}]`
+	if err := os.WriteFile(filepath.Join(dir, "actions.json"), []byte(file), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	run := func(args ...string) (string, string) {
+		t.Helper()
+		var out, errOut bytes.Buffer
+		app := oden.New("tool", args, oden.WithBuiltins(), oden.WithStdio(strings.NewReader(""), &out, &errOut), oden.WithPath(t.TempDir()))
+		Mount(app, New(f.r, "tool", strings.NewReader(""), &out, &errOut))
+		if err := app.Run(context.Background()); err != nil {
+			t.Fatalf("%v: %v\n%s", args, err, errOut.String())
+		}
+		return out.String(), errOut.String()
+	}
+	help, errOut := run("widget", "--help")
+	if !strings.Contains(help, "Open a widget with echo") || !strings.Contains(errOut, `warning: actions.json: action 2 (nope.x): unknown noun "nope"`) {
+		t.Fatalf("help %s\nstderr %s", help, errOut)
+	}
+	out, errOut := run("widget", "open", "--target", "w1", "--mode", "rw")
+	if !strings.Contains(out, `"opened": "w1"`) || !strings.Contains(out, `"mode": "rw"`) || strings.Count(errOut, "warning:") != 0 {
+		t.Fatalf("out %s\nstderr %s", out, errOut)
+	}
+}

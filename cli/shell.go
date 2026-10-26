@@ -147,6 +147,11 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		}
 	}
 	r := s.Runtime
+	// The user's actions.json adds verbs (Mount usually installed them
+	// already); its rows may be named by bindings.json, so it goes first.
+	for _, problem := range r.EnsureUserActions() {
+		fmt.Fprintln(s.stderr(), "warning:", problem)
+	}
 	// The user bindings file applies to the CLI too, so bindings list
 	// shows the effective rows; a skipped row is a warning, not an error.
 	for _, problem := range r.EnsureUserBindings() {

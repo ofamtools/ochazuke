@@ -911,6 +911,41 @@ A TUI's history survives restarts. `Model.Init` calls `Runtime.EnsureHistory`, w
 
 The in-memory ring still records everything for `history.list` and dot-repeat. Only the file is filtered. `NoHistoryFile` turns the file off entirely.
 
+## User actions (actions.json)
+
+`actions.json` sits beside `bindings.json` in the config directory (`actions path` prints it). Each entry adds a verb to a noun the application already defines; the verb runs an external command. It is an ordinary application verb (`noun.verb`), so a `bindings.json` row, the palette, the CLI (`APP NOUN VERB`), `?` help and the catalog all see it. `Model.Init`, `cli.Mount` and the CLI shell install the file before the user bindings, so a row can name an action.
+
+```json
+[
+  {"noun": "worktree", "verb": "open", "description": "Open in the editor",
+   "command": ["code", "--goto", "{{data.path}}"], "label": "{{label}}"},
+  {"noun": "worktree", "verb": "prune", "base": "wt", "target": "{{data}}",
+   "confirm": "Prune {{label}}?", "parameters": {"force": {"type": "boolean"}}, "timeout": "30s"},
+  {"noun": "app", "verb": "deploy", "command": ["deploy", "{{env}}"], "json": true,
+   "parameters": {"env": {"type": "string", "required": true, "enum": ["staging", "prod"]}},
+   "positional": ["env"], "confirm": "Deploy to {{env}}?"}
+]
+```
+
+| Field | Meaning |
+|---|---|
+| `noun`, `verb` | The existing noun and the new verb (one word). A verb the noun already has is refused |
+| `command` | An argv template, run directly, never through a shell. A string is split on spaces |
+| `base` | The JSON convention instead of `command`: `BASE NOUN VERB --json ARGS [--target TARGET]`, the shape every ochazuke CLI accepts. `call` ("noun verb") names another noun and verb, `target` is a template for `--target` (left out when it expands to nothing) |
+| `json` | With `command`: append `--json ARGS` |
+| `parameters`, `positional` | Parameters in the `Parameter` shape (`string`, `integer` or `boolean`; `required`, `enum`, `source`, `free`, `description`) and the order bare words fill them, so the palette, the CLI and help show them |
+| `confirm` | A confirm prompt, as `NounBuilder.Confirm` takes (`{{label}}`, `{{target}}`, `{{<arg>}}`) |
+| `label` | The job's label on the ticker and in `jobs list` (default the program's name) |
+| `dir`, `timeout`, `quiet`, `description` | Working directory, a duration after which the command is killed, keep the job off the ticker, the help line |
+
+Templates (`{{name}}`) in `command`, `base`, `target`, `label` and `dir` expand to `target` or `id` (the instance the verb runs on), `label` (its label, else its id), `noun`, `verb`, `data` (the instance's `Data`: a string as is, else JSON), `data.KEY` (one field of `Data` as a JSON object), `args` (the arguments as one JSON object) or a declared parameter. An unknown placeholder makes the entry malformed. An argv word that is one placeholder and expands to nothing is left out, so an optional parameter disappears instead of passing `""`. The command also gets `OCHAZUKE_ACTION`, `OCHAZUKE_TARGET`, `OCHAZUKE_LABEL` and `OCHAZUKE_ARGS` in its environment and no standard input.
+
+The work runs off the loop as a job (`Pending(...).Label(label)`): the ticker shows `noun.verb label running`, the context is cancelled when the owning instance closes, and the command's standard output is the job's result: one JSON document, a list when every line is JSON (JSON Lines), else the trimmed text. A non-zero exit fails the job with the last line of standard error. The CLI shell prints the result as it prints any job's.
+
+A malformed entry (an unknown field, noun or placeholder, a bad type, `command` and `base` together) is skipped and is a persistent notice (a CLI `warning:`); the rest still install. `actions reload` reads the file again (the last load's verbs go first) and reapplies the user bindings; `actions list` prints the installed entries.
+
+Security: commands come only from the user's own `actions.json` in the config directory. A catalog, a binding row, a socket call or an application's data can name an action's verb, as they can any verb, but never define or change what it runs: there is no operation that loads actions from another path, the catalog publishes the verb's parameters and never its command, and a sandbox (`Config.Disable`, o-story, a test binary) reads no file. Values reach the command as argv words, not shell text; if an entry runs `sh -c` itself, pass values as positional arguments (`"sh", "-c", "git log \"$1\"", "sh", "{{data.path}}"`) rather than inside the script.
+
 ## Live CLI control
 
 The live transport is a local Unix socket. Its parent directory must be owned by the current user and have no group/other access; the socket is mode `0600`. Startup refuses to overwrite an existing socket. Use different `--socket` paths for different instances. After an unclean exit, verify the old instance is stopped before removing a stale socket.

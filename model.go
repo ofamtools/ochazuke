@@ -156,13 +156,15 @@ func NewModel(r *Runtime) *Model {
 	return m
 }
 
-// Init applies the user bindings file (Runtime.EnsureUserBindings), after
-// the application defined its own rows, declares the framework's settings
+// Init installs the user actions file (Runtime.EnsureUserActions) and
+// applies the user bindings file (Runtime.EnsureUserBindings), after the
+// application defined its own nouns and rows, declares the framework's settings
 // (EnsureConfigSettings), reads settings.json (its problems are notices),
 // draws themes.json's schemes and the theme setting's (applyThemeSetting),
 // restores and persists the action history (EnsureHistory), starts the settings.json poll (SettingsPoll) when the
 // application declared settings, and asks for the background colour.
 func (m *Model) Init() tea.Cmd {
+	m.Runtime.EnsureUserActions()
 	m.Runtime.EnsureUserBindings()
 	m.Runtime.EnsureConfigSettings()
 	m.Runtime.Settings().ensure()

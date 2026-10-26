@@ -63,7 +63,7 @@ func (r *Runtime) openConfirm(c Context, q Request, op Operation) (any, error) {
 	prompt := promptField.ReplaceAllStringFunc(op.Confirm, func(m string) string {
 		name := promptField.FindStringSubmatch(m)[1]
 		switch name {
-		case "id":
+		case "id", "target":
 			return inst.ID
 		case "noun":
 			return inst.Noun

@@ -185,6 +185,11 @@ type Config struct {
 	applied []appliedRow
 	// problems are the last bindings load's problems.
 	problems []string
+	// actions are the entries of actions.json installed as verbs, in
+	// file order; actionProblems the last read's problems.
+	actions        []Action
+	actionProblems []string
+	actionsLoaded  bool
 }
 
 // appliedRow is one installed user row and the default rows it displaced.
