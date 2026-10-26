@@ -8,7 +8,7 @@ Root package `ochazuke` is flat: 44 source files, 35 test files. Each entry list
 
 ### bindings.go
 
-- lines: 65 · tests: bindings_test.go
+- lines: 66 · tests: bindings_test.go
 - purpose: BindingTimeoutMsg resolves a pending key sequence on the owning event loop.
 - types: BindingTimeoutMsg
 - methods: Runtime(3)
@@ -104,8 +104,8 @@ Root package `ochazuke` is flat: 44 source files, 35 test files. Each entry list
 
 ### input.go
 
-- lines: 341
-- purpose: focused reports whether the input is the runtime's focus, which puts it in the global mode.
+- lines: 344
+- purpose: EditNode is one state in an input's undo tree: its text, cursor, parent and children.
 - types: EditNode, Input
 - methods: Input(13)
 - funcs: NewInput, RegisterInputOperations
@@ -140,20 +140,20 @@ Root package `ochazuke` is flat: 44 source files, 35 test files. Each entry list
 
 ### macros.go
 
-- lines: 186
-- purpose: MacroState is the application-wide recording and replay state.
+- lines: 187
+- purpose: MacroKey is one recorded key of a macro; Paste marks pasted text.
 - types: MacroKey, MacroState
 - methods: Runtime(1)
 - leans on: runtime.go(31), registers.go(15), noun.go(14), block.go(3)
 
 ### model.go
 
-- lines: 749
+- lines: 760
 - purpose: ModalView renders one modal without replacing or inspecting its parent page.
 - types: ModalView, Model, HelpRow
 - methods: Model(19), Runtime(1)
 - funcs: NewModel, BindingHints, BindingHelp, InputView, InputBlock
-- leans on: runtime.go(78), block.go(33), noun.go(23), layout.go(12)
+- leans on: runtime.go(78), block.go(33), noun.go(24), instance.go(12)
 
 ### noun.go
 
@@ -174,7 +174,7 @@ Root package `ochazuke` is flat: 44 source files, 35 test files. Each entry list
 
 ### palette.go
 
-- lines: 433 · tests: palette_test.go
+- lines: 434 · tests: palette_test.go
 - purpose: Palette is the ex-mode command line: one prompt input whose text is the source of truth, parsed by the grammar in palette_parse.go, with a completion list fo...
 - types: Palette
 - methods: Palette(23)
@@ -223,7 +223,7 @@ Root package `ochazuke` is flat: 44 source files, 35 test files. Each entry list
 
 ### picker.go
 
-- lines: 558 · tests: picker_test.go
+- lines: 559 · tests: picker_test.go
 - purpose: Picker owns one modal and one ordinary editor.
 - types: Picker
 - methods: Picker(19)
@@ -262,7 +262,7 @@ Root package `ochazuke` is flat: 44 source files, 35 test files. Each entry list
 
 ### registers.go
 
-- lines: 157
+- lines: 159
 - purpose: Registers is the component that owns the shared yanks, named registers, yank history, the register selected for the next operation and the macro state.
 - types: Registers, Yank, Register
 - methods: Registers(3), Runtime(3)
@@ -278,8 +278,8 @@ Root package `ochazuke` is flat: 44 source files, 35 test files. Each entry list
 
 ### runtime.go
 
-- lines: 674 · tests: runtime_test.go
-- purpose: Request names an operation and, optionally, the instance it addresses.
+- lines: 681 · tests: runtime_test.go
+- purpose: Arguments are a request's named arguments, keyed by parameter name.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
 - methods: Context(1), Operation(2), Request(1), Runtime(16)
 - funcs: NewRuntime, StringArg, IntArg, JSONPointer
@@ -328,8 +328,8 @@ Root package `ochazuke` is flat: 44 source files, 35 test files. Each entry list
 
 ### transport.go
 
-- lines: 173
-- purpose: CallMsg is delivered to the UI loop; only that loop may call Runtime.Execute.
+- lines: 175
+- purpose: Response is the reply to a socket call: a result or an error message.
 - types: Response, CallMsg, Lines, Server
 - methods: Runtime(1), Server(2)
 - funcs: Listen, Call
@@ -337,10 +337,10 @@ Root package `ochazuke` is flat: 44 source files, 35 test files. Each entry list
 
 ### tree.go
 
-- lines: 1068 · tests: tree_test.go
+- lines: 1076 · tests: tree_test.go
 - purpose: TreeNode is one node of a tree.
 - types: TreeNode, TreeChange, TreeDebounceMsg, Tree
-- methods: Runtime(3), Tree(49), TreeChange(1)
+- methods: Runtime(3), Tree(50), TreeChange(1)
 - leans on: instance.go(49), runtime.go(37), noun.go(30), block.go(28)
 
 ### yank_api.go
