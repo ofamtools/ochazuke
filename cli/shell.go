@@ -97,7 +97,11 @@ type Shell struct {
 	Prepare func(ctx context.Context) error
 	// Reveal, when set, makes an instance exist for a --target no list
 	// shows yet (the application loads the rows that hold it); the shell
-	// settles what it scheduled and resolves the target again.
+	// settles what it scheduled and resolves the target again. A target
+	// the runtime already resolves (an instance, or a foreign id
+	// Runtime.ResolveTarget maps to one) skips it; after it, ExecuteAt
+	// consults ResolveTarget again, so the two compose: Reveal loads the
+	// rows, the resolver maps the foreign id to the row that holds it.
 	Reveal func(target string) error
 	// Owners maps a noun with no instance of its own to the instance its
 	// verbs act for; a command of that noun without --target targets it.
@@ -157,7 +161,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	if q.Target != "" && q.Target != "focused-input" && r.Instances[q.Target] == nil && s.Reveal != nil {
+	if q.Target != "" && q.Target != "focused-input" && !resolves(r, q.Target) && s.Reveal != nil {
 		if err := s.Reveal(q.Target); err != nil {
 			return fmt.Errorf("target %s: %w", q.Target, err)
 		}
@@ -617,4 +621,11 @@ func (s *Shell) print(value any) error {
 	}
 	_, err = fmt.Fprintf(w, "%s\n", data)
 	return err
+}
+
+// resolves reports whether target names an instance now, directly or
+// through Runtime.ResolveTarget.
+func resolves(r *ochazuke.Runtime, target string) bool {
+	_, err := r.TargetInstance(target)
+	return err == nil
 }

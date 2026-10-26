@@ -146,16 +146,23 @@ func (o Operation) ParameterOrder() []string {
 // inputs, lists, the picker and the registers are instances, never fields;
 // TestRuntimeHoldsNoComponentFields pins this list.
 type Runtime struct {
-	Nouns            map[string]*Noun
-	Instances        map[string]*Instance
-	Focus            string    // the focused instance; Context() is derived from it
-	Mode             ModeState // the one interaction mode; mode.set writes it, a focus change to another stop resets it
-	Page             string    // the current page instance; always an ancestor of BaseFocus()
-	Modes            map[string]bool
-	Operations       map[string]Operation
-	Quit             bool
-	Pending          string
-	BindingTimeout   time.Duration
+	Nouns          map[string]*Noun
+	Instances      map[string]*Instance
+	Focus          string    // the focused instance; Context() is derived from it
+	Mode           ModeState // the one interaction mode; mode.set writes it, a focus change to another stop resets it
+	Page           string    // the current page instance; always an ancestor of BaseFocus()
+	Modes          map[string]bool
+	Operations     map[string]Operation
+	Quit           bool
+	Pending        string
+	BindingTimeout time.Duration
+	// ResolveTarget, when set, maps a request target that is not an
+	// instance (a foreign id: an extension's row id, a database key) to
+	// the instance that stands for it; ExecuteAt consults it (TargetInstance)
+	// before refusing an unknown target, so keys, the palette, the CLI and
+	// the API all accept the foreign id. An error refuses the request with
+	// it; "" and no error leaves the target unknown.
+	ResolveTarget    func(target string) (string, error)
 	pendingModes     map[string]bool
 	passthroughModes map[string]bool // base modes in which capture rows stand aside (DefinePassthrough)
 	guards           map[string]Guard
@@ -456,9 +463,11 @@ func (r *Runtime) execute(c Context, q Request) (any, error) {
 		return nil, &ArgumentError{err}
 	}
 	if q.Target != "" && q.Target != "focused-input" {
-		if len(r.Ancestry(q.Target)) == 0 {
-			return nil, fmt.Errorf("unknown target %q", q.Target)
+		id, err := r.TargetInstance(q.Target)
+		if err != nil {
+			return nil, err
 		}
+		q.Target = id
 		c = r.contextOf(q.Target)
 	}
 	if len(c.Path) == 0 && c.InputID == "" {
@@ -498,6 +507,28 @@ func (r *Runtime) execute(c Context, q Request) (any, error) {
 		return fn(r, c, q.Args)
 	}
 	return op.Run(r, c, q.Args)
+}
+
+// TargetInstance is the instance a request target names: the target when
+// it is an instance, else what ResolveTarget maps it to. An unknown target
+// is an error naming it.
+func (r *Runtime) TargetInstance(target string) (string, error) {
+	if len(r.Ancestry(target)) > 0 {
+		return target, nil
+	}
+	if r.ResolveTarget != nil {
+		id, err := r.ResolveTarget(target)
+		if err != nil {
+			return "", fmt.Errorf("target %q: %w", target, err)
+		}
+		if id != "" {
+			if len(r.Ancestry(id)) == 0 {
+				return "", fmt.Errorf("target %q resolved to %q, which is not an instance", target, id)
+			}
+			return id, nil
+		}
+	}
+	return "", fmt.Errorf("unknown target %q", target)
 }
 
 // nounInstance is the nearest instance of noun on the focus path, "" when

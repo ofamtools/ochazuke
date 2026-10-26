@@ -742,3 +742,42 @@ func TestShellSetsASetting(t *testing.T) {
 		t.Fatalf("file %s %v", data, err)
 	}
 }
+
+// A resolver maps a foreign id to its row; Reveal still loads the rows a
+// resolver cannot find yet, and the confirm names the resolved row.
+func TestShellResolveTargetComposesWithReveal(t *testing.T) {
+	f := newFixture(t)
+	var out, errOut bytes.Buffer
+	sh := New(f.r, "tool", strings.NewReader(""), &out, &errOut)
+	f.r.ResolveTarget = func(id string) (string, error) {
+		if !strings.HasPrefix(id, "ext:") {
+			return "", nil
+		}
+		row := "w" + strings.TrimPrefix(id, "ext:")
+		if f.r.Instances[row] == nil {
+			return "", fmt.Errorf("no row holds %s", id)
+		}
+		return row, nil
+	}
+	revealed := 0
+	if err := sh.Run(context.Background(), []string{"widget", "show", "--target", "ext:2"}); err != nil || f.calls[0].Target != "w2" {
+		t.Fatalf("resolved target: %v %+v", err, f.calls)
+	}
+	sh.Reveal = func(id string) error {
+		revealed++
+		return f.r.List("widgets/list").SetItems([]ochazuke.ListItem{{ID: "w1", Noun: "widget"}, {ID: "w7", Label: "seventh", Noun: "widget"}})
+	}
+	if err := sh.Run(context.Background(), []string{"widget", "show", "--target", "ext:1"}); err != nil || f.calls[1].Target != "w1" || revealed != 0 {
+		t.Fatalf("a resolvable target skips Reveal: %v %+v, revealed %d", err, f.calls, revealed)
+	}
+	if err := sh.Run(context.Background(), []string{"widget", "remove", "--target", "ext:7", "--yes"}); err != nil || f.calls[2].Target != "w7" || revealed != 1 {
+		t.Fatalf("Reveal then the resolver: %v %+v, revealed %d", err, f.calls, revealed)
+	}
+	sh.Reveal = nil
+	if err := sh.Run(context.Background(), []string{"widget", "show", "--target", "ext:9"}); err == nil || !strings.Contains(err.Error(), `target "ext:9": no row holds ext:9`) {
+		t.Fatalf("a resolver error is the refusal: %v", err)
+	}
+	if err := sh.Run(context.Background(), []string{"widget", "show", "--target", "nope"}); err == nil || !strings.Contains(err.Error(), `unknown target "nope"`) {
+		t.Fatalf("an unresolved target: %v", err)
+	}
+}
