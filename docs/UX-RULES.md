@@ -158,6 +158,18 @@ tiers above them. When the two disagree, fix one in the same commit.
   (`lists/setitems-keeps-selection`).
 - **R5.5** `List.Move` (the API) always clamps; only the `list.move`
   operation spills. Check: unit test.
+- **R5.6** `/` filters any focused list unless the app binds `/` on the
+  stack: typing narrows the rows (label and cells, every word, ignoring
+  case, list order), up/down and `ctrl+n`/`ctrl+p` move among the matches
+  without spilling, enter keeps the filter in normal mode, esc clears it and
+  goes back to the row `/` found, backspace on an empty query leaves the
+  line. Stories: `lists/filter-open.json`, `lists/filter-move.json`,
+  `lists/filter-enter-keeps.json`, `lists/filter-esc-clears.json`,
+  `lists/filter-backspace-empty-leaves.json`, `tables/filter-by-cell.json`.
+- **R5.7** A filter hides rows and never removes them: `SetItems` while
+  filtered filters the new rows, marks survive, and `list.apply` fans out
+  to the marked rows shown. Story: `lists/filter-marks-survive.json`,
+  `catalog/filter-setitems.json`; test `TestListFilterSetItemsMarksAndApply`.
 
 ### R6. Chrome: footer, hints, help, ticker, notices
 

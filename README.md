@@ -278,6 +278,7 @@ Macro recording consumes exactly one register character after `q`. For `qq:`, th
 | Draft modal | `Ctrl-G` | Close and restore the parent |
 | Normal Playground | `Ctrl-X` | Inspect the handling noun |
 | Normal app | `?` | Open the scrollable keyboard guide |
+| Normal list | `/` | Filter the list's rows (see Filtering a list) |
 | Normal Appearance | `t`, `d` | Cycle theme / density |
 | Normal demo | `Ctrl-J/K` | Next/previous page |
 | Normal page with a list/detail split | `>`, `<`, `=` | Grow / shrink the list pane by 5% (counts: `3>`), reset the divider; remembered per page |
@@ -426,7 +427,31 @@ The id (`sidebar` here) identifies the list instance (`r.List("sidebar")` return
 - `ToggleMark(id)` and `Marked()` keep a multi-selection. `list.apply {verb}` runs `<row noun>.verb` with the row as target for every marked row (the selected row when none is marked), skipping and reporting rows whose noun lacks the verb.
 - Call these methods on the runtime's event loop. Data loading and domain actions remain application-owned. There is no tree expansion or built-in search provider.
 
-The operation equivalents are `list.focus {id}`, `list.move {id?, delta}`, `list.select {id?, item}`, `list.mark {id?, item?}` and `list.apply {id?, verb}`. Omit `id` to operate on the list on the focus stack. State is inspectable under `/lists/<id>` (rows show their `noun`, `marked` lists marks) and `/instances/<rowId>`. The full-project example's **Items** page mixes `repo`, `worktree` and `branch` rows in one list: each row answers to its noun's verbs and keys, `?` lists the focused row's rows, and Space plus `list.apply` fans one verb out over several rows.
+#### Filtering a list
+
+Every list filters: `/` on a focused list (a page list, a table, a catalog page's list, the Settings page's, a list in a modal) opens a query line above its rows, and typing keeps the rows whose label or cells hold every word of the query, ignoring case, in list order:
+
+```
+/idle                                                                 2 of 4
+pane                  harness      state    cwd
+work/claude           claude-code  idle     ~/proj/matomeru
+play/pi               pi           idle     ~/proj/nabe
+```
+
+| Keys (mode `list_filter`) | Does |
+|---|---|
+| printable keys, space, paste | `list.filter-type`: add to the query |
+| backspace / `ctrl+h` | `list.filter-erase`; on an empty query `list.filter-keep` (leaves the line) |
+| up/down, `ctrl+p`/`ctrl+n` | `list.move {clamp}`: move among the matches, never spilling |
+| enter | `list.filter-keep`: back to normal mode with the filter kept (the line stays; `/` edits it again) |
+| esc | `list.filter-clear`: clear the filter and select the row `/` found |
+| `ctrl+u` | `list.filter {query: ""}`: empty the query |
+
+In normal mode `esc` on a filtered list clears the filter (`list.filter-clear`, guarded off on an unfiltered list so `esc` there stays the outer level's). The `/` row is an `app` row guarded by `list-filterable` and added after the Model's defaults: an application's own `/` on any level (its row noun, the list, the page) answers first, and the footer's `/ filter` is the hint a narrow footer cuts first.
+
+The filter hides rows from drawing and from motions (`j`/`k`, counts, spills) and never removes them: their instances, marks and data stay. `SetItems` while filtered filters the new rows and keeps the selection by id; `list.apply` fans out to the marked rows the filter shows (a mark on a hidden row waits); a command that lands on a hidden row (`Select`, `focus.set`, a job's focus) clears the filter. `Items()` and `Len()` are every row; `Shown()` counts the shown ones, `Filter()` is the query, `Filtering()` reports the line, `SetFilter(q)` sets it, and `Height()` (`Len()` plus the line) is what a host sizing a list to its rows passes to `View`. The CLI form is `list filter --target LIST --query Q` (an empty query clears); the state at `/lists/<id>` then has `filter` and `total`, and its `items` are the shown rows. Stories: `lists/filter-*`, `catalog/filter-setitems`, `tables/filter-by-cell`.
+
+The operation equivalents are `list.focus {id}`, `list.move {id?, delta, clamp?}`, `list.select {id?, item}`, `list.mark {id?, item?}`, `list.apply {id?, verb}` and `list.filter {id?, query}`. Omit `id` to operate on the list on the focus stack. State is inspectable under `/lists/<id>` (rows show their `noun`, `marked` lists marks) and `/instances/<rowId>`. The full-project example's **Items** page mixes `repo`, `worktree` and `branch` rows in one list: each row answers to its noun's verbs and keys, `?` lists the focused row's rows, and Space plus `list.apply` fans one verb out over several rows.
 
 ### Terminal instances
 
