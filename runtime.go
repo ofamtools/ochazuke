@@ -209,6 +209,7 @@ func NewRuntime() *Runtime {
 	registerActions(r)
 	registerSettings(r)
 	registerSettingsEditor(r)
+	registerConfigExport(r)
 	registerPages(r)
 	registerLists(r)
 	registerTrees(r)
