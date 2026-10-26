@@ -417,3 +417,56 @@ func TestDemoChecklistToggles(t *testing.T) {
 		t.Fatalf("after u: %q", got)
 	}
 }
+
+// The notes field completes @ library entries, $ skills and [[ pages; tab
+// on the playground moves between fields, so here only an open list takes
+// tab.
+func TestDemoNotesComplete(t *testing.T) {
+	m := New()
+	m.Appearance.Theme = "mono"
+	m.Width, m.Height = 100, 30
+	r := m.Runtime
+	if err := r.OpenPage("playground"); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.SetFocus("notes"); err != nil {
+		t.Fatal(err)
+	}
+	var settle func(tea.Cmd)
+	settle = func(cmd tea.Cmd) {
+		if cmd == nil {
+			return
+		}
+		switch msg := cmd().(type) {
+		case tea.BatchMsg:
+			for _, c := range msg {
+				settle(c)
+			}
+		case ochazuke.CompletionDebounceMsg, ochazuke.Completion:
+			_, next := m.Update(msg)
+			settle(next)
+		}
+	}
+	keytest.Press(m, "o")
+	keytest.Type(m, "see @mod")
+	tick, ok := r.Completer().DebounceTick()
+	if !ok {
+		t.Fatal("no search is waiting on the pause")
+	}
+	_, cmd := m.Update(tick)
+	settle(cmd)
+	if got := r.Completer().Suggestions(); len(got) != 1 || got[0].Text != "library/modals" {
+		t.Fatalf("suggestions %+v", got)
+	}
+	if frame := ansi.Strip(m.View().Content); !strings.Contains(frame, "library/modals  Modals") {
+		t.Fatalf("list not drawn:\n%s", frame)
+	}
+	keytest.Press(m, "tab")
+	if text := string(r.Input("notes").Text); !strings.Contains(text, "\nsee @library/modals\n") || r.Focus != "notes" {
+		t.Fatalf("after tab: focus %s text %q", r.Focus, text)
+	}
+	keytest.Press(m, "tab")
+	if r.Focus != "paths" {
+		t.Fatalf("tab with the list closed moved to %s, want the next field", r.Focus)
+	}
+}

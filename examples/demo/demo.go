@@ -4,6 +4,7 @@
 package demo
 
 import (
+	"context"
 	_ "embed"
 	"errors"
 	"fmt"
@@ -59,7 +60,7 @@ func New() *ochazuke.Model {
 		parent string
 	}{
 		{ochazuke.NewInput("directory", "/tmp", false), "agent"},
-		{ochazuke.NewInput("notes", "A small workspace, with state that stays.\nTry i, type a few words, then Escape and u.\nSwitch pages and come back: your place is kept.", true), "agent"},
+		{ochazuke.NewInput("notes", "A small workspace, with state that stays.\nTry i, type a few words, then Escape and u.\nType @, $ or [[ for suggestions.\nSwitch pages and come back: your place is kept.", true), "agent"},
 		{ochazuke.NewInput("paths", "/tmp\n.", true), "agent"},
 		{ochazuke.NewInput("dialog", "This draft belongs to the modal.\nThe page remains underneath it.", true), "app"},
 		{ochazuke.NewInput("nested-dialog", "A second modal, with its own history.", true), "app"},
@@ -70,7 +71,11 @@ func New() *ochazuke.Model {
 		case "paths":
 			item.in.Kind, item.in.PathFilter = "paths", "any"
 		}
-		if err := r.AddInput(item.in, ochazuke.Parent(item.parent)); err != nil {
+		opts := []ochazuke.InstanceOption{ochazuke.Parent(item.parent)}
+		if item.in.ID == "notes" {
+			opts = append(opts, ochazuke.Completions(demoCompletions()...))
+		}
+		if err := r.AddInput(item.in, opts...); err != nil {
 			panic(err)
 		}
 	}
@@ -116,7 +121,7 @@ func New() *ochazuke.Model {
 		}}
 	}
 	m.ModalViews["help"] = ochazuke.ModalView{Title: "Keyboard guide", Render: func(r *ochazuke.Runtime, f *ochazuke.Instance, w, h int) ochazuke.Block {
-		return ochazuke.Text("NAVIGATION\nCtrl-J / K    Next / previous page (normal mode)\n:             Command line (palette)\nCtrl-Space    Palette in any editing mode\nPgUp / PgDn   Scroll the active surface\n\nPLAYGROUND\nTab / S-Tab   Next / previous field\nCtrl-N        Open a draft; repeat inside to nest\nCtrl-O        Choose a path using the field's filter\nEnter         Open picker in path / paths fields\n\nNORMAL INPUT\nh j k l       Move (same as arrows)\nw b e         Word motions\n0 $ / gg G    Line / document bounds\ni a I A       Begin inserting\no O           Open a line\nv / V / C-v   Character / line / block selection\nyy / p / P    Yank line / paste after / before\nCtrl-Y        Yank history\n\"a            Select register a\nq then a      Start recording immediately in register a\nq / @a        Stop recording / replay macro a\nu / Ctrl-R    Undo / redo\n\nINSERT INPUT\nCtrl-A / E    Line start / end\nCtrl-P / N    Previous / next line (picker: result)\nAlt-B / F     Word movement\nCtrl-W/U/K    Kill path word / line start / line end\nCtrl-Y        Paste app yank\nEscape        Return to normal")
+		return ochazuke.Text("NAVIGATION\nCtrl-J / K    Next / previous page (normal mode)\n:             Command line (palette)\nCtrl-Space    Palette in any editing mode\nPgUp / PgDn   Scroll the active surface\n\nPLAYGROUND\nTab / S-Tab   Next / previous field\nCtrl-N        Open a draft; repeat inside to nest\nCtrl-O        Choose a path using the field's filter\nEnter         Open picker in path / paths fields\n\nNORMAL INPUT\nh j k l       Move (same as arrows)\nw b e         Word motions\n0 $ / gg G    Line / document bounds\ni a I A       Begin inserting\no O           Open a line\nv / V / C-v   Character / line / block selection\nyy / p / P    Yank line / paste after / before\nCtrl-Y        Yank history\n\"a            Select register a\nq then a      Start recording immediately in register a\nq / @a        Stop recording / replay macro a\nu / Ctrl-R    Undo / redo\n\nINSERT INPUT\nCtrl-A / E    Line start / end\nCtrl-P / N    Previous / next line (picker: result)\nAlt-B / F     Word movement\nCtrl-W/U/K    Kill path word / line start / line end\nCtrl-Y        Paste app yank\n@ $ [[        Notes: suggestions (Ctrl-N / P move, Tab or Enter take, Escape hides)\nEscape        Return to normal")
 	}}
 	register := func(verb, noun, description string, params map[string]ochazuke.Parameter, fn ochazuke.Handler) {
 		r.Register(ochazuke.Operation{Verb: verb, Noun: noun, Description: description, Parameters: params, Result: "JSON value", Run: fn})
@@ -457,6 +462,43 @@ func libraryItems() []ochazuke.ListItem {
 		items = append(items, ochazuke.ListItem{ID: e.id, Label: e.title, Noun: "entry"})
 	}
 	return items
+}
+
+// demoCompletions are the notes field's completion triggers: @ names a
+// library entry, $ a skill and [[ a page. Each search runs off the loop,
+// so a slow one (a file index, a daemon) would never stall typing.
+func demoCompletions() []ochazuke.CompletionTrigger {
+	matching := func(query, text string) bool {
+		return strings.Contains(strings.ToLower(text), strings.ToLower(query))
+	}
+	entries := func(_ context.Context, query string) ([]ochazuke.Suggestion, error) {
+		var out []ochazuke.Suggestion
+		for _, e := range libraryEntries {
+			if matching(query, e.id) || matching(query, e.title) {
+				out = append(out, ochazuke.Suggestion{Text: "library/" + e.id, Detail: e.title})
+			}
+		}
+		return out, nil
+	}
+	skills := ochazuke.SearchStrings(func(_ context.Context, query string) ([]string, error) {
+		var out []string
+		for _, skill := range []string{"review", "summarize", "translate", "deploy", "explain"} {
+			if matching(query, skill) {
+				out = append(out, skill)
+			}
+		}
+		return out, nil
+	})
+	pages := ochazuke.SearchStrings(func(_ context.Context, query string) ([]string, error) {
+		var out []string
+		for _, title := range []string{"Overview", "Playground", "Commands", "Appearance", "Library", "Record", "Checklist"} {
+			if matching(query, title) {
+				out = append(out, title+"]]")
+			}
+		}
+		return out, nil
+	})
+	return []ochazuke.CompletionTrigger{{Trigger: "@", Search: entries}, {Trigger: "$", Search: skills}, {Trigger: "[[", Search: pages}}
 }
 
 // libraryText is a long detail: the entry's summary, then numbered notes,
