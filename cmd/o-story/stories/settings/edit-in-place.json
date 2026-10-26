@@ -1,5 +1,5 @@
 {
-  "name": "settings editor: each key saves at once, no save key",
+  "name": "settings page: each key saves at once, no save key; esc goes back",
   "area": "settings",
   "width": 100,
   "settings": [
@@ -11,19 +11,21 @@
     "lists": [{"id": "a", "rows": 2}],
     "bind": [{"noun": "demo", "keys": "S", "do": "settings.edit"}]
   },
-  "script": ["S", "l", "j", "enter", "j", "space", "r", "esc"],
+  "script": ["S", "l", "j", "enter", "h", "j", "space", "r", "esc"],
   "expect": [
     {
       "after": 1,
-      "modal": "settings-editor",
-      "focus": "__settings/scrolloff",
-      "order": ["Settings", "Setting", "Value", "Default", "Description", "scrolloff", "2", "Rows kept around the focus", "theme", "dark", "Colour theme (dark, light, mono)", "wrap", "false"],
-      "contains": ["enter setting.edit", "l setting.cycle", "r setting.reset"]
+      "page": "__settings",
+      "modal": "",
+      "focus": "__settings/row/scrolloff",
+      "order": ["Settings", "Sections", "General (3)", "Setting", "Value", "Default", "Source", "scrolloff", "2", "default", "theme", "dark", "wrap", "false", "Rows kept around the focus"],
+      "contains": ["enter setting.edit", "h/l setting.cycle", "r setting.reset", "q settings.close"]
     },
-    {"after": 2, "contains": ["3 *"]},
-    {"after": 4, "focus": "__settings/theme", "contains": ["light *"]},
-    {"after": 6, "focus": "__settings/wrap", "contains": ["true *"]},
-    {"after": 7, "lacks": ["true *"], "contains": ["light *", "3 *"]},
-    {"modal": "", "focus": "a1"}
+    {"after": 2, "contains": ["scrolloff  3", "settings.json"]},
+    {"after": 4, "focus": "__settings/row/theme", "contains": ["theme      light"]},
+    {"after": 5, "focus": "__settings/row/theme", "contains": ["theme      dark"]},
+    {"after": 7, "focus": "__settings/row/wrap", "contains": ["wrap       true"]},
+    {"after": 8, "contains": ["wrap       false", "scrolloff  3"]},
+    {"page": "page1", "modal": "", "focus": "a1", "lacks": ["Sections"]}
   ]
 }

@@ -1,15 +1,16 @@
 {
-  "name": "settings editor: enter on a duration opens a prompt; a bad value keeps it open",
+  "name": "settings page: enter on a text value opens a prompt; a bad value keeps it open",
   "area": "settings",
   "width": 100,
   "settings": [
-    {"name": "debounce", "type": "duration", "default": "400ms", "description": "Wait before writing"}
+    {"name": "debounce", "type": "duration", "default": "400ms", "description": "Wait before writing"},
+    {"name": "editor", "type": "string", "default": "vi", "description": "The command that opens a file"}
   ],
   "page": {
     "lists": [{"id": "a", "rows": 1}],
     "bind": [{"noun": "demo", "keys": "S", "do": "settings.edit"}]
   },
-  "script": ["S", "enter", "ctrl+u", {"type": "soon"}, "enter", "ctrl+u", {"type": "2s"}, "enter"],
+  "script": ["S", "enter", "ctrl+u", {"type": "soon"}, "enter", "ctrl+u", {"type": "2s"}, "enter", "j", "enter", "ctrl+u", {"type": "nvim"}, "enter"],
   "expect": [
     {
       "after": 1,
@@ -22,6 +23,8 @@
       "contains": ["debounce (duration)", "400ms", "enter setting-value.commit", "esc setting-value.cancel"]
     },
     {"after": 5, "modal": "setting-prompt", "contains": ["must be a duration"]},
-    {"modal": "settings-editor", "focus": "__settings/debounce", "mode": "normal", "contains": ["2s *"]}
+    {"after": 8, "modal": "", "page": "__settings", "focus": "__settings/row/debounce", "mode": "normal", "contains": ["debounce  2s", "settings.json"]},
+    {"after": 10, "modal": "setting-prompt", "contains": ["editor (string)", "vi"]},
+    {"modal": "", "focus": "__settings/row/editor", "mode": "normal", "contains": ["editor    nvim"]}
   ]
 }

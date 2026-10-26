@@ -195,19 +195,42 @@ func TestSettingsWithoutADirectory(t *testing.T) {
 	}
 }
 
-// The editor edits in place: each key saves at once, no save key; a typed
-// value that does not validate keeps the prompt open with the error.
-func TestSettingsEditorSavesEachChange(t *testing.T) {
+// settingsPageFixture is settingsFixture with a page of its own (a list
+// of two rows, the second focused) and ctrl+o bound to settings.edit.
+func settingsPageFixture(t *testing.T) (*Runtime, *Model, string) {
+	t.Helper()
 	r, m, dir := settingsFixture(t)
+	r.Define("item")
+	r.Instance("main", Parent("app"), Kind("page"))
+	if _, err := r.AddList("rows", []ListItem{{ID: "a", Label: "a", Noun: "item"}, {ID: "b", Label: "b", Noun: "item"}}, Parent("main")); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.RegisterPage(&Page{ID: "main", Title: "Main", Focus: "rows", Render: func(r *Runtime, w, h int) Block { return Text(r.List("rows").View(w, h)) }}); err != nil {
+		t.Fatal(err)
+	}
 	r.Define("app").Mode("normal").Bind("ctrl+o", Do("settings.edit"))
 	m.Width, m.Height = 100, 24
 	m.Init()
+	if err := r.OpenPage("main"); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.SetFocus("b"); err != nil {
+		t.Fatal(err)
+	}
+	return r, m, dir
+}
+
+// The Settings page edits in place: each key saves at once, no save key;
+// a typed value that does not validate keeps the prompt open with the
+// error; q goes back to the page it was opened from, focus kept.
+func TestSettingsPageSavesEachChange(t *testing.T) {
+	r, m, dir := settingsPageFixture(t)
 	keytest.Press(m, "ctrl+o")
-	if r.TopModal() != settingsEditorID || r.Focus != settingRowPrefix+"scrolloff" {
-		t.Fatalf("modal %q focus %q status %q", r.TopModal(), r.Focus, m.Status)
+	if r.Page != SettingsPageID || r.Focus != settingRowPrefix+"scrolloff" || r.TopModal() != "" {
+		t.Fatalf("page %q focus %q modal %q status %q", r.Page, r.Focus, r.TopModal(), m.Status)
 	}
 	frame := ansi.Strip(m.View().Content)
-	for _, want := range []string{"Settings", "Setting", "Value", "scrolloff", "Rows kept above and below the focus", "dark, light, mono"} {
+	for _, want := range []string{"Sections", "General (5)", "Setting", "Value", "Default", "Source", "scrolloff", "Rows kept above and below the focus", "a whole number"} {
 		if !strings.Contains(frame, want) {
 			t.Fatalf("frame lacks %q:\n%s", want, frame)
 		}
@@ -216,6 +239,9 @@ func TestSettingsEditorSavesEachChange(t *testing.T) {
 	keytest.Press(m, "l")
 	if r.Settings().Int("scrolloff") != 4 || readSettingsFile(t, dir)["scrolloff"] != 4.0 {
 		t.Fatalf("l l: %d", r.Settings().Int("scrolloff"))
+	}
+	if !strings.Contains(ansi.Strip(m.View().Content), "settings.json") {
+		t.Fatalf("the source column does not say settings.json:\n%s", ansi.Strip(m.View().Content))
 	}
 	keytest.Press(m, "j")
 	keytest.Press(m, "enter")
@@ -250,11 +276,8 @@ func TestSettingsEditorSavesEachChange(t *testing.T) {
 	keytest.Press(m, "ctrl+u")
 	keytest.Type(m, "2s")
 	keytest.Press(m, "enter")
-	if r.TopModal() != settingsEditorID || r.Focus != settingRowPrefix+"debounce" || r.Settings().Duration("debounce") != 2*time.Second {
+	if r.TopModal() != "" || r.Focus != settingRowPrefix+"debounce" || r.Settings().Duration("debounce") != 2*time.Second {
 		t.Fatalf("commit: modal %q focus %q %v", r.TopModal(), r.Focus, r.Settings().Duration("debounce"))
-	}
-	if !strings.Contains(ansi.Strip(m.View().Content), "2s *") {
-		t.Fatalf("the row does not show the set value:\n%s", ansi.Strip(m.View().Content))
 	}
 	keytest.Press(m, "r")
 	if r.Settings().Duration("debounce") != 400*time.Millisecond {
@@ -262,13 +285,55 @@ func TestSettingsEditorSavesEachChange(t *testing.T) {
 	}
 	keytest.Press(m, "enter")
 	keytest.Press(m, "esc")
-	keytest.Press(m, "esc")
-	keytest.Press(m, "esc")
-	if r.TopModal() != "" {
-		t.Fatalf("esc left %q open", r.TopModal())
+	if r.TopModal() != "" || r.Page != SettingsPageID {
+		t.Fatalf("esc in the prompt: modal %q page %q", r.TopModal(), r.Page)
+	}
+	keytest.Press(m, "q")
+	if r.Page != "main" || r.Focus != "b" || r.PageOf(SettingsPageID) != nil {
+		t.Fatalf("q: page %q focus %q, settings page kept %v", r.Page, r.Focus, r.PageOf(SettingsPageID) != nil)
 	}
 	want := map[string]any{"scrolloff": 4.0, "theme": "dark", "wrap": true}
 	if got := readSettingsFile(t, dir); !reflect.DeepEqual(got, want) {
 		t.Fatalf("file %v", got)
+	}
+}
+
+// Sections come from Section, else the name before its last dot; the
+// settings without one come first under General.
+func TestSettingSections(t *testing.T) {
+	r := NewRuntime()
+	if err := r.DeclareSetting(
+		Setting{Name: "ext.ai.poll-every", Type: SettingDuration, Default: "30s"},
+		Setting{Name: "width", Type: SettingInteger, Default: 3},
+		Setting{Name: "colour", Type: SettingString, Default: "x", Section: "look"},
+		Setting{Name: "ext.ai.model", Type: SettingString, Default: "m"},
+	); err != nil {
+		t.Fatal(err)
+	}
+	if got := settingSections(r.Settings()); !reflect.DeepEqual(got, []string{"", "ext.ai", "look"}) {
+		t.Fatalf("sections %q", got)
+	}
+}
+
+// esc and q leave the page; settings.edit on the page stays; a permanent
+// page (AddSettingsPage) stays registered after it is left.
+func TestSettingsPageLeaving(t *testing.T) {
+	r, m, _ := settingsPageFixture(t)
+	keytest.Press(m, "ctrl+o")
+	keytest.Press(m, "ctrl+o")
+	if r.Page != SettingsPageID {
+		t.Fatalf("settings.edit on the page left it: %q", r.Page)
+	}
+	keytest.Press(m, "esc")
+	if r.Page != "main" || r.Focus != "b" || r.PageOf(SettingsPageID) != nil {
+		t.Fatalf("esc: page %q focus %q", r.Page, r.Focus)
+	}
+	if _, err := r.AddSettingsPage(); err != nil {
+		t.Fatal(err)
+	}
+	keytest.Press(m, "ctrl+o")
+	keytest.Press(m, "q")
+	if r.Page != "main" || r.PageOf(SettingsPageID) == nil {
+		t.Fatalf("permanent page: page %q, registered %v", r.Page, r.PageOf(SettingsPageID) != nil)
 	}
 }

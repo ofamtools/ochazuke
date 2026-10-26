@@ -108,7 +108,8 @@ func NewModel(r *Runtime) *Model {
 	m.ModalViews["confirm"] = ModalView{Title: "Confirm", Render: confirmView}
 	m.ModalViews[helpID] = ModalView{Title: "Keys", Render: bindingHelpView}
 	m.ModalViews[paletteResultsID] = ModalView{Title: "Results", Render: paletteResultsView}
-	m.ModalViews[settingsEditorID] = ModalView{Title: "Settings", Render: settingsEditorView}
+	// The Settings page draws in the Model's appearance.
+	r.Settings().page.styles = func() Styles { return NewStyles(*m.Appearance) }
 	m.ModalViews[settingPromptID] = ModalView{Title: "Set", Render: settingPromptView}
 	r.Register(Operation{Verb: "scroll", Noun: "surface", Description: "Scroll the active page or modal without changing focus", Parameters: map[string]Parameter{"lines": {Type: "integer", Required: true}}, Result: "scroll offset", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		key := m.surfaceKey()

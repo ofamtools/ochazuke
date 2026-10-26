@@ -286,7 +286,7 @@ Conformance:
 | normal | palette | `palette.open` |
 | normal | pane | `pane.grow` `pane.reset` `pane.shrink` |
 | normal | setting | `setting.cycle` `setting.edit` `setting.reset` |
-| normal | settings | `settings.edit` |
+| normal | settings | `settings.close` `settings.edit` |
 | normal | surface | `surface.scroll` |
 | terminal | mode | `mode.enter` |
 | terminal | terminal | `terminal.detach` `terminal.send` |

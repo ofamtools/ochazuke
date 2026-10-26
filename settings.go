@@ -34,6 +34,11 @@ type Setting struct {
 	Default     any      `json:"default"`
 	Description string   `json:"description,omitempty"`
 	Enum        []string `json:"enum,omitempty"`
+	// Section files the setting under a section of the Settings page; ""
+	// takes the name before its last dot ("ext.ai.poll-every" is in
+	// "ext.ai"), and a name without a dot is in SettingsGeneral
+	// (SectionName).
+	Section string `json:"section,omitempty"`
 	// Validate, when set, checks a value of the right type further: Set
 	// refuses a value it rejects and a file value it rejects reads the
 	// default, as a value of the wrong type does.
@@ -69,6 +74,7 @@ type Settings struct {
 	stamp     fileStamp
 	observers []settingObserver
 	problems  []string
+	page      settingsPage // the Settings page (settings_view.go)
 }
 
 type settingObserver struct {
