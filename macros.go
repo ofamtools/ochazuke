@@ -92,8 +92,8 @@ func registerMacros(r *Runtime) {
 		keys := append([]MacroKey(nil), g.Macro.Keys...)
 		var text strings.Builder
 		for _, key := range keys {
-			if key.Paste && strings.HasPrefix(key.Key, "[") {
-				text.WriteString(strings.TrimSuffix(strings.TrimPrefix(key.Key, "["), "]"))
+			if key.Paste && pasteKey(pasteText(key.Key)) == key.Key {
+				text.WriteString(pasteText(key.Key))
 			} else {
 				text.WriteString(keyText(key.Key))
 			}

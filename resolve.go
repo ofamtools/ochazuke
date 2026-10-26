@@ -404,7 +404,7 @@ func (r *Runtime) argument(source string, ev KeyEvent) any {
 		return n
 	case SourceText:
 		if ev.Key.Paste {
-			text := strings.TrimSuffix(strings.TrimPrefix(ev.Key.Key, "["), "]")
+			text := pasteText(ev.Key.Key)
 			return strings.ReplaceAll(strings.ReplaceAll(text, "\r\n", "\n"), "\r", "\n")
 		}
 		return ev.Key.Key

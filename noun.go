@@ -1031,6 +1031,15 @@ func slicesContains(list []string, s string) bool {
 // when a text register is replayed as keys.
 var keyTexts = map[string]string{"esc": "\x1b", "enter": "\n", "tab": "\t", "space": " "}
 
+// pasteKey is the key a paste reaches the walk as: its text in brackets
+// (MacroKey.Paste set); pasteText reads the text back. The framing lives
+// here with keyTexts, so no other file spells a bracket as a key.
+func pasteKey(text string) string { return "[" + text + "]" }
+
+func pasteText(key string) string {
+	return strings.TrimSuffix(strings.TrimPrefix(key, "["), "]")
+}
+
 // keyText is the text a key name stands for in a register.
 func keyText(name string) string {
 	if text, ok := keyTexts[name]; ok {

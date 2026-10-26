@@ -219,7 +219,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.handleKey(MacroKey{Key: v.String()})
 	case tea.PasteMsg:
 		// Bubble Tea v1 spelled a paste "[text]"; macros and the editor still expect it.
-		m.handleKey(MacroKey{Key: "[" + v.Content + "]", Paste: true})
+		m.handleKey(MacroKey{Key: pasteKey(v.Content), Paste: true})
 	}
 	m.ticker.observe(m.Runtime, m.clock())
 	if m.Runtime.Quit {
