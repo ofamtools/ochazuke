@@ -117,7 +117,7 @@ func (c StateCache) scopes() int {
 	return defaultScopes
 }
 
-// stateStore is one scope's directory: <dir>/<scope>/<list>/<hash>.jsonl
+// stateStore is one scope's directory: <dir>/<scope>/lists/<list>/<hash>.jsonl
 // and <dir>/<scope>/last.json.
 type stateStore struct {
 	root, scope string
@@ -126,8 +126,14 @@ type stateStore struct {
 
 func (s stateStore) path() string { return filepath.Join(s.root, s.scope) }
 
+// listDir is a list's directory; the name is escaped, a leading dot too
+// (a list named .. stays inside).
 func (s stateStore) listDir(list string) string {
-	return filepath.Join(s.path(), url.PathEscape(list))
+	name := url.PathEscape(list)
+	if strings.HasPrefix(name, ".") {
+		name = "%2E" + name[1:]
+	}
+	return filepath.Join(s.path(), "lists", name)
 }
 
 // version is one list version: its rows' ids and record hashes in order.
@@ -159,7 +165,8 @@ func (s stateStore) read(list, hash string) (version, bool) {
 	if !sc.Scan() || json.Unmarshal(sc.Bytes(), &head) != nil || head.List != list || head.Hash != hash {
 		return version{}, false
 	}
-	v := version{ids: make([]string, 0, head.Rows), hashes: make([]string, 0, head.Rows)}
+	n := min(max(head.Rows, 0), 1<<20)
+	v := version{ids: make([]string, 0, n), hashes: make([]string, 0, n)}
 	for sc.Scan() {
 		var pair [2]string
 		if json.Unmarshal(sc.Bytes(), &pair) != nil {

@@ -289,7 +289,7 @@ func TestStateCacheRetention(t *testing.T) {
 		st.set(skillRows(3, func(i int) string { return fmt.Sprintf("v%d %d", v, i) })...)
 		h.apply(t, decode(t, first(st.run(t, h.flags()...))))
 	}
-	files, _ := filepath.Glob(filepath.Join(st.dir, "*", "skill", "*"+versionExt))
+	files, _ := filepath.Glob(filepath.Join(st.dir, "*", "lists", "skill", "*"+versionExt))
 	if len(files) != 2 {
 		t.Fatalf("versions kept = %d (%v), want 2", len(files), files)
 	}
@@ -388,7 +388,7 @@ func TestStateCacheConcurrentWriters(t *testing.T) {
 	}
 	st.set(variants[0]...)
 	st.run(t, "--since=")
-	files, _ := filepath.Glob(filepath.Join(st.dir, "*", "skill", "*"))
+	files, _ := filepath.Glob(filepath.Join(st.dir, "*", "lists", "skill", "*"))
 	for _, f := range files {
 		if strings.HasPrefix(filepath.Base(f), tempPrefix) {
 			t.Fatalf("a temporary file is left: %s", f)
@@ -440,4 +440,20 @@ func TestStateDeltaFromAPendingVerb(t *testing.T) {
 		t.Fatalf("pending delta = %+v %+v", a.Lists, a.Rows)
 	}
 	h.apply(t, a)
+}
+
+// A list name from --since stays inside its scope's directory.
+func TestStateCacheListNamesStayInside(t *testing.T) {
+	st := newStateTool(t, skillRows(1, plain)...)
+	st.run(t, "--since=..=,../../x=,last.json=")
+	err := filepath.WalkDir(st.dir, func(path string, d os.DirEntry, err error) error {
+		rel, _ := filepath.Rel(st.dir, path)
+		if parts := strings.Split(rel, string(filepath.Separator)); d != nil && !d.IsDir() && !(len(parts) == 2 && parts[1] == lastFile) && !(len(parts) == 4 && parts[1] == "lists") {
+			t.Errorf("unexpected file %s", rel)
+		}
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 }
