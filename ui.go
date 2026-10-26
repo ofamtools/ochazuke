@@ -181,7 +181,7 @@ func (u *UI) capture() (stop func() []UIMessage) {
 	if u == nil {
 		return func() []UIMessage { return nil }
 	}
-	got := &[]UIMessage{}
+	got := new([]UIMessage)
 	u.captures = append(u.captures, got)
 	return func() []UIMessage {
 		u.captures = slices.DeleteFunc(u.captures, func(c *[]UIMessage) bool { return c == got })

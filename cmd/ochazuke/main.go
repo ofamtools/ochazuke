@@ -107,11 +107,17 @@ func run(args []string) error {
 	})
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	result, err := ochazuke.Call(ctx, *socket, ochazuke.Request{Noun: rest[0], Verb: rest[1], Target: *target, Args: operationArgs})
+	response, err := ochazuke.CallResponse(ctx, *socket, ochazuke.Request{Noun: rest[0], Verb: rest[1], Target: *target, Args: operationArgs})
+	// What the call told the user prints on stderr, as cli.Shell does.
+	for _, msg := range response.Messages {
+		if msg.Text != "" && msg.Kind != ochazuke.UIClearNotice {
+			fmt.Fprintf(os.Stderr, "%s: %s\n", msg.Kind, msg.Text)
+		}
+	}
 	if err != nil {
 		return err
 	}
 	encoder := json.NewEncoder(os.Stdout)
 	encoder.SetIndent("", "  ")
-	return encoder.Encode(result)
+	return encoder.Encode(response.Result)
 }

@@ -180,12 +180,12 @@ Root package `ochazuke` is flat: 55 source files, 53 test files. Each entry list
 
 ### model.go
 
-- lines: 893
+- lines: 941
 - purpose: ModalView renders one modal without replacing or inspecting its parent page.
 - types: ModalView, ModalBody (iface), Model, HelpRow
-- methods: Model(22), Runtime(1)
+- methods: Model(23), Runtime(1), modelSink(3)
 - funcs: NewModel, BindingHints, BindingHelp, InputView, InputBlock
-- leans on: runtime.go(89), block.go(34), noun.go(33), theme.go(15)
+- leans on: runtime.go(90), block.go(34), noun.go(33), theme.go(15)
 
 ### noun.go
 
@@ -407,12 +407,12 @@ Root package `ochazuke` is flat: 55 source files, 53 test files. Each entry list
 
 ### transport.go
 
-- lines: 191
+- lines: 214
 - purpose: Response is the reply to a socket call: a result or an error message.
 - types: Response, CallMsg, Lines, Server
 - methods: Runtime(1), Server(2)
-- funcs: Listen, Call
-- leans on: runtime.go(8), delivery.go(6), cli.go(1), noun.go(1)
+- funcs: Listen, Call, CallResponse
+- leans on: runtime.go(10), delivery.go(4), ui.go(2), cli.go(1)
 
 ### tree.go
 
@@ -445,7 +445,7 @@ Root package `ochazuke` is flat: 55 source files, 53 test files. Each entry list
 
 ## Package cli
 
-Importable package `cli`: 14 source files, 8 test files.
+Importable package `cli`: 14 source files, 9 test files.
 
 ### cli/catalog.go
 
@@ -532,10 +532,10 @@ Importable package `cli`: 14 source files, 8 test files.
 
 ### cli/shell.go
 
-- lines: 636
+- lines: 660
 - purpose: Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--format F] [--yes]: one registered operation in this process through the run...
 - types: Shell
-- methods: Shell(10)
+- methods: Shell(10), stderrSink(3)
 - funcs: New, DefaultUsage, UsageHint, Settle
 - leans on: format.go(3), rows.go(1)
 
