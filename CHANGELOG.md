@@ -89,6 +89,7 @@ Draft, from the `integrate/next` branch (seven branches on `3133e23` plus fixes)
 
 - Data pages: `cli.CatalogPage` gains `layout` (`stack`, `split`, `groups`), `lists` (`{id, noun, source, title}`) and `detail` (`{title, fields}`). An extension declares one with `cli.DeclarePage(r, p)` and `cli.Catalog` publishes it whole; a Go-drawn page stays `{id, title}`.
 - A host builds it with no Go code of the extension's: `cli.MountPage(m, doc, p, cli.PageConfig{Noun, Fetch})` / `cli.MountPages(m, doc, cfg)` return a `*cli.PageView` (`ListsRender`, `Reload`, `SetRows`, `SetState`, `SetError`, `SetStatus`, `Row`, `List`). Loads are quiet `catalog-load` jobs; rows are `<list>/<row id>` instances of the host's noun with `Data` the row's id. `cli.DecodeRows` reads a list answer (array or JSON Lines). This is nabe's hand-built mount page as framework code.
+- Widgets: `pages[].widgets` (`cli.CatalogWidget{id, kind, title, source, fields, columns, rows}`), drawn by the framework above a data page's lists: `kv` (a key/value panel), `status` (a line with a progress bar and state), `table` (columns over cells or fields, capped rows). Data from the widget's `source` on `Reload` or `PageView.SetWidget`. The plan's reserved top-level `widgets` lives on the page it draws on.
 - o-story: a page with `catalog` is a mounted data page over canned `answers`; stories `catalog/*`.
 
 ### Also since v0.1.1

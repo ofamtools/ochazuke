@@ -43,7 +43,9 @@ const Schema = 1
 // lists, and detail (CatalogPage), and a host builds it with MountPage,
 // with no Go code of the extension's: each list's rows come from its
 // source (or the state answer, filed by Row.Noun) and draw in the columns
-// their noun declares.
+// their noun declares. A data page's widgets (pages[].widgets,
+// CatalogWidget: kv, status, table) are drawn above its lists by the
+// framework from their sources' JSON answers.
 type CatalogDoc struct {
 	Schema   int                `json:"schema"`
 	Name     string             `json:"name"`

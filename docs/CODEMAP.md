@@ -415,11 +415,11 @@ Root package `ochazuke` is flat: 51 source files, 47 test files. Each entry list
 
 ## Package cli
 
-Importable package `cli`: 13 source files, 8 test files.
+Importable package `cli`: 14 source files, 8 test files.
 
 ### cli/catalog.go
 
-- lines: 221
+- lines: 223
 - purpose: CatalogDoc is the catalog answer: what a runtime registers, grouped by noun, in the runtime's own JSON shapes (ochazuke.Parameter and ochazuke.Binding unchan...
 - types: CatalogDoc, CatalogNoun, CatalogVerb
 - methods: CatalogDoc(3)
@@ -460,12 +460,12 @@ Importable package `cli`: 13 source files, 8 test files.
 
 ### cli/page.go
 
-- lines: 922 · tests: page_test.go
+- lines: 949 · tests: page_test.go
 - purpose: CatalogPage is a page in registration order.
 - types: CatalogPage, CatalogList, CatalogDetail, PageConfig, PageView
 - methods: CatalogPage(1), PageView(27), pageList(1)
 - funcs: DeclarePage, MountPages, MountPage, DecodeRows
-- leans on: rows.go(15), commands.go(9), catalog.go(4), shell.go(2)
+- leans on: rows.go(15), commands.go(10), catalog.go(4), widget.go(4)
 
 ### cli/pty.go
 
@@ -516,6 +516,14 @@ Importable package `cli`: 13 source files, 8 test files.
 - purpose: NewCommandsModel is a model on a fresh runtime whose open page is app's Commands page (AddCommands over OdenCommands(app, self...)), titled with the app's name.
 - funcs: NewCommandsModel, TUI
 - leans on: commands.go(4), odencommands.go(1)
+
+### cli/widget.go
+
+- lines: 318
+- purpose: CatalogWidget is a data-described widget a data page draws above its lists, full width, in order: the framework draws it from its kind and its data (the JSON...
+- types: CatalogWidget
+- methods: PageView(4), widgetState(2)
+- leans on: page.go(10), commands.go(7)
 
 ## Package grid
 
@@ -722,6 +730,7 @@ Exported type -> file.
 - cli.CatalogNoun -> cli/catalog.go
 - cli.CatalogPage -> cli/page.go
 - cli.CatalogVerb -> cli/catalog.go
+- cli.CatalogWidget -> cli/widget.go
 - cli.CommandEntry -> cli/commands.go
 - cli.CommandSource -> cli/commands.go
 - cli.Commands -> cli/commands.go

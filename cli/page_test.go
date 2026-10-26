@@ -342,3 +342,98 @@ func TestDecodeRows(t *testing.T) {
 		t.Fatalf("all-malformed lines = %v, want ErrNoRows", err)
 	}
 }
+
+func widgetDoc() CatalogDoc {
+	doc := pageDoc(LayoutStack, false)
+	doc.Pages[0].Lists = doc.Pages[0].Lists[:1]
+	doc.Pages[0].Widgets = []CatalogWidget{
+		{ID: "usage", Kind: WidgetKV, Title: "usage", Source: "usage.show", Fields: []string{"skills", "agents", "absent"}},
+		{ID: "sync", Kind: WidgetStatus, Title: "sync", Source: "sync.status"},
+		{ID: "recent", Kind: WidgetTable, Title: "recent", Source: "skill.recent", Rows: 2,
+			Columns: []ochazuke.Column{{Title: "Name", Min: 8}, {Title: "When"}}, Fields: []string{"name", "at"}},
+		{ID: "pushed", Kind: WidgetStatus, Title: "pushed"},
+		{ID: "broken", Kind: WidgetKV, Title: "broken", Source: "ghost.show"},
+	}
+	return doc
+}
+
+func TestWidgetsDrawFromTheirSources(t *testing.T) {
+	out := map[string]string{
+		"skill.list":   pageAnswers["skill.list"],
+		"usage.show":   `{"agents": 3, "skills": 12, "extra": true}`,
+		"sync.status":  `{"text": "copying", "done": 5, "total": 10, "state": "running"}`,
+		"skill.recent": `[{"name": "architect", "at": "1m"}, {"name": "review", "at": "2m"}, {"name": "old", "at": "1d"}]`,
+	}
+	m, v := mountedPage(t, widgetDoc(), PageConfig{Fetch: answers(out)}, 100, 40)
+	if f := frameOf(m); !strings.Contains(f, "pushed  no data") {
+		t.Fatalf("a widget without data says so:\n%s", f)
+	}
+	if err := v.Reload(); err != nil {
+		t.Fatal(err)
+	}
+	if f := frameOf(m); !strings.Contains(f, "sync  loading…") {
+		t.Fatalf("a loading widget says so:\n%s", f)
+	}
+	_ = Settle(m.Runtime, nil) // ghost.show fails
+	if err := v.SetWidget("pushed", "all good"); err != nil {
+		t.Fatal(err)
+	}
+	f := frameOf(m)
+	for _, want := range []string{
+		"usage", "skills  12", "agents  3",
+		"sync  copying  [██████████░░░░░░░░░░] 50%  running",
+		"recent", "Name", "When", "architect  1m", "review", "… 1 more",
+		"pushed  all good",
+		"ghost show: exit status 1: no such verb",
+		"skill (2)",
+	} {
+		if !strings.Contains(f, want) {
+			t.Errorf("frame lacks %q:\n%s", want, f)
+		}
+	}
+	for _, not := range []string{"extra", "absent", "old"} {
+		if strings.Contains(f, not) {
+			t.Errorf("frame has %q:\n%s", not, f)
+		}
+	}
+	if err := v.SetWidget("ghost", 1); err == nil {
+		t.Error("SetWidget accepted an unknown widget")
+	}
+	if got := statusText(map[string]any{"progress": 45.0}, 60); got != "[█████████░░░░░░░░░░░] 45%" {
+		t.Errorf("a percentage progress = %q", got)
+	}
+}
+
+func TestWidgetsArePublishedAndChecked(t *testing.T) {
+	ext := ochazuke.NewRuntime()
+	ext.Config().Disable()
+	p := widgetDoc().Pages[0]
+	if err := DeclarePage(ext, p); err != nil {
+		t.Fatal(err)
+	}
+	data, err := Catalog(ext, "ai", "0.1.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc CatalogDoc
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	if got := doc.Pages[0].Widgets; len(got) != 5 || got[2].Kind != WidgetTable || got[2].Columns[1].Title != "When" {
+		t.Fatalf("published widgets = %+v", got)
+	}
+	for _, w := range []CatalogWidget{{Kind: WidgetKV}, {ID: "x", Kind: "chart"}, {ID: "x", Kind: WidgetTable}, {ID: "x", Kind: WidgetKV, Source: "show"}} {
+		bad := p
+		bad.ID, bad.Title = "bad", "Bad"
+		bad.Widgets = []CatalogWidget{w}
+		if err := DeclarePage(ext, bad); err == nil {
+			t.Errorf("widget %+v accepted", w)
+		}
+	}
+	twice := p
+	twice.ID, twice.Title = "twice", "Twice"
+	twice.Widgets = []CatalogWidget{{ID: "a", Kind: WidgetKV}, {ID: "a", Kind: WidgetStatus}}
+	if err := DeclarePage(ext, twice); err == nil {
+		t.Error("a widget id declared twice was accepted")
+	}
+}

@@ -1,0 +1,171 @@
+{
+  "name": "catalog widgets: a key/value panel, a status line and a table drawn above the list, which keeps the focus",
+  "area": "catalog",
+  "width": 90,
+  "height": 30,
+  "page": {
+    "id": "ai",
+    "title": "AI",
+    "catalog": {
+      "nouns": [
+        {
+          "name": "skill",
+          "columns": [
+            {
+              "title": "Name",
+              "min": 8
+            },
+            {
+              "title": "Origin"
+            }
+          ],
+          "verbs": [
+            {
+              "name": "list",
+              "rows": "skill"
+            },
+            {
+              "name": "show"
+            }
+          ]
+        },
+        {
+          "name": "mcp",
+          "verbs": [
+            {
+              "name": "tools",
+              "rows": "mcp-tool"
+            }
+          ]
+        },
+        {
+          "name": "mcp-tool",
+          "verbs": [
+            {
+              "name": "show"
+            }
+          ]
+        }
+      ],
+      "page": {
+        "title": "AI",
+        "lists": [
+          {
+            "id": "ai/skills",
+            "noun": "skill"
+          }
+        ],
+        "widgets": [
+          {
+            "id": "usage",
+            "kind": "kv",
+            "title": "usage",
+            "source": "usage.show",
+            "fields": [
+              "skills",
+              "agents"
+            ]
+          },
+          {
+            "id": "sync",
+            "kind": "status",
+            "title": "sync",
+            "source": "sync.status"
+          },
+          {
+            "id": "recent",
+            "kind": "table",
+            "title": "recent",
+            "source": "skill.recent",
+            "rows": 2,
+            "columns": [
+              {
+                "title": "Name",
+                "min": 8
+              },
+              {
+                "title": "When"
+              }
+            ],
+            "fields": [
+              "name",
+              "at"
+            ]
+          }
+        ]
+      },
+      "answers": {
+        "skill.list": [
+          {
+            "id": "s1",
+            "name": "architect",
+            "cells": [
+              "architect",
+              "claude"
+            ],
+            "path": "~/.claude/skills/architect",
+            "origin": "claude"
+          },
+          {
+            "id": "s2",
+            "name": "review",
+            "cells": [
+              "review",
+              "ai-tools"
+            ],
+            "path": "~/proj/ai-tools/review",
+            "origin": "ai-tools"
+          }
+        ],
+        "mcp.tools": "{\"noun\":\"mcp\",\"id\":\"t1\",\"label\":\"tuios_send_text\",\"data\":{\"server\":\"tuios\"}}\n{\"noun\":\"mcp\",\"id\":\"t2\",\"label\":\"tuios_capture\",\"data\":{\"server\":\"tuios\"}}\n",
+        "usage.show": {
+          "skills": 12,
+          "agents": 3
+        },
+        "sync.status": {
+          "text": "copying",
+          "done": 5,
+          "total": 10,
+          "state": "running"
+        },
+        "skill.recent": [
+          {
+            "name": "architect",
+            "at": "1m"
+          },
+          {
+            "name": "review",
+            "at": "2m"
+          },
+          {
+            "name": "old",
+            "at": "1d"
+          }
+        ]
+      }
+    }
+  },
+  "script": [
+    "j"
+  ],
+  "expect": {
+    "focus": "ai/skills/s2",
+    "contains": [
+      "skills  12",
+      "agents  3",
+      "sync  copying  [██████████░░░░░░░░░░] 50%  running",
+      "architect  1m",
+      "… 1 more",
+      "skill (2)"
+    ],
+    "lacks": [
+      "1d"
+    ],
+    "order": [
+      "usage",
+      "sync",
+      "recent",
+      "skill (2)"
+    ]
+  }
+}

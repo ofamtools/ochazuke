@@ -28,13 +28,17 @@ import (
 // (RowSource), or of Source (NOUN.VERB) when given; a noun with neither
 // lists its verbs, enter running each. Detail, when present, shows the
 // selected row's record (Row.Data) as key: value lines, in Fields order
-// when given (else sorted keys), scrolled with J/K.
+// when given (else sorted keys), scrolled with J/K. Widgets
+// (CatalogWidget: a key/value panel, a status line, a table) are drawn
+// above the lists from their sources' answers.
 type CatalogPage struct {
 	ID     string         `json:"id"`
 	Title  string         `json:"title"`
 	Layout string         `json:"layout,omitempty"`
 	Lists  []CatalogList  `json:"lists,omitempty"`
 	Detail *CatalogDetail `json:"detail,omitempty"`
+	// Widgets are drawn above the lists, in order (CatalogWidget).
+	Widgets []CatalogWidget `json:"widgets,omitempty"`
 }
 
 // CatalogList is one list of a data page.
@@ -110,6 +114,15 @@ func checkPage(p CatalogPage) error {
 		return fmt.Errorf("page %s: a data page needs a list", p.ID)
 	}
 	seen := map[string]bool{}
+	for _, w := range p.Widgets {
+		if err := checkWidget(p.ID, w); err != nil {
+			return err
+		}
+		if seen["widget:"+w.ID] {
+			return fmt.Errorf("page %s: widget %s is declared twice", p.ID, w.ID)
+		}
+		seen["widget:"+w.ID] = true
+	}
 	for _, l := range p.Lists {
 		if l.ID == "" || l.Noun == "" {
 			return fmt.Errorf("page %s: a list needs an id and a noun", p.ID)
@@ -167,6 +180,7 @@ type PageView struct {
 	lists   []*pageList
 	groups  *ochazuke.List
 	detail  *ochazuke.Detail
+	widgets []*widgetState
 	current int            // the list the detail and the groups rail follow
 	rows    map[string]Row // row instance id -> the row it shows
 	status  string
@@ -221,6 +235,9 @@ func MountPage(m *ochazuke.Model, doc CatalogDoc, p CatalogPage, cfg PageConfig)
 	}
 	r := m.Runtime
 	v := &PageView{m: m, doc: doc, spec: p, cfg: cfg, rows: map[string]Row{}}
+	for _, w := range p.Widgets {
+		v.widgets = append(v.widgets, &widgetState{spec: w})
+	}
 	if v.cfg.Noun == nil {
 		v.cfg.Noun = func(n string) string { return n }
 	}
@@ -518,17 +535,19 @@ func (v *PageView) SetError(list string, err error) {
 
 // Reload fetches the page's rows off the loop (PageConfig.Fetch): one
 // state call when the catalog has a state source, else one call per list,
-// each a job under LoadVerb in its own slot (a newer load replaces an
-// older one). Without Fetch it does nothing.
+// and one per widget with a source, each a job under LoadVerb in its own
+// slot (a newer load replaces an older one). Without Fetch it does
+// nothing.
 func (v *PageView) Reload() error {
 	if v.cfg.Fetch == nil {
 		return nil
 	}
+	werr := v.reloadWidgets()
 	if noun, verb, ok := strings.Cut(v.doc.State, "."); ok {
 		for _, pl := range v.lists {
 			pl.loading = !pl.verbsListed
 		}
-		return v.launch(v.spec.ID, "state", noun, verb, func(out []byte, err error) {
+		return errors.Join(werr, v.launch(v.spec.ID, "state", noun, verb, func(out []byte, err error) {
 			rows, derr := DecodeRows("", out)
 			for _, pl := range v.lists {
 				pl.loading = false
@@ -546,9 +565,9 @@ func (v *PageView) Reload() error {
 					}
 				}
 			}
-		})
+		}))
 	}
-	var errs []error
+	errs := []error{werr}
 	for _, pl := range v.lists {
 		if pl.verbsListed {
 			continue
@@ -794,7 +813,8 @@ func valueText(value any) string {
 
 // ListsRender is the page's renderer (the one MountPage gives AddPage):
 // the lists in their layout, the detail, inside the page body the
-// model's Layout.Shell frames.
+// model's Layout.Shell frames; widgets above them take at most half the
+// height.
 func (v *PageView) ListsRender(_ *ochazuke.Runtime, width, height int) ochazuke.Block {
 	if width <= 0 || height <= 0 {
 		return ochazuke.Block{}
@@ -806,7 +826,14 @@ func (v *PageView) ListsRender(_ *ochazuke.Runtime, width, height int) ochazuke.
 		}
 	}
 	layout := ochazuke.Layout{Styles: ochazuke.NewStyles(*v.m.Appearance)}
-	return v.body(layout, width, height)
+	if len(v.widgets) == 0 {
+		return v.body(layout, width, height)
+	}
+	top, used := v.widgetsBlock(layout, width, height)
+	if used == 0 {
+		return v.body(layout, width, height)
+	}
+	return below(top, v.body(layout, width, height-used), used)
 }
 
 // body draws the lists and the detail in width by height.

@@ -72,7 +72,8 @@ it to the timer's deadline and delivers the timer's message
     catalog: {                       // instead of the above: a catalog data page (cli.MountPage)
       nouns: [{ name: "skill", columns: [{ title: "Name" }], verbs: [{ name: "list", rows: "skill" }] }],
       state: "",                     // the catalog's state source, NOUN.VERB
-      page: { layout: "split", lists: [{ id: "ai/skills", noun: "skill" }], detail: { fields: ["path"] } },
+      page: { layout: "split", lists: [{ id: "ai/skills", noun: "skill" }], detail: { fields: ["path"] },
+              widgets: [{ id: "sync", kind: "status", source: "sync.status" }] },  // kv | status | table
       answers: { "skill.list": [{ id: "s1", name: "architect", path: "~/x" }] },  // stdout per NOUN.VERB (a string is the text: JSON Lines)
       pending: false,                // true leaves the loads to the script: { job: "catalog-load", state: "done" }
     },                               // rows <list>/<id>; the page id is the story page's
