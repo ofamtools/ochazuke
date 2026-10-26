@@ -869,6 +869,33 @@ Live CLI examples:
 
 JSON inspection covers registered pages (`page`, `pages`), inputs and histories, the focus and the open modals (`focus`, `modals`, each modal instance's `payload.return`), the global mode (`mode`, `modeState`) and the registered modes (pending modes included), nouns with their tables, instances with their payload, and the rows the focus answers to (`bindings`). `state.get` accepts a JSON Pointer (`""` for the full state; `~1` escapes `/` and `~0` escapes `~` in a key). Appearance has its own `appearance.get` query. All registered inputs are public state: do not register secrets without adding an explicit export policy. Handlers, renderers, and terminal handles are not serialized.
 
+## Telling the user: notices and status
+
+A handler says what to tell the user and the host decides how it looks. `ctx.Notify(text)` posts a persistent notice and returns its `NoticeID`, `ctx.ClearNotice(id)` takes it back, `ctx.Status(text)` sets the one-line status (`""` clears it). Code without a `Ctx` (setup, a daemon event) posts the same through `r.UI()`: `r.UI().Notify`, `r.UI().ClearNotice`, `r.UI().Status`. A job's `Then` already gets a `Ctx`.
+
+```go
+r.Define("worktree").Verb("sync", func(ctx ochazuke.Ctx) ochazuke.Result {
+	id := ctx.Notify("syncing " + ctx.Instance.Label)
+	return ochazuke.Pending(sync).Then(func(ctx ochazuke.Ctx, _ any, err error) {
+		ctx.ClearNotice(id)
+		if err == nil {
+			ctx.Status("synced")
+		}
+	})
+}, "Sync the worktree")
+```
+
+Each host attaches a sink (`ochazuke.UISink`: `Notify(id, text)`, `ClearNotice(id)`, `Status(text)`) with `r.UI().Attach(sink)`:
+
+| Host | Shows |
+|---|---|
+| `NewModel` | notices in the footer (`Model.Notices`, `notice.list`, `notice.clear`), the status in the status line (`Model.Status`, cleared by the next key; what a key's handler sets stands) |
+| `cli.Shell` | `notice: TEXT` and `status: TEXT` lines on stderr beside the `warning:` lines, while the command runs (a job's `Then` included) |
+| A socket or API call (`HandleCall`) | the call's messages in `Response.Messages` (`[{kind, id, text}]`, omitted when empty) as well as the runtime's sink; `CallResponse` returns them and `ochazuke NOUN VERB` prints them on stderr |
+| Tests | `ochazuke.RecordingSink` (`Messages`, `Notices`, `LastStatus`) |
+
+With no sink attached messages are discarded, except that until the first sink attaches the UI keeps the last 32 (the startup ring) and replays them, in order, into that sink, then drops them; memory stays bounded whether or not a sink ever attaches. The UI is a component on an instance under `app`; `Runtime` has no field for it. `Model.Notify(text)` still works and posts through the same path.
+
 ## Tree queries
 
 The instance tree is queried with predicate values, never a selector string. A query is a list of predicates, ANDed; the result is in tree order (`app` first, depth-first, siblings in the order they were added).
@@ -957,7 +984,7 @@ The live transport is a local Unix socket. Its parent directory must be owned by
 
 CLI commands enter Bubble Tea's message loop. The event loop remains the sole owner of UI state; transport handlers do not mutate models concurrently. Queries must also obtain a consistent view through the runtime.
 
-Keyboard, Go API, palette, and CLI use the same command semantics. Queries run through the same event loop and return detached JSON values. The wire protocol accepts one newline-terminated request per connection and returns `{ "result": ... }` or `{ "error": "..." }`. The CLI prints the result as JSON and returns a nonzero exit code for errors.
+Keyboard, Go API, palette, and CLI use the same command semantics. Queries run through the same event loop and return detached JSON values. The wire protocol accepts one newline-terminated request per connection and returns `{ "result": ... }` or `{ "error": "..." }`, with `"messages"` when the call posted notices or a status (see Telling the user). The CLI prints the result as JSON and returns a nonzero exit code for errors.
 
 ### Output formats
 
