@@ -372,11 +372,13 @@ func (v *PageView) columns(pl *pageList) []ochazuke.Column {
 }
 
 // listVerbs fills a list of a noun without a row source with one row per
-// verb, enter running the host's verb of that name; a verb with required
-// parameters, or one the host has not defined, gets no key (the palette
-// runs it).
+// verb the tool defined (CatalogNoun.AppVerbs: never the framework's
+// builtin verbs), enter running the host's verb of that name; a verb with
+// required parameters, or one the host has not defined, gets no key (the
+// palette runs it).
 func (v *PageView) listVerbs(pl *pageList) error {
 	n, _ := v.doc.noun(pl.spec.Noun)
+	n.Verbs = n.AppVerbs()
 	local := v.cfg.Noun(n.Name)
 	items := make([]ochazuke.ListItem, 0, len(n.Verbs))
 	for _, cv := range n.Verbs {

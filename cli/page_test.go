@@ -19,7 +19,7 @@ func pageDoc(layout string, detail bool) CatalogDoc {
 	doc := CatalogDoc{
 		Schema: Schema, Name: "ai", Version: "0.1.0",
 		Nouns: []CatalogNoun{
-			{Name: "admin", Verbs: []CatalogVerb{{Name: "sync", Description: "Sync now"}, {Name: "purge", Params: map[string]ochazuke.Parameter{"older": {Type: "string", Required: true}}}}},
+			{Name: "admin", Verbs: []CatalogVerb{{Name: "sync", Description: "Sync now"}, {Name: "fold", Description: "A framework verb", Builtin: true}, {Name: "purge", Params: map[string]ochazuke.Parameter{"older": {Type: "string", Required: true}}}}},
 			{Name: "mcp", Verbs: []CatalogVerb{{Name: "tools", Rows: "mcp-tool"}}},
 			{Name: "mcp-tool", Verbs: []CatalogVerb{{Name: "show"}}},
 			{Name: "skill", Columns: []ochazuke.Column{{Title: "Name", Min: 8}, {Title: "Origin"}}, Verbs: []CatalogVerb{{Name: "list", Rows: "skill"}, {Name: "show"}}},
@@ -97,6 +97,11 @@ func TestMountPageLoadsListsThroughFetch(t *testing.T) {
 	}
 	if strings.Contains(f, "catalog-load") {
 		t.Errorf("loads must stay off the jobs ticker:\n%s", f)
+	}
+	for _, it := range m.Runtime.List("ai/admin").Items() {
+		if it.ID == "ai/admin/fold" {
+			t.Errorf("the builtin admin.fold is listed as the tool's: %+v", it)
+		}
 	}
 	inst := m.Runtime.Instances["ai/skills/s1"]
 	if inst == nil || inst.Noun != "skill" || inst.Data != "s1" {

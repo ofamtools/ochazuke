@@ -128,6 +128,35 @@ type CatalogVerb struct {
 	Builtin     bool                          `json:"builtin"`
 }
 
+// AppVerbs are the noun's verbs the tool defined: every verb but the
+// builtin ones (CatalogVerb.Builtin), in catalog order. It is nil when the
+// noun has none.
+func (n CatalogNoun) AppVerbs() []CatalogVerb {
+	var out []CatalogVerb
+	for _, v := range n.Verbs {
+		if !v.Builtin {
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
+// AppNouns are the nouns with verbs the tool defined, each holding only
+// those (CatalogNoun.AppVerbs), in catalog order: what a host mounting the
+// tool's verbs mounts. A framework noun appears only when the tool put a
+// verb of its own on it (history.capture-hook). Kind, pin and the rest are
+// the host's to filter.
+func (d CatalogDoc) AppNouns() []CatalogNoun {
+	var out []CatalogNoun
+	for _, n := range d.Nouns {
+		if verbs := n.AppVerbs(); len(verbs) > 0 {
+			n.Verbs = verbs
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
 // RowSourceVerb is the verb whose answer is a noun's own rows when none of
 // the noun's verbs declares Rows.
 const RowSourceVerb = "list"

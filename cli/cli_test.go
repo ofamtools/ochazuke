@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -608,7 +609,7 @@ func TestCatalogGolden(t *testing.T) {
 }
 
 // The outline's verbs are application verbs and builtin; a tool's own verb
-// on a framework noun is not builtin.
+// on a framework noun is not builtin, and AppNouns keeps only the tool's.
 func TestCatalogMarksBuiltinVerbs(t *testing.T) {
 	r := ochazuke.NewRuntime()
 	done := func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }
@@ -641,6 +642,15 @@ func TestCatalogMarksBuiltinVerbs(t *testing.T) {
 	}
 	if v := verb("history", "capture-hook"); v.Builtin {
 		t.Fatalf("history.capture-hook = %+v", v)
+	}
+	var got []string
+	for _, n := range doc.AppNouns() {
+		for _, v := range n.Verbs {
+			got = append(got, n.Name+"."+v.Name)
+		}
+	}
+	if want := []string{"gadget.spin", "history.capture-hook"}; !slices.Equal(got, want) {
+		t.Fatalf("AppNouns = %v, want %v", got, want)
 	}
 }
 

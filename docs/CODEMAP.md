@@ -491,10 +491,10 @@ Importable package `cli`: 18 source files, 12 test files.
 
 ### cli/catalog.go
 
-- lines: 262
+- lines: 291
 - purpose: CatalogDoc is the catalog answer: what a runtime registers, grouped by noun, in the runtime's own JSON shapes (ochazuke.Parameter and ochazuke.Binding unchan...
 - types: CatalogDoc, CatalogNoun, CatalogVerb
-- methods: CatalogDoc(3)
+- methods: CatalogDoc(4), CatalogNoun(1)
 - funcs: Catalog
 - leans on: statecache.go(4), page.go(3), state.go(1)
 
@@ -532,7 +532,7 @@ Importable package `cli`: 18 source files, 12 test files.
 
 ### cli/page.go
 
-- lines: 1016 · tests: page_test.go
+- lines: 1018 · tests: page_test.go
 - purpose: CatalogPage is a page in registration order.
 - types: CatalogPage, CatalogList, CatalogDetail, PageConfig, PageView
 - methods: CatalogPage(1), PageView(30), pageList(1)
