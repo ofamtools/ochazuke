@@ -167,6 +167,9 @@ type Config struct {
 	// history is the history file's writer once EnsureHistory started it.
 	history        *historyStore
 	historyStarted bool
+	// panes are the pane dividers by page id (PanesFile), read on first
+	// use.
+	panes map[string]int
 	// schemes are themes.json's valid schemes, themeProblems its last
 	// read's problems; themeSetting is set when the framework declared the
 	// theme setting (the application did not).

@@ -224,6 +224,7 @@ func NewRuntime() *Runtime {
 	registerTerminal(r)
 	registerFocus(r)
 	registerDetail(r)
+	registerPanes(r)
 	registerQuery(r)
 	registerHistory(r)
 	// A modal answers esc in normal mode; inputs, pending modes and the
