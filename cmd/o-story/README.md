@@ -218,7 +218,7 @@ Conformance:
 | insert | palette | `palette.move` `palette.run` |
 | normal | bindings | `bindings.help` |
 | normal | confirm | `confirm.accept` |
-| normal | demo | `demo.build` `demo.delete` `demo.finish` `demo.notify` `demo.open` `demo.reload` `demo.ship` |
+| normal | demo | `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.notify` `demo.open` `demo.reload` `demo.ship` |
 | normal | focus | `focus.next` `focus.previous` |
 | normal | input | `input.begin` |
 | normal | list | `list.move` |

@@ -123,7 +123,8 @@ func (ss *Session) defineDemo(pages []*Page) error {
 			return ochazuke.Done(nil)
 		}, "Add a notice saying ping and the row").
 		Verb("delete", ss.delete, "Remove the row from its list").Confirm("Delete {{label}}?").
-		Verb("finish", ss.finish, "Finish (or fail) the oldest running job of a demo verb")
+		Verb("finish", ss.finish, "Finish (or fail) the oldest running job of a demo verb").
+		Verb("check", ss.check, "Toggle a [x] mark on the outline row, an application change on the outline's undo stack")
 	r.Operations[Demo+".finish"] = withParams(r.Operations[Demo+".finish"], map[string]ochazuke.Parameter{
 		"verb": {Type: "string", Required: true, Description: "the job verb, demo.<name>"},
 		"fail": {Type: "boolean", Description: "finish it failed"},
@@ -183,6 +184,47 @@ func (ss *Session) defineDemo(pages []*Page) error {
 		}
 	}
 	return nil
+}
+
+// check toggles a "[x] " mark on a tree row's label the way an application
+// changes a field it keeps outside the tree (a task's status): it rewrites
+// the nodes, logs the write and records the change on the tree's undo
+// stack (Tree.Record), so u and ctrl+r reverse it in order with the
+// tree's own edits.
+func (ss *Session) check(c ochazuke.Ctx) ochazuke.Result {
+	id := ""
+	if c.Instance != nil {
+		id = c.Instance.ID
+	}
+	for _, tree := range ss.trees {
+		if !slices.ContainsFunc(tree.Nodes(), func(n ochazuke.TreeNode) bool { return n.ID == id }) {
+			continue
+		}
+		toggle := func() error {
+			nodes := tree.Nodes()
+			verb := "check"
+			for i := range nodes {
+				if nodes[i].ID != id {
+					continue
+				}
+				if rest, ok := strings.CutPrefix(nodes[i].Label, "[x] "); ok {
+					nodes[i].Label, verb = rest, "uncheck"
+				} else {
+					nodes[i].Label = "[x] " + nodes[i].Label
+				}
+			}
+			ss.Writes = append(ss.Writes, verb+" "+id)
+			return tree.SetNodes(nodes)
+		}
+		if err := toggle(); err != nil {
+			return ochazuke.Failed(err)
+		}
+		if err := tree.Record(ochazuke.TreeAction{ID: id, Label: "check " + id, Undo: toggle, Redo: toggle}); err != nil {
+			return ochazuke.Failed(err)
+		}
+		return ochazuke.Done(id)
+	}
+	return ochazuke.Failed(errors.New("not an outline row"))
 }
 
 func withParams(op ochazuke.Operation, params map[string]ochazuke.Parameter) ochazuke.Operation {

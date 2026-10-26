@@ -75,8 +75,37 @@ type TreeDebounceMsg struct {
 	Seq  uint64
 }
 
-// treeEdit is one undo step: the changes that undo it, in order.
-type treeEdit struct{ undo []TreeChange }
+// treeEdit is one undo step: the changes that undo it, in order, or an
+// application action (Tree.Record).
+type treeEdit struct {
+	undo   []TreeChange
+	action *TreeAction
+}
+
+// TreeAction is an application change that goes on an outline's undo
+// stack in order with the tree's own edits: a change the application keeps
+// outside the tree's nodes, such as a task's status. u runs Undo and
+// ctrl+r runs Redo; each is written by the application like any change.
+// ID is the node selected after either runs ("" keeps the selection).
+type TreeAction struct {
+	ID    string
+	Label string // what the change is ("done n1"), for logs
+	Undo  func() error
+	Redo  func() error
+}
+
+// Record puts an application change on the undo stack: an open line is
+// sealed first (so its typing undoes after the action, not before), and
+// the redo stack is cleared, as for any new change.
+func (t *Tree) Record(a TreeAction) error {
+	if a.Undo == nil || a.Redo == nil {
+		return errors.New("tree action needs Undo and Redo")
+	}
+	err := t.seal()
+	t.undo = append(t.undo, treeEdit{action: &a})
+	t.redo = nil
+	return err
+}
 
 // Tree is a list whose rows are nested nodes: expand and collapse, the
 // same motions as a list (it is one: rows spill to the neighbouring stops
@@ -806,6 +835,16 @@ func (t *Tree) history(redo bool) error {
 	}
 	step := (*from)[len(*from)-1]
 	*from = (*from)[:len(*from)-1]
+	if a := step.action; a != nil {
+		if err := a.Undo(); err != nil {
+			*from = append(*from, step)
+			return err
+		}
+		*to = append(*to, treeEdit{action: &TreeAction{ID: a.ID, Label: a.Label, Undo: a.Redo, Redo: a.Undo}})
+		err := t.refresh("")
+		t.focusNode(a.ID)
+		return err
+	}
 	var inverse []TreeChange
 	for _, c := range step.undo {
 		inv, err := t.apply(c)
@@ -825,12 +864,17 @@ func (t *Tree) history(redo bool) error {
 			}
 		}
 	}
-	if t.index(focus) >= 0 {
-		if serr := t.Select(focus); serr == nil {
-			_ = t.r.SetFocus(focus)
+	t.focusNode(focus)
+	return err
+}
+
+// focusNode selects id and focuses its row when it is in the tree.
+func (t *Tree) focusNode(id string) {
+	if id != "" && t.index(id) >= 0 {
+		if err := t.Select(id); err == nil {
+			_ = t.r.SetFocus(id)
 		}
 	}
-	return err
 }
 
 // pasteLines parses an indented block: tabs or two-space steps nest a line

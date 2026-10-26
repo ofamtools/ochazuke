@@ -1,0 +1,19 @@
+{
+  "name": "outline: an app change recorded on the undo stack (x marks done) is what u undoes, not the rename before it",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {"id": "t", "editable": true, "nodes": [{"id": "a", "label": "alpha"}, {"id": "b", "label": "beta"}]}
+    ],
+    "bind": [{"noun": "outline-row", "keys": "x", "do": "demo.check"}]
+  },
+  "script": ["j", "i", {"type": " two"}, "esc", "x", "u", "u", "ctrl+r", "ctrl+r"],
+  "expect": [
+    {"after": 5, "contains": ["[x] beta two"]},
+    {"after": 6, "contains": ["beta two"], "lacks": ["[x]"]},
+    {"after": 7, "contains": ["beta"], "lacks": ["beta two", "[x]"]},
+    {"after": 8, "contains": ["beta two"], "lacks": ["[x]"]},
+    {"focus": "b", "contains": ["[x] beta two"], "writes": [
+      "rename b: beta two", "check b", "uncheck b", "rename b: beta", "rename b: beta two", "check b"]}
+  ]
+}
