@@ -72,8 +72,9 @@ func (r *Runtime) walk(focus string) []level {
 // inner-first walk (config field "capture").
 func (b Binding) Captured() Binding { b.Capture = true; return b }
 
-// stack is the resolution order for a focus: the focused instance outward to
-// app, with the modal noun inserted before app while a modal is open, and
+// stack is the resolution order for a focus: the focused instance's inner
+// level when it has one (an input's open suggestions), the focused instance
+// outward to app, with the modal noun inserted before app while a modal is open, and
 // the editor noun last as the framework default when an input (editor,
 // prompt or palette field) is on the path. A list row, a page or a terminal
 // focus ends at app: editor rows neither answer nor appear in bindings.list
@@ -106,6 +107,13 @@ func (r *Runtime) stack(focus string) []level {
 	}
 	for i, id := range ancestry {
 		inst := r.Instances[id]
+		if i == 0 && inst.inner != "" {
+			// An inner level holds no focus: the focused input's open
+			// suggestions answer before the input, typing falls through.
+			if lay := r.Instances[inst.inner]; lay != nil {
+				out = append(out, level{inst: lay, noun: r.Nouns[lay.Noun]})
+			}
+		}
 		if i == len(ancestry)-1 && len(r.modals) > 0 {
 			frame := r.Instances[r.TopModal()]
 			if frame != nil && onStack[frame.ID] {

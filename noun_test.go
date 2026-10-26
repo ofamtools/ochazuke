@@ -258,13 +258,17 @@ func TestLoadBindingsRowsReplaceAddAndUnbind(t *testing.T) {
 }
 
 // Acceptance: every Readline and Vim key the editor answers to appears in
-// bindings.list for its mode on a plain focused input.
+// bindings.list for its mode on a plain focused input (rows of a guarded
+// verb answer only where the guard holds).
 func TestListBindingsListsEveryEditorKey(t *testing.T) {
 	r, in := editorTestRuntime(t, "abc", true)
 	editor := r.Noun("editor")
 	for mode, rows := range editor.Bindings {
 		want := map[string]bool{}
 		for _, b := range rows {
+			if r.VerbGuard(b.Request.Key()) != "" {
+				continue // a guarded verb answers only where its guard holds (tab opens completions)
+			}
 			want[b.Keys+"\x00"+b.Pattern] = true
 		}
 		if r.pendingModes[mode] {

@@ -214,6 +214,7 @@ func NewRuntime() *Runtime {
 	registerTrees(r)
 	registerForms(r)
 	RegisterInputOperations(r)
+	registerCompletion(r)
 	registerRegisters(r)
 	registerUI(r)
 	registerYankHistory(r)

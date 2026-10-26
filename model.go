@@ -699,6 +699,10 @@ func (m *Model) render() Block {
 		}
 		surface = ComposeModalBlock(surface.Text, title, body, hint, m.Width, m.Height, layout.Styles)
 	}
+	// Open suggestions sit over everything, under the token they complete.
+	if c := m.Runtime.Completer(); c != nil {
+		surface = c.overlay(surface, m.Width, m.Height, layout.Styles)
+	}
 	return surface
 }
 

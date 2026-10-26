@@ -61,6 +61,7 @@
     {"mode": "g_pending", "pattern": "any", "request": {"verb": "cancel", "noun": "input"}},
 
     {"mode": "insert", "keys": "esc", "request": {"verb": "set", "noun": "mode", "args": {"mode": "normal"}}},
+    {"mode": "insert", "keys": "tab", "request": {"verb": "open", "noun": "completion"}},
     {"mode": "insert", "expand": "readline-motion", "request": {"verb": "move", "noun": "input", "args": {"motion": "$"}}},
     {"mode": "insert", "expand": "kill", "request": {"verb": "kill", "noun": "input", "args": {"motion": "$"}}},
     {"mode": "insert", "keys": "ctrl+y", "request": {"verb": "paste", "noun": "input", "args": {"before": true, "literal": true}}},
