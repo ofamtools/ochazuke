@@ -1,0 +1,33 @@
+{
+  "name": "a focused empty list shows that it has the focus",
+  "area": "lists",
+  "page": {
+    "order": [
+      "a",
+      "b"
+    ],
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      },
+      {
+        "id": "b",
+        "rows": 0
+      }
+    ],
+    "focus": "a1"
+  },
+  "script": [
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "b"
+    },
+    {
+      "highlighted": 1
+    }
+  ]
+}

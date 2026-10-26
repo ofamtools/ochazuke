@@ -279,7 +279,7 @@ func (l *List) View(width, height int) string {
 		return l.tableView(width, height)
 	}
 	if len(l.items) == 0 {
-		return l.r.PlacedAt(l.id, strings.Join(layoutRows("(empty list)", width, height), "\n"), 0, height)
+		return l.r.PlacedAt(l.id, strings.Join(layoutRows(l.emptyLine(), width, height), "\n"), 0, height)
 	}
 	visible := height
 	if len(l.items) > height && height > 1 {
@@ -318,6 +318,16 @@ func (l *List) View(width, height int) string {
 		focus, focusHeight = l.selected-l.offset, 1
 	}
 	return l.r.PlacedAt(l.id, strings.Join(layoutRows(strings.Join(rows, "\n"), width, height), "\n"), focus, focusHeight)
+}
+
+// emptyLine is what an empty list draws: "(empty list)", in reverse video
+// while the list has the focus, so a spill into it shows where the next key
+// lands (one thing stands out, UX review 2 F5).
+func (l *List) emptyLine() string {
+	if l.Focused() {
+		return lipgloss.NewStyle().Reverse(true).Render("(empty list)")
+	}
+	return "(empty list)"
 }
 
 // scrolloff is the margin the list keeps around its selected row inside
