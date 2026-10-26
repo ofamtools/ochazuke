@@ -46,13 +46,23 @@ func StyleOf(a ochazuke.Appearance) string {
 //
 //	body, marker := detail.Window(markdown.Block(text, w, a).Text, w, h)
 func Block(text string, width int, a ochazuke.Appearance) ochazuke.Block {
-	return ochazuke.Text(strings.Join(render(text, width, StyleOf(a)), "\n"))
+	return ochazuke.Text(strings.Join(render(text, 0, width, StyleOf(a)).lines, "\n"))
 }
 
+// renderKey names one rendering: the text, how many task markers it
+// carries (marked), the width and the style.
 type renderKey struct {
 	text  string
+	tasks int
 	width int
 	style string
+}
+
+// rendering is a cached rendering: its lines, markers stripped, and per
+// task the first and last line it covers.
+type rendering struct {
+	lines []string
+	spans [][2]int
 }
 
 type rendererKey struct {
@@ -66,28 +76,31 @@ const cacheSize = 64
 
 var cache = struct {
 	sync.Mutex
-	lines     map[renderKey][]string
-	order     []renderKey
-	renderers map[rendererKey]*glamour.TermRenderer
-}{lines: map[renderKey][]string{}, renderers: map[rendererKey]*glamour.TermRenderer{}}
+	renderings map[renderKey]rendering
+	order      []renderKey
+	renderers  map[rendererKey]*glamour.TermRenderer
+}{renderings: map[renderKey]rendering{}, renderers: map[rendererKey]*glamour.TermRenderer{}}
 
-// render is the cached rendering of text as lines no wider than width.
-func render(text string, width int, style string) []string {
+// render is the cached rendering of text as lines no wider than width;
+// tasks is how many task markers text carries (0 for none). The lines are
+// shared: a caller copies before changing one.
+func render(text string, tasks, width int, style string) rendering {
 	width = max(1, width)
-	key := renderKey{text, width, style}
+	key := renderKey{text, tasks, width, style}
 	cache.Lock()
 	defer cache.Unlock()
-	if lines, ok := cache.lines[key]; ok {
-		return lines
+	if out, ok := cache.renderings[key]; ok {
+		return out
 	}
 	lines := renderUncached(text, width, style)
+	out := rendering{lines: lines, spans: spans(lines, tasks)}
 	if len(cache.order) >= cacheSize {
-		delete(cache.lines, cache.order[0])
+		delete(cache.renderings, cache.order[0])
 		cache.order = cache.order[1:]
 	}
-	cache.lines[key] = lines
+	cache.renderings[key] = out
 	cache.order = append(cache.order, key)
-	return lines
+	return out
 }
 
 // renderUncached runs Glamour (the caller holds the cache lock, which also
@@ -103,6 +116,9 @@ func renderUncached(text string, width int, style string) []string {
 		var err error
 		tr, err = glamour.NewTermRenderer(glamour.WithStyles(styleConfig(style)), glamour.WithWordWrap(width))
 		if err == nil {
+			if len(cache.renderers) >= 16 {
+				clear(cache.renderers)
+			}
 			cache.renderers[rk] = tr
 		}
 	}

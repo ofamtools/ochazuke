@@ -61,9 +61,9 @@ func TestBlockNoColorIsPlain(t *testing.T) {
 func TestBlockIsCached(t *testing.T) {
 	a := ochazuke.Appearance{Theme: "mono"}
 	first := Block(sample, 50, a).Text
-	key := renderKey{sample, 50, StylePlain}
+	key := renderKey{sample, 0, 50, StylePlain}
 	cache.Lock()
-	_, ok := cache.lines[key]
+	_, ok := cache.renderings[key]
 	cache.Unlock()
 	if !ok {
 		t.Fatal("the rendering was not cached")

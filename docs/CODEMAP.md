@@ -568,13 +568,31 @@ Importable package `grid`: 2 source files, 1 test files.
 
 ## Package markdown
 
-Importable package `markdown`: 1 source files, 1 test files.
+Importable package `markdown`: 3 source files, 2 test files.
+
+### markdown/doc.go
+
+- lines: 507 · tests: doc_test.go
+- purpose: Source is where a Doc's Markdown lives: Load reads it as it is now and Save stores a new text.
+- types: Source, Doc
+- methods: Doc(22)
+- funcs: File, New, Of, Register
+- leans on: tasks.go(20), render.go(2)
 
 ### markdown/render.go
 
-- lines: 140 · tests: render_test.go
+- lines: 156 · tests: render_test.go
 - purpose: StyleOf is the Glamour style an appearance draws Markdown in.
 - funcs: StyleOf, Block
+- leans on: tasks.go(3)
+
+### markdown/tasks.go
+
+- lines: 171
+- purpose: Task is one task list item of a Markdown source, as goldmark (Glamour's parser, with the GFM task list extension) finds it: a list item whose first line star...
+- types: Task
+- funcs: Tasks
+- leans on: doc.go(1)
 
 ## Package story
 
@@ -780,6 +798,9 @@ Exported type -> file.
 - grid.Option -> grid/grid.go
 - grid.Ref -> grid/grid.go
 - grid.Styles -> grid/grid.go
+- markdown.Doc -> markdown/doc.go
+- markdown.Source -> markdown/doc.go
+- markdown.Task -> markdown/tasks.go
 - story.BindSpec -> story/story.go
 - story.CatalogSpec -> story/story.go
 - story.ChooserRowSpec -> story/story.go

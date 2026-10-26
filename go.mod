@@ -11,6 +11,7 @@ require (
 	github.com/charmbracelet/x/vt v0.1.0
 	github.com/charmbracelet/x/xpty v0.1.4
 	github.com/rivo/uniseg v0.4.7
+	github.com/yuin/goldmark v1.7.8
 )
 
 require (
@@ -23,7 +24,6 @@ require (
 	github.com/dlclark/regexp2 v1.11.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.27 // indirect
-	github.com/yuin/goldmark v1.7.8 // indirect
 	github.com/yuin/goldmark-emoji v1.0.5 // indirect
 	golang.org/x/net v0.39.0 // indirect
 	golang.org/x/text v0.24.0 // indirect
