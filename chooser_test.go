@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"context"
 	"fmt"
 	"slices"
 	"strings"
@@ -304,5 +305,46 @@ func TestPagePickerKeyAppearsInHelpAndBindings(t *testing.T) {
 	}
 	if help := fmt.Sprint(BindingHelp(r, r.Focus)); !strings.Contains(help, "page.pick") {
 		t.Fatalf("? help lacks page.pick: %s", help)
+	}
+}
+
+// A job a chooser's Choose launches outlives the chooser: picking closes
+// the modal, input and all, before Choose runs, so the job belongs to the
+// focus the chooser opened over and its completion lands there.
+func TestChooserJobBelongsToTheOpener(t *testing.T) {
+	r := NewRuntime()
+	r.Define("row")
+	if _, err := r.AddPage("page", "Page", func(*Runtime, int, int) Block { return Text("") }); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.AddList("rows", []ListItem{{ID: "r1", Label: "one", Noun: "row"}}, Parent("page")); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.OpenPage("page"); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.SetFocus("r1"); err != nil {
+		t.Fatal(err)
+	}
+	var landed []string
+	if _, err := r.OpenChooser(ChooserSpec{Kind: "launch", Rows: []ChooserRow{{ID: "claude", Label: "claude"}}, Choose: func(row ChooserRow) Result {
+		return Pending(func(context.Context) (any, error) { return row.ID, nil }).Label(row.ID).Then(func(c Ctx, v any, err error) {
+			landed = append(landed, fmt.Sprint(v, err))
+		})
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Execute(Request{Noun: "chooser", Verb: "pick"}); err != nil {
+		t.Fatal(err)
+	}
+	jobs := r.Jobs()
+	if len(jobs) != 1 || jobs[0].Owner != "r1" || jobs[0].State != JobRunning || jobs[0].Label != "claude" {
+		t.Fatalf("jobs = %+v, want one running job owned by r1", jobs)
+	}
+	for _, msg := range runCmd(r.PendingCommands()) {
+		r.Deliver(msg)
+	}
+	if !slices.Equal(landed, []string{"claude<nil>"}) || r.Jobs()[0].State != JobDone {
+		t.Fatalf("completion: landed %q, jobs %+v", landed, r.Jobs())
 	}
 }

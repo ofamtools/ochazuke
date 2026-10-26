@@ -451,6 +451,7 @@ const (
 func (r *Runtime) runApplication(op Operation, c Context, args Arguments) (any, error) {
 	inst := r.Instances[focusOf(c)]
 	ctx := Ctx{Runtime: r, Context: c, Args: args, Instance: inst}
+	ancestry := r.Ancestry(inst.ID)
 	res := op.App(ctx)
 	switch {
 	case res.err != nil:
@@ -458,7 +459,29 @@ func (r *Runtime) runApplication(op Operation, c Context, args Arguments) (any, 
 	case res.work == nil:
 		return res.value, nil
 	}
-	return r.Launch(inst.ID, op.Key(), res, ctx)
+	owner := inst.ID
+	if r.Instances[owner] == nil {
+		// The handler removed its own instance (a chooser's pick closes
+		// its modal, input and all, before Choose launches): the job
+		// belongs to the nearest instance that was above it and survives,
+		// the focus the modal opened over, so its completion still lands.
+		owner = r.survivor(ancestry)
+		if res.scope == inst.ID {
+			res.scope = owner
+		}
+	}
+	return r.Launch(owner, op.Key(), res, ctx)
+}
+
+// survivor is the first instance of an ancestry captured earlier that
+// still exists, else app.
+func (r *Runtime) survivor(ancestry []string) string {
+	for _, id := range ancestry {
+		if r.Instances[id] != nil {
+			return id
+		}
+	}
+	return "app"
 }
 
 // appHandlerOf accepts the handler shapes Verb and Register take.

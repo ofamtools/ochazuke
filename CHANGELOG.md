@@ -73,6 +73,7 @@ Draft, from the `integrate/next` branch (seven branches on `3133e23` plus fixes)
 - Fixed: focusing a list row instance (`SetFocus`/`focus.set`, `RetargetFocus`, a `FocusOnClose` landing, a page starting on a row, `Pop`) left the list's selection, and its highlight, on the old row while keys answered for the new one. The focused row is now selected. Story `lists/focus-set-selects-row`; `lists/one-highlight` checks the highlighted row is the focused one.
 - Fixed: the confirm modal drew its keys twice, a hand-written `y yes · n no` under the prompt and the derived hint line (with `<any> key.ignore`). The body is the prompt alone and the swallowing row is hidden, so the hint line reads `y confirm.accept · n modal.pop`. Story `modals/confirm-one-hint`.
 - `Page.OnOpen func(r, from)`: a page-opened hook, run on the loop each time `OpenPage` (page.open, page.next/previous, the picker) makes the page current from another page, after its focus and mode are restored; reopening the current page does not run it. Set it on the `*Page` `AddPage` returns.
+- Fixed: a job launched from a chooser (`Choose` or `Create` returning `Pending`) failed with `unknown instance <kind>/query`, because picking closes the modal and its input before the callback runs. An application verb whose handler removed its own instance now launches on the nearest surviving instance of its old ancestry: the focus the chooser opened over.
 
 ### Also since v0.1.1
 

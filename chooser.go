@@ -86,7 +86,9 @@ type Chooser struct {
 }
 
 // The delivery contract: a chooser runs no jobs of its own (Choose and
-// Create return their own results).
+// Create return their own results). Pending work they return belongs to the
+// focus the chooser opened over (runApplication), since the chooser and its
+// input are closed before the callback runs.
 func (c *Chooser) HandleMessage(tea.Msg) bool { return false }
 func (c *Chooser) PendingCommand() tea.Cmd    { return nil }
 func (c *Chooser) Close()                     {}
