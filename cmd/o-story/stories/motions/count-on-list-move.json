@@ -1,0 +1,20 @@
+{
+  "name": "3j moves three rows",
+  "area": "motions",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 6
+      }
+    ],
+    "focus": "a1"
+  },
+  "script": [
+    "3",
+    "j"
+  ],
+  "expect": {
+    "focus": "a4"
+  }
+}

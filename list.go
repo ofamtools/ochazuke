@@ -338,12 +338,18 @@ func windowOffset(offset, selected, visible, total, margin int) int {
 }
 
 func registerLists(r *Runtime) {
+	// j/k take a count (3j): the list's count_pending extends its normal
+	// table, so these rows answer with the count in the payload.
+	move := func(delta int) Binding {
+		return Do("list.move", Arguments{"delta": delta}).FromPayload("steps", SourceCount)
+	}
 	r.Define("list").Focusable().Mode("normal").
-		Bind("j", Do("list.move", Arguments{"delta": 1})).
-		Bind("down", Do("list.move", Arguments{"delta": 1})).
-		Bind("k", Do("list.move", Arguments{"delta": -1})).
-		Bind("up", Do("list.move", Arguments{"delta": -1})).
-		Bind("space", Do("list.mark"))
+		Bind("j", move(1)).
+		Bind("down", move(1)).
+		Bind("k", move(-1)).
+		Bind("up", move(-1)).
+		Bind("space", Do("list.mark")).
+		Mode("count_pending").Extends("normal")
 	resolve := func(c Context, args Arguments) (*List, error) {
 		if id := StringArg(args, "id", ""); id != "" {
 			if list := r.List(id); list != nil {
@@ -378,8 +384,15 @@ func registerLists(r *Runtime) {
 		run               func(*List, Context, Arguments) (any, error)
 	}{
 		{"focus", "Focus a list and its selected row", map[string]Parameter{"id": {Type: "string", Required: true}}, func(l *List, _ Context, _ Arguments) (any, error) { return l.Snapshot(), l.Focus() }},
-		{"move", "Move the selection; past the edge, on to the next stop on the page", map[string]Parameter{"id": {Type: "string"}, "delta": {Type: "integer", Required: true}}, func(l *List, _ Context, a Arguments) (any, error) {
-			if delta := IntArg(a, "delta", 0); !l.spill(delta) {
+		{"move", "Move the selection; past the edge, on to the next stop on the page", map[string]Parameter{"id": {Type: "string"}, "delta": {Type: "integer", Required: true}, "steps": {Type: "integer", Description: "Repeat count (3j); stops at the list's edge, and spills as one move only from the edge"}}, func(l *List, _ Context, a Arguments) (any, error) {
+			delta, steps := IntArg(a, "delta", 0), max(1, IntArg(a, "steps", 1))
+			if steps > 1 && l.selected >= 0 {
+				if to := min(max(l.selected+delta*steps, 0), len(l.items)-1); to != l.selected {
+					l.Move(to - l.selected)
+					return l.Snapshot(), nil
+				}
+			}
+			if !l.spill(delta) {
 				l.Move(delta)
 			}
 			return l.Snapshot(), nil

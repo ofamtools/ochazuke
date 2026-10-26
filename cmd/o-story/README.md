@@ -223,6 +223,7 @@ Conformance:
 | normal | input | `input.begin` |
 | normal | list | `list.move` |
 | normal | modal | `modal.pop` |
+| normal | mode | `mode.enter` |
 | normal | notice | `notice.clear` |
 | normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.indent` `outline.paste` `outline.redo` `outline.undo` |
 | normal | page | `page.next` `page.previous` |
@@ -233,11 +234,13 @@ Conformance:
 
 Mode edges (from → to via):
 
+- `count_pending` → `normal` via `list.move`
 - `insert` → `normal` via `mode.set`
 - `insert` → `normal` via `outline.leave`
 - `insert` → `normal` via `palette.run`
 - `insert` → `normal` via `row esc`
 - `leader_pending` → `normal` via `terminal.detach`
+- `normal` → `count_pending` via `mode.enter`
 - `normal` → `insert` via `input.begin`
 - `normal` → `insert` via `outline.add`
 - `normal` → `insert` via `outline.edit`
