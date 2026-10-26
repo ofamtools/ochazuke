@@ -579,19 +579,19 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/build.go
 
-- lines: 976
+- lines: 999
 - purpose: Session is one built story: the runtime, the model and the demo state the verbs act on (fake jobs and panes).
 - types: Session, Options
-- methods: Session(19), storyCommands(3)
+- methods: Session(20), storyCommands(3)
 - funcs: Build
-- leans on: story.go(36), run.go(9), fake.go(3)
+- leans on: story.go(37), run.go(9), fake.go(3)
 
 ### story/driver.go
 
-- lines: 350
+- lines: 360
 - purpose: Tagged is a message from a session's command, tagged with the session's generation so a message of a session that was reset or left never reaches its success...
 - types: Tagged, Driver, Step, Ran
-- methods: Driver(13)
+- methods: Driver(14)
 - funcs: Wrap, Unbatch, Classify, NewDriver
 - leans on: story.go(19), build.go(6), run.go(1)
 
@@ -613,16 +613,16 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/run.go
 
-- lines: 326
+- lines: 329
 - purpose: Golden is a frame as a golden file holds it: each row stripped of escapes behind a gutter that reads "R|" when the row has reverse video and " |" otherwise, ...
 - types: Library, Result, RunOptions
 - methods: Library(2), Result(1)
 - funcs: Golden, Check, Replay
-- leans on: story.go(27), build.go(5), record.go(4), driver.go(2)
+- leans on: story.go(29), build.go(5), record.go(4), driver.go(2)
 
 ### story/story.go
 
-- lines: 482
+- lines: 493
 - purpose: Story is one scenario file.
 - types: Story, Page, ChooserSpec, ChooserRowSpec, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, CommandsSpec, CatalogSpec, InputSpec, TermSpec, JobSpec, BindSpec, Event, Expect, Expects
 - methods: Event(3), Expects(2), Story(5)
