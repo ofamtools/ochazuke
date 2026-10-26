@@ -383,10 +383,10 @@ Root package `ochazuke` is flat: 59 source files, 58 test files. Each entry list
 
 ### settings.go
 
-- lines: 599 · tests: settings_test.go
+- lines: 661 · tests: settings_test.go
 - purpose: Setting is one declared user preference: its name, type, default, the line the settings list shows and, for a string, the allowed values.
 - types: Setting, SettingValue, Settings, SettingsPollMsg
-- methods: Model(1), Runtime(2), Settings(26)
+- methods: Model(1), Runtime(2), Settings(27)
 - leans on: runtime.go(42), configuration.go(16), delivery.go(7), noun.go(7)
 
 ### settings_view.go

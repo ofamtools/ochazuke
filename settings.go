@@ -22,6 +22,7 @@ const (
 	SettingNumber   = "number"   // float64
 	SettingBoolean  = "boolean"  // bool
 	SettingDuration = "duration" // time.Duration, written as "400ms"
+	SettingList     = "list"     // []string, written as a JSON array
 )
 
 // Setting is one declared user preference: its name, type, default, the
@@ -147,7 +148,11 @@ func (s *Settings) Value(name string) (any, bool) {
 	if one == nil {
 		return nil, false
 	}
-	return s.current(*one), true
+	v := s.current(*one)
+	if list, ok := v.([]string); ok {
+		v = slices.Clone(list)
+	}
+	return v, true
 }
 
 // current is the value without reading the file.
@@ -169,6 +174,14 @@ func (s *Settings) Float(name string) float64 { v, _ := s.Value(name); t, _ := v
 
 // Bool is a boolean setting's value.
 func (s *Settings) Bool(name string) bool { v, _ := s.Value(name); t, _ := v.(bool); return t }
+
+// Strings is a list setting's value, a copy (nil when undeclared or
+// another type).
+func (s *Settings) Strings(name string) []string {
+	v, _ := s.Value(name)
+	t, _ := v.([]string)
+	return slices.Clone(t)
+}
 
 // Duration is a duration setting's value.
 func (s *Settings) Duration(name string) time.Duration {
@@ -312,7 +325,7 @@ func (s *Settings) Problems() []string { s.ensure(); return slices.Clone(s.probl
 
 func (s *Settings) changed(name string, old any) {
 	now := s.current(*s.find(name))
-	if now == old {
+	if sameSetting(now, old) {
 		return
 	}
 	for _, o := range s.observers {
@@ -524,16 +537,65 @@ func coerceType(one Setting, value any) (any, error) {
 			}
 		}
 		return nil, errors.New(`must be a duration such as "400ms" or "2s"`)
+	case SettingList:
+		return coerceList(value)
 	}
 	return nil, fmt.Errorf("unknown setting type %q", one.Type)
 }
 
-// fileForm is a typed value as settings.json and the CLI show it.
+// listShape is the error a value that is not a list of strings gets.
+var listShape = errors.New(`must be a list of strings, a JSON array such as ["a", "b"]`)
+
+// coerceList reads a list setting's value: a []string, a JSON array of
+// strings (as settings.json decodes it), or a word holding a JSON array
+// (the CLI's settings set NAME '["a","b"]'). Never nil: no items is [].
+func coerceList(value any) (any, error) {
+	switch v := value.(type) {
+	case []string:
+		return append([]string{}, v...), nil
+	case []any:
+		out := make([]string, 0, len(v))
+		for _, item := range v {
+			text, ok := item.(string)
+			if !ok {
+				return nil, listShape
+			}
+			out = append(out, text)
+		}
+		return out, nil
+	case string:
+		var out []string
+		if err := json.Unmarshal([]byte(strings.TrimSpace(v)), &out); err != nil || out == nil {
+			return nil, listShape
+		}
+		return out, nil
+	}
+	return nil, listShape
+}
+
+// fileForm is a typed value as settings.json and the CLI show it (a list
+// as a copy, so a caller cannot change the stored value).
 func fileForm(v any) any {
-	if d, ok := v.(time.Duration); ok {
-		return d.String()
+	switch t := v.(type) {
+	case time.Duration:
+		return t.String()
+	case []string:
+		return slices.Clone(t)
 	}
 	return v
+}
+
+// sameSetting reports whether two typed values are equal; a list compares
+// item by item (== on two slices in interfaces panics).
+func sameSetting(a, b any) bool {
+	if x, ok := a.([]string); ok {
+		y, ok := b.([]string)
+		return ok && slices.Equal(x, y)
+	}
+	if _, ok := b.([]string); ok {
+		return false
+	}
+	return a == b
 }
 
 // SettingsPoll is how often a Model checks settings.json for a change
@@ -568,7 +630,7 @@ func registerSettings(r *Runtime) {
 	r.Register(Operation{Verb: "get", Noun: "settings", Description: "Show one setting and its value", Parameters: map[string]Parameter{"name": name}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.Settings().Get(StringArg(a, "name", ""))
 	}})
-	r.Register(Operation{Verb: "set", Noun: "settings", PersistArgs: true, Description: "Set a setting, checked against its type and allowed values, and save settings.json", Parameters: map[string]Parameter{"name": name, "value": {Type: "string", Required: true, Description: "The value: text, a number, true or false, or a duration such as 400ms"}}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "set", Noun: "settings", PersistArgs: true, Description: "Set a setting, checked against its type and allowed values, and save settings.json", Parameters: map[string]Parameter{"name": name, "value": {Type: "string", Required: true, Description: "The value: text, a number, true or false, a duration such as 400ms, or a JSON array of strings for a list"}}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		s := r.Settings()
 		if err := s.Set(StringArg(a, "name", ""), a["value"]); err != nil {
 			return nil, err

@@ -337,3 +337,66 @@ func TestSettingsPageLeaving(t *testing.T) {
 		t.Fatalf("permanent page: page %q, registered %v", r.Page, r.PageOf(SettingsPageID) != nil)
 	}
 }
+
+// A list setting holds strings: settings.json keeps it as a JSON array,
+// settings set takes one as a word, a value of another shape is refused,
+// the getter hands out a copy, and observers see each change once.
+func TestListSetting(t *testing.T) {
+	r := NewRuntime()
+	dir := t.TempDir()
+	r.Config().Dir = dir
+	for _, bad := range []Setting{
+		{Name: "l", Type: SettingList, Default: "a"},
+		{Name: "l", Type: SettingList, Default: []any{"a", 1}},
+		{Name: "l", Type: SettingList, Default: []string{}, Enum: []string{"a"}},
+	} {
+		if err := r.DeclareSetting(bad); err == nil {
+			t.Fatalf("accepted %+v", bad)
+		}
+	}
+	if err := r.DeclareSetting(
+		Setting{Name: "paths", Type: SettingList, Default: []any{"~/proj"}},
+		Setting{Name: "ignore", Type: SettingList, Default: []string{}},
+	); err != nil {
+		t.Fatal(err)
+	}
+	s := r.Settings()
+	if got := s.Strings("paths"); !reflect.DeepEqual(got, []string{"~/proj"}) {
+		t.Fatalf("default %q", got)
+	}
+	s.Strings("paths")[0] = "changed"
+	if s.Strings("paths")[0] != "~/proj" {
+		t.Fatal("the getter handed out the stored slice")
+	}
+	if got, _ := s.Get("ignore"); got.Value == nil || len(got.Value.([]string)) != 0 {
+		t.Fatalf("empty list reads %#v", got.Value)
+	}
+	var seen [][]string
+	s.Observe("paths", func(_ string, v any) { seen = append(seen, v.([]string)) })
+	if _, err := r.Execute(Request{Noun: "settings", Verb: "set", Args: Arguments{"name": "paths", "value": `["~/proj", "~/work"]`}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Set("paths", []string{"~/proj", "~/work"}); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(seen, [][]string{{"~/proj", "~/work"}}) {
+		t.Fatalf("observers %q", seen)
+	}
+	if got := readSettingsFile(t, dir)["paths"]; !reflect.DeepEqual(got, []any{"~/proj", "~/work"}) {
+		t.Fatalf("file %#v", got)
+	}
+	for _, bad := range []string{"~/proj", `["a", 2]`, `{"a": 1}`, "null"} {
+		if err := s.Set("paths", bad); err == nil {
+			t.Fatalf("accepted %q", bad)
+		}
+	}
+	got, err := r.Execute(Request{Noun: "settings", Verb: "reset", Args: Arguments{"name": "paths"}})
+	if err != nil || !reflect.DeepEqual(got.(SettingValue).Value, []string{"~/proj"}) || len(seen) != 2 {
+		t.Fatalf("reset %+v %v %q", got, err, seen)
+	}
+	writeConfig(t, dir, SettingsFile, `{"ignore": ["*.tmp"], "paths": "oops"}`)
+	s.Reload()
+	if !reflect.DeepEqual(s.Strings("ignore"), []string{"*.tmp"}) || !reflect.DeepEqual(s.Strings("paths"), []string{"~/proj"}) {
+		t.Fatalf("reload %q %q %q", s.Strings("ignore"), s.Strings("paths"), s.Problems())
+	}
+}
