@@ -27,12 +27,36 @@ import (
 // catalogNouns are the catalog's data nouns, in state order.
 var catalogNouns = []string{"story", "recording", "verb", "edge"}
 
-// Row is one element of a list.
+// Row is one element of a list; Cells are its table cells when the noun
+// declares columns (story: storyColumns).
 type Row struct {
-	ID    string `json:"id"`
-	Label string `json:"label"`
-	Data  any    `json:"data,omitempty"`
+	ID    string   `json:"id"`
+	Label string   `json:"label"`
+	Data  any      `json:"data,omitempty"`
+	Cells []string `json:"cells,omitempty"`
 }
+
+// storyColumns are the story noun's table, declared once: the catalog's
+// columns (story list, state, nabe) and the TUI index (without area,
+// which is the index's section heading). Size drops first, then steps,
+// area and the gap; the story name is cut last.
+var storyColumns = []ochazuke.Column{
+	{Title: "story", Min: 24},
+	{Title: "area", Priority: 3},
+	{Title: "size", Priority: 4},
+	{Title: "steps", Align: ochazuke.AlignRight, Priority: 2},
+	{Title: "gap", Min: 12, Priority: 1},
+}
+
+// storyCells is a story's row of storyColumns.
+func storyCells(s *story.Story) []string {
+	w, h := s.Size()
+	return []string{s.Name, s.Area, fmt.Sprintf("%dx%d", w, h), strconv.Itoa(len(s.Script)), strings.TrimPrefix(s.Skip, "gap: ")}
+}
+
+// withoutArea drops the area column (index 1) from storyColumns or a
+// story's cells, for the index, where the area is the section heading.
+func withoutArea[T any](row []T) []T { return slices.Delete(slices.Clone(row), 1, 2) }
 
 // StoryRow is a story row's data.
 type StoryRow struct {
@@ -86,7 +110,7 @@ func storyRows(lib story.Library) []Row {
 		rows = append(rows, Row{ID: storyID(s), Label: s.Name, Data: StoryRow{
 			Area: s.Area, Size: fmt.Sprintf("%dx%d", w, h), Chrome: chrome,
 			Steps: len(s.Script), Skipped: s.Skip != "", Expect: s.Expect,
-		}})
+		}, Cells: storyCells(s)})
 	}
 	return rows
 }
@@ -164,7 +188,7 @@ func (t *Tool) rows(noun string) ([]Row, error) {
 func lines(noun string, rows []Row) ocli.Lines {
 	out := make(ocli.Lines, len(rows))
 	for i, r := range rows {
-		out[i] = ocli.Row{Noun: noun, ID: r.ID, Label: r.Label, Data: r.Data}
+		out[i] = ocli.Row{Noun: noun, ID: r.ID, Label: r.Label, Data: r.Data, Cells: r.Cells}
 	}
 	return out
 }
@@ -194,7 +218,11 @@ func (t *Tool) shell() *ocli.Shell {
 	r := ochazuke.NewRuntime()
 	lists := map[string]*ochazuke.List{}
 	for _, noun := range catalogNouns {
-		list, err := r.AddList("list/"+noun, nil)
+		var opts []ochazuke.InstanceOption
+		if noun == "story" {
+			opts = append(opts, ochazuke.Columns(storyColumns...))
+		}
+		list, err := r.AddList("list/"+noun, nil, opts...)
 		if err != nil {
 			panic(err) // a fresh runtime takes every list
 		}
@@ -207,7 +235,7 @@ func (t *Tool) shell() *ocli.Shell {
 		}
 		items := make([]ochazuke.ListItem, len(rows))
 		for i, row := range rows {
-			items[i] = ochazuke.ListItem{ID: row.ID, Label: row.Label, Noun: noun, Data: row.ID}
+			items[i] = ochazuke.ListItem{ID: row.ID, Label: row.Label, Noun: noun, Data: row.ID, Cells: row.Cells}
 		}
 		if err := lists[noun].SetItems(items); err != nil {
 			return ochazuke.Failed(err)
@@ -237,9 +265,9 @@ func (t *Tool) shell() *ocli.Shell {
 		}
 		return lib, nil, fmt.Errorf("no story %q", id)
 	}
-	r.Define("story").
+	r.Define("story").Columns(storyColumns...).
 		Verb("list", func(ochazuke.Ctx) ochazuke.Result { return listed("story") },
-			"the stories: {id: AREA/NAME, label, data: {area, size, chrome, steps, skipped, expect?}}").Rows("story").
+			"the stories: {id: AREA/NAME, label, data: {area, size, chrome, steps, skipped, expect?}, cells: [story, area, size, steps, gap]}").Rows("story").
 		Verb("show", func(c ochazuke.Ctx) ochazuke.Result {
 			_, s, err := findStory(c)
 			if err != nil {

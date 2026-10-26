@@ -204,9 +204,13 @@ story before it is fixed.
 data nouns `story` (list, show, run, state), `recording` (list, show), `verb`
 and `edge` (list, the rows of `o-story verbs`). Every list returns
 `{id, label, data}` rows; `story state` prints all of them as JSON Lines.
+The `story` noun declares its table (`storyColumns`: story, area, size,
+steps, gap) and its rows carry `cells`, so `--format table` and nabe show
+the same columns the TUI index draws (each area a table without the area
+column, size then steps dropping first as the terminal narrows).
 
 ```
-o-story story list               # id AREA/NAME, data {area, size, chrome, steps, skipped, expect?}
+o-story story list               # id AREA/NAME, data {area, size, chrome, steps, skipped, expect?}, cells
 o-story story run --target lists/lone-list
 o-story recording show --target recording/1
 o-story story state              # {"noun":"verb","id":"verb/normal/list.move",...} per line

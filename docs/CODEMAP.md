@@ -474,18 +474,18 @@ Importable package `cli`: 14 source files, 8 test files.
 - types: PtyStream
 - methods: PtyStream(15), byteQueue(3)
 - funcs: StartPty
-- leans on: pty_unix.go(2), shell.go(2), ptykeys.go(1), rows.go(1)
+- leans on: pty_windows.go(2), shell.go(2), ptykeys.go(1), rows.go(1)
 
 ### cli/pty_unix.go
 
 - lines: 39
 - purpose: configureCommand makes the command the leader of a new session whose controlling terminal is the pty (the slave is its fd 0), so its process group id is its ...
+- leans on: pty_windows.go(2)
 
 ### cli/pty_windows.go
 
 - lines: 15
 - purpose: configureCommand leaves the command as it is: ConPTY owns the console.
-- leans on: pty_unix.go(2)
 
 ### cli/ptykeys.go
 
