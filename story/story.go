@@ -217,11 +217,22 @@ type CatalogSpec struct {
 	Pending bool                       `json:"pending,omitempty"`
 }
 
-// InputSpec is one single-line input drawn under the lists.
+// InputSpec is one single-line input drawn under the lists. Completions
+// give it completion triggers answered by the completion fake.
 type InputSpec struct {
-	ID    string `json:"id"`
-	Label string `json:"label,omitempty"`
-	Text  string `json:"text,omitempty"`
+	ID          string           `json:"id"`
+	Label       string           `json:"label,omitempty"`
+	Text        string           `json:"text,omitempty"`
+	Completions []CompletionSpec `json:"completions,omitempty"`
+}
+
+// CompletionSpec is one completion trigger of a story input: its search
+// answers the items holding the query (ignoring case), in order, or fails
+// with Fail. Its job is completion.search.
+type CompletionSpec struct {
+	Trigger string   `json:"trigger"`
+	Items   []string `json:"items,omitempty"`
+	Fail    string   `json:"fail,omitempty"`
 }
 
 // TermSpec is a fake pane attached from a row: enter on Attach (default the
@@ -263,7 +274,7 @@ type Event struct {
 	Paste string `json:"paste,omitempty"`
 	Job   string `json:"job,omitempty"`   // noun.verb of the job that delivered
 	State string `json:"state,omitempty"` // done or failed
-	Tick  string `json:"tick,omitempty"`  // linger, binding, terminal (a pane frame), output (fake output line) or debounce (a tree line's or a form's pause)
+	Tick  string `json:"tick,omitempty"`  // linger, binding, terminal (a pane frame), output (fake output line) or debounce (a tree line's, a form's or a completion's pause)
 	// Restart quits the session and builds it again from the story with
 	// the same state directory (State), as a user reopening the app.
 	Restart bool `json:"restart,omitempty"`

@@ -1,0 +1,71 @@
+{
+  "name": "completion: tab takes the highlighted suggestion, keeping the trigger; u undoes the accept alone",
+  "area": "completion",
+  "width": 56,
+  "height": 12,
+  "page": {
+    "noHeadings": true,
+    "inputs": [
+      {
+        "id": "prompt",
+        "label": "prompt",
+        "text": "",
+        "completions": [
+          {
+            "trigger": "@",
+            "items": [
+              "src/main.go",
+              "src/main_test.go",
+              "src/model.go",
+              "README.md"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "A",
+    {
+      "type": "review @src/ma"
+    },
+    {
+      "tick": "debounce"
+    },
+    {
+      "job": "completion.search"
+    },
+    "ctrl+n",
+    "ctrl+n",
+    "tab",
+    "esc",
+    "u"
+  ],
+  "expect": [
+    {
+      "after": 6,
+      "highlighted": 1,
+      "highlightedText": "src/main_test.go"
+    },
+    {
+      "after": 7,
+      "mode": "insert",
+      "contains": [
+        "prompt: review @src/main_test.go"
+      ],
+      "lacks": [
+        "src/main.go",
+        "tab completion.accept"
+      ]
+    },
+    {
+      "mode": "normal",
+      "contains": [
+        "prompt: review @src/ma"
+      ],
+      "lacks": [
+        "main_test"
+      ]
+    }
+  ]
+}

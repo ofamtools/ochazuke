@@ -1,0 +1,68 @@
+{
+  "name": "completion: of overlapping triggers the longest wins: [[ answers, not [",
+  "area": "completion",
+  "width": 56,
+  "height": 12,
+  "page": {
+    "noHeadings": true,
+    "inputs": [
+      {
+        "id": "prompt",
+        "label": "prompt",
+        "text": "",
+        "completions": [
+          {
+            "trigger": "@",
+            "items": [
+              "src/main.go",
+              "src/main_test.go",
+              "src/model.go",
+              "README.md"
+            ]
+          },
+          {
+            "trigger": "[",
+            "items": [
+              "single"
+            ]
+          },
+          {
+            "trigger": "[[",
+            "items": [
+              "Double Note"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "A",
+    {
+      "type": "[[no"
+    },
+    {
+      "tick": "debounce"
+    },
+    {
+      "job": "completion.search"
+    },
+    "tab"
+  ],
+  "expect": [
+    {
+      "after": 4,
+      "contains": [
+        "Double Note"
+      ],
+      "lacks": [
+        "single"
+      ]
+    },
+    {
+      "contains": [
+        "prompt: [[Double Note"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "name": "completion: the list as drawn, the highlighted row reversed, the footer naming its keys",
+  "area": "completion",
+  "width": 56,
+  "height": 12,
+  "page": {
+    "noHeadings": true,
+    "inputs": [
+      {
+        "id": "prompt",
+        "label": "prompt",
+        "text": "",
+        "completions": [
+          {
+            "trigger": "@",
+            "items": [
+              "src/main.go",
+              "src/main_test.go",
+              "src/model.go",
+              "README.md"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "A",
+    {
+      "type": "review @src/m"
+    },
+    {
+      "tick": "debounce"
+    },
+    {
+      "job": "completion.search"
+    },
+    "ctrl+n"
+  ]
+}

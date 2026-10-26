@@ -632,21 +632,21 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/build.go
 
-- lines: 1066
+- lines: 1091
 - purpose: Session is one built story: the runtime, the model and the demo state the verbs act on (fake jobs and panes).
 - types: Session, Options
 - methods: Session(21), storyCommands(3)
 - funcs: Build
-- leans on: story.go(39), run.go(9), fake.go(3)
+- leans on: story.go(40), run.go(9), fake.go(3)
 
 ### story/driver.go
 
-- lines: 360
+- lines: 364
 - purpose: Tagged is a message from a session's command, tagged with the session's generation so a message of a session that was reset or left never reaches its success...
 - types: Tagged, Driver, Step, Ran
 - methods: Driver(14)
 - funcs: Wrap, Unbatch, Classify, NewDriver
-- leans on: story.go(19), build.go(6), run.go(1)
+- leans on: story.go(20), build.go(6), run.go(1)
 
 ### story/fake.go
 
@@ -675,9 +675,9 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/story.go
 
-- lines: 509
+- lines: 520
 - purpose: Story is one scenario file.
-- types: Story, Page, ChooserSpec, ChooserRowSpec, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, MarkdownSpec, CommandsSpec, CatalogSpec, InputSpec, TermSpec, JobSpec, BindSpec, Event, Expect, Expects
+- types: Story, Page, ChooserSpec, ChooserRowSpec, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, MarkdownSpec, CommandsSpec, CatalogSpec, InputSpec, CompletionSpec, TermSpec, JobSpec, BindSpec, Event, Expect, Expects
 - methods: Event(3), Expects(2), Story(5)
 - funcs: Slug, Parse, LoadFS, LoadDir, Sort, Find
 
@@ -849,6 +849,7 @@ Exported type -> file.
 - story.ChooserRowSpec -> story/story.go
 - story.ChooserSpec -> story/story.go
 - story.CommandsSpec -> story/story.go
+- story.CompletionSpec -> story/story.go
 - story.DetailSpec -> story/story.go
 - story.Driver -> story/driver.go
 - story.Edge -> story/verbs.go

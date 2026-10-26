@@ -1,0 +1,76 @@
+{
+  "name": "completion: typing a trigger token offers its suggestions under the query after the pause; typing keeps editing the input",
+  "area": "completion",
+  "width": 56,
+  "height": 12,
+  "page": {
+    "noHeadings": true,
+    "inputs": [
+      {
+        "id": "prompt",
+        "label": "prompt",
+        "text": "",
+        "completions": [
+          {
+            "trigger": "@",
+            "items": [
+              "src/main.go",
+              "src/main_test.go",
+              "src/model.go",
+              "README.md"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "A",
+    {
+      "type": "review @src/ma"
+    },
+    {
+      "tick": "debounce"
+    },
+    {
+      "job": "completion.search"
+    },
+    {
+      "type": "i"
+    }
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "mode": "insert",
+      "lacks": [
+        "src/main.go"
+      ]
+    },
+    {
+      "after": 4,
+      "focus": "prompt",
+      "mode": "insert",
+      "contains": [
+        "prompt: review @src/ma",
+        "src/main.go",
+        "src/main_test.go",
+        "tab completion.accept",
+        "esc completion.dismiss"
+      ],
+      "lacks": [
+        "README.md",
+        "src/model.go"
+      ],
+      "highlighted": 0
+    },
+    {
+      "focus": "prompt",
+      "mode": "insert",
+      "contains": [
+        "prompt: review @src/mai",
+        "src/main_test.go"
+      ]
+    }
+  ]
+}

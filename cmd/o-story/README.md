@@ -57,7 +57,8 @@ it to the timer's deadline and delivers the timer's message
     order: ["a", "b", "c"],       // drawing order (default: as listed)
     layout: "stack",              // or "row": lists side by side; "split": the first two lists in Layout.SplitFocusBlock
     focus: "b1", offset: 0, noHeadings: false,
-    inputs: [{ id: "name", label: "name", text: "hello" }],
+    inputs: [{ id: "name", label: "name", text: "hello",
+               completions: [{ trigger: "@", items: ["src/main.go"], fail: "" }] }],
     trees: [{ id: "t", editable: true, failWrites: 0, collapsed: ["p1"],
               nodes: [{ id: "p1", label: "one" }, { id: "c1", parent: "p1", label: "child" }] }],
     terminal: { fake: true, attach: "a1", height: 6 },
@@ -135,6 +136,10 @@ from `answers`.
   event order only.
 - **Job**: `demo.<name>` runs until its `finishOnKey` (or `failOnKey`) is
   pressed, so ticker stories need no daemon; `label` is its `Result.Label`.
+- **Completion**: an input's `completions` triggers answer the `items`
+  holding the query (ignoring case), in order, or fail with `fail`; the
+  search is the `completion.search` job, after the `debounce` tick (tab on a
+  token asks without one).
 
 ## The TUI
 
@@ -255,8 +260,9 @@ Conformance:
 |---|---|---|
 | count_pending | count | `count.append` |
 | insert | chooser | `chooser.cancel` `chooser.move` `chooser.pick` |
+| insert | completion | `completion.accept` `completion.dismiss` `completion.move` `completion.open` |
 | insert | form | `form.next` |
-| insert | input | `input.insert` `input.kill` |
+| insert | input | `input.insert` `input.kill` `input.move` |
 | insert | mode | `mode.set` |
 | insert | outline | `outline.indent` `outline.leave` |
 | insert | palette | `palette.move` `palette.run` |
@@ -269,7 +275,7 @@ Conformance:
 | normal | focus | `focus.next` `focus.previous` `focus.set` |
 | normal | form | `form.choose` `form.leave` `form.next` `form.redo` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
-| normal | input | `input.begin` |
+| normal | input | `input.begin` `input.undo` |
 | normal | list | `list.move` |
 | normal | markdown | `markdown.redo` `markdown.toggle` `markdown.undo` |
 | normal | modal | `modal.pop` |

@@ -78,6 +78,10 @@ func Classify(ss *Session, msg tea.Msg) *Event {
 		if e := ss.R.RecordEditor(v.Editor); e != nil && e.DebounceCurrent(v) {
 			return &Event{Tick: "debounce"}
 		}
+	case ochazuke.CompletionDebounceMsg:
+		if c := ss.R.Completer(); c != nil && c.DebounceCurrent(v) {
+			return &Event{Tick: "debounce"}
+		}
 	}
 	return nil
 }

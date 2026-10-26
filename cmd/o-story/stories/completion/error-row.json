@@ -1,0 +1,53 @@
+{
+  "name": "completion: a failing search shows its error in the list, not the status line",
+  "area": "completion",
+  "width": 56,
+  "height": 12,
+  "page": {
+    "noHeadings": true,
+    "inputs": [
+      {
+        "id": "prompt",
+        "label": "prompt",
+        "text": "",
+        "completions": [
+          {
+            "trigger": "@",
+            "items": [
+              "src/main.go",
+              "src/main_test.go",
+              "src/model.go",
+              "README.md"
+            ]
+          },
+          {
+            "trigger": "$",
+            "fail": "index unavailable"
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "A",
+    {
+      "type": "$sk"
+    },
+    {
+      "tick": "debounce"
+    },
+    {
+      "job": "completion.search"
+    }
+  ],
+  "expect": {
+    "mode": "insert",
+    "contains": [
+      "! index unavailable",
+      "esc completion.dismiss"
+    ],
+    "lacks": [
+      "Error:"
+    ]
+  }
+}

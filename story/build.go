@@ -519,7 +519,11 @@ func (ss *Session) addPage(p *Page) error {
 	}
 	for _, in := range p.Inputs {
 		input := ochazuke.NewInput(in.ID, in.Text, false)
-		if err := r.AddInput(input, ochazuke.Parent(p.ID)); err != nil {
+		opts := []ochazuke.InstanceOption{ochazuke.Parent(p.ID)}
+		if len(in.Completions) > 0 {
+			opts = append(opts, ochazuke.Completions(completionFakes(in.Completions)...))
+		}
+		if err := r.AddInput(input, opts...); err != nil {
 			return fmt.Errorf("input %s: %w", in.ID, err)
 		}
 		ss.inputs[in.ID] = input
@@ -1063,4 +1067,25 @@ func (ss *Session) Snapshot() ([]*Page, []string) {
 		out = append(out, &p)
 	}
 	return out, warn
+}
+
+// completionFakes are a story input's completion triggers: each search
+// answers its items holding the query, ignoring case, or fails.
+func completionFakes(specs []CompletionSpec) []ochazuke.CompletionTrigger {
+	var out []ochazuke.CompletionTrigger
+	for _, spec := range specs {
+		out = append(out, ochazuke.CompletionTrigger{Trigger: spec.Trigger, Search: ochazuke.SearchStrings(func(_ context.Context, query string) ([]string, error) {
+			if spec.Fail != "" {
+				return nil, errors.New(spec.Fail)
+			}
+			var items []string
+			for _, item := range spec.Items {
+				if strings.Contains(strings.ToLower(item), strings.ToLower(query)) {
+					items = append(items, item)
+				}
+			}
+			return items, nil
+		})})
+	}
+	return out
 }

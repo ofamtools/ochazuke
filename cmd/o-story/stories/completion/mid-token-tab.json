@@ -1,0 +1,64 @@
+{
+  "name": "completion: tab inside an existing token asks for the whole token at once; enter on a highlighted row replaces the whole token",
+  "area": "completion",
+  "width": 56,
+  "height": 12,
+  "page": {
+    "noHeadings": true,
+    "inputs": [
+      {
+        "id": "prompt",
+        "label": "prompt",
+        "text": "see @src/main now",
+        "completions": [
+          {
+            "trigger": "@",
+            "items": [
+              "src/main.go",
+              "src/main_test.go",
+              "src/model.go",
+              "README.md"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "A",
+    "left",
+    "left",
+    "left",
+    "left",
+    "left",
+    "left",
+    "tab",
+    {
+      "job": "completion.search"
+    },
+    "down",
+    "down",
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 9,
+      "contains": [
+        "src/main.go",
+        "src/main_test.go"
+      ],
+      "lacks": [
+        "src/model.go"
+      ]
+    },
+    {
+      "mode": "insert",
+      "contains": [
+        "prompt: see @src/main_test.go now"
+      ],
+      "lacks": [
+        "completion.accept"
+      ]
+    }
+  ]
+}

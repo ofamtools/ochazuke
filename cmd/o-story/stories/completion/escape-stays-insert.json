@@ -1,0 +1,66 @@
+{
+  "name": "completion: esc hides the suggestions and stays in insert; the next esc leaves it",
+  "area": "completion",
+  "width": 56,
+  "height": 12,
+  "page": {
+    "noHeadings": true,
+    "inputs": [
+      {
+        "id": "prompt",
+        "label": "prompt",
+        "text": "",
+        "completions": [
+          {
+            "trigger": "@",
+            "items": [
+              "src/main.go",
+              "src/main_test.go",
+              "src/model.go",
+              "README.md"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "A",
+    {
+      "type": "@src"
+    },
+    {
+      "tick": "debounce"
+    },
+    {
+      "job": "completion.search"
+    },
+    "esc",
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 4,
+      "contains": [
+        "src/model.go"
+      ]
+    },
+    {
+      "after": 5,
+      "mode": "insert",
+      "contains": [
+        "prompt: @src"
+      ],
+      "lacks": [
+        "src/model.go",
+        "completion.dismiss"
+      ]
+    },
+    {
+      "mode": "normal",
+      "contains": [
+        "prompt: @src"
+      ]
+    }
+  ]
+}
