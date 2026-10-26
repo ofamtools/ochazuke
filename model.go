@@ -450,7 +450,7 @@ func BindingHelp(r *Runtime, focus string) []HelpRow {
 		}
 	}
 	for _, row := range rows {
-		if isPrefixCancel(row.Binding) && !sequences[row.Mode+"\x00"+strings.TrimSuffix(row.Keys, " "+CancelKey)] {
+		if isPrefixCancel(row.Binding) && !sequences[row.Mode+"\x00"+strings.TrimSuffix(row.Keys, " "+CancelKey)] || r.guardedOff(row.Binding, focus) {
 			continue
 		}
 		op := row.Hint
