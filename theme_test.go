@@ -43,3 +43,27 @@ func TestAppearanceAccentOverride(t *testing.T) {
 		t.Errorf("mono active tab is %v, want no colour", mono.ActiveTab.GetForeground())
 	}
 }
+
+// Background resolves the scheme's background (adaptive follows Dark) and
+// reports plain for mono and NO_COLOR.
+func TestAppearanceBackground(t *testing.T) {
+	for _, tc := range []struct {
+		a     Appearance
+		bg    string
+		plain bool
+	}{
+		{Appearance{Theme: "adaptive", Dark: true}, "dark", false},
+		{Appearance{Theme: "adaptive", Dark: false}, "light", false},
+		{Appearance{Theme: "light", Dark: true}, "light", false},
+		{Appearance{Theme: "dark", Dark: false}, "dark", false},
+		{Appearance{Theme: "mono", Dark: true}, "dark", true},
+	} {
+		if bg, plain := tc.a.Background(); bg != tc.bg || plain != tc.plain {
+			t.Errorf("%s dark=%v: got %s plain=%v, want %s plain=%v", tc.a.Theme, tc.a.Dark, bg, plain, tc.bg, tc.plain)
+		}
+	}
+	t.Setenv("NO_COLOR", "1")
+	if _, plain := (Appearance{Theme: "dark"}).Background(); !plain {
+		t.Error("NO_COLOR must be plain")
+	}
+}

@@ -1,9 +1,10 @@
-// Package demo is the runnable example behind `ochazuke run`: six pages, nested
+// Package demo is the runnable example behind `ochazuke run`: seven pages, nested
 // draft modals, the picker and the keyboard guide, built only from the public
 // API. The framework package holds no application pages.
 package demo
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"maps"
@@ -15,13 +16,21 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/unixsuperhero/ochazuke"
+	"github.com/unixsuperhero/ochazuke/markdown"
 )
+
+// checklistText is the Checklist page's document. The page keeps its
+// toggles in memory (a markdown.Source of its own), so running the demo
+// never rewrites the file; markdown.File(path) is the Source that does.
+//
+//go:embed testdata/checklist.md
+var checklistText string
 
 // New supplies the demo application: example pages, modals and bindings on a
 // fresh runtime. None of these page names are required by the framework.
 func New() *ochazuke.Model {
 	r := ochazuke.NewRuntime()
-	for _, id := range []string{"overview", "playground", "commands", "appearance", "library", "task", "help"} {
+	for _, id := range []string{"overview", "playground", "commands", "appearance", "library", "task", "checklist", "help"} {
 		r.Instance(id)
 	}
 	r.Define("entry")
@@ -33,6 +42,14 @@ func New() *ochazuke.Model {
 		selected, _ := entries.Selected()
 		return selected.ID
 	}, ochazuke.Parent("library"))
+	if err != nil {
+		panic(err)
+	}
+	stored := checklistText
+	checklist, err := markdown.New(r, "checklist/doc", "checklist", markdown.Source{
+		Load: func() (string, error) { return stored, nil },
+		Save: func(text string) error { stored = text; return nil },
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -70,6 +87,9 @@ func New() *ochazuke.Model {
 		{"appearance", "Appearance", "appearance", func(r *ochazuke.Runtime, w, h int) ochazuke.Block { return ochazuke.Text(demoAppearance(m, w)) }},
 		{"library", "Library", "library/entries", func(r *ochazuke.Runtime, w, h int) ochazuke.Block { return demoLibrary(m, entries, detail, w, h) }},
 		{"task", "Record", "task", func(r *ochazuke.Runtime, w, h int) ochazuke.Block { return task.view(m, w, h) }},
+		{"checklist", "Checklist", checklist.FocusTarget(), func(r *ochazuke.Runtime, w, h int) ochazuke.Block {
+			return demoChecklist(m, checklist, w, h)
+		}},
 	} {
 		if _, err := r.AddPage(spec.id, spec.title, spec.render, ochazuke.Focus(spec.focus)); err != nil {
 			panic(err)
@@ -295,13 +315,21 @@ func (t *demoTask) view(m *ochazuke.Model, width, height int) ochazuke.Block {
 	return block.Offset(0, 3).WithText(head + block.Text + foot)
 }
 
+// demoChecklist draws the Checklist page: a Markdown document (Glamour)
+// whose task items are a focus stop, windowed to the page.
+func demoChecklist(m *ochazuke.Model, doc *markdown.Doc, width, height int) ochazuke.Block {
+	s := ochazuke.NewStyles(*m.Appearance)
+	head := s.Muted.Render(ansi.Truncate("testdata/checklist.md · x toggles · u / ctrl+r undo and redo", width, "…")) + "\n"
+	return ochazuke.Text(head + doc.View(width, max(1, height-1), *m.Appearance))
+}
+
 func demoOverview(m *ochazuke.Model, width int) string {
 	s := ochazuke.NewStyles(*m.Appearance)
 	var b strings.Builder
 	b.WriteString(s.Title.Render("A framework. Your application.") + "\n")
 	b.WriteString(s.Muted.Render("Pages keep their place. Actions share one interface.") + "\n\n")
 	for _, page := range m.Runtime.PageList() {
-		descriptions := map[string]string{"overview": "Start here: navigation and the framework's structure.", "playground": "Edit text, branch undo history, and open nested modals.", "commands": "Inspect real operations, argument schemas, and bindings.", "appearance": "Change the live theme and spacing defaults.", "task": "Edit a record written as you type: choices, undo, no save key."}
+		descriptions := map[string]string{"overview": "Start here: navigation and the framework's structure.", "playground": "Edit text, branch undo history, and open nested modals.", "commands": "Inspect real operations, argument schemas, and bindings.", "appearance": "Change the live theme and spacing defaults.", "task": "Edit a record written as you type: choices, undo, no save key.", "checklist": "A Markdown checklist: x toggles an item, saved back to its source."}
 		fmt.Fprintf(&b, "%s\n  %s\n\n", s.Subtitle.Render(page.Title), s.Muted.Render(descriptions[page.ID]))
 	}
 	b.WriteString(s.Panel.Width(max(1, width-2)).Render("TRY IT\nCtrl-J → i → type → Escape → u\nCtrl-N opens a modal without replacing the page.\n: searches the same actions available through the CLI."))

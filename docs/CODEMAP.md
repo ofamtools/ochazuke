@@ -396,10 +396,10 @@ Root package `ochazuke` is flat: 56 source files, 54 test files. Each entry list
 
 ### theme.go
 
-- lines: 157 · tests: theme_test.go
+- lines: 174 · tests: theme_test.go
 - purpose: Appearance is event-loop-owned configuration.
 - types: Appearance, Styles
-- methods: Appearance(1)
+- methods: Appearance(2)
 - funcs: NewAppearance, NewStyles
 - leans on: runtime.go(22), delivery.go(5), noun.go(5), registers.go(5)
 
@@ -581,18 +581,46 @@ Importable package `grid`: 2 source files, 1 test files.
 - funcs: Register, Resolve
 - leans on: grid.go(18)
 
+## Package markdown
+
+Importable package `markdown`: 3 source files, 2 test files.
+
+### markdown/doc.go
+
+- lines: 507 · tests: doc_test.go
+- purpose: Source is where a Doc's Markdown lives: Load reads it as it is now and Save stores a new text.
+- types: Source, Doc
+- methods: Doc(22)
+- funcs: File, New, Of, Register
+- leans on: tasks.go(20), render.go(2)
+
+### markdown/render.go
+
+- lines: 156 · tests: render_test.go
+- purpose: StyleOf is the Glamour style an appearance draws Markdown in.
+- funcs: StyleOf, Block
+- leans on: tasks.go(3)
+
+### markdown/tasks.go
+
+- lines: 171
+- purpose: Task is one task list item of a Markdown source, as goldmark (Glamour's parser, with the GFM task list extension) finds it: a list item whose first line star...
+- types: Task
+- funcs: Tasks
+- leans on: doc.go(1)
+
 ## Package story
 
 Importable package `story`: 8 source files, 0 test files.
 
 ### story/build.go
 
-- lines: 999
+- lines: 1066
 - purpose: Session is one built story: the runtime, the model and the demo state the verbs act on (fake jobs and panes).
 - types: Session, Options
-- methods: Session(20), storyCommands(3)
+- methods: Session(21), storyCommands(3)
 - funcs: Build
-- leans on: story.go(37), run.go(9), fake.go(3)
+- leans on: story.go(39), run.go(9), fake.go(3)
 
 ### story/driver.go
 
@@ -630,9 +658,9 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/story.go
 
-- lines: 493
+- lines: 509
 - purpose: Story is one scenario file.
-- types: Story, Page, ChooserSpec, ChooserRowSpec, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, CommandsSpec, CatalogSpec, InputSpec, TermSpec, JobSpec, BindSpec, Event, Expect, Expects
+- types: Story, Page, ChooserSpec, ChooserRowSpec, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, MarkdownSpec, CommandsSpec, CatalogSpec, InputSpec, TermSpec, JobSpec, BindSpec, Event, Expect, Expects
 - methods: Event(3), Expects(2), Story(5)
 - funcs: Slug, Parse, LoadFS, LoadDir, Sort, Find
 
@@ -790,6 +818,9 @@ Exported type -> file.
 - grid.Option -> grid/grid.go
 - grid.Ref -> grid/grid.go
 - grid.Styles -> grid/grid.go
+- markdown.Doc -> markdown/doc.go
+- markdown.Source -> markdown/doc.go
+- markdown.Task -> markdown/tasks.go
 - story.BindSpec -> story/story.go
 - story.CatalogSpec -> story/story.go
 - story.ChooserRowSpec -> story/story.go
@@ -808,6 +839,7 @@ Exported type -> file.
 - story.JobSpec -> story/story.go
 - story.Library -> story/run.go
 - story.ListSpec -> story/story.go
+- story.MarkdownSpec -> story/story.go
 - story.Minimum -> story/verbs.go
 - story.Options -> story/build.go
 - story.Page -> story/story.go
