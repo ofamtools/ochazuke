@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 )
 
 // The scaling benchmarks: replacing every row of a list, building and
-// expanding a tree, and drawing one frame of a large table. Each should
+// expanding a tree, drawing one frame of a large table, and a keypress and
+// frame on a page of many rows. Each should
 // grow about linearly with its size.
 
 func benchRows(prefix string, n int) []ListItem {
@@ -281,4 +284,98 @@ func TestTableWidthsFollowTheItems(t *testing.T) {
 	check("after SetItems")
 	list.SetColumns(Column{Title: "A", Min: 1}, Column{Title: "B"}, Column{Title: "C"})
 	check("after SetColumns")
+}
+
+// framePage is a page shaped like a catalog page (cli.MountPage): a rail
+// list of groups, a list of n rows, and, with detail, a detail added after
+// the lists. It returns the model with the focus on the rows.
+func framePage(tb testing.TB, n int, detail bool) *Model {
+	tb.Helper()
+	r := NewRuntime()
+	r.Define("a")
+	r.Instance("p")
+	rail, err := r.AddList("p/groups", benchRows("g", 8), Parent("p"))
+	if err != nil {
+		tb.Fatal(err)
+	}
+	rows, err := r.AddList("p/rows", benchRows("x", n), Parent("p"))
+	if err != nil {
+		tb.Fatal(err)
+	}
+	var d *Detail
+	if detail {
+		d, err = r.AddDetail("p/detail", func() string { sel, _ := rows.Selected(); return sel.ID }, Parent("p"))
+		if err != nil {
+			tb.Fatal(err)
+		}
+	}
+	text := strings.Repeat("detail line\n", 200)
+	render := func(r *Runtime, w, h int) Block {
+		r.Placed("p/groups")
+		r.Placed("p/rows")
+		out := rail.View(w/3, h) + "\n" + rows.View(w/3, h)
+		if d != nil {
+			body, marker := d.Window(text, w/3, h)
+			out += "\n" + marker + "\n" + body
+		}
+		return Text(out)
+	}
+	if _, err := r.AddPage("p", "P", render, Focus("p/rows")); err != nil {
+		tb.Fatal(err)
+	}
+	if err := r.OpenPage("p"); err != nil {
+		tb.Fatal(err)
+	}
+	m := NewModel(r)
+	m.Width, m.Height = 120, 40
+	m.View()
+	return m
+}
+
+// BenchmarkPageFrame is one keypress (j) and one frame on a page of n rows.
+func BenchmarkPageFrame(b *testing.B) {
+	for _, detail := range []bool{false, true} {
+		for _, n := range []int{2000, 8000} {
+			b.Run(fmt.Sprintf("detail=%v/%d", detail, n), func(b *testing.B) {
+				m := framePage(b, n, detail)
+				for b.Loop() {
+					m.handleKey(MacroKey{Key: "j"})
+					m.View()
+				}
+			})
+		}
+	}
+}
+
+// TestPageFrameScalesLinearly guards the per-key cost of a large page: a
+// keypress, the footer hints and a frame on four times the rows must cost
+// about four times as much, not sixteen (finding the page's detail once
+// walked the page asking Children per node, quadratic in the rows). The
+// bound is loose so only a quadratic path trips it; each size takes the
+// fastest of several rounds, so a slow round does not.
+func TestPageFrameScalesLinearly(t *testing.T) {
+	if testing.Short() {
+		t.Skip("timing")
+	}
+	const small, large, rounds = 1000, 4000, 7
+	for _, detail := range []bool{false, true} {
+		models := [2]*Model{framePage(t, small, detail), framePage(t, large, detail)}
+		best := [2]time.Duration{}
+		for round := 0; round < rounds; round++ {
+			for i, m := range models {
+				start := time.Now()
+				for _, key := range []string{"j", "J", "k"} {
+					m.handleKey(MacroKey{Key: key})
+					_ = BindingHints(m.Runtime, m.Runtime.Focus)
+					m.View()
+				}
+				if took := time.Since(start); round == 0 || took < best[i] {
+					best[i] = took
+				}
+			}
+		}
+		if ratio := float64(best[1]) / float64(best[0]); ratio > 10 {
+			t.Errorf("detail=%v: %d rows took %v, %d rows %v (x%.1f); want about x%d", detail, small, best[0], large, best[1], ratio, large/small)
+		}
+	}
 }
