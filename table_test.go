@@ -157,3 +157,21 @@ func TestTableWrapsCellsAndLabelsSections(t *testing.T) {
 		t.Fatalf("window inside a section\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
 	}
 }
+
+// Columns without titles draw no header: the first line is the first row.
+func TestTableWithoutTitlesHasNoHeader(t *testing.T) {
+	r := NewRuntime()
+	r.Define("row")
+	r.Instance("page", Kind("page"))
+	l, err := r.AddList("t", []ListItem{
+		{ID: "a", Noun: "row", Cells: []string{"scrolloff", "2"}},
+		{ID: "b", Noun: "row", Cells: []string{"", "item"}},
+	}, Parent("page"), Columns(Column{}, Column{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(ansi.Strip(l.View(30, 4)), "\n")
+	if strings.TrimRight(lines[0], " ") != "scrolloff  2" || strings.TrimRight(lines[1], " ") != "           item" {
+		t.Fatalf("lines %q", lines)
+	}
+}

@@ -405,7 +405,7 @@ Root package `ochazuke` is flat: 59 source files, 58 test files. Each entry list
 
 ### table.go
 
-- lines: 454 · tests: table_test.go
+- lines: 456 · tests: table_test.go
 - purpose: Align is a column's alignment: AlignLeft (the zero value) or AlignRight.
 - types: Align, Column
 - methods: List(6)

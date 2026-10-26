@@ -180,11 +180,13 @@ func tableLine(cols []Column, row []string, shown, widths []int) string {
 	return strings.Join(parts, strings.Repeat(" ", tableGap))
 }
 
-// tableView is View for a list with columns: the header line (bold), then
+// tableView is View for a list with columns: the header line (bold; none
+// when no column has a title), then
 // the rows in the list's window, the "x–y / n" line when they overflow;
 // the focused list's selected row is reversed across the whole width.
 func (l *List) tableView(width, height int) string {
-	header := height > 1
+	// Columns without titles (a list of name and value) draw no header.
+	header := height > 1 && slices.ContainsFunc(l.columns, func(c Column) bool { return c.Title != "" })
 	body := height
 	if header {
 		body--
