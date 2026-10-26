@@ -23,7 +23,23 @@ import (
 // or \r) is <br>, any other control character a space. With several
 // tables each starts with "## NOUN" and a blank line, and a blank line
 // separates them.
-var Formats = []string{"json", "table", "markdown"}
+//
+// toon is Token-Oriented Object Notation for uniform rows, the agent-facing
+// format (the rule o-qbt's --format toon follows), exactly: per table a
+// header "NOUN[N]{title,title,...}:" (N rows; a table with no noun has
+// none, "[N]{...}:"), then one line per row, indented two spaces, its
+// values joined by ",". A value, a title or the noun is bare unless it
+// contains a ",", a double quote, a newline or a carriage return; then it
+// is wrapped in double quotes with \ " newline and carriage return written
+// \\ \" \n \r. Nothing else is escaped: a bare value is its text (a
+// backslash in it is literal), a number-like string stays bare (a reader
+// types values by column), an empty or missing value is empty. Several
+// tables follow one another with no blank line.
+//
+//	pane[2]{pane,state,cwd}:
+//	  work/claude,idle,~/proj
+//	  "notes, old",done,~
+var Formats = []string{"json", "table", "markdown", "toon"}
 
 // A tabular result is an array (a JSON array, or Lines) whose elements are
 // all JSON objects: a list verb's rows ({id, label, data}), a state verb's
@@ -301,6 +317,8 @@ func (s *Shell) output(q ochazuke.Request, format string, value any) error {
 		writeTables(&b, tables, s.tableWidth())
 	case "markdown":
 		writeMarkdown(&b, tables)
+	case "toon":
+		writeTOON(&b, tables)
 	}
 	_, err := fmt.Fprint(s.stdout(), b.String())
 	return err
@@ -381,6 +399,39 @@ func writeMarkdown(b *strings.Builder, tables []table) {
 				cells[j] = cell(row[j])
 			}
 			line(cells)
+		}
+	}
+}
+
+// toonEscape writes the escapes inside a quoted TOON value.
+var toonEscape = strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`, "\r", `\r`)
+
+// toonValue is text as a TOON value: bare, or quoted when it holds a
+// comma, a double quote or a line break (see Formats).
+func toonValue(text string) string {
+	if !strings.ContainsAny(text, ",\"\n\r") {
+		return text
+	}
+	return `"` + toonEscape.Replace(text) + `"`
+}
+
+// writeTOON writes each table as a TOON tabular array (see Formats).
+func writeTOON(b *strings.Builder, tables []table) {
+	for _, t := range tables {
+		titles := make([]string, len(t.cols))
+		for i, c := range t.cols {
+			titles[i] = toonValue(c.Title)
+		}
+		fmt.Fprintf(b, "%s[%d]{%s}:\n", toonValue(t.noun), len(t.rows), strings.Join(titles, ","))
+		if len(t.cols) == 0 {
+			continue
+		}
+		for _, row := range t.rows {
+			values := make([]string, len(t.cols))
+			for i := range values {
+				values[i] = toonValue(row[i])
+			}
+			b.WriteString("  " + strings.Join(values, ",") + "\n")
 		}
 	}
 }

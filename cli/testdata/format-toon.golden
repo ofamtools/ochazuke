@@ -1,0 +1,17 @@
+$ tool pane list --format toon
+pane[3]{pane,state,cwd}:
+  work/claude,idle,~/proj/ochazuke
+  notes,needs_input,~/hub/o-plans/plans
+  bare row,,
+$ tool item list --format toon
+item[2]{id,label,path,size,tags,data.id}:
+  a,alpha,"/a, b",12,"[\"x\"]",
+  b,beta,/b|c,3456,,dup
+$ tool item none --format toon
+item[0]{}:
+$ tool thing state --format toon
+pane[2]{pane,state,cwd}:
+  work/claude,idle,~/proj
+  notes,done,~
+item[1]{id,label,note}:
+  a,alpha,"line one\nline \"two\""

@@ -117,6 +117,31 @@ func TestFormatMarkdownEscapes(t *testing.T) {
 	}
 }
 
+// TestFormatTOON: the same tables as TOON tabular arrays, one header per
+// noun.
+func TestFormatTOON(t *testing.T) {
+	checkGolden(t, "format-toon.golden", goldenFormat(t, "toon", 20, formatCommands...))
+}
+
+// TestFormatTOONEscapes: a comma, a quote or a line break quotes a value
+// (titles and the noun too) with \\ \" \n \r inside; a backslash alone, a
+// number-like string and an empty value stay bare.
+func TestFormatTOONEscapes(t *testing.T) {
+	var b strings.Builder
+	writeTOON(&b, []table{
+		{noun: "n,1", cols: []ochazuke.Column{{Title: "a,b"}, {Title: "c"}}, rows: [][]string{{`say "hi"\`, "1\r\n2"}, {`C:\x`, ""}, {"007", "x y"}}},
+		{cols: []ochazuke.Column{{Title: "only"}}},
+	})
+	want := `"n,1"[3]{"a,b",c}:` + "\n" +
+		`  "say \"hi\"\\","1\r\n2"` + "\n" +
+		`  C:\x,` + "\n" +
+		`  007,x y` + "\n" +
+		`[0]{only}:` + "\n"
+	if b.String() != want {
+		t.Fatalf("got\n%s\nwant\n%s", b.String(), want)
+	}
+}
+
 // TestFormatTableWidth: at a terminal's width cells cut with "…" and the
 // columns drop by Priority (cwd first, then state); without one nothing
 // is cut however long the line.
@@ -185,7 +210,7 @@ func TestFormatFlags(t *testing.T) {
 	if got, _, err := runFormat(t, -1, "pane", "list", "--format", "table", "--json", `{}`); err != nil || got != table {
 		t.Fatalf("--format table --json ARGS: %v\n%s", err, got)
 	}
-	if _, _, err := runFormat(t, -1, "pane", "list", "--format", "yaml"); err == nil || !strings.Contains(err.Error(), `--format "yaml": one of json, table, markdown`) {
+	if _, _, err := runFormat(t, -1, "pane", "list", "--format", "yaml"); err == nil || !strings.Contains(err.Error(), `--format "yaml": one of json, table, markdown, toon`) {
 		t.Fatalf("unknown format: %v", err)
 	}
 	if _, _, err := runFormat(t, -1, "pane", "list", "--json", "--format", "table"); err == nil || !strings.Contains(err.Error(), "bare --json") {
