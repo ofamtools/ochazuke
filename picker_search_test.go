@@ -56,6 +56,16 @@ func pickerEntryPaths(entries []PickerEntry) []string {
 	return paths
 }
 
+// pickerEntryShapes drops the walk's size and modification time, which the
+// fixtures do not pin.
+func pickerEntryShapes(entries []PickerEntry) []PickerEntry {
+	out := make([]PickerEntry, len(entries))
+	for i, entry := range entries {
+		out[i] = PickerEntry{Path: entry.Path, Dir: entry.Dir}
+	}
+	return out
+}
+
 func TestPickerRecursiveIgnoreRulesInsideAndOutsideGit(t *testing.T) {
 	pickerGitEnvironment(t)
 	for _, repository := range []bool{false, true} {
@@ -262,7 +272,7 @@ func TestPickerShallowIndexUsesNativeIgnoreRulesWithoutDescending(t *testing.T) 
 			if repository {
 				want = []PickerEntry{{Path: ".gitignore"}, {Path: "keep.tmp"}, {Path: "loop"}, {Path: "nested", Dir: true}}
 			}
-			if !reflect.DeepEqual(entries, want) {
+			if !reflect.DeepEqual(pickerEntryShapes(entries), want) {
 				t.Fatalf("shallow entries = %#v, want %#v", entries, want)
 			}
 			ctx, cancel := context.WithCancel(context.Background())
