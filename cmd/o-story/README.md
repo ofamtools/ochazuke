@@ -68,9 +68,12 @@ it to the timer's deadline and delivers the timer's message
     terminal: { fake: true, attach: "a1", height: 6 },
     jobs: [{ verb: "demo.build", key: "w", finishOnKey: "W", failOnKey: "X", quiet: false, start: 0, label: "" }],
     bind: [{ noun: "demo", mode: "normal", keys: "C", do: "notice.clear" }],
-    detail: { lines: 50, width: 0 }, // a scrollable detail (AddDetail) on the right:
+    detail: { lines: 50, width: 0, // a scrollable detail (AddDetail) on the right:
                                      // "detail 1–11 / 50", then "<row> line N" about the
                                      // focused list row (width 0 = half the page)
+              text: ["{item} only line"],      // instead of the generated lines; {item} is the row
+              texts: { a2: [] },               // per row id, before text ([] an empty detail)
+              split: false },                  // through Runtime.PaneLayout: > < = resize it
     markdown: { id: "markdown", text: "- [ ] milk\n", external: "…", height: 0 },
                                      // a markdown.Doc drawn in the page's order (its id in order);
                                      // toggles log "toggle LINE [x] TEXT" (writes); external is
@@ -97,7 +100,9 @@ it to the timer's deadline and delivers the timer's message
   script: ["j", "j", { type: "ping" }, { paste: "text" },
            { job: "demo.build", state: "done" },
            { tick: "linger" },    // tick: linger | binding | terminal | output | debounce
-           { restart: true }],    // quit and build the story again (same state directory)
+           { restart: true },     // quit and build the story again (same state directory)
+           { cli: ["detail", "scroll"] }], // cli.Shell on the session's runtime (a CLI call
+                                  // reaching the running app); the cli expect reads its output
   expect: { focus: "b1", visible: true },
   // or per step: [{ after: 2, focus: "b1" }, { ticker: [] }]  (after N = after the Nth event)
 }
@@ -110,7 +115,8 @@ full-strength reverse video), `dimmed` (rows whose only reverse video is
 under faint: an unfocused page list's selected row, a highlight beneath a
 modal; read in the mono theme), `highlightedText` (text every highlighted row holds), `cell` (the text of a `cellSelect` table's current cell, drawn reverse and underlined; `" "` for a blank one, `""` for none), `contains`, `lacks`, `order` (substrings in this order),
 `ticker`/`noTicker`, `notices`/`noNotices`, `styled` (text → `#RRGGBB`, or `!#RRGGBB`, for the styled run the text starts: cell-exact where `colored` is row-wide), `writes` (every change an
-editable tree wrote, `TreeChange.String`, in order; `[]` none). A story with no final expect is
+editable tree wrote, `TreeChange.String`, in order; `[]` none), `cli` (substrings of what
+the last `cli` event printed: stdout, stderr, then `error: …` when it failed). A story with no final expect is
 compared with `<name>.golden`: the frame in the mono theme, each row behind a
 gutter that reads `R|` when the row has full-strength reverse video, `r|`
 when its only reverse video is dimmed, `C|` (`c|` dimmed) when the
@@ -239,7 +245,10 @@ and reviewed one component at a time.
   spills into), the axis values that apply to it (`axes`, a restriction of
   the global values), impossible combinations (`exclude`, each with its
   `why`), its channel overrides (`channels`) and hand-written
-  `journeys`. The axes, the mapping of runtime modes onto the mode axis
+  `journeys`. An exclude with a `channel` applies to that channel's
+  actions only and may name one axis (`{"channel": "key", "outcome":
+  "error", "why": …}`: a value no key can reach). The axes, the
+  mapping of runtime modes onto the mode axis
   (`modes`), the channel map and the global excludes are defined once at
   the top.
 - The **channel map** (`channels`) says which axes each action channel's
@@ -289,6 +298,9 @@ and reviewed one component at a time.
   `in-macro` and `register` only by key. Cell ids read
   `COMPONENT/ACTION/axis=value,...` in the axes' order, for example
   `lists/list.move(delta=1)/mode=normal,placement=page,focus=focused,outcome=success,data=empty,state=plain,size=tiny,modifiers=none`.
+- Sizes, by the story's width: `tiny` below 50 columns, `narrow` 50 to
+  79, `normal` 80 to 119, `wide` 120 and over (the detail stories use
+  40x10, 60x16, 80x24 and 140x30).
 - A story says what it tests with `covers`: cell ids or `path.Match`
   patterns (`"covers": ["tables/list.column(delta=1)/*", "tables/~hosted"]`);
   a pattern matching a cell id's leading segments covers every cell under
@@ -351,14 +363,16 @@ Conformance:
 | mode | noun | verbs |
 |---|---|---|
 | count_pending | count | `count.append` |
+| count_pending | mode | `mode.leave` |
 | insert | chooser | `chooser.cancel` `chooser.move` `chooser.pick` |
 | insert | completion | `completion.accept` `completion.dismiss` `completion.move` `completion.open` |
 | insert | form | `form.next` |
 | insert | input | `input.insert` `input.kill` `input.move` |
+| insert | macro | `macro.record` |
 | insert | mode | `mode.set` |
 | insert | modes | `modes.list` |
 | insert | outline | `outline.indent` `outline.leave` |
-| insert | palette | `palette.move` `palette.run` |
+| insert | palette | `palette.cancel` `palette.move` `palette.run` |
 | insert | setting-value | `setting-value.cancel` `setting-value.commit` |
 | insert | settings | `settings.edit` |
 | list_filter | list | `list.filter-choose` `list.filter-clear` `list.filter-erase` `list.filter-keep` `list.filter-type` `list.move` |
@@ -372,6 +386,7 @@ Conformance:
 | normal | form-option | `form-option.pick` |
 | normal | input | `input.begin` `input.undo` |
 | normal | list | `list.apply` `list.column` `list.filter-clear` `list.filter-open` `list.goto` `list.move` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.visual` |
+| normal | macro | `macro.record` `macro.replay` `macro.start` `macro.stop` |
 | normal | markdown | `markdown.redo` `markdown.toggle` `markdown.undo` |
 | normal | modal | `modal.pop` |
 | normal | mode | `mode.enter` |
@@ -395,13 +410,16 @@ Mode edges (from → to via):
 - `count_pending` → `normal` via `list.goto`
 - `count_pending` → `normal` via `list.move`
 - `count_pending` → `normal` via `list.scroll`
+- `count_pending` → `normal` via `mode.leave`
 - `count_pending` → `normal` via `pane.grow`
 - `count_pending` → `normal` via `pane.shrink`
 - `count_pending g` → `normal` via `list.goto`
 - `insert` → `normal` via `chooser.cancel`
 - `insert` → `normal` via `chooser.pick`
+- `insert` → `normal` via `macro.record`
 - `insert` → `normal` via `mode.set`
 - `insert` → `normal` via `outline.leave`
+- `insert` → `normal` via `palette.cancel`
 - `insert` → `normal` via `palette.run`
 - `insert` → `normal` via `row esc`
 - `insert` → `normal` via `setting-value.cancel`
@@ -412,9 +430,11 @@ Mode edges (from → to via):
 - `list_filter` → `normal` via `list.filter-choose`
 - `list_filter` → `normal` via `list.filter-clear`
 - `list_filter` → `normal` via `list.filter-keep`
+- `macro_pending` → `normal` via `macro.start`
 - `normal` → `count_pending` via `mode.enter`
 - `normal` → `insert` via `form.suggest`
 - `normal` → `insert` via `input.begin`
+- `normal` → `insert` via `macro.record`
 - `normal` → `insert` via `outline.add`
 - `normal` → `insert` via `outline.edit`
 - `normal` → `insert` via `page.pick`
@@ -425,9 +445,11 @@ Mode edges (from → to via):
 - `normal` → `insert` via `setting.edit`
 - `normal` → `insert` via `settings.close`
 - `normal` → `list_filter` via `list.filter-open`
+- `normal` → `macro_pending` via `mode.enter`
 - `normal` → `normal d` via `row d`
 - `normal` → `normal g` via `row g`
 - `normal` → `normal z` via `row z`
+- `normal` → `replay_pending` via `mode.enter`
 - `normal` → `terminal` via `command.run`
 - `normal` → `terminal` via `demo.open`
 - `normal d` → `normal` via `outline.delete`
@@ -436,6 +458,7 @@ Mode edges (from → to via):
 - `normal z` → `normal` via `list.reset-columns`
 - `normal z` → `normal` via `list.resize-column`
 - `normal z` → `normal` via `list.scroll-columns`
+- `replay_pending` → `normal` via `macro.replay`
 - `terminal` → `leader_pending` via `mode.enter`
 
 <!-- verbs:end -->

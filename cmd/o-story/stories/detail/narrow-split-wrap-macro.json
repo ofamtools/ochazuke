@@ -1,0 +1,21 @@
+{
+  "name": "detail: in a narrow split, wrapped long lines scroll by row from a macro",
+  "area": "detail",
+  "width": 60,
+  "height": 16,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "detail": {"lines": 0, "width": 20, "split": true, "text": ["012345678901234567890123456789012345678901234567890123456789", "012345678901234567890123456789012345678901234567890123456789", "012345678901234567890123456789012345678901234567890123456789", "012345678901234567890123456789012345678901234567890123456789", "012345678901234567890123456789012345678901234567890123456789", "012345678901234567890123456789012345678901234567890123456789", "012345678901234567890123456789012345678901234567890123456789", "012345678901234567890123456789012345678901234567890123456789", "012345678901234567890123456789012345678901234567890123456789", "012345678901234567890123456789012345678901234567890123456789"]},
+    "bind": [{"noun": "app", "keys": "Q", "do": "mode.enter", "args": {"mode": "macro_pending"}}]
+  },
+  "script": ["Q", "a", "J", "J", "K", "q", "@", "a"],
+  "expect": [
+    {"after": 3, "focus": "a1", "contains": ["detail 2–", "/ 30", "01234567890123456789"], "lacks": ["012345678901234567890"]},
+    {"after": 5, "contains": ["detail 2–"]},
+    {"focus": "a1", "mode": "normal", "contains": ["detail 3–"]}
+  ],
+  "covers": [
+    "detail/detail.scroll(lines=*)/mode=normal,placement=split,focus=focused,outcome=success,data=long-cells,state=plain,size=narrow,modifiers=in-macro",
+    "detail/~hosted/placement=split,size=narrow"
+  ]
+}

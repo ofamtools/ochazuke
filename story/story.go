@@ -190,6 +190,17 @@ type ItemSpec struct {
 type DetailSpec struct {
 	Lines int `json:"lines"`
 	Width int `json:"width,omitempty"` // columns; default half the page
+	// Text replaces the generated lines: each entry is one line, "{item}"
+	// standing for the row the detail is about (CJK, long lines that wrap).
+	Text []string `json:"text,omitempty"`
+	// Texts are per-row texts by row id, before Text and the generated
+	// lines ([] is an empty detail), so one story holds rows whose details
+	// are empty, one line, overflowing, wide or wrapping.
+	Texts map[string][]string `json:"texts,omitempty"`
+	// Split draws the main column and the detail through the page's pane
+	// layout (Runtime.PaneLayout, Layout.Divide), so the divider keys
+	// (> < =) resize it, as a catalog page's list/detail split does.
+	Split bool `json:"split,omitempty"`
 }
 
 // MarkdownSpec is a Markdown document drawn in the page's order with the
@@ -292,6 +303,11 @@ type Event struct {
 	// Restart quits the session and builds it again from the story with
 	// the same state directory (State), as a user reopening the app.
 	Restart bool `json:"restart,omitempty"`
+	// CLI runs NOUN VERB [ARG...] [--FLAG...] through cli.Shell against the
+	// session's runtime, as a CLI call reaching the running app; what it
+	// printed (stdout, stderr, then "error: ..." when it failed) is what
+	// the cli expect reads.
+	CLI []string `json:"cli,omitempty"`
 }
 
 // UnmarshalJSON reads a bare string as a key press.
@@ -307,7 +323,7 @@ func (e *Event) UnmarshalJSON(b []byte) error {
 
 // MarshalJSON writes an untimed key press as a bare string.
 func (e Event) MarshalJSON() ([]byte, error) {
-	if e.T == 0 && e.Key != "" && e.Type == "" && e.Paste == "" && e.Job == "" && e.Tick == "" && !e.Restart {
+	if e.T == 0 && e.Key != "" && e.Type == "" && e.Paste == "" && e.Job == "" && e.Tick == "" && !e.Restart && e.CLI == nil {
 		return json.Marshal(e.Key)
 	}
 	type plain Event
@@ -329,6 +345,8 @@ func (e Event) String() string {
 		return "tick " + e.Tick
 	case e.Restart:
 		return "restart"
+	case e.CLI != nil:
+		return "cli " + strings.Join(e.CLI, " ")
 	}
 	return "(empty)"
 }
@@ -374,6 +392,9 @@ type Expect struct {
 	// Markdown documents wrote, in order (TreeChange.String,
 	// RecordWrite.String, "toggle LINE [x] TEXT"); [] expects none.
 	Writes *[]string `json:"writes,omitempty"`
+	// CLI are substrings of what the last cli event printed (stdout,
+	// stderr, then "error: ..." when the call failed).
+	CLI []string `json:"cli,omitempty"`
 }
 
 // Expects is one final Expect or a list of per-step ones.

@@ -1,0 +1,23 @@
+{
+  "name": "detail: a wide-rune detail scrolls, an empty one ignores a counted J/K under a filter",
+  "area": "detail",
+  "width": 60,
+  "height": 16,
+  "page": {
+    "lists": [{"id": "a", "rows": 3}],
+    "detail": {"lines": 50, "width": 16, "texts": {"a1": ["一二三四五六七八一二三四五六七八一二三四五六七八", "一二三四五六七八一二三四五六七八一二三四五六七八", "一二三四五六七八一二三四五六七八一二三四五六七八", "一二三四五六七八一二三四五六七八一二三四五六七八", "一二三四五六七八一二三四五六七八一二三四五六七八", "一二三四五六七八一二三四五六七八一二三四五六七八", "一二三四五六七八一二三四五六七八一二三四五六七八", "一二三四五六七八一二三四五六七八一二三四五六七八", "一二三四五六七八一二三四五六七八一二三四五六七八", "一二三四五六七八一二三四五六七八一二三四五六七八"], "a2": []}}
+  },
+  "script": ["J", "K", "/", {"type": "a2"}, "enter", "5", "J", "5", "K"],
+  "expect": [
+    {"after": 1, "focus": "a1", "contains": ["detail 2–", "/ 30", "一二三四五六七八"], "lacks": ["一二三四五六七八一"]},
+    {"after": 2, "contains": ["detail 1–"]},
+    {"after": 5, "focus": "a2", "mode": "normal", "contains": ["/a2"], "lacks": [" / ", "J/K detail"]},
+    {"after": 7, "focus": "a2", "mode": "normal", "contains": ["/a2"], "lacks": [" / ", "Error"]},
+    {"focus": "a2", "mode": "normal", "contains": ["/a2"], "lacks": [" / ", "Error"]}
+  ],
+  "covers": [
+    "detail/detail.scroll(lines=*)/mode=normal,placement=page,focus=focused,outcome=success,data=wide-cjk,state=plain,size=narrow,modifiers=none",
+    "detail/detail.scroll(lines=*)/mode=normal,placement=page,focus=focused,outcome=guard-false,data=empty,state=filtered,size=narrow,modifiers=count",
+    "detail/~hosted/placement=page,size=narrow"
+  ]
+}

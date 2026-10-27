@@ -1,0 +1,15 @@
+{
+  "name": "detail: ? help lists J and K as detail.scroll under movement",
+  "area": "detail",
+  "width": 100,
+  "height": 40,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "detail": {"lines": 50}
+  },
+  "script": ["?", "G"],
+  "expect": {"modal": "bindings-help", "contains": ["movement", "detail.scroll"]},
+  "covers": [
+    "detail/~hints/surface=help,mode=normal"
+  ]
+}

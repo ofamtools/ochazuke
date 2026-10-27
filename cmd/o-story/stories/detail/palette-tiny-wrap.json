@@ -1,0 +1,20 @@
+{
+  "name": "detail: under the palette in a tiny page, J/K leave a filtered list's wrapped detail where it was",
+  "area": "detail",
+  "width": 40,
+  "height": 10,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "detail": {"lines": 0, "width": 16, "text": ["0123456789012345678901234567890123456789", "0123456789012345678901234567890123456789", "0123456789012345678901234567890123456789", "0123456789012345678901234567890123456789", "0123456789012345678901234567890123456789", "0123456789012345678901234567890123456789"]}
+  },
+  "script": ["/", {"type": "a1"}, "enter", "J", ":", "J", "K", "esc", "esc"],
+  "expect": [
+    {"after": 4, "focus": "a1", "contains": ["detail 2–", "/ 18"]},
+    {"after": 7, "modal": "palette", "contains": ["JK"]},
+    {"focus": "a1", "mode": "normal", "modal": "", "contains": ["detail 2–", "/a1"]}
+  ],
+  "covers": [
+    "detail/detail.scroll(lines=*)/mode=normal,placement=under-palette,focus=unfocused,outcome=guard-false,data=long-cells,state=filtered,size=tiny,modifiers=none",
+    "detail/~hosted/placement=under-palette,size=tiny"
+  ]
+}

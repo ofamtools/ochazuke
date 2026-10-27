@@ -1,0 +1,27 @@
+{
+  "name": "detail: long lines wrap into rows J/K step through; a macro of J/K replays the scroll",
+  "area": "detail",
+  "width": 80,
+  "height": 24,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "detail": {"lines": 50, "width": 20, "texts": {"a1": ["012345678901234567890123456789012345678901234567890123456789", "012345678901234567890123456789012345678901234567890123456789", "012345678901234567890123456789012345678901234567890123456789", "012345678901234567890123456789012345678901234567890123456789", "012345678901234567890123456789012345678901234567890123456789", "012345678901234567890123456789012345678901234567890123456789", "012345678901234567890123456789012345678901234567890123456789", "012345678901234567890123456789012345678901234567890123456789", "012345678901234567890123456789012345678901234567890123456789", "012345678901234567890123456789012345678901234567890123456789"]}},
+    "bind": [{"noun": "app", "keys": "Q", "do": "mode.enter", "args": {"mode": "macro_pending"}}]
+  },
+  "script": ["J", "K", "j", "Q", "a", "J", "J", "K", "q", "@", "a"],
+  "expect": [
+    {"after": 1, "focus": "a1", "contains": ["detail 2–", "/ 30", "01234567890123456789"], "lacks": ["012345678901234567890"]},
+    {"after": 2, "contains": ["detail 1–"]},
+    {"after": 3, "focus": "a2", "contains": ["detail 1–", "a2 line 1"]},
+    {"after": 6, "contains": ["detail 2–", "a2 line 2"]},
+    {"after": 7, "contains": ["detail 3–"]},
+    {"after": 8, "contains": ["detail 2–"]},
+    {"after": 9, "mode": "normal", "contains": ["detail 2–"]},
+    {"focus": "a2", "mode": "normal", "contains": ["detail 3–", "a2 line 3"]}
+  ],
+  "covers": [
+    "detail/detail.scroll(lines=*)/mode=normal,placement=page,focus=focused,outcome=success,data=long-cells,state=plain,size=normal,modifiers=none",
+    "detail/detail.scroll(lines=*)/mode=normal,placement=page,focus=focused,outcome=success,data=overflow,state=plain,size=normal,modifiers=in-macro",
+    "detail/~hosted/placement=page,size=normal"
+  ]
+}

@@ -57,7 +57,7 @@ func (m *Map) Build(inv *Inventory) *Matrix {
 				continue
 			}
 			params, full := m.params(c, a, keyModes)
-			for _, row := range Combos(params, full, excludes) {
+			for _, row := range Combos(params, full, excludesFor(excludes, a.Channel)) {
 				cell := Cell{Component: c.ID, Action: a.ID, Channel: a.Channel, Operation: a.Operation, Axes: map[string]string{}}
 				var parts []string
 				for j, p := range params {

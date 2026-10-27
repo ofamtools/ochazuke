@@ -1,0 +1,21 @@
+{
+  "name": "detail: in a wide split, a counted J/K from another stop scrolls the filtered list's detail",
+  "area": "detail",
+  "width": 140,
+  "height": 30,
+  "page": {
+    "lists": [{"id": "a", "rows": 3}],
+    "inputs": [{"id": "name", "label": "name", "text": "hello"}],
+    "detail": {"lines": 80, "split": true}
+  },
+  "script": ["/", {"type": "a2"}, "enter", "}", "5", "J", "2", "K"],
+  "expect": [
+    {"after": 4, "focus": "name", "mode": "normal", "contains": ["/a2", "detail 1–", "a2 line 1"]},
+    {"after": 6, "focus": "name", "mode": "normal", "contains": ["detail 6–", "a2 line 6"]},
+    {"focus": "name", "mode": "normal", "contains": ["/a2", "detail 4–", "a2 line 4"], "lacks": ["a3"]}
+  ],
+  "covers": [
+    "detail/detail.scroll(lines=*)/mode=normal,placement=split,focus=unfocused,outcome=success,data=overflow,state=filtered,size=wide,modifiers=count",
+    "detail/~hosted/placement=split,size=wide"
+  ]
+}

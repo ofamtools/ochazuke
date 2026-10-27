@@ -1,13 +1,17 @@
 package story
 
 import (
+	"bytes"
+	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/unixsuperhero/ochazuke"
+	"github.com/unixsuperhero/ochazuke/cli"
 	"github.com/unixsuperhero/ochazuke/internal/keytest"
 )
 
@@ -284,6 +288,14 @@ func (d *Driver) step(e Event) error {
 		}
 	case e.Restart:
 		return d.rebuild(true)
+	case e.CLI != nil:
+		var out bytes.Buffer
+		sh := cli.New(d.S.R, "o-story", strings.NewReader(""), &out, &out)
+		if err := sh.Run(context.Background(), e.CLI); err != nil {
+			fmt.Fprintln(&out, "error:", err)
+		}
+		d.S.CLIOut = out.String()
+		d.run(d.S.R.PendingCommands())
 	case e.Tick == "output":
 		if !d.S.Emit() {
 			return errors.New("tick output: no fake pane is live")

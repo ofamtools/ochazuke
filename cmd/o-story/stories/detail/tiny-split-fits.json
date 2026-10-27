@@ -1,0 +1,24 @@
+{
+  "name": "detail: in a tiny split, a one-line or empty detail ignores counted, macro and unfocused J/K",
+  "area": "detail",
+  "width": 40,
+  "height": 10,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "inputs": [{"id": "name", "label": "name", "text": "hello"}],
+    "detail": {"lines": 0, "split": true, "texts": {"a1": ["{item} one"], "a2": []}},
+    "bind": [{"noun": "app", "keys": "Q", "do": "mode.enter", "args": {"mode": "macro_pending"}}]
+  },
+  "script": ["/", {"type": "a1"}, "enter", "3", "J", "3", "K", "esc", "j", "}", "Q", "a", "J", "K", "q", "@", "a"],
+  "expect": [
+    {"after": 3, "focus": "a1", "contains": ["/a1", "a1 one"]},
+    {"after": 7, "focus": "a1", "mode": "normal", "contains": ["a1 one"], "lacks": [" / ", "Error"]},
+    {"after": 10, "focus": "name", "mode": "normal"},
+    {"focus": "name", "mode": "normal", "lacks": [" / ", "Error", "a1 one"]}
+  ],
+  "covers": [
+    "detail/detail.scroll(lines=*)/mode=normal,placement=split,focus=focused,outcome=guard-false,data=one,state=filtered,size=tiny,modifiers=count",
+    "detail/detail.scroll(lines=*)/mode=normal,placement=split,focus=unfocused,outcome=guard-false,data=empty,state=plain,size=tiny,modifiers=in-macro",
+    "detail/~hosted/placement=split,size=tiny"
+  ]
+}

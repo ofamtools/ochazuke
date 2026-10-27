@@ -434,6 +434,13 @@
         "modifiers": ["none", "count", "in-macro"],
         "outcome": ["success", "guard-false", "error"]
       },
+      "exclude": [
+        {"channel": "key", "outcome": "error", "why": "J and K answer only under detail-scrolls, which needs the page's detail the verb then scrolls; the verb's one error (no detail on this page) cannot follow a key"},
+        {"channel": "key", "data": "empty", "outcome": "success", "why": "an empty detail never overflows, so detail-scrolls is false and J and K do not answer"},
+        {"channel": "key", "data": "one", "outcome": "success", "why": "a one-line detail fits every window (at least one row), so detail-scrolls is false and J and K do not answer"},
+        {"channel": "key", "placement": "under-palette", "outcome": "success", "why": "J and K typed while the palette is open are its line's text; detail-scrolls is false under any modal"},
+        {"channel": "spill", "to": "panes", "why": "the pane divider is not a focus stop: no motion spills into it (the split it draws is the placement axis)"}
+      ],
       "journeys": []
     },
     {

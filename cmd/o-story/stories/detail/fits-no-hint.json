@@ -1,6 +1,7 @@
 {
   "name": "detail: a detail that fits has no marker and no J/K hint",
   "area": "detail",
+  "covers": ["detail/~hints/surface=footer,mode=normal"],
   "width": 160,
   "page": {
     "lists": [{"id": "a", "rows": 4}],

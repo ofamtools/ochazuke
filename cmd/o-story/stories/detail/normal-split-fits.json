@@ -1,0 +1,21 @@
+{
+  "name": "detail: in a split, a detail that fits (one line, or wide runes) ignores J/K and counts",
+  "area": "detail",
+  "width": 80,
+  "height": 24,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "detail": {"lines": 0, "width": 16, "split": true, "texts": {"a1": ["{item} one"], "a2": ["一二三四五六七八一二三四五六七八", "一二三四五六七八一二三四五六七八"]}}
+  },
+  "script": ["J", "K", "j", "4", "J", "4", "K"],
+  "expect": [
+    {"after": 2, "focus": "a1", "mode": "normal", "contains": ["a1 one"], "lacks": [" / ", "Error", "J/K detail"]},
+    {"after": 3, "focus": "a2", "contains": ["一二三四五六七八"], "lacks": ["一二三四五六七八一", " / "]},
+    {"focus": "a2", "mode": "normal", "contains": ["一二三四五六七八"], "lacks": [" / ", "Error", "J/K detail"]}
+  ],
+  "covers": [
+    "detail/detail.scroll(lines=*)/mode=normal,placement=split,focus=focused,outcome=guard-false,data=one,state=plain,size=normal,modifiers=none",
+    "detail/detail.scroll(lines=*)/mode=normal,placement=split,focus=focused,outcome=guard-false,data=wide-cjk,state=plain,size=normal,modifiers=count",
+    "detail/~hosted/placement=split,size=normal"
+  ]
+}

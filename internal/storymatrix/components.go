@@ -50,10 +50,14 @@ type Channel struct {
 var channelNames = []string{ChannelKey, ChannelPalette, ChannelCLI, ChannelParity, ChannelHosted, ChannelSpill, ChannelHints}
 
 // Exclude is one impossible combination: axis -> value, and why. A cell
-// whose values include every pair of an exclude is dropped.
+// whose values include every pair of an exclude is dropped. Channel, when
+// set, scopes the exclude to that channel's actions; a scoped exclude may
+// name a single axis (a value the channel can never reach, such as a key
+// outcome its guard rules out), an unscoped one names two at least.
 type Exclude struct {
-	Match map[string]string
-	Why   string
+	Match   map[string]string
+	Channel string
+	Why     string
 }
 
 func (e *Exclude) UnmarshalJSON(b []byte) error {
@@ -61,18 +65,34 @@ func (e *Exclude) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &m); err != nil {
 		return err
 	}
-	e.Why = m["why"]
+	e.Why, e.Channel = m["why"], m["channel"]
 	delete(m, "why")
+	delete(m, "channel")
 	e.Match = m
 	return nil
 }
 
 func (e Exclude) MarshalJSON() ([]byte, error) {
 	m := map[string]string{"why": e.Why}
+	if e.Channel != "" {
+		m["channel"] = e.Channel
+	}
 	for k, v := range e.Match {
 		m[k] = v
 	}
 	return json.Marshal(m)
+}
+
+// excludesFor is the excludes that apply to a channel's actions: the
+// unscoped ones and the ones scoped to it.
+func excludesFor(excludes []Exclude, channel string) []Exclude {
+	var out []Exclude
+	for _, e := range excludes {
+		if e.Channel == "" || e.Channel == channel {
+			out = append(out, e)
+		}
+	}
+	return out
 }
 
 // Component is one user-facing component.
@@ -211,7 +231,12 @@ func (m *Map) check() error {
 		if e.Why == "" {
 			add("%s: an exclude without a why", where)
 		}
-		if len(e.Match) < 2 {
+		switch {
+		case e.Channel != "" && !slices.Contains(channelNames, e.Channel):
+			add("%s: exclude channel %q is not an action channel", where, e.Channel)
+		case e.Channel != "" && len(e.Match) < 1:
+			add("%s: a channel exclude must name an axis", where)
+		case e.Channel == "" && len(e.Match) < 2:
 			add("%s: an exclude must name at least two axes", where)
 		}
 		for a, v := range e.Match {

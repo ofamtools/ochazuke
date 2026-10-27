@@ -1,0 +1,20 @@
+{
+  "name": "detail: on a page without a detail the palette line and the CLI fail alike; J does not answer",
+  "area": "detail",
+  "width": 80,
+  "height": 24,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}]
+  },
+  "script": ["J", ":", {"type": "detail scroll"}, "enter", "esc", "esc", {"cli": ["detail", "scroll"]}],
+  "expect": [
+    {"after": 1, "focus": "a1", "mode": "normal", "lacks": ["Error"]},
+    {"after": 4, "contains": ["no detail on this page"]},
+    {"focus": "a1", "cli": ["error: no detail on this page"]}
+  ],
+  "covers": [
+    "detail/palette:detail.scroll/outcome=error",
+    "detail/cli:detail.scroll/outcome=error",
+    "detail/parity:detail.scroll/outcome=error"
+  ]
+}

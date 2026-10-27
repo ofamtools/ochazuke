@@ -278,6 +278,11 @@ func Check(ss *Session, e Expect) []string {
 	if e.Writes != nil && !slices.Equal(ss.Writes, *e.Writes) && (len(ss.Writes) > 0 || len(*e.Writes) > 0) {
 		failf("writes %q, want %q", ss.Writes, *e.Writes)
 	}
+	for _, s := range e.CLI {
+		if !strings.Contains(ss.CLIOut, s) {
+			failf("cli printed %q, lacks %q", ss.CLIOut, s)
+		}
+	}
 	if len(bad) > 0 {
 		bad = append(bad, "frame:\n"+Golden(frame))
 	}

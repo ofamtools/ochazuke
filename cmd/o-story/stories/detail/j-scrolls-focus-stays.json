@@ -1,6 +1,7 @@
 {
   "name": "detail: J scrolls the detail a line, the list keeps the focus",
   "area": "detail",
+  "covers": ["detail/~hints/surface=footer,mode=normal"],
   "width": 160,
   "page": {
     "lists": [{"id": "a", "rows": 4}],

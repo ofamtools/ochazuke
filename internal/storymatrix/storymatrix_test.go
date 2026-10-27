@@ -313,7 +313,8 @@ func TestPairwiseCoversEveryPair(t *testing.T) {
 				continue
 			}
 			params, full := m.params(c, a, keyModes)
-			covered(t, id+"/"+a.ID, params, full, excludes, Combos(params, full, excludes))
+			scoped := excludesFor(excludes, a.Channel)
+			covered(t, id+"/"+a.ID, params, full, scoped, Combos(params, full, scoped))
 		}
 	}
 }
