@@ -16,14 +16,16 @@
   "expect": [
     {
       "after": 1,
-      "highlighted": 1,
+      "highlighted": 0,
+      "dimmed": 1,
       "mode": "insert",
       "lacks": [
         "> "
       ]
     },
     {
-      "highlighted": 1,
+      "highlighted": 0,
+      "dimmed": 1,
       "contains": [
         "> accept"
       ]

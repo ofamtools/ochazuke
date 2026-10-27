@@ -74,7 +74,8 @@
         "Echo",
         "Charlie  current"
       ],
-      "highlighted": 2
+      "highlighted": 1,
+      "dimmed": 1
     },
     {
       "page": "p02",

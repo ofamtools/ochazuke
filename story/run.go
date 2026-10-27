@@ -11,24 +11,71 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// reverse is the escape that starts reverse video: the one highlight.
-const reverse = "\x1b[7m"
-
 // Golden is a frame as a golden file holds it: each row stripped of
-// escapes behind a gutter that reads "R|" when the row has reverse video
-// and " |" otherwise, so goldens pin the highlight without colour.
+// escapes behind a gutter that reads "R|" when the row has full-strength
+// reverse video, "r|" when its only reverse video is dimmed (faint: an
+// unfocused list's selected row, a highlight beneath a modal) and " |"
+// otherwise, so goldens pin the highlight without colour.
 func Golden(frame string) string {
 	var b strings.Builder
 	for _, row := range strings.Split(frame, "\n") {
-		if strings.Contains(row, reverse) {
+		switch full, dimmed := highlights(row); {
+		case full:
 			b.WriteString("R|")
-		} else {
+		case dimmed:
+			b.WriteString("r|")
+		default:
 			b.WriteString(" |")
 		}
 		b.WriteString(strings.TrimRight(ansi.Strip(row), " "))
 		b.WriteByte('\n')
 	}
 	return b.String()
+}
+
+// highlights reports whether a row holds reverse video at full strength
+// and whether it holds reverse video under the faint attribute (dimmed), by
+// following the SGR state along the row.
+func highlights(row string) (full, dimmed bool) {
+	faint := false
+	for i := 0; i < len(row); i++ {
+		if row[i] != 0x1b || i+1 >= len(row) || row[i+1] != '[' {
+			continue
+		}
+		j := i + 2
+		for j < len(row) && (row[j] >= '0' && row[j] <= '9' || row[j] == ';' || row[j] == ':') {
+			j++
+		}
+		if j >= len(row) || row[j] != 'm' {
+			continue
+		}
+		params := strings.Split(row[i+2:j], ";")
+		for _, p := range params {
+			switch p {
+			case "", "0":
+				faint = false
+			case "2":
+				faint = true
+			case "22":
+				faint = false
+			case "7":
+				if faint {
+					dimmed = true
+				} else {
+					full = true
+				}
+			}
+		}
+		i = j
+	}
+	return full, dimmed
+}
+
+func btoi(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 // Check reports what in e does not hold for the session's current frame.
@@ -59,21 +106,24 @@ func Check(ss *Session, e Expect) []string {
 			failf("focused %q on screen = %v, want %v", lbl, on, *e.Visible)
 		}
 	}
-	if e.Highlighted != nil {
-		n := 0
+	if e.Highlighted != nil || e.Dimmed != nil {
+		full, dimmed := 0, 0
 		for _, row := range strings.Split(frame, "\n") {
-			if strings.Contains(row, reverse) {
-				n++
-			}
+			f, d := highlights(row)
+			full += btoi(f)
+			dimmed += btoi(d)
 		}
-		if n != *e.Highlighted {
-			failf("%d highlighted rows, want %d", n, *e.Highlighted)
+		if e.Highlighted != nil && full != *e.Highlighted {
+			failf("%d highlighted rows, want %d", full, *e.Highlighted)
+		}
+		if e.Dimmed != nil && dimmed != *e.Dimmed {
+			failf("%d dimmed highlighted rows, want %d", dimmed, *e.Dimmed)
 		}
 	}
 	if e.HighlightedText != "" {
 		n := 0
 		for _, row := range strings.Split(frame, "\n") {
-			if strings.Contains(row, reverse) {
+			if full, _ := highlights(row); full {
 				n++
 				if !strings.Contains(ansi.Strip(row), e.HighlightedText) {
 					failf("highlighted row %q lacks %q", strings.TrimSpace(ansi.Strip(row)), e.HighlightedText)

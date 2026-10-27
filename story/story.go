@@ -331,9 +331,14 @@ type Expect struct {
 	Modal *string `json:"modal,omitempty"` // top modal instance, "" for none
 	Page  string  `json:"page,omitempty"`
 	// Shift is the current page's pane divider (Runtime.PaneShift).
-	Shift       *int  `json:"shift,omitempty"`
-	Visible     *bool `json:"visible,omitempty"` // the focused element's label is on screen
-	Highlighted *int  `json:"highlighted,omitempty"`
+	Shift   *int  `json:"shift,omitempty"`
+	Visible *bool `json:"visible,omitempty"` // the focused element's label is on screen
+	// Highlighted counts rows holding a full-strength highlight (reverse
+	// video not under faint); Dimmed counts rows holding a dimmed one (an
+	// unfocused page list's selected row, a highlight beneath a modal).
+	// Dimmed is read in the mono theme, where a dim is the faint attribute.
+	Highlighted *int `json:"highlighted,omitempty"`
+	Dimmed      *int `json:"dimmed,omitempty"`
 	// HighlightedText is text every highlighted row holds (the selected row's label).
 	HighlightedText string   `json:"highlightedText,omitempty"`
 	Contains        []string `json:"contains,omitempty"`

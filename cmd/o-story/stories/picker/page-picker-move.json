@@ -136,7 +136,8 @@
     {
       "after": 1,
       "modal": "page-picker",
-      "highlighted": 2
+      "highlighted": 1,
+      "dimmed": 1
     },
     {
       "page": "p03",
