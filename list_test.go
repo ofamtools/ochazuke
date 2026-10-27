@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/x/ansi"
+	"github.com/unixsuperhero/ochazuke/internal/keytest"
 )
 
 func listFixture(t *testing.T) (*Runtime, *List, *Input, []ListItem) {
@@ -279,10 +280,11 @@ func highlightedRows(view string) []string {
 	return out
 }
 
-// Only the focused list shows its selected row, by the highlight alone: no
-// list draws a cursor marker, and an unfocused list's rows are plain. Marked
+// A list shows its selected row by the highlight alone: no list draws a
+// cursor marker, and a page list keeps its selected row reversed while
+// another list has the focus (without a Model there is no fade). Marked
 // rows take a "* " gutter, which every row gets while the list has a mark.
-func TestListOnlyTheFocusedListHighlightsAndNoneDrawsAMarker(t *testing.T) {
+func TestListSelectedRowIsTheHighlightAloneAndNoListDrawsAMarker(t *testing.T) {
 	r, list, _, items := listFixture(t)
 	other, err := NewList(r, "other-list", []ListItem{{ID: "x", Label: "Ex", Noun: "a"}, {ID: "y", Label: "Why", Noun: "a"}}, Parent("page"))
 	if err != nil {
@@ -294,11 +296,11 @@ func TestListOnlyTheFocusedListHighlightsAndNoneDrawsAMarker(t *testing.T) {
 	if got := highlightedRows(list.View(30, 3)); !reflect.DeepEqual(got, []string{"First item"}) {
 		t.Fatalf("focused list highlights %q", got)
 	}
-	plain := other.View(30, 2)
-	if got := highlightedRows(plain); got != nil || ansi.Strip(plain) != plain {
-		t.Fatalf("unfocused list is styled: %q", plain)
+	unfocused := other.View(30, 2)
+	if got := highlightedRows(unfocused); !reflect.DeepEqual(got, []string{"Ex"}) {
+		t.Fatalf("unfocused page list highlights %q, want its selected row", got)
 	}
-	if rows := strings.Split(ansi.Strip(list.View(30, 3)+"\n"+plain), "\n"); !strings.HasPrefix(rows[0], "First item") || !strings.HasPrefix(rows[3], "Ex") {
+	if rows := strings.Split(ansi.Strip(list.View(30, 3)+"\n"+unfocused), "\n"); !strings.HasPrefix(rows[0], "First item") || !strings.HasPrefix(rows[3], "Ex") || !strings.HasPrefix(rows[4], "Why") {
 		t.Fatalf("rows do not start at the left edge or carry a marker: %q", rows)
 	}
 	if err := list.ToggleMark(items[1].ID); err != nil {
@@ -307,11 +309,17 @@ func TestListOnlyTheFocusedListHighlightsAndNoneDrawsAMarker(t *testing.T) {
 	if got := strings.Split(ansi.Strip(list.View(30, 3)), "\n"); strings.TrimRight(got[0], " ") != "  First item" || strings.TrimRight(got[1], " ") != "* Second item" {
 		t.Fatalf("marked gutter: %q", got)
 	}
+	if err := other.Select("y"); err != nil {
+		t.Fatal(err)
+	}
+	if got := highlightedRows(other.View(30, 2)); !reflect.DeepEqual(got, []string{"Why"}) {
+		t.Fatalf("unfocused list after a select highlights %q", got)
+	}
 	if err := other.Focus(); err != nil {
 		t.Fatal(err)
 	}
-	if highlightedRows(list.View(30, 3)) != nil || !reflect.DeepEqual(highlightedRows(other.View(30, 2)), []string{"Ex"}) {
-		t.Fatal("the highlight did not follow the focus")
+	if !reflect.DeepEqual(highlightedRows(list.View(30, 3)), []string{"First item"}) || !reflect.DeepEqual(highlightedRows(other.View(30, 2)), []string{"Why"}) {
+		t.Fatal("a list lost its selected row when the focus moved")
 	}
 }
 
@@ -481,5 +489,158 @@ func TestNoMarksListTakesNoMarks(t *testing.T) {
 	}
 	if _, err := r.Execute(Request{Noun: "list", Verb: "mark", Args: Arguments{"id": "view", "item": "v1"}}); err == nil {
 		t.Fatal("list.mark marked a NoMarks list")
+	}
+}
+
+// reverseRows classifies view's rows that hold reverse video: full is the
+// stripped rows whose reverse is at full strength, faint those whose
+// reverse is under the faint attribute (an unfocused list's selected row
+// in mono), following the SGR state along each row.
+func reverseRows(view string) (full, faint []string) {
+	for _, row := range strings.Split(view, "\n") {
+		dim, isFull, isFaint := false, false, false
+		for rest := row; ; {
+			i := strings.Index(rest, "\x1b[")
+			if i < 0 {
+				break
+			}
+			rest = rest[i+2:]
+			end := strings.IndexByte(rest, 'm')
+			if end < 0 || strings.ContainsFunc(rest[:end], func(c rune) bool { return (c < '0' || c > '9') && c != ';' }) {
+				continue
+			}
+			for _, p := range strings.Split(rest[:end], ";") {
+				switch p {
+				case "", "0", "22":
+					dim = false
+				case "2":
+					dim = true
+				case "7":
+					isFull, isFaint = isFull || !dim, isFaint || dim
+				}
+			}
+			rest = rest[end+1:]
+		}
+		label := strings.TrimSpace(ansi.Strip(row))
+		if isFull {
+			full = append(full, label)
+		} else if isFaint {
+			faint = append(faint, label)
+		}
+	}
+	return full, faint
+}
+
+// dimFixture is a Model in the mono theme over a page with two lists, the
+// first focused, and a settings directory so the dim settings can be set.
+func dimFixture(t *testing.T) (*Runtime, *Model, *List, *List) {
+	t.Helper()
+	r := NewRuntime()
+	r.Config().Dir = t.TempDir()
+	r.Define("item")
+	r.Instance("main", Parent("app"), Kind("page"))
+	left, err := r.AddList("left", []ListItem{{ID: "a", Label: "Alpha", Noun: "item"}, {ID: "b", Label: "Beta", Noun: "item"}}, Parent("main"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	right, err := r.AddList("right", []ListItem{{ID: "x", Label: "Ex", Noun: "item"}, {ID: "y", Label: "Why", Noun: "item"}}, Parent("main"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := r.RegisterPage(&Page{ID: "main", Title: "Main", Focus: "left", Render: func(r *Runtime, w, h int) Block {
+		return Text(r.List("left").View(w, 2) + "\n" + r.List("right").View(w, 2))
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	m := NewModel(r)
+	m.Width, m.Height = 40, 12
+	m.Init()
+	m.Appearance.Theme = "mono"
+	if err := r.OpenPage("main"); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.SetFocus("a"); err != nil {
+		t.Fatal(err)
+	}
+	return r, m, left, right
+}
+
+// An unfocused page list keeps its selected row, faded with the list
+// (faint in mono), so the focused list's row is the one at full strength;
+// dim-unfocused 0 turns the fade off and the row is plain reverse.
+func TestUnfocusedPageListKeepsItsRowFaded(t *testing.T) {
+	r, m, left, right := dimFixture(t)
+	if full, faint := reverseRows(left.View(30, 2)); len(full) != 1 || full[0] != "Alpha" || faint != nil {
+		t.Fatalf("focused list: full %q faint %q", full, faint)
+	}
+	if full, faint := reverseRows(right.View(30, 2)); full != nil || len(faint) != 1 || faint[0] != "Ex" {
+		t.Fatalf("unfocused list: full %q faint %q", full, faint)
+	}
+	if !strings.Contains(right.View(30, 2), "\x1b[2m") {
+		t.Fatal("the unfocused list is not faint")
+	}
+	if full, faint := reverseRows(m.View().Content); len(full) != 1 || full[0] != "Alpha" || len(faint) != 1 || faint[0] != "Ex" {
+		t.Fatalf("frame: full %q faint %q", full, faint)
+	}
+	if err := r.Settings().Set(DimUnfocusedSetting, 0); err != nil {
+		t.Fatal(err)
+	}
+	view := right.View(30, 2)
+	if full, faint := reverseRows(view); len(full) != 1 || full[0] != "Ex" || faint != nil || strings.Contains(view, "\x1b[2m") {
+		t.Fatalf("dim-unfocused 0: full %q faint %q in %q", full, faint, view)
+	}
+	if err := r.Settings().Set(DimUnfocusedSetting, MaxDim+1); err == nil {
+		t.Fatal("dim-unfocused took a value over MaxDim")
+	}
+}
+
+// A list in a modal keeps the older rule: its selected row is plain until
+// the list has the focus, so a modal shows one cursor.
+func TestUnfocusedModalListDrawsPlain(t *testing.T) {
+	r, _, _, _ := dimFixture(t)
+	if _, err := r.OpenModal("pick", Payload{}); err != nil {
+		t.Fatal(err)
+	}
+	first, err := r.AddList("pick/first", []ListItem{{ID: "p1", Label: "One", Noun: "item"}}, Parent("pick"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := r.AddList("pick/second", []ListItem{{ID: "q1", Label: "Uno", Noun: "item"}}, Parent("pick"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := r.SetFocus("p1"); err != nil {
+		t.Fatal(err)
+	}
+	if full, _ := reverseRows(first.View(30, 1)); len(full) != 1 || full[0] != "One" {
+		t.Fatalf("focused modal list: %q", full)
+	}
+	if view := second.View(30, 1); ansi.Strip(view) != view {
+		t.Fatalf("unfocused modal list is styled: %q", view)
+	}
+}
+
+// A tree whose line is being edited holds the focus in its input, not in
+// its list, yet it is the list being typed in: it is not faded. A tree
+// whose focus is elsewhere is.
+func TestTreeEditingALineIsNotFaded(t *testing.T) {
+	r, m, _, _ := dimFixture(t)
+	tree, err := r.AddTree("outline", []TreeNode{{ID: "n1", Label: "one"}, {ID: "n2", Label: "two"}}, Parent("main"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tree.OnChange = func(TreeChange) error { return nil }
+	if !strings.Contains(tree.View(30, 3), "\x1b[2m") {
+		t.Fatal("an unfocused tree is not faded")
+	}
+	if err := r.SetFocus("n1"); err != nil {
+		t.Fatal(err)
+	}
+	keytest.Press(m, "o")
+	if tree.Editing() == "" || r.Focus == "n1" {
+		t.Fatalf("o: editing %q focus %q status %q", tree.Editing(), r.Focus, m.Status)
+	}
+	if view := tree.View(30, 3); strings.Contains(view, "\x1b[2m") {
+		t.Fatalf("the tree being edited is faded: %q", view)
 	}
 }

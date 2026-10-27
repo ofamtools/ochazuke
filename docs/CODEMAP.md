@@ -154,7 +154,7 @@ Root package `ochazuke` is flat: 63 source files, 63 test files. Each entry list
 
 ### history_store.go
 
-- lines: 405 · tests: history_store_test.go
+- lines: 406 · tests: history_store_test.go
 - purpose: persistable is the line an entry writes, or false when it writes none.
 - methods: Config(3), Runtime(6), historyStore(3)
 - leans on: runtime.go(15), history.go(12), settings.go(8), configuration.go(7)
@@ -188,12 +188,12 @@ Root package `ochazuke` is flat: 63 source files, 63 test files. Each entry list
 
 ### list.go
 
-- lines: 580 · tests: list_test.go
+- lines: 625 · tests: list_test.go
 - purpose: ListItem is application-owned identity, display text, and the registered noun the row answers to.
 - types: ListItem, List
-- methods: List(24), Runtime(1)
+- methods: List(27), Runtime(1)
 - funcs: NewList
-- leans on: runtime.go(39), instance.go(17), noun.go(16), delivery.go(2)
+- leans on: runtime.go(39), instance.go(20), noun.go(16), delivery.go(3)
 
 ### list_delta.go
 
@@ -228,12 +228,12 @@ Root package `ochazuke` is flat: 63 source files, 63 test files. Each entry list
 
 ### model.go
 
-- lines: 954
+- lines: 961
 - purpose: ModalView renders one modal without replacing or inspecting its parent page.
 - types: ModalView, ModalBody (iface), Model, HelpRow
-- methods: Model(23), Runtime(1), modelSink(3)
+- methods: Model(24), Runtime(1), modelSink(3)
 - funcs: NewModel, BindingHints, BindingHelp, InputView, InputBlock
-- leans on: runtime.go(92), block.go(34), noun.go(34), theme.go(19)
+- leans on: runtime.go(93), block.go(34), noun.go(34), theme.go(23)
 
 ### noun.go
 
@@ -452,12 +452,12 @@ Root package `ochazuke` is flat: 63 source files, 63 test files. Each entry list
 
 ### theme.go
 
-- lines: 180 · tests: theme_test.go
+- lines: 269 · tests: theme_test.go
 - purpose: Appearance is event-loop-owned configuration.
 - types: Appearance, Styles
-- methods: Appearance(2)
+- methods: Appearance(2), Runtime(2), Styles(2)
 - funcs: NewAppearance, NewStyles
-- leans on: runtime.go(23), delivery.go(5), noun.go(5), registers.go(5)
+- leans on: runtime.go(25), settings.go(6), delivery.go(5), noun.go(5)
 
 ### ticker.go
 
@@ -738,8 +738,8 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/run.go
 
-- lines: 329
-- purpose: Golden is a frame as a golden file holds it: each row stripped of escapes behind a gutter that reads "R|" when the row has reverse video and " |" otherwise, ...
+- lines: 379
+- purpose: Golden is a frame as a golden file holds it: each row stripped of escapes behind a gutter that reads "R|" when the row has full-strength reverse video, "r|" ...
 - types: Library, Result, RunOptions
 - methods: Library(2), Result(1)
 - funcs: Golden, Check, Replay
@@ -747,7 +747,7 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/story.go
 
-- lines: 523
+- lines: 528
 - purpose: Story is one scenario file.
 - types: Story, Page, ChooserSpec, ChooserRowSpec, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, MarkdownSpec, CommandsSpec, CatalogSpec, InputSpec, CompletionSpec, TermSpec, JobSpec, BindSpec, Event, Expect, Expects
 - methods: Event(3), Expects(2), Story(5)

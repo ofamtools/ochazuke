@@ -54,7 +54,18 @@ func TestIndexIsATablePerArea(t *testing.T) {
 	if got != string(want) {
 		t.Fatalf("index differs from %s (go test ./cmd/o-story -run TestIndexIsATablePerArea -update-index):\n%s", golden, got)
 	}
-	if n := strings.Count(h.View().Content, "\x1b[7m"); n != 1 {
-		t.Fatalf("%d reversed rows, want the focused one", n)
+	// The focused area's row is the one full-strength highlight; the other
+	// area's table keeps its selected row, dimmed (R5.1).
+	full, dimmed := 0, 0
+	for _, line := range strings.Split(story.Golden(h.View().Content), "\n") {
+		switch {
+		case strings.HasPrefix(line, "R|"):
+			full++
+		case strings.HasPrefix(line, "r|"):
+			dimmed++
+		}
+	}
+	if full != 1 || dimmed != 1 {
+		t.Fatalf("%d highlighted and %d dimmed rows, want the focused one and the other area's", full, dimmed)
 	}
 }

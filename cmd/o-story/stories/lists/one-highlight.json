@@ -21,6 +21,7 @@
   "expect": {
     "focus": "b2",
     "highlighted": 1,
-    "highlightedText": "b2"
+    "highlightedText": "b2",
+    "dimmed": 2
   }
 }

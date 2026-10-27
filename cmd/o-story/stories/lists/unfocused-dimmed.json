@@ -1,5 +1,5 @@
 {
-  "name": "an unfocused list draws plain rows",
+  "name": "an unfocused list keeps its selected row, dimmed",
   "area": "lists",
   "page": {
     "lists": [
@@ -19,6 +19,8 @@
   ],
   "expect": {
     "focus": "b3",
-    "highlighted": 1
+    "highlighted": 1,
+    "highlightedText": "b3",
+    "dimmed": 1
   }
 }

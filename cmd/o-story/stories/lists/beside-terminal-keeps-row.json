@@ -1,0 +1,29 @@
+{
+  "name": "a list beside a live terminal keeps its selected row, dimmed",
+  "area": "lists",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3,
+        "selected": 1
+      }
+    ],
+    "terminal": {
+      "fake": true,
+      "attach": "a2"
+    }
+  },
+  "script": [
+    "enter",
+    {
+      "tick": "terminal"
+    }
+  ],
+  "expect": {
+    "focus": "page1-pane",
+    "mode": "terminal",
+    "highlighted": 0,
+    "dimmed": 1
+  }
+}

@@ -241,7 +241,7 @@ func (l *List) tableView(width, height int) (string, int, int) {
 	l.offset = windowOffset(l.offset, l.selected, max(1, visible), len(l.items), l.scrolloff())
 	end := min(len(l.items), l.offset+visible)
 	l.window, l.windowed = visible, len(l.items) > visible
-	focused := l.Focused()
+	marked := l.marksSelection()
 	for i := l.offset; i < end; i++ {
 		line := tableLine(l.columns, cells(l.items[i], len(l.columns)), shown, widths)
 		if gutter {
@@ -252,7 +252,7 @@ func (l *List) tableView(width, height int) (string, int, int) {
 			line = prefix + line
 		}
 		line = ansi.Truncate(line, width, "…")
-		if i == l.selected && focused {
+		if i == l.selected && marked {
 			line += strings.Repeat(" ", max(0, width-ansi.StringWidth(line)))
 			line = lipgloss.NewStyle().Reverse(true).Render(line)
 		} else {
@@ -443,7 +443,7 @@ func (l *List) tallView(lines []string, width, height, body int, shown, widths [
 	if sticky(l.offset) {
 		out = append(out, section.Render(modalLabel(l.items[l.offset].Section)))
 	}
-	focused := l.Focused()
+	marked := l.marksSelection()
 	focus, focusHeight := 0, height
 	end := l.offset
 	for i := l.offset; i < len(l.items) && len(out) < visible; i++ {
@@ -461,7 +461,7 @@ func (l *List) tallView(lines []string, width, height, body int, shown, widths [
 				end = i + 1
 			}
 			line = ansi.Truncate(line, width, "…")
-			if i == l.selected && focused {
+			if i == l.selected && marked {
 				line += strings.Repeat(" ", max(0, width-ansi.StringWidth(line)))
 				line = lipgloss.NewStyle().Reverse(true).Render(line)
 			} else {

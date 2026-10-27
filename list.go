@@ -372,7 +372,52 @@ func (l *List) View(width, height int) string {
 			focus++
 		}
 	}
+	if l.faded() {
+		if styles := l.r.Settings().page.styles; styles != nil {
+			text = dim(text, styles().Unfocused)
+		}
+	}
 	return l.r.PlacedAt(l.id, text, focus, focusHeight)
+}
+
+// marksSelection reports whether the selected row is drawn highlighted:
+// always while the list has the focus, and on a page list without it too
+// (dimmed with the list). A list in a modal keeps the older rule, plain
+// until focused, so a modal's secondary list never shows a second cursor.
+func (l *List) marksSelection() bool { return l.Focused() || l.onPage() }
+
+// faded reports whether View fades the list (dim-unfocused): a page list
+// without the focus, unless it is a tree's list and the focus is the line
+// the tree is editing, which is typing into this list.
+func (l *List) faded() bool {
+	if l.Focused() || !l.onPage() {
+		return false
+	}
+	if inst := l.r.Instances[l.id]; inst != nil {
+		if t := l.r.Tree(inst.Parent); t != nil && t.list == l && t.editing != "" && t.input != nil && l.r.Focus == t.input.ID {
+			return false
+		}
+	}
+	return true
+}
+
+// onPage reports whether the list sits on a page rather than in a modal:
+// the first page or open modal among its ancestors decides.
+func (l *List) onPage() bool {
+	for id := l.id; id != ""; {
+		if slices.Contains(l.r.modals, id) {
+			return false
+		}
+		inst := l.r.Instances[id]
+		if inst == nil {
+			return false
+		}
+		if _, ok := inst.Component.(*Page); ok {
+			return true
+		}
+		id = inst.Parent
+	}
+	return false
 }
 
 // rowsView is View for a list without columns: the rows in the list's
@@ -390,11 +435,11 @@ func (l *List) rowsView(width, height int) (string, int, int) {
 	end := min(len(l.items), l.offset+visible)
 	l.window, l.windowed = visible, len(l.items) > visible
 	rows := make([]string, 0, height)
-	// The focused list's selected row is the inverted highlight alone: no
-	// cursor marker, so an unfocused list's rows are plain and only one row
-	// on screen stands out. Marked rows take a "* " gutter, which every row
-	// gets while the list has a mark.
-	focused, gutter := l.Focused(), len(l.marks) > 0
+	// The selected row is the inverted highlight alone, no cursor marker. A
+	// page list keeps it while unfocused, where View fades the whole list
+	// (dim-unfocused), so the focused row is the one at full strength. Marked
+	// rows take a "* " gutter, which every row gets while the list has a mark.
+	marked, gutter := l.marksSelection(), len(l.marks) > 0
 	for i := l.offset; i < end; i++ {
 		label := modalLabel(l.items[i].Label)
 		if gutter {
@@ -405,7 +450,7 @@ func (l *List) rowsView(width, height int) (string, int, int) {
 			label = mark + label
 		}
 		row := ansi.Truncate(label, width, "…")
-		if i == l.selected && focused {
+		if i == l.selected && marked {
 			row = lipgloss.NewStyle().Reverse(true).Render(row)
 		}
 		rows = append(rows, row)

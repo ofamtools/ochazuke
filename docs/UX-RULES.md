@@ -139,16 +139,22 @@ tiers above them. When the two disagree, fix one in the same commit.
   label, and a request addressing no instance of the verb's noun reads its
   arguments (`TestConfirmWithoutTargetReadsArguments`). Story: `modals/confirm-yes.json`, `modals/confirm-label.json`;
   needed for the swallow case.
-- **R4.6** The backdrop is dimmed and the terminal cursor is hidden beneath a
+- **R4.6** The backdrop is dimmed (`modal-dim`, default 35 percent toward the
+  background plus faint) and the terminal cursor is hidden beneath a
   modal, but the page's highlights (selected row, grid cursor cell) remain
   visible. Story: needed (`modals/backdrop-keeps-highlights`).
 
 ### R5. Lists and selection
 
-- **R5.1** Page lists draw no cursor marker; the focused list's selected row
-  is reverse video alone; an unfocused list draws every row plain. Story:
-  `lists/one-highlight.json`, `lists/unfocused-plain.json`,
-  `lists/lone-list.json`.
+- **R5.1** Page lists draw no cursor marker; a list's selected row is reverse
+  video alone. A page list without the focus keeps its selected row marked and
+  is drawn faded as a whole (`dim-unfocused`, default 20 percent toward the
+  background; faint in mono), so the focused list's row is the one highlight
+  at full strength and the row an unfocused list (a tree beside a live
+  terminal) is on stays visible; a tree whose line is being edited is not
+  faded. A list in a modal stays plain until focused.
+  Story: `lists/one-highlight.json`, `lists/unfocused-dimmed.json`,
+  `lists/beside-terminal-keeps-row.json`, `lists/lone-list.json`.
 - **R5.2** Marked rows take a `* ` gutter, and every row of that list gets
   the gutter while any mark exists. Story: `lists/marked-gutter.json`.
 - **R5.3** Rows are instances of their noun, created and removed by
