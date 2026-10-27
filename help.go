@@ -51,7 +51,7 @@ func bindingHelpArgs(r *Runtime, b Binding, focus string) Arguments {
 		parts := strings.Fields(source)
 		values := make([]any, len(parts))
 		for i, part := range parts {
-			if b.Pattern != "" && (part == SourceKey || part == SourceDigit || part == SourceText) {
+			if b.Pattern != "" && (part == SourceKey || part == SourceDigit || part == SourceText || part == SourceLetter) {
 				values[i] = "$" + part
 			} else {
 				values[i] = r.argument(part, ev)
@@ -150,7 +150,7 @@ func patternLabel(pattern string) string {
 		}
 		return strings.Join(parts, "/")
 	}
-	label := map[string]string{Alpha: "a-z", Printable: "char"}[class]
+	label := map[string]string{Alpha: "a-z", Upper: "A-Z", CtrlAlpha: "ctrl+a-z", Printable: "char"}[class]
 	if label == "" {
 		label = class
 	}

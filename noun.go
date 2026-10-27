@@ -56,7 +56,8 @@ func (n *Noun) tables(mode string) [][]Binding {
 // {noun | instance, mode, keys | pattern, request | null, from, when}.
 // Keys is an exact key or a space-separated sequence ("g g"); Pattern is a
 // key class: digit, alpha, printable, paste, any, a class minus keys
-// ("alpha-q"), or a set ("one-of:h j k l"). From fills request arguments from
+// ("alpha-q"), or a set ("one-of:h j k l"); upper is one uppercase
+// letter and ctrl+alpha one ctrl+letter (ctrl+a to ctrl+z). From fills request arguments from
 // the key or the mode payload (see Sources). When names a registered guard.
 // A row's identity is its table (noun or instance), mode, keys or pattern
 // and guard: a row replaces only the row with the same identity, so a row
@@ -104,7 +105,9 @@ type Binding struct {
 // integer), "text" (pasted or typed text), "count" (payload count, at least 1),
 // "line" (payload count, 0 when absent, else the operator count), "steps"
 // (count times operator count), "op" (payload operator), "opcount", "prefix"
-// (the key sequence the pending mode holds), "row" (the row's Data, see
+// (the key sequence the pending mode holds), "letter" (the key's letter,
+// lowercased, without ctrl+ or shift+: f, F, shift+f and ctrl+f all read
+// f; "" for a key that is not one letter), "row" (the row's Data, see
 // FromRow) and "row:<field>" (one field of it). A From value may name
 // several sources separated by spaces ("prefix key"): their texts are
 // joined with a space, the way terminal.send reads a key list.
@@ -118,6 +121,7 @@ const (
 	SourceOp      = "op"
 	SourceOpCount = "opcount"
 	SourcePrefix  = "prefix"
+	SourceLetter  = "letter"
 	SourceRow     = "row"
 )
 
@@ -132,6 +136,15 @@ const (
 	Digit     = "digit"
 	Alpha     = "alpha"
 	Printable = "printable"
+	// Upper is one uppercase letter (A to Z, any script's capital): it
+	// answers before Alpha, which an uppercase letter also belongs to.
+	Upper = "upper"
+	// CtrlAlpha is one ctrl+letter, ctrl+a to ctrl+z: one row for every
+	// control letter, the letter read with the letter source. A legacy
+	// terminal sends ctrl+h, ctrl+i, ctrl+j and ctrl+m as backspace, tab
+	// and enter, and ctrl+[ as esc, so those never reach the row there;
+	// labels a row reads this way should avoid h, i, j and m.
+	CtrlAlpha = "ctrl+alpha"
 	Paste     = "paste"
 	Any       = "any"
 )
@@ -706,7 +719,7 @@ func isPrefixCancel(b Binding) bool {
 func isPattern(s string) bool {
 	class, _, _ := strings.Cut(s, "-")
 	switch class {
-	case Digit, Alpha, Printable, Paste, Any:
+	case Digit, Alpha, Upper, CtrlAlpha, Printable, Paste, Any:
 		return true
 	}
 	return strings.HasPrefix(s, "one-of:")
@@ -885,7 +898,7 @@ func (r *Runtime) validateRow(row Binding) (Binding, error) {
 			}
 			for _, one := range strings.Fields(source) {
 				switch one {
-				case SourceKey, SourceDigit, SourceText, SourceCount, SourceLine, SourceSteps, SourceOp, SourceOpCount, SourcePrefix, SourceRow:
+				case SourceKey, SourceDigit, SourceText, SourceCount, SourceLine, SourceSteps, SourceOp, SourceOpCount, SourcePrefix, SourceLetter, SourceRow:
 				default:
 					if field, ok := rowSourceField(one); !ok || !validRowField(field) {
 						return row, fmt.Errorf("unknown argument source %q", one)
@@ -981,9 +994,14 @@ func classOf(key MacroKey) []string {
 		switch {
 		case unicode.IsDigit(runes[0]):
 			classes = append(classes, Digit)
+		case unicode.IsUpper(runes[0]):
+			classes = append(classes, Upper, Alpha)
 		case unicode.IsLetter(runes[0]):
 			classes = append(classes, Alpha)
 		}
+	}
+	if rest, ok := strings.CutPrefix(key.Key, "ctrl+"); ok && len(rest) == 1 && rest[0] >= 'a' && rest[0] <= 'z' {
+		classes = append(classes, CtrlAlpha)
 	}
 	if printableKey(key.Key) {
 		classes = append(classes, Printable)
@@ -1004,7 +1022,9 @@ func matchesPattern(pattern string, key MacroKey) (bool, int) {
 	for _, have := range classOf(key) {
 		if have == class {
 			switch class {
-			case Digit, Alpha:
+			case Upper:
+				return true, 0
+			case Digit, Alpha, CtrlAlpha:
 				return true, 1
 			case Printable, Paste:
 				return true, 2
@@ -1077,6 +1097,23 @@ func leaderKey(key string) bool {
 		}
 	}
 	return false
+}
+
+// keyLetter is the letter a key stands for (the letter source): one
+// letter, lowercased, with a ctrl+ or shift+ modifier dropped; "" for any
+// other key.
+func keyLetter(key string) string {
+	for _, mod := range []string{"ctrl+", "shift+"} {
+		if rest, ok := strings.CutPrefix(key, mod); ok {
+			key = rest
+			break
+		}
+	}
+	runes := []rune(key)
+	if len(runes) != 1 || !unicode.IsLetter(runes[0]) {
+		return ""
+	}
+	return string(unicode.ToLower(runes[0]))
 }
 
 // printableKey reports whether a key name is text the editor inserts as-is.

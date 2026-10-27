@@ -1,0 +1,86 @@
+{
+  "name": "in hints mode no key reaches the pane; a label letter, its capital or ctrl+letter acts and returns to terminal",
+  "area": "terminal",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ],
+    "terminal": {
+      "fake": true,
+      "attach": "a1",
+      "hints": {
+        "dim": true,
+        "marks": [
+          {
+            "row": 0,
+            "col": 0,
+            "text": "g"
+          }
+        ]
+      }
+    }
+  },
+  "script": [
+    "enter",
+    {
+      "tick": "terminal"
+    },
+    "ctrl+a",
+    "f",
+    "1",
+    "enter",
+    "ctrl+space",
+    {
+      "paste": "pasted"
+    },
+    "G",
+    "ctrl+a",
+    "f",
+    "ctrl+o",
+    "ctrl+a",
+    "f",
+    "c",
+    "z",
+    {
+      "tick": "terminal"
+    }
+  ],
+  "expect": [
+    {
+      "after": 8,
+      "focus": "page1-pane",
+      "mode": "hints",
+      "modal": "",
+      "lacks": [
+        "$ 1",
+        "<enter>",
+        "pasted",
+        "<ctrl+space>"
+      ],
+      "writes": []
+    },
+    {
+      "after": 9,
+      "mode": "terminal",
+      "writes": [
+        "hint type g"
+      ]
+    },
+    {
+      "focus": "page1-pane",
+      "mode": "terminal",
+      "contains": [
+        "$ z",
+        "fake pane"
+      ],
+      "writes": [
+        "hint type g",
+        "hint open o",
+        "hint copy c"
+      ]
+    }
+  ]
+}

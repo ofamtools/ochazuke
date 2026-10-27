@@ -1,0 +1,55 @@
+{
+  "name": "ctrl+a f draws labels over the live pane, dimmed, and enters hints mode",
+  "area": "terminal",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ],
+    "terminal": {
+      "fake": true,
+      "attach": "a1",
+      "hints": {
+        "dim": true,
+        "marks": [
+          {
+            "row": 0,
+            "col": 0,
+            "text": "a"
+          },
+          {
+            "row": 0,
+            "col": 11,
+            "text": "b"
+          },
+          {
+            "row": 1,
+            "col": 2,
+            "text": "c"
+          }
+        ]
+      }
+    }
+  },
+  "script": [
+    "enter",
+    {
+      "tick": "terminal"
+    },
+    "ctrl+a",
+    "f"
+  ],
+  "expect": {
+    "focus": "page1-pane",
+    "mode": "hints",
+    "contains": [
+      "ake pane: b",
+      "eys echo here",
+      "$ c"
+    ],
+    "highlighted": 2,
+    "writes": []
+  }
+}
