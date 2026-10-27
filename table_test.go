@@ -39,7 +39,7 @@ func TestTableLayoutDropsByPriority(t *testing.T) {
 func TestTableRendersCellsAndFallsBackToLabel(t *testing.T) {
 	r := NewRuntime()
 	r.Define("row")
-	r.Instance("page", Kind("page"))
+	r.Instance("page", Kind("app.page"))
 	cols := []Column{{Title: "name"}, {Title: "n", Width: 3, Align: AlignRight}}
 	l, err := r.AddList("t", []ListItem{
 		{ID: "a", Label: "alpha", Noun: "row", Cells: []string{"alpha", "7"}},
@@ -66,8 +66,8 @@ func TestTableRendersCellsAndFallsBackToLabel(t *testing.T) {
 
 func TestNounColumnsAreDeclaredData(t *testing.T) {
 	r := NewRuntime()
-	r.Define("pane").Columns(Column{Title: "name"}, Column{Title: "cwd", Priority: 1})
-	if got := r.Noun("pane").Columns; len(got) != 2 || got[1].Title != "cwd" {
+	r.Define("app.pane").Columns(Column{Title: "name"}, Column{Title: "cwd", Priority: 1})
+	if got := r.Noun("app.pane").Columns; len(got) != 2 || got[1].Title != "cwd" {
 		t.Fatalf("noun columns %v", got)
 	}
 }
@@ -115,7 +115,7 @@ func TestTableMaxCapsAFlexibleColumn(t *testing.T) {
 func TestTableWrapsCellsAndLabelsSections(t *testing.T) {
 	r := NewRuntime()
 	r.Define("row")
-	r.Instance("page", Kind("page"))
+	r.Instance("page", Kind("app.page"))
 	cols := []Column{{Title: "key"}, {Title: "text", Min: 8, Wrap: true}}
 	l, err := r.AddList("t", []ListItem{
 		{ID: "a", Noun: "row", Cells: []string{"a", "one two three four"}, Section: "first"},
@@ -162,7 +162,7 @@ func TestTableWrapsCellsAndLabelsSections(t *testing.T) {
 func TestTableWithoutTitlesHasNoHeader(t *testing.T) {
 	r := NewRuntime()
 	r.Define("row")
-	r.Instance("page", Kind("page"))
+	r.Instance("page", Kind("app.page"))
 	l, err := r.AddList("t", []ListItem{
 		{ID: "a", Noun: "row", Cells: []string{"scrolloff", "2"}},
 		{ID: "b", Noun: "row", Cells: []string{"", "item"}},

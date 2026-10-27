@@ -107,12 +107,12 @@ func firstString[V any](m map[string]V, keys ...string) (string, bool) {
 // none (a Noun parameter then lists the noun's live instances).
 func (r *Runtime) ChoicesSource(p Parameter) string {
 	if p.Source != "" {
-		return p.Source
+		return r.CanonicalKey(p.Source)
 	}
 	if p.Noun == "" {
 		return ""
 	}
-	key := p.Noun + ".list"
+	key := r.CanonicalNoun(p.Noun) + ".list"
 	op, ok := r.Operations[key]
 	if !ok || op.Confirm != "" {
 		return ""
@@ -131,6 +131,7 @@ func (r *Runtime) ChoicesSource(p Parameter) string {
 // The id is the instance id (what --target and ExecuteAt resolve, never a
 // foreign id in Data), labelled by the instance's label when it has one.
 func (r *Runtime) nounInstanceChoices(noun string) []Choice {
+	noun = r.CanonicalNoun(noun)
 	var out []Choice
 	add := func(id, label string) {
 		if label == "" {

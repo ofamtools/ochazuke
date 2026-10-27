@@ -616,42 +616,42 @@ func (m *Model) settingsPoll() tea.Cmd {
 
 func registerSettings(r *Runtime) {
 	r.Config().settings = &Settings{config: r.Config(), values: map[string]any{}, raw: map[string]json.RawMessage{}}
-	name := Parameter{Type: "string", Required: true, Description: "Setting name", Source: "settings.names"}
-	r.Register(Operation{Verb: "names", Noun: "settings", Description: "List the names of the declared settings", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	name := Parameter{Type: "string", Required: true, Description: "Setting name", Source: "app.settings.names"}
+	r.Register(Operation{Verb: "names", Noun: "app.settings", Description: "List the names of the declared settings", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		names := []string{}
 		for _, one := range r.Settings().declared {
 			names = append(names, one.Name)
 		}
 		return names, nil
 	}})
-	r.Register(Operation{Verb: "list", Noun: "settings", Description: "List the declared settings with their values, defaults and descriptions", Result: "setting[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "list", Noun: "app.settings", Description: "List the declared settings with their values, defaults and descriptions", Result: "setting[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.Settings().List(), nil
 	}})
-	r.Register(Operation{Verb: "get", Noun: "settings", Description: "Show one setting and its value", Parameters: map[string]Parameter{"name": name}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "get", Noun: "app.settings", Description: "Show one setting and its value", Parameters: map[string]Parameter{"name": name}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.Settings().Get(StringArg(a, "name", ""))
 	}})
-	r.Register(Operation{Verb: "set", Noun: "settings", PersistArgs: true, Description: "Set a setting, checked against its type and allowed values, and save settings.json", Parameters: map[string]Parameter{"name": name, "value": {Type: "string", Required: true, Description: "The value: text, a number, true or false, a duration such as 400ms, or a JSON array of strings for a list"}}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "set", Noun: "app.settings", PersistArgs: true, Description: "Set a setting, checked against its type and allowed values, and save settings.json", Parameters: map[string]Parameter{"name": name, "value": {Type: "string", Required: true, Description: "The value: text, a number, true or false, a duration such as 400ms, or a JSON array of strings for a list"}}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		s := r.Settings()
 		if err := s.Set(StringArg(a, "name", ""), a["value"]); err != nil {
 			return nil, err
 		}
 		return s.Get(StringArg(a, "name", ""))
 	}})
-	r.Register(Operation{Verb: "reset", Noun: "settings", Description: "Remove a setting's value from settings.json so it reads its default", Parameters: map[string]Parameter{"name": name}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "reset", Noun: "app.settings", Description: "Remove a setting's value from settings.json so it reads its default", Parameters: map[string]Parameter{"name": name}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		s := r.Settings()
 		if err := s.Reset(StringArg(a, "name", "")); err != nil {
 			return nil, err
 		}
 		return s.Get(StringArg(a, "name", ""))
 	}})
-	r.Register(Operation{Verb: "reload", Noun: "settings", Description: "Read settings.json again; observers see every value that changed", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "reload", Noun: "app.settings", Description: "Read settings.json again; observers see every value that changed", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		problems := r.Settings().Reload()
 		if problems == nil {
 			problems = []string{}
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Verb: "path", Noun: "settings", Description: "Print the settings file: settings.json beside bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "path", Noun: "app.settings", Description: "Print the settings file: settings.json beside bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		path := r.Config().Path(SettingsFile)
 		if path == "" {
 			return nil, errors.New("this application has no config directory")

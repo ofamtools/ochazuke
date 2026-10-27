@@ -78,7 +78,7 @@ func TestColumnMotionsScrollTheHiddenColumnsIntoView(t *testing.T) {
 	if r.Focus != "r11" || l.ColumnOffset() != 3 {
 		t.Fatalf("1 0 j: focus %s offset %d, want r11 at offset 3", r.Focus, l.ColumnOffset())
 	}
-	if !r.Operations["list.scroll-columns"].Motion {
+	if !r.Operations["app.list.scroll-columns"].Motion {
 		t.Fatal("list.scroll-columns is not a motion")
 	}
 	if hints := BindingHints(r, r.Focus); strings.Contains(hints, "scroll-columns") {

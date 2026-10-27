@@ -30,6 +30,7 @@ type PaletteEntry struct {
 
 // RegisterNoun adds or replaces a live instance source without changing operation forms.
 func (p *Palette) RegisterNoun(noun string, config PaletteNoun) error {
+	noun = p.r.CanonicalNoun(noun)
 	known := false
 	for _, op := range p.r.Catalog() {
 		if op.Noun == noun {
@@ -122,7 +123,7 @@ func (p *Palette) completions() []PaletteEntry {
 		case len(tokens) == 1 && c.Words[0].Kind == "noun":
 			noun := c.Words[0].Value
 			verbs(ix.nouns[noun], noun)
-			if config, ok := p.nouns[noun]; ok {
+			if config, ok := p.nouns[p.r.CanonicalNoun(noun)]; ok {
 				if op, ok := ix.ops[noun+"."+config.DefaultVerb]; ok {
 					choices(op, config.Argument)
 				}

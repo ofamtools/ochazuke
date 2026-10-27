@@ -154,7 +154,11 @@ func safeLine(s string) string {
 // footer for the current frame, as plain entries at most width cells each:
 // none when no job shows.
 func (m *Model) JobsTicker(width int) []string {
-	return JobsTicker(m.ticker.rows(m.Runtime, m.clock()), width)
+	jobs := m.ticker.rows(m.Runtime, m.clock())
+	for i := range jobs {
+		jobs[i].Verb = m.Runtime.DisplayKey(jobs[i].Verb) // command.help, not app.command.help
+	}
+	return JobsTicker(jobs, width)
 }
 
 // JobLingerTick is the linger timer in flight, the message its tea.Tick

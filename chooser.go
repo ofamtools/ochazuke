@@ -80,7 +80,7 @@ const ChooserPreviewMin = 60
 
 // chooserNoun is the noun of every chooser's search input; its rows are
 // the chooser's keys.
-const chooserNoun = "chooser"
+const chooserNoun = "app.chooser"
 
 // chooserCreateRow is the ID of the create row (see ChooserSpec.CreateRow).
 const chooserCreateRow = "chooser:create"
@@ -130,19 +130,19 @@ func registerChooser(r *Runtime) {
 			return Done(nil)
 		}), "Close without choosing").
 		Mode("").
-		Bind("enter", Do("chooser.pick")).
-		Bind("esc", Do("chooser.cancel")).
-		Bind("down", Do("chooser.move", Arguments{"delta": 1})).
-		Bind("ctrl+j", Do("chooser.move", Arguments{"delta": 1})).
-		Bind("ctrl+n", Do("chooser.move", Arguments{"delta": 1})).
-		Bind("up", Do("chooser.move", Arguments{"delta": -1})).
-		Bind("ctrl+p", Do("chooser.move", Arguments{"delta": -1})).
-		Bind("ctrl+k", Do("chooser.move", Arguments{"delta": -1})).
-		Pattern(Printable, Do("input.insert").FromPayload("text", SourceText)).
-		Pattern(Paste, Do("input.insert").FromPayload("text", SourceText))
-	move := r.Operations["chooser.move"]
+		Bind("enter", Do("app.chooser.pick")).
+		Bind("esc", Do("app.chooser.cancel")).
+		Bind("down", Do("app.chooser.move", Arguments{"delta": 1})).
+		Bind("ctrl+j", Do("app.chooser.move", Arguments{"delta": 1})).
+		Bind("ctrl+n", Do("app.chooser.move", Arguments{"delta": 1})).
+		Bind("up", Do("app.chooser.move", Arguments{"delta": -1})).
+		Bind("ctrl+p", Do("app.chooser.move", Arguments{"delta": -1})).
+		Bind("ctrl+k", Do("app.chooser.move", Arguments{"delta": -1})).
+		Pattern(Printable, Do("app.input.insert").FromPayload("text", SourceText)).
+		Pattern(Paste, Do("app.input.insert").FromPayload("text", SourceText))
+	move := r.Operations["app.chooser.move"]
 	move.Parameters = map[string]Parameter{"delta": {Type: "integer", Required: true}}
-	r.Operations["chooser.move"] = move
+	r.Operations["app.chooser.move"] = move
 }
 
 // OpenChooser opens a chooser modal with its search input focused in

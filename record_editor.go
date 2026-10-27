@@ -99,14 +99,14 @@ type RecordDebounceMsg struct {
 // choice fields, and the chooser's rows. ("form", not "record", so the
 // palette's words do not collide with the macro verb record.)
 const (
-	FormNoun       = "form"
-	FormFieldNoun  = "form-field"
-	FormTextNoun   = "form-text"
-	FormChoiceNoun = "form-choice"
-	FormOptionNoun = "form-option"
+	FormNoun       = "app.form"
+	FormFieldNoun  = "app.form-field"
+	FormTextNoun   = "app.form-text"
+	FormChoiceNoun = "app.form-choice"
+	FormOptionNoun = "app.form-option"
 	// FormSuggestNoun is a free text field with suggestions: an input
 	// whose enter (normal) and ctrl+space open the suggestions chooser.
-	FormSuggestNoun = "form-suggest"
+	FormSuggestNoun = "app.form-suggest"
 	formChooseID    = "form-choose"
 	formChooseList  = "__form-choose/list"
 	// FormSuggestionsKind is the suggestions chooser's modal kind
@@ -115,7 +115,7 @@ const (
 )
 
 // formWriteVerb names a pending write's job.
-const formWriteVerb = "form.write"
+const formWriteVerb = "app.form.write"
 
 // recordStep is one undo step: a field's written value before and after.
 type recordStep struct {
@@ -935,51 +935,51 @@ func registerForms(r *Runtime) {
 		Verb("choose", on(func(e *RecordEditor, c Context, _ Arguments) error { return e.choose(e.fieldOn(focusOf(c))) }), "Choose the field's value from its choices").
 		Verb("suggest", on(func(e *RecordEditor, c Context, _ Arguments) error { return e.suggest(e.fieldOn(focusOf(c))) }), "Fill the field from its suggestions; typing stays free").
 		Mode("normal").
-		Bind("q", Do("form.leave")).
-		Bind("esc", Do("form.leave")).
-		Bind("u", Do("form.undo")).
-		Bind("ctrl+r", Do("form.redo"))
+		Bind("q", Do("app.form.leave")).
+		Bind("esc", Do("app.form.leave")).
+		Bind("u", Do("app.form.undo")).
+		Bind("ctrl+r", Do("app.form.redo"))
 	for _, verb := range []string{"next", "previous"} {
-		op := r.Operations["form."+verb]
+		op := r.Operations[FormNoun+"."+verb]
 		op.Parameters = insert
-		r.Operations["form."+verb] = op
+		r.Operations[FormNoun+"."+verb] = op
 	}
 	r.Define(FormFieldNoun).
 		Mode("normal").
-		Bind("j", Do("form.next")).
-		Bind("down", Do("form.next")).
-		Bind("k", Do("form.previous")).
-		Bind("up", Do("form.previous")).
+		Bind("j", Do("app.form.next")).
+		Bind("down", Do("app.form.next")).
+		Bind("k", Do("app.form.previous")).
+		Bind("up", Do("app.form.previous")).
 		Mode("insert").
-		Bind("enter", Do("form.next", Arguments{"insert": true})).
-		Bind("tab", Do("form.next", Arguments{"insert": true})).
-		Bind("shift+tab", Do("form.previous", Arguments{"insert": true}))
+		Bind("enter", Do("app.form.next", Arguments{"insert": true})).
+		Bind("tab", Do("app.form.next", Arguments{"insert": true})).
+		Bind("shift+tab", Do("app.form.previous", Arguments{"insert": true}))
 	r.Define(FormSuggestNoun).
 		Mode("normal").
-		Bind("j", Do("form.next")).
-		Bind("down", Do("form.next")).
-		Bind("k", Do("form.previous")).
-		Bind("up", Do("form.previous")).
-		Bind("enter", Do("form.suggest")).
-		Bind("ctrl+space", Do("form.suggest")).
+		Bind("j", Do("app.form.next")).
+		Bind("down", Do("app.form.next")).
+		Bind("k", Do("app.form.previous")).
+		Bind("up", Do("app.form.previous")).
+		Bind("enter", Do("app.form.suggest")).
+		Bind("ctrl+space", Do("app.form.suggest")).
 		Mode("insert").
-		Bind("enter", Do("form.next", Arguments{"insert": true})).
-		Bind("tab", Do("form.next", Arguments{"insert": true})).
-		Bind("shift+tab", Do("form.previous", Arguments{"insert": true})).
-		Bind("ctrl+space", Do("form.suggest"))
+		Bind("enter", Do("app.form.next", Arguments{"insert": true})).
+		Bind("tab", Do("app.form.next", Arguments{"insert": true})).
+		Bind("shift+tab", Do("app.form.previous", Arguments{"insert": true})).
+		Bind("ctrl+space", Do("app.form.suggest"))
 	r.Define(FormTextNoun).
 		Mode("insert").
-		Bind("tab", Do("form.next", Arguments{"insert": true})).
-		Bind("shift+tab", Do("form.previous", Arguments{"insert": true}))
+		Bind("tab", Do("app.form.next", Arguments{"insert": true})).
+		Bind("shift+tab", Do("app.form.previous", Arguments{"insert": true}))
 	r.Define(FormChoiceNoun).Focusable().
 		Mode("normal").
-		Bind("j", Do("form.next")).
-		Bind("down", Do("form.next")).
-		Bind("k", Do("form.previous")).
-		Bind("up", Do("form.previous")).
-		Bind("enter", Do("form.choose")).
-		Bind("space", Do("form.choose")).
-		Bind("i", Do("form.choose"))
+		Bind("j", Do("app.form.next")).
+		Bind("down", Do("app.form.next")).
+		Bind("k", Do("app.form.previous")).
+		Bind("up", Do("app.form.previous")).
+		Bind("enter", Do("app.form.choose")).
+		Bind("space", Do("app.form.choose")).
+		Bind("i", Do("app.form.choose"))
 	r.Define(FormOptionNoun).
 		Verb("pick", func(r *Runtime, c Context, _ Arguments) (any, error) {
 			inst := r.Instances[focusOf(c)]
@@ -991,9 +991,9 @@ func registerForms(r *Runtime) {
 			return v, chooser.editor.pick(chooser.field, v)
 		}, "Set the field to this choice; written at once").
 		Mode("normal").
-		Bind("enter", Do("form-option.pick")).
-		Bind("space", Do("form-option.pick")).
-		Bind("q", Do("modal.pop"))
+		Bind("enter", Do("app.form-option.pick")).
+		Bind("space", Do("app.form-option.pick")).
+		Bind("q", Do("app.modal.pop"))
 }
 
 func boolArg(a Arguments, name string) bool {

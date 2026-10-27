@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"slices"
 	"sort"
+	"strings"
 
 	"github.com/unixsuperhero/ochazuke"
 )
@@ -65,10 +66,16 @@ type CatalogDoc struct {
 	Version string `json:"version"`
 	State   string `json:"state,omitempty"`
 	// StateDelta is the state delta protocol version (StateDeltaVersion), 0 for none.
-	StateDelta int                `json:"stateDelta,omitempty"`
-	Nouns      []CatalogNoun      `json:"nouns"`
-	Bindings   []ochazuke.Binding `json:"bindings"`
-	Pages      []CatalogPage      `json:"pages"`
+	StateDelta int `json:"stateDelta,omitempty"`
+	// Aliases are the short names that reach a noun of the catalog
+	// (settings for app.settings: ochazuke.Runtime.Aliases), the ones an
+	// application noun shadows left out. Every name in the catalog is
+	// canonical; a host resolving a name the extension's user typed reads
+	// CanonicalNoun.
+	Aliases  map[string]string  `json:"aliases,omitempty"`
+	Nouns    []CatalogNoun      `json:"nouns"`
+	Bindings []ochazuke.Binding `json:"bindings"`
+	Pages    []CatalogPage      `json:"pages"`
 }
 
 // CatalogNoun is a noun and its verbs, by verb name. Pin is the noun's
@@ -203,7 +210,22 @@ func (d CatalogDoc) ListColumns(noun string) []ochazuke.Column {
 	return nil
 }
 
+// CanonicalNoun is the catalog's noun a name stands for: the name, else
+// the noun its alias names (Aliases), else the name unchanged.
+func (d CatalogDoc) CanonicalNoun(name string) string {
+	for _, n := range d.Nouns {
+		if n.Name == name {
+			return name
+		}
+	}
+	if target, ok := d.Aliases[name]; ok {
+		return target
+	}
+	return name
+}
+
 func (d CatalogDoc) noun(name string) (CatalogNoun, bool) {
+	name = d.CanonicalNoun(name)
 	for _, n := range d.Nouns {
 		if n.Name == name {
 			return n, true
@@ -246,10 +268,21 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool) ([]byte, err
 				// A Noun's list verb is published as the source, so a
 				// host lists the choices the runtime would.
 				p.Source = r.ChoicesSource(p)
+				if p.Noun != "" {
+					p.Noun = r.CanonicalNoun(p.Noun)
+				}
 				verb.Params[name] = p
 			}
 		}
 		noun.Verbs = append(noun.Verbs, verb)
+	}
+	for _, a := range r.Aliases() {
+		if !a.Shadowed {
+			if doc.Aliases == nil {
+				doc.Aliases = map[string]string{}
+			}
+			doc.Aliases[a.Alias] = a.Noun
+		}
 	}
 	names := make([]string, 0, len(r.Nouns))
 	for name := range r.Nouns {
@@ -297,4 +330,21 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool) ([]byte, err
 func requestKey(req ochazuke.Request) string {
 	data, _ := json.Marshal(req)
 	return string(data)
+}
+
+// Namespace is the PageConfig.Noun of an extension mounted under ext: the
+// catalog's noun skill is the host's ext.skill (ai.skills under ai), so
+// two extensions and the host never name the same noun. A host defining
+// the extension's verbs itself names its nouns the same way; the
+// extension's own binary keeps its short names (Local strips them back).
+func Namespace(ext string) func(catalogNoun string) string {
+	return func(noun string) string { return ochazuke.Namespaced(ext, noun) }
+}
+
+// Local is the extension's own noun of a host noun mounted under ext
+// (Namespace): ai.skills under ai is skills. ok is false for a noun that is
+// not under ext.
+func Local(ext, hostNoun string) (string, bool) {
+	noun, ok := strings.CutPrefix(hostNoun, ext+".")
+	return noun, ok && noun != ""
 }

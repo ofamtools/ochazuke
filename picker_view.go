@@ -178,10 +178,10 @@ func (p *Picker) bindingHelp() string {
 	}
 	var hints []string
 	for _, binding := range p.Runtime.ListBindings(p.input.ID) {
-		if binding.Request.Noun != "picker" {
+		if binding.Request.Noun != "app.picker" {
 			continue
 		}
-		hints = append(hints, rowHint(binding))
+		hints = append(hints, rowHint(p.Runtime, binding))
 	}
 	return strings.Join(hints, " · ")
 }

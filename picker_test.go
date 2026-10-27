@@ -131,7 +131,7 @@ func TestPickerInsertsAtCapturedRuneCursorAndRestoresOrigin(t *testing.T) {
 	r, p, origin := pickerFixture(t, "préSUFFIX", "text", "", 3)
 	pickerDo(t, r, "open", "picker", Arguments{"path": chosen, "filter": "file"})
 	pickerDrain(t, p)
-	if _, err := r.Execute(Request{Verb: "move", Noun: "input", Target: origin.ID, Args: Arguments{"motion": "line-end"}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "move", Noun: "app.input", Target: origin.ID, Args: Arguments{"motion": "line-end"}}); err != nil {
 		t.Fatal(err)
 	}
 	pickerKey(t, r, "enter")
@@ -188,10 +188,10 @@ func TestPickerRejectsStaleOriginAndNewlinePathSetEntry(t *testing.T) {
 	r, p, origin := pickerFixture(t, "before", "text", "", 2)
 	pickerDo(t, r, "open", "picker", Arguments{"path": chosen, "filter": "file"})
 	pickerDrain(t, p)
-	if _, err := r.Execute(Request{Verb: "replace", Noun: "input", Target: origin.ID, Args: Arguments{"start": 0, "end": len(origin.Text), "text": "external change"}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "replace", Noun: "app.input", Target: origin.ID, Args: Arguments{"start": 0, "end": len(origin.Text), "text": "external change"}}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Verb: "choose", Noun: "picker"}); err == nil || !strings.Contains(err.Error(), "originating input changed") {
+	if _, err := r.Execute(Request{Verb: "choose", Noun: "app.picker"}); err == nil || !strings.Contains(err.Error(), "originating input changed") {
 		t.Fatalf("stale origin: %v", err)
 	}
 	if got := string(origin.Text); got != "external change" || !p.IsOpen() {
@@ -204,7 +204,7 @@ func TestPickerRejectsStaleOriginAndNewlinePathSetEntry(t *testing.T) {
 	pickerDo(t, r, "open", "picker", Arguments{"path": root, "filter": "file"})
 	pickerDrain(t, p)
 	pickerHighlight(t, r, p, "bad\nname")
-	if _, err := r.Execute(Request{Verb: "choose", Noun: "picker"}); err == nil || !strings.Contains(err.Error(), "newline") {
+	if _, err := r.Execute(Request{Verb: "choose", Noun: "app.picker"}); err == nil || !strings.Contains(err.Error(), "newline") {
 		t.Fatalf("newline filename: %v", err)
 	}
 	if string(origin.Text) != "external change" || !p.IsOpen() {
@@ -321,7 +321,7 @@ func TestPickerCLIPathEditsRefreshResultsWithoutRendering(t *testing.T) {
 	pickerDrain(t, p)
 	t.Setenv("PATH", "") // Query edits reuse the index; no Git process per keystroke.
 	reply := make(chan Response, 1)
-	r.HandleCall(CallMsg{Request: Request{Verb: "replace", Noun: "input", Target: p.input.ID, Args: Arguments{"start": 0, "end": len(p.input.Text), "text": filepath.Join(root, "bt")}}, Reply: reply})
+	r.HandleCall(CallMsg{Request: Request{Verb: "replace", Noun: "app.input", Target: p.input.ID, Args: Arguments{"start": 0, "end": len(p.input.Text), "text": filepath.Join(root, "bt")}}, Reply: reply})
 	if response := <-reply; response.Error != "" {
 		t.Fatal(response.Error)
 	}
@@ -370,7 +370,7 @@ func TestPickerFiltersValidateBeforeOpeningAndExplicitOverrideWins(t *testing.T)
 	root := t.TempDir()
 	pickerFile(t, root, "file", "")
 	r, p, origin := pickerFixture(t, root, "path", "dir", 0)
-	if _, err := r.Execute(Request{Verb: "open", Noun: "picker", Args: Arguments{"filter": "directory"}}); err == nil || p.IsOpen() {
+	if _, err := r.Execute(Request{Verb: "open", Noun: "app.picker", Args: Arguments{"filter": "directory"}}); err == nil || p.IsOpen() {
 		t.Fatalf("invalid filter: %v, open=%v", err, p.IsOpen())
 	}
 	pickerDo(t, r, "open", "picker", Arguments{"filter": "file"})
@@ -378,7 +378,7 @@ func TestPickerFiltersValidateBeforeOpeningAndExplicitOverrideWins(t *testing.T)
 	if got := pickerEntryPaths(p.Entries); !reflect.DeepEqual(got, []string{"file"}) {
 		t.Fatalf("explicit file filter got %v", got)
 	}
-	if _, err := r.Execute(Request{Verb: "choose", Noun: "picker", Args: Arguments{"current": true}}); err == nil || !p.IsOpen() {
+	if _, err := r.Execute(Request{Verb: "choose", Noun: "app.picker", Args: Arguments{"current": true}}); err == nil || !p.IsOpen() {
 		t.Fatalf("file accepted root: %v", err)
 	}
 	pickerDo(t, r, "close", "picker", nil)

@@ -65,10 +65,26 @@ type Action struct {
 	Timeout     string               `json:"timeout,omitempty"`
 	Quiet       bool                 `json:"quiet,omitempty"`
 	History     string               `json:"history,omitempty"`
+
+	// written is the noun as the file spells it (an alias: list), when
+	// Noun was resolved to the noun it names (app.list); {{noun}} and the
+	// default call keep the file's spelling.
+	written string
 }
 
 // Key is the action's operation key, noun.verb.
 func (a Action) Key() string { return a.Noun + "." + a.Verb }
+
+// spelled is the noun as the file spells it.
+func (a Action) spelled() string {
+	if a.written != "" {
+		return a.written
+	}
+	return a.Noun
+}
+
+// writtenKey is the key as the file spells it, for messages.
+func (a Action) writtenKey() string { return a.spelled() + "." + a.Verb }
 
 // Argv is a command line: a JSON array of words, or a string split on
 // spaces (use the array for a word holding a space).
@@ -105,9 +121,9 @@ func (a Action) check(r *Runtime) error {
 	case strings.ContainsAny(a.Verb, ". \t\n"):
 		return fmt.Errorf("verb %q must be one word without a dot", a.Verb)
 	case r.Nouns[a.Noun] == nil:
-		return fmt.Errorf("unknown noun %q (an action adds a verb to an existing noun)", a.Noun)
+		return fmt.Errorf("unknown noun %q (an action adds a verb to an existing noun)", a.spelled())
 	case r.Operations[a.Key()].Noun != "":
-		return fmt.Errorf("%s is already defined", a.Key())
+		return fmt.Errorf("%s is already defined", a.writtenKey())
 	case len(a.Command) > 0 && len(a.Base) > 0:
 		return errors.New("command and base exclude each other")
 	case len(a.Command) == 0 && len(a.Base) == 0:
@@ -116,8 +132,8 @@ func (a Action) check(r *Runtime) error {
 		return errors.New("call and target go with base, not command")
 	case len(a.Base) > 0 && a.JSON:
 		return errors.New("json goes with command; base always passes --json")
-	case a.Call != "" && len(strings.Fields(a.Call)) != 2:
-		return fmt.Errorf("call %q must be two words, noun and verb", a.Call)
+	case a.Call != "" && len(strings.Fields(a.Call)) < 2:
+		return fmt.Errorf("call %q must be the noun's words and the verb", a.Call)
 	}
 	for name, p := range a.Parameters {
 		if name == "" || strings.ContainsAny(name, ". \t\n") || actionPlaceholders[name] {
@@ -169,7 +185,7 @@ func (a Action) values(c Ctx) func(name string) string {
 			}
 			return inst.ID
 		case "noun":
-			return a.Noun
+			return a.spelled()
 		case "verb":
 			return a.Verb
 		case "data":
@@ -241,7 +257,7 @@ func (a Action) argv(c Ctx, value func(string) string) []string {
 	if len(a.Base) > 0 {
 		call := a.Call
 		if call == "" {
-			call = a.Noun + " " + a.Verb
+			call = a.spelled() + " " + a.Verb
 		}
 		out = append(out, strings.Fields(call)...)
 		out = append(out, "--json", argsJSON(c.Args))
@@ -391,8 +407,11 @@ func (r *Runtime) ReloadUserActions() []string {
 	}
 	actions, problems := readActions(path)
 	for _, f := range actions {
+		if noun := r.CanonicalNoun(f.action.Noun); noun != f.action.Noun {
+			f.action.written, f.action.Noun = f.action.Noun, noun
+		}
 		if err := f.action.check(r); err != nil {
-			problems = append(problems, fmt.Sprintf("%s: action %d (%s): %v (skipped)", ActionsFile, f.n, f.action.Key(), err))
+			problems = append(problems, fmt.Sprintf("%s: action %d (%s): %v (skipped)", ActionsFile, f.n, f.action.writtenKey(), err))
 			continue
 		}
 		r.installAction(f.action)
@@ -467,14 +486,14 @@ func readActions(path string) ([]fileAction, []string) {
 }
 
 func registerActions(r *Runtime) {
-	r.Register(Operation{Verb: "list", Noun: "actions", Description: "List the actions installed from actions.json: verbs that run an external command", Result: "action[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "list", Noun: "app.actions", Description: "List the actions installed from actions.json: verbs that run an external command", Result: "action[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		out := r.UserActions()
 		if out == nil {
 			out = []Action{}
 		}
 		return out, nil
 	}})
-	r.Register(Operation{Verb: "reload", Noun: "actions", Description: "Read actions.json again: its verbs replace the last load's, a bad entry is skipped and reported; the user bindings are applied again", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "reload", Noun: "app.actions", Description: "Read actions.json again: its verbs replace the last load's, a bad entry is skipped and reported; the user bindings are applied again", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		problems := r.ReloadUserActions()
 		if r.Config().bindingsLoaded {
 			problems = append(problems, r.ReloadUserBindings()...)
@@ -484,7 +503,7 @@ func registerActions(r *Runtime) {
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Verb: "path", Noun: "actions", Description: "Print the user actions file: actions.json beside bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "path", Noun: "app.actions", Description: "Print the user actions file: actions.json beside bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		path := r.Config().Path(ActionsFile)
 		if path == "" {
 			return nil, errors.New("this application has no config directory")

@@ -22,25 +22,25 @@ func TestHistoryRecordsRequestsWithSource(t *testing.T) {
 	r, _ := editorTestRuntime(t, "one two", false)
 	editorTestKeys(t, r, "x")
 	e := lastEntry(t, r)
-	if e.Request.Key() != "input.delete" || e.Context.Source != "key:x" || e.Context.Focus != "editor" || e.Context.Mode != "normal" || !e.Result.OK {
+	if e.Request.Key() != "app.input.delete" || e.Context.Source != "key:x" || e.Context.Focus != "editor" || e.Context.Mode != "normal" || !e.Result.OK {
 		t.Fatalf("key entry: %+v", e)
 	}
 	// g enters g_pending; the second g is the row that answers there (the
 	// pending mode is consumed before the request runs, so mode is normal).
 	editorTestKeys(t, r, "g", "g")
-	if e := lastEntry(t, r); e.Request.Key() != "input.move" || e.Context.Source != "key:g" {
+	if e := lastEntry(t, r); e.Request.Key() != "app.input.move" || e.Context.Source != "key:g" {
 		t.Fatalf("pending-mode source: %+v %+v", e.Request, e.Context)
 	}
-	if _, err := r.Execute(Request{Verb: "insert", Noun: "input", Args: Arguments{"text": "a"}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "insert", Noun: "app.input", Args: Arguments{"text": "a"}}); err != nil {
 		t.Fatal(err)
 	}
 	if e := lastEntry(t, r); e.Context.Source != "api" || e.Request.Args["text"] != "a" {
 		t.Fatalf("api entry: %+v", e)
 	}
 	reply := make(chan Response, 1)
-	r.HandleCall(CallMsg{Request: Request{Verb: "ignore", Noun: "key"}, Reply: reply})
+	r.HandleCall(CallMsg{Request: Request{Verb: "ignore", Noun: "app.key"}, Reply: reply})
 	<-reply
-	if e := lastEntry(t, r); e.Context.Source != "cli" || e.Request.Key() != "key.ignore" {
+	if e := lastEntry(t, r); e.Context.Source != "cli" || e.Request.Key() != "app.key.ignore" {
 		t.Fatalf("cli entry: %+v", e)
 	}
 	if _, err := r.Execute(Request{Verb: "nope", Noun: "thing"}); err == nil {
@@ -60,7 +60,7 @@ func TestHistoryMacroReplaySource(t *testing.T) {
 	}
 	found := false
 	for _, e := range r.History(0) {
-		found = found || e.Request.Key() == "input.delete" && e.Context.Source == "macro:a"
+		found = found || e.Request.Key() == "app.input.delete" && e.Context.Source == "macro:a"
 	}
 	if !found {
 		t.Fatalf("no macro-sourced delete in %+v", r.History(10))
@@ -73,7 +73,7 @@ func TestHistoryMacroReplaySource(t *testing.T) {
 func TestHistoryRingListAndSnapshot(t *testing.T) {
 	r := NewRuntime()
 	for range HistoryLimit + 10 {
-		if _, err := r.Execute(Request{Verb: "ignore", Noun: "key"}); err != nil {
+		if _, err := r.Execute(Request{Verb: "ignore", Noun: "app.key"}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -81,18 +81,18 @@ func TestHistoryRingListAndSnapshot(t *testing.T) {
 	if len(all) != HistoryLimit || all[0].Seq != 11 || all[len(all)-1].Seq != HistoryLimit+10 {
 		t.Fatalf("ring: %d entries, first %d", len(all), all[0].Seq)
 	}
-	listed, err := r.Execute(Request{Verb: "list", Noun: "history", Args: Arguments{"last": 3}})
+	listed, err := r.Execute(Request{Verb: "list", Noun: "app.history", Args: Arguments{"last": 3}})
 	if err != nil || len(listed.([]HistoryEntry)) != 3 {
 		t.Fatalf("history.list: %v %v", listed, err)
 	}
-	state, err := r.Execute(Request{Verb: "get", Noun: "state", Args: Arguments{"path": "/history"}})
+	state, err := r.Execute(Request{Verb: "get", Noun: "app.state", Args: Arguments{"path": "/history"}})
 	if err != nil || len(state.([]any)) != 50 {
 		t.Fatalf("/history: %v", err)
 	}
 	if e := r.HistoryOf(1, historyUserKinds...); len(e) != 1 || e[0].Seq != HistoryLimit+10 {
 		t.Fatalf("history.list or state.get is in the user's view: %+v", e)
 	}
-	if e := lastEntry(t, r); e.Kind != HistoryFetch || e.Request.Key() != "state.get" {
+	if e := lastEntry(t, r); e.Kind != HistoryFetch || e.Request.Key() != "app.state.get" {
 		t.Fatalf("state.get is not the last fetch: %+v", e)
 	}
 	data, err := json.Marshal(lastEntry(t, r))
@@ -133,7 +133,7 @@ func TestDotRepeatsChangeOnAnotherLine(t *testing.T) {
 	if got := string(in.Text); got != "two\nfour" {
 		t.Fatalf("text %q", got)
 	}
-	if e := lastEntry(t, r); e.Request.Key() != "history.repeat" || e.Context.Source != "key:." {
+	if e := lastEntry(t, r); e.Request.Key() != "app.history.repeat" || e.Context.Source != "key:." {
 		t.Fatalf("repeat entry: %+v", e)
 	}
 }
@@ -158,11 +158,11 @@ func TestDotDoesNotRepeatMotion(t *testing.T) {
 	if got := string(in.Text); got != "b d" {
 		t.Fatalf("text %q", got)
 	}
-	if op := r.Operations["input.move"]; op.Repeatable || !r.Operations["input.operator"].Repeatable {
+	if op := r.Operations["app.input.move"]; op.Repeatable || !r.Operations["app.input.operator"].Repeatable {
 		t.Fatal("motions are not repeatable, operators are")
 	}
 	fresh := NewRuntime()
-	if _, err := fresh.Execute(Request{Verb: "repeat", Noun: "history"}); err == nil {
+	if _, err := fresh.Execute(Request{Verb: "repeat", Noun: "app.history"}); err == nil {
 		t.Fatal("nothing to repeat must fail")
 	}
 }
@@ -175,7 +175,7 @@ func TestDotRetargetsToFocusUnlessCLI(t *testing.T) {
 	if err := r.AddInput(other); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Verb: "delete", Noun: "input", Target: "other"}); err != nil {
+	if _, err := r.Execute(Request{Verb: "delete", Noun: "app.input", Target: "other"}); err != nil {
 		t.Fatal(err)
 	}
 	editorTestKeys(t, r, ".")
@@ -183,7 +183,7 @@ func TestDotRetargetsToFocusUnlessCLI(t *testing.T) {
 		t.Fatalf("api target re-resolves to focus: %q %q", focused.Text, other.Text)
 	}
 	reply := make(chan Response, 1)
-	r.HandleCall(CallMsg{Request: Request{Verb: "delete", Noun: "input", Target: "other"}, Reply: reply})
+	r.HandleCall(CallMsg{Request: Request{Verb: "delete", Noun: "app.input", Target: "other"}, Reply: reply})
 	<-reply
 	editorTestKeys(t, r, ".")
 	if string(focused.Text) != "xxx" || string(other.Text) != "y" {
@@ -199,10 +199,10 @@ func TestDotDoesNotReaskConfirmation(t *testing.T) {
 	if _, err := r.Execute(Request{Verb: "wipe", Noun: "test"}); err != nil || runs != 0 || len(r.Modals()) != 1 {
 		t.Fatalf("confirm opens: %v runs=%d", err, runs)
 	}
-	if _, err := r.Execute(Request{Verb: "accept", Noun: "confirm"}); err != nil || runs != 1 {
+	if _, err := r.Execute(Request{Verb: "accept", Noun: "app.confirm"}); err != nil || runs != 1 {
 		t.Fatalf("accept: %v runs=%d", err, runs)
 	}
-	if _, err := r.Execute(Request{Verb: "repeat", Noun: "history"}); err != nil || runs != 2 || len(r.Modals()) != 0 {
+	if _, err := r.Execute(Request{Verb: "repeat", Noun: "app.history"}); err != nil || runs != 2 || len(r.Modals()) != 0 {
 		t.Fatalf("repeat: %v runs=%d modals=%v", err, runs, r.Modals())
 	}
 }
@@ -241,7 +241,7 @@ func TestHistoryMotionRecordsTheMoveNotTheList(t *testing.T) {
 		t.Fatal(err)
 	}
 	for range 3 {
-		if _, err := r.Execute(Request{Verb: "move", Noun: "list", Args: Arguments{"delta": 1}}); err != nil {
+		if _, err := r.Execute(Request{Verb: "move", Noun: "app.list", Args: Arguments{"delta": 1}}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -249,7 +249,7 @@ func TestHistoryMotionRecordsTheMoveNotTheList(t *testing.T) {
 		t.Fatalf("history encoded the rows %d times", encoded)
 	}
 	e := lastEntry(t, r)
-	if e.Request.Key() != "list.move" || !e.Result.OK || e.Moved == nil || e.Moved.From.Focus != "r2" || e.Moved.To.Focus != "r3" || e.Moved.To.Page != "page" {
+	if e.Request.Key() != "app.list.move" || !e.Result.OK || e.Moved == nil || e.Moved.From.Focus != "r2" || e.Moved.To.Focus != "r3" || e.Moved.To.Page != "page" {
 		t.Fatalf("move entry: %+v moved %+v", e, e.Moved)
 	}
 	line, err := json.Marshal(e)
@@ -260,14 +260,14 @@ func TestHistoryMotionRecordsTheMoveNotTheList(t *testing.T) {
 		t.Fatalf("entry is %d bytes: %s", len(line), line)
 	}
 	// A request that moves nothing has no Moved; a non-motion lands too.
-	if _, err := r.Execute(Request{Verb: "mark", Noun: "list"}); err != nil {
+	if _, err := r.Execute(Request{Verb: "mark", Noun: "app.list"}); err != nil {
 		t.Fatal(err)
 	}
-	out, err := r.Execute(Request{Verb: "list", Noun: "history", Args: Arguments{"last": 1}})
+	out, err := r.Execute(Request{Verb: "list", Noun: "app.history", Args: Arguments{"last": 1}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := out.([]HistoryEntry); len(got) != 1 || got[0].Request.Key() != "list.mark" || !got[0].Result.OK || got[0].Moved != nil {
+	if got := out.([]HistoryEntry); len(got) != 1 || got[0].Request.Key() != "app.list.mark" || !got[0].Result.OK || got[0].Moved != nil {
 		t.Fatalf("history.list: %+v", got)
 	}
 	if encoded != 0 {

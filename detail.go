@@ -35,7 +35,7 @@ type Detail struct {
 }
 
 // detailNoun is the noun of every detail instance.
-const detailNoun = "detail"
+const detailNoun = "app.detail"
 
 // AddDetail registers a detail instance under its parent (Parent(page) or
 // an instance beneath the page) and returns its component. item names what

@@ -263,7 +263,7 @@ func TestModelViewCursorFollowsFocusedInput(t *testing.T) {
 	if err := r.AddInput(NewInput("modal-input", "xyz", false), Parent("dialog")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Verb: "push", Noun: "modal", Args: Arguments{"id": "draft", "input": "modal-input"}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "push", Noun: "app.modal", Args: Arguments{"id": "draft", "input": "modal-input"}}); err != nil {
 		t.Fatal(err)
 	}
 	r.Input("modal-input").Cursor = 2
@@ -280,11 +280,11 @@ func TestModelViewCursorFollowsFocusedInput(t *testing.T) {
 	if view := m.View(); view.Cursor != nil {
 		t.Fatalf("cursor %+v reported under a modal without an input", view.Cursor)
 	}
-	if _, err := r.Execute(Request{Verb: "pop", Noun: "modal"}); err != nil {
+	if _, err := r.Execute(Request{Verb: "pop", Noun: "app.modal"}); err != nil {
 		t.Fatal(err)
 	}
 	locate(m.View(), "xyz", 2)
-	if _, err := r.Execute(Request{Verb: "pop", Noun: "modal"}); err != nil {
+	if _, err := r.Execute(Request{Verb: "pop", Noun: "app.modal"}); err != nil {
 		t.Fatal(err)
 	}
 	locate(m.View(), "alpha", 3)

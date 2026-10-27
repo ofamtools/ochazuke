@@ -33,7 +33,7 @@ func operationHelp(ctx context.Context, socket, noun, verb string, out io.Writer
 	for _, op := range catalog {
 		if op.Noun == noun && op.Verb == verb {
 			writeOperationHelp(out, op, func(source string) ([]ochazuke.Choice, error) {
-				n, v, _ := strings.Cut(source, ".")
+				n, v := ochazuke.SplitKey(source)
 				result, err := ochazuke.Call(ctx, socket, ochazuke.Request{Noun: n, Verb: v})
 				if err != nil {
 					return nil, err

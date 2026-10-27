@@ -63,7 +63,7 @@ func Classify(ss *Session, msg tea.Msg) *Event {
 				if v.Err != nil {
 					state = ochazuke.JobFailed
 				}
-				return &Event{Job: j.Verb, State: state}
+				return &Event{Job: ss.R.DisplayKey(j.Verb), State: state} // recorded by its short name
 			}
 		}
 	case ochazuke.JobLingerMsg:
@@ -254,7 +254,7 @@ func (d *Driver) traced(e Event, play func() error) error {
 		}
 		d.lastSeq = h.Seq
 		if h.Depth == 0 {
-			step.Ran = append(step.Ran, Ran{Mode: h.Context.Mode, Verb: h.Request.Key(), OK: h.Result.OK})
+			step.Ran = append(step.Ran, Ran{Mode: h.Context.Mode, Verb: d.S.R.DisplayKey(h.Request.Key()), OK: h.Result.OK}) // by its short name
 		}
 	}
 	d.Trace = append(d.Trace, step)
@@ -277,7 +277,7 @@ func (d *Driver) step(e Event) error {
 	case e.Job != "":
 		err := d.take("completion of "+e.Job, func(msg tea.Msg) bool {
 			ev := Classify(d.S, msg)
-			return ev != nil && ev.Job == e.Job
+			return ev != nil && d.S.R.CanonicalKey(ev.Job) == d.S.R.CanonicalKey(e.Job)
 		})
 		if err != nil {
 			return err

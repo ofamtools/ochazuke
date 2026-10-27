@@ -14,15 +14,15 @@ import (
 // (marked Confirmed so the prompt does not reopen) in the context it came
 // from, n or esc pops, every other key is swallowed.
 func registerConfirm(r *Runtime) {
-	r.Define("confirm").Mode("").
-		Bind("y", Do("confirm.accept")).
-		Bind("enter", Do("confirm.accept")).
-		Bind("n", Do("modal.pop")).
-		Bind("esc", Do("modal.pop")).
-		Pattern(Any, Do("key.ignore").Hide())
-	r.Register(Operation{Verb: "accept", Noun: "confirm", Description: "Run the request the open confirm modal holds and close it", Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Define("app.confirm").Mode("").
+		Bind("y", Do("app.confirm.accept")).
+		Bind("enter", Do("app.confirm.accept")).
+		Bind("n", Do("app.modal.pop")).
+		Bind("esc", Do("app.modal.pop")).
+		Pattern(Any, Do("app.key.ignore").Hide())
+	r.Register(Operation{Verb: "accept", Noun: "app.confirm", Description: "Run the request the open confirm modal holds and close it", Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		inst := r.Instances[r.TopModal()]
-		if inst == nil || inst.Noun != "confirm" || inst.Payload.Request == nil {
+		if inst == nil || inst.Noun != "app.confirm" || inst.Payload.Request == nil {
 			return nil, errors.New("no confirm modal is open")
 		}
 		q := *inst.Payload.Request
@@ -31,7 +31,7 @@ func registerConfirm(r *Runtime) {
 		}
 		return r.Execute(q)
 	}})
-	r.Register(Operation{Verb: "set", Noun: "confirm", Description: "Add or remove the confirm prompt of an operation ({{id}}, {{noun}}, {{label}} and {{<arg>}} expand; a label argument wins over the instance label); an empty prompt removes it", Parameters: map[string]Parameter{"operation": {Type: "string", Required: true, Description: "noun.verb", Noun: "operations"}, "prompt": {Type: "string"}}, Result: "operation", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "set", Noun: "app.confirm", Description: "Add or remove the confirm prompt of an operation ({{id}}, {{noun}}, {{label}} and {{<arg>}} expand; a label argument wins over the instance label); an empty prompt removes it", Parameters: map[string]Parameter{"operation": {Type: "string", Required: true, Description: "noun.verb", Noun: "app.operations"}, "prompt": {Type: "string"}}, Result: "operation", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		key := StringArg(a, "operation", "")
 		if err := r.SetConfirm(key, StringArg(a, "prompt", "")); err != nil {
 			return nil, err
@@ -78,7 +78,7 @@ func (r *Runtime) openConfirm(c Context, q Request, op Operation) (any, error) {
 		if !addressed {
 			switch name {
 			case "noun":
-				return op.Noun
+				return r.DisplayNoun(op.Noun)
 			case "id", "target", "label":
 				if v, ok := q.Args[name]; ok {
 					return fmt.Sprint(v)
@@ -92,7 +92,7 @@ func (r *Runtime) openConfirm(c Context, q Request, op Operation) (any, error) {
 		case "id", "target":
 			return inst.ID
 		case "noun":
-			return inst.Noun
+			return r.DisplayNoun(inst.Noun)
 		case "label":
 			if v, ok := q.Args["label"]; ok {
 				return fmt.Sprint(v)

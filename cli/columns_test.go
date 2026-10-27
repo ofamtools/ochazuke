@@ -17,7 +17,7 @@ import (
 func TestCatalogCarriesColumns(t *testing.T) {
 	build := func() []byte {
 		r := ochazuke.NewRuntime()
-		r.Define("pane").Columns(
+		r.DefineOwn("pane").Columns(
 			ochazuke.Column{Title: "pane"},
 			ochazuke.Column{Title: "state", Priority: 1},
 			ochazuke.Column{Title: "cwd", Min: 8, Priority: 2},
@@ -93,7 +93,7 @@ func TestCatalogListColumns(t *testing.T) {
 	r := ochazuke.NewRuntime()
 	noop := func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }
 	cols := []ochazuke.Column{{Title: "pane"}, {Title: "state", Priority: 1}}
-	r.Define("pane").Columns(cols...).Verb("list", noop, "List panes")
+	r.DefineOwn("pane").Columns(cols...).Verb("list", noop, "List panes")
 	r.Define("worktree").Columns(ochazuke.Column{Title: "ignored"}).Verb("panes", noop, "Panes of a worktree").Rows("pane")
 	r.Define("tool").Columns(ochazuke.Column{Title: "verb rows"}).Verb("run", noop, "Run")
 	r.Define("plain").Verb("list", noop, "List plain rows")
@@ -115,7 +115,7 @@ func TestCatalogListColumns(t *testing.T) {
 	}
 	// Mounted with the columns, a list draws the header; none, a plain list.
 	host := ochazuke.NewRuntime()
-	host.Define("pane")
+	host.DefineOwn("pane")
 	list, err := host.AddList("panes", []ochazuke.ListItem{{ID: "p1", Label: "one", Noun: "pane", Cells: []string{"one", "idle"}}}, ochazuke.Columns(doc.ListColumns("worktree")...))
 	if err != nil {
 		t.Fatal(err)

@@ -144,7 +144,7 @@ func build(s *Story, opt Options, stateDir string) (*Session, error) {
 	for _, p := range pages {
 		for _, j := range p.Jobs {
 			for range j.Start {
-				noun, verb, _ := strings.Cut(j.Verb, ".")
+				noun, verb := ochazuke.SplitKey(j.Verb)
 				if _, err := r.Execute(ochazuke.Request{Noun: noun, Verb: verb}); err != nil {
 					return nil, fmt.Errorf("start %s: %w", j.Verb, err)
 				}
@@ -218,7 +218,7 @@ func (ss *Session) defineDemo(pages []*Page) error {
 		Bind("x", ochazuke.Do(Demo+".delete"))
 	for _, p := range pages {
 		for _, j := range p.Jobs {
-			noun, verb, ok := strings.Cut(j.Verb, ".")
+			noun, verb, ok := ochazuke.CutKey(j.Verb)
 			if !ok || noun != Demo || verb == "" {
 				return fmt.Errorf("job verb %q: must be %s.<name>", j.Verb, Demo)
 			}
@@ -258,7 +258,7 @@ func (ss *Session) defineDemo(pages []*Page) error {
 			ss.defineHints(p.Term.Hints)
 		}
 		for _, b := range p.Bind {
-			if _, ok := r.Operations[b.Do]; !ok {
+			if _, ok := r.Operation(b.Do); !ok {
 				return fmt.Errorf("bind %s: unknown operation %q", b.Keys, b.Do)
 			}
 			mode := b.Mode

@@ -176,7 +176,7 @@ const ImplicitGuard = "input"
 // withImplicitGuard gives an editor noun row that runs an input operation
 // the implicit guard when it names none.
 func withImplicitGuard(row Binding) Binding {
-	if row.Noun == "editor" && row.Instance == "" && row.When == "" && implicitlyGuarded(row) {
+	if row.Noun == "app.editor" && row.Instance == "" && row.When == "" && implicitlyGuarded(row) {
 		row.When = ImplicitGuard
 	}
 	return row
@@ -185,7 +185,7 @@ func withImplicitGuard(row Binding) Binding {
 // implicitlyGuarded reports whether a row's request is one the editor
 // noun's rows guard implicitly.
 func implicitlyGuarded(row Binding) bool {
-	return row.Request.Noun == "input" && row.Request.Verb != "cancel"
+	return row.Request.Noun == "app.input" && row.Request.Verb != "cancel"
 }
 
 // identityGuard is the guard that is part of the row's identity: When,
@@ -194,7 +194,7 @@ func implicitlyGuarded(row Binding) bool {
 // noun is consulted only with an input on the focus path, where the guard
 // is the framework's detail, not a second row).
 func (b Binding) identityGuard() string {
-	if b.When == ImplicitGuard && b.Noun == "editor" && b.Instance == "" {
+	if b.When == ImplicitGuard && b.Noun == "app.editor" && b.Instance == "" {
 		return ""
 	}
 	return b.When
@@ -241,7 +241,7 @@ func insertRow(rows []Binding, at int, row Binding) []Binding {
 
 // Do builds a row that runs "noun.verb" with optional arguments.
 func Do(operation string, args ...Arguments) Binding {
-	noun, verb, _ := strings.Cut(operation, ".")
+	noun, verb := SplitKey(operation)
 	q := Request{Verb: verb, Noun: noun}
 	for _, a := range args {
 		if q.Args == nil {
@@ -277,11 +277,11 @@ func Enter(mode string, payload ...Payload) Binding {
 			args["request"] = *p.Request
 		}
 	}
-	return Do("mode.enter", args)
+	return Do("app.mode.enter", args)
 }
 
 // Leave builds a row that returns from a pending mode to the mode it shadowed.
-func Leave() Binding { return Do("mode.leave") }
+func Leave() Binding { return Do("app.mode.leave") }
 
 // FromKey fills an argument from the pressed key name.
 func (b Binding) FromKey(arg string) Binding { return b.from(arg, SourceKey) }
@@ -331,21 +331,61 @@ func (b Binding) from(arg, source string) Binding {
 	return b
 }
 
-// Define declares a noun, or returns the builder of an existing one.
+// Define declares a noun, or returns the builder of an existing one. A
+// name the framework's nouns answer to (settings for app.settings:
+// CanonicalNoun) returns that noun's builder, so an application's verbs
+// and rows extend it; DefineOwn claims the short name for a noun of the
+// application's own instead. Inside Builtin a plain name is the framework
+// noun app.<name>.
 func (r *Runtime) Define(name string) *NounBuilder {
 	if name == "" {
 		panic("noun name must be nonempty")
 	}
+	if r.builtinDepth > 0 {
+		name = frameworkName(name)
+	} else {
+		name = r.CanonicalNoun(name)
+	}
+	return &NounBuilder{r: r, n: r.ensureNoun(name)}
+}
+
+// DefineOwn declares a noun of the application's own under exactly name,
+// or returns its builder when it exists. When name is the alias of a
+// framework noun (settings for app.settings) the application's noun owns
+// the short name from then on: keys, binding files, actions.json, the
+// palette and the CLI reach it by that name, and the framework's noun
+// stays reachable by its canonical name (app.settings), its verbs and
+// rows intact. An application with a settings, config or page noun of its
+// own declares it with DefineOwn instead of removing the framework's.
+func (r *Runtime) DefineOwn(name string) *NounBuilder {
+	if name == "" {
+		panic("noun name must be nonempty")
+	}
+	return &NounBuilder{r: r, n: r.ensureNoun(name)}
+}
+
+// ensureNoun is the noun of that exact name, created when it does not
+// exist yet (refused when the name is an operation key: checkNounOverlap).
+// Inside Builtin a framework noun app.<noun> records its alias.
+func (r *Runtime) ensureNoun(name string) *Noun {
 	n := r.Nouns[name]
 	if n == nil {
+		if strings.HasPrefix(name, ".") || strings.HasSuffix(name, ".") || strings.Contains(name, "..") {
+			panic(fmt.Sprintf("noun %q has an empty part", name))
+		}
+		if err := r.checkNounOverlap(name); err != nil {
+			panic(err.Error())
+		}
 		n = &Noun{Name: name, Bindings: map[string][]Binding{}, Actions: map[string]Handler{}}
 		r.Nouns[name] = n
 	}
-	return &NounBuilder{r: r, n: n}
+	r.noteFrameworkNoun(name)
+	return n
 }
 
-// Noun returns the registered noun of that name, or nil.
-func (r *Runtime) Noun(name string) *Noun { return r.Nouns[name] }
+// Noun returns the registered noun a name stands for (an alias resolved:
+// CanonicalNoun), or nil.
+func (r *Runtime) Noun(name string) *Noun { return r.Nouns[r.CanonicalNoun(name)] }
 
 // NounBuilder is the declaration surface of one noun.
 type NounBuilder struct {
@@ -422,6 +462,9 @@ func (b *NounBuilder) Rows(noun string) *NounBuilder {
 		panic("Rows must follow Verb")
 	}
 	op := b.r.Operations[b.last]
+	if noun != "" {
+		noun = b.r.CanonicalNoun(noun)
+	}
 	op.Rows = noun
 	b.r.Operations[b.last] = op
 	return b
@@ -516,7 +559,7 @@ func (b *NounBuilder) When(guard string) *NounBuilder {
 	if b.last == "" {
 		panic("When must follow Verb")
 	}
-	_, verb, _ := strings.Cut(b.last, ".")
+	_, verb := SplitKey(b.last)
 	if b.n.Guards == nil {
 		b.n.Guards = map[string]string{}
 	}
@@ -530,8 +573,8 @@ func (b *NounBuilder) When(guard string) *NounBuilder {
 
 // VerbGuard names the guard on noun.verb, "" when the verb is unguarded.
 func (r *Runtime) VerbGuard(key string) string {
-	noun, verb, _ := strings.Cut(key, ".")
-	if n := r.Nouns[noun]; n != nil {
+	noun, verb := SplitKey(key)
+	if n := r.Noun(noun); n != nil {
 		return n.Guards[verb]
 	}
 	return ""
@@ -550,7 +593,10 @@ func (r *Runtime) VerbShown(key, focus string, mode ModeState) bool {
 }
 
 // Action overrides any operation ("noun.verb") while this noun is on the stack.
-func (b *NounBuilder) Action(key string, h Handler) *NounBuilder { b.n.Actions[key] = h; return b }
+func (b *NounBuilder) Action(key string, h Handler) *NounBuilder {
+	b.n.Actions[b.r.CanonicalKey(key)] = h
+	return b
+}
 
 // Mode selects the table rows are bound into; "" is the any-mode table.
 func (b *NounBuilder) Mode(mode string) *ModeBuilder { return &ModeBuilder{NounBuilder: b, mode: mode} }
@@ -714,7 +760,7 @@ func withPrefixCancels(rows []Binding) []Binding {
 // isPrefixCancel reports whether a row is the default cancel of a sequence
 // prefix: "<prefix> esc" running leave.mode.
 func isPrefixCancel(b Binding) bool {
-	return strings.HasSuffix(b.Keys, " "+CancelKey) && b.Request.Key() == "mode.leave" && len(b.From) == 0 && b.When == ""
+	return strings.HasSuffix(b.Keys, " "+CancelKey) && b.Request.Key() == "app.mode.leave" && len(b.From) == 0 && b.When == ""
 }
 
 // isPattern reports whether a config "keys" value names a key class.
@@ -833,19 +879,23 @@ func (r *Runtime) ValidateBindings() ([]string, error) {
 	return append([]string(nil), r.deprecations...), nil
 }
 
-// modernRequest accepts the pre-noun.verb spelling for one release: a row
-// built as Do("undo.input") parses as noun "undo", verb "input". When that
-// key is unknown but its reversal is registered, the request is rewritten
-// and the move recorded once per key; ValidateBindings returns the list.
+// modernRequest resolves a request's noun (an alias such as list names
+// app.list: CanonicalNoun) and accepts the pre-noun.verb spelling for one
+// release: a row built as Do("undo.input") parses as noun "undo", verb
+// "input". When that two-word key is unknown but its reversal is
+// registered, the request is rewritten and the move recorded once per key;
+// ValidateBindings returns the list. A key of three or more words (a dotted
+// noun: app.settings.set) is never swapped.
 func (r *Runtime) modernRequest(q Request) Request {
-	if _, ok := r.Operations[q.Key()]; ok {
+	q = r.canonicalRequest(q)
+	if _, ok := r.Operations[q.Key()]; ok || q.Verb == "" || strings.Contains(q.Noun, ".") {
 		return q
 	}
-	reversed := Request{Verb: q.Noun, Noun: q.Verb, Target: q.Target, Args: q.Args}
+	reversed := r.canonicalRequest(Request{Verb: q.Noun, Noun: q.Verb, Target: q.Target, Args: q.Args})
 	if _, ok := r.Operations[reversed.Key()]; !ok {
 		return q
 	}
-	warning := fmt.Sprintf("operation %q is spelled noun.verb: use %q", q.Key(), reversed.Key())
+	warning := fmt.Sprintf("operation %q is spelled noun.verb: use %q", q.Key(), r.DisplayKey(reversed.Key()))
 	if !slices.Contains(r.deprecations, warning) {
 		r.deprecations = append(r.deprecations, warning)
 	}
@@ -915,7 +965,7 @@ func (r *Runtime) validateRow(row Binding) (Binding, error) {
 			return row, fmt.Errorf("unknown instance %q", row.Instance)
 		}
 		row.Noun = ""
-	} else if r.Nouns[row.Noun] == nil {
+	} else if row.Noun = r.CanonicalNoun(row.Noun); r.Nouns[row.Noun] == nil {
 		return row, fmt.Errorf("unknown noun %q", row.Noun)
 	}
 	return row, nil

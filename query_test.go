@@ -79,7 +79,7 @@ func TestInstancesQueryOperation(t *testing.T) {
 	if err := json.Unmarshal([]byte(`{"where": [["noun", "worktree"], ["not", [["within", "sidebar"]]]]}`), &args); err != nil {
 		t.Fatal(err)
 	}
-	got, err := r.Execute(Request{Verb: "query", Noun: "instances", Args: args})
+	got, err := r.Execute(Request{Verb: "query", Noun: "app.instances", Args: args})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,18 +89,18 @@ func TestInstancesQueryOperation(t *testing.T) {
 	if err := json.Unmarshal([]byte(`{"where": [["any", [["id", "wt1"], ["id", "grp"]]]]}`), &args); err != nil {
 		t.Fatal(err)
 	}
-	if got, err := r.Execute(Request{Verb: "query", Noun: "instances", Args: args}); err != nil || len(got.([]QueryMatch)) != 2 {
+	if got, err := r.Execute(Request{Verb: "query", Noun: "app.instances", Args: args}); err != nil || len(got.([]QueryMatch)) != 2 {
 		t.Fatalf("any: %+v %v", got, err)
 	}
 	for _, raw := range []string{`{"where": [["nope", "x"]]}`, `{"where": [["not"]]}`, `{"where": ["noun"]}`, `{"where": [["noun", 3]]}`, `{"where": "noun"}`} {
 		if err := json.Unmarshal([]byte(raw), &args); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := r.Execute(Request{Verb: "query", Noun: "instances", Args: args}); err == nil {
+		if _, err := r.Execute(Request{Verb: "query", Noun: "app.instances", Args: args}); err == nil {
 			t.Errorf("%s: expected an error", raw)
 		}
 	}
-	if all, err := r.Execute(Request{Verb: "query", Noun: "instances"}); err != nil || all.([]QueryMatch)[0].ID != "app" {
+	if all, err := r.Execute(Request{Verb: "query", Noun: "app.instances"}); err != nil || all.([]QueryMatch)[0].ID != "app" {
 		t.Fatalf("no predicates lists every instance from app: %v %v", all, err)
 	}
 }

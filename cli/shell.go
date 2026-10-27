@@ -172,11 +172,17 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		fmt.Fprintln(s.stderr(), "warning:", problem)
 	}
 	r.EnsureConfigSettings()
-	verb, err := s.verb(args[0], args[1])
+	// The noun is the longest run of leading words naming one: app
+	// settings, app.settings and settings (an alias) are app.settings.
+	noun, rest, ok := r.NounWords(args)
+	if !ok {
+		noun, rest = args[0], args[1:]
+	}
+	verb, err := s.verb(noun, rest[0])
 	if err != nil {
 		return err
 	}
-	q, opts, err := s.request(args[0], verb, args[2:])
+	q, opts, err := s.request(noun, verb, rest[1:])
 	if err != nil {
 		return err
 	}
@@ -217,16 +223,16 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		if top == nil {
 			break
 		}
-		if top.Noun != "confirm" {
+		if top.Noun != "app.confirm" {
 			return fmt.Errorf("%s opened a %s modal, which needs the TUI; pass its arguments instead (%s operations list)", q.Key(), top.Noun, s.Bin)
 		}
 		if !opts.yes && !s.accepts(top.Payload.Prompt) {
-			if _, err := s.call(ochazuke.Request{Verb: "pop", Noun: "modal"}); err != nil {
+			if _, err := s.call(ochazuke.Request{Verb: "pop", Noun: "app.modal"}); err != nil {
 				return err
 			}
 			return fmt.Errorf("declined: %s", top.Payload.Prompt)
 		}
-		if value, err = s.call(ochazuke.Request{Verb: "accept", Noun: "confirm"}); err != nil {
+		if value, err = s.call(ochazuke.Request{Verb: "accept", Noun: "app.confirm"}); err != nil {
 			return err
 		}
 	}
@@ -246,7 +252,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	})
 	for _, j := range r.Jobs() {
 		if j.Job > last && (j.State == ochazuke.JobFailed || !r.Operations[j.Verb].Quiet) {
-			name := j.Verb
+			name := r.DisplayKey(j.Verb)
 			if j.Label != "" {
 				name += " " + j.Label
 			}
@@ -343,8 +349,10 @@ func (s *Shell) verb(noun, word string) (string, error) {
 // for: the declared owner when it exists, else every instance of noun (app
 // aside), in id order.
 func (s *Shell) ownersOf(noun string) []string {
-	if id := s.Owners[noun]; id != "" && s.Runtime.Instances[id] != nil {
-		return []string{id}
+	for _, name := range []string{noun, s.Runtime.DisplayNoun(noun)} {
+		if id := s.Owners[name]; id != "" && s.Runtime.Instances[id] != nil {
+			return []string{id}
+		}
 	}
 	var ids []string
 	for id, inst := range s.Runtime.Instances {

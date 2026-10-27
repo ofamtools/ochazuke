@@ -10,16 +10,16 @@ import (
 const yankHistoryID = "__yank-history"
 
 func registerYankHistory(r *Runtime) {
-	r.Instance(yankHistoryID, Kind("yank-history"))
-	r.Define("yank-history").Mode("").
-		Bind("j", Do("yank-history.move", Arguments{"steps": 1})).
-		Bind("down", Do("yank-history.move", Arguments{"steps": 1})).
-		Bind("k", Do("yank-history.move", Arguments{"steps": -1})).
-		Bind("up", Do("yank-history.move", Arguments{"steps": -1})).
-		Bind("enter", Do("yank-history.select")).
-		Bind("esc", Do("modal.pop"))
+	r.Instance(yankHistoryID, Kind("app.yank-history"))
+	r.Define("app.yank-history").Mode("").
+		Bind("j", Do("app.yank-history.move", Arguments{"steps": 1})).
+		Bind("down", Do("app.yank-history.move", Arguments{"steps": 1})).
+		Bind("k", Do("app.yank-history.move", Arguments{"steps": -1})).
+		Bind("up", Do("app.yank-history.move", Arguments{"steps": -1})).
+		Bind("enter", Do("app.yank-history.select")).
+		Bind("esc", Do("app.modal.pop"))
 	add := func(verb, description string, params map[string]Parameter, fn Handler) {
-		r.Register(Operation{Verb: verb, Noun: "yank-history", Description: description, Parameters: params, Result: "yank history state", Run: fn})
+		r.Register(Operation{Verb: verb, Noun: "app.yank-history", Description: description, Parameters: params, Result: "yank history state", Run: fn})
 	}
 	add("open", "Select a previous application yank without inserting it", nil, func(r *Runtime, c Context, a Arguments) (any, error) {
 		g := r.Registers()

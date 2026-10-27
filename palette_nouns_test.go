@@ -67,7 +67,7 @@ func TestPaletteNounVerbsAndInstancesDoNotCollide(t *testing.T) {
 	p := NewPalette(r)
 	paletteRequest(t, r, "open", "page", Arguments{"id": "home"})
 	paletteRequest(t, r, "open", "palette", nil)
-	if c := p.parse("page open"); c.Op.Key() != "page.open" || c.Missing != "id" {
+	if c := p.parse("page open"); c.Op.Key() != "app.page.open" || c.Missing != "id" {
 		t.Fatalf("page open = %s missing %q", c.Op.Key(), c.Missing)
 	}
 	paletteLine(t, r, "page open open")
@@ -85,16 +85,16 @@ func TestPaletteInstanceUsesConfiguredDefaultAndCapturedOrigin(t *testing.T) {
 	origin := r.Context()
 	var gotContext Context
 	var gotArgs Arguments
-	r.Register(Operation{Verb: "inspect", Noun: "page", Parameters: map[string]Parameter{"pageID": {Type: "string", Required: true}}, Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
+	r.Register(Operation{Verb: "inspect", Noun: "app.page", Parameters: map[string]Parameter{"pageID": {Type: "string", Required: true}}, Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
 		t.Fatal("instance bypassed layered dispatch")
 		return nil, nil
 	}})
-	r.Define("home-editor").Action("page.inspect", func(_ *Runtime, context Context, args Arguments) (any, error) {
+	r.Define("home-editor").Action("app.page.inspect", func(_ *Runtime, context Context, args Arguments) (any, error) {
 		gotContext, gotArgs = context, args
 		return nil, nil
 	})
 	p := NewPalette(r)
-	if err := p.RegisterNoun("page", PaletteNoun{Source: PagesPaletteSource, DefaultVerb: "inspect", Argument: "pageID"}); err != nil {
+	if err := p.RegisterNoun("app.page", PaletteNoun{Source: PagesPaletteSource, DefaultVerb: "inspect", Argument: "pageID"}); err != nil {
 		t.Fatal(err)
 	}
 	paletteRequest(t, r, "open", "palette", nil)
@@ -117,7 +117,7 @@ func TestPaletteInstanceFailurePreservesModalAndOrigin(t *testing.T) {
 	p := NewPalette(r)
 	paletteRequest(t, r, "open", "palette", nil)
 	paletteRequest(t, r, "set", "palette", Arguments{"text": "page target"})
-	_, err := r.Execute(Request{Verb: "run", Noun: "palette"})
+	_, err := r.Execute(Request{Verb: "run", Noun: "app.palette"})
 	if err == nil || !strings.Contains(err.Error(), "modal") || !p.IsOpen() || len(r.Modals()) != 2 || r.Modals()[0].ID != "dialog" || r.Page != "home" || !reflect.DeepEqual(p.origin, origin) || p.Text() != "page target" {
 		t.Fatalf("failed instance lost modal/origin: err=%v state=%#v", err, p.state())
 	}
@@ -151,14 +151,14 @@ func TestPaletteInstanceUsesRuntimeValidationAndRestoresOnError(t *testing.T) {
 	}
 	paletteRequest(t, r, "open", "palette", nil)
 	paletteRequest(t, r, "set", "palette", Arguments{"text": "thing x"})
-	_, err := r.Execute(Request{Verb: "run", Noun: "palette"})
+	_, err := r.Execute(Request{Verb: "run", Noun: "app.palette"})
 	if err == nil || err.Error() != "thing rejected" || !p.IsOpen() || !reflect.DeepEqual(captured, origin) || !reflect.DeepEqual(sourceContext, origin) || p.Text() != "thing x" {
 		t.Fatalf("failure dispatch/restoration: %v %#v", err, p.state())
 	}
 	op := r.Operations["thing.use"]
 	op.Parameters["id"] = Parameter{Type: "integer", Required: true}
 	captured = Context{}
-	_, err = r.Execute(Request{Verb: "run", Noun: "palette"})
+	_, err = r.Execute(Request{Verb: "run", Noun: "app.palette"})
 	if err == nil || !strings.Contains(err.Error(), "integer") || !p.IsOpen() || len(captured.Path) != 0 {
 		t.Fatalf("instance bypassed live validation: %v", err)
 	}

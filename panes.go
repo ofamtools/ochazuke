@@ -165,7 +165,7 @@ func paneSplit(r *Runtime, ev KeyEvent) bool {
 }
 
 func registerPanes(r *Runtime) {
-	r.Define("pane")
+	r.Define("app.pane")
 	r.DefineGuard("pane-split", paneSplit)
 	params := map[string]Parameter{
 		"steps": {Type: "integer", Description: fmt.Sprintf("How many steps of %d%% to move the divider (the count; default 1)", PaneStep)},
@@ -183,9 +183,9 @@ func registerPanes(r *Runtime) {
 			return result(id, shift), nil
 		}
 	}
-	r.Register(Operation{Verb: "grow", Noun: "pane", Description: "Grow the page's first pane (the list, left or top) by moving the split's divider; remembered per page", Parameters: params, Result: "page and shift", Run: move(1)})
-	r.Register(Operation{Verb: "shrink", Noun: "pane", Description: "Shrink the page's first pane (the list, left or top) by moving the split's divider; remembered per page", Parameters: params, Result: "page and shift", Run: move(-1)})
-	r.Register(Operation{Verb: "reset", Noun: "pane", Description: "Put the page's split divider back at its default", Parameters: map[string]Parameter{"page": params["page"]}, Result: "page and shift", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "grow", Noun: "app.pane", Description: "Grow the page's first pane (the list, left or top) by moving the split's divider; remembered per page", Parameters: params, Result: "page and shift", Run: move(1)})
+	r.Register(Operation{Verb: "shrink", Noun: "app.pane", Description: "Shrink the page's first pane (the list, left or top) by moving the split's divider; remembered per page", Parameters: params, Result: "page and shift", Run: move(-1)})
+	r.Register(Operation{Verb: "reset", Noun: "app.pane", Description: "Put the page's split divider back at its default", Parameters: map[string]Parameter{"page": params["page"]}, Result: "page and shift", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		id := page(a)
 		shift, err := r.SetPaneShift(id, 0)
 		if err != nil {
@@ -200,7 +200,7 @@ func registerPanes(r *Runtime) {
 		return Do(op).FromPayload("steps", SourceCount).Guard("pane-split")
 	}
 	r.Define("app").Mode("normal").
-		Bind(">", pane("pane.grow").Hinted(">/< resize")).
-		Bind("<", pane("pane.shrink").Hide()).
-		Bind("=", Do("pane.reset").Guard("pane-split").Hide())
+		Bind(">", pane("app.pane.grow").Hinted(">/< resize")).
+		Bind("<", pane("app.pane.shrink").Hide()).
+		Bind("=", Do("app.pane.reset").Guard("pane-split").Hide())
 }

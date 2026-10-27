@@ -145,22 +145,30 @@ func optionValues(options []option) []string {
 // lineIndex is what the line can name where the palette opened: the
 // offered operations by verb and by noun.
 type lineIndex struct {
-	ops     map[string]Operation
-	verbs   map[string][]string // verb -> nouns that have it
-	nouns   map[string][]string // noun -> its verbs
+	ops     map[string]Operation // by word.verb: the noun's word (DisplayNoun) and the verb
+	canon   map[string]string    // a noun's canonical name -> its word, where they differ (app.list -> list)
+	verbs   map[string][]string  // verb -> nouns that have it
+	nouns   map[string][]string  // noun -> its verbs
 	byVerbs []option
 	byNouns []option
 }
 
 func (p *Palette) index() lineIndex {
-	ix := lineIndex{ops: map[string]Operation{}, verbs: map[string][]string{}, nouns: map[string][]string{}}
+	ix := lineIndex{ops: map[string]Operation{}, canon: map[string]string{}, verbs: map[string][]string{}, nouns: map[string][]string{}}
 	for _, op := range p.r.Catalog() {
 		if !p.offered(op) {
 			continue
 		}
-		ix.ops[op.Key()] = op
-		ix.verbs[op.Verb] = append(ix.verbs[op.Verb], op.Noun)
-		ix.nouns[op.Noun] = append(ix.nouns[op.Noun], op.Verb)
+		// A noun is one word, its shortest name (settings for
+		// app.settings while no app noun shadows it); the canonical
+		// spelling is accepted as typed (canonWords) but not completed.
+		word := p.r.DisplayNoun(op.Noun)
+		if word != op.Noun {
+			ix.canon[op.Noun] = word
+		}
+		ix.ops[word+"."+op.Verb] = op
+		ix.verbs[op.Verb] = append(ix.verbs[op.Verb], word)
+		ix.nouns[word] = append(ix.nouns[word], op.Verb)
 	}
 	for verb := range ix.verbs {
 		ix.byVerbs = append(ix.byVerbs, option{"verb", verb})
@@ -195,7 +203,7 @@ func (p *Palette) nounBefore(a, b string) bool {
 
 func (p *Palette) depth(noun string) int {
 	for i, id := range p.r.Ancestry(focusOf(p.origin)) {
-		if inst := p.r.Instances[id]; inst != nil && inst.Noun == noun {
+		if inst := p.r.Instances[id]; inst != nil && p.r.DisplayNoun(inst.Noun) == noun {
 			return i + 1
 		}
 	}
@@ -208,8 +216,8 @@ func (p *Palette) depth(noun string) int {
 func (p *Palette) impliedNoun(ix lineIndex, verb string) string {
 	for _, id := range p.r.Ancestry(focusOf(p.origin)) {
 		if inst := p.r.Instances[id]; inst != nil {
-			if _, ok := ix.ops[inst.Noun+"."+verb]; ok {
-				return inst.Noun
+			if word := p.r.DisplayNoun(inst.Noun); ix.ops[word+"."+verb].Verb != "" {
+				return word
 			}
 		}
 	}
@@ -217,6 +225,21 @@ func (p *Palette) impliedNoun(ix lineIndex, verb string) string {
 		return nouns[0]
 	}
 	return ""
+}
+
+// canonWords reads a noun typed in its canonical spelling (app.settings)
+// as the noun's word (settings) in the two positions a noun takes.
+func (ix lineIndex) canonWords(tokens []lineToken) []lineToken {
+	out := tokens
+	for i := 0; i < len(tokens) && i < 2; i++ {
+		if word, ok := ix.canon[tokens[i].Text]; ok {
+			if &out[0] == &tokens[0] {
+				out = append([]lineToken(nil), tokens...)
+			}
+			out[i].Text = word
+		}
+	}
+	return out
 }
 
 // paramOrder lists an operation's parameters in line order
@@ -235,6 +258,7 @@ func (p *Palette) parseTokens(ix lineIndex, tokens []lineToken) commandLine {
 		c.Missing = "verb or noun"
 		return c
 	}
+	tokens = ix.canonWords(tokens)
 	word := tokens[0].Text
 	hit, candidates, exact := matchWord(word, append(append([]option{}, ix.byVerbs...), ix.byNouns...))
 	switch {
@@ -318,7 +342,7 @@ func (p *Palette) parseRest(ix lineIndex, first option, tokens []lineToken) comm
 		if len(rest) > 0 {
 			// A noun whose verb is guarded off here is named as such, not
 			// read as an argument.
-			if _, ok := p.r.Operations[rest[0].Text+"."+verb]; ok {
+			if _, ok := p.r.Operation(rest[0].Text + "." + verb); ok {
 				c.Words = append(c.Words, PaletteWord{Text: rest[0].Text})
 				c.Err = fmt.Errorf("%s.%s is not applicable now", rest[0].Text, verb)
 				return c
@@ -355,7 +379,7 @@ func (p *Palette) parseRest(ix lineIndex, first option, tokens []lineToken) comm
 	}
 	if len(candidates) == 0 {
 		// An instance of a palette noun runs its default verb.
-		if config, ok := p.nouns[noun]; ok {
+		if config, ok := p.nouns[p.r.CanonicalNoun(noun)]; ok {
 			var instances []option
 			for _, choice := range p.instanceChoices(noun) {
 				instances = append(instances, option{"instance", choice.ID})
