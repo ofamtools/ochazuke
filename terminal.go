@@ -7,6 +7,7 @@ import (
 	"maps"
 	"slices"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -313,6 +314,39 @@ const (
 	DefaultTerminalLeader = "ctrl+a"
 )
 
+// TerminalLeaderTimeoutSetting is how long leader_pending waits for the
+// next key before it sends the leader alone: a duration, 0 waits until a
+// key comes (tmux's prefix). Declared by EnsureTerminalLeader unless the
+// application declared it first with its own default; the framework's
+// declaration reads DefaultBindingTimeout and, until settings.json holds
+// a value, the leader follows BindingTimeout as every other sequence does.
+const TerminalLeaderTimeoutSetting = "terminal-leader-timeout"
+
+// validLeaderTimeout is the terminal-leader-timeout setting's check.
+func validLeaderTimeout(v any) error {
+	if d, _ := v.(time.Duration); d < 0 {
+		return errors.New(`must be 0 (wait for the next key) or a positive duration such as "1s"`)
+	}
+	return nil
+}
+
+// terminalLeaderTimeout is how long leader_pending waits: 0 waits for
+// the next key. Without the terminal-leader-timeout setting, and while the
+// framework's own declaration holds no settings.json value, it is the
+// key-sequence timeout, so the leader keeps following BindingTimeout.
+func (r *Runtime) terminalLeaderTimeout() time.Duration {
+	c, s := r.Config(), r.Settings()
+	if c == nil || s == nil || s.find(TerminalLeaderTimeoutSetting) == nil {
+		return r.bindingTimeout()
+	}
+	if c.leaderTimeoutDefault {
+		if v, err := s.Get(TerminalLeaderTimeoutSetting); err != nil || !v.Set {
+			return r.bindingTimeout()
+		}
+	}
+	return max(s.Duration(TerminalLeaderTimeoutSetting), 0)
+}
+
 // validLeader is the terminal-leader setting's check.
 func validLeader(v any) error {
 	if key, _ := v.(string); !leaderKey(key) {
@@ -464,8 +498,9 @@ func releadRow(b Binding, old, key string) Binding {
 	return b
 }
 
-// EnsureTerminalLeader declares the terminal-leader setting unless the
-// application declared one, and applies it: an application with terminal
+// EnsureTerminalLeader declares the terminal-leader and
+// terminal-leader-timeout settings, each unless the application declared
+// it, and applies the leader: an application with terminal
 // panes calls it at setup (cli.AddCommands does), so settings.json, the
 // Settings page and the CLI's settings set know the setting before the
 // first pane opens. An application without terminals does not, and its
@@ -473,6 +508,11 @@ func releadRow(b Binding, old, key string) Binding {
 func (r *Runtime) EnsureTerminalLeader() {
 	if r.Settings().find(TerminalLeaderSetting) == nil {
 		_ = r.DeclareSetting(Setting{Name: TerminalLeaderSetting, Type: SettingString, Default: DefaultTerminalLeader, Description: "Terminal leader key: then d detaches, the leader again sends it to the pane", Validate: validLeader})
+	}
+	if r.Settings().find(TerminalLeaderTimeoutSetting) == nil {
+		if err := r.DeclareSetting(Setting{Name: TerminalLeaderTimeoutSetting, Type: SettingDuration, Default: DefaultBindingTimeout, Description: "How long the terminal leader waits for the next key before it sends the leader alone; 0 waits until a key comes", Validate: validLeaderTimeout}); err == nil {
+			r.Config().leaderTimeoutDefault = true
+		}
 	}
 	r.applyTerminalLeader()
 }
