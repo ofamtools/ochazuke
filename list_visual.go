@@ -172,16 +172,7 @@ func registerListVisual(r *Runtime) {
 		l := r.focusedList(ev.Focus)
 		return l != nil && l.cellMode() && !l.noMarks
 	})
-	// esc ends the selection before the filter's esc (bound after this) is
-	// asked: a row guard, so it answers only while one is active.
-	r.Define("list").Mode("normal").
-		Bind("V", Do("list.visual").Hide()).
-		Bind("esc", Do("list.visual", Arguments{"on": false}).Guard("list-visual"))
-	r.Nouns["list"].Guards["visual"] = "table-visual"
-	r.Register(Operation{Verb: "visual", Noun: "list", Description: "Start a visual row selection at the selected row (V), or end it (V again, esc): j/k extend it over the marks; a row's verb then runs for every selected row", Parameters: map[string]Parameter{
-		"id": {Type: "string", Description: "The list (default: the focused one)"},
-		"on": {Type: "boolean", Description: "true starts, false ends; omit to toggle"},
-	}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+	visual := func(c Context, a Arguments) (any, error) {
 		var l *List
 		if id := StringArg(a, "id", ""); id != "" {
 			l = r.List(id)
@@ -204,5 +195,28 @@ func registerListVisual(r *Runtime) {
 			return l.state(), nil
 		}
 		return l.state(), l.StartVisual()
+	}
+	// esc ends the selection before the filter's esc (bound after this) is
+	// asked, only while one is active.
+	r.Define("list").Mode("normal").
+		Bind("V", Do("list.visual").Hide()).
+		Bind("esc", Do("list.end-visual").Guard("list-visual"))
+	r.Nouns["list"].Guards["visual"] = "table-visual"
+	// esc's verb guard as well as its row guard: a row guarded off still
+	// takes its key in the listings, so the row guard alone would hide an
+	// outer esc's hint (a modal's esc modal.pop over a table) whenever no
+	// selection is on. The row guard keeps it apart from the filter's esc
+	// row (bound after this, unguarded), which would otherwise replace it.
+	r.Nouns["list"].Guards["end-visual"] = "list-visual"
+	r.Register(Operation{Verb: "end-visual", Noun: "list", Description: "End the visual row selection (esc): the marks go back to the ones it found", Parameters: map[string]Parameter{
+		"id": {Type: "string", Description: "The list (default: the focused one)"},
+	}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+		return visual(c, Arguments{"id": a["id"], "on": false})
+	}})
+	r.Register(Operation{Verb: "visual", Noun: "list", Description: "Start a visual row selection at the selected row (V), or end it (V again, esc): j/k extend it over the marks; a row's verb then runs for every selected row", Parameters: map[string]Parameter{
+		"id": {Type: "string", Description: "The list (default: the focused one)"},
+		"on": {Type: "boolean", Description: "true starts, false ends; omit to toggle"},
+	}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+		return visual(c, a)
 	}})
 }
