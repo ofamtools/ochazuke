@@ -191,30 +191,38 @@ tiers above them. When the two disagree, fix one in the same commit.
   tests `TestListGotoEndsAndCounts`, `TestListPageMotionsClampWithoutSpilling`.
 - **R5.9** A table that hides a column scrolls its columns: `z l`/`z h`
   move the view one column (a cell-mode table carries its current column
-  along); on a `RowSelect` table `$` shows the last column and `^`/`0`
-  (without a count) go back; the first column stays; the keys do not
-  answer (and `z` does not wait) on a row-select table that fits or a plain
-  list. Story: `tables/column-motions.json`; tests `TestColumnMotions*`.
-- **R5.10** A table is cell-based. A list with columns has a current
-  column: `h`/`l`/arrows move by column (counts), `j`/`k` keep it,
+  along); on a row-select table (the default) `$` shows the last column and
+  `^`/`0` (without a count) go back; the first column stays; the keys do
+  not answer (and `z` does not wait) on a row-select table that fits or a
+  plain list. Story: `tables/column-motions.json`,
+  `tables/row-select.json`; tests `TestColumnMotions*`.
+- **R5.10** Cell mode is opt-in. A table selects rows unless it is added
+  with `CellSelect()`, for a table one reads cell by cell (a JSON or CSV
+  view); `h`/`l` stay free for row nouns everywhere else. A cell-mode
+  table has a current column: `h`/`l`/arrows move by column (counts), `j`/`k` keep it,
   `0`/`^`/home and `$`/end go to the ends, `N|` to column N, `g c` chooses
   one; every frame scrolls the view as little as shows it (a column dropped
   by `Priority` included). The selected row keeps the one highlight across
   the whole width and the current cell is reversed and underlined inside
   it; the header underlines the current column's title; an unfocused page
-  table fades both (R5.1). `y`/`Y` copy the cell/row into the registers;
-  `z >`/`z <`/`z =` size the current column, and the widths and the column
-  are remembered per table across a restart. `V` is a visual row selection
-  drawn into the marks: `j`/`k` extend it without spilling, a row's verb
-  runs for every selected row with one confirm, `esc` ends it and restores
-  the marks. A `RowSelect()` table (a tree's list, where `h`/`l`
-  collapse and expand; help; settings) and a plain list keep row selection
-  and none of these keys answer there. A row noun binding one of the keys
-  answers first. The movement keys are motions (off the footer).
-  Story: `tables/cell-motion.json`, `tables/column-count.json`,
-  `tables/column-resize.json`, `tables/visual-apply.json`,
-  `tables/unfocused-cell-dimmed.json`, `catalog/groups-table-h.json`;
-  tests `TestCell*`, `TestColumnWidths*`, `TestVisual*`.
+  table fades both (R5.1). `y` copies the cell into the registers;
+  `z >`/`z <`/`z =` size the current column (they need one, so they answer
+  on cell-mode tables only), and the widths and the column are remembered
+  per table across a restart. On every table, cell-mode or not: `Y` copies
+  the row's cells joined by tabs, and `V` is a visual row selection drawn
+  into the marks (not on a `NoMarks` table): `j`/`k` extend it without
+  spilling, a row's verb runs for every selected row with one confirm,
+  `esc` ends it and restores the marks. A row-select table (a tree's list,
+  where `h`/`l` collapse and expand; help; settings; a cli catalog table)
+  and a plain list answer none of the other keys; a row-select table
+  remembers no view. `RowSelect()` is a deprecated no-op. A row noun
+  binding one of the keys answers first. The movement keys are motions
+  (off the footer). Story: `tables/cell-motion.json`,
+  `tables/column-count.json`, `tables/column-resize.json`,
+  `tables/visual-apply.json` (a row-select table),
+  `tables/unfocused-cell-dimmed.json`, `tables/row-select.json`,
+  `catalog/groups-table-h.json`; tests `TestCell*`, `TestColumnWidths*`,
+  `TestVisual*`.
 
 ### R6. Chrome: footer, hints, help, ticker, notices
 

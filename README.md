@@ -294,11 +294,13 @@ Macro recording consumes exactly one register character after `q`. For `qq:`, th
 | Normal list | `/` | Filter the list's rows (see Filtering a list) |
 | Normal list | `gg`, `G`, `NG`/`Ngg` | First row, last row, row N (`list.goto`; clamps, never spills) |
 | Normal list | `Ctrl-D/U`, `Ctrl-F/B` | Half a page / a page down and up, the window moving with the selection (`list.scroll`; `3 Ctrl-D` is 3 rows, `2 Ctrl-F` two pages) |
-| Normal table | `h`/`l`, `0`/`^`/Home, `$`/End, `N\|`, `gc` | Move the current column: one left/right (counts), the first, the last, column N, a chooser of titles (`list.column`, `list.choose-column`); the view scrolls to show it |
-| Normal table | `y`, `Y` | Copy the current cell, or the row's cells joined by tabs, into the registers (`list.yank`) |
-| Normal table | `z>`, `z<`, `z=` | Widen / narrow the current column by 2 cells (counts), every column automatic again; remembered per table (`list.resize-column`, `list.reset-columns`) |
-| Normal table | `V` | Visual row selection over the marks: `j`/`k` extend it, a row's verb then runs for every selected row (one confirm), `esc` ends it (`list.visual`) |
+| Normal cell table (`CellSelect`) | `h`/`l`, `0`/`^`/Home, `$`/End, `N\|`, `gc` | Move the current column: one left/right (counts), the first, the last, column N, a chooser of titles (`list.column`, `list.choose-column`); the view scrolls to show it |
+| Normal cell table | `y` | Copy the current cell into the registers (`list.yank`) |
+| Normal cell table | `z>`, `z<`, `z=` | Widen / narrow the current column by 2 cells (counts), every column automatic again; remembered per table (`list.resize-column`, `list.reset-columns`) |
+| Normal table | `Y` | Copy the row's cells joined by tabs into the registers (`list.yank {what: row}`) |
+| Normal table | `V` | Visual row selection over the marks: `j`/`k` extend it, a row's verb then runs for every selected row (one confirm), `esc` ends it (`list.visual`, `list.end-visual`) |
 | Normal table | `zl`/`zh` | Scroll the columns one right/left; the first column stays (`list.scroll-columns`) |
+| Normal row table (the default) | `$`, `^`/`0` | Scroll to the view with the last column / back to the first (`list.scroll-columns`) |
 | Normal Appearance | `t`, `d` | Cycle theme / density |
 | Normal demo | `Ctrl-J/K` | Next/previous page |
 | Normal page with a list/detail split | `>`, `<`, `=` | Grow / shrink the list pane by 5% (counts: `3>`), reset the divider; remembered per page |
@@ -459,9 +461,11 @@ Every list (page lists, tables, trees, a catalog page's lists, the Settings page
 
 A page is the rows the list's own window showed in the last frame when the list windows itself, else the height of the page body it is drawn on (a list drawn at its full length on a scrolling page), else the rows it showed (a list in a modal), else 10 before any frame. The window moves with the selection by the rows moved, so the selected row keeps its line (Vim's `ctrl+d`), and the scrolloff margin then applies as for `j`/`k`. None of them spills to the next stop: at the list's edges they stop quietly. They are motions: off the footer, under `movement` in `?` help. `pgup`/`pgdn` still scroll the surface without moving the focus. Story: `lists/page-motions`.
 
-#### Tables are cell-based
+#### Tables select rows; cell mode is opt-in
 
-A table (a list with columns) has a current column as well as a selected row, the way a spreadsheet (o-csv, on `grid`) has a current cell. The row keeps the list's one highlight; the current cell is drawn underlined inside it, the header underlines the current column's title, and an unfocused table fades both with the list. Rows of the `list` noun in normal mode that answer only on a cell-mode table (`table_cells.go`):
+A table (a list with columns) selects rows. Only a table added with `CellSelect()` (an `InstanceOption` for `AddList`; for a table one reads cell by cell, such as a JSON or CSV view) has a current column as well as a selected row, the way a spreadsheet (o-csv, on `grid`) has a current cell. Every other table, trees' lists, the `?` help modal, the Settings page and cli catalog tables included, keeps `h`/`l` free for its row nouns, and on it `$` scrolls to the view with the last column and `^`/`0` (without a count) back, `z l`/`z h` one column (`list.scroll-columns`). `RowSelect()` is a deprecated no-op kept for code written against v0.12.0.
+
+On a cell-mode table the row keeps the list's one highlight; the current cell is drawn underlined inside it, the header underlines the current column's title, and an unfocused table fades both with the list. Rows of the `list` noun in normal mode that answer only on a cell-mode table (`table_cells.go`), except where the table says every table:
 
 | Keys | Operation | Does |
 |---|---|---|
@@ -469,19 +473,20 @@ A table (a list with columns) has a current column as well as a selected row, th
 | `0` (no count) `^` `home` / `$` `end` | `list.column {to}` | The first / last column |
 | `N \|` | `list.column {index}` | Column N (`3|`); `\|` alone the first |
 | `g c` | `list.choose-column` | A chooser of the column titles |
-| `y` / `Y` | `list.yank {what, register}` | The cell's text / the row's cells joined by tabs, into the registers (`"ay` names one) |
+| `y` | `list.yank {what: cell, register}` | The cell's text into the registers (`"ay` names one) |
+| `Y` | `list.yank {what: row, register}` | Every table: the row's cells joined by tabs |
 | `z >` / `z <` | `list.resize-column {delta, steps}` | Widen / narrow the current column by `ColumnWidthStep` (2) cells, never below 3 |
 | `z =` | `list.reset-columns` | Every column automatic again |
-| `z l` / `z h` | `list.scroll-columns {delta, steps}` | The view one column right / left; the current column is carried along when it scrolls off |
-| `V`, then `esc` | `list.visual {on}` | Visual row selection (below) |
+| `z l` / `z h` | `list.scroll-columns {delta, steps}` | Every table that scrolls: the view one column right / left; on a cell-mode table the current column is carried along when it scrolls off |
+| `V`, then `esc` | `list.visual {on}`, `list.end-visual` | Every table with marks: visual row selection (below) |
 
-`j`/`k` keep the column. Each frame scrolls the column offset as little as shows the current column: the first column stays (it names the row), a column dropped by `Priority` or past the right edge comes into view as the column reaches it, and the first column brings the unscrolled view back. The movement keys are motions (off the footer, under `movement` in `?` help); `y`, `Y`, `V` and the width keys are hidden from the footer too and listed in `?` help. A row noun that binds one of these keys answers first (the walk is inner-first): that table keeps the app's key and loses the cell key. `enter` is unchanged, the row's default action. The current column and the widths given with `z >`/`z <` are remembered per table id in the state directory's `tables.json` (`Runtime.TableState`, `SetTableState`; in memory without a state directory). API: `List.Column`, `SetColumn`, `ColumnWidths`, `SetColumnWidth`, `ResetColumnWidths`, `ColumnOffset`.
+`j`/`k` keep the column. Each frame scrolls the column offset as little as shows the current column: the first column stays (it names the row), a column dropped by `Priority` or past the right edge comes into view as the column reaches it, and the first column brings the unscrolled view back. The movement keys are motions (off the footer, under `movement` in `?` help); `y`, `Y`, `V` and the width keys are hidden from the footer too and listed in `?` help. A row noun that binds one of these keys answers first (the walk is inner-first): that table keeps the app's key and loses the cell key. `enter` is unchanged, the row's default action. The width keys need a current column, so they answer on cell-mode tables only; a row-select table's widths are the application's (`SetColumnWidth`). A cell-mode table's current column and the widths given with `z >`/`z <` are remembered per table id in the state directory's `tables.json` (`Runtime.TableState`, `SetTableState`; in memory without a state directory); a row-select table reads and writes none. API: `List.Column`, `SetColumn`, `ColumnWidths`, `SetColumnWidth`, `ResetColumnWidths`, `ColumnOffset`.
 
-`RowSelect()` (an `InstanceOption`) keeps a table on row selection with no current column: trees use it for their list (`h`/`l` expand and collapse there), as do the `?` help modal and the Settings page; on such a table `$`, `^` and `0` scroll to the last and the first view, `z l`/`z h` one column. A host's own `h` "back" row on a table should take the guard `list-first-column` (cli's groups rail does), so `h` moves left and goes back only from the first column.
+A host's own `h` "back" row on a table should take the guard `list-first-column` (cli's groups rail does): on a cell-mode table `h` then moves left and goes back only from the first column; on a row-select table it holds, so `h` goes back at once.
 
-`V` starts a visual row selection at the selected row on a cell-mode table (not on a `NoMarks` one). It is the marks: while it lasts they are the marks V found plus every shown row between the anchor and the selection, so `j`/`k`, counts and the paging motions extend it (they clamp instead of spilling), the `* ` gutter draws it and `list.apply` fans out over it. The mode stays normal, so the rows' keys still answer; a key whose row runs an application verb of the row's noun runs it for every selected row through `list.apply`, with one confirm when the verb has one, and ends the selection. `esc` (or `V`) ends it without running anything. Either way the marks go back to the ones V found; `space` during it toggles those.
+`V` starts a visual row selection at the selected row on any table (not on a `NoMarks` one). It is the marks: while it lasts they are the marks V found plus every shown row between the anchor and the selection, so `j`/`k`, counts and the paging motions extend it (they clamp instead of spilling), the `* ` gutter draws it and `list.apply` fans out over it. The mode stays normal, so the rows' keys still answer; a key whose row runs an application verb of the row's noun runs it for every selected row through `list.apply`, with one confirm when the verb has one, and ends the selection. `esc` (or `V`) ends it without running anything. Either way the marks go back to the ones V found; `space` during it toggles those.
 
-The design is in `docs/UI-MODEL.md` "Tables". Stories: `tables/cell-motion`, `tables/column-count`, `tables/column-resize`, `tables/visual-apply`, `tables/unfocused-cell-dimmed`, `tables/column-motions`, `catalog/groups-table-h`.
+The design is in `docs/UI-MODEL.md` "Tables". Stories: `tables/cell-motion`, `tables/column-count`, `tables/column-resize`, `tables/visual-apply`, `tables/unfocused-cell-dimmed`, `tables/column-motions`, `tables/row-select`, `catalog/groups-table-h`; an o-story list opts in with `cellSelect`.
 
 #### Filtering a list
 

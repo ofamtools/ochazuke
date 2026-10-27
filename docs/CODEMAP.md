@@ -188,7 +188,7 @@ Root package `ochazuke` is flat: 66 source files, 65 test files. Each entry list
 
 ### list.go
 
-- lines: 632 · tests: list_test.go
+- lines: 633 · tests: list_test.go
 - purpose: ListItem is application-owned identity, display text, and the registered noun the row answers to.
 - types: ListItem, List
 - methods: List(27), Runtime(1)
@@ -220,10 +220,10 @@ Root package `ochazuke` is flat: 66 source files, 65 test files. Each entry list
 
 ### list_visual.go
 
-- lines: 208
+- lines: 222
 - purpose: Visual reports whether a V selection is active on the list.
 - methods: List(5), Runtime(1)
-- leans on: runtime.go(25), noun.go(15), list.go(10), instance.go(4)
+- leans on: runtime.go(32), noun.go(16), list.go(10), instance.go(4)
 
 ### macros.go
 
@@ -444,15 +444,15 @@ Root package `ochazuke` is flat: 66 source files, 65 test files. Each entry list
 
 ### table_cells.go
 
-- lines: 427 · tests: table_cells_test.go
-- purpose: RowSelect makes a table select rows only: no current column, no cell keys (a tree's list, whose rows answer h and l).
+- lines: 455 · tests: table_cells_test.go
+- purpose: CellSelect makes a table (AddList with Columns) cell-based: a current column beside the selected row, moved with h/l, 0/$, N| and g c, and the cell keys y an...
 - methods: List(13)
-- funcs: RowSelect
-- leans on: runtime.go(50), noun.go(24), table.go(22), list.go(18)
+- funcs: CellSelect, RowSelect
+- leans on: runtime.go(57), noun.go(30), table.go(20), list.go(19)
 
 ### table_columns.go
 
-- lines: 191 · tests: table_columns_test.go
+- lines: 199 · tests: table_columns_test.go
 - purpose: ColumnOffset is the table's column offset: 0 unscrolled, else the first column shown after the frozen first one.
 - methods: List(5)
 - leans on: runtime.go(12), table.go(9), list.go(8), noun.go(4)
@@ -502,7 +502,7 @@ Root package `ochazuke` is flat: 66 source files, 65 test files. Each entry list
 
 ### tree.go
 
-- lines: 1190 · tests: tree_test.go
+- lines: 1188 · tests: tree_test.go
 - purpose: TreeNode is one node of a tree.
 - types: TreeNode, TreeChange, TreeDebounceMsg, TreeAction, Tree
 - methods: Runtime(3), Tree(53), TreeChange(1)
@@ -727,7 +727,7 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/build.go
 
-- lines: 1098
+- lines: 1101
 - purpose: Session is one built story: the runtime, the model and the demo state the verbs act on (fake jobs and panes).
 - types: Session, Options
 - methods: Session(21), storyCommands(3)
@@ -770,7 +770,7 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/story.go
 
-- lines: 534
+- lines: 537
 - purpose: Story is one scenario file.
 - types: Story, Page, ChooserSpec, ChooserRowSpec, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, MarkdownSpec, CommandsSpec, CatalogSpec, InputSpec, CompletionSpec, TermSpec, JobSpec, BindSpec, Event, Expect, Expects
 - methods: Event(3), Expects(2), Story(5)
