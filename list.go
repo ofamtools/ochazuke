@@ -46,6 +46,7 @@ type List struct {
 	marks     map[string]bool
 	noSpill   bool     // NoSpill: list.move clamps at the edges instead of spilling
 	noMarks   bool     // NoMarks: a read-only view, its rows take no marks
+	choose    bool     // ClearFilterOnEnter: enter in the filter line chooses the match and clears the filter
 	columns   []Column // Columns: a table; none draws the labels
 	widest    []int    // a table's widest cell per column over the items (cellWidths); nil after SetItems
 	window    int      // rows the last frame showed (list_motions.go's page); 0 before any frame
@@ -61,8 +62,9 @@ func NewList(r *Runtime, id string, items []ListItem, opts ...InstanceOption) (*
 
 // AddList registers a list instance of the list noun with its rows. Options:
 // Parent(id) (default app), Kind(noun) for a list that answers to its
-// own noun as well, NoSpill() for a list whose motions stay inside it, and
-// Columns(...) for a table.
+// own noun as well, NoSpill() for a list whose motions stay inside it,
+// NoMarks() for a read-only view, ClearFilterOnEnter() for a list whose
+// filter enter chooses a row and clears, and Columns(...) for a table.
 func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (*List, error) {
 	if id == "" {
 		return nil, errors.New("list ID must be nonempty")
@@ -77,7 +79,7 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 	if r.Instances[spec.parent] == nil {
 		return nil, fmt.Errorf("unknown parent %q", spec.parent)
 	}
-	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}, noSpill: spec.noSpill, noMarks: spec.noMarks, columns: slices.Clone(spec.columns)}
+	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}, noSpill: spec.noSpill, noMarks: spec.noMarks, choose: spec.clearFilterOnEnter, columns: slices.Clone(spec.columns)}
 	r.Instance(id, Parent(spec.parent), Kind(spec.noun), FocusOnClose(spec.closeFocus))
 	r.Instances[id].Component = list
 	if err := list.SetItems(items); err != nil {

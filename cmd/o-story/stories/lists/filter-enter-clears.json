@@ -1,0 +1,129 @@
+{
+  "name": "list filter on a ClearFilterOnEnter list: enter chooses the match, clears the filter and keeps the row in view; with no match enter keeps the filter, as on every list",
+  "area": "lists",
+  "width": 140,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 20,
+        "height": 6,
+        "clearFilterOnEnter": true,
+        "labels": [
+          "alpha",
+          "beta",
+          "gamma",
+          "delta",
+          "epsilon",
+          "zeta",
+          "eta",
+          "theta",
+          "iota",
+          "kappa",
+          "lambda",
+          "mu",
+          "nu",
+          "xi",
+          "omicron",
+          "pi",
+          "rho",
+          "sigma",
+          "tau",
+          "omega"
+        ]
+      },
+      {
+        "id": "b",
+        "rows": 2
+      }
+    ]
+  },
+  "script": [
+    "/",
+    "s",
+    "i",
+    "down",
+    "enter",
+    "k",
+    "/",
+    "x",
+    "x",
+    "enter",
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 4,
+      "mode": "list_filter",
+      "focus": "a18",
+      "contains": [
+        "/si",
+        "2 of 20",
+        "epsilon",
+        "sigma",
+        "enter list.filter-choose"
+      ],
+      "lacks": [
+        "rho",
+        "list.filter-keep"
+      ]
+    },
+    {
+      "after": 5,
+      "mode": "normal",
+      "focus": "a18",
+      "contains": [
+        "rho",
+        "sigma",
+        "tau"
+      ],
+      "lacks": [
+        "/si",
+        "2 of 20",
+        "alpha",
+        "list.filter-clear"
+      ],
+      "highlighted": 1,
+      "highlightedText": "sigma"
+    },
+    {
+      "after": 6,
+      "mode": "normal",
+      "focus": "a17"
+    },
+    {
+      "after": 9,
+      "mode": "list_filter",
+      "focus": "a",
+      "contains": [
+        "/xx",
+        "no matches",
+        "enter list.filter-keep"
+      ],
+      "lacks": [
+        "list.filter-choose"
+      ]
+    },
+    {
+      "after": 10,
+      "mode": "normal",
+      "focus": "a",
+      "contains": [
+        "/xx",
+        "no matches"
+      ]
+    },
+    {
+      "after": 11,
+      "mode": "normal",
+      "focus": "a1",
+      "contains": [
+        "alpha"
+      ],
+      "lacks": [
+        "/xx",
+        "no matches"
+      ]
+    }
+  ]
+}

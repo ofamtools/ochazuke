@@ -26,6 +26,14 @@ import (
 // line stays, "/" edits it again), esc clears it and puts the selection
 // back where it was when "/" was pressed, ctrl+u empties the query. In
 // normal mode esc on a filtered list clears the filter.
+//
+// A list added with ClearFilterOnEnter (a list one picks a row from)
+// answers enter with list.filter-choose instead: the filter clears, the
+// selection stays on the match enter was pressed on, every row shows, the
+// mode is normal and the window follows the row, as esc after enter does
+// on any list. Its verb guard, list-chooses, holds only on such a list
+// with a match selected, so with no match enter falls through to
+// list.filter-keep and the footer names whichever row answers.
 
 // ListFilterMode is the mode the filter line is typed in.
 const ListFilterMode = "list_filter"
@@ -207,6 +215,15 @@ func registerListFilter(r *Runtime) {
 		l := r.focusedList(ev.Focus)
 		return l != nil && l.query != ""
 	})
+	// list-chooses holds on a ClearFilterOnEnter list with a row
+	// selected: filter-choose's verb guard, so enter on any other list,
+	// or with no match, is the filter-keep row after it in the walk and on
+	// the footer. The enter row carries it as its row guard too, which
+	// keeps it a row of its own beside the unguarded filter-keep row.
+	r.DefineGuard("list-chooses", func(r *Runtime, ev KeyEvent) bool {
+		l := r.focusedList(ev.Focus)
+		return l != nil && l.choose && l.selected >= 0
+	})
 	r.DefineGuard("list-unfiltered", func(r *Runtime, ev KeyEvent) bool {
 		l := r.focusedList(ev.Focus)
 		return l != nil && l.query == ""
@@ -227,6 +244,7 @@ func registerListFilter(r *Runtime) {
 		Bind("ctrl+n", move(1)).
 		Bind("up", move(-1)).
 		Bind("ctrl+p", move(-1)).
+		Bind("enter", Do("list.filter-choose").Guard("list-chooses")).
 		Bind("enter", Do("list.filter-keep")).
 		Bind("esc", Do("list.filter-clear"))
 
@@ -248,6 +266,17 @@ func registerListFilter(r *Runtime) {
 		if r.Mode.Name == ListFilterMode {
 			r.setMode(ModeState{Name: "normal"})
 		}
+	}
+	// unfilter clears the filter and closes the line, selecting the row the
+	// line opened on when back is set (esc in the line), else keeping the
+	// selection on its row (esc after enter, filter-choose).
+	unfilter := func(l *List, back string) {
+		l.back = ""
+		l.SetFilter("")
+		if back != "" && l.shows(back) {
+			_ = l.Select(back)
+		}
+		leave()
 	}
 	id := map[string]Parameter{"id": {Type: "string", Description: "The list (default: the focused one)"}}
 	with := func(extra map[string]Parameter) map[string]Parameter {
@@ -298,13 +327,11 @@ func registerListFilter(r *Runtime) {
 			return nil
 		}},
 		{"filter-clear", "Clear the filter, put the selection back where it was when the filter line opened, and close the line", id, func(l *List, _ Arguments) error {
-			back := l.back
-			l.back = ""
-			l.SetFilter("")
-			if back != "" && l.shows(back) {
-				_ = l.Select(back)
-			}
-			leave()
+			unfilter(l, l.back)
+			return nil
+		}},
+		{"filter-choose", "Choose the selected match: clear the filter keeping the selection on its row, and close the line (enter on a ClearFilterOnEnter list)", id, func(l *List, _ Arguments) error {
+			unfilter(l, "")
 			return nil
 		}},
 	} {
@@ -320,5 +347,5 @@ func registerListFilter(r *Runtime) {
 		}})
 	}
 	guards := r.Nouns["list"].Guards
-	guards["filter-clear"], guards["filter-erase"] = "list-filtered", "list-query"
+	guards["filter-clear"], guards["filter-erase"], guards["filter-choose"] = "list-filtered", "list-query", "list-chooses"
 }

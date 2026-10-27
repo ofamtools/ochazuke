@@ -10,7 +10,7 @@ import (
 
 // filterFixture is a page with a list of five rows over a second list,
 // the focus on the first row, through the Model so keys run as in the TUI.
-func filterFixture(t *testing.T) (*Runtime, *Model, *List) {
+func filterFixture(t *testing.T, opts ...InstanceOption) (*Runtime, *Model, *List) {
 	t.Helper()
 	r := NewRuntime()
 	r.Define("a").Verb("touch", func(c Ctx) Result { return Done(c.Instance.ID) })
@@ -22,7 +22,7 @@ func filterFixture(t *testing.T) (*Runtime, *Model, *List) {
 		{ID: "r4", Label: "alphabet", Noun: "a"},
 		{ID: "r5", Label: "delta", Noun: "a", Cells: []string{"delta", "IDLE"}},
 	}
-	list, err := r.AddList("p/l", items, Parent("p"))
+	list, err := r.AddList("p/l", items, append([]InstanceOption{Parent("p")}, opts...)...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -191,6 +191,68 @@ func TestListFilterVerbAndView(t *testing.T) {
 	}
 }
 
+// On a ClearFilterOnEnter list enter in the filter line chooses the
+// selected match: the filter clears, the selection stays on that row,
+// every row shows and the mode is normal. With no match enter keeps the
+// filter as on any list, and the footer names the row that answers.
+func TestListFilterEnterClearsOnAnOptedList(t *testing.T) {
+	r, m, list := filterFixture(t, ClearFilterOnEnter())
+	m.Width = 200
+	pressKeys(m, "/", "a", "l", "down")
+	if r.Focus != "r4" || !reflect.DeepEqual(shownIDs(list), []string{"r1", "r4"}) {
+		t.Fatalf("typing: focus %s shown %v", r.Focus, shownIDs(list))
+	}
+	if hints := BindingHints(r, r.Focus); !strings.Contains(hints, "enter list.filter-choose") || strings.Contains(hints, "list.filter-keep") {
+		t.Fatalf("hints with a match: %s", hints)
+	}
+	pressKeys(m, "enter")
+	if r.Mode.Name != "normal" || list.Filter() != "" || list.Shown() != 5 || r.Focus != "r4" || list.Filtering() {
+		t.Fatalf("enter chooses: mode %s query %q shown %d focus %s", r.Mode.Name, list.Filter(), list.Shown(), r.Focus)
+	}
+	if selected, _ := list.Selected(); selected.ID != "r4" {
+		t.Fatalf("selected %s, want r4", selected.ID)
+	}
+	pressKeys(m, "k") // every row shows again: k lands on gamma, hidden before
+	if r.Focus != "r3" {
+		t.Fatalf("k after choosing: focus %s", r.Focus)
+	}
+	pressKeys(m, "/", "z")
+	if hints := BindingHints(r, r.Focus); !strings.Contains(hints, "enter list.filter-keep") || strings.Contains(hints, "list.filter-choose") {
+		t.Fatalf("hints with no match: %s", hints)
+	}
+	pressKeys(m, "enter")
+	if r.Mode.Name != "normal" || list.Filter() != "z" || list.Shown() != 0 {
+		t.Fatalf("enter on no match keeps: mode %s query %q shown %d", r.Mode.Name, list.Filter(), list.Shown())
+	}
+}
+
+// A tree's list takes ClearFilterOnEnter from AddTree.
+func TestTreeFilterEnterClears(t *testing.T) {
+	r := NewRuntime()
+	m := NewModel(r)
+	m.Width, m.Height = 80, 24
+	if _, err := r.AddPage("main", "Main", func(r *Runtime, w, h int) Block { return r.Tree("t").Block(w, h) }); err != nil {
+		t.Fatal(err)
+	}
+	nodes := []TreeNode{{ID: "a", Label: "alpha"}, {ID: "b", Parent: "a", Label: "beta"}, {ID: "g", Label: "gamma"}}
+	tree, err := r.AddTree("t", nodes, Parent("main"), ClearFilterOnEnter())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := r.OpenPage("main"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tree.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	m.View()
+	pressKeys(m, "/", "g", "a", "enter")
+	selected, _ := tree.List().Selected()
+	if r.Mode.Name != "normal" || tree.List().Filter() != "" || tree.List().Shown() != tree.List().Len() || selected.ID != "g" || r.Focus != "g" {
+		t.Fatalf("enter on the tree: mode %s query %q shown %d/%d selected %q focus %s", r.Mode.Name, tree.List().Filter(), tree.List().Shown(), tree.List().Len(), selected.Label, r.Focus)
+	}
+}
+
 func TestListFilterHintsAndHelp(t *testing.T) {
 	r, m, _ := filterFixture(t)
 	m.Width = 200
@@ -269,7 +331,7 @@ func TestListFilterPatch(t *testing.T) {
 
 func TestListFilterVerbsAreBuiltin(t *testing.T) {
 	r := NewRuntime()
-	for _, verb := range []string{"filter", "filter-open", "filter-type", "filter-erase", "filter-keep", "filter-clear"} {
+	for _, verb := range []string{"filter", "filter-open", "filter-type", "filter-erase", "filter-keep", "filter-clear", "filter-choose"} {
 		if op, ok := r.Operations["list."+verb]; !ok || !op.Builtin {
 			t.Errorf("list.%s builtin = %v (registered %v)", verb, op.Builtin, ok)
 		}

@@ -473,7 +473,7 @@ play/pi               pi           idle     ~/proj/nabe
 | printable keys, space, paste | `list.filter-type`: add to the query |
 | backspace / `ctrl+h` | `list.filter-erase`; on an empty query `list.filter-keep` (leaves the line) |
 | up/down, `ctrl+p`/`ctrl+n` | `list.move {clamp}`: move among the matches, never spilling |
-| enter | `list.filter-keep`: back to normal mode with the filter kept (the line stays; `/` edits it again) |
+| enter | `list.filter-keep`: back to normal mode with the filter kept (the line stays; `/` edits it again). On a list added with `ClearFilterOnEnter()` (or a tree), with a match: `list.filter-choose`, which clears the filter, keeps the selection on the match and goes back to normal mode |
 | esc | `list.filter-clear`: clear the filter and select the row `/` found |
 | `ctrl+u` | `list.filter {query: ""}`: empty the query |
 

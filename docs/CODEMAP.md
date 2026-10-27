@@ -170,11 +170,11 @@ Root package `ochazuke` is flat: 63 source files, 63 test files. Each entry list
 
 ### instance.go
 
-- lines: 327
+- lines: 339
 - purpose: Instance is one addressable thing on screen: a page, a list, a list row, a modal body, or an input.
 - types: Instance, Payload, InstanceOption (func)
 - methods: Payload(1), Runtime(10)
-- funcs: Parent, Kind, Focus, CloseOnDetach, FocusOnClose, NoSpill, NoMarks
+- funcs: Parent, Kind, Focus, CloseOnDetach, FocusOnClose, NoSpill, NoMarks, ClearFilterOnEnter
 - leans on: runtime.go(19), noun.go(5), completion.go(1), delivery.go(1)
 
 ### layout.go
@@ -188,7 +188,7 @@ Root package `ochazuke` is flat: 63 source files, 63 test files. Each entry list
 
 ### list.go
 
-- lines: 625 · tests: list_test.go
+- lines: 627 · tests: list_test.go
 - purpose: ListItem is application-owned identity, display text, and the registered noun the row answers to.
 - types: ListItem, List
 - methods: List(27), Runtime(1)
@@ -206,10 +206,10 @@ Root package `ochazuke` is flat: 63 source files, 63 test files. Each entry list
 
 ### list_filter.go
 
-- lines: 324 · tests: list_filter_test.go
+- lines: 351 · tests: list_filter_test.go
 - purpose: filterOpenRow is the row that opens the filter line: "/" on app in normal mode guarded by list-filterable, like J/K detail, so an application's own "/" on an...
 - methods: List(10), Runtime(1)
-- leans on: runtime.go(33), list.go(28), noun.go(23), instance.go(6)
+- leans on: runtime.go(35), list.go(30), noun.go(25), instance.go(7)
 
 ### list_motions.go
 
@@ -228,12 +228,12 @@ Root package `ochazuke` is flat: 63 source files, 63 test files. Each entry list
 
 ### model.go
 
-- lines: 961
+- lines: 957
 - purpose: ModalView renders one modal without replacing or inspecting its parent page.
 - types: ModalView, ModalBody (iface), Model, HelpRow
 - methods: Model(24), Runtime(1), modelSink(3)
 - funcs: NewModel, BindingHints, BindingHelp, InputView, InputBlock
-- leans on: runtime.go(93), block.go(34), noun.go(34), theme.go(23)
+- leans on: runtime.go(90), block.go(34), noun.go(34), theme.go(23)
 
 ### noun.go
 
@@ -479,11 +479,11 @@ Root package `ochazuke` is flat: 63 source files, 63 test files. Each entry list
 
 ### tree.go
 
-- lines: 1183 · tests: tree_test.go
+- lines: 1188 · tests: tree_test.go
 - purpose: TreeNode is one node of a tree.
 - types: TreeNode, TreeChange, TreeDebounceMsg, TreeAction, Tree
 - methods: Runtime(3), Tree(53), TreeChange(1)
-- leans on: instance.go(51), runtime.go(37), noun.go(30), block.go(28)
+- leans on: instance.go(52), runtime.go(37), noun.go(30), block.go(28)
 
 ### ui.go
 
@@ -704,7 +704,7 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/build.go
 
-- lines: 1095
+- lines: 1098
 - purpose: Session is one built story: the runtime, the model and the demo state the verbs act on (fake jobs and panes).
 - types: Session, Options
 - methods: Session(21), storyCommands(3)
@@ -747,7 +747,7 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/story.go
 
-- lines: 528
+- lines: 531
 - purpose: Story is one scenario file.
 - types: Story, Page, ChooserSpec, ChooserRowSpec, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, MarkdownSpec, CommandsSpec, CatalogSpec, InputSpec, CompletionSpec, TermSpec, JobSpec, BindSpec, Event, Expect, Expects
 - methods: Event(3), Expects(2), Story(5)

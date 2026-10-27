@@ -122,15 +122,18 @@ type ChooserRowSpec struct {
 // ListSpec is one list: rows a1..aN labelled by id unless Labels or Items
 // say otherwise.
 type ListSpec struct {
-	ID       string     `json:"id"`
-	Rows     int        `json:"rows,omitempty"`
-	Labels   []string   `json:"labels,omitempty"`
-	Items    []ItemSpec `json:"items,omitempty"` // explicit ids and labels (a snapshot writes these)
-	NoSpill  bool       `json:"noSpill,omitempty"`
-	NoMarks  bool       `json:"noMarks,omitempty"` // a read-only view: space does not mark
-	Height   int        `json:"height,omitempty"`  // rows drawn; 0 = every row, -1 = the rest of the page
-	Selected int        `json:"selected,omitempty"`
-	Marked   []int      `json:"marked,omitempty"`
+	ID      string     `json:"id"`
+	Rows    int        `json:"rows,omitempty"`
+	Labels  []string   `json:"labels,omitempty"`
+	Items   []ItemSpec `json:"items,omitempty"` // explicit ids and labels (a snapshot writes these)
+	NoSpill bool       `json:"noSpill,omitempty"`
+	NoMarks bool       `json:"noMarks,omitempty"` // a read-only view: space does not mark
+	// ClearFilterOnEnter: enter in the filter line chooses the match and
+	// clears the filter (ochazuke.ClearFilterOnEnter).
+	ClearFilterOnEnter bool  `json:"clearFilterOnEnter,omitempty"`
+	Height             int   `json:"height,omitempty"` // rows drawn; 0 = every row, -1 = the rest of the page
+	Selected           int   `json:"selected,omitempty"`
+	Marked             []int `json:"marked,omitempty"`
 	// Columns make the list a table (ochazuke.Columns); rows bring their
 	// cells in Items.
 	Columns []ochazuke.Column `json:"columns,omitempty"`

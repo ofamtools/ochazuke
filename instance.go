@@ -62,6 +62,7 @@ func (p Payload) empty() bool {
 type instanceSpec struct {
 	parent, noun, focus, closeFocus string
 	closeOnDetach, noSpill, noMarks bool
+	clearFilterOnEnter              bool
 	columns                         []Column
 	completions                     []CompletionTrigger
 }
@@ -106,6 +107,17 @@ func NoSpill() InstanceOption { return func(s *instanceSpec) { s.noSpill = true 
 // guard, list-marks, is false; the footer and ? help leave it out) and
 // list.mark refuses. list.apply still runs on the selected row.
 func NoMarks() InstanceOption { return func(s *instanceSpec) { s.noMarks = true } }
+
+// ClearFilterOnEnter makes enter in a list's (or a tree's list's) filter
+// line choose the selected match: list.filter-choose clears the filter
+// with the selection staying on that row, every row shows again, the mode
+// is normal and the page keeps the row on screen. For a list one picks a
+// row from, such as a pane list. With no match enter keeps the filter, as
+// on every other list (list.filter-keep; its verb guard, list-chooses, is
+// false there and off this option).
+func ClearFilterOnEnter() InstanceOption {
+	return func(s *instanceSpec) { s.clearFilterOnEnter = true }
+}
 
 // Instance registers a plain instance: a page body, a panel, a modal body.
 // Its noun is defined when it does not exist yet. Registering an existing id

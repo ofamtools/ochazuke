@@ -169,8 +169,13 @@ tiers above them. When the two disagree, fix one in the same commit.
   case, list order), up/down and `ctrl+n`/`ctrl+p` move among the matches
   without spilling, enter keeps the filter in normal mode, esc clears it and
   goes back to the row `/` found, backspace on an empty query leaves the
-  line. Stories: `lists/filter-open.json`, `lists/filter-move.json`,
-  `lists/filter-enter-keeps.json`, `lists/filter-esc-clears.json`,
+  line. On a list added with `ClearFilterOnEnter` (one picks a row from,
+  such as a pane list) enter with a match chooses it instead: the filter
+  clears, the selection stays on the match and stays on screen, the mode is
+  normal; with no match enter keeps the filter as on any list. Stories:
+  `lists/filter-open.json`, `lists/filter-move.json`,
+  `lists/filter-enter-keeps.json`, `lists/filter-enter-clears.json`,
+  `lists/filter-esc-clears.json`,
   `lists/filter-backspace-empty-leaves.json`, `tables/filter-by-cell.json`.
 - **R5.7** A filter hides rows and never removes them: `SetItems` while
   filtered filters the new rows, marks survive, and `list.apply` fans out

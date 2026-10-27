@@ -154,7 +154,9 @@ type Tree struct {
 
 // AddTree registers a tree under Parent (default app) with its nodes.
 // Columns(...) makes its rows a table; NoSpill keeps motions inside it;
-// NoMarks makes it a read-only view whose rows take no marks.
+// NoMarks makes it a read-only view whose rows take no marks;
+// ClearFilterOnEnter makes enter in its filter line choose the match and
+// clear the filter.
 func (r *Runtime) AddTree(id string, nodes []TreeNode, opts ...InstanceOption) (*Tree, error) {
 	if id == "" || r.Instances[id] != nil {
 		return nil, fmt.Errorf("tree ID %q must be nonempty and unused", id)
@@ -175,6 +177,9 @@ func (r *Runtime) AddTree(id string, nodes []TreeNode, opts ...InstanceOption) (
 	}
 	if spec.noMarks {
 		listOpts = append(listOpts, NoMarks())
+	}
+	if spec.clearFilterOnEnter {
+		listOpts = append(listOpts, ClearFilterOnEnter())
 	}
 	if len(spec.columns) > 0 {
 		listOpts = append(listOpts, Columns(spec.columns...))

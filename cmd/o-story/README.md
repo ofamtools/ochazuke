@@ -51,7 +51,7 @@ it to the timer's deadline and delivers the timer's message
                                   // across { restart: true } events: what the app remembers (panes.json)
   page: {                         // or pages: [{ id, title, ... }, ...]
     lists: [{ id: "a", rows: 2 },                  // rows a1, a2
-            { id: "b", rows: 3, noSpill: false, noMarks: false },
+            { id: "b", rows: 3, noSpill: false, noMarks: false, clearFilterOnEnter: false },
             { id: "c", rows: 10, height: -1,       // 0 every row, -1 rest of the page
               labels: ["first project", "tuios-deck"], selected: 1, marked: [0] }],
     order: ["a", "b", "c"],       // drawing order (default: as listed)
@@ -271,7 +271,7 @@ Conformance:
 | insert | palette | `palette.move` `palette.run` |
 | insert | setting-value | `setting-value.cancel` `setting-value.commit` |
 | insert | settings | `settings.edit` |
-| list_filter | list | `list.filter-clear` `list.filter-erase` `list.filter-keep` `list.filter-type` `list.move` |
+| list_filter | list | `list.filter-choose` `list.filter-clear` `list.filter-erase` `list.filter-keep` `list.filter-type` `list.move` |
 | normal | bindings | `bindings.help` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
@@ -318,6 +318,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `settings.edit`
 - `leader_pending` → `normal` via `terminal.detach`
 - `leader_pending` → `terminal` via `terminal.send`
+- `list_filter` → `normal` via `list.filter-choose`
 - `list_filter` → `normal` via `list.filter-clear`
 - `list_filter` → `normal` via `list.filter-keep`
 - `normal` → `count_pending` via `mode.enter`
