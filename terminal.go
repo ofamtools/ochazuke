@@ -10,6 +10,8 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // TerminalStream is the application's connection to one pane: a daemon
@@ -60,7 +62,43 @@ type Terminal struct {
 	closed bool
 	// closeOnDetach removes the instance on terminal.detach (CloseOnDetach).
 	closeOnDetach bool
+	// overlay is drawn over the frame by ViewBlock (SetOverlay).
+	overlay *TerminalOverlay
 }
+
+// TerminalOverlay is what an application draws over a terminal's frame
+// without touching the frame: Dim fades the pane's cells (the modal-dim
+// backdrop style; faint in mono and NO_COLOR) and each mark replaces the
+// cells it covers. Hints over a live pane (labels on its URLs and paths)
+// are an overlay plus an application mode; see SetOverlay.
+type TerminalOverlay struct {
+	Dim   bool          `json:"dim,omitempty"`
+	Marks []OverlayMark `json:"marks,omitempty"`
+}
+
+// OverlayMark is plain text drawn from one cell of the frame (Row and Col,
+// 0-based, in the pane's cells) to the right, cut at the frame's edge; a
+// wide rune it half covers becomes a space. Style draws the text; the
+// empty style draws it reverse and bold, so a mark stands out in mono
+// too. Marks are drawn in order, a later one over an earlier one.
+type OverlayMark struct {
+	Row   int            `json:"row"`
+	Col   int            `json:"col"`
+	Text  string         `json:"text"`
+	Style lipgloss.Style `json:"-"`
+}
+
+// SetOverlay draws o over the pane from the next frame on; nil clears it.
+// The overlay stays until the application clears or replaces it: a new
+// frame from the stream does not clear it, and neither do a focus change,
+// a mode change or a detach, so an application that pairs it with a mode
+// clears it where it leaves the mode (and in its own focus or close
+// handling). It changes only what ViewBlock draws: Frame, the stream and
+// every other reader of the pane see the pane's own cells.
+func (t *Terminal) SetOverlay(o *TerminalOverlay) { t.overlay = o }
+
+// Overlay is the overlay SetOverlay set, nil for none.
+func (t *Terminal) Overlay() *TerminalOverlay { return t.overlay }
 
 // AddTerminal registers a terminal instance of the terminal noun fed by
 // stream, in terminal mode: every key forwards to the pane except the
@@ -186,6 +224,9 @@ func (t *Terminal) ViewBlock(width, height int) Block {
 		}
 		rows[i] = modalCells(line, width)
 	}
+	if t.overlay != nil {
+		t.drawOverlay(rows, width)
+	}
 	// The page keeps the pane's top line on screen when it follows the focus.
 	block := Text(t.r.PlacedAt(t.id, strings.Join(rows, "\n"), 0, 1))
 	if t.Focused() && !t.frame.Hidden {
@@ -193,6 +234,55 @@ func (t *Terminal) ViewBlock(width, height int) Block {
 		block = block.Clip(width, height)
 	}
 	return block
+}
+
+// drawOverlay fades rows (each exactly width cells) when the overlay dims
+// and splices its marks into them.
+func (t *Terminal) drawOverlay(rows []string, width int) {
+	if t.overlay.Dim {
+		fade := lipgloss.NewStyle().Faint(true)
+		if styles := t.r.Settings().page.styles; styles != nil {
+			if s := styles(); s.Backdrop.Render("x") != "x" {
+				fade = s.Backdrop
+			}
+		}
+		for i := range rows {
+			rows[i] = dim(rows[i], fade)
+		}
+	}
+	for _, mark := range t.overlay.Marks {
+		if mark.Row < 0 || mark.Row >= len(rows) {
+			continue
+		}
+		rows[mark.Row] = overlayCells(rows[mark.Row], width, mark)
+	}
+}
+
+// overlayCells is a line of exactly width cells with a mark drawn over the
+// cells from its column: the cells before keep their styles, the text is
+// cut at the edge, and the cells after start with every sequence that came
+// before them so their styles carry on. A wide rune the mark cuts through
+// becomes a space on that side.
+func overlayCells(line string, width int, mark OverlayMark) string {
+	text := ansi.Truncate(modalLabel(mark.Text), width-mark.Col, "")
+	w := ansi.StringWidth(text)
+	if mark.Col < 0 || w == 0 {
+		return line
+	}
+	style := mark.Style
+	if style.Render("x") == "x" {
+		style = lipgloss.NewStyle().Reverse(true).Bold(true)
+	}
+	left := ansi.Truncate(line, mark.Col, "")
+	left += strings.Repeat(" ", mark.Col-ansi.StringWidth(left))
+	end := mark.Col + w
+	rest := ansi.TruncateLeft(line, end, "")
+	for n := end; ansi.StringWidth(rest) > width-end; n++ {
+		// A wide rune straddling end is kept whole by TruncateLeft.
+		rest = ansi.TruncateLeft(line, n+1, "")
+	}
+	rest = strings.Repeat(" ", width-end-ansi.StringWidth(rest)) + rest
+	return left + "\x1b[m" + style.Render(text) + "\x1b[m" + rest
 }
 
 // cursorShape maps the pane's reported shape onto the terminal cursor.

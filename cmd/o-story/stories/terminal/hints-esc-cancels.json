@@ -1,0 +1,63 @@
+{
+  "name": "esc in hints mode clears the labels and returns to the live pane, focus unchanged",
+  "area": "terminal",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ],
+    "terminal": {
+      "fake": true,
+      "attach": "a1",
+      "hints": {
+        "dim": true,
+        "marks": [
+          {
+            "row": 0,
+            "col": 0,
+            "text": "QQ"
+          }
+        ]
+      }
+    }
+  },
+  "script": [
+    "enter",
+    {
+      "tick": "terminal"
+    },
+    "ctrl+a",
+    "f",
+    "esc",
+    "x",
+    {
+      "tick": "terminal"
+    }
+  ],
+  "expect": [
+    {
+      "after": 4,
+      "mode": "hints",
+      "contains": [
+        "QQke pane"
+      ],
+      "highlighted": 1
+    },
+    {
+      "focus": "page1-pane",
+      "mode": "terminal",
+      "contains": [
+        "fake pane",
+        "$ x"
+      ],
+      "lacks": [
+        "QQ",
+        "<esc>"
+      ],
+      "highlighted": 0,
+      "writes": []
+    }
+  ]
+}

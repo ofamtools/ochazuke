@@ -247,9 +247,30 @@ type CompletionSpec struct {
 // TermSpec is a fake pane attached from a row: enter on Attach (default the
 // first row) adds the terminal, CloseOnDetach, focus returning to the row.
 type TermSpec struct {
-	Fake   bool   `json:"fake"`
-	Attach string `json:"attach,omitempty"`
-	Height int    `json:"height,omitempty"`
+	Fake   bool       `json:"fake"`
+	Attach string     `json:"attach,omitempty"`
+	Height int        `json:"height,omitempty"`
+	Hints  *HintsSpec `json:"hints,omitempty"`
+}
+
+// HintsSpec gives the pane the hints recipe: the leader then Key (default
+// f) runs demo.hints, which sets an overlay of Marks (dimmed with Dim) and
+// enters the passthrough hints mode. There a letter is demo.hint copy, an
+// uppercase letter type, a ctrl+letter open (each logs "hint ACTION
+// LETTER" to writes, clears the overlay and returns to terminal mode, the
+// focus unchanged), esc demo.hints-cancel, and any other key nothing; no
+// key reaches the pane.
+type HintsSpec struct {
+	Key   string     `json:"key,omitempty"`
+	Dim   bool       `json:"dim,omitempty"`
+	Marks []MarkSpec `json:"marks,omitempty"`
+}
+
+// MarkSpec is one overlay mark: Text drawn from the pane cell Row, Col.
+type MarkSpec struct {
+	Row  int    `json:"row"`
+	Col  int    `json:"col"`
+	Text string `json:"text"`
 }
 
 // JobSpec is a demo application verb whose job runs until FinishOnKey (or

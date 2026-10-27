@@ -254,6 +254,9 @@ func (ss *Session) defineDemo(pages []*Page) error {
 				d.Mode("normal").Bind(j.FailOnKey, ochazuke.Do(Demo+".finish", ochazuke.Arguments{"verb": key, "fail": true}))
 			}
 		}
+		if p.Term != nil && p.Term.Hints != nil {
+			ss.defineHints(p.Term.Hints)
+		}
 		for _, b := range p.Bind {
 			if _, ok := r.Operations[b.Do]; !ok {
 				return fmt.Errorf("bind %s: unknown operation %q", b.Keys, b.Do)
@@ -266,6 +269,71 @@ func (ss *Session) defineDemo(pages []*Page) error {
 		}
 	}
 	return nil
+}
+
+// HintsMode is the application mode the hints recipe enters over a pane.
+const HintsMode = "hints"
+
+// defineHints is the hints recipe over the fake pane (HintsSpec): an
+// application base mode, passthrough so every ctrl+letter reaches its
+// rows, entered by a leader row through a verb that also sets the overlay.
+// It is the recipe AGENTS.md's terminal row describes, as rows.
+func (ss *Session) defineHints(h *HintsSpec) {
+	r := ss.R
+	if r.Operations[Demo+".hints"].Verb != "" {
+		return
+	}
+	r.DefineMode(HintsMode, false)
+	_ = r.DefinePassthrough(HintsMode)
+	leave := func(c ochazuke.Ctx) {
+		if term := c.Runtime.Terminal(c.Runtime.Focus); term != nil {
+			term.SetOverlay(nil)
+		}
+		_ = c.Runtime.SetMode("terminal")
+	}
+	r.Define(Demo).
+		Verb("hints", func(c ochazuke.Ctx) ochazuke.Result {
+			term := c.Runtime.Terminal(c.Runtime.Focus)
+			if term == nil {
+				return ochazuke.Failed(errors.New("no attached pane"))
+			}
+			o := &ochazuke.TerminalOverlay{Dim: h.Dim}
+			for _, m := range h.Marks {
+				o.Marks = append(o.Marks, ochazuke.OverlayMark{Row: m.Row, Col: m.Col, Text: m.Text})
+			}
+			term.SetOverlay(o)
+			if err := c.Runtime.SetMode(HintsMode); err != nil {
+				return ochazuke.Failed(err)
+			}
+			return ochazuke.Done(nil)
+		}, "Label the pane's links and enter hints mode").
+		Verb("hint", func(c ochazuke.Ctx) ochazuke.Result {
+			ss.Writes = append(ss.Writes, "hint "+ochazuke.StringArg(c.Args, "action", "")+" "+ochazuke.StringArg(c.Args, "label", ""))
+			leave(c)
+			return ochazuke.Done(nil)
+		}, "Act on the labelled link and leave hints mode").
+		Verb("hints-cancel", func(c ochazuke.Ctx) ochazuke.Result { leave(c); return ochazuke.Done(nil) }, "Leave hints mode").
+		Verb("hints-ignore", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }, "Swallow a key in hints mode")
+	r.Operations[Demo+".hint"] = withParams(r.Operations[Demo+".hint"], map[string]ochazuke.Parameter{
+		"label":  {Type: "string", Description: "the label letter"},
+		"action": {Type: "string", Description: "copy, type or open"},
+	})
+	key := h.Key
+	if key == "" {
+		key = "f"
+	}
+	hint := func(action string) ochazuke.Binding {
+		return ochazuke.Do(Demo+".hint", ochazuke.Arguments{"action": action}).FromPayload("label", ochazuke.SourceLetter).Hinted(action)
+	}
+	r.Define("terminal").
+		Mode("leader_pending").Bind(key, ochazuke.Do(Demo+".hints")).
+		Mode(HintsMode).
+		Pattern(ochazuke.Alpha, hint("copy")).
+		Pattern(ochazuke.Upper, hint("type")).
+		Pattern(ochazuke.CtrlAlpha, hint("open")).
+		Bind("esc", ochazuke.Do(Demo+".hints-cancel").Hinted("cancel")).
+		Pattern(ochazuke.Paste, ochazuke.Do(Demo+".hints-ignore").Hide()).
+		Pattern(ochazuke.Any, ochazuke.Do(Demo+".hints-ignore").Hide())
 }
 
 // check toggles a "[x] " mark on a tree row's label the way an application

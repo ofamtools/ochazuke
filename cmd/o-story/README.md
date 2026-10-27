@@ -62,7 +62,11 @@ it to the timer's deadline and delivers the timer's message
                completions: [{ trigger: "@", items: ["src/main.go"], fail: "" }] }],
     trees: [{ id: "t", editable: true, failWrites: 0, collapsed: ["p1"],
               nodes: [{ id: "p1", label: "one" }, { id: "c1", parent: "p1", label: "child" }] }],
-    terminal: { fake: true, attach: "a1", height: 6 },
+    terminal: { fake: true, attach: "a1", height: 6,
+                hints: { key: "f", dim: true, marks: [{ row: 0, col: 0, text: "a" }] } },
+                                     // hints: ctrl+a f sets the overlay and enters the hints mode;
+                                     // a letter / capital / ctrl+letter logs "hint copy|type|open L"
+                                     // (writes) and returns to terminal, esc cancels, nothing reaches the pane
     jobs: [{ verb: "demo.build", key: "w", finishOnKey: "W", failOnKey: "X", quiet: false, start: 0, label: "" }],
     bind: [{ noun: "demo", mode: "normal", keys: "C", do: "notice.clear" }],
     detail: { lines: 50, width: 0 }, // a scrollable detail (AddDetail) on the right:
@@ -264,6 +268,7 @@ Conformance:
 | mode | noun | verbs |
 |---|---|---|
 | count_pending | count | `count.append` |
+| hints | demo | `demo.hint` `demo.hints-cancel` `demo.hints-ignore` |
 | insert | chooser | `chooser.cancel` `chooser.move` `chooser.pick` |
 | insert | completion | `completion.accept` `completion.dismiss` `completion.move` `completion.open` |
 | insert | form | `form.next` |
@@ -297,6 +302,7 @@ Conformance:
 | normal | setting-item | `setting-item.add` `setting-item.delete` `setting-item.edit` `setting-item.reset` |
 | normal | settings | `settings.close` `settings.edit` `settings.section` `settings.undo` |
 | normal | surface | `surface.scroll` |
+| terminal | demo | `demo.hints` |
 | terminal | mode | `mode.enter` |
 | terminal | terminal | `terminal.detach` `terminal.send` |
 
@@ -311,6 +317,8 @@ Mode edges (from → to via):
 - `count_pending` → `normal` via `pane.grow`
 - `count_pending` → `normal` via `pane.shrink`
 - `count_pending g` → `normal` via `list.goto`
+- `hints` → `terminal` via `demo.hint`
+- `hints` → `terminal` via `demo.hints-cancel`
 - `insert` → `normal` via `chooser.cancel`
 - `insert` → `normal` via `chooser.pick`
 - `insert` → `normal` via `mode.set`
@@ -320,6 +328,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `setting-value.cancel`
 - `insert` → `normal` via `setting-value.commit`
 - `insert` → `normal` via `settings.edit`
+- `leader_pending` → `hints` via `demo.hints`
 - `leader_pending` → `normal` via `terminal.detach`
 - `leader_pending` → `terminal` via `terminal.send`
 - `list_filter` → `normal` via `list.filter-choose`

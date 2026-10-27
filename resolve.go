@@ -429,6 +429,8 @@ func (r *Runtime) argument(source string, ev KeyEvent) any {
 		return p.OpCount
 	case SourcePrefix:
 		return p.Prefix
+	case SourceLetter:
+		return keyLetter(ev.Key.Key)
 	case SourceRow:
 		return jsonShaped(r.rowData(ev))
 	}
