@@ -949,7 +949,17 @@ Both completions derive from the shared operation registry, so they expose the s
 
 One registry describes supported operations, validated argument types/requiredness, and result descriptions. Commands mutate state; queries inspect it. Unknown operations, unknown arguments, and invalid argument types are rejected before handler execution.
 
-An operation key is `noun.verb` (`input.undo`, `worktree.remove`): the same string the CLI spells `NOUN VERB`, the same order as `Define(noun).Verb(verb)`, and ownership reads as a path, so a catalog sorted by key groups by noun. Rows written in the earlier `verb.noun` spelling are rewritten on load for one release and reported by `ValidateBindings`.
+An operation key is `noun.verb` (`input.undo`, `worktree.remove`): the same string the CLI spells `NOUN VERB`, the same order as `Define(noun).Verb(verb)`, and ownership reads as a path, so a catalog sorted by key groups by noun. Rows written in the earlier `verb.noun` spelling are rewritten on load for one release and reported by `ValidateBindings` (two-word keys only: a longer key is never swapped).
+
+### Noun namespaces
+
+A noun may be dotted (`app.settings`, `ai.skills`); a verb is one word. Every key splits on its last dot (`ochazuke.SplitKey`: `app.settings.set` is noun `app.settings`, verb `set`). The framework's own nouns live in the `app` namespace: everything `NewRuntime`, `NewModel` and the framework constructors register (inside `Runtime.Builtin`) is `app.<noun>` (`app.list`, `app.settings`, `app.page`; `app` itself stays `app`), with the short name as an alias (`Runtime.Alias`, `Runtime.Aliases`). So:
+
+- **Input accepts either name.** `Do("list.move")`, `Request{Noun: "settings"}`, a `bindings.json` or `actions.json` row naming `list`, a palette word (`settings names` or `app.settings names`, one word each) and the CLI (`bin settings list`, `bin app settings list`, `bin app.settings list`) all reach `app.list` / `app.settings` (`Runtime.CanonicalNoun`, `CanonicalKey`, `Operation(key)`, `NounWords`).
+- **Output is canonical.** History (and `history.jsonl`, which reads old short-named lines as canonical), `bindings.list`, `operations.list`, the snapshot and the catalog print `app.settings.set`; the footer's hints, the `?` help, the jobs ticker and confirm prompts draw the shortest name that reaches the noun (`DisplayNoun`, `DisplayKey`: `list.move`).
+- **`Define` extends, `DefineOwn` claims.** `Define("terminal").Verb("copy", …)` (or `Register` with noun `terminal`, or `Kind("prompt")`) adds to the framework's `app.terminal`. An application with a noun of its own under a framework name declares it with `DefineOwn("settings")`: from then on `settings` (keys, files, palette, CLI) is the application's noun and the framework's stays reachable as `app.settings`, its verbs intact; nothing is deleted to make room. A noun the application registers under the short name before the framework registers its alias (an instance made before `NewModel`) owns the name the same way.
+- **No overlap.** A noun `x` and a noun `x.y` coexist, but a verb `y` on `x` beside a noun `x.y` (or the reverse) is refused when registered.
+- **Extensions in a host.** A host mounting an extension's catalog names its nouns under the extension (`cli.Namespace("ai")` as `PageConfig.Noun`: `skills` is the host's `ai.skills`; `cli.Local` reads it back), so two extensions and the host never clash; the extension's own binary keeps its short names. The catalog publishes the active aliases (`CatalogDoc.Aliases`, `CatalogDoc.CanonicalNoun`).
 
 Public user actions and registered state are the compatibility surface. Implementation helpers and handler functions are not remotely callable code.
 
@@ -1084,7 +1094,7 @@ The in-memory ring still records every kind for `history.list` and dot-repeat. O
 |---|---|
 | `noun`, `verb` | The existing noun and the new verb (one word). A verb the noun already has is refused |
 | `command` | An argv template, run directly, never through a shell. A string is split on spaces |
-| `base` | The JSON convention instead of `command`: `BASE NOUN VERB --json ARGS [--target TARGET]`, the shape every ochazuke CLI accepts. `call` ("noun verb") names another noun and verb, `target` is a template for `--target` (left out when it expands to nothing) |
+| `base` | The JSON convention instead of `command`: `BASE NOUN VERB --json ARGS [--target TARGET]`, the shape every ochazuke CLI accepts. `call` ("noun verb", the noun's words first: "app settings list") names another noun and verb, `target` is a template for `--target` (left out when it expands to nothing) |
 | `json` | With `command`: append `--json ARGS` |
 | `parameters`, `positional` | Parameters in the `Parameter` shape (`string`, `integer` or `boolean`; `required`, `enum`, `source`, `free`, `description`) and the order bare words fill them, so the palette, the CLI and help show them |
 | `confirm` | A confirm prompt, as `NounBuilder.Confirm` takes (`{{label}}`, `{{target}}`, `{{<arg>}}`) |
