@@ -495,6 +495,16 @@ func (m *Model) footer() Footer {
 // not bound; the descriptions are in BindingHelp (the ? modal).
 func BindingHints(r *Runtime, focus string) string {
 	var hints []string
+	for _, b := range HintBindings(r, focus) {
+		hints = append(hints, rowHint(b))
+	}
+	return strings.Join(hints, " · ")
+}
+
+// HintBindings is the rows BindingHints shows, in its order: what a check
+// of the footer presses to prove every hint answers.
+func HintBindings(r *Runtime, focus string) []Binding {
+	var out []Binding
 	index := map[string]bool{}
 	for _, row := range r.groupedRows(focus) {
 		b := row.Binding
@@ -516,9 +526,9 @@ func BindingHints(r *Runtime, focus string) string {
 			continue
 		}
 		index[same] = true
-		hints = append(hints, rowHint(b))
+		out = append(out, b)
 	}
-	return strings.Join(hints, " · ")
+	return out
 }
 
 // groupedRows is levelRows grouped by the noun of the level that answers,

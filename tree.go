@@ -520,6 +520,13 @@ func (t *Tree) HandleMessage(msg tea.Msg) bool {
 	return true
 }
 
+// DebounceTick is the pause timer in flight, for a host that delivers it
+// at once (explore): false when no typing waits on one.
+func (t *Tree) DebounceTick() (TreeDebounceMsg, bool) {
+	msg := TreeDebounceMsg{Tree: t.id, Seq: t.changeSeq}
+	return msg, t.DebounceCurrent(msg)
+}
+
 // DebounceCurrent reports whether a pause timer is for the line's latest
 // change (an older timer writes nothing).
 func (t *Tree) DebounceCurrent(tick TreeDebounceMsg) bool {

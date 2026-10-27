@@ -14,6 +14,7 @@ o-story                      # index of stories by area; enter opens one
 o-story run [NAME|AREA...]   # headless; non-zero exit on failure
 o-story run --update --dir cmd/o-story/stories   # rewrite goldens on disk
 o-story list | history | keep N NAME | replay REF | trim REF ... | verbs
+o-story explore [NAME|AREA...] [--depth N] [--steps N] [--out DIR]   # the state explorer
 o story ...                  # the same, through the oden family root
 ```
 
@@ -224,6 +225,34 @@ o-story run --from spill-bug [--expect '{"focus":"b1"}']   # headless; asserts o
 
 Every chrome or motion rule has a story here; a UI bug is reproduced as a
 story before it is fixed.
+
+## Explore
+
+`o-story explore` runs the state explorer (`explore.Run`, the package doc
+has the details) over every story-built application: one run per distinct
+application (stories that differ only in script and expect share it;
+trimmed stories with a base are left out). Each replay builds the story
+afresh with its fakes and closes it after. It presses every key that
+answers, plus esc, enter, tab, shift+tab, backspace, ctrl+c, a wait and
+resizes, breadth first, and checks every state it reaches: panics, the
+focus invariants, render fits, honest footer hints, a way home, jobs
+settle, operation errors, modes no row leaves.
+
+```sh
+o-story explore                        # every application, depth 3, 2000 steps each
+o-story explore lists tables/cell-motion --depth 6 --steps 20000
+o-story explore --out /tmp/explore     # NAME.json reports and NAME/NN-CHECK.json gap stories
+o-story explore --compare-full         # also count states keyed with the screen
+```
+
+Each report lists findings by check with the shortest key path (shrunk),
+then coverage: noun/mode pairs reached, modes never entered, operations
+never run, rows never answered, guards never true or never false. The
+last block groups the findings of every application. A gap story is the
+application's story with the finding's keys as its script and
+`"skip": "gap: CHECK: SUMMARY"`; waits and resizes have no story event,
+so they are named in the skip. They are written to `--out`, never to
+`stories/`: move one there once it is a rule.
 
 ## Catalog
 
