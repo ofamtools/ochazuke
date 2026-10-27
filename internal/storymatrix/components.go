@@ -12,18 +12,19 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 )
 
 // Map is components.json.
 type Map struct {
-	About      string              `json:"about,omitempty"`
-	Axes       Axes                `json:"axes"`
-	Modes      map[string]string   `json:"modes"`    // runtime mode name -> mode axis value
-	Channels   map[string][]string `json:"channels"` // action channel -> the axes its cells vary
-	Exclude    []Exclude           `json:"exclude"`  // impossible combinations for every component
-	Components []Component         `json:"components"`
+	About      string             `json:"about,omitempty"`
+	Axes       Axes               `json:"axes"`
+	Modes      map[string]string  `json:"modes"`    // runtime mode name -> mode axis value
+	Channels   map[string]Channel `json:"channels"` // action channel -> the axes its cells vary, each with why
+	Exclude    []Exclude          `json:"exclude"`  // impossible combinations for every component
+	Components []Component        `json:"components"`
 }
 
 // Axes are defined once: their order (the order of a cell id's values),
@@ -33,6 +34,20 @@ type Axes struct {
 	Full   []string            `json:"full"`
 	Values map[string][]string `json:"values"`
 }
+
+// Channel says which axes an action channel's cells vary. Every axis of
+// the order is in Keep (it changes what the channel does) or in Drop (it
+// cannot), each with its reason, so the choice is data. A component's
+// override (Component.Channels) names only the axes it moves.
+type Channel struct {
+	Why  string            `json:"why,omitempty"`
+	Keep map[string]string `json:"keep,omitempty"` // axis -> why it changes the channel
+	Drop map[string]string `json:"drop,omitempty"` // axis -> why it cannot
+}
+
+// channelNames are the channels the map must define: every action
+// channel but journeys, which have no axes.
+var channelNames = []string{ChannelKey, ChannelPalette, ChannelCLI, ChannelParity, ChannelHosted, ChannelSpill, ChannelHints}
 
 // Exclude is one impossible combination: axis -> value, and why. A cell
 // whose values include every pair of an exclude is dropped.
@@ -82,7 +97,10 @@ type Component struct {
 	Neighbours []string            `json:"neighbours"`
 	Axes       map[string][]string `json:"axes,omitempty"` // restricted values; an axis left out takes every value
 	Exclude    []Exclude           `json:"exclude,omitempty"`
-	Journeys   []Journey           `json:"journeys"`
+	// Channels override the map's channels for this component: an axis
+	// in Keep is varied, one in Drop is not, each with its reason.
+	Channels map[string]Channel `json:"channels,omitempty"`
+	Journeys []Journey          `json:"journeys"`
 }
 
 // Journey is a hand-authored multi-step path through the component.
@@ -142,10 +160,40 @@ func (m *Map) check() error {
 			add("mode %q maps to %q, not a mode axis value", mode, v)
 		}
 	}
-	for ch, axes := range m.Channels {
-		for _, a := range axes {
-			if _, ok := order[a]; !ok {
-				add("channel %s: unknown axis %q", ch, a)
+	for _, ch := range slices.Sorted(maps.Keys(m.Channels)) {
+		if !slices.Contains(channelNames, ch) {
+			add("channel %q is not an action channel", ch)
+		}
+	}
+	for _, ch := range channelNames {
+		c, ok := m.Channels[ch]
+		if !ok {
+			add("channel %s is not defined", ch)
+			continue
+		}
+		if c.Why == "" {
+			add("channel %s: no why", ch)
+		}
+		checkAxes := func(side string, axes map[string]string) {
+			for _, a := range slices.Sorted(maps.Keys(axes)) {
+				if _, ok := order[a]; !ok {
+					add("channel %s %s: unknown axis %q", ch, side, a)
+				}
+				if axes[a] == "" {
+					add("channel %s %s: axis %s without a why", ch, side, a)
+				}
+			}
+		}
+		checkAxes("keep", c.Keep)
+		checkAxes("drop", c.Drop)
+		for _, a := range m.Axes.Order {
+			_, kept := c.Keep[a]
+			_, dropped := c.Drop[a]
+			switch {
+			case kept && dropped:
+				add("channel %s: axis %s is both kept and dropped", ch, a)
+			case !kept && !dropped:
+				add("channel %s: axis %s is neither kept nor dropped", ch, a)
 			}
 		}
 	}
@@ -226,6 +274,38 @@ func (m *Map) check() error {
 		for _, e := range c.Exclude {
 			checkExclude(c.ID+" exclude", e)
 		}
+		for _, ch := range slices.Sorted(maps.Keys(c.Channels)) {
+			o := c.Channels[ch]
+			def, ok := m.Channels[ch]
+			if !ok {
+				add("%s: channel %q is not defined at the top", c.ID, ch)
+				continue
+			}
+			if o.Why != "" {
+				add("%s: channel %s: an override's reasons go beside its axes", c.ID, ch)
+			}
+			sides := map[string][2]map[string]string{"keep": {o.Keep, def.Keep}, "drop": {o.Drop, def.Drop}}
+			for _, side := range []string{"keep", "drop"} {
+				axes, defaults := sides[side][0], sides[side][1]
+				for _, a := range slices.Sorted(maps.Keys(axes)) {
+					if _, known := order[a]; !known {
+						add("%s: channel %s %s: unknown axis %q", c.ID, ch, side, a)
+						continue
+					}
+					if axes[a] == "" {
+						add("%s: channel %s %s: axis %s without a why", c.ID, ch, side, a)
+					}
+					if _, same := defaults[a]; same {
+						add("%s: channel %s already %ss axis %s", c.ID, ch, side, a)
+					}
+				}
+			}
+			for _, a := range slices.Sorted(maps.Keys(o.Keep)) {
+				if _, both := o.Drop[a]; both {
+					add("%s: channel %s: axis %s is both kept and dropped", c.ID, ch, a)
+				}
+			}
+		}
 		jids := map[string]bool{}
 		for _, j := range c.Journeys {
 			if j.ID == "" || jids[j.ID] || strings.ContainsAny(j.ID, "/*?[]\\,=") {
@@ -267,6 +347,27 @@ func (m *Map) owners() owners {
 		}
 	}
 	return o
+}
+
+// channelAxes are the axes a component's cells of a channel vary, in the
+// order: the map's kept axes, moved by the component's override.
+func (m *Map) channelAxes(c *Component, channel string) []string {
+	def := m.Channels[channel]
+	o := c.Channels[channel]
+	var out []string
+	for _, a := range m.Axes.Order {
+		_, kept := def.Keep[a]
+		if _, ok := o.Keep[a]; ok {
+			kept = true
+		}
+		if _, ok := o.Drop[a]; ok {
+			kept = false
+		}
+		if kept {
+			out = append(out, a)
+		}
+	}
+	return out
 }
 
 // values is the component's values of a (restricted) axis, in the

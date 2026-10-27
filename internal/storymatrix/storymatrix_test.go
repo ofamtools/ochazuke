@@ -360,7 +360,15 @@ func TestCoverageCounts(t *testing.T) {
   "axes": {"order": ["to", "mode", "focus", "size"], "full": ["to", "mode", "focus"],
            "values": {"mode": ["normal", "insert"], "focus": ["focused", "unfocused"], "size": ["narrow", "wide"]}},
   "modes": {"normal": "normal", "insert": "insert"},
-  "channels": {"key": ["mode", "focus", "size"], "hosted": ["focus"], "spill": ["to"]},
+  "channels": {
+    "key": {"why": "k", "keep": {"mode": "m", "focus": "f", "size": "s"}, "drop": {"to": "t"}},
+    "hosted": {"why": "h", "keep": {"focus": "f"}, "drop": {"to": "t", "mode": "m", "size": "s"}},
+    "spill": {"why": "s", "keep": {"to": "t"}, "drop": {"mode": "m", "focus": "f", "size": "s"}},
+    "palette": {"why": "p", "drop": {"to": "t", "mode": "m", "focus": "f", "size": "s"}},
+    "cli": {"why": "c", "drop": {"to": "t", "mode": "m", "focus": "f", "size": "s"}},
+    "parity": {"why": "p", "drop": {"to": "t", "mode": "m", "focus": "f", "size": "s"}},
+    "hints": {"why": "h", "drop": {"to": "t", "mode": "m", "focus": "f", "size": "s"}}
+  },
   "exclude": [{"mode": "insert", "focus": "unfocused", "why": "insert is the focus's"}],
   "components": [
     {"id": "alpha", "nouns": ["a"], "areas": ["alpha"], "neighbours": ["beta"], "journeys": [{"id": "round-trip"}]},
@@ -408,5 +416,110 @@ func TestCoverageCounts(t *testing.T) {
 	}
 	if typos := mx.Typos(stories); !slices.Equal(typos, []string{"other/four: gamma/*", "shared/three: beta/b.og/*"}) {
 		t.Errorf("typos %v", typos)
+	}
+}
+
+// legacyKeyAxes are the axes every key cell varied before channels were
+// data (f86fac9): the key channel keeps all of them.
+var legacyKeyAxes = []string{"mode", "placement", "focus", "outcome", "data", "state", "size", "modifiers"}
+
+// TestKeyCellsAreUnchanged pins the key channel: its cells are the ones
+// f86fac9's Build gave (every axis the component has, the same ids and
+// the same count per component), rebuilt here with that logic frozen.
+func TestKeyCellsAreUnchanged(t *testing.T) {
+	m, data := loadMap(t)
+	_, mx, err := Load(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := FrameworkRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+	inv, err := m.Derive(r, FixtureInstances)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range m.Components {
+		c := &m.Components[i]
+		if got := m.channelAxes(c, ChannelKey); !slices.Equal(got, legacyKeyAxes) {
+			t.Errorf("%s: key cells vary %v, want %v", c.ID, got, legacyKeyAxes)
+		}
+		excludes := append(slices.Clone(m.Exclude), c.Exclude...)
+		var want []string
+		for _, a := range inv.Actions[c.ID] {
+			if a.Channel != ChannelKey {
+				continue
+			}
+			var params []Param
+			full := 0
+			for _, axis := range m.Axes.Order {
+				if !slices.Contains(legacyKeyAxes, axis) {
+					continue
+				}
+				vals := m.values(c, axis)
+				if axis == "mode" {
+					vals = a.Modes
+				}
+				vals = slices.DeleteFunc(slices.Clone(vals), func(v string) bool { return !m.applies(c, a, axis, v) })
+				if len(vals) == 0 {
+					continue
+				}
+				if slices.Contains(m.Axes.Full, axis) {
+					full++
+				}
+				params = append(params, Param{Name: axis, Values: vals})
+			}
+			for _, row := range Combos(params, full, excludes) {
+				var parts []string
+				for j, p := range params {
+					parts = append(parts, p.Name+"="+p.Values[row[j]])
+				}
+				want = append(want, c.ID+"/"+a.ID+"/"+strings.Join(parts, ","))
+			}
+		}
+		slices.Sort(want)
+		want = slices.Compact(want)
+		var got []string
+		cc, _ := mx.Only(c.ID)
+		for _, cell := range cc.Components[0].Cells {
+			if cell.Channel == ChannelKey {
+				got = append(got, cell.ID)
+			}
+		}
+		if !slices.Equal(got, want) {
+			t.Errorf("%s: %d key cells, want %d as before", c.ID, len(got), len(want))
+		}
+	}
+}
+
+// TestChannelsAreData: every channel names every axis kept or dropped
+// with a reason, palette and CLI vary the outcome alone, and a
+// component's override moves an axis for that component only.
+func TestChannelsAreData(t *testing.T) {
+	m, data := loadMap(t)
+	for _, ch := range []string{ChannelPalette, ChannelCLI, ChannelParity} {
+		if got := m.channelAxes(&Component{}, ch); !slices.Equal(got, []string{"outcome"}) {
+			t.Errorf("%s varies %v, want outcome only", ch, got)
+		}
+	}
+	tables, lists := m.Component("tables"), m.Component("lists")
+	if !slices.Contains(m.channelAxes(tables, ChannelHosted), "data") || slices.Contains(m.channelAxes(lists, ChannelHosted), "data") {
+		t.Errorf("tables' hosted override: tables %v, lists %v", m.channelAxes(tables, ChannelHosted), m.channelAxes(lists, ChannelHosted))
+	}
+	for _, tc := range []struct{ old, new, want string }{
+		{`"outcome": "the call can succeed`, `"size": "x", "outcome": "the call can succeed`, "channel cli: axis size is both kept and dropped"},
+		{`"modifiers": "hints take no modifiers"`, `"zzz": "hints take no modifiers"`, "channel hints: axis modifiers is neither kept nor dropped"},
+		{`"why": "the operation as NOUN VERB on the command line: the CLI draws no screen, so only the result varies",`, ``, "channel cli: no why"},
+		{`"hosted": {"keep": {"data": "a table's`, `"hosted": {"keep": {"size": "a table's`, "tables: channel hosted already keeps axis size"},
+		{`"hosted": {"keep": {"data": "a table's`, `"hosted": {"drop": {"data": "", "x": "a table's`, "tables: channel hosted drop: axis data without a why"},
+	} {
+		edited := strings.Replace(string(data), tc.old, tc.new, 1)
+		if edited == string(data) {
+			t.Fatalf("fixture edit %q did not apply", tc.old)
+		}
+		if _, err := ParseMap([]byte(edited)); err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("want %q, got %v", tc.want, err)
+		}
 	}
 }

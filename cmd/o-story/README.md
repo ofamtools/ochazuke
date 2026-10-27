@@ -238,9 +238,25 @@ and reviewed one component at a time.
   list-filter's), its story `areas`, its `neighbours` (what it hosts or
   spills into), the axis values that apply to it (`axes`, a restriction of
   the global values), impossible combinations (`exclude`, each with its
-  `why`) and hand-written `journeys`. The axes, the mapping of runtime
-  modes onto the mode axis (`modes`), the axes each action channel varies
-  (`channels`) and the global excludes are defined once at the top.
+  `why`), its channel overrides (`channels`) and hand-written
+  `journeys`. The axes, the mapping of runtime modes onto the mode axis
+  (`modes`), the channel map and the global excludes are defined once at
+  the top.
+- The **channel map** (`channels`) says which axes each action channel's
+  cells vary, as data: every channel (key, palette, cli, parity, hosted,
+  spill, hints) names each axis of the order under `keep` (it changes
+  what the channel does) or `drop` (it cannot), each with its reason, and
+  the channel has a `why`. A key action varies every axis its component
+  has; a palette line, a CLI call and a parity check vary only the
+  outcome (they run a request: the CLI draws no screen, the palette runs
+  at the focus it opened over, and the key cells already vary the rest);
+  hosted varies placement and size; spill the neighbour, direction and
+  placement; hints the surface and mode. A component's `channels` moves
+  axes for itself only, each with its reason (`tables` keeps `data` on
+  hosted: its column widths are measured from its cells). An axis named
+  twice, named nowhere, without a why, or an override restating the
+  default, fails the map's tests, and a test pins the key cells to the
+  ones they were before the map (the same ids, every axis).
   `go test ./internal/storymatrix` fails when a framework noun is mapped
   to no component or to two, when a mapped noun or claimed operation does
   not exist, or when a runtime mode has no mode axis value. The noun set

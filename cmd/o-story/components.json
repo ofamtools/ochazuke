@@ -38,13 +38,132 @@
     "terminal": "passthrough"
   },
   "channels": {
-    "key": ["mode", "placement", "focus", "outcome", "data", "state", "size", "modifiers"],
-    "palette": ["placement", "focus", "outcome", "data", "state", "size"],
-    "cli": ["outcome", "data", "state"],
-    "parity": ["outcome"],
-    "hosted": ["placement", "focus", "data", "size"],
-    "spill": ["to", "direction", "placement"],
-    "hints": ["surface", "mode"]
+    "key": {
+      "why": "a binding row: what a key does depends on everything around it, so a key action varies every axis its component has",
+      "keep": {
+        "mode": "a row answers only in its own modes",
+        "placement": "a key reaches a component through the stack walk, which a modal or the palette above it bounds",
+        "focus": "a page list without the focus is faded and its rows answer only once focused",
+        "outcome": "a key can succeed, meet a false guard, fail, land later, be cancelled or lose its owner",
+        "data": "motions, spills and cuts depend on how many rows there are and how wide they draw",
+        "state": "a filter, marks, a running job or restored state change what a key reaches",
+        "size": "a page's window, a table's columns and the hints change with the terminal size",
+        "modifiers": "a count, a register, dot-repeat, undo and macros change what a key runs"
+      },
+      "drop": {
+        "to": "a neighbour is where focus spills: the spill channel's",
+        "direction": "the direction of a spill: the spill channel's",
+        "surface": "footer or help is where hints show: the hints channel's"
+      }
+    },
+    "palette": {
+      "why": "the operation typed as a palette line: the line runs a request at the focus it opened over, so only its result varies",
+      "keep": {
+        "outcome": "the line can run, meet a false guard, fail, land later, be cancelled at a confirm or lose its owner"
+      },
+      "drop": {
+        "to": "a palette line spills nowhere",
+        "direction": "a palette line has no direction",
+        "surface": "a palette line is not a hint",
+        "mode": "the palette pins insert on its own line; the request runs whatever mode the key cells hold",
+        "placement": "the palette is always the modal on top; where the target sits is the key cells'",
+        "focus": "the request resolves its instance on the origin's focus path; focus is the key cells'",
+        "data": "the operation's handler gets the same request whatever the rows draw like; data is the key cells'",
+        "state": "the same request runs against the same state as a key; state is the key cells'",
+        "size": "the terminal size changes the palette's drawing (the palette component's own cells), not what the line runs",
+        "modifiers": "counts, registers, dot-repeat and macros are key prefixes; a line has none"
+      }
+    },
+    "cli": {
+      "why": "the operation as NOUN VERB on the command line: the CLI draws no screen, so only the result varies",
+      "keep": {
+        "outcome": "the call can succeed, meet a false guard, fail, settle a job, be refused at a confirm without --yes or lose its owner"
+      },
+      "drop": {
+        "to": "the CLI spills nowhere",
+        "direction": "the CLI has no direction",
+        "surface": "the CLI shows no hints",
+        "mode": "a call carries its request, not a key: no mode answers it",
+        "placement": "the CLI draws no screen",
+        "focus": "a call names its --target; there is no focus to fade",
+        "data": "the CLI draws no rows; what a verb does with them is the key cells'",
+        "state": "a call runs against the state the key cells already vary",
+        "size": "the CLI draws no screen",
+        "modifiers": "counts, registers, dot-repeat and macros are key prefixes; a call has none"
+      }
+    },
+    "parity": {
+      "why": "the same verb by key, palette line and CLI agree: a check across the channels, whose own cells vary the rest",
+      "keep": {
+        "outcome": "the three must agree on success and on each way of failing"
+      },
+      "drop": {
+        "to": "parity spills nowhere",
+        "direction": "parity has no direction",
+        "surface": "parity is not a hint",
+        "mode": "the CLI and the palette have no key mode; the key cells vary it",
+        "placement": "the CLI draws no screen, so placement cannot be compared",
+        "focus": "the CLI names its target; focus cannot be compared",
+        "data": "the agreement is about the request, not the rows' drawing",
+        "state": "the three run against one state; each channel's own cells vary it",
+        "size": "the CLI draws no screen",
+        "modifiers": "only keys take modifiers"
+      }
+    },
+    "hosted": {
+      "why": "the component drawn in each placement: whether it fits its host",
+      "keep": {
+        "placement": "a page, a split panel, a modal and under the palette are different hosts with different bounds",
+        "size": "the host's bounds are cut from the terminal size; tiny and narrow terminals are where fitting breaks"
+      },
+      "drop": {
+        "to": "drawing in a host spills nowhere",
+        "direction": "drawing has no direction",
+        "surface": "drawing is not a hint",
+        "mode": "the host is the same whatever mode answers; mode is the key cells'",
+        "focus": "the unfocused fade is drawn the same in every host; the key cells cross focus with every placement",
+        "outcome": "drawing has no outcome",
+        "data": "the key cells pair every data shape with every placement and size",
+        "state": "a filter or marks change the rows, not the host; the key cells pair state with placement",
+        "modifiers": "drawing takes no modifiers"
+      }
+    },
+    "spill": {
+      "why": "the focus spilling into a neighbour: past a list's edge to the next or previous stop in drawing order",
+      "keep": {
+        "to": "each neighbour is a different stop to land on",
+        "direction": "past the last row goes to the next stop, before the first to the previous",
+        "placement": "a page stacks its stops top to bottom, a split puts them left before right (a modal clamps, so the code keeps page and split only)"
+      },
+      "drop": {
+        "surface": "a spill is not a hint",
+        "mode": "a spill is list.move, a normal-mode motion; its key cells carry the other modes",
+        "focus": "a spill starts from the focused stop by definition",
+        "outcome": "a spill lands or the list clamps, which the list.move key cells' outcomes hold",
+        "data": "a spill leaves from an edge whatever the rows; the list.move key cells vary data",
+        "state": "the list.move key cells vary state",
+        "size": "drawing order does not change with the terminal size",
+        "modifiers": "a counted move spills as one move; the list.move key cells vary counts"
+      }
+    },
+    "hints": {
+      "why": "the footer hints and ? help agree with the component's rows",
+      "keep": {
+        "surface": "the footer and ? help are built from the same rows with different rules (motions and hidden rows are off the footer)",
+        "mode": "the rows that answer, and so the hints, are per mode"
+      },
+      "drop": {
+        "to": "hints spill nowhere",
+        "direction": "hints have no direction",
+        "placement": "a modal's hint line is the same BindingHints output for its focus; the rows differ by mode",
+        "focus": "hints are for the focused instance only",
+        "outcome": "showing hints has no outcome",
+        "data": "the rows are the same whatever the data; a guarded row is the key cells' guard-false outcome",
+        "state": "a guarded row's state is the key cells' guard-false outcome",
+        "size": "the footer's cut by width is the chrome's one rule (Layout.Shell), not each component's",
+        "modifiers": "hints take no modifiers"
+      }
+    }
   },
   "exclude": [
     {"placement": "under-palette", "focus": "focused", "why": "the palette holds the focus while it is open"},
@@ -55,8 +174,7 @@
     {"focus": "unfocused", "mode": "pending-operator", "why": "a pending mode is entered at the focus and cancelled by a focus change"},
     {"focus": "unfocused", "mode": "pending-prefix", "why": "a pending mode is entered at the focus and cancelled by a focus change"},
     {"focus": "unfocused", "mode": "leader", "why": "the leader is pending on the focused terminal and cancelled by a focus change"},
-    {"focus": "unfocused", "mode": "passthrough", "why": "passthrough is the focused terminal's pinned mode"},
-    {"placement": "split", "direction": "previous", "to": "palette", "why": "nothing spills into the palette"}
+    {"focus": "unfocused", "mode": "passthrough", "why": "passthrough is the focused terminal's pinned mode"}
   ],
   "components": [
     {
@@ -115,6 +233,9 @@
         "state": ["plain", "filtered", "marked", "restored-after-restart"],
         "modifiers": ["none", "count", "register", "dot-repeat", "in-macro"],
         "outcome": ["success", "guard-false", "error", "pending-lands", "cancelled"]
+      },
+      "channels": {
+        "hosted": {"keep": {"data": "a table's column widths, cuts, wraps and drops are measured from its cells, so how it fits a host depends on the data"}}
       },
       "journeys": []
     },

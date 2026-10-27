@@ -83,7 +83,7 @@ func (m *Map) Build(inv *Inventory) *Matrix {
 // params are an action's axes in the global order with the values that
 // apply to it, and how many lead the order as a full product.
 func (m *Map) params(c *Component, a Action, keyModes []string) ([]Param, int) {
-	axes := m.Channels[a.Channel]
+	axes := m.channelAxes(c, a.Channel)
 	var params []Param
 	full := 0
 	for _, axis := range m.Axes.Order {
