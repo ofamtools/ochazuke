@@ -1,0 +1,208 @@
+package ochazuke
+
+import (
+	"errors"
+	"fmt"
+	"maps"
+)
+
+// Visual row selection: V on a cell-mode table starts a selection of rows
+// anchored at the selected row. It is not a selection model of its own: it
+// is the list's marks. While it lasts the marks are the marks V found plus
+// every shown row between the anchor and the selected row, so j, k, counts,
+// gg, G and the page motions extend it (they clamp instead of spilling),
+// the * gutter draws it, and list.apply fans a verb out over it. The mode
+// stays normal, so the rows' own keys still answer and the footer keeps
+// them: a key whose row runs an application verb of the row's noun
+// (x row.delete) runs it for every selected row through list.apply
+// (runRow, visualApply), with one confirm for all of them when the verb has
+// one. Running it ends the selection; esc (or V again) ends it without
+// running anything. Either way the marks go back to the ones V found;
+// space during the selection toggles those.
+
+// Visual reports whether a V selection is active on the list.
+func (l *List) Visual() bool { return l.visual }
+
+// StartVisual starts a visual row selection at the selected row; a list
+// without rows or one added with NoMarks refuses.
+func (l *List) StartVisual() error {
+	if l.noMarks {
+		return fmt.Errorf("list %s takes no marks", l.id)
+	}
+	selected, ok := l.Selected()
+	if !ok {
+		return errors.New("list has no selected row")
+	}
+	if !l.visual {
+		l.visual, l.base = true, maps.Clone(l.marks)
+		if l.base == nil {
+			l.base = map[string]bool{}
+		}
+	}
+	l.anchor = selected.ID
+	l.syncVisual()
+	return nil
+}
+
+// EndVisual ends a visual selection: the marks go back to the ones it
+// started over.
+func (l *List) EndVisual() {
+	if !l.visual {
+		return
+	}
+	l.visual, l.anchor = false, ""
+	l.marks, l.base = l.base, nil
+}
+
+// syncVisual redraws the selection into the marks: the marks V found plus
+// the shown rows between the anchor and the selection. An anchor the
+// filter hides or SetItems removed moves to the selected row.
+func (l *List) syncVisual() {
+	if !l.visual || l.selected < 0 {
+		return
+	}
+	at := -1
+	for i, item := range l.items {
+		if item.ID == l.anchor {
+			at = i
+			break
+		}
+	}
+	if at < 0 {
+		at, l.anchor = l.selected, l.items[l.selected].ID
+	}
+	marks := maps.Clone(l.base)
+	for i := min(at, l.selected); i <= max(at, l.selected); i++ {
+		marks[l.items[i].ID] = true
+	}
+	l.marks = marks
+}
+
+// apply is list.apply: the verb for every marked row shown (the selected
+// row when none is marked), each a request of the row's noun with the row
+// as target and args as its arguments. A verb with a confirm opens one
+// confirm for every row first; its y runs list.apply again, confirmed.
+func (l *List) apply(c Context, a Arguments) (any, error) {
+	r := l.r
+	rows := l.markedShown()
+	if len(rows) == 0 {
+		if selected, ok := l.Selected(); ok {
+			rows = []ListItem{selected}
+		}
+	}
+	verb := StringArg(a, "verb", "")
+	var args Arguments
+	switch v := a["args"].(type) {
+	case Arguments:
+		args = v
+	case map[string]any:
+		args = v
+	}
+	confirmed, _ := a["confirmed"].(bool)
+	if !confirmed {
+		for _, row := range rows {
+			if op, ok := r.Operations[Request{Verb: verb, Noun: row.Noun}.Key()]; ok && op.Confirm != "" {
+				q := Request{Verb: "apply", Noun: "list", Args: Arguments{"id": l.id, "verb": verb, "confirmed": true}}
+				if args != nil {
+					q.Args["args"] = args
+				}
+				prompt := fmt.Sprintf("Run %s on %d rows?", op.Key(), len(rows))
+				if len(rows) == 1 {
+					prompt = op.Confirm
+				}
+				return r.openConfirm(r.contextOf(row.ID), q, Operation{Noun: op.Noun, Verb: op.Verb, Confirm: prompt})
+			}
+		}
+	}
+	l.EndVisual()
+	applied, skipped := []string{}, []string{}
+	var failure error
+	for _, row := range rows {
+		q := Request{Verb: verb, Noun: row.Noun, Target: row.ID, Args: maps.Clone(args), Confirmed: confirmed}
+		if _, ok := r.Operations[q.Key()]; !ok {
+			skipped = append(skipped, row.ID+": "+q.Key()+" is not registered")
+			continue
+		}
+		if _, err := r.Execute(q); err != nil {
+			skipped = append(skipped, row.ID+": "+err.Error())
+			if failure == nil {
+				failure = err
+			}
+			continue
+		}
+		applied = append(applied, row.ID)
+	}
+	return map[string]any{"verb": verb, "applied": applied, "skipped": skipped}, failure
+}
+
+// visualApply is the request a binding row's request becomes while the
+// row it addresses is in a list's visual selection: an application verb
+// of the row's own noun runs through list.apply for every selected row.
+// Anything else (a motion, a framework verb, a row outside a selection)
+// is q unchanged. level is the instance the row matched at (the row when
+// the request names no target).
+func (r *Runtime) visualApply(q Request, level string) Request {
+	row := q.Target
+	if row == "" {
+		row = level
+	}
+	owner := r.rows[row]
+	if owner == "" || q.Noun == "list" {
+		return q
+	}
+	l := r.List(owner)
+	inst := r.Instances[row]
+	op, ok := r.Operations[q.Key()]
+	if l == nil || !l.visual || inst == nil || inst.Noun != q.Noun || !ok || op.Kind != KindApplication || op.Motion {
+		return q
+	}
+	args := Arguments{"id": l.id, "verb": q.Verb}
+	if len(q.Args) > 0 {
+		args["args"] = q.Args
+	}
+	return Request{Verb: "apply", Noun: "list", Target: row, Args: args}
+}
+
+func registerListVisual(r *Runtime) {
+	r.DefineGuard("list-visual", func(r *Runtime, ev KeyEvent) bool {
+		l := r.focusedList(ev.Focus)
+		return l != nil && l.visual
+	})
+	r.DefineGuard("table-visual", func(r *Runtime, ev KeyEvent) bool {
+		l := r.focusedList(ev.Focus)
+		return l != nil && l.cellMode() && !l.noMarks
+	})
+	// esc ends the selection before the filter's esc (bound after this) is
+	// asked: a row guard, so it answers only while one is active.
+	r.Define("list").Mode("normal").
+		Bind("V", Do("list.visual").Hide()).
+		Bind("esc", Do("list.visual", Arguments{"on": false}).Guard("list-visual"))
+	r.Nouns["list"].Guards["visual"] = "table-visual"
+	r.Register(Operation{Verb: "visual", Noun: "list", Description: "Start a visual row selection at the selected row (V), or end it (V again, esc): j/k extend it over the marks; a row's verb then runs for every selected row", Parameters: map[string]Parameter{
+		"id": {Type: "string", Description: "The list (default: the focused one)"},
+		"on": {Type: "boolean", Description: "true starts, false ends; omit to toggle"},
+	}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+		var l *List
+		if id := StringArg(a, "id", ""); id != "" {
+			l = r.List(id)
+		} else if c.InputID == "" {
+			for _, id := range r.Ancestry(focusOf(c)) {
+				if l = r.List(id); l != nil {
+					break
+				}
+			}
+		}
+		if l == nil {
+			return nil, errors.New("no focused list")
+		}
+		on, set := a["on"].(bool)
+		if !set {
+			on = !l.visual
+		}
+		if !on {
+			l.EndVisual()
+			return l.state(), nil
+		}
+		return l.state(), l.StartVisual()
+	}})
+}

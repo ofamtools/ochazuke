@@ -1,0 +1,119 @@
+{
+  "name": "V selects rows: j extends it over the marks, x runs the row's verb for every selected row behind one confirm",
+  "width": 60,
+  "height": 8,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "pane"
+          },
+          {
+            "title": "harness",
+            "priority": 2
+          },
+          {
+            "title": "state",
+            "priority": 1
+          },
+          {
+            "title": "cwd",
+            "min": 8,
+            "priority": 3
+          },
+          {
+            "title": "branch",
+            "priority": 4
+          }
+        ],
+        "items": [
+          {
+            "id": "t1",
+            "label": "work/claude",
+            "cells": [
+              "work/claude",
+              "claude-code",
+              "idle",
+              "~/proj/matomeru",
+              "main"
+            ]
+          },
+          {
+            "id": "t2",
+            "label": "work/codex",
+            "cells": [
+              "work/codex",
+              "codex",
+              "working",
+              "~/proj/ochazuke",
+              "feat/list-motions"
+            ]
+          },
+          {
+            "id": "t3",
+            "label": "main/shell",
+            "cells": [
+              "main/shell",
+              "shell",
+              "",
+              "~/hub",
+              "docs/readme-header"
+            ]
+          },
+          {
+            "id": "t4",
+            "label": "9332c352/review",
+            "cells": [
+              "9332c352/review",
+              "claude-code",
+              "needs_input",
+              "~/proj/nabe",
+              "prototype/picker-lab"
+            ]
+          }
+        ],
+        "selected": 0
+      }
+    ]
+  },
+  "script": [
+    "V",
+    "j",
+    "j",
+    "x",
+    "y"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "contains": [
+        "* work/claude",
+        "* work/codex",
+        "* main/shell",
+        "  9332c352/"
+      ],
+      "mode": "normal"
+    },
+    {
+      "after": 4,
+      "modal": "confirm"
+    },
+    {
+      "lacks": [
+        "work/claude",
+        "work/codex",
+        "main/shell",
+        "*"
+      ],
+      "contains": [
+        "9332c352/"
+      ],
+      "focus": "t4"
+    }
+  ],
+  "area": "tables"
+}

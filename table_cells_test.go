@@ -189,3 +189,61 @@ func TestColumnWidthsResizeResetAndPersist(t *testing.T) {
 		t.Fatalf("z =: %v", l.ColumnWidths())
 	}
 }
+
+// visualTable is cellTable whose rows answer x (row.zap, an application
+// verb) and c (row.check, with a confirm); calls collects the rows each ran on.
+func visualTable(t *testing.T) (*Runtime, *Model, *List, *[]string) {
+	t.Helper()
+	r, m, l := cellTable(t, 80, "")
+	var calls []string
+	r.Define("row").
+		Verb("zap", func(c Ctx) Result { calls = append(calls, "zap "+c.Instance.ID); return Done(nil) }, "zap a row").
+		Verb("check", func(c Ctx) Result { calls = append(calls, "check "+c.Instance.ID); return Done(nil) }, "check a row").Confirm("Check {{label}}?").
+		Mode("normal").Bind("x", Do("row.zap")).Bind("c", Do("row.check"))
+	return r, m, l, &calls
+}
+
+func TestVisualRowsAreMarksAndAVerbRunsForEach(t *testing.T) {
+	r, m, l, calls := visualTable(t)
+	motionKeys(t, r, m, "j space j V j j")
+	if !l.Visual() || strings.Join(ids(l.Marked()), " ") != "r2 r3 r4 r5" {
+		t.Fatalf("V j j: visual %v marks %v", l.Visual(), ids(l.Marked()))
+	}
+	motionKeys(t, r, m, "k")
+	if strings.Join(ids(l.Marked()), " ") != "r2 r3 r4" {
+		t.Fatalf("k shrinks the range: %v", ids(l.Marked()))
+	}
+	motionKeys(t, r, m, "x")
+	if strings.Join(*calls, ", ") != "zap r2, zap r3, zap r4" || l.Visual() {
+		t.Fatalf("x: %v visual %v", *calls, l.Visual())
+	}
+	if strings.Join(ids(l.Marked()), " ") != "r2" {
+		t.Fatalf("after the verb the marks V found come back: %v", ids(l.Marked()))
+	}
+	// esc ends a selection without running anything.
+	motionKeys(t, r, m, "V k esc")
+	if l.Visual() || strings.Join(ids(l.Marked()), " ") != "r2" || len(*calls) != 3 {
+		t.Fatalf("esc: visual %v marks %v calls %v", l.Visual(), ids(l.Marked()), *calls)
+	}
+	// j past the last row clamps instead of spilling out of the selection.
+	motionKeys(t, r, m, "G V j")
+	if r.Focus != "r30" || !l.Visual() {
+		t.Fatalf("j at the end: focus %s visual %v", r.Focus, l.Visual())
+	}
+	motionKeys(t, r, m, "V")
+	if l.Visual() {
+		t.Fatal("V again did not end the selection")
+	}
+}
+
+func TestVisualVerbWithAConfirmAsksOnce(t *testing.T) {
+	r, m, l, calls := visualTable(t)
+	motionKeys(t, r, m, "V j j c")
+	if r.TopModal() == "" || len(*calls) != 0 {
+		t.Fatalf("c: modal %q calls %v", r.TopModal(), *calls)
+	}
+	motionKeys(t, r, m, "y")
+	if strings.Join(*calls, ", ") != "check r1, check r2, check r3" || r.TopModal() != "" || l.Visual() {
+		t.Fatalf("y: calls %v modal %q visual %v", *calls, r.TopModal(), l.Visual())
+	}
+}

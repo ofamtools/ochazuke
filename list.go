@@ -45,21 +45,24 @@ type List struct {
 	selected    int
 	offset      int
 	marks       map[string]bool
-	noSpill     bool        // NoSpill: list.move clamps at the edges instead of spilling
-	noMarks     bool        // NoMarks: a read-only view, its rows take no marks
-	choose      bool        // ClearFilterOnEnter: enter in the filter line chooses the match and clears the filter
-	columns     []Column    // Columns: a table; none draws the labels
-	widest      []int       // a table's widest cell per column over the items (cellWidths); nil after SetItems
-	window      int         // rows the last frame showed (list_motions.go's page); 0 before any frame
-	windowed    bool        // the last frame windowed the rows (more rows than fit)
-	colOffset   int         // a table's column offset (table_columns.go); 0 unscrolled
-	colWidth    int         // the width the last frame laid the table's columns out at
-	rowSelect   bool        // RowSelect: a table without a current column (table_cells.go)
-	col         int         // a cell-mode table's current column
-	colWidths   map[int]int // widths given with z > and z < (table_cells.go)
-	restored    bool        // the remembered TableState was read
-	drawn       []int       // the columns the last frame showed
-	drawnWidths []int       // and their widths
+	noSpill     bool            // NoSpill: list.move clamps at the edges instead of spilling
+	noMarks     bool            // NoMarks: a read-only view, its rows take no marks
+	choose      bool            // ClearFilterOnEnter: enter in the filter line chooses the match and clears the filter
+	columns     []Column        // Columns: a table; none draws the labels
+	widest      []int           // a table's widest cell per column over the items (cellWidths); nil after SetItems
+	window      int             // rows the last frame showed (list_motions.go's page); 0 before any frame
+	windowed    bool            // the last frame windowed the rows (more rows than fit)
+	colOffset   int             // a table's column offset (table_columns.go); 0 unscrolled
+	colWidth    int             // the width the last frame laid the table's columns out at
+	rowSelect   bool            // RowSelect: a table without a current column (table_cells.go)
+	col         int             // a cell-mode table's current column
+	colWidths   map[int]int     // widths given with z > and z < (table_cells.go)
+	restored    bool            // the remembered TableState was read
+	drawn       []int           // the columns the last frame showed
+	drawnWidths []int           // and their widths
+	visual      bool            // V: a visual row selection over the marks (list_visual.go)
+	anchor      string          // the row V started on
+	base        map[string]bool // the marks before V
 }
 
 // NewList is AddList for callers that hold the runtime as a value.
@@ -123,6 +126,7 @@ func (l *List) SetItems(items []ListItem) error {
 		if !ids[old.ID] {
 			gone[old.ID] = true
 			delete(l.marks, old.ID)
+			delete(l.base, old.ID)
 			drop = append(drop, old.ID)
 		}
 	}
@@ -147,6 +151,7 @@ func (l *List) SetItems(items []ListItem) error {
 	if l.selected >= 0 && l.items[l.selected].ID != previous.ID || l.selected < 0 && len(l.items) > 0 {
 		l.selected = min(max(at, 0), len(l.items)-1)
 	}
+	l.syncVisual()
 	l.syncFocus(previous, gone)
 	return nil
 }
@@ -176,11 +181,13 @@ func (l *List) Move(delta int) {
 	if next != l.selected {
 		previous := l.items[l.selected]
 		l.selected = next
+		l.syncVisual()
 		l.syncFocus(previous, nil)
 	}
 }
 
-// spill is list.move past an edge of a focused list on a page: delta beyond
+// spill is list.move past an edge of a focused list on a page (a list in
+// a visual selection clamps, so j and k only extend it): delta beyond
 // the last row moves the focus to the next stop in drawing order (a list on
 // its first row), before the first row to the previous stop (a list on its
 // last row); other stops land as a focus jump does. It reports false, and
@@ -189,7 +196,7 @@ func (l *List) Move(delta int) {
 // never wrap.
 func (l *List) spill(delta int) bool {
 	inside := l.selected >= 0 && l.selected+delta >= 0 && l.selected+delta < len(l.items)
-	if delta == 0 || inside || l.noSpill || !l.Focused() {
+	if delta == 0 || inside || l.noSpill || l.visual || !l.Focused() {
 		return false
 	}
 	root := l.r.focusRoot()
@@ -242,6 +249,7 @@ func (l *List) selectID(id string) {
 	}
 	if i >= 0 {
 		l.selected = i
+		l.syncVisual()
 	}
 }
 
@@ -254,11 +262,16 @@ func (l *List) ToggleMark(id string) error {
 	if !slices.ContainsFunc(l.all, func(item ListItem) bool { return item.ID == id }) {
 		return fmt.Errorf("unknown list item %q", id)
 	}
-	if l.marks[id] {
-		delete(l.marks, id)
-	} else {
-		l.marks[id] = true
+	marks := l.marks
+	if l.visual {
+		marks = l.base // the range is drawn over the marks; space edits the marks beneath it
 	}
+	if marks[id] {
+		delete(marks, id)
+	} else {
+		marks[id] = true
+	}
+	l.syncVisual()
 	return nil
 }
 
@@ -351,6 +364,9 @@ func (l *List) state() map[string]any {
 		if len(l.colWidths) > 0 {
 			out["columnWidths"] = maps.Clone(l.colWidths)
 		}
+	}
+	if l.visual {
+		out["visual"] = true
 	}
 	return out
 }
@@ -593,34 +609,8 @@ func registerLists(r *Runtime) {
 			}
 			return l.state(), l.ToggleMark(id)
 		}},
-		{"apply", "Run <row noun>.verb for every marked row the filter shows (the selected row when none is), skipping and reporting rows whose noun lacks the verb", map[string]Parameter{"id": {Type: "string"}, "verb": {Type: "string", Required: true}}, func(l *List, c Context, a Arguments) (any, error) {
-			// Only the marked rows the filter shows: a mark on a hidden row
-			// waits for the filter to clear.
-			rows := l.markedShown()
-			if len(rows) == 0 {
-				if selected, ok := l.Selected(); ok {
-					rows = []ListItem{selected}
-				}
-			}
-			verb := StringArg(a, "verb", "")
-			applied, skipped := []string{}, []string{}
-			var failure error
-			for _, row := range rows {
-				q := Request{Verb: verb, Noun: row.Noun, Target: row.ID}
-				if _, ok := r.Operations[q.Key()]; !ok {
-					skipped = append(skipped, row.ID+": "+q.Key()+" is not registered")
-					continue
-				}
-				if _, err := r.Execute(q); err != nil {
-					skipped = append(skipped, row.ID+": "+err.Error())
-					if failure == nil {
-						failure = err
-					}
-					continue
-				}
-				applied = append(applied, row.ID)
-			}
-			return map[string]any{"verb": verb, "applied": applied, "skipped": skipped}, failure
+		{"apply", "Run <row noun>.verb for every marked row the filter shows (the selected row when none is), skipping and reporting rows whose noun lacks the verb; a verb with a confirm asks once for all the rows; ends a visual selection (V)", map[string]Parameter{"id": {Type: "string"}, "verb": {Type: "string", Required: true}, "args": {Type: "object", Description: "Arguments every row's request carries"}, "confirmed": {Type: "boolean", Description: "The rows' confirm was answered (the confirm modal sets it)"}}, func(l *List, c Context, a Arguments) (any, error) {
+			return l.apply(c, a)
 		}},
 	} {
 		r.Register(Operation{Verb: spec.verb, Noun: "list", Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
@@ -637,5 +627,6 @@ func registerLists(r *Runtime) {
 	r.Nouns["list"].Guards["mark"] = "list-marks"
 	registerListMotions(r)
 	registerTableCells(r)
+	registerListVisual(r)
 	registerListFilter(r)
 }
