@@ -271,6 +271,7 @@ func (r *Runtime) registerFramework() {
 	registerPages(r)
 	registerLists(r)
 	registerTrees(r)
+	registerTimelines(r)
 	registerForms(r)
 	RegisterInputOperations(r)
 	registerCompletion(r)
