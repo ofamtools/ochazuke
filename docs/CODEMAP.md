@@ -770,7 +770,7 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/story.go
 
-- lines: 547
+- lines: 537
 - purpose: Story is one scenario file.
 - types: Story, Page, ChooserSpec, ChooserRowSpec, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, MarkdownSpec, CommandsSpec, CatalogSpec, InputSpec, CompletionSpec, TermSpec, JobSpec, BindSpec, Event, Expect, Expects
 - methods: Event(3), Expects(2), Story(5)

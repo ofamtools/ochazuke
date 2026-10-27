@@ -14,8 +14,6 @@ o-story                      # index of stories by area; enter opens one
 o-story run [NAME|AREA...]   # headless; non-zero exit on failure
 o-story run --update --dir cmd/o-story/stories   # rewrite goldens on disk
 o-story list | history | keep N NAME | replay REF | trim REF ... | verbs
-o-story matrix [--component C] [--json]     # the coverage cells per component
-o-story coverage [--component C] [--json]   # cells covered by the stories' covers
 o story ...                  # the same, through the oden family root
 ```
 
@@ -46,7 +44,6 @@ it to the timer's deadline and delivers the timer's message
   width: 80, height: 24,          // the story's area; default 80x24
   chrome: "full",                 // "full" | "none" (page body only) | "ticker-only"
   skip: "gap: ...",               // optional: a known framework gap; runs, cannot fail
-  covers: ["lists/list.move(delta=1)/*"], // optional: the matrix cells it tests (o-story coverage)
   theme: "kombu", accent: "#E8833A", // a theme other than mono, the Appearance accent override
   themes: { kombu: { background: "dark", accent: "#C9A227" } }, // schemes in the themes.json shape;
                                   // one that does not validate is a notice (chrome/scheme-*)
@@ -68,12 +65,9 @@ it to the timer's deadline and delivers the timer's message
     terminal: { fake: true, attach: "a1", height: 6 },
     jobs: [{ verb: "demo.build", key: "w", finishOnKey: "W", failOnKey: "X", quiet: false, start: 0, label: "" }],
     bind: [{ noun: "demo", mode: "normal", keys: "C", do: "notice.clear" }],
-    detail: { lines: 50, width: 0, // a scrollable detail (AddDetail) on the right:
+    detail: { lines: 50, width: 0 }, // a scrollable detail (AddDetail) on the right:
                                      // "detail 1–11 / 50", then "<row> line N" about the
                                      // focused list row (width 0 = half the page)
-              text: ["{item} only line"],      // instead of the generated lines; {item} is the row
-              texts: { a2: [] },               // per row id, before text ([] an empty detail)
-              split: false },                  // through Runtime.PaneLayout: > < = resize it
     markdown: { id: "markdown", text: "- [ ] milk\n", external: "…", height: 0 },
                                      // a markdown.Doc drawn in the page's order (its id in order);
                                      // toggles log "toggle LINE [x] TEXT" (writes); external is
@@ -100,9 +94,7 @@ it to the timer's deadline and delivers the timer's message
   script: ["j", "j", { type: "ping" }, { paste: "text" },
            { job: "demo.build", state: "done" },
            { tick: "linger" },    // tick: linger | binding | terminal | output | debounce
-           { restart: true },     // quit and build the story again (same state directory)
-           { cli: ["detail", "scroll"] }], // cli.Shell on the session's runtime (a CLI call
-                                  // reaching the running app); the cli expect reads its output
+           { restart: true }],    // quit and build the story again (same state directory)
   expect: { focus: "b1", visible: true },
   // or per step: [{ after: 2, focus: "b1" }, { ticker: [] }]  (after N = after the Nth event)
 }
@@ -115,8 +107,7 @@ full-strength reverse video), `dimmed` (rows whose only reverse video is
 under faint: an unfocused page list's selected row, a highlight beneath a
 modal; read in the mono theme), `highlightedText` (text every highlighted row holds), `cell` (the text of a `cellSelect` table's current cell, drawn reverse and underlined; `" "` for a blank one, `""` for none), `contains`, `lacks`, `order` (substrings in this order),
 `ticker`/`noTicker`, `notices`/`noNotices`, `styled` (text → `#RRGGBB`, or `!#RRGGBB`, for the styled run the text starts: cell-exact where `colored` is row-wide), `writes` (every change an
-editable tree wrote, `TreeChange.String`, in order; `[]` none), `cli` (substrings of what
-the last `cli` event printed: stdout, stderr, then `error: …` when it failed). A story with no final expect is
+editable tree wrote, `TreeChange.String`, in order; `[]` none). A story with no final expect is
 compared with `<name>.golden`: the frame in the mono theme, each row behind a
 gutter that reads `R|` when the row has full-strength reverse video, `r|`
 when its only reverse video is dimmed, `C|` (`c|` dimmed) when the
@@ -230,96 +221,6 @@ o-story run --from spill-bug [--expect '{"focus":"b1"}']   # headless; asserts o
 Every chrome or motion rule has a story here; a UI bug is reproduced as a
 story before it is fixed.
 
-## Coverage matrix
-
-What o-story must cover is data, per component, so stories can be written
-and reviewed one component at a time.
-
-- `components.json` (beside this README, embedded in the binary) is the
-  component map: each component's `nouns` (every noun the framework
-  registers belongs to exactly one; `kinds` are modal or row kinds that
-  are nouns only once opened), the operations it claims from its noun's
-  owner (`operations`: tables claims `list.column` from lists), the
-  runtime modes it owns (`modes`: every row in `list_filter` is
-  list-filter's), its story `areas`, its `neighbours` (what it hosts or
-  spills into), the axis values that apply to it (`axes`, a restriction of
-  the global values), impossible combinations (`exclude`, each with its
-  `why`), its channel overrides (`channels`) and hand-written
-  `journeys`. An exclude with a `channel` applies to that channel's
-  actions only and may name one axis (`{"channel": "key", "outcome":
-  "error", "why": …}`: a value no key can reach). The axes, the
-  mapping of runtime modes onto the mode axis
-  (`modes`), the channel map and the global excludes are defined once at
-  the top.
-- The **channel map** (`channels`) says which axes each action channel's
-  cells vary, as data: every channel (key, palette, cli, parity, hosted,
-  spill, hints) names each axis of the order under `keep` (it changes
-  what the channel does) or `drop` (it cannot), each with its reason, and
-  the channel has a `why`. A key action varies every axis its component
-  has; a palette line, a CLI call and a parity check vary only the
-  outcome (they run a request: the CLI draws no screen, the palette runs
-  at the focus it opened over, and the key cells already vary the rest);
-  hosted varies placement and size; spill the neighbour, direction and
-  placement; hints the surface and mode. A component's `channels` moves
-  axes for itself only, each with its reason (`tables` keeps `data` on
-  hosted: its column widths are measured from its cells). An axis named
-  twice, named nowhere, without a why, or an override restating the
-  default, fails the map's tests, and a test pins the key cells to the
-  ones they were before the map (the same ids, every axis).
-  `go test ./internal/storymatrix` fails when a framework noun is mapped
-  to no component or to two, when a mapped noun or claimed operation does
-  not exist, or when a runtime mode has no mode axis value. The noun set
-  comes from `storymatrix.FrameworkRuntime`: `NewRuntime`, `NewModel`,
-  `NewPicker`, `grid.Register`, `markdown.Register`, `cli.AddCommands` and
-  one groups-layout `cli.MountPage` (a test checks the demo and every core
-  story register no builtin noun beyond it).
-- **Actions** are derived, never listed: every stored binding row
-  (`bindings list --all`, all modes) becomes a key action; rows running
-  the same request (operation and arguments) are one action whose keys
-  are its aliases (`list.move(delta=1)` is `j` and `down`). A row belongs
-  to the component owning its mode, else the one claiming its operation,
-  else its table noun's; `app`'s rows (`router`) go to the operation's
-  component (`?` is help's; a `mode.enter` to the component owning the
-  target mode). Every builtin operation is also a `palette:` and a `cli:`
-  action, and one some key reaches is a `parity:` action (key, palette
-  line and CLI agree). Each component adds `~hosted` (drawn in each
-  placement), `~spill` (into each neighbour, both directions), `~hints`
-  (footer and `?` help agree with its rows, per mode) and its journeys.
-- **Cells** are action × axis values. The axes in `axes.full` (to,
-  direction, surface, mode, placement, focus, outcome) are a full product;
-  the rest (data, state, size, modifiers) are added by a deterministic
-  pairwise (IPOG, fixed ordering), so every pair of values of any two
-  axes appears once at least. An action takes only the values that apply
-  to it: its rows' own modes (a sequence adds `pending-prefix`), a
-  `guard-false` outcome only with a row or verb guard, `pending-lands`,
-  `owner-closed` and `stale-result` only for application verbs,
-  `cancelled` only with a confirm or a component that cancels, `count`
-  only for a verb that takes one, `dot-repeat` only when repeatable,
-  `in-macro` and `register` only by key. Cell ids read
-  `COMPONENT/ACTION/axis=value,...` in the axes' order, for example
-  `lists/list.move(delta=1)/mode=normal,placement=page,focus=focused,outcome=success,data=empty,state=plain,size=tiny,modifiers=none`.
-- Sizes, by the story's width: `tiny` below 50 columns, `narrow` 50 to
-  79, `normal` 80 to 119, `wide` 120 and over (the detail stories use
-  40x10, 60x16, 80x24 and 140x30).
-- A story says what it tests with `covers`: cell ids or `path.Match`
-  patterns (`"covers": ["tables/list.column(delta=1)/*", "tables/~hosted"]`);
-  a pattern matching a cell id's leading segments covers every cell under
-  them (`tables/list.yank*` covers all of that action's cells). The runner
-  ignores it.
-
-```sh
-o-story matrix                       # every cell id, one per line, by component
-o-story matrix --component tables --json   # the component's actions (keys, modes, guards) and cells
-o-story coverage                     # per component: cells, covered, missing, stories in its areas, untagged, typos
-o-story coverage --component tables  # the same row, then its untagged stories and missing cells
-```
-
-Both are deterministic: the same tree gives the same bytes. Coverage
-reads the core stories (embedded, or `--dir`); a story's covers count for
-any component, a pattern matching no cell is a typo (listed under the
-summary and in the component whose area holds the story), and the total
-row counts each story once.
-
 ## Catalog
 
 `o-story catalog` answers like every family tool (ochazuke/cli, schema 1):
@@ -363,16 +264,14 @@ Conformance:
 | mode | noun | verbs |
 |---|---|---|
 | count_pending | count | `count.append` |
-| count_pending | mode | `mode.leave` |
 | insert | chooser | `chooser.cancel` `chooser.move` `chooser.pick` |
 | insert | completion | `completion.accept` `completion.dismiss` `completion.move` `completion.open` |
 | insert | form | `form.next` |
 | insert | input | `input.insert` `input.kill` `input.move` |
-| insert | macro | `macro.record` |
 | insert | mode | `mode.set` |
 | insert | modes | `modes.list` |
 | insert | outline | `outline.indent` `outline.leave` |
-| insert | palette | `palette.cancel` `palette.move` `palette.run` |
+| insert | palette | `palette.move` `palette.run` |
 | insert | setting-value | `setting-value.cancel` `setting-value.commit` |
 | insert | settings | `settings.edit` |
 | list_filter | list | `list.filter-choose` `list.filter-clear` `list.filter-erase` `list.filter-keep` `list.filter-type` `list.move` |
@@ -386,7 +285,6 @@ Conformance:
 | normal | form-option | `form-option.pick` |
 | normal | input | `input.begin` `input.undo` |
 | normal | list | `list.apply` `list.column` `list.filter-clear` `list.filter-open` `list.goto` `list.move` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.visual` |
-| normal | macro | `macro.record` `macro.replay` `macro.start` `macro.stop` |
 | normal | markdown | `markdown.redo` `markdown.toggle` `markdown.undo` |
 | normal | modal | `modal.pop` |
 | normal | mode | `mode.enter` |
@@ -410,16 +308,13 @@ Mode edges (from → to via):
 - `count_pending` → `normal` via `list.goto`
 - `count_pending` → `normal` via `list.move`
 - `count_pending` → `normal` via `list.scroll`
-- `count_pending` → `normal` via `mode.leave`
 - `count_pending` → `normal` via `pane.grow`
 - `count_pending` → `normal` via `pane.shrink`
 - `count_pending g` → `normal` via `list.goto`
 - `insert` → `normal` via `chooser.cancel`
 - `insert` → `normal` via `chooser.pick`
-- `insert` → `normal` via `macro.record`
 - `insert` → `normal` via `mode.set`
 - `insert` → `normal` via `outline.leave`
-- `insert` → `normal` via `palette.cancel`
 - `insert` → `normal` via `palette.run`
 - `insert` → `normal` via `row esc`
 - `insert` → `normal` via `setting-value.cancel`
@@ -430,11 +325,9 @@ Mode edges (from → to via):
 - `list_filter` → `normal` via `list.filter-choose`
 - `list_filter` → `normal` via `list.filter-clear`
 - `list_filter` → `normal` via `list.filter-keep`
-- `macro_pending` → `normal` via `macro.start`
 - `normal` → `count_pending` via `mode.enter`
 - `normal` → `insert` via `form.suggest`
 - `normal` → `insert` via `input.begin`
-- `normal` → `insert` via `macro.record`
 - `normal` → `insert` via `outline.add`
 - `normal` → `insert` via `outline.edit`
 - `normal` → `insert` via `page.pick`
@@ -445,11 +338,9 @@ Mode edges (from → to via):
 - `normal` → `insert` via `setting.edit`
 - `normal` → `insert` via `settings.close`
 - `normal` → `list_filter` via `list.filter-open`
-- `normal` → `macro_pending` via `mode.enter`
 - `normal` → `normal d` via `row d`
 - `normal` → `normal g` via `row g`
 - `normal` → `normal z` via `row z`
-- `normal` → `replay_pending` via `mode.enter`
 - `normal` → `terminal` via `command.run`
 - `normal` → `terminal` via `demo.open`
 - `normal d` → `normal` via `outline.delete`
@@ -458,7 +349,6 @@ Mode edges (from → to via):
 - `normal z` → `normal` via `list.reset-columns`
 - `normal z` → `normal` via `list.resize-column`
 - `normal z` → `normal` via `list.scroll-columns`
-- `replay_pending` → `normal` via `macro.replay`
 - `terminal` → `leader_pending` via `mode.enter`
 
 <!-- verbs:end -->

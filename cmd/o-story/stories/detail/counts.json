@@ -1,7 +1,6 @@
 {
   "name": "detail: counts scroll many lines (10J, 3K)",
   "area": "detail",
-  "covers": ["detail/~hosted/placement=page,size=narrow"],
   "width": 60,
   "height": 12,
   "chrome": "none",

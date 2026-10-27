@@ -41,9 +41,7 @@ type Session struct {
 	records map[string]*ochazuke.RecordEditor
 	// Writes is the log of every change an editable tree, record editor or
 	// Markdown document wrote.
-	Writes []string
-	// CLIOut is what the last cli event printed.
-	CLIOut  string
+	Writes  []string
 	inputs  map[string]*ochazuke.Input
 	details map[string]*ochazuke.Detail
 	docs    map[string]*markdown.Doc // the page's Markdown document by page id
@@ -733,25 +731,11 @@ func (ss *Session) render(p *Page, width, height int) ochazuke.Block {
 		dw = width / 2
 	}
 	dw = min(max(1, dw), max(1, width-2))
-	if p.Detail.Split {
-		layout := ss.R.PaneLayout(p.ID, ochazuke.Layout{})
-		dw = width - 1 - layout.Divide(width-dw-1, width-1, ochazuke.PaneMinWidth)
-	}
 	main := ss.renderMain(p, width-dw-1, height)
 	item := ss.detailItem(p)
 	lines := make([]string, p.Detail.Lines)
 	for i := range lines {
 		lines[i] = fmt.Sprintf("%s line %d", item, i+1)
-	}
-	text, ok := p.Detail.Texts[item]
-	if !ok {
-		text = p.Detail.Text
-	}
-	if text != nil {
-		lines = lines[:0]
-		for _, line := range text {
-			lines = append(lines, strings.ReplaceAll(line, "{item}", item))
-		}
 	}
 	body, marker := d.Window(strings.Join(lines, "\n"), dw, max(1, height-1))
 	head := "detail"
