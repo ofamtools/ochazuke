@@ -255,8 +255,13 @@ func (r *Runtime) placementOf(id, noun string) NounPlace {
 }
 
 // record counts one sighting of at, dropping the least recently seen
-// placement past NounPlaceLimit.
+// placement past NounPlaceLimit. The ? help's own instances are not
+// places: its list is made again for every view, so they would outweigh
+// the places the help describes (and default its place for list).
 func (p *placements) record(at NounPlace, now time.Time) {
+	if at.Modal == helpID {
+		return
+	}
 	key := at.key()
 	if old := p.byKey[key]; old != nil {
 		old.Count++

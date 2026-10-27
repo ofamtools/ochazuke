@@ -64,7 +64,7 @@ func TestNounRowsMatchTheLiveWalk(t *testing.T) {
 		if err := list.Focus(); err != nil {
 			t.Fatal(err)
 		}
-		sameAnswers(t, r, r.levelRows(r.Focus), r.nounRows("list", r.Mode), "list", "app")
+		sameAnswers(t, r, r.levelRows(r.Focus), r.nounRows(NounPlace{Noun: "list"}, r.Mode), "list", "app")
 	})
 	t.Run("input", func(t *testing.T) {
 		r := NewRuntime()
@@ -78,7 +78,7 @@ func TestNounRowsMatchTheLiveWalk(t *testing.T) {
 		if r.Mode.Name != "insert" {
 			t.Fatalf("prompt focus in %q", r.Mode.Name)
 		}
-		hypo := r.nounRows("prompt", r.Mode)
+		hypo := r.nounRows(NounPlace{Noun: "prompt"}, r.Mode)
 		if !slices.ContainsFunc(hypo, func(h levelRow) bool { return h.level == "editor" && h.guard == "" }) {
 			t.Fatal("no editor fallback rows for an input noun")
 		}
@@ -86,7 +86,7 @@ func TestNounRowsMatchTheLiveWalk(t *testing.T) {
 		if err := r.SetMode("normal"); err != nil {
 			t.Fatal(err)
 		}
-		sameAnswers(t, r, r.levelRows(r.Focus), r.nounRows("prompt", r.Mode), "prompt", "app", "editor")
+		sameAnswers(t, r, r.levelRows(r.Focus), r.nounRows(NounPlace{Noun: "prompt"}, r.Mode), "prompt", "app", "editor")
 	})
 	t.Run("terminal", func(t *testing.T) {
 		r, _, _ := terminalFixture(t)
@@ -94,7 +94,7 @@ func TestNounRowsMatchTheLiveWalk(t *testing.T) {
 		if r.Mode.Name != "terminal" {
 			t.Fatalf("terminal focus in %q", r.Mode.Name)
 		}
-		hypo := r.nounRows("terminal", r.Mode)
+		hypo := r.nounRows(NounPlace{Noun: "terminal"}, r.Mode)
 		if slices.ContainsFunc(hypo, func(h levelRow) bool { return h.Capture }) {
 			t.Fatal("a passthrough mode has no capture pass")
 		}
@@ -133,7 +133,7 @@ func TestNounHelpMarksGuardedRows(t *testing.T) {
 func TestNounRowsExclusivePendingMode(t *testing.T) {
 	r := NewRuntime()
 	NewModel(r)
-	rows := r.nounRows("app", ModeState{Name: "count_pending"})
+	rows := r.nounRows(NounPlace{Noun: "app"}, ModeState{Name: "count_pending"})
 	if len(rows) == 0 {
 		t.Fatal("count_pending answers nothing")
 	}
@@ -145,7 +145,7 @@ func TestNounRowsExclusivePendingMode(t *testing.T) {
 	if !slices.ContainsFunc(rows, func(row levelRow) bool { return strings.HasPrefix(row.Pattern, Digit) }) {
 		t.Fatal("count_pending has no digit class row")
 	}
-	if !slices.ContainsFunc(r.nounRows("app", ModeState{Name: "normal"}), func(row levelRow) bool { return row.Keys == "ctrl+space" }) {
+	if !slices.ContainsFunc(r.nounRows(NounPlace{Noun: "app"}, ModeState{Name: "normal"}), func(row levelRow) bool { return row.Keys == "ctrl+space" }) {
 		t.Fatal("normal lost its any-mode rows")
 	}
 }
@@ -156,7 +156,7 @@ func TestNounRowsExclusivePendingMode(t *testing.T) {
 func TestHelpTableColumns(t *testing.T) {
 	r := NewRuntime()
 	NewModel(r)
-	modes, keys := r.HelpTable("list", false)
+	modes, keys := r.HelpTable(NounPlace{Noun: "list"}, false)
 	if !slices.Contains(modes, "normal") || !slices.Contains(modes, ListFilterMode) || slices.Contains(modes, "insert") || slices.Contains(modes, "terminal") {
 		t.Fatalf("list modes: %v", modes)
 	}
@@ -191,7 +191,7 @@ func TestHelpTableColumns(t *testing.T) {
 	if own := items[0].Data.(HelpKey); own.Modes[0].Rows[0].Noun == "app" {
 		t.Errorf("the noun's keys do not come first: %+v", own)
 	}
-	pending, _ := r.HelpTable("app", true)
+	pending, _ := r.HelpTable(NounPlace{Noun: "app"}, true)
 	if !slices.Contains(pending, "count_pending") || slices.Contains(pending, "macro_recording") {
 		t.Fatalf("pending columns: %v", pending)
 	}
@@ -202,10 +202,10 @@ func TestHelpTableColumns(t *testing.T) {
 		}
 		return out
 	}
-	if plain := names(r.HelpModes("list", false)); slices.Contains(plain, "count_pending") || slices.Contains(plain, "normal g") {
+	if plain := names(r.HelpModes(NounPlace{Noun: "list"}, false)); slices.Contains(plain, "count_pending") || slices.Contains(plain, "normal g") {
 		t.Fatalf("pick modes without the setting: %v", plain)
 	}
-	if all := names(r.HelpModes("list", true)); !slices.Contains(all, "count_pending") || !slices.Contains(all, "normal g") {
+	if all := names(r.HelpModes(NounPlace{Noun: "list"}, true)); !slices.Contains(all, "count_pending") || !slices.Contains(all, "normal g") {
 		t.Fatalf("pick modes with the setting: %v", all)
 	}
 	if rows := NounHelp(r, "list", ModeState{Name: "normal g", Payload: Payload{Prefix: "g"}}); !slices.ContainsFunc(rows, func(h HelpRow) bool { return h.Key == "g g" }) || slices.ContainsFunc(rows, func(h HelpRow) bool { return h.Key == "j" }) {

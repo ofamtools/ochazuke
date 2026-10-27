@@ -620,38 +620,59 @@ func (r *Runtime) scanRows(levels []level, mode ModeState, focus string, editing
 	return out
 }
 
-// nounWalk is the walk a focus on noun would have in mode, with no
-// instance: the noun's tables, then app (its instance's rows and its
-// noun's), then the editor fallback when noun is an input noun
-// (inputNoun), with the capture pass as walk has it (none in a
-// passthrough mode; a pending mode is passthrough when the noun pins
-// one, as leader_pending over a terminal is). The levels a live focus
-// has between its noun and app (its list, its page) and a modal's are
-// not part of it.
-func (r *Runtime) nounWalk(noun string, mode ModeState) []level {
+// nounWalk is the walk a focus on place's noun would have in mode, with
+// no instance: built from the place's chain innermost first as stack
+// orders a live focus's levels: the noun's tables, then each ancestor
+// noun's (the list, the panel, the page), then the modal noun when the
+// place is inside a modal, then app (its instance's rows and its noun's),
+// then the editor fallback when a noun on the chain is an input noun
+// (inputNoun), with the capture pass as walk has it (none in a passthrough
+// mode; a pending mode is passthrough when the noun pins one, as
+// leader_pending over a terminal is). A hypothetical level holds only
+// noun tables: the rows a live instance carries of its own are not part
+// of it. NounPlace{Noun: noun} is no place: the noun, app, the editor.
+func (r *Runtime) nounWalk(place NounPlace, mode ModeState) []level {
+	chain := place.Chain()
 	var inner []level
-	if n := r.Nouns[noun]; n != nil && noun != "editor" && noun != "app" {
-		inner = append(inner, level{noun: n})
+	for i := len(chain) - 1; i >= 0; i-- {
+		name := chain[i]
+		if name == "editor" || name == "app" {
+			continue // the editor table is the shared fallback below
+		}
+		if n := r.Nouns[name]; n != nil {
+			inner = append(inner, level{noun: n})
+		}
+	}
+	if place.Modal != "" {
+		if n := r.Nouns["modal"]; n != nil {
+			inner = append(inner, level{noun: n})
+		}
 	}
 	inner = append(inner, level{inst: r.Instances["app"], noun: r.Nouns["app"]})
-	if editor := r.Nouns["editor"]; editor != nil && r.inputNoun(noun) {
+	if editor := r.Nouns["editor"]; editor != nil && r.placeEditing(place) {
 		inner = append(inner, level{noun: editor})
 	}
 	base, _ := baseAndPrefix(mode)
 	passthrough := r.passthroughModes[base]
 	if r.pendingModes[base] {
-		if n := r.Nouns[noun]; n != nil {
+		if n := r.Nouns[place.Noun]; n != nil {
 			passthrough = r.passthroughModes[n.Pin]
 		}
 	}
 	return r.walkOf(inner, passthrough)
 }
 
-// nounRows is levelRows for a hypothetical focus on noun in mode
+// placeEditing reports whether an input is on the place's chain, so the
+// editor noun is the walk's fallback (stack's editing).
+func (r *Runtime) placeEditing(place NounPlace) bool {
+	return slices.ContainsFunc(place.Chain(), r.inputNoun)
+}
+
+// nounRows is levelRows for a hypothetical focus on place's noun in mode
 // (nounWalk): what the keys would run there, guarded rows kept and
 // marked with their guard.
-func (r *Runtime) nounRows(noun string, mode ModeState) []levelRow {
-	return r.scanRows(r.nounWalk(noun, mode), mode, "", r.inputNoun(noun))
+func (r *Runtime) nounRows(place NounPlace, mode ModeState) []levelRow {
+	return r.scanRows(r.nounWalk(place, mode), mode, "", r.placeEditing(place))
 }
 
 // answersEveryKey reports whether a level's rows include an unguarded any

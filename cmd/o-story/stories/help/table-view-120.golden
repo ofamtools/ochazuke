@@ -5,7 +5,7 @@
 r|  a1
  |  a2        ╭──────────────────────────────────────────────────────────────────────────────────────────────╮
  |            │ Keys · table                                                                                 │
- |            │ noun: list · .verb is list.verb · (op) answered by app · op? guarded                         │
+ |            │ noun: list · place: page1 › demo · .verb is list.verb · (op) answered by app · op? guarded   │
  |            │ key         normal          list_filter      visual          visual-block     visual-line    │
  |            │ $           .column?                                                                         │
 R|            │ 0           .column?                                                                         │
@@ -23,18 +23,18 @@ R|            │ 0           .column?                                          
  |            │ ctrl+u      .scroll         .filter                                                          │
  |            │ down        .move           .move                                                            │
  |            │ end         .column?                                                                         │
- |            │ enter                       .filter-choose?                                                  │
+ |            │ enter       demo.open       .filter-choose?                                                  │
  |            │ esc         .end-visual?    .filter-clear?                                                   │
  |            │ g c         .choose-colum…                                                                   │
  |            │ g g         .goto                                                                            │
- |            │ 1–20 / 65                                                                                    │
+ |            │ 1–20 / 68                                                                                    │
  |            │ ──────────────────────────────────────────────────────────────────────────────────────────── │
  |            │ normal  list.column {"to":"first"} when no-count · list                                      │
  |            │         then list.scroll-columns {"to":"first"} when row-table-no-count · list               │
- |            │ space list.mark · S view · n noun · esc modal.pop · : palette.open · ? bindings.help · / fi… │
+ |            │ space list.mark · S view · n noun · p place · esc modal.pop · : palette.open · ? bindings.h… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  space list.mark · S view · n noun · esc modal.pop · : palette.open · ? bindings.help · / filter
+ |  space list.mark · S view · n noun · p place · esc modal.pop · : palette.open · ? bindings.help · / filter
  |

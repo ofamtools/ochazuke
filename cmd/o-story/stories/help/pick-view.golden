@@ -5,7 +5,7 @@
 r|  a1
  |  a2        ╭──────────────────────────────────────────────────────────────────────────────────────────────╮
  |            │ Keys · pick                                                                                  │
- |            │ noun: prompt · mode: insert                                                                  │
+ |            │ noun: prompt · mode: insert · place: none                                                    │
  |            │ key         operation           arguments               description                          │
  |            │ app                                                                                          │
 R|            │ ctrl+c      app.quit ?                                  when no-modal · Exit the application │

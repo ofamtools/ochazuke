@@ -601,7 +601,15 @@ func BindingHelp(r *Runtime, focus string) []HelpRow {
 // arguments a row takes from the key, the payload or the row read as
 // "$source".
 func NounHelp(r *Runtime, noun string, mode ModeState) []HelpRow {
-	return r.helpRows(groupLevelRows(r.nounRows(noun, mode)), sourceArgs, "")
+	return PlaceHelp(r, NounPlace{Noun: noun}, mode)
+}
+
+// PlaceHelp is NounHelp with a parent chain: the hypothetical focus on
+// place's noun has the levels the place recorded between it and app (its
+// list, its page; the modal noun inside a modal), each answering with its
+// noun's tables, so a list row's keys from its list and page are there.
+func PlaceHelp(r *Runtime, place NounPlace, mode ModeState) []HelpRow {
+	return r.helpRows(groupLevelRows(r.nounRows(place, mode)), sourceArgs, "")
 }
 
 // helpRows is the help rows of grouped level rows; focus "" is a
