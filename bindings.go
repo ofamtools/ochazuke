@@ -14,6 +14,7 @@ const DefaultBindingTimeout = 1000 * time.Millisecond
 type BindingTimeoutMsg struct {
 	runtime *Runtime
 	version uint64
+	due     bool // BindingTimeoutTick: the host's fake clock passed the deadline
 }
 
 // CancelPendingBinding leaves a key-sequence prefix mode without running its
@@ -50,6 +51,18 @@ func (r *Runtime) BindingTimeoutCommand() tea.Cmd {
 	}
 }
 
+// BindingTimeoutTick is the sequence timer in flight as the message its
+// command delivers at the deadline, already due: a host with a fake clock
+// (explore) delivers it at once instead of waiting BindingTimeout, as
+// Model.JobLingerTick does for the linger timer. False when no sequence
+// waits on a deadline (none pending, or the leader with no timeout).
+func (r *Runtime) BindingTimeoutTick() (BindingTimeoutMsg, bool) {
+	if !r.prefixStillPending() || r.prefix.forever {
+		return BindingTimeoutMsg{}, false
+	}
+	return BindingTimeoutMsg{runtime: r, version: r.bindingVersion, due: true}, true
+}
+
 // HandleBindingTimeout executes the longest completed match, or clears an
 // incomplete prefix. Its result is false for a stale or cancelled timer.
 func (r *Runtime) HandleBindingTimeout(msg BindingTimeoutMsg) (bool, error) {
@@ -60,7 +73,7 @@ func (r *Runtime) HandleBindingTimeout(msg BindingTimeoutMsg) (bool, error) {
 		r.CancelPendingBinding()
 		return false, nil
 	}
-	if r.prefix.forever || time.Now().Before(r.prefix.deadline) {
+	if r.prefix.forever || !msg.due && time.Now().Before(r.prefix.deadline) {
 		return false, nil
 	}
 	_, err := r.finishPrefix()

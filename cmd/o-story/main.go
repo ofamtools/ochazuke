@@ -11,6 +11,7 @@
 //	o-story replay REF
 //	o-story trim REF [--from I] [--to J] [--at K] [--as NAME] [--snapshot]
 //	o-story verbs
+//	o-story explore [NAME|AREA...] [--dir DIR] [--depth N] [--steps N] [--out DIR] [--compare-full]
 //	o-story catalog                 the nouns (story, recording, verb, edge) as JSON
 //	o-story NOUN VERB [--target ID] story list|show|run|state, recording list|show, verb list, edge list
 //
@@ -73,6 +74,7 @@ func (t *Tool) Main(args []string) error {
 		oden.Command{Name: "keep", Summary: "keep N NAME: move history entry N to saved/NAME.json", Run: func(_ context.Context, a []string) error { return t.Keep(a) }},
 		oden.Command{Name: "replay", Summary: "replay REF live in the TUI with the recorded timing", Run: func(_ context.Context, a []string) error { return t.Replay(a) }},
 		oden.Command{Name: "trim", Summary: "trim REF: write a story of a window of the recording's events", Run: func(_ context.Context, a []string) error { return t.Trim(a) }},
+		oden.Command{Name: "explore", Summary: "explore every story-built application key by key and report bad states (explore.Run); --out writes gap stories", Run: func(_ context.Context, a []string) error { return t.Explore(a) }},
 		oden.Command{Name: "verbs", Summary: "the noun.verb set the core stories' scripts resolve to, by noun", Run: func(_ context.Context, a []string) error { return t.Verbs(a) }},
 	)
 	ocli.Mount(app, t.shell())

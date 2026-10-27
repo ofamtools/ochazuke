@@ -846,6 +846,13 @@ func (e *RecordEditor) HandleMessage(msg tea.Msg) bool {
 	return true
 }
 
+// DebounceTick is the pause timer in flight, for a host that delivers it
+// at once (explore): false when no change waits on one.
+func (e *RecordEditor) DebounceTick() (RecordDebounceMsg, bool) {
+	msg := RecordDebounceMsg{Editor: e.id, Seq: e.seq}
+	return msg, e.DebounceCurrent(msg)
+}
+
 // DebounceCurrent reports whether a pause timer is for the latest change.
 func (e *RecordEditor) DebounceCurrent(tick RecordDebounceMsg) bool {
 	return tick.Editor == e.id && tick.Seq == e.seq && !e.closed

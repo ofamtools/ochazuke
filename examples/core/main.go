@@ -5,7 +5,9 @@ import (
 	"github.com/unixsuperhero/ochazuke"
 )
 
-func main() {
+// newRuntime builds the example's tree: two inputs under nested instances,
+// the focus on the first.
+func newRuntime() *ochazuke.Runtime {
 	r := ochazuke.NewRuntime()
 	r.Instance("panes")
 	r.Instance("agent", ochazuke.Parent("panes"))
@@ -14,6 +16,11 @@ func main() {
 	must(r.AddInput(ochazuke.NewInput("directory", "/tmp", false), ochazuke.Parent("field")))
 	must(r.AddInput(ochazuke.NewInput("picker", "/home", false), ochazuke.Parent("dialog")))
 	must(r.SetFocus("directory"))
+	return r
+}
+
+func main() {
+	r := newRuntime()
 	exec := func(q ochazuke.Request) any { v, e := r.Execute(q); must(e); return v }
 	exec(ochazuke.Request{Verb: "insert", Noun: "input", Args: ochazuke.Arguments{"text": "x"}})
 	exec(ochazuke.Request{Verb: "push", Noun: "modal", Args: ochazuke.Arguments{"id": "picker", "input": "picker"}})
