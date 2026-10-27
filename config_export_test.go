@@ -439,3 +439,67 @@ func TestConfigExportReadmeExplainsEachFile(t *testing.T) {
 		t.Fatalf("described placeholders %v, the checker knows %v", listed, actionPlaceholders)
 	}
 }
+
+// The reference prints each row's fields as mode, noun or instance,
+// request (verb before noun), keys or pattern, then the rest, and its rows
+// in SortBindings order; copied in as the user bindings.json it loads
+// without a problem and leaves every stored row as it was.
+func TestConfigExportReferenceOrderAndLoadAsUserBindings(t *testing.T) {
+	r, dir := exportFixture(t)
+	out := t.TempDir()
+	if _, err := r.ExportConfig(out, false); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(out, BindingsReferenceFile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var raw []json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range raw {
+		text := string(row)
+		at := func(field string) int { return strings.Index(text, `"`+field+`":`) }
+		request := at("request")
+		owner := at("instance")
+		if n := at("noun"); n >= 0 && n < request {
+			owner = n
+		}
+		keys := at("keys")
+		if keys < 0 {
+			keys = at("pattern")
+		}
+		verb := strings.Index(text[request:], `"verb":`)
+		noun := strings.Index(text[request:], `"noun":`)
+		if at("mode") > owner || owner < 0 || owner > request || keys < request || verb > noun {
+			t.Fatalf("row fields out of order:\n%s", text)
+		}
+	}
+	var rows []Binding
+	if err := json.Unmarshal(data, &rows); err != nil {
+		t.Fatal(err)
+	}
+	sorted := slices.Clone(rows)
+	SortBindings(sorted)
+	for i := range rows {
+		if canonical(t, rows[i]) != canonical(t, sorted[i]) {
+			t.Fatalf("row %d out of SortBindings order: %s", i, canonical(t, rows[i]))
+		}
+	}
+	stored := func() []string {
+		var out []string
+		for _, row := range r.allBindings() {
+			out = append(out, canonical(t, row))
+		}
+		return out
+	}
+	before := stored()
+	writeConfig(t, dir, BindingsFile, string(data))
+	if problems := r.ReloadUserBindings(); len(problems) > 0 {
+		t.Fatalf("the reference as bindings.json: %v", problems)
+	}
+	if after := stored(); !slices.Equal(after, before) {
+		t.Fatalf("stored rows changed after loading the reference as bindings.json")
+	}
+}

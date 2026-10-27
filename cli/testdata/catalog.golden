@@ -158,22 +158,22 @@
   ],
   "bindings": [
     {
-      "noun": "widget",
       "mode": "normal",
-      "keys": "enter",
+      "noun": "widget",
       "request": {
         "verb": "show",
         "noun": "widget"
-      }
+      },
+      "keys": "enter"
     },
     {
-      "noun": "widget",
       "mode": "normal",
-      "keys": "x",
+      "noun": "widget",
       "request": {
         "verb": "remove",
         "noun": "widget"
-      }
+      },
+      "keys": "x"
     }
   ],
   "pages": [

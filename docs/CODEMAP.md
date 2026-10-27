@@ -259,7 +259,7 @@ Root package `ochazuke` is flat: 69 source files, 70 test files. Each entry list
 
 ### noun.go
 
-- lines: 1140 · tests: noun_test.go
+- lines: 1142 · tests: noun_test.go
 - purpose: Noun is the behaviour shared by every instance of one kind: the verbs it answers to, its key bindings per mode, the action handlers that override an operatio...
 - types: Noun, Binding, NounBuilder, ModeBuilder, Guard (func)
 - methods: Binding(11), ModeBuilder(7), Noun(1), NounBuilder(18), Runtime(13)
@@ -410,11 +410,12 @@ Root package `ochazuke` is flat: 69 source files, 70 test files. Each entry list
 
 ### resolve.go
 
-- lines: 866 · tests: resolve_test.go
+- lines: 909 · tests: resolve_test.go
 - purpose: KeyEvent is what a row receives: the key, the mode it was resolved in and the focused instance.
 - types: KeyEvent
 - methods: Binding(1), Runtime(27), level(1)
-- leans on: runtime.go(89), noun.go(58), instance.go(41), delivery.go(11)
+- funcs: SortBindings
+- leans on: runtime.go(96), noun.go(62), instance.go(42), delivery.go(11)
 
 ### runtime.go
 

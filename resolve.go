@@ -507,7 +507,50 @@ func (r *Runtime) allBindings() []Binding {
 			out = append(out, row)
 		}
 	}
+	SortBindings(out)
 	return out
+}
+
+// SortBindings orders rows the way the full export (bindings.list --all,
+// bindings.reference.json) prints them: by mode (the any-mode rows, mode
+// "", first), then by noun, a noun's rows before an instance's of the same
+// name, then by the request's verb (a row with no verb, an unbind, after
+// every verb), then by keys, a pattern row after the key rows; stable, so
+// rows equal on all of these keep their stored order.
+func SortBindings(rows []Binding) {
+	owner := func(b Binding) (string, bool) {
+		if b.Noun != "" {
+			return b.Noun, false
+		}
+		return b.Instance, true
+	}
+	sort.SliceStable(rows, func(i, j int) bool {
+		a, b := rows[i], rows[j]
+		if a.Mode != b.Mode {
+			return a.Mode < b.Mode
+		}
+		an, ai := owner(a)
+		bn, bi := owner(b)
+		if an != bn {
+			return an < bn
+		}
+		if ai != bi {
+			return !ai
+		}
+		if (a.Request.Verb == "") != (b.Request.Verb == "") {
+			return a.Request.Verb != ""
+		}
+		if a.Request.Verb != b.Request.Verb {
+			return a.Request.Verb < b.Request.Verb
+		}
+		if (a.Keys == "") != (b.Keys == "") {
+			return a.Keys != ""
+		}
+		if a.Keys != b.Keys {
+			return a.Keys < b.Keys
+		}
+		return a.Pattern < b.Pattern
+	})
 }
 
 // bindingRows collects the rows the focus answers to in its current mode in

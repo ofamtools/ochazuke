@@ -77,12 +77,14 @@ func (n *Noun) tables(mode string) [][]Binding {
 // Execute (macro.record, terminal.paste under the leader); a condition is a
 // named guard. TestBindingRowsAreAtomic pins this for every table.
 type Binding struct {
+	// The field order is the JSON's: mode, the noun or instance, the
+	// request (verb before noun), the keys or pattern, then the rest.
+	Mode     string            `json:"mode,omitempty"`
 	Noun     string            `json:"noun,omitempty"`
 	Instance string            `json:"instance,omitempty"`
-	Mode     string            `json:"mode,omitempty"`
+	Request  Request           `json:"request"`
 	Keys     string            `json:"keys,omitempty"`
 	Pattern  string            `json:"pattern,omitempty"`
-	Request  Request           `json:"request"`
 	From     map[string]string `json:"from,omitempty"`
 	When     string            `json:"when,omitempty"`
 	Unbind   bool              `json:"unbind,omitempty"`

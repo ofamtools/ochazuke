@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -232,5 +233,46 @@ func TestGuardedOffRowFallsThrough(t *testing.T) {
 	}
 	if _, err := r.Execute(Request{Verb: "inner", Noun: "test"}); err == nil {
 		t.Fatal("a direct call still gets the refusal")
+	}
+}
+
+// SortBindings orders the full export: mode, then noun (a noun's rows
+// before an instance's of that name), then the request's verb (no verb
+// last), then keys (pattern rows after key rows); equal rows keep order.
+func TestSortBindingsOrdersModeNounVerbKeys(t *testing.T) {
+	row := func(mode, noun, instance, verb, keys, pattern, when string) Binding {
+		return Binding{Mode: mode, Noun: noun, Instance: instance, Request: Request{Verb: verb, Noun: "x"}, Keys: keys, Pattern: pattern, When: when}
+	}
+	rows := []Binding{
+		row("normal", "list", "", "move", "j", "", ""),
+		row("insert", "editor", "", "type", "", "printable", ""),
+		row("normal", "app", "", "quit", "q", "", ""),
+		row("normal", "", "app", "beta", "b", "", ""),
+		row("normal", "app", "", "", "z", "", ""),
+		row("normal", "app", "", "alpha", "", "digit", ""),
+		row("normal", "app", "", "alpha", "b", "", "second"),
+		row("normal", "app", "", "alpha", "b", "", "first"),
+		row("", "app", "", "zap", "a", "", ""),
+		row("insert", "editor", "", "type", "a", "", ""),
+	}
+	SortBindings(rows)
+	var got []string
+	for _, b := range rows {
+		got = append(got, strings.Join([]string{b.Mode, b.Noun, b.Instance, b.Request.Verb, b.Keys, b.Pattern, b.When}, "|"))
+	}
+	want := []string{
+		"|app||zap|a||",
+		"insert|editor||type|a||",
+		"insert|editor||type||printable|",
+		"normal|app||alpha|b||second",
+		"normal|app||alpha|b||first",
+		"normal|app||alpha||digit|",
+		"normal|app||quit|q||",
+		"normal|app|||z||",
+		"normal||app|beta|b||",
+		"normal|list||move|j||",
+	}
+	if !slices.Equal(got, want) {
+		t.Fatalf("order\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
 	}
 }
