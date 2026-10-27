@@ -51,8 +51,14 @@ func (lv level) name() string {
 // passthrough mode (DefinePassthrough: the terminal) there is no capture
 // pass, so the mode's rows see every key, ctrl+c included.
 func (r *Runtime) walk(focus string) []level {
-	inner := r.stack(focus)
-	if r.passthroughModes[r.BaseMode()] {
+	return r.walkOf(r.stack(focus), r.passthroughModes[r.BaseMode()])
+}
+
+// walkOf is walk over a given stack: the capture pass (skipped in a
+// passthrough mode) outer-first with the editor fallback last, then the
+// stack itself. The live walk and the hypothetical one (nounWalk) share it.
+func (r *Runtime) walkOf(inner []level, passthrough bool) []level {
+	if passthrough {
 		return inner
 	}
 	var out, fallback []level
@@ -520,15 +526,31 @@ func (r *Runtime) bindingRows(focus string) []Binding {
 }
 
 // levelRow is one row of bindingRows with the noun of the level that
-// answers with it (the instance's noun, "modal", "editor").
+// answers with it (the instance's noun, "modal", "editor"). Guard names
+// the condition a hypothetical row answers under (nounRows: its own when,
+// else its verb guard), which a walk without an instance cannot judge;
+// the live walk judges guards and leaves it empty.
 type levelRow struct {
 	Binding
 	level string
+	guard string
 }
 
 // levelRows is bindingRows with each row's level.
 func (r *Runtime) levelRows(focus string) []levelRow {
-	mode := r.Mode
+	return r.scanRows(r.walk(focus), r.Mode, focus, false)
+}
+
+// scanRows reads the rows a walk answers with in a mode, the first per
+// key or pattern, in walk order (see bindingRows). With focus set it is
+// the live reading: a capture row whose guard is false there and a row
+// whose verb guard is false are left out. Hypothetical (nounRows, no
+// instance to judge a guard at) keeps a guarded row, naming its guard,
+// and lets it claim its key only once an unguarded row on the same key
+// follows, so the rows that answer when the guard is false show after it;
+// editing says the editor's implicit input guard holds (an input noun).
+func (r *Runtime) scanRows(levels []level, mode ModeState, focus string, editing bool) []levelRow {
+	live := focus != ""
 	base, prefix := baseAndPrefix(mode)
 	exclusive := r.pendingModes[mode.Name] || mode.Payload.Shadow != nil
 	seen := map[string]bool{}
@@ -540,15 +562,26 @@ func (r *Runtime) levelRows(focus string) []levelRow {
 			if b.Unbind || b.Capture != capture {
 				continue
 			}
-			if capture && b.When != "" {
-				// A capture row standing aside (ctrl+c's no-modal inside the
-				// palette) must not shadow the inner row it lets through.
-				if check := r.guard(b.When); check == nil || !check(r, KeyEvent{Mode: r.Mode, Focus: focus}) {
-					continue
+			guard := ""
+			if live {
+				if capture && b.When != "" {
+					// A capture row standing aside (ctrl+c's no-modal inside the
+					// palette) must not shadow the inner row it lets through.
+					if check := r.guard(b.When); check == nil || !check(r, KeyEvent{Mode: mode, Focus: focus}) {
+						continue
+					}
 				}
-			}
-			if !r.VerbShown(b.Request.Key(), focus, r.Mode) {
-				continue // guarded off here: hints and bindings list match the palette
+				if !r.VerbShown(b.Request.Key(), focus, mode) {
+					continue // guarded off here: hints and bindings list match the palette
+				}
+			} else {
+				guard = b.When
+				if guard == ImplicitGuard && editing {
+					guard = ""
+				}
+				if guard == "" {
+					guard = r.VerbGuard(b.Request.Key())
+				}
 			}
 			id := b.Keys + "\x00" + b.Pattern
 			if prefix != "" {
@@ -559,11 +592,13 @@ func (r *Runtime) levelRows(focus string) []levelRow {
 			if seen[id] {
 				continue
 			}
-			seen[id] = true
-			out = append(out, levelRow{Binding: b, level: name})
+			if guard == "" {
+				seen[id] = true
+			}
+			out = append(out, levelRow{Binding: b, level: name, guard: guard})
 		}
 	}
-	for _, lv := range r.walk(focus) {
+	for _, lv := range levels {
 		capture = lv.capture
 		name = lv.name()
 		before := len(out)
@@ -583,6 +618,40 @@ func (r *Runtime) levelRows(focus string) []levelRow {
 		}
 	}
 	return out
+}
+
+// nounWalk is the walk a focus on noun would have in mode, with no
+// instance: the noun's tables, then app (its instance's rows and its
+// noun's), then the editor fallback when noun is an input noun
+// (inputNoun), with the capture pass as walk has it (none in a
+// passthrough mode; a pending mode is passthrough when the noun pins
+// one, as leader_pending over a terminal is). The levels a live focus
+// has between its noun and app (its list, its page) and a modal's are
+// not part of it.
+func (r *Runtime) nounWalk(noun string, mode ModeState) []level {
+	var inner []level
+	if n := r.Nouns[noun]; n != nil && noun != "editor" && noun != "app" {
+		inner = append(inner, level{noun: n})
+	}
+	inner = append(inner, level{inst: r.Instances["app"], noun: r.Nouns["app"]})
+	if editor := r.Nouns["editor"]; editor != nil && r.inputNoun(noun) {
+		inner = append(inner, level{noun: editor})
+	}
+	base, _ := baseAndPrefix(mode)
+	passthrough := r.passthroughModes[base]
+	if r.pendingModes[base] {
+		if n := r.Nouns[noun]; n != nil {
+			passthrough = r.passthroughModes[n.Pin]
+		}
+	}
+	return r.walkOf(inner, passthrough)
+}
+
+// nounRows is levelRows for a hypothetical focus on noun in mode
+// (nounWalk): what the keys would run there, guarded rows kept and
+// marked with their guard.
+func (r *Runtime) nounRows(noun string, mode ModeState) []levelRow {
+	return r.scanRows(r.nounWalk(noun, mode), mode, "", r.inputNoun(noun))
 }
 
 // answersEveryKey reports whether a level's rows include an unguarded any

@@ -19,20 +19,27 @@ const (
 // level under its noun's label and the motions last under "movement". The
 // rows are a list of the "binding" noun, which has no verbs: j/k move,
 // esc closes (the modal noun's row). NewModel binds ? to it in normal mode.
+// The modal's instance holds a helpState (help_views.go): S cycles the
+// views (here, pick, table), n and m choose the noun and mode of the
+// hypothetical ones.
 func registerBindingHelp(r *Runtime) {
 	r.Define("binding")
 	r.Register(Operation{Verb: "help", Noun: "bindings", Description: "Open the keys the focus answers to, with the operation each runs and its description", Result: "help row[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		rows := BindingHelp(r, focusOf(c))
-		if _, err := r.OpenModal(helpID, Payload{}); err != nil {
+		focus := focusOf(c)
+		rows, mode := BindingHelp(r, focus), ModeState{Name: r.BaseMode()}
+		inst, err := r.OpenModal(helpID, Payload{})
+		if err != nil {
 			return nil, err
 		}
-		list, err := r.AddList(helpListID, helpItems(rows), Parent(helpID), Columns(helpColumns...))
-		if err != nil {
+		h := newHelpState(r, focus, mode, rows)
+		inst.Component = h
+		if err := h.show(); err != nil {
 			_ = r.Pop()
 			return nil, err
 		}
-		return rows, list.Focus()
+		return rows, nil
 	}})
+	registerHelpViews(r)
 }
 
 // bindingHelpArgs previews arguments without executing the binding. Pattern
@@ -158,14 +165,4 @@ func patternLabel(pattern string) string {
 		label += " -" + key
 	}
 	return label
-}
-
-// bindingHelpView draws the help list: a table (helpColumns) whose rows
-// are grouped under their sections.
-func bindingHelpView(r *Runtime, _ *Instance, width, height int) Block {
-	list := r.List(helpListID)
-	if list == nil || width <= 0 || height <= 0 {
-		return Text("")
-	}
-	return Text(list.View(width, height))
 }

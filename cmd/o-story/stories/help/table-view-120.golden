@@ -1,0 +1,40 @@
+ |  ◆ o-story                                                                                                    NORMAL
+ |   › page1
+ |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ |  a
+r|  a1
+ |  a2        ╭──────────────────────────────────────────────────────────────────────────────────────────────╮
+ |            │ Keys · table                                                                                 │
+ |            │ noun: list · .verb is list.verb · (op) answered by app · op? guarded                         │
+ |            │ key         normal          list_filter      visual          visual-block     visual-line    │
+ |            │ $           .column?                                                                         │
+R|            │ 0           .column?                                                                         │
+ |            │ G           .goto                                                                            │
+ |            │ V           .visual?                                                                         │
+ |            │ Y           .yank?                                                                           │
+ |            │ ^           .column?                                                                         │
+ |            │ backspace                   .filter-keep?                                                    │
+ |            │ ctrl+b      .scroll                                                                          │
+ |            │ ctrl+d      .scroll                                                                          │
+ |            │ ctrl+f      .scroll                                                                          │
+ |            │ ctrl+h                      .filter-keep?                                                    │
+ |            │ ctrl+n                      .move                                                            │
+ |            │ ctrl+p                      .move                                                            │
+ |            │ ctrl+u      .scroll         .filter                                                          │
+ |            │ down        .move           .move                                                            │
+ |            │ end         .column?                                                                         │
+ |            │ enter                       .filter-choose?                                                  │
+ |            │ esc         .end-visual?    .filter-clear?                                                   │
+ |            │ g c         .choose-colum…                                                                   │
+ |            │ g g         .goto                                                                            │
+ |            │ 1–20 / 65                                                                                    │
+ |            │ ──────────────────────────────────────────────────────────────────────────────────────────── │
+ |            │ normal  list.column {"to":"first"} when no-count · list                                      │
+ |            │         then list.scroll-columns {"to":"first"} when row-table-no-count · list               │
+ |            │ space list.mark · S view · n noun · esc modal.pop · : palette.open · ? bindings.help · / fi… │
+ |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
+ |
+ |
+ |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ |  space list.mark · S view · n noun · esc modal.pop · : palette.open · ? bindings.help · / filter
+ |

@@ -1,0 +1,23 @@
+{
+  "name": "help.pick-view off: S in ? help goes here → table → here",
+  "area": "help",
+  "width": 100,
+  "height": 30,
+  "settings": [
+    {"name": "help.pick-view", "type": "boolean", "default": false, "description": "S in the ? help shows the keys for a noun and mode you pick"}
+  ],
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ]
+  },
+  "script": ["?", "S", "S"],
+  "expect": [
+    {"after": 1, "modal": "bindings-help", "contains": ["Keys · here", "S view"]},
+    {"after": 2, "modal": "bindings-help", "contains": ["Keys · table", "n noun"], "lacks": ["m mode"]},
+    {"modal": "bindings-help", "contains": ["Keys · here"]}
+  ]
+}

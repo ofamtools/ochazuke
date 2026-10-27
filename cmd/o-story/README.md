@@ -281,6 +281,7 @@ Conformance:
 | insert | settings | `settings.edit` |
 | list_filter | list | `list.filter-choose` `list.filter-clear` `list.filter-erase` `list.filter-keep` `list.filter-type` `list.move` |
 | normal | bindings | `bindings.help` |
+| normal | bindings-help | `bindings-help.mode` `bindings-help.noun` `bindings-help.view` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
 | normal | demo | `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.launch` `demo.notify` `demo.open` `demo.reload` `demo.ship` |
@@ -335,6 +336,8 @@ Mode edges (from → to via):
 - `list_filter` → `normal` via `list.filter-clear`
 - `list_filter` → `normal` via `list.filter-keep`
 - `normal` → `count_pending` via `mode.enter`
+- `normal` → `insert` via `bindings-help.mode`
+- `normal` → `insert` via `bindings-help.noun`
 - `normal` → `insert` via `form.suggest`
 - `normal` → `insert` via `input.begin`
 - `normal` → `insert` via `outline.add`
