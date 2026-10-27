@@ -1,0 +1,794 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Design Exchanges</title>
+<style>
+:root{
+  --backdrop:#050607;
+  --bg:#0e1013;
+  --panel:#14171c;
+  --panel-bar:#1a1e24;
+  --rule:#2a3038;
+  --paper:#ece6da;
+  --soft:#a9a49a;
+  --faint:#6d6a64;
+  --you:#f2a07b;
+  --model:#9fe0b4;
+  --gold:#f0c674;
+  --c-com:#6f7a72;
+  --c-str:#e6c07b;
+  --c-kw:#d79ccf;
+  --c-fn:#8cc8f0;
+  --c-key:#9fe0b4;
+  --c-op:#f2a07b;
+  --c-num:#f0c674;
+  --mono:"SF Mono","SFMono-Regular",Menlo,Consolas,monospace;
+  --serif:"New York","Iowan Old Style",Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Avenir Next","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--backdrop);overflow:hidden}
+body{display:grid;place-items:center}
+.stage{width:1920px;height:1080px;position:relative;overflow:hidden;flex-shrink:0;background:var(--bg);color:var(--paper);font-family:var(--sans);transform-origin:center}
+.stage::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 70% 60% at 100% 0%,#1d2a2333,transparent 70%),radial-gradient(ellipse 60% 50% at 0% 100%,#2a1f1a33,transparent 70%)}
+
+/* chrome */
+.top{position:absolute;left:96px;right:96px;top:64px;height:64px;display:flex;align-items:flex-end;justify-content:space-between;gap:40px}
+.top .ch{display:flex;align-items:baseline;gap:22px;min-width:0}
+.top .num{font:500 20px var(--mono);color:var(--model);letter-spacing:2px}
+.top .title{font:400 40px/1.1 var(--serif);letter-spacing:-.5px;white-space:nowrap}
+.top .src{font:15px var(--mono);color:var(--faint);white-space:nowrap}
+.top .part{font:15px var(--mono);color:var(--soft);margin-left:6px}
+.rule{position:absolute;left:96px;right:96px;top:150px;height:1px;background:var(--rule)}
+.progress{position:absolute;left:96px;right:96px;bottom:56px;display:flex;gap:8px}
+.progress i{flex:1;height:3px;background:var(--rule);border-radius:2px;overflow:hidden;position:relative}
+.progress i b{position:absolute;inset:0;background:var(--model);transform-origin:left;transform:scaleX(0)}
+.progress i.done b{transform:scaleX(1)}
+.brand{position:absolute;right:96px;bottom:22px;font:13px var(--mono);color:var(--faint);letter-spacing:3px;text-transform:uppercase}
+
+/* content */
+.content{position:absolute;left:96px;right:96px;top:186px;bottom:96px;display:grid;grid-template-columns:860px minmax(0,1fr);gap:72px}
+.left{display:flex;flex-direction:column;min-height:0}
+.who{font:600 15px var(--mono);letter-spacing:3px;text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:12px;opacity:0}
+.who.you{color:var(--you)}
+.who.model{color:var(--model)}
+.prompt-box{max-height:290px;overflow:hidden;flex-shrink:0;margin-bottom:34px}
+.prompt{font-size:28px;line-height:1.45;color:#d6d0c4;border-left:3px solid #f2a07b55;padding-left:22px}
+.prompt .c{opacity:0}
+.prompt .code-inline{font-family:var(--mono);font-size:.82em;color:var(--soft)}
+.reply-box{flex:1;min-height:0;overflow:hidden}
+.reply{font-family:var(--serif);font-size:36px;line-height:1.36;letter-spacing:-.3px;color:#bdb7ab}
+.reply p{margin:0 0 .6em}
+.reply .w{opacity:0;display:inline-block;white-space:pre}
+.m{background-image:linear-gradient(var(--model),var(--model));background-repeat:no-repeat;background-position:0 92%;background-size:0% 3px;padding-bottom:2px}
+.prompt .m{background-image:linear-gradient(var(--you),var(--you))}
+.reply .m .w{display:inline}
+.reply .m{display:inline}
+.tt{font-family:var(--mono);font-size:.78em;letter-spacing:0}
+
+.right{min-height:0;min-width:0;display:flex;flex-direction:column;justify-content:flex-start}
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:14px;overflow:hidden;box-shadow:0 30px 80px #0006;opacity:0;display:flex;flex-direction:column;max-height:100%}
+.bar{height:48px;flex-shrink:0;display:flex;align-items:center;gap:16px;padding:0 20px;background:var(--panel-bar);border-bottom:1px solid var(--rule);font:15px var(--mono);color:var(--soft)}
+.dots{display:flex;gap:8px}.dots i{width:11px;height:11px;border-radius:50%;background:#3a4048}
+.dots i:nth-child(1){background:#e0795f}.dots i:nth-child(2){background:#d8b45a}.dots i:nth-child(3){background:#6fbf84}
+.bar .label{position:relative;flex:1;height:20px}
+.bar .label span{position:absolute;left:0;top:0;white-space:nowrap}
+.body{position:relative;padding:22px 0 26px;overflow:hidden;flex:1;min-height:0}
+.stack{display:grid}
+.stack>.block{grid-area:1/1}
+.block{font-family:var(--mono);font-size:inherit;line-height:1.6;white-space:pre}
+.ln{display:block;position:relative;padding:0 26px 0 60px;opacity:0}
+.ln::before{content:attr(data-n);position:absolute;left:0;width:42px;text-align:right;color:#454b54;font-size:.8em;top:.12em}
+.ln .strike{position:absolute;left:54px;right:20px;top:52%;height:2px;background:var(--you);transform:scaleX(0);transform-origin:left}
+.com{color:var(--c-com);font-style:italic}.str{color:var(--c-str)}.kw{color:var(--c-kw)}.fn{color:var(--c-fn)}.key{color:var(--c-key)}.op{color:var(--c-op)}.num{color:var(--c-num)}
+.glow{border-radius:4px;box-shadow:0 0 0 0 #f0c67400}
+
+/* cards (scene 6) */
+.cards{display:flex;flex-direction:column;gap:30px}
+.card h4{margin:0 0 14px;font:600 15px var(--mono);letter-spacing:3px;text-transform:uppercase;opacity:0}
+.card.good h4{color:var(--model)}.card.risk h4{color:var(--you)}
+.card .item{font-size:27px;line-height:1.3;padding:14px 20px;margin-bottom:10px;background:var(--panel);border:1px solid var(--rule);border-left:4px solid var(--model);border-radius:8px;opacity:0}
+.card.risk .item{border-left-color:var(--you)}
+.card .item.hot{border-color:#9fe0b466;border-left-color:var(--model);background:#16201b}
+
+/* fanout (scene 5b) */
+.fan{position:relative;width:100%;height:560px}
+.fan svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.fan path{fill:none;stroke:#9fe0b4;stroke-width:2.5;stroke-dasharray:1;stroke-dashoffset:1;opacity:.85}
+.node{position:absolute;padding:16px 22px;border-radius:10px;background:var(--panel);border:1px solid var(--rule);font:22px var(--mono);opacity:0;white-space:nowrap}
+.node.src{border-color:var(--model);color:var(--paper);box-shadow:0 0 40px #9fe0b422}
+.node small{display:block;font:13px var(--mono);color:var(--faint);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
+
+/* overlays */
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:0 160px;background:var(--bg);opacity:0;pointer-events:none}
+.overlay .big{font:400 180px/1 var(--serif);color:var(--model);letter-spacing:-6px;margin-bottom:10px}
+.overlay .head{font:400 88px/1.08 var(--serif);letter-spacing:-2px;max-width:1500px}
+.overlay .sub{font:20px var(--mono);color:var(--faint);margin-top:34px;letter-spacing:1px}
+.overlay .kicker{font:600 18px var(--mono);color:var(--model);letter-spacing:5px;text-transform:uppercase;margin-bottom:28px}
+.overlay .line{height:2px;width:0;background:var(--model);margin:40px 0 0}
+.overlay .head .m{background-size:0% 5px;background-position:0 94%}
+
+.hud{position:absolute;right:20px;top:16px;font:13px var(--mono);color:var(--faint);background:#000a;padding:8px 12px;border-radius:6px;transition:opacity .4s;z-index:10}
+.hud.off{opacity:0}
+.paused-tag{position:absolute;left:20px;top:16px;font:13px var(--mono);color:var(--gold);z-index:10;display:none}
+.paused .paused-tag{display:block}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="top" id="top"><div class="ch"><span class="num" id="tnum"></span><span class="title" id="ttitle"></span><span class="part" id="tpart"></span></div><span class="src" id="tsrc"></span></div>
+  <div class="rule" id="trule"></div>
+  <div class="content" id="content"></div>
+  <div class="progress" id="progress"></div>
+  <div class="brand">ochazuke · design log</div>
+  <div class="overlay" id="overlay"></div>
+  <div class="hud" id="hud">space pause · ← → exchange · r restart · h hide</div>
+  <div class="paused-tag">❚❚ paused</div>
+</div>
+<script>
+// ── config ────────────────────────────────────────────────────────────────
+const MODEL_LABEL = "Claude";
+const params = new URLSearchParams(location.search);
+const SPEED = parseFloat(params.get("speed") || "1");
+
+// ── script ────────────────────────────────────────────────────────────────
+// [[…]] marks the caret-underlined passages. Text is verbatim; "…" marks cuts.
+// Code lines starting with "~" are struck out before the next block replaces them.
+const CHAPTERS = [
+{
+  title: "The dynamic keyboard model",
+  src: "cannot-with-markers.txt:3030-3090",
+  exchanges: [{
+    prompt: "i always imagined it would be very simple. a small register for in-progress sequence mappings, get the bindings for current mode, see if there's a binding for either the new sequence or the key pressed … and based on the action for a match, trigger it with all the [[context/state. it should be almost completely dynamic]]",
+    panel: { kind: "code", blocks: [
+      { label: "today · model.go dispatchKey", lines: [
+        "// four routers in a fixed order, then the loop you described",
+        "if (macroRecording) record(key)",
+        "~if (macroPending || stopKey)   return macroGrammar(key)",
+        "~if (paletteActive)             return paletteGrammar(key)",
+        "~if (paste)                     return editorGrammar(key)",
+        "~if (editorPending || count)    return editorGrammar(key)",
+        "if (handleBinding(key))        return   // ← your loop",
+        "~if (key == \"esc\" && modal && normal) pop()   // hard-coded",
+        "~return editorGrammar(key)                     // fallthrough",
+      ]},
+      { label: "after phase 5 · resolve.go", lines: [
+        "// one loop, no routers, because grammars became nouns",
+        "seq = pending ? pending + \" \" + key : key",
+        "for (inst of stack(focus)) {",
+        "  noun = nouns[inst.noun]",
+        "  for (b of [...noun.bindings[state], ...noun.bindings[\"*\"]]) {",
+        "    if (b.keys == seq)                return execute(b.request, inst)",
+        "    if (b.keys.startsWith(seq + \" \")) longer = true",
+        "  }",
+        "}",
+        "if (longer) { pending = seq; armTimeout() }",
+      ]},
+    ]},
+    reply: [
+      "Your mental model is already most of HandleBinding today.",
+      "…That is your description: a pending register, the bindings for the current state along the stack, exact or partial match, then trigger with the instance and state as context.",
+      "…enabling a noun, rebinding a key, or changing state alters the next lookup with no code path involved, and [[list.bindings prints the same table the loop reads.]]",
+    ],
+  }],
+},
+{
+  title: "Replacing conditionals with modes",
+  src: "my-modal-binding-design.txt:3208-3298",
+  exchanges: [{
+    prompt: "you see in both versions of the dispatchKey or key->action handler/mapper … i think for the first one, at least, can completely eliminate those conditionals/guards.\n\n[[how? by using modes.]]",
+    panel: { kind: "code", blocks: [{ label: "today's first router, as mode tables", lines: [
+      "modes = {",
+      "  normal: {",
+      "    \"q\":      set.mode(\"macro_pending\"),",
+      "    digit:    count.append,              // class match",
+      "    \"d\":      set.mode(\"operator_pending\", { op: \"delete\" }),",
+      "    \"g\":      set.mode(\"g_pending\"),",
+      "  },",
+      "  macro_pending: {",
+      "    alpha:    macro.start({ register: key }),",
+      "    \"ctrl+c\": set.mode(\"normal\"),",
+      "    any:      set.mode(\"normal\"),        // unknown key cancels",
+      "  },",
+      "  g_pending: { \"g\": move(\"first-line\"), any: set.mode(\"normal\") },",
+      "}",
+      "",
+      "dispatch(key) = (modes[mode][key] ?? modes[mode][classOf(key)] ?? modes[mode].any)(key, state)",
+    ]}]},
+    reply: [
+      "[[Yes. That is the Vim model taken to its conclusion: every \"pending\" condition is a mode with its own keymap, and the guards vanish because the lookup key includes the mode.]]",
+      "[[Every conditional in dispatchKey became a row.]] Even the sequence register is gone: g g is the g binding inside g_pending…",
+    ],
+  }],
+},
+{
+  title: "Shadow mode keeps one mechanism",
+  src: "my-modal-binding-design.txt:3302-3396",
+  exchanges: [{
+    prompt: "i didn't think about the macro_recording...but it can be a plain mode...if we can override state...\n\n`() { record_key(key); typeKey(key, state, override: mode => normal) }`",
+    panel: { kind: "code", blocks: [{ label: "macro_recording, a plain mode", lines: [
+      "state.mode = { name: \"macro_recording\", register: \"a\",",
+      "               shadow: { name: \"insert\" } }",
+      "",
+      "modes.macro_recording = {",
+      "  any: (key, state) => {",
+      "    macro.append(key)",
+      "    next = dispatch(key, { ...state, mode: state.mode.shadow })",
+      "    state.mode.shadow = next.mode   // insert → normal, g_pending …",
+      "  },",
+      "  \"q\": stop only when shadow is normal with no payload",
+      "}",
+    ]}], glow: ["shadow"] },
+    reply: [
+      "That works, and it keeps one mechanism. The detail that makes it hold is the override target: it is not always normal.",
+      "…macro_recording is an ordinary exclusive mode whose any handler happens to re-dispatch with a different mode. [[The resolver stays lookup(mode, key),]] and the only state that exists is the mode name and its payload.",
+    ],
+  }, {
+    prompt: "i love the shadow mode idea. do you think this is a better design?",
+    panel: { kind: "code", blocks: [{ label: "the entire resolver", lines: [
+      "// the entire resolver",
+      "stack(focus).forEach(inst =>",
+      "  table = nouns[inst.noun].bindings[state.mode.name]",
+      "  hit   = table[key] ?? table[classOf(key)] ?? table.any",
+      "  if (hit) return hit(key, state, inst))",
+    ]}], big: true },
+    reply: [
+      "Yes, and by a clear margin over what phase 5 of the plan says today.",
+      "[[What the shadow design does. It removes the escape hatch. Every pending condition is a mode with a payload, every key goes through lookup(mode, key) with exact, class, any precedence, and handlers only mutate state or run operations. There is no second kind of thing.]]",
+      "…[[Adding the terminal pane, or znbu's : command input, adds tables, not routers.]]",
+    ],
+  }],
+},
+{
+  title: "The target is captured as data",
+  src: "fucking-right.txt:3908-3946",
+  exchanges: [{
+    prompt: "what confuses me is the first know calls remove on a worktree....how does it know it's not removing a worktree that shouldn't be removd?",
+    panel: { kind: "code", blocks: [{ label: "x → confirm → y", lines: [
+      "// 1. focus is on a row; the key resolves through that row's noun",
+      "focus = { id: \"wt-main\", noun: \"worktree\" }",
+      "press \"x\"  →  Request{ verb: \"remove\", target: \"wt-main\" }",
+      "",
+      "// 2. the confirm instance holds that exact request",
+      "modal = { noun: \"confirm\", parent: \"wt-main\",",
+      "          payload: { prompt: \"Remove worktree wt-main?\",",
+      "                     request: { verb: \"remove\", target: \"wt-main\",",
+      "                                args: { confirmed: true } } } }",
+      "",
+      "// 3. y runs the stored request, not \"remove whatever is focused\"",
+      "press \"y\"  →  Run(payload.request)  →  RemoveWorktree(ctx{ Instance: wt-main })",
+    ]}], glow: ["wt-main"] },
+    reply: [
+      "[[It knows because the target is captured as data at the moment you press the key, and carried along explicitly. Nothing later asks \"what is focused now\".]]",
+      "…The thing the framework deliberately does not do is let a binding run against an implicit \"current\" object. Every request that reaches a handler names its target…",
+    ],
+  }],
+},
+{
+  title: "Define is clean because it is just data",
+  src: "fucking-right.txt:3961-4009",
+  exchanges: [{
+    prompt: "i will take your word for it....i think part of the confusion is i'm not typically a go developer",
+    panel: { kind: "code", blocks: [{ label: "the same declarations, JS-style", lines: [
+      "define(\"worktree\", {",
+      "  verbs: {",
+      "    open:   app.openWorktree,",
+      "    remove: { run: app.removeWorktree, confirm: \"Remove worktree {{id}}?\" },",
+      "    star:   app.star,",
+      "  },",
+      "  bindings: {",
+      "    normal: { o: \"open\", x: \"remove\", s: \"star\" },",
+      "  },",
+      "})",
+      "",
+      "// handlers always receive the thing they act on, never look it up",
+      "app.removeWorktree = ({ instance, args }) => {",
+      "  if (instance.id === \"wt-main\") return fail(\"main worktree cannot be removed\")",
+      "  return git.removeWorktree(instance.id)",
+      "}",
+    ]}]},
+    reply: [
+      "That makes sense, and it is a fair reason. Go's builder chains and ctx-first handlers hide the shape.",
+      "…The Go will be the implementation detail. [[The data shape is the design, and it reads the same in either language.]]",
+    ],
+  }, {
+    prompt: "the define() is beautiful...so clean",
+    panel: { kind: "fan", source: "define(\"worktree\", {…})", targets: [
+      ["the config file", "uses"], ["list.bindings", "prints"], ["the palette", "reads"], ["help", "reads"],
+    ]},
+    reply: [
+      "[[It is clean because it is just data. That one object is the same shape the config file uses, the same shape list.bindings prints, and the same shape the palette and help read. There is nothing in it the framework has to interpret specially.]]",
+      "…[[If a future need cannot be expressed as a mode table row, the answer is a new mode, not a hook.]]",
+    ],
+  }],
+},
+{
+  title: "Why inspectable data gives better odds",
+  src: "cannot-with-markers.txt:5537-5571",
+  exchanges: [{
+    prompt: "oh...got it. i'm actually excited. do you think it will be successful?",
+    panel: { kind: "cards", groups: [
+      { cls: "good", title: "What is different this time", items: [
+        "The behavior lock exists.", "!The design is data.", "Every phase has shipped green, reviewed and pushed.", "You understood every decision well enough to correct them.",
+      ]},
+      { cls: "risk", title: "What could still sink it", items: [
+        "Scope.", "No consumer for too long.", "The editor tables need a hook after all.",
+      ]},
+    ]},
+    reply: [
+      "Better odds than the two attempts before it, and for reasons I can point at rather than hope.",
+      "[[The design is data. Nouns, modes, rows and payloads are things you can print, diff and test as tables. The previous attempts' key handling was control flow, which is why it grew switches in the shell.]]",
+      "…you will have a [[Bubble Tea app framework where the whole interaction model is inspectable data, which is not something that exists today.]]",
+    ],
+  }],
+},
+{
+  title: "Checker, sandbox and designer become possible",
+  src: "cannot-with-markers.txt:5596-5651",
+  exchanges: [{
+    prompt: "have you read the the to-do md? because do you think that the binding verifier tool or like the full end the full spectrum like binding utility will be a possible and b useful",
+    panel: { kind: "code", blocks: [{ label: "binding checks over the Define data", lines: [
+      "graph = { normal: [\"insert\", \"operator_pending\", \"macro_pending\"],",
+      "          operator_pending: [\"normal\"], ... }",
+      "",
+      "checks = {",
+      "  trapped:     modes with no path back to \"normal\",",
+      "  noExit:      modes with no row for esc and no `any` fallback,",
+      "  shadowed:    same key bound at two stack levels, inner silently wins,",
+      "  prefixClash: \"g\" bound and \"g g\" bound in the same table,",
+      "  dangling:    rows naming an operation or mode that is not registered,",
+      "  unreachable: modes no row ever enters,",
+      "}",
+      "",
+      "define(\"bindings\", { verbs: { list, check, set, unset, sandbox, export, import } })",
+    ]}]},
+    reply: [
+      "Read it now. The three binding items in that TODO were hard before phase 5 and [[are close to free after it, because the whole interaction model is data now.]]",
+      "[[Binding checker: possible, and it is a graph problem. Every mode table is a set of rows, and every row that calls set.mode or enter is an edge.]]",
+      "…[[That makes any CLI a noun with no Go.]]",
+    ],
+  }],
+},
+];
+
+// ── helpers ───────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const EASE = "cubic-bezier(.2,.7,.2,1)";
+const anims = [];
+function A(node, frames, delay, duration, easing = EASE) {
+  const a = node.animate(frames, { delay, duration, easing, fill: "both" });
+  a.playbackRate = SPEED;
+  if (paused) a.pause();
+  anims.push(a);
+  return a;
+}
+const fadeUp = (n, t, d = 600, dy = 18) => A(n, [{ opacity: 0, transform: `translateY(${dy}px)` }, { opacity: 1, transform: "none" }], t, d);
+const fadeOut = (n, t, d = 500) => A(n, [{ opacity: 1 }, { opacity: 0 }], t, d, "ease-in");
+
+// segments of [[marked]] text
+function segments(text) {
+  const out = []; const re = /\[\[([\s\S]*?)\]\]/g; let i = 0, m;
+  while ((m = re.exec(text))) { if (m.index > i) out.push([text.slice(i, m.index), false]); out.push([m[1], true]); i = re.lastIndex; }
+  if (i < text.length) out.push([text.slice(i), false]);
+  return out;
+}
+
+// code highlighter: one pass, each token escaped on its own
+const TOK = /(\/\/.*$)|("(?:[^"\\]|\\.)*"|`[^`]*`)|(\b(?:return|if|else|for|of|const|let)\b)|([A-Za-z_][\w.]*(?=\())|([A-Za-z_]\w*(?=\s*:(?!:)))|(→|=>|\?\?|===|==|\.\.\.)|(\b\d+\b)/g;
+const CLS = [null, "com", "str", "kw", "fn", "key", "op", "num"];
+function highlight(line) {
+  let out = "", i = 0, m;
+  TOK.lastIndex = 0;
+  while ((m = TOK.exec(line))) {
+    out += esc(line.slice(i, m.index));
+    const g = m.slice(1).findIndex(x => x !== undefined) + 1;
+    out += `<span class="${CLS[g]}">${esc(m[0])}</span>`;
+    i = TOK.lastIndex;
+    if (m[0].length === 0) TOK.lastIndex++;
+  }
+  return out + esc(line.slice(i));
+}
+function wrapGlow(root, words) {
+  if (!words) return [];
+  const found = [];
+  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = []; while (walk.nextNode()) nodes.push(walk.currentNode);
+  const re = new RegExp(words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "g");
+  for (const n of nodes) {
+    const t = n.nodeValue; if (!re.test(t)) continue; re.lastIndex = 0;
+    const frag = document.createDocumentFragment(); let i = 0, m;
+    while ((m = re.exec(t))) {
+      frag.append(t.slice(i, m.index));
+      const s = el("span", "glow"); s.textContent = m[0]; frag.append(s); found.push(s);
+      i = re.lastIndex;
+    }
+    frag.append(t.slice(i)); n.replaceWith(frag);
+  }
+  return found;
+}
+// largest font size in [min,max] at which node fits inside box
+function fit(node, box, min, max) {
+  let lo = min, hi = max;
+  while (hi - lo > 0.5) {
+    const mid = (lo + hi) / 2; node.style.fontSize = mid + "px";
+    (box.scrollHeight <= box.clientHeight + 1 && box.scrollWidth <= box.clientWidth + 1) ? lo = mid : hi = mid;
+  }
+  node.style.fontSize = lo + "px";
+  return lo;
+}
+
+// ── segments of the show ──────────────────────────────────────────────────
+const SHOW = [{ kind: "intro" }];
+CHAPTERS.forEach((ch, ci) => ch.exchanges.forEach((ex, xi) => SHOW.push({ kind: "exchange", ch, ci, ex, xi })));
+SHOW.push({ kind: "outro" });
+const EXCHANGES = SHOW.filter(s => s.kind === "exchange");
+
+const progress = $("progress");
+EXCHANGES.forEach(() => progress.append(el("i", null, "<b></b>")));
+
+// ── builders: each returns its duration (ms at speed 1) ───────────────────
+function buildIntro() {
+  const o = $("overlay");
+  o.innerHTML = `<div class="kicker">ochazuke · selected design exchanges</div>
+    <div class="head">Making the whole interaction model <span class="m">data</span></div>
+    <div class="sub">verbatim excerpts from the build transcripts · underlines mark the passages that mattered</div>`;
+  hideChrome(true);
+  A(o, [{ opacity: 0 }, { opacity: 1 }], 0, 1);
+  fadeUp(o.children[0], 300, 700);
+  fadeUp(o.children[1], 600, 900, 28);
+  A(o.querySelector(".m"), [{ backgroundSize: "0% 5px" }, { backgroundSize: "100% 5px" }], 1700, 900);
+  fadeUp(o.children[2], 2200, 800);
+  fadeOut(o, 5200, 600);
+  return 5900;
+}
+function buildOutro() {
+  const o = $("overlay");
+  o.innerHTML = `<div class="kicker">where it landed</div>
+    <div class="head">A Bubble Tea app framework where <span class="m">the whole interaction model is inspectable data.</span></div>
+    <div class="sub">nouns · modes · rows · payloads — print them, diff them, test them as tables</div>`;
+  hideChrome(true);
+  A(o, [{ opacity: 0 }, { opacity: 1 }], 0, 700, "ease-out");
+  fadeUp(o.children[0], 500, 700);
+  fadeUp(o.children[1], 800, 900, 28);
+  A(o.querySelector(".m"), [{ backgroundSize: "0% 5px" }, { backgroundSize: "100% 5px" }], 2000, 1800, "ease-in-out");
+  fadeUp(o.children[2], 4000, 800);
+  return 9000;
+}
+function hideChrome(hidden) {
+  for (const id of ["top", "trule", "progress"]) $(id).style.visibility = hidden ? "hidden" : "visible";
+}
+
+function buildExchange(seg) {
+  const { ch, ci, ex, xi } = seg;
+  const firstOfChapter = xi === 0;
+  const content = $("content");
+  const o = $("overlay");
+  hideChrome(false);
+
+  // header
+  $("tnum").textContent = String(ci + 1).padStart(2, "0");
+  $("ttitle").textContent = ch.title;
+  $("tpart").textContent = ch.exchanges.length > 1 ? `${xi + 1}/${ch.exchanges.length}` : "";
+  $("tsrc").textContent = ch.src;
+
+  // progress
+  const idx = EXCHANGES.indexOf(seg);
+  [...progress.children].forEach((p, i) => p.classList.toggle("done", i < idx));
+  const bar = progress.children[idx].firstChild;
+
+  let t = 0;
+  if (firstOfChapter) {
+    o.innerHTML = `<div class="big">${String(ci + 1).padStart(2, "0")}</div><div class="head">${esc(ch.title)}</div><div class="sub">${esc(ch.src)}</div><div class="line"></div>`;
+    A(o, [{ opacity: 1 }, { opacity: 1 }], 0, 1);
+    fadeUp(o.children[0], 0, 700, 30);
+    fadeUp(o.children[1], 200, 800, 30);
+    fadeUp(o.children[2], 600, 700);
+    A(o.children[3], [{ width: "0px" }, { width: "420px" }], 700, 1100);
+    A(o, [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateY(-30px)" }], 2500, 600, "ease-in");
+    t = 2900;
+  } else {
+    o.innerHTML = "";
+    A(o, [{ opacity: 0 }, { opacity: 0 }], 0, 1);
+    t = 200;
+  }
+  A($("top"), [{ opacity: 0, transform: "translateY(-10px)" }, { opacity: 1, transform: "none" }], firstOfChapter ? t - 300 : 0, 600);
+
+  // ── layout
+  content.innerHTML = "";
+  const left = el("div", "left"), right = el("div", "right");
+  content.append(left, right);
+
+  const whoYou = el("div", "who you", "❯ you");
+  const promptBox = el("div", "prompt-box");
+  const prompt = el("div", "prompt");
+  promptBox.append(prompt);
+  const whoModel = el("div", "who model", `⏺ ${esc(MODEL_LABEL)}`);
+  const replyBox = el("div", "reply-box");
+  const reply = el("div", "reply");
+  replyBox.append(reply);
+  left.append(whoYou, promptBox, whoModel, replyBox);
+
+  // prompt, one span per character so it can type in; `…` is inline code
+  const chars = [], promptMarks = [];
+  for (const [text, marked] of segments(ex.prompt)) {
+    const host = marked ? el("span", "m") : document.createDocumentFragment();
+    if (marked) promptMarks.push(host);
+    text.split(/(`[^`]*`)/).forEach(part => {
+      if (!part) return;
+      let target = host;
+      if (part.startsWith("`")) { target = el("span", "code-inline"); host.append(target); part = part.slice(1, -1); }
+      for (const c of part) {
+        if (c === "\n") { target.append(el("br")); continue; }
+        const s = el("span", "c"); s.textContent = c; target.append(s); chars.push(s);
+      }
+    });
+    prompt.append(host);
+  }
+
+  // reply, one span per word
+  const words = [], replyMarks = [];
+  for (const para of ex.reply) {
+    const p = el("p");
+    for (const [text, marked] of segments(para)) {
+      const host = marked ? el("span", "m") : p;
+      if (marked) replyMarks.push(host);
+      for (const tok of text.split(/(\s+)/)) {
+        if (!tok) continue;
+        if (/^\s+$/.test(tok)) { host.append(" "); continue; }
+        const w = el("span", "w"); w.textContent = tok; host.append(w); words.push(w);
+      }
+      if (marked) p.append(host);
+    }
+    reply.append(p);
+  }
+
+  // panel
+  const panelParts = buildPanel(right, ex.panel);
+
+  // fit text now that everything is in the DOM
+  fit(prompt, promptBox, 18, 30);
+  fit(reply, replyBox, 22, 40);
+  panelParts.fit();
+
+  // ── timeline
+  // prompt
+  fadeUp(whoYou, t, 500, 8);
+  t += 350;
+  const perChar = Math.min(26, 3600 / Math.max(chars.length, 1));
+  chars.forEach((c, i) => A(c, [{ opacity: 0 }, { opacity: 1 }], t + i * perChar, 60, "linear"));
+  t += chars.length * perChar + 300;
+  for (const m of promptMarks) {
+    const d = Math.max(500, Math.min(1100, m.textContent.length * 22));
+    A(m, [{ backgroundSize: "0% 3px", color: "#d6d0c4" }, { backgroundSize: "100% 3px", color: "#fff3e6" }], t, d, "ease-in-out");
+    t += d + 150;
+  }
+  t += 600;
+
+  // panel
+  t = panelParts.play(t);
+  t += 500;
+
+  // reply
+  fadeUp(whoModel, t, 500, 8);
+  A(panelParts.root, [{ opacity: 1 }, { opacity: .62 }], t, 900, "ease-out");
+  t += 350;
+  const perWord = Math.min(55, 3200 / Math.max(words.length, 1));
+  words.forEach((w, i) => A(w, [{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], t + i * perWord, 380));
+  const replyStart = t;
+  t += words.length * perWord + 400;
+  for (const m of replyMarks) {
+    const d = Math.max(600, Math.min(2200, m.textContent.length * 14));
+    A(m, [{ backgroundSize: "0% 3px", color: "#bdb7ab" }, { backgroundSize: "100% 3px", color: "#f6f1e7" }], t, d, "ease-in-out");
+    t += d + 250;
+  }
+  // hold long enough to read: ~3.3 words a second from the moment the reply starts
+  const readEnd = replyStart + words.length * 300 + 1500;
+  t = Math.max(t + 2600, readEnd);
+
+  // exit
+  fadeOut(content, t, 600);
+  A(bar, [{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], 0, t + 600, "linear");
+  return t + 700;
+}
+
+function buildPanel(right, spec) {
+  if (spec.kind === "cards") return buildCards(right, spec);
+  if (spec.kind === "fan") return buildFan(right, spec);
+  return buildCode(right, spec);
+}
+
+function buildCode(right, spec) {
+  const panel = el("div", "panel");
+  panel.innerHTML = `<div class="bar"><div class="dots"><i></i><i></i><i></i></div><div class="label"></div></div>`;
+  const label = panel.querySelector(".label");
+  const body = el("div", "body");
+  const stack = el("div", "stack");
+  body.append(stack); panel.append(body); right.append(panel);
+
+  const blocks = spec.blocks.map(b => {
+    const block = el("div", "block");
+    const lines = b.lines.map((raw, i) => {
+      const struck = raw.startsWith("~");
+      const text = struck ? raw.slice(1) : raw;
+      const ln = el("span", "ln", highlight(text) || " ");
+      ln.dataset.n = i + 1;
+      if (struck) ln.append(el("span", "strike"));
+      block.append(ln);
+      return { ln, struck };
+    });
+    const glows = wrapGlow(block, spec.glow);
+    stack.append(block);
+    const lab = el("span", null, esc(b.label)); label.append(lab);
+    return { block, lines, glows, lab };
+  });
+
+  return {
+    root: panel,
+    fit() {
+      // one size for all blocks so the swap does not jump
+      fit(stack, body, 12, spec.big ? 30 : 22);
+    },
+    play(t) {
+      A(panel, [{ opacity: 0, transform: "translateX(40px)" }, { opacity: 1, transform: "none" }], t, 700);
+      t += 300;
+      blocks.forEach((b, bi) => {
+        const last = bi === blocks.length - 1;
+        A(b.lab, [{ opacity: 0 }, { opacity: 1 }], t, 400);
+        A(b.block, [{ opacity: 1 }, { opacity: 1 }], t, 1);
+        const step = Math.min(110, 1600 / b.lines.length);
+        b.lines.forEach(({ ln }, i) => A(ln, [{ opacity: 0, transform: "translateX(-10px)" }, { opacity: 1, transform: "none" }], t + i * step, 420));
+        t += b.lines.length * step + 500;
+        b.glows.forEach((g, i) => A(g, [
+          { background: "#f0c67400", boxShadow: "0 0 0 0 #f0c67400" },
+          { background: "#f0c67455", boxShadow: "0 0 0 4px #f0c67455", offset: .4 },
+          { background: "#f0c67426", boxShadow: "0 0 0 2px #f0c67426" },
+        ], t + i * 380, 900));
+        if (b.glows.length) t += b.glows.length * 380 + 700;
+        if (!last) {
+          t += 1400;
+          const struck = b.lines.filter(l => l.struck);
+          struck.forEach((l, i) => {
+            A(l.ln.querySelector(".strike"), [{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], t + i * 160, 450);
+            A(l.ln, [{ opacity: 1 }, { opacity: .35 }], t + i * 160 + 250, 400);
+          });
+          t += struck.length * 160 + 1300;
+          fadeOut(b.block, t, 500);
+          fadeOut(b.lab, t, 400);
+          t += 550;
+        }
+      });
+      return t;
+    },
+  };
+}
+
+function buildCards(right, spec) {
+  const wrap = el("div", "cards");
+  const parts = spec.groups.map(g => {
+    const card = el("div", `card ${g.cls}`);
+    const h = el("h4", null, esc(g.title)); card.append(h);
+    const items = g.items.map(txt => {
+      const hot = txt.startsWith("!");
+      const it = el("div", "item" + (hot ? " hot" : ""), esc(hot ? txt.slice(1) : txt));
+      card.append(it); return it;
+    });
+    wrap.append(card);
+    return { h, items };
+  });
+  right.append(wrap);
+  return {
+    root: wrap,
+    fit() {},
+    play(t) {
+      A(wrap, [{ opacity: 1 }, { opacity: 1 }], t, 1);
+      for (const p of parts) {
+        fadeUp(p.h, t, 500, 8); t += 300;
+        p.items.forEach(it => { A(it, [{ opacity: 0, transform: "translateX(30px)" }, { opacity: 1, transform: "none" }], t, 550); t += 420; });
+        t += 500;
+      }
+      return t + 800;
+    },
+  };
+}
+
+function buildFan(right, spec) {
+  const fan = el("div", "fan");
+  right.append(fan);
+  const W = 784, H = 560;
+  const src = el("div", "node src", `<small>you write</small>${highlight(spec.source)}`);
+  src.style.left = "0px"; src.style.top = (H / 2 - 44) + "px";
+  fan.append(src);
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  fan.append(svg);
+  const n = spec.targets.length;
+  const targets = spec.targets.map(([name, verb], i) => {
+    const node = el("div", "node", `<small>${esc(verb)} it</small>${esc(name)}`);
+    const y = 30 + i * ((H - 120) / (n - 1));
+    node.style.right = "0px"; node.style.top = y + "px";
+    fan.append(node);
+    return { node, y };
+  });
+  const paths = [];
+  return {
+    root: fan,
+    fit() {
+      const sr = src.getBoundingClientRect(), fr = fan.getBoundingClientRect();
+      const scale = fr.width / fan.offsetWidth || 1;
+      const x0 = (sr.right - fr.left) / scale, y0 = (sr.top + sr.height / 2 - fr.top) / scale;
+      for (const t of targets) {
+        const r = t.node.getBoundingClientRect();
+        const x1 = (r.left - fr.left) / scale - 6, y1 = (r.top + r.height / 2 - fr.top) / scale;
+        const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        const mx = (x0 + x1) / 2;
+        p.setAttribute("d", `M${x0 + 6},${y0} C${mx},${y0} ${mx},${y1} ${x1},${y1}`);
+        p.setAttribute("pathLength", "1");
+        svg.append(p); paths.push(p);
+      }
+    },
+    play(t) {
+      A(fan, [{ opacity: 1 }, { opacity: 1 }], t, 1);
+      A(src, [{ opacity: 0, transform: "scale(.94)" }, { opacity: 1, transform: "none" }], t, 700);
+      t += 900;
+      paths.forEach((p, i) => {
+        A(p, [{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], t + i * 350, 800, "ease-in-out");
+        A(targets[i].node, [{ opacity: 0, transform: "translateX(16px)" }, { opacity: 1, transform: "none" }], t + i * 350 + 600, 500);
+      });
+      return t + paths.length * 350 + 1400;
+    },
+  };
+}
+
+// ── player ────────────────────────────────────────────────────────────────
+let held = [], cur = 0, paused = false, clock = 0, endAt = 0, last = performance.now();
+function clear() {
+  anims.splice(0).forEach(a => a.cancel());
+  $("content").innerHTML = "";
+  $("overlay").innerHTML = "";
+}
+function go(i) {
+  cur = Math.max(0, Math.min(SHOW.length - 1, i));
+  clear();
+  const seg = SHOW[cur];
+  const d = seg.kind === "intro" ? buildIntro() : seg.kind === "outro" ? buildOutro() : buildExchange(seg);
+  clock = 0; endAt = d;
+}
+function tick(now) {
+  const dt = now - last; last = now;
+  if (!paused) {
+    clock += dt * SPEED;
+    if (clock >= endAt && cur < SHOW.length - 1) go(cur + 1);
+  }
+  requestAnimationFrame(tick);
+}
+function setPaused(p) {
+  paused = p;
+  $("stage").classList.toggle("paused", p);
+  if (p) { held = anims.filter(a => a.playState === "running"); held.forEach(a => a.pause()); }
+  else { held.forEach(a => a.play()); held = []; }
+}
+addEventListener("keydown", e => {
+  if (e.key === " ") { e.preventDefault(); setPaused(!paused); }
+  else if (e.key === "ArrowRight") go(cur + 1);
+  else if (e.key === "ArrowLeft") go(cur - 1);
+  else if (e.key === "r" || e.key === "R") go(0);
+  else if (e.key === "h" || e.key === "H") $("hud").classList.toggle("off");
+});
+
+// fit the 1920×1080 stage into the window
+function scale() {
+  const s = Math.min(innerWidth / 1920, innerHeight / 1080);
+  $("stage").style.transform = `scale(${s})`;
+}
+addEventListener("resize", scale); scale();
+setTimeout(() => $("hud").classList.add("off"), 3500);
+
+const start = parseInt(params.get("scene") || "0", 10);
+document.fonts.ready.then(() => { go(start); requestAnimationFrame(t => { last = t; tick(t); }); });
+</script>
+</body>
+</html>

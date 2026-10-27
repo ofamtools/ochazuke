@@ -1,0 +1,1132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Design Exchanges</title>
+<style>
+:root{
+  --backdrop:#050607;
+  --bg:#0e1013;
+  --panel:#14171c;
+  --panel-bar:#1a1e24;
+  --rule:#2a3038;
+  --paper:#ece6da;
+  --soft:#a9a49a;
+  --faint:#6d6a64;
+  --you:#f2a07b;
+  --model:#9fe0b4;
+  --gold:#f0c674;
+  --c-com:#6f7a72;
+  --c-str:#e6c07b;
+  --c-kw:#d79ccf;
+  --c-fn:#8cc8f0;
+  --c-key:#9fe0b4;
+  --c-op:#f2a07b;
+  --c-num:#f0c674;
+  --mono:"SF Mono","SFMono-Regular",Menlo,Consolas,monospace;
+  --serif:"New York","Iowan Old Style",Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Avenir Next","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--backdrop);overflow:hidden}
+body{display:grid;place-items:center}
+.stage{width:1920px;height:1080px;position:relative;overflow:hidden;flex-shrink:0;background:var(--bg);color:var(--paper);font-family:var(--sans);transform-origin:center}
+.stage::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 70% 60% at 100% 0%,#1d2a2333,transparent 70%),radial-gradient(ellipse 60% 50% at 0% 100%,#2a1f1a33,transparent 70%)}
+
+/* chrome */
+.top{position:absolute;left:96px;right:96px;top:64px;height:64px;display:flex;align-items:flex-end;justify-content:space-between;gap:40px}
+.top .ch{display:flex;align-items:baseline;gap:22px;min-width:0}
+.top .num{font:500 20px var(--mono);color:var(--model);letter-spacing:2px}
+.top .title{font:400 40px/1.1 var(--serif);letter-spacing:-.5px;white-space:nowrap}
+.top .src{font:15px var(--mono);color:var(--faint);white-space:nowrap}
+.rule{position:absolute;left:96px;right:96px;top:150px;height:1px;background:var(--rule)}
+.progress{position:absolute;left:96px;right:96px;bottom:56px;display:flex;gap:8px}
+.progress i{flex:1;height:3px;background:var(--rule);border-radius:2px;overflow:hidden;position:relative}
+.progress i b{position:absolute;inset:0;background:var(--model);transform-origin:left;transform:scaleX(0)}
+.progress i.done b{transform:scaleX(1)}
+.brand{position:absolute;right:96px;bottom:22px;font:13px var(--mono);color:var(--faint);letter-spacing:3px;text-transform:uppercase}
+
+/* beats: each one is a layer filling the content area */
+.content{position:absolute;left:96px;right:96px;top:166px;bottom:96px}
+.layer{position:absolute;inset:0;opacity:0}
+
+/* thread */
+.thread-layer{display:grid;grid-template-columns:860px minmax(0,1fr);gap:72px}
+.viewport{position:relative;overflow:hidden;min-height:0;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 34px);mask-image:linear-gradient(to bottom,transparent 0,#000 34px)}
+.thread{position:absolute;left:0;right:0;top:0;padding-top:24px}
+.msg{margin-bottom:34px;opacity:0}
+.who{font:600 15px var(--mono);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px}
+.msg.you .who{color:var(--you)}
+.msg.model .who{color:var(--model)}
+.msg.you .text{font-size:27px;line-height:1.45;color:#d6d0c4;border-left:3px solid #f2a07b55;padding-left:22px}
+.msg.you .c{opacity:0}
+.msg.model .text{font-family:var(--serif);font-size:32px;line-height:1.36;letter-spacing:-.3px;color:#bdb7ab}
+.text p{margin:0 0 .55em}
+.text p:last-child{margin-bottom:0}
+.code-inline{font-family:var(--mono);font-size:.78em;color:var(--soft);display:inline-block;margin-top:.4em}
+.w{opacity:0;display:inline-block;white-space:pre}
+.m{background-image:linear-gradient(var(--model),var(--model));background-repeat:no-repeat;background-position:0 92%;background-size:0% 3px;padding-bottom:2px}
+.msg.you .m{background-image:linear-gradient(var(--you),var(--you))}
+.m .w{display:inline}
+
+.right{min-height:0;min-width:0;display:flex;flex-direction:column;gap:22px}
+.slot{display:grid;min-height:0;flex:0 1 auto;max-height:100%}
+.right.two .slot{flex:1 1 0}
+.slot>*{grid-area:1/1;align-self:start;max-height:100%;min-height:0}
+
+/* code panel */
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:14px;overflow:hidden;box-shadow:0 30px 80px #0006;opacity:0;display:flex;flex-direction:column}
+.bar{height:46px;flex-shrink:0;display:flex;align-items:center;gap:16px;padding:0 20px;background:var(--panel-bar);border-bottom:1px solid var(--rule);font:15px var(--mono);color:var(--soft)}
+.dots{display:flex;gap:8px}.dots i{width:11px;height:11px;border-radius:50%;background:#3a4048}
+.dots i:nth-child(1){background:#e0795f}.dots i:nth-child(2){background:#d8b45a}.dots i:nth-child(3){background:#6fbf84}
+.bar .label{position:relative;flex:1;height:20px}
+.bar .label span{position:absolute;left:0;top:0;white-space:nowrap}
+.body{position:relative;padding:20px 0 24px;overflow:hidden;flex:1;min-height:0}
+.stack{display:grid}
+.stack>.block{grid-area:1/1}
+.block{font-family:var(--mono);line-height:1.6;white-space:pre}
+.ln{display:block;position:relative;padding:0 26px 0 60px;opacity:0;border-radius:3px}
+.ln::before{content:attr(data-n);position:absolute;left:0;width:42px;text-align:right;color:#454b54;font-size:.8em;top:.12em}
+.ln .strike{position:absolute;left:54px;right:20px;top:52%;height:2px;background:var(--you);transform:scaleX(0);transform-origin:left}
+.com{color:var(--c-com);font-style:italic}.str{color:var(--c-str)}.kw{color:var(--c-kw)}.fn{color:var(--c-fn)}.key{color:var(--c-key)}.op{color:var(--c-op)}.num{color:var(--c-num)}
+.glow{border-radius:4px}
+
+/* split */
+.split-layer{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;align-content:center;padding-bottom:40px}
+.split-layer .panel{max-height:798px}
+
+/* cards */
+.cards{display:flex;flex-direction:column;gap:30px}
+.card h4{margin:0 0 14px;font:600 15px var(--mono);letter-spacing:3px;text-transform:uppercase;opacity:0}
+.card.good h4{color:var(--model)}.card.risk h4{color:var(--you)}
+.card .item{font-size:26px;line-height:1.3;padding:13px 20px;margin-bottom:10px;background:var(--panel);border:1px solid var(--rule);border-left:4px solid var(--model);border-radius:8px;opacity:0}
+.card.risk .item{border-left-color:var(--you)}
+.card .item.hot{border-color:#9fe0b466;border-left-color:var(--model);background:#16201b}
+
+/* quote */
+.quote-layer{display:flex;flex-direction:column;justify-content:center;padding:0 64px 40px}
+.quote-layer .who{color:var(--model);margin-bottom:34px}
+.quote-layer .big{font:400 96px/1.12 var(--serif);letter-spacing:-2.5px;color:var(--paper);max-width:1560px}
+.quote-layer .big .m{background-size:0% 6px;background-position:0 94%}
+.quote-layer .lead{color:#bdb7ab}
+
+/* readers */
+.readers{position:absolute;left:0;right:0;top:0;height:610px}
+.readers svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.readers path{fill:none;stroke:#9fe0b4;stroke-width:2;stroke-dasharray:1;stroke-dashoffset:1;opacity:.6}
+.dot{position:absolute;left:0;top:0;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--model);box-shadow:0 0 14px var(--model);opacity:0;offset-rotate:0deg}
+.src-card{position:absolute;left:0;width:540px;background:var(--panel);border:1px solid var(--model);border-radius:14px;box-shadow:0 0 60px #9fe0b41a;opacity:0;overflow:hidden}
+.src-card .bar{color:var(--model)}
+.src-card .code{padding:18px 22px;font:19px/1.6 var(--mono);white-space:pre}
+.reader{position:absolute;left:780px;right:0;height:104px;background:var(--panel);border:1px solid var(--rule);border-radius:10px;opacity:0;overflow:hidden}
+.reader .rbar{height:32px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:var(--panel-bar);border-bottom:1px solid var(--rule);font:13px var(--mono);color:var(--soft)}
+.reader .rbar b{font-weight:500;color:var(--paper)}
+.reader .rbar span{color:var(--model);letter-spacing:2px;text-transform:uppercase}
+.reader .rbody{padding:9px 16px;font:18px/1.6 var(--mono);white-space:pre}
+.faint{color:var(--faint)}
+.chip{padding:1px 8px;border-radius:4px;background:#2a3038}
+.caption{position:absolute;left:0;right:0;top:640px;font-family:var(--serif);font-size:34px;line-height:1.38;color:#bdb7ab;letter-spacing:-.3px}
+
+/* overlays */
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:0 160px;background:var(--bg);opacity:0;pointer-events:none}
+.overlay .big{font:400 180px/1 var(--serif);color:var(--model);letter-spacing:-6px;margin-bottom:10px}
+.overlay .head{font:400 88px/1.08 var(--serif);letter-spacing:-2px;max-width:1500px}
+.overlay .sub{font:20px var(--mono);color:var(--faint);margin-top:34px;letter-spacing:1px}
+.overlay .kicker{font:600 18px var(--mono);color:var(--model);letter-spacing:5px;text-transform:uppercase;margin-bottom:28px}
+.overlay .line{height:2px;width:0;background:var(--model);margin:40px 0 0}
+.overlay .head .m{background-size:0% 5px;background-position:0 94%}
+.overlay .opener{font:400 66px/1.3 var(--sans);color:#e8e1d4;max-width:1500px;letter-spacing:-.5px}
+.overlay .opener .c{opacity:0}
+.overlay .opener-who{font:600 20px var(--mono);color:var(--you);letter-spacing:4px;text-transform:uppercase;margin-bottom:30px}
+.caret{display:inline-block;width:.5em;height:1em;background:var(--you);vertical-align:-.12em;margin-left:4px}
+
+.hud{position:absolute;right:20px;top:16px;font:13px var(--mono);color:var(--faint);background:#000a;padding:8px 12px;border-radius:6px;transition:opacity .4s;z-index:10}
+.hud.off{opacity:0}
+.tc{position:absolute;left:20px;top:16px;font:13px var(--mono);color:var(--gold);background:#000a;padding:8px 12px;border-radius:6px;z-index:10;opacity:0;transition:opacity .3s}
+.tc.on,.paused .tc{opacity:1}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="top" id="top"><div class="ch"><span class="num" id="tnum"></span><span class="title" id="ttitle"></span></div><span class="src" id="tsrc"></span></div>
+  <div class="rule" id="trule"></div>
+  <div class="content" id="content"></div>
+  <div class="progress" id="progress"></div>
+  <div class="brand">ochazuke · design log</div>
+  <div class="overlay" id="overlay"></div>
+  <div class="hud" id="hud">space pause · ← → step · shift ← → chapter · , . 1s · &lt; &gt; 5s · home chapter start · r restart · h hide</div>
+  <div class="tc" id="tc"></div>
+</div>
+<script>
+// ── config ────────────────────────────────────────────────────────────────
+const MODEL_LABEL = "Claude";
+const OPENER = "i've always wanted to build a reusable library for modal input...";
+const params = new URLSearchParams(location.search);
+const SPEED = parseFloat(params.get("speed") || "1");
+
+// ── script ────────────────────────────────────────────────────────────────
+// Text: [[…]] is a caret-underlined passage, `…` is inline code, "…" marks a cut.
+// Code lines: a leading "~" is struck out before the next block replaces it;
+// "@N|" puts the line in glow group N (groups light up together across panels).
+const TODAY = [
+  "// model.go dispatchKey: four routers in a fixed order, then the loop you described",
+  "if (macroRecording) record(key)",
+  "~@1|if (macroPending || stopKey)   return macroGrammar(key)       // router 1: Go switch",
+  "~@1|if (paletteActive)             return paletteGrammar(key)     // router 2: Go switch",
+  "~@1|if (paste)                     return editorGrammar(key)      // router 3",
+  "~@1|if (editorPending || count)    return editorGrammar(key)      // router 4: Go switch",
+  "if (handleBinding(key))        return                         // ← your loop",
+  "~@1|if (key == \"esc\" && modal && normal) pop()                    // hard-coded",
+  "~@1|return editorGrammar(key)                                     // fallthrough",
+];
+const AFTER = [
+  "// resolve.go: one loop, no routers, because grammars became nouns",
+  "seq = pending ? pending + \" \" + key : key",
+  "for (inst of stack(focus)) {                   // item, component, page, app",
+  "  noun = nouns[inst.noun]",
+  "  for (b of [...noun.bindings[state], ...noun.bindings[\"*\"]]) {",
+  "    if (b.keys == seq)                 return execute(b.request, inst)",
+  "    if (b.keys.startsWith(seq + \" \"))  longer = true",
+  "  }",
+  "@1|  if (noun.grammar?.(seq, state, inst)) return   // editor, palette, terminal, macro",
+  "}",
+  "if (longer) { pending = seq; armTimeout() }",
+  "else if (pending) { pending = \"\"; innermostGrammar(seq) }",
+];
+const DEFINE_JS = [
+  "define(\"worktree\", {",
+  "  verbs: {",
+  "    open:   app.openWorktree,",
+  "    remove: { run: app.removeWorktree, confirm: \"Remove worktree {{id}}?\" },",
+  "    star:   app.star,",
+  "  },",
+  "  bindings: {",
+  "    normal: { o: \"open\", x: \"remove\", s: \"star\" },",
+  "  },",
+  "})",
+];
+
+const CHAPTERS = [
+{
+  title: "The dynamic keyboard model",
+  src: "cannot-with-markers.txt:3030-3090",
+  beats: [{ type: "thread", messages: [
+    { who: "you", text: "how will the old/new code for keyboard compare to each other. i always imagined it would be very simple. a small register for in-progress sequence mappings, get the bindings for current mode, see if there's a binding for either the new sequence or the key pressed … and based on the action for a match, trigger it with all the [[context/state. it should be almost completely dynamic]]" },
+    { who: "model", text: [
+      "Your mental model is already most of HandleBinding today. What makes the current code bigger is everything wrapped around it…",
+      "…enabling a noun, rebinding a key, or changing state alters the next lookup with no code path involved, and [[list.bindings prints the same table the loop reads.]]",
+    ], code: { blocks: [
+      { label: "today · model.go dispatchKey", lines: TODAY },
+      { label: "after phase 5 · resolve.go", lines: AFTER },
+    ]}},
+  ]}],
+},
+{
+  title: "Replacing conditionals with modes",
+  src: "my-modal-binding-design.txt:3208-3298",
+  beats: [
+    { type: "split", panels: [
+      { label: "today · model.go dispatchKey", lines: TODAY },
+      { label: "after phase 5 · resolve.go", lines: AFTER },
+    ]},
+    { type: "thread", messages: [
+      { who: "you", text: "you see in both versions of the dispatchKey or key->action handler/mapper i think for the first one, at least, can completely eliminate those conditionals/guards.\n\n[[how? by using modes.]]\n`key: q -> Handler == AppOrGlobalState.mode = 'macro_pending'\nkey: (macro_pending) ctrl+c -> Handler == AppOrGlobalState.mode = 'normal'\nkey: (macro_recording mode) not(q) -> Handler { macro.append(key) }`",
+        code: { blocks: [{ label: "today · model.go dispatchKey", lines: TODAY }], glowAfter: true } },
+      { who: "model", text: [
+        "[[Yes. That is the Vim model taken to its conclusion: every \"pending\" condition is a mode with its own keymap, and the guards vanish because the lookup key includes the mode.]]",
+        "[[Every conditional in dispatchKey became a row.]] Even the sequence register is gone: g g is the g binding inside g_pending…",
+      ], code: { blocks: [{ label: "today's first router, as mode tables", lines: [
+        "modes = {",
+        "  normal: {",
+        "    \"q\":      set.mode(\"macro_pending\"),",
+        "    digit:    count.append,                    // class match",
+        "    \"d\":      set.mode(\"operator_pending\", { op: \"delete\" }),",
+        "    \"g\":      set.mode(\"g_pending\"),",
+        "  },",
+        "  macro_pending: {",
+        "    alpha:    macro.start({ register: key }),  // → mode \"macro_recording\"",
+        "    \"ctrl+c\": set.mode(\"normal\"),",
+        "    any:      set.mode(\"normal\"),              // unknown key cancels",
+        "  },",
+        "  g_pending: { \"g\": move(\"first-line\"), any: set.mode(\"normal\") },",
+        "}",
+        "",
+        "dispatch(key) = (modes[mode][key] ?? modes[mode][classOf(key)] ?? modes[mode].any)(key, state)",
+      ]}]}},
+    ]},
+  ],
+},
+{
+  title: "Shadow mode keeps one mechanism",
+  src: "my-modal-binding-design.txt:3169-3396",
+  beats: [{ type: "thread", messages: [
+    { who: "model", text: [
+      "…The one thing that is not a plain mode: recording. In macro_recording keys must still do what they do, and also be appended. If recording replaced the keymap, j would stop moving. So recording is an overlay mode: it observes the key, appends it, then lets the resolution continue into the underlying mode.",
+    ], code: { blocks: [{ label: "two kinds of mode", lines: [
+      "exclusive mode:  replaces the keymap",
+      "                 // normal, insert, operator_pending, macro_pending",
+      "",
+      "overlay mode:    sees every key, then passes it",
+      "                 // macro_recording, leader_pending for the terminal pane",
+    ]}]}},
+    { who: "you", text: "i didn't think about the macro_recording...but it can be a plain mode...if we can override state...\n`() { record_key(key); typeKey(key, state, override: mode => normal) }`" },
+    { who: "model", text: [
+      "That works, and it keeps one mechanism. The detail that makes it hold is the override target: it is not always normal.",
+      "…macro_recording is an ordinary exclusive mode whose any handler happens to re-dispatch with a different mode. [[The resolver stays lookup(mode, key),]] and the only state that exists is the mode name and its payload.",
+    ], code: { glow: ["shadow"], blocks: [{ label: "macro_recording, a plain mode", lines: [
+      "state.mode = { name: \"macro_recording\", register: \"a\",",
+      "               shadow: { name: \"insert\" } }",
+      "",
+      "modes.macro_recording = {",
+      "  any: (key, state) => {",
+      "    macro.append(key)",
+      "    next = dispatch(key, { ...state, mode: state.mode.shadow })",
+      "    state.mode.shadow = next.mode   // insert → normal, g_pending …",
+      "  },",
+      "  \"q\": stop only when shadow is normal with no payload",
+      "}",
+    ]}]}},
+    { who: "you", text: "i love the shadow mode idea. do you think this is a better design?" },
+    { who: "model", text: [
+      "Yes, and by a clear margin over what phase 5 of the plan says today.",
+      "[[What the shadow design does. It removes the escape hatch. Every pending condition is a mode with a payload, every key goes through lookup(mode, key) with exact, class, any precedence, and handlers only mutate state or run operations. There is no second kind of thing.]]",
+      "…[[Adding the terminal pane, or znbu's : command input, adds tables, not routers.]]",
+    ], code: { big: true, blocks: [{ label: "the entire resolver", lines: [
+      "// the entire resolver",
+      "stack(focus).forEach(inst =>",
+      "  table = nouns[inst.noun].bindings[state.mode.name]",
+      "  hit   = table[key] ?? table[classOf(key)] ?? table.any",
+      "  if (hit) return hit(key, state, inst))",
+    ]}]}},
+  ]}],
+},
+{
+  title: "The target is captured as data",
+  src: "fucking-right.txt:3843-3946",
+  beats: [{ type: "thread", messages: [
+    { who: "model", text: [
+      "No. Read r.Noun(\"confirm\") as a declaration: \"define the kind of thing called confirm\". Nothing is triggered.",
+      "…Confirmation declared on the verb. The handler never knows about modals.",
+    ], code: { blocks: [{ label: "go · confirmation as a property of the verb", lines: [
+      "r.Noun(\"worktree\").",
+      "    Verb(\"remove\", app.RemoveWorktree).Confirm(\"Remove worktree {{id}}?\")",
+      "",
+      "r.Noun(\"confirm\").                          // define the kind \"confirm\" (a modal kind)",
+      "    Mode(\"normal\").                         //   when an instance of it is focused …",
+      "    Bind(\"y\", Run(FromPayload(\"request\"))). //   y runs the request stored in its payload",
+      "    Bind(\"n\", Do(\"pop.modal\"))              //   n closes the modal",
+    ]}]}},
+    { who: "you", text: "what confuses me is the first know calls remove on a worktree....how does it know it's not removing a worktree that shouldn't be removd?" },
+    { who: "model", text: [
+      "[[It knows because the target is captured as data at the moment you press the key, and carried along explicitly. Nothing later asks \"what is focused now\".]]",
+      "…The thing the framework deliberately does not do is let a binding run against an implicit \"current\" object. Every request that reaches a handler names its target…",
+    ], code: { glow: ["wt-main"], blocks: [{ label: "x → confirm → y", lines: [
+      "// 1. focus is on a row; the key resolves through that row's noun",
+      "focus = { id: \"wt-main\", noun: \"worktree\" }",
+      "press \"x\"  →  Request{ verb: \"remove\", target: \"wt-main\" }",
+      "",
+      "// 2. the confirm instance holds that exact request",
+      "modal = { noun: \"confirm\", parent: \"wt-main\",",
+      "          payload: { prompt: \"Remove worktree wt-main?\",",
+      "                     request: { verb: \"remove\", target: \"wt-main\",",
+      "                                args: { confirmed: true } } } }",
+      "",
+      "// 3. y runs the stored request, not \"remove whatever is focused\"",
+      "press \"y\"  →  Run(payload.request)  →  RemoveWorktree(ctx{ Instance: wt-main })",
+    ]}]}},
+  ]}],
+},
+{
+  title: "The data shape is the design",
+  src: "fucking-right.txt:3667-3998",
+  beats: [{ type: "thread", messages: [
+    { who: "model", text: [
+      "…I would pick Define, because the two sentences an author writes are then literally \"define worktree: its verbs, its keys\" and \"open a confirm for this worktree\".",
+    ], code: { blocks: [{ label: "go · the usage sketch, as a Define chain", lines: [
+      "r.Define(\"worktree\").",
+      "    Verb(\"open\",   app.OpenWorktree).",
+      "    Verb(\"remove\", app.RemoveWorktree).Confirm(\"Remove worktree {{id}}?\").",
+      "    Verb(\"star\",   app.Star).",
+      "    Mode(\"normal\").Bind(\"o\", Do(\"open\")).Bind(\"x\", Do(\"remove\")).Bind(\"s\", Do(\"star\"))",
+      "",
+      "page    := r.Page(\"panes\", \"Panes\", Noun(\"panes-page\"), render)",
+      "sidebar := r.List(\"sidebar\", Parent(page))",
+      "",
+      "sidebar.SetItems([]ochazuke.Item{",
+      "    {ID: \"repo-1\",  Noun: \"repo\",     Label: \"ochazuke\"},",
+      "    {ID: \"wt-main\", Noun: \"worktree\", Label: \"main\"},",
+      "})",
+    ]}]}},
+    { who: "you", text: "i will take your word for it....i think part of the confusion is i'm not typically a go developer" },
+    { who: "model", text: [
+      "That makes sense, and it is a fair reason. Go's builder chains and ctx-first handlers hide the shape. The same declarations in the JS-style you prefer:",
+      "…The Go will be the implementation detail. [[The data shape is the design, and it reads the same in either language.]]",
+    ], code: { blocks: [{ label: "the same declarations, JS-style", lines: [
+      ...DEFINE_JS,
+      "",
+      "// handlers always receive the thing they act on, never look it up",
+      "app.removeWorktree = ({ instance, args }) => {",
+      "  if (instance.id === \"wt-main\") return fail(\"main worktree cannot be removed\")",
+      "  return git.removeWorktree(instance.id)",
+      "}",
+      "",
+      "page    = addPage(\"panes\", { noun: \"panes-page\" })",
+      "sidebar = addList(\"sidebar\", { parent: page })",
+      "sidebar.setItems([",
+      "  { id: \"repo-1\",  noun: \"repo\" },",
+      "  { id: \"wt-main\", noun: \"worktree\" },",
+      "])",
+    ]}]}},
+  ]}],
+},
+{
+  title: "Clean because it is just data",
+  src: "fucking-right.txt:3999-4001",
+  beats: [
+    { type: "thread", messages: [
+      { who: "you", text: "the define() is beautiful...so clean", code: { big: true, blocks: [{ label: "define()", lines: DEFINE_JS }] } },
+    ]},
+    { type: "quote", text: "[[It is clean because it is just data.]]" },
+  ],
+},
+{
+  title: "One shape, every reader",
+  src: "fucking-right.txt:3999-4009",
+  beats: [
+    { type: "readers" },
+    { type: "quote", text: "<span class=\"lead\">If a future need cannot be expressed as a mode table row,</span> [[the answer is a new mode, not a hook.]]", small: true },
+  ],
+},
+{
+  title: "Why inspectable data gives better odds",
+  src: "cannot-with-markers.txt:5509-5571",
+  beats: [{ type: "thread", messages: [
+    { who: "you", text: "ok, and defining a binding in code in one each of those r.Define lines, right?" },
+    { who: "model", text: [
+      "Close. One r.Define per noun, then one Bind per binding inside it, grouped by mode. From the phase 5 code as it landed…",
+      "So the shape is three levels, which is exactly the config row.",
+    ], code: { blocks: [{ label: "phase 5, as it landed", lines: [
+      "r.Define(\"list\").Mode(\"normal\").           // the noun, then a mode table",
+      "    Bind(\"j\", Do(\"move.list\", Arguments{\"delta\": 1})).",
+      "    Bind(\"k\", Do(\"move.list\", Arguments{\"delta\": -1}))",
+      "",
+      "r.Define(\"palette\").Mode(\"\").              // \"\" is the any-state table",
+      "    Bind(\"j\", Do(\"move.palette\", Arguments{\"delta\": 1})).When(\"self\")",
+      "",
+      "// the config row",
+      "{ noun: \"list\", mode: \"normal\", keys: \"j\",",
+      "  request: { verb: \"move\", noun: \"list\", args: { delta: 1 } } }",
+    ]}]}},
+    { who: "you", text: "oh...got it. i'm actually excited. do you think it will be successful?" },
+    { who: "model", text: [
+      "Better odds than the two attempts before it, and for reasons I can point at rather than hope.",
+      "[[The design is data. Nouns, modes, rows and payloads are things you can print, diff and test as tables. The previous attempts' key handling was control flow, which is why it grew switches in the shell.]]",
+      "…you will have a [[Bubble Tea app framework where the whole interaction model is inspectable data, which is not something that exists today.]]",
+    ], cards: [
+      { cls: "good", title: "What is different this time", items: [
+        "The behavior lock exists.", "!The design is data.", "Every phase has shipped green, reviewed and pushed.", "You understood every decision well enough to correct them.",
+      ]},
+      { cls: "risk", title: "What could still sink it", items: [
+        "Scope.", "No consumer for too long.", "The editor tables need a hook after all.",
+      ]},
+    ]},
+  ]}],
+},
+{
+  title: "Checker, sandbox and designer become possible",
+  src: "cannot-with-markers.txt:5596-5651 · TODO.md @ 01bd453",
+  beats: [{ type: "thread", messages: [
+    { who: "you", text: "have you read the the to-do md? because do you think that the binding verifier tool or like the full end the full spectrum like binding utility will be a possible and b useful",
+      code: { lang: "md", blocks: [{ label: "TODO.md", lines: [
+        "- [ ] Build tools that should be shipped or available thru the repo and whose",
+        "      code should be in the repo.",
+        "@1|  - binding checker - will go into details in a diff file",
+        "@1|    - checks for modes that don't have a binding to leave the mode, or that can",
+        "@1|      get back to normal mode",
+        "@2|    - where layers overlap other keys",
+        "@3|  - binding sandbox/tester - could maybe be rolled into a full-featured binding",
+        "@3|    utility",
+        "@3|  - binding/config designer - load a list of actions, and maybe layers (idk) and",
+        "@3|    just go to town customizing it",
+        "",
+        "@4|- [ ] define actions via config to call a cli's json/api version of an action",
+      ]}]}},
+    { who: "model", text: [
+      "Read it now. The three binding items in that TODO were hard before phase 5 and [[are close to free after it, because the whole interaction model is data now.]]",
+      "[[Binding checker: possible, and it is a graph problem. Every mode table is a set of rows, and every row that calls set.mode or enter is an edge.]]",
+      "…Sandbox and designer: the same tool. … Building the CSV grid first gives you the designer for almost nothing.",
+      "…[[That makes any CLI a noun with no Go.]]",
+    ], links: true, code: { slot: 1, blocks: [{ label: "the checks, over the Define data", lines: [
+      "checks = {",
+      "@1|  trapped:     modes with no path back to \"normal\",            // your first bullet",
+      "@1|  noExit:      modes with no row for esc and no `any` fallback,",
+      "@2|  shadowed:    same key bound at two stack levels, inner wins,  // your \"layers overlap\" bullet",
+      "  prefixClash: \"g\" bound and \"g g\" bound in the same table,",
+      "  dangling:    rows naming an operation or mode that is not registered,",
+      "  unreachable: modes no row ever enters,",
+      "}",
+      "",
+      "@3|define(\"bindings\", { verbs: { list, check, set, unset, sandbox, export, import } })",
+      "",
+      "@4|{ verb, noun, exec: \"base noun verb --json {{args}}\" }",
+    ]}]}},
+  ]}],
+},
+];
+
+// the readers beat: one define() object, five places that read it
+const READERS = {
+  source: [
+    "define(\"worktree\", {",
+    "  verbs: {",
+    "    remove: { run: app.removeWorktree,",
+    "              confirm: \"Remove worktree {{id}}?\" },",
+    "  },",
+    "  bindings: {",
+    "    normal: { x: \"remove\" },",
+    "  },",
+    "})",
+  ],
+  targets: [
+    { name: "bindings.json", verb: "the config file uses it", lines: ["{ \"noun\": \"worktree\", \"mode\": \"normal\", \"keys\": \"x\", \"request\": \"worktree.remove\" }"] },
+    { name: "ochazuke bindings list", verb: "list.bindings prints it", lines: ["<faint>KEY  OPERATION          NOUN</faint>", "x    worktree.remove    worktree"] },
+    { name: "palette", verb: "the palette reads it", lines: [": worktree re▏", "  <chip>remove</chip>  open  star"] },
+    { name: "? help", verb: "help reads it", lines: ["<faint>worktree</faint>", "x    worktree.remove    Remove worktree {{id}}?"] },
+    { name: "shell", verb: "the CLI runs it", lines: ["$ ochazuke worktree remove --target wt-main", "<faint>Remove worktree wt-main? [y/N]</faint>"] },
+  ],
+  glow: ["\\bx\\b", "\\bremove\\b"],
+  caption: "[[That one object is the same shape the config file uses, the same shape list.bindings prints, and the same shape the palette and help read. There is nothing in it the framework has to interpret specially.]]",
+};
+
+// ── helpers ───────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const EASE = "cubic-bezier(.2,.7,.2,1)";
+const anims = [];
+let marks = [];   // seek points in the current segment (ms)
+const mark = t => marks.push(t);
+let seen = new WeakSet();
+// Every animation is created up front with a delay and held paused; the
+// player sets their time from its own clock, so seeking is exact. Only the
+// first one on a node fills backwards; later ones fill forwards, so they
+// cannot override the earlier ones before they start.
+function A(node, frames, delay, duration, easing = EASE) {
+  const fill = seen.has(node) ? "forwards" : "both";
+  seen.add(node);
+  const a = node.animate(frames, { delay, duration, easing, fill });
+  a.pause();
+  a.currentTime = 0;
+  anims.push(a);
+  return a;
+}
+const fadeIn = (n, t, d = 500) => A(n, [{ opacity: 0 }, { opacity: 1 }], t, d, "ease-out");
+const fadeUp = (n, t, d = 600, dy = 18) => A(n, [{ opacity: 0, transform: `translateY(${dy}px)` }, { opacity: 1, transform: "none" }], t, d);
+const fadeOut = (n, t, d = 500) => A(n, [{ opacity: 1 }, { opacity: 0 }], t, d, "ease-in");
+const underline = (m, t, d, px = 3, from = null, to = null) => {
+  const f0 = { backgroundSize: `0% ${px}px` }, f1 = { backgroundSize: `100% ${px}px` };
+  if (from) { f0.color = from; f1.color = to; }
+  return A(m, [f0, f1], t, d, "ease-in-out");
+};
+
+function segments(text) {
+  const out = []; const re = /\[\[([\s\S]*?)\]\]/g; let i = 0, m;
+  while ((m = re.exec(text))) { if (m.index > i) out.push([text.slice(i, m.index), false]); out.push([m[1], true]); i = re.lastIndex; }
+  if (i < text.length) out.push([text.slice(i), false]);
+  return out;
+}
+
+const TOK = /(\/\/.*$)|("(?:[^"\\]|\\.)*"|`[^`]*`)|(\b(?:return|if|else|for|of|const|let|func)\b)|([A-Za-z_][\w.]*(?=\())|([A-Za-z_]\w*(?=\s*:(?![:=])))|(→|=>|\?\?|===|==|:=|\.\.\.)|(\b\d+\b)/g;
+const CLS = [null, "com", "str", "kw", "fn", "key", "op", "num"];
+function highlight(line, lang) {
+  if (lang === "md") return esc(line).replace(/^(\s*)(- \[ \]|-)/, '$1<span class="op">$2</span>');
+  let out = "", i = 0, m;
+  TOK.lastIndex = 0;
+  while ((m = TOK.exec(line))) {
+    out += esc(line.slice(i, m.index));
+    const g = m.slice(1).findIndex(x => x !== undefined) + 1;
+    out += `<span class="${CLS[g]}">${esc(m[0])}</span>`;
+    i = TOK.lastIndex;
+    if (m[0].length === 0) TOK.lastIndex++;
+  }
+  return out + esc(line.slice(i));
+}
+// wraps regex matches in text nodes with span.glow
+function wrapGlow(root, sources) {
+  if (!sources || !sources.length) return [];
+  const found = [];
+  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = []; while (walk.nextNode()) nodes.push(walk.currentNode);
+  const re = new RegExp(sources.join("|"), "g");
+  for (const n of nodes) {
+    const t = n.nodeValue; re.lastIndex = 0; if (!re.test(t)) continue; re.lastIndex = 0;
+    const frag = document.createDocumentFragment(); let i = 0, m;
+    while ((m = re.exec(t))) {
+      frag.append(t.slice(i, m.index));
+      const s = el("span", "glow"); s.textContent = m[0]; frag.append(s); found.push(s);
+      i = re.lastIndex;
+    }
+    frag.append(t.slice(i)); n.replaceWith(frag);
+  }
+  return found;
+}
+const pulse = (g, t) => A(g, [
+  { background: "#f0c67400", boxShadow: "0 0 0 0 #f0c67400" },
+  { background: "#f0c67455", boxShadow: "0 0 0 4px #f0c67455", offset: .4 },
+  { background: "#f0c67426", boxShadow: "0 0 0 2px #f0c67426" },
+], t, 900);
+// largest font size in [min,max] at which node fits inside box
+function fit(node, box, min, max) {
+  let lo = min, hi = max;
+  while (hi - lo > 0.5) {
+    const mid = (lo + hi) / 2; node.style.fontSize = mid + "px";
+    (box.scrollHeight <= box.clientHeight + 1 && box.scrollWidth <= box.clientWidth + 1) ? lo = mid : hi = mid;
+  }
+  node.style.fontSize = lo + "px";
+  return lo;
+}
+// shrink node's font until node is at most maxH tall
+function fitHeight(node, maxH, start, min) {
+  let s = start; node.style.fontSize = s + "px";
+  while (node.offsetHeight > maxH && s > min) { s -= 1; node.style.fontSize = s + "px"; }
+}
+
+// text with marks: words become spans (you: characters), marks become .m
+function renderText(host, text, perChar) {
+  const units = [], marks = [];
+  const paras = Array.isArray(text) ? text : [text];
+  for (const para of paras) {
+    const p = el("p");
+    for (const [chunk, marked] of segments(para)) {
+      const holder = marked ? el("span", "m") : p;
+      if (marked) { marks.push(holder); p.append(holder); }
+      chunk.split(/(`[^`]*`)/).forEach(part => {
+        if (!part) return;
+        let target = holder;
+        if (part.startsWith("`")) { target = el("span", "code-inline"); holder.append(target); part = part.slice(1, -1); }
+        if (perChar) {
+          for (const c of part) {
+            if (c === "\n") { target.append(el("br")); continue; }
+            const s = el("span", "c"); s.textContent = c; target.append(s); units.push(s);
+          }
+        } else {
+          for (const tok of part.split(/(\s+)/)) {
+            if (!tok) continue;
+            if (/^\s+$/.test(tok)) { target.append(" "); continue; }
+            const w = el("span", "w"); w.textContent = tok; target.append(w); units.push(w);
+          }
+        }
+      });
+    }
+    host.append(p);
+  }
+  return { units, marks };
+}
+
+// ── code panel ────────────────────────────────────────────────────────────
+function buildCode(host, spec) {
+  const panel = el("div", "panel");
+  panel.innerHTML = `<div class="bar"><div class="dots"><i></i><i></i><i></i></div><div class="label"></div></div>`;
+  const label = panel.querySelector(".label");
+  const body = el("div", "body");
+  const stack = el("div", "stack");
+  body.append(stack); panel.append(body); host.append(panel);
+
+  const groups = {};
+  const blocks = spec.blocks.map(b => {
+    const block = el("div", "block");
+    const lines = b.lines.map((raw, i) => {
+      const [, strike, group, text] = raw.match(/^(~)?(?:@(\d)\|)?([\s\S]*)$/);
+      const ln = el("span", "ln", highlight(text, spec.lang) || " ");
+      ln.dataset.n = i + 1;
+      if (strike) ln.append(el("span", "strike"));
+      if (group) (groups[group] ||= []).push(ln);
+      block.append(ln);
+      return { ln, struck: !!strike };
+    });
+    const glows = wrapGlow(block, spec.glow);
+    stack.append(block);
+    const lab = el("span", null, esc(b.label)); label.append(lab);
+    return { block, lines, glows, lab };
+  });
+  const multi = blocks.length > 1;
+
+  return {
+    root: panel, groups, lineCount: blocks.reduce((n, b) => n + b.lines.length, 0),
+    fit() { fit(stack, body, 11, spec.big ? 30 : 22); },
+    play(t) {
+      A(panel, [{ opacity: 0, transform: "translateX(40px)" }, { opacity: 1, transform: "none" }], t, 700);
+      t += 300;
+      blocks.forEach((b, bi) => {
+        const last = bi === blocks.length - 1;
+        fadeIn(b.lab, t, 400);
+        if (multi) A(b.block, [{ opacity: 1 }, { opacity: 1 }], t, 1);
+        const step = Math.min(110, 1600 / b.lines.length);
+        b.lines.forEach(({ ln }, i) => A(ln, [{ opacity: 0, transform: "translateX(-10px)" }, { opacity: 1, transform: "none" }], t + i * step, 420));
+        t += b.lines.length * step + 500;
+        b.glows.forEach((g, i) => pulse(g, t + i * 380));
+        if (b.glows.length) t += b.glows.length * 380 + 700;
+        if (!last) {
+          t += 1400;
+          const struck = b.lines.filter(l => l.struck);
+          struck.forEach((l, i) => {
+            A(l.ln.querySelector(".strike"), [{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], t + i * 160, 450);
+            A(l.ln, [{ opacity: 1 }, { opacity: .35 }], t + i * 160 + 250, 400);
+          });
+          t += struck.length * 160 + 1300;
+          fadeOut(b.block, t, 500);
+          fadeOut(b.lab, t, 400);
+          t += 550;
+        }
+      });
+      return t;
+    },
+  };
+}
+
+function buildCards(host, groupsSpec) {
+  const wrap = el("div", "cards");
+  wrap.style.opacity = 0;
+  const parts = groupsSpec.map(g => {
+    const card = el("div", `card ${g.cls}`);
+    const h = el("h4", null, esc(g.title)); card.append(h);
+    const items = g.items.map(txt => {
+      const hot = txt.startsWith("!");
+      const it = el("div", "item" + (hot ? " hot" : ""), esc(hot ? txt.slice(1) : txt));
+      card.append(it); return it;
+    });
+    wrap.append(card);
+    return { h, items };
+  });
+  host.append(wrap);
+  return {
+    root: wrap, groups: {}, lineCount: 7,
+    fit() {},
+    play(t) {
+      fadeIn(wrap, t, 300);
+      for (const p of parts) {
+        fadeUp(p.h, t, 500, 8); t += 300;
+        p.items.forEach(it => { A(it, [{ opacity: 0, transform: "translateX(30px)" }, { opacity: 1, transform: "none" }], t, 550); t += 420; });
+        t += 500;
+      }
+      return t + 600;
+    },
+  };
+}
+
+// lights up glow group k across panels: each line warms, then settles
+function glowGroup(lines, t) {
+  lines.forEach(ln => A(ln, [
+    { backgroundColor: "#f0c67400" },
+    { backgroundColor: "#f0c67440", offset: .3 },
+    { backgroundColor: "#f0c6741c" },
+  ], t, 1400, "ease-out"));
+}
+
+// ── beats: each takes (layer host, t) and returns the end time ───────────
+function beatThread(host, beat, t0) {
+  const layer = el("div", "layer thread-layer");
+  host.append(layer);
+  const viewport = el("div", "viewport");
+  const thread = el("div", "thread");
+  viewport.append(thread);
+  const right = el("div", "right");
+  layer.append(viewport, right);
+  const slots = [];
+  const slotOf = i => { while (slots.length <= i) { const s = el("div", "slot"); right.append(s); slots.push(s); } return slots[i]; };
+  if (beat.messages.some(m => m.code?.slot === 1)) { slotOf(1); right.classList.add("two"); }
+
+  // build everything hidden, then measure
+  const items = beat.messages.map(msg => {
+    const node = el("div", `msg ${msg.who}`);
+    node.append(el("div", "who", msg.who === "you" ? "❯ you" : `⏺ ${esc(MODEL_LABEL)}`));
+    const text = el("div", "text");
+    node.append(text);
+    thread.append(node);
+    const { units, marks } = renderText(text, msg.text, msg.who === "you");
+    let panel = null, slot = 0;
+    if (msg.code) { slot = msg.code.slot || 0; panel = buildCode(slotOf(slot), msg.code); }
+    else if (msg.cards) { panel = buildCards(slotOf(0), msg.cards); }
+    return { msg, node, text, units, marks, panel, slot };
+  });
+  const vh = viewport.clientHeight;
+  items.forEach(it => fitHeight(it.text, vh - 90, it.msg.who === "you" ? 27 : 32, 18));
+  items.forEach(it => it.panel?.fit());
+
+  let t = t0;
+  mark(t);
+  fadeIn(layer, t, 400);
+  t += 200;
+  let scroll = 0;
+  const current = [];   // panel currently shown in each slot
+  const shown = [];
+
+  for (const it of items) {
+    mark(t);
+    // scroll so the whole message is in view, and quiet the ones above
+    const bottom = it.node.offsetTop + it.node.offsetHeight;
+    const target = Math.max(0, bottom - vh + 8);
+    if (target !== scroll) {
+      A(thread, [{ transform: `translateY(${-scroll}px)` }, { transform: `translateY(${-target}px)` }], t, 800);
+      scroll = target;
+      t += 450;
+    }
+    shown.forEach(s => A(s, [{ opacity: 1 }, { opacity: .42 }], t, 600, "ease-out"));
+    fadeUp(it.node, t, 500, 10);
+    shown.push(it.node);
+    t += 400;
+    const start = t;
+
+    if (it.msg.who === "you") {
+      const per = Math.min(26, 3600 / Math.max(it.units.length, 1));
+      it.units.forEach((c, i) => A(c, [{ opacity: 0 }, { opacity: 1 }], t + i * per, 60, "linear"));
+      t += it.units.length * per + 300;
+      for (const m of it.marks) {
+        const d = Math.max(500, Math.min(1100, m.textContent.length * 22));
+        underline(m, t, d, 3, "#d6d0c4", "#fff3e6");
+        t += d + 150;
+      }
+    } else {
+      const per = Math.min(50, 3200 / Math.max(it.units.length, 1));
+      it.units.forEach((w, i) => A(w, [{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], t + i * per, 380));
+      t += it.units.length * per + 300;
+    }
+
+    if (it.panel) {
+      mark(t);
+      const prev = current[it.slot];
+      if (prev) A(prev.root, [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateX(-30px)" }], t, 450, "ease-in");
+      current[it.slot] = it.panel;
+      t = it.panel.play(t + (prev ? 250 : 0)) + 300;
+      if (it.msg.code?.glowAfter) { glowGroup(it.panel.groups[1] || [], t); t += 1600; }
+    }
+
+    if (it.msg.who === "model") {
+      if (it.marks.length) mark(t);
+      for (const m of it.marks) {
+        const d = Math.max(600, Math.min(2200, m.textContent.length * 14));
+        underline(m, t, d, 3, "#bdb7ab", "#f6f1e7");
+        t += d + 250;
+      }
+      if (it.msg.links) {
+        t += 300;
+        for (let k = 1; k <= 9; k++) {
+          const lines = current.flatMap(p => (p && p.groups[k]) || []);
+          if (!lines.length) continue;
+          glowGroup(lines, t);
+          t += 1700;
+        }
+      }
+      // reading time: about 3.5 words a second, plus a beat for the code
+      const words = it.units.length, code = it.panel ? it.panel.lineCount : 0;
+      t = Math.max(t + 1800, start + words * 285 + code * 90 + 1200);
+    } else {
+      t += it.panel ? 1800 : 1100;
+    }
+  }
+  t += 800;
+  fadeOut(layer, t, 600);
+  return t + 600;
+}
+
+function beatSplit(host, beat, t0) {
+  const layer = el("div", "layer split-layer");
+  host.append(layer);
+  const panels = beat.panels.map(p => buildCode(layer, { blocks: [p] }));
+  panels.forEach(p => p.fit());
+  // same type size on both sides
+  const size = Math.min(...panels.map(p => parseFloat(p.root.querySelector(".stack").style.fontSize)));
+  panels.forEach(p => p.root.querySelector(".stack").style.fontSize = size + "px");
+  let t = t0;
+  mark(t);
+  fadeIn(layer, t, 300);
+  const ends = panels.map((p, i) => p.play(t + i * 250));
+  t = Math.max(...ends) + 2200;
+  glowGroup(panels[0].groups[1] || [], t);
+  t += 2000;
+  glowGroup(panels[1].groups[1] || [], t);
+  t += 3200;
+  fadeOut(layer, t, 600);
+  return t + 600;
+}
+
+function beatQuote(host, beat, t0) {
+  const layer = el("div", "layer quote-layer");
+  layer.innerHTML = `<div class="who">⏺ ${esc(MODEL_LABEL)}</div>`;
+  const big = el("div", "big");
+  if (beat.small) big.style.fontSize = "76px";
+  big.innerHTML = beat.text.replace(/\[\[([\s\S]*?)\]\]/g, '<span class="m">$1</span>');
+  layer.append(big);
+  host.append(layer);
+  let t = t0;
+  mark(t);
+  fadeIn(layer, t, 300);
+  fadeUp(layer.firstChild, t + 200, 500, 8);
+  fadeUp(big, t + 500, 1000, 30);
+  t += 1700;
+  for (const m of big.querySelectorAll(".m")) {
+    A(m, [{ backgroundSize: "0% 6px" }, { backgroundSize: "100% 6px" }], t, 1300, "ease-in-out");
+    t += 1450;
+  }
+  t += 3200;
+  fadeOut(layer, t, 700);
+  return t + 700;
+}
+
+function beatReaders(host, beat, t0) {
+  const R = READERS;
+  const layer = el("div", "layer");
+  const area = el("div", "readers");
+  layer.append(area);
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  area.append(svg);
+  const card = el("div", "src-card", `<div class="bar"><div class="dots"><i></i><i></i><i></i></div><span>define() · you write it once</span></div>`);
+  const code = el("div", "code", R.source.map(l => highlight(l)).join("\n"));
+  card.append(code);
+  area.append(card);
+  const readerEls = R.targets.map((tg, i) => {
+    const r = el("div", "reader");
+    r.style.top = (i * 126) + "px";
+    // <faint>…</faint> and <chip>…</chip> are styled spans; everything else is highlighted code
+    const body = tg.lines.map(l => l.split(/(<(?:faint|chip)>[\s\S]*?<\/(?:faint|chip)>)/).map(part => {
+      const m = part.match(/^<(faint|chip)>([\s\S]*)<\/\1>$/);
+      return m ? `<span class="${m[1]}">${esc(m[2])}</span>` : highlight(part);
+    }).join("")).join("\n");
+    r.innerHTML = `<div class="rbar"><b>${esc(tg.name)}</b><span>${esc(tg.verb)}</span></div><div class="rbody">${body}</div>`;
+    area.append(r);
+    return r;
+  });
+  const caption = el("div", "caption");
+  const { units, marks } = renderText(caption, R.caption, false);
+  layer.append(caption);
+  host.append(layer);
+
+  card.style.top = ((610 - card.offsetHeight) / 2) + "px";
+  const cardGlows = wrapGlow(code, R.glow);
+  const readerGlows = readerEls.map(r => wrapGlow(r.querySelector(".rbody"), R.glow));
+
+  // curves from the card to each reader, and a dot riding each one
+  const x0 = card.offsetLeft + card.offsetWidth, y0 = card.offsetTop + card.offsetHeight / 2;
+  const routes = readerEls.map(r => {
+    const x1 = r.offsetLeft - 4, y1 = r.offsetTop + r.offsetHeight / 2, mx = (x0 + x1) / 2;
+    const d = `M${x0 + 4},${y0} C${mx},${y0} ${mx},${y1} ${x1},${y1}`;
+    const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    p.setAttribute("d", d); p.setAttribute("pathLength", "1"); svg.append(p);
+    const dot = el("div", "dot"); dot.style.offsetPath = `path("${d}")`; area.append(dot);
+    return { p, dot };
+  });
+
+  let t = t0;
+  mark(t);
+  fadeIn(layer, t, 300);
+  A(card, [{ opacity: 0, transform: "scale(.95)" }, { opacity: 1, transform: "none" }], t + 200, 800);
+  t += 1300;
+  cardGlows.forEach((g, i) => pulse(g, t + i * 200));
+  t += cardGlows.length * 200 + 900;
+  routes.forEach(({ p, dot }, i) => {
+    const s = t + i * 650;
+    A(p, [{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], s, 900, "ease-in-out");
+    A(dot, [{ offsetDistance: "0%", opacity: 0 }, { offsetDistance: "10%", opacity: 1, offset: .1 }, { offsetDistance: "100%", opacity: 1 }], s, 900, "ease-in-out");
+    A(dot, [{ opacity: 1 }, { opacity: 0 }], s + 950, 300);
+    A(readerEls[i], [{ opacity: 0, transform: "translateX(18px)" }, { opacity: 1, transform: "none" }], s + 750, 500);
+    readerGlows[i].forEach(g => pulse(g, s + 1100));
+  });
+  t += routes.length * 650 + 1800;
+
+  mark(t);
+  const per = Math.min(50, 3000 / units.length);
+  units.forEach((w, i) => A(w, [{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], t + i * per, 380));
+  t += units.length * per + 300;
+  for (const m of marks) { underline(m, t, 2400, 3, "#bdb7ab", "#f6f1e7"); t += 2600; }
+  t = Math.max(t + 2500, t0 + units.length * 300 + 9000);
+  fadeOut(layer, t, 600);
+  return t + 600;
+}
+
+const BEATS = { thread: beatThread, split: beatSplit, quote: beatQuote, readers: beatReaders };
+
+// ── segments of the show ──────────────────────────────────────────────────
+const SHOW = [{ kind: "intro" }, { kind: "opener" }];
+CHAPTERS.forEach((ch, ci) => SHOW.push({ kind: "chapter", ch, ci }));
+SHOW.push({ kind: "outro" });
+
+const progress = $("progress");
+CHAPTERS.forEach(() => progress.append(el("i", null, "<b></b>")));
+
+function hideChrome(hidden) {
+  for (const id of ["top", "trule", "progress"]) $(id).style.visibility = hidden ? "hidden" : "visible";
+}
+
+function buildIntro() {
+  const o = $("overlay");
+  o.innerHTML = `<div class="kicker">ochazuke · selected design exchanges</div>
+    <div class="head">Making the whole interaction model <span class="m">data</span></div>
+    <div class="sub">verbatim excerpts from the build transcripts · underlines mark the passages that mattered</div>`;
+  hideChrome(true);
+  A(o, [{ opacity: 1 }, { opacity: 1 }], 0, 1);
+  fadeUp(o.children[0], 300, 700);
+  fadeUp(o.children[1], 600, 900, 28);
+  A(o.querySelector(".m"), [{ backgroundSize: "0% 5px" }, { backgroundSize: "100% 5px" }], 1700, 900);
+  fadeUp(o.children[2], 2200, 800);
+  fadeOut(o, 5200, 600);
+  return 5900;
+}
+
+function buildOpener() {
+  const o = $("overlay");
+  o.innerHTML = `<div class="opener-who">❯ you</div><div class="opener"></div>`;
+  const line = o.lastChild;
+  const chars = [...OPENER].map(c => { const s = el("span", "c"); s.textContent = c; line.append(s); return s; });
+  const caret = el("span", "caret"); line.append(caret);
+  hideChrome(true);
+  A(o, [{ opacity: 1 }, { opacity: 1 }], 0, 1);
+  fadeUp(o.firstChild, 300, 500, 8);
+  let t = 900;
+  chars.forEach((c, i) => A(c, [{ opacity: 0 }, { opacity: 1 }], t + i * 55, 40, "linear"));
+  t += chars.length * 55;
+  A(caret, [{ opacity: 1 }, { opacity: 0, offset: .5 }, { opacity: 1 }], 0, t + 3400, "steps(1)");
+  t += 3200;
+  fadeOut(o, t, 700);
+  return t + 800;
+}
+
+function buildOutro() {
+  const o = $("overlay");
+  o.innerHTML = `<div class="kicker">where it landed</div>
+    <div class="head" style="font-size:78px">A Bubble Tea app framework where <span class="m">the whole interaction model is inspectable data,</span> <span class="m">which is not something that exists today.</span></div>
+    <div class="sub">nouns · modes · rows · payloads — print them, diff them, test them as tables</div>`;
+  hideChrome(true);
+  A(o, [{ opacity: 0 }, { opacity: 1 }], 0, 700, "ease-out");
+  fadeUp(o.children[0], 500, 700);
+  fadeUp(o.children[1], 800, 900, 28);
+  const [m1, m2] = o.querySelectorAll(".m");
+  A(m1, [{ backgroundSize: "0% 5px" }, { backgroundSize: "100% 5px" }], 2000, 1800, "ease-in-out");
+  A(m2, [{ backgroundSize: "0% 5px" }, { backgroundSize: "100% 5px" }], 4100, 1500, "ease-in-out");
+  fadeUp(o.children[2], 6000, 800);
+  return 11000;
+}
+
+function buildChapter({ ch, ci }) {
+  const o = $("overlay");
+  hideChrome(false);
+  $("tnum").textContent = String(ci + 1).padStart(2, "0");
+  $("ttitle").textContent = ch.title;
+  $("tsrc").textContent = ch.src;
+  [...progress.children].forEach((p, i) => p.classList.toggle("done", i < ci));
+
+  o.innerHTML = `<div class="big">${String(ci + 1).padStart(2, "0")}</div><div class="head">${esc(ch.title)}</div><div class="sub">${esc(ch.src)}</div><div class="line"></div>`;
+  A(o, [{ opacity: 1, transform: "none" }, { opacity: 1, transform: "none" }], 0, 1);
+  fadeUp(o.children[0], 0, 700, 30);
+  fadeUp(o.children[1], 200, 800, 30);
+  fadeUp(o.children[2], 600, 700);
+  A(o.children[3], [{ width: "0px" }, { width: "420px" }], 700, 1100);
+  A(o, [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateY(-30px)" }], 2500, 600, "ease-in");
+  A($("top"), [{ opacity: 0, transform: "translateY(-10px)" }, { opacity: 1, transform: "none" }], 2600, 600);
+
+  let t = 2900;
+  // the chapter card itself is step 0; each beat marks its own start
+  for (const beat of ch.beats) t = BEATS[beat.type]($("content"), beat, t) + 200;
+  A(progress.children[ci].firstChild, [{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], 0, t, "linear");
+  return t;
+}
+
+// ── player ────────────────────────────────────────────────────────────────
+// One clock per segment drives every animation (all held paused), so a seek
+// to any time, forwards or backwards, lands on exactly that frame.
+let cur = 0, paused = false, clock = 0, endAt = 0, last = performance.now(), tcTimer = 0;
+function clear() {
+  anims.splice(0).forEach(a => a.cancel());
+  marks = [];
+  seen = new WeakSet();
+  $("content").innerHTML = "";
+  $("overlay").innerHTML = "";
+}
+function go(i, at = 0) {
+  cur = Math.max(0, Math.min(SHOW.length - 1, i));
+  clear();
+  const seg = SHOW[cur];
+  const build = { intro: buildIntro, opener: buildOpener, outro: buildOutro, chapter: buildChapter }[seg.kind];
+  mark(0);
+  endAt = build(seg);
+  // points closer than 400ms collapse into the first
+  marks = marks.sort((a, b) => a - b).filter((m, i, all) => i === 0 || m - all[i - 1] >= 400);
+  seek(at === "end" ? marks[marks.length - 1] : at);
+}
+function seek(ms) {
+  clock = Math.max(0, Math.min(endAt, ms));
+  for (const a of anims) a.currentTime = clock;
+  showTime();
+}
+// ms past the end of this segment carry into the next; before 0, into the previous
+function seekBy(ms) {
+  const to = clock + ms;
+  if (to > endAt && cur < SHOW.length - 1) return go(cur + 1, to - endAt);
+  if (to < 0 && cur > 0) { go(cur - 1); return seek(endAt + to); }
+  seek(to);
+}
+// steps between seek points: a message, a beat, a phase of a beat
+function step(dir) {
+  if (dir > 0) {
+    const next = marks.find(m => m > clock + 50);
+    return next === undefined ? go(cur + 1) : seek(next);
+  }
+  // pressed right after landing on a point, keep going back
+  const prev = [...marks].reverse().find(m => m < clock - 700);
+  return prev === undefined ? (cur > 0 ? go(cur - 1, "end") : seek(0)) : seek(prev);
+}
+function fmt(ms) { const s = ms / 1000; return `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, "0")}`; }
+function showTime() {
+  const seg = SHOW[cur];
+  const name = seg.kind === "chapter" ? String(seg.ci + 1).padStart(2, "0") : seg.kind;
+  const at = marks.filter(m => m <= clock).length;
+  $("tc").textContent = `${paused ? "❚❚ " : ""}${name} · ${fmt(clock)} / ${fmt(endAt)} · step ${at}/${marks.length}`;
+  $("tc").classList.add("on");
+  clearTimeout(tcTimer);
+  tcTimer = setTimeout(() => $("tc").classList.remove("on"), 1400);
+}
+function tick(now) {
+  const dt = now - last; last = now;
+  if (!paused) {
+    clock += dt * SPEED;
+    if (clock >= endAt && cur < SHOW.length - 1) go(cur + 1);
+    else for (const a of anims) a.currentTime = Math.min(clock, endAt);
+  }
+  requestAnimationFrame(tick);
+}
+function setPaused(p) {
+  paused = p;
+  $("stage").classList.toggle("paused", p);
+  showTime();
+}
+addEventListener("keydown", e => {
+  const k = e.key;
+  if (k === " ") { e.preventDefault(); setPaused(!paused); }
+  else if (k === "ArrowRight") e.shiftKey ? go(cur + 1) : step(1);
+  else if (k === "ArrowLeft") e.shiftKey ? go(clock > 1500 ? cur : cur - 1) : step(-1);
+  else if (k === ".") seekBy(1000);
+  else if (k === ",") seekBy(-1000);
+  else if (k === ">") seekBy(5000);
+  else if (k === "<") seekBy(-5000);
+  else if (k === "Home") seek(0);
+  else if (k === "End") seek(marks[marks.length - 1]);
+  else if (k === "r" || k === "R") go(0);
+  else if (k === "h" || k === "H") $("hud").classList.toggle("off");
+  else return;
+  e.preventDefault();
+});
+
+function scale() {
+  const s = Math.min(innerWidth / 1920, innerHeight / 1080);
+  $("stage").style.transform = `scale(${s})`;
+}
+addEventListener("resize", scale); scale();
+setTimeout(() => $("hud").classList.add("off"), 3500);
+
+const start = parseInt(params.get("scene") || "0", 10);
+document.fonts.ready.then(() => { go(start); requestAnimationFrame(t => { last = t; tick(t); }); });
+</script>
+</body>
+</html>
