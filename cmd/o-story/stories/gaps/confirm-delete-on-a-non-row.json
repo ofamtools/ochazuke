@@ -1,0 +1,27 @@
+{
+  "name": "the story sandbox's x (demo.delete) asks for confirmation only on a list row, so y never fails with not a list row",
+  "skip": "gap: honest-hints: y confirm.accept fails when pressed: not a list row",
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "nodes": [
+          {
+            "id": "a",
+            "label": "alpha"
+          }
+        ],
+        "editable": true
+      }
+    ]
+  },
+  "script": [
+    "x",
+    "y"
+  ],
+  "expect": {
+    "lacks": [
+      "not a list row"
+    ]
+  }
+}

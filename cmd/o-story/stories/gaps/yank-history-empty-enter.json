@@ -1,0 +1,21 @@
+{
+  "name": "enter on an empty yank history is neither hinted nor fails: there is no yank to select",
+  "skip": "gap: honest-hints: enter yank-history.select fails when pressed: no yank at history index",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ]
+  },
+  "script": [
+    "ctrl+y",
+    "enter"
+  ],
+  "expect": {
+    "lacks": [
+      "no yank at history index"
+    ]
+  }
+}

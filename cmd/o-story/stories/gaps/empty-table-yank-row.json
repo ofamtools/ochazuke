@@ -1,0 +1,38 @@
+{
+  "name": "Y on an empty table does not answer: list.yank is guarded off with no row to copy",
+  "skip": "gap: operation-error: list.yank: no row to copy",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "pane"
+          },
+          {
+            "title": "harness",
+            "priority": 2
+          },
+          {
+            "title": "state",
+            "priority": 1
+          },
+          {
+            "title": "cwd",
+            "min": 8,
+            "priority": 3
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "Y"
+  ],
+  "expect": {
+    "lacks": [
+      "no row to copy"
+    ]
+  }
+}

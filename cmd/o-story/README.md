@@ -15,6 +15,7 @@ o-story run [NAME|AREA...]   # headless; non-zero exit on failure
 o-story run --update --dir cmd/o-story/stories   # rewrite goldens on disk
 o-story list | history | keep N NAME | replay REF | trim REF ... | verbs
 o-story explore [NAME|AREA...] [--depth N] [--steps N] [--out DIR]   # the state explorer
+o-story explore --dedupe DIR [--reproduce] [--out DIR]   # group the findings of saved reports
 o story ...                  # the same, through the oden family root
 ```
 
@@ -253,6 +254,23 @@ application's story with the finding's keys as its script and
 `"skip": "gap: CHECK: SUMMARY"`; waits and resizes have no story event,
 so they are named in the skip. They are written to `--out`, never to
 `stories/`: move one there once it is a rule.
+
+`o-story explore --dedupe DIR` explores nothing: it reads every report under
+DIR (`--out`'s `NAME.json`, and the examples' `OCHAZUKE_EXPLORE_OUT`
+reports), groups the findings by check and normalized summary
+(`explore.Dedupe`: ids, numbers and the `app.` namespace stripped), keeps per
+group the shortest path, then the smallest story application, then the name,
+and prints one line per group; `--reproduce` replays each group's best story
+path on this build (`explore.Shows`), `--out` writes `groups.json` and the gap
+story of each group. The same reports give the same bytes. Confirmed bugs
+live in `stories/gaps/`, one story per root cause: the gap story with a
+`lacks` expect on the error, so it fails until fixed and is skipped
+(`"skip": "gap: CHECK: SUMMARY"`); its name says what should happen. Gaps
+only an example shows are `explore.Gap` tests (`TestExploreGaps`) beside
+the example's `TestExplore` (both behind the `explore` build tag: `make
+explore-quick`). Expected refusals are quieted by
+`Subject.Expected`: `explore.FrameworkRefusal` for the framework's own, and
+here `storyFake` for the stories' fakes.
 
 ## Catalog
 

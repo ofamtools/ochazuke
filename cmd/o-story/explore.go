@@ -29,6 +29,8 @@ func (t *Tool) Explore(args []string) error {
 	out := flags.String("out", "", "write NAME.json reports and one gap story per finding under this directory")
 	full := flags.Bool("compare-full", false, "also count states keyed with the screen (Full), to measure over-merging")
 	top := flags.Int("top", 5, "findings listed per check (0 every one)")
+	reproduce := flags.Bool("reproduce", false, "with --dedupe: replay each group's best story occurrence (explore.Reproduce) and say whether it still shows")
+	dedupe := flags.String("dedupe", "", "explore nothing: group the findings of every report under this directory (NAME.json) by check and summary; --out writes groups.json and one gap story per group")
 	names, err := parse(flags, args)
 	if err != nil {
 		return err
@@ -36,6 +38,9 @@ func (t *Tool) Explore(args []string) error {
 	lib, err := t.library(*dir)
 	if err != nil {
 		return err
+	}
+	if *dedupe != "" {
+		return t.dedupe(lib, *dedupe, *out, *reproduce)
 	}
 	apps := storyApps(lib, names)
 	if len(apps) == 0 {
@@ -103,20 +108,24 @@ func acrossApps(reports []explore.Report) string {
 
 // storyApps is one story per distinct application among the selected
 // stories (all when names is empty), in library order; stories with a
-// base (trimmed recordings) are left out.
+// base (trimmed recordings) are left out. A skipped story (a gap) stands
+// for its application only when no other story has it, after the rest,
+// so a gap story copied from a story leaves that story's subject name.
 func storyApps(lib story.Library, names []string) []*story.Story {
 	seen := map[string]bool{}
 	var out []*story.Story
-	for _, s := range lib.Stories {
-		if s.Base != "" || !selected(s, names) {
-			continue
+	for _, gaps := range []bool{false, true} {
+		for _, s := range lib.Stories {
+			if s.Base != "" || (s.Skip != "") != gaps || !selected(s, names) {
+				continue
+			}
+			key := appKey(s)
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			out = append(out, s)
 		}
-		key := appKey(s)
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
-		out = append(out, s)
 	}
 	return out
 }
@@ -149,8 +158,9 @@ func storySubject(s *story.Story) explore.Subject {
 	sessions := map[*ochazuke.Model]*story.Session{}
 	w, h := s.Size()
 	return explore.Subject{
-		Name: s.Area + "/" + strings.TrimSuffix(filepath.Base(s.Path), ".json"),
-		Size: [2]int{w, h},
+		Name:     s.Area + "/" + strings.TrimSuffix(filepath.Base(s.Path), ".json"),
+		Size:     [2]int{w, h},
+		Expected: func(op, err string) bool { return explore.FrameworkRefusal(op, err) || storyFake(op, err) },
 		New: func() (*ochazuke.Model, error) {
 			ss, err := story.Build(s, story.Options{Mono: true})
 			if err != nil {
@@ -171,6 +181,24 @@ func storySubject(s *story.Story) explore.Subject {
 			}
 		},
 	}
+}
+
+// storyFake reports the errors a story's fakes mean (story/build.go; plain
+// text, so matched by message): finish (W/X/E in the ticker stories) with
+// no job of that verb running, a tree or record store a story fails on
+// purpose (failWrites), and a binding that runs an input verb on a list
+// row only to show its arguments in help (help/arguments).
+func storyFake(op, err string) bool {
+	op = strings.TrimPrefix(op, "app.")
+	switch {
+	case op == "demo.finish" && strings.HasPrefix(err, "no running ") && strings.HasSuffix(err, " job"):
+		return true
+	case err == "store unavailable" || strings.HasSuffix(err, ": store unavailable"):
+		return true
+	case op == "input.insert" && err == "no focused input":
+		return true
+	}
+	return false
 }
 
 // writeExplore writes the report and one story per finding: the

@@ -1,0 +1,28 @@
+{
+  "name": "i after deleting the tree's last row neither hints outline.edit nor fails on a stale node",
+  "skip": "gap: honest-hints: i outline.edit fails when pressed: unknown tree node \"…\"",
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "nodes": [
+          {
+            "id": "a",
+            "label": "alpha"
+          }
+        ],
+        "editable": true
+      }
+    ]
+  },
+  "script": [
+    "d",
+    "d",
+    "i"
+  ],
+  "expect": {
+    "lacks": [
+      "unknown tree node"
+    ]
+  }
+}

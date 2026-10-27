@@ -1,0 +1,33 @@
+{
+  "name": "an app row running focus.set on a page row does not answer (nor show) inside the help modal",
+  "skip": "gap: honest-hints: z focus.set fails when pressed: focus is outside the open modal",
+  "page": {
+    "focus": "a2",
+    "lists": [
+      {
+        "id": "a",
+        "rows": 5
+      }
+    ],
+    "bind": [
+      {
+        "noun": "app",
+        "mode": "normal",
+        "keys": "z",
+        "do": "focus.set",
+        "args": {
+          "id": "a4"
+        }
+      }
+    ]
+  },
+  "script": [
+    "?",
+    "z"
+  ],
+  "expect": {
+    "lacks": [
+      "focus is outside the open modal"
+    ]
+  }
+}

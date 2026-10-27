@@ -9,7 +9,9 @@
 //
 // From a test, explore.Survey(t, subject) runs a small budget (depth 3,
 // 2000 steps; OCHAZUKE_EXPLORE=deep for depth 6, 20000) and fails only on
-// the explorer's own failures, never on findings. o-story explore runs it
+// the explorer's own failures, never on findings; such tests carry the
+// explore build tag, so go test ./... runs no survey (make explore-quick,
+// make explore). o-story explore runs it
 // over every story-built application.
 //
 // # Driving

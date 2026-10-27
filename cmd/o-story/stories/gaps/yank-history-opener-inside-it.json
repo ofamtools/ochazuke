@@ -1,0 +1,21 @@
+{
+  "name": "ctrl+y inside the yank history does not try to open it again: it closes it or does not answer",
+  "skip": "gap: operation-error: yank-history.open: modal is already open",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ]
+  },
+  "script": [
+    "ctrl+y",
+    "ctrl+y"
+  ],
+  "expect": {
+    "lacks": [
+      "modal is already open"
+    ]
+  }
+}

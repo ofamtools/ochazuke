@@ -714,7 +714,7 @@ Importable package `cli`: 18 source files, 13 test files.
 
 ## Package explore
 
-Importable package `explore`: 12 source files, 2 test files.
+Importable package `explore`: 14 source files, 3 test files.
 
 ### explore/actions.go
 
@@ -728,6 +728,15 @@ Importable package `explore`: 12 source files, 2 test files.
 - purpose: problem is one failed check in a state or after an action: Sig is what shrinking must reproduce (the check and its reason without volatile detail), Detail th...
 - leans on: subject.go(7), drive.go(5), state.go(1)
 
+### explore/dedupe.go
+
+- lines: 102 · tests: dedupe_test.go
+- purpose: Occurrence is one report's finding of a Group.
+- types: Occurrence, Group
+- methods: Group(1)
+- funcs: NormalizeSummary, Dedupe
+- leans on: subject.go(15), checks.go(1), report.go(1)
+
 ### explore/doc.go
 
 - lines: 98
@@ -739,6 +748,13 @@ Importable package `explore`: 12 source files, 2 test files.
 - methods: session(11)
 - funcs: Resize
 - leans on: subject.go(4)
+
+### explore/gap.go
+
+- lines: 107
+- purpose: FrameworkRefusal is a Subject.Expected for the framework's own refusals (frameworkRefusals): nothing to undo, redo or repeat, no palette history, a palette l...
+- funcs: FrameworkRefusal, Shows, Gap
+- leans on: subject.go(3), dedupe.go(1), report.go(1)
 
 ### explore/race_off.go
 
@@ -1072,7 +1088,9 @@ Exported type -> file.
 - explore.Check -> explore/subject.go
 - explore.Coverage -> explore/report.go
 - explore.Finding -> explore/report.go
+- explore.Group -> explore/dedupe.go
 - explore.KeyMode -> explore/subject.go
+- explore.Occurrence -> explore/dedupe.go
 - explore.Report -> explore/report.go
 - explore.State -> explore/state.go
 - explore.Subject -> explore/subject.go

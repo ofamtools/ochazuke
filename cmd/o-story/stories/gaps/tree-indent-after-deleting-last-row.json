@@ -1,0 +1,28 @@
+{
+  "name": "tab after deleting the tree's last row neither hints outline.indent nor fails: there is no selected node",
+  "skip": "gap: honest-hints: tab outline.indent fails when pressed: tree has no selected node",
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "nodes": [
+          {
+            "id": "a",
+            "label": "alpha"
+          }
+        ],
+        "editable": true
+      }
+    ]
+  },
+  "script": [
+    "d",
+    "d",
+    "tab"
+  ],
+  "expect": {
+    "lacks": [
+      "tree has no selected node"
+    ]
+  }
+}

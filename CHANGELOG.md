@@ -17,6 +17,14 @@ Noun namespaces: a noun may be dotted, every framework noun is `app.<noun>` with
 - Hosts: `cli.Namespace(ext)` (a `PageConfig.Noun`: catalog noun `skills` is the host's `ext.skills`) and `cli.Local(ext, noun)` replace hand-built `ext-noun` prefixes.
 - Compatibility: `Runtime.Operations` and `Runtime.Nouns` are keyed by canonical names, so code indexing them with a framework short name (`r.Operations["terminal.hint"]`, `r.Nouns["list"]`) must use `CanonicalKey`/`Operation`/`Noun`; comparisons of `Instance.Noun` with a framework short name (`inst.Noun == "list"`) must compare with `app.list`. Exported noun constants changed value (`cli.CommandNoun`, `cli.GroupNoun`, `CompletionNoun`, `TreeRowNoun`, `Form*Noun`, `markdown.DocNoun`, `markdown.TaskNoun`).
 
+### Explorer triage
+
+- `explore.Dedupe(reports, weight)` groups findings across reports by check and `NormalizeSummary` (ids, numbers, the `app.` namespace stripped), best occurrence first (shortest path, lightest subject, name); `o-story explore --dedupe DIR [--reproduce] [--out DIR]` prints the groups, replays each on the current build and writes `groups.json` plus one gap story per group.
+- `explore.FrameworkRefusal`, a `Subject.Expected` for the framework's own refusals (nothing to undo/redo/repeat, no palette history, a palette line or completion naming nothing, a chooser with no match, an empty or misnamed register, single-line inputs, an empty list item, page motions with no pages), matched by operation and message (the runtime has no sentinel errors for them); the four examples and o-story's story subjects use it, the CSV example adds its sheet refusals and o-story the stories' fakes.
+- `explore.Shows` and `explore.Gap` (a known gap as a skipped Go test); 16 gap stories in `cmd/o-story/stories/gaps/` for the confirmed bugs of the 2026-10-27 survey, and `TestExploreGaps` in `examples/core`, `demo` and `full-project` for the ones only those apps show.
+- Explorer surveys left `go test ./...`: every survey-running test (the examples' `explore_test.go`, the explore package's `TestRunFindsEachCheck` and `TestRunIsDeterministic`, o-story's `TestExploreWritesGapStories`) carries the `explore` build tag; `TestRunFindsTheShallowBugs` keeps a fast untagged check. `make explore-quick` runs them at the small budget, `make explore` adds the deep run.
+- `o-story explore` picks a non-skipped story to stand for an application, so a gap story copied from a story keeps that story's subject name.
+
 ## v0.15.0 (2026-10-27)
 
 `config.reload` reads every config file again (with `OnConfigReload` for an app's own); noun places record where each noun shows up (`nouns places`); the `?` help gains pick and table views (`S`, `n`, `m`, `p`) that resolve keys at a noun's recorded place, defaulting to where `?` was opened; `ctrl+\` opens the help from any insert mode; the bindings export is ordered mode, noun, verb, keys.

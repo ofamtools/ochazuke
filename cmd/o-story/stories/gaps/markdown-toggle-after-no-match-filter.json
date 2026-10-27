@@ -1,0 +1,25 @@
+{
+  "name": "x after a filter that matches no task item is neither hinted nor fails: markdown.toggle is guarded off with no task selected",
+  "skip": "gap: honest-hints: x markdown.toggle fails when pressed: no task item selected",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "Standup notes\nwritten as plain lines\none thought per line\n\n- [ ] ship the fix\n  and tell the lane\n- [x] review the branch\n\n```sh\ngo test ./...\ngo vet ./...\n```\n\n| owner | task |\n|---|---|\n| ana | docs |\n",
+      "preserveNewlines": true
+    }
+  },
+  "script": [
+    "/",
+    {
+      "paste": "pasted"
+    },
+    "enter",
+    "x"
+  ],
+  "expect": {
+    "lacks": [
+      "no task item selected"
+    ]
+  }
+}

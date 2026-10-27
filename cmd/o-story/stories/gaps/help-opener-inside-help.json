@@ -1,0 +1,21 @@
+{
+  "name": "? inside the help modal is not hinted as opening help again: it closes help, or neither answers nor shows",
+  "skip": "gap: honest-hints: ? bindings.help fails when pressed: modal \"…\" is already open",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ]
+  },
+  "script": [
+    "?",
+    "?"
+  ],
+  "expect": {
+    "lacks": [
+      "modal \"bindings-help\" is already open"
+    ]
+  }
+}

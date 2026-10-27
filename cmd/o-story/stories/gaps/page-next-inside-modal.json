@@ -1,0 +1,21 @@
+{
+  "name": "ctrl+j (page.next) does not answer inside a modal: the row is guarded no-modal like the page picker",
+  "skip": "gap: operation-error: page.next: close the active modal before opening a page",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ]
+  },
+  "script": [
+    "?",
+    "ctrl+j"
+  ],
+  "expect": {
+    "lacks": [
+      "close the active modal before opening a page"
+    ]
+  }
+}

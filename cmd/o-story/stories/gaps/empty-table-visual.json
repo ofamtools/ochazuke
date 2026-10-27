@@ -1,0 +1,38 @@
+{
+  "name": "V on an empty table does not answer: list.visual is guarded off with no selected row",
+  "skip": "gap: operation-error: list.visual: list has no selected row",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "pane"
+          },
+          {
+            "title": "harness",
+            "priority": 2
+          },
+          {
+            "title": "state",
+            "priority": 1
+          },
+          {
+            "title": "cwd",
+            "min": 8,
+            "priority": 3
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "V"
+  ],
+  "expect": {
+    "lacks": [
+      "list has no selected row"
+    ]
+  }
+}

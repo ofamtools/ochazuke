@@ -1,0 +1,28 @@
+{
+  "name": "shift+tab after deleting the tree's last row neither hints outline.outdent nor fails: there is no selected node",
+  "skip": "gap: honest-hints: shift+tab outline.outdent fails when pressed: tree has no selected node",
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "nodes": [
+          {
+            "id": "a",
+            "label": "alpha"
+          }
+        ],
+        "editable": true
+      }
+    ]
+  },
+  "script": [
+    "d",
+    "d",
+    "shift+tab"
+  ],
+  "expect": {
+    "lacks": [
+      "tree has no selected node"
+    ]
+  }
+}
