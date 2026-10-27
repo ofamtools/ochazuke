@@ -269,6 +269,7 @@ Conformance:
 |---|---|---|
 | count_pending | count | `count.append` |
 | hints | demo | `demo.hint` `demo.hints-cancel` `demo.hints-ignore` |
+| insert | bindings | `bindings.help` |
 | insert | chooser | `chooser.cancel` `chooser.move` `chooser.pick` |
 | insert | completion | `completion.accept` `completion.dismiss` `completion.move` `completion.open` |
 | insert | form | `form.next` |
@@ -320,6 +321,7 @@ Mode edges (from → to via):
 - `count_pending g` → `normal` via `list.goto`
 - `hints` → `terminal` via `demo.hint`
 - `hints` → `terminal` via `demo.hints-cancel`
+- `insert` → `normal` via `bindings.help`
 - `insert` → `normal` via `chooser.cancel`
 - `insert` → `normal` via `chooser.pick`
 - `insert` → `normal` via `mode.set`
@@ -341,6 +343,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `bindings-help.place`
 - `normal` → `insert` via `form.suggest`
 - `normal` → `insert` via `input.begin`
+- `normal` → `insert` via `modal.pop`
 - `normal` → `insert` via `outline.add`
 - `normal` → `insert` via `outline.edit`
 - `normal` → `insert` via `page.pick`

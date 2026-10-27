@@ -184,3 +184,54 @@ func TestHelpPlaceChooser(t *testing.T) {
 func helpListHas(r *Runtime, op string) bool {
 	return slices.ContainsFunc(r.List(helpListID).Items(), func(item ListItem) bool { return slices.Contains(item.Cells, op) })
 }
+
+// The place defaults to where ? was opened: the origin row's place even
+// when the noun was seen more often elsewhere; another noun chosen with n
+// takes its most seen place, and choosing the origin's noun again brings
+// the origin's place back.
+func TestHelpPlaceDefaultsToTheOrigin(t *testing.T) {
+	r, m := placedRowsFixture(t)
+	r.Instance("side", Parent("ctx"), Kind("page"))
+	other, err := r.AddList("others", nil, Parent("side"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for range 3 { // item is seen more often under side than under panel
+		other.SetItems([]ListItem{{ID: "x", Label: "x", Noun: "item"}})
+	}
+	places := r.NounPlaces("item")
+	if len(places) < 2 || placeLabel(places[0]) != "Context › page › page › list" {
+		t.Fatalf("item places %+v", places)
+	}
+	if r.Focus != "a" {
+		t.Fatalf("focus %q", r.Focus)
+	}
+	pressAll(m, "?", "S")
+	frame := ansi.Strip(m.View().Content)
+	if !strings.Contains(frame, "noun: item · mode: normal · place: Context › page › panel › list") || !helpListHas(r, "panel.refresh") {
+		t.Fatalf("pick at open is not the origin's place:\n%s", frame)
+	}
+	keytest.Press(m, "n")
+	pressAll(m, "l", "i", "s", "t", "enter")
+	if frame = ansi.Strip(m.View().Content); !strings.Contains(frame, "noun: list · mode: normal · place: Context › page › ") {
+		t.Fatalf("another noun has no most seen place:\n%s", frame)
+	}
+	keytest.Press(m, "n")
+	pressAll(m, "i", "t", "e", "m", "enter")
+	if frame = ansi.Strip(m.View().Content); !strings.Contains(frame, "noun: item · mode: normal · place: Context › page › panel › list") {
+		t.Fatalf("the origin's noun again is not at the origin's place:\n%s", frame)
+	}
+}
+
+// The origin's place is computed as the recorder does, so it is the place
+// before the record settled it.
+func TestHelpHomeIsTheRecordersPlace(t *testing.T) {
+	r, _ := placedRowsFixture(t)
+	home := helpHome(r, r.Focus)
+	if home == nil || home.key() != r.placementOf(r.Focus, "item").key() || !slices.Equal(home.Chain(), []string{"page", "panel", "list", "item"}) {
+		t.Fatalf("home %+v", home)
+	}
+	if helpHome(r, "missing") != nil {
+		t.Fatal("a missing focus has a place")
+	}
+}

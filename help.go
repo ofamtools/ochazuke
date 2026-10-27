@@ -7,6 +7,13 @@ import (
 	"strings"
 )
 
+// HelpInsertKey opens the bindings help in insert mode, where ? types
+// itself: an app row NewModel adds beside ? in normal mode. ctrl+\ is bound
+// by no Readline default, no editor, palette, chooser, completion, filter,
+// form or outline row, and the terminal is in raw mode, so it sends no
+// SIGQUIT.
+const HelpInsertKey = "ctrl+\\"
+
 // helpID is the bindings help modal; helpListID the read-only list in it.
 const (
 	helpID     = "bindings-help"
@@ -26,12 +33,12 @@ func registerBindingHelp(r *Runtime) {
 	r.Define("binding")
 	r.Register(Operation{Verb: "help", Noun: "bindings", Description: "Open the keys the focus answers to, with the operation each runs and its description", Result: "help row[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		focus := focusOf(c)
-		rows, mode := BindingHelp(r, focus), ModeState{Name: r.BaseMode()}
+		rows, mode, home := BindingHelp(r, focus), ModeState{Name: r.BaseMode()}, helpHome(r, focus)
 		inst, err := r.OpenModal(helpID, Payload{})
 		if err != nil {
 			return nil, err
 		}
-		h := newHelpState(r, focus, mode, rows)
+		h := newHelpState(r, focus, home, mode, rows)
 		inst.Component = h
 		if err := h.show(); err != nil {
 			_ = r.Pop()

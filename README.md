@@ -291,6 +291,7 @@ Macro recording consumes exactly one register character after `q`. For `qq:`, th
 | Draft modal | `Ctrl-G` | Close and restore the parent |
 | Normal Playground | `Ctrl-X` | Inspect the handling noun |
 | Normal app | `?` | Open the scrollable keyboard guide |
+| Insert (any input) | `Ctrl-\` | Open the keyboard guide (`?` types itself there) |
 | Normal list | `/` | Filter the list's rows (see Filtering a list) |
 | Normal list | `gg`, `G`, `NG`/`Ngg` | First row, last row, row N (`list.goto`; clamps, never spills) |
 | Normal list | `Ctrl-D/U`, `Ctrl-F/B` | Half a page / a page down and up, the window moving with the selection (`list.scroll`; `3 Ctrl-D` is 3 rows, `2 Ctrl-F` two pages) |

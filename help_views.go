@@ -78,23 +78,44 @@ type helpState struct {
 	noun   string
 	mode   ModeState
 	place  *NounPlace
-	modes  []string // the table's mode columns, as last shown
+	home   *NounPlace // the origin focus's place, nil when it has no noun
+	modes  []string   // the table's mode columns, as last shown
 }
 
-func newHelpState(r *Runtime, focus string, mode ModeState, rows []HelpRow) *helpState {
+// newHelpState opens the help over focus; home is focus's place (helpHome),
+// read before the help modal opened.
+func newHelpState(r *Runtime, focus string, home *NounPlace, mode ModeState, rows []HelpRow) *helpState {
 	noun := "app"
 	if inst := r.Instances[focus]; inst != nil && inst.Noun != "" {
 		noun = inst.Noun
 	}
-	h := &helpState{r: r, view: HelpHere, origin: focus, here: rows, noun: noun, mode: mode}
+	h := &helpState{r: r, view: HelpHere, origin: focus, here: rows, noun: noun, mode: mode, home: home}
 	h.setNoun(noun)
 	return h
 }
 
+// helpHome is the place of the focus the help opens over, as the placements
+// recorder computes it (placementOf), whether or not the record holds it
+// yet; nil for a focus without a noun.
+func helpHome(r *Runtime, focus string) *NounPlace {
+	inst := r.Instances[focus]
+	if inst == nil || inst.Noun == "" {
+		return nil
+	}
+	home := r.placementOf(focus, inst.Noun)
+	return &home
+}
+
 // setNoun chooses the hypothetical views' noun and resets the place to its
-// default: the noun's most seen place, else no place.
+// default: for the origin focus's noun the place the help was opened at,
+// for another noun its most seen place, else no place.
 func (h *helpState) setNoun(noun string) {
 	h.noun, h.place = noun, nil
+	if h.home != nil && h.home.Noun == noun {
+		home := *h.home
+		h.place = &home
+		return
+	}
 	if places := h.r.NounPlaces(noun); len(places) > 0 {
 		h.place = &places[0]
 	}
