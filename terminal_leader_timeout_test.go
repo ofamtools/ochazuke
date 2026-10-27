@@ -87,7 +87,7 @@ func TestTerminalLeaderTimeoutZeroWaitsForTheNextKey(t *testing.T) {
 	}
 
 	// The focus moving away clears the waiting leader.
-	attach := Request{Verb: "attach", Noun: "app.terminal", Args: Arguments{"id": "pane"}}
+	attach := Request{Verb: "attach", Noun: "ochazuke.terminal", Args: Arguments{"id": "pane"}}
 	if _, err := r.Execute(attach); err != nil {
 		t.Fatal(err)
 	}

@@ -30,15 +30,15 @@ type MacroState struct {
 func registerMacros(r *Runtime) {
 	r.DefineMode("macro_recording", true)
 	r.Define("app").Mode("macro_recording").
-		Bind("q", Do("app.macro.stop")).When("shadow-idle").
-		Pattern(Any, Do("app.macro.record").FromKey("key")).
-		Pattern(Paste, Do("app.macro.record", Arguments{"paste": true}).FromKey("key"))
+		Bind("q", Do("ochazuke.macro.stop")).When("shadow-idle").
+		Pattern(Any, Do("ochazuke.macro.record").FromKey("key")).
+		Pattern(Paste, Do("ochazuke.macro.record", Arguments{"paste": true}).FromKey("key"))
 	keyParams := map[string]Parameter{
 		"key":   {Type: "string", Required: true, Description: "Key name as bindings spell it; for a paste, the bracketed text"},
 		"paste": {Type: "boolean", Description: "The key is pasted text"},
 	}
 	add := func(verb, description string, params map[string]Parameter, fn Handler) {
-		r.Register(Operation{Verb: verb, Noun: "app.macro", Description: description, Parameters: params, Result: "macro state", Run: fn})
+		r.Register(Operation{Verb: verb, Noun: "ochazuke.macro", Description: description, Parameters: params, Result: "macro state", Run: fn})
 	}
 	add("append", "Append one key to the macro being recorded", keyParams, func(r *Runtime, c Context, a Arguments) (any, error) {
 		g := r.Registers()
@@ -53,14 +53,14 @@ func registerMacros(r *Runtime) {
 		return g.Macro, nil
 	})
 	add("record", "Record one key: append it to the recording, then dispatch it in the shadowed mode (macro.append, then key.dispatch)", keyParams, func(r *Runtime, c Context, a Arguments) (any, error) {
-		if _, err := r.ExecuteAt(c, Request{Verb: "append", Noun: "app.macro", Args: a}); err != nil {
+		if _, err := r.ExecuteAt(c, Request{Verb: "append", Noun: "ochazuke.macro", Args: a}); err != nil {
 			return nil, err
 		}
 		args := Arguments{"mode": "shadow"}
 		for k, v := range a {
 			args[k] = v
 		}
-		if _, err := r.ExecuteAt(c, Request{Verb: "dispatch", Noun: "app.key", Args: args}); err != nil {
+		if _, err := r.ExecuteAt(c, Request{Verb: "dispatch", Noun: "ochazuke.key", Args: args}); err != nil {
 			return nil, err
 		}
 		return r.Registers().Macro, nil

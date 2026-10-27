@@ -99,7 +99,7 @@ func press(t *testing.T, r *Runtime, keys ...string) {
 func TestTerminalLeaderForwardsBoundRunsAndTimeoutForwardsPrefix(t *testing.T) {
 	r, term, stream := terminalFixture(t)
 	calls := recorder(t, r, "new-window")
-	r.Define("app.terminal").Mode("leader_pending").Bind("c", Do("test.new-window"))
+	r.Define("ochazuke.terminal").Mode("leader_pending").Bind("c", Do("test.new-window"))
 	mode := func() string { return r.Mode.Name }
 	if !term.Focused() || mode() != "terminal" {
 		t.Fatalf("focus %q mode %q", r.Focus, mode())
@@ -147,7 +147,7 @@ func TestTerminalLeaderForwardsBoundRunsAndTimeoutForwardsPrefix(t *testing.T) {
 	if r.Focus != "console" || mode() != "normal" || len(stream.sent) != 9 {
 		t.Fatalf("detach: focus %q mode %q sent %v", r.Focus, mode(), stream.sent)
 	}
-	if _, err := r.Execute(Request{Verb: "attach", Noun: "app.terminal", Args: Arguments{"id": "pane"}}); err != nil || r.Focus != "pane" {
+	if _, err := r.Execute(Request{Verb: "attach", Noun: "ochazuke.terminal", Args: Arguments{"id": "pane"}}); err != nil || r.Focus != "pane" {
 		t.Fatalf("attach: %v focus %q", err, r.Focus)
 	}
 	// Paste forwards as text, in and out of the leader.
@@ -179,10 +179,10 @@ func TestTerminalBindingsListLeaderRowsAndNoEditorRows(t *testing.T) {
 		}
 		return out
 	}
-	if got := keys(); !reflect.DeepEqual(got, []string{"ctrl+a app.mode.enter", "<any> app.terminal.send", "<paste> app.terminal.paste"}) {
+	if got := keys(); !reflect.DeepEqual(got, []string{"ctrl+a ochazuke.mode.enter", "<any> ochazuke.terminal.send", "<paste> ochazuke.terminal.paste"}) {
 		t.Fatalf("terminal mode rows: %v", got)
 	}
-	if got := BindingHints(r, "pane"); !strings.HasPrefix(got, "ctrl+a leader: d detaches, ctrl+a sends ctrl+a") || strings.Contains(got, "app.mode.enter") || strings.Contains(got, "app.terminal.send") {
+	if got := BindingHints(r, "pane"); !strings.HasPrefix(got, "ctrl+a leader: d detaches, ctrl+a sends ctrl+a") || strings.Contains(got, "ochazuke.mode.enter") || strings.Contains(got, "ochazuke.terminal.send") {
 		t.Fatalf("terminal mode hints: %q", got)
 	}
 	m := NewModel(r)
@@ -196,7 +196,7 @@ func TestTerminalBindingsListLeaderRowsAndNoEditorRows(t *testing.T) {
 		}
 	}
 	press(t, r, "ctrl+a")
-	if got := keys(); !reflect.DeepEqual(got, []string{"ctrl+a app.terminal.send", "d app.terminal.detach", "<any> app.terminal.send", "<paste> app.terminal.paste"}) {
+	if got := keys(); !reflect.DeepEqual(got, []string{"ctrl+a ochazuke.terminal.send", "d ochazuke.terminal.detach", "<any> ochazuke.terminal.send", "<paste> ochazuke.terminal.paste"}) {
 		t.Fatalf("leader_pending rows: %v", got)
 	}
 	hints := BindingHints(r, "pane")
@@ -317,10 +317,10 @@ func TestTerminalCursorLandsInsideThePanel(t *testing.T) {
 	if r.Mode.Name != "normal" || len(stream.sent) != 0 {
 		t.Fatalf("detached pane still took keys: mode %q sent %v", r.Mode.Name, stream.sent)
 	}
-	if _, err := r.Execute(Request{Verb: "attach", Noun: "app.terminal"}); err == nil {
+	if _, err := r.Execute(Request{Verb: "attach", Noun: "ochazuke.terminal"}); err == nil {
 		t.Fatal("attach without a terminal on the context or an id must fail")
 	}
-	if _, err := r.Execute(Request{Verb: "attach", Noun: "app.terminal", Target: "pane"}); err != nil {
+	if _, err := r.Execute(Request{Verb: "attach", Noun: "ochazuke.terminal", Target: "pane"}); err != nil {
 		t.Fatal(err)
 	}
 	if view := m.View(); view.Cursor != nil {
@@ -342,7 +342,7 @@ func TestInstanceConstructorsShareOptions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := r.AddInput(NewInput("note", "", true), Parent("home"), Kind("app.prompt")); err != nil {
+	if err := r.AddInput(NewInput("note", "", true), Parent("home"), Kind("ochazuke.prompt")); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := r.AddTerminal("pane", nil, Parent("home")); err == nil {
@@ -380,7 +380,7 @@ func TestInstanceConstructorsShareOptions(t *testing.T) {
 // removed (and released) by detach.
 func TestTerminalCloseReleasesStream(t *testing.T) {
 	r, term, stream := terminalFixture(t)
-	if _, err := r.Execute(Request{Verb: "detach", Noun: "app.terminal"}); err != nil || stream.released != 0 || r.Terminal("pane") != term {
+	if _, err := r.Execute(Request{Verb: "detach", Noun: "ochazuke.terminal"}); err != nil || stream.released != 0 || r.Terminal("pane") != term {
 		t.Fatalf("plain detach: %v released=%d", err, stream.released)
 	}
 	if err := r.RemoveInstance("pane"); err != nil {
@@ -397,7 +397,7 @@ func TestTerminalCloseReleasesStream(t *testing.T) {
 	if err := r.SetFocus("live"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Verb: "detach", Noun: "app.terminal"}); err != nil {
+	if _, err := r.Execute(Request{Verb: "detach", Noun: "ochazuke.terminal"}); err != nil {
 		t.Fatal(err)
 	}
 	if other.released != 1 || r.Instances["live"] != nil || r.Focus != "console" {
@@ -490,7 +490,7 @@ func TestFocusOnCloseOnPopAndRemoveInstance(t *testing.T) {
 func TestTerminalLeaderSetting(t *testing.T) {
 	r, _, stream := terminalFixture(t)
 	calls := recorder(t, r, "zoom")
-	r.Define("app.terminal").Mode("leader_pending").Bind("z", Do("test.zoom"))
+	r.Define("ochazuke.terminal").Mode("leader_pending").Bind("z", Do("test.zoom"))
 	dir := t.TempDir()
 	r.Config().Dir = dir
 	writeConfig(t, dir, SettingsFile, `{"terminal-leader": "ctrl+b"}`)
@@ -530,7 +530,7 @@ func TestTerminalLeaderSetting(t *testing.T) {
 	if err := s.Set(TerminalLeaderSetting, "alt+a"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Verb: "attach", Noun: "app.terminal", Args: Arguments{"id": "pane"}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "attach", Noun: "ochazuke.terminal", Args: Arguments{"id": "pane"}}); err != nil {
 		t.Fatal(err)
 	}
 	press(t, r, "ctrl+b", "alt+a", "alt+a", "alt+a", "d")
@@ -538,7 +538,7 @@ func TestTerminalLeaderSetting(t *testing.T) {
 		t.Fatalf("after the change: sent %v focus %q", got, r.Focus)
 	}
 	keys := map[string]bool{}
-	for _, b := range r.Nouns["app.terminal"].Bindings["leader_pending"] {
+	for _, b := range r.Nouns["ochazuke.terminal"].Bindings["leader_pending"] {
 		keys[b.Keys] = true
 	}
 	if keys["ctrl+a"] || keys["ctrl+b"] || !keys["alt+a"] || !keys["z"] {
@@ -553,8 +553,8 @@ func TestTerminalLeaderSetting(t *testing.T) {
 // setting too, and a terminal added later applies a value set before it.
 func TestTerminalLeaderMovesApplicationLeaderRows(t *testing.T) {
 	r := NewRuntime()
-	leader := Request{Verb: "send", Noun: "app.terminal", Args: Arguments{"keys": "ctrl+a"}}
-	r.Define("app.terminal").Mode("terminal").Bind("ctrl+a", Enter("leader_pending", Payload{Prefix: "ctrl+a", Request: &leader}).Hinted("leader: v vim · d detach"))
+	leader := Request{Verb: "send", Noun: "ochazuke.terminal", Args: Arguments{"keys": "ctrl+a"}}
+	r.Define("ochazuke.terminal").Mode("terminal").Bind("ctrl+a", Enter("leader_pending", Payload{Prefix: "ctrl+a", Request: &leader}).Hinted("leader: v vim · d detach"))
 	if err := r.DeclareSetting(Setting{Name: TerminalLeaderSetting, Type: SettingString, Default: "ctrl+t"}); err != nil {
 		t.Fatal(err)
 	}
@@ -563,7 +563,7 @@ func TestTerminalLeaderMovesApplicationLeaderRows(t *testing.T) {
 		t.Fatal(err)
 	}
 	var row Binding
-	for _, b := range r.Nouns["app.terminal"].Bindings["terminal"] {
+	for _, b := range r.Nouns["ochazuke.terminal"].Bindings["terminal"] {
 		if b.Keys == "ctrl+t" {
 			row = b
 		}

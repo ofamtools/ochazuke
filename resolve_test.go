@@ -94,7 +94,7 @@ func TestModelCtrlCCapturedOutsideModals(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, b := range r.ListBindings(r.Focus) {
-		if b.Keys == "ctrl+c" && b.Request.Key() != "app.palette.close" {
+		if b.Keys == "ctrl+c" && b.Request.Key() != "ochazuke.palette.close" {
 			t.Fatalf("inside the palette ctrl+c lists %s", b.Request.Key())
 		}
 	}
@@ -124,7 +124,7 @@ func TestModalIsResolutionBoundary(t *testing.T) {
 	r.Register(Operation{Verb: "poke", Noun: "panel", Run: func(*Runtime, Context, Arguments) (any, error) { pokes++; return nil, nil }})
 	calls := recorder(t, r, "app")
 	r.Define("panel").Mode("normal").Bind("z", Do("panel.poke"))
-	r.Define("app.page").Mode("normal").Bind("y", Do("panel.poke"))
+	r.Define("ochazuke.page").Mode("normal").Bind("y", Do("panel.poke"))
 	r.Define("app").Mode("normal").Bind("v", Do("test.app"))
 	if err := r.SetMode("normal"); err != nil {
 		t.Fatal(err)
@@ -152,7 +152,7 @@ func TestModalIsResolutionBoundary(t *testing.T) {
 		t.Fatal("app rows still answer inside a modal")
 	}
 	for _, b := range r.ListBindings(r.Focus) {
-		if b.Noun == "panel" || b.Noun == "app.page" {
+		if b.Noun == "panel" || b.Noun == "ochazuke.page" {
 			t.Fatalf("bindings.list shows a row beneath the modal: %+v", b)
 		}
 	}

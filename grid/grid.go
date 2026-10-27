@@ -163,8 +163,8 @@ func New(r *ochazuke.Runtime, id, parent string, header []string, rows [][]strin
 	for _, noun := range []string{g.Nouns.Cell, g.Nouns.Row, g.Nouns.Column} {
 		r.Define(noun)
 	}
-	r.Define("app.grid").Focusable()
-	inst := r.Instance(id, ochazuke.Parent(parent), ochazuke.Kind("app.grid"))
+	r.Define("ochazuke.grid").Focusable()
+	inst := r.Instance(id, ochazuke.Parent(parent), ochazuke.Kind("ochazuke.grid"))
 	inst.Component = g
 	g.widths = r.TableState(id).Widths
 	g.SetData(header, rows)

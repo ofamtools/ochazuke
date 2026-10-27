@@ -31,8 +31,8 @@ const HistoryFetchesSetting = "history-fetches"
 // counts, registers, macros, yank history, modes), the palette's own line
 // editing, and the keys sent to a terminal.
 var unpersistedNouns = map[string]bool{
-	"app.input": true, "app.editor": true, "app.key": true, "app.count": true, "app.register": true, "app.macro": true,
-	"app.yank-history": true, "app.mode": true, "app.palette": true, "app.terminal": true,
+	"ochazuke.input": true, "ochazuke.editor": true, "ochazuke.key": true, "ochazuke.count": true, "ochazuke.register": true, "ochazuke.macro": true,
+	"ochazuke.yank-history": true, "ochazuke.mode": true, "ochazuke.palette": true, "ochazuke.terminal": true,
 }
 
 // textLikeArgs are the argument names whose values the history file leaves

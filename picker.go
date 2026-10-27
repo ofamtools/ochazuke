@@ -83,13 +83,13 @@ func NewPicker(r *Runtime) *Picker {
 
 func newPicker(r *Runtime) *Picker {
 	p := &Picker{Runtime: r}
-	r.Instance(pickerID, Kind("app.picker")).Component = p
+	r.Instance(pickerID, Kind("ochazuke.picker")).Component = p
 	p.input = NewInput("picker-path", "", false)
-	if err := r.AddInput(p.input, Parent(pickerID), Kind("app.prompt")); err != nil {
+	if err := r.AddInput(p.input, Parent(pickerID), Kind("ochazuke.prompt")); err != nil {
 		panic(err)
 	}
 	register := func(verb, description string, params map[string]Parameter, fn func(Context, Arguments) (any, error)) {
-		r.Register(Operation{Verb: verb, Noun: "app.picker", Description: description, Parameters: params, Result: "picker state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
+		r.Register(Operation{Verb: verb, Noun: "ochazuke.picker", Description: description, Parameters: params, Result: "picker state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
 			result, err := fn(c, args)
 			if err != nil {
 				p.Error = err.Error()
@@ -133,7 +133,7 @@ func newPicker(r *Runtime) *Picker {
 		if entry.Dir {
 			return p.browse(path)
 		}
-		if _, err := p.Runtime.Execute(Request{Verb: "replace", Noun: "app.input", Target: p.input.ID, Args: Arguments{"start": 0, "end": len(p.input.Text), "text": path}}); err != nil {
+		if _, err := p.Runtime.Execute(Request{Verb: "replace", Noun: "ochazuke.input", Target: p.input.ID, Args: Arguments{"start": 0, "end": len(p.input.Text), "text": path}}); err != nil {
 			return nil, err
 		}
 		return p.state(), nil
@@ -162,19 +162,19 @@ func newPicker(r *Runtime) *Picker {
 		return r.Context(), nil
 	})
 
-	picker := r.Define("app.picker")
+	picker := r.Define("ochazuke.picker")
 	picker.Mode("insert").
-		Bind("ctrl+n", Do("app.picker.move", Arguments{"delta": 1})).
-		Bind("ctrl+p", Do("app.picker.move", Arguments{"delta": -1})).
-		Bind("alt+up", Do("app.picker.parent")).
-		Bind("tab", Do("app.picker.complete")).
-		Bind("enter", Do("app.picker.enter")).
-		Bind("ctrl+s", Do("app.picker.choose")).
-		Bind("esc", Do("app.picker.close"))
+		Bind("ctrl+n", Do("ochazuke.picker.move", Arguments{"delta": 1})).
+		Bind("ctrl+p", Do("ochazuke.picker.move", Arguments{"delta": -1})).
+		Bind("alt+up", Do("ochazuke.picker.parent")).
+		Bind("tab", Do("ochazuke.picker.complete")).
+		Bind("enter", Do("ochazuke.picker.enter")).
+		Bind("ctrl+s", Do("ochazuke.picker.choose")).
+		Bind("esc", Do("ochazuke.picker.close"))
 	// CLI and keyboard edits share the same dispatch path. Keep ancestor action
 	// semantics and delegate the normal operation, then invalidate search once.
 	for key, operation := range r.Operations {
-		if operation.Noun != "app.input" {
+		if operation.Noun != "ochazuke.input" {
 			continue
 		}
 		picker.Action(key, func(r *Runtime, c Context, args Arguments) (any, error) {
@@ -294,7 +294,7 @@ func (p *Picker) enter(directoryOnly bool) (any, error) {
 }
 
 func (p *Picker) browse(path string) (any, error) {
-	if _, err := p.Runtime.Execute(Request{Verb: "replace", Noun: "app.input", Target: p.input.ID, Args: Arguments{"start": 0, "end": len(p.input.Text), "text": path + string(filepath.Separator)}}); err != nil {
+	if _, err := p.Runtime.Execute(Request{Verb: "replace", Noun: "ochazuke.input", Target: p.input.ID, Args: Arguments{"start": 0, "end": len(p.input.Text), "text": path + string(filepath.Separator)}}); err != nil {
 		return nil, err
 	}
 	return p.state(), nil
@@ -318,7 +318,7 @@ func (p *Picker) choose(path string) (any, error) {
 	if origin != p.originInput || string(origin.Text) != p.originText || origin.Kind != p.originKind {
 		return nil, errors.New("originating input changed while picker was open; cancel and reopen to choose safely")
 	}
-	if _, err := p.Runtime.ExecuteAt(p.Origin, Request{Verb: "replace", Noun: "app.input", Args: Arguments{"start": p.start, "end": p.end, "text": path}}); err != nil {
+	if _, err := p.Runtime.ExecuteAt(p.Origin, Request{Verb: "replace", Noun: "ochazuke.input", Args: Arguments{"start": p.start, "end": p.end, "text": path}}); err != nil {
 		return nil, err
 	}
 	p.stop()

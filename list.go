@@ -83,7 +83,7 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 	if r.Instances[id] != nil {
 		return nil, fmt.Errorf("list %q is already registered", id)
 	}
-	spec := instanceSpec{parent: "app", noun: "app.list"}
+	spec := instanceSpec{parent: "app", noun: "ochazuke.list"}
 	for _, opt := range opts {
 		opt(&spec)
 	}
@@ -535,14 +535,14 @@ func registerLists(r *Runtime) {
 	// j/k take a count (3j): the list's count_pending extends its normal
 	// table, so these rows answer with the count in the payload.
 	move := func(delta int) Binding {
-		return Do("app.list.move", Arguments{"delta": delta}).FromPayload("steps", SourceCount)
+		return Do("ochazuke.list.move", Arguments{"delta": delta}).FromPayload("steps", SourceCount)
 	}
-	r.Define("app.list").Focusable().Mode("normal").
+	r.Define("ochazuke.list").Focusable().Mode("normal").
 		Bind("j", move(1)).
 		Bind("down", move(1)).
 		Bind("k", move(-1)).
 		Bind("up", move(-1)).
-		Bind("space", Do("app.list.mark")).
+		Bind("space", Do("ochazuke.list.mark")).
 		Mode("count_pending").Extends("normal")
 	// list.mark is guarded off on a list added with NoMarks, so space does
 	// not answer there and no hint offers it.
@@ -587,7 +587,7 @@ func registerLists(r *Runtime) {
 		parameters        map[string]Parameter
 		run               func(*List, Context, Arguments) (any, error)
 	}{
-		{"focus", "Focus a list and its selected row", map[string]Parameter{"id": {Type: "string", Required: true, Noun: "app.list", Free: true}}, func(l *List, _ Context, _ Arguments) (any, error) { return l.state(), l.Focus() }},
+		{"focus", "Focus a list and its selected row", map[string]Parameter{"id": {Type: "string", Required: true, Noun: "ochazuke.list", Free: true}}, func(l *List, _ Context, _ Arguments) (any, error) { return l.state(), l.Focus() }},
 		{"move", "Move the selection; past the edge, on to the next stop on the page", map[string]Parameter{"id": {Type: "string"}, "delta": {Type: "integer", Required: true}, "steps": {Type: "integer", Description: "Repeat count (3j); stops at the list's edge, and spills as one move only from the edge"}, "clamp": {Type: "boolean", Description: "Stop at the list's edges instead of spilling (the filter line's moves)"}}, func(l *List, _ Context, a Arguments) (any, error) {
 			delta, steps := IntArg(a, "delta", 0), max(1, IntArg(a, "steps", 1))
 			if steps > 1 && l.selected >= 0 {
@@ -615,7 +615,7 @@ func registerLists(r *Runtime) {
 			return l.apply(c, a)
 		}},
 	} {
-		r.Register(Operation{Verb: spec.verb, Noun: "app.list", Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
+		r.Register(Operation{Verb: spec.verb, Noun: "ochazuke.list", Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
 			list, err := resolve(c, args)
 			if err != nil {
 				return nil, err
@@ -623,10 +623,10 @@ func registerLists(r *Runtime) {
 			return spec.run(list, c, args)
 		}})
 	}
-	if r.Nouns["app.list"].Guards == nil {
-		r.Nouns["app.list"].Guards = map[string]string{}
+	if r.Nouns["ochazuke.list"].Guards == nil {
+		r.Nouns["ochazuke.list"].Guards = map[string]string{}
 	}
-	r.Nouns["app.list"].Guards["mark"] = "list-marks"
+	r.Nouns["ochazuke.list"].Guards["mark"] = "list-marks"
 	registerListMotions(r)
 	registerTableCells(r)
 	registerListVisual(r)

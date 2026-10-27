@@ -45,10 +45,10 @@ func newAppearance(r *Runtime) *Appearance {
 	a := &Appearance{Theme: "adaptive", Density: "comfortable", Dark: true}
 	c := r.Config()
 	c.themeListeners = append(c.themeListeners, func() { a.Schemes = NewSchemeSet(r.Config().Schemes()) })
-	r.Register(Operation{Verb: "get", Noun: "app.appearance", Description: "Get theme and density", Result: "appearance", Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
+	r.Register(Operation{Verb: "get", Noun: "ochazuke.appearance", Description: "Get theme and density", Result: "appearance", Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
 		return *a, nil
 	}})
-	r.Register(Operation{Verb: "set", Noun: "app.appearance", Description: "Set theme and density atomically", Parameters: map[string]Parameter{
+	r.Register(Operation{Verb: "set", Noun: "ochazuke.appearance", Description: "Set theme and density atomically", Parameters: map[string]Parameter{
 		"theme":   {Type: "string", Description: "A colour scheme: adaptive, dark, light, mono, or one from themes.json"},
 		"density": {Type: "string", Description: "comfortable or compact"},
 	}, Result: "appearance", Run: func(_ *Runtime, _ Context, args Arguments) (any, error) {
@@ -70,17 +70,17 @@ func newAppearance(r *Runtime) *Appearance {
 		*a = next
 		return next, nil
 	}})
-	r.Register(Operation{Verb: "list", Noun: "app.themes", Description: "List the colour schemes: the built-in themes, then those of themes.json", Result: "string[]", Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
+	r.Register(Operation{Verb: "list", Noun: "ochazuke.themes", Description: "List the colour schemes: the built-in themes, then those of themes.json", Result: "string[]", Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
 		return a.ThemeNames(), nil
 	}})
-	r.Register(Operation{Verb: "reload", Noun: "app.themes", Description: "Read themes.json again: a scheme that does not validate is skipped and reported", Result: "problem[]", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
+	r.Register(Operation{Verb: "reload", Noun: "ochazuke.themes", Description: "Read themes.json again: a scheme that does not validate is skipped and reported", Result: "problem[]", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
 		problems := r.reloadThemes()
 		if problems == nil {
 			problems = []string{}
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Verb: "path", Noun: "app.themes", Description: "Print the user colour schemes file: themes.json beside settings.json", Result: "path", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
+	r.Register(Operation{Verb: "path", Noun: "ochazuke.themes", Description: "Print the user colour schemes file: themes.json beside settings.json", Result: "path", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
 		path := r.Config().Path(ThemesFile)
 		if path == "" {
 			return nil, errors.New("this application has no config directory")

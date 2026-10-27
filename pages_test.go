@@ -62,7 +62,7 @@ func TestPageRegistrationAndPublicSnapshot(t *testing.T) {
 			t.Fatalf("%s=%v; want %v", path, got, want)
 		}
 	}
-	if _, err := r.Execute(Request{Verb: "get", Noun: "app.state", Args: Arguments{"path": "/pages/alpha/render"}}); err == nil {
+	if _, err := r.Execute(Request{Verb: "get", Noun: "ochazuke.state", Args: Arguments{"path": "/pages/alpha/render"}}); err == nil {
 		t.Fatal("renderer must not be exposed through public state")
 	}
 }
@@ -103,7 +103,7 @@ func TestPageBindingsAndActionsFollowActiveContext(t *testing.T) {
 	r.Register(Operation{Verb: "inspect", Noun: "owner", Run: func(*Runtime, Context, Arguments) (any, error) { return "app", nil }})
 	for _, id := range []string{"alpha", "beta"} {
 		pageTestRegister(t, r, id)
-		if err := r.Bind(Binding{Instance: id, Keys: "x", Request: Request{Verb: "insert", Noun: "app.input", Args: Arguments{"text": strings.ToUpper(id)}}}); err != nil {
+		if err := r.Bind(Binding{Instance: id, Keys: "x", Request: Request{Verb: "insert", Noun: "ochazuke.input", Args: Arguments{"text": strings.ToUpper(id)}}}); err != nil {
 			t.Fatal(err)
 		}
 		r.Define(id+"-editor").Action("owner.inspect", func(*Runtime, Context, Arguments) (any, error) { return id, nil })
@@ -134,7 +134,7 @@ func TestPageModalNavigationErrorsAreAtomic(t *testing.T) {
 	}
 	r.Pending = "g"
 	before := pageTestSnapshot(t, r)
-	for _, q := range []Request{{Verb: "open", Noun: "app.page", Args: Arguments{"id": "beta"}}, {Verb: "open", Noun: "app.page", Args: Arguments{"id": "alpha"}}, {Verb: "next", Noun: "app.page"}, {Verb: "previous", Noun: "app.page"}} {
+	for _, q := range []Request{{Verb: "open", Noun: "ochazuke.page", Args: Arguments{"id": "beta"}}, {Verb: "open", Noun: "ochazuke.page", Args: Arguments{"id": "alpha"}}, {Verb: "next", Noun: "ochazuke.page"}, {Verb: "previous", Noun: "ochazuke.page"}} {
 		if _, err := r.Execute(q); err == nil {
 			t.Fatalf("%s switched pages under a modal", q.Key())
 		}
@@ -188,7 +188,7 @@ func TestPageRegistrationRejectsInvalidPagesAtomically(t *testing.T) {
 func TestPageNavigationWrapsAndRejectsInvalidRequests(t *testing.T) {
 	r := NewRuntime()
 	for _, verb := range []string{"next", "previous"} {
-		if _, err := r.Execute(Request{Verb: verb, Noun: "app.page"}); err == nil {
+		if _, err := r.Execute(Request{Verb: verb, Noun: "ochazuke.page"}); err == nil {
 			t.Fatalf("%s accepted an empty page registry", verb)
 		}
 	}
@@ -203,7 +203,7 @@ func TestPageNavigationWrapsAndRejectsInvalidRequests(t *testing.T) {
 	}
 	r.Pending = "g"
 	before := pageTestSnapshot(t, r)
-	for _, q := range []Request{{Verb: "open", Noun: "app.page"}, {Verb: "open", Noun: "app.page", Args: Arguments{"id": 1}}, {Verb: "open", Noun: "app.page", Args: Arguments{"id": "missing"}}, {Verb: "list", Noun: "app.pages", Args: Arguments{"extra": true}}, {Verb: "next", Noun: "app.page", Args: Arguments{"id": "alpha"}}, {Verb: "previous", Noun: "app.page", Args: Arguments{"extra": true}}} {
+	for _, q := range []Request{{Verb: "open", Noun: "ochazuke.page"}, {Verb: "open", Noun: "ochazuke.page", Args: Arguments{"id": 1}}, {Verb: "open", Noun: "ochazuke.page", Args: Arguments{"id": "missing"}}, {Verb: "list", Noun: "ochazuke.pages", Args: Arguments{"extra": true}}, {Verb: "next", Noun: "ochazuke.page", Args: Arguments{"id": "alpha"}}, {Verb: "previous", Noun: "ochazuke.page", Args: Arguments{"extra": true}}} {
 		if _, err := r.Execute(q); err == nil || pageTestSnapshot(t, r) != before {
 			t.Fatalf("%+v must fail without mutation: %v", q, err)
 		}
@@ -237,20 +237,20 @@ func TestPageFocusIsolationAllowsExplicitOffscreenEdits(t *testing.T) {
 		t.Fatalf("cross-page Focus must fail without mutation: %v", err)
 	}
 	for _, q := range []Request{
-		{Verb: "focus", Noun: "app.input", Args: Arguments{"id": "beta-input"}},
-		{Verb: "select", Noun: "app.context", Args: Arguments{"path": `["app","beta"]`}},
-		{Verb: "select", Noun: "app.context", Args: Arguments{"path": `["app","beta","beta-editor"]`, "input": "beta-input"}},
-		{Verb: "select", Noun: "app.context", Args: Arguments{"path": `["app","alpha","alpha-editor"]`, "input": "beta-input"}},
+		{Verb: "focus", Noun: "ochazuke.input", Args: Arguments{"id": "beta-input"}},
+		{Verb: "select", Noun: "ochazuke.context", Args: Arguments{"path": `["app","beta"]`}},
+		{Verb: "select", Noun: "ochazuke.context", Args: Arguments{"path": `["app","beta","beta-editor"]`, "input": "beta-input"}},
+		{Verb: "select", Noun: "ochazuke.context", Args: Arguments{"path": `["app","alpha","alpha-editor"]`, "input": "beta-input"}},
 	} {
 		if _, err := r.Execute(q); err == nil || pageTestSnapshot(t, r) != before {
 			t.Fatalf("cross-page selection must fail without mutation: %+v: %v", q, err)
 		}
 	}
 	offscreen := Context{Path: []string{"app", "beta", "beta-editor"}, InputID: "beta-input"}
-	if _, err := r.ExecuteAt(offscreen, Request{Verb: "insert", Noun: "app.input", Args: Arguments{"text": "off-"}}); err != nil {
+	if _, err := r.ExecuteAt(offscreen, Request{Verb: "insert", Noun: "ochazuke.input", Args: Arguments{"text": "off-"}}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Verb: "insert", Noun: "app.input", Target: "beta-input", Args: Arguments{"text": "target-"}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "insert", Noun: "ochazuke.input", Target: "beta-input", Args: Arguments{"text": "target-"}}); err != nil {
 		t.Fatal(err)
 	}
 	if r.Page != "alpha" || r.Page != alpha.ID || r.Context().InputID != "alpha-input" || string(r.Input("alpha-input").Text) != "alpha" || string(r.Input("beta-input").Text) != "off-target-beta" || r.Pending != "g" {
@@ -317,10 +317,10 @@ func TestPageOnOpenRunsWhenThePageOpens(t *testing.T) {
 	if err := r.OpenPage("one"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Noun: "app.page", Verb: "next"}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.page", Verb: "next"}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Noun: "app.page", Verb: "open", Args: Arguments{"id": "one"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.page", Verb: "open", Args: Arguments{"id": "one"}}); err != nil {
 		t.Fatal(err)
 	}
 	want := []string{">one@one", "one>two@two", "two>one@one"}

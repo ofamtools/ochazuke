@@ -112,7 +112,7 @@ func (r *Runtime) AddTerminal(id string, stream TerminalStream, opts ...Instance
 	if stream == nil {
 		return nil, errors.New("terminal stream is required")
 	}
-	spec := instanceSpec{parent: "app", noun: "app.terminal"}
+	spec := instanceSpec{parent: "app", noun: "ochazuke.terminal"}
 	for _, opt := range opts {
 		opt(&spec)
 	}
@@ -326,8 +326,8 @@ func registerTerminal(r *Runtime) {
 	r.DefineMode("terminal", false)
 	_ = r.DefinePassthrough("terminal")
 	r.DefineMode("leader_pending", true)
-	leader := Request{Verb: "send", Noun: "app.terminal", Args: Arguments{"keys": "ctrl+a"}}
-	r.Define("app.terminal").Pin("terminal").Focusable().
+	leader := Request{Verb: "send", Noun: "ochazuke.terminal", Args: Arguments{"keys": "ctrl+a"}}
+	r.Define("ochazuke.terminal").Pin("terminal").Focusable().
 		Verb("send", func(r *Runtime, c Context, a Arguments) (any, error) {
 			t, err := r.terminalOf(c, a)
 			if err != nil {
@@ -345,7 +345,7 @@ func registerTerminal(r *Runtime) {
 				return nil, err
 			}
 			if keys := StringArg(a, "keys", ""); keys != "" {
-				if _, err := r.ExecuteAt(c, Request{Verb: "send", Noun: "app.terminal", Args: Arguments{"id": t.id, "keys": keys}}); err != nil {
+				if _, err := r.ExecuteAt(c, Request{Verb: "send", Noun: "ochazuke.terminal", Args: Arguments{"id": t.id, "keys": keys}}); err != nil {
 					return nil, err
 				}
 			}
@@ -378,13 +378,13 @@ func registerTerminal(r *Runtime) {
 		}, "Return focus to the instance around the terminal; the pane keeps running (a CloseOnDetach terminal is removed, its stream released and the focus sent to its FocusOnClose target)").
 		Mode("terminal").
 		Bind("ctrl+a", Enter("leader_pending", Payload{Prefix: "ctrl+a", Request: &leader}).Hinted("leader: d detaches, ctrl+a sends ctrl+a")).
-		Pattern(Paste, Do("app.terminal.paste").FromPayload("text", SourceText).Hide()).
-		Pattern(Any, Do("app.terminal.send").FromKey("keys").Hide()).
+		Pattern(Paste, Do("ochazuke.terminal.paste").FromPayload("text", SourceText).Hide()).
+		Pattern(Any, Do("ochazuke.terminal.send").FromKey("keys").Hide()).
 		Mode("leader_pending").
-		Bind("d", Do("app.terminal.detach")).
-		Bind("ctrl+a", Do("app.terminal.send", Arguments{"keys": "ctrl+a"})).
-		Pattern(Paste, Do("app.terminal.paste").FromPayload("keys", SourcePrefix).FromPayload("text", SourceText).Hide()).
-		Pattern(Any, Do("app.terminal.send").Join("keys", SourcePrefix, SourceKey).Hide())
+		Bind("d", Do("ochazuke.terminal.detach")).
+		Bind("ctrl+a", Do("ochazuke.terminal.send", Arguments{"keys": "ctrl+a"})).
+		Pattern(Paste, Do("ochazuke.terminal.paste").FromPayload("keys", SourcePrefix).FromPayload("text", SourceText).Hide()).
+		Pattern(Any, Do("ochazuke.terminal.send").Join("keys", SourcePrefix, SourceKey).Hide())
 	// Required-parameter metadata for the rows above and for the CLI.
 	for verb, params := range map[string]map[string]Parameter{
 		"send":   {"id": {Type: "string", Description: "Terminal instance (defaults to the focused one)"}, "keys": {Type: "string", Required: true, Description: "Space-separated key names, forwarded in order"}},
@@ -392,9 +392,9 @@ func registerTerminal(r *Runtime) {
 		"attach": {"id": {Type: "string", Description: "Terminal instance (defaults to the focused one)"}},
 		"detach": {"id": {Type: "string", Description: "Terminal instance (defaults to the focused one)"}},
 	} {
-		op := r.Operations["app.terminal."+verb]
+		op := r.Operations["ochazuke.terminal."+verb]
 		op.Parameters, op.Result = params, "JSON value"
-		r.Operations["app.terminal."+verb] = op
+		r.Operations["ochazuke.terminal."+verb] = op
 	}
 }
 
@@ -449,7 +449,7 @@ func validLeader(v any) error {
 // terminal-leader setting once applied), DefaultTerminalLeader when the
 // noun has no leader row.
 func (r *Runtime) TerminalLeader() string {
-	if n := r.Nouns["app.terminal"]; n != nil {
+	if n := r.Nouns["ochazuke.terminal"]; n != nil {
 		for _, b := range n.Bindings["terminal"] {
 			if key, ok := leaderRow(b); ok {
 				return key
@@ -462,7 +462,7 @@ func (r *Runtime) TerminalLeader() string {
 // leaderRow reports whether a row is a leader: it enters leader_pending on
 // one key that is its own prefix. It returns the key.
 func leaderRow(b Binding) (string, bool) {
-	if b.Keys == "" || b.Unbind || b.Request.Key() != "app.mode.enter" || b.Request.Args["mode"] != "leader_pending" {
+	if b.Keys == "" || b.Unbind || b.Request.Key() != "ochazuke.mode.enter" || b.Request.Args["mode"] != "leader_pending" {
 		return "", false
 	}
 	if prefix, _ := b.Request.Args["prefix"].(string); prefix != b.Keys {
@@ -506,7 +506,7 @@ func (r *Runtime) SetTerminalLeader(key string) error {
 			continue
 		}
 		n.Bindings["leader_pending"] = rekeyRows(n.Bindings["leader_pending"], key, func(b Binding) (string, bool) {
-			if olds[b.Keys] && b.Request.Key() == "app.terminal.send" && b.Request.Args["keys"] == b.Keys {
+			if olds[b.Keys] && b.Request.Key() == "ochazuke.terminal.send" && b.Request.Args["keys"] == b.Keys {
 				return b.Keys, true
 			}
 			return "", false

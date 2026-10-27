@@ -32,7 +32,7 @@ type Registers struct {
 var registersSpec []byte
 
 func registerRegisters(r *Runtime) {
-	inst := r.Instance(registersID, Kind("app.registers"))
+	inst := r.Instance(registersID, Kind("ochazuke.registers"))
 	inst.Component = &Registers{Named: map[string]Register{}}
 }
 

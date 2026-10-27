@@ -64,6 +64,8 @@ type instanceSpec struct {
 	closeOnDetach, noSpill, noMarks bool
 	clearFilterOnEnter              bool
 	cellSelect                      bool
+	followTail                      bool // FollowTail: a timeline sticks to its last card
+	headerLines                     int  // HeaderLines: a timeline's closed-card header cap
 	columns                         []Column
 	completions                     []CompletionTrigger
 }
@@ -122,7 +124,7 @@ func ClearFilterOnEnter() InstanceOption {
 
 // Instance registers a plain instance: a page body, a panel, a modal body.
 // Its noun is defined when it does not exist yet; a framework alias names
-// the framework's noun (Kind("prompt") is app.prompt). Registering an existing id
+// the framework's noun (Kind("prompt") is ochazuke.prompt). Registering an existing id
 // returns it unchanged.
 func (r *Runtime) Instance(id string, opts ...InstanceOption) *Instance {
 	if inst := r.Instances[id]; inst != nil {
@@ -135,7 +137,7 @@ func (r *Runtime) Instance(id string, opts ...InstanceOption) *Instance {
 	for _, opt := range opts {
 		opt(&spec)
 	}
-	spec.noun = r.instanceNoun(spec.noun) // an alias names its noun (Instance("page") answers to app.page)
+	spec.noun = r.instanceNoun(spec.noun) // an alias names its noun (Instance("page") answers to ochazuke.page)
 	r.seq++
 	inst := &Instance{ID: id, Noun: spec.noun, Parent: spec.parent, seq: r.seq, closeFocus: spec.closeFocus}
 	r.register(inst)
@@ -143,7 +145,7 @@ func (r *Runtime) Instance(id string, opts ...InstanceOption) *Instance {
 }
 
 // instanceNoun is the noun an instance of kind names: an alias resolved
-// (Kind("prompt") is app.prompt), defined when it does not exist yet.
+// (Kind("prompt") is ochazuke.prompt), defined when it does not exist yet.
 func (r *Runtime) instanceNoun(kind string) string {
 	if r.builtinDepth > 0 {
 		if _, aliased := r.aliases[kind]; !aliased {

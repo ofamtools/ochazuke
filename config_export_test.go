@@ -16,12 +16,12 @@ import (
 // a sandbox has none and says so.
 func TestConfigPathPrintsTheConfigAndStateDirectories(t *testing.T) {
 	r := NewRuntime()
-	if _, err := r.Execute(Request{Verb: "path", Noun: "app.config"}); err == nil {
+	if _, err := r.Execute(Request{Verb: "path", Noun: "ochazuke.config"}); err == nil {
 		t.Fatal("config.path answered without any directory")
 	}
 	dir, state := t.TempDir(), t.TempDir()
 	r.Config().Dir, r.Config().StateDir = dir, state
-	got, err := r.Execute(Request{Verb: "path", Noun: "app.config"})
+	got, err := r.Execute(Request{Verb: "path", Noun: "ochazuke.config"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func readJSON(t *testing.T, path string, v any) {
 // the files it wrote.
 func TestConfigExportWritesTheReferenceDirectory(t *testing.T) {
 	r, dir := exportFixture(t)
-	got, err := r.Execute(Request{Verb: "export", Noun: "app.config"})
+	got, err := r.Execute(Request{Verb: "export", Noun: "ochazuke.config"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,7 +171,7 @@ func TestConfigExportBindingsRoundTripThroughBindingsLoad(t *testing.T) {
 	for _, row := range rows {
 		keys[row.Noun+"/"+row.Mode+"/"+row.Keys] = true
 	}
-	for _, want := range []string{"app/normal/a", "app/normal/g b", "app.editor/insert/ctrl+a"} {
+	for _, want := range []string{"app/normal/a", "app/normal/g b", "ochazuke.editor/insert/ctrl+a"} {
 		if !keys[want] {
 			t.Fatalf("row %s missing from the reference", want)
 		}
@@ -187,7 +187,7 @@ func TestConfigExportBindingsRoundTripThroughBindingsLoad(t *testing.T) {
 		return out
 	}
 	before := stored()
-	if _, err := r.Execute(Request{Verb: "load", Noun: "app.bindings", Args: Arguments{"path": path}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "load", Noun: "ochazuke.bindings", Args: Arguments{"path": path}}); err != nil {
 		t.Fatalf("bindings.load of the reference: %v", err)
 	}
 	if _, err := r.ValidateBindings(); err != nil {
@@ -207,7 +207,7 @@ func TestConfigExportBindingsRoundTripThroughBindingsLoad(t *testing.T) {
 	}
 	guarded := map[string]bool{}
 	for _, row := range rows {
-		if row.Noun == "app.editor" && row.Mode == "operator_pending" && row.Keys == "0" {
+		if row.Noun == "ochazuke.editor" && row.Mode == "operator_pending" && row.Keys == "0" {
 			guarded[row.When] = true
 		}
 	}
@@ -237,7 +237,7 @@ func TestConfigExportNeverOverwritesTheLiveFilesWithoutForce(t *testing.T) {
 	r, dir := exportFixture(t)
 	live := filepath.Join(dir, SettingsFile)
 	before, _ := os.ReadFile(live)
-	if _, err := r.Execute(Request{Verb: "export", Noun: "app.config", Args: Arguments{"dir": dir}}); err == nil || !strings.Contains(err.Error(), "live settings.json") {
+	if _, err := r.Execute(Request{Verb: "export", Noun: "ochazuke.config", Args: Arguments{"dir": dir}}); err == nil || !strings.Contains(err.Error(), "live settings.json") {
 		t.Fatalf("export into the config directory: %v", err)
 	}
 	if after, _ := os.ReadFile(live); !bytes.Equal(before, after) {
@@ -254,7 +254,7 @@ func TestConfigExportNeverOverwritesTheLiveFilesWithoutForce(t *testing.T) {
 	if _, err := r.ExportConfig(link, false); err == nil {
 		t.Fatal("export through a link to the config directory was not refused")
 	}
-	if _, err := r.Execute(Request{Verb: "export", Noun: "app.config", Args: Arguments{"dir": dir, "force": true}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "export", Noun: "ochazuke.config", Args: Arguments{"dir": dir, "force": true}}); err != nil {
 		t.Fatal(err)
 	}
 	var current map[string]any

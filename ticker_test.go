@@ -70,7 +70,7 @@ func TestJobsTickerRunningOnTopFinishedSlidesDown(t *testing.T) {
 	r.Settle(a, errors.New("boom"))
 	tickerIs(t, m, "thing.build running", "thing.build failed: boom")
 	// jobs.list deletes finished jobs on read; the ticker remembers them.
-	if _, err := r.Execute(Request{Verb: "list", Noun: "app.jobs"}); err != nil {
+	if _, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.jobs"}); err != nil {
 		t.Fatal(err)
 	}
 	tickerIs(t, m, "thing.build running", "thing.build failed: boom")
@@ -194,7 +194,7 @@ func TestJobsTickerShowsJobLabel(t *testing.T) {
 		t.Fatal(err)
 	}
 	tickerIs(t, m, "thing.build claude running")
-	value, err := r.Execute(Request{Verb: "list", Noun: "app.jobs"})
+	value, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.jobs"})
 	if err != nil {
 		t.Fatal(err)
 	}

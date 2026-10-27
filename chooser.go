@@ -80,7 +80,7 @@ const ChooserPreviewMin = 60
 
 // chooserNoun is the noun of every chooser's search input; its rows are
 // the chooser's keys.
-const chooserNoun = "app.chooser"
+const chooserNoun = "ochazuke.chooser"
 
 // chooserCreateRow is the ID of the create row (see ChooserSpec.CreateRow).
 const chooserCreateRow = "chooser:create"
@@ -130,19 +130,19 @@ func registerChooser(r *Runtime) {
 			return Done(nil)
 		}), "Close without choosing").
 		Mode("").
-		Bind("enter", Do("app.chooser.pick")).
-		Bind("esc", Do("app.chooser.cancel")).
-		Bind("down", Do("app.chooser.move", Arguments{"delta": 1})).
-		Bind("ctrl+j", Do("app.chooser.move", Arguments{"delta": 1})).
-		Bind("ctrl+n", Do("app.chooser.move", Arguments{"delta": 1})).
-		Bind("up", Do("app.chooser.move", Arguments{"delta": -1})).
-		Bind("ctrl+p", Do("app.chooser.move", Arguments{"delta": -1})).
-		Bind("ctrl+k", Do("app.chooser.move", Arguments{"delta": -1})).
-		Pattern(Printable, Do("app.input.insert").FromPayload("text", SourceText)).
-		Pattern(Paste, Do("app.input.insert").FromPayload("text", SourceText))
-	move := r.Operations["app.chooser.move"]
+		Bind("enter", Do("ochazuke.chooser.pick")).
+		Bind("esc", Do("ochazuke.chooser.cancel")).
+		Bind("down", Do("ochazuke.chooser.move", Arguments{"delta": 1})).
+		Bind("ctrl+j", Do("ochazuke.chooser.move", Arguments{"delta": 1})).
+		Bind("ctrl+n", Do("ochazuke.chooser.move", Arguments{"delta": 1})).
+		Bind("up", Do("ochazuke.chooser.move", Arguments{"delta": -1})).
+		Bind("ctrl+p", Do("ochazuke.chooser.move", Arguments{"delta": -1})).
+		Bind("ctrl+k", Do("ochazuke.chooser.move", Arguments{"delta": -1})).
+		Pattern(Printable, Do("ochazuke.input.insert").FromPayload("text", SourceText)).
+		Pattern(Paste, Do("ochazuke.input.insert").FromPayload("text", SourceText))
+	move := r.Operations["ochazuke.chooser.move"]
 	move.Parameters = map[string]Parameter{"delta": {Type: "integer", Required: true}}
-	r.Operations["app.chooser.move"] = move
+	r.Operations["ochazuke.chooser.move"] = move
 }
 
 // OpenChooser opens a chooser modal with its search input focused in

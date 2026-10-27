@@ -1,0 +1,54 @@
+{
+  "area": "timeline",
+  "width": 80,
+  "name": "timeline: the running card is drawn bright with a ● in its border, older cards muted, sessions ruled, in mono at 80 columns",
+  "page": {
+    "noHeadings": true,
+    "timeline": {
+      "headerLines": 2,
+      "cards": [
+        {
+          "id": "t1",
+          "group": "session 1 · ochazuke",
+          "muted": true,
+          "meta": "09:12 · done · 41s",
+          "header": "Read AGENTS.md and the codemap, then tell me which files own focus jumps and why the walk ranks stops by drawing order instead of registration order.",
+          "body": "focus.go owns the jumps; the walk reads the page's recorded drawing order (Runtime.Placed), so it is the order on screen."
+        },
+        {
+          "id": "t2",
+          "group": "session 1 · ochazuke",
+          "muted": true,
+          "meta": "09:20 · done · 2m03s",
+          "header": "Make the help modal wrap long descriptions onto further lines of their row instead of cutting them with an ellipsis.",
+          "sections": [
+            {
+              "title": "thinking",
+              "role": "muted",
+              "folded": true,
+              "summary": "3 lines",
+              "text": "The table already measures widths.\nA Wrap column can lay a cell over several lines.\nThe golden needs regenerating."
+            },
+            {
+              "title": "tools",
+              "summary": "2 calls",
+              "text": "Edit help.go\nRun go test ./..."
+            },
+            {
+              "title": "answer",
+              "text": "Done: the key, operation and description columns wrap; golden help-80 updated."
+            }
+          ]
+        },
+        {
+          "id": "t3",
+          "group": "session 2 · mtm",
+          "meta": "10:02 · running · 12s",
+          "header": "日本語のプロンプトも折り返す: wide runes in a prompt wrap by cells, never by bytes, and nothing is cut.",
+          "body": "Streaming the answer…",
+          "active": true
+        }
+      ]
+    }
+  }
+}

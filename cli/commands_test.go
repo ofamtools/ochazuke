@@ -221,7 +221,7 @@ func TestCommandsRunAttachesDetachesAndReruns(t *testing.T) {
 	}
 	d.key("ctrl+a", "d", "k")
 	// Arguments come from the palette or the CLI: command run greet world.
-	if _, err := d.exec(ochazuke.Request{Noun: "app.command", Verb: "run", Args: ochazuke.Arguments{"name": "greet", "args": "world"}}); err != nil {
+	if _, err := d.exec(ochazuke.Request{Noun: "ochazuke.command", Verb: "run", Args: ochazuke.Arguments{"name": "greet", "args": "world"}}); err != nil {
 		t.Fatal(err)
 	}
 	d.until("greet's output", contains("hello world", "greet · exited 0"))
@@ -252,10 +252,10 @@ func TestCommandsStopReleasesTheRun(t *testing.T) {
 	if strings.Contains(frame, "x command.stop") {
 		t.Fatalf("x still offered without a run:\n%s", frame)
 	}
-	if _, err := d.exec(ochazuke.Request{Noun: "app.command", Verb: "stop", Args: ochazuke.Arguments{"name": "greet"}, Confirmed: true}); err == nil {
+	if _, err := d.exec(ochazuke.Request{Noun: "ochazuke.command", Verb: "stop", Args: ochazuke.Arguments{"name": "greet"}, Confirmed: true}); err == nil {
 		t.Fatal("stop without a run succeeded")
 	}
-	got, err := d.exec(ochazuke.Request{Noun: "app.command", Verb: "which", Args: ochazuke.Arguments{"name": "echo"}})
+	got, err := d.exec(ochazuke.Request{Noun: "ochazuke.command", Verb: "which", Args: ochazuke.Arguments{"name": "echo"}})
 	if err != nil || got.(map[string]any)["source"] != "/bin/tool-echo" {
 		t.Fatalf("which = %v, %v", got, err)
 	}
@@ -281,7 +281,7 @@ func TestCommandsHistoryFileKeepsNoArgsOrPtyKeys(t *testing.T) {
 	d.until("cat's echo", func(f string) bool { return strings.Count(f, "pw9z") >= 2 })
 	d.key("ctrl+a", "d", "k")
 	restore := r.Sourced("palette")
-	_, err := d.exec(ochazuke.Request{Noun: "app.command", Verb: "run", Args: ochazuke.Arguments{"name": "greet", "args": "--token=s3cret"}})
+	_, err := d.exec(ochazuke.Request{Noun: "ochazuke.command", Verb: "run", Args: ochazuke.Arguments{"name": "greet", "args": "--token=s3cret"}})
 	restore()
 	if err != nil {
 		t.Fatal(err)
@@ -357,7 +357,7 @@ func TestOdenCommandsListsRunsAndHelps(t *testing.T) {
 	if err := c.List().Select(rowID("ext")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := d.exec(ochazuke.Request{Noun: "app.command", Verb: "run", Args: ochazuke.Arguments{"args": "x y"}}); err != nil {
+	if _, err := d.exec(ochazuke.Request{Noun: "ochazuke.command", Verb: "run", Args: ochazuke.Arguments{"args": "x y"}}); err != nil {
 		t.Fatal(err)
 	}
 	d.until("the external's output", contains("ext tool tool x y", "ext · exited 0"))

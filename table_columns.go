@@ -115,20 +115,20 @@ func (l *List) columnsScroll() bool {
 
 func registerColumnMotions(r *Runtime) {
 	steps := func(delta int) Binding {
-		return Do("app.list.scroll-columns", Arguments{"delta": delta}).FromPayload("steps", SourceCount)
+		return Do("ochazuke.list.scroll-columns", Arguments{"delta": delta}).FromPayload("steps", SourceCount)
 	}
-	r.Define("app.list").Mode("normal").
+	r.Define("ochazuke.list").Mode("normal").
 		Bind("z l", steps(1)).
 		Bind("z h", steps(-1))
 	r.DefineGuard("table-scrolls", func(r *Runtime, ev KeyEvent) bool {
 		l := r.focusedList(ev.Focus)
 		return l != nil && l.columnsScroll()
 	})
-	if r.Nouns["app.list"].Guards == nil {
-		r.Nouns["app.list"].Guards = map[string]string{}
+	if r.Nouns["ochazuke.list"].Guards == nil {
+		r.Nouns["ochazuke.list"].Guards = map[string]string{}
 	}
-	r.Nouns["app.list"].Guards["scroll-columns"] = "table-scrolls"
-	r.Register(Operation{Verb: "scroll-columns", Noun: "app.list", Description: "Scroll a table's columns: to the first or the last, or delta columns right or left; the first column stays", Parameters: map[string]Parameter{
+	r.Nouns["ochazuke.list"].Guards["scroll-columns"] = "table-scrolls"
+	r.Register(Operation{Verb: "scroll-columns", Noun: "ochazuke.list", Description: "Scroll a table's columns: to the first or the last, or delta columns right or left; the first column stays", Parameters: map[string]Parameter{
 		"id":    {Type: "string", Description: "The list (default: the focused one)"},
 		"to":    {Type: "string", Enum: []string{"first", "last"}, Description: "The unscrolled view (first) or the one showing the last column (last)"},
 		"delta": {Type: "integer", Description: "Columns to scroll, positive right (zl), negative left (zh)"},

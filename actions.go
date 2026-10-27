@@ -67,7 +67,7 @@ type Action struct {
 	History     string               `json:"history,omitempty"`
 
 	// written is the noun as the file spells it (an alias: list), when
-	// Noun was resolved to the noun it names (app.list); {{noun}} and the
+	// Noun was resolved to the noun it names (ochazuke.list); {{noun}} and the
 	// default call keep the file's spelling.
 	written string
 }
@@ -486,14 +486,14 @@ func readActions(path string) ([]fileAction, []string) {
 }
 
 func registerActions(r *Runtime) {
-	r.Register(Operation{Verb: "list", Noun: "app.actions", Description: "List the actions installed from actions.json: verbs that run an external command", Result: "action[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "list", Noun: "ochazuke.actions", Description: "List the actions installed from actions.json: verbs that run an external command", Result: "action[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		out := r.UserActions()
 		if out == nil {
 			out = []Action{}
 		}
 		return out, nil
 	}})
-	r.Register(Operation{Verb: "reload", Noun: "app.actions", Description: "Read actions.json again: its verbs replace the last load's, a bad entry is skipped and reported; the user bindings are applied again", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "reload", Noun: "ochazuke.actions", Description: "Read actions.json again: its verbs replace the last load's, a bad entry is skipped and reported; the user bindings are applied again", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		problems := r.ReloadUserActions()
 		if r.Config().bindingsLoaded {
 			problems = append(problems, r.ReloadUserBindings()...)
@@ -503,7 +503,7 @@ func registerActions(r *Runtime) {
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Verb: "path", Noun: "app.actions", Description: "Print the user actions file: actions.json beside bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "path", Noun: "ochazuke.actions", Description: "Print the user actions file: actions.json beside bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		path := r.Config().Path(ActionsFile)
 		if path == "" {
 			return nil, errors.New("this application has no config directory")

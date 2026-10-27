@@ -209,7 +209,7 @@ func TestChooserFooterListsNoMotions(t *testing.T) {
 	_, m, _, _ := chooserTest(t, ChooserSpec{Rows: []ChooserRow{{ID: "a", Label: "alpha"}}})
 	m.Update(tea.WindowSizeMsg{Width: 120, Height: 24})
 	frame := ansi.Strip(m.View().Content)
-	if strings.Contains(frame, "app.chooser.move") || !strings.Contains(frame, "enter chooser.pick") || !strings.Contains(frame, "esc chooser.cancel") {
+	if strings.Contains(frame, "ochazuke.chooser.move") || !strings.Contains(frame, "enter chooser.pick") || !strings.Contains(frame, "esc chooser.cancel") {
 		t.Fatalf("chooser hints:\n%s", frame)
 	}
 }
@@ -307,7 +307,7 @@ func TestPagePickerCtrlNMovesAndEscKeepsThePage(t *testing.T) {
 
 func TestPagePickRunsFromTheCLIAndThePalette(t *testing.T) {
 	r, m := pagePickerTest(t, 3)
-	if _, err := r.Execute(Request{Noun: "app.page", Verb: "pick"}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.page", Verb: "pick"}); err != nil {
 		t.Fatal(err)
 	}
 	if r.Chooser(pagePickerID) == nil {
@@ -326,7 +326,7 @@ func TestPagePickerKeyAppearsInHelpAndBindings(t *testing.T) {
 	r, _ := pagePickerTest(t, 2)
 	found := false
 	for _, row := range r.ListBindings(r.Focus) {
-		found = found || row.Keys == "'" && row.Request.Noun == "app.page" && row.Request.Verb == "pick"
+		found = found || row.Keys == "'" && row.Request.Noun == "ochazuke.page" && row.Request.Verb == "pick"
 	}
 	if !found {
 		t.Fatalf("bindings.list lacks ' page.pick: %v", r.ListBindings(r.Focus))
@@ -362,7 +362,7 @@ func TestChooserJobBelongsToTheOpener(t *testing.T) {
 	}}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Noun: "app.chooser", Verb: "pick"}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.chooser", Verb: "pick"}); err != nil {
 		t.Fatal(err)
 	}
 	jobs := r.Jobs()

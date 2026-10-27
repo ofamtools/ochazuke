@@ -156,7 +156,7 @@ func safeLine(s string) string {
 func (m *Model) JobsTicker(width int) []string {
 	jobs := m.ticker.rows(m.Runtime, m.clock())
 	for i := range jobs {
-		jobs[i].Verb = m.Runtime.DisplayKey(jobs[i].Verb) // command.help, not app.command.help
+		jobs[i].Verb = m.Runtime.DisplayKey(jobs[i].Verb) // command.help, not ochazuke.command.help
 	}
 	return JobsTicker(jobs, width)
 }

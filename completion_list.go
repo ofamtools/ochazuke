@@ -39,7 +39,7 @@ import (
 const completionID = "__completion"
 
 // CompletionNoun is the noun whose rows answer while suggestions are open.
-const CompletionNoun = "app.completion"
+const CompletionNoun = "ochazuke.completion"
 
 // DefaultCompletionDebounce is the pause after the last edit before an
 // input's search is asked.
@@ -126,16 +126,16 @@ func registerCompletion(r *Runtime) {
 		Verb("accept", on(func(c *Completer, _ Context, _ Arguments) error { return c.accept() }), "Replace the token with the highlighted suggestion, else the first, keeping its trigger; one undoable edit").
 		Verb("dismiss", on(func(c *Completer, _ Context, _ Arguments) error { c.dismiss(); return nil }), "Hide the suggestions; the input stays in its mode and typing reopens them").
 		Mode("insert").
-		Bind("esc", Do("app.completion.dismiss")).
-		Bind("tab", Do("app.completion.accept").Guard("completion-rows")).
-		Bind("enter", Do("app.completion.accept").Guard("completion-highlighted")).
-		Bind("ctrl+n", Do("app.completion.move", Arguments{"delta": 1}).Guard("completion-rows")).
-		Bind("down", Do("app.completion.move", Arguments{"delta": 1}).Guard("completion-rows")).
-		Bind("ctrl+p", Do("app.completion.move", Arguments{"delta": -1}).Guard("completion-rows")).
-		Bind("up", Do("app.completion.move", Arguments{"delta": -1}).Guard("completion-rows"))
-	move := r.Operations["app.completion.move"]
+		Bind("esc", Do("ochazuke.completion.dismiss")).
+		Bind("tab", Do("ochazuke.completion.accept").Guard("completion-rows")).
+		Bind("enter", Do("ochazuke.completion.accept").Guard("completion-highlighted")).
+		Bind("ctrl+n", Do("ochazuke.completion.move", Arguments{"delta": 1}).Guard("completion-rows")).
+		Bind("down", Do("ochazuke.completion.move", Arguments{"delta": 1}).Guard("completion-rows")).
+		Bind("ctrl+p", Do("ochazuke.completion.move", Arguments{"delta": -1}).Guard("completion-rows")).
+		Bind("up", Do("ochazuke.completion.move", Arguments{"delta": -1}).Guard("completion-rows"))
+	move := r.Operations["ochazuke.completion.move"]
 	move.Parameters = map[string]Parameter{"delta": {Type: "integer", Required: true}}
-	r.Operations["app.completion.move"] = move
+	r.Operations["ochazuke.completion.move"] = move
 }
 
 // Completer is the inline completion component.
@@ -313,7 +313,7 @@ func (c *Completer) launch() {
 		rows, err := search(ctx, query)
 		return completionAnswer{seq: seq, rows: rows, err: err}, nil
 	}
-	ticket, err := r.Launch(completionID, "app.completion.search", Pending(work).Label(c.token.Trigger+query), Ctx{Runtime: r, Context: r.contextOf(completionID), Instance: r.Instances[completionID]})
+	ticket, err := r.Launch(completionID, "ochazuke.completion.search", Pending(work).Label(c.token.Trigger+query), Ctx{Runtime: r, Context: r.contextOf(completionID), Instance: r.Instances[completionID]})
 	if err != nil {
 		c.rows, c.err = nil, err
 	} else {

@@ -407,12 +407,12 @@ func TestCompletionRowsAreAnInnerLevel(t *testing.T) {
 		t.Fatalf("completion rows listed with no token: %v", got)
 	}
 	g.typeText("@s")
-	if got := listed(); !slices.Equal(got, []string{"tab app.completion.open"}) {
+	if got := listed(); !slices.Equal(got, []string{"tab ochazuke.completion.open"}) {
 		t.Fatalf("closed list on a token: %v", got)
 	}
 	g.settle()
 	got := listed()
-	for _, want := range []string{"esc app.completion.dismiss", "tab app.completion.accept", "enter app.completion.accept", "ctrl+n app.completion.move", "up app.completion.move"} {
+	for _, want := range []string{"esc ochazuke.completion.dismiss", "tab ochazuke.completion.accept", "enter ochazuke.completion.accept", "ctrl+n ochazuke.completion.move", "up ochazuke.completion.move"} {
 		if !slices.Contains(got, want) {
 			t.Fatalf("%q missing from %v", want, got)
 		}

@@ -173,7 +173,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	}
 	r.EnsureConfigSettings()
 	// The noun is the longest run of leading words naming one: app
-	// settings, app.settings and settings (an alias) are app.settings.
+	// settings, ochazuke.settings and settings (an alias) are ochazuke.settings.
 	noun, rest, ok := r.NounWords(args)
 	if !ok {
 		noun, rest = args[0], args[1:]
@@ -223,16 +223,16 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		if top == nil {
 			break
 		}
-		if top.Noun != "app.confirm" {
+		if top.Noun != "ochazuke.confirm" {
 			return fmt.Errorf("%s opened a %s modal, which needs the TUI; pass its arguments instead (%s operations list)", q.Key(), top.Noun, s.Bin)
 		}
 		if !opts.yes && !s.accepts(top.Payload.Prompt) {
-			if _, err := s.call(ochazuke.Request{Verb: "pop", Noun: "app.modal"}); err != nil {
+			if _, err := s.call(ochazuke.Request{Verb: "pop", Noun: "ochazuke.modal"}); err != nil {
 				return err
 			}
 			return fmt.Errorf("declined: %s", top.Payload.Prompt)
 		}
-		if value, err = s.call(ochazuke.Request{Verb: "accept", Noun: "app.confirm"}); err != nil {
+		if value, err = s.call(ochazuke.Request{Verb: "accept", Noun: "ochazuke.confirm"}); err != nil {
 			return err
 		}
 	}

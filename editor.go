@@ -394,7 +394,7 @@ func registerEditorOperations(r *Runtime) {
 	}))
 	register("yank", "input", "Yank visual selection or whole current lines", map[string]Parameter{"steps": {Type: "integer"}, "register": {Type: "string"}}, func(r *Runtime, c Context, a Arguments) (any, error) {
 		args := Arguments{"operator": "y", "steps": IntArg(a, "steps", 1), "register": StringArg(a, "register", "")}
-		return r.ExecuteAt(c, Request{Verb: "operator", Noun: "app.input", Args: args})
+		return r.ExecuteAt(c, Request{Verb: "operator", Noun: "ochazuke.input", Args: args})
 	})
 	register("paste", "input", "Paste a shared register preserving its shape; literal inserts at cursor", map[string]Parameter{"register": {Type: "string"}, "before": {Type: "boolean"}, "literal": {Type: "boolean"}, "steps": {Type: "integer"}}, input(func(r *Runtime, in *Input, a Arguments) error {
 		y, err := r.readYank(StringArg(a, "register", ""))

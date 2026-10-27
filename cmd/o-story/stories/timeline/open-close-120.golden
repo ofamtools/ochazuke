@@ -1,0 +1,24 @@
+ |  ◆ o-story                                                                                                    NORMAL
+ |   › page1
+ |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ |  ╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
+R|  ┃ ▾ Make the help modal wrap long descriptions onto further lines of their row instead of cutting them with an     ┃
+R|  ┃   ellipsis.                                                                                                      ┃
+ |  ┃   09:20 · done · 2m03s                                                                                           ┃
+ |  ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+ |  ┃ ▾ 1 thinking · 3 lines                                                                                           ┃
+ |  ┃   The table already measures widths.                                                                             ┃
+ |  ┃   A Wrap column can lay a cell over several lines.                                                               ┃
+ |  ┃   The golden needs regenerating.                                                                                 ┃
+ |  ┃ ▾ 2 tools · 2 calls                                                                                              ┃
+ |  ┃   Edit help.go                                                                                                   ┃
+ |  ┃   Run go test ./...                                                                                              ┃
+ |  ┃ ▾ 3 answer                                                                                                       ┃
+ |  ┃   Done: the key, operation and description columns wrap; golden help-80 updated.                                 ┃
+ |  ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
+ |  ── session 2 · mtm ─────────────────────────────────────────────────────────────────────────────────────────────────
+ |  ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ |  2–3 / 3
+ |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ |  a story-card.timeline-append · s story-card.timeline-stream · enter timeline.toggle · l timeline.open · h timeline.…
+ |

@@ -222,7 +222,7 @@ type QueryMatch struct {
 }
 
 func registerQuery(r *Runtime) {
-	r.Register(Operation{Verb: "query", Noun: "app.instances", Description: "List the instances matching every predicate, in tree order: where is [[name, arg], ...] with noun, id, kind, within, child-of, focusable, region, state, registered predicates, and [any|all|not, [...]]", Parameters: map[string]Parameter{"where": {Type: "array", Description: "Predicates, ANDed"}}, Result: "instance[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "query", Noun: "ochazuke.instances", Description: "List the instances matching every predicate, in tree order: where is [[name, arg], ...] with noun, id, kind, within, child-of, focusable, region, state, registered predicates, and [any|all|not, [...]]", Parameters: map[string]Parameter{"where": {Type: "array", Description: "Predicates, ANDed"}}, Result: "instance[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		preds, err := ParsePredicates(a["where"])
 		if err != nil {
 			return nil, err

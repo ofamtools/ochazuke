@@ -157,7 +157,7 @@ func TestMacrosDispatchModesCountsFocusAndLiteralPaste(t *testing.T) {
 	if err := r.AddInput(second); err != nil {
 		t.Fatal(err)
 	}
-	r.Define("app").Mode("normal").Bind("tab", Do("app.input.focus", Arguments{"id": "second"}))
+	r.Define("app").Mode("normal").Bind("tab", Do("ochazuke.input.focus", Arguments{"id": "second"}))
 	m := NewModel(r)
 	modelEditorKeys(t, m, "q", "a", "i", "X", "esc", "q", "2", "@", "a", "@", "@")
 	if string(in.Text) != "XXXX" || in.Mode != "normal" {
@@ -273,7 +273,7 @@ func TestMacroStepLimitAndErrorModalCleanup(t *testing.T) {
 	r, _ := editorTestRuntime(t, "abc", true)
 	m := NewModel(r)
 	r.Registers().Named["a"] = Register{Keys: []MacroKey{{Key: "h"}, {Key: "l"}}}
-	_, err := r.Execute(Request{Verb: "replay", Noun: "app.macro", Args: Arguments{"register": "a", "steps": 10000}})
+	_, err := r.Execute(Request{Verb: "replay", Noun: "ochazuke.macro", Args: Arguments{"register": "a", "steps": 10000}})
 	if err == nil || !strings.Contains(err.Error(), "step limit") {
 		t.Fatalf("step bound: %v", err)
 	}
@@ -298,7 +298,7 @@ func TestMacroStepLimitAndErrorModalCleanup(t *testing.T) {
 func TestVisualPasteRejectsInvalidCountWithoutMutation(t *testing.T) {
 	r, in := editorTestRuntime(t, "abc", true)
 	editorTestKeys(t, r, "y", "y", "v")
-	_, err := r.Execute(Request{Verb: "paste", Noun: "app.input", Args: Arguments{"steps": -1}})
+	_, err := r.Execute(Request{Verb: "paste", Noun: "ochazuke.input", Args: Arguments{"steps": -1}})
 	if err == nil || string(in.Text) != "abc" || in.Mode != "visual" {
 		t.Fatal("invalid paste mutated selection")
 	}

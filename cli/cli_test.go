@@ -105,10 +105,10 @@ func (f *fixture) run(stdin string, args ...string) (string, string, error) {
 func TestShellListsAllBindingTables(t *testing.T) {
 	f := newFixture(t)
 	f.r.Define("detached").Mode("insert").
-		Bind("ctrl+x", ochazuke.Do("app.key.ignore").Guard("input"))
+		Bind("ctrl+x", ochazuke.Do("ochazuke.key.ignore").Guard("input"))
 	if err := f.r.Bind(ochazuke.Binding{
 		Instance: "w2", Mode: "insert", Keys: "ctrl+z",
-		Request: ochazuke.Request{Noun: "app.key", Verb: "ignore"},
+		Request: ochazuke.Request{Noun: "ochazuke.key", Verb: "ignore"},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -131,10 +131,10 @@ func TestShellListsAllBindingTables(t *testing.T) {
 	var detached, instance bool
 	for _, row := range rows {
 		if row.Noun == "detached" && row.Mode == "insert" && row.Keys == "ctrl+x" {
-			detached = row.Instance == "" && row.When == "input" && row.Request.Key() == "app.key.ignore"
+			detached = row.Instance == "" && row.When == "input" && row.Request.Key() == "ochazuke.key.ignore"
 		}
 		if row.Instance == "w2" && row.Mode == "insert" && row.Keys == "ctrl+z" {
-			instance = row.Noun == "" && row.Request.Key() == "app.key.ignore"
+			instance = row.Noun == "" && row.Request.Key() == "ochazuke.key.ignore"
 		}
 	}
 	if !detached || !instance {
@@ -143,7 +143,7 @@ func TestShellListsAllBindingTables(t *testing.T) {
 	if strings.Contains(current, "ctrl+x") || strings.Contains(current, "ctrl+z") {
 		t.Fatalf("inactive bindings leaked into the default listing:\n%s", current)
 	}
-	if _, err := f.r.Execute(ochazuke.Request{Noun: "app.mode", Verb: "set", Args: ochazuke.Arguments{"mode": "insert"}}); err != nil {
+	if _, err := f.r.Execute(ochazuke.Request{Noun: "ochazuke.mode", Verb: "set", Args: ochazuke.Arguments{"mode": "insert"}}); err != nil {
 		t.Fatal(err)
 	}
 	again, _, err := f.run("", "bindings", "list", "--all")
@@ -571,7 +571,7 @@ func TestCatalogGolden(t *testing.T) {
 			nouns = append(nouns, n)
 		}
 	}
-	if !seen["app.confirm"] || !seen["app.history"] {
+	if !seen["ochazuke.confirm"] || !seen["ochazuke.history"] {
 		t.Fatalf("framework nouns missing: %v", seen)
 	}
 	rows := doc.Bindings[:0]
@@ -580,9 +580,9 @@ func TestCatalogGolden(t *testing.T) {
 			rows = append(rows, b)
 		}
 	}
-	// Every framework noun is app.<noun> with its short name as an alias;
+	// Every framework noun is ochazuke.<noun> with its short name as an alias;
 	// the golden keeps the test noun's part, so the aliases are checked here.
-	if doc.Aliases["settings"] != "app.settings" || doc.Aliases["confirm"] != "app.confirm" || doc.CanonicalNoun("history") != "app.history" {
+	if doc.Aliases["settings"] != "ochazuke.settings" || doc.Aliases["confirm"] != "ochazuke.confirm" || doc.CanonicalNoun("history") != "ochazuke.history" {
 		t.Fatalf("aliases %v", doc.Aliases)
 	}
 	doc.Nouns, doc.Bindings, doc.Aliases = nouns, rows, nil
@@ -618,7 +618,7 @@ func TestCatalogGolden(t *testing.T) {
 func TestCatalogMarksBuiltinVerbs(t *testing.T) {
 	r := ochazuke.NewRuntime()
 	done := func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }
-	r.Define("app.history").Verb("capture-hook", done, "Capture a hook")
+	r.Define("ochazuke.history").Verb("capture-hook", done, "Capture a hook")
 	r.Define("gadget").Verb("spin", done, "Spin a gadget")
 	ochazuke.NewModel(r)
 	out, err := Catalog(r, "tool", "1")
@@ -654,8 +654,47 @@ func TestCatalogMarksBuiltinVerbs(t *testing.T) {
 			got = append(got, n.Name+"."+v.Name)
 		}
 	}
-	if want := []string{"app.history.capture-hook", "gadget.spin"}; !slices.Equal(got, want) {
+	if want := []string{"gadget.spin", "ochazuke.history.capture-hook"}; !slices.Equal(got, want) {
 		t.Fatalf("AppNouns = %v, want %v", got, want)
+	}
+}
+
+// A noun whose verbs sort around the nouns nested under it (app.quit,
+// app.rows.list, app.state, app.zz.list) is one catalog entry, and so is
+// every other noun.
+func TestCatalogListsEachNounOnce(t *testing.T) {
+	r := ochazuke.NewRuntime()
+	done := func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }
+	r.Define("app").Verb("state", done, "The app's state")
+	r.Define("app.rows").Verb("list", done, "Rows")
+	r.Define("app").Verb("zz", done, "Last")
+	r.Define("app.zz2").Verb("list", done, "Rows")
+	ochazuke.NewModel(r)
+	out, err := Catalog(r, "tool", "1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc CatalogDoc
+	if err := json.Unmarshal(out, &doc); err != nil {
+		t.Fatal(err)
+	}
+	seen := map[string]bool{}
+	for _, n := range doc.Nouns {
+		if seen[n.Name] {
+			t.Fatalf("noun %s listed twice", n.Name)
+		}
+		seen[n.Name] = true
+	}
+	app, _ := doc.noun("app")
+	var verbs []string
+	for _, v := range app.Verbs {
+		verbs = append(verbs, v.Name)
+	}
+	if want := []string{"quit", "state", "zz"}; !slices.Equal(verbs, want) {
+		t.Fatalf("app verbs %v, want %v", verbs, want)
+	}
+	if !seen["app.rows"] || !seen["ochazuke.state"] {
+		t.Fatalf("nouns %v", seen)
 	}
 }
 
@@ -667,7 +706,7 @@ func TestMountContextualHelpAndDispatch(t *testing.T) {
 	} {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {
 			f := newFixture(t)
-			f.r.Define("app.binding")
+			f.r.Define("ochazuke.binding")
 			op := f.r.Operations["widget.rename"]
 			op.Parameters["name"] = ochazuke.Parameter{
 				Type: "string", Required: true, Description: "Widget name",
@@ -902,8 +941,9 @@ func TestMountRunsUserActions(t *testing.T) {
 	}
 }
 
-// A framework noun is app.<noun>: the CLI reaches it nested (tool app
-// settings names), as one dotted word (tool app.settings names) and by its
+// A framework noun is ochazuke.<noun>: the CLI reaches it nested (tool
+// ochazuke settings names), as one dotted word (tool ochazuke.settings
+// names), by the v0.16.0 spelling (tool app settings names) and by its
 // short name (tool settings names); a noun of the application's own takes
 // the short name and the framework's stays nested. The catalog lists both.
 func TestShellAndMountReadNamespacedNouns(t *testing.T) {
@@ -918,8 +958,8 @@ func TestShellAndMountReadNamespacedNouns(t *testing.T) {
 		}
 		return out
 	}
-	want := answer("app", "settings", "names")
-	for _, args := range [][]string{{"app.settings", "names"}, {"settings", "names"}, {"app", "settings", "na"}} {
+	want := answer("ochazuke", "settings", "names")
+	for _, args := range [][]string{{"ochazuke.settings", "names"}, {"settings", "names"}, {"ochazuke", "settings", "na"}, {"app", "settings", "names"}, {"app.settings", "names"}} {
 		if got := answer(args...); got != want {
 			t.Fatalf("tool %s = %q, want %q", strings.Join(args, " "), got, want)
 		}
@@ -927,16 +967,16 @@ func TestShellAndMountReadNamespacedNouns(t *testing.T) {
 			t.Fatalf("shell %s = %q (%v), want %q", strings.Join(args, " "), got, err, want)
 		}
 	}
-	help := answer("app")
-	if !strings.Contains(help, "settings") || !strings.Contains(help, "quit") {
-		t.Fatalf("tool app lists no nested nouns:\n%s", help)
+	help := answer("ochazuke")
+	if !strings.Contains(help, "settings") || strings.Contains(help, "quit") {
+		t.Fatalf("tool ochazuke lists no nested nouns (or app's verbs):\n%s", help)
 	}
 	f.r.DefineOwn("settings").Verb("names", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done("own") }, "The tool's own settings")
 	if got := answer("settings", "names"); strings.TrimSpace(got) != `"own"` {
 		t.Fatalf("tool settings names = %q", got)
 	}
-	if got := answer("app", "settings", "names"); got != want {
-		t.Fatalf("tool app settings names = %q, want the framework's %q", got, want)
+	if got := answer("ochazuke", "settings", "names"); got != want {
+		t.Fatalf("tool ochazuke settings names = %q, want the framework's %q", got, want)
 	}
 	out := answer("catalog")
 	var doc CatalogDoc
@@ -944,11 +984,11 @@ func TestShellAndMountReadNamespacedNouns(t *testing.T) {
 		t.Fatal(err)
 	}
 	own, okOwn := doc.noun("settings")
-	framework, okFramework := doc.noun("app.settings")
-	if !okOwn || !okFramework || own.Name != "settings" || framework.Name != "app.settings" || len(own.Verbs) != 1 || own.Verbs[0].Builtin || len(framework.AppVerbs()) != 0 {
-		t.Fatalf("catalog settings %+v / app.settings %+v", own, framework)
+	framework, okFramework := doc.noun("ochazuke.settings")
+	if !okOwn || !okFramework || own.Name != "settings" || framework.Name != "ochazuke.settings" || len(own.Verbs) != 1 || own.Verbs[0].Builtin || len(framework.AppVerbs()) != 0 {
+		t.Fatalf("catalog settings %+v / ochazuke.settings %+v", own, framework)
 	}
-	if _, aliased := doc.Aliases["settings"]; aliased || doc.Aliases["list"] != "app.list" {
+	if _, aliased := doc.Aliases["settings"]; aliased || doc.Aliases["list"] != "ochazuke.list" {
 		t.Fatalf("aliases %v", doc.Aliases)
 	}
 }

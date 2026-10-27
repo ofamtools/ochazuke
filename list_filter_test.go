@@ -128,7 +128,7 @@ func TestListFilterSetItemsMarksAndApply(t *testing.T) {
 		t.Fatalf("marks: %v", marked)
 	}
 	// list.apply fans out to the marked rows on screen only.
-	res, err := r.Execute(Request{Noun: "app.list", Verb: "apply", Target: "p/l", Args: Arguments{"verb": "touch"}})
+	res, err := r.Execute(Request{Noun: "ochazuke.list", Verb: "apply", Target: "p/l", Args: Arguments{"verb": "touch"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +166,7 @@ func slicesWithout(items []ListItem, id string) []ListItem {
 
 func TestListFilterVerbAndView(t *testing.T) {
 	r, m, list := filterFixture(t)
-	res, err := r.Execute(Request{Noun: "app.list", Verb: "filter", Target: "p/l", Args: Arguments{"query": "ALPHA"}})
+	res, err := r.Execute(Request{Noun: "ochazuke.list", Verb: "filter", Target: "p/l", Args: Arguments{"query": "ALPHA"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +178,7 @@ func TestListFilterVerbAndView(t *testing.T) {
 	if !strings.Contains(frame, "/ALPHA") || !strings.Contains(frame, "2 of 5") || strings.Contains(frame, "gamma") {
 		t.Fatalf("frame:\n%s", frame)
 	}
-	if _, err := r.Execute(Request{Noun: "app.list", Verb: "filter", Target: "p/l", Args: Arguments{"query": ""}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.list", Verb: "filter", Target: "p/l", Args: Arguments{"query": ""}}); err != nil {
 		t.Fatal(err)
 	}
 	if list.Shown() != 5 || strings.Contains(ansi.Strip(m.View().Content), "/ALPHA") {
@@ -186,7 +186,7 @@ func TestListFilterVerbAndView(t *testing.T) {
 	}
 	// filter-clear is guarded off with nothing to clear, so esc stands
 	// aside for the level outside the list.
-	if _, err := r.Execute(Request{Noun: "app.list", Verb: "filter-clear", Target: "p/l"}); err == nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.list", Verb: "filter-clear", Target: "p/l"}); err == nil {
 		t.Fatal("filter-clear with no filter should be refused")
 	}
 }
@@ -202,7 +202,7 @@ func TestListFilterEnterClearsOnAnOptedList(t *testing.T) {
 	if r.Focus != "r4" || !reflect.DeepEqual(shownIDs(list), []string{"r1", "r4"}) {
 		t.Fatalf("typing: focus %s shown %v", r.Focus, shownIDs(list))
 	}
-	if hints := BindingHints(r, r.Focus); !strings.Contains(hints, "enter list.filter-choose") || strings.Contains(hints, "app.list.filter-keep") {
+	if hints := BindingHints(r, r.Focus); !strings.Contains(hints, "enter list.filter-choose") || strings.Contains(hints, "ochazuke.list.filter-keep") {
 		t.Fatalf("hints with a match: %s", hints)
 	}
 	pressKeys(m, "enter")
@@ -217,7 +217,7 @@ func TestListFilterEnterClearsOnAnOptedList(t *testing.T) {
 		t.Fatalf("k after choosing: focus %s", r.Focus)
 	}
 	pressKeys(m, "/", "z")
-	if hints := BindingHints(r, r.Focus); !strings.Contains(hints, "enter list.filter-keep") || strings.Contains(hints, "app.list.filter-choose") {
+	if hints := BindingHints(r, r.Focus); !strings.Contains(hints, "enter list.filter-keep") || strings.Contains(hints, "ochazuke.list.filter-choose") {
 		t.Fatalf("hints with no match: %s", hints)
 	}
 	pressKeys(m, "enter")
@@ -256,7 +256,7 @@ func TestTreeFilterEnterClears(t *testing.T) {
 func TestListFilterHintsAndHelp(t *testing.T) {
 	r, m, _ := filterFixture(t)
 	m.Width = 200
-	if hints := BindingHints(r, r.Focus); !strings.Contains(hints, "/ filter") || strings.Contains(hints, "app.list.filter-clear") {
+	if hints := BindingHints(r, r.Focus); !strings.Contains(hints, "/ filter") || strings.Contains(hints, "ochazuke.list.filter-clear") {
 		t.Fatalf("normal hints: %s", hints)
 	}
 	pressKeys(m, "/")
@@ -266,7 +266,7 @@ func TestListFilterHintsAndHelp(t *testing.T) {
 			t.Fatalf("filter hints lack %q: %s", want, hints)
 		}
 	}
-	if strings.Contains(hints, "app.list.filter-type") || strings.Contains(hints, "app.list.move") {
+	if strings.Contains(hints, "ochazuke.list.filter-type") || strings.Contains(hints, "ochazuke.list.move") {
 		t.Fatalf("typing and motions stay off the footer: %s", hints)
 	}
 	pressKeys(m, "esc")
@@ -332,7 +332,7 @@ func TestListFilterPatch(t *testing.T) {
 func TestListFilterVerbsAreBuiltin(t *testing.T) {
 	r := NewRuntime()
 	for _, verb := range []string{"filter", "filter-open", "filter-type", "filter-erase", "filter-keep", "filter-clear", "filter-choose"} {
-		if op, ok := r.Operations["app.list."+verb]; !ok || !op.Builtin {
+		if op, ok := r.Operations["ochazuke.list."+verb]; !ok || !op.Builtin {
 			t.Errorf("list.%s builtin = %v (registered %v)", verb, op.Builtin, ok)
 		}
 	}

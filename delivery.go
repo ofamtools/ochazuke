@@ -314,7 +314,7 @@ func (r *Runtime) runningJobs() []JobInfo {
 // stay in the list until a jobs.list read returns them, bounded to
 // jobHistory entries meanwhile; the snapshot's /jobs shows running jobs only.
 func registerJobs(r *Runtime) {
-	r.Register(Operation{Verb: "list", Noun: "app.jobs", Description: "List off-loop jobs: running ones and those finished since the last read (done, failed or cancelled, with the error)", Result: "job[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "list", Noun: "ochazuke.jobs", Description: "List off-loop jobs: running ones and those finished since the last read (done, failed or cancelled, with the error)", Result: "job[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		jobs := r.Jobs()
 		for _, j := range jobs {
 			if j.State != JobRunning {

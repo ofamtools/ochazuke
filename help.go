@@ -30,8 +30,8 @@ const (
 // views (here, pick, table), n and m choose the noun and mode of the
 // hypothetical ones.
 func registerBindingHelp(r *Runtime) {
-	r.Define("app.binding")
-	r.Register(Operation{Verb: "help", Noun: "app.bindings", Description: "Open the keys the focus answers to, with the operation each runs and its description", Result: "help row[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Define("ochazuke.binding")
+	r.Register(Operation{Verb: "help", Noun: "ochazuke.bindings", Description: "Open the keys the focus answers to, with the operation each runs and its description", Result: "help row[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		focus := focusOf(c)
 		rows, mode, home := BindingHelp(r, focus), ModeState{Name: r.BaseMode()}, helpHome(r, focus)
 		inst, err := r.OpenModal(helpID, Payload{})
@@ -121,7 +121,7 @@ func helpItems(rows []HelpRow) []ListItem {
 		key, _ := helpKey(row.Key)
 		args := helpArgsText(row.Args)
 		label := strings.Join([]string{row.Key, row.Operation, args, row.Description}, "  ")
-		items[i] = ListItem{ID: fmt.Sprintf("__bindings-help/%d", i), Label: label, Noun: "app.binding", Data: row, Cells: []string{key, row.Operation, args, row.Description}, Section: row.Section}
+		items[i] = ListItem{ID: fmt.Sprintf("__bindings-help/%d", i), Label: label, Noun: "ochazuke.binding", Data: row, Cells: []string{key, row.Operation, args, row.Description}, Section: row.Section}
 	}
 	return items
 }

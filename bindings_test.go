@@ -202,7 +202,7 @@ func TestOldVerbNounSpellingIsRewrittenOnce(t *testing.T) {
 			keys[row.Keys] = row.Request.Key()
 		}
 	}
-	want := map[string]string{"u": "app.input.undo", "ctrl+r": "app.input.redo", "x": "app.input.delete"}
+	want := map[string]string{"u": "ochazuke.input.undo", "ctrl+r": "ochazuke.input.redo", "x": "ochazuke.input.delete"}
 	if !reflect.DeepEqual(keys, want) {
 		t.Fatalf("rows = %v, want %v", keys, want)
 	}
@@ -213,7 +213,7 @@ func TestOldVerbNounSpellingIsRewrittenOnce(t *testing.T) {
 	if len(warnings) != 3 || !strings.Contains(warnings[0], `"undo.input"`) || !strings.Contains(warnings[0], `"input.undo"`) {
 		t.Fatalf("warnings = %q", warnings)
 	}
-	if err := r.Bind(Binding{Noun: "app", Keys: "q", Request: Request{Verb: "nothing", Noun: "app.input"}}); err == nil || !strings.Contains(err.Error(), `unknown operation "app.input.nothing"`) {
+	if err := r.Bind(Binding{Noun: "app", Keys: "q", Request: Request{Verb: "nothing", Noun: "ochazuke.input"}}); err == nil || !strings.Contains(err.Error(), `unknown operation "ochazuke.input.nothing"`) {
 		t.Fatalf("unknown operation error = %v", err)
 	}
 }
@@ -245,7 +245,7 @@ func TestFromRowPassesRowData(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
-	r.Instance("page", Kind("app.page"))
+	r.Instance("page", Kind("ochazuke.page"))
 	var st tree
 	st.Path, st.Repo.Name = "/src/b", "beta"
 	list, err := r.AddList("trees", []ListItem{

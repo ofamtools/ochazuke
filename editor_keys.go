@@ -107,7 +107,7 @@ func registerEditorNoun(r *Runtime) {
 	if err := r.LoadBindingSpec("editor", editorSpec); err != nil {
 		panic(err)
 	}
-	r.Define("app.prompt").Pin("insert")
+	r.Define("ochazuke.prompt").Pin("insert")
 	if err := r.LoadBindingSpec("app", registersSpec); err != nil {
 		panic(err)
 	}

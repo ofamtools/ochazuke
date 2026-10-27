@@ -178,7 +178,7 @@ func (p *Picker) bindingHelp() string {
 	}
 	var hints []string
 	for _, binding := range p.Runtime.ListBindings(p.input.ID) {
-		if binding.Request.Noun != "app.picker" {
+		if binding.Request.Noun != "ochazuke.picker" {
 			continue
 		}
 		hints = append(hints, rowHint(p.Runtime, binding))

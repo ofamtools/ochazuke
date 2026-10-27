@@ -185,7 +185,7 @@ func New() *ochazuke.Model {
 		// The page instance "appearance" (created before NewModel) is a noun
 		// of the demo's own, so the framework's appearance noun is reached by
 		// its canonical name.
-		_, _ = r.Execute(ochazuke.Request{Verb: "set", Noun: "app.appearance", Args: ochazuke.Arguments{"density": value}})
+		_, _ = r.Execute(ochazuke.Request{Verb: "set", Noun: "ochazuke.appearance", Args: ochazuke.Arguments{"density": value}})
 	}
 	r.Settings().Observe("density", applyDensity)
 	applyDensity("density", r.Settings().String("density"))

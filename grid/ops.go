@@ -15,7 +15,7 @@ import (
 // The application binds keys to these rows; the grid binds only its column
 // width keys (z >, z <, z =) on the grid noun.
 func Register(r *ochazuke.Runtime) {
-	if _, ok := r.Operations["app.grid.move"]; ok {
+	if _, ok := r.Operations["ochazuke.grid.move"]; ok {
 		return
 	}
 	r.Builtin(func() { register(r) })
@@ -90,13 +90,13 @@ func register(r *ochazuke.Runtime) {
 	// so every grid's cells answer them; the rest of the grid's keys are
 	// the application's.
 	resize := func(delta int) ochazuke.Binding {
-		return ochazuke.Do("app.grid.resize-column", ochazuke.Arguments{"delta": delta}).FromPayload("steps", ochazuke.SourceCount).Hide()
+		return ochazuke.Do("ochazuke.grid.resize-column", ochazuke.Arguments{"delta": delta}).FromPayload("steps", ochazuke.SourceCount).Hide()
 	}
-	r.Define("app.grid").Mode("normal").
+	r.Define("ochazuke.grid").Mode("normal").
 		Bind("z >", resize(1)).
 		Bind("z <", resize(-1)).
-		Bind("z =", ochazuke.Do("app.grid.reset-columns").Hide())
-	r.Define("app.grid").Mode("count_pending").Extends("normal")
+		Bind("z =", ochazuke.Do("ochazuke.grid.reset-columns").Hide())
+	r.Define("ochazuke.grid").Mode("count_pending").Extends("normal")
 	op("swap", "selection", "Exchange the selection anchor and the cursor", nil, func(g *Grid, _ ochazuke.Context, _ ochazuke.Arguments) error { return g.SwapAnchor() }).When(GuardSelecting)
 	op("mark", "selection", "Toggle the mark on the cell, row or column under the cursor by the selection shape", nil, func(g *Grid, _ ochazuke.Context, _ ochazuke.Arguments) error {
 		if g.Shape() == "" {

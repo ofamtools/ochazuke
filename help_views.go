@@ -536,7 +536,7 @@ func helpTableItems(noun string, modes []string, keys []HelpKey) []ListItem {
 				cells[j+1] = helpCellText(noun, cell)
 			}
 		}
-		items[i] = ListItem{ID: fmt.Sprintf("__bindings-help/%d", i), Label: strings.Join(cells, "  "), Noun: "app.binding", Data: k, Cells: cells}
+		items[i] = ListItem{ID: fmt.Sprintf("__bindings-help/%d", i), Label: strings.Join(cells, "  "), Noun: "ochazuke.binding", Data: k, Cells: cells}
 	}
 	return items
 }
@@ -696,7 +696,7 @@ func registerHelpViews(r *Runtime) {
 // noun is its fallback (stack's editing): the editor noun itself, a noun
 // that pins insert mode (prompt, chooser), or the noun of a live input.
 func (r *Runtime) inputNoun(noun string) bool {
-	if noun == "app.editor" {
+	if noun == "ochazuke.editor" {
 		return true
 	}
 	if n := r.Nouns[noun]; n != nil && n.Pin == "insert" {

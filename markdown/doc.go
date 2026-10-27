@@ -75,8 +75,8 @@ var ErrRefused = errors.New("not toggled")
 
 // Nouns: the Doc instance (its verbs and keys) and its task rows.
 const (
-	DocNoun  = "app.markdown"
-	TaskNoun = "app.markdown-task"
+	DocNoun  = "ochazuke.markdown"
+	TaskNoun = "ochazuke.markdown-task"
 )
 
 // Doc is a rendered Markdown document whose task items are a focus stop:

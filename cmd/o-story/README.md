@@ -78,6 +78,13 @@ it to the timer's deadline and delivers the timer's message
                                      // a markdown.Doc drawn in the page's order (its id in order);
                                      // toggles log "toggle LINE [x] TEXT" (writes); external is
                                      // what the source holds from the first toggle on
+    timeline: { id: "timeline", followTail: false, headerLines: 0, noSpill: false, height: 0,
+                cards: [{ id: "t1", header: "prompt", meta: "09:12 · done", body: "answer", open: false,
+                          active: false, muted: false, group: "session 1",
+                          sections: [{ title: "thinking", summary: "3 lines", text: "…", role: "muted", folded: true }] }],
+                append: [{ id: "t2", header: "next prompt" }] },
+                                     // an AddTimeline of story-card cards in the page's order;
+                                     // a appends the next queued card, s streams a line into the last
     commands: {                      // instead of the above: cli's Commands page
       entries: [{ name: "greet", kind: "inline", summary: "say hello", source: "main.go:12", help: "usage: …" },
                 { name: "web", kind: "external", source: "/bin/hello-web" }],
@@ -350,7 +357,9 @@ Conformance:
 | normal | setting | `setting.add` `setting.cycle` `setting.edit` `setting.reset` |
 | normal | setting-item | `setting-item.add` `setting-item.delete` `setting-item.edit` `setting-item.reset` |
 | normal | settings | `settings.close` `settings.edit` `settings.section` `settings.undo` |
+| normal | story-card | `story-card.timeline-append` `story-card.timeline-stream` |
 | normal | surface | `surface.scroll` |
+| normal | timeline | `timeline.close` `timeline.close-all` `timeline.fold` `timeline.goto` `timeline.open` `timeline.open-all` `timeline.toggle` |
 | terminal | demo | `demo.hints` |
 | terminal | mode | `mode.enter` |
 | terminal | terminal | `terminal.detach` `terminal.send` |
@@ -412,6 +421,9 @@ Mode edges (from → to via):
 - `normal z` → `normal` via `list.reset-columns`
 - `normal z` → `normal` via `list.resize-column`
 - `normal z` → `normal` via `list.scroll-columns`
+- `normal z` → `normal` via `timeline.close-all`
+- `normal z` → `normal` via `timeline.fold`
+- `normal z` → `normal` via `timeline.open-all`
 - `terminal` → `leader_pending` via `mode.enter`
 
 <!-- verbs:end -->
