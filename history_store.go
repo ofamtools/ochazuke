@@ -135,17 +135,22 @@ func (c *Config) HistoryPath() string {
 	return filepath.Join(dir, HistoryFile)
 }
 
-// Flush stops the history writer once every line sent to it is written.
+// Flush stops the history writer once every line sent to it is written,
+// and writes the placements record (NounPlacesFile) and stops its writer.
 // The Model calls it on quit; later requests are not persisted.
 func (c *Config) Flush() error {
+	var err error
+	if p := c.places; p != nil {
+		err = p.flush(c)
+	}
 	s := c.history
 	if s == nil {
-		return nil
+		return err
 	}
 	c.history = nil
 	close(s.ops)
 	<-s.done
-	return s.failure()
+	return errors.Join(s.failure(), err)
 }
 
 // EnsureConfigSettings declares the settings the framework reads from the

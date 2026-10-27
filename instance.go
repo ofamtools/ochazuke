@@ -149,6 +149,7 @@ func (r *Runtime) register(inst *Instance) {
 	r.Instances[inst.ID] = inst
 	if r.rows[inst.ID] == "" {
 		r.holders = append(r.holders, inst.ID)
+		r.notePlacement(placementNote{id: inst.ID})
 	}
 }
 

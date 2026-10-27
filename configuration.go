@@ -171,6 +171,9 @@ type Config struct {
 	// panes are the pane dividers by page id (PanesFile), read on first
 	// use.
 	panes map[string]int
+	// places is the record of where each noun was seen (NounPlacesFile),
+	// with its writer once EnsureNounPlaces started it.
+	places *placements
 	// tables are the table views by id (TablesFile), read on first use.
 	tables map[string]TableState
 	// schemes are themes.json's valid schemes, themeProblems its last

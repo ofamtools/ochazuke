@@ -300,6 +300,9 @@ func (r *Runtime) Push(id, focus string) error {
 		inst = &Instance{ID: id, Noun: "modal", Parent: "app", seq: r.seq}
 		r.register(inst)
 		r.modalInstances[id] = true
+	} else {
+		// An instance opened as a modal is seen there, with what it holds.
+		r.notePlacement(placementNote{id: id, subtree: true})
 	}
 	r.CancelPendingBinding()
 	inst.Payload.Return = r.Focus
@@ -389,6 +392,7 @@ func (r *Runtime) Pop() error {
 	if len(r.modals) == 0 {
 		return errors.New("no modal to close")
 	}
+	r.settlePlacements()
 	id := r.modals[len(r.modals)-1]
 	inst := r.Instances[id]
 	r.CancelPendingBinding()
@@ -483,6 +487,7 @@ func (r *Runtime) closeFocusOf(from string, gone map[string]bool) string {
 // dropSubtree closes and drops an instance and its descendants without
 // touching focus references.
 func (r *Runtime) dropSubtree(id string) {
+	r.settlePlacements()
 	for _, one := range r.subtree(id) {
 		r.closeInstance(one)
 		r.unregister(one)
@@ -496,6 +501,7 @@ func (r *Runtime) dropSubtree(id string) {
 // instance's FocusOnClose target when that survives); an open modal inside the subtree is
 // kept and reparented there. app cannot be removed.
 func (r *Runtime) RemoveInstance(id string) error {
+	r.settlePlacements()
 	return r.removeInstance(id, r.childIndex(), r.PageList())
 }
 
@@ -508,6 +514,7 @@ func (r *Runtime) removeInstances(ids []string) {
 	if len(ids) == 0 {
 		return
 	}
+	r.settlePlacements()
 	kids, pages := r.childIndex(), r.PageList()
 	for _, id := range ids {
 		_ = r.removeInstance(id, kids, pages)

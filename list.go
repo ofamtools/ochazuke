@@ -140,6 +140,7 @@ func (l *List) SetItems(items []ListItem) error {
 		}
 		inst.Noun, inst.Parent, inst.Label, inst.Data = item.Noun, l.id, item.Label, item.Data
 	}
+	l.r.noteRows(l.id, items)
 	previous, _ := l.Selected()
 	at := l.selected
 	if !sameCells(l.all, items) {

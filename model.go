@@ -192,6 +192,7 @@ func (m *Model) Init() tea.Cmd {
 	m.Runtime.Settings().ensure()
 	m.applyThemeSetting()
 	m.Runtime.EnsureHistory()
+	m.Runtime.EnsureNounPlaces()
 	return tea.Batch(tea.RequestBackgroundColor, m.settingsPoll())
 }
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -230,6 +231,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.handleKey(MacroKey{Key: pasteKey(v.Content), Paste: true})
 	}
 	m.ticker.observe(m.Runtime, m.clock())
+	m.Runtime.settlePlacements()
 	if m.Runtime.Quit {
 		// Quitting writes what components still hold (an open outline line).
 		for _, inst := range m.Runtime.components() {
