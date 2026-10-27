@@ -1,9 +1,11 @@
 package ochazuke
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -69,5 +71,125 @@ func TestParseChoicesShapes(t *testing.T) {
 		if _, err := ParseChoices(bad); err == nil {
 			t.Fatalf("%#v parsed", bad)
 		}
+	}
+}
+
+// A parameter naming a noun takes its choices from the noun: its list verb
+// when that is a read with no required parameter, else its live instances
+// in registration order; Enum comes first and an explicit Source wins.
+func TestParameterNounChoices(t *testing.T) {
+	r := NewRuntime()
+	r.Register(Operation{Verb: "list", Noun: "color", Run: func(*Runtime, Context, Arguments) (any, error) {
+		return []map[string]any{{"id": "c1", "label": "Cyan"}, {"key": "m1", "title": "Magenta"}}, nil
+	}})
+	r.Register(Operation{Verb: "list", Noun: "shade", Run: func(*Runtime, Context, Arguments) (any, error) {
+		return []string{"dark", "light"}, nil
+	}})
+	r.Register(Operation{Verb: "list", Noun: "guarded", Parameters: map[string]Parameter{"scope": {Type: "string", Required: true}}, Run: func(*Runtime, Context, Arguments) (any, error) {
+		return []string{"never"}, nil
+	}})
+	r.Define("widget")
+	r.Define("guarded")
+	r.Instance("w1", Kind("widget")).Label = "First"
+	r.Instance("w2", Kind("widget"))
+	r.Instance("g1", Kind("guarded"))
+	c := r.Context()
+	for _, tc := range []struct {
+		name   string
+		param  Parameter
+		source string
+		want   []Choice
+	}{
+		{"list verb", Parameter{Type: "string", Noun: "color"}, "color.list", []Choice{{ID: "c1", Label: "Cyan"}, {ID: "m1", Label: "Magenta"}}},
+		{"instances", Parameter{Type: "string", Noun: "widget"}, "", []Choice{{ID: "w1", Label: "First"}, {ID: "w2", Label: "w2"}}},
+		{"source wins", Parameter{Type: "string", Noun: "color", Source: "shade.list"}, "shade.list", []Choice{{ID: "dark", Label: "dark"}, {ID: "light", Label: "light"}}},
+		{"enum first", Parameter{Type: "string", Noun: "widget", Enum: []string{"none"}}, "", []Choice{{ID: "none", Label: "none"}, {ID: "w1", Label: "First"}, {ID: "w2", Label: "w2"}}},
+		{"list verb needs an argument", Parameter{Type: "string", Noun: "guarded"}, "", []Choice{{ID: "g1", Label: "g1"}}},
+		{"unknown noun", Parameter{Type: "string", Noun: "nothing"}, "", nil},
+	} {
+		if got := r.ChoicesSource(tc.param); got != tc.source {
+			t.Fatalf("%s: source %q, want %q", tc.name, got, tc.source)
+		}
+		got, err := r.Choices(c, tc.param)
+		if err != nil || !reflect.DeepEqual(got, tc.want) {
+			t.Fatalf("%s: Choices = %v %v, want %v", tc.name, got, err, tc.want)
+		}
+		var loaded []Choice
+		if r.loadChoices(c, tc.param, "app", func(choices []Choice, err error) {
+			if err != nil {
+				t.Fatalf("%s: loadChoices: %v", tc.name, err)
+			}
+			loaded = choices
+		}) {
+			t.Fatalf("%s: loadChoices went off the loop", tc.name)
+		}
+		if !reflect.DeepEqual(loaded, tc.want) {
+			t.Fatalf("%s: loadChoices = %v, want %v", tc.name, loaded, tc.want)
+		}
+	}
+	confirmed := NewRuntime()
+	confirmed.Register(Operation{Verb: "list", Noun: "risky", Confirm: "Sure?", Run: func(*Runtime, Context, Arguments) (any, error) { return []string{"x"}, nil }})
+	if got := confirmed.ChoicesSource(Parameter{Noun: "risky"}); got != "" {
+		t.Fatalf("a confirmed list verb is a choices source: %q", got)
+	}
+}
+
+// A Noun whose list verb is an application verb returning Pending loads off
+// the loop through the same path as a Source.
+func TestParameterNounChoicesLoadOffTheLoop(t *testing.T) {
+	r := NewRuntime()
+	r.Define("remote").Verb("list", func(Ctx) Result {
+		return Pending(func(context.Context) (any, error) { return []string{"far"}, nil })
+	})
+	var got []Choice
+	if !r.loadChoices(r.Context(), Parameter{Type: "string", Noun: "remote"}, "app", func(choices []Choice, err error) {
+		if err != nil {
+			t.Fatal(err)
+		}
+		got = choices
+	}) {
+		t.Fatal("a pending list verb loaded on the loop")
+	}
+	settleJob(t, r)
+	if !reflect.DeepEqual(got, []Choice{{ID: "far", Label: "far"}}) {
+		t.Fatalf("loaded %v", got)
+	}
+}
+
+func TestParseChoicesFallbackFields(t *testing.T) {
+	got, err := ParseChoices([]any{
+		map[string]any{"key": "app.quit", "label": "Quit"},
+		map[string]any{"name": "theme"},
+		map[string]any{"id": "alpha", "title": "Alpha"},
+		map[string]string{"name": "n", "title": "N"},
+	})
+	want := []Choice{{ID: "app.quit", Label: "Quit"}, {ID: "theme", Label: "theme"}, {ID: "alpha", Label: "Alpha"}, {ID: "n", Label: "N"}}
+	if err != nil || !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %v %v, want %v", got, err, want)
+	}
+	ops, err := ParseChoices([]Operation{{Noun: "app", Verb: "quit"}})
+	if err != nil || !reflect.DeepEqual(ops, []Choice{{ID: "app.quit", Label: "app.quit"}}) {
+		t.Fatalf("operations: %v %v", ops, err)
+	}
+}
+
+// The framework's own noun parameters list what their list verbs return.
+func TestFrameworkNounParameters(t *testing.T) {
+	r := NewRuntime()
+	if _, err := r.AddPage("alpha", "Alpha", func(*Runtime, int, int) Block { return Text("") }); err != nil {
+		t.Fatal(err)
+	}
+	c := r.Context()
+	pages, err := r.Choices(c, r.Operations["page.open"].Parameters["id"])
+	if err != nil || !slices.Contains(pages, Choice{ID: "alpha", Label: "Alpha"}) {
+		t.Fatalf("page.open id: %v %v", pages, err)
+	}
+	modes, err := r.Choices(c, r.Operations["mode.set"].Parameters["mode"])
+	if err != nil || !slices.ContainsFunc(modes, func(ch Choice) bool { return ch.ID == "insert" }) {
+		t.Fatalf("mode.set mode: %v %v", modes, err)
+	}
+	ops, err := r.Choices(c, r.Operations["confirm.set"].Parameters["operation"])
+	if err != nil || !slices.ContainsFunc(ops, func(ch Choice) bool { return ch.ID == "page.open" }) {
+		t.Fatalf("confirm.set operation: %v", err)
 	}
 }

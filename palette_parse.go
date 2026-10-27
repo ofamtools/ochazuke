@@ -423,7 +423,7 @@ func (p *Palette) argument(op Operation, name, word string) (value any, display 
 	param := op.Parameters[name]
 	text := word
 	choices, sourceErr := p.paramChoices(op, name)
-	if len(choices) > 0 || param.Source != "" {
+	if len(choices) > 0 || p.r.ChoicesSource(param) != "" {
 		options := make([]option, len(choices))
 		for i, choice := range choices {
 			options[i] = option{"argument", choice.ID}

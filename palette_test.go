@@ -508,3 +508,50 @@ func TestPaletteEnterHintLeadsWithRun(t *testing.T) {
 		t.Fatalf("help: %+v", help)
 	}
 }
+
+// A parameter naming a noun completes to that noun's things: the rows of
+// its list verb, else its live instances.
+func TestPaletteNounParameterChoices(t *testing.T) {
+	r, p, ran := lineRuntime(t)
+	r.Register(Operation{Verb: "list", Noun: "shade", Run: func(*Runtime, Context, Arguments) (any, error) {
+		return []map[string]any{{"id": "dark", "label": "Dark"}, {"id": "dim"}}, nil
+	}})
+	r.Define("swatch")
+	r.Instance("s1", Parent("sheet"), Kind("swatch")).Label = "Red"
+	r.Instance("s2", Parent("sheet"), Kind("swatch"))
+	run := func(r *Runtime, c Context, a Arguments) (any, error) {
+		*ran = append(*ran, StringArg(a, "shade", "")+StringArg(a, "swatch", ""))
+		return nil, nil
+	}
+	r.Register(Operation{Verb: "tint", Noun: "sheet", Parameters: map[string]Parameter{"shade": {Type: "string", Required: true, Noun: "shade"}}, Run: run})
+	r.Register(Operation{Verb: "pick", Noun: "sheet", Parameters: map[string]Parameter{"swatch": {Type: "string", Required: true, Noun: "swatch"}}, Run: run})
+	set := func(line string) { paletteRequest(t, r, "set", "palette", Arguments{"text": line}) }
+	for _, tc := range []struct {
+		line string
+		want []string
+	}{
+		{"tint ", []string{"noun:sheet", "choice:dark", "choice:dim"}},
+		{"sheet tint d", []string{"choice:dark", "choice:dim"}},
+		{"sheet pick ", []string{"choice:s1", "choice:s2"}},
+	} {
+		set(tc.line)
+		if got := completionValues(p); !reflect.DeepEqual(got, tc.want) {
+			t.Fatalf("%q completes %v, want %v", tc.line, got, tc.want)
+		}
+	}
+	paletteLine(t, r, "sheet tint da")
+	paletteRequest(t, r, "open", "palette", nil)
+	paletteLine(t, r, "sheet pick s2")
+	if got := (*ran)[len(*ran)-2:]; !reflect.DeepEqual(got, []string{"dark", "s2"}) {
+		t.Fatalf("ran %v", got)
+	}
+	paletteRequest(t, r, "open", "palette", nil)
+	set("sheet pick ")
+	var labels []string
+	for _, e := range p.completions() {
+		labels = append(labels, e.Label)
+	}
+	if !slices.ContainsFunc(labels, func(l string) bool { return strings.Contains(l, "Red") }) {
+		t.Fatalf("instance labels not shown: %v", labels)
+	}
+}

@@ -31,7 +31,7 @@ func registerConfirm(r *Runtime) {
 		}
 		return r.Execute(q)
 	}})
-	r.Register(Operation{Verb: "set", Noun: "confirm", Description: "Add or remove the confirm prompt of an operation ({{id}}, {{noun}}, {{label}} and {{<arg>}} expand; a label argument wins over the instance label); an empty prompt removes it", Parameters: map[string]Parameter{"operation": {Type: "string", Required: true, Description: "noun.verb"}, "prompt": {Type: "string"}}, Result: "operation", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "set", Noun: "confirm", Description: "Add or remove the confirm prompt of an operation ({{id}}, {{noun}}, {{label}} and {{<arg>}} expand; a label argument wins over the instance label); an empty prompt removes it", Parameters: map[string]Parameter{"operation": {Type: "string", Required: true, Description: "noun.verb", Noun: "operations"}, "prompt": {Type: "string"}}, Result: "operation", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		key := StringArg(a, "operation", "")
 		if err := r.SetConfirm(key, StringArg(a, "prompt", "")); err != nil {
 			return nil, err

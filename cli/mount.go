@@ -34,7 +34,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 			p := op.Parameters[name]
 			parameters = append(parameters, oden.Parameter{
 				Name: name, Type: p.Type, Description: p.Description,
-				Required: p.Required, Choices: p.Enum, Source: p.Source, Free: p.Free,
+				Required: p.Required, Choices: p.Enum, Source: sh.Runtime.ChoicesSource(p), Free: p.Free,
 			})
 		}
 		kind := op.Kind

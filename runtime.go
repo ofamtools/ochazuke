@@ -27,6 +27,11 @@ type Parameter struct {
 	Enum   []string `json:"enum,omitempty"`
 	Source string   `json:"source,omitempty"`
 	Free   bool     `json:"free,omitempty"`
+	// Noun says the value names one of that noun's things: a row of its
+	// list verb (NOUN.list, when it is a read with no required parameter,
+	// stands in for an empty Source), else the id of a live instance of
+	// the noun. A Source still wins; Enum values come first.
+	Noun string `json:"noun,omitempty"`
 }
 
 // Request names an operation and, optionally, the instance it addresses.
@@ -817,7 +822,7 @@ func registerCore(r *Runtime) {
 	r.Register(Operation{Verb: "stops", Noun: "bindings", Description: "List the rows every focus stop answers to, app-wide: each page's stops in drawing order, the open modals', then app; each with the focus and mode it is read at", Result: "stop bindings[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.StopBindings(), nil
 	}})
-	r.Register(Operation{Verb: "focus", Noun: "input", Description: "Focus a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "focus", Noun: "input", Description: "Focus a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true, Noun: "editor", Free: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		id := StringArg(a, "id", "")
 		if r.Input(id) == nil {
 			return nil, fmt.Errorf("unknown input %q", id)
@@ -825,7 +830,7 @@ func registerCore(r *Runtime) {
 		err := r.SetFocus(id)
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "set", Noun: "mode", Description: "Set the global interaction mode (a registered mode) and clear any pending payload", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "set", Noun: "mode", Description: "Set the global interaction mode (a registered mode) and clear any pending payload", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "modes"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		mode := StringArg(a, "mode", "")
 		if !r.Modes[mode] {
 			return nil, fmt.Errorf("unknown mode %q", mode)
@@ -838,7 +843,7 @@ func registerCore(r *Runtime) {
 		r.setMode(ModeState{Name: mode})
 		return mode, nil
 	}})
-	r.Register(Operation{Verb: "push", Noun: "modal", Description: "Open a modal focused on a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}, "input": {Type: "string", Required: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "push", Noun: "modal", Description: "Open a modal focused on a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}, "input": {Type: "string", Required: true, Noun: "editor", Free: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		id := StringArg(a, "input", "")
 		if r.Input(id) == nil {
 			return nil, errors.New("unknown modal input")

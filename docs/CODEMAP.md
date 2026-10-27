@@ -64,7 +64,7 @@ Root package `ochazuke` is flat: 66 source files, 65 test files. Each entry list
 
 ### config_export.go
 
-- lines: 407 · tests: config_export_test.go
+- lines: 408 · tests: config_export_test.go
 - purpose: ConfigPaths are where the application's user files live: Config is the config directory (bindings.json, settings.json, actions.json, themes.json), State the ...
 - types: ConfigPaths, ConfigExport
 - methods: Config(2), Runtime(3)
@@ -83,7 +83,7 @@ Root package `ochazuke` is flat: 66 source files, 65 test files. Each entry list
 - lines: 147 · tests: confirm_test.go
 - purpose: The confirm noun: a framework modal a verb with a Confirm prompt opens before it runs.
 - methods: Runtime(2)
-- leans on: runtime.go(23), noun.go(13), instance.go(6), block.go(3)
+- leans on: runtime.go(23), noun.go(14), instance.go(6), block.go(3)
 
 ### delivery.go
 
@@ -193,7 +193,7 @@ Root package `ochazuke` is flat: 66 source files, 65 test files. Each entry list
 - types: ListItem, List
 - methods: List(27), Runtime(1)
 - funcs: NewList
-- leans on: runtime.go(37), instance.go(20), noun.go(14), delivery.go(3)
+- leans on: runtime.go(37), instance.go(20), noun.go(15), delivery.go(3)
 
 ### list_delta.go
 
@@ -257,7 +257,7 @@ Root package `ochazuke` is flat: 66 source files, 65 test files. Each entry list
 - purpose: Page is the component a page instance fronts: a title, the instance it starts focused on (Focus), the focus it remembers while another page is open (Remember...
 - types: Page, Placement
 - methods: Page(4), Runtime(14)
-- leans on: runtime.go(49), instance.go(34), delivery.go(15), chooser.go(5)
+- leans on: runtime.go(49), instance.go(34), delivery.go(15), noun.go(6)
 
 ### palette.go
 
@@ -266,7 +266,7 @@ Root package `ochazuke` is flat: 66 source files, 65 test files. Each entry list
 - types: Palette
 - methods: Palette(23)
 - funcs: NewPalette
-- leans on: runtime.go(36), block.go(20), noun.go(17), delivery.go(7)
+- leans on: runtime.go(36), block.go(20), noun.go(18), delivery.go(7)
 
 ### palette_choices.go
 
@@ -315,12 +315,12 @@ Root package `ochazuke` is flat: 66 source files, 65 test files. Each entry list
 
 ### params.go
 
-- lines: 205 · tests: params_test.go
+- lines: 275 · tests: params_test.go
 - purpose: Choice is one value a parameter accepts: ID is the argument value, Label what a pick list shows.
 - types: Choice, ArgumentError
-- methods: ArgumentError(2), Runtime(3)
+- methods: ArgumentError(2), Runtime(5)
 - funcs: ParseChoices
-- leans on: runtime.go(14), delivery.go(2), instance.go(2), noun.go(2)
+- leans on: runtime.go(20), noun.go(7), delivery.go(2), instance.go(2)
 
 ### picker.go
 
@@ -391,16 +391,16 @@ Root package `ochazuke` is flat: 66 source files, 65 test files. Each entry list
 - purpose: KeyEvent is what a row receives: the key, the mode it was resolved in and the focused instance.
 - types: KeyEvent
 - methods: Binding(1), Runtime(22), level(1)
-- leans on: runtime.go(80), noun.go(53), instance.go(41), delivery.go(11)
+- leans on: runtime.go(80), noun.go(54), instance.go(41), delivery.go(11)
 
 ### runtime.go
 
-- lines: 852 · tests: runtime_test.go
+- lines: 857 · tests: runtime_test.go
 - purpose: Arguments are a request's named arguments, keyed by parameter name.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
 - methods: Context(1), Operation(3), Request(1), Runtime(19)
 - funcs: NewRuntime, StringArg, IntArg, JSONPointer
-- leans on: history.go(67), instance.go(31), delivery.go(27), noun.go(23)
+- leans on: history.go(67), instance.go(31), delivery.go(27), noun.go(27)
 
 ### scheme.go
 
@@ -531,11 +531,11 @@ Root package `ochazuke` is flat: 66 source files, 65 test files. Each entry list
 
 ## Package cli
 
-Importable package `cli`: 18 source files, 12 test files.
+Importable package `cli`: 18 source files, 13 test files.
 
 ### cli/catalog.go
 
-- lines: 291
+- lines: 300
 - purpose: CatalogDoc is the catalog answer: what a runtime registers, grouped by noun, in the runtime's own JSON shapes (ochazuke.Parameter and ochazuke.Binding unchan...
 - types: CatalogDoc, CatalogNoun, CatalogVerb
 - methods: CatalogDoc(4), CatalogNoun(1)

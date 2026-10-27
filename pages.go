@@ -423,7 +423,7 @@ func registerPages(r *Runtime) {
 		}
 		return pages, nil
 	}})
-	r.Register(Operation{Verb: "open", Noun: "page", Description: "Open a registered page", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "open", Noun: "page", Description: "Open a registered page", Parameters: map[string]Parameter{"id": {Type: "string", Required: true, Noun: "pages"}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		err := r.OpenPage(StringArg(a, "id", ""))
 		return r.Context(), err
 	}})

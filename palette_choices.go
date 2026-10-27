@@ -15,7 +15,7 @@ type choiceList struct {
 // paramChoices lists the values a parameter's word completes to in the
 // palette's origin context: the instances of a palette noun for its
 // default verb's argument, true and false for a boolean, else the
-// parameter's Enum and Source.
+// parameter's Enum, Source or Noun (Runtime.Choices).
 func (p *Palette) paramChoices(op Operation, name string) ([]Choice, error) {
 	key := op.Key() + "/" + name
 	if cached, ok := p.choiceCache[key]; ok {

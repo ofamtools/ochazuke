@@ -270,7 +270,7 @@ func (p *Palette) describeMissing(c commandLine) string {
 		return c.Missing
 	}
 	out := c.Missing + " (" + param.Type
-	if len(param.Enum) > 0 || param.Source != "" {
+	if len(param.Enum) > 0 || param.Source != "" || param.Noun != "" {
 		out += ", pick"
 	}
 	out += ")"

@@ -15,8 +15,9 @@ type Choice struct {
 }
 
 // ParseChoices reads a source operation's result: []string, []Choice,
-// []PaletteInstance, []map with "id" and optional "label", or []any of
-// strings or such maps (the JSON-decoded form).
+// []PaletteInstance, []Operation (the id is noun.verb), []map whose id is
+// "id", else "key", else "name" and whose label is "label", else "title",
+// or []any of strings or such maps (the JSON-decoded form).
 func ParseChoices(result any) ([]Choice, error) {
 	var out []Choice
 	add := func(v any) error {
@@ -27,18 +28,22 @@ func ParseChoices(result any) ([]Choice, error) {
 			out = append(out, item)
 		case PaletteInstance:
 			out = append(out, Choice(item))
+		case Operation:
+			out = append(out, Choice{ID: item.Key()})
 		case map[string]any:
-			id, ok := item["id"].(string)
+			id, ok := firstString(item, "id", "key", "name")
 			if !ok {
-				return errors.New("choice map needs a string id")
+				return errors.New("choice map needs a string id, key or name")
 			}
-			label, _ := item["label"].(string)
+			label, _ := firstString(item, "label", "title")
 			out = append(out, Choice{ID: id, Label: label})
 		case map[string]string:
-			if _, ok := item["id"]; !ok {
-				return errors.New("choice map needs a string id")
+			id, ok := firstString(item, "id", "key", "name")
+			if !ok {
+				return errors.New("choice map needs a string id, key or name")
 			}
-			out = append(out, Choice{ID: item["id"], Label: item["label"]})
+			label, _ := firstString(item, "label", "title")
+			out = append(out, Choice{ID: id, Label: label})
 		default:
 			return fmt.Errorf("unsupported choice %T", v)
 		}
@@ -53,6 +58,10 @@ func ParseChoices(result any) ([]Choice, error) {
 	case []Choice:
 		out = append(out, list...)
 	case []PaletteInstance:
+		for _, v := range list {
+			err = errors.Join(err, add(v))
+		}
+	case []Operation:
 		for _, v := range list {
 			err = errors.Join(err, add(v))
 		}
@@ -82,59 +91,120 @@ func ParseChoices(result any) ([]Choice, error) {
 	return out, nil
 }
 
-// Choices lists a parameter's accepted values in context c: its Enum, then
-// the result of its Source operation. A source that asks for confirmation
-// is refused; it must be a read.
-func (r *Runtime) Choices(c Context, p Parameter) ([]Choice, error) {
+// firstString is the first of keys whose value in m is a non-empty string.
+func firstString[V any](m map[string]V, keys ...string) (string, bool) {
+	for _, k := range keys {
+		if s, ok := any(m[k]).(string); ok && s != "" {
+			return s, true
+		}
+	}
+	return "", false
+}
+
+// ChoicesSource is the operation (noun.verb) a parameter's choices come
+// from: its Source, else its Noun's list verb when that is registered,
+// asks for no confirmation and needs no argument; empty when there is
+// none (a Noun parameter then lists the noun's live instances).
+func (r *Runtime) ChoicesSource(p Parameter) string {
+	if p.Source != "" {
+		return p.Source
+	}
+	if p.Noun == "" {
+		return ""
+	}
+	key := p.Noun + ".list"
+	op, ok := r.Operations[key]
+	if !ok || op.Confirm != "" {
+		return ""
+	}
+	for _, param := range op.Parameters {
+		if param.Required {
+			return ""
+		}
+	}
+	return key
+}
+
+// nounInstanceChoices lists the live instances of a noun in registration
+// order: the id, labelled by the instance's label when it has one.
+func (r *Runtime) nounInstanceChoices(noun string) []Choice {
+	var out []Choice
+	for _, id := range r.holders {
+		inst := r.Instances[id]
+		if inst == nil || inst.Noun != noun {
+			continue
+		}
+		label := inst.Label
+		if label == "" {
+			label = inst.ID
+		}
+		out = append(out, Choice{ID: inst.ID, Label: label})
+	}
+	return out
+}
+
+// enumChoices is a parameter's Enum as choices.
+func enumChoices(p Parameter) []Choice {
 	var out []Choice
 	for _, id := range p.Enum {
 		out = append(out, Choice{ID: id, Label: id})
 	}
-	if p.Source == "" {
+	return out
+}
+
+// Choices lists a parameter's accepted values in context c: its Enum, then
+// the result of its choices source (ChoicesSource), or, for a Noun with no
+// list verb, the noun's live instances. A source that asks for
+// confirmation is refused; it must be a read.
+func (r *Runtime) Choices(c Context, p Parameter) ([]Choice, error) {
+	out := enumChoices(p)
+	source := r.ChoicesSource(p)
+	if source == "" {
+		if p.Noun != "" {
+			out = append(out, r.nounInstanceChoices(p.Noun)...)
+		}
 		return out, nil
 	}
-	op, ok := r.Operations[p.Source]
+	op, ok := r.Operations[source]
 	if !ok {
-		return out, fmt.Errorf("unknown choices source %q", p.Source)
+		return out, fmt.Errorf("unknown choices source %q", source)
 	}
 	if op.Confirm != "" {
-		return out, fmt.Errorf("choices source %q asks for confirmation", p.Source)
+		return out, fmt.Errorf("choices source %q asks for confirmation", source)
 	}
 	result, err := r.ExecuteAt(c, Request{Verb: op.Verb, Noun: op.Noun})
 	if err != nil {
-		return out, fmt.Errorf("choices source %q: %w", p.Source, err)
+		return out, fmt.Errorf("choices source %q: %w", source, err)
 	}
 	more, err := ParseChoices(result)
 	if err != nil {
-		return out, fmt.Errorf("choices source %q: %w", p.Source, err)
+		return out, fmt.Errorf("choices source %q: %w", source, err)
 	}
 	return append(out, more...), nil
 }
 
 // loadChoices lists a parameter's choices like Choices without blocking
-// the loop on an application Source: its Enum, then the Source's result,
-// where a Source verb that returns Pending runs off the loop as a job of
+// the loop on an application source: its Enum, then the source's result,
+// where a source verb that returns Pending runs off the loop as a job of
 // owner (closing owner cancels it) and done runs when it lands. done runs
 // at once when nothing is pending, and never for a cancelled load; it
 // reports whether a load is in flight.
 func (r *Runtime) loadChoices(c Context, p Parameter, owner string, done func([]Choice, error)) bool {
-	var enum []Choice
-	for _, id := range p.Enum {
-		enum = append(enum, Choice{ID: id, Label: id})
-	}
-	op, ok := r.Operations[p.Source]
-	if p.Source == "" || !ok || op.App == nil || op.Confirm != "" {
+	enum := enumChoices(p)
+	source := r.ChoicesSource(p)
+	op, ok := r.Operations[source]
+	if source == "" || !ok || op.App == nil || op.Confirm != "" {
 		choices, err := r.Choices(c, p)
 		done(choices, err)
 		return false
 	}
 	parse := func(value any, err error) ([]Choice, error) {
 		if err != nil {
-			return enum, fmt.Errorf("choices source %q: %w", p.Source, err)
+			return enum, fmt.Errorf("choices source %q: %w", source, err)
 		}
 		more, err := ParseChoices(value)
 		if err != nil {
-			return enum, fmt.Errorf("choices source %q: %w", p.Source, err)
+			return enum, fmt.Errorf("choices source %q: %w", source, err)
 		}
 		return append(slices.Clone(enum), more...), nil
 	}
@@ -152,7 +222,7 @@ func (r *Runtime) loadChoices(c Context, p Parameter, owner string, done func([]
 		done(parse(value, err))
 	})
 	if _, err := r.Launch(owner, op.Key(), res, ctx); err != nil {
-		done(enum, fmt.Errorf("choices source %q: %w", p.Source, err))
+		done(enum, fmt.Errorf("choices source %q: %w", source, err))
 		return false
 	}
 	return true

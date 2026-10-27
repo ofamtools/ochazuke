@@ -90,7 +90,10 @@ type CatalogNoun struct {
 // CatalogVerb is one ochazuke.Operation. Params are the operation's
 // ochazuke.Parameter values as they are: type, required, description, the
 // static enum, the source (an operation, NOUN.VERB, whose result lists more
-// choices) and free. Free (omitted when false) says the choices are
+// choices; for a parameter with a noun and no source, the noun's list verb
+// when the runtime reads its choices from it: ochazuke.Runtime.ChoicesSource),
+// the noun (a noun without such a list verb names its live instances, which
+// only the producing runtime lists) and free. Free (omitted when false) says the choices are
 // suggestions and any value is accepted (mtm's --model); a parameter with an
 // enum or a source and no free accepts only its choices, so a host may
 // refuse other values before running the verb.
@@ -238,7 +241,13 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool) ([]byte, err
 		noun := &doc.Nouns[len(doc.Nouns)-1]
 		verb := CatalogVerb{Name: op.Verb, Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable, Rows: op.Rows, Quiet: op.Quiet, Positional: op.Positional, History: op.HistoryKindOf(), Builtin: op.Builtin}
 		if len(op.Parameters) > 0 {
-			verb.Params = op.Parameters
+			verb.Params = make(map[string]ochazuke.Parameter, len(op.Parameters))
+			for name, p := range op.Parameters {
+				// A Noun's list verb is published as the source, so a
+				// host lists the choices the runtime would.
+				p.Source = r.ChoicesSource(p)
+				verb.Params[name] = p
+			}
 		}
 		noun.Verbs = append(noun.Verbs, verb)
 	}

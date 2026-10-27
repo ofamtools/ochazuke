@@ -269,6 +269,7 @@ Conformance:
 | insert | form | `form.next` |
 | insert | input | `input.insert` `input.kill` `input.move` |
 | insert | mode | `mode.set` |
+| insert | modes | `modes.list` |
 | insert | outline | `outline.indent` `outline.leave` |
 | insert | palette | `palette.move` `palette.run` |
 | insert | setting-value | `setting-value.cancel` `setting-value.commit` |

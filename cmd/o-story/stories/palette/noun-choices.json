@@ -1,0 +1,11 @@
+{
+  "name": "an argument naming a noun lists that noun's things",
+  "area": "palette",
+  "height": 30,
+  "page": {"lists": [{"id": "a", "rows": 3}]},
+  "script": [":", {"type": "mode set "}, {"type": "ins"}],
+  "expect": [
+    {"after": 2, "mode": "insert", "highlighted": 0, "contains": ["count_pending", "insert", "normal"]},
+    {"contains": ["mode set ins", "insert"], "lacks": ["count_pending"]}
+  ]
+}
