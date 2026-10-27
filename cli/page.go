@@ -49,10 +49,20 @@ type CatalogList struct {
 	Title  string `json:"title,omitempty"`  // the panel title; default the noun
 }
 
-// CatalogDetail is a data page's detail panel.
+// CatalogDetail is a data page's detail panel. Kind names what draws it:
+// "" or DetailRecord, the selected row's record as key: value lines (in
+// Fields order); any other kind is drawn by the factory the host
+// registered for it (RegisterDetailKind: mtm registers "markdown", an
+// editable Markdown document over the file the row's PathField names). A
+// kind the host has not registered shows the record and says so.
 type CatalogDetail struct {
 	Title  string   `json:"title,omitempty"`  // the panel title; default the selected row's label
 	Fields []string `json:"fields,omitempty"` // the record fields shown, in order; default every field, sorted
+	// Kind is the detail kind: "" (DetailRecord) or a registered kind.
+	Kind string `json:"kind,omitempty"`
+	// PathField names the record field holding the file a kind's view
+	// opens (markdown: the document's path).
+	PathField string `json:"pathField,omitempty"`
 }
 
 // The layouts of a data page (CatalogPage.Layout).
@@ -173,6 +183,9 @@ type PageConfig struct {
 	// catalog without stateDelta (an extension built with an older
 	// ochazuke), every reload is a full answer through Fetch.
 	FetchFlags func(ctx context.Context, noun, verb string, flags []string) ([]byte, error)
+	// DetailKinds are this mount's detail kind factories, by kind; they
+	// win over the registered ones (RegisterDetailKind).
+	DetailKinds map[string]DetailFactory
 	// OnRows, when set, runs on the loop after a list's rows land: a
 	// reload's answer (one call per list, or a state answer filed under
 	// each list, an empty one included), or the host's own SetRows or
@@ -202,6 +215,10 @@ type PageView struct {
 	hashes  map[string]string // row instance id -> its record hash (RecordHash), from a delta answer
 	cache   string            // the cache id of the last delta answer
 	status  string
+	// kind is the detail's view of a registered kind, nil for the record;
+	// kindNote says why a kind the catalog names is drawn as the record.
+	kind     *kindView
+	kindNote string
 }
 
 // pageList is one mounted list.
@@ -305,6 +322,9 @@ func MountPage(m *ochazuke.Model, doc CatalogDoc, p CatalogPage, cfg PageConfig)
 			return nil, err
 		}
 		v.detail = d
+		if err := v.mountKind(); err != nil {
+			return nil, err
+		}
 	}
 	focus := v.lists[0].list.FocusTarget()
 	if v.groups != nil {
@@ -1008,10 +1028,17 @@ func (v *PageView) statusFor(pl *pageList) string {
 	return v.status
 }
 
-// detailPanel draws the detail of the followed list's selected row.
+// detailPanel draws the detail of the followed list's selected row: the
+// view of its kind, else the record.
 func (v *PageView) detailPanel(layout ochazuke.Layout, width, height int) ochazuke.Block {
+	if v.kind != nil {
+		return v.kindPanel(layout, width, height)
+	}
 	cw, ch := ochazuke.PanelContentSize(width, height)
 	title, text := v.detailText(v.selectedID())
+	if v.kindNote != "" {
+		text = v.kindNote + "\n" + text
+	}
 	body, marker := v.detail.Window(text, cw, ch)
 	if title == "" {
 		title = "detail"

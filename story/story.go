@@ -272,6 +272,14 @@ type CatalogSpec struct {
 	Page    cli.CatalogPage            `json:"page"`
 	Answers map[string]json.RawMessage `json:"answers,omitempty"`
 	Pending bool                       `json:"pending,omitempty"`
+	// Files are the documents a markdown detail (detail kind markdown,
+	// markdown/cliview) opens, by the path its rows' pathField names; a
+	// write is logged as a markdown page's (writes), a path not here fails
+	// to load.
+	Files map[string]string `json:"files,omitempty"`
+	// Author and Today sign and date the notes added in a markdown detail.
+	Author string `json:"author,omitempty"`
+	Today  string `json:"today,omitempty"`
 }
 
 // InputSpec is one single-line input drawn under the lists. Completions

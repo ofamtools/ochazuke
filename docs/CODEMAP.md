@@ -580,7 +580,7 @@ Root package `ochazuke` is flat: 72 source files, 73 test files. Each entry list
 
 ## Package cli
 
-Importable package `cli`: 18 source files, 14 test files.
+Importable package `cli`: 19 source files, 15 test files.
 
 ### cli/catalog.go
 
@@ -599,6 +599,15 @@ Importable package `cli`: 18 source files, 14 test files.
 - methods: Commands(22)
 - funcs: AddCommands
 - leans on: shell.go(2), pty.go(1)
+
+### cli/detail_kind.go
+
+- lines: 266 · tests: detail_kind_test.go
+- purpose: DetailView is a mounted page's detail of a registered kind.
+- types: DetailView (iface), DetailHost, DetailFactory (func)
+- methods: DetailHost(1), PageView(6), kindSync(3)
+- funcs: RegisterDetailKind, DetailKinds
+- leans on: page.go(9), format.go(7), rows.go(2), commands.go(1)
 
 ### cli/format.go
 
@@ -625,7 +634,7 @@ Importable package `cli`: 18 source files, 14 test files.
 
 ### cli/page.go
 
-- lines: 1023 · tests: page_test.go
+- lines: 1050 · tests: page_test.go
 - purpose: CatalogPage is a page in registration order.
 - types: CatalogPage, CatalogList, CatalogDetail, PageConfig, PageView
 - methods: CatalogPage(1), PageView(30), pageList(1)
@@ -926,12 +935,12 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/build.go
 
-- lines: 1320
+- lines: 1371
 - purpose: Session is one built story: the runtime, the model and the demo state the verbs act on (fake jobs and panes).
 - types: Session, Options
-- methods: Session(23), storyCommands(3)
+- methods: Session(24), datedView(1), storyCommands(3)
 - funcs: Build
-- leans on: story.go(45), run.go(15), fake.go(3)
+- leans on: story.go(47), run.go(15), fake.go(3)
 
 ### story/driver.go
 
@@ -969,7 +978,7 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/story.go
 
-- lines: 606
+- lines: 614
 - purpose: Story is one scenario file.
 - types: Story, Page, ChooserSpec, ChooserRowSpec, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, MarkdownSpec, TimelineSpec, CardSpec, SectionSpec, CommandsSpec, CatalogSpec, InputSpec, CompletionSpec, TermSpec, HintsSpec, MarkSpec, JobSpec, BindSpec, Event, Expect, Expects
 - methods: Event(3), Expects(2), Story(5)
@@ -1139,6 +1148,9 @@ Exported type -> file.
 - cli.CommandSource -> cli/commands.go
 - cli.Commands -> cli/commands.go
 - cli.CommandsConfig -> cli/commands.go
+- cli.DetailFactory -> cli/detail_kind.go
+- cli.DetailHost -> cli/detail_kind.go
+- cli.DetailView -> cli/detail_kind.go
 - cli.Lines -> cli/rows.go
 - cli.PageConfig -> cli/page.go
 - cli.PageView -> cli/page.go

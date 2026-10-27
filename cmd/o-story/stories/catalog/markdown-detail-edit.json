@@ -1,0 +1,107 @@
+{
+  "name": "a catalog split page with a markdown detail: the selected row's file is an editable document; tab moves into it, x and a note are written at once",
+  "area": "catalog",
+  "width": 110,
+  "height": 22,
+  "page": {
+    "id": "docs",
+    "title": "Docs",
+    "catalog": {
+      "nouns": [
+        {
+          "name": "doc",
+          "verbs": [
+            {
+              "name": "list",
+              "rows": "doc"
+            }
+          ]
+        }
+      ],
+      "page": {
+        "title": "Docs",
+        "layout": "split",
+        "lists": [
+          {
+            "id": "docs/docs",
+            "noun": "doc"
+          }
+        ],
+        "detail": {
+          "kind": "markdown",
+          "pathField": "path"
+        }
+      },
+      "answers": {
+        "doc.list": [
+          {
+            "id": "/plans/one.md",
+            "title": "One",
+            "path": "/plans/one.md"
+          },
+          {
+            "id": "/plans/two.md",
+            "title": "Two",
+            "path": "/plans/two.md"
+          }
+        ]
+      },
+      "files": {
+        "/plans/one.md": "# One\n\n- [ ] first task\n- [ ] second task\n",
+        "/plans/two.md": "# Two\n\nonly a paragraph\n"
+      },
+      "author": "owner",
+      "today": "2026-10-27"
+    }
+  },
+  "script": [
+    "j",
+    "k",
+    "tab",
+    "]",
+    "x",
+    "x",
+    "n",
+    "l",
+    "o",
+    "o",
+    "k",
+    "s",
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "docs/docs//plans/two.md",
+      "contains": [
+        "only a paragraph"
+      ],
+      "lacks": [
+        "first task"
+      ]
+    },
+    {
+      "after": 3,
+      "focus": "docs/detail/row/markdown/line/0",
+      "contains": [
+        "first task"
+      ]
+    },
+    {
+      "after": 6,
+      "writes": [
+        "/plans/one.md write 3 -- [ ] first task +- [x] first task"
+      ]
+    },
+    {
+      "contains": [
+        "looks"
+      ],
+      "writes": [
+        "/plans/one.md write 3 -- [ ] first task +- [x] first task",
+        "/plans/one.md write 4 +  > **owner** 2026-10-27: looks"
+      ],
+      "mode": "normal"
+    }
+  ]
+}

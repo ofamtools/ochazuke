@@ -17,6 +17,7 @@ import (
 	"github.com/unixsuperhero/ochazuke"
 	"github.com/unixsuperhero/ochazuke/cli"
 	"github.com/unixsuperhero/ochazuke/markdown"
+	"github.com/unixsuperhero/ochazuke/markdown/cliview"
 )
 
 // Demo is the one application noun a story has: page instances and rows
@@ -862,7 +863,8 @@ func (ss *Session) addCatalogPage(p *Page) error {
 		}
 		return raw, nil
 	}
-	v, err := cli.MountPage(ss.M, doc, page, cli.PageConfig{Fetch: fetch})
+	cfg := cli.PageConfig{Fetch: fetch, DetailKinds: map[string]cli.DetailFactory{cliview.Kind: ss.catalogMarkdown(spec)}}
+	v, err := cli.MountPage(ss.M, doc, page, cfg)
 	if err != nil {
 		return fmt.Errorf("catalog page %s: %w", page.ID, err)
 	}
@@ -878,6 +880,55 @@ func (ss *Session) addCatalogPage(p *Page) error {
 	}
 	ss.pages[p.ID] = p
 	return nil
+}
+
+// catalogMarkdown is the markdown detail kind over the spec's files:
+// every save logged as a markdown page's writes, notes signed and dated
+// by the spec.
+func (ss *Session) catalogMarkdown(spec *CatalogSpec) cli.DetailFactory {
+	files := map[string]string{}
+	for k, v := range spec.Files {
+		files[k] = v
+	}
+	source := func(path string) markdown.Source {
+		return markdown.Source{
+			Load: func() (string, error) {
+				text, ok := files[path]
+				if !ok {
+					return "", fmt.Errorf("open %s: no such file", path)
+				}
+				return text, nil
+			},
+			Save: func(text string) error {
+				ss.Writes = append(ss.Writes, path+" "+writeEntry(files[path], text))
+				files[path] = text
+				return nil
+			},
+		}
+	}
+	factory := cliview.Factory(cliview.Source(source), cliview.Author(spec.Author))
+	return func(h cli.DetailHost) (cli.DetailView, error) {
+		view, err := factory(h)
+		if err != nil {
+			return nil, err
+		}
+		return datedView{view, spec.Today}, nil
+	}
+}
+
+// datedView dates the notes of the Doc it shows by the story's day.
+type datedView struct {
+	cli.DetailView
+	today string
+}
+
+func (d datedView) Block(width, height int) ochazuke.Block {
+	if doc := cliview.DocOf(d.DetailView); doc != nil && d.today != "" {
+		if day, err := time.Parse("2006-01-02", d.today); err == nil {
+			doc.Now = func() time.Time { return day }
+		}
+	}
+	return d.DetailView.Block(width, height)
 }
 
 func cmpString(a, b string) string {

@@ -97,6 +97,8 @@ it to the timer's deadline and delivers the timer's message
               widgets: [{ id: "sync", kind: "status", source: "sync.status" }] },  // kv | status | table
       answers: { "skill.list": [{ id: "s1", name: "architect", path: "~/x" }] },  // stdout per NOUN.VERB (a string is the text: JSON Lines)
       pending: false,                // true leaves the loads to the script: { job: "catalog-load", state: "done" }
+      files: { "/p/one.md": "# One" },  // a markdown detail's documents (detail: { kind: "markdown", pathField: "path" });
+      author: "owner", today: "2026-10-27",  // its writes log as "PATH write LINE -OLD +NEW"; notes signed and dated
     },                               // rows <list>/<id>; the page id is the story page's
     chooser: {                       // a chooser (OpenChooser) open over the focus at the start
       kind: "dirs", title: "Directory", keep: [1],  // keep: the cell columns cut last

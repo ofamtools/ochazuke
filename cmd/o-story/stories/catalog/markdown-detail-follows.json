@@ -1,0 +1,92 @@
+{
+  "name": "a catalog markdown detail follows the selection: j opens the next row's file, a row without a path or with a missing file says why, and the list keeps the focus",
+  "area": "catalog",
+  "width": 110,
+  "height": 22,
+  "page": {
+    "id": "docs",
+    "title": "Docs",
+    "catalog": {
+      "nouns": [
+        {
+          "name": "doc",
+          "verbs": [
+            {
+              "name": "list",
+              "rows": "doc"
+            }
+          ]
+        }
+      ],
+      "page": {
+        "title": "Docs",
+        "layout": "split",
+        "lists": [
+          {
+            "id": "docs/docs",
+            "noun": "doc"
+          }
+        ],
+        "detail": {
+          "kind": "markdown",
+          "pathField": "path"
+        }
+      },
+      "answers": {
+        "doc.list": [
+          {
+            "id": "/plans/one.md",
+            "title": "One",
+            "path": "/plans/one.md"
+          },
+          {
+            "id": "nopath",
+            "title": "No path"
+          },
+          {
+            "id": "/plans/gone.md",
+            "title": "Gone",
+            "path": "/plans/gone.md"
+          }
+        ]
+      },
+      "files": {
+        "/plans/one.md": "# One\n\n- [ ] first task\n"
+      },
+      "author": "owner",
+      "today": "2026-10-27"
+    }
+  },
+  "script": [
+    "j",
+    "j",
+    "k",
+    "k"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "docs/docs/nopath",
+      "contains": [
+        "No path has no path"
+      ],
+      "lacks": [
+        "first task"
+      ]
+    },
+    {
+      "after": 2,
+      "focus": "docs/docs//plans/gone.md",
+      "contains": [
+        "/plans/gone.md: no such file"
+      ]
+    },
+    {
+      "focus": "docs/docs//plans/one.md",
+      "contains": [
+        "first task"
+      ],
+      "writes": []
+    }
+  ]
+}
