@@ -196,6 +196,10 @@ type Config struct {
 	actionsLoaded  bool
 	// leaderObserved is set once the terminal-leader setting is observed.
 	leaderObserved bool
+	// leaderTimeoutDefault is set when EnsureTerminalLeader declared
+	// terminal-leader-timeout: without a settings.json value the leader
+	// then follows BindingTimeout rather than the declared default.
+	leaderTimeoutDefault bool
 }
 
 // appliedRow is one installed user row and the row with its identity it

@@ -594,9 +594,14 @@ func answersEveryKey(rows []levelRow) bool {
 // Key-sequence prefixes.
 
 type pendingPrefix struct {
-	focus     string
-	mode      string
-	deadline  time.Time
+	focus    string
+	mode     string
+	deadline time.Time
+	// forever is a prefix with no deadline (the terminal leader with
+	// terminal-leader-timeout 0): it waits for the next key, so no timer
+	// is scheduled and nothing expires it; a focus or mode change still
+	// cancels it.
+	forever   bool
 	scheduled bool
 }
 
@@ -609,15 +614,28 @@ func (r *Runtime) enterPrefix(base, sequence string, fallback *Request) {
 // armPrefix starts the sequence timer for a pending mode the focus is in:
 // when BindingTimeout passes before the next key, finishPrefix leaves the
 // mode and runs the request stored in its payload. The terminal leader
-// enters leader_pending with the request that forwards the leader alone.
+// enters leader_pending with the request that forwards the leader alone;
+// its timeout is terminal-leader-timeout (terminalLeaderTimeout), and 0
+// arms no timer, so the leader waits for the next key.
 func (r *Runtime) armPrefix(focus, mode, sequence string) {
-	timeout := r.BindingTimeout
-	if timeout <= 0 {
-		timeout = DefaultBindingTimeout
+	timeout := r.bindingTimeout()
+	if mode == "leader_pending" {
+		timeout = r.terminalLeaderTimeout()
 	}
 	r.Pending = sequence
 	r.bindingVersion++
-	r.prefix = pendingPrefix{focus: focus, mode: mode, deadline: time.Now().Add(timeout)}
+	r.prefix = pendingPrefix{focus: focus, mode: mode, forever: timeout == 0}
+	if timeout > 0 {
+		r.prefix.deadline = time.Now().Add(timeout)
+	}
+}
+
+// bindingTimeout is BindingTimeout, DefaultBindingTimeout when unset.
+func (r *Runtime) bindingTimeout() time.Duration {
+	if r.BindingTimeout <= 0 {
+		return DefaultBindingTimeout
+	}
+	return r.BindingTimeout
 }
 
 func (r *Runtime) leavePrefix() {
@@ -647,7 +665,7 @@ func (r *Runtime) expirePrefix() error {
 		r.CancelPendingBinding()
 		return nil
 	}
-	if time.Now().Before(r.prefix.deadline) {
+	if r.prefix.forever || time.Now().Before(r.prefix.deadline) {
 		return nil
 	}
 	_, err := r.finishPrefix()

@@ -29,6 +29,8 @@ func (r *Runtime) CancelPendingBinding() {
 
 // BindingTimeoutCommand schedules the latest deadline once. Custom Tea models
 // call it after dispatch and send BindingTimeoutMsg to HandleBindingTimeout.
+// A prefix without a deadline (the terminal leader with
+// terminal-leader-timeout 0) schedules nothing.
 func (r *Runtime) BindingTimeoutCommand() tea.Cmd {
 	if r.Pending == "" {
 		return nil
@@ -37,7 +39,7 @@ func (r *Runtime) BindingTimeoutCommand() tea.Cmd {
 		r.CancelPendingBinding()
 		return nil
 	}
-	if r.prefix.scheduled {
+	if r.prefix.scheduled || r.prefix.forever {
 		return nil
 	}
 	r.prefix.scheduled = true
@@ -58,7 +60,7 @@ func (r *Runtime) HandleBindingTimeout(msg BindingTimeoutMsg) (bool, error) {
 		r.CancelPendingBinding()
 		return false, nil
 	}
-	if time.Now().Before(r.prefix.deadline) {
+	if r.prefix.forever || time.Now().Before(r.prefix.deadline) {
 		return false, nil
 	}
 	_, err := r.finishPrefix()
