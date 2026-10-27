@@ -1,0 +1,37 @@
+{
+  "name": "ctrl+\\ opens the ? help from insert mode, where ? types itself: over a page input and over the palette's prompt, the help lists the key, nothing is typed, esc gives the input back in insert",
+  "area": "help",
+  "width": 100,
+  "height": 30,
+  "page": {
+    "inputs": [
+      {
+        "id": "name",
+        "label": "name",
+        "text": "hello"
+      }
+    ]
+  },
+  "script": [
+    "A",
+    {"type": "?"},
+    "ctrl+\\",
+    "/",
+    {"type": "ctrl+\\"},
+    "esc",
+    "esc",
+    {"type": "!"},
+    "esc",
+    ":",
+    "ctrl+\\",
+    "esc"
+  ],
+  "expect": [
+    {"after": 2, "mode": "insert", "contains": ["name: hello?"]},
+    {"after": 3, "modal": "bindings-help", "mode": "normal"},
+    {"after": 5, "modal": "bindings-help", "contains": ["ctrl+\\      bindings.help"]},
+    {"after": 8, "modal": "", "mode": "insert", "focus": "name", "contains": ["name: hello?!"]},
+    {"after": 11, "modal": "bindings-help"},
+    {"modal": "palette", "mode": "insert"}
+  ]
+}

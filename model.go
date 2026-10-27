@@ -155,6 +155,13 @@ func newModel(r *Runtime) *Model {
 	defaultRow("normal", ":", Do("palette.open"))
 	defaultRow("normal", "ctrl+y", Do("yank-history.open").Hide())
 	defaultRow("normal", "?", Do("bindings.help"))
+	// Insert mode types ?, so every input's insert mode has a control key
+	// for the help (HelpInsertKey), on the editor noun: the fallback every
+	// input's walk ends at (an app row would put an insert column in every
+	// noun's help table, though only an input is ever in insert mode).
+	if !slices.ContainsFunc(r.Noun("editor").Bindings["insert"], func(b Binding) bool { return b.Keys == HelpInsertKey }) {
+		r.Define("editor").Mode("insert").Bind(HelpInsertKey, Do("bindings.help").Hide())
+	}
 	defaultRow("normal", "'", Do("page.pick").Guard("no-modal")) // a page opens only with no modal open
 	defaultRow("normal", "ctrl+j", Do("page.next"))
 	defaultRow("normal", "ctrl+k", Do("page.previous"))

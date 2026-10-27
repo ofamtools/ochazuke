@@ -1,5 +1,5 @@
 {
-  "name": "S in ? help on a row: pick resolves at a place, p lists the noun's places after no place, choosing the row's puts its list's keys in and the header names it",
+  "name": "S in ? help on a row: pick resolves at the row's own place (where ? was opened) with its list's keys, p lists the noun's places after no place, choosing one moves the header to it",
   "area": "help",
   "width": 120,
   "height": 40,
@@ -11,10 +11,11 @@
       }
     ]
   },
-  "script": ["?", "S", "p", "l", "i", "s", "t", "enter"],
+  "script": ["?", "S", "p", "n", "o", "enter", "p", "l", "i", "s", "t", "enter"],
   "expect": [
-    {"after": 2, "modal": "bindings-help", "contains": ["Keys · pick", "noun: demo · mode: normal · place: page1", "p place"]},
-    {"after": 3, "contains": ["Place", "no place (noun + app)", "page1 › demo › list    1×"]},
-    {"after": 8, "modal": "bindings-help", "contains": ["noun: demo · mode: normal · place: page1 › demo › list", "list.mark"]}
+    {"after": 2, "modal": "bindings-help", "contains": ["Keys · pick", "noun: demo · mode: normal · place: page1 › demo › list", "space       list.mark ?", "p place"]},
+    {"after": 3, "contains": ["Place", "no place (noun + app)", "page1 › demo › list    1×  current"]},
+    {"after": 6, "modal": "bindings-help", "contains": ["noun: demo · mode: normal · place: none"], "lacks": ["space       list.mark ?"]},
+    {"after": 12, "modal": "bindings-help", "contains": ["noun: demo · mode: normal · place: page1 › demo › list", "space       list.mark ?"]}
   ]
 }
