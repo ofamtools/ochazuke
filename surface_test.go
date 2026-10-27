@@ -148,9 +148,19 @@ func TestModalGeometryWithANSIWideTextAndTinyTerminals(t *testing.T) {
 	}
 }
 
+// A modal is about 80% of the terminal's columns at any width, with no
+// fixed cap, and keeps the bordered chrome and tiny-terminal fallbacks.
+func TestModalWidthIsEightyPercentWithNoCap(t *testing.T) {
+	for _, tc := range []struct{ width, content int }{{80, 60}, {100, 76}, {160, 124}, {300, 236}, {7, 1}, {6, 4}, {3, 1}} {
+		if cw, _ := ModalSize(tc.width, 24); cw != tc.content {
+			t.Errorf("ModalSize(%d) content width %d, want %d", tc.width, cw, tc.content)
+		}
+	}
+}
+
 func TestModalSizeLeavesRoomForEveryBodyCell(t *testing.T) {
 	styles := NewStyles(Appearance{Theme: "mono", Density: "compact"})
-	for _, size := range [][2]int{{80, 24}, {19, 9}, {9, 7}, {3, 3}, {1, 1}} {
+	for _, size := range [][2]int{{160, 40}, {80, 24}, {19, 9}, {9, 7}, {3, 3}, {1, 1}} {
 		cw, ch := ModalSize(size[0], size[1])
 		body := strings.TrimSuffix(strings.Repeat(strings.Repeat("x", cw)+"\n", ch), "\n")
 		view := ansi.Strip(ComposeModal("", "T", body, "F", size[0], size[1], styles))

@@ -474,3 +474,31 @@ func TestChooserPreviewFollowsTheHighlightAtAFixedWidth(t *testing.T) {
 		}
 	}
 }
+
+func TestChooserFillsTheModalWidthWhileTyping(t *testing.T) {
+	_, m, c, _ := chooserTest(t, ChooserSpec{Title: "Things", Rows: []ChooserRow{{ID: "a", Label: "alpha"}, {ID: "b", Label: "bravo"}}})
+	m.Width, m.Height = 160, 20
+	contentWidth, _ := ModalSize(m.Width, m.Height)
+	panel := func() int {
+		widest := 0
+		for _, line := range strings.Split(ansi.Strip(m.View().Content), "\n") {
+			if i, j := strings.Index(line, "╭"), strings.LastIndex(line, "╮"); i >= 0 && j > i {
+				widest = max(widest, ansi.StringWidth(line[i:j])+1)
+			}
+		}
+		return widest
+	}
+	before := panel()
+	if before != contentWidth+4 {
+		t.Fatalf("panel %d cells, want the modal's %d", before, contentWidth+4)
+	}
+	keytest.Type(m, "br")
+	if after := panel(); after != before {
+		t.Fatalf("panel resized from %d to %d while typing", before, after)
+	}
+	for _, line := range strings.Split(c.View(contentWidth, 10).Text, "\n") {
+		if w := ansi.StringWidth(line); w != contentWidth {
+			t.Fatalf("line %q is %d cells, want %d", ansi.Strip(line), w, contentWidth)
+		}
+	}
+}

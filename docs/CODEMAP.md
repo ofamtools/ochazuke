@@ -32,7 +32,7 @@ Root package `ochazuke` is flat: 66 source files, 65 test files. Each entry list
 
 ### chooser.go
 
-- lines: 670 · tests: chooser_test.go
+- lines: 675 · tests: chooser_test.go
 - purpose: ChooserRow is one choice.
 - types: ChooserRow, ChooserSpec, Chooser
 - methods: Chooser(25), Runtime(3)

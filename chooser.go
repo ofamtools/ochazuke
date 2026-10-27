@@ -478,7 +478,7 @@ func previewLines(text string, width, height int) []string {
 	return wrapped
 }
 
-// rowsView is View's search line and rows, width cells wide.
+// rowsView is View's search line and rows, each line width cells wide.
 func (c *Chooser) rowsView(width, height int) Block {
 	const prefix = "› "
 	line := InputBlock(c.input, max(8, width-ansi.StringWidth(prefix)), 1).Offset(ansi.StringWidth(prefix), 0)
@@ -533,6 +533,11 @@ func (c *Chooser) rowsView(width, height int) Block {
 	}
 	for i := fixedFrom; i < len(c.matches); i++ {
 		draw(i)
+	}
+	// Every line fills the width, so the panel is the modal's width and
+	// does not resize as typing narrows the rows.
+	for i, l := range lines {
+		lines[i] = l + strings.Repeat(" ", max(0, width-ansi.StringWidth(l)))
 	}
 	return line.WithText(strings.Join(lines, "\n"))
 }

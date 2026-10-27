@@ -1,0 +1,31 @@
+{
+  "name": "chooser: at 160 columns the modal is 80% of the width and the rows fill it, short as they are",
+  "area": "chooser",
+  "width": 160,
+  "height": 14,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "chooser": {
+      "kind": "context",
+      "title": "Context",
+      "rows": [
+        {
+          "id": "a",
+          "label": "alpha"
+        },
+        {
+          "id": "b",
+          "label": "beta"
+        }
+      ]
+    }
+  },
+  "script": [
+    "b"
+  ]
+}

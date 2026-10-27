@@ -19,7 +19,7 @@ func modalBounds(width, height int) (contentWidth, contentHeight int, bordered b
 	if width < 3 || height < 3 {
 		return 0, 0, false
 	}
-	outerWidth := min(78, width-2, max(1, width/5*4+width%5*4/5))
+	outerWidth := min(width-2, max(1, width/5*4+width%5*4/5))
 	outerHeight := min(height-2, max(1, height/4*3+height%4*3/4))
 	if outerWidth >= 5 && outerHeight >= 5 {
 		// Two borders, two horizontal padding cells, title and footer rows.
