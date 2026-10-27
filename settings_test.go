@@ -80,7 +80,7 @@ func TestSettingsSetValidatesPersistsAndNotifies(t *testing.T) {
 	var themes []any
 	s.Observe("theme", func(_ string, v any) { themes = append(themes, v) })
 	for _, step := range [][2]string{{"scrolloff", "5"}, {"theme", "light"}, {"wrap", "true"}, {"debounce", "1s"}, {"ratio", "0.25"}} {
-		if _, err := r.Execute(Request{Noun: "settings", Verb: "set", Args: Arguments{"name": step[0], "value": step[1]}}); err != nil {
+		if _, err := r.Execute(Request{Noun: "app.settings", Verb: "set", Args: Arguments{"name": step[0], "value": step[1]}}); err != nil {
 			t.Fatalf("set %v: %v", step, err)
 		}
 	}
@@ -95,14 +95,14 @@ func TestSettingsSetValidatesPersistsAndNotifies(t *testing.T) {
 		t.Fatalf("observers %v %v", seen, themes)
 	}
 	for _, bad := range [][2]string{{"scrolloff", "five"}, {"theme", "neon"}, {"wrap", "maybe"}, {"debounce", "soon"}, {"nope", "1"}} {
-		if _, err := r.Execute(Request{Noun: "settings", Verb: "set", Args: Arguments{"name": bad[0], "value": bad[1]}}); err == nil {
+		if _, err := r.Execute(Request{Noun: "app.settings", Verb: "set", Args: Arguments{"name": bad[0], "value": bad[1]}}); err == nil {
 			t.Fatalf("accepted %v", bad)
 		}
 	}
 	if got := readSettingsFile(t, dir); !reflect.DeepEqual(got, want) {
 		t.Fatalf("a refused set changed the file: %v", got)
 	}
-	got, err := r.Execute(Request{Noun: "settings", Verb: "reset", Args: Arguments{"name": "theme"}})
+	got, err := r.Execute(Request{Noun: "app.settings", Verb: "reset", Args: Arguments{"name": "theme"}})
 	if err != nil || got.(SettingValue).Value != "dark" || got.(SettingValue).Set || s.String("theme") != "dark" {
 		t.Fatalf("reset %+v %v", got, err)
 	}
@@ -113,7 +113,7 @@ func TestSettingsSetValidatesPersistsAndNotifies(t *testing.T) {
 	if len(entries) != 1 {
 		t.Fatalf("temp files left: %v", entries)
 	}
-	list, _ := r.Execute(Request{Noun: "settings", Verb: "list"})
+	list, _ := r.Execute(Request{Noun: "app.settings", Verb: "list"})
 	if rows := list.([]SettingValue); len(rows) != 5 || rows[3].Value != "1s" || rows[3].Default != "400ms" || !rows[3].Set {
 		t.Fatalf("list %+v", list)
 	}
@@ -171,7 +171,7 @@ func TestSettingsPollPicksUpAnotherProcessWrite(t *testing.T) {
 	if err := other.DeclareSetting(Setting{Name: "scrolloff", Type: SettingInteger, Default: 2}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := other.Execute(Request{Noun: "settings", Verb: "set", Args: Arguments{"name": "scrolloff", "value": "7"}}); err != nil {
+	if _, err := other.Execute(Request{Noun: "app.settings", Verb: "set", Args: Arguments{"name": "scrolloff", "value": "7"}}); err != nil {
 		t.Fatal(err)
 	}
 	_, cmd := m.Update(SettingsPollMsg{})
@@ -201,14 +201,14 @@ func settingsPageFixture(t *testing.T) (*Runtime, *Model, string) {
 	t.Helper()
 	r, m, dir := settingsFixture(t)
 	r.Define("item")
-	r.Instance("main", Parent("app"), Kind("page"))
+	r.Instance("main", Parent("app"), Kind("app.page"))
 	if _, err := r.AddList("rows", []ListItem{{ID: "a", Label: "a", Noun: "item"}, {ID: "b", Label: "b", Noun: "item"}}, Parent("main")); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.RegisterPage(&Page{ID: "main", Title: "Main", Focus: "rows", Render: func(r *Runtime, w, h int) Block { return Text(r.List("rows").View(w, h)) }}); err != nil {
 		t.Fatal(err)
 	}
-	r.Define("app").Mode("normal").Bind("ctrl+o", Do("settings.edit"))
+	r.Define("app").Mode("normal").Bind("ctrl+o", Do("app.settings.edit"))
 	m.Width, m.Height = 100, 24
 	m.Init()
 	if err := r.OpenPage("main"); err != nil {
@@ -260,7 +260,7 @@ func TestSettingsPageSavesEachChange(t *testing.T) {
 		t.Fatal("space on wrap")
 	}
 	keytest.Press(m, "j")
-	if strings.Contains(BindingHints(r, r.Focus), "setting.cycle") {
+	if strings.Contains(BindingHints(r, r.Focus), "app.setting.cycle") {
 		t.Fatalf("a duration row offers cycle: %s", BindingHints(r, r.Focus))
 	}
 	keytest.Press(m, "enter")
@@ -373,7 +373,7 @@ func TestListSetting(t *testing.T) {
 	}
 	var seen [][]string
 	s.Observe("paths", func(_ string, v any) { seen = append(seen, v.([]string)) })
-	if _, err := r.Execute(Request{Noun: "settings", Verb: "set", Args: Arguments{"name": "paths", "value": `["~/proj", "~/work"]`}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "app.settings", Verb: "set", Args: Arguments{"name": "paths", "value": `["~/proj", "~/work"]`}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.Set("paths", []string{"~/proj", "~/work"}); err != nil {
@@ -390,7 +390,7 @@ func TestListSetting(t *testing.T) {
 			t.Fatalf("accepted %q", bad)
 		}
 	}
-	got, err := r.Execute(Request{Noun: "settings", Verb: "reset", Args: Arguments{"name": "paths"}})
+	got, err := r.Execute(Request{Noun: "app.settings", Verb: "reset", Args: Arguments{"name": "paths"}})
 	if err != nil || !reflect.DeepEqual(got.(SettingValue).Value, []string{"~/proj"}) || len(seen) != 2 {
 		t.Fatalf("reset %+v %v %q", got, err, seen)
 	}
@@ -424,10 +424,10 @@ func TestSettingsPageSourceAndUndo(t *testing.T) {
 	if !strings.Contains(ansi.Strip(m.View().Content), "holds an invalid value") {
 		t.Fatal("undo did not bring back the invalid value's problem")
 	}
-	if _, err := r.Execute(Request{Noun: "settings", Verb: "undo"}); err == nil {
+	if _, err := r.Execute(Request{Noun: "app.settings", Verb: "undo"}); err == nil {
 		t.Fatal("undo with nothing to undo succeeded")
 	}
-	if _, err := r.Execute(Request{Noun: "settings", Verb: "section", Args: Arguments{"name": "nope"}}); err == nil {
+	if _, err := r.Execute(Request{Noun: "app.settings", Verb: "section", Args: Arguments{"name": "nope"}}); err == nil {
 		t.Fatal("an unknown section was shown")
 	}
 }

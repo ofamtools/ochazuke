@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+
+	"github.com/unixsuperhero/ochazuke"
 )
 
 // Minimum is what a set of stories exercises: per mode and noun the
@@ -32,7 +34,7 @@ func Derive(traces ...[]Step) Minimum {
 				if !r.OK {
 					continue
 				}
-				noun, _, _ := strings.Cut(r.Verb, ".")
+				noun, _ := ochazuke.SplitKey(r.Verb)
 				if m.Verbs[r.Mode] == nil {
 					m.Verbs[r.Mode] = map[string][]string{}
 				}

@@ -16,6 +16,9 @@ import (
 // noun and app (a page) takes are left out.
 func sameAnswers(t *testing.T, r *Runtime, live, hypo []levelRow, levels ...string) {
 	t.Helper()
+	for i, name := range levels {
+		levels[i] = r.CanonicalNoun(name)
+	}
 	id := func(b Binding) string { return rowKey(b) }
 	guarded := func(row levelRow) bool { return row.When != "" || r.VerbGuard(row.Request.Key()) != "" }
 	same := func(a, b levelRow) bool {
@@ -64,12 +67,12 @@ func TestNounRowsMatchTheLiveWalk(t *testing.T) {
 		if err := list.Focus(); err != nil {
 			t.Fatal(err)
 		}
-		sameAnswers(t, r, r.levelRows(r.Focus), r.nounRows(NounPlace{Noun: "list"}, r.Mode), "list", "app")
+		sameAnswers(t, r, r.levelRows(r.Focus), r.nounRows(NounPlace{Noun: "app.list"}, r.Mode), "list", "app")
 	})
 	t.Run("input", func(t *testing.T) {
 		r := NewRuntime()
 		NewModel(r)
-		if err := r.AddInput(NewInput("note", "", false), Kind("prompt")); err != nil {
+		if err := r.AddInput(NewInput("note", "", false), Kind("app.prompt")); err != nil {
 			t.Fatal(err)
 		}
 		if err := r.SetFocus("note"); err != nil {
@@ -78,15 +81,15 @@ func TestNounRowsMatchTheLiveWalk(t *testing.T) {
 		if r.Mode.Name != "insert" {
 			t.Fatalf("prompt focus in %q", r.Mode.Name)
 		}
-		hypo := r.nounRows(NounPlace{Noun: "prompt"}, r.Mode)
-		if !slices.ContainsFunc(hypo, func(h levelRow) bool { return h.level == "editor" && h.guard == "" }) {
+		hypo := r.nounRows(NounPlace{Noun: "app.prompt"}, r.Mode)
+		if !slices.ContainsFunc(hypo, func(h levelRow) bool { return h.level == "app.editor" && h.guard == "" }) {
 			t.Fatal("no editor fallback rows for an input noun")
 		}
 		sameAnswers(t, r, r.levelRows(r.Focus), hypo, "prompt", "app", "editor")
 		if err := r.SetMode("normal"); err != nil {
 			t.Fatal(err)
 		}
-		sameAnswers(t, r, r.levelRows(r.Focus), r.nounRows(NounPlace{Noun: "prompt"}, r.Mode), "prompt", "app", "editor")
+		sameAnswers(t, r, r.levelRows(r.Focus), r.nounRows(NounPlace{Noun: "app.prompt"}, r.Mode), "prompt", "app", "editor")
 	})
 	t.Run("terminal", func(t *testing.T) {
 		r, _, _ := terminalFixture(t)
@@ -94,7 +97,7 @@ func TestNounRowsMatchTheLiveWalk(t *testing.T) {
 		if r.Mode.Name != "terminal" {
 			t.Fatalf("terminal focus in %q", r.Mode.Name)
 		}
-		hypo := r.nounRows(NounPlace{Noun: "terminal"}, r.Mode)
+		hypo := r.nounRows(NounPlace{Noun: "app.terminal"}, r.Mode)
 		if slices.ContainsFunc(hypo, func(h levelRow) bool { return h.Capture }) {
 			t.Fatal("a passthrough mode has no capture pass")
 		}
@@ -156,7 +159,7 @@ func TestNounRowsExclusivePendingMode(t *testing.T) {
 func TestHelpTableColumns(t *testing.T) {
 	r := NewRuntime()
 	NewModel(r)
-	modes, keys := r.HelpTable(NounPlace{Noun: "list"}, false)
+	modes, keys := r.HelpTable(NounPlace{Noun: "app.list"}, false)
 	if !slices.Contains(modes, "normal") || !slices.Contains(modes, ListFilterMode) || slices.Contains(modes, "insert") || slices.Contains(modes, "terminal") {
 		t.Fatalf("list modes: %v", modes)
 	}
@@ -202,10 +205,10 @@ func TestHelpTableColumns(t *testing.T) {
 		}
 		return out
 	}
-	if plain := names(r.HelpModes(NounPlace{Noun: "list"}, false)); slices.Contains(plain, "count_pending") || slices.Contains(plain, "normal g") {
+	if plain := names(r.HelpModes(NounPlace{Noun: "app.list"}, false)); slices.Contains(plain, "count_pending") || slices.Contains(plain, "normal g") {
 		t.Fatalf("pick modes without the setting: %v", plain)
 	}
-	if all := names(r.HelpModes(NounPlace{Noun: "list"}, true)); !slices.Contains(all, "count_pending") || !slices.Contains(all, "normal g") {
+	if all := names(r.HelpModes(NounPlace{Noun: "app.list"}, true)); !slices.Contains(all, "count_pending") || !slices.Contains(all, "normal g") {
 		t.Fatalf("pick modes with the setting: %v", all)
 	}
 	if rows := NounHelp(r, "list", ModeState{Name: "normal g", Payload: Payload{Prefix: "g"}}); !slices.ContainsFunc(rows, func(h HelpRow) bool { return h.Key == "g g" }) || slices.ContainsFunc(rows, func(h HelpRow) bool { return h.Key == "j" }) {

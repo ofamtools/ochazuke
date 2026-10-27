@@ -72,11 +72,11 @@ func TestConfigDirectoryFollowsXDGThenHome(t *testing.T) {
 	if got := c.Path(BindingsFile); got != "/elsewhere/bindings.json" {
 		t.Fatalf("dir path %q", got)
 	}
-	if got, err := r.Execute(Request{Noun: "bindings", Verb: "path"}); err != nil || got != "/elsewhere/bindings.json" {
+	if got, err := r.Execute(Request{Noun: "app.bindings", Verb: "path"}); err != nil || got != "/elsewhere/bindings.json" {
 		t.Fatalf("bindings.path %v %v", got, err)
 	}
 	c.Disable()
-	if _, err := r.Execute(Request{Noun: "bindings", Verb: "path"}); err == nil {
+	if _, err := r.Execute(Request{Noun: "app.bindings", Verb: "path"}); err == nil {
 		t.Fatal("bindings.path without a directory")
 	}
 }
@@ -89,7 +89,7 @@ func TestMissingBindingsFileIsNothing(t *testing.T) {
 	if len(m.Notices) != 0 || !reflect.DeepEqual(*calls, []string{"alpha"}) {
 		t.Fatalf("notices %v calls %v", m.Notices, *calls)
 	}
-	if got, _ := r.Execute(Request{Noun: "bindings", Verb: "check"}); len(got.([]string)) != 0 {
+	if got, _ := r.Execute(Request{Noun: "app.bindings", Verb: "check"}); len(got.([]string)) != 0 {
 		t.Fatalf("check %v", got)
 	}
 }
@@ -115,7 +115,7 @@ func TestUserBindingsRebindUnbindAndReportBadRows(t *testing.T) {
 	if keys["a"] != "test.gamma" || keys["b"] != "" || keys["z"] != "" {
 		t.Fatalf("help keys %v", keys)
 	}
-	listed, _ := r.Execute(Request{Noun: "bindings", Verb: "list"})
+	listed, _ := r.Execute(Request{Noun: "app.bindings", Verb: "list"})
 	found := false
 	for _, b := range listed.([]Binding) {
 		found = found || b.Keys == "a" && b.Request.Key() == "test.gamma"
@@ -126,7 +126,7 @@ func TestUserBindingsRebindUnbindAndReportBadRows(t *testing.T) {
 	if len(m.Notices) != 2 || !strings.Contains(m.Notices[0], "row 4") || !strings.Contains(m.Notices[1], `row 3 z: unknown operation "test.nope"`) {
 		t.Fatalf("notices %q", m.Notices)
 	}
-	check, _ := r.Execute(Request{Noun: "bindings", Verb: "check"})
+	check, _ := r.Execute(Request{Noun: "app.bindings", Verb: "check"})
 	if len(check.([]string)) != 2 {
 		t.Fatalf("check %v", check)
 	}
@@ -163,7 +163,7 @@ func TestBindingsReloadRestoresDefaultsAndAppliesTheNewFile(t *testing.T) {
 		{"noun": "app", "mode": "normal", "keys": "b", "request": {"noun": "test", "verb": "gamma"}},
 		{"noun": "app", "mode": "normal", "keys": "x", "request": {"noun": "test", "verb": "nope"}}
 	]`)
-	got, err := r.Execute(Request{Noun: "bindings", Verb: "reload"})
+	got, err := r.Execute(Request{Noun: "app.bindings", Verb: "reload"})
 	if err != nil || len(got.([]string)) != 1 {
 		t.Fatalf("reload %v %v", got, err)
 	}
@@ -288,14 +288,14 @@ func TestBindingsLoadKeepsGuardedAndUnguardedRowsApart(t *testing.T) {
 		{"noun": "app", "mode": "normal", "keys": "c", "request": {"noun": "test", "verb": "beta"}},
 		{"noun": "app", "mode": "normal", "keys": "c", "when": "flag", "request": {"noun": "test", "verb": "gamma"}}
 	]`)
-	if _, err := r.Execute(Request{Noun: "bindings", Verb: "load", Args: Arguments{"path": path}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "app.bindings", Verb: "load", Args: Arguments{"path": path}}); err != nil {
 		t.Fatal(err)
 	}
 	if got := pressBoth(m, calls, flag, "c"); !slices.Equal(got, []string{"gamma", "beta"}) {
 		t.Fatalf("calls %v", got)
 	}
 	before := appNormal(t, r)
-	if _, err := r.Execute(Request{Noun: "bindings", Verb: "load", Args: Arguments{"path": path}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "app.bindings", Verb: "load", Args: Arguments{"path": path}}); err != nil {
 		t.Fatal(err)
 	}
 	if got := appNormal(t, r); !slices.Equal(got, before) {
@@ -346,7 +346,7 @@ func TestUserRowsReplaceEditorDefaultsDespiteTheImplicitGuard(t *testing.T) {
 	r.Config().Dir = dir
 	x := func() []Binding {
 		var out []Binding
-		for _, b := range r.Nouns["editor"].Bindings["normal"] {
+		for _, b := range r.Nouns["app.editor"].Bindings["normal"] {
 			if b.Keys == "x" {
 				out = append(out, b)
 			}
@@ -393,7 +393,7 @@ func TestUserRowsReplaceEditorDefaultsDespiteTheImplicitGuard(t *testing.T) {
 		t.Fatalf("reload: %+v, want %+v", got, defaults)
 	}
 	// In code too: the builder's Unbind without a guard removes it.
-	r.Define("editor").Mode("normal").Unbind("x")
+	r.Define("app.editor").Mode("normal").Unbind("x")
 	if got := x(); len(got) != 0 {
 		t.Fatalf("builder Unbind left %+v", got)
 	}

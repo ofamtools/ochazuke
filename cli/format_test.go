@@ -23,7 +23,7 @@ func formatRuntime() *ochazuke.Runtime {
 		{"id": "w2", "label": "notes", "cells": []string{"notes", "needs_input", "~/hub/o-plans/plans"}},
 		{"id": "w3", "label": "bare row"},
 	}
-	r.Define("pane").Columns(
+	r.DefineOwn("pane").Columns(
 		ochazuke.Column{Title: "pane"},
 		ochazuke.Column{Title: "state", Priority: 1},
 		ochazuke.Column{Title: "cwd", Min: 8, Priority: 2},

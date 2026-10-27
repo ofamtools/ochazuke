@@ -31,8 +31,8 @@ const HistoryFetchesSetting = "history-fetches"
 // counts, registers, macros, yank history, modes), the palette's own line
 // editing, and the keys sent to a terminal.
 var unpersistedNouns = map[string]bool{
-	"input": true, "editor": true, "key": true, "count": true, "register": true, "macro": true,
-	"yank-history": true, "mode": true, "palette": true, "terminal": true,
+	"app.input": true, "app.editor": true, "app.key": true, "app.count": true, "app.register": true, "app.macro": true,
+	"app.yank-history": true, "app.mode": true, "app.palette": true, "app.terminal": true,
 }
 
 // textLikeArgs are the argument names whose values the history file leaves
@@ -261,6 +261,9 @@ func (r *Runtime) restoreHistory(path string, limit int) [][]byte {
 			continue
 		}
 		e.Restored = true
+		// A file written before noun namespaces names framework nouns by
+		// their short names (list.move): read it as the canonical key.
+		e.Request = r.canonicalRequest(e.Request)
 		if e.Kind == "" {
 			e.Kind = r.historyKind(e.Request)
 		}

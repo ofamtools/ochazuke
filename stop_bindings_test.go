@@ -19,7 +19,7 @@ func TestStopBindingsAppWide(t *testing.T) {
 	if _, err := r.AddList("rows", []ListItem{{ID: "r1", Label: "one", Noun: "row"}}, Parent("main")); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.AddInput(NewInput("ask", "", false), Parent("main"), Kind("prompt")); err != nil {
+	if err := r.AddInput(NewInput("ask", "", false), Parent("main"), Kind("app.prompt")); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := r.AddPage("two", "Two", func(*Runtime, int, int) Block { return Text("two") }); err != nil {
@@ -32,7 +32,7 @@ func TestStopBindingsAppWide(t *testing.T) {
 		t.Fatal(err)
 	}
 	focus, mode := r.Focus, r.Mode
-	value, err := r.Execute(Request{Noun: "bindings", Verb: "stops"})
+	value, err := r.Execute(Request{Noun: "app.bindings", Verb: "stops"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +54,7 @@ func TestStopBindingsAppWide(t *testing.T) {
 	if !has(stops[2], "x", "other.kill") || has(stops[2], "o", "row.open") {
 		t.Errorf("others stop: %+v", stops[2].Bindings)
 	}
-	if has(stops[3], "o", "row.open") || !has(stops[3], "}", "focus.next") {
+	if has(stops[3], "o", "row.open") || !has(stops[3], "}", "app.focus.next") {
 		t.Errorf("app entry: %+v", stops[3].Bindings)
 	}
 	// The prompt is read in insert: printable keys type, they run no verb.
@@ -65,7 +65,7 @@ func TestStopBindingsAppWide(t *testing.T) {
 		t.Fatalf("focus/mode moved: %s %s, want %s %s", r.Focus, r.Mode.Name, focus, mode.Name)
 	}
 	// The listing is the same on every call.
-	again, _ := r.Execute(Request{Noun: "bindings", Verb: "stops"})
+	again, _ := r.Execute(Request{Noun: "app.bindings", Verb: "stops"})
 	if len(again.([]StopBindings)) != len(stops) {
 		t.Fatal("bindings.stops is not stable")
 	}

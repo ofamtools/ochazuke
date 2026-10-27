@@ -21,7 +21,7 @@ func TestModelChromeIsLayoutShellWithHintsFromBindings(t *testing.T) {
 		return Text(strings.TrimSuffix(strings.Repeat(strings.Repeat("░", width)+"\n", height), "\n"))
 	}
 	m := NewModel(r)
-	if _, err := r.Execute(Request{Verb: "set", Noun: "appearance", Args: Arguments{"theme": "mono"}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "set", Noun: "app.appearance", Args: Arguments{"theme": "mono"}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.OpenPage("alpha"); err != nil {
@@ -53,7 +53,7 @@ func TestModelChromeIsLayoutShellWithHintsFromBindings(t *testing.T) {
 				if sidebar && !strings.Contains(view, "▸ ALPHA") || !sidebar && !strings.Contains(rows[1], "› ALPHA") {
 					t.Fatalf("page navigation missing (sidebar=%t):\n%s", sidebar, view)
 				}
-				if footer := rows[size[1]-2]; !hintPrefix(footer, BindingHints(r, r.Focus)) || !strings.Contains(BindingHints(r, r.Focus), "? bindings.help") || strings.Contains(BindingHints(r, r.Focus), "page.next") {
+				if footer := rows[size[1]-2]; !hintPrefix(footer, BindingHints(r, r.Focus)) || !strings.Contains(BindingHints(r, r.Focus), "? bindings.help") || strings.Contains(BindingHints(r, r.Focus), "app.page.next") {
 					t.Fatalf("footer is not the focus's binding hints: %q", footer)
 				}
 			})
@@ -62,7 +62,7 @@ func TestModelChromeIsLayoutShellWithHintsFromBindings(t *testing.T) {
 	m.Sidebar = false
 	m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
 	// The hint is the same data bindings.list prints: a rebound key moves with it.
-	if err := r.Bind(Binding{Noun: "app", Mode: "normal", Keys: "?", Request: Request{Verb: "open", Noun: "yank-history"}}); err != nil {
+	if err := r.Bind(Binding{Noun: "app", Mode: "normal", Keys: "?", Request: Request{Verb: "open", Noun: "app.yank-history"}}); err != nil {
 		t.Fatal(err)
 	}
 	footer := strings.Split(ansi.Strip(m.View().Content), "\n")[22]
@@ -76,7 +76,7 @@ func TestModelChromeIsLayoutShellWithHintsFromBindings(t *testing.T) {
 	}
 	keytest.Press(m, "i")
 	rows := strings.Split(ansi.Strip(m.View().Content), "\n")
-	if insert := BindingHints(r, r.Focus); !strings.HasSuffix(strings.TrimSpace(rows[0]), "INSERT") || !hintPrefix(rows[22], insert) || !strings.Contains(insert, "ctrl+w") || strings.Contains(insert, "input.move") {
+	if insert := BindingHints(r, r.Focus); !strings.HasSuffix(strings.TrimSpace(rows[0]), "INSERT") || !hintPrefix(rows[22], insert) || !strings.Contains(insert, "ctrl+w") || strings.Contains(insert, "app.input.move") {
 		t.Fatalf("insert mode chrome: title %q footer %q", rows[0], rows[22])
 	}
 	// An error replaces the hints until the next key.
@@ -126,16 +126,16 @@ func TestModelNoticePersistsUntilCleared(t *testing.T) {
 	if m.Status != "" || !strings.Contains(footer(), "Notice: ext: noun x skipped") || !strings.Contains(ansi.Strip(m.View().Content), "Notice: ext: noun x skipped") {
 		t.Fatalf("after the next key: footer %q", footer())
 	}
-	if got, err := r.Execute(Request{Verb: "list", Noun: "notice"}); err != nil || fmt.Sprint(got) != "[ext: noun x skipped]" {
+	if got, err := r.Execute(Request{Verb: "list", Noun: "app.notice"}); err != nil || fmt.Sprint(got) != "[ext: noun x skipped]" {
 		t.Fatalf("notice.list = %v, %v", got, err)
 	}
-	if got, err := r.Execute(Request{Verb: "clear", Noun: "notice"}); err != nil || got != 1 || len(m.Notices) != 0 || strings.Contains(footer(), "Notice") {
+	if got, err := r.Execute(Request{Verb: "clear", Noun: "app.notice"}); err != nil || got != 1 || len(m.Notices) != 0 || strings.Contains(footer(), "Notice") {
 		t.Fatalf("notice.clear = %v, %v; footer %q", got, err, footer())
 	}
 	for _, n := range r.Nouns {
 		for _, rows := range n.Bindings {
 			for _, row := range rows {
-				if row.Request.Noun == "notice" {
+				if row.Request.Noun == "app.notice" {
 					t.Fatalf("%s binds %s", n.Name, row.Request.Key())
 				}
 			}

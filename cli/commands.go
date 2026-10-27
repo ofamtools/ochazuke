@@ -41,7 +41,7 @@ type CommandSource interface {
 }
 
 // CommandNoun is the noun of every Commands row.
-const CommandNoun = "command"
+const CommandNoun = "app.command"
 
 // CommandsConfig configures AddCommands.
 type CommandsConfig struct {
@@ -141,7 +141,7 @@ func AddCommands(m *ochazuke.Model, src CommandSource, cfg CommandsConfig) (*Com
 }
 
 // rowID is the instance id of a command's row.
-func rowID(name string) string { return CommandNoun + ":" + name }
+func rowID(name string) string { return "command:" + name }
 
 // Page is the page's instance id.
 func (c *Commands) Page() string { return c.page }
@@ -172,7 +172,7 @@ func (c *Commands) register() {
 		name, err := c.nameAt(r, ev.Focus, nil)
 		return err == nil && c.runs[name] != nil
 	})
-	name := ochazuke.Parameter{Type: "string", Description: "Command name (defaults to the focused row)", Source: "command.list"}
+	name := ochazuke.Parameter{Type: "string", Description: "Command name (defaults to the focused row)", Source: "app.command.list"}
 	r.Define(CommandNoun).
 		Columns(
 			// A narrow table drops the highest Priority first.
@@ -187,14 +187,14 @@ func (c *Commands) register() {
 		Verb("which", c.whichVerb, "Report where a command comes from and what it shadows").Positional("name").
 		Verb("stop", c.stopVerb, "End a command's run: hang up its process group and close its terminal").Positional("name").Confirm("Stop {{label}}?").When(commandHasRun).
 		Mode("normal").
-		Bind("enter", ochazuke.Do("command.run")).
-		Bind("i", ochazuke.Do("command.help")).
-		Bind("x", ochazuke.Do("command.stop"))
+		Bind("enter", ochazuke.Do("app.command.run")).
+		Bind("i", ochazuke.Do("app.command.help")).
+		Bind("x", ochazuke.Do("app.command.stop"))
 	for key, params := range map[string]map[string]ochazuke.Parameter{
-		"command.run":   {"name": name, "args": {Type: "string", Description: "Arguments, split on spaces"}},
-		"command.help":  {"name": name},
-		"command.which": {"name": name},
-		"command.stop":  {"name": name},
+		"app.command.run":   {"name": name, "args": {Type: "string", Description: "Arguments, split on spaces"}},
+		"app.command.help":  {"name": name},
+		"app.command.which": {"name": name},
+		"app.command.stop":  {"name": name},
 	} {
 		op := r.Operations[key]
 		op.Parameters = params

@@ -297,7 +297,7 @@ func (r *Runtime) Push(id, focus string) error {
 	inst := r.Instances[id]
 	if inst == nil {
 		r.seq++
-		inst = &Instance{ID: id, Noun: "modal", Parent: "app", seq: r.seq}
+		inst = &Instance{ID: id, Noun: "app.modal", Parent: "app", seq: r.seq}
 		r.register(inst)
 		r.modalInstances[id] = true
 	} else {
@@ -363,9 +363,9 @@ func (r *Runtime) OpenModal(kind string, payload Payload, opts ...ModalOption) (
 	if spec.input != nil && r.Instances[spec.input.ID] != nil {
 		return nil, fmt.Errorf("modal input %q is already registered", spec.input.ID)
 	}
-	r.Define(kind)
+	noun := r.instanceNoun(kind)
 	r.seq++
-	inst := &Instance{ID: kind, Noun: kind, Parent: r.Focus, Payload: payload, seq: r.seq}
+	inst := &Instance{ID: kind, Noun: noun, Parent: r.Focus, Payload: payload, seq: r.seq}
 	r.register(inst)
 	r.modalInstances[kind] = true
 	focus := kind
@@ -784,15 +784,15 @@ func (r *Runtime) JumpFocus(steps int, scope string) error {
 
 func registerFocus(r *Runtime) {
 	jump := map[string]Parameter{"steps": {Type: "integer", Description: "How many stops or regions to move (the count; default 1)"}, "scope": {Type: "string", Description: "stop (default): component to component; region: panel to panel"}}
-	r.Register(Operation{Verb: "next", Noun: "focus", Description: "Move the focus to the next focus stop (or region) in drawing order, wrapping, landing on its remembered child", Parameters: jump, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "next", Noun: "app.focus", Description: "Move the focus to the next focus stop (or region) in drawing order, wrapping, landing on its remembered child", Parameters: jump, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		err := r.JumpFocus(max(1, IntArg(a, "steps", 1)), StringArg(a, "scope", "stop"))
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "previous", Noun: "focus", Description: "Move the focus to the previous focus stop (or region) in drawing order, wrapping, landing on its remembered child", Parameters: jump, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "previous", Noun: "app.focus", Description: "Move the focus to the previous focus stop (or region) in drawing order, wrapping, landing on its remembered child", Parameters: jump, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		err := r.JumpFocus(-max(1, IntArg(a, "steps", 1)), StringArg(a, "scope", "stop"))
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "set", Noun: "focus", Description: "Focus an instance; the one way handlers move focus", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "set", Noun: "app.focus", Description: "Focus an instance; the one way handlers move focus", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		err := r.SetFocus(StringArg(a, "id", ""))
 		return r.Context(), err
 	}})
@@ -805,10 +805,10 @@ func registerFocus(r *Runtime) {
 	}
 	region := Arguments{"scope": "region"}
 	r.Define("app").Mode("normal").
-		Bind("}", steps("focus.next")).
-		Bind("{", steps("focus.previous")).
-		Bind(")", steps("focus.next", region)).
-		Bind("(", steps("focus.previous", region)).
-		Bind("tab", steps("focus.next")).
-		Bind("shift+tab", steps("focus.previous"))
+		Bind("}", steps("app.focus.next")).
+		Bind("{", steps("app.focus.previous")).
+		Bind(")", steps("app.focus.next", region)).
+		Bind("(", steps("app.focus.previous", region)).
+		Bind("tab", steps("app.focus.next")).
+		Bind("shift+tab", steps("app.focus.previous"))
 }

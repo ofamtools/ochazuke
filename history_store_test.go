@@ -47,8 +47,8 @@ func TestHistoryPersistsAcrossSessions(t *testing.T) {
 	config, state := t.TempDir(), t.TempDir()
 	m := historyModel(t, config, state)
 	r := m.Runtime
-	runPaletteLine(t, r, Request{Verb: "list", Noun: "modes"})
-	runPaletteLine(t, r, Request{Verb: "list", Noun: "themes"})
+	runPaletteLine(t, r, Request{Verb: "list", Noun: "app.modes"})
+	runPaletteLine(t, r, Request{Verb: "list", Noun: "app.themes"})
 	if err := r.Config().Flush(); err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func TestHistoryPersistsAcrossSessions(t *testing.T) {
 	next := historyModel(t, config, state)
 	nr := next.Runtime
 	entries := nr.History(0)
-	if len(entries) < 2 || !entries[0].Restored || entries[0].Request.Key() != "modes.list" || entries[1].Request.Key() != "themes.list" {
+	if len(entries) < 2 || !entries[0].Restored || entries[0].Request.Key() != "app.modes.list" || entries[1].Request.Key() != "app.themes.list" {
 		t.Fatalf("restored: %+v", entries)
 	}
 	for i := 1; i < len(entries); i++ {
@@ -72,7 +72,7 @@ func TestHistoryPersistsAcrossSessions(t *testing.T) {
 		}
 	}
 	p := next.Palette
-	if _, err := nr.Execute(Request{Verb: "open", Noun: "palette"}); err != nil {
+	if _, err := nr.Execute(Request{Verb: "open", Noun: "app.palette"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := p.recallLine(1); err != nil || p.Text() != "list themes" {
@@ -123,7 +123,7 @@ func TestHistoryIsBounded(t *testing.T) {
 	m := historyModel(t, config, state)
 	r := m.Runtime
 	for range 10 {
-		if _, err := r.Execute(Request{Verb: "clear", Noun: "notice"}); err != nil {
+		if _, err := r.Execute(Request{Verb: "clear", Noun: "app.notice"}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -157,13 +157,13 @@ func TestHistoryNotPersistedWhenDisabledOrOptedOut(t *testing.T) {
 	r.Config().Disable()
 	m := NewModel(r)
 	m.Init()
-	if _, err := r.Execute(Request{Verb: "list", Noun: "modes"}); err != nil {
+	if _, err := r.Execute(Request{Verb: "list", Noun: "app.modes"}); err != nil {
 		t.Fatal(err)
 	}
 	if r.Settings().find(HistorySetting) != nil || r.Config().HistoryPath() != "" {
 		t.Fatal("a disabled config declares history-limit or has a history path")
 	}
-	if _, err := r.Execute(Request{Verb: "path", Noun: "history"}); err == nil {
+	if _, err := r.Execute(Request{Verb: "path", Noun: "app.history"}); err == nil {
 		t.Fatal("history.path without a file")
 	}
 
@@ -171,7 +171,7 @@ func TestHistoryNotPersistedWhenDisabledOrOptedOut(t *testing.T) {
 	r.Config().StateDir, r.Config().NoHistoryFile = state, true
 	m = NewModel(r)
 	m.Init()
-	if _, err := r.Execute(Request{Verb: "list", Noun: "modes"}); err != nil {
+	if _, err := r.Execute(Request{Verb: "list", Noun: "app.modes"}); err != nil {
 		t.Fatal(err)
 	}
 	_ = r.Config().Flush()
@@ -187,7 +187,7 @@ func TestHistoryLimitZeroKeepsNone(t *testing.T) {
 		t.Fatal(err)
 	}
 	m := historyModel(t, config, state)
-	if _, err := m.Runtime.Execute(Request{Verb: "list", Noun: "modes"}); err != nil {
+	if _, err := m.Runtime.Execute(Request{Verb: "list", Noun: "app.modes"}); err != nil {
 		t.Fatal(err)
 	}
 	_ = m.Runtime.Config().Flush()
@@ -229,7 +229,7 @@ func TestHistoryFileKeepsNoTyping(t *testing.T) {
 		m.handleKey(editorTestKey(key))
 	}
 	field := NewInput("answer", "", false)
-	if _, err := r.OpenModal("ask", Payload{Prompt: "Password?"}, WithInput(field, Kind("prompt"))); err != nil {
+	if _, err := r.OpenModal("ask", Payload{Prompt: "Password?"}, WithInput(field, Kind("app.prompt"))); err != nil {
 		t.Fatal(err)
 	}
 	for _, key := range []string{"s", "3", "c", "r", "[et]", "left", "ctrl+w"} {
@@ -255,13 +255,13 @@ func TestHistoryFileKeepsPaletteLines(t *testing.T) {
 	if err := r.DeclareSetting(Setting{Name: "wrap", Type: SettingBoolean, Default: false}); err != nil {
 		t.Fatal(err)
 	}
-	runPaletteLine(t, r, Request{Verb: "set", Noun: "settings", Args: Arguments{"name": "wrap", "value": "true"}})
+	runPaletteLine(t, r, Request{Verb: "set", Noun: "app.settings", Args: Arguments{"name": "wrap", "value": "true"}})
 	text := fileText(t, r)
 	if !strings.Contains(text, `"value":"true"`) || strings.Contains(text, `"result":{"ok":true,"value"`) {
 		t.Fatalf("file: %s", text)
 	}
 	next := historyModel(t, config, state)
-	if _, err := next.Runtime.Execute(Request{Verb: "open", Noun: "palette"}); err != nil {
+	if _, err := next.Runtime.Execute(Request{Verb: "open", Noun: "app.palette"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := next.Palette.recallLine(1); err != nil || next.Palette.Text() != "set settings wrap true" {

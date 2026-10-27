@@ -23,7 +23,7 @@ func listFixture(t *testing.T) (*Runtime, *List, *Input, []ListItem) {
 		r.Define(noun)
 	}
 	input := NewInput("note", "", false)
-	if err := r.AddInput(input, Parent("editor"), Kind("prompt")); err != nil {
+	if err := r.AddInput(input, Parent("editor"), Kind("app.prompt")); err != nil {
 		t.Fatal(err)
 	}
 	for _, id := range []string{"page", "other"} {
@@ -49,7 +49,7 @@ func TestListFocusSelectsItemActionsAndLeavesEditorAlone(t *testing.T) {
 	for _, id := range []string{"a", "b"} {
 		r.Define(id).Action("item.inspect", func(*Runtime, Context, Arguments) (any, error) { return id, nil })
 	}
-	if _, err := r.Execute(Request{Verb: "focus", Noun: "list", Args: Arguments{"id": "sidebar"}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "focus", Noun: "app.list", Args: Arguments{"id": "sidebar"}}); err != nil {
 		t.Fatal(err)
 	}
 	value, err := r.Execute(Request{Verb: "inspect", Noun: "item"})
@@ -348,7 +348,7 @@ func BenchmarkFocusNextOverManyRows(b *testing.B) {
 	}
 	b.ResetTimer()
 	for b.Loop() {
-		if _, err := r.Execute(Request{Noun: "focus", Verb: "next"}); err != nil {
+		if _, err := r.Execute(Request{Noun: "app.focus", Verb: "next"}); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -428,7 +428,7 @@ func TestFocusingARowSelectsIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	selected("r3")
-	if _, err := r.Execute(Request{Noun: "focus", Verb: "set", Args: Arguments{"id": "r2"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "app.focus", Verb: "set", Args: Arguments{"id": "r2"}}); err != nil {
 		t.Fatal(err)
 	}
 	selected("r2")
@@ -487,7 +487,7 @@ func TestNoMarksListTakesNoMarks(t *testing.T) {
 			t.Fatalf("%s: marked = %v, want %v", tc.focus, got, tc.marks)
 		}
 	}
-	if _, err := r.Execute(Request{Noun: "list", Verb: "mark", Args: Arguments{"id": "view", "item": "v1"}}); err == nil {
+	if _, err := r.Execute(Request{Noun: "app.list", Verb: "mark", Args: Arguments{"id": "view", "item": "v1"}}); err == nil {
 		t.Fatal("list.mark marked a NoMarks list")
 	}
 }
@@ -538,7 +538,7 @@ func dimFixture(t *testing.T) (*Runtime, *Model, *List, *List) {
 	r := NewRuntime()
 	r.Config().Dir = t.TempDir()
 	r.Define("item")
-	r.Instance("main", Parent("app"), Kind("page"))
+	r.Instance("main", Parent("app"), Kind("app.page"))
 	left, err := r.AddList("left", []ListItem{{ID: "a", Label: "Alpha", Noun: "item"}, {ID: "b", Label: "Beta", Noun: "item"}}, Parent("main"))
 	if err != nil {
 		t.Fatal(err)

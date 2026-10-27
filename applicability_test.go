@@ -72,7 +72,7 @@ func TestExecuteRefusesGuardedOffVerb(t *testing.T) {
 	if _, err := r.Execute(Request{Verb: "poke", Noun: "row"}); err != nil || len(*acted) != 1 {
 		t.Fatalf("guard holds: %v %v", err, *acted)
 	}
-	if _, err := r.Execute(Request{Verb: "ignore", Noun: "key"}); err != nil {
+	if _, err := r.Execute(Request{Verb: "ignore", Noun: "app.key"}); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -92,7 +92,7 @@ func TestRequestAddressesItsNounOnTheFocusPath(t *testing.T) {
 	if confirm == nil || confirm.Payload.Prompt != "Delete row row3 (Row 3)?" || confirm.Payload.Request.Target != "row3" {
 		t.Fatalf("confirm: %+v", confirm)
 	}
-	if _, err := r.Execute(Request{Verb: "accept", Noun: "confirm"}); err != nil || (*acted)[1] != "deleted row3" {
+	if _, err := r.Execute(Request{Verb: "accept", Noun: "app.confirm"}); err != nil || (*acted)[1] != "deleted row3" {
 		t.Fatalf("accept: %v %v", err, *acted)
 	}
 	if _, err := r.Execute(Request{Verb: "poke", Noun: "row", Target: "other-row"}); err != nil || (*acted)[2] != "other-row" {

@@ -54,12 +54,12 @@ func NewPalette(r *Runtime) *Palette {
 
 func newPalette(r *Runtime) *Palette {
 	p := &Palette{r: r, highlight: -1, actions: map[string]bool{}, nouns: map[string]PaletteNoun{
-		"page": {Source: PagesPaletteSource, DefaultVerb: "open", Argument: "id"},
+		"app.page": {Source: PagesPaletteSource, DefaultVerb: "open", Argument: "id"},
 	}}
-	r.Instance(paletteID, Kind("palette"))
+	r.Instance(paletteID, Kind("app.palette"))
 	register := func(verb, description string, params map[string]Parameter, fn func(Arguments) error) {
-		p.actions["palette."+verb] = true
-		r.Register(Operation{Verb: verb, Noun: "palette", Description: description, Parameters: params, Result: "palette state", Run: func(_ *Runtime, _ Context, args Arguments) (any, error) {
+		p.actions["app.palette."+verb] = true
+		r.Register(Operation{Verb: verb, Noun: "app.palette", Description: description, Parameters: params, Result: "palette state", Run: func(_ *Runtime, _ Context, args Arguments) (any, error) {
 			if verb != "open" {
 				p.sync()
 			}
@@ -87,27 +87,27 @@ func newPalette(r *Runtime) *Palette {
 	// ordinary prompt, so the editor's Readline rows answer the rest.
 	// Printable text has its own row so an application's any-mode row
 	// cannot steal typing.
-	r.Define("palette").Focusable().Mode("").
-		Bind("enter", Do("palette.run")).
-		Bind("tab", Do("palette.complete")).
-		Bind("ctrl+n", Do("palette.move", Arguments{"delta": 1})).
-		Bind("ctrl+p", Do("palette.move", Arguments{"delta": -1})).
-		Bind("up", Do("palette.recall", Arguments{"delta": 1})).
-		Bind("down", Do("palette.recall", Arguments{"delta": -1})).
-		Bind("esc", Do("palette.cancel")).
-		Bind("ctrl+c", Do("palette.close")).
-		Pattern(Printable, Do("input.insert").FromPayload("text", SourceText)).
-		Pattern(Paste, Do("input.insert").FromPayload("text", SourceText))
+	r.Define("app.palette").Focusable().Mode("").
+		Bind("enter", Do("app.palette.run")).
+		Bind("tab", Do("app.palette.complete")).
+		Bind("ctrl+n", Do("app.palette.move", Arguments{"delta": 1})).
+		Bind("ctrl+p", Do("app.palette.move", Arguments{"delta": -1})).
+		Bind("up", Do("app.palette.recall", Arguments{"delta": 1})).
+		Bind("down", Do("app.palette.recall", Arguments{"delta": -1})).
+		Bind("esc", Do("app.palette.cancel")).
+		Bind("ctrl+c", Do("app.palette.close")).
+		Pattern(Printable, Do("app.input.insert").FromPayload("text", SourceText)).
+		Pattern(Paste, Do("app.input.insert").FromPayload("text", SourceText))
 	return p
 }
 
 func (p *Palette) Open() error {
-	_, err := p.r.Execute(Request{Verb: "open", Noun: "palette"})
+	_, err := p.r.Execute(Request{Verb: "open", Noun: "app.palette"})
 	return err
 }
 
 func (p *Palette) Close() {
-	_, _ = p.r.Execute(Request{Verb: "close", Noun: "palette"})
+	_, _ = p.r.Execute(Request{Verb: "close", Noun: "app.palette"})
 }
 
 func (p *Palette) IsOpen() bool { return slices.Contains(p.r.modals, paletteID) }
@@ -134,7 +134,7 @@ func (p *Palette) open() error {
 	p.origin, p.originMode = origin, mode
 	if p.line == nil {
 		p.line = NewInput(paletteLineID, "", false)
-		if err := p.r.AddInput(p.line, Parent(paletteID), Kind("prompt")); err != nil {
+		if err := p.r.AddInput(p.line, Parent(paletteID), Kind("app.prompt")); err != nil {
 			return err
 		}
 	}

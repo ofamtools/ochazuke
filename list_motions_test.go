@@ -162,13 +162,13 @@ func TestListPageRowsOfAnUnwindowedListIsThePageHeight(t *testing.T) {
 
 func TestListMotionsAreMotionsOffTheFooter(t *testing.T) {
 	r, _, _, _ := motionPage(t)
-	for _, key := range []string{"list.goto", "list.scroll"} {
+	for _, key := range []string{"app.list.goto", "app.list.scroll"} {
 		if op := r.Operations[key]; !op.Motion {
 			t.Fatalf("%s is not a motion", key)
 		}
 	}
 	hints := BindingHints(r, r.Focus)
-	for _, gone := range []string{"list.goto", "list.scroll", "ctrl+d", "G "} {
+	for _, gone := range []string{"app.list.goto", "app.list.scroll", "ctrl+d", "G "} {
 		if strings.Contains(hints, gone) {
 			t.Fatalf("footer shows %q: %s", gone, hints)
 		}

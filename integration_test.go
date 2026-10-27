@@ -33,7 +33,7 @@ func TestPagePickKeyDoesNotAnswerInsideAModal(t *testing.T) {
 	if err := r.DeclareSetting(Setting{Name: "editor", Type: SettingString, Default: "vi", Description: "Editor"}); err != nil {
 		t.Fatal(err)
 	}
-	r.Define("app").Mode("normal").Bind("ctrl+o", Do("settings.edit"))
+	r.Define("app").Mode("normal").Bind("ctrl+o", Do("app.settings.edit"))
 	m.Width, m.Height = 100, 24
 	m.Init()
 	open := map[string]func(){

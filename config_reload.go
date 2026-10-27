@@ -85,7 +85,7 @@ func (r *Runtime) reloadThemes() []string {
 }
 
 func registerConfigReload(r *Runtime) {
-	r.Register(Operation{Verb: "reload", Noun: "config", Description: "Read every config file again: themes.json, settings.json, actions.json, bindings.json, then the application's own; a bad file or entry is skipped and reported", Result: "problem[]", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
+	r.Register(Operation{Verb: "reload", Noun: "app.config", Description: "Read every config file again: themes.json, settings.json, actions.json, bindings.json, then the application's own; a bad file or entry is skipped and reported", Result: "problem[]", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
 		problems, err := r.ReloadConfig()
 		if err != nil {
 			return nil, err

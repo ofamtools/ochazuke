@@ -70,7 +70,7 @@ func checkWidget(page string, w CatalogWidget) error {
 		return fmt.Errorf("page %s: widget %s: a table needs columns", page, w.ID)
 	}
 	if w.Source != "" {
-		if noun, verb, ok := strings.Cut(w.Source, "."); !ok || noun == "" || verb == "" {
+		if noun, verb, ok := ochazuke.CutKey(w.Source); !ok || noun == "" || verb == "" {
 			return fmt.Errorf("page %s: widget %s: source %q is not NOUN.VERB", page, w.ID, w.Source)
 		}
 	}
@@ -115,7 +115,7 @@ func (v *PageView) reloadWidgets() error {
 			continue
 		}
 		w.loading = true
-		noun, verb, _ := strings.Cut(w.spec.Source, ".")
+		noun, verb := ochazuke.SplitKey(w.spec.Source)
 		errs = append(errs, v.launch(v.spec.ID, "widget:"+w.spec.ID, noun, verb, func(out []byte, err error) {
 			w.loading = false
 			var data any

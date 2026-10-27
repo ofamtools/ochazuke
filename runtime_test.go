@@ -17,7 +17,7 @@ func TestNounActionResolutionAndMissingOnlyFallback(t *testing.T) {
 	r.Register(Operation{Verb: "show", Noun: "owner", Run: func(*Runtime, Context, Arguments) (any, error) { return "app", nil }})
 	for _, id := range []string{"page", "agent", "directory"} {
 		name := id
-		r.Define(id).Action("owner.show", func(*Runtime, Context, Arguments) (any, error) { return name, nil })
+		r.Define(r.Instances[id].Noun).Action("owner.show", func(*Runtime, Context, Arguments) (any, error) { return name, nil })
 	}
 	for _, want := range []string{"directory", "agent", "page", "app"} {
 		got, err := r.Execute(Request{Verb: "show", Noun: "owner"})
@@ -37,7 +37,7 @@ func TestBindingsOverlayAndSequenceCancellation(t *testing.T) {
 	_ = r.AddInput(NewInput("field", "", false), Parent("panel"))
 	_ = r.SetFocus("field")
 	r.Define("app").Mode("normal").Bind("x", Do("app.quit")).Mode("").Bind("g g", Do("app.quit"))
-	r.Define("panel").Mode("").Bind("x", Do("input.insert", Arguments{"text": "inner"}))
+	r.Define("panel").Mode("").Bind("x", Do("app.input.insert", Arguments{"text": "inner"}))
 	if handled, err := r.HandleBinding("x"); !handled || err != nil {
 		t.Fatalf("binding failed: %v %v", handled, err)
 	}
@@ -68,12 +68,12 @@ func TestModalRestoresExactInputInstance(t *testing.T) {
 	input.SetMode("insert")
 	_ = input.Replace(2, 2, "X")
 	_ = r.Push("dialog", "child")
-	_, _ = r.Execute(Request{Verb: "insert", Noun: "input", Args: Arguments{"text": "child"}})
+	_, _ = r.Execute(Request{Verb: "insert", Noun: "app.input", Args: Arguments{"text": "child"}})
 	_ = r.Pop()
 	if r.Input(r.Context().InputID) != input || string(input.Text) != "drXaft" || input.Cursor != 3 || input.Mode != "insert" {
 		t.Fatal("parent editing state was not restored")
 	}
-	_, err := r.Execute(Request{Verb: "undo", Noun: "input"})
+	_, err := r.Execute(Request{Verb: "undo", Noun: "app.input"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestOperationArgumentErrorsDoNotMutateInput(t *testing.T) {
 	_ = r.AddInput(NewInput("field", "safe", false))
 	_ = r.SetFocus("field")
 	for _, args := range []Arguments{{"steps": -1}, {"steps": 1.5}, {"steps": "2"}, {"unknown": true}} {
-		if _, err := r.Execute(Request{Verb: "undo", Noun: "input", Args: args}); err == nil {
+		if _, err := r.Execute(Request{Verb: "undo", Noun: "app.input", Args: args}); err == nil {
 			t.Fatalf("expected error for %#v", args)
 		}
 	}

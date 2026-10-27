@@ -21,6 +21,7 @@ func (a *App) registerVerbs() {
 		}
 	}
 	params := func(key string, p map[string]ochazuke.Parameter) {
+		key = r.CanonicalKey(key) // selection.transform is the grid's app.selection.transform
 		op := r.Operations[key]
 		op.Parameters = p
 		r.Operations[key] = op

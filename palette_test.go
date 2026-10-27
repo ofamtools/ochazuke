@@ -88,7 +88,7 @@ func lineRuntime(t *testing.T) (*Runtime, *Palette, *[]string) {
 	r.Register(Operation{Verb: "save", Noun: "sheet", Run: run})
 	r.Register(Operation{Verb: "tidy", Noun: "text", Run: run})
 	r.Register(Operation{Verb: "list", Noun: "item", Run: run})
-	r.Register(Operation{Verb: "clear", Noun: "list", Run: run})
+	r.Register(Operation{Verb: "clear", Noun: "app.list", Run: run})
 	r.Register(Operation{Verb: "list", Noun: "transformations", Run: run})
 	r.Register(Operation{Verb: "add", Noun: "note", Parameters: map[string]Parameter{"text": {Type: "string", Required: true}}, Run: run})
 	r.Register(Operation{Verb: "bump", Noun: "counter", Parameters: map[string]Parameter{"by": {Type: "integer"}}, Run: run})
@@ -144,7 +144,7 @@ func TestPaletteLineGrammar(t *testing.T) {
 		{line: "save", op: "sheet.save", args: Arguments{}, implied: true},
 		{line: "tidy", op: "text.tidy", args: Arguments{}, implied: true},
 		{line: "list", missing: "noun"},
-		{line: "list clear", op: "list.clear", args: Arguments{}},
+		{line: "list clear", op: "app.list.clear", args: Arguments{}},
 		{line: `add note "two words"`, op: "note.add", args: Arguments{"text": "two words"}},
 		{line: "bump counter 3", op: "counter.bump", args: Arguments{"by": 3}},
 		{line: "bump counter", op: "counter.bump", args: Arguments{}},
@@ -328,7 +328,7 @@ func TestPaletteTargetsTheInstanceOnTheFocusPath(t *testing.T) {
 // is a prompt: insert is pinned and Readline's ctrl+w deletes a word.
 func TestPaletteLineIsAPrompt(t *testing.T) {
 	r, p, _ := lineRuntime(t)
-	if r.Focus != paletteLineID || r.Mode.Name != "insert" || r.Instances[paletteLineID].Noun != "prompt" {
+	if r.Focus != paletteLineID || r.Mode.Name != "insert" || r.Instances[paletteLineID].Noun != "app.prompt" {
 		t.Fatalf("line focus=%s mode=%s", r.Focus, r.Mode.Name)
 	}
 	typeLine(t, p, "transform row")
@@ -365,7 +365,7 @@ func TestPaletteBindingsListIsTruthful(t *testing.T) {
 			rows[b.Keys] = b.Request.Key()
 		}
 	}
-	for key, want := range map[string]string{"enter": "palette.run", "tab": "palette.complete", "ctrl+n": "palette.move", "ctrl+p": "palette.move", "up": "palette.recall", "down": "palette.recall", "esc": "palette.cancel", "ctrl+c": "palette.close"} {
+	for key, want := range map[string]string{"enter": "app.palette.run", "tab": "app.palette.complete", "ctrl+n": "app.palette.move", "ctrl+p": "app.palette.move", "up": "app.palette.recall", "down": "app.palette.recall", "esc": "app.palette.cancel", "ctrl+c": "app.palette.close"} {
 		if rows[key] != want {
 			t.Fatalf("%s lists %q, want %s (%v)", key, rows[key], want, rows)
 		}
@@ -448,7 +448,7 @@ func TestPaletteRecursiveExecutionIsVisibleAndCancelable(t *testing.T) {
 	p := NewPalette(r)
 	paletteRequest(t, r, "open", "palette", nil)
 	paletteRequest(t, r, "set", "palette", Arguments{"text": "run palette"})
-	if _, err := r.Execute(Request{Verb: "run", Noun: "palette"}); err == nil || !p.IsOpen() || !strings.Contains(p.View(), "recursive palette execution") {
+	if _, err := r.Execute(Request{Verb: "run", Noun: "app.palette"}); err == nil || !p.IsOpen() || !strings.Contains(p.View(), "recursive palette execution") {
 		t.Fatalf("recursive execution: %v\n%s", err, p.View())
 	}
 	paletteKeys(t, p, "ctrl+c")
@@ -504,7 +504,7 @@ func TestPaletteEnterHintLeadsWithRun(t *testing.T) {
 		t.Fatalf("hints: %q", hints)
 	}
 	help := BindingHelp(r, r.Focus)
-	if len(help) == 0 || help[0].Key != "enter" || help[0].Operation != "palette.run" || !strings.HasPrefix(help[0].Description, "Run the line or append the highlighted completion") || help[0].Noun != "palette" {
+	if len(help) == 0 || help[0].Key != "enter" || help[0].Operation != "palette.run" || !strings.HasPrefix(help[0].Description, "Run the line or append the highlighted completion") || help[0].Noun != "app.palette" {
 		t.Fatalf("help: %+v", help)
 	}
 }

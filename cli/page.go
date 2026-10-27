@@ -132,7 +132,7 @@ func checkPage(p CatalogPage) error {
 		}
 		seen[l.ID] = true
 		if l.Source != "" {
-			if noun, verb, ok := strings.Cut(l.Source, "."); !ok || noun == "" || verb == "" {
+			if noun, verb, ok := ochazuke.CutKey(l.Source); !ok || noun == "" || verb == "" {
 				return fmt.Errorf("page %s: list %s: source %q is not NOUN.VERB", p.ID, l.ID, l.Source)
 			}
 		}
@@ -267,7 +267,7 @@ func MountPage(m *ochazuke.Model, doc CatalogDoc, p CatalogPage, cfg PageConfig)
 		}
 		declared = true
 	} else {
-		r.Instance(p.ID, ochazuke.Kind("page"))
+		r.Instance(p.ID, ochazuke.Kind("app.page"))
 	}
 	for _, l := range p.Lists {
 		pl := &pageList{spec: l}
@@ -335,7 +335,7 @@ func (v *PageView) resolve(pl *pageList) error {
 		}
 		return nil
 	}
-	noun, verb, _ := strings.Cut(l.Source, ".")
+	noun, verb := ochazuke.SplitKey(l.Source)
 	n, ok := v.doc.noun(noun)
 	if !ok {
 		return fmt.Errorf("page %s: list %s: source %s is not in the catalog", v.spec.ID, l.ID, l.Source)
@@ -357,7 +357,7 @@ func (v *PageView) columns(pl *pageList) []ochazuke.Column {
 	if pl.spec.Source == "" {
 		return v.doc.ListColumns(pl.spec.Noun)
 	}
-	noun, verb, _ := strings.Cut(pl.spec.Source, ".")
+	noun, verb := ochazuke.SplitKey(pl.spec.Source)
 	n, _ := v.doc.noun(noun)
 	rows := noun
 	for _, cv := range n.Verbs {
@@ -435,14 +435,14 @@ func (v *PageView) addGroups() error {
 	}
 	for _, pl := range v.lists {
 		for _, key := range []string{"enter", "l", "right"} {
-			if err := r.Bind(ochazuke.Binding{Instance: v.groupID(pl), Mode: "normal", Keys: key, Request: ochazuke.Request{Noun: "focus", Verb: "next"}}); err != nil {
+			if err := r.Bind(ochazuke.Binding{Instance: v.groupID(pl), Mode: "normal", Keys: key, Request: ochazuke.Request{Noun: "app.focus", Verb: "next"}}); err != nil {
 				return err
 			}
 		}
 		// h and left go back to the rail from a table's first column; on
 		// any other column they are the table's column move (list-first-column).
 		for _, key := range []string{"h", "left"} {
-			if err := r.Bind(ochazuke.Binding{Instance: pl.spec.ID, Mode: "normal", Keys: key, When: "list-first-column", Request: ochazuke.Request{Noun: "focus", Verb: "set", Args: ochazuke.Arguments{"id": v.groupID(pl)}}}); err != nil {
+			if err := r.Bind(ochazuke.Binding{Instance: pl.spec.ID, Mode: "normal", Keys: key, When: "list-first-column", Request: ochazuke.Request{Noun: "app.focus", Verb: "set", Args: ochazuke.Arguments{"id": v.groupID(pl)}}}); err != nil {
 				return err
 			}
 		}
@@ -451,7 +451,7 @@ func (v *PageView) addGroups() error {
 }
 
 // GroupNoun is the noun of a groups rail's rows.
-const GroupNoun = "page-group"
+const GroupNoun = "app.page-group"
 
 func (v *PageView) groupID(pl *pageList) string { return v.spec.ID + "/groups/" + pl.spec.ID }
 
@@ -599,10 +599,10 @@ func (v *PageView) Reload() error {
 		return nil
 	}
 	werr := v.reloadWidgets()
-	if noun, verb, ok := strings.Cut(v.doc.State, "."); ok && v.speaksDelta() {
+	if noun, verb, ok := ochazuke.CutKey(v.doc.State); ok && v.speaksDelta() {
 		return errors.Join(werr, v.reloadState(noun, verb, true))
 	}
-	if noun, verb, ok := strings.Cut(v.doc.State, "."); ok {
+	if noun, verb, ok := ochazuke.CutKey(v.doc.State); ok {
 		for _, pl := range v.lists {
 			pl.loading = !pl.verbsListed
 		}

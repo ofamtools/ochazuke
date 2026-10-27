@@ -370,7 +370,8 @@ func TestPaletteListsTheNounVerbs(t *testing.T) {
 	a := open(t)
 	verbs := map[string][]string{}
 	for _, op := range a.r.Catalog() {
-		verbs[op.Noun] = append(verbs[op.Noun], op.Verb)
+		noun := a.r.DisplayNoun(op.Noun) // the grid's selection is app.selection
+		verbs[noun] = append(verbs[noun], op.Verb)
 	}
 	for noun, want := range map[string][]string{
 		"column":    {"delete", "filter", "rename", "sort", "transform"},
@@ -459,11 +460,11 @@ func TestCSVBindingRowsAreAtomic(t *testing.T) {
 func TestTransformOnEveryCellSetNoun(t *testing.T) {
 	a := open(t)
 	for _, noun := range []string{"cell", "row", "column", "selection"} {
-		if _, ok := a.r.Operations[noun+".transform"]; !ok {
+		if _, ok := a.r.Operation(noun + ".transform"); !ok {
 			t.Fatalf("%s has no transform", noun)
 		}
-		if p := a.r.Operations[noun+".transform"].Parameters["name"]; p.Source != "transformations.list" {
-			t.Fatalf("%s.transform name source = %q", noun, p.Source)
+		if op, _ := a.r.Operation(noun + ".transform"); op.Parameters["name"].Source != "transformations.list" {
+			t.Fatalf("%s.transform name source = %q", noun, op.Parameters["name"].Source)
 		}
 	}
 	for _, focus := range []string{"r0:c0", "r0"} {

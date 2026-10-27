@@ -20,7 +20,7 @@ func followPage(t *testing.T, lists int) (*Model, *Runtime) {
 	for _, id := range names {
 		var items []ListItem
 		for i := range 10 {
-			items = append(items, ListItem{ID: fmt.Sprintf("%s%d", id, i), Label: fmt.Sprintf("row %s%d", id, i), Noun: "list"})
+			items = append(items, ListItem{ID: fmt.Sprintf("%s%d", id, i), Label: fmt.Sprintf("row %s%d", id, i), Noun: "app.list"})
 		}
 		if _, err := r.AddList(id, items, Parent("page")); err != nil {
 			t.Fatal(err)
@@ -161,7 +161,7 @@ func TestPageScrollComposesWithListWindow(t *testing.T) {
 	r.Instance("page")
 	var items []ListItem
 	for i := range 200 {
-		items = append(items, ListItem{ID: fmt.Sprintf("r%d", i), Label: fmt.Sprintf("row %d", i), Noun: "list"})
+		items = append(items, ListItem{ID: fmt.Sprintf("r%d", i), Label: fmt.Sprintf("row %d", i), Noun: "app.list"})
 	}
 	if _, err := r.AddList("big", items, Parent("page")); err != nil {
 		t.Fatal(err)
@@ -198,7 +198,7 @@ func TestPlacementLinesSurviveComposition(t *testing.T) {
 	for _, id := range []string{"left", "right"} {
 		var items []ListItem
 		for i := range 5 {
-			items = append(items, ListItem{ID: fmt.Sprintf("%s%d", id, i), Label: fmt.Sprintf("%s %d", id, i), Noun: "list"})
+			items = append(items, ListItem{ID: fmt.Sprintf("%s%d", id, i), Label: fmt.Sprintf("%s %d", id, i), Noun: "app.list"})
 		}
 		if _, err := r.AddList(id, items, Parent("page")); err != nil {
 			t.Fatal(err)

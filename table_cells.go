@@ -312,27 +312,27 @@ func registerTableCells(r *Runtime) {
 		l := r.focusedList(ev.Focus)
 		return l != nil && len(l.columns) > 0
 	})
-	column := func(args Arguments) Binding { return Do("list.column", args) }
+	column := func(args Arguments) Binding { return Do("app.list.column", args) }
 	steps := func(verb string, delta int) Binding {
 		return Do(verb, Arguments{"delta": delta}).FromPayload("steps", SourceCount)
 	}
-	r.Define("list").Mode("normal").
-		Bind("h", steps("list.column", -1).Guard("table-cells")).
-		Bind("left", steps("list.column", -1).Guard("table-cells")).
-		Bind("l", steps("list.column", 1).Guard("table-cells")).
-		Bind("right", steps("list.column", 1).Guard("table-cells")).
+	r.Define("app.list").Mode("normal").
+		Bind("h", steps("app.list.column", -1).Guard("table-cells")).
+		Bind("left", steps("app.list.column", -1).Guard("table-cells")).
+		Bind("l", steps("app.list.column", 1).Guard("table-cells")).
+		Bind("right", steps("app.list.column", 1).Guard("table-cells")).
 		Bind("home", column(Arguments{"to": "first"}).Guard("table-cells")).
 		Bind("end", column(Arguments{"to": "last"}).Guard("table-cells")).
 		Bind("$", column(Arguments{"to": "last"}).Guard("table-cells")).
 		Bind("^", column(Arguments{"to": "first"}).Guard("table-cells")).
 		Bind("0", column(Arguments{"to": "first"}).Guard("no-count")).
-		Bind("|", Do("list.column").FromPayload("index", SourceCount).Guard("table-cells")).
-		Bind("g c", Do("list.choose-column")).
-		Bind("y", Do("list.yank", Arguments{"what": "cell"}).Guard("table-cells").Hide()).
-		Bind("Y", Do("list.yank", Arguments{"what": "row"}).Hide()).
-		Bind("z >", steps("list.resize-column", 1).Hide()).
-		Bind("z <", steps("list.resize-column", -1).Hide()).
-		Bind("z =", Do("list.reset-columns").Hide())
+		Bind("|", Do("app.list.column").FromPayload("index", SourceCount).Guard("table-cells")).
+		Bind("g c", Do("app.list.choose-column")).
+		Bind("y", Do("app.list.yank", Arguments{"what": "cell"}).Guard("table-cells").Hide()).
+		Bind("Y", Do("app.list.yank", Arguments{"what": "row"}).Hide()).
+		Bind("z >", steps("app.list.resize-column", 1).Hide()).
+		Bind("z <", steps("app.list.resize-column", -1).Hide()).
+		Bind("z =", Do("app.list.reset-columns").Hide())
 	// A row-select table's $, ^ and 0 scroll its columns (verb guard
 	// table-scrolls), after the cell rows above: on a cell table those
 	// answer, here the list.column rows are guarded off. 0's row needs a
@@ -342,18 +342,18 @@ func registerTableCells(r *Runtime) {
 		l := r.focusedList(ev.Focus)
 		return (l == nil || !l.cellMode()) && r.guard("no-count")(r, ev)
 	})
-	scroll := func(args Arguments) Binding { return Do("list.scroll-columns", args) }
-	r.Define("list").Mode("normal").
+	scroll := func(args Arguments) Binding { return Do("app.list.scroll-columns", args) }
+	r.Define("app.list").Mode("normal").
 		Bind("$", scroll(Arguments{"to": "last"})).
 		Bind("^", scroll(Arguments{"to": "first"})).
 		Bind("0", scroll(Arguments{"to": "first"}).Guard("row-table-no-count"))
-	guards := r.Nouns["list"].Guards
+	guards := r.Nouns["app.list"].Guards
 	for _, verb := range []string{"column", "choose-column", "resize-column", "reset-columns"} {
 		guards[verb] = "table-cells"
 	}
 	guards["yank"] = "list-table"
 	id := Parameter{Type: "string", Description: "The list (default: the focused one)"}
-	r.Register(Operation{Verb: "column", Noun: "list", Description: "Move a cell-mode table's current column: to the first or last, to the column numbered index (|), or delta columns; the view scrolls to show it", Parameters: map[string]Parameter{
+	r.Register(Operation{Verb: "column", Noun: "app.list", Description: "Move a cell-mode table's current column: to the first or last, to the column numbered index (|), or delta columns; the view scrolls to show it", Parameters: map[string]Parameter{
 		"id":    id,
 		"to":    {Type: "string", Enum: []string{"first", "last"}, Description: "The first or the last column"},
 		"index": {Type: "integer", Description: "The column number, 1 the first (a count: 3|)"},
@@ -378,7 +378,7 @@ func registerTableCells(r *Runtime) {
 		l.SetColumn(n)
 		return l.state(), nil
 	}})
-	r.Register(Operation{Verb: "choose-column", Noun: "list", Description: "Choose a table's current column from a chooser of its titles", Parameters: map[string]Parameter{"id": id}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "choose-column", Noun: "app.list", Description: "Choose a table's current column from a chooser of its titles", Parameters: map[string]Parameter{"id": id}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 		l, err := cellTable(c, a)
 		if err != nil {
 			return nil, err
@@ -394,7 +394,7 @@ func registerTableCells(r *Runtime) {
 		}})
 		return l.state(), err
 	}})
-	r.Register(Operation{Verb: "yank", Noun: "list", Description: "Copy the current cell's text (what: cell, a cell-mode table) or the row's cells joined by tabs (what: row, any table) into the registers", Parameters: map[string]Parameter{
+	r.Register(Operation{Verb: "yank", Noun: "app.list", Description: "Copy the current cell's text (what: cell, a cell-mode table) or the row's cells joined by tabs (what: row, any table) into the registers", Parameters: map[string]Parameter{
 		"id":       id,
 		"what":     {Type: "string", Enum: []string{"cell", "row"}, Description: "The cell (default) or the whole row"},
 		"register": {Type: "string", Description: "Register name; the active register, else the unnamed one"},
@@ -427,7 +427,7 @@ func registerTableCells(r *Runtime) {
 		r.UI().Status(fmt.Sprintf("copied %s (%d characters)", subject, len([]rune(text))))
 		return y, nil
 	}})
-	r.Register(Operation{Verb: "resize-column", Noun: "list", Description: "Widen (delta 1) or narrow (-1) a table's current column by ColumnWidthStep cells; remembered per table", Parameters: map[string]Parameter{
+	r.Register(Operation{Verb: "resize-column", Noun: "app.list", Description: "Widen (delta 1) or narrow (-1) a table's current column by ColumnWidthStep cells; remembered per table", Parameters: map[string]Parameter{
 		"id":    id,
 		"delta": {Type: "integer", Required: true, Description: "1 wider, -1 narrower"},
 		"steps": {Type: "integer", Description: "Repeat count (3z>)"},
@@ -444,7 +444,7 @@ func registerTableCells(r *Runtime) {
 		l.SetColumnWidth(i, max(minColumnWidth, width))
 		return l.state(), nil
 	}})
-	r.Register(Operation{Verb: "reset-columns", Noun: "list", Description: "Lay every column of a table out automatically again (z =)", Parameters: map[string]Parameter{"id": id}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "reset-columns", Noun: "app.list", Description: "Lay every column of a table out automatically again (z =)", Parameters: map[string]Parameter{"id": id}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 		l, err := cells(c, a)
 		if err != nil {
 			return nil, err

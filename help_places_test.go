@@ -18,7 +18,7 @@ func placedRowsFixture(t *testing.T) (*Runtime, *Model) {
 	noop := func(Ctx) Result { return Done(nil) }
 	r.Define("item").Verb("open", noop, "Open the item").Mode("normal").Bind("enter", Do("item.open"))
 	r.Define("panel").Verb("refresh", noop, "Refresh the panel").Mode("normal").Bind("R", Do("panel.refresh"))
-	r.Define("page").Verb("tag", noop, "Tag the page").Mode("normal").Bind("T", Do("page.tag"))
+	r.Define("app.page").Verb("tag", noop, "Tag the page").Mode("normal").Bind("T", Do("app.page.tag"))
 	if _, err := r.AddPage("ctx", "Context", func(r *Runtime, w, h int) Block { return Text(r.List("rows").View(w, h)) }); err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestPlaceHelpMatchesTheLiveRow(t *testing.T) {
 		t.Fatalf("the row's place %+v is not the most seen (%+v)", live, places)
 	}
 	place := places[0]
-	if got := place.Chain(); !slices.Equal(got, []string{"page", "panel", "list", "item"}) {
+	if got := place.Chain(); !slices.Equal(got, []string{"app.page", "panel", "app.list", "item"}) {
 		t.Fatalf("chain %v", got)
 	}
 	for _, mode := range []string{"normal", "insert"} {
@@ -79,7 +79,7 @@ func TestPlaceHelpMatchesTheLiveRow(t *testing.T) {
 		t.Fatal(err)
 	}
 	pick, bare := PlaceHelp(r, place, r.Mode), NounHelp(r, "item", r.Mode)
-	for _, want := range []HelpRow{{Key: "R", Operation: "panel.refresh", Noun: "panel"}, {Key: "T", Operation: "page.tag", Noun: "page"}, {Key: "j", Operation: "list.move", Noun: "list"}} {
+	for _, want := range []HelpRow{{Key: "R", Operation: "panel.refresh", Noun: "panel"}, {Key: "T", Operation: "page.tag", Noun: "app.page"}, {Key: "j", Operation: "list.move", Noun: "app.list"}} {
 		if !helpRowIn(pick, want) {
 			t.Errorf("pick at the place lacks %s → %s", want.Key, want.Operation)
 		}
@@ -100,17 +100,17 @@ func TestPlaceHelpMatchesTheLiveRow(t *testing.T) {
 func TestPlaceHelpInsideAModal(t *testing.T) {
 	r, _ := placedRowsFixture(t)
 	in := NewInput("answer", "", false)
-	if _, err := r.OpenModal("ask", Payload{}, WithInput(in, Kind("prompt"))); err != nil {
+	if _, err := r.OpenModal("ask", Payload{}, WithInput(in, Kind("app.prompt"))); err != nil {
 		t.Fatal(err)
 	}
 	var place NounPlace
-	for _, p := range r.NounPlaces("prompt") {
+	for _, p := range r.NounPlaces("app.prompt") {
 		if p.Modal == "ask" {
 			place = p
 		}
 	}
-	if place.Modal == "" || placeLabel(place) != "Context › ask · modal ask" {
-		t.Fatalf("modal place %+v (%q)", place, placeLabel(place))
+	if place.Modal == "" || placeLabel(r, place) != "Context › ask · modal ask" {
+		t.Fatalf("modal place %+v (%q)", place, placeLabel(r, place))
 	}
 	for _, mode := range []string{"insert", "normal"} {
 		if err := r.SetMode(mode); err != nil {
@@ -118,10 +118,10 @@ func TestPlaceHelpInsideAModal(t *testing.T) {
 		}
 		rows := r.nounRows(place, r.Mode)
 		sameAnswers(t, r, r.levelRows(r.Focus), rows, "prompt", "ask", "modal", "app", "editor")
-		if slices.ContainsFunc(r.nounRows(NounPlace{Noun: "prompt"}, r.Mode), func(row levelRow) bool { return row.level == "modal" }) {
+		if slices.ContainsFunc(r.nounRows(NounPlace{Noun: "app.prompt"}, r.Mode), func(row levelRow) bool { return row.level == "modal" }) {
 			t.Fatalf("%s: no place has modal rows", mode)
 		}
-		if !slices.ContainsFunc(r.nounWalk(place, r.Mode), func(lv level) bool { return lv.inst == nil && lv.name() == "modal" }) {
+		if !slices.ContainsFunc(r.nounWalk(place, r.Mode), func(lv level) bool { return lv.inst == nil && lv.name() == "app.modal" }) {
 			t.Fatalf("%s: no modal noun level at a modal place", mode)
 		}
 	}
@@ -191,7 +191,7 @@ func helpListHas(r *Runtime, op string) bool {
 // the origin's place back.
 func TestHelpPlaceDefaultsToTheOrigin(t *testing.T) {
 	r, m := placedRowsFixture(t)
-	r.Instance("side", Parent("ctx"), Kind("page"))
+	r.Instance("side", Parent("ctx"), Kind("app.page"))
 	other, err := r.AddList("others", nil, Parent("side"))
 	if err != nil {
 		t.Fatal(err)
@@ -200,7 +200,7 @@ func TestHelpPlaceDefaultsToTheOrigin(t *testing.T) {
 		other.SetItems([]ListItem{{ID: "x", Label: "x", Noun: "item"}})
 	}
 	places := r.NounPlaces("item")
-	if len(places) < 2 || placeLabel(places[0]) != "Context › page › page › list" {
+	if len(places) < 2 || placeLabel(r, places[0]) != "Context › page › page › list" {
 		t.Fatalf("item places %+v", places)
 	}
 	if r.Focus != "a" {
@@ -228,7 +228,7 @@ func TestHelpPlaceDefaultsToTheOrigin(t *testing.T) {
 func TestHelpHomeIsTheRecordersPlace(t *testing.T) {
 	r, _ := placedRowsFixture(t)
 	home := helpHome(r, r.Focus)
-	if home == nil || home.key() != r.placementOf(r.Focus, "item").key() || !slices.Equal(home.Chain(), []string{"page", "panel", "list", "item"}) {
+	if home == nil || home.key() != r.placementOf(r.Focus, "item").key() || !slices.Equal(home.Chain(), []string{"app.page", "panel", "app.list", "item"}) {
 		t.Fatalf("home %+v", home)
 	}
 	if helpHome(r, "missing") != nil {

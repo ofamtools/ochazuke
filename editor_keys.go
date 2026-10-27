@@ -90,11 +90,11 @@ func (r *Runtime) LoadBindingSpec(noun string, data []byte) error {
 // for the same key, so guarded alternatives coexist in spec order.
 func (r *Runtime) installSpecRow(b *NounBuilder, row Binding) error {
 	row.Noun, row.Instance = b.Noun().Name, ""
-	row = withImplicitGuard(row)
 	row, err := r.validateRow(row)
 	if err != nil {
 		return err
 	}
+	row = withImplicitGuard(row)
 	n := b.Noun()
 	n.Bindings[row.Mode] = append(n.Bindings[row.Mode], row)
 	return nil
@@ -107,7 +107,7 @@ func registerEditorNoun(r *Runtime) {
 	if err := r.LoadBindingSpec("editor", editorSpec); err != nil {
 		panic(err)
 	}
-	r.Define("prompt").Pin("insert")
+	r.Define("app.prompt").Pin("insert")
 	if err := r.LoadBindingSpec("app", registersSpec); err != nil {
 		panic(err)
 	}

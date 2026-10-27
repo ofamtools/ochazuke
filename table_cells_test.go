@@ -74,7 +74,7 @@ func TestCellMotionsMoveByColumnAndScrollItIntoView(t *testing.T) {
 	if r.Focus != "r12" || l.Column() != 3 || r.Mode.Name != "normal" {
 		t.Fatalf("j: focus %s column %d mode %s", r.Focus, l.Column(), r.Mode.Name)
 	}
-	if hints := BindingHints(r, r.Focus); strings.Contains(hints, "list.column") || strings.Contains(hints, "list.yank") {
+	if hints := BindingHints(r, r.Focus); strings.Contains(hints, "app.list.column") || strings.Contains(hints, "app.list.yank") {
 		t.Fatalf("the footer shows the cell keys: %s", hints)
 	}
 }

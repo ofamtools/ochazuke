@@ -150,8 +150,8 @@ func TestComponentDeliveryAccumulatesIndependentJobs(t *testing.T) {
 // another owner are untouched.
 func TestComponentDeliveryReplacesJobsInASlot(t *testing.T) {
 	r := NewRuntime()
-	r.Instance("pane", Kind("pane"))
-	r.Instance("other", Kind("pane"))
+	r.Instance("pane", Kind("app.pane"))
+	r.Instance("other", Kind("app.pane"))
 	pane := &slowComponent{r: r, id: "pane"}
 	other := &slowComponent{r: r, id: "other"}
 	r.Instances["pane"].Component, r.Instances["other"].Component = pane, other
@@ -202,7 +202,7 @@ func TestComponentDeliveryReplacesJobsInASlot(t *testing.T) {
 		t.Fatalf("delivered: pane=%+v other=%+v", pane.received, other.received)
 	}
 	// jobs.list returns the finished entries once, then drops them.
-	value, err := r.Execute(Request{Verb: "list", Noun: "jobs"})
+	value, err := r.Execute(Request{Verb: "list", Noun: "app.jobs"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -214,7 +214,7 @@ func TestComponentDeliveryReplacesJobsInASlot(t *testing.T) {
 	if len(listed) != 4 || states[JobCancelled] != 1 || states[JobDone] != 3 || listed[0].Verb != "preview" || listed[0].Owner != "pane" || listed[0].Started.IsZero() {
 		t.Fatalf("jobs.list: %+v", listed)
 	}
-	if again, _ := r.Execute(Request{Verb: "list", Noun: "jobs"}); len(again.([]JobInfo)) != 0 {
+	if again, _ := r.Execute(Request{Verb: "list", Noun: "app.jobs"}); len(again.([]JobInfo)) != 0 {
 		t.Fatalf("finished jobs retained after a read: %+v", again)
 	}
 	// A failed job reports its error and a running one shows in the snapshot.
@@ -264,7 +264,7 @@ func TestApplicationVerbRunsOffTheLoop(t *testing.T) {
 			landed = append(landed, c.Instance.ID+"="+value.(string))
 		})
 	}, "Sync a row off the loop").Verb("now", func(c Ctx) Result { return Done("now " + c.Instance.ID) })
-	if op := r.Operations["a.sync"]; op.Kind != KindApplication || r.Operations["a.now"].Kind != KindApplication || r.Operations["list.move"].Kind != KindInteraction {
+	if op := r.Operations["a.sync"]; op.Kind != KindApplication || r.Operations["a.now"].Kind != KindApplication || r.Operations["app.list.move"].Kind != KindInteraction {
 		t.Fatalf("kinds: %+v", op)
 	}
 	if v, err := r.Execute(Request{Verb: "now", Noun: "a", Target: "one"}); err != nil || v != "now one" {
@@ -349,7 +349,7 @@ func TestConfirmCompilesToAModalWithPayload(t *testing.T) {
 	if len(r.Modals()) != 1 || r.Focus != "confirm" || inst == nil || inst.Parent != "one" || inst.Payload.Prompt != "Remove a one?" || inst.Payload.Request == nil || !inst.Payload.Request.Confirmed || inst.Payload.Request.Target != "one" {
 		t.Fatalf("confirm modal: frames=%d focus=%s inst=%+v", len(r.Modals()), r.Focus, inst)
 	}
-	if rows := r.ListBindings("confirm"); !slices.ContainsFunc(rows, func(b Binding) bool { return b.Keys == "y" && b.Request.Key() == "confirm.accept" }) {
+	if rows := r.ListBindings("confirm"); !slices.ContainsFunc(rows, func(b Binding) bool { return b.Keys == "y" && b.Request.Key() == "app.confirm.accept" }) {
 		t.Fatalf("confirm rows: %+v", rows)
 	}
 	editorTestKeys(t, r, "d", "x") // swallowed: no second confirm, no removal
@@ -373,14 +373,14 @@ func TestConfirmCompilesToAModalWithPayload(t *testing.T) {
 	if _, err := r.Execute(Request{Verb: "remove", Noun: "a", Target: "one", Confirmed: true}); err != nil || len(removed) != 2 {
 		t.Fatalf("confirmed request: %v %v", err, removed)
 	}
-	if _, err := r.Execute(Request{Verb: "set", Noun: "confirm", Args: Arguments{"operation": "a.remove", "prompt": ""}}); err != nil || r.Operations["a.remove"].Confirm != "" {
+	if _, err := r.Execute(Request{Verb: "set", Noun: "app.confirm", Args: Arguments{"operation": "a.remove", "prompt": ""}}); err != nil || r.Operations["a.remove"].Confirm != "" {
 		t.Fatalf("confirm.set removal: %v", err)
 	}
 	editorTestKeys(t, r, "d")
 	if len(r.Modals()) != 0 || len(removed) != 3 {
 		t.Fatal("a removed confirm runs the verb directly")
 	}
-	if _, err := r.Execute(Request{Verb: "set", Noun: "confirm", Args: Arguments{"operation": "a.remove", "prompt": "Sure?"}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "set", Noun: "app.confirm", Args: Arguments{"operation": "a.remove", "prompt": "Sure?"}}); err != nil {
 		t.Fatal(err)
 	}
 	editorTestKeys(t, r, "d")
@@ -407,8 +407,8 @@ func TestRuntimeHoldsNoComponentFields(t *testing.T) {
 	}
 	sort.Strings(fields)
 	want := []string{
-		"BindingTimeout", "Focus", "Instances", "Mode", "Modes", "Nouns", "Operations", "Page", "Pending", "Quit", "ResolveTarget",
-		"bindingVersion", "commands", "deprecations", "guards", "history", "holders", "jobSeq", "jobs", "modalInstances", "modals", "modeGeneration", "origin", "passthroughModes", "pendingModes", "predicates", "prefix", "rowRequest", "rows", "seq",
+		"BindingTimeout", "Focus", "Instances", "Mode", "Modes", "Nouns", "Operations", "Page", "Pending", "Quit", "ResolveTarget", "aliases",
+		"bindingVersion", "builtinDepth", "commands", "deprecations", "guards", "history", "holders", "jobSeq", "jobs", "modalInstances", "modals", "modeGeneration", "origin", "passthroughModes", "pendingModes", "predicates", "prefix", "rowRequest", "rows", "seq",
 	}
 	if !reflect.DeepEqual(fields, want) {
 		t.Fatalf("Runtime fields:\n got %v\nwant %v", fields, want)
@@ -430,7 +430,7 @@ func TestRuntimeHoldsNoComponentFields(t *testing.T) {
 	if regs == nil || r.Instances[registersID].Parent != "app" || r.Instances[registersID].Component != regs {
 		t.Fatal("registers must be one instance under app")
 	}
-	if _, err := r.Execute(Request{Verb: "set", Noun: "register", Args: Arguments{"name": "a", "text": "shared"}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "set", Noun: "app.register", Args: Arguments{"name": "a", "text": "shared"}}); err != nil {
 		t.Fatal(err)
 	}
 	snapshot := r.Snapshot()
@@ -450,7 +450,7 @@ func TestEditorFallbackNeedsAnInputOnThePath(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, b := range r.ListBindings("one") {
-		if b.Noun == "editor" {
+		if b.Noun == "app.editor" {
 			t.Fatalf("editor row listed for a list row: %+v", b)
 		}
 	}
@@ -478,7 +478,7 @@ func TestEditorFallbackNeedsAnInputOnThePath(t *testing.T) {
 	if err := r.SetFocus(input.ID); err != nil {
 		t.Fatal(err)
 	}
-	if !slices.ContainsFunc(r.ListBindings(input.ID), func(b Binding) bool { return b.Noun == "editor" }) {
+	if !slices.ContainsFunc(r.ListBindings(input.ID), func(b Binding) bool { return b.Noun == "app.editor" }) {
 		t.Fatal("an input keeps the editor fallback")
 	}
 }

@@ -78,8 +78,8 @@ func (p *Palette) recallLines() []string {
 // commandText spells a request as a line: verb, noun, then its arguments
 // in parameter order up to the first one it omits.
 func (p *Palette) commandText(q Request) string {
-	words := []string{q.Verb, q.Noun}
-	for _, name := range paramOrder(p.r.Operations[q.Key()]) {
+	words := []string{q.Verb, p.r.DisplayNoun(q.Noun)}
+	for _, name := range paramOrder(p.r.Operations[p.r.CanonicalKey(q.Key())]) {
 		v, ok := q.Args[name]
 		if !ok {
 			break

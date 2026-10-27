@@ -33,7 +33,7 @@ func configReloadModel(t *testing.T) (*Model, string, *[]any, map[string]int) {
 
 func reloadConfig(t *testing.T, r *Runtime) []string {
 	t.Helper()
-	got, err := r.Execute(Request{Noun: "config", Verb: "reload"})
+	got, err := r.Execute(Request{Noun: "app.config", Verb: "reload"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,10 +155,10 @@ func TestConfigReloadRunsApplicationHooks(t *testing.T) {
 // it is a builtin fetch with no default key.
 func TestConfigReloadNeedsTheConfigDirectory(t *testing.T) {
 	r := NewRuntime()
-	if _, err := r.Execute(Request{Noun: "config", Verb: "reload"}); err == nil || !strings.Contains(err.Error(), "no config directory") {
+	if _, err := r.Execute(Request{Noun: "app.config", Verb: "reload"}); err == nil || !strings.Contains(err.Error(), "no config directory") {
 		t.Fatalf("err %v", err)
 	}
-	op := r.Operations["config.reload"]
+	op := r.Operations["app.config.reload"]
 	if !op.Builtin || op.HistoryKindOf() != HistoryFetch || op.Result != "problem[]" {
 		t.Fatalf("operation %+v", op)
 	}

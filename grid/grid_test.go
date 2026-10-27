@@ -34,15 +34,15 @@ func TestFocusInstancesFollowTheCursor(t *testing.T) {
 	if got := r.InstancePath("r0:c0"); !reflect.DeepEqual(got, []string{"app", "page", "grid", "c0", "r0", "r0:c0"}) {
 		t.Fatalf("path = %v", got)
 	}
-	for id, noun := range map[string]string{"r0:c0": "cell", "r0": "row", "c0": "column", "grid": "grid"} {
+	for id, noun := range map[string]string{"r0:c0": "cell", "r0": "row", "c0": "column", "grid": "app.grid"} {
 		if inst := r.Instances[id]; inst == nil || inst.Noun != noun {
 			t.Fatalf("%s noun = %v", id, inst)
 		}
 	}
-	if _, err := r.Execute(ochazuke.Request{Verb: "move", Noun: "grid", Args: ochazuke.Arguments{"motion": "down", "steps": 2}}); err != nil {
+	if _, err := r.Execute(ochazuke.Request{Verb: "move", Noun: "app.grid", Args: ochazuke.Arguments{"motion": "down", "steps": 2}}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(ochazuke.Request{Verb: "move", Noun: "grid", Args: ochazuke.Arguments{"motion": "right"}}); err != nil {
+	if _, err := r.Execute(ochazuke.Request{Verb: "move", Noun: "app.grid", Args: ochazuke.Arguments{"motion": "right"}}); err != nil {
 		t.Fatal(err)
 	}
 	if r.Focus != "r2:c1" || r.Instances["r0:c0"] != nil || r.Instances["r0"] != nil || r.Instances["c0"] != nil {
@@ -51,7 +51,7 @@ func TestFocusInstancesFollowTheCursor(t *testing.T) {
 	if got := len(r.Children("grid")); got != 1 {
 		t.Fatalf("grid children = %d, want the one column", got)
 	}
-	if _, err := r.Execute(ochazuke.Request{Verb: "move", Noun: "grid", Args: ochazuke.Arguments{"motion": "bottom", "line": 2}}); err != nil {
+	if _, err := r.Execute(ochazuke.Request{Verb: "move", Noun: "app.grid", Args: ochazuke.Arguments{"motion": "bottom", "line": 2}}); err != nil {
 		t.Fatal(err)
 	}
 	if g.Cursor() != (Ref{Row: 1, Col: 1}) {
@@ -202,8 +202,8 @@ func TestModalOverSelectionHoldsIt(t *testing.T) {
 	}
 	want := g.Selected()
 	focus := ochazuke.KeyEvent{Focus: r.Focus, Level: r.Focus, Mode: r.Mode}
-	if r.VerbGuard("selection.mark") != GuardSelecting || !r.VerbShown("selection.mark", focus.Focus, focus.Mode) {
-		t.Fatalf("selection.mark guard = %q", r.VerbGuard("selection.mark"))
+	if r.VerbGuard("app.selection.mark") != GuardSelecting || !r.VerbShown("app.selection.mark", focus.Focus, focus.Mode) {
+		t.Fatalf("selection.mark guard = %q", r.VerbGuard("app.selection.mark"))
 	}
 	if err := r.Push("dialog", "app"); err != nil {
 		t.Fatal(err)
@@ -211,7 +211,7 @@ func TestModalOverSelectionHoldsIt(t *testing.T) {
 	if r.Mode.Name == ShapeBlock || g.Shape() != "" {
 		t.Fatalf("the modal kept the shape: %s", r.Mode.Name)
 	}
-	if r.VerbShown("selection.mark", "app", r.Mode) {
+	if r.VerbShown("app.selection.mark", "app", r.Mode) {
 		t.Fatal("selection.mark shown outside the grid")
 	}
 	if err := r.Pop(); err != nil {
@@ -240,7 +240,7 @@ func TestRegisterMarksBuiltin(t *testing.T) {
 			t.Errorf("%s: builtin %v", key, op.Builtin)
 		}
 	}
-	if !r.Operations["grid.move"].Builtin {
+	if !r.Operations["app.grid.move"].Builtin {
 		t.Fatal("grid.move not builtin")
 	}
 }

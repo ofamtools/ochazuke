@@ -65,7 +65,7 @@ func (r *Runtime) walkOf(inner []level, passthrough bool) []level {
 	for i := len(inner) - 1; i >= 0; i-- {
 		lv := inner[i]
 		lv.capture = true
-		if lv.inst == nil && lv.noun != nil && lv.noun.Name == "editor" {
+		if lv.inst == nil && lv.noun != nil && lv.noun.Name == "app.editor" {
 			fallback = append(fallback, lv)
 			continue
 		}
@@ -125,15 +125,15 @@ func (r *Runtime) stack(focus string) []level {
 			if frame != nil && onStack[frame.ID] {
 				frame = nil
 			}
-			out = append(out, level{inst: frame, noun: r.Nouns["modal"]})
+			out = append(out, level{inst: frame, noun: r.Nouns["app.modal"]})
 		}
 		noun := r.Nouns[inst.Noun]
-		if noun != nil && noun.Name == "editor" {
+		if noun != nil && noun.Name == "app.editor" {
 			noun = nil // the editor table is the shared fallback below
 		}
 		out = append(out, level{inst: inst, noun: noun})
 	}
-	if editor := r.Nouns["editor"]; editor != nil && editing {
+	if editor := r.Nouns["app.editor"]; editor != nil && editing {
 		out = append(out, level{noun: editor})
 	}
 	return out
@@ -340,7 +340,7 @@ func rowsForMode(rows []Binding, mode string, exclusive bool) []Binding {
 
 // stayingRequests are the operations that manage the pending mode
 // themselves, or re-dispatch the key inside it (recording).
-var stayingRequests = map[string]bool{"mode.enter": true, "count.append": true, "mode.leave": true, "input.cancel": true, "macro.record": true, "key.dispatch": true}
+var stayingRequests = map[string]bool{"app.mode.enter": true, "app.count.append": true, "app.mode.leave": true, "app.input.cancel": true, "app.macro.record": true, "app.key.dispatch": true}
 
 // runRow executes a row. A pending mode is one-shot: the key that answers it
 // consumes it, so the mode returns to the shadowed mode before the request
@@ -675,11 +675,12 @@ func (r *Runtime) scanRows(levels []level, mode ModeState, focus string, editing
 // noun tables: the rows a live instance carries of its own are not part
 // of it. NounPlace{Noun: noun} is no place: the noun, app, the editor.
 func (r *Runtime) nounWalk(place NounPlace, mode ModeState) []level {
+	place = r.canonicalPlace(place)
 	chain := place.Chain()
 	var inner []level
 	for i := len(chain) - 1; i >= 0; i-- {
 		name := chain[i]
-		if name == "editor" || name == "app" {
+		if name == "app.editor" || name == "app" {
 			continue // the editor table is the shared fallback below
 		}
 		if n := r.Nouns[name]; n != nil {
@@ -687,12 +688,12 @@ func (r *Runtime) nounWalk(place NounPlace, mode ModeState) []level {
 		}
 	}
 	if place.Modal != "" {
-		if n := r.Nouns["modal"]; n != nil {
+		if n := r.Nouns["app.modal"]; n != nil {
 			inner = append(inner, level{noun: n})
 		}
 	}
 	inner = append(inner, level{inst: r.Instances["app"], noun: r.Nouns["app"]})
-	if editor := r.Nouns["editor"]; editor != nil && r.placeEditing(place) {
+	if editor := r.Nouns["app.editor"]; editor != nil && r.placeEditing(place) {
 		inner = append(inner, level{noun: editor})
 	}
 	base, _ := baseAndPrefix(mode)
@@ -715,6 +716,7 @@ func (r *Runtime) placeEditing(place NounPlace) bool {
 // (nounWalk): what the keys would run there, guarded rows kept and
 // marked with their guard.
 func (r *Runtime) nounRows(place NounPlace, mode ModeState) []levelRow {
+	place = r.canonicalPlace(place)
 	return r.scanRows(r.nounWalk(place, mode), mode, "", r.placeEditing(place))
 }
 
@@ -825,7 +827,7 @@ func (r *Runtime) finishPrefix() (bool, error) {
 // Pending-mode and dispatch operations shared by every noun.
 
 func registerModeTables(r *Runtime) {
-	r.Register(Operation{Verb: "enter", Noun: "mode", Description: "Enter a pending mode with a typed payload (op, count, opcount; prefix arms the sequence timer, request is what it runs)", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "modes"}, "op": {Type: "string"}, "count": {Type: "integer"}, "opcount": {Type: "integer"}, "prefix": {Type: "string", Description: "Key sequence the mode holds; the timer runs request when no key follows"}, "request": {Type: "object", Description: "Request run when the sequence times out"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "enter", Noun: "app.mode", Description: "Enter a pending mode with a typed payload (op, count, opcount; prefix arms the sequence timer, request is what it runs)", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "app.modes"}, "op": {Type: "string"}, "count": {Type: "integer"}, "opcount": {Type: "integer"}, "prefix": {Type: "string", Description: "Key sequence the mode holds; the timer runs request when no key follows"}, "request": {Type: "object", Description: "Request run when the sequence times out"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		mode := StringArg(a, "mode", "")
 		if !r.pendingModes[mode] {
 			return nil, fmt.Errorf("unknown pending mode %q", mode)
@@ -837,7 +839,7 @@ func registerModeTables(r *Runtime) {
 		r.enterMode(mode, Payload{Op: StringArg(a, "op", ""), Count: IntArg(a, "count", 0), OpCount: IntArg(a, "opcount", 0), Prefix: StringArg(a, "prefix", ""), Request: request})
 		return r.Mode, nil
 	}})
-	r.Register(Operation{Verb: "dispatch", Noun: "key", Description: "Dispatch one key through the stack walk; mode \"shadow\" resolves it in the runtime's own mode beneath a macro recording, so the key is recorded once, and another mode name resolves it in that mode", Parameters: map[string]Parameter{"key": {Type: "string", Required: true, Description: "Key name as bindings spell it; for a paste, the bracketed text"}, "paste": {Type: "boolean", Description: "The key is pasted text"}, "mode": {Type: "string", Description: "Empty for the live walk, \"shadow\" or a mode name"}}, Result: "boolean", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "dispatch", Noun: "app.key", Description: "Dispatch one key through the stack walk; mode \"shadow\" resolves it in the runtime's own mode beneath a macro recording, so the key is recorded once, and another mode name resolves it in that mode", Parameters: map[string]Parameter{"key": {Type: "string", Required: true, Description: "Key name as bindings spell it; for a paste, the bracketed text"}, "paste": {Type: "boolean", Description: "The key is pasted text"}, "mode": {Type: "string", Description: "Empty for the live walk, \"shadow\" or a mode name"}}, Result: "boolean", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		paste, _ := a["paste"].(bool)
 		key := MacroKey{Key: StringArg(a, "key", ""), Paste: paste}
 		focus := focusOf(c)
@@ -853,13 +855,13 @@ func registerModeTables(r *Runtime) {
 			return r.dispatchIn(focus, ModeState{Name: mode, Payload: r.Mode.Payload}, key)
 		}
 	}})
-	r.Register(Operation{Verb: "leave", Noun: "mode", Description: "Return from a pending mode to the mode it shadowed", Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "leave", Noun: "app.mode", Description: "Return from a pending mode to the mode it shadowed", Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		if r.pending() {
 			r.leaveMode()
 		}
 		return r.Mode, nil
 	}})
-	r.Register(Operation{Verb: "append", Noun: "count", Description: "Append a digit to the pending count", Parameters: map[string]Parameter{"digit": {Type: "integer", Required: true}}, Result: "count", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "append", Noun: "app.count", Description: "Append a digit to the pending count", Parameters: map[string]Parameter{"digit": {Type: "integer", Required: true}}, Result: "count", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		digit := IntArg(a, "digit", 0)
 		if digit < 0 || digit > 9 {
 			return nil, errors.New("digit must be 0 to 9")
@@ -871,7 +873,7 @@ func registerModeTables(r *Runtime) {
 		r.modeGeneration++
 		return r.Mode.Payload.Count, nil
 	}})
-	r.Register(Operation{Verb: "run", Noun: "request", Description: "Execute the request stored in the mode payload", Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "run", Noun: "app.request", Description: "Execute the request stored in the mode payload", Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		if r.Mode.Payload.Request == nil {
 			return nil, errors.New("no stored request")
 		}

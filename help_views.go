@@ -110,6 +110,7 @@ func helpHome(r *Runtime, focus string) *NounPlace {
 // default: for the origin focus's noun the place the help was opened at,
 // for another noun its most seen place, else no place.
 func (h *helpState) setNoun(noun string) {
+	noun = h.r.CanonicalNoun(noun)
 	h.noun, h.place = noun, nil
 	if h.home != nil && h.home.Noun == noun {
 		home := *h.home
@@ -133,15 +134,17 @@ func (h *helpState) at() NounPlace {
 // placeLabel names a place as its chooser row and the header do: the page
 // title (else its id), then the ancestor nouns outermost first, and the
 // modal: "Context › page › list", "Context › ask · modal ask".
-func placeLabel(p NounPlace) string {
+func placeLabel(r *Runtime, p NounPlace) string {
 	var parts []string
 	if title := cmp.Or(p.PageTitle, p.Page); title != "" {
 		parts = append(parts, title)
 	}
-	parts = append(parts, p.Ancestors...)
+	for _, a := range p.Ancestors {
+		parts = append(parts, r.DisplayNoun(a))
+	}
 	text := strings.Join(parts, " › ")
 	if p.Modal != "" {
-		text = strings.TrimPrefix(text+" · modal "+p.Modal, " · ")
+		text = strings.TrimPrefix(text+" · modal "+r.DisplayNoun(p.Modal), " · ")
 	}
 	if text == "" {
 		return "(top level)"
@@ -154,7 +157,7 @@ func (h *helpState) placeText() string {
 	if h.place == nil {
 		return "none"
 	}
-	return placeLabel(*h.place)
+	return placeLabel(h.r, *h.place)
 }
 
 // The delivery contract: the help runs no jobs.
@@ -237,7 +240,7 @@ func (h *helpState) show() error {
 	case HelpTable:
 		var keys []HelpKey
 		h.modes, keys = r.HelpTable(h.at(), r.helpFlag(HelpPendingSetting, false))
-		items, cols = helpTableItems(h.noun, h.modes, keys), helpTableColumns(h.modes)
+		items, cols = helpTableItems(h.r.DisplayNoun(h.noun), h.modes, keys), helpTableColumns(h.modes)
 	default:
 		items = helpItems(h.here)
 	}
@@ -261,9 +264,10 @@ func (h *helpState) ModalTitle() string {
 func (h *helpState) header() string {
 	switch h.view {
 	case HelpPick:
-		return "noun: " + h.noun + " · mode: " + h.mode.Name + " · place: " + h.placeText()
+		return "noun: " + h.r.DisplayNoun(h.noun) + " · mode: " + h.mode.Name + " · place: " + h.placeText()
 	case HelpTable:
-		return "noun: " + h.noun + " · place: " + h.placeText() + " · .verb is " + h.noun + ".verb · (op) answered by app · op? guarded"
+		noun := h.r.DisplayNoun(h.noun)
+		return "noun: " + noun + " · place: " + h.placeText() + " · .verb is " + noun + ".verb · (op) answered by app · op? guarded"
 	}
 	return ""
 }
@@ -283,7 +287,7 @@ func (h *helpState) ModalBlock(s Styles, width, height int) Block {
 	if h.view == HelpTable {
 		if item, ok := list.Selected(); ok {
 			if key, ok := item.Data.(HelpKey); ok {
-				detail = helpKeyDetail(key, width)
+				detail = helpKeyDetail(h.r, key, width)
 			}
 		}
 		room := height - len(top) - 4 // at least three rows and the header
@@ -302,7 +306,7 @@ func (h *helpState) ModalBlock(s Styles, width, height int) Block {
 // helpKeyDetail is the selected table row's rows mode by mode: the mode,
 // the operation with its arguments and guard, and the answering level;
 // the rows that answer when a guard is false follow under "then".
-func helpKeyDetail(key HelpKey, width int) []string {
+func helpKeyDetail(r *Runtime, key HelpKey, width int) []string {
 	widest := 0
 	for _, cell := range key.Modes {
 		widest = max(widest, ansi.StringWidth(cell.Mode))
@@ -321,7 +325,7 @@ func helpKeyDetail(key HelpKey, width int) []string {
 			if row.Guard != "" {
 				text += " when " + row.Guard
 			}
-			text += " · " + row.Noun
+			text += " · " + r.DisplayNoun(row.Noun)
 			if i > 0 {
 				text = "then " + text
 			}
@@ -379,6 +383,7 @@ func (r *Runtime) helpPendingModes() []string {
 // key-sequence prefix the place's walk binds ("normal g" after g).
 // NounPlace{Noun: noun} is the noun with no place.
 func (r *Runtime) HelpModes(place NounPlace, pending bool) []ModeState {
+	place = r.canonicalPlace(place)
 	var out []ModeState
 	bases := r.helpBaseModes()
 	for _, name := range bases {
@@ -439,6 +444,7 @@ func (r *Runtime) modeHasRows(place NounPlace, mode ModeState) bool {
 // level of its place answers come first, then app's, each sorted with key
 // classes last.
 func (r *Runtime) HelpTable(place NounPlace, pending bool) ([]string, []HelpKey) {
+	place = r.canonicalPlace(place)
 	candidates := r.helpBaseModes()
 	if pending {
 		candidates = append(candidates, r.helpPendingModes()...)
@@ -468,7 +474,7 @@ func (r *Runtime) HelpTable(place NounPlace, pending bool) ([]string, []HelpKey)
 			}
 			help := r.helpRow(row, sourceArgs(row.Binding))
 			if row.Request.Verb != "" {
-				help.Operation = row.Request.Key()
+				help.Operation = r.DisplayKey(row.Request.Key())
 			}
 			cell := &k.Modes[len(k.Modes)-1]
 			cell.Rows = append(cell.Rows, help)
@@ -530,7 +536,7 @@ func helpTableItems(noun string, modes []string, keys []HelpKey) []ListItem {
 				cells[j+1] = helpCellText(noun, cell)
 			}
 		}
-		items[i] = ListItem{ID: fmt.Sprintf("__bindings-help/%d", i), Label: strings.Join(cells, "  "), Noun: "binding", Data: k, Cells: cells}
+		items[i] = ListItem{ID: fmt.Sprintf("__bindings-help/%d", i), Label: strings.Join(cells, "  "), Noun: "app.binding", Data: k, Cells: cells}
 	}
 	return items
 }
@@ -570,7 +576,7 @@ func (h *helpState) placeRows() []ChooserRow {
 	}
 	rows := []ChooserRow{{ID: "none", Label: "no place (noun + app)", Cells: []string{"no place (noun + app)", "", current(nil)}}}
 	for i, p := range h.r.NounPlaces(h.noun) {
-		label := placeLabel(p)
+		label := placeLabel(h.r, p)
 		rows = append(rows, ChooserRow{ID: fmt.Sprintf("place/%d", i), Label: label, Data: p, Cells: []string{label, fmt.Sprintf("%d×", p.Count), current(&p)}})
 	}
 	return rows
@@ -610,8 +616,13 @@ func registerHelpViews(r *Runtime) {
 		return h.show()
 	})})
 	r.Register(Operation{Verb: "noun", Noun: helpID, Description: "Choose the noun the help's pick and table views describe", Result: "view", Run: view(func(h *helpState) error {
-		names := slices.Sorted(maps.Keys(h.r.Nouns))
-		_, err := h.r.OpenChooser(ChooserSpec{Kind: helpNounKind, Title: "Noun", Keep: []int{0}, Rows: helpChooserRows(names, h.noun, func(string) any { return nil }), Choose: func(row ChooserRow) Result {
+		names := slices.SortedFunc(maps.Keys(h.r.Nouns), func(a, b string) int { return strings.Compare(h.r.DisplayNoun(a), h.r.DisplayNoun(b)) })
+		rows := helpChooserRows(names, h.noun, func(string) any { return nil })
+		for i := range rows {
+			rows[i].Label = h.r.DisplayNoun(rows[i].ID)
+			rows[i].Cells[0] = rows[i].Label
+		}
+		_, err := h.r.OpenChooser(ChooserSpec{Kind: helpNounKind, Title: "Noun", Keep: []int{0}, Rows: rows, Choose: func(row ChooserRow) Result {
 			h.setNoun(row.ID)
 			if err := h.show(); err != nil {
 				return Failed(err)
@@ -666,7 +677,7 @@ func registerHelpViews(r *Runtime) {
 		h := r.helpOpen()
 		return h != nil && (h.view == HelpPick || h.view == HelpTable) && len(r.NounPlaces(h.noun)) > 0
 	})
-	n := r.Nouns[helpID]
+	n := r.Noun(helpID)
 	if n.Guards == nil {
 		n.Guards = map[string]string{}
 	}
@@ -685,7 +696,7 @@ func registerHelpViews(r *Runtime) {
 // noun is its fallback (stack's editing): the editor noun itself, a noun
 // that pins insert mode (prompt, chooser), or the noun of a live input.
 func (r *Runtime) inputNoun(noun string) bool {
-	if noun == "editor" {
+	if noun == "app.editor" {
 		return true
 	}
 	if n := r.Nouns[noun]; n != nil && n.Pin == "insert" {

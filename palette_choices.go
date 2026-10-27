@@ -40,7 +40,7 @@ func (p *Palette) paramChoices(op Operation, name string) ([]Choice, error) {
 
 // instanceChoices reads a palette noun's live instances.
 func (p *Palette) instanceChoices(noun string) []Choice {
-	config, ok := p.nouns[noun]
+	config, ok := p.nouns[p.r.CanonicalNoun(noun)]
 	if !ok {
 		return nil
 	}

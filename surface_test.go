@@ -11,7 +11,7 @@ import (
 func TestAppearanceUpdatesAreAtomicSnapshots(t *testing.T) {
 	r := NewRuntime()
 	a := NewAppearance(r)
-	result, err := r.Execute(Request{Verb: "set", Noun: "appearance", Args: Arguments{"theme": "dark", "density": "compact"}})
+	result, err := r.Execute(Request{Verb: "set", Noun: "app.appearance", Args: Arguments{"theme": "dark", "density": "compact"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,14 +28,14 @@ func TestAppearanceUpdatesAreAtomicSnapshots(t *testing.T) {
 		{"density": false, "theme": "light"},
 		{"unknown": "light"},
 	} {
-		if _, err := r.Execute(Request{Verb: "set", Noun: "appearance", Args: args}); err == nil {
+		if _, err := r.Execute(Request{Verb: "set", Noun: "app.appearance", Args: args}); err == nil {
 			t.Fatalf("accepted invalid appearance %#v", args)
 		}
 		if *a != (Appearance{Theme: "dark", Density: "compact", Dark: true}) {
 			t.Fatalf("invalid update %#v partially mutated appearance: %#v", args, *a)
 		}
 	}
-	got, err := r.Execute(Request{Verb: "get", Noun: "appearance"})
+	got, err := r.Execute(Request{Verb: "get", Noun: "app.appearance"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func TestAppearanceUpdatesAreAtomicSnapshots(t *testing.T) {
 	if !ok {
 		t.Fatalf("get returned %T, want an appearance value", got)
 	}
-	if _, err := r.Execute(Request{Verb: "set", Noun: "appearance", Args: Arguments{"theme": "light"}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "set", Noun: "app.appearance", Args: Arguments{"theme": "light"}}); err != nil {
 		t.Fatal(err)
 	}
 	if *a != (Appearance{Theme: "light", Density: "compact", Dark: true}) || before != snapshot {
@@ -58,7 +58,7 @@ func TestAppearanceUpdatesAreAtomicSnapshots(t *testing.T) {
 func TestListedThemesCanBeSelected(t *testing.T) {
 	r := NewRuntime()
 	a := NewAppearance(r)
-	got, err := r.Execute(Request{Verb: "list", Noun: "themes"})
+	got, err := r.Execute(Request{Verb: "list", Noun: "app.themes"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func TestListedThemesCanBeSelected(t *testing.T) {
 			t.Fatalf("duplicate theme %q", theme)
 		}
 		seen[theme] = true
-		if _, err := r.Execute(Request{Verb: "set", Noun: "appearance", Args: Arguments{"theme": theme}}); err != nil || a.Theme != theme {
+		if _, err := r.Execute(Request{Verb: "set", Noun: "app.appearance", Args: Arguments{"theme": theme}}); err != nil || a.Theme != theme {
 			t.Fatalf("listed theme %q cannot be selected: %#v, %v", theme, *a, err)
 		}
 	}
@@ -83,7 +83,7 @@ func TestListedThemesCanBeSelected(t *testing.T) {
 	}
 	// A caller may edit a list result without corrupting the next request.
 	themes[0] = "changed"
-	next, err := r.Execute(Request{Verb: "list", Noun: "themes"})
+	next, err := r.Execute(Request{Verb: "list", Noun: "app.themes"})
 	if err != nil || next.([]string)[0] == "changed" {
 		t.Fatalf("theme list aliases mutable state: %#v, %v", next, err)
 	}

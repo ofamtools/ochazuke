@@ -245,7 +245,7 @@ func historyKinds(arg string) ([]string, error) {
 // repeatableOperations are the framework's repeatable changes: the
 // editor's text edits. Motions, focus, pages, modals, lists and the history
 // itself are not.
-var repeatableOperations = []string{"input.insert", "input.delete", "input.kill", "input.paste", "input.operator", "input.replace"}
+var repeatableOperations = []string{"app.input.insert", "app.input.delete", "app.input.kill", "app.input.paste", "app.input.operator", "app.input.replace"}
 
 // markRepeatable flags registered framework operations as repeatable.
 func markRepeatable(r *Runtime, keys ...string) {
@@ -292,22 +292,22 @@ func (r *Runtime) repeatRequest(steps int) (Request, error) {
 
 func registerHistory(r *Runtime) {
 	markRepeatable(r, repeatableOperations...)
-	r.Register(Operation{Verb: "repeat", Noun: "history", Description: "Dot-repeat: run the last repeatable change again at the current focus, its arguments kept; steps replaces its count", Parameters: map[string]Parameter{"steps": {Type: "integer", Description: "Count replacing the recorded one; 0 keeps it"}}, Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "repeat", Noun: "app.history", Description: "Dot-repeat: run the last repeatable change again at the current focus, its arguments kept; steps replaces its count", Parameters: map[string]Parameter{"steps": {Type: "integer", Description: "Count replacing the recorded one; 0 keeps it"}}, Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		q, err := r.repeatRequest(IntArg(a, "steps", 0))
 		if err != nil {
 			return nil, err
 		}
 		return r.ExecuteAt(c, q)
 	}})
-	r.Define("app").Mode("normal").Bind(".", Do("history.repeat").FromPayload("steps", SourceLine).Hide())
-	r.Register(Operation{Verb: "list", Noun: "history", Description: "List the last executed requests, oldest first, with their kind, context, source and result; by default the user's actions and changes", Parameters: map[string]Parameter{"last": {Type: "integer", Description: "How many entries (default 50, 0 for all)"}, "kind": {Type: "string", Description: "Kinds separated by commas (action, change, fetch, system) or all; default action,change"}}, Result: "history[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Define("app").Mode("normal").Bind(".", Do("app.history.repeat").FromPayload("steps", SourceLine).Hide())
+	r.Register(Operation{Verb: "list", Noun: "app.history", Description: "List the last executed requests, oldest first, with their kind, context, source and result; by default the user's actions and changes", Parameters: map[string]Parameter{"last": {Type: "integer", Description: "How many entries (default 50, 0 for all)"}, "kind": {Type: "string", Description: "Kinds separated by commas (action, change, fetch, system) or all; default action,change"}}, Result: "history[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		kinds, err := historyKinds(StringArg(a, "kind", ""))
 		if err != nil {
 			return nil, err
 		}
 		return r.HistoryOf(IntArg(a, "last", 50), kinds...), nil
 	}})
-	r.Register(Operation{Verb: "path", Noun: "history", Description: "Print the history file: $XDG_STATE_HOME/<app>/history.jsonl, else ~/.local/state/<app>/history.jsonl", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "path", Noun: "app.history", Description: "Print the history file: $XDG_STATE_HOME/<app>/history.jsonl, else ~/.local/state/<app>/history.jsonl", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		path := r.Config().HistoryPath()
 		if path == "" {
 			return nil, errors.New("this application does not keep its history")

@@ -46,8 +46,8 @@ const (
 	// SettingsGeneral titles the section of the settings without one.
 	SettingsGeneral = "General"
 
-	settingsPageNoun  = "settings-page"
-	settingItemNoun   = "setting-item"
+	settingsPageNoun  = "app.settings-page"
+	settingItemNoun   = "app.setting-item"
 	settingsDetailID  = "__settings/detail"
 	settingPromptID   = "setting-prompt"
 	settingValueID    = "__settings/value"
@@ -101,7 +101,7 @@ func (s Setting) SectionName() string {
 }
 
 func registerSettingsEditor(r *Runtime) {
-	r.Register(Operation{Verb: "edit", Noun: "settings", Description: "Open the Settings page (or switch to it): every change is saved as it is made", Result: "setting[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "edit", Noun: "app.settings", Description: "Open the Settings page (or switch to it): every change is saved as it is made", Result: "setting[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		s := r.Settings()
 		if len(s.Declared()) == 0 {
 			return nil, errors.New("this application declares no settings")
@@ -121,16 +121,16 @@ func registerSettingsEditor(r *Runtime) {
 		}
 		return s.List(), nil
 	}})
-	r.Register(Operation{Verb: "close", Noun: "settings", Description: "Leave the Settings page for the page it was opened from", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "close", Noun: "app.settings", Description: "Leave the Settings page for the page it was opened from", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.Context(), closeSettingsPage(r)
 	}})
-	r.Register(Operation{Verb: "section", Noun: "settings", Description: "Show the next or previous section of the Settings page (wrapping), or the one named", Parameters: map[string]Parameter{
+	r.Register(Operation{Verb: "section", Noun: "app.settings", Description: "Show the next or previous section of the Settings page (wrapping), or the one named", Parameters: map[string]Parameter{
 		"step": {Type: "integer", Description: "1 for the next section, -1 for the previous"},
 		"name": {Type: "string", Description: "The section to show (General for the settings without one)"},
 	}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.Context(), showSettingsSection(r, StringArg(a, "name", ""), IntArg(a, "step", 1))
 	}})
-	r.Register(Operation{Verb: "undo", Noun: "settings", Description: "Take back the last change made on the Settings page", Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "undo", Noun: "app.settings", Description: "Take back the last change made on the Settings page", Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return undoSettingChange(r)
 	}})
 	r.DefineGuard("setting-steps", func(r *Runtime, ev KeyEvent) bool {
@@ -144,7 +144,7 @@ func registerSettingsEditor(r *Runtime) {
 	r.DefineGuard("settings-undo", func(r *Runtime, ev KeyEvent) bool {
 		return len(r.Settings().page.undo) > 0
 	})
-	r.Register(Operation{Verb: "cycle", Noun: "setting", Description: "Step a boolean, an enum or a number to its next or previous value", Parameters: map[string]Parameter{"step": {Type: "integer", Description: "1 for the next value, -1 for the previous"}}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "cycle", Noun: "app.setting", Description: "Step a boolean, an enum or a number to its next or previous value", Parameters: map[string]Parameter{"step": {Type: "integer", Description: "1 for the next value, -1 for the previous"}}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		one := focusedSetting(r, focusOf(c))
 		if one == nil {
 			return nil, errors.New("no setting is focused")
@@ -168,7 +168,7 @@ func registerSettingsEditor(r *Runtime) {
 		_ = r.SetFocus(settingRowPrefix + one.Name)
 		return r.Settings().Get(one.Name)
 	}
-	r.Define("setting").
+	r.Define("app.setting").
 		Verb("edit", func(r *Runtime, c Context, a Arguments) (any, error) {
 			one, err := focused(c)
 			if err != nil {
@@ -195,17 +195,17 @@ func registerSettingsEditor(r *Runtime) {
 		}, "Add an item at the end of a list setting").
 		Verb("reset", reset, "Reset the setting to its default").
 		Mode("normal").
-		Bind("enter", Do("setting.edit")).
+		Bind("enter", Do("app.setting.edit")).
 		// One hint for every step key: h/l setting.cycle.
-		Bind("l", Do("setting.cycle", Arguments{"step": 1}).Guard("setting-steps").Hide()).
-		Bind("right", Do("setting.cycle", Arguments{"step": 1}).Guard("setting-steps").Hide()).
-		Bind("space", Do("setting.cycle", Arguments{"step": 1}).Guard("setting-steps").Hide()).
-		Bind("h", Do("setting.cycle", Arguments{"step": -1}).Guard("setting-steps").Hinted("h/l setting.cycle")).
-		Bind("left", Do("setting.cycle", Arguments{"step": -1}).Guard("setting-steps").Hide()).
-		Bind("n", Do("setting.add").Guard("setting-list")).
-		Bind("r", Do("setting.reset")).
-		Bind("backspace", Do("setting.reset").Hide()).
-		Bind("delete", Do("setting.reset").Hide())
+		Bind("l", Do("app.setting.cycle", Arguments{"step": 1}).Guard("setting-steps").Hide()).
+		Bind("right", Do("app.setting.cycle", Arguments{"step": 1}).Guard("setting-steps").Hide()).
+		Bind("space", Do("app.setting.cycle", Arguments{"step": 1}).Guard("setting-steps").Hide()).
+		Bind("h", Do("app.setting.cycle", Arguments{"step": -1}).Guard("setting-steps").Hinted("h/l setting.cycle")).
+		Bind("left", Do("app.setting.cycle", Arguments{"step": -1}).Guard("setting-steps").Hide()).
+		Bind("n", Do("app.setting.add").Guard("setting-list")).
+		Bind("r", Do("app.setting.reset")).
+		Bind("backspace", Do("app.setting.reset").Hide()).
+		Bind("delete", Do("app.setting.reset").Hide())
 	item := func(c Context) (*Setting, settingItemRef, error) {
 		inst := r.Instances[focusOf(c)]
 		if inst == nil || inst.Noun != settingItemNoun {
@@ -272,21 +272,21 @@ func registerSettingsEditor(r *Runtime) {
 			return r.Settings().Get(one.Name)
 		}, "Reset the whole list to its default").
 		Mode("normal").
-		Bind("enter", Do("setting-item.edit").Hinted("enter/i setting-item.edit")).
-		Bind("i", Do("setting-item.edit").Hide()).
-		Bind("n", Do("setting-item.add")).
-		Bind("d d", Do("setting-item.delete")).
-		Bind("r", Do("setting-item.reset"))
+		Bind("enter", Do("app.setting-item.edit").Hinted("enter/i setting-item.edit")).
+		Bind("i", Do("app.setting-item.edit").Hide()).
+		Bind("n", Do("app.setting-item.add")).
+		Bind("d d", Do("app.setting-item.delete")).
+		Bind("r", Do("app.setting-item.reset"))
 	r.Define(settingsPageNoun).Mode("normal").
-		Bind("tab", Do("settings.section", Arguments{"step": 1})).
-		Bind("]", Do("settings.section", Arguments{"step": 1}).Hide()).
-		Bind("shift+tab", Do("settings.section", Arguments{"step": -1}).Hide()).
-		Bind("[", Do("settings.section", Arguments{"step": -1}).Hide()).
-		Bind("u", Do("settings.undo").Guard("settings-undo")).
-		Bind("ctrl+z", Do("settings.undo").Guard("settings-undo").Hide()).
-		Bind("q", Do("settings.close")).
-		Bind("esc", Do("settings.close"))
-	r.Define("setting-value").Pin("insert").
+		Bind("tab", Do("app.settings.section", Arguments{"step": 1})).
+		Bind("]", Do("app.settings.section", Arguments{"step": 1}).Hide()).
+		Bind("shift+tab", Do("app.settings.section", Arguments{"step": -1}).Hide()).
+		Bind("[", Do("app.settings.section", Arguments{"step": -1}).Hide()).
+		Bind("u", Do("app.settings.undo").Guard("settings-undo")).
+		Bind("ctrl+z", Do("app.settings.undo").Guard("settings-undo").Hide()).
+		Bind("q", Do("app.settings.close")).
+		Bind("esc", Do("app.settings.close"))
+	r.Define("app.setting-value").Pin("insert").
 		Verb("commit", func(r *Runtime, c Context, a Arguments) (any, error) {
 			body := r.Instances[r.TopModal()]
 			in := r.Input(settingValueID)
@@ -316,8 +316,8 @@ func registerSettingsEditor(r *Runtime) {
 			return nil, r.Pop()
 		}, "Close the prompt and keep the value").
 		Mode("insert").
-		Bind("enter", Do("setting-value.commit")).
-		Bind("esc", Do("setting-value.cancel"))
+		Bind("enter", Do("app.setting-value.commit")).
+		Bind("esc", Do("app.setting-value.cancel"))
 	r.Settings().Observe("", func(string, any) { refreshSettingsPage(r) })
 }
 
@@ -473,7 +473,7 @@ func closeSettingsPage(r *Runtime) error {
 	}
 	view := &r.Settings().page
 	if r.Page == SettingsPageID {
-		if inst := r.Instances[r.BaseFocus()]; inst != nil && (inst.Noun == "setting" || inst.Noun == settingItemNoun) {
+		if inst := r.Instances[r.BaseFocus()]; inst != nil && (inst.Noun == "app.setting" || inst.Noun == settingItemNoun) {
 			view.last = inst.ID
 		}
 		back := view.from
@@ -635,7 +635,7 @@ func settingItem(s *Settings, section string, v SettingValue) ListItem {
 	}
 	value := settingValueCell(v)
 	return ListItem{
-		ID: settingRowPrefix + v.Name, Label: name + "  " + value, Noun: "setting", Data: v.Name,
+		ID: settingRowPrefix + v.Name, Label: name + "  " + value, Noun: "app.setting", Data: v.Name,
 		Cells: []string{name, value},
 	}
 }
@@ -804,7 +804,7 @@ func settingAllowed(one Setting) string {
 // focusedSetting is the declared setting of the focused setting row.
 func focusedSetting(r *Runtime, focus string) *Setting {
 	inst := r.Instances[focus]
-	if inst == nil || inst.Noun != "setting" {
+	if inst == nil || inst.Noun != "app.setting" {
 		return nil
 	}
 	name, _ := inst.Data.(string)
@@ -852,8 +852,8 @@ func openSettingPrompt(r *Runtime, one Setting) error {
 	in := NewInput(settingValueID, settingCell(current.Value), false)
 	in.Cursor = len(in.Text)
 	prompt := fmt.Sprintf("%s (%s)", one.Name, one.Type)
-	request := &Request{Noun: "settings", Verb: "set", Args: Arguments{"name": one.Name}}
-	_, err := r.OpenModal(settingPromptID, Payload{Prompt: prompt, Request: request}, WithInput(in, Kind("setting-value")))
+	request := &Request{Noun: "app.settings", Verb: "set", Args: Arguments{"name": one.Name}}
+	_, err := r.OpenModal(settingPromptID, Payload{Prompt: prompt, Request: request}, WithInput(in, Kind("app.setting-value")))
 	return err
 }
 
@@ -874,8 +874,8 @@ func openItemPrompt(r *Runtime, one Setting, index, insert int) error {
 	}
 	in := NewInput(settingValueID, text, false)
 	in.Cursor = len(in.Text)
-	request := &Request{Noun: "settings", Verb: "set", Args: args}
-	_, err := r.OpenModal(settingPromptID, Payload{Prompt: prompt, Request: request}, WithInput(in, Kind("setting-value")))
+	request := &Request{Noun: "app.settings", Verb: "set", Args: args}
+	_, err := r.OpenModal(settingPromptID, Payload{Prompt: prompt, Request: request}, WithInput(in, Kind("app.setting-value")))
 	return err
 }
 

@@ -142,7 +142,7 @@ func hintsRecipe(r *Runtime, picks *[]string) {
 		}
 		_ = c.Runtime.SetMode("terminal")
 	}
-	r.Define("terminal").
+	r.Define("app.terminal").
 		Verb("hints", func(c Ctx) Result {
 			term := c.Runtime.Terminal(c.Runtime.Focus)
 			if term == nil {
@@ -159,18 +159,18 @@ func hintsRecipe(r *Runtime, picks *[]string) {
 			return Done(nil)
 		}, "Act on a labelled link").
 		Verb("hints-cancel", func(c Ctx) Result { leave(c); return Done(nil) }, "Leave hints")
-	hint := r.Operations["terminal.hint"]
+	hint := r.Operations["app.terminal.hint"]
 	hint.Parameters = map[string]Parameter{"label": {Type: "string"}, "action": {Type: "string"}}
-	r.Operations["terminal.hint"] = hint
-	r.Define("terminal").
-		Mode("leader_pending").Bind("f", Do("terminal.hints")).
+	r.Operations["app.terminal.hint"] = hint
+	r.Define("app.terminal").
+		Mode("leader_pending").Bind("f", Do("app.terminal.hints")).
 		Mode("hints").
-		Pattern(Alpha, Do("terminal.hint", Arguments{"action": "copy"}).FromPayload("label", SourceLetter).Hinted("copy")).
-		Pattern(Upper, Do("terminal.hint", Arguments{"action": "type"}).FromPayload("label", SourceLetter).Hinted("type")).
-		Pattern(CtrlAlpha, Do("terminal.hint", Arguments{"action": "open"}).FromPayload("label", SourceLetter).Hinted("open")).
-		Bind("esc", Do("terminal.hints-cancel").Hinted("cancel")).
-		Pattern(Paste, Do("terminal.hint", Arguments{"action": "miss"}).Hide()).
-		Pattern(Any, Do("terminal.hint", Arguments{"action": "miss"}).FromPayload("label", SourceLetter).Hide())
+		Pattern(Alpha, Do("app.terminal.hint", Arguments{"action": "copy"}).FromPayload("label", SourceLetter).Hinted("copy")).
+		Pattern(Upper, Do("app.terminal.hint", Arguments{"action": "type"}).FromPayload("label", SourceLetter).Hinted("type")).
+		Pattern(CtrlAlpha, Do("app.terminal.hint", Arguments{"action": "open"}).FromPayload("label", SourceLetter).Hinted("open")).
+		Bind("esc", Do("app.terminal.hints-cancel").Hinted("cancel")).
+		Pattern(Paste, Do("app.terminal.hint", Arguments{"action": "miss"}).Hide()).
+		Pattern(Any, Do("app.terminal.hint", Arguments{"action": "miss"}).FromPayload("label", SourceLetter).Hide())
 }
 
 // upper answers before alpha; ctrl+alpha is one ctrl+letter and takes
