@@ -11,6 +11,8 @@
 //	o-story replay REF
 //	o-story trim REF [--from I] [--to J] [--at K] [--as NAME] [--snapshot]
 //	o-story verbs
+//	o-story matrix [--component C] [--json]
+//	o-story coverage [--component C] [--json] [--dir DIR]
 //	o-story catalog                 the nouns (story, recording, verb, edge) as JSON
 //	o-story NOUN VERB [--target ID] story list|show|run|state, recording list|show, verb list, edge list
 //
@@ -73,6 +75,8 @@ func (t *Tool) Main(args []string) error {
 		oden.Command{Name: "keep", Summary: "keep N NAME: move history entry N to saved/NAME.json", Run: func(_ context.Context, a []string) error { return t.Keep(a) }},
 		oden.Command{Name: "replay", Summary: "replay REF live in the TUI with the recorded timing", Run: func(_ context.Context, a []string) error { return t.Replay(a) }},
 		oden.Command{Name: "trim", Summary: "trim REF: write a story of a window of the recording's events", Run: func(_ context.Context, a []string) error { return t.Trim(a) }},
+		oden.Command{Name: "matrix", Summary: "the coverage cells per component (components.json x the framework's rows and verbs x the axes); --component C, --json", Run: func(_ context.Context, a []string) error { return t.Matrix(a) }},
+		oden.Command{Name: "coverage", Summary: "per component: cells, covered by the stories' covers, missing, untagged stories, typos; --component C lists the missing cells; --json", Run: func(_ context.Context, a []string) error { return t.Coverage(a) }},
 		oden.Command{Name: "verbs", Summary: "the noun.verb set the core stories' scripts resolve to, by noun", Run: func(_ context.Context, a []string) error { return t.Verbs(a) }},
 	)
 	ocli.Mount(app, t.shell())

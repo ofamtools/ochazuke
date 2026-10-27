@@ -54,6 +54,11 @@ type Story struct {
 	// story shows what the application remembers (pane dividers).
 	State  bool    `json:"state,omitempty"`
 	Expect Expects `json:"expect,omitempty"`
+	// Covers are the matrix cells the story tests (o-story matrix): cell
+	// ids or path.Match patterns over them ("tables/list.move/*"); a
+	// pattern matching a cell id's leading segments covers every cell
+	// under them. o-story coverage reads them; the runner does not.
+	Covers []string `json:"covers,omitempty"`
 
 	// Path is where the file was loaded from (not part of the data); rel
 	// is the path inside fsys, disk the directory fsys reads when it is on
@@ -456,6 +461,11 @@ func Parse(data []byte, where string) (*Story, error) {
 	}
 	if len(s.AllPages()) == 0 && s.Base == "" {
 		return nil, fmt.Errorf("%s: a story needs a page or a base", where)
+	}
+	for _, c := range s.Covers {
+		if _, err := path.Match(c, ""); err != nil || c == "" {
+			return nil, fmt.Errorf("%s: covers %q is not a cell pattern", where, c)
+		}
 	}
 	s.Path = where
 	return &s, nil

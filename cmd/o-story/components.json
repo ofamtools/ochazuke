@@ -1,0 +1,483 @@
+{
+  "about": "The o-story component map: which framework nouns each component owns, the story areas that test it, its neighbours, and the axis values that apply to it. o-story matrix derives the actions from a runtime's rows and operations and crosses them with these axes; o-story coverage compares the cells with the stories' covers. Validated by internal/storymatrix's tests.",
+  "axes": {
+    "order": ["to", "direction", "surface", "mode", "placement", "focus", "outcome", "data", "state", "size", "modifiers"],
+    "full": ["to", "direction", "surface", "mode", "placement", "focus", "outcome"],
+    "values": {
+      "data": ["empty", "one", "many", "overflow", "wide-cjk", "long-cells"],
+      "placement": ["page", "split", "modal", "under-palette"],
+      "focus": ["focused", "unfocused"],
+      "mode": ["normal", "insert", "visual", "filter", "pending-count", "pending-operator", "pending-prefix", "leader", "passthrough"],
+      "state": ["plain", "filtered", "marked", "job-running", "stale-result", "restored-after-restart"],
+      "size": ["tiny", "narrow", "normal", "wide"],
+      "modifiers": ["none", "count", "register", "dot-repeat", "undo-redo", "in-macro"],
+      "outcome": ["success", "guard-false", "error", "pending-lands", "cancelled", "owner-closed"],
+      "direction": ["next", "previous"],
+      "surface": ["footer", "help"]
+    }
+  },
+  "modes": {
+    "normal": "normal",
+    "insert": "insert",
+    "visual": "visual",
+    "visual-block": "visual",
+    "visual-column": "visual",
+    "visual-line": "visual",
+    "visual-row": "visual",
+    "list_filter": "filter",
+    "count_pending": "pending-count",
+    "visual_count_pending": "pending-count",
+    "operator_pending": "pending-operator",
+    "operator_g_pending": "pending-operator",
+    "g_pending": "pending-prefix",
+    "register_pending": "pending-prefix",
+    "macro_pending": "pending-prefix",
+    "replay_pending": "pending-prefix",
+    "macro_recording": "normal",
+    "leader_pending": "leader",
+    "terminal": "passthrough"
+  },
+  "channels": {
+    "key": ["mode", "placement", "focus", "outcome", "data", "state", "size", "modifiers"],
+    "palette": ["placement", "focus", "outcome", "data", "state", "size"],
+    "cli": ["outcome", "data", "state"],
+    "parity": ["outcome"],
+    "hosted": ["placement", "focus", "data", "size"],
+    "spill": ["to", "direction", "placement"],
+    "hints": ["surface", "mode"]
+  },
+  "exclude": [
+    {"placement": "under-palette", "focus": "focused", "why": "the palette holds the focus while it is open"},
+    {"focus": "unfocused", "mode": "insert", "why": "insert belongs to the focused input: a focus change resets the mode"},
+    {"focus": "unfocused", "mode": "visual", "why": "a visual selection is the focused stop's; leaving the stop resets the mode"},
+    {"focus": "unfocused", "mode": "filter", "why": "the filter line is the focused list's; leaving it resets the mode"},
+    {"focus": "unfocused", "mode": "pending-count", "why": "a pending mode is entered at the focus and cancelled by a focus change"},
+    {"focus": "unfocused", "mode": "pending-operator", "why": "a pending mode is entered at the focus and cancelled by a focus change"},
+    {"focus": "unfocused", "mode": "pending-prefix", "why": "a pending mode is entered at the focus and cancelled by a focus change"},
+    {"focus": "unfocused", "mode": "leader", "why": "the leader is pending on the focused terminal and cancelled by a focus change"},
+    {"focus": "unfocused", "mode": "passthrough", "why": "passthrough is the focused terminal's pinned mode"},
+    {"placement": "split", "direction": "previous", "to": "palette", "why": "nothing spills into the palette"}
+  ],
+  "components": [
+    {
+      "id": "runtime",
+      "title": "Runtime core: app keys, modes, requests, inspection",
+      "nouns": ["app", "mode", "modes", "key", "request", "state", "operations", "instances", "context"],
+      "router": true,
+      "areas": [],
+      "neighbours": [],
+      "axes": {
+        "data": ["one"],
+        "placement": ["page", "modal"],
+        "state": ["plain", "job-running"],
+        "size": ["normal"],
+        "modifiers": ["none", "in-macro"],
+        "outcome": ["success", "guard-false", "error"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "focus",
+      "title": "Focus jumps: stops, regions, drawing order",
+      "nouns": ["focus"],
+      "areas": ["motions"],
+      "neighbours": ["lists", "inputs", "terminal", "grid", "markdown"],
+      "axes": {
+        "data": ["empty", "one", "many"],
+        "state": ["plain", "filtered"],
+        "modifiers": ["none", "count", "in-macro"],
+        "outcome": ["success", "guard-false", "error"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "lists",
+      "title": "Page lists: selection, motions, spills, marks",
+      "nouns": ["list"],
+      "areas": ["lists", "motions"],
+      "neighbours": ["tables", "inputs", "terminal", "detail", "tree"],
+      "axes": {
+        "state": ["plain", "filtered", "marked", "restored-after-restart"],
+        "modifiers": ["none", "count", "dot-repeat", "in-macro"],
+        "outcome": ["success", "guard-false", "error"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "tables",
+      "title": "Tables: columns, cell mode, visual rows, yank, widths",
+      "nouns": [],
+      "operations": ["list.column", "list.choose-column", "list.yank", "list.resize-column", "list.reset-columns", "list.scroll-columns", "list.visual", "list.end-visual", "list.apply"],
+      "areas": ["tables"],
+      "neighbours": ["lists", "detail", "list-filter"],
+      "axes": {
+        "data": ["empty", "one", "many", "overflow", "wide-cjk", "long-cells"],
+        "state": ["plain", "filtered", "marked", "restored-after-restart"],
+        "modifiers": ["none", "count", "register", "dot-repeat", "in-macro"],
+        "outcome": ["success", "guard-false", "error", "pending-lands", "cancelled"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "list-filter",
+      "title": "The list filter: / query, keep, choose, clear",
+      "nouns": [],
+      "operations": ["list.filter", "list.filter-open", "list.filter-type", "list.filter-erase", "list.filter-keep", "list.filter-choose", "list.filter-clear"],
+      "modes": ["list_filter"],
+      "areas": ["lists"],
+      "neighbours": ["lists", "tables", "tree"],
+      "axes": {
+        "data": ["empty", "one", "many", "overflow", "wide-cjk"],
+        "placement": ["page", "split", "modal"],
+        "state": ["plain", "filtered", "marked"],
+        "modifiers": ["none", "in-macro"],
+        "outcome": ["success", "guard-false", "error"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "tree",
+      "title": "Trees and the outline editor",
+      "nouns": ["outline", "outline-line", "outline-row"],
+      "areas": ["tree"],
+      "neighbours": ["lists", "inputs", "detail"],
+      "axes": {
+        "placement": ["page", "split", "under-palette"],
+        "state": ["plain", "filtered", "job-running", "restored-after-restart"],
+        "modifiers": ["none", "count", "dot-repeat", "undo-redo", "in-macro"],
+        "outcome": ["success", "guard-false", "error", "pending-lands"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "inputs",
+      "title": "Inputs and the editor (Readline and Vim tables)",
+      "nouns": ["editor", "input", "prompt"],
+      "areas": ["inputs"],
+      "neighbours": ["completion", "lists", "palette"],
+      "axes": {
+        "data": ["empty", "one", "many", "overflow", "wide-cjk"],
+        "state": ["plain"],
+        "modifiers": ["none", "count", "register", "dot-repeat", "undo-redo", "in-macro"],
+        "outcome": ["success", "guard-false", "error"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "completion",
+      "title": "Inline completion under an input",
+      "nouns": ["completion"],
+      "areas": ["completion"],
+      "neighbours": ["inputs"],
+      "axes": {
+        "placement": ["page", "split", "modal"],
+        "state": ["plain", "job-running", "stale-result"],
+        "modifiers": ["none", "undo-redo", "in-macro"],
+        "outcome": ["success", "guard-false", "error", "pending-lands", "cancelled", "owner-closed"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "palette",
+      "title": "The command palette (ex line)",
+      "nouns": ["palette"],
+      "kinds": ["palette-result-row"],
+      "areas": ["palette"],
+      "neighbours": ["inputs"],
+      "axes": {
+        "data": ["empty", "one", "many", "overflow"],
+        "placement": ["modal"],
+        "focus": ["focused"],
+        "state": ["plain", "job-running", "restored-after-restart"],
+        "modifiers": ["none", "in-macro"],
+        "outcome": ["success", "guard-false", "error", "pending-lands", "cancelled"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "chooser",
+      "title": "Choosers (the page picker, column chooser, suggestions)",
+      "nouns": ["chooser"],
+      "areas": ["chooser"],
+      "neighbours": [],
+      "axes": {
+        "placement": ["modal"],
+        "focus": ["focused"],
+        "state": ["plain", "filtered", "job-running"],
+        "modifiers": ["none", "in-macro"],
+        "outcome": ["success", "guard-false", "error", "pending-lands", "cancelled"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "picker",
+      "title": "The path picker",
+      "nouns": ["picker"],
+      "areas": ["picker"],
+      "neighbours": ["inputs"],
+      "axes": {
+        "placement": ["modal"],
+        "focus": ["focused"],
+        "state": ["plain", "filtered", "job-running"],
+        "modifiers": ["none", "in-macro"],
+        "outcome": ["success", "guard-false", "error", "cancelled"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "modals",
+      "title": "Modals and confirmation",
+      "nouns": ["modal", "confirm"],
+      "areas": ["modals"],
+      "neighbours": [],
+      "axes": {
+        "data": ["one", "long-cells", "wide-cjk"],
+        "placement": ["modal"],
+        "focus": ["focused"],
+        "state": ["plain", "marked", "job-running"],
+        "modifiers": ["none", "in-macro"],
+        "outcome": ["success", "guard-false", "error", "cancelled", "owner-closed"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "forms",
+      "title": "Record editors (forms)",
+      "nouns": ["form", "form-choice", "form-field", "form-option", "form-suggest", "form-text"],
+      "areas": ["forms"],
+      "neighbours": ["chooser", "inputs"],
+      "axes": {
+        "placement": ["page", "split", "modal"],
+        "state": ["plain", "job-running", "stale-result"],
+        "modifiers": ["none", "undo-redo", "in-macro"],
+        "outcome": ["success", "guard-false", "error", "pending-lands", "cancelled", "owner-closed"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "settings",
+      "title": "Declared settings and the Settings page",
+      "nouns": ["settings", "setting", "setting-item", "setting-value", "settings-page"],
+      "areas": ["settings"],
+      "neighbours": ["detail", "list-filter"],
+      "axes": {
+        "data": ["empty", "one", "many", "overflow", "long-cells"],
+        "placement": ["page", "modal"],
+        "state": ["plain", "filtered", "restored-after-restart"],
+        "modifiers": ["none", "undo-redo", "in-macro"],
+        "outcome": ["success", "guard-false", "error", "cancelled"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "config",
+      "title": "Configuration reference, user actions",
+      "nouns": ["config", "actions"],
+      "areas": [],
+      "neighbours": [],
+      "axes": {
+        "data": ["empty", "one", "many"],
+        "placement": ["page"],
+        "state": ["plain", "job-running"],
+        "size": ["normal"],
+        "modifiers": ["none"],
+        "outcome": ["success", "guard-false", "error", "pending-lands"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "help",
+      "title": "Bindings: ? help, bindings list, user bindings",
+      "nouns": ["bindings", "binding"],
+      "areas": ["help"],
+      "neighbours": [],
+      "axes": {
+        "data": ["one", "many", "overflow", "long-cells"],
+        "placement": ["page", "split", "modal"],
+        "state": ["plain", "restored-after-restart"],
+        "modifiers": ["none"],
+        "outcome": ["success", "guard-false", "error"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "detail",
+      "title": "Page details (J/K scroll)",
+      "nouns": ["detail"],
+      "areas": ["detail"],
+      "neighbours": ["lists", "tables", "panes"],
+      "axes": {
+        "data": ["empty", "one", "overflow", "wide-cjk", "long-cells"],
+        "placement": ["page", "split", "under-palette"],
+        "state": ["plain", "filtered"],
+        "modifiers": ["none", "count", "in-macro"],
+        "outcome": ["success", "guard-false", "error"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "panes",
+      "title": "Resizable panes (the list/detail divider)",
+      "nouns": ["pane"],
+      "areas": ["panes"],
+      "neighbours": ["detail", "lists"],
+      "axes": {
+        "data": ["one", "many"],
+        "placement": ["split"],
+        "state": ["plain", "restored-after-restart"],
+        "modifiers": ["none", "count", "in-macro"],
+        "outcome": ["success", "guard-false", "error"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "terminal",
+      "title": "Terminal instances, the leader, passthrough",
+      "nouns": ["terminal"],
+      "modes": ["leader_pending", "terminal"],
+      "areas": ["terminal"],
+      "neighbours": ["lists"],
+      "axes": {
+        "data": ["empty", "one", "overflow", "wide-cjk"],
+        "placement": ["page", "split", "modal", "under-palette"],
+        "state": ["plain", "job-running", "restored-after-restart"],
+        "modifiers": ["none"],
+        "outcome": ["success", "guard-false", "error", "owner-closed"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "ticker",
+      "title": "The jobs ticker and the jobs list",
+      "nouns": ["jobs"],
+      "areas": ["ticker"],
+      "neighbours": [],
+      "axes": {
+        "data": ["empty", "one", "many", "overflow", "long-cells"],
+        "placement": ["page", "modal"],
+        "state": ["plain", "job-running", "stale-result"],
+        "modifiers": ["none"],
+        "outcome": ["success", "error", "pending-lands", "owner-closed"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "notices",
+      "title": "Notices and the status line",
+      "nouns": ["notice", "ui"],
+      "areas": ["notices"],
+      "neighbours": [],
+      "axes": {
+        "data": ["empty", "one", "many", "long-cells", "wide-cjk"],
+        "placement": ["page", "modal"],
+        "state": ["plain", "job-running"],
+        "modifiers": ["none"],
+        "outcome": ["success", "error"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "pages",
+      "title": "Chrome: pages, tabs, page picker, surface scroll, themes",
+      "nouns": ["page", "pages", "surface", "appearance", "themes"],
+      "areas": ["pages", "chrome", "scroll"],
+      "neighbours": ["chooser"],
+      "axes": {
+        "data": ["one", "many", "overflow", "wide-cjk"],
+        "placement": ["page", "split", "modal"],
+        "state": ["plain", "job-running", "restored-after-restart"],
+        "modifiers": ["none", "count", "in-macro"],
+        "outcome": ["success", "guard-false", "error"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "markdown",
+      "title": "Markdown documents and task toggles",
+      "nouns": ["markdown", "markdown-task"],
+      "areas": ["markdown"],
+      "neighbours": ["lists", "detail"],
+      "axes": {
+        "placement": ["page", "split", "under-palette"],
+        "state": ["plain", "stale-result"],
+        "modifiers": ["none", "count", "undo-redo", "in-macro"],
+        "outcome": ["success", "guard-false", "error"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "grid",
+      "title": "The grid component",
+      "nouns": ["grid", "selection"],
+      "areas": [],
+      "neighbours": ["lists"],
+      "axes": {
+        "placement": ["page", "split", "modal"],
+        "state": ["plain", "marked", "restored-after-restart"],
+        "modifiers": ["none", "count", "register", "in-macro"],
+        "outcome": ["success", "guard-false", "error"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "catalog",
+      "title": "Catalog data pages (groups rail, widgets, state deltas)",
+      "nouns": ["page-group"],
+      "areas": ["catalog"],
+      "neighbours": ["lists", "detail"],
+      "axes": {
+        "placement": ["page", "split"],
+        "state": ["plain", "filtered", "job-running", "stale-result"],
+        "modifiers": ["none", "in-macro"],
+        "outcome": ["success", "guard-false", "error", "pending-lands"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "commands",
+      "title": "cli's Commands page",
+      "nouns": ["command", "commands"],
+      "areas": ["commands"],
+      "neighbours": ["terminal", "detail"],
+      "axes": {
+        "placement": ["page", "split"],
+        "state": ["plain", "filtered", "job-running"],
+        "modifiers": ["none", "in-macro"],
+        "outcome": ["success", "guard-false", "error", "pending-lands", "cancelled", "owner-closed"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "history",
+      "title": "Action history and dot-repeat",
+      "nouns": ["history"],
+      "areas": [],
+      "neighbours": [],
+      "axes": {
+        "data": ["empty", "one", "many", "overflow"],
+        "placement": ["page", "modal"],
+        "state": ["plain", "restored-after-restart"],
+        "modifiers": ["none", "count", "dot-repeat", "in-macro"],
+        "outcome": ["success", "guard-false", "error"]
+      },
+      "journeys": []
+    },
+    {
+      "id": "registers",
+      "title": "Counts, registers, macros, yank history",
+      "nouns": ["registers", "register", "yank-history", "macro", "count"],
+      "modes": ["count_pending", "register_pending", "macro_pending", "replay_pending", "macro_recording"],
+      "areas": [],
+      "neighbours": [],
+      "axes": {
+        "data": ["empty", "one", "many"],
+        "placement": ["page", "modal"],
+        "state": ["plain"],
+        "size": ["normal"],
+        "modifiers": ["none", "count", "register", "in-macro"],
+        "outcome": ["success", "guard-false", "error", "cancelled"]
+      },
+      "journeys": []
+    }
+  ]
+}

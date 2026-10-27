@@ -14,6 +14,8 @@ o-story                      # index of stories by area; enter opens one
 o-story run [NAME|AREA...]   # headless; non-zero exit on failure
 o-story run --update --dir cmd/o-story/stories   # rewrite goldens on disk
 o-story list | history | keep N NAME | replay REF | trim REF ... | verbs
+o-story matrix [--component C] [--json]     # the coverage cells per component
+o-story coverage [--component C] [--json]   # cells covered by the stories' covers
 o story ...                  # the same, through the oden family root
 ```
 
@@ -44,6 +46,7 @@ it to the timer's deadline and delivers the timer's message
   width: 80, height: 24,          // the story's area; default 80x24
   chrome: "full",                 // "full" | "none" (page body only) | "ticker-only"
   skip: "gap: ...",               // optional: a known framework gap; runs, cannot fail
+  covers: ["lists/list.move(delta=1)/*"], // optional: the matrix cells it tests (o-story coverage)
   theme: "kombu", accent: "#E8833A", // a theme other than mono, the Appearance accent override
   themes: { kombu: { background: "dark", accent: "#C9A227" } }, // schemes in the themes.json shape;
                                   // one that does not validate is a notice (chrome/scheme-*)
@@ -220,6 +223,74 @@ o-story run --from spill-bug [--expect '{"focus":"b1"}']   # headless; asserts o
 
 Every chrome or motion rule has a story here; a UI bug is reproduced as a
 story before it is fixed.
+
+## Coverage matrix
+
+What o-story must cover is data, per component, so stories can be written
+and reviewed one component at a time.
+
+- `components.json` (beside this README, embedded in the binary) is the
+  component map: each component's `nouns` (every noun the framework
+  registers belongs to exactly one; `kinds` are modal or row kinds that
+  are nouns only once opened), the operations it claims from its noun's
+  owner (`operations`: tables claims `list.column` from lists), the
+  runtime modes it owns (`modes`: every row in `list_filter` is
+  list-filter's), its story `areas`, its `neighbours` (what it hosts or
+  spills into), the axis values that apply to it (`axes`, a restriction of
+  the global values), impossible combinations (`exclude`, each with its
+  `why`) and hand-written `journeys`. The axes, the mapping of runtime
+  modes onto the mode axis (`modes`), the axes each action channel varies
+  (`channels`) and the global excludes are defined once at the top.
+  `go test ./internal/storymatrix` fails when a framework noun is mapped
+  to no component or to two, when a mapped noun or claimed operation does
+  not exist, or when a runtime mode has no mode axis value. The noun set
+  comes from `storymatrix.FrameworkRuntime`: `NewRuntime`, `NewModel`,
+  `NewPicker`, `grid.Register`, `markdown.Register`, `cli.AddCommands` and
+  one groups-layout `cli.MountPage` (a test checks the demo and every core
+  story register no builtin noun beyond it).
+- **Actions** are derived, never listed: every stored binding row
+  (`bindings list --all`, all modes) becomes a key action; rows running
+  the same request (operation and arguments) are one action whose keys
+  are its aliases (`list.move(delta=1)` is `j` and `down`). A row belongs
+  to the component owning its mode, else the one claiming its operation,
+  else its table noun's; `app`'s rows (`router`) go to the operation's
+  component (`?` is help's; a `mode.enter` to the component owning the
+  target mode). Every builtin operation is also a `palette:` and a `cli:`
+  action, and one some key reaches is a `parity:` action (key, palette
+  line and CLI agree). Each component adds `~hosted` (drawn in each
+  placement), `~spill` (into each neighbour, both directions), `~hints`
+  (footer and `?` help agree with its rows, per mode) and its journeys.
+- **Cells** are action × axis values. The axes in `axes.full` (to,
+  direction, surface, mode, placement, focus, outcome) are a full product;
+  the rest (data, state, size, modifiers) are added by a deterministic
+  pairwise (IPOG, fixed ordering), so every pair of values of any two
+  axes appears once at least. An action takes only the values that apply
+  to it: its rows' own modes (a sequence adds `pending-prefix`), a
+  `guard-false` outcome only with a row or verb guard, `pending-lands`,
+  `owner-closed` and `stale-result` only for application verbs,
+  `cancelled` only with a confirm or a component that cancels, `count`
+  only for a verb that takes one, `dot-repeat` only when repeatable,
+  `in-macro` and `register` only by key. Cell ids read
+  `COMPONENT/ACTION/axis=value,...` in the axes' order, for example
+  `lists/list.move(delta=1)/mode=normal,placement=page,focus=focused,outcome=success,data=empty,state=plain,size=tiny,modifiers=none`.
+- A story says what it tests with `covers`: cell ids or `path.Match`
+  patterns (`"covers": ["tables/list.column(delta=1)/*", "tables/~hosted"]`);
+  a pattern matching a cell id's leading segments covers every cell under
+  them (`tables/list.yank*` covers all of that action's cells). The runner
+  ignores it.
+
+```sh
+o-story matrix                       # every cell id, one per line, by component
+o-story matrix --component tables --json   # the component's actions (keys, modes, guards) and cells
+o-story coverage                     # per component: cells, covered, missing, stories in its areas, untagged, typos
+o-story coverage --component tables  # the same row, then its untagged stories and missing cells
+```
+
+Both are deterministic: the same tree gives the same bytes. Coverage
+reads the core stories (embedded, or `--dir`); a story's covers count for
+any component, a pattern matching no cell is a typo (listed under the
+summary and in the component whose area holds the story), and the total
+row counts each story once.
 
 ## Catalog
 
