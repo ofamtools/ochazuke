@@ -196,6 +196,12 @@ type Config struct {
 	actions        []Action
 	actionProblems []string
 	actionsLoaded  bool
+	// hooks are the application's files config.reload reads after the
+	// framework's (OnConfigReload), in registration order.
+	hooks []*configHook
+	// themeListeners take the schemes again after config.reload read
+	// themes.json (the appearance's).
+	themeListeners []func()
 	// leaderObserved is set once the terminal-leader setting is observed.
 	leaderObserved bool
 	// leaderTimeoutDefault is set when EnsureTerminalLeader declared

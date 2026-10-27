@@ -264,6 +264,7 @@ func (r *Runtime) registerFramework() {
 	registerSettings(r)
 	registerSettingsEditor(r)
 	registerConfigExport(r)
+	registerConfigReload(r)
 	registerPages(r)
 	registerLists(r)
 	registerTrees(r)
@@ -392,7 +393,7 @@ var frameworkHistoryKinds = map[string]string{
 	"actions.list": HistoryFetch, "actions.path": HistoryFetch, "actions.reload": HistoryFetch,
 	"appearance.get": HistoryFetch, "bindings.check": HistoryFetch, "bindings.list": HistoryFetch,
 	"bindings.path": HistoryFetch, "bindings.reload": HistoryFetch, "bindings.stops": HistoryFetch,
-	"config.path": HistoryFetch, "history.list": HistoryFetch, "history.path": HistoryFetch,
+	"config.path": HistoryFetch, "config.reload": HistoryFetch, "history.list": HistoryFetch, "history.path": HistoryFetch,
 	"instances.query": HistoryFetch, "jobs.list": HistoryFetch, "modes.list": HistoryFetch,
 	"notice.list": HistoryFetch, "operations.list": HistoryFetch, "pages.list": HistoryFetch,
 	"register.get": HistoryFetch, "settings.get": HistoryFetch, "settings.list": HistoryFetch,

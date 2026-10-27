@@ -28,7 +28,7 @@ type Appearance struct {
 	Dark    bool        `json:"dark"`
 	Accent  color.Color `json:"-"`
 	// Schemes are the colour schemes beyond the built-in themes, by name:
-	// the user's themes.json (Model.Init and themes.reload set it) or an
+	// the user's themes.json (Model.Init, themes.reload and config.reload set it) or an
 	// application's own (NewSchemeSet). A pointer keeps Appearance
 	// comparable.
 	Schemes *SchemeSet `json:"-"`
@@ -43,6 +43,8 @@ func NewAppearance(r *Runtime) *Appearance {
 
 func newAppearance(r *Runtime) *Appearance {
 	a := &Appearance{Theme: "adaptive", Density: "comfortable", Dark: true}
+	c := r.Config()
+	c.themeListeners = append(c.themeListeners, func() { a.Schemes = NewSchemeSet(r.Config().Schemes()) })
 	r.Register(Operation{Verb: "get", Noun: "appearance", Description: "Get theme and density", Result: "appearance", Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
 		return *a, nil
 	}})
@@ -72,8 +74,7 @@ func newAppearance(r *Runtime) *Appearance {
 		return a.ThemeNames(), nil
 	}})
 	r.Register(Operation{Verb: "reload", Noun: "themes", Description: "Read themes.json again: a scheme that does not validate is skipped and reported", Result: "problem[]", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
-		problems := r.ReloadThemes()
-		a.Schemes = NewSchemeSet(r.Config().Schemes())
+		problems := r.reloadThemes()
 		if problems == nil {
 			problems = []string{}
 		}

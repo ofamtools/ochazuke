@@ -1147,10 +1147,11 @@ The prompt (`setting-prompt`): `enter` sets the value; one that does not validat
 
 ## Configuration reference (config export)
 
-Every application has a `config` noun. `config path` prints where the user files live; `config export [DIR]` writes a complete reference of the user configuration to copy from:
+Every application has a `config` noun. `config path` prints where the user files live; `config export [DIR]` writes a complete reference of the user configuration to copy from; `config reload` reads every config file again:
 
 ```sh
 APP config path                  # {"config": "~/.config/APP", "state": "~/.local/state/APP", "reference": "~/.config/APP/reference"}
+APP config reload                # themes, settings, actions, bindings, then the app's own files: the problems
 APP config export                # writes ~/.config/APP/reference/
 APP config export ./ref          # anywhere else
 APP config export ~/.config/APP --force   # into the live directory: only with --force
@@ -1169,7 +1170,15 @@ The framework's settings (`theme`, `history-limit`) are declared before the expo
 
 Copying a default into a live file pins it: a later version that changes the default does not reach that user. Copy only what you change. A row's guard is part of its identity: a `bindings.json` row replaces only the row with the same noun or instance, mode, keys (or pattern) and `when`, so a guarded row and the unguarded row on the same keys (such as `0` in `operator_pending`: the count digit with `when: count` and the line-start motion) are changed one at a time, and the reference loads back unchanged.
 
-Go: `Runtime.ExportConfig(dir, force) (ConfigExport, error)`, `Config.Paths() ConfigPaths`; constants `ReferenceDir`, `ReferenceReadme`, `SettingsReferenceFile`, `BindingsReferenceFile`, `ActionsExampleFile`, `ThemesExampleFile`.
+`config reload` reads, in order, `themes.json` (so the `theme` setting's choices are current), `settings.json` (observers see each changed value), `actions.json`, `bindings.json` (once; a row can name an action's verb), each only when the application uses it, then the files the application joined with `Runtime.OnConfigReload(name, fn)`. A bad file or entry is skipped and is a notice, never fatal; each file's previous notices are withdrawn first. The result is every problem, each naming its file; without a config directory it is an error. The single-file reloads (`themes reload`, `settings reload`, `actions reload`, `bindings reload`) stay.
+
+```go
+r.OnConfigReload("directories.json", func() []string {
+	return app.LoadDirectories() // problems, each prefixed "directories.json: " unless it already is
+})
+```
+
+Go: `Runtime.ExportConfig(dir, force) (ConfigExport, error)`, `Config.Paths() ConfigPaths`, `Runtime.ReloadConfig() ([]string, error)`, `Runtime.OnConfigReload(name, fn)`; constants `ReferenceDir`, `ReferenceReadme`, `SettingsReferenceFile`, `BindingsReferenceFile`, `ActionsExampleFile`, `ThemesExampleFile`.
 
 ## Live CLI control
 

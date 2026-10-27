@@ -176,6 +176,8 @@ func (r *Runtime) referenceReadme(settings, rows int) []byte {
 		line("| `%s` | Values of the declared settings, by name | read again when it changes |", SettingsFile)
 		line("| `%s` | Verbs that run external commands | `%s actions reload`, or restart |", ActionsFile, app)
 		line("| `%s` | Colour schemes the `%s` setting can name | `%s themes reload`, or restart |", ThemesFile, ThemeSetting, app)
+		line("")
+		line("`%s config reload` reads all of them again at once.", app)
 	}
 	if paths.State != "" {
 		line("")
