@@ -103,6 +103,33 @@ func TestStylesFadeAndWithDims(t *testing.T) {
 	if mid == text || mid == ground {
 		t.Fatalf("Fade(50) %v is an end, not a blend of %v and %v", mid, text, ground)
 	}
+	// The fade is the perceptual blend, step p of a 101-step Blend1D ramp:
+	// its ends are text and surface, and each percent is further from text.
+	if want := rgb(lipgloss.Blend1D(fadeSteps, dark.text, dark.ground)[50]); mid != want {
+		t.Fatalf("Fade(50) %v, Blend1D gives %v", mid, want)
+	}
+	ramp := fadeRamp(dark.text, dark.ground)
+	near := func(a, b [3]int) bool {
+		for i := range 3 {
+			if a[i]-b[i] > 1 || b[i]-a[i] > 1 {
+				return false
+			}
+		}
+		return true
+	}
+	if len(ramp) != fadeSteps || !near(rgb(ramp[0]), text) || !near(rgb(ramp[fadeSteps-1]), ground) {
+		t.Fatalf("ramp of %d from %v to %v, want %v to %v", len(ramp), rgb(ramp[0]), rgb(ramp[len(ramp)-1]), text, ground)
+	}
+	dist := func(p int) int {
+		c, d := rgb(dark.Fade(p).GetForeground()), 0
+		for i := range 3 {
+			d += (c[i] - text[i]) * (c[i] - text[i])
+		}
+		return d
+	}
+	if !(dist(10) < dist(35) && dist(35) < dist(MaxDim)) {
+		t.Fatalf("fades do not move away from text: %d %d %d", dist(10), dist(35), dist(MaxDim))
+	}
 	if rgb(dark.Fade(MaxDim+10).GetForeground()) != rgb(dark.Fade(MaxDim).GetForeground()) {
 		t.Fatal("Fade is not clamped at MaxDim")
 	}

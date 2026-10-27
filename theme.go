@@ -7,6 +7,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"sync"
 
 	"charm.land/lipgloss/v2"
 )
@@ -144,7 +145,8 @@ const (
 )
 
 // Fade is a style that carries text percent of the way from the scheme's
-// text colour toward its surface; with no colour (mono, NO_COLOR) any
+// text colour toward its surface, blended in CIELAB (fadeRamp,
+// lipgloss.Blend1D); with no colour (mono, NO_COLOR) any
 // percent above 0 is the faint attribute. 0 is the empty style.
 func (s Styles) Fade(percent int) lipgloss.Style {
 	percent = min(percent, MaxDim)
@@ -154,7 +156,7 @@ func (s Styles) Fade(percent int) lipgloss.Style {
 	case s.plain || s.text == nil || s.ground == nil:
 		return lipgloss.NewStyle().Faint(true)
 	}
-	return lipgloss.NewStyle().Foreground(mix(s.text, s.ground, float64(percent)/100))
+	return lipgloss.NewStyle().Foreground(fadeRamp(s.text, s.ground)[percent])
 }
 
 // WithDims sets Backdrop and Unfocused from percents: the backdrop is the
@@ -204,12 +206,27 @@ func validDim(v any) error {
 	return nil
 }
 
-// mix is a + (b-a)*t per channel.
-func mix(a, b color.Color, t float64) color.Color {
-	ar, ag, ab, _ := a.RGBA()
-	br, bg, bb, _ := b.RGBA()
-	at := func(x, y uint32) uint8 { return uint8((float64(x>>8)*(1-t) + float64(y>>8)*t) + 0.5) }
-	return color.RGBA{R: at(ar, br), G: at(ag, bg), B: at(ab, bb), A: 0xff}
+// fadeSteps is the length of a fade ramp: index p is p percent of the way
+// from text to ground (Blend1D's one segment puts step j at j/(steps-1)).
+const fadeSteps = 101
+
+type rampKey struct{ text, ground color.RGBA64 }
+
+// fadeRamps caches a ramp per text and surface pair, so Model.Styles,
+// which runs per frame and per page list, blends a scheme once. The pairs
+// are the schemes in use, a handful.
+var fadeRamps sync.Map // rampKey -> []color.Color
+
+// fadeRamp is lipgloss.Blend1D from text to ground in fadeSteps (CIELAB,
+// so a fade looks evenly spaced rather than muddy).
+func fadeRamp(text, ground color.Color) []color.Color {
+	key := rampKey{color.RGBA64Model.Convert(text).(color.RGBA64), color.RGBA64Model.Convert(ground).(color.RGBA64)}
+	if ramp, ok := fadeRamps.Load(key); ok {
+		return ramp.([]color.Color)
+	}
+	ramp := lipgloss.Blend1D(fadeSteps, text, ground)
+	fadeRamps.Store(key, ramp)
+	return ramp
 }
 
 // NewStyles keeps layout and focus cues usable without terminal color

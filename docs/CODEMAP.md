@@ -452,7 +452,7 @@ Root package `ochazuke` is flat: 63 source files, 63 test files. Each entry list
 
 ### theme.go
 
-- lines: 269 · tests: theme_test.go
+- lines: 286 · tests: theme_test.go
 - purpose: Appearance is event-loop-owned configuration.
 - types: Appearance, Styles
 - methods: Appearance(2), Runtime(2), Styles(2)
