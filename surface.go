@@ -76,10 +76,10 @@ func ComposeModalBlock(background, title string, body Block, footer string, widt
 		cursor = cursor.Offset(2, 2)
 	}
 	left, top := (width-panelWidth)/2, (height-len(lines))/2
-	// The backdrop is drawn muted as one layer and the panel as a second layer
+	// The backdrop is drawn dimmed (Styles.Backdrop, modal-dim) as one layer and the panel as a second layer
 	// on top; the canvas owns cell clipping, including wide graphemes under the
 	// panel's edges.
-	backdrop := dim(fitSurface(strings.ReplaceAll(background, "\t", "    "), width, height), styles.Muted)
+	backdrop := dim(fitSurface(strings.ReplaceAll(background, "\t", "    "), width, height), styles.Backdrop)
 	canvas := lipgloss.NewCanvas(width, height)
 	canvas.Compose(lipgloss.NewCompositor(
 		lipgloss.NewLayer(backdrop),
@@ -90,10 +90,10 @@ func ComposeModalBlock(background, title string, body Block, footer string, widt
 	return cursor.Offset(left, top).WithText(text)
 }
 
-// dim draws a styled backdrop in the muted style without dropping its own
-// styles: the muted attributes open every line and are opened again after
+// dim draws styled text in a dimming style without dropping its own
+// styles: the style's attributes open every line and are opened again after
 // every reset inside it, so a reverse-video cursor or an underlined
-// selection beneath a modal stays visible, dimmed.
+// selection beneath a modal, or in an unfocused list, stays visible, dimmed.
 func dim(text string, muted lipgloss.Style) string {
 	sample := muted.Render("x")
 	open := sample[:strings.Index(sample, "x")]

@@ -330,8 +330,15 @@ func TestDemoAppearanceIsSavedAsSettings(t *testing.T) {
 	if m.Appearance.Theme != "dark" {
 		t.Fatalf("t: theme %q status %q", m.Appearance.Theme, m.Status)
 	}
+	// Reach density by name with the list filter, not by its row position,
+	// so a setting declared before it does not move the test.
 	keytest.Press(m, "s")
-	keytest.Press(m, "j")
+	keytest.Press(m, "/")
+	keytest.Type(m, "density")
+	keytest.Press(m, "enter")
+	if !strings.HasSuffix(r.Focus, "/density") {
+		t.Fatalf("filter: focus %q status %q", r.Focus, m.Status)
+	}
 	keytest.Press(m, "enter")
 	keytest.Press(m, "esc")
 	if r.TopModal() != "" || m.Appearance.Density != "compact" {

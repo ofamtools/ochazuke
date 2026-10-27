@@ -115,8 +115,8 @@ func newModel(r *Runtime) *Model {
 	m.ModalViews["confirm"] = ModalView{Title: "Confirm", Render: confirmView}
 	m.ModalViews[helpID] = ModalView{Title: "Keys", Render: bindingHelpView}
 	m.ModalViews[paletteResultsID] = ModalView{Title: "Results", Render: paletteResultsView}
-	// The Settings page draws in the Model's appearance.
-	r.Settings().page.styles = func() Styles { return NewStyles(*m.Appearance) }
+	// The Settings page and unfocused page lists draw in the Model's styles.
+	r.Settings().page.styles = m.Styles
 	m.ModalViews[settingPromptID] = ModalView{Title: "Set", Render: settingPromptView}
 	r.Register(Operation{Verb: "scroll", Noun: "surface", Description: "Scroll the active page or modal without changing focus", Parameters: map[string]Parameter{"lines": {Type: "integer", Required: true}}, Result: "scroll offset", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		key := m.surfaceKey()
@@ -284,7 +284,7 @@ func (m *Model) handleKey(key MacroKey) {
 // layout is the shell's chrome for the current viewport; page renderers get
 // its BodySize, less the sidebar when one is shown.
 func (m *Model) layout() Layout {
-	return Layout{Width: m.Width, Height: m.Height, Styles: NewStyles(*m.Appearance)}
+	return Layout{Width: m.Width, Height: m.Height, Styles: m.Styles()}
 }
 func (m *Model) pageSize() (int, int) {
 	layout := m.layout()
@@ -338,7 +338,7 @@ func (m *Model) modalContent(id string, width, height int) (string, Block) {
 		body = m.ModalViews[id].Render(m.Runtime, m.Runtime.Instances[id], width, height)
 	case m.modalBody(id) != nil:
 		mb := m.modalBody(id)
-		body = mb.ModalBlock(NewStyles(*m.Appearance), width, height)
+		body = mb.ModalBlock(m.Styles(), width, height)
 		if id != m.Runtime.TopModal() {
 			body.Cursor = nil
 		}
@@ -662,6 +662,13 @@ func (m *Model) cursor(block Block) *tea.Cursor {
 		cursor.Shape = tea.CursorBlock
 	}
 	return cursor
+}
+
+// Styles is the Model's appearance with the dim settings applied
+// (modal-dim, dim-unfocused); the shell, modals and page lists draw in it.
+func (m *Model) Styles() Styles {
+	r := m.Runtime
+	return NewStyles(*m.Appearance).WithDims(r.dimSetting(ModalDimSetting, DefaultModalDim), r.dimSetting(DimUnfocusedSetting, DefaultDimUnfocused))
 }
 
 // render composes the page shell and the modal stack. Each composer offsets

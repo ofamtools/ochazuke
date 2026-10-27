@@ -67,3 +67,57 @@ func TestAppearanceBackground(t *testing.T) {
 		t.Error("NO_COLOR must be plain")
 	}
 }
+
+// Fade blends the text colour toward the surface by percent, clamped at
+// MaxDim; mono and NO_COLOR fade with the faint attribute; 0 is no style.
+// WithDims adds faint to the backdrop only.
+func TestStylesFadeAndWithDims(t *testing.T) {
+	t.Setenv("NO_COLOR", "")
+	mono := NewStyles(Appearance{Theme: "mono"})
+	if got := mono.Fade(0).Render("x"); got != "x" {
+		t.Fatalf("Fade(0) styled: %q", got)
+	}
+	if !mono.Fade(20).GetFaint() || !mono.Fade(MaxDim+50).GetFaint() {
+		t.Fatal("mono fade is not faint")
+	}
+	dark := NewStyles(Appearance{Theme: "dark", Dark: true})
+	rgb := func(c color.Color) [3]int {
+		r, g, b, _ := c.RGBA()
+		return [3]int{int(r >> 8), int(g >> 8), int(b >> 8)}
+	}
+	text, ground := rgb(dark.text), rgb(dark.ground)
+	if text == ground {
+		t.Fatalf("dark scheme text and surface are the same: %v", text)
+	}
+	half := dark.Fade(50)
+	if half.GetFaint() {
+		t.Fatal("a coloured fade is faint")
+	}
+	mid := rgb(half.GetForeground())
+	for i := range 3 {
+		lo, hi := min(text[i], ground[i]), max(text[i], ground[i])
+		if mid[i] < lo || mid[i] > hi {
+			t.Fatalf("Fade(50) %v is not between text %v and surface %v", mid, text, ground)
+		}
+	}
+	if mid == text || mid == ground {
+		t.Fatalf("Fade(50) %v is an end, not a blend of %v and %v", mid, text, ground)
+	}
+	if rgb(dark.Fade(MaxDim+10).GetForeground()) != rgb(dark.Fade(MaxDim).GetForeground()) {
+		t.Fatal("Fade is not clamped at MaxDim")
+	}
+	if rgb(dark.Fade(MaxDim).GetForeground()) == ground {
+		t.Fatal("Fade(MaxDim) reached the surface")
+	}
+	dims := dark.WithDims(35, 20)
+	if !dims.Backdrop.GetFaint() || rgb(dims.Backdrop.GetForeground()) != rgb(dark.Fade(35).GetForeground()) {
+		t.Fatal("Backdrop is not the fade plus faint")
+	}
+	if dims.Unfocused.GetFaint() || rgb(dims.Unfocused.GetForeground()) != rgb(dark.Fade(20).GetForeground()) {
+		t.Fatal("Unfocused is not the fade alone")
+	}
+	off := dark.WithDims(0, 0)
+	if off.Backdrop.Render("x") != "x" || off.Unfocused.Render("x") != "x" {
+		t.Fatal("WithDims(0, 0) styles")
+	}
+}

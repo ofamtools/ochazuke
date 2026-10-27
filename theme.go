@@ -125,6 +125,91 @@ type Styles struct {
 	ActiveTab    lipgloss.Style
 	Badge        lipgloss.Style
 	Padding      int
+	// Backdrop draws what a modal covers (modal-dim); Unfocused draws a page
+	// list without the focus (dim-unfocused). Either is the empty style when
+	// its dim is 0. WithDims sets both from percents.
+	Backdrop  lipgloss.Style
+	Unfocused lipgloss.Style
+
+	text, ground color.Color // the scheme's text and surface, the ends of a fade
+	plain        bool        // mono or NO_COLOR: a fade is the faint attribute
+}
+
+// Dim defaults, in percent toward the background (the settings modal-dim
+// and dim-unfocused, Model.Styles).
+const (
+	DefaultModalDim     = 35 // about the scheme's muted colour, as the backdrop always was
+	DefaultDimUnfocused = 20
+	MaxDim              = 90
+)
+
+// Fade is a style that carries text percent of the way from the scheme's
+// text colour toward its surface; with no colour (mono, NO_COLOR) any
+// percent above 0 is the faint attribute. 0 is the empty style.
+func (s Styles) Fade(percent int) lipgloss.Style {
+	percent = min(percent, MaxDim)
+	switch {
+	case percent <= 0:
+		return lipgloss.NewStyle()
+	case s.plain || s.text == nil || s.ground == nil:
+		return lipgloss.NewStyle().Faint(true)
+	}
+	return lipgloss.NewStyle().Foreground(mix(s.text, s.ground, float64(percent)/100))
+}
+
+// WithDims sets Backdrop and Unfocused from percents: the backdrop is the
+// fade plus the faint attribute (the look it always had at the default),
+// an unfocused list the fade alone.
+func (s Styles) WithDims(modal, unfocused int) Styles {
+	s.Backdrop = lipgloss.NewStyle()
+	if modal > 0 {
+		s.Backdrop = s.Fade(modal).Faint(true)
+	}
+	s.Unfocused = s.Fade(unfocused)
+	return s
+}
+
+// The dim settings, declared by EnsureConfigSettings.
+const (
+	ModalDimSetting     = "modal-dim"
+	DimUnfocusedSetting = "dim-unfocused"
+)
+
+// ensureDimSettings declares modal-dim and dim-unfocused unless the
+// application declared them.
+func (r *Runtime) ensureDimSettings() {
+	s := r.Settings()
+	if s.find(ModalDimSetting) == nil {
+		_ = r.DeclareSetting(Setting{Name: ModalDimSetting, Type: SettingInteger, Default: DefaultModalDim, Description: "Percent the page behind a modal fades toward the background (0 is off)", Validate: validDim})
+	}
+	if s.find(DimUnfocusedSetting) == nil {
+		_ = r.DeclareSetting(Setting{Name: DimUnfocusedSetting, Type: SettingInteger, Default: DefaultDimUnfocused, Description: "Percent a list without the focus fades toward the background; its selected row stays marked (0 is off)", Validate: validDim})
+	}
+}
+
+// dimSetting is a dim setting's value, def when it is not declared.
+func (r *Runtime) dimSetting(name string, def int) int {
+	v, ok := r.Settings().Value(name)
+	n, isInt := v.(int)
+	if !ok || !isInt {
+		return def
+	}
+	return min(max(n, 0), MaxDim)
+}
+
+func validDim(v any) error {
+	if n, _ := v.(int); n < 0 || n > MaxDim {
+		return fmt.Errorf("must be 0 to %d", MaxDim)
+	}
+	return nil
+}
+
+// mix is a + (b-a)*t per channel.
+func mix(a, b color.Color, t float64) color.Color {
+	ar, ag, ab, _ := a.RGBA()
+	br, bg, bb, _ := b.RGBA()
+	at := func(x, y uint32) uint8 { return uint8((float64(x>>8)*(1-t) + float64(y>>8)*t) + 0.5) }
+	return color.RGBA{R: at(ar, br), G: at(ag, bg), B: at(ab, bb), A: 0xff}
 }
 
 // NewStyles keeps layout and focus cues usable without terminal color
@@ -164,7 +249,7 @@ func NewStyles(a Appearance) Styles {
 	focusedBorder := lipgloss.RoundedBorder()
 	focusedBorder.Top, focusedBorder.Bottom = "━", "━"
 	focusedBorder.Left, focusedBorder.Right = "┃", "┃"
-	return Styles{
+	styles := Styles{
 		Title:        lipgloss.NewStyle().Bold(true).Foreground(title),
 		Subtitle:     lipgloss.NewStyle().Foreground(accent),
 		Muted:        lipgloss.NewStyle().Foreground(muted).Faint(true),
@@ -176,5 +261,9 @@ func NewStyles(a Appearance) Styles {
 		ActiveTab:    lipgloss.NewStyle().Foreground(accent).Background(surface).Bold(true).Padding(0, 1).Transform(func(s string) string { return "› " + s }),
 		Badge:        lipgloss.NewStyle().Foreground(accent).Background(surface).Padding(0, 1),
 		Padding:      padding,
+		text:         text,
+		ground:       surface,
+		plain:        plain,
 	}
+	return styles.WithDims(DefaultModalDim, DefaultDimUnfocused)
 }
