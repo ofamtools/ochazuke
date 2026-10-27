@@ -294,7 +294,11 @@ Macro recording consumes exactly one register character after `q`. For `qq:`, th
 | Normal list | `/` | Filter the list's rows (see Filtering a list) |
 | Normal list | `gg`, `G`, `NG`/`Ngg` | First row, last row, row N (`list.goto`; clamps, never spills) |
 | Normal list | `Ctrl-D/U`, `Ctrl-F/B` | Half a page / a page down and up, the window moving with the selection (`list.scroll`; `3 Ctrl-D` is 3 rows, `2 Ctrl-F` two pages) |
-| Normal table with hidden columns | `$`, `^`/`0`, `zl`/`zh` | Scroll the columns: the last one into view, back to the start, one column right/left; the first column stays (`list.scroll-columns`) |
+| Normal table | `h`/`l`, `0`/`^`/Home, `$`/End, `N\|`, `gc` | Move the current column: one left/right (counts), the first, the last, column N, a chooser of titles (`list.column`, `list.choose-column`); the view scrolls to show it |
+| Normal table | `y`, `Y` | Copy the current cell, or the row's cells joined by tabs, into the registers (`list.yank`) |
+| Normal table | `z>`, `z<`, `z=` | Widen / narrow the current column by 2 cells (counts), every column automatic again; remembered per table (`list.resize-column`, `list.reset-columns`) |
+| Normal table | `V` | Visual row selection over the marks: `j`/`k` extend it, a row's verb then runs for every selected row (one confirm), `esc` ends it (`list.visual`) |
+| Normal table | `zl`/`zh` | Scroll the columns one right/left; the first column stays (`list.scroll-columns`) |
 | Normal Appearance | `t`, `d` | Cycle theme / density |
 | Normal demo | `Ctrl-J/K` | Next/previous page |
 | Normal page with a list/detail split | `>`, `<`, `=` | Grow / shrink the list pane by 5% (counts: `3>`), reset the divider; remembered per page |
@@ -440,7 +444,7 @@ The id (`sidebar` here) identifies the list instance (`r.List("sidebar")` return
 - `Move(delta)` and `Select(itemID)` change selection without stealing focus. `Selected()` returns the selected value and whether one exists.
 - `SetItems(rows)` copies the records and preserves selection by stable ID. It creates the instance of each new row under the list (`Instance{ID: item.ID, Noun: item.Noun, Parent: <list>}`) and removes the instances of rows that disappear; a retained row keeps its instance and marks. A removed selection falls back to its previous index, clamped to the remaining rows. An empty list focuses the list itself. An empty or duplicate ID, an unregistered noun, or an ID that is already another instance rejects the whole update.
 - Refreshes also move every focus reference (the focus, a page's remembered focus, a modal's return) that pointed at the list or a removed row to the selected row (`RetargetFocus`), so returning from another page/modal cannot restore a removed row's rows.
-- `ToggleMark(id)` and `Marked()` keep a multi-selection. `list.apply {verb}` runs `<row noun>.verb` with the row as target for every marked row (the selected row when none is marked), skipping and reporting rows whose noun lacks the verb.
+- `ToggleMark(id)` and `Marked()` keep a multi-selection. `list.apply {verb, args}` runs `<row noun>.verb` with the row as target and `args` as its arguments for every marked row (the selected row when none is marked), skipping and reporting rows whose noun lacks the verb; a verb with a confirm asks once for all the rows.
 - Call these methods on the runtime's event loop. Data loading and domain actions remain application-owned. There is no tree expansion or built-in search provider.
 
 #### Moving through a list
@@ -455,7 +459,29 @@ Every list (page lists, tables, trees, a catalog page's lists, the Settings page
 
 A page is the rows the list's own window showed in the last frame when the list windows itself, else the height of the page body it is drawn on (a list drawn at its full length on a scrolling page), else the rows it showed (a list in a modal), else 10 before any frame. The window moves with the selection by the rows moved, so the selected row keeps its line (Vim's `ctrl+d`), and the scrolloff margin then applies as for `j`/`k`. None of them spills to the next stop: at the list's edges they stop quietly. They are motions: off the footer, under `movement` in `?` help. `pgup`/`pgdn` still scroll the surface without moving the focus. Story: `lists/page-motions`.
 
-A table with more columns than fit scrolls them: `$` brings the last column into view, `^` (or `0` without a count) goes back, `z l`/`z h` move one column (a count is columns), all `list.scroll-columns`. The first column stays, then the columns from the offset in order; the unscrolled view still drops by `Priority`. The keys answer only on a table that hides a column or is scrolled, so elsewhere `$`, `0` and `z` are free. The design is in `docs/UI-MODEL.md` "Tables". Story: `tables/column-motions`.
+#### Tables are cell-based
+
+A table (a list with columns) has a current column as well as a selected row, the way a spreadsheet (o-csv, on `grid`) has a current cell. The row keeps the list's one highlight; the current cell is drawn underlined inside it, the header underlines the current column's title, and an unfocused table fades both with the list. Rows of the `list` noun in normal mode that answer only on a cell-mode table (`table_cells.go`):
+
+| Keys | Operation | Does |
+|---|---|---|
+| `h` `l` `left` `right` | `list.column {delta, steps}` | One column left / right; a count is columns |
+| `0` (no count) `^` `home` / `$` `end` | `list.column {to}` | The first / last column |
+| `N \|` | `list.column {index}` | Column N (`3|`); `\|` alone the first |
+| `g c` | `list.choose-column` | A chooser of the column titles |
+| `y` / `Y` | `list.yank {what, register}` | The cell's text / the row's cells joined by tabs, into the registers (`"ay` names one) |
+| `z >` / `z <` | `list.resize-column {delta, steps}` | Widen / narrow the current column by `ColumnWidthStep` (2) cells, never below 3 |
+| `z =` | `list.reset-columns` | Every column automatic again |
+| `z l` / `z h` | `list.scroll-columns {delta, steps}` | The view one column right / left; the current column is carried along when it scrolls off |
+| `V`, then `esc` | `list.visual {on}` | Visual row selection (below) |
+
+`j`/`k` keep the column. Each frame scrolls the column offset as little as shows the current column: the first column stays (it names the row), a column dropped by `Priority` or past the right edge comes into view as the column reaches it, and the first column brings the unscrolled view back. The movement keys are motions (off the footer, under `movement` in `?` help); `y`, `Y`, `V` and the width keys are hidden from the footer too and listed in `?` help. A row noun that binds one of these keys answers first (the walk is inner-first): that table keeps the app's key and loses the cell key. `enter` is unchanged, the row's default action. The current column and the widths given with `z >`/`z <` are remembered per table id in the state directory's `tables.json` (`Runtime.TableState`, `SetTableState`; in memory without a state directory). API: `List.Column`, `SetColumn`, `ColumnWidths`, `SetColumnWidth`, `ResetColumnWidths`, `ColumnOffset`.
+
+`RowSelect()` (an `InstanceOption`) keeps a table on row selection with no current column: trees use it for their list (`h`/`l` expand and collapse there), as do the `?` help modal and the Settings page; on such a table `$`, `^` and `0` scroll to the last and the first view, `z l`/`z h` one column. A host's own `h` "back" row on a table should take the guard `list-first-column` (cli's groups rail does), so `h` moves left and goes back only from the first column.
+
+`V` starts a visual row selection at the selected row on a cell-mode table (not on a `NoMarks` one). It is the marks: while it lasts they are the marks V found plus every shown row between the anchor and the selection, so `j`/`k`, counts and the paging motions extend it (they clamp instead of spilling), the `* ` gutter draws it and `list.apply` fans out over it. The mode stays normal, so the rows' keys still answer; a key whose row runs an application verb of the row's noun runs it for every selected row through `list.apply`, with one confirm when the verb has one, and ends the selection. `esc` (or `V`) ends it without running anything. Either way the marks go back to the ones V found; `space` during it toggles those.
+
+The design is in `docs/UI-MODEL.md` "Tables". Stories: `tables/cell-motion`, `tables/column-count`, `tables/column-resize`, `tables/visual-apply`, `tables/unfocused-cell-dimmed`, `tables/column-motions`, `catalog/groups-table-h`.
 
 #### Filtering a list
 
@@ -481,7 +507,7 @@ In normal mode `esc` on a filtered list clears the filter (`list.filter-clear`, 
 
 The filter hides rows from drawing and from motions (`j`/`k`, counts, spills) and never removes them: their instances, marks and data stay. `SetItems` and `List.Patch` (which patches every row, hidden ones included) while filtered filter the new rows and keep the selection by id; `list.apply` fans out to the marked rows the filter shows (a mark on a hidden row waits); a command that lands on a hidden row (`Select`, `focus.set`, a job's focus) clears the filter. `Items()` and `Len()` are every row; `Shown()` counts the shown ones, `Filter()` is the query, `Filtering()` reports the line, `SetFilter(q)` sets it, and `Height()` (`Len()` plus the line) is what a host sizing a list to its rows passes to `View`. The CLI form is `list filter --target LIST --query Q` (an empty query clears); the state at `/lists/<id>` then has `filter` and `total`, and its `items` are the shown rows. Stories: `lists/filter-*`, `catalog/filter-setitems`, `tables/filter-by-cell`, `settings/filter`.
 
-The operation equivalents are `list.focus {id}`, `list.move {id?, delta, clamp?}`, `list.goto {id?, position?, row?}`, `list.scroll {id?, delta, half?, steps?}`, `list.scroll-columns {id?, to?, delta?, steps?}`, `list.select {id?, item}`, `list.mark {id?, item?}`, `list.apply {id?, verb}` and `list.filter {id?, query}`. Omit `id` to operate on the list on the focus stack. State is inspectable under `/lists/<id>` (rows show their `noun`, `marked` lists marks) and `/instances/<rowId>`. The full-project example's **Items** page mixes `repo`, `worktree` and `branch` rows in one list: each row answers to its noun's verbs and keys, `?` lists the focused row's rows, and Space plus `list.apply` fans one verb out over several rows.
+The operation equivalents are `list.focus {id}`, `list.move {id?, delta, clamp?}`, `list.goto {id?, position?, row?}`, `list.scroll {id?, delta, half?, steps?}`, `list.scroll-columns {id?, to?, delta?, steps?}`, `list.column {id?, to?, index?, delta?, steps?}`, `list.choose-column {id?}`, `list.yank {id?, what?, register?}`, `list.resize-column {id?, delta, steps?}`, `list.reset-columns {id?}`, `list.visual {id?, on?}`, `list.select {id?, item}`, `list.mark {id?, item?}`, `list.apply {id?, verb, args?}` and `list.filter {id?, query}`. Omit `id` to operate on the list on the focus stack. State is inspectable under `/lists/<id>` (rows show their `noun`, `marked` lists marks) and `/instances/<rowId>`. The full-project example's **Items** page mixes `repo`, `worktree` and `branch` rows in one list: each row answers to its noun's verbs and keys, `?` lists the focused row's rows, and Space plus `list.apply` fans one verb out over several rows.
 
 ### Terminal instances
 

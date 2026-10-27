@@ -152,7 +152,8 @@ tiers above them. When the two disagree, fix one in the same commit.
   background; faint in mono), so the focused list's row is the one highlight
   at full strength and the row an unfocused list (a tree beside a live
   terminal) is on stays visible; a tree whose line is being edited is not
-  faded. A list in a modal stays plain until focused.
+  faded. A list in a modal stays plain until focused. A table's highlight
+  spans its row; inside it a cell-mode table marks its current cell (R5.10).
   Story: `lists/one-highlight.json`, `lists/unfocused-dimmed.json`,
   `lists/beside-terminal-keeps-row.json`, `lists/lone-list.json`.
 - **R5.2** Marked rows take a `* ` gutter, and every row of that list gets
@@ -188,11 +189,32 @@ tiers above them. When the two disagree, fix one in the same commit.
   selection; they clamp at the list's edges and never spill; a row noun's
   own binding of the key answers first. Story: `lists/page-motions.json`;
   tests `TestListGotoEndsAndCounts`, `TestListPageMotionsClampWithoutSpilling`.
-- **R5.9** A table that hides a column scrolls its columns: `$` shows the
-  last column, `^` and `0` (without a count) go back, `z l`/`z h` move one
-  column; the first column stays; the keys do not answer (and `z` does not
-  wait) on a table that fits or a plain list. Story:
-  `tables/column-motions.json`; tests `TestColumnMotions*`.
+- **R5.9** A table that hides a column scrolls its columns: `z l`/`z h`
+  move the view one column (a cell-mode table carries its current column
+  along); on a `RowSelect` table `$` shows the last column and `^`/`0`
+  (without a count) go back; the first column stays; the keys do not
+  answer (and `z` does not wait) on a row-select table that fits or a plain
+  list. Story: `tables/column-motions.json`; tests `TestColumnMotions*`.
+- **R5.10** A table is cell-based. A list with columns has a current
+  column: `h`/`l`/arrows move by column (counts), `j`/`k` keep it,
+  `0`/`^`/home and `$`/end go to the ends, `N|` to column N, `g c` chooses
+  one; every frame scrolls the view as little as shows it (a column dropped
+  by `Priority` included). The selected row keeps the one highlight across
+  the whole width and the current cell is reversed and underlined inside
+  it; the header underlines the current column's title; an unfocused page
+  table fades both (R5.1). `y`/`Y` copy the cell/row into the registers;
+  `z >`/`z <`/`z =` size the current column, and the widths and the column
+  are remembered per table across a restart. `V` is a visual row selection
+  drawn into the marks: `j`/`k` extend it without spilling, a row's verb
+  runs for every selected row with one confirm, `esc` ends it and restores
+  the marks. A `RowSelect()` table (a tree's list, where `h`/`l`
+  collapse and expand; help; settings) and a plain list keep row selection
+  and none of these keys answer there. A row noun binding one of the keys
+  answers first. The movement keys are motions (off the footer).
+  Story: `tables/cell-motion.json`, `tables/column-count.json`,
+  `tables/column-resize.json`, `tables/visual-apply.json`,
+  `tables/unfocused-cell-dimmed.json`, `catalog/groups-table-h.json`;
+  tests `TestCell*`, `TestColumnWidths*`, `TestVisual*`.
 
 ### R6. Chrome: footer, hints, help, ticker, notices
 
