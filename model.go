@@ -624,9 +624,9 @@ func BindingHelp(r *Runtime, focus string) []HelpRow {
 }
 
 // View renders the shell as a full-screen tea.View; View().Content is the
-// string. The terminal cursor follows the focused input through the page or
+// string. The terminal cursor follows the rendered block through the page or
 // modal that holds it: a bar in insert mode, a block in normal mode and an
-// underline in visual modes. It is hidden when no input is focused.
+// underline in visual modes. It is hidden when the block reports no cursor.
 func (m *Model) View() tea.View {
 	block := m.render()
 	v := tea.NewView(block.Text)
@@ -635,22 +635,18 @@ func (m *Model) View() tea.View {
 	return v
 }
 
-// cursor shapes the block's cursor by the focused input's mode, or by the
-// focused terminal's reported shape.
+// cursor shapes the block's cursor by mode, or by the focused terminal's
+// reported shape.
 func (m *Model) cursor(block Block) *tea.Cursor {
 	if block.Cursor == nil {
 		return nil
 	}
-	context := m.Runtime.Context()
 	cursor := tea.NewCursor(block.Cursor.X, block.Cursor.Y)
 	cursor.Blink = false
 	// A focused pane shows its own cursor, shaped as the pane reports.
 	if term := m.Runtime.Terminal(m.Runtime.Focus); term != nil {
 		cursor.Shape = term.cursorShape()
 		return cursor
-	}
-	if m.Runtime.Input(context.InputID) == nil {
-		return nil
 	}
 	switch mode := m.Runtime.Mode.Name; {
 	case mode == "insert":

@@ -163,8 +163,8 @@ func (t *Terminal) Close() {
 func (t *Terminal) View(width, height int) string { return t.ViewBlock(width, height).Text }
 
 // ViewBlock renders the pane's cells into exactly width x height cells and
-// reports the pane's cursor; compose the cursor only while the terminal is
-// focused. The stream is told the area the first time it is seen and
+// reports the pane's cursor only while focused. The stream is told the area
+// the first time it is seen and
 // whenever it changes, so the pane is sized to the detail area it fills.
 func (t *Terminal) ViewBlock(width, height int) Block {
 	t.r.Placed(t.id)
@@ -187,7 +187,7 @@ func (t *Terminal) ViewBlock(width, height int) Block {
 	}
 	// The page keeps the pane's top line on screen when it follows the focus.
 	block := Text(t.r.PlacedAt(t.id, strings.Join(rows, "\n"), 0, 1))
-	if !t.frame.Hidden {
+	if t.Focused() && !t.frame.Hidden {
 		block.Cursor = &Pos{X: t.frame.Cursor.X, Y: t.frame.Cursor.Y}
 		block = block.Clip(width, height)
 	}

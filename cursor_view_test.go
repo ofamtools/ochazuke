@@ -290,6 +290,61 @@ func TestModelViewCursorFollowsFocusedInput(t *testing.T) {
 	locate(m.View(), "alpha", 3)
 }
 
+func TestModelViewCursorFollowsCustomFocus(t *testing.T) {
+	r := NewRuntime()
+	r.Instance("custom-page")
+	r.Instance("custom-focus", Parent("custom-page"))
+	cursor := &Pos{X: 3, Y: 1}
+	page := &Page{ID: "custom-page", Title: "Custom", Render: func(*Runtime, int, int) Block {
+		return Block{Text: "first row\ncustom cursor", Cursor: cursor}
+	}}
+	if err := r.RegisterPage(page); err != nil {
+		t.Fatal(err)
+	}
+	m := NewModel(r)
+	if err := r.OpenPage(page.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.SetFocus("custom-focus"); err != nil {
+		t.Fatal(err)
+	}
+	m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	for _, tc := range []struct {
+		mode  string
+		shape tea.CursorShape
+	}{{"normal", tea.CursorBlock}, {"visual", tea.CursorUnderline}, {"visual-line", tea.CursorUnderline}, {"visual-block", tea.CursorUnderline}} {
+		t.Run(tc.mode, func(t *testing.T) {
+			r.Mode.Name = tc.mode
+			view := m.View()
+			if view.Cursor == nil {
+				t.Fatal("custom focus reported no cursor")
+			}
+			rows := strings.Split(ansi.Strip(view.Content), "\n")
+			y := -1
+			for i, row := range rows {
+				if strings.Contains(row, "custom cursor") {
+					y = i
+					break
+				}
+			}
+			if y < 0 {
+				t.Fatal("custom content missing from view")
+			}
+			wantX := cellIndex(rows[y], "custom cursor") + 3
+			if view.Cursor.X != wantX || view.Cursor.Y != y {
+				t.Fatalf("cursor = %+v, want (%d, %d)", view.Cursor.Position, wantX, y)
+			}
+			if view.Cursor.Shape != tc.shape || view.Cursor.Blink {
+				t.Fatalf("shape = %v, blink = %v; want %v, false", view.Cursor.Shape, view.Cursor.Blink, tc.shape)
+			}
+		})
+	}
+	cursor = nil
+	if view := m.View(); view.Cursor != nil {
+		t.Fatalf("cursor %+v reported for a block without a cursor", view.Cursor)
+	}
+}
+
 // The palette's command line reports its cursor too.
 func TestModelViewCursorFollowsPaletteEditor(t *testing.T) {
 	r, in := editorTestRuntime(t, "abc", false)
