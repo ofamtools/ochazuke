@@ -111,10 +111,19 @@ func TestPreserveNewlinesDoc(t *testing.T) {
 		}
 		return out
 	}
-	if got := reversed(view); len(got) != 2 || got[0] != "[ ] café 日本" || got[1] != "more of it" {
+	if err := press(t, r, "]", "x"); err != nil {
+		t.Fatal(err)
+	}
+	if got := reversed(d.View(40, 0, mono)); len(got) != 1 || got[0] != "[ ] café 日本" {
 		t.Fatalf("first item highlight: %q\n%s", got, ansi.Strip(view))
 	}
 	if err := press(t, r, "j"); err != nil {
+		t.Fatal(err)
+	}
+	if got := reversed(d.View(40, 0, mono)); len(got) != 1 || got[0] != "more of it" {
+		t.Fatalf("its second line: %q", got)
+	}
+	if err := press(t, r, "]", "x"); err != nil {
 		t.Fatal(err)
 	}
 	if got := reversed(d.View(40, 0, mono)); len(got) != 1 || got[0] != "[x] two" {

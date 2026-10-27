@@ -1,0 +1,49 @@
+{
+  "name": "markdown: n on an item opens a signed, dated note line after its notes; esc writes it; an empty note writes nothing",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "# Plan\n\n- [ ] Inbox page\n  > **owner** 2026-10-27: start from matomeru-old's action items\n  > **claude** 2026-10-27 · sent: done the read/unread model, see 0c5162b\n  > **owner** 2026-10-26 ✓: an old one, resolved\n- [ ] Prompts\n",
+      "author": "owner",
+      "today": "2026-10-27"
+    }
+  },
+  "script": [
+    "]",
+    "x",
+    "n",
+    "p",
+    "l",
+    "e",
+    "a",
+    "s",
+    "e",
+    "space",
+    "s",
+    "t",
+    "a",
+    "r",
+    "t",
+    "esc",
+    "]",
+    "x",
+    "n",
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "mode": "insert",
+      "contains": [
+        "> **owner** 2026-10-27: "
+      ]
+    },
+    {
+      "writes": [
+        "write 7 +  > **owner** 2026-10-27: please start"
+      ]
+    }
+  ]
+}

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
@@ -14,10 +15,11 @@ import (
 )
 
 // Source is where a Doc's Markdown lives: Load reads it as it is now and
-// Save stores a new text. A toggle loads the source again first, so a
+// Save stores a new text. Every edit loads the source again first, so a
 // change made elsewhere since the Doc last read it is seen before anything
-// is written; the framework makes the one-character edit and hands Save
-// the whole text. A nil Save makes the Doc read-only (x is refused).
+// is written; the framework makes the edit and hands Save the whole text.
+// A nil Save makes the Doc read-only (x, i, o and every other edit are
+// refused).
 type Source struct {
 	Load func() (string, error)
 	Save func(text string) error
@@ -35,6 +37,9 @@ func File(path string) Source {
 		Save: func(text string) error { return writeAtomic(path, []byte(text)) },
 	}
 }
+
+// WriteFile writes text to path atomically, as File's Save does.
+func WriteFile(path, text string) error { return writeAtomic(path, []byte(text)) }
 
 func writeAtomic(path string, data []byte) error {
 	if target, err := filepath.EvalSymlinks(path); err == nil {
@@ -68,33 +73,64 @@ func writeAtomic(path string, data []byte) error {
 	return err
 }
 
-// ErrRefused wraps a toggle, undo or redo the Doc would not make because
-// the item is gone, its text changed or the match is ambiguous in the
-// source as it is now; nothing was written.
+// ErrRefused wraps an edit, toggle, undo or redo the Doc would not make
+// because what it acts on is gone, changed or ambiguous in the source as
+// it is now; nothing was written.
 var ErrRefused = errors.New("not toggled")
 
-// Nouns: the Doc instance (its verbs and keys) and its task rows.
+// refusal is an error that is ErrRefused with a message of its own.
+type refusal struct{ msg string }
+
+func (e refusal) Error() string        { return e.msg }
+func (e refusal) Is(target error) bool { return target == ErrRefused }
+
+func refused(format string, args ...any) error { return refusal{fmt.Sprintf(format, args...)} }
+
+// Nouns: the Doc instance (its verbs and keys), its line rows (a task's
+// lines are task rows, a note's note rows) and the block editor's input.
 const (
 	DocNoun  = "ochazuke.markdown"
 	TaskNoun = "ochazuke.markdown-task"
+	LineNoun = "ochazuke.markdown-line"
+	NoteNoun = "ochazuke.markdown-note"
+	EditNoun = "ochazuke.markdown-edit"
 )
 
-// Doc is a rendered Markdown document whose task items are a focus stop:
-// j and k (the list noun's rows, counts too) move the one highlight
-// between the items over the rendered text and spill to the next stop at
-// either end, x toggles the selected item (markdown.toggle), u and ctrl+r
-// undo and redo a toggle (markdown.undo, markdown.redo), each written to
-// the Source at once. A toggle rewrites only the item's box character.
-// Before writing, the Doc loads the source again: when it changed since
-// the Doc read it, the item is found again by its text (and its place
-// among items with the same text), and when it is gone or its text
-// changed the toggle is refused with an error wrapping ErrRefused and
-// naming it, nothing written; the view still shows the source as it is now.
+// AuthorSetting names the author a new note is signed with.
+const AuthorSetting = "markdown.note-author"
+
+// DefaultDebounce is how long typing in the block editor pauses before
+// the block is written.
+const DefaultDebounce = 400 * time.Millisecond
+
+// DebounceMsg is the block editor's pause timer.
+type DebounceMsg struct {
+	Doc string
+	Seq int
+}
+
+// Doc is a rendered Markdown document with a line cursor, edited in place.
 //
-// The Doc is an instance of the markdown noun with a list child (id/tasks,
-// added NoMarks) whose rows are instances of markdown-task, one per item;
-// a document without items is not a focus stop. The application draws it
-// with View in its page.
+// The document is a sequence of elements (Elements): headings,
+// paragraphs, list items, table rows, code blocks, quotes, rules and notes.
+// The cursor sits on a drawn line: the Doc's list child (id/lines, added
+// NoMarks) has a row per line an element covers, so j and k move by drawn
+// line, gg and G go to the ends, ctrl+d/u and ctrl+f/b page and counts
+// work (the list noun's rows), spilling to the next stop at either end.
+// }/{ move by element, ]]/[[ to the next element of the same kind, ] or
+// [ with a kind letter (KindLetters) to the next of that kind.
+//
+// Editing: i, a, I and A edit the cursor's element as raw Markdown in the
+// ochazuke editor, in place (only that element switches to its source);
+// o and O open a new line below or above that continues its structure;
+// esc draws it again. dd, yy and p work on lines, x toggles a checklist
+// item, n adds a note under an item and za folds an item's notes; u and
+// ctrl+r undo and redo every edit. There is no save key: typing is written
+// after a pause (Debounce) and when the element is left, every other edit
+// at once, through Source.Save. An edit rewrites only the bytes of the
+// element it changes; before writing, the Doc loads the source again and
+// finds what it acts on again when it moved, refusing with an error
+// wrapping ErrRefused when it is gone or changed.
 type Doc struct {
 	r     *ochazuke.Runtime
 	id    string
@@ -102,12 +138,37 @@ type Doc struct {
 	list  *ochazuke.List
 	text  string
 	tasks []Task
-	mark  string  // text with the task markers, for rendering
+	elems []Element
 	opts  options // how View renders (New's options)
-	undo  []edit
-	redo  []edit
+	undo  []step
+	redo  []step
 	// offset is the first line View shows when it windows the document.
 	offset int
+	// width and style are what the rows were laid out for: the last
+	// View's, 80 and dark before the first.
+	width int
+	style string
+	lay   layout
+	dirty bool
+	folds map[string]bool
+	edit  *session
+	// leftAt is where the last element left starts in the source.
+	leftAt int
+	// Debounce is the pause in typing before the open element is written.
+	Debounce time.Duration
+	// Now is the clock a new note is dated by (default time.Now).
+	Now func() time.Time
+	// Author, when set, signs new notes instead of the AuthorSetting.
+	Author string
+}
+
+// step is one undoable edit: a toggle (found again by its item's text)
+// or a splice (at, old replaced by new; ctx is the text before at).
+type step struct {
+	toggle   *edit
+	at       int
+	old, new string
+	ctx      string
 }
 
 // edit is one written toggle: the item (its text and its place among
@@ -121,7 +182,7 @@ type edit struct {
 // New loads a Doc from src and places it under parent (a page or an
 // instance beneath it). It registers the markdown nouns once per runtime.
 // The options are View's (PreserveNewlines); they change only how the
-// document is drawn, never which items it has or what a toggle writes.
+// document is drawn, never what an edit writes.
 func New(r *ochazuke.Runtime, id, parent string, src Source, opts ...Option) (*Doc, error) {
 	if id == "" || r.Instances[id] != nil {
 		return nil, fmt.Errorf("markdown id %q must be unique and nonempty", id)
@@ -137,7 +198,7 @@ func New(r *ochazuke.Runtime, id, parent string, src Source, opts ...Option) (*D
 		return nil, fmt.Errorf("load markdown: %w", err)
 	}
 	Register(r)
-	d := &Doc{r: r, id: id, src: src, opts: optionsOf(opts)}
+	d := &Doc{r: r, id: id, src: src, opts: optionsOf(opts), width: 80, style: StyleDark, folds: map[string]bool{}, Debounce: DefaultDebounce}
 	r.Instance(id, ochazuke.Parent(parent), ochazuke.Kind(DocNoun)).Component = d
 	list, err := r.AddList(d.ListID(), nil, ochazuke.Parent(id), ochazuke.NoMarks())
 	if err != nil {
@@ -165,11 +226,14 @@ func Of(r *ochazuke.Runtime, id string) *Doc {
 // ID is the Doc's instance id.
 func (d *Doc) ID() string { return d.id }
 
-// List is the list of task rows (the focus stop).
+// List is the list of line rows (the focus stop).
 func (d *Doc) List() *ochazuke.List { return d.list }
 
-// ListID is the task list's instance id: the Doc's id + "/tasks".
-func (d *Doc) ListID() string { return d.id + "/tasks" }
+// ListID is the line list's instance id: the Doc's id + "/lines".
+func (d *Doc) ListID() string { return d.id + "/lines" }
+
+// EditID is the block editor's input id while an element is open.
+func (d *Doc) EditID() string { return d.id + "/edit" }
 
 // Text is the source as the Doc last read or wrote it.
 func (d *Doc) Text() string { return d.text }
@@ -177,7 +241,30 @@ func (d *Doc) Text() string { return d.text }
 // Tasks are the document's task items.
 func (d *Doc) Tasks() []Task { return append([]Task(nil), d.tasks...) }
 
-// Selected is the selected task item.
+// Elements are the document's elements.
+func (d *Doc) Elements() []Element { return append([]Element(nil), d.elems...) }
+
+// Editable reports whether the Doc writes (its Source has a Save).
+func (d *Doc) Editable() bool { return d.src.Save != nil }
+
+// Editing reports whether an element is open in the block editor.
+func (d *Doc) Editing() bool { return d.edit != nil }
+
+// SetSource points the Doc at another source (a buffer named with save
+// as): it is loaded and the next edit is written there; the undo history
+// stays.
+func (d *Doc) SetSource(src Source) error {
+	if src.Load == nil {
+		return errors.New("markdown source needs a Load")
+	}
+	if err := d.Leave(); err != nil {
+		return err
+	}
+	d.src = src
+	return d.Reload()
+}
+
+// Selected is the task item the cursor is on.
 func (d *Doc) Selected() (Task, bool) {
 	i := d.selected()
 	if i < 0 {
@@ -186,47 +273,175 @@ func (d *Doc) Selected() (Task, bool) {
 	return d.tasks[i], true
 }
 
+// selected is the index of the task the cursor's element is, or -1.
 func (d *Doc) selected() int {
-	item, ok := d.list.Selected()
-	if !ok {
+	e, _ := d.cursor()
+	if e < 0 || d.elems[e].Kind != KindTask {
 		return -1
 	}
-	i, _ := item.Data.(int)
-	if i < 0 || i >= len(d.tasks) {
-		return -1
+	for i, t := range d.tasks {
+		if t.Box == d.elems[e].Box {
+			return i
+		}
 	}
-	return i
+	return -1
 }
 
-// Focus focuses the selected task item.
+// Cursor is the element the cursor is on (an index into Elements, -1 for
+// none) and the cursor's line within it, from 0.
+func (d *Doc) Cursor() (int, int) { return d.cursor() }
+
+func (d *Doc) cursor() (int, int) {
+	if d.edit != nil {
+		return d.edit.elem, 0
+	}
+	item, ok := d.list.Selected()
+	if !ok {
+		return -1, 0
+	}
+	line, _ := item.Data.(int)
+	if line < 0 || line >= len(d.lay.owner) {
+		return -1, 0
+	}
+	e := d.lay.owner[line]
+	if e < 0 || e >= len(d.elems) {
+		return -1, 0
+	}
+	return e, line - d.lay.spans[e][0]
+}
+
+// Focus focuses the cursor's line.
 func (d *Doc) Focus() error { return d.list.Focus() }
 
-// FocusTarget is where a jump to the Doc lands: its selected item.
+// FocusTarget is where a jump to the Doc lands: its cursor's line.
 func (d *Doc) FocusTarget() string { return d.list.FocusTarget() }
 
-// Select selects the i-th task item (from 0) without taking the focus.
+// Select puts the cursor on the i-th task item (from 0) without taking the
+// focus.
 func (d *Doc) Select(i int) error {
 	if i < 0 || i >= len(d.tasks) {
 		return fmt.Errorf("no task %d", i)
 	}
-	return d.list.Select(d.rowID(i))
+	for e, el := range d.elems {
+		if el.Kind == KindTask && el.Box == d.tasks[i].Box {
+			return d.SelectElement(e)
+		}
+	}
+	return fmt.Errorf("task %d is not drawn", i)
 }
 
-func (d *Doc) rowID(i int) string { return d.id + "/task/" + strconv.Itoa(i) }
+// SelectElement puts the cursor on the first line of element e.
+func (d *Doc) SelectElement(e int) error { return d.selectAt(e, 0) }
 
-// set takes a new text: its tasks, the rows (the selection is kept by
-// place) and whether the Doc is a focus stop.
+func (d *Doc) selectAt(e, off int) error {
+	if e < 0 || e >= len(d.elems) || e >= len(d.lay.spans) || d.lay.spans[e][0] < 0 {
+		return fmt.Errorf("no element %d drawn", e)
+	}
+	s := d.lay.spans[e]
+	return d.selectLine(min(s[0]+max(0, off), s[1]))
+}
+
+func (d *Doc) selectLine(line int) error {
+	for i, l := range d.lay.rows {
+		if l == line {
+			return d.list.Select(d.rowID(i))
+		}
+	}
+	return fmt.Errorf("line %d is not a row", line)
+}
+
+func (d *Doc) rowID(i int) string { return d.id + "/line/" + strconv.Itoa(i) }
+
+// set takes a new text: its tasks, elements and rows (the cursor stays on
+// its element by place, at the same line within it).
 func (d *Doc) set(text string) error {
-	d.text, d.tasks = text, Tasks(text)
-	d.mark = marked(text, d.tasks)
-	items := make([]ochazuke.ListItem, len(d.tasks))
-	for i, t := range d.tasks {
-		items[i] = ochazuke.ListItem{ID: d.rowID(i), Label: t.Text, Noun: TaskNoun, Data: i}
+	e, off := d.cursor()
+	d.text, d.tasks, d.elems = text, Tasks(text), Elements(text)
+	if d.edit != nil {
+		d.dirty = true
+		return nil
+	}
+	return d.relayout(e, off)
+}
+
+// keepAt sets text and puts the cursor on the element holding byte at
+// (or the nearest after it, else the last).
+func (d *Doc) keepAt(text string, at int) error {
+	if err := d.set(text); err != nil {
+		return err
+	}
+	if e := d.elementAt(at); e >= 0 {
+		_ = d.SelectElement(e)
+	}
+	return nil
+}
+
+// elementAt is the element holding byte at, else the first after it,
+// else the last; -1 in a document without any.
+func (d *Doc) elementAt(at int) int {
+	for i, e := range d.elems {
+		if at <= e.End && d.drawn(i) {
+			return i
+		}
+	}
+	for i := len(d.elems) - 1; i >= 0; i-- {
+		if d.drawn(i) {
+			return i
+		}
+	}
+	return -1
+}
+
+func (d *Doc) drawn(e int) bool { return e < len(d.lay.spans) && d.lay.spans[e][0] >= 0 }
+
+// folded reports whether item's notes are folded.
+func (d *Doc) folded(item int) bool {
+	return item >= 0 && item < len(d.elems) && d.folds[d.foldKey(item)]
+}
+
+func (d *Doc) foldKey(item int) string {
+	e := d.elems[item]
+	return strings.TrimSpace(d.text[e.Start:e.End])
+}
+
+// relayout draws the rows at the Doc's width and style and puts the
+// cursor on element e at line off within it.
+func (d *Doc) relayout(e, off int) error {
+	d.dirty = false
+	d.lay = layoutOf(d.text, d.elems, d.width, d.style, d.opts, d.folded)
+	if len(d.lay.rows) == 0 && (d.Editable() || len(d.elems) == 0) && d.Editable() {
+		// An empty document still has a line to stand on.
+		d.lay.lines = append(d.lay.lines, "")
+		d.lay.owner = append(d.lay.owner, -1)
+		d.lay.rows = append(d.lay.rows, len(d.lay.lines)-1)
+	}
+	items := make([]ochazuke.ListItem, len(d.lay.rows))
+	for i, line := range d.lay.rows {
+		noun := LineNoun
+		if el := d.lay.owner[line]; el >= 0 {
+			switch d.elems[el].Kind {
+			case KindTask:
+				noun = TaskNoun
+			case KindNote:
+				noun = NoteNoun
+			}
+		}
+		items[i] = ochazuke.ListItem{ID: d.rowID(i), Label: strings.TrimSpace(ansi.Strip(d.lay.lines[line])), Noun: noun, Data: line}
 	}
 	if err := d.list.SetItems(items); err != nil {
 		return err
 	}
-	d.r.Instances[d.ListID()].Unfocusable = len(d.tasks) == 0
+	d.r.Instances[d.ListID()].Unfocusable = len(items) == 0
+	if e >= len(d.elems) {
+		e = len(d.elems) - 1
+	}
+	for ; e >= 0; e-- {
+		if d.drawn(e) {
+			_ = d.selectAt(e, off)
+			break
+		}
+		off = 0
+	}
 	return nil
 }
 
@@ -239,9 +454,9 @@ func (d *Doc) Reload() error {
 	return d.set(text)
 }
 
-// Toggle flips the selected item: [ ] becomes [x], [x] or [X] becomes
-// [ ], written at once; the item is found again first when the source
-// changed (see Doc). The written toggle is one undo step.
+// Toggle flips the task item under the cursor: [ ] becomes [x], [x] or
+// [X] becomes [ ], written at once; the item is found again first when
+// the source changed (see Doc). The written toggle is one undo step.
 func (d *Doc) Toggle() error {
 	i := d.selected()
 	if i < 0 {
@@ -258,34 +473,116 @@ func (d *Doc) Toggle() error {
 		return err
 	}
 	e.from = from
-	d.undo, d.redo = append(d.undo, e), nil
+	d.undo, d.redo = append(d.undo, step{toggle: &e}), nil
 	return nil
 }
 
-// Undo puts the last toggle's box character back, written at once.
+// Undo takes back the last edit, written at once.
 func (d *Doc) Undo() error { return d.history(&d.undo, &d.redo, false) }
 
-// Redo writes the last undone toggle again.
+// Redo writes the last undone edit again.
 func (d *Doc) Redo() error { return d.history(&d.redo, &d.undo, true) }
 
-func (d *Doc) history(from, to *[]edit, redo bool) error {
+func (d *Doc) history(from, to *[]step, redo bool) error {
+	if err := d.Leave(); err != nil {
+		return err
+	}
 	if len(*from) == 0 {
 		if redo {
 			return errors.New("nothing to redo")
 		}
 		return errors.New("nothing to undo")
 	}
-	e := (*from)[len(*from)-1]
-	want := e.from
-	if redo {
-		want = e.to
-	}
-	if _, _, err := d.apply(e.text, e.nth, want); err != nil {
-		return err
+	s := (*from)[len(*from)-1]
+	if s.toggle != nil {
+		want := s.toggle.from
+		if redo {
+			want = s.toggle.to
+		}
+		if _, _, err := d.apply(s.toggle.text, s.toggle.nth, want); err != nil {
+			return err
+		}
+	} else {
+		old, new := s.old, s.new
+		if redo {
+			old, new = new, old
+		}
+		if err := d.splice(s.at, s.ctx, new, old); err != nil {
+			return err
+		}
 	}
 	*from = (*from)[:len(*from)-1]
-	*to = append(*to, e)
+	*to = append(*to, s)
 	return nil
+}
+
+// splice replaces have (found at at, or again by ctx+have when the
+// source moved) with want, writes it and puts the cursor there.
+func (d *Doc) splice(at int, ctx, have, want string) error {
+	if d.src.Save == nil {
+		return errors.New("this markdown is read-only")
+	}
+	current, err := d.src.Load()
+	if err != nil {
+		return fmt.Errorf("not written: load markdown: %w", err)
+	}
+	if at > len(current) || current[at:min(len(current), at+len(have))] != have || current[max(0, at-len(ctx)):at] != ctx {
+		at = locate(current, ctx, have)
+		if at < 0 {
+			_ = d.set(current)
+			return refused("not written: the text changed in the source")
+		}
+	}
+	next := current[:at] + want + current[at+len(have):]
+	if err := d.src.Save(next); err != nil {
+		return fmt.Errorf("not written: save markdown: %w", err)
+	}
+	return d.keepAt(next, at)
+}
+
+// locate is where have starts in text after ctx, when it does so once;
+// -1 otherwise.
+func locate(text, ctx, have string) int {
+	probe := ctx + have
+	if probe == "" {
+		return -1
+	}
+	i := strings.Index(text, probe)
+	if i < 0 || strings.Contains(text[i+1:], probe) {
+		return -1
+	}
+	return i + len(ctx)
+}
+
+// diff is the one splice that turns a into b: at, the old and new text,
+// and up to 32 bytes of the text before at.
+func diff(a, b string) step {
+	p := 0
+	for p < len(a) && p < len(b) && a[p] == b[p] {
+		p++
+	}
+	s := 0
+	for s < len(a)-p && s < len(b)-p && a[len(a)-1-s] == b[len(b)-1-s] {
+		s++
+	}
+	return step{at: p, old: a[p : len(a)-s], new: b[p : len(b)-s], ctx: a[max(0, p-32):p]}
+}
+
+// write saves next as one undo step (the splice from the text the Doc
+// holds) and puts the cursor on the element holding byte at.
+func (d *Doc) write(next string, at int) error {
+	if d.src.Save == nil {
+		return errors.New("this markdown is read-only")
+	}
+	if next == d.text {
+		return nil
+	}
+	s := diff(d.text, next)
+	if err := d.src.Save(next); err != nil {
+		return fmt.Errorf("not written: save markdown: %w", err)
+	}
+	d.undo, d.redo = append(d.undo, s), nil
+	return d.keepAt(next, at)
 }
 
 // nth is the place of task i among the tasks with its text.
@@ -322,7 +619,7 @@ func (d *Doc) apply(text string, nth int, want byte) (from byte, wrote bool, err
 		}
 	}
 	if !ok {
-		return 0, false, fmt.Errorf("%w: %q changed or is gone in the source", ErrRefused, text)
+		return 0, false, refused("not toggled: %q changed or is gone in the source", text)
 	}
 	_ = d.Select(i)
 	from = current[t.Box]
@@ -364,27 +661,56 @@ func find(before, now []Task, text string, nth int) (Task, int, bool) {
 	return Task{}, -1, false
 }
 
-// View draws the document width cells wide in the appearance's Glamour
-// style (StyleOf), the selected item's lines in reverse video while its
-// list holds the focus (the one highlight: an unfocused Doc draws no
-// highlight). With height > 0 a longer document is windowed to height
-// lines, the last a position marker ("12–40 / 300"), scrolled to keep the
-// selected item visible with the page's scrolloff; with height 0 every
-// line is drawn and the page scrolls. Either way it places the task list
-// in its page's drawing order and reports the selected item's lines
-// (Runtime.Placed, PlacedAt), so focus jumps and the page follow it.
+// View draws the document width cells wide (see Block).
 func (d *Doc) View(width, height int, a ochazuke.Appearance) string {
+	return d.Block(width, height, a).Text
+}
+
+// Block draws the document width cells wide in the appearance's Glamour
+// style (StyleOf), the cursor's line in reverse video while the Doc holds
+// the focus (the one highlight: an unfocused Doc draws none), notes in
+// boxes of their own. While an element is open its lines are the block
+// editor, with the terminal cursor in it. With height > 0 a longer
+// document is windowed to height lines, the last a position marker
+// ("12–40 / 300"), scrolled to keep the cursor visible with the page's
+// scrolloff; with height 0 every line is drawn and the page scrolls.
+// Either way it places the line list in its page's drawing order and
+// reports the cursor's lines (Runtime.Placed, PlacedAt), so focus jumps
+// and the page follow it.
+func (d *Doc) Block(width, height int, a ochazuke.Appearance) ochazuke.Block {
 	id := d.ListID()
 	d.r.Placed(id)
-	rend := render(d.mark, min(len(d.tasks), maxMarkers), width, StyleOf(a), d.opts)
-	lines := append([]string(nil), rend.lines...)
-	focus, focusHeight := 0, len(lines)
-	if i := d.selected(); i >= 0 && i < len(rend.spans) && rend.spans[i][0] >= 0 {
-		top, bottom := rend.spans[i][0], rend.spans[i][1]
-		focus, focusHeight = top, bottom-top+1
-		if d.list.Focused() {
-			for l := top; l <= bottom; l++ {
-				lines[l] = highlight(lines[l])
+	width = max(1, width)
+	if style := StyleOf(a); d.edit == nil && (width != d.width || style != d.style || d.dirty) {
+		e, off := d.cursor()
+		d.width, d.style = width, style
+		_ = d.relayout(e, off)
+	}
+	var lines []string
+	focus, focusHeight := 0, 1
+	var cursor *ochazuke.Pos
+	if s := d.edit; s != nil {
+		lay := s.lay
+		lines = append(lines, lay.lines[:s.top]...)
+		block := ochazuke.InputBlock(s.input, max(1, width-s.x), max(1, strings.Count(string(s.input.Text), "\n")+1))
+		pad := strings.Repeat(" ", s.x)
+		focus = len(lines)
+		for _, l := range strings.Split(block.Text, "\n") {
+			lines = append(lines, pad+l)
+		}
+		focusHeight = len(lines) - focus
+		if block.Cursor != nil {
+			cursor = &ochazuke.Pos{X: block.Cursor.X + s.x, Y: focus + block.Cursor.Y}
+		}
+		lines = append(lines, lay.lines[min(len(lay.lines), s.top+s.count):]...)
+	} else {
+		lines = append([]string(nil), d.lay.lines...)
+		if item, ok := d.list.Selected(); ok {
+			if line, _ := item.Data.(int); line >= 0 && line < len(lines) {
+				focus = line
+				if d.list.Focused() {
+					lines[line] = highlight(lines[line])
+				}
 			}
 		}
 	}
@@ -399,17 +725,25 @@ func (d *Doc) View(width, height int, a ochazuke.Appearance) string {
 		if height > 1 {
 			window = append(window[:len(window):len(window)], fmt.Sprintf("%d–%d / %d", d.offset+1, end, len(lines)))
 		}
+		if cursor != nil {
+			cursor.Y -= d.offset
+			if cursor.Y < 0 || cursor.Y >= visible {
+				cursor = nil
+			}
+		}
 		focus -= d.offset
 		if focus < 0 || focus >= visible {
 			focus, focusHeight = 0, len(window)
 		}
 		lines = window
 	}
-	return d.r.PlacedAt(id, strings.Join(lines, "\n"), focus, focusHeight)
+	out := ochazuke.Block{Text: d.r.PlacedAt(id, strings.Join(lines, "\n"), focus, focusHeight), Cursor: cursor}
+	return out
 }
 
 // highlight draws a rendered line's text in reverse video, its indent and
-// trailing padding plain, at the same width.
+// trailing padding plain, at the same width; an empty line is one
+// reversed cell.
 func highlight(line string) string {
 	plain := ansi.Strip(line)
 	width := ansi.StringWidth(plain)
@@ -417,7 +751,8 @@ func highlight(line string) string {
 	indent := len(plain) - len(body)
 	body = strings.TrimRight(body, " ")
 	if body == "" {
-		return line
+		body = " "
+		indent = min(indent, max(0, width-1))
 	}
 	out := strings.Repeat(" ", indent) + lipgloss.NewStyle().Reverse(true).Render(body)
 	return out + strings.Repeat(" ", max(0, width-indent-ansi.StringWidth(body)))
@@ -457,66 +792,12 @@ func scrollToShow(offset, top, bottom, height, total, margin int) int {
 
 // Snapshot is the Doc's state as the verbs return it.
 func (d *Doc) Snapshot() map[string]any {
-	selected := -1
-	if i := d.selected(); i >= 0 {
-		selected = i
+	selected := d.selected()
+	e, off := d.cursor()
+	out := map[string]any{"id": d.id, "tasks": d.Tasks(), "selected": selected, "undo": len(d.undo), "redo": len(d.redo), "element": e, "line": off, "editing": d.edit != nil}
+	if e >= 0 {
+		out["kind"] = d.elems[e].Kind
+		out["sourceLine"] = d.elems[e].Line
 	}
-	return map[string]any{"id": d.id, "tasks": d.Tasks(), "selected": selected, "undo": len(d.undo), "redo": len(d.redo)}
-}
-
-// Register defines the markdown nouns, their verbs and keys once per
-// runtime: on the markdown noun in normal mode x toggles, u undoes and
-// ctrl+r redoes; the task rows' j/k are the list noun's.
-func Register(r *ochazuke.Runtime) {
-	if _, ok := r.Operations[DocNoun+".toggle"]; ok {
-		return
-	}
-	r.Builtin(func() { register(r) })
-}
-
-func register(r *ochazuke.Runtime) {
-	on := func(run func(*Doc) error) ochazuke.Handler {
-		return func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
-			d, err := resolve(r, c, a)
-			if err != nil {
-				return nil, err
-			}
-			// A refusal (ErrRefused) is a failure: the CLI exits
-			// non-zero and the TUI shows it as the key's error.
-			err = run(d)
-			return d.Snapshot(), err
-		}
-	}
-	r.Define(TaskNoun)
-	r.Define(DocNoun).
-		Verb("toggle", on((*Doc).Toggle), "Toggle the selected task item: rewrites only its box character in the source, written at once").
-		Verb("undo", on((*Doc).Undo), "Undo the last toggle; the undo is written like a toggle").
-		Verb("redo", on((*Doc).Redo), "Redo the last undone toggle").
-		Verb("reload", on((*Doc).Reload), "Read the Markdown source again").
-		Mode("normal").
-		Bind("x", ochazuke.Do(DocNoun+".toggle")).
-		Bind("u", ochazuke.Do(DocNoun+".undo")).
-		Bind("ctrl+r", ochazuke.Do(DocNoun+".redo"))
-	for _, verb := range []string{"toggle", "undo", "redo", "reload"} {
-		op := r.Operations[DocNoun+"."+verb]
-		op.Parameters = map[string]ochazuke.Parameter{"id": {Type: "string", Description: "The markdown instance (default the one on the focus path)"}}
-		op.Result = "markdown state"
-		r.Operations[op.Key()] = op
-	}
-}
-
-// resolve is the Doc named by args.id, else the nearest on the context.
-func resolve(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (*Doc, error) {
-	if id := ochazuke.StringArg(a, "id", ""); id != "" {
-		if d := Of(r, id); d != nil {
-			return d, nil
-		}
-		return nil, fmt.Errorf("unknown markdown %q", id)
-	}
-	for i := len(c.Path) - 1; i >= 0; i-- {
-		if d := Of(r, c.Path[i]); d != nil {
-			return d, nil
-		}
-	}
-	return nil, errors.New("no markdown on the focus path")
+	return out
 }

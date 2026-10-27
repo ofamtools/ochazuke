@@ -1,0 +1,27 @@
+{
+  "name": "markdown: / on an empty line chooses a block kind to insert; a table asks for its column count",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "Intro.\n",
+      "author": "owner",
+      "today": "2026-10-27"
+    }
+  },
+  "script": [
+    "o",
+    "/"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "contains": [
+        "checklist",
+        "heading 1",
+        "code block"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "name": "markdown: u and ctrl+r undo and redo every edit, typing and deleting included, each written",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "- a\n- b\n",
+      "author": "owner",
+      "today": "2026-10-27"
+    }
+  },
+  "script": [
+    "o",
+    "n",
+    "e",
+    "w",
+    "esc",
+    "d",
+    "d",
+    "u",
+    "u",
+    "ctrl+r"
+  ],
+  "expect": [
+    {
+      "after": 7,
+      "writes": [
+        "write 2 +- new",
+        "write 2 -- new"
+      ]
+    },
+    {
+      "contains": [
+        "new"
+      ],
+      "writes": [
+        "write 2 +- new",
+        "write 2 -- new",
+        "write 2 +- new",
+        "write 2 -- new",
+        "write 2 +- new"
+      ]
+    }
+  ]
+}

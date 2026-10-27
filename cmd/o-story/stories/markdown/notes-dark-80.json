@@ -1,0 +1,22 @@
+{
+  "name": "markdown: notes in the dark theme: the note colour on the box and the author",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "# Plan\n\n- [ ] Inbox page\n  > **owner** 2026-10-27: start from matomeru-old's action items\n  > **claude** 2026-10-27 · sent: done the read/unread model, see 0c5162b\n  > **owner** 2026-10-26 ✓: an old one, resolved\n- [ ] Prompts\n",
+      "author": "owner",
+      "today": "2026-10-27"
+    }
+  },
+  "theme": "dark",
+  "expect": [
+    {
+      "styled": {
+        "owner": "#d7af5f",
+        "╭": "#d7af5f"
+      }
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "name": "markdown: o on a bullet opens a bullet below in insert mode; esc writes it",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "- milk\n- bread\n",
+      "author": "owner",
+      "today": "2026-10-27"
+    }
+  },
+  "script": [
+    "o",
+    "e",
+    "g",
+    "g",
+    "s",
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "mode": "insert",
+      "contains": [
+        "- "
+      ]
+    },
+    {
+      "mode": "normal",
+      "highlightedText": "eggs",
+      "writes": [
+        "write 2 +- eggs"
+      ]
+    }
+  ]
+}

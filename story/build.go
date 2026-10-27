@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"slices"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -619,7 +620,13 @@ func (ss *Session) addPage(p *Page) error {
 			return fmt.Errorf("markdown: %w", err)
 		}
 		ss.docs[p.ID] = doc
-		if focus == "" && len(doc.Tasks()) > 0 {
+		doc.Author = p.Markdown.Author
+		if p.Markdown.Today != "" {
+			if day, err := time.Parse("2006-01-02", p.Markdown.Today); err == nil {
+				doc.Now = func() time.Time { return day }
+			}
+		}
+		if focus == "" && doc.List().Len() > 0 {
 			focus = doc.FocusTarget()
 		}
 	}
@@ -770,7 +777,8 @@ func markdownID(p *Page) string {
 }
 
 // markdownSource holds the spec's text (External from the first toggle
-// on) and logs every save as "toggle LINE [x] TEXT".
+// on) and logs every save: a toggle as "toggle LINE [x] TEXT", any other
+// write as "write LINE -OLD +NEW" (the changed lines, | between lines).
 func (ss *Session) markdownSource(spec *MarkdownSpec) markdown.Source {
 	stored, loads := spec.Text, 0
 	return markdown.Source{
@@ -782,9 +790,9 @@ func (ss *Session) markdownSource(spec *MarkdownSpec) markdown.Source {
 			return stored, nil
 		},
 		Save: func(text string) error {
-			entry := "write"
+			entry := writeEntry(stored, text)
 			for _, t := range markdown.Tasks(text) {
-				if t.Box < len(stored) && stored[t.Box] != text[t.Box] {
+				if len(stored) == len(text) && stored[:t.Box] == text[:t.Box] && stored[t.Box+1:] == text[t.Box+1:] && stored[t.Box] != text[t.Box] {
 					entry = fmt.Sprintf("toggle %d [%c] %s", t.Line, text[t.Box], t.Text)
 				}
 			}
@@ -793,6 +801,28 @@ func (ss *Session) markdownSource(spec *MarkdownSpec) markdown.Source {
 			return nil
 		},
 	}
+}
+
+// writeEntry names a write by the lines it changed: "write LINE -OLD
+// +NEW", the removed and added lines joined by |.
+func writeEntry(before, after string) string {
+	a, b := strings.Split(before, "\n"), strings.Split(after, "\n")
+	p := 0
+	for p < len(a) && p < len(b) && a[p] == b[p] {
+		p++
+	}
+	q := 0
+	for q < len(a)-p && q < len(b)-p && a[len(a)-1-q] == b[len(b)-1-q] {
+		q++
+	}
+	entry := fmt.Sprintf("write %d", p+1)
+	if old := a[p : len(a)-q]; len(old) > 0 {
+		entry += " -" + strings.Join(old, "|")
+	}
+	if add := b[p : len(b)-q]; len(add) > 0 {
+		entry += " +" + strings.Join(add, "|")
+	}
+	return entry
 }
 
 // recordSpec is a record editor's spec from the story: its values loaded,
@@ -1043,12 +1073,12 @@ func (ss *Session) renderMain(p *Page, width, height int) ochazuke.Block {
 				if h < 0 {
 					h = max(1, height-used-head)
 				}
-				text := doc.View(width, h, *ss.M.Appearance)
+				block := doc.Block(width, h, *ss.M.Appearance)
 				if !p.NoHead {
-					text = id + "\n" + text
+					block = block.Offset(0, 1).WithText(id + "\n" + block.Text)
 				}
-				parts = append(parts, ochazuke.Text(text))
-				used += strings.Count(text, "\n") + 1
+				parts = append(parts, block)
+				used += strings.Count(block.Text, "\n") + 1
 				continue
 			}
 			if tree, ok := ss.trees[id]; ok {

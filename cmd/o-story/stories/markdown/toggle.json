@@ -1,5 +1,5 @@
 {
-  "name": "markdown: x toggles the selected item in the source, u and ctrl+r undo and redo it",
+  "name": "markdown: x toggles the checklist item under the cursor in the source, u and ctrl+r undo and redo it",
   "area": "markdown",
   "width": 80,
   "page": {
@@ -9,15 +9,19 @@
     }
   },
   "script": [
-    "j",
-    "j",
+    "]",
+    "x",
+    "]",
+    "x",
+    "]",
+    "x",
     "x",
     "u",
     "ctrl+r"
   ],
   "expect": [
     {
-      "after": 3,
+      "after": 7,
       "highlighted": 1,
       "highlightedText": "[x] go vet",
       "writes": [
@@ -25,7 +29,7 @@
       ]
     },
     {
-      "after": 4,
+      "after": 8,
       "highlightedText": "[ ] go vet",
       "writes": [
         "toggle 7 [x] go vet",

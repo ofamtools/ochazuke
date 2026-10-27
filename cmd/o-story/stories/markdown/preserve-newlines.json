@@ -10,12 +10,15 @@
     }
   },
   "script": [
-    "j",
+    "]",
+    "x",
+    "]",
+    "x",
     "x"
   ],
   "expect": [
     {
-      "after": 1,
+      "after": 4,
       "highlighted": 1,
       "highlightedText": "[x] review the branch",
       "order": [

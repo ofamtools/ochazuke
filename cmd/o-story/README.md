@@ -328,6 +328,7 @@ Conformance:
 | insert | completion | `completion.accept` `completion.dismiss` `completion.move` `completion.open` |
 | insert | form | `form.next` |
 | insert | input | `input.insert` `input.kill` `input.move` |
+| insert | markdown | `markdown.cell` `markdown.continue-item` `markdown.end-list` `markdown.indent` `markdown.insert-block` `markdown.leave` `markdown.outdent` `markdown.unmark` |
 | insert | mode | `mode.set` |
 | insert | modes | `modes.list` |
 | insert | outline | `outline.indent` `outline.leave` |
@@ -346,7 +347,7 @@ Conformance:
 | normal | form-option | `form-option.pick` |
 | normal | input | `input.begin` `input.undo` |
 | normal | list | `list.apply` `list.column` `list.filter-clear` `list.filter-open` `list.goto` `list.move` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.visual` |
-| normal | markdown | `markdown.redo` `markdown.toggle` `markdown.undo` |
+| normal | markdown | `markdown.delete` `markdown.fold` `markdown.insert` `markdown.next-block` `markdown.next-kind` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
 | normal | modal | `modal.pop` |
 | normal | mode | `mode.enter` |
 | normal | notice | `notice.clear` |
@@ -366,6 +367,7 @@ Conformance:
 
 Mode edges (from → to via):
 
+- `count_pending` → `count_pending ]` via `row ]`
 - `count_pending` → `count_pending g` via `row g`
 - `count_pending` → `normal` via `detail.scroll`
 - `count_pending` → `normal` via `list.column`
@@ -374,12 +376,14 @@ Mode edges (from → to via):
 - `count_pending` → `normal` via `list.scroll`
 - `count_pending` → `normal` via `pane.grow`
 - `count_pending` → `normal` via `pane.shrink`
+- `count_pending ]` → `normal` via `markdown.next-kind`
 - `count_pending g` → `normal` via `list.goto`
 - `hints` → `terminal` via `demo.hint`
 - `hints` → `terminal` via `demo.hints-cancel`
 - `insert` → `normal` via `bindings.help`
 - `insert` → `normal` via `chooser.cancel`
 - `insert` → `normal` via `chooser.pick`
+- `insert` → `normal` via `markdown.leave`
 - `insert` → `normal` via `mode.set`
 - `insert` → `normal` via `outline.leave`
 - `insert` → `normal` via `palette.run`
@@ -399,6 +403,9 @@ Mode edges (from → to via):
 - `normal` → `insert` via `bindings-help.place`
 - `normal` → `insert` via `form.suggest`
 - `normal` → `insert` via `input.begin`
+- `normal` → `insert` via `markdown.insert`
+- `normal` → `insert` via `markdown.note`
+- `normal` → `insert` via `markdown.open`
 - `normal` → `insert` via `modal.pop`
 - `normal` → `insert` via `outline.add`
 - `normal` → `insert` via `outline.edit`
@@ -410,17 +417,25 @@ Mode edges (from → to via):
 - `normal` → `insert` via `setting.edit`
 - `normal` → `insert` via `settings.close`
 - `normal` → `list_filter` via `list.filter-open`
+- `normal` → `normal [` via `row [`
+- `normal` → `normal ]` via `row ]`
 - `normal` → `normal d` via `row d`
 - `normal` → `normal g` via `row g`
 - `normal` → `normal z` via `row z`
 - `normal` → `terminal` via `command.run`
 - `normal` → `terminal` via `demo.open`
+- `normal [` → `normal` via `markdown.previous-kind`
+- `normal [` → `normal` via `markdown.previous-same`
+- `normal ]` → `normal` via `markdown.next-kind`
+- `normal ]` → `normal` via `markdown.next-same`
+- `normal d` → `normal` via `markdown.delete`
 - `normal d` → `normal` via `outline.delete`
 - `normal d` → `normal` via `setting-item.delete`
 - `normal g` → `normal` via `list.goto`
 - `normal z` → `normal` via `list.reset-columns`
 - `normal z` → `normal` via `list.resize-column`
 - `normal z` → `normal` via `list.scroll-columns`
+- `normal z` → `normal` via `markdown.fold`
 - `normal z` → `normal` via `timeline.close-all`
 - `normal z` → `normal` via `timeline.fold`
 - `normal z` → `normal` via `timeline.open-all`

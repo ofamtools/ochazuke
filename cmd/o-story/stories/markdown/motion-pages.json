@@ -1,0 +1,39 @@
+{
+  "name": "markdown: ctrl+d and ctrl+u move half a page, ctrl+f and ctrl+b a page, counts multiply, G and gg go to the ends",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "# Long\n\n- [ ] item 01\n- [ ] item 02\n- [ ] item 03\n- [ ] item 04\n- [ ] item 05\n- [ ] item 06\n- [ ] item 07\n- [ ] item 08\n- [ ] item 09\n- [ ] item 10\n- [ ] item 11\n- [ ] item 12\n- [ ] item 13\n- [ ] item 14\n- [ ] item 15\n- [ ] item 16\n- [ ] item 17\n- [ ] item 18\n- [ ] item 19\n- [ ] item 20\n- [ ] item 21\n- [ ] item 22\n- [ ] item 23\n- [ ] item 24\n- [ ] item 25\n- [ ] item 26\n- [ ] item 27\n- [ ] item 28\n- [ ] item 29\n- [ ] item 30\n- [ ] item 31\n- [ ] item 32\n- [ ] item 33\n- [ ] item 34\n- [ ] item 35\n- [ ] item 36\n- [ ] item 37\n- [ ] item 38\n- [ ] item 39\n- [ ] item 40\n- [ ] item 41\n- [ ] item 42\n- [ ] item 43\n- [ ] item 44\n- [ ] item 45\n- [ ] item 46\n- [ ] item 47\n- [ ] item 48\n- [ ] item 49\n- [ ] item 50\n- [ ] item 51\n- [ ] item 52\n- [ ] item 53\n- [ ] item 54\n- [ ] item 55\n- [ ] item 56\n- [ ] item 57\n- [ ] item 58\n- [ ] item 59\n- [ ] item 60\n",
+      "author": "owner",
+      "today": "2026-10-27",
+      "height": -1
+    }
+  },
+  "script": [
+    "ctrl+d",
+    "ctrl+f",
+    "2",
+    "ctrl+f",
+    "ctrl+b",
+    "ctrl+u",
+    "G",
+    "g",
+    "g"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "highlighted": 1,
+      "highlightedText": "item"
+    },
+    {
+      "after": 7,
+      "highlightedText": "[ ] item 60"
+    },
+    {
+      "highlightedText": "# Long"
+    }
+  ]
+}

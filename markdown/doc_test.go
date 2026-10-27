@@ -123,7 +123,7 @@ func TestToggleRewritesOnlyTheBox(t *testing.T) {
 	if got := len(d.Tasks()); got != 3 {
 		t.Fatalf("%d tasks", got)
 	}
-	if err := press(t, r, "j", "x"); err != nil {
+	if err := press(t, r, "]", "x", "]", "x", "x"); err != nil {
 		t.Fatal(err)
 	}
 	after := readFile(t, path)
@@ -137,7 +137,7 @@ func TestToggleRewritesOnlyTheBox(t *testing.T) {
 	if info, err := os.Stat(path); err != nil || info.Mode().Perm() != 0o600 {
 		t.Fatalf("mode %v %v", info.Mode(), err)
 	}
-	if err := press(t, r, "k", "x"); err != nil {
+	if err := press(t, r, "[", "x", "x"); err != nil {
 		t.Fatal(err)
 	}
 	first := d.Tasks()[0].Box
@@ -151,7 +151,7 @@ func TestToggleRewritesOnlyTheBox(t *testing.T) {
 func TestUndoRedoWrite(t *testing.T) {
 	path := writeFile(t, awkward)
 	r, _ := newDoc(t, File(path))
-	if err := press(t, r, "j", "x"); err != nil {
+	if err := press(t, r, "]", "x", "]", "x", "x"); err != nil {
 		t.Fatal(err)
 	}
 	toggled := readFile(t, path)
@@ -257,7 +257,7 @@ func TestCustomSource(t *testing.T) {
 		},
 	}
 	r, _ := newDoc(t, src)
-	if err := press(t, r, "j", "x"); err != nil {
+	if err := press(t, r, "j", "j", "x"); err != nil {
 		t.Fatal(err)
 	}
 	if len(saves) != 1 || saves[0] != "notes\n\n- [ ] one\n- [x] two\n" {
@@ -276,10 +276,11 @@ func TestCustomSource(t *testing.T) {
 	}
 }
 
-// View maps each item to its rendered lines: j and k move the one
-// reverse-video highlight item by item, a wrapped item highlighted whole,
-// nothing highlighted once the focus leaves.
-func TestViewHighlightsTheSelectedItem(t *testing.T) {
+// The cursor is one drawn line: it starts on the first, j and k move
+// it line by line (a wrapped item's second line too), ]x jumps to the
+// next checklist item; the one reverse-video highlight follows it, and
+// nothing is highlighted once the focus leaves.
+func TestViewHighlightsTheCursorLine(t *testing.T) {
 	src := "# List\n\n- [ ] first item that is long enough to wrap onto a second line here\n- [x] second\n  - [ ] nested\n\n```\n- [ ] code\n```\n"
 	r, d := newDoc(t, Source{Load: func() (string, error) { return src, nil }})
 	mono := ochazuke.Appearance{Theme: "mono"}
@@ -293,23 +294,34 @@ func TestViewHighlightsTheSelectedItem(t *testing.T) {
 		return out
 	}
 	view := d.View(40, 0, mono)
-	if got := reversed(view); len(got) != 2 || !strings.HasPrefix(got[0], "[ ] first") {
-		t.Fatalf("first item: %q\n%s", got, ansi.Strip(view))
+	if got := reversed(view); len(got) != 1 || got[0] != "# List" {
+		t.Fatalf("first line: %q\n%s", got, ansi.Strip(view))
 	}
 	if strings.ContainsRune(view, startMarker) || strings.ContainsRune(view, endMarker) {
 		t.Fatal("a marker leaked into the view")
+	}
+	_ = press(t, r, "]", "x")
+	if got := reversed(d.View(40, 0, mono)); len(got) != 1 || !strings.HasPrefix(got[0], "[ ] first") {
+		t.Fatalf("first item: %q", got)
+	}
+	_ = press(t, r, "j")
+	if got := reversed(d.View(40, 0, mono)); len(got) != 1 || !strings.HasPrefix(got[0], "to wrap") {
+		t.Fatalf("its second line: %q", got)
+	}
+	if sel, ok := d.Selected(); !ok || !strings.HasPrefix(sel.Text, "first item") {
+		t.Fatalf("selected %+v", sel)
 	}
 	_ = press(t, r, "j")
 	if got := reversed(d.View(40, 0, mono)); len(got) != 1 || got[0] != "[x] second" {
 		t.Fatalf("second: %q", got)
 	}
-	_ = press(t, r, "j")
+	_ = press(t, r, "]", "x")
 	if got := reversed(d.View(40, 0, mono)); len(got) != 1 || got[0] != "[ ] nested" {
 		t.Fatalf("nested: %q", got)
 	}
-	_ = press(t, r, "j") // the last item: nothing to spill to on this page
-	if got := reversed(d.View(40, 0, mono)); len(got) != 1 || got[0] != "[ ] nested" {
-		t.Fatalf("past the end: %q", got)
+	_ = press(t, r, "G")
+	if got := reversed(d.View(40, 0, mono)); len(got) != 1 || got[0] != "- [ ] code" {
+		t.Fatalf("G: %q", got)
 	}
 	if err := r.SetFocus("notes"); err != nil {
 		t.Fatal(err)
@@ -344,14 +356,26 @@ func TestViewWindowsToTheSelection(t *testing.T) {
 	}
 }
 
-// A document without task items is not a focus stop.
-func TestNoTasksIsNoStop(t *testing.T) {
-	r, d := newDoc(t, Source{Load: func() (string, error) { return "# Just text\n", nil }})
-	if !r.Instances[d.ListID()].Unfocusable {
-		t.Fatal("an empty task list must not be a stop")
+// Any drawn document is a focus stop; an empty read-only one is not,
+// and a toggle off a checklist item says so.
+func TestEmptyReadOnlyIsNoStop(t *testing.T) {
+	_, d := newDoc(t, Source{Load: func() (string, error) { return "# Just text\n", nil }})
+	if d.r.Instances[d.ListID()].Unfocusable {
+		t.Fatal("a drawn document is a stop")
 	}
 	if err := d.Toggle(); err == nil {
 		t.Fatal("toggle with no task must say so")
+	}
+	r := ochazuke.NewRuntime()
+	if _, err := r.AddPage("p", "P", func(*ochazuke.Runtime, int, int) ochazuke.Block { return ochazuke.Text("") }); err != nil {
+		t.Fatal(err)
+	}
+	empty, err := New(r, "doc", "p", Source{Load: func() (string, error) { return "", nil }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !r.Instances[empty.ListID()].Unfocusable {
+		t.Fatal("an empty read-only document must not be a stop")
 	}
 }
 

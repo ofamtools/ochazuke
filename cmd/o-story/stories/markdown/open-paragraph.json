@@ -1,0 +1,40 @@
+{
+  "name": "markdown: o on a paragraph opens a blank paragraph line below it, kept apart by a blank line",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "First thought.\n\nLast thought.\n",
+      "author": "owner",
+      "today": "2026-10-27"
+    }
+  },
+  "script": [
+    "o",
+    "M",
+    "i",
+    "d",
+    "d",
+    "l",
+    "e",
+    "space",
+    "t",
+    "h",
+    "o",
+    "u",
+    "g",
+    "h",
+    "t",
+    ".",
+    "esc"
+  ],
+  "expect": [
+    {
+      "highlightedText": "Middle thought.",
+      "writes": [
+        "write 3 +Middle thought.|"
+      ]
+    }
+  ]
+}

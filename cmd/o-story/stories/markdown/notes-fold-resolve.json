@@ -1,0 +1,38 @@
+{
+  "name": "markdown: x on a note resolves it, ]n and [n jump between notes, za folds an item's notes to a count of the open ones",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "# Plan\n\n- [ ] Inbox page\n  > **owner** 2026-10-27: start from matomeru-old's action items\n  > **claude** 2026-10-27 · sent: done the read/unread model, see 0c5162b\n  > **owner** 2026-10-26 ✓: an old one, resolved\n- [ ] Prompts\n",
+      "author": "owner",
+      "today": "2026-10-27"
+    }
+  },
+  "script": [
+    "]",
+    "n",
+    "x",
+    "]",
+    "n",
+    "z",
+    "a"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "writes": [
+        "write 4 -  > **owner** 2026-10-27: start from matomeru-old's action items +  > **owner** 2026-10-27 ✓: start from matomeru-old's action items"
+      ]
+    },
+    {
+      "contains": [
+        "· 1 note, 2 resolved"
+      ],
+      "lacks": [
+        "start from"
+      ]
+    }
+  ]
+}
