@@ -1088,3 +1088,30 @@ func (d *Doc) Outline() error {
 	}})
 	return err
 }
+
+// Edit makes an edit of the application's own (marking notes sent, say)
+// through the Doc: the source is loaded again, change turns its text into
+// the next and names where the cursor goes, and the result is written as
+// one undo step.
+func (d *Doc) Edit(change func(text string) (next string, at int, err error)) error {
+	if err := d.editable(); err != nil {
+		return err
+	}
+	if err := d.Leave(); err != nil {
+		return err
+	}
+	current, err := d.src.Load()
+	if err != nil {
+		return fmt.Errorf("not written: load markdown: %w", err)
+	}
+	if current != d.text {
+		if err := d.set(current); err != nil {
+			return err
+		}
+	}
+	next, at, err := change(d.text)
+	if err != nil {
+		return err
+	}
+	return d.write(next, at)
+}

@@ -459,3 +459,30 @@ func TestReadOnlyRefusesEdits(t *testing.T) {
 		}
 	}
 }
+
+// Edit runs an application's change on the source as it is now, as one
+// undo step.
+func TestEditIsOneUndoStep(t *testing.T) {
+	r, d, path := fileDoc(t, "- [ ] a\n  > **owner** 2026-10-27: hi\n")
+	if err := d.Edit(func(text string) (string, int, error) {
+		els := Elements(text)
+		next, err := SetSent(text, els[1], true)
+		return next, els[1].Start, err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if got := readFile(t, path); got != "- [ ] a\n  > **owner** 2026-10-27 · sent: hi\n" {
+		t.Fatalf("sent: %q", got)
+	}
+	// Editing the note's text clears the marker.
+	mustPress(t, r, "j", "A")
+	typeText(t, r, "!")
+	mustPress(t, r, "esc")
+	if got := readFile(t, path); got != "- [ ] a\n  > **owner** 2026-10-27: hi!\n" {
+		t.Fatalf("edited: %q", got)
+	}
+	mustPress(t, r, "u", "u")
+	if got := readFile(t, path); got != "- [ ] a\n  > **owner** 2026-10-27: hi\n" {
+		t.Fatalf("undo: %q", got)
+	}
+}

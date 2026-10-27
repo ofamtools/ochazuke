@@ -329,11 +329,12 @@ func (t *demoTask) view(m *ochazuke.Model, width, height int) ochazuke.Block {
 }
 
 // demoChecklist draws the Checklist page: a Markdown document (Glamour)
-// whose task items are a focus stop, windowed to the page.
+// edited in place, windowed to the page.
 func demoChecklist(m *ochazuke.Model, doc *markdown.Doc, width, height int) ochazuke.Block {
 	s := ochazuke.NewStyles(*m.Appearance)
-	head := s.Muted.Render(ansi.Truncate("testdata/checklist.md · x toggles · u / ctrl+r undo and redo", width, "…")) + "\n"
-	return ochazuke.Text(head + doc.View(width, max(1, height-1), *m.Appearance))
+	head := s.Muted.Render(ansi.Truncate("testdata/checklist.md · x toggles · i edits · o opens · n notes · u / ctrl+r undo and redo", width, "…")) + "\n"
+	block := doc.Block(width, max(1, height-1), *m.Appearance)
+	return block.Offset(0, 1).WithText(head + block.Text)
 }
 
 func demoOverview(m *ochazuke.Model, width int) string {

@@ -854,11 +854,11 @@ Importable package `markdown`: 10 source files, 4 test files.
 
 ### markdown/edit.go
 
-- lines: 1090 · tests: edit_test.go
+- lines: 1117 · tests: edit_test.go
 - purpose: session is the element open in the block editor: the input holding its source (its common indent taken off), where that source sits in the text and what of i...
-- methods: Doc(28), insertion(1), session(1)
+- methods: Doc(29), insertion(1), session(1)
 - funcs: Component
-- leans on: doc.go(70), elements.go(50), insert.go(25), tasks.go(13)
+- leans on: doc.go(71), elements.go(50), insert.go(25), tasks.go(13)
 
 ### markdown/elements.go
 
