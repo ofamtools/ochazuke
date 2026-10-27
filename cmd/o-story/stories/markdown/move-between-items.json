@@ -1,5 +1,5 @@
 {
-  "name": "markdown: j and k move the one highlight item by item over the rendered text",
+  "name": "markdown: j and k move the cursor one drawn line at a time over the rendered text",
   "area": "markdown",
   "width": 80,
   "page": {
@@ -13,43 +13,28 @@
     "j",
     "j",
     "j",
-    "k",
-    "k",
-    "k",
+    "j",
     "k"
   ],
   "expect": [
     {
-      "after": 1,
-      "highlighted": 2,
-      "order": [
-        "[x] Changelog",
-        "Gate green"
-      ]
-    },
-    {
-      "after": 2,
-      "highlighted": 1,
-      "highlightedText": "[ ] go vet"
-    },
-    {
       "after": 3,
       "highlighted": 1,
-      "highlightedText": "[x] go test -race"
+      "highlightedText": "[x] Changelog section written"
     },
     {
       "after": 4,
       "highlighted": 1,
-      "highlightedText": "[ ] Tag the release commit"
+      "highlightedText": "[ ] Gate green"
     },
     {
-      "after": 7,
-      "highlighted": 2,
-      "highlightedText": ""
+      "after": 5,
+      "highlighted": 1,
+      "highlightedText": "from the module proxy"
     },
     {
       "highlighted": 1,
-      "highlightedText": "[x] Changelog section written",
+      "highlightedText": "[ ] Gate green",
       "writes": []
     }
   ]

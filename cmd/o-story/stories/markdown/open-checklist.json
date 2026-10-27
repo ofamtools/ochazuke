@@ -1,0 +1,30 @@
+{
+  "name": "markdown: o on a checklist item opens an unchecked item with the same marker and indent",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "- [x] parent\n  - [x] done child\n",
+      "author": "owner",
+      "today": "2026-10-27"
+    }
+  },
+  "script": [
+    "j",
+    "o",
+    "t",
+    "o",
+    "d",
+    "o",
+    "esc"
+  ],
+  "expect": [
+    {
+      "highlightedText": "[ ] todo",
+      "writes": [
+        "write 3 +  - [ ] todo"
+      ]
+    }
+  ]
+}

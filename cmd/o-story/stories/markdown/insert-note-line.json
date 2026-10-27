@@ -1,0 +1,38 @@
+{
+  "name": "markdown: backspace on an empty marker leaves an indented line under the item above: a note line",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "- [ ] buy milk\n",
+      "author": "owner",
+      "today": "2026-10-27",
+      "preserveNewlines": true
+    }
+  },
+  "script": [
+    "o",
+    "backspace",
+    "o",
+    "a",
+    "t",
+    ",",
+    "space",
+    "n",
+    "o",
+    "t",
+    "space",
+    "c",
+    "o",
+    "w",
+    "esc"
+  ],
+  "expect": [
+    {
+      "writes": [
+        "write 2 +  oat, not cow"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "name": "markdown: ] and [ with a kind letter jump to the next heading, table, code block, note, list item or quote",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "# Plan\n\nIntro paragraph.\n\n- [ ] Inbox page\n  > **owner** 2026-10-27: start from matomeru-old\n- [ ] Prompts\n- plain bullet\n\n| col | val |\n|---|---|\n| a | 1 |\n| b | 2 |\n\n## Code\n\n```sh\ngo test ./...\n```\n\n> a quote\n",
+      "author": "owner",
+      "today": "2026-10-27"
+    }
+  },
+  "script": [
+    "]",
+    "t",
+    "]",
+    "c",
+    "[",
+    "h",
+    "[",
+    "n",
+    "]",
+    "l",
+    "]",
+    "q",
+    "g",
+    "g",
+    "2",
+    "]",
+    "x"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "highlightedText": "col"
+    },
+    {
+      "after": 4,
+      "highlightedText": "go test ./..."
+    },
+    {
+      "after": 6,
+      "highlightedText": "## Code"
+    },
+    {
+      "after": 8,
+      "highlightedText": "owner 2026-10-27"
+    },
+    {
+      "after": 10,
+      "highlightedText": "[ ] Prompts"
+    },
+    {
+      "after": 12,
+      "highlightedText": "a quote"
+    },
+    {
+      "highlightedText": "[ ] Prompts"
+    }
+  ]
+}

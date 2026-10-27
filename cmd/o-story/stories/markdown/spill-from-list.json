@@ -1,5 +1,5 @@
 {
-  "name": "markdown: j past a list's last row lands on the first item, k before it goes back",
+  "name": "markdown: j past a list's last row lands on the document's first line, k before it goes back",
   "area": "markdown",
   "width": 80,
   "page": {
@@ -26,9 +26,9 @@
     },
     {
       "after": 2,
-      "focus": "markdown/task/0",
+      "focus": "markdown/line/0",
       "highlighted": 1,
-      "highlightedText": "[x] Changelog section written"
+      "highlightedText": "# Release checklist"
     },
     {
       "focus": "a2",

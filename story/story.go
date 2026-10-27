@@ -193,8 +193,9 @@ type DetailSpec struct {
 
 // MarkdownSpec is a Markdown document drawn in the page's order with the
 // lists (its id, default "markdown", names it in Order) at the page's
-// width. Its source holds Text; every toggle it writes is logged (the
-// writes expect, "toggle LINE [x] TEXT"). External is what the source
+// width. Its source holds Text; every write is logged (the writes
+// expect: "toggle LINE [x] TEXT" for a toggle, "write LINE -OLD +NEW" for
+// any other edit). External is what the source
 // holds from the first toggle on, a change made elsewhere after the page
 // loaded, so a story can show a toggle found again or refused.
 type MarkdownSpec struct {
@@ -205,6 +206,10 @@ type MarkdownSpec struct {
 	// PreserveNewlines draws every source line of a paragraph as a line
 	// (markdown.PreserveNewlines).
 	PreserveNewlines bool `json:"preserveNewlines,omitempty"`
+	// Author signs new notes (Doc.Author) and Today dates them
+	// (YYYY-MM-DD, Doc.Now), so a story's writes are the same every run.
+	Author string `json:"author,omitempty"`
+	Today  string `json:"today,omitempty"`
 }
 
 // TimelineSpec is a card timeline: its cards (of the story-card noun),

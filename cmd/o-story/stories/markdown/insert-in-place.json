@@ -1,0 +1,42 @@
+{
+  "name": "markdown: i edits only the block under the cursor as Markdown, the rest stays rendered; typing is written after a pause",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "# Title\n\n- [ ] item one\n- [ ] item two\n",
+      "author": "owner",
+      "today": "2026-10-27"
+    }
+  },
+  "script": [
+    "]",
+    "x",
+    "A",
+    "space",
+    "m",
+    "o",
+    "r",
+    "e",
+    {
+      "tick": "debounce"
+    }
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "mode": "insert",
+      "contains": [
+        "- [ ] item one",
+        "# Title"
+      ]
+    },
+    {
+      "mode": "insert",
+      "writes": [
+        "write 3 -- [ ] item one +- [ ] item one more"
+      ]
+    }
+  ]
+}

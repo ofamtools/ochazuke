@@ -1,0 +1,40 @@
+{
+  "name": "markdown: / then table then a column count puts a header and its delimiter on the line",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "Intro.\n",
+      "author": "owner",
+      "today": "2026-10-27"
+    }
+  },
+  "script": [
+    "o",
+    "/",
+    "t",
+    "a",
+    "b",
+    "l",
+    "e",
+    "enter",
+    "3",
+    "enter",
+    "w",
+    "h",
+    "o",
+    "esc"
+  ],
+  "expect": [
+    {
+      "contains": [
+        "who"
+      ],
+      "writes": [
+        "write 3 +| who |  |  ||| --- | --- | --- ||",
+        "write 3 -| who |  |  | +| who |     |     |"
+      ]
+    }
+  ]
+}

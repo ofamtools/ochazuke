@@ -1,0 +1,45 @@
+{
+  "name": "markdown: in insert mode enter continues a list item, tab nests it, shift+tab takes it out, enter on an empty item ends the list",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "- [ ] a\n",
+      "author": "owner",
+      "today": "2026-10-27"
+    }
+  },
+  "script": [
+    "A",
+    "enter",
+    "b",
+    "enter",
+    "tab",
+    "c",
+    "enter",
+    "shift+tab",
+    "d",
+    "enter",
+    "enter",
+    "a",
+    "f",
+    "t",
+    "e",
+    "r",
+    "esc"
+  ],
+  "expect": [
+    {
+      "contains": [
+        "after"
+      ],
+      "writes": [
+        "write 2 +- [ ] b",
+        "write 3 +  - [ ] c",
+        "write 4 +- [ ] d",
+        "write 6 +after|"
+      ]
+    }
+  ]
+}

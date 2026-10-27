@@ -1,0 +1,58 @@
+{
+  "name": "markdown: } and { move between components: a heading, a paragraph, a whole list, an item's notes, a table, a code block",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "# Plan\n\nIntro paragraph.\n\n- [ ] Inbox page\n  > **owner** 2026-10-27: start from matomeru-old\n- [ ] Prompts\n- plain bullet\n\n| col | val |\n|---|---|\n| a | 1 |\n| b | 2 |\n\n## Code\n\n```sh\ngo test ./...\n```\n\n> a quote\n",
+      "author": "owner",
+      "today": "2026-10-27"
+    }
+  },
+  "script": [
+    "}",
+    "}",
+    "}",
+    "}",
+    "}",
+    "}",
+    "{",
+    "{"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "highlighted": 1,
+      "highlightedText": "Intro paragraph."
+    },
+    {
+      "after": 2,
+      "highlightedText": "[ ] Inbox page"
+    },
+    {
+      "after": 3,
+      "highlightedText": "owner 2026-10-27"
+    },
+    {
+      "after": 4,
+      "highlightedText": "[ ] Prompts"
+    },
+    {
+      "after": 5,
+      "highlightedText": "col"
+    },
+    {
+      "after": 6,
+      "highlightedText": "## Code"
+    },
+    {
+      "after": 7,
+      "highlightedText": "col"
+    },
+    {
+      "highlightedText": "[ ] Prompts",
+      "writes": []
+    }
+  ]
+}

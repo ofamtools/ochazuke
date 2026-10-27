@@ -405,7 +405,7 @@ var frameworkShortNames = sync.OnceValue(func() map[string]bool {
 	for _, a := range r.Aliases() {
 		names[a.Alias] = true
 	}
-	for _, noun := range []string{CommandNoun, GroupNoun, "ochazuke.grid", "ochazuke.selection", "ochazuke.markdown", "ochazuke.markdown-task"} {
+	for _, noun := range []string{CommandNoun, GroupNoun, "ochazuke.grid", "ochazuke.selection", "ochazuke.markdown", "ochazuke.markdown-task", "ochazuke.markdown-line", "ochazuke.markdown-note", "ochazuke.markdown-edit"} {
 		names[strings.TrimPrefix(noun, ochazuke.FrameworkNamespace+".")] = true
 	}
 	return names

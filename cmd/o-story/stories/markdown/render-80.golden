@@ -1,12 +1,12 @@
  |  ◆ o-story                                                            NORMAL
  |   › page1
  |  ────────────────────────────────────────────────────────────────────────────
- |    # Release checklist
+R|    # Release checklist
  |
  |    Work through these before **v0.4.0** ships. Each box is saved back to
  |    the file the moment it is toggled.
  |
-R|    [x] Changelog section written
+ |    [x] Changelog section written
  |    [ ] Gate green with GOWORK=off, which builds what a fresh clone gets
  |    from the module proxy
  |        [ ] go vet
@@ -20,5 +20,5 @@ R|    [x] Changelog section written
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────
- |  x markdown.toggle · u markdown.undo · ctrl+r markdown.redo · q app.quit · r…
+ |  i markdown.insert · o markdown.open · d d markdown.delete · p markdown.past…
  |

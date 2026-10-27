@@ -1,0 +1,24 @@
+ |  ◆ o-story                                                            INSERT
+ |   › page1
+ |  ────────────────────────────────────────────────────────────────────────────
+ |    Intro.
+ |        ╭──────────────────────────────────────────────────────────────╮
+ |        │ Insert                                                       │
+ |        │ ›                                                            │
+R|        │   table                                                      │
+ |        │   checklist                                                  │
+ |        │   bullets                                                    │
+ |        │   numbered list                                              │
+ |        │   heading 1                                                  │
+ |        │   heading 2                                                  │
+ |        │   heading 3                                                  │
+ |        │   code block                                                 │
+ |        │   quote                                                      │
+ |        │   rule                                                       │
+ |        │ enter chooser.pick · esc chooser.cancel · <printable> input… │
+ |        ╰──────────────────────────────────────────────────────────────╯
+ |
+ |
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  enter chooser.pick · esc chooser.cancel · <printable> input.insert · ctrl+s…
+ |

@@ -1,0 +1,43 @@
+{
+  "name": "markdown: ]] and [[ move to the next and previous block of the kind under the cursor; at the last one they are quiet",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "# Plan\n\nIntro paragraph.\n\n- [ ] Inbox page\n  > **owner** 2026-10-27: start from matomeru-old\n- [ ] Prompts\n- plain bullet\n\n| col | val |\n|---|---|\n| a | 1 |\n| b | 2 |\n\n## Code\n\n```sh\ngo test ./...\n```\n\n> a quote\n",
+      "author": "owner",
+      "today": "2026-10-27"
+    }
+  },
+  "script": [
+    "]",
+    "x",
+    "]",
+    "]",
+    "]",
+    "]",
+    "[",
+    "["
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "highlightedText": "[ ] Inbox page"
+    },
+    {
+      "after": 4,
+      "highlightedText": "[ ] Prompts"
+    },
+    {
+      "after": 6,
+      "highlightedText": "[ ] Prompts",
+      "lacks": [
+        "no next"
+      ]
+    },
+    {
+      "highlightedText": "[ ] Inbox page"
+    }
+  ]
+}

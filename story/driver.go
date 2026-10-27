@@ -9,6 +9,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/unixsuperhero/ochazuke"
 	"github.com/unixsuperhero/ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/markdown"
 )
 
 // Tagged is a message from a session's command, tagged with the session's
@@ -76,6 +77,10 @@ func Classify(ss *Session, msg tea.Msg) *Event {
 		}
 	case ochazuke.RecordDebounceMsg:
 		if e := ss.R.RecordEditor(v.Editor); e != nil && e.DebounceCurrent(v) {
+			return &Event{Tick: "debounce"}
+		}
+	case markdown.DebounceMsg:
+		if doc := markdown.Of(ss.R, v.Doc); doc != nil && doc.DebounceCurrent(v) {
 			return &Event{Tick: "debounce"}
 		}
 	case ochazuke.CompletionDebounceMsg:

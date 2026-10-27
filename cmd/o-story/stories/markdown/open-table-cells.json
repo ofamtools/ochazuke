@@ -1,0 +1,48 @@
+{
+  "name": "markdown: o on a table row opens an empty row; tab moves cell to cell, past the last a new row; the pipes line up when it is left",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "| name | n |\n|---|---|\n| a | 1 |\n",
+      "author": "owner",
+      "today": "2026-10-27"
+    }
+  },
+  "script": [
+    "j",
+    "o",
+    "l",
+    "o",
+    "n",
+    "g",
+    "e",
+    "r",
+    "tab",
+    "2",
+    "2",
+    "tab",
+    "c",
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "mode": "insert"
+    },
+    {
+      "mode": "normal",
+      "contains": [
+        "longer",
+        "22"
+      ],
+      "writes": [
+        "write 4 +| longer | 22 |",
+        "write 1 -| name | n |||---|---||| a | 1 ||| longer | 22 | +| name   | n   ||| ------ | --- ||| a      | 1   ||| longer | 22  |",
+        "write 5 +| c |  |",
+        "write 5 -| c |  | +| c      |     |"
+      ]
+    }
+  ]
+}

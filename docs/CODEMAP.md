@@ -723,7 +723,7 @@ Importable package `cli`: 18 source files, 14 test files.
 
 ## Package explore
 
-Importable package `explore`: 14 source files, 3 test files.
+Importable package `explore`: 14 source files, 4 test files.
 
 ### explore/actions.go
 
@@ -748,7 +748,7 @@ Importable package `explore`: 14 source files, 3 test files.
 
 ### explore/doc.go
 
-- lines: 98
+- lines: 100
 
 ### explore/drive.go
 
@@ -814,7 +814,7 @@ Importable package `explore`: 14 source files, 3 test files.
 
 ### explore/survey.go
 
-- lines: 65
+- lines: 65 · tests: survey_test.go
 - purpose: SurveyBudget is the budget Survey runs with: small for go test, the deep budget (depth 6, 20000 steps) when OCHAZUKE_EXPLORE=deep.
 - funcs: SurveyBudget, Survey
 - leans on: subject.go(7), search.go(3), race_off.go(2), race_on.go(2)
@@ -841,16 +841,55 @@ Importable package `grid`: 2 source files, 1 test files.
 
 ## Package markdown
 
-Importable package `markdown`: 3 source files, 3 test files.
+Importable package `markdown`: 10 source files, 4 test files.
 
 ### markdown/doc.go
 
-- lines: 522 · tests: doc_test.go
+- lines: 803 · tests: doc_test.go
 - purpose: Source is where a Doc's Markdown lives: Load reads it as it is now and Save stores a new text.
-- types: Source, Doc
-- methods: Doc(22)
-- funcs: File, New, Of, Register
-- leans on: tasks.go(20), render.go(5)
+- types: Source, DebounceMsg, Doc
+- methods: Doc(41), refusal(2)
+- funcs: File, WriteFile, New, Of
+- leans on: tasks.go(20), elements.go(19), render.go(9), edit.go(3)
+
+### markdown/edit.go
+
+- lines: 1117 · tests: edit_test.go
+- purpose: session is the element open in the block editor: the input holding its source (its common indent taken off), where that source sits in the text and what of i...
+- methods: Doc(29), insertion(1), session(1)
+- funcs: Component
+- leans on: doc.go(71), elements.go(50), insert.go(25), tasks.go(13)
+
+### markdown/elements.go
+
+- lines: 531
+- purpose: Element is one block of a Markdown source as a Doc draws and edits it: a heading, a paragraph, a list item (its own lines, not its nested lists or notes), on...
+- types: Element
+- methods: Element(2), elementParser(14)
+- funcs: Elements
+- leans on: tidy.go(3), tasks.go(2)
+
+### markdown/insert.go
+
+- lines: 397
+- purpose: buffer is the open element's text, the cursor as a byte offset and the cursor's line (its byte range and the column in it).
+- methods: Doc(18)
+- leans on: doc.go(38), edit.go(9), elements.go(8), tasks.go(1)
+
+### markdown/layout.go
+
+- lines: 300
+- purpose: layout is a Doc drawn at one width: its lines, per element the first and last line it covers ({-1, -1} when it is not drawn), per line the element it belongs...
+- methods: layout(1)
+- leans on: tasks.go(48), elements.go(9), render.go(4)
+
+### markdown/notes.go
+
+- lines: 322
+- purpose: noteHead is the start of a new note line: "> **author** date: ".
+- types: Note
+- funcs: NoteElement, CleanNote, AddNote, ReplyNote, SetResolved, SetSent, SetFlags, ItemText, Items, ItemPath, Notes, FindItem
+- leans on: elements.go(21), doc.go(8), edit.go(1)
 
 ### markdown/render.go
 
@@ -868,27 +907,40 @@ Importable package `markdown`: 3 source files, 3 test files.
 - funcs: Tasks
 - leans on: doc.go(1)
 
+### markdown/tidy.go
+
+- lines: 166
+- purpose: tidy is src after an edit at byte at: the table holding it with its pipes aligned, the ordered list holding it (or ending just before it) numbered on from it...
+- leans on: elements.go(9), edit.go(1)
+
+### markdown/verbs.go
+
+- lines: 277
+- purpose: Register defines the markdown nouns, their verbs and keys once per runtime (see Doc for the keys).
+- funcs: Register
+- leans on: doc.go(93), insert.go(14), elements.go(9), edit.go(6)
+
 ## Package story
 
 Importable package `story`: 8 source files, 0 test files.
 
 ### story/build.go
 
-- lines: 1290
+- lines: 1320
 - purpose: Session is one built story: the runtime, the model and the demo state the verbs act on (fake jobs and panes).
 - types: Session, Options
 - methods: Session(23), storyCommands(3)
 - funcs: Build
-- leans on: story.go(44), run.go(15), fake.go(3)
+- leans on: story.go(45), run.go(15), fake.go(3)
 
 ### story/driver.go
 
-- lines: 364
+- lines: 369
 - purpose: Tagged is a message from a session's command, tagged with the session's generation so a message of a session that was reset or left never reaches its success...
 - types: Tagged, Driver, Step, Ran
 - methods: Driver(14)
 - funcs: Wrap, Unbatch, Classify, NewDriver
-- leans on: story.go(20), build.go(6), run.go(1)
+- leans on: story.go(21), build.go(6), run.go(1)
 
 ### story/fake.go
 
@@ -917,7 +969,7 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/story.go
 
-- lines: 601
+- lines: 606
 - purpose: Story is one scenario file.
 - types: Story, Page, ChooserSpec, ChooserRowSpec, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, MarkdownSpec, TimelineSpec, CardSpec, SectionSpec, CommandsSpec, CatalogSpec, InputSpec, CompletionSpec, TermSpec, HintsSpec, MarkSpec, JobSpec, BindSpec, Event, Expect, Expects
 - methods: Event(3), Expects(2), Story(5)
@@ -1112,7 +1164,10 @@ Exported type -> file.
 - grid.Option -> grid/grid.go
 - grid.Ref -> grid/grid.go
 - grid.Styles -> grid/grid.go
+- markdown.DebounceMsg -> markdown/doc.go
 - markdown.Doc -> markdown/doc.go
+- markdown.Element -> markdown/elements.go
+- markdown.Note -> markdown/notes.go
 - markdown.Option -> markdown/render.go
 - markdown.Source -> markdown/doc.go
 - markdown.Task -> markdown/tasks.go
