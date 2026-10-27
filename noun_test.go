@@ -61,7 +61,7 @@ func TestResolveWalksStackInnerToOuter(t *testing.T) {
 	r.Instance("list", Parent("page"))
 	r.Instance("row", Parent("list"))
 	r.Define("app").Mode("normal").Bind("x", Do("test.app-normal")).Mode("").Bind("y", Do("test.app-any"))
-	r.Define("app.page").Mode("").Bind("x", Do("test.page-any")).Mode("normal").Bind("y", Do("test.page-normal")).Pattern(Any, Do("test.any-row")).Pattern(Alpha, Do("test.alpha-row"))
+	r.Define("ochazuke.page").Mode("").Bind("x", Do("test.page-any")).Mode("normal").Bind("y", Do("test.page-normal")).Pattern(Any, Do("test.any-row")).Pattern(Alpha, Do("test.alpha-row"))
 	r.Define("row").Mode("insert").Bind("x", Do("test.row-insert"))
 	if err := r.SetFocus("row"); err != nil {
 		t.Fatal(err)
@@ -147,7 +147,7 @@ func TestPrefixModeTimeoutRestoresBaseMode(t *testing.T) {
 		t.Fatalf("prefix mode: %+v pending=%q", got, r.Pending)
 	}
 	// The continuations and the generated cancel row ("g esc" → mode.leave).
-	if rows := r.ListBindings("app"); len(rows) != 2 || rows[0].Keys != "g esc" || rows[0].Request.Key() != "app.mode.leave" || rows[1].Keys != "g g" {
+	if rows := r.ListBindings("app"); len(rows) != 2 || rows[0].Keys != "g esc" || rows[0].Request.Key() != "ochazuke.mode.leave" || rows[1].Keys != "g g" {
 		t.Fatalf("bindings.list in a prefix mode lists the continuations: %+v", rows)
 	}
 	r.prefix.deadline = time.Now().Add(-time.Second)
@@ -190,17 +190,17 @@ func TestLeaderPendingShadowShape(t *testing.T) {
 	r := NewRuntime()
 	var forwarded []string
 	calls := recorder(t, r, "new-window")
-	r.Register(Operation{Verb: "forward", Noun: "app.pane", Parameters: map[string]Parameter{"keys": {Type: "string", Required: true}}, Run: func(_ *Runtime, _ Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "forward", Noun: "ochazuke.pane", Parameters: map[string]Parameter{"keys": {Type: "string", Required: true}}, Run: func(_ *Runtime, _ Context, a Arguments) (any, error) {
 		forwarded = append(forwarded, StringArg(a, "keys", ""))
 		return nil, nil
 	}})
-	alone := Request{Verb: "forward", Noun: "app.pane", Args: Arguments{"keys": "ctrl+b"}}
+	alone := Request{Verb: "forward", Noun: "ochazuke.pane", Args: Arguments{"keys": "ctrl+b"}}
 	r.Define("term").Mode("normal").
 		Bind("ctrl+b", Enter("leader_pending", Payload{Prefix: "ctrl+b", Request: &alone})).
-		Pattern(Any, Do("app.pane.forward").FromKey("keys")).
+		Pattern(Any, Do("ochazuke.pane.forward").FromKey("keys")).
 		Mode("leader_pending").
 		Bind("c", Do("test.new-window")).
-		Pattern(Any, Do("app.pane.forward").Join("keys", SourcePrefix, SourceKey))
+		Pattern(Any, Do("ochazuke.pane.forward").Join("keys", SourcePrefix, SourceKey))
 	r.Instance("pane", Kind("term"))
 	if err := r.SetFocus("pane"); err != nil {
 		t.Fatal(err)
@@ -262,7 +262,7 @@ func TestLoadBindingsRowsReplaceAddAndUnbind(t *testing.T) {
 // verb answer only where the guard holds).
 func TestListBindingsListsEveryEditorKey(t *testing.T) {
 	r, in := editorTestRuntime(t, "abc", true)
-	editor := r.Noun("app.editor")
+	editor := r.Noun("ochazuke.editor")
 	for mode, rows := range editor.Bindings {
 		want := map[string]bool{}
 		for _, b := range rows {
@@ -330,11 +330,11 @@ func TestListRowsAreInstancesOfTheirNouns(t *testing.T) {
 		t.Fatalf("row bindings must come from its noun: %v", got)
 	}
 	// A per-instance override sits above the noun's rows.
-	if err := r.Bind(Binding{Instance: "one", Mode: "normal", Keys: "x", Request: Request{Verb: "ignore", Noun: "app.key"}}); err != nil {
+	if err := r.Bind(Binding{Instance: "one", Mode: "normal", Keys: "x", Request: Request{Verb: "ignore", Noun: "ochazuke.key"}}); err != nil {
 		t.Fatal(err)
 	}
 	for _, b := range r.ListBindings("one") {
-		if b.Keys == "x" && b.Request.Noun != "app.key" {
+		if b.Keys == "x" && b.Request.Noun != "ochazuke.key" {
 			t.Fatalf("instance rows must beat the noun's: %+v", b)
 		}
 	}
@@ -363,7 +363,7 @@ func TestListRowsAreInstancesOfTheirNouns(t *testing.T) {
 	if _, err := r.Execute(Request{Verb: "quit", Noun: "app", Target: "nowhere"}); err == nil {
 		t.Fatal("unknown target accepted")
 	}
-	if _, err := r.Execute(Request{Verb: "select", Noun: "app.context", Args: Arguments{"instance": "two"}}); err != nil || r.Context().Path[3] != "two" {
+	if _, err := r.Execute(Request{Verb: "select", Noun: "ochazuke.context", Args: Arguments{"instance": "two"}}); err != nil || r.Context().Path[3] != "two" {
 		t.Fatalf("context.select instance: %v %+v", err, r.Context())
 	}
 	if err := r.SetFocus(input.ID); err != nil || r.Context().InputID != "note" {
@@ -401,7 +401,7 @@ func TestMultiSelectionFanOut(t *testing.T) {
 		t.Fatal(err)
 	}
 	editorTestKeys(t, r, "space", "j", "space", "j", "space")
-	result, err := r.Execute(Request{Verb: "apply", Noun: "app.list", Args: Arguments{"verb": "open"}})
+	result, err := r.Execute(Request{Verb: "apply", Noun: "ochazuke.list", Args: Arguments{"verb": "open"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -423,7 +423,7 @@ func TestModeIsGlobal(t *testing.T) {
 	if err := list.Focus(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Verb: "set", Noun: "app.mode", Args: Arguments{"mode": "review"}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.mode", Args: Arguments{"mode": "review"}}); err != nil {
 		t.Fatal(err)
 	}
 	if r.Mode.Name != "review" {
@@ -435,7 +435,7 @@ func TestModeIsGlobal(t *testing.T) {
 		t.Fatalf("a move inside one stop must keep the mode: %+v", r.Mode)
 	}
 	// A pending mode returns to the base mode it shadowed.
-	if _, err := r.Execute(Request{Verb: "enter", Noun: "app.mode", Args: Arguments{"mode": "macro_pending"}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "enter", Noun: "ochazuke.mode", Args: Arguments{"mode": "macro_pending"}}); err != nil {
 		t.Fatal(err)
 	}
 	if r.Mode.Name != "macro_pending" || r.Mode.Payload.Return != "review" {
@@ -518,7 +518,7 @@ func TestRowAddressesItsLevelInstance(t *testing.T) {
 	r.Define("row").Verb("drop", func(_ *Runtime, c Context, _ Arguments) (any, error) {
 		targets = append(targets, focusOf(c))
 		return nil, nil
-	}).Confirm("Drop {{id}}?").Mode("normal").Bind("d d", Do("row.drop")).Bind("m", Do("app.mode.set", Arguments{"mode": "insert"}))
+	}).Confirm("Drop {{id}}?").Mode("normal").Bind("d d", Do("row.drop")).Bind("m", Do("ochazuke.mode.set", Arguments{"mode": "insert"}))
 	r.Instance("r1", Kind("row"))
 	r.Instance("r1:c0", Parent("r1"), Kind("cell"))
 	if err := r.SetFocus("r1:c0"); err != nil {

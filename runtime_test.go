@@ -37,7 +37,7 @@ func TestBindingsOverlayAndSequenceCancellation(t *testing.T) {
 	_ = r.AddInput(NewInput("field", "", false), Parent("panel"))
 	_ = r.SetFocus("field")
 	r.Define("app").Mode("normal").Bind("x", Do("app.quit")).Mode("").Bind("g g", Do("app.quit"))
-	r.Define("panel").Mode("").Bind("x", Do("app.input.insert", Arguments{"text": "inner"}))
+	r.Define("panel").Mode("").Bind("x", Do("ochazuke.input.insert", Arguments{"text": "inner"}))
 	if handled, err := r.HandleBinding("x"); !handled || err != nil {
 		t.Fatalf("binding failed: %v %v", handled, err)
 	}
@@ -68,12 +68,12 @@ func TestModalRestoresExactInputInstance(t *testing.T) {
 	input.SetMode("insert")
 	_ = input.Replace(2, 2, "X")
 	_ = r.Push("dialog", "child")
-	_, _ = r.Execute(Request{Verb: "insert", Noun: "app.input", Args: Arguments{"text": "child"}})
+	_, _ = r.Execute(Request{Verb: "insert", Noun: "ochazuke.input", Args: Arguments{"text": "child"}})
 	_ = r.Pop()
 	if r.Input(r.Context().InputID) != input || string(input.Text) != "drXaft" || input.Cursor != 3 || input.Mode != "insert" {
 		t.Fatal("parent editing state was not restored")
 	}
-	_, err := r.Execute(Request{Verb: "undo", Noun: "app.input"})
+	_, err := r.Execute(Request{Verb: "undo", Noun: "ochazuke.input"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestOperationArgumentErrorsDoNotMutateInput(t *testing.T) {
 	_ = r.AddInput(NewInput("field", "safe", false))
 	_ = r.SetFocus("field")
 	for _, args := range []Arguments{{"steps": -1}, {"steps": 1.5}, {"steps": "2"}, {"unknown": true}} {
-		if _, err := r.Execute(Request{Verb: "undo", Noun: "app.input", Args: args}); err == nil {
+		if _, err := r.Execute(Request{Verb: "undo", Noun: "ochazuke.input", Args: args}); err == nil {
 			t.Fatalf("expected error for %#v", args)
 		}
 	}

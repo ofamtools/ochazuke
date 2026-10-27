@@ -93,7 +93,7 @@ func TestDetailJKScrollWithFocusInTheList(t *testing.T) {
 	if d.Offset() != 11 || r.Focus != focus || m.Status != "" {
 		t.Fatalf("J J 10J K: offset=%d focus=%q status=%q; want 11 with focus kept", d.Offset(), r.Focus, m.Status)
 	}
-	if hints := BindingHints(r, r.Focus); !strings.Contains(hints, "J/K detail") || strings.Contains(hints, "app.detail.scroll") {
+	if hints := BindingHints(r, r.Focus); !strings.Contains(hints, "J/K detail") || strings.Contains(hints, "ochazuke.detail.scroll") {
 		t.Fatalf("hints = %q; want one J/K detail row", hints)
 	}
 	// Selecting another row starts its detail at the top, even when J

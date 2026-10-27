@@ -267,7 +267,7 @@ func MountPage(m *ochazuke.Model, doc CatalogDoc, p CatalogPage, cfg PageConfig)
 		}
 		declared = true
 	} else {
-		r.Instance(p.ID, ochazuke.Kind("app.page"))
+		r.Instance(p.ID, ochazuke.Kind("ochazuke.page"))
 	}
 	for _, l := range p.Lists {
 		pl := &pageList{spec: l}
@@ -435,14 +435,14 @@ func (v *PageView) addGroups() error {
 	}
 	for _, pl := range v.lists {
 		for _, key := range []string{"enter", "l", "right"} {
-			if err := r.Bind(ochazuke.Binding{Instance: v.groupID(pl), Mode: "normal", Keys: key, Request: ochazuke.Request{Noun: "app.focus", Verb: "next"}}); err != nil {
+			if err := r.Bind(ochazuke.Binding{Instance: v.groupID(pl), Mode: "normal", Keys: key, Request: ochazuke.Request{Noun: "ochazuke.focus", Verb: "next"}}); err != nil {
 				return err
 			}
 		}
 		// h and left go back to the rail from a table's first column; on
 		// any other column they are the table's column move (list-first-column).
 		for _, key := range []string{"h", "left"} {
-			if err := r.Bind(ochazuke.Binding{Instance: pl.spec.ID, Mode: "normal", Keys: key, When: "list-first-column", Request: ochazuke.Request{Noun: "app.focus", Verb: "set", Args: ochazuke.Arguments{"id": v.groupID(pl)}}}); err != nil {
+			if err := r.Bind(ochazuke.Binding{Instance: pl.spec.ID, Mode: "normal", Keys: key, When: "list-first-column", Request: ochazuke.Request{Noun: "ochazuke.focus", Verb: "set", Args: ochazuke.Arguments{"id": v.groupID(pl)}}}); err != nil {
 				return err
 			}
 		}
@@ -451,7 +451,7 @@ func (v *PageView) addGroups() error {
 }
 
 // GroupNoun is the noun of a groups rail's rows.
-const GroupNoun = "app.page-group"
+const GroupNoun = "ochazuke.page-group"
 
 func (v *PageView) groupID(pl *pageList) string { return v.spec.ID + "/groups/" + pl.spec.ID }
 

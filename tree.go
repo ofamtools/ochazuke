@@ -62,7 +62,7 @@ func (c TreeChange) String() string {
 }
 
 // TreeRowNoun is the noun of a node that names none: enter toggles it.
-const TreeRowNoun = "app.outline-row"
+const TreeRowNoun = "ochazuke.outline-row"
 
 // DefaultTreeDebounce is how long typing in an outline line pauses before
 // the line is written.
@@ -169,7 +169,7 @@ func (r *Runtime) AddTree(id string, nodes []TreeNode, opts ...InstanceOption) (
 		return nil, fmt.Errorf("unknown parent %q", spec.parent)
 	}
 	t := &Tree{r: r, id: id, collapsed: map[string]bool{}, failed: map[string]bool{}, RowNoun: TreeRowNoun, Debounce: DefaultTreeDebounce}
-	r.Instance(id, Parent(spec.parent), Kind("app.outline"), FocusOnClose(spec.closeFocus))
+	r.Instance(id, Parent(spec.parent), Kind("ochazuke.outline"), FocusOnClose(spec.closeFocus))
 	r.Instances[id].Component = t
 	listOpts := []InstanceOption{Parent(id)}
 	if spec.noSpill {
@@ -711,7 +711,7 @@ func (t *Tree) openLine(id string) error {
 	}
 	text := t.nodes[i].Label
 	in := NewInput(t.id+"/line", text, false)
-	if err := t.r.AddInput(in, Parent(t.id), Kind("app.outline-line"), FocusOnClose(id)); err != nil {
+	if err := t.r.AddInput(in, Parent(t.id), Kind("ochazuke.outline-line"), FocusOnClose(id)); err != nil {
 		return err
 	}
 	in.Cursor = len(in.Text)
@@ -1136,7 +1136,7 @@ func registerTrees(r *Runtime) {
 			return run(t, c)
 		})
 	}
-	r.Define("app.outline").
+	r.Define("ochazuke.outline").
 		Verb("expand", on(func(t *Tree, c Ctx) error { return t.expand(c.Context) }), "Expand the node, or step onto its first child when it is open").Motion().
 		Verb("collapse", on(func(t *Tree, c Ctx) error { return t.collapse(c.Context) }), "Collapse the node, or step onto its parent when it is closed").Motion().
 		Verb("fold", on(func(t *Tree, c Ctx) error {
@@ -1159,37 +1159,37 @@ func registerTrees(r *Runtime) {
 		Verb("leave", edit(func(t *Tree, c Ctx) error { return t.closeLine(true) }), "Leave the line: it is written, never discarded").When("tree-editable").
 		Verb("next", edit(func(t *Tree, c Ctx) error { return t.add(c.Context, "below") }), "Write the line and start a new one below it").When("tree-editable").
 		Mode("normal").
-		Bind("l", Do("app.outline.expand")).
-		Bind("right", Do("app.outline.expand")).
-		Bind("h", Do("app.outline.collapse")).
-		Bind("left", Do("app.outline.collapse")).
-		Bind("o", Do("app.outline.add", Arguments{"where": "below"})).
-		Bind("O", Do("app.outline.add", Arguments{"where": "above"})).
-		Bind("a", Do("app.outline.add", Arguments{"where": "child"})).
-		Bind("i", Do("app.outline.edit")).
-		Bind("tab", Do("app.outline.indent")).
-		Bind("shift+tab", Do("app.outline.outdent")).
-		Bind("J", Do("app.outline.move", Arguments{"delta": 1})).
-		Bind("K", Do("app.outline.move", Arguments{"delta": -1})).
-		Bind("d d", Do("app.outline.delete")).
-		Bind("u", Do("app.outline.undo")).
-		Bind("ctrl+r", Do("app.outline.redo")).
-		Pattern(Paste, Do("app.outline.paste").FromPayload("text", SourceText))
+		Bind("l", Do("ochazuke.outline.expand")).
+		Bind("right", Do("ochazuke.outline.expand")).
+		Bind("h", Do("ochazuke.outline.collapse")).
+		Bind("left", Do("ochazuke.outline.collapse")).
+		Bind("o", Do("ochazuke.outline.add", Arguments{"where": "below"})).
+		Bind("O", Do("ochazuke.outline.add", Arguments{"where": "above"})).
+		Bind("a", Do("ochazuke.outline.add", Arguments{"where": "child"})).
+		Bind("i", Do("ochazuke.outline.edit")).
+		Bind("tab", Do("ochazuke.outline.indent")).
+		Bind("shift+tab", Do("ochazuke.outline.outdent")).
+		Bind("J", Do("ochazuke.outline.move", Arguments{"delta": 1})).
+		Bind("K", Do("ochazuke.outline.move", Arguments{"delta": -1})).
+		Bind("d d", Do("ochazuke.outline.delete")).
+		Bind("u", Do("ochazuke.outline.undo")).
+		Bind("ctrl+r", Do("ochazuke.outline.redo")).
+		Pattern(Paste, Do("ochazuke.outline.paste").FromPayload("text", SourceText))
 	params := map[string]map[string]Parameter{
 		"add":   {"where": {Type: "string", Enum: []string{"below", "above", "child"}}},
 		"move":  {"delta": {Type: "integer", Required: true}},
 		"paste": {"text": {Type: "string", Required: true}},
 	}
 	for verb, p := range params {
-		op := r.Operations["app.outline."+verb]
+		op := r.Operations["ochazuke.outline."+verb]
 		op.Parameters = p
-		r.Operations["app.outline."+verb] = op
+		r.Operations["ochazuke.outline."+verb] = op
 	}
-	r.Define(TreeRowNoun).Mode("normal").Bind("enter", Do("app.outline.fold"))
-	r.Define("app.outline-line").Mode("insert").
-		Bind("esc", Do("app.outline.leave")).
-		Bind("enter", Do("app.outline.next")).
-		Bind("tab", Do("app.outline.indent")).
-		Bind("shift+tab", Do("app.outline.outdent")).
-		Pattern(Paste, Do("app.outline.paste").FromPayload("text", SourceText))
+	r.Define(TreeRowNoun).Mode("normal").Bind("enter", Do("ochazuke.outline.fold"))
+	r.Define("ochazuke.outline-line").Mode("insert").
+		Bind("esc", Do("ochazuke.outline.leave")).
+		Bind("enter", Do("ochazuke.outline.next")).
+		Bind("tab", Do("ochazuke.outline.indent")).
+		Bind("shift+tab", Do("ochazuke.outline.outdent")).
+		Pattern(Paste, Do("ochazuke.outline.paste").FromPayload("text", SourceText))
 }

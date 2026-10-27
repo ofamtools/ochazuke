@@ -41,7 +41,7 @@ type CommandSource interface {
 }
 
 // CommandNoun is the noun of every Commands row.
-const CommandNoun = "app.command"
+const CommandNoun = "ochazuke.command"
 
 // CommandsConfig configures AddCommands.
 type CommandsConfig struct {
@@ -172,7 +172,7 @@ func (c *Commands) register() {
 		name, err := c.nameAt(r, ev.Focus, nil)
 		return err == nil && c.runs[name] != nil
 	})
-	name := ochazuke.Parameter{Type: "string", Description: "Command name (defaults to the focused row)", Source: "app.command.list"}
+	name := ochazuke.Parameter{Type: "string", Description: "Command name (defaults to the focused row)", Source: "ochazuke.command.list"}
 	r.Define(CommandNoun).
 		Columns(
 			// A narrow table drops the highest Priority first.
@@ -187,14 +187,14 @@ func (c *Commands) register() {
 		Verb("which", c.whichVerb, "Report where a command comes from and what it shadows").Positional("name").
 		Verb("stop", c.stopVerb, "End a command's run: hang up its process group and close its terminal").Positional("name").Confirm("Stop {{label}}?").When(commandHasRun).
 		Mode("normal").
-		Bind("enter", ochazuke.Do("app.command.run")).
-		Bind("i", ochazuke.Do("app.command.help")).
-		Bind("x", ochazuke.Do("app.command.stop"))
+		Bind("enter", ochazuke.Do("ochazuke.command.run")).
+		Bind("i", ochazuke.Do("ochazuke.command.help")).
+		Bind("x", ochazuke.Do("ochazuke.command.stop"))
 	for key, params := range map[string]map[string]ochazuke.Parameter{
-		"app.command.run":   {"name": name, "args": {Type: "string", Description: "Arguments, split on spaces"}},
-		"app.command.help":  {"name": name},
-		"app.command.which": {"name": name},
-		"app.command.stop":  {"name": name},
+		"ochazuke.command.run":   {"name": name, "args": {Type: "string", Description: "Arguments, split on spaces"}},
+		"ochazuke.command.help":  {"name": name},
+		"ochazuke.command.which": {"name": name},
+		"ochazuke.command.stop":  {"name": name},
 	} {
 		op := r.Operations[key]
 		op.Parameters = params

@@ -477,11 +477,11 @@ func (w *placementWriter) failure() error {
 }
 
 func registerPlacements(r *Runtime) {
-	r.Define("app.nouns")
-	r.Register(Operation{Verb: "places", Noun: "app.nouns", Description: "List where a noun was seen (every noun without one): each distinct chain of ancestor nouns, outermost first, with its page or modal, how often and when last; kept across runs in " + NounPlacesFile, Parameters: map[string]Parameter{"noun": {Type: "string", Description: "The noun (default every noun)"}}, Positional: []string{"noun"}, HistoryKind: HistoryFetch, Result: "placement[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Define("ochazuke.nouns")
+	r.Register(Operation{Verb: "places", Noun: "ochazuke.nouns", Description: "List where a noun was seen (every noun without one): each distinct chain of ancestor nouns, outermost first, with its page or modal, how often and when last; kept across runs in " + NounPlacesFile, Parameters: map[string]Parameter{"noun": {Type: "string", Description: "The noun (default every noun)"}}, Positional: []string{"noun"}, HistoryKind: HistoryFetch, Result: "placement[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.NounPlaces(StringArg(a, "noun", "")), nil
 	}})
-	r.Register(Operation{Verb: "list", Noun: "app.nouns", Description: "List the defined nouns with their verbs and how many places each was seen in", HistoryKind: HistoryFetch, Result: "noun[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "list", Noun: "ochazuke.nouns", Description: "List the defined nouns with their verbs and how many places each was seen in", HistoryKind: HistoryFetch, Result: "noun[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		places := map[string]int{}
 		for _, one := range r.NounPlaces("") {
 			places[one.Noun]++
@@ -497,7 +497,7 @@ func registerPlacements(r *Runtime) {
 		}
 		return out, nil
 	}})
-	r.Register(Operation{Verb: "places-path", Noun: "app.nouns", Description: "Print the placements file: $XDG_STATE_HOME/<app>/" + NounPlacesFile + ", else ~/.local/state/<app>/" + NounPlacesFile, HistoryKind: HistoryFetch, Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "places-path", Noun: "ochazuke.nouns", Description: "Print the placements file: $XDG_STATE_HOME/<app>/" + NounPlacesFile + ", else ~/.local/state/<app>/" + NounPlacesFile, HistoryKind: HistoryFetch, Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		cfg := r.Config()
 		if cfg == nil {
 			return "", nil

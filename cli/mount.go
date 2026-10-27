@@ -7,13 +7,14 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/unixsuperhero/ochazuke"
 	"github.com/unixsuperhero/oden"
 )
 
 // Mount maps the runtime registry to oden command groups and operation metadata.
-// A dotted noun nests (app.settings is the group settings in the group app);
+// A dotted noun nests (ochazuke.settings is the group settings in the group ochazuke);
 // a framework alias (settings) is a top-level group too while no noun of
-// that name shadows it; a dotted first word (app.settings) is read as the
+// that name shadows it; a dotted first word (ochazuke.settings) is read as the
 // groups it nests in.
 // Oden owns command resolution and help; the shell owns operation execution.
 // The catalog command follows the nouns so a noun named catalog wins.
@@ -26,11 +27,21 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 		fmt.Fprintln(sh.stderr(), "warning:", problem)
 	}
 	r := sh.Runtime
-	// A dotted noun is one word too (bin app.settings list): the word is
+	// A dotted noun is one word too (bin ochazuke.settings list): the word is
 	// read as the groups it nests in before oden resolves it.
 	if len(app.Args) > 0 && strings.Contains(app.Args[0], ".") {
 		if noun := r.CanonicalNoun(app.Args[0]); r.Nouns[noun] != nil {
 			app.Args = append(strings.Split(noun, "."), app.Args[1:]...)
+		}
+	}
+	// The v0.16.0 spelling of a framework noun (bin app settings list) is
+	// read as ochazuke settings list for one release, unless app has a verb
+	// of that name (CanonicalNoun).
+	if len(app.Args) > 1 && app.Args[0] == ochazuke.AppNoun {
+		if old := ochazuke.AppNoun + "." + app.Args[1]; r.Nouns[old] == nil {
+			if noun := r.CanonicalNoun(old); noun != old && r.Nouns[noun] != nil {
+				app.Args = append(strings.Split(noun, "."), app.Args[2:]...)
+			}
 		}
 	}
 	root := &nounGroup{}
@@ -72,14 +83,14 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 			},
 		})
 	}
-	// Each dotted noun nests: app.settings is the group settings inside
-	// the group app (bin app settings list).
+	// Each dotted noun nests: ochazuke.settings is the group settings inside
+	// the group ochazuke (bin ochazuke settings list).
 	top := map[string]bool{}
 	for _, name := range root.names() {
 		top[name] = true
 		app.Add(root.children[name].command(name))
 	}
-	// A short name (settings for app.settings) is a group of its own too
+	// A short name (settings for ochazuke.settings) is a group of its own too
 	// while no noun of that name shadows it, so bin settings list works.
 	for _, a := range r.Aliases() {
 		if a.Shadowed || top[a.Alias] {
@@ -92,7 +103,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 	}
 	app.HelpText = `CLI execution:
   Each call uses a fresh local runtime, not an already-running TUI.
-  The framework's nouns are app.<noun> (app settings list, app.settings list);
+  The framework's nouns are ochazuke.<noun> (ochazuke settings list, ochazuke.settings list);
   a short name (settings list) reaches one unless the tool has a noun of its own.
   --target selects an instance; some operations require an existing instance.
   --yes accepts confirmation; otherwise the CLI asks on stdin.
@@ -130,7 +141,7 @@ func (s *Shell) version() string {
 }
 
 // nounGroup is one level of the command tree Mount builds: a noun's verbs
-// and the groups of the nouns nested under it (app.settings under app).
+// and the groups of the nouns nested under it (ochazuke.settings under ochazuke).
 type nounGroup struct {
 	noun     bool // a registered noun, not only a namespace
 	verbs    []oden.Command

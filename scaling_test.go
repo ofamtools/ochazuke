@@ -531,14 +531,14 @@ func TestHolderIndexMatchesScan(t *testing.T) {
 	if err := r.OpenPage("p"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Noun: "app.settings", Verb: "edit"}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "edit"}); err != nil {
 		t.Fatal(err)
 	}
 	if r.Page != SettingsPageID {
 		t.Fatalf("settings.edit: page %s", r.Page)
 	}
 	check("settings open")
-	if _, err := r.Execute(Request{Noun: "app.settings", Verb: "close"}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "close"}); err != nil {
 		t.Fatal(err)
 	}
 	if r.Instances[SettingsPageID] != nil {

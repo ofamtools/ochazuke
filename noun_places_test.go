@@ -51,16 +51,16 @@ func placesPage(t *testing.T) (*Runtime, *List) {
 func TestNounPlacesRecordTheAncestorChain(t *testing.T) {
 	r, list := placesPage(t)
 	item := placeOf(t, r, "item", "ctx", "")
-	if want := []string{"app.page", "panel", "app.list"}; !reflect.DeepEqual(item.Ancestors, want) || item.PageTitle != "Context" || item.Count != 1 {
+	if want := []string{"ochazuke.page", "panel", "ochazuke.list"}; !reflect.DeepEqual(item.Ancestors, want) || item.PageTitle != "Context" || item.Count != 1 {
 		t.Fatalf("item place: %+v", item)
 	}
-	if got := item.Chain(); !reflect.DeepEqual(got, []string{"app.page", "panel", "app.list", "item"}) {
+	if got := item.Chain(); !reflect.DeepEqual(got, []string{"ochazuke.page", "panel", "ochazuke.list", "item"}) {
 		t.Fatalf("chain %v", got)
 	}
 	if other := placeOf(t, r, "other-item", "ctx", ""); other.Count != 1 {
 		t.Fatalf("other-item: %+v", other)
 	}
-	if l := placeOf(t, r, "list", "ctx", ""); !reflect.DeepEqual(l.Ancestors, []string{"app.page", "panel"}) {
+	if l := placeOf(t, r, "list", "ctx", ""); !reflect.DeepEqual(l.Ancestors, []string{"ochazuke.page", "panel"}) {
 		t.Fatalf("list place: %+v", l)
 	}
 	if p := placeOf(t, r, "page", "ctx", ""); len(p.Ancestors) != 0 {
@@ -90,7 +90,7 @@ func TestNounPlacesRecordTheAncestorChain(t *testing.T) {
 func TestNounPlacesSettleLate(t *testing.T) {
 	r, _, _, _ := listFixture(t)
 	note := placeOf(t, r, "prompt", "page", "")
-	if !reflect.DeepEqual(note.Ancestors, []string{"app.page", "app.editor"}) {
+	if !reflect.DeepEqual(note.Ancestors, []string{"ochazuke.page", "ochazuke.editor"}) {
 		t.Fatalf("note: %+v", note)
 	}
 }
@@ -100,7 +100,7 @@ func TestNounPlacesSettleLate(t *testing.T) {
 func TestNounPlacesInsideAModal(t *testing.T) {
 	r, _ := placesPage(t)
 	in := NewInput("answer", "", false)
-	if _, err := r.OpenModal("ask", Payload{}, WithInput(in, Kind("app.prompt"))); err != nil {
+	if _, err := r.OpenModal("ask", Payload{}, WithInput(in, Kind("ochazuke.prompt"))); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.Pop(); err != nil { // removed in the same update: still seen
@@ -178,13 +178,13 @@ func TestNounPlacesCap(t *testing.T) {
 // nouns.list the nouns with their counts of places.
 func TestNounPlacesVerb(t *testing.T) {
 	r, _ := placesPage(t)
-	for _, key := range []string{"app.nouns.places", "app.nouns.list", "app.nouns.places-path"} {
+	for _, key := range []string{"ochazuke.nouns.places", "ochazuke.nouns.list", "ochazuke.nouns.places-path"} {
 		op := r.Operations[key]
 		if !op.Builtin || op.HistoryKindOf() != HistoryFetch {
 			t.Fatalf("%s: builtin %v kind %s", key, op.Builtin, op.HistoryKindOf())
 		}
 	}
-	got, err := r.Execute(Request{Verb: "places", Noun: "app.nouns", Args: Arguments{"noun": "item"}})
+	got, err := r.Execute(Request{Verb: "places", Noun: "ochazuke.nouns", Args: Arguments{"noun": "item"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,11 +198,11 @@ func TestNounPlacesVerb(t *testing.T) {
 			t.Fatalf("no %s in %s", field, data)
 		}
 	}
-	all, _ := r.Execute(Request{Verb: "places", Noun: "app.nouns"})
+	all, _ := r.Execute(Request{Verb: "places", Noun: "ochazuke.nouns"})
 	if len(all.([]NounPlace)) <= 1 {
 		t.Fatalf("every noun: %v", all)
 	}
-	list, _ := r.Execute(Request{Verb: "list", Noun: "app.nouns"})
+	list, _ := r.Execute(Request{Verb: "list", Noun: "ochazuke.nouns"})
 	for _, row := range list.([]map[string]any) {
 		if row["noun"] == "item" && row["places"] != 1 {
 			t.Fatalf("nouns.list item: %v", row)

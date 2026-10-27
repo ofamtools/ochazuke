@@ -43,7 +43,7 @@ func TestModelMacroRegisterTransitionsAndPalette(t *testing.T) {
 				if m.Status != "" || !m.Palette.IsActive() || r.Registers().Macro.Recording != "q" {
 					t.Fatalf("qq: status=%q palette=%t macro=%+v", m.Status, m.Palette.IsActive(), r.Registers().Macro)
 				}
-				if _, err := r.Execute(Request{Verb: "close", Noun: "app.palette"}); err != nil {
+				if _, err := r.Execute(Request{Verb: "close", Noun: "ochazuke.palette"}); err != nil {
 					t.Fatal(err)
 				}
 				modelType(m, "q", batched)
@@ -198,7 +198,7 @@ func TestNewModelNavigationDefaultsAndRemovedAliases(t *testing.T) {
 	if !m.Palette.IsActive() {
 		t.Fatal("normal colon did not open palette")
 	}
-	if _, err := r.Execute(Request{Verb: "close", Noun: "app.palette"}); err != nil {
+	if _, err := r.Execute(Request{Verb: "close", Noun: "ochazuke.palette"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.SetFocus("alpha-input"); err != nil {

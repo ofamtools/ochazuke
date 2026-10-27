@@ -80,7 +80,7 @@ type UI struct {
 }
 
 func registerUI(r *Runtime) {
-	inst := r.Instance(uiID, Kind("app.ui"))
+	inst := r.Instance(uiID, Kind("ochazuke.ui"))
 	inst.Component = &UI{}
 }
 

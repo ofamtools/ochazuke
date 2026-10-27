@@ -102,7 +102,7 @@ func (l *List) apply(c Context, a Arguments) (any, error) {
 	if !confirmed {
 		for _, row := range rows {
 			if op, ok := r.Operations[Request{Verb: verb, Noun: row.Noun}.Key()]; ok && op.Confirm != "" {
-				q := Request{Verb: "apply", Noun: "app.list", Args: Arguments{"id": l.id, "verb": verb, "confirmed": true}}
+				q := Request{Verb: "apply", Noun: "ochazuke.list", Args: Arguments{"id": l.id, "verb": verb, "confirmed": true}}
 				if args != nil {
 					q.Args["args"] = args
 				}
@@ -147,7 +147,7 @@ func (r *Runtime) visualApply(q Request, level string) Request {
 		row = level
 	}
 	owner := r.rows[row]
-	if owner == "" || q.Noun == "app.list" {
+	if owner == "" || q.Noun == "ochazuke.list" {
 		return q
 	}
 	l := r.List(owner)
@@ -160,7 +160,7 @@ func (r *Runtime) visualApply(q Request, level string) Request {
 	if len(q.Args) > 0 {
 		args["args"] = q.Args
 	}
-	return Request{Verb: "apply", Noun: "app.list", Target: row, Args: args}
+	return Request{Verb: "apply", Noun: "ochazuke.list", Target: row, Args: args}
 }
 
 func registerListVisual(r *Runtime) {
@@ -198,22 +198,22 @@ func registerListVisual(r *Runtime) {
 	}
 	// esc ends the selection before the filter's esc (bound after this) is
 	// asked, only while one is active.
-	r.Define("app.list").Mode("normal").
-		Bind("V", Do("app.list.visual").Hide()).
-		Bind("esc", Do("app.list.end-visual").Guard("list-visual"))
-	r.Nouns["app.list"].Guards["visual"] = "table-visual"
+	r.Define("ochazuke.list").Mode("normal").
+		Bind("V", Do("ochazuke.list.visual").Hide()).
+		Bind("esc", Do("ochazuke.list.end-visual").Guard("list-visual"))
+	r.Nouns["ochazuke.list"].Guards["visual"] = "table-visual"
 	// esc's verb guard as well as its row guard: a row guarded off still
 	// takes its key in the listings, so the row guard alone would hide an
 	// outer esc's hint (a modal's esc modal.pop over a table) whenever no
 	// selection is on. The row guard keeps it apart from the filter's esc
 	// row (bound after this, unguarded), which would otherwise replace it.
-	r.Nouns["app.list"].Guards["end-visual"] = "list-visual"
-	r.Register(Operation{Verb: "end-visual", Noun: "app.list", Description: "End the visual row selection (esc): the marks go back to the ones it found", Parameters: map[string]Parameter{
+	r.Nouns["ochazuke.list"].Guards["end-visual"] = "list-visual"
+	r.Register(Operation{Verb: "end-visual", Noun: "ochazuke.list", Description: "End the visual row selection (esc): the marks go back to the ones it found", Parameters: map[string]Parameter{
 		"id": {Type: "string", Description: "The list (default: the focused one)"},
 	}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 		return visual(c, Arguments{"id": a["id"], "on": false})
 	}})
-	r.Register(Operation{Verb: "visual", Noun: "app.list", Description: "Start a visual row selection at the selected row (V), or end it (V again, esc): j/k extend it over the marks; a row's verb then runs for every selected row", Parameters: map[string]Parameter{
+	r.Register(Operation{Verb: "visual", Noun: "ochazuke.list", Description: "Start a visual row selection at the selected row (V), or end it (V again, esc): j/k extend it over the marks; a row's verb then runs for every selected row", Parameters: map[string]Parameter{
 		"id": {Type: "string", Description: "The list (default: the focused one)"},
 		"on": {Type: "boolean", Description: "true starts, false ends; omit to toggle"},
 	}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {

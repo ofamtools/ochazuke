@@ -146,7 +146,7 @@ func optionValues(options []option) []string {
 // offered operations by verb and by noun.
 type lineIndex struct {
 	ops     map[string]Operation // by word.verb: the noun's word (DisplayNoun) and the verb
-	canon   map[string]string    // a noun's canonical name -> its word, where they differ (app.list -> list)
+	canon   map[string]string    // a noun's canonical name -> its word, where they differ (ochazuke.list -> list)
 	verbs   map[string][]string  // verb -> nouns that have it
 	nouns   map[string][]string  // noun -> its verbs
 	byVerbs []option
@@ -160,7 +160,7 @@ func (p *Palette) index() lineIndex {
 			continue
 		}
 		// A noun is one word, its shortest name (settings for
-		// app.settings while no app noun shadows it); the canonical
+		// ochazuke.settings while no app noun shadows it); the canonical
 		// spelling is accepted as typed (canonWords) but not completed.
 		word := p.r.DisplayNoun(op.Noun)
 		if word != op.Noun {
@@ -227,7 +227,7 @@ func (p *Palette) impliedNoun(ix lineIndex, verb string) string {
 	return ""
 }
 
-// canonWords reads a noun typed in its canonical spelling (app.settings)
+// canonWords reads a noun typed in its canonical spelling (ochazuke.settings)
 // as the noun's word (settings) in the two positions a noun takes.
 func (ix lineIndex) canonWords(tokens []lineToken) []lineToken {
 	out := tokens

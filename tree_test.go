@@ -55,7 +55,7 @@ func TestReadOnlyTreeHidesOutlineVerbs(t *testing.T) {
 	r, _, tree, _ := treeFixture(t)
 	tree.OnChange = nil
 	for _, b := range r.ListBindings(r.Focus) {
-		if b.Request.Noun == "app.outline" && b.Request.Verb != "expand" && b.Request.Verb != "collapse" && b.Request.Verb != "fold" {
+		if b.Request.Noun == "ochazuke.outline" && b.Request.Verb != "expand" && b.Request.Verb != "collapse" && b.Request.Verb != "fold" {
 			t.Fatalf("read-only tree answers %s with %s", b.Keys, b.Request.Key())
 		}
 	}

@@ -91,7 +91,7 @@ func TestBindingRowsAreAtomic(t *testing.T) {
 func TestEnterRowFromConfigCarriesPrefixAndRequest(t *testing.T) {
 	r := ochazuke.NewRuntime()
 	var sent []string
-	r.Register(ochazuke.Operation{Verb: "forward", Noun: "app.pane", Parameters: map[string]ochazuke.Parameter{"keys": {Type: "string", Required: true}}, Run: func(_ *ochazuke.Runtime, _ ochazuke.Context, a ochazuke.Arguments) (any, error) {
+	r.Register(ochazuke.Operation{Verb: "forward", Noun: "ochazuke.pane", Parameters: map[string]ochazuke.Parameter{"keys": {Type: "string", Required: true}}, Run: func(_ *ochazuke.Runtime, _ ochazuke.Context, a ochazuke.Arguments) (any, error) {
 		sent = append(sent, ochazuke.StringArg(a, "keys", ""))
 		return nil, nil
 	}})
@@ -99,8 +99,8 @@ func TestEnterRowFromConfigCarriesPrefixAndRequest(t *testing.T) {
 	r.Define("term")
 	r.Instance("pane", ochazuke.Kind("term"))
 	rows := []ochazuke.Binding{
-		{Noun: "term", Mode: "normal", Keys: "ctrl+b", Request: ochazuke.Request{Verb: "enter", Noun: "app.mode", Args: ochazuke.Arguments{"mode": "leader_pending", "prefix": "ctrl+b", "request": map[string]any{"verb": "forward", "noun": "pane", "args": map[string]any{"keys": "ctrl+b"}}}}},
-		{Noun: "term", Mode: "leader_pending", Pattern: ochazuke.Any, Request: ochazuke.Request{Verb: "forward", Noun: "app.pane"}, From: map[string]string{"keys": "prefix key"}},
+		{Noun: "term", Mode: "normal", Keys: "ctrl+b", Request: ochazuke.Request{Verb: "enter", Noun: "ochazuke.mode", Args: ochazuke.Arguments{"mode": "leader_pending", "prefix": "ctrl+b", "request": map[string]any{"verb": "forward", "noun": "pane", "args": map[string]any{"keys": "ctrl+b"}}}}},
+		{Noun: "term", Mode: "leader_pending", Pattern: ochazuke.Any, Request: ochazuke.Request{Verb: "forward", Noun: "ochazuke.pane"}, From: map[string]string{"keys": "prefix key"}},
 	}
 	if err := r.Bind(rows...); err != nil {
 		t.Fatal(err)

@@ -74,7 +74,7 @@ func TestHelpInsertKeyOnAPageInput(t *testing.T) {
 func TestHelpInsertKeyInAModalPrompt(t *testing.T) {
 	r, m, _ := helpInsertFixture(t)
 	ask := NewInput("answer", "yes", false)
-	if _, err := r.OpenModal("ask", Payload{}, WithInput(ask, Kind("app.prompt"))); err != nil {
+	if _, err := r.OpenModal("ask", Payload{}, WithInput(ask, Kind("ochazuke.prompt"))); err != nil {
 		t.Fatal(err)
 	}
 	openHelpInInsert(t, r, m, ask, "modal prompt")
@@ -122,10 +122,10 @@ func TestHelpInsertKeyIsNotShadowed(t *testing.T) {
 				continue
 			}
 			for _, b := range rows {
-				if b.Keys == HelpInsertKey && (name != "app.editor" || b.Request.Key() != "app.bindings.help") {
+				if b.Keys == HelpInsertKey && (name != "ochazuke.editor" || b.Request.Key() != "ochazuke.bindings.help") {
 					t.Errorf("%s binds %s in %q: %s", name, HelpInsertKey, mode, b.Request.Key())
 				}
-				if b.Pattern != "" && matchesHelpKey(b.Pattern) && name != "app.editor" && name != "app.confirm" {
+				if b.Pattern != "" && matchesHelpKey(b.Pattern) && name != "ochazuke.editor" && name != "ochazuke.confirm" {
 					t.Errorf("%s's %q row %s answers %s", name, mode, b.Pattern, HelpInsertKey)
 				}
 			}

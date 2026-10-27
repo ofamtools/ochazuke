@@ -206,7 +206,7 @@ func (r *Runtime) renderingPage(id string) *Page {
 // of the application's own. Registration does not activate the page; see
 // OpenPage. It is RegisterPage for callers that do not hold a *Page.
 func (r *Runtime) AddPage(id, title string, render func(*Runtime, int, int) Block, opts ...InstanceOption) (*Page, error) {
-	spec := instanceSpec{parent: "app", noun: "app.page"}
+	spec := instanceSpec{parent: "app", noun: "ochazuke.page"}
 	for _, opt := range opts {
 		opt(&spec)
 	}
@@ -257,7 +257,7 @@ func (r *Runtime) RegisterPage(page *Page, opts ...InstanceOption) error {
 			return fmt.Errorf("page focus %q must sit beneath page %q", page.Focus, page.ID)
 		}
 	}
-	inst := r.Instance(page.ID, append([]InstanceOption{Kind("app.page")}, opts...)...)
+	inst := r.Instance(page.ID, append([]InstanceOption{Kind("ochazuke.page")}, opts...)...)
 	inst.Component = page
 	r.addPageOrder(inst)
 	page.details = r.pageDetails(page.ID)
@@ -415,30 +415,30 @@ func (r *Runtime) movePage(delta int) error {
 }
 
 func registerPages(r *Runtime) {
-	r.Define("app.page")
-	r.Register(Operation{Verb: "list", Noun: "app.pages", Description: "List pages in registration order", Result: "page[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Define("ochazuke.page")
+	r.Register(Operation{Verb: "list", Noun: "ochazuke.pages", Description: "List pages in registration order", Result: "page[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		pages := make([]map[string]any, 0)
 		for _, page := range r.PageList() {
 			pages = append(pages, map[string]any{"id": page.ID, "title": page.Title, "active": page.ID == r.Page})
 		}
 		return pages, nil
 	}})
-	r.Register(Operation{Verb: "open", Noun: "app.page", Description: "Open a registered page", Parameters: map[string]Parameter{"id": {Type: "string", Required: true, Noun: "app.pages"}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "open", Noun: "ochazuke.page", Description: "Open a registered page", Parameters: map[string]Parameter{"id": {Type: "string", Required: true, Noun: "ochazuke.pages"}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		err := r.OpenPage(StringArg(a, "id", ""))
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "pick", Noun: "app.page", Description: "Choose a page, most recently visited first and the current one last: type to filter, enter opens", Result: "chooser state", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "pick", Noun: "ochazuke.page", Description: "Choose a page, most recently visited first and the current one last: type to filter, enter opens", Result: "chooser state", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		chooser, err := r.OpenPagePicker()
 		if err != nil {
 			return nil, err
 		}
 		return chooser.state(), nil
 	}})
-	r.Register(Operation{Verb: "next", Noun: "app.page", Description: "Open the next page, wrapping in registration order", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "next", Noun: "ochazuke.page", Description: "Open the next page, wrapping in registration order", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		err := r.movePage(1)
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "previous", Noun: "app.page", Description: "Open the previous page, wrapping in registration order", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "previous", Noun: "ochazuke.page", Description: "Open the previous page, wrapping in registration order", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		err := r.movePage(-1)
 		return r.Context(), err
 	}})

@@ -42,7 +42,7 @@ func TestConfirmWithoutTargetReadsArguments(t *testing.T) {
 	if got := prompt(q); got != "Remove worktree app (app, {{branch}})?" {
 		t.Fatalf("no target, no arguments (the focus, as before): %v", got)
 	}
-	r.Instance("page", Kind("app.page"))
+	r.Instance("page", Kind("ochazuke.page"))
 	if _, err := r.AddList("trees", []ListItem{{ID: "wt1", Label: "main tree", Noun: "worktree"}}, Parent("page")); err != nil {
 		t.Fatal(err)
 	}

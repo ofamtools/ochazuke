@@ -77,7 +77,7 @@ func TestModalPopRestoresReturnFocus(t *testing.T) {
 		t.Fatalf("push: focus=%q return=%q", r.Focus, r.Instances["dialog"].Payload.Return)
 	}
 	assertPageOnFocusPath(t, r)
-	if _, err := r.Execute(Request{Verb: "pop", Noun: "app.modal"}); err != nil {
+	if _, err := r.Execute(Request{Verb: "pop", Noun: "ochazuke.modal"}); err != nil {
 		t.Fatal(err)
 	}
 	if r.Focus != "field" || len(r.Modals()) != 0 || r.Instances["dialog"] != nil {
@@ -221,7 +221,7 @@ func TestFocusJumpsStopToStopInTreeOrder(t *testing.T) {
 		t.Fatalf("opted-out input still a stop: %q", r.Focus)
 	}
 	// focus.set is the operation handlers use.
-	if _, err := r.Execute(Request{Verb: "set", Noun: "app.focus", Args: Arguments{"id": "status"}}); err != nil || r.Focus != "status" {
+	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.focus", Args: Arguments{"id": "status"}}); err != nil || r.Focus != "status" {
 		t.Fatalf("focus.set: %q %v", r.Focus, err)
 	}
 }
@@ -260,14 +260,14 @@ func TestFocusJumpsStayInsideTheModal(t *testing.T) {
 func TestOpenModalWithInput(t *testing.T) {
 	r, _ := focusFixture(t)
 	field := NewInput("answer", "draft", false)
-	body, err := r.OpenModal("ask", Payload{Prompt: "Name?"}, WithInput(field, Kind("app.prompt")))
+	body, err := r.OpenModal("ask", Payload{Prompt: "Name?"}, WithInput(field, Kind("ochazuke.prompt")))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if body.Parent != "field" || r.Instances["answer"].Parent != "ask" || r.Focus != "answer" || r.Mode.Name != "insert" {
 		t.Fatalf("open: parent=%q focus=%q mode=%q", body.Parent, r.Focus, r.Mode.Name)
 	}
-	if _, err := r.Execute(Request{Verb: "insert", Noun: "app.input", Args: Arguments{"text": "!"}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "insert", Noun: "ochazuke.input", Args: Arguments{"text": "!"}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.Pop(); err != nil {
@@ -276,7 +276,7 @@ func TestOpenModalWithInput(t *testing.T) {
 	if r.Instances["ask"] != nil || r.Instances["answer"] != nil || r.Focus != "field" || string(field.Text) != "!draft" {
 		t.Fatalf("pop: focus=%q text=%q", r.Focus, string(field.Text))
 	}
-	if _, err := r.OpenModal("ask", Payload{}, WithInput(field, Kind("app.prompt"))); err != nil {
+	if _, err := r.OpenModal("ask", Payload{}, WithInput(field, Kind("ochazuke.prompt"))); err != nil {
 		t.Fatalf("reopen: %v", err)
 	}
 }
@@ -306,7 +306,7 @@ func TestFocusNeverLeavesTopModal(t *testing.T) {
 	if err := r.SetFocus("panel"); err == nil || err.Error() != "focus is outside the open modal" {
 		t.Fatalf("SetFocus outside: %v", err)
 	}
-	if _, err := r.Execute(Request{Verb: "set", Noun: "app.focus", Args: Arguments{"id": "field"}}); err == nil {
+	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.focus", Args: Arguments{"id": "field"}}); err == nil {
 		t.Fatal("focus.set outside the modal must fail")
 	}
 	check("refused")

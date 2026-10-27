@@ -98,7 +98,7 @@ func TestPaneKeysOnlyWhereASplitIsDrawn(t *testing.T) {
 		t.Fatalf("> without a split moved the divider: %d", got)
 	}
 	// The verbs themselves still run (the CLI, the palette).
-	if _, err := r.Execute(Request{Noun: "app.pane", Verb: "grow"}); err != nil || r.PaneShift("p") != PaneStep {
+	if _, err := r.Execute(Request{Noun: "ochazuke.pane", Verb: "grow"}); err != nil || r.PaneShift("p") != PaneStep {
 		t.Fatalf("pane.grow direct: %v, shift %d", err, r.PaneShift("p"))
 	}
 }

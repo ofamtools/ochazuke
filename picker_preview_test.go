@@ -92,9 +92,9 @@ func TestPickerBindingHelpTracksRemappingAndViewport(t *testing.T) {
 	r, p, origin := pickerFixture(t, "preserved", "text", "any", 0)
 	pickerDo(t, r, "open", "picker", Arguments{"path": root})
 	pickerDrain(t, p)
-	r.Noun("app.picker").Bindings["insert"] = []Binding{
-		{Mode: "insert", Keys: "alt+n", Request: Request{Verb: "move", Noun: "app.picker", Args: Arguments{"delta": 1}}},
-		{Mode: "insert", Keys: "ctrl+g", Request: Request{Verb: "close", Noun: "app.picker"}},
+	r.Noun("ochazuke.picker").Bindings["insert"] = []Binding{
+		{Mode: "insert", Keys: "alt+n", Request: Request{Verb: "move", Noun: "ochazuke.picker", Args: Arguments{"delta": 1}}},
+		{Mode: "insert", Keys: "ctrl+g", Request: Request{Verb: "close", Noun: "ochazuke.picker"}},
 	}
 	pickerKey(t, r, "alt+n")
 	pickerDrain(t, p)

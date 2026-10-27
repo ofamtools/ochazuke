@@ -100,7 +100,7 @@ func TestHelpKeepsOwnerGroupVisibleWhileScrolling(t *testing.T) {
 	for _, key := range []string{"a", "b", "c", "d", "e", "f"} {
 		widget.Bind(key, Do("widget.open"))
 	}
-	widget.Bind("c", Do("app.mode.set", Arguments{"mode": "normal"}))
+	widget.Bind("c", Do("ochazuke.mode.set", Arguments{"mode": "normal"}))
 	keytest.Press(m, "?")
 	for range 4 {
 		keytest.Press(m, "j")
@@ -245,7 +245,7 @@ func TestHelpArgumentsPreviewAndTruncate(t *testing.T) {
 	op.Parameters = map[string]Parameter{"text": {Type: "string"}, "key": {Type: "string"}, "steps": {Type: "integer"}, "digit": {Type: "integer"}}
 	r.Operations["widget.send"] = op
 	r.Mode.Payload.Count = 7
-	if _, err := r.Execute(Do("app.bindings.help").Request); err != nil {
+	if _, err := r.Execute(Do("ochazuke.bindings.help").Request); err != nil {
 		t.Fatal(err)
 	}
 	var preview Arguments

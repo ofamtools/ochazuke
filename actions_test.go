@@ -169,7 +169,7 @@ func TestActionBaseConventionAndConfirm(t *testing.T) {
 		t.Fatal(err)
 	}
 	top := r.Instances[r.TopModal()]
-	if top == nil || top.Noun != "app.confirm" || top.Payload.Prompt != "Remove main (wt/main)?" {
+	if top == nil || top.Noun != "ochazuke.confirm" || top.Payload.Prompt != "Remove main (wt/main)?" {
 		t.Fatalf("confirm %+v", top)
 	}
 	if len(r.Jobs()) != 0 {
@@ -297,14 +297,14 @@ func TestActionBoundFromUserBindingsAndReloaded(t *testing.T) {
 		t.Fatalf("argv %v", out["argv"])
 	}
 	writeConfig(t, dir, ActionsFile, `[{"noun": "worktree", "verb": "open", "command": ["`+strings.Join(cmd, `","`)+`", "echo", "again"]}]`)
-	if got, err := r.Execute(Request{Noun: "app.actions", Verb: "reload"}); err != nil || len(got.([]string)) != 0 {
+	if got, err := r.Execute(Request{Noun: "ochazuke.actions", Verb: "reload"}); err != nil || len(got.([]string)) != 0 {
 		t.Fatalf("reload %v %v", got, err)
 	}
 	press(t, r, "o")
 	if out := echoOf(t, settleJob(t, r)); !reflect.DeepEqual(out["argv"], []any{"again"}) {
 		t.Fatalf("argv after reload %v", out["argv"])
 	}
-	listed, err := r.Execute(Request{Noun: "app.actions", Verb: "list"})
+	listed, err := r.Execute(Request{Noun: "ochazuke.actions", Verb: "list"})
 	if err != nil || len(listed.([]Action)) != 1 {
 		t.Fatalf("list %v %v", listed, err)
 	}
@@ -316,7 +316,7 @@ func TestActionsNeedTheUserConfigDirectory(t *testing.T) {
 	if got := r.EnsureUserActions(); got != nil || len(r.UserActions()) != 0 {
 		t.Fatalf("%v %v", got, r.UserActions())
 	}
-	if _, err := r.Execute(Request{Noun: "app.actions", Verb: "path"}); err == nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.actions", Verb: "path"}); err == nil {
 		t.Fatal("path without a directory")
 	}
 }

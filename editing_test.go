@@ -40,7 +40,7 @@ func editorTestDispatch(r *Runtime, key string) (bool, error) { return r.Dispatc
 
 func editorTestExecute(t *testing.T, r *Runtime, verb string, args Arguments) {
 	t.Helper()
-	if _, err := r.Execute(Request{Verb: verb, Noun: "app.input", Args: args}); err != nil {
+	if _, err := r.Execute(Request{Verb: verb, Noun: "ochazuke.input", Args: args}); err != nil {
 		t.Fatalf("%s.input: %v", verb, err)
 	}
 }
@@ -55,7 +55,7 @@ func editorTestState(t *testing.T, in *Input, text string, cursor int, mode stri
 func TestReadlineOnlyKeepsTypingAfterEscapeAndModeChanges(t *testing.T) {
 	r := NewRuntime()
 	in := NewInput("readline", "path", false)
-	if err := r.AddInput(in, Kind("app.prompt")); err != nil {
+	if err := r.AddInput(in, Kind("ochazuke.prompt")); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.SetFocus(in.ID); err != nil {
@@ -64,7 +64,7 @@ func TestReadlineOnlyKeepsTypingAfterEscapeAndModeChanges(t *testing.T) {
 	editorTestKeys(t, r, "ctrl+e", "esc", "j", "k")
 	editorTestState(t, in, "pathjk", 6, "insert")
 	for _, mode := range []string{"normal", "visual", "visual-line", "visual-block"} {
-		result, err := r.Execute(Request{Verb: "set", Noun: "app.mode", Args: Arguments{"mode": mode}})
+		result, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.mode", Args: Arguments{"mode": mode}})
 		if err != nil || result != "insert" {
 			t.Fatalf("set mode %s: result=%v err=%v", mode, result, err)
 		}
@@ -81,7 +81,7 @@ func TestReadlineOnlyKeepsTypingAfterEscapeAndModeChanges(t *testing.T) {
 func TestReadlineOnlyPathKillYankAndMultiline(t *testing.T) {
 	r := NewRuntime()
 	in := NewInput("readline", "/work/src/main.go", true)
-	if err := r.AddInput(in, Kind("app.prompt")); err != nil {
+	if err := r.AddInput(in, Kind("ochazuke.prompt")); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.SetFocus(in.ID); err != nil {
@@ -286,7 +286,7 @@ func TestEditorStandaloneEditsAndAlternateUndoBranches(t *testing.T) {
 	editorTestExecute(t, r, "redo", Arguments{"steps": 2})
 	editorTestState(t, in, "γα", 1, "normal")
 	before := in.Head
-	if _, err := r.Execute(Request{Verb: "redo", Noun: "app.input", Args: Arguments{"branch": 99}}); err == nil {
+	if _, err := r.Execute(Request{Verb: "redo", Noun: "ochazuke.input", Args: Arguments{"branch": 99}}); err == nil {
 		t.Fatal("invalid branch accepted")
 	}
 	if in.Head != before {
@@ -318,7 +318,7 @@ func TestEditorInputIsolationAndCapturedTarget(t *testing.T) {
 	if first.Count() != 0 || first.Pending() != "" || r.Mode.Name != "normal" {
 		t.Fatalf("focus change must reset the mode: %+v", r.Mode)
 	}
-	if _, err := r.Execute(Request{Verb: "undo", Noun: "app.input", Target: "editor"}); err != nil {
+	if _, err := r.Execute(Request{Verb: "undo", Noun: "ochazuke.input", Target: "editor"}); err != nil {
 		t.Fatal(err)
 	}
 	editorTestState(t, first, "alpha beta", 0, "normal")
@@ -356,7 +356,7 @@ func TestEditorModeHookAndCustomMode(t *testing.T) {
 	}
 	setMode := func(mode string) {
 		t.Helper()
-		if _, err := r.Execute(Request{Verb: "set", Noun: "app.mode", Args: Arguments{"mode": mode}}); err != nil {
+		if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.mode", Args: Arguments{"mode": mode}}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -370,7 +370,7 @@ func TestEditorModeHookAndCustomMode(t *testing.T) {
 		t.Fatalf("custom mode key: handled=%v err=%v", handled, err)
 	}
 	editorTestState(t, in, "cat", 0, "search")
-	if _, err := r.Execute(Request{Verb: "set", Noun: "app.mode", Args: Arguments{"mode": "unknown"}}); err == nil {
+	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.mode", Args: Arguments{"mode": "unknown"}}); err == nil {
 		t.Fatal("unregistered mode accepted")
 	}
 	setMode("normal")
@@ -380,7 +380,7 @@ func TestEditorModeHookAndCustomMode(t *testing.T) {
 
 func TestEditorBindingPrecedenceAndSnapshot(t *testing.T) {
 	r, in := editorTestRuntime(t, "abc", false)
-	r.Define("app").Mode("normal").Bind("i", Do("app.input.move", Arguments{"motion": "right"}))
+	r.Define("app").Mode("normal").Bind("i", Do("ochazuke.input.move", Arguments{"motion": "right"}))
 	editorTestKeys(t, r, "i")
 	editorTestState(t, in, "abc", 1, "normal")
 	editorTestKeys(t, r, "2", "g")

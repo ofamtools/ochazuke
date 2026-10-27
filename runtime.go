@@ -224,8 +224,8 @@ type Runtime struct {
 	jobs             map[uint64]*job   // the jobs list: running jobs and the finished ones retained for jobs.list
 	jobSeq           uint64            // last issued job id
 	deprecations     []string          // rows that named an operation by its old verb.noun spelling, rewritten once
-	aliases          map[string]string // registry: a short noun name -> the noun it names (settings -> app.settings; namespace.go)
-	builtinDepth     int               // >0 while Builtin runs: framework registration, whose nouns are app.<noun>
+	aliases          map[string]string // registry: a short noun name -> the noun it names (settings -> ochazuke.settings; namespace.go)
+	builtinDepth     int               // >0 while Builtin runs: framework registration, whose nouns are ochazuke.<noun>
 }
 
 // NewRuntime returns a runtime with the framework nouns registered and focus on the app instance.
@@ -254,7 +254,7 @@ func newRuntime() *Runtime {
 // registerFramework registers the framework nouns and operations.
 func (r *Runtime) registerFramework() {
 	r.Instance("app")
-	r.Define("app.modal")
+	r.Define("ochazuke.modal")
 	// "no-modal" holds while no modal is open: the app's ctrl+c capture row
 	// quits past any inner row, but a modal (the palette) still answers it.
 	r.DefineGuard("no-modal", func(r *Runtime, _ KeyEvent) bool { return len(r.modals) == 0 })
@@ -291,7 +291,7 @@ func (r *Runtime) registerFramework() {
 	registerPlacements(r)
 	// A modal answers esc in normal mode; inputs, pending modes and the
 	// palette settle first because their rows sit inside this level.
-	r.Define("app.modal").Mode("normal").Bind("esc", Do("app.modal.pop"))
+	r.Define("ochazuke.modal").Mode("normal").Bind("esc", Do("ochazuke.modal.pop"))
 }
 
 // Builtin runs register and marks every operation it registered as the
@@ -382,12 +382,12 @@ func (r *Runtime) SetMode(mode string) error {
 // motionOps are the framework's own motions (Operation.Motion): moving a
 // selection, a cursor, the focus between stops, the page or the viewport.
 var motionOps = map[string]bool{
-	"app.list.move": true, "app.focus.next": true, "app.focus.previous": true,
-	"app.surface.scroll": true, "app.page.next": true, "app.page.previous": true,
-	"app.input.move": true, "app.picker.move": true, "app.palette.move": true,
-	"app.yank-history.move": true, "app.grid.move": true, "app.grid.goto": true,
-	"app.detail.scroll": true, "app.list.goto": true, "app.list.scroll": true, "app.list.scroll-columns": true,
-	"app.list.column": true, "app.list.choose-column": true,
+	"ochazuke.list.move": true, "ochazuke.focus.next": true, "ochazuke.focus.previous": true,
+	"ochazuke.surface.scroll": true, "ochazuke.page.next": true, "ochazuke.page.previous": true,
+	"ochazuke.input.move": true, "ochazuke.picker.move": true, "ochazuke.palette.move": true,
+	"ochazuke.yank-history.move": true, "ochazuke.grid.move": true, "ochazuke.grid.goto": true,
+	"ochazuke.detail.scroll": true, "ochazuke.list.goto": true, "ochazuke.list.scroll": true, "ochazuke.list.scroll-columns": true,
+	"ochazuke.list.column": true, "ochazuke.list.choose-column": true,
 }
 
 // frameworkHistoryKinds are the framework's operations whose history kind
@@ -396,36 +396,36 @@ var motionOps = map[string]bool{
 // record or a pane are changes, and the application verbs that only close
 // or fold are actions.
 var frameworkHistoryKinds = map[string]string{
-	"app.actions.list": HistoryFetch, "app.actions.path": HistoryFetch, "app.actions.reload": HistoryFetch,
-	"app.appearance.get": HistoryFetch, "app.bindings.check": HistoryFetch, "app.bindings.list": HistoryFetch,
-	"app.bindings.path": HistoryFetch, "app.bindings.reload": HistoryFetch, "app.bindings.stops": HistoryFetch,
-	"app.config.path": HistoryFetch, "app.config.reload": HistoryFetch, "app.history.list": HistoryFetch, "app.history.path": HistoryFetch,
-	"app.instances.query": HistoryFetch, "app.jobs.list": HistoryFetch, "app.modes.list": HistoryFetch,
-	"app.notice.list": HistoryFetch, "app.operations.list": HistoryFetch, "app.pages.list": HistoryFetch,
-	"app.register.get": HistoryFetch, "app.settings.get": HistoryFetch, "app.settings.list": HistoryFetch,
-	"app.settings.names": HistoryFetch, "app.settings.path": HistoryFetch, "app.settings.reload": HistoryFetch,
-	"app.state.get": HistoryFetch, "app.themes.list": HistoryFetch, "app.themes.path": HistoryFetch,
-	"app.themes.reload": HistoryFetch,
+	"ochazuke.actions.list": HistoryFetch, "ochazuke.actions.path": HistoryFetch, "ochazuke.actions.reload": HistoryFetch,
+	"ochazuke.appearance.get": HistoryFetch, "ochazuke.bindings.check": HistoryFetch, "ochazuke.bindings.list": HistoryFetch,
+	"ochazuke.bindings.path": HistoryFetch, "ochazuke.bindings.reload": HistoryFetch, "ochazuke.bindings.stops": HistoryFetch,
+	"ochazuke.config.path": HistoryFetch, "ochazuke.config.reload": HistoryFetch, "ochazuke.history.list": HistoryFetch, "ochazuke.history.path": HistoryFetch,
+	"ochazuke.instances.query": HistoryFetch, "ochazuke.jobs.list": HistoryFetch, "ochazuke.modes.list": HistoryFetch,
+	"ochazuke.notice.list": HistoryFetch, "ochazuke.operations.list": HistoryFetch, "ochazuke.pages.list": HistoryFetch,
+	"ochazuke.register.get": HistoryFetch, "ochazuke.settings.get": HistoryFetch, "ochazuke.settings.list": HistoryFetch,
+	"ochazuke.settings.names": HistoryFetch, "ochazuke.settings.path": HistoryFetch, "ochazuke.settings.reload": HistoryFetch,
+	"ochazuke.state.get": HistoryFetch, "ochazuke.themes.list": HistoryFetch, "ochazuke.themes.path": HistoryFetch,
+	"ochazuke.themes.reload": HistoryFetch,
 
-	"app.list.yank": HistoryChange, "app.list.resize-column": HistoryChange, "app.list.reset-columns": HistoryChange,
+	"ochazuke.list.yank": HistoryChange, "ochazuke.list.resize-column": HistoryChange, "ochazuke.list.reset-columns": HistoryChange,
 
-	"app.appearance.set": HistoryChange, "app.bindings.load": HistoryChange, "app.confirm.set": HistoryChange,
-	"app.config.export": HistoryChange, "app.form-option.pick": HistoryChange, "app.form.redo": HistoryChange,
-	"app.form.suggest": HistoryChange, "app.form.undo": HistoryChange, "app.input.redo": HistoryChange,
-	"app.input.undo": HistoryChange, "app.input.yank": HistoryChange, "app.mode.register": HistoryChange,
-	"app.register.set": HistoryChange, "app.setting-value.commit": HistoryChange, "app.setting.cycle": HistoryChange,
-	"app.setting.edit": HistoryChange, "app.setting.reset": HistoryChange, "app.settings.reset": HistoryChange,
-	"app.settings.set": HistoryChange, "app.terminal.paste": HistoryChange, "app.terminal.send": HistoryChange,
-	"app.yank-history.select": HistoryChange,
+	"ochazuke.appearance.set": HistoryChange, "ochazuke.bindings.load": HistoryChange, "ochazuke.confirm.set": HistoryChange,
+	"ochazuke.config.export": HistoryChange, "ochazuke.form-option.pick": HistoryChange, "ochazuke.form.redo": HistoryChange,
+	"ochazuke.form.suggest": HistoryChange, "ochazuke.form.undo": HistoryChange, "ochazuke.input.redo": HistoryChange,
+	"ochazuke.input.undo": HistoryChange, "ochazuke.input.yank": HistoryChange, "ochazuke.mode.register": HistoryChange,
+	"ochazuke.register.set": HistoryChange, "ochazuke.setting-value.commit": HistoryChange, "ochazuke.setting.cycle": HistoryChange,
+	"ochazuke.setting.edit": HistoryChange, "ochazuke.setting.reset": HistoryChange, "ochazuke.settings.reset": HistoryChange,
+	"ochazuke.settings.set": HistoryChange, "ochazuke.terminal.paste": HistoryChange, "ochazuke.terminal.send": HistoryChange,
+	"ochazuke.yank-history.select": HistoryChange,
 
-	"app.chooser.cancel": HistoryAction, "app.outline.fold": HistoryAction,
+	"ochazuke.chooser.cancel": HistoryAction, "ochazuke.outline.fold": HistoryAction,
 }
 
 // Register adds an operation. An operation with App set is of kind
 // application and its Run is the framework's dispatcher for it. Its noun
 // may be dotted (ai.skills); its verb is one word. A noun named by a
-// framework alias (settings) is the noun it names (app.settings), as
-// Define reads it; inside Builtin a plain noun is app.<noun>. A verb y on
+// framework alias (settings) is the noun it names (ochazuke.settings), as
+// Define reads it; inside Builtin a plain noun is ochazuke.<noun>. A verb y on
 // noun x beside a noun x.y is refused (checkOverlap).
 func (r *Runtime) Register(o Operation) {
 	if o.App != nil {
@@ -486,7 +486,7 @@ func (r *Runtime) AddInput(in *Input, opts ...InstanceOption) error {
 	if in.ID == "" || r.Instances[in.ID] != nil {
 		return errors.New("input ID must be unique and nonempty")
 	}
-	spec := instanceSpec{parent: "app", noun: "app.editor"}
+	spec := instanceSpec{parent: "app", noun: "ochazuke.editor"}
 	for _, opt := range opts {
 		opt(&spec)
 	}
@@ -834,20 +834,20 @@ func JSONPointer(value any, path string) (any, error) {
 }
 
 func registerCore(r *Runtime) {
-	r.Register(Operation{Verb: "get", Noun: "app.state", Description: "Inspect public state using a JSON Pointer", Parameters: map[string]Parameter{"path": {Type: "string"}}, Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "get", Noun: "ochazuke.state", Description: "Inspect public state using a JSON Pointer", Parameters: map[string]Parameter{"path": {Type: "string"}}, Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return JSONPointer(r.Snapshot(), StringArg(a, "path", ""))
 	}})
-	r.Register(Operation{Verb: "list", Noun: "app.operations", Description: "List registered verbs, nouns, kinds (interaction or application), confirm prompts and argument schemas", Result: "operation[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) { return r.Catalog(), nil }})
-	r.Register(Operation{Verb: "list", Noun: "app.bindings", Description: "List the rows the current stack and mode answer to; all includes every stored noun and instance mode table", Parameters: map[string]Parameter{"all": {Type: "boolean", Description: "Return every stored binding row, including inactive modes and contexts, in configuration JSON format"}}, Result: "binding[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "list", Noun: "ochazuke.operations", Description: "List registered verbs, nouns, kinds (interaction or application), confirm prompts and argument schemas", Result: "operation[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) { return r.Catalog(), nil }})
+	r.Register(Operation{Verb: "list", Noun: "ochazuke.bindings", Description: "List the rows the current stack and mode answer to; all includes every stored noun and instance mode table", Parameters: map[string]Parameter{"all": {Type: "boolean", Description: "Return every stored binding row, including inactive modes and contexts, in configuration JSON format"}}, Result: "binding[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		if all, _ := a["all"].(bool); all {
 			return r.allBindings(), nil
 		}
 		return r.ListBindings(focusOf(c)), nil
 	}})
-	r.Register(Operation{Verb: "stops", Noun: "app.bindings", Description: "List the rows every focus stop answers to, app-wide: each page's stops in drawing order, the open modals', then app; each with the focus and mode it is read at", Result: "stop bindings[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "stops", Noun: "ochazuke.bindings", Description: "List the rows every focus stop answers to, app-wide: each page's stops in drawing order, the open modals', then app; each with the focus and mode it is read at", Result: "stop bindings[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.StopBindings(), nil
 	}})
-	r.Register(Operation{Verb: "focus", Noun: "app.input", Description: "Focus a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true, Noun: "app.editor", Free: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "focus", Noun: "ochazuke.input", Description: "Focus a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true, Noun: "ochazuke.editor", Free: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		id := StringArg(a, "id", "")
 		if r.Input(id) == nil {
 			return nil, fmt.Errorf("unknown input %q", id)
@@ -855,7 +855,7 @@ func registerCore(r *Runtime) {
 		err := r.SetFocus(id)
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "set", Noun: "app.mode", Description: "Set the global interaction mode (a registered mode) and clear any pending payload", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "app.modes"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "set", Noun: "ochazuke.mode", Description: "Set the global interaction mode (a registered mode) and clear any pending payload", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "ochazuke.modes"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		mode := StringArg(a, "mode", "")
 		if !r.Modes[mode] {
 			return nil, fmt.Errorf("unknown mode %q", mode)
@@ -868,7 +868,7 @@ func registerCore(r *Runtime) {
 		r.setMode(ModeState{Name: mode})
 		return mode, nil
 	}})
-	r.Register(Operation{Verb: "push", Noun: "app.modal", Description: "Open a modal focused on a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}, "input": {Type: "string", Required: true, Noun: "app.editor", Free: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "push", Noun: "ochazuke.modal", Description: "Open a modal focused on a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}, "input": {Type: "string", Required: true, Noun: "ochazuke.editor", Free: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		id := StringArg(a, "input", "")
 		if r.Input(id) == nil {
 			return nil, errors.New("unknown modal input")
@@ -876,7 +876,7 @@ func registerCore(r *Runtime) {
 		err := r.Push(StringArg(a, "id", ""), id)
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "pop", Noun: "app.modal", Description: "Close the active modal and restore its parent", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) { err := r.Pop(); return r.Context(), err }})
+	r.Register(Operation{Verb: "pop", Noun: "ochazuke.modal", Description: "Close the active modal and restore its parent", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) { err := r.Pop(); return r.Context(), err }})
 	r.Register(Operation{Verb: "quit", Noun: "app", Description: "Exit the application", Result: "boolean", Run: func(r *Runtime, c Context, a Arguments) (any, error) { r.Quit = true; return true, nil }})
-	r.Register(Operation{Verb: "ignore", Noun: "app.key", Description: "Consume a key without effect; the row a noun binds to swallow keys", Result: "null", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
+	r.Register(Operation{Verb: "ignore", Noun: "ochazuke.key", Description: "Consume a key without effect; the row a noun binds to swallow keys", Result: "null", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
 }

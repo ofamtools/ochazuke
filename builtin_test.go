@@ -25,7 +25,7 @@ func TestFrameworkOperationsAreBuiltin(t *testing.T) {
 	if got := notBuiltin(r); len(got) > 0 {
 		t.Fatalf("framework operations not builtin: %v", got)
 	}
-	for _, key := range []string{"app.outline.add", "app.chooser.pick", "app.settings.edit", "app.surface.scroll", "app.palette.open", "app.picker.open", "app.appearance.set"} {
+	for _, key := range []string{"ochazuke.outline.add", "ochazuke.chooser.pick", "ochazuke.settings.edit", "ochazuke.surface.scroll", "ochazuke.palette.open", "ochazuke.picker.open", "ochazuke.appearance.set"} {
 		op, ok := r.Operations[key]
 		if !ok || !op.Builtin {
 			t.Fatalf("%s: registered %v, builtin %v", key, ok, op.Builtin)
@@ -38,16 +38,16 @@ func TestApplicationVerbsAreNotBuiltin(t *testing.T) {
 	done := func(Ctx) Result { return Done(nil) }
 	r.Define("worktree").Verb("remove", done).Confirm("Remove {{label}}?")
 	// An application verb on a framework noun stays the application's.
-	r.Define("app.history").Verb("capture-hook", done)
+	r.Define("ochazuke.history").Verb("capture-hook", done)
 	NewModel(r)
 	// A framework constructor run after the application's verbs marks
 	// only what it registers.
 	NewPicker(r)
 	r.Define("worktree").Verb("add", done)
-	if got, want := notBuiltin(r), []string{"app.history.capture-hook", "worktree.add", "worktree.remove"}; !slices.Equal(got, want) {
+	if got, want := notBuiltin(r), []string{"ochazuke.history.capture-hook", "worktree.add", "worktree.remove"}; !slices.Equal(got, want) {
 		t.Fatalf("not builtin = %v, want %v", got, want)
 	}
-	if op := r.Operations["app.picker.open"]; !op.Builtin {
+	if op := r.Operations["ochazuke.picker.open"]; !op.Builtin {
 		t.Fatal("picker.open registered after the application's verbs is not builtin")
 	}
 	if op := r.Operations["worktree.remove"]; op.Confirm == "" || op.Kind != KindApplication {
@@ -63,7 +63,7 @@ func TestBuiltinNests(t *testing.T) {
 		r.Builtin(func() { r.Define("inner").Verb("b", done) })
 		r.Define("outer").Verb("c", done)
 	})
-	for _, key := range []string{"app.outer.a", "app.inner.b", "app.outer.c"} {
+	for _, key := range []string{"ochazuke.outer.a", "ochazuke.inner.b", "ochazuke.outer.c"} {
 		if !r.Operations[key].Builtin {
 			t.Fatalf("%s not builtin", key)
 		}

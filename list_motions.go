@@ -74,16 +74,16 @@ func (l *List) page(rows int) {
 func registerListMotions(r *Runtime) {
 	registerColumnMotions(r)
 	goTo := func(position string) Binding {
-		return Do("app.list.goto", Arguments{"position": position}).FromPayload("row", SourceLine)
+		return Do("ochazuke.list.goto", Arguments{"position": position}).FromPayload("row", SourceLine)
 	}
 	page := func(delta int, half bool) Binding {
 		args := Arguments{"delta": delta}
 		if half {
 			args["half"] = true
 		}
-		return Do("app.list.scroll", args).FromPayload("steps", SourceLine)
+		return Do("ochazuke.list.scroll", args).FromPayload("steps", SourceLine)
 	}
-	r.Define("app.list").Mode("normal").
+	r.Define("ochazuke.list").Mode("normal").
 		Bind("g g", goTo("first")).
 		Bind("G", goTo("last")).
 		Bind("ctrl+d", page(1, true)).
@@ -145,7 +145,7 @@ func registerListMotions(r *Runtime) {
 			l.page(rows)
 		}},
 	} {
-		r.Register(Operation{Verb: spec.verb, Noun: "app.list", Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
+		r.Register(Operation{Verb: spec.verb, Noun: "ochazuke.list", Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
 			list, err := resolve(c, args)
 			if err != nil {
 				return nil, err

@@ -2,9 +2,13 @@ package cli
 
 import (
 	"encoding/json"
+	"fmt"
+	"path/filepath"
+	"regexp"
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/unixsuperhero/ochazuke"
 )
@@ -68,7 +72,7 @@ type CatalogDoc struct {
 	// StateDelta is the state delta protocol version (StateDeltaVersion), 0 for none.
 	StateDelta int `json:"stateDelta,omitempty"`
 	// Aliases are the short names that reach a noun of the catalog
-	// (settings for app.settings: ochazuke.Runtime.Aliases), the ones an
+	// (settings for ochazuke.settings: ochazuke.Runtime.Aliases), the ones an
 	// application noun shadows left out. Every name in the catalog is
 	// canonical; a host resolving a name the extension's user typed reads
 	// CanonicalNoun.
@@ -249,7 +253,18 @@ func Catalog(r *ochazuke.Runtime, name, version string) ([]byte, error) {
 // verb run through a Shell whose StateCache is on).
 func catalog(r *ochazuke.Runtime, name, version string, delta bool) ([]byte, error) {
 	doc := CatalogDoc{Schema: Schema, Name: name, Version: version, Nouns: []CatalogNoun{}, Bindings: []ochazuke.Binding{}, Pages: []CatalogPage{}}
-	for _, op := range r.Catalog() {
+	// One entry per noun, nouns by name and each noun's verbs by name: the
+	// operations sorted by key interleave a noun's verbs with the nouns
+	// nested under it (app.quit, app.rows.list, app.state), so they are
+	// grouped by noun, never by runs.
+	ops := r.Catalog()
+	sort.SliceStable(ops, func(i, j int) bool {
+		if ops[i].Noun != ops[j].Noun {
+			return ops[i].Noun < ops[j].Noun
+		}
+		return ops[i].Verb < ops[j].Verb
+	})
+	for _, op := range ops {
 		if n := len(doc.Nouns); n == 0 || doc.Nouns[n-1].Name != op.Noun {
 			noun := CatalogNoun{Name: op.Noun}
 			if n := r.Nouns[op.Noun]; n != nil {
@@ -337,6 +352,8 @@ func requestKey(req ochazuke.Request) string {
 // two extensions and the host never name the same noun. A host defining
 // the extension's verbs itself names its nouns the same way; the
 // extension's own binary keeps its short names (Local strips them back).
+// Name ext with ExtensionNamespace(bin) so every host mounts an extension
+// under the same namespace.
 func Namespace(ext string) func(catalogNoun string) string {
 	return func(noun string) string { return ochazuke.Namespaced(ext, noun) }
 }
@@ -348,3 +365,48 @@ func Local(ext, hostNoun string) (string, bool) {
 	noun, ok := strings.CutPrefix(hostNoun, ext+".")
 	return noun, ok && noun != ""
 }
+
+// ExtensionNamespace is the namespace a host mounts the extension binary
+// bin under (the ext of Namespace and Local), the same in every host: the
+// base name of bin, lower-cased, without a leading "o-" (o-ai is ai, o-qbt
+// is qbt, /usr/local/bin/o-git is git; mtm-mermaid stays mtm-mermaid). It
+// is an error when what is left is not one noun word (a letter, then
+// letters, digits and dashes) or is reserved: ochazuke (the framework's
+// namespace), app (the app noun, whose verbs app.<verb> a namespace would
+// collide with) or the short name of a framework noun (list, settings,
+// command, grid, …), which an extension's group would hide in the CLI. A
+// host refuses such an extension or names it itself.
+func ExtensionNamespace(bin string) (string, error) {
+	name := strings.ToLower(filepath.Base(bin))
+	name = strings.TrimPrefix(name, "o-")
+	switch {
+	case !extensionWord.MatchString(name):
+		return "", fmt.Errorf("extension %q: namespace %q is not a noun word", bin, name)
+	case name == ochazuke.FrameworkNamespace || name == ochazuke.AppNoun:
+		return "", fmt.Errorf("extension %q: namespace %q is reserved", bin, name)
+	case frameworkShortNames()[name]:
+		return "", fmt.Errorf("extension %q: namespace %q is the short name of the framework noun %s", bin, name, ochazuke.Namespaced(ochazuke.FrameworkNamespace, name))
+	}
+	return name, nil
+}
+
+var extensionWord = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
+
+// frameworkShortNames are the aliases of every framework noun: the ones a
+// bare runtime and Model register, and those of the framework packages a
+// host may add (cli's commands and page groups, grid, markdown), which
+// TestExtensionNamespaceRefusesFrameworkNames keeps in step.
+var frameworkShortNames = sync.OnceValue(func() map[string]bool {
+	r := ochazuke.NewRuntime()
+	r.Config().Disable()
+	ochazuke.NewModel(r)
+	ochazuke.NewPicker(r)
+	names := map[string]bool{}
+	for _, a := range r.Aliases() {
+		names[a.Alias] = true
+	}
+	for _, noun := range []string{CommandNoun, GroupNoun, "ochazuke.grid", "ochazuke.selection", "ochazuke.markdown", "ochazuke.markdown-task"} {
+		names[strings.TrimPrefix(noun, ochazuke.FrameworkNamespace+".")] = true
+	}
+	return names
+})

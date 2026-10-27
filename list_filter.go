@@ -44,7 +44,7 @@ const ListFilterMode = "list_filter"
 // answers first. NewModel adds it after its other defaults, so on a
 // crowded footer "/ filter" is the hint cut first.
 func filterOpenRow() Binding {
-	return Do("app.list.filter-open").Guard("list-filterable").Hinted("filter")
+	return Do("ochazuke.list.filter-open").Guard("list-filterable").Hinted("filter")
 }
 
 // filterTerms splits a query into the lowercased words a row must hold.
@@ -228,25 +228,25 @@ func registerListFilter(r *Runtime) {
 		l := r.focusedList(ev.Focus)
 		return l != nil && l.query == ""
 	})
-	move := func(delta int) Binding { return Do("app.list.move", Arguments{"delta": delta, "clamp": true}) }
-	r.Define("app.list").Mode("normal").
-		Bind("esc", Do("app.list.filter-clear"))
-	r.Define("app.list").Mode(ListFilterMode).
-		Pattern(Printable, Do("app.list.filter-type").FromPayload("text", SourceText).Hide()).
-		Pattern(Paste, Do("app.list.filter-type").FromPayload("text", SourceText).Hide()).
-		Bind("space", Do("app.list.filter-type", Arguments{"text": " "}).Hide()).
-		Bind("backspace", Do("app.list.filter-erase").Hide()).
-		Bind("backspace", Do("app.list.filter-keep").Guard("list-unfiltered").Hide()).
-		Bind("ctrl+h", Do("app.list.filter-erase").Hide()).
-		Bind("ctrl+h", Do("app.list.filter-keep").Guard("list-unfiltered").Hide()).
-		Bind("ctrl+u", Do("app.list.filter", Arguments{"query": ""}).Hide()).
+	move := func(delta int) Binding { return Do("ochazuke.list.move", Arguments{"delta": delta, "clamp": true}) }
+	r.Define("ochazuke.list").Mode("normal").
+		Bind("esc", Do("ochazuke.list.filter-clear"))
+	r.Define("ochazuke.list").Mode(ListFilterMode).
+		Pattern(Printable, Do("ochazuke.list.filter-type").FromPayload("text", SourceText).Hide()).
+		Pattern(Paste, Do("ochazuke.list.filter-type").FromPayload("text", SourceText).Hide()).
+		Bind("space", Do("ochazuke.list.filter-type", Arguments{"text": " "}).Hide()).
+		Bind("backspace", Do("ochazuke.list.filter-erase").Hide()).
+		Bind("backspace", Do("ochazuke.list.filter-keep").Guard("list-unfiltered").Hide()).
+		Bind("ctrl+h", Do("ochazuke.list.filter-erase").Hide()).
+		Bind("ctrl+h", Do("ochazuke.list.filter-keep").Guard("list-unfiltered").Hide()).
+		Bind("ctrl+u", Do("ochazuke.list.filter", Arguments{"query": ""}).Hide()).
 		Bind("down", move(1)).
 		Bind("ctrl+n", move(1)).
 		Bind("up", move(-1)).
 		Bind("ctrl+p", move(-1)).
-		Bind("enter", Do("app.list.filter-choose").Guard("list-chooses")).
-		Bind("enter", Do("app.list.filter-keep")).
-		Bind("esc", Do("app.list.filter-clear"))
+		Bind("enter", Do("ochazuke.list.filter-choose").Guard("list-chooses")).
+		Bind("enter", Do("ochazuke.list.filter-keep")).
+		Bind("esc", Do("ochazuke.list.filter-clear"))
 
 	resolve := func(c Context, args Arguments) (*List, error) {
 		if id := StringArg(args, "id", ""); id != "" {
@@ -335,7 +335,7 @@ func registerListFilter(r *Runtime) {
 			return nil
 		}},
 	} {
-		r.Register(Operation{Verb: spec.verb, Noun: "app.list", Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
+		r.Register(Operation{Verb: spec.verb, Noun: "ochazuke.list", Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
 			list, err := resolve(c, args)
 			if err != nil {
 				return nil, err
@@ -346,6 +346,6 @@ func registerListFilter(r *Runtime) {
 			return list.state(), nil
 		}})
 	}
-	guards := r.Nouns["app.list"].Guards
+	guards := r.Nouns["ochazuke.list"].Guards
 	guards["filter-clear"], guards["filter-erase"], guards["filter-choose"] = "list-filtered", "list-query", "list-chooses"
 }

@@ -370,7 +370,7 @@ func TestPaletteListsTheNounVerbs(t *testing.T) {
 	a := open(t)
 	verbs := map[string][]string{}
 	for _, op := range a.r.Catalog() {
-		noun := a.r.DisplayNoun(op.Noun) // the grid's selection is app.selection
+		noun := a.r.DisplayNoun(op.Noun) // the grid's selection is ochazuke.selection
 		verbs[noun] = append(verbs[noun], op.Verb)
 	}
 	for noun, want := range map[string][]string{

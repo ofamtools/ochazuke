@@ -176,7 +176,7 @@ const ImplicitGuard = "input"
 // withImplicitGuard gives an editor noun row that runs an input operation
 // the implicit guard when it names none.
 func withImplicitGuard(row Binding) Binding {
-	if row.Noun == "app.editor" && row.Instance == "" && row.When == "" && implicitlyGuarded(row) {
+	if row.Noun == "ochazuke.editor" && row.Instance == "" && row.When == "" && implicitlyGuarded(row) {
 		row.When = ImplicitGuard
 	}
 	return row
@@ -185,7 +185,7 @@ func withImplicitGuard(row Binding) Binding {
 // implicitlyGuarded reports whether a row's request is one the editor
 // noun's rows guard implicitly.
 func implicitlyGuarded(row Binding) bool {
-	return row.Request.Noun == "app.input" && row.Request.Verb != "cancel"
+	return row.Request.Noun == "ochazuke.input" && row.Request.Verb != "cancel"
 }
 
 // identityGuard is the guard that is part of the row's identity: When,
@@ -194,7 +194,7 @@ func implicitlyGuarded(row Binding) bool {
 // noun is consulted only with an input on the focus path, where the guard
 // is the framework's detail, not a second row).
 func (b Binding) identityGuard() string {
-	if b.When == ImplicitGuard && b.Noun == "app.editor" && b.Instance == "" {
+	if b.When == ImplicitGuard && b.Noun == "ochazuke.editor" && b.Instance == "" {
 		return ""
 	}
 	return b.When
@@ -277,11 +277,11 @@ func Enter(mode string, payload ...Payload) Binding {
 			args["request"] = *p.Request
 		}
 	}
-	return Do("app.mode.enter", args)
+	return Do("ochazuke.mode.enter", args)
 }
 
 // Leave builds a row that returns from a pending mode to the mode it shadowed.
-func Leave() Binding { return Do("app.mode.leave") }
+func Leave() Binding { return Do("ochazuke.mode.leave") }
 
 // FromKey fills an argument from the pressed key name.
 func (b Binding) FromKey(arg string) Binding { return b.from(arg, SourceKey) }
@@ -332,11 +332,11 @@ func (b Binding) from(arg, source string) Binding {
 }
 
 // Define declares a noun, or returns the builder of an existing one. A
-// name the framework's nouns answer to (settings for app.settings:
+// name the framework's nouns answer to (settings for ochazuke.settings:
 // CanonicalNoun) returns that noun's builder, so an application's verbs
 // and rows extend it; DefineOwn claims the short name for a noun of the
 // application's own instead. Inside Builtin a plain name is the framework
-// noun app.<name>.
+// noun ochazuke.<name>.
 func (r *Runtime) Define(name string) *NounBuilder {
 	if name == "" {
 		panic("noun name must be nonempty")
@@ -351,10 +351,10 @@ func (r *Runtime) Define(name string) *NounBuilder {
 
 // DefineOwn declares a noun of the application's own under exactly name,
 // or returns its builder when it exists. When name is the alias of a
-// framework noun (settings for app.settings) the application's noun owns
+// framework noun (settings for ochazuke.settings) the application's noun owns
 // the short name from then on: keys, binding files, actions.json, the
 // palette and the CLI reach it by that name, and the framework's noun
-// stays reachable by its canonical name (app.settings), its verbs and
+// stays reachable by its canonical name (ochazuke.settings), its verbs and
 // rows intact. An application with a settings, config or page noun of its
 // own declares it with DefineOwn instead of removing the framework's.
 func (r *Runtime) DefineOwn(name string) *NounBuilder {
@@ -366,7 +366,7 @@ func (r *Runtime) DefineOwn(name string) *NounBuilder {
 
 // ensureNoun is the noun of that exact name, created when it does not
 // exist yet (refused when the name is an operation key: checkNounOverlap).
-// Inside Builtin a framework noun app.<noun> records its alias.
+// Inside Builtin a framework noun ochazuke.<noun> records its alias.
 func (r *Runtime) ensureNoun(name string) *Noun {
 	n := r.Nouns[name]
 	if n == nil {
@@ -760,7 +760,7 @@ func withPrefixCancels(rows []Binding) []Binding {
 // isPrefixCancel reports whether a row is the default cancel of a sequence
 // prefix: "<prefix> esc" running leave.mode.
 func isPrefixCancel(b Binding) bool {
-	return strings.HasSuffix(b.Keys, " "+CancelKey) && b.Request.Key() == "app.mode.leave" && len(b.From) == 0 && b.When == ""
+	return strings.HasSuffix(b.Keys, " "+CancelKey) && b.Request.Key() == "ochazuke.mode.leave" && len(b.From) == 0 && b.When == ""
 }
 
 // isPattern reports whether a config "keys" value names a key class.
@@ -880,12 +880,12 @@ func (r *Runtime) ValidateBindings() ([]string, error) {
 }
 
 // modernRequest resolves a request's noun (an alias such as list names
-// app.list: CanonicalNoun) and accepts the pre-noun.verb spelling for one
+// ochazuke.list: CanonicalNoun) and accepts the pre-noun.verb spelling for one
 // release: a row built as Do("undo.input") parses as noun "undo", verb
 // "input". When that two-word key is unknown but its reversal is
 // registered, the request is rewritten and the move recorded once per key;
 // ValidateBindings returns the list. A key of three or more words (a dotted
-// noun: app.settings.set) is never swapped.
+// noun: ochazuke.settings.set) is never swapped.
 func (r *Runtime) modernRequest(q Request) Request {
 	q = r.canonicalRequest(q)
 	if _, ok := r.Operations[q.Key()]; ok || q.Verb == "" || strings.Contains(q.Noun, ".") {

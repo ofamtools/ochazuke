@@ -120,16 +120,16 @@ func TestThemeSettingSelectsUserScheme(t *testing.T) {
 	if err != nil || !slices.Equal(v.Enum, []string{"adaptive", "dark", "light", "mono", "kombu"}) {
 		t.Fatalf("enum %v %v", v.Enum, err)
 	}
-	if got, _ := r.Execute(Request{Verb: "list", Noun: "app.themes"}); !slices.Equal(got.([]string), v.Enum) {
+	if got, _ := r.Execute(Request{Verb: "list", Noun: "ochazuke.themes"}); !slices.Equal(got.([]string), v.Enum) {
 		t.Fatalf("themes.list %v", got)
 	}
 	if !sameColor(NewStyles(*m.Appearance).ActiveTab.GetForeground(), lipgloss.Color("#C9A227")) {
 		t.Fatal("kombu is not drawn")
 	}
-	if _, err := r.Execute(Request{Verb: "set", Noun: "app.settings", Args: Arguments{"name": ThemeSetting, "value": "light"}}); err != nil || m.Appearance.Theme != "light" {
+	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.settings", Args: Arguments{"name": ThemeSetting, "value": "light"}}); err != nil || m.Appearance.Theme != "light" {
 		t.Fatalf("settings.set: %q %v", m.Appearance.Theme, err)
 	}
-	if _, err := r.Execute(Request{Verb: "set", Noun: "app.appearance", Args: Arguments{"theme": "nope"}}); err == nil || !strings.Contains(err.Error(), "kombu") {
+	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.appearance", Args: Arguments{"theme": "nope"}}); err == nil || !strings.Contains(err.Error(), "kombu") {
 		t.Fatalf("appearance.set unknown: %v", err)
 	}
 }
@@ -150,7 +150,7 @@ func TestMalformedSchemeFallsBack(t *testing.T) {
 	if err := os.WriteFile(r.Config().Path(ThemesFile), []byte(`{"kombu": {"accent": "#C9A227"}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	got, err := r.Execute(Request{Verb: "reload", Noun: "app.themes"})
+	got, err := r.Execute(Request{Verb: "reload", Noun: "ochazuke.themes"})
 	if err != nil || len(got.([]string)) != 0 {
 		t.Fatalf("themes.reload %v %v", got, err)
 	}

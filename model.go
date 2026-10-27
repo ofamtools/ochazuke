@@ -117,7 +117,7 @@ func newModel(r *Runtime) *Model {
 	// The Settings page and unfocused page lists draw in the Model's styles.
 	r.Settings().page.styles = m.Styles
 	m.ModalViews[settingPromptID] = ModalView{Title: "Set", Render: settingPromptView}
-	r.Register(Operation{Verb: "scroll", Noun: "app.surface", Description: "Scroll the active page or modal without changing focus", Parameters: map[string]Parameter{"lines": {Type: "integer", Required: true}}, Result: "scroll offset", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "scroll", Noun: "ochazuke.surface", Description: "Scroll the active page or modal without changing focus", Parameters: map[string]Parameter{"lines": {Type: "integer", Required: true}}, Result: "scroll offset", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		key := m.surfaceKey()
 		width, height := m.pageSize()
 		var content string
@@ -134,10 +134,10 @@ func newModel(r *Runtime) *Model {
 		m.scroll[key] = view.YOffset()
 		return view.YOffset(), nil
 	}})
-	r.Register(Operation{Verb: "list", Noun: "app.notice", Description: "List the persistent notices shown in the footer", Result: "string[]", Run: func(*Runtime, Context, Arguments) (any, error) {
+	r.Register(Operation{Verb: "list", Noun: "ochazuke.notice", Description: "List the persistent notices shown in the footer", Result: "string[]", Run: func(*Runtime, Context, Arguments) (any, error) {
 		return append([]string{}, m.Notices...), nil
 	}})
-	r.Register(Operation{Verb: "clear", Noun: "app.notice", Description: "Clear the persistent notices from the footer", Result: "cleared count", Run: func(*Runtime, Context, Arguments) (any, error) {
+	r.Register(Operation{Verb: "clear", Noun: "ochazuke.notice", Description: "Clear the persistent notices from the footer", Result: "cleared count", Run: func(*Runtime, Context, Arguments) (any, error) {
 		n := len(m.Notices)
 		m.Notices, m.noticeIDs = nil, nil
 		return n, nil
@@ -152,21 +152,21 @@ func newModel(r *Runtime) *Model {
 		}
 		r.Define("app").Mode(mode).Bind(keys, row)
 	}
-	defaultRow("normal", ":", Do("app.palette.open"))
-	defaultRow("normal", "ctrl+y", Do("app.yank-history.open").Hide())
-	defaultRow("normal", "?", Do("app.bindings.help"))
+	defaultRow("normal", ":", Do("ochazuke.palette.open"))
+	defaultRow("normal", "ctrl+y", Do("ochazuke.yank-history.open").Hide())
+	defaultRow("normal", "?", Do("ochazuke.bindings.help"))
 	// Insert mode types ?, so every input's insert mode has a control key
 	// for the help (HelpInsertKey), on the editor noun: the fallback every
 	// input's walk ends at (an app row would put an insert column in every
 	// noun's help table, though only an input is ever in insert mode).
-	if !slices.ContainsFunc(r.Noun("app.editor").Bindings["insert"], func(b Binding) bool { return b.Keys == HelpInsertKey }) {
-		r.Define("app.editor").Mode("insert").Bind(HelpInsertKey, Do("app.bindings.help").Hide())
+	if !slices.ContainsFunc(r.Noun("ochazuke.editor").Bindings["insert"], func(b Binding) bool { return b.Keys == HelpInsertKey }) {
+		r.Define("ochazuke.editor").Mode("insert").Bind(HelpInsertKey, Do("ochazuke.bindings.help").Hide())
 	}
-	defaultRow("normal", "'", Do("app.page.pick").Guard("no-modal")) // a page opens only with no modal open
-	defaultRow("normal", "ctrl+j", Do("app.page.next"))
-	defaultRow("normal", "ctrl+k", Do("app.page.previous"))
+	defaultRow("normal", "'", Do("ochazuke.page.pick").Guard("no-modal")) // a page opens only with no modal open
+	defaultRow("normal", "ctrl+j", Do("ochazuke.page.next"))
+	defaultRow("normal", "ctrl+k", Do("ochazuke.page.previous"))
 	defaultRow("normal", "/", filterOpenRow())
-	defaultRow("", "ctrl+space", Do("app.palette.open"))
+	defaultRow("", "ctrl+space", Do("ochazuke.palette.open"))
 	// ctrl+c quits from a capture row, so an inner any row cannot swallow
 	// it; inside a modal the capture row stands aside and the bubbling row
 	// below answers unless the modal binds ctrl+c. In a passthrough mode (an
@@ -179,8 +179,8 @@ func newModel(r *Runtime) *Model {
 	if captureQuit {
 		r.Define("app").Mode("").Bind("ctrl+c", Do("app.quit").Captured().Guard("no-modal").Hide())
 	}
-	defaultRow("", "pgdown", Do("app.surface.scroll", Arguments{"lines": 8}))
-	defaultRow("", "pgup", Do("app.surface.scroll", Arguments{"lines": -8}))
+	defaultRow("", "pgdown", Do("ochazuke.surface.scroll", Arguments{"lines": 8}))
+	defaultRow("", "pgup", Do("ochazuke.surface.scroll", Arguments{"lines": -8}))
 	return m
 }
 
