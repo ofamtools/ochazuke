@@ -51,7 +51,8 @@ it to the timer's deadline and delivers the timer's message
                                   // across { restart: true } events: what the app remembers (panes.json)
   page: {                         // or pages: [{ id, title, ... }, ...]
     lists: [{ id: "a", rows: 2 },                  // rows a1, a2
-            { id: "b", rows: 3, noSpill: false, noMarks: false, clearFilterOnEnter: false },
+            { id: "b", rows: 3, noSpill: false, noMarks: false, clearFilterOnEnter: false,
+              cellSelect: false },                 // cellSelect: a table with a current column (CellSelect)
             { id: "c", rows: 10, height: -1,       // 0 every row, -1 rest of the page
               labels: ["first project", "tuios-deck"], selected: 1, marked: [0] }],
     order: ["a", "b", "c"],       // drawing order (default: as listed)
@@ -104,13 +105,13 @@ Expect fields: `focus`, `mode`, `modal` (top modal id, `""` none), `page`,
 `visible` (the focused label is on screen), `highlighted` (rows with
 full-strength reverse video), `dimmed` (rows whose only reverse video is
 under faint: an unfocused page list's selected row, a highlight beneath a
-modal; read in the mono theme), `highlightedText` (text every highlighted row holds), `cell` (the text of a table's current cell, drawn reverse and underlined; `" "` for a blank one), `contains`, `lacks`, `order` (substrings in this order),
+modal; read in the mono theme), `highlightedText` (text every highlighted row holds), `cell` (the text of a `cellSelect` table's current cell, drawn reverse and underlined; `" "` for a blank one, `""` for none), `contains`, `lacks`, `order` (substrings in this order),
 `ticker`/`noTicker`, `notices`/`noNotices`, `styled` (text → `#RRGGBB`, or `!#RRGGBB`, for the styled run the text starts: cell-exact where `colored` is row-wide), `writes` (every change an
 editable tree wrote, `TreeChange.String`, in order; `[]` none). A story with no final expect is
 compared with `<name>.golden`: the frame in the mono theme, each row behind a
 gutter that reads `R|` when the row has full-strength reverse video, `r|`
 when its only reverse video is dimmed, `C|` (`c|` dimmed) when the
-highlighted row holds a table's current cell, and ` |` otherwise.
+highlighted row holds a `cellSelect` table's current cell, and ` |` otherwise.
 
 Chrome: `full` is the whole shell at width x height. `none` cuts the page
 body out of a shell made exactly as much larger as its chrome, so a

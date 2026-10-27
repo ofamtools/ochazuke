@@ -28,7 +28,7 @@ func cellTable(t *testing.T, width int, stateDir string) (*Runtime, *Model, *Lis
 		t.Fatal(err)
 	}
 	var err error
-	if l, err = r.AddList("t", items, Parent("p"), Columns(cols...)); err != nil {
+	if l, err = r.AddList("t", items, Parent("p"), Columns(cols...), CellSelect()); err != nil {
 		t.Fatal(err)
 	}
 	_ = r.OpenPage("p")
@@ -79,8 +79,9 @@ func TestCellMotionsMoveByColumnAndScrollItIntoView(t *testing.T) {
 	}
 }
 
-// A plain list and a row-select table (a tree's list) keep h and l free
-// for the levels outside the list.
+// A plain list and a table without CellSelect (row-select, the default;
+// RowSelect is a deprecated no-op) keep h, l and the cell keys free for
+// the levels outside the list; a row table still answers Y and V.
 func TestCellKeysAnswerOnlyOnACellModeTable(t *testing.T) {
 	r, _, _, _ := motionPage(t)
 	for _, key := range []string{"h", "l", "|", "y", "Y", "V"} {
@@ -88,10 +89,28 @@ func TestCellKeysAnswerOnlyOnACellModeTable(t *testing.T) {
 			t.Fatalf("%s answered on a plain list", key)
 		}
 	}
-	r2, _, _ := columnTable(t, 120, RowSelect())
-	for _, key := range []string{"h", "l", "|", "y", "V", "home"} {
-		if ok, _ := r2.Dispatch(MacroKey{Key: key}); ok {
-			t.Fatalf("%s answered on a row-select table", key)
+	for name, opts := range map[string][]InstanceOption{"default": nil, "RowSelect": {RowSelect()}} {
+		r2, m2, l2 := columnTable(t, 36, opts...)
+		for _, key := range []string{"h", "l", "|", "y", "home", "end", "g c", "z >", "z <", "z ="} {
+			motionKeys(t, r2, m2, key)
+			if r2.Mode.Name != "normal" || l2.ColumnOffset() != 0 || len(l2.ColumnWidths()) != 0 {
+				t.Fatalf("%s: %s answered on a row-select table (mode %s offset %d widths %v)", name, key, r2.Mode.Name, l2.ColumnOffset(), l2.ColumnWidths())
+			}
+		}
+		if _, ok := l2.state()["column"]; ok || l2.cellMode() {
+			t.Fatalf("%s: a row-select table has a current column", name)
+		}
+		motionKeys(t, r2, m2, "$")
+		if l2.ColumnOffset() != 3 {
+			t.Fatalf("%s: $ offset %d, want the last view (3)", name, l2.ColumnOffset())
+		}
+		for _, key := range []string{"Y", "V"} {
+			if ok, err := r2.Dispatch(MacroKey{Key: key}); !ok || err != nil {
+				t.Fatalf("%s: %s did not answer on a row table (%v, %v)", name, key, ok, err)
+			}
+		}
+		if !l2.Visual() {
+			t.Fatalf("%s: V did not start a visual selection on a row table", name)
 		}
 	}
 }

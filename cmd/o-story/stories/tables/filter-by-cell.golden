@@ -4,7 +4,7 @@
  |  t
 R|  /idle                                                                 2 of 4
  |  pane                  harness      state    cwd
-C|  work/claude           claude-code  idle     ~/proj/matomeru
+R|  work/claude           claude-code  idle     ~/proj/matomeru
  |  play/pi               pi           idle     ~/proj/nabe
  |
  |

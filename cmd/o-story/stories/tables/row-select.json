@@ -1,0 +1,132 @@
+{
+  "name": "a table without cellSelect selects rows: h and l do not move a column (no current cell), $ scrolls to the view with the last column and 0 back",
+  "width": 44,
+  "height": 6,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "pane"
+          },
+          {
+            "title": "harness",
+            "priority": 2
+          },
+          {
+            "title": "state",
+            "priority": 1
+          },
+          {
+            "title": "cwd",
+            "min": 8,
+            "priority": 3
+          },
+          {
+            "title": "branch",
+            "priority": 4
+          }
+        ],
+        "items": [
+          {
+            "id": "t1",
+            "label": "work/claude",
+            "cells": [
+              "work/claude",
+              "claude-code",
+              "idle",
+              "~/proj/matomeru",
+              "main"
+            ]
+          },
+          {
+            "id": "t2",
+            "label": "work/codex",
+            "cells": [
+              "work/codex",
+              "codex",
+              "working",
+              "~/proj/ochazuke",
+              "feat/list-motions"
+            ]
+          },
+          {
+            "id": "t3",
+            "label": "main/shell",
+            "cells": [
+              "main/shell",
+              "shell",
+              "",
+              "~/hub",
+              "docs/readme-header"
+            ]
+          },
+          {
+            "id": "t4",
+            "label": "9332c352/review",
+            "cells": [
+              "9332c352/review",
+              "claude-code",
+              "needs_input",
+              "~/proj/nabe",
+              "prototype/picker-lab"
+            ]
+          }
+        ],
+        "selected": 1
+      }
+    ]
+  },
+  "script": [
+    "l",
+    "h",
+    "$",
+    "0"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "cell": "",
+      "focus": "t2",
+      "highlighted": 1,
+      "contains": [
+        "harness"
+      ],
+      "lacks": [
+        "branch"
+      ]
+    },
+    {
+      "after": 2,
+      "cell": "",
+      "focus": "t2"
+    },
+    {
+      "after": 3,
+      "cell": "",
+      "contains": [
+        "branch"
+      ],
+      "lacks": [
+        "harness"
+      ],
+      "focus": "t2"
+    },
+    {
+      "cell": "",
+      "contains": [
+        "harness"
+      ],
+      "lacks": [
+        "branch"
+      ],
+      "focus": "t2",
+      "mode": "normal",
+      "highlighted": 1
+    }
+  ],
+  "area": "tables"
+}

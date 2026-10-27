@@ -55,14 +55,13 @@ func TestIndexIsATablePerArea(t *testing.T) {
 		t.Fatalf("index differs from %s (go test ./cmd/o-story -run TestIndexIsATablePerArea -update-index):\n%s", golden, got)
 	}
 	// The focused area's row is the one full-strength highlight; the other
-	// area's table keeps its selected row, dimmed (R5.1); both are tables,
-	// so each row holds its current cell (C|, c|).
+	// area's table keeps its selected row, dimmed (R5.1).
 	full, dimmed := 0, 0
 	for _, line := range strings.Split(story.Golden(h.View().Content), "\n") {
 		switch {
-		case strings.HasPrefix(line, "C|"):
+		case strings.HasPrefix(line, "R|"):
 			full++
-		case strings.HasPrefix(line, "c|"):
+		case strings.HasPrefix(line, "r|"):
 			dimmed++
 		}
 	}

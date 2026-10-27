@@ -170,7 +170,7 @@ func registerListVisual(r *Runtime) {
 	})
 	r.DefineGuard("table-visual", func(r *Runtime, ev KeyEvent) bool {
 		l := r.focusedList(ev.Focus)
-		return l != nil && l.cellMode() && !l.noMarks
+		return l != nil && len(l.columns) > 0 && !l.noMarks // any table with marks, cell-mode or not
 	})
 	visual := func(c Context, a Arguments) (any, error) {
 		var l *List

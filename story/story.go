@@ -130,10 +130,13 @@ type ListSpec struct {
 	NoMarks bool       `json:"noMarks,omitempty"` // a read-only view: space does not mark
 	// ClearFilterOnEnter: enter in the filter line chooses the match and
 	// clears the filter (ochazuke.ClearFilterOnEnter).
-	ClearFilterOnEnter bool  `json:"clearFilterOnEnter,omitempty"`
-	Height             int   `json:"height,omitempty"` // rows drawn; 0 = every row, -1 = the rest of the page
-	Selected           int   `json:"selected,omitempty"`
-	Marked             []int `json:"marked,omitempty"`
+	ClearFilterOnEnter bool `json:"clearFilterOnEnter,omitempty"`
+	// CellSelect: a table with a current column (ochazuke.CellSelect);
+	// without it a table selects rows.
+	CellSelect bool  `json:"cellSelect,omitempty"`
+	Height     int   `json:"height,omitempty"` // rows drawn; 0 = every row, -1 = the rest of the page
+	Selected   int   `json:"selected,omitempty"`
+	Marked     []int `json:"marked,omitempty"`
 	// Columns make the list a table (ochazuke.Columns); rows bring their
 	// cells in Items.
 	Columns []ochazuke.Column `json:"columns,omitempty"`

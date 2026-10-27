@@ -1,5 +1,5 @@
 {
-  "name": "a catalog groups page: in a table l and h move by column, and h on the first column goes back to the rail",
+  "name": "a catalog groups page: its table selects rows, so l moves no column and h goes back to the rail at once (list-first-column holds on a row-select table)",
   "area": "catalog",
   "width": 100,
   "height": 22,
@@ -96,24 +96,18 @@
   "script": [
     "l",
     "l",
-    "h",
     "h"
   ],
   "expect": [
     {
       "after": 1,
       "focus": "ai/skills/s1",
-      "cell": "architect"
+      "cell": ""
     },
     {
       "after": 2,
       "focus": "ai/skills/s1",
-      "cell": "claude"
-    },
-    {
-      "after": 3,
-      "focus": "ai/skills/s1",
-      "cell": "architect"
+      "cell": ""
     },
     {
       "focus": "ai/groups/ai/skills"

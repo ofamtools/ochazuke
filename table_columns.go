@@ -20,16 +20,24 @@ import (
 //     last column, so the last column is always reachable and the view
 //     never scrolls past it.
 //
-// Keys: z l / z h, list.scroll-columns {delta: ±1}, scroll the view one
-// column right / left (Vim's zl/zh; a count is columns), rows of the list
-// noun in normal mode guarded by the verb guard table-scrolls (the focused
-// list is a table whose last frame hid a column, or is scrolled), so on a
-// table that fits and on a plain list they do not answer (and z waits for
-// nothing). On a cell-mode table (table_cells.go) the current column is
-// carried along when it scrolls off, and every frame scrolls the view to
-// show the current column, so h, l, 0, $ and | scroll it too. On a table
-// added with RowSelect (a tree's list) $, ^ and 0 (list.column) scroll to
-// the last and the first view. All are motions (off the footer, under
+// Keys, rows of the list noun in normal mode guarded by the verb guard
+// table-scrolls (the focused list is a table whose last frame hid a
+// column, or is scrolled), so on a table that fits and on a plain list
+// they do not answer (and z waits for nothing):
+//
+//	z l / z h  list.scroll-columns {delta: ±1}: one column right / left
+//	           (Vim's zl/zh); a count is columns
+//	$          list.scroll-columns {to: last}: the view that shows the last
+//	           column (bound in table_cells.go, after the cell rows)
+//	^ and 0    list.scroll-columns {to: first}: offset 0 (0 only without a
+//	           count: after a digit 0 is the count's, as in 10j)
+//
+// On a row-select table (the default) these move the view only; h and l
+// stay free for row nouns (open, collapse, cycle a setting). On a
+// CellSelect table (table_cells.go) $, ^ and 0 move the current column
+// instead, the current column is carried along when z l/z h scroll it off,
+// and every frame scrolls the view to show the current column, so h, l,
+// 0, $ and | scroll it too. All are motions (off the footer, under
 // movement in ? help). The offset is clamped to the width of each frame,
 // so a terminal grown wide enough for every column draws offset 0 again.
 

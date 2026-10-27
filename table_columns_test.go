@@ -45,10 +45,10 @@ func header(m *Model) string {
 	return ""
 }
 
-// A table that selects rows only (RowSelect: a tree's list) scrolls its
-// columns with $, ^, 0 and z l/z h; cell_test covers the cell-mode keys.
+// A table without CellSelect selects rows and scrolls its columns with $,
+// ^, 0 and z l/z h, as before v0.12.0; table_cells_test covers cell mode.
 func TestColumnMotionsScrollTheHiddenColumnsIntoView(t *testing.T) {
-	r, m, l := columnTable(t, 36, RowSelect())
+	r, m, l := columnTable(t, 36)
 	if got := header(m); got != "name alpha beta" {
 		t.Fatalf("unscrolled header %q", got)
 	}
@@ -88,7 +88,7 @@ func TestColumnMotionsScrollTheHiddenColumnsIntoView(t *testing.T) {
 
 // A width that shows every column puts a scrolled table back to offset 0.
 func TestColumnOffsetClampsToTheWidth(t *testing.T) {
-	r, m, l := columnTable(t, 36, RowSelect())
+	r, m, l := columnTable(t, 36)
 	motionKeys(t, r, m, "$")
 	m.Width = 120
 	_ = m.View()
@@ -97,10 +97,10 @@ func TestColumnOffsetClampsToTheWidth(t *testing.T) {
 	}
 }
 
-// On a row-select table that fits and on a plain list the column keys do
-// not answer, and z does not wait for a second key.
+// On a table that fits and on a plain list the column keys do not answer,
+// and z does not wait for a second key.
 func TestColumnMotionsAnswerOnlyWhereColumnsAreHidden(t *testing.T) {
-	r, m, _ := columnTable(t, 120, RowSelect())
+	r, m, _ := columnTable(t, 120)
 	for _, key := range []string{"$", "^", "0", "z"} {
 		if ok, err := r.Dispatch(MacroKey{Key: key}); ok || err != nil {
 			t.Fatalf("%s on a table that fits answered (%v, %v)", key, ok, err)

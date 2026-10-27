@@ -451,6 +451,9 @@ func (ss *Session) addPage(p *Page) error {
 		if l.ClearFilterOnEnter {
 			opts = append(opts, ochazuke.ClearFilterOnEnter())
 		}
+		if l.CellSelect {
+			opts = append(opts, ochazuke.CellSelect())
+		}
 		if len(l.Columns) > 0 {
 			opts = append(opts, ochazuke.Columns(l.Columns...))
 		}
@@ -1032,7 +1035,7 @@ func (ss *Session) Snapshot() ([]*Page, []string) {
 		p.Lists = nil
 		for _, l := range src.Lists {
 			list := ss.lists[l.ID]
-			spec := ListSpec{ID: l.ID, NoSpill: l.NoSpill, ClearFilterOnEnter: l.ClearFilterOnEnter, Height: l.Height, Columns: list.Columns()}
+			spec := ListSpec{ID: l.ID, NoSpill: l.NoSpill, ClearFilterOnEnter: l.ClearFilterOnEnter, CellSelect: l.CellSelect, Height: l.Height, Columns: list.Columns()}
 			marked := map[string]bool{}
 			for _, it := range list.Marked() {
 				marked[it.ID] = true
