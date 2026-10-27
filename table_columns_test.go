@@ -10,7 +10,7 @@ import (
 
 // columnTable is a page holding one table of 30 rows and five columns, the
 // first naming the row, drawn at width cells.
-func columnTable(t *testing.T, width int) (*Runtime, *Model, *List) {
+func columnTable(t *testing.T, width int, opts ...InstanceOption) (*Runtime, *Model, *List) {
 	t.Helper()
 	r := NewRuntime()
 	m := NewModel(r)
@@ -26,7 +26,7 @@ func columnTable(t *testing.T, width int) (*Runtime, *Model, *List) {
 		t.Fatal(err)
 	}
 	var err error
-	if l, err = r.AddList("t", items, Parent("p"), Columns(cols...)); err != nil {
+	if l, err = r.AddList("t", items, append([]InstanceOption{Parent("p"), Columns(cols...)}, opts...)...); err != nil {
 		t.Fatal(err)
 	}
 	_ = r.OpenPage("p")
@@ -45,8 +45,10 @@ func header(m *Model) string {
 	return ""
 }
 
+// A table that selects rows only (RowSelect: a tree's list) scrolls its
+// columns with $, ^, 0 and z l/z h; cell_test covers the cell-mode keys.
 func TestColumnMotionsScrollTheHiddenColumnsIntoView(t *testing.T) {
-	r, m, l := columnTable(t, 36)
+	r, m, l := columnTable(t, 36, RowSelect())
 	if got := header(m); got != "name alpha beta" {
 		t.Fatalf("unscrolled header %q", got)
 	}
@@ -86,7 +88,7 @@ func TestColumnMotionsScrollTheHiddenColumnsIntoView(t *testing.T) {
 
 // A width that shows every column puts a scrolled table back to offset 0.
 func TestColumnOffsetClampsToTheWidth(t *testing.T) {
-	r, m, l := columnTable(t, 36)
+	r, m, l := columnTable(t, 36, RowSelect())
 	motionKeys(t, r, m, "$")
 	m.Width = 120
 	_ = m.View()
@@ -95,10 +97,10 @@ func TestColumnOffsetClampsToTheWidth(t *testing.T) {
 	}
 }
 
-// On a table that fits and on a plain list the column keys do not answer,
-// and z does not wait for a second key.
+// On a row-select table that fits and on a plain list the column keys do
+// not answer, and z does not wait for a second key.
 func TestColumnMotionsAnswerOnlyWhereColumnsAreHidden(t *testing.T) {
-	r, m, _ := columnTable(t, 120)
+	r, m, _ := columnTable(t, 120, RowSelect())
 	for _, key := range []string{"$", "^", "0", "z"} {
 		if ok, err := r.Dispatch(MacroKey{Key: key}); ok || err != nil {
 			t.Fatalf("%s on a table that fits answered (%v, %v)", key, ok, err)

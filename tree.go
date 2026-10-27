@@ -171,7 +171,9 @@ func (r *Runtime) AddTree(id string, nodes []TreeNode, opts ...InstanceOption) (
 	t := &Tree{r: r, id: id, collapsed: map[string]bool{}, failed: map[string]bool{}, RowNoun: TreeRowNoun, Debounce: DefaultTreeDebounce}
 	r.Instance(id, Parent(spec.parent), Kind("outline"), FocusOnClose(spec.closeFocus))
 	r.Instances[id].Component = t
-	listOpts := []InstanceOption{Parent(id)}
+	// A tree's rows answer h and l (collapse, expand): its table selects
+	// rows, with no current column (table_cells.go).
+	listOpts := []InstanceOption{Parent(id), RowSelect()}
 	if spec.noSpill {
 		listOpts = append(listOpts, NoSpill())
 	}

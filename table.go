@@ -14,7 +14,9 @@ import (
 // change only how List.View draws the rows: a header line, then each row's
 // Cells laid out to computed widths, cut with "…" at the display width,
 // the columns that do not fit dropped by Priority, and the selected row of
-// the focused list highlighted across the whole width.
+// the focused list highlighted across the whole width, its current cell
+// (cell mode, table_cells.go) underlined inside the highlight and the
+// current column's title underlined in the header.
 
 // Align is a column's alignment: AlignLeft (the zero value) or AlignRight.
 type Align string
@@ -220,10 +222,12 @@ func (l *List) tableView(width, height int) (string, int, int) {
 		titles[i] = modalLabel(c.Title)
 	}
 	shown, widths := l.columnLayout(max(1, width-mark))
+	span := l.currentSpan(shown, widths, mark)
 	var lines []string
 	if header {
 		head := strings.Repeat(" ", mark) + tableLine(l.columns, titles, shown, widths)
-		lines = append(lines, lipgloss.NewStyle().Bold(true).Render(strings.TrimRight(head, " ")))
+		bold := lipgloss.NewStyle().Bold(true)
+		lines = append(lines, styleSpan(strings.TrimRight(head, " "), span, bold, "1;4"))
 	}
 	top := len(lines)
 	if len(l.items) == 0 {
@@ -231,7 +235,7 @@ func (l *List) tableView(width, height int) (string, int, int) {
 		return strings.Join(layoutRows(strings.Join(lines, "\n"), width, height), "\n"), 0, height
 	}
 	if l.tall() {
-		return l.tallView(lines, width, height, body, shown, widths)
+		return l.tallView(lines, width, height, body, shown, widths, span)
 	}
 	visible := body
 	if len(l.items) > body && body > 1 {
@@ -253,8 +257,7 @@ func (l *List) tableView(width, height int) (string, int, int) {
 		}
 		line = ansi.Truncate(line, width, "…")
 		if i == l.selected && marked {
-			line += strings.Repeat(" ", max(0, width-ansi.StringWidth(line)))
-			line = lipgloss.NewStyle().Reverse(true).Render(line)
+			line = highlightRow(line, width, span)
 		} else {
 			line = strings.TrimRight(line, " ")
 		}
@@ -390,7 +393,7 @@ func tableRowLines(cols []Column, row []string, shown, widths []int) []string {
 // when it starts inside a section, that section's label is repeated on
 // its first line. The focused list's selected row is reversed across the
 // whole width on every line, its section label not.
-func (l *List) tallView(lines []string, width, height, body int, shown, widths []int) (string, int, int) {
+func (l *List) tallView(lines []string, width, height, body int, shown, widths []int, span span) (string, int, int) {
 	section := lipgloss.NewStyle().Bold(true).Underline(true)
 	gutter := len(l.marks) > 0
 	rows := make([][]string, len(l.items))
@@ -462,8 +465,7 @@ func (l *List) tallView(lines []string, width, height, body int, shown, widths [
 			}
 			line = ansi.Truncate(line, width, "…")
 			if i == l.selected && marked {
-				line += strings.Repeat(" ", max(0, width-ansi.StringWidth(line)))
-				line = lipgloss.NewStyle().Reverse(true).Render(line)
+				line = highlightRow(line, width, span)
 			} else {
 				line = strings.TrimRight(line, " ")
 			}
@@ -476,4 +478,49 @@ func (l *List) tallView(lines []string, width, height, body int, shown, widths [
 		lines = append(lines, fmt.Sprintf("%d–%d / %d", l.offset+1, end, len(l.items)))
 	}
 	return strings.Join(layoutRows(strings.Join(lines, "\n"), width, height), "\n"), focus, focusHeight
+}
+
+// span is the cells of a line a table's current column takes: from x, w
+// cells; w 0 for none (a table without a current column, or one not shown).
+type span struct{ x, w int }
+
+// currentSpan is where a cell-mode table's current column sits in its
+// lines, after a gutter of mark cells.
+func (l *List) currentSpan(shown, widths []int, mark int) span {
+	if !l.cellMode() {
+		return span{}
+	}
+	x, w, ok := cellSpan(shown, widths, l.col, mark)
+	if !ok {
+		return span{}
+	}
+	return span{x, w}
+}
+
+// highlightRow pads a plain line to width and reverses it, the cells of
+// the current column (sp) reversed and underlined: the current cell.
+func highlightRow(line string, width int, sp span) string {
+	line += strings.Repeat(" ", max(0, width-ansi.StringWidth(line)))
+	reverse := lipgloss.NewStyle().Reverse(true)
+	return styleSpan(line, sp, reverse, "4;7")
+}
+
+// styleSpan draws a plain line in base with the cells of sp in the SGR
+// attributes mark, written as one run: Lip Gloss draws the spaces of an
+// underlined text underlined alone, which would punch holes in a reversed
+// row's current cell.
+func styleSpan(line string, sp span, base lipgloss.Style, mark string) string {
+	n := ansi.StringWidth(line)
+	if sp.w <= 0 || sp.x >= n {
+		return base.Render(line)
+	}
+	end := min(n, sp.x+sp.w)
+	out := "\x1b[" + mark + "m" + ansi.Cut(line, sp.x, end) + "\x1b[m"
+	if sp.x > 0 {
+		out = base.Render(ansi.Cut(line, 0, sp.x)) + out
+	}
+	if end < n {
+		out += base.Render(ansi.Cut(line, end, n))
+	}
+	return out
 }

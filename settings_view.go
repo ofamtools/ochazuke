@@ -607,7 +607,7 @@ func refreshSettingsPage(r *Runtime) {
 		list := r.List(settingsListID(key))
 		if list == nil {
 			var err error
-			if list, err = r.AddList(settingsListID(key), nil, Parent(SettingsPageID), NoMarks()); err != nil {
+			if list, err = r.AddList(settingsListID(key), nil, Parent(SettingsPageID), NoMarks(), RowSelect()); err != nil {
 				continue
 			}
 		}

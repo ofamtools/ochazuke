@@ -1,5 +1,5 @@
  |pane             state
-R|work/claude      idle
+C|work/claude      idle
  |work/codex       working
  |main/shell
  |9332c352/review  needs_input

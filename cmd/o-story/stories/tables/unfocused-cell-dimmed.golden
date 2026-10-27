@@ -1,0 +1,14 @@
+ |  ◆ o-story                                        NORMAL
+ |   › page1
+ |  ────────────────────────────────────────────────────────
+ |  pane        harness     state       cwd       branch
+ |  work/clau…  claude-co…  idle        ~/proj/…  main
+c|  work/codex  codex       working     ~/proj/…  feat/list…
+ |  main/shell  shell                   ~/hub     docs/read…
+ |  9332c352/…  claude-co…  needs_inp…  ~/proj/…  prototype…
+ |  b
+R|  b1
+ |  b2
+ |  ────────────────────────────────────────────────────────
+ |  q app.quit · r demo.reset · enter demo.open · n demo.no…
+ |

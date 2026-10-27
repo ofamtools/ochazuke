@@ -1,6 +1,9 @@
 package ochazuke
 
-import "errors"
+import (
+	"errors"
+	"slices"
+)
 
 // Column motions: a table with more columns than its width shows scrolls
 // them horizontally, the way a spreadsheet does with its first column
@@ -17,22 +20,18 @@ import "errors"
 //     last column, so the last column is always reachable and the view
 //     never scrolls past it.
 //
-// Keys, rows of the list noun in normal mode guarded by the verb guard
-// table-scrolls (the focused list is a table whose last frame hid a
-// column, or is scrolled), so on a table that fits and on a plain list
-// they do not answer (and z waits for nothing):
-//
-//	$          list.scroll-columns {to: last}: the view that shows the last column
-//	^ and 0    list.scroll-columns {to: first}: offset 0 (0 only without a
-//	           count: after a digit 0 is the count's, as in 10j)
-//	z l / z h  list.scroll-columns {delta: ±1}: one column right / left
-//	           (Vim's zl/zh); a count is columns
-//
-// The selection is a row, not a cell, so these move the view only; they
-// are motions (off the footer, under movement in ? help). The offset is
-// clamped to the width of each frame, so a terminal grown wide enough for
-// every column draws offset 0 again. h and l stay free: row nouns bind
-// them (open, collapse, cycle a setting).
+// Keys: z l / z h, list.scroll-columns {delta: ±1}, scroll the view one
+// column right / left (Vim's zl/zh; a count is columns), rows of the list
+// noun in normal mode guarded by the verb guard table-scrolls (the focused
+// list is a table whose last frame hid a column, or is scrolled), so on a
+// table that fits and on a plain list they do not answer (and z waits for
+// nothing). On a cell-mode table (table_cells.go) the current column is
+// carried along when it scrolls off, and every frame scrolls the view to
+// show the current column, so h, l, 0, $ and | scroll it too. On a table
+// added with RowSelect (a tree's list) $, ^ and 0 (list.column) scroll to
+// the last and the first view. All are motions (off the footer, under
+// movement in ? help). The offset is clamped to the width of each frame,
+// so a terminal grown wide enough for every column draws offset 0 again.
 
 // ColumnOffset is the table's column offset: 0 unscrolled, else the first
 // column shown after the frozen first one.
@@ -44,11 +43,15 @@ func (l *List) ColumnOffset() int { return l.colOffset }
 // column motions.
 func (l *List) columnLayout(width int) (shown, widths []int) {
 	l.colWidth = width
-	l.colOffset = min(max(l.colOffset, 0), l.maxColumnOffset(width))
-	if l.colOffset == 0 {
-		return tableLayoutOf(l.columns, l.cellWidths(), width)
+	cols := l.layoutColumns()
+	most := l.maxColumnOffset(width)
+	l.colOffset = min(max(l.colOffset, 0), most)
+	if l.cellMode() {
+		l.col = min(max(l.col, 0), len(l.columns)-1)
+		l.colOffset = l.offsetShowing(cols, width, l.colOffset, most)
 	}
-	return scrolledLayout(l.columns, l.cellWidths(), width, l.colOffset)
+	shown, widths = layoutAt(cols, l.cellWidths(), width, l.colOffset)
+	return shown, widths
 }
 
 // scrolledLayout is the view at column offset from (>= 1): the first
@@ -82,12 +85,12 @@ func (l *List) maxColumnOffset(width int) int {
 	if n < 2 || width <= 0 {
 		return 0
 	}
-	widest := l.cellWidths()
-	if shown, _ := tableLayoutOf(l.columns, widest, width); len(shown) == n {
+	widest, cols := l.cellWidths(), l.layoutColumns()
+	if shown, _ := tableLayoutOf(cols, widest, width); len(shown) == n {
 		return 0
 	}
 	for k := 1; k < n-1; k++ {
-		if shown, _ := scrolledLayout(l.columns, widest, width, k); shown[len(shown)-1] == n-1 {
+		if shown, _ := scrolledLayout(cols, widest, width, k); shown[len(shown)-1] == n-1 {
 			return k
 		}
 	}
@@ -101,14 +104,10 @@ func (l *List) columnsScroll() bool {
 }
 
 func registerColumnMotions(r *Runtime) {
-	scroll := func(args Arguments) Binding { return Do("list.scroll-columns", args) }
 	steps := func(delta int) Binding {
-		return scroll(Arguments{"delta": delta}).FromPayload("steps", SourceCount)
+		return Do("list.scroll-columns", Arguments{"delta": delta}).FromPayload("steps", SourceCount)
 	}
 	r.Define("list").Mode("normal").
-		Bind("$", scroll(Arguments{"to": "last"})).
-		Bind("^", scroll(Arguments{"to": "first"})).
-		Bind("0", scroll(Arguments{"to": "first"}).Guard("no-count")).
 		Bind("z l", steps(1)).
 		Bind("z h", steps(-1))
 	r.DefineGuard("table-scrolls", func(r *Runtime, ev KeyEvent) bool {
@@ -147,6 +146,42 @@ func registerColumnMotions(r *Runtime) {
 		default:
 			l.colOffset = min(max(l.colOffset+IntArg(a, "delta", 0)*max(1, IntArg(a, "steps", 1)), 0), most)
 		}
+		l.carryColumn()
 		return l.state(), nil
 	}})
+}
+
+// carryColumn keeps a cell-mode table's current column on screen after the
+// view scrolled (z l, z h): a column the scroll took off is replaced by
+// the shown column nearest it, the frozen first one only when it is the
+// only one shown.
+func (l *List) carryColumn() {
+	if !l.cellMode() || l.colWidth <= 0 {
+		return
+	}
+	shown, _ := layoutAt(l.layoutColumns(), l.cellWidths(), l.colWidth, l.colOffset)
+	// The frozen first column does not hold the current column through a
+	// scroll: the frame would scroll back to the start to show it (0).
+	frozen := l.col == 0 && l.colOffset > 0
+	if len(shown) == 0 || slices.Contains(shown, l.col) && !frozen {
+		return
+	}
+	candidates := shown
+	if len(shown) > 1 && shown[0] == 0 && l.colOffset > 0 {
+		candidates = shown[1:]
+	}
+	best := candidates[0]
+	for _, i := range candidates {
+		if abs(i-l.col) < abs(best-l.col) {
+			best = i
+		}
+	}
+	l.col = best
+}
+
+func abs(n int) int {
+	if n < 0 {
+		return -n
+	}
+	return n
 }

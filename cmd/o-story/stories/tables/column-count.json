@@ -1,0 +1,110 @@
+{
+  "name": "| with a count goes to that column (5| scrolls the dropped branch column into view), | alone to the first",
+  "width": 44,
+  "height": 6,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "pane"
+          },
+          {
+            "title": "harness",
+            "priority": 2
+          },
+          {
+            "title": "state",
+            "priority": 1
+          },
+          {
+            "title": "cwd",
+            "min": 8,
+            "priority": 3
+          },
+          {
+            "title": "branch",
+            "priority": 4
+          }
+        ],
+        "items": [
+          {
+            "id": "t1",
+            "label": "work/claude",
+            "cells": [
+              "work/claude",
+              "claude-code",
+              "idle",
+              "~/proj/matomeru",
+              "main"
+            ]
+          },
+          {
+            "id": "t2",
+            "label": "work/codex",
+            "cells": [
+              "work/codex",
+              "codex",
+              "working",
+              "~/proj/ochazuke",
+              "feat/list-motions"
+            ]
+          },
+          {
+            "id": "t3",
+            "label": "main/shell",
+            "cells": [
+              "main/shell",
+              "shell",
+              "",
+              "~/hub",
+              "docs/readme-header"
+            ]
+          },
+          {
+            "id": "t4",
+            "label": "9332c352/review",
+            "cells": [
+              "9332c352/review",
+              "claude-code",
+              "needs_input",
+              "~/proj/nabe",
+              "prototype/picker-lab"
+            ]
+          }
+        ],
+        "selected": 0
+      }
+    ]
+  },
+  "script": [
+    "2",
+    "|",
+    "|",
+    "5",
+    "|"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "cell": "claude-co…"
+    },
+    {
+      "after": 3,
+      "cell": "work/clau…"
+    },
+    {
+      "cell": "main",
+      "contains": [
+        "branch"
+      ],
+      "lacks": [
+        "harness"
+      ]
+    }
+  ],
+  "area": "tables"
+}

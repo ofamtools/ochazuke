@@ -375,6 +375,7 @@ var motionOps = map[string]bool{
 	"input.move": true, "picker.move": true, "palette.move": true,
 	"yank-history.move": true, "grid.move": true, "grid.goto": true,
 	"detail.scroll": true, "list.goto": true, "list.scroll": true, "list.scroll-columns": true,
+	"list.column": true, "list.choose-column": true,
 }
 
 // frameworkHistoryKinds are the framework's operations whose history kind
@@ -393,6 +394,8 @@ var frameworkHistoryKinds = map[string]string{
 	"settings.names": HistoryFetch, "settings.path": HistoryFetch, "settings.reload": HistoryFetch,
 	"state.get": HistoryFetch, "themes.list": HistoryFetch, "themes.path": HistoryFetch,
 	"themes.reload": HistoryFetch,
+
+	"list.yank": HistoryChange,
 
 	"appearance.set": HistoryChange, "bindings.load": HistoryChange, "confirm.set": HistoryChange,
 	"config.export": HistoryChange, "form-option.pick": HistoryChange, "form.redo": HistoryChange,

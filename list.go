@@ -53,6 +53,8 @@ type List struct {
 	windowed  bool     // the last frame windowed the rows (more rows than fit)
 	colOffset int      // a table's column offset (table_columns.go); 0 unscrolled
 	colWidth  int      // the width the last frame laid the table's columns out at
+	rowSelect bool     // RowSelect: a table without a current column (table_cells.go)
+	col       int      // a cell-mode table's current column
 }
 
 // NewList is AddList for callers that hold the runtime as a value.
@@ -79,7 +81,7 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 	if r.Instances[spec.parent] == nil {
 		return nil, fmt.Errorf("unknown parent %q", spec.parent)
 	}
-	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}, noSpill: spec.noSpill, noMarks: spec.noMarks, choose: spec.clearFilterOnEnter, columns: slices.Clone(spec.columns)}
+	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}, noSpill: spec.noSpill, noMarks: spec.noMarks, choose: spec.clearFilterOnEnter, columns: slices.Clone(spec.columns), rowSelect: spec.rowSelect}
 	r.Instance(id, Parent(spec.parent), Kind(spec.noun), FocusOnClose(spec.closeFocus))
 	r.Instances[id].Component = list
 	if err := list.SetItems(items); err != nil {
@@ -338,6 +340,9 @@ func (l *List) state() map[string]any {
 	if len(l.columns) > 0 {
 		out["columns"] = slices.Clone(l.columns)
 		out["columnOffset"] = l.colOffset
+		if l.cellMode() {
+			out["column"] = l.Column()
+		}
 	}
 	return out
 }
@@ -623,5 +628,6 @@ func registerLists(r *Runtime) {
 	}
 	r.Nouns["list"].Guards["mark"] = "list-marks"
 	registerListMotions(r)
+	registerTableCells(r)
 	registerListFilter(r)
 }

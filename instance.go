@@ -63,6 +63,7 @@ type instanceSpec struct {
 	parent, noun, focus, closeFocus string
 	closeOnDetach, noSpill, noMarks bool
 	clearFilterOnEnter              bool
+	rowSelect                       bool
 	columns                         []Column
 	completions                     []CompletionTrigger
 }

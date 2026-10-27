@@ -343,14 +343,17 @@ type Expect struct {
 	Highlighted *int `json:"highlighted,omitempty"`
 	Dimmed      *int `json:"dimmed,omitempty"`
 	// HighlightedText is text every highlighted row holds (the selected row's label).
-	HighlightedText string   `json:"highlightedText,omitempty"`
-	Contains        []string `json:"contains,omitempty"`
-	Lacks           []string `json:"lacks,omitempty"`
-	Order           []string `json:"order,omitempty"` // substrings that appear on screen in this order
-	Ticker          []string `json:"ticker,omitempty"`
-	NoTicker        bool     `json:"noTicker,omitempty"`
-	Notices         []string `json:"notices,omitempty"`
-	NoNotices       bool     `json:"noNotices,omitempty"`
+	HighlightedText string `json:"highlightedText,omitempty"`
+	// Cell is the text of a table's current cell (drawn reverse and
+	// underlined inside its row, dimmed or not); "" for none.
+	Cell      *string  `json:"cell,omitempty"`
+	Contains  []string `json:"contains,omitempty"`
+	Lacks     []string `json:"lacks,omitempty"`
+	Order     []string `json:"order,omitempty"` // substrings that appear on screen in this order
+	Ticker    []string `json:"ticker,omitempty"`
+	NoTicker  bool     `json:"noTicker,omitempty"`
+	Notices   []string `json:"notices,omitempty"`
+	NoNotices bool     `json:"noNotices,omitempty"`
 	// Colored maps on-screen text to a "#RRGGBB" foreground some row holding
 	// that text draws in; NoColor lists foregrounds no cell may use.
 	Colored map[string]string `json:"colored,omitempty"`

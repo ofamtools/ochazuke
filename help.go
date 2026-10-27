@@ -26,7 +26,7 @@ func registerBindingHelp(r *Runtime) {
 		if _, err := r.OpenModal(helpID, Payload{}); err != nil {
 			return nil, err
 		}
-		list, err := r.AddList(helpListID, helpItems(rows), Parent(helpID), Columns(helpColumns...))
+		list, err := r.AddList(helpListID, helpItems(rows), Parent(helpID), Columns(helpColumns...), RowSelect())
 		if err != nil {
 			_ = r.Pop()
 			return nil, err

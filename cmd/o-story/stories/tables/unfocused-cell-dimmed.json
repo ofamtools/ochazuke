@@ -1,0 +1,108 @@
+{
+  "name": "an unfocused table keeps its row and current cell, dimmed with the list",
+  "width": 60,
+  "height": 14,
+  "page": {
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "pane"
+          },
+          {
+            "title": "harness",
+            "priority": 2
+          },
+          {
+            "title": "state",
+            "priority": 1
+          },
+          {
+            "title": "cwd",
+            "min": 8,
+            "priority": 3
+          },
+          {
+            "title": "branch",
+            "priority": 4
+          }
+        ],
+        "items": [
+          {
+            "id": "t1",
+            "label": "work/claude",
+            "cells": [
+              "work/claude",
+              "claude-code",
+              "idle",
+              "~/proj/matomeru",
+              "main"
+            ]
+          },
+          {
+            "id": "t2",
+            "label": "work/codex",
+            "cells": [
+              "work/codex",
+              "codex",
+              "working",
+              "~/proj/ochazuke",
+              "feat/list-motions"
+            ]
+          },
+          {
+            "id": "t3",
+            "label": "main/shell",
+            "cells": [
+              "main/shell",
+              "shell",
+              "",
+              "~/hub",
+              "docs/readme-header"
+            ]
+          },
+          {
+            "id": "t4",
+            "label": "9332c352/review",
+            "cells": [
+              "9332c352/review",
+              "claude-code",
+              "needs_input",
+              "~/proj/nabe",
+              "prototype/picker-lab"
+            ]
+          }
+        ],
+        "selected": 1
+      },
+      {
+        "id": "b",
+        "rows": 2
+      }
+    ]
+  },
+  "script": [
+    "l",
+    "l",
+    "}",
+    "j",
+    "k"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "highlighted": 1,
+      "dimmed": 1,
+      "cell": "working"
+    },
+    {
+      "after": 3,
+      "focus": "b1",
+      "highlighted": 1,
+      "dimmed": 1,
+      "cell": "working"
+    }
+  ],
+  "area": "tables"
+}

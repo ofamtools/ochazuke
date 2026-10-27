@@ -439,8 +439,10 @@ func (v *PageView) addGroups() error {
 				return err
 			}
 		}
+		// h and left go back to the rail from a table's first column; on
+		// any other column they are the table's column move (list-first-column).
 		for _, key := range []string{"h", "left"} {
-			if err := r.Bind(ochazuke.Binding{Instance: pl.spec.ID, Mode: "normal", Keys: key, Request: ochazuke.Request{Noun: "focus", Verb: "set", Args: ochazuke.Arguments{"id": v.groupID(pl)}}}); err != nil {
+			if err := r.Bind(ochazuke.Binding{Instance: pl.spec.ID, Mode: "normal", Keys: key, When: "list-first-column", Request: ochazuke.Request{Noun: "focus", Verb: "set", Args: ochazuke.Arguments{"id": v.groupID(pl)}}}); err != nil {
 				return err
 			}
 		}

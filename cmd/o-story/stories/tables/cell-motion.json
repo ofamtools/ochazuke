@@ -1,0 +1,142 @@
+{
+  "name": "cell motion: h/l move by column, j keeps it, a column dropped by priority scrolls into view, 0 goes back to the start",
+  "width": 44,
+  "height": 6,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "pane"
+          },
+          {
+            "title": "harness",
+            "priority": 2
+          },
+          {
+            "title": "state",
+            "priority": 1
+          },
+          {
+            "title": "cwd",
+            "min": 8,
+            "priority": 3
+          },
+          {
+            "title": "branch",
+            "priority": 4
+          }
+        ],
+        "items": [
+          {
+            "id": "t1",
+            "label": "work/claude",
+            "cells": [
+              "work/claude",
+              "claude-code",
+              "idle",
+              "~/proj/matomeru",
+              "main"
+            ]
+          },
+          {
+            "id": "t2",
+            "label": "work/codex",
+            "cells": [
+              "work/codex",
+              "codex",
+              "working",
+              "~/proj/ochazuke",
+              "feat/list-motions"
+            ]
+          },
+          {
+            "id": "t3",
+            "label": "main/shell",
+            "cells": [
+              "main/shell",
+              "shell",
+              "",
+              "~/hub",
+              "docs/readme-header"
+            ]
+          },
+          {
+            "id": "t4",
+            "label": "9332c352/review",
+            "cells": [
+              "9332c352/review",
+              "claude-code",
+              "needs_input",
+              "~/proj/nabe",
+              "prototype/picker-lab"
+            ]
+          }
+        ],
+        "selected": 1
+      }
+    ]
+  },
+  "script": [
+    "l",
+    "l",
+    "j",
+    "l",
+    "l",
+    "h",
+    "0"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "cell": "codex",
+      "focus": "t2"
+    },
+    {
+      "after": 2,
+      "cell": "working"
+    },
+    {
+      "after": 3,
+      "cell": " ",
+      "focus": "t3"
+    },
+    {
+      "after": 4,
+      "cell": "~/hub"
+    },
+    {
+      "after": 5,
+      "cell": "docs/read…",
+      "contains": [
+        "branch"
+      ],
+      "lacks": [
+        "harness"
+      ]
+    },
+    {
+      "after": 6,
+      "cell": "~/hub",
+      "lacks": [
+        "harness"
+      ]
+    },
+    {
+      "cell": "main/shell",
+      "contains": [
+        "harness"
+      ],
+      "lacks": [
+        "branch"
+      ],
+      "focus": "t3",
+      "mode": "normal",
+      "highlighted": 1
+    }
+  ],
+  "area": "tables"
+}

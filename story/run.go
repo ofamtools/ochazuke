@@ -15,13 +15,21 @@ import (
 // escapes behind a gutter that reads "R|" when the row has full-strength
 // reverse video, "r|" when its only reverse video is dimmed (faint: an
 // unfocused list's selected row, a highlight beneath a modal) and " |"
-// otherwise, so goldens pin the highlight without colour.
+// otherwise, so goldens pin the highlight without colour. A highlighted
+// row holding a table's current cell (reverse and underline together)
+// reads "C|", dimmed "c|".
 func Golden(frame string) string {
 	var b strings.Builder
 	for _, row := range strings.Split(frame, "\n") {
-		switch full, dimmed := highlights(row); {
+		full, dimmed := highlights(row)
+		cell := cellText(row) != ""
+		switch {
+		case full && cell:
+			b.WriteString("C|")
 		case full:
 			b.WriteString("R|")
+		case dimmed && cell:
+			b.WriteString("c|")
 		case dimmed:
 			b.WriteString("r|")
 		default:
@@ -69,6 +77,52 @@ func highlights(row string) (full, dimmed bool) {
 		i = j
 	}
 	return full, dimmed
+}
+
+// cellText is the text of a row's current cell, trimmed: the text drawn
+// reverse and underlined at once (a table's current cell inside its
+// highlighted row), followed along the row's SGR state; " " for a blank
+// cell and "" when the row holds none.
+func cellText(row string) string {
+	var b strings.Builder
+	found, reverse, underline := false, false, false
+	for i := 0; i < len(row); i++ {
+		if row[i] == 0x1b && i+1 < len(row) && row[i+1] == '[' {
+			j := i + 2
+			for j < len(row) && (row[j] >= '0' && row[j] <= '9' || row[j] == ';' || row[j] == ':') {
+				j++
+			}
+			if j < len(row) && row[j] == 'm' {
+				for _, p := range strings.Split(row[i+2:j], ";") {
+					switch p {
+					case "", "0":
+						reverse, underline = false, false
+					case "4":
+						underline = true
+					case "24":
+						underline = false
+					case "7":
+						reverse = true
+					case "27":
+						reverse = false
+					}
+				}
+			}
+			i = j
+			continue
+		}
+		if reverse && underline {
+			found = true
+			b.WriteByte(row[i])
+		}
+	}
+	if !found {
+		return ""
+	}
+	if text := strings.TrimSpace(b.String()); text != "" {
+		return text
+	}
+	return " "
 }
 
 func btoi(b bool) int {
@@ -132,6 +186,18 @@ func Check(ss *Session, e Expect) []string {
 		}
 		if n == 0 {
 			failf("no highlighted row, want one holding %q", e.HighlightedText)
+		}
+	}
+	if e.Cell != nil {
+		got := ""
+		for _, row := range strings.Split(frame, "\n") {
+			if text := cellText(row); text != "" {
+				got = text
+				break
+			}
+		}
+		if got != *e.Cell {
+			failf("current cell %q, want %q", got, *e.Cell)
 		}
 	}
 	for _, s := range e.Contains {
