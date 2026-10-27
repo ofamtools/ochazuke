@@ -519,6 +519,9 @@ func TestPaletteNounParameterChoices(t *testing.T) {
 	r.Define("swatch")
 	r.Instance("s1", Parent("sheet"), Kind("swatch")).Label = "Red"
 	r.Instance("s2", Parent("sheet"), Kind("swatch"))
+	if _, err := r.AddList("swatches", []ListItem{{ID: "s3", Label: "Blue", Noun: "swatch"}}, Parent("sheet")); err != nil {
+		t.Fatal(err)
+	}
 	run := func(r *Runtime, c Context, a Arguments) (any, error) {
 		*ran = append(*ran, StringArg(a, "shade", "")+StringArg(a, "swatch", ""))
 		return nil, nil
@@ -532,7 +535,7 @@ func TestPaletteNounParameterChoices(t *testing.T) {
 	}{
 		{"tint ", []string{"noun:sheet", "choice:dark", "choice:dim"}},
 		{"sheet tint d", []string{"choice:dark", "choice:dim"}},
-		{"sheet pick ", []string{"choice:s1", "choice:s2"}},
+		{"sheet pick ", []string{"choice:s1", "choice:s2", "choice:s3"}},
 	} {
 		set(tc.line)
 		if got := completionValues(p); !reflect.DeepEqual(got, tc.want) {
@@ -541,8 +544,8 @@ func TestPaletteNounParameterChoices(t *testing.T) {
 	}
 	paletteLine(t, r, "sheet tint da")
 	paletteRequest(t, r, "open", "palette", nil)
-	paletteLine(t, r, "sheet pick s2")
-	if got := (*ran)[len(*ran)-2:]; !reflect.DeepEqual(got, []string{"dark", "s2"}) {
+	paletteLine(t, r, "sheet pick s3")
+	if got := (*ran)[len(*ran)-2:]; !reflect.DeepEqual(got, []string{"dark", "s3"}) {
 		t.Fatalf("ran %v", got)
 	}
 	paletteRequest(t, r, "open", "palette", nil)
@@ -551,7 +554,7 @@ func TestPaletteNounParameterChoices(t *testing.T) {
 	for _, e := range p.completions() {
 		labels = append(labels, e.Label)
 	}
-	if !slices.ContainsFunc(labels, func(l string) bool { return strings.Contains(l, "Red") }) {
+	if !slices.ContainsFunc(labels, func(l string) bool { return strings.Contains(l, "Red") }) || !slices.ContainsFunc(labels, func(l string) bool { return strings.Contains(l, "Blue") }) {
 		t.Fatalf("instance labels not shown: %v", labels)
 	}
 }

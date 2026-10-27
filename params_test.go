@@ -93,6 +93,22 @@ func TestParameterNounChoices(t *testing.T) {
 	r.Instance("w1", Kind("widget")).Label = "First"
 	r.Instance("w2", Kind("widget"))
 	r.Instance("g1", Kind("guarded"))
+	r.Define("task")
+	for _, id := range []string{"todo", "done"} {
+		if _, err := r.AddList(id, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := r.List("todo").SetItems([]ListItem{{ID: "t1", Label: "Write", Noun: "task", Data: "ext-1"}, {ID: "t2", Label: "Hidden", Noun: "task"}, {ID: "w9", Noun: "widget"}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.List("done").SetItems([]ListItem{{ID: "t3", Noun: "task"}}); err != nil {
+		t.Fatal(err)
+	}
+	r.List("todo").SetFilter("write")
+	if shown := r.List("todo").Shown(); shown != 1 {
+		t.Fatalf("filter shows %v", shown)
+	}
 	c := r.Context()
 	for _, tc := range []struct {
 		name   string
@@ -101,9 +117,10 @@ func TestParameterNounChoices(t *testing.T) {
 		want   []Choice
 	}{
 		{"list verb", Parameter{Type: "string", Noun: "color"}, "color.list", []Choice{{ID: "c1", Label: "Cyan"}, {ID: "m1", Label: "Magenta"}}},
-		{"instances", Parameter{Type: "string", Noun: "widget"}, "", []Choice{{ID: "w1", Label: "First"}, {ID: "w2", Label: "w2"}}},
+		{"instances", Parameter{Type: "string", Noun: "widget"}, "", []Choice{{ID: "w1", Label: "First"}, {ID: "w2", Label: "w2"}, {ID: "w9", Label: "w9"}}},
+		{"list rows", Parameter{Type: "string", Noun: "task"}, "", []Choice{{ID: "t1", Label: "Write"}, {ID: "t2", Label: "Hidden"}, {ID: "t3", Label: "t3"}}},
 		{"source wins", Parameter{Type: "string", Noun: "color", Source: "shade.list"}, "shade.list", []Choice{{ID: "dark", Label: "dark"}, {ID: "light", Label: "light"}}},
-		{"enum first", Parameter{Type: "string", Noun: "widget", Enum: []string{"none"}}, "", []Choice{{ID: "none", Label: "none"}, {ID: "w1", Label: "First"}, {ID: "w2", Label: "w2"}}},
+		{"enum first", Parameter{Type: "string", Noun: "widget", Enum: []string{"none"}}, "", []Choice{{ID: "none", Label: "none"}, {ID: "w1", Label: "First"}, {ID: "w2", Label: "w2"}, {ID: "w9", Label: "w9"}}},
 		{"list verb needs an argument", Parameter{Type: "string", Noun: "guarded"}, "", []Choice{{ID: "g1", Label: "g1"}}},
 		{"unknown noun", Parameter{Type: "string", Noun: "nothing"}, "", nil},
 	} {

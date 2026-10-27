@@ -125,20 +125,38 @@ func (r *Runtime) ChoicesSource(p Parameter) string {
 	return key
 }
 
-// nounInstanceChoices lists the live instances of a noun in registration
-// order: the id, labelled by the instance's label when it has one.
+// nounInstanceChoices lists the live instances of a noun: the instances
+// that are not list rows in registration order, each list's rows (every
+// row, a filter's hidden ones too) in list order after the list itself.
+// The id is the instance id (what --target and ExecuteAt resolve, never a
+// foreign id in Data), labelled by the instance's label when it has one.
 func (r *Runtime) nounInstanceChoices(noun string) []Choice {
 	var out []Choice
+	add := func(id, label string) {
+		if label == "" {
+			label = id
+		}
+		out = append(out, Choice{ID: id, Label: label})
+	}
 	for _, id := range r.holders {
 		inst := r.Instances[id]
-		if inst == nil || inst.Noun != noun {
+		if inst == nil {
 			continue
 		}
-		label := inst.Label
-		if label == "" {
-			label = inst.ID
+		if inst.Noun == noun {
+			add(inst.ID, inst.Label)
 		}
-		out = append(out, Choice{ID: inst.ID, Label: label})
+		list, ok := inst.Component.(*List)
+		if !ok {
+			continue
+		}
+		for _, item := range list.all {
+			row := r.Instances[item.ID]
+			if row == nil || row.Noun != noun {
+				continue
+			}
+			add(row.ID, row.Label)
+		}
 	}
 	return out
 }

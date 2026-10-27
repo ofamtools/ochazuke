@@ -315,12 +315,12 @@ Root package `ochazuke` is flat: 66 source files, 65 test files. Each entry list
 
 ### params.go
 
-- lines: 275 · tests: params_test.go
+- lines: 293 · tests: params_test.go
 - purpose: Choice is one value a parameter accepts: ID is the argument value, Label what a pick list shows.
 - types: Choice, ArgumentError
 - methods: ArgumentError(2), Runtime(5)
 - funcs: ParseChoices
-- leans on: runtime.go(20), noun.go(7), delivery.go(2), instance.go(2)
+- leans on: runtime.go(20), noun.go(8), delivery.go(3), instance.go(2)
 
 ### picker.go
 
