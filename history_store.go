@@ -164,6 +164,7 @@ func (r *Runtime) EnsureConfigSettings() {
 	}
 	r.ensureThemeSetting()
 	r.ensureDimSettings()
+	r.ensureHelpSettings()
 	r.applyTerminalLeader()
 	s := r.Settings()
 	if c.HistoryPath() != "" && s.find(HistorySetting) == nil {

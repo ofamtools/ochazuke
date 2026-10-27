@@ -1,0 +1,23 @@
+{
+  "name": "help.pick-view and help.table-view off: ? help is here alone, S is not offered and does nothing",
+  "area": "help",
+  "width": 100,
+  "height": 30,
+  "settings": [
+    {"name": "help.pick-view", "type": "boolean", "default": false, "description": "S in the ? help shows the keys for a noun and mode you pick"},
+    {"name": "help.table-view", "type": "boolean", "default": false, "description": "S in the ? help shows a noun's keys as a table, a column per mode"}
+  ],
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ]
+  },
+  "script": ["?", "S"],
+  "expect": [
+    {"after": 1, "modal": "bindings-help", "contains": ["Keys"], "lacks": ["S view", "Keys · "]},
+    {"modal": "bindings-help", "contains": ["demo.open"], "lacks": ["S view", "Keys · ", "noun:"]}
+  ]
+}

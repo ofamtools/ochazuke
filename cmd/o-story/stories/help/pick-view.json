@@ -1,0 +1,15 @@
+{
+  "name": "S in ? help shows pick: n chooses the noun (prompt), m the mode (insert); the rows are what that noun answers there",
+  "area": "help",
+  "width": 120,
+  "height": 40,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ]
+  },
+  "script": ["?", "S", "n", "p", "r", "o", "m", "p", "t", "enter", "m", "i", "n", "s", "e", "r", "t", "enter"]
+}

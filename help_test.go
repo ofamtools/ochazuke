@@ -280,3 +280,11 @@ func TestHelpArgumentsPreviewAndTruncate(t *testing.T) {
 		t.Fatalf("dispatched args differ from preview: %#v", received)
 	}
 }
+
+// bindingHelpView draws the open help's body as the Model does.
+func bindingHelpView(r *Runtime, _ *Instance, width, height int) Block {
+	if h := r.helpOpen(); h != nil {
+		return h.ModalBlock(Styles{}, width, height)
+	}
+	return Text("")
+}

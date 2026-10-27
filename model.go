@@ -113,7 +113,6 @@ func newModel(r *Runtime) *Model {
 	})
 	m.ModalViews[yankHistoryID] = ModalView{Title: "Yank history", Render: yankHistoryView}
 	m.ModalViews["confirm"] = ModalView{Title: "Confirm", Render: confirmView}
-	m.ModalViews[helpID] = ModalView{Title: "Keys", Render: bindingHelpView}
 	m.ModalViews[paletteResultsID] = ModalView{Title: "Results", Render: paletteResultsView}
 	// The Settings page and unfocused page lists draw in the Model's styles.
 	r.Settings().page.styles = m.Styles
@@ -516,8 +515,10 @@ func BindingHints(r *Runtime, focus string) string {
 // groupedRows is levelRows grouped by the noun of the level that answers,
 // innermost first, a capture row with its own level (app's ctrl+c comes
 // after the focused row's verbs).
-func (r *Runtime) groupedRows(focus string) []levelRow {
-	rows := r.levelRows(focus)
+func (r *Runtime) groupedRows(focus string) []levelRow { return groupLevelRows(r.levelRows(focus)) }
+
+// groupLevelRows groups rows in walk order by their level (groupedRows).
+func groupLevelRows(rows []levelRow) []levelRow {
 	var order []string
 	for _, capture := range []bool{false, true} {
 		for _, row := range rows {
@@ -572,6 +573,9 @@ type HelpRow struct {
 	Description string    `json:"description,omitempty"`
 	Noun        string    `json:"noun"`
 	Section     string    `json:"section,omitempty"`
+	// Guard is the guard a hypothetical row (the help's pick and table
+	// views) answers under; the live help judges guards and leaves it out.
+	Guard string `json:"when,omitempty"`
 }
 
 // MovementSection is the help section that holds every motion, after the
@@ -585,8 +589,23 @@ const MovementSection = "movement"
 // level, so app's ctrl+c comes after the focused row's verbs), and the
 // motions of every level last, under "movement".
 func BindingHelp(r *Runtime, focus string) []HelpRow {
+	return r.helpRows(r.groupedRows(focus), func(b Binding) Arguments { return bindingHelpArgs(r, b, focus) }, focus)
+}
+
+// NounHelp is BindingHelp for a hypothetical focus on noun in mode, with
+// no instance (nounRows: the noun's tables, app, the editor fallback for
+// an input noun): a guarded row is listed with its Guard, its operation
+// marked "?", and the rows answering when that guard is false follow it;
+// arguments a row takes from the key, the payload or the row read as
+// "$source".
+func NounHelp(r *Runtime, noun string, mode ModeState) []HelpRow {
+	return r.helpRows(groupLevelRows(r.nounRows(noun, mode)), sourceArgs, "")
+}
+
+// helpRows is the help rows of grouped level rows; focus "" is a
+// hypothetical walk (no guard judged, each guarded row marked).
+func (r *Runtime) helpRows(rows []levelRow, args func(Binding) Arguments, focus string) []HelpRow {
 	var out, motions []HelpRow
-	rows := r.groupedRows(focus)
 	// A generated prefix cancel ("d esc") is listed only while a sequence
 	// on its prefix answers here: a read-only outline's guarded "d d" takes
 	// its "d esc" out of the help with it.
@@ -600,19 +619,14 @@ func BindingHelp(r *Runtime, focus string) []HelpRow {
 		}
 	}
 	for _, row := range rows {
-		if isPrefixCancel(row.Binding) && !sequences[row.Mode+"\x00"+strings.TrimSuffix(row.Keys, " "+CancelKey)] || r.guardedOff(row.Binding, focus) {
+		if isPrefixCancel(row.Binding) && !sequences[row.Mode+"\x00"+strings.TrimSuffix(row.Keys, " "+CancelKey)] || focus != "" && r.guardedOff(row.Binding, focus) {
 			continue
 		}
-		op := row.Hint
-		if op == "" && row.Request.Verb != "" {
-			op = row.Request.Key()
+		help := r.helpRow(row, args(row.Binding))
+		if row.guard != "" {
+			help.Operation += " ?"
+			help.Description = strings.TrimSuffix("when "+row.guard+" · "+help.Description, " · ")
 		}
-		desc := r.Operations[row.Request.Key()].Description
-		if row.Help != "" {
-			desc = row.Help
-		}
-		help := HelpRow{Key: rowKey(row.Binding), Operation: op, Description: desc, Noun: row.level, Section: row.level}
-		help.Args = bindingHelpArgs(r, row.Binding, focus)
 		if r.Operations[row.Request.Key()].Motion {
 			help.Section = MovementSection
 			motions = append(motions, help)
@@ -621,6 +635,21 @@ func BindingHelp(r *Runtime, focus string) []HelpRow {
 		out = append(out, help)
 	}
 	return append(out, motions...)
+}
+
+// helpRow is one level row as the help shows it: the row's Hint or its
+// operation, the description (the row's Help over the operation's), the
+// answering level as its noun and section.
+func (r *Runtime) helpRow(row levelRow, args Arguments) HelpRow {
+	op := row.Hint
+	if op == "" && row.Request.Verb != "" {
+		op = row.Request.Key()
+	}
+	desc := r.Operations[row.Request.Key()].Description
+	if row.Help != "" {
+		desc = row.Help
+	}
+	return HelpRow{Key: rowKey(row.Binding), Operation: op, Args: args, Description: desc, Noun: row.level, Section: row.level, Guard: row.guard}
 }
 
 // View renders the shell as a full-screen tea.View; View().Content is the
