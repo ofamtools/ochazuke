@@ -1,7 +1,10 @@
 package ochazuke
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -141,5 +144,48 @@ func TestCellYankCopiesTheCellAndTheRow(t *testing.T) {
 	}
 	if y, _ := r.ReadYank("0"); y.Text != "r2\ta000000002\tb000000002\tc000000002\td000000002" {
 		t.Fatalf("Y did not reach register 0: %q", y.Text)
+	}
+}
+
+func TestColumnWidthsResizeResetAndPersist(t *testing.T) {
+	dir := t.TempDir()
+	r, m, l := cellTable(t, 80, dir)
+	motionKeys(t, r, m, "l")
+	natural := l.drawnWidth(1)
+	motionKeys(t, r, m, "z >")
+	if got := l.ColumnWidths()[1]; got != natural+ColumnWidthStep {
+		t.Fatalf("z >: width %d, want %d", got, natural+ColumnWidthStep)
+	}
+	motionKeys(t, r, m, "3 z >")
+	if got := l.ColumnWidths()[1]; got != natural+4*ColumnWidthStep {
+		t.Fatalf("3 z >: width %d", got)
+	}
+	if got := l.drawnWidth(1); got != natural+4*ColumnWidthStep {
+		t.Fatalf("drawn at %d", got)
+	}
+	motionKeys(t, r, m, "9 z <")
+	if got := l.ColumnWidths()[1]; got != minColumnWidth {
+		t.Fatalf("9 z <: width %d, want the least %d", got, minColumnWidth)
+	}
+	motionKeys(t, r, m, "z > l l")
+	data, err := os.ReadFile(filepath.Join(dir, TablesFile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var saved map[string]TableState
+	if err := json.Unmarshal(data, &saved); err != nil {
+		t.Fatal(err)
+	}
+	if s := saved["t"]; s.Column != 3 || s.Widths[1] != minColumnWidth+ColumnWidthStep {
+		t.Fatalf("tables.json: %s", data)
+	}
+	// A new runtime over the same state directory comes back to them.
+	_, _, l2 := cellTable(t, 80, dir)
+	if l2.Column() != 3 || l2.ColumnWidths()[1] != minColumnWidth+ColumnWidthStep {
+		t.Fatalf("restored column %d widths %v", l2.Column(), l2.ColumnWidths())
+	}
+	motionKeys(t, r, m, "z =")
+	if len(l.ColumnWidths()) != 0 {
+		t.Fatalf("z =: %v", l.ColumnWidths())
 	}
 }

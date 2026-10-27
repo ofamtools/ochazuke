@@ -281,7 +281,7 @@ Conformance:
 | normal | form | `form.choose` `form.leave` `form.next` `form.redo` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
 | normal | input | `input.begin` `input.undo` |
-| normal | list | `list.column` `list.filter-clear` `list.filter-open` `list.goto` `list.move` `list.scroll` `list.scroll-columns` |
+| normal | list | `list.column` `list.filter-clear` `list.filter-open` `list.goto` `list.move` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` |
 | normal | markdown | `markdown.redo` `markdown.toggle` `markdown.undo` |
 | normal | modal | `modal.pop` |
 | normal | mode | `mode.enter` |
@@ -343,6 +343,8 @@ Mode edges (from → to via):
 - `normal d` → `normal` via `outline.delete`
 - `normal d` → `normal` via `setting-item.delete`
 - `normal g` → `normal` via `list.goto`
+- `normal z` → `normal` via `list.reset-columns`
+- `normal z` → `normal` via `list.resize-column`
 - `normal z` → `normal` via `list.scroll-columns`
 - `terminal` → `leader_pending` via `mode.enter`
 

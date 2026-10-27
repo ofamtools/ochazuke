@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
@@ -34,27 +35,31 @@ type ListItem struct {
 // List owns flat selection, marks and scrolling on the runtime's event loop.
 // Focus sits on the selected row when there is one, else on the list.
 type List struct {
-	r         *Runtime
-	id        string
-	all       []ListItem // every row, as SetItems gave them
-	items     []ListItem // the rows shown: all, or the ones the filter lets through (list_filter.go)
-	query     string     // the filter query; "" shows every row
-	hay       []string   // each row's filter text (filterHay), built on the first filter; nil after SetItems
-	back      string     // the row selected when the filter line opened, which filter-clear selects again
-	selected  int
-	offset    int
-	marks     map[string]bool
-	noSpill   bool     // NoSpill: list.move clamps at the edges instead of spilling
-	noMarks   bool     // NoMarks: a read-only view, its rows take no marks
-	choose    bool     // ClearFilterOnEnter: enter in the filter line chooses the match and clears the filter
-	columns   []Column // Columns: a table; none draws the labels
-	widest    []int    // a table's widest cell per column over the items (cellWidths); nil after SetItems
-	window    int      // rows the last frame showed (list_motions.go's page); 0 before any frame
-	windowed  bool     // the last frame windowed the rows (more rows than fit)
-	colOffset int      // a table's column offset (table_columns.go); 0 unscrolled
-	colWidth  int      // the width the last frame laid the table's columns out at
-	rowSelect bool     // RowSelect: a table without a current column (table_cells.go)
-	col       int      // a cell-mode table's current column
+	r           *Runtime
+	id          string
+	all         []ListItem // every row, as SetItems gave them
+	items       []ListItem // the rows shown: all, or the ones the filter lets through (list_filter.go)
+	query       string     // the filter query; "" shows every row
+	hay         []string   // each row's filter text (filterHay), built on the first filter; nil after SetItems
+	back        string     // the row selected when the filter line opened, which filter-clear selects again
+	selected    int
+	offset      int
+	marks       map[string]bool
+	noSpill     bool        // NoSpill: list.move clamps at the edges instead of spilling
+	noMarks     bool        // NoMarks: a read-only view, its rows take no marks
+	choose      bool        // ClearFilterOnEnter: enter in the filter line chooses the match and clears the filter
+	columns     []Column    // Columns: a table; none draws the labels
+	widest      []int       // a table's widest cell per column over the items (cellWidths); nil after SetItems
+	window      int         // rows the last frame showed (list_motions.go's page); 0 before any frame
+	windowed    bool        // the last frame windowed the rows (more rows than fit)
+	colOffset   int         // a table's column offset (table_columns.go); 0 unscrolled
+	colWidth    int         // the width the last frame laid the table's columns out at
+	rowSelect   bool        // RowSelect: a table without a current column (table_cells.go)
+	col         int         // a cell-mode table's current column
+	colWidths   map[int]int // widths given with z > and z < (table_cells.go)
+	restored    bool        // the remembered TableState was read
+	drawn       []int       // the columns the last frame showed
+	drawnWidths []int       // and their widths
 }
 
 // NewList is AddList for callers that hold the runtime as a value.
@@ -342,6 +347,9 @@ func (l *List) state() map[string]any {
 		out["columnOffset"] = l.colOffset
 		if l.cellMode() {
 			out["column"] = l.Column()
+		}
+		if len(l.colWidths) > 0 {
+			out["columnWidths"] = maps.Clone(l.colWidths)
 		}
 	}
 	return out

@@ -244,3 +244,44 @@ func TestRegisterMarksBuiltin(t *testing.T) {
 		t.Fatal("grid.move not builtin")
 	}
 }
+
+// z > and z < give the cursor's column a width of its own (the grid's
+// MaxCellWidth no longer caps it), z = makes every column automatic, and
+// the widths are remembered under the grid's id.
+func TestColumnWidthKeysAndTheirMemory(t *testing.T) {
+	r, g := sheet(t)
+	press := func(keys string) {
+		t.Helper()
+		for _, key := range strings.Fields(keys) {
+			if _, err := r.Dispatch(ochazuke.MacroKey{Key: key}); err != nil {
+				t.Fatalf("%s: %v", key, err)
+			}
+		}
+	}
+	if g.ColumnWidth(0) != MinColumnWidth {
+		t.Fatalf("automatic width %d", g.ColumnWidth(0))
+	}
+	press("z >")
+	if g.ColumnWidth(0) != MinColumnWidth+ColumnWidthStep || g.ColumnWidths()[0] != MinColumnWidth+ColumnWidthStep {
+		t.Fatalf("z >: %d %v", g.ColumnWidth(0), g.ColumnWidths())
+	}
+	g.MaxCellWidth = 4
+	press("1 0 z >")
+	if g.ColumnWidth(0) != MinColumnWidth+11*ColumnWidthStep {
+		t.Fatalf("10 z >: %d (a given width is not capped)", g.ColumnWidth(0))
+	}
+	if !strings.Contains(ansi.Strip(g.View(80, 3)), "a"+strings.Repeat(" ", MinColumnWidth+11*ColumnWidthStep-1)+" b") {
+		t.Fatalf("view does not draw the width:\n%s", ansi.Strip(g.View(80, 3)))
+	}
+	if s := r.TableState("grid"); s.Widths[0] != MinColumnWidth+11*ColumnWidthStep {
+		t.Fatalf("not remembered: %v", s)
+	}
+	press("2 0 z <")
+	if g.ColumnWidth(0) != MinColumnWidth {
+		t.Fatalf("20 z <: %d, want the least %d", g.ColumnWidth(0), MinColumnWidth)
+	}
+	press("l z > z =")
+	if len(g.ColumnWidths()) != 0 || len(r.TableState("grid").Widths) != 0 {
+		t.Fatalf("z =: %v %v", g.ColumnWidths(), r.TableState("grid"))
+	}
+}

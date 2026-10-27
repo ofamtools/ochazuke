@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -22,6 +23,9 @@ import (
 //	g c              list.choose-column: a chooser of the column titles
 //	y / Y            list.yank {what: cell|row}: the cell's text, or the row's
 //	                 cells joined by tabs, into the registers
+//	z > / z <        list.resize-column {delta: ±1}: widen or narrow the
+//	                 current column by ColumnWidthStep cells (a count is steps)
+//	z =              list.reset-columns: every column automatic again
 //	z l / z h        list.scroll-columns: the view one column right / left,
 //	                 the current column carried along when it scrolls off
 //
@@ -36,6 +40,16 @@ import (
 // collapse there, the help modal, the settings page) has no current
 // column: it keeps row selection, and $, ^, 0 and z l/z h scroll its
 // columns as before.
+//
+// The current column and the widths given with z > and z < are remembered
+// per table id in the state directory (TablesFile, Runtime.TableState).
+
+// ColumnWidthStep is the cells z > and z < add to or take from a column.
+const ColumnWidthStep = 2
+
+// minColumnWidth is the narrowest z < makes a column (grid and o-csv's
+// least cell width too).
+const minColumnWidth = 3
 
 // RowSelect makes a table select rows only: no current column, no cell
 // keys (a tree's list, whose rows answer h and l).
@@ -50,21 +64,92 @@ func (l *List) Column() int {
 	if !l.cellMode() {
 		return 0
 	}
+	l.restore()
 	return min(max(l.col, 0), len(l.columns)-1)
 }
 
 // SetColumn makes column i (clamped) the current column of a cell-mode
-// table; on any other list it does nothing.
+// table and remembers it; on any other list it does nothing.
 func (l *List) SetColumn(i int) {
 	if !l.cellMode() {
 		return
 	}
+	l.restore()
 	l.col = min(max(i, 0), len(l.columns)-1)
 	l.follow()
+	l.remember()
 }
 
-// layoutColumns is the columns the table lays out.
-func (l *List) layoutColumns() []Column { return l.columns }
+// ColumnWidths is the widths given to columns with z > and z < (column
+// index to cells); a column left out is laid out automatically.
+func (l *List) ColumnWidths() map[int]int {
+	l.restore()
+	return maps.Clone(l.colWidths)
+}
+
+// SetColumnWidth fixes column i at width cells (0 or less: automatic
+// again) and remembers it.
+func (l *List) SetColumnWidth(i, width int) {
+	if i < 0 || i >= len(l.columns) {
+		return
+	}
+	l.restore()
+	if width <= 0 {
+		delete(l.colWidths, i)
+	} else {
+		if l.colWidths == nil {
+			l.colWidths = map[int]int{}
+		}
+		l.colWidths[i] = width
+	}
+	l.follow()
+	l.remember()
+}
+
+// ResetColumnWidths makes every column automatic again and remembers it.
+func (l *List) ResetColumnWidths() {
+	l.restore()
+	l.colWidths = nil
+	l.follow()
+	l.remember()
+}
+
+// restore reads the table's remembered view once.
+func (l *List) restore() {
+	if l.restored {
+		return
+	}
+	l.restored = true
+	s := l.r.TableState(l.id)
+	if l.cellMode() {
+		l.col = s.Column
+	}
+	l.colWidths = s.Widths
+}
+
+// remember writes the table's view (Runtime.SetTableState).
+func (l *List) remember() {
+	s := TableState{Widths: l.colWidths}
+	if l.cellMode() {
+		s.Column = l.col
+	}
+	l.r.SetTableState(l.id, s)
+}
+
+// layoutColumns is the columns with the widths given by z > and z < as
+// fixed widths.
+func (l *List) layoutColumns() []Column {
+	if len(l.colWidths) == 0 {
+		return l.columns
+	}
+	cols := slices.Clone(l.columns)
+	for i, w := range l.colWidths {
+		if i >= 0 && i < len(cols) && w > 0 {
+			cols[i].Width, cols[i].Max = w, 0
+		}
+	}
+	return cols
+}
 
 // follow lays the columns out again at the last frame's width, so the
 // offset already shows the current column before the next frame.
@@ -158,6 +243,19 @@ func (l *List) columnTitle(i int) string {
 	return "column " + strconv.Itoa(i+1)
 }
 
+// drawnWidth is the width the current column was drawn at in the last
+// frame, else its natural width.
+func (l *List) drawnWidth(i int) int {
+	if w, ok := l.colWidths[i]; ok {
+		return w
+	}
+	if j := slices.Index(l.drawn, i); j >= 0 && j < len(l.drawnWidths) {
+		return l.drawnWidths[j]
+	}
+	natural, _ := columnSizes(l.layoutColumns(), l.cellWidths())
+	return natural[i]
+}
+
 func registerTableCells(r *Runtime) {
 	cells := func(c Context, args Arguments) (*List, error) {
 		if id := StringArg(args, "id", ""); id != "" {
@@ -209,10 +307,13 @@ func registerTableCells(r *Runtime) {
 		Bind("|", Do("list.column").FromPayload("index", SourceCount).Guard("table-cells")).
 		Bind("g c", Do("list.choose-column")).
 		Bind("y", Do("list.yank", Arguments{"what": "cell"}).Hide()).
-		Bind("Y", Do("list.yank", Arguments{"what": "row"}).Hide())
+		Bind("Y", Do("list.yank", Arguments{"what": "row"}).Hide()).
+		Bind("z >", steps("list.resize-column", 1).Hide()).
+		Bind("z <", steps("list.resize-column", -1).Hide()).
+		Bind("z =", Do("list.reset-columns").Hide())
 	guards := r.Nouns["list"].Guards
 	guards["column"] = "table-columns"
-	for _, verb := range []string{"choose-column", "yank"} {
+	for _, verb := range []string{"choose-column", "yank", "resize-column", "reset-columns"} {
 		guards[verb] = "table-cells"
 	}
 	id := Parameter{Type: "string", Description: "The list (default: the focused one)"}
@@ -297,5 +398,30 @@ func registerTableCells(r *Runtime) {
 		}
 		r.UI().Status(fmt.Sprintf("copied %s (%d characters)", subject, len([]rune(text))))
 		return y, nil
+	}})
+	r.Register(Operation{Verb: "resize-column", Noun: "list", Description: "Widen (delta 1) or narrow (-1) a table's current column by ColumnWidthStep cells; remembered per table", Parameters: map[string]Parameter{
+		"id":    id,
+		"delta": {Type: "integer", Required: true, Description: "1 wider, -1 narrower"},
+		"steps": {Type: "integer", Description: "Repeat count (3z>)"},
+	}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+		l, err := cells(c, a)
+		if err != nil {
+			return nil, err
+		}
+		i := l.Column()
+		width := l.drawnWidth(i) + IntArg(a, "delta", 0)*ColumnWidthStep*max(1, IntArg(a, "steps", 1))
+		if l.colWidth > 0 {
+			width = min(width, l.colWidth)
+		}
+		l.SetColumnWidth(i, max(minColumnWidth, width))
+		return l.state(), nil
+	}})
+	r.Register(Operation{Verb: "reset-columns", Noun: "list", Description: "Lay every column of a table out automatically again (z =)", Parameters: map[string]Parameter{"id": id}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+		l, err := cells(c, a)
+		if err != nil {
+			return nil, err
+		}
+		l.ResetColumnWidths()
+		return l.state(), nil
 	}})
 }

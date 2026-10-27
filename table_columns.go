@@ -42,6 +42,7 @@ func (l *List) ColumnOffset() int { return l.colOffset }
 // to the largest offset this width has. It records the width for the
 // column motions.
 func (l *List) columnLayout(width int) (shown, widths []int) {
+	l.restore()
 	l.colWidth = width
 	cols := l.layoutColumns()
 	most := l.maxColumnOffset(width)
@@ -51,6 +52,7 @@ func (l *List) columnLayout(width int) (shown, widths []int) {
 		l.colOffset = l.offsetShowing(cols, width, l.colOffset, most)
 	}
 	shown, widths = layoutAt(cols, l.cellWidths(), width, l.colOffset)
+	l.drawn, l.drawnWidths = shown, widths
 	return shown, widths
 }
 
@@ -159,6 +161,7 @@ func (l *List) carryColumn() {
 	if !l.cellMode() || l.colWidth <= 0 {
 		return
 	}
+	l.restore()
 	shown, _ := layoutAt(l.layoutColumns(), l.cellWidths(), l.colWidth, l.colOffset)
 	// The frozen first column does not hold the current column through a
 	// scroll: the frame would scroll back to the start to show it (0).
@@ -177,6 +180,7 @@ func (l *List) carryColumn() {
 		}
 	}
 	l.col = best
+	l.remember()
 }
 
 func abs(n int) int {

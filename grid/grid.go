@@ -10,6 +10,7 @@ package grid
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"sort"
 	"strconv"
@@ -113,8 +114,12 @@ type Grid struct {
 	// first Refresh (New reads them from the options).
 	Nouns  Nouns
 	Styles Styles
-	// MaxCellWidth caps a column's rendered width.
+	// MaxCellWidth caps a column's rendered width; a width given with
+	// SetColumnWidth (z > and z <) replaces it for that column.
 	MaxCellWidth int
+	// widths are the columns given a width (column index to cells),
+	// remembered under the grid's id (Runtime.TableState).
+	widths map[int]int
 	// instanceRows is the WithInstanceRows hook.
 	instanceRows func(kind string, at Ref) []ochazuke.Binding
 }
@@ -161,6 +166,7 @@ func New(r *ochazuke.Runtime, id, parent string, header []string, rows [][]strin
 	r.Define("grid").Focusable()
 	inst := r.Instance(id, ochazuke.Parent(parent), ochazuke.Kind("grid"))
 	inst.Component = g
+	g.widths = r.TableState(id).Widths
 	g.SetData(header, rows)
 	return g, nil
 }
@@ -573,7 +579,7 @@ func (g *Grid) Close() {
 
 // Snapshot describes the grid for get.state.
 func (g *Grid) Snapshot() map[string]any {
-	return map[string]any{"id": g.id, "cursor": g.Cursor(), "shape": g.Shape(), "anchor": g.anchor, "marks": g.Marks(), "selected": g.Selected(), "visible": len(g.visible), "rows": len(g.rows), "columns": len(g.header), "focused": g.Focused()}
+	return map[string]any{"id": g.id, "cursor": g.Cursor(), "shape": g.Shape(), "anchor": g.anchor, "marks": g.Marks(), "selected": g.Selected(), "visible": len(g.visible), "rows": len(g.rows), "columns": len(g.header), "focused": g.Focused(), "widths": g.ColumnWidths()}
 }
 
 // Rendering.
@@ -662,14 +668,83 @@ func (g *Grid) View(width, height int) string {
 func (g *Grid) columnWidths() []int {
 	widths := make([]int, len(g.header))
 	for c, name := range g.header {
-		widths[c] = max(3, min(g.MaxCellWidth, ansi.StringWidth(name)))
+		widths[c] = max(MinColumnWidth, min(g.MaxCellWidth, ansi.StringWidth(name)))
 	}
 	for _, row := range g.visible {
 		for c := range widths {
 			widths[c] = max(widths[c], min(g.MaxCellWidth, ansi.StringWidth(cellText(g.rows[row], c))))
 		}
 	}
+	for c, w := range g.widths {
+		if c >= 0 && c < len(widths) {
+			widths[c] = w
+		}
+	}
 	return widths
+}
+
+// Column widths: z > and z < (grid.resize-column) widen or narrow the
+// cursor's column by ColumnWidthStep cells, z = (grid.reset-columns) makes
+// every column automatic again (its content, capped by MaxCellWidth). The
+// widths are remembered under the grid's id in the state directory, as a
+// list table's are (Runtime.TableState).
+
+// MinColumnWidth is the narrowest a column is drawn or narrowed to.
+const MinColumnWidth = 3
+
+// ColumnWidthStep is the cells z > and z < add or take (the list table's
+// ochazuke.ColumnWidthStep).
+const ColumnWidthStep = ochazuke.ColumnWidthStep
+
+// ColumnWidth is the width column c is drawn at: the one it was given, else
+// its automatic width.
+func (g *Grid) ColumnWidth(c int) int {
+	widths := g.columnWidths()
+	if c < 0 || c >= len(widths) {
+		return 0
+	}
+	return widths[c]
+}
+
+// ColumnWidths is the widths given to columns (column index to cells); a
+// column left out is automatic. A view of its own (o-csv's) reads these.
+func (g *Grid) ColumnWidths() map[int]int { return maps.Clone(g.widths) }
+
+// SetColumnWidth gives column c a width (at least MinColumnWidth; 0 or
+// less makes it automatic again) and remembers it.
+func (g *Grid) SetColumnWidth(c, width int) {
+	if c < 0 || c >= len(g.header) {
+		return
+	}
+	if width <= 0 {
+		delete(g.widths, c)
+	} else {
+		if g.widths == nil {
+			g.widths = map[int]int{}
+		}
+		g.widths[c] = max(MinColumnWidth, width)
+	}
+	g.remember()
+}
+
+// ResizeColumn widens (delta > 0) or narrows the cursor's column by
+// delta*ColumnWidthStep cells.
+func (g *Grid) ResizeColumn(delta int) {
+	if c := g.Cursor().Col; c >= 0 {
+		g.SetColumnWidth(c, max(MinColumnWidth, g.ColumnWidth(c)+delta*ColumnWidthStep))
+	}
+}
+
+// ResetColumnWidths makes every column automatic again.
+func (g *Grid) ResetColumnWidths() {
+	g.widths = nil
+	g.remember()
+}
+
+func (g *Grid) remember() {
+	s := g.r.TableState(g.id)
+	s.Widths = g.widths
+	g.r.SetTableState(g.id, s)
 }
 
 func spanWidth(widths []int, from, to int) int {

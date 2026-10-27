@@ -1,0 +1,123 @@
+{
+  "name": "column widths: z > widens the current column, the width and the column survive a restart, z = makes it automatic",
+  "width": 60,
+  "height": 6,
+  "chrome": "none",
+  "state": true,
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "pane"
+          },
+          {
+            "title": "harness",
+            "priority": 2
+          },
+          {
+            "title": "state",
+            "priority": 1
+          },
+          {
+            "title": "cwd",
+            "min": 8,
+            "priority": 3
+          },
+          {
+            "title": "branch",
+            "priority": 4
+          }
+        ],
+        "items": [
+          {
+            "id": "t1",
+            "label": "work/claude",
+            "cells": [
+              "work/claude",
+              "claude-code",
+              "idle",
+              "~/proj/matomeru",
+              "main"
+            ]
+          },
+          {
+            "id": "t2",
+            "label": "work/codex",
+            "cells": [
+              "work/codex",
+              "codex",
+              "working",
+              "~/proj/ochazuke",
+              "feat/list-motions"
+            ]
+          },
+          {
+            "id": "t3",
+            "label": "main/shell",
+            "cells": [
+              "main/shell",
+              "shell",
+              "",
+              "~/hub",
+              "docs/readme-header"
+            ]
+          },
+          {
+            "id": "t4",
+            "label": "9332c352/review",
+            "cells": [
+              "9332c352/review",
+              "claude-code",
+              "needs_input",
+              "~/proj/nabe",
+              "prototype/picker-lab"
+            ]
+          }
+        ],
+        "selected": 0
+      }
+    ]
+  },
+  "script": [
+    "l",
+    "l",
+    "z",
+    ">",
+    "z",
+    ">",
+    {
+      "restart": true
+    },
+    "z",
+    "="
+  ],
+  "expect": [
+    {
+      "after": 6,
+      "contains": [
+        "state            cwd"
+      ],
+      "cell": "idle"
+    },
+    {
+      "after": 7,
+      "contains": [
+        "state            cwd"
+      ],
+      "cell": "idle"
+    },
+    {
+      "contains": [
+        "state        cwd"
+      ],
+      "lacks": [
+        "state            cwd"
+      ],
+      "cell": "idle"
+    }
+  ],
+  "area": "tables"
+}

@@ -395,7 +395,7 @@ var frameworkHistoryKinds = map[string]string{
 	"state.get": HistoryFetch, "themes.list": HistoryFetch, "themes.path": HistoryFetch,
 	"themes.reload": HistoryFetch,
 
-	"list.yank": HistoryChange,
+	"list.yank": HistoryChange, "list.resize-column": HistoryChange, "list.reset-columns": HistoryChange,
 
 	"appearance.set": HistoryChange, "bindings.load": HistoryChange, "confirm.set": HistoryChange,
 	"config.export": HistoryChange, "form-option.pick": HistoryChange, "form.redo": HistoryChange,

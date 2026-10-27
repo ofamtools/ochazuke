@@ -171,6 +171,8 @@ type Config struct {
 	// panes are the pane dividers by page id (PanesFile), read on first
 	// use.
 	panes map[string]int
+	// tables are the table views by id (TablesFile), read on first use.
+	tables map[string]TableState
 	// schemes are themes.json's valid schemes, themeProblems its last
 	// read's problems; themeSetting is set when the framework declared the
 	// theme setting (the application did not).
