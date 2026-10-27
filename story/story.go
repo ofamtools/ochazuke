@@ -88,6 +88,10 @@ type Page struct {
 	// Markdown is a Markdown document (markdown.New) drawn in the page's
 	// order with the lists, its task items a focus stop.
 	Markdown *MarkdownSpec `json:"markdown,omitempty"`
+	// Timeline is a card timeline (ochazuke.AddTimeline) drawn in the
+	// page's order with the lists (its id, default "timeline", names it in
+	// Order), its cards a focus stop.
+	Timeline *TimelineSpec `json:"timeline,omitempty"`
 	// Commands makes the page cli's Commands page (cli.AddCommands) over
 	// these entries instead of a synthetic one; a run opens a fake pane.
 	Commands *CommandsSpec `json:"commands,omitempty"`
@@ -201,6 +205,45 @@ type MarkdownSpec struct {
 	// PreserveNewlines draws every source line of a paragraph as a line
 	// (markdown.PreserveNewlines).
 	PreserveNewlines bool `json:"preserveNewlines,omitempty"`
+}
+
+// TimelineSpec is a card timeline: its cards (of the story-card noun),
+// FollowTail and HeaderLines as the options of the same names, and Append,
+// cards a (timeline-append on story-card) adds one at a time at the end,
+// while s (timeline-stream) adds a line, "streamed line N", to the last
+// card's body, as a streaming answer does.
+type TimelineSpec struct {
+	ID          string     `json:"id,omitempty"`
+	Cards       []CardSpec `json:"cards"`
+	Append      []CardSpec `json:"append,omitempty"`
+	FollowTail  bool       `json:"followTail,omitempty"`
+	HeaderLines int        `json:"headerLines,omitempty"`
+	NoSpill     bool       `json:"noSpill,omitempty"`
+	Height      int        `json:"height,omitempty"` // lines drawn; 0 = the rest of the page
+}
+
+// CardSpec is one card (ochazuke.Card) with its body and sections as text.
+type CardSpec struct {
+	ID       string        `json:"id"`
+	Header   string        `json:"header"`
+	Meta     string        `json:"meta,omitempty"`
+	Body     string        `json:"body,omitempty"`
+	Sections []SectionSpec `json:"sections,omitempty"`
+	Open     bool          `json:"open,omitempty"`
+	Active   bool          `json:"active,omitempty"`
+	Muted    bool          `json:"muted,omitempty"`
+	Group    string        `json:"group,omitempty"`
+}
+
+// SectionSpec is one card section (ochazuke.CardSection) with its text;
+// Role is muted, accent, error or empty for text.
+type SectionSpec struct {
+	Name    string `json:"name,omitempty"`
+	Title   string `json:"title"`
+	Summary string `json:"summary,omitempty"`
+	Text    string `json:"text,omitempty"`
+	Role    string `json:"role,omitempty"`
+	Folded  bool   `json:"folded,omitempty"`
 }
 
 // CommandsSpec is a Commands page: its entries (cli.CommandEntry as JSON)

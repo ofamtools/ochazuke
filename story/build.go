@@ -45,10 +45,14 @@ type Session struct {
 	inputs  map[string]*ochazuke.Input
 	details map[string]*ochazuke.Detail
 	docs    map[string]*markdown.Doc // the page's Markdown document by page id
-	streams []*FakeStream
-	jobs    map[string][]chan error // verb -> running jobs, oldest first
-	done    chan struct{}
-	cursor  *tea.Cursor
+	// timelines are the page's timeline by page id; streamed counts the
+	// lines timeline-stream added.
+	timelines map[string]*ochazuke.Timeline
+	streamed  int
+	streams   []*FakeStream
+	jobs      map[string][]chan error // verb -> running jobs, oldest first
+	done      chan struct{}
+	cursor    *tea.Cursor
 }
 
 // Options change how a session renders, never what it does.
@@ -100,7 +104,7 @@ func build(s *Story, opt Options, stateDir string) (*Session, error) {
 	if s.Accent != "" {
 		m.Appearance.Accent = lipgloss.Color(s.Accent)
 	}
-	ss := &Session{Story: s, R: r, M: m, StateDir: stateDir, pages: map[string]*Page{}, lists: map[string]*ochazuke.List{}, trees: map[string]*ochazuke.Tree{}, records: map[string]*ochazuke.RecordEditor{}, inputs: map[string]*ochazuke.Input{}, details: map[string]*ochazuke.Detail{}, docs: map[string]*markdown.Doc{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
+	ss := &Session{Story: s, R: r, M: m, StateDir: stateDir, pages: map[string]*Page{}, lists: map[string]*ochazuke.List{}, trees: map[string]*ochazuke.Tree{}, records: map[string]*ochazuke.RecordEditor{}, inputs: map[string]*ochazuke.Input{}, details: map[string]*ochazuke.Detail{}, docs: map[string]*markdown.Doc{}, timelines: map[string]*ochazuke.Timeline{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
 	if err := ss.defineDemo(pages); err != nil {
 		return nil, err
 	}
@@ -619,6 +623,15 @@ func (ss *Session) addPage(p *Page) error {
 			focus = doc.FocusTarget()
 		}
 	}
+	if p.Timeline != nil {
+		tl, err := ss.addTimeline(p)
+		if err != nil {
+			return fmt.Errorf("timeline: %w", err)
+		}
+		if focus == "" && tl.List().Len() > 0 {
+			focus = tl.FocusTarget()
+		}
+	}
 	if p.Detail != nil {
 		d, err := r.AddDetail(p.ID+"-detail", func() string { return ss.detailItem(p) }, ochazuke.Parent(p.ID))
 		if err != nil {
@@ -641,6 +654,10 @@ func (ss *Session) addPage(p *Page) error {
 				focus = doc.FocusTarget()
 				break
 			}
+			if tl := ss.timelines[p.ID]; tl != nil && id == tl.ID() && tl.List().Len() > 0 {
+				focus = tl.FocusTarget()
+				break
+			}
 		}
 	}
 	ss.pages[p.ID] = p
@@ -654,6 +671,94 @@ func (ss *Session) addPage(p *Page) error {
 	}
 	_, err := r.AddPage(p.ID, title, func(r *ochazuke.Runtime, w, h int) ochazuke.Block { return ss.render(p, w, h) }, opts...)
 	return err
+}
+
+// timelineID is the page's timeline's id.
+func timelineID(p *Page) string {
+	if p.Timeline.ID != "" {
+		return p.Timeline.ID
+	}
+	return "timeline"
+}
+
+// storyCard is the noun of a story timeline's cards: a appends the next
+// queued card, s streams a line into the last card.
+const storyCard = "story-card"
+
+// card is a CardSpec as an ochazuke.Card of the story-card noun.
+func card(c CardSpec) ochazuke.Card {
+	out := ochazuke.Card{ID: c.ID, Noun: storyCard, Header: c.Header, Meta: c.Meta, Open: c.Open, Active: c.Active, Muted: c.Muted, Group: c.Group}
+	if c.Body != "" {
+		out.Body = ochazuke.TextBody(c.Body)
+	}
+	for _, s := range c.Sections {
+		sec := ochazuke.CardSection{Name: s.Name, Title: s.Title, Summary: s.Summary, Role: ochazuke.CardRole(s.Role), Folded: s.Folded}
+		if s.Text != "" {
+			sec.Body = ochazuke.TextBody(s.Text)
+		}
+		out.Sections = append(out.Sections, sec)
+	}
+	return out
+}
+
+func (ss *Session) addTimeline(p *Page) (*ochazuke.Timeline, error) {
+	r := ss.R
+	cards := make([]ochazuke.Card, len(p.Timeline.Cards))
+	for i, c := range p.Timeline.Cards {
+		cards[i] = card(c)
+	}
+	if r.Noun(storyCard) == nil {
+		r.Define(storyCard)
+	}
+	opts := []ochazuke.InstanceOption{ochazuke.Parent(p.ID), ochazuke.HeaderLines(p.Timeline.HeaderLines)}
+	if p.Timeline.FollowTail {
+		opts = append(opts, ochazuke.FollowTail())
+	}
+	if p.Timeline.NoSpill {
+		opts = append(opts, ochazuke.NoSpill())
+	}
+	tl, err := r.AddTimeline(timelineID(p), cards, opts...)
+	if err != nil {
+		return nil, err
+	}
+	ss.timelines[p.ID] = tl
+	queue := slices.Clone(p.Timeline.Append)
+	r.Define(storyCard).
+		Verb("timeline-append", func(c ochazuke.Ctx) ochazuke.Result {
+			t := c.Runtime.Timeline(timelineID(p))
+			if len(queue) == 0 || t == nil {
+				return ochazuke.Done(nil)
+			}
+			next := queue[0]
+			queue = queue[1:]
+			if err := t.Patch(card(next)); err != nil {
+				return ochazuke.Failed(err)
+			}
+			return ochazuke.Done(nil)
+		}, "Append the next queued card to the timeline").
+		Verb("timeline-stream", func(c ochazuke.Ctx) ochazuke.Result {
+			t := c.Runtime.Timeline(timelineID(p))
+			cards := t.Cards()
+			if len(cards) == 0 {
+				return ochazuke.Done(nil)
+			}
+			last := cards[len(cards)-1]
+			ss.streamed++
+			text := ""
+			if last.Body != nil {
+				text = last.Body(0) + "\n"
+			}
+			text += fmt.Sprintf("streamed line %d", ss.streamed)
+			last.Body, last.Revision = ochazuke.TextBody(text), last.Revision+1
+			if err := t.Patch(last); err != nil {
+				return ochazuke.Failed(err)
+			}
+			return ochazuke.Done(nil)
+		}, "Add a line to the last card's body, as a streaming answer").
+		Mode("normal").
+		Bind("a", ochazuke.Do(storyCard+".timeline-append")).
+		Bind("s", ochazuke.Do(storyCard+".timeline-stream"))
+	return tl, nil
 }
 
 // markdownID is the page's Markdown document's id.
@@ -848,6 +953,9 @@ func (ss *Session) renderMain(p *Page, width, height int) ochazuke.Block {
 		if p.Markdown != nil {
 			order = append(order, markdownID(p))
 		}
+		if p.Timeline != nil {
+			order = append(order, timelineID(p))
+		}
 	}
 	recordSpec := map[string]RecordSpec{}
 	for _, rs := range p.Records {
@@ -917,6 +1025,19 @@ func (ss *Session) renderMain(p *Page, width, height int) ochazuke.Block {
 		used += strings.Count(text, "\n") + 1
 	} else {
 		for _, id := range order {
+			if tl := ss.timelines[p.ID]; tl != nil && id == tl.ID() {
+				h := p.Timeline.Height
+				if h <= 0 {
+					h = max(1, height-used-head)
+				}
+				text := tl.View(width, h)
+				if !p.NoHead {
+					text = id + "\n" + text
+				}
+				parts = append(parts, ochazuke.Text(text))
+				used += strings.Count(text, "\n") + 1
+				continue
+			}
 			if doc := ss.docs[p.ID]; doc != nil && id == doc.ID() {
 				h := p.Markdown.Height
 				if h < 0 {
