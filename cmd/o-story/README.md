@@ -399,7 +399,7 @@ Conformance:
 | insert | chooser | `chooser.cancel` `chooser.move` `chooser.pick` |
 | insert | completion | `completion.accept` `completion.dismiss` `completion.move` `completion.open` |
 | insert | demo | `demo.files` `demo.hide` |
-| insert | form | `form.next` |
+| insert | form | `form.next` `form.run` |
 | insert | input | `input.insert` `input.kill` `input.move` |
 | insert | markdown | `markdown.cell` `markdown.continue-item` `markdown.end-list` `markdown.indent` `markdown.insert-block` `markdown.leave` `markdown.outdent` `markdown.unmark` |
 | insert | mode | `mode.set` |
@@ -416,7 +416,7 @@ Conformance:
 | normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.forget-row` `demo.hide` `demo.launch` `demo.notify` `demo.open` `demo.ping` `demo.reload` `demo.ship` `demo.tag` `demo.zap` |
 | normal | detail | `detail.scroll` |
 | normal | focus | `focus.next` `focus.previous` `focus.set` |
-| normal | form | `form.choose` `form.leave` `form.next` `form.redo` `form.suggest` `form.undo` |
+| normal | form | `form.choose` `form.leave` `form.next` `form.next-missing` `form.redo` `form.run` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
 | normal | input | `input.begin` `input.undo` |
 | normal | list | `list.column` `list.filter-clear` `list.filter-open` `list.goto` `list.move` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.toggle-pin-column` `list.visual` `list.yank` |
@@ -458,6 +458,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `bindings.help`
 - `insert` → `normal` via `chooser.cancel`
 - `insert` → `normal` via `chooser.pick`
+- `insert` → `normal` via `form.run`
 - `insert` → `normal` via `markdown.leave`
 - `insert` → `normal` via `mode.set`
 - `insert` → `normal` via `outline.leave`
@@ -477,6 +478,8 @@ Mode edges (from → to via):
 - `normal` → `insert` via `bindings-help.mode`
 - `normal` → `insert` via `bindings-help.noun`
 - `normal` → `insert` via `bindings-help.place`
+- `normal` → `insert` via `form.leave`
+- `normal` → `insert` via `form.next-missing`
 - `normal` → `insert` via `form.suggest`
 - `normal` → `insert` via `input.begin`
 - `normal` → `insert` via `markdown.insert`
@@ -487,6 +490,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `outline.edit`
 - `normal` → `insert` via `page.pick`
 - `normal` → `insert` via `palette.open`
+- `normal` → `insert` via `row R`
 - `normal` → `insert` via `setting-item.add`
 - `normal` → `insert` via `setting-item.edit`
 - `normal` → `insert` via `setting.add`

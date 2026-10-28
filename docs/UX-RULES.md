@@ -612,9 +612,29 @@ tiers above them. When the two disagree, fix one in the same commit.
   `actions/alias-clash-reported.json`.
 - **R12.5** A write is never filled silently: a request with a required
   parameter missing fails naming it (API, CLI: `NAME is required`), and the
-  palette asks for it (`missing NAME`) instead of running; nothing reads the
-  value from the focus or a guess. Tests `TestWritesAreNeverSilentlyFilled`,
+  palette asks for it instead of running; nothing reads the value from the
+  focus or a guess. Tests `TestWritesAreNeverSilentlyFilled`,
   `TestCLIAliasesRunTheCanonicalVerb`.
+- **R12.6** The palette asks for missing arguments with a form. Enter on a
+  line whose verb still lacks a required word, or a key whose row leaves a
+  required argument out, opens the args form (`Runtime.OpenArgsForm`, modal
+  `args-form`): one field per parameter, the required ones first, an
+  optional one marked `(optional)`, the words already typed filled in, the
+  focus on the first missing one (typing, when it is a text field). Choices
+  and noun-typed parameters are picked from a type-to-filter chooser
+  (`form.suggest`, `/`), free text is typed. Nothing is filled from the
+  focus or a guess (R12.5). `enter` is `form.run` once every field is
+  valid, else `form.next-missing` (the field that still needs a value,
+  opening its chooser); `esc` in normal mode cancels with nothing run and
+  the palette's line back as typed; there is no save key. A run that fails
+  reopens the form with the values and `! not run:`. The setting
+  `palette.missing-opens-form` (default on) turned off restores
+  `missing NAME (type): description`. The CLI and the API never open it.
+  Stories: `palette/form-missing-one.json`, `palette/form-noun-autocomplete.json`,
+  `palette/form-choices.json`, `palette/form-prefill.json`,
+  `palette/form-esc-cancels.json`, `palette/form-setting-off.json`,
+  `palette/form-binding.json`, `palette/form-look.json`; tests in
+  `palette_form_test.go`.
 
 ### R13. Card timelines: inside a card
 
