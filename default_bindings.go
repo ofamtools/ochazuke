@@ -389,7 +389,7 @@ func (r *Runtime) CheckDefaultBindings(source string, data []byte) []string {
 		}
 	}
 	known := func(mode string) bool { return mode == "" || r.Modes[mode] || r.pendingModes[mode] }
-	seen := map[string]string{}
+	var placed []Binding
 	for _, g := range file.Groups {
 		noun := ""
 		if g.Instance != "" {
@@ -423,12 +423,11 @@ func (r *Runtime) CheckDefaultBindings(source string, data []byte) []string {
 					report("%s %q: mode.enter into %q, which is not a pending mode", g.label(), key, mode)
 				}
 			}
-			id := sourceKey(withImplicitGuard(normalized))
-			if where, ok := seen[id]; ok {
-				report("%s %q: clashes with the row at %s (same key and guard in one table)", g.label(), key, where)
-			}
-			seen[id] = fmt.Sprintf("%s %q", g.label(), key)
+			placed = append(placed, withImplicitGuard(normalized))
 		}
+	}
+	for _, line := range r.checkFileReachability(placed) {
+		report("%s", line)
 	}
 	return problems
 }

@@ -76,8 +76,15 @@ func registerConfiguration(r *Runtime) {
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Verb: "check", Noun: "ochazuke.bindings", Description: "Report the rows of the user bindings file that would be skipped, and any merged row that does not validate; the status line names the format read (grouped or rows)", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "check", Noun: "ochazuke.bindings", Description: "Report the rows of the user bindings file that would be skipped, any merged row that does not validate, and as warnings the file's guard rows (debts) and any row that can never answer; with debts, every guard row of every table too; the status line names the format read (grouped or rows)", Parameters: map[string]Parameter{"debts": {Type: "boolean", Description: "Also list every table's guard rows (rows with when), the debts left to move onto actions' availability"}}, Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		problems := r.CheckUserBindings()
+		if debts, _ := a["debts"].(bool); debts {
+			lines := r.BindingDebts()
+			for _, line := range lines {
+				problems = append(problems, "warning: "+line)
+			}
+			problems = append(problems, fmt.Sprintf("warning: %d guard rows in the tables", len(lines)))
+		}
 		if problems == nil {
 			problems = []string{}
 		}
@@ -385,7 +392,9 @@ func (r *Runtime) ReloadUserBindings() []string {
 
 // CheckUserBindings reports what a load of the bindings file would skip,
 // without installing anything, and any row of the merged tables that no
-// longer validates. A row spelled by an action alias is accepted and gets a
+// longer validates; then warnings ("warning: " lines): each guard row of
+// the file (a debt, BindingDebts) and each merged row that can never
+// answer (UnreachableBindings). A row spelled by an action alias is accepted and gets a
 // line saying what it resolves to (not "skipped"). The problems of
 // actions.json (CheckUserActions) follow.
 func (r *Runtime) CheckUserBindings() []string {
@@ -404,10 +413,18 @@ func (r *Runtime) CheckUserBindings() []string {
 			if note := r.aliasRowNote(f.where, row); note != "" {
 				problems = append(problems, note)
 			}
+			if row.identityGuard() != "" && !row.Unbind {
+				problems = append(problems, fmt.Sprintf("warning: %s: %s %s: when %s is a guard row, a debt: the first row on a key whose action is available answers, so a row needs no condition when its action reports availability", BindingsFile, f.where, row.Keys+row.Pattern, row.When))
+			}
 		}
 	}
 	if _, err := r.ValidateBindings(); err != nil {
 		problems = append(problems, err.Error())
+	}
+	// A row the merged tables never reach (an earlier row on its key is
+	// available whenever it is) is a warning: it loads, and does nothing.
+	for _, line := range r.UnreachableBindings() {
+		problems = append(problems, "warning: "+line)
 	}
 	// actions.json is the other half of the user's verbs: its skipped
 	// entries and alias clashes are reported here too.

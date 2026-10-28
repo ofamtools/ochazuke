@@ -1,7 +1,9 @@
 package ochazuke
 
 import (
+	"fmt"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -189,5 +191,72 @@ func TestBindReplacesAnEarlierBatchOnTheKey(t *testing.T) {
 	rows := r.Nouns["item"].Bindings["normal"]
 	if len(rows) != 1 || rows[0].Request.Verb != "c" {
 		t.Fatalf("rows %+v, want x → item.c alone", rows)
+	}
+}
+
+// bindings check: a user row that can never answer (an earlier row on its
+// key is always available) and a user guard row are warnings; the file
+// loads. A file repeating a key with an available-sometimes action first
+// is clean. With debts, every table's guard rows are listed too.
+func TestBindingsCheckReportsUnreachableRowsAndGuardDebts(t *testing.T) {
+	r, m, calls, dir := configFixture(t)
+	r.DefineGuard("never", func(*Runtime, KeyEvent) bool { return false })
+	r.SetAvailability("test.beta", "never")
+	writeConfig(t, dir, BindingsFile, `{"bindings": [{"context": "app/normal", "bindings": [
+		{"key": "z", "action": "test.beta"},
+		{"key": "z", "action": "test.alpha"},
+		{"key": "y", "action": "test.alpha"},
+		{"key": "y", "action": "test.gamma"},
+		{"key": "w", "action": "test.gamma", "when": "never"}
+	]}]}`)
+	m.Init()
+	got, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "check"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := got.([]string)
+	want := []string{
+		`warning: bindings.json: app/normal w: when never is a guard row, a debt`,
+		`warning: app/normal "y": test.gamma never answers: the row before it on the key, test.alpha (always available), answers whenever it could`,
+	}
+	for _, w := range want {
+		if !slices.ContainsFunc(lines, func(l string) bool { return len(l) >= len(w) && l[:len(w)] == w }) {
+			t.Errorf("check lacks %q:\n%v", w, lines)
+		}
+	}
+	if len(lines) != len(want) {
+		t.Errorf("check reports %d lines, want %d (z is clean: test.beta is not always available):\n%v", len(lines), len(want), lines)
+	}
+	// It loaded: z runs alpha while beta is unavailable.
+	*calls = nil
+	r.Dispatch(MacroKey{Key: "z"})
+	if !slices.Equal(*calls, []string{"alpha"}) {
+		t.Errorf("z ran %v", *calls)
+	}
+	all, _ := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "check", Args: Arguments{"debts": true}})
+	debts := all.([]string)
+	if n := len(debts); n <= len(lines) || !slices.ContainsFunc(debts, func(l string) bool {
+		return l == fmt.Sprintf("warning: %d guard rows in the tables", len(r.BindingDebts()))
+	}) {
+		t.Errorf("debts lists no table guard rows:\n%v", debts[len(lines):])
+	}
+}
+
+// The rule check for a default file reports a row that can never answer;
+// the same key on a sometimes-available action first is clean, and two
+// rows on one guard (the guarded row placed first, as a load does) are not.
+func TestCheckDefaultBindingsReportsUnreachableRows(t *testing.T) {
+	r, _, _, _ := availabilityFixture(t)
+	clean := `{"bindings": [{"context": "item/normal", "bindings": [
+		{"key": "x", "action": "item.a"}, {"key": "x", "action": "item.b"}, {"key": "x", "action": "item.c"}]}]}`
+	if p := r.CheckDefaultBindings("f.json", []byte(clean)); len(p) != 0 {
+		t.Fatalf("clean file: %v", p)
+	}
+	bad := `{"bindings": [{"context": "item/normal", "bindings": [
+		{"key": "x", "action": "item.c"}, {"key": "x", "action": "item.a"},
+		{"key": "q", "action": "item.a"}, {"key": "q", "action": "item.c", "when": "a-on"}]}]}`
+	p := r.CheckDefaultBindings("f.json", []byte(bad))
+	if len(p) != 2 || !strings.Contains(p[0], `item/normal "x": item.a never answers`) || !strings.Contains(p[1], `item/normal "q": item.a never answers`) {
+		t.Fatalf("problems %q", p)
 	}
 }
