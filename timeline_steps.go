@@ -133,7 +133,7 @@ func paragraphChunks(text string) []chunk {
 // buildBody is an open card's body lines and its steps: Steps, else the
 // Body's paragraphs and then each section.
 func (t *Timeline) buildBody(c *Card, units []foldUnit) ([]cardLine, []stepSpan) {
-	w := t.innerWidth()
+	w := t.innerOf(c)
 	var out []cardLine
 	var spans []stepSpan
 	// paras adds text's paragraphs, each a step; from >= 0 is a title

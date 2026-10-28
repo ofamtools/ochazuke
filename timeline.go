@@ -52,7 +52,14 @@ type Card struct {
 	Muted    bool                   `json:"muted,omitempty"`
 	Group    string                 `json:"group,omitempty"`
 	Revision uint64                 `json:"revision,omitempty"`
+	// Event draws the card as something that happened rather than
+	// something said: indented one level (eventIndent cells), its border
+	// dashed and muted until it is selected. A task's notification is one.
+	Event bool `json:"event,omitempty"`
 }
+
+// eventIndent is how far an event card is indented.
+const eventIndent = 2
 
 // CardSection is one foldable part of an open card's body, drawn after
 // Body: a title line ("▾ 2 thinking · Summary") and, unfolded, its text
@@ -547,8 +554,16 @@ func (t *Timeline) indexOf(id string) int {
 	return slices.IndexFunc(t.list.items, func(item ListItem) bool { return item.ID == id })
 }
 
-// innerWidth is the text width inside a card's border and padding.
-func (t *Timeline) innerWidth() int { return max(1, t.width-4) }
+// cardWidth is the width card c draws at: an event card is indented.
+func (t *Timeline) cardWidth(c *Card) int {
+	if c.Event && t.width > eventIndent+6 {
+		return t.width - eventIndent
+	}
+	return t.width
+}
+
+// innerOf is the text width inside card c's border and padding.
+func (t *Timeline) innerOf(c *Card) int { return max(1, t.cardWidth(c)-4) }
 
 // measured is the card's cache at the current width, its header wrapped.
 func (t *Timeline) measured(c *Card) *cardCache {
@@ -557,7 +572,7 @@ func (t *Timeline) measured(c *Card) *cardCache {
 		cc = &cardCache{width: -1}
 		t.cache[c.ID] = cc
 	}
-	w := t.innerWidth()
+	w := t.innerOf(c)
 	if cc.width != w || cc.header != c.Header || cc.rev != c.Revision {
 		cc.width, cc.header, cc.rev, cc.hasBody = w, c.Header, c.Revision, false
 		cc.lines = wrapText(c.Header, max(1, w-2))
@@ -637,10 +652,15 @@ func (t *Timeline) draw(i int, selected bool) []string {
 	c := t.shown(i)
 	cc := t.measured(c)
 	s := t.styles
-	w := t.innerWidth()
+	w := t.innerOf(c)
+	cw, indent := t.cardWidth(c), strings.Repeat(" ", t.width-t.cardWidth(c))
 	open := t.open[c.ID]
 	focusedBorder, selectedBorder, border := s.CardBorders()
 	h, v, tl, tr, bl, br, ml, mr := "─", "│", "╭", "╮", "╰", "╯", "├", "┤"
+	if c.Event {
+		// Something that happened: a dashed, muted border.
+		h, v, border = "┄", "┆", s.Muted
+	}
 	switch {
 	case selected && t.list.Focused():
 		border = focusedBorder
@@ -662,11 +682,11 @@ func (t *Timeline) draw(i int, selected bool) []string {
 		rule += strings.Repeat("─", max(0, t.width-ansi.StringWidth(rule)))
 		out = append(out, s.Muted.Render(ansi.Truncate(rule, t.width, "")))
 	}
-	top := tl + strings.Repeat(h, max(0, t.width-2)) + tr
-	if c.Active && t.width >= 6 {
-		top = tl + h + " ● " + strings.Repeat(h, max(0, t.width-6)) + tr
+	top := tl + strings.Repeat(h, max(0, cw-2)) + tr
+	if c.Active && cw >= 6 {
+		top = tl + h + " ● " + strings.Repeat(h, max(0, cw-6)) + tr
 	}
-	out = append(out, border.Render(top))
+	out = append(out, indent+border.Render(top))
 	row := func(text string, style lipgloss.Style) string {
 		if ansi.StringWidth(text) > w {
 			text = ansi.Truncate(text, w, "")
@@ -676,7 +696,7 @@ func (t *Timeline) draw(i int, selected bool) []string {
 		if at := len(out); at >= markFrom && at <= markTo {
 			pad = s.Accent.Bold(true).Render(stepMarker)
 		}
-		return border.Render(v) + pad + style.Render(text) + " " + border.Render(v)
+		return indent + border.Render(v) + pad + style.Render(text) + " " + border.Render(v)
 	}
 	header := lipgloss.NewStyle()
 	switch {
@@ -716,7 +736,7 @@ func (t *Timeline) draw(i int, selected bool) []string {
 	}
 	if open {
 		if body := t.body(c, cc); len(body) > 0 {
-			out = append(out, border.Render(ml+strings.Repeat(h, max(0, t.width-2))+mr))
+			out = append(out, indent+border.Render(ml+strings.Repeat(h, max(0, cw-2))+mr))
 			for _, line := range body {
 				style := lipgloss.NewStyle()
 				switch {
@@ -733,7 +753,7 @@ func (t *Timeline) draw(i int, selected bool) []string {
 			}
 		}
 	}
-	return append(out, border.Render(bl+strings.Repeat(h, max(0, t.width-2))+br))
+	return append(out, indent+border.Render(bl+strings.Repeat(h, max(0, cw-2))+br))
 }
 
 // bottomOf is the anchor that puts shown card i's last line on the
