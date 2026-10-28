@@ -56,8 +56,17 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R1.7** A key sequence waits `DefaultBindingTimeout` when a longer
   sequence extends it at any level, and the innermost exact match runs on
   timeout or mismatch. Story: needed (`keys/sequence-timeout-fallback`).
-- **R1.8** A row whose verb guard is false at the focus does not answer and
-  does not appear in `bindings.list`. Story: needed (`keys/guard-hides-row`).
+- **R1.8** A row whose action is not available at the focus (its verb
+  guard, `Runtime.Available`) does not answer and does not appear in
+  `bindings.list`, the footer or `?` help; the next row on the key in line
+  order is tried, and when none at a level is available the key goes on to
+  the next level out. A key may be bound to several actions in one context
+  for exactly this: the component says what it can do now, the rows carry
+  no condition (a row's own `when` is a debt `bindings check` lists). A
+  container that must keep a key at its edge binds it to the noop
+  (`ochazuke.key.ignore`), which consumes it. Story: needed
+  (`keys/guard-hides-row`); tests `TestResolverRunsTheFirstAvailableRow`,
+  `TestResolverBubblesWhenNoneIsAvailable`, `TestResolverConsumedByNoop`.
 - **R1.9** A paste reaches the walk as one `MacroKey` with `Paste` set and
   matches only `paste` rows. Story: needed (`inputs/paste-is-one-key`).
 
@@ -591,14 +600,21 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R13.1** Inside a card is a focus place, not a mode: the timeline's
   body instance (`<id>/body`, noun `ochazuke.timeline-body`, a part of the
   card list) holds the focus, the mode stays what it was, and the card
-  keeps its focused border. `l` and `h` are guarded rows by place:
+  keeps its focused border. `l` and `h` each bind several actions with no
+  conditions (`l`: `timeline.open`, then `timeline.enter`; `h`:
+  `timeline.close`, then `timeline.leave`; inside, `h`:
+  `timeline.fold-step`, then `timeline.leave`), and the first available
+  answers (R1.8). The card's state is the actions' availability: `open`
+  on a closed card, `close` on an open one, `enter` while there is a card,
+  `leave` on a card or inside, `fold-step` inside on a step in an open
+  section:
 
   | Where | `l` | `h` |
   |---|---|---|
-  | closed card (`timeline-card-closed`) | `timeline.open` | `timeline.leave`: the parent stop (`ParentStop`), else stays |
-  | open card (`timeline-card-open`) | `timeline.enter`: onto its first step | `timeline.close` |
-  | inside, in an open section (`timeline-step-open`) | `timeline.enter`: nothing (the section is open) | `timeline.fold-step`: folds the section the step is in (a tool call, thinking, an answer; any of its paragraphs), the cursor on its title |
-  | inside (`timeline-in-body`) | `timeline.enter`: opens the step's folded section, else nothing | `timeline.leave`: back to the card, still open (`esc` too) |
+  | closed card | `timeline.open` | `timeline.leave`: the parent stop (`ParentStop`), else stays |
+  | open card | `timeline.enter`: onto its first step | `timeline.close` |
+  | inside, in an open section | `timeline.enter`: nothing (the section is open) | `timeline.fold-step`: folds the section the step is in (a tool call, thinking, an answer; any of its paragraphs), the cursor on its title |
+  | inside | `timeline.enter`: opens the step's folded section, else nothing | `timeline.leave`: back to the card, still open (`esc` too) |
 
   `l` is one key with no sequence and no timing; `enter`/`space` still
   toggle (closing the card from inside puts the focus on the card); `?`
@@ -606,7 +622,8 @@ tiers above them. When the two disagree, fix one in the same commit.
   So `h` inside folds an open section first and leaves on the next `h`.
   Stories: `timeline/step-in.json`, `timeline/step-out.json`,
   `timeline/step-enter-toggles.json`, `timeline/step-fold.json`; tests
-  `TestTimelineLAndHByPlace`, `TestTimelineHFoldsAnOpenStep`.
+  `TestTimelineLAndHByPlace`, `TestTimelineHFoldsAnOpenStep`,
+  `TestTimelineActionsReportAvailabilityByCardState`.
 - **R13.2** Inside, `j`/`k` move by step (`timeline.step {delta}`, counts
   work): a card's `Steps`, else its body's paragraphs (blank-line
   separated, a fenced code block one paragraph) and then each section as
@@ -701,7 +718,8 @@ the reference behaviour (Vim, Helix, fzf, lazygit) it is comparing to.
   Protects transfer between surfaces. Violation: a palette-only verb; a CLI
   flag that a key cannot express; a hint that abbreviates the verb.
 - **P11. Prefer rows over code even when it is longer.** A feature that
-  could be a branch in Go and could be a row with a guard is a row.
+  could be a branch in Go and could be a row is a row; a condition on
+  when it applies is the action's availability, not a guard on the row.
   Protects the property that `bindings list` is the truth. Violation: a
   verb that checks the mode name inside its handler to do two things.
 - **P12. Latency is part of the design.** Anything over about 50 ms between

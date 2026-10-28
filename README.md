@@ -1324,47 +1324,49 @@ Every config file ochazuke reads (`bindings.json`, `actions.json`, `settings.jso
 
 ### The bindings file format
 
-`bindings.json` is a grouped table, one group per mode table (`config export`'s `bindings.reference.json`, `bindings export PATH` and the `cmd/ochazuke` keybinding tool write it; `FormatBindings`):
+`bindings.json` is a grouped table, one group per mode table, one row per line (`config export`'s `bindings.reference.json`, `bindings export PATH`, `bindings defaults` and the `cmd/ochazuke` keybinding tool write it; `FormatBindings`):
 
 ```jsonc
-// ochazuke bindings (JSONC): groups by "noun/mode" context; ...
+// ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, ...
 {
   "modes": {
     "leader_pending": {"pending": true},
     "terminal": {"passthrough": true}
   },
   "bindings": [
-    {"context": "md-doc/normal", "bindings": {
-      "l": "ochazuke.focus.next",
-      "enter": {"action": "ochazuke.focus.next", "hint": "edit"}
-    }},
-    {"context": "ochazuke.editor/visual_count_pending", "extends": "visual", "bindings": {
-      "digit": {"action": "ochazuke.count.append", "from": {"digit": "digit"}}
-    }},
-    {"context": "pane/normal", "bindings": {
-      "]": {"action": "panes.tab", "args": {"delta": 1}},
-      "d d": [{"action": "pane.kill", "when": "selected"}, {"action": "pane.close"}],
-      "x": null,
-      "u": {"when": "busy", "unbind": true}
-    }},
-    {"instance": "work/agent", "mode": "normal", "bindings": {
-      "ctrl+r": "pane.restart"
-    }}
+    {"context": "ochazuke.timeline/normal", "bindings": [
+      {"key": "l", "action": "ochazuke.timeline.open"},
+      {"key": "l", "action": "ochazuke.timeline.enter"},
+      {"key": "enter", "action": "ochazuke.focus.next", "hint": "edit"}
+    ]},
+    {"context": "ochazuke.editor/visual_count_pending", "extends": "visual", "bindings": [
+      {"key": "digit", "action": "ochazuke.count.append", "from": {"digit": "digit"}}
+    ]},
+    {"context": "pane/normal", "bindings": [
+      {"key": "]", "action": "panes.tab", "args": {"delta": 1}},
+      {"key": "x", "unbind": true},
+      {"key": "u", "when": "busy", "unbind": true}
+    ]},
+    {"instance": "work/agent", "mode": "normal", "bindings": [
+      {"key": "ctrl+r", "action": "pane.restart"}
+    ]}
   ]
 }
 ```
 
 - **Group:** `"context": "noun/mode"`, split at the last `/`; a bare `"noun"` is the noun's any-mode table (mode `""`). An instance's table is `{"instance": "ID", "mode": "MODE"}`. `"extends": "MODE"` on a noun group says its table reads that mode's rows after its own.
-- **Key:** a key or a sequence as everywhere else (`"g c"`, `"ctrl+a v"`). A key that names a class (`digit`, `alpha-q`, `one-of:h j k l`, `paste`, `any`, `upper`, `ctrl+alpha`) is a pattern row.
-- **Value:** the action string (`noun.verb`, split at the last `.`; an alias works, as in a row); an object for anything more, its fields written in the order `action`, `args`, `hint`, `when`, `from`, `hidden`, `help`, `replay`, `capture`, `target`, `confirmed`, `unbind`; `null` to unbind the default; or an array of those, in table order, when one key has several rows in one table (guarded alternatives: JSON keys are unique). A guarded unbind is `{"when": "...", "unbind": true}`.
+- **Row:** one small object per line, its fields in the order `key`, `action`, `args`, then `hint`, `when`, `from`, `hidden`, `help`, `replay`, `capture`, `target`, `confirmed`, `unbind`. `key` is a key or a sequence as everywhere else (`"g c"`, `"ctrl+a v"`); a key that names a class (`digit`, `alpha-q`, `one-of:h j k l`, `paste`, `any`, `upper`, `ctrl+alpha`) is a pattern row. `action` is `noun.verb`, split at the last `.` (an alias works, as in a row). `{"key": "x", "unbind": true}` unbinds the default (with `when` for a guarded one).
+- **A key may repeat.** A table's rows are in line order, and on a keypress, at each level of the focus path (innermost first), the first row on the key whose action is available answers (`Runtime.Available`: the action's own availability, such as `timeline.open` on a closed card only); when none is, the key goes on to the next level out. A container that must keep a key binds it to the always-available noop (`ochazuke.key.ignore`, `NoopAction`): the key is consumed there. A row needs no condition: `when` (a guard on the row) still works, and `bindings check` lists such rows as debts.
+- **Replacing:** a file is one batch. Its first row on a table, mode, key and `when` replaces every row the defaults had there (so `{"key": "l", "action": "my.verb"}` on `ochazuke.timeline/normal` replaces both default `l` rows), its later rows on the same key are alternatives after it.
 - **`modes`:** properties global to a mode, `{"pending": true}` or `{"passthrough": true}`. The export writes the application's own; in a user file a mode or an `extends` that differs from the application's is reported and ignored (a user file cannot define a mode).
-- **Writing:** one header comment line, then `modes` (names sorted), then the groups: nouns by name, each noun's modes by name (the any-mode table first), then instances by ID and mode. Keys sit one per line in table order, and the file keeps that order exactly: a key's adjacent rows share one array, and a key that comes back after other keys in the same table starts another group with the same context (groups of one table read back in file order). A row spelled by an alias is written as spelled. A value is the plain string whenever the row has nothing but its action.
-- **Reading:** the grouped format and the older array of rows (`[{"noun", "mode", "keys", "request": {"noun", "verb", "args"}, ...}]`, any field order) both load; the top level tells them apart (an object with `"bindings"` is grouped, an array is rows). A bad group or key is skipped and reported (`bindings.json: pane/normal q: ...`), the rest loads. `bindings check` names the format it read on the status line (`status: bindings.json: grouped format`). A hand-written file is never rewritten: only files the tools write follow this layout.
+- **Writing:** one header comment line, then `modes` (names sorted), then one group per table: nouns by name, each noun's modes by name (the any-mode table first), then instances by ID and mode, the rows in exact table order. A row spelled by an alias is written as spelled.
+- **Reading:** the grouped format, the v0.33 form of a group (`"bindings": {"KEY": "noun.verb" | {action, args, hint, when, ...} | null | [those]}`, a key once per object) and the older array of rows (`[{"noun", "mode", "keys", "request": {"noun", "verb", "args"}, ...}]`, any field order) all load; the top level tells rows from groups, each group's `bindings` tells lines from a key map. A bad group or row is skipped and reported (`bindings.json: pane/normal q: ...`), the rest loads. `bindings check` names the format it read on the status line (`status: bindings.json: grouped format`). A hand-written file is never rewritten: only files the tools write follow this layout.
+- **Checking:** `bindings check` also warns (`warning: ` lines) about each guard row of the file (a debt) and each merged row that can never answer, because an earlier row on its key in its table is available whenever it is (two always-available actions on one key: the second is dead). `bindings check --debts` lists every table's guard rows and their count. The default files' rule check (`CheckDefaultBindings`) reports a dead row as an error.
 - **Rows elsewhere:** `bindings list --json` still answers the array of rows (an API result); `settings.reference.json` and `actions.example.json` are arrays written one row per line (`FormatRows`).
 
-Go: `ParseBindings(data) (BindingsDoc, format, error)`, `FormatBindings(doc)`, `Runtime.BindingsDoc()` (every stored table), `GroupBindings(rows)`, `BindingsDoc{Modes, Groups}`, `BindingGroup{Noun, Instance, Mode, Extends, Rows}`, `ModeSpec{Pending, Passthrough}`, `Config.BindingsFormat()`, constants `BindingsGrouped`, `BindingsRows`, `BindingsHeader`.
+Go: `ParseBindings(data) (BindingsDoc, format, error)`, `FormatBindings(doc)`, `Runtime.BindingsDoc()` (every stored table), `GroupBindings(rows)`, `BindingsDoc{Modes, Groups}`, `BindingGroup{Noun, Instance, Mode, Extends, Rows}`, `ModeSpec{Pending, Passthrough}`, `Config.BindingsFormat()`, constants `BindingsGrouped`, `BindingsRows`, `BindingsHeader`; availability: `Runtime.Available(request, focus, mode)`, `Runtime.SetAvailability(key, guard)`, `NounBuilder.When`, `KeyEvent.Args`; outcomes: `Runtime.DispatchOutcome` (`KeyHandled`, `KeyUnhandled`, `KeyConsumed`), `NoopAction`; checks: `Runtime.UnreachableBindings()`, `Runtime.BindingDebts()`.
 
-Copying a default into a live file pins it: a later version that changes the default does not reach that user. Copy only what you change. A row's guard is part of its identity: a `bindings.json` row replaces only the row with the same noun or instance, mode, keys (or pattern) and `when`, so a guarded row and the unguarded row on the same keys (such as `0` in `operator_pending`: the count digit with `when: count` and the line-start motion) are changed one at a time, and the reference loads back unchanged.
+Copying a default into a live file pins it: a later version that changes the default does not reach that user. Copy only what you change. A row's guard is part of its identity: a `bindings.json` row replaces only the rows with the same noun or instance, mode, keys (or pattern) and `when`, so a guarded row and the unguarded row on the same keys (such as `0` in `operator_pending`: the count digit with `when: count` and the line-start motion) are changed one at a time, and the reference loads back unchanged.
 
 `config reload` reads, in order, `themes.json` (so the `theme` setting's choices are current), `settings.json` (observers see each changed value), `actions.json`, `bindings.json` (once; a row can name an action's verb), each only when the application uses it, then the files the application joined with `Runtime.OnConfigReload(name, fn)`. A bad file or entry is skipped and is a notice, never fatal; each file's previous notices are withdrawn first. The result is every problem, each naming its file; without a config directory it is an error. The single-file reloads (`themes reload`, `settings reload`, `actions reload`, `bindings reload`) stay.
 
