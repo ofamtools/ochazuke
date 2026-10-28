@@ -19,6 +19,9 @@ type KeyEvent struct {
 	Mode  ModeState
 	Focus string
 	Level string // the instance whose level is answering, "" for a noun-only level
+	// Args are the arguments of the request whose availability is judged
+	// (Available): a row's own, or a call's; nil for a row's own guard.
+	Args Arguments
 }
 
 // level is one step of the stack walk: an instance (nil for the modal level)
@@ -139,12 +142,40 @@ func (r *Runtime) stack(focus string) []level {
 	return out
 }
 
+// KeyOutcome is what resolving one key came to (DispatchOutcome).
+type KeyOutcome int
+
+const (
+	// KeyUnhandled: no level had a row on the key whose action is
+	// available, so it went past app.
+	KeyUnhandled KeyOutcome = iota
+	// KeyHandled: a row ran, or the key started or continued a sequence.
+	KeyHandled
+	// KeyConsumed: the row that answered runs the noop (NoopAction), the
+	// always-available action a clamping container binds a key to so it
+	// goes no further out: handled, and nothing happened.
+	KeyConsumed
+)
+
+// NoopAction is the always-available action that does nothing: a row bound
+// to it consumes its key (KeyConsumed), which is how a container clamps a
+// key its children leave unhandled at an edge.
+const NoopAction = "ochazuke.key.ignore"
+
 // Dispatch resolves one key through the stack walk and runs the first row
 // that answers. It reports whether any row claimed the key. Live keys and
 // macro playback both arrive here.
 func (r *Runtime) Dispatch(key MacroKey) (bool, error) {
+	outcome, err := r.DispatchOutcome(key)
+	return outcome != KeyUnhandled, err
+}
+
+// DispatchOutcome is Dispatch reporting which of the three outcomes the
+// key had: handled, unhandled (no level had an available row on it), or
+// consumed by a noop row.
+func (r *Runtime) DispatchOutcome(key MacroKey) (KeyOutcome, error) {
 	if err := r.expirePrefix(); err != nil {
-		return true, err
+		return KeyHandled, err
 	}
 	focus := r.Focus
 	mode := r.Mode
@@ -159,7 +190,7 @@ func (r *Runtime) Dispatch(key MacroKey) (bool, error) {
 func (r *Runtime) HandleBinding(key string) (bool, error) { return r.Dispatch(MacroKey{Key: key}) }
 
 // dispatchIn runs the walk for an explicit mode (the shadow of a recording).
-func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (bool, error) {
+func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (KeyOutcome, error) {
 	ev := KeyEvent{Key: key, Mode: mode, Focus: focus}
 	base, prefix := baseAndPrefix(mode)
 	sequence := key.Key
@@ -171,23 +202,27 @@ func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (bool, 
 		fallback = mode.Payload.Request
 	}
 	exclusive := r.pendingModes[mode.Name] || mode.Payload.Shadow != nil
-	wait := func(exact *Binding) (bool, error) {
+	wait := func(exact *Binding) (KeyOutcome, error) {
 		if exact != nil {
 			fallback = &exact.Request
 		} else if prefix == "" {
 			fallback = nil
 		}
 		r.enterPrefix(base, sequence, fallback)
-		return true, nil
+		return KeyHandled, nil
 	}
-	run := func(lv level, hit *Binding) (bool, error) {
+	run := func(lv level, hit *Binding) (KeyOutcome, error) {
 		if prefix != "" {
 			r.leavePrefix()
 		}
 		if lv.inst != nil {
 			ev.Level = lv.inst.ID
 		}
-		return true, r.runRow(lv, *hit, ev)
+		outcome := KeyHandled
+		if hit.Request.Key() == NoopAction {
+			outcome = KeyConsumed
+		}
+		return outcome, r.runRow(lv, *hit, ev)
 	}
 	levels := r.walk(focus)
 	// The capture pass: outer-first, the first level that answers wins.
@@ -242,12 +277,12 @@ func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (bool, 
 			_, err := r.Execute(*fallback)
 			restore()
 			if err != nil {
-				return true, err
+				return KeyHandled, err
 			}
 		}
-		return r.Dispatch(key)
+		return r.DispatchOutcome(key)
 	}
-	return false, nil
+	return KeyUnhandled, nil
 }
 
 // baseAndPrefix splits a prefix mode name ("normal g g") into the table it
@@ -290,8 +325,8 @@ func (r *Runtime) lookup(lv level, mode string, exclusive bool, prefix, sequence
 			if row.Unbind || row.Capture != lv.capture {
 				continue
 			}
-			if !r.VerbShown(row.Request.Key(), ev.Focus, ev.Mode) {
-				continue // guarded off here: the walk goes on, as the listings hide it
+			if !r.Available(row.Request, ev.Focus, ev.Mode) {
+				continue // not available here: the walk goes on, as the listings hide it
 			}
 			if row.Keys != "" && !key.Paste {
 				if row.Keys == sequence {
@@ -637,7 +672,7 @@ func (r *Runtime) scanRows(levels []level, mode ModeState, focus string, editing
 						continue
 					}
 				}
-				if !r.VerbShown(b.Request.Key(), focus, mode) {
+				if !r.Available(b.Request, focus, mode) {
 					continue // guarded off here: hints and bindings list match the palette
 				}
 			} else {
@@ -873,12 +908,14 @@ func registerModeTables(r *Runtime) {
 		case "":
 			return r.Dispatch(key)
 		case "shadow":
-			return r.dispatchIn(focus, r.Mode, key)
+			outcome, err := r.dispatchIn(focus, r.Mode, key)
+			return outcome != KeyUnhandled, err
 		default:
 			if !r.Modes[mode] && !r.pendingModes[mode] {
 				return nil, fmt.Errorf("unknown mode %q", mode)
 			}
-			return r.dispatchIn(focus, ModeState{Name: mode, Payload: r.Mode.Payload}, key)
+			outcome, err := r.dispatchIn(focus, ModeState{Name: mode, Payload: r.Mode.Payload}, key)
+			return outcome != KeyUnhandled, err
 		}
 	}})
 	r.Register(Operation{Verb: "leave", Noun: "ochazuke.mode", Description: "Return from a pending mode to the mode it shadowed", Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {

@@ -652,7 +652,7 @@ func (r *Runtime) execute(c Context, q Request) (any, error) {
 	// Guards are applicability: a verb guarded off where the request acts
 	// (its target, else the caller's focus) is refused, from keys, the
 	// palette, the CLI and the API alike.
-	if !r.VerbShown(q.Key(), focus, r.Mode) {
+	if !r.Available(q, focus, r.Mode) {
 		return nil, fmt.Errorf("%s is not applicable now", r.DisplayKey(q.Key()))
 	}
 	// A request without a target addresses the nearest instance of its
@@ -903,5 +903,5 @@ func registerCore(r *Runtime) {
 	}})
 	r.Register(Operation{Verb: "pop", Noun: "ochazuke.modal", Description: "Close the active modal and restore its parent", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) { err := r.Pop(); return r.Context(), err }})
 	r.Register(Operation{Verb: "quit", Noun: "app", Description: "Exit the application", Result: "boolean", Run: func(r *Runtime, c Context, a Arguments) (any, error) { r.Quit = true; return true, nil }})
-	r.Register(Operation{Verb: "ignore", Noun: "ochazuke.key", Description: "Consume a key without effect; the row a noun binds to swallow keys", Result: "null", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
+	r.Register(Operation{Verb: "ignore", Noun: "ochazuke.key", Description: "The noop: always available, does nothing; a row bound to it consumes its key (DispatchOutcome reports KeyConsumed), how a container clamps a key its children leave unhandled", Result: "null", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
 }

@@ -99,6 +99,9 @@ func (r *Runtime) LoadDefaultBindings(source string, data []byte) error {
 			}
 		}
 	}
+	// The file is one batch: a key repeated in a table is an alternative
+	// after the first, not a replacement.
+	batch := rowBatch{}
 	for i, g := range file.Groups {
 		if g.Mode != "" && !r.Modes[g.Mode] && !r.pendingModes[g.Mode] {
 			return fmt.Errorf("%s: %s: unknown mode %q", source, g.label(), g.Mode)
@@ -108,7 +111,7 @@ func (r *Runtime) LoadDefaultBindings(source string, data []byte) error {
 			if g.Fallback && bound[fallbackKey(nouns[i], g.Instance, row)] {
 				continue
 			}
-			if err := r.installDefaultRow(source, row); err != nil {
+			if err := r.installDefaultRow(source, row, batch); err != nil {
 				return fmt.Errorf("%s: %s %q: %w", source, g.label(), row.Keys+row.Pattern, err)
 			}
 		}
@@ -163,7 +166,7 @@ func fallbackKey(noun, instance string, b Binding) string {
 
 // installDefaultRow validates and places one default row, recording its
 // source.
-func (r *Runtime) installDefaultRow(source string, row Binding) error {
+func (r *Runtime) installDefaultRow(source string, row Binding, batch rowBatch) error {
 	row, err := r.validateRow(row)
 	if err != nil {
 		return err
@@ -172,10 +175,10 @@ func (r *Runtime) installDefaultRow(source string, row Binding) error {
 	row = withImplicitGuard(row)
 	if row.Instance != "" {
 		inst := r.Instances[row.Instance]
-		inst.Bindings = withPrefixCancels(bindRow(inst.Bindings, row))
+		inst.Bindings = withPrefixCancels(bindRow(inst.Bindings, row, batch))
 	} else {
 		noun := r.Nouns[row.Noun]
-		noun.Bindings[row.Mode] = withPrefixCancels(bindRow(noun.Bindings[row.Mode], row))
+		noun.Bindings[row.Mode] = withPrefixCancels(bindRow(noun.Bindings[row.Mode], row, batch))
 	}
 	if row.Unbind {
 		delete(r.defaults.rows, sourceKey(row))
@@ -271,8 +274,8 @@ func (r *Runtime) DefaultBindings() []DefaultBinding {
 			a := c.applied[i]
 			restore := func(rows []Binding) []Binding {
 				rows = removeRows(rows, a.row)
-				for _, b := range a.replaced {
-					rows = insertRow(rows, a.at, b)
+				for k, b := range a.replaced {
+					rows = insertRow(rows, a.at+k, b)
 				}
 				return withPrefixCancels(rows)
 			}

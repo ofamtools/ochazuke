@@ -363,8 +363,9 @@ func (r *Runtime) ReloadUserBindings() []string {
 		return nil
 	}
 	rows, problems := r.readUserBindings(path)
+	batch := rowBatch{}
 	for _, f := range rows {
-		notice, err := r.applyUserRow(f.row)
+		notice, err := r.applyUserRow(f.row, batch)
 		switch {
 		case err != nil:
 			problems = append(problems, rowProblem(f.where, f.row, err))
@@ -540,7 +541,7 @@ func (r *Runtime) fileModeProblems(doc BindingsDoc) []string {
 // applyUserRow installs one user row and logs the rows it replaced. The
 // notice, when not empty, says why the row will not answer everywhere it
 // looks like it should: a guarded row on its keys answers first.
-func (r *Runtime) applyUserRow(row Binding) (string, error) {
+func (r *Runtime) applyUserRow(row Binding, batch rowBatch) (string, error) {
 	normalized, err := r.validateRow(row)
 	if err != nil {
 		return "", err
@@ -548,21 +549,31 @@ func (r *Runtime) applyUserRow(row Binding) (string, error) {
 	normalized = withImplicitGuard(normalized)
 	var replaced []Binding
 	at := -1
-	for i, b := range r.tableRows(normalized) {
-		if b.same(normalized) {
-			// A generated prefix cancel is not logged: withPrefixCancels
-			// brings it back on its own.
-			if !isPrefixCancel(b) {
-				replaced, at = []Binding{b}, i
+	followup := batch[sourceKey(normalized)]
+	if !followup {
+		// The file's first row with this identity replaces every row with
+		// it (its later ones are alternatives after it). A generated
+		// prefix cancel is not logged: withPrefixCancels brings it back on
+		// its own.
+		for i, b := range r.tableRows(normalized) {
+			if b.same(normalized) && !isPrefixCancel(b) {
+				if at < 0 {
+					at = i
+				}
+				replaced = append(replaced, b)
 			}
-			break
 		}
 	}
-	if err := r.bindRows([]Binding{row}, false); err != nil {
+	if err := r.bindRows([]Binding{row}, false, batch); err != nil {
 		return "", err
 	}
 	c := r.Config()
 	c.applied = append(c.applied, appliedRow{row: normalized, replaced: replaced, at: at})
+	// An alternative after the file's first row on the identity says
+	// nothing the first row's notice did not.
+	if followup {
+		return "", nil
+	}
 	return shadowNotice(r.tableRows(normalized), normalized, len(replaced) > 0), nil
 }
 
@@ -621,8 +632,8 @@ func (r *Runtime) unapplyUserBindings() {
 		a := c.applied[i]
 		restore := func(rows []Binding) []Binding {
 			rows = removeRows(rows, a.row)
-			for _, b := range a.replaced {
-				rows = insertRow(rows, a.at, b)
+			for k, b := range a.replaced {
+				rows = insertRow(rows, a.at+k, b)
 			}
 			return withPrefixCancels(rows)
 		}

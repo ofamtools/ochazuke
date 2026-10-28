@@ -213,18 +213,51 @@ func (b Binding) identityGuard() string {
 // (capture or not), which would otherwise answer first and leave it dead,
 // else at the end. It returns the table and the row it displaced, if any.
 func placeRow(rows []Binding, row Binding) ([]Binding, *Binding) {
+	out, displaced := placeRowIn(rows, row, nil)
+	if len(displaced) == 0 {
+		return out, nil
+	}
+	return out, &displaced[0]
+}
+
+// rowBatch is the row identities (sourceKey) one batch of rows has placed
+// so far: a file (a default file, the user's bindings.json) or one Bind
+// call. A key may repeat in a batch: its first row with an identity
+// replaces the table's rows with that identity, and its later ones are
+// alternatives placed after it in order, so the resolver runs the first
+// whose action is available (Available). A nil batch is one row.
+type rowBatch map[string]bool
+
+// placeRowIn is placeRow inside a batch, returning every row it displaced:
+// a row whose identity the batch placed already goes after the last row
+// with it, and displaces nothing.
+func placeRowIn(rows []Binding, row Binding, batch rowBatch) ([]Binding, []Binding) {
+	id := sourceKey(row)
+	if batch[id] {
+		for i := len(rows) - 1; i >= 0; i-- {
+			if rows[i].same(row) {
+				return insertRow(rows, i+1, row), nil
+			}
+		}
+	}
+	if batch != nil {
+		batch[id] = true
+	}
 	if i := slices.IndexFunc(rows, row.same); i >= 0 {
-		displaced := rows[i]
+		var displaced []Binding
 		out := make([]Binding, 0, len(rows))
 		for j, b := range rows {
 			switch {
 			case j == i:
 				out = append(out, row)
-			case !b.same(row):
+				displaced = append(displaced, b)
+			case b.same(row):
+				displaced = append(displaced, b)
+			default:
 				out = append(out, b)
 			}
 		}
-		return out, &displaced
+		return out, displaced
 	}
 	at := len(rows)
 	if row.identityGuard() != "" {
@@ -589,14 +622,51 @@ func (r *Runtime) VerbGuard(key string) string {
 
 // VerbShown reports whether noun.verb is offered at a focus in a mode: true
 // for an unguarded verb or one whose guard holds there. A guard name that
-// is not registered hides nothing.
+// is not registered hides nothing. It is Available for a request with no
+// arguments.
 func (r *Runtime) VerbShown(key, focus string, mode ModeState) bool {
-	name := r.VerbGuard(key)
+	noun, verb := r.keyParts(key)
+	return r.Available(Request{Noun: noun, Verb: verb}, focus, mode)
+}
+
+// Available reports whether an action can run now: its availability (the
+// verb guard, NounBuilder.When or SetAvailability) holds at the focus in
+// the mode for the request's arguments, or it has none. The guard reads a
+// KeyEvent whose Focus and Level are focus, Mode is mode and Args are the
+// request's (a binding row's own arguments, or a CLI call's), so an action
+// that acts on an argument (timeline.open {card}) judges that thing. The
+// resolver runs, at each level, the first row on a key whose action is
+// available (an unavailable one stands aside and the key goes on, out to
+// the next level when none at this one is); the palette, the hints, the
+// help and Execute ask the same question. A guard name that is not
+// registered hides nothing.
+func (r *Runtime) Available(q Request, focus string, mode ModeState) bool {
+	name := r.VerbGuard(q.Key())
 	if name == "" {
 		return true
 	}
 	guard := r.guard(name)
-	return guard == nil || guard(r, KeyEvent{Mode: mode, Focus: focus, Level: focus})
+	return guard == nil || guard(r, KeyEvent{Mode: mode, Focus: focus, Level: focus, Args: q.Args})
+}
+
+// SetAvailability makes a registered action available only while the
+// named guard holds (Available): what NounBuilder.When does for the verb
+// it follows, for an operation registered with Register (the framework's
+// components). An empty guard makes the action always available.
+func (r *Runtime) SetAvailability(key, guard string) {
+	noun, verb := r.keyParts(key)
+	n := r.Noun(noun)
+	if n == nil {
+		panic(fmt.Sprintf("SetAvailability: unknown noun %q", noun))
+	}
+	if guard == "" {
+		delete(n.Guards, verb)
+		return
+	}
+	if n.Guards == nil {
+		n.Guards = map[string]string{}
+	}
+	n.Guards[verb] = guard
 }
 
 // Action overrides any operation ("noun.verb") while this noun is on the stack.
@@ -792,12 +862,17 @@ func isPattern(s string) bool {
 // removed is on it: in its mode, with the keys typed so far, a sequence
 // extending them or one they extend. Such a row cancels the sequence, so
 // the next key starts fresh against the new tables.
-func (r *Runtime) Bind(rows ...Binding) error { return r.bindRows(rows, true) }
+//
+// The rows of one call are one batch (rowBatch): a key repeated with the
+// same identity is not a replacement but an alternative after the first,
+// so Bind(Do("timeline.open"), Do("timeline.enter")) on l keeps both, and
+// the first whose action is available answers.
+func (r *Runtime) Bind(rows ...Binding) error { return r.bindRows(rows, true, rowBatch{}) }
 
 // bindRows is Bind; code is false for the user's file rows, which leave
 // the source of the default they replace alone (bindings defaults shows
-// that default again).
-func (r *Runtime) bindRows(rows []Binding, code bool) error {
+// that default again). batch spans the file or the call.
+func (r *Runtime) bindRows(rows []Binding, code bool, batch rowBatch) error {
 	for _, row := range rows {
 		row, err := r.validateRow(row)
 		if err != nil {
@@ -810,10 +885,10 @@ func (r *Runtime) bindRows(rows []Binding, code bool) error {
 		switch {
 		case row.Instance != "":
 			inst := r.Instances[row.Instance]
-			inst.Bindings = withPrefixCancels(bindRow(inst.Bindings, row))
+			inst.Bindings = withPrefixCancels(bindRow(inst.Bindings, row, batch))
 		default:
 			noun := r.Nouns[row.Noun]
-			noun.Bindings[row.Mode] = withPrefixCancels(bindRow(noun.Bindings[row.Mode], row))
+			noun.Bindings[row.Mode] = withPrefixCancels(bindRow(noun.Bindings[row.Mode], row, batch))
 		}
 		if r.rowTouchesPending(row) {
 			r.CancelPendingBinding()
@@ -824,11 +899,11 @@ func (r *Runtime) bindRows(rows []Binding, code bool) error {
 
 // bindRow applies one validated row to a table: an unbind removes the row
 // with its identity, any other row is placed by identity (placeRow).
-func bindRow(rows []Binding, row Binding) []Binding {
+func bindRow(rows []Binding, row Binding, batch rowBatch) []Binding {
 	if row.Unbind {
 		return removeRows(rows, row)
 	}
-	rows, _ = placeRow(rows, row)
+	rows, _ = placeRowIn(rows, row, batch)
 	return rows
 }
 
@@ -1019,7 +1094,9 @@ func (r *Runtime) DefinePassthrough(name string) error {
 	return nil
 }
 
-// Guard is a named condition a row requires. The built-in guards are
+// Guard is a named condition: an action's availability (Available, the
+// verb guard) or, the older use kept while areas move, a condition a row
+// requires (Binding.When; bindings check lists such rows as debts). The built-in guards are
 // "input" and "no-input" (the focus is or is not an input), "multiline", "count" and "no-count" (the
 // pending count is present or absent), "self" (the focus is the instance
 // whose level the row sits on, not a descendant), "shadow-idle" (the mode a
