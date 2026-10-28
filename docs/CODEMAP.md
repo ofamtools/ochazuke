@@ -570,7 +570,7 @@ Root package `ochazuke` is flat: 79 source files, 80 test files. Each entry list
 
 ### timeline.go
 
-- lines: 1261 · tests: timeline_test.go
+- lines: 1285 · tests: timeline_test.go
 - purpose: Card is one entry of a timeline: a box with a header that always shows (wrapped onto as many lines as it needs) and a meta line under it, and a body shown on...
 - types: Card, CardSection, CardRole, Timeline
 - methods: List(1), Runtime(3), Timeline(46)
@@ -579,12 +579,12 @@ Root package `ochazuke` is flat: 79 source files, 80 test files. Each entry list
 
 ### timeline_steps.go
 
-- lines: 705 · tests: timeline_steps_test.go
+- lines: 694 · tests: timeline_steps_test.go
 - purpose: CardStep is one place inside an open card (Card.Steps), in order.
 - types: CardStep
 - methods: CardStep(1), Runtime(1), Timeline(19)
 - funcs: ParentStop
-- leans on: timeline.go(67), runtime.go(39), noun.go(15), instance.go(12)
+- leans on: timeline.go(68), runtime.go(39), noun.go(15), instance.go(12)
 
 ### tone.go
 

@@ -533,19 +533,8 @@ func (t *Timeline) stepOnce(delta int, edge bool) bool {
 	from, to, _ := t.stepLines(i)
 	t.step = was
 	a, b := at+from, at+to
-	tall := b-a+1 > t.avail
-	var want int
-	switch {
-	case delta > 0 && tall: // its top
-		want = max(0, a)
-	case delta > 0:
-		want = max(0, b-t.avail+1)
-	case tall: // k into a tall step shows its end first
-		want = min(0, b-t.avail+1)
-	default:
-		want = min(0, a)
-	}
-	moved := t.motionShift(want)
+	// j into a tall step shows its top, k its end.
+	moved := t.motionShift(minimalReveal(a, b, t.avail, delta))
 	if SpanInView(a-moved, b-moved, t.avail) {
 		t.step = next
 	}

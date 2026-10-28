@@ -1065,12 +1065,36 @@ func (t *Timeline) cardOnce(delta int, edge bool) bool {
 	t.reveal, t.seek = false, false // the motion places the window itself
 	a := t.relStart(next)
 	b := a + t.height(next) - 1
-	moved := t.motionShift(t.relOf(t.revealed(next, t.avail)))
+	want := t.relOf(t.revealed(next, t.avail))
+	if MotionScroll(want, t.avail) != want {
+		// Too far for one press: the least scroll that shows the card
+		// (its top when taller than the window), not the whole-card
+		// alignment, so the press shows as much of it as it can.
+		want = minimalReveal(a, b, t.avail, delta)
+	}
+	moved := t.motionShift(want)
 	if SpanInView(a-moved, b-moved, t.avail) {
 		l.Move(delta)
 		t.lastSel = t.SelectedID() // the window stays where the motion put it
 	}
 	return true
+}
+
+// minimalReveal is the least scroll that shows lines a through b (counted
+// from the window's first line) in a window of avail lines, moving in
+// delta's direction: a span taller than the window shows its top going
+// down and its end going up.
+func minimalReveal(a, b, avail, delta int) int {
+	tall := b-a+1 > avail
+	switch {
+	case delta > 0 && tall:
+		return max(0, a)
+	case delta > 0:
+		return max(0, b-avail+1)
+	case tall:
+		return min(0, b-avail+1)
+	}
+	return min(0, a)
 }
 
 // edgeWant is the scroll that shows the timeline's end (delta > 0: the
