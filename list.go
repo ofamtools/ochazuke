@@ -57,6 +57,10 @@ type List struct {
 	cellSelect  bool            // CellSelect: a table with a current column (table_cells.go)
 	col         int             // a cell-mode table's current column
 	colWidths   map[int]int     // widths given with z > and z < (table_cells.go)
+	colHeader   bool            // the last frame drew the table's header (edge markers need it)
+	edges       colEdges        // the edge markers the last frame drew (table_columns.go)
+	pins        []int           // the user's pinned columns (table_pins.go), when pinsSet
+	pinsSet     bool            // pins holds a choice; else the default pins
 	restored    bool            // the remembered TableState was read
 	drawn       []int           // the columns the last frame showed
 	drawnWidths []int           // and their widths
@@ -201,20 +205,14 @@ func (l *List) spill(delta int) bool {
 	if delta == 0 || inside || l.noSpill || l.visual || !l.Focused() {
 		return false
 	}
-	root := l.r.focusRoot()
-	if l.r.PageOf(root) == nil {
-		return false
-	}
-	ring, _ := l.r.units(root, l.r.focusable)
-	i := slices.Index(ring, l.id)
 	step := 1
 	if delta < 0 {
 		step = -1
 	}
-	if i < 0 || i+step < 0 || i+step >= len(ring) {
+	next, ok := l.neighbour(step)
+	if !ok {
 		return false
 	}
-	next := ring[i+step]
 	if other := l.r.List(next); other != nil && other.Shown() > 0 {
 		row := 0
 		if step < 0 {
@@ -224,6 +222,24 @@ func (l *List) spill(delta int) bool {
 	}
 	l.r.setFocus(l.r.landing(next))
 	return true
+}
+
+// neighbour is the stop after (step 1) or before (step -1) the list in
+// its page's drawing order; false in a modal, off a page, and past the
+// page's first or last stop (motions never wrap). j and k spill into it
+// (spill); h and l at a table's column edge move the focus to it
+// (table-spills-left/right, table_columns.go).
+func (l *List) neighbour(step int) (string, bool) {
+	root := l.r.focusRoot()
+	if l.r.PageOf(root) == nil {
+		return "", false
+	}
+	ring, _ := l.r.units(root, l.r.focusable)
+	i := slices.Index(ring, l.id)
+	if i < 0 || i+step < 0 || i+step >= len(ring) {
+		return "", false
+	}
+	return ring[i+step], true
 }
 
 // Select changes the selected row by stable ID without taking focus. A

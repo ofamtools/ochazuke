@@ -48,6 +48,7 @@ type Column struct {
 	Align    Align  `json:"align,omitempty"`
 	Priority int    `json:"priority,omitempty"`
 	Wrap     bool   `json:"wrap,omitempty"`
+	Pinned   bool   `json:"pinned,omitempty"`
 }
 
 // tableGap is the space between two columns; defaultColumnMin a flexible
@@ -221,11 +222,21 @@ func (l *List) tableView(width, height int) (string, int, int) {
 	for i, c := range l.columns {
 		titles[i] = modalLabel(c.Title)
 	}
+	l.colHeader = header
 	shown, widths := l.columnLayout(max(1, width-mark))
+	cols, shown, widths, right := l.withEdges(titles, shown, widths)
 	span := l.currentSpan(shown, widths, mark)
 	var lines []string
 	if header {
-		head := strings.Repeat(" ", mark) + tableLine(l.columns, titles, shown, widths)
+		heads := titles
+		if l.edges.w > 0 {
+			heads = append(slices.Clip(titles), l.edges.left)
+		}
+		head := strings.Repeat(" ", mark) + tableLine(cols, heads, shown, widths)
+		if right != "" {
+			head = ansi.Truncate(head, width-l.edges.w, "") + strings.Repeat(" ", max(0, width-l.edges.w-ansi.StringWidth(head)))
+			head += strings.Repeat(" ", max(0, l.edges.w-ansi.StringWidth(right))) + right
+		}
 		bold := lipgloss.NewStyle().Bold(true)
 		lines = append(lines, styleSpan(strings.TrimRight(head, " "), span, bold, "1;4"))
 	}
@@ -235,7 +246,7 @@ func (l *List) tableView(width, height int) (string, int, int) {
 		return strings.Join(layoutRows(strings.Join(lines, "\n"), width, height), "\n"), 0, height
 	}
 	if l.tall() {
-		return l.tallView(lines, width, height, body, shown, widths, span)
+		return l.tallView(lines, width, height, body, cols, shown, widths, span)
 	}
 	visible := body
 	if len(l.items) > body && body > 1 {
@@ -247,7 +258,7 @@ func (l *List) tableView(width, height int) (string, int, int) {
 	l.window, l.windowed = visible, len(l.items) > visible
 	marked := l.marksSelection()
 	for i := l.offset; i < end; i++ {
-		line := tableLine(l.columns, cells(l.items[i], len(l.columns)), shown, widths)
+		line := tableLine(cols, l.rowCells(cells(l.items[i], len(l.columns))), shown, widths)
 		if gutter {
 			prefix := "  "
 			if l.marks[l.items[i].ID] {
@@ -393,7 +404,7 @@ func tableRowLines(cols []Column, row []string, shown, widths []int) []string {
 // when it starts inside a section, that section's label is repeated on
 // its first line. The focused list's selected row is reversed across the
 // whole width on every line, its section label not.
-func (l *List) tallView(lines []string, width, height, body int, shown, widths []int, span span) (string, int, int) {
+func (l *List) tallView(lines []string, width, height, body int, cols []Column, shown, widths []int, span span) (string, int, int) {
 	section := lipgloss.NewStyle().Bold(true).Underline(true)
 	gutter := len(l.marks) > 0
 	rows := make([][]string, len(l.items))
@@ -401,7 +412,7 @@ func (l *List) tallView(lines []string, width, height, body int, shown, widths [
 	total := 0
 	for i, item := range l.items {
 		opens[i] = item.Section != "" && (i == 0 || l.items[i-1].Section != item.Section)
-		for k, line := range tableRowLines(l.columns, cells(item, len(l.columns)), shown, widths) {
+		for k, line := range tableRowLines(cols, l.rowCells(cells(item, len(l.columns))), shown, widths) {
 			if gutter {
 				prefix := "  "
 				if k == 0 && l.marks[item.ID] {
@@ -523,4 +534,40 @@ func styleSpan(line string, sp span, base lipgloss.Style, mark string) string {
 		out += base.Render(ansi.Cut(line, end, n))
 	}
 	return out
+}
+
+// colEdges is what a frame draws at a table's edges (table_columns.go):
+// the cells one marker takes (0: no markers) and the two markers' text.
+type colEdges struct {
+	w           int
+	left, right string
+}
+
+// withEdges adds the left edge marker's column to a frame's layout: a
+// column of the marker's width after the pinned columns shown (index
+// len(l.columns), blank in the rows, the left marker in the header). It
+// returns the columns to draw with, the layout with the marker's column,
+// and the right marker's text (drawn at the header's right edge).
+func (l *List) withEdges(titles []string, shown, widths []int) ([]Column, []int, []int, string) {
+	if l.edges.w == 0 {
+		return l.columns, shown, widths, ""
+	}
+	pins := l.pinned()
+	at := 0
+	for at < len(shown) && slices.Contains(pins, shown[at]) {
+		at++
+	}
+	cols := append(slices.Clone(l.columns), Column{})
+	shown = slices.Insert(slices.Clone(shown), at, len(l.columns))
+	widths = slices.Insert(slices.Clone(widths), at, l.edges.w)
+	return cols, shown, widths, l.edges.right
+}
+
+// rowCells is a row's cells with the left edge marker's column after
+// them, blank, when the frame draws markers.
+func (l *List) rowCells(row []string) []string {
+	if l.edges.w == 0 {
+		return row
+	}
+	return append(slices.Clip(row), "")
 }

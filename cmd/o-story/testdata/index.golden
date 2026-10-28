@@ -37,13 +37,13 @@
    › Stories  Play
   ────────────────────────────────────
   LISTS ──────────────────────────── 2
-    story                          gap
+    story                           3›
     j moves down a row
-    a focused empty list stays v…
+    a focused empty list stay…
 
   MOTIONS ────────────────────────── 1
-    story
-    count spills once at the edge
+    story                           3›
+    count spills once at the …
 
 
   ────────────────────────────────────

@@ -1,6 +1,6 @@
 {
   "name": "| with a count goes to that column (5| scrolls the dropped branch column into view), | alone to the first",
-  "width": 44,
+  "width": 52,
   "height": 6,
   "chrome": "none",
   "page": {

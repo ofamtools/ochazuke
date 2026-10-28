@@ -48,22 +48,22 @@ func header(m *Model) string {
 // A table without CellSelect selects rows and scrolls its columns with $,
 // ^, 0 and z l/z h, as before v0.12.0; table_cells_test covers cell mode.
 func TestColumnMotionsScrollTheHiddenColumnsIntoView(t *testing.T) {
-	r, m, l := columnTable(t, 36)
-	if got := header(m); got != "name alpha beta" {
+	r, m, l := columnTable(t, 44) // 36 for the columns, 8 for the edge markers
+	if got := header(m); got != "name alpha beta 2›" {
 		t.Fatalf("unscrolled header %q", got)
 	}
 	for _, step := range []struct {
 		keys, header string
 		offset       int
 	}{
-		{"$", "name gamma delta", 3},
-		{"z h", "name beta gamma", 2},
-		{"z h", "name alpha beta", 1},
-		{"z h", "name alpha beta", 0}, // the unscrolled view; the edge is quiet
-		{"2 z l", "name beta gamma", 2},
-		{"z l z l z l", "name gamma delta", 3}, // never past the last column
-		{"^", "name alpha beta", 0},
-		{"$ 0", "name alpha beta", 0},
+		{"$", "name ‹2 gamma delta", 3},
+		{"z h", "name ‹1 beta gamma 1›", 2},
+		{"z h", "name alpha beta 2›", 0}, // offset 1 draws what 0 does: it is 0
+		{"z h", "name alpha beta 2›", 0}, // the unscrolled view; the edge is quiet
+		{"2 z l", "name ‹2 gamma delta", 3},
+		{"z l z l z l", "name ‹2 gamma delta", 3}, // never past the last column
+		{"^", "name alpha beta 2›", 0},
+		{"$ 0", "name alpha beta 2›", 0},
 	} {
 		motionKeys(t, r, m, step.keys)
 		if got := header(m); got != step.header || l.ColumnOffset() != step.offset {
@@ -88,7 +88,7 @@ func TestColumnMotionsScrollTheHiddenColumnsIntoView(t *testing.T) {
 
 // A width that shows every column puts a scrolled table back to offset 0.
 func TestColumnOffsetClampsToTheWidth(t *testing.T) {
-	r, m, l := columnTable(t, 36)
+	r, m, l := columnTable(t, 44)
 	motionKeys(t, r, m, "$")
 	m.Width = 120
 	_ = m.View()
@@ -119,11 +119,13 @@ func TestColumnMotionsAnswerOnlyWhereColumnsAreHidden(t *testing.T) {
 func TestScrolledLayoutKeepsTheFirstColumn(t *testing.T) {
 	cols := []Column{{Title: "name"}, {Title: "a"}, {Title: "b"}, {Title: "c"}}
 	widest := []int{10, 10, 10, 10}
-	if shown, _ := scrolledLayout(cols, widest, 34, 2); fmt.Sprint(shown) != "[0 2 3]" {
+	v := colView{cols: cols, widest: widest, pins: []int{0}, rest: []int{1, 2, 3}, width: 34}
+	if shown, _ := v.at(2); fmt.Sprint(shown) != "[0 2 3]" {
 		t.Fatalf("offset 2 at 34: %v", shown)
 	}
 	// Too narrow for the first column beside column k: k alone.
-	if shown, widths := scrolledLayout(cols, widest, 15, 3); fmt.Sprint(shown) != "[3]" || widths[0] != 10 {
+	v.width = 15
+	if shown, widths := v.at(3); fmt.Sprint(shown) != "[3]" || widths[0] != 10 {
 		t.Fatalf("offset 3 at 15: %v %v", shown, widths)
 	}
 }

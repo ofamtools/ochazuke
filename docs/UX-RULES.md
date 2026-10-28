@@ -97,7 +97,8 @@ tiers above them. When the two disagree, fix one in the same commit.
   `pages/tab-order.json`.
 - **R3.4** `j`/`k` past the edge of a focused page list spills to the
   neighbouring stop (next stop's first row, previous stop's last row).
-  Story: `motions/spill-down.json`, `motions/spill-up.json`.
+  Its horizontal twin on tables is R5.11 (`h`/`l` scroll, then move the
+  focus). Story: `motions/spill-down.json`, `motions/spill-up.json`.
 - **R3.5** Spill never wraps at the page's first or last stop. Story:
   `motions/no-wrap.json`.
 - **R3.6** A `NoSpill` list and any list inside a modal clamp instead of
@@ -202,14 +203,17 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R5.9** A table that hides a column scrolls its columns: `z l`/`z h`
   move the view one column (a cell-mode table carries its current column
   along); on a row-select table (the default) `$` shows the last column and
-  `^`/`0` (without a count) go back; the first column stays; the keys do
-  not answer (and `z` does not wait) on a row-select table that fits or a
-  plain list. Story: `tables/column-motions.json`,
-  `tables/row-select.json`; tests `TestColumnMotions*`.
+  `^`/`0` (without a count) go back; the pinned columns stay (R5.13); no
+  key scrolls without a visible change (an offset that draws what the
+  start draws is the start); the keys do not answer (and `z` does not
+  wait) on a row-select table that fits or a plain list. Story:
+  `tables/column-motions.json`, `tables/row-select.json`; tests
+  `TestColumnMotions*`.
 - **R5.10** Cell mode is opt-in. A table selects rows unless it is added
   with `CellSelect()`, for a table one reads cell by cell (a JSON or CSV
   view); `h`/`l` stay free for row nouns everywhere else. A cell-mode
-  table has a current column: `h`/`l`/arrows move by column (counts), `j`/`k` keep it,
+  table has a current column: `h`/`l`/arrows move by column (counts; at the
+  first and last column they move the focus, R5.11), `j`/`k` keep it,
   `0`/`^`/home and `$`/end go to the ends, `N|` to column N, `g c` chooses
   one; every frame scrolls the view as little as shows it (a column dropped
   by `Priority` included). The selected row keeps the one highlight across
@@ -224,8 +228,9 @@ tiers above them. When the two disagree, fix one in the same commit.
   spilling, a row's verb runs for every selected row with one confirm,
   `esc` ends it and restores the marks. A row-select table (a tree's list,
   where `h`/`l` collapse and expand; help; settings; a cli catalog table)
-  and a plain list answer none of the other keys; a row-select table
-  remembers no view. `RowSelect()` is a deprecated no-op. A row noun
+  and a plain list answer none of the other keys (`h`/`l` scroll a
+  row-select table, R5.11); a row-select table remembers only its pins
+  (R5.13). `RowSelect()` is a deprecated no-op. A row noun
   binding one of the keys answers first. The movement keys are motions
   (off the footer). Story: `tables/cell-motion.json`,
   `tables/column-count.json`, `tables/column-resize.json`,
@@ -233,6 +238,49 @@ tiers above them. When the two disagree, fix one in the same commit.
   `tables/unfocused-cell-dimmed.json`, `tables/row-select.json`,
   `catalog/groups-table-h.json`; tests `TestCell*`, `TestColumnWidths*`,
   `TestVisual*`.
+- **R5.11** `h`/`l` scroll, then move the focus: the horizontal twin of
+  R3.4. On a row-select table `l` scrolls the view one column right until
+  the last column shows and `h` one column left until the start; on a
+  cell-mode table they move the current column in drawing order. At that
+  edge (a table that fits is at both) `l` moves the focus to the next stop
+  and `h` to the previous one, landing on its remembered child as
+  `focus.next`/`focus.previous` do. A count scrolls or moves that many and
+  stops at the edge; it spills only from the edge. A `NoSpill` table, a
+  table in a modal and the page's first or last stop clamp (R3.5, R3.6).
+  A row noun's own `h` or `l` answers first, so the scroll and spill apply
+  only where the row noun does not bind the key. Arrows are the same keys.
+  Done with guarded rows (`table-column-*`, `table-scrolls-*`,
+  `table-spills-*`) that fall through in order, no combined verb. Story:
+  `tables/scroll-then-focus-right.json`,
+  `tables/scroll-then-focus-left.json`, `tables/cell-edge-focus.json`,
+  `tables/nospill-clamps.json`, `tables/modal-clamps.json`,
+  `tables/row-noun-l-wins.json`, `tables/row-select.json`; tests
+  `TestRowTableHLScrollThenMoveTheFocus`, `TestCellTableEdgeMovesTheFocus`,
+  `TestTableEdgesClampWithoutAStop`, `TestRowNounKeyWinsOverTableScroll`.
+- **R5.12** A table never hides a column silently: a table with a header
+  whose columns do not fit draws `‹N` after its pinned columns and `N›` at
+  its right edge, N the scrolling columns hidden on that side (pinned ones
+  are never counted), each only when N > 0, so the user sees whether
+  `h`/`l` scroll or move on (as R6.8 marks hidden tabs). The cells are
+  reserved whenever the table hides a column, so scrolling never shifts the
+  pinned columns; a table that fits reserves and draws nothing. Story:
+  `tables/edge-markers.json`, `tables/edge-markers-start.json`,
+  `tables/edge-markers-fit.json`, `tables/modal-clamps.json`; test
+  `TestEdgeMarkersCountScrollingColumns`.
+- **R5.13** Any table columns can be pinned: pinned columns draw first at
+  the left in their declared order and never scroll; the rest scroll after
+  them. The default pins are the columns an app declares `Column.Pinned`,
+  else the first column. `list.pin-column`, `unpin-column`,
+  `toggle-pin-column` (`z p` on a cell-mode table: the current column) and
+  `unpin-columns` change them on any table (palette; a row-select table
+  without a `column` chooses one from the column chooser); `z =`
+  (`reset-columns`) puts the default back. A user's pins are remembered per
+  table across a restart, the default is not written. When the pins leave
+  no room for a scrolling column, the view (never the saved pins) drops
+  pins from the right until one shows. Story: `tables/pin-cell.json`,
+  `tables/pin-row-palette.json`, `tables/pin-declared.json`,
+  `tables/pin-narrow.json`, `tables/unpin-columns.json`; tests
+  `TestPinsDrawFirstPersistAndReset`, `TestPinsDroppedInTheViewOnly`.
 
 ### R6. Chrome: footer, hints, help, ticker, notices
 

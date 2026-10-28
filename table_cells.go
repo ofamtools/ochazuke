@@ -17,7 +17,13 @@ import (
 // title. Keys, rows of the list noun in normal mode that answer only on a
 // cell-mode table (verb guard table-cells), except where noted:
 //
-//	h l left right   list.column {delta: ±1}: one column (a count is columns)
+//	h l left right   list.column {delta: ±1}: one column in drawing order
+//	                 (pinned columns first; a count is columns); on the
+//	                 first column h, on the last l, moves the focus to the
+//	                 previous / next stop instead (focus.previous /
+//	                 focus.next, guards table-column-left/right then
+//	                 table-spills-left/right), clamped in a modal, on a
+//	                 NoSpill list and at the page's first / last stop
 //	0 ^ home         list.column {to: first} (0 only without a count)
 //	$ end            list.column {to: last}
 //	|                list.column {index}: the column of the count (1 without one)
@@ -27,7 +33,10 @@ import (
 //	                 on every table (verb guard list-table)
 //	z > / z <        list.resize-column {delta: ±1}: widen or narrow the
 //	                 current column by ColumnWidthStep cells (a count is steps)
-//	z =              list.reset-columns: every column automatic again
+//	z =              list.reset-columns: every column automatic again and
+//	                 the default pins back (the verb answers on any table)
+//	z p              list.toggle-pin-column: pin or unpin the current
+//	                 column (table_pins.go)
 //	z l / z h        list.scroll-columns: the view one column right / left,
 //	                 the current column carried along when it scrolls off
 //	                 (every table that scrolls, table_columns.go)
@@ -43,14 +52,15 @@ import (
 //
 // A table without CellSelect (the default: a tree's list, where h and l
 // expand and collapse, the help modal, the settings page, a cli catalog
-// table) has no current column: it keeps row selection, h and l are free
-// for its row nouns, and $, ^ and 0 (list.scroll-columns, bound after the
-// cell rows so a cell table's column move answers first) and z l/z h
-// scroll its columns.
+// table) has no current column: it keeps row selection, a row noun's own h
+// and l answer first, and where none binds them h and l scroll its columns
+// and then move the focus (table_columns.go); $, ^ and 0
+// (list.scroll-columns, bound after the cell rows so a cell table's column
+// move answers first) and z l/z h scroll its columns.
 //
 // A cell-mode table's current column and the widths given with z > and
-// z < are remembered per table id in the state directory (TablesFile,
-// Runtime.TableState).
+// z <, and any table's pins, are remembered per table id in the state
+// directory (TablesFile, Runtime.TableState).
 
 // ColumnWidthStep is the cells z > and z < add to or take from a column.
 const ColumnWidthStep = 2
@@ -136,19 +146,37 @@ func (l *List) restore() {
 		return
 	}
 	l.restored = true
-	if !l.cellMode() {
-		return // a row-select table remembers nothing (one cell-based in v0.12.0 may have left widths)
+	if len(l.columns) == 0 {
+		return
 	}
 	s := l.r.TableState(l.id)
+	if s.Pins != nil {
+		l.pins, l.pinsSet = slices.Clone(*s.Pins), true
+	}
+	if !l.cellMode() {
+		return // a row-select table remembers its pins only (one cell-based in v0.12.0 may have left widths)
+	}
 	l.col, l.colWidths = s.Column, s.Widths
 }
 
-// remember writes a cell-mode table's view (Runtime.SetTableState).
+// remember writes a table's view (Runtime.SetTableState): its pins when
+// they are not the default, and a cell-mode table's column and widths.
 func (l *List) remember() {
-	if !l.cellMode() {
+	if len(l.columns) == 0 {
 		return
 	}
-	l.r.SetTableState(l.id, TableState{Column: l.col, Widths: l.colWidths})
+	var s TableState
+	if l.pinsSet {
+		pins := slices.Clone(l.pins)
+		if pins == nil {
+			pins = []int{}
+		}
+		s.Pins = &pins
+	}
+	if l.cellMode() {
+		s.Column, s.Widths = l.col, l.colWidths
+	}
+	l.r.SetTableState(l.id, s)
 }
 
 // layoutColumns is the columns with the widths given by z > and z < as
@@ -175,27 +203,27 @@ func (l *List) follow() {
 }
 
 // offsetShowing is the column offset nearest cur whose view shows the
-// current column: 0 for the first column (the start of the row, as 0 and
+// current column: 0 for a pinned column (the start of the row, as 0 and
 // ^ bring it); cur when it shows the column; when the column lies left of
 // the view, 0 if that view shows it, else the offset that puts it first
-// after the frozen one; else the smallest larger offset that reaches it.
-func (l *List) offsetShowing(cols []Column, width, cur, most int) int {
-	widest := l.cellWidths()
+// after the pinned ones; else the smallest larger offset that reaches it.
+func (l *List) offsetShowing(v colView, cur, most int) int {
 	showsAt := func(k int) bool {
-		shown, _ := layoutAt(cols, widest, width, k)
+		shown, _ := v.at(k)
 		return slices.Contains(shown, l.col)
 	}
-	if l.col == 0 {
+	at := slices.Index(v.rest, l.col)
+	if at < 0 {
 		return 0
 	}
 	if showsAt(cur) {
 		return cur
 	}
-	if showsAt(0) && l.col < cur {
+	if showsAt(0) && at+1 < cur {
 		return 0
 	}
-	if cur > 0 && l.col < cur {
-		return min(l.col, most)
+	if cur > 0 && at+1 < cur {
+		return min(at+1, most)
 	}
 	for k := max(cur+1, 1); k <= most; k++ {
 		if showsAt(k) {
@@ -203,14 +231,6 @@ func (l *List) offsetShowing(cols []Column, width, cur, most int) int {
 		}
 	}
 	return cur
-}
-
-// layoutAt is the columns shown at column offset k and their widths.
-func layoutAt(cols []Column, widest []int, width, k int) (shown, widths []int) {
-	if k == 0 {
-		return tableLayoutOf(cols, widest, width)
-	}
-	return scrolledLayout(cols, widest, width, k)
 }
 
 // cellSpan is where column col sits in a laid-out line: its first cell and
@@ -312,16 +332,45 @@ func registerTableCells(r *Runtime) {
 		l := r.focusedList(ev.Focus)
 		return l != nil && len(l.columns) > 0
 	})
+	// table-column-right / -left: a cell-mode table whose current column
+	// is not the last / first in drawing order, so l / h moves the column
+	// rather than the focus.
+	r.DefineGuard("table-column-right", func(r *Runtime, ev KeyEvent) bool {
+		l := r.focusedList(ev.Focus)
+		return l != nil && l.cellMode() && !l.atColumnEdge(1)
+	})
+	r.DefineGuard("table-column-left", func(r *Runtime, ev KeyEvent) bool {
+		l := r.focusedList(ev.Focus)
+		return l != nil && l.cellMode() && !l.atColumnEdge(-1)
+	})
 	column := func(args Arguments) Binding { return Do("ochazuke.list.column", args) }
 	steps := func(verb string, delta int) Binding {
 		return Do(verb, Arguments{"delta": delta}).FromPayload("steps", SourceCount)
 	}
-	r.Define("ochazuke.list").Mode("normal").
-		Bind("h", steps("ochazuke.list.column", -1).Guard("table-cells")).
-		Bind("left", steps("ochazuke.list.column", -1).Guard("table-cells")).
-		Bind("l", steps("ochazuke.list.column", 1).Guard("table-cells")).
-		Bind("right", steps("ochazuke.list.column", 1).Guard("table-cells")).
-		Bind("home", column(Arguments{"to": "first"}).Guard("table-cells")).
+	// h and l (and the arrows) scroll, then move the focus: per key, in
+	// this order, the first row whose guard holds answers (a failed guard
+	// falls through to the next row): a cell-mode table's column move
+	// short of its edge, a row-select table's scroll short of its edge,
+	// at the edge the focus to the neighbouring stop (as j and k spill),
+	// and where that cannot happen (a modal, NoSpill, the page's last or
+	// first stop) the clamped move, which leaves everything as it is.
+	b := r.Define("ochazuke.list").Mode("normal")
+	edge := func(key string, delta int) {
+		dir, spill := "right", "ochazuke.focus.next"
+		if delta < 0 {
+			dir, spill = "left", "ochazuke.focus.previous"
+		}
+		b.Bind(key, steps("ochazuke.list.column", delta).Guard("table-column-"+dir)).
+			Bind(key, steps("ochazuke.list.scroll-columns", delta).Guard("table-scrolls-"+dir)).
+			Bind(key, Do(spill).Guard("table-spills-"+dir)).
+			Bind(key, steps("ochazuke.list.column", delta).Guard("table-cells")).
+			Bind(key, steps("ochazuke.list.scroll-columns", delta).Guard("table-scrolls"))
+	}
+	edge("h", -1)
+	edge("left", -1)
+	edge("l", 1)
+	edge("right", 1)
+	b.Bind("home", column(Arguments{"to": "first"}).Guard("table-cells")).
 		Bind("end", column(Arguments{"to": "last"}).Guard("table-cells")).
 		Bind("$", column(Arguments{"to": "last"}).Guard("table-cells")).
 		Bind("^", column(Arguments{"to": "first"}).Guard("table-cells")).
@@ -332,7 +381,8 @@ func registerTableCells(r *Runtime) {
 		Bind("Y", Do("ochazuke.list.yank", Arguments{"what": "row"}).Hide()).
 		Bind("z >", steps("ochazuke.list.resize-column", 1).Hide()).
 		Bind("z <", steps("ochazuke.list.resize-column", -1).Hide()).
-		Bind("z =", Do("ochazuke.list.reset-columns").Hide())
+		Bind("z =", Do("ochazuke.list.reset-columns").Guard("table-cells").Hide()).
+		Bind("z p", Do("ochazuke.list.toggle-pin-column").Guard("table-cells").Hide())
 	// A row-select table's $, ^ and 0 scroll its columns (verb guard
 	// table-scrolls), after the cell rows above: on a cell table those
 	// answer, here the list.column rows are guarded off. 0's row needs a
@@ -348,10 +398,11 @@ func registerTableCells(r *Runtime) {
 		Bind("^", scroll(Arguments{"to": "first"})).
 		Bind("0", scroll(Arguments{"to": "first"}).Guard("row-table-no-count"))
 	guards := r.Nouns["ochazuke.list"].Guards
-	for _, verb := range []string{"column", "choose-column", "resize-column", "reset-columns"} {
+	for _, verb := range []string{"column", "choose-column", "resize-column"} {
 		guards[verb] = "table-cells"
 	}
 	guards["yank"] = "list-table"
+	guards["reset-columns"] = "list-table" // z = is a cell row; the palette resets a row-select table's pins
 	id := Parameter{Type: "string", Description: "The list (default: the focused one)"}
 	r.Register(Operation{Verb: "column", Noun: "ochazuke.list", Description: "Move a cell-mode table's current column: to the first or last, to the column numbered index (|), or delta columns; the view scrolls to show it", Parameters: map[string]Parameter{
 		"id":    id,
@@ -364,18 +415,21 @@ func registerTableCells(r *Runtime) {
 		if err != nil {
 			return nil, err
 		}
-		to, n := StringArg(a, "to", ""), l.Column()
+		// Positions are in drawing order (pinned columns first), so h and
+		// l, 0, $ and N| move across the screen as drawn.
+		order := l.order()
+		to, n := StringArg(a, "to", ""), l.position()
 		switch {
 		case a["index"] != nil:
 			n = IntArg(a, "index", 1) - 1
 		case to == "first":
 			n = 0
 		case to == "last":
-			n = len(l.columns) - 1
+			n = len(order) - 1
 		default:
 			n += IntArg(a, "delta", 0) * max(1, IntArg(a, "steps", 1))
 		}
-		l.SetColumn(n)
+		l.SetColumn(order[min(max(n, 0), len(order)-1)])
 		return l.state(), nil
 	}})
 	r.Register(Operation{Verb: "choose-column", Noun: "ochazuke.list", Description: "Choose a table's current column from a chooser of its titles", Parameters: map[string]Parameter{"id": id}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
@@ -444,12 +498,14 @@ func registerTableCells(r *Runtime) {
 		l.SetColumnWidth(i, max(minColumnWidth, width))
 		return l.state(), nil
 	}})
-	r.Register(Operation{Verb: "reset-columns", Noun: "ochazuke.list", Description: "Lay every column of a table out automatically again (z =)", Parameters: map[string]Parameter{"id": id}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "reset-columns", Noun: "ochazuke.list", Description: "Lay every column of a table out automatically again and put the default pins back (z =)", Parameters: map[string]Parameter{"id": id}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 		l, err := cells(c, a)
 		if err != nil {
 			return nil, err
 		}
 		l.ResetColumnWidths()
+		l.ResetPins()
 		return l.state(), nil
 	}})
+	registerTablePins(r, cells)
 }

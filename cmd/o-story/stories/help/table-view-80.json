@@ -1,5 +1,5 @@
 {
-  "name": "help table at 80 columns: the modes that do not fit are hidden, z l scrolls them in and $ to the last, the key column kept",
+  "name": "help table at 80 columns: the modes that do not fit are hidden (N› counts them), z l scrolls them in and $ to the last, the key column kept",
   "area": "help",
   "width": 80,
   "height": 30,
@@ -11,10 +11,69 @@
       }
     ]
   },
-  "script": ["?", "S", "S", "n", "l", "i", "s", "t", "enter", "z", "l", "z", "l", "$"],
+  "script": [
+    "?",
+    "S",
+    "S",
+    "n",
+    "l",
+    "i",
+    "s",
+    "t",
+    "enter",
+    "z",
+    "l",
+    "z",
+    "l",
+    "$"
+  ],
   "expect": [
-    {"after": 9, "modal": "bindings-help", "contains": ["Keys · table", "key         normal", "list_filter"], "lacks": ["visual-line"]},
-    {"after": 13, "modal": "bindings-help", "contains": ["key         list_filter"], "lacks": ["visual-line"]},
-    {"modal": "bindings-help", "contains": ["visual-line", "ctrl+n"], "lacks": ["key         normal"]}
+    {
+      "after": 9,
+      "modal": "bindings-help",
+      "contains": [
+        "Keys · table",
+        "list_filter",
+        "2›"
+      ],
+      "order": [
+        "key",
+        "normal",
+        "list_filter"
+      ],
+      "lacks": [
+        "visual-line",
+        "‹"
+      ]
+    },
+    {
+      "after": 11,
+      "modal": "bindings-help",
+      "contains": [
+        "‹1",
+        "1›"
+      ],
+      "order": [
+        "key",
+        "list_filter",
+        "visual"
+      ],
+      "lacks": [
+        "visual-line"
+      ]
+    },
+    {
+      "modal": "bindings-help",
+      "contains": [
+        "visual-line",
+        "ctrl+n",
+        "‹2"
+      ],
+      "lacks": [
+        "list_filter",
+        "1›",
+        "2›"
+      ]
+    }
   ]
 }

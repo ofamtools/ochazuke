@@ -1,0 +1,93 @@
+{
+  "name": "an app declares default pins on its columns (Column.Pinned): they draw first in their own order (R5.13)",
+  "area": "tables",
+  "width": 40,
+  "height": 8,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "name",
+            "width": 8,
+            "pinned": true
+          },
+          {
+            "title": "alpha",
+            "width": 8
+          },
+          {
+            "title": "bravo",
+            "width": 8
+          },
+          {
+            "title": "charlie",
+            "width": 8
+          },
+          {
+            "title": "delta",
+            "width": 8,
+            "pinned": true
+          },
+          {
+            "title": "echo",
+            "width": 8
+          }
+        ],
+        "items": [
+          {
+            "id": "t1",
+            "label": "row1",
+            "cells": [
+              "row1",
+              "a-1",
+              "b-1",
+              "c-1",
+              "d-1",
+              "e-1"
+            ]
+          },
+          {
+            "id": "t2",
+            "label": "row2",
+            "cells": [
+              "row2",
+              "a-2",
+              "b-2",
+              "c-2",
+              "d-2",
+              "e-2"
+            ]
+          },
+          {
+            "id": "t3",
+            "label": "row3",
+            "cells": [
+              "row3",
+              "a-3",
+              "b-3",
+              "c-3",
+              "d-3",
+              "e-3"
+            ]
+          }
+        ]
+      }
+    ],
+    "focus": "t1"
+  },
+  "script": [],
+  "expect": {
+    "order": [
+      "name",
+      "delta",
+      "alpha"
+    ],
+    "lacks": [
+      "bravo"
+    ]
+  }
+}

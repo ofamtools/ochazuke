@@ -27,7 +27,7 @@ R|            │ 0           .column?                                          
  |            │ esc         .end-visual?    .filter-clear?                                                   │
  |            │ g c         .choose-colum…                                                                   │
  |            │ g g         .goto                                                                            │
- |            │ 1–20 / 68                                                                                    │
+ |            │ 1–20 / 69                                                                                    │
  |            │ ──────────────────────────────────────────────────────────────────────────────────────────── │
  |            │ normal  list.column {"to":"first"} when no-count · list                                      │
  |            │         then list.scroll-columns {"to":"first"} when row-table-no-count · list               │
