@@ -1,0 +1,13 @@
+{
+  "name": "chrome: focus-display stack shows the focus path beside the mode, outermost first",
+  "area": "chrome",
+  "width": 80,
+  "page": {
+    "id": "work",
+    "lists": [{"id": "a", "rows": 3}]
+  },
+  "script": [":", {"type": "focus display stack"}, "enter", "j"],
+  "expect": [
+    {"after": 3, "focus": "a1"}
+  ]
+}

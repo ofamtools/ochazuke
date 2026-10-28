@@ -1,0 +1,14 @@
+{
+  "name": "chrome: the focus beside the mode is drawn dim, in the muted colour",
+  "area": "chrome",
+  "width": 80,
+  "theme": "dark",
+  "settings": [
+    {"name": "focus-display", "type": "string", "default": "stack", "enum": ["off", "noun", "stack"]}
+  ],
+  "page": {
+    "id": "work",
+    "lists": [{"id": "a", "rows": 2}]
+  },
+  "expect": {"contains": ["NORMAL · work › list › a1"], "styled": {"· work": "#93A7A1"}}
+}

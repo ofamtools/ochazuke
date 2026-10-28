@@ -248,7 +248,7 @@ The `theme` setting selects the colour scheme and persists in `settings.json`. T
 | Role | Draws |
 |---|---|
 | `text` | Body text and the title |
-| `muted` | Hints, inactive tabs, the dimmed backdrop under a modal |
+| `muted` | Hints, inactive tabs, the dimmed backdrop under a modal, the focus beside the mode (`focus-display`) |
 | `accent` | The active tab, the badge, the subtitle, focused panel and modal borders |
 | `border` | Unfocused panel borders |
 | `surface` | The background of the active tab and the badge |
@@ -1144,6 +1144,24 @@ An application declares its settings (`Runtime.DeclareSetting(Setting{Name, Type
 | Rows | One row per setting, no header: the name on the left (without the section's prefix; a `•` after it when the value is not the default), the value on the right. `‹ value ›` marks a value `h`/`l` steps (boolean, enum, number); text and durations show as they are, empty text as `(empty)`. A list setting's row shows its item count (`2 items`, `(none)` when empty), and each item is a row directly beneath it with the name column blank |
 | Description | The selected setting's description, then `Default is X.` and where the value comes from: `Not in settings.json, so the default applies.`, `Set in settings.json.`, or `settings.json holds an invalid value (why), so the default applies.`; then what it takes. On an item row it starts with `Item 2 of 3.` `J`/`K` scroll it when it overflows, and `>`/`<` move the divider |
 
+### Where the focus is: `focus-display`
+
+The framework declares `focus-display` (`FocusDisplaySetting`, with `theme` and the dims in `Runtime.EnsureConfigSettings`, unless the application declared a setting of that name). It shows where the focus is beside the mode badge on the title row, dim (the muted role; faint in mono), so it is clear where a motion landed. The text alone carries the meaning under mono and `NO_COLOR`.
+
+| Value | Title row |
+|---|---|
+| `off` (default) | `NORMAL`, as before |
+| `noun` | `NORMAL · pane`: the focused instance's noun as `DisplayNoun` (`list`, not `ochazuke.list`) |
+| `stack` | `NORMAL · panes › pane-list › pane`: the focus path from the outermost level to the innermost, `app` left out, each level its label when it has one of at most `FocusLabelMax` (16) cells (a page's is its title), else its noun. Open modals are levels too, after the focus they opened over (`work › list › a2 › confirm`) |
+
+When the path is wider than the room the badge and the title's first quarter leave, it is cut from the left a level at a time behind `… › ` (`FitFocusPath`), so the innermost level stays; with less room still the innermost level alone follows `…`. The row is redrawn on every frame, so a focus change, a modal, a mode change or a spill shows at once, and so does a new value: `settings set focus-display stack`, the Settings page, or the verb `focus.display {mode}` (`off`, `noun` or `stack`; with no mode, the next in that order). The verb has no default key; it is in the palette (`display focus`, `display focus stack`) and the CLI (`BIN focus display`), and a user binds a key in `bindings.json`:
+
+```json
+[{"noun": "app", "mode": "normal", "keys": "g f", "request": {"noun": "focus", "verb": "display"}}]
+```
+
+Stories `chrome/focus-*`.
+
 Editing saves each change as it is made; there is no save key.
 
 | Keys | On a setting row | On a list item row |
@@ -1180,7 +1198,7 @@ APP config export ~/.config/APP --force   # into the live directory: only with -
 | `actions.example.json` | Two actions on the `app` noun (`example-run` in the command form, `example-call` in the base form) using every field; installs with no notice |
 | `themes.example.json` | `example` (the built-in palette, every role as `{light, dark}`) and `example-dark` (one colour per role); installs with no notice |
 
-The framework's settings (`theme`, `history-limit`) are declared before the export, so they are in the files. Each file is written atomically (a temp file renamed over it), and a file that would land on a live config file (`bindings.json`, `settings.json`, `actions.json`, `themes.json` in the config directory, through a symbolic link too) is refused before anything is written unless `--force`. The result is `{dir, files, config, state}`. Without a config directory (`Config.Disable`, a test binary) the export needs a DIR. The README lists the action placeholders and the theme roles.
+The framework's settings (`theme`, `focus-display`, `history-limit`) are declared before the export, so they are in the files. Each file is written atomically (a temp file renamed over it), and a file that would land on a live config file (`bindings.json`, `settings.json`, `actions.json`, `themes.json` in the config directory, through a symbolic link too) is refused before anything is written unless `--force`. The result is `{dir, files, config, state}`. Without a config directory (`Config.Disable`, a test binary) the export needs a DIR. The README lists the action placeholders and the theme roles.
 
 Copying a default into a live file pins it: a later version that changes the default does not reach that user. Copy only what you change. A row's guard is part of its identity: a `bindings.json` row replaces only the row with the same noun or instance, mode, keys (or pattern) and `when`, so a guarded row and the unguarded row on the same keys (such as `0` in `operator_pending`: the count digit with `when: count` and the line-start motion) are changed one at a time, and the reference loads back unchanged.
 

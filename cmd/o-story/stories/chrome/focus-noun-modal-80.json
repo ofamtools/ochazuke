@@ -1,0 +1,14 @@
+{
+  "name": "chrome: focus-display noun follows the focus into a modal over a list",
+  "area": "chrome",
+  "width": 80,
+  "page": {
+    "id": "work",
+    "lists": [{"id": "a", "rows": 3}]
+  },
+  "script": [":", {"type": "focus display noun"}, "enter", "j", "x"],
+  "expect": [
+    {"after": 4, "contains": ["NORMAL · demo"]},
+    {"after": 5, "modal": "confirm"}
+  ]
+}

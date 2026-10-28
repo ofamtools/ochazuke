@@ -1,0 +1,17 @@
+{
+  "name": "chrome: in mono the focus path reads from the text alone, no colour",
+  "area": "chrome",
+  "width": 80,
+  "theme": "mono",
+  "settings": [
+    {"name": "focus-display", "type": "string", "default": "stack", "enum": ["off", "noun", "stack"]}
+  ],
+  "page": {
+    "id": "work",
+    "lists": [{"id": "a", "rows": 2}]
+  },
+  "script": ["j"],
+  "expect": [
+    {"after": 1, "focus": "a2", "noColor": ["#93A7A1", "#657672", "#78BFA5"]}
+  ]
+}

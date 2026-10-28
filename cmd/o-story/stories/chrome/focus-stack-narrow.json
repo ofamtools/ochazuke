@@ -1,0 +1,24 @@
+{
+  "name": "chrome: a narrow header cuts the focus path from the left and keeps the innermost level",
+  "area": "chrome",
+  "width": 44,
+  "settings": [
+    {"name": "focus-display", "type": "string", "default": "stack", "enum": ["off", "noun", "stack"]}
+  ],
+  "page": {
+    "id": "work",
+    "lists": [{"id": "a", "rows": 2}],
+    "chooser": {
+      "kind": "dirs",
+      "title": "Directory",
+      "rows": [
+        {"id": "m", "label": "matomeru"},
+        {"id": "o", "label": "ochazuke"}
+      ]
+    }
+  },
+  "script": ["ctrl+n"],
+  "expect": [
+    {"after": 1, "modal": "dirs"}
+  ]
+}

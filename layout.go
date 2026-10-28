@@ -112,10 +112,13 @@ func (l Layout) PageBlock(title, subtitle string, body Block, footer string) Blo
 // Header is the top of the page chrome: the title row with an optional
 // right-aligned badge (the shell shows the mode there) and the subtitle row,
 // which is a label or, when Tabs is set, the page tabs with Active marked.
-// Every field is a raw label.
+// Focus is the focus beside the badge (the focus-display setting): its
+// levels, outermost first, drawn dim after "·" and cut from the left
+// (FitFocusPath) so the innermost level stays. Every field is a raw label.
 type Header struct {
 	Title    string
 	Badge    string
+	Focus    []string
 	Subtitle string
 	Tabs     []string
 	Active   int
@@ -172,7 +175,9 @@ func (l Layout) Shell(h Header, body Block, f Footer) Block {
 	return cursor.WithText(strings.Join(rows, "\n"))
 }
 
-// titleRow renders the title with the badge right-aligned in width cells.
+// titleRow renders the title with the badge right-aligned in width cells,
+// and after the badge the focus (Header.Focus), dim. The focus takes what
+// the badge and the title's first cells (focusTitleKeep) leave.
 func (l Layout) titleRow(h Header, width int) string {
 	s := l.Styles
 	badge := ""
@@ -183,6 +188,20 @@ func (l Layout) titleRow(h Header, width int) string {
 	if badge != "" {
 		reserved = ansi.StringWidth(badge) + 1
 	}
+	if len(h.Focus) > 0 {
+		// The badge's own padding is the space before the separator.
+		sep := focusSep
+		if badge != "" {
+			sep = strings.TrimLeft(focusSep, " ")
+		}
+		title := ansi.StringWidth(modalLabel(h.Title))
+		room := width - 2 - min(title, focusTitleKeep(width)) - reserved - ansi.StringWidth(sep)
+		if focus := FitFocusPath(h.Focus, room); focus != "" {
+			focus = s.Muted.Render(sep + focus)
+			badge += focus
+			reserved += ansi.StringWidth(focus)
+		}
+	}
 	title := s.Accent.Render("◆ ") + s.Title.Render(ansi.Truncate(modalLabel(h.Title), max(0, width-2-reserved), "…"))
 	if badge == "" {
 		return title
@@ -190,6 +209,10 @@ func (l Layout) titleRow(h Header, width int) string {
 	gap := max(1, width-ansi.StringWidth(title)-ansi.StringWidth(badge))
 	return title + strings.Repeat(" ", gap) + badge
 }
+
+// focusTitleKeep is the most of the title the focus may not take from it:
+// a quarter of the row.
+func focusTitleKeep(width int) int { return max(1, width/4) }
 
 // subtitleRow renders the tabs when there are any, else the subtitle label.
 func (l Layout) subtitleRow(h Header, width int) string {

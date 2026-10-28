@@ -1,0 +1,19 @@
+{
+  "name": "chrome: focus.display with no mode cycles off, noun, stack and applies each at once",
+  "area": "chrome",
+  "width": 80,
+  "page": {
+    "id": "work",
+    "lists": [{"id": "a", "rows": 2}]
+  },
+  "script": [
+    ":", {"type": "display focus"}, "enter",
+    ":", {"type": "display focus"}, "enter",
+    ":", {"type": "display focus"}, "enter"
+  ],
+  "expect": [
+    {"after": 3, "contains": ["NORMAL · demo"], "lacks": ["› list"]},
+    {"after": 6, "contains": ["NORMAL · work › list › a1"]},
+    {"after": 9, "lacks": ["NORMAL ·", "› list"]}
+  ]
+}

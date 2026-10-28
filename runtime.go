@@ -285,6 +285,7 @@ func (r *Runtime) registerFramework() {
 	registerConfirm(r)
 	registerTerminal(r)
 	registerFocus(r)
+	registerFocusDisplay(r)
 	registerDetail(r)
 	registerPanes(r)
 	registerQuery(r)

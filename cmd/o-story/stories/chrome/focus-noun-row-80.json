@@ -1,0 +1,14 @@
+{
+  "name": "chrome: focus-display noun shows the focused row's noun beside the mode",
+  "area": "chrome",
+  "width": 80,
+  "page": {
+    "id": "work",
+    "lists": [{"id": "a", "rows": 3}]
+  },
+  "script": [":", {"type": "focus display noun"}, "enter", "j"],
+  "expect": [
+    {"after": 3, "focus": "a1", "contains": ["NORMAL · demo"]},
+    {"after": 4, "focus": "a2"}
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "chrome: focus-display stack puts an open modal at the inner end of the path",
+  "area": "chrome",
+  "width": 80,
+  "page": {
+    "id": "work",
+    "lists": [{"id": "a", "rows": 3}]
+  },
+  "script": [":", {"type": "focus display stack"}, "enter", "j", "x"],
+  "expect": [
+    {"after": 4, "contains": ["NORMAL · work › list › a2"]},
+    {"after": 5, "modal": "confirm"}
+  ]
+}

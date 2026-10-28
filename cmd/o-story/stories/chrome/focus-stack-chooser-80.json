@@ -1,0 +1,24 @@
+{
+  "name": "chrome: focus-display stack shows a chooser over a list and the list beneath it",
+  "area": "chrome",
+  "width": 80,
+  "settings": [
+    {"name": "focus-display", "type": "string", "default": "stack", "enum": ["off", "noun", "stack"]}
+  ],
+  "page": {
+    "id": "work",
+    "lists": [{"id": "a", "rows": 2}],
+    "chooser": {
+      "kind": "dirs",
+      "title": "Directory",
+      "rows": [
+        {"id": "m", "label": "matomeru"},
+        {"id": "o", "label": "ochazuke"}
+      ]
+    }
+  },
+  "script": ["ctrl+n"],
+  "expect": [
+    {"after": 1, "modal": "dirs"}
+  ]
+}

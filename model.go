@@ -734,7 +734,7 @@ func (m *Model) render() Block {
 	if page := m.Runtime.PageOf(m.Runtime.Page); page != nil {
 		pageTitle = page.Title
 	}
-	header := Header{Title: m.Title, Subtitle: pageTitle, Badge: m.modeBadge()}
+	header := Header{Title: m.Title, Subtitle: pageTitle, Badge: m.modeBadge(), Focus: m.Runtime.focusDisplayLevels()}
 	if !m.Sidebar {
 		header.Tabs, header.Active = m.pageTitles()
 	}
