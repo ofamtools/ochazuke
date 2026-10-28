@@ -12,16 +12,23 @@
       {"key": "down", "action": "ochazuke.form.next"},
       {"key": "k", "action": "ochazuke.form.previous"},
       {"key": "up", "action": "ochazuke.form.previous"},
+      {"key": "enter", "action": "ochazuke.form.run"},
+      {"key": "enter", "action": "ochazuke.form.next-missing"},
       {"key": "enter", "action": "ochazuke.form.choose"},
       {"key": "space", "action": "ochazuke.form.choose"},
-      {"key": "i", "action": "ochazuke.form.choose"}
+      {"key": "i", "action": "ochazuke.form.choose"},
+      {"key": "/", "action": "ochazuke.form.suggest"}
     ]},
     {"context": "ochazuke.form-field/insert", "bindings": [
+      {"key": "enter", "action": "ochazuke.form.run"},
+      {"key": "enter", "action": "ochazuke.form.next-missing", "args": {"insert": true}},
       {"key": "enter", "action": "ochazuke.form.next", "args": {"insert": true}},
       {"key": "tab", "action": "ochazuke.form.next", "args": {"insert": true}},
       {"key": "shift+tab", "action": "ochazuke.form.previous", "args": {"insert": true}}
     ]},
     {"context": "ochazuke.form-field/normal", "bindings": [
+      {"key": "enter", "action": "ochazuke.form.run"},
+      {"key": "enter", "action": "ochazuke.form.next-missing"},
       {"key": "j", "action": "ochazuke.form.next"},
       {"key": "down", "action": "ochazuke.form.next"},
       {"key": "k", "action": "ochazuke.form.previous"},
@@ -33,6 +40,8 @@
       {"key": "q", "action": "ochazuke.modal.pop"}
     ]},
     {"context": "ochazuke.form-suggest/insert", "bindings": [
+      {"key": "enter", "action": "ochazuke.form.run"},
+      {"key": "enter", "action": "ochazuke.form.next-missing", "args": {"insert": true}},
       {"key": "enter", "action": "ochazuke.form.next", "args": {"insert": true}},
       {"key": "tab", "action": "ochazuke.form.next", "args": {"insert": true}},
       {"key": "shift+tab", "action": "ochazuke.form.previous", "args": {"insert": true}},
@@ -43,6 +52,8 @@
       {"key": "down", "action": "ochazuke.form.next"},
       {"key": "k", "action": "ochazuke.form.previous"},
       {"key": "up", "action": "ochazuke.form.previous"},
+      {"key": "enter", "action": "ochazuke.form.run"},
+      {"key": "enter", "action": "ochazuke.form.next-missing"},
       {"key": "enter", "action": "ochazuke.form.suggest"},
       {"key": "ctrl+space", "action": "ochazuke.form.suggest"}
     ]},

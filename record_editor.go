@@ -19,10 +19,11 @@ type Record map[string]string
 
 // RecordField is one editable field of a record schema. Its Parameter is
 // the same description a verb's parameter carries (Type, Required, Enum,
-// Source, Free, Description), so a form can come from a verb's catalog
-// parameters (RecordFields). A field with Enum or Source (and not Free), or
-// of Type boolean, is edited through a chooser, never as free text. A Free
-// field with Enum or Source is a text field with suggestions (form-suggest):
+// Source, Noun, Free, Description), so a form can come from a verb's
+// catalog parameters (RecordFields). A field with choices (Enum, Source or
+// Noun: Runtime.Choices) and not Free, or of Type boolean, is edited
+// through a chooser, never as free text. A Free field with choices is a
+// text field with suggestions (form-suggest):
 // typing stays free text, enter in normal mode or ctrl+space opens the
 // framework chooser over the suggestions (the Enum, then the Source's
 // result, loaded off the loop when the Source verb is Pending), a pick
@@ -79,9 +80,19 @@ type RecordSpec struct {
 	// Insert opens the editor with the first field in insert mode when it
 	// is a text field.
 	Insert bool
-	// OnLeave runs after the editor closed (form.leave): every change is
-	// written or queued by then; a placed editor stops being drawn.
+	// OnLeave runs after the editor closed (form.leave, or form.run's
+	// Submit): every change is written or queued by then; a placed editor
+	// stops being drawn.
 	OnLeave func()
+	// Submit, when set, makes the editor a form that runs once instead of
+	// writing each change: Save is never called, changes stay on screen,
+	// and form.run (available once every field is valid) closes a modal
+	// editor and hands Submit every value as shown. A failed Submit
+	// reopens the modal with the values and the error (`! not run:`);
+	// leaving (form.leave, esc) runs nothing.
+	Submit func(Record) Result
+	// Start names the field focused first ("" the first field).
+	Start string
 }
 
 // DefaultRecordDebounce is how long typing in a field pauses before the
@@ -114,8 +125,29 @@ const (
 	FormSuggestionsKind = "form-suggestions"
 )
 
-// formWriteVerb names a pending write's job.
-const formWriteVerb = "ochazuke.form.write"
+// formWriteVerb names a pending write's job; formRunVerb a pending
+// Submit's.
+const (
+	formWriteVerb = "ochazuke.form.write"
+	formRunVerb   = "ochazuke.form.run"
+)
+
+// Form availability: form.run is available on a form that runs once
+// (Submit) whose every field is valid (form-runnable), form.next-missing
+// on one with a field still not valid (form-missing). On such a form one
+// of the two always is, so enter's rows (run, next-missing, the field's
+// own action) never fall through to the field's own; on an editor that
+// writes each change neither is, and enter keeps its old action.
+const (
+	FormRunnableGuard = "form-runnable"
+	FormMissingGuard  = "form-missing"
+)
+
+// paramHasChoices reports whether a parameter's values come from a list:
+// an Enum, a Source, or a Noun's things (Runtime.Choices).
+func paramHasChoices(p Parameter) bool {
+	return len(p.Enum) > 0 || p.Source != "" || p.Noun != ""
+}
 
 // recordStep is one undo step: a field's written value before and after.
 type recordStep struct {
@@ -183,6 +215,7 @@ type RecordEditor struct {
 	typing   bool   // whether a text field was being typed in then
 	modal    bool
 	closed   bool
+	ran      bool // form.run handed the values to Submit
 	failure  error
 }
 
@@ -218,7 +251,7 @@ func (r *Runtime) OpenRecordEditor(id string, spec RecordSpec) (*RecordEditor, e
 		return nil, err
 	}
 	e.modal = true
-	if err := r.Push(id, e.fields[0].id); err != nil {
+	if err := r.Push(id, e.fields[e.start()].id); err != nil {
 		_ = r.RemoveInstance(id)
 		return nil, err
 	}
@@ -255,8 +288,8 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 	r.Instance(id, Parent(parent), Kind(FormNoun), FocusOnClose(closeFocus)).Component = e
 	for _, field := range spec.Fields {
 		f := &recordField{RecordField: field, id: id + "/" + field.Name}
-		f.choose = field.Type == "boolean" || ((len(field.Enum) > 0 || field.Source != "") && !field.Free)
-		f.suggest = !f.choose && (len(field.Enum) > 0 || field.Source != "")
+		f.choose = field.Type == "boolean" || (paramHasChoices(field.Parameter) && !field.Free)
+		f.suggest = !f.choose && paramHasChoices(field.Parameter)
 		v := values[field.Name]
 		e.written[field.Name], f.before = v, v
 		if f.choose {
@@ -350,20 +383,41 @@ func (e *RecordEditor) Problem(name string) string {
 // WriteError is the last write's failure, "" once a write succeeds.
 func (e *RecordEditor) WriteError() string { return e.writeErr }
 
-// FocusTarget is where a jump to the editor lands: its first field.
-func (e *RecordEditor) FocusTarget() string { return e.fields[0].id }
+// Ran reports whether form.run handed the values to Submit.
+func (e *RecordEditor) Ran() bool { return e.ran }
 
-// Focus focuses the first field (in insert mode when the spec says so).
+// FocusTarget is where a jump to the editor lands: its first field (the
+// spec's Start).
+func (e *RecordEditor) FocusTarget() string { return e.fields[e.start()].id }
+
+// Focus focuses the first field (the spec's Start; in insert mode when the
+// spec says so).
 func (e *RecordEditor) Focus() error {
-	if err := e.r.SetFocus(e.fields[0].id); err != nil {
+	if err := e.r.SetFocus(e.fields[e.start()].id); err != nil {
 		return err
 	}
 	return e.startInsert()
 }
 
+// start is the index of the field focused first: Start, else 0.
+func (e *RecordEditor) start() int {
+	for i, f := range e.fields {
+		if f.Name == e.spec.Start {
+			return i
+		}
+	}
+	return 0
+}
+
+// startInsert enters insert on the first field when the spec says so and
+// it is a text field; otherwise the editor starts in normal (a form opened
+// from a prompt, the palette's line, does not stay in its insert).
 func (e *RecordEditor) startInsert() error {
-	if f := e.fields[0]; e.spec.Insert && f.input != nil {
+	if f := e.fields[e.start()]; e.spec.Insert && f.input != nil {
 		return e.r.SetMode("insert")
+	}
+	if e.r.Mode.Name == "insert" {
+		return e.r.SetMode("normal")
 	}
 	return nil
 }
@@ -411,7 +465,7 @@ func (e *RecordEditor) loadChoices(f *recordField) {
 		f.choices = []Choice{{ID: "true", Label: "true"}, {ID: "false", Label: "false"}}
 		return
 	}
-	if len(f.Enum) == 0 && f.Source == "" {
+	if !paramHasChoices(f.Parameter) {
 		return
 	}
 	choices, err := e.r.Choices(e.r.contextOf(e.id), f.Parameter)
@@ -445,7 +499,7 @@ func (e *RecordEditor) problem(f *recordField) string {
 			return "true or false"
 		}
 	}
-	if !f.Free && (len(f.Enum) > 0 || f.Source != "") && len(f.choices) > 0 && !hasChoice(f.choices, v) {
+	if !f.Free && paramHasChoices(f.Parameter) && len(f.choices) > 0 && !hasChoice(f.choices, v) {
 		ids := make([]string, len(f.choices))
 		for i, c := range f.choices {
 			ids[i] = c.ID
@@ -488,8 +542,8 @@ func (e *RecordEditor) send() error {
 		}
 	}
 	e.dirty = nil
-	if e.spec.Save == nil {
-		return nil
+	if e.spec.Save == nil || e.spec.Submit != nil {
+		return nil // a form that runs once keeps its changes on screen
 	}
 	res := e.spec.Save(RecordWrite{Values: maps.Clone(e.written), Changed: slices.Clone(changed)})
 	switch {
@@ -673,13 +727,15 @@ func (e *RecordEditor) choose(f *recordField) error {
 	return list.Focus()
 }
 
-// suggest opens the framework chooser over a free field's suggestions:
-// the Enum at once, the Source's result when it lands (the load is a job
-// of the chooser, so closing it cancels the load). A pick fills the field
-// and writes it at once; with a query nothing matches, enter (or the
-// create row) takes the query as typed.
+// suggest opens the framework chooser (type to filter) over a field's
+// choices: the Enum at once, the Source's result or the Noun's things when
+// they land (the load is a job of the chooser, so closing it cancels the
+// load). A pick fills the field and writes it at once. On a free field,
+// with a query nothing matches, enter (or the create row) takes the query
+// as typed; a choice field takes only its choices, and an optional one
+// offers "(none)" at the bottom.
 func (e *RecordEditor) suggest(f *recordField) error {
-	if f == nil || !f.suggest {
+	if f == nil || (!f.suggest && !f.choose) {
 		return errors.New("the focused field has no suggestions")
 	}
 	fill := func(v string) Result {
@@ -688,19 +744,27 @@ func (e *RecordEditor) suggest(f *recordField) error {
 		}
 		return Done(v)
 	}
-	c, err := e.r.OpenChooser(ChooserSpec{
-		Kind:        FormSuggestionsKind,
-		Title:       "Suggest " + f.label(),
-		Empty:       "loading…",
-		Choose:      func(row ChooserRow) Result { return fill(row.ID) },
-		Create:      fill,
-		CreateRow:   true,
-		CreateLabel: func(query string) string { return "use " + strconv.Quote(query) },
-	})
+	spec := ChooserSpec{
+		Kind:   FormSuggestionsKind,
+		Title:  "Suggest " + f.label(),
+		Empty:  "loading…",
+		Choose: func(row ChooserRow) Result { return fill(row.ID) },
+	}
+	var fixed []ChooserRow
+	if f.suggest {
+		spec.Create, spec.CreateRow = fill, true
+		spec.CreateLabel = func(query string) string { return "use " + strconv.Quote(query) }
+	} else {
+		spec.Title = "Choose " + f.label()
+		if !f.Required {
+			fixed = append(fixed, ChooserRow{ID: "", Label: "(none)", Fixed: true})
+		}
+	}
+	c, err := e.r.OpenChooser(spec)
 	if err != nil {
 		return err
 	}
-	e.r.loadChoices(e.r.contextOf(f.id), f.Parameter, FormSuggestionsKind, func(choices []Choice, err error) {
+	done := func(choices []Choice, err error) {
 		if e.r.Chooser(FormSuggestionsKind) != c {
 			return
 		}
@@ -715,8 +779,14 @@ func (e *RecordEditor) suggest(f *recordField) error {
 		case len(rows) == 0:
 			c.spec.Empty = "no suggestions"
 		}
-		c.SetRows(rows)
-	})
+		c.SetRows(append(rows, fixed...))
+	}
+	if f.Type == "boolean" && !paramHasChoices(f.Parameter) {
+		e.loadChoices(f)
+		done(f.choices, nil)
+		return nil
+	}
+	e.r.loadChoices(e.r.contextOf(f.id), f.Parameter, FormSuggestionsKind, done)
 	return nil
 }
 
@@ -739,6 +809,119 @@ func (e *RecordEditor) pick(f *recordField, v string) error {
 	f.value = v
 	e.seen = e.snapshot()
 	return e.seal(f)
+}
+
+// firstProblem is the first field, from index from on and wrapping, whose
+// value is not valid; nil when every field is.
+func (e *RecordEditor) firstProblem(from int) *recordField {
+	n := len(e.fields)
+	for k := range n {
+		if f := e.fields[(from+k)%n]; e.problem(f) != "" {
+			return f
+		}
+	}
+	return nil
+}
+
+// Runnable reports whether form.run would run the form now: it has a
+// Submit, is open, and every field is valid.
+func (e *RecordEditor) Runnable() bool {
+	return e.spec.Submit != nil && !e.closed && e.firstProblem(0) == nil
+}
+
+// nextMissing focuses the field that still needs a value: the focused one
+// when it is not valid, else the next that is not (wrapping). A field with
+// choices opens its chooser; a text field keeps typing when insert is set.
+// With every field valid it does nothing.
+func (e *RecordEditor) nextMissing(insert bool) error {
+	i := max(0, slices.Index(e.fields, e.fieldOn(e.r.Focus)))
+	f := e.firstProblem(i)
+	if f == nil {
+		return nil
+	}
+	if e.r.Focus != f.id {
+		if err := e.r.SetFocus(f.id); err != nil {
+			return err
+		}
+	}
+	switch {
+	case f.choose || f.suggest:
+		if e.r.Mode.Name == "insert" && f.input == nil {
+			if err := e.r.SetMode("normal"); err != nil {
+				return err
+			}
+		}
+		return e.suggest(f)
+	case insert && f.input != nil:
+		return e.r.SetMode("insert")
+	case e.r.Mode.Name == "insert" && f.input == nil:
+		return e.r.SetMode("normal")
+	}
+	return nil
+}
+
+// run hands Submit every value as shown, once each is valid. A modal
+// editor closes first, so the request acts where the form was opened; a
+// failure reopens it with the values and says why.
+func (e *RecordEditor) run() error {
+	if e.spec.Submit == nil {
+		return errors.New("this form has nothing to run")
+	}
+	if f := e.firstProblem(0); f != nil {
+		return fmt.Errorf("%s: %s", f.label(), e.problem(f))
+	}
+	values := e.Values()
+	focused := ""
+	if f := e.fieldOn(e.r.Focus); f != nil {
+		focused = f.Name
+	}
+	e.ran = true
+	if e.modal {
+		e.closed = true
+		if e.r.TopModal() == e.id {
+			if err := e.r.Pop(); err != nil {
+				return err
+			}
+		}
+		if e.r.Instances[e.id] != nil {
+			if err := e.r.RemoveInstance(e.id); err != nil {
+				return err
+			}
+		}
+	}
+	res := e.spec.Submit(values)
+	if res.err != nil {
+		e.ran = false
+		return e.runFailed(values, focused, res.err)
+	}
+	if res.work != nil {
+		c := Ctx{Runtime: e.r, Context: e.r.contextOf("app"), Instance: e.r.Instances["app"]}
+		if _, err := e.r.Launch("app", formRunVerb, res, c); err != nil {
+			return err
+		}
+	}
+	if e.closed && e.spec.OnLeave != nil {
+		e.spec.OnLeave()
+	}
+	return nil
+}
+
+// runFailed shows why Submit failed: a modal editor opens again over the
+// focus with the values it ran with, on the field that was focused.
+func (e *RecordEditor) runFailed(values Record, focused string, err error) error {
+	if !e.modal {
+		e.writeErr = err.Error()
+		return err
+	}
+	spec := e.spec
+	spec.Load = func() (Record, error) { return values, nil }
+	spec.Start = focused
+	again, openErr := e.r.OpenRecordEditor(e.id, spec)
+	if openErr != nil {
+		return errors.Join(err, openErr)
+	}
+	again.writeErr = err.Error()
+	return err
 }
 
 // leave writes what is pending and closes the editor.
@@ -778,7 +961,13 @@ func (e *RecordEditor) Block(width, height int) Block {
 			style = s.Accent
 		}
 		if problem := e.problem(f); problem != "" {
-			label += " · not written: " + problem
+			// A form that runs once writes nothing: the label says what
+			// the value still needs.
+			if e.spec.Submit != nil {
+				label += " · " + problem
+			} else {
+				label += " · not written: " + problem
+			}
 			style = s.Error
 		}
 		lines = append(lines, style.Render(ansi.Truncate(label, width, "…")))
@@ -813,7 +1002,11 @@ func (e *RecordEditor) Block(width, height int) Block {
 		lines = append(lines, e.r.PlacedAt(f.id, "  "+value, 0, 1))
 	}
 	if e.writeErr != "" {
-		lines = append(lines, s.Error.Render(ansi.Truncate("! not saved: "+e.writeErr, width, "…")))
+		prefix := "! not saved: "
+		if e.spec.Submit != nil {
+			prefix = "! not run: "
+		}
+		lines = append(lines, s.Error.Render(ansi.Truncate(prefix+e.writeErr, width, "…")))
 	}
 	return Block{Text: strings.Join(lines, "\n"), Cursor: cursor}
 }
@@ -933,8 +1126,18 @@ func registerForms(r *Runtime) {
 		Verb("next", on(func(e *RecordEditor, _ Context, a Arguments) error { return e.move(1, boolArg(a, "insert")) }), "Focus the next field; the field left is written").Motion().
 		Verb("previous", on(func(e *RecordEditor, _ Context, a Arguments) error { return e.move(-1, boolArg(a, "insert")) }), "Focus the previous field; the field left is written").Motion().
 		Verb("choose", on(func(e *RecordEditor, c Context, _ Arguments) error { return e.choose(e.fieldOn(focusOf(c))) }), "Choose the field's value from its choices").
-		Verb("suggest", on(func(e *RecordEditor, c Context, _ Arguments) error { return e.suggest(e.fieldOn(focusOf(c))) }), "Fill the field from its suggestions; typing stays free")
-	for _, verb := range []string{"next", "previous"} {
+		Verb("suggest", on(func(e *RecordEditor, c Context, _ Arguments) error { return e.suggest(e.fieldOn(focusOf(c))) }), "Fill the field from its choices, typing to filter; a free field takes what is typed too").
+		Verb("run", on(func(e *RecordEditor, _ Context, _ Arguments) error { return e.run() }), "Run the form once every field is valid: the values go to its action and the form closes").When(FormRunnableGuard).
+		Verb("next-missing", on(func(e *RecordEditor, _ Context, a Arguments) error { return e.nextMissing(boolArg(a, "insert")) }), "Focus the field that still needs a value (this one, else the next); a field with choices opens its chooser").When(FormMissingGuard)
+	r.DefineGuard(FormMissingGuard, func(r *Runtime, ev KeyEvent) bool {
+		e := r.recordEditorOf(ev.Focus)
+		return e != nil && e.spec.Submit != nil && !e.closed && e.firstProblem(0) != nil
+	})
+	r.DefineGuard(FormRunnableGuard, func(r *Runtime, ev KeyEvent) bool {
+		e := r.recordEditorOf(ev.Focus)
+		return e != nil && e.Runnable()
+	})
+	for _, verb := range []string{"next", "previous", "next-missing"} {
 		op := r.Operations[FormNoun+"."+verb]
 		op.Parameters = insert
 		r.Operations[FormNoun+"."+verb] = op
