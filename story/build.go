@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"os/exec"
 	"slices"
@@ -263,6 +264,11 @@ func (ss *Session) defineDemo(pages []*Page) error {
 		if p.Term != nil && p.Term.Hints != nil {
 			ss.defineHints(p.Term.Hints)
 		}
+		for _, v := range p.Verbs {
+			if err := ss.defineVerb(d, v); err != nil {
+				return err
+			}
+		}
 		for _, b := range p.Bind {
 			if _, ok := r.Operation(b.Do); !ok {
 				return fmt.Errorf("bind %s: unknown operation %q", b.Keys, b.Do)
@@ -381,6 +387,31 @@ func (ss *Session) check(c ochazuke.Ctx) ochazuke.Result {
 		return ochazuke.Done(id)
 	}
 	return ochazuke.Failed(errors.New("not an outline row"))
+}
+
+// defineVerb registers a VerbSpec on the demo noun.
+func (ss *Session) defineVerb(d *ochazuke.NounBuilder, v VerbSpec) error {
+	noun, verb, ok := ochazuke.CutKey(v.Verb)
+	if !ok || noun != Demo || verb == "" {
+		return fmt.Errorf("verb %q: must be %s.<name>", v.Verb, Demo)
+	}
+	key, rows := v.Verb, slices.Clone(v.Rows)
+	d.Verb(verb, func(c ochazuke.Ctx) ochazuke.Result {
+		entry := key
+		for _, name := range slices.Sorted(maps.Keys(c.Args)) {
+			entry += fmt.Sprintf(" %s=%v", name, c.Args[name])
+		}
+		ss.Writes = append(ss.Writes, entry)
+		if rows != nil {
+			return ochazuke.Done(rows)
+		}
+		return ochazuke.Done(nil)
+	}, v.Description)
+	if len(v.Positional) > 0 {
+		d.Positional(v.Positional...)
+	}
+	ss.R.Operations[key] = withParams(ss.R.Operations[key], v.Parameters)
+	return nil
 }
 
 func withParams(op ochazuke.Operation, params map[string]ochazuke.Parameter) ochazuke.Operation {

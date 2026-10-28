@@ -72,6 +72,11 @@ it to the timer's deadline and delivers the timer's message
                                      // (writes) and returns to terminal, esc cancels, nothing reaches the pane
     jobs: [{ verb: "demo.build", key: "w", finishOnKey: "W", failOnKey: "X", quiet: false, start: 0, label: "" }],
     bind: [{ noun: "demo", mode: "normal", keys: "C", do: "notice.clear" }],
+    verbs: [{ verb: "demo.open-file", description: "Open a file", positional: ["path"],
+              parameters: { path: { type: "string", required: true, source: "demo.files" } } },
+            { verb: "demo.files", rows: ["main.go", "go.mod"] }],
+                                     // demo verbs with parameters (palette stories); a run logs
+                                     // "demo.open-file path=main.go" (writes) and returns rows
     detail: { lines: 50, width: 0 }, // a scrollable detail (AddDetail) on the right:
                                      // "detail 1–11 / 50", then "<row> line N" about the
                                      // focused list row (width 0 = half the page)
@@ -361,6 +366,7 @@ Conformance:
 | insert | bindings | `bindings.help` |
 | insert | chooser | `chooser.cancel` `chooser.move` `chooser.pick` |
 | insert | completion | `completion.accept` `completion.dismiss` `completion.move` `completion.open` |
+| insert | demo | `demo.files` |
 | insert | form | `form.next` |
 | insert | input | `input.insert` `input.kill` `input.move` |
 | insert | markdown | `markdown.cell` `markdown.continue-item` `markdown.end-list` `markdown.indent` `markdown.insert-block` `markdown.leave` `markdown.outdent` `markdown.unmark` |

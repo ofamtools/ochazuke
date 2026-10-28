@@ -84,7 +84,9 @@ type Page struct {
 	Term    *TermSpec    `json:"terminal,omitempty"`
 	Jobs    []JobSpec    `json:"jobs,omitempty"`
 	Bind    []BindSpec   `json:"bind,omitempty"`
-	Detail  *DetailSpec  `json:"detail,omitempty"`
+	// Verbs are demo verbs with declared parameters, for palette stories.
+	Verbs  []VerbSpec  `json:"verbs,omitempty"`
+	Detail *DetailSpec `json:"detail,omitempty"`
 	// Markdown is a Markdown document (markdown.New) drawn in the page's
 	// order with the lists, its task items a focus stop.
 	Markdown *MarkdownSpec `json:"markdown,omitempty"`
@@ -348,6 +350,17 @@ type BindSpec struct {
 	Keys string         `json:"keys"`
 	Do   string         `json:"do"`
 	Args map[string]any `json:"args,omitempty"`
+}
+
+// VerbSpec is a demo application verb with parameters: running it logs
+// "NOUN.VERB name=value ..." to the writes, and returns Rows (so another
+// verb's parameter can name it as its Source).
+type VerbSpec struct {
+	Verb        string                        `json:"verb"` // demo.<name>
+	Description string                        `json:"description,omitempty"`
+	Parameters  map[string]ochazuke.Parameter `json:"parameters,omitempty"`
+	Positional  []string                      `json:"positional,omitempty"`
+	Rows        []string                      `json:"rows,omitempty"`
 }
 
 // Event is one action: a key press, typed text, a paste, a job delivering,
