@@ -302,6 +302,11 @@ func (ss *Session) defineDemo(pages []*Page) error {
 				return err
 			}
 		}
+		for _, name := range p.Pending {
+			if err := r.DefineMode(name, true); err != nil {
+				return fmt.Errorf("pending %s: %w", name, err)
+			}
+		}
 		for _, b := range p.Bind {
 			if _, ok := r.Operation(b.Do); !ok {
 				return fmt.Errorf("bind %s: unknown operation %q", b.Keys, b.Do)

@@ -90,6 +90,10 @@ type Page struct {
 	Term    *TermSpec    `json:"terminal,omitempty"`
 	Jobs    []JobSpec    `json:"jobs,omitempty"`
 	Bind    []BindSpec   `json:"bind,omitempty"`
+	// Pending are pending modes the story defines (DefineMode with
+	// pending), before its bind rows, which may enter them (do
+	// "ochazuke.mode.enter", args {"mode": NAME}) or be bound in them.
+	Pending []string `json:"pending,omitempty"`
 	// Verbs are demo verbs with declared parameters, for palette stories.
 	Verbs  []VerbSpec  `json:"verbs,omitempty"`
 	Detail *DetailSpec `json:"detail,omitempty"`

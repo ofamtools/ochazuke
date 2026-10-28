@@ -1,0 +1,51 @@
+{
+  "name": "? help over a live terminal: the leader's row says it enters leader_pending and counts its keys, then each leader row follows as the whole sequence (ctrl+a d, ctrl+a ?, ctrl+a ctrl+a), the hidden any and paste rows left out (R6.10)",
+  "area": "help",
+  "width": 100,
+  "height": 70,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "terminal": {
+      "fake": true,
+      "attach": "a1"
+    },
+    "bind": [
+      {
+        "noun": "ochazuke.terminal",
+        "mode": "leader_pending",
+        "keys": "?",
+        "do": "ochazuke.bindings.help"
+      }
+    ]
+  },
+  "script": [
+    "enter",
+    {
+      "tick": "terminal"
+    },
+    "ctrl+a",
+    "?"
+  ],
+  "expect": {
+    "modal": "bindings-help",
+    "contains": [
+      "enters",
+      "leader_pending:",
+      "(3 keys)",
+      "ctrl+a d",
+      "ctrl+a ?",
+      "ctrl+a ctrl+a",
+      "terminal.detach"
+    ],
+    "lacks": [
+      "ctrl+a any",
+      "ctrl+a paste",
+      "leader: d detaches"
+    ]
+  }
+}

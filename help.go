@@ -102,16 +102,13 @@ func helpArgsText(args Arguments) string {
 // wraps into it.
 const helpOpWidth = 18
 
-// helpColumns are the help table's columns: the key prefix (the keys
-// before the last, Group: shown once per run of rows sharing it) and the
-// final key, each as wide as its widest cell, the operation fixed, the
-// arguments on one line (cut, at most 22 cells, the first to drop when
-// narrow) and the description the rest; the keys, operation and
-// description wrap inside their columns; both key columns are pinned, so
-// z l scrolls the others. Without a prefix in any row the prefix column is
-// left out.
+// helpColumns are the help table's columns: the key, the whole sequence
+// (R6.10: "ctrl+a v", "g c"), as wide as its widest cell, the operation
+// fixed, the arguments on one line (cut, at most 22 cells, the first to
+// drop when narrow) and the description the rest; the key, operation and
+// description wrap inside their columns; the key column is pinned, so
+// z l scrolls the others.
 var helpColumns = []Column{
-	{Wrap: true, Group: true, Pinned: true},
 	{Title: "key", Wrap: true, Pinned: true},
 	{Title: "operation", Width: helpOpWidth, Wrap: true},
 	{Title: "arguments", Max: 22, Priority: 2},
@@ -119,35 +116,34 @@ var helpColumns = []Column{
 }
 
 // helpItems is one table row per help row, each in its level's section,
-// and the columns they draw in (helpColumns, less the prefix column when
-// no row has a prefix). Inside a section the single keys come first in
-// the order they answer, then each prefix's rows together, the prefixes
-// in the order they first answer (a longer prefix after the shorter one it
-// extends: g, then g c) and a prefix's rows sorted by final key (keyOrder;
-// the generated cancel, esc, comes last).
+// and the columns they draw in (helpColumns), in helpOrder.
 func helpItems(rows []HelpRow) ([]ListItem, []Column) {
 	rows = helpOrder(rows)
-	prefixed := slices.ContainsFunc(rows, func(row HelpRow) bool { return row.Prefix != "" })
 	items := make([]ListItem, len(rows))
 	for i, row := range rows {
-		final, _ := helpKey(row.Final)
+		key := helpKeyText(row)
 		args := helpArgsText(row.Args)
-		label := strings.Join([]string{row.Key, row.Operation, args, row.Description}, "  ")
-		cells := []string{row.Prefix, final, row.Operation, args, row.Description}
-		if !prefixed {
-			cells = cells[1:]
-		}
+		label := strings.Join([]string{key, row.Operation, args, row.Description}, "  ")
+		cells := []string{key, row.Operation, args, row.Description}
 		items[i] = ListItem{ID: fmt.Sprintf("__bindings-help/%d", i), Label: label, Noun: "ochazuke.binding", Data: row, Cells: cells, Section: row.Section}
-	}
-	if !prefixed {
-		return items, helpColumns[1:]
 	}
 	return items, helpColumns
 }
 
-// helpOrder is rows with each section's rows as helpItems lists them:
-// single keys first, then the prefix groups (SplitKeys). The sections keep
-// their order and so do the single keys.
+// helpKeyText is a row's key cell: the whole sequence, a pattern final key
+// in its short form ("ctrl+a 0-9").
+func helpKeyText(row HelpRow) string {
+	final, _ := helpKey(row.Final)
+	return strings.TrimSpace(row.Prefix + " " + final)
+}
+
+// helpOrder is rows with each section's rows as helpItems lists them
+// (R6.9, R6.10): at the top of a section the keys that are no prefix first,
+// in the order they answer, then the prefix rows (Group) in the order they
+// answer; under each prefix row the rows listed Under it, sorted by their
+// final key (keyOrder: characters case folded, then named keys, so the
+// generated cancel, esc, comes last), each prefix row among them followed
+// by its own. The sections keep their order.
 func helpOrder(rows []HelpRow) []HelpRow {
 	out := make([]HelpRow, 0, len(rows))
 	for start := 0; start < len(rows); {
@@ -155,38 +151,38 @@ func helpOrder(rows []HelpRow) []HelpRow {
 		for end < len(rows) && rows[end].Section == rows[start].Section {
 			end++
 		}
-		var groups []string
-		byPrefix := map[string][]HelpRow{}
+		var plain, groups []HelpRow
+		under := map[string][]HelpRow{}
 		for _, row := range rows[start:end] {
-			if row.Prefix == "" {
-				out = append(out, row)
-				continue
-			}
-			if _, seen := byPrefix[row.Prefix]; !seen {
-				groups = append(groups, row.Prefix)
-			}
-			byPrefix[row.Prefix] = append(byPrefix[row.Prefix], row)
-		}
-		// A prefix's groups sit together, the shorter first: g, then g c.
-		first := map[string]int{}
-		for i, prefix := range groups {
-			word := strings.Fields(prefix)[0]
-			if _, ok := first[word]; !ok {
-				first[word] = i
+			switch {
+			case row.Under != "":
+				under[row.Under] = append(under[row.Under], row)
+			case row.Group:
+				groups = append(groups, row)
+			default:
+				plain = append(plain, row)
 			}
 		}
-		slices.SortStableFunc(groups, func(a, b string) int {
-			if c := first[strings.Fields(a)[0]] - first[strings.Fields(b)[0]]; c != 0 {
-				return c
-			}
-			return len(strings.Fields(a)) - len(strings.Fields(b))
-		})
-		for _, prefix := range groups {
-			group := byPrefix[prefix]
-			slices.SortStableFunc(group, func(a, b HelpRow) int { return keyOrder(a.Final, b.Final) })
-			out = append(out, group...)
+		out = append(out, plain...)
+		for _, row := range groups {
+			out = appendUnder(out, row, under)
 		}
 		start = end
+	}
+	return out
+}
+
+// appendUnder appends row and, for a prefix row, the rows under it in
+// key order, each followed by its own.
+func appendUnder(out []HelpRow, row HelpRow, under map[string][]HelpRow) []HelpRow {
+	out = append(out, row)
+	if !row.Group {
+		return out
+	}
+	kids := slices.Clone(under[row.Key])
+	slices.SortStableFunc(kids, func(a, b HelpRow) int { return keyOrder(a.Final, b.Final) })
+	for _, kid := range kids {
+		out = appendUnder(out, kid, under)
 	}
 	return out
 }

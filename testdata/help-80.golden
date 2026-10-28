@@ -9,56 +9,56 @@
 
         ╭──────────────────────────────────────────────────────────────╮
         │ Keys · here                                                  │
-        │    key         operation           arguments    description  │
+        │ key         operation           arguments      description   │
         │ task                                                         │
-        │    enter       task.open                        Open the     │
-        │                                                 task's page  │
-        │    x           task.done                        Mark the     │
-        │                                                 task done    │
-        │                                                 and move it  │
-        │                                                 to the       │
-        │                                                 archive      │
-        │    e           task.edit                        Edit the     │
-        │                                                 task's title │
-        │                                                 in a prompt  │
-        │    n           task.note                        Add a note   │
-        │                                                 to the task  │
-        │ d  d           task.delete                      Delete the   │
-        │                                                 task after a │
-        │                                                 confirm      │
-        │    esc         mode.leave                       Return from  │
-        │                                                 a pending    │
-        │                                                 mode to the  │
-        │                                                 mode it      │
-        │                                                 shadowed     │
+        │ enter       task.open                          Open the      │
+        │                                                task's page   │
+        │ x           task.done                          Mark the task │
+        │                                                done and move │
+        │                                                it to the     │
+        │                                                archive       │
+        │ e           task.edit                          Edit the      │
+        │                                                task's title  │
+        │                                                in a prompt   │
+        │ n           task.note                          Add a note to │
+        │                                                the task      │
+        │ d                                              waits for the │
+        │                                                next key (1   │
+        │                                                key)          │
+        │ d d         task.delete                        Delete the    │
+        │                                                task after a  │
+        │                                                confirm       │
+        │ d esc       mode.leave                         Return from a │
+        │                                                pending mode  │
+        │                                                to the mode   │
+        │                                                it shadowed   │
         │ list                                                         │
-        │    space       list.mark                        Toggle the   │
-        │                                                 mark on a    │
-        │                                                 row (the     │
-        │                                                 selected row │
-        │                                                 by default)  │
-        │                                                 for fan-out  │
-        │                                                 verbs        │
-        │ g  esc         mode.leave                       Return from  │
-        │                                                 a pending    │
-        │                                                 mode to the  │
-        │                                                 mode it      │
-        │                                                 shadowed     │
+        │ space       list.mark                          Toggle the    │
+        │                                                mark on a row │
+        │                                                (the selected │
+        │                                                row by        │
+        │                                                default) for  │
+        │                                                fan-out verbs │
         │ app                                                          │
-        │    ctrl+c      app.quit                         Exit the     │
-        │                                                 application  │
-        │    "           mode.enter          {"mode":"r…  Pick the     │
-        │                                                 register the │
-        │                                                 next yank,   │
-        │                                                 delete or    │
-        │                                                 paste uses   │
-        │                                                 ("a)         │
-        │    q           mode.enter          {"mode":"m…  Record a     │
-        │                                                 macro into   │
-        │                                                 the register │
-        │                                                 typed next   │
-        │                                                 (qa); q      │
-        │ 1–11 / 40                                                    │
+        │ ctrl+c      app.quit                           Exit the      │
+        │                                                application   │
+        │ "           mode.enter          {"mode":"reg…  Pick the      │
+        │                                                register the  │
+        │                                                next yank,    │
+        │                                                delete or     │
+        │                                                paste uses    │
+        │                                                ("a)          │
+        │ q           mode.enter          {"mode":"mac…  Record a      │
+        │                                                macro into    │
+        │                                                the register  │
+        │                                                typed next    │
+        │                                                (qa); q again │
+        │                                                stops         │
+        │ @           mode.enter          {"count":1,"…  Replay the    │
+        │                                                macro in the  │
+        │                                                register      │
+        │                                                typed next    │
+        │ 1–12 / 42                                                    │
         │ space list.mark · S view · esc modal.pop · : palette.open ·… │
         ╰──────────────────────────────────────────────────────────────╯
 

@@ -608,6 +608,24 @@ type HelpRow struct {
 	// listed once on the row and after its description ("also: …"); the
 	// row itself always names the canonical operation.
 	Aliases []string `json:"aliases,omitempty"`
+	// Enters is the pending mode the row's key enters when the help lists
+	// that mode's rows after it (the terminal leader: leader_pending).
+	Enters string `json:"enters,omitempty"`
+	// Group marks a prefix row: its key starts longer sequences (g of
+	// g c, the leader ctrl+a), which are listed Under it. A prefix bound
+	// to nothing alone is a row helpGroups makes, with no Operation.
+	Group bool `json:"group,omitempty"`
+	// Under is the prefix row this row is listed under (its longest
+	// prefix that is a Group row: "ctrl+a" for "ctrl+a v", "g c" for
+	// "g c x"); "" at the top of its section. Key is the whole sequence.
+	Under string `json:"under,omitempty"`
+	// Steps are a sequence's keys one by one, each with what it does at
+	// that point: entering a mode, waiting for the next key, then the
+	// final operation. A single key has none.
+	Steps []HelpStep `json:"steps,omitempty"`
+	// cancel marks a generated prefix cancel (d esc), which helpGroups
+	// lists in the section its sequences are in and never counts.
+	cancel bool
 }
 
 // MovementSection is the help section that holds every motion, after the
@@ -619,9 +637,19 @@ const MovementSection = "movement"
 // the innermost instance outward (the focused instance's rows, its noun's,
 // its parents' up to the page, then app; a capture row sits with its own
 // level, so app's ctrl+c comes after the focused row's verbs), and the
-// motions of every level last, under "movement".
+// motions of every level last, under "movement". A row whose key enters a
+// pending mode (the terminal leader) is followed by that mode's rows as
+// whole sequences (helpEnters, R6.10).
 func BindingHelp(r *Runtime, focus string) []HelpRow {
-	return r.helpRows(r.groupedRows(focus), func(b Binding) Arguments { return bindingHelpArgs(r, b, focus) }, focus)
+	w := helpWalk{
+		args:  func(b Binding) Arguments { return bindingHelpArgs(r, b, focus) },
+		focus: focus,
+		mode:  r.Mode,
+		enter: func(mode ModeState) []levelRow {
+			return groupLevelRows(r.scanRows(r.walk(focus), mode, focus, false))
+		},
+	}
+	return helpGroups(r.helpRows(w, r.groupedRows(focus), 0))
 }
 
 // NounHelp is BindingHelp for a hypothetical focus on noun in mode, with
@@ -639,17 +667,36 @@ func NounHelp(r *Runtime, noun string, mode ModeState) []HelpRow {
 // list, its page; the modal noun inside a modal), each answering with its
 // noun's tables, so a list row's keys from its list and page are there.
 func PlaceHelp(r *Runtime, place NounPlace, mode ModeState) []HelpRow {
-	return r.helpRows(groupLevelRows(r.nounRows(place, mode)), sourceArgs, "")
+	w := helpWalk{
+		args: sourceArgs,
+		mode: mode,
+		enter: func(mode ModeState) []levelRow {
+			return groupLevelRows(r.nounRows(place, mode))
+		},
+	}
+	return helpGroups(r.helpRows(w, groupLevelRows(r.nounRows(place, mode)), 0))
 }
 
-// helpRows is the help rows of grouped level rows; focus "" is a
-// hypothetical walk (no guard judged, each guarded row marked).
-func (r *Runtime) helpRows(rows []levelRow, args func(Binding) Arguments, focus string) []HelpRow {
+// helpWalk is how helpRows reads a walk: the arguments a row shows, the
+// focus (live) or "" (a hypothetical walk: no guard judged, each guarded
+// row marked), the mode the rows answer in, and the rows the same walk
+// answers with in a pending mode a row enters.
+type helpWalk struct {
+	args  func(Binding) Arguments
+	focus string
+	mode  ModeState
+	enter func(ModeState) []levelRow
+}
+
+// helpRows is the help rows of grouped level rows. depth counts the
+// pending modes expanded around them (helpEnters).
+func (r *Runtime) helpRows(w helpWalk, rows []levelRow, depth int) []HelpRow {
 	var out, motions []HelpRow
 	// A generated prefix cancel ("d esc") is listed only while a sequence
 	// on its prefix answers here: a read-only outline's guarded "d d" takes
 	// its "d esc" out of the help with it.
 	sequences := map[string]bool{}
+	exact := map[string]levelRow{}
 	for _, row := range rows {
 		if !isPrefixCancel(row.Binding) {
 			parts := strings.Fields(row.Keys)
@@ -657,17 +704,29 @@ func (r *Runtime) helpRows(rows []levelRow, args func(Binding) Arguments, focus 
 				sequences[row.Mode+"\x00"+strings.Join(parts[:i], " ")] = true
 			}
 		}
+		if _, seen := exact[row.Keys]; row.Keys != "" && !seen {
+			exact[row.Keys] = row
+		}
 	}
 	for _, row := range rows {
-		if isPrefixCancel(row.Binding) && !sequences[row.Mode+"\x00"+strings.TrimSuffix(row.Keys, " "+CancelKey)] || focus != "" && r.guardedOff(row.Binding, focus) {
+		if isPrefixCancel(row.Binding) && !sequences[row.Mode+"\x00"+strings.TrimSuffix(row.Keys, " "+CancelKey)] || w.focus != "" && r.guardedOffIn(row.Binding, w.focus, w.mode) {
 			continue
 		}
-		help := r.helpRow(row, args(row.Binding))
+		if depth > 0 && row.Hidden {
+			continue // a pending mode's hidden rows (the leader's any) stay out
+		}
+		help := r.helpRow(row, w.args(row.Binding))
+		help.cancel = isPrefixCancel(row.Binding)
 		if row.guard != "" {
 			help.Operation += " ?"
 			help.Description = strings.TrimSuffix("when "+row.guard+" · "+help.Description, " · ")
 		}
-		if r.Operations[row.Request.Key()].Motion {
+		if entered, sub := r.helpEnters(w, row, depth); sub != nil {
+			out = append(out, r.enteringRows(help, row, entered, sub, exact)...)
+			continue
+		}
+		help.Steps = r.helpSteps(help, exact, HelpStep{Key: help.Final, Operation: help.Operation, Description: help.Description})
+		if depth == 0 && r.Operations[row.Request.Key()].Motion {
 			help.Section = MovementSection
 			motions = append(motions, help)
 			continue

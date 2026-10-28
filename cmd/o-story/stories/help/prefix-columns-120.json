@@ -1,5 +1,5 @@
 {
-  "name": "? help at 120 columns: a key sequence reads in prefix and key columns, rows sharing a prefix together and sorted, the prefix once per group, a three-key sequence's first two keys the prefix (R6.9, R6.7)",
+  "name": "? help at 120 columns: every row's key is the whole sequence; a prefix has a row of its own (waits for the next key, with the count) and its sequences follow it sorted by key, a longer prefix's row under the one it extends (R6.10, R6.9, R6.7)",
   "area": "help",
   "width": 120,
   "height": 60,
@@ -59,19 +59,19 @@
   ],
   "expect": [
     {
+      "after": 1,
       "modal": "bindings-help",
       "contains": [
-        "ctrl+a  n",
-        "g c     x",
-        "z       h",
+        "z h",
+        "ctrl+a v",
+        "g c x",
+        "waits for the next key (4 keys)",
+        "waits for the next key (2 keys)",
         "arguments"
       ],
       "lacks": [
-        "ctrl+a v",
-        "z l",
         "1›"
-      ],
-      "after": 1
+      ]
     }
   ]
 }

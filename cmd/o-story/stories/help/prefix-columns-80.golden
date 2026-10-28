@@ -7,47 +7,47 @@ r|  a1
  |
  |        ╭──────────────────────────────────────────────────────────────╮
  |        │ Keys · here                                                  │
- |        │         key             operation           description   1› │
+ |        │ key         operation           arguments      description   │
  |        │ demo                                                         │
- |        │ z       esc             mode.leave          Return from      │
- |        │                                             a pending        │
- |        │                                             mode to the      │
- |        │                                             mode it          │
- |        │                                             shadowed         │
- |        │ ctrl+a  n               demo.reset          Rebuild the      │
- |        │                                             story from       │
- |        │                                             its file         │
- |        │         N               demo.open           Open the         │
- |        │                                             row: attach      │
- |        │                                             the fake         │
- |        │                                             pane when        │
- |        │                                             the story        │
- |        │                                             has one for      │
- |        │                                             it               │
- |        │         t               demo.delete         Remove the       │
- |        │                                             row from its     │
- |        │                                             list             │
- |        │         v               demo.notify         Add a            │
- |        │                                             persistent       │
- |        │                                             notice           │
- |        │                                             naming the       │
- |        │                                             row              │
- |        │         esc             mode.leave          Return from      │
- |        │                                             a pending        │
- |        │                                             mode to the      │
- |        │                                             mode it          │
- |        │                                             shadowed         │
- |        │ g       esc             mode.leave          Return from      │
- |        │                                             a pending        │
- |        │                                             mode to the      │
- |        │                                             mode it          │
- |        │                                             shadowed         │
-R|        │ g c     x               demo.notify         Add a            │
-R|        │                                             persistent       │
-R|        │                                             notice           │
-R|        │                                             naming the       │
-R|        │                                             row              │
- |        │ 8–15 / 49                                                    │
+ |        │ z h         demo.reset                         Rebuild the   │
+ |        │                                                story from    │
+ |        │                                                its file      │
+ |        │ z l         demo.open                          Open the row: │
+ |        │                                                attach the    │
+ |        │                                                fake pane     │
+ |        │                                                when the      │
+ |        │                                                story has one │
+ |        │                                                for it        │
+ |        │ z esc       mode.leave                         Return from a │
+ |        │                                                pending mode  │
+ |        │                                                to the mode   │
+ |        │                                                it shadowed   │
+ |        │ ctrl+a                                         waits for the │
+ |        │                                                next key (4   │
+ |        │                                                keys)         │
+ |        │ ctrl+a n    demo.reset                         Rebuild the   │
+ |        │                                                story from    │
+ |        │                                                its file      │
+ |        │ ctrl+a N    demo.open                          Open the row: │
+ |        │                                                attach the    │
+ |        │                                                fake pane     │
+ |        │                                                when the      │
+ |        │                                                story has one │
+ |        │                                                for it        │
+ |        │ ctrl+a t    demo.delete                        Remove the    │
+ |        │                                                row from its  │
+ |        │                                                list          │
+ |        │ ctrl+a v    demo.notify                        Add a         │
+ |        │                                                persistent    │
+ |        │                                                notice naming │
+ |        │                                                the row       │
+R|        │ ctrl+a esc  mode.leave                         Return from a │
+R|        │                                                pending mode  │
+R|        │                                                to the mode   │
+R|        │                                                it shadowed   │
+ |        │ g                                              waits for the │
+ |        │                                                next key (2   │
+ |        │ 7–16 / 54                                                    │
  |        │ space list.mark · S view · esc modal.pop · : palette.open ·… │
  |        ╰──────────────────────────────────────────────────────────────╯
  |

@@ -345,21 +345,41 @@ tiers above them. When the two disagree, fix one in the same commit.
   arguments cut with `…` and drop first when narrow (`1›` counts them, `z l`
   scrolls them in). Golden: `testdata/help-80.golden`; stories
   `help/prefix-columns-{80,120}.json`.
-- **R6.9** Help reads a key sequence in two columns, prefix then key
-  (`SplitKeys`: `z l` is `z` and `l`, `ctrl+a v` is `ctrl+a` and `v`, a
-  three-key `g c x` is `g c` and `x`, a single key has no prefix), then the
-  operation and description. Inside each section (the sections keep their
-  order: the answering noun innermost first, app, movement) the single keys
-  come first in the order they answer, then each prefix's rows together,
-  the prefixes in the order they first answer (a longer prefix right after
-  the one it extends: `g`, then `g c`), a prefix's rows sorted by key
-  (characters case folded, lower case first, then named keys, so the
-  generated `esc` cancel is last). The prefix is drawn on its group's first
-  row and blank below it (`Column.Group`), and again on the first row a
-  scrolled window draws. A help with no sequence has no prefix column.
-  `BindingHelp` keeps resolution order; only the modal sorts. Story:
-  `help/prefix-columns-{80,120}.json`; tests `TestHelpOrderGroupsPrefixes`,
-  `TestGroupColumnShowsARepeatedCellOnce`.
+- **R6.9** Help orders a section's rows so a sequence reads with its
+  prefix: inside each section (the sections keep their order: the
+  answering noun innermost first, app, movement) the keys that start no
+  sequence come first in the order they answer, then each prefix's row
+  (R6.10) in the order it first answers, the rows under a prefix sorted by
+  their final key (characters case folded, lower case first, then named
+  keys, so the generated `esc` cancel is last), a longer prefix's row under
+  the one it extends (`g`, then `g c` under it). `BindingHelp` keeps
+  resolution order; only the modal sorts. (Until v0.28.0 the key was two
+  columns, prefix then key, the prefix drawn once per group: R6.10
+  replaces that with the whole sequence.) Story:
+  `help/prefix-columns-{80,120}.json`; test `TestHelpOrderGroupsPrefixes`.
+- **R6.10** Help shows a key that switches to a "next key" state the same
+  way whatever does it: a row bound to `mode.enter` into a pending mode
+  (the terminal leader `ctrl+a` → `leader_pending`) and the shared first
+  key of sequences (`g` of `g c`). Each such prefix has a row, its key
+  alone: an entering row reads `mode.enter`, `enters leader_pending: waits
+  for the next key (N keys)` (and what the key does alone after the
+  timeout); a prefix bound to nothing alone gets a made row, no operation,
+  `waits for the next key (N keys)`; a prefix bound to an operation of its
+  own keeps it. Under the prefix's row come the sequences it starts, each
+  line the whole sequence in the key column (`ctrl+a v  side vim`,
+  `g c x` under `g c` under `g`), each listed once. A pending mode's rows
+  are the rows the same walk answers with in that mode (its noun tables,
+  the focused instance's, app's), so they follow `TerminalLeader()` and a
+  key entering the mode from several places lists them under each; hidden
+  and unbound rows of the mode stay out; a row of the mode that enters a
+  further mode lists that mode once more, and one level deeper it shows as
+  `mode.enter` (no cycle). The register, macro and count rows (a `Help` of
+  their own) and operators (`op`: their mode is every motion) stay one row.
+  Each sequence row carries its steps (`HelpRow.Steps`): every key with
+  what it does there: enters a mode, waits for the next key, the final
+  operation. The made row's wording is `helpWaits` in `help_modes.go`.
+  Stories `help/leader-sequences.json`, `help/leader-rebound.json`,
+  `help/mode-cycle.json`, `help/prefix-columns-{80,120}.json`.
 - **R6.8** The tab row never drops a page silently: when the tabs do not
   fit, `‹N` at the left edge and `N›` at the right count the pages hidden on
   each side, the active tab is always on the row, and the shown tabs plus

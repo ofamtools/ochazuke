@@ -81,6 +81,8 @@ it to the timer's deadline and delivers the timer's message
                                      // (writes) and returns to terminal, esc cancels, nothing reaches the pane
     jobs: [{ verb: "demo.build", key: "w", finishOnKey: "W", failOnKey: "X", quiet: false, start: 0, label: "" }],
     bind: [{ noun: "demo", mode: "normal", keys: "C", do: "notice.clear" }],
+    pending: ["loop"],            // pending modes defined before bind, which may enter
+                                  // them (do: "mode.enter", args: { mode: "loop" }) or bind in them
     verbs: [{ verb: "demo.open-file", description: "Open a file", positional: ["path"],
               parameters: { path: { type: "string", required: true, source: "demo.files" } } },
             { verb: "demo.files", rows: ["main.go", "go.mod"] },
@@ -414,6 +416,7 @@ Conformance:
 | normal | story-card | `story-card.timeline-append` `story-card.timeline-stream` |
 | normal | surface | `surface.scroll` |
 | normal | timeline | `timeline.close` `timeline.close-all` `timeline.fold` `timeline.goto` `timeline.open` `timeline.open-all` `timeline.toggle` |
+| terminal | bindings | `bindings.help` |
 | terminal | demo | `demo.hints` |
 | terminal | mode | `mode.enter` |
 | terminal | terminal | `terminal.detach` `terminal.send` |
@@ -445,6 +448,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `setting-value.commit`
 - `insert` → `normal` via `settings.edit`
 - `leader_pending` → `hints` via `demo.hints`
+- `leader_pending` → `normal` via `bindings.help`
 - `leader_pending` → `normal` via `terminal.detach`
 - `leader_pending` → `terminal` via `terminal.send`
 - `list_filter` → `normal` via `list.filter-choose`

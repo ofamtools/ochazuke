@@ -303,10 +303,12 @@ func TestSplitKeys(t *testing.T) {
 	}
 }
 
-// Inside a section the single keys keep their order and come first; a
-// prefix's rows follow together, sorted (characters case folded, named
-// keys last), a longer prefix after the shorter one it extends; the
-// sections keep their order. A row keeps its request beside its hint.
+// Inside a section the single keys keep their order and come first; then
+// every prefix has a row (made when nothing is bound on it alone, R6.10)
+// with its sequences under it, sorted (characters case folded, named keys
+// last), a longer prefix's row under the shorter one it extends with its
+// own sequences under it; the sections keep their order. A row keeps its
+// request beside its hint.
 func TestHelpOrderGroupsPrefixes(t *testing.T) {
 	row := func(section, key string) HelpRow {
 		p, f := SplitKeys(key)
@@ -314,10 +316,10 @@ func TestHelpOrderGroupsPrefixes(t *testing.T) {
 	}
 	rows := []HelpRow{row("a", "x"), row("a", "g c y"), row("a", "z l"), row("a", "enter"), row("a", "z esc"), row("a", "g esc"), row("a", "z h"), row("a", "z H"), row("a", "g c x"), row("b", "g g"), row("b", "j")}
 	var got []string
-	for _, r := range helpOrder(rows) {
-		got = append(got, r.Section+":"+r.Key)
+	for _, r := range helpOrder(helpGroups(rows)) {
+		got = append(got, r.Section+":"+r.Key+"<"+r.Under)
 	}
-	want := []string{"a:x", "a:enter", "a:g esc", "a:g c x", "a:g c y", "a:z h", "a:z H", "a:z l", "a:z esc", "b:j", "b:g g"}
+	want := []string{"a:x<", "a:enter<", "a:g<", "a:g c<g", "a:g c x<g c", "a:g c y<g c", "a:g esc<g", "a:z<", "a:z h<z", "a:z H<z", "a:z l<z", "a:z esc<z", "b:j<", "b:g<", "b:g g<g"}
 	if !slices.Equal(got, want) {
 		t.Fatalf("order %q, want %q", got, want)
 	}
