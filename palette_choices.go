@@ -3,6 +3,8 @@ package ochazuke
 import (
 	"fmt"
 	"strings"
+
+	"github.com/charmbracelet/x/ansi"
 )
 
 // choiceList caches one parameter's choices until the line changes, so a
@@ -66,4 +68,135 @@ func choiceLabel(c Choice) string {
 // hasPrefixFold reports whether s starts with prefix, ignoring case.
 func hasPrefixFold(s, prefix string) bool {
 	return strings.HasPrefix(strings.ToLower(s), strings.ToLower(prefix))
+}
+
+// paramSlot is the parameter the word being typed fills: Op's parameter
+// Name, with Next the parameters still unfilled after it, in line order.
+type paramSlot struct {
+	Op   Operation
+	Name string
+	Next []string
+}
+
+// slot finds the parameter the next word fills on a line resolved to
+// tokens (the words before the one being typed): after a palette noun its
+// default verb's argument, else the operation's first unfilled parameter.
+func (p *Palette) slot(ix lineIndex, c commandLine, tokens []lineToken) (paramSlot, bool) {
+	if c.Err != nil {
+		return paramSlot{}, false
+	}
+	if len(tokens) == 1 && len(c.Words) == 1 && c.Words[0].Kind == "noun" {
+		noun := c.Words[0].Value
+		config, ok := p.nouns[p.r.CanonicalNoun(noun)]
+		if !ok {
+			return paramSlot{}, false
+		}
+		op, ok := ix.ops[noun+"."+config.DefaultVerb]
+		if !ok {
+			return paramSlot{}, false
+		}
+		var next []string
+		for _, name := range paramOrder(op) {
+			if name != config.Argument {
+				next = append(next, name)
+			}
+		}
+		return paramSlot{Op: op, Name: config.Argument, Next: next}, true
+	}
+	if !c.known() {
+		return paramSlot{}, false
+	}
+	next := remainingParams(c)
+	if len(next) == 0 {
+		return paramSlot{}, false
+	}
+	return paramSlot{Op: c.Op, Name: next[0], Next: next[1:]}, true
+}
+
+// currentSlot is the slot of the palette's line as typed.
+func (p *Palette) currentSlot() (paramSlot, bool) {
+	tokens, trailing := tokenize(p.Text())
+	if !trailing {
+		tokens = tokens[:len(tokens)-1]
+	}
+	if len(tokens) == 0 {
+		return paramSlot{}, false
+	}
+	ix := p.index()
+	return p.slot(ix, p.parseTokens(ix, tokens), tokens)
+}
+
+// paramHeader is the heading over a parameter's choices, one line of at
+// most width cells: the name, then what it is (its type, required or
+// optional, how many enum values, the operation its choices come from or
+// the thing a noun-typed one names, whether free text is accepted), then
+// its description and the parameters after it. Too wide, it drops the
+// following parameters, cuts the description, then drops what it is from
+// the end; the name is always kept.
+func (p *Palette) paramHeader(s Styles, slot paramSlot, width int) string {
+	param := slot.Op.Parameters[slot.Name]
+	var facts []string
+	typ := param.Type
+	if typ == "" {
+		typ = "string"
+	}
+	facts = append(facts, typ)
+	if param.Required {
+		facts = append(facts, "required")
+	} else {
+		facts = append(facts, "optional")
+	}
+	if len(param.Enum) > 0 {
+		facts = append(facts, fmt.Sprintf("one of %d", len(param.Enum)))
+	}
+	if param.Source != "" {
+		noun, verb := SplitKey(p.r.CanonicalKey(param.Source))
+		facts = append(facts, "from "+p.r.DisplayNoun(noun)+"."+verb)
+	} else if param.Noun != "" {
+		facts = append(facts, article(p.r.DisplayNoun(param.Noun)))
+	}
+	if param.Free && (len(param.Enum) > 0 || param.Source != "" || param.Noun != "") {
+		facts = append(facts, "or any text")
+	}
+	desc := param.Description
+	next := ""
+	if len(slot.Next) > 0 {
+		next = " · next: " + strings.Join(slot.Next, ", ")
+	}
+	const sep, dash = " · ", " — "
+	for {
+		meta := ""
+		if len(facts) > 0 {
+			meta = sep + strings.Join(facts, sep)
+		}
+		plain := slot.Name + meta
+		rest := ""
+		if desc != "" {
+			rest = dash + desc
+		}
+		rest += next
+		if ansi.StringWidth(plain+rest) <= width {
+			return s.Accent.Render(slot.Name) + s.Muted.Render(meta+rest)
+		}
+		switch room := width - ansi.StringWidth(plain+dash); {
+		case next != "":
+			next = ""
+		case desc != "" && room >= 8:
+			return s.Accent.Render(slot.Name) + s.Muted.Render(meta+dash+ansi.Truncate(desc, room, "…"))
+		case desc != "":
+			desc = ""
+		case len(facts) > 0:
+			facts = facts[:len(facts)-1]
+		default:
+			return s.Accent.Render(ansi.Truncate(slot.Name, max(1, width), "…"))
+		}
+	}
+}
+
+// article spells "a list", "an editor".
+func article(noun string) string {
+	if noun != "" && strings.ContainsRune("aeiou", rune(strings.ToLower(noun)[0])) {
+		return "an " + noun
+	}
+	return "a " + noun
 }

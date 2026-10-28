@@ -1,0 +1,7 @@
+{
+  "name": "a boolean parameter's choices name the parameter",
+  "area": "palette",
+  "height": 30,
+  "page": {"lists": [{"id": "a", "rows": 3}]},
+  "script": [":", {"type": "bindin list "}]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "an enum parameter's choices name it and what comes next",
+  "area": "palette",
+  "height": 30,
+  "page": {
+    "lists": [{"id": "a", "rows": 3}],
+    "verbs": [{"verb": "demo.arrange", "description": "Arrange the rows", "positional": ["order"],
+               "parameters": {
+                 "order": {"type": "string", "enum": ["newest", "oldest", "name"], "description": "Which rows come first"},
+                 "group": {"type": "boolean", "description": "Group rows by kind"}}}]
+  },
+  "script": [":", {"type": "arrange "}]
+}

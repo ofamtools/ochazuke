@@ -1,0 +1,30 @@
+ |  ◆ o-story                                                            INSERT
+ |   › page1
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  a
+r|  a1
+ |  a2
+ |  a3
+ |  b
+r|  b1
+ |  b2
+ |              ╭──────────────────────────────────────────────────╮
+ |              │ Command palette                                  │
+ |              │ : list focus                                     │
+ |              │   missing id (string, pick)                      │
+ |              │ id · string · required · a list · or any text    │
+ |              │   a                                              │
+ |              │   b                                              │
+ |              │                                                  │
+ |              │ enter palette.run · tab palette.complete · up p… │
+ |              ╰──────────────────────────────────────────────────╯
+ |
+ |
+ |
+ |
+ |
+ |
+ |
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  enter palette.run · tab palette.complete · up palette.recall · down palette…
+ |

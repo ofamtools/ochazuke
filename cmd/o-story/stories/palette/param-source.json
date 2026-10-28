@@ -1,0 +1,19 @@
+{
+  "name": "the header follows the parameter being filled",
+  "area": "palette",
+  "width": 110,
+  "height": 30,
+  "page": {
+    "lists": [{"id": "a", "rows": 3}],
+    "verbs": [{"verb": "demo.files", "description": "List the files", "rows": ["README.md", "main.go", "go.mod"]},
+              {"verb": "demo.open-file", "description": "Open a file", "positional": ["path"],
+               "parameters": {
+                 "path": {"type": "string", "required": true, "source": "demo.files", "description": "The file to open"},
+                 "line": {"type": "integer", "description": "The line to show"}}}]
+  },
+  "script": [":", {"type": "open-file ma"}, {"type": "in.go "}],
+  "expect": [
+    {"after": 2, "contains": ["path · string · required · from demo.files — The file to open · next: line", "main.go"], "lacks": ["choices"]},
+    {"contains": ["line · integer · optional — The line to show"], "lacks": ["path · string"]}
+  ]
+}

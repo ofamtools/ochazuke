@@ -509,7 +509,7 @@ func TestTransformNameCompletes(t *testing.T) {
 	press(t, a, ":")
 	keytest.Type(a.m, "transform cell ")
 	view := ansi.Strip(a.m.View().Content)
-	for _, want := range []string{"choices", "upper  UPPER CASE", "slug  slug-case", "title  Title Case"} {
+	for _, want := range []string{"name · string · required · from transformations.list", "upper  UPPER CASE", "slug  slug-case", "title  Title Case"} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("completions lack %q:\n%s", want, view)
 		}

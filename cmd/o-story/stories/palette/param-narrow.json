@@ -1,0 +1,8 @@
+{
+  "name": "at a narrow width the header cuts the description, then the type",
+  "area": "palette",
+  "width": 34,
+  "height": 30,
+  "page": {"lists": [{"id": "a", "rows": 3}]},
+  "script": [":", {"type": "bindin list "}]
+}

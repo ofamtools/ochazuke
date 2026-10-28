@@ -115,23 +115,12 @@ func (p *Palette) completions() []PaletteEntry {
 		case c.Err != nil:
 		case len(tokens) == 1 && c.Words[0].Kind == "verb":
 			nouns(ix.verbs[c.Words[0].Value])
-			if c.known() {
-				if next := remainingParams(c); len(next) > 0 {
-					choices(c.Op, next[0])
-				}
-			}
 		case len(tokens) == 1 && c.Words[0].Kind == "noun":
 			noun := c.Words[0].Value
 			verbs(ix.nouns[noun], noun)
-			if config, ok := p.nouns[p.r.CanonicalNoun(noun)]; ok {
-				if op, ok := ix.ops[noun+"."+config.DefaultVerb]; ok {
-					choices(op, config.Argument)
-				}
-			}
-		case c.known():
-			if next := remainingParams(c); len(next) > 0 {
-				choices(c.Op, next[0])
-			}
+		}
+		if slot, ok := p.slot(ix, c, tokens); ok {
+			choices(slot.Op, slot.Name)
 		}
 	}
 	kind := map[string]string{"v": "verb", "n": "noun", "p": "choice"}[p.filter]

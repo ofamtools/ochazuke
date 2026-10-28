@@ -1,0 +1,30 @@
+ |  ◆ o-story                                                            INSERT
+ |   › page1
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  a
+r|  a1
+ |  a2
+ |  a3
+ |
+ |        ╭──────────────────────────────────────────────────────────────╮
+ |        │ Command palette                                              │
+ |        │ : arrange                                                    │
+ |        │   → demo.arrange (noun from the focus)                       │
+ |        │ nouns                                                        │
+ |        │   demo                                                       │
+ |        │ order · string · optional · one of 3 — Which rows come first │
+ |        │   newest                                                     │
+ |        │   oldest                                                     │
+ |        │   name                                                       │
+ |        │                                                              │
+ |        │ enter palette.run · tab palette.complete · up palette.recal… │
+ |        ╰──────────────────────────────────────────────────────────────╯
+ |
+ |
+ |
+ |
+ |
+ |
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  enter palette.run · tab palette.complete · up palette.recall · down palette…
+ |

@@ -392,11 +392,14 @@ func (p *Palette) state() map[string]any {
 
 func (p *Palette) View() string { return p.ViewSized(80, 20) }
 
-func (p *Palette) ViewSized(width, height int) string { return p.viewBlock(width, height).Text }
+func (p *Palette) ViewSized(width, height int) string {
+	return p.viewBlock(Styles{}, width, height).Text
+}
 
 // viewBlock renders the line, what it resolves to, and the completion list
-// grouped by kind, with the line's cursor.
-func (p *Palette) viewBlock(width, height int) Block {
+// grouped by kind, with the line's cursor. A parameter's choices are
+// headed by the parameter (paramHeader), drawn in s.
+func (p *Palette) viewBlock(s Styles, width, height int) Block {
 	if !p.IsOpen() || p.line == nil {
 		return Block{}
 	}
@@ -422,7 +425,16 @@ func (p *Palette) viewBlock(width, height int) Block {
 	default:
 		fmt.Fprintf(&out, "  → %s\n", describeRequest(c))
 	}
+	slot, inSlot := p.currentSlot()
+	if inSlot && p.filter != "" && p.filter != "p" {
+		inSlot = false
+	}
+	headed := false
 	if len(entries) == 0 {
+		if inSlot {
+			out.WriteString(p.paramHeader(s, slot, width) + "\n")
+			headed = true
+		}
 		out.WriteString("  No completions\n")
 	}
 	highlight, ok := p.highlight, false
@@ -436,6 +448,9 @@ func (p *Palette) viewBlock(width, height int) Block {
 		entry := entries[i]
 		if heading := map[string]string{"verb": "verbs", "noun": "nouns", "choice": "choices"}[entry.Kind]; heading != group {
 			group = heading
+			if heading == "choices" && inSlot {
+				heading, headed = p.paramHeader(s, slot, width), true
+			}
 			out.WriteString(heading + "\n")
 		}
 		marker := "  "
@@ -444,8 +459,14 @@ func (p *Palette) viewBlock(width, height int) Block {
 		}
 		fmt.Fprintf(&out, "%s%s\n", marker, entry.Label)
 	}
-	if hidden := len(entries) - min(len(entries), start+limit); hidden > 0 {
+	hidden := len(entries) - min(len(entries), start+limit)
+	if hidden > 0 {
 		fmt.Fprintf(&out, "  (%d more)\n", hidden)
+	}
+	if inSlot && !headed && hidden == 0 {
+		// Nothing to pick, but the next word may still fill the parameter
+		// (a verb's line lists the nouns that have it).
+		out.WriteString(p.paramHeader(s, slot, width) + "\n")
 	}
 	return Block{Text: out.String(), Cursor: cursor}
 }

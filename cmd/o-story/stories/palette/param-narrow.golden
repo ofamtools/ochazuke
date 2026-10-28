@@ -1,0 +1,30 @@
+ |  ◆ o-story              INSERT
+ |   › page1
+ |  ──────────────────────────────
+ |  a
+r|  a1
+ |  a2
+ |  a3
+ |
+ |
+ |
+ |   ╭─────────────────────────╮
+ |   │ Command palette         │
+ |   │ : bindin list           │
+ |   │   → ochazuke.bindings.l │
+ |   │ all · boolean           │
+ |   │   true                  │
+ |   │   false                 │
+ |   │                         │
+ |   │ enter palette.run · ta… │
+ |   ╰─────────────────────────╯
+ |
+ |
+ |
+ |
+ |
+ |
+ |
+ |  ──────────────────────────────
+ |  enter palette.run · tab palet…
+ |

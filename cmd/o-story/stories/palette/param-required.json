@@ -1,0 +1,11 @@
+{
+  "name": "a required parameter with nothing to pick still names itself",
+  "area": "palette",
+  "height": 30,
+  "page": {
+    "lists": [{"id": "a", "rows": 3}],
+    "verbs": [{"verb": "demo.rename", "description": "Rename the row",
+               "parameters": {"name": {"type": "string", "required": true, "description": "The new name"}}}]
+  },
+  "script": [":", {"type": "rename "}]
+}

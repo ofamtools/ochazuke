@@ -270,7 +270,7 @@ Root package `ochazuke` is flat: 73 source files, 74 test files. Each entry list
 - types: ModalView, ModalBody (iface), Model, HelpRow
 - methods: Model(24), Runtime(3), modelSink(3)
 - funcs: NewModel, BindingHints, HintBindings, BindingHelp, NounHelp, PlaceHelp, InputView, InputBlock
-- leans on: runtime.go(105), noun.go(44), block.go(34), theme.go(23)
+- leans on: runtime.go(105), noun.go(44), block.go(34), theme.go(24)
 
 ### namespace.go
 
@@ -308,7 +308,7 @@ Root package `ochazuke` is flat: 73 source files, 74 test files. Each entry list
 
 ### palette.go
 
-- lines: 469 · tests: palette_test.go
+- lines: 490 · tests: palette_test.go
 - purpose: Palette is the ex-mode command line: one prompt input whose text is the source of truth, parsed by the grammar in palette_parse.go, with a completion list fo...
 - types: Palette
 - methods: Palette(23)
@@ -317,10 +317,10 @@ Root package `ochazuke` is flat: 73 source files, 74 test files. Each entry list
 
 ### palette_choices.go
 
-- lines: 69
+- lines: 202
 - purpose: choiceList caches one parameter's choices until the line changes, so a Source runs once per edit rather than once per parse.
-- methods: Palette(2)
-- leans on: params.go(8), noun.go(2), palette.go(2), runtime.go(1)
+- methods: Palette(5)
+- leans on: params.go(8), palette_parse.go(6), noun.go(5), palette.go(5)
 
 ### palette_editing.go
 
@@ -331,12 +331,12 @@ Root package `ochazuke` is flat: 73 source files, 74 test files. Each entry list
 
 ### palette_nouns.go
 
-- lines: 168 · tests: palette_nouns_test.go
+- lines: 157 · tests: palette_nouns_test.go
 - purpose: PaletteInstance is a labeled object whose ID becomes the default action argument.
 - types: PaletteInstance, PaletteSource (func), PaletteNoun, PaletteEntry
 - methods: Palette(3)
 - funcs: PagesPaletteSource
-- leans on: instance.go(9), runtime.go(8), palette_parse.go(5), noun.go(3)
+- leans on: instance.go(9), runtime.go(8), noun.go(3), palette.go(3)
 
 ### palette_parse.go
 
@@ -523,10 +523,10 @@ Root package `ochazuke` is flat: 73 source files, 74 test files. Each entry list
 
 ### theme.go
 
-- lines: 287 · tests: theme_test.go
+- lines: 312 · tests: theme_test.go
 - purpose: Appearance is event-loop-owned configuration.
 - types: Appearance, Styles
-- methods: Appearance(2), Runtime(2), Styles(2)
+- methods: Appearance(2), Runtime(2), Styles(3)
 - funcs: NewAppearance, NewStyles
 - leans on: runtime.go(25), settings.go(6), delivery.go(5), noun.go(5)
 
@@ -541,7 +541,7 @@ Root package `ochazuke` is flat: 73 source files, 74 test files. Each entry list
 
 ### timeline.go
 
-- lines: 1069 · tests: timeline_test.go
+- lines: 1072 · tests: timeline_test.go
 - purpose: Card is one entry of a timeline: a box with a header that always shows (wrapped onto as many lines as it needs) and a meta line under it, and a body shown on...
 - types: Card, CardSection, CardRole, Timeline
 - methods: List(1), Runtime(3), Timeline(37)
@@ -960,12 +960,12 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/build.go
 
-- lines: 1371
+- lines: 1402
 - purpose: Session is one built story: the runtime, the model and the demo state the verbs act on (fake jobs and panes).
 - types: Session, Options
-- methods: Session(24), datedView(1), storyCommands(3)
+- methods: Session(25), datedView(1), storyCommands(3)
 - funcs: Build
-- leans on: story.go(47), run.go(15), fake.go(3)
+- leans on: story.go(48), run.go(16), fake.go(3)
 
 ### story/driver.go
 
@@ -1003,9 +1003,9 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/story.go
 
-- lines: 614
+- lines: 627
 - purpose: Story is one scenario file.
-- types: Story, Page, ChooserSpec, ChooserRowSpec, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, MarkdownSpec, TimelineSpec, CardSpec, SectionSpec, CommandsSpec, CatalogSpec, InputSpec, CompletionSpec, TermSpec, HintsSpec, MarkSpec, JobSpec, BindSpec, Event, Expect, Expects
+- types: Story, Page, ChooserSpec, ChooserRowSpec, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, MarkdownSpec, TimelineSpec, CardSpec, SectionSpec, CommandsSpec, CatalogSpec, InputSpec, CompletionSpec, TermSpec, HintsSpec, MarkSpec, JobSpec, BindSpec, VerbSpec, Event, Expect, Expects
 - methods: Event(3), Expects(2), Story(5)
 - funcs: Slug, Parse, LoadFS, LoadDir, Sort, Find
 
@@ -1252,3 +1252,4 @@ Exported type -> file.
 - story.TimelineSpec -> story/story.go
 - story.TreeSpec -> story/story.go
 - story.TrimSpec -> story/trim.go
+- story.VerbSpec -> story/story.go

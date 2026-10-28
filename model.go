@@ -341,7 +341,7 @@ func (m *Model) modalContent(id string, width, height int) (string, Block) {
 	focus := m.Runtime.ModalFocus(id)
 	switch {
 	case id == paletteID && m.Palette.IsOpen():
-		return "Command palette", m.Palette.viewBlock(width, height)
+		return "Command palette", m.Palette.viewBlock(m.Styles(), width, height)
 	case m.ModalViews[id].Render != nil:
 		body = m.ModalViews[id].Render(m.Runtime, m.Runtime.Instances[id], width, height)
 	case m.modalBody(id) != nil:

@@ -558,3 +558,42 @@ func TestPaletteNounParameterChoices(t *testing.T) {
 		t.Fatalf("instance labels not shown: %v", labels)
 	}
 }
+
+// A parameter's header names it, says what it is, then its description
+// and the parameters after it; narrowing drops the following parameters,
+// cuts then drops the description, then drops what it is from the end,
+// and keeps the name.
+func TestPaletteParamHeader(t *testing.T) {
+	r := NewRuntime()
+	p := NewPalette(r)
+	r.Register(Operation{Verb: "open", Noun: "file", Parameters: map[string]Parameter{
+		"path": {Type: "string", Required: true, Source: "file.list", Description: "The file to open"},
+		"mode": {Type: "string", Enum: []string{"read", "write"}, Free: true},
+		"row":  {Noun: "ochazuke.list"},
+	}, Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
+	op := r.Operations["file.open"]
+	slot := paramSlot{Op: op, Name: "path", Next: []string{"mode"}}
+	for _, tc := range []struct {
+		width int
+		want  string
+	}{
+		{80, "path · string · required · from file.list — The file to open · next: mode"},
+		{60, "path · string · required · from file.list — The file to open"},
+		{52, "path · string · required · from file.list — The fil…"},
+		{45, "path · string · required · from file.list"},
+		{40, "path · string · required"},
+		{15, "path · string"},
+		{6, "path"},
+		{3, "pa…"},
+	} {
+		if got := p.paramHeader(Styles{}, slot, tc.width); got != tc.want {
+			t.Errorf("width %d: %q, want %q", tc.width, got, tc.want)
+		}
+	}
+	if got := p.paramHeader(Styles{}, paramSlot{Op: op, Name: "mode"}, 80); got != "mode · string · optional · one of 2 · or any text" {
+		t.Errorf("enum: %q", got)
+	}
+	if got := p.paramHeader(Styles{}, paramSlot{Op: op, Name: "row"}, 80); got != "row · string · optional · a list" {
+		t.Errorf("noun: %q", got)
+	}
+}

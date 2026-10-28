@@ -1,0 +1,30 @@
+ |  ◆ o-story                                                            INSERT
+ |   › page1
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  a
+r|  a1
+ |  a2
+ |  a3
+ |
+ |
+ |
+ |              ╭──────────────────────────────────────────────────╮
+ |              │ Command palette                                  │
+ |              │ : rename                                         │
+ |              │   missing name (string): The new name            │
+ |              │ nouns                                            │
+ |              │   demo                                           │
+ |              │ name · string · required — The new name          │
+ |              │                                                  │
+ |              │ enter palette.run · tab palette.complete · up p… │
+ |              ╰──────────────────────────────────────────────────╯
+ |
+ |
+ |
+ |
+ |
+ |
+ |
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  enter palette.run · tab palette.complete · up palette.recall · down palette…
+ |
