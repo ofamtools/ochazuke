@@ -91,6 +91,9 @@ func (r *Runtime) openConfirm(c Context, q Request, op Operation) (any, error) {
 			if v, ok := q.Args["label"]; ok {
 				return fmt.Sprint(v)
 			}
+			if len(q.Subjects) > 1 {
+				return r.subjectsLabel(q.Subjects)
+			}
 			if inst.Label != "" {
 				return inst.Label
 			}

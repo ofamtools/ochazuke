@@ -23,14 +23,14 @@ R|            │   q           app.quit                                    Exit
  |            │                                                           current cell's text (what: cell, a │
  |            │                                                           cell-mode table) or the row's      │
  |            │                                                           cells joined by tabs (what: row,   │
- |            │                                                           any table) into the registers      │
+ |            │                                                           any table) into the registers;     │
+ |            │                                                           over a visual selection (V) every  │
+ |            │                                                           selected row's, one per line       │
  |            │   Y           list.yank ?         {"what":"row"}          when list-table · Copy the current │
  |            │                                                           cell's text (what: cell, a cell-   │
  |            │                                                           mode table) or the row's cells     │
  |            │                                                           joined by tabs (what: row, any     │
- |            │                                                           table) into the registers          │
- |            │   V           list.visual ?                               when table-visual · Start a visual │
- |            │ 1–9 / 89                                                                                     │
+ |            │ 1–8 / 89                                                                                     │
  |            │ space list.mark · S view · n noun · m mode · p place · esc modal.pop · : palette.open · ? b… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |

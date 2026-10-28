@@ -86,6 +86,22 @@ type TreeDebounceMsg struct {
 type treeEdit struct {
 	undo   []TreeChange
 	action *TreeAction
+	// steps is a group: the steps a verb over several rows made (a
+	// visual selection), undone last first as one step (Tree.group).
+	steps []treeEdit
+}
+
+// group starts one undo step for a verb run over several rows: its end
+// folds every step recorded since into one, so one u restores them all.
+func (t *Tree) group() (end func()) {
+	from := len(t.undo)
+	return func() {
+		if len(t.undo)-from < 2 {
+			return
+		}
+		steps := slices.Clone(t.undo[from:])
+		t.undo = append(t.undo[:from], treeEdit{steps: steps})
+	}
 }
 
 // TreeAction is an application change that goes on an outline's undo
@@ -196,6 +212,7 @@ func (r *Runtime) AddTree(id string, nodes []TreeNode, opts ...InstanceOption) (
 		return nil, err
 	}
 	t.list = list
+	list.undoGroup = t.group
 	if err := t.SetNodes(nodes); err != nil {
 		_ = r.RemoveInstance(id)
 		return nil, err
@@ -937,6 +954,20 @@ func (t *Tree) history(redo bool) error {
 	}
 	step := (*from)[len(*from)-1]
 	*from = (*from)[:len(*from)-1]
+	if step.steps != nil {
+		// A group: each step undone last first, through the stacks like
+		// one step of its own, then their inverses folded into one again.
+		at := len(*to)
+		var err error
+		for i := len(step.steps) - 1; i >= 0 && err == nil; i-- {
+			*from = append(*from, step.steps[i])
+			err = t.history(redo)
+		}
+		if len(*to)-at > 0 {
+			*to = append((*to)[:at], treeEdit{steps: slices.Clone((*to)[at:])})
+		}
+		return err
+	}
 	if a := step.action; a != nil {
 		if err := a.Undo(); err != nil {
 			*from = append(*from, step)

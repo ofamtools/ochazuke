@@ -424,9 +424,6 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent) error {
 		}
 		q.Args = args
 	}
-	// A row's own verb on a row in a visual selection (V) runs for every
-	// selected row (list_visual.go).
-	q = r.visualApply(q, ev.Level)
 	r.rowRequest = true
 	_, err := r.Execute(q)
 	if r.pendingModes[before] && r.modeGeneration == generation && r.Mode.Name == before {

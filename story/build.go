@@ -453,6 +453,15 @@ func (ss *Session) defineVerb(d *ochazuke.NounBuilder, v VerbSpec) error {
 		if c.Invoked.Alias {
 			entry += " via=" + c.Invoked.Name
 		}
+		if v.Row && c.Instance != nil {
+			if slices.Contains(v.Fail, c.Instance.ID) {
+				return ochazuke.Failed(fmt.Errorf("%s refuses", c.Instance.ID))
+			}
+			entry += " row=" + c.Instance.ID
+		}
+		if v.Many {
+			entry += " subjects=" + strings.Join(c.SubjectIDs(), ",")
+		}
 		ss.Writes = append(ss.Writes, entry)
 		if rows != nil {
 			return ochazuke.Done(rows)
@@ -461,6 +470,9 @@ func (ss *Session) defineVerb(d *ochazuke.NounBuilder, v VerbSpec) error {
 	}, v.Description)
 	if len(v.Positional) > 0 {
 		d.Positional(v.Positional...)
+	}
+	if v.Many {
+		d.Many()
 	}
 	ss.R.Operations[key] = withParams(ss.R.Operations[key], v.Parameters)
 	for _, a := range v.Aliases {

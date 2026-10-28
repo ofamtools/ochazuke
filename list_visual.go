@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"slices"
 )
 
 // Visual row selection: V on a cell-mode table starts a selection of rows
@@ -79,9 +80,11 @@ func (l *List) syncVisual() {
 }
 
 // apply is list.apply: the verb for every marked row shown (the selected
-// row when none is marked), each a request of the row's noun with the row
-// as target and args as its arguments. A verb with a confirm opens one
-// confirm for every row first; its y runs list.apply again, confirmed.
+// row when none is), one request per row noun with those rows as its
+// subjects (Request.Subjects) and args as its arguments: a verb that takes
+// many (Operation.Many) runs once for all of them, any other once per row
+// (Runtime.eachSubject). A verb with a confirm opens one confirm for every
+// row first; its y runs list.apply again, confirmed.
 func (l *List) apply(c Context, a Arguments) (any, error) {
 	r := l.r
 	rows := l.markedShown()
@@ -106,7 +109,7 @@ func (l *List) apply(c Context, a Arguments) (any, error) {
 				if args != nil {
 					q.Args["args"] = args
 				}
-				prompt := fmt.Sprintf("Run %s on %d rows?", op.Key(), len(rows))
+				prompt := fmt.Sprintf("Run %s on %d rows?", r.DisplayKey(op.Key()), len(rows))
 				if len(rows) == 1 {
 					prompt = op.Confirm
 				}
@@ -115,52 +118,77 @@ func (l *List) apply(c Context, a Arguments) (any, error) {
 		}
 	}
 	l.EndVisual()
+	// The rows by noun, in display order; each noun's request targets the
+	// selected row when it is one of them (a chooser or a confirm names
+	// it), else the noun's first row.
+	var nouns []string
+	byNoun := map[string][]string{}
+	for _, row := range rows {
+		if _, ok := byNoun[row.Noun]; !ok {
+			nouns = append(nouns, row.Noun)
+		}
+		byNoun[row.Noun] = append(byNoun[row.Noun], row.ID)
+	}
+	selected, _ := l.Selected()
 	applied, skipped := []string{}, []string{}
 	var failure error
-	for _, row := range rows {
-		q := Request{Verb: verb, Noun: row.Noun, Target: row.ID, Args: maps.Clone(args), Confirmed: confirmed}
-		if _, ok := r.Operations[q.Key()]; !ok {
-			skipped = append(skipped, row.ID+": "+q.Key()+" is not registered")
-			continue
+	for _, noun := range nouns {
+		ids := byNoun[noun]
+		q := Request{Verb: verb, Noun: noun, Target: ids[0], Args: maps.Clone(args), Confirmed: confirmed}
+		if slices.Contains(ids, selected.ID) {
+			q.Target = selected.ID
 		}
-		if _, err := r.Execute(q); err != nil {
-			skipped = append(skipped, row.ID+": "+err.Error())
-			if failure == nil {
-				failure = err
+		if len(ids) > 1 {
+			q.Subjects = ids
+		}
+		if _, ok := r.Operations[q.Key()]; !ok {
+			for _, id := range ids {
+				skipped = append(skipped, id+": "+q.Key()+" is not registered")
 			}
 			continue
 		}
-		applied = append(applied, row.ID)
+		value, err := r.Execute(q)
+		if report, ok := value.(map[string]any); ok && len(ids) > 1 && report["applied"] != nil {
+			done, _ := report["applied"].([]string)
+			left, _ := report["skipped"].([]string)
+			applied, skipped = append(applied, done...), append(skipped, left...)
+		} else if err != nil {
+			for _, id := range ids {
+				skipped = append(skipped, id+": "+err.Error())
+			}
+		} else {
+			applied = append(applied, ids...)
+		}
+		if err != nil && failure == nil {
+			failure = err
+		}
 	}
 	return map[string]any{"verb": verb, "applied": applied, "skipped": skipped}, failure
 }
 
-// visualApply is the request a binding row's request becomes while the
-// row it addresses is in a list's visual selection: an application verb
-// of the row's own noun runs through list.apply for every selected row.
-// Anything else (a motion, a framework verb, a row outside a selection)
-// is q unchanged. level is the instance the row matched at (the row when
-// the request names no target).
-func (r *Runtime) visualApply(q Request, level string) Request {
-	row := q.Target
-	if row == "" {
-		row = level
-	}
-	owner := r.rows[row]
-	if owner == "" || q.Noun == "ochazuke.list" {
-		return q
+// visualApply is list.apply standing in for q when q is the own verb of a
+// row in a list's visual selection (an application verb of the row's
+// noun, not a motion): the verb then acts on every selected row. focus is
+// the instance execute resolved q to. Anything else (a motion, a framework
+// verb, a row outside a selection) is not replaced.
+func (r *Runtime) visualApply(q Request, op Operation, focus string) (Request, bool) {
+	owner := r.rows[focus]
+	if owner == "" || q.Noun == "ochazuke.list" || len(q.Subjects) > 0 {
+		return q, false
 	}
 	l := r.List(owner)
-	inst := r.Instances[row]
-	op, ok := r.Operations[q.Key()]
-	if l == nil || !l.visual || inst == nil || inst.Noun != q.Noun || !ok || op.Kind != KindApplication || op.Motion {
-		return q
+	inst := r.Instances[focus]
+	if l == nil || !l.visual || inst == nil || inst.Noun != q.Noun || op.Kind != KindApplication || op.Motion {
+		return q, false
 	}
 	args := Arguments{"id": l.id, "verb": q.Verb}
 	if len(q.Args) > 0 {
 		args["args"] = q.Args
 	}
-	return Request{Verb: "apply", Noun: "ochazuke.list", Target: row, Args: args}
+	if q.Confirmed {
+		args["confirmed"] = true
+	}
+	return Request{Verb: "apply", Noun: "ochazuke.list", Target: focus, Args: args}, true
 }
 
 func registerListVisual(r *Runtime) {

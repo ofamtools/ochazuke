@@ -415,7 +415,7 @@ func registerTableCells(r *Runtime) {
 		}})
 		return l.state(), err
 	}})
-	r.Register(Operation{Verb: "yank", Noun: "ochazuke.list", Description: "Copy the current cell's text (what: cell, a cell-mode table) or the row's cells joined by tabs (what: row, any table) into the registers", Parameters: map[string]Parameter{
+	r.Register(Operation{Verb: "yank", Noun: "ochazuke.list", Description: "Copy the current cell's text (what: cell, a cell-mode table) or the row's cells joined by tabs (what: row, any table) into the registers; over a visual selection (V) every selected row's, one per line", Parameters: map[string]Parameter{
 		"id":       id,
 		"what":     {Type: "string", Enum: []string{"cell", "row"}, Description: "The cell (default) or the whole row"},
 		"register": {Type: "string", Description: "Register name; the active register, else the unnamed one"},
@@ -428,16 +428,29 @@ func registerTableCells(r *Runtime) {
 		if !ok {
 			return nil, errors.New("no row to copy")
 		}
-		what, text := StringArg(a, "what", "cell"), ""
+		what := StringArg(a, "what", "cell")
 		if what != "row" && !l.cellMode() {
 			return nil, errors.New("not a cell table (CellSelect): only the row copies")
 		}
-		if what == "row" {
-			text = rowText(item, len(l.columns))
-		} else {
-			text = cellText(item, l.Column())
+		// A visual selection (V) copies every selected row, one per line,
+		// and ends; otherwise the selected row alone.
+		items := []ListItem{item}
+		if l.visual {
+			items = l.markedShown()
+			l.EndVisual()
 		}
-		y := Yank{Text: text}
+		lines := make([]string, len(items))
+		for i, it := range items {
+			if what == "row" {
+				lines[i] = rowText(it, len(l.columns))
+			} else {
+				lines[i] = cellText(it, l.Column())
+			}
+		}
+		y := Yank{Text: lines[0]}
+		if len(lines) > 1 {
+			y = Yank{Text: strings.Join(lines, "\n") + "\n", Shape: "line"}
+		}
 		if err := r.storeYank(y, StringArg(a, "register", ""), false); err != nil {
 			return nil, err
 		}
@@ -445,7 +458,13 @@ func registerTableCells(r *Runtime) {
 		if what != "row" {
 			subject = l.columnTitle(l.Column())
 		}
-		r.UI().Info(fmt.Sprintf("copied %s (%d characters)", subject, len([]rune(text))))
+		if len(lines) > 1 {
+			subject = fmt.Sprintf("%d rows", len(lines))
+			if what != "row" {
+				subject = fmt.Sprintf("%s of %d rows", l.columnTitle(l.Column()), len(lines))
+			}
+		}
+		r.UI().Info(fmt.Sprintf("copied %s (%d characters)", subject, len([]rune(y.Text))))
 		return y, nil
 	}})
 	r.Register(Operation{Verb: "resize-column", Noun: "ochazuke.list", Description: "Widen (delta 1) or narrow (-1) a table's current column by ColumnWidthStep cells; remembered per table", Parameters: map[string]Parameter{

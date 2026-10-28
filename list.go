@@ -75,6 +75,10 @@ type List struct {
 	// motion is a component's own j/k on the rows (a timeline's cards
 	// scroll by the half-page rule, R3.14); nil moves the list's way.
 	motion func(delta, count int)
+	// undoGroup, when a component under the list keeps an undo stack (a
+	// tree's), starts one undo step for a run over several rows; its end
+	// seals the step (Runtime.undoGroup).
+	undoGroup func() (end func())
 }
 
 // NewList is AddList for callers that hold the runtime as a value.
@@ -660,7 +664,7 @@ func registerLists(r *Runtime) {
 			}
 			return l.state(), l.ToggleMark(id)
 		}},
-		{"apply", "Run <row noun>.verb for every marked row the filter shows (the selected row when none is), skipping and reporting rows whose noun lacks the verb; a verb with a confirm asks once for all the rows; ends a visual selection (V)", map[string]Parameter{"id": {Type: "string"}, "verb": {Type: "string", Required: true}, "args": {Type: "object", Description: "Arguments every row's request carries"}, "confirmed": {Type: "boolean", Description: "The rows' confirm was answered (the confirm modal sets it)"}}, func(l *List, c Context, a Arguments) (any, error) {
+		{"apply", "Run <row noun>.verb for every marked row the filter shows (the selected row when none is), the rows its subjects: a verb that takes many runs once for all of them, any other once per row; rows whose noun lacks the verb are skipped and reported; a verb with a confirm asks once for all the rows; ends a visual selection (V)", map[string]Parameter{"id": {Type: "string"}, "verb": {Type: "string", Required: true}, "args": {Type: "object", Description: "Arguments every row's request carries"}, "confirmed": {Type: "boolean", Description: "The rows' confirm was answered (the confirm modal sets it)"}}, func(l *List, c Context, a Arguments) (any, error) {
 			return l.apply(c, a)
 		}},
 	} {

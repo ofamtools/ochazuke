@@ -49,6 +49,13 @@ type Request struct {
 	// which name ran it (Ctx.Invoked) and history shows it. "" for a
 	// request that named its action directly.
 	Via string `json:"via,omitempty"`
+	// Subjects are the instances a request acts on when it acts on
+	// several (the rows of a visual selection), in display order; Target
+	// is one of them, the one a confirm or a chooser names. Empty means
+	// Target alone. A verb that takes many subjects (Operation.Many) runs
+	// once with all of them in Ctx.Subjects; any other runs once per
+	// subject (Runtime.eachSubject).
+	Subjects []string `json:"subjects,omitempty"`
 }
 
 // Key returns the request's operation as noun.verb.
@@ -130,6 +137,12 @@ type Operation struct {
 	// required-then-by-name rest. The CLI gives a boolean a bare word only
 	// when it is named here. The catalog's positional.
 	Positional []string `json:"positional,omitempty"`
+	// Many marks a verb whose handler takes every subject of a request at
+	// once (Ctx.Subjects: a visual selection's rows), so it asks one
+	// question, makes one change and posts one notice for all of them; set
+	// by NounBuilder.Many. A verb without it that is asked to act on
+	// several subjects runs once per subject. The catalog's many.
+	Many bool `json:"many,omitempty"`
 	// Aliases are the action's other names (ActionAlias), display
 	// spelling, sorted. Catalog and operations.list fill it; an entry of
 	// Runtime.Operations does not hold it (the alias table does).
@@ -222,6 +235,7 @@ type Runtime struct {
 	history          actionHistory            // the executed-request ring and the current source (history.go)
 	origin           string                   // the instance the running request or completion acts for; a modal opens only from the top level
 	rowRequest       bool                     // the next execute is a binding row's own request (runRow's level rule targets it)
+	subjects         []string                 // the subjects execute hands the application handler it is about to run (Ctx.Subjects)
 	prefix           pendingPrefix
 	bindingVersion   uint64
 	modeGeneration   uint64
@@ -668,14 +682,30 @@ func (r *Runtime) execute(c Context, q Request) (any, error) {
 			c, focus = r.contextOf(owner), owner
 		}
 	}
+	// A row's own verb on a row in a visual selection (V) acts on every
+	// selected row, from a key, the palette or the API (subjects.go).
+	if vq, ok := r.visualApply(q, op, focus); ok {
+		return r.ExecuteAt(c, vq)
+	}
+	subjects, err := r.subjectsOf(q, focus)
+	if err != nil {
+		return nil, err
+	}
 	defer r.actingFor(focus)()
 	if op.Confirm != "" && !q.Confirmed {
+		if len(subjects) > 1 {
+			q.Subjects = subjects
+		}
 		return r.openConfirm(c, q, op)
+	}
+	if len(subjects) > 1 && !op.Many {
+		return r.eachSubject(q, subjects)
 	}
 	defer r.invoking(r.invocationOf(q))()
 	if fn := r.ActionFor(actions, q.Key()); fn != nil {
 		return fn(r, c, q.Args)
 	}
+	r.subjects = subjects
 	return op.Run(r, c, q.Args)
 }
 

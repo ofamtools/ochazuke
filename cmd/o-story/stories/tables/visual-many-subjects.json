@@ -1,0 +1,136 @@
+{
+  "width": 60,
+  "height": 10,
+  "chrome": "none",
+  "area": "tables",
+  "name": "V j j then a per-row verb (z) runs once for each of the 3 selected rows, a verb that takes many (t) once for all 3; visual ends after each",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "name"
+          },
+          {
+            "title": "state",
+            "priority": 1
+          }
+        ],
+        "items": [
+          {
+            "id": "r1",
+            "label": "row 1",
+            "cells": [
+              "row 1",
+              "idle"
+            ]
+          },
+          {
+            "id": "r2",
+            "label": "row 2",
+            "cells": [
+              "row 2",
+              "working"
+            ]
+          },
+          {
+            "id": "r3",
+            "label": "row 3",
+            "cells": [
+              "row 3",
+              "idle"
+            ]
+          },
+          {
+            "id": "r4",
+            "label": "row 4",
+            "cells": [
+              "row 4",
+              "done"
+            ]
+          },
+          {
+            "id": "r5",
+            "label": "row 5",
+            "cells": [
+              "row 5",
+              "idle"
+            ]
+          }
+        ],
+        "selected": 0
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.zap",
+        "row": true
+      },
+      {
+        "verb": "demo.tag",
+        "many": true
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "mode": "normal",
+        "keys": "z",
+        "do": "demo.zap"
+      },
+      {
+        "noun": "demo",
+        "mode": "normal",
+        "keys": "t",
+        "do": "demo.tag"
+      }
+    ]
+  },
+  "script": [
+    "V",
+    "j",
+    "j",
+    "z",
+    "g",
+    "g",
+    "V",
+    "j",
+    "j",
+    "t"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "contains": [
+        "* row 1",
+        "* row 2",
+        "* row 3",
+        "  row 4"
+      ]
+    },
+    {
+      "after": 4,
+      "lacks": [
+        "*"
+      ],
+      "writes": [
+        "demo.zap row=r1",
+        "demo.zap row=r2",
+        "demo.zap row=r3"
+      ]
+    },
+    {
+      "lacks": [
+        "*"
+      ],
+      "writes": [
+        "demo.zap row=r1",
+        "demo.zap row=r2",
+        "demo.zap row=r3",
+        "demo.tag subjects=r1,r2,r3"
+      ]
+    }
+  ]
+}

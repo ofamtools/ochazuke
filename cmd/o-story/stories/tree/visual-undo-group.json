@@ -1,0 +1,106 @@
+{
+  "name": "outline: V j j then c (a per-row app change on the undo stack) checks 3 rows; one u unchecks all 3, ctrl+r checks them again",
+  "area": "tree",
+  "width": 60,
+  "height": 10,
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "editable": true,
+        "columns": [
+          {
+            "title": "name"
+          }
+        ],
+        "nodes": [
+          {
+            "id": "a",
+            "label": "alpha",
+            "noun": "demo",
+            "cells": [
+              "alpha"
+            ]
+          },
+          {
+            "id": "b",
+            "label": "beta",
+            "noun": "demo",
+            "cells": [
+              "beta"
+            ]
+          },
+          {
+            "id": "c",
+            "label": "gamma",
+            "noun": "demo",
+            "cells": [
+              "gamma"
+            ]
+          },
+          {
+            "id": "d",
+            "label": "delta",
+            "noun": "demo",
+            "cells": [
+              "delta"
+            ]
+          }
+        ]
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "mode": "normal",
+        "keys": "c",
+        "do": "demo.check"
+      }
+    ]
+  },
+  "script": [
+    "V",
+    "j",
+    "j",
+    "c",
+    "u",
+    "ctrl+r"
+  ],
+  "expect": [
+    {
+      "after": 4,
+      "lacks": [
+        "*"
+      ],
+      "writes": [
+        "check a",
+        "check b",
+        "check c"
+      ]
+    },
+    {
+      "after": 5,
+      "writes": [
+        "check a",
+        "check b",
+        "check c",
+        "uncheck c",
+        "uncheck b",
+        "uncheck a"
+      ]
+    },
+    {
+      "writes": [
+        "check a",
+        "check b",
+        "check c",
+        "uncheck c",
+        "uncheck b",
+        "uncheck a",
+        "check a",
+        "check b",
+        "check c"
+      ]
+    }
+  ]
+}

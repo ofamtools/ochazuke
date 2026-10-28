@@ -412,6 +412,13 @@ type VerbSpec struct {
 	// noun.verb, since/removeAfter for a deprecated one; action is the
 	// verb). A run through an alias logs " via=ALIAS" after its arguments.
 	Aliases []ochazuke.ActionAlias `json:"aliases,omitempty"`
+	// Row logs the row the verb ran on (" row=ID") and Fail makes it fail
+	// on these rows: a verb over a visual selection, run once per row.
+	Row  bool     `json:"row,omitempty"`
+	Fail []string `json:"fail,omitempty"`
+	// Many makes the verb take every selected row at once
+	// (ochazuke.NounBuilder.Many): one run logs " subjects=A,B,C".
+	Many bool `json:"many,omitempty"`
 }
 
 // Event is one action: a key press, typed text, a paste, a job delivering,

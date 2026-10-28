@@ -1,0 +1,103 @@
+{
+  "width": 60,
+  "height": 10,
+  "area": "tables",
+  "name": "V j j then a per-row verb that fails on one row runs on the others; one error notice counts 2 done and 1 failed, and visual ends",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "name"
+          },
+          {
+            "title": "state",
+            "priority": 1
+          }
+        ],
+        "items": [
+          {
+            "id": "r1",
+            "label": "row 1",
+            "cells": [
+              "row 1",
+              "idle"
+            ]
+          },
+          {
+            "id": "r2",
+            "label": "row 2",
+            "cells": [
+              "row 2",
+              "working"
+            ]
+          },
+          {
+            "id": "r3",
+            "label": "row 3",
+            "cells": [
+              "row 3",
+              "idle"
+            ]
+          },
+          {
+            "id": "r4",
+            "label": "row 4",
+            "cells": [
+              "row 4",
+              "done"
+            ]
+          },
+          {
+            "id": "r5",
+            "label": "row 5",
+            "cells": [
+              "row 5",
+              "idle"
+            ]
+          }
+        ],
+        "selected": 0
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.zap",
+        "row": true,
+        "fail": [
+          "r2"
+        ]
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "mode": "normal",
+        "keys": "z",
+        "do": "demo.zap"
+      }
+    ]
+  },
+  "script": [
+    "V",
+    "j",
+    "j",
+    "z"
+  ],
+  "expect": [
+    {
+      "lacks": [
+        "*"
+      ],
+      "contains": [
+        "2 done, 1 failed"
+      ],
+      "writes": [
+        "demo.zap row=r1",
+        "demo.zap row=r3"
+      ]
+    }
+  ]
+}

@@ -575,6 +575,21 @@ func (b *NounBuilder) Motion() *NounBuilder {
 	return b
 }
 
+// Many marks the last declared verb as taking many subjects at once
+// (Operation.Many): run over a visual selection, its handler is called
+// once with every selected row in Ctx.Subjects instead of once per row.
+// Use it for a verb that asks something (a chooser, a confirm naming what
+// it affects) or that should make one change and one notice for all.
+func (b *NounBuilder) Many() *NounBuilder {
+	if b.last == "" {
+		panic("Many must follow Verb")
+	}
+	op := b.r.Operations[b.last]
+	op.Many = true
+	b.r.Operations[b.last] = op
+	return b
+}
+
 // Positional names the parameters of the last declared verb that bare
 // words fill first, in order (Operation.Positional): Positional("name")
 // makes BIN project link foo set name even though the boolean all sorts
