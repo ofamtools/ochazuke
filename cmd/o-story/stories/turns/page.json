@@ -1,0 +1,293 @@
+{
+  "name": "turns: the Turns page, a pane row over the timeline, the prompt box and the settings line, with the key readout",
+  "area": "turns",
+  "width": 100,
+  "height": 40,
+  "page": {
+    "id": "turns-page",
+    "title": "Turns",
+    "noHeadings": true,
+    "order": [
+      "panes",
+      "turns",
+      "prompt",
+      "settings",
+      "readout"
+    ],
+    "focus": "t1",
+    "lists": [
+      {
+        "id": "panes",
+        "columns": [
+          {
+            "title": "pane"
+          },
+          {
+            "title": "agent"
+          },
+          {
+            "title": "project"
+          },
+          {
+            "title": "state"
+          }
+        ],
+        "items": [
+          {
+            "id": "pane-w1",
+            "label": "w1",
+            "cells": [
+              "w1",
+              "claude",
+              "ochazuke",
+              "working"
+            ]
+          }
+        ]
+      }
+    ],
+    "timeline": {
+      "id": "turns",
+      "noSpill": true,
+      "parentStop": "panes",
+      "height": 26,
+      "cards": [
+        {
+          "id": "t1",
+          "group": "session 0 · ochazuke",
+          "muted": true,
+          "meta": "08:02 · done · 9s",
+          "header": "Read AGENTS.md and the codemap.",
+          "steps": [
+            {
+              "header": true
+            },
+            {
+              "id": "answer",
+              "title": "answer",
+              "paragraphs": true,
+              "text": "Read both; the codemap points at focus.go and resolve.go."
+            }
+          ]
+        },
+        {
+          "id": "t2",
+          "group": "session 0 · ochazuke",
+          "muted": true,
+          "meta": "08:05 · done · 14s",
+          "header": "Which story area covers the timeline?",
+          "steps": [
+            {
+              "header": true
+            },
+            {
+              "id": "answer",
+              "title": "answer",
+              "paragraphs": true,
+              "text": "cmd/o-story/stories/timeline."
+            }
+          ]
+        },
+        {
+          "id": "t3",
+          "group": "session 0 · ochazuke",
+          "muted": true,
+          "meta": "08:11 · done · 20s",
+          "header": "Run the timeline stories.",
+          "steps": [
+            {
+              "header": true
+            },
+            {
+              "id": "answer",
+              "title": "answer",
+              "paragraphs": true,
+              "text": "All of them pass."
+            }
+          ]
+        },
+        {
+          "id": "t4",
+          "group": "session 1 · ochazuke",
+          "muted": true,
+          "meta": "09:12 · done · 41s",
+          "header": "Which file owns the focus walk, and why does it rank stops by drawing order?",
+          "steps": [
+            {
+              "header": true
+            },
+            {
+              "id": "answer",
+              "title": "answer",
+              "paragraphs": true,
+              "text": "focus.go owns the jumps.\n\nThe walk reads the page's recorded drawing order (Runtime.Placed), so it is the order on screen, never registration order."
+            }
+          ]
+        },
+        {
+          "id": "t5",
+          "group": "session 1 · ochazuke",
+          "muted": true,
+          "meta": "09:20 · done · 3 tool calls · 2m03s",
+          "open": true,
+          "header": "Make the help modal wrap long descriptions instead of cutting them, and run the tests.",
+          "steps": [
+            {
+              "header": true
+            },
+            {
+              "id": "thinking-1",
+              "title": "thinking",
+              "summary": "2 lines",
+              "role": "muted",
+              "folded": true,
+              "text": "The table already measures widths.\nA wrap column can lay a cell over several lines."
+            },
+            {
+              "id": "tool-1",
+              "title": "Read help.go",
+              "summary": "412 lines",
+              "folded": true,
+              "text": "package ochazuke\n\n// helpView draws the bindings help modal."
+            },
+            {
+              "id": "tool-2",
+              "title": "Edit help.go",
+              "summary": "+3 -1",
+              "text": "--- a/help.go\n+++ b/help.go\n@@ -212,7 +212,9 @@ func (h *helpView) row(b Binding) []string {\n-\tdesc := ansi.Truncate(b.Description, w, \"…\")\n+\t// Wrap the description onto further lines of its row\n+\t// instead of cutting it with an ellipsis.\n+\tdesc := wrap(b.Description, w)\n \treturn []string{b.Keys, b.Verb, desc}"
+            },
+            {
+              "id": "tool-3",
+              "title": "Bash go test ./...",
+              "summary": "41 lines",
+              "text": "ok   github.com/unixsuperhero/ochazuke/pkg01  0.01s\nok   github.com/unixsuperhero/ochazuke/pkg02  0.02s\nok   github.com/unixsuperhero/ochazuke/pkg03  0.03s\nok   github.com/unixsuperhero/ochazuke/pkg04  0.04s\nok   github.com/unixsuperhero/ochazuke/pkg05  0.05s\nok   github.com/unixsuperhero/ochazuke/pkg06  0.06s\nok   github.com/unixsuperhero/ochazuke/pkg07  0.07s\nok   github.com/unixsuperhero/ochazuke/pkg08  0.08s\nok   github.com/unixsuperhero/ochazuke/pkg09  0.09s\nok   github.com/unixsuperhero/ochazuke/pkg10  0.10s\nok   github.com/unixsuperhero/ochazuke/pkg11  0.11s\nok   github.com/unixsuperhero/ochazuke/pkg12  0.12s\nok   github.com/unixsuperhero/ochazuke/pkg13  0.13s\nok   github.com/unixsuperhero/ochazuke/pkg14  0.14s\nok   github.com/unixsuperhero/ochazuke/pkg15  0.15s\nok   github.com/unixsuperhero/ochazuke/pkg16  0.16s\nok   github.com/unixsuperhero/ochazuke/pkg17  0.17s\nok   github.com/unixsuperhero/ochazuke/pkg18  0.18s\nok   github.com/unixsuperhero/ochazuke/pkg19  0.19s\nok   github.com/unixsuperhero/ochazuke/pkg20  0.20s\nok   github.com/unixsuperhero/ochazuke/pkg21  0.21s\nok   github.com/unixsuperhero/ochazuke/pkg22  0.22s\nok   github.com/unixsuperhero/ochazuke/pkg23  0.23s\nok   github.com/unixsuperhero/ochazuke/pkg24  0.24s\nok   github.com/unixsuperhero/ochazuke/pkg25  0.25s\nok   github.com/unixsuperhero/ochazuke/pkg26  0.26s\nok   github.com/unixsuperhero/ochazuke/pkg27  0.27s\nok   github.com/unixsuperhero/ochazuke/pkg28  0.28s\nok   github.com/unixsuperhero/ochazuke/pkg29  0.29s\nok   github.com/unixsuperhero/ochazuke/pkg30  0.30s\nok   github.com/unixsuperhero/ochazuke/pkg31  0.31s\nok   github.com/unixsuperhero/ochazuke/pkg32  0.32s\nok   github.com/unixsuperhero/ochazuke/pkg33  0.33s\nok   github.com/unixsuperhero/ochazuke/pkg34  0.34s\nok   github.com/unixsuperhero/ochazuke/pkg35  0.35s\nok   github.com/unixsuperhero/ochazuke/pkg36  0.36s\nok   github.com/unixsuperhero/ochazuke/pkg37  0.37s\nok   github.com/unixsuperhero/ochazuke/pkg38  0.38s\nok   github.com/unixsuperhero/ochazuke/pkg39  0.39s\nok   github.com/unixsuperhero/ochazuke/pkg40  0.40s\nPASS"
+            },
+            {
+              "id": "answer",
+              "title": "answer",
+              "paragraphs": true,
+              "text": "Done: the description column wraps.\n\nEvery package passes."
+            }
+          ]
+        },
+        {
+          "id": "t6",
+          "group": "session 1 · ochazuke",
+          "muted": true,
+          "meta": "09:31 · done · 1 agent · 1m10s",
+          "header": "Ask a subagent how the resolver skips a guarded row.",
+          "steps": [
+            {
+              "header": true
+            },
+            {
+              "id": "tool-1",
+              "title": "Task explore the resolver",
+              "summary": "subagent · 3 tool uses",
+              "text": "▸ Read resolve.go · 560 lines\n▸ Grep \"func (r \\*Runtime) lookup\" · 1 match\n▸ Read bindings/timeline.json · 48 lines\n⎿ The walk reads rows level by level; a guard that is false skips the row\n  and the walk goes on outward (lookup, VerbShown)."
+            },
+            {
+              "id": "answer",
+              "title": "answer",
+              "paragraphs": true,
+              "text": "A false guard skips the row and the walk goes on outward."
+            }
+          ]
+        },
+        {
+          "id": "t7",
+          "group": "session 1 · ochazuke",
+          "muted": true,
+          "event": true,
+          "meta": "09:32 · 3 tool uses · from “Ask a subagent how the resolver skips a guarded row.”",
+          "header": "⤷ explore the resolver · completed",
+          "steps": [
+            {
+              "header": true
+            },
+            {
+              "id": "result",
+              "title": "result",
+              "paragraphs": true,
+              "text": "lookup skips a row whose verb is not shown here (VerbShown) and goes on to the next level."
+            },
+            {
+              "id": "response",
+              "title": "response",
+              "paragraphs": true,
+              "text": "Noted: the subagent agrees with the reading above."
+            }
+          ]
+        },
+        {
+          "id": "t8",
+          "group": "session 1 · ochazuke",
+          "muted": true,
+          "meta": "09:40 · done · 12s",
+          "header": "Summarize what changed today in one line.",
+          "steps": [
+            {
+              "header": true
+            },
+            {
+              "id": "answer",
+              "title": "answer",
+              "paragraphs": true,
+              "text": "Help wraps descriptions; the resolver reading is confirmed."
+            }
+          ]
+        },
+        {
+          "id": "t9",
+          "group": "session 1 · ochazuke",
+          "active": true,
+          "meta": "09:44 · running · 4s",
+          "header": "Now list the timeline keys a turn card answers.",
+          "steps": [
+            {
+              "header": true
+            },
+            {
+              "id": "answer",
+              "title": "answer",
+              "paragraphs": true,
+              "text": "j k move, l opens and steps in, h folds and leaves, y yanks the step."
+            }
+          ]
+        }
+      ]
+    },
+    "inputs": [
+      {
+        "id": "prompt",
+        "label": "prompt",
+        "completions": [
+          {
+            "trigger": "@",
+            "items": [
+              "timeline.go",
+              "timeline_steps.go",
+              "resolve.go",
+              "README.md"
+            ]
+          },
+          {
+            "trigger": "/",
+            "items": [
+              "/review",
+              "/compact",
+              "/clear"
+            ]
+          }
+        ]
+      }
+    ],
+    "texts": [
+      {
+        "id": "settings",
+        "text": "turns.style cards · thinking folded · reads folded · output open"
+      }
+    ],
+    "readout": true
+  }
+}

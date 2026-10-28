@@ -1,0 +1,93 @@
+{
+  "name": "turns: inside a card j walks step by step; a tool output taller than the window is read half a window per j, then j reaches the answer and spills to the next card",
+  "base": "story:turns/page",
+  "script": [
+    "j",
+    "j",
+    "j",
+    "j",
+    "l",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 5,
+      "focus": "turns/body",
+      "contains": [
+        "▌▾ Make the help modal"
+      ]
+    },
+    {
+      "after": 6,
+      "contains": [
+        "▌▸ 1 thinking · 2 lines"
+      ]
+    },
+    {
+      "after": 7,
+      "contains": [
+        "▌▸ 2 Read help.go · 412 lines"
+      ]
+    },
+    {
+      "after": 8,
+      "contains": [
+        "▌▾ 3 Edit help.go · +3 -1",
+        "▌  +    desc := wrap(b.Description, w)"
+      ]
+    },
+    {
+      "after": 9,
+      "contains": [
+        "▌▾ 4 Bash go test ./... · 41 lines",
+        "▌  ok   github.com/unixsuperhero/ochazuke/pkg01"
+      ]
+    },
+    {
+      "after": 10,
+      "focus": "turns/body",
+      "contains": [
+        "▌  ok   github.com/unixsuperhero/ochazuke/pkg15"
+      ],
+      "lacks": [
+        "▾ 4 Bash go test"
+      ]
+    },
+    {
+      "after": 11,
+      "focus": "turns/body",
+      "contains": [
+        "▌  ok   github.com/unixsuperhero/ochazuke/pkg27"
+      ]
+    },
+    {
+      "after": 12,
+      "focus": "turns/body",
+      "contains": [
+        "▌▾ 5 answer",
+        "▌  Done: the description column wraps."
+      ]
+    },
+    {
+      "after": 13,
+      "focus": "turns/body",
+      "contains": [
+        "▌  Every package passes."
+      ]
+    },
+    {
+      "focus": "t6",
+      "contains": [
+        "focus t6 < turns/list < turns < turns-page"
+      ]
+    }
+  ]
+}

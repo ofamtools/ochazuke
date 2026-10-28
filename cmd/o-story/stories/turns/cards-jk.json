@@ -1,0 +1,31 @@
+{
+  "name": "turns: j and k on closed cards move card to card; the readout names the list row that answered",
+  "base": "story:turns/page",
+  "script": [
+    "j",
+    "j",
+    "k"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "t2",
+      "contains": [
+        "focus t2 < turns/list < turns < turns-page",
+        "key j → list.move in normal at turns/list"
+      ]
+    },
+    {
+      "after": 2,
+      "focus": "t3"
+    },
+    {
+      "focus": "t2",
+      "mode": "normal",
+      "contains": [
+        "focus t2 < turns/list < turns < turns-page",
+        "key k → list.move in normal at turns/list"
+      ]
+    }
+  ]
+}

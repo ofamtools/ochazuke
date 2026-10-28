@@ -1,0 +1,30 @@
+{
+  "name": "timeline: on a card opened by l, j inside a step taller than the window scrolls it half a window (today the window stays put and the selection walks off screen)",
+  "skip": "gap: timeline: a card opened by l does not scroll a tall step on j (stale card height?)",
+  "base": "story:turns/page",
+  "script": [
+    "j",
+    "j",
+    "j",
+    "j",
+    "h",
+    "l",
+    "l",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j"
+  ],
+  "expect": [
+    {
+      "focus": "turns/body",
+      "contains": [
+        "▌  ok   github.com/unixsuperhero/ochazuke/pkg15"
+      ],
+      "lacks": [
+        "▾ Make the help modal"
+      ]
+    }
+  ]
+}

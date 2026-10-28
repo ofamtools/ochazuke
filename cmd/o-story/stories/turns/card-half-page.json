@@ -1,0 +1,37 @@
+{
+  "name": "turns: j over an open card taller than the window scrolls half a window per press, then moves to the next card once it shows",
+  "base": "story:turns/page",
+  "script": [
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 4,
+      "focus": "t5",
+      "contains": [
+        "┃ ▾ Make the help modal"
+      ]
+    },
+    {
+      "after": 5,
+      "focus": "t5",
+      "lacks": [
+        "▾ Make the help modal"
+      ]
+    },
+    {
+      "focus": "t6",
+      "contains": [
+        "focus t6 < turns/list < turns < turns-page",
+        "▸ Ask a subagent"
+      ]
+    }
+  ]
+}

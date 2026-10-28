@@ -1,0 +1,35 @@
+{
+  "name": "turns: a task notification is an event card (indented, dashed); it opens and steps like any turn",
+  "base": "story:turns/page",
+  "script": [
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "l",
+    "l",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 9,
+      "focus": "t7",
+      "contains": [
+        "  ┃ ▸ ⤷ explore the resolver · completed",
+        "focus t7 < turns/list < turns < turns-page"
+      ]
+    },
+    {
+      "focus": "turns/body",
+      "contains": [
+        "▌▾ 1 result",
+        "▌  lookup skips a row"
+      ]
+    }
+  ]
+}

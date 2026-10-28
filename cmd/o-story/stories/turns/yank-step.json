@@ -1,0 +1,23 @@
+{
+  "name": "turns: y inside a card yanks the current step's text",
+  "base": "story:turns/page",
+  "script": [
+    "j",
+    "j",
+    "j",
+    "l",
+    "l",
+    "j",
+    "j",
+    "y"
+  ],
+  "expect": [
+    {
+      "focus": "turns/body",
+      "register": "The walk reads the page's recorded drawing order (Runtime.Placed), so it is the order on screen, never registration order.",
+      "contains": [
+        "key y → timeline.yank-step in normal"
+      ]
+    }
+  ]
+}

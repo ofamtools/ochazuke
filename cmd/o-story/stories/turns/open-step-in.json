@@ -1,0 +1,46 @@
+{
+  "name": "turns: l opens a closed card, l again steps inside onto the prompt step, j walks to the answer",
+  "base": "story:turns/page",
+  "script": [
+    "j",
+    "j",
+    "j",
+    "l",
+    "l",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 4,
+      "focus": "t4",
+      "contains": [
+        "▾ Which file owns",
+        "focus.go owns the jumps.",
+        "key l → timeline.open in normal at turns"
+      ],
+      "lacks": [
+        "▌"
+      ]
+    },
+    {
+      "after": 5,
+      "focus": "turns/body",
+      "contains": [
+        "▌▾ Which file owns",
+        "focus turns/body < turns/list < turns < turns-page",
+        "key l → timeline.enter in normal at turns"
+      ]
+    },
+    {
+      "focus": "turns/body",
+      "contains": [
+        "▌▾ 1 answer",
+        "▌  focus.go owns the jumps.",
+        "key j → timeline.step in normal"
+      ],
+      "lacks": [
+        "▌▾ Which file"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "name": "turns: l opens a folded step, h folds it again, h leaves the card (still open), h closes it, h on the closed card goes up to the pane row",
+  "base": "story:turns/page",
+  "script": [
+    "j",
+    "j",
+    "j",
+    "j",
+    "l",
+    "j",
+    "j",
+    "l",
+    "h",
+    "h",
+    "h",
+    "h"
+  ],
+  "expect": [
+    {
+      "after": 8,
+      "focus": "turns/body",
+      "contains": [
+        "▌▾ 2 Read help.go · 412 lines",
+        "▌  // helpView draws the bindings help modal.",
+        "key l → timeline.enter in normal"
+      ]
+    },
+    {
+      "after": 9,
+      "focus": "turns/body",
+      "contains": [
+        "▌▸ 2 Read help.go · 412 lines",
+        "key h → timeline.fold-step in normal"
+      ],
+      "lacks": [
+        "// helpView draws"
+      ]
+    },
+    {
+      "after": 10,
+      "focus": "t5",
+      "contains": [
+        "▾ Make the help modal",
+        "▸ 2 Read help.go",
+        "key h → timeline.leave in normal"
+      ],
+      "lacks": [
+        "▌"
+      ]
+    },
+    {
+      "after": 11,
+      "focus": "t5",
+      "contains": [
+        "▸ Make the help modal",
+        "key h → timeline.close in normal at turns"
+      ],
+      "lacks": [
+        "Bash go test"
+      ]
+    },
+    {
+      "focus": "pane-w1",
+      "mode": "normal",
+      "contains": [
+        "focus pane-w1 < panes < turns-page",
+        "key h → timeline.leave in normal at turns"
+      ]
+    }
+  ]
+}

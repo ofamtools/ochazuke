@@ -1,0 +1,35 @@
+{
+  "name": "turns: a subagent's transcript is one step of its turn, read whole when the walk reaches it",
+  "base": "story:turns/page",
+  "script": [
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "l",
+    "l",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 9,
+      "focus": "t6",
+      "contains": [
+        "▾ Ask a subagent",
+        "Task explore the resolver · subagent · 3 tool uses"
+      ]
+    },
+    {
+      "focus": "turns/body",
+      "contains": [
+        "▌▾ 1 Task explore the resolver",
+        "▌  ▸ Read resolve.go · 560 lines",
+        "▌  ⎿ The walk reads rows level by level"
+      ]
+    }
+  ]
+}

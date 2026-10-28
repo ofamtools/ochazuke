@@ -1,0 +1,67 @@
+{
+  "name": "turns: tab reaches the prompt box, i types, @ opens the completion popup, esc closes it and stays in insert, esc again leaves insert",
+  "base": "story:turns/page",
+  "script": [
+    "tab",
+    "i",
+    {
+      "type": "@time"
+    },
+    {
+      "tick": "debounce"
+    },
+    {
+      "job": "completion.search"
+    },
+    "esc",
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "prompt",
+      "mode": "normal",
+      "contains": [
+        "focus prompt < turns-page",
+        "key tab → focus.next in normal"
+      ]
+    },
+    {
+      "after": 2,
+      "mode": "insert",
+      "contains": [
+        "mode insert",
+        "key i → input.begin in normal"
+      ]
+    },
+    {
+      "after": 5,
+      "mode": "insert",
+      "contains": [
+        "prompt: @time",
+        "timeline.go",
+        "timeline_steps.go"
+      ],
+      "lacks": [
+        "resolve.go"
+      ]
+    },
+    {
+      "after": 6,
+      "mode": "insert",
+      "contains": [
+        "prompt: @time"
+      ],
+      "lacks": [
+        "timeline_steps.go"
+      ]
+    },
+    {
+      "focus": "prompt",
+      "mode": "normal",
+      "contains": [
+        "mode normal"
+      ]
+    }
+  ]
+}
