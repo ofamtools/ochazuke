@@ -189,17 +189,50 @@ func growColumns(shown, natural, least []int, width int) []int {
 // tableLine lays one row's cells out at the widths: each cut with "…" at
 // its display width and padded by its alignment, two spaces between.
 func tableLine(cols []Column, row []string, shown, widths []int) string {
+	line, _ := tableLineAt(cols, row, shown, widths)
+	return line
+}
+
+// cellAt is where tableLineAt put a shown cell: its text starts at cell x
+// of the line and shows w cells (its "…" included when cut).
+type cellAt struct{ x, w int }
+
+// tableLineAt is tableLine with where each shown cell's text sits, for
+// the tones (tone.go).
+func tableLineAt(cols []Column, row []string, shown, widths []int) (string, []cellAt) {
 	parts := make([]string, len(shown))
+	at := make([]cellAt, len(shown))
+	x := 0
 	for j, i := range shown {
 		text := ansi.Truncate(row[i], widths[j], "…")
-		pad := strings.Repeat(" ", max(0, widths[j]-ansi.StringWidth(text)))
+		w := ansi.StringWidth(text)
+		pad := strings.Repeat(" ", max(0, widths[j]-w))
+		at[j] = cellAt{x, w}
 		if cols[i].Align == AlignRight {
 			parts[j] = pad + text
+			at[j].x += len(pad)
 		} else {
 			parts[j] = text + pad
 		}
+		x += widths[j] + tableGap
 	}
-	return strings.Join(parts, strings.Repeat(" ", tableGap))
+	return strings.Join(parts, strings.Repeat(" ", tableGap)), at
+}
+
+// rowSegs places a table row's tones on its line: each shown cell's spans
+// at the cell's place, after the mark gutter.
+func rowSegs(toned *Styles, tones []ToneSpan, row []string, shown []int, at []cellAt, gutter int) []toneSeg {
+	if toned == nil {
+		return nil
+	}
+	var out []toneSeg
+	for j, i := range shown {
+		if i >= len(row) {
+			continue
+		}
+		out = append(out, cellSegs(spansOf(tones, i), row[i], gutter+at[j].x, at[j].w)...)
+	}
+	return out
 }
 
 // tableView is View for a list with columns: the header line (bold; none
@@ -257,8 +290,10 @@ func (l *List) tableView(width, height int) (string, int, int) {
 	end := min(len(l.items), l.offset+visible)
 	l.window, l.windowed = visible, len(l.items) > visible
 	marked := l.marksSelection()
+	toned, faded := l.listTones(), l.faded()
 	for i := l.offset; i < end; i++ {
-		line := tableLine(cols, l.rowCells(cells(l.items[i], len(l.columns))), shown, widths)
+		row := l.rowCells(cells(l.items[i], len(l.columns)))
+		line, at := tableLineAt(cols, row, shown, widths)
 		if gutter {
 			prefix := "  "
 			if l.marks[l.items[i].ID] {
@@ -267,9 +302,13 @@ func (l *List) tableView(width, height int) (string, int, int) {
 			line = prefix + line
 		}
 		line = ansi.Truncate(line, width, "…")
-		if i == l.selected && marked {
+		selected := i == l.selected && marked
+		switch segs := rowSegs(toned, l.items[i].Tones, row, shown, at, mark); {
+		case len(segs) > 0:
+			line = paintLine(line, width, segs, toned, selected, faded, span)
+		case selected:
 			line = highlightRow(line, width, span)
-		} else {
+		default:
 			line = strings.TrimRight(line, " ")
 		}
 		lines = append(lines, line)
@@ -373,6 +412,15 @@ func wrapCell(text string, width int) []string {
 // tableRowLines lays one row out on as many lines as its tallest wrapped
 // cell; a cell of a column without Wrap sits on the first line, cut.
 func tableRowLines(cols []Column, row []string, shown, widths []int) []string {
+	lines, _ := tableRowLinesAt(nil, cols, nil, row, shown, widths)
+	return lines
+}
+
+// tableRowLinesAt is tableRowLines with each line's tones (none without
+// toned): a cell on one line keeps its spans; a cell wrapped onto several
+// keeps only the tones of the whole cell, on every line of it, as a run
+// inside it has no fixed place once wrapped.
+func tableRowLinesAt(toned *Styles, cols []Column, tones []ToneSpan, row []string, shown, widths []int) ([]string, [][]toneSeg) {
 	parts := make([][]string, len(shown))
 	n := 1
 	for j, i := range shown {
@@ -384,6 +432,7 @@ func tableRowLines(cols []Column, row []string, shown, widths []int) []string {
 		n = max(n, len(parts[j]))
 	}
 	lines := make([]string, n)
+	segs := make([][]toneSeg, n)
 	cell := make([]string, len(cols))
 	for k := range n {
 		for j, i := range shown {
@@ -392,9 +441,28 @@ func tableRowLines(cols []Column, row []string, shown, widths []int) []string {
 				cell[i] = parts[j][k]
 			}
 		}
-		lines[k] = tableLine(cols, cell, shown, widths)
+		var at []cellAt
+		lines[k], at = tableLineAt(cols, cell, shown, widths)
+		if toned == nil {
+			continue
+		}
+		for j, i := range shown {
+			if cell[i] == "" || i >= len(row) {
+				continue
+			}
+			spans := spansOf(tones, i)
+			if len(parts[j]) > 1 {
+				spans = slices.DeleteFunc(spans, func(t ToneSpan) bool {
+					return t.From > 0 || t.To > 0 && t.To < len([]rune(row[i]))
+				})
+				for x := range spans {
+					spans[x].From, spans[x].To = 0, 0
+				}
+			}
+			segs[k] = append(segs[k], cellSegs(spans, cell[i], at[j].x, at[j].w)...)
+		}
 	}
-	return lines
+	return lines, segs
 }
 
 // tallView is tableView for rows of more than one line (wrapped cells,
@@ -408,20 +476,27 @@ func (l *List) tallView(lines []string, width, height, body int, cols []Column, 
 	section := lipgloss.NewStyle().Bold(true).Underline(true)
 	gutter := len(l.marks) > 0
 	rows := make([][]string, len(l.items))
+	toneLines := make([][][]toneSeg, len(l.items))
 	opens := make([]bool, len(l.items))
+	toned, faded := l.listTones(), l.faded()
 	total := 0
 	for i, item := range l.items {
 		opens[i] = item.Section != "" && (i == 0 || l.items[i-1].Section != item.Section)
-		for k, line := range tableRowLines(cols, l.rowCells(cells(item, len(l.columns))), shown, widths) {
+		lines, segs := tableRowLinesAt(toned, cols, item.Tones, l.rowCells(cells(item, len(l.columns))), shown, widths)
+		for k, line := range lines {
 			if gutter {
 				prefix := "  "
 				if k == 0 && l.marks[item.ID] {
 					prefix = "* "
 				}
 				line = prefix + line
+				for x := range segs[k] {
+					segs[k][x].x += 2
+				}
 			}
 			rows[i] = append(rows[i], line)
 		}
+		toneLines[i] = segs
 		total += len(rows[i])
 		if opens[i] {
 			total++
@@ -475,9 +550,13 @@ func (l *List) tallView(lines []string, width, height, body int, cols []Column, 
 				end = i + 1
 			}
 			line = ansi.Truncate(line, width, "…")
-			if i == l.selected && marked {
+			selected := i == l.selected && marked
+			switch segs := toneLines[i][k]; {
+			case len(segs) > 0:
+				line = paintLine(line, width, segs, toned, selected, faded, span)
+			case selected:
 				line = highlightRow(line, width, span)
-			} else {
+			default:
 				line = strings.TrimRight(line, " ")
 			}
 			out = append(out, line)

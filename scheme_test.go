@@ -43,9 +43,9 @@ func TestParseSchemesFillsRolesAndValidates(t *testing.T) {
 	want := []string{
 		`themes.json: bad: accent: "teal" is not #RRGGBB, #RGB or an ANSI index 0-255 (skipped)`,
 		"themes.json: clash: error must differ from accent, so errors stay distinct (skipped)",
-		"themes.json: dark: is a built-in theme (skipped)",
+		"themes.json: dark: is a built-in theme: it takes only tones (skipped)",
 		"themes.json: hush: error must differ from muted, so errors stay distinct (skipped)",
-		`themes.json: odd: unknown role "glow": use background, text, muted, accent, border, surface, error (skipped)`,
+		`themes.json: odd: unknown role "glow": use background, text, muted, accent, border, surface, error, tones (skipped)`,
 		"themes.json: side: background is adaptive, light or dark (skipped)",
 	}
 	if !slices.Equal(problems, want) {

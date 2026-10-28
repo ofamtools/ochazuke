@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
@@ -13,14 +14,16 @@ import (
 
 // TreeNode is one node of a tree. Nodes are flat and in display order: a
 // node's children follow it, and Parent "" is a root. Noun is the row's
-// noun (default TreeRowNoun); Data and Cells are as on ListItem.
+// noun (default TreeRowNoun); Data, Cells and Tones are as on ListItem (cell
+// 0 is the label: its tones stay on it, after the indent and fold marker).
 type TreeNode struct {
-	ID     string   `json:"id"`
-	Parent string   `json:"parent,omitempty"`
-	Label  string   `json:"label"`
-	Noun   string   `json:"noun,omitempty"`
-	Data   any      `json:"data,omitempty"`
-	Cells  []string `json:"cells,omitempty"`
+	ID     string     `json:"id"`
+	Parent string     `json:"parent,omitempty"`
+	Label  string     `json:"label"`
+	Noun   string     `json:"noun,omitempty"`
+	Data   any        `json:"data,omitempty"`
+	Cells  []string   `json:"cells,omitempty"`
+	Tones  []ToneSpan `json:"tones,omitempty"`
 }
 
 // TreeChange is one committed edit of an outline: add, rename, move or
@@ -440,6 +443,26 @@ func (t *Tree) prefix(n TreeNode) string {
 	return strings.Repeat("  ", t.depth(n.ID)) + marker
 }
 
+// shiftTones moves a node's cell-0 tones past the row's indent and fold
+// marker (prefix runes), so they stay on the label; a whole-cell tone
+// starts after the prefix.
+func shiftTones(tones []ToneSpan, prefix int) []ToneSpan {
+	if len(tones) == 0 {
+		return nil
+	}
+	out := slices.Clone(tones)
+	for i := range out {
+		if out[i].Cell != 0 {
+			continue
+		}
+		out[i].From = max(out[i].From, 0) + prefix
+		if out[i].To > 0 {
+			out[i].To += prefix
+		}
+	}
+	return out
+}
+
 // refresh pushes the visible nodes to the list, selecting id when given.
 func (t *Tree) refresh(selectID string) error {
 	items := make([]ListItem, 0, len(t.nodes))
@@ -451,10 +474,11 @@ func (t *Tree) refresh(selectID string) error {
 		if noun == "" {
 			noun = TreeRowNoun
 		}
-		item := ListItem{ID: n.ID, Label: t.prefix(n) + n.Label, Noun: noun, Data: n.Data}
+		prefix := t.prefix(n)
+		item := ListItem{ID: n.ID, Label: prefix + n.Label, Noun: noun, Data: n.Data, Tones: shiftTones(n.Tones, utf8.RuneCountInString(prefix))}
 		if len(n.Cells) > 0 {
 			item.Cells = slices.Clone(n.Cells)
-			item.Cells[0] = t.prefix(n) + item.Cells[0]
+			item.Cells[0] = prefix + item.Cells[0]
 		}
 		items = append(items, item)
 	}

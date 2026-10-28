@@ -256,7 +256,39 @@ The `theme` setting selects the colour scheme and persists in `settings.json`. T
 
 Each role is `"#RRGGBB"`, `"#RGB"`, an ANSI index `"0"` to `"255"` (for 16- and 256-colour terminals), or `{"light": ..., "dark": ...}`. `background` picks the side: `adaptive` (the default, the terminal's), `light` or `dark`. A role left out keeps the built-in palette's. The selected row stays reverse video in every scheme, so it reads without colour.
 
-A scheme that does not validate is skipped and reported as a notice. That covers an unknown role, a bad colour or background, a built-in's name, and an error colour equal to the accent or muted one. A `theme` value that names a skipped scheme reads its default, so the screen falls back to `adaptive`. After editing the file, `themes reload` reads it again and withdraws fixed notices. `Appearance.Accent` still goes on top of any scheme. `mono` and `NO_COLOR` draw no colour whatever the scheme. An application can supply its own schemes with `model.Appearance.Schemes = ochazuke.NewSchemeSet(...)` (`ParseSchemes` reads the file format).
+A scheme that does not validate is skipped and reported as a notice. That covers an unknown role, a bad colour, background or tone, a built-in's name holding anything but tones, and an error colour equal to the accent or muted one. A `theme` value that names a skipped scheme reads its default, so the screen falls back to `adaptive`. After editing the file, `themes reload` reads it again and withdraws fixed notices. `Appearance.Accent` still goes on top of any scheme. `mono` and `NO_COLOR` draw no colour whatever the scheme. An application can supply its own schemes with `model.Appearance.Schemes = ochazuke.NewSchemeSet(...)` (`ParseSchemes` reads the file format).
+
+#### Tones
+
+A cell, or a run of runes inside one, can carry a named tone instead of colour: `ListItem.Tones` (and `TreeNode.Tones`, and `"tones"` on a catalog row line) hold `ToneSpan{Cell, Tone, From, To}`, rune offsets into the cell's text, `To` 0 for its end. The theme decides what a tone looks like, so colour stays configuration:
+
+```go
+ochazuke.ListItem{ID: "w1", Noun: "pane", Label: "work/claude",
+    Cells: []string{"★ work/claude", "needs input"},
+    Tones: []ochazuke.ToneSpan{ochazuke.SpanTone(0, 0, 1, ochazuke.ToneStar), ochazuke.CellTone(1, ochazuke.ToneNeedsInput)}}
+```
+
+| Tone | Light / dark | Attributes |
+|---|---|---|
+| `state.working` | `#1F6FB2` / `#7CB7E8` | |
+| `state.needs-input` | `#9A6700` / `#E3B341` | bold |
+| `state.done` | `#2E7D32` / `#8BC48A` | |
+| `state.errored` | the scheme's `error` | bold |
+| `state.idle` | the scheme's `muted` | |
+| `state.exited` | the scheme's `muted` | dim |
+| `marker.star` | `#B08800` / `#F2CC60` | bold |
+| `marker.queued` | the scheme's `accent` | |
+
+`mono` and `NO_COLOR` draw the attributes alone. An unknown tone draws plain. The text never changes, so tones never count toward a width or a cut. The selected row stays one reverse-video bar: inside it a tone keeps its bold and drops its colour and dim. In `themes.json` a scheme takes `"tones"`, laid over the built-in ones, and an entry named after a built-in theme may hold tones alone:
+
+```json
+{
+  "dark": {"tones": {"state.working": {"fg": "#5FAFD7", "bold": true}, "build.cached": "muted"}},
+  "mono": {"tones": {"state.done": {"bold": true}}}
+}
+```
+
+A tone is `{"fg": ..., "bold": true, "dim": true}` or a colour alone; `fg` is a colour as a role takes it or a role's name (`text`, `muted`, `accent`, `border`, `surface`, `error`), which follows the scheme. `adaptive`'s entry reaches `dark` and `light` too. `Styles.Tone(name)` is a tone's style for an application's own text.
 
 ### Keyboard guide
 

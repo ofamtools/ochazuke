@@ -133,10 +133,11 @@ type Styles struct {
 	Backdrop  lipgloss.Style
 	Unfocused lipgloss.Style
 
-	text, ground   color.Color // the scheme's text and surface, the ends of a fade
-	accent, border color.Color // the accent and border roles (CardBorders)
-	unfocused      int         // the dim-unfocused percent WithDims was given
-	plain          bool        // mono or NO_COLOR: a fade is the faint attribute
+	text, ground   color.Color         // the scheme's text and surface, the ends of a fade
+	accent, border color.Color         // the accent and border roles (CardBorders)
+	unfocused      int                 // the dim-unfocused percent WithDims was given
+	plain          bool                // mono or NO_COLOR: a fade is the faint attribute
+	tones          map[string]toneLook // the scheme's tones resolved (Tone, tone.go)
 }
 
 // Dim defaults, in percent toward the background (the settings modal-dim
@@ -307,6 +308,7 @@ func NewStyles(a Appearance) Styles {
 		accent:       accent,
 		border:       border,
 		plain:        plain,
+		tones:        resolveTones(scheme, plain, pick),
 	}
 	return styles.WithDims(DefaultModalDim, DefaultDimUnfocused)
 }

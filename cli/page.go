@@ -576,7 +576,7 @@ func (v *PageView) setRows(pl *pageList, rows []Row, hashes []string) error {
 
 // item is the list row of a row (its label filled in).
 func (v *PageView) item(pl *pageList, row Row) ochazuke.ListItem {
-	return ochazuke.ListItem{ID: pl.spec.ID + "/" + row.ID, Label: row.Label, Noun: pl.rowNoun, Data: row.ID, Cells: row.Cells}
+	return ochazuke.ListItem{ID: pl.spec.ID + "/" + row.ID, Label: row.Label, Noun: pl.rowNoun, Data: row.ID, Cells: row.Cells, Tones: row.Tones}
 }
 
 // SetState files a state answer's rows (CatalogDoc.State) under the lists
@@ -737,7 +737,7 @@ var (
 	rowIDFields    = []string{"id", "ID"}
 	rowLabelFields = []string{"label", "Label", "name", "Name", "title", "Title"}
 	// rowFields are a Row's own fields, left out of a record without data.
-	rowFields = []string{"noun", "id", "label", "cells"}
+	rowFields = []string{"noun", "id", "label", "cells", "tones"}
 )
 
 func rowOf(noun string, value any) Row {
@@ -778,6 +778,11 @@ func rowOf(noun string, value any) Row {
 			if c != nil {
 				row.Cells[i] = fmt.Sprint(c)
 			}
+		}
+	}
+	if tones, ok := obj["tones"]; ok {
+		if data, err := json.Marshal(tones); err == nil {
+			_ = json.Unmarshal(data, &row.Tones) // tones that do not decode draw plain
 		}
 	}
 	if row.ID == "" {

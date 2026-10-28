@@ -1,0 +1,123 @@
+{
+  "name": "tones: a table colours a whole cell or a span inside one by tone, an unknown tone draws plain, and the columns line up as without tones",
+  "area": "tables",
+  "width": 60,
+  "height": 7,
+  "chrome": "none",
+  "theme": "dark",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "pane"
+          },
+          {
+            "title": "state"
+          },
+          {
+            "title": "cwd"
+          }
+        ],
+        "items": [
+          {
+            "id": "t1",
+            "label": "work/claude",
+            "cells": [
+              "★ work/claude",
+              "working",
+              "~/proj/matomeru"
+            ],
+            "tones": [
+              {
+                "cell": 0,
+                "tone": "marker.star",
+                "from": 0,
+                "to": 1
+              },
+              {
+                "cell": 1,
+                "tone": "state.working"
+              }
+            ]
+          },
+          {
+            "id": "t2",
+            "label": "work/codex",
+            "cells": [
+              "work/codex",
+              "needs input",
+              "~/proj/ochazuke"
+            ],
+            "tones": [
+              {
+                "cell": 1,
+                "tone": "state.needs-input"
+              }
+            ]
+          },
+          {
+            "id": "t3",
+            "label": "main/shell",
+            "cells": [
+              "main/shell",
+              "odd",
+              "~/hub"
+            ],
+            "tones": [
+              {
+                "cell": 1,
+                "tone": "no.such-tone"
+              }
+            ]
+          },
+          {
+            "id": "t4",
+            "label": "review",
+            "cells": [
+              "review",
+              "done",
+              "~/proj/nabe"
+            ],
+            "tones": [
+              {
+                "cell": 1,
+                "tone": "state.done"
+              }
+            ]
+          },
+          {
+            "id": "t5",
+            "label": "notes",
+            "cells": [
+              "notes",
+              "",
+              "~/notes"
+            ]
+          }
+        ],
+        "selected": 4
+      }
+    ]
+  },
+  "expect": {
+    "focus": "t5",
+    "highlighted": 1,
+    "highlightedText": "notes",
+    "styled": {
+      "★": "#F2CC60",
+      "working": "#7CB7E8",
+      "needs input": "#E3B341",
+      "done": "#8BC48A"
+    },
+    "attrs": {
+      "needs input": "bold",
+      "working": "-bold",
+      "work/claude": "-fg",
+      "odd": "-fg,-bold,-faint",
+      "~/proj/matomeru": "-fg"
+    }
+  }
+}

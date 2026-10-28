@@ -1,0 +1,105 @@
+{
+  "name": "tones: the mono theme draws a tone by its attributes alone (bold, faint) or plain, never a colour, and the columns line up as without tones",
+  "area": "tables",
+  "width": 60,
+  "height": 6,
+  "chrome": "none",
+  "theme": "mono",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "pane"
+          },
+          {
+            "title": "state"
+          },
+          {
+            "title": "cwd"
+          }
+        ],
+        "items": [
+          {
+            "id": "t1",
+            "label": "work/claude",
+            "cells": [
+              "work/claude",
+              "working",
+              "~/proj/matomeru"
+            ],
+            "tones": [
+              {
+                "cell": 1,
+                "tone": "state.working"
+              }
+            ]
+          },
+          {
+            "id": "t2",
+            "label": "work/codex",
+            "cells": [
+              "work/codex",
+              "needs input",
+              "~/proj/ochazuke"
+            ],
+            "tones": [
+              {
+                "cell": 1,
+                "tone": "state.needs-input"
+              }
+            ]
+          },
+          {
+            "id": "t3",
+            "label": "old/shell",
+            "cells": [
+              "old/shell",
+              "exited",
+              "~/hub"
+            ],
+            "tones": [
+              {
+                "cell": 1,
+                "tone": "state.exited"
+              }
+            ]
+          },
+          {
+            "id": "t4",
+            "label": "notes",
+            "cells": [
+              "notes",
+              "",
+              "~/notes"
+            ]
+          }
+        ],
+        "selected": 3
+      }
+    ]
+  },
+  "expect": {
+    "highlighted": 1,
+    "attrs": {
+      "needs input": "bold,-fg",
+      "exited": "faint,-fg",
+      "working": "-bold,-faint,-fg"
+    },
+    "noColor": [
+      "#7CB7E8",
+      "#1F6FB2",
+      "#E3B341",
+      "#9A6700",
+      "#93A7A1",
+      "#657672"
+    ],
+    "contains": [
+      "work/claude  working      ~/proj/matomeru",
+      "work/codex   needs input  ~/proj/ochazuke",
+      "old/shell    exited       ~/hub"
+    ]
+  }
+}

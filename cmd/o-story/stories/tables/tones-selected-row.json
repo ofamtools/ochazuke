@@ -1,0 +1,91 @@
+{
+  "name": "tones: the selected row stays one reverse-video bar, its tones drawn by their attributes alone (bold), never their colour or dim; the colour comes back when the row is left",
+  "area": "tables",
+  "width": 60,
+  "height": 5,
+  "chrome": "none",
+  "theme": "dark",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "pane"
+          },
+          {
+            "title": "state"
+          },
+          {
+            "title": "cwd"
+          }
+        ],
+        "items": [
+          {
+            "id": "t1",
+            "label": "work/codex",
+            "cells": [
+              "work/codex",
+              "needs input",
+              "~/proj/ochazuke"
+            ],
+            "tones": [
+              {
+                "cell": 1,
+                "tone": "state.needs-input"
+              },
+              {
+                "cell": 2,
+                "tone": "state.exited"
+              }
+            ]
+          },
+          {
+            "id": "t2",
+            "label": "main/shell",
+            "cells": [
+              "main/shell",
+              "idle",
+              "~/hub"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "k"
+  ],
+  "expect": [
+    {
+      "focus": "t2",
+      "highlighted": 1,
+      "highlightedText": "main/shell",
+      "styled": {
+        "needs input": "#E3B341",
+        "~/proj/ochazuke": "#93A7A1"
+      },
+      "attrs": {
+        "needs input": "bold,-reverse",
+        "~/proj/ochazuke": "faint,-reverse"
+      },
+      "after": 1
+    },
+    {
+      "focus": "t1",
+      "highlighted": 1,
+      "highlightedText": "needs input",
+      "attrs": {
+        "needs input": "reverse,bold,-fg",
+        "~/proj/ochazuke": "reverse,-faint,-fg",
+        "work/codex": "reverse,-bold"
+      },
+      "noColor": [
+        "#E3B341",
+        "#93A7A1"
+      ]
+    }
+  ]
+}

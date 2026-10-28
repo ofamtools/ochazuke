@@ -281,6 +281,28 @@ tiers above them. When the two disagree, fix one in the same commit.
   `tables/pin-row-palette.json`, `tables/pin-declared.json`,
   `tables/pin-narrow.json`, `tables/unpin-columns.json`; tests
   `TestPinsDrawFirstPersistAndReset`, `TestPinsDroppedInTheViewOnly`.
+- **R5.14** Colour in a cell is a named tone, never text: a row's
+  `ListItem.Tones` (a tree node's `TreeNode.Tones`, a catalog row line's
+  `tones`) give a whole cell or a run of runes inside it a tone such as
+  `state.working` or `marker.star`, and the theme maps the tone to a colour
+  and attributes (bold, dim). The cell's text is unchanged, so a tone never
+  counts toward a width, a cut, the filter, a yank or `--format`. An unknown
+  tone draws plain; mono and `NO_COLOR` draw a tone's attributes alone; a
+  user overrides or adds tones in `themes.json` (configuration, not code).
+  In a tree, cell 0's tones stay on the label, after the indent and the
+  fold marker. A tone never carries meaning alone: the cell's text says the
+  state, the tone only lets the eye find it.
+  **Selection:** the selected row stays the one reverse-video bar (R5.1):
+  inside it a tone draws its bold alone, never its colour and never its
+  dim, so the bar reads the same in every theme and the row's text keeps
+  full strength; a cell-mode table's current cell keeps its underline over
+  a tone. The colour comes back as soon as the row is left. A page list
+  without the focus fades its tones with it (`dim-unfocused`). Stories:
+  `tables/tones-table.json`, `tables/tones-selected-row.json`,
+  `tables/tones-mono.json`, `tree/tones-tree-row.json`,
+  `chrome/tones-themes-override.json`, `chrome/tones-user-scheme.json`,
+  `catalog/tones-rows.json`; tests `TestTonesNeverChangeTheText`,
+  `TestSelectedRowDrawsToneAttributesOnly`, `TestUnfocusedListFadesTones`.
 
 ### R6. Chrome: footer, hints, help, ticker, notices
 

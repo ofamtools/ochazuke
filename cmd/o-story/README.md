@@ -57,7 +57,10 @@ it to the timer's deadline and delivers the timer's message
             { id: "b", rows: 3, noSpill: false, noMarks: false, clearFilterOnEnter: false,
               cellSelect: false },                 // cellSelect: a table with a current column (CellSelect)
             { id: "c", rows: 10, height: -1,       // 0 every row, -1 rest of the page
-              labels: ["first project", "tuios-deck"], selected: 1, marked: [0] }],
+              labels: ["first project", "tuios-deck"], selected: 1, marked: [0] },
+            { id: "d", columns: [{ title: "pane" }, { title: "state" }],
+              items: [{ id: "d1", label: "w", cells: ["w", "working"],
+                        tones: [{ cell: 1, tone: "state.working" }] }] }], // tones: ToneSpan (tables/tones-*)
     order: ["a", "b", "c"],       // drawing order (default: as listed)
     layout: "stack",              // or "row": lists side by side; "split": the first two lists in Layout.SplitFocusBlock
     focus: "b1", offset: 0, noHeadings: false,
@@ -127,7 +130,7 @@ Expect fields: `focus`, `mode`, `modal` (top modal id, `""` none), `page`,
 full-strength reverse video), `dimmed` (rows whose only reverse video is
 under faint: an unfocused page list's selected row, a highlight beneath a
 modal; read in the mono theme), `highlightedText` (text every highlighted row holds), `cell` (the text of a `cellSelect` table's current cell, drawn reverse and underlined; `" "` for a blank one, `""` for none), `contains`, `lacks`, `order` (substrings in this order),
-`ticker`/`noTicker`, `notices`/`noNotices`, `styled` (text → `#RRGGBB`, or `!#RRGGBB`, for the styled run the text starts: cell-exact where `colored` is row-wide), `writes` (every change an
+`ticker`/`noTicker`, `notices`/`noNotices`, `styled` (text → `#RRGGBB`, or `!#RRGGBB`, for the styled run the text starts: cell-exact where `colored` is row-wide), `attrs` (text → the attributes at its first cell, followed along the row's SGR state: a comma list of `bold`, `faint`, `reverse`, `underline`, `fg` (any foreground), `-name` for absent; `"bold,-fg"` reads a mono tone), `writes` (every change an
 editable tree wrote, `TreeChange.String`, in order; `[]` none). A story with no final expect is
 compared with `<name>.golden`: the frame in the mono theme, each row behind a
 gutter that reads `R|` when the row has full-strength reverse video, `r|`

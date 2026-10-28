@@ -69,13 +69,18 @@ func (c *SchemeColor) UnmarshalJSON(data []byte) error {
 // stays reverse video in every scheme, so the selected row reads without
 // colour.
 type Scheme struct {
-	Background string      `json:"background,omitempty"`
-	Text       SchemeColor `json:"text"`
-	Muted      SchemeColor `json:"muted"`
-	Accent     SchemeColor `json:"accent"`
-	Border     SchemeColor `json:"border"`
-	Surface    SchemeColor `json:"surface"`
-	Error      SchemeColor `json:"error"`
+	Background string               `json:"background,omitempty"`
+	Text       SchemeColor          `json:"text"`
+	Muted      SchemeColor          `json:"muted"`
+	Accent     SchemeColor          `json:"accent"`
+	Border     SchemeColor          `json:"border"`
+	Surface    SchemeColor          `json:"surface"`
+	Error      SchemeColor          `json:"error"`
+	Tones      map[string]ToneStyle `json:"tones,omitempty"`
+
+	// builtin marks a themes.json entry named after a built-in theme: it
+	// holds only Tones, laid over that theme's (toneOverrides).
+	builtin bool
 }
 
 // defaultScheme is the built-in palette; a user scheme's missing role
@@ -88,23 +93,45 @@ var defaultScheme = Scheme{
 	Border:     SchemeColor{"#A7BAB2", "#465D55"},
 	Surface:    SchemeColor{"#EEF3EF", "#172720"},
 	Error:      SchemeColor{"#AB3D36", "#E99B8D"},
+	Tones:      defaultTones,
 }
 
 // scheme resolves Theme: plain for mono, a built-in, one of Schemes, else
-// adaptive.
+// adaptive. A built-in theme's tones are the defaults with the
+// themes.json entries of its name laid over them; dark and light take
+// adaptive's entry first, as they are its palette with the side fixed.
 func (a Appearance) scheme() (Scheme, bool) {
+	s := defaultScheme
 	switch a.Theme {
 	case "mono":
-		return defaultScheme, true
+		s.Tones = a.toneOverrides("mono")
+		return s, true
 	case "dark", "light":
-		s := defaultScheme
 		s.Background = a.Theme
+		s.Tones = a.toneOverrides("adaptive", a.Theme)
 		return s, false
 	}
-	if s, ok := a.Schemes.Get(a.Theme); ok {
-		return s, false
+	if u, ok := a.Schemes.Get(a.Theme); ok && !u.builtin {
+		return u, false
 	}
-	return defaultScheme, false
+	s.Tones = a.toneOverrides("adaptive")
+	return s, false
+}
+
+// toneOverrides is the built-in tones with the tones of the themes.json
+// entries named (built-in theme names) laid over them in order.
+func (a Appearance) toneOverrides(names ...string) map[string]ToneStyle {
+	out := defaultTones
+	copied := false
+	for _, name := range names {
+		if o, ok := a.Schemes.Get(name); ok && o.builtin && len(o.Tones) > 0 {
+			if !copied {
+				out, copied = maps.Clone(out), true
+			}
+			maps.Copy(out, o.Tones)
+		}
+	}
+	return out
 }
 
 // SchemeSet is a read-only set of named schemes; a nil set is empty.
@@ -124,12 +151,23 @@ func (s *SchemeSet) Get(name string) (Scheme, bool) {
 	return one, ok
 }
 
-// Names are the scheme names, sorted.
+// Names are the scheme names, sorted; an entry that only adds tones to a
+// built-in theme is not a scheme of its own and is left out.
 func (s *SchemeSet) Names() []string {
 	if s == nil {
 		return nil
 	}
-	return slices.Sorted(maps.Keys(s.byName))
+	return schemeNames(s.byName)
+}
+
+func schemeNames(schemes map[string]Scheme) []string {
+	var out []string
+	for _, name := range slices.Sorted(maps.Keys(schemes)) {
+		if !schemes[name].builtin {
+			out = append(out, name)
+		}
+	}
+	return out
 }
 
 var hexColor = regexp.MustCompile(`^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$`)
@@ -146,12 +184,18 @@ func validColor(c string) bool {
 // schemes by name:
 //
 //	{"kombu": {"background": "dark", "accent": "#C9A227",
-//	           "error": {"light": "#B3261E", "dark": "#FF8A80"}}}
+//	           "error": {"light": "#B3261E", "dark": "#FF8A80"},
+//	           "tones": {"state.working": {"fg": "#5FAFD7", "bold": true}}},
+//	 "dark":  {"tones": {"build.cached": "muted"}}}
 //
-// A role left out takes the built-in palette's. A scheme that does not
-// validate (an unknown role, a bad colour or background, a built-in's
-// name, an error colour equal to the accent or muted one) is skipped and
-// reported; a file that is not a JSON object yields no schemes.
+// A role left out takes the built-in palette's; "tones" (ToneStyle by
+// tone name) are laid over the built-in tones. An entry named after a
+// built-in theme holds only "tones": they override and add to that
+// theme's (adaptive's reach dark and light too). A scheme that does not
+// validate (an unknown role, a bad colour, background or tone, a built-in's
+// name with anything but tones, an error colour equal to the accent or
+// muted one) is skipped and reported; a file that is not a JSON object
+// yields no schemes.
 func ParseSchemes(data []byte) (map[string]Scheme, []string) {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil || raw == nil {
@@ -177,12 +221,19 @@ func parseScheme(name string, data json.RawMessage) (Scheme, error) {
 	if name == "" || strings.ContainsAny(name, " \t\n") {
 		return Scheme{}, errors.New("a scheme name is one word")
 	}
-	if slices.Contains(BuiltinThemes, name) {
-		return Scheme{}, errors.New("is a built-in theme")
-	}
 	var roles map[string]json.RawMessage
 	if err := json.Unmarshal(data, &roles); err != nil || roles == nil {
 		return Scheme{}, errors.New("a scheme is an object of roles")
+	}
+	if slices.Contains(BuiltinThemes, name) {
+		if len(roles) != 1 || roles["tones"] == nil {
+			return Scheme{}, errors.New("is a built-in theme: it takes only tones")
+		}
+		tones, err := parseTones(nil, roles["tones"])
+		if err != nil {
+			return Scheme{}, err
+		}
+		return Scheme{Tones: tones, builtin: true}, nil
 	}
 	s := defaultScheme
 	fields := map[string]*SchemeColor{"text": &s.Text, "muted": &s.Muted, "accent": &s.Accent, "border": &s.Border, "surface": &s.Surface, "error": &s.Error}
@@ -194,9 +245,17 @@ func parseScheme(name string, data json.RawMessage) (Scheme, error) {
 			}
 			continue
 		}
+		if role == "tones" {
+			tones, err := parseTones(defaultTones, value)
+			if err != nil {
+				return Scheme{}, err
+			}
+			s.Tones = tones
+			continue
+		}
 		field, ok := fields[role]
 		if !ok {
-			return Scheme{}, fmt.Errorf("unknown role %q: use background, text, muted, accent, border, surface, error", role)
+			return Scheme{}, fmt.Errorf("unknown role %q: use background, text, muted, accent, border, surface, error, tones", role)
 		}
 		if err := json.Unmarshal(value, field); err != nil {
 			return Scheme{}, fmt.Errorf("%s: %v", role, err)
@@ -256,7 +315,7 @@ func (r *Runtime) ReloadThemes() []string {
 }
 
 func (c *Config) themeNames() []string {
-	return append(slices.Clone(BuiltinThemes), slices.Sorted(maps.Keys(c.schemes))...)
+	return append(slices.Clone(BuiltinThemes), schemeNames(c.schemes)...)
 }
 
 // ensureThemeSetting reads themes.json when the config directory changed

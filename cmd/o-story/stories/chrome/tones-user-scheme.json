@@ -1,0 +1,36 @@
+{
+  "name": "tones: a user scheme's tones follow its palette roles (state.errored is the scheme's error colour) and its own tones replace the defaults",
+  "area": "chrome",
+  "width": 60,
+  "height": 5,
+  "chrome": "none",
+  "theme": "kombu",
+  "themes": {
+    "kombu": {
+      "background": "dark",
+      "accent": "#C9A227",
+      "error": "#FF8A80",
+      "tones": {"state.idle": {"fg": "accent"}}
+    }
+  },
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "columns": [{"title": "pane"}, {"title": "state"}],
+        "items": [
+          {"id": "p1", "label": "build", "cells": ["build", "errored"], "tones": [{"cell": 1, "tone": "state.errored"}]},
+          {"id": "p2", "label": "shell", "cells": ["shell", "idle"], "tones": [{"cell": 1, "tone": "state.idle"}]},
+          {"id": "p3", "label": "notes", "cells": ["notes", ""]}
+        ],
+        "selected": 2
+      }
+    ]
+  },
+  "expect": {
+    "noNotices": true,
+    "styled": {"errored": "#FF8A80", "idle": "#C9A227"},
+    "attrs": {"errored": "bold"}
+  }
+}
