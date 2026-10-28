@@ -31,6 +31,8 @@ func (t *Tool) Explore(args []string) error {
 	top := flags.Int("top", 5, "findings listed per check (0 every one)")
 	reproduce := flags.Bool("reproduce", false, "with --dedupe: replay each group's best story occurrence (explore.Reproduce) and say whether it still shows")
 	dedupe := flags.String("dedupe", "", "explore nothing: group the findings of every report under this directory (NAME.json) by check and summary; --out writes groups.json and one gap story per group")
+	watch := flags.Bool("watch", false, "watch the run in a full-screen TUI (the same walk and report; q stops watching)")
+	delay := flags.Duration("delay", watchDelay, "with --watch: the pause after each step (0 is full speed)")
 	names, err := parse(flags, args)
 	if err != nil {
 		return err
@@ -39,7 +41,15 @@ func (t *Tool) Explore(args []string) error {
 	if err != nil {
 		return err
 	}
+	set := map[string]bool{}
+	flags.Visit(func(f *flag.Flag) { set[f.Name] = true })
+	if set["delay"] && !*watch {
+		return fmt.Errorf("--delay needs --watch")
+	}
 	if *dedupe != "" {
+		if *watch {
+			return fmt.Errorf("--watch watches a run; --dedupe runs nothing")
+		}
 		return t.dedupe(lib, *dedupe, *out, *reproduce)
 	}
 	apps := storyApps(lib, names)
@@ -47,10 +57,20 @@ func (t *Tool) Explore(args []string) error {
 		return fmt.Errorf("no story or area matches %v", names)
 	}
 	budget := explore.Budget{Depth: *depth, Steps: *steps, CompareFull: *full}
+	next := func(app *story.Story) explore.Report { return explore.Run(storySubject(app), budget) }
+	if *watch {
+		// The TUI watches the runs; the reports print after it, in order,
+		// as the headless loop prints them.
+		run := startWatchRun(apps, budget, *delay)
+		if err := t.watchTUI(run); err != nil {
+			return err
+		}
+		next = func(*story.Story) explore.Report { return <-run.reports }
+	}
 	total := 0
 	var reports []explore.Report
 	for _, app := range apps {
-		rep := explore.Run(storySubject(app), budget)
+		rep := next(app)
 		fmt.Fprint(t.Stdout, rep.Text(*top))
 		reports = append(reports, rep)
 		total += len(rep.Findings)

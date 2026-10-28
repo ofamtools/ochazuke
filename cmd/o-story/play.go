@@ -556,13 +556,25 @@ func (h *host) renderPlay(_ *ochazuke.Runtime, w, ht int) ochazuke.Block {
 	title := " ▶ " + p.story.Area + "/" + story.Slug(p.story.Name) + " "
 	box := boxFrame(frame, title, fmt.Sprintf(" %dx%d ", sw, sh), sw)
 
-	side := w - (sw + 2) - 1
+	side := sideWidth(w, sw)
+	return ochazuke.Text(beside(p.sidebar(s, side, ht), box, side, w, ht))
+}
+
+// sideWidth is the width a sidebar gets beside a boxed frame frameW wide:
+// what the box leaves, at least 24 cells.
+func sideWidth(w, frameW int) int {
+	side := w - (frameW + 2) - 1
 	if side < 24 {
 		side = min(w, 24)
 	}
+	return side
+}
+
+// beside lays a sidebar side cells wide on the left of a boxed frame, ht
+// rows of w cells; the box is clipped to what the sidebar leaves.
+func beside(sidebar, box []string, side, w, ht int) string {
 	right := w - side - 1
 	rows := make([]string, ht)
-	sidebar := p.sidebar(s, side, ht)
 	for i := range rows {
 		line := layoutRow(sidebar, i, side)
 		if right > 0 {
@@ -573,7 +585,7 @@ func (h *host) renderPlay(_ *ochazuke.Runtime, w, ht int) ochazuke.Block {
 		}
 		rows[i] = line
 	}
-	return ochazuke.Text(strings.Join(rows, "\n"))
+	return strings.Join(rows, "\n")
 }
 
 // layoutRow is row i of rows padded or clipped to width.

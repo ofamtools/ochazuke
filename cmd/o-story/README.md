@@ -15,6 +15,7 @@ o-story run [NAME|AREA...]   # headless; non-zero exit on failure
 o-story run --update --dir cmd/o-story/stories   # rewrite goldens on disk
 o-story list | history | keep N NAME | replay REF | trim REF ... | verbs
 o-story explore [NAME|AREA...] [--depth N] [--steps N] [--out DIR]   # the state explorer
+o-story explore NAME --watch [--delay D]   # watch the explorer run in a TUI; same report
 o-story explore --dedupe DIR [--reproduce] [--out DIR]   # group the findings of saved reports
 o story ...                  # the same, through the oden family root
 ```
@@ -280,6 +281,38 @@ the example's `TestExplore` (both behind the `explore` build tag: `make
 explore-quick`). Expected refusals are quieted by
 `Subject.Expected`: `explore.FrameworkRefusal` for the framework's own, and
 here `storyFake` for the stories' fakes.
+
+### Watching a run
+
+`o-story explore … --watch` plays the same run in a full-screen TUI (an
+ochazuke model of its own): on the left the application (n/N) and the
+run's status, the states visited, the steps played of the budget and
+left, the depth, the key path that reached the state shown, and a table
+of the findings as they turn up; on the right that state's frame, boxed
+at the story's size beside a step counter. `--delay D` (default `50ms`; `0`
+is full speed) is the pause after each step. Watch mode is a view, not
+another walk: the run calls `Budget.Observe` after every step and the TUI
+holds it there, so the same budget gives the same states, findings and
+report bytes with or without `--watch`; only the elapsed time differs.
+The TUI draws on `/dev/tty`, so `o-story explore --watch > report.txt`
+keeps the report in the file.
+
+| keys | verb | what it does |
+|---|---|---|
+| `a` | `watch.pause` | pause, or run on at the set speed |
+| `l`, `right`, `space` | `watch.step` | pause and play exactly one more step |
+| `+`, `=` / `-` | `watch.faster` / `watch.slower` | halve (under 1ms is full speed) / double the delay |
+| `q` | `watch.stop` | stop watching: the run finishes unwatched and the report prints as without `--watch` |
+| `enter` | `finding.replay` | replay the selected finding's path frame by frame (pauses the run) |
+
+On the replay page (`explore.Frames` draws the frame before the path and
+after each key) `l`/`right`/`space` step, `h`/`left` step back, `r` and
+`f` go to the start and the end, `a` plays on, `+`/`-` change its speed,
+`q`/`esc` go back to the run, still paused. While the run goes on the
+table holds each finding's path as found; once an application's run ends
+it holds the report's findings, paths shrunk. Several applications are
+watched one after another; after `q` the rest run unwatched and the
+reports print in order.
 
 ## Catalog
 
