@@ -41,6 +41,13 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R1.4** Escape cancelling a key-sequence prefix is a generated
   `"<prefix> esc"` → `mode.leave` row. Story: needed
   (`keys/esc-cancels-prefix`).
+- **R1.6** A default key is written once, as data: the framework's in its
+  embedded files (`bindings/*.json`, `markdown/`, `grid/`, `cli/
+  bindings.json`), an app's in its own, loaded with `LoadDefaultBindings`.
+  Go `Bind` is for rows computed at runtime (an instance's rows, a row
+  built from a spec). Check: `TestFrameworkBindingFilesPassTheRuleCheck`,
+  `TestFrameworkBindingFilesDoNotClash`, `CheckDefaultBindings` in the
+  app's tests; `bindings defaults` shows each row's source.
 - **R1.5** Function keys F1 to F12 are never bound anywhere, demos and
   stories included. Check: grep the binding JSON and stories for `"f[0-9]`.
 - **R1.6** Resolution order at a level: instance rows above noun rows; mode
@@ -497,7 +504,7 @@ tiers above them. When the two disagree, fix one in the same commit.
 ### R9. Inputs and the editor
 
 - **R9.1** Readline and Vim rows are `editor` noun defaults from
-  `editor_bindings.json`; an app overrides by binding on a noun or instance
+  `bindings/editor.json`; an app overrides by binding on a noun or instance
   on the stack or in a binding file; it never edits the JSON. Check: the
   diff.
 - **R9.2** Offsets count runes; rendering accounts for cell width. Story:

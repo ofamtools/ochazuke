@@ -644,7 +644,7 @@ result, err := r.Execute(ochazuke.Request{
 | `confirm.go` | The `confirm` noun, `SetConfirm`, prompt templates |
 | `noun.go`, `instance.go` | `Define` builder, binding rows, key classes and guards; instances, parent links, `Payload`, targets |
 | `resolve.go`, `bindings.go` | The stack walk, pending modes, key-sequence prefixes and their timer, `bindings.list` |
-| `editor_bindings.json`, `registers_bindings.json`, `editor_keys.go` | The editor noun's mode tables and the app noun's count, register and macro rows as data, loaded at startup |
+| `bindings/*.json`, `default_bindings.go`, `editor_keys.go` | The default key bindings as data (one file per area: the editor noun's mode tables, the app noun's count, register and macro rows, lists, tables, trees, timelines, forms, the terminal, ...), loaded at startup; `LoadDefaultBindings`, `bindings defaults` |
 | `configuration.go` | `bindings.load`, `mode.register`, `context.select` |
 | `input.go`, `editing.go`, `editor*.go` | Input-owned undo, the editor handlers (motions, operators, kills, insert, paste), visual geometry |
 | `list.go` | Flat selectable rows as instances of their nouns, marks and fan-out, stable-ID refresh, viewport scrolling, row focus |
@@ -917,7 +917,7 @@ macro_recording:  { q: macro.stop when shadow-idle, any | paste: macro.record {k
 "normal g":       { "g g": … the continuations of the sequence; a timer leaves the mode and runs the completed match }
 ```
 
-The editor noun's tables (Readline rows in `insert`, Vim rows in `normal` and the visual modes, the pending modes above) are generated from `editor_bindings.json`, a data file in this row shape plus three generators (`expand` a row over a key map, `extends` one mode from another, `pending` the exclusive modes). `bindings list` prints the rows the focus answers to in its current mode, so every Readline and Vim key appears there for its mode, and the help modal of the full-project example is built from it. Multi-key sequences such as `g g` wait in a prefix mode named `"<mode> <keys so far>"` on the focused instance for up to a configurable timeout (default 1000ms, Neovim's timeoutlen); the timer and a mismatching key leave the mode, run the longest completed match, and the mismatching key is then dispatched fresh. Escape cancels the sequence through a row like any other: every table that binds a sequence keeps a generated `"<prefix> esc"` → `mode.leave` row for each prefix (`bindings list` shows it in the prefix mode), so the resolver itself never names a key. A paste is one event that matches only `paste` rows, so insert mode inserts it and normal mode ignores it.
+The editor noun's tables (Readline rows in `insert`, Vim rows in `normal` and the visual modes, the pending modes above) are `bindings/editor.json`, one of the embedded default files (see Default bindings are data). `bindings list` prints the rows the focus answers to in its current mode, so every Readline and Vim key appears there for its mode, and the help modal of the full-project example is built from it. Multi-key sequences such as `g g` wait in a prefix mode named `"<mode> <keys so far>"` on the focused instance for up to a configurable timeout (default 1000ms, Neovim's timeoutlen); the timer and a mismatching key leave the mode, run the longest completed match, and the mismatching key is then dispatched fresh. Escape cancels the sequence through a row like any other: every table that binds a sequence keeps a generated `"<prefix> esc"` → `mode.leave` row for each prefix (`bindings list` shows it in the prefix mode), so the resolver itself never names a key. A paste is one event that matches only `paste` rows, so insert mode inserts it and normal mode ignores it.
 
 ### Capture rows
 
@@ -928,6 +928,26 @@ The walk above bubbles: the inner level wins. A row may set `capture: true` (`Ca
 ```
 
 That row is the only default capture row: `NewModel` installs it (with the bubbling `ctrl+c` row it always had) so an inner `any` row cannot swallow quit. The `no-modal` guard stands it aside while a modal is open, so the palette's own `ctrl+c` still closes the palette. A passthrough mode (`DefinePassthrough`, the `terminal` mode) has no capture pass at all: while it is the base mode, `ctrl+c` goes to the attached pane, and quitting means detaching first (`ctrl+a d`) or a leader row bound to `app.quit`. To rebind `ctrl+c`, bind it on `app` before `NewModel` (then neither row is installed), or override or unbind each row on its own: an unbind or rebind without `when` touches the bubbling row only (the loader's notice says the capture row still answers first), and `{noun: "app", keys: "ctrl+c", when: "no-modal", request: null}` removes the capture row.
+
+## Default bindings are data
+
+Every default key is written once, in an embedded file in the grouped bindings format (see The bindings file format): the framework's in `bindings/*.json`, one per area (`editor.json`, `registers.json`, `list.json`, `table.json`, `list-modes.json`, `tree.json`, `timeline.json`, `form.json`, `terminal.json`, `app.json`, `palette.json`, `picker.json`, ...), the markdown, grid and Commands nouns' in `markdown/`, `grid/` and `cli/bindings.json`. A group may also carry `"fallback": true`: its rows are skipped on the keys its table bound before the file loaded (the app noun's `:`, `?`, `ctrl+c`: an application's row bound before `NewModel` keeps its key).
+
+An application ships its defaults the same way:
+
+```go
+//go:embed bindings/*.json
+var defaultBindings embed.FS
+
+// after the verbs and guards the files name are registered, before Model.Init
+if err := r.LoadDefaultBindingsFS(defaultBindings, "bindings/*.json"); err != nil {
+    return err
+}
+```
+
+The rows go into the default layer exactly where the same rows bound in Go would sit (a row replaces the row with its identity, a guarded row goes before the unguarded row on its keys, sequences get their prefix cancels), below the user's `bindings.json`. Unlike a user file, an embedded file is strict: an unknown operation, argument, source, guard, mode or instance is an error naming the file, the table and the key (`MustLoadDefaultBindings` panics), so a test that builds the app catches it. `Runtime.CheckDefaultBindings(source, data)` is the rule check for a test: every name exists, every `mode.enter` goes into a pending mode, no two rows of a table share a key and guard.
+
+`BIN bindings defaults` (`ochazuke.bindings.defaults`, `Runtime.DefaultBindings`) prints the default layer as a bindings file, without the user's rows and with the rows they replaced back in place; every group carries `"source"`: the embedded file (`ochazuke/bindings/list.json`, an app's own path), `go` for a row bound in Go (an instance's rows, a row computed from a spec) or `generated` for a sequence's prefix cancel. Go `Bind` stays for rows that are computed at runtime.
 
 ## Atomic bindings
 
