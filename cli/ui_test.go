@@ -11,8 +11,7 @@ import (
 // What a handler tells the user prints on stderr while the command runs:
 // setup's messages first, then the verb's, then a job's Then; the sink is
 // detached again when Run returns. The status line prints by its tone:
-// ctx.Info as status:, ctx.Error and ctx.Status (its older spelling) as
-// error:.
+// ctx.Info as status:, ctx.Error as error:.
 func TestShellPrintsNoticesAndStatusOnStderr(t *testing.T) {
 	f := newFixture(t)
 	f.r.UI().Notify("daemon started")
@@ -22,8 +21,8 @@ func TestShellPrintsNoticesAndStatusOnStderr(t *testing.T) {
 			c.ClearNotice(id)
 			c.Info("told")
 			c.Error("could not tell w2")
-			c.Status("could not tell w3")
-			c.Status("")
+			c.Error("could not tell w3")
+			c.Error("")
 			return ochazuke.Pending(func(context.Context) (any, error) { return "later", nil }).Then(func(c ochazuke.Ctx, _ any, _ error) {
 				c.Notify("job finished")
 			})

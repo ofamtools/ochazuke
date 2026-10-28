@@ -376,11 +376,15 @@ tiers above them. When the two disagree, fix one in the same commit.
   golden `testdata/help-80.golden`.
 - **R6.4** Three things tell the user, kept apart. The status line is one
   slot with two tones, cleared by the next key: an error (a key that
-  failed, `ctx.Error`, `ctx.Status` its older spelling) reads
-  `Error: TEXT` in the error style in place of the hints; a plain message
-  (`ctx.Info`) reads before the hints, cut to half the width. Either
-  replaces the other. A plain message is never drawn as an error and an
-  error never as plain text. `Notices` persist until `notice.clear`; the
+  failed, `ctx.Error`) reads `Error: TEXT` in the error style in place of
+  the hints; a plain message (`ctx.Info`: progress, success, "nothing to
+  do") reads before the hints, cut to half the width. Either replaces the
+  other. A plain message is never drawn as an error and an error never as
+  plain text: every sink has both tones (no fallback to the error tone),
+  and `ctx.Status`, the old name that invited plain messages into the
+  error tone, is deprecated; `strictcheck.Check` fails an app's tests on
+  any use. Check: `TestStatusInfoReachesEverySink`, an app's strictcheck
+  test. `Notices` persist until `notice.clear`; the
   footer shows the newest at most half the width with `(+N more)`, so the
   hints always keep the rest. The CLI prints the same as `error:`,
   `status:` and `notice:` lines. Story: `notices/persist.json`,

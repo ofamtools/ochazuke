@@ -1054,7 +1054,7 @@ A handler says what to tell the user and the host decides how it looks. There ar
 - `ctx.Info(text)` sets the status line to a plain message ("copied 3 rows", "queued"): drawn before the hints until the next key, a `status:` line on the CLI.
 - `ctx.Error(text)` sets the status line to an error: `Error: TEXT` in the error style in place of the hints until the next key, an `error:` line on the CLI. A verb that fails returns `Failed(err)` (drawn the same way); `Error` is for what fails beside the result (a job's `Then`, a refresh, a daemon event).
 
-The status line is one slot: `Info` and `Error` replace each other and `""` clears it. `ctx.Status(text)` is `ctx.Error(text)`, its older spelling, kept with that meaning so existing callers stay errors; new code writes `Error`, or `Info` for a plain message. Code without a `Ctx` (setup, a daemon event) posts the same through `r.UI()`: `Notify`, `ClearNotice`, `Info`, `Error`, `Status`. A job's `Then` already gets a `Ctx`.
+The status line is one slot: `Info` and `Error` replace each other and `""` clears it. Choose by what happened, never by habit: a failure is `Error`, anything else (progress, success, "nothing to do", a hint) is `Info`. `ctx.Status(text)`, the older spelling of `Error`, is deprecated: the name read as "any status", so plain messages posted through it were drawn `Error: …`. It works for one release; `strictcheck.Check(t)` (below) fails an app's tests on any use. Code without a `Ctx` (setup, a daemon event) posts the same through `r.UI()`: `Notify`, `ClearNotice`, `Info`, `Error`. A job's `Then` already gets a `Ctx`.
 
 ```go
 r.Define("worktree").Verb("sync", func(ctx ochazuke.Ctx) ochazuke.Result {
@@ -1070,14 +1070,26 @@ r.Define("worktree").Verb("sync", func(ctx ochazuke.Ctx) ochazuke.Result {
 }, "Sync the worktree")
 ```
 
-Each host attaches a sink (`ochazuke.UISink`: `Notify(id, text)`, `ClearNotice(id)`, `Status(text)` for the error tone; a sink that also implements `ochazuke.InfoSink` (`Info(text)`) shows the plain tone, one that does not gets it through `Status`, and a sink that wraps another forwards `Info` too) with `r.UI().Attach(sink)`:
+Each host attaches a sink (`ochazuke.UISink`: `Notify(id, text)`, `ClearNotice(id)`, `Status(text)` for the error tone, `Info(text)` for the plain one; every sink has both, so no message falls back to the error tone, and a sink that wraps another forwards each message with `UIMessage.Apply(next)`; `InfoSink` is deprecated) with `r.UI().Attach(sink)`:
 
 | Host | Shows |
 |---|---|
 | `NewModel` | notices in the footer (`Model.Notices`, `notice.list`, `notice.clear`); the status line: an error (`Model.Status`) as `Error: TEXT` in place of the hints, a plain message (`Model.Info`) before the hints cut to half the width; the next key clears either, what a key's handler sets stands |
-| `cli.Shell` | `notice: TEXT`, `error: TEXT` (Error, Status) and `status: TEXT` (Info) lines on stderr beside the `warning:` lines, while the command runs (a job's `Then` included); `UIMessage.Line` |
-| A socket or API call (`HandleCall`) | the call's messages in `Response.Messages` (`[{kind, id, text}]`, kinds `notice`, `clear`, `status` (the error tone) and `info`, omitted when empty) as well as the runtime's sink; `CallResponse` returns them and `ochazuke NOUN VERB` prints them on stderr as the shell does |
-| Tests | `ochazuke.RecordingSink` (`Messages`, `Notices`, `LastStatus` (the error tone), `LastInfo`) |
+| `cli.Shell` | `notice: TEXT`, `error: TEXT` (Error) and `status: TEXT` (Info) lines on stderr beside the `warning:` lines, while the command runs (a job's `Then` included); `UIMessage.Line` |
+| A socket or API call (`HandleCall`) | the call's messages in `Response.Messages` (`[{kind, id, text}]`, kinds `notice`, `clear`, `status` (`UIError`, the error tone; `UIStatus` is its deprecated name) and `info`, omitted when empty) as well as the runtime's sink; `CallResponse` returns them and `ochazuke NOUN VERB` prints them on stderr as the shell does |
+| Tests | `ochazuke.RecordingSink` (`Messages`, `Notices`, `LastError`, `LastInfo`; `LastStatus` is deprecated) |
+
+### Deprecated names and the strict check
+
+Every name ochazuke deprecates lives in `deprecated.go`, built only without the `ochazuke_strict` tag: it keeps working for one release, then goes. An application adds one test and its suite fails on any use, at the line, with the compiler's message (type-checked, so a `Status` method of the app's own types is never flagged):
+
+```go
+import "github.com/unixsuperhero/ochazuke/strictcheck"
+
+func TestNoDeprecatedOchazuke(t *testing.T) { strictcheck.Check(t) }
+```
+
+`Check` runs `go vet -tags ochazuke_strict ./...` from the module root (pass patterns to narrow it), so a vet finding fails it too. Deprecated now: `Ctx.Status` and `UI.Status` (use `Error` for a failure, `Info` for anything else), `UIStatus` (`UIError`), `InfoSink` (`Info` is on `UISink`), `RecordingSink.LastStatus` (`LastError`).
 
 With no sink attached messages are discarded, except that until the first sink attaches the UI keeps the last 32 (the startup ring) and replays them, in order, into that sink, then drops them; memory stays bounded whether or not a sink ever attaches. The UI is a component on an instance under `app`; `Runtime` has no field for it. `Model.Notify(text)` still works and posts through the same path.
 

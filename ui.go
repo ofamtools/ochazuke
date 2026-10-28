@@ -18,16 +18,16 @@ const uiRing = 32
 // can always clear what it posted.
 type NoticeID uint64
 
-// UI message kinds. The status line is one line with two tones: UIStatus
-// is the error tone (Ctx.Error, and Ctx.Status, its older spelling; the
-// TUI draws "Error: TEXT" in the error style, the CLI prints "error:
-// TEXT") and UIInfo the neutral one (Ctx.Info: plain text before the
-// hints, "status: TEXT" on the CLI). Either replaces the other. The kind
-// strings are wire values (Response.Messages), so UIStatus keeps "status".
+// UI message kinds. The status line is one line with two tones: UIError
+// is the error tone (Ctx.Error; the TUI draws "Error: TEXT" in the error
+// style, the CLI prints "error: TEXT") and UIInfo the neutral one
+// (Ctx.Info: plain text before the hints, "status: TEXT" on the CLI).
+// Either replaces the other. The kind strings are wire values
+// (Response.Messages), so UIError keeps its old wire value "status".
 const (
 	UINotice      = "notice"
 	UIClearNotice = "clear"
-	UIStatus      = "status"
+	UIError       = "status"
 	UIInfo        = "info"
 )
 
@@ -49,14 +49,10 @@ func (msg UIMessage) Apply(s UISink) {
 		s.Notify(msg.ID, msg.Text)
 	case UIClearNotice:
 		s.ClearNotice(msg.ID)
-	case UIStatus:
+	case UIError:
 		s.Status(msg.Text)
 	case UIInfo:
-		if is, ok := s.(InfoSink); ok {
-			is.Info(msg.Text)
-		} else {
-			s.Status(msg.Text) // a sink that predates the neutral tone shows it as before
-		}
+		s.Info(msg.Text)
 	}
 }
 
@@ -70,7 +66,7 @@ func (msg UIMessage) Line() string {
 	switch msg.Kind {
 	case UINotice:
 		return "notice: " + msg.Text
-	case UIStatus:
+	case UIError:
 		return "error: " + msg.Text
 	case UIInfo:
 		return "status: " + msg.Text
@@ -82,9 +78,10 @@ func (msg UIMessage) Line() string {
 // notices in the footer and the status in the status line, the CLI shell
 // prints them on stderr, a test records them. Handlers never reach the
 // sink: they post through Ctx (ctx.Notify, ctx.ClearNotice, ctx.Error,
-// ctx.Info) or Runtime.UI, and the host decides how it looks. A sink that
-// also implements InfoSink shows the neutral tone of the status line; one
-// that does not gets it through Status.
+// ctx.Info) or Runtime.UI, and the host decides how it looks. Every sink
+// shows both tones of the status line, so a plain message is never drawn
+// as an error for want of a method. A sink that wraps another forwards
+// every message (UIMessage.Apply does it).
 type UISink interface {
 	// Notify shows a persistent notice until ClearNotice(id) or the host
 	// clears it.
@@ -92,15 +89,10 @@ type UISink interface {
 	// ClearNotice takes back a notice; an unknown id is ignored.
 	ClearNotice(id NoticeID)
 	// Status replaces the one-line status with an error ("" clears it):
-	// what Ctx.Error and Ctx.Status post.
+	// what Ctx.Error posts (UIError). Only the error tone reaches it.
 	Status(text string)
-}
-
-// InfoSink is a UISink that shows the status line's neutral tone: Info
-// replaces the line with plain text ("" clears it), what Ctx.Info posts.
-// The Model, cli.Shell and RecordingSink implement it; a sink without it
-// gets Info through Status. A sink that wraps another forwards Info too.
-type InfoSink interface {
+	// Info replaces the one-line status with plain text ("" clears it):
+	// what Ctx.Info posts (UIInfo).
 	Info(text string)
 }
 
@@ -126,7 +118,7 @@ func registerUI(r *Runtime) {
 	inst.Component = &UI{}
 }
 
-// UI returns the UI component: Notify, ClearNotice, Error, Info and Status
+// UI returns the UI component: Notify, ClearNotice, Error and Info
 // for code without a Ctx (setup, daemon events), Attach for a host.
 func (r *Runtime) UI() *UI {
 	if r == nil {
@@ -201,13 +193,8 @@ func (u *UI) Error(text string) {
 	if u == nil {
 		return
 	}
-	u.post(UIMessage{Kind: UIStatus, Text: text})
+	u.post(UIMessage{Kind: UIError, Text: text})
 }
-
-// Status is Error: the status line in its error tone. It is the older
-// spelling, kept with that meaning so existing callers stay errors; new
-// code writes Error, or Info for a plain message.
-func (u *UI) Status(text string) { u.Error(text) }
 
 // Info sets the status line to a plain message ("copied 3 rows", "queued"),
 // drawn without the error style before the hints until the next key; ""
@@ -262,9 +249,6 @@ func (c Ctx) ClearNotice(id NoticeID) { c.Runtime.UI().ClearNotice(id) }
 // fails beside the result (a job's Then, a refresh).
 func (c Ctx) Error(text string) { c.Runtime.UI().Error(text) }
 
-// Status is Error, the older spelling: the status line in its error tone.
-func (c Ctx) Status(text string) { c.Runtime.UI().Error(text) }
-
 // Info sets the status line to a plain message through the runtime's UI
 // (before the hints until the next key, a status: line on the CLI); ""
 // clears it. Notify is the notice that stays.
@@ -285,8 +269,8 @@ func (s *RecordingSink) Notify(id NoticeID, text string) {
 // ClearNotice records a clear.
 func (s *RecordingSink) ClearNotice(id NoticeID) { s.record(UIMessage{Kind: UIClearNotice, ID: id}) }
 
-// Status records an error status.
-func (s *RecordingSink) Status(text string) { s.record(UIMessage{Kind: UIStatus, Text: text}) }
+// Status records an error status (UIError).
+func (s *RecordingSink) Status(text string) { s.record(UIMessage{Kind: UIError, Text: text}) }
 
 // Info records a plain status.
 func (s *RecordingSink) Info(text string) { s.record(UIMessage{Kind: UIInfo, Text: text}) }
@@ -327,9 +311,8 @@ func (s *RecordingSink) Notices() []string {
 	return out
 }
 
-// LastStatus is the last error status recorded (Error, Status), "" for
-// none.
-func (s *RecordingSink) LastStatus() string { return s.last(UIStatus) }
+// LastError is the last error status recorded (Error), "" for none.
+func (s *RecordingSink) LastError() string { return s.last(UIError) }
 
 // LastInfo is the last plain status recorded (Info), "" for none.
 func (s *RecordingSink) LastInfo() string { return s.last(UIInfo) }

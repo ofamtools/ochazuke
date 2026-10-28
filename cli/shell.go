@@ -303,8 +303,8 @@ func (s *Shell) stdout() io.Writer {
 }
 
 // stderrSink prints what handlers tell the user as lines on Stderr, beside
-// the shell's warning: lines: "notice: TEXT", "error: TEXT" (ctx.Error,
-// ctx.Status) and "status: TEXT" (ctx.Info), UIMessage.Line. A line cannot
+// the shell's warning: lines: "notice: TEXT", "error: TEXT" (ctx.Error)
+// and "status: TEXT" (ctx.Info), UIMessage.Line. A line cannot
 // be taken back, so a cleared notice or an empty status prints nothing.
 type stderrSink struct{ w io.Writer }
 
@@ -313,7 +313,7 @@ func (s stderrSink) Notify(_ ochazuke.NoticeID, text string) {
 }
 func (s stderrSink) ClearNotice(ochazuke.NoticeID) {}
 func (s stderrSink) Status(text string) {
-	s.line(ochazuke.UIMessage{Kind: ochazuke.UIStatus, Text: text})
+	s.line(ochazuke.UIMessage{Kind: ochazuke.UIError, Text: text})
 }
 func (s stderrSink) Info(text string) { s.line(ochazuke.UIMessage{Kind: ochazuke.UIInfo, Text: text}) }
 func (s stderrSink) line(msg ochazuke.UIMessage) {

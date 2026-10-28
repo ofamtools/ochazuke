@@ -29,7 +29,7 @@ func TestUIRingIsBoundedWithoutASink(t *testing.T) {
 func TestUIReplaysTheRingInOrderIntoTheFirstSink(t *testing.T) {
 	r := NewRuntime()
 	a := r.UI().Notify("loading")
-	r.UI().Status("starting")
+	r.UI().Error("starting")
 	b := Ctx{Runtime: r}.Notify("mounted")
 	r.UI().ClearNotice(a)
 	sink := &RecordingSink{}
@@ -38,15 +38,15 @@ func TestUIReplaysTheRingInOrderIntoTheFirstSink(t *testing.T) {
 	}
 	want := []UIMessage{
 		{Kind: UINotice, ID: a, Text: "loading"},
-		{Kind: UIStatus, Text: "starting"},
+		{Kind: UIError, Text: "starting"},
 		{Kind: UINotice, ID: b, Text: "mounted"},
 		{Kind: UIClearNotice, ID: a},
 	}
 	if got := sink.Messages(); !reflect.DeepEqual(got, want) {
 		t.Fatalf("replay\n got %v\nwant %v", got, want)
 	}
-	if got := sink.Notices(); !reflect.DeepEqual(got, []string{"mounted"}) || sink.LastStatus() != "starting" {
-		t.Fatalf("notices %q status %q", got, sink.LastStatus())
+	if got := sink.Notices(); !reflect.DeepEqual(got, []string{"mounted"}) || sink.LastError() != "starting" {
+		t.Fatalf("notices %q status %q", got, sink.LastError())
 	}
 	if r.UI().ring != nil {
 		t.Fatalf("ring kept after the replay: %v", r.UI().ring)
@@ -85,7 +85,8 @@ func TestCtxWithoutRuntimeDiscards(t *testing.T) {
 		t.Fatalf("id %d", id)
 	}
 	c.ClearNotice(1)
-	c.Status("x")
+	c.Error("x")
+	c.Info("x")
 }
 
 // The Model is the sink: setup's messages are replayed into the footer,
@@ -100,7 +101,7 @@ func TestModelIsTheUISink(t *testing.T) {
 		Verb("tell", func(c Ctx) Result {
 			posted = c.Notify("told")
 			c.ClearNotice(early)
-			c.Status("done telling")
+			c.Error("done telling")
 			return Done(nil)
 		}, "Tell the user").
 		Mode("normal").Bind("T", Do("app.tell"))
@@ -140,8 +141,7 @@ func TestModelIsTheUISink(t *testing.T) {
 	}
 }
 
-// The status line has two tones in one slot: ctx.Error (and ctx.Status,
-// its older spelling) is "Error: TEXT" in the error style in place of the
+// The status line has two tones in one slot: ctx.Error is "Error: TEXT" in the error style in place of the
 // hints; ctx.Info is plain text before the hints. Either replaces the
 // other, and the next key clears both.
 func TestStatusLineTones(t *testing.T) {
@@ -150,8 +150,7 @@ func TestStatusLineTones(t *testing.T) {
 	r.Define("app").
 		Verb("info", func(c Ctx) Result { c.Info("copied 3 rows"); return Done(nil) }, "Say something plain").
 		Verb("fail", func(c Ctx) Result { c.Error("could not copy"); return Done(nil) }, "Say an error").
-		Verb("legacy", func(c Ctx) Result { c.Status("old error"); return Done(nil) }, "Say an error the old way").
-		Mode("normal").Bind("I", Do("app.info")).Bind("F", Do("app.fail")).Bind("L", Do("app.legacy"))
+		Mode("normal").Bind("I", Do("app.info")).Bind("F", Do("app.fail"))
 	m := NewModel(r)
 	if err := r.OpenPage("alpha"); err != nil {
 		t.Fatal(err)
@@ -167,9 +166,6 @@ func TestStatusLineTones(t *testing.T) {
 	if f := press('F'); !f.Error || f.Text != "Error: could not copy" || m.Info != "" {
 		t.Fatalf("error: %+v info %q", f, m.Info)
 	}
-	if f := press('L'); !f.Error || f.Text != "Error: old error" {
-		t.Fatalf("status is the error tone: %+v", f)
-	}
 	r.UI().Info("plain again")
 	if f := m.footer(); f.Error || !strings.HasPrefix(f.Text, "plain again · ") || m.Status != "" {
 		t.Fatalf("info replaces the error: %+v", f)
@@ -180,37 +176,39 @@ func TestStatusLineTones(t *testing.T) {
 	}
 }
 
-// statusOnlySink is a UISink from before the neutral tone: no Info.
-type statusOnlySink struct{ got []string }
+// A sink that wraps another forwards each tone to the same tone; the
+// interface has no fallback that turns a plain message into an error.
+type forwardSink struct{ next UISink }
 
-func (s *statusOnlySink) Notify(NoticeID, string) {}
-func (s *statusOnlySink) ClearNotice(NoticeID)    {}
-func (s *statusOnlySink) Status(text string)      { s.got = append(s.got, text) }
+func (s forwardSink) Notify(id NoticeID, text string) { s.next.Notify(id, text) }
+func (s forwardSink) ClearNotice(id NoticeID)         { s.next.ClearNotice(id) }
+func (s forwardSink) Status(text string)              { UIMessage{Kind: UIError, Text: text}.Apply(s.next) }
+func (s forwardSink) Info(text string)                { UIMessage{Kind: UIInfo, Text: text}.Apply(s.next) }
 
-// A sink without Info gets the neutral tone through Status, as before;
-// RecordingSink keeps the tones apart; Line prints each as a host does.
+// Every sink keeps the tones apart, a wrapping one too; Line prints each
+// as a host does.
 func TestStatusInfoReachesEverySink(t *testing.T) {
 	r := NewRuntime()
-	old := &statusOnlySink{}
-	r.UI().Attach(old)
+	inner := &RecordingSink{}
+	r.UI().Attach(forwardSink{inner})
 	r.UI().Info("plain")
 	r.UI().Error("bad")
-	if !reflect.DeepEqual(old.got, []string{"plain", "bad"}) {
-		t.Fatalf("status-only sink got %q", old.got)
+	if want := []UIMessage{{Kind: UIInfo, Text: "plain"}, {Kind: UIError, Text: "bad"}}; !reflect.DeepEqual(inner.Messages(), want) {
+		t.Fatalf("wrapped sink got %v", inner.Messages())
 	}
 	rec := &RecordingSink{}
 	r.UI().Attach(rec)
 	Ctx{Runtime: r}.Info("plain")
 	Ctx{Runtime: r}.Error("bad")
-	if rec.LastInfo() != "plain" || rec.LastStatus() != "bad" {
-		t.Fatalf("recorded info %q status %q", rec.LastInfo(), rec.LastStatus())
+	if rec.LastInfo() != "plain" || rec.LastError() != "bad" {
+		t.Fatalf("recorded info %q status %q", rec.LastInfo(), rec.LastError())
 	}
 	for _, c := range []struct {
 		msg  UIMessage
 		want string
 	}{
 		{UIMessage{Kind: UINotice, ID: 1, Text: "n"}, "notice: n"},
-		{UIMessage{Kind: UIStatus, Text: "e"}, "error: e"},
+		{UIMessage{Kind: UIError, Text: "e"}, "error: e"},
 		{UIMessage{Kind: UIInfo, Text: "i"}, "status: i"},
 		{UIMessage{Kind: UIInfo}, ""},
 		{UIMessage{Kind: UIClearNotice, ID: 1}, ""},
@@ -229,13 +227,13 @@ func TestHandleCallReturnsMessages(t *testing.T) {
 	r.UI().Attach(rec)
 	r.Define("app").Verb("tell", func(c Ctx) Result {
 		c.Notify("hello")
-		c.Status("busy")
+		c.Error("busy")
 		return Done("ok")
 	}, "Tell the user").Verb("quiet", func(Ctx) Result { return Done(nil) }, "Say nothing")
 	reply := make(chan Response, 1)
 	r.HandleCall(CallMsg{Request: Request{Noun: "app", Verb: "tell"}, Reply: reply})
 	res := <-reply
-	want := []UIMessage{{Kind: UINotice, ID: 1, Text: "hello"}, {Kind: UIStatus, Text: "busy"}}
+	want := []UIMessage{{Kind: UINotice, ID: 1, Text: "hello"}, {Kind: UIError, Text: "busy"}}
 	if !reflect.DeepEqual(res.Messages, want) || !reflect.DeepEqual(rec.Messages(), want) || fmt.Sprintf("%s", res.Result) != `"ok"` {
 		t.Fatalf("response %+v sink %v", res, rec.Messages())
 	}
