@@ -1256,19 +1256,23 @@ func registerTimelines(r *Runtime) {
 			return t.state(), nil
 		}})
 	}
-	noun := r.Nouns[timelineNoun]
-	if noun.Guards == nil {
-		noun.Guards = map[string]string{}
+	for verb, guard := range map[string]string{
+		"scroll":    "timeline-scrolls",
+		"fold":      "timeline-sections",
+		"open":      "timeline-card-closed",
+		"close":     "timeline-card-open",
+		"enter":     "timeline-has-card",
+		"leave":     "timeline-on-card",
+		"step":      "timeline-in-body",
+		"yank-step": "timeline-in-body",
+		"fold-step": "timeline-step-open",
+	} {
+		r.SetAvailability(timelineNoun+"."+verb, guard)
 	}
-	noun.Guards["scroll"] = "timeline-scrolls"
-	noun.Guards["fold"] = "timeline-sections"
-	noun.Guards["step"] = "timeline-in-body"
-	noun.Guards["yank-step"] = "timeline-in-body"
-	noun.Guards["fold-step"] = "timeline-step-open"
-	// The rows of the timeline and its body are bindings/timeline.json.
-	// l and h by place (timeline_steps.go): on a closed card l opens it and
-	// h goes to the parent stop; on an open card l steps inside and h
-	// closes it. Inside, the body's own rows answer: h folds the open
-	// section the step is in, else goes back to the card (the guarded row
-	// answers first and falls through).
+	// The rows of the timeline and its body are bindings/timeline.json,
+	// with no conditions: l is open then enter (a closed card opens, an
+	// open one is entered), h is close then leave (an open card closes, a
+	// closed one goes to the parent stop); inside a card the body's rows
+	// answer first, h folding the open section the step is in, else
+	// leaving to the card.
 }

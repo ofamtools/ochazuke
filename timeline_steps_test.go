@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"slices"
 	"strings"
 	"testing"
 )
@@ -216,5 +217,89 @@ func TestTimelineSectionsAreSteps(t *testing.T) {
 	f.press("j")
 	if !strings.Contains(f.frame, "▌▾ 2 answer") || !strings.Contains(f.frame, "▌  and more") {
 		t.Fatalf("a section is one step:\n%s", f.frame)
+	}
+}
+
+// The timeline's keys carry no conditions: its rows have no guards, and
+// what l and h do on a closed card, an open card and inside one comes from
+// the actions' availability. Each state reports exactly the actions that
+// make sense there, and a call naming its card is judged by that card.
+func TestTimelineActionsReportAvailabilityByCardState(t *testing.T) {
+	f := newTimelineFixture(t, paragraphCards(), ParentStop("below"))
+	r := f.r
+	for _, noun := range []string{timelineNoun, "ochazuke.timeline-body"} {
+		for mode, rows := range r.Nouns[noun].Bindings {
+			for _, b := range rows {
+				if b.When != "" {
+					t.Errorf("%s/%s %q runs %s when %s: the timeline's rows take no guard", noun, mode, b.Keys, b.Request.Key(), b.When)
+				}
+			}
+		}
+	}
+	available := func() map[string]bool {
+		out := map[string]bool{}
+		for _, verb := range []string{"open", "close", "enter", "leave", "step", "fold-step", "yank-step"} {
+			out[verb] = r.Available(Request{Noun: timelineNoun, Verb: verb}, r.Focus, r.Mode)
+		}
+		return out
+	}
+	want := func(place string, verbs ...string) {
+		t.Helper()
+		got := available()
+		for verb, on := range got {
+			if on != slices.Contains(verbs, verb) {
+				t.Errorf("%s: %s available %v, want only %v", place, verb, on, verbs)
+			}
+		}
+	}
+	want("closed card", "open", "enter", "leave")
+	f.press("l")
+	want("open card", "close", "enter", "leave")
+	f.press("l")
+	want("inside, on a plain paragraph (z c still closes the card)", "close", "enter", "leave", "step", "yank-step")
+	f.press("h")
+	if r.Focus != "c1" || !f.tl.IsOpen("c1") {
+		t.Fatalf("h inside: focus %s open %v", r.Focus, f.tl.IsOpen("c1"))
+	}
+	// A key on an action with nothing to do here goes on out: z o on an
+	// open card is not handled (the card is open already).
+	if outcome, _ := r.DispatchOutcome(MacroKey{Key: "z"}); outcome != KeyHandled {
+		t.Fatalf("z starts the sequence: %v", outcome)
+	}
+	if outcome, _ := r.DispatchOutcome(MacroKey{Key: "o"}); outcome != KeyUnhandled || !f.tl.IsOpen("c1") {
+		t.Fatalf("z o on an open card: %v, open %v", outcome, f.tl.IsOpen("c1"))
+	}
+	// A call names its card: open c2 (closed) is available from c1.
+	if !r.Available(Request{Noun: timelineNoun, Verb: "open", Args: Arguments{"card": "c2"}}, r.Focus, r.Mode) {
+		t.Fatal("open {card: c2} is available while c2 is closed")
+	}
+	if _, err := r.Execute(Request{Noun: timelineNoun, Verb: "open", Args: Arguments{"card": "c2"}}); err != nil || !f.tl.IsOpen("c2") {
+		t.Fatalf("open {card: c2}: %v", err)
+	}
+	if _, err := r.Execute(Request{Noun: timelineNoun, Verb: "open", Args: Arguments{"card": "nope"}}); err == nil || !strings.Contains(err.Error(), `unknown card "nope"`) {
+		t.Fatalf("an unknown card is the verb's own error: %v", err)
+	}
+	f.press("h")
+	want("closed again (h on the open card closed it)", "open", "enter", "leave")
+}
+
+// An empty timeline has no card to open, enter, close or leave from: l and
+// h are not the timeline's there and go on out, as they did with guards.
+func TestTimelineEmptyLeavesLAndHUnhandled(t *testing.T) {
+	f := newTimelineFixture(t, nil, ParentStop("below"))
+	if err := f.r.SetFocus(f.tl.List().id); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"l", "h"} {
+		focus := f.r.Focus
+		outcome, err := f.r.DispatchOutcome(MacroKey{Key: key})
+		if err != nil || outcome == KeyHandled && f.r.Focus != focus {
+			t.Errorf("%s on an empty timeline: %v %v, focus %s", key, outcome, err, f.r.Focus)
+		}
+		for _, verb := range []string{"open", "close", "enter", "leave"} {
+			if f.r.Available(Request{Noun: timelineNoun, Verb: verb}, f.r.Focus, f.r.Mode) {
+				t.Errorf("%s is available on an empty timeline", verb)
+			}
+		}
 	}
 }

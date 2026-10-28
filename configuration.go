@@ -149,8 +149,11 @@ func (r *Runtime) LoadBindings(data []byte) ([]Binding, error) {
 		return nil, fmt.Errorf("bindings: %w", err)
 	}
 	rows := doc.Rows()
+	// The file is one batch: a key repeated in a table is an alternative
+	// after the first, not a replacement.
+	batch := rowBatch{}
 	for i, row := range rows {
-		if err := r.Bind(row); err != nil {
+		if err := r.bindRows([]Binding{row}, true, batch); err != nil {
 			return nil, fmt.Errorf("bindings[%d] %s: %w", i, row.Keys+row.Pattern, err)
 		}
 	}

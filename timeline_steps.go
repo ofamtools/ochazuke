@@ -576,16 +576,66 @@ func (r *Runtime) timelineCard(focus string) (*Timeline, string) {
 	return t, focus
 }
 
-// registerTimelineSteps defines the guards, verbs and body rows of the
-// steps inside a card.
+// timelineTarget is the timeline and card an action judged at ev would act
+// on, as the verbs resolve them: the "id" argument's timeline, else the
+// focused one; the "card" argument, else the focused card, else the
+// selected card ("" when there is none). A row on the timeline noun runs
+// with the timeline instance as its target, so this is the card t.target
+// resolves in the verb. named reports an argument naming a
+// timeline or card that does not exist: the verb's own error says so, so
+// availability does not refuse it first.
+func (r *Runtime) timelineTarget(ev KeyEvent) (t *Timeline, card string, named bool) {
+	if id := StringArg(ev.Args, "id", ""); id != "" {
+		if t = r.Timeline(id); t == nil {
+			return nil, "", true
+		}
+	} else if t = r.timelineOf(ev.Focus); t == nil {
+		return nil, "", false
+	}
+	if id := StringArg(ev.Args, "card", ""); id != "" {
+		if _, ok := t.byID[id]; !ok {
+			return t, "", true
+		}
+		return t, id, false
+	}
+	if r.rows[ev.Focus] == t.list.id {
+		return t, ev.Focus, false
+	}
+	return t, t.SelectedID(), false
+}
+
+// registerTimelineSteps defines the availability, verbs and body rows of
+// the steps inside a card. What a card can do depends on its state, and the
+// actions say so (Available): a closed card can open, an open card can
+// close or be entered, inside a card the steps move, fold and leave. The
+// rows (bindings/timeline.json) bind l and h to several actions each, and
+// the first available answers.
 func registerTimelineSteps(r *Runtime) {
-	r.DefineGuard("timeline-card-closed", func(r *Runtime, ev KeyEvent) bool {
-		t, id := r.timelineCard(ev.Focus)
-		return t != nil && !t.open[id]
+	cardIs := func(open bool) Guard {
+		return func(r *Runtime, ev KeyEvent) bool {
+			t, id, named := r.timelineTarget(ev)
+			return named || id != "" && t.open[id] == open
+		}
+	}
+	// timeline.open: the card is closed; timeline.close: it is open. As
+	// row guards (the older form, kept for user rows) they read the focused
+	// card the same way.
+	r.DefineGuard("timeline-card-closed", cardIs(false))
+	r.DefineGuard("timeline-card-open", cardIs(true))
+	// timeline.enter: there is a card to enter.
+	r.DefineGuard("timeline-has-card", func(r *Runtime, ev KeyEvent) bool {
+		_, id, named := r.timelineTarget(ev)
+		return named || id != ""
 	})
-	r.DefineGuard("timeline-card-open", func(r *Runtime, ev KeyEvent) bool {
-		t, id := r.timelineCard(ev.Focus)
-		return t != nil && t.open[id]
+	// timeline.leave: the focus is on a card or inside one. leave acts on
+	// the live focus (the body, else the parent stop), so that is what it
+	// judges; a call naming a timeline is not refused here.
+	r.DefineGuard("timeline-on-card", func(r *Runtime, ev KeyEvent) bool {
+		if StringArg(ev.Args, "id", "") != "" {
+			return true
+		}
+		t := r.timelineOf(ev.Focus)
+		return t != nil && (r.Focus == t.bodyID || r.rows[r.Focus] == t.list.id)
 	})
 	r.DefineGuard("timeline-in-body", func(r *Runtime, ev KeyEvent) bool {
 		t := r.timelineOf(ev.Focus)
