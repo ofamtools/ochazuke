@@ -1,0 +1,106 @@
+{
+  "name": "timeline: NoSpill, k on the first tall card scrolls half a window per press to its top, then clamps",
+  "area": "timeline",
+  "page": {
+    "noHeadings": true,
+    "order": [
+      "timeline",
+      "below"
+    ],
+    "lists": [
+      {
+        "id": "below",
+        "rows": 2
+      }
+    ],
+    "timeline": {
+      "noSpill": true,
+      "cards": [
+        {
+          "id": "t1",
+          "header": "Oldest turn.",
+          "body": "top line 01\ntop line 02\ntop line 03\ntop line 04\ntop line 05\ntop line 06\ntop line 07\ntop line 08\ntop line 09\ntop line 10\ntop line 11\ntop line 12\ntop line 13\ntop line 14\ntop line 15\ntop line 16",
+          "open": true
+        },
+        {
+          "id": "t2",
+          "header": "Next.",
+          "body": "x"
+        }
+      ],
+      "height": 10
+    }
+  },
+  "script": [
+    "J",
+    "J",
+    "J",
+    "J",
+    "J",
+    "J",
+    "J",
+    "J",
+    "J",
+    "k",
+    "k",
+    "k",
+    "k"
+  ],
+  "expect": [
+    {
+      "after": 9,
+      "focus": "t1",
+      "contains": [
+        "top line 07",
+        "top line 15"
+      ],
+      "lacks": [
+        "top line 06",
+        "Oldest"
+      ]
+    },
+    {
+      "after": 10,
+      "focus": "t1",
+      "contains": [
+        "top line 03",
+        "top line 11"
+      ],
+      "lacks": [
+        "top line 02",
+        "Oldest"
+      ]
+    },
+    {
+      "after": 11,
+      "focus": "t1",
+      "contains": [
+        "┃ ▾ Oldest turn.",
+        "top line 07"
+      ],
+      "lacks": [
+        "┏"
+      ]
+    },
+    {
+      "after": 12,
+      "focus": "t1",
+      "contains": [
+        "┏",
+        "┃ ▾ Oldest turn.",
+        "top line 06"
+      ]
+    },
+    {
+      "focus": "t1",
+      "contains": [
+        "┏",
+        "┃ ▾ Oldest turn.",
+        "top line 06"
+      ],
+      "lacks": [
+        "top line 07"
+      ]
+    }
+  ]
+}

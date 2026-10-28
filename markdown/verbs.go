@@ -43,6 +43,21 @@ func register(r *ochazuke.Runtime) {
 			return d.Snapshot(), err
 		}
 	}
+	// paced is on for } and {, the motions between neighbouring blocks:
+	// the half-page rule (halfPage, UX-RULES R3.14) caps how far one press
+	// scrolls. ]] [[ and ] [ with a kind are searches (jumps, as G is):
+	// a cursor held back on a row of another block would change what
+	// the next one searches for.
+	paced := func(run func(*Doc, ochazuke.Arguments) error) ochazuke.Handler {
+		return on(func(d *Doc, a ochazuke.Arguments) error {
+			from := d.cursorLine()
+			if err := run(d, a); err != nil {
+				return err
+			}
+			d.halfPage(from)
+			return nil
+		})
+	}
 	plain := func(run func(*Doc) error) ochazuke.Handler {
 		return on(func(d *Doc, _ ochazuke.Arguments) error { return run(d) })
 	}
@@ -140,8 +155,8 @@ func register(r *ochazuke.Runtime) {
 		Verb("undo", plain((*Doc).Undo), "Undo the last edit (a toggle, a typed block, a line deleted or pasted); the undo is written like any edit").
 		Verb("redo", plain((*Doc).Redo), "Redo the last undone edit").
 		Verb("reload", plain((*Doc).Reload), "Read the Markdown source again").
-		Verb("next-block", on(func(d *Doc, a ochazuke.Arguments) error { return d.MoveComponent(steps(a)) }), "Move the cursor to the next component: a heading, a paragraph, a whole list, a table, a code block, a quote, an item's notes").Motion().
-		Verb("previous-block", on(func(d *Doc, a ochazuke.Arguments) error { return d.MoveComponent(-steps(a)) }), "Move the cursor to the start of the previous component").Motion().
+		Verb("next-block", paced(func(d *Doc, a ochazuke.Arguments) error { return d.MoveComponent(steps(a)) }), "Move the cursor to the next component: a heading, a paragraph, a whole list, a table, a code block, a quote, an item's notes").Motion().
+		Verb("previous-block", paced(func(d *Doc, a ochazuke.Arguments) error { return d.MoveComponent(-steps(a)) }), "Move the cursor to the start of the previous component").Motion().
 		Verb("next-same", move(1, same, true, sameWhat), "Move the cursor to the next block of the same kind as the one it is on").Motion().
 		Verb("previous-same", move(-1, same, true, sameWhat), "Move the cursor to the previous block of the same kind as the one it is on").Motion().
 		Verb("next-kind", byKind(1), "Move the cursor to the next block of a kind: h heading, t table, x checklist item, l list item, c code, q quote, n note, p paragraph").Motion().

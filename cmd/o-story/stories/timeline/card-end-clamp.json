@@ -1,0 +1,110 @@
+{
+  "name": "timeline: NoSpill, j on the last tall card scrolls half a window per press to the card's end, then clamps with no focus change",
+  "area": "timeline",
+  "page": {
+    "noHeadings": true,
+    "order": [
+      "timeline",
+      "below"
+    ],
+    "lists": [
+      {
+        "id": "below",
+        "rows": 2
+      }
+    ],
+    "timeline": {
+      "noSpill": true,
+      "cards": [
+        {
+          "id": "t1",
+          "header": "First.",
+          "body": "x"
+        },
+        {
+          "id": "t2",
+          "header": "Newest turn.",
+          "body": "end line 01\nend line 02\nend line 03\nend line 04\nend line 05\nend line 06\nend line 07\nend line 08\nend line 09\nend line 10\nend line 11\nend line 12\nend line 13\nend line 14\nend line 15\nend line 16",
+          "open": true
+        }
+      ],
+      "height": 10
+    }
+  },
+  "script": [
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "t2",
+      "contains": [
+        "┃ ▾ Newest turn.",
+        "end line 06"
+      ],
+      "lacks": [
+        "end line 07"
+      ]
+    },
+    {
+      "after": 2,
+      "focus": "t2",
+      "contains": [
+        "end line 02",
+        "end line 10"
+      ],
+      "lacks": [
+        "end line 01",
+        "end line 11"
+      ]
+    },
+    {
+      "after": 3,
+      "focus": "t2",
+      "contains": [
+        "end line 06",
+        "end line 14"
+      ],
+      "lacks": [
+        "end line 05",
+        "end line 15"
+      ]
+    },
+    {
+      "after": 4,
+      "focus": "t2",
+      "contains": [
+        "end line 09",
+        "end line 16",
+        "┗"
+      ],
+      "lacks": [
+        "end line 08"
+      ]
+    },
+    {
+      "after": 5,
+      "focus": "t2",
+      "contains": [
+        "end line 16",
+        "┗"
+      ]
+    },
+    {
+      "focus": "t2",
+      "contains": [
+        "end line 09",
+        "end line 16",
+        "┗"
+      ],
+      "lacks": [
+        "end line 08"
+      ]
+    }
+  ]
+}

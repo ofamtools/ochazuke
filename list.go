@@ -71,6 +71,10 @@ type List struct {
 	anchor      string          // the row V started on
 	base        map[string]bool // the marks before V
 	part        string          // an instance under the list that holds its focus as a row does (a timeline's body, timeline.go)
+
+	// motion is a component's own j/k on the rows (a timeline's cards
+	// scroll by the half-page rule, R3.14); nil moves the list's way.
+	motion func(delta, count int)
 }
 
 // NewList is AddList for callers that hold the runtime as a value.
@@ -639,6 +643,10 @@ func registerLists(r *Runtime) {
 		{"focus", "Focus a list and its selected row", map[string]Parameter{"id": {Type: "string", Required: true, Noun: "ochazuke.list", Free: true}}, func(l *List, _ Context, _ Arguments) (any, error) { return l.state(), l.Focus() }},
 		{"move", "Move the selection; past the edge, on to the next stop on the page", map[string]Parameter{"id": {Type: "string"}, "delta": {Type: "integer", Required: true}, "steps": {Type: "integer", Description: "Repeat count (3j); stops at the list's edge, and spills as one move only from the edge"}, "clamp": {Type: "boolean", Description: "Stop at the list's edges instead of spilling (the filter line's moves)"}}, func(l *List, _ Context, a Arguments) (any, error) {
 			delta, steps := IntArg(a, "delta", 0), max(1, IntArg(a, "steps", 1))
+			if clamp, _ := a["clamp"].(bool); !clamp && l.motion != nil && !l.visual {
+				l.motion(delta, steps)
+				return l.state(), nil
+			}
 			if steps > 1 && l.selected >= 0 {
 				if to := min(max(l.selected+delta*steps, 0), len(l.items)-1); to != l.selected {
 					l.Move(to - l.selected)

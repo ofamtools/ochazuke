@@ -1,5 +1,5 @@
 {
-  "name": "timeline: a step taller than the window moves half a window per j before the next step, and k comes back the same way",
+  "name": "timeline: a step taller than the window is read half a window per j (exactly 4 lines in a 9-line window, R3.14), the next step taken once it shows, and k comes back the same way",
   "area": "timeline",
   "page": {
     "noHeadings": true,
@@ -40,42 +40,54 @@
     {
       "after": 2,
       "contains": [
-        "▌tall line 01"
+        "▌tall line 01",
+        "▌tall line 08"
+      ],
+      "lacks": [
+        "Intro."
       ]
     },
     {
       "after": 3,
       "contains": [
-        "▌tall line 05"
+        "▌tall line 04",
+        "▌tall line 12"
       ],
       "lacks": [
-        "tall line 01"
+        "tall line 03",
+        "tall line 13"
       ]
     },
     {
       "after": 4,
       "contains": [
-        "▌tall line 09",
-        "▌tall line 17"
+        "▌tall line 08",
+        "▌tall line 16"
       ],
       "lacks": [
-        "tall line 08",
-        "tall line 18"
+        "tall line 07",
+        "tall line 17"
       ]
     },
     {
       "after": 5,
       "contains": [
+        "▌tall line 12",
         "▌tall line 20"
       ],
       "lacks": [
-        "▌After"
+        "tall line 11",
+        "After"
       ]
     },
     {
       "after": 6,
       "contains": [
-        "▌After the tall one."
+        "▌After the tall one.",
+        "tall line 14"
+      ],
+      "lacks": [
+        "tall line 13"
       ]
     },
     {

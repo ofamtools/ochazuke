@@ -102,7 +102,10 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R3.5** Spill never wraps at the page's first or last stop. Story:
   `motions/no-wrap.json`.
 - **R3.6** A `NoSpill` list and any list inside a modal clamp instead of
-  spilling. Story: `motions/nospill.json`; needed for the modal case.
+  spilling. A card timeline first scrolls to its end (or top) by the
+  half-page rule, then clamps or spills (R13.2). Story:
+  `motions/nospill.json`, `timeline/card-end-clamp.json`; needed for the
+  modal case.
 - **R3.7** Spilling into an empty list lands on the list itself. Story:
   `motions/empty-list.json`.
 - **R3.8** `}`/`{`/`tab`/`shift+tab` jump stops, `)`/`(` jump regions, on the
@@ -140,6 +143,24 @@ tiers above them. When the two disagree, fix one in the same commit.
   stopped drawing. Story: `focus/hidden-stop-moves-focus.json`,
   `focus/hidden-input-leaves-insert.json`,
   `focus/hidden-timeline-card.json`; tests `TestFocusHidden*`.
+- **R3.14** The half-page rule: one motion key press never scrolls a view
+  by more than half its height. A motion (`j`/`k`, a step, `}`/`{` between
+  neighbouring items) whose target would scroll the view further scrolls
+  half the view toward it instead, and the cursor moves only once the
+  target is in view; until then it stays where it is, or, a line cursor
+  that would leave the view, on the row nearest the target inside it.
+  Explicit page and line keys keep their sizes (`ctrl+d`/`ctrl+u` half a
+  page, `pgdown`/`pgup` and `ctrl+f`/`ctrl+b` a page, `J`/`K` a line), and
+  `G`/`gg`, a count's `5G` and the searches (`]]`, `] h`, `/`) stay jumps.
+  A count repeats the press. One helper serves every component:
+  `MotionScroll(want, page)` is the scroll one press makes and
+  `SpanInView` whether the target shows. Where it applies: card timelines,
+  card to card and step to step and to a timeline's end (R13.2);
+  `markdown.Doc`'s `}`/`{`. Single-line rows (lists, tables without
+  wrapped cells, trees, the help tree) move one line per press and need
+  nothing. Stories: `timeline/card-half-page.json`,
+  `timeline/step-tall.json`, `timeline/card-end-clamp.json`,
+  `markdown/motion-long-block.json`; test `TestTimelineHalfPageRule`.
 
 ### R4. Modals
 
@@ -565,24 +586,35 @@ tiers above them. When the two disagree, fix one in the same commit.
   |---|---|---|
   | closed card (`timeline-card-closed`) | `timeline.open` | `timeline.leave`: the parent stop (`ParentStop`), else stays |
   | open card (`timeline-card-open`) | `timeline.enter`: onto its first step | `timeline.close` |
+  | inside, in an open section (`timeline-step-open`) | `timeline.enter`: nothing (the section is open) | `timeline.fold-step`: folds the section the step is in (a tool call, thinking, an answer; any of its paragraphs), the cursor on its title |
   | inside (`timeline-in-body`) | `timeline.enter`: opens the step's folded section, else nothing | `timeline.leave`: back to the card, still open (`esc` too) |
 
   `l` is one key with no sequence and no timing; `enter`/`space` still
   toggle (closing the card from inside puts the focus on the card); `?`
   help and the footer show only the row that answers at the place.
+  So `h` inside folds an open section first and leaves on the next `h`.
   Stories: `timeline/step-in.json`, `timeline/step-out.json`,
-  `timeline/step-enter-toggles.json`; test `TestTimelineLAndHByPlace`.
+  `timeline/step-enter-toggles.json`, `timeline/step-fold.json`; tests
+  `TestTimelineLAndHByPlace`, `TestTimelineHFoldsAnOpenStep`.
 - **R13.2** Inside, `j`/`k` move by step (`timeline.step {delta}`, counts
   work): a card's `Steps`, else its body's paragraphs (blank-line
   separated, a fenced code block one paragraph) and then each section as
-  one step. A step taller than the window moves half a window per key
-  before the next step (and `k` into a tall step shows its end first).
-  Past the last step `j` spills to the next card, open or closed (past the
-  last card, to the next stop as R3.4; at the page's last stop or with
-  `NoSpill` it stays); past the first step `k` goes back to the card. A
-  count stops at the edge; only a move from the edge spills. Stories:
-  `timeline/step-spill.json`, `timeline/step-back.json`,
-  `timeline/step-tall.json`, `timeline/step-explicit.json`.
+  one step. Steps and cards move by the half-page rule (R3.14): a step or
+  card taller than the window is read half a window per key, the next one
+  taken once it shows (`j` into a tall one shows its top, `k` its end).
+  Past the last step `j` goes to the next card, open or closed. On the
+  last card, from the card or its last step, `j` first scrolls (half a
+  window at most per key) until the card's end shows, then spills to the
+  next stop as R3.4, or, at the page's last stop or with `NoSpill`,
+  stays: the focus never moves (mtm's Turns timeline is `NoSpill`). `k` on
+  the first card scrolls to its top the same way; past the first step `k`
+  goes back to the card. A count repeats the key, stops at the edge, and
+  only a move from the edge spills. Stories: `timeline/step-spill.json`,
+  `timeline/step-back.json`, `timeline/step-tall.json`,
+  `timeline/step-explicit.json`, `timeline/card-half-page.json`,
+  `timeline/card-end-clamp.json`, `timeline/step-end-clamp.json`,
+  `timeline/card-top-clamp.json`, `timeline/spill-after-end.json`; tests
+  `TestTimelineHalfPageRule`, `TestTimelineNoSpillScrollsToTheEnd`.
 - **R13.3** The current step is marked in the left padding of each of its
   lines (`▌`, the accent, bold), never by reversed text; the window
   scrolls to keep the step (or its shown half) on screen, and the page

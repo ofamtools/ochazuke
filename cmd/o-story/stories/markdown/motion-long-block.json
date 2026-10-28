@@ -1,0 +1,92 @@
+{
+  "name": "markdown: } through a long code block scrolls half the window per press (5 lines of 11, R3.14), the cursor held in the window until the next block shows; { pages back up the same way and lands on the block above once it shows",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "# Start\n\n```\ncode line 01\ncode line 02\ncode line 03\ncode line 04\ncode line 05\ncode line 06\ncode line 07\ncode line 08\ncode line 09\ncode line 10\ncode line 11\ncode line 12\ncode line 13\ncode line 14\ncode line 15\ncode line 16\ncode line 17\ncode line 18\ncode line 19\ncode line 20\ncode line 21\ncode line 22\ncode line 23\ncode line 24\ncode line 25\ncode line 26\ncode line 27\ncode line 28\ncode line 29\ncode line 30\n```\n\n# After\n\nThe end.\n",
+      "author": "owner",
+      "today": "2026-10-27",
+      "height": 12
+    }
+  },
+  "script": [
+    "}",
+    "}",
+    "}",
+    "}",
+    "}",
+    "}",
+    "{",
+    "{",
+    "{",
+    "{",
+    "{",
+    "{"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "highlightedText": "code line 01",
+      "contains": [
+        "1–11 / 36"
+      ]
+    },
+    {
+      "after": 2,
+      "highlightedText": "code line 12",
+      "contains": [
+        "6–16 / 36"
+      ]
+    },
+    {
+      "after": 3,
+      "highlightedText": "code line 17",
+      "contains": [
+        "11–21 / 36"
+      ]
+    },
+    {
+      "after": 5,
+      "highlightedText": "code line 27",
+      "contains": [
+        "21–31 / 36"
+      ]
+    },
+    {
+      "after": 6,
+      "highlightedText": "# After",
+      "contains": [
+        "26–36 / 36"
+      ]
+    },
+    {
+      "after": 7,
+      "highlightedText": "code line 21",
+      "contains": [
+        "21–31 / 36"
+      ]
+    },
+    {
+      "after": 8,
+      "highlightedText": "code line 16",
+      "contains": [
+        "16–26 / 36"
+      ]
+    },
+    {
+      "after": 11,
+      "highlightedText": "# Start",
+      "contains": [
+        "1–11 / 36"
+      ]
+    },
+    {
+      "highlightedText": "# Start",
+      "contains": [
+        "1–11 / 36"
+      ]
+    }
+  ]
+}

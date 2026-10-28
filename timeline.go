@@ -144,13 +144,11 @@ type Timeline struct {
 
 	// Inside a card (timeline_steps.go): bodyID is the body instance
 	// (id+"/body", under the list) that holds the focus there; in is the
-	// card it walks, step its current step, off the lines of a step taller
-	// than the window scrolled past; parentStop is where h on a closed
+	// card it walks, step its current step; parentStop is where h on a closed
 	// card goes (ParentStop).
 	bodyID     string
 	in         string
 	step       int
-	off        int
 	seek       bool // the next frame shows the current step (it moved)
 	parentStop string
 }
@@ -214,6 +212,7 @@ func (r *Runtime) AddTimeline(id string, cards []Card, opts ...InstanceOption) (
 	r.Instance(t.bodyID, Parent(list.id), Kind(TimelineBodyNoun))
 	r.Instances[t.bodyID].Label = "body"
 	list.part = t.bodyID
+	list.motion = t.cardMotion
 	// G on the list instance, above the list noun's list.goto: it also
 	// brings the last card's end into view and resumes following.
 	for _, mode := range []string{"normal", "count_pending"} {
@@ -818,7 +817,7 @@ func (t *Timeline) render(avail int) (rows []string, first, last int, end bool) 
 		take := min(len(block), avail-len(rows))
 		if i == sel {
 			t.focusLine, t.focusRows = len(rows), take
-			if lo, hi, ok := t.stepShown(i, avail); ok {
+			if lo, hi, ok := t.stepShown(i); ok {
 				// Inside the card the page keeps the current step on screen.
 				cut := 0
 				if i == ti {
@@ -947,9 +946,35 @@ func (t *Timeline) scroll(lines int) {
 	if n == 0 || t.width <= 0 || t.avail <= 0 {
 		return
 	}
+	t.shiftTop(lines)
+	// The cards now on screen: the selection stays among them.
+	at := t.top
+	first := t.indexOf(at.id)
+	last, used := first, -at.line
+	for j := first; j < n && used < t.avail; j++ {
+		used += t.height(j)
+		last = j
+	}
+	if sel := t.list.selected; sel < first {
+		t.list.Move(first - sel)
+	} else if sel > last {
+		t.list.Move(last - sel)
+	}
+	t.lastSel = t.SelectedID()
+}
+
+// shiftTop moves the window's first line by lines (down when positive),
+// clamped to the first card's top and to the window that ends on the last
+// card's end, and reports how far it moved. Moving up stops following.
+func (t *Timeline) shiftTop(lines int) int {
+	n := len(t.list.items)
+	if n == 0 || lines == 0 {
+		return 0
+	}
 	if lines < 0 {
 		t.follow = false
 	}
+	old := t.top
 	i := max(0, t.indexOf(t.top.id))
 	line := t.top.line + lines
 	for line < 0 && i > 0 {
@@ -966,19 +991,97 @@ func (t *Timeline) scroll(lines int) {
 		at = end
 	}
 	t.top = at
-	// The cards now on screen: the selection stays among them.
-	first := t.indexOf(at.id)
-	last, used := first, -at.line
-	for j := first; j < n && used < t.avail; j++ {
-		used += t.height(j)
-		last = j
+	if t.indexOf(old.id) < 0 {
+		return lines
 	}
-	if sel := t.list.selected; sel < first {
-		t.list.Move(first - sel)
-	} else if sel > last {
-		t.list.Move(last - sel)
+	return -t.relOf(old)
+}
+
+// relStart is shown card i's first line counted from the window's first
+// line (negative above it); it measures only the cards between them.
+func (t *Timeline) relStart(i int) int {
+	ti := max(0, t.indexOf(t.top.id))
+	s := -t.top.line
+	for j := ti; j < i; j++ {
+		s += t.height(j)
 	}
-	t.lastSel = t.SelectedID()
+	for j := ti - 1; j >= i; j-- {
+		s -= t.height(j)
+	}
+	return s
+}
+
+// relOf is anchor a's line counted from the window's first line.
+func (t *Timeline) relOf(a timelineAnchor) int { return t.relStart(t.indexOf(a.id)) + a.line }
+
+// motionShift scrolls the window toward want lines by the half-page rule
+// (MotionScroll) and reports how far it moved.
+func (t *Timeline) motionShift(want int) int {
+	return t.shiftTop(MotionScroll(want, t.avail))
+}
+
+// drawn reports whether the timeline has a last frame to move in.
+func (t *Timeline) drawn() bool {
+	return t.width > 0 && t.avail > 0 && t.indexOf(t.top.id) >= 0
+}
+
+// cardMotion is j/k on the cards (list.move on the card list), count
+// times: each press goes to the neighbouring card by the half-page rule
+// (R3.14): when showing it would scroll more than half the window, the
+// window scrolls half and the selection moves once the card shows. Past
+// the last card the window first scrolls to the last card's end (past
+// the first, to the first card's top), then the list spills (R3.4) or, a
+// NoSpill timeline, stays. A count stops at the edge; only a move from
+// the edge spills.
+func (t *Timeline) cardMotion(delta, count int) {
+	for k := 0; k < max(1, count); k++ {
+		if !t.cardOnce(delta, k == 0) {
+			return
+		}
+	}
+}
+
+func (t *Timeline) cardOnce(delta int, edge bool) bool {
+	l := t.list
+	n, sel := len(l.items), l.selected
+	if sel < 0 || delta == 0 {
+		return false
+	}
+	next := sel + delta
+	if !t.drawn() {
+		if next >= 0 && next < n {
+			l.Move(delta)
+			return true
+		}
+		return edge && l.spill(delta)
+	}
+	if next < 0 || next >= n {
+		if want := t.edgeWant(delta); want != 0 {
+			t.motionShift(want)
+			return true
+		}
+		return edge && l.spill(delta)
+	}
+	t.reveal, t.seek = false, false // the motion places the window itself
+	a := t.relStart(next)
+	b := a + t.height(next) - 1
+	moved := t.motionShift(t.relOf(t.revealed(next, t.avail)))
+	if SpanInView(a-moved, b-moved, t.avail) {
+		l.Move(delta)
+		t.lastSel = t.SelectedID() // the window stays where the motion put it
+	}
+	return true
+}
+
+// edgeWant is the scroll that shows the timeline's end (delta > 0: the
+// last card's last line on the window's last line) or its start; 0 when
+// it shows.
+func (t *Timeline) edgeWant(delta int) int {
+	n := len(t.list.items)
+	if delta > 0 {
+		return max(0, t.relStart(n-1)+t.height(n-1)-t.avail)
+	}
+	return min(0, t.relStart(0))
 }
 
 // target is the card a verb acts on: the id argument, else the focused
@@ -1117,6 +1220,7 @@ func registerTimelines(r *Runtime) {
 	noun.Guards["fold"] = "timeline-sections"
 	noun.Guards["step"] = "timeline-in-body"
 	noun.Guards["yank-step"] = "timeline-in-body"
+	noun.Guards["fold-step"] = "timeline-step-open"
 	scroll := func(lines int) Binding {
 		return Do(timelineNoun+".scroll", Arguments{"lines": lines}).FromPayload("count", SourceCount)
 	}

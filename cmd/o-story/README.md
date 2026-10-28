@@ -418,7 +418,7 @@ Conformance:
 | normal | settings | `settings.close` `settings.edit` `settings.section` `settings.undo` |
 | normal | story-card | `story-card.timeline-append` `story-card.timeline-stream` |
 | normal | surface | `surface.scroll` |
-| normal | timeline | `timeline.close` `timeline.close-all` `timeline.enter` `timeline.fold` `timeline.goto` `timeline.leave` `timeline.open` `timeline.open-all` `timeline.step` `timeline.toggle` `timeline.yank-step` |
+| normal | timeline | `timeline.close` `timeline.close-all` `timeline.enter` `timeline.fold` `timeline.fold-step` `timeline.goto` `timeline.leave` `timeline.open` `timeline.open-all` `timeline.scroll` `timeline.step` `timeline.toggle` `timeline.yank-step` |
 | terminal | bindings | `bindings.help` |
 | terminal | demo | `demo.hints` |
 | terminal | mode | `mode.enter` |

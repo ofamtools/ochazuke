@@ -493,3 +493,148 @@ func BenchmarkTimeline(b *testing.B) {
 		})
 	}
 }
+
+// absTop is the window's first line counted from the first card's top.
+func (t *Timeline) absTop() int {
+	s := 0
+	for i := range t.list.items {
+		if t.list.items[i].ID == t.top.id {
+			return s + t.top.line
+		}
+		s += t.height(i)
+	}
+	return -1
+}
+
+func numbered(tag string, n int) string {
+	lines := make([]string, n)
+	for i := range lines {
+		lines[i] = fmt.Sprintf("%s line %02d", tag, i+1)
+	}
+	return strings.Join(lines, "\n")
+}
+
+// TestTimelineHalfPageRule: no j or k, card to card or step to step, ever
+// scrolls the window by more than half its height (R3.14), and the
+// selection moves only once its target shows. Before the rule a 15-line
+// window jumped 34 and 36 lines card to card and 15 and 16 step to step.
+func TestTimelineHalfPageRule(t *testing.T) {
+	var cards []Card
+	for i, n := range []int{5, 30, 12, 40, 3} {
+		id := fmt.Sprintf("c%d", i+1)
+		cards = append(cards, Card{ID: id, Noun: "turn", Header: "prompt " + id, Open: true, Body: TextBody(numbered(id, n))})
+	}
+	f := newTimelineFixture(t, cards, NoSpill())
+	half := f.tl.avail / 2
+	check := func(key string, presses int) {
+		t.Helper()
+		prev := f.tl.absTop()
+		for k := 0; k < presses; k++ {
+			sel := f.tl.SelectedID()
+			f.press(key)
+			now := f.tl.absTop()
+			if d := now - prev; d > half || -d > half {
+				t.Fatalf("%s press %d scrolled %d lines in a %d-line window", key, k+1, d, f.tl.avail)
+			}
+			if f.tl.SelectedID() != sel && !strings.Contains(f.frame, "prompt "+f.tl.SelectedID()) && !strings.Contains(f.frame, f.tl.SelectedID()+" line") {
+				t.Fatalf("%s moved the selection to %s before it showed:\n%s", key, f.tl.SelectedID(), f.frame)
+			}
+			prev = now
+		}
+	}
+	check("j", 30)
+	if f.tl.SelectedID() != "c5" || f.r.Focus != "c5" || !strings.Contains(f.frame, "c5 line 03") {
+		t.Fatalf("j to the end: selected %s focus %s\n%s", f.tl.SelectedID(), f.r.Focus, f.frame)
+	}
+	check("k", 40)
+	if f.tl.SelectedID() != "c1" || f.tl.absTop() != 0 {
+		t.Fatalf("k to the start: selected %s top %d", f.tl.SelectedID(), f.tl.absTop())
+	}
+	// Steps: a tall step is read half a window per j.
+	steps := []CardStep{{Header: true}, {ID: "a", Title: "a", Body: TextBody(numbered("a", 15))}, {ID: "b", Title: "b", Body: TextBody(numbered("b", 30))}, {ID: "c", Body: TextBody(numbered("c", 12))}}
+	f = newTimelineFixture(t, []Card{{ID: "s1", Noun: "turn", Header: "steps", Open: true, Steps: steps}}, NoSpill())
+	f.press("l")
+	check("j", 20)
+	if _, step, ok := f.tl.Step(); !ok || step != 3 || !strings.Contains(f.frame, "c line 12") {
+		t.Fatalf("j through the steps ended on step %d (inside %v)\n%s", step, ok, f.frame)
+	}
+	check("k", 20)
+}
+
+// TestTimelineNoSpillScrollsToTheEnd: j on the last card, or on its last
+// step, of a NoSpill timeline shows the card's end and then stays: the
+// focus never leaves for the next stop; k on the first card shows its top.
+func TestTimelineNoSpillScrollsToTheEnd(t *testing.T) {
+	cards := []Card{{ID: "c1", Noun: "turn", Header: "old", Body: TextBody("x")}, {ID: "c2", Noun: "turn", Header: "newest", Open: true, Body: TextBody(numbered("end", 40))}}
+	f := newTimelineFixture(t, cards, NoSpill())
+	f.press("j")
+	if f.r.Focus != "c2" || strings.Contains(f.frame, "end line 40") {
+		t.Fatalf("j onto the newest: focus %s\n%s", f.r.Focus, f.frame)
+	}
+	for k := 0; k < 12; k++ {
+		f.press("j")
+	}
+	if f.r.Focus != "c2" || !strings.Contains(f.frame, "end line 40") || !strings.Contains(f.frame, "┗") {
+		t.Fatalf("j at the end: focus %s\n%s", f.r.Focus, f.frame)
+	}
+	f.press("g", "g")
+	for k := 0; k < 12; k++ {
+		f.press("k")
+	}
+	if f.r.Focus != "c1" || f.tl.absTop() != 0 {
+		t.Fatalf("k at the top: focus %s top %d", f.r.Focus, f.tl.absTop())
+	}
+	// Inside the last card's last step.
+	f.press("G", "l")
+	for k := 0; k < 12; k++ {
+		f.press("j")
+	}
+	if f.r.Focus != f.tl.BodyID() || !strings.Contains(f.frame, "end line 40") || !strings.Contains(f.frame, "┗") {
+		t.Fatalf("j on the last step: focus %s\n%s", f.r.Focus, f.frame)
+	}
+	// A spilling timeline shows the end first too, then spills.
+	f = newTimelineFixture(t, cards)
+	f.press("j", "j")
+	if f.r.Focus != "c2" {
+		t.Fatalf("a spilling timeline left before the end: focus %s", f.r.Focus)
+	}
+	for k := 0; k < 12 && f.r.Focus == "c2"; k++ {
+		if f.press("j"); f.r.Focus != "c2" && !strings.Contains(f.frame, "end line 40") {
+			t.Fatalf("spilled before the end showed:\n%s", f.frame)
+		}
+	}
+	if f.r.Focus != "b1" {
+		t.Fatalf("j past the end focused %s, want b1", f.r.Focus)
+	}
+}
+
+// TestTimelineHFoldsAnOpenStep: h inside a card folds the open section the
+// step is in (a paragraph of it too) and keeps the cursor on its title; h
+// on a folded or plain step goes back to the card.
+func TestTimelineHFoldsAnOpenStep(t *testing.T) {
+	steps := []CardStep{{Header: true}, {ID: "tool", Title: "tool Bash", Body: TextBody("ok")}, {ID: "answer", Title: "answer", Paragraphs: true, Body: TextBody("one.\n\ntwo.")}}
+	f := newTimelineFixture(t, []Card{{ID: "c1", Noun: "turn", Header: "q", Open: true, Steps: steps}})
+	f.press("l", "j", "j", "j") // the answer's second paragraph
+	if _, step, _ := f.tl.Step(); step != 3 {
+		t.Fatalf("on step %d, want the second paragraph (3)", step)
+	}
+	f.press("h")
+	if !f.tl.Folded("c1", "answer") || f.r.Focus != f.tl.BodyID() {
+		t.Fatalf("h folded %v focus %s", f.tl.Folded("c1", "answer"), f.r.Focus)
+	}
+	if _, step, _ := f.tl.Step(); step != 2 {
+		t.Fatalf("after the fold the cursor is on step %d, want the answer's title (2)", step)
+	}
+	f.press("l")
+	if f.tl.Folded("c1", "answer") {
+		t.Fatal("l did not unfold the answer")
+	}
+	f.press("k", "h") // the tool step folds too
+	if !f.tl.Folded("c1", "tool") || f.r.Focus != f.tl.BodyID() {
+		t.Fatalf("h on the tool: folded %v focus %s", f.tl.Folded("c1", "tool"), f.r.Focus)
+	}
+	f.press("h")
+	if f.r.Focus != "c1" || !f.tl.IsOpen("c1") {
+		t.Fatalf("h on a folded step: focus %s open %v", f.r.Focus, f.tl.IsOpen("c1"))
+	}
+}

@@ -142,8 +142,10 @@ type Doc struct {
 	opts  options // how View renders (New's options)
 	undo  []step
 	redo  []step
-	// offset is the first line View shows when it windows the document.
-	offset int
+	// offset is the first line View shows when it windows the document,
+	// visible how many lines the last View showed then (0 unwindowed).
+	offset  int
+	visible int
 	// width and style are what the rows were laid out for: the last
 	// View's, 80 and dark before the first.
 	width int
@@ -714,11 +716,13 @@ func (d *Doc) Block(width, height int, a ochazuke.Appearance) ochazuke.Block {
 			}
 		}
 	}
+	d.visible = 0
 	if height > 0 && len(lines) > height {
 		visible := max(1, height-1)
 		if height == 1 {
 			visible = 1
 		}
+		d.visible = visible
 		d.offset = scrollToShow(d.offset, focus, focus+max(1, focusHeight), visible, len(lines), d.scrolloff())
 		end := min(len(lines), d.offset+visible)
 		window := lines[d.offset:end]
@@ -770,6 +774,67 @@ func (d *Doc) scrolloff() int {
 		}
 	}
 	return 2
+}
+
+// cursorLine is the drawn line the cursor is on, or -1.
+func (d *Doc) cursorLine() int {
+	item, ok := d.list.Selected()
+	if !ok {
+		return -1
+	}
+	if line, ok := item.Data.(int); ok {
+		return line
+	}
+	return -1
+}
+
+// halfPage applies the half-page rule (ochazuke.MotionScroll, UX-RULES
+// R3.14) to a block motion that moved the cursor from line from: when
+// showing the new line would scroll the window more than half its height,
+// the window scrolls half toward it and the cursor stays in the window,
+// on the row nearest the target, until the target shows (a long code
+// block is read half a window per }).
+func (d *Doc) halfPage(from int) {
+	to := d.cursorLine()
+	if d.visible <= 0 || d.edit != nil || from < 0 || to < 0 || to == from {
+		return
+	}
+	total, margin := len(d.lay.lines), d.scrolloff()
+	want := scrollToShow(d.offset, to, to+1, d.visible, total, margin) - d.offset
+	scroll := ochazuke.MotionScroll(want, d.visible)
+	if scroll == want {
+		return
+	}
+	off := min(max(0, d.offset+scroll), max(0, total-d.visible))
+	lo, hi := off+margin, off+d.visible-1-margin
+	if lo > hi {
+		lo, hi = off, off+d.visible-1
+	}
+	d.offset = off
+	if to >= lo && to <= hi {
+		return
+	}
+	// The row between from and to nearest the target inside the window.
+	best := -1
+	for _, line := range d.lay.rows {
+		if line < lo || line > hi || line < min(from, to) || line > max(from, to) {
+			continue
+		}
+		if best < 0 || abs(line-to) < abs(best-to) {
+			best = line
+		}
+	}
+	if best < 0 {
+		best = from
+	}
+	_ = d.selectLine(best)
+}
+
+func abs(n int) int {
+	if n < 0 {
+		return -n
+	}
+	return n
 }
 
 // scrollToShow is the offset that shows lines [top, bottom) of total in a

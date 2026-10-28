@@ -18,8 +18,9 @@ import (
 // removed card) takes the focus to the new card. Inside, j/k move by step
 // (a step taller than the window by half a window first), past the last
 // step j spills to the next card and past the first k goes back to the
-// card, l opens the step's folded section, h (and esc) go back to the card,
-// y yanks the step. The current step is marked in the left padding of its
+// card, l opens the step's folded section, h folds the open section the
+// step is in and otherwise (and esc) goes back to the card, y yanks the
+// step. The current step is marked in the left padding of its
 // lines, never by reversed text, and the window scrolls to keep it shown.
 
 // TimelineBodyNoun is the noun of a timeline's body: the place inside the
@@ -71,11 +72,14 @@ func (t *Timeline) SetParentStop(id string) { t.parentStop = id }
 func (t *Timeline) BodyID() string { return t.bodyID }
 
 // stepSpan is one step of a built body: body lines [start, end), or the
-// header's lines; fold is its fold unit (-1 none) and folded its state.
+// header's lines; fold is the fold unit whose title it holds (-1 none) and
+// folded its state; unit is the fold unit it lies in (its title or one of
+// its paragraphs, -1 none).
 type stepSpan struct {
 	start, end int
 	header     bool
 	fold       int
+	unit       int
 	folded     bool
 	text       func() string
 }
@@ -145,19 +149,22 @@ func (t *Timeline) buildBody(c *Card, units []foldUnit) ([]cardLine, []stepSpan)
 			if first && from >= 0 {
 				start = from
 			}
-			f := -1
+			f, unit := -1, -1
 			if first {
 				f = fold
+			}
+			if from >= 0 {
+				unit = fold
 			}
 			first = false
 			for _, line := range wrapText(ch.text, width) {
 				out = append(out, cardLine{text: indent + line, role: role})
 			}
 			par := ansi.Strip(ch.text)
-			spans = append(spans, stepSpan{start: start, end: len(out), fold: f, text: func() string { return par }})
+			spans = append(spans, stepSpan{start: start, end: len(out), fold: f, unit: unit, text: func() string { return par }})
 		}
 		if first && from >= 0 {
-			spans = append(spans, stepSpan{start: from, end: len(out), fold: fold, text: func() string { return "" }})
+			spans = append(spans, stepSpan{start: from, end: len(out), fold: fold, unit: fold, text: func() string { return "" }})
 		}
 	}
 	if len(c.Steps) == 0 {
@@ -183,7 +190,7 @@ func (t *Timeline) buildBody(c *Card, units []foldUnit) ([]cardLine, []stepSpan)
 					out = append(out, cardLine{text: "  " + line, role: s.Role})
 				}
 			}
-			spans = append(spans, stepSpan{start: start, end: len(out), fold: k, folded: folded, text: titledText(s.Title, s.Summary, s.Body, max(1, w-2))})
+			spans = append(spans, stepSpan{start: start, end: len(out), fold: k, unit: k, folded: folded, text: titledText(s.Title, s.Summary, s.Body, max(1, w-2))})
 		}
 		return out, spans
 	}
@@ -191,7 +198,7 @@ func (t *Timeline) buildBody(c *Card, units []foldUnit) ([]cardLine, []stepSpan)
 	for _, s := range c.Steps {
 		if s.Header {
 			header := c.Header
-			spans = append(spans, stepSpan{header: true, fold: -1, text: func() string { return header }})
+			spans = append(spans, stepSpan{header: true, fold: -1, unit: -1, text: func() string { return header }})
 			continue
 		}
 		titled := s.Title != ""
@@ -214,7 +221,7 @@ func (t *Timeline) buildBody(c *Card, units []foldUnit) ([]cardLine, []stepSpan)
 				out = append(out, cardLine{text: line, role: s.Role})
 			}
 			if len(out) > start {
-				spans = append(spans, stepSpan{start: start, end: len(out), fold: -1, text: titledText("", "", s.Body, w)})
+				spans = append(spans, stepSpan{start: start, end: len(out), fold: -1, unit: -1, text: titledText("", "", s.Body, w)})
 			}
 		default:
 			title, fold, folded := s.Title, -1, false
@@ -236,14 +243,14 @@ func (t *Timeline) buildBody(c *Card, units []foldUnit) ([]cardLine, []stepSpan)
 			}
 			switch {
 			case folded || s.Body == nil:
-				spans = append(spans, stepSpan{start: start, end: len(out), fold: fold, folded: folded, text: titledText(s.Title, s.Summary, s.Body, max(1, w-2))})
+				spans = append(spans, stepSpan{start: start, end: len(out), fold: fold, unit: fold, folded: folded, text: titledText(s.Title, s.Summary, s.Body, max(1, w-2))})
 			case s.Paragraphs:
 				paras(s.Body(max(1, w-2)), max(1, w-2), "  ", s.Role, start, fold)
 			default:
 				for _, line := range wrapText(s.Body(max(1, w-2)), max(1, w-2)) {
 					out = append(out, cardLine{text: "  " + line, role: s.Role})
 				}
-				spans = append(spans, stepSpan{start: start, end: len(out), fold: fold, text: titledText(s.Title, s.Summary, s.Body, max(1, w-2))})
+				spans = append(spans, stepSpan{start: start, end: len(out), fold: fold, unit: fold, text: titledText(s.Title, s.Summary, s.Body, max(1, w-2))})
 			}
 		}
 		if len(spans) == had && len(out) == mark {
@@ -346,36 +353,25 @@ func (t *Timeline) stepLines(i int) (int, int, bool) {
 	return start + sp.start, start + sp.end - 1, true
 }
 
-// stepOff is the lines of a step h lines tall scrolled past in a window
-// of avail lines: 0 unless it is taller.
-func (t *Timeline) stepOff(h, avail int) int {
-	if avail <= 0 || h <= avail {
-		return 0
-	}
-	return min(max(t.off, 0), h-avail)
-}
-
-// stepShown is the part of the current step a window of avail lines shows,
-// in shown card i's lines; false outside the card.
-func (t *Timeline) stepShown(i, avail int) (int, int, bool) {
+// stepShown is the current step's lines in shown card i's lines (the
+// frame keeps the part on screen); false outside the card.
+func (t *Timeline) stepShown(i int) (int, int, bool) {
 	if i != t.list.selected || !t.InBody() {
 		return 0, 0, false
 	}
-	from, to, ok := t.stepLines(i)
-	if !ok {
-		return 0, 0, false
-	}
-	lo := from + t.stepOff(to-from+1, avail)
-	return lo, min(to, lo+avail-1), true
+	return t.stepLines(i)
 }
 
-// showStep is the anchor that shows the current step of shown card sel:
-// the window is kept when the step is on screen, else moved the least.
+// showStep is the anchor that shows the current step of shown card sel
+// after an l (a step entered or unfolded): the window is kept when the
+// step is on screen, else moved the least (a step taller than the window
+// shows its top).
 func (t *Timeline) showStep(sel, avail int) timelineAnchor {
-	lo, hi, ok := t.stepShown(sel, avail)
+	lo, hi, ok := t.stepShown(sel)
 	if !ok || !t.seek && t.indexOf(t.top.id) >= 0 {
 		return t.top
 	}
+	hi = min(hi, lo+avail-1)
 	id := t.list.items[sel].ID
 	top := t.top
 	if t.indexOf(top.id) < 0 || t.after(top, timelineAnchor{id, lo}) {
@@ -420,9 +416,53 @@ func (t *Timeline) enter(id string) error {
 	if t.width > 0 && len(t.spansOf(&t.cards[t.byID[id]])) == 0 {
 		return nil // nothing inside to step onto
 	}
-	t.in, t.step, t.off, t.seek = id, 0, 0, true
+	t.in, t.step, t.seek = id, 0, true
 	t.follow = false
 	return t.r.SetFocus(t.bodyID)
+}
+
+// openUnit is the open fold unit the current step lies in (its title or
+// one of its paragraphs): a section or titled step shown unfolded; -1
+// when there is none.
+func (t *Timeline) openUnit() int {
+	if !t.InBody() {
+		return -1
+	}
+	spans := t.currentSpans()
+	if len(spans) == 0 {
+		return -1
+	}
+	sp := spans[min(max(t.step, 0), len(spans)-1)]
+	if sp.unit < 0 {
+		return -1
+	}
+	units := foldUnits(&t.cards[t.byID[t.in]])
+	if sp.unit >= len(units) || t.folded(t.in, units[sp.unit]) {
+		return -1
+	}
+	return sp.unit
+}
+
+// foldStep is timeline.fold-step: fold the open section the current step
+// lies in; the step becomes its title line (the cursor stays on it).
+func (t *Timeline) foldStep() error {
+	u := t.openUnit()
+	if u < 0 {
+		return errors.New("the current step is not in an open section")
+	}
+	spans := t.currentSpans()
+	for k, sp := range spans {
+		if sp.unit == u {
+			t.step = k
+			break
+		}
+	}
+	units := foldUnits(&t.cards[t.byID[t.in]])
+	if err := t.SetFolded(t.in, units[u].name, true); err != nil {
+		return err
+	}
+	t.seek = true
+	return nil
 }
 
 // leaveBody gives the body's focus (and any page or modal remembering it)
@@ -445,10 +485,14 @@ func (t *Timeline) leave() error {
 	return t.r.SetFocus(t.r.landing(t.parentStop))
 }
 
-// stepBy moves count steps (down when delta is positive): a step taller
-// than the window moves half a window at a time first; past the last step
-// j spills to the next card (or the next stop), past the first k goes back
-// to the card. A count stops at the edge; only a move from the edge spills.
+// stepBy moves count steps (down when delta is positive) by the half-page
+// rule (R3.14): when showing the next step would scroll more than half the
+// window, the window scrolls half and the step moves once the next step
+// shows, so a step taller than the window is read half a window per key.
+// Past the last step j goes to the next card the same way (past the last
+// card the window first shows the card's end, then the list spills or,
+// NoSpill, stays); past the first k goes back to the card. A count stops
+// at the edge; only a move from the edge spills.
 func (t *Timeline) stepBy(delta, count int) {
 	for k := 0; k < max(1, count); k++ {
 		if !t.InBody() || !t.stepOnce(delta, k == 0) {
@@ -467,59 +511,62 @@ func (t *Timeline) stepOnce(delta int, edge bool) bool {
 		return false
 	}
 	t.step = min(max(t.step, 0), n-1)
-	avail := t.avail
-	height := func(k int) int {
-		i := t.indexOf(t.in)
-		if i < 0 {
-			return 1
-		}
-		was := t.step
-		t.step = k
-		from, to, _ := t.stepLines(i)
-		t.step = was
-		return to - from + 1
-	}
-	h := height(t.step)
-	half := max(1, avail/2)
-	t.off = t.stepOff(h, avail)
-	t.seek = true
-	if delta > 0 {
-		if avail > 0 && h > avail && t.off < h-avail {
-			t.off = min(t.off+half, h-avail)
-			return true
-		}
-		if t.step < n-1 {
-			t.step, t.off = t.step+1, 0
-			return true
-		}
+	next := t.step + delta
+	switch {
+	case next >= n:
 		return edge && t.spillDown()
-	}
-	if t.off > 0 {
-		t.off = max(0, t.off-half)
-		return true
-	}
-	if t.step > 0 {
-		t.step--
-		t.off = 0
-		if ph := height(t.step); avail > 0 && ph > avail {
-			t.off = ph - avail // a tall step above shows its end first
+	case next < 0:
+		if edge {
+			t.leaveBody()
 		}
+		return false
+	}
+	i := t.indexOf(t.in)
+	if i < 0 || !t.drawn() {
+		t.step, t.seek = next, true
 		return true
 	}
-	if edge {
-		t.leaveBody()
+	t.seek = false // the motion places the window itself
+	at := t.relStart(i)
+	was := t.step
+	t.step = next
+	from, to, _ := t.stepLines(i)
+	t.step = was
+	a, b := at+from, at+to
+	tall := b-a+1 > t.avail
+	var want int
+	switch {
+	case delta > 0 && tall: // its top
+		want = max(0, a)
+	case delta > 0:
+		want = max(0, b-t.avail+1)
+	case tall: // k into a tall step shows its end first
+		want = min(0, b-t.avail+1)
+	default:
+		want = min(0, a)
 	}
-	return false
+	moved := t.motionShift(want)
+	if SpanInView(a-moved, b-moved, t.avail) {
+		t.step = next
+	}
+	return true
 }
 
-// spillDown is j past the last step: the next card (open or closed), or
-// past the last card the next stop as the list spills; at the page's last
-// stop, or NoSpill, the step stays.
+// spillDown is j past the last step: the next card (open or closed) by the
+// half-page rule, or on the last card its end first and then the next stop
+// as the list spills; at the page's last stop, or NoSpill, the step stays.
 func (t *Timeline) spillDown() bool {
 	l := t.list
 	if l.selected < len(l.items)-1 {
-		l.Move(1) // the selection moves: the list hands the focus to the new card
-		return true
+		// The selection moves (once the card shows): the list hands the
+		// focus to the new card.
+		return t.cardOnce(1, true)
+	}
+	if t.drawn() {
+		if want := t.edgeWant(1); want != 0 {
+			t.motionShift(want)
+			return true
+		}
 	}
 	if l.noSpill {
 		return false
@@ -555,6 +602,10 @@ func registerTimelineSteps(r *Runtime) {
 		t := r.timelineOf(ev.Focus)
 		return t != nil && ev.Focus == t.bodyID
 	})
+	r.DefineGuard("timeline-step-open", func(r *Runtime, ev KeyEvent) bool {
+		t := r.timelineOf(ev.Focus)
+		return t != nil && ev.Focus == t.bodyID && t.openUnit() >= 0
+	})
 	resolve := func(c Context, args Arguments) (*Timeline, error) {
 		if id := StringArg(args, "id", ""); id != "" {
 			if t := r.Timeline(id); t != nil {
@@ -584,6 +635,12 @@ func registerTimelineSteps(r *Runtime) {
 				}
 			}
 			return t.state(), t.enter(k)
+		}},
+		{"fold-step", "Inside a card, fold the open section the current step is in (a tool call, thinking, an answer); the step becomes its title", false, map[string]Parameter{"id": id}, func(t *Timeline, _ Context, _ Arguments) (any, error) {
+			if !t.InBody() {
+				return nil, errors.New("not inside a card")
+			}
+			return t.state(), t.foldStep()
 		}},
 		{"leave", "Inside a card, back to the card (it stays open); on a card, to the timeline's parent stop", false, map[string]Parameter{"id": id}, func(t *Timeline, _ Context, _ Arguments) (any, error) {
 			return t.state(), t.leave()
@@ -636,6 +693,10 @@ func registerTimelineSteps(r *Runtime) {
 		Bind("up", step(-1).Hide()).
 		Bind("l", Do(timelineNoun+".enter")).
 		Bind("right", Do(timelineNoun+".enter").Hide()).
+		// h folds the open section the step is in, else goes back to the
+		// card (the guarded row answers first and falls through).
+		Bind("h", Do(timelineNoun+".fold-step").Guard("timeline-step-open")).
+		Bind("left", Do(timelineNoun+".fold-step").Guard("timeline-step-open").Hide()).
 		Bind("h", Do(timelineNoun+".leave")).
 		Bind("left", Do(timelineNoun+".leave").Hide()).
 		Bind("esc", Do(timelineNoun+".leave").Hide()).

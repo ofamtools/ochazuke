@@ -1,0 +1,110 @@
+{
+  "name": "timeline: NoSpill, j on the last step of the last card scrolls to the card's end, then clamps; the focus stays inside the card",
+  "area": "timeline",
+  "page": {
+    "noHeadings": true,
+    "order": [
+      "timeline",
+      "below"
+    ],
+    "lists": [
+      {
+        "id": "below",
+        "rows": 2
+      }
+    ],
+    "timeline": {
+      "noSpill": true,
+      "cards": [
+        {
+          "id": "t1",
+          "header": "Newest turn.",
+          "open": true,
+          "steps": [
+            {
+              "header": true
+            },
+            {
+              "id": "tool",
+              "title": "tool Bash",
+              "summary": "go test",
+              "text": "ok"
+            },
+            {
+              "id": "answer",
+              "title": "answer",
+              "paragraphs": true,
+              "text": "ans line 01\nans line 02\nans line 03\nans line 04\nans line 05\nans line 06\nans line 07\nans line 08\nans line 09\nans line 10\nans line 11\nans line 12"
+            }
+          ]
+        }
+      ],
+      "height": 10
+    }
+  },
+  "script": [
+    "l",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "focus": "timeline/body",
+      "contains": [
+        "┃▌▾ 2 answer",
+        "▌  ans line 07"
+      ],
+      "lacks": [
+        "ans line 08"
+      ]
+    },
+    {
+      "after": 4,
+      "focus": "timeline/body",
+      "contains": [
+        "▌  ans line 03",
+        "▌  ans line 11"
+      ],
+      "lacks": [
+        "ans line 02",
+        "ans line 12"
+      ]
+    },
+    {
+      "after": 5,
+      "focus": "timeline/body",
+      "contains": [
+        "▌  ans line 05",
+        "▌  ans line 12",
+        "┗"
+      ],
+      "lacks": [
+        "ans line 04"
+      ]
+    },
+    {
+      "after": 6,
+      "focus": "timeline/body",
+      "contains": [
+        "▌  ans line 12",
+        "┗"
+      ]
+    },
+    {
+      "focus": "timeline/body",
+      "contains": [
+        "▌  ans line 05",
+        "▌  ans line 12",
+        "┗"
+      ],
+      "lacks": [
+        "ans line 04"
+      ]
+    }
+  ]
+}

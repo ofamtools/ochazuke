@@ -1,0 +1,90 @@
+{
+  "name": "timeline: inside a card h folds the open section the step is in (the step becomes its title), and h again goes back to the card",
+  "area": "timeline",
+  "page": {
+    "noHeadings": true,
+    "timeline": {
+      "cards": [
+        {
+          "id": "t1",
+          "header": "Fix it.",
+          "open": true,
+          "steps": [
+            {
+              "header": true
+            },
+            {
+              "id": "tool",
+              "title": "tool Bash",
+              "summary": "go test",
+              "text": "ok cmd 0.4s"
+            },
+            {
+              "id": "answer",
+              "title": "answer",
+              "paragraphs": true,
+              "text": "Fixed the clock.\n\nNothing else changed."
+            }
+          ]
+        }
+      ],
+      "height": 16
+    }
+  },
+  "script": [
+    "l",
+    "j",
+    "j",
+    "j",
+    "h",
+    "h",
+    "h"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "focus": "timeline/body",
+      "contains": [
+        "┃▌▾ 1 tool Bash"
+      ]
+    },
+    {
+      "after": 4,
+      "focus": "timeline/body",
+      "contains": [
+        "┃▌  Nothing else changed."
+      ]
+    },
+    {
+      "after": 5,
+      "focus": "timeline/body",
+      "contains": [
+        "┃▌▸ 2 answer"
+      ],
+      "lacks": [
+        "Nothing else changed.",
+        "Fixed the clock."
+      ]
+    },
+    {
+      "after": 6,
+      "focus": "t1",
+      "contains": [
+        "┃ ▸ 2 answer",
+        "┃ ▾ Fix it."
+      ],
+      "lacks": [
+        "▌"
+      ]
+    },
+    {
+      "focus": "t1",
+      "contains": [
+        "┃ ▸ Fix it."
+      ],
+      "lacks": [
+        "tool Bash"
+      ]
+    }
+  ]
+}

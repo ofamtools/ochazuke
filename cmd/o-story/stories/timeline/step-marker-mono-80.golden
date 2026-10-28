@@ -20,5 +20,5 @@
  |  │ ▸ Next.                                                                  │
  |  ╰──────────────────────────────────────────────────────────────────────────╯
  |  ────────────────────────────────────────────────────────────────────────────
- |  l timeline.enter · h timeline.leave · y timeline.yank-step · enter timeline…
+ |  l timeline.enter · h timeline.fold-step · y timeline.yank-step · enter time…
  |

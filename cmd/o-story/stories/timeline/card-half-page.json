@@ -1,0 +1,177 @@
+{
+  "name": "timeline: j from card to card never scrolls more than half the window (4 lines of 9, R3.14); the selection moves once the next card shows",
+  "area": "timeline",
+  "page": {
+    "noHeadings": true,
+    "timeline": {
+      "cards": [
+        {
+          "id": "t1",
+          "header": "First.",
+          "body": "one line 01\none line 02\none line 03",
+          "open": true
+        },
+        {
+          "id": "t2",
+          "header": "Tall.",
+          "body": "two line 01\ntwo line 02\ntwo line 03\ntwo line 04\ntwo line 05\ntwo line 06\ntwo line 07\ntwo line 08\ntwo line 09\ntwo line 10\ntwo line 11\ntwo line 12\ntwo line 13\ntwo line 14\ntwo line 15\ntwo line 16",
+          "open": true
+        },
+        {
+          "id": "t3",
+          "header": "Last.",
+          "body": "three line 01\nthree line 02",
+          "open": true
+        }
+      ],
+      "height": 10
+    }
+  },
+  "script": [
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "k",
+    "k",
+    "k",
+    "k",
+    "k",
+    "k",
+    "k"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "t2",
+      "contains": [
+        "│ one line 02",
+        "┃ ▾ Tall."
+      ],
+      "lacks": [
+        "one line 01"
+      ]
+    },
+    {
+      "after": 2,
+      "focus": "t2",
+      "contains": [
+        "┃ ▾ Tall.",
+        "two line 07"
+      ],
+      "lacks": [
+        "one line"
+      ]
+    },
+    {
+      "after": 3,
+      "focus": "t2",
+      "contains": [
+        "two line 03",
+        "two line 11"
+      ],
+      "lacks": [
+        "two line 02",
+        "two line 12"
+      ]
+    },
+    {
+      "after": 4,
+      "focus": "t2",
+      "contains": [
+        "two line 07",
+        "two line 15"
+      ],
+      "lacks": [
+        "two line 06",
+        "two line 16"
+      ]
+    },
+    {
+      "after": 5,
+      "focus": "t3",
+      "contains": [
+        "two line 11",
+        "┃ ▾ Last."
+      ],
+      "lacks": [
+        "two line 10"
+      ]
+    },
+    {
+      "after": 6,
+      "focus": "t3",
+      "contains": [
+        "two line 15",
+        "three line 02",
+        "┗"
+      ],
+      "lacks": [
+        "two line 14"
+      ]
+    },
+    {
+      "after": 7,
+      "focus": "t3",
+      "contains": [
+        "two line 15",
+        "three line 02"
+      ],
+      "lacks": [
+        "two line 14"
+      ]
+    },
+    {
+      "after": 8,
+      "focus": "t2",
+      "contains": [
+        "two line 11",
+        "┃ two line 16"
+      ],
+      "lacks": [
+        "two line 10",
+        "three line 01"
+      ]
+    },
+    {
+      "after": 9,
+      "focus": "t2",
+      "contains": [
+        "two line 07",
+        "two line 15"
+      ],
+      "lacks": [
+        "two line 06",
+        "two line 16"
+      ]
+    },
+    {
+      "after": 12,
+      "focus": "t1",
+      "contains": [
+        "┃ one line 02",
+        "│ ▾ Tall."
+      ],
+      "lacks": [
+        "one line 01"
+      ]
+    },
+    {
+      "after": 13,
+      "focus": "t1",
+      "contains": [
+        "┃ ▾ First.",
+        "one line 01"
+      ]
+    },
+    {
+      "focus": "t1",
+      "contains": [
+        "┃ ▾ First."
+      ]
+    }
+  ]
+}
