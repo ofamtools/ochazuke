@@ -38,6 +38,41 @@ const fileGolden = BindingsHeader + `
     "leader_pending": {"pending": true}
   },
   "bindings": [
+    {"context": "app", "bindings": [
+      {"key": "ctrl+a v", "action": "app.split", "help": "Split the view"}
+    ]},
+    {"context": "editor/insert", "bindings": [
+      {"key": "any", "action": "editor.type", "from": {"text": "key"}, "capture": true}
+    ]},
+    {"context": "md-doc/normal", "bindings": [
+      {"key": "l", "action": "ochazuke.focus.next"},
+      {"key": "enter", "action": "ochazuke.focus.next", "hint": "edit"}
+    ]},
+    {"context": "pane/normal", "bindings": [
+      {"key": "]", "action": "panes.tab", "args": {"delta": 1}},
+      {"key": "x", "unbind": true},
+      {"key": "d d", "action": "pane.kill", "when": "selected", "hidden": true},
+      {"key": "d d", "action": "pane.close"},
+      {"key": "u", "when": "busy", "unbind": true}
+    ]},
+    {"context": "terminal/leader_pending", "bindings": [
+      {"key": ":", "action": "ochazuke.palette.open"}
+    ]},
+    {"instance": "work/agent", "mode": "normal", "bindings": [
+      {"key": "ctrl+r", "action": "pane.restart", "replay": true, "target": "work/agent"}
+    ]}
+  ]
+}
+`
+
+// fileGoldenV033 is the fixture in the v0.33 form of a group (a key map,
+// a key's rows an array), which the reader still takes.
+const fileGoldenV033 = `// the v0.33 header comment
+{
+  "modes": {
+    "leader_pending": {"pending": true}
+  },
+  "bindings": [
     {"context": "app", "bindings": {
       "ctrl+a v": {"action": "app.split", "help": "Split the view"}
     }},
@@ -110,6 +145,48 @@ func TestFormatBindingsRoundTrip(t *testing.T) {
 	again, err := FormatBindings(doc)
 	if err != nil || string(again) != string(data) {
 		t.Fatalf("written twice differs (%v):\n%q\n%q", err, again, data)
+	}
+}
+
+// All three formats read as the same rows in the same order: the
+// one-row-per-line groups, the v0.33 key map, and the older array of rows
+// (below); the line form may repeat a key with no guard, the map may not.
+func TestParseBindingsReadsEveryFormat(t *testing.T) {
+	want := rowsText(t, fileFixtureDoc().Rows())
+	for name, text := range map[string]string{"lines": fileGolden, "v0.33 map": fileGoldenV033} {
+		doc, format, err := ParseBindings([]byte(text))
+		if err != nil || format != BindingsGrouped {
+			t.Fatalf("%s: %q %v", name, format, err)
+		}
+		if got := rowsText(t, doc.Rows()); !slices.Equal(got, want) {
+			t.Fatalf("%s rows:\n%s\nwant:\n%s", name, strings.Join(got, "\n"), strings.Join(want, "\n"))
+		}
+		again, err := FormatBindings(doc)
+		if err != nil || string(again) != fileGolden {
+			t.Fatalf("%s written back is not the line form (%v):\n%s", name, err, again)
+		}
+	}
+	doc, _, err := ParseBindings([]byte(`{"bindings": [{"context": "x/normal", "bindings": [
+		{"key": "l", "action": "x.open"},
+		{"key": "l", "action": "x.enter"},
+		{"key": "digit", "action": "x.count", "from": {"n": "digit"}}
+	]}]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows := doc.Rows()
+	if len(rows) != 3 || rows[0].Keys != "l" || rows[1].Keys != "l" || rows[1].Request.Verb != "enter" || rows[2].Pattern != "digit" {
+		t.Fatalf("rows %+v", rows)
+	}
+	for _, tc := range []struct{ text, want string }{
+		{`{"bindings": [{"context": "app", "bindings": [{"action": "test.alpha"}]}]}`, `needs "key"`},
+		{`{"bindings": [{"context": "app", "bindings": ["test.alpha"]}]}`, `want a row`},
+		{`{"bindings": [{"context": "app", "bindings": [{"key": "a", "hint": "x"}]}]}`, `app a: no "action"`},
+		{`{"bindings": [{"context": "app", "bindings": [{"key": "a", "action": "test.alpha", "nope": 1}]}]}`, `unknown field "nope"`},
+	} {
+		if _, _, err := ParseBindings([]byte(tc.text)); err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: got %v, want %q", tc.text, err, tc.want)
+		}
 	}
 }
 

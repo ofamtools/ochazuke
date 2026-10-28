@@ -1,59 +1,61 @@
-// ochazuke bindings (JSONC): groups by "noun/mode" context; each key maps to an action, {action, args, hint, when, ...}, null (unbind) or an array of those
+// ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, {key, action, args, hint, ...} or {key, unbind: true}; a key may repeat: the first row whose action is available answers
 {
   "bindings": [
-    {"context": "ochazuke.markdown/normal", "bindings": {
-      "x": {"action": "ochazuke.markdown.toggle", "when": "markdown-on-task"},
-      "i": {"action": "ochazuke.markdown.insert", "args": {"at": "cursor"}},
-      "o": {"action": "ochazuke.markdown.open", "args": {"where": "below"}},
-      "n": {"action": "ochazuke.markdown.note", "when": "markdown-on-item"},
-      "d d": "ochazuke.markdown.delete",
-      "p": {"action": "ochazuke.markdown.paste", "args": {"where": "below"}},
-      "z a": {"action": "ochazuke.markdown.fold", "when": "markdown-has-notes"},
-      "g O": "ochazuke.markdown.outline",
-      "u": "ochazuke.markdown.undo",
-      "ctrl+r": "ochazuke.markdown.redo",
-      "}": {"action": "ochazuke.markdown.next-block", "from": {"steps": "count"}},
-      "{": {"action": "ochazuke.markdown.previous-block", "from": {"steps": "count"}},
-      "] ]": {"action": "ochazuke.markdown.next-same", "from": {"steps": "count"}, "hidden": true},
-      "[ [": {"action": "ochazuke.markdown.previous-same", "from": {"steps": "count"}, "hidden": true},
-      "a": {"action": "ochazuke.markdown.insert", "args": {"at": "after"}, "hidden": true},
-      "I": {"action": "ochazuke.markdown.insert", "args": {"at": "start"}, "hidden": true},
-      "A": {"action": "ochazuke.markdown.insert", "args": {"at": "end"}, "hidden": true},
-      "O": {"action": "ochazuke.markdown.open", "args": {"where": "above"}, "hidden": true},
-      "y y": {"action": "ochazuke.markdown.yank", "hidden": true},
-      "P": {"action": "ochazuke.markdown.paste", "args": {"where": "above"}, "hidden": true},
-      "] h": {"action": "ochazuke.markdown.next-kind", "args": {"kind": "h"}, "from": {"steps": "count"}},
-      "[ h": {"action": "ochazuke.markdown.previous-kind", "args": {"kind": "h"}, "from": {"steps": "count"}},
-      "] t": {"action": "ochazuke.markdown.next-kind", "args": {"kind": "t"}, "from": {"steps": "count"}},
-      "[ t": {"action": "ochazuke.markdown.previous-kind", "args": {"kind": "t"}, "from": {"steps": "count"}},
-      "] x": {"action": "ochazuke.markdown.next-kind", "args": {"kind": "x"}, "from": {"steps": "count"}},
-      "[ x": {"action": "ochazuke.markdown.previous-kind", "args": {"kind": "x"}, "from": {"steps": "count"}},
-      "] l": {"action": "ochazuke.markdown.next-kind", "args": {"kind": "l"}, "from": {"steps": "count"}},
-      "[ l": {"action": "ochazuke.markdown.previous-kind", "args": {"kind": "l"}, "from": {"steps": "count"}},
-      "] c": {"action": "ochazuke.markdown.next-kind", "args": {"kind": "c"}, "from": {"steps": "count"}},
-      "[ c": {"action": "ochazuke.markdown.previous-kind", "args": {"kind": "c"}, "from": {"steps": "count"}},
-      "] q": {"action": "ochazuke.markdown.next-kind", "args": {"kind": "q"}, "from": {"steps": "count"}},
-      "[ q": {"action": "ochazuke.markdown.previous-kind", "args": {"kind": "q"}, "from": {"steps": "count"}},
-      "] n": {"action": "ochazuke.markdown.next-kind", "args": {"kind": "n"}, "from": {"steps": "count"}},
-      "[ n": {"action": "ochazuke.markdown.previous-kind", "args": {"kind": "n"}, "from": {"steps": "count"}},
-      "] p": {"action": "ochazuke.markdown.next-kind", "args": {"kind": "p"}, "from": {"steps": "count"}},
-      "[ p": {"action": "ochazuke.markdown.previous-kind", "args": {"kind": "p"}, "from": {"steps": "count"}}
-    }},
-    {"context": "ochazuke.markdown-edit/insert", "bindings": {
-      "esc": "ochazuke.markdown.leave",
-      "enter": [{"action": "ochazuke.markdown.end-list", "when": "markdown-empty-item"}, {"action": "ochazuke.markdown.continue-item", "when": "markdown-item-text"}, {"action": "ochazuke.markdown.next-row", "when": "markdown-table-line"}, {"action": "ochazuke.markdown.after-heading", "when": "markdown-heading-line"}, {"action": "ochazuke.markdown.quote-line", "when": "markdown-quote-line"}],
-      "tab": {"action": "ochazuke.markdown.indent", "when": "markdown-item-line"},
-      "shift+tab": {"action": "ochazuke.markdown.outdent", "when": "markdown-item-line"}
-    }},
-    {"context": "ochazuke.markdown-edit/insert", "bindings": {
-      "tab": {"action": "ochazuke.markdown.cell", "args": {"delta": 1}, "when": "markdown-table-line"},
-      "shift+tab": {"action": "ochazuke.markdown.cell", "args": {"delta": -1}, "when": "markdown-table-line"},
-      "backspace": {"action": "ochazuke.markdown.unmark", "when": "markdown-empty-item"},
-      "/": {"action": "ochazuke.markdown.insert-block", "when": "markdown-empty-line"}
-    }},
-    {"context": "ochazuke.markdown-note/normal", "bindings": {
-      "x": "ochazuke.markdown.resolve"
-    }},
-    {"context": "ochazuke.markdown/count_pending", "extends": "normal", "bindings": {}}
+    {"context": "ochazuke.markdown/normal", "bindings": [
+      {"key": "x", "action": "ochazuke.markdown.toggle", "when": "markdown-on-task"},
+      {"key": "i", "action": "ochazuke.markdown.insert", "args": {"at": "cursor"}},
+      {"key": "o", "action": "ochazuke.markdown.open", "args": {"where": "below"}},
+      {"key": "n", "action": "ochazuke.markdown.note", "when": "markdown-on-item"},
+      {"key": "d d", "action": "ochazuke.markdown.delete"},
+      {"key": "p", "action": "ochazuke.markdown.paste", "args": {"where": "below"}},
+      {"key": "z a", "action": "ochazuke.markdown.fold", "when": "markdown-has-notes"},
+      {"key": "g O", "action": "ochazuke.markdown.outline"},
+      {"key": "u", "action": "ochazuke.markdown.undo"},
+      {"key": "ctrl+r", "action": "ochazuke.markdown.redo"},
+      {"key": "}", "action": "ochazuke.markdown.next-block", "from": {"steps": "count"}},
+      {"key": "{", "action": "ochazuke.markdown.previous-block", "from": {"steps": "count"}},
+      {"key": "] ]", "action": "ochazuke.markdown.next-same", "from": {"steps": "count"}, "hidden": true},
+      {"key": "[ [", "action": "ochazuke.markdown.previous-same", "from": {"steps": "count"}, "hidden": true},
+      {"key": "a", "action": "ochazuke.markdown.insert", "args": {"at": "after"}, "hidden": true},
+      {"key": "I", "action": "ochazuke.markdown.insert", "args": {"at": "start"}, "hidden": true},
+      {"key": "A", "action": "ochazuke.markdown.insert", "args": {"at": "end"}, "hidden": true},
+      {"key": "O", "action": "ochazuke.markdown.open", "args": {"where": "above"}, "hidden": true},
+      {"key": "y y", "action": "ochazuke.markdown.yank", "hidden": true},
+      {"key": "P", "action": "ochazuke.markdown.paste", "args": {"where": "above"}, "hidden": true},
+      {"key": "] h", "action": "ochazuke.markdown.next-kind", "args": {"kind": "h"}, "from": {"steps": "count"}},
+      {"key": "[ h", "action": "ochazuke.markdown.previous-kind", "args": {"kind": "h"}, "from": {"steps": "count"}},
+      {"key": "] t", "action": "ochazuke.markdown.next-kind", "args": {"kind": "t"}, "from": {"steps": "count"}},
+      {"key": "[ t", "action": "ochazuke.markdown.previous-kind", "args": {"kind": "t"}, "from": {"steps": "count"}},
+      {"key": "] x", "action": "ochazuke.markdown.next-kind", "args": {"kind": "x"}, "from": {"steps": "count"}},
+      {"key": "[ x", "action": "ochazuke.markdown.previous-kind", "args": {"kind": "x"}, "from": {"steps": "count"}},
+      {"key": "] l", "action": "ochazuke.markdown.next-kind", "args": {"kind": "l"}, "from": {"steps": "count"}},
+      {"key": "[ l", "action": "ochazuke.markdown.previous-kind", "args": {"kind": "l"}, "from": {"steps": "count"}},
+      {"key": "] c", "action": "ochazuke.markdown.next-kind", "args": {"kind": "c"}, "from": {"steps": "count"}},
+      {"key": "[ c", "action": "ochazuke.markdown.previous-kind", "args": {"kind": "c"}, "from": {"steps": "count"}},
+      {"key": "] q", "action": "ochazuke.markdown.next-kind", "args": {"kind": "q"}, "from": {"steps": "count"}},
+      {"key": "[ q", "action": "ochazuke.markdown.previous-kind", "args": {"kind": "q"}, "from": {"steps": "count"}},
+      {"key": "] n", "action": "ochazuke.markdown.next-kind", "args": {"kind": "n"}, "from": {"steps": "count"}},
+      {"key": "[ n", "action": "ochazuke.markdown.previous-kind", "args": {"kind": "n"}, "from": {"steps": "count"}},
+      {"key": "] p", "action": "ochazuke.markdown.next-kind", "args": {"kind": "p"}, "from": {"steps": "count"}},
+      {"key": "[ p", "action": "ochazuke.markdown.previous-kind", "args": {"kind": "p"}, "from": {"steps": "count"}}
+    ]},
+    {"context": "ochazuke.markdown-edit/insert", "bindings": [
+      {"key": "esc", "action": "ochazuke.markdown.leave"},
+      {"key": "enter", "action": "ochazuke.markdown.end-list", "when": "markdown-empty-item"},
+      {"key": "enter", "action": "ochazuke.markdown.continue-item", "when": "markdown-item-text"},
+      {"key": "enter", "action": "ochazuke.markdown.next-row", "when": "markdown-table-line"},
+      {"key": "enter", "action": "ochazuke.markdown.after-heading", "when": "markdown-heading-line"},
+      {"key": "enter", "action": "ochazuke.markdown.quote-line", "when": "markdown-quote-line"},
+      {"key": "tab", "action": "ochazuke.markdown.indent", "when": "markdown-item-line"},
+      {"key": "shift+tab", "action": "ochazuke.markdown.outdent", "when": "markdown-item-line"},
+      {"key": "tab", "action": "ochazuke.markdown.cell", "args": {"delta": 1}, "when": "markdown-table-line"},
+      {"key": "shift+tab", "action": "ochazuke.markdown.cell", "args": {"delta": -1}, "when": "markdown-table-line"},
+      {"key": "backspace", "action": "ochazuke.markdown.unmark", "when": "markdown-empty-item"},
+      {"key": "/", "action": "ochazuke.markdown.insert-block", "when": "markdown-empty-line"}
+    ]},
+    {"context": "ochazuke.markdown-note/normal", "bindings": [
+      {"key": "x", "action": "ochazuke.markdown.resolve"}
+    ]},
+    {"context": "ochazuke.markdown/count_pending", "extends": "normal", "bindings": []}
   ]
 }

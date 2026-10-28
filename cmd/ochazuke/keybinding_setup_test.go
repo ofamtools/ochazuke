@@ -207,7 +207,7 @@ func TestBindingExportGroupedFormat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := ochazuke.BindingsHeader + "\n{\n  \"bindings\": [\n    {\"context\": \"app\", \"bindings\": {\n      \"x\": \"sandbox.first\",\n      \"g g\": \"sandbox.second\"\n    }}\n  ]\n}\n"
+	want := ochazuke.BindingsHeader + "\n{\n  \"bindings\": [\n    {\"context\": \"app\", \"bindings\": [\n      {\"key\": \"x\", \"action\": \"sandbox.first\"},\n      {\"key\": \"g g\", \"action\": \"sandbox.second\"}\n    ]}\n  ]\n}\n"
 	if string(data) != want {
 		t.Fatalf("got:\n%s\nwant:\n%s", data, want)
 	}

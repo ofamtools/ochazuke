@@ -1,13 +1,13 @@
-// ochazuke bindings (JSONC): groups by "noun/mode" context; each key maps to an action, {action, args, hint, when, ...}, null (unbind) or an array of those
+// ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, {key, action, args, hint, ...} or {key, unbind: true}; a key may repeat: the first row whose action is available answers
 {
   "modes": {
     "macro_recording": {"pending": true}
   },
   "bindings": [
-    {"context": "app/macro_recording", "bindings": {
-      "q": {"action": "ochazuke.macro.stop", "when": "shadow-idle"},
-      "any": {"action": "ochazuke.macro.record", "from": {"key": "key"}},
-      "paste": {"action": "ochazuke.macro.record", "args": {"paste": true}, "from": {"key": "key"}}
-    }}
+    {"context": "app/macro_recording", "bindings": [
+      {"key": "q", "action": "ochazuke.macro.stop", "when": "shadow-idle"},
+      {"key": "any", "action": "ochazuke.macro.record", "from": {"key": "key"}},
+      {"key": "paste", "action": "ochazuke.macro.record", "args": {"paste": true}, "from": {"key": "key"}}
+    ]}
   ]
 }

@@ -14,19 +14,23 @@ import (
 // bindings.reference.json) is JSONC in one of two formats:
 //
 // The grouped format (BindingsGrouped), written by FormatBindings: an
-// object with "bindings", an array of groups, and optional "modes":
+// object with "bindings", an array of groups, and optional "modes". A
+// group's "bindings" is an array of rows, one small object per line, the
+// key first, then the action, its args, then the rest:
 //
 //	{
 //	  "modes": {"register_pending": {"pending": true}},
 //	  "bindings": [
-//	    {"context": "md-doc/normal", "bindings": {
-//	      "l": "ochazuke.focus.next",
-//	      "enter": {"action": "ochazuke.focus.next", "hint": "edit"},
-//	      "x": null
-//	    }},
-//	    {"instance": "work/agent", "mode": "normal", "bindings": {
-//	      "ctrl+r": "pane.restart"
-//	    }}
+//	    {"context": "ochazuke.timeline/normal", "bindings": [
+//	      {"key": "l", "action": "ochazuke.timeline.open"},
+//	      {"key": "l", "action": "ochazuke.timeline.enter"},
+//	      {"key": "]", "action": "panes.tab", "args": {"delta": 1}},
+//	      {"key": "enter", "action": "ochazuke.focus.next", "hint": "edit"},
+//	      {"key": "x", "unbind": true}
+//	    ]},
+//	    {"instance": "work/agent", "mode": "normal", "bindings": [
+//	      {"key": "ctrl+r", "action": "pane.restart"}
+//	    ]}
 //	  ]
 //	}
 //
@@ -36,19 +40,23 @@ import (
 // its table reads after its own (ModeBuilder.Extends). "fallback": true
 // (a default file's group, LoadDefaultBindings) leaves alone the keys its
 // table bound before the file loaded; "source" (bindings defaults) says
-// where the group's rows are declared and changes nothing. In "bindings" a key
+// where the group's rows are declared and changes nothing. A row's "key"
 // is a key or sequence ("d d", "ctrl+a v") or, when isPattern holds, a
-// pattern ("digit", "any", "one-of:h j k l"); a value is the action
-// string (noun.verb, split at the last "."), an object {action, args,
-// hint, when, from, hidden, help, replay, capture, target, confirmed,
-// unbind} for anything more, null to unbind the default, or an array of
-// those, in table order, when one key has several rows in the table
-// (guarded alternatives). A group's keys are its table's rows in table
-// order: a key that comes back after other keys starts another group for
-// the same table (keyRuns), and the groups of one table read back in file
-// order, so the exported order is the stored order exactly. A row spelled
-// by an alias is written as spelled. "modes" holds properties global to a mode:
-// {"pending": true}, {"passthrough": true}.
+// pattern ("digit", "any", "one-of:h j k l"); its other fields are
+// "action" (noun.verb, split at the last "."), "args", "hint", "when",
+// "from", "hidden", "help", "replay", "capture", "target", "confirmed" and
+// "unbind" (true, with no action, unbinds the default). The key may
+// repeat: rows are in table order, and on a keypress the first row on the
+// key whose action is available answers (Runtime.Available). A row
+// spelled by an alias is written as spelled.
+//
+// The v0.33 form of a group, still read: "bindings" an object of key to
+// value, where a value is the action string, an object {action, args,
+// hint, when, ...}, null to unbind, or an array of those when one key has
+// several rows (a key is written once in one object, so a key that comes
+// back after other keys is another group for the same context). "modes"
+// holds properties global to a mode: {"pending": true},
+// {"passthrough": true}.
 //
 // The rows format (BindingsRows), the older one, still read: a JSON array
 // of Binding rows in any field order.
@@ -63,7 +71,7 @@ const (
 )
 
 // BindingsHeader is the one comment line FormatBindings starts a file with.
-const BindingsHeader = `// ochazuke bindings (JSONC): groups by "noun/mode" context; each key maps to an action, {action, args, hint, when, ...}, null (unbind) or an array of those`
+const BindingsHeader = `// ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, {key, action, args, hint, ...} or {key, unbind: true}; a key may repeat: the first row whose action is available answers`
 
 // ModeSpec is one mode's entry in a bindings file's "modes".
 type ModeSpec struct {
@@ -226,6 +234,31 @@ func parseBindingGroup(raw json.RawMessage) (g BindingGroup, bad []error, err er
 		return g, nil, errors.New(`a group needs "context" ("noun/mode") or "instance"`)
 	}
 	g.Extends, g.Fallback, g.Source = head.Extends, head.Fallback, head.Source
+	if list := bytes.TrimSpace(head.Bindings); len(list) > 0 && list[0] == '[' {
+		var items []json.RawMessage
+		if err := json.Unmarshal(list, &items); err != nil {
+			return g, nil, fmt.Errorf("bindings: %w", err)
+		}
+		for i, item := range items {
+			row, key, err := parseBindingLine(item)
+			if err != nil {
+				where := fmt.Sprintf("row %d", i+1)
+				if key != "" {
+					where = key
+				}
+				bad = append(bad, fmt.Errorf("%s: %w", where, err))
+				continue
+			}
+			row.Noun, row.Instance, row.Mode = g.Noun, g.Instance, g.Mode
+			if isPattern(key) {
+				row.Pattern = key
+			} else {
+				row.Keys = key
+			}
+			g.Rows = append(g.Rows, row)
+		}
+		return g, bad, nil
+	}
 	members, err := orderedMembers(head.Bindings)
 	if err != nil {
 		return g, nil, fmt.Errorf("bindings: %w", err)
@@ -309,25 +342,65 @@ func parseBindingValue(raw json.RawMessage, list bool) ([]Binding, error) {
 		if err := dec.Decode(&v); err != nil {
 			return nil, err
 		}
-		row := Binding{Hint: v.Hint, When: v.When, From: v.From, Hidden: v.Hidden, Help: v.Help, Replay: v.Replay, Capture: v.Capture, Unbind: v.Unbind}
-		switch {
-		case v.Action != nil && *v.Action != "":
-			if v.Unbind {
-				return nil, errors.New("an unbind takes no action")
-			}
-			q, err := actionRequest(*v.Action)
-			if err != nil {
-				return nil, err
-			}
-			q.Args, q.Target, q.Confirmed = v.Args, v.Target, v.Confirmed
-			row.Request = q
-		case v.Unbind:
-		default:
-			return nil, errors.New(`no "action" (null, or "unbind": true, unbinds)`)
+		row, err := v.row()
+		if err != nil {
+			return nil, err
 		}
 		return []Binding{row}, nil
 	}
 	return nil, fmt.Errorf("want an action string, an object, null or an array, got %s", raw)
+}
+
+// bindingLine is one row of a group's array: its key and its value.
+type bindingLine struct {
+	Key *string `json:"key"`
+	bindingValue
+}
+
+// parseBindingLine reads one row of a group's array: {"key", "action",
+// "args", ...}; key is what the row named, for a problem's place.
+func parseBindingLine(raw json.RawMessage) (Binding, string, error) {
+	raw = bytes.TrimSpace(raw)
+	if len(raw) == 0 || raw[0] != '{' {
+		return Binding{}, "", fmt.Errorf(`want a row {"key": ..., "action": ...}, got %s`, raw)
+	}
+	var v bindingLine
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&v); err != nil {
+		key := ""
+		if v.Key != nil {
+			key = *v.Key
+		}
+		return Binding{}, key, err
+	}
+	if v.Key == nil || *v.Key == "" {
+		return Binding{}, "", errors.New(`a row needs "key"`)
+	}
+	row, err := v.row()
+	return row, *v.Key, err
+}
+
+// row is the Binding a value's object form describes (its table and keys
+// are the caller's).
+func (v bindingValue) row() (Binding, error) {
+	row := Binding{Hint: v.Hint, When: v.When, From: v.From, Hidden: v.Hidden, Help: v.Help, Replay: v.Replay, Capture: v.Capture, Unbind: v.Unbind}
+	switch {
+	case v.Action != nil && *v.Action != "":
+		if v.Unbind {
+			return Binding{}, errors.New("an unbind takes no action")
+		}
+		q, err := actionRequest(*v.Action)
+		if err != nil {
+			return Binding{}, err
+		}
+		q.Args, q.Target, q.Confirmed = v.Args, v.Target, v.Confirmed
+		row.Request = q
+	case v.Unbind:
+	default:
+		return Binding{}, errors.New(`no "action" ("unbind": true unbinds)`)
+	}
+	return row, nil
 }
 
 // actionRequest is the request an action string names: noun.verb, split
@@ -456,12 +529,10 @@ func (r *Runtime) BindingsDoc() BindingsDoc {
 
 // FormatBindings writes doc in the grouped format: the BindingsHeader
 // line, then "modes" (names sorted, one per line) when there are any, then
-// "bindings" with one group per context, its keys one per line in table
-// order (a key with several rows is an array at its first row's place). A
-// value is the action string when the row has nothing else, else an
-// object with its fields in the order action, args, hint, when, from,
-// hidden, help, replay, capture, target, confirmed, unbind; an unguarded
-// unbind is null.
+// "bindings" with one group per table in doc order, its rows one per line
+// in table order (a key repeats where the table repeats it). A row is an
+// object with its fields in the order key, action, args, hint, when, from,
+// hidden, help, replay, capture, target, confirmed, unbind.
 func FormatBindings(doc BindingsDoc) ([]byte, error) {
 	var b bytes.Buffer
 	b.WriteString(BindingsHeader)
@@ -484,117 +555,53 @@ func FormatBindings(doc BindingsDoc) ([]byte, error) {
 		b.WriteString("  },\n")
 	}
 	b.WriteString("  \"bindings\": [")
-	written := 0
-	for _, g := range doc.Groups {
-		for _, run := range keyRuns(g.Rows) {
-			if written > 0 {
+	for i, g := range doc.Groups {
+		if i > 0 {
+			b.WriteByte(',')
+		}
+		b.WriteString("\n    ")
+		var head orderedObject
+		if g.Instance != "" {
+			head.add("instance", g.Instance, true)
+			head.add("mode", g.Mode, g.Mode != "")
+		} else {
+			head.add("context", g.Context(), true)
+		}
+		head.add("extends", g.Extends, g.Extends != "")
+		head.add("fallback", g.Fallback, g.Fallback)
+		head.add("source", g.Source, g.Source != "")
+		h, err := head.bytes()
+		if err != nil {
+			return nil, err
+		}
+		b.Write(h[:len(h)-1]) // the object without its "}"
+		b.WriteString(", \"bindings\": [")
+		for j, row := range g.Rows {
+			line, err := formatBindingLine(row)
+			if err != nil {
+				return nil, fmt.Errorf("%s %q: %w", g.label(), row.Keys+row.Pattern, err)
+			}
+			if j > 0 {
 				b.WriteByte(',')
 			}
-			written++
-			b.WriteString("\n    ")
-			var head orderedObject
-			if g.Instance != "" {
-				head.add("instance", g.Instance, true)
-				head.add("mode", g.Mode, g.Mode != "")
-			} else {
-				head.add("context", g.Context(), true)
-			}
-			head.add("extends", g.Extends, g.Extends != "")
-			head.add("fallback", g.Fallback, g.Fallback)
-			head.add("source", g.Source, g.Source != "")
-			h, err := head.bytes()
-			if err != nil {
-				return nil, err
-			}
-			b.Write(h[:len(h)-1]) // the object without its "}"
-			b.WriteString(", \"bindings\": {")
-			lines, err := formatGroupKeys(run)
-			if err != nil {
-				return nil, fmt.Errorf("%s: %w", g.label(), err)
-			}
-			for j, line := range lines {
-				if j > 0 {
-					b.WriteByte(',')
-				}
-				b.WriteString("\n      ")
-				b.Write(line)
-			}
-			if len(lines) > 0 {
-				b.WriteString("\n    ")
-			}
-			b.WriteString("}}")
+			b.WriteString("\n      ")
+			b.Write(line)
 		}
+		if len(g.Rows) > 0 {
+			b.WriteString("\n    ")
+		}
+		b.WriteString("]}")
 	}
-	if written > 0 {
+	if len(doc.Groups) > 0 {
 		b.WriteString("\n  ")
 	}
 	b.WriteString("]\n}\n")
 	return b.Bytes(), nil
 }
 
-// keyRuns splits a table's rows into the groups FormatBindings writes for
-// it, so reading them back gives the rows in exactly their table order: a
-// key's adjacent rows share one array, and a key that comes back after
-// other keys starts a new group for the same table (JSON keys are unique
-// in one object). An empty table is one empty group.
-func keyRuns(rows []Binding) [][]Binding {
-	runs := [][]Binding{nil}
-	seen := map[string]bool{}
-	last := ""
-	for i, row := range rows {
-		key := row.Keys + row.Pattern
-		if i > 0 && key != last && seen[key] {
-			runs = append(runs, nil)
-			seen = map[string]bool{}
-		}
-		runs[len(runs)-1] = append(runs[len(runs)-1], row)
-		seen[key], last = true, key
-	}
-	return runs
-}
-
-// formatGroupKeys is one line per key of a run (keyRuns): "key": value,
-// a key's rows (adjacent) one array.
-func formatGroupKeys(rows []Binding) ([][]byte, error) {
-	var order []string
-	byKey := map[string][]Binding{}
-	for _, row := range rows {
-		key := row.Keys + row.Pattern
-		if _, ok := byKey[key]; !ok {
-			order = append(order, key)
-		}
-		byKey[key] = append(byKey[key], row)
-	}
-	lines := make([][]byte, 0, len(order))
-	for _, key := range order {
-		name, _ := marshalPlain(key)
-		var value []byte
-		group := byKey[key]
-		if len(group) == 1 {
-			v, err := formatBindingValue(group[0], true)
-			if err != nil {
-				return nil, fmt.Errorf("key %q: %w", key, err)
-			}
-			value = v
-		} else {
-			parts := make([][]byte, len(group))
-			for i, row := range group {
-				v, err := formatBindingValue(row, false)
-				if err != nil {
-					return nil, fmt.Errorf("key %q: %w", key, err)
-				}
-				parts[i] = v
-			}
-			value = append(append([]byte{'['}, bytes.Join(parts, []byte(", "))...), ']')
-		}
-		lines = append(lines, append(append(name, ':', ' '), value...))
-	}
-	return lines, nil
-}
-
-// formatBindingValue is one row's value: a plain action string or null
-// when short is set and the row has nothing else, else the object.
-func formatBindingValue(row Binding, short bool) ([]byte, error) {
+// formatBindingLine is one row as its line: {"key", "action", "args",
+// then the rest}, an unbind {"key", "unbind": true} (with its when).
+func formatBindingLine(row Binding) ([]byte, error) {
 	q := row.Request
 	// A row spelled by an alias (Via) is written as it was spelled, so it
 	// loads back to the same action with the same Via.
@@ -605,16 +612,8 @@ func formatBindingValue(row Binding, short bool) ([]byte, error) {
 	}
 	// A row with no request is an unbind, as validateRow reads it.
 	row.Unbind = row.Unbind || q.Verb == ""
-	plain := row.Hint == "" && row.When == "" && len(row.From) == 0 && !row.Hidden && row.Help == "" &&
-		!row.Replay && !row.Capture && len(q.Args) == 0 && q.Target == "" && !q.Confirmed
-	if row.Unbind {
-		if short && plain {
-			return []byte("null"), nil
-		}
-	} else if short && plain {
-		return marshalPlain(q.Key())
-	}
 	var o orderedObject
+	o.add("key", row.Keys+row.Pattern, true)
 	if !row.Unbind {
 		o.add("action", q.Key(), true)
 		o.add("args", q.Args, len(q.Args) > 0)

@@ -1,26 +1,30 @@
-// ochazuke bindings (JSONC): groups by "noun/mode" context; each key maps to an action, {action, args, hint, when, ...}, null (unbind) or an array of those
+// ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, {key, action, args, hint, ...} or {key, unbind: true}; a key may repeat: the first row whose action is available answers
 {
   "modes": {
     "list_filter": {}
   },
   "bindings": [
-    {"context": "ochazuke.list/list_filter", "bindings": {
-      "printable": {"action": "ochazuke.list.filter-type", "from": {"text": "text"}, "hidden": true},
-      "paste": {"action": "ochazuke.list.filter-type", "from": {"text": "text"}, "hidden": true},
-      "space": {"action": "ochazuke.list.filter-type", "args": {"text": " "}, "hidden": true},
-      "backspace": [{"action": "ochazuke.list.filter-keep", "when": "list-unfiltered", "hidden": true}, {"action": "ochazuke.list.filter-erase", "hidden": true}],
-      "ctrl+h": [{"action": "ochazuke.list.filter-keep", "when": "list-unfiltered", "hidden": true}, {"action": "ochazuke.list.filter-erase", "hidden": true}],
-      "ctrl+u": {"action": "ochazuke.list.filter", "args": {"query": ""}, "hidden": true},
-      "down": {"action": "ochazuke.list.move", "args": {"clamp": true, "delta": 1}},
-      "ctrl+n": {"action": "ochazuke.list.move", "args": {"clamp": true, "delta": 1}},
-      "up": {"action": "ochazuke.list.move", "args": {"clamp": true, "delta": -1}},
-      "ctrl+p": {"action": "ochazuke.list.move", "args": {"clamp": true, "delta": -1}},
-      "enter": [{"action": "ochazuke.list.filter-choose", "when": "list-chooses"}, {"action": "ochazuke.list.filter-keep"}],
-      "esc": "ochazuke.list.filter-clear"
-    }},
-    {"context": "ochazuke.list/normal", "bindings": {
-      "V": {"action": "ochazuke.list.visual", "hidden": true},
-      "esc": [{"action": "ochazuke.list.end-visual", "when": "list-visual"}, {"action": "ochazuke.list.filter-clear"}]
-    }}
+    {"context": "ochazuke.list/list_filter", "bindings": [
+      {"key": "printable", "action": "ochazuke.list.filter-type", "from": {"text": "text"}, "hidden": true},
+      {"key": "paste", "action": "ochazuke.list.filter-type", "from": {"text": "text"}, "hidden": true},
+      {"key": "space", "action": "ochazuke.list.filter-type", "args": {"text": " "}, "hidden": true},
+      {"key": "backspace", "action": "ochazuke.list.filter-keep", "when": "list-unfiltered", "hidden": true},
+      {"key": "backspace", "action": "ochazuke.list.filter-erase", "hidden": true},
+      {"key": "ctrl+h", "action": "ochazuke.list.filter-keep", "when": "list-unfiltered", "hidden": true},
+      {"key": "ctrl+h", "action": "ochazuke.list.filter-erase", "hidden": true},
+      {"key": "ctrl+u", "action": "ochazuke.list.filter", "args": {"query": ""}, "hidden": true},
+      {"key": "down", "action": "ochazuke.list.move", "args": {"clamp": true, "delta": 1}},
+      {"key": "ctrl+n", "action": "ochazuke.list.move", "args": {"clamp": true, "delta": 1}},
+      {"key": "up", "action": "ochazuke.list.move", "args": {"clamp": true, "delta": -1}},
+      {"key": "ctrl+p", "action": "ochazuke.list.move", "args": {"clamp": true, "delta": -1}},
+      {"key": "enter", "action": "ochazuke.list.filter-choose", "when": "list-chooses"},
+      {"key": "enter", "action": "ochazuke.list.filter-keep"},
+      {"key": "esc", "action": "ochazuke.list.filter-clear"}
+    ]},
+    {"context": "ochazuke.list/normal", "bindings": [
+      {"key": "V", "action": "ochazuke.list.visual", "hidden": true},
+      {"key": "esc", "action": "ochazuke.list.end-visual", "when": "list-visual"},
+      {"key": "esc", "action": "ochazuke.list.filter-clear"}
+    ]}
   ]
 }

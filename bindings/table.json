@@ -1,29 +1,43 @@
-// ochazuke bindings (JSONC): groups by "noun/mode" context; each key maps to an action, {action, args, hint, when, ...}, null (unbind) or an array of those
+// ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, {key, action, args, hint, ...} or {key, unbind: true}; a key may repeat: the first row whose action is available answers
 {
   "bindings": [
-    {"context": "ochazuke.list/normal", "bindings": {
-      "h": [{"action": "ochazuke.list.column", "args": {"delta": -1}, "when": "table-column-left", "from": {"steps": "count"}}, {"action": "ochazuke.list.scroll-columns", "args": {"delta": -1}, "when": "table-scrolls-left", "from": {"steps": "count"}}, {"action": "ochazuke.focus.previous", "when": "table-spills-left"}, {"action": "ochazuke.list.column", "args": {"delta": -1}, "when": "table-cells", "from": {"steps": "count"}}, {"action": "ochazuke.list.scroll-columns", "args": {"delta": -1}, "when": "table-scrolls-clamp", "from": {"steps": "count"}}],
-      "left": [{"action": "ochazuke.list.column", "args": {"delta": -1}, "when": "table-column-left", "from": {"steps": "count"}}, {"action": "ochazuke.list.scroll-columns", "args": {"delta": -1}, "when": "table-scrolls-left", "from": {"steps": "count"}}, {"action": "ochazuke.focus.previous", "when": "table-spills-left"}, {"action": "ochazuke.list.column", "args": {"delta": -1}, "when": "table-cells", "from": {"steps": "count"}}, {"action": "ochazuke.list.scroll-columns", "args": {"delta": -1}, "when": "table-scrolls-clamp", "from": {"steps": "count"}}],
-      "l": [{"action": "ochazuke.list.column", "args": {"delta": 1}, "when": "table-column-right", "from": {"steps": "count"}}, {"action": "ochazuke.list.scroll-columns", "args": {"delta": 1}, "when": "table-scrolls-right", "from": {"steps": "count"}}, {"action": "ochazuke.focus.next", "when": "table-spills-right"}, {"action": "ochazuke.list.column", "args": {"delta": 1}, "when": "table-cells", "from": {"steps": "count"}}, {"action": "ochazuke.list.scroll-columns", "args": {"delta": 1}, "when": "table-scrolls-clamp", "from": {"steps": "count"}}],
-      "right": [{"action": "ochazuke.list.column", "args": {"delta": 1}, "when": "table-column-right", "from": {"steps": "count"}}, {"action": "ochazuke.list.scroll-columns", "args": {"delta": 1}, "when": "table-scrolls-right", "from": {"steps": "count"}}, {"action": "ochazuke.focus.next", "when": "table-spills-right"}, {"action": "ochazuke.list.column", "args": {"delta": 1}, "when": "table-cells", "from": {"steps": "count"}}, {"action": "ochazuke.list.scroll-columns", "args": {"delta": 1}, "when": "table-scrolls-clamp", "from": {"steps": "count"}}],
-      "home": {"action": "ochazuke.list.column", "args": {"to": "first"}, "when": "table-cells"},
-      "end": {"action": "ochazuke.list.column", "args": {"to": "last"}, "when": "table-cells"},
-      "$": {"action": "ochazuke.list.column", "args": {"to": "last"}, "when": "table-cells"},
-      "^": {"action": "ochazuke.list.column", "args": {"to": "first"}, "when": "table-cells"},
-      "0": {"action": "ochazuke.list.column", "args": {"to": "first"}, "when": "no-count"},
-      "|": {"action": "ochazuke.list.column", "when": "table-cells", "from": {"index": "count"}},
-      "g c": "ochazuke.list.choose-column",
-      "y": {"action": "ochazuke.list.yank", "args": {"what": "cell"}, "when": "table-cells", "hidden": true},
-      "Y": {"action": "ochazuke.list.yank", "args": {"what": "row"}, "hidden": true},
-      "z >": {"action": "ochazuke.list.resize-column", "args": {"delta": 1}, "from": {"steps": "count"}, "hidden": true},
-      "z <": {"action": "ochazuke.list.resize-column", "args": {"delta": -1}, "from": {"steps": "count"}, "hidden": true},
-      "z =": {"action": "ochazuke.list.reset-columns", "when": "table-cells", "hidden": true},
-      "z p": {"action": "ochazuke.list.toggle-pin-column", "when": "table-cells", "hidden": true}
-    }},
-    {"context": "ochazuke.list/normal", "bindings": {
-      "$": {"action": "ochazuke.list.scroll-columns", "args": {"to": "last"}},
-      "^": {"action": "ochazuke.list.scroll-columns", "args": {"to": "first"}},
-      "0": {"action": "ochazuke.list.scroll-columns", "args": {"to": "first"}, "when": "row-table-no-count"}
-    }}
+    {"context": "ochazuke.list/normal", "bindings": [
+      {"key": "h", "action": "ochazuke.list.column", "args": {"delta": -1}, "when": "table-column-left", "from": {"steps": "count"}},
+      {"key": "h", "action": "ochazuke.list.scroll-columns", "args": {"delta": -1}, "when": "table-scrolls-left", "from": {"steps": "count"}},
+      {"key": "h", "action": "ochazuke.focus.previous", "when": "table-spills-left"},
+      {"key": "h", "action": "ochazuke.list.column", "args": {"delta": -1}, "when": "table-cells", "from": {"steps": "count"}},
+      {"key": "h", "action": "ochazuke.list.scroll-columns", "args": {"delta": -1}, "when": "table-scrolls-clamp", "from": {"steps": "count"}},
+      {"key": "left", "action": "ochazuke.list.column", "args": {"delta": -1}, "when": "table-column-left", "from": {"steps": "count"}},
+      {"key": "left", "action": "ochazuke.list.scroll-columns", "args": {"delta": -1}, "when": "table-scrolls-left", "from": {"steps": "count"}},
+      {"key": "left", "action": "ochazuke.focus.previous", "when": "table-spills-left"},
+      {"key": "left", "action": "ochazuke.list.column", "args": {"delta": -1}, "when": "table-cells", "from": {"steps": "count"}},
+      {"key": "left", "action": "ochazuke.list.scroll-columns", "args": {"delta": -1}, "when": "table-scrolls-clamp", "from": {"steps": "count"}},
+      {"key": "l", "action": "ochazuke.list.column", "args": {"delta": 1}, "when": "table-column-right", "from": {"steps": "count"}},
+      {"key": "l", "action": "ochazuke.list.scroll-columns", "args": {"delta": 1}, "when": "table-scrolls-right", "from": {"steps": "count"}},
+      {"key": "l", "action": "ochazuke.focus.next", "when": "table-spills-right"},
+      {"key": "l", "action": "ochazuke.list.column", "args": {"delta": 1}, "when": "table-cells", "from": {"steps": "count"}},
+      {"key": "l", "action": "ochazuke.list.scroll-columns", "args": {"delta": 1}, "when": "table-scrolls-clamp", "from": {"steps": "count"}},
+      {"key": "right", "action": "ochazuke.list.column", "args": {"delta": 1}, "when": "table-column-right", "from": {"steps": "count"}},
+      {"key": "right", "action": "ochazuke.list.scroll-columns", "args": {"delta": 1}, "when": "table-scrolls-right", "from": {"steps": "count"}},
+      {"key": "right", "action": "ochazuke.focus.next", "when": "table-spills-right"},
+      {"key": "right", "action": "ochazuke.list.column", "args": {"delta": 1}, "when": "table-cells", "from": {"steps": "count"}},
+      {"key": "right", "action": "ochazuke.list.scroll-columns", "args": {"delta": 1}, "when": "table-scrolls-clamp", "from": {"steps": "count"}},
+      {"key": "home", "action": "ochazuke.list.column", "args": {"to": "first"}, "when": "table-cells"},
+      {"key": "end", "action": "ochazuke.list.column", "args": {"to": "last"}, "when": "table-cells"},
+      {"key": "$", "action": "ochazuke.list.column", "args": {"to": "last"}, "when": "table-cells"},
+      {"key": "^", "action": "ochazuke.list.column", "args": {"to": "first"}, "when": "table-cells"},
+      {"key": "0", "action": "ochazuke.list.column", "args": {"to": "first"}, "when": "no-count"},
+      {"key": "|", "action": "ochazuke.list.column", "when": "table-cells", "from": {"index": "count"}},
+      {"key": "g c", "action": "ochazuke.list.choose-column"},
+      {"key": "y", "action": "ochazuke.list.yank", "args": {"what": "cell"}, "when": "table-cells", "hidden": true},
+      {"key": "Y", "action": "ochazuke.list.yank", "args": {"what": "row"}, "hidden": true},
+      {"key": "z >", "action": "ochazuke.list.resize-column", "args": {"delta": 1}, "from": {"steps": "count"}, "hidden": true},
+      {"key": "z <", "action": "ochazuke.list.resize-column", "args": {"delta": -1}, "from": {"steps": "count"}, "hidden": true},
+      {"key": "z =", "action": "ochazuke.list.reset-columns", "when": "table-cells", "hidden": true},
+      {"key": "z p", "action": "ochazuke.list.toggle-pin-column", "when": "table-cells", "hidden": true},
+      {"key": "$", "action": "ochazuke.list.scroll-columns", "args": {"to": "last"}},
+      {"key": "^", "action": "ochazuke.list.scroll-columns", "args": {"to": "first"}},
+      {"key": "0", "action": "ochazuke.list.scroll-columns", "args": {"to": "first"}, "when": "row-table-no-count"}
+    ]}
   ]
 }

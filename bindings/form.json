@@ -1,54 +1,54 @@
-// ochazuke bindings (JSONC): groups by "noun/mode" context; each key maps to an action, {action, args, hint, when, ...}, null (unbind) or an array of those
+// ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, {key, action, args, hint, ...} or {key, unbind: true}; a key may repeat: the first row whose action is available answers
 {
   "bindings": [
-    {"context": "ochazuke.form/normal", "bindings": {
-      "q": "ochazuke.form.leave",
-      "esc": "ochazuke.form.leave",
-      "u": "ochazuke.form.undo",
-      "ctrl+r": "ochazuke.form.redo"
-    }},
-    {"context": "ochazuke.form-choice/normal", "bindings": {
-      "j": "ochazuke.form.next",
-      "down": "ochazuke.form.next",
-      "k": "ochazuke.form.previous",
-      "up": "ochazuke.form.previous",
-      "enter": "ochazuke.form.choose",
-      "space": "ochazuke.form.choose",
-      "i": "ochazuke.form.choose"
-    }},
-    {"context": "ochazuke.form-field/insert", "bindings": {
-      "enter": {"action": "ochazuke.form.next", "args": {"insert": true}},
-      "tab": {"action": "ochazuke.form.next", "args": {"insert": true}},
-      "shift+tab": {"action": "ochazuke.form.previous", "args": {"insert": true}}
-    }},
-    {"context": "ochazuke.form-field/normal", "bindings": {
-      "j": "ochazuke.form.next",
-      "down": "ochazuke.form.next",
-      "k": "ochazuke.form.previous",
-      "up": "ochazuke.form.previous"
-    }},
-    {"context": "ochazuke.form-option/normal", "bindings": {
-      "enter": "ochazuke.form-option.pick",
-      "space": "ochazuke.form-option.pick",
-      "q": "ochazuke.modal.pop"
-    }},
-    {"context": "ochazuke.form-suggest/insert", "bindings": {
-      "enter": {"action": "ochazuke.form.next", "args": {"insert": true}},
-      "tab": {"action": "ochazuke.form.next", "args": {"insert": true}},
-      "shift+tab": {"action": "ochazuke.form.previous", "args": {"insert": true}},
-      "ctrl+space": "ochazuke.form.suggest"
-    }},
-    {"context": "ochazuke.form-suggest/normal", "bindings": {
-      "j": "ochazuke.form.next",
-      "down": "ochazuke.form.next",
-      "k": "ochazuke.form.previous",
-      "up": "ochazuke.form.previous",
-      "enter": "ochazuke.form.suggest",
-      "ctrl+space": "ochazuke.form.suggest"
-    }},
-    {"context": "ochazuke.form-text/insert", "bindings": {
-      "tab": {"action": "ochazuke.form.next", "args": {"insert": true}},
-      "shift+tab": {"action": "ochazuke.form.previous", "args": {"insert": true}}
-    }}
+    {"context": "ochazuke.form/normal", "bindings": [
+      {"key": "q", "action": "ochazuke.form.leave"},
+      {"key": "esc", "action": "ochazuke.form.leave"},
+      {"key": "u", "action": "ochazuke.form.undo"},
+      {"key": "ctrl+r", "action": "ochazuke.form.redo"}
+    ]},
+    {"context": "ochazuke.form-choice/normal", "bindings": [
+      {"key": "j", "action": "ochazuke.form.next"},
+      {"key": "down", "action": "ochazuke.form.next"},
+      {"key": "k", "action": "ochazuke.form.previous"},
+      {"key": "up", "action": "ochazuke.form.previous"},
+      {"key": "enter", "action": "ochazuke.form.choose"},
+      {"key": "space", "action": "ochazuke.form.choose"},
+      {"key": "i", "action": "ochazuke.form.choose"}
+    ]},
+    {"context": "ochazuke.form-field/insert", "bindings": [
+      {"key": "enter", "action": "ochazuke.form.next", "args": {"insert": true}},
+      {"key": "tab", "action": "ochazuke.form.next", "args": {"insert": true}},
+      {"key": "shift+tab", "action": "ochazuke.form.previous", "args": {"insert": true}}
+    ]},
+    {"context": "ochazuke.form-field/normal", "bindings": [
+      {"key": "j", "action": "ochazuke.form.next"},
+      {"key": "down", "action": "ochazuke.form.next"},
+      {"key": "k", "action": "ochazuke.form.previous"},
+      {"key": "up", "action": "ochazuke.form.previous"}
+    ]},
+    {"context": "ochazuke.form-option/normal", "bindings": [
+      {"key": "enter", "action": "ochazuke.form-option.pick"},
+      {"key": "space", "action": "ochazuke.form-option.pick"},
+      {"key": "q", "action": "ochazuke.modal.pop"}
+    ]},
+    {"context": "ochazuke.form-suggest/insert", "bindings": [
+      {"key": "enter", "action": "ochazuke.form.next", "args": {"insert": true}},
+      {"key": "tab", "action": "ochazuke.form.next", "args": {"insert": true}},
+      {"key": "shift+tab", "action": "ochazuke.form.previous", "args": {"insert": true}},
+      {"key": "ctrl+space", "action": "ochazuke.form.suggest"}
+    ]},
+    {"context": "ochazuke.form-suggest/normal", "bindings": [
+      {"key": "j", "action": "ochazuke.form.next"},
+      {"key": "down", "action": "ochazuke.form.next"},
+      {"key": "k", "action": "ochazuke.form.previous"},
+      {"key": "up", "action": "ochazuke.form.previous"},
+      {"key": "enter", "action": "ochazuke.form.suggest"},
+      {"key": "ctrl+space", "action": "ochazuke.form.suggest"}
+    ]},
+    {"context": "ochazuke.form-text/insert", "bindings": [
+      {"key": "tab", "action": "ochazuke.form.next", "args": {"insert": true}},
+      {"key": "shift+tab", "action": "ochazuke.form.previous", "args": {"insert": true}}
+    ]}
   ]
 }

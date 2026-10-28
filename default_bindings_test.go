@@ -234,20 +234,20 @@ func TestBindingsDefaultsPrintsTheDefaultLayer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("the output does not read back: %v\n%s", err, text)
 	}
-	if !strings.Contains(text, `{"context": "app/normal", "source": "go", "bindings": {
-      "a": "test.alpha",`) {
+	if !strings.Contains(text, `{"context": "app/normal", "source": "go", "bindings": [
+      {"key": "a", "action": "test.alpha"},`) {
 		t.Errorf("the fixture's Go rows are not tagged go:\n%s", text)
 	}
-	if !strings.Contains(text, `"source": "ochazuke/bindings/app.json", "bindings": {
-      ":": "ochazuke.palette.open",
-      "ctrl+y": {"action": "ochazuke.yank-history.open", "hidden": true},
-      "?": "ochazuke.bindings.help",`) {
+	if !strings.Contains(text, `"source": "ochazuke/bindings/app.json", "bindings": [
+      {"key": ":", "action": "ochazuke.palette.open"},
+      {"key": "ctrl+y", "action": "ochazuke.yank-history.open", "hidden": true},
+      {"key": "?", "action": "ochazuke.bindings.help"},`) {
 		t.Errorf("the default ? is not back in place:\n%s", text)
 	}
 	if strings.Contains(text, "test.gamma") {
 		t.Errorf("the user's rows are printed:\n%s", text)
 	}
-	if !strings.Contains(text, `"source": "generated"`) || !strings.Contains(text, `"g esc": "ochazuke.mode.leave"`) {
+	if !strings.Contains(text, `"source": "generated"`) || !strings.Contains(text, `{"key": "g esc", "action": "ochazuke.mode.leave"}`) {
 		t.Errorf("no generated prefix cancel:\n%s", text)
 	}
 	// Every default row is printed once, in its table, with its source.
