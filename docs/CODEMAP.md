@@ -492,7 +492,7 @@ Root package `ochazuke` is flat: 75 source files, 76 test files. Each entry list
 
 ### table_cells.go
 
-- lines: 511 · tests: table_cells_test.go
+- lines: 513 · tests: table_cells_test.go
 - purpose: CellSelect makes a table (AddList with Columns) cell-based: a current column beside the selected row, moved with h/l, 0/$, N| and g c, and the cell keys y an...
 - methods: List(13)
 - funcs: CellSelect, RowSelect
@@ -500,10 +500,10 @@ Root package `ochazuke` is flat: 75 source files, 76 test files. Each entry list
 
 ### table_columns.go
 
-- lines: 429 · tests: table_columns_test.go
+- lines: 453 · tests: table_columns_test.go
 - purpose: ColumnOffset is the table's column offset: 0 unscrolled, else k for the view that starts the scrolling columns at the k-th.
-- methods: List(10), colView(6)
-- leans on: runtime.go(15), list.go(13), table.go(10), instance.go(5)
+- methods: List(10), Runtime(1), colView(6)
+- leans on: runtime.go(17), list.go(14), table.go(10), instance.go(7)
 
 ### table_pins.go
 
@@ -976,7 +976,7 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/build.go
 
-- lines: 1402
+- lines: 1409
 - purpose: Session is one built story: the runtime, the model and the demo state the verbs act on (fake jobs and panes).
 - types: Session, Options
 - methods: Session(25), datedView(1), storyCommands(3)
@@ -1019,7 +1019,7 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/story.go
 
-- lines: 634
+- lines: 637
 - purpose: Story is one scenario file.
 - types: Story, Page, ChooserSpec, ChooserRowSpec, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, MarkdownSpec, TimelineSpec, CardSpec, SectionSpec, CommandsSpec, CatalogSpec, InputSpec, CompletionSpec, TermSpec, HintsSpec, MarkSpec, JobSpec, BindSpec, VerbSpec, Event, Expect, Expects
 - methods: Event(3), Expects(2), Story(5)

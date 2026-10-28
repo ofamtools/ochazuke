@@ -67,7 +67,8 @@ it to the timer's deadline and delivers the timer's message
     inputs: [{ id: "name", label: "name", text: "hello",
                completions: [{ trigger: "@", items: ["src/main.go"], fail: "" }] }],
     trees: [{ id: "t", editable: true, failWrites: 0, collapsed: ["p1"],
-              nodes: [{ id: "p1", label: "one" }, { id: "c1", parent: "p1", label: "child" }] }],
+              nodes: [{ id: "p1", label: "one" }, { id: "c1", parent: "p1", label: "child" }],
+              columns: [] }],      // columns make the tree a table; nodes bring "cells"
     terminal: { fake: true, attach: "a1", height: 6,
                 hints: { key: "f", dim: true, marks: [{ row: 0, col: 0, text: "a" }] } },
                                      // hints: ctrl+a f sets the overlay and enters the hints mode;
