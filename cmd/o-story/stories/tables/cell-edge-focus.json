@@ -1,0 +1,127 @@
+{
+  "name": "cell mode: h on the first column moves the focus to the previous stop, l on the last to the next; in between they move the cell (R5.11)",
+  "area": "tables",
+  "width": 40,
+  "height": 14,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      },
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "name",
+            "width": 8
+          },
+          {
+            "title": "alpha",
+            "width": 8
+          },
+          {
+            "title": "bravo",
+            "width": 8
+          },
+          {
+            "title": "charlie",
+            "width": 8
+          },
+          {
+            "title": "delta",
+            "width": 8
+          },
+          {
+            "title": "echo",
+            "width": 8
+          }
+        ],
+        "items": [
+          {
+            "id": "t1",
+            "label": "row1",
+            "cells": [
+              "row1",
+              "a-1",
+              "b-1",
+              "c-1",
+              "d-1",
+              "e-1"
+            ]
+          },
+          {
+            "id": "t2",
+            "label": "row2",
+            "cells": [
+              "row2",
+              "a-2",
+              "b-2",
+              "c-2",
+              "d-2",
+              "e-2"
+            ]
+          },
+          {
+            "id": "t3",
+            "label": "row3",
+            "cells": [
+              "row3",
+              "a-3",
+              "b-3",
+              "c-3",
+              "d-3",
+              "e-3"
+            ]
+          }
+        ],
+        "cellSelect": true
+      },
+      {
+        "id": "b",
+        "rows": 2
+      }
+    ],
+    "focus": "t1"
+  },
+  "script": [
+    "l",
+    "h",
+    "h",
+    "}",
+    "$",
+    "l"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "t1",
+      "cell": "a-1"
+    },
+    {
+      "after": 2,
+      "focus": "t1",
+      "cell": "row1"
+    },
+    {
+      "after": 3,
+      "focus": "a1"
+    },
+    {
+      "after": 4,
+      "focus": "t1",
+      "cell": "row1"
+    },
+    {
+      "after": 5,
+      "focus": "t1",
+      "cell": "e-1"
+    },
+    {
+      "after": 6,
+      "focus": "b1"
+    }
+  ]
+}

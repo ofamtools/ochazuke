@@ -1,7 +1,7 @@
 {
   "name": "column motions: $ shows the last column, z h / z l one column, ^ and 0 back; the first column stays",
   "area": "tables",
-  "width": 44,
+  "width": 52,
   "height": 6,
   "chrome": "none",
   "page": {

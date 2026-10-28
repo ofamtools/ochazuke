@@ -381,13 +381,13 @@ Conformance:
 | normal | bindings-help | `bindings-help.mode` `bindings-help.noun` `bindings-help.place` `bindings-help.view` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
-| normal | demo | `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.launch` `demo.notify` `demo.open` `demo.reload` `demo.ship` |
+| normal | demo | `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.launch` `demo.notify` `demo.open` `demo.ping` `demo.reload` `demo.ship` |
 | normal | detail | `detail.scroll` |
 | normal | focus | `focus.next` `focus.previous` `focus.set` |
 | normal | form | `form.choose` `form.leave` `form.next` `form.redo` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
 | normal | input | `input.begin` `input.undo` |
-| normal | list | `list.apply` `list.column` `list.filter-clear` `list.filter-open` `list.goto` `list.move` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.visual` |
+| normal | list | `list.apply` `list.column` `list.filter-clear` `list.filter-open` `list.goto` `list.move` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.toggle-pin-column` `list.visual` |
 | normal | markdown | `markdown.delete` `markdown.fold` `markdown.insert` `markdown.next-block` `markdown.next-kind` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
 | normal | modal | `modal.pop` |
 | normal | mode | `mode.enter` |
@@ -476,6 +476,7 @@ Mode edges (from → to via):
 - `normal z` → `normal` via `list.reset-columns`
 - `normal z` → `normal` via `list.resize-column`
 - `normal z` → `normal` via `list.scroll-columns`
+- `normal z` → `normal` via `list.toggle-pin-column`
 - `normal z` → `normal` via `markdown.fold`
 - `normal z` → `normal` via `timeline.close-all`
 - `normal z` → `normal` via `timeline.fold`

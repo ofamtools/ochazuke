@@ -1,6 +1,6 @@
 {
-  "name": "a table without cellSelect selects rows: h and l do not move a column (no current cell), $ scrolls to the view with the last column and 0 back",
-  "width": 44,
+  "name": "a table without cellSelect selects rows: l and h scroll its columns (no current cell, R5.11), $ scrolls to the view with the last column and 0 back",
+  "width": 52,
   "height": 6,
   "chrome": "none",
   "page": {
@@ -93,16 +93,23 @@
       "focus": "t2",
       "highlighted": 1,
       "contains": [
-        "harness"
+        "‹1",
+        "branch"
       ],
       "lacks": [
-        "branch"
+        "harness"
       ]
     },
     {
       "after": 2,
       "cell": "",
-      "focus": "t2"
+      "focus": "t2",
+      "contains": [
+        "harness"
+      ],
+      "lacks": [
+        "‹1"
+      ]
     },
     {
       "after": 3,

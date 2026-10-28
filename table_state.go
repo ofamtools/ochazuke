@@ -6,6 +6,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 )
 
 // TablesFile is the remembered table views in the state directory: an
@@ -13,14 +14,25 @@ import (
 const TablesFile = "tables.json"
 
 // TableState is what a table remembers across a restart: its current
-// column (a cell-mode table's) and the widths its columns were given with
-// z > and z < (column index to cells; a column left out is automatic).
+// column (a cell-mode table's), the widths its columns were given with
+// z > and z < (column index to cells; a column left out is automatic) and
+// the pinned columns the user chose (any table's; nil keeps the default
+// pins, an empty list pins none).
 type TableState struct {
 	Column int         `json:"column,omitempty"`
 	Widths map[int]int `json:"widths,omitempty"`
+	Pins   *[]int      `json:"pins,omitempty"`
 }
 
-func (s TableState) empty() bool { return s.Column == 0 && len(s.Widths) == 0 }
+func (s TableState) empty() bool { return s.Column == 0 && len(s.Widths) == 0 && s.Pins == nil }
+
+// samePins reports whether two remembered pin choices are the same.
+func samePins(a, b *[]int) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return slices.Equal(*a, *b)
+}
 
 // TablesPath is the tables file, "" when table views are not persisted
 // (no state directory: Config.Disable, a test binary).
@@ -66,6 +78,10 @@ func (r *Runtime) TableState(id string) TableState {
 	}
 	s := c.tablesState()[id]
 	s.Widths = maps.Clone(s.Widths)
+	if s.Pins != nil {
+		pins := slices.Clone(*s.Pins)
+		s.Pins = &pins
+	}
 	return s
 }
 
@@ -79,13 +95,17 @@ func (r *Runtime) SetTableState(id string, s TableState) {
 	}
 	tables := c.tablesState()
 	old := tables[id]
-	if old.Column == s.Column && maps.Equal(old.Widths, s.Widths) {
+	if old.Column == s.Column && maps.Equal(old.Widths, s.Widths) && samePins(old.Pins, s.Pins) {
 		return
 	}
 	if s.empty() {
 		delete(tables, id)
 	} else {
 		s.Widths = maps.Clone(s.Widths)
+		if s.Pins != nil {
+			pins := slices.Clone(*s.Pins)
+			s.Pins = &pins
+		}
 		tables[id] = s
 	}
 	path := c.TablesPath()

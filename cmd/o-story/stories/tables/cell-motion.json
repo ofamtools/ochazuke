@@ -1,6 +1,6 @@
 {
   "name": "cell motion: h/l move by column, j keeps it, a column dropped by priority scrolls into view, 0 goes back to the start",
-  "width": 44,
+  "width": 52,
   "height": 6,
   "chrome": "none",
   "page": {

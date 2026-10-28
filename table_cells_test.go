@@ -39,30 +39,30 @@ func cellTable(t *testing.T, width int, stateDir string) (*Runtime, *Model, *Lis
 }
 
 func TestCellMotionsMoveByColumnAndScrollItIntoView(t *testing.T) {
-	r, m, l := cellTable(t, 36, "")
+	r, m, l := cellTable(t, 44, "") // 36 for the columns, 8 for the edge markers
 	for _, step := range []struct {
 		keys        string
 		col, offset int
 		header      string
 	}{
-		{"l", 1, 0, "name alpha beta"},
-		{"l", 2, 0, "name alpha beta"},
-		{"l", 3, 2, "name beta gamma"}, // gamma was dropped by Priority: the view scrolls as little as shows it
-		{"right", 4, 3, "name gamma delta"},
-		{"l", 4, 3, "name gamma delta"}, // the last column: the edge is quiet
-		{"h", 3, 3, "name gamma delta"},
-		{"left h", 1, 0, "name alpha beta"}, // left of the view and shown unscrolled: back to the start
-		{"$", 4, 3, "name gamma delta"},
-		{"0", 0, 0, "name alpha beta"},
-		{"end", 4, 3, "name gamma delta"},
-		{"^", 0, 0, "name alpha beta"},
-		{"3 |", 2, 0, "name alpha beta"},
-		{"4 |", 3, 2, "name beta gamma"},
-		{"|", 0, 0, "name alpha beta"},
-		{"9 |", 4, 3, "name gamma delta"}, // clamped
-		{"home 2 l", 2, 0, "name alpha beta"},
-		{"z l", 2, 1, "name alpha beta"},      // still shown: the column stays
-		{"z l z l", 3, 3, "name gamma delta"}, // beta scrolled off: the column is carried to the nearest shown
+		{"l", 1, 0, "name alpha beta 2›"},
+		{"l", 2, 0, "name alpha beta 2›"},
+		{"l", 3, 2, "name ‹1 beta gamma 1›"}, // gamma was dropped by Priority: the view scrolls as little as shows it
+		{"right", 4, 3, "name ‹2 gamma delta"},
+		{"l", 4, 3, "name ‹2 gamma delta"}, // the last column, the page's only stop: the edge is quiet
+		{"h", 3, 3, "name ‹2 gamma delta"},
+		{"left h", 1, 0, "name alpha beta 2›"}, // left of the view and shown unscrolled: back to the start
+		{"$", 4, 3, "name ‹2 gamma delta"},
+		{"0", 0, 0, "name alpha beta 2›"},
+		{"end", 4, 3, "name ‹2 gamma delta"},
+		{"^", 0, 0, "name alpha beta 2›"},
+		{"3 |", 2, 0, "name alpha beta 2›"},
+		{"4 |", 3, 2, "name ‹1 beta gamma 1›"},
+		{"|", 0, 0, "name alpha beta 2›"},
+		{"9 |", 4, 3, "name ‹2 gamma delta"}, // clamped
+		{"home 2 l", 2, 0, "name alpha beta 2›"},
+		{"z l", 2, 2, "name ‹1 beta gamma 1›"}, // offset 1 draws what 0 does, so z l skips it; beta stays shown
+		{"z l", 3, 3, "name ‹2 gamma delta"},   // beta scrolled off: the column is carried to the nearest shown
 	} {
 		motionKeys(t, r, m, step.keys)
 		if got := header(m); l.Column() != step.col || l.ColumnOffset() != step.offset || got != step.header {
@@ -80,8 +80,9 @@ func TestCellMotionsMoveByColumnAndScrollItIntoView(t *testing.T) {
 }
 
 // A plain list and a table without CellSelect (row-select, the default;
-// RowSelect is a deprecated no-op) keep h, l and the cell keys free for
-// the levels outside the list; a row table still answers Y and V.
+// RowSelect is a deprecated no-op) keep the cell keys free for the levels
+// outside the list; a row table still answers Y and V, and its h and l
+// scroll its columns (TestRowTableHLScrollThenMoveTheFocus).
 func TestCellKeysAnswerOnlyOnACellModeTable(t *testing.T) {
 	r, _, _, _ := motionPage(t)
 	for _, key := range []string{"h", "l", "|", "y", "Y", "V"} {
@@ -91,7 +92,7 @@ func TestCellKeysAnswerOnlyOnACellModeTable(t *testing.T) {
 	}
 	for name, opts := range map[string][]InstanceOption{"default": nil, "RowSelect": {RowSelect()}} {
 		r2, m2, l2 := columnTable(t, 36, opts...)
-		for _, key := range []string{"h", "l", "|", "y", "home", "end", "g c", "z >", "z <", "z ="} {
+		for _, key := range []string{"h", "|", "y", "home", "end", "g c", "z >", "z <", "z =", "z p"} {
 			motionKeys(t, r2, m2, key)
 			if r2.Mode.Name != "normal" || l2.ColumnOffset() != 0 || len(l2.ColumnWidths()) != 0 {
 				t.Fatalf("%s: %s answered on a row-select table (mode %s offset %d widths %v)", name, key, r2.Mode.Name, l2.ColumnOffset(), l2.ColumnWidths())
@@ -101,8 +102,8 @@ func TestCellKeysAnswerOnlyOnACellModeTable(t *testing.T) {
 			t.Fatalf("%s: a row-select table has a current column", name)
 		}
 		motionKeys(t, r2, m2, "$")
-		if l2.ColumnOffset() != 3 {
-			t.Fatalf("%s: $ offset %d, want the last view (3)", name, l2.ColumnOffset())
+		if l2.ColumnOffset() != 4 { // at 36 cells the edge markers leave room for one scrolling column
+			t.Fatalf("%s: $ offset %d, want the last view (4)", name, l2.ColumnOffset())
 		}
 		for _, key := range []string{"Y", "V"} {
 			if ok, err := r2.Dispatch(MacroKey{Key: key}); !ok || err != nil {
@@ -123,8 +124,9 @@ func TestCellSpanAndOffsetShowing(t *testing.T) {
 		t.Fatal("a column not shown has a span")
 	}
 	_, _, l := cellTable(t, 36, "")
-	cols, widest := l.layoutColumns(), l.cellWidths()
-	most := l.maxColumnOffset(34)
+	l.colHeader = false // the layout without edge markers
+	v := l.view(34)
+	most := v.maxOffset()
 	for _, c := range []struct{ col, cur, want int }{
 		{0, 3, 0}, // the first column is the start of the row
 		{1, 0, 0}, // shown unscrolled
@@ -133,10 +135,10 @@ func TestCellSpanAndOffsetShowing(t *testing.T) {
 		{4, 1, 3},
 	} {
 		l.col = c.col
-		if got := l.offsetShowing(cols, 34, c.cur, most); got != c.want {
+		if got := l.offsetShowing(v, c.cur, most); got != c.want {
 			t.Fatalf("column %d from offset %d: %d, want %d", c.col, c.cur, got, c.want)
 		}
-		if shown, _ := layoutAt(cols, widest, 34, c.want); !containsInt(shown, c.col) {
+		if shown, _ := v.at(c.want); !containsInt(shown, c.col) {
 			t.Fatalf("column %d not shown at offset %d: %v", c.col, c.want, shown)
 		}
 	}

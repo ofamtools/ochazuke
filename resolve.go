@@ -299,10 +299,11 @@ func (r *Runtime) lookup(lv level, mode string, exclusive bool, prefix, sequence
 						exact = row
 					}
 					candidates = append(candidates, candidate{row, -1})
-				} else if strings.HasPrefix(row.Keys, sequence+" ") && !isPrefixCancel(*row) {
+				} else if strings.HasPrefix(row.Keys, sequence+" ") && !isPrefixCancel(*row) && r.rowGuardHolds(row.When, ev) {
 					// A prefix's generated cancel alone never makes it
-					// wait: with every sequence on the prefix guarded off,
-					// the key answers as if none were bound.
+					// wait: with every sequence on the prefix guarded off
+					// (by its verb's guard or its own), the key answers as
+					// if none were bound.
 					longer = true
 				}
 				continue
@@ -325,6 +326,16 @@ func (r *Runtime) lookup(lv level, mode string, exclusive bool, prefix, sequence
 		exact = nil
 	}
 	return hit, longer, exact
+}
+
+// rowGuardHolds reports whether a row's own guard (When) lets it answer:
+// no guard, or a registered guard that holds.
+func (r *Runtime) rowGuardHolds(when string, ev KeyEvent) bool {
+	if when == "" {
+		return true
+	}
+	check := r.guard(when)
+	return check != nil && check(r, ev)
 }
 
 // rowsForMode filters instance rows the way a noun table is read.
@@ -635,7 +646,10 @@ func (r *Runtime) scanRows(levels []level, mode ModeState, focus string, editing
 			if seen[id] {
 				continue
 			}
-			if guard == "" {
+			// A row whose own guard is false at a live focus does not
+			// answer, so it does not shadow an outer row on its keys (l on
+			// a list that is no table leaves the timeline's l its hint).
+			if guard == "" && (!live || r.rowGuardHolds(b.When, KeyEvent{Mode: mode, Focus: focus})) {
 				seen[id] = true
 			}
 			out = append(out, levelRow{Binding: b, level: name, guard: guard})
