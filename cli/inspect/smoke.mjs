@@ -116,8 +116,9 @@ try {
     await key("4");
     const gh = await evaluate(`document.querySelector('#d-gaps').innerText.slice(0, 300)`);
     check(/written 2\d{3}-\d\d-\d\d/.test(gh || ""), "gaps view shows the annotations' date");
-    const st = await evaluate(`[...document.querySelectorAll('#d-gaps .present, #d-gaps .missing')].map((e) => e.textContent)`);
-    check((st || []).includes("present") && (st || []).includes("missing"), `gaps marks present and missing (${(st || []).slice(0, 4)})`);
+    // Each suggestion row of the selected noun says present, partial or missing.
+    const st = await evaluate(`[...document.querySelectorAll('#d-gaps table.t tr')].slice(1).map((r) => r.cells[0].textContent.trim())`);
+    check((st || []).length > 0 && st.every((x) => /^(present|missing|verb, no )/.test(x)), `gaps marks each suggestion (${(st || []).slice(0, 4)})`);
   }
   await key("2"); await key("Enter"); await sleep(150);
   const back = await evaluate(`document.querySelector('main.on').id`);
