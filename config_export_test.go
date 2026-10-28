@@ -160,10 +160,11 @@ func TestConfigExportBindingsRoundTripThroughBindingsLoad(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var rows []Binding
-	if err := json.Unmarshal(data, &rows); err != nil {
+	doc, _, err := ParseBindings(data)
+	if err != nil {
 		t.Fatal(err)
 	}
+	rows := doc.Rows()
 	if len(rows) != len(r.allBindings()) {
 		t.Fatalf("%d rows, the runtime stores %d", len(rows), len(r.allBindings()))
 	}
@@ -440,10 +441,9 @@ func TestConfigExportReadmeExplainsEachFile(t *testing.T) {
 	}
 }
 
-// The reference prints each row's fields as mode, noun or instance,
-// request (verb before noun), keys or pattern, then the rest, and its rows
-// in SortBindings order; copied in as the user bindings.json it loads
-// without a problem and leaves every stored row as it was.
+// The reference is the grouped bindings format (FormatBindings of every
+// stored table); copied in as the user bindings.json it loads without a
+// problem and leaves every stored row as it was.
 func TestConfigExportReferenceOrderAndLoadAsUserBindings(t *testing.T) {
 	r, dir := exportFixture(t)
 	out := t.TempDir()
@@ -454,38 +454,22 @@ func TestConfigExportReferenceOrderAndLoadAsUserBindings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var raw []json.RawMessage
-	if err := json.Unmarshal(data, &raw); err != nil {
+	want, err := FormatBindings(r.BindingsDoc())
+	if err != nil {
 		t.Fatal(err)
 	}
-	for _, row := range raw {
-		text := string(row)
-		at := func(field string) int { return strings.Index(text, `"`+field+`":`) }
-		request := at("request")
-		owner := at("instance")
-		if n := at("noun"); n >= 0 && n < request {
-			owner = n
-		}
-		keys := at("keys")
-		if keys < 0 {
-			keys = at("pattern")
-		}
-		verb := strings.Index(text[request:], `"verb":`)
-		noun := strings.Index(text[request:], `"noun":`)
-		if at("mode") > owner || owner < 0 || owner > request || keys < request || verb > noun {
-			t.Fatalf("row fields out of order:\n%s", text)
-		}
+	if string(data) != string(want) {
+		t.Fatalf("the reference is not FormatBindings of the stored tables:\n%s", data)
 	}
-	var rows []Binding
-	if err := json.Unmarshal(data, &rows); err != nil {
-		t.Fatal(err)
+	if !strings.HasPrefix(string(data), BindingsHeader+"\n{\n") {
+		t.Fatalf("no header:\n%.200s", data)
 	}
-	sorted := slices.Clone(rows)
-	SortBindings(sorted)
-	for i := range rows {
-		if canonical(t, rows[i]) != canonical(t, sorted[i]) {
-			t.Fatalf("row %d out of SortBindings order: %s", i, canonical(t, rows[i]))
-		}
+	doc, format, err := ParseBindings(data)
+	if err != nil || format != BindingsGrouped {
+		t.Fatalf("read back: %q %v", format, err)
+	}
+	if len(doc.Rows()) != len(r.allBindings()) {
+		t.Fatalf("%d rows, the runtime stores %d", len(doc.Rows()), len(r.allBindings()))
 	}
 	stored := func() []string {
 		var out []string

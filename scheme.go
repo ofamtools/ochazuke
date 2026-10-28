@@ -198,7 +198,7 @@ func validColor(c string) bool {
 // yields no schemes.
 func ParseSchemes(data []byte) (map[string]Scheme, []string) {
 	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(data, &raw); err != nil || raw == nil {
+	if err := DecodeJSONC(data, &raw); err != nil || raw == nil {
 		if err == nil {
 			err = errors.New("null")
 		}

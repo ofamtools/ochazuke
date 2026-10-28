@@ -65,8 +65,9 @@ type exportFile struct {
 // dir ("" is <config dir>/reference): settings.json with every declared
 // setting at its current value, settings.reference.json with each
 // setting's type, default, choices, description and value, and
-// bindings.reference.json with every stored binding row in the
-// bindings.load shape (bindings.list --all). Each file is written
+// bindings.reference.json with every stored table in the grouped
+// bindings format (FormatBindings of BindingsDoc), settings.reference.json
+// and actions.example.json one row per line (FormatRows). Each file is written
 // atomically, a temp file renamed over it. A file that would land on one
 // of the live config files (dir is the config directory) is refused unless
 // force is set, and then nothing is written.
@@ -116,11 +117,15 @@ func (r *Runtime) exportFiles() ([]exportFile, error) {
 	if err != nil {
 		return nil, err
 	}
-	reference, err := indentJSON(settings)
+	reference, err := FormatRows(settings)
 	if err != nil {
 		return nil, err
 	}
-	bindings, err := indentJSON(r.allBindings())
+	bindings, err := FormatBindings(r.BindingsDoc())
+	if err != nil {
+		return nil, err
+	}
+	actions, err := FormatRowsJSON([]byte(actionsExample))
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +134,7 @@ func (r *Runtime) exportFiles() ([]exportFile, error) {
 		{SettingsFile, current},
 		{SettingsReferenceFile, reference},
 		{BindingsReferenceFile, bindings},
-		{ActionsExampleFile, []byte(actionsExample)},
+		{ActionsExampleFile, actions},
 		{ThemesExampleFile, themesExample()},
 	}, nil
 }
@@ -191,7 +196,7 @@ func (r *Runtime) referenceReadme(settings, rows int) []byte {
 	line("|---|---|---|")
 	line("| `%s` | Every declared setting (%d) at its current value | Copy the lines you want to change into the live `%s` |", SettingsFile, settings, SettingsFile)
 	line("| `%s` | Each setting's type, default, allowed values (`enum`), description and current value (`set` is true when the live file holds it) | Read it to see what a setting takes |", SettingsReferenceFile)
-	line("| `%s` | Every key row (%d) of every noun, instance and mode, in the `bindings.json` row shape (`%s bindings list --all`) | Copy a row into the live `%s` and change its keys or request |", BindingsReferenceFile, rows, app, BindingsFile)
+	line("| `%s` | Every key row (%d) of every noun, instance and mode, in the grouped `bindings.json` format (`%s bindings export`): one group per `noun/mode` context, a key per line | Copy a group, or a key line into a group, into the live `%s` and change its keys or action |", BindingsReferenceFile, rows, app, BindingsFile)
 	line("| `%s` | Two example actions on the `app` noun that use every field | Adapt an entry into the live `%s` |", ActionsExampleFile, ActionsFile)
 	line("| `%s` | Two example colour schemes using every role | Adapt a scheme into the live `%s` |", ThemesExampleFile, ThemesFile)
 	line("")
@@ -199,7 +204,7 @@ func (r *Runtime) referenceReadme(settings, rows int) []byte {
 	line("")
 	line("A value or row in a live file overrides the default from then on. If you copy a whole file in, every default it holds is pinned: when a later version of %s changes a default, you keep the old one. Copy only what you change.", app)
 	line("")
-	line("The bindings reference shows the rows as they are now, the live `%s` rows included. A row in `%s` replaces the row with the same noun or instance, mode, keys and `when` (the editor's `when: input` aside, which is the framework's): to change a row that has a `when`, copy it with its `when`. A row without `when` replaces only the unguarded row on its keys, and `\"request\": null` unbinds only the row with the same `when`.", BindingsFile, BindingsFile)
+	line("The bindings reference shows the rows as they are now, the live `%s` rows included. A row in `%s` replaces the row with the same noun or instance, mode, keys and `when` (the editor's `when: input` aside, which is the framework's): to change a row that has a `when`, copy it with its `when`. A row without `when` replaces only the unguarded row on its keys, and a `null` value (or `{\"when\": ..., \"unbind\": true}`) unbinds only the row with the same `when`. Config files are JSONC: `//` and `/* */` comments and trailing commas are fine.", BindingsFile, BindingsFile)
 	line("")
 	line("## Action templates")
 	line("")
@@ -330,14 +335,6 @@ func settingsObject(settings []SettingValue) ([]byte, error) {
 	}
 	b.WriteString("}\n")
 	return b.Bytes(), nil
-}
-
-func indentJSON(v any) ([]byte, error) {
-	data, err := json.MarshalIndent(v, "", "  ")
-	if err != nil {
-		return nil, err
-	}
-	return append(data, '\n'), nil
 }
 
 // liveFiles are the files the framework reads from the config directory.

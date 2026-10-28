@@ -160,20 +160,20 @@
     {
       "mode": "normal",
       "noun": "widget",
+      "keys": "enter",
       "request": {
         "verb": "show",
         "noun": "widget"
-      },
-      "keys": "enter"
+      }
     },
     {
       "mode": "normal",
       "noun": "widget",
+      "keys": "x",
       "request": {
         "verb": "remove",
         "noun": "widget"
-      },
-      "keys": "x"
+      }
     }
   ],
   "pages": [

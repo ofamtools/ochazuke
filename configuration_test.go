@@ -140,7 +140,7 @@ func TestMalformedBindingsFileKeepsDefaults(t *testing.T) {
 	m.Init()
 	keytest.Press(m, "a")
 	keytest.Press(m, "b")
-	if !reflect.DeepEqual(*calls, []string{"alpha", "beta"}) || len(m.Notices) != 1 || !strings.HasPrefix(m.Notices[0], "bindings.json: not a JSON array") {
+	if !reflect.DeepEqual(*calls, []string{"alpha", "beta"}) || len(m.Notices) != 1 || !strings.HasPrefix(m.Notices[0], "bindings.json: not a bindings file: line 1, column 15:") {
 		t.Fatalf("calls %v notices %q", *calls, m.Notices)
 	}
 }

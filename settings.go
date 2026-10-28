@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/tailscale/hujson"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -365,7 +368,7 @@ func (s *Settings) load() {
 		return
 	}
 	if err == nil {
-		err = json.Unmarshal(data, &s.raw)
+		err = DecodeJSONC(data, &s.raw)
 		if err == nil && s.raw == nil {
 			s.raw = map[string]json.RawMessage{}
 		}
@@ -436,9 +439,21 @@ func (s *Settings) write(raw map[string]json.RawMessage) error {
 	if s.broken != nil {
 		return fmt.Errorf("%s does not parse; fix or remove it first: %w", s.path, s.broken)
 	}
-	data, err := json.MarshalIndent(raw, "", "  ")
-	if err != nil {
-		return err
+	// An existing file is edited in place, so the user's comments and
+	// layout stay (patchJSONCObject); a new or unreadable one is written
+	// whole.
+	var data []byte
+	if old, err := os.ReadFile(s.path); err == nil {
+		if patched, ok := patchJSONCObject(old, raw); ok {
+			data = bytes.TrimSuffix(patched, []byte("\n"))
+		}
+	}
+	if data == nil {
+		indented, err := json.MarshalIndent(raw, "", "  ")
+		if err != nil {
+			return err
+		}
+		data = indented
 	}
 	dir := filepath.Dir(s.path)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -658,4 +673,103 @@ func registerSettings(r *Runtime) {
 		}
 		return path, nil
 	}})
+}
+
+// patchJSONCObject is the JSONC object in old with its members set to
+// raw: a changed value is replaced where it stands, a member raw lacks is
+// removed, a new one is appended (names sorted) at the file's indent.
+// Comments, whitespace and the member order stay as the user wrote them;
+// false when old is not a JSONC object.
+func patchJSONCObject(old []byte, raw map[string]json.RawMessage) ([]byte, bool) {
+	v, err := hujson.Parse(old)
+	if err != nil {
+		return nil, false
+	}
+	obj, ok := v.Value.(*hujson.Object)
+	if !ok {
+		return nil, false
+	}
+	indent := hujson.Extra("\n  ")
+	seen := map[string]bool{}
+	var members []hujson.ObjectMember
+	for i, m := range obj.Members {
+		lit, ok := m.Name.Value.(hujson.Literal)
+		var name string
+		if !ok || json.Unmarshal(lit, &name) != nil {
+			return nil, false
+		}
+		if i == 0 {
+			before := m.Name.BeforeExtra
+			if at := bytes.LastIndexByte(before, '\n'); at >= 0 && len(bytes.TrimSpace(before[at:])) == 0 {
+				indent = append(hujson.Extra(nil), before[at:]...)
+			}
+		}
+		value, keep := raw[name]
+		if !keep {
+			continue
+		}
+		seen[name] = true
+		current := m.Value.Clone()
+		current.Standardize()
+		if !sameJSON(current.Pack(), value) {
+			parsed, err := hujson.Parse(value)
+			if err != nil {
+				return nil, false
+			}
+			m.Value.Value = parsed.Value
+		}
+		members = append(members, m)
+	}
+	var added []string
+	for name := range raw {
+		if !seen[name] {
+			added = append(added, name)
+		}
+	}
+	slices.Sort(added)
+	for i, name := range added {
+		parsed, err := hujson.Parse(raw[name])
+		if err != nil {
+			return nil, false
+		}
+		quoted, err := json.Marshal(name)
+		if err != nil {
+			return nil, false
+		}
+		before := append(hujson.Extra(nil), indent...)
+		if i == 0 {
+			// What followed the last member (an inline comment, the
+			// line break before "}") stays with it: the new members go
+			// after it, and "}" keeps its own line.
+			tail := obj.AfterExtra
+			cut := bytes.LastIndexByte(tail, '\n')
+			if cut < 0 {
+				cut = len(tail)
+			}
+			if len(bytes.TrimSpace(tail[:cut])) > 0 {
+				before = append(append(hujson.Extra(nil), tail[:cut]...), indent...)
+			}
+			if cut < len(tail) {
+				obj.AfterExtra = append(hujson.Extra(nil), tail[cut:]...)
+			} else {
+				obj.AfterExtra = hujson.Extra("\n")
+			}
+		}
+		members = append(members, hujson.ObjectMember{
+			Name:  hujson.Value{BeforeExtra: before, Value: hujson.Literal(quoted)},
+			Value: hujson.Value{BeforeExtra: hujson.Extra(" "), Value: parsed.Value},
+		})
+	}
+	obj.Members = members
+	return v.Pack(), true
+}
+
+// sameJSON reports whether two JSON texts are the same value, spelled
+// alike once compacted.
+func sameJSON(a, b []byte) bool {
+	var ca, cb bytes.Buffer
+	if json.Compact(&ca, a) != nil || json.Compact(&cb, b) != nil {
+		return false
+	}
+	return bytes.Equal(ca.Bytes(), cb.Bytes())
 }

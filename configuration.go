@@ -1,9 +1,11 @@
 package ochazuke
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -33,12 +35,32 @@ func registerConfiguration(r *Runtime) {
 		sort.Strings(names)
 		return names, nil
 	}})
-	r.Register(Operation{Verb: "load", Noun: "ochazuke.bindings", Description: "Install binding rows from a JSON file: [{noun|instance, mode, keys|pattern, request|null, from, when}]", Parameters: map[string]Parameter{"path": {Type: "string", Required: true}}, Result: "binding[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "load", Noun: "ochazuke.bindings", Description: "Install binding rows from a bindings file (JSONC): the grouped format {bindings: [{context, bindings: {key: action}}]} or an array of rows", Parameters: map[string]Parameter{"path": {Type: "string", Required: true}}, Result: "binding[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		data, err := os.ReadFile(StringArg(a, "path", ""))
 		if err != nil {
 			return nil, err
 		}
 		return r.LoadBindings(data)
+	}})
+	r.Register(Operation{Verb: "export", Noun: "ochazuke.bindings", Description: "Write every stored key row to a file in the grouped bindings format (what config export writes as bindings.reference.json); never over the live bindings.json without force", Parameters: map[string]Parameter{
+		"path":  {Type: "string", Required: true, Description: "File to write"},
+		"force": {Type: "boolean", Description: "Allow writing over the live bindings.json"},
+	}, Positional: []string{"path"}, Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		path, err := filepath.Abs(StringArg(a, "path", ""))
+		if err != nil {
+			return nil, err
+		}
+		if force, _ := a["force"].(bool); !force && r.Config().liveFile(path) != "" {
+			return nil, fmt.Errorf("%s is the live %s; export elsewhere, or pass --force to overwrite it", path, BindingsFile)
+		}
+		data, err := FormatBindings(r.BindingsDoc())
+		if err != nil {
+			return nil, err
+		}
+		if err := writeFileAtomic(path, data); err != nil {
+			return nil, err
+		}
+		return path, nil
 	}})
 	r.Register(Operation{Verb: "path", Noun: "ochazuke.bindings", Description: "Print the user bindings file: $XDG_CONFIG_HOME/<app>/bindings.json, else ~/.config/<app>/bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		path := r.Config().Path(BindingsFile)
@@ -54,10 +76,13 @@ func registerConfiguration(r *Runtime) {
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Verb: "check", Noun: "ochazuke.bindings", Description: "Report the rows of the user bindings file that would be skipped, and any merged row that does not validate", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "check", Noun: "ochazuke.bindings", Description: "Report the rows of the user bindings file that would be skipped, and any merged row that does not validate; the status line names the format read (grouped or rows)", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		problems := r.CheckUserBindings()
 		if problems == nil {
 			problems = []string{}
+		}
+		if format := r.Config().BindingsFormat(); format != "" {
+			r.UI().Info(fmt.Sprintf("%s: %s format", BindingsFile, format))
 		}
 		return problems, nil
 	}})
@@ -112,10 +137,11 @@ func samePath(got, want []string, input bool) bool {
 // LoadBindings installs rows from a JSON array in the binding row shape and
 // returns the installed rows.
 func (r *Runtime) LoadBindings(data []byte) ([]Binding, error) {
-	var rows []Binding
-	if err := json.Unmarshal(data, &rows); err != nil {
+	doc, _, err := ParseBindings(data)
+	if err != nil {
 		return nil, fmt.Errorf("bindings: %w", err)
 	}
+	rows := doc.Rows()
 	for i, row := range rows {
 		if err := r.Bind(row); err != nil {
 			return nil, fmt.Errorf("bindings[%d] %s: %w", i, row.Keys+row.Pattern, err)
@@ -194,6 +220,9 @@ type Config struct {
 	applied []appliedRow
 	// problems are the last bindings load's problems.
 	problems []string
+	// bindingsFormat is the format the last read of bindings.json found
+	// (BindingsGrouped, BindingsRows; "" for no file).
+	bindingsFormat string
 	// actions are the entries of actions.json installed as verbs, in
 	// file order; actionProblems the last read's problems.
 	actions        []Action
@@ -338,9 +367,9 @@ func (r *Runtime) ReloadUserBindings() []string {
 		notice, err := r.applyUserRow(f.row)
 		switch {
 		case err != nil:
-			problems = append(problems, rowProblem(f.n, f.row, err))
+			problems = append(problems, rowProblem(f.where, f.row, err))
 		case notice != "":
-			problems = append(problems, fmt.Sprintf("%s: row %d %s: %s", BindingsFile, f.n, f.row.Keys+f.row.Pattern, notice))
+			problems = append(problems, fmt.Sprintf("%s: %s %s: %s", BindingsFile, f.where, f.row.Keys+f.row.Pattern, notice))
 		}
 	}
 	if _, err := r.ValidateBindings(); err != nil {
@@ -368,10 +397,10 @@ func (r *Runtime) CheckUserBindings() []string {
 		for _, f := range rows {
 			row, err := r.validateRow(f.row)
 			if err != nil {
-				problems = append(problems, rowProblem(f.n, f.row, err))
+				problems = append(problems, rowProblem(f.where, f.row, err))
 				continue
 			}
-			if note := r.aliasRowNote(f.n, row); note != "" {
+			if note := r.aliasRowNote(f.where, row); note != "" {
 				problems = append(problems, note)
 			}
 		}
@@ -388,7 +417,7 @@ func (r *Runtime) CheckUserBindings() []string {
 // aliasRowNote says what a file row spelled by an alias resolves to ("" for
 // a row naming its operation directly): accepted, and named so the user
 // can see it, with the new name when the alias is an old one.
-func (r *Runtime) aliasRowNote(n int, row Binding) string {
+func (r *Runtime) aliasRowNote(where string, row Binding) string {
 	if row.Unbind || row.Request.Via == "" {
 		return ""
 	}
@@ -396,25 +425,35 @@ func (r *Runtime) aliasRowNote(n int, row Binding) string {
 	if !ok {
 		return ""
 	}
-	note := fmt.Sprintf("%s: row %d %s: %s resolves to %s (an alias, %s)", BindingsFile, n, row.Keys+row.Pattern, r.DisplayKey(a.Alias), r.DisplayKey(a.Action), a.Source)
+	note := fmt.Sprintf("%s: %s %s: %s resolves to %s (an alias, %s)", BindingsFile, where, row.Keys+row.Pattern, r.DisplayKey(a.Alias), r.DisplayKey(a.Action), a.Source)
 	if a.Deprecated() {
 		note += "; " + a.notice(r.DisplayKey) + ": rename the row to " + r.DisplayKey(a.Action)
 	}
 	return note
 }
 
-func rowProblem(n int, row Binding, err error) string {
-	return fmt.Sprintf("%s: row %d %s: %v (skipped)", BindingsFile, n, row.Keys+row.Pattern, err)
+func rowProblem(where string, row Binding, err error) string {
+	return fmt.Sprintf("%s: %s %s: %v (skipped)", BindingsFile, where, row.Keys+row.Pattern, err)
 }
 
-// fileRow is a decoded row and its 1-based position in the file.
+// fileRow is a decoded row and where it is in the file: "row N" (the
+// rows format, 1-based) or its group's context (the grouped format).
 type fileRow struct {
-	n   int
-	row Binding
+	where string
+	row   Binding
 }
 
-// readUserBindings parses the file; a missing file is no rows.
+// BindingsFormat is the format the last read of bindings.json found:
+// BindingsGrouped, BindingsRows, or "" when there was no file.
+func (c *Config) BindingsFormat() string { return c.bindingsFormat }
+
+// readUserBindings parses the file in either format (ParseBindings); a
+// missing file is no rows. A row or key that cannot be read is skipped and
+// reported; the rest load. The format read is kept for bindings check
+// (Config.BindingsFormat).
 func (r *Runtime) readUserBindings(path string) ([]fileRow, []string) {
+	c := r.Config()
+	c.bindingsFormat = ""
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, nil
@@ -422,21 +461,80 @@ func (r *Runtime) readUserBindings(path string) ([]fileRow, []string) {
 	if err != nil {
 		return nil, []string{BindingsFile + ": " + err.Error()}
 	}
-	var raw []json.RawMessage
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return nil, []string{BindingsFile + ": not a JSON array of rows: " + err.Error()}
+	std, err := StandardizeJSONC(data)
+	if err != nil {
+		return nil, []string{BindingsFile + ": not a bindings file: " + err.Error()}
 	}
-	var rows []fileRow
-	var problems []string
-	for i, one := range raw {
-		var row Binding
-		if err := json.Unmarshal(one, &row); err != nil {
-			problems = append(problems, fmt.Sprintf("%s: row %d: %v (skipped)", BindingsFile, i+1, err))
-			continue
+	if trimmed := bytes.TrimSpace(std); len(trimmed) > 0 && trimmed[0] == '[' {
+		c.bindingsFormat = BindingsRows
+		var raw []json.RawMessage
+		if err := jsonPositionError(data, json.Unmarshal(std, &raw)); err != nil {
+			return nil, []string{BindingsFile + ": not a JSON array of rows: " + err.Error()}
 		}
-		rows = append(rows, fileRow{i + 1, row})
+		var rows []fileRow
+		var problems []string
+		for i, one := range raw {
+			var row Binding
+			if err := json.Unmarshal(one, &row); err != nil {
+				problems = append(problems, fmt.Sprintf("%s: row %d: %v (skipped)", BindingsFile, i+1, err))
+				continue
+			}
+			rows = append(rows, fileRow{fmt.Sprintf("row %d", i+1), row})
+		}
+		return rows, problems
+	}
+	doc, format, bad, err := parseBindingsFile(data)
+	if err != nil {
+		msg := err.Error()
+		if !strings.HasPrefix(msg, "not a bindings file") {
+			msg = "not a bindings file: " + msg
+		}
+		return nil, []string{BindingsFile + ": " + msg}
+	}
+	c.bindingsFormat = format
+	var problems []string
+	for _, e := range bad {
+		problems = append(problems, BindingsFile+": "+e.Error())
+	}
+	problems = append(problems, r.fileModeProblems(doc)...)
+	var rows []fileRow
+	for _, g := range doc.Groups {
+		for _, row := range g.Rows {
+			rows = append(rows, fileRow{g.label(), row})
+		}
 	}
 	return rows, problems
+}
+
+// fileModeProblems checks a bindings file's "modes" and "extends" against
+// the application's: a user file cannot define a mode or change one's
+// properties or a table's extends, so a value that differs is reported
+// and ignored (the export, which writes the application's own, loads
+// clean).
+func (r *Runtime) fileModeProblems(doc BindingsDoc) []string {
+	var problems []string
+	for _, name := range slices.Sorted(maps.Keys(doc.Modes)) {
+		spec := doc.Modes[name]
+		switch {
+		case !r.Modes[name] && !r.pendingModes[name]:
+			problems = append(problems, fmt.Sprintf("%s: modes %s: unknown mode; bindings.json cannot define one (ignored)", BindingsFile, name))
+		case spec.Pending != r.pendingModes[name] || spec.Passthrough != r.passthroughModes[name]:
+			problems = append(problems, fmt.Sprintf("%s: modes %s: pending %v, passthrough %v differ from the application's (ignored)", BindingsFile, name, r.pendingModes[name], r.passthroughModes[name]))
+		}
+	}
+	for _, g := range doc.Groups {
+		if g.Instance != "" || g.Extends == "" {
+			continue
+		}
+		var have string
+		if n := r.Nouns[g.Noun]; n != nil {
+			have = n.Extends[g.Mode]
+		}
+		if have != g.Extends {
+			problems = append(problems, fmt.Sprintf("%s: %s: extends %q differs from the application's %q (ignored)", BindingsFile, g.label(), g.Extends, have))
+		}
+	}
+	return problems
 }
 
 // applyUserRow installs one user row and logs the rows it replaced. The

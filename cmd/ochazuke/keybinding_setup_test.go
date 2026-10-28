@@ -188,3 +188,45 @@ func TestBindingFileBrowserSelectsDirectoryAndFile(t *testing.T) {
 		t.Fatalf("selected file's action: %q", m.results[0])
 	}
 }
+
+// The sandbox export is the grouped bindings format (one "app" group,
+// sandbox.ACTION values) and reads back as the same rows; the older
+// {keys, action} array still imports.
+func TestBindingExportGroupedFormat(t *testing.T) {
+	m := &keybindingModel{runtime: ochazuke.NewRuntime()}
+	for _, spec := range []string{"x=first", "g g=second"} {
+		if err := m.addBinding(spec); err != nil {
+			t.Fatal(err)
+		}
+	}
+	path := filepath.Join(t.TempDir(), "bindings.json")
+	if err := m.exportBindings(path, false); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := ochazuke.BindingsHeader + "\n{\n  \"bindings\": [\n    {\"context\": \"app\", \"bindings\": {\n      \"x\": \"sandbox.first\",\n      \"g g\": \"sandbox.second\"\n    }}\n  ]\n}\n"
+	if string(data) != want {
+		t.Fatalf("got:\n%s\nwant:\n%s", data, want)
+	}
+	before := m.bindings()
+	if err := m.importBindings(path); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(m.bindings(), before) {
+		t.Fatalf("round trip: %+v, want %+v", m.bindings(), before)
+	}
+	for _, bad := range []string{
+		`{"bindings": [{"context": "app/normal", "bindings": {"x": "sandbox.first"}}]}`,
+		`{"bindings": [{"context": "app", "bindings": {"x": "other.first"}}]}`,
+	} {
+		if err := os.WriteFile(path, []byte(bad), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if err := m.importBindings(path); err == nil {
+			t.Fatalf("accepted %s", bad)
+		}
+	}
+}

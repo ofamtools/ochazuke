@@ -593,7 +593,7 @@ func readActions(path string) ([]fileAction, []string) {
 		return nil, []string{ActionsFile + ": " + err.Error()}
 	}
 	var raw []json.RawMessage
-	if err := json.Unmarshal(data, &raw); err != nil {
+	if err := DecodeJSONC(data, &raw); err != nil {
 		return nil, []string{ActionsFile + ": not a JSON array of actions: " + err.Error()}
 	}
 	var out []fileAction

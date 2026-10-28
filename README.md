@@ -1279,12 +1279,58 @@ APP config export ~/.config/APP --force   # into the live directory: only with -
 |---|---|
 | `README.md` | What each file is, where the live files are (`Config.Directory()`), and the warning below |
 | `settings.json` | Every declared setting at its current value, in declaration order; valid to copy in as is |
-| `settings.reference.json` | Per setting: `name`, `type`, `default`, `enum`, `description`, `value`, `set` (the `settings list` shape) |
-| `bindings.reference.json` | Every stored key row of every noun, instance and mode in the `bindings.load` row shape (`bindings list --all`), to copy into `bindings.json` |
-| `actions.example.json` | Two actions on the `app` noun (`example-run` in the command form, `example-call` in the base form) using every field; installs with no notice |
+| `settings.reference.json` | Per setting: `name`, `type`, `default`, `enum`, `description`, `value`, `set` (the `settings list` shape), one setting per line |
+| `bindings.reference.json` | Every stored key row of every noun, instance and mode in the `bindings.load` row shape (`bindings list --all`), in the grouped bindings format below (`bindings export`), to copy into `bindings.json` |
+| `actions.example.json` | Two actions on the `app` noun (`example-run` in the command form, `example-call` in the base form) using every field, one action per line; installs with no notice |
 | `themes.example.json` | `example` (the built-in palette, every role as `{light, dark}`) and `example-dark` (one colour per role); installs with no notice |
 
 The framework's settings (`theme`, `focus-display`, `history-limit`) are declared before the export, so they are in the files. Each file is written atomically (a temp file renamed over it), and a file that would land on a live config file (`bindings.json`, `settings.json`, `actions.json`, `themes.json` in the config directory, through a symbolic link too) is refused before anything is written unless `--force`. The result is `{dir, files, config, state}`. Without a config directory (`Config.Disable`, a test binary) the export needs a DIR. The README lists the action placeholders and the theme roles.
+
+### Config files are JSONC
+
+Every config file ochazuke reads (`bindings.json`, `actions.json`, `settings.json`, `themes.json`, a file given to `bindings load`, the embedded default specs) is JSONC: JSON with `//` line comments, `/* */` block comments and trailing commas (read with `github.com/tailscale/hujson`). The files keep their `.json` names. A file without a `/` that is valid JSON skips the JSONC parse (about 0.1 ms against 2.5 ms for 100 KB). An error names the line and column in the file as written, comments counted. `settings set` edits an existing `settings.json` in place: the comments, layout and member order stay; a changed value is replaced where it stands, a new one appended at the file's indent. Go: `StandardizeJSONC(data)`, `DecodeJSONC(data, &v)`.
+
+### The bindings file format
+
+`bindings.json` is a grouped table, one group per mode table (`config export`'s `bindings.reference.json`, `bindings export PATH` and the `cmd/ochazuke` keybinding tool write it; `FormatBindings`):
+
+```jsonc
+// ochazuke bindings (JSONC): groups by "noun/mode" context; ...
+{
+  "modes": {
+    "leader_pending": {"pending": true},
+    "terminal": {"passthrough": true}
+  },
+  "bindings": [
+    {"context": "md-doc/normal", "bindings": {
+      "l": "ochazuke.focus.next",
+      "enter": {"action": "ochazuke.focus.next", "hint": "edit"}
+    }},
+    {"context": "ochazuke.editor/visual_count_pending", "extends": "visual", "bindings": {
+      "digit": {"action": "ochazuke.count.append", "from": {"digit": "digit"}}
+    }},
+    {"context": "pane/normal", "bindings": {
+      "]": {"action": "panes.tab", "args": {"delta": 1}},
+      "d d": [{"action": "pane.kill", "when": "selected"}, {"action": "pane.close"}],
+      "x": null,
+      "u": {"when": "busy", "unbind": true}
+    }},
+    {"instance": "work/agent", "mode": "normal", "bindings": {
+      "ctrl+r": "pane.restart"
+    }}
+  ]
+}
+```
+
+- **Group:** `"context": "noun/mode"`, split at the last `/`; a bare `"noun"` is the noun's any-mode table (mode `""`). An instance's table is `{"instance": "ID", "mode": "MODE"}`. `"extends": "MODE"` on a noun group says its table reads that mode's rows after its own.
+- **Key:** a key or a sequence as everywhere else (`"g c"`, `"ctrl+a v"`). A key that names a class (`digit`, `alpha-q`, `one-of:h j k l`, `paste`, `any`, `upper`, `ctrl+alpha`) is a pattern row.
+- **Value:** the action string (`noun.verb`, split at the last `.`; an alias works, as in a row); an object for anything more, its fields written in the order `action`, `args`, `hint`, `when`, `from`, `hidden`, `help`, `replay`, `capture`, `target`, `confirmed`, `unbind`; `null` to unbind the default; or an array of those, in table order, when one key has several rows in one table (guarded alternatives: JSON keys are unique). A guarded unbind is `{"when": "...", "unbind": true}`.
+- **`modes`:** properties global to a mode, `{"pending": true}` or `{"passthrough": true}`. The export writes the application's own; in a user file a mode or an `extends` that differs from the application's is reported and ignored (a user file cannot define a mode).
+- **Writing:** one header comment line, then `modes` (names sorted), then the groups: nouns by name, each noun's modes by name (the any-mode table first), then instances by ID and mode. Keys sit one per line in table order; a value is the plain string whenever the row has nothing but its action.
+- **Reading:** the grouped format and the older array of rows (`[{"noun", "mode", "keys", "request": {"noun", "verb", "args"}, ...}]`, any field order) both load; the top level tells them apart (an object with `"bindings"` is grouped, an array is rows). A bad group or key is skipped and reported (`bindings.json: pane/normal q: ...`), the rest loads. `bindings check` names the format it read on the status line (`status: bindings.json: grouped format`). A hand-written file is never rewritten: only files the tools write follow this layout.
+- **Rows elsewhere:** `bindings list --json` still answers the array of rows (an API result); `settings.reference.json` and `actions.example.json` are arrays written one row per line (`FormatRows`).
+
+Go: `ParseBindings(data) (BindingsDoc, format, error)`, `FormatBindings(doc)`, `Runtime.BindingsDoc()` (every stored table), `GroupBindings(rows)`, `BindingsDoc{Modes, Groups}`, `BindingGroup{Noun, Instance, Mode, Extends, Rows}`, `ModeSpec{Pending, Passthrough}`, `Config.BindingsFormat()`, constants `BindingsGrouped`, `BindingsRows`, `BindingsHeader`.
 
 Copying a default into a live file pins it: a later version that changes the default does not reach that user. Copy only what you change. A row's guard is part of its identity: a `bindings.json` row replaces only the row with the same noun or instance, mode, keys (or pattern) and `when`, so a guarded row and the unguarded row on the same keys (such as `0` in `operator_pending`: the count digit with `when: count` and the line-start motion) are changed one at a time, and the reference loads back unchanged.
 

@@ -2,7 +2,6 @@ package ochazuke
 
 import (
 	_ "embed"
-	"encoding/json"
 	"fmt"
 	"maps"
 	"slices"
@@ -34,7 +33,7 @@ type specRow struct {
 // LoadBindingSpec installs a spec onto one noun: modes, then rows.
 func (r *Runtime) LoadBindingSpec(noun string, data []byte) error {
 	var spec bindingSpec
-	if err := json.Unmarshal(data, &spec); err != nil {
+	if err := DecodeJSONC(data, &spec); err != nil {
 		return fmt.Errorf("binding spec: %w", err)
 	}
 	for _, mode := range spec.Pending {
