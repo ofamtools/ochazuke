@@ -428,6 +428,7 @@ Conformance:
 | normal | page | `page.next` `page.pick` `page.previous` |
 | normal | palette | `palette.open` |
 | normal | pane | `pane.grow` `pane.reset` `pane.shrink` |
+| normal | segment | `segment.toggle` |
 | normal | setting | `setting.add` `setting.cycle` `setting.edit` `setting.reset` |
 | normal | setting-item | `setting-item.add` `setting-item.delete` `setting-item.edit` `setting-item.reset` |
 | normal | settings | `settings.close` `settings.edit` `settings.section` `settings.undo` |

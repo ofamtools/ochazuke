@@ -1295,6 +1295,30 @@ The prompt (`setting-prompt`): `enter` sets the value; one that does not validat
 
 `q` or `esc` (`settings.close`) goes back to the page the Settings page was opened from, with the focus and mode it was left in; the next `settings.edit` reopens on the section and row it was left on. `settings.edit` registers the page (`SettingsPageID`, title Settings) when it opens and `settings.close` removes it, so it is a tab, in the page picker and on `page.next` only while it is open. An application that wants a permanent Settings tab calls `Runtime.AddSettingsPage()` where it registers its pages; `settings.close` then goes back without removing it.
 
+## Status segments
+
+Live items (CPU, memory, disk free, a build state) ride the rule under the header, right-aligned, and take no row. Each is a data row:
+
+```go
+sysstat.Register(r, sysstat.Options{Enabled: true, DiskPath: dataDir}) // cpu, ram, disk
+r.SegmentProvider("build", func(ctx context.Context, s ochazuke.Segment) (ochazuke.SegmentValue, error) {
+	return ochazuke.SegmentValue{Text: "green", Tone: ochazuke.ToneDone}, nil
+})
+r.AddSegment(ochazuke.Segment{ID: "build", Label: "ci", Provider: "build", Every: 10 * time.Second})
+r.AddSegment(ochazuke.Segment{ID: "cpu", Every: 5 * time.Second}) // change a row by id
+```
+
+A user adds or changes rows in `segments.json` beside `settings.json` (a command runs only from here or from Go, never from a catalog):
+
+```jsonc
+[
+  {"id": "branch", "label": "git", "command": ["git", "branch", "--show-current"], "every": "10s", "timeout": "1s"},
+  {"id": "cpu", "label": "CPU", "order": 1}
+]
+```
+
+Sources are `provider` (Go), `command` (first line of its output, killed at `timeout`) or `verb` (`NOUN.VERB`, run outside the history); an answer may be `{"text": ..., "tone": ...}`. Refreshes run off the loop, one per segment at a time, so a slow source never blocks a key. Every part can be turned off: `status.segments` (all), `status.segments.<id>` (one), and `status.segment-order` holds the order. The `segment` noun lists, shows, enables, disables, toggles, moves and refreshes them from the palette and the CLI. An extension declares verb-sourced segments in its catalog (`segments`); a host mounts them with `cli.CatalogSegments`.
+
 ## Configuration reference (config export)
 
 Every application has a `config` noun. `config path` prints where the user files live; `config export [DIR]` writes a complete reference of the user configuration to copy from; `config reload` reads every config file again:

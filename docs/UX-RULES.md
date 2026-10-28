@@ -488,6 +488,26 @@ tiers above them. When the two disagree, fix one in the same commit.
   `pages/tabs-fit.json`, `pages/tabs-50-step.json`; unit test
   `TestTabsMarkHiddenPagesOnEachSide`.
 
+- **R6.11** Status segments ride the rule under the header, right-aligned,
+  joined by ` · `, with ` ──` after them and at least `── ` of rule before:
+  they take no row, so the body never shrinks or moves when one appears,
+  changes or goes, and they never sit in the footer or the hints. A segment
+  is a data row (`Segment`: id, label/format, one source, interval,
+  timeout, tone, order), never a branch per segment. A refresh runs off the
+  loop under its own timeout, one at a time per segment; the last text stays
+  until the next answer, a failure draws in `state.errored`, and keys never
+  wait for one. A segment that does not fit is dropped from the last; the
+  first alone is cut with `…`. Tests `TestSegment*` (`segment_test.go`);
+  story `segments/header-rule.json`.
+- **R6.12** Anything that changes the UI has a setting to opt out of it:
+  each optional area as a whole and each item inside it, as an ordinary
+  setting (the Settings page, `settings set`, settings.json), checked before
+  the area draws or does work. Segments: `status.segments` (the area, off
+  stops every refresh), `status.segments.<id>` (one, its default the row's
+  `enabled`), `status.segment-order` (the order `segment.move` writes).
+  Existing examples: `focus-display`, `modal-dim`, `dim-unfocused`. Check:
+  the diff declares the setting with the feature.
+
 ### R7. Palette
 
 - **R7.1** Nothing is highlighted and no `> ` marker is drawn until
