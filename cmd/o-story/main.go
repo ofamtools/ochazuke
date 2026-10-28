@@ -69,6 +69,7 @@ func (t *Tool) Main(args []string) error {
 	}))
 	app.Add(
 		oden.Command{Name: "run", Summary: "play stories headless and check them (expect, else the golden frame); --from REF plays a recording", Run: func(_ context.Context, a []string) error { return t.Run(a) }},
+		oden.Command{Name: "open", Summary: "open NAME: open one story live in the real chrome (q returns to the index)", Run: func(_ context.Context, a []string) error { return t.Open(a) }},
 		oden.Command{Name: "list", Summary: "the stories by area", Run: func(_ context.Context, a []string) error { return t.List(a) }},
 		oden.Command{Name: "history", Summary: "the ring of the last 5 recordings, newest first, and the saved ones", Run: func(_ context.Context, a []string) error { return t.History(a) }},
 		oden.Command{Name: "keep", Summary: "keep N NAME: move history entry N to saved/NAME.json", Run: func(_ context.Context, a []string) error { return t.Keep(a) }},
@@ -379,6 +380,30 @@ func (t *Tool) Trim(args []string) error {
 
 // TUI runs the index (and, with a recording, replays it first).
 func (t *Tool) TUI(replay *story.Recording) error {
+	if replay != nil {
+		return t.tui(startReplay{replay})
+	}
+	return t.tui(nil)
+}
+
+// Open opens one story (NAME, AREA/NAME or its title) live in the TUI.
+func (t *Tool) Open(args []string) error {
+	if len(args) != 1 {
+		return fmt.Errorf("usage: %s open NAME", t.Prog)
+	}
+	lib, err := t.library("")
+	if err != nil {
+		return err
+	}
+	s := story.Find(lib.Stories, args[0])
+	if s == nil {
+		return fmt.Errorf("no story %q (%s list)", args[0], t.Prog)
+	}
+	return t.tui(startStory{s})
+}
+
+// tui runs the index, sending first (when set) once it starts.
+func (t *Tool) tui(first tea.Msg) error {
 	lib, err := t.library("")
 	if err != nil {
 		return err
@@ -388,8 +413,8 @@ func (t *Tool) TUI(replay *story.Recording) error {
 		return err
 	}
 	p := tea.NewProgram(h)
-	if replay != nil {
-		go p.Send(startReplay{replay})
+	if first != nil {
+		go p.Send(first)
 	}
 	_, err = p.Run()
 	if errors.Is(err, tea.ErrProgramKilled) {

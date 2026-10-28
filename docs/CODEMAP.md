@@ -1045,12 +1045,12 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/build.go
 
-- lines: 1478
+- lines: 1565
 - purpose: Session is one built story: the runtime, the model and the demo state the verbs act on (fake jobs and panes).
 - types: Session, Options
-- methods: Session(26), datedView(1), storyCommands(3)
+- methods: Session(28), datedView(1), storyCommands(3)
 - funcs: Build
-- leans on: story.go(49), run.go(17), fake.go(3)
+- leans on: story.go(52), run.go(18), fake.go(3)
 
 ### story/driver.go
 
@@ -1088,9 +1088,9 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/story.go
 
-- lines: 666
+- lines: 685
 - purpose: Story is one scenario file.
-- types: Story, Page, ChooserSpec, ChooserRowSpec, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, MarkdownSpec, TimelineSpec, CardSpec, SectionSpec, StepSpec, CommandsSpec, CatalogSpec, InputSpec, CompletionSpec, TermSpec, HintsSpec, MarkSpec, JobSpec, BindSpec, VerbSpec, Event, Expect, Expects
+- types: Story, Page, TextSpec, ChooserSpec, ChooserRowSpec, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, MarkdownSpec, TimelineSpec, CardSpec, SectionSpec, StepSpec, CommandsSpec, CatalogSpec, InputSpec, CompletionSpec, TermSpec, HintsSpec, MarkSpec, JobSpec, BindSpec, VerbSpec, Event, Expect, Expects
 - methods: Event(3), Expects(2), Story(5)
 - funcs: Slug, Parse, LoadFS, LoadDir, Sort, Find
 
@@ -1358,6 +1358,7 @@ Exported type -> file.
 - story.Story -> story/story.go
 - story.Tagged -> story/driver.go
 - story.TermSpec -> story/story.go
+- story.TextSpec -> story/story.go
 - story.TimelineSpec -> story/story.go
 - story.TreeSpec -> story/story.go
 - story.TrimSpec -> story/trim.go

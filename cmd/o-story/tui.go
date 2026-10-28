@@ -42,6 +42,7 @@ type host struct {
 type outputMsg struct{ gen int }
 type replayMsg struct{ gen, i int }
 type startReplay struct{ rec *story.Recording }
+type startStory struct{ s *story.Story }
 
 func newHost(lib story.Library) (*host, error) {
 	h := &host{lib: lib, store: lib.Store, want: -1, wantP: -1, w: 80, h: 24}
@@ -271,6 +272,8 @@ func (h *host) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return h, h.deliver(v.Msg)
 	case startReplay:
 		return h, h.open(v.rec.Initial, v.rec)
+	case startStory:
+		return h, h.open(v.s, nil)
 	case outputMsg:
 		if h.cur == nil || v.gen != h.gen || h.replay != nil {
 			return h, nil

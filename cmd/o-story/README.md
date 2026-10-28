@@ -11,6 +11,7 @@ still data.
 
 ```sh
 o-story                      # index of stories by area; enter opens one
+o-story open NAME            # one story live in the real chrome; q returns to the index
 o-story run [NAME|AREA...]   # headless; non-zero exit on failure
 o-story run --update --dir cmd/o-story/stories   # rewrite goldens on disk
 o-story list | history | keep N NAME | replay REF | trim REF ... | verbs
@@ -21,6 +22,13 @@ o story ...                  # the same, through the oden family root
 ```
 
 `go test ./cmd/o-story/...` runs every story in `stories/`.
+
+The Turns page (`o-story open turns/page`) is mtm's Turns tab as a story:
+a pane row, the card timeline (a plain turn, tool calls with a diff and a
+tall output, a subagent, a notification event card), the prompt box with
+`@` and `/` completions, a settings line, and the key readout in the
+bottom-right corner. The other `turns/` stories walk its timeline keys
+(`base: "story:turns/page"`).
 
 ## The model
 
@@ -102,12 +110,19 @@ it to the timer's deadline and delivers the timer's message
                                      // toggles log "toggle LINE [x] TEXT" (writes); external is
                                      // what the source holds from the first toggle on
     timeline: { id: "timeline", followTail: false, headerLines: 0, noSpill: false, height: 0,
+                parentStop: "",      // where h on a closed card goes (a list id: its selected row)
                 cards: [{ id: "t1", header: "prompt", meta: "09:12 · done", body: "answer", open: false,
-                          active: false, muted: false, group: "session 1",
+                          active: false, muted: false, group: "session 1", event: false,
                           sections: [{ title: "thinking", summary: "3 lines", text: "…", role: "muted", folded: true }] }],
                 append: [{ id: "t2", header: "next prompt" }] },
                                      // an AddTimeline of story-card cards in the page's order;
-                                     // a appends the next queued card, s streams a line into the last
+                                     // a appends the next queued card, s streams a line into the last;
+                                     // event draws a card as an event (Card.Event)
+    texts: [{ id: "settings", text: "turns.style cards" }],  // fixed lines, in the order by id
+                                     // (inputs may be in the order too), else after the inputs
+    readout: false,                  // the key readout (bottom-right, or "readout" in the order):
+                                     // the mode, the focus path innermost first, the last key a
+                                     // row answered → its request, the mode, and its target if any
     commands: {                      // instead of the above: cli's Commands page
       entries: [{ name: "greet", kind: "inline", summary: "say hello", source: "main.go:12", help: "usage: …" },
                 { name: "web", kind: "external", source: "/bin/hello-web" }],

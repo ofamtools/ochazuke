@@ -788,7 +788,7 @@ const storyCard = "story-card"
 
 // card is a CardSpec as an ochazuke.Card of the story-card noun.
 func card(c CardSpec) ochazuke.Card {
-	out := ochazuke.Card{ID: c.ID, Noun: storyCard, Header: c.Header, Meta: c.Meta, Open: c.Open, Active: c.Active, Muted: c.Muted, Group: c.Group}
+	out := ochazuke.Card{ID: c.ID, Noun: storyCard, Header: c.Header, Meta: c.Meta, Open: c.Open, Active: c.Active, Muted: c.Muted, Group: c.Group, Event: c.Event}
 	if c.Body != "" {
 		out.Body = ochazuke.TextBody(c.Body)
 	}
@@ -824,6 +824,9 @@ func (ss *Session) addTimeline(p *Page) (*ochazuke.Timeline, error) {
 	}
 	if p.Timeline.NoSpill {
 		opts = append(opts, ochazuke.NoSpill())
+	}
+	if p.Timeline.ParentStop != "" {
+		opts = append(opts, ochazuke.ParentStop(p.Timeline.ParentStop))
 	}
 	tl, err := r.AddTimeline(timelineID(p), cards, opts...)
 	if err != nil {
@@ -1153,6 +1156,7 @@ func (ss *Session) renderMain(p *Page, width, height int) ochazuke.Block {
 	}
 	var parts []ochazuke.Block
 	used := 0
+	drawn := map[string]bool{}
 	listBlock := func(id string, w, rest int) string {
 		l, list := spec[id], ss.lists[id]
 		h := l.Height
@@ -1207,6 +1211,11 @@ func (ss *Session) renderMain(p *Page, width, height int) ochazuke.Block {
 		used += strings.Count(text, "\n") + 1
 	} else {
 		for _, id := range order {
+			if b, ok := ss.placed(p, id, width, drawn); ok {
+				parts = append(parts, b)
+				used += strings.Count(b.Text, "\n") + 1
+				continue
+			}
 			if tl := ss.timelines[p.ID]; tl != nil && id == tl.ID() {
 				h := p.Timeline.Height
 				if h <= 0 {
@@ -1277,19 +1286,25 @@ func (ss *Session) renderMain(p *Page, width, height int) ochazuke.Block {
 			used += strings.Count(text, "\n") + 1
 		}
 	}
+	// Inputs, then texts, then the readout, where the order left them out.
+	var rest []string
 	for _, in := range p.Inputs {
-		if ss.hidden[in.ID] {
+		rest = append(rest, in.ID)
+	}
+	for _, t := range p.Texts {
+		rest = append(rest, t.ID)
+	}
+	if p.Readout {
+		rest = append(rest, readoutID)
+	}
+	for _, id := range rest {
+		if drawn[id] {
 			continue
 		}
-		prefix := in.Label
-		if prefix == "" {
-			prefix = in.ID
+		if b, ok := ss.placed(p, id, width, drawn); ok {
+			parts = append(parts, b)
+			used += strings.Count(b.Text, "\n") + 1
 		}
-		prefix += ": "
-		pw := ansi.StringWidth(prefix)
-		block := ochazuke.InputBlock(ss.inputs[in.ID], max(1, width-pw), 1)
-		parts = append(parts, block.Offset(pw, 0).WithText(prefix+block.Text))
-		used++
 	}
 	if t := ss.R.Terminal(p.ID + "-pane"); t != nil {
 		h := 6
@@ -1307,6 +1322,78 @@ func (ss *Session) renderMain(p *Page, width, height int) ochazuke.Block {
 		parts = append(parts, ochazuke.Text(state), block)
 	}
 	return stack(parts)
+}
+
+// readoutID names the key readout in a page's order.
+const readoutID = "readout"
+
+// placed draws one of the page's inputs, texts or its readout by id (ok
+// false for any other id, or a hidden one) and marks it drawn.
+func (ss *Session) placed(p *Page, id string, width int, drawn map[string]bool) (ochazuke.Block, bool) {
+	if ss.hidden[id] || drawn[id] {
+		return ochazuke.Block{}, false
+	}
+	for _, in := range p.Inputs {
+		if in.ID != id {
+			continue
+		}
+		drawn[id] = true
+		prefix := in.Label
+		if prefix == "" {
+			prefix = in.ID
+		}
+		prefix += ": "
+		pw := ansi.StringWidth(prefix)
+		block := ochazuke.InputBlock(ss.inputs[in.ID], max(1, width-pw), 1)
+		return block.Offset(pw, 0).WithText(prefix + block.Text), true
+	}
+	for _, t := range p.Texts {
+		if t.ID == id {
+			drawn[id] = true
+			return ochazuke.Text(t.Text), true
+		}
+	}
+	if id == readoutID && p.Readout {
+		drawn[id] = true
+		lines := ss.readout()
+		for i, l := range lines {
+			l = ansi.Truncate(l, width, "…")
+			lines[i] = strings.Repeat(" ", max(0, width-ansi.StringWidth(l))) + l
+		}
+		return ochazuke.Text(strings.Join(lines, "\n")), true
+	}
+	return ochazuke.Block{}, false
+}
+
+// readout is the key readout's lines: the mode, the focus path innermost
+// first (instance ids, app left out), and the last key a row answered
+// with the request it ran, read from the action history. The runtime
+// does not say at which level of the stack the row answered, so the
+// readout names the request's target when the row addressed one.
+func (ss *Session) readout() []string {
+	r := ss.R
+	path := slices.Clone(r.InstancePath(r.Focus))
+	path = slices.DeleteFunc(path, func(id string) bool { return id == ochazuke.AppNoun })
+	slices.Reverse(path)
+	lines := []string{"mode " + r.Mode.Name, "focus " + strings.Join(path, " < ")}
+	key := "key -"
+	hist := r.History(0)
+	for i := len(hist) - 1; i >= 0; i-- {
+		h := hist[i]
+		keys, ok := strings.CutPrefix(h.Context.Source, "key:")
+		if !ok || h.Depth != 0 {
+			continue
+		}
+		key = "key " + keys + " → " + r.DisplayKey(h.Request.Key()) + " in " + h.Context.Mode
+		if h.Request.Target != "" {
+			key += " at " + h.Request.Target
+		}
+		if !h.Result.OK {
+			key += " (failed)"
+		}
+		break
+	}
+	return append(lines, key)
 }
 
 // stack joins blocks top to bottom, keeping the one cursor in place.

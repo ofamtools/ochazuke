@@ -114,6 +114,19 @@ type Page struct {
 	// focus when the story starts.
 	Chooser *ChooserSpec `json:"chooser,omitempty"`
 	Open    bool         `json:"open,omitempty"` // the page opened first (default the first page)
+	// Texts are fixed lines (a settings line, a caption), drawn in the
+	// page's order by id, or after the inputs when Order leaves them out.
+	Texts []TextSpec `json:"texts,omitempty"`
+	// Readout draws the key readout in the page's bottom-right corner (or
+	// in the page's order as "readout"): the mode, the focus path
+	// innermost first, and the last key a row answered with what it ran.
+	Readout bool `json:"readout,omitempty"`
+}
+
+// TextSpec is a fixed text drawn on the page.
+type TextSpec struct {
+	ID   string `json:"id"`
+	Text string `json:"text"`
 }
 
 // ChooserSpec is a chooser opened over the page's focus: its rows and the
@@ -242,6 +255,9 @@ type TimelineSpec struct {
 	HeaderLines int        `json:"headerLines,omitempty"`
 	NoSpill     bool       `json:"noSpill,omitempty"`
 	Height      int        `json:"height,omitempty"` // lines drawn; 0 = the rest of the page
+	// ParentStop is where h on a closed card goes (ochazuke.ParentStop):
+	// a list's id lands on its selected row.
+	ParentStop string `json:"parentStop,omitempty"`
 }
 
 // CardSpec is one card (ochazuke.Card) with its body and sections as text.
@@ -256,6 +272,9 @@ type CardSpec struct {
 	Active   bool          `json:"active,omitempty"`
 	Muted    bool          `json:"muted,omitempty"`
 	Group    string        `json:"group,omitempty"`
+	// Event draws the card as something that happened (Card.Event): a
+	// task's notification, indented, its border dashed and muted.
+	Event bool `json:"event,omitempty"`
 }
 
 // SectionSpec is one card section (ochazuke.CardSection) with its text;

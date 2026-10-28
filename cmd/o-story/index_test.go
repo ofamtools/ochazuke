@@ -69,3 +69,30 @@ func TestIndexIsATablePerArea(t *testing.T) {
 		t.Fatalf("%d highlighted and %d dimmed rows, want the focused one and the other area's", full, dimmed)
 	}
 }
+
+// o-story open NAME starts the host with that story open (startStory),
+// a base story resolved like any other; q goes back to the index.
+func TestOpenStartsOnTheStory(t *testing.T) {
+	stories, err := story.LoadDir("stories")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lib := story.Library{Store: story.Store{Dir: t.TempDir()}, Stories: stories}
+	h, err := newHost(lib)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := story.Find(stories, "turns/page")
+	if s == nil {
+		t.Fatal("turns/page not found")
+	}
+	h.Update(tea.WindowSizeMsg{Width: 120, Height: 50})
+	h.Update(startStory{s})
+	if h.cur == nil {
+		t.Fatalf("no story open: %s", h.msg)
+	}
+	if view := ansi.Strip(h.View().Content); !strings.Contains(view, "prompt:") || !strings.Contains(view, "mode normal") {
+		t.Fatalf("turns page not drawn:\n%s", view)
+	}
+	h.cur.Close()
+}
