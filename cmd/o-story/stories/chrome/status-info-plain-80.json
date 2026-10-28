@@ -1,0 +1,61 @@
+{
+  "name": "status line: a plain message (ctx.Info, Y's copied) leads the hints without Error:, and the next key clears it",
+  "area": "chrome",
+  "width": 80,
+  "height": 8,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "columns": [
+          {
+            "title": "name"
+          },
+          {
+            "title": "state"
+          }
+        ],
+        "items": [
+          {
+            "id": "a1",
+            "label": "one",
+            "cells": [
+              "one",
+              "idle"
+            ]
+          },
+          {
+            "id": "a2",
+            "label": "two",
+            "cells": [
+              "two",
+              "busy"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "Y",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "contains": [
+        "copied the row (8 characters) · "
+      ],
+      "lacks": [
+        "Error:"
+      ]
+    },
+    {
+      "focus": "a2",
+      "lacks": [
+        "copied the row",
+        "Error:"
+      ]
+    }
+  ]
+}

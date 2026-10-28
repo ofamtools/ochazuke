@@ -140,6 +140,87 @@ func TestModelIsTheUISink(t *testing.T) {
 	}
 }
 
+// The status line has two tones in one slot: ctx.Error (and ctx.Status,
+// its older spelling) is "Error: TEXT" in the error style in place of the
+// hints; ctx.Info is plain text before the hints. Either replaces the
+// other, and the next key clears both.
+func TestStatusLineTones(t *testing.T) {
+	r := NewRuntime()
+	pageTestRegister(t, r, "alpha")
+	r.Define("app").
+		Verb("info", func(c Ctx) Result { c.Info("copied 3 rows"); return Done(nil) }, "Say something plain").
+		Verb("fail", func(c Ctx) Result { c.Error("could not copy"); return Done(nil) }, "Say an error").
+		Verb("legacy", func(c Ctx) Result { c.Status("old error"); return Done(nil) }, "Say an error the old way").
+		Mode("normal").Bind("I", Do("app.info")).Bind("F", Do("app.fail")).Bind("L", Do("app.legacy"))
+	m := NewModel(r)
+	if err := r.OpenPage("alpha"); err != nil {
+		t.Fatal(err)
+	}
+	m.Update(tea.WindowSizeMsg{Width: 200, Height: 12})
+	press := func(key rune) Footer {
+		m.Update(tea.KeyPressMsg{Code: key, Text: string(key)})
+		return m.footer()
+	}
+	if f := press('I'); f.Error || !strings.HasPrefix(f.Text, "copied 3 rows · ") || !strings.Contains(f.Text, "app.info") || m.Status != "" {
+		t.Fatalf("info: %+v status %q", f, m.Status)
+	}
+	if f := press('F'); !f.Error || f.Text != "Error: could not copy" || m.Info != "" {
+		t.Fatalf("error: %+v info %q", f, m.Info)
+	}
+	if f := press('L'); !f.Error || f.Text != "Error: old error" {
+		t.Fatalf("status is the error tone: %+v", f)
+	}
+	r.UI().Info("plain again")
+	if f := m.footer(); f.Error || !strings.HasPrefix(f.Text, "plain again · ") || m.Status != "" {
+		t.Fatalf("info replaces the error: %+v", f)
+	}
+	m.Update(tea.KeyPressMsg{Code: tea.KeyEscape})
+	if m.Info != "" || m.Status != "" || strings.Contains(m.footer().Text, "plain again") {
+		t.Fatalf("the next key keeps the line: info %q status %q", m.Info, m.Status)
+	}
+}
+
+// statusOnlySink is a UISink from before the neutral tone: no Info.
+type statusOnlySink struct{ got []string }
+
+func (s *statusOnlySink) Notify(NoticeID, string) {}
+func (s *statusOnlySink) ClearNotice(NoticeID)    {}
+func (s *statusOnlySink) Status(text string)      { s.got = append(s.got, text) }
+
+// A sink without Info gets the neutral tone through Status, as before;
+// RecordingSink keeps the tones apart; Line prints each as a host does.
+func TestStatusInfoReachesEverySink(t *testing.T) {
+	r := NewRuntime()
+	old := &statusOnlySink{}
+	r.UI().Attach(old)
+	r.UI().Info("plain")
+	r.UI().Error("bad")
+	if !reflect.DeepEqual(old.got, []string{"plain", "bad"}) {
+		t.Fatalf("status-only sink got %q", old.got)
+	}
+	rec := &RecordingSink{}
+	r.UI().Attach(rec)
+	Ctx{Runtime: r}.Info("plain")
+	Ctx{Runtime: r}.Error("bad")
+	if rec.LastInfo() != "plain" || rec.LastStatus() != "bad" {
+		t.Fatalf("recorded info %q status %q", rec.LastInfo(), rec.LastStatus())
+	}
+	for _, c := range []struct {
+		msg  UIMessage
+		want string
+	}{
+		{UIMessage{Kind: UINotice, ID: 1, Text: "n"}, "notice: n"},
+		{UIMessage{Kind: UIStatus, Text: "e"}, "error: e"},
+		{UIMessage{Kind: UIInfo, Text: "i"}, "status: i"},
+		{UIMessage{Kind: UIInfo}, ""},
+		{UIMessage{Kind: UIClearNotice, ID: 1}, ""},
+	} {
+		if got := c.msg.Line(); got != c.want {
+			t.Fatalf("%+v: line %q, want %q", c.msg, got, c.want)
+		}
+	}
+}
+
 // HandleCall returns what the call told the user with its result; the
 // sink gets the messages too.
 func TestHandleCallReturnsMessages(t *testing.T) {

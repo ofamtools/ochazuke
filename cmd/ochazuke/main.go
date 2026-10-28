@@ -110,8 +110,8 @@ func run(args []string) error {
 	response, err := ochazuke.CallResponse(ctx, *socket, ochazuke.Request{Noun: rest[0], Verb: rest[1], Target: *target, Args: operationArgs})
 	// What the call told the user prints on stderr, as cli.Shell does.
 	for _, msg := range response.Messages {
-		if msg.Text != "" && msg.Kind != ochazuke.UIClearNotice {
-			fmt.Fprintf(os.Stderr, "%s: %s\n", msg.Kind, msg.Text)
+		if line := msg.Line(); line != "" {
+			fmt.Fprintln(os.Stderr, line)
 		}
 	}
 	if err != nil {

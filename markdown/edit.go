@@ -261,7 +261,7 @@ func (d *Doc) HandleMessage(msg tea.Msg) bool {
 	}
 	if d.edit != nil && tick.Seq == d.edit.seq {
 		if err := d.flush(); err != nil {
-			d.r.UI().Status(err.Error())
+			d.r.UI().Error(err.Error())
 		}
 	}
 	return true
@@ -293,7 +293,7 @@ func (d *Doc) PendingCommand() tea.Cmd {
 	}
 	if d.r.Focus != s.input.ID && d.r.TopModal() == "" {
 		if err := d.leave(false); err != nil {
-			d.r.UI().Status(err.Error())
+			d.r.UI().Error(err.Error())
 		}
 		return nil
 	}

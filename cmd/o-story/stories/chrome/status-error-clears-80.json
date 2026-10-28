@@ -1,0 +1,48 @@
+{
+  "name": "status line: an error (a key that failed, ctx.Error) reads Error: in place of the hints until the next key",
+  "area": "chrome",
+  "width": 80,
+  "height": 8,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": "E",
+        "do": "focus.set",
+        "args": {
+          "id": "nowhere"
+        }
+      }
+    ]
+  },
+  "script": [
+    "E",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "contains": [
+        "Error: unknown instance \"nowhere\""
+      ],
+      "lacks": [
+        "demo.open"
+      ]
+    },
+    {
+      "focus": "a2",
+      "contains": [
+        "demo.open"
+      ],
+      "lacks": [
+        "Error:"
+      ]
+    }
+  ]
+}

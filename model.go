@@ -45,15 +45,20 @@ type Model struct {
 	Title      string
 	Width      int
 	Height     int
-	Status     string
+	// Status is the status line in its error tone: the last key's error,
+	// or what a handler set with ctx.Error (ctx.Status); the footer reads
+	// "Error: TEXT" in the error style in place of the hints. Info is the
+	// line in its neutral tone (ctx.Info), drawn plain before the hints.
+	// Setting one clears the other, and the next key clears both.
+	Status string
+	Info   string
 	// Notices are persistent lines (a host's mount warnings), kept across
 	// keys and errors until notice.clear (or the application) clears them.
 	// The footer shows the newest before the hints, cut to half the width,
 	// with "(+N more)" for the rest (notice.list has them all), so notices
-	// never hide the hints. Status is the last key's error (or what a
-	// handler set with ctx.Status) and goes with the next key; a notice
-	// does not. The Model is the runtime's UI sink (Runtime.UI), so
-	// ctx.Notify and ctx.Status land here.
+	// never hide the hints. A notice does not go with the next key. The
+	// Model is the runtime's UI sink (Runtime.UI), so ctx.Notify,
+	// ctx.Error and ctx.Info land here.
 	Notices   []string
 	noticeIDs []NoticeID // the UI's id of each notice, 0 for one appended to Notices directly
 	// Sidebar replaces page tabs with a navigation rail. Existing page operations
@@ -205,7 +210,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Off-loop results reach their owning instance first; a stale or
 	// orphaned completion is dropped here.
 	if _, err := m.Runtime.Deliver(msg); err != nil {
-		m.Status = err.Error()
+		m.Status, m.Info = err.Error(), ""
 	}
 	switch v := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -214,15 +219,15 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case CallMsg:
 		m.Runtime.HandleCall(v)
 	case BindingTimeoutMsg:
-		status := m.Status
-		m.Status = "" // what the timed-out request sets stands
+		status, info := m.Status, m.Info
+		m.Status, m.Info = "", "" // what the timed-out request sets stands
 		if handled, err := m.Runtime.HandleBindingTimeout(v); handled {
 			if err != nil {
-				m.Status = err.Error()
+				m.Status, m.Info = err.Error(), ""
 			}
 			m.Palette.sync()
 		} else {
-			m.Status = status
+			m.Status, m.Info = status, info
 		}
 	case JobLingerMsg:
 		m.ticker.fired(v)
@@ -282,9 +287,9 @@ func (m *Model) applyThemeSetting() {
 // handleKey dispatches one key through the runtime's stack walk and shows
 // the error, if any, in the status line.
 func (m *Model) handleKey(key MacroKey) {
-	m.Status = "" // a key clears the status; what its handler sets stands
+	m.Status, m.Info = "", "" // a key clears the status line; what its handler sets stands
 	if _, err := m.Runtime.Dispatch(key); err != nil {
-		m.Status = err.Error()
+		m.Status, m.Info = err.Error(), ""
 	}
 	m.Palette.sync()
 }
@@ -425,8 +430,11 @@ func (s modelSink) ClearNotice(id NoticeID) {
 	}
 }
 
-// Status replaces the status line.
-func (s modelSink) Status(text string) { s.m.Status = text }
+// Status replaces the status line with an error.
+func (s modelSink) Status(text string) { s.m.Status, s.m.Info = text, "" }
+
+// Info replaces the status line with a plain message.
+func (s modelSink) Info(text string) { s.m.Status, s.m.Info = "", text }
 
 // alignNoticeIDs keeps one id per notice when the application changed
 // Notices itself: a notice it appended has no id (0), one it dropped from
@@ -458,10 +466,11 @@ func (m *Model) footerNotice() string {
 	return text + more
 }
 
-// footer is the status row: the error of the last key when there is one,
-// else the hints for the focus; the notices, when there are any, follow
-// the error or lead the hints. The jobs ticker's entries ride along for
-// the rule line above it (Layout.TickerRule).
+// footer is the status row: the error of the last key (or ctx.Error) when
+// there is one, in place of the hints; else the hints for the focus, led
+// by the plain status (ctx.Info) cut to half the width and the newest
+// notice. The jobs ticker's entries ride along for the rule line above it
+// (Layout.TickerRule).
 func (m *Model) footer() Footer {
 	jobs := m.JobsTicker(m.Width)
 	notice := m.footerNotice()
@@ -472,14 +481,30 @@ func (m *Model) footer() Footer {
 		}
 		return Footer{Text: text, Error: true, Jobs: jobs}
 	}
-	hints := BindingHints(m.Runtime, m.Runtime.Focus)
-	switch {
-	case notice == "":
-		return Footer{Text: hints, Jobs: jobs}
-	case hints == "":
-		return Footer{Text: notice, Jobs: jobs}
+	var parts []string
+	if info := m.footerInfo(); info != "" {
+		parts = append(parts, info)
 	}
-	return Footer{Text: notice + " · " + hints, Jobs: jobs}
+	if notice != "" {
+		parts = append(parts, notice)
+	}
+	if hints := BindingHints(m.Runtime, m.Runtime.Focus); hints != "" {
+		parts = append(parts, hints)
+	}
+	return Footer{Text: strings.Join(parts, " · "), Jobs: jobs}
+}
+
+// footerInfo is the plain status as the footer shows it: one line, at most
+// half the width, so the hints keep the rest.
+func (m *Model) footerInfo() string {
+	if m.Info == "" {
+		return ""
+	}
+	text := safeText(strings.ReplaceAll(m.Info, "\n", " "))
+	if m.Width > 0 {
+		text = ansi.Truncate(text, max(8, max(16, m.Width/2)), "…")
+	}
+	return text
 }
 
 // BindingHints renders the rows a focus answers to in its current mode as a
@@ -865,8 +890,13 @@ func (m *Model) render() Block {
 		// The hint is the modal focus's own binding rows; it may widen the
 		// panel up to a readable width but never past the modal bounds.
 		hint := ansi.Truncate(BindingHints(m.Runtime, m.Runtime.ModalFocus(id)), min(modalWidth, max(bodyWidth, 48)), "…")
-		if id == m.Runtime.TopModal() && m.Status != "" {
-			hint = "Error: " + m.Status
+		if id == m.Runtime.TopModal() {
+			switch {
+			case m.Status != "":
+				hint = "Error: " + m.Status
+			case m.Info != "":
+				hint = ansi.Truncate(m.footerInfo()+" · "+hint, min(modalWidth, max(bodyWidth, 48)), "…")
+			}
 		}
 		surface = ComposeModalBlock(surface.Text, title, body, hint, m.Width, m.Height, layout.Styles)
 	}

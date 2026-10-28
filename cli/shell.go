@@ -83,8 +83,9 @@ import (
 // --format as that argument and prints JSON.
 //
 // What handlers tell the user while the command runs (ctx.Notify,
-// ctx.Status, Runtime.UI, a job's Then included) prints on Stderr as
-// "notice: TEXT" and "status: TEXT" lines beside the "warning:" lines; the
+// ctx.Error, ctx.Info, Runtime.UI, a job's Then included) prints on Stderr
+// as "notice: TEXT", "error: TEXT" and "status: TEXT" lines beside the
+// "warning:" lines; the
 // shell is the runtime's UI sink until Run returns (messages posted before
 // any sink attached print first).
 //
@@ -151,7 +152,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	if len(args) < 2 {
 		return errors.New(s.usage())
 	}
-	// What handlers tell the user (ctx.Notify, ctx.Status) prints on
+	// What handlers tell the user (ctx.Notify, ctx.Error, ctx.Info) prints on
 	// Stderr while the command runs, setup's messages first.
 	previous := s.Runtime.UI().Attach(stderrSink{s.stderr()})
 	defer s.Runtime.UI().Attach(previous)
@@ -302,16 +303,22 @@ func (s *Shell) stdout() io.Writer {
 }
 
 // stderrSink prints what handlers tell the user as lines on Stderr, beside
-// the shell's warning: lines: "notice: TEXT" and "status: TEXT". A line
-// cannot be taken back, so a cleared notice or an empty status prints
-// nothing.
+// the shell's warning: lines: "notice: TEXT", "error: TEXT" (ctx.Error,
+// ctx.Status) and "status: TEXT" (ctx.Info), UIMessage.Line. A line cannot
+// be taken back, so a cleared notice or an empty status prints nothing.
 type stderrSink struct{ w io.Writer }
 
-func (s stderrSink) Notify(_ ochazuke.NoticeID, text string) { fmt.Fprintln(s.w, "notice:", text) }
-func (s stderrSink) ClearNotice(ochazuke.NoticeID)           {}
+func (s stderrSink) Notify(_ ochazuke.NoticeID, text string) {
+	s.line(ochazuke.UIMessage{Kind: ochazuke.UINotice, Text: text})
+}
+func (s stderrSink) ClearNotice(ochazuke.NoticeID) {}
 func (s stderrSink) Status(text string) {
-	if text != "" {
-		fmt.Fprintln(s.w, "status:", text)
+	s.line(ochazuke.UIMessage{Kind: ochazuke.UIStatus, Text: text})
+}
+func (s stderrSink) Info(text string) { s.line(ochazuke.UIMessage{Kind: ochazuke.UIInfo, Text: text}) }
+func (s stderrSink) line(msg ochazuke.UIMessage) {
+	if line := msg.Line(); line != "" {
+		fmt.Fprintln(s.w, line)
 	}
 }
 

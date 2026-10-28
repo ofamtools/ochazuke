@@ -1,0 +1,27 @@
+{
+  "name": "status line golden: a failed key reads Error: in place of the hints",
+  "area": "chrome",
+  "width": 80,
+  "height": 8,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": "E",
+        "do": "focus.set",
+        "args": {
+          "id": "nowhere"
+        }
+      }
+    ]
+  },
+  "script": [
+    "E"
+  ]
+}

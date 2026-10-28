@@ -1,0 +1,42 @@
+{
+  "name": "status line golden: Y's copied the row reads plain before the hints",
+  "area": "chrome",
+  "width": 80,
+  "height": 8,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "columns": [
+          {
+            "title": "name"
+          },
+          {
+            "title": "state"
+          }
+        ],
+        "items": [
+          {
+            "id": "a1",
+            "label": "one",
+            "cells": [
+              "one",
+              "idle"
+            ]
+          },
+          {
+            "id": "a2",
+            "label": "two",
+            "cells": [
+              "two",
+              "busy"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "Y"
+  ]
+}

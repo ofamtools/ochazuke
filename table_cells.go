@@ -480,7 +480,7 @@ func registerTableCells(r *Runtime) {
 		if what != "row" {
 			subject = l.columnTitle(l.Column())
 		}
-		r.UI().Status(fmt.Sprintf("copied %s (%d characters)", subject, len([]rune(text))))
+		r.UI().Info(fmt.Sprintf("copied %s (%d characters)", subject, len([]rune(text))))
 		return y, nil
 	}})
 	r.Register(Operation{Verb: "resize-column", Noun: "ochazuke.list", Description: "Widen (delta 1) or narrow (-1) a table's current column by ColumnWidthStep cells; remembered per table", Parameters: map[string]Parameter{

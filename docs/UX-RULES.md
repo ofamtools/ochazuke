@@ -346,11 +346,19 @@ tiers above them. When the two disagree, fix one in the same commit.
   levels, motions last under `movement`, and only in normal mode.
   Story: `help/row-verbs-first.json`, `help/levels-innermost-first.json`;
   golden `testdata/help-80.golden`.
-- **R6.4** `Status` shows the last key's error and clears on the next key;
-  `Notices` persist until `notice.clear`; the footer shows the newest at
-  most half the width with `(+N more)`, so the hints always keep the rest.
-  Story: `notices/persist.json`, `notices/footer-keeps-hints.json`;
-  needed for the status-clears case.
+- **R6.4** Three things tell the user, kept apart. The status line is one
+  slot with two tones, cleared by the next key: an error (a key that
+  failed, `ctx.Error`, `ctx.Status` its older spelling) reads
+  `Error: TEXT` in the error style in place of the hints; a plain message
+  (`ctx.Info`) reads before the hints, cut to half the width. Either
+  replaces the other. A plain message is never drawn as an error and an
+  error never as plain text. `Notices` persist until `notice.clear`; the
+  footer shows the newest at most half the width with `(+N more)`, so the
+  hints always keep the rest. The CLI prints the same as `error:`,
+  `status:` and `notice:` lines. Story: `notices/persist.json`,
+  `notices/footer-keeps-hints.json`, `chrome/status-info-plain-80.json`,
+  `chrome/status-error-clears-80.json`; goldens `chrome/status-info-80`,
+  `chrome/status-error-80`.
 - **R6.5** The jobs ticker rides the rule line above the footer: at most
   two entries joined by ` · `, the rest of the line still rule characters;
   it takes no row, so the body never shrinks, moves or loses a row while a
