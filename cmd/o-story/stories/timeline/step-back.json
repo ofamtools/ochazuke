@@ -1,0 +1,73 @@
+{
+  "name": "timeline: k on the first step goes back to the card; a count stops at the edge",
+  "area": "timeline",
+  "page": {
+    "noHeadings": true,
+    "timeline": {
+      "cards": [
+        {
+          "id": "t1",
+          "header": "Explain the focus walk.",
+          "body": "First paragraph of the answer.\n\nSecond paragraph, with more words.\n\nThird and last.",
+          "meta": "09:12 · done",
+          "open": true
+        },
+        {
+          "id": "t2",
+          "header": "Now the spill rule.",
+          "body": "Spill goes to the next stop.",
+          "meta": "09:20 · done"
+        }
+      ]
+    }
+  },
+  "script": [
+    "l",
+    "j",
+    "j",
+    "k",
+    "k",
+    "k",
+    "l",
+    "3",
+    "j",
+    "3",
+    "k"
+  ],
+  "expect": [
+    {
+      "after": 4,
+      "focus": "timeline/body",
+      "contains": [
+        "▌Second paragraph"
+      ]
+    },
+    {
+      "after": 5,
+      "focus": "timeline/body",
+      "contains": [
+        "▌First paragraph"
+      ]
+    },
+    {
+      "after": 6,
+      "focus": "t1",
+      "lacks": [
+        "▌"
+      ]
+    },
+    {
+      "after": 9,
+      "focus": "timeline/body",
+      "contains": [
+        "▌Third and last"
+      ]
+    },
+    {
+      "focus": "timeline/body",
+      "contains": [
+        "▌First paragraph"
+      ]
+    }
+  ]
+}

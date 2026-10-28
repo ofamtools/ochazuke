@@ -31,6 +31,12 @@ import (
 // draws its header and meta in the muted style (an older card). A card
 // whose Group differs from the card above it is preceded by a full-width
 // rule with the group as its label (a session boundary).
+//
+// Steps are the places inside an open card that l steps onto and j/k walk
+// (timeline_steps.go). A card with Steps draws its body from them, and
+// Body and Sections are not drawn; a card without them steps through its
+// Body's paragraphs (blank-line separated, a fenced code block one
+// paragraph) and then each section, title and text, as one step.
 type Card struct {
 	ID       string                 `json:"id"`
 	Noun     string                 `json:"noun,omitempty"`
@@ -40,6 +46,7 @@ type Card struct {
 	Meta     string                 `json:"meta,omitempty"`
 	Body     func(width int) string `json:"-"`
 	Sections []CardSection          `json:"sections,omitempty"`
+	Steps    []CardStep             `json:"steps,omitempty"`
 	Open     bool                   `json:"open,omitempty"`
 	Active   bool                   `json:"active,omitempty"`
 	Muted    bool                   `json:"muted,omitempty"`
@@ -134,6 +141,18 @@ type Timeline struct {
 	focusLine int            // the selected card's first line in the last frame
 	focusRows int            // and its lines on screen
 	styles    Styles
+
+	// Inside a card (timeline_steps.go): bodyID is the body instance
+	// (id+"/body", under the list) that holds the focus there; in is the
+	// card it walks, step its current step, off the lines of a step taller
+	// than the window scrolled past; parentStop is where h on a closed
+	// card goes (ParentStop).
+	bodyID     string
+	in         string
+	step       int
+	off        int
+	seek       bool // the next frame shows the current step (it moved)
+	parentStop string
 }
 
 // timelineAnchor is a line of the cards: card id's line-th line.
@@ -151,6 +170,7 @@ type cardCache struct {
 	lines   []string
 	bodyKey string
 	body    []cardLine
+	steps   []stepSpan // the body's steps, built with it
 	hasBody bool
 }
 
@@ -163,7 +183,8 @@ type cardLine struct {
 }
 
 // AddTimeline registers a timeline under Parent (default app) with its
-// cards. Options: FollowTail, HeaderLines(n), NoSpill (motions stay in it).
+// cards. Options: FollowTail, HeaderLines(n), NoSpill (motions stay in it),
+// ParentStop(id) (where h on a closed card goes).
 func (r *Runtime) AddTimeline(id string, cards []Card, opts ...InstanceOption) (*Timeline, error) {
 	if id == "" || r.Instances[id] != nil {
 		return nil, fmt.Errorf("timeline ID %q must be nonempty and unused", id)
@@ -175,7 +196,7 @@ func (r *Runtime) AddTimeline(id string, cards []Card, opts ...InstanceOption) (
 	if r.Instances[spec.parent] == nil {
 		return nil, fmt.Errorf("unknown parent %q", spec.parent)
 	}
-	t := &Timeline{r: r, id: id, byID: map[string]int{}, open: map[string]bool{}, folds: map[string]map[string]bool{}, cache: map[string]*cardCache{}, limit: spec.headerLines, tail: spec.followTail, follow: spec.followTail}
+	t := &Timeline{r: r, id: id, byID: map[string]int{}, open: map[string]bool{}, folds: map[string]map[string]bool{}, cache: map[string]*cardCache{}, limit: spec.headerLines, tail: spec.followTail, follow: spec.followTail, bodyID: id + "/body", parentStop: spec.parentStop}
 	r.Instance(id, Parent(spec.parent), Kind(timelineNoun), FocusOnClose(spec.closeFocus))
 	r.Instances[id].Component = t
 	listOpts := []InstanceOption{Parent(id), NoMarks()}
@@ -188,6 +209,11 @@ func (r *Runtime) AddTimeline(id string, cards []Card, opts ...InstanceOption) (
 		return nil, err
 	}
 	t.list = list
+	// The body: the place inside the selected card, a part of the list (it
+	// holds the list's focus as a row does, timeline_steps.go).
+	r.Instance(t.bodyID, Parent(list.id), Kind(TimelineBodyNoun))
+	r.Instances[t.bodyID].Label = "body"
+	list.part = t.bodyID
 	// G on the list instance, above the list noun's list.goto: it also
 	// brings the last card's end into view and resumes following.
 	for _, mode := range []string{"normal", "count_pending"} {
@@ -273,6 +299,9 @@ func (t *Timeline) SetOpen(id string, open bool) error {
 	if open && id == t.SelectedID() {
 		t.reveal = true
 	}
+	if !open && id == t.in {
+		t.leaveBody()
+	}
 	return nil
 }
 
@@ -282,6 +311,9 @@ func (t *Timeline) SetAllOpen(open bool) {
 		t.open[c.ID] = open
 	}
 	t.reveal = open
+	if !open {
+		t.leaveBody()
+	}
 }
 
 // Folded reports whether section (its Name, Title or number from 1) of the
@@ -292,11 +324,12 @@ func (t *Timeline) Folded(id, section string) bool {
 		return false
 	}
 	c := &t.cards[i]
-	k := sectionIndex(c, section)
+	units := foldUnits(c)
+	k := unitIndex(units, section)
 	if k < 0 {
 		return false
 	}
-	return t.folded(c, k)
+	return t.folded(c.ID, units[k])
 }
 
 // SetFolded folds or unfolds a section of the card with id (section is its
@@ -307,45 +340,73 @@ func (t *Timeline) SetFolded(id, section string, folded bool) error {
 		return fmt.Errorf("unknown card %q", id)
 	}
 	c := &t.cards[i]
-	k := sectionIndex(c, section)
+	units := foldUnits(c)
+	k := unitIndex(units, section)
 	if k < 0 {
 		return fmt.Errorf("card %s has no section %q", id, section)
 	}
 	if t.folds[id] == nil {
 		t.folds[id] = map[string]bool{}
 	}
-	t.folds[id][sectionName(c, k)] = folded
+	t.folds[id][units[k].name] = folded
 	return nil
 }
 
-func sectionName(c *Card, k int) string {
-	s := c.Sections[k]
-	switch {
-	case s.Name != "":
-		return s.Name
-	case s.Title != "":
-		return s.Title
-	}
-	return strconv.Itoa(k + 1)
+// foldUnit is a part of a card that folds: a section, or a step with a
+// title and a body. name keys its fold state (its Name or ID, else its
+// title, else its number from 1).
+type foldUnit struct {
+	name, title string
+	folded      bool
 }
 
-func sectionIndex(c *Card, section string) int {
-	if n, err := strconv.Atoi(section); err == nil && n >= 1 && n <= len(c.Sections) {
+// foldUnits are the card's foldable parts in order: its sections, or, a
+// card with Steps, its titled steps with a body.
+func foldUnits(c *Card) []foldUnit {
+	var out []foldUnit
+	add := func(name, title string, folded bool) {
+		switch {
+		case name != "":
+		case title != "":
+			name = title
+		default:
+			name = strconv.Itoa(len(out) + 1)
+		}
+		out = append(out, foldUnit{name: name, title: title, folded: folded})
+	}
+	if len(c.Steps) == 0 {
+		for _, s := range c.Sections {
+			add(s.Name, s.Title, s.Folded)
+		}
+		return out
+	}
+	for _, s := range c.Steps {
+		if s.foldable() {
+			add(s.ID, s.Title, s.Folded)
+		}
+	}
+	return out
+}
+
+// unitIndex is the fold unit named section (its name, title or number
+// from 1), or -1.
+func unitIndex(units []foldUnit, section string) int {
+	if n, err := strconv.Atoi(section); err == nil && n >= 1 && n <= len(units) {
 		return n - 1
 	}
-	for k := range c.Sections {
-		if sectionName(c, k) == section || c.Sections[k].Title == section {
+	for k, u := range units {
+		if u.name == section || u.title == section {
 			return k
 		}
 	}
 	return -1
 }
 
-func (t *Timeline) folded(c *Card, k int) bool {
-	if f, ok := t.folds[c.ID][sectionName(c, k)]; ok {
+func (t *Timeline) folded(card string, u foldUnit) bool {
+	if f, ok := t.folds[card][u.name]; ok {
 		return f
 	}
-	return c.Sections[k].Folded
+	return u.folded
 }
 
 // SetCards replaces the cards, keyed by id: the selection, open cards and
@@ -473,7 +534,11 @@ func (t *Timeline) state() map[string]any {
 			open = append(open, c.ID)
 		}
 	}
-	return map[string]any{"id": t.id, "selectedId": t.SelectedID(), "open": open, "following": t.Following(), "top": t.top.id, "topLine": t.top.line, "cards": len(t.cards)}
+	out := map[string]any{"id": t.id, "selectedId": t.SelectedID(), "open": open, "following": t.Following(), "top": t.top.id, "topLine": t.top.line, "cards": len(t.cards)}
+	if t.InBody() {
+		out["in"], out["step"] = t.in, t.step
+	}
+	return out
 }
 
 // shown is the i-th card the list shows (the filter's matches).
@@ -502,11 +567,13 @@ func (t *Timeline) measured(c *Card) *cardCache {
 }
 
 // body is the open card's body lines, built on first need and kept until
-// the width, the revision or the folds change.
+// the width, the revision or the folds change (timeline_steps.go builds
+// them with the steps).
 func (t *Timeline) body(c *Card, cc *cardCache) []cardLine {
+	units := foldUnits(c)
 	var key strings.Builder
-	for k := range c.Sections {
-		if t.folded(c, k) {
+	for _, u := range units {
+		if t.folded(c.ID, u) {
 			key.WriteByte('1')
 		} else {
 			key.WriteByte('0')
@@ -515,35 +582,9 @@ func (t *Timeline) body(c *Card, cc *cardCache) []cardLine {
 	if cc.hasBody && cc.bodyKey == key.String() {
 		return cc.body
 	}
-	w := t.innerWidth()
-	var out []cardLine
-	if c.Body != nil {
-		for _, line := range wrapText(c.Body(w), w) {
-			out = append(out, cardLine{text: line})
-		}
-	}
-	for k, s := range c.Sections {
-		folded := t.folded(c, k)
-		mark := "▾"
-		if folded {
-			mark = "▸"
-		}
-		title := mark + " " + strconv.Itoa(k+1) + " " + s.Title
-		if s.Summary != "" {
-			title += " · " + s.Summary
-		}
-		for _, line := range wrapText(title, w) {
-			out = append(out, cardLine{text: line, title: true})
-		}
-		if folded || s.Body == nil {
-			continue
-		}
-		for _, line := range wrapText(s.Body(max(1, w-2)), max(1, w-2)) {
-			out = append(out, cardLine{text: "  " + line, role: s.Role})
-		}
-	}
-	cc.body, cc.bodyKey, cc.hasBody = out, key.String(), true
-	return out
+	cc.body, cc.steps = t.buildBody(c, units)
+	cc.bodyKey, cc.hasBody = key.String(), true
+	return cc.body
 }
 
 // wrapText wraps text to width cells (words, then long words), never
@@ -609,6 +650,12 @@ func (t *Timeline) draw(i int, selected bool) []string {
 		border = selectedBorder
 		h, v, ml, mr = "━", "┃", "┣", "┫"
 	}
+	// The current step's lines inside the card take a marker in the left
+	// padding (never reversed text: cards reverse nothing).
+	markFrom, markTo := -1, -2
+	if selected && t.InBody() {
+		markFrom, markTo, _ = t.stepLines(i)
+	}
 	var out []string
 	if t.groupStarts(i) {
 		label := " " + modalLabel(c.Group) + " "
@@ -626,7 +673,11 @@ func (t *Timeline) draw(i int, selected bool) []string {
 			text = ansi.Truncate(text, w, "")
 		}
 		text += strings.Repeat(" ", max(0, w-ansi.StringWidth(text)))
-		return border.Render(v) + " " + style.Render(text) + " " + border.Render(v)
+		pad := " "
+		if at := len(out); at >= markFrom && at <= markTo {
+			pad = s.Accent.Bold(true).Render(stepMarker)
+		}
+		return border.Render(v) + pad + style.Render(text) + " " + border.Render(v)
 	}
 	header := lipgloss.NewStyle()
 	switch {
@@ -689,9 +740,18 @@ func (t *Timeline) draw(i int, selected bool) []string {
 // bottomOf is the anchor that puts shown card i's last line on the
 // window's last line (the start when the cards above do not fill it).
 func (t *Timeline) bottomOf(i, avail int) timelineAnchor {
+	return t.bottomAt(i, t.height(i)-1, avail)
+}
+
+// bottomAt is the anchor that puts line of shown card i on the window's
+// last line (the start when what is above does not fill it).
+func (t *Timeline) bottomAt(i, line, avail int) timelineAnchor {
 	rem := avail
 	for j := i; j >= 0; j-- {
 		h := t.height(j)
+		if j == i {
+			h = line + 1
+		}
 		if h >= rem {
 			return timelineAnchor{t.list.items[j].ID, h - rem}
 		}
@@ -758,6 +818,17 @@ func (t *Timeline) render(avail int) (rows []string, first, last int, end bool) 
 		take := min(len(block), avail-len(rows))
 		if i == sel {
 			t.focusLine, t.focusRows = len(rows), take
+			if lo, hi, ok := t.stepShown(i, avail); ok {
+				// Inside the card the page keeps the current step on screen.
+				cut := 0
+				if i == ti {
+					cut = t.top.line
+				}
+				lo, hi = max(lo-cut, 0), min(hi-cut, take-1)
+				if hi >= lo {
+					t.focusLine, t.focusRows = len(rows)+lo, hi-lo+1
+				}
+			}
 		}
 		last = i
 		rows = append(rows, block[:take]...)
@@ -775,11 +846,15 @@ func (t *Timeline) render(avail int) (rows []string, first, last int, end bool) 
 func (t *Timeline) frame(avail int) ([]string, bool) {
 	n, sel := len(t.list.items), t.list.selected
 	selID := t.list.items[sel].ID
+	inBody := t.InBody()
 	switch {
-	case (t.tail && t.follow || t.toBottom) && sel == n-1:
+	case !inBody && (t.tail && t.follow || t.toBottom) && sel == n-1:
 		t.top = t.bottomOf(n-1, avail)
 	case t.indexOf(t.top.id) < 0 || selID != t.lastSel || t.reveal:
 		t.top = t.revealed(sel, avail)
+	}
+	if inBody {
+		t.top = t.showStep(sel, avail)
 	}
 	rows, first, last, end := t.render(avail)
 	if end && len(rows) < avail && (t.indexOf(t.top.id) > 0 || t.top.line > 0) {
@@ -842,7 +917,7 @@ func (t *Timeline) View(width, height int) string {
 		if t.focusRows > 0 {
 			focus, focusRows = t.focusLine, t.focusRows
 		}
-		t.lastSel, t.reveal, t.toBottom = l.items[l.selected].ID, false, false
+		t.lastSel, t.reveal, t.toBottom, t.seek = l.items[l.selected].ID, false, false, false
 	}
 	text := strings.Join(rows, "\n")
 	if line != "" {
@@ -938,8 +1013,9 @@ func registerTimelines(r *Runtime) {
 			return false
 		}
 		c, ok := t.Selected()
-		return ok && len(c.Sections) > 0
+		return ok && len(foldUnits(&c)) > 0
 	})
+	registerTimelineSteps(r)
 	resolve := func(c Context, args Arguments) (*Timeline, error) {
 		if id := StringArg(args, "id", ""); id != "" {
 			if t := r.Timeline(id); t != nil {
@@ -1039,16 +1115,25 @@ func registerTimelines(r *Runtime) {
 	}
 	noun.Guards["scroll"] = "timeline-scrolls"
 	noun.Guards["fold"] = "timeline-sections"
+	noun.Guards["step"] = "timeline-in-body"
+	noun.Guards["yank-step"] = "timeline-in-body"
 	scroll := func(lines int) Binding {
 		return Do(timelineNoun+".scroll", Arguments{"lines": lines}).FromPayload("count", SourceCount)
 	}
 	b := r.Define(timelineNoun).Mode("normal").
 		Bind("enter", Do(timelineNoun+".toggle")).
 		Bind("space", Do(timelineNoun+".toggle").Hide()).
-		Bind("l", Do(timelineNoun+".open")).
-		Bind("right", Do(timelineNoun+".open").Hide()).
-		Bind("h", Do(timelineNoun+".close")).
-		Bind("left", Do(timelineNoun+".close").Hide()).
+		// l and h by place (timeline_steps.go): on a closed card l opens it
+		// and h goes to the parent stop; on an open card l steps inside
+		// and h closes it. Inside, the body's own rows answer.
+		Bind("l", Do(timelineNoun+".open").Guard("timeline-card-closed")).
+		Bind("l", Do(timelineNoun+".enter").Guard("timeline-card-open")).
+		Bind("right", Do(timelineNoun+".open").Guard("timeline-card-closed").Hide()).
+		Bind("right", Do(timelineNoun+".enter").Guard("timeline-card-open").Hide()).
+		Bind("h", Do(timelineNoun+".leave").Guard("timeline-card-closed")).
+		Bind("h", Do(timelineNoun+".close").Guard("timeline-card-open")).
+		Bind("left", Do(timelineNoun+".leave").Guard("timeline-card-closed").Hide()).
+		Bind("left", Do(timelineNoun+".close").Guard("timeline-card-open").Hide()).
 		Bind("z o", Do(timelineNoun+".open").Hide()).
 		Bind("z c", Do(timelineNoun+".close").Hide()).
 		Bind("z a", Do(timelineNoun+".toggle").Hide()).

@@ -1,0 +1,67 @@
+{
+  "area": "timeline",
+  "width": 80,
+  "theme": "mono",
+  "name": "timeline: inside a card the current step is marked in the left padding, never reversed, in mono at 80 columns",
+  "page": {
+    "noHeadings": true,
+    "timeline": {
+      "cards": [
+        {
+          "id": "t1",
+          "header": "Fix the flaky test in cmd/mtm.",
+          "meta": "10:02 · done",
+          "open": true,
+          "steps": [
+            {
+              "header": true
+            },
+            {
+              "paragraphs": true,
+              "text": "I will look at the clock first.\n\nThen run the tests."
+            },
+            {
+              "id": "tool-1",
+              "title": "tool Bash",
+              "summary": "go test ./...",
+              "folded": true,
+              "text": "ok cmd/mtm 0.4s"
+            },
+            {
+              "id": "answer",
+              "title": "answer",
+              "paragraphs": true,
+              "text": "Fixed: the test now fakes the clock.\n\nNothing else changed."
+            }
+          ]
+        },
+        {
+          "id": "t2",
+          "header": "Next.",
+          "body": "x"
+        }
+      ]
+    }
+  },
+  "script": [
+    "l",
+    "j",
+    "j",
+    "j",
+    "l"
+  ],
+  "expect": [
+    {
+      "focus": "timeline/body",
+      "highlighted": 0,
+      "contains": [
+        "▌▾ 1 tool Bash",
+        "▌  ok cmd/mtm 0.4s"
+      ],
+      "attrs": {
+        "▌▾ 1 tool Bash": "bold,-reverse,-fg"
+      },
+      "after": 5
+    }
+  ]
+}

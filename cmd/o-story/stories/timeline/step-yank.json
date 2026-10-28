@@ -1,0 +1,38 @@
+{
+  "name": "timeline: y inside a card yanks the current step's text",
+  "area": "timeline",
+  "page": {
+    "noHeadings": true,
+    "timeline": {
+      "cards": [
+        {
+          "id": "t1",
+          "header": "Explain the focus walk.",
+          "body": "First paragraph of the answer.\n\nSecond paragraph, with more words.\n\nThird and last.",
+          "meta": "09:12 · done",
+          "open": true
+        },
+        {
+          "id": "t2",
+          "header": "Now the spill rule.",
+          "body": "Spill goes to the next stop.",
+          "meta": "09:20 · done"
+        }
+      ]
+    }
+  },
+  "script": [
+    "l",
+    "j",
+    "y"
+  ],
+  "expect": [
+    {
+      "focus": "timeline/body",
+      "register": "Second paragraph, with more words.",
+      "contains": [
+        "▌Second paragraph"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "name": "timeline: j past the last step spills to the next card, closed or open; k inside the next card's first step goes back to it",
+  "area": "timeline",
+  "page": {
+    "noHeadings": true,
+    "timeline": {
+      "cards": [
+        {
+          "id": "t1",
+          "header": "Explain the focus walk.",
+          "body": "First paragraph of the answer.\n\nSecond paragraph, with more words.\n\nThird and last.",
+          "meta": "09:12 · done",
+          "open": true
+        },
+        {
+          "id": "t2",
+          "header": "Now the spill rule.",
+          "body": "Spill goes to the next stop.",
+          "meta": "09:20 · done",
+          "open": true
+        }
+      ]
+    }
+  },
+  "script": [
+    "l",
+    "j",
+    "j",
+    "j",
+    "l",
+    "k"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "focus": "timeline/body",
+      "contains": [
+        "▌Third and last"
+      ]
+    },
+    {
+      "after": 4,
+      "focus": "t2",
+      "lacks": [
+        "▌"
+      ]
+    },
+    {
+      "after": 5,
+      "focus": "timeline/body",
+      "contains": [
+        "▌Spill goes"
+      ]
+    },
+    {
+      "focus": "t2",
+      "lacks": [
+        "▌"
+      ]
+    }
+  ]
+}

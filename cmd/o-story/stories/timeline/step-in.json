@@ -1,0 +1,62 @@
+{
+  "name": "timeline: l opens a closed card, l again steps inside onto its first paragraph, j moves by paragraph",
+  "area": "timeline",
+  "page": {
+    "noHeadings": true,
+    "timeline": {
+      "cards": [
+        {
+          "id": "t1",
+          "header": "Explain the focus walk.",
+          "body": "First paragraph of the answer.\n\nSecond paragraph, with more words.\n\nThird and last.",
+          "meta": "09:12 · done"
+        },
+        {
+          "id": "t2",
+          "header": "Now the spill rule.",
+          "body": "Spill goes to the next stop.",
+          "meta": "09:20 · done"
+        }
+      ]
+    }
+  },
+  "script": [
+    "l",
+    "l",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "t1",
+      "contains": [
+        "First paragraph"
+      ],
+      "lacks": [
+        "▌"
+      ]
+    },
+    {
+      "after": 2,
+      "focus": "timeline/body",
+      "mode": "normal",
+      "contains": [
+        "▌First paragraph"
+      ],
+      "lacks": [
+        "▌Second"
+      ],
+      "highlighted": 0
+    },
+    {
+      "focus": "timeline/body",
+      "contains": [
+        "▌Second paragraph"
+      ],
+      "lacks": [
+        "▌First"
+      ],
+      "highlighted": 0
+    }
+  ]
+}

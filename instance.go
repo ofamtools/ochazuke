@@ -64,8 +64,9 @@ type instanceSpec struct {
 	closeOnDetach, noSpill, noMarks bool
 	clearFilterOnEnter              bool
 	cellSelect                      bool
-	followTail                      bool // FollowTail: a timeline sticks to its last card
-	headerLines                     int  // HeaderLines: a timeline's closed-card header cap
+	followTail                      bool   // FollowTail: a timeline sticks to its last card
+	headerLines                     int    // HeaderLines: a timeline's closed-card header cap
+	parentStop                      string // ParentStop: where h on a timeline's closed card goes
 	columns                         []Column
 	completions                     []CompletionTrigger
 }

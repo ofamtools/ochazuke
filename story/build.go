@@ -788,6 +788,13 @@ func card(c CardSpec) ochazuke.Card {
 		}
 		out.Sections = append(out.Sections, sec)
 	}
+	for _, st := range c.Steps {
+		step := ochazuke.CardStep{ID: st.ID, Title: st.Title, Summary: st.Summary, Role: ochazuke.CardRole(st.Role), Folded: st.Folded, Header: st.Header, Paragraphs: st.Paragraphs}
+		if st.Text != "" {
+			step.Body = ochazuke.TextBody(st.Text)
+		}
+		out.Steps = append(out.Steps, step)
+	}
 	return out
 }
 

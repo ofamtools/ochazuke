@@ -1,0 +1,92 @@
+{
+  "name": "timeline: a step taller than the window moves half a window per j before the next step, and k comes back the same way",
+  "area": "timeline",
+  "page": {
+    "noHeadings": true,
+    "timeline": {
+      "cards": [
+        {
+          "id": "t1",
+          "header": "A long answer.",
+          "body": "Intro.\n\ntall line 01\ntall line 02\ntall line 03\ntall line 04\ntall line 05\ntall line 06\ntall line 07\ntall line 08\ntall line 09\ntall line 10\ntall line 11\ntall line 12\ntall line 13\ntall line 14\ntall line 15\ntall line 16\ntall line 17\ntall line 18\ntall line 19\ntall line 20\n\nAfter the tall one.",
+          "open": true
+        },
+        {
+          "id": "t2",
+          "header": "Next.",
+          "body": "x"
+        }
+      ],
+      "height": 10
+    }
+  },
+  "script": [
+    "l",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "k"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "timeline/body",
+      "contains": [
+        "▌Intro."
+      ]
+    },
+    {
+      "after": 2,
+      "contains": [
+        "▌tall line 01"
+      ]
+    },
+    {
+      "after": 3,
+      "contains": [
+        "▌tall line 05"
+      ],
+      "lacks": [
+        "tall line 01"
+      ]
+    },
+    {
+      "after": 4,
+      "contains": [
+        "▌tall line 09",
+        "▌tall line 17"
+      ],
+      "lacks": [
+        "tall line 08",
+        "tall line 18"
+      ]
+    },
+    {
+      "after": 5,
+      "contains": [
+        "▌tall line 20"
+      ],
+      "lacks": [
+        "▌After"
+      ]
+    },
+    {
+      "after": 6,
+      "contains": [
+        "▌After the tall one."
+      ]
+    },
+    {
+      "focus": "timeline/body",
+      "contains": [
+        "▌tall line 20",
+        "▌tall line 12"
+      ],
+      "lacks": [
+        "▌After"
+      ]
+    }
+  ]
+}

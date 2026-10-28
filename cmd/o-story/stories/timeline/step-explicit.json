@@ -1,0 +1,104 @@
+{
+  "name": "timeline: a card with explicit steps: the header (the prompt) first, a folded tool call l opens, a titled answer whose title heads its first paragraph",
+  "area": "timeline",
+  "page": {
+    "noHeadings": true,
+    "timeline": {
+      "cards": [
+        {
+          "id": "t1",
+          "header": "Fix the flaky test in cmd/mtm.",
+          "meta": "10:02 · done",
+          "open": true,
+          "steps": [
+            {
+              "header": true
+            },
+            {
+              "paragraphs": true,
+              "text": "I will look at the clock first.\n\nThen run the tests."
+            },
+            {
+              "id": "tool-1",
+              "title": "tool Bash",
+              "summary": "go test ./...",
+              "folded": true,
+              "text": "ok cmd/mtm 0.4s"
+            },
+            {
+              "id": "answer",
+              "title": "answer",
+              "paragraphs": true,
+              "text": "Fixed: the test now fakes the clock.\n\nNothing else changed."
+            }
+          ]
+        },
+        {
+          "id": "t2",
+          "header": "Next.",
+          "body": "x"
+        }
+      ]
+    }
+  },
+  "script": [
+    "l",
+    "j",
+    "j",
+    "j",
+    "l",
+    "y",
+    "j",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "timeline/body",
+      "contains": [
+        "▌▾ Fix the flaky test"
+      ]
+    },
+    {
+      "after": 2,
+      "contains": [
+        "▌I will look at the clock"
+      ]
+    },
+    {
+      "after": 4,
+      "contains": [
+        "▌▸ 1 tool Bash · go test ./..."
+      ],
+      "lacks": [
+        "ok cmd/mtm"
+      ]
+    },
+    {
+      "after": 5,
+      "contains": [
+        "▌▾ 1 tool Bash",
+        "▌  ok cmd/mtm 0.4s"
+      ]
+    },
+    {
+      "after": 6,
+      "register": "tool Bash · go test ./...\nok cmd/mtm 0.4s\n"
+    },
+    {
+      "after": 7,
+      "contains": [
+        "▌▾ 2 answer",
+        "▌  Fixed: the test"
+      ]
+    },
+    {
+      "contains": [
+        "▌  Nothing else changed."
+      ],
+      "lacks": [
+        "▌▾ 2 answer"
+      ]
+    }
+  ]
+}

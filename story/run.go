@@ -303,6 +303,14 @@ func Check(ss *Session, e Expect) []string {
 	if e.Writes != nil && !slices.Equal(ss.Writes, *e.Writes) && (len(ss.Writes) > 0 || len(*e.Writes) > 0) {
 		failf("writes %q, want %q", ss.Writes, *e.Writes)
 	}
+	if e.Register != nil {
+		y, err := ss.R.ReadYank("\"")
+		if err != nil {
+			failf("register: %v", err)
+		} else if y.Text != *e.Register {
+			failf("register %q, want %q", y.Text, *e.Register)
+		}
+	}
 	if len(bad) > 0 {
 		bad = append(bad, "frame:\n"+Golden(frame))
 	}

@@ -70,6 +70,7 @@ type List struct {
 	visual      bool            // V: a visual row selection over the marks (list_visual.go)
 	anchor      string          // the row V started on
 	base        map[string]bool // the marks before V
+	part        string          // an instance under the list that holds its focus as a row does (a timeline's body, timeline.go)
 }
 
 // NewList is AddList for callers that hold the runtime as a value.
@@ -323,7 +324,9 @@ func (l *List) Focus() error { return l.r.SetFocus(l.focusTarget()) }
 // Focused derives focus from the active frame instead of retaining a stale flag.
 func (l *List) Focused() bool { return l.holds(l.r.Focus) }
 
-func (l *List) holds(focus string) bool { return focus == l.id || l.r.rows[focus] == l.id }
+func (l *List) holds(focus string) bool {
+	return focus == l.id || l.r.rows[focus] == l.id || l.part != "" && focus == l.part
+}
 
 // FocusTarget is where a focus jump to the list lands: its selected row.
 func (l *List) FocusTarget() string { return l.focusTarget() }
@@ -343,7 +346,14 @@ func (l *List) syncFocus(previous ListItem, gone map[string]bool) {
 	if l.Focused() && (previous.ID != current.ID || previous.Noun != current.Noun) {
 		l.r.CancelPendingBinding()
 	}
+	// The list's part (a timeline's body) belongs to the selected row: it
+	// keeps the focus while that row stays selected, and gives it to the
+	// new selection when the selection moves or the row goes.
+	stays := previous.ID != "" && previous.ID == current.ID && !gone[previous.ID]
 	l.r.RetargetFocus(func(id string) bool {
+		if stays && l.part != "" && id == l.part {
+			return false
+		}
 		return l.holds(id) || gone[id] || id == previous.ID && previous.ID != ""
 	}, l.focusTarget())
 }

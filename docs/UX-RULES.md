@@ -526,6 +526,50 @@ tiers above them. When the two disagree, fix one in the same commit.
   value from the focus or a guess. Tests `TestWritesAreNeverSilentlyFilled`,
   `TestCLIAliasesRunTheCanonicalVerb`.
 
+### R13. Card timelines: inside a card
+
+- **R13.1** Inside a card is a focus place, not a mode: the timeline's
+  body instance (`<id>/body`, noun `ochazuke.timeline-body`, a part of the
+  card list) holds the focus, the mode stays what it was, and the card
+  keeps its focused border. `l` and `h` are guarded rows by place:
+
+  | Where | `l` | `h` |
+  |---|---|---|
+  | closed card (`timeline-card-closed`) | `timeline.open` | `timeline.leave`: the parent stop (`ParentStop`), else stays |
+  | open card (`timeline-card-open`) | `timeline.enter`: onto its first step | `timeline.close` |
+  | inside (`timeline-in-body`) | `timeline.enter`: opens the step's folded section, else nothing | `timeline.leave`: back to the card, still open (`esc` too) |
+
+  `l` is one key with no sequence and no timing; `enter`/`space` still
+  toggle (closing the card from inside puts the focus on the card); `?`
+  help and the footer show only the row that answers at the place.
+  Stories: `timeline/step-in.json`, `timeline/step-out.json`,
+  `timeline/step-enter-toggles.json`; test `TestTimelineLAndHByPlace`.
+- **R13.2** Inside, `j`/`k` move by step (`timeline.step {delta}`, counts
+  work): a card's `Steps`, else its body's paragraphs (blank-line
+  separated, a fenced code block one paragraph) and then each section as
+  one step. A step taller than the window moves half a window per key
+  before the next step (and `k` into a tall step shows its end first).
+  Past the last step `j` spills to the next card, open or closed (past the
+  last card, to the next stop as R3.4; at the page's last stop or with
+  `NoSpill` it stays); past the first step `k` goes back to the card. A
+  count stops at the edge; only a move from the edge spills. Stories:
+  `timeline/step-spill.json`, `timeline/step-back.json`,
+  `timeline/step-tall.json`, `timeline/step-explicit.json`.
+- **R13.3** The current step is marked in the left padding of each of its
+  lines (`▌`, the accent, bold), never by reversed text; the window
+  scrolls to keep the step (or its shown half) on screen, and the page
+  sees the step's lines (`PlacedAt`). Stories:
+  `timeline/step-marker-{dark,mono}-80.json` (goldens, `highlighted: 0`).
+- **R13.4** `y` inside yanks the current step's text into the registers
+  (`timeline.yank-step`; the active register, else the unnamed); an app
+  that also copies to the system clipboard rebinds `y` on the body noun
+  to its own verb and keeps `timeline.yank-step`. Story:
+  `timeline/step-yank.json`.
+- **R13.5** The body follows the selection: it keeps the focus while its
+  card stays selected (a streaming patch, a refresh), and a selection
+  that moves (`G`, the filter) or a card that goes hands the focus to the
+  selected card. Test `TestTimelineBodyFollowsTheSelection`.
+
 ---
 
 ## Part B. Principles

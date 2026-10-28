@@ -415,7 +415,7 @@ Conformance:
 | normal | settings | `settings.close` `settings.edit` `settings.section` `settings.undo` |
 | normal | story-card | `story-card.timeline-append` `story-card.timeline-stream` |
 | normal | surface | `surface.scroll` |
-| normal | timeline | `timeline.close` `timeline.close-all` `timeline.fold` `timeline.goto` `timeline.open` `timeline.open-all` `timeline.toggle` |
+| normal | timeline | `timeline.close` `timeline.close-all` `timeline.enter` `timeline.fold` `timeline.goto` `timeline.leave` `timeline.open` `timeline.open-all` `timeline.step` `timeline.toggle` `timeline.yank-step` |
 | terminal | bindings | `bindings.help` |
 | terminal | demo | `demo.hints` |
 | terminal | mode | `mode.enter` |
@@ -432,6 +432,7 @@ Mode edges (from → to via):
 - `count_pending` → `normal` via `list.scroll`
 - `count_pending` → `normal` via `pane.grow`
 - `count_pending` → `normal` via `pane.shrink`
+- `count_pending` → `normal` via `timeline.step`
 - `count_pending ]` → `normal` via `markdown.next-kind`
 - `count_pending g` → `normal` via `list.goto`
 - `hints` → `terminal` via `demo.hint`

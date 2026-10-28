@@ -251,6 +251,7 @@ type CardSpec struct {
 	Meta     string        `json:"meta,omitempty"`
 	Body     string        `json:"body,omitempty"`
 	Sections []SectionSpec `json:"sections,omitempty"`
+	Steps    []StepSpec    `json:"steps,omitempty"`
 	Open     bool          `json:"open,omitempty"`
 	Active   bool          `json:"active,omitempty"`
 	Muted    bool          `json:"muted,omitempty"`
@@ -266,6 +267,18 @@ type SectionSpec struct {
 	Text    string `json:"text,omitempty"`
 	Role    string `json:"role,omitempty"`
 	Folded  bool   `json:"folded,omitempty"`
+}
+
+// StepSpec is one step inside a card (ochazuke.CardStep) with its text.
+type StepSpec struct {
+	ID         string `json:"id,omitempty"`
+	Title      string `json:"title,omitempty"`
+	Summary    string `json:"summary,omitempty"`
+	Text       string `json:"text,omitempty"`
+	Role       string `json:"role,omitempty"`
+	Folded     bool   `json:"folded,omitempty"`
+	Header     bool   `json:"header,omitempty"`
+	Paragraphs bool   `json:"paragraphs,omitempty"`
 }
 
 // CommandsSpec is a Commands page: its entries (cli.CommandEntry as JSON)
@@ -483,6 +496,8 @@ type Expect struct {
 	// Markdown documents wrote, in order (TreeChange.String,
 	// RecordWrite.String, "toggle LINE [x] TEXT"); [] expects none.
 	Writes *[]string `json:"writes,omitempty"`
+	// Register is the unnamed register's text (a yank).
+	Register *string `json:"register,omitempty"`
 }
 
 // Expects is one final Expect or a list of per-step ones.

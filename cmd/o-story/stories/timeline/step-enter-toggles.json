@@ -1,0 +1,60 @@
+{
+  "name": "timeline: enter still toggles a card, and inside a card enter closes it and the focus is back on the card",
+  "area": "timeline",
+  "page": {
+    "noHeadings": true,
+    "timeline": {
+      "cards": [
+        {
+          "id": "t1",
+          "header": "Explain the focus walk.",
+          "body": "First paragraph of the answer.\n\nSecond paragraph, with more words.\n\nThird and last.",
+          "meta": "09:12 · done"
+        },
+        {
+          "id": "t2",
+          "header": "Now the spill rule.",
+          "body": "Spill goes to the next stop.",
+          "meta": "09:20 · done"
+        }
+      ]
+    }
+  },
+  "script": [
+    "enter",
+    "enter",
+    "enter",
+    "l",
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "t1",
+      "contains": [
+        "First paragraph"
+      ]
+    },
+    {
+      "after": 2,
+      "focus": "t1",
+      "lacks": [
+        "First paragraph"
+      ]
+    },
+    {
+      "after": 4,
+      "focus": "timeline/body",
+      "contains": [
+        "▌First paragraph"
+      ]
+    },
+    {
+      "focus": "t1",
+      "lacks": [
+        "First paragraph",
+        "▌"
+      ]
+    }
+  ]
+}
