@@ -32,12 +32,12 @@ Root package `ochazuke` is flat: 82 source files, 82 test files. Each entry list
 
 ### bindings_file.go
 
-- lines: 584 · tests: bindings_file_test.go
+- lines: 621 · tests: bindings_file_test.go
 - purpose: ModeSpec is one mode's entry in a bindings file's "modes".
 - types: ModeSpec, BindingGroup, BindingsDoc
 - methods: BindingGroup(2), BindingsDoc(1), Runtime(1)
 - funcs: ParseBindings, GroupBindings, FormatBindings
-- leans on: noun.go(30), instance.go(19), runtime.go(19), rows_format.go(7)
+- leans on: noun.go(35), instance.go(19), runtime.go(19), rows_format.go(7)
 
 ### block.go
 

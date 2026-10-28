@@ -40,7 +40,11 @@ import (
 // hint, when, from, hidden, help, replay, capture, target, confirmed,
 // unbind} for anything more, null to unbind the default, or an array of
 // those, in table order, when one key has several rows in the table
-// (guarded alternatives). "modes" holds properties global to a mode:
+// (guarded alternatives). A group's keys are its table's rows in table
+// order: a key that comes back after other keys starts another group for
+// the same table (keyRuns), and the groups of one table read back in file
+// order, so the exported order is the stored order exactly. A row spelled
+// by an alias is written as spelled. "modes" holds properties global to a mode:
 // {"pending": true}, {"passthrough": true}.
 //
 // The rows format (BindingsRows), the older one, still read: a JSON array
@@ -468,49 +472,75 @@ func FormatBindings(doc BindingsDoc) ([]byte, error) {
 		b.WriteString("  },\n")
 	}
 	b.WriteString("  \"bindings\": [")
-	for i, g := range doc.Groups {
-		if i > 0 {
-			b.WriteByte(',')
-		}
-		b.WriteString("\n    ")
-		var head orderedObject
-		if g.Instance != "" {
-			head.add("instance", g.Instance, true)
-			head.add("mode", g.Mode, g.Mode != "")
-		} else {
-			head.add("context", g.Context(), true)
-		}
-		head.add("extends", g.Extends, g.Extends != "")
-		h, err := head.bytes()
-		if err != nil {
-			return nil, err
-		}
-		b.Write(h[:len(h)-1]) // the object without its "}"
-		b.WriteString(", \"bindings\": {")
-		lines, err := formatGroupKeys(g.Rows)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", g.label(), err)
-		}
-		for j, line := range lines {
-			if j > 0 {
+	written := 0
+	for _, g := range doc.Groups {
+		for _, run := range keyRuns(g.Rows) {
+			if written > 0 {
 				b.WriteByte(',')
 			}
-			b.WriteString("\n      ")
-			b.Write(line)
-		}
-		if len(lines) > 0 {
+			written++
 			b.WriteString("\n    ")
+			var head orderedObject
+			if g.Instance != "" {
+				head.add("instance", g.Instance, true)
+				head.add("mode", g.Mode, g.Mode != "")
+			} else {
+				head.add("context", g.Context(), true)
+			}
+			head.add("extends", g.Extends, g.Extends != "")
+			h, err := head.bytes()
+			if err != nil {
+				return nil, err
+			}
+			b.Write(h[:len(h)-1]) // the object without its "}"
+			b.WriteString(", \"bindings\": {")
+			lines, err := formatGroupKeys(run)
+			if err != nil {
+				return nil, fmt.Errorf("%s: %w", g.label(), err)
+			}
+			for j, line := range lines {
+				if j > 0 {
+					b.WriteByte(',')
+				}
+				b.WriteString("\n      ")
+				b.Write(line)
+			}
+			if len(lines) > 0 {
+				b.WriteString("\n    ")
+			}
+			b.WriteString("}}")
 		}
-		b.WriteString("}}")
 	}
-	if len(doc.Groups) > 0 {
+	if written > 0 {
 		b.WriteString("\n  ")
 	}
 	b.WriteString("]\n}\n")
 	return b.Bytes(), nil
 }
 
-// formatGroupKeys is one line per key of a table: "key": value.
+// keyRuns splits a table's rows into the groups FormatBindings writes for
+// it, so reading them back gives the rows in exactly their table order: a
+// key's adjacent rows share one array, and a key that comes back after
+// other keys starts a new group for the same table (JSON keys are unique
+// in one object). An empty table is one empty group.
+func keyRuns(rows []Binding) [][]Binding {
+	runs := [][]Binding{nil}
+	seen := map[string]bool{}
+	last := ""
+	for i, row := range rows {
+		key := row.Keys + row.Pattern
+		if i > 0 && key != last && seen[key] {
+			runs = append(runs, nil)
+			seen = map[string]bool{}
+		}
+		runs[len(runs)-1] = append(runs[len(runs)-1], row)
+		seen[key], last = true, key
+	}
+	return runs
+}
+
+// formatGroupKeys is one line per key of a run (keyRuns): "key": value,
+// a key's rows (adjacent) one array.
 func formatGroupKeys(rows []Binding) ([][]byte, error) {
 	var order []string
 	byKey := map[string][]Binding{}
@@ -552,6 +582,13 @@ func formatGroupKeys(rows []Binding) ([][]byte, error) {
 // when short is set and the row has nothing else, else the object.
 func formatBindingValue(row Binding, short bool) ([]byte, error) {
 	q := row.Request
+	// A row spelled by an alias (Via) is written as it was spelled, so it
+	// loads back to the same action with the same Via.
+	if q.Via != "" {
+		if spelled, err := actionRequest(q.Via); err == nil {
+			q.Noun, q.Verb = spelled.Noun, spelled.Verb
+		}
+	}
 	// A row with no request is an unbind, as validateRow reads it.
 	row.Unbind = row.Unbind || q.Verb == ""
 	plain := row.Hint == "" && row.When == "" && len(row.From) == 0 && !row.Hidden && row.Help == "" &&
