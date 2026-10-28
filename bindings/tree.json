@@ -1,3 +1,4 @@
+// ochazuke bindings (JSONC): groups by "noun/mode" context; each key maps to an action, {action, args, hint, when, ...}, null (unbind) or an array of those
 {
   "bindings": [
     {"context": "ochazuke.outline/normal", "bindings": {

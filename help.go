@@ -36,7 +36,8 @@ const (
 // hypothetical ones.
 func registerBindingHelp(r *Runtime) {
 	// enter opens or closes a help row as the tree's l and h do (R6.10),
-	// in the views drawn as a tree; hidden, so the footer is unchanged.
+	// in the views drawn as a tree; hidden, so the footer is unchanged
+	// (bindings/help.json).
 	r.DefineGuard("help-tree", func(r *Runtime, _ KeyEvent) bool { return r.Tree(helpTreeID) != nil })
 	r.Register(Operation{Verb: "help", Noun: "ochazuke.bindings", Description: "Open the keys the focus answers to, with the operation each runs and its description", Result: "help row[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		focus := focusOf(c)

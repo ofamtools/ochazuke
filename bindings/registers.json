@@ -1,9 +1,10 @@
+// ochazuke bindings (JSONC): groups by "noun/mode" context; each key maps to an action, {action, args, hint, when, ...}, null (unbind) or an array of those
 {
   "modes": {
-    "register_pending": {"pending": true},
+    "count_pending": {"pending": true},
     "macro_pending": {"pending": true},
-    "replay_pending": {"pending": true},
-    "count_pending": {"pending": true}
+    "register_pending": {"pending": true},
+    "replay_pending": {"pending": true}
   },
   "bindings": [
     {"context": "app/count_pending", "extends": "normal", "bindings": {
@@ -34,8 +35,8 @@
       "q": {"action": "ochazuke.mode.enter", "args": {"mode": "macro_pending"}, "hidden": true, "help": "Record a macro into the register typed next (qa); q again stops"},
       "@": {"action": "ochazuke.mode.enter", "args": {"mode": "replay_pending"}, "from": {"count": "count"}, "hidden": true, "help": "Replay the macro in the register typed next (@a), count times"}
     }},
-    {"context": "app/visual_count_pending", "extends": "visual"},
-    {"context": "app/visual-line", "extends": "visual"},
-    {"context": "app/visual-block", "extends": "visual"}
+    {"context": "app/visual_count_pending", "extends": "visual", "bindings": {}},
+    {"context": "app/visual-line", "extends": "visual", "bindings": {}},
+    {"context": "app/visual-block", "extends": "visual", "bindings": {}}
   ]
 }

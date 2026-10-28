@@ -1,3 +1,4 @@
+// ochazuke bindings (JSONC): groups by "noun/mode" context; each key maps to an action, {action, args, hint, when, ...}, null (unbind) or an array of those
 {
   "bindings": [
     {"context": "app", "fallback": true, "bindings": {
@@ -13,7 +14,7 @@
       "'": {"action": "ochazuke.page.pick", "when": "no-modal"},
       "ctrl+j": "ochazuke.page.next",
       "ctrl+k": "ochazuke.page.previous",
-      "/": {"action": "ochazuke.list.filter-open", "when": "list-filterable", "hint": "filter"}
+      "/": {"action": "ochazuke.list.filter-open", "hint": "filter", "when": "list-filterable"}
     }},
     {"context": "ochazuke.editor/insert", "fallback": true, "bindings": {
       "ctrl+\\": {"action": "ochazuke.bindings.help", "hidden": true}

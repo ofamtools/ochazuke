@@ -1,3 +1,4 @@
+// ochazuke bindings (JSONC): groups by "noun/mode" context; each key maps to an action, {action, args, hint, when, ...}, null (unbind) or an array of those
 {
   "bindings": [
     {"context": "ochazuke.timeline/normal", "bindings": {
@@ -12,7 +13,7 @@
       "z a": {"action": "ochazuke.timeline.toggle", "hidden": true},
       "z R": "ochazuke.timeline.open-all",
       "z M": "ochazuke.timeline.close-all",
-      "J": {"action": "ochazuke.timeline.scroll", "args": {"lines": 1}, "from": {"count": "count"}, "hint": "J/K scroll"},
+      "J": {"action": "ochazuke.timeline.scroll", "args": {"lines": 1}, "hint": "J/K scroll", "from": {"count": "count"}},
       "K": {"action": "ochazuke.timeline.scroll", "args": {"lines": -1}, "from": {"count": "count"}, "hidden": true},
       "ctrl+e": {"action": "ochazuke.timeline.scroll", "args": {"lines": 1}, "from": {"count": "count"}, "hidden": true},
       "ctrl+y": {"action": "ochazuke.timeline.scroll", "args": {"lines": -1}, "from": {"count": "count"}, "hidden": true},
@@ -42,7 +43,7 @@
       "esc": {"action": "ochazuke.timeline.leave", "hidden": true},
       "y": "ochazuke.timeline.yank-step"
     }},
-    {"context": "ochazuke.timeline-body/count_pending", "extends": "normal"},
-    {"context": "ochazuke.timeline/count_pending", "extends": "normal"}
+    {"context": "ochazuke.timeline-body/count_pending", "extends": "normal", "bindings": {}},
+    {"context": "ochazuke.timeline/count_pending", "extends": "normal", "bindings": {}}
   ]
 }

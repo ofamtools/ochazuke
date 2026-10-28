@@ -1,10 +1,11 @@
+// ochazuke bindings (JSONC): groups by "noun/mode" context; each key maps to an action, {action, args, hint, when, ...}, null (unbind) or an array of those
 {
   "modes": {
     "count_pending": {"pending": true},
-    "visual_count_pending": {"pending": true},
-    "operator_pending": {"pending": true},
+    "g_pending": {"pending": true},
     "operator_g_pending": {"pending": true},
-    "g_pending": {"pending": true}
+    "operator_pending": {"pending": true},
+    "visual_count_pending": {"pending": true}
   },
   "bindings": [
     {"context": "ochazuke.editor/count_pending", "extends": "normal", "bindings": {
@@ -106,9 +107,9 @@
       "right": {"action": "ochazuke.input.operator", "args": {"motion": "right"}, "from": {"line": "line", "operator": "op", "steps": "steps"}},
       "up": {"action": "ochazuke.input.operator", "args": {"motion": "up"}, "from": {"line": "line", "operator": "op", "steps": "steps"}},
       "w": {"action": "ochazuke.input.operator", "args": {"motion": "word-forward"}, "from": {"line": "line", "operator": "op", "steps": "steps"}},
-      "y": {"action": "ochazuke.input.operator", "args": {"motion": "line", "operator": "y"}, "from": {"steps": "steps"}, "when": "op:y"},
-      "d": {"action": "ochazuke.input.operator", "args": {"motion": "line", "operator": "d"}, "from": {"steps": "steps"}, "when": "op:d"},
-      "c": {"action": "ochazuke.input.operator", "args": {"motion": "line", "operator": "c"}, "from": {"steps": "steps"}, "when": "op:c"},
+      "y": {"action": "ochazuke.input.operator", "args": {"motion": "line", "operator": "y"}, "when": "op:y", "from": {"steps": "steps"}},
+      "d": {"action": "ochazuke.input.operator", "args": {"motion": "line", "operator": "d"}, "when": "op:d", "from": {"steps": "steps"}},
+      "c": {"action": "ochazuke.input.operator", "args": {"motion": "line", "operator": "c"}, "when": "op:c", "from": {"steps": "steps"}},
       "g": {"action": "ochazuke.mode.enter", "args": {"mode": "operator_g_pending"}, "from": {"count": "count", "op": "op", "opcount": "opcount"}},
       "digit-0": {"action": "ochazuke.count.append", "from": {"digit": "digit"}},
       "esc": "ochazuke.input.cancel",
@@ -159,7 +160,7 @@
       "esc": "ochazuke.input.cancel",
       "any": {"action": "ochazuke.mode.leave", "replay": true}
     }},
-    {"context": "ochazuke.editor/visual-line", "extends": "visual"},
-    {"context": "ochazuke.editor/visual-block", "extends": "visual"}
+    {"context": "ochazuke.editor/visual-line", "extends": "visual", "bindings": {}},
+    {"context": "ochazuke.editor/visual-block", "extends": "visual", "bindings": {}}
   ]
 }

@@ -1,8 +1,9 @@
+// ochazuke bindings (JSONC): groups by "noun/mode" context; each key maps to an action, {action, args, hint, when, ...}, null (unbind) or an array of those
 {
   "bindings": [
     {"context": "app/normal", "bindings": {
-      "J": {"action": "ochazuke.detail.scroll", "args": {"lines": 1}, "from": {"count": "count"}, "when": "detail-scrolls", "hint": "J/K detail"},
-      "K": {"action": "ochazuke.detail.scroll", "args": {"lines": -1}, "from": {"count": "count"}, "when": "detail-scrolls", "hidden": true}
+      "J": {"action": "ochazuke.detail.scroll", "args": {"lines": 1}, "hint": "J/K detail", "when": "detail-scrolls", "from": {"count": "count"}},
+      "K": {"action": "ochazuke.detail.scroll", "args": {"lines": -1}, "when": "detail-scrolls", "from": {"count": "count"}, "hidden": true}
     }}
   ]
 }

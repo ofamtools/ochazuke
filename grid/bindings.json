@@ -1,3 +1,4 @@
+// ochazuke bindings (JSONC): groups by "noun/mode" context; each key maps to an action, {action, args, hint, when, ...}, null (unbind) or an array of those
 {
   "bindings": [
     {"context": "ochazuke.grid/normal", "bindings": {
@@ -5,6 +6,6 @@
       "z <": {"action": "ochazuke.grid.resize-column", "args": {"delta": -1}, "from": {"steps": "count"}, "hidden": true},
       "z =": {"action": "ochazuke.grid.reset-columns", "hidden": true}
     }},
-    {"context": "ochazuke.grid/count_pending", "extends": "normal"}
+    {"context": "ochazuke.grid/count_pending", "extends": "normal", "bindings": {}}
   ]
 }

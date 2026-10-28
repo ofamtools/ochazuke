@@ -52,7 +52,7 @@ func TestFrameworkBindingFilesDoNotClash(t *testing.T) {
 	seen := map[string]string{}
 	for _, name := range frameworkFiles(t) {
 		data, _ := frameworkBindings.ReadFile(name)
-		file, err := parseDefaultBindings(data)
+		file, _, err := ParseBindings(data)
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}
@@ -90,7 +90,7 @@ func TestEveryFrameworkBindingFileIsLoaded(t *testing.T) {
 			t.Errorf("%s is embedded but nothing loads it", name)
 		}
 		data, _ := frameworkBindings.ReadFile(name)
-		file, _ := parseDefaultBindings(data)
+		file, _, _ := ParseBindings(data)
 		want := 0
 		for _, g := range file.Groups {
 			want += len(g.Rows)
@@ -111,7 +111,7 @@ func TestLoadDefaultBindingsFailsLoudly(t *testing.T) {
 		{`{"bindings": [{"context": "app/normal", "bindings": {"x": {"action": "ochazuke.list.move", "args": {"delta": 1, "nope": 1}}}}]}`, `unknown argument "nope"`},
 		{`{"bindings": [{"context": "app/normal", "bindings": {"x": {"action": "app.quit", "from": {"x": "key"}}}}]}`, `has no argument "x"`},
 		{`{"bindings": [{"context": "app/normal", "extends": "nope"}]}`, `extends unknown mode "nope"`},
-		{`{"bindings": [{"context": "app/normal", "bindings": {"x": "app.quit", "x": "app.quit"}}]}`, `"x" appears twice`},
+		{`{"bindings": [{"context": "app/normal", "bindings": {"x": "app.quit", "x": "app.quit"}}]}`, `key "x" twice`},
 		{`{"bindings": [{"context": "app/normal", "bindings": {"x": {"action": "app.quit", "nope": true}}}]}`, `unknown field "nope"`},
 		{`{"rows": []}`, `unknown field "rows"`},
 	} {
@@ -230,7 +230,7 @@ func TestBindingsDefaultsPrintsTheDefaultLayer(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(got.(Verbatim))
-	file, err := parseDefaultBindings([]byte(text))
+	file, _, err := ParseBindings([]byte(text))
 	if err != nil {
 		t.Fatalf("the output does not read back: %v\n%s", err, text)
 	}

@@ -33,7 +33,10 @@ import (
 // A group's "context" is "noun/mode", split at the last "/"; a bare
 // "noun" is the noun's any-mode table (mode ""). An instance's table is
 // {"instance", "mode"} instead. "extends" on a noun group names the mode
-// its table reads after its own (ModeBuilder.Extends). In "bindings" a key
+// its table reads after its own (ModeBuilder.Extends). "fallback": true
+// (a default file's group, LoadDefaultBindings) leaves alone the keys its
+// table bound before the file loaded; "source" (bindings defaults) says
+// where the group's rows are declared and changes nothing. In "bindings" a key
 // is a key or sequence ("d d", "ctrl+a v") or, when isPattern holds, a
 // pattern ("digit", "any", "one-of:h j k l"); a value is the action
 // string (noun.verb, split at the last "."), an object {action, args,
@@ -76,7 +79,14 @@ type BindingGroup struct {
 	Instance string
 	Mode     string
 	Extends  string
-	Rows     []Binding
+	// Fallback ("fallback": true) keeps a default file's group to the keys
+	// its table did not bind before the file loaded (LoadDefaultBindings):
+	// an application's row bound earlier keeps its key.
+	Fallback bool
+	// Source ("source") is where the group's rows are declared, as
+	// bindings defaults writes it; a reader keeps it and nothing acts on it.
+	Source string
+	Rows   []Binding
 }
 
 // Context is the group's "context" spelling, "noun/mode" or a bare noun;
@@ -184,6 +194,8 @@ func parseBindingGroup(raw json.RawMessage) (g BindingGroup, bad []error, err er
 		Instance string          `json:"instance"`
 		Mode     string          `json:"mode"`
 		Extends  string          `json:"extends"`
+		Fallback bool            `json:"fallback"`
+		Source   string          `json:"source"`
 		Bindings json.RawMessage `json:"bindings"`
 	}
 	dec := json.NewDecoder(bytes.NewReader(raw))
@@ -213,7 +225,7 @@ func parseBindingGroup(raw json.RawMessage) (g BindingGroup, bad []error, err er
 	default:
 		return g, nil, errors.New(`a group needs "context" ("noun/mode") or "instance"`)
 	}
-	g.Extends = head.Extends
+	g.Extends, g.Fallback, g.Source = head.Extends, head.Fallback, head.Source
 	members, err := orderedMembers(head.Bindings)
 	if err != nil {
 		return g, nil, fmt.Errorf("bindings: %w", err)
@@ -488,6 +500,8 @@ func FormatBindings(doc BindingsDoc) ([]byte, error) {
 				head.add("context", g.Context(), true)
 			}
 			head.add("extends", g.Extends, g.Extends != "")
+			head.add("fallback", g.Fallback, g.Fallback)
+			head.add("source", g.Source, g.Source != "")
 			h, err := head.bytes()
 			if err != nil {
 				return nil, err

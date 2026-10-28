@@ -1,3 +1,4 @@
+// ochazuke bindings (JSONC): groups by "noun/mode" context; each key maps to an action, {action, args, hint, when, ...}, null (unbind) or an array of those
 {
   "bindings": [
     {"context": "ochazuke.markdown/normal", "bindings": {
@@ -53,6 +54,6 @@
     {"context": "ochazuke.markdown-note/normal", "bindings": {
       "x": "ochazuke.markdown.resolve"
     }},
-    {"context": "ochazuke.markdown/count_pending", "extends": "normal"}
+    {"context": "ochazuke.markdown/count_pending", "extends": "normal", "bindings": {}}
   ]
 }

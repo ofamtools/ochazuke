@@ -44,7 +44,7 @@ func (r *Runtime) loadFrameworkBindings(name string) {
 }
 
 // LoadDefaultBindings installs a default bindings file (the grouped
-// context-table format, see default_bindings_format.go) into the default
+// format, ParseBindings in bindings_file.go) into the default
 // layer: the noun and instance tables, below the user's bindings.json,
 // exactly where the same rows bound in Go would sit. Modes come first,
 // then each group's rows in file order (a row replaces the row with its
@@ -60,22 +60,23 @@ func (r *Runtime) loadFrameworkBindings(name string) {
 // catches a bad row. source tags the rows in bindings defaults ("mtm/
 // bindings/app.json").
 func (r *Runtime) LoadDefaultBindings(source string, data []byte) error {
-	file, err := parseDefaultBindings(data)
+	file, _, err := ParseBindings(data)
 	if err != nil {
 		return fmt.Errorf("%s: %w", source, err)
 	}
-	for _, m := range file.Modes {
+	for _, name := range slices.Sorted(maps.Keys(file.Modes)) {
+		m := file.Modes[name]
 		switch {
 		case m.Pending:
-			err = r.DefineMode(m.Name, true)
-		case !r.Modes[m.Name] && !r.pendingModes[m.Name]:
-			err = r.DefineMode(m.Name, false)
+			err = r.DefineMode(name, true)
+		case !r.Modes[name] && !r.pendingModes[name]:
+			err = r.DefineMode(name, false)
 		}
 		if err == nil && m.Passthrough {
-			err = r.DefinePassthrough(m.Name)
+			err = r.DefinePassthrough(name)
 		}
 		if err != nil {
-			return fmt.Errorf("%s: mode %q: %w", source, m.Name, err)
+			return fmt.Errorf("%s: mode %q: %w", source, name, err)
 		}
 	}
 	// Resolve each group's table, and for a fallback group the keys its
@@ -85,7 +86,7 @@ func (r *Runtime) LoadDefaultBindings(source string, data []byte) error {
 	for i, g := range file.Groups {
 		if g.Instance != "" {
 			if r.Instances[g.Instance] == nil {
-				return fmt.Errorf("%s: %s: unknown instance %q", source, g.Context, g.Instance)
+				return fmt.Errorf("%s: %s: unknown instance %q", source, g.label(), g.Instance)
 			}
 		} else {
 			nouns[i] = r.Define(g.Noun).Noun().Name
@@ -100,7 +101,7 @@ func (r *Runtime) LoadDefaultBindings(source string, data []byte) error {
 	}
 	for i, g := range file.Groups {
 		if g.Mode != "" && !r.Modes[g.Mode] && !r.pendingModes[g.Mode] {
-			return fmt.Errorf("%s: %s: unknown mode %q", source, g.Context, g.Mode)
+			return fmt.Errorf("%s: %s: unknown mode %q", source, g.label(), g.Mode)
 		}
 		for _, row := range g.Rows {
 			row.Noun = nouns[i]
@@ -108,12 +109,12 @@ func (r *Runtime) LoadDefaultBindings(source string, data []byte) error {
 				continue
 			}
 			if err := r.installDefaultRow(source, row); err != nil {
-				return fmt.Errorf("%s: %s %q: %w", source, g.Context, row.Keys+row.Pattern, err)
+				return fmt.Errorf("%s: %s %q: %w", source, g.label(), row.Keys+row.Pattern, err)
 			}
 		}
 		if g.Extends != "" {
 			if !r.Modes[g.Extends] && !r.pendingModes[g.Extends] {
-				return fmt.Errorf("%s: %s: extends unknown mode %q", source, g.Context, g.Extends)
+				return fmt.Errorf("%s: %s: extends unknown mode %q", source, g.label(), g.Extends)
 			}
 			r.Define(nouns[i]).Mode(g.Mode).Extends(g.Extends)
 			r.defaults.extends[nouns[i]+"/"+g.Mode] = source
@@ -313,45 +314,27 @@ func (r *Runtime) DefaultBindings() []DefaultBinding {
 	return out
 }
 
-// sourcedGroup is one run of a table's default rows with one source, as
-// bindings defaults writes it.
-type sourcedGroup struct {
-	Noun, Instance, Mode, Extends, Source string
-	Rows                                  []Binding
-}
-
-// defaultBindingsFile is the default layer as a bindings file: the modes
-// the framework and the application defined (pending, passthrough, and the
-// other base modes but normal and insert), then each table's rows grouped
-// by source, with the table's extends on its first group; a noun's mode
+// defaultBindingsDoc is the default layer as a bindings file: the pending
+// and passthrough modes, then each table's rows grouped by source (a table
+// whose rows come from two places is two groups, in table order), each
+// group tagged with it, the table's extends on its groups; a noun's mode
 // that only extends another is a group of no rows.
-func (r *Runtime) defaultBindingsFile() ([]byte, error) {
-	var modes []modeSpec
-	names := slices.Sorted(maps.Keys(r.Modes))
-	names = append(names, slices.Sorted(maps.Keys(r.pendingModes))...)
-	slices.Sort(names)
-	for _, name := range names {
-		if name == "normal" || name == "insert" {
-			continue
-		}
-		modes = append(modes, modeSpec{Name: name, Pending: r.pendingModes[name], Passthrough: r.passthroughModes[name]})
-	}
-	var groups []sourcedGroup
+func (r *Runtime) defaultBindingsDoc() BindingsDoc {
+	doc := BindingsDoc{Modes: r.BindingsDoc().Modes}
 	extended := map[string]bool{}
 	for _, row := range r.DefaultBindings() {
-		last := len(groups) - 1
-		if last >= 0 && groups[last].Noun == row.Noun && groups[last].Instance == row.Instance && (row.Instance != "" || groups[last].Mode == row.Mode) && groups[last].Source == row.Source {
-			groups[last].Rows = append(groups[last].Rows, row.Binding)
+		last := len(doc.Groups) - 1
+		if last >= 0 && doc.Groups[last].Noun == row.Noun && doc.Groups[last].Instance == row.Instance && doc.Groups[last].Mode == row.Mode && doc.Groups[last].Source == row.Source {
+			doc.Groups[last].Rows = append(doc.Groups[last].Rows, row.Binding)
 			continue
 		}
-		g := sourcedGroup{Noun: row.Noun, Instance: row.Instance, Mode: row.Mode, Source: row.Source, Rows: []Binding{row.Binding}}
-		if row.Instance == "" && !extended[row.Noun+"/"+row.Mode] {
+		g := BindingGroup{Noun: row.Noun, Instance: row.Instance, Mode: row.Mode, Source: row.Source, Rows: []Binding{row.Binding}}
+		if row.Instance == "" {
 			extended[row.Noun+"/"+row.Mode] = true
 			g.Extends = r.Nouns[row.Noun].Extends[row.Mode]
 		}
-		groups = append(groups, g)
+		doc.Groups = append(doc.Groups, g)
 	}
-	// Modes that only extend: no rows of their own.
 	for _, name := range slices.Sorted(maps.Keys(r.Nouns)) {
 		for _, mode := range slices.Sorted(maps.Keys(r.Nouns[name].Extends)) {
 			if !extended[name+"/"+mode] {
@@ -359,11 +342,11 @@ func (r *Runtime) defaultBindingsFile() ([]byte, error) {
 				if source == "" {
 					source = SourceGo
 				}
-				groups = append(groups, sourcedGroup{Noun: name, Mode: mode, Extends: r.Nouns[name].Extends[mode], Source: source})
+				doc.Groups = append(doc.Groups, BindingGroup{Noun: name, Mode: mode, Extends: r.Nouns[name].Extends[mode], Source: source})
 			}
 		}
 	}
-	return formatDefaultBindings(modes, groups)
+	return doc
 }
 
 // moveDefaultSource carries a row's file source to the keys the terminal
@@ -389,7 +372,7 @@ func (r *Runtime) moveDefaultSource(noun string, b Binding, keys string) {
 // application runs it in a test on its built runtime, after its files
 // loaded, for each file it embeds.
 func (r *Runtime) CheckDefaultBindings(source string, data []byte) []string {
-	file, err := parseDefaultBindings(data)
+	file, _, err := ParseBindings(data)
 	if err != nil {
 		return []string{fmt.Sprintf("%s: %v", source, err)}
 	}
@@ -397,9 +380,9 @@ func (r *Runtime) CheckDefaultBindings(source string, data []byte) []string {
 	report := func(format string, args ...any) {
 		problems = append(problems, source+": "+fmt.Sprintf(format, args...))
 	}
-	for _, m := range file.Modes {
-		if m.Pending != r.pendingModes[m.Name] {
-			report("mode %q: the file says pending %v, the runtime %v", m.Name, m.Pending, r.pendingModes[m.Name])
+	for _, name := range slices.Sorted(maps.Keys(file.Modes)) {
+		if pending := file.Modes[name].Pending; pending != r.pendingModes[name] {
+			report("mode %q: the file says pending %v, the runtime %v", name, pending, r.pendingModes[name])
 		}
 	}
 	known := func(mode string) bool { return mode == "" || r.Modes[mode] || r.pendingModes[mode] }
@@ -408,40 +391,40 @@ func (r *Runtime) CheckDefaultBindings(source string, data []byte) []string {
 		noun := ""
 		if g.Instance != "" {
 			if r.Instances[g.Instance] == nil {
-				report("%s: unknown instance %q", g.Context, g.Instance)
+				report("%s: unknown instance %q", g.label(), g.Instance)
 				continue
 			}
 		} else if n := r.Noun(g.Noun); n == nil {
-			report("%s: unknown noun %q", g.Context, g.Noun)
+			report("%s: unknown noun %q", g.label(), g.Noun)
 			continue
 		} else {
 			noun = n.Name
 		}
 		if !known(g.Mode) {
-			report("%s: unknown mode %q", g.Context, g.Mode)
+			report("%s: unknown mode %q", g.label(), g.Mode)
 			continue
 		}
 		if g.Extends != "" && !known(g.Extends) {
-			report("%s: extends unknown mode %q", g.Context, g.Extends)
+			report("%s: extends unknown mode %q", g.label(), g.Extends)
 		}
 		for _, row := range g.Rows {
 			row.Noun = noun
 			key := row.Keys + row.Pattern
 			normalized, err := r.validateRow(row)
 			if err != nil {
-				report("%s %q: %v", g.Context, key, err)
+				report("%s %q: %v", g.label(), key, err)
 				continue
 			}
 			if normalized.Request.Key() == "ochazuke.mode.enter" {
 				if mode, _ := normalized.Request.Args["mode"].(string); !r.pendingModes[mode] {
-					report("%s %q: mode.enter into %q, which is not a pending mode", g.Context, key, mode)
+					report("%s %q: mode.enter into %q, which is not a pending mode", g.label(), key, mode)
 				}
 			}
 			id := sourceKey(withImplicitGuard(normalized))
 			if where, ok := seen[id]; ok {
-				report("%s %q: clashes with the row at %s (same key and guard in one table)", g.Context, key, where)
+				report("%s %q: clashes with the row at %s (same key and guard in one table)", g.label(), key, where)
 			}
-			seen[id] = fmt.Sprintf("%s %q", g.Context, key)
+			seen[id] = fmt.Sprintf("%s %q", g.label(), key)
 		}
 	}
 	return problems

@@ -33,7 +33,7 @@ func TestBindingsDefaultsPrintsAFile(t *testing.T) {
 		t.Fatalf("%v: %s", err, errs.String())
 	}
 	text := out.String()
-	if !strings.HasPrefix(text, "{\n  \"modes\": {\n") || !strings.Contains(text, `{"context": "ochazuke.list/normal", "source": "ochazuke/bindings/list.json", "bindings": {`) {
+	if !strings.HasPrefix(text, ochazuke.BindingsHeader+"\n{\n  \"modes\": {\n") || !strings.Contains(text, `{"context": "ochazuke.list/normal", "source": "ochazuke/bindings/list.json", "bindings": {`) {
 		t.Fatalf("bindings defaults:\n%s", text)
 	}
 }

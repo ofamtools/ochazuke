@@ -1,3 +1,4 @@
+// ochazuke bindings (JSONC): groups by "noun/mode" context; each key maps to an action, {action, args, hint, when, ...}, null (unbind) or an array of those
 {
   "modes": {
     "list_filter": {}
@@ -14,12 +15,12 @@
       "ctrl+n": {"action": "ochazuke.list.move", "args": {"clamp": true, "delta": 1}},
       "up": {"action": "ochazuke.list.move", "args": {"clamp": true, "delta": -1}},
       "ctrl+p": {"action": "ochazuke.list.move", "args": {"clamp": true, "delta": -1}},
-      "enter": [{"action": "ochazuke.list.filter-choose", "when": "list-chooses"}, "ochazuke.list.filter-keep"],
+      "enter": [{"action": "ochazuke.list.filter-choose", "when": "list-chooses"}, {"action": "ochazuke.list.filter-keep"}],
       "esc": "ochazuke.list.filter-clear"
     }},
     {"context": "ochazuke.list/normal", "bindings": {
       "V": {"action": "ochazuke.list.visual", "hidden": true},
-      "esc": [{"action": "ochazuke.list.end-visual", "when": "list-visual"}, "ochazuke.list.filter-clear"]
+      "esc": [{"action": "ochazuke.list.end-visual", "when": "list-visual"}, {"action": "ochazuke.list.filter-clear"}]
     }}
   ]
 }

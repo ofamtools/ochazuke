@@ -1,7 +1,8 @@
+// ochazuke bindings (JSONC): groups by "noun/mode" context; each key maps to an action, {action, args, hint, when, ...}, null (unbind) or an array of those
 {
   "modes": {
-    "terminal": {"passthrough": true},
-    "leader_pending": {"pending": true}
+    "leader_pending": {"pending": true},
+    "terminal": {"passthrough": true}
   },
   "bindings": [
     {"context": "ochazuke.terminal/leader_pending", "bindings": {
@@ -11,7 +12,7 @@
       "any": {"action": "ochazuke.terminal.send", "from": {"keys": "prefix key"}, "hidden": true}
     }},
     {"context": "ochazuke.terminal/terminal", "bindings": {
-      "ctrl+a": {"action": "ochazuke.mode.enter", "args": {"mode": "leader_pending", "prefix": "ctrl+a", "request": {"verb": "send", "noun": "ochazuke.terminal", "args": {"keys": "ctrl+a"}}}, "hint": "leader: d detaches, ctrl+a sends ctrl+a"},
+      "ctrl+a": {"action": "ochazuke.mode.enter", "args": {"mode": "leader_pending", "prefix": "ctrl+a", "request": {"args": {"keys": "ctrl+a"}, "noun": "ochazuke.terminal", "verb": "send"}}, "hint": "leader: d detaches, ctrl+a sends ctrl+a"},
       "paste": {"action": "ochazuke.terminal.paste", "from": {"text": "text"}, "hidden": true},
       "any": {"action": "ochazuke.terminal.send", "from": {"keys": "key"}, "hidden": true}
     }}

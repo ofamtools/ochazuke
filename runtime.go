@@ -866,7 +866,7 @@ func registerCore(r *Runtime) {
 		return r.ListBindings(focusOf(c)), nil
 	}})
 	r.Register(Operation{Verb: "defaults", Noun: "ochazuke.bindings", Description: "Print the default bindings (the framework's and the application's, without the user's bindings.json) as a bindings file, each group tagged with its source: the embedded file, go or generated", Result: "bindings file", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		data, err := r.defaultBindingsFile()
+		data, err := FormatBindings(r.defaultBindingsDoc())
 		return Verbatim(data), err
 	}})
 	r.Register(Operation{Verb: "stops", Noun: "ochazuke.bindings", Description: "List the rows every focus stop answers to, app-wide: each page's stops in drawing order, the open modals', then app; each with the focus and mode it is read at", Result: "stop bindings[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {

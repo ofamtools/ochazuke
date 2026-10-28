@@ -196,8 +196,9 @@ func registerListVisual(r *Runtime) {
 		}
 		return l.state(), l.StartVisual()
 	}
-	// esc ends the selection before the filter's esc (bound after this) is
-	// asked, only while one is active.
+	// V and esc are bindings/list-modes.json: esc ends the selection
+	// before the filter's esc (after it in the file) is asked, only while
+	// one is active.
 	r.Nouns["ochazuke.list"].Guards["visual"] = "table-visual"
 	// esc's verb guard as well as its row guard: a row guarded off still
 	// takes its key in the listings, so the row guard alone would hide an
