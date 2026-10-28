@@ -86,6 +86,13 @@ type Budget struct {
 	// TrapSteps bounds the extra search from each state that the explored
 	// graph does not prove can reach home; default 400.
 	TrapSteps int
+	// Observe, when set, is told about every state the search reaches, in
+	// order (see Step): the initial state and each seed's, every action
+	// played, and the end of the trap search. It runs on the goroutine
+	// that called Run, between steps, so a slow observer slows the run
+	// and changes nothing it finds. A CompareFull second search is not
+	// observed. The report's Budget leaves it out.
+	Observe func(Step) `json:"-"`
 }
 
 func (b Budget) withDefaults() Budget {

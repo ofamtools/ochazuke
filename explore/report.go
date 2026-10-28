@@ -89,8 +89,10 @@ func (x *explorer) sortedFindings() []*Finding {
 }
 
 func (x *explorer) report() Report {
+	b := x.b
+	b.Observe = nil
 	rep := Report{
-		Subject: x.s.Name, Budget: x.b, States: map[string]int{x.mode.String(): len(x.nodes)},
+		Subject: x.s.Name, Budget: b, States: map[string]int{x.mode.String(): len(x.nodes)},
 		Steps: x.steps, Replays: int(x.replays.Load()), Truncated: x.truncated,
 		StateKey: StateKeyDoc, Ignores: IgnoresDoc, Findings: x.sortedFindings(), Errors: x.errs,
 	}

@@ -740,7 +740,7 @@ Importable package `cli`: 19 source files, 15 test files.
 
 ## Package explore
 
-Importable package `explore`: 14 source files, 4 test files.
+Importable package `explore`: 15 source files, 5 test files.
 
 ### explore/actions.go
 
@@ -782,6 +782,15 @@ Importable package `explore`: 14 source files, 4 test files.
 - funcs: FrameworkRefusal, Shows, Gap
 - leans on: subject.go(3), dedupe.go(1), report.go(1)
 
+### explore/observe.go
+
+- lines: 103 · tests: observe_test.go
+- purpose: Phase is the part of a run a Step reports.
+- types: Phase, Step
+- methods: explorer(1), session(1)
+- funcs: Frames
+- leans on: subject.go(3), drive.go(2), search.go(2), state.go(2)
+
 ### explore/race_off.go
 
 - lines: 5
@@ -792,7 +801,7 @@ Importable package `explore`: 14 source files, 4 test files.
 
 ### explore/report.go
 
-- lines: 307
+- lines: 309
 - purpose: Report is what a run found.
 - types: Report, Finding, Coverage
 - methods: Finding(1), Report(5), explorer(2)
@@ -801,7 +810,7 @@ Importable package `explore`: 14 source files, 4 test files.
 
 ### explore/search.go
 
-- lines: 607
+- lines: 624
 - purpose: node is one state the search reached, by the shortest path found.
 - methods: explorer(10)
 - funcs: Run
@@ -824,10 +833,11 @@ Importable package `explore`: 14 source files, 4 test files.
 
 ### explore/subject.go
 
-- lines: 107
+- lines: 114
 - purpose: Subject is an application to explore.
 - types: Subject, Check, KeyMode, Budget
 - methods: Budget(1), KeyMode(1)
+- leans on: observe.go(1)
 
 ### explore/survey.go
 
@@ -1176,8 +1186,10 @@ Exported type -> file.
 - explore.Group -> explore/dedupe.go
 - explore.KeyMode -> explore/subject.go
 - explore.Occurrence -> explore/dedupe.go
+- explore.Phase -> explore/observe.go
 - explore.Report -> explore/report.go
 - explore.State -> explore/state.go
+- explore.Step -> explore/observe.go
 - explore.Subject -> explore/subject.go
 - grid.Grid -> grid/grid.go
 - grid.Nouns -> grid/grid.go

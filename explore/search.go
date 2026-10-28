@@ -63,6 +63,9 @@ type explorer struct {
 	longRunning map[string]bool
 	trapped     int
 	unproven    int
+
+	seq   int        // steps told to Budget.Observe
+	fresh []*Finding // findings recorded since the last observed step
 }
 
 // Run explores a subject within a budget and reports what it found. The
@@ -81,7 +84,9 @@ func Run(s Subject, b Budget) Report {
 		if b.Key == Abstract {
 			other = Full
 		}
-		y := search(&s, b, other, sizes)
+		quiet := b
+		quiet.Observe = nil
+		y := search(&s, quiet, other, sizes)
 		rep.States[other.String()] = len(y.nodes)
 	}
 	rep.Elapsed = time.Since(began)
@@ -116,7 +121,9 @@ func search(s *Subject, b Budget, mode KeyMode, sizes [][2]int) *explorer {
 	for _, p := range staticTraps(r) {
 		x.record(p, nil, false)
 	}
-	queue := []*node{x.discover(ss, nil)}
+	root := x.discover(ss, nil)
+	queue := []*node{root}
+	x.observe(PhaseStart, ss, nil, root.key, true)
 	ss.close()
 	for _, seed := range s.Seeds {
 		ss, err := x.replay(seed)
@@ -124,9 +131,12 @@ func search(s *Subject, b Budget, mode KeyMode, sizes [][2]int) *explorer {
 			x.errs = append(x.errs, "seed: "+err.Error())
 			continue
 		}
-		if n := x.discover(ss, slices.Clone(seed)); n != nil && !n.expanded && len(n.path) == len(seed) {
+		known := len(x.nodes)
+		n := x.discover(ss, slices.Clone(seed))
+		if n != nil && !n.expanded && len(n.path) == len(seed) {
 			queue = append(queue, n)
 		}
+		x.observe(PhaseStart, ss, seed, n.key, len(x.nodes) > known)
 		ss.close()
 	}
 	for len(queue) > 0 && !x.truncated {
@@ -138,6 +148,7 @@ func search(s *Subject, b Budget, mode KeyMode, sizes [][2]int) *explorer {
 		queue = append(queue, x.expand(n)...)
 	}
 	x.traps()
+	x.observe(PhaseTraps, nil, nil, "", false)
 	if !b.NoShrink {
 		x.shrinkAll()
 	}
@@ -371,11 +382,13 @@ func (x *explorer) expand(n *node) []*node {
 		for _, p := range x.evalAction(ss, n, a, true) {
 			x.record(p, path, true)
 		}
+		known := len(x.nodes)
 		child := x.discover(ss, path)
 		n.edges[a] = child.key
 		if len(child.path) == len(path) && slices.Equal(child.path, path) {
 			out = append(out, child)
 		}
+		x.observe(PhaseSearch, ss, path, child.key, len(x.nodes) > known)
 		ss.close()
 	}
 	return out
@@ -471,7 +484,11 @@ func (x *explorer) record(p problem, path []string, action bool) {
 		f.Count++
 		return
 	}
-	x.findings[p.Sig] = &Finding{Check: p.Check, Summary: strings.TrimPrefix(p.Sig, p.Check+": "), Detail: p.Detail, Path: slices.Clone(path), Found: len(path), Count: 1, action: action, sig: p.Sig}
+	f := &Finding{Check: p.Check, Summary: strings.TrimPrefix(p.Sig, p.Check+": "), Detail: p.Detail, Path: slices.Clone(path), Found: len(path), Count: 1, action: action, sig: p.Sig}
+	x.findings[p.Sig] = f
+	if x.b.Observe != nil {
+		x.fresh = append(x.fresh, f)
+	}
 }
 
 func pathText(path []string) string {
