@@ -1,0 +1,63 @@
+{
+  "name": "segments ride the header rule: each refresh changes its text in place, the body never moves, and a setting hides one",
+  "area": "segments",
+  "width": 60,
+  "height": 12,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 6
+      }
+    ],
+    "segments": [
+      {
+        "id": "cpu",
+        "label": "cpu",
+        "texts": ["12%", "48%"]
+      },
+      {
+        "id": "disk",
+        "label": "disk",
+        "texts": ["120G"],
+        "order": 1
+      },
+      {
+        "id": "off",
+        "label": "off",
+        "texts": ["never"],
+        "enabled": false
+      }
+    ],
+    "bind": [
+      {
+        "noun": "app",
+        "keys": "D",
+        "do": "ochazuke.segment.toggle",
+        "args": {"id": "disk"}
+      }
+    ]
+  },
+  "script": [
+    {"tick": "segment"},
+    {"tick": "segment"},
+    "D"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "segments": ["cpu 12%", "disk 120G"],
+      "order": ["cpu 12% · disk 120G ──", "a1", "a5"]
+    },
+    {
+      "after": 2,
+      "segments": ["cpu 48%", "disk 120G"],
+      "order": ["cpu 48% · disk 120G ──", "a1", "a5"]
+    },
+    {
+      "after": 3,
+      "segments": ["cpu 48%"],
+      "lacks": ["disk 120G", "never"]
+    }
+  ]
+}

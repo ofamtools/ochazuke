@@ -114,7 +114,9 @@ func (l Layout) PageBlock(title, subtitle string, body Block, footer string) Blo
 // which is a label or, when Tabs is set, the page tabs with Active marked.
 // Focus is the focus beside the badge (the focus-display setting): its
 // levels, outermost first, drawn dim after "·" and cut from the left
-// (FitFocusPath) so the innermost level stays. Every field is a raw label.
+// (FitFocusPath) so the innermost level stays. Segments are the status
+// segments (Runtime.SegmentCells), drawn right-aligned in the rule under
+// the header (HeaderRule); they take no row. Every field is a raw label.
 type Header struct {
 	Title    string
 	Badge    string
@@ -122,6 +124,7 @@ type Header struct {
 	Subtitle string
 	Tabs     []string
 	Active   int
+	Segments []SegmentCell
 }
 
 // Footer is the bottom row of the page chrome: a raw label, styled as an
@@ -157,8 +160,7 @@ func (l Layout) Shell(h Header, body Block, f Footer) Block {
 	if l.full() {
 		cursor = cursor.Offset(layoutGutter, 3) // gutter; title, subtitle and rule rows
 		pad := strings.Repeat(" ", layoutGutter)
-		rule := s.Muted.Render(strings.Repeat("─", bw))
-		rows = append(rows, pad+l.titleRow(h, bw), pad+l.subtitleRow(h, bw), pad+rule)
+		rows = append(rows, pad+l.titleRow(h, bw), pad+l.subtitleRow(h, bw), pad+l.HeaderRule(h.Segments, bw))
 		for _, row := range bodyRows {
 			rows = append(rows, pad+row)
 		}

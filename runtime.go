@@ -318,6 +318,7 @@ func (r *Runtime) registerFramework() {
 	registerQuery(r)
 	registerHistory(r)
 	registerPlacements(r)
+	registerSegments(r)
 	// The default rows, once every verb and guard they name is registered:
 	// the framework's files in this order (rows two files put in one table,
 	// the app noun's normal table, the list's, keep it). A modal answers esc

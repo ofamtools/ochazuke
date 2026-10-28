@@ -69,6 +69,8 @@ func Classify(ss *Session, msg tea.Msg) *Event {
 		}
 	case ochazuke.JobLingerMsg:
 		return &Event{Tick: "linger"}
+	case ochazuke.SegmentTickMsg, ochazuke.SegmentMsg:
+		return &Event{Tick: "segment"}
 	case ochazuke.BindingTimeoutMsg:
 		return &Event{Tick: "binding"}
 	case ochazuke.TreeDebounceMsg:
@@ -302,6 +304,21 @@ func (d *Driver) step(e Event) error {
 			d.now = tick.At
 		}
 		d.update(tick)
+	case e.Tick == "segment":
+		// The next refresh: the clock moves to the timer's deadline (the
+		// first refresh needs none), the due segments start, and every
+		// answer is delivered before the next event.
+		d.S.R.EnsureSegments()
+		if tick, ok := d.S.M.SegmentTick(); ok && tick.At.After(d.now) {
+			d.now = tick.At
+		}
+		tick, _ := d.S.M.SegmentTick()
+		d.update(tick)
+		for d.S.M.SegmentsInFlight() > 0 {
+			if err := d.take("segment answer", func(msg tea.Msg) bool { _, ok := msg.(ochazuke.SegmentMsg); return ok }); err != nil {
+				return err
+			}
+		}
 	case e.Tick == "terminal" || e.Tick == "binding" || e.Tick == "debounce":
 		if err := d.take(e.Tick+" tick", func(msg tea.Msg) bool {
 			ev := Classify(d.S, msg)

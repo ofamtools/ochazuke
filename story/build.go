@@ -160,6 +160,20 @@ func build(s *Story, opt Options, stateDir string) (*Session, error) {
 		}
 	}
 	for _, p := range pages {
+		for _, sp := range p.Segments {
+			texts, n := sp.Texts, 0
+			r.SegmentProvider("story-"+sp.ID, func(context.Context, ochazuke.Segment) (ochazuke.SegmentValue, error) {
+				if len(texts) == 0 {
+					return ochazuke.SegmentValue{}, nil
+				}
+				text := texts[min(n, len(texts)-1)]
+				n++
+				return ochazuke.SegmentValue{Text: text}, nil
+			})
+			if err := r.AddSegment(ochazuke.Segment{ID: sp.ID, Label: sp.Label, Provider: "story-" + sp.ID, Tone: sp.Tone, Order: sp.Order, Enabled: sp.Enabled}); err != nil {
+				return nil, fmt.Errorf("segment %s: %w", sp.ID, err)
+			}
+		}
 		for _, j := range p.Jobs {
 			for range j.Start {
 				noun, verb := ochazuke.SplitKey(j.Verb)

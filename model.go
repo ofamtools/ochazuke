@@ -70,7 +70,8 @@ type Model struct {
 	// frame scrolls only when the focus moved (pgup and pgdown may leave it
 	// off screen until the next motion).
 	followed map[string]string
-	ticker   jobTicker // the finished jobs the ticker remembers (ticker.go)
+	ticker   jobTicker    // the finished jobs the ticker remembers (ticker.go)
+	segTimer segmentTimer // the status segments' refresh timer (segment_view.go)
 	// Now is the Model's clock: the ticker's memory of finished jobs and
 	// the linger timer read it (time.Now by default, time.Now when nil). A
 	// headless host fakes it, advances it to JobLingerTick's deadline and
@@ -175,7 +176,7 @@ func (m *Model) Init() tea.Cmd {
 	m.applyThemeSetting()
 	m.Runtime.EnsureHistory()
 	m.Runtime.EnsureNounPlaces()
-	return tea.Batch(tea.RequestBackgroundColor, m.settingsPoll())
+	return tea.Batch(tea.RequestBackgroundColor, m.settingsPoll(), m.segmentCommand(m.clock()))
 }
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Off-loop results reach their owning instance first; a stale or
@@ -202,6 +203,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case JobLingerMsg:
 		m.ticker.fired(v)
+	case SegmentTickMsg:
+		m.segmentFired(v)
+	case SegmentMsg:
+		m.Runtime.settleSegment(v, m.clock())
 	case SettingsPollMsg:
 		m.Runtime.Settings().ReloadIfChanged()
 	case tea.BackgroundColorMsg:
@@ -231,6 +236,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		commands = append(commands, cmd)
 	}
 	if cmd := m.ticker.lingerCommand(m.clock()); cmd != nil {
+		commands = append(commands, cmd)
+	}
+	if cmd := m.segmentCommand(m.clock()); cmd != nil {
 		commands = append(commands, cmd)
 	}
 	if _, ok := msg.(SettingsPollMsg); ok {
@@ -825,7 +833,7 @@ func (m *Model) render() Block {
 	if page := m.Runtime.PageOf(m.Runtime.Page); page != nil {
 		pageTitle = page.Title
 	}
-	header := Header{Title: m.Title, Subtitle: pageTitle, Badge: m.modeBadge(), Focus: m.Runtime.focusDisplayLevels()}
+	header := Header{Title: m.Title, Subtitle: pageTitle, Badge: m.modeBadge(), Focus: m.Runtime.focusDisplayLevels(), Segments: m.Runtime.SegmentCells()}
 	if !m.Sidebar {
 		header.Tabs, header.Active = m.pageTitles()
 	}

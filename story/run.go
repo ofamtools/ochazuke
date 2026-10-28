@@ -224,6 +224,9 @@ func Check(ss *Session, e Expect) []string {
 	if (e.Ticker != nil || e.NoTicker) && !slices.Equal(ticker, e.Ticker) {
 		failf("ticker %q, want %q", ticker, e.Ticker)
 	}
+	if segs := ss.M.StatusSegments(); (e.Segments != nil || e.NoSegments) && !slices.Equal(segs, e.Segments) {
+		failf("segments %q, want %q", segs, e.Segments)
+	}
 	if (e.Notices != nil || e.NoNotices) && !slices.Equal(ss.M.Notices, e.Notices) {
 		failf("notices %q, want %q", ss.M.Notices, e.Notices)
 	}

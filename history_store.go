@@ -173,6 +173,7 @@ func (r *Runtime) EnsureConfigSettings() {
 	r.ensureHelpSettings()
 	r.ensureFormSettings()
 	r.ensureFocusDisplaySetting()
+	r.EnsureSegments()
 	r.applyTerminalLeader()
 	s := r.Settings()
 	if c.HistoryPath() != "" && s.find(HistorySetting) == nil {

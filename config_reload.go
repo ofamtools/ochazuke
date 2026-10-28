@@ -32,7 +32,8 @@ func (r *Runtime) OnConfigReload(name string, fn func() []string) {
 // choices are then current), settings.json (when settings are declared;
 // observers see every value that changed, the Model's theme among them),
 // actions.json (when it was installed), bindings.json (when it was
-// applied, once: a row can name an action's verb), then each
+// applied, once: a row can name an action's verb), segments.json (when it
+// was read), then each
 // OnConfigReload hook. Each file's last problems are withdrawn and its new
 // ones reported, so no stale notice survives; a bad file is skipped, never
 // fatal. It returns the problems in that order, each naming its file, and
@@ -54,6 +55,9 @@ func (r *Runtime) ReloadConfig() ([]string, error) {
 	}
 	if c.bindingsLoaded {
 		problems = append(problems, r.ReloadUserBindings()...)
+	}
+	if r.segs().loaded {
+		problems = append(problems, r.ReloadUserSegments()...)
 	}
 	for _, h := range c.hooks {
 		if c.Withdraw != nil {
@@ -85,7 +89,7 @@ func (r *Runtime) reloadThemes() []string {
 }
 
 func registerConfigReload(r *Runtime) {
-	r.Register(Operation{Verb: "reload", Noun: "ochazuke.config", Description: "Read every config file again: themes.json, settings.json, actions.json, bindings.json, then the application's own; a bad file or entry is skipped and reported", Result: "problem[]", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
+	r.Register(Operation{Verb: "reload", Noun: "ochazuke.config", Description: "Read every config file again: themes.json, settings.json, actions.json, bindings.json, segments.json, then the application's own; a bad file or entry is skipped and reported", Result: "problem[]", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
 		problems, err := r.ReloadConfig()
 		if err != nil {
 			return nil, err

@@ -245,6 +245,9 @@ type Config struct {
 	// themeListeners take the schemes again after config.reload read
 	// themes.json (the appearance's).
 	themeListeners []func()
+	// segments are the status segments, their segments.json rows and
+	// their last answers (segment.go).
+	segments *segments
 	// leaderObserved is set once the terminal-leader setting is observed.
 	leaderObserved bool
 	// leaderTimeoutDefault is set when EnsureTerminalLeader declared

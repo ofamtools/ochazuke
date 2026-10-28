@@ -89,7 +89,10 @@ type Page struct {
 	Inputs  []InputSpec  `json:"inputs,omitempty"`
 	Term    *TermSpec    `json:"terminal,omitempty"`
 	Jobs    []JobSpec    `json:"jobs,omitempty"`
-	Bind    []BindSpec   `json:"bind,omitempty"`
+	// Segments are status segments in the header rule, each answering
+	// its Texts in turn, one per refresh (tick segment).
+	Segments []SegmentSpec `json:"segments,omitempty"`
+	Bind     []BindSpec    `json:"bind,omitempty"`
 	// Pending are pending modes the story defines (DefineMode with
 	// pending), before its bind rows, which may enter them (do
 	// "ochazuke.mode.enter", args {"mode": NAME}) or be bound in them.
@@ -390,6 +393,18 @@ type JobSpec struct {
 	Label       string `json:"label,omitempty"` // the job's Result.Label
 }
 
+// SegmentSpec is a status segment whose provider answers Texts in turn,
+// the last one again once they run out; Tone is the row's tone, Enabled
+// its setting's default (nil: on).
+type SegmentSpec struct {
+	ID      string   `json:"id"`
+	Label   string   `json:"label,omitempty"`
+	Texts   []string `json:"texts"`
+	Tone    string   `json:"tone,omitempty"`
+	Order   int      `json:"order,omitempty"`
+	Enabled *bool    `json:"enabled,omitempty"`
+}
+
 // BindSpec is an extra binding row: keys on noun in mode run do.
 type BindSpec struct {
 	Noun string         `json:"noun"`
@@ -431,7 +446,7 @@ type Event struct {
 	Paste string `json:"paste,omitempty"`
 	Job   string `json:"job,omitempty"`   // noun.verb of the job that delivered
 	State string `json:"state,omitempty"` // done or failed
-	Tick  string `json:"tick,omitempty"`  // linger, binding, terminal (a pane frame), output (fake output line) or debounce (a tree line's, a form's or a completion's pause)
+	Tick  string `json:"tick,omitempty"`  // linger, binding, terminal (a pane frame), output (fake output line), debounce (a tree line's, a form's or a completion's pause) or segment (the status segments' next refresh, answered)
 	// Restart quits the session and builds it again from the story with
 	// the same state directory (State), as a user reopening the app.
 	Restart bool `json:"restart,omitempty"`
@@ -497,14 +512,18 @@ type Expect struct {
 	HighlightedText string `json:"highlightedText,omitempty"`
 	// Cell is the text of a table's current cell (drawn reverse and
 	// underlined inside its row, dimmed or not); "" for none.
-	Cell      *string  `json:"cell,omitempty"`
-	Contains  []string `json:"contains,omitempty"`
-	Lacks     []string `json:"lacks,omitempty"`
-	Order     []string `json:"order,omitempty"` // substrings that appear on screen in this order
-	Ticker    []string `json:"ticker,omitempty"`
-	NoTicker  bool     `json:"noTicker,omitempty"`
-	Notices   []string `json:"notices,omitempty"`
-	NoNotices bool     `json:"noNotices,omitempty"`
+	Cell     *string  `json:"cell,omitempty"`
+	Contains []string `json:"contains,omitempty"`
+	Lacks    []string `json:"lacks,omitempty"`
+	Order    []string `json:"order,omitempty"` // substrings that appear on screen in this order
+	Ticker   []string `json:"ticker,omitempty"`
+	NoTicker bool     `json:"noTicker,omitempty"`
+	// Segments are the status segments the header rule draws
+	// (Model.StatusSegments); NoSegments expects none.
+	Segments   []string `json:"segments,omitempty"`
+	NoSegments bool     `json:"noSegments,omitempty"`
+	Notices    []string `json:"notices,omitempty"`
+	NoNotices  bool     `json:"noNotices,omitempty"`
 	// Colored maps on-screen text to a "#RRGGBB" foreground some row holding
 	// that text draws in; NoColor lists foregrounds no cell may use.
 	Colored map[string]string `json:"colored,omitempty"`

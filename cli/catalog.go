@@ -80,6 +80,10 @@ type CatalogDoc struct {
 	Nouns    []CatalogNoun      `json:"nouns"`
 	Bindings []ochazuke.Binding `json:"bindings"`
 	Pages    []CatalogPage      `json:"pages"`
+	// Segments are the status segments the tool answers from one of its
+	// own verbs (CatalogSegment), in drawing order: a host mounts them
+	// against the verbs it mounted (CatalogSegments).
+	Segments []CatalogSegment `json:"segments,omitempty"`
 }
 
 // CatalogNoun is a noun and its verbs, by verb name. Pin is the noun's
@@ -319,6 +323,12 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool) ([]byte, err
 			}
 		}
 		noun.Verbs = append(noun.Verbs, verb)
+	}
+	for _, s := range r.Segments() {
+		if s.Verb == "" {
+			continue // a provider or a command runs only in its own process
+		}
+		doc.Segments = append(doc.Segments, catalogSegment(r, s.Segment))
 	}
 	for _, a := range r.Aliases() {
 		if !a.Shadowed {
