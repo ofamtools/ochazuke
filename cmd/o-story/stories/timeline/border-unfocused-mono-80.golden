@@ -1,0 +1,24 @@
+ |  ◆ o-story                                                            NORMAL
+ |   › page1
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  │   jumps and why the walk ranks stops by drawing order instead of         │
+ |  │   … 1 more line                                                          │
+ |  │   09:12 · done · 41s                                                     │
+ |  ╰──────────────────────────────────────────────────────────────────────────╯
+ |  ╭──────────────────────────────────────────────────────────────────────────╮
+ |  │ ▸ Make the help modal wrap long descriptions onto further lines of their │
+ |  │   row instead of cutting them with an ellipsis.                          │
+ |  │   09:20 · done · 2m03s                                                   │
+ |  ╰──────────────────────────────────────────────────────────────────────────╯
+ |  ── session 2 · mtm ─────────────────────────────────────────────────────────
+ |  ╭━ ● ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
+ |  ┃ ▸ 日本語のプロンプトも折り返す: wide runes in a prompt wrap by cells,    ┃
+ |  ┃   never by bytes, and nothing is cut.                                    ┃
+ |  ┃   10:02 · running · 12s                                                  ┃
+ |  ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
+ |  1–3 / 3
+R|  below1
+ |  below2
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  q app.quit · r demo.reset · enter demo.open · n demo.notify · x demo.delete…
+ |

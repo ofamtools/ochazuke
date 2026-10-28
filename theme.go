@@ -133,8 +133,10 @@ type Styles struct {
 	Backdrop  lipgloss.Style
 	Unfocused lipgloss.Style
 
-	text, ground color.Color // the scheme's text and surface, the ends of a fade
-	plain        bool        // mono or NO_COLOR: a fade is the faint attribute
+	text, ground   color.Color // the scheme's text and surface, the ends of a fade
+	accent, border color.Color // the accent and border roles (CardBorders)
+	unfocused      int         // the dim-unfocused percent WithDims was given
+	plain          bool        // mono or NO_COLOR: a fade is the faint attribute
 }
 
 // Dim defaults, in percent toward the background (the settings modal-dim
@@ -169,7 +171,28 @@ func (s Styles) WithDims(modal, unfocused int) Styles {
 		s.Backdrop = s.Fade(modal).Faint(true)
 	}
 	s.Unfocused = s.Fade(unfocused)
+	s.unfocused = unfocused
 	return s
+}
+
+// CardBorders are the border styles of a card timeline's three states
+// (the selection is the border, never reverse video): selected while the
+// timeline has the focus, the accent in bold; selected without the focus,
+// halfway from the accent to the border role; every other card, the
+// border role faded toward the surface by dim-unfocused. With no colour
+// (mono, NO_COLOR) they are bold, plain and faint; the timeline also
+// draws the two selected states in heavy lines, so they read without
+// any attribute.
+func (s Styles) CardBorders() (focused, selected, other lipgloss.Style) {
+	focused = lipgloss.NewStyle().Bold(true)
+	selected, other = lipgloss.NewStyle(), lipgloss.NewStyle()
+	if s.plain || s.accent == nil || s.border == nil || s.ground == nil {
+		return focused, selected, other.Faint(true)
+	}
+	focused = focused.Foreground(s.accent)
+	selected = selected.Foreground(lipgloss.Blend1D(3, s.accent, s.border)[1])
+	other = other.Foreground(fadeRamp(s.border, s.ground)[min(max(s.unfocused, 0), MaxDim)])
+	return focused, selected, other
 }
 
 // The dim settings, declared by EnsureConfigSettings.
@@ -281,6 +304,8 @@ func NewStyles(a Appearance) Styles {
 		Padding:      padding,
 		text:         text,
 		ground:       surface,
+		accent:       accent,
+		border:       border,
 		plain:        plain,
 	}
 	return styles.WithDims(DefaultModalDim, DefaultDimUnfocused)

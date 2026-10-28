@@ -100,12 +100,16 @@ func HeaderLines(n int) InstanceOption { return func(s *instanceSpec) { s.header
 // the window), and reports the selected card's lines with PlacedAt so the
 // page keeps it on screen.
 //
-// Selection rule (the cards' form of a page list's): the selected card's
-// header lines are the reverse-video highlight, the one highlight, and its
-// border is the focused panel's (heavy, in the accent); a muted selected
-// card's header is drawn at full strength. A timeline without the focus is
-// faded as a whole (dim-unfocused) with the selection kept, as a page
-// list is.
+// Selection rule (the cards' exception to a page list's reverse video):
+// the selection is the border, and no text on a card is ever reversed.
+// The selected card of a focused timeline has a heavy border with heavy
+// corners in the accent, bold; the selected card of a timeline without
+// the focus a heavy border with rounded corners halfway from the accent
+// to the border role; every other card a light rounded border in the
+// border role faded by dim-unfocused (Styles.CardBorders). Header, meta
+// and body text keep their own styles whether selected or not. A
+// timeline without the focus is also faded as a whole (dim-unfocused),
+// as a page list is.
 type Timeline struct {
 	r    *Runtime
 	id   string
@@ -595,13 +599,16 @@ func (t *Timeline) draw(i int, selected bool) []string {
 	s := t.styles
 	w := t.innerWidth()
 	open := t.open[c.ID]
-	borderColor := s.Panel.GetBorderTopForeground()
+	focusedBorder, selectedBorder, border := s.CardBorders()
 	h, v, tl, tr, bl, br, ml, mr := "─", "│", "╭", "╮", "╰", "╯", "├", "┤"
-	if selected {
-		borderColor = s.Accent.GetForeground()
+	switch {
+	case selected && t.list.Focused():
+		border = focusedBorder
+		h, v, tl, tr, bl, br, ml, mr = "━", "┃", "┏", "┓", "┗", "┛", "┣", "┫"
+	case selected && t.list.marksSelection():
+		border = selectedBorder
 		h, v, ml, mr = "━", "┃", "┣", "┫"
 	}
-	border := lipgloss.NewStyle().Foreground(borderColor)
 	var out []string
 	if t.groupStarts(i) {
 		label := " " + modalLabel(c.Group) + " "
@@ -614,24 +621,20 @@ func (t *Timeline) draw(i int, selected bool) []string {
 		top = tl + h + " ● " + strings.Repeat(h, max(0, t.width-6)) + tr
 	}
 	out = append(out, border.Render(top))
-	row := func(text string, style lipgloss.Style, reverse bool) string {
+	row := func(text string, style lipgloss.Style) string {
 		if ansi.StringWidth(text) > w {
 			text = ansi.Truncate(text, w, "")
 		}
 		text += strings.Repeat(" ", max(0, w-ansi.StringWidth(text)))
-		if reverse {
-			style = style.Reverse(true)
-		}
 		return border.Render(v) + " " + style.Render(text) + " " + border.Render(v)
 	}
 	header := lipgloss.NewStyle()
 	switch {
 	case c.Active:
 		header = header.Bold(true)
-	case c.Muted && !selected:
+	case c.Muted:
 		header = s.Muted
 	}
-	highlight := selected && t.list.marksSelection()
 	mark := "▸ "
 	if open {
 		mark = "▾ "
@@ -649,17 +652,17 @@ func (t *Timeline) draw(i int, selected bool) []string {
 		if k == 0 {
 			prefix = mark
 		}
-		out = append(out, row(prefix+line, header, highlight))
+		out = append(out, row(prefix+line, header))
 	}
 	if more > 0 {
 		word := "lines"
 		if more == 1 {
 			word = "line"
 		}
-		out = append(out, row(fmt.Sprintf("  … %d more %s", more, word), s.Muted, false))
+		out = append(out, row(fmt.Sprintf("  … %d more %s", more, word), s.Muted))
 	}
 	if c.Meta != "" {
-		out = append(out, row("  "+modalLabel(c.Meta), s.Muted, false))
+		out = append(out, row("  "+modalLabel(c.Meta), s.Muted))
 	}
 	if open {
 		if body := t.body(c, cc); len(body) > 0 {
@@ -676,7 +679,7 @@ func (t *Timeline) draw(i int, selected bool) []string {
 				case line.role == CardRoleError:
 					style = s.Error
 				}
-				out = append(out, row(line.text, style, false))
+				out = append(out, row(line.text, style))
 			}
 		}
 	}

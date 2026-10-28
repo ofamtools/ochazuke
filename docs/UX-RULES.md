@@ -156,6 +156,16 @@ tiers above them. When the two disagree, fix one in the same commit.
   spans its row; inside it a cell-mode table marks its current cell (R5.10).
   Story: `lists/one-highlight.json`, `lists/unfocused-dimmed.json`,
   `lists/beside-terminal-keeps-row.json`, `lists/lone-list.json`.
+  Exception: a card timeline (`AddTimeline`, mtm's Turns) draws its
+  selection as the card's border, never reverse video, so a selected
+  card's wrapped prompt reads as text: the selected card of the focused
+  timeline has a heavy border with heavy corners in the accent; the
+  selected card of a timeline without the focus a heavy border with
+  rounded corners, halfway from the accent to the border colour; every
+  other card the light border, dimmed by `dim-unfocused`. In mono the line
+  styles alone tell the three apart; the active card's `●` is a separate
+  cue. Story: `timeline/border-focused-*.json`,
+  `timeline/border-unfocused-*.json`.
 - **R5.2** Marked rows take a `* ` gutter, and every row of that list gets
   the gutter while any mark exists. Story: `lists/marked-gutter.json`.
 - **R5.3** Rows are instances of their noun, created and removed by

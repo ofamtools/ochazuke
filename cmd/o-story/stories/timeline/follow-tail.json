@@ -84,9 +84,10 @@
     {
       "focus": "t5",
       "contains": [
-        "fifth prompt"
+        "fifth prompt",
+        "┃ ▸ fifth prompt"
       ],
-      "highlightedText": "fifth prompt"
+      "highlighted": 0
     }
   ]
 }

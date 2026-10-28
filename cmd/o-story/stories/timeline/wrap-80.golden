@@ -2,12 +2,12 @@
  |   › page1
  |  ────────────────────────────────────────────────────────────────────────────
  |  ── session 1 · ochazuke ────────────────────────────────────────────────────
- |  ╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
-R|  ┃ ▸ Read AGENTS.md and the codemap, then tell me which files own focus     ┃
-R|  ┃   jumps and why the walk ranks stops by drawing order instead of         ┃
-R|  ┃   registration order.                                                    ┃
+ |  ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+ |  ┃ ▸ Read AGENTS.md and the codemap, then tell me which files own focus     ┃
+ |  ┃   jumps and why the walk ranks stops by drawing order instead of         ┃
+ |  ┃   registration order.                                                    ┃
  |  ┃   09:12 · done · 41s                                                     ┃
- |  ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
+ |  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
  |  ╭──────────────────────────────────────────────────────────────────────────╮
  |  │ ▸ Make the help modal wrap long descriptions onto further lines of their │
  |  │   row instead of cutting them with an ellipsis.                          │

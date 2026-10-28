@@ -1,9 +1,9 @@
  |  ◆ o-story                                                            NORMAL
  |   › page1
  |  ────────────────────────────────────────────────────────────────────────────
- |  ╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
-R|  ┃ ▾ Make the help modal wrap long descriptions onto further lines of their ┃
-R|  ┃   row instead of cutting them with an ellipsis.                          ┃
+ |  ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+ |  ┃ ▾ Make the help modal wrap long descriptions onto further lines of their ┃
+ |  ┃   row instead of cutting them with an ellipsis.                          ┃
  |  ┃   09:20 · done · 2m03s                                                   ┃
  |  ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
  |  ┃ ▾ 1 thinking · 3 lines                                                   ┃
@@ -16,7 +16,7 @@ R|  ┃   row instead of cutting them with an ellipsis.                         
  |  ┃ ▾ 3 answer                                                               ┃
  |  ┃   Done: the key, operation and description columns wrap; golden help-80  ┃
  |  ┃   updated.                                                               ┃
- |  ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
+ |  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
  |  ── session 2 · mtm ─────────────────────────────────────────────────────────
  |  2–3 / 3
  |  ────────────────────────────────────────────────────────────────────────────

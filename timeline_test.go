@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 
@@ -92,7 +93,7 @@ func TestTimelineWrapsHeadersWithoutCutting(t *testing.T) {
 		if strings.Contains(line, "…") {
 			t.Fatalf("line %q is cut", line)
 		}
-		line = strings.Trim(line, "│┃╭╮╰╯━─ ▸")
+		line = strings.Trim(line, "│┃╭╮╰╯┏┓┗┛━─ ▸")
 		if line != "" {
 			text = append(text, strings.TrimSpace(line))
 		}
@@ -100,7 +101,8 @@ func TestTimelineWrapsHeadersWithoutCutting(t *testing.T) {
 	if got := strings.Join(text, " "); !strings.Contains(strings.ReplaceAll(got, " ", ""), strings.ReplaceAll(header, " ", "")) {
 		t.Fatalf("header text lost: %q", got)
 	}
-	if !strings.HasPrefix(lines[0], "╭") || !strings.Contains(f.frame, "╯") {
+	// The one card is selected in a focused timeline: heavy corners.
+	if !strings.HasPrefix(lines[0], "┏") || !strings.Contains(f.frame, "┛") {
 		t.Fatalf("no box:\n%s", f.frame)
 	}
 }
@@ -355,7 +357,7 @@ func TestTimelineActiveAndMutedDrawing(t *testing.T) {
 			top = line
 		}
 	}
-	if !strings.HasPrefix(top, "╭") {
+	if !strings.HasPrefix(top, "┏━ ● ") {
 		t.Fatalf("active card has no ● in its top border:\n%s", f.frame)
 	}
 	raw := f.tl.View(40, 20)
@@ -372,6 +374,67 @@ func TestTimelineActiveAndMutedDrawing(t *testing.T) {
 	}
 	if other := lineWith(f.frame, "prompt c1"); !strings.HasPrefix(other, "│") {
 		t.Fatalf("other card heavy: %q", other)
+	}
+}
+
+// TestTimelineSelectionIsTheBorder: the selection is the border in three
+// states (focused, unfocused, other) and no text on a card is reversed.
+func TestTimelineSelectionIsTheBorder(t *testing.T) {
+	cards := turns(3)
+	cards[0].Muted = true
+	f := newTimelineFixture(t, cards)
+	f.press("j")
+	reversed := func(raw string) bool {
+		return strings.Contains(raw, "\x1b[7") || strings.Contains(raw, ";7m") || strings.Contains(raw, ";7;")
+	}
+	for _, theme := range []string{"mono", "dark", "light"} {
+		f.m.Appearance = &Appearance{Theme: theme, Dark: true}
+		f.m.View()
+		if err := f.r.SetFocus(f.tl.FocusTarget()); err != nil {
+			t.Fatal(err)
+		}
+		f.m.View()
+		focused := f.tl.View(40, 20)
+		if reversed(focused) {
+			t.Fatalf("%s: a card is reversed: %q", theme, focused)
+		}
+		top := strings.Split(f.frame, "\n")
+		if sel := lineWith(f.frame, "prompt c2"); !strings.HasPrefix(sel, "┃") {
+			t.Fatalf("%s: selected card not heavy: %q", theme, sel)
+		}
+		if other := lineWith(f.frame, "prompt c1"); !strings.HasPrefix(other, "│") {
+			t.Fatalf("%s: other card heavy: %q", theme, other)
+		}
+		if !slices.ContainsFunc(top, func(l string) bool { return strings.HasPrefix(l, "┏━") }) {
+			t.Fatalf("%s: focused selection has no heavy corner:\n%s", theme, f.frame)
+		}
+		if err := f.r.SetFocus("b1"); err != nil {
+			t.Fatal(err)
+		}
+		f.m.View()
+		away := f.tl.View(40, 20)
+		if reversed(away) {
+			t.Fatalf("%s: a card is reversed unfocused: %q", theme, away)
+		}
+		if strings.Contains(f.frame, "┏") {
+			t.Fatalf("%s: unfocused selection keeps the heavy corners:\n%s", theme, f.frame)
+		}
+		if sel := lineWith(f.frame, "prompt c2"); !strings.HasPrefix(sel, "┃") {
+			t.Fatalf("%s: unfocused selection not heavy: %q", theme, sel)
+		}
+		if theme == "mono" {
+			continue
+		}
+		// fg is the SGR the line's left border is drawn in.
+		fg := func(raw, text string) string {
+			line := lineWith(raw, text)
+			line = line[:strings.IndexAny(line, "│┃")]
+			return line[strings.LastIndex(line, "\x1b["):]
+		}
+		f1, f2, f3 := fg(focused, "prompt c2"), fg(away, "prompt c2"), fg(focused, "prompt c1")
+		if f1 == f2 || f2 == f3 || f1 == f3 || f3 != fg(away, "prompt c1") {
+			t.Fatalf("%s: border styles not distinct: %q %q %q", theme, f1, f2, f3)
+		}
 	}
 }
 
