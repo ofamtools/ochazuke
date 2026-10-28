@@ -1,0 +1,72 @@
+{
+  "name": "a catalog list with no source loads the noun's list, not a verb sorted before it that lists another noun's rows (slack-channel.history)",
+  "area": "catalog",
+  "width": 80,
+  "height": 14,
+  "page": {
+    "id": "slack",
+    "title": "Slack",
+    "catalog": {
+      "nouns": [
+        {
+          "name": "slack-channel",
+          "verbs": [
+            {
+              "name": "history",
+              "rows": "slack-message"
+            },
+            {
+              "name": "list",
+              "rows": "slack-channel"
+            }
+          ]
+        },
+        {
+          "name": "slack-message",
+          "verbs": [
+            {
+              "name": "show"
+            }
+          ]
+        }
+      ],
+      "page": {
+        "title": "Slack",
+        "lists": [
+          {
+            "id": "slack/channels",
+            "noun": "slack-channel",
+            "title": "channels"
+          }
+        ]
+      },
+      "answers": {
+        "slack-channel.list": [
+          {
+            "id": "c1",
+            "label": "#general"
+          },
+          {
+            "id": "c2",
+            "label": "#oncall"
+          }
+        ],
+        "slack-channel.history": [
+          {
+            "id": "m1",
+            "label": "a message in the history"
+          }
+        ]
+      }
+    }
+  },
+  "expect": {
+    "contains": [
+      "#general",
+      "#oncall"
+    ],
+    "lacks": [
+      "a message in the history"
+    ]
+  }
+}

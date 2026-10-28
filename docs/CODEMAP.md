@@ -281,12 +281,12 @@ Root package `ochazuke` is flat: 78 source files, 80 test files. Each entry list
 
 ### model.go
 
-- lines: 1116
+- lines: 1146
 - purpose: ModalView renders one modal without replacing or inspecting its parent page.
 - types: ModalView, ModalBody (iface), Model, HelpRow
-- methods: Model(24), Runtime(3), modelSink(3)
+- methods: Model(25), Runtime(3), modelSink(4)
 - funcs: NewModel, BindingHints, HintBindings, BindingHelp, NounHelp, PlaceHelp, SplitKeys, InputView, InputBlock
-- leans on: runtime.go(117), noun.go(46), block.go(34), theme.go(24)
+- leans on: runtime.go(117), noun.go(46), block.go(32), theme.go(24)
 
 ### namespace.go
 
@@ -608,11 +608,11 @@ Root package `ochazuke` is flat: 78 source files, 80 test files. Each entry list
 
 ### ui.go
 
-- lines: 265 · tests: ui_test.go
+- lines: 345 · tests: ui_test.go
 - purpose: NoticeID names one notice so the code that posted it can clear it.
-- types: NoticeID, UIMessage, UISink (iface), UI, RecordingSink
-- methods: Ctx(3), RecordingSink(7), Runtime(1), UI(10), UIMessage(1)
-- leans on: instance.go(12), block.go(9), delivery.go(5), runtime.go(5)
+- types: NoticeID, UIMessage, UISink (iface), InfoSink (iface), UI, RecordingSink
+- methods: Ctx(5), RecordingSink(10), Runtime(1), UI(12), UIMessage(2)
+- leans on: block.go(17), instance.go(15), delivery.go(7), runtime.go(7)
 
 ### yank_api.go
 
@@ -633,7 +633,7 @@ Importable package `cli`: 20 source files, 17 test files.
 
 ### cli/catalog.go
 
-- lines: 418
+- lines: 439
 - purpose: CatalogDoc is the catalog answer: what a runtime registers, grouped by noun, in the runtime's own JSON shapes (ochazuke.Parameter and ochazuke.Binding unchan...
 - types: CatalogDoc, CatalogNoun, CatalogVerb
 - methods: CatalogDoc(5), CatalogNoun(1)
@@ -739,10 +739,10 @@ Importable package `cli`: 20 source files, 17 test files.
 
 ### cli/shell.go
 
-- lines: 707
+- lines: 714
 - purpose: Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--format F] [--yes]: one registered operation in this process through the run...
 - types: Shell
-- methods: Shell(10), stderrSink(3)
+- methods: Shell(10), stderrSink(5)
 - funcs: New, DefaultUsage, UsageHint, Settle
 - leans on: state.go(5), format.go(3), rows.go(2), shellstate.go(2)
 
@@ -1122,6 +1122,7 @@ Exported type -> file.
 - HistoryMove -> history.go
 - HistoryPlace -> history.go
 - HistoryResult -> history.go
+- InfoSink -> ui.go
 - Input -> input.go
 - Instance -> instance.go
 - InstanceOption -> instance.go

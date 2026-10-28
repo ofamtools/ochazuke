@@ -131,3 +131,57 @@ func TestCatalogListColumns(t *testing.T) {
 		t.Fatalf("a verb-row list got columns: %+v", plain.Columns())
 	}
 }
+
+// TestCatalogRowSourcePrefersTheNounsOwnRows: a noun's row source is its
+// list when list declares the noun's own rows, else another verb declaring
+// the noun's own rows, else a list declaring none, and only then a verb
+// declaring another noun's rows; inside a step, catalog (sorted) order. So
+// slack-channel's history (rows of messages, sorted before list) and
+// pr.ignored (the noun's rows too, sorted before list) never beat list.
+func TestCatalogRowSourcePrefersTheNounsOwnRows(t *testing.T) {
+	r := ochazuke.NewRuntime()
+	noop := func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }
+	r.DefineOwn("message").Verb("list", noop, "List messages").Rows("message")
+	// The o-slack case: history (h < l) declares another noun's rows.
+	r.DefineOwn("channel").
+		Verb("history", noop, "The channel's messages").Rows("message").
+		Verb("list", noop, "List channels").Rows("channel")
+	// The o-gh case: ignored (i < l) declares the noun's own rows too.
+	r.DefineOwn("pr").
+		Verb("ignored", noop, "Ignored PRs").Rows("pr").
+		Verb("list", noop, "List PRs").Rows("pr")
+	// The o-mcp case: list declares nothing, calls declares another noun's.
+	r.DefineOwn("call").Verb("list", noop, "List calls").Rows("call")
+	r.DefineOwn("server").
+		Verb("calls", noop, "The server's calls").Rows("call").
+		Verb("list", noop, "List servers")
+	// No list: a verb with the noun's own rows beats one with another's.
+	r.DefineOwn("thread").
+		Verb("messages", noop, "The thread's messages").Rows("message").
+		Verb("replies", noop, "Replies as threads").Rows("thread")
+	// Only another noun's rows (mtm's store tables): that verb.
+	r.DefineOwn("store").Verb("tables", noop, "The store's tables").Rows("message")
+	r.DefineOwn("tool").Verb("run", noop, "Run")
+	data, err := Catalog(r, "tool", "v1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc CatalogDoc
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct{ noun, verb, rows string }{
+		{"message", "list", "message"},
+		{"channel", "list", "channel"},
+		{"pr", "list", "pr"},
+		{"server", "list", "server"},
+		{"thread", "replies", "thread"},
+		{"store", "tables", "message"},
+		{"tool", "", ""},
+		{"missing", "", ""},
+	} {
+		if verb, rows := doc.RowSource(c.noun); verb != c.verb || rows != c.rows {
+			t.Errorf("RowSource(%s) = %q, %q, want %q, %q", c.noun, verb, rows, c.verb, c.rows)
+		}
+	}
+}

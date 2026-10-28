@@ -24,8 +24,8 @@ const Schema = 1
 // State is the state source, "NOUN.VERB", "" for none: the first verb (in
 // catalog order) declared with NounBuilder.State. Its answer is every
 // list's rows in one process, as JSON Lines (Lines of Row): one object per
-// line, no outer array, each tagged with the list noun whose row source (the
-// verb declaring rows, else list) a host would otherwise run:
+// line, no outer array, each tagged with the list noun whose row source
+// (CatalogDoc.RowSource) a host would otherwise run:
 //
 //	{"noun":"agent","id":"agent/a1","label":"ada"}
 //	{"noun":"skill","id":"skill/s1","label":"review [claude]","data":{...}}
@@ -177,27 +177,48 @@ func (d CatalogDoc) AppNouns() []CatalogNoun {
 	return out
 }
 
-// RowSourceVerb is the verb whose answer is a noun's own rows when none of
-// the noun's verbs declares Rows.
+// RowSourceVerb is the verb whose answer is a noun's own rows: preferred
+// as the row source when it declares rows of the noun, and taken as the
+// noun's own rows when it declares none.
 const RowSourceVerb = "list"
 
 // RowSource is the verb whose JSON answer lists a noun's rows and the noun
-// those rows answer to: the first verb declaring Rows (CatalogVerb.Rows),
-// else a verb named list (RowSourceVerb), whose rows are the noun's own.
-// Both are "" when the noun has neither or is not in the catalog.
+// those rows answer to, chosen in this order (each step in catalog order,
+// verbs sorted):
+//
+//  1. list (RowSourceVerb) when it declares rows of the noun itself;
+//  2. another verb declaring rows of the noun itself;
+//  3. list declaring no rows, whose answer is the noun's own rows;
+//  4. a verb declaring rows of another noun (a noun whose only listing is
+//     of something else, mtm's store tables).
+//
+// So a verb whose rows are another noun's (slack-channel.history, the
+// channel's messages) never beats the noun's own list. Both are "" when
+// the noun has none of these or is not in the catalog.
 func (d CatalogDoc) RowSource(noun string) (verb, rows string) {
 	n, ok := d.noun(noun)
 	if !ok {
 		return "", ""
 	}
+	own := func(v CatalogVerb) bool { return d.CanonicalNoun(v.Rows) == n.Name }
 	for _, v := range n.Verbs {
-		if v.Rows != "" {
-			return v.Name, v.Rows
+		if v.Name == RowSourceVerb && own(v) {
+			return v.Name, n.Name
 		}
 	}
 	for _, v := range n.Verbs {
-		if v.Name == RowSourceVerb {
+		if v.Rows != "" && own(v) {
 			return v.Name, n.Name
+		}
+	}
+	for _, v := range n.Verbs {
+		if v.Name == RowSourceVerb && v.Rows == "" {
+			return v.Name, n.Name
+		}
+	}
+	for _, v := range n.Verbs {
+		if v.Rows != "" {
+			return v.Name, v.Rows
 		}
 	}
 	return "", ""
