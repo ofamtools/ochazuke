@@ -1,0 +1,57 @@
+{
+  "name": "enter on a line missing a required word opens the args form; typing it and enter runs the verb once",
+  "area": "palette",
+  "height": 30,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.rename",
+        "description": "Rename the row",
+        "parameters": {
+          "name": {
+            "type": "string",
+            "required": true,
+            "description": "The new name"
+          }
+        }
+      }
+    ]
+  },
+  "script": [
+    ":",
+    {
+      "type": "rename"
+    },
+    "enter",
+    {
+      "type": "web"
+    },
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "modal": "args-form",
+      "focus": "args-form/name",
+      "mode": "insert",
+      "contains": [
+        "Run demo.rename",
+        "name \u00b7 The new name"
+      ]
+    },
+    {
+      "modal": "",
+      "focus": "a1",
+      "mode": "normal",
+      "writes": [
+        "demo.rename name=web"
+      ]
+    }
+  ]
+}

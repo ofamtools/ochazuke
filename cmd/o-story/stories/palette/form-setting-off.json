@@ -1,0 +1,47 @@
+{
+  "name": "with palette.missing-opens-form off, enter names the missing word and the line stays",
+  "area": "palette",
+  "height": 30,
+  "settings": [
+    {
+      "name": "palette.missing-opens-form",
+      "type": "boolean",
+      "default": false
+    }
+  ],
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.rename",
+        "description": "Rename the row",
+        "parameters": {
+          "name": {
+            "type": "string",
+            "required": true,
+            "description": "The new name"
+          }
+        }
+      }
+    ]
+  },
+  "script": [
+    ":",
+    {
+      "type": "rename"
+    },
+    "enter"
+  ],
+  "expect": {
+    "modal": "palette",
+    "contains": [
+      "missing name (string): The new name"
+    ],
+    "writes": []
+  }
+}

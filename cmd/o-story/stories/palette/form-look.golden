@@ -1,0 +1,30 @@
+ |  ◆ o-story                                                            INSERT
+ |   › page1
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  a
+r|  a1
+ |  a2
+ |
+ |
+ |
+ |
+ |              ╭──────────────────────────────────────────────────╮
+ |              │ Run demo.move                                    │
+ |              │ from · The file to move                          │
+ |              │   old.txt                                        │
+ |              │ to · Where it goes · required                    │
+ |              │                                                  │
+ |              │ force (optional) · Overwrite what is there       │
+ |              │   (none) ▾                                       │
+ |              │ enter form.next-missing · ctrl+space palette.op… │
+ |              ╰──────────────────────────────────────────────────╯
+ |
+ |
+ |
+ |
+ |
+ |
+ |
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  enter form.next-missing · ctrl+space palette.open · esc mode.set · ctrl+k i…
+ |

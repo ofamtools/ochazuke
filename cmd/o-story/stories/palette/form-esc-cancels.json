@@ -1,0 +1,52 @@
+{
+  "name": "esc in the args form (twice from insert) runs nothing and returns to the line as typed",
+  "area": "palette",
+  "height": 30,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.rename",
+        "description": "Rename the row",
+        "parameters": {
+          "name": {
+            "type": "string",
+            "required": true,
+            "description": "The new name"
+          }
+        }
+      }
+    ]
+  },
+  "script": [
+    ":",
+    {
+      "type": "rename"
+    },
+    "enter",
+    {
+      "type": "x"
+    },
+    "esc",
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 5,
+      "modal": "args-form",
+      "mode": "normal"
+    },
+    {
+      "modal": "palette",
+      "contains": [
+        ": rename"
+      ],
+      "writes": []
+    }
+  ]
+}

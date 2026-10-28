@@ -1,0 +1,13 @@
+{
+  "name": "the args form: required words first, the optional one marked, the typed word kept",
+  "area": "palette",
+  "height": 30,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "verbs": [{"verb": "demo.move", "description": "Move a file", "positional": ["from", "to"],
+               "parameters": {"from": {"type": "string", "required": true, "description": "The file to move"},
+                              "to": {"type": "string", "required": true, "description": "Where it goes"},
+                              "force": {"type": "boolean", "description": "Overwrite what is there"}}}]
+  },
+  "script": [":", {"type": "move old.txt"}, "enter"]
+}

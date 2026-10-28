@@ -171,6 +171,7 @@ func (r *Runtime) EnsureConfigSettings() {
 	r.ensureThemeSetting()
 	r.ensureDimSettings()
 	r.ensureHelpSettings()
+	r.ensureFormSettings()
 	r.ensureFocusDisplaySetting()
 	r.applyTerminalLeader()
 	s := r.Settings()

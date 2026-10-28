@@ -1,0 +1,56 @@
+{
+  "name": "a key whose action lacks a required argument opens the same args form",
+  "area": "palette",
+  "height": 30,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.rename",
+        "description": "Rename the row",
+        "parameters": {
+          "name": {
+            "type": "string",
+            "required": true,
+            "description": "The new name"
+          }
+        }
+      }
+    ],
+    "bind": [
+      {
+        "noun": "app",
+        "keys": "R",
+        "do": "demo.rename"
+      }
+    ]
+  },
+  "script": [
+    "R",
+    {
+      "type": "web"
+    },
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "modal": "args-form",
+      "focus": "args-form/name",
+      "mode": "insert"
+    },
+    {
+      "modal": "",
+      "focus": "a1",
+      "mode": "normal",
+      "writes": [
+        "demo.rename name=web"
+      ]
+    }
+  ]
+}

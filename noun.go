@@ -1037,11 +1037,9 @@ func (r *Runtime) validateRow(row Binding) (Binding, error) {
 		if !ok {
 			return row, fmt.Errorf("unknown operation %q", row.Request.Key())
 		}
-		for name, param := range op.Parameters {
-			if _, ok := row.Request.Args[name]; param.Required && !ok && row.From[name] == "" {
-				return row, fmt.Errorf("%s is required", name)
-			}
-		}
+		// A row may leave a required argument out: the key opens the args
+		// form for it (MissingOpensFormSetting), or, with the form off,
+		// fails naming it as the API does. What a row gives is checked.
 		optional := map[string]Parameter{}
 		for name, param := range op.Parameters {
 			param.Required = false

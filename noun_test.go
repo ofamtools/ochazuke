@@ -248,12 +248,16 @@ func TestLoadBindingsRowsReplaceAddAndUnbind(t *testing.T) {
 		`[{"noun": "app", "keys": "x", "request": {"verb": "nope", "noun": "app"}}]`,
 		`[{"noun": "app", "pattern": "letters", "request": {"verb": "quit", "noun": "app"}}]`,
 		`[{"noun": "app", "keys": "x", "mode": "unknown", "request": {"verb": "quit", "noun": "app"}}]`,
-		`[{"noun": "app", "keys": "x", "request": {"verb": "move", "noun": "input"}}]`,
 		`[{"noun": "app", "keys": "x", "request": {"verb": "move", "noun": "input", "args": {"motion": "left"}}, "from": {"steps": "nowhere"}}]`,
 	} {
 		if _, err := r.LoadBindings([]byte(bad)); err == nil {
 			t.Fatalf("accepted %s", bad)
 		}
+	}
+	// A row may leave a required argument out: the key asks for it in the
+	// args form (palette_form_test.go).
+	if _, err := r.LoadBindings([]byte(`[{"noun": "app", "keys": "x", "request": {"verb": "move", "noun": "input"}}]`)); err != nil {
+		t.Fatalf("a row without its required argument: %v", err)
 	}
 }
 

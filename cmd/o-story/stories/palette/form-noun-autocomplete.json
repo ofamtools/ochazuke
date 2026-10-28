@@ -1,0 +1,68 @@
+{
+  "name": "a noun-typed word in the args form: enter opens a chooser of that noun's things, typing narrows it",
+  "area": "palette",
+  "height": 30,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.pick",
+        "description": "Pick a row",
+        "parameters": {
+          "row": {
+            "type": "string",
+            "required": true,
+            "noun": "demo"
+          }
+        }
+      }
+    ]
+  },
+  "script": [
+    ":",
+    {
+      "type": "pick"
+    },
+    "enter",
+    "enter",
+    {
+      "type": "a3"
+    },
+    "enter",
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "modal": "args-form",
+      "focus": "args-form/row",
+      "mode": "normal"
+    },
+    {
+      "after": 5,
+      "contains": [
+        "Choose row",
+        "a3"
+      ]
+    },
+    {
+      "after": 6,
+      "modal": "args-form",
+      "focus": "args-form/row",
+      "contains": [
+        "a3"
+      ]
+    },
+    {
+      "modal": "",
+      "writes": [
+        "demo.pick row=a3"
+      ]
+    }
+  ]
+}

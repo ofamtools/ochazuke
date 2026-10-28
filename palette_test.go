@@ -281,7 +281,11 @@ func TestPaletteEnterRunsUnlessAWordIsHighlighted(t *testing.T) {
 	if p.Text() != "transform " {
 		t.Fatalf("enter on the highlight: %q", p.Text())
 	}
-	// A complete verb with its noun omitted names the missing parameter.
+	// A complete verb with its noun omitted names the missing parameter
+	// (with the args form off: palette_form_test.go covers it on).
+	if err := r.DeclareSetting(Setting{Name: MissingOpensFormSetting, Type: SettingBoolean, Default: false}); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := p.HandleKey("enter"); err == nil || !strings.HasPrefix(err.Error(), "missing name") || p.Text() != "transform " {
 		t.Fatalf("enter on transform: %v line=%q", err, p.Text())
 	}

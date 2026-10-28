@@ -1,0 +1,61 @@
+{
+  "name": "the args form keeps the words already typed and starts on the first missing one",
+  "area": "palette",
+  "height": 30,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.move",
+        "description": "Move a file",
+        "positional": [
+          "from",
+          "to"
+        ],
+        "parameters": {
+          "from": {
+            "type": "string",
+            "required": true
+          },
+          "to": {
+            "type": "string",
+            "required": true
+          }
+        }
+      }
+    ]
+  },
+  "script": [
+    ":",
+    {
+      "type": "move old.txt"
+    },
+    "enter",
+    {
+      "type": "new.txt"
+    },
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "modal": "args-form",
+      "focus": "args-form/to",
+      "mode": "insert",
+      "contains": [
+        "old.txt"
+      ]
+    },
+    {
+      "modal": "",
+      "writes": [
+        "demo.move from=old.txt to=new.txt"
+      ]
+    }
+  ]
+}

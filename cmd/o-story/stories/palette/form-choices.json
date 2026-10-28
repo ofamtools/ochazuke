@@ -1,0 +1,76 @@
+{
+  "name": "a word with choices in the args form is picked from them",
+  "area": "palette",
+  "height": 30,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.paint",
+        "description": "Paint the row",
+        "parameters": {
+          "colour": {
+            "type": "string",
+            "required": true,
+            "enum": [
+              "red",
+              "green",
+              "blue"
+            ]
+          },
+          "shade": {
+            "type": "string",
+            "enum": [
+              "light",
+              "dark"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "script": [
+    ":",
+    {
+      "type": "paint"
+    },
+    "enter",
+    "enter",
+    {
+      "type": "gr"
+    },
+    "enter",
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "modal": "args-form",
+      "focus": "args-form/colour",
+      "contains": [
+        "colour",
+        "shade (optional)"
+      ]
+    },
+    {
+      "after": 4,
+      "contains": [
+        "Choose colour",
+        "red",
+        "green",
+        "blue"
+      ]
+    },
+    {
+      "modal": "",
+      "writes": [
+        "demo.paint colour=green"
+      ]
+    }
+  ]
+}

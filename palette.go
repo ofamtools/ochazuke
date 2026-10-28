@@ -80,7 +80,7 @@ func newPalette(r *Runtime) *Palette {
 	})
 	register("move", "Move the completion highlight; from none, 1 lands on the first entry and -1 on the last", map[string]Parameter{"delta": {Type: "integer", Required: true}}, func(a Arguments) error { return p.move(IntArg(a, "delta", 0)) })
 	register("complete", "Append the highlighted completion (or value, or the only one) as the next word", map[string]Parameter{"value": {Type: "string", Description: "A completion's word; omit for the highlighted one"}}, p.complete)
-	register("run", "Run the line or append the highlighted completion; a short line names its first missing word", nil, func(Arguments) error { return p.run() })
+	register("run", "Run the line or append the highlighted completion; a line missing an argument opens the args form for it (palette.missing-opens-form), else names its first missing word", nil, func(Arguments) error { return p.run() })
 	register("cancel", "Clear the command line, or close it when it is empty", nil, func(Arguments) error { return p.cancel() })
 	register("recall", "Replace the line with an earlier palette command from the action history: 1 older, -1 newer", map[string]Parameter{"delta": {Type: "integer", Required: true}}, func(a Arguments) error { return p.recallLine(IntArg(a, "delta", 0)) })
 	// The palette's keys (bindings/palette.json), all on its own noun: the
@@ -248,6 +248,13 @@ func (p *Palette) run() error {
 		return c.Err
 	}
 	if c.Missing != "" {
+		if _, param := c.Op.Parameters[c.Missing]; param && c.known() && p.r.missingOpensForm() {
+			// The args form asks for what the line lacks; esc there comes
+			// back to this line as typed.
+			if _, err := p.r.OpenArgsForm(c.Request(), p.dispatch); err == nil {
+				return nil
+			}
+		}
 		return fmt.Errorf("missing %s", p.describeMissing(c))
 	}
 	return p.dispatch(c.Request())

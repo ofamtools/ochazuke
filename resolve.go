@@ -424,12 +424,26 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent) error {
 		}
 		q.Args = args
 	}
-	r.rowRequest = true
-	_, err := r.Execute(q)
+	execute := func(q Request) error {
+		r.rowRequest = true
+		_, err := r.Execute(q)
+		return err
+	}
+	// A request lacking a required argument opens the args form for it
+	// (MissingOpensFormSetting); the form runs it as the key's.
+	source := r.history.source
+	formed := r.formForMissing(q, func(q Request) error {
+		defer r.forceSource(source)()
+		return execute(q)
+	})
+	var err error
+	if !formed {
+		err = execute(q)
+	}
 	if r.pendingModes[before] && r.modeGeneration == generation && r.Mode.Name == before {
 		r.leaveMode()
 	}
-	if err == nil && b.Replay && !ev.Key.Paste {
+	if err == nil && !formed && b.Replay && !ev.Key.Paste {
 		_, err = r.Dispatch(ev.Key)
 	}
 	return err

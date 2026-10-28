@@ -304,7 +304,9 @@ func TestWritesAreNeverSilentlyFilled(t *testing.T) {
 		}
 	}
 	// The palette: the line names the verb (by an alias) but not the
-	// name; enter leaves the palette open on the missing slot.
+	// name; enter opens the args form with the slot empty, and the
+	// verb's description says nothing ran; with the form off, enter
+	// leaves the palette open naming the missing slot.
 	if _, err := r.Execute(Request{Noun: "palette", Verb: "open"}); err != nil {
 		t.Fatal(err)
 	}
@@ -315,8 +317,20 @@ func TestWritesAreNeverSilentlyFilled(t *testing.T) {
 	if c.Op.Key() != "worker.rename" || c.Via != "worker.title" || c.Missing != "name" || c.Complete() {
 		t.Fatalf("palette parse %+v", c)
 	}
+	if err := m.Palette.run(); err != nil || r.TopModal() != ArgsFormID {
+		t.Fatalf("palette run without the slot: %v (top %q)", err, r.TopModal())
+	}
+	if form := r.RecordEditor(ArgsFormID); form.Values()["name"] != "" || r.Focus != ArgsFormID+"/name" {
+		t.Fatalf("the slot was filled: %v (focus %q)", form.Values(), r.Focus)
+	}
+	if _, err := r.Execute(Request{Noun: "ochazuke.form", Verb: "leave"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.DeclareSetting(Setting{Name: MissingOpensFormSetting, Type: SettingBoolean, Default: false}); err != nil {
+		t.Fatal(err)
+	}
 	if err := m.Palette.run(); err == nil || !strings.Contains(err.Error(), "missing name") || !m.Palette.IsOpen() {
-		t.Fatalf("palette run without the slot: %v (open %v)", err, m.Palette.IsOpen())
+		t.Fatalf("palette run without the slot (form off): %v (open %v)", err, m.Palette.IsOpen())
 	}
 	if len(ran) != 0 {
 		t.Fatalf("a write ran without its slot: %v", ran)
