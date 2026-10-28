@@ -588,7 +588,7 @@ Root package `ochazuke` is flat: 73 source files, 74 test files. Each entry list
 
 ## Package cli
 
-Importable package `cli`: 19 source files, 15 test files.
+Importable package `cli`: 20 source files, 16 test files.
 
 ### cli/catalog.go
 
@@ -598,6 +598,13 @@ Importable package `cli`: 19 source files, 15 test files.
 - methods: CatalogDoc(5), CatalogNoun(1)
 - funcs: Catalog, Namespace, Local, ExtensionNamespace
 - leans on: page.go(4), statecache.go(4), commands.go(1), state.go(1)
+
+### cli/catalog_inspect.go
+
+- lines: 262 · tests: catalog_inspect_test.go
+- purpose: catalogCommand is BIN catalog: the catalog JSON, or with the word inspect the HTML inspector page (catalogInspect).
+- methods: Shell(3), repeated(2)
+- leans on: shell.go(4), statecache.go(4), catalog.go(3)
 
 ### cli/commands.go
 
@@ -626,11 +633,11 @@ Importable package `cli`: 19 source files, 15 test files.
 
 ### cli/mount.go
 
-- lines: 210
+- lines: 205
 - purpose: Mount maps the runtime registry to oden command groups and operation metadata.
 - methods: Shell(1), nounGroup(4)
 - funcs: Mount
-- leans on: statecache.go(3), catalog.go(2), shell.go(2)
+- leans on: shell.go(2), catalog.go(1), statecache.go(1)
 
 ### cli/odencommands.go
 

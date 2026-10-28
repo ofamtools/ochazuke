@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catalog Inspector</title>
+<style>
+:root {
+  --bg: #fbfbf9; --panel: #ffffff; --fg: #1d1f21; --muted: #6b6f76; --faint: #9aa0a6;
+  --line: #e3e3de; --sel: #dfe9fb; --selfocus: #c6d8fa; --accent: #2457c5; --accent2: #7a3fb0;
+  --ok: #1d7a3a; --warn: #a35b00; --bad: #b3261e; --chip: #f0f0eb; --head: #f5f5f1;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15171a; --panel: #1b1e22; --fg: #e3e5e8; --muted: #9298a0; --faint: #656b73;
+    --line: #2b2f35; --sel: #24324a; --selfocus: #2d4470; --accent: #7aa7ff; --accent2: #c79bf2;
+    --ok: #5fc27e; --warn: #e0a24a; --bad: #ff7b72; --chip: #252a30; --head: #1f2328;
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--fg); font: 13px/1.45 var(--mono); display: flex; flex-direction: column; overflow: hidden; }
+a { color: var(--accent); }
+button, select, input { font: inherit; color: inherit; }
+header { padding: 6px 12px; border-bottom: 1px solid var(--line); display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+header h1 { font-size: 14px; margin: 0; font-weight: 700; }
+header .gen { color: var(--muted); }
+#versions { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
+.chip { background: var(--chip); border-radius: 3px; padding: 0 5px; white-space: nowrap; font-size: 12px; }
+.chip b { font-weight: 600; }
+.chip.err { color: var(--bad); }
+#bar { display: flex; gap: 8px; padding: 6px 12px; border-bottom: 1px solid var(--line); align-items: center; flex-wrap: wrap; }
+#tabs { display: flex; gap: 2px; }
+#tabs button { background: none; border: 1px solid transparent; border-radius: 3px; padding: 1px 8px; cursor: pointer; color: var(--muted); }
+#tabs button.on { border-color: var(--line); background: var(--panel); color: var(--fg); font-weight: 600; }
+#tabs button kbd { color: var(--faint); margin-right: 3px; }
+#q { width: 260px; max-width: 100%; padding: 2px 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 3px; }
+#q:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+#filters { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+#filters select { background: var(--panel); border: 1px solid var(--line); border-radius: 3px; padding: 1px 2px; max-width: 150px; }
+#filters label { color: var(--muted); font-size: 12px; }
+#count { color: var(--muted); margin-left: auto; }
+main { flex: 1; min-height: 0; display: none; }
+main.on { display: flex; }
+.pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; border-right: 1px solid var(--line); background: var(--panel); }
+.pane > h3 { margin: 0; padding: 3px 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); background: var(--head); border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; }
+.pane.focus > h3 { color: var(--accent); }
+.vlist { flex: 1; overflow: auto; position: relative; outline: none; }
+.vlist .spacer { position: absolute; top: 0; left: 0; width: 1px; }
+.vlist .rows { position: absolute; top: 0; left: 0; right: 0; }
+.row { height: 22px; line-height: 22px; padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; display: flex; gap: 6px; }
+.row.sel { background: var(--sel); }
+.pane.focus .row.sel { background: var(--selfocus); }
+.row.group { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; cursor: default; background: var(--head); }
+.row .n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.row .c { color: var(--faint); }
+.row .k { color: var(--accent2); }
+.tag { display: inline-block; font-size: 11px; line-height: 15px; padding: 0 4px; border-radius: 3px; background: var(--chip); color: var(--muted); margin-right: 3px; vertical-align: 1px; }
+.tag.ok { color: var(--ok); } .tag.warn { color: var(--warn); } .tag.bad { color: var(--bad); } .tag.acc { color: var(--accent); }
+#v-nouns .p-tools { width: 210px; flex: none; }
+#v-nouns .p-nouns { width: 250px; flex: none; }
+#v-nouns .p-verbs { width: 260px; flex: none; }
+.detail { flex: 1; overflow: auto; padding: 10px 14px 40px; background: var(--bg); min-width: 0; }
+.detail h2 { font-size: 15px; margin: 0 0 4px; word-break: break-all; }
+.detail h4 { margin: 14px 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.detail p { margin: 4px 0; }
+.detail .desc { font-size: 13px; }
+.muted { color: var(--muted); } .faint { color: var(--faint); }
+table.t { border-collapse: collapse; width: 100%; font-size: 12px; }
+table.t th, table.t td { text-align: left; border-bottom: 1px solid var(--line); padding: 2px 6px; vertical-align: top; }
+table.t th { color: var(--muted); font-weight: 500; background: var(--head); position: sticky; top: 0; }
+code { background: var(--chip); padding: 0 3px; border-radius: 2px; }
+.link { color: var(--accent); cursor: pointer; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+/* table views */
+.tablepane { flex: 1; }
+.thead, .trow { display: grid; gap: 8px; padding: 0 8px; align-items: center; }
+.thead { height: 22px; line-height: 22px; background: var(--head); border-bottom: 1px solid var(--line); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+.trow > span, .thead > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.keys-grid { grid-template-columns: 82px 120px 130px 130px 170px minmax(160px, 1fr) 90px 120px; }
+.rel-grid { grid-template-columns: 82px 150px 130px 110px 150px 70px minmax(180px, 1fr); }
+.trow.dup { box-shadow: inset 3px 0 var(--bad); }
+.trow.shadow { box-shadow: inset 3px 0 var(--warn); }
+.side { width: 380px; flex: none; border-left: 1px solid var(--line); }
+#v-gaps .p-gnouns { width: 300px; flex: none; }
+.present { color: var(--ok); } .missing { color: var(--bad); } .partial { color: var(--warn); }
+#help { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: center; justify-content: center; z-index: 10; }
+#help.on { display: flex; }
+#help .box { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 20px; max-width: 640px; width: calc(100% - 32px); max-height: 85vh; overflow: auto; }
+#help kbd, .kbd { background: var(--chip); border-radius: 3px; padding: 0 4px; border: 1px solid var(--line); }
+#help td { padding: 2px 10px 2px 0; vertical-align: top; }
+.empty { padding: 14px; color: var(--muted); }
+@media (max-width: 900px) {
+  #v-nouns .p-tools { width: 130px; } #v-nouns .p-nouns { width: 170px; } #v-nouns .p-verbs { width: 170px; }
+  .side { width: 260px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">catalog inspector</h1>
+  <span class="gen" id="gen"></span>
+  <div id="versions"></div>
+</header>
+<div id="bar">
+  <div id="tabs">
+    <button data-view="nouns"><kbd>1</kbd>By noun</button>
+    <button data-view="keys"><kbd>2</kbd>By key</button>
+    <button data-view="rel"><kbd>3</kbd>Relations</button>
+    <button data-view="gaps" id="tab-gaps"><kbd>4</kbd>Gaps</button>
+  </div>
+  <input id="q" type="search" placeholder="/ search noun, verb, key, description, param" autocomplete="off" spellcheck="false">
+  <div id="filters">
+    <select id="f-tool" title="tool"></select>
+    <select id="f-ns" title="namespace"></select>
+    <select id="f-kind" title="kind"></select>
+    <select id="f-hist" title="effect (history)"></select>
+    <select id="f-key" title="keys"><option value="">keys: any</option><option value="has">has a key</option><option value="none">keyless</option></select>
+    <select id="f-confirm" title="confirm"><option value="">confirm: any</option><option value="has">has a confirm</option><option value="none">no confirm</option></select>
+    <select id="f-rel" title="relation"><option value="">relation: any</option><option value="any">relation (any)</option><option value="noun">noun-typed param</option><option value="source">source-typed param</option><option value="name">param named like a noun</option></select>
+    <select id="f-issue" title="key issues (By key)"><option value="">key rows: all</option><option value="dup">duplicates</option><option value="shadow">same key, other action on another noun</option><option value="app">shadows an app-wide key</option><option value="unresolved">request names no verb</option></select>
+    <select id="f-mirror" title="mirror (Relations)"><option value="">mirror: any</option><option value="missing">mirror missing</option><option value="present">mirror present</option></select>
+    <button id="reset" title="clear search and filters">reset</button>
+  </div>
+  <span id="count"></span>
+</div>
+
+<main id="v-nouns">
+  <section class="pane p-tools" data-pane="0"><h3><span>tools</span><span id="c-tools"></span></h3><div class="vlist" id="l-tools"></div></section>
+  <section class="pane p-nouns" data-pane="1"><h3><span>nouns</span><span id="c-nouns"></span></h3><div class="vlist" id="l-nouns"></div></section>
+  <section class="pane p-verbs" data-pane="2"><h3><span>verbs</span><span id="c-verbs"></span></h3><div class="vlist" id="l-verbs"></div></section>
+  <section class="detail" id="d-nouns" data-pane="3"></section>
+</main>
+
+<main id="v-keys">
+  <section class="pane tablepane" data-pane="0">
+    <div class="thead keys-grid"><span>tool</span><span>mode</span><span>keys</span><span>when</span><span>on (keymap)</span><span>does</span><span>flags</span><span>issue</span></div>
+    <div class="vlist" id="l-keys"></div>
+  </section>
+  <section class="detail side" id="d-keys" data-pane="1"></section>
+</main>
+
+<main id="v-rel">
+  <section class="pane tablepane" data-pane="0">
+    <div class="thead rel-grid"><span>tool</span><span>noun A</span><span>verb</span><span>param</span><span>noun B</span><span>via</span><span>mirror on B</span></div>
+    <div class="vlist" id="l-rel"></div>
+  </section>
+  <section class="detail side" id="d-rel" data-pane="1"></section>
+</main>
+
+<main id="v-gaps">
+  <section class="pane p-gnouns" data-pane="0"><h3><span>annotated nouns</span><span id="c-gaps"></span></h3><div class="vlist" id="l-gaps"></div></section>
+  <section class="detail" id="d-gaps" data-pane="1"></section>
+</main>
+
+<div id="help"><div class="box">
+  <h2 style="margin-top:0;font-size:15px">Keys</h2>
+  <table>
+    <tr><td><kbd>j</kbd> <kbd>k</kbd> / arrows</td><td>move in the focused pane</td></tr>
+    <tr><td><kbd>h</kbd> <kbd>l</kbd></td><td>previous / next pane</td></tr>
+    <tr><td><kbd>enter</kbd></td><td>drill in; on a key or relation row, open its verb in By noun</td></tr>
+    <tr><td><kbd>esc</kbd></td><td>back: close help, leave search, previous pane, then clear the search</td></tr>
+    <tr><td><kbd>/</kbd></td><td>search (fuzzy; space-separated words must all match)</td></tr>
+    <tr><td><kbd>1</kbd>–<kbd>4</kbd></td><td>By noun, By key, Relations, Gaps (with annotations)</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>G</kbd></td><td>first / last row</td></tr>
+    <tr><td><kbd>ctrl+d</kbd> <kbd>ctrl+u</kbd></td><td>half a page down / up</td></tr>
+    <tr><td><kbd>?</kbd></td><td>this help</td></tr>
+  </table>
+  <h2 style="font-size:15px">Reading it</h2>
+  <p class="muted">Framework nouns (<code>ochazuke.*</code>) are kept once under the <b>ochazuke</b> tool; older tools carry them without the prefix and with older ochazuke versions, so a builtin verb lists every tool whose catalog carries it. Verbs a tool adds to a framework noun (a tool's <code>ochazuke.terminal.copy</code>) show the tool as owner.</p>
+  <p class="muted">The host's key rows are its effective rows, what <code>config export</code> writes (the live <code>bindings.json</code> included); every other tool's come from its catalog. <b>duplicate</b>: the same keymap, mode, keys and when twice in one tool. <b>differs on N keymaps</b>: one tool binds the same mode, keys and when on several keymaps to different requests, which is where a nested noun shadows its parent (<b>over app</b>: one of them is the app-wide keymap). Catalogs do not say which keymaps nest or are modal, so modal keymaps (chooser, confirm, palette) show up here too.</p>
+  <p class="muted">A <b>relation</b> is a verb with a parameter that names another noun: noun-typed (<code>noun</code>), source-typed (<code>source: projects.list</code>), or only by its name. Its <b>mirror</b> is a verb on the other noun relating back (the family "rich verbs" rule).</p>
+  <p class="faint">Press <kbd>?</kbd> or <kbd>esc</kbd> to close.</p>
+</div></div>
+
+<script id="catalog-data" type="application/json">/*__CATALOG_DATA__*/null</script>
+<script>
+"use strict";
+const D = JSON.parse(document.getElementById("catalog-data").textContent) || {tools:[],nouns:[],verbs:[],keys:[],actions:[]};
+
+// ---------- helpers ----------
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uniq = (a) => [...new Set(a)];
+function fuzzy(hay, tokens) { // every token a substring (2 points) or subsequence (1)
+  let score = 0;
+  for (const t of tokens) {
+    if (hay.includes(t)) { score += 2; continue; }
+    let i = 0;
+    for (const ch of hay) { if (ch === t[i]) i++; if (i === t.length) break; }
+    if (i < t.length) return 0;
+    score += 1;
+  }
+  return score || 1;
+}
+const fmtArgs = (a) => a ? " " + Object.entries(a).map(([k, v]) => k + "=" + (typeof v === "object" ? JSON.stringify(v) : v)).join(" ") : "";
+
+// ---------- indexes ----------
+const nounById = new Map(D.nouns.map((n) => [n.id, n]));
+const verbById = new Map(D.verbs.map((v) => [v.id, v]));
+const verbsByNoun = new Map();
+for (const v of D.verbs) { if (!verbsByNoun.has(v.noun)) verbsByNoun.set(v.noun, []); verbsByNoun.get(v.noun).push(v); }
+const keysByVerb = new Map();
+D.keys.forEach((k, i) => { k.i = i; if (k.verb) { if (!keysByVerb.has(k.verb)) keysByVerb.set(k.verb, []); keysByVerb.get(k.verb).push(k); } });
+const toolByName = new Map(D.tools.map((t) => [t.name, t]));
+const userActionIds = new Set(D.actions || []);
+const nounName = (id) => { const n = nounById.get(id); return n ? n.name : (id || "").replace(/^[^:]*:/, ""); };
+const nounsOfTool = new Map(); // tool -> name -> id
+for (const n of D.nouns) for (const t of n.tools) { if (!nounsOfTool.has(t)) nounsOfTool.set(t, new Map()); nounsOfTool.get(t).set(n.name, n.id); }
+const fwNames = new Map(D.nouns.filter((n) => n.owner === "ochazuke").map((n) => [n.name, n.id]));
+const newestFwTool = (() => { let best = null; for (const t of D.tools) if (t.role !== "framework" && t.ochazuke && (!best || cmpVer(t.ochazuke, best.ochazuke) > 0)) best = t; return best; })();
+function cmpVer(a, b) { const p = (v) => (v || "").replace(/^v/, "").split(/[-+]/)[0].split(".").map(Number); const x = p(a), y = p(b); for (let i = 0; i < 3; i++) if ((x[i]||0) !== (y[i]||0)) return (x[i]||0) - (y[i]||0); return 0; }
+
+// Resolve a noun name in a verb's context to a noun id.
+function resolveNoun(name, ctxTool) {
+  if (!name) return null;
+  if (name.startsWith("ochazuke.")) return fwNames.get(name) || null;
+  const m = nounsOfTool.get(ctxTool);
+  if (m && m.has(name)) return m.get(name);
+  if (fwNames.has("ochazuke." + name)) return fwNames.get("ochazuke." + name);
+  return null;
+}
+// Relations: a param that names another noun.
+for (const v of D.verbs) {
+  const ctx = v.owner === "ochazuke" || v.owner === "user" ? (nounById.get(v.noun) || {}).tools?.[0] : v.owner;
+  const self = v.noun;
+  v.rel = [];
+  for (const p of v.params || []) {
+    let target = null, via = null;
+    if (p.noun) { target = resolveNoun(p.noun, ctx); via = "noun"; }
+    if (!target && p.source) {
+      let sn = p.source.split(".").slice(0, -1).join(".");
+      let t = resolveNoun(sn, ctx);
+      if (sn.endsWith("s")) { const s1 = resolveNoun(sn.slice(0, -1), ctx); if (s1) t = s1; }
+      if (t) { target = t; via = "source"; }
+    }
+    if (!target && !["name","id","text","title","path","label","value","mode","kind","to","from","dir","query"].includes(p.name)) {
+      const t = resolveNoun(p.name, ctx);
+      if (t && !t.startsWith("ochazuke:")) { target = t; via = "name"; }
+    }
+    if (target && target !== self) v.rel.push({param: p.name, target, via});
+  }
+}
+// Mirrors: verbs on B that relate back to A.
+for (const v of D.verbs) for (const r of v.rel) {
+  r.mirrors = (verbsByNoun.get(r.target) || []).filter((w) => w.rel.some((x) => x.target === v.noun)).map((w) => w.id);
+}
+const relRows = [];
+for (const v of D.verbs) for (const r of v.rel) relRows.push({v, r});
+
+// Key issues.
+{
+  const dup = new Map(), shared = new Map();
+  for (const k of D.keys) {
+    if (k.unbind) continue;
+    const kk = k.keys || ("pattern:" + k.pattern);
+    const a = [k.tool, k.scope, k.instance || "", k.mode || "", kk, k.when || ""].join("|");
+    const b = [k.tool, k.mode || "", kk, k.when || ""].join("|");
+    (dup.get(a) || dup.set(a, []).get(a)).push(k);
+    (shared.get(b) || shared.set(b, []).get(b)).push(k);
+  }
+  for (const rows of dup.values()) if (rows.length > 1) rows.forEach((k) => k.dup = rows.length);
+  // Shadowing: one tool binds the same mode, keys and when on several
+  // keymaps to different requests (the same request everywhere is not a clash).
+  for (const rows of shared.values()) {
+    const scopes = uniq(rows.map((k) => k.scope + "/" + (k.instance || "")));
+    const reqs = uniq(rows.map((k) => k.reqNoun + "#" + k.reqVerb + fmtArgs(k.args)));
+    if (scopes.length > 1 && reqs.length > 1) {
+      const app = rows.some((k) => /:app$/.test(k.scope) && !k.instance);
+      rows.forEach((k) => { k.shared = scopes.length; k.shadowsApp = app; k.sharedWith = rows.map((x) => x.i); });
+    }
+  }
+}
+for (const k of D.keys) {
+  k.hay = [k.tool, k.mode, k.keys, k.pattern, k.when, nounName(k.scope), k.instance, nounName(k.reqNoun) + "." + k.reqVerb, k.help, k.hint, k.args ? JSON.stringify(k.args) : ""].join(" ").toLowerCase();
+}
+for (const v of D.verbs) {
+  const ks = keysByVerb.get(v.id) || [];
+  v.hasKey = ks.some((k) => !k.unbind);
+  v.hay = [nounName(v.noun) + "." + v.name, v.desc, (v.params || []).map((p) => p.name).join(" "), uniq(ks.map((k) => k.keys || k.pattern)).join(" "), v.owner].join(" ").toLowerCase();
+}
+
+// ---------- state ----------
+const S = { view: "nouns", tokens: [], f: {}, tool: 0, noun: 0, verb: 0, pane: 0, key: 0, rel: 0, gap: 0, gpane: 0, kpane: 0, rpane: 0 };
+const HOST = D.host || "";
+const toolsOrder = [...D.tools].sort((a, b) => {
+  const r = {host: 0, tool: 1, saved: 2, framework: 4};
+  const ra = r[a.role] ?? 3, rb = r[b.role] ?? 3;
+  return ra - rb || (a.name === HOST ? -1 : b.name === HOST ? 1 : a.name.localeCompare(b.name));
+});
+
+// ---------- filters ----------
+function fillSelect(id, label, values) {
+  const el = document.getElementById(id);
+  el.innerHTML = `<option value="">${esc(label)}: any</option>` + values.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
+}
+fillSelect("f-tool", "tool", toolsOrder.map((t) => t.name));
+fillSelect("f-ns", "namespace", uniq(D.nouns.map((n) => n.ns)).sort((a, b) => (a === "app" ? -1 : b === "app" ? 1 : a.localeCompare(b))));
+fillSelect("f-kind", "kind", uniq(D.verbs.map((v) => v.kind).filter(Boolean)).sort());
+fillSelect("f-hist", "effect", uniq(D.verbs.map((v) => v.history).filter(Boolean)).sort());
+const FILTERS = ["tool", "ns", "kind", "hist", "key", "confirm", "rel", "issue", "mirror"];
+for (const f of FILTERS) document.getElementById("f-" + f).addEventListener("change", (e) => { S.f[f] = e.target.value; S.noun = S.verb = S.key = S.rel = S.gap = 0; render(); });
+$("#reset").addEventListener("click", () => { for (const f of FILTERS) { document.getElementById("f-" + f).value = ""; S.f[f] = ""; } $("#q").value = ""; S.tokens = []; render(); });
+$("#q").addEventListener("input", (e) => { S.tokens = e.target.value.toLowerCase().split(/\s+/).filter(Boolean); S.noun = S.verb = S.key = S.rel = S.gap = 0; render(); });
+
+function verbPass(v, ignoreTool) {
+  const f = S.f, n = nounById.get(v.noun);
+  if (!ignoreTool && f.tool && !(v.tools.includes(f.tool) || (f.tool === "ochazuke" && v.owner === "ochazuke"))) return false;
+  if (f.ns && n.ns !== f.ns) return false;
+  if (f.kind && v.kind !== f.kind) return false;
+  if (f.hist && v.history !== f.hist) return false;
+  if (f.key === "has" && !v.hasKey) return false;
+  if (f.key === "none" && v.hasKey) return false;
+  if (f.confirm === "has" && !v.confirm) return false;
+  if (f.confirm === "none" && v.confirm) return false;
+  if (f.rel === "any" && !v.rel.length) return false;
+  if (f.rel && f.rel !== "any" && !v.rel.some((r) => r.via === f.rel)) return false;
+  return true;
+}
+function verbScore(v) { return S.tokens.length ? fuzzy(v.hay, S.tokens) : 1; }
+
+// ---------- virtual list ----------
+class VList {
+  constructor(el, render, onPick, onOpen, rowH = 22) {
+    this.el = el; this.render = render; this.rowH = rowH; this.items = []; this.sel = 0;
+    el.tabIndex = -1;
+    el.innerHTML = '<div class="spacer"></div><div class="rows"></div>';
+    this.spacer = el.firstChild; this.rows = el.lastChild;
+    el.addEventListener("scroll", () => this.draw());
+    el.addEventListener("click", (e) => { const r = e.target.closest("[data-i]"); if (r) onPick(+r.dataset.i); });
+    el.addEventListener("dblclick", (e) => { const r = e.target.closest("[data-i]"); if (r && onOpen) onOpen(+r.dataset.i); });
+    new ResizeObserver(() => this.draw()).observe(el);
+  }
+  set(items, sel) { this.items = items; this.sel = sel; this.spacer.style.height = items.length * this.rowH + "px"; this.ensure(); this.draw(); }
+  ensure() {
+    const top = this.sel * this.rowH, h = this.el.clientHeight || 400;
+    if (top < this.el.scrollTop) this.el.scrollTop = top;
+    else if (top + this.rowH > this.el.scrollTop + h) this.el.scrollTop = top + this.rowH - h;
+  }
+  draw() {
+    const h = this.el.clientHeight || 600;
+    const start = Math.max(0, Math.floor(this.el.scrollTop / this.rowH) - 8);
+    const end = Math.min(this.items.length, start + Math.ceil(h / this.rowH) + 16);
+    this.rows.style.transform = `translateY(${start * this.rowH}px)`;
+    let html = "";
+    for (let i = start; i < end; i++) html += this.render(this.items[i], i, i === this.sel);
+    this.rows.innerHTML = html;
+  }
+  page() { return Math.max(1, Math.floor((this.el.clientHeight || 400) / this.rowH / 2)); }
+}
+
+// ---------- By noun ----------
+let toolItems = [], nounItems = [], verbItems = [];
+const lTools = new VList($("#l-tools"), (t, i, s) =>
+  `<div class="row${s ? " sel" : ""}" data-i="${i}"><span class="n">${esc(t.t.name)}</span><span class="c">${t.count}</span></div>`,
+  (i) => { S.pane = 0; S.tool = i; S.noun = S.verb = 0; render(); }, () => { S.pane = 1; render(); });
+const lNouns = new VList($("#l-nouns"), (it, i, s) => it.group
+  ? `<div class="row group">${esc(it.group)}</div>`
+  : `<div class="row${s ? " sel" : ""}" data-i="${i}"><span class="n">${esc(it.n.name)}${it.n.mirrorOf ? ' <span class="faint">↺</span>' : ""}${it.n.userOnly ? ' <span class="tag acc">user</span>' : ""}</span><span class="c">${it.count}</span></div>`,
+  (i) => { if (nounItems[i].group) return; S.pane = 1; S.noun = i; S.verb = 0; render(); }, () => { S.pane = 2; render(); });
+const lVerbs = new VList($("#l-verbs"), (v, i, s) => {
+  const ks = uniq((keysByVerb.get(v.id) || []).filter((k) => !k.unbind && (!curTool() || k.tool === curTool().name || curTool().name === "ochazuke")).map((k) => k.keys || k.pattern)).slice(0, 3).join(" ");
+  return `<div class="row${s ? " sel" : ""}" data-i="${i}"><span class="n">${esc(v.name)}${v.confirm ? ' <span class="faint">!</span>' : ""}${v.rel.length ? ' <span class="faint">⇄</span>' : ""}${v.user ? ' <span class="tag acc">user</span>' : ""}${v.owner !== "ochazuke" && nounById.get(v.noun).owner === "ochazuke" ? ` <span class="tag">${esc(v.owner)}</span>` : ""}</span><span class="k">${esc(ks)}</span></div>`;
+}, (i) => { S.pane = 2; S.verb = i; render(); }, () => { S.pane = 3; render(); });
+const curTool = () => toolItems[S.tool] && toolItems[S.tool].t;
+
+function nounVerbs(n, tool) {
+  return (verbsByNoun.get(n.id) || []).filter((v) => (tool.name === "ochazuke" ? true : v.tools.includes(tool.name)) && verbPass(v, true));
+}
+function buildNounsView() {
+  toolItems = [];
+  for (const t of toolsOrder) {
+    if (S.f.tool && t.name !== S.f.tool) continue;
+    let count = 0;
+    for (const v of D.verbs) if ((t.name === "ochazuke" ? v.owner === "ochazuke" : v.tools.includes(t.name)) && verbPass(v, true) && verbScore(v)) count++;
+    if (count || !S.tokens.length) toolItems.push({t, count});
+  }
+  S.tool = Math.min(S.tool, Math.max(0, toolItems.length - 1));
+  const tool = curTool();
+  nounItems = [];
+  if (tool) {
+    const groups = new Map();
+    for (const n of D.nouns) {
+      if (tool.name === "ochazuke" ? n.owner !== "ochazuke" : !n.tools.includes(tool.name)) continue;
+      if (S.f.ns && n.ns !== S.f.ns) continue;
+      const vs = nounVerbs(n, tool).filter((v) => verbScore(v));
+      const nameHit = S.tokens.length && fuzzy(n.name.toLowerCase(), S.tokens);
+      if (!vs.length && !(nameHit && !anyVerbFilter())) continue;
+      if (!groups.has(n.ns)) groups.set(n.ns, []);
+      groups.get(n.ns).push({n, count: vs.length, score: Math.max(nameHit ? nameHit + 1 : 0, ...vs.map(verbScore))});
+    }
+    const order = [...groups.keys()].sort((a, b) => rankNs(a) - rankNs(b) || a.localeCompare(b));
+    for (const g of order) {
+      const list = groups.get(g);
+      if (S.tokens.length) list.sort((a, b) => b.score - a.score || a.n.name.localeCompare(b.n.name));
+      else list.sort((a, b) => a.n.name.localeCompare(b.n.name));
+      nounItems.push({group: nsLabel(g) + ` (${list.length})`});
+      nounItems.push(...list);
+    }
+  }
+  if (S.noun >= nounItems.length) S.noun = nounItems.length - 1;
+  while (S.noun >= 0 && nounItems[S.noun] && nounItems[S.noun].group) S.noun++;
+  if (S.noun < 0 || S.noun >= nounItems.length) S.noun = nounItems.findIndex((x) => !x.group);
+  const nItem = nounItems[S.noun];
+  verbItems = nItem && nItem.n ? nounVerbs(nItem.n, tool).filter((v) => verbScore(v)) : [];
+  if (S.tokens.length) verbItems.sort((a, b) => verbScore(b) - verbScore(a) || a.name.localeCompare(b.name));
+  S.verb = Math.min(S.verb, Math.max(0, verbItems.length - 1));
+  lTools.set(toolItems, S.tool); lNouns.set(nounItems, S.noun); lVerbs.set(verbItems, S.verb);
+  $("#c-tools").textContent = toolItems.length; $("#c-nouns").textContent = nounItems.filter((x) => !x.group).length; $("#c-verbs").textContent = verbItems.length;
+  const d = $("#d-nouns");
+  if (S.pane <= 1 && nItem && nItem.n && S.pane === 1) d.innerHTML = nounDetail(nItem.n, tool);
+  else if (S.pane === 0 && tool) d.innerHTML = toolDetail(tool);
+  else if (verbItems[S.verb]) d.innerHTML = verbDetail(verbItems[S.verb], tool);
+  else if (nItem && nItem.n) d.innerHTML = nounDetail(nItem.n, tool);
+  else d.innerHTML = '<div class="empty">Nothing matches the search and filters.</div>';
+  const shown = D.verbs.filter((v) => verbPass(v) && verbScore(v)).length;
+  $("#count").textContent = `${shown} / ${D.verbs.length} verbs`;
+}
+const anyVerbFilter = () => ["kind", "hist", "key", "confirm", "rel"].some((f) => S.f[f]);
+const rankNs = (ns) => ns === "app" ? 0 : ns.startsWith("ext:") ? 1 : 2;
+const nsLabel = (ns) => ns === "app" ? "app" : ns.startsWith("ext:") ? "extension " + ns.slice(4) + "-" : "ochazuke.";
+
+function toolDetail(t) {
+  const pages = (t.pages || []).map((p) => `<code>${esc(p.id)}</code> ${esc(p.title)}`).join(", ");
+  const ochNote = t.role === "framework"
+    ? `<p>Framework nouns and builtin verbs, merged once from every catalog. The newest definition (ochazuke ${esc(t.version)}) wins; verbs only older tools carry are marked.</p>`
+    : "";
+  return `<h2>${esc(t.name)}</h2>
+  <p><span class="tag">${esc(t.role)}</span><span class="tag ${t.status === "ok" || t.status === "merged" ? "ok" : "bad"}">${esc(t.status)}</span></p>
+  ${ochNote}
+  <table class="t"><tr><th>bin</th><td>${esc(t.bin || "—")}</td></tr>
+  <tr><th>catalog version</th><td>${esc(t.version || "—")}</td></tr>
+  <tr><th>ochazuke</th><td>${esc(t.ochazuke || "—")}</td></tr>
+  <tr><th>nouns / verbs</th><td>${t.nouns} / ${t.verbs}</td></tr>
+  <tr><th>key rows</th><td>${t.bindings} <span class="muted">(${esc(t.bindingSource || "")})</span></td></tr>
+  ${pages ? `<tr><th>pages</th><td>${pages}</td></tr>` : ""}
+  ${t.error ? `<tr><th>error</th><td class="missing">${esc(t.error)}</td></tr>` : ""}</table>`;
+}
+function nounDetail(n, tool) {
+  const vs = verbsByNoun.get(n.id) || [];
+  const scopeKeys = D.keys.filter((k) => k.scope === n.id && (!tool || tool.name === "ochazuke" || k.tool === tool.name));
+  const acts = vs.filter((v) => v.user);
+  return `<h2>${esc(n.name)}</h2>
+  <p><span class="tag">${esc(nsLabel(n.ns))}</span><span class="tag">owner ${esc(n.owner)}</span>${n.pin ? `<span class="tag">pin ${esc(n.pin)}</span>` : ""}</p>
+  ${n.mirrorOf ? `<p>Mirror of <span class="link" data-noun="${esc(n.mirrorOf)}">${esc(n.mirrorOf.replace(":", " "))}</span> (mounted under a prefix).</p>` : ""}
+  ${n.aliases && n.aliases.length ? `<p class="muted">CLI aliases: ${n.aliases.map((a) => `<code>${esc(a)}</code>`).join(" ")}</p>` : ""}
+  <p class="muted">Carried by: ${n.tools.map(esc).join(", ")}</p>
+  <h4>verbs (${vs.length})</h4>
+  <table class="t"><tr><th>verb</th><th>owner</th><th>kind</th><th>keys</th><th>description</th></tr>
+  ${vs.map((v) => `<tr><td><span class="link" data-verb="${esc(v.id)}">${esc(v.name)}</span></td><td>${esc(v.owner)}</td><td>${esc([v.kind, v.history].filter(Boolean).join(" · "))}</td><td class="k">${esc(uniq((keysByVerb.get(v.id) || []).filter((k) => !k.unbind).map((k) => k.keys || k.pattern)).join(" "))}</td><td>${esc(v.desc)}</td></tr>`).join("")}</table>
+  <h4>user actions on this noun (${acts.length})</h4>
+  ${acts.length ? acts.map((v) => `<p><code>${esc(v.name)}</code> ${esc(v.desc)} <span class="faint">${esc(v.command || "")}</span></p>`).join("") : `<p class="muted">None installed (${esc(D.actionsPath || "actions.json")}).</p>`}
+  <h4>key rows on this noun's keymap (${scopeKeys.length})</h4>
+  ${keysTable(scopeKeys, true)}`;
+}
+function keysTable(rows, showReq) {
+  if (!rows.length) return '<p class="muted">None.</p>';
+  return `<table class="t"><tr><th>tool</th><th>mode</th><th>keys</th><th>when</th><th>${showReq ? "does" : "on keymap"}</th><th>flags</th></tr>
+  ${rows.map((k) => `<tr><td>${esc(k.tool)}</td><td>${esc(k.mode || "·")}</td><td class="k">${esc(k.keys || (k.pattern ? "<" + k.pattern + ">" : ""))}</td><td>${esc(k.when || "")}</td>
+  <td>${showReq ? (k.unbind ? '<span class="missing">unbound</span>' : `<span class="${k.verb ? "link" : "missing"}" ${k.verb ? `data-verb="${esc(k.verb)}"` : ""}>${esc(nounName(k.reqNoun) + "." + k.reqVerb)}</span>${esc(fmtArgs(k.args))}`) : esc(nounName(k.scope) + (k.instance ? " @" + k.instance : ""))}</td>
+  <td>${flags(k)}</td></tr>`).join("")}</table>`;
+}
+function flags(k) {
+  const f = [];
+  if (k.hidden) f.push('<span class="tag">hidden</span>'); else f.push('<span class="tag ok">hinted</span>');
+  if (k.hint) f.push(`<span class="tag acc" title="hint label">hint: ${esc(k.hint)}</span>`);
+  if (k.capture) f.push('<span class="tag">capture</span>');
+  if (k.replay) f.push('<span class="tag">replay</span>');
+  if (k.help) f.push(`<span class="tag" title="${esc(k.help)}">help</span>`);
+  if (k.dup) f.push(`<span class="tag bad">duplicate ×${k.dup}</span>`);
+  if (k.shared) f.push(`<span class="tag warn">differs on ${k.shared} keymaps${k.shadowsApp ? ", over app" : ""}</span>`);
+  return f.join("");
+}
+function verbDetail(v, tool) {
+  const n = nounById.get(v.noun);
+  const keys = keysByVerb.get(v.id) || [];
+  const tKeys = tool && tool.name !== "ochazuke" ? keys.filter((k) => k.tool === tool.name) : keys;
+  const otherKeys = keys.length - tKeys.length;
+  const fwOld = v.owner === "ochazuke" && newestFwTool && !v.tools.includes(newestFwTool.name) && n.tools.includes(newestFwTool.name);
+  const params = v.params || [];
+  const cliTool = tool && tool.name !== "ochazuke" ? tool.name : v.tools[0];
+  const cli = `${cliTool} ${n.name} ${v.name}` + params.map((p) => p.positional >= 0 ? ` ${p.required ? "" : "["}${p.name.toUpperCase()}${p.required ? "" : "]"}` : (p.required ? ` --${p.name} …` : "")).join("");
+  const acts = (verbsByNoun.get(v.noun) || []).filter((w) => w.user);
+  return `<h2>${esc(n.name)}.${esc(v.name)}</h2>
+  <p>${v.kind ? `<span class="tag acc">${esc(v.kind)}</span>` : ""}${v.history ? `<span class="tag">${esc(v.history)}</span>` : ""}${v.builtin ? '<span class="tag">builtin</span>' : ""}${v.user ? '<span class="tag acc">user action</span>' : ""}${v.quiet ? '<span class="tag">quiet</span>' : ""}${v.repeatable ? '<span class="tag">repeatable</span>' : ""}${v.confirm ? '<span class="tag warn">confirm</span>' : ""}${fwOld ? `<span class="tag warn" title="not in ${esc(newestFwTool.name)}'s ochazuke ${esc(newestFwTool.ochazuke)}">older ochazuke only</span>` : ""}</p>
+  <p class="desc">${esc(v.desc || "(no description)")}</p>
+  <table class="t">
+  <tr><th>defined by</th><td>${esc(v.owner === "ochazuke" ? "ochazuke (framework builtin)" : v.owner === "user" ? "user actions.json" : v.owner)}; noun <span class="link" data-noun="${esc(n.id)}">${esc(n.name)}</span> owned by ${esc(n.owner)}</td></tr>
+  <tr><th>carried by</th><td>${v.tools.map((t) => esc(t) + (toolByName.get(t)?.ochazuke ? ` <span class="faint">(ochazuke ${esc(toolByName.get(t).ochazuke)})</span>` : "")).join(", ")}</td></tr>
+  <tr><th>result</th><td>${esc(v.result || "—")}${v.rows ? ` · rows of <code>${esc(v.rows)}</code>` : ""}</td></tr>
+  <tr><th>confirm</th><td>${v.confirm ? esc(v.confirm) : "—"}</td></tr>
+  <tr><th>aliases</th><td>${n.aliases && n.aliases.length ? "noun: " + n.aliases.map((a) => `<code>${esc(a)}.${esc(v.name)}</code>`).join(" ") : '<span class="muted">none</span>'} <span class="faint">(catalogs carry no verb aliases)</span></td></tr>
+  ${v.command ? `<tr><th>command</th><td><code>${esc(v.command)}</code></td></tr>` : ""}
+  <tr><th>CLI</th><td><code>${esc(cli)}</code></td></tr>
+  </table>
+  <h4>parameters (${params.length})</h4>
+  ${params.length ? `<table class="t"><tr><th>name</th><th>type</th><th>req</th><th>pos</th><th>enum</th><th>source</th><th>noun</th><th>description</th></tr>
+  ${params.map((p) => `<tr><td>${esc(p.name)}</td><td>${esc(p.type || "")}${p.free ? ' <span class="tag">free</span>' : ""}</td><td>${p.required ? "yes" : ""}</td><td>${p.positional >= 0 ? p.positional + 1 : ""}</td><td>${esc((p.enum || []).join(" | "))}</td><td>${esc(p.source || "")}</td><td>${p.noun ? `<span class="tag acc">${esc(p.noun)}</span>` : ""}</td><td>${esc(p.description || "")}</td></tr>`).join("")}</table>` : '<p class="muted">None.</p>'}
+  ${v.rel.length ? `<h4>relations</h4>${v.rel.map((r) => `<p>${esc(r.param)} → <span class="link" data-noun="${esc(r.target)}">${esc(nounName(r.target))}</span> <span class="tag">${esc(r.via)}</span> mirror: ${r.mirrors.length ? r.mirrors.map((m) => `<span class="link present" data-verb="${esc(m)}">${esc(nounName(verbById.get(m).noun) + "." + verbById.get(m).name)}</span>`).join(", ") : '<span class="missing">missing</span>'}</p>`).join("")}` : ""}
+  <h4>keys${tool && tool.name !== "ochazuke" ? " in " + esc(tool.name) : ""} (${tKeys.length})${otherKeys ? ` <span class="faint">+${otherKeys} in other tools</span>` : ""}</h4>
+  ${keysTable(tKeys, false)}
+  ${otherKeys && tool && tool.name !== "ochazuke" ? `<details><summary class="muted">rows in other tools</summary>${keysTable(keys.filter((k) => k.tool !== tool.name), false)}</details>` : ""}
+  <h4>user actions on ${esc(n.name)} (${acts.length})</h4>
+  ${acts.length ? acts.map((w) => `<p><span class="link" data-verb="${esc(w.id)}">${esc(w.name)}</span> ${esc(w.desc)}</p>`).join("") : `<p class="muted">None installed (${esc(D.actionsPath || "actions.json")}).</p>`}`;
+}
+
+// ---------- By key ----------
+let keyItems = [];
+const lKeys = new VList($("#l-keys"), (k, i, s) =>
+  `<div class="trow keys-grid row${s ? " sel" : ""}${k.dup ? " dup" : k.shared ? " shadow" : ""}" data-i="${i}"><span>${esc(k.tool)}</span><span>${esc(k.mode || "·")}</span><span class="k">${esc(k.keys || "<" + k.pattern + ">")}</span><span>${esc(k.when || "")}</span><span>${esc(nounName(k.scope) + (k.instance ? " @" + k.instance : ""))}</span><span${k.verb || k.unbind ? "" : ' class="missing"'}>${k.unbind ? "(unbound)" : esc(nounName(k.reqNoun) + "." + k.reqVerb + fmtArgs(k.args))}</span><span>${k.hidden ? "hidden" : "hinted"}${k.hint ? " · " + esc(k.hint) : ""}</span><span>${k.dup ? '<span class="missing">duplicate</span>' : k.shared ? `<span class="partial">${k.shared} keymaps${k.shadowsApp ? " ⊃app" : ""}</span>` : ""}${!k.verb && !k.unbind ? ' <span class="missing">no verb</span>' : ""}</span></div>`,
+  (i) => { S.kpane = 0; S.key = i; render(); }, (i) => { S.key = i; openVerb(keyItems[i].verb); });
+function buildKeysView() {
+  const f = S.f;
+  keyItems = D.keys.filter((k) => {
+    if (f.tool && f.tool !== "ochazuke" && k.tool !== f.tool) return false;
+    if (f.tool === "ochazuke" && !(k.scope || "").startsWith("ochazuke:")) return false;
+    if (f.ns && (nounById.get(k.scope) || {}).ns !== f.ns && (nounById.get(k.reqNoun) || {}).ns !== f.ns) return false;
+    if (f.issue === "dup" && !k.dup) return false;
+    if (f.issue === "shadow" && !k.shared) return false;
+    if (f.issue === "app" && !k.shadowsApp) return false;
+    if (f.issue === "unresolved" && (k.verb || k.unbind)) return false;
+    if (anyVerbFilter()) { const v = verbById.get(k.verb); if (!v || !verbPass(v, true)) return false; }
+    return !S.tokens.length || fuzzy(k.hay, S.tokens);
+  });
+  S.key = Math.min(S.key, Math.max(0, keyItems.length - 1));
+  lKeys.set(keyItems, S.key);
+  const k = keyItems[S.key];
+  $("#count").textContent = `${keyItems.length} / ${D.keys.length} key rows · ${D.keys.filter((x) => x.dup).length} duplicate · ${D.keys.filter((x) => x.shared).length} differ across keymaps (${D.keys.filter((x) => x.shadowsApp).length} over app)`;
+  $("#d-keys").innerHTML = k ? keyDetail(k) : '<div class="empty">No key rows match.</div>';
+}
+function keyDetail(k) {
+  const v = verbById.get(k.verb);
+  const others = (k.sharedWith || []).filter((i) => i !== k.i).map((i) => D.keys[i]);
+  return `<h2>${esc(k.keys || "<" + k.pattern + ">")}</h2>
+  <p><span class="tag">${esc(k.tool)}</span><span class="tag">mode ${esc(k.mode || "any")}</span>${k.when ? `<span class="tag">when ${esc(k.when)}</span>` : ""}${flags(k)}</p>
+  <table class="t"><tr><th>keymap</th><td>${k.scope ? `<span class="link" data-noun="${esc(k.scope)}">${esc(nounName(k.scope))}</span>` : "—"}${k.instance ? " @" + esc(k.instance) : ""}</td></tr>
+  <tr><th>request</th><td>${k.unbind ? "unbinds the default" : v ? `<span class="link" data-verb="${esc(v.id)}">${esc(nounName(k.reqNoun) + "." + k.reqVerb)}</span>${esc(fmtArgs(k.args))}` : `<span class="missing">${esc(nounName(k.reqNoun) + "." + k.reqVerb)}: no such verb in ${esc(k.tool)}'s catalog</span>`}</td></tr>
+  ${k.pattern ? `<tr><th>pattern</th><td>${esc(k.pattern)}</td></tr>` : ""}
+  ${k.help ? `<tr><th>help</th><td>${esc(k.help)}</td></tr>` : ""}
+  ${k.hint ? `<tr><th>hint</th><td>${esc(k.hint)}</td></tr>` : ""}
+  </table>
+  ${v ? `<p class="desc" style="margin-top:8px">${esc(v.desc)}</p>` : ""}
+  ${others.length ? `<h4>same key, mode and when on other keymaps (${others.length})</h4>${keysTable(others, true)}` : ""}
+  ${others.length ? `<p class="faint">Each row adds its keymap: ${others.map((o) => esc(nounName(o.scope))).join(", ")}</p>` : ""}
+  <p class="faint" style="margin-top:12px">enter opens the verb in By noun.</p>`;
+}
+
+// ---------- Relations ----------
+let relItems = [];
+const lRel = new VList($("#l-rel"), (x, i, s) =>
+  `<div class="trow rel-grid row${s ? " sel" : ""}${x.r.mirrors.length ? "" : " shadow"}" data-i="${i}"><span>${esc(x.v.owner === "ochazuke" ? "ochazuke" : x.v.tools[0])}</span><span>${esc(nounName(x.v.noun))}</span><span>${esc(x.v.name)}</span><span>${esc(x.r.param)}</span><span>${esc(nounName(x.r.target))}</span><span>${esc(x.r.via)}</span><span>${x.r.mirrors.length ? '<span class="present">' + esc(x.r.mirrors.map((m) => verbById.get(m).name).join(", ")) + "</span>" : '<span class="missing">missing</span>'}</span></div>`,
+  (i) => { S.rpane = 0; S.rel = i; render(); }, (i) => openVerb(relItems[i].v.id));
+function buildRelView() {
+  relItems = relRows.filter((x) => {
+    if (!verbPass(x.v)) return false;
+    if (S.f.rel && S.f.rel !== "any" && x.r.via !== S.f.rel) return false;
+    if (S.f.mirror === "missing" && x.r.mirrors.length) return false;
+    if (S.f.mirror === "present" && !x.r.mirrors.length) return false;
+    return !S.tokens.length || fuzzy(x.v.hay + " " + nounName(x.r.target) + " " + x.r.param, S.tokens);
+  });
+  S.rel = Math.min(S.rel, Math.max(0, relItems.length - 1));
+  lRel.set(relItems, S.rel);
+  $("#count").textContent = `${relItems.length} / ${relRows.length} relations · ${relItems.filter((x) => !x.r.mirrors.length).length} without a mirror`;
+  const x = relItems[S.rel];
+  $("#d-rel").innerHTML = x ? verbDetail(x.v, null) : '<div class="empty">No relations match.</div>';
+}
+
+// ---------- Gaps ----------
+let gapItems = [];
+const A = D.annotations;
+const lGaps = new VList($("#l-gaps"), (g, i, s) => g.group
+  ? `<div class="row group">${esc(g.group)}</div>`
+  : `<div class="row${s ? " sel" : ""}" data-i="${i}"><span class="n">${esc(g.n.noun)}${g.n.noneToAdd ? ' <span class="faint">·</span>' : ""}</span><span class="c">${g.present ? `<span class="present">${g.present}</span>/` : ""}${g.n.suggestions?.length || 0}${g.live ? "" : ' <span class="missing" title="no live noun">∅</span>'}</span></div>`,
+  (i) => { if (gapItems[i].group) return; S.gpane = 0; S.gap = i; render(); });
+function liveNounFor(an) {
+  return resolveNoun(an.noun, an.tool);
+}
+function buildGapsView() {
+  const d = $("#d-gaps");
+  if (!A) { lGaps.set([], 0); d.innerHTML = '<div class="empty">No annotations were given (catalog inspect --annotations or --audit).</div>'; $("#count").textContent = ""; return; }
+  gapItems = [];
+  let lastTool = null;
+  for (const n of A.nouns) {
+    if (S.f.tool && n.tool !== S.f.tool) continue;
+    const hay = (n.tool + " " + n.noun + " " + (n.suggestions || []).map((s) => s.noun + "." + s.verb + " " + (s.note || "")).join(" ")).toLowerCase();
+    if (S.tokens.length && !fuzzy(hay, S.tokens)) continue;
+    if (n.tool !== lastTool) { gapItems.push({group: n.tool}); lastTool = n.tool; }
+    gapItems.push({n, live: liveNounFor(n), present: (n.suggestions || []).filter((s) => s.present).length});
+  }
+  if (S.gap >= gapItems.length || (gapItems[S.gap] && gapItems[S.gap].group)) S.gap = gapItems.findIndex((x, i) => !x.group && i >= Math.min(S.gap, gapItems.length - 1));
+  if (S.gap < 0) S.gap = gapItems.findIndex((x) => !x.group);
+  lGaps.set(gapItems, Math.max(0, S.gap));
+  $("#c-gaps").textContent = gapItems.filter((x) => !x.group).length;
+  $("#count").textContent = `${A.title || "annotations"} ${A.date || "?"} · ${(A.stats || {}).suggestions || 0} suggestions: ${(A.live || {}).present || 0} present, ${(A.live || {}).partial || 0} verb without the params, ${(A.live || {}).missing || 0} missing`;
+  const g = gapItems[S.gap];
+  d.innerHTML = auditHeader() + (g && g.n ? gapDetail(g) : "");
+}
+function auditHeader() {
+  const title = A.title || (A.source || "annotations").split("/").pop();
+  const ht = (A.tools || []).find((t) => t.tool === HOST);
+  const live = toolByName.get(HOST);
+  const fileUrl = A.source && !/^[a-z]+:/.test(A.source) ? "file://" + encodeURI(A.source) : A.source;
+  const stats = A.stats || {};
+  return `<div style="border:1px solid var(--line);border-radius:4px;padding:6px 10px;margin-bottom:10px;background:var(--panel)">
+  <p><b>${esc(title)}</b>, written <b>${esc(A.date || "?")}</b>${ht ? ` against ${esc(HOST)} <code>${esc((ht.commit || "").replace(/`/g, ""))}</code> (<code>${esc(ht.version || "")}</code>)` : ""}; live ${esc(HOST)} is <code>${esc(live ? live.version : "?")}</code>. Things may have changed since, so a "missing" verb may have been added under another name.</p>
+  ${(A.sections || []).length ? `<p class="muted">Parsed: the tools table, each <code>#### tool \`noun\`</code> section's Existing list, suggestion bullets (with their group and "maybe"), "No suggestions" lines, notes, and section 3's one-way relation tables (${stats.duplicates || 0} repeats of section 2 folded). Not parsed, open the file: ${A.sections.filter((s) => !s.parsed).map((s) => `${esc(s.title)} <span class="faint">(line ${s.line})</span>`).join(", ")}. ${A.skipped && A.skipped.length ? `${A.skipped.length} prose line(s) in section 2 skipped.` : ""}</p>` : stats.duplicates ? `<p class="muted">${stats.duplicates} repeated suggestion(s) folded.</p>` : ""}
+  ${A.source ? `<p><a href="${esc(fileUrl)}">${esc(A.source)}</a></p>` : ""}</div>`;
+}
+function gapDetail(g) {
+  const n = g.n, liveId = g.live, liveNoun = liveId && nounById.get(liveId);
+  const liveVerbs = liveNoun ? (verbsByNoun.get(liveId) || []).filter((v) => !v.builtin && v.tools.includes(n.tool)) : [];
+  const ex = new Set((n.existing || []).map((e) => e.verb));
+  const added = liveVerbs.filter((v) => !ex.has(v.name));
+  const sug = n.suggestions || [];
+  return `<h2>${esc(n.tool)} ${esc(n.noun)}</h2>
+  <p>${liveNoun ? `live noun: <span class="link" data-noun="${esc(liveId)}">${esc(liveNoun.name)}</span>` : '<span class="missing">no live noun of this name in the catalog</span> (TUI-only, renamed or removed)'} ${n.line ? `<span class="faint">· line ${n.line}</span>` : ""}</p>
+  <h4>suggestions (${sug.length})</h4>
+  ${sug.length ? `<table class="t"><tr><th>now</th><th>verb</th><th>group</th><th>note</th></tr>
+  ${sug.map((s) => `<tr><td>${s.present ? '<span class="present">present</span>' : s.liveId ? `<span class="partial" title="verb exists without ${esc((s.missingParams || []).join(", "))}">verb, no ${esc((s.missingParams || []).join(", "))}</span>` : '<span class="missing">missing</span>'}</td>
+  <td>${s.liveId ? `<span class="link" data-verb="${esc(s.liveId)}">${esc(s.noun + "." + s.verb)}</span>` : esc(s.noun + "." + s.verb)} ${(s.params || []).length ? esc("{" + s.params.join(", ") + "}") : ""}${s.maybe ? ' <span class="tag warn">maybe</span>' : ""}</td><td class="muted">${esc(s.group || "")}</td><td>${esc(s.note || "")}</td></tr>`).join("")}</table>` : `<p class="muted">${n.noneToAdd ? "No suggestions (the set fits the thing, or it is UI plumbing)." : "None."}</p>`}
+  ${(n.notes || []).map((t) => `<p class="muted">Note: ${esc(t)}</p>`).join("")}
+  <h4>existing verbs then → now</h4>
+  ${(n.existing || []).length ? `<p>${n.existing.map((e) => {
+    const live = liveVerbs.find((v) => v.name === e.verb);
+    const cls = live ? "present" : e.tui ? "faint" : "missing";
+    const why = live ? "still there" : e.tui ? "TUI-only, not in the catalog" : "not in the live catalog";
+    return `<span class="${cls}" title="${why}">${esc(e.verb)}</span>${e.keys ? ` <span class="faint">[${esc(e.keys)}]</span>` : ""}`;
+  }).join(", ")}</p>` : '<p class="muted">The annotations list none.</p>'}
+  <h4>live verbs not in the existing list (${added.length})</h4>
+  ${added.length ? `<p>${added.map((v) => `<span class="link" data-verb="${esc(v.id)}">${esc(v.name)}</span>`).join(", ")}</p>` : '<p class="muted">None.</p>'}`;
+}
+
+// ---------- navigation ----------
+function openVerb(id) {
+  const v = verbById.get(id); if (!v) return;
+  const n = nounById.get(v.noun);
+  for (const f of FILTERS) { document.getElementById("f-" + f).value = ""; S.f[f] = ""; }
+  $("#q").value = ""; S.tokens = [];
+  const toolName = v.owner === "ochazuke" ? "ochazuke" : (n.owner === "ochazuke" ? v.tools[0] : n.owner);
+  setView("nouns", false);
+  buildNounsView();
+  S.tool = Math.max(0, toolItems.findIndex((t) => t.t.name === toolName));
+  S.noun = 0; buildNounsView();
+  S.noun = Math.max(0, nounItems.findIndex((x) => x.n && x.n.id === n.id));
+  S.verb = 0; buildNounsView();
+  S.verb = Math.max(0, verbItems.findIndex((x) => x.id === id));
+  S.pane = 2; render();
+}
+function openNoun(id) {
+  const n = nounById.get(id); if (!n) return;
+  for (const f of FILTERS) { document.getElementById("f-" + f).value = ""; S.f[f] = ""; }
+  $("#q").value = ""; S.tokens = [];
+  setView("nouns", false); buildNounsView();
+  S.tool = Math.max(0, toolItems.findIndex((t) => t.t.name === (n.owner === "ochazuke" ? "ochazuke" : n.owner)));
+  S.noun = 0; buildNounsView();
+  S.noun = Math.max(0, nounItems.findIndex((x) => x.n && x.n.id === id)); S.verb = 0; S.pane = 1; render();
+}
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-verb],[data-noun]");
+  if (!t) { const p = e.target.closest("[data-pane]"); if (p) setPane(+p.dataset.pane); return; }
+  if (t.dataset.verb) openVerb(t.dataset.verb); else openNoun(t.dataset.noun);
+});
+function setPane(p) {
+  if (S.view === "nouns") S.pane = p; else if (S.view === "gaps") S.gpane = p; else if (S.view === "keys") S.kpane = p; else S.rpane = p;
+  render();
+}
+function setView(v, draw = true) {
+  S.view = v;
+  document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.view === v));
+  document.querySelectorAll("main").forEach((m) => m.classList.toggle("on", m.id === "v-" + v));
+  $("#f-issue").style.display = v === "keys" ? "" : "none";
+  $("#f-mirror").style.display = v === "rel" ? "" : "none";
+  if (draw) render();
+}
+document.querySelectorAll("#tabs button").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
+
+function render() {
+  if (S.view === "nouns") buildNounsView();
+  else if (S.view === "keys") buildKeysView();
+  else if (S.view === "rel") buildRelView();
+  else buildGapsView();
+  const main = document.getElementById("v-" + S.view);
+  const p = {nouns: S.pane, gaps: S.gpane, keys: S.kpane, rel: S.rpane}[S.view];
+  main.querySelectorAll("[data-pane]").forEach((el) => el.classList.toggle("focus", +el.dataset.pane === p));
+}
+
+function move(delta, abs) {
+  const step = (items, cur, skip) => {
+    if (!items.length) return 0;
+    let i = abs === "top" ? 0 : abs === "bottom" ? items.length - 1 : Math.max(0, Math.min(items.length - 1, cur + delta));
+    const dir = abs === "bottom" ? -1 : abs === "top" ? 1 : (delta < 0 ? -1 : 1);
+    while (skip && items[i] && items[i].group) { i += dir; if (i < 0 || i >= items.length) return cur; }
+    return i;
+  };
+  if (S.view === "nouns") {
+    if (S.pane === 0) { S.tool = step(toolItems, S.tool); S.noun = S.verb = 0; }
+    else if (S.pane === 1) { S.noun = step(nounItems, S.noun, true); S.verb = 0; }
+    else if (S.pane === 2) S.verb = step(verbItems, S.verb);
+    else { $("#d-nouns").scrollTop += (delta || 0) * 40; return; }
+  } else if (S.view === "keys") { if (S.kpane === 1) { $("#d-keys").scrollTop += delta * 40; return; } S.key = step(keyItems, S.key); }
+  else if (S.view === "rel") { if (S.rpane === 1) { $("#d-rel").scrollTop += delta * 40; return; } S.rel = step(relItems, S.rel); }
+  else { if (S.gpane === 1) { $("#d-gaps").scrollTop += delta * 40; return; } S.gap = step(gapItems, S.gap, true); }
+  render();
+}
+const maxPane = () => ({nouns: 3, keys: 1, rel: 1, gaps: 1}[S.view]);
+const curPane = () => ({nouns: S.pane, keys: S.kpane, rel: S.rpane, gaps: S.gpane}[S.view]);
+function curList() { return {nouns: [lTools, lNouns, lVerbs][S.pane], keys: lKeys, rel: lRel, gaps: lGaps}[S.view]; }
+
+document.addEventListener("keydown", (e) => {
+  const help = $("#help");
+  if (e.target === $("#q")) {
+    if (e.key === "Escape") { if (!$("#q").value) { $("#q").blur(); } else { $("#q").value = ""; S.tokens = []; render(); } e.preventDefault(); }
+    else if (e.key === "Enter" || e.key === "ArrowDown") { $("#q").blur(); e.preventDefault(); }
+    return;
+  }
+  if (e.target.tagName === "SELECT") { if (e.key === "Escape") e.target.blur(); return; }
+  if (e.metaKey || e.altKey) return;
+  const k = e.key;
+  if (help.classList.contains("on")) { if (k === "Escape" || k === "?" || k === "q") help.classList.remove("on"); e.preventDefault(); return; }
+  if (e.ctrlKey) {
+    const l = curList();
+    if (k === "d" && l) { move(l.page()); e.preventDefault(); }
+    if (k === "u" && l) { move(-l.page()); e.preventDefault(); }
+    return;
+  }
+  switch (k) {
+    case "/": $("#q").focus(); $("#q").select(); break;
+    case "?": help.classList.add("on"); break;
+    case "1": setView("nouns"); break;
+    case "2": setView("keys"); break;
+    case "3": setView("rel"); break;
+    case "4": if (A) setView("gaps"); break;
+    case "j": case "ArrowDown": move(1); break;
+    case "k": case "ArrowUp": move(-1); break;
+    case "g": case "Home": move(0, "top"); break;
+    case "G": case "End": move(0, "bottom"); break;
+    case "h": case "ArrowLeft": setPane(Math.max(0, curPane() - 1)); break;
+    case "l": case "ArrowRight": setPane(Math.min(maxPane(), curPane() + 1)); break;
+    case "Enter":
+      if (S.view === "nouns") setPane(Math.min(3, S.pane + 1));
+      else if (S.view === "keys") { const r = keyItems[S.key]; if (r && r.verb) openVerb(r.verb); }
+      else if (S.view === "rel") { const r = relItems[S.rel]; if (r) openVerb(r.v.id); }
+      else { const g = gapItems[S.gap]; if (g && g.live && S.gpane === 0) openNoun(g.live); }
+      break;
+    case "Escape":
+      if (curPane() > 0) setPane(curPane() - 1);
+      else if (S.tokens.length) { $("#q").value = ""; S.tokens = []; render(); }
+      break;
+    default: return;
+  }
+  e.preventDefault();
+});
+
+// ---------- header ----------
+$("#gen").textContent = "generated " + (D.generated ? new Date(D.generated).toLocaleString() : "?");
+$("#versions").innerHTML = toolsOrder.map((t) => `<span class="chip${t.error ? " err" : ""}" title="${esc((t.bin || "") + (t.error ? " — " + t.error : ""))}"><b>${esc(t.name)}</b> ${esc(t.version || "—")}${t.ochazuke && t.role !== "framework" ? ` <span class="faint">och ${esc(t.ochazuke)}</span>` : ""}</span>`).join("");
+document.title = (HOST ? HOST + " " : "") + "Catalog Inspector";
+$("#title").textContent = (HOST ? HOST + " " : "") + "catalog inspector";
+if (!A) $("#tab-gaps").style.display = "none";
+setView("nouns", false);
+// Start on the host's first noun.
+(() => {
+  buildNounsView();
+  const t = toolItems.findIndex((x) => x.t.name === HOST);
+  if (t >= 0) { S.tool = t; buildNounsView(); const n = nounItems.findIndex((x) => x.n); if (n >= 0) { S.noun = n; S.pane = 1; } }
+  render();
+})();
+</script>
+</body>
+</html>

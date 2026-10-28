@@ -1212,6 +1212,41 @@ r.OnConfigReload("directories.json", func() []string {
 
 Go: `Runtime.ExportConfig(dir, force) (ConfigExport, error)`, `Config.Paths() ConfigPaths`, `Runtime.ReloadConfig() ([]string, error)`, `Runtime.OnConfigReload(name, fn)`; constants `ReferenceDir`, `ReferenceReadme`, `SettingsReferenceFile`, `BindingsReferenceFile`, `ActionsExampleFile`, `ThemesExampleFile`.
 
+## Catalog inspector (catalog inspect)
+
+Every app mounted with `cli.Mount` has `BIN catalog inspect`: one self-contained HTML page for browsing the app's nouns, verbs, key rows, user actions and the framework nouns, plus any other tools' catalogs. It reads only; it never writes the live config.
+
+```sh
+APP catalog inspect                      # writes <state dir>/catalog-inspect.html (the temp dir without one), prints the path
+APP catalog inspect --out page.html --open
+APP catalog inspect --bin o-ai --bin ~/bin/o-git --catalog saved.json    # merge other tools' catalogs
+APP catalog inspect --annotations notes.json                            # fill the Gaps view
+APP catalog inspect --audit ~/hub/o-plans/lists/verb-audit.md           # the family verb-audit.md format
+```
+
+| Flag | What it adds |
+|---|---|
+| `--out FILE` | Where to write the page (default `<state dir>/catalog-inspect.html`) |
+| `--open` | Open the page once written (`open`, `xdg-open`) |
+| `--bin PATH` | Another tool: runs `PATH catalog`, with the ochazuke version from its build info (repeatable). A tool already read (by its executable or its catalog's name) is skipped; a failing one shows as a failed row |
+| `--catalog FILE.json` | A saved `BIN catalog` answer (repeatable; read before `--bin`, so a file pins its catalog name) |
+| `--namespace PREFIX` | A prefix the app mirrors a tool's nouns under (`ai` for `ai-agent`) when that tool is not read; a read tool's short name is one already (repeatable) |
+| `--annotations FILE.json` | Notes for the Gaps view: per noun, suggested verbs (`verb`, `params`, `maybe`, `note`, `group`) and a dated `source` (`inspect.Annotations` documents the JSON) |
+| `--audit FILE.md` | The same from the family's `verb-audit.md` format (`inspect.AuditAnnotations`); not with `--annotations` |
+| `--json FILE` | Also write the merged data as JSON |
+| `--timeout D` | Per `--bin` catalog (default 20s) |
+
+The app's own key rows are its effective rows, what `config export` writes to `bindings.reference.json` (the live `bindings.json` included); every other tool's are its catalog's defaults. Its `actions.json` verbs are marked as user actions. Framework nouns are kept once under an `ochazuke` pseudo-tool whichever catalogs carry them, the newest ochazuke's definition winning (an older catalog's bare `list` folds into `ochazuke.list`); each verb lists the tools that carry it. A noun named with another read tool's short name and a dash or dot (`ai-agent`, `ai.agent`) groups as that extension's mirror and links to its noun. The page has the data inlined, plain JS and no network, works from `file://`, and has four views (`1` By noun, `2` By key with duplicate and shadowing checks, `3` Relations with missing mirrors, `4` Gaps, shown only with annotations); `?` lists its keys.
+
+The family-wide page (mtm, every o-* tool `mtm extension available` finds, nabe, and the verb audit):
+
+```sh
+mtm catalog inspect $(mtm extension available | jq -r '.[] | select(.status != "missing" and .bin != "") | "--bin=" + .bin') \
+  --bin nabe --audit ~/hub/o-plans/lists/verb-audit.md --out ~/hub/o-plans/inspector/index.html
+```
+
+Go: package `cli/inspect` (standard library only): `ParseCatalog`, `Collector` (`Add`, `AddBin`, `AddFile`, `SeeBin`), `Namespaces`, `Merge(sources, namespaces, actions, host) *Data`, `Write(data, w)`, `Annotations` (`ReadAnnotations`, `Normalize`, `Match`), `AuditAnnotations(markdown)`. `node cli/inspect/smoke.mjs PAGE.html [DIR]` is the page's headless Chrome check; `OCHAZUKE_INSPECT_OUT=/tmp/demo.html go test ./examples/demo -run TestCatalogInspect` writes a page to run it on.
+
 ## Live CLI control
 
 The live transport is a local Unix socket. Its parent directory must be owned by the current user and have no group/other access; the socket is mode `0600`. Startup refuses to overwrite an existing socket. Use different `--socket` paths for different instances. After an unclean exit, verify the old instance is stopped before removing a stale socket.

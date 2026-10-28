@@ -116,16 +116,11 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
   Interaction verbs may require UI state and can have no lasting CLI effect.`
 	app.Add(oden.Command{
 		Name:    "catalog",
-		Summary: "print the nouns, verbs, bindings and pages as JSON",
+		Summary: "print the nouns, verbs, bindings and pages as JSON; catalog inspect writes them as an HTML page",
 		Source:  "cli",
-		Run: func(context.Context, []string) error {
-			data, err := catalog(sh.Runtime, sh.Bin, sh.version(), !sh.StateCache.Off)
-			if err != nil {
-				return err
-			}
-			_, err = fmt.Fprintf(sh.stdout(), "%s\n", data)
-			return err
-		},
+		Usage:   "[inspect [--out FILE] [--open] [--bin PATH]... [--catalog FILE.json]... [--annotations FILE.json | --audit FILE.md]]",
+		Details: "catalog prints the catalog JSON a host reads.\ncatalog inspect writes a self-contained HTML inspector of this tool's nouns, verbs,\neffective key rows, user actions and the framework nouns, plus any --bin tools'\nand --catalog files' catalogs, and prints its path (catalog inspect --help).",
+		Run:     sh.catalogCommand,
 	})
 }
 

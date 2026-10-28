@@ -1,0 +1,32 @@
+{
+  "schema": 1, "name": "host", "version": "v1.0.0",
+  "aliases": {"list": "ochazuke.list", "terminal": "ochazuke.terminal"},
+  "nouns": [
+    {"name": "app", "verbs": [
+      {"name": "quit", "kind": "interaction", "builtin": true},
+      {"name": "about", "kind": "application", "history": "fetch"}
+    ]},
+    {"name": "pane", "verbs": [
+      {"name": "attach", "description": "Attach the pane", "kind": "application", "history": "change"},
+      {"name": "associate", "kind": "application", "history": "change",
+       "params": {"project": {"type": "string", "source": "projects.list"}, "scratch": {"type": "boolean"}, "task": {"type": "string"}},
+       "positional": ["project"]},
+      {"name": "kill", "kind": "application", "confirm": "Kill {{label}}?"}
+    ]},
+    {"name": "project", "verbs": [{"name": "open", "kind": "application"}]},
+    {"name": "ext-agent", "verbs": [{"name": "list", "kind": "application"}]},
+    {"name": "ochazuke.list", "verbs": [
+      {"name": "move", "kind": "interaction", "builtin": true, "params": {"delta": {"type": "integer"}}},
+      {"name": "pick", "kind": "interaction", "builtin": true}
+    ]},
+    {"name": "ochazuke.terminal", "verbs": [
+      {"name": "scroll", "kind": "interaction", "builtin": true},
+      {"name": "copy", "kind": "application", "description": "host extra"}
+    ]}
+  ],
+  "bindings": [
+    {"noun": "pane", "mode": "normal", "keys": "enter", "request": {"verb": "attach", "noun": "pane"}},
+    {"noun": "ochazuke.list", "mode": "normal", "keys": "j", "request": {"verb": "move", "noun": "ochazuke.list", "args": {"delta": 1}}},
+    {"noun": "pane", "mode": "normal", "keys": "x", "request": {"verb": "gone", "noun": "pane"}}
+  ]
+}

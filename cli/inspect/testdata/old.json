@@ -1,0 +1,18 @@
+{
+  "schema": 1, "name": "o-ext", "version": "0.1.0",
+  "nouns": [
+    {"name": "app", "verbs": [{"name": "quit", "kind": "interaction", "builtin": true}]},
+    {"name": "agent", "verbs": [{"name": "list", "kind": "application"}]},
+    {"name": "list", "verbs": [
+      {"name": "move", "kind": "interaction", "builtin": true, "description": "old description"},
+      {"name": "legacy", "kind": "interaction", "builtin": true}
+    ]},
+    {"name": "settings", "verbs": [{"name": "list", "kind": "application"}, {"name": "show", "kind": "application"}]},
+    {"name": "terminal", "verbs": [{"name": "scroll", "kind": "interaction", "builtin": true}]}
+  ],
+  "bindings": [
+    {"noun": "list", "mode": "normal", "keys": "j", "request": {"verb": "move", "noun": "list"}},
+    {"noun": "settings", "mode": "normal", "keys": "u", "request": {"verb": "undo", "noun": "settings"}},
+    {"noun": "terminal", "keys": "ctrl+y", "request": {"verb": "scroll", "noun": "terminal"}}
+  ]
+}

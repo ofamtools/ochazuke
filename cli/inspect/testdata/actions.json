@@ -1,0 +1,4 @@
+[
+  {"noun": "pane", "verb": "open-log", "description": "Open the pane's log", "command": ["open", "{{data.log}}"], "confirm": "Open?"},
+  {"noun": "widget", "verb": "poke", "call": "widget poke", "base": ["other"]}
+]
