@@ -1,0 +1,7 @@
+{
+  "bindings": [
+    {"context": "app/normal", "bindings": {
+      ".": {"action": "ochazuke.history.repeat", "from": {"steps": "line"}, "hidden": true}
+    }}
+  ]
+}

@@ -558,7 +558,7 @@ func (r *Runtime) applyUserRow(row Binding) (string, error) {
 			break
 		}
 	}
-	if err := r.Bind(row); err != nil {
+	if err := r.bindRows([]Binding{row}, false); err != nil {
 		return "", err
 	}
 	c := r.Config()

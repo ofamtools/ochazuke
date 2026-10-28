@@ -11,13 +11,6 @@ const yankHistoryID = "__yank-history"
 
 func registerYankHistory(r *Runtime) {
 	r.Instance(yankHistoryID, Kind("ochazuke.yank-history"))
-	r.Define("ochazuke.yank-history").Mode("").
-		Bind("j", Do("ochazuke.yank-history.move", Arguments{"steps": 1})).
-		Bind("down", Do("ochazuke.yank-history.move", Arguments{"steps": 1})).
-		Bind("k", Do("ochazuke.yank-history.move", Arguments{"steps": -1})).
-		Bind("up", Do("ochazuke.yank-history.move", Arguments{"steps": -1})).
-		Bind("enter", Do("ochazuke.yank-history.select")).
-		Bind("esc", Do("ochazuke.modal.pop"))
 	add := func(verb, description string, params map[string]Parameter, fn Handler) {
 		r.Register(Operation{Verb: verb, Noun: "ochazuke.yank-history", Description: description, Parameters: params, Result: "yank history state", Run: fn})
 	}

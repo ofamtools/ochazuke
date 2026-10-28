@@ -195,12 +195,6 @@ func registerPanes(r *Runtime) {
 	}})
 	// > and < move the divider (Vim's ctrl+w > and ctrl+w < without the
 	// prefix), = puts it back (ctrl+w =); counts repeat (3>). Only while
-	// the page draws a split; one footer hint for the three.
-	pane := func(op string) Binding {
-		return Do(op).FromPayload("steps", SourceCount).Guard("pane-split")
-	}
-	r.Define("app").Mode("normal").
-		Bind(">", pane("ochazuke.pane.grow").Hinted(">/< resize")).
-		Bind("<", pane("ochazuke.pane.shrink").Hide()).
-		Bind("=", Do("ochazuke.pane.reset").Guard("pane-split").Hide())
+	// the page draws a split; one footer hint for the three
+	// (bindings/panes.json).
 }

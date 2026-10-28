@@ -14,12 +14,6 @@ import (
 // (marked Confirmed so the prompt does not reopen) in the context it came
 // from, n or esc pops, every other key is swallowed.
 func registerConfirm(r *Runtime) {
-	r.Define("ochazuke.confirm").Mode("").
-		Bind("y", Do("ochazuke.confirm.accept")).
-		Bind("enter", Do("ochazuke.confirm.accept")).
-		Bind("n", Do("ochazuke.modal.pop")).
-		Bind("esc", Do("ochazuke.modal.pop")).
-		Pattern(Any, Do("ochazuke.key.ignore").Hide())
 	r.Register(Operation{Verb: "accept", Noun: "ochazuke.confirm", Description: "Run the request the open confirm modal holds and close it", Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		inst := r.Instances[r.TopModal()]
 		if inst == nil || inst.Noun != "ochazuke.confirm" || inst.Payload.Request == nil {

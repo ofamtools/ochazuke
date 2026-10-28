@@ -233,6 +233,7 @@ type Runtime struct {
 	commands         []tea.Cmd         // off-loop work scheduled since the adapter last drained it
 	jobs             map[uint64]*job   // the jobs list: running jobs and the finished ones retained for jobs.list
 	jobSeq           uint64            // last issued job id
+	defaults         defaultSources    // where each default row and extends came from (bindings defaults)
 	deprecations     []string          // rows that named an operation by its old verb.noun spelling, rewritten once
 	aliases          map[string]string // registry: a short noun name -> the noun it names (settings -> ochazuke.settings; namespace.go)
 	builtinDepth     int               // >0 while Builtin runs: framework registration, whose nouns are ochazuke.<noun>
@@ -254,6 +255,7 @@ func newRuntime() *Runtime {
 		Modes: map[string]bool{"normal": true, "insert": true}, Operations: map[string]Operation{},
 		pendingModes:     map[string]bool{},
 		passthroughModes: map[string]bool{},
+		defaults:         defaultSources{rows: map[string]string{}, extends: map[string]string{}},
 		guards:           builtinGuards(),
 		predicates:       builtinPredicates(),
 		modalInstances:   map[string]bool{},
@@ -302,9 +304,14 @@ func (r *Runtime) registerFramework() {
 	registerQuery(r)
 	registerHistory(r)
 	registerPlacements(r)
-	// A modal answers esc in normal mode; inputs, pending modes and the
+	// The default rows, once every verb and guard they name is registered:
+	// the framework's files in this order (rows two files put in one table,
+	// the app noun's normal table, the list's, keep it). A modal answers esc
+	// in normal mode (bindings/modal.json); inputs, pending modes and the
 	// palette settle first because their rows sit inside this level.
-	r.Define("ochazuke.modal").Mode("normal").Bind("esc", Do("ochazuke.modal.pop"))
+	for _, name := range frameworkBindingFiles {
+		r.loadFrameworkBindings(name)
+	}
 }
 
 // Builtin runs register and marks every operation it registered as the
@@ -857,6 +864,10 @@ func registerCore(r *Runtime) {
 			return r.allBindings(), nil
 		}
 		return r.ListBindings(focusOf(c)), nil
+	}})
+	r.Register(Operation{Verb: "defaults", Noun: "ochazuke.bindings", Description: "Print the default bindings (the framework's and the application's, without the user's bindings.json) as a bindings file, each group tagged with its source: the embedded file, go or generated", Result: "bindings file", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		data, err := r.defaultBindingsFile()
+		return Verbatim(data), err
 	}})
 	r.Register(Operation{Verb: "stops", Noun: "ochazuke.bindings", Description: "List the rows every focus stop answers to, app-wide: each page's stops in drawing order, the open modals', then app; each with the focus and mode it is read at", Result: "stop bindings[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.StopBindings(), nil

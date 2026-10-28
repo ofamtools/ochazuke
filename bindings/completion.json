@@ -1,0 +1,13 @@
+{
+  "bindings": [
+    {"context": "ochazuke.completion/insert", "bindings": {
+      "esc": "ochazuke.completion.dismiss",
+      "tab": {"action": "ochazuke.completion.accept", "when": "completion-rows"},
+      "enter": {"action": "ochazuke.completion.accept", "when": "completion-highlighted"},
+      "ctrl+n": {"action": "ochazuke.completion.move", "args": {"delta": 1}, "when": "completion-rows"},
+      "down": {"action": "ochazuke.completion.move", "args": {"delta": 1}, "when": "completion-rows"},
+      "ctrl+p": {"action": "ochazuke.completion.move", "args": {"delta": -1}, "when": "completion-rows"},
+      "up": {"action": "ochazuke.completion.move", "args": {"delta": -1}, "when": "completion-rows"}
+    }}
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "bindings": [
+    {"context": "ochazuke.picker/insert", "bindings": {
+      "ctrl+n": {"action": "ochazuke.picker.move", "args": {"delta": 1}},
+      "ctrl+p": {"action": "ochazuke.picker.move", "args": {"delta": -1}},
+      "alt+up": "ochazuke.picker.parent",
+      "tab": "ochazuke.picker.complete",
+      "enter": "ochazuke.picker.enter",
+      "ctrl+s": "ochazuke.picker.choose",
+      "esc": "ochazuke.picker.close"
+    }}
+  ]
+}

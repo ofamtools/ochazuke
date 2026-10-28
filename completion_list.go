@@ -124,15 +124,7 @@ func registerCompletion(r *Runtime) {
 		When("completion-available").
 		Verb("move", on(func(c *Completer, _ Context, a Arguments) error { c.move(IntArg(a, "delta", 0)); return nil }), "Move the suggestion highlight; from none, 1 lands on the first and -1 stays").Motion().
 		Verb("accept", on(func(c *Completer, _ Context, _ Arguments) error { return c.accept() }), "Replace the token with the highlighted suggestion, else the first, keeping its trigger; one undoable edit").
-		Verb("dismiss", on(func(c *Completer, _ Context, _ Arguments) error { c.dismiss(); return nil }), "Hide the suggestions; the input stays in its mode and typing reopens them").
-		Mode("insert").
-		Bind("esc", Do("ochazuke.completion.dismiss")).
-		Bind("tab", Do("ochazuke.completion.accept").Guard("completion-rows")).
-		Bind("enter", Do("ochazuke.completion.accept").Guard("completion-highlighted")).
-		Bind("ctrl+n", Do("ochazuke.completion.move", Arguments{"delta": 1}).Guard("completion-rows")).
-		Bind("down", Do("ochazuke.completion.move", Arguments{"delta": 1}).Guard("completion-rows")).
-		Bind("ctrl+p", Do("ochazuke.completion.move", Arguments{"delta": -1}).Guard("completion-rows")).
-		Bind("up", Do("ochazuke.completion.move", Arguments{"delta": -1}).Guard("completion-rows"))
+		Verb("dismiss", on(func(c *Completer, _ Context, _ Arguments) error { c.dismiss(); return nil }), "Hide the suggestions; the input stays in its mode and typing reopens them")
 	move := r.Operations["ochazuke.completion.move"]
 	move.Parameters = map[string]Parameter{"delta": {Type: "integer", Required: true}}
 	r.Operations["ochazuke.completion.move"] = move

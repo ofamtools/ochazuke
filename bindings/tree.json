@@ -1,0 +1,32 @@
+{
+  "bindings": [
+    {"context": "ochazuke.outline/normal", "bindings": {
+      "l": "ochazuke.outline.expand",
+      "right": "ochazuke.outline.expand",
+      "h": "ochazuke.outline.collapse",
+      "left": "ochazuke.outline.collapse",
+      "o": {"action": "ochazuke.outline.add", "args": {"where": "below"}},
+      "O": {"action": "ochazuke.outline.add", "args": {"where": "above"}},
+      "a": {"action": "ochazuke.outline.add", "args": {"where": "child"}},
+      "i": "ochazuke.outline.edit",
+      "tab": "ochazuke.outline.indent",
+      "shift+tab": "ochazuke.outline.outdent",
+      "J": {"action": "ochazuke.outline.move", "args": {"delta": 1}},
+      "K": {"action": "ochazuke.outline.move", "args": {"delta": -1}},
+      "d d": "ochazuke.outline.delete",
+      "u": "ochazuke.outline.undo",
+      "ctrl+r": "ochazuke.outline.redo",
+      "paste": {"action": "ochazuke.outline.paste", "from": {"text": "text"}}
+    }},
+    {"context": "ochazuke.outline-line/insert", "bindings": {
+      "esc": "ochazuke.outline.leave",
+      "enter": "ochazuke.outline.next",
+      "tab": "ochazuke.outline.indent",
+      "shift+tab": "ochazuke.outline.outdent",
+      "paste": {"action": "ochazuke.outline.paste", "from": {"text": "text"}}
+    }},
+    {"context": "ochazuke.outline-row/normal", "bindings": {
+      "enter": "ochazuke.outline.fold"
+    }}
+  ]
+}

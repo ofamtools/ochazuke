@@ -1,0 +1,12 @@
+{
+  "bindings": [
+    {"context": "ochazuke.yank-history", "bindings": {
+      "j": {"action": "ochazuke.yank-history.move", "args": {"steps": 1}},
+      "down": {"action": "ochazuke.yank-history.move", "args": {"steps": 1}},
+      "k": {"action": "ochazuke.yank-history.move", "args": {"steps": -1}},
+      "up": {"action": "ochazuke.yank-history.move", "args": {"steps": -1}},
+      "enter": "ochazuke.yank-history.select",
+      "esc": "ochazuke.modal.pop"
+    }}
+  ]
+}

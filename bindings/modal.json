@@ -1,0 +1,7 @@
+{
+  "bindings": [
+    {"context": "ochazuke.modal/normal", "bindings": {
+      "esc": "ochazuke.modal.pop"
+    }}
+  ]
+}

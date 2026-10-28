@@ -1,0 +1,37 @@
+{
+  "bindings": [
+    {"context": "ochazuke.setting/normal", "bindings": {
+      "enter": "ochazuke.setting.edit",
+      "l": {"action": "ochazuke.setting.cycle", "args": {"step": 1}, "when": "setting-steps", "hidden": true},
+      "right": {"action": "ochazuke.setting.cycle", "args": {"step": 1}, "when": "setting-steps", "hidden": true},
+      "space": {"action": "ochazuke.setting.cycle", "args": {"step": 1}, "when": "setting-steps", "hidden": true},
+      "h": {"action": "ochazuke.setting.cycle", "args": {"step": -1}, "when": "setting-steps", "hint": "h/l setting.cycle"},
+      "left": {"action": "ochazuke.setting.cycle", "args": {"step": -1}, "when": "setting-steps", "hidden": true},
+      "n": {"action": "ochazuke.setting.add", "when": "setting-list"},
+      "r": "ochazuke.setting.reset",
+      "backspace": {"action": "ochazuke.setting.reset", "hidden": true},
+      "delete": {"action": "ochazuke.setting.reset", "hidden": true}
+    }},
+    {"context": "ochazuke.setting-item/normal", "bindings": {
+      "enter": {"action": "ochazuke.setting-item.edit", "hint": "enter/i setting-item.edit"},
+      "i": {"action": "ochazuke.setting-item.edit", "hidden": true},
+      "n": "ochazuke.setting-item.add",
+      "d d": "ochazuke.setting-item.delete",
+      "r": "ochazuke.setting-item.reset"
+    }},
+    {"context": "ochazuke.setting-value/insert", "bindings": {
+      "enter": "ochazuke.setting-value.commit",
+      "esc": "ochazuke.setting-value.cancel"
+    }},
+    {"context": "ochazuke.settings-page/normal", "bindings": {
+      "tab": {"action": "ochazuke.settings.section", "args": {"step": 1}},
+      "]": {"action": "ochazuke.settings.section", "args": {"step": 1}, "hidden": true},
+      "shift+tab": {"action": "ochazuke.settings.section", "args": {"step": -1}, "hidden": true},
+      "[": {"action": "ochazuke.settings.section", "args": {"step": -1}, "hidden": true},
+      "u": {"action": "ochazuke.settings.undo", "when": "settings-undo"},
+      "ctrl+z": {"action": "ochazuke.settings.undo", "when": "settings-undo", "hidden": true},
+      "q": "ochazuke.settings.close",
+      "esc": "ochazuke.settings.close"
+    }}
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "bindings": [
+    {"context": "ochazuke.list/normal", "bindings": {
+      "j": {"action": "ochazuke.list.move", "args": {"delta": 1}, "from": {"steps": "count"}},
+      "down": {"action": "ochazuke.list.move", "args": {"delta": 1}, "from": {"steps": "count"}},
+      "k": {"action": "ochazuke.list.move", "args": {"delta": -1}, "from": {"steps": "count"}},
+      "up": {"action": "ochazuke.list.move", "args": {"delta": -1}, "from": {"steps": "count"}},
+      "space": "ochazuke.list.mark",
+      "z l": {"action": "ochazuke.list.scroll-columns", "args": {"delta": 1}, "from": {"steps": "count"}},
+      "z h": {"action": "ochazuke.list.scroll-columns", "args": {"delta": -1}, "from": {"steps": "count"}},
+      "g g": {"action": "ochazuke.list.goto", "args": {"position": "first"}, "from": {"row": "line"}},
+      "G": {"action": "ochazuke.list.goto", "args": {"position": "last"}, "from": {"row": "line"}},
+      "ctrl+d": {"action": "ochazuke.list.scroll", "args": {"delta": 1, "half": true}, "from": {"steps": "line"}},
+      "ctrl+u": {"action": "ochazuke.list.scroll", "args": {"delta": -1, "half": true}, "from": {"steps": "line"}},
+      "ctrl+f": {"action": "ochazuke.list.scroll", "args": {"delta": 1}, "from": {"steps": "line"}},
+      "ctrl+b": {"action": "ochazuke.list.scroll", "args": {"delta": -1}, "from": {"steps": "line"}}
+    }},
+    {"context": "ochazuke.list/count_pending", "extends": "normal"}
+  ]
+}

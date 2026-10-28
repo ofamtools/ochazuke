@@ -614,7 +614,7 @@ func helpChooserRows(names []string, current string, data func(string) any) []Ch
 }
 
 func registerHelpViews(r *Runtime) {
-	noun := r.Define(helpID)
+	r.Define(helpID)
 	view := func(fn func(*helpState) error) func(*Runtime, Context, Arguments) (any, error) {
 		return func(r *Runtime, _ Context, _ Arguments) (any, error) {
 			h := r.helpOpen()
@@ -701,11 +701,6 @@ func registerHelpViews(r *Runtime) {
 	n.Guards["noun"] = "help-hypothetical"
 	n.Guards["mode"] = "help-pick"
 	n.Guards["place"] = "help-places"
-	noun.Mode("normal").
-		Bind("S", Do(helpID+".view").Hinted("view")).
-		Bind("n", Do(helpID+".noun").Hinted("noun")).
-		Bind("m", Do(helpID+".mode").Hinted("mode")).
-		Bind("p", Do(helpID+".place").Hinted("place"))
 }
 
 // inputNoun reports whether a focus on noun is an input, so the editor

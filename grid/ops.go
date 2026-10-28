@@ -1,11 +1,17 @@
 package grid
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 
 	"github.com/unixsuperhero/ochazuke"
 )
+
+// defaultBindings are the grid noun's keys: the one place they are written.
+//
+//go:embed bindings.json
+var defaultBindings []byte
 
 // Register defines the grid and selection operations and the selection
 // shape modes once per runtime. The grid noun answers move and goto; the
@@ -86,17 +92,6 @@ func register(r *ochazuke.Runtime) {
 		g.ResetColumnWidths()
 		return nil
 	})
-	// The width keys are the list table's (z >, z <, z =), on the grid noun
-	// so every grid's cells answer them; the rest of the grid's keys are
-	// the application's.
-	resize := func(delta int) ochazuke.Binding {
-		return ochazuke.Do("ochazuke.grid.resize-column", ochazuke.Arguments{"delta": delta}).FromPayload("steps", ochazuke.SourceCount).Hide()
-	}
-	r.Define("ochazuke.grid").Mode("normal").
-		Bind("z >", resize(1)).
-		Bind("z <", resize(-1)).
-		Bind("z =", ochazuke.Do("ochazuke.grid.reset-columns").Hide())
-	r.Define("ochazuke.grid").Mode("count_pending").Extends("normal")
 	op("swap", "selection", "Exchange the selection anchor and the cursor", nil, func(g *Grid, _ ochazuke.Context, _ ochazuke.Arguments) error { return g.SwapAnchor() }).When(GuardSelecting)
 	op("mark", "selection", "Toggle the mark on the cell, row or column under the cursor by the selection shape", nil, func(g *Grid, _ ochazuke.Context, _ ochazuke.Arguments) error {
 		if g.Shape() == "" {
@@ -107,6 +102,10 @@ func register(r *ochazuke.Runtime) {
 	}).When(GuardSelecting)
 	op("unmark", "selection", "Clear the marks, keeping the selection", nil, func(g *Grid, _ ochazuke.Context, _ ochazuke.Arguments) error { g.ClearMarks(); return nil }).When(GuardSelecting)
 	op("all", "selection", "Span the whole visible sheet", nil, func(g *Grid, _ ochazuke.Context, _ ochazuke.Arguments) error { g.SelectAll(); return nil }).When(GuardSelecting)
+	// The width keys (bindings.json) are the list table's (z >, z <, z =),
+	// on the grid noun so every grid's cells answer them; the rest of the
+	// grid's keys are the application's.
+	r.MustLoadDefaultBindings(ochazuke.FrameworkBindingsSource+"grid/bindings.json", defaultBindings)
 }
 
 // The guard names Register defines.

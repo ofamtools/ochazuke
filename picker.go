@@ -163,14 +163,7 @@ func newPicker(r *Runtime) *Picker {
 	})
 
 	picker := r.Define("ochazuke.picker")
-	picker.Mode("insert").
-		Bind("ctrl+n", Do("ochazuke.picker.move", Arguments{"delta": 1})).
-		Bind("ctrl+p", Do("ochazuke.picker.move", Arguments{"delta": -1})).
-		Bind("alt+up", Do("ochazuke.picker.parent")).
-		Bind("tab", Do("ochazuke.picker.complete")).
-		Bind("enter", Do("ochazuke.picker.enter")).
-		Bind("ctrl+s", Do("ochazuke.picker.choose")).
-		Bind("esc", Do("ochazuke.picker.close"))
+	r.loadFrameworkBindings("picker.json")
 	// CLI and keyboard edits share the same dispatch path. Keep ancestor action
 	// semantics and delegate the normal operation, then invalidate search once.
 	for key, operation := range r.Operations {

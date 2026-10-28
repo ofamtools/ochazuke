@@ -1,0 +1,10 @@
+{
+  "bindings": [
+    {"context": "ochazuke.grid/normal", "bindings": {
+      "z >": {"action": "ochazuke.grid.resize-column", "args": {"delta": 1}, "from": {"steps": "count"}, "hidden": true},
+      "z <": {"action": "ochazuke.grid.resize-column", "args": {"delta": -1}, "from": {"steps": "count"}, "hidden": true},
+      "z =": {"action": "ochazuke.grid.reset-columns", "hidden": true}
+    }},
+    {"context": "ochazuke.grid/count_pending", "extends": "normal"}
+  ]
+}

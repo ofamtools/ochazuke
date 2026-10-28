@@ -1,6 +1,7 @@
 package markdown
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"slices"
@@ -8,6 +9,12 @@ import (
 
 	"github.com/unixsuperhero/ochazuke"
 )
+
+// defaultBindings are the markdown nouns' keys: the one place they are
+// written.
+//
+//go:embed bindings.json
+var defaultBindings []byte
 
 // Register defines the markdown nouns, their verbs and keys once per
 // runtime (see Doc for the keys). The line rows' j/k, gg/G and paging are
@@ -150,7 +157,7 @@ func register(r *ochazuke.Runtime) {
 	r.Define(LineNoun)
 	r.Define(NoteNoun)
 	kinds := []string{"h", "t", "x", "l", "c", "q", "n", "p"}
-	b := r.Define(DocNoun).
+	r.Define(DocNoun).
 		Verb("toggle", plain((*Doc).Toggle), "Toggle the checklist item under the cursor: rewrites only its box character in the source, written at once").
 		Verb("undo", plain((*Doc).Undo), "Undo the last edit (a toggle, a typed block, a line deleted or pasted); the undo is written like any edit").
 		Verb("redo", plain((*Doc).Redo), "Redo the last undone edit").
@@ -182,47 +189,7 @@ func register(r *ochazuke.Runtime) {
 		Verb("outdent", plain(func(d *Doc) error { return d.Indent(-1) }), "Take the list item being edited out one level").
 		Verb("cell", on(func(d *Doc, a ochazuke.Arguments) error { return d.Cell(ochazuke.IntArg(a, "delta", 1)) }), "Move to the next (delta 1) or previous (-1) table cell; past the last, a new row").Motion().
 		Verb("unmark", plain((*Doc).Unmark), "Take the marker off an empty list item, leaving an indented line under the item above").
-		Verb("insert-block", plain((*Doc).BlockChooser), "On an empty line: choose a block to insert (table, checklist, bullets, numbered list, heading 1 to 3, code block, quote, rule)").
-		Mode("normal").
-		Bind("x", ochazuke.Do(DocNoun+".toggle").Guard("markdown-on-task")).
-		Bind("i", ochazuke.Do(DocNoun+".insert", ochazuke.Arguments{"at": "cursor"})).
-		Bind("o", ochazuke.Do(DocNoun+".open", ochazuke.Arguments{"where": "below"})).
-		Bind("n", ochazuke.Do(DocNoun+".note").Guard("markdown-on-item")).
-		Bind("d d", ochazuke.Do(DocNoun+".delete")).
-		Bind("p", ochazuke.Do(DocNoun+".paste", ochazuke.Arguments{"where": "below"})).
-		Bind("z a", ochazuke.Do(DocNoun+".fold").Guard("markdown-has-notes")).
-		Bind("g O", ochazuke.Do(DocNoun+".outline")).
-		Bind("u", ochazuke.Do(DocNoun+".undo")).
-		Bind("ctrl+r", ochazuke.Do(DocNoun+".redo")).
-		Bind("}", ochazuke.Do(DocNoun+".next-block").FromPayload("steps", ochazuke.SourceCount)).
-		Bind("{", ochazuke.Do(DocNoun+".previous-block").FromPayload("steps", ochazuke.SourceCount)).
-		Bind("] ]", ochazuke.Do(DocNoun+".next-same").FromPayload("steps", ochazuke.SourceCount).Hide()).
-		Bind("[ [", ochazuke.Do(DocNoun+".previous-same").FromPayload("steps", ochazuke.SourceCount).Hide()).
-		Bind("a", ochazuke.Do(DocNoun+".insert", ochazuke.Arguments{"at": "after"}).Hide()).
-		Bind("I", ochazuke.Do(DocNoun+".insert", ochazuke.Arguments{"at": "start"}).Hide()).
-		Bind("A", ochazuke.Do(DocNoun+".insert", ochazuke.Arguments{"at": "end"}).Hide()).
-		Bind("O", ochazuke.Do(DocNoun+".open", ochazuke.Arguments{"where": "above"}).Hide()).
-		Bind("y y", ochazuke.Do(DocNoun+".yank").Hide()).
-		Bind("P", ochazuke.Do(DocNoun+".paste", ochazuke.Arguments{"where": "above"}).Hide())
-	for _, k := range kinds {
-		b = b.Bind("] "+k, ochazuke.Do(DocNoun+".next-kind", ochazuke.Arguments{"kind": k}).FromPayload("steps", ochazuke.SourceCount)).
-			Bind("[ "+k, ochazuke.Do(DocNoun+".previous-kind", ochazuke.Arguments{"kind": k}).FromPayload("steps", ochazuke.SourceCount))
-	}
-	b.Mode("count_pending").Extends("normal")
-	r.Define(NoteNoun).Mode("normal").Bind("x", ochazuke.Do(DocNoun+".resolve"))
-	r.Define(EditNoun).Mode("insert").
-		Bind("esc", ochazuke.Do(DocNoun+".leave")).
-		Bind("enter", ochazuke.Do(DocNoun+".end-list").Guard("markdown-empty-item")).
-		Bind("enter", ochazuke.Do(DocNoun+".continue-item").Guard("markdown-item-text")).
-		Bind("enter", ochazuke.Do(DocNoun+".next-row").Guard("markdown-table-line")).
-		Bind("enter", ochazuke.Do(DocNoun+".after-heading").Guard("markdown-heading-line")).
-		Bind("enter", ochazuke.Do(DocNoun+".quote-line").Guard("markdown-quote-line")).
-		Bind("tab", ochazuke.Do(DocNoun+".indent").Guard("markdown-item-line")).
-		Bind("shift+tab", ochazuke.Do(DocNoun+".outdent").Guard("markdown-item-line")).
-		Bind("tab", ochazuke.Do(DocNoun+".cell", ochazuke.Arguments{"delta": 1}).Guard("markdown-table-line")).
-		Bind("shift+tab", ochazuke.Do(DocNoun+".cell", ochazuke.Arguments{"delta": -1}).Guard("markdown-table-line")).
-		Bind("backspace", ochazuke.Do(DocNoun+".unmark").Guard("markdown-empty-item")).
-		Bind("/", ochazuke.Do(DocNoun+".insert-block").Guard("markdown-empty-line"))
+		Verb("insert-block", plain((*Doc).BlockChooser), "On an empty line: choose a block to insert (table, checklist, bullets, numbered list, heading 1 to 3, code block, quote, rule)")
 	id := ochazuke.Parameter{Type: "string", Description: "The markdown instance (default the one on the focus path)"}
 	count := ochazuke.Parameter{Type: "integer", Description: "Repeat count (3})"}
 	params := map[string]map[string]ochazuke.Parameter{
@@ -250,6 +217,7 @@ func register(r *ochazuke.Runtime) {
 	if r.Settings() != nil {
 		_ = r.DeclareSetting(ochazuke.Setting{Name: AuthorSetting, Type: "string", Default: "owner", Description: "The author a new note in a Markdown document is signed with"})
 	}
+	r.MustLoadDefaultBindings(ochazuke.FrameworkBindingsSource+"markdown/bindings.json", defaultBindings)
 }
 
 // kindName names a kind letter for "no next …".

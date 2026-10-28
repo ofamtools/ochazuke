@@ -1,0 +1,16 @@
+{
+  "bindings": [
+    {"context": "ochazuke.chooser", "bindings": {
+      "enter": "ochazuke.chooser.pick",
+      "esc": "ochazuke.chooser.cancel",
+      "down": {"action": "ochazuke.chooser.move", "args": {"delta": 1}},
+      "ctrl+j": {"action": "ochazuke.chooser.move", "args": {"delta": 1}},
+      "ctrl+n": {"action": "ochazuke.chooser.move", "args": {"delta": 1}},
+      "up": {"action": "ochazuke.chooser.move", "args": {"delta": -1}},
+      "ctrl+p": {"action": "ochazuke.chooser.move", "args": {"delta": -1}},
+      "ctrl+k": {"action": "ochazuke.chooser.move", "args": {"delta": -1}},
+      "printable": {"action": "ochazuke.input.insert", "from": {"text": "text"}},
+      "paste": {"action": "ochazuke.input.insert", "from": {"text": "text"}}
+    }}
+  ]
+}

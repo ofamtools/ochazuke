@@ -147,45 +147,16 @@ func newModel(r *Runtime) *Model {
 		m.Notices, m.noticeIDs = nil, nil
 		return n, nil
 	}})
-	// Application rows already on the app noun keep precedence over these defaults.
-	app := r.Noun("app")
-	defaultRow := func(mode, keys string, row Binding) {
-		for _, existing := range app.Bindings[mode] {
-			if existing.Keys == keys {
-				return
-			}
-		}
-		r.Define("app").Mode(mode).Bind(keys, row)
-	}
-	defaultRow("normal", ":", Do("ochazuke.palette.open"))
-	defaultRow("normal", "ctrl+y", Do("ochazuke.yank-history.open").Hide())
-	defaultRow("normal", "?", Do("ochazuke.bindings.help"))
-	// Insert mode types ?, so every input's insert mode has a control key
-	// for the help (HelpInsertKey), on the editor noun: the fallback every
-	// input's walk ends at (an app row would put an insert column in every
-	// noun's help table, though only an input is ever in insert mode).
-	if !slices.ContainsFunc(r.Noun("ochazuke.editor").Bindings["insert"], func(b Binding) bool { return b.Keys == HelpInsertKey }) {
-		r.Define("ochazuke.editor").Mode("insert").Bind(HelpInsertKey, Do("ochazuke.bindings.help").Hide())
-	}
-	defaultRow("normal", "'", Do("ochazuke.page.pick").Guard("no-modal")) // a page opens only with no modal open
-	defaultRow("normal", "ctrl+j", Do("ochazuke.page.next"))
-	defaultRow("normal", "ctrl+k", Do("ochazuke.page.previous"))
-	defaultRow("normal", "/", filterOpenRow())
-	defaultRow("", "ctrl+space", Do("ochazuke.palette.open"))
+	// The app noun's keys (bindings/app.json): :, ?, ', ctrl+j and ctrl+k,
+	// /, ctrl+space, ctrl+c, pgup and pgdown, and ctrl+\ for the help in
+	// every input's insert mode (HelpInsertKey; insert mode types ?). The
+	// file's groups are fallbacks: a key the application bound on the app
+	// noun (or the editor's insert table) before NewModel keeps its row.
 	// ctrl+c quits from a capture row, so an inner any row cannot swallow
 	// it; inside a modal the capture row stands aside and the bubbling row
 	// below answers unless the modal binds ctrl+c. In a passthrough mode (an
 	// attached terminal) there is no capture pass: ctrl+c goes to the pane.
-	captureQuit := true
-	for _, existing := range app.Bindings[""] {
-		captureQuit = captureQuit && existing.Keys != "ctrl+c"
-	}
-	defaultRow("", "ctrl+c", Do("app.quit").Hide())
-	if captureQuit {
-		r.Define("app").Mode("").Bind("ctrl+c", Do("app.quit").Captured().Guard("no-modal").Hide())
-	}
-	defaultRow("", "pgdown", Do("ochazuke.surface.scroll", Arguments{"lines": 8}))
-	defaultRow("", "pgup", Do("ochazuke.surface.scroll", Arguments{"lines": -8}))
+	r.loadFrameworkBindings("app.json")
 	return m
 }
 

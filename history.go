@@ -299,7 +299,6 @@ func registerHistory(r *Runtime) {
 		}
 		return r.ExecuteAt(c, q)
 	}})
-	r.Define("app").Mode("normal").Bind(".", Do("ochazuke.history.repeat").FromPayload("steps", SourceLine).Hide())
 	r.Register(Operation{Verb: "list", Noun: "ochazuke.history", Description: "List the last executed requests, oldest first, with their kind, context, source and result; by default the user's actions and changes", Parameters: map[string]Parameter{"last": {Type: "integer", Description: "How many entries (default 50, 0 for all)"}, "kind": {Type: "string", Description: "Kinds separated by commas (action, change, fetch, system) or all; default action,change"}}, Result: "history[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		kinds, err := historyKinds(StringArg(a, "kind", ""))
 		if err != nil {

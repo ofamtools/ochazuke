@@ -321,12 +321,8 @@ func (r *Runtime) terminalOf(c Context, args Arguments) (*Terminal, error) {
 // the leader and itself (Join of the prefix and the key), in that order; the
 // mode is one-shot, so every row returns to terminal mode. Every row is a
 // Request. The leader is ctrl+a until the terminal-leader setting (or
-// SetTerminalLeader) moves it.
+// SetTerminalLeader) moves it. The modes and rows are bindings/terminal.json.
 func registerTerminal(r *Runtime) {
-	r.DefineMode("terminal", false)
-	_ = r.DefinePassthrough("terminal")
-	r.DefineMode("leader_pending", true)
-	leader := Request{Verb: "send", Noun: "ochazuke.terminal", Args: Arguments{"keys": "ctrl+a"}}
 	r.Define("ochazuke.terminal").Pin("terminal").Focusable().
 		Verb("send", func(r *Runtime, c Context, a Arguments) (any, error) {
 			t, err := r.terminalOf(c, a)
@@ -375,17 +371,9 @@ func registerTerminal(r *Runtime) {
 				err = r.RemoveInstance(t.id)
 			}
 			return r.Context(), err
-		}, "Return focus to the instance around the terminal; the pane keeps running (a CloseOnDetach terminal is removed, its stream released and the focus sent to its FocusOnClose target)").
-		Mode("terminal").
-		Bind("ctrl+a", Enter("leader_pending", Payload{Prefix: "ctrl+a", Request: &leader}).Hinted("leader: d detaches, ctrl+a sends ctrl+a")).
-		Pattern(Paste, Do("ochazuke.terminal.paste").FromPayload("text", SourceText).Hide()).
-		Pattern(Any, Do("ochazuke.terminal.send").FromKey("keys").Hide()).
-		Mode("leader_pending").
-		Bind("d", Do("ochazuke.terminal.detach")).
-		Bind("ctrl+a", Do("ochazuke.terminal.send", Arguments{"keys": "ctrl+a"})).
-		Pattern(Paste, Do("ochazuke.terminal.paste").FromPayload("keys", SourcePrefix).FromPayload("text", SourceText).Hide()).
-		Pattern(Any, Do("ochazuke.terminal.send").Join("keys", SourcePrefix, SourceKey).Hide())
-	// Required-parameter metadata for the rows above and for the CLI.
+		}, "Return focus to the instance around the terminal; the pane keeps running (a CloseOnDetach terminal is removed, its stream released and the focus sent to its FocusOnClose target)")
+	// Required-parameter metadata for the rows (bindings/terminal.json) and
+	// for the CLI.
 	for verb, params := range map[string]map[string]Parameter{
 		"send":   {"id": {Type: "string", Description: "Terminal instance (defaults to the focused one)"}, "keys": {Type: "string", Required: true, Description: "Space-separated key names, forwarded in order"}},
 		"paste":  {"id": {Type: "string", Description: "Terminal instance (defaults to the focused one)"}, "text": {Type: "string", Required: true}, "keys": {Type: "string", Description: "Space-separated key names forwarded before the text"}},
@@ -497,6 +485,7 @@ func (r *Runtime) SetTerminalLeader(key string) error {
 				old, ok := leaderRow(b)
 				if ok && old != key {
 					olds[old] = true
+					r.moveDefaultSource(name, b, key)
 					return old, true
 				}
 				return "", false
@@ -507,6 +496,7 @@ func (r *Runtime) SetTerminalLeader(key string) error {
 		}
 		n.Bindings["leader_pending"] = rekeyRows(n.Bindings["leader_pending"], key, func(b Binding) (string, bool) {
 			if olds[b.Keys] && b.Request.Key() == "ochazuke.terminal.send" && b.Request.Args["keys"] == b.Keys {
+				r.moveDefaultSource(name, b, key)
 				return b.Keys, true
 			}
 			return "", false

@@ -1,0 +1,9 @@
+{
+  "bindings": [
+    {"context": "app/normal", "bindings": {
+      ">": {"action": "ochazuke.pane.grow", "from": {"steps": "count"}, "when": "pane-split", "hint": ">/< resize"},
+      "<": {"action": "ochazuke.pane.shrink", "from": {"steps": "count"}, "when": "pane-split", "hidden": true},
+      "=": {"action": "ochazuke.pane.reset", "when": "pane-split", "hidden": true}
+    }}
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "bindings": [
+    {"context": "app/normal", "bindings": {
+      "J": {"action": "ochazuke.detail.scroll", "args": {"lines": 1}, "from": {"count": "count"}, "when": "detail-scrolls", "hint": "J/K detail"},
+      "K": {"action": "ochazuke.detail.scroll", "args": {"lines": -1}, "from": {"count": "count"}, "when": "detail-scrolls", "hidden": true}
+    }}
+  ]
+}

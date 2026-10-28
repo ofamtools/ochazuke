@@ -198,9 +198,6 @@ func registerListVisual(r *Runtime) {
 	}
 	// esc ends the selection before the filter's esc (bound after this) is
 	// asked, only while one is active.
-	r.Define("ochazuke.list").Mode("normal").
-		Bind("V", Do("ochazuke.list.visual").Hide()).
-		Bind("esc", Do("ochazuke.list.end-visual").Guard("list-visual"))
 	r.Nouns["ochazuke.list"].Guards["visual"] = "table-visual"
 	// esc's verb guard as well as its row guard: a row guarded off still
 	// takes its key in the listings, so the row guard alone would hide an

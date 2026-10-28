@@ -66,6 +66,9 @@ func callResponse(result any, err error) Response {
 		}
 		return Response{Result: detached}
 	}
+	if text, ok := result.(Verbatim); ok {
+		return Response{Result: text} // a string: nothing to detach
+	}
 	if result == nil {
 		return Response{}
 	}
@@ -85,6 +88,10 @@ func callResponse(result any, err error) Response {
 // outer array) by a CLI, so a reader can decode it as it arrives; over
 // JSON it is an array. HandleCall keeps the type through its copy.
 type Lines []any
+
+// Verbatim is a result a CLI prints as its text, unquoted (a file the
+// verb writes: bindings defaults); over JSON it is a string.
+type Verbatim string
 
 // detachLines copies lines as encoded JSON values.
 func detachLines(lines Lines) (Lines, error) {

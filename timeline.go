@@ -1245,41 +1245,10 @@ func registerTimelines(r *Runtime) {
 	noun.Guards["step"] = "timeline-in-body"
 	noun.Guards["yank-step"] = "timeline-in-body"
 	noun.Guards["fold-step"] = "timeline-step-open"
-	scroll := func(lines int) Binding {
-		return Do(timelineNoun+".scroll", Arguments{"lines": lines}).FromPayload("count", SourceCount)
-	}
-	b := r.Define(timelineNoun).Mode("normal").
-		Bind("enter", Do(timelineNoun+".toggle")).
-		Bind("space", Do(timelineNoun+".toggle").Hide()).
-		// l and h by place (timeline_steps.go): on a closed card l opens it
-		// and h goes to the parent stop; on an open card l steps inside
-		// and h closes it. Inside, the body's own rows answer.
-		Bind("l", Do(timelineNoun+".open").Guard("timeline-card-closed")).
-		Bind("l", Do(timelineNoun+".enter").Guard("timeline-card-open")).
-		Bind("right", Do(timelineNoun+".open").Guard("timeline-card-closed").Hide()).
-		Bind("right", Do(timelineNoun+".enter").Guard("timeline-card-open").Hide()).
-		Bind("h", Do(timelineNoun+".leave").Guard("timeline-card-closed")).
-		Bind("h", Do(timelineNoun+".close").Guard("timeline-card-open")).
-		Bind("left", Do(timelineNoun+".leave").Guard("timeline-card-closed").Hide()).
-		Bind("left", Do(timelineNoun+".close").Guard("timeline-card-open").Hide()).
-		Bind("z o", Do(timelineNoun+".open").Hide()).
-		Bind("z c", Do(timelineNoun+".close").Hide()).
-		Bind("z a", Do(timelineNoun+".toggle").Hide()).
-		Bind("z R", Do(timelineNoun+".open-all")).
-		Bind("z M", Do(timelineNoun+".close-all")).
-		Bind("J", scroll(1).Hinted("J/K scroll")).
-		Bind("K", scroll(-1).Hide()).
-		Bind("ctrl+e", scroll(1).Hide()).
-		Bind("ctrl+y", scroll(-1).Hide())
-	for k := 1; k <= 9; k++ {
-		n := strconv.Itoa(k)
-		row := Do(timelineNoun+".fold", Arguments{"section": n})
-		if k == 1 {
-			row = row.Hinted("fold section")
-		} else {
-			row = row.Hide()
-		}
-		b = b.Bind("z "+n, row)
-	}
-	b.Mode("count_pending").Extends("normal")
+	// The rows of the timeline and its body are bindings/timeline.json.
+	// l and h by place (timeline_steps.go): on a closed card l opens it and
+	// h goes to the parent stop; on an open card l steps inside and h
+	// closes it. Inside, the body's own rows answer: h folds the open
+	// section the step is in, else goes back to the card (the guarded row
+	// answers first and falls through).
 }

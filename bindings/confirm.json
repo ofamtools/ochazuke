@@ -1,0 +1,11 @@
+{
+  "bindings": [
+    {"context": "ochazuke.confirm", "bindings": {
+      "y": "ochazuke.confirm.accept",
+      "enter": "ochazuke.confirm.accept",
+      "n": "ochazuke.modal.pop",
+      "esc": "ochazuke.modal.pop",
+      "any": {"action": "ochazuke.key.ignore", "hidden": true}
+    }}
+  ]
+}

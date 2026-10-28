@@ -1,0 +1,25 @@
+{
+  "modes": {
+    "list_filter": {}
+  },
+  "bindings": [
+    {"context": "ochazuke.list/list_filter", "bindings": {
+      "printable": {"action": "ochazuke.list.filter-type", "from": {"text": "text"}, "hidden": true},
+      "paste": {"action": "ochazuke.list.filter-type", "from": {"text": "text"}, "hidden": true},
+      "space": {"action": "ochazuke.list.filter-type", "args": {"text": " "}, "hidden": true},
+      "backspace": [{"action": "ochazuke.list.filter-keep", "when": "list-unfiltered", "hidden": true}, {"action": "ochazuke.list.filter-erase", "hidden": true}],
+      "ctrl+h": [{"action": "ochazuke.list.filter-keep", "when": "list-unfiltered", "hidden": true}, {"action": "ochazuke.list.filter-erase", "hidden": true}],
+      "ctrl+u": {"action": "ochazuke.list.filter", "args": {"query": ""}, "hidden": true},
+      "down": {"action": "ochazuke.list.move", "args": {"clamp": true, "delta": 1}},
+      "ctrl+n": {"action": "ochazuke.list.move", "args": {"clamp": true, "delta": 1}},
+      "up": {"action": "ochazuke.list.move", "args": {"clamp": true, "delta": -1}},
+      "ctrl+p": {"action": "ochazuke.list.move", "args": {"clamp": true, "delta": -1}},
+      "enter": [{"action": "ochazuke.list.filter-choose", "when": "list-chooses"}, "ochazuke.list.filter-keep"],
+      "esc": "ochazuke.list.filter-clear"
+    }},
+    {"context": "ochazuke.list/normal", "bindings": {
+      "V": {"action": "ochazuke.list.visual", "hidden": true},
+      "esc": [{"action": "ochazuke.list.end-visual", "when": "list-visual"}, "ochazuke.list.filter-clear"]
+    }}
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "bindings": [
+    {"context": "ochazuke.binding/normal", "bindings": {
+      "enter": {"action": "ochazuke.outline.fold", "when": "help-tree", "hidden": true}
+    }},
+    {"context": "ochazuke.bindings-help/normal", "bindings": {
+      "S": {"action": "ochazuke.bindings-help.view", "hint": "view"},
+      "n": {"action": "ochazuke.bindings-help.noun", "hint": "noun"},
+      "m": {"action": "ochazuke.bindings-help.mode", "hint": "mode"},
+      "p": {"action": "ochazuke.bindings-help.place", "hint": "place"}
+    }}
+  ]
+}

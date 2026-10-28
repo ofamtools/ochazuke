@@ -363,12 +363,6 @@ func (r *Runtime) edgeList(focus string) *List {
 }
 
 func registerColumnMotions(r *Runtime) {
-	steps := func(delta int) Binding {
-		return Do("ochazuke.list.scroll-columns", Arguments{"delta": delta}).FromPayload("steps", SourceCount)
-	}
-	r.Define("ochazuke.list").Mode("normal").
-		Bind("z l", steps(1)).
-		Bind("z h", steps(-1))
 	r.DefineGuard("table-scrolls", func(r *Runtime, ev KeyEvent) bool {
 		l := r.focusedList(ev.Focus)
 		return l != nil && l.columnsScroll()

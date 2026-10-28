@@ -28,11 +28,6 @@ type MacroState struct {
 // mode is a quiet normal (the shadow-idle guard) and is recorded otherwise.
 // The rows are Requests on the app noun like every other row.
 func registerMacros(r *Runtime) {
-	r.DefineMode("macro_recording", true)
-	r.Define("app").Mode("macro_recording").
-		Bind("q", Do("ochazuke.macro.stop")).When("shadow-idle").
-		Pattern(Any, Do("ochazuke.macro.record").FromKey("key")).
-		Pattern(Paste, Do("ochazuke.macro.record", Arguments{"paste": true}).FromKey("key"))
 	keyParams := map[string]Parameter{
 		"key":   {Type: "string", Required: true, Description: "Key name as bindings spell it; for a paste, the bracketed text"},
 		"paste": {Type: "boolean", Description: "The key is pasted text"},

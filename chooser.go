@@ -128,18 +128,7 @@ func registerChooser(r *Runtime) {
 				return Failed(err)
 			}
 			return Done(nil)
-		}), "Close without choosing").
-		Mode("").
-		Bind("enter", Do("ochazuke.chooser.pick")).
-		Bind("esc", Do("ochazuke.chooser.cancel")).
-		Bind("down", Do("ochazuke.chooser.move", Arguments{"delta": 1})).
-		Bind("ctrl+j", Do("ochazuke.chooser.move", Arguments{"delta": 1})).
-		Bind("ctrl+n", Do("ochazuke.chooser.move", Arguments{"delta": 1})).
-		Bind("up", Do("ochazuke.chooser.move", Arguments{"delta": -1})).
-		Bind("ctrl+p", Do("ochazuke.chooser.move", Arguments{"delta": -1})).
-		Bind("ctrl+k", Do("ochazuke.chooser.move", Arguments{"delta": -1})).
-		Pattern(Printable, Do("ochazuke.input.insert").FromPayload("text", SourceText)).
-		Pattern(Paste, Do("ochazuke.input.insert").FromPayload("text", SourceText))
+		}), "Close without choosing")
 	move := r.Operations["ochazuke.chooser.move"]
 	move.Parameters = map[string]Parameter{"delta": {Type: "integer", Required: true}}
 	r.Operations["ochazuke.chooser.move"] = move

@@ -1184,24 +1184,7 @@ func registerTrees(r *Runtime) {
 		Verb("redo", edit(func(t *Tree, c Ctx) error { return t.history(true) }), "Redo the last undone change").When("tree-editable").
 		Verb("paste", edit(func(t *Tree, c Ctx) error { return t.paste(c.Context, StringArg(c.Args, "text", "")) }), "Add pasted lines below the node, nested by their indent").When("tree-editable").
 		Verb("leave", edit(func(t *Tree, c Ctx) error { return t.closeLine(true) }), "Leave the line: it is written, never discarded").When("tree-editable").
-		Verb("next", edit(func(t *Tree, c Ctx) error { return t.add(c.Context, "below") }), "Write the line and start a new one below it").When("tree-editable").
-		Mode("normal").
-		Bind("l", Do("ochazuke.outline.expand")).
-		Bind("right", Do("ochazuke.outline.expand")).
-		Bind("h", Do("ochazuke.outline.collapse")).
-		Bind("left", Do("ochazuke.outline.collapse")).
-		Bind("o", Do("ochazuke.outline.add", Arguments{"where": "below"})).
-		Bind("O", Do("ochazuke.outline.add", Arguments{"where": "above"})).
-		Bind("a", Do("ochazuke.outline.add", Arguments{"where": "child"})).
-		Bind("i", Do("ochazuke.outline.edit")).
-		Bind("tab", Do("ochazuke.outline.indent")).
-		Bind("shift+tab", Do("ochazuke.outline.outdent")).
-		Bind("J", Do("ochazuke.outline.move", Arguments{"delta": 1})).
-		Bind("K", Do("ochazuke.outline.move", Arguments{"delta": -1})).
-		Bind("d d", Do("ochazuke.outline.delete")).
-		Bind("u", Do("ochazuke.outline.undo")).
-		Bind("ctrl+r", Do("ochazuke.outline.redo")).
-		Pattern(Paste, Do("ochazuke.outline.paste").FromPayload("text", SourceText))
+		Verb("next", edit(func(t *Tree, c Ctx) error { return t.add(c.Context, "below") }), "Write the line and start a new one below it").When("tree-editable")
 	params := map[string]map[string]Parameter{
 		"add":   {"where": {Type: "string", Enum: []string{"below", "above", "child"}}},
 		"move":  {"delta": {Type: "integer", Required: true}},
@@ -1212,11 +1195,5 @@ func registerTrees(r *Runtime) {
 		op.Parameters = p
 		r.Operations["ochazuke.outline."+verb] = op
 	}
-	r.Define(TreeRowNoun).Mode("normal").Bind("enter", Do("ochazuke.outline.fold"))
-	r.Define("ochazuke.outline-line").Mode("insert").
-		Bind("esc", Do("ochazuke.outline.leave")).
-		Bind("enter", Do("ochazuke.outline.next")).
-		Bind("tab", Do("ochazuke.outline.indent")).
-		Bind("shift+tab", Do("ochazuke.outline.outdent")).
-		Pattern(Paste, Do("ochazuke.outline.paste").FromPayload("text", SourceText))
+	r.Define(TreeRowNoun)
 }

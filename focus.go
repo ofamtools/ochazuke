@@ -796,21 +796,10 @@ func registerFocus(r *Runtime) {
 		err := r.SetFocus(StringArg(a, "id", ""))
 		return r.Context(), err
 	}})
-	// Owner defaults: } { move stop to stop, ) ( region to region, tab and
-	// shift+tab stop to stop; all take a count (the app's count_pending
-	// extends normal). An inner level (a multiline editor's insert table, a
-	// palette field) binds its own.
-	steps := func(op string, args ...Arguments) Binding {
-		return Do(op, args...).FromPayload("steps", SourceCount)
-	}
-	region := Arguments{"scope": "region"}
-	r.Define("app").Mode("normal").
-		Bind("}", steps("ochazuke.focus.next")).
-		Bind("{", steps("ochazuke.focus.previous")).
-		Bind(")", steps("ochazuke.focus.next", region)).
-		Bind("(", steps("ochazuke.focus.previous", region)).
-		Bind("tab", steps("ochazuke.focus.next")).
-		Bind("shift+tab", steps("ochazuke.focus.previous"))
+	// Owner defaults (bindings/focus.json): } { move stop to stop, ) (
+	// region to region, tab and shift+tab stop to stop; all take a count
+	// (the app's count_pending extends normal). An inner level (a multiline
+	// editor's insert table, a palette field) binds its own.
 }
 
 // placedIn reports whether page's last frame placed instance id (Placed or

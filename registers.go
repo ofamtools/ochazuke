@@ -1,7 +1,6 @@
 package ochazuke
 
 import (
-	_ "embed"
 	"errors"
 	"strings"
 
@@ -24,12 +23,6 @@ type Registers struct {
 	Macro     MacroState
 	selection int // the yank-history modal's highlighted row
 }
-
-// registersSpec is the app noun's register and macro rows as data, in the
-// same shape as editor_bindings.json.
-//
-//go:embed registers_bindings.json
-var registersSpec []byte
 
 func registerRegisters(r *Runtime) {
 	inst := r.Instance(registersID, Kind("ochazuke.registers"))

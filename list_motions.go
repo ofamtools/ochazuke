@@ -73,23 +73,6 @@ func (l *List) page(rows int) {
 
 func registerListMotions(r *Runtime) {
 	registerColumnMotions(r)
-	goTo := func(position string) Binding {
-		return Do("ochazuke.list.goto", Arguments{"position": position}).FromPayload("row", SourceLine)
-	}
-	page := func(delta int, half bool) Binding {
-		args := Arguments{"delta": delta}
-		if half {
-			args["half"] = true
-		}
-		return Do("ochazuke.list.scroll", args).FromPayload("steps", SourceLine)
-	}
-	r.Define("ochazuke.list").Mode("normal").
-		Bind("g g", goTo("first")).
-		Bind("G", goTo("last")).
-		Bind("ctrl+d", page(1, true)).
-		Bind("ctrl+u", page(-1, true)).
-		Bind("ctrl+f", page(1, false)).
-		Bind("ctrl+b", page(-1, false))
 	resolve := func(c Context, args Arguments) (*List, error) {
 		if id := StringArg(args, "id", ""); id != "" {
 			if list := r.List(id); list != nil {

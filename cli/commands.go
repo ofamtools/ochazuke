@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"fmt"
 	"os/exec"
@@ -39,6 +40,12 @@ type CommandSource interface {
 	// tool's own command line would run it.
 	Command(name string, args []string) (*exec.Cmd, error)
 }
+
+// defaultBindings are the command noun's keys: the one place they are
+// written.
+//
+//go:embed bindings.json
+var defaultBindings []byte
 
 // CommandNoun is the noun of every Commands row.
 const CommandNoun = "ochazuke.command"
@@ -185,11 +192,7 @@ func (c *Commands) register() {
 		Verb("run", c.runVerb, "Run a command in a terminal on the page and attach to it (attach again while it runs)").Positional("name", "args").
 		Verb("help", c.helpVerb, "Show a command's help text in the detail").Positional("name").
 		Verb("which", c.whichVerb, "Report where a command comes from and what it shadows").Positional("name").
-		Verb("stop", c.stopVerb, "End a command's run: hang up its process group and close its terminal").Positional("name").Confirm("Stop {{label}}?").When(commandHasRun).
-		Mode("normal").
-		Bind("enter", ochazuke.Do("ochazuke.command.run")).
-		Bind("i", ochazuke.Do("ochazuke.command.help")).
-		Bind("x", ochazuke.Do("ochazuke.command.stop"))
+		Verb("stop", c.stopVerb, "End a command's run: hang up its process group and close its terminal").Positional("name").Confirm("Stop {{label}}?").When(commandHasRun)
 	for key, params := range map[string]map[string]ochazuke.Parameter{
 		"ochazuke.command.run":   {"name": name, "args": {Type: "string", Description: "Arguments, split on spaces"}},
 		"ochazuke.command.help":  {"name": name},
@@ -200,6 +203,7 @@ func (c *Commands) register() {
 		op.Parameters = params
 		r.Operations[key] = op
 	}
+	r.MustLoadDefaultBindings(ochazuke.FrameworkBindingsSource+"cli/bindings.json", defaultBindings)
 }
 
 // nameOf is the command a verb addresses: its name argument, else the

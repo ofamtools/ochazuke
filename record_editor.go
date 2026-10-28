@@ -933,53 +933,13 @@ func registerForms(r *Runtime) {
 		Verb("next", on(func(e *RecordEditor, _ Context, a Arguments) error { return e.move(1, boolArg(a, "insert")) }), "Focus the next field; the field left is written").Motion().
 		Verb("previous", on(func(e *RecordEditor, _ Context, a Arguments) error { return e.move(-1, boolArg(a, "insert")) }), "Focus the previous field; the field left is written").Motion().
 		Verb("choose", on(func(e *RecordEditor, c Context, _ Arguments) error { return e.choose(e.fieldOn(focusOf(c))) }), "Choose the field's value from its choices").
-		Verb("suggest", on(func(e *RecordEditor, c Context, _ Arguments) error { return e.suggest(e.fieldOn(focusOf(c))) }), "Fill the field from its suggestions; typing stays free").
-		Mode("normal").
-		Bind("q", Do("ochazuke.form.leave")).
-		Bind("esc", Do("ochazuke.form.leave")).
-		Bind("u", Do("ochazuke.form.undo")).
-		Bind("ctrl+r", Do("ochazuke.form.redo"))
+		Verb("suggest", on(func(e *RecordEditor, c Context, _ Arguments) error { return e.suggest(e.fieldOn(focusOf(c))) }), "Fill the field from its suggestions; typing stays free")
 	for _, verb := range []string{"next", "previous"} {
 		op := r.Operations[FormNoun+"."+verb]
 		op.Parameters = insert
 		r.Operations[FormNoun+"."+verb] = op
 	}
-	r.Define(FormFieldNoun).
-		Mode("normal").
-		Bind("j", Do("ochazuke.form.next")).
-		Bind("down", Do("ochazuke.form.next")).
-		Bind("k", Do("ochazuke.form.previous")).
-		Bind("up", Do("ochazuke.form.previous")).
-		Mode("insert").
-		Bind("enter", Do("ochazuke.form.next", Arguments{"insert": true})).
-		Bind("tab", Do("ochazuke.form.next", Arguments{"insert": true})).
-		Bind("shift+tab", Do("ochazuke.form.previous", Arguments{"insert": true}))
-	r.Define(FormSuggestNoun).
-		Mode("normal").
-		Bind("j", Do("ochazuke.form.next")).
-		Bind("down", Do("ochazuke.form.next")).
-		Bind("k", Do("ochazuke.form.previous")).
-		Bind("up", Do("ochazuke.form.previous")).
-		Bind("enter", Do("ochazuke.form.suggest")).
-		Bind("ctrl+space", Do("ochazuke.form.suggest")).
-		Mode("insert").
-		Bind("enter", Do("ochazuke.form.next", Arguments{"insert": true})).
-		Bind("tab", Do("ochazuke.form.next", Arguments{"insert": true})).
-		Bind("shift+tab", Do("ochazuke.form.previous", Arguments{"insert": true})).
-		Bind("ctrl+space", Do("ochazuke.form.suggest"))
-	r.Define(FormTextNoun).
-		Mode("insert").
-		Bind("tab", Do("ochazuke.form.next", Arguments{"insert": true})).
-		Bind("shift+tab", Do("ochazuke.form.previous", Arguments{"insert": true}))
-	r.Define(FormChoiceNoun).Focusable().
-		Mode("normal").
-		Bind("j", Do("ochazuke.form.next")).
-		Bind("down", Do("ochazuke.form.next")).
-		Bind("k", Do("ochazuke.form.previous")).
-		Bind("up", Do("ochazuke.form.previous")).
-		Bind("enter", Do("ochazuke.form.choose")).
-		Bind("space", Do("ochazuke.form.choose")).
-		Bind("i", Do("ochazuke.form.choose"))
+	r.Define(FormChoiceNoun).Focusable()
 	r.Define(FormOptionNoun).
 		Verb("pick", func(r *Runtime, c Context, _ Arguments) (any, error) {
 			inst := r.Instances[focusOf(c)]
@@ -989,11 +949,7 @@ func registerForms(r *Runtime) {
 			}
 			v, _ := inst.Data.(string)
 			return v, chooser.editor.pick(chooser.field, v)
-		}, "Set the field to this choice; written at once").
-		Mode("normal").
-		Bind("enter", Do("ochazuke.form-option.pick")).
-		Bind("space", Do("ochazuke.form-option.pick")).
-		Bind("q", Do("ochazuke.modal.pop"))
+		}, "Set the field to this choice; written at once")
 }
 
 func boolArg(a Arguments, name string) bool {

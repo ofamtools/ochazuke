@@ -656,6 +656,10 @@ func deliver(r *ochazuke.Runtime, cmd tea.Cmd, seen func(ochazuke.Completion)) e
 // anything else indented.
 func (s *Shell) print(value any) error {
 	w := s.stdout()
+	if text, ok := value.(ochazuke.Verbatim); ok {
+		_, err := io.WriteString(w, string(text))
+		return err
+	}
 	if lines, ok := value.(Lines); ok {
 		bw := bufio.NewWriter(w)
 		for _, line := range lines {

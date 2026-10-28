@@ -193,19 +193,7 @@ func registerSettingsEditor(r *Runtime) {
 			}
 			return nil, openItemPrompt(r, *one, -1, len(r.Settings().Strings(one.Name)))
 		}, "Add an item at the end of a list setting").
-		Verb("reset", reset, "Reset the setting to its default").
-		Mode("normal").
-		Bind("enter", Do("ochazuke.setting.edit")).
-		// One hint for every step key: h/l setting.cycle.
-		Bind("l", Do("ochazuke.setting.cycle", Arguments{"step": 1}).Guard("setting-steps").Hide()).
-		Bind("right", Do("ochazuke.setting.cycle", Arguments{"step": 1}).Guard("setting-steps").Hide()).
-		Bind("space", Do("ochazuke.setting.cycle", Arguments{"step": 1}).Guard("setting-steps").Hide()).
-		Bind("h", Do("ochazuke.setting.cycle", Arguments{"step": -1}).Guard("setting-steps").Hinted("h/l setting.cycle")).
-		Bind("left", Do("ochazuke.setting.cycle", Arguments{"step": -1}).Guard("setting-steps").Hide()).
-		Bind("n", Do("ochazuke.setting.add").Guard("setting-list")).
-		Bind("r", Do("ochazuke.setting.reset")).
-		Bind("backspace", Do("ochazuke.setting.reset").Hide()).
-		Bind("delete", Do("ochazuke.setting.reset").Hide())
+		Verb("reset", reset, "Reset the setting to its default")
 	item := func(c Context) (*Setting, settingItemRef, error) {
 		inst := r.Instances[focusOf(c)]
 		if inst == nil || inst.Noun != settingItemNoun {
@@ -270,22 +258,7 @@ func registerSettingsEditor(r *Runtime) {
 				_ = r.SetFocus(settingRowPrefix + one.Name)
 			}
 			return r.Settings().Get(one.Name)
-		}, "Reset the whole list to its default").
-		Mode("normal").
-		Bind("enter", Do("ochazuke.setting-item.edit").Hinted("enter/i setting-item.edit")).
-		Bind("i", Do("ochazuke.setting-item.edit").Hide()).
-		Bind("n", Do("ochazuke.setting-item.add")).
-		Bind("d d", Do("ochazuke.setting-item.delete")).
-		Bind("r", Do("ochazuke.setting-item.reset"))
-	r.Define(settingsPageNoun).Mode("normal").
-		Bind("tab", Do("ochazuke.settings.section", Arguments{"step": 1})).
-		Bind("]", Do("ochazuke.settings.section", Arguments{"step": 1}).Hide()).
-		Bind("shift+tab", Do("ochazuke.settings.section", Arguments{"step": -1}).Hide()).
-		Bind("[", Do("ochazuke.settings.section", Arguments{"step": -1}).Hide()).
-		Bind("u", Do("ochazuke.settings.undo").Guard("settings-undo")).
-		Bind("ctrl+z", Do("ochazuke.settings.undo").Guard("settings-undo").Hide()).
-		Bind("q", Do("ochazuke.settings.close")).
-		Bind("esc", Do("ochazuke.settings.close"))
+		}, "Reset the whole list to its default")
 	r.Define("ochazuke.setting-value").Pin("insert").
 		Verb("commit", func(r *Runtime, c Context, a Arguments) (any, error) {
 			body := r.Instances[r.TopModal()]
@@ -314,11 +287,10 @@ func registerSettingsEditor(r *Runtime) {
 				return nil, errors.New("no setting prompt is open")
 			}
 			return nil, r.Pop()
-		}, "Close the prompt and keep the value").
-		Mode("insert").
-		Bind("enter", Do("ochazuke.setting-value.commit")).
-		Bind("esc", Do("ochazuke.setting-value.cancel"))
+		}, "Close the prompt and keep the value")
 	r.Settings().Observe("", func(string, any) { refreshSettingsPage(r) })
+	// bindings/settings-editor.json: one hint for every step key (h/l
+	// setting.cycle).
 }
 
 // commitSettingPrompt applies the prompt's text: the value of a setting,

@@ -83,21 +83,12 @@ func newPalette(r *Runtime) *Palette {
 	register("run", "Run the line or append the highlighted completion; a short line names its first missing word", nil, func(Arguments) error { return p.run() })
 	register("cancel", "Clear the command line, or close it when it is empty", nil, func(Arguments) error { return p.cancel() })
 	register("recall", "Replace the line with an earlier palette command from the action history: 1 older, -1 newer", map[string]Parameter{"delta": {Type: "integer", Required: true}}, func(a Arguments) error { return p.recallLine(IntArg(a, "delta", 0)) })
-	// The palette's keys, all on its own noun: the line beneath is an
-	// ordinary prompt, so the editor's Readline rows answer the rest.
-	// Printable text has its own row so an application's any-mode row
-	// cannot steal typing.
-	r.Define("ochazuke.palette").Focusable().Mode("").
-		Bind("enter", Do("ochazuke.palette.run")).
-		Bind("tab", Do("ochazuke.palette.complete")).
-		Bind("ctrl+n", Do("ochazuke.palette.move", Arguments{"delta": 1})).
-		Bind("ctrl+p", Do("ochazuke.palette.move", Arguments{"delta": -1})).
-		Bind("up", Do("ochazuke.palette.recall", Arguments{"delta": 1})).
-		Bind("down", Do("ochazuke.palette.recall", Arguments{"delta": -1})).
-		Bind("esc", Do("ochazuke.palette.cancel")).
-		Bind("ctrl+c", Do("ochazuke.palette.close")).
-		Pattern(Printable, Do("ochazuke.input.insert").FromPayload("text", SourceText)).
-		Pattern(Paste, Do("ochazuke.input.insert").FromPayload("text", SourceText))
+	// The palette's keys (bindings/palette.json), all on its own noun: the
+	// line beneath is an ordinary prompt, so the editor's Readline rows
+	// answer the rest. Printable text has its own row so an application's
+	// any-mode row cannot steal typing.
+	r.Define("ochazuke.palette").Focusable()
+	r.loadFrameworkBindings("palette.json")
 	return p
 }
 

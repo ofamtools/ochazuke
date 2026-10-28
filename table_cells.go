@@ -343,10 +343,8 @@ func registerTableCells(r *Runtime) {
 		l := r.edgeList(ev.Focus)
 		return l != nil && l.cellMode() && !l.atColumnEdge(-1)
 	})
-	column := func(args Arguments) Binding { return Do("ochazuke.list.column", args) }
-	steps := func(verb string, delta int) Binding {
-		return Do(verb, Arguments{"delta": delta}).FromPayload("steps", SourceCount)
-	}
+	// The rows are bindings/table.json.
+	//
 	// h and l (and the arrows) scroll, then move the focus: per key, in
 	// this order, the first row whose guard holds answers (a failed guard
 	// falls through to the next row): a cell-mode table's column move
@@ -356,37 +354,9 @@ func registerTableCells(r *Runtime) {
 	// first stop) the clamped move, which leaves everything as it is.
 	// None of them answers on a tree's list (edgeList): the tree's own h/l
 	// collapse and expand.
-	b := r.Define("ochazuke.list").Mode("normal")
-	edge := func(key string, delta int) {
-		dir, spill := "right", "ochazuke.focus.next"
-		if delta < 0 {
-			dir, spill = "left", "ochazuke.focus.previous"
-		}
-		b.Bind(key, steps("ochazuke.list.column", delta).Guard("table-column-"+dir)).
-			Bind(key, steps("ochazuke.list.scroll-columns", delta).Guard("table-scrolls-"+dir)).
-			Bind(key, Do(spill).Guard("table-spills-"+dir)).
-			Bind(key, steps("ochazuke.list.column", delta).Guard("table-cells")).
-			Bind(key, steps("ochazuke.list.scroll-columns", delta).Guard("table-scrolls-clamp"))
-	}
-	edge("h", -1)
-	edge("left", -1)
-	edge("l", 1)
-	edge("right", 1)
-	b.Bind("home", column(Arguments{"to": "first"}).Guard("table-cells")).
-		Bind("end", column(Arguments{"to": "last"}).Guard("table-cells")).
-		Bind("$", column(Arguments{"to": "last"}).Guard("table-cells")).
-		Bind("^", column(Arguments{"to": "first"}).Guard("table-cells")).
-		Bind("0", column(Arguments{"to": "first"}).Guard("no-count")).
-		Bind("|", Do("ochazuke.list.column").FromPayload("index", SourceCount).Guard("table-cells")).
-		Bind("g c", Do("ochazuke.list.choose-column")).
-		Bind("y", Do("ochazuke.list.yank", Arguments{"what": "cell"}).Guard("table-cells").Hide()).
-		Bind("Y", Do("ochazuke.list.yank", Arguments{"what": "row"}).Hide()).
-		Bind("z >", steps("ochazuke.list.resize-column", 1).Hide()).
-		Bind("z <", steps("ochazuke.list.resize-column", -1).Hide()).
-		Bind("z =", Do("ochazuke.list.reset-columns").Guard("table-cells").Hide()).
-		Bind("z p", Do("ochazuke.list.toggle-pin-column").Guard("table-cells").Hide())
+	//
 	// A row-select table's $, ^ and 0 scroll its columns (verb guard
-	// table-scrolls), after the cell rows above: on a cell table those
+	// table-scrolls), after each key's cell row: on a cell table those
 	// answer, here the list.column rows are guarded off. 0's row needs a
 	// guard of its own (row-table-no-count): a row with the same keys and
 	// guard would replace the cell row.
@@ -394,11 +364,6 @@ func registerTableCells(r *Runtime) {
 		l := r.focusedList(ev.Focus)
 		return (l == nil || !l.cellMode()) && r.guard("no-count")(r, ev)
 	})
-	scroll := func(args Arguments) Binding { return Do("ochazuke.list.scroll-columns", args) }
-	r.Define("ochazuke.list").Mode("normal").
-		Bind("$", scroll(Arguments{"to": "last"})).
-		Bind("^", scroll(Arguments{"to": "first"})).
-		Bind("0", scroll(Arguments{"to": "first"}).Guard("row-table-no-count"))
 	guards := r.Nouns["ochazuke.list"].Guards
 	for _, verb := range []string{"column", "choose-column", "resize-column"} {
 		guards[verb] = "table-cells"

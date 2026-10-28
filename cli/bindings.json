@@ -1,0 +1,9 @@
+{
+  "bindings": [
+    {"context": "ochazuke.command/normal", "bindings": {
+      "enter": "ochazuke.command.run",
+      "i": "ochazuke.command.help",
+      "x": "ochazuke.command.stop"
+    }}
+  ]
+}

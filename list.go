@@ -586,17 +586,9 @@ func windowOffset(offset, selected, visible, total, margin int) int {
 
 func registerLists(r *Runtime) {
 	// j/k take a count (3j): the list's count_pending extends its normal
-	// table, so these rows answer with the count in the payload.
-	move := func(delta int) Binding {
-		return Do("ochazuke.list.move", Arguments{"delta": delta}).FromPayload("steps", SourceCount)
-	}
-	r.Define("ochazuke.list").Focusable().Mode("normal").
-		Bind("j", move(1)).
-		Bind("down", move(1)).
-		Bind("k", move(-1)).
-		Bind("up", move(-1)).
-		Bind("space", Do("ochazuke.list.mark")).
-		Mode("count_pending").Extends("normal")
+	// table (bindings/list.json), so its rows answer with the count in the
+	// payload.
+	r.Define("ochazuke.list").Focusable()
 	// list.mark is guarded off on a list added with NoMarks, so space does
 	// not answer there and no hint offers it.
 	r.DefineGuard("list-marks", func(r *Runtime, ev KeyEvent) bool {

@@ -1,0 +1,16 @@
+{
+  "bindings": [
+    {"context": "ochazuke.palette", "bindings": {
+      "enter": "ochazuke.palette.run",
+      "tab": "ochazuke.palette.complete",
+      "ctrl+n": {"action": "ochazuke.palette.move", "args": {"delta": 1}},
+      "ctrl+p": {"action": "ochazuke.palette.move", "args": {"delta": -1}},
+      "up": {"action": "ochazuke.palette.recall", "args": {"delta": 1}},
+      "down": {"action": "ochazuke.palette.recall", "args": {"delta": -1}},
+      "esc": "ochazuke.palette.cancel",
+      "ctrl+c": "ochazuke.palette.close",
+      "printable": {"action": "ochazuke.input.insert", "from": {"text": "text"}},
+      "paste": {"action": "ochazuke.input.insert", "from": {"text": "text"}}
+    }}
+  ]
+}

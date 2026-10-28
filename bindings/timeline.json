@@ -1,0 +1,48 @@
+{
+  "bindings": [
+    {"context": "ochazuke.timeline/normal", "bindings": {
+      "enter": "ochazuke.timeline.toggle",
+      "space": {"action": "ochazuke.timeline.toggle", "hidden": true},
+      "l": [{"action": "ochazuke.timeline.open", "when": "timeline-card-closed"}, {"action": "ochazuke.timeline.enter", "when": "timeline-card-open"}],
+      "right": [{"action": "ochazuke.timeline.open", "when": "timeline-card-closed", "hidden": true}, {"action": "ochazuke.timeline.enter", "when": "timeline-card-open", "hidden": true}],
+      "h": [{"action": "ochazuke.timeline.leave", "when": "timeline-card-closed"}, {"action": "ochazuke.timeline.close", "when": "timeline-card-open"}],
+      "left": [{"action": "ochazuke.timeline.leave", "when": "timeline-card-closed", "hidden": true}, {"action": "ochazuke.timeline.close", "when": "timeline-card-open", "hidden": true}],
+      "z o": {"action": "ochazuke.timeline.open", "hidden": true},
+      "z c": {"action": "ochazuke.timeline.close", "hidden": true},
+      "z a": {"action": "ochazuke.timeline.toggle", "hidden": true},
+      "z R": "ochazuke.timeline.open-all",
+      "z M": "ochazuke.timeline.close-all",
+      "J": {"action": "ochazuke.timeline.scroll", "args": {"lines": 1}, "from": {"count": "count"}, "hint": "J/K scroll"},
+      "K": {"action": "ochazuke.timeline.scroll", "args": {"lines": -1}, "from": {"count": "count"}, "hidden": true},
+      "ctrl+e": {"action": "ochazuke.timeline.scroll", "args": {"lines": 1}, "from": {"count": "count"}, "hidden": true},
+      "ctrl+y": {"action": "ochazuke.timeline.scroll", "args": {"lines": -1}, "from": {"count": "count"}, "hidden": true},
+      "z 1": {"action": "ochazuke.timeline.fold", "args": {"section": "1"}, "hint": "fold section"},
+      "z 2": {"action": "ochazuke.timeline.fold", "args": {"section": "2"}, "hidden": true},
+      "z 3": {"action": "ochazuke.timeline.fold", "args": {"section": "3"}, "hidden": true},
+      "z 4": {"action": "ochazuke.timeline.fold", "args": {"section": "4"}, "hidden": true},
+      "z 5": {"action": "ochazuke.timeline.fold", "args": {"section": "5"}, "hidden": true},
+      "z 6": {"action": "ochazuke.timeline.fold", "args": {"section": "6"}, "hidden": true},
+      "z 7": {"action": "ochazuke.timeline.fold", "args": {"section": "7"}, "hidden": true},
+      "z 8": {"action": "ochazuke.timeline.fold", "args": {"section": "8"}, "hidden": true},
+      "z 9": {"action": "ochazuke.timeline.fold", "args": {"section": "9"}, "hidden": true}
+    }},
+    {"context": "ochazuke.timeline-body/normal", "bindings": {
+      "j": {"action": "ochazuke.timeline.step", "args": {"delta": 1}, "from": {"count": "count"}},
+      "down": {"action": "ochazuke.timeline.step", "args": {"delta": 1}, "from": {"count": "count"}, "hidden": true},
+      "k": {"action": "ochazuke.timeline.step", "args": {"delta": -1}, "from": {"count": "count"}},
+      "up": {"action": "ochazuke.timeline.step", "args": {"delta": -1}, "from": {"count": "count"}, "hidden": true},
+      "l": "ochazuke.timeline.enter",
+      "right": {"action": "ochazuke.timeline.enter", "hidden": true},
+      "h": {"action": "ochazuke.timeline.fold-step", "when": "timeline-step-open"},
+      "left": {"action": "ochazuke.timeline.fold-step", "when": "timeline-step-open", "hidden": true}
+    }},
+    {"context": "ochazuke.timeline-body/normal", "bindings": {
+      "h": "ochazuke.timeline.leave",
+      "left": {"action": "ochazuke.timeline.leave", "hidden": true},
+      "esc": {"action": "ochazuke.timeline.leave", "hidden": true},
+      "y": "ochazuke.timeline.yank-step"
+    }},
+    {"context": "ochazuke.timeline-body/count_pending", "extends": "normal"},
+    {"context": "ochazuke.timeline/count_pending", "extends": "normal"}
+  ]
+}

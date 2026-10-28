@@ -621,6 +621,7 @@ func (m *ModeBuilder) Extends(parent string) *ModeBuilder {
 	} else {
 		m.n.Extends[m.mode] = parent
 	}
+	delete(m.r.defaults.extends, m.n.Name+"/"+m.mode)
 	m.r.CancelPendingBinding()
 	return m
 }
@@ -661,6 +662,7 @@ func (m *ModeBuilder) UnbindGuarded(keysOrPattern, guard string) *ModeBuilder {
 	if isPattern(keysOrPattern) {
 		probe.Keys, probe.Pattern = "", keysOrPattern
 	}
+	m.r.forgetDefaultSource(probe)
 	m.n.Bindings[m.mode] = withPrefixCancels(removeRows(m.n.Bindings[m.mode], probe))
 	m.last, m.displaced = len(m.n.Bindings[m.mode]), nil
 	return m
@@ -690,6 +692,7 @@ func (m *ModeBuilder) add(row Binding) *ModeBuilder {
 	row.Noun, row.Instance, row.Mode = m.n.Name, "", m.mode
 	row.Request = m.r.modernRequest(row.Request)
 	row = withImplicitGuard(row)
+	m.r.forgetDefaultSource(row)
 	rows, displaced := placeRow(m.n.Bindings[m.mode], row)
 	rows = withPrefixCancels(rows)
 	m.n.Bindings[m.mode], m.displaced = rows, displaced
@@ -789,13 +792,21 @@ func isPattern(s string) bool {
 // removed is on it: in its mode, with the keys typed so far, a sequence
 // extending them or one they extend. Such a row cancels the sequence, so
 // the next key starts fresh against the new tables.
-func (r *Runtime) Bind(rows ...Binding) error {
+func (r *Runtime) Bind(rows ...Binding) error { return r.bindRows(rows, true) }
+
+// bindRows is Bind; code is false for the user's file rows, which leave
+// the source of the default they replace alone (bindings defaults shows
+// that default again).
+func (r *Runtime) bindRows(rows []Binding, code bool) error {
 	for _, row := range rows {
 		row, err := r.validateRow(row)
 		if err != nil {
 			return err
 		}
 		row = withImplicitGuard(row)
+		if code {
+			r.forgetDefaultSource(row)
+		}
 		switch {
 		case row.Instance != "":
 			inst := r.Instances[row.Instance]

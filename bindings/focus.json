@@ -1,0 +1,12 @@
+{
+  "bindings": [
+    {"context": "app/normal", "bindings": {
+      "}": {"action": "ochazuke.focus.next", "from": {"steps": "count"}},
+      "{": {"action": "ochazuke.focus.previous", "from": {"steps": "count"}},
+      ")": {"action": "ochazuke.focus.next", "args": {"scope": "region"}, "from": {"steps": "count"}},
+      "(": {"action": "ochazuke.focus.previous", "args": {"scope": "region"}, "from": {"steps": "count"}},
+      "tab": {"action": "ochazuke.focus.next", "from": {"steps": "count"}},
+      "shift+tab": {"action": "ochazuke.focus.previous", "from": {"steps": "count"}}
+    }}
+  ]
+}

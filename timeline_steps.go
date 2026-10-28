@@ -672,23 +672,4 @@ func registerTimelineSteps(r *Runtime) {
 			return spec.run(t, c, args)
 		}})
 	}
-	step := func(delta int) Binding {
-		return Do(timelineNoun+".step", Arguments{"delta": delta}).FromPayload("count", SourceCount)
-	}
-	r.Define(TimelineBodyNoun).Mode("normal").
-		Bind("j", step(1)).
-		Bind("down", step(1).Hide()).
-		Bind("k", step(-1)).
-		Bind("up", step(-1).Hide()).
-		Bind("l", Do(timelineNoun+".enter")).
-		Bind("right", Do(timelineNoun+".enter").Hide()).
-		// h folds the open section the step is in, else goes back to the
-		// card (the guarded row answers first and falls through).
-		Bind("h", Do(timelineNoun+".fold-step").Guard("timeline-step-open")).
-		Bind("left", Do(timelineNoun+".fold-step").Guard("timeline-step-open").Hide()).
-		Bind("h", Do(timelineNoun+".leave")).
-		Bind("left", Do(timelineNoun+".leave").Hide()).
-		Bind("esc", Do(timelineNoun+".leave").Hide()).
-		Bind("y", Do(timelineNoun+".yank-step")).
-		Mode("count_pending").Extends("normal")
 }

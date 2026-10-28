@@ -1,0 +1,19 @@
+{
+  "modes": {
+    "terminal": {"passthrough": true},
+    "leader_pending": {"pending": true}
+  },
+  "bindings": [
+    {"context": "ochazuke.terminal/leader_pending", "bindings": {
+      "d": "ochazuke.terminal.detach",
+      "ctrl+a": {"action": "ochazuke.terminal.send", "args": {"keys": "ctrl+a"}},
+      "paste": {"action": "ochazuke.terminal.paste", "from": {"keys": "prefix", "text": "text"}, "hidden": true},
+      "any": {"action": "ochazuke.terminal.send", "from": {"keys": "prefix key"}, "hidden": true}
+    }},
+    {"context": "ochazuke.terminal/terminal", "bindings": {
+      "ctrl+a": {"action": "ochazuke.mode.enter", "args": {"mode": "leader_pending", "prefix": "ctrl+a", "request": {"verb": "send", "noun": "ochazuke.terminal", "args": {"keys": "ctrl+a"}}}, "hint": "leader: d detaches, ctrl+a sends ctrl+a"},
+      "paste": {"action": "ochazuke.terminal.paste", "from": {"text": "text"}, "hidden": true},
+      "any": {"action": "ochazuke.terminal.send", "from": {"keys": "key"}, "hidden": true}
+    }}
+  ]
+}

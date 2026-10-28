@@ -253,13 +253,8 @@ func registerDetail(r *Runtime) {
 			}
 			return d.Scroll(IntArg(a, "lines", 1) * max(1, IntArg(a, "count", 1))), nil
 		}})
-	// J and K on app, so every page has them and an inner noun's J or K
-	// (the outline's moves) answers first. One hint row: J reads
-	// "J/K detail" while the detail overflows; K stays off the footer.
-	scroll := func(lines int) Binding {
-		return Do(detailNoun+".scroll", Arguments{"lines": lines}).FromPayload("count", SourceCount).Guard("detail-scrolls")
-	}
-	r.Define("app").Mode("normal").
-		Bind("J", scroll(1).Hinted("J/K detail")).
-		Bind("K", scroll(-1).Hide())
+	// J and K on app (bindings/detail.json), so every page has them and an
+	// inner noun's J or K (the outline's moves) answers first. One hint
+	// row: J reads "J/K detail" while the detail overflows; K stays off the
+	// footer.
 }

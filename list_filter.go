@@ -198,7 +198,6 @@ func (r *Runtime) focusedList(focus string) *List {
 }
 
 func registerListFilter(r *Runtime) {
-	_ = r.DefineMode(ListFilterMode, false)
 	r.DefineGuard("list-filterable", func(r *Runtime, ev KeyEvent) bool { return r.focusedList(ev.Focus) != nil })
 	// list-filtered holds while the focused list has a filter or its line
 	// is open: filter-clear's verb guard, so esc in normal mode on an
@@ -228,25 +227,6 @@ func registerListFilter(r *Runtime) {
 		l := r.focusedList(ev.Focus)
 		return l != nil && l.query == ""
 	})
-	move := func(delta int) Binding { return Do("ochazuke.list.move", Arguments{"delta": delta, "clamp": true}) }
-	r.Define("ochazuke.list").Mode("normal").
-		Bind("esc", Do("ochazuke.list.filter-clear"))
-	r.Define("ochazuke.list").Mode(ListFilterMode).
-		Pattern(Printable, Do("ochazuke.list.filter-type").FromPayload("text", SourceText).Hide()).
-		Pattern(Paste, Do("ochazuke.list.filter-type").FromPayload("text", SourceText).Hide()).
-		Bind("space", Do("ochazuke.list.filter-type", Arguments{"text": " "}).Hide()).
-		Bind("backspace", Do("ochazuke.list.filter-erase").Hide()).
-		Bind("backspace", Do("ochazuke.list.filter-keep").Guard("list-unfiltered").Hide()).
-		Bind("ctrl+h", Do("ochazuke.list.filter-erase").Hide()).
-		Bind("ctrl+h", Do("ochazuke.list.filter-keep").Guard("list-unfiltered").Hide()).
-		Bind("ctrl+u", Do("ochazuke.list.filter", Arguments{"query": ""}).Hide()).
-		Bind("down", move(1)).
-		Bind("ctrl+n", move(1)).
-		Bind("up", move(-1)).
-		Bind("ctrl+p", move(-1)).
-		Bind("enter", Do("ochazuke.list.filter-choose").Guard("list-chooses")).
-		Bind("enter", Do("ochazuke.list.filter-keep")).
-		Bind("esc", Do("ochazuke.list.filter-clear"))
 
 	resolve := func(c Context, args Arguments) (*List, error) {
 		if id := StringArg(args, "id", ""); id != "" {

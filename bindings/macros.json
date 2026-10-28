@@ -1,0 +1,12 @@
+{
+  "modes": {
+    "macro_recording": {"pending": true}
+  },
+  "bindings": [
+    {"context": "app/macro_recording", "bindings": {
+      "q": {"action": "ochazuke.macro.stop", "when": "shadow-idle"},
+      "any": {"action": "ochazuke.macro.record", "from": {"key": "key"}},
+      "paste": {"action": "ochazuke.macro.record", "args": {"paste": true}, "from": {"key": "key"}}
+    }}
+  ]
+}

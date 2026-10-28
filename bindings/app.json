@@ -1,0 +1,22 @@
+{
+  "bindings": [
+    {"context": "app", "fallback": true, "bindings": {
+      "ctrl+space": "ochazuke.palette.open",
+      "ctrl+c": [{"action": "app.quit", "hidden": true}, {"action": "app.quit", "when": "no-modal", "hidden": true, "capture": true}],
+      "pgdown": {"action": "ochazuke.surface.scroll", "args": {"lines": 8}},
+      "pgup": {"action": "ochazuke.surface.scroll", "args": {"lines": -8}}
+    }},
+    {"context": "app/normal", "fallback": true, "bindings": {
+      ":": "ochazuke.palette.open",
+      "ctrl+y": {"action": "ochazuke.yank-history.open", "hidden": true},
+      "?": "ochazuke.bindings.help",
+      "'": {"action": "ochazuke.page.pick", "when": "no-modal"},
+      "ctrl+j": "ochazuke.page.next",
+      "ctrl+k": "ochazuke.page.previous",
+      "/": {"action": "ochazuke.list.filter-open", "when": "list-filterable", "hint": "filter"}
+    }},
+    {"context": "ochazuke.editor/insert", "fallback": true, "bindings": {
+      "ctrl+\\": {"action": "ochazuke.bindings.help", "hidden": true}
+    }}
+  ]
+}
