@@ -163,25 +163,25 @@ Root package `ochazuke` is flat: 77 source files, 78 test files. Each entry list
 
 ### help.go
 
-- lines: 252 · tests: help_test.go
+- lines: 315 · tests: help_test.go
 - purpose: registerBindingHelp adds bindings.help: a modal listing BindingHelp for the focus it opens over, one row per binding (key, noun.verb, arguments, description)...
-- leans on: model.go(15), noun.go(14), runtime.go(13), table.go(4)
+- leans on: noun.go(19), model.go(17), runtime.go(16), instance.go(6)
 
 ### help_modes.go
 
-- lines: 270 · tests: help_modes_test.go
+- lines: 273 · tests: help_modes_test.go
 - purpose: HelpStep is one key of a sequence as the help's steps show it: the key, and what it does at that point in the sequence: the pending mode it enters (Mode), wa...
 - types: HelpStep
 - methods: Runtime(4)
-- leans on: runtime.go(31), model.go(23), resolve.go(7), instance.go(5)
+- leans on: runtime.go(32), model.go(23), resolve.go(7), instance.go(5)
 
 ### help_views.go
 
-- lines: 711 · tests: help_views_test.go
+- lines: 727 · tests: help_views_test.go
 - purpose: HelpCell is one mode's rows for a key in the help's table view: the first answers, the ones after answer when its guard is false.
 - types: HelpCell, HelpKey
 - methods: Runtime(9), helpState(13)
-- leans on: runtime.go(49), noun.go(29), help.go(23), delivery.go(14)
+- leans on: runtime.go(49), noun.go(29), help.go(25), delivery.go(14)
 
 ### history.go
 
@@ -591,7 +591,7 @@ Root package `ochazuke` is flat: 77 source files, 78 test files. Each entry list
 
 ### tree.go
 
-- lines: 1219 · tests: tree_test.go
+- lines: 1222 · tests: tree_test.go
 - purpose: TreeNode is one node of a tree.
 - types: TreeNode, TreeChange, TreeDebounceMsg, TreeAction, Tree
 - methods: Runtime(3), Tree(54), TreeChange(1)

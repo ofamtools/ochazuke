@@ -46,9 +46,11 @@
     "modal": "bindings-help",
     "contains": [
       "enters loop:",
-      "L x x",
-      "L x y",
-      "L y"
+      "▾ L",
+      "▾ L x",
+      "▸ L x x",
+      "▸ L x y",
+      "▸ L y"
     ],
     "lacks": [
       "L x x x",

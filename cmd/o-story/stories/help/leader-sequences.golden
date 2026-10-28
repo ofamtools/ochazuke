@@ -1,0 +1,70 @@
+ |  ◆ o-story                                                                                NORMAL
+ |   › page1
+ |  ────────────────────────────────────────────────────────────────────────────────────────────────
+ |  a
+r|  a1
+ |  a2
+ |  pane (attached: ctrl+a d detaches)
+ |  fake pane: keys echo here; ctrl+a d detaches
+ |  $
+ |          ╭──────────────────────────────────────────────────────────────────────────────╮
+ |          │ Keys · here                                                                  │
+ |          │ key                operation           arguments          description        │
+ |          │ terminal                                                                     │
+ |          │   paste            terminal.paste      {"text":"$text"}   Paste text into    │
+ |          │                                                           the pane, after    │
+ |          │                                                           forwarding any     │
+ |          │                                                           keys given (the    │
+ |          │                                                           leader, under it)  │
+ |          │   any              terminal.send       {"keys":"$key"}    Forward key names, │
+ |          │                                                           in order, to the   │
+ |          │                                                           pane               │
+ |          │ ▾ ctrl+a           mode.enter          {"mode":"leader_…  enters             │
+ |          │                                                           leader_pending:    │
+ |          │                                                           waits for the next │
+ |          │                                                           key (3 keys);      │
+ |          │                                                           alone, after the   │
+ |          │                                                           timeout, terminal. │
+ |          │                                                           send ctrl+a        │
+ |          │   ▸ ctrl+a ?       bindings.help                          Open the keys the  │
+ |          │                                                           focus answers to,  │
+ |          │                                                           with the operation │
+ |          │                                                           each runs and its  │
+ |          │                                                           description        │
+R|          │   ▾ ctrl+a d       terminal.detach                        Return focus to    │
+R|          │                                                           the instance       │
+R|          │                                                           around the         │
+R|          │                                                           terminal; the pane │
+R|          │                                                           keeps running (a   │
+R|          │                                                           CloseOnDetach      │
+R|          │                                                           terminal is        │
+R|          │                                                           removed, its       │
+R|          │                                                           stream released    │
+R|          │                                                           and the focus sent │
+R|          │                                                           to its             │
+R|          │                                                           FocusOnClose       │
+R|          │                                                           target)            │
+ |          │       ctrl+a       mode.enter                             enters             │
+ |          │                                                           leader_pending:    │
+ |          │                                                           waits for the next │
+ |          │                                                           key                │
+ |          │       d            terminal.detach                        Return focus to    │
+ |          │                                                           the instance       │
+ |          │                                                           around the         │
+ |          │                                                           terminal; the pane │
+ |          │                                                           keeps running (a   │
+ |          │                                                           CloseOnDetach      │
+ |          │                                                           terminal is        │
+ |          │                                                           removed, its       │
+ |          │ 1–7 / 8                                                                      │
+ |          │ space list.mark · S view · esc modal.pop · : palette.open · ? bindings.help… │
+ |          ╰──────────────────────────────────────────────────────────────────────────────╯
+ |
+ |
+ |
+ |
+ |
+ |
+ |  ────────────────────────────────────────────────────────────────────────────────────────────────
+ |  space list.mark · S view · esc modal.pop · : palette.open · ? bindings.help · / filter
+ |

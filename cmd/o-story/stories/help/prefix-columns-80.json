@@ -1,8 +1,8 @@
 {
-  "name": "? help at 80 columns: every row's key is the whole sequence; a prefix has a row of its own (waits for the next key, with the count) and its sequences follow it sorted by key, a longer prefix's row under the one it extends (R6.10, R6.9, R6.7)",
+  "name": "? help at 80 columns: every row's key is the whole sequence; a prefix has a row of its own (waits for the next key, with the count), open, its sequences under it sorted by key, a longer prefix's row under the one it extends; each sequence closed on its steps (R6.10, R6.9, R6.7)",
   "area": "help",
   "width": 80,
-  "height": 60,
+  "height": 90,
   "page": {
     "lists": [
       {
@@ -54,38 +54,21 @@
     ]
   },
   "script": [
-    "?",
-    "j",
-    "j",
-    "j",
-    "j",
-    "j",
-    "j",
-    "j",
-    "j",
-    "j",
-    "j",
-    "j",
-    "j",
-    "j",
-    "j"
+    "?"
   ],
   "expect": [
     {
       "after": 1,
       "modal": "bindings-help",
       "contains": [
-        "z h",
-        "ctrl+a n",
-        "waits for the"
-      ]
-    },
-    {
-      "after": 15,
-      "modal": "bindings-help",
-      "contains": [
-        "ctrl+a v",
-        "ctrl+a esc"
+        "▾ z",
+        "▸ z h",
+        "▾ ctrl+a",
+        "▸ ctrl+a n",
+        "waits for"
+      ],
+      "lacks": [
+        "▸ z\n"
       ]
     }
   ]

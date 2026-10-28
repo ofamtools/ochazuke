@@ -1,20 +1,20 @@
  |  ◆ o-story                        NORMAL
  |   › page1
  |  ──╭─────────────────────────────────╮───
- |  a │ Keys · here                     │
-r|  a1│ key                          3› │
- |  a2│ demo                            │
-R|  b │ q                               │
-r|  b1│ r                               │
- |  b2│ enter                           │
- |    │ n                               │
- |    │ x                               │
- |    │ list                            │
- |    │ space                           │
- |    │ app                             │
- |    │ 1–6 / 39                        │
- |    │ space list.mark · S view · esc… │
+ |  a │ Keys · table                    │
+r|  a1│ noun: demo · place: page1 › de… │
+ |  a2│ key             normal       4› │
+R|  b │ $               list.colum…     │
+r|  b1│ 0               list.colum…     │
+ |  b2│ G               list.goto       │
+ |    │ V               list.visua…     │
+ |    │ Y               list.yank?      │
+ |    │ 1–5 / 69                        │
+ |    │ ─────────────────────────────── │
+ |    │ normal  list.column {"to":"las… │
+ |    │         then list.scroll-colum… │
+ |    │ space list.mark · S view · n n… │
  |    ╰─────────────────────────────────╯
  |  ────────────────────────────────────────
- |  space list.mark · S view · esc modal.po…
+ |  space list.mark · S view · n noun · p p…
  |

@@ -24,6 +24,9 @@ type TreeNode struct {
 	Data   any        `json:"data,omitempty"`
 	Cells  []string   `json:"cells,omitempty"`
 	Tones  []ToneSpan `json:"tones,omitempty"`
+	// Section is the label line drawn above a run of rows in one section
+	// (ListItem.Section); "" none.
+	Section string `json:"section,omitempty"`
 }
 
 // TreeChange is one committed edit of an outline: add, rename, move or
@@ -475,7 +478,7 @@ func (t *Tree) refresh(selectID string) error {
 			noun = TreeRowNoun
 		}
 		prefix := t.prefix(n)
-		item := ListItem{ID: n.ID, Label: prefix + n.Label, Noun: noun, Data: n.Data, Tones: shiftTones(n.Tones, utf8.RuneCountInString(prefix))}
+		item := ListItem{ID: n.ID, Label: prefix + n.Label, Noun: noun, Data: n.Data, Tones: shiftTones(n.Tones, utf8.RuneCountInString(prefix)), Section: n.Section}
 		if len(n.Cells) > 0 {
 			item.Cells = slices.Clone(n.Cells)
 			item.Cells[0] = prefix + item.Cells[0]

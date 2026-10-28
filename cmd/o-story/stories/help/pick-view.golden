@@ -6,31 +6,31 @@ r|  a1
  |  a2        ╭──────────────────────────────────────────────────────────────────────────────────────────────╮
  |            │ Keys · pick                                                                                  │
  |            │ noun: prompt · mode: insert · place: none                                                    │
- |            │ key         operation           arguments               description                          │
+ |            │ key           operation           arguments               description                        │
  |            │ app                                                                                          │
-R|            │ ctrl+c      app.quit ?                                  when no-modal · Exit the application │
- |            │ ctrl+space  palette.open                                Open the command line                │
- |            │ ctrl+c      app.quit                                    Exit the application                 │
+R|            │   ctrl+c      app.quit ?                                  when no-modal · Exit the           │
+R|            │                                                           application                        │
+ |            │   ctrl+space  palette.open                                Open the command line              │
+ |            │   ctrl+c      app.quit                                    Exit the application               │
  |            │ editor                                                                                       │
- |            │ esc         mode.set            {"mode":"normal"}       Set the global interaction mode (a   │
- |            │                                                         registered mode) and clear any       │
- |            │                                                         pending payload                      │
- |            │ tab         completion.open ?                           when completion-available · Offer    │
- |            │                                                         suggestions for the trigger token at │
- |            │                                                         the cursor now                       │
- |            │ ctrl+k      input.kill          {"motion":"line-end"}   Kill preceding WORD/path component   │
- |            │                                                         or line into shared yank history     │
- |            │ ctrl+u      input.kill          {"motion":"line-start…  Kill preceding WORD/path component   │
- |            │                                                         or line into shared yank history     │
- |            │ ctrl+w      input.kill          {"motion":"word-backw…  Kill preceding WORD/path component   │
- |            │                                                         or line into shared yank history     │
- |            │ ctrl+y      input.paste         {"before":true,"liter…  Paste a shared register preserving   │
- |            │                                                         its shape; literal inserts at cursor │
- |            │ backspace   input.delete        {"direction":"backwar…  Delete forward/backward runes        │
- |            │                                                         without crossing a normal-mode line  │
- |            │ ctrl+h      input.delete        {"direction":"backwar…  Delete forward/backward runes        │
- |            │                                                         without crossing a normal-mode line  │
- |            │ 1–11 / 34                                                                                    │
+ |            │   esc         mode.set            {"mode":"normal"}       Set the global interaction mode (a │
+ |            │                                                           registered mode) and clear any     │
+ |            │                                                           pending payload                    │
+ |            │   tab         completion.open ?                           when completion-available · Offer  │
+ |            │                                                           suggestions for the trigger token  │
+ |            │                                                           at the cursor now                  │
+ |            │   ctrl+k      input.kill          {"motion":"line-end"}   Kill preceding WORD/path component │
+ |            │                                                           or line into shared yank history   │
+ |            │   ctrl+u      input.kill          {"motion":"line-start…  Kill preceding WORD/path component │
+ |            │                                                           or line into shared yank history   │
+ |            │   ctrl+w      input.kill          {"motion":"word-backw…  Kill preceding WORD/path component │
+ |            │                                                           or line into shared yank history   │
+ |            │   ctrl+y      input.paste         {"before":true,"liter…  Paste a shared register preserving │
+ |            │                                                           its shape; literal inserts at      │
+ |            │                                                           cursor                             │
+ |            │   backspace   input.delete        {"direction":"backwar…  Delete forward/backward runes      │
+ |            │                                                           without crossing a normal-mode     │
+ |            │ 1–10 / 34                                                                                    │
  |            │ space list.mark · S view · n noun · m mode · esc modal.pop · : palette.open · ? bindings.he… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |

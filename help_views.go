@@ -223,32 +223,48 @@ func (h *helpState) cycle() {
 	}
 }
 
-// show draws the current view into the help list, made again: its rows
-// and columns differ from view to view.
+// show draws the current view, made again: its rows and columns differ
+// from view to view. Here and pick are a tree (helpNodes, R6.10: l and
+// h, enter, open and close a row; z l and z h scroll the columns), the
+// table view a plain table.
 func (h *helpState) show() error {
 	r := h.r
-	if r.Instances[helpListID] != nil {
-		if err := r.RemoveInstance(helpListID); err != nil {
-			return err
+	for _, id := range []string{helpTreeID, helpListID} {
+		if r.Instances[id] != nil {
+			if err := r.RemoveInstance(id); err != nil {
+				return err
+			}
 		}
 	}
-	var items []ListItem
-	cols := helpColumns
+	var nodes []TreeNode
+	var collapsed []string
 	switch h.view {
 	case HelpPick:
-		items, cols = helpItems(PlaceHelp(r, h.at(), h.mode))
+		nodes, collapsed = helpNodes(PlaceHelp(r, h.at(), h.mode))
 	case HelpTable:
+		// The table view is a plain table: a row per key, h and l scroll
+		// its mode columns.
 		var keys []HelpKey
 		h.modes, keys = r.HelpTable(h.at(), r.helpFlag(HelpPendingSetting, false))
-		items, cols = helpTableItems(h.r.DisplayNoun(h.noun), h.modes, keys), helpTableColumns(h.modes)
+		list, err := r.AddList(helpListID, helpTableItems(h.r.DisplayNoun(h.noun), h.modes, keys), Parent(helpID), Columns(helpTableColumns(h.modes)...))
+		if err != nil {
+			return err
+		}
+		return list.Focus()
 	default:
-		items, cols = helpItems(h.here)
+		nodes, collapsed = helpNodes(h.here)
 	}
-	list, err := r.AddList(helpListID, items, Parent(helpID), Columns(cols...))
+	tree, err := r.AddTree(helpTreeID, nil, Parent(helpID), Columns(helpColumns...))
 	if err != nil {
 		return err
 	}
-	return list.Focus()
+	for _, id := range collapsed {
+		tree.collapsed[id] = true
+	}
+	if err := tree.SetNodes(nodes); err != nil {
+		return err
+	}
+	return tree.Focus()
 }
 
 // ModalTitle names the view: "Keys · pick". With only here on, "Keys".

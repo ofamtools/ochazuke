@@ -41,9 +41,10 @@
   "expect": {
     "modal": "bindings-help",
     "contains": [
-      "ctrl+b d ",
-      "ctrl+b ?",
-      "ctrl+b ctrl+b",
+      "▾ ctrl+b",
+      "▸ ctrl+b d",
+      "▸ ctrl+b ?",
+      "▸ ctrl+b ctrl+b",
       "terminal.send"
     ],
     "lacks": [

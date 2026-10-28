@@ -1,15 +1,58 @@
 {
-  "name": "a table in a modal clamps: l past the last column and h before the first scroll no further and keep the focus in the modal (R5.11, R3.6)",
+  "name": "a table in a modal clamps: l past the last column and h before the first scroll no further and keep the focus in the modal (the help's table view; R5.11, R3.6)",
   "area": "tables",
   "width": 44,
   "height": 20,
   "page": {
-    "lists": [{"id": "a", "rows": 2}, {"id": "b", "rows": 2}]
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      },
+      {
+        "id": "b",
+        "rows": 2
+      }
+    ]
   },
-  "script": ["?", "l", "l", "l", "l", "l", "l", "h", "h", "h", "h", "h", "h"],
+  "script": [
+    "?",
+    "S",
+    "S",
+    "l",
+    "l",
+    "l",
+    "l",
+    "l",
+    "l",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h"
+  ],
   "expect": [
-    {"after": 1, "modal": "bindings-help", "contains": ["›"]},
-    {"after": 7, "modal": "bindings-help", "contains": ["‹"]},
-    {"after": 13, "modal": "bindings-help", "lacks": ["‹"]}
+    {
+      "after": 3,
+      "modal": "bindings-help",
+      "contains": [
+        "›"
+      ]
+    },
+    {
+      "after": 9,
+      "modal": "bindings-help",
+      "contains": [
+        "‹"
+      ]
+    },
+    {
+      "after": 15,
+      "modal": "bindings-help",
+      "lacks": [
+        "‹"
+      ]
+    }
   ]
 }

@@ -377,9 +377,19 @@ tiers above them. When the two disagree, fix one in the same commit.
   their own) and operators (`op`: their mode is every motion) stay one row.
   Each sequence row carries its steps (`HelpRow.Steps`): every key with
   what it does there: enters a mode, waits for the next key, the final
-  operation. The made row's wording is `helpWaits` in `help_modes.go`.
-  Stories `help/leader-sequences.json`, `help/leader-rebound.json`,
-  `help/mode-cycle.json`, `help/prefix-columns-{80,120}.json`.
+  operation. The made row's wording is `helpWaits` (with `prefixRow`) in
+  `help_modes.go`. The help (here and pick; the table view stays a plain
+  table) is a tree (R11.1): a prefix row holds its sequences and starts
+  open, so `?` over a live terminal shows every leader key at once; a
+  sequence row holds its steps, one key per line, and starts closed.
+  `l`/`right` open, `h`/`left` close (or step to the parent), `enter`
+  toggles, `j`/`k` move across every row shown, `z l`/`z h` scroll the
+  columns. `/` reads a row's text with its steps and its sequences, so a
+  closed row is found by what is inside it. Stories
+  `help/leader-sequences.json`, `help/leader-rebound.json`,
+  `help/mode-cycle.json`, `help/sequence-steps.json`,
+  `help/filter-finds-steps.json`, `help/prefix-columns-{80,120}.json`;
+  test `TestHelpListsPendingModeRowsAsSequences`.
 - **R6.8** The tab row never drops a page silently: when the tabs do not
   fit, `‹N` at the left edge and `N›` at the right count the pages hidden on
   each side, the active tab is always on the row, and the shown tabs plus

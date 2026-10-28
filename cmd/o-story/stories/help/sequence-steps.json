@@ -1,0 +1,114 @@
+{
+  "name": "? help: a sequence opens onto its steps, one key per line (g waits for the next key, then g c, then x runs); a plain two-key one the same; a made prefix row closes and opens on its sequences; a prefix bound alone (g c) keeps its operation and still opens (R6.10, R11.1)",
+  "area": "help",
+  "width": 120,
+  "height": 90,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": "g c",
+        "do": "demo.notify"
+      },
+      {
+        "noun": "demo",
+        "keys": "g c x",
+        "do": "demo.reset"
+      },
+      {
+        "noun": "demo",
+        "keys": "z l",
+        "do": "demo.open"
+      }
+    ]
+  },
+  "script": [
+    "?",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "l",
+    "h",
+    "j",
+    "j",
+    "j",
+    "j",
+    "l",
+    "k",
+    "k",
+    "k",
+    "k",
+    "k",
+    "k",
+    "h",
+    "l"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "modal": "bindings-help",
+      "contains": [
+        "▾ g",
+        "▾ g c",
+        "▸ g c x",
+        "▸ z l",
+        "demo.notify"
+      ],
+      "lacks": [
+        "(g c …)"
+      ]
+    },
+    {
+      "after": 9,
+      "contains": [
+        "▾ g c x",
+        "(g …)",
+        "(g c …)"
+      ]
+    },
+    {
+      "after": 10,
+      "contains": [
+        "▸ g c x"
+      ],
+      "lacks": [
+        "(g c …)"
+      ]
+    },
+    {
+      "after": 15,
+      "contains": [
+        "▾ z l",
+        "(z …)"
+      ]
+    },
+    {
+      "after": 22,
+      "contains": [
+        "▸ g"
+      ],
+      "lacks": [
+        "g c x",
+        "▾ g"
+      ]
+    },
+    {
+      "after": 23,
+      "modal": "bindings-help",
+      "contains": [
+        "▾ g",
+        "▸ g c x"
+      ]
+    }
+  ]
+}

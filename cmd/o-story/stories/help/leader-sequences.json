@@ -1,5 +1,5 @@
 {
-  "name": "? help over a live terminal: the leader's row says it enters leader_pending and counts its keys, then each leader row follows as the whole sequence (ctrl+a d, ctrl+a ?, ctrl+a ctrl+a), the hidden any and paste rows left out (R6.10)",
+  "name": "? help over a live terminal: the leader's row (enters leader_pending, its keys counted) is open on the leader's sequences, each the whole sequence and listed once (ctrl+a d, ctrl+a ?, ctrl+a ctrl+a), the hidden any and paste rows left out; h closes it, l opens it, and a sequence opens onto its steps (R6.10)",
   "area": "help",
   "width": 100,
   "height": 70,
@@ -29,23 +29,58 @@
       "tick": "terminal"
     },
     "ctrl+a",
-    "?"
+    "?",
+    "j",
+    "j",
+    "h",
+    "l",
+    "j",
+    "j",
+    "l"
   ],
-  "expect": {
-    "modal": "bindings-help",
-    "contains": [
-      "enters",
-      "leader_pending:",
-      "(3 keys)",
-      "ctrl+a d",
-      "ctrl+a ?",
-      "ctrl+a ctrl+a",
-      "terminal.detach"
-    ],
-    "lacks": [
-      "ctrl+a any",
-      "ctrl+a paste",
-      "leader: d detaches"
-    ]
-  }
+  "expect": [
+    {
+      "after": 4,
+      "modal": "bindings-help",
+      "contains": [
+        "enters",
+        "leader_pending:",
+        "(3 keys)",
+        "▾ ctrl+a",
+        "▸ ctrl+a d",
+        "▸ ctrl+a ?",
+        "▸ ctrl+a ctrl+a",
+        "terminal.detach"
+      ],
+      "lacks": [
+        "ctrl+a any",
+        "ctrl+a paste",
+        "leader: d detaches"
+      ]
+    },
+    {
+      "after": 7,
+      "contains": [
+        "▸ ctrl+a"
+      ],
+      "lacks": [
+        "▸ ctrl+a d",
+        "▸ ctrl+a ?"
+      ]
+    },
+    {
+      "after": 8,
+      "contains": [
+        "▾ ctrl+a",
+        "▸ ctrl+a d"
+      ]
+    },
+    {
+      "after": 11,
+      "modal": "bindings-help",
+      "contains": [
+        "▾ ctrl+a d"
+      ]
+    }
+  ]
 }

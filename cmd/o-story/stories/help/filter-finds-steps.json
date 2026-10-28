@@ -1,0 +1,44 @@
+{
+  "name": "? help: / matches a row by its steps and its sequences, so a closed row is found by what is inside it (R6.10)",
+  "area": "help",
+  "width": 120,
+  "height": 60,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": "g c x",
+        "do": "demo.reset"
+      },
+      {
+        "noun": "demo",
+        "keys": "z l",
+        "do": "demo.open"
+      }
+    ]
+  },
+  "script": [
+    "?",
+    "/",
+    {
+      "type": "(g c"
+    }
+  ],
+  "expect": {
+    "modal": "bindings-help",
+    "contains": [
+      "▾ g",
+      "▸ g c x"
+    ],
+    "lacks": [
+      "z l",
+      "demo.open"
+    ]
+  }
+}

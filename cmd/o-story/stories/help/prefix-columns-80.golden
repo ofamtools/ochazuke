@@ -5,51 +5,81 @@
 r|  a1
  |  a2
  |
+ |
+ |
+ |
+ |
  |        ╭──────────────────────────────────────────────────────────────╮
  |        │ Keys · here                                                  │
- |        │ key         operation           arguments      description   │
+ |        │ key           operation           arguments     description  │
  |        │ demo                                                         │
- |        │ z h         demo.reset                         Rebuild the   │
- |        │                                                story from    │
- |        │                                                its file      │
- |        │ z l         demo.open                          Open the row: │
- |        │                                                attach the    │
- |        │                                                fake pane     │
- |        │                                                when the      │
- |        │                                                story has one │
- |        │                                                for it        │
- |        │ z esc       mode.leave                         Return from a │
- |        │                                                pending mode  │
- |        │                                                to the mode   │
- |        │                                                it shadowed   │
- |        │ ctrl+a                                         waits for the │
- |        │                                                next key (4   │
- |        │                                                keys)         │
- |        │ ctrl+a n    demo.reset                         Rebuild the   │
- |        │                                                story from    │
- |        │                                                its file      │
- |        │ ctrl+a N    demo.open                          Open the row: │
- |        │                                                attach the    │
- |        │                                                fake pane     │
- |        │                                                when the      │
- |        │                                                story has one │
- |        │                                                for it        │
- |        │ ctrl+a t    demo.delete                        Remove the    │
- |        │                                                row from its  │
- |        │                                                list          │
- |        │ ctrl+a v    demo.notify                        Add a         │
- |        │                                                persistent    │
- |        │                                                notice naming │
- |        │                                                the row       │
-R|        │ ctrl+a esc  mode.leave                         Return from a │
-R|        │                                                pending mode  │
-R|        │                                                to the mode   │
-R|        │                                                it shadowed   │
- |        │ g                                              waits for the │
- |        │                                                next key (2   │
- |        │ 7–16 / 54                                                    │
+R|        │   q           app.quit                          Exit the     │
+R|        │                                                 application  │
+ |        │   r           demo.reset                        Rebuild the  │
+ |        │                                                 story from   │
+ |        │                                                 its file     │
+ |        │   enter       demo.open                         Open the     │
+ |        │                                                 row: attach  │
+ |        │                                                 the fake     │
+ |        │                                                 pane when    │
+ |        │                                                 the story    │
+ |        │                                                 has one for  │
+ |        │                                                 it           │
+ |        │   n           demo.notify                       Add a        │
+ |        │                                                 persistent   │
+ |        │                                                 notice       │
+ |        │                                                 naming the   │
+ |        │                                                 row          │
+ |        │   x           demo.delete                       Remove the   │
+ |        │                                                 row from its │
+ |        │                                                 list         │
+ |        │ ▾ z                                             waits for    │
+ |        │                                                 the next key │
+ |        │                                                 (2 keys)     │
+ |        │   ▸ z h       demo.reset                        Rebuild the  │
+ |        │                                                 story from   │
+ |        │                                                 its file     │
+ |        │   ▸ z l       demo.open                         Open the     │
+ |        │                                                 row: attach  │
+ |        │                                                 the fake     │
+ |        │                                                 pane when    │
+ |        │                                                 the story    │
+ |        │                                                 has one for  │
+ |        │                                                 it           │
+ |        │   ▸ z esc     mode.leave                        Return from  │
+ |        │                                                 a pending    │
+ |        │                                                 mode to the  │
+ |        │                                                 mode it      │
+ |        │                                                 shadowed     │
+ |        │ ▾ ctrl+a                                        waits for    │
+ |        │                                                 the next key │
+ |        │                                                 (4 keys)     │
+ |        │   ▸ ctrl+a n  demo.reset                        Rebuild the  │
+ |        │                                                 story from   │
+ |        │                                                 its file     │
+ |        │   ▸ ctrl+a N  demo.open                         Open the     │
+ |        │                                                 row: attach  │
+ |        │                                                 the fake     │
+ |        │                                                 pane when    │
+ |        │                                                 the story    │
+ |        │                                                 has one for  │
+ |        │                                                 it           │
+ |        │   ▸ ctrl+a t  demo.delete                       Remove the   │
+ |        │                                                 row from its │
+ |        │                                                 list         │
+ |        │   ▸ ctrl+a v  demo.notify                       Add a        │
+ |        │                                                 persistent   │
+ |        │                                                 notice       │
+ |        │                                                 naming the   │
+ |        │                                                 row          │
+ |        │   ▸ ctrl+a    mode.leave                        Return from  │
+ |        │ 1–15 / 54                                                    │
  |        │ space list.mark · S view · esc modal.pop · : palette.open ·… │
  |        ╰──────────────────────────────────────────────────────────────╯
+ |
+ |
+ |
+ |
  |
  |
  |

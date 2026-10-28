@@ -16,10 +16,13 @@ import (
 // SIGQUIT.
 const HelpInsertKey = "ctrl+\\"
 
-// helpID is the bindings help modal; helpListID the read-only list in it.
+// helpID is the bindings help modal; helpTreeID the read-only tree in it
+// (R6.10: a prefix row opens onto its sequences, a sequence onto its
+// steps) and helpListID the tree's list, the rows drawn.
 const (
 	helpID     = "bindings-help"
-	helpListID = "__bindings-help/list"
+	helpTreeID = "__bindings-help"
+	helpListID = helpTreeID + "/list"
 )
 
 // registerBindingHelp adds bindings.help: a modal listing BindingHelp for
@@ -32,7 +35,10 @@ const (
 // views (here, pick, table), n and m choose the noun and mode of the
 // hypothetical ones.
 func registerBindingHelp(r *Runtime) {
-	r.Define("ochazuke.binding")
+	// enter opens or closes a help row as the tree's l and h do (R6.10),
+	// in the views drawn as a tree; hidden, so the footer is unchanged.
+	r.DefineGuard("help-tree", func(r *Runtime, _ KeyEvent) bool { return r.Tree(helpTreeID) != nil })
+	r.Define("ochazuke.binding").Mode("normal").Bind("enter", Do("ochazuke.outline.fold").Guard("help-tree").Hide())
 	r.Register(Operation{Verb: "help", Noun: "ochazuke.bindings", Description: "Open the keys the focus answers to, with the operation each runs and its description", Result: "help row[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		focus := focusOf(c)
 		rows, mode, home := BindingHelp(r, focus), ModeState{Name: r.BaseMode()}, helpHome(r, focus)
@@ -128,6 +134,63 @@ func helpItems(rows []HelpRow) ([]ListItem, []Column) {
 		items[i] = ListItem{ID: fmt.Sprintf("__bindings-help/%d", i), Label: label, Noun: "ochazuke.binding", Data: row, Cells: cells, Section: row.Section}
 	}
 	return items, helpColumns
+}
+
+// helpNodes are the help's rows as a tree (R6.10): a prefix row (Group)
+// holds the rows listed Under it, a sequence row its steps, one node per
+// key, each step's operation and what it does there. collapsed are the
+// nodes that start closed: every sequence's steps (a prefix row starts
+// open, so the help reads as the flat list it was, its sequences under
+// it). A row's label, which the filter reads, holds its steps' and its
+// sequences' text too, so a closed row is found by what is inside it.
+func helpNodes(rows []HelpRow) (nodes []TreeNode, collapsed []string) {
+	items, _ := helpItems(rows)
+	parent := map[string]string{} // section + key of a prefix row -> node id
+	labels := make([]string, len(items))
+	parents := make([]int, len(items))
+	index := map[string]int{}
+	for i, item := range items {
+		row := item.Data.(HelpRow)
+		index[item.ID] = i
+		parents[i] = -1
+		labels[i] = item.Label
+		node := TreeNode{ID: item.ID, Label: item.Label, Noun: item.Noun, Data: row, Cells: item.Cells, Section: item.Section}
+		if row.Under != "" {
+			node.Parent = parent[row.Section+"\x00"+row.Under]
+			if j, ok := index[node.Parent]; ok {
+				parents[i] = j
+			}
+		}
+		if row.Group {
+			parent[row.Section+"\x00"+row.Key] = item.ID
+		}
+		nodes = append(nodes, node)
+		if row.Group || len(row.Steps) == 0 {
+			continue
+		}
+		collapsed = append(collapsed, item.ID)
+		for k, step := range row.Steps {
+			text := step.Description
+			id := fmt.Sprintf("%s/step%d", item.ID, k)
+			cells := []string{step.Key, step.Operation, "", text}
+			label := strings.Join([]string{step.Key, step.Operation, text}, "  ")
+			labels[i] += "  " + label
+			nodes = append(nodes, TreeNode{ID: id, Parent: item.ID, Label: label, Noun: "ochazuke.binding", Data: step, Cells: cells, Section: item.Section})
+		}
+	}
+	// A prefix row's label gathers its sequences' (innermost first, so a
+	// longer prefix's own sequences reach the outer row).
+	for i := len(items) - 1; i >= 0; i-- {
+		if p := parents[i]; p >= 0 {
+			labels[p] += "  " + labels[i]
+		}
+	}
+	for n := range nodes {
+		if i, ok := index[nodes[n].ID]; ok {
+			nodes[n].Label = labels[i]
+		}
+	}
+	return nodes, collapsed
 }
 
 // helpKeyText is a row's key cell: the whole sequence, a pattern final key

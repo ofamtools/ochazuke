@@ -142,7 +142,8 @@ const helpWaits = "waits for the next key"
 // gets a row of its own where its first sequence answers: no operation,
 // "waits for the next key (N keys)". A row on the bare prefix keeps its
 // operation and opens onto the sequences too; an entering row counts its
-// keys. N counts the sequences under it, prefix rows left out.
+// keys. N counts the keys under it that run something: the sequences and
+// the prefixes bound to an operation of their own, never a cancel.
 func helpGroups(rows []HelpRow) []HelpRow {
 	rows = cancelsWithSequences(rows)
 	out := make([]HelpRow, 0, len(rows))
@@ -193,7 +194,9 @@ func sectionGroups(rows []HelpRow) []HelpRow {
 				if row.Under == "" {
 					row.Under = prefix
 				}
-				if !group[row.Key] && !row.cancel {
+				// A key counts when it runs something: a sequence, or a
+				// prefix bound to an operation of its own (g c beside g c x).
+				if !row.cancel && (!group[row.Key] || row.Operation != "" && row.Enters == "") {
 					count[prefix]++
 				}
 			}
