@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -258,7 +259,7 @@ const actionsExample = `[
 `
 
 // themesExample is themes.example.json: "example" is the built-in palette
-// with every role as a light and a dark colour, "example-dark" a dark
+// with every role as a light and a dark colour and every built-in tone, "example-dark" a dark
 // scheme with one colour per role, an ANSI index among them.
 func themesExample() []byte {
 	var b bytes.Buffer
@@ -270,14 +271,25 @@ func themesExample() []byte {
 		name string
 		c    SchemeColor
 	}{{"text", s.Text}, {"muted", s.Muted}, {"accent", s.Accent}, {"border", s.Border}, {"surface", s.Surface}, {"error", s.Error}}
-	for i, role := range roles {
-		fmt.Fprintf(&b, "    %q: %s", role.name, pair(role.c))
-		if i < len(roles)-1 {
+	for _, role := range roles {
+		fmt.Fprintf(&b, "    %q: %s,\n", role.name, pair(role.c))
+	}
+	b.WriteString("    \"tones\": {\n")
+	names := slices.Sorted(maps.Keys(defaultTones))
+	for i, name := range names {
+		t := defaultTones[name]
+		fg := pair(t.Fg)
+		if t.Fg.Light == t.Fg.Dark {
+			fg = fmt.Sprintf("%q", t.Fg.Light)
+		}
+		fmt.Fprintf(&b, "      %q: {\"fg\": %s, \"bold\": %t, \"dim\": %t}", name, fg, t.Bold, t.Dim)
+		if i < len(names)-1 {
 			b.WriteString(",")
 		}
 		b.WriteString("\n")
 	}
-	b.WriteString(`  },
+	b.WriteString(`    }
+  },
   "example-dark": {
     "background": "dark",
     "text": "#DCE9E3",
@@ -285,7 +297,8 @@ func themesExample() []byte {
     "accent": "#C9A227",
     "border": "240",
     "surface": "#172720",
-    "error": "#FF8A80"
+    "error": "#FF8A80",
+    "tones": {"state.working": "#5FAFD7", "build.cached": {"fg": "muted", "dim": true}}
   }
 }
 `)

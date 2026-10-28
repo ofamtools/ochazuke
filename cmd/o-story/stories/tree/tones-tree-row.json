@@ -1,0 +1,34 @@
+{
+  "name": "tones: a tree row's tone colours its label, never the indent or the fold marker, and a span stays on its words",
+  "area": "tree",
+  "width": 50,
+  "height": 6,
+  "chrome": "none",
+  "theme": "dark",
+  "page": {
+    "trees": [
+      {"id": "t", "nodes": [
+        {"id": "a", "label": "build", "tones": [{"cell": 0, "tone": "state.working"}]},
+        {"id": "b", "parent": "a", "label": "test", "tones": [{"cell": 0, "tone": "state.errored"}]},
+        {"id": "c", "parent": "a", "label": "lint 3 warnings", "tones": [{"cell": 0, "tone": "state.needs-input", "from": 5}]},
+        {"id": "d", "label": "deploy"}
+      ]}
+    ]
+  },
+  "script": ["j", "j"],
+  "expect": [
+    {
+      "focus": "c",
+      "highlighted": 1,
+      "highlightedText": "lint",
+      "styled": {"build": "#7CB7E8", "test": "#E99B8D"},
+      "attrs": {
+        "▾": "-fg",
+        "test": "bold",
+        "lint": "reverse,-bold",
+        "3 warnings": "reverse,bold,-fg",
+        "deploy": "-fg"
+      }
+    }
+  ]
+}

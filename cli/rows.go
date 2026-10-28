@@ -18,12 +18,18 @@ import (
 //
 //	{"noun":"skill","id":"skill/s1","label":"review [claude]","data":{...}}
 //	{"noun":"pane","id":"w1","label":"work/claude","cells":["work/claude","idle","~/proj"]}
+//	{"noun":"pane","id":"w2","label":"work/codex","cells":["work/codex","waiting"],"tones":[{"cell":1,"tone":"state.needs-input"}]}
+//
+// Tones give cells, or runs inside them, a named tone the host's theme
+// colours (ochazuke.ToneSpan, ochazuke.ListItem.Tones); optional, and a
+// host that does not know them draws the cells plain.
 type Row struct {
-	Noun  string   `json:"noun"`
-	ID    string   `json:"id"`
-	Label string   `json:"label,omitempty"`
-	Data  any      `json:"data,omitempty"`
-	Cells []string `json:"cells,omitempty"`
+	Noun  string              `json:"noun"`
+	ID    string              `json:"id"`
+	Label string              `json:"label,omitempty"`
+	Data  any                 `json:"data,omitempty"`
+	Cells []string            `json:"cells,omitempty"`
+	Tones []ochazuke.ToneSpan `json:"tones,omitempty"`
 }
 
 // Lines is a result the shell prints as JSON Lines: one compact JSON value

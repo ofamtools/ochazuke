@@ -268,6 +268,31 @@ func Check(ss *Session, e Expect) []string {
 			failf("styled: %q drawn in %s = %v, want %v", text, hex, drawn, !negate)
 		}
 	}
+	for text, want := range e.Attrs {
+		found := false
+		for _, row := range rows {
+			got, ok := attrsAt(row, text)
+			if !ok {
+				continue
+			}
+			found = true
+			for _, a := range strings.Split(want, ",") {
+				name, absent := strings.CutPrefix(strings.TrimSpace(a), "-")
+				on, known := got[name]
+				if !known {
+					failf("attrs %q: unknown attribute %q (bold, faint, reverse, underline, fg)", text, name)
+					continue
+				}
+				if on == absent {
+					failf("attrs: %q drawn %s = %v, want %v", text, name, on, !absent)
+				}
+			}
+			break
+		}
+		if !found {
+			failf("attrs: screen lacks %q", text)
+		}
+	}
 	for _, hex := range e.NoColor {
 		if sgr, err := foreground(hex); err != nil {
 			failf("noColor %q: %v", hex, err)
@@ -282,6 +307,82 @@ func Check(ss *Session, e Expect) []string {
 		bad = append(bad, "frame:\n"+Golden(frame))
 	}
 	return bad
+}
+
+// attrsAt is the attributes in force at the first cell of text in row
+// (the first row holding it), following the row's SGR sequences.
+func attrsAt(row, text string) (map[string]bool, bool) {
+	at := strings.Index(ansi.Strip(row), text)
+	if at < 0 {
+		return nil, false
+	}
+	state := map[string]bool{"bold": false, "faint": false, "reverse": false, "underline": false, "fg": false}
+	plain := 0 // bytes of stripped text passed
+	for i := 0; i < len(row); {
+		if row[i] == 0x1b && i+1 < len(row) && row[i+1] == '[' {
+			j := i + 2
+			for j < len(row) && (row[j] >= '0' && row[j] <= '9' || row[j] == ';' || row[j] == ':') {
+				j++
+			}
+			if j < len(row) && row[j] == 'm' {
+				sgr(state, strings.Split(row[i+2:j], ";"))
+				i = j + 1
+				continue
+			}
+		}
+		if plain == at {
+			return state, true
+		}
+		plain++
+		i++
+	}
+	return state, true
+}
+
+// sgr applies SGR parameters to an attribute state; a colour's own
+// parameters (38;2;R;G;B, 38;5;N) are skipped, not read as attributes.
+func sgr(state map[string]bool, params []string) {
+	for k := 0; k < len(params); k++ {
+		switch p := params[k]; p {
+		case "", "0":
+			for a := range state {
+				state[a] = false
+			}
+		case "1":
+			state["bold"] = true
+		case "2":
+			state["faint"] = true
+		case "22":
+			state["bold"], state["faint"] = false, false
+		case "4":
+			state["underline"] = true
+		case "24":
+			state["underline"] = false
+		case "7":
+			state["reverse"] = true
+		case "27":
+			state["reverse"] = false
+		case "39":
+			state["fg"] = false
+		case "38":
+			state["fg"] = true
+			if k+1 < len(params) && params[k+1] == "2" {
+				k += 4
+			} else if k+1 < len(params) && params[k+1] == "5" {
+				k += 2
+			}
+		case "48", "58":
+			if k+1 < len(params) && params[k+1] == "2" {
+				k += 4
+			} else if k+1 < len(params) && params[k+1] == "5" {
+				k += 2
+			}
+		default:
+			if n := len(p); n == 2 && (p[0] == '3' || p[0] == '9') && p[1] >= '0' && p[1] <= '7' {
+				state["fg"] = true
+			}
+		}
+	}
 }
 
 // foreground is the SGR parameters of a "#RRGGBB" foreground as Lip Gloss

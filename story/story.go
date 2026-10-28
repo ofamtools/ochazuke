@@ -177,11 +177,13 @@ type RecordSpec struct {
 	Height     int                    `json:"height,omitempty"` // lines drawn; 0 = the rest of the page
 }
 
-// ItemSpec is an explicit row; Cells are its table cells.
+// ItemSpec is an explicit row; Cells are its table cells, Tones the
+// tones of its cells (ochazuke.ToneSpan).
 type ItemSpec struct {
-	ID    string   `json:"id"`
-	Label string   `json:"label"`
-	Cells []string `json:"cells,omitempty"`
+	ID    string              `json:"id"`
+	Label string              `json:"label"`
+	Cells []string            `json:"cells,omitempty"`
+	Tones []ochazuke.ToneSpan `json:"tones,omitempty"`
 }
 
 // DetailSpec is a scrollable detail (ochazuke.AddDetail) drawn to the
@@ -455,6 +457,11 @@ type Expect struct {
 	// ("#RRGGBB"): the SGR right before the text sets that foreground,
 	// cell-exact where Colored is row-wide. "!#RRGGBB" expects any other.
 	Styled map[string]string `json:"styled,omitempty"`
+	// Attrs maps on-screen text to the attributes its first cell is drawn
+	// with, followed along its row's SGR state: a comma list of bold,
+	// faint, reverse, underline and fg (any foreground colour), each
+	// "-name" for absent. "bold,-fg" reads a mono tone.
+	Attrs map[string]string `json:"attrs,omitempty"`
 	// Writes is every change the page's editable trees, record editors and
 	// Markdown documents wrote, in order (TreeChange.String,
 	// RecordWrite.String, "toggle LINE [x] TEXT"); [] expects none.

@@ -22,14 +22,17 @@ import (
 // palette, search and {{label}}, and is the first cell of a row without
 // cells. Section groups a table's rows: List.View draws the section as a
 // label line above the first row of each run of rows with the same
-// Section (a list without columns ignores it).
+// Section (a list without columns ignores it). Tones give cells, or runs
+// inside them, a named tone the theme colours (ToneSpan, tone.go; in a
+// list without columns cell 0 is the label); they never change the text.
 type ListItem struct {
-	ID      string   `json:"id"`
-	Label   string   `json:"label"`
-	Noun    string   `json:"noun"`
-	Data    any      `json:"data,omitempty"`
-	Cells   []string `json:"cells,omitempty"`
-	Section string   `json:"section,omitempty"`
+	ID      string     `json:"id"`
+	Label   string     `json:"label"`
+	Noun    string     `json:"noun"`
+	Data    any        `json:"data,omitempty"`
+	Cells   []string   `json:"cells,omitempty"`
+	Section string     `json:"section,omitempty"`
+	Tones   []ToneSpan `json:"tones,omitempty"`
 }
 
 // List owns flat selection, marks and scrolling on the runtime's event loop.
@@ -489,8 +492,10 @@ func (l *List) rowsView(width, height int) (string, int, int) {
 	// (dim-unfocused), so the focused row is the one at full strength. Marked
 	// rows take a "* " gutter, which every row gets while the list has a mark.
 	marked, gutter := l.marksSelection(), len(l.marks) > 0
+	toned, faded := l.listTones(), l.faded()
 	for i := l.offset; i < end; i++ {
-		label := modalLabel(l.items[i].Label)
+		text := modalLabel(l.items[i].Label)
+		label := text
 		if gutter {
 			mark := "  "
 			if l.marks[l.items[i].ID] {
@@ -499,7 +504,12 @@ func (l *List) rowsView(width, height int) (string, int, int) {
 			label = mark + label
 		}
 		row := ansi.Truncate(label, width, "…")
-		if i == l.selected && marked {
+		selected := i == l.selected && marked
+		if segs := l.labelSegs(toned, l.items[i], text, ansi.StringWidth(row), gutter); len(segs) > 0 {
+			rows = append(rows, paintLine(row, ansi.StringWidth(row), segs, toned, selected, faded, span{}))
+			continue
+		}
+		if selected {
 			row = lipgloss.NewStyle().Reverse(true).Render(row)
 		}
 		rows = append(rows, row)
@@ -514,6 +524,19 @@ func (l *List) rowsView(width, height int) (string, int, int) {
 		focus, focusHeight = l.selected-l.offset, 1
 	}
 	return strings.Join(layoutRows(strings.Join(rows, "\n"), width, height), "\n"), focus, focusHeight
+}
+
+// labelSegs places a plain list row's cell-0 tones on its label, after the
+// mark gutter; none without styles to draw them.
+func (l *List) labelSegs(toned *Styles, item ListItem, text string, drawn int, gutter bool) []toneSeg {
+	if toned == nil || len(item.Tones) == 0 {
+		return nil
+	}
+	x := 0
+	if gutter {
+		x = 2
+	}
+	return cellSegs(spansOf(item.Tones, 0), text, x, drawn-x)
 }
 
 // emptyLine is what an empty list draws: "(empty list)", in reverse video

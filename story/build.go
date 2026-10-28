@@ -518,7 +518,7 @@ func rowsOf(l ListSpec) []ochazuke.ListItem {
 	var out []ochazuke.ListItem
 	if len(l.Items) > 0 {
 		for _, it := range l.Items {
-			out = append(out, ochazuke.ListItem{ID: it.ID, Label: it.Label, Noun: Demo, Cells: it.Cells})
+			out = append(out, ochazuke.ListItem{ID: it.ID, Label: it.Label, Noun: Demo, Cells: it.Cells, Tones: it.Tones})
 		}
 		return out
 	}
@@ -1343,7 +1343,7 @@ func (ss *Session) Snapshot() ([]*Page, []string) {
 			}
 			sel, _ := list.Selected()
 			for i, it := range list.Items() {
-				spec.Items = append(spec.Items, ItemSpec{ID: it.ID, Label: it.Label, Cells: it.Cells})
+				spec.Items = append(spec.Items, ItemSpec{ID: it.ID, Label: it.Label, Cells: it.Cells, Tones: it.Tones})
 				if it.ID == sel.ID {
 					spec.Selected = i
 				}

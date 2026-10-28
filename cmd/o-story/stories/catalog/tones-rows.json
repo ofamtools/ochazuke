@@ -1,0 +1,56 @@
+{
+  "name": "tones: a catalog row line carries its cells' tones, so an extension colours its table with no Go code",
+  "area": "catalog",
+  "width": 80,
+  "height": 16,
+  "theme": "dark",
+  "page": {
+    "id": "panes",
+    "title": "Panes",
+    "catalog": {
+      "nouns": [
+        {
+          "name": "pane",
+          "columns": [
+            {
+              "title": "Name",
+              "min": 8
+            },
+            {
+              "title": "State"
+            }
+          ],
+          "verbs": [
+            {
+              "name": "list",
+              "rows": "pane"
+            }
+          ]
+        }
+      ],
+      "page": {
+        "title": "Panes",
+        "lists": [
+          {
+            "id": "panes/all",
+            "noun": "pane"
+          }
+        ]
+      },
+      "answers": {
+        "pane.list": "{\"noun\":\"pane\",\"id\":\"p0\",\"label\":\"notes\",\"cells\":[\"notes\",\"\"]}\n{\"noun\":\"pane\",\"id\":\"p1\",\"label\":\"work/claude\",\"cells\":[\"work/claude\",\"working\"],\"tones\":[{\"cell\":1,\"tone\":\"state.working\"}]}\n{\"noun\":\"pane\",\"id\":\"p2\",\"label\":\"work/codex\",\"cells\":[\"work/codex\",\"waiting\"],\"tones\":[{\"cell\":1,\"tone\":\"state.needs-input\"}]}\n{\"noun\":\"pane\",\"id\":\"p3\",\"label\":\"old\",\"cells\":[\"old\",\"exited\"],\"tones\":[{\"cell\":1,\"tone\":\"state.exited\"}]}\n"
+      }
+    }
+  },
+  "expect": {
+    "styled": {
+      "working": "#7CB7E8",
+      "waiting": "#E3B341",
+      "exited": "#93A7A1"
+    },
+    "attrs": {
+      "waiting": "bold",
+      "exited": "faint"
+    }
+  }
+}

@@ -3,8 +3,10 @@ package cli
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -96,5 +98,33 @@ func TestShellPrintsLinesFromAVerb(t *testing.T) {
 	}
 	if out.String() != `{"noun":"thing","id":"1"}`+"\n" {
 		t.Fatalf("got %q", out.String())
+	}
+}
+
+// A row's tones (ochazuke.ToneSpan) ride every row decoder: DecodeRows
+// (JSON Lines and an array of records), the row reader and a state
+// answer; tones that do not decode in a record leave the row plain, and a
+// record's tones are not part of its data.
+func TestRowsCarryTones(t *testing.T) {
+	want := []ochazuke.ToneSpan{{Cell: 1, Tone: "state.working"}, {Cell: 0, Tone: "marker.star", From: 0, To: 1}}
+	line := `{"noun":"pane","id":"p1","label":"w","cells":["★ w","working"],"tones":[{"cell":1,"tone":"state.working"},{"cell":0,"tone":"marker.star","to":1}]}`
+	rows, err := DecodeRows("pane", []byte(line+"\n"))
+	if err != nil || len(rows) != 1 || !slices.Equal(rows[0].Tones, want) || rows[0].Data != nil {
+		t.Fatalf("DecodeRows lines: %+v %v", rows, err)
+	}
+	rows, err = DecodeRows("pane", []byte(`[{"id":"p1","cells":["w","x"],"tones":[{"cell":1,"tone":"state.done"}]},{"id":"p2","tones":"bad"}]`))
+	if err != nil || len(rows) != 2 || !slices.Equal(rows[0].Tones, []ochazuke.ToneSpan{{Cell: 1, Tone: "state.done"}}) || rows[1].Tones != nil {
+		t.Fatalf("DecodeRows records: %+v %v", rows, err)
+	}
+	got, _, err := NewRowReader(strings.NewReader(line+"\n")).Next(5, time.Second)
+	if err != nil || len(got) != 1 || !slices.Equal(got[0].Tones, want) {
+		t.Fatalf("row reader: %+v %v", got, err)
+	}
+	a, err := DecodeState([]byte(`{"state":1,"cache":"c"}` + "\n" + `{"list":"pane","answer":"full","hash":"x","rows":1}` + "\n" + line + "\n"))
+	if err != nil || len(a.Rows) != 1 || !slices.Equal(a.Rows[0].Tones, want) {
+		t.Fatalf("state: %+v %v", a, err)
+	}
+	if out, _ := json.Marshal(Row{Noun: "pane", ID: "p"}); strings.Contains(string(out), "tones") {
+		t.Fatalf("a row without tones writes none: %s", out)
 	}
 }

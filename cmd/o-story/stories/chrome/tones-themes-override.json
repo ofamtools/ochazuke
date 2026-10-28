@@ -1,0 +1,36 @@
+{
+  "name": "tones: themes.json overrides a built-in theme's tone and adds new ones under the theme's name; the tones it leaves out keep their defaults",
+  "area": "chrome",
+  "width": 60,
+  "height": 6,
+  "chrome": "none",
+  "theme": "dark",
+  "themes": {
+    "dark": {"tones": {
+      "state.working": {"fg": "#5FAFD7", "bold": true},
+      "build.cached": "#AF87FF"
+    }}
+  },
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "columns": [{"title": "job"}, {"title": "state"}],
+        "items": [
+          {"id": "j1", "label": "compile", "cells": ["compile", "working"], "tones": [{"cell": 1, "tone": "state.working"}]},
+          {"id": "j2", "label": "assets", "cells": ["assets", "cached"], "tones": [{"cell": 1, "tone": "build.cached"}]},
+          {"id": "j3", "label": "tests", "cells": ["tests", "done"], "tones": [{"cell": 1, "tone": "state.done"}]},
+          {"id": "j4", "label": "notes", "cells": ["notes", ""]}
+        ],
+        "selected": 3
+      }
+    ]
+  },
+  "expect": {
+    "noNotices": true,
+    "styled": {"working": "#5FAFD7", "cached": "#AF87FF", "done": "#8BC48A"},
+    "attrs": {"working": "bold", "cached": "-bold"},
+    "noColor": ["#7CB7E8"]
+  }
+}
