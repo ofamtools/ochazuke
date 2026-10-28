@@ -282,7 +282,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   per table across a restart. On every table, cell-mode or not: `Y` copies
   the row's cells joined by tabs, and `V` is a visual row selection drawn
   into the marks (not on a `NoMarks` table): `j`/`k` extend it without
-  spilling, a row's verb runs for every selected row with one confirm,
+  spilling, a row's verb acts on every selected row (R5.15),
   `esc` ends it and restores the marks. A row-select table (a tree's list,
   where `h`/`l` collapse and expand; help; settings; a cli catalog table)
   and a plain list answer none of the other keys (`h`/`l` scroll a
@@ -365,6 +365,27 @@ tiers above them. When the two disagree, fix one in the same commit.
   `chrome/tones-themes-override.json`, `chrome/tones-user-scheme.json`,
   `catalog/tones-rows.json`; tests `TestTonesNeverChangeTheText`,
   `TestSelectedRowDrawsToneAttributesOnly`, `TestUnfocusedListFadesTones`.
+- **R5.15** An action over a visual selection acts on every selected row.
+  While `V` is on, a row's own verb (an application verb of the row's
+  noun, not a motion), run from its key, the palette or the API, has the
+  selection as its subject, in display order: a verb that takes many
+  (`NounBuilder.Many`, the catalog's `many`) runs once with every row in
+  `Ctx.Subjects` (one chooser, one confirm, one notice: "Move 3 rows to",
+  "Delete alpha and 2 more?"), and any other verb runs once per row
+  (`Request.Subjects`; a verb's confirm still asks once, with the count).
+  A verb that asks about its row (opens a chooser) without taking many
+  runs on the first row only and says it left the rest; such a verb wants
+  `Many`. One notice reports the run: info "VERB: done on N rows", or an
+  error "VERB: D done, F failed (first failure)" when some failed; only
+  when none was done does the action fail. Failures never stop the other
+  rows. The selection ends when the verb runs (vim), motions extend it.
+  `Y`/`y` copy every selected row, one per line. Where the rows keep an
+  undo stack (a tree), the run is one undo step: one `u` restores them
+  all. Which verbs take many is data on the verb, never a list of names.
+  Stories: `tables/visual-apply.json`, `tables/visual-many-subjects.json`,
+  `tables/visual-partial-failure.json`, `tree/visual-undo-group.json`;
+  tests `TestVisualSelection*`, `TestRequestSubjects`,
+  `TestVisualYankCopiesEverySelectedRow`.
 
 ### R6. Chrome: footer, hints, help, ticker, notices
 
