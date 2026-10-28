@@ -840,6 +840,13 @@ func (m *Model) render() Block {
 	pageWidth, pageHeight := m.pageSize()
 	restore := m.beneath()
 	content := m.pageContent(pageWidth, pageHeight)
+	if m.Runtime.keepFocusShown() {
+		// The focus rested on a stop this frame did not draw: it moved to
+		// one it did (R3.13), so draw the page again around the new focus
+		// (its highlight, its scroll) before the footer reads it.
+		header.Badge, header.Focus = m.modeBadge(), m.Runtime.focusDisplayLevels()
+		content = m.pageContent(pageWidth, pageHeight)
+	}
 	m.follow(base, content.Text, pageHeight)
 	page := m.scrolled(base, content, pageWidth, pageHeight)
 	restore()

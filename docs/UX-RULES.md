@@ -120,6 +120,26 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R3.12** Removing the focused instance sends the focus to `FocusOnClose`'s
   target when it survives, else the parent, else Pop's return. Story:
   `terminal/detach-focus-returns.json`; needed for the plain remove case.
+- **R3.13** Focus never rests on an instance the last frame did not draw.
+  Right after the Model draws the current page (before the footer), when
+  the focus's stop was not placed by that frame (a tab switched away from
+  it, a panel collapsed), the focus moves to its nearest ancestor below
+  the page that the frame drew (a list nested under a row goes back to the
+  row), else to the page's first stop in drawing order (its remembered
+  child), else to the page, and the page is drawn again around it. Drawn
+  means placed (`Runtime.Placed`/`PlacedAt`): a list row is drawn when its
+  list is, a grid cell when its grid is, a card's body when its timeline
+  is; a stop the frame did not place hides everything beneath it. The move
+  is an ordinary focus change: the mode rule applies (a hidden prompt in
+  insert leaves to normal) and the stop left remembers its child, so `}`
+  goes back once it is drawn again. Not while a modal is open (the frame
+  drew the level beneath it; the first frame after it closes applies the
+  rule), not before the page's first frame (the CLI never draws one), not
+  when the frame placed no stop at all, and never for a focus outside a
+  stop (the page, a panel). An app does not move the focus off what it
+  stopped drawing. Story: `focus/hidden-stop-moves-focus.json`,
+  `focus/hidden-input-leaves-insert.json`,
+  `focus/hidden-timeline-card.json`; tests `TestFocusHidden*`.
 
 ### R4. Modals
 

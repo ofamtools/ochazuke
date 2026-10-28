@@ -80,7 +80,10 @@ it to the timer's deadline and delivers the timer's message
                                      // a letter / capital / ctrl+letter logs "hint copy|type|open L"
                                      // (writes) and returns to terminal, esc cancels, nothing reaches the pane
     jobs: [{ verb: "demo.build", key: "w", finishOnKey: "W", failOnKey: "X", quiet: false, start: 0, label: "" }],
-    bind: [{ noun: "demo", mode: "normal", keys: "C", do: "notice.clear" }],
+    bind: [{ noun: "demo", mode: "normal", keys: "C", do: "notice.clear" },
+           { noun: "app", keys: "X", do: "demo.hide", args: { id: "b" } }],
+                                  // demo.hide {id} stops drawing a list, tree, input or the
+                                  // timeline, or draws it again (a tab switched away: focus/*)
     pending: ["loop"],            // pending modes defined before bind, which may enter
                                   // them (do: "mode.enter", args: { mode: "loop" }) or bind in them
     verbs: [{ verb: "demo.open-file", description: "Open a file", positional: ["path"],
@@ -380,7 +383,7 @@ Conformance:
 | insert | bindings | `bindings.help` |
 | insert | chooser | `chooser.cancel` `chooser.move` `chooser.pick` |
 | insert | completion | `completion.accept` `completion.dismiss` `completion.move` `completion.open` |
-| insert | demo | `demo.files` |
+| insert | demo | `demo.files` `demo.hide` |
 | insert | form | `form.next` |
 | insert | input | `input.insert` `input.kill` `input.move` |
 | insert | markdown | `markdown.cell` `markdown.continue-item` `markdown.end-list` `markdown.indent` `markdown.insert-block` `markdown.leave` `markdown.outdent` `markdown.unmark` |
@@ -395,7 +398,7 @@ Conformance:
 | normal | bindings-help | `bindings-help.mode` `bindings-help.noun` `bindings-help.place` `bindings-help.view` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
-| normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.forget-row` `demo.launch` `demo.notify` `demo.open` `demo.ping` `demo.reload` `demo.ship` |
+| normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.forget-row` `demo.hide` `demo.launch` `demo.notify` `demo.open` `demo.ping` `demo.reload` `demo.ship` |
 | normal | detail | `detail.scroll` |
 | normal | focus | `focus.next` `focus.previous` `focus.set` |
 | normal | form | `form.choose` `form.leave` `form.next` `form.redo` `form.suggest` `form.undo` |

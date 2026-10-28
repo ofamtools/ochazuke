@@ -1,0 +1,61 @@
+{
+  "name": "focus never rests on a stop the frame did not draw: it moves to the page's first stop, and } goes back once it is drawn again",
+  "area": "focus",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      },
+      {
+        "id": "b",
+        "rows": 3
+      }
+    ],
+    "focus": "b2",
+    "bind": [
+      {
+        "noun": "app",
+        "keys": "X",
+        "do": "demo.hide",
+        "args": {
+          "id": "b"
+        }
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "X",
+    "j",
+    "X",
+    "}"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "b3"
+    },
+    {
+      "after": 2,
+      "focus": "a1",
+      "lacks": [
+        "b1"
+      ]
+    },
+    {
+      "after": 3,
+      "focus": "a2"
+    },
+    {
+      "after": 4,
+      "focus": "a2",
+      "contains": [
+        "b1"
+      ]
+    },
+    {
+      "focus": "b3"
+    }
+  ]
+}

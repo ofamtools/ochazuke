@@ -1,0 +1,60 @@
+{
+  "name": "a card of a timeline the frame no longer draws gives the focus back to the list (a tab switched away from the cards)",
+  "area": "focus",
+  "page": {
+    "noHeadings": true,
+    "order": [
+      "a",
+      "timeline"
+    ],
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2,
+        "selected": 1
+      }
+    ],
+    "timeline": {
+      "height": 8,
+      "cards": [
+        {
+          "id": "t1",
+          "header": "Explain the focus walk.",
+          "body": "First paragraph.\n\nSecond paragraph.",
+          "open": true
+        },
+        {
+          "id": "t2",
+          "header": "Now the spill rule."
+        }
+      ]
+    },
+    "bind": [
+      {
+        "noun": "app",
+        "keys": "X",
+        "do": "demo.hide",
+        "args": {
+          "id": "timeline"
+        }
+      }
+    ]
+  },
+  "script": [
+    "}",
+    "l",
+    "X"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "focus": "timeline/body"
+    },
+    {
+      "focus": "a2",
+      "lacks": [
+        "Explain the focus walk."
+      ]
+    }
+  ]
+}

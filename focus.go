@@ -812,3 +812,99 @@ func registerFocus(r *Runtime) {
 		Bind("tab", steps("ochazuke.focus.next")).
 		Bind("shift+tab", steps("ochazuke.focus.previous"))
 }
+
+// placedIn reports whether page's last frame placed instance id (Placed or
+// PlacedAt during Render).
+func placedIn(page *Page, id string) bool {
+	for _, at := range page.drawn {
+		if at.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
+// shownIn reports whether the last frame of page drew instance id. The
+// ancestry is walked from id up to the page: an instance the frame placed
+// shows itself and everything beneath it; a list row is drawn by its list,
+// so the walk goes on to the list; a focus stop the frame did not place
+// (a list, an input, a terminal, a grid) hides itself and everything
+// beneath it. So a list's rows are shown when the list is, a grid's cell
+// when the grid is, a card's body when the timeline's list is, and a list
+// nested under a row is hidden when that list was not placed though the
+// row's own list was. An instance with no stop up to the page (the page,
+// a panel) is never judged undrawn.
+func (r *Runtime) shownIn(page *Page, id string) bool {
+	for _, step := range r.Ancestry(id) {
+		if step == page.ID {
+			return true
+		}
+		if placedIn(page, step) {
+			return true
+		}
+		if _, row := r.rows[step]; row {
+			continue
+		}
+		if r.focusable(step) {
+			return false
+		}
+	}
+	return true
+}
+
+// keepFocusShown is the rule that focus never rests on an instance the last
+// frame did not draw (UX-RULES R3.13). The Model runs it right after it
+// drew the current page and before the footer, so the hints and the next
+// key belong to what is on screen. When the focus's stop was not placed by
+// that frame (a tab switched away from it, a panel collapsed), the focus
+// moves to its nearest ancestor below the page whose stop was placed (a
+// timeline nested under a tree row goes back to the row), else to the
+// page's first stop in drawing order (its remembered child), else to the
+// page. It does nothing while a modal is open (the frame drew the level
+// beneath it, and the modal owns the focus), before the page's first frame
+// or when the frame placed no stop at all (a page drawn by views that never
+// call Placed), and when the focus is not inside the current page. It
+// moves the focus through setFocus, so the mode rule applies (a hidden
+// prompt in insert leaves to normal) and the stop left remembers where the
+// focus was, for a jump back once it is drawn again. It reports whether it
+// moved the focus.
+func (r *Runtime) keepFocusShown() bool {
+	if len(r.modals) > 0 {
+		return false
+	}
+	page := r.PageOf(r.Page)
+	if page == nil || len(page.drawn) == 0 {
+		return false
+	}
+	ancestry := r.Ancestry(r.Focus)
+	if len(ancestry) < 3 || ancestry[len(ancestry)-2] != r.Page || r.shownIn(page, r.Focus) {
+		return false
+	}
+	target := ""
+	for _, id := range ancestry[1 : len(ancestry)-2] {
+		if r.focusable(r.stopOf(id)) && r.shownIn(page, id) {
+			target = id
+			if l := r.List(id); l != nil {
+				target = l.focusTarget()
+			}
+			break
+		}
+	}
+	if target == "" {
+		stops, _ := r.units(r.Page, r.focusable)
+		for _, stop := range stops {
+			if land := r.landing(stop); r.shownIn(page, land) {
+				target = land
+				break
+			}
+		}
+	}
+	if target == "" {
+		target = r.Page
+	}
+	if target == r.Focus {
+		return false
+	}
+	r.setFocus(target)
+	return true
+}

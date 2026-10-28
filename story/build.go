@@ -56,9 +56,12 @@ type Session struct {
 	timelines map[string]*ochazuke.Timeline
 	streamed  int
 	streams   []*FakeStream
-	jobs      map[string][]chan error // verb -> running jobs, oldest first
-	done      chan struct{}
-	cursor    *tea.Cursor
+	// hidden are the stops demo.hide took off the page (drawn again by
+	// the next demo.hide of the same id).
+	hidden map[string]bool
+	jobs   map[string][]chan error // verb -> running jobs, oldest first
+	done   chan struct{}
+	cursor *tea.Cursor
 }
 
 // Options change how a session renders, never what it does.
@@ -110,7 +113,7 @@ func build(s *Story, opt Options, stateDir string) (*Session, error) {
 	if s.Accent != "" {
 		m.Appearance.Accent = lipgloss.Color(s.Accent)
 	}
-	ss := &Session{Story: s, R: r, M: m, StateDir: stateDir, pages: map[string]*Page{}, lists: map[string]*ochazuke.List{}, trees: map[string]*ochazuke.Tree{}, records: map[string]*ochazuke.RecordEditor{}, inputs: map[string]*ochazuke.Input{}, details: map[string]*ochazuke.Detail{}, docs: map[string]*markdown.Doc{}, timelines: map[string]*ochazuke.Timeline{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
+	ss := &Session{Story: s, R: r, M: m, StateDir: stateDir, pages: map[string]*Page{}, lists: map[string]*ochazuke.List{}, trees: map[string]*ochazuke.Tree{}, records: map[string]*ochazuke.RecordEditor{}, inputs: map[string]*ochazuke.Input{}, details: map[string]*ochazuke.Detail{}, docs: map[string]*markdown.Doc{}, timelines: map[string]*ochazuke.Timeline{}, hidden: map[string]bool{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
 	if err := ss.defineDemo(pages); err != nil {
 		return nil, err
 	}
@@ -245,7 +248,15 @@ func (ss *Session) defineDemo(pages []*Page) error {
 		}, "Add a notice saying ping and the row").
 		Verb("delete", ss.delete, "Remove the row from its list").Confirm("Delete {{label}}?").
 		Verb("finish", ss.finish, "Finish (or fail) the oldest running job of a demo verb").
-		Verb("check", ss.check, "Toggle a [x] mark on the outline row, an application change on the outline's undo stack")
+		Verb("check", ss.check, "Toggle a [x] mark on the outline row, an application change on the outline's undo stack").
+		Verb("hide", func(c ochazuke.Ctx) ochazuke.Result {
+			id := ochazuke.StringArg(c.Args, "id", "")
+			ss.hidden[id] = !ss.hidden[id]
+			return ochazuke.Done(ss.hidden[id])
+		}, "Stop drawing a list, tree, input or the timeline (by id), or draw it again: a tab switched away from it")
+	r.Operations[Demo+".hide"] = withParams(r.Operations[Demo+".hide"], map[string]ochazuke.Parameter{
+		"id": {Type: "string", Required: true, Description: "the id of the list, tree, input or timeline"},
+	})
 	r.Operations[Demo+".finish"] = withParams(r.Operations[Demo+".finish"], map[string]ochazuke.Parameter{
 		"verb": {Type: "string", Required: true, Description: "the job verb, demo.<name>"},
 		"fail": {Type: "boolean", Description: "finish it failed"},
@@ -1127,6 +1138,7 @@ func (ss *Session) renderMain(p *Page, width, height int) ochazuke.Block {
 			order = append(order, timelineID(p))
 		}
 	}
+	order = slices.DeleteFunc(slices.Clone(order), func(id string) bool { return ss.hidden[id] })
 	recordSpec := map[string]RecordSpec{}
 	for _, rs := range p.Records {
 		recordSpec[rs.ID] = rs
@@ -1266,6 +1278,9 @@ func (ss *Session) renderMain(p *Page, width, height int) ochazuke.Block {
 		}
 	}
 	for _, in := range p.Inputs {
+		if ss.hidden[in.ID] {
+			continue
+		}
 		prefix := in.Label
 		if prefix == "" {
 			prefix = in.ID

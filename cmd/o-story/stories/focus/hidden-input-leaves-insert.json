@@ -1,0 +1,48 @@
+{
+  "name": "a hidden input in insert gives the focus to the first drawn stop, in normal mode",
+  "area": "focus",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "inputs": [
+      {
+        "id": "q"
+      }
+    ],
+    "focus": "q",
+    "bind": [
+      {
+        "noun": "app",
+        "mode": "insert",
+        "keys": "ctrl+x",
+        "do": "demo.hide",
+        "args": {
+          "id": "q"
+        }
+      }
+    ]
+  },
+  "script": [
+    "i",
+    "h",
+    "ctrl+x"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "focus": "q",
+      "mode": "insert"
+    },
+    {
+      "focus": "a1",
+      "mode": "normal",
+      "lacks": [
+        "q: "
+      ]
+    }
+  ]
+}
