@@ -1,0 +1,38 @@
+{
+  "name": "tree whose columns do not fit: l and h expand and collapse rather than scroll; z l and z h still scroll its columns (R11.1, R5.9)",
+  "area": "tree",
+  "width": 40,
+  "height": 14,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "trees": [
+      {
+        "id": "t",
+        "columns": [
+          {"title": "name", "width": 10},
+          {"title": "alpha", "width": 8},
+          {"title": "bravo", "width": 8},
+          {"title": "charlie", "width": 8},
+          {"title": "delta", "width": 8}
+        ],
+        "nodes": [
+          {"id": "s1", "label": "main", "cells": ["main", "a-1", "b-1", "c-1", "d-1"]},
+          {"id": "p1", "parent": "s1", "label": "editor", "cells": ["editor", "a-2", "b-2", "c-2", "d-2"]}
+        ],
+        "collapsed": ["s1"]
+      }
+    ],
+    "lists": [{"id": "b", "rows": 2}],
+    "order": ["t", "b"]
+  },
+  "script": ["l", "l", "h", "h", "z l", "z h"],
+  "expect": [
+    {"after": 1, "focus": "s1", "contains": ["editor", "alpha"]},
+    {"after": 2, "focus": "p1", "contains": ["alpha"]},
+    {"after": 3, "focus": "s1", "contains": ["editor", "alpha"]},
+    {"after": 4, "focus": "s1", "lacks": ["editor"], "contains": ["alpha"]},
+    {"after": 5, "focus": "s1", "lacks": ["alpha"]},
+    {"after": 6, "focus": "s1", "contains": ["alpha"]}
+  ]
+}

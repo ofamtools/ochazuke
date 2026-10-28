@@ -1,0 +1,14 @@
+ |name          state
+ |▾ main        open
+ |    editor    busy
+ |    shell     idle
+ |▾ work        open
+R|    logs      idle
+r|b1
+ |b2
+ |
+ |
+ |
+ |
+ |
+ |

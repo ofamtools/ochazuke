@@ -159,6 +159,9 @@ type TreeSpec struct {
 	FailWrites int                 `json:"failWrites,omitempty"`
 	Collapsed  []string            `json:"collapsed,omitempty"`
 	Height     int                 `json:"height,omitempty"` // rows drawn; 0 = every visible row, -1 = the rest of the page
+	// Columns make the tree's rows a table (ochazuke.Columns); nodes bring
+	// their cells.
+	Columns []ochazuke.Column `json:"columns,omitempty"`
 }
 
 // RecordSpec is one record editor: its fields (ochazuke.RecordField as

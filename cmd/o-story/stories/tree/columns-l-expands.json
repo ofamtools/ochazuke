@@ -1,0 +1,39 @@
+{
+  "name": "tree with columns: l on an open node steps onto its first child, on a closed one expands it, and right on a leaf keeps the focus in the tree although a next stop exists (R11.1, R5.11)",
+  "area": "tree",
+  "width": 60,
+  "height": 14,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "trees": [
+      {
+        "id": "t",
+        "columns": [
+          {"title": "name", "width": 12},
+          {"title": "state", "width": 8}
+        ],
+        "nodes": [
+          {"id": "s1", "label": "main", "cells": ["main", "open"]},
+          {"id": "p1", "parent": "s1", "label": "editor", "cells": ["editor", "busy"]},
+          {"id": "p2", "parent": "s1", "label": "shell", "cells": ["shell", "idle"]},
+          {"id": "s2", "label": "work", "cells": ["work", "open"]},
+          {"id": "p3", "parent": "s2", "label": "logs", "cells": ["logs", "idle"]}
+        ],
+        "collapsed": ["s2"]
+      }
+    ],
+    "lists": [{"id": "b", "rows": 2}],
+    "order": ["t", "b"]
+  },
+  "script": ["l", "right", "l", "h", "j", "j", "j", "l", "l"],
+  "expect": [
+    {"after": 1, "focus": "p1"},
+    {"after": 2, "focus": "p1"},
+    {"after": 3, "focus": "p1"},
+    {"after": 4, "focus": "s1"},
+    {"after": 7, "focus": "s2", "lacks": ["logs"]},
+    {"after": 8, "focus": "s2", "contains": ["logs"]},
+    {"after": 9, "focus": "p3"}
+  ]
+}

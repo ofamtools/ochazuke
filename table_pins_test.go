@@ -339,3 +339,56 @@ func TestGuardedOffRowDoesNotShadowAnOuterHint(t *testing.T) {
 		t.Fatalf("hints %q", hints)
 	}
 }
+
+// R11.1 over R5.11: a tree with columns keeps its own h/l. l on an open
+// node steps onto its first child and on a leaf stays put although the
+// tree fits and a next stop exists; with hidden columns l expands rather
+// than scrolls, and z l still scrolls.
+func TestTreeHLWinOverTableScroll(t *testing.T) {
+	for _, width := range []int{80, 30} {
+		r := NewRuntime()
+		m := NewModel(r)
+		r.Define("row")
+		cols := []Column{{Title: "name", Width: 10}, {Title: "alpha", Width: 8}, {Title: "bravo", Width: 8}}
+		var tr *Tree
+		var b *List
+		if _, err := r.AddPage("p", "P", func(_ *Runtime, w, _ int) Block {
+			return Text(tr.View(w, 4) + "\n" + b.View(w, 2))
+		}); err != nil {
+			t.Fatal(err)
+		}
+		var err error
+		if tr, err = r.AddTree("tr", []TreeNode{
+			{ID: "s1", Label: "main", Cells: []string{"main", "a-1", "b-1"}},
+			{ID: "p1", Parent: "s1", Label: "editor", Cells: []string{"editor", "a-2", "b-2"}},
+		}, Parent("p"), Columns(cols...)); err != nil {
+			t.Fatal(err)
+		}
+		if b, err = r.AddList("b", []ListItem{{ID: "b1", Label: "b1", Noun: "row"}}, Parent("p")); err != nil {
+			t.Fatal(err)
+		}
+		_ = r.OpenPage("p")
+		_ = tr.Focus()
+		m.Width, m.Height = width, 20
+		_ = m.View()
+		l := tr.List()
+		motionKeys(t, r, m, "l")
+		if r.Focus != "p1" || l.ColumnOffset() != 0 {
+			t.Fatalf("width %d: l on the open node: focus %s offset %d, want p1 0", width, r.Focus, l.ColumnOffset())
+		}
+		motionKeys(t, r, m, "right")
+		if r.Focus != "p1" {
+			t.Fatalf("width %d: right on a leaf: focus %s, want p1", width, r.Focus)
+		}
+		motionKeys(t, r, m, "h")
+		if r.Focus != "s1" {
+			t.Fatalf("width %d: h on a leaf: focus %s, want s1", width, r.Focus)
+		}
+		if width < 80 {
+			motionKeys(t, r, m, "z l")
+			if l.ColumnOffset() == 0 {
+				t.Fatalf("z l did not scroll the tree's columns")
+			}
+		}
+	}
+}

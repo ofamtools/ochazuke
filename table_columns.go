@@ -328,6 +328,24 @@ func (l *List) scrollColumns(to string, delta int) {
 	l.carryColumn()
 }
 
+// edgeList is the focused list the h/l scroll-then-focus rows act on
+// (table-column-*, table-scrolls-*, table-spills-*, the clamps): nil for
+// a tree's own list, so a tree's h/l (collapse, expand) answer at its
+// level outside the list (R11.1); z h / z l still scroll a tree's
+// columns.
+func (r *Runtime) edgeList(focus string) *List {
+	l := r.focusedList(focus)
+	if l == nil {
+		return nil
+	}
+	if inst := r.Instances[l.id]; inst != nil {
+		if t := r.Tree(inst.Parent); t != nil && t.list == l {
+			return nil
+		}
+	}
+	return l
+}
+
 func registerColumnMotions(r *Runtime) {
 	steps := func(delta int) Binding {
 		return Do("ochazuke.list.scroll-columns", Arguments{"delta": delta}).FromPayload("steps", SourceCount)
@@ -340,16 +358,22 @@ func registerColumnMotions(r *Runtime) {
 		return l != nil && l.columnsScroll()
 	})
 	r.DefineGuard("table-scrolls-right", func(r *Runtime, ev KeyEvent) bool {
-		l := r.focusedList(ev.Focus)
+		l := r.edgeList(ev.Focus)
 		return l != nil && l.scrollsRight()
 	})
 	r.DefineGuard("table-scrolls-left", func(r *Runtime, ev KeyEvent) bool {
-		l := r.focusedList(ev.Focus)
+		l := r.edgeList(ev.Focus)
 		return l != nil && l.scrollsLeft()
+	})
+	// table-scrolls-clamp: the h/l clamp row's guard, table-scrolls on a
+	// list that is not a tree's (z l / z h keep table-scrolls).
+	r.DefineGuard("table-scrolls-clamp", func(r *Runtime, ev KeyEvent) bool {
+		l := r.edgeList(ev.Focus)
+		return l != nil && l.columnsScroll()
 	})
 	spills := func(step int) Guard {
 		return func(r *Runtime, ev KeyEvent) bool {
-			l := r.focusedList(ev.Focus)
+			l := r.edgeList(ev.Focus)
 			if l == nil || !l.atColumnEdge(step) || l.noSpill || l.visual || !l.Focused() {
 				return false
 			}

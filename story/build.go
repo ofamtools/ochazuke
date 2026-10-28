@@ -585,7 +585,11 @@ func (ss *Session) addPage(p *Page) error {
 		}
 	}
 	for _, ts := range p.Trees {
-		tree, err := r.AddTree(ts.ID, ts.Nodes, ochazuke.Parent(p.ID))
+		topts := []ochazuke.InstanceOption{ochazuke.Parent(p.ID)}
+		if len(ts.Columns) > 0 {
+			topts = append(topts, ochazuke.Columns(ts.Columns...))
+		}
+		tree, err := r.AddTree(ts.ID, ts.Nodes, topts...)
 		if err != nil {
 			return fmt.Errorf("tree %s: %w", ts.ID, err)
 		}
@@ -1170,6 +1174,9 @@ func (ss *Session) renderMain(p *Page, width, height int) ochazuke.Block {
 					h = max(1, height-used-head)
 				case h == 0:
 					h = max(1, tree.List().Height())
+					if len(tree.List().Columns()) > 0 {
+						h++ // the header line
+					}
 				}
 				block := tree.Block(width, h)
 				if !p.NoHead {
