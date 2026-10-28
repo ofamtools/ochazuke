@@ -1,0 +1,77 @@
+{
+  "name": "? help at 120 columns: a key sequence reads in prefix and key columns, rows sharing a prefix together and sorted, the prefix once per group, a three-key sequence's first two keys the prefix (R6.9, R6.7)",
+  "area": "help",
+  "width": 120,
+  "height": 60,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": "z l",
+        "do": "demo.open"
+      },
+      {
+        "noun": "demo",
+        "keys": "ctrl+a v",
+        "do": "demo.notify"
+      },
+      {
+        "noun": "demo",
+        "keys": "z h",
+        "do": "demo.reset"
+      },
+      {
+        "noun": "demo",
+        "keys": "ctrl+a t",
+        "do": "demo.delete"
+      },
+      {
+        "noun": "demo",
+        "keys": "g c y",
+        "do": "notice.clear"
+      },
+      {
+        "noun": "demo",
+        "keys": "g c x",
+        "do": "demo.notify"
+      },
+      {
+        "noun": "demo",
+        "keys": "ctrl+a N",
+        "do": "demo.open"
+      },
+      {
+        "noun": "demo",
+        "keys": "ctrl+a n",
+        "do": "demo.reset"
+      }
+    ]
+  },
+  "script": [
+    "?",
+    "j"
+  ],
+  "expect": [
+    {
+      "modal": "bindings-help",
+      "contains": [
+        "ctrl+a  n",
+        "g c     x",
+        "z       h",
+        "arguments"
+      ],
+      "lacks": [
+        "ctrl+a v",
+        "z l",
+        "1›"
+      ],
+      "after": 1
+    }
+  ]
+}

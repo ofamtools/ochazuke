@@ -586,9 +586,17 @@ func rowKey(b Binding) string {
 // runs (noun.verb, or the row's Hint when it has one), arguments resolved
 // when help opens, its description, the answering noun, and the help's
 // section: that noun, or "movement" for a motion (Operation.Motion).
+// Prefix and Final are Key split by SplitKeys (the help's prefix and key
+// columns); Request is the operation the row runs (noun.verb, the noun
+// by its shortest name, also when Operation shows the Hint; "" for a mode
+// transition) and Hint the row's own Hint.
 type HelpRow struct {
 	Key         string    `json:"key"`
+	Prefix      string    `json:"prefix,omitempty"`
+	Final       string    `json:"final,omitempty"`
 	Operation   string    `json:"operation"`
+	Request     string    `json:"request,omitempty"`
+	Hint        string    `json:"hint,omitempty"`
 	Args        Arguments `json:"args,omitempty"`
 	Description string    `json:"description,omitempty"`
 	Noun        string    `json:"noun"`
@@ -669,15 +677,32 @@ func (r *Runtime) helpRows(rows []levelRow, args func(Binding) Arguments, focus 
 // operation, the description (the row's Help over the operation's), the
 // answering level as its noun and section.
 func (r *Runtime) helpRow(row levelRow, args Arguments) HelpRow {
+	req := ""
+	if row.Request.Verb != "" {
+		req = r.DisplayKey(row.Request.Key())
+	}
 	op := row.Hint
-	if op == "" && row.Request.Verb != "" {
-		op = r.DisplayKey(row.Request.Key())
+	if op == "" {
+		op = req
 	}
 	desc := r.Operations[row.Request.Key()].Description
 	if row.Help != "" {
 		desc = row.Help
 	}
-	return HelpRow{Key: rowKey(row.Binding), Operation: op, Args: args, Description: desc, Noun: row.level, Section: r.DisplayNoun(row.level), Guard: row.guard}
+	key := rowKey(row.Binding)
+	prefix, final := SplitKeys(key)
+	return HelpRow{Key: key, Prefix: prefix, Final: final, Operation: op, Request: req, Hint: row.Hint, Args: args, Description: desc, Noun: row.level, Section: r.DisplayNoun(row.level), Guard: row.guard}
+}
+
+// SplitKeys splits a key sequence into its prefix and its final key: "z l"
+// is "z" and "l", "ctrl+a v" is "ctrl+a" and "v", "g c x" is "g c" and
+// "x"; a single key (or a pattern, "<digit>") has no prefix.
+func SplitKeys(keys string) (prefix, final string) {
+	parts := strings.Fields(keys)
+	if len(parts) < 2 {
+		return "", strings.TrimSpace(keys)
+	}
+	return strings.Join(parts[:len(parts)-1], " "), parts[len(parts)-1]
 }
 
 // View renders the shell as a full-screen tea.View; View().Content is the

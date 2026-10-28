@@ -175,3 +175,59 @@ func TestTableWithoutTitlesHasNoHeader(t *testing.T) {
 		t.Fatalf("lines %q", lines)
 	}
 }
+
+// A Group column draws a cell blank when it repeats the row above's in
+// the same section; a new section, a different value and the first row a
+// frame draws show it, and the rows keep their cells.
+func TestGroupColumnShowsARepeatedCellOnce(t *testing.T) {
+	r := NewRuntime()
+	r.Define("ochazuke.binding")
+	items := []ListItem{
+		{ID: "1", Cells: []string{"", "q", "quit"}, Section: "app", Noun: "ochazuke.binding"},
+		{ID: "2", Cells: []string{"g", "g", "top"}, Section: "app", Noun: "ochazuke.binding"},
+		{ID: "3", Cells: []string{"g", "h", "home"}, Section: "app", Noun: "ochazuke.binding"},
+		{ID: "4", Cells: []string{"g", "j", "down"}, Section: "list", Noun: "ochazuke.binding"},
+		{ID: "5", Cells: []string{"z", "l", "right"}, Section: "list", Noun: "ochazuke.binding"},
+		{ID: "6", Cells: []string{"z", "h", "left"}, Section: "list", Noun: "ochazuke.binding"},
+	}
+	l, err := r.AddList("l", items, Columns(Column{Title: "", Group: true}, Column{Title: "key"}, Column{Title: "does"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, line := range strings.Split(ansi.Strip(l.View(40, 20)), "\n") {
+		if line = strings.Join(strings.Fields(line), " "); line != "" {
+			got = append(got, line)
+		}
+	}
+	want := []string{"key does", "app", "q quit", "g g top", "h home", "list", "g j down", "z l right", "h left"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("lines %q, want %q", got, want)
+	}
+	if l.Items()[2].Cells[0] != "g" {
+		t.Fatalf("the row lost its cell: %q", l.Items()[2].Cells)
+	}
+	// Scrolled so the window starts on the second z row: it shows its z.
+	if err := l.Select("6"); err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(ansi.Strip(l.View(40, 3)), "\n")
+	if !slices.ContainsFunc(lines, func(line string) bool { return strings.Join(strings.Fields(line), " ") == "z h left" }) {
+		t.Fatalf("first drawn row lost its group cell:\n%s", strings.Join(lines, "\n"))
+	}
+	// One-line rows without sections (tableView) blank the same way.
+	for i := range items {
+		items[i].Section = ""
+	}
+	l.SetItems(items)
+	got = nil
+	for _, line := range strings.Split(ansi.Strip(l.View(40, 20)), "\n") {
+		if line = strings.Join(strings.Fields(line), " "); line != "" {
+			got = append(got, line)
+		}
+	}
+	want = []string{"key does", "q quit", "g g top", "h home", "j down", "z l right", "h left"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("one-line lines %q, want %q", got, want)
+	}
+}

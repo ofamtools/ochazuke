@@ -167,7 +167,7 @@ func (v colView) at(k int) (shown, widths []int) {
 	first := v.rest[from]
 	pins := slices.Clone(v.pins)
 	for len(pins) > 0 && need(pins)+tableGap+least[first] > v.width {
-		pins = pins[:len(pins)-1] // the view only: the saved pins stay
+		pins = v.dropPin(pins) // the view only: the saved pins stay
 	}
 	shown = pins
 	used := need(pins)
@@ -188,8 +188,8 @@ func (v colView) at(k int) (shown, widths []int) {
 // start is the unscrolled layout: pinned columns then the scrolling ones.
 // While they do not fit, scrolling columns drop by Priority (the largest
 // first, ties the rightmost) down to one, then pins drop from the right
-// down to the first (in the view only), then the last scrolling column,
-// so a pinned first column too wide to share the row is shown alone, as
+// down to the first (in the view only; a Group pin goes with the pin
+// after it, dropPin), then the last scrolling column, so a pinned first column too wide to share the row is shown alone, as
 // before pins existed, and the scrolled views show the rest.
 func (v colView) start(natural, least []int, need func([]int) int) (shown, widths []int) {
 	pins, rest := slices.Clone(v.pins), slices.Clone(v.rest)
@@ -204,13 +204,29 @@ func (v colView) start(natural, least []int, need func([]int) int) (shown, width
 		rest = slices.Delete(rest, drop, drop+1)
 	}
 	for len(pins) > 1 && need(all()) > v.width {
-		pins = pins[:len(pins)-1]
+		next := v.dropPin(pins)
+		if len(next) == 0 {
+			break
+		}
+		pins = next
 	}
 	if len(pins) > 0 && len(rest) > 0 && need(all()) > v.width {
 		rest = nil
 	}
 	shown = all()
 	return shown, growColumns(shown, natural, least, v.width)
+}
+
+// dropPin is pins less the last one, and less a Group pin just left of
+// it: a Group column (the help's key prefix) is never drawn without the
+// column after it, so the two drop together.
+func (v colView) dropPin(pins []int) []int {
+	last := pins[len(pins)-1]
+	pins = pins[:len(pins)-1]
+	if n := len(pins); n > 0 && pins[n-1] == last-1 && v.cols[pins[n-1]].Group {
+		pins = pins[:n-1]
+	}
+	return pins
 }
 
 // sameAsStart reports whether offset 1 draws the columns offset 0 does, so

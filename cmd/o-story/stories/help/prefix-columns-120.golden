@@ -1,0 +1,60 @@
+ |  ◆ o-story                                                                                                    NORMAL
+ |   › page1
+ |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ |  a
+r|  a1
+ |  a2
+ |
+ |            ╭──────────────────────────────────────────────────────────────────────────────────────────────╮
+ |            │ Keys · here                                                                                  │
+ |            │         key         operation           arguments               description                  │
+ |            │ demo                                                                                         │
+ |            │         q           app.quit                                    Exit the application         │
+R|            │         r           demo.reset                                  Rebuild the story from its   │
+R|            │                                                                 file                         │
+ |            │         enter       demo.open                                   Open the row: attach the     │
+ |            │                                                                 fake pane when the story has │
+ |            │                                                                 one for it                   │
+ |            │         n           demo.notify                                 Add a persistent notice      │
+ |            │                                                                 naming the row               │
+ |            │         x           demo.delete                                 Remove the row from its list │
+ |            │ z       h           demo.reset                                  Rebuild the story from its   │
+ |            │                                                                 file                         │
+ |            │         l           demo.open                                   Open the row: attach the     │
+ |            │                                                                 fake pane when the story has │
+ |            │                                                                 one for it                   │
+ |            │         esc         mode.leave                                  Return from a pending mode   │
+ |            │                                                                 to the mode it shadowed      │
+ |            │ ctrl+a  n           demo.reset                                  Rebuild the story from its   │
+ |            │                                                                 file                         │
+ |            │         N           demo.open                                   Open the row: attach the     │
+ |            │                                                                 fake pane when the story has │
+ |            │                                                                 one for it                   │
+ |            │         t           demo.delete                                 Remove the row from its list │
+ |            │         v           demo.notify                                 Add a persistent notice      │
+ |            │                                                                 naming the row               │
+ |            │         esc         mode.leave                                  Return from a pending mode   │
+ |            │                                                                 to the mode it shadowed      │
+ |            │ g       esc         mode.leave                                  Return from a pending mode   │
+ |            │                                                                 to the mode it shadowed      │
+ |            │ g c     x           demo.notify                                 Add a persistent notice      │
+ |            │                                                                 naming the row               │
+ |            │         y           notice.clear                                Clear the persistent notices │
+ |            │                                                                 from the footer              │
+ |            │         esc         mode.leave                                  Return from a pending mode   │
+ |            │                                                                 to the mode it shadowed      │
+ |            │ list                                                                                         │
+ |            │         space       list.mark                                   Toggle the mark on a row     │
+ |            │                                                                 (the selected row by         │
+ |            │                                                                 default) for fan-out verbs   │
+ |            │ 1–18 / 49                                                                                    │
+ |            │ space list.mark · S view · esc modal.pop · : palette.open · ? bindings.help · / filter       │
+ |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
+ |
+ |
+ |
+ |
+ |
+ |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ |  space list.mark · S view · esc modal.pop · : palette.open · ? bindings.help · / filter
+ |

@@ -280,7 +280,9 @@ tiers above them. When the two disagree, fix one in the same commit.
   (`reset-columns`) puts the default back. A user's pins are remembered per
   table across a restart, the default is not written. When the pins leave
   no room for a scrolling column, the view (never the saved pins) drops
-  pins from the right until one shows. Story: `tables/pin-cell.json`,
+  pins from the right until one shows; a `Column.Group` pin drops with the
+  pin after it (the help's prefix never shows without its key, test
+  `TestGroupPinDropsWithThePinAfterIt`). Story: `tables/pin-cell.json`,
   `tables/pin-row-palette.json`, `tables/pin-declared.json`,
   `tables/pin-narrow.json`, `tables/unpin-columns.json`; tests
   `TestPinsDrawFirstPersistAndReset`, `TestPinsDroppedInTheViewOnly`.
@@ -339,7 +341,25 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R6.6** One chrome: everything renders through `Layout.Shell`; no second
   set of height or padding constants. Check: the diff.
 - **R6.7** Help wraps a long cell inside its column rather than overflowing
-  the modal width. Golden: `testdata/help-80.golden`.
+  the modal width: the prefix, key, operation and description wrap, the
+  arguments cut with `…` and drop first when narrow (`1›` counts them, `z l`
+  scrolls them in). Golden: `testdata/help-80.golden`; stories
+  `help/prefix-columns-{80,120}.json`.
+- **R6.9** Help reads a key sequence in two columns, prefix then key
+  (`SplitKeys`: `z l` is `z` and `l`, `ctrl+a v` is `ctrl+a` and `v`, a
+  three-key `g c x` is `g c` and `x`, a single key has no prefix), then the
+  operation and description. Inside each section (the sections keep their
+  order: the answering noun innermost first, app, movement) the single keys
+  come first in the order they answer, then each prefix's rows together,
+  the prefixes in the order they first answer (a longer prefix right after
+  the one it extends: `g`, then `g c`), a prefix's rows sorted by key
+  (characters case folded, lower case first, then named keys, so the
+  generated `esc` cancel is last). The prefix is drawn on its group's first
+  row and blank below it (`Column.Group`), and again on the first row a
+  scrolled window draws. A help with no sequence has no prefix column.
+  `BindingHelp` keeps resolution order; only the modal sorts. Story:
+  `help/prefix-columns-{80,120}.json`; tests `TestHelpOrderGroupsPrefixes`,
+  `TestGroupColumnShowsARepeatedCellOnce`.
 - **R6.8** The tab row never drops a page silently: when the tabs do not
   fit, `‹N` at the left edge and `N›` at the right count the pages hidden on
   each side, the active tab is always on the row, and the shown tabs plus

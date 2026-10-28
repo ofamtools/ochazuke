@@ -66,7 +66,13 @@ func TestHelpListsTheFocusedRowsVerbsFirst(t *testing.T) {
 	if f := fields(1); f[0] != "i" || f[1] != "widget.edit" {
 		t.Fatalf("second row %q", items[1].Label)
 	}
-	last := items[len(items)-1].Data.(HelpRow)
+	// The last row before the movement section is app's.
+	var last HelpRow
+	for _, it := range items {
+		if row := it.Data.(HelpRow); row.Section != MovementSection {
+			last = row
+		}
+	}
 	if last.Noun != "app" {
 		t.Fatalf("last row is not an app row: %+v", last)
 	}
@@ -287,4 +293,41 @@ func bindingHelpView(r *Runtime, _ *Instance, width, height int) Block {
 		return h.ModalBlock(Styles{}, width, height)
 	}
 	return Text("")
+}
+
+func TestSplitKeys(t *testing.T) {
+	for keys, want := range map[string][2]string{"z l": {"z", "l"}, "ctrl+a v": {"ctrl+a", "v"}, "g c x": {"g c", "x"}, "enter": {"", "enter"}, "<digit>": {"", "<digit>"}, "": {"", ""}} {
+		if p, f := SplitKeys(keys); p != want[0] || f != want[1] {
+			t.Fatalf("SplitKeys(%q) = %q, %q; want %q", keys, p, f, want)
+		}
+	}
+}
+
+// Inside a section the single keys keep their order and come first; a
+// prefix's rows follow together, sorted (characters case folded, named
+// keys last), a longer prefix after the shorter one it extends; the
+// sections keep their order. A row keeps its request beside its hint.
+func TestHelpOrderGroupsPrefixes(t *testing.T) {
+	row := func(section, key string) HelpRow {
+		p, f := SplitKeys(key)
+		return HelpRow{Key: key, Prefix: p, Final: f, Section: section}
+	}
+	rows := []HelpRow{row("a", "x"), row("a", "g c y"), row("a", "z l"), row("a", "enter"), row("a", "z esc"), row("a", "g esc"), row("a", "z h"), row("a", "z H"), row("a", "g c x"), row("b", "g g"), row("b", "j")}
+	var got []string
+	for _, r := range helpOrder(rows) {
+		got = append(got, r.Section+":"+r.Key)
+	}
+	want := []string{"a:x", "a:enter", "a:g esc", "a:g c x", "a:g c y", "a:z h", "a:z H", "a:z l", "a:z esc", "b:j", "b:g g"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("order %q, want %q", got, want)
+	}
+
+	r, m := helpFixture(t)
+	r.Define("widget").Verb("zoom", func(Ctx) Result { return Done(nil) }, "Zoom").Mode("normal").Bind("z z", Do("widget.zoom").Hinted("zoom in"))
+	_ = m
+	for _, h := range BindingHelp(r, r.Focus) {
+		if h.Key == "z z" && (h.Operation != "zoom in" || h.Hint != "zoom in" || h.Request != "widget.zoom" || h.Prefix != "z" || h.Final != "z") {
+			t.Fatalf("row %+v", h)
+		}
+	}
 }

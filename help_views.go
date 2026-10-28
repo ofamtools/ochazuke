@@ -236,13 +236,13 @@ func (h *helpState) show() error {
 	cols := helpColumns
 	switch h.view {
 	case HelpPick:
-		items = helpItems(PlaceHelp(r, h.at(), h.mode))
+		items, cols = helpItems(PlaceHelp(r, h.at(), h.mode))
 	case HelpTable:
 		var keys []HelpKey
 		h.modes, keys = r.HelpTable(h.at(), r.helpFlag(HelpPendingSetting, false))
 		items, cols = helpTableItems(h.r.DisplayNoun(h.noun), h.modes, keys), helpTableColumns(h.modes)
 	default:
-		items = helpItems(h.here)
+		items, cols = helpItems(h.here)
 	}
 	list, err := r.AddList(helpListID, items, Parent(helpID), Columns(cols...))
 	if err != nil {

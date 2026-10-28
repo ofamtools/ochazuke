@@ -1,0 +1,60 @@
+ |  ◆ o-story                                                            NORMAL
+ |   › page1
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  a
+r|  a1
+ |  a2
+ |
+ |        ╭──────────────────────────────────────────────────────────────╮
+ |        │ Keys · here                                                  │
+ |        │         key             operation           description   1› │
+ |        │ demo                                                         │
+ |        │ z       esc             mode.leave          Return from      │
+ |        │                                             a pending        │
+ |        │                                             mode to the      │
+ |        │                                             mode it          │
+ |        │                                             shadowed         │
+ |        │ ctrl+a  n               demo.reset          Rebuild the      │
+ |        │                                             story from       │
+ |        │                                             its file         │
+ |        │         N               demo.open           Open the         │
+ |        │                                             row: attach      │
+ |        │                                             the fake         │
+ |        │                                             pane when        │
+ |        │                                             the story        │
+ |        │                                             has one for      │
+ |        │                                             it               │
+ |        │         t               demo.delete         Remove the       │
+ |        │                                             row from its     │
+ |        │                                             list             │
+ |        │         v               demo.notify         Add a            │
+ |        │                                             persistent       │
+ |        │                                             notice           │
+ |        │                                             naming the       │
+ |        │                                             row              │
+ |        │         esc             mode.leave          Return from      │
+ |        │                                             a pending        │
+ |        │                                             mode to the      │
+ |        │                                             mode it          │
+ |        │                                             shadowed         │
+ |        │ g       esc             mode.leave          Return from      │
+ |        │                                             a pending        │
+ |        │                                             mode to the      │
+ |        │                                             mode it          │
+ |        │                                             shadowed         │
+R|        │ g c     x               demo.notify         Add a            │
+R|        │                                             persistent       │
+R|        │                                             notice           │
+R|        │                                             naming the       │
+R|        │                                             row              │
+ |        │ 8–15 / 49                                                    │
+ |        │ space list.mark · S view · esc modal.pop · : palette.open ·… │
+ |        ╰──────────────────────────────────────────────────────────────╯
+ |
+ |
+ |
+ |
+ |
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  space list.mark · S view · esc modal.pop · : palette.open · ? bindings.help…
+ |

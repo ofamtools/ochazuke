@@ -326,6 +326,25 @@ func TestPinsDroppedInTheViewOnly(t *testing.T) {
 	}
 }
 
+// A Group pin drops with the pin after it: pins 0 (Group) and 1 that leave
+// no room for a scrolling column stay together, the scrolling ones go.
+func TestGroupPinDropsWithThePinAfterIt(t *testing.T) {
+	_, m, l := edgePage(t, 30, "")
+	cols := l.Columns()
+	cols[0].Group = true
+	l.SetColumns(cols...)
+	l.SetPinnedColumns([]int{0, 1})
+	_ = m.View()
+	if got := tableHeader(m); got != "name alpha 4›" {
+		t.Fatalf("narrow: %q", got)
+	}
+	l.SetPinnedColumns([]int{0, 3})
+	_ = m.View()
+	if got := tableHeader(m); got != "name alpha 3›" {
+		t.Fatalf("a Group pin with a pin that does not follow it: %q", got)
+	}
+}
+
 // A row whose own guard is false does not shadow an outer row's hint on
 // the same key: l on a plain list leaves the page's l its hint.
 func TestGuardedOffRowDoesNotShadowAnOuterHint(t *testing.T) {

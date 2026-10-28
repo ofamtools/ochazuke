@@ -39,7 +39,11 @@ const (
 // makes List.View wrap a cell longer than its column onto further lines
 // of the row instead of cutting it: the row is as tall as its tallest
 // wrapped cell, the other cells sit on its first line (TableText still
-// cuts).
+// cuts). Group makes List.View draw a cell blank when it repeats the cell
+// above it in the same section (and every Group column left of it does
+// too), so a run of rows sharing a value (the help's key prefix) shows it
+// once; the first row a frame draws always shows its cells, and the rows'
+// Cells keep the value (TableText does not blank).
 type Column struct {
 	Title    string `json:"title"`
 	Width    int    `json:"width,omitempty"`
@@ -49,6 +53,7 @@ type Column struct {
 	Priority int    `json:"priority,omitempty"`
 	Wrap     bool   `json:"wrap,omitempty"`
 	Pinned   bool   `json:"pinned,omitempty"`
+	Group    bool   `json:"group,omitempty"`
 }
 
 // tableGap is the space between two columns; defaultColumnMin a flexible
@@ -292,7 +297,7 @@ func (l *List) tableView(width, height int) (string, int, int) {
 	marked := l.marksSelection()
 	toned, faded := l.listTones(), l.faded()
 	for i := l.offset; i < end; i++ {
-		row := l.rowCells(cells(l.items[i], len(l.columns)))
+		row := l.rowCells(l.groupedCells(i, l.offset))
 		line, at := tableLineAt(cols, row, shown, widths)
 		if gutter {
 			prefix := "  "
@@ -382,6 +387,32 @@ func TableText(cols []Column, rows [][]string, width int) []string {
 		lines = append(lines, strings.TrimRight(tableLine(cols, row, shown, widths), " "))
 	}
 	return lines
+}
+
+// hasGroup reports whether a column is Group.
+func (l *List) hasGroup() bool {
+	return slices.ContainsFunc(l.columns, func(c Column) bool { return c.Group })
+}
+
+// groupedCells is item i's cells with each Group cell blank when it and
+// every Group cell left of it repeat the row above's, in the same
+// section; the row at top (the first drawn) keeps its cells.
+func (l *List) groupedCells(i, top int) []string {
+	row := cells(l.items[i], len(l.columns))
+	if i <= top || !l.hasGroup() || l.items[i-1].Section != l.items[i].Section {
+		return row
+	}
+	above := cells(l.items[i-1], len(l.columns))
+	for c, col := range l.columns {
+		if !col.Group {
+			continue
+		}
+		if row[c] == "" || row[c] != above[c] {
+			break
+		}
+		row[c] = ""
+	}
+	return row
 }
 
 // tall reports whether the table's rows can take more than one line: a
@@ -479,10 +510,12 @@ func (l *List) tallView(lines []string, width, height, body int, cols []Column, 
 	toneLines := make([][][]toneSeg, len(l.items))
 	opens := make([]bool, len(l.items))
 	toned, faded := l.listTones(), l.faded()
-	total := 0
-	for i, item := range l.items {
-		opens[i] = item.Section != "" && (i == 0 || l.items[i-1].Section != item.Section)
-		lines, segs := tableRowLinesAt(toned, cols, item.Tones, l.rowCells(cells(item, len(l.columns))), shown, widths)
+	// layRow is item i's lines and tones, its Group cells blanked against
+	// the row above unless i is the first row drawn (top).
+	layRow := func(i, top int) ([]string, [][]toneSeg) {
+		item := l.items[i]
+		var out []string
+		lines, segs := tableRowLinesAt(toned, cols, item.Tones, l.rowCells(l.groupedCells(i, top)), shown, widths)
 		for k, line := range lines {
 			if gutter {
 				prefix := "  "
@@ -494,9 +527,14 @@ func (l *List) tallView(lines []string, width, height, body int, cols []Column, 
 					segs[k][x].x += 2
 				}
 			}
-			rows[i] = append(rows[i], line)
+			out = append(out, line)
 		}
-		toneLines[i] = segs
+		return out, segs
+	}
+	total := 0
+	for i, item := range l.items {
+		opens[i] = item.Section != "" && (i == 0 || l.items[i-1].Section != item.Section)
+		rows[i], toneLines[i] = layRow(i, 0)
 		total += len(rows[i])
 		if opens[i] {
 			total++
@@ -526,6 +564,10 @@ func (l *List) tallView(lines []string, width, height, body int, cols []Column, 
 	l.offset = max(0, min(l.offset, l.selected))
 	for l.offset < l.selected && !fits(l.offset) {
 		l.offset++
+	}
+	if l.offset > 0 && l.hasGroup() {
+		// The first row drawn shows its Group cells.
+		rows[l.offset], toneLines[l.offset] = layRow(l.offset, l.offset)
 	}
 	top := len(lines)
 	var out []string

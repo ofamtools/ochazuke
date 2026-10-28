@@ -155,9 +155,9 @@ Root package `ochazuke` is flat: 75 source files, 76 test files. Each entry list
 
 ### help.go
 
-- lines: 175 · tests: help_test.go
+- lines: 256 · tests: help_test.go
 - purpose: registerBindingHelp adds bindings.help: a modal listing BindingHelp for the focus it opens over, one row per binding (key, noun.verb, arguments, description)...
-- leans on: noun.go(14), runtime.go(13), help_views.go(3), instance.go(3)
+- leans on: noun.go(14), runtime.go(13), model.go(10), table.go(6)
 
 ### help_views.go
 
@@ -265,12 +265,12 @@ Root package `ochazuke` is flat: 75 source files, 76 test files. Each entry list
 
 ### model.go
 
-- lines: 1014
+- lines: 1039
 - purpose: ModalView renders one modal without replacing or inspecting its parent page.
 - types: ModalView, ModalBody (iface), Model, HelpRow
 - methods: Model(24), Runtime(3), modelSink(3)
-- funcs: NewModel, BindingHints, HintBindings, BindingHelp, NounHelp, PlaceHelp, InputView, InputBlock
-- leans on: runtime.go(105), noun.go(44), block.go(34), theme.go(24)
+- funcs: NewModel, BindingHints, HintBindings, BindingHelp, NounHelp, PlaceHelp, SplitKeys, InputView, InputBlock
+- leans on: runtime.go(107), noun.go(44), block.go(34), theme.go(24)
 
 ### namespace.go
 
@@ -483,12 +483,12 @@ Root package `ochazuke` is flat: 75 source files, 76 test files. Each entry list
 
 ### table.go
 
-- lines: 652 · tests: table_test.go
+- lines: 694 · tests: table_test.go
 - purpose: Align is a column's alignment: AlignLeft (the zero value) or AlignRight.
 - types: Align, Column
-- methods: List(9)
+- methods: List(11)
 - funcs: Columns, TableText
-- leans on: tone.go(14), list.go(11), surface.go(6), layout.go(3)
+- leans on: tone.go(15), list.go(13), surface.go(6), layout.go(3)
 
 ### table_cells.go
 
@@ -500,9 +500,9 @@ Root package `ochazuke` is flat: 75 source files, 76 test files. Each entry list
 
 ### table_columns.go
 
-- lines: 453 · tests: table_columns_test.go
+- lines: 469 · tests: table_columns_test.go
 - purpose: ColumnOffset is the table's column offset: 0 unscrolled, else k for the view that starts the scrolling columns at the k-th.
-- methods: List(10), Runtime(1), colView(6)
+- methods: List(10), Runtime(1), colView(7)
 - leans on: runtime.go(17), list.go(14), table.go(10), instance.go(7)
 
 ### table_pins.go
