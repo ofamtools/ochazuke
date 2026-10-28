@@ -1,6 +1,10 @@
 package ochazuke
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+	"strings"
+)
 
 // PaletteInstance is a labeled object whose ID becomes the default action argument.
 type PaletteInstance struct {
@@ -26,6 +30,10 @@ type PaletteEntry struct {
 	Label string `json:"label"`
 	ID    string `json:"id,omitempty"`
 	Verb  string `json:"verb,omitempty"`
+	// Aliases are the other verb words that name this entry's action
+	// (ActionAlias): typing one narrows to this entry, which is listed
+	// once under its canonical name.
+	Aliases []string `json:"aliases,omitempty"`
 }
 
 // RegisterNoun adds or replaces a live instance source without changing operation forms.
@@ -89,10 +97,22 @@ func (p *Palette) completions() []PaletteEntry {
 	verbs := func(names []string, noun string) {
 		for _, verb := range names {
 			label := verb
+			var aliases []string
 			if noun != "" {
-				label = verbLabel(ix.ops[noun+"."+verb])
+				op := ix.ops[noun+"."+verb]
+				label = verbLabel(op)
+				aliases = ix.aliasWords(p.r, op, noun)
+			} else {
+				for _, n := range ix.verbs[verb] {
+					aliases = append(aliases, ix.aliasWords(p.r, ix.ops[n+"."+verb], "")...)
+				}
+				slices.Sort(aliases)
+				aliases = slices.Compact(aliases)
 			}
-			out = append(out, PaletteEntry{Value: verb, Kind: "verb", Label: label, Verb: verb})
+			if len(aliases) > 0 {
+				label += " · also " + strings.Join(aliases, ", ")
+			}
+			out = append(out, PaletteEntry{Value: verb, Kind: "verb", Label: label, Verb: verb, Aliases: aliases})
 		}
 	}
 	nouns := func(names []string) {
@@ -107,7 +127,13 @@ func (p *Palette) completions() []PaletteEntry {
 		}
 	}
 	if len(tokens) == 0 {
-		verbs(optionValues(ix.byVerbs), "")
+		var own []string
+		for _, o := range ix.byVerbs {
+			if !o.alias {
+				own = append(own, o.Value)
+			}
+		}
+		verbs(own, "")
 		nouns(optionValues(ix.byNouns))
 	} else {
 		c := p.parseTokens(ix, tokens)
@@ -126,11 +152,32 @@ func (p *Palette) completions() []PaletteEntry {
 	kind := map[string]string{"v": "verb", "n": "noun", "p": "choice"}[p.filter]
 	filtered := out[:0]
 	for _, entry := range out {
-		if (kind == "" || entry.Kind == kind) && hasPrefixFold(entry.Value, partial) {
+		if (kind == "" || entry.Kind == kind) && (hasPrefixFold(entry.Value, partial) || partial != "" && slices.ContainsFunc(entry.Aliases, func(a string) bool { return hasPrefixFold(a, partial) })) {
 			filtered = append(filtered, entry)
 		}
 	}
 	return filtered
+}
+
+// aliasWords are the words that name op as a verb in the palette besides
+// its own: its aliases' verbs on noun word (any noun when word is ""), and
+// another noun's alias as word.verb.
+func (ix lineIndex) aliasWords(r *Runtime, op Operation, word string) []string {
+	if op.Verb == "" {
+		return nil
+	}
+	var out []string
+	for _, a := range r.AliasesOf(op.Key()) {
+		if _, offered := ix.aliasOps[r.DisplayNoun(a.Noun)+"."+a.Verb]; !offered {
+			continue
+		}
+		if word == "" || r.DisplayNoun(a.Noun) == word {
+			out = append(out, a.Verb)
+		} else {
+			out = append(out, r.DisplayKey(a.Alias))
+		}
+	}
+	return out
 }
 
 // offered reports whether the palette lists an operation: a verb whose

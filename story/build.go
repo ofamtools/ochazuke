@@ -8,6 +8,7 @@ import (
 	"maps"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -36,6 +37,8 @@ type Session struct {
 	// StateDir is the state directory of a story with State, "" without;
 	// Close removes it unless the session is restarting into it.
 	StateDir string
+	// configDir is the temp config directory of a story with Config.
+	configDir string
 
 	pages map[string]*Page
 	lists map[string]*ochazuke.List
@@ -140,6 +143,11 @@ func build(s *Story, opt Options, stateDir string) (*Session, error) {
 			return nil, fmt.Errorf("chooser: %w", err)
 		}
 	}
+	if len(s.Config) > 0 {
+		if err := ss.loadConfig(); err != nil {
+			return nil, err
+		}
+	}
 	ss.size()
 	m.View()
 	page := ss.pages[open]
@@ -193,6 +201,31 @@ func (ss *Session) close(keep bool) {
 	if ss.StateDir != "" && !keep {
 		os.RemoveAll(ss.StateDir)
 	}
+	if ss.configDir != "" {
+		os.RemoveAll(ss.configDir)
+	}
+}
+
+// loadConfig writes the story's config files into a temp config directory
+// and loads them as Model.Init does: actions.json, then bindings.json.
+func (ss *Session) loadConfig() error {
+	dir, err := os.MkdirTemp("", "o-story-config-")
+	if err != nil {
+		return err
+	}
+	ss.configDir = dir
+	for name, data := range ss.Story.Config {
+		if name != filepath.Base(name) || name == "" {
+			return fmt.Errorf("config file %q: a file name, not a path", name)
+		}
+		if err := os.WriteFile(filepath.Join(dir, name), data, 0o600); err != nil {
+			return err
+		}
+	}
+	ss.R.Config().Dir = dir
+	ss.R.EnsureUserActions()
+	ss.R.EnsureUserBindings()
+	return nil
 }
 
 // defineDemo registers the demo noun: its verbs and default rows (data),
@@ -401,6 +434,9 @@ func (ss *Session) defineVerb(d *ochazuke.NounBuilder, v VerbSpec) error {
 		for _, name := range slices.Sorted(maps.Keys(c.Args)) {
 			entry += fmt.Sprintf(" %s=%v", name, c.Args[name])
 		}
+		if c.Invoked.Alias {
+			entry += " via=" + c.Invoked.Name
+		}
 		ss.Writes = append(ss.Writes, entry)
 		if rows != nil {
 			return ochazuke.Done(rows)
@@ -411,6 +447,12 @@ func (ss *Session) defineVerb(d *ochazuke.NounBuilder, v VerbSpec) error {
 		d.Positional(v.Positional...)
 	}
 	ss.R.Operations[key] = withParams(ss.R.Operations[key], v.Parameters)
+	for _, a := range v.Aliases {
+		a.Action = key
+		if err := ss.R.AddActionAlias(a); err != nil {
+			return fmt.Errorf("verb %s: %w", key, err)
+		}
+	}
 	return nil
 }
 

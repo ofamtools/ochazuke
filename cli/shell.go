@@ -326,8 +326,8 @@ func (s *Shell) stderr() io.Writer {
 // of noun starting with it. Several are an error naming them; none is the
 // word unchanged, which request reports.
 func (s *Shell) verb(noun, word string) (string, error) {
-	if _, ok := s.Runtime.Operations[noun+"."+word]; ok {
-		return word, nil
+	if _, ok := s.Runtime.Operation(noun + "." + word); ok {
+		return word, nil // the verb, or an alias spelled whole
 	}
 	var matches []string
 	for _, op := range s.Runtime.Operations {
@@ -392,7 +392,7 @@ type options struct {
 // --json only json agrees. An operation that declares a format parameter
 // of its own takes --format as that argument, and the shell prints JSON.
 func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, options, error) {
-	q := ochazuke.Request{Noun: noun, Verb: verb, Args: ochazuke.Arguments{}}
+	q := s.Runtime.CanonicalRequest(ochazuke.Request{Noun: noun, Verb: verb, Args: ochazuke.Arguments{}})
 	var opts options
 	op, ok := s.Runtime.Operations[q.Key()]
 	if !ok {

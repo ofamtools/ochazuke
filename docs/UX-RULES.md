@@ -461,6 +461,41 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R11.5** A failed write keeps the text, marks the row and retries on the
   next change. Story: `tree/failed-write.json`.
 
+### R12. Action names and aliases
+
+- **R12.1** The action table is flat: a name (`noun.verb`, the dot a
+  convention, so a verb may hold one: `dirs.base.add`) is looked up whole,
+  and an alias is one more name for the same action. An alias runs the
+  canonical action; the handler is told the name and its noun (the subject
+  side) in `Ctx.Invoked` / `Runtime.Invoked`. Test
+  `TestAliasRunsTheCanonicalActionAndTellsTheHandlerItsName`.
+- **R12.2** An alias is never a second entry. The palette lists the
+  canonical verb with its aliases on the label (`forget-row · also drop`)
+  and a typed alias narrows to it; `?` help names the canonical operation
+  and lists the aliases once in its description (`· also: drop`); the
+  CLI shows them as the verb's oden aliases (`show, display`), the catalog
+  and `operations.list` as `aliases`, `bindings list` as a row's `aliases`
+  beside its canonical request (`via` keeps a row's alias spelling).
+  Stories: `actions/alias-in-palette.json`,
+  `actions/help-lists-alias-once.json`; test
+  `TestAliasesAreListedOnceUnderTheCanonicalName`.
+- **R12.3** A renamed verb keeps its old name as a deprecated alias for one
+  release (`NounBuilder.Renamed(old, since, removeAfter)`, Keep actions);
+  its first use in a runtime posts one notice naming the new name, and a
+  `bindings.json` row on the old name still works, `bindings check` saying
+  what it resolves to. Story: `actions/old-name-binding.json`.
+- **R12.4** A bare or short name a user wants is a configured alias row in
+  `actions.json` (`{"alias": "pane.k", "action": "pane.kill"}`), not code.
+  A row that would take the name of an action or of another alias is
+  skipped and reported (a notice at load; `actions check`, `actions reload`
+  and `bindings check` list it). Stories: `actions/user-alias.json`,
+  `actions/alias-clash-reported.json`.
+- **R12.5** A write is never filled silently: a request with a required
+  parameter missing fails naming it (API, CLI: `NAME is required`), and the
+  palette asks for it (`missing NAME`) instead of running; nothing reads the
+  value from the focus or a guess. Tests `TestWritesAreNeverSilentlyFilled`,
+  `TestCLIAliasesRunTheCanonicalVerb`.
+
 ---
 
 ## Part B. Principles

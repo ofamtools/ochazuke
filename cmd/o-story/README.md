@@ -50,6 +50,11 @@ it to the timer's deadline and delivers the timer's message
   theme: "kombu", accent: "#E8833A", // a theme other than mono, the Appearance accent override
   themes: { kombu: { background: "dark", accent: "#C9A227" } }, // schemes in the themes.json shape;
                                   // one that does not validate is a notice (chrome/scheme-*)
+  config: { "actions.json": [{ alias: "demo.zap", action: "demo.ping" }],
+            "bindings.json": [{ noun: "demo", mode: "normal", keys: "Z", request: { noun: "demo", verb: "zap" } }] },
+                                  // user config files by name, written to a temp config directory of
+                                  // its own and loaded after the pages (actions, then bindings), as
+                                  // Model.Init does; a problem a load reports is a notice (actions/*)
   state: true,                    // a temp state directory of its own (removed at the end), kept
                                   // across { restart: true } events: what the app remembers (panes.json)
   page: {                         // or pages: [{ id, title, ... }, ...]
@@ -78,9 +83,12 @@ it to the timer's deadline and delivers the timer's message
     bind: [{ noun: "demo", mode: "normal", keys: "C", do: "notice.clear" }],
     verbs: [{ verb: "demo.open-file", description: "Open a file", positional: ["path"],
               parameters: { path: { type: "string", required: true, source: "demo.files" } } },
-            { verb: "demo.files", rows: ["main.go", "go.mod"] }],
+            { verb: "demo.files", rows: ["main.go", "go.mod"] },
+            { verb: "demo.add-base", aliases: [{ alias: "demo.base.add", since: "v0.27.0", removeAfter: "v0.28.0" }] }],
                                      // demo verbs with parameters (palette stories); a run logs
-                                     // "demo.open-file path=main.go" (writes) and returns rows
+                                     // "demo.open-file path=main.go" (writes) and returns rows;
+                                     // aliases are ActionAlias rows (action is the verb), and a
+                                     // run through one logs " via=demo.base.add" after the arguments
     detail: { lines: 50, width: 0 }, // a scrollable detail (AddDetail) on the right:
                                      // "detail 1–11 / 50", then "<row> line N" about the
                                      // focused list row (width 0 = half the page)
@@ -385,7 +393,7 @@ Conformance:
 | normal | bindings-help | `bindings-help.mode` `bindings-help.noun` `bindings-help.place` `bindings-help.view` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
-| normal | demo | `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.launch` `demo.notify` `demo.open` `demo.ping` `demo.reload` `demo.ship` |
+| normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.forget-row` `demo.launch` `demo.notify` `demo.open` `demo.ping` `demo.reload` `demo.ship` |
 | normal | detail | `detail.scroll` |
 | normal | focus | `focus.next` `focus.previous` `focus.set` |
 | normal | form | `form.choose` `form.leave` `form.next` `form.redo` `form.suggest` `form.undo` |

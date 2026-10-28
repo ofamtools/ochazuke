@@ -43,6 +43,12 @@ type Request struct {
 	Target    string    `json:"target,omitempty"`
 	Args      Arguments `json:"args,omitempty"`
 	Confirmed bool      `json:"confirmed,omitempty"`
+	// Via is the alias the request was spelled by (an old verb name, a
+	// user's actions.json alias): the request is rewritten to the action it
+	// names (Noun, Verb) and Via keeps the spelling, so the handler is told
+	// which name ran it (Ctx.Invoked) and history shows it. "" for a
+	// request that named its action directly.
+	Via string `json:"via,omitempty"`
 }
 
 // Key returns the request's operation as noun.verb.
@@ -123,9 +129,13 @@ type Operation struct {
 	// order (NounBuilder.Positional), ahead of ParameterOrder's
 	// required-then-by-name rest. The CLI gives a boolean a bare word only
 	// when it is named here. The catalog's positional.
-	Positional []string   `json:"positional,omitempty"`
-	Run        Handler    `json:"-"`
-	App        AppHandler `json:"-"`
+	Positional []string `json:"positional,omitempty"`
+	// Aliases are the action's other names (ActionAlias), display
+	// spelling, sorted. Catalog and operations.list fill it; an entry of
+	// Runtime.Operations does not hold it (the alias table does).
+	Aliases []string   `json:"aliases,omitempty"`
+	Run     Handler    `json:"-"`
+	App     AppHandler `json:"-"`
 }
 
 func (o Operation) Key() string { return o.Noun + "." + o.Verb }
@@ -226,6 +236,7 @@ type Runtime struct {
 	deprecations     []string          // rows that named an operation by its old verb.noun spelling, rewritten once
 	aliases          map[string]string // registry: a short noun name -> the noun it names (settings -> ochazuke.settings; namespace.go)
 	builtinDepth     int               // >0 while Builtin runs: framework registration, whose nouns are ochazuke.<noun>
+	actionNames      actionNames       // the action alias table and the running request's name (action_names.go)
 }
 
 // NewRuntime returns a runtime with the framework nouns registered and focus on the app instance.
@@ -398,7 +409,7 @@ var motionOps = map[string]bool{
 // record or a pane are changes, and the application verbs that only close
 // or fold are actions.
 var frameworkHistoryKinds = map[string]string{
-	"ochazuke.actions.list": HistoryFetch, "ochazuke.actions.path": HistoryFetch, "ochazuke.actions.reload": HistoryFetch,
+	"ochazuke.actions.aliases": HistoryFetch, "ochazuke.actions.check": HistoryFetch, "ochazuke.actions.list": HistoryFetch, "ochazuke.actions.path": HistoryFetch, "ochazuke.actions.reload": HistoryFetch,
 	"ochazuke.appearance.get": HistoryFetch, "ochazuke.bindings.check": HistoryFetch, "ochazuke.bindings.list": HistoryFetch,
 	"ochazuke.bindings.path": HistoryFetch, "ochazuke.bindings.reload": HistoryFetch, "ochazuke.bindings.stops": HistoryFetch,
 	"ochazuke.config.path": HistoryFetch, "ochazuke.config.reload": HistoryFetch, "ochazuke.history.list": HistoryFetch, "ochazuke.history.path": HistoryFetch,
@@ -425,7 +436,8 @@ var frameworkHistoryKinds = map[string]string{
 
 // Register adds an operation. An operation with App set is of kind
 // application and its Run is the framework's dispatcher for it. Its noun
-// may be dotted (ai.skills); its verb is one word. A noun named by a
+// may be dotted (ai.skills) and so may its verb (base.add): the key is a
+// name in a flat table, looked up whole. A noun named by a
 // framework alias (settings) is the noun it names (ochazuke.settings), as
 // Define reads it; inside Builtin a plain noun is ochazuke.<noun>. A verb y on
 // noun x beside a noun x.y is refused (checkOverlap).
@@ -441,9 +453,6 @@ func (r *Runtime) Register(o Operation) {
 	}
 	if o.Verb == "" || o.Noun == "" || o.Run == nil {
 		panic("invalid operation registration")
-	}
-	if strings.Contains(o.Verb, ".") {
-		panic(fmt.Sprintf("verb %q of %s holds a dot: a verb is one word (nouns may be dotted)", o.Verb, o.Noun))
 	}
 	if r.builtinDepth > 0 {
 		o.Noun = frameworkName(o.Noun)
@@ -467,6 +476,7 @@ func (r *Runtime) Register(o Operation) {
 	if err := r.checkOverlap(o.Key()); err != nil {
 		panic(err.Error())
 	}
+	r.claimName(o.Key())
 	r.ensureNoun(o.Noun)
 	if o.Parameters == nil {
 		o.Parameters = map[string]Parameter{}
@@ -655,6 +665,7 @@ func (r *Runtime) execute(c Context, q Request) (any, error) {
 	if op.Confirm != "" && !q.Confirmed {
 		return r.openConfirm(c, q, op)
 	}
+	defer r.invoking(r.invocationOf(q))()
 	if fn := r.ActionFor(actions, q.Key()); fn != nil {
 		return fn(r, c, q.Args)
 	}
@@ -756,6 +767,7 @@ func IntArg(a Arguments, name string, fallback int) int {
 func (r *Runtime) Catalog() []Operation {
 	out := make([]Operation, 0, len(r.Operations))
 	for _, op := range r.Operations {
+		op.Aliases = r.aliasNames(op.Key())
 		out = append(out, op)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Key() < out[j].Key() })

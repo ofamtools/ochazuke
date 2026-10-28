@@ -140,6 +140,12 @@ type CatalogVerb struct {
 	Positional  []string                      `json:"positional,omitempty"`
 	History     string                        `json:"history,omitempty"`
 	Builtin     bool                          `json:"builtin"`
+	// Aliases are the verb's other names (ochazuke.ActionAlias: the alias
+	// as noun.verb, its noun and verb, a deprecated one's since and
+	// removeAfter). A host mounting the catalog may register them as
+	// aliases of the mounted verb; one that does not still runs the
+	// canonical name.
+	Aliases []ochazuke.ActionAlias `json:"aliases,omitempty"`
 }
 
 // AppVerbs are the noun's verbs the tool defined: every verb but the
@@ -276,7 +282,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool) ([]byte, err
 			doc.State = op.Key()
 		}
 		noun := &doc.Nouns[len(doc.Nouns)-1]
-		verb := CatalogVerb{Name: op.Verb, Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable, Rows: op.Rows, Quiet: op.Quiet, Positional: op.Positional, History: op.HistoryKindOf(), Builtin: op.Builtin}
+		verb := CatalogVerb{Name: op.Verb, Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable, Rows: op.Rows, Quiet: op.Quiet, Positional: op.Positional, History: op.HistoryKindOf(), Builtin: op.Builtin, Aliases: r.AliasesOf(op.Key())}
 		if len(op.Parameters) > 0 {
 			verb.Params = make(map[string]ochazuke.Parameter, len(op.Parameters))
 			for name, p := range op.Parameters {

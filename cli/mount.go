@@ -72,10 +72,35 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 			details += "\nConfirmation: " + op.Confirm
 		}
 		noun, verb := op.Noun, op.Verb
+		// An alias on the same noun is an oden alias of the verb's command
+		// (help lists it beside the name, once); an alias under another
+		// noun is a command in that noun's group naming the action it
+		// runs (project associate, alias of pane associate).
+		var aliases []string
+		for _, a := range r.AliasesOf(op.Key()) {
+			if a.Noun == noun {
+				aliases = append(aliases, a.Verb)
+				continue
+			}
+			aliasNoun, aliasVerb := a.Noun, a.Verb
+			ag := root.at(aliasNoun)
+			ag.noun = true
+			ag.verbs = append(ag.verbs, oden.Command{
+				Name: aliasVerb, Summary: "alias of " + r.DisplayKey(op.Key()) + ": " + op.Description, Source: a.Alias,
+				Usage:      "[ARG...] [--target ID] [--json ...] [--ARG VALUE] [--format F] [--yes]",
+				Parameters: parameters, Details: details + "\nAlias of: " + op.Key(),
+				Run: func(ctx context.Context, args []string) error {
+					return sh.Run(ctx, append([]string{aliasNoun, aliasVerb}, args...))
+				},
+			})
+		}
+		if len(aliases) > 0 {
+			details += "\nAliases: " + strings.Join(aliases, ", ")
+		}
 		g := root.at(noun)
 		g.noun = true
 		g.verbs = append(g.verbs, oden.Command{
-			Name: verb, Summary: op.Description, Source: op.Key(),
+			Name: verb, Aliases: aliases, Summary: op.Description, Source: op.Key(),
 			Usage:      "[ARG...] [--target ID] [--json ...] [--ARG VALUE] [--format F] [--yes]",
 			Parameters: parameters, Details: details,
 			Run: func(ctx context.Context, args []string) error {

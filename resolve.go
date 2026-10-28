@@ -487,7 +487,7 @@ func (r *Runtime) pending() bool {
 // ListBindings prints the rows the focus answers to in its current mode,
 // one per key or pattern, sorted by key with pattern rows last.
 func (r *Runtime) ListBindings(focus string) []Binding {
-	out := r.bindingRows(focus)
+	out := r.withAliases(r.bindingRows(focus))
 	sort.SliceStable(out, func(i, j int) bool {
 		a, b := out[i], out[j]
 		if (a.Keys == "") != (b.Keys == "") {
@@ -519,7 +519,19 @@ func (r *Runtime) allBindings() []Binding {
 		}
 	}
 	SortBindings(out)
-	return out
+	return r.withAliases(out)
+}
+
+// withAliases fills each row's Aliases with its operation's other names
+// (bindings list): the row names the canonical operation, its aliases
+// listed once beside it.
+func (r *Runtime) withAliases(rows []Binding) []Binding {
+	for i, row := range rows {
+		if row.Request.Verb != "" {
+			rows[i].Aliases = r.aliasNames(row.Request.Key())
+		}
+	}
+	return rows
 }
 
 // SortBindings orders rows the way the full export (bindings.list --all,

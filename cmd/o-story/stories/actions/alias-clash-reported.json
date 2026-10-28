@@ -1,0 +1,24 @@
+{
+  "name": "an actions.json alias that would shadow an action or another alias is skipped and reported",
+  "area": "actions",
+  "width": 120,
+  "height": 24,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "verbs": [{"verb": "demo.forget-row", "description": "Forget the row", "aliases": [{"alias": "demo.drop"}]}]
+  },
+  "config": {
+    "actions.json": [{"alias": "demo.open", "action": "demo.forget-row"},
+                     {"alias": "demo.drop", "action": "demo.ping"},
+                     {"alias": "demo.zap", "action": "demo.nothing"},
+                     {"alias": "demo.ok", "action": "demo.forget-row"}]
+  },
+  "script": ["enter"],
+  "expect": {
+    "notices": [
+      "actions.json: alias 1 (demo.open): alias demo.open would shadow the action demo.open (skipped)",
+      "actions.json: alias 2 (demo.drop): alias demo.drop is already an alias of demo.forget-row (app) (skipped)",
+      "actions.json: alias 3 (demo.zap): action \"demo.nothing\" is not registered (skipped)"
+    ]
+  }
+}

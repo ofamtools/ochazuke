@@ -1,0 +1,17 @@
+{
+  "name": "palette: an alias narrows to its action, listed once by its own name",
+  "area": "actions",
+  "width": 100,
+  "height": 24,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "verbs": [{"verb": "demo.forget-row", "description": "Forget the row (the disk is untouched)",
+               "aliases": [{"alias": "demo.drop"}]}]
+  },
+  "script": [":", {"type": "dr"}, {"type": "op"}, "enter"],
+  "expect": [
+    {"after": 2, "contains": ["forget-row · also drop"]},
+    {"after": 3, "contains": ["forget-row · also drop"]},
+    {"writes": ["demo.forget-row via=demo.drop"], "modal": ""}
+  ]
+}

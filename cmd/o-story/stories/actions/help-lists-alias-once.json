@@ -1,0 +1,19 @@
+{
+  "name": "? help names the canonical verb and lists its aliases on its row, never as rows of their own",
+  "area": "actions",
+  "width": 120,
+  "height": 60,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "verbs": [{"verb": "demo.forget-row", "description": "Forget the row",
+               "aliases": [{"alias": "demo.drop"}, {"alias": "demo.forget", "since": "v0.27.0", "removeAfter": "v0.28.0"}]}],
+    "bind": [{"noun": "demo", "mode": "normal", "keys": "D", "do": "demo.drop"},
+             {"noun": "demo", "mode": "normal", "keys": "F", "do": "demo.forget-row"}]
+  },
+  "script": ["?"],
+  "expect": {
+    "modal": "bindings-help",
+    "contains": ["demo.forget-row", "Forget the row · also: drop,"],
+    "lacks": ["demo.drop", "demo.forget "]
+  }
+}

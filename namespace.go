@@ -23,8 +23,11 @@ const AppNoun = "app"
 const legacyNamespace = AppNoun
 
 // SplitKey splits an operation key on its last dot: the noun before it (a
-// noun may be dotted: ochazuke.settings, ai.skills) and the verb after it (a
-// verb never holds a dot). A key with no dot is all noun and no verb.
+// noun may be dotted: ochazuke.settings, ai.skills) and the verb after it.
+// It is the reading of a name nothing is registered under; a registered
+// name splits where it was declared (a verb may hold a dot: dirs.base.add),
+// which Runtime.CanonicalKey and the request lookup read from the table. A
+// key with no dot is all noun and no verb.
 func SplitKey(key string) (noun, verb string) {
 	i := strings.LastIndex(key, ".")
 	if i < 0 {
@@ -101,8 +104,19 @@ func (r *Runtime) ownsNoun(name string) bool {
 
 // CanonicalKey is an operation key with its noun resolved (CanonicalNoun):
 // settings.set is ochazuke.settings.set unless the application has a settings
-// noun of its own.
+// noun of its own. A name is looked up whole first: a registered action or
+// action alias keeps its name, and a dotted verb (dirs.base.add) resolves
+// where it was declared; otherwise each dot, last first, is tried as the
+// noun/verb split, and an unknown name reads its last dot (SplitKey).
 func (r *Runtime) CanonicalKey(key string) string {
+	if r.knownName(key) {
+		return key
+	}
+	for i := strings.LastIndex(key, "."); i > 0; i = strings.LastIndex(key[:i], ".") {
+		if c := r.CanonicalNoun(key[:i]) + key[i:]; c != key && r.knownName(c) {
+			return c
+		}
+	}
 	noun, verb := SplitKey(key)
 	if verb == "" {
 		return key
@@ -110,15 +124,50 @@ func (r *Runtime) CanonicalKey(key string) string {
 	return r.CanonicalNoun(noun) + "." + verb
 }
 
-// canonicalRequest is q with its noun resolved.
+// knownName reports whether name is a registered action or action alias.
+func (r *Runtime) knownName(name string) bool {
+	if _, ok := r.Operations[name]; ok {
+		return true
+	}
+	_, ok := r.actionNames.aliases[name]
+	return ok
+}
+
+// canonicalRequest is q with its noun resolved and its name looked up in
+// the action table: a registered key keeps its action's own noun and verb
+// (a dotted verb split where it was declared), and an alias becomes its
+// action with Via recording the alias it was spelled by.
 func (r *Runtime) canonicalRequest(q Request) Request {
 	q.Noun = r.CanonicalNoun(q.Noun)
+	if q.Verb == "" {
+		return q
+	}
+	key := r.CanonicalKey(q.Key())
+	if op, ok := r.Operations[key]; ok {
+		q.Noun, q.Verb = op.Noun, op.Verb
+		return q
+	}
+	if a, ok := r.actionNames.aliases[key]; ok {
+		if op, ok := r.Operations[a.Action]; ok {
+			if q.Via == "" {
+				q.Via = a.Alias
+			}
+			q.Noun, q.Verb = op.Noun, op.Verb
+		}
+	}
 	return q
 }
 
-// Operation is the registered operation a key names, aliases resolved.
+// CanonicalRequest is q as the runtime runs it: its noun resolved and an
+// alias rewritten to its action, Via keeping the alias (a host building a
+// request from words, the CLI shell, calls it before reading the
+// operation by q.Key()).
+func (r *Runtime) CanonicalRequest(q Request) Request { return r.canonicalRequest(q) }
+
+// Operation is the registered operation a key names, aliases resolved:
+// noun aliases (settings.set) and action aliases (an old verb name) alike.
 func (r *Runtime) Operation(key string) (Operation, bool) {
-	op, ok := r.Operations[r.CanonicalKey(key)]
+	op, _, ok := r.ResolveAction(key)
 	return op, ok
 }
 

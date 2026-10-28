@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"slices"
 	"strings"
@@ -48,6 +49,9 @@ const ActionsFile = "actions.json"
 // Actions are read only from the user's own actions.json (Config.Path):
 // never from a catalog, a binding row, a socket call or an application's
 // data, so nothing but the user's file decides what runs.
+//
+// An entry with an "alias" field is an alias row instead (AliasRow): one
+// more name for an existing action, which runs nothing of its own.
 type Action struct {
 	Noun        string               `json:"noun"`
 	Verb        string               `json:"verb"`
@@ -360,6 +364,101 @@ func actionOutput(out []byte) any {
 // UserActions are the actions installed from actions.json, in file order.
 func (r *Runtime) UserActions() []Action { return slices.Clone(r.Config().actions) }
 
+// UserAliases are the alias rows installed from actions.json, in file
+// order.
+func (r *Runtime) UserAliases() []ActionAlias { return slices.Clone(r.Config().actionAliases) }
+
+// AliasRow is an alias entry of actions.json: {"alias": "pane.k",
+// "action": "pane.kill"} makes pane.k another name of pane.kill, for keys
+// (bindings.json rows), the palette, the CLI and the API. Alias is
+// noun.verb on a registered noun (a short noun name such as list works);
+// Action is a registered action or alias. An alias may not take the name
+// of an action or of another alias; such a row is skipped and reported, as
+// bindings check reports a bad row. Note is free text listed with it.
+type AliasRow struct {
+	Alias  string `json:"alias"`
+	Action string `json:"action"`
+	Note   string `json:"note,omitempty"`
+}
+
+// checkUserAlias validates one alias row against r: an earlier row of the
+// file (seen: alias name -> entry number) may not have declared it, then
+// AddActionAlias's rules, plus that it is not already a name the framework
+// or the application gave the same action.
+func (r *Runtime) checkUserAlias(row AliasRow, seen map[string]int) (ActionAlias, error) {
+	if noun, verb, ok := r.splitNounName(strings.TrimSpace(row.Alias)); ok {
+		if n, dup := seen[noun+"."+verb]; dup {
+			return ActionAlias{}, fmt.Errorf("alias %s is already declared by entry %d", r.DisplayKey(noun+"."+verb), n)
+		}
+	}
+	a, err := r.checkAlias(ActionAlias{Alias: row.Alias, Action: row.Action, Note: row.Note, Source: AliasConfig})
+	if err != nil {
+		return a, err
+	}
+	if prev, ok := r.actionNames.aliases[a.Alias]; ok && prev.Source != AliasConfig {
+		return a, fmt.Errorf("alias %s is already an alias of %s (%s)", r.DisplayKey(a.Alias), r.DisplayKey(prev.Action), prev.Source)
+	}
+	return a, nil
+}
+
+// CheckUserActions reports what a load of actions.json would skip, without
+// installing anything: entries that do not parse or validate, and alias
+// rows that clash with an action or another alias. An entry the last load
+// installed unchanged is not a problem.
+func (r *Runtime) CheckUserActions() []string {
+	c := r.Config()
+	if c == nil {
+		return nil
+	}
+	path := c.Path(ActionsFile)
+	if path == "" {
+		return nil
+	}
+	installed := map[string]Action{}
+	for _, a := range c.actions {
+		installed[a.Key()] = a
+	}
+	entries, problems := readActions(path)
+	// The last load's alias rows stand aside while the file is checked, so
+	// a row is judged against the framework's and the application's names
+	// and the rows before it, not against its own earlier install.
+	for _, a := range c.actionAliases {
+		r.removeAlias(a.Alias)
+	}
+	defer func() {
+		for _, a := range c.actionAliases {
+			r.actionNames.aliases[a.Alias] = a
+		}
+	}()
+	seen := map[string]int{}
+	for _, f := range entries {
+		if f.alias != nil {
+			a, err := r.checkUserAlias(*f.alias, seen)
+			if err != nil {
+				problems = append(problems, aliasProblem(f.n, f.alias.Alias, err))
+				continue
+			}
+			seen[a.Alias] = f.n
+			continue
+		}
+		a := f.action
+		if noun := r.CanonicalNoun(a.Noun); noun != a.Noun {
+			a.written, a.Noun = a.Noun, noun
+		}
+		if prev, ok := installed[a.Key()]; ok && reflect.DeepEqual(prev, a) {
+			continue
+		}
+		if err := a.check(r); err != nil {
+			problems = append(problems, fmt.Sprintf("%s: action %d (%s): %v (skipped)", ActionsFile, f.n, a.writtenKey(), err))
+		}
+	}
+	return problems
+}
+
+func aliasProblem(n int, alias string, err error) string {
+	return fmt.Sprintf("%s: alias %d (%s): %v (skipped)", ActionsFile, n, alias, err)
+}
+
 // ActionProblems are the problems the last read of actions.json found.
 func (c *Config) ActionProblems() []string { return slices.Clone(c.actionProblems) }
 
@@ -395,6 +494,10 @@ func (r *Runtime) ReloadUserActions() []string {
 		}
 	}
 	c.actions = nil
+	for _, a := range c.actionAliases {
+		r.removeAlias(a.Alias)
+	}
+	c.actionAliases = nil
 	if c.Withdraw != nil {
 		for _, p := range c.actionProblems {
 			c.Withdraw(p)
@@ -406,7 +509,12 @@ func (r *Runtime) ReloadUserActions() []string {
 		return nil
 	}
 	actions, problems := readActions(path)
+	// Actions first, then aliases, so an alias row may name an action the
+	// same file adds.
 	for _, f := range actions {
+		if f.alias != nil {
+			continue
+		}
 		if noun := r.CanonicalNoun(f.action.Noun); noun != f.action.Noun {
 			f.action.written, f.action.Noun = f.action.Noun, noun
 		}
@@ -415,6 +523,23 @@ func (r *Runtime) ReloadUserActions() []string {
 			continue
 		}
 		r.installAction(f.action)
+	}
+	seen := map[string]int{}
+	for _, f := range actions {
+		if f.alias == nil {
+			continue
+		}
+		a, err := r.checkUserAlias(*f.alias, seen)
+		if err != nil {
+			problems = append(problems, aliasProblem(f.n, f.alias.Alias, err))
+			continue
+		}
+		if err := r.AddActionAlias(a); err != nil {
+			problems = append(problems, aliasProblem(f.n, f.alias.Alias, err))
+			continue
+		}
+		c.actionAliases = append(c.actionAliases, a)
+		seen[a.Alias] = f.n
 	}
 	c.actionProblems = problems
 	for _, p := range problems {
@@ -456,6 +581,7 @@ func (a Action) firstWord() string {
 type fileAction struct {
 	n      int
 	action Action
+	alias  *AliasRow // an alias row instead of an action
 }
 
 func readActions(path string) ([]fileAction, []string) {
@@ -473,6 +599,20 @@ func readActions(path string) ([]fileAction, []string) {
 	var out []fileAction
 	var problems []string
 	for i, one := range raw {
+		var probe map[string]json.RawMessage
+		if json.Unmarshal(one, &probe) == nil {
+			if _, ok := probe["alias"]; ok {
+				dec := json.NewDecoder(bytes.NewReader(one))
+				dec.DisallowUnknownFields()
+				var row AliasRow
+				if err := dec.Decode(&row); err != nil {
+					problems = append(problems, fmt.Sprintf("%s: alias %d: %v (skipped)", ActionsFile, i+1, err))
+					continue
+				}
+				out = append(out, fileAction{n: i + 1, alias: &row})
+				continue
+			}
+		}
 		dec := json.NewDecoder(bytes.NewReader(one))
 		dec.DisallowUnknownFields()
 		var a Action
@@ -480,7 +620,7 @@ func readActions(path string) ([]fileAction, []string) {
 			problems = append(problems, fmt.Sprintf("%s: action %d: %v (skipped)", ActionsFile, i+1, err))
 			continue
 		}
-		out = append(out, fileAction{i + 1, a})
+		out = append(out, fileAction{n: i + 1, action: a})
 	}
 	return out, problems
 }
@@ -502,6 +642,16 @@ func registerActions(r *Runtime) {
 			problems = []string{}
 		}
 		return problems, nil
+	}})
+	r.Register(Operation{Verb: "check", Noun: "ochazuke.actions", Description: "Report the entries of actions.json a load would skip, alias rows that clash with an action or another alias included, without installing anything", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		problems := r.CheckUserActions()
+		if problems == nil {
+			problems = []string{}
+		}
+		return problems, nil
+	}})
+	r.Register(Operation{Verb: "aliases", Noun: "ochazuke.actions", Description: "List every action alias: the framework's old names, the application's aliases and the alias rows of actions.json, each with the action it runs", Result: "alias[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		return r.ActionAliases(), nil
 	}})
 	r.Register(Operation{Verb: "path", Noun: "ochazuke.actions", Description: "Print the user actions file: actions.json beside bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		path := r.Config().Path(ActionsFile)

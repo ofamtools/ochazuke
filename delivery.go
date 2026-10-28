@@ -53,6 +53,11 @@ type Ctx struct {
 	Context  Context
 	Args     Arguments
 	Instance *Instance
+	// Invoked is the name the request ran the verb by: its own key, or an
+	// alias (an old name, a user's actions.json alias, the other noun of
+	// an operation reachable under two nouns), with that name's noun as
+	// the subject side.
+	Invoked Invocation
 }
 
 // AppHandler is the signature of an application verb: it reads the Ctx and
@@ -485,7 +490,7 @@ const (
 // AppHandler and turns a pending result into a job under the verb's key.
 func (r *Runtime) runApplication(op Operation, c Context, args Arguments) (any, error) {
 	inst := r.Instances[focusOf(c)]
-	ctx := Ctx{Runtime: r, Context: c, Args: args, Instance: inst}
+	ctx := Ctx{Runtime: r, Context: c, Args: args, Instance: inst, Invoked: r.Invoked()}
 	ancestry := r.Ancestry(inst.ID)
 	res := op.App(ctx)
 	switch {

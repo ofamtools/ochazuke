@@ -604,6 +604,10 @@ type HelpRow struct {
 	// Guard is the guard a hypothetical row (the help's pick and table
 	// views) answers under; the live help judges guards and leaves it out.
 	Guard string `json:"when,omitempty"`
+	// Aliases are the other names of the row's operation (ActionAlias),
+	// listed once on the row and after its description ("also: …"); the
+	// row itself always names the canonical operation.
+	Aliases []string `json:"aliases,omitempty"`
 }
 
 // MovementSection is the help section that holds every motion, after the
@@ -689,9 +693,16 @@ func (r *Runtime) helpRow(row levelRow, args Arguments) HelpRow {
 	if row.Help != "" {
 		desc = row.Help
 	}
+	var aliases []string
+	if row.Request.Verb != "" {
+		aliases = r.aliasLabels(row.Request.Key())
+	}
+	if len(aliases) > 0 {
+		desc = strings.TrimPrefix(desc+" · also: "+strings.Join(aliases, ", "), " · ")
+	}
 	key := rowKey(row.Binding)
 	prefix, final := SplitKeys(key)
-	return HelpRow{Key: key, Prefix: prefix, Final: final, Operation: op, Request: req, Hint: row.Hint, Args: args, Description: desc, Noun: row.level, Section: r.DisplayNoun(row.level), Guard: row.guard}
+	return HelpRow{Key: key, Prefix: prefix, Final: final, Operation: op, Request: req, Hint: row.Hint, Args: args, Description: desc, Noun: row.level, Section: r.DisplayNoun(row.level), Guard: row.guard, Aliases: aliases}
 }
 
 // SplitKeys splits a key sequence into its prefix and its final key: "z l"

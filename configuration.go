@@ -197,6 +197,7 @@ type Config struct {
 	// actions are the entries of actions.json installed as verbs, in
 	// file order; actionProblems the last read's problems.
 	actions        []Action
+	actionAliases  []ActionAlias // the alias rows installed from actions.json, in file order
 	actionProblems []string
 	actionsLoaded  bool
 	// hooks are the application's files config.reload reads after the
@@ -354,7 +355,9 @@ func (r *Runtime) ReloadUserBindings() []string {
 
 // CheckUserBindings reports what a load of the bindings file would skip,
 // without installing anything, and any row of the merged tables that no
-// longer validates.
+// longer validates. A row spelled by an action alias is accepted and gets a
+// line saying what it resolves to (not "skipped"). The problems of
+// actions.json (CheckUserActions) follow.
 func (r *Runtime) CheckUserBindings() []string {
 	c := r.Config()
 	path := c.Path(BindingsFile)
@@ -363,15 +366,41 @@ func (r *Runtime) CheckUserBindings() []string {
 		rows, bad := r.readUserBindings(path)
 		problems = bad
 		for _, f := range rows {
-			if _, err := r.validateRow(f.row); err != nil {
+			row, err := r.validateRow(f.row)
+			if err != nil {
 				problems = append(problems, rowProblem(f.n, f.row, err))
+				continue
+			}
+			if note := r.aliasRowNote(f.n, row); note != "" {
+				problems = append(problems, note)
 			}
 		}
 	}
 	if _, err := r.ValidateBindings(); err != nil {
 		problems = append(problems, err.Error())
 	}
+	// actions.json is the other half of the user's verbs: its skipped
+	// entries and alias clashes are reported here too.
+	problems = append(problems, r.CheckUserActions()...)
 	return problems
+}
+
+// aliasRowNote says what a file row spelled by an alias resolves to ("" for
+// a row naming its operation directly): accepted, and named so the user
+// can see it, with the new name when the alias is an old one.
+func (r *Runtime) aliasRowNote(n int, row Binding) string {
+	if row.Unbind || row.Request.Via == "" {
+		return ""
+	}
+	a, ok := r.actionNames.aliases[row.Request.Via]
+	if !ok {
+		return ""
+	}
+	note := fmt.Sprintf("%s: row %d %s: %s resolves to %s (an alias, %s)", BindingsFile, n, row.Keys+row.Pattern, r.DisplayKey(a.Alias), r.DisplayKey(a.Action), a.Source)
+	if a.Deprecated() {
+		note += "; " + a.notice(r.DisplayKey) + ": rename the row to " + r.DisplayKey(a.Action)
+	}
+	return note
 }
 
 func rowProblem(n int, row Binding, err error) string {

@@ -101,6 +101,10 @@ type Binding struct {
 	// list for a row whose operation is generic (mode.enter into a
 	// register, macro or count mode).
 	Help string `json:"help,omitempty"`
+	// Aliases are the other names of the row's operation, which bindings
+	// list adds so a row names its canonical operation and its aliases
+	// once; a stored row never holds them (a file's value is dropped).
+	Aliases []string `json:"aliases,omitempty"`
 }
 
 // Sources a From entry may name: "key" (the key name), "digit" (the key as an
@@ -559,7 +563,7 @@ func (b *NounBuilder) When(guard string) *NounBuilder {
 	if b.last == "" {
 		panic("When must follow Verb")
 	}
-	_, verb := SplitKey(b.last)
+	_, verb := b.r.keyParts(b.last)
 	if b.n.Guards == nil {
 		b.n.Guards = map[string]string{}
 	}
@@ -573,7 +577,7 @@ func (b *NounBuilder) When(guard string) *NounBuilder {
 
 // VerbGuard names the guard on noun.verb, "" when the verb is unguarded.
 func (r *Runtime) VerbGuard(key string) string {
-	noun, verb := SplitKey(key)
+	noun, verb := r.keyParts(key)
 	if n := r.Noun(noun); n != nil {
 		return n.Guards[verb]
 	}
@@ -919,6 +923,7 @@ func (r *Runtime) validateRow(row Binding) (Binding, error) {
 	if row.When != "" && r.guard(row.When) == nil {
 		return row, fmt.Errorf("unknown guard %q", row.When)
 	}
+	row.Aliases = nil
 	if row.Request.Verb == "" {
 		row.Unbind = true
 	}

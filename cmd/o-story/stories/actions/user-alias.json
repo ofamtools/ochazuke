@@ -1,0 +1,20 @@
+{
+  "name": "an actions.json alias row names an existing verb: keys and the palette reach it",
+  "area": "actions",
+  "width": 100,
+  "height": 24,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "verbs": [{"verb": "demo.forget-row", "description": "Forget the row"}]
+  },
+  "config": {
+    "actions.json": [{"alias": "demo.zap", "action": "demo.forget-row", "note": "my short name"}],
+    "bindings.json": [{"noun": "demo", "mode": "normal", "keys": "Z", "request": {"noun": "demo", "verb": "zap"}}]
+  },
+  "script": ["Z", ":", {"type": "zap"}, "enter"],
+  "expect": [
+    {"after": 1, "writes": ["demo.forget-row via=demo.zap"], "noNotices": true},
+    {"after": 3, "contains": ["forget-row · also zap"]},
+    {"writes": ["demo.forget-row via=demo.zap", "demo.forget-row via=demo.zap"], "modal": "", "noNotices": true}
+  ]
+}

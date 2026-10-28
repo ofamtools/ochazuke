@@ -992,7 +992,7 @@ An operation key is `noun.verb` (`input.undo`, `worktree.remove`): the same stri
 
 ### Noun namespaces
 
-A noun may be dotted (`ochazuke.settings`, `ai.skills`); a verb is one word. Every key splits on its last dot (`ochazuke.SplitKey`: `ochazuke.settings.set` is noun `ochazuke.settings`, verb `set`). The framework's own nouns live in the `ochazuke` namespace (`FrameworkNamespace`): everything `NewRuntime`, `NewModel` and the framework constructors register (inside `Runtime.Builtin`) is `ochazuke.<noun>` (`ochazuke.list`, `ochazuke.settings`, `ochazuke.page`; `app` itself stays `app`, so the app noun's verbs (`app.quit`, an application's own `app.state`) never collide with a framework noun such as `ochazuke.state`), with the short name as an alias (`Runtime.Alias`, `Runtime.Aliases`). So:
+A noun may be dotted (`ochazuke.settings`, `ai.skills`), and so may a verb (`dirs.base.add`): the action table is flat, a key is a name looked up whole, and a registered action carries its own noun and verb. A name nothing is registered under splits on its last dot (`ochazuke.SplitKey`: `ochazuke.settings.set` is noun `ochazuke.settings`, verb `set`). See "Action aliases" below. The framework's own nouns live in the `ochazuke` namespace (`FrameworkNamespace`): everything `NewRuntime`, `NewModel` and the framework constructors register (inside `Runtime.Builtin`) is `ochazuke.<noun>` (`ochazuke.list`, `ochazuke.settings`, `ochazuke.page`; `app` itself stays `app`, so the app noun's verbs (`app.quit`, an application's own `app.state`) never collide with a framework noun such as `ochazuke.state`), with the short name as an alias (`Runtime.Alias`, `Runtime.Aliases`). So:
 
 - **Input accepts either name.** `Do("list.move")`, `Request{Noun: "settings"}`, a `bindings.json` or `actions.json` row naming `list`, a palette word (`settings names` or `ochazuke.settings names`, one word each) and the CLI (`bin settings list`, `bin ochazuke settings list`, `bin ochazuke.settings list`) all reach `ochazuke.list` / `ochazuke.settings` (`Runtime.CanonicalNoun`, `CanonicalKey`, `Operation(key)`, `NounWords`).
 - **Output is canonical.** History (and `history.jsonl`, which reads old short-named lines as canonical), `bindings.list`, `operations.list`, the snapshot and the catalog print `ochazuke.settings.set`; the footer's hints, the `?` help, the jobs ticker and confirm prompts draw the shortest name that reaches the noun (`DisplayNoun`, `DisplayKey`: `list.move`).
@@ -1148,6 +1148,46 @@ The work runs off the loop as a job (`Pending(...).Label(label)`): the ticker sh
 A malformed entry (an unknown field, noun or placeholder, a bad type, `command` and `base` together) is skipped and is a persistent notice (a CLI `warning:`); the rest still install. `actions reload` reads the file again (the last load's verbs go first) and reapplies the user bindings; `actions list` prints the installed entries.
 
 Security: commands come only from the user's own `actions.json` in the config directory. A catalog, a binding row, a socket call or an application's data can name an action's verb, as they can any verb, but never define or change what it runs: there is no operation that loads actions from another path, the catalog publishes the verb's parameters and never its command, and a sandbox (`Config.Disable`, o-story, a test binary) reads no file. Values reach the command as argv words, not shell text; if an entry runs `sh -c` itself, pass values as positional arguments (`"sh", "-c", "git log \"$1\"", "sh", "{{data.path}}"`) rather than inside the script.
+
+## Action aliases
+
+The action table is flat: `Runtime.Operations` maps a name (`noun.verb`) to its action, and an alias is one more name for the same action. Nothing is generated or duplicated, so the names cannot drift.
+
+```go
+r.Define("pane").
+	Verb("kill", app.Kill, "Kill the pane").Alias("forget").          // pane.forget, permanent
+	Verb("associate", app.File, "File the pane").AliasOn("project", "associate"). // the same operation under project
+	Verb("add-base", app.AddBase).Renamed("base.add", "v0.27.0", "v0.28.0")        // an old name, kept one release
+r.AliasAction("pane.zap", "pane.kill")                                // the same, by keys
+```
+
+- **Running.** A request, binding row, palette line or CLI call named by an alias runs the canonical action. `canonicalRequest` rewrites it (`Request.Via` keeps the alias, and history shows it); the handler reads `Ctx.Invoked` (application verbs) or `Runtime.Invoked()` (interaction handlers): `Invocation{Name, Noun, Verb, Alias}`, where `Noun` is the alias's noun, the subject side (`project` for `project.associate`).
+- **Listing.** An alias is never an entry of its own. `operations.list` and the catalog carry `aliases` on the canonical verb (`CatalogVerb.Aliases`, `ActionAlias` objects); the CLI makes a same-noun alias an oden alias of the verb's command (`show, display` in help) and an alias under another noun a command of that noun's group that says `alias of pane.associate`; the palette lists the canonical verb with `· also NAME` and a typed alias narrows to it; `?` help names the canonical operation and ends its description with `· also: NAME`; `bindings list` rows carry `aliases`. `actions aliases` lists every alias with its action and source.
+- **Old names.** `Renamed(old, since, removeAfter)` is a deprecated alias (Keep actions: an old name stays one release, recorded in the CHANGELOG). Its first use in a runtime posts one notice, `OLD is an old name of NEW (renamed in SINCE; removed after AFTER)` (a CLI `notice:` line).
+- **Rules.** An alias names a registered noun and a verb (the longest registered noun prefix is the noun, so `dirs.base.add` is `dirs` and `base.add`); it may not be the name of an action (`would shadow the action`) or of another alias for a different action. An action registered later under an alias's name takes the name: the alias is dropped and the drop recorded (`ActionAliasProblems`), never a panic, so a host mounting a newer catalog keeps starting.
+
+### Alias rows in actions.json
+
+A user adds names without code: an `actions.json` entry with an `alias` field is an alias row.
+
+```json
+[
+  {"alias": "pane.k", "action": "pane.kill", "note": "my short name"},
+  {"alias": "list.walk", "action": "list.move"}
+]
+```
+
+| Field | Meaning |
+|---|---|
+| `alias` | The new name, `noun.verb` on a registered noun (a short framework noun name such as `list` works) |
+| `action` | The action it runs: a registered key, or another alias (which resolves to its action) |
+| `note` | Free text, listed with it in `actions aliases` |
+
+Alias rows install after the file's actions, so a row may name a verb the same file adds; `bindings.json` rows may use the alias. A row that would shadow an action or another alias (the framework's, the application's or an earlier row's), names an unknown action or noun, or has an unknown field is skipped and reported like a bad bindings row: a persistent notice at load (a CLI `warning:`), the result of `actions reload`, and the lines of `actions check` and `bindings check`. `bindings check` also accepts a `bindings.json` row spelled by an alias and says what it resolves to (`bindings.json: row 2 C: pane.close resolves to pane.kill (an alias, app)`, plus the new name for an old one).
+
+### Writes are never filled silently
+
+A request whose required parameter is missing fails naming it (`NAME is required`, from the API and the CLI) and the palette asks for it (`missing NAME`) instead of running. Nothing fills a write's slot from the focus or a guess; a binding row that fills one declares it (`FromRow`).
 
 ## Settings and the Settings page
 

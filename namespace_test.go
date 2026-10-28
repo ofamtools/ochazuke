@@ -154,12 +154,18 @@ func TestOverlappingVerbsAndNounsAreRefused(t *testing.T) {
 	done := func(Ctx) Result { return Done(nil) }
 	r.Define("tool").Verb("run", done)
 	refused("noun tool.run beside the verb run on tool", func() { r.Define("tool.run") })
-	refused("a dotted verb", func() { r.Define("tool").Verb("a.b", done) })
 	refused("an empty noun part", func() { r.Define("tool..x") })
 	r.Define("tool.part").Verb("run", done)
 	if _, ok := r.Operations["tool.part.run"]; !ok {
 		t.Fatal("a nested noun beside its parent was refused")
 	}
+	// A verb may hold a dot (the table is flat; a name is looked up whole),
+	// but one name never means two actions.
+	r.Define("tool").Verb("base.add", done)
+	if op, ok := r.Operation("tool.base.add"); !ok || op.Noun != "tool" || op.Verb != "base.add" {
+		t.Fatalf("dotted verb: %+v %v", op, ok)
+	}
+	refused("a dotted verb naming a nested noun's verb", func() { r.Define("tool").Verb("part.run", done) })
 }
 
 // A binding file and actions.json name framework nouns by their short

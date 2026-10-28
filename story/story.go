@@ -52,8 +52,14 @@ type Story struct {
 	// State gives the session a state directory of its own (a temp dir,
 	// removed when the session ends), kept across a restart event, so a
 	// story shows what the application remembers (pane dividers).
-	State  bool    `json:"state,omitempty"`
-	Expect Expects `json:"expect,omitempty"`
+	State bool `json:"state,omitempty"`
+	// Config is the user's config files the session starts with, by file
+	// name: written into a temp config directory of its own (removed at
+	// the end); actions.json and then bindings.json are loaded the way
+	// Model.Init loads them, after the pages are built. A problem a load
+	// reports is a notice.
+	Config map[string]json.RawMessage `json:"config,omitempty"`
+	Expect Expects                    `json:"expect,omitempty"`
 
 	// Path is where the file was loaded from (not part of the data); rel
 	// is the path inside fsys, disk the directory fsys reads when it is on
@@ -366,6 +372,10 @@ type VerbSpec struct {
 	Parameters  map[string]ochazuke.Parameter `json:"parameters,omitempty"`
 	Positional  []string                      `json:"positional,omitempty"`
 	Rows        []string                      `json:"rows,omitempty"`
+	// Aliases are the verb's other names (ochazuke.ActionAlias: alias as
+	// noun.verb, since/removeAfter for a deprecated one; action is the
+	// verb). A run through an alias logs " via=ALIAS" after its arguments.
+	Aliases []ochazuke.ActionAlias `json:"aliases,omitempty"`
 }
 
 // Event is one action: a key press, typed text, a paste, a job delivering,

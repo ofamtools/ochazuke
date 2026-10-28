@@ -1,0 +1,21 @@
+{
+  "name": "a bindings.json row on an old verb name runs the renamed verb and says so once",
+  "area": "actions",
+  "width": 120,
+  "height": 24,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "verbs": [{"verb": "demo.add-base", "description": "Add a project base",
+               "aliases": [{"alias": "demo.base.add", "since": "v0.27.0", "removeAfter": "v0.28.0"}]}]
+  },
+  "config": {
+    "bindings.json": [{"noun": "demo", "mode": "normal", "keys": "B", "request": {"noun": "demo", "verb": "base.add"}}]
+  },
+  "script": ["B", "B"],
+  "expect": [
+    {"after": 1, "writes": ["demo.add-base via=demo.base.add"],
+     "notices": ["demo.base.add is an old name of demo.add-base (renamed in v0.27.0; removed after v0.28.0)"]},
+    {"writes": ["demo.add-base via=demo.base.add", "demo.add-base via=demo.base.add"],
+     "notices": ["demo.base.add is an old name of demo.add-base (renamed in v0.27.0; removed after v0.28.0)"]}
+  ]
+}

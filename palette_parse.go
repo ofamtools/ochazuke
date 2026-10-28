@@ -84,7 +84,8 @@ type PaletteWord struct {
 type commandLine struct {
 	Words   []PaletteWord
 	Op      Operation
-	Implied bool // the noun was omitted
+	Via     string // the alias the line named Op by ("" for its own name)
+	Implied bool   // the noun was omitted
 	Args    Arguments
 	// Missing names the first word the command still needs: "verb or
 	// noun", "verb", "noun" or a parameter name.
@@ -100,13 +101,14 @@ func (c commandLine) Complete() bool { return c.known() && c.Err == nil && c.Mis
 // Request is the request the line runs: no target, so the operation acts
 // for the nearest instance of its noun on the focus path.
 func (c commandLine) Request() Request {
-	return Request{Verb: c.Op.Verb, Noun: c.Op.Noun, Args: c.Args}
+	return Request{Verb: c.Op.Verb, Noun: c.Op.Noun, Args: c.Args, Via: c.Via}
 }
 
 // option is one word a position accepts.
 type option struct {
 	Kind  string // verb, noun, instance, argument
 	Value string
+	alias bool // an action alias's word: it resolves when typed whole, never as a prefix or a completion
 }
 
 // matchWord resolves word among options: an exact match (ignoring case)
@@ -119,7 +121,7 @@ func matchWord(word string, options []option) (hit option, candidates []option, 
 		v := strings.ToLower(o.Value)
 		if v == lower {
 			exacts = append(exacts, o)
-		} else if strings.HasPrefix(v, lower) {
+		} else if strings.HasPrefix(v, lower) && !o.alias {
 			prefixes = append(prefixes, o)
 		}
 	}
@@ -145,16 +147,23 @@ func optionValues(options []option) []string {
 // lineIndex is what the line can name where the palette opened: the
 // offered operations by verb and by noun.
 type lineIndex struct {
-	ops     map[string]Operation // by word.verb: the noun's word (DisplayNoun) and the verb
-	canon   map[string]string    // a noun's canonical name -> its word, where they differ (ochazuke.list -> list)
-	verbs   map[string][]string  // verb -> nouns that have it
-	nouns   map[string][]string  // noun -> its verbs
-	byVerbs []option
-	byNouns []option
+	ops map[string]Operation // by word.verb: the noun's word (DisplayNoun) and the verb
+	// aliasOps are the offered actions by an alias's word.verb, aliasVerbs
+	// an alias verb's noun words and aliasNouns a noun word's alias verbs:
+	// a typed alias resolves to its action, but completions list only the
+	// canonical names (with the aliases on their labels).
+	aliasOps   map[string]Operation
+	aliasVerbs map[string][]string
+	aliasNouns map[string][]string
+	canon      map[string]string   // a noun's canonical name -> its word, where they differ (ochazuke.list -> list)
+	verbs      map[string][]string // verb -> nouns that have it
+	nouns      map[string][]string // noun -> its verbs
+	byVerbs    []option
+	byNouns    []option
 }
 
 func (p *Palette) index() lineIndex {
-	ix := lineIndex{ops: map[string]Operation{}, canon: map[string]string{}, verbs: map[string][]string{}, nouns: map[string][]string{}}
+	ix := lineIndex{ops: map[string]Operation{}, canon: map[string]string{}, verbs: map[string][]string{}, nouns: map[string][]string{}, aliasOps: map[string]Operation{}, aliasVerbs: map[string][]string{}, aliasNouns: map[string][]string{}}
 	for _, op := range p.r.Catalog() {
 		if !p.offered(op) {
 			continue
@@ -170,11 +179,29 @@ func (p *Palette) index() lineIndex {
 		ix.verbs[op.Verb] = append(ix.verbs[op.Verb], word)
 		ix.nouns[word] = append(ix.nouns[word], op.Verb)
 	}
+	for _, a := range p.r.ActionAliases() {
+		op, ok := p.r.Operations[a.Action]
+		if !ok || !p.offered(op) {
+			continue
+		}
+		word := p.r.DisplayNoun(a.Noun)
+		if _, taken := ix.ops[word+"."+a.Verb]; taken {
+			continue
+		}
+		ix.aliasOps[word+"."+a.Verb] = op
+		ix.aliasVerbs[a.Verb] = append(ix.aliasVerbs[a.Verb], word)
+		ix.aliasNouns[word] = append(ix.aliasNouns[word], a.Verb)
+	}
 	for verb := range ix.verbs {
-		ix.byVerbs = append(ix.byVerbs, option{"verb", verb})
+		ix.byVerbs = append(ix.byVerbs, option{Kind: "verb", Value: verb})
+	}
+	for verb := range ix.aliasVerbs {
+		if _, own := ix.verbs[verb]; !own {
+			ix.byVerbs = append(ix.byVerbs, option{Kind: "verb", Value: verb, alias: true})
+		}
 	}
 	for noun := range ix.nouns {
-		ix.byNouns = append(ix.byNouns, option{"noun", noun})
+		ix.byNouns = append(ix.byNouns, option{Kind: "noun", Value: noun})
 	}
 	sort.Slice(ix.byVerbs, func(i, j int) bool { return ix.byVerbs[i].Value < ix.byVerbs[j].Value })
 	sort.Slice(ix.byNouns, func(i, j int) bool { return p.nounBefore(ix.byNouns[i].Value, ix.byNouns[j].Value) })
@@ -184,7 +211,37 @@ func (p *Palette) index() lineIndex {
 	for _, verbs := range ix.nouns {
 		sort.Strings(verbs)
 	}
+	for _, nouns := range ix.aliasVerbs {
+		sort.Slice(nouns, func(i, j int) bool { return p.nounBefore(nouns[i], nouns[j]) })
+	}
 	return ix
+}
+
+// op is the offered action word.verb names, and the alias it was named by
+// ("" for its own name).
+func (ix lineIndex) op(word, verb string) (Operation, string) {
+	if op, ok := ix.ops[word+"."+verb]; ok {
+		return op, ""
+	}
+	if op, ok := ix.aliasOps[word+"."+verb]; ok {
+		return op, word + "." + verb
+	}
+	return Operation{}, ""
+}
+
+// nounsOf lists the noun words that have verb, its own name's nouns first,
+// then the nouns where verb is an alias.
+func (ix lineIndex) nounsOf(verb string) []option {
+	var out []option
+	for _, noun := range ix.verbs[verb] {
+		out = append(out, option{Kind: "noun", Value: noun})
+	}
+	for _, noun := range ix.aliasVerbs[verb] {
+		if _, own := ix.ops[noun+"."+verb]; !own {
+			out = append(out, option{Kind: "noun", Value: noun})
+		}
+	}
+	return out
 }
 
 // nounBefore orders nouns as the list shows them: the nouns of the focus
@@ -216,13 +273,13 @@ func (p *Palette) depth(noun string) int {
 func (p *Palette) impliedNoun(ix lineIndex, verb string) string {
 	for _, id := range p.r.Ancestry(focusOf(p.origin)) {
 		if inst := p.r.Instances[id]; inst != nil {
-			if word := p.r.DisplayNoun(inst.Noun); ix.ops[word+"."+verb].Verb != "" {
+			if word := p.r.DisplayNoun(inst.Noun); func() bool { op, _ := ix.op(word, verb); return op.Verb != "" }() {
 				return word
 			}
 		}
 	}
-	if nouns := ix.verbs[verb]; len(nouns) == 1 {
-		return nouns[0]
+	if nouns := ix.nounsOf(verb); len(nouns) == 1 {
+		return nouns[0].Value
 	}
 	return ""
 }
@@ -267,7 +324,7 @@ func (p *Palette) parseTokens(ix lineIndex, tokens []lineToken) commandLine {
 	case exact:
 		// A word that is a verb and a noun: the reading that resolves
 		// further wins, the verb on a tie.
-		verb, noun := p.parseRest(ix, option{"verb", word}, tokens), p.parseRest(ix, option{"noun", word}, tokens)
+		verb, noun := p.parseRest(ix, option{Kind: "verb", Value: word}, tokens), p.parseRest(ix, option{Kind: "noun", Value: word}, tokens)
 		if resolved(noun) > resolved(verb) {
 			return noun
 		}
@@ -321,15 +378,12 @@ func (p *Palette) parseRest(ix lineIndex, first option, tokens []lineToken) comm
 	rest := tokens[1:]
 	if first.Kind == "verb" {
 		verb := first.Value
-		var nouns []option
-		for _, noun := range ix.verbs[verb] {
-			nouns = append(nouns, option{"noun", noun})
-		}
+		nouns := ix.nounsOf(verb)
 		if len(rest) > 0 {
 			hit, candidates, _ := matchWord(rest[0].Text, nouns)
 			if hit.Value != "" {
 				c.Words = append(c.Words, PaletteWord{Text: rest[0].Text, Kind: "noun", Value: hit.Value})
-				c.Op = ix.ops[hit.Value+"."+verb]
+				c.Op, c.Via = ix.op(hit.Value, verb)
 				p.parseParams(&c, rest[1:], "")
 				return c
 			}
@@ -357,7 +411,8 @@ func (p *Palette) parseRest(ix lineIndex, first option, tokens []lineToken) comm
 			}
 			return c
 		}
-		c.Op, c.Implied = ix.ops[noun+"."+verb], true
+		c.Op, c.Via = ix.op(noun, verb)
+		c.Implied = true
 		p.parseParams(&c, rest, "")
 		return c
 	}
@@ -368,12 +423,15 @@ func (p *Palette) parseRest(ix lineIndex, first option, tokens []lineToken) comm
 	}
 	var verbs []option
 	for _, verb := range ix.nouns[noun] {
-		verbs = append(verbs, option{"verb", verb})
+		verbs = append(verbs, option{Kind: "verb", Value: verb})
+	}
+	for _, verb := range ix.aliasNouns[noun] {
+		verbs = append(verbs, option{Kind: "verb", Value: verb, alias: true})
 	}
 	hit, candidates, _ := matchWord(rest[0].Text, verbs)
 	if hit.Value != "" {
 		c.Words = append(c.Words, PaletteWord{Text: rest[0].Text, Kind: "verb", Value: hit.Value})
-		c.Op = ix.ops[noun+"."+hit.Value]
+		c.Op, c.Via = ix.op(noun, hit.Value)
 		p.parseParams(&c, rest[1:], "")
 		return c
 	}
@@ -382,7 +440,7 @@ func (p *Palette) parseRest(ix lineIndex, first option, tokens []lineToken) comm
 		if config, ok := p.nouns[p.r.CanonicalNoun(noun)]; ok {
 			var instances []option
 			for _, choice := range p.instanceChoices(noun) {
-				instances = append(instances, option{"instance", choice.ID})
+				instances = append(instances, option{Kind: "instance", Value: choice.ID})
 			}
 			hit, candidates, _ = matchWord(rest[0].Text, instances)
 			if hit.Value != "" {
@@ -450,7 +508,7 @@ func (p *Palette) argument(op Operation, name, word string) (value any, display 
 	if len(choices) > 0 || p.r.ChoicesSource(param) != "" {
 		options := make([]option, len(choices))
 		for i, choice := range choices {
-			options[i] = option{"argument", choice.ID}
+			options[i] = option{Kind: "argument", Value: choice.ID}
 		}
 		hit, matches, _ := matchWord(word, options)
 		switch {
