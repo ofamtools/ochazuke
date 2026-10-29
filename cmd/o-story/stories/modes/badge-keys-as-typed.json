@@ -1,0 +1,56 @@
+{
+  "name": "mode badge: with mode-badge.key-case as-typed, a pending mode's held keys keep their case, g and G read apart; the name stays upper case (R2.10)",
+  "area": "modes",
+  "width": 80,
+  "height": 12,
+  "settings": [
+    {"name": "mode-badge.key-case", "type": "string", "default": "as-typed", "enum": ["upper", "as-typed"]}
+  ],
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": "g x",
+        "do": "demo.notify"
+      },
+      {
+        "noun": "demo",
+        "keys": "G x",
+        "do": "demo.notify"
+      }
+    ]
+  },
+  "script": [
+    "g",
+    "esc",
+    "G",
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "mode": "normal g",
+      "badge": "NORMAL g"
+    },
+    {
+      "after": 2,
+      "mode": "normal",
+      "badge": "NORMAL"
+    },
+    {
+      "after": 3,
+      "mode": "normal G",
+      "badge": "NORMAL G"
+    },
+    {
+      "mode": "normal",
+      "badge": "NORMAL"
+    }
+  ]
+}

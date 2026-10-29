@@ -124,14 +124,16 @@ tiers above them. When the two disagree, fix one in the same commit.
   open, in an input) and changes in the same frame as the mode. A pending
   mode shows the key sequence it holds while it waits (`NORMAL G`,
   `LEADER PENDING CTRL+A`), and a recording adds its register
-  (`NORMAL · REC @a`). The badge names the mode for people: the mode's
+  (`NORMAL · REC @a`). The held keys follow the `mode-badge.key-case`
+  setting (`upper`, the default, or `as-typed`: `NORMAL g`, `NORMAL G`,
+  `LEADER PENDING ctrl+a`); the mode's name is upper case either way. The badge names the mode for people: the mode's
   name with `_` read as a space, never a raw payload or an internal id; a
   name that reads badly is renamed in the data that defines the mode, not
   special-cased in the badge. No setting hides the badge; only a page
   drawn without chrome (`chrome: none` stories, an embedded page body) has
   no header. Reference: Vim's `showmode` and `showcmd` (P2). Story:
   `modes/badge-every-state.json`, `modes/badge-leader-prefix.json`,
-  `modes/badge-recording.json` (the story `badge` expectation reads the
+  `modes/badge-recording.json`, `modes/badge-keys-as-typed.json` (the story `badge` expectation reads the
   title row).
 
 ### R3. Focus and motion

@@ -403,12 +403,26 @@ func (m *Model) pageTitles() ([]string, int) {
 // mode entered with a prefix, such as the terminal leader's
 // leader_pending, does not), and the recording register while a macro is
 // being recorded.
+//
+// The mode's name is upper case; the held keys follow the
+// mode-badge.key-case setting (ModeBadgeKeyCase): upper (NORMAL G for
+// both g and G) or as-typed (NORMAL g, NORMAL G, LEADER PENDING ctrl+a).
 func (m *Model) modeBadge() string {
-	name := m.Runtime.Mode.Name
-	if prefix := m.Runtime.Mode.Payload.Prefix; prefix != "" && name != prefix && !strings.HasSuffix(name, " "+prefix) {
-		name += " " + prefix
+	name, keys := m.Runtime.Mode.Name, m.Runtime.Mode.Payload.Prefix
+	switch {
+	case keys == "":
+	case name == keys:
+		name = ""
+	case strings.HasSuffix(name, " "+keys):
+		name = strings.TrimSuffix(name, " "+keys)
 	}
 	label := strings.ToUpper(modeLabelOf(name))
+	if keys != "" {
+		if m.Runtime.ModeBadgeKeyCase() == ModeBadgeKeysUpper {
+			keys = strings.ToUpper(keys)
+		}
+		label = strings.TrimPrefix(label+" "+keys, " ")
+	}
 	if recording := m.Runtime.Registers().Macro.Recording; recording != "" {
 		label += " · REC @" + recording
 	}

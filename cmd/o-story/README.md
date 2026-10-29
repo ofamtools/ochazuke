@@ -551,6 +551,7 @@ Mode edges (from → to via):
 - `normal` → `macro_pending` via `mode.enter`
 - `normal` → `normal <` via `row <`
 - `normal` → `normal >` via `row >`
+- `normal` → `normal G` via `row G`
 - `normal` → `normal [` via `row [`
 - `normal` → `normal ]` via `row ]`
 - `normal` → `normal ctrl+w` via `row ctrl+w`
@@ -565,6 +566,7 @@ Mode edges (from → to via):
 - `normal` → `visual-line` via `list.visual`
 - `normal <` → `normal` via `outline.outdent`
 - `normal >` → `normal` via `outline.indent`
+- `normal G` → `normal` via `mode.leave`
 - `normal [` → `normal` via `markdown.previous-kind`
 - `normal [` → `normal` via `markdown.previous-same`
 - `normal ]` → `normal` via `markdown.next-kind`
