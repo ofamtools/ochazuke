@@ -33,7 +33,9 @@ const (
 // its first use in a runtime posts a one-time notice naming the new name.
 // Note is free text shown beside it. Args are preset arguments the
 // alias runs its action with ({"force": true} for w!): a typed or
-// bound argument of the same name wins. Bare marks an alias declared
+// bound argument of the same name wins. Presets may leave a required
+// parameter out: it is asked for when the alias runs (the args form for a
+// key or the palette, NAME is required for the CLI and the API). Bare marks an alias declared
 // without a noun (w!, q): its noun is its action's, and the bare name
 // alone reaches it in the palette, the CLI and the API (Request{Verb:
 // "w!"}); a binding row names it by its full name (restructure.w!).
@@ -179,7 +181,9 @@ func (r *Runtime) checkAlias(a ActionAlias) (ActionAlias, error) {
 	}
 	a.Noun, a.Verb, a.Alias = noun, verb, noun+"."+verb
 	if len(a.Args) > 0 {
-		if err := validateArguments(op, a.Args); err != nil {
+		// Presets are part of a request: what they give is checked here,
+		// a required argument they leave out when the alias runs.
+		if err := validatePartialArguments(op, a.Args); err != nil {
 			return a, fmt.Errorf("alias %s args: %v", a.Name(), err)
 		}
 	}

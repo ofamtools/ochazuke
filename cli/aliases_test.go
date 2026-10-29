@@ -122,3 +122,19 @@ func TestCLIBareAliasWithArgs(t *testing.T) {
 		t.Fatalf("red! --color blue: %v\n%s", err, out)
 	}
 }
+
+// An alias whose presets leave a required parameter out loads; the CLI
+// asks for it as for the verb (NAME is required), and given, it runs.
+func TestCLIAliasPartialPresets(t *testing.T) {
+	f := newFixture(t)
+	if err := f.r.AddActionAlias(ochazuke.ActionAlias{Alias: "two!", Action: "widget.paint", Args: ochazuke.Arguments{"coats": 2}}); err != nil {
+		t.Fatalf("partial preset: %v", err)
+	}
+	if _, _, err := f.mounted(t, "two!", "--target", "w1"); err == nil || !strings.Contains(err.Error(), "color is required") {
+		t.Fatalf("two! without color: %v", err)
+	}
+	out, errOut, err := f.mounted(t, "two!", "--target", "w1", "--color", "red")
+	if err != nil || !strings.Contains(out, `"color": "red"`) || !strings.Contains(out, `"coats": 2`) {
+		t.Fatalf("two! --color red: %v\n%s\n%s", err, out, errOut)
+	}
+}

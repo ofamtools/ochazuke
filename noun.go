@@ -1042,12 +1042,7 @@ func (r *Runtime) validateRow(row Binding) (Binding, error) {
 		// A row may leave a required argument out: the key opens the args
 		// form for it (MissingOpensFormSetting), or, with the form off,
 		// fails naming it as the API does. What a row gives is checked.
-		optional := map[string]Parameter{}
-		for name, param := range op.Parameters {
-			param.Required = false
-			optional[name] = param
-		}
-		if err := validateArguments(Operation{Parameters: optional}, row.Request.Args); err != nil {
+		if err := validatePartialArguments(op, row.Request.Args); err != nil {
 			return row, err
 		}
 		for arg, source := range row.From {

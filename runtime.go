@@ -770,6 +770,20 @@ func (r *Runtime) nounInstance(noun, focus string) string {
 	return ""
 }
 
+// validatePartialArguments checks the arguments args gives (known names,
+// types, choices) and not the required ones it leaves out: a preset that
+// a later request completes (a bindings.json row's args, an alias's preset
+// args). The completed request is checked whole when it runs, so a missing
+// required argument opens the args form or fails naming it.
+func validatePartialArguments(op Operation, args Arguments) error {
+	optional := make(map[string]Parameter, len(op.Parameters))
+	for name, param := range op.Parameters {
+		param.Required = false
+		optional[name] = param
+	}
+	return validateArguments(Operation{Parameters: optional}, args)
+}
+
 func validateArguments(op Operation, args Arguments) error {
 	for name, p := range op.Parameters {
 		if _, ok := args[name]; p.Required && !ok {

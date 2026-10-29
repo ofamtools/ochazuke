@@ -517,6 +517,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `page.pick`
 - `normal` → `insert` via `palette.open`
 - `normal` → `insert` via `row R`
+- `normal` → `insert` via `row W`
 - `normal` → `insert` via `setting-item.add`
 - `normal` → `insert` via `setting-item.edit`
 - `normal` → `insert` via `setting.add`

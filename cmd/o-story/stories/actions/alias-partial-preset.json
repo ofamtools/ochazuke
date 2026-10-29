@@ -1,0 +1,22 @@
+{
+  "name": "an alias whose preset leaves a required argument out (w! is demo.write {force: true}, path required) loads; its key and its palette word open the args form for path, and a typed path runs it (esc comes back to the line as typed)",
+  "area": "actions",
+  "width": 100,
+  "height": 30,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "verbs": [{"verb": "demo.write", "description": "Write the document", "parameters": {"path": {"type": "string", "required": true, "description": "Where to write"}, "force": {"type": "boolean"}}}]
+  },
+  "config": {
+    "actions.json": [{"alias": "w!", "action": "demo.write", "args": {"force": true}}],
+    "bindings.json": [{"noun": "demo", "mode": "normal", "keys": "W", "request": {"noun": "demo", "verb": "w!"}}]
+  },
+  "script": ["W", {"type": "a.txt"}, "enter", ":", {"type": "w!"}, "enter", "esc", "esc", {"type": " b.txt"}, "enter"],
+  "expect": [
+    {"after": 1, "modal": "args-form", "focus": "args-form/path", "mode": "insert", "noNotices": true},
+    {"after": 3, "modal": "", "writes": ["demo.write force=true path=a.txt via=demo.w!"]},
+    {"after": 6, "modal": "args-form", "focus": "args-form/path"},
+    {"after": 8, "modal": "palette"},
+    {"modal": "", "writes": ["demo.write force=true path=a.txt via=demo.w!", "demo.write force=true path=b.txt via=demo.w!"]}
+  ]
+}

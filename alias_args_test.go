@@ -128,3 +128,68 @@ func TestUserAliasRowsWithArgs(t *testing.T) {
 		t.Fatalf("runs %s", got)
 	}
 }
+
+// A preset is part of a request, not a whole one: an alias whose action
+// has a required parameter the presets leave out loads, and the missing
+// one is asked for when it runs (the args form for a key or the palette,
+// "NAME is required" for the API); given, it runs. An unknown or
+// wrongly typed preset is still refused at load.
+func TestAliasPartialPresetArgs(t *testing.T) {
+	r := NewRuntime()
+	var runs []string
+	r.Define("doc").Verb("write", func(c Ctx) Result {
+		runs = append(runs, c.Invoked.Name+" path="+jsonText(c.Args["path"])+" force="+jsonText(c.Args["force"]))
+		return Done(nil)
+	}, "Write the doc")
+	op := r.Operations["doc.write"]
+	op.Parameters = map[string]Parameter{"path": {Type: "string", Required: true}, "force": {Type: "boolean"}}
+	r.Operations["doc.write"] = op
+	r.Instance("d1", Kind("doc"))
+	if err := r.SetFocus("d1"); err != nil {
+		t.Fatal(err)
+	}
+	r.EnsureConfigSettings()
+	if err := r.AddActionAlias(ActionAlias{Alias: "w!", Action: "doc.write", Args: Arguments{"force": true}}); err != nil {
+		t.Fatalf("a partial preset loads: %v", err)
+	}
+	for _, bad := range []Arguments{{"nope": true}, {"force": "yes"}} {
+		if err := r.AddActionAlias(ActionAlias{Alias: "w2", Action: "doc.write", Args: bad}); err == nil {
+			t.Fatalf("preset %v loaded", bad)
+		}
+	}
+	if _, err := r.Execute(Request{Verb: "w!"}); err == nil || !strings.Contains(err.Error(), "path is required") {
+		t.Fatalf("API without path: %v", err)
+	}
+	if _, err := r.Execute(Request{Verb: "w!", Args: Arguments{"path": "a.txt"}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(runs, ";"); got != `doc.w! path="a.txt" force=true` {
+		t.Fatalf("runs %s", got)
+	}
+	// A key on the alias opens the args form for path; filled, it runs
+	// with the preset.
+	if _, err := r.LoadBindings([]byte(`[{"noun": "doc", "keys": "W", "request": {"noun": "doc", "verb": "w!"}}]`)); err != nil {
+		t.Fatal(err)
+	}
+	formKeys(t, r, "W")
+	if r.TopModal() != ArgsFormID || r.Focus != ArgsFormID+"/path" {
+		t.Fatalf("key without path: top %q focus %q", r.TopModal(), r.Focus)
+	}
+	typeKeys(t, r, "b.txt")
+	formKeys(t, r, "enter")
+	if got := strings.Join(runs, ";"); got != `doc.w! path="a.txt" force=true;doc.w! path="b.txt" force=true` {
+		t.Fatalf("runs %s (top %q)", got, r.TopModal())
+	}
+	// The palette: the one word opens the form; a typed path runs.
+	NewPalette(r)
+	paletteRequest(t, r, "open", "palette", nil)
+	paletteLine(t, r, "w!")
+	if r.TopModal() != ArgsFormID || r.Focus != ArgsFormID+"/path" {
+		t.Fatalf("palette w!: top %q focus %q", r.TopModal(), r.Focus)
+	}
+	formKeys(t, r, "esc", "esc")
+	paletteLine(t, r, "w! c.txt")
+	if got := runs[len(runs)-1]; got != `doc.w! path="c.txt" force=true` {
+		t.Fatalf("palette w! c.txt ran %s", got)
+	}
+}
