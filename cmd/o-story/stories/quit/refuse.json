@@ -1,0 +1,8 @@
+{
+  "name": "quit: a refusing quit check fails app.quit with its reason on the status line",
+  "area": "quit",
+  "page": {"lists": [{"id": "a", "rows": 2}]},
+  "checks": [{"name": "busy", "refuse": "a write is still running"}],
+  "script": ["ctrl+c"],
+  "expect": [{"quit": false, "modal": "", "contains": ["a write is still running"]}]
+}

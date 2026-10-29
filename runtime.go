@@ -146,9 +146,12 @@ type Operation struct {
 	// Aliases are the action's other names (ActionAlias), display
 	// spelling, sorted. Catalog and operations.list fill it; an entry of
 	// Runtime.Operations does not hold it (the alias table does).
-	Aliases []string   `json:"aliases,omitempty"`
-	Run     Handler    `json:"-"`
-	App     AppHandler `json:"-"`
+	Aliases []string `json:"aliases,omitempty"`
+	// Checks run before the verb from every path (AddVerbCheck,
+	// BeforeQuit, verb_checks.go): each allows, asks first or refuses.
+	Checks []VerbCheck `json:"-"`
+	Run    Handler     `json:"-"`
+	App    AppHandler  `json:"-"`
 }
 
 func (o Operation) Key() string { return o.Noun + "." + o.Verb }
@@ -700,6 +703,15 @@ func (r *Runtime) execute(c Context, q Request) (any, error) {
 		return nil, err
 	}
 	defer r.actingFor(focus)()
+	switch v := r.runChecks(c, q, op); {
+	case v.Refuse != "":
+		return nil, errors.New(v.Refuse)
+	case v.Ask != "":
+		if len(subjects) > 1 {
+			q.Subjects = subjects
+		}
+		return r.openConfirm(c, q, Operation{Noun: op.Noun, Verb: op.Verb, Confirm: v.Ask})
+	}
 	if op.Confirm != "" && !q.Confirmed {
 		if len(subjects) > 1 {
 			q.Subjects = subjects
@@ -940,6 +952,6 @@ func registerCore(r *Runtime) {
 		return r.Context(), err
 	}})
 	r.Register(Operation{Verb: "pop", Noun: "ochazuke.modal", Description: "Close the active modal and restore its parent", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) { err := r.Pop(); return r.Context(), err }})
-	r.Register(Operation{Verb: "quit", Noun: "app", Description: "Exit the application", Result: "boolean", Run: func(r *Runtime, c Context, a Arguments) (any, error) { r.Quit = true; return true, nil }})
+	r.Register(Operation{Verb: "quit", Noun: "app", Description: "Exit the application", Parameters: map[string]Parameter{"force": {Type: "boolean", Description: "quit without running the checks an application hangs on app.quit (BeforeQuit: unsaved edits are lost)"}}, Result: "boolean", Run: func(r *Runtime, c Context, a Arguments) (any, error) { r.Quit = true; return true, nil }})
 	r.Register(Operation{Verb: "ignore", Noun: "ochazuke.key", Description: "The noop: always available, does nothing; a row bound to it consumes its key (DispatchOutcome reports KeyConsumed), how a container clamps a key its children leave unhandled", Result: "null", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
 }

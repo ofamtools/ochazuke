@@ -1,0 +1,17 @@
+{
+  "name": "quit: with unwritten changes app.quit asks first (BeforeQuit); n stays, y quits",
+  "area": "quit",
+  "page": {
+    "trees": [
+      {"id": "t", "editable": true, "nodes": [{"id": "a", "label": "alpha"}]}
+    ]
+  },
+  "checks": [{"name": "unsaved", "ask": "Quit without writing?", "dirty": true}],
+  "script": ["d", "d", "ctrl+c", "n", "ctrl+c", "y"],
+  "expect": [
+    {"after": 2, "quit": false, "writes": ["delete a"]},
+    {"after": 3, "quit": false, "modal": "confirm", "contains": ["Quit without writing?"]},
+    {"after": 4, "quit": false, "modal": ""},
+    {"quit": true}
+  ]
+}

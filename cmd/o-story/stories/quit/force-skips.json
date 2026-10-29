@@ -1,0 +1,15 @@
+{
+  "name": "quit: app.quit {force: true} from a key skips the quit check",
+  "area": "quit",
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "bind": [{"noun": "app", "keys": "Q", "do": "app.quit", "args": {"force": true}}]
+  },
+  "checks": [{"name": "unsaved", "ask": "Quit without writing?"}],
+  "script": ["ctrl+c", "esc", "Q"],
+  "expect": [
+    {"after": 1, "quit": false, "contains": ["Quit without writing?"]},
+    {"after": 2, "quit": false, "modal": ""},
+    {"quit": true, "modal": ""}
+  ]
+}

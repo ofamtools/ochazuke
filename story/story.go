@@ -59,7 +59,10 @@ type Story struct {
 	// Model.Init loads them, after the pages are built. A problem a load
 	// reports is a notice.
 	Config map[string]json.RawMessage `json:"config,omitempty"`
-	Expect Expects                    `json:"expect,omitempty"`
+	// Checks hang verb checks on the session's verbs (Runtime.AddVerbCheck;
+	// app.quit is BeforeQuit's), after the pages are built.
+	Checks []CheckSpec `json:"checks,omitempty"`
+	Expect Expects     `json:"expect,omitempty"`
 
 	// Path is where the file was loaded from (not part of the data); rel
 	// is the path inside fsys, disk the directory fsys reads when it is on
@@ -134,6 +137,17 @@ type Page struct {
 type TextSpec struct {
 	ID   string `json:"id"`
 	Text string `json:"text"`
+}
+
+// CheckSpec is one verb check: on Verb (default app.quit), Ask or Refuse
+// while the page's first editable tree has unwritten changes (Dirty: any
+// write since the story started), else always (Dirty false).
+type CheckSpec struct {
+	Verb   string `json:"verb,omitempty"`
+	Name   string `json:"name,omitempty"`
+	Ask    string `json:"ask,omitempty"`
+	Refuse string `json:"refuse,omitempty"`
+	Dirty  bool   `json:"dirty,omitempty"`
 }
 
 // ChooserSpec is a chooser opened over the page's focus: its rows and the
@@ -502,6 +516,7 @@ type Expect struct {
 	Focus string  `json:"focus,omitempty"`
 	Mode  string  `json:"mode,omitempty"`
 	Modal *string `json:"modal,omitempty"` // top modal instance, "" for none
+	Quit  *bool   `json:"quit,omitempty"`  // Runtime.Quit: app.quit ran
 	Page  string  `json:"page,omitempty"`
 	// Shift is the current page's pane divider (Runtime.PaneShift).
 	Shift   *int  `json:"shift,omitempty"`

@@ -161,7 +161,10 @@ full-strength reverse video), `dimmed` (rows whose only reverse video is
 under faint: an unfocused page list's selected row, a highlight beneath a
 modal; read in the mono theme), `highlightedText` (text every highlighted row holds), `cell` (the text of a `cellSelect` table's current cell, drawn reverse and underlined; `" "` for a blank one, `""` for none), `contains`, `lacks`, `order` (substrings in this order),
 `ticker`/`noTicker`, `notices`/`noNotices`, `styled` (text → `#RRGGBB`, or `!#RRGGBB`, for the styled run the text starts: cell-exact where `colored` is row-wide), `attrs` (text → the attributes at its first cell, followed along the row's SGR state: a comma list of `bold`, `faint`, `reverse`, `underline`, `fg` (any foreground), `-name` for absent; `"bold,-fg"` reads a mono tone), `writes` (every change an
-editable tree wrote, `TreeChange.String`, in order; `[]` none). A story with no final expect is
+editable tree wrote, `TreeChange.String`, in order; `[]` none), `quit` (`Runtime.Quit`: app.quit ran). A story's
+`checks` (`[{verb, name, ask, refuse, dirty}]`, verb default `app.quit`) hang verb
+checks (`AddVerbCheck`) that ask or refuse, with `dirty` only once the story has
+written something. A story with no final expect is
 compared with `<name>.golden`: the frame in the mono theme, each row behind a
 gutter that reads `R|` when the row has full-strength reverse video, `r|`
 when its only reverse video is dimmed, `C|` (`c|` dimmed) when the
@@ -410,6 +413,7 @@ Conformance:
 | insert | setting-value | `setting-value.cancel` `setting-value.commit` |
 | insert | settings | `settings.edit` |
 | list_filter | list | `list.filter-choose` `list.filter-clear` `list.filter-erase` `list.filter-keep` `list.filter-type` `list.move` |
+| normal | app | `app.quit` |
 | normal | bindings | `bindings.help` |
 | normal | bindings-help | `bindings-help.mode` `bindings-help.noun` `bindings-help.place` `bindings-help.view` |
 | normal | command | `command.help` `command.run` `command.stop` |

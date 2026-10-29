@@ -157,6 +157,11 @@ func build(s *Story, opt Options, stateDir string) (*Session, error) {
 			return nil, err
 		}
 	}
+	for _, c := range s.Checks {
+		if err := ss.addCheck(c); err != nil {
+			return nil, err
+		}
+	}
 	ss.size()
 	m.View()
 	page := ss.pages[open]
@@ -190,6 +195,23 @@ func build(s *Story, opt Options, stateDir string) (*Session, error) {
 		}
 	}
 	return ss, nil
+}
+
+// addCheck hangs a story's verb check.
+func (ss *Session) addCheck(c CheckSpec) error {
+	verb, name := c.Verb, c.Name
+	if verb == "" {
+		verb = "app.quit"
+	}
+	if name == "" {
+		name = "story"
+	}
+	return ss.R.AddVerbCheck(verb, ochazuke.VerbCheck{Name: name, Check: func(*ochazuke.Runtime, ochazuke.Context, ochazuke.Arguments) ochazuke.Verdict {
+		if c.Dirty && len(ss.Writes) == 0 {
+			return ochazuke.Allow()
+		}
+		return ochazuke.Verdict{Ask: c.Ask, Refuse: c.Refuse}
+	}})
 }
 
 // chooserSpec is the framework spec of a story's chooser.

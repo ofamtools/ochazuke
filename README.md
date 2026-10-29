@@ -645,6 +645,7 @@ result, err := r.Execute(ochazuke.Request{
 | `focus.go` | `Runtime.Focus`, the modal chain (`Push`, `OpenModal`/`WithInput`, `Pop`), the mode rule on focus change, `RemoveInstance`, `RetargetFocus`, focus jumps (`focus.next`/`focus.previous`/`focus.set`, `JumpFocus`) |
 | `delivery.go` | The component delivery contract: `Component`, `Ticket`, `Completion`, `Start`, `Deliver`, `PendingCommands`; application verbs (`Ctx`, `Result`, `Done`/`Failed`/`Pending`) |
 | `confirm.go` | The `confirm` noun, `SetConfirm`, prompt templates |
+| `verb_checks.go` | Verb checks (`AddVerbCheck`, `VerbCheck`, `Verdict`: `Allow`, `AskFirst`, `Refuse`), the quit hook `BeforeQuit` |
 | `noun.go`, `instance.go` | `Define` builder, binding rows, key classes and guards; instances, parent links, `Payload`, targets |
 | `resolve.go`, `bindings.go` | The stack walk, pending modes, key-sequence prefixes and their timer, `bindings.list` |
 | `bindings/*.json`, `default_bindings.go`, `editor_keys.go` | The default key bindings as data (one file per area: the editor noun's mode tables, the app noun's count, register and macro rows, lists, tables, trees, timelines, forms, the terminal, ...), loaded at startup; `LoadDefaultBindings`, `bindings defaults` |
@@ -743,6 +744,21 @@ r.Define("worktree").Verb("remove", removeWorktree).Confirm("Remove {{id}}?")
 ```
 
 It compiles to the framework `confirm` noun: running `worktree.remove` opens a confirm modal instead, a modal instance parented at the focus with `Payload{Prompt, Request}`; `y` (or Enter) runs the stored request in its original context, `n` or `esc` pops, every other key is swallowed. Templates expand `{{id}}`, `{{noun}}`, `{{label}}` (a `label` argument on the request, else the instance's `Label`, a list row's label, else its id) and `{{<arg>}}`. A request that addresses no instance of the verb's noun (no target, none on the focus path: `worktree remove /src/a` on the command line) reads the request instead of naming `app`: `{{noun}}` is the verb's noun, `{{id}}`, `{{target}}` and `{{label}}` the argument of that name, else the first argument in parameter order (`Operation.ParameterOrder`, positional first). A request without a target addresses the nearest instance of its operation's noun on the focus path (`row.delete` chosen in the palette while a cell is focused acts for the row, so its prompt names the row); a binding row's own request keeps the row rule (the level it matched at, else the focus). A verb guarded off where it would act is refused (`<noun.verb> is not applicable now`) from every caller, and its rows drop out of `bindings list` and the hints. `confirm.set {operation, prompt}` adds or removes a prompt at run time (an empty prompt removes it; the full-project example sets one from `actions.json`), and a request with `"confirmed": true` skips the prompt for scripts.
+
+#### Verb checks and the quit hook
+
+A verb can carry checks an application hangs on it (`verb_checks.go`): each runs before the verb from every path (keys, the palette, the CLI, the API), after its guard and before its `Confirm` prompt, and returns a `Verdict`: `Allow()`, `AskFirst(prompt)` (the confirm modal asks; `y` runs the request marked Confirmed, so no check or prompt asks again) or `Refuse(reason)` (the request fails with the reason, the status line shows it). Checks run in the order added; the first that does not allow decides. A request with `"confirmed": true` or `force: true` skips them.
+
+```go
+r.BeforeQuit("unsaved", func(r *ochazuke.Runtime, c ochazuke.Context) ochazuke.Verdict {
+	if app.unsaved() {
+		return ochazuke.AskFirst("Quit without writing? The edits no write saved are lost.")
+	}
+	return ochazuke.Allow()
+})
+```
+
+`BeforeQuit(name, check)` is `AddVerbCheck("app.quit", VerbCheck{Name, Check})`; `app.quit` declares `force` (boolean), so a row `{"key": "Q", "action": "app.quit", "args": {"force": true}}` quits without asking, as vim's `:q!`. `RemoveVerbCheck(key, name)` takes one off, `VerbChecks(key)` names them. A check of the same name replaces the earlier one in place.
 
 Local checks:
 

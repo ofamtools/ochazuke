@@ -214,6 +214,17 @@ tiers above them. When the two disagree, fix one in the same commit.
   background plus faint) and the terminal cursor is hidden beneath a
   modal, but the page's highlights (selected row, grid cursor cell) remain
   visible. Story: needed (`modals/backdrop-keeps-highlights`).
+- **R4.7** A verb check asks through the same confirm modal (R4.5): a
+  check on a verb (`AddVerbCheck`; the quit hook `BeforeQuit` on
+  `app.quit`) that answers `AskFirst` opens it instead of running the
+  verb, `y` runs it with no second question, `n`/`esc` leave it unrun; a
+  `Refuse` fails the request with its reason on the status line. The
+  check runs from every path (a key, the capture row's `ctrl+c`, the
+  palette, the CLI), and `force: true` skips it (`app.quit {force: true}`,
+  vim's `:q!`). An app never wraps the framework's verb to ask. Stories:
+  `quit/asks-before-quit.json`, `quit/clean-quits.json`,
+  `quit/force-skips.json`, `quit/refuse.json`; tests in
+  `verb_checks_test.go`.
 
 ### R5. Lists and selection
 

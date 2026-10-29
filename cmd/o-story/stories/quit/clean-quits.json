@@ -1,0 +1,12 @@
+{
+  "name": "quit: with nothing to lose the quit check allows and app.quit quits at once",
+  "area": "quit",
+  "page": {
+    "trees": [
+      {"id": "t", "editable": true, "nodes": [{"id": "a", "label": "alpha"}]}
+    ]
+  },
+  "checks": [{"name": "unsaved", "ask": "Quit without writing?", "dirty": true}],
+  "script": ["ctrl+c"],
+  "expect": [{"quit": true, "modal": ""}]
+}

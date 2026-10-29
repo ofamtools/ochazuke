@@ -145,6 +145,9 @@ func Check(ss *Session, e Expect) []string {
 	if e.Mode != "" && r.Mode.Name != e.Mode {
 		failf("mode %q, want %q", r.Mode.Name, e.Mode)
 	}
+	if e.Quit != nil && r.Quit != *e.Quit {
+		failf("quit %v, want %v", r.Quit, *e.Quit)
+	}
 	if e.Modal != nil && r.TopModal() != *e.Modal {
 		failf("top modal %q, want %q", r.TopModal(), *e.Modal)
 	}
