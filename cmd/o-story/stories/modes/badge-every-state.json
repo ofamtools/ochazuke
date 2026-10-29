@@ -1,0 +1,140 @@
+{
+  "name": "mode badge: on the title row in every state, changed in the frame the mode changes: a prefix, a confirm, help, the palette, insert, visual, an operator (R2.10)",
+  "area": "modes",
+  "width": 80,
+  "height": 12,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "inputs": [
+      {
+        "id": "name",
+        "label": "name",
+        "text": "hello"
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": "g x",
+        "do": "demo.notify"
+      }
+    ]
+  },
+  "script": [
+    "g",
+    "esc",
+    "x",
+    "esc",
+    "?",
+    "esc",
+    ":",
+    "esc",
+    "j",
+    "i",
+    "esc",
+    "v",
+    "esc",
+    "V",
+    "esc",
+    "d",
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "mode": "normal g",
+      "badge": "NORMAL G"
+    },
+    {
+      "after": 2,
+      "mode": "normal",
+      "badge": "NORMAL"
+    },
+    {
+      "after": 3,
+      "modal": "confirm",
+      "badge": "NORMAL"
+    },
+    {
+      "after": 4,
+      "modal": "",
+      "badge": "NORMAL"
+    },
+    {
+      "after": 5,
+      "modal": "bindings-help",
+      "badge": "NORMAL"
+    },
+    {
+      "after": 6,
+      "modal": "",
+      "badge": "NORMAL"
+    },
+    {
+      "after": 7,
+      "modal": "palette",
+      "mode": "insert",
+      "badge": "INSERT"
+    },
+    {
+      "after": 8,
+      "modal": "",
+      "mode": "normal",
+      "badge": "NORMAL"
+    },
+    {
+      "after": 9,
+      "focus": "name",
+      "mode": "normal",
+      "badge": "NORMAL"
+    },
+    {
+      "after": 10,
+      "mode": "insert",
+      "badge": "INSERT"
+    },
+    {
+      "after": 11,
+      "mode": "normal",
+      "badge": "NORMAL"
+    },
+    {
+      "after": 12,
+      "mode": "visual",
+      "badge": "VISUAL"
+    },
+    {
+      "after": 13,
+      "mode": "normal",
+      "badge": "NORMAL",
+      "focus": "name"
+    },
+    {
+      "after": 14,
+      "mode": "visual-line",
+      "badge": "VISUAL-LINE"
+    },
+    {
+      "after": 15,
+      "mode": "normal",
+      "badge": "NORMAL",
+      "focus": "name"
+    },
+    {
+      "after": 16,
+      "mode": "operator_pending",
+      "badge": "OPERATOR PENDING",
+      "focus": "name"
+    },
+    {
+      "mode": "normal",
+      "badge": "NORMAL",
+      "focus": "name"
+    }
+  ]
+}

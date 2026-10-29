@@ -573,7 +573,12 @@ type Expect struct {
 	HighlightedText string `json:"highlightedText,omitempty"`
 	// Cell is the text of a table's current cell (drawn reverse and
 	// underlined inside its row, dimmed or not); "" for none.
-	Cell     *string  `json:"cell,omitempty"`
+	Cell *string `json:"cell,omitempty"`
+	// Badge is the mode badge at the right of the title row (full
+	// chrome): its whole text, padded by a cell on each side, followed by
+	// the end of the row or a " · " (the focus display; a recording's
+	// "· REC @q" too, so expect the whole badge while recording) (R2.10).
+	Badge    string   `json:"badge,omitempty"`
 	Contains []string `json:"contains,omitempty"`
 	Lacks    []string `json:"lacks,omitempty"`
 	Order    []string `json:"order,omitempty"` // substrings that appear on screen in this order

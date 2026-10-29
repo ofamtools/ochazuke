@@ -366,12 +366,12 @@ Root package `ochazuke` is flat: 106 source files, 113 test files. Each entry li
 
 ### model.go
 
-- lines: 1155
+- lines: 1163
 - purpose: ModalView renders one modal without replacing or inspecting its parent page.
 - types: ModalView, ModalBody (iface), Model, HelpRow
 - methods: Model(25), Runtime(3), modelSink(4)
 - funcs: NewModel, BindingHints, HintBindings, BindingHelp, NounHelp, PlaceHelp, SplitKeys, InputView, InputBlock
-- leans on: runtime.go(121), block.go(32), noun.go(30), theme.go(24)
+- leans on: runtime.go(122), block.go(32), noun.go(30), theme.go(24)
 
 ### motion_scroll.go
 
@@ -1341,7 +1341,7 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/run.go
 
-- lines: 568
+- lines: 593
 - purpose: Golden is a frame as a golden file holds it: each row stripped of escapes behind a gutter that reads "R|" when the row has full-strength reverse video, "r|" ...
 - types: Library, Result, RunOptions
 - methods: Library(2), Result(1)
@@ -1350,7 +1350,7 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/story.go
 
-- lines: 773
+- lines: 778
 - purpose: Story is one scenario file.
 - types: Story, Page, TextSpec, CheckSpec, ChooserSpec, ChooserSourceSpec, ChooserRowSpec, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, MarkdownSpec, TimelineSpec, CardSpec, SectionSpec, StepSpec, CommandsSpec, CatalogSpec, InputSpec, CompletionSpec, TermSpec, HintsSpec, MarkSpec, JobSpec, SegmentSpec, BindSpec, StoreSpec, VerbSpec, Event, Expect, Expects
 - methods: Event(3), Expects(2), Story(5)

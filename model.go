@@ -397,10 +397,18 @@ func (m *Model) pageTitles() ([]string, int) {
 	return titles, active
 }
 
-// modeBadge labels the current mode, with the recording register while a
-// macro is being recorded.
+// modeBadge labels the current mode (R2.10): the mode's name, the key
+// sequence a pending mode holds when its name does not already end with
+// it (a prefix mode, "normal g", carries it in its name; a named pending
+// mode entered with a prefix, such as the terminal leader's
+// leader_pending, does not), and the recording register while a macro is
+// being recorded.
 func (m *Model) modeBadge() string {
-	label := strings.ToUpper(modeLabelOf(m.Runtime.Mode.Name))
+	name := m.Runtime.Mode.Name
+	if prefix := m.Runtime.Mode.Payload.Prefix; prefix != "" && name != prefix && !strings.HasSuffix(name, " "+prefix) {
+		name += " " + prefix
+	}
+	label := strings.ToUpper(modeLabelOf(name))
 	if recording := m.Runtime.Registers().Macro.Recording; recording != "" {
 		label += " · REC @" + recording
 	}

@@ -1,0 +1,42 @@
+{
+  "name": "mode badge: leader_pending shows the leader key while it waits, then the base mode (R2.10)",
+  "area": "modes",
+  "width": 80,
+  "height": 12,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ],
+    "terminal": {
+      "fake": true,
+      "attach": "a1"
+    }
+  },
+  "script": [
+    "enter",
+    {
+      "tick": "terminal"
+    },
+    "ctrl+a",
+    "d"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "mode": "terminal",
+      "badge": "TERMINAL"
+    },
+    {
+      "after": 3,
+      "mode": "leader_pending",
+      "badge": "LEADER PENDING CTRL+A"
+    },
+    {
+      "mode": "normal",
+      "badge": "NORMAL"
+    }
+  ]
+}

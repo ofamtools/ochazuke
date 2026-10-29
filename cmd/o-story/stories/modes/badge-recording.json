@@ -1,0 +1,63 @@
+{
+  "name": "mode badge: a recording shows its register beside the mode and drops it when q stops (R2.10)",
+  "area": "modes",
+  "width": 60,
+  "height": 8,
+  "config": {
+    "bindings.json": [
+      {
+        "noun": "demo",
+        "mode": "normal",
+        "keys": "q",
+        "request": null
+      }
+    ]
+  },
+  "page": {
+    "inputs": [
+      {
+        "id": "name",
+        "label": "name",
+        "text": "hello"
+      }
+    ],
+    "focus": "name"
+  },
+  "script": [
+    "q",
+    "a",
+    "i",
+    "esc",
+    "q"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "mode": "macro_pending",
+      "badge": "MACRO PENDING",
+      "focus": "name"
+    },
+    {
+      "after": 2,
+      "mode": "normal",
+      "badge": "NORMAL · REC @a"
+    },
+    {
+      "after": 3,
+      "mode": "insert",
+      "badge": "INSERT · REC @a"
+    },
+    {
+      "after": 4,
+      "mode": "normal",
+      "badge": "NORMAL · REC @a"
+    },
+    {
+      "mode": "normal",
+      "badge": "NORMAL",
+      "lacks": [
+        "REC @a"
+      ]
+    }
+  ]
+}

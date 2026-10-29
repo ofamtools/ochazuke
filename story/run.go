@@ -125,6 +125,27 @@ func cellText(row string) string {
 	return " "
 }
 
+// badgeShows reports whether the title row (the screen's first row) ends
+// with the badge text want, padded by a cell on each side, or holds it
+// right before the focus display's separator.
+func badgeShows(screen, want string) bool {
+	title, _, _ := strings.Cut(screen, "\n")
+	title = strings.TrimRight(title, " ")
+	if strings.HasSuffix(title, " "+want) {
+		return true
+	}
+	for rest := title; ; {
+		i := strings.Index(rest, " "+want+" ")
+		if i < 0 {
+			return false
+		}
+		rest = rest[i+len(want)+2:]
+		if strings.HasPrefix(rest, "· ") {
+			return true
+		}
+	}
+}
+
 func btoi(b bool) int {
 	if b {
 		return 1
@@ -202,6 +223,10 @@ func Check(ss *Session, e Expect) []string {
 		if got != *e.Cell {
 			failf("current cell %q, want %q", got, *e.Cell)
 		}
+	}
+	if e.Badge != "" && !badgeShows(screen, e.Badge) {
+		title, _, _ := strings.Cut(screen, "\n")
+		failf("badge %q not on the title row %q", e.Badge, strings.TrimSpace(title))
 	}
 	for _, s := range e.Contains {
 		if !strings.Contains(screen, s) {

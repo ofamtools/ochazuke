@@ -118,6 +118,21 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R2.9** Editor rows answer only when an input is on the focus path; a list
   row or page focus ends at `app`. Counts, registers and macros are `app`
   rows and still answer. Story: needed (`modes/editor-rows-need-input`).
+- **R2.10** The current mode is always visible: the mode badge at the right
+  of the header's title row is on screen in every state (normal, insert,
+  visual, a pending or leader mode, under a modal, while the palette is
+  open, in an input) and changes in the same frame as the mode. A pending
+  mode shows the key sequence it holds while it waits (`NORMAL G`,
+  `LEADER PENDING CTRL+A`), and a recording adds its register
+  (`NORMAL · REC @a`). The badge names the mode for people: the mode's
+  name with `_` read as a space, never a raw payload or an internal id; a
+  name that reads badly is renamed in the data that defines the mode, not
+  special-cased in the badge. No setting hides the badge; only a page
+  drawn without chrome (`chrome: none` stories, an embedded page body) has
+  no header. Reference: Vim's `showmode` and `showcmd` (P2). Story:
+  `modes/badge-every-state.json`, `modes/badge-leader-prefix.json`,
+  `modes/badge-recording.json` (the story `badge` expectation reads the
+  title row).
 
 ### R3. Focus and motion
 
