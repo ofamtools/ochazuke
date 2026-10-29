@@ -1,0 +1,96 @@
+{
+  "name": "visual.after-action keep: V j z runs the row verb on both rows and the selection stays in visual-line, so z runs on them again; esc ends it",
+  "area": "tables",
+  "width": 60,
+  "height": 10,
+  "chrome": "none",
+  "settings": [
+    {
+      "name": "visual.after-action",
+      "type": "string",
+      "default": "keep",
+      "enum": [
+        "end",
+        "keep"
+      ]
+    }
+  ],
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "items": [
+          {
+            "id": "r1",
+            "label": "row 1"
+          },
+          {
+            "id": "r2",
+            "label": "row 2"
+          },
+          {
+            "id": "r3",
+            "label": "row 3"
+          },
+          {
+            "id": "r4",
+            "label": "row 4"
+          }
+        ],
+        "selected": 0
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.zap",
+        "row": true
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "mode": "visual-line",
+        "keys": "z",
+        "do": "demo.zap"
+      }
+    ]
+  },
+  "script": [
+    "V",
+    "j",
+    "z",
+    "z",
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "mode": "visual-line",
+      "contains": [
+        "* row 1",
+        "* row 2"
+      ],
+      "writes": [
+        "demo.zap row=r1",
+        "demo.zap row=r2"
+      ]
+    },
+    {
+      "after": 4,
+      "mode": "visual-line",
+      "writes": [
+        "demo.zap row=r1",
+        "demo.zap row=r2",
+        "demo.zap row=r1",
+        "demo.zap row=r2"
+      ]
+    },
+    {
+      "mode": "normal",
+      "lacks": [
+        "*"
+      ]
+    }
+  ]
+}

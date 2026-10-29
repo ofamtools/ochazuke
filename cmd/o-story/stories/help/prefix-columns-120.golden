@@ -52,6 +52,11 @@ R|            │   q             app.quit                                    Ex
  |            │   space         list.mark                                   Toggle the mark on a row (the    │
  |            │                                                             selected row by default) for     │
  |            │                                                             fan-out verbs                    │
+ |            │   V             list.visual                                 Start a visual row selection at  │
+ |            │                                                             the selected row (V, in visual-  │
+ |            │                                                             line), or end it (V again, esc): │
+ |            │                                                             j/k extend it; a key then acts   │
+ |            │                                                             on every selected row            │
  |            │ app                                                                                          │
  |            │   ctrl+c        app.quit                                    Exit the application             │
  |            │   "             mode.enter          {"mode":"register_pen…  Pick the register the next yank, │
@@ -68,12 +73,7 @@ R|            │   q             app.quit                                    Ex
  |            │   ctrl+y        yank-history.open                           Select a previous application    │
  |            │                                                             yank without inserting it        │
  |            │   ?             bindings.help                               Open the keys the focus answers  │
- |            │                                                             to, with the operation each runs │
- |            │                                                             and its description              │
- |            │   '             page.pick                                   Choose a page, most recently     │
- |            │                                                             visited first and the current    │
- |            │                                                             one last: type to filter, enter  │
- |            │ 1–31 / 54                                                                                    │
+ |            │ 1–31 / 55                                                                                    │
  |            │ space list.mark · S view · esc modal.pop · : palette.open · ? bindings.help · / filter       │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |

@@ -815,7 +815,7 @@ func (m *Model) cursor(block Block) *tea.Cursor {
 	case mode == "insert":
 		cursor.Shape = tea.CursorBar
 		cursor.Blink = true
-	case isVisual(mode):
+	case editorShape(m.Runtime, mode) != "":
 		cursor.Shape = tea.CursorUnderline
 	default:
 		cursor.Shape = tea.CursorBlock
@@ -1030,7 +1030,7 @@ func InputBlock(in *Input, width, height int) Block {
 			cursorColumn += cellWidth(text)
 		}
 	}
-	if in.Mode == "visual-block" && (cursor == len(in.Text) || in.Text[cursor] == '\n') {
+	if in.shape() == SelectionBlock && (cursor == len(in.Text) || in.Text[cursor] == '\n') {
 		cursorColumn = max(cursorColumn, in.goalColumn)
 	}
 	start := max(0, cursorRow-height+1)
@@ -1055,13 +1055,13 @@ func InputBlock(in *Input, width, height int) Block {
 		column += cells
 	}
 	lo, hi := in.selectionRange()
-	painted := isVisual(in.Mode)
+	painted := in.shape() != ""
 	// An open select range (SelectText) is drawn as a visual selection.
 	if start, end, ok := in.SelectedText(); ok {
 		lo, hi, painted = start, end, true
 	}
 	top, bottom, left, right := 0, -1, 0, 0
-	block := in.Mode == "visual-block"
+	block := in.shape() == SelectionBlock
 	if block {
 		top, bottom, left, right = in.blockBounds()
 	}

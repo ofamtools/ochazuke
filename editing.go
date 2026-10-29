@@ -19,7 +19,7 @@ func (in *Input) lineBounds(cursor int) (int, int) {
 
 func (in *Input) clampCursor() {
 	in.Cursor = max(0, min(in.Cursor, len(in.Text)))
-	if in.Mode == "normal" || isVisual(in.Mode) {
+	if in.Mode == "normal" || in.shape() != "" {
 		start, end := in.lineBounds(in.Cursor)
 		if end > start && in.Cursor == end {
 			in.Cursor--
@@ -140,13 +140,13 @@ func (in *Input) move(motion string, steps, line int) error {
 	switch motion {
 	case "left":
 		lower := 0
-		if in.Mode == "normal" || isVisual(in.Mode) {
+		if in.Mode == "normal" || in.shape() != "" {
 			lower = start
 		}
 		in.Cursor = max(lower, in.Cursor-steps)
 	case "right":
 		upper := len(in.Text)
-		if in.Mode == "normal" || isVisual(in.Mode) {
+		if in.Mode == "normal" || in.shape() != "" {
 			upper = max(start, end-1)
 		}
 		in.Cursor = min(upper, in.Cursor+steps)
@@ -168,7 +168,7 @@ func (in *Input) move(motion string, steps, line int) error {
 			}
 		}
 		limit := end
-		if in.Mode == "normal" || isVisual(in.Mode) {
+		if in.Mode == "normal" || in.shape() != "" {
 			limit = max(start, end-1)
 		}
 		in.Cursor = start + runeOffsetAtColumn(in.Text[start:end], in.goalColumn, limit-start)

@@ -28,9 +28,15 @@ func Register(r *ochazuke.Runtime) {
 }
 
 func register(r *ochazuke.Runtime) {
-	for _, shape := range []string{ShapeBlock, ShapeRow, ShapeColumn} {
-		if !r.Modes[shape] {
-			_ = r.DefineMode(shape, false)
+	// Each shape is a selection mode (its shape a mode property the
+	// framework reads, Runtime.SelectionShape); visual-block is the
+	// editor's block too.
+	for mode, shape := range map[string]string{ShapeBlock: ochazuke.SelectionBlock, ShapeRow: "row", ShapeColumn: "column"} {
+		if !r.Modes[mode] {
+			_ = r.DefineMode(mode, false)
+		}
+		if r.SelectionShape(mode) == "" {
+			_ = r.DefineSelection(mode, shape)
 		}
 	}
 	id := map[string]ochazuke.Parameter{"id": {Type: "string", Description: "Grid instance (defaults to the one under the focus)"}}

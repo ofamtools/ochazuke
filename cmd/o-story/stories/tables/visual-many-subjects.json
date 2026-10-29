@@ -76,13 +76,13 @@
     "bind": [
       {
         "noun": "demo",
-        "mode": "normal",
+        "mode": "visual-line",
         "keys": "z",
         "do": "demo.zap"
       },
       {
         "noun": "demo",
-        "mode": "normal",
+        "mode": "visual-line",
         "keys": "t",
         "do": "demo.tag"
       }

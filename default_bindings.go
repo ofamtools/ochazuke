@@ -7,6 +7,7 @@ import (
 	"maps"
 	"path"
 	"slices"
+	"sync"
 )
 
 // frameworkBindings are the framework's own default rows: one file per
@@ -27,6 +28,27 @@ var frameworkBindingFiles = []string{
 	"help.json", "macros.json", "confirm.json",
 	"terminal.json", "focus.json", "detail.json", "panes.json", "history.json", "modal.json",
 }
+
+// builtinSelections are the selection shapes the framework's editor file
+// declares (editor.json "modes"): what SelectionShape answers for an input
+// no runtime holds (NewInput alone, as in a unit test).
+var builtinSelections = sync.OnceValue(func() map[string]string {
+	data, err := frameworkBindings.ReadFile("bindings/editor.json")
+	if err != nil {
+		panic(err)
+	}
+	file, _, err := ParseBindings(data)
+	if err != nil {
+		panic(err)
+	}
+	out := map[string]string{}
+	for name, m := range file.Modes {
+		if m.Selection != "" {
+			out[name] = m.Selection
+		}
+	}
+	return out
+})
 
 // FrameworkBindingsSource is the source prefix of the framework's embedded
 // files in bindings defaults ("ochazuke/bindings/list.json").
@@ -74,6 +96,9 @@ func (r *Runtime) LoadDefaultBindings(source string, data []byte) error {
 		}
 		if err == nil && m.Passthrough {
 			err = r.DefinePassthrough(name)
+		}
+		if err == nil && m.Selection != "" {
+			err = r.DefineSelection(name, m.Selection)
 		}
 		if err != nil {
 			return fmt.Errorf("%s: mode %q: %w", source, name, err)

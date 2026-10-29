@@ -414,13 +414,13 @@ Conformance:
 | normal | bindings-help | `bindings-help.mode` `bindings-help.noun` `bindings-help.place` `bindings-help.view` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
-| normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.forget-row` `demo.hide` `demo.launch` `demo.notify` `demo.open` `demo.ping` `demo.reload` `demo.ship` `demo.tag` `demo.zap` |
+| normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.forget-row` `demo.hide` `demo.launch` `demo.notify` `demo.open` `demo.ping` `demo.reload` `demo.ship` |
 | normal | detail | `detail.scroll` |
 | normal | focus | `focus.next` `focus.previous` `focus.set` |
 | normal | form | `form.choose` `form.leave` `form.next` `form.next-missing` `form.redo` `form.run` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
 | normal | input | `input.begin` `input.undo` |
-| normal | list | `list.column` `list.filter-clear` `list.filter-open` `list.goto` `list.move` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.toggle-pin-column` `list.visual` `list.yank` |
+| normal | list | `list.column` `list.filter-clear` `list.filter-open` `list.goto` `list.mark` `list.move` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.toggle-pin-column` `list.visual` `list.yank` |
 | normal | markdown | `markdown.delete` `markdown.fold` `markdown.insert` `markdown.next-block` `markdown.next-kind` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
 | normal | modal | `modal.pop` |
 | normal | mode | `mode.enter` |
@@ -440,6 +440,10 @@ Conformance:
 | terminal | demo | `demo.hints` |
 | terminal | mode | `mode.enter` |
 | terminal | terminal | `terminal.detach` `terminal.send` |
+| visual-line | confirm | `confirm.accept` |
+| visual-line | demo | `demo.check` `demo.nest` `demo.tag` `demo.zap` |
+| visual-line | list | `list.apply` `list.end-visual` `list.goto` `list.move` `list.yank` |
+| visual-line | mode | `mode.enter` |
 
 Mode edges (from → to via):
 
@@ -454,6 +458,7 @@ Mode edges (from → to via):
 - `count_pending` → `normal` via `pane.shrink`
 - `count_pending` → `normal` via `timeline.scroll`
 - `count_pending` → `normal` via `timeline.step`
+- `count_pending` → `visual-line` via `list.move`
 - `count_pending ]` → `normal` via `markdown.next-kind`
 - `count_pending g` → `normal` via `list.goto`
 - `hints` → `terminal` via `demo.hint`
@@ -509,6 +514,7 @@ Mode edges (from → to via):
 - `normal` → `normal z` via `row z`
 - `normal` → `terminal` via `command.run`
 - `normal` → `terminal` via `demo.open`
+- `normal` → `visual-line` via `list.visual`
 - `normal [` → `normal` via `markdown.previous-kind`
 - `normal [` → `normal` via `markdown.previous-same`
 - `normal ]` → `normal` via `markdown.next-kind`
@@ -531,5 +537,13 @@ Mode edges (from → to via):
 - `normal z` → `normal` via `timeline.fold`
 - `normal z` → `normal` via `timeline.open-all`
 - `terminal` → `leader_pending` via `mode.enter`
+- `visual-line` → `count_pending` via `mode.enter`
+- `visual-line` → `normal` via `confirm.accept`
+- `visual-line` → `normal` via `demo.check`
+- `visual-line` → `normal` via `demo.nest`
+- `visual-line` → `normal` via `demo.tag`
+- `visual-line` → `normal` via `demo.zap`
+- `visual-line` → `normal` via `list.end-visual`
+- `visual-line` → `normal` via `list.yank`
 
 <!-- verbs:end -->

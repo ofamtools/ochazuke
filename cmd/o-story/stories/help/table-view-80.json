@@ -42,7 +42,7 @@
         "list_filter"
       ],
       "lacks": [
-        "visual-line",
+        "visual-block",
         "‹"
       ]
     },
@@ -51,22 +51,19 @@
       "modal": "bindings-help",
       "contains": [
         "‹1",
-        "1›"
+        "visual-block   1›"
       ],
       "order": [
         "key",
         "list_filter",
         "visual"
-      ],
-      "lacks": [
-        "visual-line"
       ]
     },
     {
       "modal": "bindings-help",
       "contains": [
         "visual-line",
-        "ctrl+n",
+        "ctrl+b",
         "‹2"
       ],
       "lacks": [

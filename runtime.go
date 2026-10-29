@@ -233,7 +233,8 @@ type Runtime struct {
 	// it; "" and no error leaves the target unknown.
 	ResolveTarget    func(target string) (string, error)
 	pendingModes     map[string]bool
-	passthroughModes map[string]bool // base modes in which capture rows stand aside (DefinePassthrough)
+	passthroughModes map[string]bool   // base modes in which capture rows stand aside (DefinePassthrough)
+	selectionModes   map[string]string // base modes that hold a selection, and its shape (DefineSelection)
 	guards           map[string]Guard
 	predicates       map[string]PredicateFunc // named query predicates (query.go)
 	history          actionHistory            // the executed-request ring and the current source (history.go)
@@ -273,6 +274,7 @@ func newRuntime() *Runtime {
 		Modes: map[string]bool{"normal": true, "insert": true}, Operations: map[string]Operation{},
 		pendingModes:     map[string]bool{},
 		passthroughModes: map[string]bool{},
+		selectionModes:   map[string]string{},
 		defaults:         defaultSources{rows: map[string]string{}, extends: map[string]string{}},
 		guards:           builtinGuards(),
 		predicates:       builtinPredicates(),

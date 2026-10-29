@@ -1,0 +1,70 @@
+{
+  "name": "V j d in visual-line deletes the two selected rows in one step (one confirm for both), then visual ends",
+  "area": "tables",
+  "width": 60,
+  "height": 10,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "items": [
+          {
+            "id": "r1",
+            "label": "row 1"
+          },
+          {
+            "id": "r2",
+            "label": "row 2"
+          },
+          {
+            "id": "r3",
+            "label": "row 3"
+          },
+          {
+            "id": "r4",
+            "label": "row 4"
+          }
+        ],
+        "selected": 0
+      }
+    ]
+  },
+  "script": [
+    "V",
+    "j",
+    "d",
+    "y"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "mode": "visual-line",
+      "contains": [
+        "* row 1",
+        "* row 2",
+        "  row 3"
+      ]
+    },
+    {
+      "after": 3,
+      "modal": "confirm",
+      "contains": [
+        "2 rows"
+      ]
+    },
+    {
+      "mode": "normal",
+      "lacks": [
+        "row 1",
+        "row 2",
+        "*"
+      ],
+      "contains": [
+        "row 3",
+        "row 4"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "name": "in visual-line j, a count and k extend or shrink the selection, G takes it to the end; esc leaves visual-line and the marks it found come back",
+  "area": "tables",
+  "width": 60,
+  "height": 10,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "items": [
+          {
+            "id": "r1",
+            "label": "row 1"
+          },
+          {
+            "id": "r2",
+            "label": "row 2"
+          },
+          {
+            "id": "r3",
+            "label": "row 3"
+          },
+          {
+            "id": "r4",
+            "label": "row 4"
+          },
+          {
+            "id": "r5",
+            "label": "row 5"
+          },
+          {
+            "id": "r6",
+            "label": "row 6"
+          }
+        ],
+        "selected": 0
+      }
+    ]
+  },
+  "script": [
+    "space",
+    "j",
+    "V",
+    "2",
+    "j",
+    "k",
+    "G",
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 5,
+      "mode": "visual-line",
+      "contains": [
+        "* row 1",
+        "* row 2",
+        "* row 3",
+        "* row 4",
+        "  row 5"
+      ]
+    },
+    {
+      "after": 6,
+      "mode": "visual-line",
+      "contains": [
+        "* row 2",
+        "* row 3",
+        "  row 4"
+      ]
+    },
+    {
+      "after": 7,
+      "mode": "visual-line",
+      "contains": [
+        "* row 6"
+      ]
+    },
+    {
+      "mode": "normal",
+      "contains": [
+        "* row 1",
+        "  row 2",
+        "  row 6"
+      ]
+    }
+  ]
+}

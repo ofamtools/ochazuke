@@ -26,7 +26,7 @@ R|            │   q           app.quit                                    Exit
  |            │                                                           any table) into the registers;     │
  |            │                                                           over a visual selection (V) every  │
  |            │                                                           selected row's, one per line       │
- |            │   Y           list.yank ?         {"what":"row"}          when list-table · Copy the current │
+ |            │   Y           list.yank ?         {"what":"row"}          when list-yanks · Copy the current │
  |            │                                                           cell's text (what: cell, a cell-   │
  |            │                                                           mode table) or the row's cells     │
  |            │                                                           joined by tabs (what: row, any     │

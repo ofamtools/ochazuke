@@ -1,0 +1,56 @@
+{
+  "name": "V j y in visual-line yanks the two selected rows, one per line, then visual ends",
+  "area": "tables",
+  "width": 60,
+  "height": 10,
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "items": [
+          {
+            "id": "r1",
+            "label": "row 1"
+          },
+          {
+            "id": "r2",
+            "label": "row 2"
+          },
+          {
+            "id": "r3",
+            "label": "row 3"
+          },
+          {
+            "id": "r4",
+            "label": "row 4"
+          }
+        ],
+        "selected": 0
+      }
+    ]
+  },
+  "script": [
+    "V",
+    "j",
+    "y"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "mode": "visual-line",
+      "contains": [
+        "VISUAL-LINE"
+      ]
+    },
+    {
+      "mode": "normal",
+      "lacks": [
+        "*"
+      ],
+      "contains": [
+        "copied 2 rows"
+      ]
+    }
+  ]
+}

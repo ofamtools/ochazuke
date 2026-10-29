@@ -40,6 +40,22 @@ const (
 	// typing replaces it, a motion keeps it. Default on; off opens it with
 	// the cursor at the end.
 	RenameSelectSetting = "rename.select"
+	// VisualAfterActionSetting is what a key acting on a visual selection
+	// of list rows leaves: VisualAfterEnd (the default, as in Vim) or
+	// VisualAfterKeep.
+	VisualAfterActionSetting = "visual.after-action"
+	// VisualAfterEnd ends the selection and leaves visual-line.
+	VisualAfterEnd = "end"
+	// VisualAfterKeep keeps the selection over the rows still shown.
+	VisualAfterKeep = "keep"
+	// VisualListSetting is what V does on a list: VisualListMode (the
+	// default) enters visual-line; VisualListMarks selects in normal
+	// mode, the older selection.
+	VisualListSetting = "visual.list"
+	// VisualListMode enters visual-line.
+	VisualListMode = "mode"
+	// VisualListMarks selects in normal mode.
+	VisualListMarks = "marks"
 )
 
 // frameworkSettings are the rows of the embedded settings files, each

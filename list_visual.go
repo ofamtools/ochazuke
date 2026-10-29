@@ -7,19 +7,31 @@ import (
 	"slices"
 )
 
-// Visual row selection: V on a cell-mode table starts a selection of rows
-// anchored at the selected row. It is not a selection model of its own: it
-// is the list's marks. While it lasts the marks are the marks V found plus
-// every shown row between the anchor and the selected row, so j, k, counts,
-// gg, G and the page motions extend it (they clamp instead of spilling),
-// the * gutter draws it, and list.apply fans a verb out over it. The mode
-// stays normal, so the rows' own keys still answer and the footer keeps
-// them: a key whose row runs an application verb of the row's noun
-// (x row.delete) runs it for every selected row through list.apply
-// (runRow, visualApply), with one confirm for all of them when the verb has
-// one. Running it ends the selection; esc (or V again) ends it without
-// running anything. Either way the marks go back to the ones V found;
-// space during the selection toggles those.
+// Visual row selection: V on a list, a table or a tree with marks starts a
+// selection of rows anchored at the selected row. It is not a selection
+// model of its own: it is the list's marks. While it lasts the marks are
+// the marks V found plus every shown row between the anchor and the
+// selected row, so j, k, counts, gg, G and the page motions extend it
+// (they clamp instead of spilling), the * gutter draws it, and list.apply
+// fans a verb out over it.
+//
+// The selection is a mode: V enters visual-line, the line-shaped selection
+// mode (Runtime.SelectionShape; the editor's V is the same mode), and the
+// list follows the mode (ModeChanged): entering a line-shaped mode on one
+// of its rows starts the selection, leaving it there ends it, and a modal
+// opened over it (a confirm, the palette, a chooser) holds it until the
+// mode the modal restores resumes it. In visual-line a key reads the
+// visual-line tables: the list's own (d, y, esc, V; it extends normal, so
+// the motions and space still answer) and the row noun's, where an
+// application binds single keys for its row verbs (> nest, p put). A key
+// whose row runs an application verb of the row's noun runs it for every
+// selected row through list.apply (runRow, visualApply), with one confirm
+// for all of them when the verb has one; the selection then ends (the
+// mode back to normal) or stays, as the visual.after-action setting says.
+// esc (or V again) ends it without running anything. Ending puts the
+// marks back to the ones V found; space during the selection toggles
+// those. The visual.list setting's marks keeps the older selection in
+// normal mode (no mode, the row noun's normal keys act on it).
 
 // Visual reports whether a V selection is active on the list.
 func (l *List) Visual() bool { return l.visual }
@@ -53,6 +65,82 @@ func (l *List) EndVisual() {
 	}
 	l.visual, l.anchor = false, ""
 	l.marks, l.base = l.base, nil
+}
+
+// ModeChanged follows the global mode (ModeObserver): a line-shaped
+// selection mode entered with the focus on one of the list's rows starts
+// the selection there; leaving it with the focus on the list ends it. A
+// mode left for a modal opened over the selection holds it: the mode the
+// modal restores on close resumes it, anchor and marks as they were.
+func (l *List) ModeChanged(from, to string) {
+	line := l.r.SelectionShape(to) == SelectionLine
+	switch {
+	case line && !l.visual && l.Focused():
+		_ = l.StartVisual() // a list that cannot select (no rows, NoMarks) stays as it is
+	case !line && l.visual && (l.Focused() || l.r.TopModal() == ""):
+		l.EndVisual()
+	}
+}
+
+// endSelection ends l's visual selection and the line mode it is held in:
+// the mode goes back to normal while the focus is on the list, and a modal
+// opened during the selection (a chooser a verb asked) closes onto normal
+// rather than resuming it.
+func (r *Runtime) endSelection(l *List) {
+	l.EndVisual()
+	normal := func(m ModeState) bool { return r.SelectionShape(m.Name) != SelectionLine }
+	for _, id := range r.modals {
+		if inst := r.Instances[id]; inst != nil && l.holds(inst.Payload.Return) && !normal(inst.returnMode) {
+			inst.returnMode = ModeState{Name: "normal"}
+		}
+	}
+	if l.Focused() && !normal(ModeState{Name: r.BaseMode()}) {
+		_ = r.SetMode("normal")
+	}
+}
+
+// afterVisualAction is what a verb run over l's visual selection leaves:
+// the selection ended (visual.after-action end, the default, as in Vim)
+// or kept over the rows still shown (keep).
+func (r *Runtime) afterVisualAction(l *List) {
+	if r.visualKeeps() {
+		l.syncVisual()
+		return
+	}
+	r.endSelection(l)
+}
+
+// visualAsMode reports whether V enters visual-line (visual.list mode, the
+// default) rather than selecting in normal mode (marks).
+func (r *Runtime) visualAsMode() bool {
+	v, _ := r.settingText(VisualListSetting)
+	return v != VisualListMarks
+}
+
+// visualKeeps reports whether visual.after-action is keep.
+func (r *Runtime) visualKeeps() bool {
+	v, _ := r.settingText(VisualAfterActionSetting)
+	return v == VisualAfterKeep
+}
+
+// applicable is list.apply's availability: a row it would act on (the
+// marked rows shown, else the selected row) whose noun has the verb and
+// where the verb is available, judged as things are now, a visual
+// selection still on.
+func (l *List) applicable(verb string, args Arguments) bool {
+	rows := l.markedShown()
+	if len(rows) == 0 {
+		if selected, ok := l.Selected(); ok {
+			rows = []ListItem{selected}
+		}
+	}
+	for _, row := range rows {
+		q := Request{Verb: verb, Noun: row.Noun, Args: args}
+		if _, ok := l.r.Operations[q.Key()]; ok && l.r.Available(q, row.ID, l.r.Mode) {
+			return true
+		}
+	}
+	return false
 }
 
 // syncVisual redraws the selection into the marks: the marks V found plus
@@ -102,6 +190,7 @@ func (l *List) apply(c Context, a Arguments) (any, error) {
 		args = v
 	}
 	confirmed, _ := a["confirmed"].(bool)
+	visual := l.visual
 	if !confirmed {
 		for _, row := range rows {
 			if op, ok := r.Operations[Request{Verb: verb, Noun: row.Noun}.Key()]; ok && op.Confirm != "" {
@@ -117,7 +206,17 @@ func (l *List) apply(c Context, a Arguments) (any, error) {
 			}
 		}
 	}
-	l.EndVisual()
+	// The selection holds while the rows' requests run, so a verb
+	// available only over a selection is available; applying keeps them
+	// from being replaced by list.apply again (visualApply). It ends, or
+	// stays, after them (afterVisualAction).
+	l.applying = true
+	defer func() {
+		l.applying = false
+		if visual && l.visual {
+			r.afterVisualAction(l)
+		}
+	}()
 	// The rows by noun, in display order; each noun's request targets the
 	// selected row when it is one of them (a chooser or a confirm names
 	// it), else the noun's first row.
@@ -170,15 +269,16 @@ func (l *List) apply(c Context, a Arguments) (any, error) {
 // row in a list's visual selection (an application verb of the row's
 // noun, not a motion): the verb then acts on every selected row. focus is
 // the instance execute resolved q to. Anything else (a motion, a framework
-// verb, a row outside a selection) is not replaced.
+// verb: its noun is not the row's; a row outside a selection; a request
+// list.apply itself runs) is not replaced.
 func (r *Runtime) visualApply(q Request, op Operation, focus string) (Request, bool) {
 	owner := r.rows[focus]
-	if owner == "" || q.Noun == "ochazuke.list" || len(q.Subjects) > 0 {
+	if owner == "" || len(q.Subjects) > 0 {
 		return q, false
 	}
 	l := r.List(owner)
 	inst := r.Instances[focus]
-	if l == nil || !l.visual || inst == nil || inst.Noun != q.Noun || op.Kind != KindApplication || op.Motion {
+	if l == nil || !l.visual || l.applying || inst == nil || inst.Noun != q.Noun || op.Kind != KindApplication || op.Motion {
 		return q, false
 	}
 	args := Arguments{"id": l.id, "verb": q.Verb}
@@ -200,6 +300,33 @@ func registerListVisual(r *Runtime) {
 		l := r.focusedList(ev.Focus)
 		return l != nil && len(l.columns) > 0 && !l.noMarks // any table with marks, cell-mode or not
 	})
+	// list-selects: V's guard, any list, table or tree that takes marks.
+	r.DefineGuard("list-selects", func(r *Runtime, ev KeyEvent) bool {
+		l := r.focusedList(ev.Focus)
+		return l != nil && !l.noMarks
+	})
+	// list-applies: list.apply's, a row it would act on takes the verb
+	// (List.applicable), so d over rows without a delete passes the key on.
+	r.DefineGuard("list-applies", func(r *Runtime, ev KeyEvent) bool {
+		var l *List
+		if id := StringArg(ev.Args, "id", ""); id != "" {
+			l = r.List(id)
+		} else {
+			l = r.focusedList(ev.Focus)
+		}
+		if l == nil {
+			return false
+		}
+		var args Arguments
+		switch v := ev.Args["args"].(type) {
+		case Arguments:
+			args = v
+		case map[string]any:
+			args = v
+		}
+		return l.applicable(StringArg(ev.Args, "verb", ""), args)
+	})
+	r.Nouns["ochazuke.list"].Guards["apply"] = "list-applies"
 	visual := func(c Context, a Arguments) (any, error) {
 		var l *List
 		if id := StringArg(a, "id", ""); id != "" {
@@ -219,27 +346,37 @@ func registerListVisual(r *Runtime) {
 			on = !l.visual
 		}
 		if !on {
-			l.EndVisual()
+			r.endSelection(l)
 			return l.state(), nil
 		}
-		return l.state(), l.StartVisual()
+		if !l.visual {
+			if err := l.StartVisual(); err != nil {
+				return l.state(), err
+			}
+		}
+		if mode := r.SelectionMode(SelectionLine); r.visualAsMode() && mode != "" && l.Focused() && r.BaseMode() != mode {
+			if err := r.SetMode(mode); err != nil {
+				return l.state(), err
+			}
+		}
+		return l.state(), nil
 	}
 	// V and esc are bindings/list-modes.json: esc ends the selection
 	// before the filter's esc (after it in the file) is asked, only while
 	// one is active.
-	r.Nouns["ochazuke.list"].Guards["visual"] = "table-visual"
+	r.Nouns["ochazuke.list"].Guards["visual"] = "list-selects"
 	// esc's verb guard as well as its row guard: a row guarded off still
 	// takes its key in the listings, so the row guard alone would hide an
 	// outer esc's hint (a modal's esc modal.pop over a table) whenever no
 	// selection is on. The row guard keeps it apart from the filter's esc
 	// row (bound after this, unguarded), which would otherwise replace it.
 	r.Nouns["ochazuke.list"].Guards["end-visual"] = "list-visual"
-	r.Register(Operation{Verb: "end-visual", Noun: "ochazuke.list", Description: "End the visual row selection (esc): the marks go back to the ones it found", Parameters: map[string]Parameter{
+	r.Register(Operation{Verb: "end-visual", Noun: "ochazuke.list", Description: "End the visual row selection (esc), and visual-line with it: the marks go back to the ones it found", Parameters: map[string]Parameter{
 		"id": {Type: "string", Description: "The list (default: the focused one)"},
 	}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 		return visual(c, Arguments{"id": a["id"], "on": false})
 	}})
-	r.Register(Operation{Verb: "visual", Noun: "ochazuke.list", Description: "Start a visual row selection at the selected row (V), or end it (V again, esc): j/k extend it over the marks; a row's verb then runs for every selected row", Parameters: map[string]Parameter{
+	r.Register(Operation{Verb: "visual", Noun: "ochazuke.list", Description: "Start a visual row selection at the selected row (V, in visual-line), or end it (V again, esc): j/k extend it; a key then acts on every selected row", Parameters: map[string]Parameter{
 		"id": {Type: "string", Description: "The list (default: the focused one)"},
 		"on": {Type: "boolean", Description: "true starts, false ends; omit to toggle"},
 	}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {

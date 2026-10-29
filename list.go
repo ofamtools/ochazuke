@@ -70,6 +70,7 @@ type List struct {
 	visual      bool            // V: a visual row selection over the marks (list_visual.go)
 	anchor      string          // the row V started on
 	base        map[string]bool // the marks before V
+	applying    bool            // list.apply is running its rows' requests: they are not replaced again (visualApply)
 	part        string          // an instance under the list that holds its focus as a row does (a timeline's body, timeline.go)
 
 	// motion is a component's own j/k on the rows (a timeline's cards
@@ -664,7 +665,7 @@ func registerLists(r *Runtime) {
 			}
 			return l.state(), l.ToggleMark(id)
 		}},
-		{"apply", "Run <row noun>.verb for every marked row the filter shows (the selected row when none is), the rows its subjects: a verb that takes many runs once for all of them, any other once per row; rows whose noun lacks the verb are skipped and reported; a verb with a confirm asks once for all the rows; ends a visual selection (V)", map[string]Parameter{"id": {Type: "string"}, "verb": {Type: "string", Required: true}, "args": {Type: "object", Description: "Arguments every row's request carries"}, "confirmed": {Type: "boolean", Description: "The rows' confirm was answered (the confirm modal sets it)"}}, func(l *List, c Context, a Arguments) (any, error) {
+		{"apply", "Run <row noun>.verb for every marked row the filter shows (the selected row when none is), the rows its subjects: a verb that takes many runs once for all of them, any other once per row; rows whose noun lacks the verb are skipped and reported; a verb with a confirm asks once for all the rows; available when a row it would act on has the verb and the verb is available there (read while a visual selection still holds); over a visual selection (V) the selection then ends or stays as visual.after-action says", map[string]Parameter{"id": {Type: "string"}, "verb": {Type: "string", Required: true}, "args": {Type: "object", Description: "Arguments every row's request carries"}, "confirmed": {Type: "boolean", Description: "The rows' confirm was answered (the confirm modal sets it)"}}, func(l *List, c Context, a Arguments) (any, error) {
 			return l.apply(c, a)
 		}},
 	} {

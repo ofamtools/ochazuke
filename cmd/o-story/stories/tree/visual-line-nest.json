@@ -1,0 +1,73 @@
+{
+  "name": "outline: V j > runs the app row's own > (bound in visual-line) for both selected rows, then visual ends",
+  "area": "tree",
+  "width": 60,
+  "height": 10,
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "editable": true,
+        "nodes": [
+          {
+            "id": "a",
+            "label": "alpha",
+            "noun": "demo"
+          },
+          {
+            "id": "b",
+            "label": "beta",
+            "noun": "demo"
+          },
+          {
+            "id": "c",
+            "label": "gamma",
+            "noun": "demo"
+          }
+        ]
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.nest",
+        "row": true
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "mode": "visual-line",
+        "keys": ">",
+        "do": "demo.nest"
+      }
+    ]
+  },
+  "script": [
+    "V",
+    "j",
+    ">"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "mode": "visual-line",
+      "contains": [
+        "VISUAL-LINE",
+        "*   alpha",
+        "*   beta",
+        "    gamma",
+        "> demo.nest"
+      ]
+    },
+    {
+      "mode": "normal",
+      "lacks": [
+        "*"
+      ],
+      "writes": [
+        "demo.nest row=a",
+        "demo.nest row=b"
+      ]
+    }
+  ]
+}

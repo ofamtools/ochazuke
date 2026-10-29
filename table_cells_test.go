@@ -81,11 +81,12 @@ func TestCellMotionsMoveByColumnAndScrollItIntoView(t *testing.T) {
 
 // A plain list and a table without CellSelect (row-select, the default;
 // RowSelect is a deprecated no-op) keep the cell keys free for the levels
-// outside the list; a row table still answers Y and V, and its h and l
+// outside the list (V selects rows on any list); a row table still answers
+// Y and V, and its h and l
 // scroll its columns (TestRowTableHLScrollThenMoveTheFocus).
 func TestCellKeysAnswerOnlyOnACellModeTable(t *testing.T) {
 	r, _, _, _ := motionPage(t)
-	for _, key := range []string{"h", "l", "|", "y", "Y", "V"} {
+	for _, key := range []string{"h", "l", "|", "y", "Y"} {
 		if ok, _ := r.Dispatch(MacroKey{Key: key}); ok {
 			t.Fatalf("%s answered on a plain list", key)
 		}
@@ -212,7 +213,8 @@ func TestColumnWidthsResizeResetAndPersist(t *testing.T) {
 }
 
 // visualTable is cellTable whose rows answer x (row.zap, an application
-// verb) and c (row.check, with a confirm); calls collects the rows each ran on.
+// verb) and c (row.check, with a confirm), in normal and in visual-line;
+// calls collects the rows each ran on.
 func visualTable(t *testing.T) (*Runtime, *Model, *List, *[]string) {
 	t.Helper()
 	r, m, l := cellTable(t, 80, "")
@@ -220,7 +222,8 @@ func visualTable(t *testing.T) (*Runtime, *Model, *List, *[]string) {
 	r.Define("row").
 		Verb("zap", func(c Ctx) Result { calls = append(calls, "zap "+c.Instance.ID); return Done(nil) }, "zap a row").
 		Verb("check", func(c Ctx) Result { calls = append(calls, "check "+c.Instance.ID); return Done(nil) }, "check a row").Confirm("Check {{label}}?").
-		Mode("normal").Bind("x", Do("row.zap")).Bind("c", Do("row.check"))
+		Mode("normal").Bind("x", Do("row.zap")).Bind("c", Do("row.check")).
+		Mode("visual-line").Bind("x", Do("row.zap")).Bind("c", Do("row.check"))
 	return r, m, l, &calls
 }
 

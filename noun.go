@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"sort"
 	"strings"
@@ -1120,6 +1121,56 @@ func (r *Runtime) DefinePassthrough(name string) error {
 	}
 	r.passthroughModes[name] = true
 	return nil
+}
+
+// Selection shapes: a mode that holds a selection says which shape it
+// selects (DefineSelection, a bindings file's "modes" entry
+// {"selection": "line"}). Code asks the shape, never a mode's name: the
+// editor draws and edits by it, a list starts its row selection when a
+// line-shaped mode is entered on it (list_visual.go).
+const (
+	SelectionChar  = "char"  // characters from the anchor to the cursor (visual)
+	SelectionLine  = "line"  // whole lines or list rows (visual-line, V)
+	SelectionBlock = "block" // a rectangle (visual-block)
+)
+
+// DefineSelection marks a defined base mode as a selection mode of shape
+// (char, line, block, or a component's own shape such as the grid's row
+// and column); "" makes it an ordinary mode again.
+func (r *Runtime) DefineSelection(name, shape string) error {
+	if !r.Modes[name] {
+		return fmt.Errorf("unknown base mode %q", name)
+	}
+	if shape == "" {
+		delete(r.selectionModes, name)
+		return nil
+	}
+	r.selectionModes[name] = shape
+	return nil
+}
+
+// SelectionShape is the selection shape of mode, "" when the mode holds
+// no selection.
+func (r *Runtime) SelectionShape(mode string) string {
+	if r == nil {
+		return builtinSelections()[mode]
+	}
+	return r.selectionModes[mode]
+}
+
+// SelectionMode is the mode that selects shape ("" when none does); of
+// several, the first by name.
+func (r *Runtime) SelectionMode(shape string) string {
+	modes := r.selectionModes
+	if r == nil {
+		modes = builtinSelections()
+	}
+	for _, name := range slices.Sorted(maps.Keys(modes)) {
+		if modes[name] == shape {
+			return name
+		}
+	}
+	return ""
 }
 
 // Guard is a named condition: an action's availability (Available, the

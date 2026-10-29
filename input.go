@@ -125,7 +125,7 @@ func (in *Input) transition(mode string, stepBack bool) {
 	edited := in.groupNode == in.Head
 	in.endGroup()
 	in.storeMode(mode)
-	if isVisual(mode) && !isVisual(old) {
+	if editorShape(in.r, mode) != "" && editorShape(in.r, old) == "" {
 		in.Anchor = in.Cursor
 	}
 	in.resetKeys()
@@ -201,7 +201,7 @@ func (in *Input) Undo(steps int) error {
 	}
 	in.endGroup()
 	in.blockChange = nil
-	if isVisual(in.Mode) {
+	if in.shape() != "" {
 		in.storeMode("normal")
 	}
 	in.resetKeys()
@@ -228,7 +228,7 @@ func (in *Input) Redo(steps, branch int) error {
 	}
 	in.endGroup()
 	in.blockChange = nil
-	if isVisual(in.Mode) {
+	if in.shape() != "" {
 		in.storeMode("normal")
 	}
 	in.resetKeys()
@@ -392,7 +392,7 @@ func RegisterInputOperations(r *Runtime) {
 	r.Register(Operation{Verb: "cancel", Noun: "ochazuke.input", Description: "Cancel the pending count, operator, prefix or register of the focused instance; a visual selection returns to normal", Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		r.Registers().Active = ""
 		if in := r.Input(c.InputID); in != nil {
-			if isVisual(in.Mode) {
+			if in.shape() != "" {
 				in.SetMode("normal")
 			} else {
 				in.resetKeys()

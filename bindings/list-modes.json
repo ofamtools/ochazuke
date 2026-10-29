@@ -25,6 +25,12 @@
       {"key": "V", "action": "ochazuke.list.visual", "hidden": true},
       {"key": "esc", "action": "ochazuke.list.end-visual", "when": "list-visual"},
       {"key": "esc", "action": "ochazuke.list.filter-clear"}
+    ]},
+    {"context": "ochazuke.list/visual-line", "extends": "normal", "bindings": [
+      {"key": "esc", "action": "ochazuke.list.end-visual"},
+      {"key": "d", "action": "ochazuke.list.apply", "args": {"verb": "delete"}, "hint": "delete"},
+      {"key": "y", "action": "ochazuke.list.yank", "args": {"what": "row"}, "hint": "yank"},
+      {"key": "digit-0", "action": "ochazuke.mode.enter", "args": {"mode": "count_pending"}, "from": {"count": "digit"}, "hidden": true}
     ]}
   ]
 }

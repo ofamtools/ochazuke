@@ -7,30 +7,30 @@ r|  a1
  |            │ Keys · table                                                                                 │
  |            │ noun: list · place: page1 › demo · .verb is list.verb · (op) answered by app · op? guarded   │
  |            │ key         normal          list_filter      visual          visual-block     visual-line    │
- |            │ $           .column?                                                                         │
-R|            │ 0           .column?                                                                         │
- |            │ G           .goto                                                                            │
- |            │ V           .visual?                                                                         │
- |            │ Y           .yank?                                                                           │
- |            │ ^           .column?                                                                         │
+ |            │ $           .column?                                                          .column?       │
+R|            │ 0           .column?                                                          .column?       │
+ |            │ G           .goto                                                             .goto          │
+ |            │ V           .visual?                                                          .visual?       │
+ |            │ Y           .yank?                                                            .yank?         │
+ |            │ ^           .column?                                                          .column?       │
  |            │ backspace                   .filter-keep?                                                    │
- |            │ ctrl+b      .scroll                                                                          │
- |            │ ctrl+d      .scroll                                                                          │
- |            │ ctrl+f      .scroll                                                                          │
+ |            │ ctrl+b      .scroll                                                           .scroll        │
+ |            │ ctrl+d      .scroll                                                           .scroll        │
+ |            │ ctrl+f      .scroll                                                           .scroll        │
  |            │ ctrl+h                      .filter-keep?                                                    │
  |            │ ctrl+n                      .move                                                            │
  |            │ ctrl+p                      .move                                                            │
- |            │ ctrl+u      .scroll         .filter                                                          │
- |            │ down        .move           .move                                                            │
- |            │ end         .column?                                                                         │
+ |            │ ctrl+u      .scroll         .filter                                           .scroll        │
+ |            │ d                                                                             .apply?        │
+ |            │ down        .move           .move                                             .move          │
+ |            │ end         .column?                                                          .column?       │
  |            │ enter       demo.open       .filter-choose?                                                  │
- |            │ esc         .end-visual?    .filter-clear?                                                   │
- |            │ g c         .choose-colum…                                                                   │
- |            │ g g         .goto                                                                            │
- |            │ 1–20 / 69                                                                                    │
+ |            │ 1–18 / 70                                                                                    │
  |            │ ──────────────────────────────────────────────────────────────────────────────────────────── │
- |            │ normal  list.column {"to":"first"} when no-count · list                                      │
- |            │         then list.scroll-columns {"to":"first"} when row-table-no-count · list               │
+ |            │ normal       list.column {"to":"first"} when no-count · list                                 │
+ |            │              then list.scroll-columns {"to":"first"} when row-table-no-count · list          │
+ |            │ visual-line  list.column {"to":"first"} when no-count · list                                 │
+ |            │              then list.scroll-columns {"to":"first"} when row-table-no-count · list          │
  |            │ space list.mark · S view · n noun · p place · esc modal.pop · : palette.open · ? bindings.h… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |

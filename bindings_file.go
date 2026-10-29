@@ -77,6 +77,9 @@ const BindingsHeader = `// ochazuke bindings (JSONC): groups by "noun/mode" cont
 type ModeSpec struct {
 	Pending     bool `json:"pending,omitempty"`
 	Passthrough bool `json:"passthrough,omitempty"`
+	// Selection is the selection shape the mode holds (char, line, block;
+	// DefineSelection), "" for a mode that selects nothing.
+	Selection string `json:"selection,omitempty"`
 }
 
 // BindingGroup is one table of a grouped bindings file: a noun's or an
@@ -494,6 +497,11 @@ func (r *Runtime) BindingsDoc() BindingsDoc {
 	for name := range r.passthroughModes {
 		m := doc.Modes[name]
 		m.Passthrough = true
+		doc.Modes[name] = m
+	}
+	for name, shape := range r.selectionModes {
+		m := doc.Modes[name]
+		m.Selection = shape
 		doc.Modes[name] = m
 	}
 	var rows []Binding

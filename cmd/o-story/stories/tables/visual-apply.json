@@ -1,5 +1,5 @@
 {
-  "name": "V selects rows: j extends it over the marks, x runs the row's verb for every selected row behind one confirm",
+  "name": "V selects rows in visual-line: j extends it over the marks, d runs the row's delete for every selected row behind one confirm, and visual ends",
   "width": 60,
   "height": 8,
   "chrome": "none",
@@ -84,7 +84,7 @@
     "V",
     "j",
     "j",
-    "x",
+    "d",
     "y"
   ],
   "expect": [
@@ -96,7 +96,7 @@
         "* main/shell",
         "  9332c352/"
       ],
-      "mode": "normal"
+      "mode": "visual-line"
     },
     {
       "after": 4,
@@ -112,7 +112,8 @@
       "contains": [
         "9332c352/"
       ],
-      "focus": "t4"
+      "focus": "t4",
+      "mode": "normal"
     }
   ],
   "area": "tables"

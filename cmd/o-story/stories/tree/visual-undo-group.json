@@ -52,7 +52,7 @@
     "bind": [
       {
         "noun": "demo",
-        "mode": "normal",
+        "mode": "visual-line",
         "keys": "c",
         "do": "demo.check"
       }

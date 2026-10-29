@@ -17,6 +17,10 @@
       {"key": "ctrl+k", "action": "ochazuke.page.previous"},
       {"key": "/", "action": "ochazuke.list.filter-open", "hint": "filter", "when": "list-filterable"}
     ]},
+    {"context": "app/visual-line", "fallback": true, "bindings": [
+      {"key": ":", "action": "ochazuke.palette.open"},
+      {"key": "?", "action": "ochazuke.bindings.help"}
+    ]},
     {"context": "ochazuke.editor/insert", "fallback": true, "bindings": [
       {"key": "ctrl+\\", "action": "ochazuke.bindings.help", "hidden": true}
     ]}

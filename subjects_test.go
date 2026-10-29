@@ -52,7 +52,7 @@ func subjectsTable(t *testing.T) (*Runtime, *Model, *List, *[]string, func() []U
 			}
 			return Done(nil)
 		}, "ask about one row").
-		Mode("normal").Bind("f", Do("row.flaky")).Bind("t", Do("row.tag")).Bind("a", Do("row.ask"))
+		Mode("visual-line").Bind("f", Do("row.flaky")).Bind("t", Do("row.tag")).Bind("a", Do("row.ask"))
 	op := r.Operations["row.tag"]
 	op.Parameters = map[string]Parameter{"color": {Type: "string"}}
 	r.Operations["row.tag"] = op
@@ -168,8 +168,9 @@ func TestVisualYankCopiesEverySelectedRow(t *testing.T) {
 		t.Fatalf("V j j Y: %+v visual %v", y, l.Visual())
 	}
 	motionKeys(t, r, m, "V j y")
-	// The cursor stayed on r3 after Y: V j selects r3 and r4; y the cell.
-	if y, _ := r.ReadYank(""); y.Text != "r3\nr4\n" || l.Visual() {
-		t.Fatalf("V j y: %q", y.Text)
+	// The cursor stayed on r3 after Y: V j selects r3 and r4; y in
+	// visual-line yanks the rows, as Y does.
+	if y, _ := r.ReadYank(""); y.Shape != "line" || !strings.HasPrefix(y.Text, "r3\t") || !strings.Contains(y.Text, "\nr4\t") || l.Visual() || r.Mode.Name != "normal" {
+		t.Fatalf("V j y: %q visual %v mode %s", y.Text, l.Visual(), r.Mode.Name)
 	}
 }

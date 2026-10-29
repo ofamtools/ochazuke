@@ -9,9 +9,20 @@ import (
 	"github.com/rivo/uniseg"
 )
 
-func isVisual(mode string) bool {
-	return mode == "visual" || mode == "visual-line" || mode == "visual-block"
+// editorShape is the selection shape mode holds in an input: char, line
+// or block, the shapes the editor draws and edits ("" for any other mode,
+// a component's own shape included). The shape is the mode's property
+// (DefineSelection), never its name.
+func editorShape(r *Runtime, mode string) string {
+	switch shape := r.SelectionShape(mode); shape {
+	case SelectionChar, SelectionLine, SelectionBlock:
+		return shape
+	}
+	return ""
 }
+
+// shape is the input's selection shape, "" outside a visual mode.
+func (in *Input) shape() string           { return editorShape(in.r, in.Mode) }
 func cellWidth(s string) int              { return ansi.StringWidth(safeText(s)) }
 func runeCells(ch rune) int               { return cellWidth(string(ch)) }
 func padCells(s string, width int) string { return s + strings.Repeat(" ", max(0, width-cellWidth(s))) }
@@ -86,7 +97,7 @@ func (in *Input) selectionRange() (int, int) {
 	lo, hi := min(in.Anchor, in.Cursor), max(in.Anchor, in.Cursor)
 	lo = max(0, min(lo, len(in.Text)))
 	hi = max(0, min(hi, len(in.Text)))
-	if in.Mode == "visual-line" {
+	if in.shape() == SelectionLine {
 		lo, _ = in.lineBounds(lo)
 		_, hi = in.lineBounds(hi)
 		if hi < len(in.Text) {
@@ -98,22 +109,22 @@ func (in *Input) selectionRange() (int, int) {
 	return lo, hi
 }
 func (in *Input) selectionSnapshot() any {
-	if !isVisual(in.Mode) {
+	if in.shape() == "" {
 		return nil
 	}
-	if in.Mode == "visual-block" {
+	if in.shape() == SelectionBlock {
 		top, bottom, left, right := in.blockBounds()
 		return map[string]any{"shape": "block", "top": top, "bottom": bottom, "left": left, "right": right}
 	}
 	lo, hi := in.selectionRange()
 	shape := "char"
-	if in.Mode == "visual-line" {
+	if in.shape() == SelectionLine {
 		shape = "line"
 	}
 	return map[string]any{"shape": shape, "start": lo, "end": hi}
 }
 func (in *Input) selectionYank() Yank {
-	if in.Mode == "visual-block" {
+	if in.shape() == SelectionBlock {
 		top, bottom, left, right := in.blockBounds()
 		lines := strings.Split(string(in.Text), "\n")
 		rows := make([]string, 0, bottom-top+1)
@@ -124,7 +135,7 @@ func (in *Input) selectionYank() Yank {
 	}
 	lo, hi := in.selectionRange()
 	y := Yank{Text: string(in.Text[lo:hi]), Shape: "char"}
-	if in.Mode == "visual-line" {
+	if in.shape() == SelectionLine {
 		y.Shape = "line"
 		if !strings.HasSuffix(y.Text, "\n") {
 			y.Text += "\n"
@@ -138,12 +149,12 @@ func (in *Input) finishCursor(cursor int) {
 	in.History[in.Head].Cursor = in.Cursor
 }
 func (in *Input) removeSelection(change bool) error {
-	mode := in.Mode
+	shape := in.shape()
 	lo, hi := in.selectionRange()
 	var blockText string
 	var block *blockChange
 	cursor := lo
-	if mode == "visual-block" {
+	if shape == SelectionBlock {
 		top, bottom, left, right := in.blockBounds()
 		lines := strings.Split(string(in.Text), "\n")
 		for row := top; row <= bottom; row++ {
@@ -168,17 +179,17 @@ func (in *Input) removeSelection(change bool) error {
 	if change {
 		in.SetMode("insert")
 	}
-	if mode == "visual-block" {
+	if shape == SelectionBlock {
 		if err := in.Replace(0, len(in.Text), blockText); err != nil {
 			return err
 		}
 	} else {
-		if mode == "visual-line" && !change && hi == len(in.Text) && lo > 0 {
+		if shape == SelectionLine && !change && hi == len(in.Text) && lo > 0 {
 			lo--
 			cursor = lo
 		}
 		replacement := ""
-		if mode == "visual-line" && change && hi < len(in.Text) {
+		if shape == SelectionLine && change && hi < len(in.Text) {
 			replacement = "\n"
 		}
 		if err := in.Replace(lo, hi, replacement); err != nil {
@@ -265,9 +276,6 @@ func (in *Input) pasteYank(y Yank, before, literal bool, steps int) error {
 	return nil
 }
 func registerEditorOperations(r *Runtime) {
-	for _, mode := range []string{"visual", "visual-line", "visual-block"} {
-		r.Modes[mode] = true
-	}
 	register := func(verb, noun, description string, params map[string]Parameter, fn Handler) {
 		r.Register(Operation{Verb: verb, Noun: noun, Description: description, Parameters: params, Result: "editor state", Run: fn})
 	}
@@ -284,7 +292,10 @@ func registerEditorOperations(r *Runtime) {
 		}
 	}
 	register("select", "input", "Start or toggle character, line, or block visual selection", map[string]Parameter{"shape": {Type: "string"}}, input(func(r *Runtime, in *Input, a Arguments) error {
-		mode := map[string]string{"char": "visual", "line": "visual-line", "block": "visual-block"}[StringArg(a, "shape", "char")]
+		mode := ""
+		if shape := StringArg(a, "shape", SelectionChar); editorShape(r, r.SelectionMode(shape)) == shape {
+			mode = r.SelectionMode(shape)
+		}
 		if mode == "" {
 			return errors.New("unknown selection shape")
 		}
@@ -307,7 +318,7 @@ func registerEditorOperations(r *Runtime) {
 			return errors.New("steps must be positive")
 		}
 		oldCursor, oldMode := in.Cursor, in.Mode
-		if !isVisual(in.Mode) {
+		if in.shape() == "" {
 			motion := StringArg(a, "motion", "line")
 			changeWord := op == "c" && motion == "word-forward" && oldCursor < len(in.Text) && wordClass(in.Text[oldCursor]) != 0
 			if changeWord {
@@ -416,20 +427,20 @@ func registerEditorOperations(r *Runtime) {
 		if !in.Multiline && (y.Shape == "block" || y.Shape == "line" || strings.ContainsAny(y.Text, "\r\n")) {
 			return errors.New("single-line input cannot paste multiline yank")
 		}
-		if in.Mode == "visual-block" && y.Shape == "char" {
+		if in.shape() == SelectionBlock && y.Shape == "char" {
 			top, bottom, _, _ := in.blockBounds()
 			if len(y.Text) > 0 && steps*(bottom-top+1) > 16*1024*1024/len(y.Text) {
 				return errors.New("paste exceeds size limit")
 			}
 		}
-		if isVisual(in.Mode) {
+		if in.shape() != "" {
 			// Compose replacement in an isolated input, then commit one atomic edit.
 			copy := NewInput(in.ID, string(in.Text), in.Multiline)
 			copy.Cursor = in.Cursor
 			copy.Anchor = in.Anchor
 			copy.Mode = in.Mode
 			copy.goalColumn = in.goalColumn
-			if in.Mode == "visual-line" {
+			if in.shape() == SelectionLine {
 				lo, hi := in.selectionRange()
 				replacement := strings.Repeat(y.Text, steps)
 				if y.Shape != "line" && hi < len(in.Text) {
@@ -440,7 +451,7 @@ func registerEditorOperations(r *Runtime) {
 					return err
 				}
 				copy.finishCursor(lo)
-			} else if in.Mode == "visual-block" && y.Shape == "char" && !strings.Contains(y.Text, "\n") {
+			} else if in.shape() == SelectionBlock && y.Shape == "char" && !strings.Contains(y.Text, "\n") {
 				top, bottom, left, right := in.blockBounds()
 				lines := strings.Split(string(in.Text), "\n")
 				for row := top; row <= bottom; row++ {

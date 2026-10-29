@@ -368,7 +368,14 @@ func registerTableCells(r *Runtime) {
 	for _, verb := range []string{"column", "choose-column", "resize-column"} {
 		guards[verb] = "table-cells"
 	}
-	guards["yank"] = "list-table"
+	// list.yank copies a table's row or cell, and on any list the rows of
+	// a visual selection (V j y), so a plain list's y and Y stay free
+	// outside one.
+	r.DefineGuard("list-yanks", func(r *Runtime, ev KeyEvent) bool {
+		l := r.focusedList(ev.Focus)
+		return l != nil && (len(l.columns) > 0 || l.visual)
+	})
+	guards["yank"] = "list-yanks"
 	guards["reset-columns"] = "list-table" // z = is a cell row; the palette resets a row-select table's pins
 	id := Parameter{Type: "string", Description: "The list (default: the focused one)"}
 	r.Register(Operation{Verb: "column", Noun: "ochazuke.list", Description: "Move a cell-mode table's current column: to the first or last, to the column numbered index (|), or delta columns; the view scrolls to show it", Parameters: map[string]Parameter{
@@ -433,11 +440,12 @@ func registerTableCells(r *Runtime) {
 			return nil, errors.New("not a cell table (CellSelect): only the row copies")
 		}
 		// A visual selection (V) copies every selected row, one per line,
-		// and ends; otherwise the selected row alone.
+		// then ends or stays (visual.after-action); otherwise the selected
+		// row alone.
 		items := []ListItem{item}
 		if l.visual {
 			items = l.markedShown()
-			l.EndVisual()
+			defer r.afterVisualAction(l)
 		}
 		lines := make([]string, len(items))
 		for i, it := range items {

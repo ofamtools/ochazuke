@@ -1,0 +1,69 @@
+{
+  "name": "visual.after-action end (the default): V j z runs the row verb on both rows and visual-line ends",
+  "area": "tables",
+  "width": 60,
+  "height": 10,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "items": [
+          {
+            "id": "r1",
+            "label": "row 1"
+          },
+          {
+            "id": "r2",
+            "label": "row 2"
+          },
+          {
+            "id": "r3",
+            "label": "row 3"
+          },
+          {
+            "id": "r4",
+            "label": "row 4"
+          }
+        ],
+        "selected": 0
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.zap",
+        "row": true
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "mode": "visual-line",
+        "keys": "z",
+        "do": "demo.zap"
+      }
+    ]
+  },
+  "script": [
+    "V",
+    "j",
+    "z"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "mode": "visual-line"
+    },
+    {
+      "mode": "normal",
+      "lacks": [
+        "*"
+      ],
+      "writes": [
+        "demo.zap row=r1",
+        "demo.zap row=r2"
+      ]
+    }
+  ]
+}
