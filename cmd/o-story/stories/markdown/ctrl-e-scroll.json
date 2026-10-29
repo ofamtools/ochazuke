@@ -1,0 +1,54 @@
+{
+  "name": "markdown: ctrl+e and ctrl+y scroll the document's window a line; the cursor stays until the window passes it, then rides the scrolloff margin; counts work",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "# Start\n\n- item 01\n- item 02\n- item 03\n- item 04\n- item 05\n- item 06\n- item 07\n- item 08\n- item 09\n- item 10\n- item 11\n- item 12\n- item 13\n- item 14\n- item 15\n- item 16\n- item 17\n- item 18\n- item 19\n- item 20\n- item 21\n- item 22\n- item 23\n- item 24\n- item 25\n- item 26\n- item 27\n- item 28\n- item 29\n- item 30\n",
+      "author": "owner",
+      "today": "2026-10-27",
+      "height": 12
+    }
+  },
+  "script": [
+    "j",
+    "j",
+    "j",
+    "j",
+    "ctrl+e",
+    "5",
+    "ctrl+e",
+    "ctrl+y"
+  ],
+  "expect": [
+    {
+      "after": 4,
+      "highlightedText": "item 04",
+      "contains": [
+        "1\u201311 / 32"
+      ]
+    },
+    {
+      "after": 5,
+      "highlightedText": "item 04",
+      "contains": [
+        "2\u201312 / 32"
+      ]
+    },
+    {
+      "after": 7,
+      "highlightedText": "item 07",
+      "contains": [
+        "7\u201317 / 32"
+      ]
+    },
+    {
+      "highlightedText": "item 07",
+      "contains": [
+        "6\u201316 / 32"
+      ],
+      "mode": "normal"
+    }
+  ]
+}

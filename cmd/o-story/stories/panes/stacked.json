@@ -1,5 +1,5 @@
 {
-  "name": "panes: below 72 columns > grows the stacked lists and the detail keeps at least its border and a row",
+  "name": "panes: below 72 columns ctrl+w > grows the stacked lists and the detail keeps at least its border and a row",
   "area": "panes",
   "width": 60,
   "height": 26,
@@ -94,17 +94,19 @@
     }
   },
   "script": [
+    "ctrl+w",
     ">",
     "9",
+    "ctrl+w",
     ">"
   ],
   "expect": [
     {
-      "after": 1,
+      "after": 2,
       "shift": 5,
       "contains": [
         "path    ~/.claude/skills/architect",
-        ">/< resize"
+        "ctrl+w >/< resize"
       ],
       "lacks": [
         "/ 3"

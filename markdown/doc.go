@@ -776,6 +776,45 @@ func (d *Doc) scrolloff() int {
 	return 2
 }
 
+// CanScrollLines reports whether the last frame windowed the document
+// (more lines than its window) and no element is open (LineScroller, the
+// framework's view.scroll on ctrl+e and ctrl+y).
+func (d *Doc) CanScrollLines() bool {
+	return d.edit == nil && d.visible > 0 && len(d.lay.lines) > d.visible
+}
+
+// ScrollLines moves the window by lines, clamped, as Vim's ctrl+e and
+// ctrl+y do: the cursor stays unless it would leave the window's
+// scrolloff margin, then moves to the nearest line it can rest on inside.
+func (d *Doc) ScrollLines(lines int) {
+	if !d.CanScrollLines() {
+		return
+	}
+	total, visible := len(d.lay.lines), d.visible
+	d.offset = min(max(0, d.offset+lines), total-visible)
+	margin := min(d.scrolloff(), max(0, (visible-1)/2))
+	lo, hi := d.offset+margin, d.offset+visible-1-margin
+	if d.offset == 0 {
+		lo = 0
+	}
+	if d.offset+visible >= total {
+		hi = total - 1
+	}
+	at := d.cursorLine()
+	if at >= lo && at <= hi {
+		return
+	}
+	best := -1
+	for _, line := range d.lay.rows {
+		if line >= lo && line <= hi && (best < 0 || abs(line-at) < abs(best-at)) {
+			best = line
+		}
+	}
+	if best >= 0 {
+		_ = d.selectLine(best)
+	}
+}
+
 // cursorLine is the drawn line the cursor is on, or -1.
 func (d *Doc) cursorLine() int {
 	item, ok := d.list.Selected()

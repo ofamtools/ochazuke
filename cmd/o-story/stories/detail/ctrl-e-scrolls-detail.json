@@ -1,0 +1,17 @@
+{
+  "name": "detail: ctrl+e and ctrl+y scroll the page's detail when the focused list has nothing to scroll, as J/K do; counts work",
+  "area": "detail",
+  "width": 60,
+  "height": 12,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [{"id": "a", "rows": 4}],
+    "detail": {"lines": 50}
+  },
+  "script": ["ctrl+e", "1", "0", "ctrl+e", "ctrl+y"],
+  "expect": [
+    {"after": 1, "focus": "a1", "mode": "normal", "contains": ["detail 2–12 / 50"]},
+    {"focus": "a1", "contains": ["detail 11–21 / 50", "a1 line 11"]}
+  ]
+}

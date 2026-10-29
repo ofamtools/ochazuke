@@ -70,7 +70,15 @@ func newPalette(r *Runtime) *Palette {
 			return p.state(), err
 		}})
 	}
-	register("open", "Open the command line", nil, func(Arguments) error { return p.open() })
+	register("open", "Open the command line", map[string]Parameter{"recall": {Type: "integer", Description: "Open on the command that many back in the palette's history, as up would (1 the last; 0 or absent an empty line)"}}, func(a Arguments) error {
+		if err := p.open(); err != nil {
+			return err
+		}
+		if n := IntArg(a, "recall", 0); n > 0 && len(p.recallLines()) > 0 {
+			return p.recallLine(n)
+		}
+		return nil
+	})
 	register("close", "Close the command line without running it", nil, func(Arguments) error { return p.close() })
 	register("set", "Replace the command line's text", map[string]Parameter{"text": {Type: "string", Required: true}}, func(a Arguments) error {
 		if err := p.requireOpen(); err != nil {

@@ -10,7 +10,8 @@
     ]
   },
   "script": [
-    "ctrl+y",
+    "g",
+    "y",
     "enter"
   ],
   "expect": {

@@ -197,7 +197,7 @@ func TestMacroRecursiveSafeguardAndPrefixPriority(t *testing.T) {
 func TestYankHistoryModalRestoresFocusWithoutInsertion(t *testing.T) {
 	r, in := editorTestRuntime(t, "one two", true)
 	m := NewModel(r)
-	modelEditorKeys(t, m, "y", "w", "w", "y", "e", "ctrl+y", "j")
+	modelEditorKeys(t, m, "y", "w", "w", "y", "e", "g", "y", "j")
 	if len(r.Modals()) != 1 {
 		t.Fatal("no yank modal")
 	}

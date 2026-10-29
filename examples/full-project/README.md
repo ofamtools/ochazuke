@@ -90,7 +90,7 @@ The registry identifier is `workspace.greet` (`noun.verb`). The CLI spelling is 
 - In normal mode, `g s` summarizes the workspace and `g h` invokes the parameterized greeting.
 - In the workspace context, `Ctrl-T` sends an insert operation explicitly targeted at the title input.
 - On the Paths page, `g f` focuses the directory input.
-- In normal mode, `Ctrl-J/K` cycles pages and `:` opens the palette. `Ctrl-Space` opens the palette in any editing mode. `Ctrl-Y` opens yank history, and `PgUp` and `PgDn` scroll. Pages are not numbered; type `page ` in the palette to complete a page ID (`page paths`).
+- In normal mode, `Ctrl-J/K` cycles pages and `:` opens the palette. `Ctrl-Space` opens the palette in any editing mode. `g y` opens yank history, and `PgUp` and `PgDn` scroll. Pages are not numbered; type `page ` in the palette to complete a page ID (`page paths`).
 
 The framework also supplies visual selection, registers, macro recording and replay, and branching undo. These are runtime/editor features rather than duplicated configuration formats. See the repository [keyboard guide](../../README.md#keyboard-guide).
 

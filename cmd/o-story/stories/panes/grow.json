@@ -1,5 +1,5 @@
 {
-  "name": "panes: > grows the list pane of a catalog split by 5% of the width, a count repeats it",
+  "name": "panes: ctrl+w > grows the list pane of a catalog split by 5% of the width, a count repeats it",
   "area": "panes",
   "width": 100,
   "height": 22,
@@ -94,18 +94,20 @@
     }
   },
   "script": [
+    "ctrl+w",
     ">",
     "3",
+    "ctrl+w",
     ">"
   ],
   "expect": [
     {
-      "after": 1,
+      "after": 2,
       "shift": 5,
       "focus": "ai/skills/s1",
       "contains": [
         "╭━ skill (2) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮ ╭─ record",
-        ">/< resize"
+        "ctrl+w >/< resize"
       ],
       "lacks": [
         "╭━ skill (2) ━━━━━━━━━━━━━━━━━━━━━━━━╮ ╭─ record"

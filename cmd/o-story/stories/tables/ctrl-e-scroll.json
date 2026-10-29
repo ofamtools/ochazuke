@@ -1,0 +1,385 @@
+{
+  "name": "tables: ctrl+e and ctrl+y scroll a table's rows a line, the selected row staying until the window passes it; the header stays",
+  "area": "tables",
+  "width": 40,
+  "height": 12,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "height": -1,
+        "columns": [
+          {
+            "title": "name"
+          },
+          {
+            "title": "value"
+          }
+        ],
+        "items": [
+          {
+            "id": "r1",
+            "label": "row 01",
+            "cells": [
+              "row 01",
+              "v1"
+            ]
+          },
+          {
+            "id": "r2",
+            "label": "row 02",
+            "cells": [
+              "row 02",
+              "v2"
+            ]
+          },
+          {
+            "id": "r3",
+            "label": "row 03",
+            "cells": [
+              "row 03",
+              "v3"
+            ]
+          },
+          {
+            "id": "r4",
+            "label": "row 04",
+            "cells": [
+              "row 04",
+              "v4"
+            ]
+          },
+          {
+            "id": "r5",
+            "label": "row 05",
+            "cells": [
+              "row 05",
+              "v5"
+            ]
+          },
+          {
+            "id": "r6",
+            "label": "row 06",
+            "cells": [
+              "row 06",
+              "v6"
+            ]
+          },
+          {
+            "id": "r7",
+            "label": "row 07",
+            "cells": [
+              "row 07",
+              "v7"
+            ]
+          },
+          {
+            "id": "r8",
+            "label": "row 08",
+            "cells": [
+              "row 08",
+              "v8"
+            ]
+          },
+          {
+            "id": "r9",
+            "label": "row 09",
+            "cells": [
+              "row 09",
+              "v9"
+            ]
+          },
+          {
+            "id": "r10",
+            "label": "row 10",
+            "cells": [
+              "row 10",
+              "v10"
+            ]
+          },
+          {
+            "id": "r11",
+            "label": "row 11",
+            "cells": [
+              "row 11",
+              "v11"
+            ]
+          },
+          {
+            "id": "r12",
+            "label": "row 12",
+            "cells": [
+              "row 12",
+              "v12"
+            ]
+          },
+          {
+            "id": "r13",
+            "label": "row 13",
+            "cells": [
+              "row 13",
+              "v13"
+            ]
+          },
+          {
+            "id": "r14",
+            "label": "row 14",
+            "cells": [
+              "row 14",
+              "v14"
+            ]
+          },
+          {
+            "id": "r15",
+            "label": "row 15",
+            "cells": [
+              "row 15",
+              "v15"
+            ]
+          },
+          {
+            "id": "r16",
+            "label": "row 16",
+            "cells": [
+              "row 16",
+              "v16"
+            ]
+          },
+          {
+            "id": "r17",
+            "label": "row 17",
+            "cells": [
+              "row 17",
+              "v17"
+            ]
+          },
+          {
+            "id": "r18",
+            "label": "row 18",
+            "cells": [
+              "row 18",
+              "v18"
+            ]
+          },
+          {
+            "id": "r19",
+            "label": "row 19",
+            "cells": [
+              "row 19",
+              "v19"
+            ]
+          },
+          {
+            "id": "r20",
+            "label": "row 20",
+            "cells": [
+              "row 20",
+              "v20"
+            ]
+          },
+          {
+            "id": "r21",
+            "label": "row 21",
+            "cells": [
+              "row 21",
+              "v21"
+            ]
+          },
+          {
+            "id": "r22",
+            "label": "row 22",
+            "cells": [
+              "row 22",
+              "v22"
+            ]
+          },
+          {
+            "id": "r23",
+            "label": "row 23",
+            "cells": [
+              "row 23",
+              "v23"
+            ]
+          },
+          {
+            "id": "r24",
+            "label": "row 24",
+            "cells": [
+              "row 24",
+              "v24"
+            ]
+          },
+          {
+            "id": "r25",
+            "label": "row 25",
+            "cells": [
+              "row 25",
+              "v25"
+            ]
+          },
+          {
+            "id": "r26",
+            "label": "row 26",
+            "cells": [
+              "row 26",
+              "v26"
+            ]
+          },
+          {
+            "id": "r27",
+            "label": "row 27",
+            "cells": [
+              "row 27",
+              "v27"
+            ]
+          },
+          {
+            "id": "r28",
+            "label": "row 28",
+            "cells": [
+              "row 28",
+              "v28"
+            ]
+          },
+          {
+            "id": "r29",
+            "label": "row 29",
+            "cells": [
+              "row 29",
+              "v29"
+            ]
+          },
+          {
+            "id": "r30",
+            "label": "row 30",
+            "cells": [
+              "row 30",
+              "v30"
+            ]
+          },
+          {
+            "id": "r31",
+            "label": "row 31",
+            "cells": [
+              "row 31",
+              "v31"
+            ]
+          },
+          {
+            "id": "r32",
+            "label": "row 32",
+            "cells": [
+              "row 32",
+              "v32"
+            ]
+          },
+          {
+            "id": "r33",
+            "label": "row 33",
+            "cells": [
+              "row 33",
+              "v33"
+            ]
+          },
+          {
+            "id": "r34",
+            "label": "row 34",
+            "cells": [
+              "row 34",
+              "v34"
+            ]
+          },
+          {
+            "id": "r35",
+            "label": "row 35",
+            "cells": [
+              "row 35",
+              "v35"
+            ]
+          },
+          {
+            "id": "r36",
+            "label": "row 36",
+            "cells": [
+              "row 36",
+              "v36"
+            ]
+          },
+          {
+            "id": "r37",
+            "label": "row 37",
+            "cells": [
+              "row 37",
+              "v37"
+            ]
+          },
+          {
+            "id": "r38",
+            "label": "row 38",
+            "cells": [
+              "row 38",
+              "v38"
+            ]
+          },
+          {
+            "id": "r39",
+            "label": "row 39",
+            "cells": [
+              "row 39",
+              "v39"
+            ]
+          },
+          {
+            "id": "r40",
+            "label": "row 40",
+            "cells": [
+              "row 40",
+              "v40"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "j",
+    "j",
+    "j",
+    "ctrl+e",
+    "ctrl+e",
+    "ctrl+e",
+    "ctrl+e",
+    "ctrl+y"
+  ],
+  "expect": [
+    {
+      "after": 5,
+      "focus": "r5",
+      "contains": [
+        "name",
+        "row 02",
+        "row 05"
+      ],
+      "lacks": [
+        "row 01"
+      ]
+    },
+    {
+      "after": 8,
+      "focus": "r7",
+      "contains": [
+        "name",
+        "row 05"
+      ]
+    },
+    {
+      "focus": "r7",
+      "contains": [
+        "row 04"
+      ]
+    }
+  ]
+}

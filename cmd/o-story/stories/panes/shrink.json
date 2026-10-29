@@ -1,5 +1,5 @@
 {
-  "name": "panes: < shrinks the list pane, = puts the divider back",
+  "name": "panes: ctrl+w < shrinks the list pane, ctrl+w = puts the divider back",
   "area": "panes",
   "width": 100,
   "height": 22,
@@ -94,13 +94,16 @@
     }
   },
   "script": [
+    "ctrl+w",
     "<",
+    "ctrl+w",
     "<",
+    "ctrl+w",
     "="
   ],
   "expect": [
     {
-      "after": 2,
+      "after": 4,
       "shift": -10,
       "contains": [
         "╭━ skill (2) ━━━━━━━━━━━━━━━╮ ╭─ record"

@@ -332,6 +332,7 @@ func (r *Runtime) registerFramework() {
 	registerFocus(r)
 	registerFocusDisplay(r)
 	registerDetail(r)
+	registerViewScroll(r)
 	registerPanes(r)
 	registerQuery(r)
 	registerHistory(r)

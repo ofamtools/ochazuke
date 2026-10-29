@@ -1,0 +1,57 @@
+{
+  "name": "q: opens the command line on the last command (Vim's command-line window); esc twice closes it and q a still records a macro (the sandbox's q quit unbound)",
+  "area": "palette",
+  "config": {
+    "bindings.json": [
+      {
+        "noun": "demo",
+        "mode": "normal",
+        "keys": "q",
+        "request": null
+      }
+    ]
+  },
+  "page": {
+    "inputs": [
+      {
+        "id": "name",
+        "label": "name",
+        "text": "hello"
+      }
+    ]
+  },
+  "script": [
+    ":",
+    {
+      "type": "notice clear"
+    },
+    "enter",
+    "q",
+    ":",
+    "esc",
+    "esc",
+    "q",
+    "a"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "modal": ""
+    },
+    {
+      "after": 5,
+      "modal": "palette",
+      "mode": "insert",
+      "contains": [
+        "clear notice"
+      ]
+    },
+    {
+      "modal": "",
+      "mode": "normal",
+      "contains": [
+        "REC @a"
+      ]
+    }
+  ]
+}

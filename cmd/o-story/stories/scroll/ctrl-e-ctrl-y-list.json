@@ -1,0 +1,18 @@
+{
+  "name": "ctrl+e and ctrl+y scroll a list's window a line; the cursor stays unless it would leave the scrolloff margin; counts multiply (Vim's CTRL-E)",
+  "area": "scroll",
+  "width": 30,
+  "height": 10,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [{"id": "p", "rows": 50, "height": -1}]
+  },
+  "script": ["j", "j", "j", "j", "j", "ctrl+e", "3", "ctrl+e", "ctrl+y", "9", "9", "ctrl+e"],
+  "expect": [
+    {"after": 6, "focus": "p6", "mode": "normal", "lacks": ["p1 "], "contains": ["p2", "p6"]},
+    {"after": 8, "focus": "p7", "contains": ["p5", "p7"], "lacks": ["p4 "]},
+    {"after": 9, "focus": "p7", "contains": ["p4", "p7"]},
+    {"focus": "p44", "contains": ["p42", "p50"]}
+  ]
+}

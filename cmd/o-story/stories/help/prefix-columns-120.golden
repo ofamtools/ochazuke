@@ -70,10 +70,10 @@ R|            │   q             app.quit                                    Ex
  |            │                                                             current focus, its arguments     │
  |            │                                                             kept; steps replaces its count   │
  |            │   :             palette.open                                Open the command line            │
- |            │   ctrl+y        yank-history.open                           Select a previous application    │
- |            │                                                             yank without inserting it        │
  |            │   ?             bindings.help                               Open the keys the focus answers  │
- |            │ 1–31 / 55                                                                                    │
+ |            │                                                             to, with the operation each runs │
+ |            │                                                             and its description              │
+ |            │ 1–30 / 60                                                                                    │
  |            │ space list.mark · S view · esc modal.pop · : palette.open · ? bindings.help · / filter       │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |

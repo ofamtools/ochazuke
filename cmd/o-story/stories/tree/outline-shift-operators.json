@@ -1,0 +1,15 @@
+{
+  "name": "outline: >> nests a line under the one above and << takes it back out, as tab and shift+tab (Vim's shift operators)",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {"id": "t", "editable": true, "nodes": [{"id": "a", "label": "alpha"}, {"id": "b", "label": "beta"}]}
+    ]
+  },
+  "script": ["j", ">", ">", "<", "<"],
+  "expect": [
+    {"after": 2, "mode": "normal >", "focus": "b"},
+    {"after": 3, "mode": "normal", "focus": "b", "contains": ["▾ alpha", "    beta"], "writes": ["move b under a at 0"]},
+    {"focus": "b", "mode": "normal", "writes": ["move b under a at 0", "move b under root at 1"]}
+  ]
+}

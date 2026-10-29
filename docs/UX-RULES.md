@@ -696,7 +696,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   and `alt+right`/`ctrl+right` move by word, `super+left`/`super+right`
   (and `meta+left`/`meta+right`, how a kitty terminal's cmd+arrow decodes)
   to the line's ends, beside `ctrl+a`/`ctrl+e`/`home`/`end`. Kills go to
-  the yank history (`ctrl+y`). With a select range open (R9.6) a kill
+  the yank history (`g y`). With a select range open (R9.6) a kill
   removes the range. The alternate kill rows are hidden from the footer.
   Tests `TestInputEditingKeys*`, `TestPromptEditingKeys`,
   `TestTerminalSequencesReachTheRows` (recorded byte sequences); stories

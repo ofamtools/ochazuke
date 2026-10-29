@@ -240,7 +240,6 @@ func TestBindingsDefaultsPrintsTheDefaultLayer(t *testing.T) {
 	}
 	if !strings.Contains(text, `"source": "ochazuke/bindings/app.json", "bindings": [
       {"key": ":", "action": "ochazuke.palette.open"},
-      {"key": "ctrl+y", "action": "ochazuke.yank-history.open", "hidden": true},
       {"key": "?", "action": "ochazuke.bindings.help"},`) {
 		t.Errorf("the default ? is not back in place:\n%s", text)
 	}

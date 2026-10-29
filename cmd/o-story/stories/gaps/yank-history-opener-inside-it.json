@@ -1,5 +1,5 @@
 {
-  "name": "ctrl+y inside the yank history does not try to open it again: it closes it or does not answer",
+  "name": "g y inside the yank history does not try to open it again: it closes it or does not answer",
   "skip": "gap: operation-error: yank-history.open: modal is already open",
   "page": {
     "lists": [
@@ -10,8 +10,10 @@
     ]
   },
   "script": [
-    "ctrl+y",
-    "ctrl+y"
+    "g",
+    "y",
+    "g",
+    "y"
   ],
   "expect": {
     "lacks": [

@@ -52,29 +52,29 @@ func paneKeys(m *Model, keys ...string) {
 func TestPaneKeysGrowShrinkAndResetTheSplit(t *testing.T) {
 	m := paneModel(t, "", true)
 	r := m.Runtime
-	paneKeys(m, ">")
+	paneKeys(m, "ctrl+w", ">")
 	if got := r.PaneShift("p"); got != PaneStep {
 		t.Fatalf("> shift = %d, want %d (status %q)", got, PaneStep, m.Status)
 	}
-	paneKeys(m, "3", ">")
+	paneKeys(m, "3", "ctrl+w", ">")
 	if got := r.PaneShift("p"); got != 4*PaneStep {
 		t.Fatalf("3> shift = %d, want %d", got, 4*PaneStep)
 	}
-	paneKeys(m, "<", "<")
+	paneKeys(m, "ctrl+w", "<", "ctrl+w", "<")
 	if got := r.PaneShift("p"); got != 2*PaneStep {
 		t.Fatalf("< < shift = %d", got)
 	}
-	paneKeys(m, "=")
+	paneKeys(m, "ctrl+w", "=")
 	if got := r.PaneShift("p"); got != 0 {
 		t.Fatalf("= shift = %d", got)
 	}
 	for range 20 {
-		paneKeys(m, ">")
+		paneKeys(m, "ctrl+w", ">")
 	}
 	if got := r.PaneShift("p"); got != PaneShiftLimit {
 		t.Fatalf("held > shift = %d, want the limit %d", got, PaneShiftLimit)
 	}
-	paneKeys(m, "<")
+	paneKeys(m, "ctrl+w", "<")
 	if got := r.PaneShift("p"); got != PaneShiftLimit-PaneStep {
 		t.Fatalf("< after the limit = %d: the next key must move at once", got)
 	}
@@ -82,8 +82,27 @@ func TestPaneKeysGrowShrinkAndResetTheSplit(t *testing.T) {
 		t.Fatalf("focus %q status %q", r.Focus, m.Status)
 	}
 	hints := BindingHints(r, r.Focus)
-	if !strings.Contains(hints, ">/< resize") || strings.Contains(hints, "pane.") {
-		t.Fatalf("hints = %q; want one >/< resize row", hints)
+	if !strings.Contains(hints, "ctrl+w >/< resize") || strings.Contains(hints, "pane.") {
+		t.Fatalf("hints = %q; want one ctrl+w >/< resize row", hints)
+	}
+}
+
+// The panes answer Vim's ctrl+w prefix only: the bare > < = rows are gone
+// (they resized panes from an editor or the outline, where Vim users
+// expect shift operators); ctrl+w w and W walk the stops.
+func TestPaneKeysAreTheCtrlWNamespace(t *testing.T) {
+	m := paneModel(t, "", true)
+	r := m.Runtime
+	paneKeys(m, ">", "<", "=")
+	if got := r.PaneShift("p"); got != 0 {
+		t.Fatalf("bare > < = moved the divider: %d", got)
+	}
+	for keys, want := range map[string]string{"w": "ochazuke.focus.next", "W": "ochazuke.focus.previous"} {
+		paneKeys(m, "ctrl+w", keys)
+		h := r.History(1)
+		if len(h) != 1 || h[0].Request.Key() != want || h[0].Context.Source != "key:ctrl+w "+keys {
+			t.Fatalf("ctrl+w %s ran %+v, want %s", keys, h, want)
+		}
 	}
 }
 
@@ -93,7 +112,7 @@ func TestPaneKeysOnlyWhereASplitIsDrawn(t *testing.T) {
 	if hints := BindingHints(r, r.Focus); strings.Contains(hints, "resize") {
 		t.Fatalf("hints without a split = %q", hints)
 	}
-	paneKeys(m, ">", "<")
+	paneKeys(m, "ctrl+w", ">", "ctrl+w", "<")
 	if got := r.PaneShift("p"); got != 0 {
 		t.Fatalf("> without a split moved the divider: %d", got)
 	}
@@ -115,7 +134,7 @@ func TestPaneDividerMovesTheDrawnSplit(t *testing.T) {
 		return 0
 	}
 	before := divider()
-	paneKeys(m, ">")
+	paneKeys(m, "ctrl+w", ">")
 	if after := divider(); after <= before {
 		t.Fatalf("> did not move the divider right: %d then %d", before, after)
 	}
@@ -124,7 +143,7 @@ func TestPaneDividerMovesTheDrawnSplit(t *testing.T) {
 func TestPaneDividerRememberedAcrossRestarts(t *testing.T) {
 	dir := t.TempDir()
 	m := paneModel(t, dir, true)
-	paneKeys(m, "2", ">")
+	paneKeys(m, "2", "ctrl+w", ">")
 	data, err := os.ReadFile(filepath.Join(dir, PanesFile))
 	if err != nil {
 		t.Fatal(err)
@@ -136,7 +155,7 @@ func TestPaneDividerRememberedAcrossRestarts(t *testing.T) {
 	if again := paneModel(t, dir, true); again.Runtime.PaneShift("p") != 2*PaneStep {
 		t.Fatalf("restart shift = %d", again.Runtime.PaneShift("p"))
 	}
-	paneKeys(m, "=")
+	paneKeys(m, "ctrl+w", "=")
 	if data, _ := os.ReadFile(filepath.Join(dir, PanesFile)); strings.Contains(string(data), `"p"`) {
 		t.Fatalf("reset left the page in the file: %s", data)
 	}
@@ -149,7 +168,7 @@ func TestPaneDividerRememberedAcrossRestarts(t *testing.T) {
 func TestPaneDividerNotPersistedWithoutAStateDirectory(t *testing.T) {
 	m := paneModel(t, "", true)
 	m.Runtime.Config().Disable()
-	paneKeys(m, ">")
+	paneKeys(m, "ctrl+w", ">")
 	if m.Runtime.Config().PanesPath() != "" || m.Runtime.PaneShift("p") != PaneStep {
 		t.Fatalf("disabled config: path %q shift %d", m.Runtime.Config().PanesPath(), m.Runtime.PaneShift("p"))
 	}

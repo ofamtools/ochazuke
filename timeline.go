@@ -984,6 +984,13 @@ func (l *List) offsetOf(id string) int {
 // scroll moves the window by lines (down when positive) without moving
 // the selection unless it would leave the window (it then lands on the
 // nearest card on screen). Scrolling up stops following the end.
+// CanScrollLines reports whether the last frame did not show every line
+// (LineScroller, view.scroll).
+func (t *Timeline) CanScrollLines() bool { return t.overflow }
+
+// ScrollLines is timeline.scroll by lines (LineScroller).
+func (t *Timeline) ScrollLines(lines int) { t.scroll(lines) }
+
 func (t *Timeline) scroll(lines int) {
 	n := len(t.list.items)
 	if n == 0 || t.width <= 0 || t.avail <= 0 {

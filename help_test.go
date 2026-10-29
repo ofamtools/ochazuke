@@ -69,7 +69,9 @@ func TestHelpListsTheFocusedRowsVerbsFirst(t *testing.T) {
 	// The last row before the movement section is app's.
 	var last HelpRow
 	for _, it := range items {
-		if row := it.Data.(HelpRow); row.Section != MovementSection {
+		// A prefix's generated cancel (g esc) is shared by every level
+		// binding the prefix and names the innermost one's noun.
+		if row := it.Data.(HelpRow); row.Section != MovementSection && !row.cancel {
 			last = row
 		}
 	}

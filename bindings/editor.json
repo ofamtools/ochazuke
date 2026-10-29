@@ -17,6 +17,7 @@
     ]},
     {"context": "ochazuke.editor/g_pending", "bindings": [
       {"key": "g", "action": "ochazuke.input.move", "args": {"motion": "first-line"}, "from": {"line": "count"}},
+      {"key": "y", "action": "ochazuke.yank-history.open"},
       {"key": "any", "action": "ochazuke.input.cancel"}
     ]},
     {"context": "ochazuke.editor/insert", "bindings": [

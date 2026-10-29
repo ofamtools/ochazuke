@@ -438,11 +438,12 @@ Conformance:
 | normal | history | `history.repeat` |
 | normal | input | `input.begin` `input.undo` |
 | normal | list | `list.column` `list.filter-clear` `list.filter-open` `list.goto` `list.mark` `list.move` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.toggle-pin-column` `list.visual` `list.yank` |
+| normal | macro | `macro.start` |
 | normal | markdown | `markdown.delete` `markdown.fold` `markdown.insert` `markdown.next-block` `markdown.next-kind` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
 | normal | modal | `modal.pop` |
 | normal | mode | `mode.enter` |
 | normal | notice | `notice.clear` |
-| normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.indent` `outline.move` `outline.paste` `outline.redo` `outline.undo` `outline.zoom-in` `outline.zoom-out` `outline.zoom-reset` |
+| normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.indent` `outline.move` `outline.outdent` `outline.paste` `outline.redo` `outline.undo` `outline.zoom-in` `outline.zoom-out` `outline.zoom-reset` |
 | normal | page | `page.next` `page.pick` `page.previous` |
 | normal | palette | `palette.open` |
 | normal | pane | `pane.grow` `pane.reset` `pane.shrink` |
@@ -453,6 +454,8 @@ Conformance:
 | normal | story-card | `story-card.timeline-append` `story-card.timeline-stream` |
 | normal | surface | `surface.scroll` |
 | normal | timeline | `timeline.close` `timeline.close-all` `timeline.enter` `timeline.fold` `timeline.fold-step` `timeline.goto` `timeline.leave` `timeline.open` `timeline.open-all` `timeline.row` `timeline.scroll` `timeline.step` `timeline.toggle` `timeline.yank-step` |
+| normal | view | `view.scroll` |
+| normal | yank-history | `yank-history.open` |
 | terminal | bindings | `bindings.help` |
 | terminal | demo | `demo.hints` |
 | terminal | mode | `mode.enter` |
@@ -465,18 +468,20 @@ Conformance:
 Mode edges (from → to via):
 
 - `count_pending` → `count_pending ]` via `row ]`
+- `count_pending` → `count_pending ctrl+w` via `row ctrl+w`
 - `count_pending` → `count_pending g` via `row g`
 - `count_pending` → `normal` via `detail.scroll`
 - `count_pending` → `normal` via `list.column`
 - `count_pending` → `normal` via `list.goto`
 - `count_pending` → `normal` via `list.move`
 - `count_pending` → `normal` via `list.scroll`
-- `count_pending` → `normal` via `pane.grow`
-- `count_pending` → `normal` via `pane.shrink`
 - `count_pending` → `normal` via `timeline.scroll`
 - `count_pending` → `normal` via `timeline.step`
+- `count_pending` → `normal` via `view.scroll`
 - `count_pending` → `visual-line` via `list.move`
 - `count_pending ]` → `normal` via `markdown.next-kind`
+- `count_pending ctrl+w` → `normal` via `pane.grow`
+- `count_pending ctrl+w` → `normal` via `pane.shrink`
 - `count_pending g` → `normal` via `list.goto`
 - `hints` → `terminal` via `demo.hint`
 - `hints` → `terminal` via `demo.hints-cancel`
@@ -502,6 +507,8 @@ Mode edges (from → to via):
 - `list_filter` → `normal` via `list.filter-choose`
 - `list_filter` → `normal` via `list.filter-clear`
 - `list_filter` → `normal` via `list.filter-keep`
+- `macro_pending` → `insert` via `palette.open`
+- `macro_pending` → `normal` via `macro.start`
 - `normal` → `count_pending` via `mode.enter`
 - `normal` → `insert` via `bindings-help.mode`
 - `normal` → `insert` via `bindings-help.noun`
@@ -529,24 +536,35 @@ Mode edges (from → to via):
 - `normal` → `insert` via `setting.edit`
 - `normal` → `insert` via `settings.close`
 - `normal` → `list_filter` via `list.filter-open`
+- `normal` → `macro_pending` via `mode.enter`
+- `normal` → `normal <` via `row <`
+- `normal` → `normal >` via `row >`
 - `normal` → `normal [` via `row [`
 - `normal` → `normal ]` via `row ]`
+- `normal` → `normal ctrl+w` via `row ctrl+w`
 - `normal` → `normal d` via `row d`
 - `normal` → `normal g` via `row g`
 - `normal` → `normal z` via `row z`
 - `normal` → `terminal` via `command.run`
 - `normal` → `terminal` via `demo.open`
 - `normal` → `visual-line` via `list.visual`
+- `normal <` → `normal` via `outline.outdent`
+- `normal >` → `normal` via `outline.indent`
 - `normal [` → `normal` via `markdown.previous-kind`
 - `normal [` → `normal` via `markdown.previous-same`
 - `normal ]` → `normal` via `markdown.next-kind`
 - `normal ]` → `normal` via `markdown.next-same`
+- `normal ctrl+w` → `normal` via `pane.grow`
+- `normal ctrl+w` → `normal` via `pane.reset`
+- `normal ctrl+w` → `normal` via `pane.shrink`
+- `normal ctrl+w` → `normal` via `row >`
 - `normal d` → `normal` via `markdown.delete`
 - `normal d` → `normal` via `outline.delete`
 - `normal d` → `normal` via `setting-item.delete`
 - `normal g` → `normal` via `list.goto`
 - `normal g` → `normal` via `tick binding`
 - `normal g` → `normal` via `timeline.row`
+- `normal g` → `normal` via `yank-history.open`
 - `normal z` → `normal` via `list.reset-columns`
 - `normal z` → `normal` via `list.resize-column`
 - `normal z` → `normal` via `list.scroll-columns`

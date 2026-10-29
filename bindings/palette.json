@@ -12,6 +12,9 @@
       {"key": "ctrl+c", "action": "ochazuke.palette.close"},
       {"key": "printable", "action": "ochazuke.input.insert", "from": {"text": "text"}},
       {"key": "paste", "action": "ochazuke.input.insert", "from": {"text": "text"}}
+    ]},
+    {"context": "app/macro_pending", "bindings": [
+      {"key": ":", "action": "ochazuke.palette.open", "args": {"recall": 1}, "help": "q: opens the command line on the last command; up and down walk the history (Vim's command-line window, :help q:)"}
     ]}
   ]
 }

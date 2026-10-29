@@ -1,0 +1,17 @@
+{
+  "name": "g y opens the yank history (it moved off ctrl+y, Vim's line scroll); esc closes it and g g still goes to the first row",
+  "area": "lists",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ]
+  },
+  "script": ["j", "g", "y", "esc", "g", "g"],
+  "expect": [
+    {"after": 3, "modal": "__yank-history", "contains": ["Yank history"]},
+    {"modal": "", "focus": "a1", "mode": "normal"}
+  ]
+}

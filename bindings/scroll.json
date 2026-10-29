@@ -1,0 +1,9 @@
+// ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, {key, action, args, hint, ...} or {key, unbind: true}; a key may repeat: the first row whose action is available answers
+{
+  "bindings": [
+    {"context": "app/normal", "bindings": [
+      {"key": "ctrl+e", "action": "ochazuke.view.scroll", "args": {"lines": 1}, "from": {"count": "count"}, "hidden": true, "help": "Scroll the window a line down; the cursor stays unless it would leave it (Vim's ctrl+e, 3 ctrl+e)"},
+      {"key": "ctrl+y", "action": "ochazuke.view.scroll", "args": {"lines": -1}, "from": {"count": "count"}, "hidden": true, "help": "Scroll the window a line up; the cursor stays unless it would leave it (Vim's ctrl+y)"}
+    ]}
+  ]
+}
