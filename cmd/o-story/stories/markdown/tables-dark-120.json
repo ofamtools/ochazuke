@@ -1,0 +1,13 @@
+{
+  "name": "markdown: the vim-parity-audit tables at 120 columns, dark: every row's separators line up with the header's and the rule's junctions, code spans measured by display width, wrapped cells keep the columns, a narrow table stays compact",
+  "area": "markdown",
+  "width": 120,
+  "height": 50,
+  "theme": "dark",
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "## Status counts\n\n| Area | same | similar | differs on purpose | missing | conflicts | rows |\n|---|---|---|---|---|---|---|\n| 1. Motions | 9 | 4 | 5 | 6 | 2 | 26 |\n| 2. Operators and text objects (editor) | 6 | 0 | 2 | 8 | 2 | 18 |\n| 3. Modes | 7 | 3 | 4 | 4 | 6 | 24 |\n| **Total** | 61 | 42 | 25 | 45 | 25 | 198 |\n\n## 1. Motions\n\n| Feature | Vim/Neovim | ochazuke today | Status | Suggested action |\n|---|---|---|---|---|\n| `j`/`k` on a list | `:help j` `:help k`: stop at the last/first line | `bindings/list.json` `ochazuke.list/normal j`/`k` → `list.move {delta}`; past the edge the focus moves to the next/previous stop | **differs on purpose** | Keep it: the invariant \"motions are visual\" (AGENTS.md). Put it in the docs' Vim note. `NoSpill()` and modals clamp the way Vim does. |\n| `j`/`k` in the editor | `:help j` | `bindings/editor.json` `ochazuke.editor/normal j`/`k` → `input.move up/down` with counts | **same** | — |\n| Counts (`3j`, `5G`) | `:help count` | `bindings/registers.json` `app/normal digit-0` → `count_pending`; rows take `from: {steps: count}` | **same** | — |\n| A count at a list's edge | `:help count`: clamps | story `motions/count-spills-once-at-edge`: the count clamps, then a single spill | **differs on purpose** | Same reason as `j`/`k`. |\n| `ctrl+d`/`ctrl+u` on lists | `:help CTRL-D`: half a page; a count sets `'scroll'` for later presses too | `list.json` → `list.scroll {half}`; a count is rows, for that press only | **similar** (the count does not stick) | Note it in the docs. |\n"
+    }
+  }
+}

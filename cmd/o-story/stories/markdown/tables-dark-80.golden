@@ -1,0 +1,74 @@
+ |  ◆ o-story                                                            NORMAL
+ |   › page1
+ |  ────────────────────────────────────────────────────────────────────────────
+R|    ## Status counts
+ |
+ |     Area      │ same │ similar │ differs o… │ missing │ conflicts │ rows
+ |    ────────────┼──────┼─────────┼────────────┼─────────┼───────────┼───────
+ |     1.        │ 9    │ 4       │ 5          │ 6       │ 2         │ 26
+ |     Motions    │      │         │            │         │           │
+ |     2.        │ 6    │ 0       │ 2          │ 8       │ 2         │ 18
+ |     Operators  │      │         │            │         │           │
+ |     and text   │      │         │            │         │           │
+ |     objects    │      │         │            │         │           │
+ |     (editor)   │      │         │            │         │           │
+ |     3. Modes  │ 7    │ 3       │ 4          │ 4       │ 6         │ 24
+ |     Total     │ 61   │ 42      │ 25         │ 45      │ 25        │ 198
+ |
+ |    ## 1. Motions
+ |
+ |     Feature    │ Vim/Neovim  │ ochazuke today │ Status      │ Suggested …
+ |    ─────────────┼─────────────┼────────────────┼─────────────┼─────────────
+ |      j / k  on │  :help j    │  bindings/list │ differs on  │ Keep it:
+ |     a list      │  :help k :  │ .json          │ purpose     │ the
+ |                 │ stop at the │  ochazuke.list │             │ invariant
+ |                 │ last/first  │ /normal j / k  │             │ "motions
+ |                 │ line        │ →  list.move   │             │ are visual"
+ |                 │             │ {delta} ; past │             │ (AGENTS.md)
+ |                 │             │ the edge the   │             │ . Put it in
+ |                 │             │ focus moves to │             │ the docs'
+ |                 │             │ the            │             │ Vim note.
+ |                 │             │ next/previous  │             │  NoSpill() 
+ |                 │             │ stop           │             │ and modals
+ |                 │             │                │             │ clamp the
+ |                 │             │                │             │ way Vim
+ |                 │             │                │             │ does.
+ |      j / k  in │  :help j    │  bindings/edit │ same        │ —
+ |     the editor  │             │ or.json        │             │
+ |                 │             │  ochazuke.edit │             │
+ |                 │             │ or/normal      │             │
+ |                 │             │ j / k  →       │             │
+ |                 │             │  input.move    │             │
+ |                 │             │ up/down  with  │             │
+ |                 │             │ counts         │             │
+ |     Counts     │  :help      │  bindings/regi │ same        │ —
+ |     ( 3j ,      │ count       │ sters.json     │             │
+ |      5G )       │             │  app/normal    │             │
+ |                 │             │ digit-0  →     │             │
+ |                 │             │  count_pending │             │
+ |                 │             │  ; rows take   │             │
+ |                 │             │  from: {steps: │             │
+ |                 │             │ count}         │             │
+ |     A count at │  :help      │ story          │ differs on  │ Same reason
+ |     a list's    │ count :     │  motions/count │ purpose     │ as
+ |     edge        │ clamps      │ -spills-once-  │             │  j / k .
+ |                 │             │ at-edge : the  │             │
+ |                 │             │ count clamps,  │             │
+ |                 │             │ then a single  │             │
+ |                 │             │ spill          │             │
+ |      ctrl+d /  │  :help      │  list.json  →  │ similar     │ Note it in
+ |     ctrl+u  on  │ CTRL-D :    │  list.scroll   │ (the count  │ the docs.
+ |     lists       │ half a      │ {half} ; a     │ does not    │
+ |                 │ page; a     │ count is rows, │ stick)      │
+ |                 │ count sets  │ for that press │             │
+ |                 │  'scroll'   │ only           │             │
+ |                 │ for later   │                │             │
+ |                 │ presses too │                │             │
+ |
+ |
+ |
+ |
+ |
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  i markdown.insert · o markdown.open · d d markdown.delete · p markdown.past…
+ |
