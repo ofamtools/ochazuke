@@ -2,7 +2,14 @@
 {
   "bindings": [
     {"context": "ochazuke.chooser", "bindings": [
+      {"key": "enter", "action": "ochazuke.chooser.open", "when": "chooser-enter-opens"},
       {"key": "enter", "action": "ochazuke.chooser.pick"},
+      {"key": "alt+enter", "action": "ochazuke.chooser.pick"},
+      {"key": "ctrl+l", "action": "ochazuke.chooser.open"},
+      {"key": "alt+up", "action": "ochazuke.chooser.up"},
+      {"key": "backspace", "action": "ochazuke.chooser.up", "when": "chooser-up-empty"},
+      {"key": "tab", "action": "ochazuke.chooser.next-source"},
+      {"key": "shift+tab", "action": "ochazuke.chooser.previous-source"},
       {"key": "esc", "action": "ochazuke.chooser.cancel"},
       {"key": "down", "action": "ochazuke.chooser.move", "args": {"delta": 1}},
       {"key": "ctrl+j", "action": "ochazuke.chooser.move", "args": {"delta": 1}},

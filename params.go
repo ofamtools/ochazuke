@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"slices"
@@ -176,6 +177,35 @@ func enumChoices(p Parameter) []Choice {
 // list verb, the noun's live instances. A source that asks for
 // confirmation is refused; it must be a read.
 func (r *Runtime) Choices(c Context, p Parameter) ([]Choice, error) {
+	return r.ChoicesFor(c, p, "")
+}
+
+// ChoicesQueryParameter is the parameter a choices source declares to see
+// the typed text: a source verb with a parameter of this name is called
+// with what the user has typed so far (the word in the palette, the query
+// in a form's suggestions chooser, the value being checked), so it can
+// complete as you type; one without it is called with no arguments.
+const ChoicesQueryParameter = "query"
+
+// ChoicesTakeQuery reports whether a parameter's choices source sees the
+// typed text (it declares ChoicesQueryParameter).
+func (r *Runtime) ChoicesTakeQuery(p Parameter) bool {
+	op, ok := r.Operations[r.ChoicesSource(p)]
+	_, takes := op.Parameters[ChoicesQueryParameter]
+	return ok && takes
+}
+
+// choicesQueryArgs are the arguments a choices source is called with.
+func choicesQueryArgs(op Operation, query string) Arguments {
+	if _, ok := op.Parameters[ChoicesQueryParameter]; ok {
+		return Arguments{ChoicesQueryParameter: query}
+	}
+	return nil
+}
+
+// ChoicesFor is Choices for the text typed so far: a source that declares
+// ChoicesQueryParameter receives query.
+func (r *Runtime) ChoicesFor(c Context, p Parameter, query string) ([]Choice, error) {
 	out := enumChoices(p)
 	source := r.ChoicesSource(p)
 	if source == "" {
@@ -191,7 +221,7 @@ func (r *Runtime) Choices(c Context, p Parameter) ([]Choice, error) {
 	if op.Confirm != "" {
 		return out, fmt.Errorf("choices source %q asks for confirmation", source)
 	}
-	result, err := r.ExecuteAt(c, Request{Verb: op.Verb, Noun: op.Noun})
+	result, err := r.ExecuteAt(c, Request{Verb: op.Verb, Noun: op.Noun, Args: choicesQueryArgs(op, query)})
 	if err != nil {
 		return out, fmt.Errorf("choices source %q: %w", source, err)
 	}
@@ -209,11 +239,16 @@ func (r *Runtime) Choices(c Context, p Parameter) ([]Choice, error) {
 // at once when nothing is pending, and never for a cancelled load; it
 // reports whether a load is in flight.
 func (r *Runtime) loadChoices(c Context, p Parameter, owner string, done func([]Choice, error)) bool {
+	return r.loadChoicesFor(c, p, "", owner, done)
+}
+
+// loadChoicesFor is loadChoices for the text typed so far (ChoicesFor).
+func (r *Runtime) loadChoicesFor(c Context, p Parameter, query, owner string, done func([]Choice, error)) bool {
 	enum := enumChoices(p)
 	source := r.ChoicesSource(p)
 	op, ok := r.Operations[source]
 	if source == "" || !ok || op.App == nil || op.Confirm != "" {
-		choices, err := r.Choices(c, p)
+		choices, err := r.ChoicesFor(c, p, query)
 		done(choices, err)
 		return false
 	}
@@ -227,7 +262,7 @@ func (r *Runtime) loadChoices(c Context, p Parameter, owner string, done func([]
 		}
 		return append(slices.Clone(enum), more...), nil
 	}
-	ctx := Ctx{Runtime: r, Context: c, Instance: r.Instances[focusOf(c)]}
+	ctx := Ctx{Runtime: r, Context: c, Instance: r.Instances[focusOf(c)], Args: choicesQueryArgs(op, query)}
 	res := op.App(ctx)
 	if res.err != nil || res.work == nil {
 		done(parse(res.value, res.err))
@@ -270,7 +305,7 @@ func (r *Runtime) checkArguments(op Operation, args Arguments) error {
 		if !ok || p.Source == "" || p.Free {
 			continue
 		}
-		choices, err := r.Choices(r.Context(), p)
+		choices, err := r.ChoicesFor(r.Context(), p, s)
 		if err != nil {
 			continue
 		}
@@ -291,4 +326,47 @@ func choiceError(name string, choices []Choice) error {
 		ids[i] = c.ID
 	}
 	return fmt.Errorf("%s must be one of %s", name, strings.Join(ids, ", "))
+}
+
+// choicesLoad is a parameter's choices for query as a Result whose value
+// is a []Choice: Done when they are at hand, Pending when the source verb
+// returns Pending (its work then runs off the loop wherever the caller
+// launches it).
+func (r *Runtime) choicesLoad(c Context, p Parameter, query string) Result {
+	enum := enumChoices(p)
+	source := r.ChoicesSource(p)
+	op, ok := r.Operations[source]
+	if source == "" || !ok || op.App == nil || op.Confirm != "" {
+		choices, err := r.ChoicesFor(c, p, query)
+		if err != nil && len(choices) == 0 {
+			return Failed(err)
+		}
+		return Done(choices)
+	}
+	parse := func(value any) ([]Choice, error) {
+		more, err := ParseChoices(value)
+		if err != nil {
+			return nil, fmt.Errorf("choices source %q: %w", source, err)
+		}
+		return append(slices.Clone(enum), more...), nil
+	}
+	res := op.App(Ctx{Runtime: r, Context: c, Instance: r.Instances[focusOf(c)], Args: choicesQueryArgs(op, query)})
+	if res.err != nil {
+		return Failed(fmt.Errorf("choices source %q: %w", source, res.err))
+	}
+	if res.work == nil {
+		choices, err := parse(res.value)
+		if err != nil {
+			return Failed(err)
+		}
+		return Done(choices)
+	}
+	work := res.work
+	return Pending(func(ctx context.Context) (any, error) {
+		value, err := work(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("choices source %q: %w", source, err)
+		}
+		return parse(value)
+	}).Label(source)
 }

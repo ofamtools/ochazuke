@@ -41,6 +41,12 @@ type ChooserRow struct {
 	// wide as its widest cell among the rows); Label stays what the
 	// filter reads.
 	Cells []string
+	// Opens marks a row its source can open (ChooserSource.Open: a
+	// folder to browse into): chooser.open opens it, and so does enter
+	// unless the setting chooser.enter is "pick". NoPick marks a row that
+	// only opens (a folder in a file chooser): picking it opens it.
+	Opens  bool
+	NoPick bool
 }
 
 // ChooserSpec opens a chooser. Kind is the modal's kind (one open chooser
@@ -72,6 +78,12 @@ type ChooserSpec struct {
 	// (wrapped, cut at the bottom) once the chooser is ChooserPreviewMin
 	// cells wide; narrower, the rows take the whole width.
 	Preview func(ChooserRow) string
+	// Sources, when set, supply the rows one source at a time (see
+	// ChooserSource; Rows is then the current source's). Source names
+	// the one to open on; else the one last used for the kind
+	// (chooser.remember-source), else the first.
+	Sources []ChooserSource
+	Source  string
 }
 
 // ChooserPreviewMin is the width from which a chooser with a Preview
@@ -96,6 +108,14 @@ type Chooser struct {
 	// user moves it, it is the top match (see ChooserRow on trailing rows).
 	cursor int
 	moved  bool
+	// The sources (chooser_sources.go): the current one, the query its
+	// rows were loaded for, a load in flight, its error, and the load
+	// generation (an older load's rows never land).
+	source      int
+	loadedQuery string
+	loading     bool
+	loadErr     string
+	gen         uint64
 }
 
 // The delivery contract: a chooser runs no jobs of its own (Choose and
@@ -103,8 +123,23 @@ type Chooser struct {
 // focus the chooser opened over (runApplication), since the chooser and its
 // input are closed before the callback runs.
 func (c *Chooser) HandleMessage(tea.Msg) bool { return false }
-func (c *Chooser) PendingCommand() tea.Cmd    { return nil }
 func (c *Chooser) Close()                     {}
+
+// PendingCommand follows the query after every event: a Live source loads
+// again for the edited query, and the work it queues is handed over here
+// (the runtime's queue was drained before the components were asked).
+func (c *Chooser) PendingCommand() tea.Cmd {
+	if c.r.Chooser(c.spec.Kind) != c {
+		return nil
+	}
+	c.sync()
+	if len(c.r.commands) == 0 {
+		return nil
+	}
+	commands := c.r.commands
+	c.r.commands = nil
+	return tea.Batch(commands...)
+}
 
 func registerChooser(r *Runtime) {
 	verb := func(fn func(*Chooser, Ctx) Result) AppHandler {
@@ -132,6 +167,7 @@ func registerChooser(r *Runtime) {
 	move := r.Operations["ochazuke.chooser.move"]
 	move.Parameters = map[string]Parameter{"delta": {Type: "integer", Required: true}}
 	r.Operations["ochazuke.chooser.move"] = move
+	registerChooserSources(r)
 }
 
 // OpenChooser opens a chooser modal with its search input focused in
@@ -144,12 +180,17 @@ func (r *Runtime) OpenChooser(spec ChooserSpec) (*Chooser, error) {
 		spec.Filter = func(query string, row ChooserRow) bool { return fuzzyMatch(query, row.Label) }
 	}
 	c := &Chooser{r: r, spec: spec, input: NewInput(spec.Kind+"/query", "", false)}
+	if len(spec.Sources) > 0 {
+		c.source = c.startSource()
+		c.spec.Rows = nil
+	}
 	c.refilter()
 	inst, err := r.OpenModal(spec.Kind, Payload{}, WithInput(c.input, Kind(chooserNoun)))
 	if err != nil {
 		return nil, err
 	}
 	inst.Component = c
+	c.load()
 	return c, nil
 }
 
@@ -179,8 +220,16 @@ func (r *Runtime) chooserAt(inst *Instance) *Chooser {
 // Kind is the chooser's modal kind.
 func (c *Chooser) Kind() string { return c.spec.Kind }
 
-// Title is the chooser modal's title.
-func (c *Chooser) Title() string { return c.spec.Title }
+// Title is the chooser modal's title; with sources, the current source
+// in brackets and the others after it.
+func (c *Chooser) Title() string { return c.sourceTitle() }
+
+// SetQuery replaces the search text (cursor at its end), as typing would.
+func (c *Chooser) SetQuery(query string) {
+	_ = c.input.Replace(0, len(c.input.Text), query)
+	c.input.Cursor = len(c.input.Text)
+	c.sync()
+}
 
 // ModalTitle and ModalBlock make a chooser a self-drawing modal body
 // (ModalBody), drawn like a record editor and its chooser.
@@ -200,6 +249,12 @@ func (c *Chooser) pick() Result {
 	if !ok || row.ID == chooserCreateRow {
 		return c.create()
 	}
+	if row.NoPick && c.opens() {
+		if err := c.open(); err != nil {
+			return Failed(err)
+		}
+		return Done(c.state())
+	}
 	if err := c.close(); err != nil {
 		return Failed(err)
 	}
@@ -210,14 +265,15 @@ func (c *Chooser) pick() Result {
 }
 
 func (c *Chooser) create() Result {
-	if c.spec.Create == nil {
+	create := c.createFunc()
+	if create == nil {
 		return Failed(errors.New("nothing matches"))
 	}
 	query := c.Query()
 	if err := c.close(); err != nil {
 		return Failed(err)
 	}
-	return c.spec.Create(query)
+	return create(query)
 }
 
 // SetRows replaces the rows (a background load landing); the highlight
@@ -262,9 +318,13 @@ func (c *Chooser) Highlighted() (ChooserRow, bool) {
 // sync refilters when the query changed; typing resets the highlight to the
 // top match.
 func (c *Chooser) sync() {
-	if c.Query() != c.seen {
-		c.refilter()
+	if c.Query() == c.seen {
+		return
 	}
+	if c.live() && c.Query() != c.loadedQuery {
+		c.load()
+	}
+	c.refilter()
 }
 
 func (c *Chooser) refilter() {
@@ -275,7 +335,7 @@ func (c *Chooser) refilter() {
 			fixed = append(fixed, row)
 			continue
 		}
-		if !c.spec.Filter(c.seen, row) {
+		if !c.live() && !c.spec.Filter(c.seen, row) {
 			continue
 		}
 		if row.Trailing {
@@ -286,10 +346,13 @@ func (c *Chooser) refilter() {
 	}
 	// A row whose label holds the query whole outranks a scattered fuzzy
 	// match, so the top match is the one the query spells.
+	// A Live source ranked its rows itself.
 	needle := strings.ToLower(c.seen)
-	slices.SortStableFunc(head, func(x, y ChooserRow) int {
-		return cmpBool(strings.Contains(strings.ToLower(y.Label), needle), strings.Contains(strings.ToLower(x.Label), needle))
-	})
+	if !c.live() {
+		slices.SortStableFunc(head, func(x, y ChooserRow) int {
+			return cmpBool(strings.Contains(strings.ToLower(y.Label), needle), strings.Contains(strings.ToLower(x.Label), needle))
+		})
+	}
 	// A trailing row the query spells from the start of one of its words
 	// ("unp", "no pin") is what the user asked for: it leads, unless an
 	// ordinary row is spelled as well ("no" for a project "notes").
@@ -389,10 +452,11 @@ func compactMatch(query, label string) bool {
 
 // createRow is the create row's label, when the chooser shows one.
 func (c *Chooser) createRow() (string, bool) {
-	if !c.spec.CreateRow || c.spec.Create == nil || c.spec.CreateLabel == nil || strings.TrimSpace(c.seen) == "" {
+	label := c.createLabel()
+	if !c.spec.CreateRow || c.createFunc() == nil || label == nil || strings.TrimSpace(c.seen) == "" {
 		return "", false
 	}
-	return "+ " + c.spec.CreateLabel(c.seen), true
+	return "+ " + label(c.seen), true
 }
 
 // move steps the highlight, clamped at both ends (no wrap). From none,
@@ -415,7 +479,12 @@ func (c *Chooser) move(delta int) {
 
 func (c *Chooser) state() map[string]any {
 	row, _ := c.Highlighted()
-	return map[string]any{"query": c.Query(), "matches": len(c.matches), "highlighted": row.ID, "moved": c.moved}
+	state := map[string]any{"query": c.Query(), "matches": len(c.matches), "highlighted": row.ID, "moved": c.moved}
+	if len(c.spec.Sources) > 0 {
+		state["source"] = c.Source()
+		state["sources"] = c.sourceNames()
+	}
+	return state
 }
 
 // View draws the search line, then the rows with the highlighted one in
@@ -474,16 +543,16 @@ func (c *Chooser) rowsView(width, height int) Block {
 	lines := []string{prefix + line.Text}
 	rowsHeight := max(1, height-2)
 	switch {
-	case len(c.spec.Rows) == 0 && c.spec.Empty != "":
+	case len(c.spec.Rows) == 0 && c.emptyLine() != "":
 		// Padded to the width the rows will take, so the panel does not
 		// jump wider when they land.
-		lines = append(lines, ansi.Truncate("  "+c.spec.Empty+strings.Repeat(" ", width), width, ""))
+		lines = append(lines, ansi.Truncate("  "+c.emptyLine()+strings.Repeat(" ", width), width, ""))
 	case c.matched() == 0:
 		lines = append(lines, "  no matches")
 	}
 	hint := ""
-	if c.cursor < 0 && c.spec.Create != nil && c.spec.CreateLabel != nil {
-		hint = ansi.Truncate("  enter: "+c.spec.CreateLabel(c.Query()), width, "…")
+	if label := c.createLabel(); c.cursor < 0 && c.createFunc() != nil && label != nil {
+		hint = ansi.Truncate("  enter: "+label(c.Query()), width, "…")
 	}
 	// The fixed rows ("no pin") always show at the bottom: the rows above
 	// them scroll in what is left, keeping the highlight in view.

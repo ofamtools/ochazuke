@@ -119,7 +119,7 @@ var actionPlaceholders = map[string]bool{"target": true, "id": true, "label": tr
 var actionField = regexp.MustCompile(`\{\{\s*([\w.-]+)\s*\}\}`)
 
 // actionTypes are the parameter types an action declares.
-var actionTypes = map[string]bool{"string": true, "integer": true, "boolean": true}
+var actionTypes = map[string]bool{"string": true, "integer": true, "boolean": true, PathParameterType: true}
 
 // check reports why an action cannot be installed on r, nil when it can.
 func (a Action) check(r *Runtime) error {
@@ -152,7 +152,7 @@ func (a Action) check(r *Runtime) error {
 			return fmt.Errorf("parameter name %q must be one word, not a dot or a reserved name", name)
 		}
 		if !actionTypes[p.Type] {
-			return fmt.Errorf("parameter %s: type must be string, integer or boolean", name)
+			return fmt.Errorf("parameter %s: type must be string, integer, boolean or path", name)
 		}
 	}
 	for _, name := range a.Positional {

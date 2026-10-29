@@ -256,7 +256,8 @@ const actionsExample = `[
     "label": "{{noun}}.{{verb}} {{target}}",
     "parameters": {
       "name": {"type": "string", "source": "settings.names", "free": true, "description": "A setting name; free accepts one the source does not list"},
-      "page": {"type": "string", "noun": "pages", "description": "A page; noun lists the noun's rows (pages.list) or its live instances"}
+      "page": {"type": "string", "noun": "pages", "description": "A page; noun lists the noun's rows (pages.list) or its live instances"},
+      "out": {"type": "path", "path": "file", "base": "~", "new": true, "description": "A file to write; a path field opens the path chooser (browse from base, recent, typed); new allows a file not there yet"}
     },
     "quiet": true,
     "history": "fetch"

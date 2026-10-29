@@ -253,7 +253,7 @@ func TestActionMalformedEntriesAreNotices(t *testing.T) {
 		"action 5 (worktree.neither): command or base is required",
 		"action 6 (worktree.ph): unknown placeholder {{nosuch}}",
 		`action 7: json: unknown field "commnd"`,
-		"action 8 (worktree.ptype): parameter n: type must be string, integer or boolean",
+		"action 8 (worktree.ptype): parameter n: type must be string, integer, boolean or path",
 		`action 9 (worktree.pos): positional "n" is not a declared parameter`,
 		`action 10 (worktree.time): timeout "soon"`,
 		"action 11 (worktree.call): call and target go with base",

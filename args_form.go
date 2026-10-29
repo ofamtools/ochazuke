@@ -45,7 +45,7 @@ func missingRequired(op Operation, args Arguments) []string {
 // string, a number or a boolean (never an array or an object).
 func formable(p Parameter) bool {
 	switch p.Type {
-	case "", "string", "integer", "number", "boolean":
+	case "", "string", "integer", "number", "boolean", PathParameterType:
 		return true
 	}
 	return false

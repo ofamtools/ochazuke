@@ -121,7 +121,7 @@ func (p *Palette) completions() []PaletteEntry {
 		}
 	}
 	choices := func(op Operation, name string) {
-		list, _ := p.paramChoices(op, name)
+		list, _ := p.paramChoices(op, name, partial)
 		for _, choice := range list {
 			out = append(out, PaletteEntry{Value: choice.ID, Kind: "choice", Label: choiceLabel(choice), ID: choice.ID})
 		}

@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"maps"
@@ -169,6 +170,7 @@ type recordField struct {
 	choices []Choice
 	choose  bool
 	suggest bool // a free text field with suggestions
+	path    bool // a path field: its chooser is the path chooser
 }
 
 func (f *recordField) text() string {
@@ -295,6 +297,14 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 		f := &recordField{RecordField: field, id: id + "/" + field.Name}
 		f.choose = field.Type == "boolean" || (paramHasChoices(field.Parameter) && !field.Free)
 		f.suggest = !f.choose && paramHasChoices(field.Parameter)
+		if field.Type == PathParameterType {
+			// A path field is a stop that opens the path chooser, or a
+			// text field whose suggestions are the path chooser
+			// (path.field).
+			f.path = true
+			v, _ := r.settingValue(PathFieldSetting)
+			f.choose, f.suggest = v != "text", v == "text"
+		}
 		v := values[field.Name]
 		e.written[field.Name], f.before = v, v
 		if f.choose {
@@ -472,6 +482,9 @@ func (e *RecordEditor) snapshot() string {
 // loadChoices reads a choice field's values: true and false for a
 // boolean, else the Enum then the Source's result.
 func (e *RecordEditor) loadChoices(f *recordField) {
+	if f.path {
+		return
+	}
 	if f.Type == "boolean" && len(f.Enum) == 0 && f.Source == "" {
 		f.choices = []Choice{{ID: "true", Label: "true"}, {ID: "false", Label: "false"}}
 		return
@@ -709,6 +722,9 @@ func (e *RecordEditor) choose(f *recordField) error {
 	if f == nil || !f.choose {
 		return errors.New("the focused field is not a choice field")
 	}
+	if f.path {
+		return e.choosePath(f)
+	}
 	e.loadChoices(f)
 	if len(f.choices) == 0 {
 		return fmt.Errorf("%s has no choices", f.label())
@@ -749,6 +765,9 @@ func (e *RecordEditor) suggest(f *recordField) error {
 	if f == nil || (!f.suggest && !f.choose) {
 		return errors.New("the focused field has no suggestions")
 	}
+	if f.path {
+		return e.choosePath(f)
+	}
 	fill := func(v string) Result {
 		if err := e.fill(f, v); err != nil {
 			return Failed(err)
@@ -770,6 +789,51 @@ func (e *RecordEditor) suggest(f *recordField) error {
 		if !f.Required {
 			fixed = append(fixed, ChooserRow{ID: "", Label: "(none)", Fixed: true})
 		}
+	}
+	if e.r.ChoicesTakeQuery(f.Parameter) {
+		// The source sees the query: it loads again as the user types.
+		spec.Sources = []ChooserSource{{
+			Name: "suggestions",
+			Live: true,
+			Load: func(query string) Result {
+				res := e.r.choicesLoad(e.r.contextOf(f.id), f.Parameter, query)
+				rows := func(value any) []ChooserRow {
+					choices, _ := value.([]Choice)
+					out := make([]ChooserRow, 0, len(choices)+len(fixed))
+					for _, ch := range choices {
+						out = append(out, ChooserRow{ID: ch.ID, Label: choiceLabel(ch)})
+					}
+					return append(out, fixed...)
+				}
+				if res.work == nil {
+					if res.err != nil {
+						return res
+					}
+					f.choices, _ = res.value.([]Choice)
+					return Done(rows(res.value))
+				}
+				work := res.work
+				return Pending(func(ctx context.Context) (any, error) {
+					value, err := work(ctx)
+					if err != nil {
+						return nil, err
+					}
+					return rows(value), nil
+				}).Then(func(_ Ctx, value any, _ error) {
+					// value is the rows; the choices they came from are
+					// their ids.
+					got, _ := value.([]ChooserRow)
+					f.choices = f.choices[:0]
+					for _, row := range got {
+						if !row.Fixed {
+							f.choices = append(f.choices, Choice{ID: row.ID, Label: row.Label})
+						}
+					}
+				})
+			},
+		}}
+		_, err := e.r.OpenChooser(spec)
+		return err
 	}
 	c, err := e.r.OpenChooser(spec)
 	if err != nil {
@@ -799,6 +863,30 @@ func (e *RecordEditor) suggest(f *recordField) error {
 	}
 	e.r.loadChoices(e.r.contextOf(f.id), f.Parameter, FormSuggestionsKind, done)
 	return nil
+}
+
+// choosePath opens the path chooser for a path field; the chosen path
+// fills it and is written at once.
+func (e *RecordEditor) choosePath(f *recordField) error {
+	_, err := e.r.OpenPathChooser(PathChooserSpec{
+		Title: "Choose " + f.label(),
+		Pick:  PathPick{Name: f.Name, Parameter: f.Parameter, Value: f.text()},
+		Choose: func(path string) Result {
+			var err error
+			if f.input != nil {
+				err = e.fill(f, path)
+			} else {
+				f.value = path
+				e.seen = e.snapshot()
+				err = e.seal(f)
+			}
+			if err != nil {
+				return Failed(err)
+			}
+			return Done(path)
+		},
+	})
+	return err
 }
 
 // fill sets a text field to a suggestion (the chooser has closed and the

@@ -32,6 +32,14 @@ type Parameter struct {
 	// stands in for an empty Source), else the id of a live instance of
 	// the noun. A Source still wins; Enum values come first.
 	Noun string `json:"noun,omitempty"`
+	// A path parameter (Type "path") names a file, or a folder when Path
+	// is "dir"; its form field opens the path chooser (path_chooser.go),
+	// whose browse starts at Base (~ and relative to the working
+	// directory) when the field is empty. New allows a path that does not
+	// exist yet (a file to write).
+	Path string `json:"path,omitempty"`
+	Base string `json:"base,omitempty"`
+	New  bool   `json:"new,omitempty"`
 }
 
 // Request names an operation and, optionally, the instance it addresses.
@@ -775,7 +783,7 @@ func validateArguments(op Operation, args Arguments) error {
 		}
 		valid := false
 		switch p.Type {
-		case "string":
+		case "string", PathParameterType:
 			_, valid = v.(string)
 		case "integer":
 			switch n := v.(type) {

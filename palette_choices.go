@@ -17,21 +17,28 @@ type choiceList struct {
 // paramChoices lists the values a parameter's word completes to in the
 // palette's origin context: the instances of a palette noun for its
 // default verb's argument, true and false for a boolean, else the
-// parameter's Enum, Source or Noun (Runtime.Choices).
-func (p *Palette) paramChoices(op Operation, name string) ([]Choice, error) {
+// parameter's Enum, Source or Noun (Runtime.Choices). word is the text
+// typed for it so far: a source that declares ChoicesQueryParameter sees
+// it (and is cached per word).
+func (p *Palette) paramChoices(op Operation, name, word string) ([]Choice, error) {
 	key := op.Key() + "/" + name
+	param := op.Parameters[name]
+	if !p.r.ChoicesTakeQuery(param) {
+		word = ""
+	} else {
+		key += "\x00" + word
+	}
 	if cached, ok := p.choiceCache[key]; ok {
 		return cached.choices, cached.err
 	}
 	var choices []Choice
 	var err error
-	param := op.Parameters[name]
 	if config, ok := p.nouns[op.Noun]; ok && config.DefaultVerb == op.Verb && config.Argument == name {
 		choices = p.instanceChoices(op.Noun)
 	} else if param.Type == "boolean" {
 		choices = []Choice{{ID: "true", Label: "true"}, {ID: "false", Label: "false"}}
 	} else {
-		choices, err = p.r.Choices(p.origin.Clone(), param)
+		choices, err = p.r.ChoicesFor(p.origin.Clone(), param, word)
 	}
 	if p.choiceCache == nil {
 		p.choiceCache = map[string]choiceList{}
