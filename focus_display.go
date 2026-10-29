@@ -11,8 +11,8 @@ import (
 // is beside the mode in the header: off (the default) leaves the chrome as
 // it was, noun shows the focused instance's noun (NORMAL · pane), stack
 // the focus path from the outermost level to the innermost, open modals
-// included (NORMAL · panes › pane-list › pane). Declared by
-// EnsureConfigSettings unless the application declared one first; read at
+// included (NORMAL · panes › pane-list › pane). A row of
+// settings/ochazuke.json, declared when the runtime is made; read at
 // every frame, so a change (settings set, the Settings page, the
 // focus.display verb, another process's write) shows on the next one.
 const FocusDisplaySetting = "focus-display"
@@ -37,14 +37,6 @@ const (
 	focusStackSep = " › "
 	focusSep      = " · "
 )
-
-// ensureFocusDisplaySetting declares focus-display unless the application
-// declared it.
-func (r *Runtime) ensureFocusDisplaySetting() {
-	if r.Settings().find(FocusDisplaySetting) == nil {
-		_ = r.DeclareSetting(Setting{Name: FocusDisplaySetting, Type: SettingString, Default: FocusDisplayOff, Description: "Show where the focus is beside the mode: off, noun (the focused noun) or stack (the focus path, outermost first)", Enum: slices.Clone(FocusDisplayModes)})
-	}
-}
 
 // FocusDisplay is the focus-display value, off when it is undeclared or
 // holds anything else.
@@ -188,7 +180,6 @@ func cutLeft(s string, width int) string {
 
 func registerFocusDisplay(r *Runtime) {
 	r.Register(Operation{Verb: "display", Noun: "ochazuke.focus", Description: "Show where the focus is beside the mode (the focus-display setting): off, noun or stack; with no mode, the next in that order", Parameters: map[string]Parameter{"mode": {Type: "string", Enum: slices.Clone(FocusDisplayModes), Description: "off, noun or stack (default: the next after the current)"}}, Result: "the focus-display value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		r.ensureFocusDisplaySetting()
 		mode := StringArg(a, "mode", "")
 		if mode == "" {
 			i := slices.Index(FocusDisplayModes, r.FocusDisplay())

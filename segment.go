@@ -396,13 +396,6 @@ func (r *Runtime) EnsureSegments() []string {
 	g := r.segs()
 	if !g.declared {
 		g.declared = true
-		s := r.Settings()
-		if s.find(SegmentsSetting) == nil {
-			_ = r.DeclareSetting(Setting{Name: SegmentsSetting, Type: SettingBoolean, Default: true, Description: "Show the status segments (cpu, disk, an extension's) in the header rule; off hides them all and stops their refreshes"})
-		}
-		if s.find(SegmentOrderSetting) == nil {
-			_ = r.DeclareSetting(Setting{Name: SegmentOrderSetting, Type: SettingList, Default: []string{}, Description: "Segment ids in the order the header rule draws them (segment.move writes it); the rest follow"})
-		}
 	}
 	if g.loaded {
 		return nil

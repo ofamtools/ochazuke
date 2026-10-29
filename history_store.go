@@ -153,12 +153,14 @@ func (c *Config) Flush() error {
 	return errors.Join(s.failure(), err)
 }
 
-// EnsureConfigSettings declares the settings the framework reads from the
-// user's settings.json, unless the application declared one of the same
+// EnsureConfigSettings declares the framework settings whose rows depend
+// on the application, unless the application declared one of the same
 // name first: theme (the colour scheme; its choices are the built-in
 // themes and themes.json's, read here and again when the config directory
-// changed), focus-display (the focus beside the mode) and history-limit
-// while the history is persisted. It applies terminal-leader when an
+// changed), pages.hidden (its default the pages declared hidden), the
+// segments' settings and history-limit while the history is persisted.
+// The fixed framework settings (settings/ochazuke.json) are declared when
+// the runtime is made, so they need no call. It applies terminal-leader when an
 // application declared it (EnsureTerminalLeader). Model.Init and the CLI
 // shell call it, so settings set works in both; an
 // application may call it earlier (after setting Config.App) to have them
@@ -169,13 +171,8 @@ func (r *Runtime) EnsureConfigSettings() {
 		return
 	}
 	r.ensureThemeSetting()
-	r.ensureDimSettings()
-	r.ensureHelpSettings()
-	r.ensureFormSettings()
-	r.ensureFocusDisplaySetting()
 	r.ensurePagesSetting()
 	r.EnsureSegments()
-	r.declareFrameworkSettings(SequenceTimeoutSetting, SequenceUnknownSetting, RenameSelectSetting, RepeatEmptySetting, TreeZoomSetting, TreeZoomRootSetting, TreeBreadcrumbSetting, TreeBreadcrumbAncestorsSetting, VisualAfterActionSetting, VisualListSetting, SelectedBackgroundSetting, AliasShadowSetting, ChooserRememberSourceSetting, ChooserEnterSetting, SinglePathSetting, PathStartSetting, PathFieldSetting, PathHiddenSetting, PathNoAutoListSetting)
 	s := r.Settings()
 	if c.HistoryPath() != "" && s.find(HistorySetting) == nil {
 		_ = r.DeclareSetting(Setting{Name: HistorySetting, Type: SettingInteger, Default: HistoryLimit, Description: "Action history entries kept across restarts (0 keeps none)"})

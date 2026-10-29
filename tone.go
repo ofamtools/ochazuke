@@ -443,8 +443,8 @@ const (
 )
 
 // SelectedBackground is the tones.selected-background setting's value
-// (declared by EnsureConfigSettings from settings/ochazuke.json, default
-// drop).
+// (a row of settings/ochazuke.json, declared when the runtime is made,
+// default drop).
 func (r *Runtime) SelectedBackground() string {
 	if v, _ := r.settingValue(SelectedBackgroundSetting); v == SelectedBackgroundKeep {
 		return SelectedBackgroundKeep

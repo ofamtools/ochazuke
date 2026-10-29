@@ -65,15 +65,30 @@ const (
 	RepeatEmptySilent = "silent"
 )
 
+// startupSettingsFile is the embedded file whose rows every runtime
+// declares when it is made (registerSettings): the settings every
+// application has. Rows of the other files are declared by the feature
+// that needs them (terminal.json: EnsureTerminalLeader).
+const startupSettingsFile = "ochazuke.json"
+
 // frameworkSettings are the rows of the embedded settings files, each
 // default already in its typed form. A file that does not parse is a
 // build mistake the settings rule test catches, so it panics.
 var frameworkSettings = sync.OnceValue(func() []Setting {
+	return frameworkSettingFiles()[""]
+})
+
+// startupSettings are the rows of startupSettingsFile.
+func startupSettings() []Setting { return frameworkSettingFiles()[startupSettingsFile] }
+
+// frameworkSettingFiles are the embedded rows by file name, and all of
+// them under "".
+var frameworkSettingFiles = sync.OnceValue(func() map[string][]Setting {
+	files := map[string][]Setting{}
 	names, err := settingFiles.ReadDir("settings")
 	if err != nil {
 		panic(err)
 	}
-	var out []Setting
 	for _, entry := range names {
 		data, err := settingFiles.ReadFile("settings/" + entry.Name())
 		if err != nil {
@@ -90,16 +105,19 @@ var frameworkSettings = sync.OnceValue(func() []Setting {
 			}
 			one.Default = def
 			one.Validate = settingChecks[one.Name]
-			out = append(out, one)
+			files[""] = append(files[""], one)
+			files[entry.Name()] = append(files[entry.Name()], one)
 		}
 	}
-	return out
+	return files
 })
 
 // settingChecks are the framework settings' Validate functions by name.
 var settingChecks = map[string]func(any) error{
 	SequenceTimeoutSetting: nonNegativeDuration,
 	TerminalLeaderSetting:  validLeader,
+	ModalDimSetting:        validDim,
+	DimUnfocusedSetting:    validDim,
 }
 
 // frameworkSetting is one row of the embedded settings: by its name, or
@@ -123,7 +141,9 @@ func nonNegativeDuration(v any) error {
 
 // declareFrameworkSettings declares the named framework settings from the
 // embedded rows, each unless the application declared it (or a deprecated
-// name of it) first with its own default.
+// name of it) first with its own default. The rows of
+// startupSettingsFile are declared already (registerSettings); this is
+// for the other files' rows.
 func (r *Runtime) declareFrameworkSettings(names ...string) {
 	if r.Config() == nil {
 		return

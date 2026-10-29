@@ -114,7 +114,9 @@ func TestSettingsSetValidatesPersistsAndNotifies(t *testing.T) {
 		t.Fatalf("temp files left: %v", entries)
 	}
 	list, _ := r.Execute(Request{Noun: "ochazuke.settings", Verb: "list"})
-	if rows := list.([]SettingValue); len(rows) != 5 || rows[3].Value != "1s" || rows[3].Default != "400ms" || !rows[3].Set {
+	// The application's five come first, then the framework's own
+	// (settings/ochazuke.json), declared when the runtime was made.
+	if rows := list.([]SettingValue); len(rows) != 5+len(startupSettings()) || rows[3].Value != "1s" || rows[3].Default != "400ms" || !rows[3].Set || rows[4].Name != "ratio" {
 		t.Fatalf("list %+v", list)
 	}
 }
@@ -310,7 +312,7 @@ func TestSettingSections(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
-	if got := settingSections(r.Settings()); !reflect.DeepEqual(got, []string{"", "ext.ai", "look"}) {
+	if got := settingSections(r.Settings()); len(got) < 3 || !reflect.DeepEqual(got[:3], []string{"", "ext.ai", "look"}) {
 		t.Fatalf("sections %q", got)
 	}
 }

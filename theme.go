@@ -197,23 +197,11 @@ func (s Styles) CardBorders() (focused, selected, other lipgloss.Style) {
 	return focused, selected, other
 }
 
-// The dim settings, declared by EnsureConfigSettings.
+// The dim settings: rows of settings/ochazuke.json.
 const (
 	ModalDimSetting     = "modal-dim"
 	DimUnfocusedSetting = "dim-unfocused"
 )
-
-// ensureDimSettings declares modal-dim and dim-unfocused unless the
-// application declared them.
-func (r *Runtime) ensureDimSettings() {
-	s := r.Settings()
-	if s.find(ModalDimSetting) == nil {
-		_ = r.DeclareSetting(Setting{Name: ModalDimSetting, Type: SettingInteger, Default: DefaultModalDim, Description: "Percent the page behind a modal fades toward the background (0 is off)", Validate: validDim})
-	}
-	if s.find(DimUnfocusedSetting) == nil {
-		_ = r.DeclareSetting(Setting{Name: DimUnfocusedSetting, Type: SettingInteger, Default: DefaultDimUnfocused, Description: "Percent a list without the focus fades toward the background; its selected row stays marked (0 is off)", Validate: validDim})
-	}
-}
 
 // dimSetting is a dim setting's value, def when it is not declared.
 func (r *Runtime) dimSetting(name string, def int) int {

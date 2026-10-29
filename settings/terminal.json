@@ -1,0 +1,6 @@
+// terminal settings (JSONC): rows of settings an application has only when it has terminal panes. EnsureTerminalLeader (cli.AddCommands
+// calls it) declares them unless the application declared the name first; until then a binding row naming the setting ({terminal-leader})
+// reads the default here. An application without terminals never lists them.
+[
+  {"name": "terminal-leader", "type": "string", "default": "ctrl+a", "description": "Terminal leader key: then d detaches, the leader again sends it to the pane"}
+]

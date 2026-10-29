@@ -86,6 +86,10 @@ type Settings struct {
 	page      settingsPage    // the Settings page (settings_view.go)
 	warned    map[string]bool // deprecated names already warned about
 	late      []string        // warnings given before a Model took the reports (flushWarnings)
+	// framework are the names declared from the embedded rows when the
+	// runtime was made (startupSettings) that no application declared
+	// since: an application's DeclareSetting replaces such a row.
+	framework map[string]bool
 }
 
 type settingObserver struct {
@@ -120,15 +124,17 @@ func (r *Runtime) DeclareSetting(settings ...Setting) error {
 		}
 		if current, ok := s.renamed(one.Name); ok {
 			// An old name: the application's default stands for the
-			// current setting, unless that is declared already.
-			if s.find(current.Name) != nil {
+			// current setting, unless an application declared that
+			// already.
+			if s.find(current.Name) != nil && !s.framework[current.Name] {
 				continue
 			}
 			def := one.Default
 			one = current
 			one.Default = def
 		}
-		if s.find(one.Name) != nil {
+		framework := s.find(one.Name)
+		if framework != nil && !s.framework[one.Name] {
 			return fmt.Errorf("setting %q is already declared", one.Name)
 		}
 		if len(one.Enum) > 0 && one.Type != SettingString {
@@ -140,13 +146,55 @@ func (r *Runtime) DeclareSetting(settings ...Setting) error {
 		}
 		one.Default = def
 		one.Enum = slices.Clone(one.Enum)
-		s.declared = append(s.declared, one)
+		if framework != nil {
+			// The application's own declaration of a framework
+			// setting: its row (default, description) replaces the
+			// embedded one, the embedded check kept when it gives none.
+			if one.Validate == nil {
+				one.Validate = framework.Validate
+			}
+			old := s.current(*framework)
+			*framework = one
+			delete(s.framework, one.Name)
+			if s.loaded {
+				delete(s.values, one.Name)
+				s.parse(one)
+			}
+			s.changed(one.Name, old)
+			r.rebindSettingRows(one.Name)
+			continue
+		}
+		// The application's settings list before the framework rows
+		// no application declared, as they did when those were
+		// declared at Model.Init.
+		at := slices.IndexFunc(s.declared, func(d Setting) bool { return s.framework[d.Name] })
+		if at < 0 {
+			at = len(s.declared)
+		}
+		s.declared = slices.Insert(s.declared, at, one)
 		if s.loaded {
+			s.withdrawUnknown(one)
 			s.parse(one)
 		}
 		r.rebindSettingRows(one.Name)
 	}
 	return nil
+}
+
+// withdrawUnknown takes back the unknown-setting problems the file gave
+// for a setting declared after it was read (a theme, a segment, an
+// extension's setting): the key is known now.
+func (s *Settings) withdrawUnknown(one Setting) {
+	for _, name := range append([]string{one.Name}, one.Deprecated...) {
+		p := fmt.Sprintf("%s: unknown setting %q (kept)", SettingsFile, name)
+		if !slices.Contains(s.problems, p) {
+			continue
+		}
+		s.problems = slices.DeleteFunc(s.problems, func(q string) bool { return q == p })
+		if s.config.Withdraw != nil {
+			s.config.Withdraw(p)
+		}
+	}
 }
 
 // renamed is the setting a deprecated name now stands for: a declared
@@ -739,7 +787,19 @@ func (m *Model) settingsPoll() tea.Cmd {
 }
 
 func registerSettings(r *Runtime) {
-	r.Config().settings = &Settings{config: r.Config(), values: map[string]any{}, raw: map[string]json.RawMessage{}}
+	s := &Settings{config: r.Config(), values: map[string]any{}, raw: map[string]json.RawMessage{}, framework: map[string]bool{}}
+	r.Config().settings = s
+	// The framework settings every application has are known from the
+	// start: an application may read or set them before its Model
+	// starts, and a settings.json naming them loads with no warning.
+	for _, one := range startupSettings() {
+		// Each runtime its own copies: a list default is never shared.
+		one.Default, _ = coerceSetting(one, one.Default)
+		one.Enum = slices.Clone(one.Enum)
+		one.Deprecated = slices.Clone(one.Deprecated)
+		s.declared = append(s.declared, one)
+		s.framework[one.Name] = true
+	}
 	// Rows naming a setting ({terminal-leader}) follow its value.
 	r.Config().settings.Observe("", func(name string, _ any) { r.rebindSettingRows(name) })
 	name := Parameter{Type: "string", Required: true, Description: "Setting name", Source: "ochazuke.settings.names"}

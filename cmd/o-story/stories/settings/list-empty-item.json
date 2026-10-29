@@ -11,8 +11,8 @@
   },
   "script": ["S", "n", "enter", "esc"],
   "expect": [
-    {"after": 1, "contains": ["ignore    (none)"]},
+    {"after": 1, "contains": ["ignore              (none)"]},
     {"after": 3, "modal": "setting-prompt", "contains": ["an item cannot be empty"]},
-    {"modal": "", "focus": "__settings/row/ignore", "mode": "normal", "contains": ["ignore    (none)"], "lacks": ["•"]}
+    {"modal": "", "focus": "__settings/row/ignore", "mode": "normal", "contains": ["ignore              (none)"], "lacks": ["•"]}
   ]
 }

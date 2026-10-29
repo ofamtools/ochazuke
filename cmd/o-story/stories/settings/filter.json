@@ -2,6 +2,7 @@
   "name": "settings page: / filters the shown section's rows; enter keeps, esc clears",
   "area": "settings",
   "width": 80,
+  "height": 30,
   "settings": [
     {
       "name": "scrolloff",
@@ -68,6 +69,7 @@
     ",",
     "/",
     "t",
+    "h",
     "enter",
     "j",
     "esc",
@@ -92,12 +94,12 @@
       ]
     },
     {
-      "after": 3,
+      "after": 4,
       "mode": "list_filter",
       "focus": "__settings/row/theme",
       "contains": [
-        "/t",
-        "2 of 3",
+        "/th",
+        "2 of 8",
         "theme",
         "tab-width"
       ],
@@ -106,23 +108,23 @@
       ]
     },
     {
-      "after": 4,
+      "after": 5,
       "mode": "normal",
       "focus": "__settings/row/theme",
       "contains": [
-        "/t",
-        "2 of 3"
+        "/th",
+        "2 of 8"
       ]
     },
     {
-      "after": 5,
+      "after": 6,
       "focus": "__settings/row/tab-width",
       "contains": [
         "Columns per tab"
       ]
     },
     {
-      "after": 6,
+      "after": 7,
       "mode": "normal",
       "focus": "__settings/row/tab-width",
       "contains": [
@@ -131,11 +133,11 @@
         "tab-width"
       ],
       "lacks": [
-        "/t"
+        "/th"
       ]
     },
     {
-      "after": 8,
+      "after": 9,
       "mode": "list_filter",
       "contains": [
         "/z",
@@ -143,7 +145,7 @@
       ]
     },
     {
-      "after": 10,
+      "after": 11,
       "mode": "normal",
       "focus": "__settings/row/tab-width",
       "page": "__settings",

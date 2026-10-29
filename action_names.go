@@ -260,9 +260,6 @@ const (
 // AliasShadow is the aliases.shadow setting's value (refuse unless set to
 // allow).
 func (r *Runtime) AliasShadow() string {
-	// actions.json loads before EnsureConfigSettings: declare it here so
-	// settings.json's value is read.
-	r.declareFrameworkSettings(AliasShadowSetting)
 	if v, _ := r.settingValue(AliasShadowSetting); v == AliasShadowAllow {
 		return AliasShadowAllow
 	}

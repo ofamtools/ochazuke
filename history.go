@@ -321,7 +321,6 @@ func (r *Runtime) repeatApplies(q Request, focus string) bool {
 // tellNothingToRepeat answers a dot-repeat with nothing to repeat as the
 // repeat.empty setting says: a plain line (info, the default) or nothing.
 func (r *Runtime) tellNothingToRepeat() {
-	r.declareFrameworkSettings(RepeatEmptySetting)
 	if v, _ := r.settingValue(RepeatEmptySetting); v == RepeatEmptySilent {
 		return
 	}

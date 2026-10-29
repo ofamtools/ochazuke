@@ -29,7 +29,7 @@ const (
 	HelpTable = "table"
 )
 
-// The help's settings, declared by EnsureConfigSettings (section help):
+// The help's settings, rows of settings/ochazuke.json (section help):
 // whether pick and table are in S's cycle (both default on; with both off
 // S does nothing and is not offered) and whether the pending modes (counts,
 // operators, registers, the terminal leader, key-sequence prefixes) are
@@ -183,20 +183,6 @@ func (r *Runtime) helpFlag(name string, def bool) bool {
 		return def
 	}
 	return b
-}
-
-// ensureHelpSettings declares the help settings the application did not.
-func (r *Runtime) ensureHelpSettings() {
-	s := r.Settings()
-	if s.find(HelpPickSetting) == nil {
-		_ = r.DeclareSetting(Setting{Name: HelpPickSetting, Type: SettingBoolean, Default: true, Description: "S in the ? help shows the keys for a noun and mode you pick"})
-	}
-	if s.find(HelpTableSetting) == nil {
-		_ = r.DeclareSetting(Setting{Name: HelpTableSetting, Type: SettingBoolean, Default: true, Description: "S in the ? help shows a noun's keys as a table, a column per mode"})
-	}
-	if s.find(HelpPendingSetting) == nil {
-		_ = r.DeclareSetting(Setting{Name: HelpPendingSetting, Type: SettingBoolean, Default: false, Description: "The ? help's pick and table views offer the pending modes too (counts, operators, the terminal leader, key-sequence prefixes)"})
-	}
 }
 
 // views are the views S cycles through, read from the settings each time.

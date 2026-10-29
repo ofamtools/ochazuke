@@ -12,12 +12,12 @@
   },
   "script": ["S", "l", "h", "l", "backspace", "j", "space", "delete"],
   "expect": [
-    {"after": 1, "contains": ["scrolloff    ‹ 2 ›", "Default is 2. Not in settings.json, so the default applies.", "Takes a whole number."], "lacks": ["•"]},
-    {"after": 2, "contains": ["scrolloff •  ‹ 3 ›", "Default is 2. Set in settings.json."]},
-    {"after": 3, "contains": ["scrolloff    ‹ 2 ›", "Default is 2. Set in settings.json."], "lacks": ["•"]},
-    {"after": 4, "contains": ["scrolloff •  ‹ 3 ›"]},
-    {"after": 5, "contains": ["scrolloff    ‹ 2 ›", "Not in settings.json"], "lacks": ["•"]},
-    {"after": 7, "contains": ["wrap •       ‹ true ›", "Default is false. Set in settings.json.", "Takes true or false."]},
-    {"contains": ["wrap         ‹ false ›"], "lacks": ["•"]}
+    {"after": 1, "contains": ["scrolloff           ‹ 2 ›", "Default is 2. Not in settings.json, so the default applies.", "Takes a whole number."], "lacks": ["•"]},
+    {"after": 2, "contains": ["scrolloff •         ‹ 3 ›", "Default is 2. Set in settings.json."]},
+    {"after": 3, "contains": ["scrolloff           ‹ 2 ›", "Default is 2. Set in settings.json."], "lacks": ["•"]},
+    {"after": 4, "contains": ["scrolloff •         ‹ 3 ›"]},
+    {"after": 5, "contains": ["scrolloff           ‹ 2 ›", "Not in settings.json"], "lacks": ["•"]},
+    {"after": 7, "contains": ["wrap •              ‹ true ›", "Default is false. Set in settings.json.", "Takes true or false."]},
+    {"contains": ["wrap                ‹ false ›"], "lacks": ["•"]}
   ]
 }

@@ -33,14 +33,6 @@ const (
 	SinglePathForm    = "form"
 )
 
-// ensureFormSettings declares the args-form setting the application did
-// not.
-func (r *Runtime) ensureFormSettings() {
-	if r.Settings().find(MissingOpensFormSetting) == nil {
-		_ = r.DeclareSetting(Setting{Name: MissingOpensFormSetting, Type: SettingBoolean, Default: true, Description: "Enter on a command line, or a key, whose action lacks a required argument opens a form for its arguments; off names the missing word instead"})
-	}
-}
-
 // missingOpensForm reads MissingOpensFormSetting, on when it is not
 // declared.
 func (r *Runtime) missingOpensForm() bool { return r.helpFlag(MissingOpensFormSetting, true) }
@@ -181,7 +173,6 @@ func (r *Runtime) singlePath(missing []string, fields []RecordField) (RecordFiel
 	if len(missing) != 1 {
 		return RecordField{}, false
 	}
-	r.declareFrameworkSettings(SinglePathSetting)
 	mode, _ := r.settingValue(SinglePathSetting)
 	if mode == SinglePathForm || (mode == SinglePathAlone && len(fields) != 1) {
 		return RecordField{}, false
