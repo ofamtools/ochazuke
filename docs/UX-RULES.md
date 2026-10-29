@@ -520,6 +520,24 @@ tiers above them. When the two disagree, fix one in the same commit.
   `enabled`), `status.segment-order` (the order `segment.move` writes).
   Existing examples: `focus-display`, `modal-dim`, `dim-unfocused`. Check:
   the diff declares the setting with the feature.
+- **R6.13** Every page can be hidden (R6.12 for pages): one list setting,
+  `pages.hidden`, holds the ids left out of the tab row and of
+  `page.next`/`page.previous` (ctrl+j/k), the same for an app's own pages,
+  mounted catalog pages and the Settings page; never a per-page branch. A
+  new page an app adds as opt-in is declared hidden by default as data
+  (`Page.DefaultHidden`, the `DefaultHidden` option, a catalog page's
+  `defaultHidden`), which is the setting's default. Hiding keeps the verb
+  surface: `page.open`, the `'` picker (row marked `hidden`), the palette
+  and the CLI still open a hidden page, `page.open` says it is hidden, and
+  its tab shows while it is current (the tab row never lies about where
+  the focus is, R6.8) and goes when another page opens. `page.hide` refuses
+  the last page in the tabs; a start page the user hid gives way at start
+  (`Model.Init`, `OpenVisibleStart`) to the first page in the tabs.
+  `page.show` brings a page back in its registration place; `pages.list`
+  marks hidden pages. Read every frame, so `settings set`, `config.reload`
+  and the verbs apply live. Stories `pages/hide-tab-gone.json`,
+  `pages/hidden-opens-from-palette.json`, `pages/default-hidden.json`;
+  tests `page_hide_test.go`, `TestCatalogPageDefaultHidden`.
 
 ### R7. Palette
 

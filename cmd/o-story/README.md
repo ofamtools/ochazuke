@@ -143,6 +143,7 @@ it to the timer's deadline and delivers the timer's message
       rows: [{ id: "m", label: "matomeru", cells: ["matomeru", "~/proj/matomeru", "main"],
                preview: "text" }],    // any row with a preview gives the chooser a Preview
     },                               // enter picks and closes
+    defaultHidden: true,             // the page is hidden by default (pages.hidden); a hidden first page gives way to the first in the tabs
   },
   script: ["j", "j", { type: "ping" }, { paste: "text" },
            { job: "demo.build", state: "done" },
