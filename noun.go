@@ -37,6 +37,11 @@ type Noun struct {
 	// Completions are the completion triggers of the noun's inputs that
 	// declare none of their own (NounBuilder.Completions).
 	Completions []CompletionTrigger `json:"-"`
+	// Props are the fields of the noun's things (NounBuilder.Props,
+	// props.go), in declaration order; Store is its store row
+	// (NounBuilder.Store), nil when it declares none.
+	Props []PropSpec `json:"props,omitempty"`
+	Store *Store     `json:"-"`
 }
 
 // Binding is one row of a mode table, identical in code and config:
@@ -462,8 +467,13 @@ func (b *NounBuilder) Verbs(verbs ...string) *NounBuilder {
 func (b *NounBuilder) Verb(verb string, h any, description ...string) *NounBuilder {
 	key := b.n.Name + "." + verb
 	run, app := appHandlerOf(h)
-	if _, ok := b.r.Operations[key]; !ok {
+	if existing, ok := b.r.Operations[key]; !ok || existing.Standard != "" {
+		// A verb named like a generated standard verb replaces it.
 		b.r.Register(Operation{Verb: verb, Noun: b.n.Name, Description: strings.Join(description, " "), Result: "JSON value", Run: run, App: app})
+		if ok {
+			b.last = key
+			return b
+		}
 	} else if run != nil {
 		b.n.Actions[key] = run
 	} else {

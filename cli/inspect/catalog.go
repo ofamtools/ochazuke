@@ -31,7 +31,29 @@ type Page struct {
 type CatNoun struct {
 	Name  string    `json:"name"`
 	Pin   string    `json:"pin,omitempty"`
+	Kind  string    `json:"kind,omitempty"`
+	Props []Prop    `json:"props,omitempty"`
 	Verbs []CatVerb `json:"verbs"`
+}
+
+// Prop is one field of a noun's things (cli.CatalogNoun.Props, the
+// ochazuke.PropSpec shape), the fields the page draws.
+type Prop struct {
+	Name        string   `json:"name"`
+	Type        string   `json:"type,omitempty"`
+	Description string   `json:"description,omitempty"`
+	Required    bool     `json:"required,omitempty"`
+	Enum        []string `json:"enum,omitempty"`
+	Source      string   `json:"source,omitempty"`
+	Noun        string   `json:"noun,omitempty"`
+	ReadOnly    bool     `json:"readOnly,omitempty"`
+	CreateOnly  bool     `json:"createOnly,omitempty"`
+	Key         bool     `json:"key,omitempty"`
+	Role        string   `json:"role,omitempty"`
+	Fallback    string   `json:"fallback,omitempty"`
+	Default     any      `json:"default,omitempty"`
+	Secret      bool     `json:"secret,omitempty"`
+	Multiline   bool     `json:"multiline,omitempty"`
 }
 
 type CatVerb struct {
@@ -47,6 +69,7 @@ type CatVerb struct {
 	Builtin     bool     `json:"builtin"`
 	Quiet       bool     `json:"quiet"`
 	Repeatable  bool     `json:"repeatable"`
+	Standard    string   `json:"standard,omitempty"`
 }
 
 type Param struct {
@@ -166,6 +189,8 @@ type Noun struct {
 	MirrorOf string   `json:"mirrorOf,omitempty"`
 	Pin      string   `json:"pin,omitempty"`
 	UserOnly bool     `json:"userOnly,omitempty"`
+	Kind     string   `json:"kind,omitempty"`  // the store's kind, "" without one
+	Props    []Prop   `json:"props,omitempty"` // the fields of the noun's things
 }
 
 type Verb struct {
@@ -186,6 +211,7 @@ type Verb struct {
 	Repeatable  bool     `json:"repeatable,omitempty"`
 	User        bool     `json:"user,omitempty"`
 	Command     string   `json:"command,omitempty"`
+	Standard    string   `json:"standard,omitempty"` // the standard verb it was generated from
 }
 
 type KeyRow struct {
@@ -386,7 +412,7 @@ func toVerb(id, nounID, owner, tool string, v CatVerb) *Verb {
 		ID: id, Noun: nounID, Name: v.Name, Owner: owner, Tools: []string{tool},
 		Description: v.Description, Kind: v.Kind, History: v.History, Params: params,
 		Result: v.Result, Confirm: v.Confirm, Rows: v.Rows, Builtin: v.Builtin,
-		Quiet: v.Quiet, Repeatable: v.Repeatable,
+		Quiet: v.Quiet, Repeatable: v.Repeatable, Standard: v.Standard,
 	}
 }
 
@@ -463,6 +489,9 @@ func Merge(srcs []Source, extPrefixes map[string][]string, actions []UserAction,
 				n := ensureNoun(nid, name, nounOwner, ns, tool)
 				if cn.Pin != "" {
 					n.Pin = cn.Pin
+				}
+				if cn.Kind != "" && n.Kind == "" {
+					n.Kind, n.Props = cn.Kind, cn.Props
 				}
 				if prefix != "" && n.MirrorOf == "" {
 					n.MirrorOf = prefix + "\x00" + rest

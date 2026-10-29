@@ -467,6 +467,11 @@ func (ss *Session) defineDemo(pages []*Page) error {
 				return err
 			}
 		}
+		if p.Store != nil {
+			if err := ss.defineStore(d, p.Store); err != nil {
+				return err
+			}
+		}
 		for _, name := range p.Pending {
 			if err := r.DefineMode(name, true); err != nil {
 				return fmt.Errorf("pending %s: %w", name, err)
@@ -593,6 +598,41 @@ func (ss *Session) check(c ochazuke.Ctx) ochazuke.Result {
 }
 
 // defineVerb registers a VerbSpec on the demo noun.
+// defineStore declares the demo noun's props and its store (StoreSpec).
+func (ss *Session) defineStore(d *ochazuke.NounBuilder, spec *StoreSpec) (err error) {
+	if d.Noun().Store != nil {
+		return errors.New("store: one page declares it")
+	}
+	defer func() {
+		if p := recover(); p != nil {
+			err = fmt.Errorf("store: %v", p)
+		}
+	}()
+	key := ""
+	for _, p := range spec.Props {
+		if p.Key {
+			key = p.Name
+		}
+	}
+	things := slices.Clone(spec.Things)
+	d.Props(spec.Props...).Store(ochazuke.Store{
+		Get: func(_ ochazuke.Ctx, id string) (ochazuke.Thing, error) {
+			ss.Writes = append(ss.Writes, "get "+id)
+			for _, t := range things {
+				if fmt.Sprint(t[key]) == id {
+					return t, nil
+				}
+			}
+			return nil, fmt.Errorf("no %s %q", Demo, id)
+		},
+		List: func(ochazuke.Ctx, ochazuke.ListQuery) ([]ochazuke.Thing, error) {
+			ss.Writes = append(ss.Writes, "list")
+			return things, nil
+		},
+	})
+	return nil
+}
+
 func (ss *Session) defineVerb(d *ochazuke.NounBuilder, v VerbSpec) error {
 	noun, verb, ok := ochazuke.CutKey(v.Verb)
 	if !ok || noun != Demo || verb == "" {

@@ -95,11 +95,19 @@ type CatalogDoc struct {
 // CatalogDoc.ListColumns(noun) to ochazuke.Columns (it follows the noun's
 // row source to the noun its rows answer to); a noun without them draws its
 // labels.
+//
+// Kind is the kind of the noun's store (ochazuke.Collection, Singleton,
+// Instances; ochazuke.Noun.StoreKind), "" for a noun without one; Props are
+// the fields of its things (ochazuke.PropSpec as it is, declared with
+// NounBuilder.Props), in declaration order. A noun with a store has the
+// standard verbs its store supports (CatalogVerb.Standard).
 type CatalogNoun struct {
-	Name    string            `json:"name"`
-	Pin     string            `json:"pin,omitempty"`
-	Columns []ochazuke.Column `json:"columns,omitempty"`
-	Verbs   []CatalogVerb     `json:"verbs"`
+	Name    string              `json:"name"`
+	Pin     string              `json:"pin,omitempty"`
+	Kind    string              `json:"kind,omitempty"`
+	Columns []ochazuke.Column   `json:"columns,omitempty"`
+	Props   []ochazuke.PropSpec `json:"props,omitempty"`
+	Verbs   []CatalogVerb       `json:"verbs"`
 }
 
 // CatalogVerb is one ochazuke.Operation. Params are the operation's
@@ -152,6 +160,11 @@ type CatalogVerb struct {
 	// aliases of the mounted verb; one that does not still runs the
 	// canonical name.
 	Aliases []ochazuke.ActionAlias `json:"aliases,omitempty"`
+	// Standard is the standard verb the runtime generated this verb from
+	// (ochazuke.Operation.Standard: get, list), "" for a verb written by
+	// hand. A generated verb is not builtin: it is the tool's, on the
+	// tool's noun, and mounts like any of its verbs.
+	Standard string `json:"standard,omitempty"`
 }
 
 // AppVerbs are the noun's verbs the tool defined: every verb but the
@@ -302,6 +315,12 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool) ([]byte, err
 			noun := CatalogNoun{Name: op.Noun}
 			if n := r.Nouns[op.Noun]; n != nil {
 				noun.Pin, noun.Columns = n.Pin, slices.Clone(n.Columns)
+				noun.Kind, noun.Props = n.StoreKind(), r.Props(op.Noun)
+				for i := range noun.Props {
+					// A reference's choices, as a verb parameter's: the
+					// noun's list verb is published as the source.
+					noun.Props[i].Source = r.ChoicesSource(noun.Props[i].Parameter)
+				}
 			}
 			doc.Nouns = append(doc.Nouns, noun)
 		}
@@ -309,7 +328,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool) ([]byte, err
 			doc.State = op.Key()
 		}
 		noun := &doc.Nouns[len(doc.Nouns)-1]
-		verb := CatalogVerb{Name: op.Verb, Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable, Rows: op.Rows, Quiet: op.Quiet, Many: op.Many, Positional: op.Positional, History: op.HistoryKindOf(), Builtin: op.Builtin, Aliases: r.AliasesOf(op.Key())}
+		verb := CatalogVerb{Name: op.Verb, Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable, Rows: op.Rows, Quiet: op.Quiet, Many: op.Many, Positional: op.Positional, History: op.HistoryKindOf(), Builtin: op.Builtin, Aliases: r.AliasesOf(op.Key()), Standard: op.Standard}
 		if len(op.Parameters) > 0 {
 			verb.Params = make(map[string]ochazuke.Parameter, len(op.Parameters))
 			for name, p := range op.Parameters {

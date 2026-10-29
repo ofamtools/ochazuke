@@ -49,6 +49,13 @@ type Parameter struct {
 	// ChoicesCursorParameter, the cursor in it; each choice's id is the
 	// text up to the cursor with the completion in place.
 	Rest bool `json:"rest,omitempty"`
+	// Focus declares that an omitted value is filled from the focus: the
+	// instance the request acts for once ExecuteAt has applied its target
+	// and the focus path (Ctx.Instance, or the nearest instance of Noun
+	// above it). A standard verb's subject parameter (standard_verbs.go)
+	// is the one that declares it; values never come from the focus
+	// unless their parameter says so. The catalog's focus.
+	Focus bool `json:"focus,omitempty"`
 }
 
 // Request names an operation and, optionally, the instance it addresses.
@@ -164,6 +171,12 @@ type Operation struct {
 	// spelling, sorted. Catalog and operations.list fill it; an entry of
 	// Runtime.Operations does not hold it (the alias table does).
 	Aliases []string `json:"aliases,omitempty"`
+	// Standard is the standard verb (standard_verbs.go: get, list) the
+	// runtime generated this operation from for a noun with a store, ""
+	// for every verb written by hand. An application verb of the same key
+	// replaces a standard one, registered before or after. The catalog's
+	// standard.
+	Standard string `json:"standard,omitempty"`
 	// Checks run before the verb from every path (AddVerbCheck,
 	// BeforeQuit, verb_checks.go): each allows, asks first or refuses.
 	Checks []VerbCheck `json:"-"`
@@ -562,8 +575,16 @@ func (r *Runtime) Register(o Operation) {
 	default:
 		panic("unknown history kind " + o.HistoryKind)
 	}
-	if _, exists := r.Operations[o.Key()]; exists {
-		panic("duplicate operation: " + o.Key())
+	if existing, exists := r.Operations[o.Key()]; exists {
+		if existing.Standard == "" || o.Standard != "" {
+			panic("duplicate operation: " + o.Key())
+		}
+		// The application wins: its verb named like a standard verb
+		// replaces the generated one. Aliases name the key, so they stay.
+		delete(r.Operations, o.Key())
+	}
+	if n := r.Nouns[o.Noun]; n != nil && n.prop(o.Verb) != nil {
+		panic(fmt.Sprintf("verb %s of %s clashes with its prop %s: a word after a noun is a verb or a prop, never both", o.Verb, o.Noun, o.Verb))
 	}
 	if err := r.checkOverlap(o.Key()); err != nil {
 		panic(err.Error())

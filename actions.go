@@ -132,6 +132,8 @@ func (a Action) check(r *Runtime) error {
 		return fmt.Errorf("unknown noun %q (an action adds a verb to an existing noun)", a.spelled())
 	case r.Operations[a.Key()].Noun != "":
 		return fmt.Errorf("%s is already defined", a.writtenKey())
+	case r.Nouns[a.Noun].prop(a.Verb) != nil:
+		return fmt.Errorf("%s is a prop of %s, not a verb", a.Verb, a.spelled())
 	case len(a.Command) > 0 && len(a.Base) > 0:
 		return errors.New("command and base exclude each other")
 	case len(a.Command) == 0 && len(a.Base) == 0:
@@ -192,6 +194,9 @@ func (a Action) values(c Ctx) func(name string) string {
 		case "target", "id":
 			return inst.ID
 		case "label":
+			if label := c.Runtime.thingLabel(inst); label != "" {
+				return label
+			}
 			if inst.Label != "" {
 				return inst.Label
 			}

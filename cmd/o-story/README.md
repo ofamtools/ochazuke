@@ -108,6 +108,11 @@ it to the timer's deadline and delivers the timer's message
                                      // "demo.open-file path=main.go" (writes) and returns rows;
                                      // aliases are ActionAlias rows (action is the verb), and a
                                      // run through one logs " via=demo.base.add" after the arguments
+    store: { props: [{ name: "id", key: true }, { name: "title", role: "label", fallback: "summary" }],
+             things: [{ id: "a1", title: "", summary: "first line" }] },
+                                     // the demo noun's props and an in-memory store (PropSpec rows):
+                                     // demo.get and demo.list are then standard verbs; reads log
+                                     // "list" and "get KEY" (writes); rows stand for things by id
     detail: { lines: 50, width: 0 }, // a scrollable detail (AddDetail) on the right:
                                      // "detail 1–11 / 50", then "<row> line N" about the
                                      // focused list row (width 0 = half the page)

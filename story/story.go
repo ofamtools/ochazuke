@@ -114,7 +114,11 @@ type Page struct {
 	// "ochazuke.mode.enter", args {"mode": NAME}) or be bound in them.
 	Pending []string `json:"pending,omitempty"`
 	// Verbs are demo verbs with declared parameters, for palette stories.
-	Verbs  []VerbSpec  `json:"verbs,omitempty"`
+	Verbs []VerbSpec `json:"verbs,omitempty"`
+	// Store gives the demo noun props and an in-memory store
+	// (ochazuke.NounBuilder.Props and Store): demo.get and demo.list are
+	// then standard verbs over Things.
+	Store  *StoreSpec  `json:"store,omitempty"`
 	Detail *DetailSpec `json:"detail,omitempty"`
 	// Markdown is a Markdown document (markdown.New) drawn in the page's
 	// order with the lists, its task items a focus stop.
@@ -459,6 +463,15 @@ type BindSpec struct {
 	Keys string         `json:"keys"`
 	Do   string         `json:"do"`
 	Args map[string]any `json:"args,omitempty"`
+}
+
+// StoreSpec is the demo noun's props (ochazuke.PropSpec as JSON) and its
+// things, a collection store in memory. Every read logs to the writes:
+// "list" for a list, "get KEY" for a get. A page's rows of the demo noun
+// stand for the things whose key is their id.
+type StoreSpec struct {
+	Props  []ochazuke.PropSpec `json:"props"`
+	Things []ochazuke.Thing    `json:"things"`
 }
 
 // VerbSpec is a demo application verb with parameters: running it logs

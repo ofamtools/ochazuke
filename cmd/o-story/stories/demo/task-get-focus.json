@@ -1,0 +1,27 @@
+{
+  "name": "standard get on a store noun: :demo get reads the focused row's task; a key word wins over the focus (its choices read demo list)",
+  "area": "demo",
+  "width": 100,
+  "height": 24,
+  "page": {
+    "lists": [{"id": "tasks", "items": [{"id": "t1", "label": "t1"}, {"id": "t2", "label": "t2"}, {"id": "t3", "label": "t3"}]}],
+    "focus": "t2",
+    "store": {
+      "props": [
+        {"name": "id", "key": true},
+        {"name": "title", "role": "label"},
+        {"name": "status", "enum": ["todo", "doing", "done"]}
+      ],
+      "things": [
+        {"id": "t1", "title": "Water the plants", "status": "todo"},
+        {"id": "t2", "title": "Write notes", "status": "doing"},
+        {"id": "t3", "title": "Call the plumber", "status": "todo"}
+      ]
+    }
+  },
+  "script": [":", {"type": "demo get"}, "enter", ":", {"type": "demo get t3"}, "enter"],
+  "expect": [
+    {"after": 3, "writes": ["get t2"], "focus": "t2", "modal": "", "noNotices": true},
+    {"writes": ["get t2", "list", "get t3"], "focus": "t2", "modal": ""}
+  ]
+}

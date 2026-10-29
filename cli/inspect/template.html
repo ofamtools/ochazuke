@@ -442,17 +442,25 @@ function nounDetail(n, tool) {
   const scopeKeys = D.keys.filter((k) => k.scope === n.id && (!tool || tool.name === "ochazuke" || k.tool === tool.name));
   const acts = vs.filter((v) => v.user);
   return `<h2>${esc(n.name)}</h2>
-  <p><span class="tag">${esc(nsLabel(n.ns))}</span><span class="tag">owner ${esc(n.owner)}</span>${n.pin ? `<span class="tag">pin ${esc(n.pin)}</span>` : ""}</p>
+  <p><span class="tag">${esc(nsLabel(n.ns))}</span><span class="tag">owner ${esc(n.owner)}</span>${n.pin ? `<span class="tag">pin ${esc(n.pin)}</span>` : ""}${n.kind ? `<span class="tag acc">${esc(n.kind)}</span>` : ""}</p>
   ${n.mirrorOf ? `<p>Mirror of <span class="link" data-noun="${esc(n.mirrorOf)}">${esc(n.mirrorOf.replace(":", " "))}</span> (mounted under a prefix).</p>` : ""}
   ${n.aliases && n.aliases.length ? `<p class="muted">CLI aliases: ${n.aliases.map((a) => `<code>${esc(a)}</code>`).join(" ")}</p>` : ""}
   <p class="muted">Carried by: ${n.tools.map(esc).join(", ")}</p>
+  ${propsTable(n.props)}
   <h4>verbs (${vs.length})</h4>
   <table class="t"><tr><th>verb</th><th>owner</th><th>kind</th><th>keys</th><th>description</th></tr>
-  ${vs.map((v) => `<tr><td><span class="link" data-verb="${esc(v.id)}">${esc(v.name)}</span></td><td>${esc(v.owner)}</td><td>${esc([v.kind, v.history].filter(Boolean).join(" · "))}</td><td class="k">${esc(uniq((keysByVerb.get(v.id) || []).filter((k) => !k.unbind).map((k) => k.keys || k.pattern)).join(" "))}</td><td>${esc(v.desc)}</td></tr>`).join("")}</table>
+  ${vs.map((v) => `<tr><td><span class="link" data-verb="${esc(v.id)}">${esc(v.name)}</span>${v.standard ? ' <span class="tag acc" title="standard verb">std</span>' : ""}</td><td>${esc(v.owner)}</td><td>${esc([v.kind, v.history].filter(Boolean).join(" · "))}</td><td class="k">${esc(uniq((keysByVerb.get(v.id) || []).filter((k) => !k.unbind).map((k) => k.keys || k.pattern)).join(" "))}</td><td>${esc(v.desc)}</td></tr>`).join("")}</table>
   <h4>user actions on this noun (${acts.length})</h4>
   ${acts.length ? acts.map((v) => `<p><code>${esc(v.name)}</code> ${esc(v.desc)} <span class="faint">${esc(v.command || "")}</span></p>`).join("") : `<p class="muted">None installed (${esc(D.actionsPath || "actions.json")}).</p>`}
   <h4>key rows on this noun's keymap (${scopeKeys.length})</h4>
   ${keysTable(scopeKeys, true)}`;
+}
+function propsTable(props) {
+  if (!props || !props.length) return "";
+  const flags = (p) => [p.key && "key", p.role && "role " + p.role, p.fallback && "fallback " + p.fallback, p.readOnly && !p.key && "read-only", p.createOnly && "create-only", p.required && "required", p.secret && "secret", p.multiline && "multiline"].filter(Boolean);
+  return `<h4>props (${props.length})</h4>
+  <table class="t"><tr><th>prop</th><th>type</th><th>choices</th><th>flags</th><th>description</th></tr>
+  ${props.map((p) => `<tr><td><code>${esc(p.name)}</code></td><td>${esc(p.type || "string")}</td><td>${esc((p.enum || []).join(" ") || (p.noun ? "→ " + p.noun : "") || p.source || "")}</td><td>${flags(p).map((f) => `<span class="tag">${esc(f)}</span>`).join("")}</td><td>${esc(p.description || "")}</td></tr>`).join("")}</table>`;
 }
 function keysTable(rows, showReq) {
   if (!rows.length) return '<p class="muted">None.</p>';
@@ -483,7 +491,7 @@ function verbDetail(v, tool) {
   const cli = `${cliTool} ${n.name} ${v.name}` + params.map((p) => p.positional >= 0 ? ` ${p.required ? "" : "["}${p.name.toUpperCase()}${p.required ? "" : "]"}` : (p.required ? ` --${p.name} …` : "")).join("");
   const acts = (verbsByNoun.get(v.noun) || []).filter((w) => w.user);
   return `<h2>${esc(n.name)}.${esc(v.name)}</h2>
-  <p>${v.kind ? `<span class="tag acc">${esc(v.kind)}</span>` : ""}${v.history ? `<span class="tag">${esc(v.history)}</span>` : ""}${v.builtin ? '<span class="tag">builtin</span>' : ""}${v.user ? '<span class="tag acc">user action</span>' : ""}${v.quiet ? '<span class="tag">quiet</span>' : ""}${v.repeatable ? '<span class="tag">repeatable</span>' : ""}${v.confirm ? '<span class="tag warn">confirm</span>' : ""}${fwOld ? `<span class="tag warn" title="not in ${esc(newestFwTool.name)}'s ochazuke ${esc(newestFwTool.ochazuke)}">older ochazuke only</span>` : ""}</p>
+  <p>${v.kind ? `<span class="tag acc">${esc(v.kind)}</span>` : ""}${v.history ? `<span class="tag">${esc(v.history)}</span>` : ""}${v.builtin ? '<span class="tag">builtin</span>' : ""}${v.standard ? `<span class="tag acc" title="generated from the store">std ${esc(v.standard)}</span>` : ""}${v.user ? '<span class="tag acc">user action</span>' : ""}${v.quiet ? '<span class="tag">quiet</span>' : ""}${v.repeatable ? '<span class="tag">repeatable</span>' : ""}${v.confirm ? '<span class="tag warn">confirm</span>' : ""}${fwOld ? `<span class="tag warn" title="not in ${esc(newestFwTool.name)}'s ochazuke ${esc(newestFwTool.ochazuke)}">older ochazuke only</span>` : ""}</p>
   <p class="desc">${esc(v.desc || "(no description)")}</p>
   <table class="t">
   <tr><th>defined by</th><td>${esc(v.owner === "ochazuke" ? "ochazuke (framework builtin)" : v.owner === "user" ? "user actions.json" : v.owner)}; noun <span class="link" data-noun="${esc(n.id)}">${esc(n.name)}</span> owned by ${esc(n.owner)}</td></tr>

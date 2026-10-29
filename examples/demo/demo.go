@@ -81,7 +81,7 @@ func New() *ochazuke.Model {
 	}
 	var m *ochazuke.Model
 	lastNoun := ""
-	task := &demoTask{stored: ochazuke.Record{"title": "Water the plants", "status": "todo", "estimate": "2"}}
+	task := newDemoTask()
 	for _, spec := range []struct {
 		id, title, focus string
 		render           func(*ochazuke.Runtime, int, int) ochazuke.Block
@@ -252,6 +252,7 @@ func New() *ochazuke.Model {
 		return nil, task.edit(r)
 	}, "Edit the sample record again")
 	bind("task", "normal", "e", "edit", "task", nil)
+	task.define(r)
 	if err := task.edit(r); err != nil {
 		panic(err)
 	}
@@ -261,12 +262,81 @@ func New() *ochazuke.Model {
 	return m
 }
 
-// demoTask is the Record page's application state: the stored record (the
-// demo's "database") and the editor over it while it is open.
+// demoTask is the Record page's application state: three stored tasks
+// (the demo's "database"), the one the page edits, and the editor over it
+// while it is open.
 type demoTask struct {
-	stored ochazuke.Record
-	writes int
-	editor *ochazuke.RecordEditor
+	tasks   map[string]ochazuke.Record
+	order   []string
+	editing string
+	writes  int
+	editor  *ochazuke.RecordEditor
+}
+
+// newDemoTask is the demo's store: the task the Record page edits, one in
+// progress, and one with no title, which lists show by its summary.
+func newDemoTask() *demoTask {
+	return &demoTask{
+		tasks: map[string]ochazuke.Record{
+			"t1": {"title": "Water the plants", "status": "todo", "estimate": "2"},
+			"t2": {"title": "Write the release notes", "status": "doing", "estimate": "3", "notes": "Start from the CHANGELOG."},
+			"t3": {"title": "", "status": "todo", "estimate": "1", "notes": "Call the plumber about the sink\nbefore Friday"},
+		},
+		order:   []string{"t1", "t2", "t3"},
+		editing: "t1",
+	}
+}
+
+// taskProps are the task noun's props: the record's fields (taskFields)
+// as data, its key id, and a read-only summary (the first line of the
+// notes) that stands in for an empty title.
+func taskProps() []ochazuke.PropSpec {
+	props := []ochazuke.PropSpec{{Name: "id", Key: true, Parameter: ochazuke.Parameter{Type: "string", Description: "The task's key"}}}
+	for _, f := range taskFields() {
+		p := ochazuke.PropSpec{Name: f.Name, Parameter: f.Parameter, Multiline: f.Multiline}
+		if f.Name == "title" {
+			// Optional as a prop: an empty title shows the summary.
+			p.Role, p.Fallback, p.Required = ochazuke.RoleLabel, "summary", false
+		}
+		props = append(props, p)
+	}
+	return append(props, ochazuke.PropSpec{Name: "summary", ReadOnly: true, Parameter: ochazuke.Parameter{Type: "string", Description: "The first line of the notes"}})
+}
+
+// define gives the task noun its props and its store: task get and task
+// list are then standard verbs, with no handler of the demo's own. The
+// Record page stands for the task it edits, so task get there reads it.
+func (t *demoTask) define(r *ochazuke.Runtime) {
+	r.Define("task").Props(taskProps()...).Store(ochazuke.Store{
+		Kind: ochazuke.Collection,
+		Get: func(_ ochazuke.Ctx, id string) (ochazuke.Thing, error) {
+			if _, ok := t.tasks[id]; !ok {
+				return nil, fmt.Errorf("no task %q", id)
+			}
+			return t.thing(id), nil
+		},
+		List: func(ochazuke.Ctx, ochazuke.ListQuery) ([]ochazuke.Thing, error) {
+			out := make([]ochazuke.Thing, 0, len(t.order))
+			for _, id := range t.order {
+				out = append(out, t.thing(id))
+			}
+			return out, nil
+		},
+	})
+	r.Instances["task"].Data = ochazuke.Thing{"id": t.editing}
+}
+
+// thing is one stored task as its props: the estimate a number, the
+// summary derived from the notes.
+func (t *demoTask) thing(id string) ochazuke.Thing {
+	rec := t.tasks[id]
+	out := ochazuke.Thing{"id": id, "title": rec["title"], "status": rec["status"], "notes": rec["notes"]}
+	if n, err := strconv.Atoi(rec["estimate"]); err == nil {
+		out["estimate"] = n
+	}
+	summary, _, _ := strings.Cut(rec["notes"], "\n")
+	out["summary"] = summary
+	return out
 }
 
 // taskFields is the record's schema: a required title, a status chosen
@@ -293,9 +363,9 @@ func (t *demoTask) edit(r *ochazuke.Runtime) error {
 	}
 	ed, err := r.AddRecordEditor("task-form", ochazuke.RecordSpec{
 		Fields: taskFields(),
-		Load:   func() (ochazuke.Record, error) { return maps.Clone(t.stored), nil },
+		Load:   func() (ochazuke.Record, error) { return maps.Clone(t.tasks[t.editing]), nil },
 		Save: func(w ochazuke.RecordWrite) ochazuke.Result {
-			t.stored = maps.Clone(w.Values)
+			t.tasks[t.editing] = maps.Clone(w.Values)
 			t.writes++
 			return ochazuke.Done(nil)
 		},
@@ -317,7 +387,7 @@ func (t *demoTask) view(m *ochazuke.Model, width, height int) ochazuke.Block {
 	head := s.Title.Render("Record editor") + "\n" + s.Muted.Render("Every change is written as you type; there is no save key.") + "\n\n"
 	var stored []string
 	for _, f := range taskFields() {
-		stored = append(stored, f.Name+"="+strconv.Quote(t.stored[f.Name]))
+		stored = append(stored, f.Name+"="+strconv.Quote(t.tasks[t.editing][f.Name]))
 	}
 	foot := "\n\n" + s.Muted.Render(ansi.Truncate(fmt.Sprintf("stored (%d writes): %s", t.writes, strings.Join(stored, " ")), width, "…"))
 	if t.editor == nil || t.editor.Closed() {

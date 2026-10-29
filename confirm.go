@@ -94,6 +94,9 @@ func (r *Runtime) openConfirm(c Context, q Request, op Operation) (any, error) {
 			if len(q.Subjects) > 1 {
 				return r.subjectsLabel(q.Subjects)
 			}
+			if label := r.thingLabel(inst); label != "" {
+				return label
+			}
 			if inst.Label != "" {
 				return inst.Label
 			}
