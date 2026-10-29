@@ -11,7 +11,7 @@
   },
   "script": [
     ":", {"type": "docs open settings"}, "enter",
-    "j",
+    "j", "1", "0", "j",
     "esc",
     ":", {"type": "set docs.show-config=false"}, "enter",
     ":", {"type": "help settings"}, "enter",
@@ -21,8 +21,9 @@
   "expect": [
     {"after": 3, "modal": "docs-viewer", "contains": [" · catalog sha256:", "settings · 1–", "# Settings", "### `focus-display`", "> yours: `stack` (settings.json)"]},
     {"after": 4, "modal": "docs-viewer", "contains": ["settings · 2–"]},
-    {"after": 5, "lacks": ["# Settings"]},
-    {"after": 11, "modal": "docs-viewer", "contains": ["### `focus-display`", "string · default `off` · choices `off`, `noun`, `stack`"], "lacks": ["yours:"]},
+    {"after": 7, "modal": "docs-viewer", "contains": ["settings · 12–"]},
+    {"after": 8, "lacks": ["# Settings"]},
+    {"after": 14, "modal": "docs-viewer", "contains": ["### `focus-display`", "string · default `off` · choices `off`, `noun`, `stack`"], "lacks": ["yours:"]},
     {"modal": "docs-viewer", "contains": ["bindings · 1–", "# Default key bindings"]}
   ]
 }
