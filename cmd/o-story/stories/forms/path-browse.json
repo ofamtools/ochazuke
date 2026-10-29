@@ -1,0 +1,22 @@
+{
+  "name": "form: a path field opens the path chooser on browse; enter on a folder browses into it, backspace on an empty query goes up, enter on a file fills the field",
+  "area": "forms",
+  "width": 100,
+  "height": 18,
+  "files": ["a.json", "b.txt", "sub/c.json", "sub/deep/"],
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "records": [
+      {"id": "doc", "fields": [{"name": "file", "type": "path", "base": "{{files}}"}, {"name": "title", "type": "string"}]}
+    ],
+    "focus": "doc/file"
+  },
+  "script": ["enter", {"job": "chooser.load"}, {"type": "su"}, "enter", {"job": "chooser.load"}, "backspace", {"job": "chooser.load"}, {"type": "b.t"}, "enter"],
+  "expect": [
+    {"after": 1, "modal": "path-chooser", "contains": ["Choose file · [browse", "loading…"]},
+    {"after": 2, "contains": ["sub/", "a.json", "b.txt"]},
+    {"after": 5, "contains": ["deep/", "c.json"], "lacks": ["a.json"]},
+    {"after": 7, "contains": ["sub/", "a.json"], "lacks": ["c.json"]},
+    {"modal": "", "focus": "doc/file", "contains": ["b.txt"], "writes": ["write file={{files}}/b.txt"]}
+  ]
+}

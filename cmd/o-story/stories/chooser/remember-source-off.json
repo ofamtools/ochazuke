@@ -1,0 +1,25 @@
+{
+  "name": "chooser: with chooser.remember-source off, reopening a chooser starts on its first source",
+  "area": "chooser",
+  "width": 80,
+  "height": 14,
+  "settings": [{"name": "chooser.remember-source", "type": "boolean", "default": false}],
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "bind": [{"noun": "demo", "keys": "c", "do": "demo.choose"}],
+    "chooser": {
+      "kind": "pick",
+      "title": "Pick",
+      "sources": [
+        {"name": "one", "rows": [{"id": "1a", "label": "alpha"}]},
+        {"name": "two", "rows": [{"id": "2a", "label": "alpine"}]}
+      ]
+    }
+  },
+  "script": ["tab", "esc", "c"],
+  "expect": [
+    {"after": 1, "contains": ["Pick · one [two]"]},
+    {"after": 2, "modal": ""},
+    {"modal": "pick", "contains": ["Pick · [one] two"], "lacks": ["Pick · one [two]"]}
+  ]
+}

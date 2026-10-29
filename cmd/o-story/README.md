@@ -63,6 +63,9 @@ it to the timer's deadline and delivers the timer's message
                                   // user config files by name, written to a temp config directory of
                                   // its own and loaded after the pages (actions, then bindings), as
                                   // Model.Init does; a problem a load reports is a notice (actions/*)
+  files: ["a.json", "sub/c.json", "sub/deep/"], // a temp file tree of its own (a trailing / is a
+                                  // folder); {{files}} in a record field's base or value names it,
+                                  // writes show it as {{files}} (forms/path-*)
   state: true,                    // a temp state directory of its own (removed at the end), kept
                                   // across { restart: true } events: what the app remembers (panes.json)
   page: {                         // or pages: [{ id, title, ... }, ...]
@@ -142,6 +145,10 @@ it to the timer's deadline and delivers the timer's message
       kind: "dirs", title: "Directory", keep: [1],  // keep: the cell columns cut last
       rows: [{ id: "m", label: "matomeru", cells: ["matomeru", "~/proj/matomeru", "main"],
                preview: "text" }],    // any row with a preview gives the chooser a Preview
+      sources: [{ name: "one", rows: [...] }, { name: "two", live: true, rows: [...] }],
+                                     // a chooser with sources (tab cycles them; rows unused); a live
+                                     // source answers "typed: QUERY" then the rows holding the query;
+                                     // a pick writes "pick ID"; demo.choose opens the chooser again
     },                               // enter picks and closes
     defaultHidden: true,             // the page is hidden by default (pages.hidden); a hidden first page gives way to the first in the tabs
   },
@@ -402,10 +409,10 @@ Conformance:
 | count_pending | count | `count.append` |
 | hints | demo | `demo.hint` `demo.hints-cancel` `demo.hints-ignore` |
 | insert | bindings | `bindings.help` |
-| insert | chooser | `chooser.cancel` `chooser.move` `chooser.pick` |
+| insert | chooser | `chooser.cancel` `chooser.move` `chooser.next-source` `chooser.open` `chooser.pick` `chooser.previous-source` `chooser.up` |
 | insert | completion | `completion.accept` `completion.dismiss` `completion.move` `completion.open` |
 | insert | demo | `demo.files` `demo.hide` |
-| insert | form | `form.next` `form.run` |
+| insert | form | `form.next` `form.run` `form.suggest` |
 | insert | input | `input.insert` `input.kill` `input.move` |
 | insert | markdown | `markdown.cell` `markdown.continue-item` `markdown.end-list` `markdown.indent` `markdown.insert-block` `markdown.leave` `markdown.outdent` `markdown.unmark` |
 | insert | mode | `mode.set` |
@@ -420,7 +427,7 @@ Conformance:
 | normal | bindings-help | `bindings-help.mode` `bindings-help.noun` `bindings-help.place` `bindings-help.view` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
-| normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.forget-row` `demo.hide` `demo.launch` `demo.notify` `demo.open` `demo.ping` `demo.reload` `demo.ship` `demo.write` |
+| normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.choose` `demo.delete` `demo.finish` `demo.forget-row` `demo.hide` `demo.launch` `demo.notify` `demo.open` `demo.ping` `demo.reload` `demo.ship` `demo.write` |
 | normal | detail | `detail.scroll` |
 | normal | focus | `focus.next` `focus.previous` `focus.set` |
 | normal | form | `form.choose` `form.leave` `form.next` `form.next-missing` `form.redo` `form.run` `form.suggest` `form.undo` |
@@ -495,6 +502,8 @@ Mode edges (from → to via):
 - `normal` → `insert` via `bindings-help.mode`
 - `normal` → `insert` via `bindings-help.noun`
 - `normal` → `insert` via `bindings-help.place`
+- `normal` → `insert` via `demo.choose`
+- `normal` → `insert` via `form.choose`
 - `normal` → `insert` via `form.leave`
 - `normal` → `insert` via `form.next-missing`
 - `normal` → `insert` via `form.suggest`

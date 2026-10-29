@@ -1,0 +1,23 @@
+{
+  "name": "form: in the path chooser tab steps to recent and typed; typed completes the path as you type, enter on a folder types it, a typed file fills the field",
+  "area": "forms",
+  "width": 100,
+  "height": 18,
+  "files": ["a.json", "sub/c.json", "sub/cfg.yaml", "sub/deep/"],
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "records": [
+      {"id": "doc", "fields": [{"name": "file", "type": "path", "base": "{{files}}"}]}
+    ],
+    "focus": "doc/file"
+  },
+  "script": ["enter", {"job": "chooser.load"}, "tab", "tab", {"type": "s"}, {"job": "chooser.load"}, "enter", {"job": "chooser.load"}, {"type": "cf"}, {"job": "chooser.load"}, "enter"],
+  "expect": [
+    {"after": 3, "contains": ["browse [recent] typed", "no recent paths"]},
+    {"after": 4, "contains": ["browse recent [typed]", "type a path"]},
+    {"after": 6, "contains": ["sub/"], "lacks": ["a.json"]},
+    {"after": 8, "contains": ["› sub/", "sub/deep/", "sub/c.json", "sub/cfg.yaml"]},
+    {"after": 10, "contains": ["sub/cfg.yaml"], "lacks": ["sub/c.json"]},
+    {"modal": "", "writes": ["write file={{files}}/sub/cfg.yaml"]}
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "form: with path.field text a path field types freely and ctrl+space opens the path chooser",
+  "area": "forms",
+  "width": 100,
+  "height": 18,
+  "files": ["a.json"],
+  "settings": [{"name": "path.field", "type": "string", "default": "text", "enum": ["picker", "text"]}],
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "records": [
+      {"id": "doc", "fields": [{"name": "file", "type": "path", "base": "{{files}}"}]}
+    ],
+    "focus": "doc/file"
+  },
+  "script": ["A", {"type": "x.md"}, "ctrl+space", {"job": "chooser.load"}, {"type": "a."}, "enter"],
+  "expect": [
+    {"after": 2, "mode": "insert", "contains": ["x.md"]},
+    {"after": 4, "modal": "path-chooser", "contains": ["a.json"]},
+    {"modal": "", "writes": ["write file=x.md", "write file={{files}}/a.json"]}
+  ]
+}

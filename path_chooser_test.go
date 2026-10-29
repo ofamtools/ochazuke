@@ -154,13 +154,13 @@ func TestPathTypedNewAndHidden(t *testing.T) {
 	_, m, c, chosen := pathFixture(t, PathPick{Parameter: Parameter{Type: "path", Base: root, New: true}})
 	pressLand(m, "tab", "tab")
 	typeText(m, ".h")
-	if got := labels(c.Matches()); !slices.Equal(got, []string{root + "/.hidden", "new " + root + "/.h"}) {
+	if got := labels(c.Matches()); !slices.Equal(got, []string{".hidden", "new .h"}) {
 		t.Fatalf("hidden rows %v", got)
 	}
 	c.SetQuery("")
 	landLoads(m, c.r.PendingCommands())
 	typeText(m, "out.csv")
-	if got := labels(c.Matches()); !slices.Equal(got, []string{"new " + root + "/out.csv"}) {
+	if got := labels(c.Matches()); !slices.Equal(got, []string{"new out.csv"}) {
 		t.Fatalf("new rows %v", got)
 	}
 	pressLand(m, "enter")

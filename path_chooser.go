@@ -113,18 +113,23 @@ func (r *Runtime) SetRecentPaths(fn func(PathPick) []string) {
 func (r *Runtime) RecentPaths() []string { return slices.Clone(r.chooserMemory().picked) }
 
 // PathStart is the folder browse starts in for pick: the field's value's
-// folder (the value itself for a folder), else the parameter's Base, else
-// what path.start names. It reads no file system.
+// folder (the value itself for a folder; a relative value is under Base),
+// else the parameter's Base, else what path.start names. It reads no file system.
 func (r *Runtime) PathStart(pick PathPick) string {
+	base := ""
+	if b := strings.TrimSpace(pick.Parameter.Base); b != "" {
+		base = expandPath(b, "")
+	}
 	if v := strings.TrimSpace(pick.Value); v != "" {
-		p := expandPath(v, "")
+		// A relative value is under the base, as it was picked there.
+		p := expandPath(v, base)
 		if pick.Dir() || strings.HasSuffix(v, "/") {
 			return p
 		}
 		return filepath.Dir(p)
 	}
-	if b := strings.TrimSpace(pick.Parameter.Base); b != "" {
-		return expandPath(b, "")
+	if base != "" {
+		return base
 	}
 	cwd, _ := os.Getwd()
 	switch v, _ := r.settingValue(PathStartSetting); v {
@@ -390,11 +395,10 @@ func (r *Runtime) typedSource(pick PathPick, use func(string) Result) ChooserSou
 			}).Label("complete " + query)
 		},
 		Open: func(row ChooserRow) (string, bool) {
-			path, ok := row.Data.(string)
-			if !ok {
+			if _, ok := row.Data.(string); !ok {
 				return "", false
 			}
-			return displayPath(path) + "/", true
+			return strings.TrimSuffix(row.Label, "/") + "/", true
 		},
 		Up: func(query string) (string, bool) {
 			q := strings.TrimSuffix(query, "/")
@@ -414,6 +418,9 @@ func (r *Runtime) typedSource(pick PathPick, use func(string) Result) ChooserSou
 func typedRows(query string, pick PathPick, hidden bool) []ChooserRow {
 	path := expandPath(query, pick.Start)
 	dir, prefix := filepath.Dir(path), filepath.Base(path)
+	// Rows read as typed: the query's folder part as written ("sub/",
+	// "~/proj/", an absolute path), then the entry's name.
+	typed := query[:strings.LastIndex(query, "/")+1]
 	if strings.HasSuffix(query, "/") {
 		dir, prefix = path, ""
 	}
@@ -423,15 +430,15 @@ func typedRows(query string, pick PathPick, hidden bool) []ChooserRow {
 	switch {
 	case err == nil && info.IsDir():
 		if pick.Dir() {
-			rows = append(rows, ChooserRow{ID: path, Label: displayPath(path), Data: path, Opens: true})
+			rows = append(rows, ChooserRow{ID: path, Label: query, Data: path, Opens: true})
 		}
 	case err == nil:
 		if !pick.Dir() {
-			rows = append(rows, ChooserRow{ID: path, Label: displayPath(path), Data: path})
+			rows = append(rows, ChooserRow{ID: path, Label: query, Data: path})
 		}
 	case errors.Is(err, os.ErrNotExist) && pick.Parameter.New && !strings.HasSuffix(query, "/"):
 		if parent, err := os.Stat(filepath.Dir(path)); err == nil && parent.IsDir() {
-			fresh = append(fresh, ChooserRow{ID: path, Label: "new " + displayPath(path), Data: path})
+			fresh = append(fresh, ChooserRow{ID: path, Label: "new " + query, Data: path})
 		}
 	}
 	more, _ := listDir(dir, prefix, pick, hidden)
@@ -439,10 +446,7 @@ func typedRows(query string, pick PathPick, hidden bool) []ChooserRow {
 		if row.ID == path {
 			continue
 		}
-		row.Label = displayPath(row.ID)
-		if row.Opens {
-			row.Label += "/"
-		}
+		row.Label = typed + row.Label
 		rows = append(rows, row)
 		if len(rows) >= 200 {
 			break

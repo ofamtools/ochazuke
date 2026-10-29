@@ -616,6 +616,37 @@ tiers above them. When the two disagree, fix one in the same commit.
   `picker/page-picker-footer.json`; ranking in `chooser_test.go`. `'`
   answers only with no modal open (a page cannot open beneath one):
   `picker/page-picker-not-in-modal.json`.
+- **R7.7** A chooser with sources shows one source's rows at a time:
+  `tab`/`shift+tab` step to the next or previous source, wrapping
+  (`chooser.next-source`/`previous-source`, guard `chooser-sources`, so
+  tab is free in a one-source chooser); the query carries over, and the
+  title names the current source in brackets (`Pick · one [two] three`).
+  A live source sees the typed text and answers again on every edit. A row
+  a source can open (a folder) opens with `enter` (unless
+  `chooser.enter` is `pick`) and `ctrl+l`; `alt+enter` picks the
+  highlighted row whatever it is; `alt+up`, and `backspace` on an empty
+  query, step the source back out. A row that only opens (a folder in a
+  file chooser) opens on a pick. The last source used is remembered per
+  chooser kind (`chooser.remember-source`, default on; off reopens on the
+  first source). Stories: `chooser/sources-cycle.json`,
+  `chooser/live-source.json`, `chooser/remember-source-on.json`,
+  `chooser/remember-source-off.json`; tests `TestChooserSources*`,
+  `TestChooserLiveSource*`, `TestChooserRemembersTheSource`.
+- **R7.8** A path is chosen, not typed blind: a path parameter (type
+  `path`, `path: file|dir`) opens the path chooser with the sources
+  browse (one folder's entries, folders first; a folder chooser ends with
+  `use <folder>`), recent (the application's list, then this run's picks)
+  and typed (completes the path being typed, read as typed; a parameter
+  with `new` offers a path not there yet, after the completions), then the
+  application's own (known folders, a project's). Browse starts at the
+  field's folder, else the parameter's `base`, else `path.start`
+  (`base`: the application's folder such as the open file's, `home`,
+  `cwd`). A folder under `path.no-auto-list` (external volumes) is never
+  listed on its own: browse says so until the person opens into it or
+  types the path. Hidden entries list with `path.hidden` or once the
+  typed part starts with `.`. Stories: `forms/path-browse.json`,
+  `forms/path-dir.json`, `forms/path-typed.json`,
+  `forms/path-text-field.json`; tests `TestPath*`.
 
 ### R8. Terminal
 
@@ -687,6 +718,18 @@ tiers above them. When the two disagree, fix one in the same commit.
   stay few: what the person is doing). Stories: `tree/select-type-replaces.json`,
   `tree/select-esc-keeps.json`, `tree/select-move-keeps.json`; tests
   `TestSelectText*`.
+- **R9.7** Inline completion is data on the trigger: a token runs to
+  whitespace or one of the trigger's `Boundaries` (a jq `.` after `|` or
+  `(`); accepting keeps the trigger unless the trigger says `DropTrigger`;
+  a `SearchAt` search is given the whole text and cursor, so it can
+  complete what the text before the token names (a document path). A
+  choices source that declares a `query` parameter is called with the text
+  typed so far wherever its choices are listed: the palette word, a form's
+  suggestions chooser (which then asks again as the person types), and the
+  check of a value. Tests `TestCompletionDropTrigger`,
+  `TestCompletionTriggerBoundaries`, `TestCompletionSearchAtSeesTheText`,
+  `TestChoicesSeeTheTypedText`, `TestFormSuggestionsFollowTheQuery`,
+  `TestPaletteChoicesSeeTheWord`.
 
 ### R10. Delivery and jobs as the user sees them
 
@@ -828,7 +871,11 @@ tiers above them. When the two disagree, fix one in the same commit.
   `palette/form-choices.json`, `palette/form-prefill.json`,
   `palette/form-esc-cancels.json`, `palette/form-setting-off.json`,
   `palette/form-binding.json`, `palette/form-look.json`; tests in
-  `palette_form_test.go`.
+  `palette_form_test.go`. A path parameter's field opens the path chooser
+  (R7.8): a stop whose `enter`, `space` or `i` opens it (`path.field`
+  `picker`, the default), or a text field whose `ctrl+space` (and `enter`
+  in normal mode) opens it (`text`); a pick is written at once.
+  `TestPathFormField`, `TestPathArgsForm`.
 
 ### R13. Card timelines: inside a card
 

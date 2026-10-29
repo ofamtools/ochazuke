@@ -1,0 +1,20 @@
+{
+  "name": "form: a folder field's chooser lists folders and ends with use <folder>; enter opens a folder, alt+enter picks the highlighted one",
+  "area": "forms",
+  "width": 100,
+  "height": 18,
+  "files": ["a.json", "sub/deep/", "zed/"],
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "records": [
+      {"id": "proj", "fields": [{"name": "folder", "type": "path", "path": "dir", "base": "{{files}}"}]}
+    ],
+    "focus": "proj/folder"
+  },
+  "script": ["enter", {"job": "chooser.load"}, "enter", {"job": "chooser.load"}, "alt+enter"],
+  "expect": [
+    {"after": 2, "modal": "path-chooser", "contains": ["Choose folder · [browse", "sub/", "zed/", "use "], "lacks": ["a.json"]},
+    {"after": 4, "contains": ["deep/"], "lacks": ["zed/"]},
+    {"modal": "", "writes": ["write folder={{files}}/sub/deep"]}
+  ]
+}

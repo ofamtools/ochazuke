@@ -62,7 +62,12 @@ type Story struct {
 	// Checks hang verb checks on the session's verbs (Runtime.AddVerbCheck;
 	// app.quit is BeforeQuit's), after the pages are built.
 	Checks []CheckSpec `json:"checks,omitempty"`
-	Expect Expects     `json:"expect,omitempty"`
+	// Files is a file tree the session makes in a temp directory of its
+	// own (removed at the end): paths relative to it, a trailing / for a
+	// folder. {{files}} in a record field's base or value names it, and
+	// writes show it as {{files}}.
+	Files  []string `json:"files,omitempty"`
+	Expect Expects  `json:"expect,omitempty"`
 
 	// Path is where the file was loaded from (not part of the data); rel
 	// is the path inside fsys, disk the directory fsys reads when it is on
@@ -158,6 +163,18 @@ type ChooserSpec struct {
 	Title string           `json:"title,omitempty"`
 	Rows  []ChooserRowSpec `json:"rows"`
 	Keep  []int            `json:"keep,omitempty"`
+	// Sources make it a chooser with sources (tab cycles them); Rows are
+	// then unused. demo.choose opens the chooser again.
+	Sources []ChooserSourceSpec `json:"sources,omitempty"`
+}
+
+// ChooserSourceSpec is one source of a story chooser: its rows, or, Live,
+// a row "typed: QUERY" and then the rows whose label holds the query (it
+// sees the typed text).
+type ChooserSourceSpec struct {
+	Name string           `json:"name"`
+	Rows []ChooserRowSpec `json:"rows"`
+	Live bool             `json:"live,omitempty"`
 }
 
 // ChooserRowSpec is one chooser row; Cells draw it as columns, Preview is

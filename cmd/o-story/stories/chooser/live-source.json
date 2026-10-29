@@ -1,0 +1,21 @@
+{
+  "name": "chooser: a live source sees the typed text and answers for it on every edit",
+  "area": "chooser",
+  "width": 80,
+  "height": 14,
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "chooser": {
+      "kind": "pick",
+      "title": "Complete",
+      "sources": [
+        {"name": "words", "live": true, "rows": [{"id": "w1", "label": "config"}, {"id": "w2", "label": "conflict"}, {"id": "w3", "label": "result"}]}
+      ]
+    }
+  },
+  "script": [{"type": "conf"}, {"type": "i"}],
+  "expect": [
+    {"after": 1, "modal": "pick", "contains": ["typed: conf", "config", "conflict"], "lacks": ["result"]},
+    {"contains": ["typed: confi", "config"], "lacks": ["conflict", "Complete ·"]}
+  ]
+}

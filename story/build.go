@@ -40,6 +40,8 @@ type Session struct {
 	StateDir string
 	// configDir is the temp config directory of a story with Config.
 	configDir string
+	// filesDir is the temp file tree of a story with Files.
+	filesDir string
 
 	pages map[string]*Page
 	lists map[string]*ochazuke.List
@@ -123,6 +125,9 @@ func build(s *Story, opt Options, stateDir string) (*Session, error) {
 		m.Appearance.Accent = lipgloss.Color(s.Accent)
 	}
 	ss := &Session{Story: s, R: r, M: m, StateDir: stateDir, pages: map[string]*Page{}, lists: map[string]*ochazuke.List{}, trees: map[string]*ochazuke.Tree{}, records: map[string]*ochazuke.RecordEditor{}, inputs: map[string]*ochazuke.Input{}, details: map[string]*ochazuke.Detail{}, docs: map[string]*markdown.Doc{}, timelines: map[string]*ochazuke.Timeline{}, hidden: map[string]bool{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
+	if err := ss.makeFiles(); err != nil {
+		return nil, err
+	}
 	if err := ss.defineDemo(pages); err != nil {
 		return nil, err
 	}
@@ -157,7 +162,7 @@ func build(s *Story, opt Options, stateDir string) (*Session, error) {
 		}
 	}
 	if cs := ss.pages[open].Chooser; cs != nil {
-		if _, err := r.OpenChooser(chooserSpec(cs)); err != nil {
+		if _, err := r.OpenChooser(ss.chooserSpec(cs)); err != nil {
 			return nil, fmt.Errorf("chooser: %w", err)
 		}
 	}
@@ -223,11 +228,36 @@ func (ss *Session) addCheck(c CheckSpec) error {
 	}})
 }
 
-// chooserSpec is the framework spec of a story's chooser.
-func chooserSpec(cs *ChooserSpec) ochazuke.ChooserSpec {
+// chooserSpec is the framework spec of a story's chooser; a pick is a
+// write ("pick ID").
+func (ss *Session) chooserSpec(cs *ChooserSpec) ochazuke.ChooserSpec {
 	spec := ochazuke.ChooserSpec{Kind: cs.Kind, Title: cs.Title, Keep: cs.Keep}
 	if spec.Kind == "" {
 		spec.Kind = "story-chooser"
+	}
+	for _, src := range cs.Sources {
+		src := src
+		rows := func(query string) []ochazuke.ChooserRow {
+			var out []ochazuke.ChooserRow
+			if src.Live {
+				out = append(out, ochazuke.ChooserRow{ID: src.Name + ":typed", Label: "typed: " + query})
+			}
+			for _, row := range src.Rows {
+				if !src.Live || strings.Contains(row.Label, query) {
+					out = append(out, ochazuke.ChooserRow{ID: row.ID, Label: row.Label, Cells: row.Cells})
+				}
+			}
+			return out
+		}
+		spec.Sources = append(spec.Sources, ochazuke.ChooserSource{Name: src.Name, Live: src.Live, Load: func(query string) ochazuke.Result {
+			return ochazuke.Done(rows(query))
+		}})
+	}
+	if len(spec.Sources) > 0 {
+		spec.Choose = func(row ochazuke.ChooserRow) ochazuke.Result {
+			ss.Writes = append(ss.Writes, "pick "+row.ID)
+			return ochazuke.Done(nil)
+		}
 	}
 	previews := map[string]string{}
 	for _, row := range cs.Rows {
@@ -258,6 +288,59 @@ func (ss *Session) close(keep bool) {
 	if ss.configDir != "" {
 		os.RemoveAll(ss.configDir)
 	}
+	if ss.filesDir != "" {
+		os.RemoveAll(ss.filesDir)
+	}
+}
+
+// makeFiles makes the story's file tree in a temp directory.
+func (ss *Session) makeFiles() error {
+	if len(ss.Story.Files) == 0 {
+		return nil
+	}
+	dir, err := os.MkdirTemp("", "o-story-files-")
+	if err != nil {
+		return err
+	}
+	if dir, err = filepath.EvalSymlinks(dir); err != nil {
+		return err
+	}
+	ss.filesDir = dir
+	for _, f := range ss.Story.Files {
+		path := filepath.Join(dir, filepath.FromSlash(f))
+		if !strings.HasPrefix(path, dir+string(filepath.Separator)) {
+			return fmt.Errorf("file %q leaves the tree", f)
+		}
+		if strings.HasSuffix(f, "/") {
+			if err := os.MkdirAll(path, 0o755); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(path, []byte(f+"\n"), 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// files puts the file tree's directory in for {{files}}.
+func (ss *Session) files(text string) string {
+	if ss.filesDir == "" {
+		return text
+	}
+	return strings.ReplaceAll(text, "{{files}}", ss.filesDir)
+}
+
+// unfiles shows the file tree's directory as {{files}}.
+func (ss *Session) unfiles(text string) string {
+	if ss.filesDir == "" {
+		return text
+	}
+	return strings.ReplaceAll(text, ss.filesDir, "{{files}}")
 }
 
 // loadConfig writes the story's config files into a temp config directory
@@ -288,6 +371,17 @@ func (ss *Session) defineDemo(pages []*Page) error {
 	r := ss.R
 	d := r.Define(Demo).
 		Verb("reset", func(ochazuke.Ctx) ochazuke.Result { ss.Reset = true; return ochazuke.Done(nil) }, "Rebuild the story from its file").
+		Verb("choose", func(ochazuke.Ctx) ochazuke.Result {
+			p := ss.pages[ss.R.Page]
+			if p == nil || p.Chooser == nil {
+				return ochazuke.Failed(errors.New("the page has no chooser"))
+			}
+			_, err := ss.R.OpenChooser(ss.chooserSpec(p.Chooser))
+			if err != nil {
+				return ochazuke.Failed(err)
+			}
+			return ochazuke.Done(nil)
+		}, "Open the page's story chooser again").
 		Verb("open", ss.open, "Open the row: attach the fake pane when the story has one for it").
 		Verb("notify", func(c ochazuke.Ctx) ochazuke.Result {
 			c.Notify("notice from " + label(c.Instance))
@@ -1126,17 +1220,26 @@ func (s storyCommands) Command(name string, args []string) (*exec.Cmd, error) {
 
 func (ss *Session) recordSpec(rs RecordSpec) ochazuke.RecordSpec {
 	fail := rs.FailWrites
+	fields := make([]ochazuke.RecordField, len(rs.Fields))
+	for i, f := range rs.Fields {
+		f.Base = ss.files(f.Base)
+		fields[i] = f
+	}
+	values := ochazuke.Record{}
+	for k, v := range rs.Values {
+		values[k] = ss.files(v)
+	}
 	return ochazuke.RecordSpec{
 		Title:  rs.Title,
-		Fields: rs.Fields,
+		Fields: fields,
 		Insert: rs.Insert,
-		Load:   func() (ochazuke.Record, error) { return ochazuke.Record(rs.Values), nil },
+		Load:   func() (ochazuke.Record, error) { return values, nil },
 		Save: func(w ochazuke.RecordWrite) ochazuke.Result {
 			if fail > 0 {
 				fail--
 				return ochazuke.Failed(errors.New("store unavailable"))
 			}
-			ss.Writes = append(ss.Writes, w.String())
+			ss.Writes = append(ss.Writes, ss.unfiles(w.String()))
 			return ochazuke.Done(nil)
 		},
 	}
