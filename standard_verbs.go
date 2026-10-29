@@ -195,13 +195,13 @@ func (v standardVerb) operation(r *Runtime, n *Noun) Operation {
 		op.Rows = name
 		op.Result = "rows"
 	}
-	run, many := v.Run, v.Many
+	run, many, verb := v.Run, v.Many, v.Verb
 	one := func(c Ctx) Result {
 		noun := c.Runtime.Nouns[name]
 		if noun == nil || noun.Store == nil {
 			return Failed(fmt.Errorf("%s has no store", name))
 		}
-		value, err := run(c.Runtime, noun, c)
+		value, err := c.Runtime.runRecording(verb, noun, c, run) // standard_undo.go
 		if err != nil {
 			return Failed(err)
 		}

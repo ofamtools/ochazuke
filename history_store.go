@@ -58,6 +58,9 @@ func (r *Runtime) persistable(e HistoryEntry) (HistoryEntry, bool) {
 	if !e.Result.OK && e.Context.Source != "palette" {
 		return e, false
 	}
+	// before and after follow the line's own rule: only simple values
+	// reach the file (owner decision 12); a mark without values never.
+	e.Changes = r.fileChanges(e.Changes)
 	if r.writesValues(e.Request) {
 		// A write of prop values keeps its line, values and all, only
 		// when they are simple (simpleWrite, owner decision 12): a line

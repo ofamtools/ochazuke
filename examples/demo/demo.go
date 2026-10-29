@@ -318,7 +318,10 @@ func taskProps() []ochazuke.PropSpec {
 // to done.
 func (t *demoTask) define(r *ochazuke.Runtime) {
 	r.Define("task").Props(taskProps()...).Store(ochazuke.Store{
-		Kind:   ochazuke.Collection,
+		Kind: ochazuke.Collection,
+		// history.undo reverts the task writes; create keeps a given key,
+		// so a delete is undone under its old one.
+		Undo: true, AcceptsKey: true,
 		Create: func(_ ochazuke.Ctx, values ochazuke.Thing) (ochazuke.Thing, error) { return t.create(values), nil },
 		Patch: func(_ ochazuke.Ctx, id string, changes ochazuke.Thing) (ochazuke.Thing, error) {
 			return t.patch(id, changes)
@@ -344,12 +347,18 @@ func (t *demoTask) define(r *ochazuke.Runtime) {
 	}
 }
 
-// create stores a new task under the next free key.
+// create stores a new task under the key the values give when it is
+// free (an undone delete), else under the next free key.
 func (t *demoTask) create(values ochazuke.Thing) ochazuke.Thing {
-	id := ""
+	id, _ := values["id"].(string)
+	if t.tasks[id] != nil {
+		id = ""
+	}
 	for i := len(t.order) + 1; id == "" || t.tasks[id] != nil; i++ {
 		id = "t" + strconv.Itoa(i)
 	}
+	values = maps.Clone(values)
+	delete(values, "id")
 	t.tasks[id] = ochazuke.Record{}
 	t.order = append(t.order, id)
 	t.write(id, values)

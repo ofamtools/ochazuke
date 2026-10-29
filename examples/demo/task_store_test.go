@@ -237,3 +237,40 @@ func TestTaskWritesFromThePalette(t *testing.T) {
 		t.Fatalf("the prop row's hint:\n%s", frame)
 	}
 }
+
+// history.undo reverts the task writes (the store declares Undo and
+// AcceptsKey): a set's old value comes back, a deleted task comes back
+// under its key, a created one goes.
+func TestTaskUndo(t *testing.T) {
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	r := New().Runtime
+	run := func(q ochazuke.Request) any {
+		t.Helper()
+		v, err := r.Execute(q)
+		if err != nil {
+			t.Fatalf("%+v: %v", q, err)
+		}
+		return v
+	}
+	get := func(id, prop string) any {
+		return run(ochazuke.Request{Noun: "task", Verb: "get", Args: ochazuke.Arguments{"id": id, "prop": prop}})
+	}
+	undo := ochazuke.Request{Noun: "ochazuke.history", Verb: "undo"}
+	before := get("t2", "status")
+	run(ochazuke.Request{Noun: "task", Verb: "set", Args: ochazuke.Arguments{"id": "t2", "prop": "status", "value": "done"}})
+	title := get("t3", "title")
+	run(ochazuke.Request{Noun: "task", Verb: "delete", Confirmed: true, Args: ochazuke.Arguments{"id": "t3"}})
+	run(ochazuke.Request{Noun: "task", Verb: "create", Args: ochazuke.Arguments{"title": "Buy milk"}})
+	run(undo)
+	if _, err := r.Execute(ochazuke.Request{Noun: "task", Verb: "get", Args: ochazuke.Arguments{"id": "t4"}}); err == nil {
+		t.Fatal("the created task is still there")
+	}
+	run(undo)
+	if got := get("t3", "title"); got != title {
+		t.Fatalf("t3 came back as %v, want %v", got, title)
+	}
+	run(undo)
+	if got := get("t2", "status"); got != before {
+		t.Fatalf("t2 status %v, want %v", got, before)
+	}
+}

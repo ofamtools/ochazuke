@@ -199,6 +199,11 @@ type Store struct {
 	Watch      func(c Ctx, q WatchQuery, emit func(WatchEvent)) (stop func(), err error)
 	Confirm    map[string]string
 	When       map[string]string
+	// Undo lets history.undo revert this store's standard changes
+	// (standard_undo.go); AcceptsKey says Create keeps a key the values
+	// give, so a delete can be undone under its old key.
+	Undo       bool
+	AcceptsKey bool
 }
 
 // propTypes are the types a prop declares.

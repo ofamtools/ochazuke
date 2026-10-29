@@ -53,6 +53,9 @@ type HistoryEntry struct {
 	// Restored marks an entry read from the history file at start
 	// (EnsureHistory): an earlier session ran it. Dot-repeat skips it.
 	Restored bool `json:"restored,omitempty"`
+	// Changes are what a standard write did to each thing, before and
+	// after (standard_undo.go): what history.undo reverts.
+	Changes []ThingChange `json:"changes,omitempty"`
 }
 
 // HistoryContext is the interaction state a request ran in. Source is
@@ -103,8 +106,9 @@ type actionHistory struct {
 	fetches []HistoryEntry
 	seq     uint64
 	source  string
-	depth   int // requests running now
-	limit   int // the ring's bound while persisted (history-limit); 0 is HistoryLimit
+	depth   int                   // requests running now
+	changes map[int][]ThingChange // the changes noted for the entry at each depth (noteChange)
+	limit   int                   // the ring's bound while persisted (history-limit); 0 is HistoryLimit
 }
 
 // ringLimit is how many entries the ring keeps.
@@ -172,6 +176,9 @@ func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, depth int,
 	}
 	if ticket, ok := value.(Ticket); ok {
 		entry.Job = ticket.Job
+	}
+	if changes := r.takeChanges(depth); err == nil {
+		entry.Changes = changes
 	}
 	h := &r.history
 	if fetchRing(entry) {
@@ -368,4 +375,5 @@ func registerHistory(r *Runtime) {
 		}
 		return path, nil
 	}})
+	registerUndo(r)
 }

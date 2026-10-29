@@ -1175,6 +1175,14 @@ A noun with props and a store (`props.go`, `standard_verbs.go`) gets the standar
 
 Compared with Vim: `.` repeats the last change on the new place as Vim's does (`:help .`), but only simple-value writes: text, lists and secrets are never repeated, where Vim's `.` repeats text changes too. A prop row such as `x` → `{task status done}` is closer to a mapping than to an operator: it takes no motion or count.
 
+#### Undo of the standard writes: `history.undo`
+
+Every standard change entry (`create`, `set`, `delete`, a prop row) records what it did to each thing in `HistoryEntry.Changes`: the noun, the key, and the changed props `before` and `after`, read with the store's `Get` around the write (a create has no `before`, a delete no `after`). A store that does not declare `Undo` is not read around its writes: its change is a mark (noun and key, no values) that `history.undo` stops at. A visual selection's write is one entry, so its changes are one group. `history.list` shows them; the history file keeps them only when every value is simple, by the same test as the line.
+
+A store opts in with `Store.Undo`. Then `history.undo` reverts the newest change not yet undone: a `set` writes `before` back (`Patch`), a `create` is undone by `Delete`, and a `delete` by `Create` with the old key, which needs `Store.AcceptsKey` (the store's `Create` keeps a key it is given). The inverse is another write, not recorded as a change to undo, so each run goes one change further back; one notice names the things. When the newest change is on a store without `Undo` (or a delete on a store without `AcceptsKey`), `history.undo` is unavailable: it never skips that change to undo an older one. With nothing left it says `nothing to undo`; in an application where no store declares `Undo` it is unavailable, so it is never offered there. Changes restored from the history file (an earlier session) are never undone, as `.` never repeats them. `history.undo` has no default key (`u` is taken by lists and trees); the palette, the CLI and a `bindings.json` row reach it.
+
+Compared with Vim: `u` (`:help undo`) reverts the last change and walks back one change per press, and a change made over a visual selection undoes as one, as here. Vim's undo is per buffer and covers every edit, and has redo (`ctrl-r`) and an undo tree (`:help undo-tree`); `history.undo` covers only the standard writes of stores that declare `Undo`, across nouns, and has no redo yet. Component undo (a tree's `u`, the Settings page, inputs) stays where it was.
+
 ### Persisted history
 
 A TUI's history survives restarts. `Model.Init` calls `Runtime.EnsureHistory`, which reads `history.jsonl` from the application's state directory and keeps appending to it:
