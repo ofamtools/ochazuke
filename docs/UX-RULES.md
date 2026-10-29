@@ -698,6 +698,12 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R10.3** Confirmation is a property of the verb, opened at the focus, and
   identical from a key, the palette and the CLI. Story:
   `modals/confirm-yes.json`; needed for the palette and CLI paths.
+- **R10.4** A foreground program (`Foreground`, an actions.json row's
+  `"foreground": true`) has the whole terminal: the TUI suspends, nothing
+  draws over it, and the TUI comes back where it was when the program
+  exits. The exit is always told: `PROGRAM exited` (the plain tone), or
+  `Error: PROGRAM exited with status N` with the job failed. Story:
+  `foreground/exit-status.json`; tests in `foreground_test.go`.
 
 ### R11. Trees and outlines
 

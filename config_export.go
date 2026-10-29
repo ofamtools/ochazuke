@@ -222,8 +222,9 @@ func (r *Runtime) referenceReadme(settings, rows int) []byte {
 	return []byte(b.String())
 }
 
-// actionsExample is actions.example.json: one entry in the command form
-// and one in the base form, together every field an action takes. Both go
+// actionsExample is actions.example.json: one entry in the command form,
+// one in the base form and a foreground one, together every field an
+// action takes, and an alias row. Both go
 // on the app noun, which every application has, under verbs no
 // application defines, so the file installs as it is.
 const actionsExample = `[
@@ -259,7 +260,15 @@ const actionsExample = `[
     },
     "quiet": true,
     "history": "fetch"
-  }
+  },
+  {
+    "noun": "app",
+    "verb": "example-open",
+    "description": "Example: hand the terminal to a full-screen program; the TUI resumes when it exits",
+    "command": ["less", "{{data.path}}"],
+    "foreground": true
+  },
+  {"alias": "example-open!", "action": "app.example-open", "args": {}, "note": "Example: an alias row; args presets the action's arguments"}
 ]
 `
 

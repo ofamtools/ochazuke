@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os/exec"
 	"slices"
 	"sort"
 	"time"
@@ -79,6 +80,7 @@ type Result struct {
 	slot  string
 	scope string
 	label string
+	fg    *exec.Cmd // Foreground: a program given the terminal (foreground.go)
 }
 
 // Done reports a synchronous result.
@@ -202,6 +204,9 @@ func (r *Runtime) IssueAt(owner, scope, verb, slot string, c Ctx) (Ticket, conte
 // Component.HandleMessage and the result's Then callback when the job is
 // still current.
 func (r *Runtime) Launch(owner, verb string, res Result, c Ctx) (Ticket, error) {
+	if res.fg != nil {
+		return r.launchForeground(owner, verb, res, c)
+	}
 	if res.work == nil {
 		return Ticket{}, errors.New("Launch needs pending work")
 	}
@@ -341,6 +346,13 @@ func registerJobs(r *Runtime) {
 // offered to the gone component. It reports whether a component consumed
 // the message and the delivered completion's error, if any.
 func (r *Runtime) Deliver(msg tea.Msg) (bool, error) {
+	// A foreground program with no Model to suspend: run it in place.
+	if fg, ok := msg.(ForegroundMsg); ok {
+		if !r.Accepts(fg.Ticket) {
+			return true, nil
+		}
+		return r.Deliver(fg.Run())
+	}
 	if done, ok := msg.(Completion); ok {
 		// Settling may evict this job from the bounded history.
 		j := r.jobs[done.Job]
@@ -500,7 +512,7 @@ func (r *Runtime) runApplication(op Operation, c Context, args Arguments) (any, 
 	switch {
 	case res.err != nil:
 		return nil, res.err
-	case res.work == nil:
+	case res.work == nil && res.fg == nil:
 		return res.value, nil
 	}
 	owner := inst.ID

@@ -334,7 +334,7 @@ func TestConfigExportExamplesInstallWithoutNotices(t *testing.T) {
 		t.Fatalf("notices: %v", notices)
 	}
 	installed := live.UserActions()
-	if len(installed) != 2 || live.Operations["app.example-run"].Noun == "" || live.Operations["app.example-call"].Noun == "" {
+	if len(installed) != 3 || live.Operations["app.example-run"].Noun == "" || live.Operations["app.example-call"].Noun == "" || live.Operations["app.example-open"].Noun == "" {
 		t.Fatalf("installed %+v", installed)
 	}
 	if names := live.Config().themeNames(); !slices.Contains(names, "example") || !slices.Contains(names, "example-dark") {
@@ -363,6 +363,14 @@ func TestConfigExportExamplesInstallWithoutNotices(t *testing.T) {
 		if !seen[f] {
 			t.Errorf("actions example lacks %q", f)
 		}
+	}
+	for _, f := range jsonFields(AliasRow{}) {
+		if !seen[f] {
+			t.Errorf("actions example lacks alias field %q", f)
+		}
+	}
+	if _, ok := live.ActionAlias("example-open!"); !ok {
+		t.Error("the example alias row did not install")
 	}
 	for _, f := range jsonFields(Parameter{}) {
 		if !params[f] {

@@ -164,7 +164,9 @@ modal; read in the mono theme), `highlightedText` (text every highlighted row ho
 editable tree wrote, `TreeChange.String`, in order; `[]` none), `quit` (`Runtime.Quit`: app.quit ran). A story's
 `checks` (`[{verb, name, ask, refuse, dirty}]`, verb default `app.quit`) hang verb
 checks (`AddVerbCheck`) that ask or refuse, with `dirty` only once the story has
-written something. A story with no final expect is
+written something. A foreground program (`Foreground`, an actions.json
+row's `foreground`) runs headless (no input, its output dropped); a `job`
+event naming its verb waits for its exit. A story with no final expect is
 compared with `<name>.golden`: the frame in the mono theme, each row behind a
 gutter that reads `R|` when the row has full-strength reverse video, `r|`
 when its only reverse video is dimmed, `C|` (`c|` dimmed) when the

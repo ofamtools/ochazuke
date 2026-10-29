@@ -176,6 +176,18 @@ func (d *Driver) take(what string, match func(tea.Msg) bool) error {
 	deadline := time.After(d.Wait)
 	for {
 		d.mu.Lock()
+		// A foreground program's request is the host's to answer (the
+		// Model runs it through its Foreground hook): answered while
+		// waiting, so its completion can arrive.
+		for i, t := range d.pool {
+			if _, ok := t.Msg.(ochazuke.ForegroundMsg); ok && t.Gen == d.gen {
+				d.pool = append(d.pool[:i:i], d.pool[i+1:]...)
+				d.mu.Unlock()
+				d.update(t.Msg)
+				d.mu.Lock()
+				break
+			}
+		}
 		for i, t := range d.pool {
 			if t.Gen == d.gen && match(t.Msg) {
 				d.pool = append(d.pool[:i:i], d.pool[i+1:]...)

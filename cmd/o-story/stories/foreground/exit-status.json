@@ -1,0 +1,18 @@
+{
+  "name": "foreground: an actions.json row with foreground true hands the program the terminal; its exit status is told on the status line",
+  "area": "foreground",
+  "width": 100,
+  "height": 16,
+  "page": {"lists": [{"id": "a", "rows": 2}]},
+  "config": {
+    "actions.json": [
+      {"noun": "demo", "verb": "open-csv", "command": ["sh", "-c", "exit 0"], "label": "o-csv", "foreground": true},
+      {"noun": "demo", "verb": "open-bad", "command": ["sh", "-c", "exit 3"], "foreground": true}
+    ]
+  },
+  "script": [":", {"type": "open-csv"}, "enter", {"job": "demo.open-csv", "state": "done"}, ":", {"type": "open-bad"}, "enter", {"job": "demo.open-bad", "state": "failed"}],
+  "expect": [
+    {"after": 4, "contains": ["sh exited"], "modal": ""},
+    {"contains": ["Error: sh exited with status 3"], "modal": ""}
+  ]
+}

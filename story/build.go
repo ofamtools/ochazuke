@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"maps"
 	"os"
 	"os/exec"
@@ -97,6 +98,14 @@ func build(s *Story, opt Options, stateDir string) (*Session, error) {
 	}
 	m := ochazuke.NewModel(r)
 	m.Title = "o-story"
+	// A foreground program runs headless (no terminal to hand over): no
+	// input, its output dropped, its exit the job's completion.
+	m.Foreground = func(msg ochazuke.ForegroundMsg) tea.Cmd {
+		return func() tea.Msg {
+			msg.Cmd.Stdin, msg.Cmd.Stdout, msg.Cmd.Stderr = strings.NewReader(""), io.Discard, io.Discard
+			return msg.Done(msg.Cmd.Run())
+		}
+	}
 	if opt.Mono {
 		m.Appearance.Theme = "mono"
 	}

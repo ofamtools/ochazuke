@@ -69,6 +69,10 @@ type Action struct {
 	Timeout     string               `json:"timeout,omitempty"`
 	Quiet       bool                 `json:"quiet,omitempty"`
 	History     string               `json:"history,omitempty"`
+	// Foreground gives the command the terminal (Foreground, foreground.go):
+	// the TUI suspends while it runs (o-csv FILE, an editor) and its exit
+	// status is told the user; no timeout, no captured output.
+	Foreground bool `json:"foreground,omitempty"`
 
 	// written is the noun as the file spells it (an alias: list), when
 	// Noun was resolved to the noun it names (ochazuke.list); {{noun}} and the
@@ -136,6 +140,10 @@ func (a Action) check(r *Runtime) error {
 		return errors.New("call and target go with base, not command")
 	case len(a.Base) > 0 && a.JSON:
 		return errors.New("json goes with command; base always passes --json")
+	case a.Foreground && a.Timeout != "":
+		return errors.New("foreground takes no timeout: the program runs until it exits")
+	case a.Foreground && a.JSON:
+		return errors.New("json goes with a captured command, not foreground")
 	case a.Call != "" && len(strings.Fields(a.Call)) < 2:
 		return fmt.Errorf("call %q must be the noun's words and the verb", a.Call)
 	}
@@ -297,6 +305,11 @@ func (a Action) handler() AppHandler {
 			"OCHAZUKE_LABEL="+value("label"),
 			"OCHAZUKE_ARGS="+argsJSON(c.Args),
 		)
+		if a.Foreground {
+			cmd := exec.Command(argv[0], argv[1:]...)
+			cmd.Dir, cmd.Env = dir, env
+			return Foreground(cmd).Label(label)
+		}
 		return Pending(func(ctx context.Context) (any, error) {
 			return runAction(ctx, argv, dir, env, timeout)
 		}).Label(label)

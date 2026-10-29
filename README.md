@@ -1207,6 +1207,7 @@ The in-memory ring still records every kind for `history.list` and dot-repeat. O
 | `confirm` | A confirm prompt, as `NounBuilder.Confirm` takes (`{{label}}`, `{{target}}`, `{{<arg>}}`) |
 | `label` | The job's label on the ticker and in `jobs list` (default the program's name) |
 | `dir`, `timeout`, `quiet`, `description` | Working directory, a duration after which the command is killed, keep the job off the ticker, the help line |
+| `foreground` | `true` hands the command the terminal (`Foreground`): the TUI suspends while it runs (`o-csv {{data.path}}`, an editor) and resumes when it exits; the exit is told on the status line (`sh exited`, `Error: sh exited with status 3`, the job failed). No timeout and no captured output; on the CLI it runs on the shell's own terminal |
 
 Templates (`{{name}}`) in `command`, `base`, `target`, `label` and `dir` expand to `target` or `id` (the instance the verb runs on), `label` (its label, else its id), `noun`, `verb`, `data` (the instance's `Data`: a string as is, else JSON), `data.KEY` (one field of `Data` as a JSON object), `args` (the arguments as one JSON object) or a declared parameter. An unknown placeholder makes the entry malformed. An argv word that is one placeholder and expands to nothing is left out, so an optional parameter disappears instead of passing `""`. The command also gets `OCHAZUKE_ACTION`, `OCHAZUKE_TARGET`, `OCHAZUKE_LABEL` and `OCHAZUKE_ARGS` in its environment and no standard input.
 
@@ -1215,6 +1216,16 @@ The work runs off the loop as a job (`Pending(...).Label(label)`): the ticker sh
 A malformed entry (an unknown field, noun or placeholder, a bad type, `command` and `base` together) is skipped and is a persistent notice (a CLI `warning:`); the rest still install. `actions reload` reads the file again (the last load's verbs go first) and reapplies the user bindings; `actions list` prints the installed entries.
 
 Security: commands come only from the user's own `actions.json` in the config directory. A catalog, a binding row, a socket call or an application's data can name an action's verb, as they can any verb, but never define or change what it runs: there is no operation that loads actions from another path, the catalog publishes the verb's parameters and never its command, and a sandbox (`Config.Disable`, o-story, a test binary) reads no file. Values reach the command as argv words, not shell text; if an entry runs `sh -c` itself, pass values as positional arguments (`"sh", "-c", "git log \"$1\"", "sh", "{{data.path}}"`) rather than inside the script.
+
+### Foreground programs
+
+A verb hands the terminal to another full-screen program by returning `Foreground(cmd *exec.Cmd)` (`foreground.go`): the runtime admits it as a job of the verb (the ticker shows it, `Label` and `Then` work as on `Pending`), the `Model` answers its `ForegroundMsg` with `tea.ExecProcess` (the TUI suspends; `Model.Foreground` replaces that, as o-story does to run it headless), and the program's exit is the job's completion, a `ForegroundExit{Program, Code}`: status 0 posts `ctx.Info("PROGRAM exited")`, another status fails the job with `ctx.Error("PROGRAM exited with status N")`. A host with no Model (the CLI shell, a test) hands the message to `Runtime.Deliver`, which runs it in place on the process's standard streams (`ForegroundMsg.Run`). A command's stdio left nil is the terminal's.
+
+```go
+r.Define("export").Verb("open", func(c ochazuke.Ctx) ochazuke.Result {
+	return ochazuke.Foreground(exec.Command("o-csv", path)).Label("o-csv")
+})
+```
 
 ## Action aliases
 

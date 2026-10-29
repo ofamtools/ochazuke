@@ -38,6 +38,10 @@ type ModalBody interface {
 // are instances the runtime drives through the delivery contract, so the
 // adapter holds no component list of its own.
 type Model struct {
+	// Foreground answers a ForegroundMsg (a verb's Foreground program);
+	// nil runs it through tea.ExecProcess, suspending the TUI. o-story
+	// and tests replace it to run the program headless.
+	Foreground func(ForegroundMsg) tea.Cmd
 	Runtime    *Runtime
 	Palette    *Palette
 	Appearance *Appearance
@@ -185,6 +189,14 @@ func (m *Model) Init() tea.Cmd {
 	return tea.Batch(tea.RequestBackgroundColor, m.settingsPoll(), m.segmentCommand(m.clock()))
 }
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// A foreground program suspends the TUI while it has the terminal
+	// (foreground.go); its exit comes back as the job's completion.
+	if fg, ok := msg.(ForegroundMsg); ok {
+		if !m.Runtime.Accepts(fg.Ticket) {
+			return m, nil
+		}
+		return m, m.foregroundCmd(fg)
+	}
 	// Off-loop results reach their owning instance first; a stale or
 	// orphaned completion is dropped here.
 	if _, err := m.Runtime.Deliver(msg); err != nil {
