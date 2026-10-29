@@ -679,6 +679,23 @@ tiers above them. When the two disagree, fix one in the same commit.
   tests `TestOutlineAddSelectPlaceholder`, `TestOutlineEditSelect`,
   `TestOutlineEditRename*`, `TestOutlineRenameMotionsKeepTheName`,
   `TestRecordEditorRenameSelects`.
+- **R11.7** Zoom (view state, never on the undo stack, on every tree):
+  `z +` `outline.zoom-in` draws only the node's subtree, `z -`
+  `outline.zoom-out` steps out one level, `z 0` `outline.zoom-reset` shows
+  every level; `h` past the zoom's top steps the zoom out onto the parent,
+  as `h` steps onto the parent anywhere. The hidden ancestors are a
+  breadcrumb: the nearest `tree.breadcrumb.ancestors` (default 2; 0 all)
+  named and dimmed, farther ones folded into `…` (the nested-json 1-drill
+  prototype). Settings, each value an option: `tree.zoom` `manual`
+  (default) | `auto` (also zooms, keeping two levels above the row, when
+  the selected row's indent takes over half the width) | `off` (no zoom;
+  the verbs unavailable); `tree.zoom.root` `crumb` (default: the node
+  ends the breadcrumb, its children are the top rows) | `row` (it stays as
+  the top row); `tree.breadcrumb` `line` (default: a line above the rows)
+  | `title` (in the header beside the mode, while the tree has the focus)
+  | `off`. An edit or `Select` that moves the selection out of the zoom
+  steps the zoom out to show it. Stories `tree/zoom-*.json`; tests
+  `tree_zoom_test.go`.
 
 ### R12. Action names and aliases
 
