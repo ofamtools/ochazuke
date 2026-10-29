@@ -175,7 +175,7 @@ func (r *Runtime) EnsureConfigSettings() {
 	r.ensureFocusDisplaySetting()
 	r.ensurePagesSetting()
 	r.EnsureSegments()
-	r.declareFrameworkSettings(SequenceTimeoutSetting, SequenceUnknownSetting, RenameSelectSetting)
+	r.declareFrameworkSettings(SequenceTimeoutSetting, SequenceUnknownSetting, RenameSelectSetting, TreeZoomSetting, TreeZoomRootSetting, TreeBreadcrumbSetting, TreeBreadcrumbAncestorsSetting)
 	s := r.Settings()
 	if c.HistoryPath() != "" && s.find(HistorySetting) == nil {
 		_ = r.DeclareSetting(Setting{Name: HistorySetting, Type: SettingInteger, Default: HistoryLimit, Description: "Action history entries kept across restarts (0 keeps none)"})

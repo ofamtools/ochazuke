@@ -51,12 +51,13 @@ func TestTreeQuitFlushesTheOpenLine(t *testing.T) {
 }
 
 // A read-only tree hides the outline verbs: tab is the app's focus jump,
-// o is not bound, and the footer offers only expand and collapse.
+// o is not bound, and the footer offers only expand, collapse and the
+// zoom (view state, on every tree).
 func TestReadOnlyTreeHidesOutlineVerbs(t *testing.T) {
 	r, _, tree, _ := treeFixture(t)
 	tree.OnChange = nil
 	for _, b := range r.ListBindings(r.Focus) {
-		if b.Request.Noun == "ochazuke.outline" && b.Request.Verb != "expand" && b.Request.Verb != "collapse" && b.Request.Verb != "fold" {
+		if b.Request.Noun == "ochazuke.outline" && !slices.Contains([]string{"expand", "collapse", "fold", "zoom-in", "zoom-out", "zoom-reset"}, b.Request.Verb) {
 			t.Fatalf("read-only tree answers %s with %s", b.Keys, b.Request.Key())
 		}
 	}

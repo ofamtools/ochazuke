@@ -122,17 +122,24 @@ func (r *Runtime) FocusNoun() string {
 }
 
 // focusDisplayLevels is what the header shows beside the mode for the
-// focus-display value: nothing when off.
+// focus-display value: nothing when off. A zoomed tree with
+// tree.breadcrumb title adds its breadcrumb: after the noun, or in the
+// stack before the focused row.
 func (r *Runtime) focusDisplayLevels() []string {
+	crumb := r.titleCrumb()
 	switch r.FocusDisplay() {
 	case FocusDisplayNoun:
 		if noun := r.FocusNoun(); noun != "" {
-			return []string{noun}
+			return append([]string{noun}, crumb...)
 		}
 	case FocusDisplayStack:
-		return r.FocusPath()
+		path := r.FocusPath()
+		if len(crumb) > 0 && len(path) > 0 && r.rows[r.BaseFocus()] != "" && len(r.modals) == 0 {
+			return slices.Concat(path[:len(path)-1], crumb, path[len(path)-1:])
+		}
+		return append(path, crumb...)
 	}
-	return nil
+	return crumb
 }
 
 // FitFocusPath joins levels with " › " in at most width cells. When they

@@ -425,7 +425,7 @@ Conformance:
 | normal | modal | `modal.pop` |
 | normal | mode | `mode.enter` |
 | normal | notice | `notice.clear` |
-| normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.indent` `outline.move` `outline.paste` `outline.redo` `outline.undo` |
+| normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.indent` `outline.move` `outline.paste` `outline.redo` `outline.undo` `outline.zoom-in` `outline.zoom-out` `outline.zoom-reset` |
 | normal | page | `page.next` `page.pick` `page.previous` |
 | normal | palette | `palette.open` |
 | normal | pane | `pane.grow` `pane.reset` `pane.shrink` |
@@ -524,6 +524,9 @@ Mode edges (from → to via):
 - `normal z` → `normal` via `list.scroll-columns`
 - `normal z` → `normal` via `list.toggle-pin-column`
 - `normal z` → `normal` via `markdown.fold`
+- `normal z` → `normal` via `outline.zoom-in`
+- `normal z` → `normal` via `outline.zoom-out`
+- `normal z` → `normal` via `outline.zoom-reset`
 - `normal z` → `normal` via `timeline.close-all`
 - `normal z` → `normal` via `timeline.fold`
 - `normal z` → `normal` via `timeline.open-all`

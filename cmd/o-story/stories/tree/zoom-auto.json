@@ -1,0 +1,91 @@
+{
+  "name": "tree zoom: tree.zoom auto zooms when the selected row's indent takes over half the width, keeping two levels above it",
+  "area": "tree",
+  "width": 26,
+  "settings": [
+    {
+      "name": "tree.zoom",
+      "type": "string",
+      "default": "auto",
+      "enum": [
+        "manual",
+        "auto",
+        "off"
+      ]
+    }
+  ],
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "nodes": [
+          {
+            "id": "r0",
+            "label": "root"
+          },
+          {
+            "id": "a",
+            "parent": "r0",
+            "label": "alpha"
+          },
+          {
+            "id": "b",
+            "parent": "a",
+            "label": "beta"
+          },
+          {
+            "id": "c",
+            "parent": "b",
+            "label": "gamma"
+          },
+          {
+            "id": "d",
+            "parent": "c",
+            "label": "delta"
+          },
+          {
+            "id": "e",
+            "parent": "d",
+            "label": "eps"
+          },
+          {
+            "id": "a2",
+            "parent": "a",
+            "label": "alpha2"
+          },
+          {
+            "id": "s",
+            "label": "side"
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "j",
+    "j",
+    "j",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "focus": "c",
+      "contains": [
+        "▾ root"
+      ]
+    },
+    {
+      "focus": "e",
+      "contains": [
+        "root › alpha › beta",
+        "▾ gamma",
+        "      eps"
+      ],
+      "lacks": [
+        "side"
+      ]
+    }
+  ]
+}

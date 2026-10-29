@@ -1,0 +1,69 @@
+{
+  "name": "tree zoom: the breadcrumb dims the ancestors (muted) and draws the zoomed node plain",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "nodes": [
+          {
+            "id": "r0",
+            "label": "root"
+          },
+          {
+            "id": "a",
+            "parent": "r0",
+            "label": "alpha"
+          },
+          {
+            "id": "b",
+            "parent": "a",
+            "label": "beta"
+          },
+          {
+            "id": "c",
+            "parent": "b",
+            "label": "gamma"
+          },
+          {
+            "id": "d",
+            "parent": "c",
+            "label": "delta"
+          },
+          {
+            "id": "e",
+            "parent": "d",
+            "label": "eps"
+          },
+          {
+            "id": "a2",
+            "parent": "a",
+            "label": "alpha2"
+          },
+          {
+            "id": "s",
+            "label": "side"
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "j",
+    "z",
+    "+"
+  ],
+  "expect": [
+    {
+      "focus": "c",
+      "contains": [
+        "root › alpha › beta"
+      ],
+      "attrs": {
+        "root › alpha ›": "faint",
+        "beta": "-faint"
+      }
+    }
+  ]
+}

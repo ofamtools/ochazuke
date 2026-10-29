@@ -1,0 +1,99 @@
+{
+  "name": "tree zoom: z + zooms on the node (its children the top rows, a breadcrumb line above), z - steps out a level, z 0 shows every level",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "nodes": [
+          {
+            "id": "r0",
+            "label": "root"
+          },
+          {
+            "id": "a",
+            "parent": "r0",
+            "label": "alpha"
+          },
+          {
+            "id": "b",
+            "parent": "a",
+            "label": "beta"
+          },
+          {
+            "id": "c",
+            "parent": "b",
+            "label": "gamma"
+          },
+          {
+            "id": "d",
+            "parent": "c",
+            "label": "delta"
+          },
+          {
+            "id": "e",
+            "parent": "d",
+            "label": "eps"
+          },
+          {
+            "id": "a2",
+            "parent": "a",
+            "label": "alpha2"
+          },
+          {
+            "id": "s",
+            "label": "side"
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "z",
+    "+",
+    "z",
+    "-",
+    "z",
+    "0"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "focus": "b",
+      "contains": [
+        "root › alpha",
+        "▾ beta",
+        "  alpha2"
+      ],
+      "lacks": [
+        "side",
+        "▾ root"
+      ]
+    },
+    {
+      "after": 5,
+      "focus": "b",
+      "contains": [
+        "root",
+        "▾ alpha",
+        "  ▾ beta"
+      ],
+      "lacks": [
+        "side",
+        "▾ root"
+      ]
+    },
+    {
+      "focus": "b",
+      "contains": [
+        "▾ root",
+        "  ▾ alpha",
+        "side"
+      ],
+      "lacks": [
+        "root › alpha"
+      ]
+    }
+  ]
+}

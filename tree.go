@@ -148,6 +148,7 @@ type Tree struct {
 	nodes     []TreeNode
 	idx       *treeIndex // lookups over nodes, built on demand; nil after any change to their order or parents
 	collapsed map[string]bool
+	zoom      string // the node the view is zoomed on (tree_zoom.go); "" every level
 
 	// OnChange makes the tree editable and receives each change as it is
 	// made; an error keeps the change on screen, marks the row and retries
@@ -460,7 +461,7 @@ func (t *Tree) prefix(n TreeNode) string {
 	if t.failed[n.ID] {
 		marker = "! "
 	}
-	return strings.Repeat("  ", t.depth(n.ID)) + marker
+	return strings.Repeat("  ", t.shownDepth(n.ID)) + marker
 }
 
 // shiftTones moves a node's cell-0 tones past the row's indent and fold
@@ -485,8 +486,10 @@ func shiftTones(tones []ToneSpan, prefix int) []ToneSpan {
 
 // refresh pushes the visible nodes to the list, selecting id when given.
 func (t *Tree) refresh(selectID string) error {
-	items := make([]ListItem, 0, len(t.nodes))
-	for _, n := range t.nodes {
+	t.fitZoom(selectID)
+	from, to := t.zoomRange()
+	items := make([]ListItem, 0, to-from)
+	for _, n := range t.nodes[from:to] {
 		if !t.visible(n) {
 			continue
 		}
@@ -521,8 +524,28 @@ func (t *Tree) refresh(selectID string) error {
 func (t *Tree) View(width, height int) string { return t.Block(width, height).Text }
 
 // Block renders the rows as the list does; while a line is open its row is
-// the input, with the terminal cursor in it.
+// the input, with the terminal cursor in it. A zoomed tree draws its
+// breadcrumb line above the rows (tree.breadcrumb line) when there is room
+// for a row under it; the frame first applies tree.zoom (frameZoom).
 func (t *Tree) Block(width, height int) Block {
+	t.frameZoom(width)
+	crumb := ""
+	if height > 1 {
+		crumb = t.crumbLine(width)
+	}
+	if crumb == "" {
+		return t.rows(width, height)
+	}
+	out := t.rows(width, height-1)
+	out.Text = crumb + "\n" + out.Text
+	if out.Cursor != nil {
+		out.Cursor.Y++
+	}
+	return out
+}
+
+// rows renders the visible rows (Block without the breadcrumb).
+func (t *Tree) rows(width, height int) Block {
 	text := t.list.View(width, height)
 	if t.input == nil || t.editing == "" {
 		return Text(text)
@@ -1160,6 +1183,9 @@ func (t *Tree) collapse(c Context) error {
 		t.collapsed[id] = true
 		return t.refresh(id)
 	}
+	if out, err := t.stepOut(id); out || err != nil {
+		return err
+	}
 	if p := t.parentOf(id); p != "" {
 		if err := t.list.Select(p); err != nil {
 			return err
@@ -1189,6 +1215,9 @@ func (t *Tree) Failure() error {
 // collapse on every tree, the outline verbs on an editable one (guard
 // tree-editable), and the open line's insert rows.
 func registerTrees(r *Runtime) {
+	r.DefineGuard("tree-zoom", func(r *Runtime, ev KeyEvent) bool {
+		return r.treeOf(ev.Focus) != nil && r.TreeZoomMode() != TreeZoomOff
+	})
 	r.DefineGuard("tree-editable", func(r *Runtime, ev KeyEvent) bool {
 		t := r.treeOf(ev.Focus)
 		return t != nil && t.Editable()
@@ -1215,7 +1244,7 @@ func registerTrees(r *Runtime) {
 	}
 	r.Define("ochazuke.outline").
 		Verb("expand", on(func(t *Tree, c Ctx) error { return t.expand(c.Context) }), "Expand the node, or step onto its first child when it is open").Motion().
-		Verb("collapse", on(func(t *Tree, c Ctx) error { return t.collapse(c.Context) }), "Collapse the node, or step onto its parent when it is closed").Motion().
+		Verb("collapse", on(func(t *Tree, c Ctx) error { return t.collapse(c.Context) }), "Collapse the node, or step onto its parent when it is closed; past a zoom's top it steps the zoom out to show the parent").Motion().
 		Verb("fold", on(func(t *Tree, c Ctx) error {
 			id := t.target(c.Context)
 			if id == "" || !t.hasChildren(id) {
@@ -1224,6 +1253,9 @@ func registerTrees(r *Runtime) {
 			t.collapsed[id] = !t.collapsed[id]
 			return t.refresh(id)
 		}), "Expand or collapse the node").
+		Verb("zoom-in", on(func(t *Tree, c Ctx) error { return t.zoomIn(c.Context) }), "Zoom on the node: only its subtree is drawn, its ancestors become the breadcrumb (tree.zoom.root: the node ends the breadcrumb, or stays as the top row); view state, never undone").When("tree-zoom").
+		Verb("zoom-out", on(func(t *Tree, c Ctx) error { return t.ZoomOut() }), "Step the zoom out one level, onto the zoomed node's parent").When("tree-zoom").
+		Verb("zoom-reset", on(func(t *Tree, c Ctx) error { return t.Zoom("") }), "Show every level again").When("tree-zoom").
 		Verb("add", edit(func(t *Tree, c Ctx) error {
 			selected, _ := c.Args["select"].(bool)
 			return t.add(c.Context, StringArg(c.Args, "where", "below"), StringArg(c.Args, "text", ""), selected)

@@ -1,0 +1,71 @@
+{
+  "name": "tree zoom: tree.zoom manual (the default) never zooms by itself, however deep the row",
+  "area": "tree",
+  "width": 26,
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "nodes": [
+          {
+            "id": "r0",
+            "label": "root"
+          },
+          {
+            "id": "a",
+            "parent": "r0",
+            "label": "alpha"
+          },
+          {
+            "id": "b",
+            "parent": "a",
+            "label": "beta"
+          },
+          {
+            "id": "c",
+            "parent": "b",
+            "label": "gamma"
+          },
+          {
+            "id": "d",
+            "parent": "c",
+            "label": "delta"
+          },
+          {
+            "id": "e",
+            "parent": "d",
+            "label": "eps"
+          },
+          {
+            "id": "a2",
+            "parent": "a",
+            "label": "alpha2"
+          },
+          {
+            "id": "s",
+            "label": "side"
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "j",
+    "j",
+    "j",
+    "j"
+  ],
+  "expect": [
+    {
+      "focus": "e",
+      "contains": [
+        "▾ root",
+        "side"
+      ],
+      "lacks": [
+        "root › alpha"
+      ]
+    }
+  ]
+}

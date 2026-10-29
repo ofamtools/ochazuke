@@ -1,0 +1,72 @@
+{
+  "name": "tree zoom: the breadcrumb names the nearest two ancestors (tree.breadcrumb.ancestors 2) and folds the farther ones into …",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "nodes": [
+          {
+            "id": "r0",
+            "label": "root"
+          },
+          {
+            "id": "a",
+            "parent": "r0",
+            "label": "alpha"
+          },
+          {
+            "id": "b",
+            "parent": "a",
+            "label": "beta"
+          },
+          {
+            "id": "c",
+            "parent": "b",
+            "label": "gamma"
+          },
+          {
+            "id": "d",
+            "parent": "c",
+            "label": "delta"
+          },
+          {
+            "id": "e",
+            "parent": "d",
+            "label": "eps"
+          },
+          {
+            "id": "a2",
+            "parent": "a",
+            "label": "alpha2"
+          },
+          {
+            "id": "s",
+            "label": "side"
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "j",
+    "j",
+    "j",
+    "z",
+    "+"
+  ],
+  "expect": [
+    {
+      "focus": "e",
+      "contains": [
+        "… › beta › gamma › delta",
+        "  eps"
+      ],
+      "lacks": [
+        "root ›",
+        "alpha ›"
+      ]
+    }
+  ]
+}

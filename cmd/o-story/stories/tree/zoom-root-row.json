@@ -1,0 +1,94 @@
+{
+  "name": "tree zoom: tree.zoom.root row keeps the zoomed node as the top row; the line names only its ancestors; h past it steps out",
+  "area": "tree",
+  "settings": [
+    {
+      "name": "tree.zoom.root",
+      "type": "string",
+      "default": "row",
+      "enum": [
+        "crumb",
+        "row"
+      ]
+    }
+  ],
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "nodes": [
+          {
+            "id": "r0",
+            "label": "root"
+          },
+          {
+            "id": "a",
+            "parent": "r0",
+            "label": "alpha"
+          },
+          {
+            "id": "b",
+            "parent": "a",
+            "label": "beta"
+          },
+          {
+            "id": "c",
+            "parent": "b",
+            "label": "gamma"
+          },
+          {
+            "id": "d",
+            "parent": "c",
+            "label": "delta"
+          },
+          {
+            "id": "e",
+            "parent": "d",
+            "label": "eps"
+          },
+          {
+            "id": "a2",
+            "parent": "a",
+            "label": "alpha2"
+          },
+          {
+            "id": "s",
+            "label": "side"
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "z",
+    "+",
+    "h",
+    "h"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "focus": "a",
+      "contains": [
+        "root",
+        "▾ alpha",
+        "  ▾ beta"
+      ],
+      "lacks": [
+        "side",
+        "root › alpha"
+      ]
+    },
+    {
+      "focus": "r0",
+      "contains": [
+        "▾ root",
+        "  ▸ alpha"
+      ],
+      "lacks": [
+        "side"
+      ]
+    }
+  ]
+}

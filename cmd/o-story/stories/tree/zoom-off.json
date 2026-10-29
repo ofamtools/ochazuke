@@ -1,0 +1,80 @@
+{
+  "name": "tree zoom: tree.zoom off makes z + do nothing",
+  "area": "tree",
+  "settings": [
+    {
+      "name": "tree.zoom",
+      "type": "string",
+      "default": "off",
+      "enum": [
+        "manual",
+        "auto",
+        "off"
+      ]
+    }
+  ],
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "nodes": [
+          {
+            "id": "r0",
+            "label": "root"
+          },
+          {
+            "id": "a",
+            "parent": "r0",
+            "label": "alpha"
+          },
+          {
+            "id": "b",
+            "parent": "a",
+            "label": "beta"
+          },
+          {
+            "id": "c",
+            "parent": "b",
+            "label": "gamma"
+          },
+          {
+            "id": "d",
+            "parent": "c",
+            "label": "delta"
+          },
+          {
+            "id": "e",
+            "parent": "d",
+            "label": "eps"
+          },
+          {
+            "id": "a2",
+            "parent": "a",
+            "label": "alpha2"
+          },
+          {
+            "id": "s",
+            "label": "side"
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "z",
+    "+"
+  ],
+  "expect": [
+    {
+      "focus": "a",
+      "contains": [
+        "▾ root",
+        "side"
+      ],
+      "lacks": [
+        "root › alpha"
+      ]
+    }
+  ]
+}

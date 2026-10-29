@@ -1,0 +1,77 @@
+{
+  "name": "tree zoom: tree.breadcrumb title draws no line; the header shows the breadcrumb beside the mode",
+  "area": "tree",
+  "settings": [
+    {
+      "name": "tree.breadcrumb",
+      "type": "string",
+      "default": "title",
+      "enum": [
+        "line",
+        "title",
+        "off"
+      ]
+    }
+  ],
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "nodes": [
+          {
+            "id": "r0",
+            "label": "root"
+          },
+          {
+            "id": "a",
+            "parent": "r0",
+            "label": "alpha"
+          },
+          {
+            "id": "b",
+            "parent": "a",
+            "label": "beta"
+          },
+          {
+            "id": "c",
+            "parent": "b",
+            "label": "gamma"
+          },
+          {
+            "id": "d",
+            "parent": "c",
+            "label": "delta"
+          },
+          {
+            "id": "e",
+            "parent": "d",
+            "label": "eps"
+          },
+          {
+            "id": "a2",
+            "parent": "a",
+            "label": "alpha2"
+          },
+          {
+            "id": "s",
+            "label": "side"
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "z",
+    "+"
+  ],
+  "expect": [
+    {
+      "focus": "b",
+      "contains": [
+        "NORMAL · root › alpha",
+        "▾ beta"
+      ]
+    }
+  ]
+}
