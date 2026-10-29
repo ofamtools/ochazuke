@@ -6,6 +6,12 @@ Go application framework on Bubble Tea **v2** (`charm.land/bubbletea/v2` v2.1.0)
 
 Family plans, todos and the roadmap live in `~/hub/o-plans/` (`README.md` is the index). Read it before planning work; add or update items there. Do not add a TODO.md or docs/plans/ to this repo.
 
+## Compare with Vim first
+
+- A new feature with a Vim or Neovim counterpart (motions, operators, modes, registers, the command line, options, windows and panes, folds, marks, macros, completion) starts from Vim's own behaviour: read its `:help` (in Vim or Neovim, or vimhelp.org and neovim.io/doc/user) and try it in a current Neovim before designing.
+- Mirror it where it fits ochazuke's model; where it does not, say why.
+- The plan carries a table of each Vim form, its `:help` tag and ochazuke's behaviour (same, similar with the difference, or not applicable with the reason), and the feature's docs (README or `docs/`) get a short "Compared with Vim" note with the same similarities and differences.
+
 ## Read in this order
 
 1. This file.
