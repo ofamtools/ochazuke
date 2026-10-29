@@ -33,7 +33,7 @@ func (r *Runtime) ensurePagesSetting() {
 	if s.find(PagesHiddenSetting) != nil {
 		return
 	}
-	_ = r.DeclareSetting(Setting{Name: PagesHiddenSetting, Type: SettingList, Default: r.defaultHiddenPages(), Description: "Page ids left out of the tabs and ctrl+j/k (page.hide and page.show write it); page.open still opens them"})
+	_ = r.declareBuiltinSetting(Setting{Name: PagesHiddenSetting, Type: SettingList, Default: r.defaultHiddenPages(), Description: "Page ids left out of the tabs and ctrl+j/k (page.hide and page.show write it); page.open still opens them"})
 }
 
 // defaultHiddenPages are the ids of the pages declared hidden by default,

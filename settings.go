@@ -94,6 +94,12 @@ type Settings struct {
 	// runtime was made (startupSettings) that no application declared
 	// since: an application's DeclareSetting replaces such a row.
 	framework map[string]bool
+	// byFramework are the names the framework declared later, for a
+	// feature: inside Runtime.Builtin (a framework package's Register)
+	// or through declareBuiltinSetting (the theme, the history file's,
+	// pages.hidden, an embedded file's rows). The generated reference
+	// says ochazuke declares them.
+	byFramework map[string]bool
 	// The session layer above the file (settings_session.go): values set
 	// this session and not written, whether the runtime has a session
 	// (a Model is attached), when the file changed under a setting on
@@ -183,6 +189,7 @@ func (r *Runtime) DeclareSetting(settings ...Setting) error {
 				s.parse(one)
 			}
 			s.declaredBy(one.Name)
+			s.markFramework(one.Name, r.builtinDepth > 0)
 			s.changed(one.Name, old)
 			r.rebindSettingRows(one.Name)
 			continue
@@ -196,6 +203,7 @@ func (r *Runtime) DeclareSetting(settings ...Setting) error {
 		}
 		s.declared = slices.Insert(s.declared, at, one)
 		s.declaredBy(one.Name)
+		s.markFramework(one.Name, r.builtinDepth > 0)
 		if s.loaded {
 			s.withdrawUnknown(one)
 			s.parse(one)

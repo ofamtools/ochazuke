@@ -10,6 +10,7 @@
   {"name": "help.pick-view", "type": "boolean", "default": true, "description": "S in the ? help shows the keys for a noun and mode you pick"},
   {"name": "help.table-view", "type": "boolean", "default": true, "description": "S in the ? help shows a noun's keys as a table, a column per mode"},
   {"name": "help.pending-modes", "type": "boolean", "default": false, "description": "The ? help's pick and table views offer the pending modes too (counts, operators, the terminal leader, key-sequence prefixes)"},
+  {"name": "docs.show-config", "type": "boolean", "default": true, "description": "The docs viewer (docs open, :help) marks where your settings.json and bindings.json differ from the defaults with yours: lines; off, a page reads as the committed reference"},
   {"name": "palette.missing-opens-form", "type": "boolean", "default": true, "description": "Enter on a command line, or a key, whose action lacks a required argument opens a form for its arguments; off names the missing word instead"},
   {"name": "focus-display", "type": "string", "default": "off", "enum": ["off", "noun", "stack"], "description": "Show where the focus is beside the mode: off, noun (the focused noun) or stack (the focus path, outermost first)"},
   {"name": "status.segments", "type": "boolean", "default": true, "description": "Show the status segments (cpu, disk, an extension's) in the header rule; off hides them all and stops their refreshes"},

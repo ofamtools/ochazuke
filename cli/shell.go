@@ -759,8 +759,9 @@ func resolves(r *ochazuke.Runtime, target string) bool {
 }
 
 // bareAlias reports whether word is a bare action alias (w!), which runs
-// with no other words.
+// with no other words; an alias kept to the palette (ActionAlias.Palette,
+// help) is not one here, so the word stays the shell's.
 func (s *Shell) bareAlias(word string) bool {
 	a, ok := s.Runtime.ActionAlias(word)
-	return ok && a.Bare && a.Verb == word
+	return ok && a.Bare && a.Verb == word && !a.Palette
 }

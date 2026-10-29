@@ -493,54 +493,82 @@ func GroupBindings(rows []Binding) []BindingGroup {
 // passthrough modes, every noun's mode tables (with their extends) and
 // every instance's, in GroupBindings order, rows in table order.
 func (r *Runtime) BindingsDoc() BindingsDoc {
-	doc := BindingsDoc{Modes: map[string]ModeSpec{}}
-	for name := range r.pendingModes {
-		doc.Modes[name] = ModeSpec{Pending: true}
-	}
-	for name := range r.passthroughModes {
-		m := doc.Modes[name]
-		m.Passthrough = true
-		doc.Modes[name] = m
-	}
-	for name, parent := range r.modeExtends {
-		m := doc.Modes[name]
-		m.Extends = parent
-		doc.Modes[name] = m
-	}
-	for name, shape := range r.selectionModes {
-		m := doc.Modes[name]
-		m.Selection = shape
-		doc.Modes[name] = m
-	}
 	var rows []Binding
-	extends := map[[2]string]string{}
 	for _, name := range slices.Sorted(maps.Keys(r.Nouns)) {
 		noun := r.Nouns[name]
 		for _, mode := range slices.Sorted(maps.Keys(noun.Bindings)) {
 			for _, row := range noun.Bindings[mode] {
 				row.Noun, row.Instance, row.Mode = name, "", mode
-				row.Aliases = nil
 				rows = append(rows, row)
 			}
-		}
-		for mode, parent := range noun.Extends {
-			extends[[2]string{name, mode}] = parent
 		}
 	}
 	for _, id := range slices.Sorted(maps.Keys(r.Instances)) {
 		for _, row := range r.Instances[id].Bindings {
 			row.Noun, row.Instance = "", id
-			row.Aliases = nil
 			rows = append(rows, row)
 		}
+	}
+	return r.bindingsDocOf(rows)
+}
+
+// DefaultBindingsDoc is BindingsDoc without the user's bindings.json:
+// every table as it stands with the rows the file replaced or unbound
+// back in place and the rows it added left out (DefaultBindings, which
+// replays the applied rows backwards on a copy). With no user file it
+// equals BindingsDoc. The generated reference is drawn from it.
+func (r *Runtime) DefaultBindingsDoc() BindingsDoc {
+	defaults := r.DefaultBindings()
+	rows := make([]Binding, len(defaults))
+	for i, row := range defaults {
+		rows[i] = row.Binding
+	}
+	return r.bindingsDocOf(rows)
+}
+
+// bindingsDocOf is rows (each naming its noun or instance and mode) as a
+// bindings file: the runtime's modes, the rows grouped (GroupBindings),
+// each noun group with its table's extends; a stored row's aliases are
+// dropped.
+func (r *Runtime) bindingsDocOf(rows []Binding) BindingsDoc {
+	doc := BindingsDoc{Modes: r.bindingModes()}
+	for i := range rows {
+		rows[i].Aliases = nil
 	}
 	doc.Groups = GroupBindings(rows)
 	for i, g := range doc.Groups {
 		if g.Instance == "" {
-			doc.Groups[i].Extends = extends[[2]string{g.Noun, g.Mode}]
+			if noun := r.Nouns[g.Noun]; noun != nil {
+				doc.Groups[i].Extends = noun.Extends[g.Mode]
+			}
 		}
 	}
 	return doc
+}
+
+// bindingModes are the pending, passthrough, extending and selection
+// modes, as a bindings file's "modes".
+func (r *Runtime) bindingModes() map[string]ModeSpec {
+	modes := map[string]ModeSpec{}
+	for name := range r.pendingModes {
+		modes[name] = ModeSpec{Pending: true}
+	}
+	for name := range r.passthroughModes {
+		m := modes[name]
+		m.Passthrough = true
+		modes[name] = m
+	}
+	for name, parent := range r.modeExtends {
+		m := modes[name]
+		m.Extends = parent
+		modes[name] = m
+	}
+	for name, shape := range r.selectionModes {
+		m := modes[name]
+		m.Selection = shape
+		modes[name] = m
+	}
+	return modes
 }
 
 // FormatBindings writes doc in the grouped format: the BindingsHeader

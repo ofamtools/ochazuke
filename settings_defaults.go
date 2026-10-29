@@ -166,7 +166,7 @@ func (r *Runtime) declareFrameworkSettings(names ...string) {
 		if !ok || s.find(one.Name) != nil {
 			continue
 		}
-		_ = r.DeclareSetting(one)
+		_ = r.declareBuiltinSetting(one)
 		// Declared from an embedded file: the default's origin is the
 		// file, not the feature's caller.
 		delete(s.declaredAt, one.Name)

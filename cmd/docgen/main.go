@@ -1,9 +1,14 @@
-// Command docgen generates the offline reference linked from the architecture guide.
+// Command docgen generates the offline reference linked from the
+// architecture guide: docs/{actions,bindings,api,transport}.html, and with
+// -ref DIR the Markdown reference of the framework runtime (refdoc:
+// README.md, settings.md, bindings.md) that TestReference holds to the
+// catalog.
 package main
 
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"go/ast"
 	"go/doc"
@@ -41,6 +46,15 @@ type catalog struct {
 }
 
 func main() {
+	ref := flag.String("ref", "", "write the Markdown reference (refdoc) into this directory instead of the HTML pages")
+	flag.Parse()
+	if *ref != "" {
+		if err := writeReference(".", *ref); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
 	if err := generate(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

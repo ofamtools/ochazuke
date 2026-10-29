@@ -26,7 +26,7 @@ var frameworkBindingFiles = []string{
 	"chooser.json", "settings-editor.json", "list.json", "table.json", "list-modes.json",
 	"tree.json", "timeline.json", "form.json", "completion.json", "yank-history.json",
 	"help.json", "macros.json", "confirm.json",
-	"terminal.json", "focus.json", "detail.json", "scroll.json", "panes.json", "history.json", "modal.json",
+	"terminal.json", "focus.json", "detail.json", "scroll.json", "panes.json", "history.json", "docs.json", "modal.json",
 }
 
 // builtinSelections are the selection shapes the framework's editor file
@@ -362,7 +362,7 @@ func (r *Runtime) DefaultBindings() []DefaultBinding {
 // group tagged with it, the table's extends on its groups; a noun's mode
 // that only extends another is a group of no rows.
 func (r *Runtime) defaultBindingsDoc() BindingsDoc {
-	doc := BindingsDoc{Modes: r.BindingsDoc().Modes}
+	doc := BindingsDoc{Modes: r.bindingModes()}
 	extended := map[string]bool{}
 	for _, row := range r.DefaultBindings() {
 		last := len(doc.Groups) - 1

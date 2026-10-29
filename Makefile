@@ -1,9 +1,14 @@
 # Regenerate the agent-facing maps. Hand-written guidance lives in AGENTS.md.
-.PHONY: codemap test explore explore-quick
+.PHONY: codemap reference test explore explore-quick
 
 codemap:
 	go run ./cmd/codemap
 	go run ./cmd/charmrefs
+
+# The generated reference (docs/reference): settings and default key rows of
+# the framework runtime. TestReference (cmd/docgen) fails when it is stale.
+reference:
+	go run ./cmd/docgen -ref docs/reference
 
 test:
 	go test ./...

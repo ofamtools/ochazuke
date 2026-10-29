@@ -8,7 +8,7 @@ Root package `ochazuke` is flat: 103 source files, 111 test files. Each entry li
 
 ### action_names.go
 
-- lines: 504 · tests: action_names_test.go
+- lines: 508 · tests: action_names_test.go
 - purpose: ActionAlias is one extra name of a registered action.
 - types: ActionAlias, Invocation
 - methods: ActionAlias(3), NounBuilder(3), Runtime(21)
@@ -16,7 +16,7 @@ Root package `ochazuke` is flat: 103 source files, 111 test files. Each entry li
 
 ### actions.go
 
-- lines: 683 · tests: actions_test.go
+- lines: 685 · tests: actions_test.go
 - purpose: Action is one entry of actions.json: a verb on an existing noun that runs an external command.
 - types: Action, Argv, AliasRow
 - methods: Action(8), Argv(1), Config(1), Runtime(7)
@@ -62,12 +62,12 @@ Root package `ochazuke` is flat: 103 source files, 111 test files. Each entry li
 
 ### bindings_file.go
 
-- lines: 650 · tests: bindings_file_test.go
+- lines: 678 · tests: bindings_file_test.go
 - purpose: ModeSpec is one mode's entry in a bindings file's "modes".
 - types: ModeSpec, BindingGroup, BindingsDoc
-- methods: BindingGroup(2), BindingsDoc(1), Runtime(1), bindingValue(1)
+- methods: BindingGroup(2), BindingsDoc(1), Runtime(4), bindingValue(1)
 - funcs: ParseBindings, GroupBindings, FormatBindings
-- leans on: noun.go(41), instance.go(21), runtime.go(19), rows_format.go(5)
+- leans on: noun.go(44), runtime.go(22), instance.go(21), rows_format.go(5)
 
 ### block.go
 
@@ -153,7 +153,7 @@ Root package `ochazuke` is flat: 103 source files, 111 test files. Each entry li
 - purpose: loadFrameworkBindings installs one embedded framework file; a file that does not load is a framework bug, so it panics at startup (every test that builds a r...
 - types: DefaultBinding
 - methods: Runtime(11)
-- leans on: noun.go(52), instance.go(26), runtime.go(17), bindings_file.go(8)
+- leans on: noun.go(52), instance.go(26), runtime.go(17), bindings_file.go(7)
 
 ### delivery.go
 
@@ -179,6 +179,13 @@ Root package `ochazuke` is flat: 103 source files, 111 test files. Each entry li
 - types: Detail
 - methods: Detail(9), Runtime(6)
 - leans on: runtime.go(18), instance.go(7), delivery.go(5), noun.go(1)
+
+### docs_reference.go
+
+- lines: 316 · tests: docs_reference_test.go
+- purpose: ReferenceModel is the runtime as the generated reference sees it: every declared setting (with the user's value where it differs from the default) and every ...
+- methods: Runtime(5), Settings(2), docsViewer(2)
+- leans on: runtime.go(21), settings.go(12), actions.go(4), configuration.go(4)
 
 ### editing.go
 
@@ -569,7 +576,7 @@ Root package `ochazuke` is flat: 103 source files, 111 test files. Each entry li
 
 ### runtime.go
 
-- lines: 1033 · tests: runtime_test.go
+- lines: 1034 · tests: runtime_test.go
 - purpose: Arguments are a request's named arguments, keyed by parameter name.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
 - methods: Context(1), Operation(4), Request(1), Runtime(19)
@@ -625,7 +632,7 @@ Root package `ochazuke` is flat: 103 source files, 111 test files. Each entry li
 
 ### settings.go
 
-- lines: 1017 · tests: settings_test.go
+- lines: 1025 · tests: settings_test.go
 - purpose: Setting is one declared user preference: its name, type, default, the line the settings list shows and, for a string, the allowed values.
 - types: Setting, SettingValue, Settings, SettingsPollMsg
 - methods: Model(1), Runtime(2), Settings(34)
@@ -978,7 +985,7 @@ Importable package `cli`: 27 source files, 21 test files.
 
 ### cli/shell.go
 
-- lines: 766
+- lines: 767
 - purpose: Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--format F] [--yes]: one registered operation in this process through the run...
 - types: Shell
 - methods: Shell(11), stderrSink(5)
@@ -1233,6 +1240,42 @@ Importable package `markdown`: 10 source files, 6 test files.
 - purpose: Register defines the markdown nouns, their verbs and keys once per runtime (see Doc for the keys).
 - funcs: Register
 - leans on: doc.go(58), insert.go(14), elements.go(9), edit.go(6)
+
+## Package refdoc
+
+Importable package `refdoc`: 4 source files, 1 test files.
+
+### refdoc/check.go
+
+- lines: 112
+- purpose: Diff is one way the committed pages differ from what Render draws now: a page that is missing, one that should not be there, or one whose body or header fing...
+- types: Diff
+- methods: Diff(1)
+- funcs: Check
+- leans on: render.go(7), model.go(1)
+
+### refdoc/model.go
+
+- lines: 83
+- purpose: Model is what the reference is drawn from: the declared settings (by name) and the default key rows grouped by table (in the bindings file's group order).
+- types: Model, Setting, Group, Row
+- methods: Model(1)
+
+### refdoc/render.go
+
+- lines: 294
+- purpose: TopicFile is the page of a topic, "" for an unknown one.
+- types: Options
+- funcs: TopicFile, Render, Header, Body, HeaderFingerprint
+- leans on: stamp.go(9), model.go(7), check.go(3)
+
+### refdoc/stamp.go
+
+- lines: 170
+- purpose: Stamp names the build a page came from: the tool, its version, the commit (the base it was built or generated on), whether the tree was dirty, the commit dat...
+- types: Stamp
+- methods: Stamp(1)
+- funcs: BuildStamp, FromGit
 
 ## Package story
 
@@ -1578,6 +1621,13 @@ Exported type -> file.
 - markdown.Option -> markdown/render.go
 - markdown.Source -> markdown/doc.go
 - markdown.Task -> markdown/tasks.go
+- refdoc.Diff -> refdoc/check.go
+- refdoc.Group -> refdoc/model.go
+- refdoc.Model -> refdoc/model.go
+- refdoc.Options -> refdoc/render.go
+- refdoc.Row -> refdoc/model.go
+- refdoc.Setting -> refdoc/model.go
+- refdoc.Stamp -> refdoc/stamp.go
 - story.BindSpec -> story/story.go
 - story.CardSpec -> story/story.go
 - story.CatalogSpec -> story/story.go

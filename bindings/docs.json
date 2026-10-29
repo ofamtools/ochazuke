@@ -1,0 +1,18 @@
+// ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, {key, action, args, hint, ...} or {key, unbind: true}; a key may repeat: the first row whose action is available answers
+{
+  "bindings": [
+    {"context": "ochazuke.docs-viewer/normal", "bindings": [
+      {"key": "j", "action": "ochazuke.detail.scroll", "args": {"lines": 1, "id": "__docs-viewer/text"}, "from": {"count": "count"}, "hint": "j/k scroll"},
+      {"key": "down", "action": "ochazuke.detail.scroll", "args": {"lines": 1, "id": "__docs-viewer/text"}, "from": {"count": "count"}, "hidden": true},
+      {"key": "k", "action": "ochazuke.detail.scroll", "args": {"lines": -1, "id": "__docs-viewer/text"}, "from": {"count": "count"}, "hidden": true},
+      {"key": "up", "action": "ochazuke.detail.scroll", "args": {"lines": -1, "id": "__docs-viewer/text"}, "from": {"count": "count"}, "hidden": true},
+      {"key": "J", "action": "ochazuke.detail.scroll", "args": {"lines": 1, "id": "__docs-viewer/text"}, "from": {"count": "count"}, "hidden": true},
+      {"key": "K", "action": "ochazuke.detail.scroll", "args": {"lines": -1, "id": "__docs-viewer/text"}, "from": {"count": "count"}, "hidden": true},
+      {"key": "ctrl+d", "action": "ochazuke.detail.scroll", "args": {"lines": 15, "id": "__docs-viewer/text"}, "from": {"count": "count"}, "hint": "ctrl+d/u half page"},
+      {"key": "ctrl+u", "action": "ochazuke.detail.scroll", "args": {"lines": -15, "id": "__docs-viewer/text"}, "from": {"count": "count"}, "hidden": true},
+      {"key": "g g", "action": "ochazuke.detail.scroll", "args": {"lines": -1000000, "id": "__docs-viewer/text"}, "hint": "g g/G ends"},
+      {"key": "G", "action": "ochazuke.detail.scroll", "args": {"lines": 1000000, "id": "__docs-viewer/text"}, "hidden": true},
+      {"key": "q", "action": "ochazuke.modal.pop", "hint": "close"}
+    ]}
+  ]
+}

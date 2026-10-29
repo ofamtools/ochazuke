@@ -45,6 +45,9 @@ const (
 // the alias; followed by a noun that has the verb of its name, the line
 // is that noun's verb (set mode normal is mode set normal). Its name is
 // the bare word (set), since NOUN.VERB may be the verb it shadows.
+// Palette keeps a bare alias to the command line inside the app: the CLI
+// leaves the word to the shell's own commands, so bin help stays the
+// shell's help while :help opens the docs viewer, which needs the TUI.
 type ActionAlias struct {
 	Alias       string    `json:"alias"`
 	Action      string    `json:"action"`
@@ -57,6 +60,7 @@ type ActionAlias struct {
 	Args        Arguments `json:"args,omitempty"`
 	Bare        bool      `json:"bare,omitempty"`
 	Shadows     bool      `json:"shadows,omitempty"`
+	Palette     bool      `json:"palette,omitempty"`
 }
 
 // Name is how the alias is typed: its bare name, else noun.verb.

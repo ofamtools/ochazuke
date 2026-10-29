@@ -175,10 +175,10 @@ func (r *Runtime) EnsureConfigSettings() {
 	r.EnsureSegments()
 	s := r.Settings()
 	if c.HistoryPath() != "" && s.find(HistorySetting) == nil {
-		_ = r.DeclareSetting(Setting{Name: HistorySetting, Type: SettingInteger, Default: HistoryLimit, Description: "Action history entries kept across restarts (0 keeps none)"})
+		_ = r.declareBuiltinSetting(Setting{Name: HistorySetting, Type: SettingInteger, Default: HistoryLimit, Description: "Action history entries kept across restarts (0 keeps none)"})
 	}
 	if c.HistoryPath() != "" && s.find(HistoryFetchesSetting) == nil {
-		_ = r.DeclareSetting(Setting{Name: HistoryFetchesSetting, Type: SettingBoolean, Default: false, Description: "Keep data requests (fetches) in the history file too"})
+		_ = r.declareBuiltinSetting(Setting{Name: HistoryFetchesSetting, Type: SettingBoolean, Default: false, Description: "Keep data requests (fetches) in the history file too"})
 	}
 }
 

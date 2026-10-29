@@ -327,7 +327,7 @@ func (r *Runtime) ensureThemeSetting() {
 		r.ReloadThemes()
 	}
 	if r.Settings().find(ThemeSetting) == nil {
-		if err := r.DeclareSetting(Setting{Name: ThemeSetting, Type: SettingString, Default: "adaptive", Description: "Colour scheme (themes.json adds more)", Enum: c.themeNames()}); err == nil {
+		if err := r.declareBuiltinSetting(Setting{Name: ThemeSetting, Type: SettingString, Default: "adaptive", Description: "Colour scheme (themes.json adds more)", Enum: c.themeNames()}); err == nil {
 			c.themeSetting = true
 		}
 	}

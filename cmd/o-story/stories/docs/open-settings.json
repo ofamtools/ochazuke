@@ -1,0 +1,28 @@
+{
+  "name": ":docs open settings shows the generated settings page headed by the binary's build; :set docs.show-config=false drops only the yours lines; :help and :h reach it too",
+  "area": "docs",
+  "width": 110,
+  "height": 50,
+  "config": {
+    "settings.json": {"focus-display": "stack"}
+  },
+  "page": {
+    "lists": [{"id": "a", "rows": 2}]
+  },
+  "script": [
+    ":", {"type": "docs open settings"}, "enter",
+    "j",
+    "esc",
+    ":", {"type": "set docs.show-config=false"}, "enter",
+    ":", {"type": "help settings"}, "enter",
+    "esc",
+    ":", {"type": "h bindings"}, "enter"
+  ],
+  "expect": [
+    {"after": 3, "modal": "docs-viewer", "contains": [" · catalog sha256:", "settings · 1–", "# Settings", "### `focus-display`", "> yours: `stack` (settings.json)"]},
+    {"after": 4, "modal": "docs-viewer", "contains": ["settings · 2–"]},
+    {"after": 5, "lacks": ["# Settings"]},
+    {"after": 11, "modal": "docs-viewer", "contains": ["### `focus-display`", "string · default `off` · choices `off`, `noun`, `stack`"], "lacks": ["yours:"]},
+    {"modal": "docs-viewer", "contains": ["bindings · 1–", "# Default key bindings"]}
+  ]
+}
