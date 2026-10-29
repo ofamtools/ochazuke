@@ -434,7 +434,7 @@ Conformance:
 | normal | settings | `settings.close` `settings.edit` `settings.section` `settings.undo` |
 | normal | story-card | `story-card.timeline-append` `story-card.timeline-stream` |
 | normal | surface | `surface.scroll` |
-| normal | timeline | `timeline.close` `timeline.close-all` `timeline.enter` `timeline.fold` `timeline.fold-step` `timeline.goto` `timeline.leave` `timeline.open` `timeline.open-all` `timeline.scroll` `timeline.step` `timeline.toggle` `timeline.yank-step` |
+| normal | timeline | `timeline.close` `timeline.close-all` `timeline.enter` `timeline.fold` `timeline.fold-step` `timeline.goto` `timeline.leave` `timeline.open` `timeline.open-all` `timeline.row` `timeline.scroll` `timeline.step` `timeline.toggle` `timeline.yank-step` |
 | terminal | bindings | `bindings.help` |
 | terminal | demo | `demo.hints` |
 | terminal | mode | `mode.enter` |
@@ -451,6 +451,7 @@ Mode edges (from → to via):
 - `count_pending` → `normal` via `list.scroll`
 - `count_pending` → `normal` via `pane.grow`
 - `count_pending` → `normal` via `pane.shrink`
+- `count_pending` → `normal` via `timeline.scroll`
 - `count_pending` → `normal` via `timeline.step`
 - `count_pending ]` → `normal` via `markdown.next-kind`
 - `count_pending g` → `normal` via `list.goto`
@@ -513,6 +514,7 @@ Mode edges (from → to via):
 - `normal d` → `normal` via `outline.delete`
 - `normal d` → `normal` via `setting-item.delete`
 - `normal g` → `normal` via `list.goto`
+- `normal g` → `normal` via `timeline.row`
 - `normal z` → `normal` via `list.reset-columns`
 - `normal z` → `normal` via `list.resize-column`
 - `normal z` → `normal` via `list.scroll-columns`
