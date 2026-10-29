@@ -117,6 +117,10 @@ type Page struct {
 	// focus when the story starts.
 	Chooser *ChooserSpec `json:"chooser,omitempty"`
 	Open    bool         `json:"open,omitempty"` // the page opened first (default the first page)
+	// DefaultHidden declares the page hidden by default (ochazuke.DefaultHidden):
+	// out of the tabs until page.show; a hidden page opened first is left
+	// for the first page in the tabs, as Model.Init does.
+	DefaultHidden bool `json:"defaultHidden,omitempty"`
 	// Texts are fixed lines (a settings line, a caption), drawn in the
 	// page's order by id, or after the inputs when Order leaves them out.
 	Texts []TextSpec `json:"texts,omitempty"`

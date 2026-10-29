@@ -134,6 +134,12 @@ func build(s *Story, opt Options, stateDir string) (*Session, error) {
 	if err := r.OpenPage(open); err != nil {
 		return nil, err
 	}
+	// A hidden start page gives way to the first page in the tabs, as
+	// Model.Init does.
+	if err := r.OpenVisibleStart(); err != nil {
+		return nil, err
+	}
+	open = r.Page
 	for _, rs := range ss.pages[open].Records {
 		if rs.Modal {
 			if _, err := r.OpenRecordEditor(rs.ID, ss.recordSpec(rs)); err != nil {
@@ -795,6 +801,9 @@ func (ss *Session) addPage(p *Page) error {
 	var opts []ochazuke.InstanceOption
 	if focus != "" {
 		opts = append(opts, ochazuke.Focus(focus))
+	}
+	if p.DefaultHidden {
+		opts = append(opts, ochazuke.DefaultHidden())
 	}
 	_, err := r.AddPage(p.ID, title, func(r *ochazuke.Runtime, w, h int) ochazuke.Block { return ss.render(p, w, h) }, opts...)
 	return err

@@ -167,7 +167,9 @@ func newModel(r *Runtime) *Model {
 // application defined its own nouns and rows, declares the framework's settings
 // (EnsureConfigSettings), reads settings.json (its problems are notices),
 // draws themes.json's schemes and the theme setting's (applyThemeSetting),
-// restores and persists the action history (EnsureHistory), starts the settings.json poll (SettingsPoll) when the
+// restores and persists the action history (EnsureHistory), leaves a start
+// page the pages.hidden setting hides for the first page in the tabs
+// (OpenVisibleStart), starts the settings.json poll (SettingsPoll) when the
 // application declared settings, and asks for the background colour.
 func (m *Model) Init() tea.Cmd {
 	m.Runtime.EnsureUserActions()
@@ -177,6 +179,9 @@ func (m *Model) Init() tea.Cmd {
 	m.applyThemeSetting()
 	m.Runtime.EnsureHistory()
 	m.Runtime.EnsureNounPlaces()
+	if err := m.Runtime.OpenVisibleStart(); err != nil {
+		m.Status, m.Info = err.Error(), ""
+	}
 	return tea.Batch(tea.RequestBackgroundColor, m.settingsPoll(), m.segmentCommand(m.clock()))
 }
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -360,9 +365,10 @@ func (m *Model) modalBody(id string) ModalBody {
 	return nil
 }
 
-// pageTitles lists the page titles in order and the index of the current page.
+// pageTitles lists the tab titles in order (TabPages: hidden pages left
+// out) and the index of the current page.
 func (m *Model) pageTitles() ([]string, int) {
-	pages := m.Runtime.PageList()
+	pages := m.Runtime.TabPages()
 	titles := make([]string, len(pages))
 	active := 0
 	for i, page := range pages {

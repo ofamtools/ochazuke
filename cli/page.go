@@ -30,13 +30,16 @@ import (
 // selected row's record (Row.Data) as key: value lines, in Fields order
 // when given (else sorted keys), scrolled with J/K. Widgets
 // (CatalogWidget: a key/value panel, a status line, a table) are drawn
-// above the lists from their sources' answers.
+// above the lists from their sources' answers. DefaultHidden declares an
+// opt-in page: mounted out of the tabs (the host's pages.hidden setting
+// default, ochazuke.PagesHiddenSetting) until page.show brings it in.
 type CatalogPage struct {
-	ID     string         `json:"id"`
-	Title  string         `json:"title"`
-	Layout string         `json:"layout,omitempty"`
-	Lists  []CatalogList  `json:"lists,omitempty"`
-	Detail *CatalogDetail `json:"detail,omitempty"`
+	ID            string         `json:"id"`
+	Title         string         `json:"title"`
+	DefaultHidden bool           `json:"defaultHidden,omitempty"`
+	Layout        string         `json:"layout,omitempty"`
+	Lists         []CatalogList  `json:"lists,omitempty"`
+	Detail        *CatalogDetail `json:"detail,omitempty"`
 	// Widgets are drawn above the lists, in order (CatalogWidget).
 	Widgets []CatalogWidget `json:"widgets,omitempty"`
 }
@@ -105,7 +108,7 @@ func DeclarePage(r *ochazuke.Runtime, p CatalogPage) error {
 	}
 	if _, err := r.AddPage(p.ID, p.Title, func(r *ochazuke.Runtime, w, h int) ochazuke.Block {
 		return ochazuke.Text(ansi.Truncate("data page "+p.ID+": cli.MountPage draws it", max(0, w), "…"))
-	}); err != nil {
+	}, pageOptions(p)...); err != nil {
 		return err
 	}
 	r.Instances[p.ID].Data = &declaredPage{Page: p}
@@ -159,7 +162,7 @@ func declaredPages(r *ochazuke.Runtime) []CatalogPage {
 			out = append(out, d.Page)
 			continue
 		}
-		out = append(out, CatalogPage{ID: page.ID, Title: page.Title})
+		out = append(out, CatalogPage{ID: page.ID, Title: page.Title, DefaultHidden: page.DefaultHidden})
 	}
 	return out
 }
@@ -335,10 +338,18 @@ func MountPage(m *ochazuke.Model, doc CatalogDoc, p CatalogPage, cfg PageConfig)
 		page.Render, page.Focus = v.ListsRender, focus
 		return v, nil
 	}
-	if _, err := r.AddPage(p.ID, p.Title, v.ListsRender, ochazuke.Focus(focus)); err != nil {
+	if _, err := r.AddPage(p.ID, p.Title, v.ListsRender, append(pageOptions(p), ochazuke.Focus(focus))...); err != nil {
 		return nil, err
 	}
 	return v, nil
+}
+
+// pageOptions are the page options a catalog page's data asks for.
+func pageOptions(p CatalogPage) []ochazuke.InstanceOption {
+	if p.DefaultHidden {
+		return []ochazuke.InstanceOption{ochazuke.DefaultHidden()}
+	}
+	return nil
 }
 
 // resolve finds a list's row source and the host noun of its rows.

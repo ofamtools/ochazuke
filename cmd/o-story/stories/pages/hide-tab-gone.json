@@ -1,0 +1,17 @@
+{
+  "name": "page hide takes a page out of the tabs and ctrl+j skips it",
+  "area": "pages",
+  "width": 80,
+  "height": 10,
+  "pages": [
+    {"id": "p1", "title": "One", "lists": [{"id": "a", "rows": 1}]},
+    {"id": "p2", "title": "Two", "lists": [{"id": "b", "rows": 1}]},
+    {"id": "p3", "title": "Three", "lists": [{"id": "c", "rows": 1}]}
+  ],
+  "script": [":", {"type": "page hide p2"}, "enter", "ctrl+j", "ctrl+j"],
+  "expect": [
+    {"after": 3, "page": "p1", "modal": "", "contains": ["› One  Three", "Two is hidden from the tabs"]},
+    {"after": 4, "page": "p3", "lacks": ["Two  "]},
+    {"page": "p1"}
+  ]
+}

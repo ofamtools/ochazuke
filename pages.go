@@ -34,7 +34,13 @@ type Page struct {
 	// the focused element when it scrolls to follow the focus: 0 means the
 	// default, 2; a negative value keeps no margin.
 	Scrolloff int `json:"scrolloff,omitempty"`
-	mode      ModeState
+	// DefaultHidden declares the page hidden by default: an opt-in page,
+	// out of the tabs and ctrl+j/k until page.show brings it in. It is
+	// data for the pages.hidden setting's default (PagesHiddenSetting);
+	// the setting, once the user sets it, decides. Set it before
+	// RegisterPage, or pass the DefaultHidden option.
+	DefaultHidden bool `json:"defaultHidden,omitempty"`
+	mode          ModeState
 	// visited orders the page picker: the stamp of the last OpenPage that
 	// made this page current (larger is more recent), 0 for never.
 	visited uint64
@@ -213,7 +219,7 @@ func (r *Runtime) AddPage(id, title string, render func(*Runtime, int, int) Bloc
 	if spec.parent != "app" {
 		return nil, fmt.Errorf("page %q must be registered under app", id)
 	}
-	page := &Page{ID: id, Title: title, Focus: spec.focus, Render: render}
+	page := &Page{ID: id, Title: title, Focus: spec.focus, Render: render, DefaultHidden: spec.defaultHidden}
 	if err := r.RegisterPage(page, Kind(spec.noun)); err != nil {
 		return nil, err
 	}
@@ -223,7 +229,9 @@ func (r *Runtime) AddPage(id, title string, render func(*Runtime, int, int) Bloc
 // RegisterPage registers a page as an instance of kind page under app (the
 // instance may already exist, registered through Instance with the inputs
 // and lists it holds). Focus names where the page starts: the page itself or
-// an instance beneath it. Registration does not activate the page.
+// an instance beneath it. Registration does not activate the page. A page
+// declared hidden by default (Page.DefaultHidden, or the DefaultHidden
+// option) joins the pages.hidden setting's default.
 func (r *Runtime) RegisterPage(page *Page, opts ...InstanceOption) error {
 	if page == nil || strings.TrimSpace(page.ID) == "" || strings.TrimSpace(page.Title) == "" {
 		return errors.New("page ID and title must be nonempty")
@@ -262,6 +270,13 @@ func (r *Runtime) RegisterPage(page *Page, opts ...InstanceOption) error {
 	r.addPageOrder(inst)
 	page.details = r.pageDetails(page.ID)
 	page.Remembered = page.Focus
+	var spec instanceSpec
+	for _, opt := range opts {
+		opt(&spec)
+	}
+	if page.DefaultHidden = page.DefaultHidden || spec.defaultHidden; page.DefaultHidden {
+		r.syncPagesHiddenDefault()
+	}
 	// A page that starts on a row starts with that row selected.
 	r.selectFocusedRow(page.Focus)
 	if list := r.List(page.Focus); list != nil {
@@ -392,8 +407,11 @@ func (r *Runtime) OpenPage(id string) error {
 	return nil
 }
 
+// movePage opens the page delta tabs away, wrapping: it cycles TabPages,
+// so a hidden page is skipped (the current one, hidden, is left in its
+// registration place).
 func (r *Runtime) movePage(delta int) error {
-	pages := r.PageList()
+	pages := r.TabPages()
 	if len(pages) == 0 {
 		return errors.New("no pages registered")
 	}
@@ -416,16 +434,18 @@ func (r *Runtime) movePage(delta int) error {
 
 func registerPages(r *Runtime) {
 	r.Define("ochazuke.page")
-	r.Register(Operation{Verb: "list", Noun: "ochazuke.pages", Description: "List pages in registration order", Result: "page[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		pages := make([]map[string]any, 0)
-		for _, page := range r.PageList() {
-			pages = append(pages, map[string]any{"id": page.ID, "title": page.Title, "active": page.ID == r.Page})
-		}
-		return pages, nil
+	r.Register(Operation{Verb: "list", Noun: "ochazuke.pages", Description: "List pages in registration order, each marked active and hidden (out of the tabs: pages.hidden)", Result: "page[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		return r.pageRows(), nil
 	}})
-	r.Register(Operation{Verb: "open", Noun: "ochazuke.page", Description: "Open a registered page", Parameters: map[string]Parameter{"id": {Type: "string", Required: true, Noun: "ochazuke.pages"}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		err := r.OpenPage(StringArg(a, "id", ""))
-		return r.Context(), err
+	r.Register(Operation{Verb: "open", Noun: "ochazuke.page", Description: "Open a registered page, a hidden one too", Parameters: map[string]Parameter{"id": {Type: "string", Required: true, Noun: "ochazuke.pages"}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		id := StringArg(a, "id", "")
+		if err := r.OpenPage(id); err != nil {
+			return r.Context(), err
+		}
+		if r.PageHidden(id) {
+			r.UI().Info(r.pageLabel(id) + " is hidden from the tabs (page.show brings it back)")
+		}
+		return r.Context(), nil
 	}})
 	r.Register(Operation{Verb: "pick", Noun: "ochazuke.page", Description: "Choose a page, most recently visited first and the current one last: type to filter, enter opens", Result: "chooser state", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		chooser, err := r.OpenPagePicker()
@@ -434,14 +454,15 @@ func registerPages(r *Runtime) {
 		}
 		return chooser.state(), nil
 	}})
-	r.Register(Operation{Verb: "next", Noun: "ochazuke.page", Description: "Open the next page, wrapping in registration order", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "next", Noun: "ochazuke.page", Description: "Open the next page in the tabs, wrapping in registration order", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		err := r.movePage(1)
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "previous", Noun: "ochazuke.page", Description: "Open the previous page, wrapping in registration order", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "previous", Noun: "ochazuke.page", Description: "Open the previous page in the tabs, wrapping in registration order", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		err := r.movePage(-1)
 		return r.Context(), err
 	}})
+	registerPageHiding(r)
 }
 
 // lastPageVisit is the newest page visit stamp, 0 before any page opened.
@@ -482,7 +503,8 @@ const pagePickerID = "page-picker"
 
 // OpenPagePicker opens the page chooser (page.pick): the pages visited
 // before, most recent first, then the pages never visited in registration
-// order, then the current page, marked "current", so the highlighted first
+// order, then the current page, marked "current" (a hidden page is
+// listed too, marked "hidden"), so the highlighted first
 // row is the page last left and enter goes back to it. Typing filters by
 // title; enter opens the highlighted page, esc closes.
 func (r *Runtime) OpenPagePicker() (*Chooser, error) {
@@ -494,8 +516,11 @@ func (r *Runtime) OpenPagePicker() (*Chooser, error) {
 			label = page.ID
 		}
 		row := ChooserRow{ID: page.ID, Label: label}
-		if page.ID == r.Page {
+		switch {
+		case page.ID == r.Page:
 			row.Cells = []string{label, "current"}
+		case r.PageHidden(page.ID):
+			row.Cells = []string{label, "hidden"}
 		}
 		rows = append(rows, row)
 	}

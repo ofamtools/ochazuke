@@ -1,0 +1,16 @@
+{
+  "name": "page open still opens a hidden page and says so; its tab shows only while it is current",
+  "area": "pages",
+  "width": 80,
+  "height": 10,
+  "pages": [
+    {"id": "p1", "title": "One", "lists": [{"id": "a", "rows": 1}]},
+    {"id": "p2", "title": "Two", "lists": [{"id": "b", "rows": 1}]},
+    {"id": "p3", "title": "Three", "lists": [{"id": "c", "rows": 1}]}
+  ],
+  "script": [":", {"type": "page hide p2"}, "enter", ":", {"type": "page open p2"}, "enter", "ctrl+j"],
+  "expect": [
+    {"after": 6, "page": "p2", "focus": "b1", "contains": ["One  › Two  Three", "Two is hidden from the tabs"]},
+    {"page": "p3", "contains": ["One  › Three"]}
+  ]
+}

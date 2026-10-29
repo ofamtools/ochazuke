@@ -173,6 +173,7 @@ func (r *Runtime) EnsureConfigSettings() {
 	r.ensureHelpSettings()
 	r.ensureFormSettings()
 	r.ensureFocusDisplaySetting()
+	r.ensurePagesSetting()
 	r.EnsureSegments()
 	r.declareFrameworkSettings(SequenceTimeoutSetting, SequenceUnknownSetting)
 	s := r.Settings()

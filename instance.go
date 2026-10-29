@@ -64,6 +64,7 @@ type instanceSpec struct {
 	closeOnDetach, noSpill, noMarks bool
 	clearFilterOnEnter              bool
 	cellSelect                      bool
+	defaultHidden                   bool   // DefaultHidden: a page out of the tabs until shown
 	followTail                      bool   // FollowTail: a timeline sticks to its last card
 	headerLines                     int    // HeaderLines: a timeline's closed-card header cap
 	parentStop                      string // ParentStop: where h on a timeline's closed card goes

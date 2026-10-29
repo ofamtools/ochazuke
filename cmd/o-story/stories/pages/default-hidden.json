@@ -1,0 +1,17 @@
+{
+  "name": "a page declared hidden by default starts out of the tabs; page show brings it in",
+  "area": "pages",
+  "width": 80,
+  "height": 10,
+  "pages": [
+    {"id": "p1", "title": "One", "lists": [{"id": "a", "rows": 1}]},
+    {"id": "runs", "title": "Runs", "defaultHidden": true, "lists": [{"id": "r", "rows": 1}]},
+    {"id": "p3", "title": "Three", "lists": [{"id": "c", "rows": 1}]}
+  ],
+  "script": ["ctrl+j", "ctrl+k", ":", {"type": "page show runs"}, "enter", "ctrl+j"],
+  "expect": [
+    {"after": 1, "page": "p3", "lacks": ["Runs"]},
+    {"after": 5, "page": "p1", "contains": ["› One  Runs  Three", "Runs is back in the tabs"]},
+    {"page": "runs"}
+  ]
+}

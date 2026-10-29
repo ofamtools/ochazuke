@@ -48,7 +48,7 @@ func TestPageRegistrationAndPublicSnapshot(t *testing.T) {
 	if pages := r.PageList(); len(pages) != 2 || pages[0] != alpha || pages[1].ID != "beta" || r.PageOf("alpha") != alpha {
 		t.Fatalf("registration did not retain page order and identity: %v", pages)
 	}
-	want := []map[string]any{{"id": "alpha", "title": "ALPHA", "active": false}, {"id": "beta", "title": "BETA", "active": false}}
+	want := []map[string]any{{"id": "alpha", "title": "ALPHA", "active": false, "hidden": false}, {"id": "beta", "title": "BETA", "active": false, "hidden": false}}
 	if got := paletteRequest(t, r, "list", "pages", nil); !reflect.DeepEqual(got, want) {
 		t.Fatalf("pages=%v; want %v", got, want)
 	}

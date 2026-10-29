@@ -379,6 +379,45 @@ func TestDeclarePagePublishesAndMountsTheSamePage(t *testing.T) {
 	}
 }
 
+// A catalog page declared hidden by default is published so and mounted
+// out of the host's tabs, through the host's pages.hidden default.
+func TestCatalogPageDefaultHidden(t *testing.T) {
+	ext := ochazuke.NewRuntime()
+	ext.Config().Disable()
+	ext.Define("skill").Columns(ochazuke.Column{Title: "Name"}).Verb("list", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }).Rows("skill")
+	if err := DeclarePage(ext, CatalogPage{ID: "ai", Title: "AI", DefaultHidden: true, Lists: []CatalogList{{ID: "ai/skills", Noun: "skill"}}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ext.AddPage("code", "Code", func(*ochazuke.Runtime, int, int) ochazuke.Block { return ochazuke.Block{} }, ochazuke.DefaultHidden()); err != nil {
+		t.Fatal(err)
+	}
+	data, err := Catalog(ext, "ai", "0.1.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc CatalogDoc
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	if len(doc.Pages) != 2 || !doc.Pages[0].DefaultHidden || !doc.Pages[1].DefaultHidden {
+		t.Fatalf("pages = %+v, want both declared hidden by default", doc.Pages)
+	}
+	host := ochazuke.NewRuntime()
+	host.Config().Disable()
+	if _, err := host.AddPage("home", "Home", func(*ochazuke.Runtime, int, int) ochazuke.Block { return ochazuke.Block{} }); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := MountPages(ochazuke.NewModel(host), doc, PageConfig{}); err != nil {
+		t.Fatal(err)
+	}
+	if !host.PageHidden("ai") || host.PageHidden("home") {
+		t.Fatalf("host hidden pages %v, want [ai]", host.HiddenPages())
+	}
+	if err := host.ShowPage("ai"); err != nil || host.PageHidden("ai") {
+		t.Fatalf("page.show ai: %v, hidden %v", err, host.HiddenPages())
+	}
+}
+
 func TestPageRefusals(t *testing.T) {
 	r := ochazuke.NewRuntime()
 	for _, p := range []CatalogPage{
