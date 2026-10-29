@@ -15,7 +15,7 @@
   },
   "script": [",", "j", "tab", "j", "tab", "tab", "shift+tab", "[", "]", "]", "[", "[", "[", "shift+tab", "tab"],
   "expect": [
-    {"after": 1, "focus": "__settings/row/scrolloff", "order": ["› General", "ext.ai", "ext.git", "General (7)", "scrolloff", "‹ 2 ›", "theme", "‹ dark ›"], "lacks": ["poll-every"], "contains": ["tab settings.section"]},
+    {"after": 1, "focus": "__settings/row/scrolloff", "order": ["› General", "ext.ai", "ext.git", "General (8)", "scrolloff", "‹ 2 ›", "theme", "‹ dark ›"], "lacks": ["poll-every"], "contains": ["tab settings.section"]},
     {"after": 2, "focus": "__settings/row/theme"},
     {"after": 3, "focus": "__settings/row/ext.ai.poll-every", "order": ["General", "› ext.ai", "ext.git", "ext.ai (2)", "poll-every", "30s", "model", "‹ large ›", "How often the AI extension refreshes its rows"], "lacks": ["scrolloff", "ext.ai.model"]},
     {"after": 4, "focus": "__settings/row/ext.ai.model"},

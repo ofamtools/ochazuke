@@ -19,7 +19,7 @@
   "script": [",", ","],
   "expect": [
     {"after": 1, "page": "__settings", "modal": "", "mode": "normal", "focus": "__settings/row/scrolloff",
-     "order": ["Tasks", "Settings", "› General", "ext.ai", "ext.git", "General (9)", "scrolloff", "theme", "wrap", "editor", "scrolloff"],
+     "order": ["Tasks", "Settings", "› General", "ext.ai", "ext.git", "General (10)", "scrolloff", "theme", "wrap", "editor", "scrolloff"],
      "contains": ["Rows kept above and below the focus", "Default is 2."]},
     {"page": "__settings", "focus": "__settings/row/scrolloff"}
   ]

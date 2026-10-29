@@ -1,0 +1,76 @@
+{
+  "name": "a row noun's normal d d does not shadow visual-line d: V j d asks once for both rows at once, as in Vim (sequence-inherit drop)",
+  "area": "tables",
+  "width": 60,
+  "height": 10,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "items": [
+          {
+            "id": "r1",
+            "label": "row 1"
+          },
+          {
+            "id": "r2",
+            "label": "row 2"
+          },
+          {
+            "id": "r3",
+            "label": "row 3"
+          },
+          {
+            "id": "r4",
+            "label": "row 4"
+          }
+        ],
+        "selected": 0
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": "d d",
+        "do": "demo.delete"
+      }
+    ]
+  },
+  "script": [
+    "V",
+    "j",
+    "d",
+    "y"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "mode": "visual-line",
+      "contains": [
+        "* row 1",
+        "* row 2"
+      ]
+    },
+    {
+      "after": 3,
+      "modal": "confirm",
+      "contains": [
+        "2 rows"
+      ]
+    },
+    {
+      "mode": "normal",
+      "lacks": [
+        "row 1",
+        "row 2",
+        "*"
+      ],
+      "contains": [
+        "row 3",
+        "row 4"
+      ]
+    }
+  ]
+}

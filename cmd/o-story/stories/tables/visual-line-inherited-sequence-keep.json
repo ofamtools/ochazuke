@@ -1,0 +1,68 @@
+{
+  "name": "sequence-inherit keep: a row noun's normal d d waits over visual-line d, so V j d leaves d pending and asks nothing",
+  "area": "tables",
+  "width": 60,
+  "height": 10,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "items": [
+          {
+            "id": "r1",
+            "label": "row 1"
+          },
+          {
+            "id": "r2",
+            "label": "row 2"
+          },
+          {
+            "id": "r3",
+            "label": "row 3"
+          },
+          {
+            "id": "r4",
+            "label": "row 4"
+          }
+        ],
+        "selected": 0
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": "d d",
+        "do": "demo.delete"
+      }
+    ]
+  },
+  "script": [
+    "V",
+    "j",
+    "d"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "mode": "visual-line d",
+      "modal": "",
+      "contains": [
+        "* row 1",
+        "* row 2"
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "name": "sequence-inherit",
+      "type": "string",
+      "default": "keep",
+      "enum": [
+        "drop",
+        "keep"
+      ]
+    }
+  ]
+}

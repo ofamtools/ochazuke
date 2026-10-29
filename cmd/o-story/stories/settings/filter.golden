@@ -2,7 +2,7 @@
  |   page1  › Settings
  |  ────────────────────────────────────────────────────────────────────────────
  |   › General  ext.ai  ext.git  help  palette  status  rename  repeat  9›
- |  ╭━ General (8) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
+ |  ╭━ General (9) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
  |  ┃ scrolloff           ‹ 2 ›                                                ┃
  |  ┃ theme               ‹ dark ›                                             ┃
 R|  ┃ tab-width           ‹ 4 ›                                                ┃
@@ -11,13 +11,13 @@ R|  ┃ tab-width           ‹ 4 ›                                           
  |  ┃ focus-display       ‹ off ›                                              ┃
  |  ┃ sequence-timeout    0s                                                   ┃
  |  ┃ sequence-unknown    ‹ pass ›                                             ┃
+ |  ┃ sequence-inherit    ‹ drop ›                                             ┃
  |  ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
  |  ╭─ tab-width ──────────────────────────────────────────────────────────────╮
  |  │ Columns per tab                                                          │
  |  │                                                                          │
  |  │ Default is 4. Not in settings.json, so the default applies.              │
  |  │ Takes a whole number.                                                    │
- |  │                                                                          │
  |  │                                                                          │
  |  │                                                                          │
  |  │                                                                          │

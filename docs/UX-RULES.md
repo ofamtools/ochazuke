@@ -61,9 +61,17 @@ tiers above them. When the two disagree, fix one in the same commit.
   it and the innermost exact match runs. No mode has a timeout of its own.
   A key no row continues the sequence with is `sequence-unknown`'s:
   `pass` (default) runs the exact match and handles the key as if typed
-  alone; `swallow` drops both with a notice naming the keys. Stories:
+  alone; `swallow` drops both with a notice naming the keys. A sequence
+  a level only inherits (a table of the mode its mode extends, such as a
+  row noun's normal `d d` read in `visual-line`) does not wait over a row
+  the mode binds on its own tables, at any level, for the keys typed (the
+  list's `visual-line` `d`): the mode's own key answers at once and the
+  hints leave the shadowed sequence out (`sequence-inherit` `drop`, the
+  default; `keep` lets it wait). Stories:
   `lists/sequence-waits-forever`, `lists/sequence-timeout-expires`,
-  `terminal/sequence-unknown-pass`, `terminal/sequence-unknown-swallow`.
+  `terminal/sequence-unknown-pass`, `terminal/sequence-unknown-swallow`,
+  `tables/visual-line-inherited-sequence-drop`,
+  `tables/visual-line-inherited-sequence-keep`.
 - **R1.7a** A row's key may name a setting (`{terminal-leader}`), as may
   its hint, help and string arguments: the row follows the setting's
   value, declared before or after it, in a defaults file, Go or the
@@ -442,7 +450,8 @@ tiers above them. When the two disagree, fix one in the same commit.
   verbs act on the selection. `visual-line` extends `normal`
   (`ModeExtends`): a noun with no `visual-line` table of its own keeps its
   normal keys there (they act on the selection), and a noun with one reads
-  only it, so a `d d` in its normal table never makes `d` wait. A modal
+  only it; either way a `d d` in its normal table never makes the
+  visual-line `d` wait (R1.7, `sequence-inherit`). A modal
   opened over the selection (a confirm, the palette, a chooser) holds it;
   its close resumes it. Leaving the list ends it. Opt out with
   `visual.list` `marks` (the older selection in normal mode). Stories:

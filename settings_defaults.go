@@ -35,6 +35,18 @@ const (
 	// SequenceSwallow drops the sequence and the key, with a notice
 	// naming the keys.
 	SequenceSwallow = "swallow"
+	// SequenceInheritedSetting says whether a sequence a mode inherits
+	// from the mode it extends (a row noun's normal d d, read in
+	// visual-line) waits over a row the mode binds on its own for the
+	// keys typed (the list's visual-line d): SequenceDrop (the default)
+	// lets the mode's own row answer at once, SequenceKeep lets the
+	// inherited sequence wait, as before.
+	SequenceInheritedSetting = "sequence-inherit"
+	// SequenceDrop: an inherited sequence never shadows the mode's own
+	// shorter row.
+	SequenceDrop = "drop"
+	// SequenceKeep: an inherited sequence waits as any other does.
+	SequenceKeep = "keep"
 	// RenameSelectSetting opens a rename (outline.edit without select, a
 	// RecordSpec with Rename) with the whole text selected (Input.SelectAll):
 	// typing replaces it, a motion keeps it. Default on; off opens it with
@@ -206,6 +218,12 @@ func (r *Runtime) sequenceTimeout() time.Duration {
 func (r *Runtime) swallowsUnknown() bool {
 	v, _ := r.settingText(SequenceUnknownSetting)
 	return v == SequenceSwallow
+}
+
+// dropsInheritedSequences reports whether sequence-inherited is drop.
+func (r *Runtime) dropsInheritedSequences() bool {
+	v, _ := r.settingText(SequenceInheritedSetting)
+	return v != SequenceKeep
 }
 
 // RenameSelect is the rename.select setting: whether a rename opens with

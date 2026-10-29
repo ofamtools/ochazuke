@@ -228,14 +228,15 @@ func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (KeyOut
 		}
 		return outcome, r.runRow(lv, *hit, ev)
 	}
+	drop := r.dropsInheritedSequences()
 	levels := r.walk(focus)
 	// The capture pass: outer-first, the first level that answers wins.
 	for len(levels) > 0 && levels[0].capture {
 		lv := levels[0]
 		levels = levels[1:]
-		hit, longer, exact := r.lookup(lv, base, exclusive, prefix, sequence, key, ev)
-		if longer {
-			return wait(exact)
+		hit, look := r.lookup(lv, base, exclusive, prefix, sequence, key, ev)
+		if look.waits(look.ownExact, drop) {
+			return wait(look.exact)
 		}
 		if hit != nil {
 			return run(lv, hit)
@@ -249,13 +250,15 @@ func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (KeyOut
 	var (
 		hitLv      level
 		hit, exact *Binding
-		anyLonger  bool
+		looks      []lookResult
+		ownExact   bool
 	)
 	for _, lv := range levels {
-		h, longer, e := r.lookup(lv, base, exclusive, prefix, sequence, key, ev)
-		anyLonger = anyLonger || longer
-		if exact == nil && e != nil {
-			exact = e
+		h, look := r.lookup(lv, base, exclusive, prefix, sequence, key, ev)
+		looks = append(looks, look)
+		ownExact = ownExact || look.ownExact
+		if exact == nil && look.exact != nil {
+			exact = look.exact
 		}
 		if hit == nil && h != nil {
 			hit, hitLv = h, lv
@@ -264,8 +267,15 @@ func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (KeyOut
 			}
 		}
 	}
-	if anyLonger {
-		return wait(exact)
+	// A sequence a level inherits from the mode its mode extends (a row
+	// noun's normal d d read in visual-line) does not wait over a row the
+	// mode binds on its own tables for the keys typed (the list's
+	// visual-line d), at any level: the child mode's key answers at once
+	// (sequence-inherited drop, the default; keep lets it wait).
+	for _, look := range looks {
+		if look.waits(ownExact, drop) {
+			return wait(exact)
+		}
 	}
 	if hit != nil {
 		return run(hitLv, hit)
@@ -306,17 +316,42 @@ func baseAndPrefix(mode ModeState) (string, string) {
 	return mode.Name, ""
 }
 
+// lookResult is what lookup reports beside the row a level answers with:
+// whether longer sequences extend the keys typed in the mode's own tables
+// (longer) or only in a table the mode inherits (inherited: the tables of
+// the mode it extends, Noun.Extends or ModeExtends), the completed match
+// (exact), and whether a row of an own table completes the keys typed with
+// its guard holding (ownExact).
+type lookResult struct {
+	longer, inherited, ownExact bool
+	exact                       *Binding
+}
+
+// waits reports whether the walk waits on this level's sequences: an own
+// longer sequence always does; an inherited one does unless drop is set
+// and a row of the mode's own tables (ownExact, at any level) completes
+// the keys typed.
+func (l lookResult) waits(ownExact, drop bool) bool {
+	return l.longer || l.inherited && !(drop && ownExact)
+}
+
 // lookup finds the row a level answers with. For a key sequence it reports
 // whether longer sequences exist (so the walk waits) and the completed match.
-func (r *Runtime) lookup(lv level, mode string, exclusive bool, prefix, sequence string, key MacroKey, ev KeyEvent) (hit *Binding, longer bool, exact *Binding) {
+func (r *Runtime) lookup(lv level, mode string, exclusive bool, prefix, sequence string, key MacroKey, ev KeyEvent) (hit *Binding, look lookResult) {
 	var tables [][]Binding
+	var inherited []bool
 	if lv.inst != nil {
 		tables = append(tables, rowsForMode(lv.inst.Bindings, mode, exclusive))
+		inherited = append(inherited, false)
 	}
 	if lv.noun != nil {
-		tables = append(tables, r.nounTables(lv.noun, mode)...)
+		for i, rows := range r.nounTables(lv.noun, mode) {
+			tables = append(tables, rows)
+			inherited = append(inherited, i > 0)
+		}
 		if !exclusive {
 			tables = append(tables, lv.noun.Bindings[""])
+			inherited = append(inherited, false)
 		}
 	}
 	if lv.inst != nil {
@@ -329,7 +364,7 @@ func (r *Runtime) lookup(lv level, mode string, exclusive bool, prefix, sequence
 		rank int
 	}
 	var candidates []candidate
-	for _, rows := range tables {
+	for t, rows := range tables {
 		for i := range rows {
 			row := &rows[i]
 			if row.Unbind || row.Capture != lv.capture {
@@ -340,8 +375,11 @@ func (r *Runtime) lookup(lv level, mode string, exclusive bool, prefix, sequence
 			}
 			if row.Keys != "" && !key.Paste {
 				if row.Keys == sequence {
-					if exact == nil {
-						exact = row
+					if look.exact == nil {
+						look.exact = row
+					}
+					if !inherited[t] && r.rowGuardHolds(row.When, ev) {
+						look.ownExact = true
 					}
 					candidates = append(candidates, candidate{row, -1})
 				} else if strings.HasPrefix(row.Keys, sequence+" ") && !isPrefixCancel(*row) && r.rowGuardHolds(row.When, ev) {
@@ -349,7 +387,11 @@ func (r *Runtime) lookup(lv level, mode string, exclusive bool, prefix, sequence
 					// wait: with every sequence on the prefix guarded off
 					// (by its verb's guard or its own), the key answers as
 					// if none were bound.
-					longer = true
+					if inherited[t] {
+						look.inherited = true
+					} else {
+						look.longer = true
+					}
 				}
 				continue
 			}
@@ -368,9 +410,9 @@ func (r *Runtime) lookup(lv level, mode string, exclusive bool, prefix, sequence
 		}
 	}
 	if hit != nil && hit.Keys == "" {
-		exact = nil
+		look.exact = nil
 	}
-	return hit, longer, exact
+	return hit, look
 }
 
 // rowGuardHolds reports whether a row's own guard (When) lets it answer:
@@ -654,8 +696,9 @@ func (r *Runtime) bindingRows(focus string) []Binding {
 // the live walk judges guards and leaves it empty.
 type levelRow struct {
 	Binding
-	level string
-	guard string
+	level     string
+	guard     string
+	inherited bool // read from a table the mode inherits (nounTables past the first)
 }
 
 // levelRows is bindingRows with each row's level.
@@ -677,7 +720,7 @@ func (r *Runtime) scanRows(levels []level, mode ModeState, focus string, editing
 	exclusive := r.pendingModes[mode.Name] || mode.Payload.Shadow != nil
 	seen := map[string]bool{}
 	var out []levelRow
-	var capture bool
+	var capture, inherited bool
 	var name string
 	take := func(rows []Binding) {
 		for _, b := range rows {
@@ -720,7 +763,7 @@ func (r *Runtime) scanRows(levels []level, mode ModeState, focus string, editing
 			if guard == "" && (!live || r.rowGuardHolds(b.When, KeyEvent{Mode: mode, Focus: focus})) {
 				seen[id] = true
 			}
-			out = append(out, levelRow{Binding: b, level: name, guard: guard})
+			out = append(out, levelRow{Binding: b, level: name, guard: guard, inherited: inherited})
 		}
 	}
 	for _, lv := range levels {
@@ -731,9 +774,11 @@ func (r *Runtime) scanRows(levels []level, mode ModeState, focus string, editing
 			take(rowsForMode(lv.inst.Bindings, base, exclusive))
 		}
 		if lv.noun != nil {
-			for _, rows := range r.nounTables(lv.noun, base) {
+			for i, rows := range r.nounTables(lv.noun, base) {
+				inherited = i > 0
 				take(rows)
 			}
+			inherited = false
 			if !exclusive {
 				take(lv.noun.Bindings[""])
 			}
@@ -741,6 +786,46 @@ func (r *Runtime) scanRows(levels []level, mode ModeState, focus string, editing
 		if answersEveryKey(out[before:]) {
 			break
 		}
+	}
+	if r.dropsInheritedSequences() {
+		out = dropShadowedInherited(out, prefix)
+	}
+	return out
+}
+
+// dropShadowedInherited leaves out the inherited sequences the walk does
+// not wait on (sequence-inherited drop): an inherited row whose keys
+// extend, past the prefix typed, the keys of an unguarded row of an own
+// table on the walk (visual-line d over a row noun's normal d d).
+func dropShadowedInherited(rows []levelRow, prefix string) []levelRow {
+	own := map[string]bool{}
+	for _, row := range rows {
+		if !row.inherited && row.Keys != "" && row.guard == "" && !isPrefixCancel(row.Binding) {
+			own[row.Keys] = true
+		}
+	}
+	if len(own) == 0 {
+		return rows
+	}
+	shadowed := func(keys string) bool {
+		parts := strings.Fields(keys)
+		start := 1
+		if prefix != "" {
+			start = len(strings.Fields(prefix)) + 1
+		}
+		for n := start; n < len(parts); n++ {
+			if own[strings.Join(parts[:n], " ")] {
+				return true
+			}
+		}
+		return false
+	}
+	out := rows[:0:0]
+	for _, row := range rows {
+		if row.inherited && shadowed(row.Keys) {
+			continue
+		}
+		out = append(out, row)
 	}
 	return out
 }
