@@ -257,12 +257,17 @@ func markRepeatable(r *Runtime, keys ...string) {
 	}
 }
 
+// errNothingToRepeat is dot-repeat's answer when no recorded change can
+// run at the focus: told per the repeat.empty setting, never an error.
+var errNothingToRepeat = errors.New("nothing to repeat")
+
 // repeatRequest is the request dot-repeat runs: the last successful
-// repeatable request with its arguments (and Confirmed) kept. Its target is
-// dropped so it re-resolves to the current focus, unless the request came
-// from the CLI and names an instance that still exists. steps > 0 replaces
-// the recorded count on an operation that takes steps.
-func (r *Runtime) repeatRequest(steps int) (Request, error) {
+// repeatable request that can run at focus (repeatApplies), with its
+// arguments (and Confirmed) kept. Its target is dropped so it re-resolves
+// to the current focus, unless the request came from the CLI and names an
+// instance that still exists. steps > 0 replaces the recorded count on an
+// operation that takes steps.
+func (r *Runtime) repeatRequest(focus string, steps int) (Request, error) {
 	entries := r.history.entries
 	for i := len(entries) - 1; i >= 0; i-- {
 		e := entries[i]
@@ -285,15 +290,52 @@ func (r *Runtime) repeatRequest(steps int) (Request, error) {
 		if q.Target != "" && (e.Context.Source != "cli" || r.Instances[q.Target] == nil) {
 			q.Target = ""
 		}
+		at := focus
+		if q.Target != "" {
+			at = q.Target
+		}
+		if !r.repeatApplies(q, at) {
+			continue
+		}
 		return q, nil
 	}
-	return Request{}, errors.New("nothing to repeat")
+	return Request{}, errNothingToRepeat
+}
+
+// repeatApplies reports whether a recorded change can run at focus: its
+// action is available there (Available), and a change the editor's rows
+// guard implicitly (typing, a delete, a paste into an input) needs that
+// guard to hold, an input focused. So typing into a line that has since
+// closed is never replayed outside an input: the change before it is.
+func (r *Runtime) repeatApplies(q Request, focus string) bool {
+	if !r.Available(q, focus, r.Mode) {
+		return false
+	}
+	if implicitlyGuarded(Binding{Request: q}) {
+		guard := r.guard(ImplicitGuard)
+		return guard == nil || guard(r, KeyEvent{Mode: r.Mode, Focus: focus, Level: focus, Args: q.Args})
+	}
+	return true
+}
+
+// tellNothingToRepeat answers a dot-repeat with nothing to repeat as the
+// repeat.empty setting says: a plain line (info, the default) or nothing.
+func (r *Runtime) tellNothingToRepeat() {
+	r.declareFrameworkSettings(RepeatEmptySetting)
+	if v, _ := r.settingValue(RepeatEmptySetting); v == RepeatEmptySilent {
+		return
+	}
+	r.UI().Info(errNothingToRepeat.Error())
 }
 
 func registerHistory(r *Runtime) {
 	markRepeatable(r, repeatableOperations...)
 	r.Register(Operation{Verb: "repeat", Noun: "ochazuke.history", Description: "Dot-repeat: run the last repeatable change again at the current focus, its arguments kept; steps replaces its count", Parameters: map[string]Parameter{"steps": {Type: "integer", Description: "Count replacing the recorded one; 0 keeps it"}}, Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		q, err := r.repeatRequest(IntArg(a, "steps", 0))
+		q, err := r.repeatRequest(focusOf(c), IntArg(a, "steps", 0))
+		if errors.Is(err, errNothingToRepeat) {
+			r.tellNothingToRepeat()
+			return nil, nil
+		}
 		if err != nil {
 			return nil, err
 		}

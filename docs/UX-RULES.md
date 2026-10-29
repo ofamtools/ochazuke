@@ -701,7 +701,16 @@ tiers above them. When the two disagree, fix one in the same commit.
   to, and an out-of-range count clamps silently. Story: needed
   (`editor/count-clamps`).
 - **R9.5** Dot-repeat replays the last `Repeatable` operation with its count
-  and register. Story: needed (`editor/dot-repeat`).
+  and register that can run at the focus: one available there, and for
+  typing into an input (the editor's implicitly guarded `input.*` rows) an
+  input focused. Typing into a line that has since closed is never
+  replayed outside an input; the change before it is. With nothing to
+  repeat, `.` is not an error: `repeat.empty` `info` (default) says
+  `nothing to repeat` in the plain tone (R6.4), `silent` shows nothing.
+  Stories: `actions/dot-after-input-closes.json`,
+  `actions/dot-nothing-to-repeat.json`, `actions/dot-nothing-silent.json`;
+  tests `TestDotSkipsTypingOutsideAnInput`, `TestDotDoesNotRepeatMotion`;
+  needed (`editor/dot-repeat`).
 - **R9.6** Select: a component that creates or renames a thing may open its
   line with text selected (`Input.SelectText`, `SelectAll`), like Vim's
   select mode. The first text typed or pasted replaces the selection and
@@ -874,8 +883,18 @@ tiers above them. When the two disagree, fix one in the same commit.
   `palette_form_test.go`. A path parameter's field opens the path chooser
   (R7.8): a stop whose `enter`, `space` or `i` opens it (`path.field`
   `picker`, the default), or a text field whose `ctrl+space` (and `enter`
-  in normal mode) opens it (`text`); a pick is written at once.
-  `TestPathFormField`, `TestPathArgsForm`.
+  in normal mode) opens it (`text`); a pick is written at once. A form
+  that opens on a missing path stop opens its chooser over it, so typing
+  reaches the path. When the only missing required parameter is a path,
+  `forms.single-path` says what opens (P9): `chooser` (default) the path
+  chooser alone, its pick running the action (optional parameters left
+  out, esc runs nothing); `alone` the same only when the path is the
+  verb's one parameter, else the form; `form` always the form.
+  `TestPathFormField`, `TestPathArgsForm`; stories
+  `palette/form-single-path-opens-chooser.json`,
+  `palette/form-single-path-esc-cancels.json`,
+  `palette/form-single-path-setting-form.json`,
+  `palette/form-path-with-optional.json`.
 
 ### R13. Card timelines: inside a card
 

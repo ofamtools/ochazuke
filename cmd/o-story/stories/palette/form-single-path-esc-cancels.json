@@ -1,0 +1,18 @@
+{
+  "name": "the path chooser opened for a lone missing path: esc closes it and runs nothing",
+  "area": "palette",
+  "width": 100,
+  "height": 24,
+  "files": ["doc.json"],
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "verbs": [
+      {"verb": "demo.load", "description": "Open a file", "parameters": {"path": {"type": "path", "required": true, "base": "{{files}}"}}}
+    ],
+    "bind": [{"noun": "app", "keys": "e", "do": "demo.load"}]
+  },
+  "script": ["e", {"job": "chooser.load"}, "esc"],
+  "expect": [
+    {"modal": "", "focus": "a1", "writes": []}
+  ]
+}

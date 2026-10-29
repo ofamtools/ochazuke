@@ -1,0 +1,83 @@
+{
+  "name": "forms.single-path form: a lone missing path opens the args form, with its path chooser open over it so typing reaches the path",
+  "area": "palette",
+  "width": 100,
+  "height": 24,
+  "files": [
+    "doc.json",
+    "other.json"
+  ],
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.load",
+        "description": "Open a file",
+        "parameters": {
+          "path": {
+            "type": "path",
+            "required": true,
+            "base": "{{files}}"
+          }
+        }
+      }
+    ],
+    "bind": [
+      {
+        "noun": "app",
+        "keys": "e",
+        "do": "demo.load"
+      }
+    ]
+  },
+  "script": [
+    "e",
+    {
+      "job": "chooser.load"
+    },
+    {
+      "type": "oth"
+    },
+    "enter",
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "modal": "path-chooser",
+      "mode": "insert",
+      "noNotices": true
+    },
+    {
+      "after": 4,
+      "modal": "args-form",
+      "writes": [],
+      "noNotices": true
+    },
+    {
+      "modal": "",
+      "focus": "a1",
+      "writes": [
+        "demo.load path={{files}}/other.json"
+      ],
+      "noNotices": true
+    }
+  ],
+  "settings": [
+    {
+      "name": "forms.single-path",
+      "type": "string",
+      "default": "form",
+      "enum": [
+        "chooser",
+        "alone",
+        "form"
+      ]
+    }
+  ]
+}

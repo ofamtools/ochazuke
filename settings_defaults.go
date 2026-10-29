@@ -56,6 +56,13 @@ const (
 	VisualListMode = "mode"
 	// VisualListMarks selects in normal mode.
 	VisualListMarks = "marks"
+	// RepeatEmptySetting is what dot-repeat with nothing to repeat at the
+	// focus does: RepeatEmptyInfo (the default) or RepeatEmptySilent.
+	RepeatEmptySetting = "repeat.empty"
+	// RepeatEmptyInfo says "nothing to repeat" on the status line, plain.
+	RepeatEmptyInfo = "info"
+	// RepeatEmptySilent shows nothing.
+	RepeatEmptySilent = "silent"
 )
 
 // frameworkSettings are the rows of the embedded settings files, each

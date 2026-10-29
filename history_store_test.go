@@ -81,7 +81,7 @@ func TestHistoryPersistsAcrossSessions(t *testing.T) {
 	if err := p.recallLine(1); err != nil || p.Text() != "list modes" {
 		t.Fatalf("recall 2: %q %v", p.Text(), err)
 	}
-	if _, err := nr.repeatRequest(0); err == nil {
+	if _, err := nr.repeatRequest(focusOf(nr.Context()), 0); err == nil {
 		t.Fatal("dot-repeat ran a restored entry")
 	}
 }

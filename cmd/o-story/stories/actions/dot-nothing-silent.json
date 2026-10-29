@@ -1,0 +1,35 @@
+{
+  "name": "dot-repeat: with repeat.empty silent, . with nothing to repeat shows nothing",
+  "area": "actions",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ]
+  },
+  "script": [
+    "."
+  ],
+  "expect": [
+    {
+      "focus": "a1",
+      "lacks": [
+        "nothing to repeat"
+      ],
+      "noNotices": true
+    }
+  ],
+  "settings": [
+    {
+      "name": "repeat.empty",
+      "type": "string",
+      "default": "silent",
+      "enum": [
+        "info",
+        "silent"
+      ]
+    }
+  ]
+}

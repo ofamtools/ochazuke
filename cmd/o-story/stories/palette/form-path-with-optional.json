@@ -1,0 +1,100 @@
+{
+  "name": "forms.single-path alone: a missing path beside optional parameters opens the args form on the path with its chooser open, so typing (u included) reaches the path, not form.undo",
+  "area": "palette",
+  "width": 100,
+  "height": 24,
+  "files": [
+    "doc.json",
+    "undo.json"
+  ],
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.load",
+        "description": "Open a file",
+        "parameters": {
+          "path": {
+            "type": "path",
+            "required": true,
+            "base": "{{files}}"
+          },
+          "mode": {
+            "type": "string",
+            "description": "How to open it"
+          }
+        }
+      }
+    ],
+    "bind": [
+      {
+        "noun": "app",
+        "keys": "e",
+        "do": "demo.load"
+      }
+    ]
+  },
+  "script": [
+    "e",
+    {
+      "job": "chooser.load"
+    },
+    {
+      "type": "u"
+    },
+    "enter",
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "modal": "path-chooser",
+      "mode": "insert",
+      "noNotices": true
+    },
+    {
+      "after": 3,
+      "modal": "path-chooser",
+      "contains": [
+        "undo.json"
+      ],
+      "lacks": [
+        "doc.json"
+      ],
+      "noNotices": true
+    },
+    {
+      "after": 4,
+      "modal": "args-form",
+      "focus": "args-form/path",
+      "contains": [
+        "mode (optional)"
+      ],
+      "writes": []
+    },
+    {
+      "modal": "",
+      "focus": "a1",
+      "writes": [
+        "demo.load path={{files}}/undo.json"
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "name": "forms.single-path",
+      "type": "string",
+      "default": "alone",
+      "enum": [
+        "chooser",
+        "alone",
+        "form"
+      ]
+    }
+  ]
+}

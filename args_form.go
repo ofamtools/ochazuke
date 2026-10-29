@@ -17,6 +17,22 @@ const MissingOpensFormSetting = "palette.missing-opens-form"
 // ArgsFormID is the args form's modal instance (one at a time).
 const ArgsFormID = "args-form"
 
+// SinglePathSetting says what a request whose only missing required
+// argument is a path opens (R7.8): SinglePathChooser (the default) the
+// path chooser at once, its pick running the request, optional
+// parameters left out; SinglePathAlone the same only when the path is
+// the form's one field (with optional parameters, the form); SinglePathForm
+// always the args form. A form that opens on a missing path field of the
+// picker kind opens its chooser over it, so typing reaches the path.
+const SinglePathSetting = "forms.single-path"
+
+// The values of SinglePathSetting.
+const (
+	SinglePathChooser = "chooser"
+	SinglePathAlone   = "alone"
+	SinglePathForm    = "form"
+)
+
 // ensureFormSettings declares the args-form setting the application did
 // not.
 func (r *Runtime) ensureFormSettings() {
@@ -88,7 +104,10 @@ func ArgsFields(op Operation) ([]RecordField, error) {
 // required field is valid (form.run) and otherwise goes to the field that
 // still needs a value; esc in normal mode cancels and runs nothing.
 // run executes the completed request after the form closed, at the focus
-// it opened over; its error reopens the form with the values.
+// it opened over; its error reopens the form with the values. When the
+// only missing required parameter is a path and SinglePathSetting allows,
+// no form opens: the path chooser does (the editor returned is nil), and
+// its pick runs the request.
 func (r *Runtime) OpenArgsForm(q Request, run func(Request) error) (*RecordEditor, error) {
 	op, ok := r.Operations[q.Key()]
 	if !ok {
@@ -113,13 +132,17 @@ func (r *Runtime) OpenArgsForm(q Request, run func(Request) error) (*RecordEdito
 			values[f.Name] = fmt.Sprint(v)
 		}
 	}
+	missing := missingRequired(op, q.Args)
 	start := ""
-	if missing := missingRequired(op, q.Args); len(missing) > 0 {
+	if len(missing) > 0 {
 		start = missing[0]
 	}
 	title := "Run " + q.Key()
 	if q.Via != "" {
 		title = "Run " + q.Via
+	}
+	if f, ok := r.singlePath(missing, fields); ok {
+		return nil, r.choosePathArg(q, f, title, run)
 	}
 	spec := RecordSpec{
 		Title:  title,
@@ -140,7 +163,58 @@ func (r *Runtime) OpenArgsForm(q Request, run func(Request) error) (*RecordEdito
 			return Done(nil)
 		},
 	}
-	return r.OpenRecordEditor(ArgsFormID, spec)
+	e, err := r.OpenRecordEditor(ArgsFormID, spec)
+	if err != nil {
+		return e, err
+	}
+	// A form opening on a missing path stop opens its chooser: that is
+	// where the path is typed.
+	if f := e.fields[e.start()]; start != "" && f.path && f.choose {
+		return e, e.choosePath(f)
+	}
+	return e, nil
+}
+
+// singlePath is the field of the lone missing required path when
+// SinglePathSetting says a chooser answers for it without the form.
+func (r *Runtime) singlePath(missing []string, fields []RecordField) (RecordField, bool) {
+	if len(missing) != 1 {
+		return RecordField{}, false
+	}
+	r.declareFrameworkSettings(SinglePathSetting)
+	mode, _ := r.settingValue(SinglePathSetting)
+	if mode == SinglePathForm || (mode == SinglePathAlone && len(fields) != 1) {
+		return RecordField{}, false
+	}
+	for _, f := range fields {
+		if f.Name == missing[0] && f.Type == PathParameterType {
+			return f, true
+		}
+	}
+	return RecordField{}, false
+}
+
+// choosePathArg opens the path chooser for a request's one missing path:
+// the pick runs the request with it at the focus the chooser opened
+// over; esc runs nothing.
+func (r *Runtime) choosePathArg(q Request, f RecordField, title string, run func(Request) error) error {
+	_, err := r.OpenPathChooser(PathChooserSpec{
+		Title: title + " · choose " + f.Name,
+		Pick:  PathPick{Name: f.Name, Parameter: f.Parameter},
+		Choose: func(path string) Result {
+			done := q
+			done.Args = maps.Clone(q.Args)
+			if done.Args == nil {
+				done.Args = Arguments{}
+			}
+			done.Args[f.Name] = path
+			if err := run(done); err != nil {
+				return Failed(err)
+			}
+			return Done(path)
+		},
+	})
+	return err
 }
 
 // argumentsFrom is a request's arguments from a form's values: base's,

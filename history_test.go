@@ -162,8 +162,35 @@ func TestDotDoesNotRepeatMotion(t *testing.T) {
 		t.Fatal("motions are not repeatable, operators are")
 	}
 	fresh := NewRuntime()
-	if _, err := fresh.Execute(Request{Verb: "repeat", Noun: "ochazuke.history"}); err == nil {
-		t.Fatal("nothing to repeat must fail")
+	sink := &RecordingSink{}
+	fresh.UI().Attach(sink)
+	if _, err := fresh.Execute(Request{Verb: "repeat", Noun: "ochazuke.history"}); err != nil || sink.LastInfo() != "nothing to repeat" || sink.LastError() != "" {
+		t.Fatalf("nothing to repeat is a plain line, not an error: %v info %q error %q", err, sink.LastInfo(), sink.LastError())
+	}
+}
+
+// Typing into an input is not replayed by . once the focus is outside an
+// input: the change before it is, else nothing to repeat (R9.5).
+func TestDotSkipsTypingOutsideAnInput(t *testing.T) {
+	r, in := editorTestRuntime(t, "ab", false)
+	sink := &RecordingSink{}
+	r.UI().Attach(sink)
+	if _, err := r.Execute(Request{Verb: "insert", Noun: "ochazuke.input", Args: Arguments{"text": "q"}}); err != nil {
+		t.Fatal(err)
+	}
+	r.Instance("elsewhere")
+	if err := r.SetFocus("elsewhere"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Execute(Request{Verb: "repeat", Noun: "ochazuke.history"}); err != nil || sink.LastInfo() != "nothing to repeat" {
+		t.Fatalf("repeat outside an input: %v info %q", err, sink.LastInfo())
+	}
+	if err := r.SetFocus(in.ID); err != nil {
+		t.Fatal(err)
+	}
+	before := string(in.Text)
+	if _, err := r.Execute(Request{Verb: "repeat", Noun: "ochazuke.history"}); err != nil || string(in.Text) == before {
+		t.Fatalf("repeat back in the input: %v %q", err, in.Text)
 	}
 }
 

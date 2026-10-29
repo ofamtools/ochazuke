@@ -432,6 +432,7 @@ Conformance:
 | normal | focus | `focus.next` `focus.previous` `focus.set` |
 | normal | form | `form.choose` `form.leave` `form.next` `form.next-missing` `form.redo` `form.run` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
+| normal | history | `history.repeat` |
 | normal | input | `input.begin` `input.undo` |
 | normal | list | `list.column` `list.filter-clear` `list.filter-open` `list.goto` `list.mark` `list.move` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.toggle-pin-column` `list.visual` `list.yank` |
 | normal | markdown | `markdown.delete` `markdown.fold` `markdown.insert` `markdown.next-block` `markdown.next-kind` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
@@ -518,6 +519,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `palette.open`
 - `normal` → `insert` via `row R`
 - `normal` → `insert` via `row W`
+- `normal` → `insert` via `row e`
 - `normal` → `insert` via `setting-item.add`
 - `normal` → `insert` via `setting-item.edit`
 - `normal` → `insert` via `setting.add`

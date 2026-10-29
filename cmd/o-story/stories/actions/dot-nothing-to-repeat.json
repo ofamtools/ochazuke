@@ -1,0 +1,9 @@
+{
+  "name": "dot-repeat: . with nothing to repeat says so plainly, never as an Error (R6.4; repeat.empty info, the default)",
+  "area": "actions",
+  "page": {"lists": [{"id": "a", "rows": 2}]},
+  "script": ["."],
+  "expect": [
+    {"focus": "a1", "contains": ["nothing to repeat"], "lacks": ["Error: nothing to repeat"]}
+  ]
+}

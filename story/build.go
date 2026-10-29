@@ -607,7 +607,7 @@ func (ss *Session) defineVerb(d *ochazuke.NounBuilder, v VerbSpec) error {
 		if v.Many {
 			entry += " subjects=" + strings.Join(c.SubjectIDs(), ",")
 		}
-		ss.Writes = append(ss.Writes, entry)
+		ss.Writes = append(ss.Writes, ss.unfiles(entry))
 		if rows != nil {
 			return ochazuke.Done(rows)
 		}
@@ -619,7 +619,12 @@ func (ss *Session) defineVerb(d *ochazuke.NounBuilder, v VerbSpec) error {
 	if v.Many {
 		d.Many()
 	}
-	ss.R.Operations[key] = withParams(ss.R.Operations[key], v.Parameters)
+	params := maps.Clone(v.Parameters)
+	for name, p := range params {
+		p.Base = ss.files(p.Base)
+		params[name] = p
+	}
+	ss.R.Operations[key] = withParams(ss.R.Operations[key], params)
 	for _, a := range v.Aliases {
 		a.Action = key
 		if err := ss.R.AddActionAlias(a); err != nil {

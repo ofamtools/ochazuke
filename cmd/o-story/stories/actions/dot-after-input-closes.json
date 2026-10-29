@@ -1,0 +1,14 @@
+{
+  "name": "dot-repeat: after typing in an inline line that has closed, . never replays the typing outside an input (R9.5)",
+  "area": "actions",
+  "page": {
+    "trees": [
+      {"id": "t", "editable": true, "nodes": [{"id": "a", "label": "alpha"}, {"id": "b", "label": "beta"}]}
+    ]
+  },
+  "script": ["i", {"type": "q"}, "esc", "j", "."],
+  "expect": [
+    {"after": 3, "mode": "normal", "contains": ["q"], "writes": ["rename a: q"]},
+    {"focus": "b", "mode": "normal", "lacks": ["Error: no focused input", "Error:"], "contains": ["beta"]}
+  ]
+}
