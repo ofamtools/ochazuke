@@ -1,0 +1,28 @@
+{
+  "name": "turns: inside a card a key bound on the card's noun answers (the body sits under the card), and the footer offers it",
+  "base": "story:turns/page",
+  "script": [
+    "j",
+    "j",
+    "j",
+    "l",
+    "l",
+    "a"
+  ],
+  "expect": [
+    {
+      "after": 5,
+      "focus": "turns/body",
+      "contains": [
+        "focus turns/body < t4 < turns/list < turns < turns-page",
+        "a story-card.timeline-append"
+      ]
+    },
+    {
+      "focus": "turns/body",
+      "contains": [
+        "key a → story-card.timeline-append in normal at t4"
+      ]
+    }
+  ]
+}

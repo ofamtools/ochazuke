@@ -418,7 +418,23 @@ func (t *Timeline) enter(id string) error {
 	}
 	t.in, t.step, t.seek = id, 0, true
 	t.follow = false
+	t.placeBody()
 	return t.r.SetFocus(t.bodyID)
+}
+
+// placeBody parents the body under the card it walks (t.in), else under
+// the list: inside a card the focus path is body, card, list, so the rows
+// of the card's noun answer there as they do on the card (a key the body
+// does not bind goes on to the card, then the list and the timeline).
+func (t *Timeline) placeBody() {
+	inst := t.r.Instances[t.bodyID]
+	if inst == nil {
+		return
+	}
+	inst.Parent = t.list.id
+	if t.in != "" && t.r.rows[t.in] == t.list.id {
+		inst.Parent = t.in
+	}
 }
 
 // openUnit is the open fold unit the current step lies in (its title or
@@ -470,6 +486,8 @@ func (t *Timeline) foldStep() error {
 func (t *Timeline) leaveBody() {
 	to := t.list.focusTarget()
 	t.r.RetargetFocus(func(id string) bool { return id == t.bodyID }, to)
+	t.in = ""
+	t.placeBody()
 }
 
 // leave is timeline.leave: inside a card, back to the card (still open);

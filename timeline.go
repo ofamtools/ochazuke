@@ -496,6 +496,12 @@ func (t *Timeline) apply(cards []Card, byID map[string]int, items []ListItem) er
 		lastID = t.list.all[n-1].ID
 	}
 	wasLast := t.list.Len() == 0 || t.SelectedID() == lastID
+	// The body sits under the list while the rows change (a removed card
+	// takes its subtree with it), then under its card again if it stays.
+	if inst := t.r.Instances[t.bodyID]; inst != nil {
+		inst.Parent = t.list.id
+	}
+	defer t.placeBody()
 	if err := t.list.SetItems(items); err != nil {
 		return err
 	}
