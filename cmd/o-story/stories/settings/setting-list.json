@@ -1,0 +1,17 @@
+{
+  "name": "standard list on the setting noun: :setting list 0 value owner=app opens the results with each setting the app declared, its name the row id and its value beside it; the framework's settings are filtered out",
+  "area": "settings",
+  "width": 100,
+  "height": 24,
+  "settings": [
+    {"name": "scrolloff", "type": "integer", "default": 2, "description": "Rows kept above and below the focus"},
+    {"name": "theme", "type": "string", "default": "dark", "description": "Colour theme", "enum": ["dark", "light", "mono"]},
+    {"name": "ext.ai.model", "type": "string", "default": "large", "description": "Model the AI extension asks", "enum": ["small", "large"]}
+  ],
+  "page": {
+    "title": "Tasks",
+    "lists": [{"id": "a", "rows": 2}]
+  },
+  "script": [":", {"type": "setting list 0 value owner=app"}, "enter"],
+  "expect": {"modal": "palette-results", "contains": ["ochazuke.setting.list", "scrolloff     2", "theme         dark", "ext.ai.model  large"], "lacks": ["rename.select", "pages.hidden"], "noNotices": true}
+}

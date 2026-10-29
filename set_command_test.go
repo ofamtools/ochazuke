@@ -292,6 +292,9 @@ func TestSetCollisionsAcrossTheFamily(t *testing.T) {
 	// setting's name or prefix.
 	var own []string
 	for _, word := range r.shadowNouns("set") {
+		if !r.shadowsNoun(word, "set") {
+			continue // a store's standard set never reads a setting's word
+		}
 		for _, one := range r.Settings().Declared() {
 			if strings.HasPrefix(one.Name, word) && !slices.Contains(own, word) && slices.ContainsFunc(rows, func(c setCollision) bool { return c.Noun == word }) {
 				own = append(own, word)

@@ -413,6 +413,78 @@ func registerSettingVerbs(r *Runtime) {
 		names = append(names, v.Verb)
 	}
 	r.Define("ochazuke.setting").Verbs(names...)
+	registerSettingThings(r)
+}
+
+// The setting noun's things (standard verbs, lane S7): ochazuke.setting is
+// a collection whose things are the declared settings, keyed by name (a
+// setting's name holds dots, so settings are things, never props). Its
+// store reads them only, so get, list and watch are standard; set, show,
+// reset and the other value verbs above stay the named :set verbs (the
+// application's verb wins over a standard one), carrying scope and the
+// session layer that the standard set does not.
+
+// settingProps are a setting thing's props, every one read-only.
+var settingProps = []PropSpec{
+	{Name: "name", Key: true, Parameter: Parameter{Description: "The setting's name"}},
+	{Name: "type", ReadOnly: true, Parameter: Parameter{Enum: []string{SettingString, SettingInteger, SettingNumber, SettingBoolean, SettingDuration, SettingList}, Description: "The value's type"}},
+	{Name: "default", ReadOnly: true, Parameter: Parameter{Description: "The default value, in its file form (a duration as 400ms)"}},
+	{Name: "value", ReadOnly: true, Parameter: Parameter{Description: "The value in effect, in its file form: the session's, else settings.json's, else the default (setting.set writes it)"}},
+	{Name: "enum", ReadOnly: true, Parameter: Parameter{Type: SettingList, Description: "The values allowed, when the setting limits them"}},
+	{Name: "description", ReadOnly: true, Parameter: Parameter{Description: "What the setting does"}},
+	{Name: "section", ReadOnly: true, Parameter: Parameter{Description: "The Settings page section it is filed under (\"\" is General)"}},
+	{Name: "owner", ReadOnly: true, Parameter: Parameter{Enum: []string{FrameworkNamespace, AliasApp}, Description: "Who declared it: ochazuke or the application"}},
+	{Name: "origin", ReadOnly: true, Parameter: Parameter{Enum: []string{OriginDefault, OriginFile, OriginSession}, Description: "Where the value in effect comes from: the default, settings.json or this session (setting.show --verbose says more)"}},
+}
+
+// registerSettingThings declares the setting noun's props and its store,
+// and tells its watches when any setting changes.
+func registerSettingThings(r *Runtime) {
+	r.Define("ochazuke.setting").Props(settingProps...).Store(Store{
+		Kind: Collection,
+		Get: func(c Ctx, name string) (Thing, error) {
+			return settingThing(c.Runtime, name)
+		},
+		List: func(c Ctx, _ ListQuery) ([]Thing, error) {
+			s := c.Runtime.Settings()
+			out := []Thing{}
+			for _, one := range s.List() {
+				t, err := settingThing(c.Runtime, one.Name)
+				if err != nil {
+					return nil, err
+				}
+				out = append(out, t)
+			}
+			return out, nil
+		},
+	})
+	r.Settings().Observe("", func(string, any) { r.Changed("ochazuke.setting") })
+}
+
+// settingThing is one declared setting as a thing (settingProps); an old
+// name reads the setting it became.
+func settingThing(r *Runtime, name string) (Thing, error) {
+	s := r.Settings()
+	v, err := s.Get(name)
+	if err != nil {
+		return nil, err
+	}
+	origin, err := s.Origin(v.Name)
+	if err != nil {
+		return nil, err
+	}
+	owner := AliasApp
+	if s.FrameworkSetting(v.Name) {
+		owner = FrameworkNamespace
+	}
+	enum := []string{}
+	if len(v.Enum) > 0 {
+		enum = slices.Clone(v.Enum)
+	}
+	return Thing{
+		"name": v.Name, "type": v.Type, "default": v.Default, "value": v.Value, "enum": enum,
+		"description": v.Description, "section": v.SectionName(), "owner": owner, "origin": origin.Layer,
+	}, nil
 }
 
 // runSettingVerb is a value verb's handler: find the setting (its name,

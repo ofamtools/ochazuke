@@ -1,0 +1,17 @@
+{
+  "name": "page hide is the standard set of the page's hidden prop: :page hide p2 takes Two out of the tabs, :page list shows it hidden, and :page set p2 hidden false brings it back",
+  "area": "pages",
+  "width": 100,
+  "height": 14,
+  "pages": [
+    {"id": "p1", "title": "One", "lists": [{"id": "a", "rows": 1}]},
+    {"id": "p2", "title": "Two", "lists": [{"id": "b", "rows": 1}]},
+    {"id": "p3", "title": "Three", "lists": [{"id": "c", "rows": 1}]}
+  ],
+  "script": [":", {"type": "page hide p2"}, "enter", ":", {"type": "page list"}, "enter", "esc", ":", {"type": "page set p2 hidden false"}, "enter"],
+  "expect": [
+    {"after": 3, "page": "p1", "modal": "", "contains": ["› One  Three", "Two is hidden from the tabs"]},
+    {"after": 6, "modal": "palette-results", "contains": ["active  hidden  id  label  title", "false   true    p2  Two    Two"]},
+    {"page": "p1", "modal": "", "contains": ["› One  Two  Three", "Two is back in the tabs"]}
+  ]
+}

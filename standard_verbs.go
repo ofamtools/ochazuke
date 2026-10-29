@@ -92,7 +92,7 @@ var standardVerbs = []standardVerb{
 		Kinds: []string{Collection}, Needs: func(n *Noun) bool { return n.Store.Create != nil && len(createProps(n)) > 0 },
 		HistoryKind: HistoryChange, FocusSetting: CreateFromFocusSetting, Positional: createPositional, Params: createParams, Writes: createWrites, Run: runCreate},
 	{Verb: "set", Description: "Write a thing's props: one prop (prop and value, or toggle on a boolean), or several (changes, or prop=value words); answers the thing after the write",
-		Kinds: []string{Collection, Singleton}, Needs: func(n *Noun) bool { return n.Store.Patch != nil && len(writableProps(n)) > 0 },
+		Kinds: []string{Collection, Singleton, Instances}, Needs: func(n *Noun) bool { return n.Store.Patch != nil && len(writableProps(n)) > 0 },
 		Subject: true, Many: true, Repeatable: true, HistoryKind: HistoryChange, Positional: func(*Noun) []string { return []string{"prop", "value", "pairs"} },
 		Params: setParams, Writes: setWrites, Run: runSet},
 	{Verb: "delete", Description: "Delete a thing (asks first)",
@@ -288,8 +288,11 @@ func listParams(n *Noun) map[string]Parameter {
 
 // subjectKey is the key a request's subject has: the key argument when
 // given, else the instance the request acts for (Ctx.Instance, or the
-// nearest instance of the noun above it): the key prop in its Data, else
-// its id. A singleton's is "".
+// nearest instance of the noun above it; for an instances noun the
+// nearest live thing, liveSubject): an instances noun's instance id; else
+// the key prop in its Data, the Data itself when it is a plain string
+// (a row whose Data is its thing's key, as the Settings page's rows are),
+// else its id. A singleton's is "".
 func (r *Runtime) subjectKey(n *Noun, c Ctx) (string, error) {
 	key := n.keyProp()
 	if key == nil {
@@ -299,7 +302,12 @@ func (r *Runtime) subjectKey(n *Noun, c Ctx) (string, error) {
 		return fmt.Sprint(v), nil
 	}
 	inst := c.Instance
-	if inst != nil && inst.Noun != n.Name {
+	if inst != nil && n.Store.Kind == Instances {
+		inst = r.Instances[r.liveSubject(n, inst.ID)] // its things are live instances
+		if inst != nil {
+			return inst.ID, nil
+		}
+	} else if inst != nil && inst.Noun != n.Name {
 		inst = r.Instances[r.nounInstance(n.Name, inst.ID)]
 	}
 	if inst == nil {
@@ -307,6 +315,9 @@ func (r *Runtime) subjectKey(n *Noun, c Ctx) (string, error) {
 	}
 	if v := dataField(inst.Data, key.Name); !emptyProp(v) {
 		return fmt.Sprint(v), nil
+	}
+	if s, ok := inst.Data.(string); ok && s != "" {
+		return s, nil
 	}
 	return inst.ID, nil
 }

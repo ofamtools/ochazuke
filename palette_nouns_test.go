@@ -30,9 +30,10 @@ func TestPalettePageInstancesAreLive(t *testing.T) {
 			verbs++
 		}
 	}
-	// open, pick, next, previous, hide and show.
-	if instances != 60 || verbs != 6 {
-		t.Fatalf("page completes %d instances and %d verbs, want 60 and 6", instances, verbs)
+	// open, pick, next, previous and the standard get, list, set and
+	// watch (hide and show are set's aliases, listed on its row).
+	if instances != 60 || verbs != 8 {
+		t.Fatalf("page completes %d instances and %d verbs, want 60 and 8", instances, verbs)
 	}
 	pageTestRegister(t, r, "late-page").Title = "Newly registered workspace"
 	paletteRequest(t, r, "set", "palette", Arguments{"text": "page late"})

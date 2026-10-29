@@ -148,48 +148,67 @@ func (r *Runtime) pageLabel(id string) string {
 	return id
 }
 
-// pageArg is the page a page verb names: its id argument, else the current
-// page.
-func (r *Runtime) pageArg(a Arguments) string {
-	if id := StringArg(a, "id", ""); id != "" {
-		return id
-	}
-	return r.Page
+// The page noun's things (standard verbs, lane S7): ochazuke.page is an
+// instances noun, its things the registered pages (their instances), keyed
+// by id, so get, list, set and watch are standard. Its one writable prop is
+// hidden, which writes pages.hidden (HidePage, ShowPage); page.hide and
+// page.show are aliases of set with the prop and value preset.
+
+// pageProps are a page thing's props.
+var pageProps = []PropSpec{
+	{Name: "id", Key: true, Parameter: Parameter{Description: "The page id"}},
+	{Name: "title", Role: RoleLabel, ReadOnly: true, Parameter: Parameter{Description: "The page's title (its tab)"}},
+	{Name: "hidden", Parameter: Parameter{Type: SettingBoolean, Description: "Out of the tabs and ctrl+j/k (the pages.hidden setting); page.open still opens it"}},
+	{Name: "active", ReadOnly: true, Parameter: Parameter{Type: SettingBoolean, Description: "The current page"}},
 }
 
-// registerPageHiding registers page.hide and page.show with their
-// availability: with an id, hide while that page is in the tabs and show
-// while it is hidden; with none (the current page) both are offered, and
-// the verb says when there is nothing to do, so the palette's verb list
-// does not depend on the page it is opened over.
+// registerPageHiding declares the page noun's props and store, and
+// page.hide and page.show as aliases of page.set {prop: hidden}. set
+// writing hidden is available unless it names a page whose hidden prop
+// already holds the value (so hide is offered while the named page is in
+// the tabs and show while it is hidden); with no id (the current page) it
+// is offered, and the write says when there is nothing to do, so the
+// palette's verb list does not depend on the page it is opened over.
 func registerPageHiding(r *Runtime) {
-	id := Parameter{Type: "string", Noun: "ochazuke.pages", Description: "The page id; default the current page"}
-	r.Register(Operation{Verb: "hide", Noun: "ochazuke.page", Description: "Hide a page from the tabs and ctrl+j/k (the pages.hidden setting); page.open still opens it", Parameters: map[string]Parameter{"id": id}, Positional: []string{"id"}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		target := r.pageArg(a)
-		if r.PageOf(target) != nil && r.PageHidden(target) {
-			return nil, fmt.Errorf("%s is already hidden from the tabs", r.pageLabel(target))
+	r.Define("ochazuke.page").Props(pageProps...).Store(Store{
+		Kind: Instances,
+		Get: func(c Ctx, id string) (Thing, error) {
+			r := c.Runtime
+			page := r.PageOf(id)
+			if page == nil {
+				return nil, fmt.Errorf("unknown page %q", id)
+			}
+			return Thing{"title": r.pageLabel(id), "hidden": r.PageHidden(id), "active": id == r.Page}, nil
+		},
+		Live: func(r *Runtime) []string {
+			var out []string
+			for _, page := range r.PageList() {
+				out = append(out, page.ID)
+			}
+			return out
+		},
+		Patch: patchPage,
+		When:  map[string]string{"set": "page-set-changes"},
+	})
+	for _, alias := range []ActionAlias{
+		{Alias: "ochazuke.page.hide", Action: "ochazuke.page.set", Args: Arguments{"prop": "hidden", "value": true}, Note: "Hide a page from the tabs and ctrl+j/k (the pages.hidden setting); page.open still opens it"},
+		{Alias: "ochazuke.page.show", Action: "ochazuke.page.set", Args: Arguments{"prop": "hidden", "value": false}, Note: "Bring a hidden page back into the tabs and ctrl+j/k"},
+	} {
+		if err := r.AddActionAlias(alias); err != nil {
+			panic(err.Error())
 		}
-		if err := r.HidePage(target); err != nil {
-			return nil, err
+	}
+	r.DefineGuard("page-set-changes", func(r *Runtime, ev KeyEvent) bool {
+		target := StringArg(ev.Args, "id", "")
+		value, given := ev.Args["value"]
+		if target == "" || !given || StringArg(ev.Args, "prop", "") != "hidden" || r.PageOf(target) == nil {
+			return true
 		}
-		if target == r.Page {
-			r.UI().Info(r.pageLabel(target) + " is hidden: its tab goes when you leave it (page.show brings it back)")
-		} else {
-			r.UI().Info(r.pageLabel(target) + " is hidden from the tabs (page.show brings it back)")
-		}
-		return r.Context(), nil
-	}})
-	r.Register(Operation{Verb: "show", Noun: "ochazuke.page", Description: "Bring a hidden page back into the tabs and ctrl+j/k", Parameters: map[string]Parameter{"id": id}, Positional: []string{"id"}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		target := r.pageArg(a)
-		if r.PageOf(target) != nil && !r.PageHidden(target) {
-			return nil, fmt.Errorf("%s is already in the tabs", r.pageLabel(target))
-		}
-		if err := r.ShowPage(target); err != nil {
-			return nil, err
-		}
-		r.UI().Info(r.pageLabel(target) + " is back in the tabs")
-		return r.Context(), nil
-	}})
+		hide, err := propValue(pageProps[2], value)
+		return err != nil || r.PageHidden(target) != hide.(bool)
+	})
+	// The guards page.hide and page.show had before they were aliases,
+	// kept for binding rows that name them.
 	named := func(hidden bool) Guard {
 		return func(r *Runtime, ev KeyEvent) bool {
 			target := StringArg(ev.Args, "id", "")
@@ -198,8 +217,41 @@ func registerPageHiding(r *Runtime) {
 	}
 	r.DefineGuard("page-shown", named(false))
 	r.DefineGuard("page-hidden", named(true))
-	r.SetAvailability("ochazuke.page.hide", "page-shown")
-	r.SetAvailability("ochazuke.page.show", "page-hidden")
+	// A watch of pages lists again when pages.hidden changes.
+	r.Settings().Observe(PagesHiddenSetting, func(string, any) { r.Changed("ochazuke.page") })
+}
+
+// patchPage is the page store's write: hidden true hides the page from
+// the tabs (HidePage: never the last one in them), false shows it, each
+// saying so; a write that changes nothing is refused with what holds.
+func patchPage(c Ctx, id string, changes Thing) (Thing, error) {
+	r := c.Runtime
+	v, ok := changes["hidden"]
+	if !ok {
+		return nil, nil
+	}
+	hide, _ := v.(bool)
+	switch {
+	case hide && r.PageHidden(id):
+		return nil, fmt.Errorf("%s is already hidden from the tabs", r.pageLabel(id))
+	case !hide && !r.PageHidden(id):
+		return nil, fmt.Errorf("%s is already in the tabs", r.pageLabel(id))
+	case hide:
+		if err := r.HidePage(id); err != nil {
+			return nil, err
+		}
+		if id == r.Page {
+			c.Info(r.pageLabel(id) + " is hidden: its tab goes when you leave it (page.show brings it back)")
+		} else {
+			c.Info(r.pageLabel(id) + " is hidden from the tabs (page.show brings it back)")
+		}
+	default:
+		if err := r.ShowPage(id); err != nil {
+			return nil, err
+		}
+		c.Info(r.pageLabel(id) + " is back in the tabs")
+	}
+	return nil, nil
 }
 
 // pageRows are pages.list's rows: every page in registration order with

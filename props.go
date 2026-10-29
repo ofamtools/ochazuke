@@ -44,9 +44,11 @@ const (
 	// Singleton is one thing per runtime (app, appearance): get takes no
 	// subject.
 	Singleton = "singleton"
-	// Instances is things that are live runtime instances (pages, panes);
-	// the subject is an instance id. In this phase its store reads them
-	// like a collection's.
+	// Instances is things that are live runtime instances (pages, panes):
+	// the things are the noun's instances, in registration order, and the
+	// subject is an instance id (instancesStore). The store's Get, when
+	// set, adds the props an instance does not hold; List is the
+	// instances unless the store gives its own.
 	Instances = "instances"
 )
 
@@ -215,6 +217,11 @@ type Store struct {
 	// give, so a delete can be undone under its old key.
 	Undo       bool
 	AcceptsKey bool
+	// Live, on an instances store, answers the ids of the live instances
+	// that are its things, in order; nil is every instance of the noun in
+	// registration order. (Pages are ochazuke.page's things whatever noun
+	// their instances have.)
+	Live func(r *Runtime) []string
 }
 
 // propTypes are the types a prop declares.
@@ -300,10 +307,101 @@ func (b *NounBuilder) Store(s Store) *NounBuilder {
 	}
 	s.ListParams = cloneParams(s.ListParams)
 	s.Confirm, s.When = maps.Clone(s.Confirm), maps.Clone(s.When)
+	if s.Kind == Instances {
+		s = instancesStore(b.n.Name, s)
+	}
 	b.n.Store = &s
 	b.r.applyStore(b.n)
 	b.last = ""
 	return b
+}
+
+// instancesStore fills an instances store's reads from the live
+// instances: Get answers only the key of a live thing (liveIDs, else
+// "unknown NOUN"), its thing the instance's own props (liveThing) with the
+// store's Get, when set, over them; List, unless the store gives its own,
+// is every live thing in order.
+func instancesStore(noun string, s Store) Store {
+	get := s.Get
+	s.Get = func(c Ctx, id string) (Thing, error) {
+		r := c.Runtime
+		n := r.Nouns[noun]
+		inst := r.Instances[id]
+		if inst == nil || !slices.Contains(r.liveIDs(n), id) {
+			return nil, fmt.Errorf("unknown %s %q", r.DisplayNoun(noun), id)
+		}
+		t := r.liveThing(n, inst)
+		if get != nil {
+			own, err := get(c, id)
+			if err != nil {
+				return nil, err
+			}
+			maps.Copy(t, own)
+		}
+		return t, nil
+	}
+	if s.List == nil {
+		read := s.Get
+		s.List = func(c Ctx, _ ListQuery) ([]Thing, error) {
+			out := []Thing{}
+			for _, id := range c.Runtime.liveIDs(c.Runtime.Nouns[noun]) {
+				t, err := read(c, id)
+				if err != nil {
+					return nil, err
+				}
+				out = append(out, t)
+			}
+			return out, nil
+		}
+	}
+	return s
+}
+
+// liveIDs are the ids of an instances noun's things: its store's Live,
+// else its own instances in registration order.
+func (r *Runtime) liveIDs(n *Noun) []string {
+	if n.Store.Live != nil {
+		return n.Store.Live(r)
+	}
+	var out []string
+	for _, inst := range r.instancesInOrder() {
+		if inst.Noun == n.Name {
+			out = append(out, inst.ID)
+		}
+	}
+	return out
+}
+
+// liveSubject is the thing of an instances noun the focus at id is in:
+// the nearest of id and its ancestors that is one, "" when none is.
+func (r *Runtime) liveSubject(n *Noun, id string) string {
+	live := r.liveIDs(n)
+	for _, one := range r.Ancestry(id) {
+		if slices.Contains(live, one) {
+			return one
+		}
+	}
+	return ""
+}
+
+// liveThing is the thing an instance holds itself: its id as the key
+// prop, its label as the label prop, and every other prop its Data
+// record has.
+func (r *Runtime) liveThing(n *Noun, inst *Instance) Thing {
+	t := Thing{}
+	for _, p := range n.Props {
+		switch {
+		case p.Key:
+			t[p.Name] = inst.ID
+		case p.Role == RoleLabel && inst.Label != "":
+			t[p.Name] = inst.Label
+		default:
+			if v := dataField(inst.Data, p.Name); v != nil {
+				t[p.Name] = v
+			}
+		}
+	}
+	return t
 }
 
 func cloneParams(in map[string]Parameter) map[string]Parameter {
