@@ -2,7 +2,7 @@
   "name": "palette.standard-verbs off ([]): the verb list after :demo is one alphabetical list with no std tag, and get shows no record rows (today's palette)",
   "area": "palette",
   "width": 100,
-  "height": 30,
+  "height": 44,
   "values": {"palette.standard-verbs": []},
   "page": {
     "lists": [{"id": "tasks", "items": [{"id": "t1", "label": "t1"}]}],
