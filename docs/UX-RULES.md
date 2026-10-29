@@ -734,6 +734,17 @@ tiers above them. When the two disagree, fix one in the same commit.
   | `off`. An edit or `Select` that moves the selection out of the zoom
   steps the zoom out to show it. Stories `tree/zoom-*.json`; tests
   `tree_zoom_test.go`.
+- **R11.8** A node can refuse a change: `TreeNode.Fixed` names the
+  changes it refuses (`rename`, `move` (move, indent, outdent), `delete`
+  (itself or any ancestor)), and `Tree.Refuse` is the application's check
+  on any change. A refused change is refused from every path (keys, the
+  palette, the CLI, the API, `Tree` methods) and nothing is written. The
+  verbs a node's `Fixed` refuses are not available on it (guards
+  `outline-renamable`, `outline-movable`, `outline-deletable`), so their
+  keys do nothing, their hints drop out and the palette does not offer
+  them; `Refuse` answers with its reason on the status line. Never a
+  branch on a node id. Stories: `tree/fixed-root-refuses.json`,
+  `tree/fixed-rename-only.json`; tests in `tree_fixed_test.go`.
 
 ### R12. Action names and aliases
 

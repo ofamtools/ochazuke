@@ -27,7 +27,19 @@ type TreeNode struct {
 	// Section is the label line drawn above a run of rows in one section
 	// (ListItem.Section); "" none.
 	Section string `json:"section,omitempty"`
+	// Fixed names the changes the node refuses: TreeRename, TreeMove
+	// (move, indent, outdent) and TreeDelete (deleting it or any
+	// ancestor). An outline's document root is Fixed all three; an array
+	// item, whose key is its index, refuses rename alone. The refusal holds
+	// from every path (keys, the palette, the CLI, Tree methods); the verb
+	// is not available on the node (outline-renamable, outline-movable,
+	// outline-deletable), so its hints and help rows drop out.
+	Fixed []string `json:"fixed,omitempty"`
 }
+
+// Refuses reports whether the node refuses the change op (TreeRename,
+// TreeMove, TreeDelete).
+func (n TreeNode) Refuses(op string) bool { return slices.Contains(n.Fixed, op) }
 
 // TreeChange is one committed edit of an outline: add, rename, move or
 // delete. Index is the node's position among its parent's children after
@@ -158,6 +170,12 @@ type Tree struct {
 	NewID func() string
 	// RowNoun is the noun of nodes the tree adds (default TreeRowNoun).
 	RowNoun string
+	// Refuse is the application's check on a change before it is made
+	// (rename, move, delete and add; for add the node is the parent, the
+	// zero node at the top): a non-nil error refuses it with that reason,
+	// from every path. It runs after the nodes' Fixed. Undo and redo are
+	// not checked: they take back changes that were allowed.
+	Refuse func(node TreeNode, change TreeChange) error
 	// Debounce is the pause in typing before a line is written.
 	Debounce time.Duration
 
@@ -730,6 +748,11 @@ func (t *Tree) insert(parent string, index int, sub []TreeNode) {
 
 // commit applies changes, writes them and records one undo step.
 func (t *Tree) commit(changes []TreeChange, selectID string) error {
+	for _, c := range changes {
+		if err := t.refuses(c); err != nil {
+			return err
+		}
+	}
 	var undo []TreeChange
 	for _, c := range changes {
 		inv, err := t.apply(c)
@@ -747,6 +770,78 @@ func (t *Tree) commit(changes []TreeChange, selectID string) error {
 		}
 	}
 	return err
+}
+
+// refuses is why the change may not be made, nil when it may: a node's
+// Fixed, then the application's Refuse.
+func (t *Tree) refuses(c TreeChange) error {
+	var node TreeNode
+	if c.Op == TreeAdd {
+		if i := t.index(c.Parent); i >= 0 {
+			node = t.nodes[i]
+		}
+	} else if i := t.index(c.ID); i >= 0 {
+		node = t.nodes[i]
+		if blocker, ok := t.fixedFor(c.Op, c.ID); ok {
+			if blocker.ID == node.ID {
+				return fmt.Errorf("%s refuses %s", nodeName(node), changeVerb(c.Op))
+			}
+			return fmt.Errorf("%s holds %s, which refuses %s", nodeName(node), nodeName(blocker), changeVerb(c.Op))
+		}
+	}
+	if t.Refuse != nil {
+		return t.Refuse(node, c)
+	}
+	return nil
+}
+
+// fixedFor is the node that makes id refuse op by Fixed: id itself, or for
+// a delete any node of its subtree.
+func (t *Tree) fixedFor(op, id string) (TreeNode, bool) {
+	i := t.index(id)
+	if i < 0 {
+		return TreeNode{}, false
+	}
+	end := i + 1
+	if op == TreeDelete {
+		end = t.subtreeEnd(i)
+	}
+	for _, n := range t.nodes[i:end] {
+		if n.Refuses(op) {
+			return n, true
+		}
+	}
+	return TreeNode{}, false
+}
+
+// allows reports whether the node the focus acts on (targetOf) takes op
+// by its Fixed: the availability of the outline verbs.
+func (t *Tree) allows(op, focus string) bool {
+	id := t.targetOf(focus)
+	if id == "" {
+		return true
+	}
+	_, fixed := t.fixedFor(op, id)
+	return !fixed
+}
+
+func nodeName(n TreeNode) string {
+	if n.Label != "" {
+		return fmt.Sprintf("%q", n.Label)
+	}
+	return n.ID
+}
+
+func changeVerb(op string) string {
+	switch op {
+	case TreeRename:
+		return "a rename"
+	case TreeMove:
+		return "a move"
+	case TreeDelete:
+		return "deletion"
+	}
+	return op
 }
 
 func (t *Tree) newID() string {
@@ -803,6 +898,16 @@ func (t *Tree) Edit(id string, selected bool) error {
 	if !t.Editable() {
 		return errors.New("tree is read-only")
 	}
+	return t.rename(id, selected)
+}
+
+// rename opens an existing node's line unless the node refuses a rename.
+func (t *Tree) rename(id string, selected bool) error {
+	if i := t.index(id); i >= 0 {
+		if err := t.refuses(TreeChange{Op: TreeRename, ID: id, Text: t.nodes[i].Label}); err != nil {
+			return err
+		}
+	}
 	return t.openLine(id, selected)
 }
 
@@ -851,11 +956,14 @@ func (t *Tree) seal() error {
 
 // target is the node a verb acts on: the open line, else the row on the
 // focus, else the selection.
-func (t *Tree) target(c Context) string {
+func (t *Tree) target(c Context) string { return t.targetOf(focusOf(c)) }
+
+// targetOf is target for a focus id.
+func (t *Tree) targetOf(focus string) string {
 	if t.editing != "" {
 		return t.editing
 	}
-	if focus := focusOf(c); t.r.rows[focus] == t.list.id {
+	if t.r.rows[focus] == t.list.id {
 		return focus
 	}
 	if n, ok := t.Selected(); ok {
@@ -1222,6 +1330,15 @@ func registerTrees(r *Runtime) {
 		t := r.treeOf(ev.Focus)
 		return t != nil && t.Editable()
 	})
+	// The structural verbs are available where the node they act on takes
+	// the change by its Fixed (TreeNode.Fixed): a fixed root offers no
+	// d d, a fixed array item no rename.
+	for guard, op := range map[string]string{"outline-renamable": TreeRename, "outline-movable": TreeMove, "outline-deletable": TreeDelete} {
+		r.DefineGuard(guard, func(r *Runtime, ev KeyEvent) bool {
+			t := r.treeOf(ev.Focus)
+			return t != nil && t.Editable() && t.allows(op, ev.Focus)
+		})
+	}
 	on := func(run func(*Tree, Ctx) error) AppHandler {
 		return func(c Ctx) Result {
 			t := c.Runtime.treeOf(focusOf(c.Context))
@@ -1267,12 +1384,12 @@ func registerTrees(r *Runtime) {
 			if !given {
 				selected = t.r.RenameSelect()
 			}
-			return t.openLine(t.target(c.Context), selected)
-		}), "Edit (rename) the node's line, with its text selected (select; omitted, the rename.select setting decides) so typing replaces it; typing is written after a pause and when the line is left").When("tree-editable").
-		Verb("indent", edit(func(t *Tree, c Ctx) error { return t.shift(c.Context, true) }), "Nest the node under the node above it").When("tree-editable").
-		Verb("outdent", edit(func(t *Tree, c Ctx) error { return t.shift(c.Context, false) }), "Move the node out to follow its parent").When("tree-editable").
-		Verb("move", edit(func(t *Tree, c Ctx) error { return t.move(c.Context, IntArg(c.Args, "delta", 1)) }), "Swap the node with its next (delta 1) or previous (-1) sibling").When("tree-editable").
-		Verb("delete", edit(func(t *Tree, c Ctx) error { return t.remove(c.Context) }), "Delete the node and its children; u brings them back").When("tree-editable").
+			return t.rename(t.target(c.Context), selected)
+		}), "Edit (rename) the node's line, with its text selected (select; omitted, the rename.select setting decides) so typing replaces it; typing is written after a pause and when the line is left").When("outline-renamable").
+		Verb("indent", edit(func(t *Tree, c Ctx) error { return t.shift(c.Context, true) }), "Nest the node under the node above it").When("outline-movable").
+		Verb("outdent", edit(func(t *Tree, c Ctx) error { return t.shift(c.Context, false) }), "Move the node out to follow its parent").When("outline-movable").
+		Verb("move", edit(func(t *Tree, c Ctx) error { return t.move(c.Context, IntArg(c.Args, "delta", 1)) }), "Swap the node with its next (delta 1) or previous (-1) sibling").When("outline-movable").
+		Verb("delete", edit(func(t *Tree, c Ctx) error { return t.remove(c.Context) }), "Delete the node and its children; u brings them back").When("outline-deletable").
 		Verb("undo", edit(func(t *Tree, c Ctx) error { return t.history(false) }), "Undo the last change; the undo is written like any change").When("tree-editable").
 		Verb("redo", edit(func(t *Tree, c Ctx) error { return t.history(true) }), "Redo the last undone change").When("tree-editable").
 		Verb("paste", edit(func(t *Tree, c Ctx) error { return t.paste(c.Context, StringArg(c.Args, "text", "")) }), "Add pasted lines below the node, nested by their indent").When("tree-editable").

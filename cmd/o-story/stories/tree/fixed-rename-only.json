@@ -1,0 +1,17 @@
+{
+  "name": "outline: a node fixed for rename alone refuses i but indents and deletes",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {"id": "t", "editable": true, "nodes": [
+        {"id": "a", "label": "items"},
+        {"id": "b", "label": "0", "fixed": ["rename"]}
+      ]}
+    ]
+  },
+  "script": ["j", "i", "tab"],
+  "expect": [
+    {"after": 2, "mode": "normal", "writes": []},
+    {"writes": ["move b under a at 0"], "contains": ["▾ items", "    0"]}
+  ]
+}

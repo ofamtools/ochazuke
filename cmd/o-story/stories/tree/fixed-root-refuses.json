@@ -1,0 +1,18 @@
+{
+  "name": "outline: a fixed root refuses d d, J and i, and the palette offers no outline.delete; its child deletes",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {"id": "t", "editable": true, "nodes": [
+        {"id": "a", "label": "root", "fixed": ["rename", "move", "delete"]},
+        {"id": "b", "parent": "a", "label": "child"}
+      ]}
+    ]
+  },
+  "script": ["d", "d", "J", "i", ":", {"type": "outline delete"}, "enter", "esc", "esc", "j", "d", "d"],
+  "expect": [
+    {"after": 4, "mode": "normal", "writes": [], "contains": ["root", "child"]},
+    {"after": 7, "writes": [], "contains": ["\"delete\" names no verb of outline here"]},
+    {"writes": ["delete b"], "contains": ["root"], "lacks": ["child"]}
+  ]
+}
