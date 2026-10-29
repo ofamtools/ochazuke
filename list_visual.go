@@ -194,13 +194,27 @@ func (l *List) apply(c Context, a Arguments) (any, error) {
 	if !confirmed {
 		for _, row := range rows {
 			if op, ok := r.Operations[Request{Verb: verb, Noun: row.Noun}.Key()]; ok && op.Confirm != "" {
+				ask := op.Confirm
+				if op.ConfirmFor != nil {
+					// The rows' own request decides what it asks (a
+					// delete that will only archive), "" nothing.
+					rq := Request{Verb: verb, Noun: row.Noun, Args: args}
+					for _, other := range rows {
+						if other.Noun == row.Noun {
+							rq.Subjects = append(rq.Subjects, other.ID)
+						}
+					}
+					if ask = op.ConfirmFor(r, r.contextOf(row.ID), rq, op.Confirm); ask == "" {
+						continue
+					}
+				}
 				q := Request{Verb: "apply", Noun: "ochazuke.list", Args: Arguments{"id": l.id, "verb": verb, "confirmed": true}}
 				if args != nil {
 					q.Args["args"] = args
 				}
 				prompt := fmt.Sprintf("Run %s on %d rows?", r.DisplayKey(op.Key()), len(rows))
 				if len(rows) == 1 {
-					prompt = op.Confirm
+					prompt = ask
 				}
 				return r.openConfirm(r.contextOf(row.ID), q, Operation{Noun: op.Noun, Verb: op.Verb, Confirm: prompt})
 			}

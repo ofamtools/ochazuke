@@ -63,6 +63,11 @@ const (
 	// archived one for real; nouns without the role are unchanged. Default
 	// off: delete is the store's delete.
 	DeleteArchiveSetting = "delete.archive"
+	// DeleteArchiveConfirmSetting is whether a delete that will only
+	// archive (DeleteArchiveSetting) asks first, with DefaultArchiveConfirm.
+	// Default on; off archives without asking (archive is undone by
+	// restore). The real delete of an archived thing always asks.
+	DeleteArchiveConfirmSetting = "delete.archive-confirm"
 	// VisualAfterActionSetting is what a key acting on a visual selection
 	// of list rows leaves: VisualAfterEnd (the default, as in Vim) or
 	// VisualAfterKeep.

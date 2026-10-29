@@ -351,10 +351,10 @@ Root package `ochazuke` is flat: 111 source files, 119 test files. Each entry li
 
 ### list_visual.go
 
-- lines: 385 · tests: list_visual_test.go
+- lines: 399 · tests: list_visual_test.go
 - purpose: Visual reports whether a V selection is active on the list.
 - methods: List(7), Runtime(5)
-- leans on: runtime.go(48), noun.go(20), list.go(17), instance.go(7)
+- leans on: runtime.go(49), noun.go(24), list.go(17), instance.go(7)
 
 ### macros.go
 
@@ -592,7 +592,7 @@ Root package `ochazuke` is flat: 111 source files, 119 test files. Each entry li
 
 ### runtime.go
 
-- lines: 1120 · tests: runtime_test.go
+- lines: 1131 · tests: runtime_test.go
 - purpose: Arguments are a request's named arguments, keyed by parameter name.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
 - methods: Context(1), Operation(4), Request(4), Runtime(19)
@@ -656,7 +656,7 @@ Root package `ochazuke` is flat: 111 source files, 119 test files. Each entry li
 
 ### settings_defaults.go
 
-- lines: 249
+- lines: 254
 - purpose: startupSettings are the rows of startupSettingsFile.
 - methods: Runtime(7)
 - leans on: settings.go(10), runtime.go(7), theme.go(4), configuration.go(2)
@@ -684,10 +684,10 @@ Root package `ochazuke` is flat: 111 source files, 119 test files. Each entry li
 
 ### standard_derived.go
 
-- lines: 440 · tests: standard_derived_test.go
+- lines: 485 · tests: standard_derived_test.go
 - purpose: writableRole is the noun's prop with that role when set may write it.
-- methods: Runtime(10), focusFills(1)
-- leans on: props.go(46), noun.go(38), runtime.go(31), standard_verbs.go(18)
+- methods: Runtime(11), focusFills(1)
+- leans on: props.go(50), noun.go(40), runtime.go(37), standard_verbs.go(19)
 
 ### standard_grammar.go
 
@@ -708,11 +708,11 @@ Root package `ochazuke` is flat: 111 source files, 119 test files. Each entry li
 
 ### standard_verbs.go
 
-- lines: 874 · tests: standard_verbs_test.go
+- lines: 890 · tests: standard_verbs_test.go
 - purpose: standardVerb is one row of the table: the verb, the store kinds it fits, what it needs of the noun (its store's handler, a writable prop), whether it takes a...
 - methods: Runtime(8), standardVerb(2)
 - funcs: StandardVerbs
-- leans on: props.go(61), runtime.go(58), noun.go(47), params.go(21)
+- leans on: runtime.go(64), props.go(62), noun.go(48), params.go(21)
 
 ### standard_watch.go
 
@@ -1365,7 +1365,7 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/build.go
 
-- lines: 1859
+- lines: 1864
 - purpose: Session is one built story: the runtime, the model and the demo state the verbs act on (fake jobs and panes).
 - types: Session, Options
 - methods: Session(34), datedView(1), storyCommands(3)
@@ -1408,7 +1408,7 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/story.go
 
-- lines: 787
+- lines: 788
 - purpose: Story is one scenario file.
 - types: Story, Page, TextSpec, CheckSpec, ChooserSpec, ChooserSourceSpec, ChooserRowSpec, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, MarkdownSpec, TimelineSpec, CardSpec, SectionSpec, StepSpec, CommandsSpec, CatalogSpec, InputSpec, CompletionSpec, TermSpec, HintsSpec, MarkSpec, JobSpec, SegmentSpec, BindSpec, StoreSpec, VerbSpec, Event, Expect, Expects
 - methods: Event(3), Expects(2), Story(5)

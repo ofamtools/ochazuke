@@ -31,7 +31,9 @@ import (
 //     so (createFill; the palette slot and the args form show it first).
 //   - delete.archive (default off): on a noun with an archive prop, delete
 //     archives a live thing and deletes an archived one for real
-//     (archiveOnDelete). The confirm is asked both times.
+//     (archiveOnDelete). The confirm says which (deleteConfirm): the
+//     archive asks DefaultArchiveConfirm, or nothing with
+//     delete.archive-confirm off; the real delete asks the delete prompt.
 
 func init() {
 	standardVerbs = append(standardVerbs, derivedVerbs...)
@@ -363,21 +365,35 @@ func (r *Runtime) createFill(n *Noun, c Ctx, values Thing) focusFills {
 	return out
 }
 
+// archiveTarget is the archive prop and the thing when delete under
+// delete.archive will archive key (a live thing of a noun with a writable
+// archive prop, the setting on); nil when delete will delete it.
+func (r *Runtime) archiveTarget(n *Noun, c Ctx, key string) (*PropSpec, Thing, error) {
+	p := writableRole(n, RoleArchive)
+	if p == nil || n.Store.Patch == nil || n.Store.Get == nil || !r.helpFlag(DeleteArchiveSetting, false) {
+		return nil, nil, nil
+	}
+	t, err := n.Store.Get(c, key)
+	if err != nil {
+		return nil, nil, err
+	}
+	if v, err := propValue(*p, t[p.Name]); err == nil && v == true {
+		return nil, nil, nil // archived already: delete it for real
+	}
+	return p, t, nil
+}
+
 // archiveOnDelete is delete under delete.archive: on a noun with a
 // writable archive prop, a live thing is archived (ok, the answer
 // {archived: key}); an archived one, or any thing with the setting off or
 // on a noun without the role, is left to the real delete (not ok).
 func (r *Runtime) archiveOnDelete(n *Noun, c Ctx, key string) (any, bool, error) {
-	p := writableRole(n, RoleArchive)
-	if p == nil || n.Store.Patch == nil || n.Store.Get == nil || !r.helpFlag(DeleteArchiveSetting, false) {
-		return nil, false, nil
-	}
-	t, err := n.Store.Get(c, key)
+	p, t, err := r.archiveTarget(n, c, key)
 	if err != nil {
 		return nil, true, err
 	}
-	if v, err := propValue(*p, t[p.Name]); err == nil && v == true {
-		return nil, false, nil // archived already: delete it for real
+	if p == nil {
+		return nil, false, nil
 	}
 	if _, err := n.Store.Patch(c, key, Thing{p.Name: true}); err != nil {
 		return nil, true, err
@@ -386,8 +402,37 @@ func (r *Runtime) archiveOnDelete(n *Noun, c Ctx, key string) (any, bool, error)
 	if label == "" {
 		label = key
 	}
-	c.Notify(fmt.Sprintf("archived %s %s: delete it again to delete it (delete.archive)", r.DisplayNoun(n.Name), label))
+	c.Notify(fmt.Sprintf("archived %s %s: delete it again to delete it for good (delete.archive)", r.DisplayNoun(n.Name), label))
 	return map[string]any{"archived": key}, true, nil
+}
+
+// deleteConfirm is the standard delete's prompt for one request: prompt
+// (the delete's) when any thing it acts on will be deleted, else the
+// archive's, DefaultArchiveConfirm, or nothing with
+// delete.archive-confirm off. A thing the store cannot read asks the
+// delete prompt.
+func deleteConfirm(r *Runtime, n *Noun, c Context, q Request, prompt string) string {
+	insts := []*Instance{r.Instances[focusOf(c)]}
+	if len(q.Subjects) > 1 {
+		insts = insts[:0]
+		for _, id := range q.Subjects {
+			insts = append(insts, r.Instances[id])
+		}
+	}
+	for _, inst := range insts {
+		ctx := Ctx{Runtime: r, Context: c, Args: q.Args, Instance: inst}
+		key, err := r.subjectKey(n, ctx)
+		if err != nil {
+			return prompt
+		}
+		if p, _, err := r.archiveTarget(n, ctx, key); p == nil || err != nil {
+			return prompt
+		}
+	}
+	if !r.helpFlag(DeleteArchiveConfirmSetting, true) {
+		return ""
+	}
+	return DefaultArchiveConfirm
 }
 
 // propAliasClash refuses a prop that an alias of its noun is already

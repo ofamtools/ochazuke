@@ -1,0 +1,22 @@
+{
+  "name": "delete.archive-confirm off: delete of a live thing archives it without asking; the real delete still asks",
+  "area": "palette",
+  "width": 110,
+  "height": 30,
+  "settings": [{"name": "delete.archive", "type": "boolean", "default": true}, {"name": "delete.archive-confirm", "type": "boolean", "default": false}],
+  "page": {
+    "store": {
+      "props": [
+        {"name": "id", "key": true},
+        {"name": "title", "role": "label"},
+        {"name": "archived", "type": "boolean", "role": "archive"}
+      ],
+      "things": [{"id": "t1", "title": "Water the plants", "archived": false}]
+    }
+  },
+  "script": [":", {"type": "demo delete t1"}, "enter", ":", {"type": "demo delete t1"}, "enter"],
+  "expect": [
+    {"after": 3, "modal": "", "writes": ["list", "get t1", "get t1", "set t1 archived=true"], "contains": ["archived demo Water the plants"]},
+    {"contains": ["Delete demo Water the plants?"]}
+  ]
+}

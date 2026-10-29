@@ -618,6 +618,11 @@ func (ss *Session) defineStore(d *ochazuke.NounBuilder, spec *StoreSpec) (err er
 		}
 	}
 	things := slices.Clone(spec.Things)
+	// With a store, demo.delete is the standard delete of the store's
+	// things (its confirm, delete.archive), not the row remover.
+	if op, ok := ss.R.Operations[Demo+".delete"]; ok && op.Standard == "" {
+		delete(ss.R.Operations, Demo+".delete")
+	}
 	d.Props(spec.Props...).Store(ochazuke.Store{
 		Get: func(_ ochazuke.Ctx, id string) (ochazuke.Thing, error) {
 			ss.Writes = append(ss.Writes, "get "+id)

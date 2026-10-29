@@ -60,12 +60,20 @@ type standardVerb struct {
 	Params       func(n *Noun) map[string]Parameter
 	Writes       func(n *Noun, a Arguments) ([]string, error)
 	Run          func(r *Runtime, n *Noun, c Ctx) (any, error)
+	// ConfirmFor is the row's Operation.ConfirmFor on noun n, set when the
+	// operation asks at all (Confirm, or the store's prompt, not "").
+	ConfirmFor func(r *Runtime, n *Noun, c Context, q Request, prompt string) string
 }
 
 // DefaultDeleteConfirm is the prompt a standard delete asks before it runs
 // unless the store names its own (Store.Confirm["delete"]; "" asks
 // nothing): a delete is never silent.
 const DefaultDeleteConfirm = "Delete {{noun}} {{label}}?"
+
+// DefaultArchiveConfirm is what a standard delete asks instead when it
+// will only archive the thing (delete.archive): the confirm says what
+// happens. delete.archive-confirm off archives without asking.
+const DefaultArchiveConfirm = "Archive {{noun}} {{label}}? (delete it again to delete it for good)"
 
 // standardVerbs are the standard verbs this phase implements, in the order
 // help lists them. patch is not a row: it is an alias of set (owner
@@ -89,7 +97,7 @@ var standardVerbs = []standardVerb{
 		Params: setParams, Writes: setWrites, Run: runSet},
 	{Verb: "delete", Description: "Delete a thing (asks first)",
 		Kinds: []string{Collection}, Needs: func(n *Noun) bool { return n.Store.Delete != nil },
-		Subject: true, Many: true, HistoryKind: HistoryChange, Confirm: DefaultDeleteConfirm, Run: runDelete},
+		Subject: true, Many: true, HistoryKind: HistoryChange, Confirm: DefaultDeleteConfirm, ConfirmFor: deleteConfirm, Run: runDelete},
 }
 
 // reservedStandardVerbs are the names of every standard verb, those later
@@ -197,6 +205,14 @@ func (v standardVerb) operation(r *Runtime, n *Noun) Operation {
 	op.Confirm = v.Confirm
 	if prompt, ok := n.Store.Confirm[v.Verb]; ok {
 		op.Confirm = prompt
+	}
+	if confirmFor := v.ConfirmFor; confirmFor != nil && op.Confirm != "" {
+		op.ConfirmFor = func(r *Runtime, c Context, q Request, prompt string) string {
+			if noun := r.Nouns[name]; noun != nil && noun.Store != nil {
+				return confirmFor(r, noun, c, q, prompt)
+			}
+			return prompt
+		}
 	}
 	if v.Rows {
 		op.Rows = name

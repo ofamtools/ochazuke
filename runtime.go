@@ -231,8 +231,13 @@ type Operation struct {
 	// Checks run before the verb from every path (AddVerbCheck,
 	// BeforeQuit, verb_checks.go): each allows, asks first or refuses.
 	Checks []VerbCheck `json:"-"`
-	Run    Handler     `json:"-"`
-	App    AppHandler  `json:"-"`
+	// ConfirmFor, when set, is the prompt template one request asks in
+	// place of Confirm (given as prompt), read when the request would ask:
+	// a verb whose confirm depends on what it will do to the thing (the
+	// standard delete under delete.archive). "" asks nothing.
+	ConfirmFor func(r *Runtime, c Context, q Request, prompt string) string `json:"-"`
+	Run        Handler                                                      `json:"-"`
+	App        AppHandler                                                   `json:"-"`
 }
 
 func (o Operation) Key() string { return o.Noun + "." + o.Verb }
@@ -863,7 +868,13 @@ func (r *Runtime) execute(c Context, q Request) (any, error) {
 		if len(subjects) > 1 {
 			q.Subjects = subjects
 		}
-		return r.openConfirm(c, q, op)
+		ask := op
+		if op.ConfirmFor != nil {
+			ask.Confirm = op.ConfirmFor(r, c, q, op.Confirm)
+		}
+		if ask.Confirm != "" {
+			return r.openConfirm(c, q, ask)
+		}
 	}
 	if len(subjects) > 1 && !op.Many {
 		return r.eachSubject(q, subjects)

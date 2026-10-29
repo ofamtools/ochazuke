@@ -310,7 +310,7 @@ func TestCreateFillsFromTheFocus(t *testing.T) {
 }
 
 // delete.archive: on, delete archives a live thing and deletes an
-// archived one, with the confirm both times; a noun without the archive
+// archived one, asking first both times; a noun without the archive
 // role deletes as before; off, delete deletes.
 func TestDeleteArchive(t *testing.T) {
 	r, s := newDerivedRuntime(t)
@@ -345,6 +345,74 @@ func TestDeleteArchive(t *testing.T) {
 	mustRun(t, r, Request{Noun: "task", Verb: "delete", Confirmed: true, Args: Arguments{"id": "t2"}})
 	if s.log[len(s.log)-1] != "delete t2" {
 		t.Fatalf("off: %q", s.log)
+	}
+}
+
+// The confirm says what delete will do: archiving a live thing asks
+// DefaultArchiveConfirm, deleting an archived one DefaultDeleteConfirm, a
+// selection holding one that will be deleted the delete prompt; with
+// delete.archive-confirm off the archive asks nothing and the delete
+// still asks; with delete.archive off, the delete prompt.
+func TestDeleteArchiveConfirm(t *testing.T) {
+	r, s := newDerivedRuntime(t)
+	prompt := func(q Request) string {
+		t.Helper()
+		got, err := r.Execute(q)
+		if err != nil {
+			t.Fatalf("%s: %v", q.Key(), err)
+		}
+		if r.TopModal() == "" {
+			return ""
+		}
+		p := r.Instances[r.TopModal()].Payload.Prompt
+		mustRun(t, r, Request{Noun: "ochazuke.modal", Verb: "pop"})
+		if m, ok := got.(map[string]any); !ok || m["prompt"] != p {
+			t.Fatalf("answer %v, modal %q", got, p)
+		}
+		return p
+	}
+	if err := r.SetFocus("row-t1"); err != nil {
+		t.Fatal(err)
+	}
+	del := Request{Noun: "task", Verb: "delete"}
+	if got := prompt(del); got != "Delete task Water the plants?" {
+		t.Fatalf("delete.archive off: %q", got)
+	}
+	if _, err := r.Settings().SetSession(DeleteArchiveSetting, true); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := prompt(del), "Archive task Water the plants? (delete it again to delete it for good)"; got != want {
+		t.Fatalf("archive: %q, want %q", got, want)
+	}
+	if got := prompt(Request{Noun: "task", Verb: "delete", Args: Arguments{"id": "t3"}}); got != "Delete task Call the plumber?" {
+		t.Fatalf("archived: %q", got)
+	}
+	both := Request{Noun: "task", Verb: "delete", Subjects: []string{"row-t1", "row-t2"}}
+	if got := prompt(both); !strings.HasPrefix(got, "Archive task ") {
+		t.Fatalf("two live: %q", got)
+	}
+	apply := Request{Noun: "ochazuke.list", Verb: "apply", Args: Arguments{"id": "tasks", "verb": "delete"}}
+	if got := prompt(apply); !strings.HasPrefix(got, "Archive task ") { // {{label}} reads the row (list.apply)
+		t.Fatalf("list.apply on one row: %q", got)
+	}
+	mustRun(t, r, Request{Noun: "task", Verb: "archive", Args: Arguments{"id": "t2"}})
+	if got := prompt(both); !strings.HasPrefix(got, "Delete task ") {
+		t.Fatalf("one archived: %q", got)
+	}
+	if len(s.log) != 1 {
+		t.Fatalf("asking wrote: %q", s.log)
+	}
+	if _, err := r.Settings().SetSession(DeleteArchiveConfirmSetting, false); err != nil {
+		t.Fatal(err)
+	}
+	if got := prompt(del); got != "" {
+		t.Fatalf("archive-confirm off asks %q", got)
+	}
+	if s.log[len(s.log)-1] != "set t1 archived=true" {
+		t.Fatalf("archive-confirm off: %q", s.log)
+	}
+	if got := prompt(del); got != "Delete task Water the plants?" {
+		t.Fatalf("real delete with archive-confirm off: %q", got)
 	}
 }
 

@@ -117,7 +117,8 @@ type Page struct {
 	Verbs []VerbSpec `json:"verbs,omitempty"`
 	// Store gives the demo noun props and an in-memory store
 	// (ochazuke.NounBuilder.Props and Store): demo.get, list, create, set
-	// (alias patch) and delete are then standard verbs over Things.
+	// (alias patch) and delete are then standard verbs over Things (the
+	// standard delete replaces the row-removing demo.delete).
 	Store  *StoreSpec  `json:"store,omitempty"`
 	Detail *DetailSpec `json:"detail,omitempty"`
 	// Markdown is a Markdown document (markdown.New) drawn in the page's
