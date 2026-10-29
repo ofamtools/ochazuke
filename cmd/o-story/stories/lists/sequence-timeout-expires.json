@@ -1,0 +1,14 @@
+{
+  "name": "sequence-timeout 1s: g left alone expires (nothing runs), and the next g starts a new sequence",
+  "area": "lists",
+  "width": 30,
+  "height": 10,
+  "chrome": "none",
+  "settings": [{"name": "sequence-timeout", "type": "duration", "default": "1s"}],
+  "page": {"noHeadings": true, "lists": [{"id": "p", "rows": 5, "selected": 4}], "focus": "p5"},
+  "script": ["g", {"tick": "binding"}, "g"],
+  "expect": [
+    {"after": 2, "focus": "p5", "mode": "normal"},
+    {"focus": "p5", "mode": "normal g"}
+  ]
+}

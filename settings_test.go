@@ -230,7 +230,7 @@ func TestSettingsPageSavesEachChange(t *testing.T) {
 		t.Fatalf("page %q focus %q modal %q status %q", r.Page, r.Focus, r.TopModal(), m.Status)
 	}
 	frame := ansi.Strip(m.View().Content)
-	for _, want := range []string{"General (8)", "modal-dim        ‹ 35 ›", "dim-unfocused    ‹ 20 ›", "focus-display    ‹ off ›", "scrolloff", "‹ 2 ›", "Rows kept above and below the focus", "Default is 2.", "a whole number"} {
+	for _, want := range []string{"General (10)", "modal-dim           ‹ 35 ›", "dim-unfocused       ‹ 20 ›", "scrolloff", "‹ 2 ›", "Rows kept above and below the focus", "Default is 2.", "a whole number"} {
 		if !strings.Contains(frame, want) {
 			t.Fatalf("frame lacks %q:\n%s", want, frame)
 		}

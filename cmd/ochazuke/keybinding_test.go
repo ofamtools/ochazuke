@@ -114,6 +114,7 @@ func TestSandboxTimeoutResolvesLongestFallback(t *testing.T) {
 
 func TestSandboxCoalescedKeysBatchTimers(t *testing.T) {
 	m := &keybindingModel{width: 100, height: 24, sandbox: true, runtime: ochazuke.NewRuntime()}
+	m.runtime.BindingTimeout = time.Second // the sandbox's -timeout flag; the runtime's own default waits forever
 	for _, spec := range []string{"g=single", "g g=double"} {
 		if err := m.addBinding(spec); err != nil {
 			t.Fatal(err)

@@ -53,9 +53,22 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R1.6** Resolution order at a level: instance rows above noun rows; mode
   table before any-mode table; exact key, then key class, then `any`.
   Story: needed (`keys/instance-over-noun`, `keys/exact-over-class`).
-- **R1.7** A key sequence waits `DefaultBindingTimeout` when a longer
-  sequence extends it at any level, and the innermost exact match runs on
-  timeout or mismatch. Story: needed (`keys/sequence-timeout-fallback`).
+- **R1.7** A key sequence waits when a longer sequence extends it at any
+  level. Every pending prefix (a multi-key row's prefix such as `g` of
+  `g g`, and a row entering a pending mode with a prefix, such as the
+  terminal leader) waits as long as one setting says, `sequence-timeout`:
+  `0`, the default, waits until a key comes; a positive duration expires
+  it and the innermost exact match runs. No mode has a timeout of its own.
+  A key no row continues the sequence with is `sequence-unknown`'s:
+  `pass` (default) runs the exact match and handles the key as if typed
+  alone; `swallow` drops both with a notice naming the keys. Stories:
+  `lists/sequence-waits-forever`, `lists/sequence-timeout-expires`,
+  `terminal/sequence-unknown-pass`, `terminal/sequence-unknown-swallow`.
+- **R1.7a** A row's key may name a setting (`{terminal-leader}`), as may
+  its hint, help and string arguments: the row follows the setting's
+  value, declared before or after it, in a defaults file, Go or the
+  user's `bindings.json`. Nothing finds rows by what they do. Stories:
+  `terminal/leader-setting-footer`, `terminal/leader-user-row-names-setting`.
 - **R1.8** A row whose action is not available at the focus (its verb
   guard, `Runtime.Available`) does not answer and does not appear in
   `bindings.list`, the footer or `?` help; the next row on the key in line
@@ -539,16 +552,19 @@ tiers above them. When the two disagree, fix one in the same commit.
 
 - **R8.1** `any`/`paste` rows forward everything to the pane in terminal
   mode. Story: `terminal/ctrl-c-reaches-pane.json`.
-- **R8.2** `ctrl+a` enters `leader_pending`; `d` detaches, `ctrl+a` sends
-  itself, an unbound key sends leader and key in one `Send`, the timeout
-  sends the leader alone. The leader is the `terminal-leader` setting;
-  its timeout is `terminal-leader-timeout` (default the key-sequence
-  timeout), and `0` means the leader never expires: it waits for the next
-  key, with the same footer hint. Other sequences keep their timeout.
-  Stories: `terminal/detach-focus-returns`, `leader-twice-sends-one`,
-  `leader-unbound-forwards-both`, `leader-timeout-sends-leader`,
+- **R8.2** `ctrl+a` (the `terminal-leader` setting, through rows keyed
+  `{terminal-leader}`) enters `leader_pending`; `d` detaches, the leader
+  sends itself, a bound key runs. The leader waits as every sequence does
+  (R1.7: `sequence-timeout`, default `0`, waits for the next key; a
+  positive one sends the leader alone when it passes), and an unbound key
+  is `sequence-unknown`'s (`pass`: the leader, then the key alone;
+  `swallow`: neither, with a notice). `terminal-leader-timeout` is a
+  deprecated name of `sequence-timeout` for one release. Stories:
+  `terminal/detach-focus-returns`, `leader-twice-sends-one`,
+  `sequence-unknown-pass`, `sequence-unknown-swallow`,
+  `sequence-timeout-sends-leader`, `sequence-timeout-default-waits`,
   `leader-setting-footer`, `leader-setting-detach`,
-  `leader-timeout-zero-waits`.
+  `leader-user-row-names-setting`, `leader-timeout-deprecated-alias`.
 - **R8.3** Frames reach the component only through `Deliver` with a current
   ticket; a frame for a closed terminal is dropped. Story:
   `terminal/output-ticks.json`.

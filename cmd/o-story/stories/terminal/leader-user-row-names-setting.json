@@ -1,0 +1,24 @@
+{
+  "name": "a bindings.json row whose key is {terminal-leader} follows the setting: with terminal-leader ctrl+b it binds ctrl+b, its hint names ctrl+b",
+  "area": "terminal",
+  "settings": [{"name": "terminal-leader", "type": "string", "default": "ctrl+b"}],
+  "page": {
+    "lists": [{"id": "a", "rows": 3}],
+    "terminal": {"fake": true, "attach": "a1"}
+  },
+  "config": {
+    "bindings.json": [{"noun": "ochazuke.terminal", "mode": "terminal", "keys": "{terminal-leader}", "hint": "my leader {terminal-leader}",
+                       "request": {"noun": "ochazuke.mode", "verb": "enter", "args": {"mode": "leader_pending", "prefix": "{terminal-leader}", "request": {"noun": "ochazuke.terminal", "verb": "send", "args": {"keys": "{terminal-leader}"}}}}}]
+  },
+  "script": [
+    "enter",
+    {"tick": "terminal"},
+    "ctrl+b",
+    "d"
+  ],
+  "expect": [
+    {"after": 2, "focus": "page1-pane", "mode": "terminal", "contains": ["ctrl+b my leader ctrl+b"], "lacks": ["{terminal-leader}", "ctrl+a my leader", "ctrl+b leader:"]},
+    {"after": 3, "mode": "leader_pending"},
+    {"focus": "a1", "mode": "normal"}
+  ]
+}

@@ -211,15 +211,19 @@ func (o Operation) ParameterOrder() []string {
 // inputs, lists, the picker and the registers are instances, never fields;
 // TestRuntimeHoldsNoComponentFields pins this list.
 type Runtime struct {
-	Nouns          map[string]*Noun
-	Instances      map[string]*Instance
-	Focus          string    // the focused instance; Context() is derived from it
-	Mode           ModeState // the one interaction mode; mode.set writes it, a focus change to another stop resets it
-	Page           string    // the current page instance; always an ancestor of BaseFocus()
-	Modes          map[string]bool
-	Operations     map[string]Operation
-	Quit           bool
-	Pending        string
+	Nouns      map[string]*Noun
+	Instances  map[string]*Instance
+	Focus      string    // the focused instance; Context() is derived from it
+	Mode       ModeState // the one interaction mode; mode.set writes it, a focus change to another stop resets it
+	Page       string    // the current page instance; always an ancestor of BaseFocus()
+	Modes      map[string]bool
+	Operations map[string]Operation
+	Quit       bool
+	Pending    string
+	// BindingTimeout, when positive, is how long every pending key
+	// sequence waits on this runtime in place of the sequence-timeout
+	// setting (a host or test that fixes it in code); 0, the default,
+	// reads the setting.
 	BindingTimeout time.Duration
 	// ResolveTarget, when set, maps a request target that is not an
 	// instance (a foreign id: an extension's row id, a database key) to
@@ -274,7 +278,6 @@ func newRuntime() *Runtime {
 		predicates:       builtinPredicates(),
 		modalInstances:   map[string]bool{},
 		aliases:          map[string]string{},
-		BindingTimeout:   DefaultBindingTimeout,
 	}
 }
 

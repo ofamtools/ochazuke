@@ -1,0 +1,39 @@
+{
+  "name": "sequence-timeout 0 (the default): ctrl+a waits for the next key with no binding timer, then d detaches",
+  "area": "terminal",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ],
+    "terminal": {
+      "fake": true,
+      "attach": "a2"
+    },
+    "focus": "a2"
+  },
+  "script": [
+    "enter",
+    {
+      "tick": "terminal"
+    },
+    "ctrl+a",
+    "d"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "focus": "page1-pane",
+      "mode": "leader_pending"
+    },
+    {
+      "focus": "a2",
+      "mode": "normal",
+      "lacks": [
+        "pane (attached"
+      ]
+    }
+  ]
+}

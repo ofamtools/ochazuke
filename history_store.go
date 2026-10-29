@@ -174,7 +174,7 @@ func (r *Runtime) EnsureConfigSettings() {
 	r.ensureFormSettings()
 	r.ensureFocusDisplaySetting()
 	r.EnsureSegments()
-	r.applyTerminalLeader()
+	r.declareFrameworkSettings(SequenceTimeoutSetting, SequenceUnknownSetting)
 	s := r.Settings()
 	if c.HistoryPath() != "" && s.find(HistorySetting) == nil {
 		_ = r.DeclareSetting(Setting{Name: HistorySetting, Type: SettingInteger, Default: HistoryLimit, Description: "Action history entries kept across restarts (0 keeps none)"})

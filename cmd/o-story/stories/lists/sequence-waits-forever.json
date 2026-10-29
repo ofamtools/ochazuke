@@ -1,0 +1,13 @@
+{
+  "name": "sequence-timeout 0 (the default): g waits as long as it takes, then g goes to the first row",
+  "area": "lists",
+  "width": 30,
+  "height": 10,
+  "chrome": "none",
+  "page": {"noHeadings": true, "lists": [{"id": "p", "rows": 5, "selected": 4}], "focus": "p5"},
+  "script": ["g", "g"],
+  "expect": [
+    {"after": 1, "focus": "p5", "mode": "normal g"},
+    {"focus": "p1", "mode": "normal"}
+  ]
+}

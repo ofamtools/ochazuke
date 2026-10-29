@@ -188,6 +188,7 @@ func TestMacroRecordingShadowMode(t *testing.T) {
 // terminal noun binds exactly this; here it is the mechanism on a bare noun.
 func TestLeaderPendingShadowShape(t *testing.T) {
 	r := NewRuntime()
+	r.BindingTimeout = time.Hour // a deadline the test moves
 	var forwarded []string
 	calls := recorder(t, r, "new-window")
 	r.Register(Operation{Verb: "forward", Noun: "ochazuke.pane", Parameters: map[string]Parameter{"keys": {Type: "string", Required: true}}, Run: func(_ *Runtime, _ Context, a Arguments) (any, error) {

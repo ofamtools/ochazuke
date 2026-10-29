@@ -47,6 +47,11 @@ type Setting struct {
 	// refuses a value it rejects and a file value it rejects reads the
 	// default, as a value of the wrong type does.
 	Validate func(value any) error `json:"-"`
+	// Deprecated are older names of the setting, kept for one release:
+	// settings.get, set and reset, Value and settings.json read them as
+	// this setting, each warning once, and a write moves the file's value
+	// to this name. A declaration under an old name declares this one.
+	Deprecated []string `json:"deprecated,omitempty"`
 }
 
 // SettingValue is a setting with its current value, as settings.list and
@@ -78,7 +83,9 @@ type Settings struct {
 	stamp     fileStamp
 	observers []settingObserver
 	problems  []string
-	page      settingsPage // the Settings page (settings_view.go)
+	page      settingsPage    // the Settings page (settings_view.go)
+	warned    map[string]bool // deprecated names already warned about
+	late      []string        // warnings given before a Model took the reports (flushWarnings)
 }
 
 type settingObserver struct {
@@ -111,6 +118,16 @@ func (r *Runtime) DeclareSetting(settings ...Setting) error {
 		if one.Name == "" || strings.ContainsAny(one.Name, " \t\n") {
 			return fmt.Errorf("setting name %q must be one word", one.Name)
 		}
+		if current, ok := s.renamed(one.Name); ok {
+			// An old name: the application's default stands for the
+			// current setting, unless that is declared already.
+			if s.find(current.Name) != nil {
+				continue
+			}
+			def := one.Default
+			one = current
+			one.Default = def
+		}
 		if s.find(one.Name) != nil {
 			return fmt.Errorf("setting %q is already declared", one.Name)
 		}
@@ -127,8 +144,80 @@ func (r *Runtime) DeclareSetting(settings ...Setting) error {
 		if s.loaded {
 			s.parse(one)
 		}
+		r.rebindSettingRows(one.Name)
 	}
 	return nil
+}
+
+// renamed is the setting a deprecated name now stands for: a declared
+// setting listing it, else a framework setting listing it (the old name
+// warns once). False for a current or unknown name.
+func (s *Settings) renamed(name string) (Setting, bool) {
+	if s.find(name) != nil {
+		return Setting{}, false
+	}
+	for _, one := range s.declared {
+		if slices.Contains(one.Deprecated, name) {
+			s.deprecated(name, one.Name)
+			return one, true
+		}
+	}
+	if one, ok := frameworkSetting(name); ok && one.Name != name {
+		s.deprecated(name, one.Name)
+		return one, true
+	}
+	return Setting{}, false
+}
+
+// canonical is the name a setting is declared under: name itself, or the
+// setting a deprecated name stands for.
+func (s *Settings) canonical(name string) string {
+	if one, ok := s.renamed(name); ok {
+		return one.Name
+	}
+	return name
+}
+
+// deprecated warns once that old is an old name of current.
+func (s *Settings) deprecated(old, current string) {
+	if s.warned[old] {
+		return
+	}
+	if s.warned == nil {
+		s.warned = map[string]bool{}
+	}
+	s.warned[old] = true
+	warning := fmt.Sprintf("setting %q is deprecated: use %q", old, current)
+	if s.config.Report == nil {
+		s.late = append(s.late, warning)
+		return
+	}
+	s.config.report(warning)
+}
+
+// flushWarnings reports the deprecation warnings given before the config
+// had a Report (an application declaring an old name at setup); NewModel
+// calls it once it set Report.
+func (s *Settings) flushWarnings() {
+	late := s.late
+	s.late = nil
+	for _, w := range late {
+		s.config.report(w)
+	}
+}
+
+// known reports whether settings.json may hold name: a declared setting or
+// an old name of one.
+func (s *Settings) known(name string) bool {
+	if s.find(name) != nil {
+		return true
+	}
+	for _, one := range s.declared {
+		if slices.Contains(one.Deprecated, name) {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Settings) find(name string) *Setting {
@@ -147,7 +236,7 @@ func (s *Settings) Declared() []Setting { return slices.Clone(s.declared) }
 // one, else the default), typed as its getter returns it.
 func (s *Settings) Value(name string) (any, bool) {
 	s.ensure()
-	one := s.find(name)
+	one := s.find(s.canonical(name))
 	if one == nil {
 		return nil, false
 	}
@@ -213,7 +302,7 @@ func (s *Settings) List() []SettingValue {
 // Get is one setting with its value.
 func (s *Settings) Get(name string) (SettingValue, error) {
 	s.ensure()
-	one := s.find(name)
+	one := s.find(s.canonical(name))
 	if one == nil {
 		return SettingValue{}, s.unknown(name)
 	}
@@ -245,10 +334,11 @@ func (s *Settings) unknown(name string) error {
 // observers. A value that does not validate changes nothing.
 func (s *Settings) Set(name string, value any) error {
 	s.ensure()
-	one := s.find(name)
+	one := s.find(s.canonical(name))
 	if one == nil {
 		return s.unknown(name)
 	}
+	name = one.Name
 	v, err := coerceSetting(*one, value)
 	if err != nil {
 		return fmt.Errorf("%s: %w", name, err)
@@ -260,6 +350,9 @@ func (s *Settings) Set(name string, value any) error {
 	old, _ := s.Value(name)
 	raw := maps.Clone(s.raw)
 	raw[name] = data
+	for _, old := range one.Deprecated {
+		delete(raw, old)
+	}
 	if err := s.write(raw); err != nil {
 		return err
 	}
@@ -273,16 +366,20 @@ func (s *Settings) Set(name string, value any) error {
 // default again.
 func (s *Settings) Reset(name string) error {
 	s.ensure()
-	one := s.find(name)
+	one := s.find(s.canonical(name))
 	if one == nil {
 		return s.unknown(name)
 	}
-	if _, ok := s.raw[name]; !ok {
+	name = one.Name
+	names := append([]string{name}, one.Deprecated...)
+	if !slices.ContainsFunc(names, func(n string) bool { _, ok := s.raw[n]; return ok }) {
 		return nil
 	}
 	old, _ := s.Value(name)
 	raw := maps.Clone(s.raw)
-	delete(raw, name)
+	for _, n := range names {
+		delete(raw, n)
+	}
 	if err := s.write(raw); err != nil {
 		return err
 	}
@@ -381,7 +478,7 @@ func (s *Settings) load() {
 	}
 	names := slices.Sorted(maps.Keys(s.raw))
 	for _, name := range names {
-		if s.find(name) == nil {
+		if !s.known(name) {
 			s.problem(fmt.Sprintf("%s: unknown setting %q (kept)", SettingsFile, name))
 		}
 	}
@@ -393,6 +490,17 @@ func (s *Settings) load() {
 // parse reads one declared setting's value from the raw file.
 func (s *Settings) parse(one Setting) {
 	data, ok := s.raw[one.Name]
+	for _, old := range one.Deprecated {
+		if _, held := s.raw[old]; !held {
+			continue
+		}
+		if ok {
+			s.problem(fmt.Sprintf("%s: %s: the deprecated %q is ignored beside it (kept)", SettingsFile, one.Name, old))
+			continue
+		}
+		data, ok = s.raw[old], true
+		s.problem(fmt.Sprintf("%s: %s: read from the deprecated %q; rename it", SettingsFile, one.Name, old))
+	}
 	if !ok {
 		return
 	}
@@ -632,6 +740,8 @@ func (m *Model) settingsPoll() tea.Cmd {
 
 func registerSettings(r *Runtime) {
 	r.Config().settings = &Settings{config: r.Config(), values: map[string]any{}, raw: map[string]json.RawMessage{}}
+	// Rows naming a setting ({terminal-leader}) follow its value.
+	r.Config().settings.Observe("", func(name string, _ any) { r.rebindSettingRows(name) })
 	name := Parameter{Type: "string", Required: true, Description: "Setting name", Source: "ochazuke.settings.names"}
 	r.Register(Operation{Verb: "names", Noun: "ochazuke.settings", Description: "List the names of the declared settings", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		names := []string{}

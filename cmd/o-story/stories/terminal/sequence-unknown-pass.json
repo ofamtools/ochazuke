@@ -1,5 +1,5 @@
 {
-  "name": "ctrl+a then an unbound key sends both, in order, and returns to terminal mode",
+  "name": "sequence-unknown pass (the default): ctrl+a then an unbound key sends the leader, then the key alone, and returns to terminal mode",
   "area": "terminal",
   "page": {
     "lists": [
@@ -23,12 +23,18 @@
     {
       "tick": "terminal"
     },
+    {
+      "tick": "terminal"
+    },
     "esc",
     {
       "tick": "terminal"
     },
     "ctrl+a",
     "ctrl+c",
+    {
+      "tick": "terminal"
+    },
     {
       "tick": "terminal"
     }

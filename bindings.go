@@ -6,9 +6,6 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// DefaultBindingTimeout is how long a pending multi-key binding waits for its next key.
-const DefaultBindingTimeout = 1000 * time.Millisecond
-
 // BindingTimeoutMsg resolves a pending key sequence on the owning event loop.
 // Messages from an older sequence or another runtime are ignored.
 type BindingTimeoutMsg struct {
@@ -30,8 +27,8 @@ func (r *Runtime) CancelPendingBinding() {
 
 // BindingTimeoutCommand schedules the latest deadline once. Custom Tea models
 // call it after dispatch and send BindingTimeoutMsg to HandleBindingTimeout.
-// A prefix without a deadline (the terminal leader with
-// terminal-leader-timeout 0) schedules nothing.
+// A prefix without a deadline (sequence-timeout 0, the default) schedules
+// nothing.
 func (r *Runtime) BindingTimeoutCommand() tea.Cmd {
 	if r.Pending == "" {
 		return nil
@@ -53,9 +50,9 @@ func (r *Runtime) BindingTimeoutCommand() tea.Cmd {
 
 // BindingTimeoutTick is the sequence timer in flight as the message its
 // command delivers at the deadline, already due: a host with a fake clock
-// (explore) delivers it at once instead of waiting BindingTimeout, as
+// (explore) delivers it at once instead of waiting sequence-timeout, as
 // Model.JobLingerTick does for the linger timer. False when no sequence
-// waits on a deadline (none pending, or the leader with no timeout).
+// waits on a deadline (none pending, or sequence-timeout 0).
 func (r *Runtime) BindingTimeoutTick() (BindingTimeoutMsg, bool) {
 	if !r.prefixStillPending() || r.prefix.forever {
 		return BindingTimeoutMsg{}, false

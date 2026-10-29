@@ -472,7 +472,9 @@ Mode edges (from → to via):
 - `leader_pending` → `hints` via `demo.hints`
 - `leader_pending` → `normal` via `bindings.help`
 - `leader_pending` → `normal` via `terminal.detach`
+- `leader_pending` → `terminal` via `row x`
 - `leader_pending` → `terminal` via `terminal.send`
+- `leader_pending` → `terminal` via `terminal.send + terminal.send`
 - `list_filter` → `normal` via `list.filter-choose`
 - `list_filter` → `normal` via `list.filter-clear`
 - `list_filter` → `normal` via `list.filter-keep`
@@ -514,6 +516,7 @@ Mode edges (from → to via):
 - `normal d` → `normal` via `outline.delete`
 - `normal d` → `normal` via `setting-item.delete`
 - `normal g` → `normal` via `list.goto`
+- `normal g` → `normal` via `tick binding`
 - `normal g` → `normal` via `timeline.row`
 - `normal z` → `normal` via `list.reset-columns`
 - `normal z` → `normal` via `list.resize-column`

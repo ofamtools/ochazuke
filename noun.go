@@ -108,6 +108,11 @@ type Binding struct {
 	// list adds so a row names its canonical operation and its aliases
 	// once; a stored row never holds them (a file's value is dropped).
 	Aliases []string `json:"aliases,omitempty"`
+	// named holds the row's text as written when its keys, hint, help or
+	// a string argument name a setting ("{terminal-leader}"): the row
+	// holds the resolved text and is resolved again from this when the
+	// setting changes (binding_settings.go). Nil for every other row.
+	named *namedRow
 }
 
 // Sources a From entry may name: "key" (the key name), "digit" (the key as an
@@ -776,6 +781,12 @@ func (m *ModeBuilder) When(guard string) *ModeBuilder {
 func (m *ModeBuilder) add(row Binding) *ModeBuilder {
 	row.Noun, row.Instance, row.Mode = m.n.Name, "", m.mode
 	row.Request = m.r.modernRequest(row.Request)
+	// A row naming a setting ({terminal-leader}) is resolved here as Bind
+	// resolves it; keys naming an unknown setting stay as written, and
+	// ValidateBindings reports them.
+	if resolved, err := m.r.resolveNamedRow(row); err == nil {
+		row = resolved
+	}
 	row = withImplicitGuard(row)
 	m.r.forgetDefaultSource(row)
 	rows, displaced := placeRow(m.n.Bindings[m.mode], row)
@@ -1012,6 +1023,10 @@ func (r *Runtime) modernRequest(q Request) Request {
 
 // validateRow checks a row against the registry and normalizes it.
 func (r *Runtime) validateRow(row Binding) (Binding, error) {
+	row, err := r.resolveNamedRow(row)
+	if err != nil {
+		return row, err
+	}
 	if row.Keys == "" && row.Pattern == "" {
 		return row, errors.New("binding needs keys or a pattern")
 	}

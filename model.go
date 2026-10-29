@@ -110,6 +110,7 @@ func newModel(r *Runtime) *Model {
 			}
 		}
 	}
+	r.Settings().flushWarnings()
 	// The framework's theme setting (EnsureConfigSettings) drives the
 	// scheme; an application that declared its own theme applies it itself.
 	r.Settings().Observe(ThemeSetting, func(_ string, v any) {

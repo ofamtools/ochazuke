@@ -1,0 +1,22 @@
+{
+  "name": "terminal-leader-timeout is a deprecated name of sequence-timeout: declared under it, 1s expires the leader, with one notice naming the new setting",
+  "area": "terminal",
+  "settings": [{"name": "terminal-leader-timeout", "type": "duration", "default": "1s"}],
+  "page": {
+    "lists": [{"id": "a", "rows": 3}],
+    "terminal": {"fake": true, "attach": "a1"}
+  },
+  "script": [
+    "enter",
+    {"tick": "terminal"},
+    "ctrl+a",
+    {"tick": "binding"},
+    {"tick": "terminal"}
+  ],
+  "expect": {
+    "focus": "page1-pane",
+    "mode": "terminal",
+    "contains": ["$ <ctrl+a>"],
+    "notices": ["setting \"terminal-leader-timeout\" is deprecated: use \"sequence-timeout\""]
+  }
+}

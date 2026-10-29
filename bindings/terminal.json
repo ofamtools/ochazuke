@@ -7,12 +7,10 @@
   "bindings": [
     {"context": "ochazuke.terminal/leader_pending", "bindings": [
       {"key": "d", "action": "ochazuke.terminal.detach"},
-      {"key": "ctrl+a", "action": "ochazuke.terminal.send", "args": {"keys": "ctrl+a"}},
-      {"key": "paste", "action": "ochazuke.terminal.paste", "from": {"keys": "prefix", "text": "text"}, "hidden": true},
-      {"key": "any", "action": "ochazuke.terminal.send", "from": {"keys": "prefix key"}, "hidden": true}
+      {"key": "{terminal-leader}", "action": "ochazuke.terminal.send", "args": {"keys": "{terminal-leader}"}}
     ]},
     {"context": "ochazuke.terminal/terminal", "bindings": [
-      {"key": "ctrl+a", "action": "ochazuke.mode.enter", "args": {"mode": "leader_pending", "prefix": "ctrl+a", "request": {"args": {"keys": "ctrl+a"}, "noun": "ochazuke.terminal", "verb": "send"}}, "hint": "leader: d detaches, ctrl+a sends ctrl+a"},
+      {"key": "{terminal-leader}", "action": "ochazuke.mode.enter", "args": {"mode": "leader_pending", "prefix": "{terminal-leader}", "request": {"args": {"keys": "{terminal-leader}"}, "noun": "ochazuke.terminal", "verb": "send"}}, "hint": "leader: d detaches, {terminal-leader} sends {terminal-leader}"},
       {"key": "paste", "action": "ochazuke.terminal.paste", "from": {"text": "text"}, "hidden": true},
       {"key": "any", "action": "ochazuke.terminal.send", "from": {"keys": "key"}, "hidden": true}
     ]}

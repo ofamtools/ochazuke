@@ -2,6 +2,8 @@
 
 package ochazuke
 
+import "time"
+
 // The names in this file are deprecated: each still works for one release
 // and then goes. Building with the ochazuke_strict tag leaves this file
 // out, so any use of them fails to compile; strictcheck.Check runs that
@@ -36,3 +38,19 @@ func (c Ctx) Status(text string) { c.Runtime.UI().Error(text) }
 //
 // Deprecated: use LastError.
 func (s *RecordingSink) LastStatus() string { return s.LastError() }
+
+// DefaultBindingTimeout was the key-sequence timeout before the
+// sequence-timeout setting, whose default (0, wait until a key comes) is
+// in settings/ochazuke.json. Nothing in ochazuke reads it.
+//
+// Deprecated: read or set the sequence-timeout setting
+// (SequenceTimeoutSetting), or set Runtime.BindingTimeout in code.
+const DefaultBindingTimeout = 1000 * time.Millisecond
+
+// TerminalLeaderTimeoutSetting is the old name of sequence-timeout, which
+// now governs the terminal leader as every other pending sequence:
+// settings.get/set/reset, a declaration and a settings.json key under
+// this name read and write sequence-timeout, warning once.
+//
+// Deprecated: use SequenceTimeoutSetting.
+const TerminalLeaderTimeoutSetting = "terminal-leader-timeout"

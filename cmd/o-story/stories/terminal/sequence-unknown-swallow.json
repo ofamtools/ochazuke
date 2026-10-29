@@ -1,0 +1,21 @@
+{
+  "name": "sequence-unknown swallow: ctrl+a then an unbound key sends nothing, says the keys are not bound, and returns to terminal mode",
+  "area": "terminal",
+  "settings": [{"name": "sequence-unknown", "type": "string", "default": "swallow"}],
+  "page": {
+    "lists": [{"id": "a", "rows": 3}],
+    "terminal": {"fake": true, "attach": "a1"}
+  },
+  "script": [
+    "enter",
+    {"tick": "terminal"},
+    "ctrl+a",
+    "x",
+    "y",
+    {"tick": "terminal"}
+  ],
+  "expect": [
+    {"after": 4, "focus": "page1-pane", "mode": "terminal", "contains": ["ctrl+a x is not bound"], "lacks": ["<ctrl+a>"]},
+    {"focus": "page1-pane", "mode": "terminal", "contains": ["$ y"], "lacks": ["<ctrl+a>", "$ x"]}
+  ]
+}

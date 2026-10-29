@@ -197,8 +197,12 @@ func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (KeyOut
 	if prefix != "" {
 		sequence = prefix + " " + key.Key
 	}
+	// held is the sequence the pending mode holds, whatever made it one: a
+	// prefix mode ("normal g") or a named pending mode entered with a
+	// prefix (leader_pending); its request is the shorter match.
+	held := mode.Payload.Prefix
 	var fallback *Request
-	if prefix != "" {
+	if held != "" {
 		fallback = mode.Payload.Request
 	}
 	exclusive := r.pendingModes[mode.Name] || mode.Payload.Shadow != nil
@@ -266,14 +270,20 @@ func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (KeyOut
 	if hit != nil {
 		return run(hitLv, hit)
 	}
-	if prefix != "" {
-		// An unmatched sequence hands its keys on: the completed match runs,
-		// then the mismatched key is offered fresh to the whole stack. (The
-		// cancel key is a row, "<prefix> esc" → mode.leave, kept by
-		// withPrefixCancels in every table that binds a sequence.)
+	if held != "" {
+		// A key no row continues the sequence with: sequence-unknown
+		// decides. pass hands the keys on: the completed match runs, then
+		// the key is offered fresh to the whole stack, as if typed alone.
+		// swallow drops both with a notice. (The cancel key is a row,
+		// "<prefix> esc" → mode.leave, kept by withPrefixCancels in every
+		// table that binds a sequence.)
 		r.leavePrefix()
+		if r.swallowsUnknown() {
+			r.UI().Info(held + " " + key.Key + " is not bound")
+			return KeyConsumed, nil
+		}
 		if fallback != nil {
-			restore := r.Sourced("key:" + prefix)
+			restore := r.Sourced("key:" + held)
 			_, err := r.Execute(*fallback)
 			restore()
 			if err != nil {
@@ -809,10 +819,9 @@ type pendingPrefix struct {
 	focus    string
 	mode     string
 	deadline time.Time
-	// forever is a prefix with no deadline (the terminal leader with
-	// terminal-leader-timeout 0): it waits for the next key, so no timer
-	// is scheduled and nothing expires it; a focus or mode change still
-	// cancels it.
+	// forever is a prefix with no deadline (sequence-timeout 0, the
+	// default): it waits for the next key, so no timer is scheduled and
+	// nothing expires it; a focus or mode change still cancels it.
 	forever   bool
 	scheduled bool
 }
@@ -823,31 +832,20 @@ func (r *Runtime) enterPrefix(base, sequence string, fallback *Request) {
 	r.enterMode(base+" "+sequence, Payload{Prefix: sequence, Request: fallback, Count: r.Mode.Payload.Count, OpCount: r.Mode.Payload.OpCount})
 }
 
-// armPrefix starts the sequence timer for a pending mode the focus is in:
-// when BindingTimeout passes before the next key, finishPrefix leaves the
-// mode and runs the request stored in its payload. The terminal leader
-// enters leader_pending with the request that forwards the leader alone;
-// its timeout is terminal-leader-timeout (terminalLeaderTimeout), and 0
-// arms no timer, so the leader waits for the next key.
+// armPrefix starts the sequence timer for a pending mode the focus is in,
+// whatever makes it one (a multi-key row's prefix, or a row entering a
+// pending mode with a prefix, such as the terminal leader): when
+// sequence-timeout passes before the next key, finishPrefix leaves the
+// mode and runs the request stored in its payload. 0, the default, arms
+// no timer, so the sequence waits for the next key.
 func (r *Runtime) armPrefix(focus, mode, sequence string) {
-	timeout := r.bindingTimeout()
-	if mode == "leader_pending" {
-		timeout = r.terminalLeaderTimeout()
-	}
+	timeout := r.sequenceTimeout()
 	r.Pending = sequence
 	r.bindingVersion++
 	r.prefix = pendingPrefix{focus: focus, mode: mode, forever: timeout == 0}
 	if timeout > 0 {
 		r.prefix.deadline = time.Now().Add(timeout)
 	}
-}
-
-// bindingTimeout is BindingTimeout, DefaultBindingTimeout when unset.
-func (r *Runtime) bindingTimeout() time.Duration {
-	if r.BindingTimeout <= 0 {
-		return DefaultBindingTimeout
-	}
-	return r.BindingTimeout
 }
 
 func (r *Runtime) leavePrefix() {

@@ -87,7 +87,7 @@ func TestModelCtrlCCapturedOutsideModals(t *testing.T) {
 	}
 	keytest.Press(m, "ctrl+a")
 	keytest.Press(m, "ctrl+c")
-	if r.Quit || !reflect.DeepEqual(stream.sent[1:], [][]string{{"ctrl+a", "ctrl+c"}}) || r.Mode.Name != "terminal" {
+	if r.Quit || !reflect.DeepEqual(stream.sent[1:], [][]string{{"ctrl+a"}, {"ctrl+c"}}) || r.Mode.Name != "terminal" {
 		t.Fatalf("leader then ctrl+c: quit=%v sent=%v mode=%s", r.Quit, stream.sent, r.Mode.Name)
 	}
 	if err := m.Palette.Open(); err != nil {
@@ -110,7 +110,7 @@ func TestModelCtrlCCapturedOutsideModals(t *testing.T) {
 		listed = listed || b.Keys == "ctrl+c" && b.Capture && b.Request.Key() == "app.quit"
 	}
 	keytest.Press(m, "ctrl+c")
-	if !listed || !r.Quit || len(stream.sent) != 2 {
+	if !listed || !r.Quit || len(stream.sent) != 3 {
 		t.Fatalf("detached: listed=%v quit=%v sent=%v", listed, r.Quit, stream.sent)
 	}
 }

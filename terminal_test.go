@@ -94,7 +94,7 @@ func press(t *testing.T, r *Runtime, keys ...string) {
 
 // The leader contract: every key forwards; the leader waits; a bound key runs
 // its command; the leader again sends itself; an unbound key forwards the
-// leader and itself in order; a leader left alone past the timeout forwards
+// leader and then itself (sequence-unknown pass); a leader left alone past the timeout forwards
 // the leader alone and the next key starts fresh.
 func TestTerminalLeaderForwardsBoundRunsAndTimeoutForwardsPrefix(t *testing.T) {
 	r, term, stream := terminalFixture(t)
@@ -119,14 +119,14 @@ func TestTerminalLeaderForwardsBoundRunsAndTimeoutForwardsPrefix(t *testing.T) {
 	press(t, r, "ctrl+a", "ctrl+a")
 	press(t, r, "ctrl+a", "z")
 	press(t, r, "ctrl+a", "esc")
-	if got := stream.sent[3:]; !reflect.DeepEqual(got, [][]string{{"ctrl+a"}, {"ctrl+a", "z"}, {"ctrl+a", "esc"}}) || mode() != "terminal" {
+	if got := stream.sent[3:]; !reflect.DeepEqual(got, [][]string{{"ctrl+a"}, {"ctrl+a"}, {"z"}, {"ctrl+a"}, {"esc"}}) || mode() != "terminal" {
 		t.Fatalf("leader twice, unbound key, escape: %v mode %q", got, mode())
 	}
 	// Timeout through the next key: the leader is forwarded, then the key.
 	press(t, r, "ctrl+a")
 	r.prefix.deadline = time.Now().Add(-time.Second)
 	press(t, r, "d")
-	if got := stream.sent[6:]; !reflect.DeepEqual(got, [][]string{{"ctrl+a"}, {"d"}}) || mode() != "terminal" || r.Focus != "pane" {
+	if got := stream.sent[8:]; !reflect.DeepEqual(got, [][]string{{"ctrl+a"}, {"d"}}) || mode() != "terminal" || r.Focus != "pane" {
 		t.Fatalf("expired leader then d: %v mode %q focus %q", got, mode(), r.Focus)
 	}
 	// Timeout through the timer message.
@@ -139,12 +139,12 @@ func TestTerminalLeaderForwardsBoundRunsAndTimeoutForwardsPrefix(t *testing.T) {
 	if handled, err := r.HandleBindingTimeout(BindingTimeoutMsg{runtime: r, version: r.bindingVersion}); !handled || err != nil {
 		t.Fatalf("timer: handled=%v err=%v", handled, err)
 	}
-	if got := stream.sent[8:]; !reflect.DeepEqual(got, [][]string{{"ctrl+a"}}) || mode() != "terminal" || r.Pending != "" {
+	if got := stream.sent[10:]; !reflect.DeepEqual(got, [][]string{{"ctrl+a"}}) || mode() != "terminal" || r.Pending != "" {
 		t.Fatalf("timer forwarded %v mode %q pending %q", got, mode(), r.Pending)
 	}
 	// d under the leader detaches: focus returns to the page and keys stop forwarding.
 	press(t, r, "ctrl+a", "d")
-	if r.Focus != "console" || mode() != "normal" || len(stream.sent) != 9 {
+	if r.Focus != "console" || mode() != "normal" || len(stream.sent) != 11 {
 		t.Fatalf("detach: focus %q mode %q sent %v", r.Focus, mode(), stream.sent)
 	}
 	if _, err := r.Execute(Request{Verb: "attach", Noun: "ochazuke.terminal", Args: Arguments{"id": "pane"}}); err != nil || r.Focus != "pane" {
@@ -158,8 +158,8 @@ func TestTerminalLeaderForwardsBoundRunsAndTimeoutForwardsPrefix(t *testing.T) {
 	if _, err := r.Dispatch(MacroKey{Key: "[pwd]", Paste: true}); err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(stream.pasted, []string{"ls -la", "pwd"}) || !reflect.DeepEqual(stream.sent[9:], [][]string{{"ctrl+a"}}) || mode() != "terminal" {
-		t.Fatalf("paste: %v sent %v mode %q", stream.pasted, stream.sent[9:], mode())
+	if !reflect.DeepEqual(stream.pasted, []string{"ls -la", "pwd"}) || !reflect.DeepEqual(stream.sent[11:], [][]string{{"ctrl+a"}}) || mode() != "terminal" {
+		t.Fatalf("paste: %v sent %v mode %q", stream.pasted, stream.sent[11:], mode())
 	}
 }
 
@@ -196,7 +196,7 @@ func TestTerminalBindingsListLeaderRowsAndNoEditorRows(t *testing.T) {
 		}
 	}
 	press(t, r, "ctrl+a")
-	if got := keys(); !reflect.DeepEqual(got, []string{"ctrl+a ochazuke.terminal.send", "d ochazuke.terminal.detach", "<any> ochazuke.terminal.send", "<paste> ochazuke.terminal.paste"}) {
+	if got := keys(); !reflect.DeepEqual(got, []string{"ctrl+a ochazuke.terminal.send", "d ochazuke.terminal.detach"}) {
 		t.Fatalf("leader_pending rows: %v", got)
 	}
 	hints := BindingHints(r, "pane")
@@ -504,7 +504,7 @@ func TestTerminalLeaderSetting(t *testing.T) {
 		t.Fatalf("hint %q", got)
 	}
 	press(t, r, "ctrl+a", "ctrl+b", "ctrl+b", "ctrl+b", "x", "ctrl+b", "z")
-	want := [][]string{{"ctrl+a"}, {"ctrl+b"}, {"ctrl+b", "x"}}
+	want := [][]string{{"ctrl+a"}, {"ctrl+b"}, {"ctrl+b"}, {"x"}}
 	if !reflect.DeepEqual(stream.sent, want) || !reflect.DeepEqual(*calls, []string{"zoom"}) || r.Mode.Name != "terminal" {
 		t.Fatalf("sent %v calls %v mode %q", stream.sent, *calls, r.Mode.Name)
 	}
@@ -516,7 +516,7 @@ func TestTerminalLeaderSetting(t *testing.T) {
 	if handled, err := r.HandleBindingTimeout(BindingTimeoutMsg{runtime: r, version: r.bindingVersion}); !handled || err != nil {
 		t.Fatalf("timer: %v %v", handled, err)
 	}
-	if got := stream.sent[3:]; !reflect.DeepEqual(got, [][]string{{"ctrl+b"}}) {
+	if got := stream.sent[4:]; !reflect.DeepEqual(got, [][]string{{"ctrl+b"}}) {
 		t.Fatalf("timeout sent %v", got)
 	}
 	press(t, r, "ctrl+b", "d")
@@ -534,7 +534,7 @@ func TestTerminalLeaderSetting(t *testing.T) {
 		t.Fatal(err)
 	}
 	press(t, r, "ctrl+b", "alt+a", "alt+a", "alt+a", "d")
-	if got := stream.sent[4:]; !reflect.DeepEqual(got, [][]string{{"ctrl+b"}, {"alt+a"}}) || r.Focus != "console" {
+	if got := stream.sent[5:]; !reflect.DeepEqual(got, [][]string{{"ctrl+b"}, {"alt+a"}}) || r.Focus != "console" {
 		t.Fatalf("after the change: sent %v focus %q", got, r.Focus)
 	}
 	keys := map[string]bool{}
@@ -549,12 +549,13 @@ func TestTerminalLeaderSetting(t *testing.T) {
 	}
 }
 
-// A leader row an application defines with its own hint moves with the
-// setting too, and a terminal added later applies a value set before it.
+// A leader row an application defines with its own hint names the
+// setting as the framework's does ({terminal-leader}, in its keys, prefix
+// and request), so it moves with the setting, declared before or after it.
 func TestTerminalLeaderMovesApplicationLeaderRows(t *testing.T) {
 	r := NewRuntime()
-	leader := Request{Verb: "send", Noun: "ochazuke.terminal", Args: Arguments{"keys": "ctrl+a"}}
-	r.Define("ochazuke.terminal").Mode("terminal").Bind("ctrl+a", Enter("leader_pending", Payload{Prefix: "ctrl+a", Request: &leader}).Hinted("leader: v vim · d detach"))
+	leader := Request{Verb: "send", Noun: "ochazuke.terminal", Args: Arguments{"keys": "{terminal-leader}"}}
+	r.Define("ochazuke.terminal").Mode("terminal").Bind("{terminal-leader}", Enter("leader_pending", Payload{Prefix: "{terminal-leader}", Request: &leader}).Hinted("leader: v vim · d detach"))
 	if err := r.DeclareSetting(Setting{Name: TerminalLeaderSetting, Type: SettingString, Default: "ctrl+t"}); err != nil {
 		t.Fatal(err)
 	}
@@ -569,7 +570,7 @@ func TestTerminalLeaderMovesApplicationLeaderRows(t *testing.T) {
 		}
 	}
 	q, _ := row.Request.Args["request"].(Request)
-	if row.Hint != "leader: v vim · d detach" || row.Request.Args["prefix"] != "ctrl+t" || q.Args["keys"] != "ctrl+t" || leader.Args["keys"] != "ctrl+a" {
+	if row.Hint != "leader: v vim · d detach" || row.Request.Args["prefix"] != "ctrl+t" || q.Args["keys"] != "ctrl+t" || leader.Args["keys"] != "{terminal-leader}" {
 		t.Fatalf("row %+v request %+v", row, q)
 	}
 	if _, err := r.ValidateBindings(); err != nil {

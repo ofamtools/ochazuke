@@ -248,12 +248,6 @@ type Config struct {
 	// segments are the status segments, their segments.json rows and
 	// their last answers (segment.go).
 	segments *segments
-	// leaderObserved is set once the terminal-leader setting is observed.
-	leaderObserved bool
-	// leaderTimeoutDefault is set when EnsureTerminalLeader declared
-	// terminal-leader-timeout: without a settings.json value the leader
-	// then follows BindingTimeout rather than the declared default.
-	leaderTimeoutDefault bool
 }
 
 // appliedRow is one installed user row and the row with its identity it

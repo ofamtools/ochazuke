@@ -1,0 +1,9 @@
+// ochazuke settings (JSONC): the framework's own settings, one row per setting, {name, type, default, description, enum, deprecated}.
+// The defaults live here, not in Go. EnsureConfigSettings (EnsureTerminalLeader for terminal-leader) declares each row unless the
+// application declared the name first with its own default; until then a binding row naming the setting ({terminal-leader}) and the
+// key resolver read the default here. "deprecated" lists older names that still read and write the setting for one release.
+[
+  {"name": "sequence-timeout", "type": "duration", "default": "0s", "description": "How long a pending key sequence (g g, z R, the terminal leader) waits for its next key before the shorter binding runs; 0 waits until a key comes", "deprecated": ["terminal-leader-timeout"]},
+  {"name": "sequence-unknown", "type": "string", "default": "pass", "enum": ["pass", "swallow"], "description": "A key no binding continues a pending sequence with: pass ends the sequence (its shorter binding runs) and handles the key as if typed alone; swallow drops the sequence and the key with a notice"},
+  {"name": "terminal-leader", "type": "string", "default": "ctrl+a", "description": "Terminal leader key: then d detaches, the leader again sends it to the pane"}
+]
