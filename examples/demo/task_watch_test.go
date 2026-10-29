@@ -12,7 +12,7 @@ import (
 
 	"github.com/unixsuperhero/ochazuke"
 	"github.com/unixsuperhero/ochazuke/cli"
-	"github.com/unixsuperhero/ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/keytest"
 	"github.com/unixsuperhero/oden"
 )
 
