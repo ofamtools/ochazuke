@@ -481,11 +481,15 @@ func (s *Settings) write(raw map[string]json.RawMessage) error {
 
 // coerceSetting turns a value into the setting's type: a JSON value of the
 // type, or a string to parse (a CLI or palette word), then applies the
-// setting's Validate.
+// setting's Validate and then its enum, so Validate can say why a value
+// is not offered (a terminal engine this build lacks).
 func coerceSetting(one Setting, value any) (any, error) {
 	v, err := coerceType(one, value)
 	if err == nil && one.Validate != nil {
 		err = one.Validate(v)
+	}
+	if text, ok := v.(string); err == nil && ok && len(one.Enum) > 0 && !slices.Contains(one.Enum, text) {
+		err = fmt.Errorf("must be one of %s", strings.Join(one.Enum, ", "))
 	}
 	if err != nil {
 		return nil, err
@@ -499,9 +503,6 @@ func coerceType(one Setting, value any) (any, error) {
 	case SettingString:
 		if !isText {
 			return nil, errors.New("must be a string")
-		}
-		if len(one.Enum) > 0 && !slices.Contains(one.Enum, text) {
-			return nil, fmt.Errorf("must be one of %s", strings.Join(one.Enum, ", "))
 		}
 		return text, nil
 	case SettingInteger:

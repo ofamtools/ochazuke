@@ -1451,7 +1451,7 @@ Every command of an importable shell (`cli.Shell`, an app built with `cli.Mount`
 
 ### A TUI for an oden tool
 
-`cli.TUI(app)` as an oden `Default` gives any oden tool a Commands page over its catalog (inline commands and `<bin>-<name>` executables on `PATH`): `command run` opens the command in a terminal under its row, attached (`ctrl+a d` detaches), `command help` shows its help in the detail beside the list. The terminal is a local pseudo-terminal (`cli.StartPty`). `examples/hello` is the smallest such tool (`go run ./examples/hello`).
+`cli.TUI(app)` as an oden `Default` gives any oden tool a Commands page over its catalog (inline commands and `<bin>-<name>` executables on `PATH`): `command run` opens the command in a terminal under its row, attached (`ctrl+a d` detaches), `command help` shows its help in the detail beside the list. The terminal is a local pseudo-terminal (`cli.StartPty`). Its emulator is the `terminal.engine` setting: `tuios-vt` (`tuios.dev/vt`, the default), `x-vt` (`charmbracelet/x/vt`) or, in a build with `-tags ghostty`, `ghostty`; a change applies to terminals opened after it. Engines are rows (`cli.RegisterTerminalEngine`) behind one interface, `cli.Emulator`. `examples/hello` is the smallest such tool (`go run ./examples/hello`).
 
 ## Scope and limits
 

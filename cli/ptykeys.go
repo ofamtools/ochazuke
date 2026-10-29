@@ -6,7 +6,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/charmbracelet/x/vt"
+	uv "github.com/charmbracelet/ultraviolet"
 )
 
 // keyCodes names the non-printing keys as bindings and Bubble Tea spell
@@ -15,22 +15,22 @@ import (
 // the program's modes ask for. Function keys are here so a pane can receive
 // them; ochazuke binds none.
 var keyCodes = map[string]rune{
-	"enter": vt.KeyEnter, "tab": vt.KeyTab, "backspace": vt.KeyBackspace,
-	"esc": vt.KeyEscape, "escape": vt.KeyEscape, "space": vt.KeySpace,
-	"up": vt.KeyUp, "down": vt.KeyDown, "left": vt.KeyLeft, "right": vt.KeyRight,
-	"insert": vt.KeyInsert, "delete": vt.KeyDelete, "home": vt.KeyHome, "end": vt.KeyEnd,
-	"pgup": vt.KeyPgUp, "pgdown": vt.KeyPgDown,
-	"f1": vt.KeyF1, "f2": vt.KeyF2, "f3": vt.KeyF3, "f4": vt.KeyF4, "f5": vt.KeyF5, "f6": vt.KeyF6,
-	"f7": vt.KeyF7, "f8": vt.KeyF8, "f9": vt.KeyF9, "f10": vt.KeyF10, "f11": vt.KeyF11, "f12": vt.KeyF12,
+	"enter": uv.KeyEnter, "tab": uv.KeyTab, "backspace": uv.KeyBackspace,
+	"esc": uv.KeyEscape, "escape": uv.KeyEscape, "space": uv.KeySpace,
+	"up": uv.KeyUp, "down": uv.KeyDown, "left": uv.KeyLeft, "right": uv.KeyRight,
+	"insert": uv.KeyInsert, "delete": uv.KeyDelete, "home": uv.KeyHome, "end": uv.KeyEnd,
+	"pgup": uv.KeyPgUp, "pgdown": uv.KeyPgDown,
+	"f1": uv.KeyF1, "f2": uv.KeyF2, "f3": uv.KeyF3, "f4": uv.KeyF4, "f5": uv.KeyF5, "f6": uv.KeyF6,
+	"f7": uv.KeyF7, "f8": uv.KeyF8, "f9": uv.KeyF9, "f10": uv.KeyF10, "f11": uv.KeyF11, "f12": uv.KeyF12,
 }
 
 // keyMods are the modifier words of a key name ("ctrl+alt+x").
-var keyMods = map[string]vt.KeyMod{"ctrl": vt.ModCtrl, "alt": vt.ModAlt, "shift": vt.ModShift, "meta": vt.ModMeta}
+var keyMods = map[string]uv.KeyMod{"ctrl": uv.ModCtrl, "alt": uv.ModAlt, "shift": uv.ModShift, "meta": uv.ModMeta}
 
 // keyEvent parses one key name: modifiers joined by "+" before a named key
 // or one character ("ctrl+a", "shift+tab", "alt+b", "A", "+", "é").
-func keyEvent(name string) (vt.KeyPressEvent, error) {
-	var ev vt.KeyPressEvent
+func keyEvent(name string) (uv.KeyPressEvent, error) {
+	var ev uv.KeyPressEvent
 	rest := name
 	for {
 		mod, tail, ok := strings.Cut(rest, "+")
@@ -48,11 +48,11 @@ func keyEvent(name string) (vt.KeyPressEvent, error) {
 	if rest == "" || size != len(rest) || r == utf8.RuneError {
 		return ev, fmt.Errorf("unknown key %q", name)
 	}
-	if ev.Mod&vt.ModShift != 0 && ev.Mod&^vt.ModShift == 0 {
+	if ev.Mod&uv.ModShift != 0 && ev.Mod&^uv.ModShift == 0 {
 		r, ev.Mod = unicode.ToUpper(r), 0
 	}
 	ev.Code = unicode.ToLower(r)
-	if ev.Mod&vt.ModCtrl == 0 {
+	if ev.Mod&uv.ModCtrl == 0 {
 		ev.Code = r
 		if ev.Mod == 0 {
 			ev.Text = string(r)

@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
+	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/charmbracelet/x/vt"
 	"github.com/unixsuperhero/ochazuke"
 )
 
@@ -39,7 +39,12 @@ func screen(f ochazuke.TerminalFrame) string { return ansi.Strip(strings.Join(f.
 
 func startPty(t *testing.T, cols, rows int, name string, args ...string) *PtyStream {
 	t.Helper()
-	s, err := StartPty(exec.Command(name, args...), cols, rows)
+	return startPtyEngine(t, "", cols, rows, name, args...)
+}
+
+func startPtyEngine(t *testing.T, engine string, cols, rows int, name string, args ...string) *PtyStream {
+	t.Helper()
+	s, err := StartPtyWith(exec.Command(name, args...), cols, rows, PtyOptions{Engine: engine})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +72,11 @@ func TestPtyStreamPrintsAndExits(t *testing.T) {
 }
 
 func TestPtyStreamForwardsKeysAndPaste(t *testing.T) {
-	s := startPty(t, 40, 6, "cat")
+	forEachEngine(t, testPtyStreamForwardsKeysAndPaste)
+}
+
+func testPtyStreamForwardsKeysAndPaste(t *testing.T, engine string) {
+	s := startPtyEngine(t, engine, 40, 6, "cat")
 	if err := s.Send("h", "i", "enter"); err != nil {
 		t.Fatal(err)
 	}
@@ -139,25 +148,48 @@ func TestPtyStreamReleaseKillsTheGroupOnce(t *testing.T) {
 }
 
 func TestPtyStreamReportsCursorShapeAndVisibility(t *testing.T) {
-	s := startPty(t, 20, 3, "printf", `\033[6 q\033[?25lx`)
+	forEachEngine(t, testPtyStreamReportsCursorShapeAndVisibility)
+}
+
+func testPtyStreamReportsCursorShapeAndVisibility(t *testing.T, engine string) {
+	s := startPtyEngine(t, engine, 20, 3, "printf", `\033[6 q\033[?25lx`)
 	f := waitFrame(t, s, func(f ochazuke.TerminalFrame) bool { return f.Hidden && strings.Contains(screen(f), "x") })
 	if f.Shape != "bar" {
 		t.Fatalf("shape = %q, want bar", f.Shape)
 	}
 }
 
+// The fixture through a real pty: the stream's last frame is the golden
+// screen whichever engine it opened with.
+func TestPtyStreamDrawsTheFixtureWithEachEngine(t *testing.T) {
+	_, golden := vimLike(t)
+	forEachEngine(t, func(t *testing.T, engine string) {
+		s := startPtyEngine(t, engine, 20, 6, "sh", "-c", "cat testdata/vimlike.vt; sleep 30")
+		f := waitFrame(t, s, func(f ochazuke.TerminalFrame) bool { return plainScreen(f) == golden })
+		if f.Cursor != (ochazuke.Pos{X: 4, Y: 2}) || f.Shape != "bar" {
+			t.Fatalf("cursor %+v shape %q", f.Cursor, f.Shape)
+		}
+	})
+}
+
+func TestPtyStreamRefusesAnEngineItLacks(t *testing.T) {
+	if _, err := StartPtyWith(exec.Command("true"), 10, 2, PtyOptions{Engine: "nope"}); err == nil {
+		t.Fatal("an unknown engine started")
+	}
+}
+
 func TestKeyEvent(t *testing.T) {
-	for name, want := range map[string]vt.KeyPressEvent{
+	for name, want := range map[string]uv.KeyPressEvent{
 		"a":         {Code: 'a', Text: "a"},
 		"A":         {Code: 'A', Text: "A"},
 		"+":         {Code: '+', Text: "+"},
-		"ctrl+a":    {Code: 'a', Mod: vt.ModCtrl},
-		"ctrl+A":    {Code: 'a', Mod: vt.ModCtrl},
-		"alt+b":     {Code: 'b', Mod: vt.ModAlt},
+		"ctrl+a":    {Code: 'a', Mod: uv.ModCtrl},
+		"ctrl+A":    {Code: 'a', Mod: uv.ModCtrl},
+		"alt+b":     {Code: 'b', Mod: uv.ModAlt},
 		"shift+a":   {Code: 'A', Text: "A"},
-		"shift+tab": {Code: vt.KeyTab, Mod: vt.ModShift},
-		"enter":     {Code: vt.KeyEnter},
-		"ctrl+up":   {Code: vt.KeyUp, Mod: vt.ModCtrl},
+		"shift+tab": {Code: uv.KeyTab, Mod: uv.ModShift},
+		"enter":     {Code: uv.KeyEnter},
+		"ctrl+up":   {Code: uv.KeyUp, Mod: uv.ModCtrl},
 		"é":         {Code: 'é', Text: "é"},
 	} {
 		got, err := keyEvent(name)

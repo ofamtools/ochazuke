@@ -54,7 +54,8 @@ const CommandNoun = "ochazuke.command"
 type CommandsConfig struct {
 	ID    string // the page id; "commands" when empty
 	Title string // the page title; "Commands" when empty
-	// Start runs a command for command run; nil is StartPty. A stream
+	// Start runs a command for command run; nil is StartPtyWith with the
+	// terminal.engine setting's engine. A stream
 	// that implements ochazuke.TerminalReleaser is released when the run's
 	// terminal closes, and one with Status() string reports it in the
 	// panel title.
@@ -118,11 +119,16 @@ func AddCommands(m *ochazuke.Model, src CommandSource, cfg CommandsConfig) (*Com
 		title = "Commands"
 	}
 	if c.start == nil {
-		c.start = func(cmd *exec.Cmd, cols, rows int) (ochazuke.TerminalStream, error) { return StartPty(cmd, cols, rows) }
+		// Each run opens with the terminal.engine the setting holds then.
+		c.start = func(cmd *exec.Cmd, cols, rows int) (ochazuke.TerminalStream, error) {
+			return StartPtyWith(cmd, cols, rows, PtyOptions{Engine: TerminalEngineOf(r)})
+		}
 	}
 	c.define()
-	// Runs open in terminals: the leader is the user's terminal-leader.
+	// Runs open in terminals: the leader is the user's terminal-leader,
+	// the emulator the user's terminal.engine.
 	r.EnsureTerminalLeader()
+	EnsureTerminalEngine(r)
 	r.Instance(c.page)
 	var items []ochazuke.ListItem
 	for _, e := range src.Commands() {

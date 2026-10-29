@@ -4,12 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os/exec"
-	"strings"
 	"sync"
 
-	"github.com/charmbracelet/x/vt"
+	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/xpty"
 	"github.com/unixsuperhero/ochazuke"
 )
@@ -19,7 +17,8 @@ var ErrReleased = errors.New("pty stream released")
 
 // PtyStream is an ochazuke.TerminalStream for a local process: the command
 // runs in a pseudo-terminal (xpty), its output is replayed into a terminal
-// emulator (x/vt), and every frame is the emulator's screen with its cursor
+// emulator (an Emulator of the engine it was started with, tuios.dev/vt
+// by default), and every frame is the emulator's screen with its cursor
 // cell, shape and visibility. Keys arrive as the binding names a terminal
 // instance forwards ("ctrl+a", "enter", "up") and are encoded by the
 // emulator, so a program in application cursor mode gets the sequences it
@@ -32,7 +31,7 @@ var ErrReleased = errors.New("pty stream released")
 // contract, for tools that run their own commands (the Commands page).
 type PtyStream struct {
 	mu       sync.Mutex
-	emu      *vt.Emulator
+	emu      Emulator
 	pty      xpty.Pty
 	cmd      *exec.Cmd
 	cols     int
@@ -52,21 +51,42 @@ type PtyStream struct {
 // when either is not positive) as the leader of its own session, so
 // Release reaches every process it started. cmd must not be started and
 // must leave Stdin, Stdout, Stderr and SysProcAttr unset: the pty is all
-// three and the session is the stream's.
+// three and the session is the stream's. The emulator is
+// DefaultTerminalEngine; StartPtyWith picks another.
 func StartPty(cmd *exec.Cmd, cols, rows int) (*PtyStream, error) {
+	return StartPtyWith(cmd, cols, rows, PtyOptions{})
+}
+
+// PtyOptions are StartPtyWith's choices.
+type PtyOptions struct {
+	// Engine names the emulator (a TerminalEngine row; "" is
+	// DefaultTerminalEngine). An application passes
+	// TerminalEngineOf(runtime), the terminal.engine setting.
+	Engine string
+}
+
+// StartPtyWith is StartPty with options. An engine this build cannot run
+// fails before the command starts.
+func StartPtyWith(cmd *exec.Cmd, cols, rows int, opts PtyOptions) (*PtyStream, error) {
 	if cmd == nil {
 		return nil, errors.New("command is required")
 	}
 	if cols <= 0 || rows <= 0 {
 		cols, rows = 80, 24
 	}
+	emu, err := NewEmulator(opts.Engine, cols, rows)
+	if err != nil {
+		return nil, err
+	}
 	p, err := xpty.NewPty(cols, rows)
 	if err != nil {
+		_ = emu.Close()
 		return nil, fmt.Errorf("open pty: %w", err)
 	}
 	configureCommand(cmd)
 	if err := p.Start(cmd); err != nil {
 		_ = p.Close()
+		_ = emu.Close()
 		return nil, fmt.Errorf("start %s: %w", cmd.Path, err)
 	}
 	// The parent's copy of the terminal side would keep the pty open after
@@ -75,7 +95,7 @@ func StartPty(cmd *exec.Cmd, cols, rows int) (*PtyStream, error) {
 		_ = u.Slave().Close()
 	}
 	s := &PtyStream{
-		emu: vt.NewEmulator(cols, rows), pty: p, cmd: cmd, cols: cols, rows: rows,
+		emu: emu, pty: p, cmd: cmd, cols: cols, rows: rows,
 		dirty: true, notify: make(chan struct{}, 1), out: newByteQueue(), done: make(chan struct{}),
 	}
 	go s.replies()
@@ -179,24 +199,12 @@ func (s *PtyStream) Next(ctx context.Context) (ochazuke.TerminalFrame, error) {
 }
 
 // frame is the emulator's screen and cursor. The caller holds the lock.
-func (s *PtyStream) frame() ochazuke.TerminalFrame {
-	lines := strings.Split(s.emu.Render(), "\n")
-	for i := range lines {
-		lines[i] = strings.TrimSuffix(lines[i], "\r")
-	}
-	pos := s.emu.CursorPosition()
-	style, _ := s.emu.CursorStyle()
-	return ochazuke.TerminalFrame{Lines: lines, Cursor: ochazuke.Pos{X: pos.X, Y: pos.Y}, Shape: cursorShapes[style], Hidden: s.emu.CursorHidden()}
-}
-
-// cursorShapes names the emulator's cursor styles as TerminalFrame.Shape
-// does; the block is the default "".
-var cursorShapes = map[vt.CursorStyle]string{vt.CursorBar: "bar", vt.CursorUnderline: "underline"}
+func (s *PtyStream) frame() ochazuke.TerminalFrame { return EmulatorFrame(s.emu) }
 
 // Send encodes each key name and writes it to the program. An unknown name
 // fails before anything is sent.
 func (s *PtyStream) Send(keys ...string) error {
-	events := make([]vt.KeyPressEvent, 0, len(keys))
+	events := make([]uv.KeyPressEvent, 0, len(keys))
 	for _, key := range keys {
 		ev, err := keyEvent(key)
 		if err != nil {
@@ -257,11 +265,11 @@ func (s *PtyStream) Release() error {
 			endGroup(s.cmd, s.done)
 		}
 		s.rel = closePty(s.pty)
-		// Closing the reply pipe ends the replies goroutine; the input
-		// goroutine ends on the queue's close.
-		if pw, ok := s.emu.InputPipe().(*io.PipeWriter); ok {
-			_ = pw.CloseWithError(io.EOF)
-		}
+		// Closing the emulator ends the replies goroutine (its Read sees
+		// io.EOF); the input goroutine ends on the queue's close.
+		s.mu.Lock()
+		_ = s.emu.Close()
+		s.mu.Unlock()
 		s.out.close()
 		select {
 		case s.notify <- struct{}{}:
