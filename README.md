@@ -305,6 +305,7 @@ Macro recording consumes exactly one register character after `q`. For `qq:`, th
 | Normal input | `x`, `u`, `Ctrl-R` | Delete, undo, redo |
 | Normal input | Numeric prefix | Count for motions, delete, undo/redo; `Ngg`/`NG` select a line |
 | Normal input | `v`, `V`, `Ctrl-V` | Character, line, or block visual selection |
+| Insert input (select) | any text, `backspace`, arrows, `esc` | After `Input.SelectText`/`SelectAll` (or `outline.add {text, select: true}`): typing or pasting replaces the selected text, backspace/delete removes it, a motion or `esc` keeps it (UX-RULES R9.6) |
 | Normal input | `yy`, `p`, `P` | Yank a line; paste after/before |
 | Normal app | `Ctrl-Y` | Open shared yank history |
 | Normal input | `"a` | Select named register `a` for the next operation |

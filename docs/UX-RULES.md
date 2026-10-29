@@ -571,6 +571,19 @@ tiers above them. When the two disagree, fix one in the same commit.
   (`editor/count-clamps`).
 - **R9.5** Dot-repeat replays the last `Repeatable` operation with its count
   and register. Story: needed (`editor/dot-repeat`).
+- **R9.6** Select: a component that creates or renames a thing may open its
+  line with text selected (`Input.SelectText`, `SelectAll`), like Vim's
+  select mode. The first text typed or pasted replaces the selection and
+  typing continues in insert; backspace or delete removes it; `esc`, a
+  motion (`left`/`right` land on its edges), an undo or any other edit
+  closes it and keeps the text; `enter` does what it does on the line,
+  with the text kept. Every printable key types, `j` included: moving away
+  is `esc` then a motion. The selection is drawn in the visual-selection
+  style (reverse). Select is a state of the input, not a mode: the person
+  is inserting, the mode is `insert`, and no binding table is added (modes
+  stay few: what the person is doing). Stories: `tree/select-type-replaces.json`,
+  `tree/select-esc-keeps.json`, `tree/select-move-keeps.json`; tests
+  `TestSelectText*`.
 
 ### R10. Delivery and jobs as the user sees them
 
@@ -600,6 +613,14 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R11.4** Pasted indented text nests. Story: `tree/paste-nests.json`.
 - **R11.5** A failed write keeps the text, marks the row and retries on the
   next change. Story: `tree/failed-write.json`.
+- **R11.6** A new node can open with a placeholder selected (R9.6):
+  `outline.add {where, text, select: true}` writes the node with `text` at
+  once and opens its line selected; `outline.edit {select: true}` and
+  `Tree.Edit(id, true)` do the same for an existing line. Typing writes a
+  rename after the pause; `esc` keeps the placeholder and writes nothing
+  more. Without `select` the verbs are unchanged (empty line, cursor at the
+  end). Stories as R9.6; tests `TestOutlineAddSelectPlaceholder`,
+  `TestOutlineEditSelect`.
 
 ### R12. Action names and aliases
 
