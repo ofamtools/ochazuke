@@ -160,7 +160,7 @@ Expect fields: `focus`, `mode`, `modal` (top modal id, `""` none), `page`,
 full-strength reverse video), `dimmed` (rows whose only reverse video is
 under faint: an unfocused page list's selected row, a highlight beneath a
 modal; read in the mono theme), `highlightedText` (text every highlighted row holds), `cell` (the text of a `cellSelect` table's current cell, drawn reverse and underlined; `" "` for a blank one, `""` for none), `contains`, `lacks`, `order` (substrings in this order),
-`ticker`/`noTicker`, `notices`/`noNotices`, `styled` (text → `#RRGGBB`, or `!#RRGGBB`, for the styled run the text starts: cell-exact where `colored` is row-wide), `attrs` (text → the attributes at its first cell, followed along the row's SGR state: a comma list of `bold`, `faint`, `reverse`, `underline`, `fg` (any foreground), `-name` for absent; `"bold,-fg"` reads a mono tone), `writes` (every change an
+`ticker`/`noTicker`, `notices`/`noNotices`, `styled` (text → `#RRGGBB`, or `!#RRGGBB`, for the styled run the text starts: cell-exact where `colored` is row-wide), `attrs` (text → the attributes at its first cell, followed along the row's SGR state: a comma list of `bold`, `faint`, `reverse`, `underline`, `fg` (any foreground), `bg` (any background), `-name` for absent; `"bold,-fg"` reads a mono tone), `writes` (every change an
 editable tree wrote, `TreeChange.String`, in order; `[]` none), `quit` (`Runtime.Quit`: app.quit ran). A story's
 `checks` (`[{verb, name, ask, refuse, dirty}]`, verb default `app.quit`) hang verb
 checks (`AddVerbCheck`) that ask or refuse, with `dirty` only once the story has

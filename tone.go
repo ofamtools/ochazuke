@@ -35,6 +35,12 @@ import (
 //   - A page list without the focus fades its tones with it
 //     (dim-unfocused): the tone's colour is carried the same percent toward
 //     the background.
+//   - A tone with a background (ToneStyle.Bg; the built-in "error" tone)
+//     fills its run's cells; a span's own Bg names the tone whose
+//     background goes under it, whatever its Tone. mono and NO_COLOR draw
+//     no background. On the selected row the background is dropped, as
+//     the colour is (setting tones.selected-background: drop), or kept
+//     with the run drawn out of the reverse bar (keep).
 
 // The tones every built-in theme draws (defaultTones); applications and
 // themes.json add their own names.
@@ -47,6 +53,10 @@ const (
 	ToneExited     = "state.exited"
 	ToneStar       = "marker.star"
 	ToneQueued     = "marker.queued"
+	// ToneError marks a cell that is wrong (a duplicate key, a value that
+	// does not parse): bold on an error background in every built-in
+	// theme, bold alone in mono.
+	ToneError = "error"
 )
 
 // ToneSpan gives a run of one cell a tone. Cell is the column index (in a
@@ -54,10 +64,15 @@ const (
 // To are rune offsets into the cell's text as drawn (escape sequences,
 // which a cell never draws, do not count), To 0 meaning the cell's end, so
 // {Cell, Tone} alone tones the whole cell. A later span wins where two
-// overlap; a span outside the text draws nothing.
+// overlap; a span outside the text draws nothing. Bg names a tone (a theme
+// token) whose background goes under the span while Tone keeps the
+// foreground and attributes; Bg alone, with no Tone, only fills. Where
+// spans overlap, the foreground comes from the last span with a Tone and
+// the background from the last span that has one.
 type ToneSpan struct {
 	Cell int    `json:"cell"`
-	Tone string `json:"tone"`
+	Tone string `json:"tone,omitempty"`
+	Bg   string `json:"bg,omitempty"`
 	From int    `json:"from,omitempty"`
 	To   int    `json:"to,omitempty"`
 }
@@ -73,17 +88,19 @@ func SpanTone(cell, from, to int, tone string) ToneSpan {
 // ToneStyle is how a scheme draws one tone: Fg is a colour as a scheme
 // role takes it ("#RRGGBB", "#RGB", an ANSI index, {"light", "dark"}) or
 // the name of a palette role (text, muted, accent, border, surface, error)
-// so the tone follows the scheme; empty keeps the text's colour. Bold and
+// so the tone follows the scheme; empty keeps the text's colour. Bg is the
+// background, a colour or role the same way; empty draws none. Bold and
 // Dim (faint) are the attributes, the only part mono draws. In themes.json
-// a tone is {"fg": ..., "bold": true, "dim": true}, or a colour or role
-// alone ("#5FAFD7", "error").
+// a tone is {"fg": ..., "bg": ..., "bold": true, "dim": true}, or a colour
+// or role alone ("#5FAFD7", "error").
 type ToneStyle struct {
 	Fg   SchemeColor `json:"fg"`
+	Bg   SchemeColor `json:"bg,omitzero"`
 	Bold bool        `json:"bold,omitempty"`
 	Dim  bool        `json:"dim,omitempty"`
 }
 
-// UnmarshalJSON reads a colour or role alone, or {"fg", "bold", "dim"}.
+// UnmarshalJSON reads a colour or role alone, or {"fg", "bg", "bold", "dim"}.
 func (t *ToneStyle) UnmarshalJSON(data []byte) error {
 	var one string
 	if err := json.Unmarshal(data, &one); err == nil {
@@ -92,17 +109,21 @@ func (t *ToneStyle) UnmarshalJSON(data []byte) error {
 	}
 	var full struct {
 		Fg   *SchemeColor `json:"fg"`
+		Bg   *SchemeColor `json:"bg"`
 		Bold bool         `json:"bold"`
 		Dim  bool         `json:"dim"`
 	}
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&full); err != nil {
-		return errors.New(`a tone is a colour, a role, or {"fg": ..., "bold": true, "dim": true}`)
+		return errors.New(`a tone is a colour, a role, or {"fg": ..., "bg": ..., "bold": true, "dim": true}`)
 	}
 	*t = ToneStyle{Bold: full.Bold, Dim: full.Dim}
 	if full.Fg != nil {
 		t.Fg = *full.Fg
+	}
+	if full.Bg != nil {
+		t.Bg = *full.Bg
 	}
 	return nil
 }
@@ -122,6 +143,7 @@ var defaultTones = map[string]ToneStyle{
 	ToneExited:     {Fg: SchemeColor{"muted", "muted"}, Dim: true},
 	ToneStar:       {Fg: SchemeColor{"#B08800", "#F2CC60"}, Bold: true},
 	ToneQueued:     {Fg: SchemeColor{"accent", "accent"}},
+	ToneError:      {Bg: SchemeColor{"#F6D3CE", "#5E2722"}, Bold: true},
 }
 
 // DefaultTones are the built-in tones and how the built-in themes draw
@@ -147,7 +169,7 @@ func parseTones(base map[string]ToneStyle, data json.RawMessage) (map[string]Ton
 		if err := json.Unmarshal(raw[name], &t); err != nil {
 			return nil, fmt.Errorf("tone %s: %v", name, err)
 		}
-		for _, c := range []string{t.Fg.Light, t.Fg.Dark} {
+		for _, c := range []string{t.Fg.Light, t.Fg.Dark, t.Bg.Light, t.Bg.Dark} {
 			if c != "" && !validColor(c) && !slices.Contains(toneRoles, c) {
 				return nil, fmt.Errorf("tone %s: %q is not #RRGGBB, #RGB, an ANSI index 0-255 or a role (%s)", name, c, strings.Join(toneRoles, ", "))
 			}
@@ -160,7 +182,7 @@ func parseTones(base map[string]ToneStyle, data json.RawMessage) (map[string]Ton
 // toneLook is a tone resolved for one frame: its colour (nil: none) and
 // attributes.
 type toneLook struct {
-	fg        color.Color
+	fg, bg    color.Color
 	bold, dim bool
 }
 
@@ -180,20 +202,22 @@ func resolveTones(scheme Scheme, plain bool, pick func(SchemeColor) color.Color)
 		}
 		return v
 	}
+	colour := func(v SchemeColor) color.Color {
+		if plain || (v.Light == "" && v.Dark == "") {
+			return nil
+		}
+		c := SchemeColor{side(v.Light, true), side(v.Dark, false)}
+		if c.Light == "" {
+			c.Light = c.Dark
+		}
+		if c.Dark == "" {
+			c.Dark = c.Light
+		}
+		return pick(c)
+	}
 	out := make(map[string]toneLook, len(scheme.Tones))
 	for name, t := range scheme.Tones {
-		look := toneLook{bold: t.Bold, dim: t.Dim}
-		if !plain && (t.Fg.Light != "" || t.Fg.Dark != "") {
-			c := SchemeColor{side(t.Fg.Light, true), side(t.Fg.Dark, false)}
-			if c.Light == "" {
-				c.Light = c.Dark
-			}
-			if c.Dark == "" {
-				c.Dark = c.Light
-			}
-			look.fg = pick(c)
-		}
-		out[name] = look
+		out[name] = toneLook{bold: t.Bold, dim: t.Dim, fg: colour(t.Fg), bg: colour(t.Bg)}
 	}
 	return out
 }
@@ -209,6 +233,9 @@ func (s Styles) Tone(name string) lipgloss.Style {
 	}
 	if look.fg != nil {
 		st = st.Foreground(look.fg)
+	}
+	if look.bg != nil {
+		st = st.Background(look.bg)
 	}
 	return st.Bold(look.bold).Faint(look.dim)
 }
@@ -241,17 +268,37 @@ func (s Styles) toneSGR(name string, selected, faded bool) (ansi.Style, bool) {
 	return st, true
 }
 
-// toneSeg is a tone on a drawn line: from cell x, w cells.
+// toneSeg is a tone on a drawn line: from cell x, w cells; bg the tone
+// whose background fills it ("" the tone's own).
 type toneSeg struct {
-	x, w int
-	tone string
+	x, w     int
+	tone, bg string
+}
+
+// bgSGR is the background a segment fills with: its Bg tone's, else its
+// tone's; faded toward the ground in a faded list. ok is false for none.
+func (s Styles) bgSGR(sg toneSeg, faded bool) (ansi.Style, bool) {
+	name := sg.bg
+	if name == "" {
+		name = sg.tone
+	}
+	look, ok := s.tones[name]
+	if !ok || look.bg == nil {
+		return nil, false
+	}
+	bg := look.bg
+	if faded && s.ground != nil && s.unfocused > 0 {
+		bg = fadeRamp(bg, s.ground)[min(s.unfocused, MaxDim)]
+	}
+	var st ansi.Style
+	return st.BackgroundColor(bg), true
 }
 
 // spansOf is the row's tones of cell i.
 func spansOf(tones []ToneSpan, i int) []ToneSpan {
 	var out []ToneSpan
 	for _, t := range tones {
-		if t.Cell == i && t.Tone != "" {
+		if t.Cell == i && (t.Tone != "" || t.Bg != "") {
 			out = append(out, t)
 		}
 	}
@@ -280,7 +327,7 @@ func cellSegs(spans []ToneSpan, text string, x, shown int) []toneSeg {
 		if start >= end {
 			continue
 		}
-		out = append(out, toneSeg{x: x + start, w: end - start, tone: sp.Tone})
+		out = append(out, toneSeg{x: x + start, w: end - start, tone: sp.Tone, bg: sp.Bg})
 	}
 	return out
 }
@@ -300,6 +347,7 @@ func (l *List) listTones() *Styles {
 	if len(s.tones) == 0 {
 		return nil
 	}
+	s.selectedBg = l.r.SelectedBackground()
 	return &s
 }
 
@@ -333,19 +381,37 @@ func paintLine(line string, width int, segs []toneSeg, st *Styles, selected, fad
 		z = min(z, n)
 		text := ansi.Cut(line, a, z)
 		var style ansi.Style
+		var fill ansi.Style
+		for j := len(segs) - 1; j >= 0; j-- {
+			if sg := segs[j]; a >= sg.x && a < sg.x+sg.w {
+				if bg, ok := st.bgSGR(sg, faded); ok {
+					fill = bg
+					break
+				}
+			}
+		}
+		keep := fill != nil && selected && st.selectedBg == SelectedBackgroundKeep
 		if selected {
 			if cur.w > 0 && a >= cur.x && a < cur.x+cur.w {
 				style = style.Underline(true)
 			}
-			style = style.Reverse(true)
+			if !keep {
+				style = style.Reverse(true)
+			}
+		}
+		if fill != nil && (!selected || keep) {
+			style = append(style, fill...)
 		}
 		for j := len(segs) - 1; j >= 0; j-- {
-			if sg := segs[j]; a >= sg.x && a < sg.x+sg.w {
-				if tone, ok := st.toneSGR(sg.tone, selected, faded); ok {
+			if sg := segs[j]; sg.tone != "" && a >= sg.x && a < sg.x+sg.w {
+				if tone, ok := st.toneSGR(sg.tone, selected && !keep, faded); ok {
 					style = append(style, tone...)
 				}
 				break
 			}
+		}
+		if keep && !slices.Contains(style, "1") {
+			style = style.Bold()
 		}
 		if len(style) == 0 {
 			b.WriteString(text)
@@ -354,4 +420,27 @@ func paintLine(line string, width int, segs []toneSeg, st *Styles, selected, fad
 		b.WriteString(style.String() + text + ansi.ResetStyle)
 	}
 	return b.String()
+}
+
+// SelectedBackgroundSetting says how the selected row draws a run with a
+// tone background: drop (the default: the row stays one reverse bar, the
+// background left out as the colour is) or keep (the run keeps its
+// background and colour, bold, out of the reverse bar, so an error cell
+// still reads as one on the selected row).
+const SelectedBackgroundSetting = "tones.selected-background"
+
+// The values of SelectedBackgroundSetting.
+const (
+	SelectedBackgroundDrop = "drop"
+	SelectedBackgroundKeep = "keep"
+)
+
+// SelectedBackground is the tones.selected-background setting's value
+// (declared by EnsureConfigSettings from settings/ochazuke.json, default
+// drop).
+func (r *Runtime) SelectedBackground() string {
+	if v, _ := r.settingValue(SelectedBackgroundSetting); v == SelectedBackgroundKeep {
+		return SelectedBackgroundKeep
+	}
+	return SelectedBackgroundDrop
 }

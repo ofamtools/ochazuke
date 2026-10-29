@@ -138,6 +138,7 @@ type Styles struct {
 	unfocused      int                 // the dim-unfocused percent WithDims was given
 	plain          bool                // mono or NO_COLOR: a fade is the faint attribute
 	tones          map[string]toneLook // the scheme's tones resolved (Tone, tone.go)
+	selectedBg     string              // tones.selected-background, read by the list that draws (listTones)
 }
 
 // Dim defaults, in percent toward the background (the settings modal-dim

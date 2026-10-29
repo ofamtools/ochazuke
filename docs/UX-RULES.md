@@ -390,6 +390,17 @@ tiers above them. When the two disagree, fix one in the same commit.
   `chrome/tones-themes-override.json`, `chrome/tones-user-scheme.json`,
   `catalog/tones-rows.json`; tests `TestTonesNeverChangeTheText`,
   `TestSelectedRowDrawsToneAttributesOnly`, `TestUnfocusedListFadesTones`.
+  **Backgrounds:** a tone may carry a background (`ToneStyle.Bg`,
+  `themes.json` `bg`, a colour or a role); the built-in `error` tone is
+  bold on an error background in every built-in theme (light and dark
+  sides), bold alone in mono. A span's `Bg` lays a tone's background under
+  another tone's foreground (a duplicate key keeps its key colour on the
+  error background). On the selected row the background is dropped like
+  the colour (the setting `tones.selected-background`, default `drop`);
+  `keep` draws that cell on its background, bold, out of the reverse bar,
+  the rest of the row still reversed (the opt-out). Stories:
+  `tables/tones-error-background.json`,
+  `tables/tones-error-background-keep.json`; tests in `tone_bg_test.go`.
 - **R5.15** An action over a visual selection acts on every selected row.
   While `V` is on, a row's own verb (an application verb of the row's
   noun, not a motion), run from its key, the palette or the API, has the

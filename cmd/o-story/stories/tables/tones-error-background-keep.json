@@ -1,0 +1,17 @@
+{
+  "name": "tones: with tones.selected-background keep the selected row draws an error cell on its background, bold, out of the reverse bar",
+  "area": "tables",
+  "width": 60,
+  "height": 4,
+  "chrome": "none",
+  "theme": "dark",
+  "settings": [{"name": "tones.selected-background", "type": "string", "default": "keep", "enum": ["drop", "keep"]}],
+  "page": {
+    "noHeadings": true,
+    "lists": [{"id": "t", "columns": [{"title": "key"}, {"title": "value"}], "items": [
+      {"id": "t1", "label": "id", "cells": ["id", "1"], "tones": [{"cell": 0, "tone": "error"}]},
+      {"id": "t2", "label": "name", "cells": ["name", "x"]}
+    ]}]
+  },
+  "expect": [{"focus": "t1", "attrs": {"id": "bg,bold,-reverse", "1": "reverse,-bg"}}]
+}

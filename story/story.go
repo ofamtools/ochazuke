@@ -553,7 +553,8 @@ type Expect struct {
 	Styled map[string]string `json:"styled,omitempty"`
 	// Attrs maps on-screen text to the attributes its first cell is drawn
 	// with, followed along its row's SGR state: a comma list of bold,
-	// faint, reverse, underline and fg (any foreground colour), each
+	// faint, reverse, underline, fg (any foreground colour) and bg (any
+	// background colour), each
 	// "-name" for absent. "bold,-fg" reads a mono tone.
 	Attrs map[string]string `json:"attrs,omitempty"`
 	// Writes is every change the page's editable trees, record editors and

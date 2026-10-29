@@ -286,7 +286,7 @@ func Check(ss *Session, e Expect) []string {
 				name, absent := strings.CutPrefix(strings.TrimSpace(a), "-")
 				on, known := got[name]
 				if !known {
-					failf("attrs %q: unknown attribute %q (bold, faint, reverse, underline, fg)", text, name)
+					failf("attrs %q: unknown attribute %q (bold, faint, reverse, underline, fg, bg)", text, name)
 					continue
 				}
 				if on == absent {
@@ -330,7 +330,7 @@ func attrsAt(row, text string) (map[string]bool, bool) {
 	if at < 0 {
 		return nil, false
 	}
-	state := map[string]bool{"bold": false, "faint": false, "reverse": false, "underline": false, "fg": false}
+	state := map[string]bool{"bold": false, "faint": false, "reverse": false, "underline": false, "fg": false, "bg": false}
 	plain := 0 // bytes of stripped text passed
 	for i := 0; i < len(row); {
 		if row[i] == 0x1b && i+1 < len(row) && row[i+1] == '[' {
@@ -385,7 +385,12 @@ func sgr(state map[string]bool, params []string) {
 			} else if k+1 < len(params) && params[k+1] == "5" {
 				k += 2
 			}
+		case "49":
+			state["bg"] = false
 		case "48", "58":
+			if p == "48" {
+				state["bg"] = true
+			}
 			if k+1 < len(params) && params[k+1] == "2" {
 				k += 4
 			} else if k+1 < len(params) && params[k+1] == "5" {
@@ -394,6 +399,9 @@ func sgr(state map[string]bool, params []string) {
 		default:
 			if n := len(p); n == 2 && (p[0] == '3' || p[0] == '9') && p[1] >= '0' && p[1] <= '7' {
 				state["fg"] = true
+			}
+			if n := len(p); (n == 2 && p[0] == '4' || n == 3 && p[:2] == "10") && p[n-1] >= '0' && p[n-1] <= '7' {
+				state["bg"] = true
 			}
 		}
 	}

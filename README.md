@@ -280,6 +280,7 @@ ochazuke.ListItem{ID: "w1", Noun: "pane", Label: "work/claude",
 | `state.exited` | the scheme's `muted` | dim |
 | `marker.star` | `#B08800` / `#F2CC60` | bold |
 | `marker.queued` | the scheme's `accent` | |
+| `error` (`ToneError`) | background `#F6D3CE` / `#5E2722` | bold |
 
 `mono` and `NO_COLOR` draw the attributes alone. An unknown tone draws plain. The text never changes, so tones never count toward a width or a cut. The selected row stays one reverse-video bar: inside it a tone keeps its bold and drops its colour and dim. In `themes.json` a scheme takes `"tones"`, laid over the built-in ones, and an entry named after a built-in theme may hold tones alone:
 
@@ -290,7 +291,7 @@ ochazuke.ListItem{ID: "w1", Noun: "pane", Label: "work/claude",
 }
 ```
 
-A tone is `{"fg": ..., "bold": true, "dim": true}` or a colour alone; `fg` is a colour as a role takes it or a role's name (`text`, `muted`, `accent`, `border`, `surface`, `error`), which follows the scheme. `adaptive`'s entry reaches `dark` and `light` too. `Styles.Tone(name)` is a tone's style for an application's own text.
+A tone is `{"fg": ..., "bg": ..., "bold": true, "dim": true}` or a colour alone; `fg` and `bg` are a colour as a role takes it or a role's name (`text`, `muted`, `accent`, `border`, `surface`, `error`), which follows the scheme. A tone with a `bg` fills its run's cells (mono draws none). A span's `Bg` (`ToneSpan{Cell, Tone, Bg}`, `"bg"` in JSON) names the tone whose background goes under it while `Tone` keeps the foreground, so `{"cell": 0, "tone": "state.working", "bg": "error"}` is a working-blue key on the error background; `Bg` alone only fills. On the selected row the setting `tones.selected-background` (`SelectedBackgroundSetting`, `drop` default | `keep`, in `settings/ochazuke.json`) drops the background with the colour, or keeps the cell on its background, bold, out of the reverse bar. `adaptive`'s entry reaches `dark` and `light` too. `Styles.Tone(name)` is a tone's style for an application's own text.
 
 ### Keyboard guide
 

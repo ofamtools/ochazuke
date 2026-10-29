@@ -1,0 +1,21 @@
+{
+  "name": "tones: the error tone fills its cell with the theme's error background, bold; the selected row drops it (tones.selected-background drop) and the background comes back when the row is left",
+  "area": "tables",
+  "width": 60,
+  "height": 5,
+  "chrome": "none",
+  "theme": "dark",
+  "page": {
+    "noHeadings": true,
+    "lists": [{"id": "t", "columns": [{"title": "key"}, {"title": "value"}], "items": [
+      {"id": "t1", "label": "id", "cells": ["id", "1"], "tones": [{"cell": 0, "tone": "error"}]},
+      {"id": "t2", "label": "name", "cells": ["name", "x"]},
+      {"id": "t3", "label": "dup", "cells": ["dup", "2"], "tones": [{"cell": 0, "tone": "state.working", "bg": "error"}]}
+    ]}]
+  },
+  "script": ["j"],
+  "expect": [{
+    "focus": "t2",
+    "attrs": {"id": "bg,bold,-reverse", "dup": "bg,fg,-reverse", "name": "reverse,-bg"}
+  }]
+}

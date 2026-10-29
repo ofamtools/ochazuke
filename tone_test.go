@@ -229,7 +229,7 @@ func TestParseTones(t *testing.T) {
 		"badname": {"tones": {"two words": "#FFFFFF"}}
 	}`))
 	want := []string{
-		`themes.json: badfield: tone state.x: a tone is a colour, a role, or {"fg": ..., "bold": true, "dim": true} (skipped)`,
+		`themes.json: badfield: tone state.x: a tone is a colour, a role, or {"fg": ..., "bg": ..., "bold": true, "dim": true} (skipped)`,
 		`themes.json: badname: tone "two words": a tone name is one word (skipped)`,
 		`themes.json: badtone: tone state.x: "glow" is not #RRGGBB, #RGB, an ANSI index 0-255 or a role (text, muted, accent, border, surface, error) (skipped)`,
 		"themes.json: light: is a built-in theme: it takes only tones (skipped)",
