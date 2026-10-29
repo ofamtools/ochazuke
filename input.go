@@ -309,6 +309,21 @@ func (in *Input) SelectedText() (start, end int, ok bool) {
 	return in.typeOver[0], in.typeOver[1], true
 }
 
+// Selection is the visual selection's rune range [start, end) while the
+// input is in a character or line visual mode (v, V): the runes under
+// the anchor and the cursor are both in it, a line selection covers whole
+// lines and its last newline. ok is false outside a visual mode and in a
+// block selection (visual-block), which is not one range (its snapshot names the
+// rows and columns). Hosts read it instead of recomputing it from Anchor
+// and Cursor.
+func (in *Input) Selection() (start, end int, ok bool) {
+	if shape := in.shape(); shape == "" || shape == SelectionBlock {
+		return in.Cursor, in.Cursor, false
+	}
+	start, end = in.selectionRange()
+	return start, end, true
+}
+
 // typeOverRange is where typed text goes: the open select range, else the
 // cursor.
 func (in *Input) typeOverRange() (int, int) {
