@@ -240,7 +240,11 @@ func TestDemoKeyboardSessionStaysGreen(t *testing.T) {
 	}
 	press("ctrl+j", "i", "h", "i", "esc", "y", "y", "tab", "tab", "shift+tab", "ctrl+x")
 	press("ctrl+n", "i", "x", "esc", "ctrl+n", "ctrl+g", "ctrl+g")
-	press("ctrl+y", "esc")
+	press("g", "y")
+	if top := r.TopModal(); top != "__yank-history" {
+		t.Fatalf("g y: top modal %q, want the yank history", top)
+	}
+	press("esc")
 	execute("open", "palette", nil)
 	press("p", "a")
 	execute("close", "palette", nil)

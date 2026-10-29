@@ -585,19 +585,19 @@ func TestMountPageSplitFollowsThePaneKeys(t *testing.T) {
 			t.Fatal(err)
 		}
 		before := divider(frameOf(m), tc.stacked)
-		press(m, ">")
+		press(m, "ctrl+w", ">")
 		grown := divider(frameOf(m), tc.stacked)
-		press(m, "<", "<")
+		press(m, "ctrl+w", "<", "ctrl+w", "<")
 		shrunk := divider(frameOf(m), tc.stacked)
 		if !(shrunk < before && before < grown) {
 			t.Fatalf("%q at %d: divider shrunk %d, default %d, grown %d", tc.layout, tc.width, shrunk, before, grown)
 		}
-		if !strings.Contains(frameOf(m), ">/< resize") {
+		if !strings.Contains(frameOf(m), "ctrl+w >/< resize") {
 			t.Fatalf("%q at %d: no resize hint:\n%s", tc.layout, tc.width, frameOf(m))
 		}
 	}
 	m, _ := mountedPage(t, pageDoc(LayoutSplit, false), PageConfig{Fetch: answers(pageAnswers)}, 100, 30)
-	press(m, ">")
+	press(m, "ctrl+w", ">")
 	if shift := m.Runtime.PaneShift("ai"); shift != 0 || strings.Contains(frameOf(m), "resize") {
 		t.Fatalf("no detail, no split: shift %d\n%s", shift, frameOf(m))
 	}
