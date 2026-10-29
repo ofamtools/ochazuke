@@ -293,6 +293,7 @@ func registerSettingsEditor(r *Runtime) {
 		}, "Close the prompt and keep the value")
 	r.Settings().Observe("", func(string, any) { refreshSettingsPage(r) })
 	registerSettingsSession(r)
+	registerSettingsReview(r)
 	// bindings/settings-editor.json: one hint for every step key (h/l
 	// setting.cycle).
 }

@@ -1,0 +1,20 @@
+{
+  "name": "settings review at 80 columns with two session values: saved and session values side by side, the detail saying what writing changes",
+  "area": "settings",
+  "theme": "dark",
+  "width": 80,
+  "settings": [
+    {"name": "stack", "type": "string", "default": "tabs", "enum": ["tabs", "stack", "grid"], "description": "How panes are laid out"},
+    {"name": "editor", "type": "string", "default": "vi", "description": "The command that opens a file"}
+  ],
+  "values": {"stack": "grid"},
+  "session": {"stack": "stack", "editor": "nvim"},
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "bind": [{"noun": "demo", "keys": ",", "do": "settings.review"}]
+  },
+  "script": [","],
+  "expect": [
+    {"modal": "settings-review", "focus": "__settings-review/row/stack", "contains": ["2 session values differ", "grid (file)", "vi (default)", "Writing puts stack in settings.json in place of grid", "w setting.write", "s skip", "Default tabs. Set this session (api, 00:00)."]}
+  ]
+}

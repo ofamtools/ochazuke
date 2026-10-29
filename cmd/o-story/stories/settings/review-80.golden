@@ -1,0 +1,24 @@
+ |  ◆ o-story                                                            NORMAL
+ |   › page1
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  a
+r|  a1
+ |        ╭──────────────────────────────────────────────────────────────╮
+ |        │ Review settings                                              │
+ |        │ 2 session values differ from the saved ones                  │
+ |        │ Setting  Saved         Session  Origin                       │
+R|        │ stack    grid (file)   stack    set this session (api, 00:0… │
+ |        │ editor   vi (default)  nvim     set this session (api, 00:0… │
+ |        │ ──────────────────────────────────────────────────────────── │
+ |        │ stack: How panes are laid out                                │
+ |        │ Default tabs. Set this session (api, 00:00).                 │
+ |        │ Writing puts stack in settings.json in place of grid;        │
+ |        │ reverting shows grid again.                                  │
+ |        │ w setting.write · r setting.revert · s skip · W settings.wr… │
+ |        ╰──────────────────────────────────────────────────────────────╯
+ |
+ |
+ |
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  w setting.write · r setting.revert · s skip · W settings.write · R settings…
+ |

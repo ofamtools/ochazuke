@@ -33,6 +33,17 @@
       {"key": "ctrl+z", "action": "ochazuke.settings.undo", "when": "settings-undo", "hidden": true},
       {"key": "q", "action": "ochazuke.settings.close"},
       {"key": "esc", "action": "ochazuke.settings.close"}
+    ]},
+    {"context": "ochazuke.setting-change/normal", "bindings": [
+      {"key": "w", "action": "ochazuke.setting.write", "from": {"name": "row:name"}},
+      {"key": "r", "action": "ochazuke.setting.revert", "from": {"name": "row:name"}},
+      {"key": "s", "action": "ochazuke.list.move", "args": {"delta": 1}, "hint": "skip"},
+      {"key": "space", "action": "ochazuke.list.move", "args": {"delta": 1}, "hidden": true}
+    ]},
+    {"context": "ochazuke.settings-review/normal", "bindings": [
+      {"key": "W", "action": "ochazuke.settings.write"},
+      {"key": "R", "action": "ochazuke.settings.revert"},
+      {"key": "q", "action": "ochazuke.modal.pop"}
     ]}
   ]
 }

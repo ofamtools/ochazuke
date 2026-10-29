@@ -1,0 +1,19 @@
+{
+  "name": "settings review with nothing to review (the one session value equals the saved one): a plain notice, no modal and no error",
+  "area": "settings",
+  "theme": "dark",
+  "width": 80,
+  "settings": [
+    {"name": "stack", "type": "string", "default": "tabs", "enum": ["tabs", "stack", "grid"], "description": "How panes are laid out"}
+  ],
+  "values": {"stack": "grid"},
+  "session": {"stack": "grid"},
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "bind": [{"noun": "demo", "keys": ",", "do": "settings.review"}]
+  },
+  "script": [","],
+  "expect": [
+    {"modal": "", "focus": "a1", "contains": ["No session changes to review"]}
+  ]
+}

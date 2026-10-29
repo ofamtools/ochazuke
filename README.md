@@ -1365,6 +1365,24 @@ The Settings page draws a session value bold with the saved value beside it whil
 
 and its description reads `Set this session (palette, 14:02); settings.json holds grid. setting.write saves it, setting.revert drops it.` Stories `settings/session-marker*`.
 
+### Reviewing session values: `settings.review`
+
+`settings.review` (`:settings review`, `BIN settings review`; `settings_review.go`) opens a modal over whatever is open, one row per `settings.diff` entry: the setting, its saved value and where it is saved (`grid (file)`, `vi (default)`), the session value (in the session tone) and its origin (`Origin.String()`). Under the rows the selected setting's description, its default and origin, and what writing or reverting changes ("Writing puts stack in settings.json in place of grid; reverting shows grid again"; a reset session value says writing removes the key).
+
+```
+│ 2 session values differ from the saved ones                  │
+│ Setting  Saved         Session  Origin                       │
+│ stack    grid (file)   stack    set this session (api, 00:0… │
+│ editor   vi (default)  nvim     set this session (api, 00:0… │
+│ ──────────────────────────────────────────────────────────── │
+│ stack: How panes are laid out                                │
+│ Default tabs. Set this session (api, 00:00).                 │
+│ Writing puts stack in settings.json in place of grid;        │
+│ reverting shows grid again.                                  │
+```
+
+The rows are the `setting-change` noun; their keys (`bindings/settings-editor.json`) run the setting verbs with the row's name (`"from": {"name": "row:name"}`): `w` `setting.write`, `r` `setting.revert`, `s` (or `space`) skip, which moves to the next row and changes nothing; on the modal `W` `settings.write`, `R` `settings.revert` (it asks first, naming the values, from every path: nothing takes a revert back), `q` and `esc` close it. `j`/`k` move as in any list. A written or reverted row drops out and the next one is selected; when none is left the review closes with "No session changes left to review". With nothing to review it opens nothing and says "No session changes to review"; a CLI process has no session, so `BIN settings review` says so and points at `settings diff`. It is a modal rather than a page because it is a short decision over values that belong to wherever you were, and closing it returns to that focus. Compared with Vim: Vim has no review screen; `:set` values are never compared with the vimrc, and `:mkvimrc` writes them all at once (here `settings.write`, `mksettings`). Stories `settings/review-*`.
+
 ### Setting verbs and `settings.apply`
 
 Every setting value change is a verb of the `setting` noun (`setting_verbs.go`), each with `name` (default: the focused Settings row) and, where it writes, `scope` (`session`, the default, by the writes-through rule above; or `file`): `show {verbose}` (the status line: `name=value`, a boolean `name` or `noname`; `verbose` adds the origin), `set {value}`, `toggle`, `cycle {step}`, `reset`, `increase`/`decrease`/`multiply {by}` (integers, numbers, durations; `multiply` not durations), `append`/`prepend`/`remove {value}` (text, or list items as `a,b` or a JSON array; a list skips items it holds, an absent item or text is not an error). Which verb fits which type is read from the `:set` type table, so `setting.toggle` on an integer says what it is for. A verb computes the new value and checks it whole (type, `Validate`, enum) before it writes; each write is one step of the Settings page's undo. The page's keys run these verbs with `scope: file` in their binding rows (`bindings/settings-editor.json`), so the page saves each change at once, as before; the same verb from the palette or the CLI without a scope writes the session.

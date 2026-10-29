@@ -1,0 +1,20 @@
+{
+  "name": "settings review: w writes the selected session value, its row drops out and the next one is selected",
+  "area": "settings",
+  "theme": "dark",
+  "width": 80,
+  "settings": [
+    {"name": "stack", "type": "string", "default": "tabs", "enum": ["tabs", "stack", "grid"], "description": "How panes are laid out"},
+    {"name": "editor", "type": "string", "default": "vi", "description": "The command that opens a file"}
+  ],
+  "values": {"stack": "grid"},
+  "session": {"stack": "stack", "editor": "nvim"},
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "bind": [{"noun": "demo", "keys": ",", "do": "settings.review"}]
+  },
+  "script": [",", "w"],
+  "expect": [
+    {"modal": "settings-review", "focus": "__settings-review/row/editor", "contains": ["1 session value differs", "vi (default)", "Writing adds nvim to settings.json"], "lacks": ["grid (file)"]}
+  ]
+}

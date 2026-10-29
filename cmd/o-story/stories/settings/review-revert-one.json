@@ -1,0 +1,21 @@
+{
+  "name": "settings review: s skips to the next row, r reverts it, and its row drops out",
+  "area": "settings",
+  "theme": "dark",
+  "width": 80,
+  "settings": [
+    {"name": "stack", "type": "string", "default": "tabs", "enum": ["tabs", "stack", "grid"], "description": "How panes are laid out"},
+    {"name": "editor", "type": "string", "default": "vi", "description": "The command that opens a file"}
+  ],
+  "values": {"stack": "grid"},
+  "session": {"stack": "stack", "editor": "nvim"},
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "bind": [{"noun": "demo", "keys": ",", "do": "settings.review"}]
+  },
+  "script": [",", "s", "r"],
+  "expect": [
+    {"after": 2, "focus": "__settings-review/row/editor", "contains": ["Writing adds nvim to settings.json"]},
+    {"modal": "settings-review", "focus": "__settings-review/row/stack", "contains": ["1 session value differs", "grid (file)"], "lacks": ["vi (default)"]}
+  ]
+}

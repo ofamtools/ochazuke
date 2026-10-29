@@ -130,6 +130,7 @@ func newModel(r *Runtime) *Model {
 	// The Settings page and unfocused page lists draw in the Model's styles.
 	r.Settings().page.styles = m.Styles
 	m.ModalViews[settingPromptID] = ModalView{Title: "Set", Render: settingPromptView}
+	m.ModalViews[settingsReviewID] = ModalView{Title: "Review settings", Render: settingsReviewView}
 	r.Register(Operation{Verb: "scroll", Noun: "ochazuke.surface", Description: "Scroll the active page or modal without changing focus", Parameters: map[string]Parameter{"lines": {Type: "integer", Required: true}}, Result: "scroll offset", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		key := m.surfaceKey()
 		width, height := m.pageSize()

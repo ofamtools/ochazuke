@@ -646,7 +646,10 @@ func settingOfArgs(r *Runtime, c Context, a Arguments) (*Setting, error) {
 // refresh on a layer change.
 func registerSettingsSession(r *Runtime) {
 	s := r.Settings()
-	s.relayered = func() { refreshSettingsPage(r) }
+	s.relayered = func() {
+		refreshSettingsPage(r)
+		refreshSettingsReview(r)
+	}
 	name := Parameter{Type: "string", Description: "Setting name (default: the focused Settings row)", Source: "ochazuke.settings.names"}
 	r.Register(Operation{Verb: "revert", Noun: "ochazuke.setting", Description: "Drop the setting's session value, so its saved value shows again", Parameters: map[string]Parameter{"name": name}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		one, err := settingOfArgs(r, c, a)
@@ -675,7 +678,7 @@ func registerSettingsSession(r *Runtime) {
 		}
 		return names, err
 	}})
-	r.Register(Operation{Verb: "revert", Noun: "ochazuke.settings", Description: "Drop every session value, so the saved values show again", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "revert", Noun: "ochazuke.settings", Checks: []VerbCheck{revertAllCheck}, Description: "Drop every session value, so the saved values show again (asks first)", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		names := r.Settings().RevertAll()
 		if names == nil {
 			names = []string{}
@@ -704,6 +707,25 @@ func registerSettingsSession(r *Runtime) {
 		}
 	}
 }
+
+// revertAllCheck asks before settings.revert drops session values that
+// differ from the saved ones (nothing takes a revert back), naming them;
+// none runs at once.
+var revertAllCheck = VerbCheck{Name: "settings.revert", Check: func(r *Runtime, _ Context, _ Arguments) Verdict {
+	diff := r.Settings().Diff()
+	if len(diff) == 0 {
+		return Allow()
+	}
+	names := make([]string, len(diff))
+	for i, d := range diff {
+		names[i] = d.Name
+	}
+	noun := "session values"
+	if len(diff) == 1 {
+		noun = "session value"
+	}
+	return AskFirst(fmt.Sprintf("Revert %d %s (%s) to the saved ones?", len(diff), noun, strings.Join(names, ", ")))
+}}
 
 // resetAllCheck asks before settings.reset-all from every path, naming
 // how many settings it resets and where; nothing to reset runs at once.

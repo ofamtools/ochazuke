@@ -78,3 +78,13 @@ func TestCLIBareSet(t *testing.T) {
 		}
 	}
 }
+
+// settings review from a CLI process has no session to review: it says
+// so (exit 0) and points at settings diff.
+func TestCLISettingsReviewHasNoSession(t *testing.T) {
+	f, _ := setFixture(t)
+	out, errOut, err := f.run("", "settings", "review")
+	if err != nil || !strings.Contains(out, "no session to review") || !strings.Contains(out, "settings diff") {
+		t.Fatalf("review: %q %q %v", out, errOut, err)
+	}
+}

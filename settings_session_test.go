@@ -234,7 +234,11 @@ func TestSessionVerbs(t *testing.T) {
 		t.Fatalf("mksettings: %v %v", got, err)
 	}
 	_, _ = s.SetSession("wrap", true)
-	if got, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "revert"}); err != nil || !reflect.DeepEqual(got, []string{"wrap"}) {
+	// settings.revert asks first, naming what it drops.
+	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "revert"}); err != nil || r.TopModal() != "confirm" || r.Instances["confirm"].Payload.Prompt != "Revert 1 session value (wrap) to the saved ones?" {
+		t.Fatalf("settings revert did not ask: %q %v", r.TopModal(), err)
+	}
+	if got, err := r.Execute(Request{Noun: "ochazuke.confirm", Verb: "accept"}); err != nil || !reflect.DeepEqual(got, []string{"wrap"}) {
 		t.Fatalf("settings revert: %v %v", got, err)
 	}
 	_, _ = s.SetSession("wrap", true)
