@@ -40,6 +40,15 @@ type Parameter struct {
 	Path string `json:"path,omitempty"`
 	Base string `json:"base,omitempty"`
 	New  bool   `json:"new,omitempty"`
+	// Rest marks a string parameter that takes the rest of the line,
+	// verbatim: the palette hands it the text from its first word to the
+	// end, quotes and spaces as typed, and the CLI joins the remaining
+	// words with spaces. A verb has at most one, the last its words fill
+	// (settings.apply's line: :set scrolloff=5 nowrap). Its Source is asked
+	// with the text as the query and, when it declares
+	// ChoicesCursorParameter, the cursor in it; each choice's id is the
+	// text up to the cursor with the completion in place.
+	Rest bool `json:"rest,omitempty"`
 }
 
 // Request names an operation and, optionally, the instance it addresses.
@@ -184,6 +193,47 @@ func (o Operation) HistoryKindOf() string {
 		return HistoryChange
 	}
 	return HistoryAction
+}
+
+// RestParameter is the name of the operation's rest-of-line parameter
+// (Parameter.Rest), "" when it has none.
+func (o Operation) RestParameter() string {
+	for name, p := range o.Parameters {
+		if p.Rest {
+			return name
+		}
+	}
+	return ""
+}
+
+// checkRestParameter refuses more than one rest parameter, one that is not
+// a string, and one that words do not fill last (another parameter after
+// it in ParameterOrder that only a word could fill: a required one).
+func checkRestParameter(o Operation) error {
+	rest := ""
+	for name, p := range o.Parameters {
+		if !p.Rest {
+			continue
+		}
+		if rest != "" {
+			return fmt.Errorf("%s: parameters %s and %s both take the rest of the line", o.Key(), min(rest, name), max(rest, name))
+		}
+		if p.Type != "" && p.Type != "string" {
+			return fmt.Errorf("%s: rest parameter %s must be a string, not %s", o.Key(), name, p.Type)
+		}
+		rest = name
+	}
+	if rest == "" {
+		return nil
+	}
+	order := o.ParameterOrder()
+	after := order[slices.Index(order, rest)+1:]
+	for _, name := range after {
+		if o.Parameters[name].Required {
+			return fmt.Errorf("%s: required parameter %s comes after the rest parameter %s", o.Key(), name, rest)
+		}
+	}
+	return nil
 }
 
 // ParameterOrder lists the operation's parameters in positional order:
@@ -521,6 +571,9 @@ func (r *Runtime) Register(o Operation) {
 	r.ensureNoun(o.Noun)
 	if o.Parameters == nil {
 		o.Parameters = map[string]Parameter{}
+	}
+	if err := checkRestParameter(o); err != nil {
+		panic(err.Error())
 	}
 	switch o.Kind {
 	case "":

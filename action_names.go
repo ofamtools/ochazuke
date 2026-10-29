@@ -39,6 +39,12 @@ const (
 // without a noun (w!, q): its noun is its action's, and the bare name
 // alone reaches it in the palette, the CLI and the API (Request{Verb:
 // "w!"}); a binding row names it by its full name (restructure.w!).
+// Shadows marks a bare alias that may take the name of a verb and yields
+// to it by what follows (set for settings.apply beside mode set): typed
+// alone, or followed by words its action's rest parameter reads, it is
+// the alias; followed by a noun that has the verb of its name, the line
+// is that noun's verb (set mode normal is mode set normal). Its name is
+// the bare word (set), since NOUN.VERB may be the verb it shadows.
 type ActionAlias struct {
 	Alias       string    `json:"alias"`
 	Action      string    `json:"action"`
@@ -50,6 +56,7 @@ type ActionAlias struct {
 	Source      string    `json:"source,omitempty"`
 	Args        Arguments `json:"args,omitempty"`
 	Bare        bool      `json:"bare,omitempty"`
+	Shadows     bool      `json:"shadows,omitempty"`
 }
 
 // Name is how the alias is typed: its bare name, else noun.verb.
@@ -162,24 +169,26 @@ func (r *Runtime) checkAlias(a ActionAlias) (ActionAlias, error) {
 		a.Alias, ok = verb, false
 	}
 	switch {
+	case ok && !a.Bare && a.Shadows:
+		return a, fmt.Errorf("alias %s: shadows is for a bare alias (a name without a dot)", a.Alias)
 	case ok && !a.Bare:
 	case !strings.Contains(a.Alias, "."):
 		// A bare alias (w!, q): its noun is its action's.
 		bare := a.Alias
 		noun, verb, a.Bare = op.Noun, bare, true
-		if prev, ok := r.bareAlias(bare); ok && prev.Alias != noun+"."+verb {
+		if prev, ok := r.bareAlias(bare); ok && prev.Alias != bareName(noun, verb, a.Shadows) {
 			return a, fmt.Errorf("alias %s is already an alias of %s (%s)", bare, r.DisplayKey(prev.Action), prev.Source)
 		}
 		if r.Nouns[r.CanonicalNoun(bare)] != nil {
 			return a, fmt.Errorf("alias %s clashes with the noun %s", bare, bare)
 		}
-		if owner, ok := r.verbOwner(bare); ok && r.AliasShadow() != AliasShadowAllow {
+		if owner, ok := r.verbOwner(bare); ok && !a.Shadows && r.AliasShadow() != AliasShadowAllow {
 			return a, fmt.Errorf("alias %s would shadow the verb %s (%s is %s)", bare, r.DisplayKey(owner), AliasShadowSetting, AliasShadowRefuse)
 		}
 	default:
 		return a, fmt.Errorf("alias %q names no registered noun (an alias is noun.verb, or a bare name without a dot)", a.Alias)
 	}
-	a.Noun, a.Verb, a.Alias = noun, verb, noun+"."+verb
+	a.Noun, a.Verb, a.Alias = noun, verb, bareName(noun, verb, a.Bare && a.Shadows)
 	if len(a.Args) > 0 {
 		// Presets are part of a request: what they give is checked here,
 		// a required argument they leave out when the alias runs.
@@ -217,6 +226,15 @@ func (r *Runtime) splitNounName(name string) (noun, verb string, ok bool) {
 		}
 	}
 	return "", "", false
+}
+
+// bareName is an alias's name in the table: noun.verb, or the bare word
+// for an alias that shadows a verb (ActionAlias.Shadows).
+func bareName(noun, verb string, shadows bool) string {
+	if shadows {
+		return verb
+	}
+	return noun + "." + verb
 }
 
 // bareAlias is the bare alias typed as name, false when none is.
@@ -299,6 +317,19 @@ func (r *Runtime) claimName(name string) {
 	}
 	r.removeAlias(name)
 	r.actionNames.problems = append(r.actionNames.problems, fmt.Sprintf("alias %s of %s dropped: an action of that name is registered", r.DisplayKey(name), r.DisplayKey(a.Action)))
+}
+
+// claimBareName is called when a noun named name is registered: a bare
+// alias of that word gives way (a noun's name is never an alias's, and the
+// noun came later: o-inventory's verb noun over the framework's verb
+// alias), recorded as claimName records it.
+func (r *Runtime) claimBareName(name string) {
+	a, ok := r.bareAlias(name)
+	if !ok {
+		return
+	}
+	r.removeAlias(a.Alias)
+	r.actionNames.problems = append(r.actionNames.problems, fmt.Sprintf("alias %s of %s dropped: a noun of that name is registered", name, r.DisplayKey(a.Action)))
 }
 
 // ActionAliasProblems are the aliases dropped because an action registered

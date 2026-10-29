@@ -122,6 +122,9 @@ func (p *Palette) slot(ix lineIndex, c commandLine, tokens []lineToken) (paramSl
 
 // currentSlot is the slot of the palette's line as typed.
 func (p *Palette) currentSlot() (paramSlot, bool) {
+	if op, name, _, _, ok := p.restAt(p.index()); ok {
+		return paramSlot{Op: op, Name: name}, true
+	}
 	tokens, trailing := tokenize(p.Text())
 	if !trailing {
 		tokens = tokens[:len(tokens)-1]

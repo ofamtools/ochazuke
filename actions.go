@@ -388,11 +388,14 @@ func (r *Runtime) UserAliases() []ActionAlias { return slices.Clone(r.Config().a
 // Action is a registered action or alias. An alias may not take the name
 // of an action or of another alias; such a row is skipped and reported, as
 // bindings check reports a bad row. Note is free text listed with it.
+// Shadows lets a bare alias take a verb's name and yield to it by what
+// follows (ActionAlias.Shadows).
 type AliasRow struct {
-	Alias  string    `json:"alias"`
-	Action string    `json:"action"`
-	Note   string    `json:"note,omitempty"`
-	Args   Arguments `json:"args,omitempty"`
+	Alias   string    `json:"alias"`
+	Action  string    `json:"action"`
+	Note    string    `json:"note,omitempty"`
+	Args    Arguments `json:"args,omitempty"`
+	Shadows bool      `json:"shadows,omitempty"`
 }
 
 // checkUserAlias validates one alias row against r: an earlier row of the
@@ -405,7 +408,7 @@ func (r *Runtime) checkUserAlias(row AliasRow, seen map[string]int) (ActionAlias
 			return ActionAlias{}, fmt.Errorf("alias %s is already declared by entry %d", r.DisplayKey(noun+"."+verb), n)
 		}
 	}
-	a, err := r.checkAlias(ActionAlias{Alias: row.Alias, Action: row.Action, Note: row.Note, Args: row.Args, Source: AliasConfig})
+	a, err := r.checkAlias(ActionAlias{Alias: row.Alias, Action: row.Action, Note: row.Note, Args: row.Args, Shadows: row.Shadows, Source: AliasConfig})
 	if err != nil {
 		return a, err
 	}

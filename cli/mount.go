@@ -27,10 +27,27 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 		fmt.Fprintln(sh.stderr(), "warning:", problem)
 	}
 	r := sh.Runtime
-	// A bare action alias (bin w!) is its noun's words and its verb.
+	// A bare action alias (bin w!) is its noun's words and its verb. One
+	// that shadows a verb reads by the word after it (ReadBareAlias: bin
+	// set mode normal is bin mode set normal), and one followed by more
+	// aliases of its action (bin verbose set opt?) is read by the shell
+	// whole: a command of its own name runs the words as typed.
 	if len(app.Args) > 0 && sh.bareAlias(app.Args[0]) {
 		a, _ := r.ActionAlias(app.Args[0])
-		app.Args = append(append(strings.Split(a.Noun, "."), a.Verb), app.Args[1:]...)
+		reading, _, err := r.ReadBareAlias(r.Context(), app.Args, nil)
+		switch {
+		case err == nil && reading.Noun != "":
+			noun := r.CanonicalNoun(reading.Noun)
+			app.Args = append(append(strings.Split(noun, "."), a.Verb), app.Args[2:]...)
+		case err != nil || a.Shadows || reading.Skip > 1:
+			name := app.Args[0]
+			app.Add(oden.Command{Name: name, Summary: "alias of " + r.DisplayKey(a.Action), Source: a.Alias,
+				Run: func(ctx context.Context, args []string) error {
+					return sh.Run(ctx, append([]string{name}, args...))
+				}})
+		default:
+			app.Args = append(append(strings.Split(a.Noun, "."), a.Verb), app.Args[1:]...)
+		}
 	}
 	// A dotted noun is one word too (bin ochazuke.settings list): the word is
 	// read as the groups it nests in before oden resolves it.
@@ -83,6 +100,11 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 		// runs (project associate, alias of pane associate).
 		var aliases []string
 		for _, a := range r.AliasesOf(op.Key()) {
+			if a.Shadows {
+				// Its noun.verb is the verb it shadows (settings set):
+				// it runs by its bare word only (above).
+				continue
+			}
 			// An alias with preset arguments is a command of its own, so
 			// it runs by its name (and its args) and its presets are
 			// not required words.

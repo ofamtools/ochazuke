@@ -142,7 +142,13 @@ func (r *Runtime) canonicalRequest(q Request) Request {
 	// Do("w!"), which reads it as the noun).
 	if bare := q.Noun + q.Verb; (q.Noun == "" || q.Verb == "") && bare != "" {
 		if a, ok := r.bareAlias(bare); ok {
-			q.Noun, q.Verb = a.Noun, a.Verb
+			if op, ok := r.Operations[a.Action]; ok {
+				if q.Via == "" {
+					q.Via = a.Alias
+				}
+				q.Noun, q.Verb = op.Noun, op.Verb
+				return withAliasArgs(q, a)
+			}
 		}
 	}
 	q.Noun = r.CanonicalNoun(q.Noun)

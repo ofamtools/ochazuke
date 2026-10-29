@@ -267,9 +267,12 @@ const actionsExample = `[
     "verb": "example-open",
     "description": "Example: hand the terminal to a full-screen program; the TUI resumes when it exits",
     "command": ["less", "{{data.path}}"],
+    "parameters": {
+      "search": {"type": "string", "rest": true, "description": "Text to look for; rest takes the rest of the palette line as typed (the CLI joins the remaining words)"}
+    },
     "foreground": true
   },
-  {"alias": "example-open!", "action": "app.example-open", "args": {}, "note": "Example: an alias row; args presets the action's arguments"}
+  {"alias": "example-open!", "action": "app.example-open", "args": {}, "shadows": false, "note": "Example: an alias row; args presets the action's arguments; shadows lets a bare alias take a verb's name and yield to NOUN VERB"}
 ]
 `
 

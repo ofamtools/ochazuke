@@ -410,6 +410,7 @@ func (r *Runtime) ensureNoun(name string) *Noun {
 		}
 		n = &Noun{Name: name, Bindings: map[string][]Binding{}, Actions: map[string]Handler{}}
 		r.Nouns[name] = n
+		r.claimBareName(name)
 	}
 	r.noteFrameworkNoun(name)
 	return n

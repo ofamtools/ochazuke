@@ -1,0 +1,12 @@
+{
+  "name": "set with a word that is both a noun's prefix and a setting's: the line names both readings and runs nothing",
+  "area": "settings",
+  "theme": "dark",
+  "width": 80,
+  "height": 10,
+  "page": {"lists": [{"id": "a", "rows": 1}]},
+  "script": [":", {"type": "set foc"}, "enter"],
+  "expect": [
+    {"contains": ["\"foc\" is ambiguous: noun focus (focus set), or line", "focus-display"]}
+  ]
+}

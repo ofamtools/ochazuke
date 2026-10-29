@@ -1,0 +1,20 @@
+{
+  "name": "set completion: tab after a name prefix completes it in place with no space, = and tab inserts the current value, an enum offers its values",
+  "area": "settings",
+  "theme": "dark",
+  "width": 80,
+  "height": 18,
+  "settings": [
+    {"name": "scrolloff", "type": "integer", "default": 2, "description": "Rows kept above and below the focus"},
+    {"name": "stack", "type": "string", "default": "tabs", "enum": ["tabs", "stack", "grid"], "description": "How panes are laid out"},
+    {"name": "wrap", "type": "boolean", "default": true, "description": "Wrap long lines"}
+  ],
+  "page": {"lists": [{"id": "a", "rows": 1}]},
+  "script": [":", {"type": "set nowrap scr"}, "tab", {"type": "="}, "tab", {"type": " stack="}],
+  "expect": [
+    {"after": 2, "contains": ["line · string · optional · from settings.complete", "scrolloff · integer · 2"]},
+    {"after": 3, "contains": ["line=nowrap scrolloff ("]},
+    {"after": 5, "contains": [": set nowrap scrolloff=2"]},
+    {"contains": [": set nowrap scrolloff=2 stack=", "tabs · current", "stack", "grid"]}
+  ]
+}

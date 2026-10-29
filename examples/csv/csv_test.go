@@ -706,7 +706,9 @@ func TestGridHighlightsStayVisibleUnderThePalette(t *testing.T) {
 	for _, line := range lines[5:7] {
 		got = append(got, line[:strings.Index(line, "│")])
 	}
-	want := []string{"\x1b[2m   1 \x1b[4mann   \x1b[24m a@\x1b[m", "\x1b[2m   2 \x1b[7mbo    \x1b[27m b@\x1b[m"}
+	// The palette's list names each verb's aliases (apply · also se,
+	// setg, …), so its box is wide and starts near the left edge.
+	want := []string{"\x1b[2m   1 \x1b[4mann\x1b[m", "\x1b[2m   2 \x1b[7mbo \x1b[m"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("backdrop rows = %q, want %q", got, want)
 	}

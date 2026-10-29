@@ -78,10 +78,25 @@ func (p *Palette) recallLines() []string {
 // commandText spells a request as a line: verb, noun, then its arguments
 // in parameter order up to the first one it omits.
 func (p *Palette) commandText(q Request) string {
+	op := p.r.Operations[p.r.CanonicalKey(q.Key())]
 	words := []string{q.Verb, p.r.DisplayNoun(q.Noun)}
-	for _, name := range paramOrder(p.r.Operations[p.r.CanonicalKey(q.Key())]) {
+	// A line typed by a bare alias (set nowrap) is spelled back by it,
+	// without the arguments it presets.
+	var preset Arguments
+	if a, ok := p.r.actionNames.aliases[q.Via]; ok && a.Bare && a.Action == op.Key() {
+		words, preset = []string{a.Verb}, a.Args
+	}
+	for _, name := range paramOrder(op) {
+		if _, ok := preset[name]; ok {
+			continue
+		}
 		v, ok := q.Args[name]
 		if !ok {
+			break
+		}
+		if op.Parameters[name].Rest {
+			// A rest parameter's text goes back as typed, last.
+			words = append(words, fmt.Sprint(v))
 			break
 		}
 		words = append(words, quoteWord(fmt.Sprint(v)))

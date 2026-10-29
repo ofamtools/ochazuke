@@ -941,6 +941,18 @@ Owner decisions 9 to 11 of the Vim-parity audit (o-plans `plans/vim-parity-audit
 - Stories `settings/set-line-show`, `settings/set-line-error`, `settings/set-line-all`.
 - Consumers: nothing to change.
 
+### Settings: `:set` on the palette line, with completion (the `:set` plan, lane D)
+
+- New: `Parameter.Rest`, a parameter that takes the rest of the line verbatim (quotes and spaces as typed); the palette hands it the text from its first word to the end, the CLI joins the remaining words with spaces. General: any verb may declare one (at most one, a string, with no required parameter after it; `Operation.RestParameter`). Its `Source` is asked with the text as `query` and, when the source declares `cursor` (`ChoicesCursorParameter`), the cursor in it; each choice's id is the text up to the cursor completed, and `tab` splices it in place with no space after (`PaletteEntry.Splice`, `From`). History recall spells a rest back as typed, after the bare alias it was typed by. `settings.apply`'s `line` is a rest parameter: `:settings apply scrolloff=5 nowrap`, `BIN settings apply scrolloff=5 nowrap`.
+- **Changed palette behaviour:** a `settings apply "…"` line keeps its quotes now (the rest is verbatim); type the line without them.
+- New aliases (framework): `set`, `se`, `setlocal`, `setl`, `setglobal`, `setg` → `settings.apply` (settings are global, so the local and global forms are `:set`); `verbose`, `verb` → `settings.apply {verbose: true}`, so `:verbose set opt?` adds where values were set; `options`, `opt` → `settings.edit` (the Settings page).
+- New: `ActionAlias.Shadows` (and `shadows` on an `actions.json` alias row), a bare alias that may take a verb's name and yields to it by what follows (`ReadBareAlias`, one rule for the palette and the CLI): a noun with the verb of its name right after it runs that noun's verb (`set mode normal` is `mode set normal`; `set focus`, `set palette`, `set setting`, `set settings` likewise); an exact noun wins, then the rest parameter's reading (its source offers the word exactly, then as a prefix); a word that is both a noun's prefix and offered by the rest is an error naming both (`"foc" is ambiguous: noun focus (focus set), or line focus-display`). Such an alias is named by its bare word (`set`), since `NOUN.VERB` is the verb it shadows; it needs no `aliases.shadow: allow`. Bare aliases of the same action after the first add their presets (`verbose set`).
+- New verb: `settings.complete {query, cursor}`, the `:set` line's completion source: setting names, sorted (`noNAME`/`invNAME` for booleans once a word is typed, `all` and `all&` as the first word), the current value after `=` or `:`, an enum's values and `true`/`false`, a list's items after `-=`; each label names the class and the current value.
+- `CanonicalRequest` of a bare alias request (`Request{Verb: "w!"}`) resolves through the alias row directly (same result for every existing alias).
+- `testdata/set-collisions.json`: every family app's noun words that are a setting's name or prefix, with how `set WORD` reads; `TestSetCollisionsAcrossTheFamily` checks each. Four route to a noun's `set` verb: `focus` (`focus-display`), `palette` (`palette.missing-opens-form`), `setting` and `settings` (`settings.autosave`, `settings.mark-session`).
+- Stories `settings/set-line-bare`, `set-complete`, `set-ambiguous`, `set-verbose` (dark, 80 columns); `set-line-show` and `set-line-error` type their lines unquoted.
+- Consumers: nothing to change. An app with a bare alias named like a verb under `aliases.shadow: allow` keeps it; `shadows: true` on the row is the new way.
+
 ## v0.48.0 (2026-10-29)
 
 ### Inherited sequences no longer shadow a mode's own keys

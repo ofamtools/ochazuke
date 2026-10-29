@@ -221,7 +221,23 @@ func (p *Palette) complete(a Arguments) error {
 	if !ok {
 		return errors.New("no completion highlighted (ctrl+n / ctrl+p)")
 	}
-	return p.appendWord(entry.Value)
+	return p.accept(entry)
+}
+
+// accept takes a completion: a word replaces the word being typed (and a
+// space follows), a rest parameter's choice is spliced over the line from
+// its From to the cursor, with the cursor after it.
+func (p *Palette) accept(entry PaletteEntry) error {
+	if !entry.Splice {
+		return p.appendWord(entry.Value)
+	}
+	at := max(0, min(p.line.Cursor, len(p.line.Text)))
+	from := max(0, min(entry.From, at))
+	if err := p.line.Replace(from, at, entry.Value); err != nil {
+		return err
+	}
+	p.sync()
+	return nil
 }
 
 // appendWord replaces the word being typed (or adds one after a space) and
@@ -249,7 +265,7 @@ func (p *Palette) run() error {
 		return err
 	}
 	if entry, ok := p.highlighted(p.completions()); ok {
-		return p.appendWord(entry.Value)
+		return p.accept(entry)
 	}
 	c := p.parse(p.Text())
 	if c.Err != nil {

@@ -421,9 +421,9 @@ Conformance:
 | insert | mode | `mode.set` |
 | insert | modes | `modes.list` |
 | insert | outline | `outline.indent` `outline.leave` |
-| insert | palette | `palette.cancel` `palette.move` `palette.run` |
+| insert | palette | `palette.cancel` `palette.complete` `palette.move` `palette.run` |
 | insert | setting-value | `setting-value.cancel` `setting-value.commit` |
-| insert | settings | `settings.edit` |
+| insert | settings | `settings.complete` `settings.edit` |
 | list_filter | list | `list.filter-choose` `list.filter-clear` `list.filter-erase` `list.filter-keep` `list.filter-type` `list.move` |
 | normal | app | `app.quit` |
 | normal | bindings | `bindings.help` |

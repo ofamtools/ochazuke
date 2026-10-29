@@ -1,0 +1,17 @@
+{
+  "name": "verbose set opt? adds where the value was set: the default's file, then this session's :set",
+  "area": "settings",
+  "theme": "dark",
+  "width": 80,
+  "height": 10,
+  "settings": [
+    {"name": "scrolloff", "type": "integer", "default": 2, "description": "Rows kept above and below the focus"}
+  ],
+  "session": {"scrolloff": 2},
+  "page": {"lists": [{"id": "a", "rows": 1}]},
+  "script": [":", {"type": "verbose set modal-dim?"}, "enter", ":", {"type": "set scrolloff=7"}, "enter", ":", {"type": "verbose set scrolloff?"}, "enter"],
+  "expect": [
+    {"after": 3, "modal": "", "contains": ["modal-dim=35 — default, settings/ochazu"]},
+    {"modal": "", "contains": ["scrolloff=7 — set this session by set"]}
+  ]
+}

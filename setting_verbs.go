@@ -663,9 +663,31 @@ func registerSettingsApply(r *Runtime) {
 	r.Register(Operation{Verb: "apply", Noun: "ochazuke.settings", Checks: []VerbCheck{applyCheck},
 		Description: "Run a :set line over the settings (opt, noopt, opt!, opt?, opt&, opt<, opt=v, opt+=v, opt-=v, opt^=v, all, all&; several words, all or nothing); a leading verbose adds where values were set",
 		Parameters: map[string]Parameter{
-			"line":    {Type: "string", Description: "The :set line, as one word: 'scrolloff=5 nowrap' (empty: the settings that differ from their saved values)"},
+			"line":    {Type: "string", Rest: true, Free: true, Source: "ochazuke.settings.complete", Description: "The :set line, the rest of the command: scrolloff=5 nowrap (empty: the settings that differ from their saved values)"},
 			"verbose": {Type: "boolean", Description: "Add where each shown value was set (:verbose)"},
 			"scope":   {Type: "string", Enum: []string{ScopeSession, ScopeFile}, Description: "Where the line's values are written: session (the default) or file"},
 		},
 		Positional: []string{"line"}, Result: "JSON value", Run: settingsApply})
+	registerSettingsComplete(r)
+	// Vim's command names for the line (plan decision 3: settings are
+	// global, so the local and global forms are :set). set is also a verb
+	// of mode, focus, confirm, appearance and settings, so its row shadows
+	// that verb by what follows (ActionAlias.Shadows, plan decision 4):
+	// set mode normal is mode set normal.
+	for _, a := range []ActionAlias{
+		{Alias: "set", Action: "ochazuke.settings.apply", Shadows: true, Note: "Vim's :set; set NOUN ... runs NOUN set"},
+		{Alias: "se", Action: "ochazuke.settings.apply", Note: "Vim's :se"},
+		{Alias: "setlocal", Action: "ochazuke.settings.apply", Note: "Vim's :setlocal; settings are global, so it is :set"},
+		{Alias: "setl", Action: "ochazuke.settings.apply", Note: "Vim's :setl; settings are global, so it is :set"},
+		{Alias: "setglobal", Action: "ochazuke.settings.apply", Note: "Vim's :setglobal; settings are global, so it is :set"},
+		{Alias: "setg", Action: "ochazuke.settings.apply", Note: "Vim's :setg; settings are global, so it is :set"},
+		{Alias: "verbose", Action: "ochazuke.settings.apply", Args: Arguments{"verbose": true}, Note: "Vim's :verbose before a set word: verbose set opt?"},
+		{Alias: "verb", Action: "ochazuke.settings.apply", Args: Arguments{"verbose": true}, Note: "Vim's :verb before a set word"},
+		{Alias: "options", Action: "ochazuke.settings.edit", Note: "Vim's :options: the Settings page"},
+		{Alias: "opt", Action: "ochazuke.settings.edit", Note: "Vim's :opt: the Settings page"},
+	} {
+		if err := r.AddActionAlias(a); err != nil {
+			panic(err)
+		}
+	}
 }

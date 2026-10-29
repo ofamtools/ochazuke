@@ -34,6 +34,11 @@ type PaletteEntry struct {
 	// (ActionAlias): typing one narrows to this entry, which is listed
 	// once under its canonical name.
 	Aliases []string `json:"aliases,omitempty"`
+	// Splice marks a rest parameter's completion (Parameter.Rest): taking
+	// it puts Value in place of the line from From (a rune offset) to the
+	// cursor, adding no space, instead of replacing the word being typed.
+	Splice bool `json:"splice,omitempty"`
+	From   int  `json:"from,omitempty"`
 }
 
 // RegisterNoun adds or replaces a live instance source without changing operation forms.
@@ -86,6 +91,12 @@ func PagesPaletteSource(r *Runtime, _ Context) []PaletteInstance {
 // word being typed (a prefix, as abbreviation resolves) and by the filter
 // code, if one was typed for this position.
 func (p *Palette) completions() []PaletteEntry {
+	if entries, ok := p.restCompletions(); ok {
+		if p.filter != "" && p.filter != "p" {
+			return nil
+		}
+		return entries
+	}
 	tokens, trailing := tokenize(p.Text())
 	partial := ""
 	if !trailing {
@@ -201,4 +212,62 @@ func verbLabel(op Operation) string {
 		label += " · confirm"
 	}
 	return label
+}
+
+// restAt finds the rest parameter (Parameter.Rest) the palette's cursor is
+// in: the line's operation, the parameter, where its text starts (a rune
+// offset into the line) and the cursor in that text. A line whose rest
+// has not started yet (set and a space) is in it at the end of the line.
+func (p *Palette) restAt(ix lineIndex) (op Operation, name string, start, cursor int, ok bool) {
+	text := p.Text()
+	n := len([]rune(text))
+	at := n
+	if p.line != nil {
+		at = max(0, min(p.line.Cursor, n))
+	}
+	tokens, trailing := tokenize(text)
+	if len(tokens) == 0 {
+		return Operation{}, "", 0, 0, false
+	}
+	c := p.parseTokens(ix, tokens)
+	if c.Err == nil && c.Rest != nil && at >= c.Rest.Start {
+		return c.Op, c.Rest.Param, c.Rest.Start, at - c.Rest.Start, true
+	}
+	if !trailing || c.Rest != nil {
+		return Operation{}, "", 0, 0, false
+	}
+	if slot, ok := p.slot(ix, c, tokens); ok && slot.Op.Parameters[slot.Name].Rest {
+		return slot.Op, slot.Name, n, at - n, at == n
+	}
+	return Operation{}, "", 0, 0, false
+}
+
+// restCompletions are the rest parameter's choices at the cursor, each
+// spliced over the rest's text up to the cursor; false when the cursor is
+// in no rest parameter. Cached per text and cursor until the line changes.
+func (p *Palette) restCompletions() ([]PaletteEntry, bool) {
+	ix := p.index()
+	op, name, start, cursor, ok := p.restAt(ix)
+	if !ok {
+		return nil, false
+	}
+	rest := string([]rune(p.Text())[start:])
+	key := fmt.Sprintf("%s/%s\x00rest\x00%d\x00%s", op.Key(), name, cursor, rest)
+	cached, hit := p.choiceCache[key]
+	if !hit {
+		cached.choices, cached.err = p.r.restChoices(p.origin.Clone(), op, rest, cursor)
+		if p.choiceCache == nil {
+			p.choiceCache = map[string]choiceList{}
+		}
+		p.choiceCache[key] = cached
+	}
+	out := make([]PaletteEntry, 0, len(cached.choices))
+	for _, choice := range cached.choices {
+		label := choice.Label
+		if label == "" {
+			label = choice.ID
+		}
+		out = append(out, PaletteEntry{Value: choice.ID, Kind: "choice", Label: label, ID: choice.ID, Splice: true, From: start})
+	}
+	return out, true
 }

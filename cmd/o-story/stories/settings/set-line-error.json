@@ -9,7 +9,7 @@
   ],
   "session": {"scrolloff": 2},
   "page": {"lists": [{"id": "a", "rows": 1}]},
-  "script": [":", {"type": "settings apply \"nowrap scrolloff=lots\""}, "enter"],
+  "script": [":", {"type": "settings apply nowrap scrolloff=lots"}, "enter"],
   "expect": [
     {"contains": ["scrolloff takes a whole number: lots; nothing was changed"]}
   ]

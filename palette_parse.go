@@ -24,40 +24,56 @@ import (
 // the following words settle: a first word that is a prefix of exactly one
 // verb and one noun takes the reading that resolves further.
 
-// lineToken is one word of the line; Text is unquoted.
+// lineToken is one word of the line; Text is unquoted. Start is where
+// the word starts (a rune offset into the line) and Tail the line from
+// there to its end, as typed: what a rest parameter (Parameter.Rest) takes.
 type lineToken struct {
-	Text string
+	Text  string
+	Start int
+	Tail  string
 }
 
 // tokenize splits the line on spaces; a word in double quotes may hold
 // spaces. trailing reports that the line ends between words, so the next
 // word is empty rather than the last one being typed.
 func tokenize(line string) (tokens []lineToken, trailing bool) {
+	rs := []rune(line)
 	var word strings.Builder
 	inWord, quoted := false, false
-	for _, r := range line {
+	start := 0
+	end := func() {
+		tokens = append(tokens, lineToken{Text: word.String(), Start: start, Tail: string(rs[start:])})
+		word.Reset()
+		inWord = false
+	}
+	for i, r := range rs {
 		switch {
 		case quoted && r == '"':
 			quoted = false
 		case quoted:
 			word.WriteRune(r)
 		case r == '"':
+			if !inWord {
+				start = i
+			}
 			quoted, inWord = true, true
 		case unicode.IsSpace(r):
 			if inWord {
-				tokens = append(tokens, lineToken{Text: word.String()})
-				word.Reset()
-				inWord = false
+				end()
 			}
 		default:
+			if !inWord {
+				start = i
+			}
 			word.WriteRune(r)
 			inWord = true
 		}
 	}
+	trailing = !inWord
 	if inWord {
-		tokens = append(tokens, lineToken{Text: word.String()})
+		end()
 	}
-	return tokens, !inWord
+	return tokens, trailing
 }
 
 // quoteWord spells a value as one word of the line.
@@ -91,6 +107,16 @@ type commandLine struct {
 	// noun", "verb", "noun" or a parameter name.
 	Missing string
 	Err     error
+	// Rest is where a rest parameter's text starts (Parameter.Rest), nil
+	// when the line has none.
+	Rest *restSpan
+}
+
+// restSpan is the rest parameter a line fills and the rune offset its
+// text starts at.
+type restSpan struct {
+	Param string
+	Start int
 }
 
 func (c commandLine) known() bool { return c.Op.Verb != "" }
@@ -322,12 +348,36 @@ func (p *Palette) parseTokens(ix lineIndex, tokens []lineToken) commandLine {
 	// A bare alias typed whole (w!) is its action, on its own noun, before
 	// any verb of that name (aliases.shadow allow lets one share a verb's
 	// name; refuse keeps them apart).
+	// A bare alias that shadows a verb (set) reads by the word after it
+	// (ReadBareAlias): a noun that has the verb makes the line that noun's
+	// verb, read below as any line is; aliases of the same action after
+	// it (verbose set) add their presets.
 	if a, ok := p.r.bareAlias(word); ok {
-		if op, offered := ix.aliasOps[p.r.DisplayNoun(a.Noun)+"."+a.Verb]; offered {
-			c.Words = append(c.Words, PaletteWord{Text: word, Kind: "verb", Value: a.Verb})
-			c.Op, c.Via, c.Implied = op, a.Alias, true
-			p.parseParams(&c, tokens[1:], "")
-			return c
+		if op, offered := p.r.Operations[a.Action]; offered && p.offered(op) {
+			words := make([]string, len(tokens))
+			for i, t := range tokens {
+				words[i] = t.Text
+			}
+			reading, _, err := p.r.ReadBareAlias(p.origin.Clone(), words, optionValues(ix.nounsOf(a.Verb)))
+			switch {
+			case err != nil:
+				c.Words = append(c.Words, PaletteWord{Text: word, Kind: "verb", Value: a.Verb}, PaletteWord{Text: tokens[1].Text})
+				c.Err = err
+				return c
+			case reading.Noun == "":
+				for _, t := range tokens[:reading.Skip] {
+					c.Words = append(c.Words, PaletteWord{Text: t.Text, Kind: "verb", Value: t.Text})
+				}
+				c.Op, c.Via, c.Implied = op, a.Alias, true
+				p.parseParams(&c, tokens[reading.Skip:], "")
+				// The presets fill what the words left out: a typed word wins.
+				for k, v := range reading.Args {
+					if _, set := c.Args[k]; !set {
+						c.Args[k] = v
+					}
+				}
+				return c
+			}
 		}
 	}
 	hit, candidates, exact := matchWord(word, append(append([]option{}, ix.byVerbs...), ix.byNouns...))
@@ -488,6 +538,14 @@ func remainingParams(c commandLine) []string {
 func (p *Palette) parseParams(c *commandLine, tokens []lineToken, preset string) {
 	order := remainingParams(*c)
 	for i, token := range tokens {
+		if i < len(order) && c.Op.Parameters[order[i]].Rest {
+			// The rest of the line, verbatim, is this parameter's value.
+			name := order[i]
+			c.Words = append(c.Words, PaletteWord{Text: token.Tail, Kind: "argument", Param: name, Value: token.Tail})
+			c.Args[name] = token.Tail
+			c.Rest = &restSpan{Param: name, Start: token.Start}
+			break
+		}
 		if i >= len(order) {
 			c.Words = append(c.Words, PaletteWord{Text: token.Text})
 			c.Err = fmt.Errorf("unexpected word %q: %s takes %d argument(s)", token.Text, c.Op.Key(), len(c.Op.Parameters))

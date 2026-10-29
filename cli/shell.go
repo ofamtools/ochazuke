@@ -177,9 +177,24 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	// settings, ochazuke.settings and settings (an alias) are ochazuke.settings.
 	var noun, verb string
 	var flags []string
-	if a, ok := r.ActionAlias(args[0]); ok && a.Bare && a.Verb == args[0] {
-		// A bare alias (w!) is its own noun and verb: bin w! --force.
-		noun, verb, flags = a.Noun, a.Verb, args[1:]
+	var presets ochazuke.Arguments
+	reading, bare, err := r.ReadBareAlias(r.Context(), args, nil)
+	if err != nil {
+		return err
+	}
+	if bare && reading.Noun != "" {
+		// A bare alias that shadows a verb, followed by a noun with that
+		// verb, is the noun's verb: bin set mode normal is bin mode set
+		// normal.
+		args = append([]string{reading.Noun, reading.Alias.Verb}, args[2:]...)
+		bare = false
+	}
+	if bare {
+		// A bare alias (w!) is its own noun and verb: bin w! --force. The
+		// action runs by the alias's name (Request.Via); aliases of the
+		// same action after it add their presets (verbose set).
+		noun, verb, flags = "", reading.Alias.Name(), args[reading.Skip:]
+		presets = reading.Args
 	} else {
 		words, rest, ok := r.NounWords(args)
 		if !ok {
@@ -194,6 +209,11 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	q, opts, err := s.request(noun, verb, flags)
 	if err != nil {
 		return err
+	}
+	for k, v := range presets {
+		if _, set := q.Args[k]; !set {
+			q.Args[k] = v
+		}
 	}
 	if q.Target != "" && q.Target != "focused-input" && !resolves(r, q.Target) && s.Reveal != nil {
 		if err := s.Reveal(q.Target); err != nil {
@@ -546,7 +566,9 @@ func positional(q ochazuke.Request, op ochazuke.Operation, words []string) error
 			open = append(open, name)
 		}
 	}
-	if len(words) > len(open) {
+	if rest := slices.IndexFunc(open, func(name string) bool { return op.Parameters[name].Rest }); rest >= 0 {
+		open = open[:rest+1]
+	} else if len(words) > len(open) {
 		takes := "no positional arguments"
 		if len(open) > 0 {
 			takes = fmt.Sprintf("%d positional argument(s): %s", len(open), strings.Join(open, ", "))
@@ -555,6 +577,12 @@ func positional(q ochazuke.Request, op ochazuke.Operation, words []string) error
 	}
 	for i, word := range words {
 		name := open[i]
+		if op.Parameters[name].Rest {
+			// A rest parameter (Parameter.Rest) takes the remaining
+			// words, joined by spaces: bin settings apply scrolloff=5 nowrap.
+			q.Args[name] = strings.Join(words[i:], " ")
+			return nil
+		}
 		v, err := typed(op.Parameters[name].Type, word)
 		if err != nil {
 			return fmt.Errorf("%s (argument %d): %w", name, i+1, err)

@@ -1,0 +1,21 @@
+[
+  {"noun": "agent", "settings": ["agent.view", "agent.view-split"], "reads": "line", "apps": ["matomeru"]},
+  {"noun": "chooser", "settings": ["chooser.enter", "chooser.remember-source"], "reads": "line", "apps": ["matomeru", "nabe", "o-json", "o-csv", "o-ai", "o-inventory", "o-proj", "o-qbt", "o-df", "o-fleet"]},
+  {"noun": "column", "settings": ["column-width"], "reads": "line", "apps": ["o-csv"]},
+  {"noun": "focus", "settings": ["focus-display"], "reads": "focus set", "apps": ["matomeru", "nabe", "o-json", "o-csv", "o-ai", "o-inventory", "o-proj", "o-qbt", "o-df", "o-fleet"]},
+  {"noun": "form", "settings": ["forms.single-path"], "reads": "line", "apps": ["matomeru", "nabe", "o-json", "o-csv", "o-ai", "o-inventory", "o-proj", "o-qbt", "o-df", "o-fleet"]},
+  {"noun": "history", "settings": ["history-fetches", "history-limit"], "reads": "line", "apps": ["matomeru", "nabe", "o-json", "o-csv", "o-inventory", "o-proj", "o-qbt", "o-df", "o-fleet"]},
+  {"noun": "markdown", "settings": ["markdown.note-author"], "reads": "line", "apps": ["matomeru"]},
+  {"noun": "modal", "settings": ["modal-dim"], "reads": "line", "apps": ["matomeru", "nabe", "o-json", "o-csv", "o-ai", "o-inventory", "o-proj", "o-qbt", "o-df", "o-fleet"]},
+  {"noun": "page", "settings": ["pages.hidden"], "reads": "line", "apps": ["matomeru", "o-json", "o-csv", "o-df"]},
+  {"noun": "pages", "settings": ["pages.hidden"], "reads": "line", "apps": ["matomeru", "o-json", "o-csv", "o-df"]},
+  {"noun": "palette", "settings": ["palette.missing-opens-form"], "reads": "palette set", "apps": ["matomeru", "nabe", "o-csv", "o-df", "o-fleet"]},
+  {"noun": "pane", "settings": ["panes.group", "panes.panes-percent", "panes.queue-order", "panes.queue-percent", "panes.section-layout", "panes.sections", "panes.working-percent"], "reads": "line", "apps": ["matomeru"]},
+  {"noun": "panes", "settings": ["panes.group", "panes.panes-percent", "panes.queue-order", "panes.queue-percent", "panes.section-layout", "panes.sections", "panes.working-percent"], "reads": "line", "apps": ["matomeru"]},
+  {"noun": "schedule", "settings": ["schedule.gh-signals.enabled", "schedule.gh-signals.interval", "schedule.slack-signals.enabled", "schedule.slack-signals.interval", "schedules.catch-up"], "reads": "line", "apps": ["matomeru"]},
+  {"noun": "setting", "settings": ["settings.autosave", "settings.mark-session"], "reads": "setting set", "apps": ["matomeru", "nabe", "o-json", "o-csv", "o-ai", "o-inventory", "o-proj", "o-qbt", "o-df", "o-fleet"]},
+  {"noun": "settings", "settings": ["settings.autosave", "settings.mark-session"], "reads": "settings set", "apps": ["matomeru", "nabe", "o-json", "o-csv", "o-ai", "o-inventory", "o-proj", "o-qbt", "o-df", "o-fleet"]},
+  {"noun": "status", "settings": ["status.segment-order", "status.segments"], "reads": "line", "apps": ["o-ai"]},
+  {"noun": "terminal", "settings": ["terminal-leader", "terminal.engine"], "reads": "line", "apps": ["matomeru", "nabe", "o-json", "o-csv", "o-ai", "o-inventory", "o-proj", "o-qbt", "o-df", "o-fleet"]},
+  {"noun": "turn", "settings": ["turns.status-border", "turns.status-glyph", "turns.style", "turns.thinking", "turns.thinking-open", "turns.tools", "turns.tools-open"], "reads": "line", "apps": ["matomeru"]}
+]
