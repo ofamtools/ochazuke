@@ -1,0 +1,16 @@
+{
+  "name": "select: a motion keeps the placeholder (typing then inserts), esc then j moves on",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {"id": "t", "editable": true, "nodes": [{"id": "a", "label": "alpha"}, {"id": "b", "label": "beta"}]}
+    ]
+  },
+  "config": {"bindings.json": {"bindings": [{"context": "ochazuke.outline/normal", "bindings": [{"key": "N", "action": "ochazuke.outline.add", "args": {"where": "below", "text": "new-key", "select": true}}]}]}},
+  "script": ["N", "left", {"type": "my-"}, "esc", "j"],
+  "expect": [
+    {"after": 2, "mode": "insert", "contains": ["new-key"], "attrs": {"new-key": "-reverse"}, "writes": ["add t-n1 under root at 1: new-key"]},
+    {"after": 3, "mode": "insert", "contains": ["my-new-key"]},
+    {"mode": "normal", "focus": "b", "order": ["alpha", "my-new-key", "beta"], "writes": ["add t-n1 under root at 1: new-key", "rename t-n1: my-new-key"]}
+  ]
+}

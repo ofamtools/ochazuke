@@ -1,0 +1,16 @@
+{
+  "name": "select: a new key opens with its placeholder selected; typing replaces it, j included",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {"id": "t", "editable": true, "nodes": [{"id": "a", "label": "alpha"}, {"id": "b", "label": "beta"}]}
+    ]
+  },
+  "config": {"bindings.json": {"bindings": [{"context": "ochazuke.outline/normal", "bindings": [{"key": "N", "action": "ochazuke.outline.add", "args": {"where": "below", "text": "new-key", "select": true}}]}]}},
+  "script": ["N", {"type": "json"}, "esc"],
+  "expect": [
+    {"after": 1, "mode": "insert", "attrs": {"new-key": "reverse"}, "writes": ["add t-n1 under root at 1: new-key"]},
+    {"after": 2, "mode": "insert", "contains": ["json"], "lacks": ["new-key"]},
+    {"mode": "normal", "focus": "t-n1", "order": ["alpha", "json", "beta"], "writes": ["add t-n1 under root at 1: new-key", "rename t-n1: json"]}
+  ]
+}

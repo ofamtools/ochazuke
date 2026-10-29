@@ -472,6 +472,13 @@ func registerEditorOperations(r *Runtime) {
 			}
 			in.finishCursor(copy.Cursor)
 		} else {
+			// A paste replaces an open select range, as typing does.
+			if lo, hi, ok := in.SelectedText(); ok {
+				if err = in.Replace(lo, hi, ""); err != nil {
+					return err
+				}
+				before = true
+			}
 			err = in.pasteYank(y, before, literal, steps)
 		}
 		if err == nil {

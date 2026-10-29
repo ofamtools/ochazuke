@@ -114,6 +114,23 @@ func (in *Input) move(motion string, steps, line int) error {
 		return errors.New("unknown input motion")
 	}
 	in.resetKeys()
+	// A motion closes an open select range and keeps its text; left and
+	// right land on its edges, as a text field's arrows do.
+	if lo, hi, ok := in.SelectedText(); ok {
+		in.typeOver = nil
+		switch motion {
+		case "left":
+			in.Cursor = lo
+			steps--
+		case "right":
+			in.Cursor = hi
+			steps--
+		}
+		if steps == 0 {
+			in.clampCursor()
+			return nil
+		}
+	}
 	in.clampCursor()
 	start, end := in.lineBounds(in.Cursor)
 	steps = min(steps, len(in.Text)+1)

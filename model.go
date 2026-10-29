@@ -995,7 +995,8 @@ func InputView(in *Input, width, height int) string { return InputBlock(in, widt
 
 // InputBlock renders width x height cells of an input around its cursor and
 // reports where the cursor sits, without changing text or editing state.
-// Visual selections are painted in reverse video; the cursor itself is left
+// Visual selections and an open select range are painted in reverse video
+// (the visual-selection style); the cursor itself is left
 // to the terminal, so compose this block only for the focused input.
 func InputBlock(in *Input, width, height int) Block {
 	if in == nil {
@@ -1047,6 +1048,11 @@ func InputBlock(in *Input, width, height int) Block {
 		column += cells
 	}
 	lo, hi := in.selectionRange()
+	painted := isVisual(in.Mode)
+	// An open select range (SelectText) is drawn as a visual selection.
+	if start, end, ok := in.SelectedText(); ok {
+		lo, hi, painted = start, end, true
+	}
 	top, bottom, left, right := 0, -1, 0, 0
 	block := in.Mode == "visual-block"
 	if block {
@@ -1086,7 +1092,7 @@ func InputBlock(in *Input, width, height int) Block {
 		i := runeIndex
 		runeIndex += utf8.RuneCountInString(text)
 		onCursor := i <= cursor && cursor < runeIndex
-		selected := isVisual(in.Mode) && i < hi && runeIndex > lo
+		selected := painted && i < hi && runeIndex > lo
 		w := cellWidth(text)
 		if block {
 			selected = rowIndex >= top && rowIndex <= bottom && column < right && column+w > left

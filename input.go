@@ -33,8 +33,11 @@ type Input struct {
 	groupNode   int
 	goalColumn  int
 	blockChange *blockChange
-	pin         string   // the noun's pinned mode (prompt pins insert)
-	r           *Runtime // set by AddInput; while the input is focused its mode is r.Mode
+	pin         string // the noun's pinned mode (prompt pins insert)
+	// typeOver is the open select range [start, end) (SelectText): in
+	// insert mode the next text typed replaces it; nil when none is open.
+	typeOver *[2]int
+	r        *Runtime // set by AddInput; while the input is focused its mode is r.Mode
 }
 
 // NewInput returns an input in normal mode holding text, with text as its undo root.
@@ -94,7 +97,7 @@ func (in *Input) Snapshot() map[string]any {
 		"id": in.ID, "text": string(in.Text), "cursor": in.Cursor, "mode": in.Mode,
 		"multiline": in.Multiline, "pinned": in.pin, "history": in.History, "head": in.Head,
 		"count": in.Count(), "pending": in.Pending(), "kind": in.Kind, "pathFilter": in.PathFilter,
-		"anchor": in.Anchor, "selection": in.selectionSnapshot(),
+		"anchor": in.Anchor, "selection": in.selectionSnapshot(), "typeOver": in.typeOverSnapshot(),
 		"insertGroup": in.groupOpen, "row": row, "column": column,
 	}
 }
@@ -114,6 +117,7 @@ func (in *Input) transition(mode string, stepBack bool) {
 		in.resetKeys()
 		return
 	}
+	in.typeOver = nil
 	old := in.Mode
 	if old == "insert" {
 		in.finishBlockChange()
@@ -158,6 +162,7 @@ func (in *Input) Replace(start, end int, text string) error {
 		return errors.New("single-line input cannot contain newlines")
 	}
 	inserted := []rune(text)
+	in.typeOver = nil
 	if slices.Equal(in.Text[start:end], inserted) {
 		return nil
 	}
@@ -244,6 +249,7 @@ func (in *Input) Redo(steps, branch int) error {
 }
 
 func (in *Input) restore() {
+	in.typeOver = nil
 	node := in.History[in.Head]
 	in.Text = []rune(node.Text)
 	in.Cursor = node.Cursor
@@ -267,6 +273,57 @@ func (in *Input) resetKeys() {
 	}
 }
 
+// SelectText opens a select range over the runes [start, end) in insert
+// mode, as Vim's select mode does over a new name: the first text typed
+// (input.insert, a paste) replaces the range and typing continues in
+// insert; backspace or delete removes it; a motion, a mode change (esc),
+// an undo or any other edit closes it and keeps the text. The range is
+// drawn in the visual-selection style. It is a state of the input, not a
+// mode: the person is inserting, and the mode stays insert. An empty range
+// selects nothing and only enters insert at end.
+func (in *Input) SelectText(start, end int) error {
+	if start < 0 || end < start || end > len(in.Text) {
+		return errors.New("invalid select range")
+	}
+	in.SetMode("insert")
+	if in.Mode != "insert" {
+		return errors.New("input is pinned to " + in.Mode)
+	}
+	in.Cursor = end
+	in.goalColumn = -1
+	in.typeOver = nil
+	if end > start {
+		in.typeOver = &[2]int{start, end}
+	}
+	return nil
+}
+
+// SelectAll opens a select range over the whole text (SelectText).
+func (in *Input) SelectAll() error { return in.SelectText(0, len(in.Text)) }
+
+// SelectedText is the open select range (SelectText), if any.
+func (in *Input) SelectedText() (start, end int, ok bool) {
+	if in.typeOver == nil {
+		return in.Cursor, in.Cursor, false
+	}
+	return in.typeOver[0], in.typeOver[1], true
+}
+
+// typeOverRange is where typed text goes: the open select range, else the
+// cursor.
+func (in *Input) typeOverRange() (int, int) {
+	start, end, _ := in.SelectedText()
+	return start, end
+}
+
+func (in *Input) typeOverSnapshot() any {
+	start, end, ok := in.SelectedText()
+	if !ok {
+		return nil
+	}
+	return map[string]any{"start": start, "end": end}
+}
+
 func RegisterInputOperations(r *Runtime) {
 	r.Modes["normal"] = true
 	r.Modes["insert"] = true
@@ -275,9 +332,10 @@ func RegisterInputOperations(r *Runtime) {
 		params     map[string]Parameter
 		fn         func(*Input, Arguments) error
 	}{
-		{"insert", "Insert literal text at the rune cursor", map[string]Parameter{"text": {Type: "string", Required: true}}, func(in *Input, a Arguments) error {
+		{"insert", "Insert literal text at the rune cursor; it replaces an open select range", map[string]Parameter{"text": {Type: "string", Required: true}}, func(in *Input, a Arguments) error {
 			in.resetKeys()
-			return in.Replace(in.Cursor, in.Cursor, StringArg(a, "text", ""))
+			start, end := in.typeOverRange()
+			return in.Replace(start, end, StringArg(a, "text", ""))
 		}},
 		{"replace", "Replace a half-open rune range", map[string]Parameter{"start": {Type: "integer", Required: true}, "end": {Type: "integer", Required: true}, "text": {Type: "string", Required: true}}, func(in *Input, a Arguments) error {
 			in.resetKeys()
@@ -289,8 +347,12 @@ func RegisterInputOperations(r *Runtime) {
 			return in.move(StringArg(a, "motion", ""), IntArg(a, "steps", 1), IntArg(a, "line", 0))
 		}},
 		{"begin", "Enter insert mode at insert/append/first/end/below/above", map[string]Parameter{"position": {Type: "string"}}, func(in *Input, a Arguments) error { return in.begin(StringArg(a, "position", "insert")) }},
-		{"delete", "Delete forward/backward runes without crossing a normal-mode line", map[string]Parameter{"direction": {Type: "string"}, "steps": {Type: "integer"}}, func(in *Input, a Arguments) error {
+		{"delete", "Delete forward/backward runes without crossing a normal-mode line; deletes an open select range", map[string]Parameter{"direction": {Type: "string"}, "steps": {Type: "integer"}}, func(in *Input, a Arguments) error {
 			direction, steps := StringArg(a, "direction", "forward"), IntArg(a, "steps", 1)
+			if lo, hi, ok := in.SelectedText(); ok {
+				in.resetKeys()
+				return in.Replace(lo, hi, "")
+			}
 			start, end := in.Cursor, in.Cursor
 			normal := in.Mode == "normal"
 			if normal && steps > 0 {

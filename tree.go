@@ -739,8 +739,10 @@ func (t *Tree) newID() string {
 	}
 }
 
-// openLine edits a node's line in insert mode, the cursor at its end.
-func (t *Tree) openLine(id string) error {
+// openLine edits a node's line in insert mode, the cursor at its end;
+// selected opens it with its whole text selected (Input.SelectAll), so
+// typing replaces it and esc or a motion keeps it.
+func (t *Tree) openLine(id string, selected bool) error {
 	i := t.index(id)
 	if i < 0 {
 		return fmt.Errorf("unknown tree node %q", id)
@@ -763,7 +765,22 @@ func (t *Tree) openLine(id string) error {
 	if err := t.r.SetFocus(in.ID); err != nil {
 		return err
 	}
-	return t.r.SetMode("insert")
+	if err := t.r.SetMode("insert"); err != nil {
+		return err
+	}
+	if selected {
+		return in.SelectAll()
+	}
+	return nil
+}
+
+// Edit opens a node's line as outline.edit does; selected opens it with
+// its text selected, so typing replaces it (Input.SelectText).
+func (t *Tree) Edit(id string, selected bool) error {
+	if !t.Editable() {
+		return errors.New("tree is read-only")
+	}
+	return t.openLine(id, selected)
 }
 
 // closeLine writes the open line, records its rename as one undo step and
@@ -824,9 +841,11 @@ func (t *Tree) target(c Context) string {
 	return ""
 }
 
-// add inserts a new empty node (below, above or as the last child of the
-// target, or as the first root of an empty tree) and opens its line.
-func (t *Tree) add(c Context, where string) error {
+// add inserts a new node holding text (below, above or as the last child
+// of the target, or as the first root of an empty tree) and opens its
+// line; selected opens it with the text selected, a placeholder that
+// typing replaces.
+func (t *Tree) add(c Context, where, text string, selected bool) error {
 	if err := t.closeLine(false); err != nil {
 		return err
 	}
@@ -846,10 +865,10 @@ func (t *Tree) add(c Context, where string) error {
 		}
 	}
 	id := t.newID()
-	if err := t.commit([]TreeChange{{Op: TreeAdd, ID: id, Parent: parent, Index: index}}, id); err != nil {
+	if err := t.commit([]TreeChange{{Op: TreeAdd, ID: id, Parent: parent, Index: index, Text: text}}, id); err != nil {
 		t.fail(err)
 	}
-	return t.openLine(id)
+	return t.openLine(id, selected)
 }
 
 // shift nests a node under its previous sibling (indent) or makes it the
@@ -1205,8 +1224,14 @@ func registerTrees(r *Runtime) {
 			t.collapsed[id] = !t.collapsed[id]
 			return t.refresh(id)
 		}), "Expand or collapse the node").
-		Verb("add", edit(func(t *Tree, c Ctx) error { return t.add(c.Context, StringArg(c.Args, "where", "below")) }), "Add a line below the node (where: below, above, child) and edit it; written at once").When("tree-editable").
-		Verb("edit", edit(func(t *Tree, c Ctx) error { return t.openLine(t.target(c.Context)) }), "Edit the node's line; typing is written after a pause and when the line is left").When("tree-editable").
+		Verb("add", edit(func(t *Tree, c Ctx) error {
+			selected, _ := c.Args["select"].(bool)
+			return t.add(c.Context, StringArg(c.Args, "where", "below"), StringArg(c.Args, "text", ""), selected)
+		}), "Add a line below the node (where: below, above, child) holding text and edit it; select opens it with the text selected, so typing replaces it; written at once").When("tree-editable").
+		Verb("edit", edit(func(t *Tree, c Ctx) error {
+			selected, _ := c.Args["select"].(bool)
+			return t.openLine(t.target(c.Context), selected)
+		}), "Edit the node's line (select: with its text selected, so typing replaces it); typing is written after a pause and when the line is left").When("tree-editable").
 		Verb("indent", edit(func(t *Tree, c Ctx) error { return t.shift(c.Context, true) }), "Nest the node under the node above it").When("tree-editable").
 		Verb("outdent", edit(func(t *Tree, c Ctx) error { return t.shift(c.Context, false) }), "Move the node out to follow its parent").When("tree-editable").
 		Verb("move", edit(func(t *Tree, c Ctx) error { return t.move(c.Context, IntArg(c.Args, "delta", 1)) }), "Swap the node with its next (delta 1) or previous (-1) sibling").When("tree-editable").
@@ -1215,9 +1240,10 @@ func registerTrees(r *Runtime) {
 		Verb("redo", edit(func(t *Tree, c Ctx) error { return t.history(true) }), "Redo the last undone change").When("tree-editable").
 		Verb("paste", edit(func(t *Tree, c Ctx) error { return t.paste(c.Context, StringArg(c.Args, "text", "")) }), "Add pasted lines below the node, nested by their indent").When("tree-editable").
 		Verb("leave", edit(func(t *Tree, c Ctx) error { return t.closeLine(true) }), "Leave the line: it is written, never discarded").When("tree-editable").
-		Verb("next", edit(func(t *Tree, c Ctx) error { return t.add(c.Context, "below") }), "Write the line and start a new one below it").When("tree-editable")
+		Verb("next", edit(func(t *Tree, c Ctx) error { return t.add(c.Context, "below", "", false) }), "Write the line and start a new one below it").When("tree-editable")
 	params := map[string]map[string]Parameter{
-		"add":   {"where": {Type: "string", Enum: []string{"below", "above", "child"}}},
+		"add":   {"where": {Type: "string", Enum: []string{"below", "above", "child"}}, "text": {Type: "string", Description: "the new line's text, a placeholder when select is set"}, "select": {Type: "boolean", Description: "open the line with its text selected: typing replaces it, esc or a motion keeps it"}},
+		"edit":  {"select": {Type: "boolean", Description: "open the line with its text selected: typing replaces it, esc or a motion keeps it"}},
 		"move":  {"delta": {Type: "integer", Required: true}},
 		"paste": {"text": {Type: "string", Required: true}},
 	}

@@ -1,0 +1,15 @@
+{
+  "name": "select: esc on a new key keeps the placeholder and writes no rename",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {"id": "t", "editable": true, "nodes": [{"id": "a", "label": "alpha"}, {"id": "b", "label": "beta"}]}
+    ]
+  },
+  "config": {"bindings.json": {"bindings": [{"context": "ochazuke.outline/normal", "bindings": [{"key": "N", "action": "ochazuke.outline.add", "args": {"where": "below", "text": "new-key", "select": true}}]}]}},
+  "script": ["N", "esc"],
+  "expect": [
+    {"after": 1, "mode": "insert", "attrs": {"new-key": "reverse"}},
+    {"mode": "normal", "focus": "t-n1", "order": ["alpha", "new-key", "beta"], "writes": ["add t-n1 under root at 1: new-key"]}
+  ]
+}
