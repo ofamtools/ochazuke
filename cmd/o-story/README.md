@@ -457,7 +457,7 @@ Conformance:
 | visual-line | confirm | `confirm.accept` |
 | visual-line | demo | `demo.check` `demo.nest` `demo.tag` `demo.zap` |
 | visual-line | list | `list.apply` `list.end-visual` `list.goto` `list.move` `list.yank` |
-| visual-line | mode | `mode.enter` |
+| visual-line | mode | `mode.enter` `mode.leave` |
 
 Mode edges (from → to via):
 
@@ -564,5 +564,7 @@ Mode edges (from → to via):
 - `visual-line` → `normal` via `demo.zap`
 - `visual-line` → `normal` via `list.end-visual`
 - `visual-line` → `normal` via `list.yank`
+- `visual-line` → `visual-line d` via `row d`
+- `visual-line d` → `visual-line` via `mode.leave`
 
 <!-- verbs:end -->

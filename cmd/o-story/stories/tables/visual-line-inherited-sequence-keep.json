@@ -1,5 +1,5 @@
 {
-  "name": "sequence-inherit keep: a row noun's normal d d waits over visual-line d, so V j d leaves d pending and asks nothing",
+  "name": "sequence-inherit keep: a row noun's normal d d waits over visual-line d, so V j d leaves d pending and asks nothing; esc esc leaves",
   "area": "tables",
   "width": 60,
   "height": 10,
@@ -41,7 +41,9 @@
   "script": [
     "V",
     "j",
-    "d"
+    "d",
+    "esc",
+    "esc"
   ],
   "expect": [
     {
@@ -52,6 +54,13 @@
         "* row 1",
         "* row 2"
       ]
+    },
+    {
+      "after": 4,
+      "mode": "visual-line"
+    },
+    {
+      "mode": "normal"
     }
   ],
   "settings": [
