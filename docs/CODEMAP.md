@@ -688,7 +688,7 @@ Root package `ochazuke` is flat: 108 source files, 116 test files. Each entry li
 - purpose: standardVerb is one row of the table: the verb, the store kinds it fits, what it needs of the noun (its store's handler, a writable prop), whether it takes a...
 - methods: Runtime(8), standardVerb(2)
 - funcs: StandardVerbs
-- leans on: props.go(60), runtime.go(58), noun.go(45), params.go(21)
+- leans on: props.go(61), runtime.go(58), noun.go(46), params.go(21)
 
 ### standard_watch.go
 

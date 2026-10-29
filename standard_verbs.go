@@ -71,7 +71,7 @@ var standardVerbs = []standardVerb{
 		Kinds: []string{Collection, Instances}, Needs: func(n *Noun) bool { return n.Store.List != nil },
 		Rows: true, HistoryKind: HistoryFetch, Params: listParams, Run: runList},
 	{Verb: "watch", Description: "Stream what happens to the things (one, or those where matches): a JSON line per thing added, modified or deleted, from since when given; the CLI streams until interrupted",
-		Kinds: []string{Collection, Singleton, Instances}, Needs: watchFits,
+		Kinds: []string{Collection, Singleton, Instances}, Needs: func(n *Noun) bool { return watchFits(*n.Store) },
 		Subject: true, NoFocus: true, HistoryKind: HistoryFetch, Params: watchParams, Run: runWatch},
 	{Verb: "create", Description: "Create a thing from the props given (each omitted one its default); answers the new thing",
 		Kinds: []string{Collection}, Needs: func(n *Noun) bool { return n.Store.Create != nil && len(createProps(n)) > 0 },
