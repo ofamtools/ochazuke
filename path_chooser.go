@@ -73,6 +73,10 @@ type PathChooserSpec struct {
 	Kind  string // default PathChooserKind
 	Title string // default "Choose <name>"
 	Pick  PathPick
+	// Source names the source to open on (PathSourceBrowse, an
+	// application's AddPathSource name); "" (or a source this pick leaves
+	// out) opens on the one chooser.remember-source gives, else browse.
+	Source string
 	// Choose takes the path; nil returns it as the result.
 	Choose func(path string) Result
 }
@@ -253,6 +257,7 @@ func (r *Runtime) OpenPathChooser(spec PathChooserSpec) (*Chooser, error) {
 		Kind:    kind,
 		Title:   title,
 		Sources: sources,
+		Source:  spec.Source,
 		Choose: func(row ChooserRow) Result {
 			path, ok := row.Data.(string)
 			if !ok || path == "" {

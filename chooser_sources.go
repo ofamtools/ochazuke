@@ -53,6 +53,10 @@ type ChooserSource struct {
 	// source is current (a browse source creates in its folder).
 	Create      func(query string) Result
 	CreateLabel func(query string) string
+	// Keep, when set, stands in for the spec's Keep while the source is
+	// current: the cell columns cut last (a known-folder source's path,
+	// its branch and project columns narrowing first).
+	Keep []int
 }
 
 // Chooser settings: rows of settings/ochazuke.json.
@@ -206,21 +210,36 @@ func (c *Chooser) current() *ChooserSource {
 	return &c.spec.Sources[c.source]
 }
 
-// startSource picks the source a chooser opens on: the spec's Source, else
-// the remembered one (ChooserRememberSourceSetting), else the first.
+// startSource picks the source a chooser opens on: the spec's Source,
+// else (no Source, or one this open does not have) the remembered one
+// (ChooserRememberSourceSetting), else the first.
 func (c *Chooser) startSource() int {
-	name := c.spec.Source
-	if name == "" {
-		if v, _ := c.r.settingValue(ChooserRememberSourceSetting); v != false {
-			name = c.r.chooserMemory().lastSource[c.spec.Kind]
+	find := func(name string) (int, bool) {
+		for i, s := range c.spec.Sources {
+			if name != "" && s.Name == name {
+				return i, true
+			}
 		}
+		return 0, false
 	}
-	for i, s := range c.spec.Sources {
-		if s.Name == name {
+	if i, ok := find(c.spec.Source); ok {
+		return i
+	}
+	if v, _ := c.r.settingValue(ChooserRememberSourceSetting); v != false {
+		if i, ok := find(c.r.chooserMemory().lastSource[c.spec.Kind]); ok {
 			return i
 		}
 	}
 	return 0
+}
+
+// keep is the cell columns cut last: the current source's Keep, else the
+// spec's.
+func (c *Chooser) keep() []int {
+	if s := c.current(); s != nil && s.Keep != nil {
+		return s.Keep
+	}
+	return c.spec.Keep
 }
 
 // cycle steps to another source, wrapping; the query stays.

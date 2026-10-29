@@ -80,8 +80,9 @@ type ChooserSpec struct {
 	Preview func(ChooserRow) string
 	// Sources, when set, supply the rows one source at a time (see
 	// ChooserSource; Rows is then the current source's). Source names
-	// the one to open on; else the one last used for the kind
-	// (chooser.remember-source), else the first.
+	// the one to open on; else (or when this open has no source of that
+	// name) the one last used for the kind (chooser.remember-source),
+	// else the first.
 	Sources []ChooserSource
 	Source  string
 }
@@ -571,7 +572,7 @@ func (c *Chooser) rowsView(width, height int) Block {
 	case c.cursor >= scroll:
 		offset = c.cursor - scroll + 1
 	}
-	widths := fitWidths(c.cellWidths(), width-2, c.spec.Keep...)
+	widths := fitWidths(c.cellWidths(), width-2, c.keep()...)
 	draw := func(i int) {
 		text := c.matches[i].Label
 		if cells := c.matches[i].Cells; len(cells) > 0 {
