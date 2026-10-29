@@ -26,7 +26,7 @@
     {"after": 9, "focus": "__settings/row/ext.git.fetch"},
     {"after": 10, "focus": "__settings/row/help.pick-view"},
     {"after": 13, "focus": "__settings/row/theme", "contains": ["› General"]},
-    {"after": 14, "focus": "__settings/row/path.start", "contains": ["› path"]},
+    {"after": 14, "focus": "__settings/row/settings.autosave", "contains": ["› settings"]},
     {"focus": "__settings/row/theme", "page": "__settings", "modal": ""}
   ]
 }

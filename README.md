@@ -1338,6 +1338,24 @@ The prompt (`setting-prompt`): `enter` sets the value; one that does not validat
 
 `q` or `esc` (`settings.close`) goes back to the page the Settings page was opened from, with the focus and mode it was left in; the next `settings.edit` reopens on the section and row it was left on. `settings.edit` registers the page (`SettingsPageID`, title Settings) when it opens and `settings.close` removes it, so it is a tab, in the page picker and on `page.next` only while it is open. An application that wants a permanent Settings tab calls `Runtime.AddSettingsPage()` where it registers its pages; `settings.close` then goes back without removing it.
 
+### Session values
+
+Settings have three layers, lowest first: the declared default, `settings.json`, and the **session** (`settings_session.go`). A session value is set for this run and not written, as Vim's `:set` changes the running editor while the vimrc persists; the effective value is the session's, else the file's, else the default. `Settings.SetSession(name, value)` writes it, `Revert`/`RevertAll` (verbs `setting.revert {name}`, `settings.revert`) drop it, `Write`/`WriteAll` (verbs `setting.write {name}` and `settings.write`, aliases `save` on both nouns and the bare `mksettings`, after `:mkvimrc`) move it into the file, and `settings.diff` lists each setting whose session value differs from the saved one (name, saved value and where it is saved, session value, origin). `settings.reset-all` resets every setting by the same rule, after asking.
+
+The writes-through rule: a session write goes to `settings.json` at once when the runtime has no session (no Model's `Init` ran: a one-shot CLI process, a script) or `settings.autosave` is on (default off). Writing the file (the Settings page, `settings set`, `Set`, `Reset`, the page's undo) drops that setting's session value, so what was written is what shows. A value another process writes (the poll) stays beneath a session value, and the setting is marked changed on disk. From a CLI process, `settings set`, `reset`, `write` and `reset-all` ask before they write the file (`--yes` or `-y` answers).
+
+`Settings.Origin(name)` says where the value comes from (`Origin{Layer, Path, Line, By, Source, Via, At, Disk}`, `Origin.String()`): "default, settings/ochazuke.json (ochazuke)", "default, declared by the application at main.go:42", "set in ~/.config/APP/settings.json line 3", "set this session by NAME (palette, 14:02)", followed by "; settings.json changed on disk at 14:05" when another process changed it.
+
+The Settings page draws a session value bold with the saved value beside it while the two differ (`settings.mark-session`, default on):
+
+```
+┃ stack •             ‹ stack ›  (saved: grid)                             ┃
+┃ editor              vi                                                   ┃
+┃ paths •             2 items  (saved: 1 item)                             ┃
+```
+
+and its description reads `Set this session (palette, 14:02); settings.json holds grid. setting.write saves it, setting.revert drops it.` Stories `settings/session-marker*`.
+
 ## Status segments
 
 Live items (CPU, memory, disk free, a build state) ride the rule under the header, right-aligned, and take no row. Each is a data row:

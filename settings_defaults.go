@@ -167,6 +167,9 @@ func (r *Runtime) declareFrameworkSettings(names ...string) {
 			continue
 		}
 		_ = r.DeclareSetting(one)
+		// Declared from an embedded file: the default's origin is the
+		// file, not the feature's caller.
+		delete(s.declaredAt, one.Name)
 	}
 }
 

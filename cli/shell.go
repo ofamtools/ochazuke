@@ -57,7 +57,7 @@ import (
 // ("job #N noun.verb LABEL STATE" for a labelled job),
 // except a job of a quiet verb (Operation.Quiet, as the jobs ticker hides
 // it) that did not fail: a failure always prints. A confirm modal the
-// operation opened is answered: --yes runs
+// operation opened is answered: --yes (or -y) runs
 // confirm.accept, otherwise the prompt is printed and a line read from
 // Stdin (y or yes accepts; anything else, or end of input, declines with
 // modal.pop and a non-zero exit). Any other modal (a prompt, the palette)
@@ -399,7 +399,7 @@ type options struct {
 }
 
 // request builds the operation request: --target, --json, --format and
-// --yes are the shell's; every other --NAME VALUE (or --NAME=VALUE) is an
+// --yes (or -y) are the shell's; every other --NAME VALUE (or --NAME=VALUE) is an
 // argument typed by the operation's parameter of that name. --json VALUE
 // is the arguments as a JSON object; a bare --json (last, or followed by
 // another --flag) asks for JSON output, the default, and is otherwise
@@ -416,6 +416,11 @@ func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, op
 	bareJSON := false
 	var words []string
 	for i := 0; i < len(flags); i++ {
+		if flags[i] == "-y" {
+			// -y is --yes.
+			opts.yes = true
+			continue
+		}
 		name, ok := strings.CutPrefix(flags[i], "--")
 		if !ok {
 			words = append(words, flags[i])

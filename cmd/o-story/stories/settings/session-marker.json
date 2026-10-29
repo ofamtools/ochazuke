@@ -1,0 +1,27 @@
+{
+  "name": "settings page, dark, 80 columns: a session value is drawn bold with the saved value beside it, (saved: …), only while the two differ; setting.revert drops it",
+  "area": "settings",
+  "width": 80,
+  "theme": "dark",
+  "settings": [
+    {"name": "scrolloff", "type": "integer", "default": 2, "description": "Rows kept above and below the focus"},
+    {"name": "stack", "type": "string", "default": "tabs", "enum": ["tabs", "stack", "grid"], "description": "How panes are laid out"},
+    {"name": "editor", "type": "string", "default": "vi", "description": "The command that opens a file"}
+  ],
+  "values": {"scrolloff": 4},
+  "session": {"stack": "stack", "scrolloff": 4, "editor": "hx"},
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "bind": [
+      {"noun": "demo", "keys": ",", "do": "settings.edit"},
+      {"noun": "app", "keys": "R", "do": "setting.revert"}
+    ]
+  },
+  "script": [",", "j", "R", "j"],
+  "expect": [
+    {"after": 1, "contains": ["scrolloff •         ‹ 4 ›", "stack •             ‹ stack ›  (saved: tabs)", "editor •            hx  (saved: vi)"], "lacks": ["(saved: 4)"], "attrs": {"‹ stack ›": "bold", "hx  (saved": "bold", "(saved: tabs)": "-bold"}},
+    {"after": 2, "contains": ["Default is tabs. Set this session (api, 00:00); the default applies", "beneath it. setting.write saves it, setting.revert drops it."]},
+    {"after": 3, "contains": ["stack               ‹ tabs ›", "editor •            hx  (saved: vi)"], "lacks": ["(saved: tabs)"]},
+    {"contains": ["Default is vi. Set this session (api, 00:00); the default applies"]}
+  ]
+}

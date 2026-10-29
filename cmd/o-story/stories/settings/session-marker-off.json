@@ -1,0 +1,19 @@
+{
+  "name": "settings page: settings.mark-session off draws a session value as any other, no bold and no saved value",
+  "area": "settings",
+  "width": 80,
+  "theme": "dark",
+  "settings": [
+    {"name": "stack", "type": "string", "default": "tabs", "enum": ["tabs", "stack", "grid"], "description": "How panes are laid out"}
+  ],
+  "values": {"settings.mark-session": false},
+  "session": {"stack": "stack"},
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "bind": [{"noun": "demo", "keys": ",", "do": "settings.edit"}]
+  },
+  "script": [","],
+  "expect": [
+    {"contains": ["stack •             ‹ stack ›"], "lacks": ["(saved:"]}
+  ]
+}

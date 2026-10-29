@@ -149,7 +149,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
   The framework's nouns are ochazuke.<noun> (ochazuke settings list, ochazuke.settings list);
   a short name (settings list) reaches one unless the tool has a noun of its own.
   --target selects an instance; some operations require an existing instance.
-  --yes accepts confirmation; otherwise the CLI asks on stdin.
+  --yes (or -y) accepts confirmation; otherwise the CLI asks on stdin.
   Supply prompt values as arguments: non-confirmation UI prompts need the TUI.
   Bare arguments fill parameters in the order shown; named flags take precedence.
   Boolean parameters use named flags unless explicitly declared positional.

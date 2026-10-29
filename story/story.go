@@ -49,6 +49,14 @@ type Story struct {
 	// Settings are declared on the session's runtime; with no config
 	// directory (stories read no user files) their values last the session.
 	Settings []ochazuke.Setting `json:"settings,omitempty"`
+	// Values are setting values the session starts with, set as
+	// settings.json would hold them (Settings.Set; with no config
+	// directory they last the session): the saved layer.
+	Values map[string]any `json:"values,omitempty"`
+	// Session are session values set at the start, above Values (the
+	// session started as Model.Init starts it, then Settings.SetSession):
+	// what a :set line leaves unwritten.
+	Session map[string]any `json:"session,omitempty"`
 	// State gives the session a state directory of its own (a temp dir,
 	// removed when the session ends), kept across a restart event, so a
 	// story shows what the application remembers (pane dividers).

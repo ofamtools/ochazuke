@@ -289,6 +289,7 @@ func registerSettingsEditor(r *Runtime) {
 			return nil, r.Pop()
 		}, "Close the prompt and keep the value")
 	r.Settings().Observe("", func(string, any) { refreshSettingsPage(r) })
+	registerSettingsSession(r)
 	// bindings/settings-editor.json: one hint for every step key (h/l
 	// setting.cycle).
 }
@@ -384,6 +385,7 @@ func (s *Settings) restore(name string, raw json.RawMessage, had bool) error {
 		return err
 	}
 	delete(s.values, name)
+	s.dropSession(name)
 	s.withdrawFor(name)
 	s.parse(*one)
 	s.changed(name, old)
@@ -606,10 +608,25 @@ func settingItem(s *Settings, section string, v SettingValue) ListItem {
 		name += " •"
 	}
 	value := settingValueCell(v)
+	var tones []ToneSpan
+	if one := s.find(v.Name); one != nil && s.differsInSession(*one) && s.Bool(SettingsMarkSessionSetting) {
+		// A session value: bold, the saved value beside it.
+		tones = []ToneSpan{SpanTone(1, 0, len([]rune(value)), ToneSession)}
+		value += "  (saved: " + savedCell(v) + ")"
+	}
 	return ListItem{
 		ID: settingRowPrefix + v.Name, Label: name + "  " + value, Noun: "ochazuke.setting", Data: v.Name,
-		Cells: []string{name, value},
+		Cells: []string{name, value}, Tones: tones,
 	}
+}
+
+// savedCell is the persisted value beneath a session value as the
+// marker shows it: a list's item count, (empty) for empty text.
+func savedCell(v SettingValue) string {
+	if list, ok := v.Saved.([]string); ok {
+		return itemCount(len(list))
+	}
+	return textCell(settingCell(v.Saved))
 }
 
 // settingDiffers reports whether a setting's value is not its default.
@@ -732,6 +749,15 @@ func settingDetail(s *Settings, name string, index int) (title, text string) {
 // or the default (also when the file holds a value that does not validate,
 // with the reason).
 func settingSource(s *Settings, v SettingValue) string {
+	if v.Session {
+		o, _ := s.Origin(v.Name)
+		saved := SettingsFile + " holds " + textCell(settingCell(v.Saved))
+		if !v.Set {
+			saved = "the default applies beneath it"
+		}
+		line := o.String()
+		return strings.ToUpper(line[:1]) + line[1:] + "; " + saved + ". setting.write saves it, setting.revert drops it."
+	}
 	switch {
 	case v.Set:
 		return "Set in " + SettingsFile + "."

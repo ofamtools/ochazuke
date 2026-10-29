@@ -53,6 +53,9 @@ const (
 	ToneExited     = "state.exited"
 	ToneStar       = "marker.star"
 	ToneQueued     = "marker.queued"
+	// ToneSession marks a setting's session value on the Settings page
+	// (set this session, not written): bold in every theme, mono too.
+	ToneSession = "marker.session"
 	// ToneError marks a cell that is wrong (a duplicate key, a value that
 	// does not parse): bold on an error background in every built-in
 	// theme, bold alone in mono.
@@ -148,6 +151,7 @@ var defaultTones = map[string]ToneStyle{
 	ToneExited:      {Fg: SchemeColor{"muted", "muted"}, Dim: true},
 	ToneStar:        {Fg: SchemeColor{"#B08800", "#F2CC60"}, Bold: true},
 	ToneQueued:      {Fg: SchemeColor{"accent", "accent"}},
+	ToneSession:     {Bold: true},
 	ToneError:       {Bg: SchemeColor{"#F6D3CE", "#5E2722"}, Bold: true},
 	ToneChip:        {Bg: SchemeColor{"#E2EAE5", "#26362F"}},
 	ToneChipFocused: {Fg: SchemeColor{"surface", "surface"}, Bg: SchemeColor{"accent", "accent"}, Bold: true},

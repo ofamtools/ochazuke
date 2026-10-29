@@ -100,6 +100,15 @@ func build(s *Story, opt Options, stateDir string) (*Session, error) {
 	}
 	m := ochazuke.NewModel(r)
 	m.Title = "o-story"
+	// Values set at the start record the driver's clock as it starts
+	// (the epoch), so a session value's time reads the same every run.
+	clock := m.Now
+	m.Now = func() time.Time { return time.Unix(0, 0).UTC() }
+	err := setStoryValues(r, s)
+	m.Now = clock
+	if err != nil {
+		return nil, err
+	}
 	// A foreground program runs headless (no terminal to hand over): no
 	// input, its output dropped, its exit the job's completion.
 	m.Foreground = func(msg ochazuke.ForegroundMsg) tea.Cmd {
@@ -1736,4 +1745,25 @@ func completionFakes(specs []CompletionSpec) []ochazuke.CompletionTrigger {
 		})})
 	}
 	return out
+}
+
+// setStoryValues sets the story's saved values, then starts the session
+// and sets its session values, each in name order.
+func setStoryValues(r *ochazuke.Runtime, s *Story) error {
+	settings := r.Settings()
+	for _, name := range slices.Sorted(maps.Keys(s.Values)) {
+		if err := settings.Set(name, s.Values[name]); err != nil {
+			return fmt.Errorf("values: %w", err)
+		}
+	}
+	if len(s.Session) == 0 {
+		return nil
+	}
+	settings.StartSession()
+	for _, name := range slices.Sorted(maps.Keys(s.Session)) {
+		if _, err := settings.SetSession(name, s.Session[name]); err != nil {
+			return fmt.Errorf("session: %w", err)
+		}
+	}
+	return nil
 }

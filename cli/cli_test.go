@@ -816,7 +816,9 @@ func TestShellAppliesTheUserBindingsFile(t *testing.T) {
 	}
 }
 
-// settings set NAME VALUE takes bare words, validates and writes the file.
+// settings set NAME VALUE takes bare words, validates and writes the file,
+// after asking: a CLI process has no session, so the write goes to
+// settings.json, and --yes (or y on stdin) confirms it.
 func TestShellSetsASetting(t *testing.T) {
 	f := newFixture(t)
 	dir := t.TempDir()
@@ -824,7 +826,13 @@ func TestShellSetsASetting(t *testing.T) {
 	if err := f.r.DeclareSetting(ochazuke.Setting{Name: "scrolloff", Type: ochazuke.SettingInteger, Default: 2, Description: "Rows around the focus"}); err != nil {
 		t.Fatal(err)
 	}
-	out, _, err := f.run("", "settings", "set", "scrolloff", "5")
+	if _, errOut, err := f.run("", "settings", "set", "scrolloff", "4"); err == nil || !strings.Contains(err.Error(), "declined") || !strings.Contains(errOut, "Write scrolloff = 4 to "+filepath.Join(dir, "settings.json")+"? [y/N]") {
+		t.Fatalf("unanswered set: %s %v", errOut, err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "settings.json")); err == nil {
+		t.Fatal("a declined set wrote settings.json")
+	}
+	out, _, err := f.run("y\n", "settings", "set", "scrolloff", "5")
 	if err != nil || !strings.Contains(out, `"value": 5`) {
 		t.Fatalf("set: %s %v", out, err)
 	}
@@ -837,6 +845,32 @@ func TestShellSetsASetting(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join(dir, "settings.json"))
 	if err != nil || !strings.Contains(string(data), `"scrolloff": 5`) {
 		t.Fatalf("file %s %v", data, err)
+	}
+	// reset asks too, --yes answers; with nothing in the file it does not ask.
+	if _, _, err := f.run("", "settings", "reset", "scrolloff"); err == nil || !strings.Contains(err.Error(), "Remove scrolloff from") {
+		t.Fatalf("unanswered reset: %v", err)
+	}
+	if out, _, err := f.run("", "settings", "reset", "scrolloff", "--yes"); err != nil || !strings.Contains(out, `"value": 2`) {
+		t.Fatalf("reset --yes: %s %v", out, err)
+	}
+	if _, _, err := f.run("", "settings", "reset", "scrolloff"); err != nil {
+		t.Fatalf("reset of an unset setting asked: %v", err)
+	}
+	// reset-all asks how many it resets; write has no session values here.
+	if _, _, err := f.run("", "settings", "set", "scrolloff", "6", "-y"); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := f.run("n\n", "settings", "reset-all"); err == nil || !strings.Contains(err.Error(), "Reset all 1 changed setting to their defaults in "+filepath.Join(dir, "settings.json")) {
+		t.Fatalf("reset-all: %v", err)
+	}
+	if out, _, err := f.run("", "settings", "save"); err != nil || strings.TrimSpace(out) != "[]" {
+		t.Fatalf("save with no session: %s %v", out, err)
+	}
+	if out, _, err := f.run("yes\n", "settings", "reset-all"); err != nil || !strings.Contains(out, "scrolloff") {
+		t.Fatalf("reset-all yes: %s %v", out, err)
+	}
+	if data, _ := os.ReadFile(filepath.Join(dir, "settings.json")); strings.Contains(string(data), "scrolloff") {
+		t.Fatalf("reset-all left %s", data)
 	}
 }
 

@@ -1,0 +1,18 @@
+{
+  "name": "settings page at 80 columns with session values: each marked (saved: …) beside it, the detail naming the session",
+  "area": "settings",
+  "width": 80,
+  "settings": [
+    {"name": "scrolloff", "type": "integer", "default": 2, "description": "Rows kept above and below the focus"},
+    {"name": "stack", "type": "string", "default": "tabs", "enum": ["tabs", "stack", "grid"], "description": "How panes are laid out"},
+    {"name": "editor", "type": "string", "default": "vi", "description": "The command that opens a file"},
+    {"name": "paths", "type": "list", "default": ["~/proj"], "description": "Directories searched for projects"}
+  ],
+  "values": {"stack": "grid"},
+  "session": {"stack": "stack", "paths": ["~/proj", "~/hub"]},
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "bind": [{"noun": "demo", "keys": ",", "do": "settings.edit"}]
+  },
+  "script": [",", "j"]
+}

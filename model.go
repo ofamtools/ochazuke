@@ -115,6 +115,8 @@ func newModel(r *Runtime) *Model {
 		}
 	}
 	r.Settings().flushWarnings()
+	// Origins record the Model's clock (a story's fake one).
+	r.Settings().now = m.clock
 	// The framework's theme setting (EnsureConfigSettings) drives the
 	// scheme; an application that declared its own theme applies it itself.
 	r.Settings().Observe(ThemeSetting, func(_ string, v any) {
@@ -180,6 +182,8 @@ func (m *Model) Init() tea.Cmd {
 	m.Runtime.EnsureUserBindings()
 	m.Runtime.EnsureConfigSettings()
 	m.Runtime.Settings().ensure()
+	// A running UI has a session: session values live until it exits.
+	m.Runtime.Settings().StartSession()
 	m.applyThemeSetting()
 	m.Runtime.EnsureHistory()
 	m.Runtime.EnsureNounPlaces()

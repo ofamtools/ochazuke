@@ -58,6 +58,9 @@ it to the timer's deadline and delivers the timer's message
   theme: "kombu", accent: "#E8833A", // a theme other than mono, the Appearance accent override
   themes: { kombu: { background: "dark", accent: "#C9A227" } }, // schemes in the themes.json shape;
                                   // one that does not validate is a notice (chrome/scheme-*)
+  values: { scrolloff: 4 },       // setting values set at the start (Settings.Set, the saved layer)
+  session: { stack: "stack" },    // session values above them (StartSession, SetSession), on the
+                                  // driver's clock, so their time reads 00:00 (settings/session-*)
   config: { "actions.json": [{ alias: "demo.zap", action: "demo.ping" }],
             "bindings.json": [{ noun: "demo", mode: "normal", keys: "Z", request: { noun: "demo", verb: "zap" } }] },
                                   // user config files by name, written to a temp config directory of
@@ -444,7 +447,7 @@ Conformance:
 | normal | palette | `palette.open` |
 | normal | pane | `pane.grow` `pane.reset` `pane.shrink` |
 | normal | segment | `segment.toggle` |
-| normal | setting | `setting.add` `setting.cycle` `setting.edit` `setting.reset` |
+| normal | setting | `setting.add` `setting.cycle` `setting.edit` `setting.reset` `setting.revert` |
 | normal | setting-item | `setting-item.add` `setting-item.delete` `setting-item.edit` `setting-item.reset` |
 | normal | settings | `settings.close` `settings.edit` `settings.section` `settings.undo` |
 | normal | story-card | `story-card.timeline-append` `story-card.timeline-stream` |

@@ -56,11 +56,15 @@ type Setting struct {
 
 // SettingValue is a setting with its current value, as settings.list and
 // settings.get answer: Value and Default in their file form (a duration
-// as "400ms"), Set when settings.json holds a value for it.
+// as "400ms"), Set when settings.json holds a value for it. Session is set
+// when the value is a session value (settings_session.go), and Saved is
+// then the persisted value beneath it (settings.json's, else the default).
 type SettingValue struct {
 	Setting
-	Value any  `json:"value"`
-	Set   bool `json:"set"`
+	Value   any  `json:"value"`
+	Set     bool `json:"set"`
+	Session bool `json:"session,omitempty"`
+	Saved   any  `json:"saved,omitempty"`
 }
 
 // Settings holds the declared settings and their values from settings.json
@@ -90,6 +94,18 @@ type Settings struct {
 	// runtime was made (startupSettings) that no application declared
 	// since: an application's DeclareSetting replaces such a row.
 	framework map[string]bool
+	// The session layer above the file (settings_session.go): values set
+	// this session and not written, whether the runtime has a session
+	// (a Model is attached), when the file changed under a setting on
+	// disk, where each application setting was declared, the running
+	// request's source and name, and the Settings page's refresh.
+	session    map[string]sessionValue
+	live       bool
+	disk       map[string]time.Time
+	declaredAt map[string]string
+	source     func() (source, via string)
+	relayered  func()
+	now        func() time.Time
 }
 
 type settingObserver struct {
@@ -160,6 +176,7 @@ func (r *Runtime) DeclareSetting(settings ...Setting) error {
 				delete(s.values, one.Name)
 				s.parse(one)
 			}
+			s.declaredBy(one.Name)
 			s.changed(one.Name, old)
 			r.rebindSettingRows(one.Name)
 			continue
@@ -172,6 +189,7 @@ func (r *Runtime) DeclareSetting(settings ...Setting) error {
 			at = len(s.declared)
 		}
 		s.declared = slices.Insert(s.declared, at, one)
+		s.declaredBy(one.Name)
 		if s.loaded {
 			s.withdrawUnknown(one)
 			s.parse(one)
@@ -280,8 +298,9 @@ func (s *Settings) find(name string) *Setting {
 // Declared lists the declared settings in declaration order.
 func (s *Settings) Declared() []Setting { return slices.Clone(s.declared) }
 
-// Value is a setting's current value (the file's when it holds a valid
-// one, else the default), typed as its getter returns it.
+// Value is a setting's current value (the session's when it holds one,
+// else the file's when it holds a valid one, else the default), typed as
+// its getter returns it.
 func (s *Settings) Value(name string) (any, bool) {
 	s.ensure()
 	one := s.find(s.canonical(name))
@@ -295,8 +314,18 @@ func (s *Settings) Value(name string) (any, bool) {
 	return v, true
 }
 
-// current is the value without reading the file.
+// current is the effective value without reading the file: the
+// session's, else the file's, else the default.
 func (s *Settings) current(one Setting) any {
+	if v, ok := s.session[one.Name]; ok {
+		return v.value
+	}
+	return s.persisted(one)
+}
+
+// persisted is the value beneath the session layer: the file's, else the
+// default.
+func (s *Settings) persisted(one Setting) any {
 	if v, ok := s.values[one.Name]; ok {
 		return v
 	}
@@ -358,12 +387,14 @@ func (s *Settings) Get(name string) (SettingValue, error) {
 }
 
 func (s *Settings) entry(one Setting) SettingValue {
-	v, set := s.values[one.Name]
-	if !set {
-		v = one.Default
+	_, set := s.values[one.Name]
+	out := SettingValue{Value: fileForm(s.current(one)), Set: set}
+	if _, ok := s.session[one.Name]; ok {
+		out.Session, out.Saved = true, fileForm(s.persisted(one))
 	}
 	one.Default = fileForm(one.Default)
-	return SettingValue{Setting: one, Value: fileForm(v), Set: set}
+	out.Setting = one
+	return out
 }
 
 func (s *Settings) unknown(name string) error {
@@ -379,7 +410,8 @@ func (s *Settings) unknown(name string) error {
 
 // Set validates value against the setting's type and enum (a string is
 // parsed: "3", "true", "400ms"), writes settings.json and tells the
-// observers. A value that does not validate changes nothing.
+// observers. A value that does not validate changes nothing. Writing the
+// file drops the setting's session value, so what was written shows.
 func (s *Settings) Set(name string, value any) error {
 	s.ensure()
 	one := s.find(s.canonical(name))
@@ -405,13 +437,14 @@ func (s *Settings) Set(name string, value any) error {
 		return err
 	}
 	s.values[name] = v
+	s.dropSession(name)
 	s.withdrawFor(name)
 	s.changed(name, old)
 	return nil
 }
 
 // Reset removes a setting's value from settings.json, so it reads its
-// default again.
+// default again; its session value is dropped too.
 func (s *Settings) Reset(name string) error {
 	s.ensure()
 	one := s.find(s.canonical(name))
@@ -420,10 +453,13 @@ func (s *Settings) Reset(name string) error {
 	}
 	name = one.Name
 	names := append([]string{name}, one.Deprecated...)
+	old, _ := s.Value(name)
 	if !slices.ContainsFunc(names, func(n string) bool { _, ok := s.raw[n]; return ok }) {
+		if s.dropSession(name) {
+			s.changed(name, old)
+		}
 		return nil
 	}
-	old, _ := s.Value(name)
 	raw := maps.Clone(s.raw)
 	for _, n := range names {
 		delete(raw, n)
@@ -432,25 +468,40 @@ func (s *Settings) Reset(name string) error {
 		return err
 	}
 	delete(s.values, name)
+	s.dropSession(name)
 	s.withdrawFor(name)
 	s.changed(name, old)
 	return nil
 }
 
 // Reload reads settings.json again and tells the observers of every value
-// that changed. It returns the problems the file has.
+// that changed. It returns the problems the file has. A session value
+// stays on top of what the file now holds; a setting whose file value
+// changed is marked changed on disk (Origin.Disk).
 func (s *Settings) Reload() []string {
-	before := map[string]any{}
+	before, saved := map[string]any{}, map[string]any{}
+	samePath := s.loaded && s.path == s.config.Path(SettingsFile)
 	if s.loaded {
 		for _, one := range s.declared {
 			before[one.Name] = s.current(one)
+			saved[one.Name] = s.persisted(one)
 		}
 	}
 	s.load()
+	moved := false
+	for _, one := range s.declared {
+		if old, ok := saved[one.Name]; ok && samePath && !sameSetting(old, s.persisted(one)) {
+			s.changedOnDisk(one.Name)
+			moved = true
+		}
+	}
 	for _, one := range s.declared {
 		if old, ok := before[one.Name]; ok {
 			s.changed(one.Name, old)
 		}
+	}
+	if moved {
+		s.relayer()
 	}
 	return slices.Clone(s.problems)
 }
@@ -788,6 +839,15 @@ func (m *Model) settingsPoll() tea.Cmd {
 
 func registerSettings(r *Runtime) {
 	s := &Settings{config: r.Config(), values: map[string]any{}, raw: map[string]json.RawMessage{}, framework: map[string]bool{}}
+	// A session value records the request that set it: its history
+	// source (empty is the API) and the name it ran by.
+	s.source = func() (string, string) {
+		source := r.history.source
+		if source == "" {
+			source = "api"
+		}
+		return source, r.Invoked().Name
+	}
 	r.Config().settings = s
 	// The framework settings every application has are known from the
 	// start: an application may read or set them before its Model
@@ -816,14 +876,14 @@ func registerSettings(r *Runtime) {
 	r.Register(Operation{Verb: "get", Noun: "ochazuke.settings", Description: "Show one setting and its value", Parameters: map[string]Parameter{"name": name}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.Settings().Get(StringArg(a, "name", ""))
 	}})
-	r.Register(Operation{Verb: "set", Noun: "ochazuke.settings", PersistArgs: true, Description: "Set a setting, checked against its type and allowed values, and save settings.json", Parameters: map[string]Parameter{"name": name, "value": {Type: "string", Required: true, Description: "The value: text, a number, true or false, a duration such as 400ms, or a JSON array of strings for a list"}}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "set", Noun: "ochazuke.settings", PersistArgs: true, Checks: []VerbCheck{cliWriteCheck(setPrompt)}, Description: "Set a setting, checked against its type and allowed values, and save settings.json", Parameters: map[string]Parameter{"name": name, "value": {Type: "string", Required: true, Description: "The value: text, a number, true or false, a duration such as 400ms, or a JSON array of strings for a list"}}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		s := r.Settings()
 		if err := s.Set(StringArg(a, "name", ""), a["value"]); err != nil {
 			return nil, err
 		}
 		return s.Get(StringArg(a, "name", ""))
 	}})
-	r.Register(Operation{Verb: "reset", Noun: "ochazuke.settings", Description: "Remove a setting's value from settings.json so it reads its default", Parameters: map[string]Parameter{"name": name}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "reset", Noun: "ochazuke.settings", Checks: []VerbCheck{cliWriteCheck(resetPrompt)}, Description: "Remove a setting's value from settings.json so it reads its default", Parameters: map[string]Parameter{"name": name}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		s := r.Settings()
 		if err := s.Reset(StringArg(a, "name", "")); err != nil {
 			return nil, err
