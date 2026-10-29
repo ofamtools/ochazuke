@@ -59,3 +59,36 @@ func TestStoryBindingsAreAtomic(t *testing.T) {
 		ss.Close()
 	}
 }
+
+// A page's store replaces the row-removing delete only on the noun the
+// store sits on: on the demo noun demo.delete becomes the store's
+// standard delete; a store on another noun (StoreSpec.Noun) leaves
+// demo.delete the row remover, so x stays bound.
+func TestStoreDeleteFollowsTheStoreNoun(t *testing.T) {
+	for _, c := range []struct {
+		noun     string
+		standard string
+	}{{"", "delete"}, {"parcel", ""}} {
+		s, err := story.Parse([]byte(`{"name": "store delete `+c.noun+`", "area": "palette", "page": {"store": {"noun": "`+c.noun+`", "props": [{"name": "id", "key": true}, {"name": "title", "role": "label"}], "things": [{"id": "t1", "title": "x"}]}}}`), "test")
+		if err != nil {
+			t.Fatal(err)
+		}
+		ss, err := story.Build(s, story.Options{Mono: true})
+		if err != nil {
+			t.Fatalf("noun %q: %v", c.noun, err)
+		}
+		op, ok := ss.R.Operations[story.Demo+".delete"]
+		if !ok || op.Standard != c.standard {
+			t.Fatalf("noun %q: demo.delete %v standard %q, want %q", c.noun, ok, op.Standard, c.standard)
+		}
+		if c.noun != "" {
+			if op, ok := ss.R.Operations[c.noun+".delete"]; !ok || op.Standard != "delete" {
+				t.Fatalf("%s.delete %v %q", c.noun, ok, op.Standard)
+			}
+		}
+		if _, err := ss.R.ValidateBindings(); err != nil {
+			t.Fatalf("noun %q: %v", c.noun, err)
+		}
+		ss.Close()
+	}
+}
