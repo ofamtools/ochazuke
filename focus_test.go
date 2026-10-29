@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"context"
 	"slices"
+	"strings"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
@@ -401,5 +402,41 @@ func TestModalOpensOnlyFromTopLevel(t *testing.T) {
 	}
 	if _, err := r.Execute(Request{Verb: "prompt", Noun: "test", Args: Arguments{"kind": "nested"}}); err == nil {
 		t.Fatal("same kind twice must fail")
+	}
+}
+
+// ReplaceOpen: an open of a kind that is the top modal replaces it, over
+// the focus and mode the first one opened over; without the option, and
+// for a kind open beneath another modal, the open is refused.
+func TestOpenModalReplaceOpen(t *testing.T) {
+	r, _ := focusFixture(t)
+	under, mode := r.Focus, r.BaseMode()
+	first, err := r.OpenModal("view", Payload{Prompt: "one"}, ReplaceOpen())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.OpenModal("view", Payload{Prompt: "plain"}); err == nil || !strings.Contains(err.Error(), "already open") {
+		t.Fatalf("without ReplaceOpen: %v, want already open", err)
+	}
+	second, err := r.OpenModal("view", Payload{Prompt: "two"}, ReplaceOpen())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second == first || len(r.modals) != 1 || r.Instances["view"].Payload.Prompt != "two" || second.Parent != under {
+		t.Fatalf("modals %v prompt %q parent %q", r.modals, r.Instances["view"].Payload.Prompt, second.Parent)
+	}
+	if _, err := r.OpenModal("over", Payload{}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.OpenModal("view", Payload{}, ReplaceOpen()); err == nil {
+		t.Fatal("a kind open beneath another modal was replaced")
+	}
+	for range 2 {
+		if err := r.Pop(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if r.TopModal() != "" || r.Focus != under || r.BaseMode() != mode {
+		t.Fatalf("closed: modal %q focus %q mode %q, want none over %q %q", r.TopModal(), r.Focus, r.BaseMode(), under, mode)
 	}
 }

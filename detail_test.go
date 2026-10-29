@@ -210,3 +210,16 @@ func TestPageDetailFollowsTheTree(t *testing.T) {
 		t.Fatalf("q's own detail: got %v", got)
 	}
 }
+
+func TestDetailWidthIsTheWholeTextsWidestLine(t *testing.T) {
+	d := &Detail{}
+	text := "short\n" + strings.Repeat("x", 30) + "\nmid line"
+	d.Window(text, 0, 1)
+	if d.Width() != 30 {
+		t.Fatalf("width %d, want 30 (the widest line, out of view)", d.Width())
+	}
+	d.Window(text, 12, 1)
+	if d.Width() != 12 {
+		t.Fatalf("wrapped width %d, want 12", d.Width())
+	}
+}

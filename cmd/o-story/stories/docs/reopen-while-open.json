@@ -1,0 +1,22 @@
+{
+  "name": ":help TOPIC while the docs viewer is open shows that topic in the same viewer: no \"already open\" error, no second viewer, esc closes it to the page",
+  "area": "docs",
+  "width": 110,
+  "height": 40,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}]
+  },
+  "script": [
+    ":", {"type": "docs open bindings"}, "enter",
+    "j", "j",
+    ":", {"type": "help settings"}, "enter",
+    ":", {"type": "h index"}, "enter",
+    "esc"
+  ],
+  "expect": [
+    {"after": 3, "modal": "docs-viewer", "contains": ["bindings · 1–", "# Default key bindings"]},
+    {"after": 8, "modal": "docs-viewer", "contains": ["settings · 1–", "# Settings"], "lacks": ["already open", "# Default key bindings"]},
+    {"after": 11, "modal": "docs-viewer", "contains": ["index"], "lacks": ["already open", "# Settings"]},
+    {"modal": "", "focus": "a1", "lacks": ["already open"]}
+  ]
+}

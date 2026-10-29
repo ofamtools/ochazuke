@@ -174,15 +174,15 @@ Root package `ochazuke` is flat: 104 source files, 112 test files. Each entry li
 
 ### detail.go
 
-- lines: 260 · tests: detail_test.go
+- lines: 271 · tests: detail_test.go
 - purpose: Detail is the component a detail instance fronts: a page's read-only detail region (the text beside or below a list about its selected row) that scrolls whil...
 - types: Detail
-- methods: Detail(9), Runtime(6)
+- methods: Detail(10), Runtime(6)
 - leans on: runtime.go(18), instance.go(7), delivery.go(5), noun.go(1)
 
 ### docs_reference.go
 
-- lines: 316 · tests: docs_reference_test.go
+- lines: 323 · tests: docs_reference_test.go
 - purpose: ReferenceModel is the runtime as the generated reference sees it: every declared setting (with the user's value where it differs from the default) and every ...
 - methods: Runtime(5), Settings(2), docsViewer(2)
 - leans on: runtime.go(21), settings.go(12), actions.go(4), configuration.go(4)
@@ -215,11 +215,11 @@ Root package `ochazuke` is flat: 104 source files, 112 test files. Each entry li
 
 ### focus.go
 
-- lines: 899 · tests: focus_test.go
+- lines: 917 · tests: focus_test.go
 - purpose: Context derives the path view of the focus.
 - types: ModalOption (func), FocusTargeter (iface)
 - methods: Runtime(42)
-- funcs: WithInput
+- funcs: ReplaceOpen, WithInput
 - leans on: runtime.go(76), instance.go(59), pages.go(15), noun.go(8)
 
 ### focus_display.go
@@ -1162,7 +1162,7 @@ Importable package `grid`: 2 source files, 2 test files.
 
 ## Package markdown
 
-Importable package `markdown`: 10 source files, 6 test files.
+Importable package `markdown`: 11 source files, 7 test files.
 
 ### markdown/doc.go
 
@@ -1202,7 +1202,7 @@ Importable package `markdown`: 10 source files, 6 test files.
 - lines: 300
 - purpose: layout is a Doc drawn at one width: its lines, per element the first and last line it covers ({-1, -1} when it is not drawn), per line the element it belongs...
 - methods: layout(1)
-- leans on: tasks.go(48), elements.go(9), render.go(4)
+- leans on: tasks.go(48), elements.go(9), table.go(8), render.go(4)
 
 ### markdown/notes.go
 
@@ -1214,11 +1214,18 @@ Importable package `markdown`: 10 source files, 6 test files.
 
 ### markdown/render.go
 
-- lines: 187 · tests: render_test.go
+- lines: 189 · tests: render_test.go
 - purpose: StyleOf is the Glamour style an appearance draws Markdown in.
 - types: Option (func)
 - funcs: StyleOf, PreserveNewlines, Block
-- leans on: tasks.go(3)
+- leans on: table.go(5), tasks.go(3)
+
+### markdown/table.go
+
+- lines: 592 · tests: table_test.go
+- purpose: srcTable is one table cut out of a source.
+- methods: inline(4)
+- leans on: tidy.go(6), tasks.go(5), render.go(1)
 
 ### markdown/tasks.go
 

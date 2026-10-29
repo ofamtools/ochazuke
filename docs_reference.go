@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/charmbracelet/x/ansi"
 	"github.com/unixsuperhero/ochazuke/refdoc"
 )
 
@@ -269,6 +270,10 @@ func (v *docsViewer) ModalBlock(s Styles, width, height int) Block {
 	if marker != "" {
 		top += " · " + marker
 	}
+	// The top line is as wide as the page's widest line, so the panel
+	// (sized from the lines it draws) keeps one width while it scrolls.
+	top = ansi.Truncate(top, width, "…")
+	top += strings.Repeat(" ", max(0, min(width, v.detail.Width())-ansi.StringWidth(top)))
 	return Text(s.Muted.Render(top) + "\n" + body)
 }
 
@@ -286,7 +291,9 @@ func registerDocs(r *Runtime) {
 			if err != nil {
 				return nil, err
 			}
-			inst, err := r.OpenModal(docsViewerID, Payload{})
+			// Opened again while it is the top modal (:help TOPIC inside
+			// the viewer), the viewer is replaced by the new topic's.
+			inst, err := r.OpenModal(docsViewerID, Payload{}, ReplaceOpen())
 			if err != nil {
 				return nil, err
 			}

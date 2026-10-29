@@ -328,8 +328,21 @@ func (r *Runtime) Push(id, focus string) error {
 type ModalOption func(*modalSpec)
 
 type modalSpec struct {
-	input *Input
-	opts  []InstanceOption
+	input   *Input
+	opts    []InstanceOption
+	replace bool
+}
+
+// ReplaceOpen makes an open of a kind that is already the top modal close
+// that modal first and open the new one in its place, over the focus and
+// mode the old one opened over: a viewer asked to show something else
+// (docs.open TOPIC inside the docs viewer) shows it instead of failing
+// "already open" or stacking a second copy. Without it a second open of
+// an open kind is refused, so a modal holding a question (a confirm, a
+// prompt, a chooser) keeps it. A kind open beneath another modal is still
+// refused.
+func ReplaceOpen() ModalOption {
+	return func(s *modalSpec) { s.replace = true }
 }
 
 // WithInput places an input inside the modal body and focuses it, so a
@@ -350,15 +363,20 @@ func (r *Runtime) OpenModal(kind string, payload Payload, opts ...ModalOption) (
 	if kind == "" {
 		return nil, errors.New("modal kind is required")
 	}
-	if r.Instances[kind] != nil {
-		return nil, fmt.Errorf("modal %q is already open", kind)
-	}
-	if err := r.openFromTopLevel(""); err != nil {
-		return nil, err
-	}
 	spec := modalSpec{}
 	for _, opt := range opts {
 		opt(&spec)
+	}
+	if r.Instances[kind] != nil {
+		if !spec.replace || r.TopModal() != kind || !r.modalInstances[kind] {
+			return nil, fmt.Errorf("modal %q is already open", kind)
+		}
+		if err := r.Pop(); err != nil {
+			return nil, err
+		}
+	}
+	if err := r.openFromTopLevel(""); err != nil {
+		return nil, err
 	}
 	if spec.input != nil && r.Instances[spec.input.ID] != nil {
 		return nil, fmt.Errorf("modal input %q is already registered", spec.input.ID)

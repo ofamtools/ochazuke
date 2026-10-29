@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/charmbracelet/x/ansi"
 	"github.com/unixsuperhero/ochazuke/refdoc"
 )
 
@@ -165,5 +166,59 @@ func TestDocsOpenShowsATopic(t *testing.T) {
 	data, _ := json.Marshal(r.Settings().List())
 	if !strings.Contains(string(data), DocsShowConfigSetting) {
 		t.Errorf("%s is not declared", DocsShowConfigSetting)
+	}
+}
+
+// TestDocsOpenWhileOpenShowsTheNewTopic: docs.open with the viewer open
+// shows the new topic in one viewer, from the top, over the same focus.
+func TestDocsOpenWhileOpenShowsTheNewTopic(t *testing.T) {
+	r, m, _, _ := configFixture(t)
+	m.Init()
+	under := r.Focus
+	open := func(topic string) {
+		t.Helper()
+		if _, err := r.Execute(Request{Noun: "ochazuke.docs", Verb: "open", Args: Arguments{"topic": topic}}); err != nil {
+			t.Fatalf("open %s: %v", topic, err)
+		}
+	}
+	open("settings")
+	r.Detail(docsTextID).Scroll(5)
+	open("bindings")
+	if len(r.modals) != 1 || r.TopModal() != docsViewerID {
+		t.Fatalf("modals %v, want one docs viewer", r.modals)
+	}
+	v := r.Instances[docsViewerID].Component.(*docsViewer)
+	if v.topic != "bindings" || !strings.HasPrefix(v.text, "# Default key bindings") || v.detail.Offset() != 0 {
+		t.Fatalf("topic %q offset %d text %.30q", v.topic, v.detail.Offset(), v.text)
+	}
+	if err := r.Pop(); err != nil {
+		t.Fatal(err)
+	}
+	if r.TopModal() != "" || r.Focus != under {
+		t.Fatalf("after esc: modal %q focus %q, want none over %q", r.TopModal(), r.Focus, under)
+	}
+}
+
+// TestDocsViewerKeepsItsWidthWhileScrolling: every window of a page is
+// as wide as the page's widest line, so the panel never resizes.
+func TestDocsViewerKeepsItsWidthWhileScrolling(t *testing.T) {
+	r, m, _, _ := configFixture(t)
+	m.Init()
+	if _, err := r.Execute(Request{Noun: "ochazuke.docs", Verb: "open", Args: Arguments{"topic": "index"}}); err != nil {
+		t.Fatal(err)
+	}
+	v := r.Instances[docsViewerID].Component.(*docsViewer)
+	widths := map[int]bool{}
+	for i := 0; i < 20; i++ {
+		block := v.ModalBlock(m.Styles(), 90, 6)
+		widest := 0
+		for _, line := range strings.Split(block.Text, "\n") {
+			widest = max(widest, ansi.StringWidth(line))
+		}
+		widths[widest] = true
+		v.detail.Scroll(1)
+	}
+	if len(widths) != 1 {
+		t.Fatalf("the viewer drew %d widths while scrolling: %v", len(widths), widths)
 	}
 }

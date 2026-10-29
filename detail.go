@@ -27,11 +27,13 @@ type Detail struct {
 	id string
 	// about names the item the detail shows now; item is the one the
 	// offset belongs to; offset its first visible line;
-	// total and height the wrapped line count and window of that frame.
+	// total and height the wrapped line count and window of that frame;
+	// widest its widest wrapped line.
 	about         func() string
 	item          string
 	offset        int
 	total, height int
+	widest        int
 }
 
 // detailNoun is the noun of every detail instance.
@@ -89,6 +91,10 @@ func (d *Detail) Window(text string, width, height int) (body, marker string) {
 		lines = nil
 	}
 	d.total, d.height = len(lines), max(0, height)
+	d.widest = 0
+	for _, line := range lines {
+		d.widest = max(d.widest, ansi.StringWidth(line))
+	}
 	d.offset = d.clamp(d.offset)
 	end := min(len(lines), d.offset+d.height)
 	body = strings.Join(lines[d.offset:end], "\n")
@@ -103,6 +109,11 @@ func (d *Detail) Marker() string {
 	}
 	return fmt.Sprintf("%d–%d / %d", d.offset+1, min(d.total, d.offset+d.height), d.total)
 }
+
+// Width is the widest line of the whole text the last Window measured
+// (wrapped, so at most its width), not only of the lines in view: a panel
+// sized from it keeps one width while the text scrolls.
+func (d *Detail) Width() int { return d.widest }
 
 // Overflows reports whether the last Window had more lines than it showed.
 func (d *Detail) Overflows() bool { return d.height > 0 && d.total > d.height }

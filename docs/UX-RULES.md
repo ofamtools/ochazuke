@@ -233,6 +233,21 @@ tiers above them. When the two disagree, fix one in the same commit.
   `quit/asks-before-quit.json`, `quit/clean-quits.json`,
   `quit/force-skips.json`, `quit/refuse.json`; tests in
   `verb_checks_test.go`.
+- **R4.8** Running a command that opens a modal which is already open
+  changes that modal's contents; it never errors with "already open" and
+  never stacks a second copy (`:help settings` inside the docs viewer shows
+  the settings page in the same viewer, from the top, over the focus it
+  opened over). The opener says so with `ReplaceOpen` on `OpenModal`; a
+  modal that holds a question (a confirm, a prompt, a chooser) keeps it and
+  refuses the second open. Story: `docs/reopen-while-open.json`; tests
+  `TestOpenModalReplaceOpen`, `TestDocsOpenWhileOpenShowsTheNewTopic`.
+- **R4.9** A modal's size stays fixed while its content scrolls or its
+  selection moves; it changes only when the content set changes or the
+  screen resizes. A scrolling body sizes from its whole content
+  (`Detail.Width`, the widest wrapped line), not the lines in view. Story:
+  `docs/width-steady-scroll.json`; tests
+  `TestDocsViewerKeepsItsWidthWhileScrolling`,
+  `TestDetailWidthIsTheWholeTextsWidestLine`.
 
 ### R5. Lists and selection
 
@@ -1066,6 +1081,10 @@ A judgment finding is allowed and expected. It is how the two parts above
 grow. Rules for recording one:
 
 - Label it `J` with a short slug, no number. Severity `suggestion`.
+- A failed standing experience check (re-invoking an open view, a stable
+  frame size while scrolling, resize, repeat, escape from each state, open
+  from elsewhere) is at least `major` even without a rule id, labelled
+  `J <slug>` with a proposed rule.
 - Give the keystroke walk and what the reviewer saw, then one sentence on
   why it is worse, and the reference behaviour if there is one.
 - Propose, in one line, the rule or principle it would become if the owner
