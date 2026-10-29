@@ -688,6 +688,35 @@ tiers above them. When the two disagree, fix one in the same commit.
   typed part starts with `.`. Stories: `forms/path-browse.json`,
   `forms/path-dir.json`, `forms/path-typed.json`,
   `forms/path-text-field.json`; tests `TestPath*`.
+- **R7.9** One grammar for a noun's things, the same in the palette and
+  the CLI (standard verbs, plan 2.6). After a noun a word is a verb, else
+  a prop, else a key or an instance (`NOUN KEY` alone keeps the default
+  verb); each tier takes a whole word before a prefix. `NOUN PROP` reads
+  the prop into the results view, `NOUN PROP VALUE` writes it, `--toggle`
+  flips a boolean. After a verb the key word may be left out: a first word
+  that is a prop (or `prop=value` after `set`) leaves the subject to the
+  focus; a key equal to a prop name is named with `--KEY` (the flag named
+  after the key prop). `--NAME VALUE` names any parameter on the line, as
+  on the CLI. Completion offers the props after a noun and after `set`, a
+  prop's values after `set PROP` and `NOUN PROP`, and `prop=` then its
+  values for `where` (taking `prop=` leaves the cursor after the `=`).
+  `:set NOUN` reads only one-value nouns (a noun whose `set` is its own, or
+  a singleton store), so `:set pa` offers the settings and `palette`, never
+  a collection named `parcel`. Stories: `palette/key-prop-grammar.json`,
+  `palette/prop-value-completion.json`, `palette/set-shadow-pa-tab.json`;
+  tests `TestNounWordPrecedence`, `TestPropShorthandInThePalette`,
+  `TestOptionalKeyWord`, `TestPropValueCompletion`,
+  `TestSetReadsOnlyOneValueNouns`, demo
+  `TestTaskGrammarFromTheCLIAndThePalette`.
+- **R7.10** A noun's own vocabulary comes first. In the verb list the
+  named verbs list before the standard ones (`get`, `list`, `create`,
+  `set`, `delete`, `watch`), which carry a `std` tag; a standard `get`
+  shows its thing as `prop  value` rows in the results view. All three are
+  parts of `palette.standard-verbs` (default `[last, tag, record]`;
+  `mixed` is one alphabetical list, `hidden` leaves standard verbs out of
+  the list while typing their name still runs them; `[]` is the palette
+  before standard verbs). Stories: `palette/get-record-rows.json`,
+  `palette/std-tag-off.json`; test `TestStandardVerbsSetting`.
 
 ### R8. Terminal
 

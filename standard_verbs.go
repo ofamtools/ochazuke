@@ -43,8 +43,11 @@ type standardVerb struct {
 	Subject     bool
 	// NoFocus makes the subject optional and never filled from the focus
 	// (watch: omitted, it watches every thing).
-	NoFocus     bool
-	Rows        bool
+	NoFocus bool
+	Rows    bool
+	// Record marks a verb whose answer is one thing's props: the palette
+	// shows it as prop and value rows (palette.standard-verbs record).
+	Record      bool
 	Many        bool
 	Repeatable  bool
 	HistoryKind string
@@ -70,7 +73,7 @@ const DefaultDeleteConfirm = "Delete {{noun}} {{label}}?"
 var standardVerbs = []standardVerb{
 	{Verb: "get", Description: "Read a thing's props: every prop as an object, one prop's value (prop), or some props (props)",
 		Kinds: []string{Collection, Singleton, Instances}, Needs: func(n *Noun) bool { return n.Store.Get != nil },
-		Subject: true, HistoryKind: HistoryFetch, Params: getParams, Run: runGet},
+		Subject: true, Record: true, HistoryKind: HistoryFetch, Positional: func(*Noun) []string { return []string{"prop"} }, Params: getParams, Run: runGet},
 	{Verb: "list", Description: "List the things, each its props with id and label; where keeps the things whose props equal the values given",
 		Kinds: []string{Collection, Instances}, Needs: func(n *Noun) bool { return n.Store.List != nil },
 		Rows: true, HistoryKind: HistoryFetch, Params: listParams, Run: runList},
@@ -257,7 +260,7 @@ func getParams(n *Noun) map[string]Parameter {
 
 func listParams(n *Noun) map[string]Parameter {
 	params := map[string]Parameter{
-		"where": {Type: "string", Description: "prop=value pairs, comma- or space-separated: keep the things whose props equal every value"},
+		"where": {Type: "string", Free: true, Pairs: true, Description: "prop=value pairs, comma- or space-separated: keep the things whose props equal every value"},
 		"props": {Type: "string", Description: "The props each row holds besides id and label, comma-separated (default: every prop but secrets)"},
 		"limit": {Type: "integer", Description: "At most this many rows (0: every row)"},
 	}
@@ -509,8 +512,8 @@ func setParams(n *Noun) map[string]Parameter {
 		names = append(names, p.Name)
 	}
 	return map[string]Parameter{
-		"prop":    {Type: "string", Enum: names, Free: true, Description: "The prop to write (with value or toggle); a prop=value word starts the several-prop form"},
-		"value":   {Type: AnyParameterType, Description: "The prop's new value, typed by the prop (a word such as 3, true or 400ms, a JSON array or object)"},
+		"prop":    {Type: "string", Enum: names, Free: true, Pairs: true, Description: "The prop to write (with value or toggle); a prop=value word starts the several-prop form"},
+		"value":   {Type: AnyParameterType, ValueOf: "prop", Description: "The prop's new value, typed by the prop (a word such as 3, true or 400ms, a JSON array or object)"},
 		"toggle":  {Type: "boolean", Description: "Flip the boolean prop instead of giving a value"},
 		"changes": {Type: "object", Description: "Several props at once: an object of prop to value"},
 		"pairs":   {Type: "string", Rest: true, Description: "More prop=value words after prop and value (the several-prop form)"},

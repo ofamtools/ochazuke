@@ -1,0 +1,29 @@
+{
+  "name": "a standard get answers one thing: :demo get shows it in the results view as prop and value rows (palette.standard-verbs record), j moves down them, esc closes",
+  "area": "palette",
+  "width": 100,
+  "height": 24,
+  "page": {
+    "lists": [{"id": "tasks", "items": [{"id": "t1", "label": "t1"}, {"id": "t2", "label": "t2"}]}],
+    "focus": "t2",
+    "store": {
+      "props": [
+        {"name": "id", "key": true},
+        {"name": "title", "role": "label"},
+        {"name": "status", "enum": ["todo", "doing", "done"]},
+        {"name": "starred", "type": "boolean"}
+      ],
+      "things": [
+        {"id": "t1", "title": "Water the plants", "status": "todo", "starred": false},
+        {"id": "t2", "title": "Write notes", "status": "doing", "starred": false},
+        {"id": "t3", "title": "Call the plumber", "status": "todo", "starred": true}
+      ]
+    }
+  },
+  "script": [":", {"type": "demo get"}, "enter", "j", "esc"],
+  "expect": [
+    {"after": 3, "modal": "palette-results", "order": ["demo.get", "prop", "value", "id", "t2", "title", "Write notes", "status", "doing", "starred", "false"]},
+    {"after": 4, "modal": "palette-results"},
+    {"modal": "", "focus": "t2"}
+  ]
+}

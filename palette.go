@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"slices"
@@ -344,6 +345,18 @@ func (p *Palette) dispatch(q Request) error {
 			if value == nil && (q.Verb == "list" || op.Rows != "") {
 				value = []any{}
 			}
+			if run := p.r.Operations[requestOperation(q)]; p.r.StandardVerbsView().Record {
+				if row := standardRow(run.Standard); row != nil && row.Record {
+					// One thing's record (a standard get, or NOUN PROP):
+					// prop and value rows in the same results view
+					// (palette.standard-verbs record).
+					if rows, ok := recordRows(p.r.Nouns[run.Noun], value); ok {
+						value = rows
+					} else if prop := cmp.Or(q.Prop, StringArg(q.Args, "prop", "")); prop != "" {
+						value = []map[string]any{{"prop": prop, "value": value}}
+					}
+				}
+			}
 			return p.showResults(q.Key(), value)
 		}
 		if ticket, pending := value.(Ticket); pending {
@@ -468,7 +481,7 @@ func (p *Palette) viewBlock(s Styles, width, height int) Block {
 	group := ""
 	for i := start; i < min(len(entries), start+limit); i++ {
 		entry := entries[i]
-		if heading := map[string]string{"verb": "verbs", "noun": "nouns", "choice": "choices"}[entry.Kind]; heading != group {
+		if heading := map[string]string{"verb": "verbs", "noun": "nouns", "prop": "props", "choice": "choices"}[entry.Kind]; heading != group {
 			group = heading
 			if heading == "choices" && inSlot {
 				heading, headed = p.paramHeader(s, slot, width), true

@@ -1,0 +1,29 @@
+{
+  "name": "the key word is optional and a prop follows a noun: :demo set status done writes the focused row's task (the first word is a prop, so the subject is the focus), :demo status reads it into the results view, :demo status doing --id t3 writes another (its --id word is checked against demo list)",
+  "area": "palette",
+  "width": 100,
+  "height": 24,
+  "page": {
+    "lists": [{"id": "tasks", "items": [{"id": "t1", "label": "t1"}, {"id": "t2", "label": "t2"}, {"id": "t3", "label": "t3"}]}],
+    "focus": "t2",
+    "store": {
+      "props": [
+        {"name": "id", "key": true},
+        {"name": "title", "role": "label"},
+        {"name": "status", "enum": ["todo", "doing", "done"]},
+        {"name": "starred", "type": "boolean"}
+      ],
+      "things": [
+        {"id": "t1", "title": "Water the plants", "status": "todo", "starred": false},
+        {"id": "t2", "title": "Write notes", "status": "doing", "starred": false},
+        {"id": "t3", "title": "Call the plumber", "status": "todo", "starred": true}
+      ]
+    }
+  },
+  "script": [":", {"type": "demo set status done"}, "enter", ":", {"type": "demo status"}, "enter", "esc", ":", {"type": "demo status doing --id t3"}, "enter"],
+  "expect": [
+    {"after": 3, "writes": ["set t2 status=done"], "focus": "t2", "modal": ""},
+    {"after": 6, "modal": "palette-results", "contains": ["demo.status", "prop", "value", "done"]},
+    {"writes": ["set t2 status=done", "get t2", "list", "set t3 status=doing"], "focus": "t2", "modal": ""}
+  ]
+}

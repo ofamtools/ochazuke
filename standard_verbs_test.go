@@ -107,15 +107,15 @@ func TestStandardVerbsNeeds(t *testing.T) {
 	r := NewRuntime()
 	r.Define("theme").Props(PropSpec{Name: "name"}).Store(Store{Kind: Singleton, Get: func(Ctx, string) (Thing, error) { return Thing{"name": "kombu"}, nil }})
 	op := r.Operations["theme.get"]
-	if _, ok := op.Parameters["name"]; ok || len(op.Positional) > 0 {
-		t.Fatalf("a singleton's get takes no subject: %v %v", op.Parameters, op.Positional)
+	if _, ok := op.Parameters["name"]; ok || !slices.Equal(op.Positional, []string{"prop"}) {
+		t.Fatalf("a singleton's get takes no subject, its first word the prop: %v %v", op.Parameters, op.Positional)
 	}
 	if got, err := r.Execute(Request{Noun: "theme", Verb: "get", Args: Arguments{"prop": "name"}}); err != nil || got != "kombu" {
 		t.Fatalf("singleton get = %v, %v", got, err)
 	}
 	r2, _ := newTaskRuntime(t)
 	get := r2.Operations["task.get"]
-	if p := get.Parameters["id"]; !p.Focus || p.Noun != "task" || !slices.Equal(get.Positional, []string{"id"}) {
+	if p := get.Parameters["id"]; !p.Focus || p.Noun != "task" || !slices.Equal(get.Positional, []string{"id", "prop"}) {
 		t.Fatalf("task.get subject = %+v positional %v", p, get.Positional)
 	}
 	if list := r2.Operations["task.list"]; list.Rows != "task" || list.HistoryKindOf() != HistoryFetch || list.Kind != KindApplication {

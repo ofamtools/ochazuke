@@ -1,0 +1,29 @@
+{
+  "name": "set pa then tab: :set reads only one-value nouns (owner decision 17), so a collection named parcel, whose set is the standard one, is never offered; the palette noun (its own set) and the palette.* and path.* settings are",
+  "area": "palette",
+  "width": 100,
+  "height": 24,
+  "page": {
+    "lists": [{"id": "tasks", "items": [{"id": "t1", "label": "t1"}]}],
+    "store": {
+      "noun": "parcel",
+      "props": [
+        {"name": "id", "key": true},
+        {"name": "title", "role": "label"},
+        {"name": "status", "enum": ["todo", "doing", "done"]},
+        {"name": "starred", "type": "boolean"}
+      ],
+      "things": [
+        {"id": "t1", "title": "Water the plants", "status": "todo", "starred": false},
+        {"id": "t2", "title": "Write notes", "status": "doing", "starred": false},
+        {"id": "t3", "title": "Call the plumber", "status": "todo", "starred": true}
+      ]
+    }
+  },
+  "script": [":", {"type": "set pa"}, "tab", {"type": "rcel"}],
+  "expect": [
+    {"after": 2, "contains": ["palette", "palette.standard-verbs", "path.start"], "lacks": ["parcel"]},
+    {"after": 3, "contains": ["palette.missing-opens-form"], "lacks": ["parcel ("]},
+    {"contains": ["set parcel"], "lacks": ["parcel set", "is ambiguous"]}
+  ]
+}

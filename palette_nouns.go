@@ -99,14 +99,17 @@ func (p *Palette) completions() []PaletteEntry {
 	}
 	tokens, trailing := tokenize(p.Text())
 	partial := ""
+	partialStart := len([]rune(p.Text()))
 	if !trailing {
 		partial = tokens[len(tokens)-1].Text
+		partialStart = tokens[len(tokens)-1].Start
 		tokens = tokens[:len(tokens)-1]
 	}
 	ix := p.index()
+	view := p.r.StandardVerbsView()
 	var out []PaletteEntry
 	verbs := func(names []string, noun string) {
-		for _, verb := range names {
+		for _, verb := range ix.orderVerbs(names, noun, view) {
 			label := verb
 			var aliases []string
 			if noun != "" {
@@ -120,10 +123,18 @@ func (p *Palette) completions() []PaletteEntry {
 				slices.Sort(aliases)
 				aliases = slices.Compact(aliases)
 			}
+			if view.Tag && ix.standardOnly(verb, noun) {
+				label += " · std"
+			}
 			if len(aliases) > 0 {
 				label += " · also " + strings.Join(aliases, ", ")
 			}
 			out = append(out, PaletteEntry{Value: verb, Kind: "verb", Label: label, Verb: verb, Aliases: aliases})
+		}
+	}
+	props := func(noun string) {
+		for _, prop := range p.propWords(ix, noun) {
+			out = append(out, PaletteEntry{Value: prop.Name, Kind: "prop", Label: propLabel(prop)})
 		}
 	}
 	nouns := func(names []string) {
@@ -131,10 +142,17 @@ func (p *Palette) completions() []PaletteEntry {
 			out = append(out, PaletteEntry{Value: noun, Kind: "noun", Label: noun})
 		}
 	}
-	choices := func(op Operation, name string) {
-		list, _ := p.paramChoices(op, name, partial)
+	choices := func(op Operation, name string, args Arguments) {
+		list, _ := p.paramChoices(op, name, partial, args)
+		pairs := op.Parameters[name].Pairs
 		for _, choice := range list {
-			out = append(out, PaletteEntry{Value: choice.ID, Kind: "choice", Label: choiceLabel(choice), ID: choice.ID})
+			entry := PaletteEntry{Value: choice.ID, Kind: "choice", Label: choiceLabel(choice), ID: choice.ID}
+			if pairs && strings.HasSuffix(choice.ID, "=") {
+				// NAME= of a pairs parameter: taking it leaves the cursor
+				// after the =, for the value.
+				entry.Splice, entry.From = true, partialStart
+			}
+			out = append(out, entry)
 		}
 	}
 	if len(tokens) == 0 {
@@ -151,13 +169,24 @@ func (p *Palette) completions() []PaletteEntry {
 		switch {
 		case c.Err != nil:
 		case len(tokens) == 1 && c.Words[0].Kind == "verb":
-			nouns(ix.verbs[c.Words[0].Value])
+			names := ix.verbs[c.Words[0].Value]
+			if a, bare := p.r.bareAlias(tokens[0].Text); bare && a.Shadows {
+				// set NOUN reads only one-value nouns (owner decision 17).
+				names = p.r.shadowWords(names, a.Verb)
+			}
+			nouns(names)
 		case len(tokens) == 1 && c.Words[0].Kind == "noun":
 			noun := c.Words[0].Value
 			verbs(ix.nouns[noun], noun)
+			props(noun)
 		}
 		if slot, ok := p.slot(ix, c, tokens); ok {
-			choices(slot.Op, slot.Name)
+			if param := slot.Op.Parameters[slot.Name]; param.Focus && len(slot.Next) > 0 && len(slot.Op.Parameters[slot.Next[0]].Enum) > 0 {
+				// The optional key word: the next parameter's words (a
+				// prop name) first, then the things.
+				choices(slot.Op, slot.Next[0], slot.Args)
+			}
+			choices(slot.Op, slot.Name, slot.Args)
 		}
 	}
 	kind := map[string]string{"v": "verb", "n": "noun", "p": "choice"}[p.filter]
@@ -270,4 +299,54 @@ func (p *Palette) restCompletions() ([]PaletteEntry, bool) {
 		out = append(out, PaletteEntry{Value: choice.ID, Kind: "choice", Label: label, ID: choice.ID, Splice: true, From: start})
 	}
 	return out, true
+}
+
+// orderVerbs is a verb column's verbs as palette.standard-verbs orders
+// them: last puts the noun's named verbs before its standard ones, hidden
+// leaves the standard ones out, mixed keeps one alphabetical list.
+func (ix lineIndex) orderVerbs(names []string, noun string, view StandardVerbsView) []string {
+	if view.Order == StandardVerbsMixed {
+		return names
+	}
+	var named, standard []string
+	for _, verb := range names {
+		if ix.standardOnly(verb, noun) {
+			standard = append(standard, verb)
+		} else {
+			named = append(named, verb)
+		}
+	}
+	if view.Order == StandardVerbsHidden {
+		return named
+	}
+	return append(named, standard...)
+}
+
+// propWords are the props the palette offers after a noun (NOUN PROP
+// [VALUE]): every prop shown where the palette opened, when the noun reads
+// or writes its things here.
+func (p *Palette) propWords(ix lineIndex, noun string) []PropSpec {
+	get, _ := ix.op(noun, "get")
+	set, _ := ix.op(noun, "set")
+	n := p.r.Noun(noun)
+	if n == nil || get.Verb == "" && set.Verb == "" {
+		return nil
+	}
+	var out []PropSpec
+	for _, prop := range n.Props {
+		if p.r.propShown(prop, focusOf(p.origin), p.originMode, nil) {
+			out = append(out, prop)
+		}
+	}
+	return out
+}
+
+// propLabel names a prop in the completion list: the name, prop, and
+// read-only when nothing writes it.
+func propLabel(prop PropSpec) string {
+	label := prop.Name + " · prop"
+	if !prop.writable() {
+		label += " · read-only"
+	}
+	return label
 }

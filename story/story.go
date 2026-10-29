@@ -475,6 +475,10 @@ type BindSpec struct {
 // A page's rows of the demo noun stand for the things whose key is their
 // id.
 type StoreSpec struct {
+	// Noun is the noun that declares the store (default the demo noun):
+	// a story about a noun's name (a collection named pa..., against the
+	// palette.* settings) names it.
+	Noun   string              `json:"noun,omitempty"`
 	Props  []ochazuke.PropSpec `json:"props"`
 	Things []ochazuke.Thing    `json:"things"`
 }

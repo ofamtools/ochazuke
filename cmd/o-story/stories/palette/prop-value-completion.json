@@ -1,0 +1,32 @@
+{
+  "name": "completion of props and their values: after :demo st the props that start with st; after demo set status the status prop's values; after demo starred (NOUN PROP) true and false; after --where, prop= then that prop's values (tab takes status= and leaves the cursor after the =)",
+  "area": "palette",
+  "width": 100,
+  "height": 30,
+  "page": {
+    "lists": [{"id": "tasks", "items": [{"id": "t1", "label": "t1"}, {"id": "t2", "label": "t2"}]}],
+    "focus": "t1",
+    "store": {
+      "props": [
+        {"name": "id", "key": true},
+        {"name": "title", "role": "label"},
+        {"name": "status", "enum": ["todo", "doing", "done"]},
+        {"name": "starred", "type": "boolean"}
+      ],
+      "things": [
+        {"id": "t1", "title": "Water the plants", "status": "todo", "starred": false},
+        {"id": "t2", "title": "Write notes", "status": "doing", "starred": false},
+        {"id": "t3", "title": "Call the plumber", "status": "todo", "starred": true}
+      ]
+    }
+  },
+  "script": [":", {"type": "demo st"}, "ctrl+u", {"type": "demo set status "}, "ctrl+u", {"type": "demo starred "}, "ctrl+u", {"type": "demo list --where st"}, {"type": "at"}, "tab"],
+  "expect": [
+    {"after": 2, "contains": ["props", "status · prop", "starred · prop"]},
+    {"after": 4, "contains": ["status · string", "todo", "doing", "done"]},
+    {"after": 6, "contains": ["starred · boolean", "true", "false"]},
+    {"after": 8, "contains": ["status=", "starred="]},
+    {"after": 9, "contains": ["status="], "lacks": ["starred="]},
+    {"contains": ["demo list --where status=", "status=todo", "status=done"]}
+  ]
+}

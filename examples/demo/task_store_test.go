@@ -275,3 +275,86 @@ func TestTaskUndo(t *testing.T) {
 		t.Fatalf("t2 status %v, want %v", got, before)
 	}
 }
+
+// The grammar of plan 2.6 reads the same from the CLI and the palette:
+// after a noun a verb wins, then a prop (NOUN PROP [VALUE]: a read, or a
+// write with a value), then a key; after a verb the key word may be left
+// out when the first word is a prop (the subject is --KEY, or the focus).
+func TestTaskGrammarFromTheCLIAndThePalette(t *testing.T) {
+	if got := strings.TrimSpace(runDemo(t, "task", "status", "--id", "t2")); got != `"doing"` {
+		t.Fatalf("task status --id t2 = %s", got)
+	}
+	if got := strings.TrimSpace(runDemo(t, "task", "st", "--id", "t3")); got != `"todo"` {
+		t.Fatalf("task st (a prop prefix) = %s", got)
+	}
+	if got := strings.TrimSpace(runDemo(t, "task", "get", "status", "--id", "t1")); got != `"todo"` {
+		t.Fatalf("task get status --id t1 = %s", got)
+	}
+	if got := strings.TrimSpace(runDemo(t, "task", "get", "t1", "status")); got != `"todo"` {
+		t.Fatalf("task get t1 status = %s", got)
+	}
+	var thing map[string]any
+	if err := json.Unmarshal([]byte(runDemo(t, "task", "status", "done", "--id", "t2")), &thing); err != nil || thing["status"] != "done" {
+		t.Fatalf("task status done --id t2 = %v %v", thing, err)
+	}
+	if err := json.Unmarshal([]byte(runDemo(t, "task", "set", "estimate", "9", "--id", "t1")), &thing); err != nil || thing["estimate"] != float64(9) {
+		t.Fatalf("task set estimate 9 --id t1 = %v %v", thing, err)
+	}
+	if err := json.Unmarshal([]byte(runDemo(t, "task", "set", "title=Ship", "estimate=4", "--id", "t1")), &thing); err != nil || thing["title"] != "Ship" || thing["estimate"] != float64(4) {
+		t.Fatalf("task set title=Ship estimate=4 --id t1 = %v %v", thing, err)
+	}
+	// NOUN PROP takes one value word: the thing is --KEY, never a word.
+	{
+		m := New()
+		var stdout, stderr bytes.Buffer
+		app := oden.New("demo", []string{"task", "status", "done", "t3"}, oden.WithStdio(strings.NewReader(""), &stdout, &stderr), oden.WithPath(t.TempDir()))
+		cli.Mount(app, cli.New(m.Runtime, "demo", strings.NewReader(""), &stdout, &stderr))
+		if err := app.Run(context.Background()); err == nil || !strings.Contains(err.Error(), "--id") {
+			t.Fatalf("task status done t3: %v", err)
+		}
+	}
+
+	// The palette, on the Record page (it stands for t1).
+	m := New()
+	m.Width, m.Height = 100, 24
+	m.Appearance.Theme = "mono"
+	r := m.Runtime
+	if err := r.OpenPage("task"); err != nil {
+		t.Fatal(err)
+	}
+	m.View()
+	keytest.Press(m, "esc")
+	get := func(id, prop string) any {
+		t.Helper()
+		v, err := r.Execute(ochazuke.Request{Noun: "task", Verb: "get", Args: ochazuke.Arguments{"id": id, "prop": prop}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return v
+	}
+	palette := func(line string) string {
+		keytest.Press(m, ":")
+		keytest.Type(m, line)
+		keytest.Press(m, "enter")
+		return ansi.Strip(m.View().Content)
+	}
+	palette("task status done")
+	if v := get("t1", "status"); v != "done" {
+		t.Fatalf(":task status done: %v", v)
+	}
+	palette("task set estimate 6")
+	if v := get("t1", "estimate"); v != 6 {
+		t.Fatalf(":task set estimate 6: %v", v)
+	}
+	palette("task status doing --id t2")
+	if v := get("t2", "status"); v != "doing" {
+		t.Fatalf(":task status doing --id t2: %v", v)
+	}
+	if frame := palette("task status"); !strings.Contains(frame, "status") || !strings.Contains(frame, "done") {
+		t.Fatalf(":task status shows no value:\n%s", frame)
+	}
+	keytest.Press(m, "esc")
+	if frame := palette("task get"); !strings.Contains(frame, "estimate") || !strings.Contains(frame, "Water the plants") {
+		t.Fatalf(":task get shows no record rows:\n%s", frame)
+	}
+}

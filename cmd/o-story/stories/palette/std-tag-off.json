@@ -1,0 +1,30 @@
+{
+  "name": "palette.standard-verbs off ([]): the verb list after :demo is one alphabetical list with no std tag, and get shows no record rows (today's palette)",
+  "area": "palette",
+  "width": 100,
+  "height": 30,
+  "values": {"palette.standard-verbs": []},
+  "page": {
+    "lists": [{"id": "tasks", "items": [{"id": "t1", "label": "t1"}]}],
+    "focus": "t1",
+    "verbs": [{"verb": "demo.archive", "description": "Archive the task"}],
+    "store": {
+      "props": [
+        {"name": "id", "key": true},
+        {"name": "title", "role": "label"},
+        {"name": "status", "enum": ["todo", "doing", "done"]},
+        {"name": "starred", "type": "boolean"}
+      ],
+      "things": [
+        {"id": "t1", "title": "Water the plants", "status": "todo", "starred": false},
+        {"id": "t2", "title": "Write notes", "status": "doing", "starred": false},
+        {"id": "t3", "title": "Call the plumber", "status": "todo", "starred": true}
+      ]
+    }
+  },
+  "script": [":", {"type": "demo "}, "ctrl+u", {"type": "demo get"}, "enter"],
+  "expect": [
+    {"after": 2, "order": ["archive", "create", "delete", "get", "list", "set"], "lacks": ["std"]},
+    {"modal": ""}
+  ]
+}

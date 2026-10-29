@@ -613,7 +613,7 @@ func watchParams(n *Noun) map[string]Parameter {
 		"since": {Type: "string", Description: "Start from this hash (an earlier event's hash): emit what changed since it instead of every thing as added"},
 	}
 	if n.Store.Kind != Singleton {
-		params["where"] = Parameter{Type: "string", Description: "prop=value pairs, comma- or space-separated: watch the things whose props equal every value"}
+		params["where"] = Parameter{Type: "string", Free: true, Pairs: true, Description: "prop=value pairs, comma- or space-separated: watch the things whose props equal every value"}
 	}
 	return params
 }

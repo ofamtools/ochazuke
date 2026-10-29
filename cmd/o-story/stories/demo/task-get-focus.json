@@ -1,5 +1,5 @@
 {
-  "name": "standard get on a store noun: :demo get reads the focused row's task; a key word wins over the focus (its choices read demo list)",
+  "name": "standard get on a store noun: :demo get reads the focused row's task (its prop and value rows in the results view, esc closes); a key word wins over the focus (its choices read demo list)",
   "area": "demo",
   "width": 100,
   "height": 24,
@@ -19,9 +19,10 @@
       ]
     }
   },
-  "script": [":", {"type": "demo get"}, "enter", ":", {"type": "demo get t3"}, "enter"],
+  "script": [":", {"type": "demo get"}, "enter", "esc", ":", {"type": "demo get t3"}, "enter"],
   "expect": [
-    {"after": 3, "writes": ["get t2"], "focus": "t2", "modal": "", "noNotices": true},
-    {"writes": ["get t2", "list", "get t3"], "focus": "t2", "modal": ""}
+    {"after": 3, "writes": ["get t2"], "modal": "palette-results", "contains": ["Write notes", "doing"], "noNotices": true},
+    {"after": 4, "focus": "t2", "modal": ""},
+    {"writes": ["get t2", "list", "get t3"], "modal": "palette-results", "contains": ["Call the plumber"]}
   ]
 }

@@ -66,6 +66,18 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 			}
 		}
 	}
+	// NOUN PROP [VALUE] (plan 2.6): a word after a noun that reads as one of
+	// its props rather than a verb (Runtime.ReadNounWord, as the palette
+	// reads it) is a command for this run only, by the prop's whole name,
+	// so help still lists the verbs alone.
+	propNoun, prop := "", ""
+	if noun, rest, ok := r.NounWords(app.Args); ok && len(rest) > 0 {
+		if _, p, err := sh.nounWord(noun, rest[0]); err == nil && p != "" {
+			propNoun, prop = noun, p
+			head := app.Args[:len(app.Args)-len(rest)]
+			app.Args = append(append(append([]string{}, head...), p), rest[1:]...)
+		}
+	}
 	root := &nounGroup{}
 	for _, noun := range extra {
 		root.at(noun).noun = true
@@ -145,6 +157,17 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 			Parameters: parameters, Details: details,
 			Run: func(ctx context.Context, args []string) error {
 				return sh.Run(ctx, append([]string{noun, verb}, args...))
+			},
+		})
+	}
+	if prop != "" {
+		noun := propNoun
+		g := root.at(noun)
+		g.verbs = append(g.verbs, oden.Command{
+			Name: prop, Summary: "the " + prop + " prop: read it, or write it with a value", Source: noun + "." + prop,
+			Usage: "[VALUE] [--toggle] [--KEY KEY] [--target ID] [--format F] [--yes]",
+			Run: func(ctx context.Context, args []string) error {
+				return sh.Run(ctx, append([]string{noun, prop}, args...))
 			},
 		})
 	}

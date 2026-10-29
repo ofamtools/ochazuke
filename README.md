@@ -387,6 +387,29 @@ On terminals where Option does not send Meta sequences, configure Option-as-Meta
 - The split view pairs results with the selected entry's metadata and a text or directory preview. Narrow terminals retain the list and selected-entry metadata. Preview work runs outside the UI loop, limits displayed file content to 64 KiB or directory listings to 128 entries, and ignores stale deliveries after selection changes or reopening. Symlinks show their target without following it; binary and special files do not display raw contents.
 - Controls are ordinary rows of the `picker` noun in `insert` mode; the path field is a `prompt` input beneath it. Override or add them with `r.Define("picker").Mode("insert").Bind(...)` or a binding file row (`"request": null` removes one). The picker help is derived from `bindings.list`, so remapped and removed controls are reflected without changing the renderer. No function keys are assigned.
 
+#### Standard verbs on the line
+
+A noun with props and a store (`props.go`, `standard_verbs.go`) reads one grammar in the palette and the CLI (`standard_grammar.go`, `Runtime.ReadNounWord`):
+
+```js
+"task get"                      // the focused task's props: prop and value rows in the results view
+"task get t3 status"            // one prop of t3; "task get status" is the focused one's
+"task set status done"          // the first word is a prop, so the subject is the focus
+"task set t3 status done"       // any other first word is the key
+"task set title=Ship estimate=5" // several props
+"task set --id status status done" // a key that equals a prop name: --KEY (the flag named after the key prop)
+"task status"                   // NOUN PROP reads it; "task status done" writes it; "task starred --toggle" flips it
+"task list --where status=todo" // --NAME VALUE names any parameter, as on the CLI
+```
+
+- After a noun a word is a verb, else a prop, else a key or an instance (owner decision 18): an exact verb, an exact prop, a unique verb prefix, a unique prop prefix. `NOUN KEY` alone keeps running a palette noun's default verb. `NOUN PROP [VALUE]` is a prop-shaped request (`{noun, prop}`, `{noun, prop, value}`, `{noun, prop, toggle}`), so history keeps it as typed; from the CLI it is `bin task status done --id t3`.
+- The key word after a verb is optional: when the first word is the next parameter's (a prop name, or `prop=value` after `set`; `Operation.SubjectOmitted`, read from the parameters' `Enum` and `Pairs`), the subject comes from the focus, a target or `--KEY`.
+- Completion: the props follow the verbs after a noun; after `set` the props come before the things; after `set PROP` and `NOUN PROP` the prop's values (`Parameter.ValueOf`: its `Enum`, a boolean's `true`/`false`, a reference's things); `where` (`Parameter.Pairs`) completes `prop=` (taking it leaves the cursor after the `=`) and then that prop's values.
+- `:set NOUN ...` (the `set` bare alias) reads only one-value nouns: a noun whose `set` is its own (`mode`, `focus`, `palette`, `register`, `confirm`, `setting`, `settings`, `appearance`) or whose store is a singleton. A collection's standard `set` is `NOUN set ...`, never `set NOUN ...`, so `:set pa` offers the `palette.*` and `path.*` settings and the `palette` noun, never a collection named `parcel`. A registry test checks that every declared setting reads as a setting.
+- `palette.standard-verbs` (a list, default `[last, tag, record]`) is the one opt-out for how the palette shows standard verbs: `last` lists a noun's named verbs first, `mixed` one alphabetical list, `hidden` leaves them out of the verb list (typing the name, the CLI and bindings still reach them); `tag` marks them `std`; `record` shows a `get` as prop and value rows. A part left out is the palette before standard verbs, so `[]` turns them all off. The `?` help lists bound keys only, so it is unchanged.
+
+Compared with Vim: `:task status done` reads like `:set {option}={value}` (`:help :set`), but it acts on a thing, not an option, and the key word is the thing's name; `:set` itself is unchanged and reads only settings and one-value nouns. `--NAME` words have no Vim counterpart on the command line; they mirror the CLI.
+
 #### Configuring noun instances
 
 `NewPalette` supplies live page instances with `page.open` as their default. Applications can replace that configuration or register sources for their own nouns:

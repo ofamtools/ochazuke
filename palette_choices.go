@@ -19,13 +19,20 @@ type choiceList struct {
 // default verb's argument, true and false for a boolean, else the
 // parameter's Enum, Source or Noun (Runtime.Choices). word is the text
 // typed for it so far: a source that declares ChoicesQueryParameter sees
-// it (and is cached per word).
-func (p *Palette) paramChoices(op Operation, name, word string) ([]Choice, error) {
-	key := op.Key() + "/" + name
-	param := op.Parameters[name]
-	if !p.r.ChoicesTakeQuery(param) {
+// it (and is cached per word). args are the line's arguments so far: a
+// ValueOf parameter's choices are those of the prop they name, and a
+// Pairs parameter's word holding = completes that prop's values.
+func (p *Palette) paramChoices(op Operation, name, word string, args Arguments) ([]Choice, error) {
+	param, prop := p.r.choiceParameter(op, name, args)
+	key := op.Key() + "/" + name + "\x00" + prop
+	pairs := param.Pairs && (strings.Contains(word, "=") || len(param.Enum) == 0)
+	switch {
+	case pairs:
+		before, _, _ := strings.Cut(word, "=")
+		key += "\x00pairs\x00" + before + fmt.Sprint(strings.Contains(word, "="))
+	case !p.r.ChoicesTakeQuery(param):
 		word = ""
-	} else {
+	default:
 		key += "\x00" + word
 	}
 	if cached, ok := p.choiceCache[key]; ok {
@@ -35,6 +42,8 @@ func (p *Palette) paramChoices(op Operation, name, word string) ([]Choice, error
 	var err error
 	if config, ok := p.nouns[op.Noun]; ok && config.DefaultVerb == op.Verb && config.Argument == name {
 		choices = p.instanceChoices(op.Noun)
+	} else if pairs {
+		choices, err = p.r.pairChoices(p.origin.Clone(), op, word)
 	} else if param.Type == "boolean" {
 		choices = []Choice{{ID: "true", Label: "true"}, {ID: "false", Label: "false"}}
 	} else {
@@ -83,6 +92,9 @@ type paramSlot struct {
 	Op   Operation
 	Name string
 	Next []string
+	// Args are the line's arguments before the slot (a ValueOf
+	// parameter's choices read them).
+	Args Arguments
 }
 
 // slot finds the parameter the next word fills on a line resolved to
@@ -113,11 +125,24 @@ func (p *Palette) slot(ix lineIndex, c commandLine, tokens []lineToken) (paramSl
 	if !c.known() {
 		return paramSlot{}, false
 	}
+	if c.Flag != "" {
+		// --NAME waits for its value.
+		return paramSlot{Op: c.Op, Name: c.Flag, Args: c.Args}, true
+	}
+	if c.Prop != "" {
+		// NOUN PROP: the next word is its value, when the line writes it.
+		if _, ok := c.Op.Parameters["value"]; ok && c.Op.Parameters["value"].ValueOf != "" {
+			if _, set := c.Args["value"]; !set && c.Args["toggle"] == nil {
+				return paramSlot{Op: c.Op, Name: "value", Args: c.Args}, true
+			}
+		}
+		return paramSlot{}, false
+	}
 	next := remainingParams(c)
 	if len(next) == 0 {
 		return paramSlot{}, false
 	}
-	return paramSlot{Op: c.Op, Name: next[0], Next: next[1:]}, true
+	return paramSlot{Op: c.Op, Name: next[0], Next: next[1:], Args: c.Args}, true
 }
 
 // currentSlot is the slot of the palette's line as typed.
@@ -144,7 +169,11 @@ func (p *Palette) currentSlot() (paramSlot, bool) {
 // following parameters, cuts the description, then drops what it is from
 // the end; the name is always kept.
 func (p *Palette) paramHeader(s Styles, slot paramSlot, width int) string {
-	param := slot.Op.Parameters[slot.Name]
+	param, prop := p.r.choiceParameter(slot.Op, slot.Name, slot.Args)
+	if prop != "" {
+		// A ValueOf parameter is headed by the prop it holds a value of.
+		slot.Name = prop
+	}
 	var facts []string
 	typ := param.Type
 	if typ == "" {

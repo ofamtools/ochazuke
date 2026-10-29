@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -110,6 +111,16 @@ type commandLine struct {
 	// Rest is where a rest parameter's text starts (Parameter.Rest), nil
 	// when the line has none.
 	Rest *restSpan
+	// Prop is the prop of a NOUN PROP [VALUE] line (the shorthand, plan
+	// 2.6): Op is the noun's set when it writes the prop, else its get,
+	// and Request is prop-shaped.
+	Prop string
+	// Flag is a --NAME word still waiting for its value (the last word).
+	Flag string
+	// Omitted are the subject parameters the line left to the focus (the
+	// optional key word, Operation.SubjectOmitted): no later word fills
+	// them.
+	Omitted []string
 }
 
 // restSpan is the rest parameter a line fills and the rune offset its
@@ -127,6 +138,21 @@ func (c commandLine) Complete() bool { return c.known() && c.Err == nil && c.Mis
 // Request is the request the line runs: no target, so the operation acts
 // for the nearest instance of its noun on the focus path.
 func (c commandLine) Request() Request {
+	if c.Prop != "" {
+		// NOUN PROP [VALUE]: a read, a write, or a toggle, for the thing
+		// the key argument names, else the focus.
+		var key Arguments
+		for name, v := range c.Args {
+			if name != "prop" && name != "value" && name != "toggle" {
+				if key == nil {
+					key = Arguments{}
+				}
+				key[name] = v
+			}
+		}
+		toggle, _ := c.Args["toggle"].(bool)
+		return PropShorthand(c.Op.Noun, c.Prop, c.Args["value"], toggle, key)
+	}
 	return Request{Verb: c.Op.Verb, Noun: c.Op.Noun, Args: c.Args, Via: c.Via}
 }
 
@@ -491,12 +517,22 @@ func (p *Palette) parseRest(ix lineIndex, first option, tokens []lineToken) comm
 	for _, verb := range ix.aliasNouns[noun] {
 		verbs = append(verbs, option{Kind: "verb", Value: verb, alias: true})
 	}
-	hit, candidates, _ := matchWord(rest[0].Text, verbs)
-	if hit.Value != "" {
-		c.Words = append(c.Words, PaletteWord{Text: rest[0].Text, Kind: "verb", Value: hit.Value})
-		c.Op, c.Via = ix.op(noun, hit.Value)
+	// verb > prop > key/instance (owner decision 18).
+	read := p.r.readNounWord(noun, rest[0].Text, verbs)
+	switch read.Kind {
+	case NounWordVerb:
+		c.Words = append(c.Words, PaletteWord{Text: rest[0].Text, Kind: "verb", Value: read.Value})
+		c.Op, c.Via = ix.op(noun, read.Value)
 		p.parseParams(&c, rest[1:], "")
 		return c
+	case NounWordProp:
+		c.Words = append(c.Words, PaletteWord{Text: rest[0].Text, Kind: "prop", Value: read.Value})
+		p.parseProp(ix, &c, noun, read.Value, rest[1:])
+		return c
+	}
+	var candidates []option
+	for _, word := range read.Candidates {
+		candidates = append(candidates, option{Value: word})
 	}
 	if len(candidates) == 0 {
 		// An instance of a palette noun runs its default verb.
@@ -505,6 +541,7 @@ func (p *Palette) parseRest(ix lineIndex, first option, tokens []lineToken) comm
 			for _, choice := range p.instanceChoices(noun) {
 				instances = append(instances, option{Kind: "instance", Value: choice.ID})
 			}
+			var hit option
 			hit, candidates, _ = matchWord(rest[0].Text, instances)
 			if hit.Value != "" {
 				c.Words = append(c.Words, PaletteWord{Text: rest[0].Text, Kind: "instance", Value: hit.Value, Param: config.Argument})
@@ -525,7 +562,7 @@ func (p *Palette) parseRest(ix lineIndex, first option, tokens []lineToken) comm
 func remainingParams(c commandLine) []string {
 	var out []string
 	for _, name := range paramOrder(c.Op) {
-		if _, set := c.Args[name]; !set {
+		if _, set := c.Args[name]; !set && !slices.Contains(c.Omitted, name) {
 			out = append(out, name)
 		}
 	}
@@ -534,32 +571,14 @@ func remainingParams(c commandLine) []string {
 
 // parseParams fills the operation's parameters from the words in order,
 // skipping preset (an instance word's argument), and names the first
-// missing required one.
+// missing required one. A --NAME word naming a parameter sets it from the
+// next word (--NAME=VALUE in one word; a boolean takes no word unless it
+// is true or false), as the CLI reads it. The subject (a Focus parameter)
+// may be left out: a first word that is the next parameter's skips it
+// (Operation.SubjectOmitted).
 func (p *Palette) parseParams(c *commandLine, tokens []lineToken, preset string) {
-	order := remainingParams(*c)
-	for i, token := range tokens {
-		if i < len(order) && c.Op.Parameters[order[i]].Rest {
-			// The rest of the line, verbatim, is this parameter's value.
-			name := order[i]
-			c.Words = append(c.Words, PaletteWord{Text: token.Tail, Kind: "argument", Param: name, Value: token.Tail})
-			c.Args[name] = token.Tail
-			c.Rest = &restSpan{Param: name, Start: token.Start}
-			break
-		}
-		if i >= len(order) {
-			c.Words = append(c.Words, PaletteWord{Text: token.Text})
-			c.Err = fmt.Errorf("unexpected word %q: %s takes %d argument(s)", token.Text, c.Op.Key(), len(c.Op.Parameters))
-			return
-		}
-		name := order[i]
-		value, display, candidates, err := p.argument(c.Op, name, token.Text)
-		word := PaletteWord{Text: token.Text, Kind: "argument", Param: name, Value: display, Candidates: candidates}
-		c.Words = append(c.Words, word)
-		if err != nil {
-			c.Err = err
-			return
-		}
-		c.Args[name] = value
+	if !p.fillParams(c, tokens, remainingParams(*c)) {
+		return
 	}
 	// An alias's preset arguments (w! is write {force: true}) fill what
 	// the words left out: a typed word wins.
@@ -578,14 +597,128 @@ func (p *Palette) parseParams(c *commandLine, tokens []lineToken, preset string)
 	}
 }
 
+// fillParams fills order's parameters from the words, a --NAME flag's
+// where it stands; false when a word failed (Err) or a flag waits for its
+// value (Flag).
+func (p *Palette) fillParams(c *commandLine, tokens []lineToken, order []string) bool {
+	positional := 0
+	for i := 0; i < len(tokens); i++ {
+		token := tokens[i]
+		if len(order) > 0 && c.Op.Parameters[order[0]].Rest {
+			// The rest of the line, verbatim, is this parameter's value.
+			name := order[0]
+			c.Words = append(c.Words, PaletteWord{Text: token.Tail, Kind: "argument", Param: name, Value: token.Tail})
+			c.Args[name] = token.Tail
+			c.Rest = &restSpan{Param: name, Start: token.Start}
+			return true
+		}
+		if name, value, inline, ok := p.flagWord(c.Op, token.Text); ok {
+			word := PaletteWord{Text: token.Text, Kind: "flag", Value: "--" + name, Param: name}
+			order = slices.DeleteFunc(order, func(n string) bool { return n == name })
+			if !inline {
+				param := c.Op.Parameters[name]
+				switch next := i + 1; {
+				case param.Type == "boolean" && (next >= len(tokens) || tokens[next].Text != "true" && tokens[next].Text != "false"):
+					c.Words = append(c.Words, word)
+					c.Args[name] = true
+					continue
+				case next >= len(tokens):
+					c.Words = append(c.Words, word)
+					c.Flag, c.Missing = name, name
+					return false
+				}
+				c.Words = append(c.Words, word)
+				i++
+				token = tokens[i]
+				value = token.Text
+			}
+			v, display, candidates, err := p.argument(c.Op, name, value, c.Args)
+			c.Words = append(c.Words, PaletteWord{Text: token.Text, Kind: "argument", Param: name, Value: display, Candidates: candidates})
+			if err != nil {
+				c.Err = err
+				return false
+			}
+			c.Args[name] = v
+			continue
+		}
+		if positional == 0 && c.Op.SubjectOmitted(order, token.Text) {
+			// The optional key word: the subject comes from the focus.
+			c.Omitted = append(c.Omitted, order[0])
+			order = order[1:]
+		}
+		positional++
+		if len(order) == 0 {
+			c.Words = append(c.Words, PaletteWord{Text: token.Text})
+			c.Err = fmt.Errorf("unexpected word %q: %s takes %d argument(s)", token.Text, c.Op.Key(), len(c.Op.Parameters))
+			return false
+		}
+		name := order[0]
+		order = order[1:]
+		value, display, candidates, err := p.argument(c.Op, name, token.Text, c.Args)
+		word := PaletteWord{Text: token.Text, Kind: "argument", Param: name, Value: display, Candidates: candidates}
+		c.Words = append(c.Words, word)
+		if err != nil {
+			c.Err = err
+			return false
+		}
+		c.Args[name] = value
+	}
+	return true
+}
+
+// flagWord reads --NAME or --NAME=VALUE naming a parameter of op; false
+// for any other word (which fills a parameter in order, as before).
+func (p *Palette) flagWord(op Operation, word string) (name, value string, inline, ok bool) {
+	text, isFlag := strings.CutPrefix(word, "--")
+	if !isFlag || text == "" {
+		return "", "", false, false
+	}
+	name, value, inline = strings.Cut(text, "=")
+	if _, known := op.Parameters[name]; !known {
+		return "", "", false, false
+	}
+	return name, value, inline, true
+}
+
+// parseProp reads the words after NOUN PROP (plan 2.6): none reads the
+// prop, one VALUE writes it, --toggle flips a boolean, --KEY names the
+// thing (else it is the focus). The line's operation is the noun's set
+// when it writes the prop here (so the value completes the prop's
+// values), else its get.
+func (p *Palette) parseProp(ix lineIndex, c *commandLine, noun, prop string, tokens []lineToken) {
+	c.Prop = prop
+	get, _ := ix.op(noun, "get")
+	set, _ := ix.op(noun, "set")
+	spec := p.r.Noun(noun).prop(prop)
+	switch {
+	case set.Verb != "" && spec != nil && spec.writable():
+		c.Op = set
+	case get.Verb != "":
+		c.Op = get
+	default:
+		c.Err = fmt.Errorf("%s %s: the %s cannot be read or written here", noun, prop, noun)
+		return
+	}
+	c.Args["prop"] = prop
+	order := []string{}
+	if c.Op.Verb == set.Verb && c.Op.Noun == set.Noun {
+		order = append(order, "value")
+	}
+	if !p.fillParams(c, tokens, order) && c.Err != nil && len(order) == 0 && c.Words[len(c.Words)-1].Kind == "" {
+		c.Err = fmt.Errorf("%s.%s is read-only here: %s %s reads it", noun, prop, noun, prop)
+	}
+}
+
 // argument converts one word to a parameter's value: a choice (exact or a
 // unique prefix of its id) when the parameter has choices, else the text;
 // then the parameter's type.
-func (p *Palette) argument(op Operation, name, word string) (value any, display string, candidates []string, err error) {
+func (p *Palette) argument(op Operation, name, word string, args Arguments) (value any, display string, candidates []string, err error) {
 	param := op.Parameters[name]
 	text := word
-	choices, sourceErr := p.paramChoices(op, name, word)
-	if len(choices) > 0 || p.r.ChoicesSource(param) != "" {
+	choices, sourceErr := p.paramChoices(op, name, word, args)
+	// A ValueOf parameter is checked against the prop it holds a value of.
+	check, _ := p.r.choiceParameter(op, name, args)
+	if len(choices) > 0 || p.r.ChoicesSource(check) != "" {
 		options := make([]option, len(choices))
 		for i, choice := range choices {
 			options[i] = option{Kind: "argument", Value: choice.ID}
@@ -596,7 +729,7 @@ func (p *Palette) argument(op Operation, name, word string) (value any, display 
 			text = hit.Value
 		case len(matches) > 1:
 			return nil, "", optionValues(matches), fmt.Errorf("%s: %q is ambiguous: %s", name, word, strings.Join(optionValues(matches), ", "))
-		case !param.Free && sourceErr == nil:
+		case !check.Free && sourceErr == nil:
 			return nil, "", nil, choiceError(name, choices)
 		}
 	}

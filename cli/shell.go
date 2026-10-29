@@ -189,6 +189,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		args = append([]string{reading.Noun, reading.Alias.Verb}, args[2:]...)
 		bare = false
 	}
+	prop := ""
 	if bare {
 		// A bare alias (w!) is its own noun and verb: bin w! --force. The
 		// action runs by the alias's name (Request.Via); aliases of the
@@ -200,13 +201,19 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		if !ok {
 			words, rest = args[0], args[1:]
 		}
-		v, err := s.verb(words, rest[0])
+		v, p, err := s.nounWord(words, rest[0])
 		if err != nil {
 			return err
 		}
-		noun, verb, flags = words, v, rest[1:]
+		noun, verb, prop, flags = words, v, p, rest[1:]
 	}
-	q, opts, err := s.request(noun, verb, flags)
+	var q ochazuke.Request
+	var opts options
+	if prop != "" {
+		q, opts, err = s.propRequest(noun, prop, flags)
+	} else {
+		q, opts, err = s.request(noun, verb, flags)
+	}
 	if err != nil {
 		return err
 	}
@@ -365,6 +372,80 @@ func (s *Shell) stderr() io.Writer {
 	return s.Stderr
 }
 
+// nounWord reads the word after noun (owner decision 18, the palette's
+// rule, Runtime.ReadNounWord): a verb of the noun (an exact verb or alias,
+// an exact prop, a unique verb prefix, a unique prop prefix, in that
+// order) answers the verb; a prop answers the prop (NOUN PROP [VALUE]);
+// any other word goes to verb, which names what is wrong.
+func (s *Shell) nounWord(noun, word string) (verb, prop string, err error) {
+	if _, ok := s.Runtime.Operation(noun + "." + word); ok {
+		return word, "", nil
+	}
+	var verbs []string
+	for _, op := range s.Runtime.Operations {
+		if op.Noun == noun {
+			verbs = append(verbs, op.Verb)
+		}
+	}
+	sort.Strings(verbs)
+	switch read := s.Runtime.ReadNounWord(noun, word, verbs); read.Kind {
+	case ochazuke.NounWordProp:
+		return "", read.Value, nil
+	case ochazuke.NounWordVerb:
+		return read.Value, "", nil
+	}
+	verb, err = s.verb(noun, word)
+	return verb, "", err
+}
+
+// propRequest builds NOUN PROP [VALUE] (plan 2.6): a prop-shaped request
+// that reads the prop (no value), writes it (VALUE) or flips a boolean
+// (--toggle), for the thing --KEY names (the flag named after the key
+// prop), else the one the command acts for. The shell's own flags work as
+// for any command.
+func (s *Shell) propRequest(noun, prop string, flags []string) (ochazuke.Request, options, error) {
+	r := s.Runtime
+	n := r.Noun(noun)
+	base, ok := r.Operations[n.Name+".set"]
+	if !ok {
+		base, ok = r.Operations[n.Name+".get"]
+	}
+	if !ok {
+		return ochazuke.Request{}, options{}, fmt.Errorf("%s %s: the %s cannot be read or written", noun, prop, noun)
+	}
+	// The words the shorthand takes: VALUE, --toggle and the subject's
+	// --KEY.
+	op := ochazuke.Operation{Noun: n.Name, Verb: prop, Parameters: map[string]ochazuke.Parameter{
+		"value":  {Type: ochazuke.AnyParameterType},
+		"toggle": {Type: "boolean"},
+	}, Positional: []string{"value"}}
+	for name, p := range base.Parameters {
+		if p.Focus {
+			op.Parameters[name] = p
+		}
+	}
+	q, opts, err := s.parseFlags(ochazuke.Request{Noun: n.Name, Verb: prop, Args: ochazuke.Arguments{}}, op, flags)
+	if err != nil {
+		return q, opts, err
+	}
+	for name := range op.Parameters {
+		named := slices.ContainsFunc(flags, func(f string) bool {
+			return f == "--"+name || strings.HasPrefix(f, "--"+name+"=") || strings.HasPrefix(f, "--json")
+		})
+		if _, set := q.Args[name]; set && name != "value" && name != "toggle" && !named {
+			// One word only, as in the palette: the thing is --KEY.
+			return q, opts, fmt.Errorf("%s %s takes one value; name the %s with --%s", noun, prop, r.DisplayNoun(n.Name), name)
+		}
+	}
+	value := q.Args["value"]
+	toggle, _ := q.Args["toggle"].(bool)
+	delete(q.Args, "value")
+	delete(q.Args, "toggle")
+	out := ochazuke.PropShorthand(n.Name, prop, value, toggle, q.Args)
+	out.Target = q.Target
+	return out, opts, nil
+}
+
 // verb resolves a verb word of noun: the exact verb, else the one verb
 // of noun starting with it. Several are an error naming them; none is the
 // word unchanged, which request reports.
@@ -436,11 +517,16 @@ type options struct {
 // of its own takes --format as that argument, and the shell prints JSON.
 func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, options, error) {
 	q := s.Runtime.CanonicalRequest(ochazuke.Request{Noun: noun, Verb: verb, Args: ochazuke.Arguments{}})
-	var opts options
 	op, ok := s.Runtime.Operations[q.Key()]
 	if !ok {
-		return q, opts, fmt.Errorf("unknown operation %q (%s %s); operations list prints them", q.Key(), noun, verb)
+		return q, options{}, fmt.Errorf("unknown operation %q (%s %s); operations list prints them", q.Key(), noun, verb)
 	}
+	return s.parseFlags(q, op, flags)
+}
+
+// parseFlags reads a command's words into q's arguments for op (request).
+func (s *Shell) parseFlags(q ochazuke.Request, op ochazuke.Operation, flags []string) (ochazuke.Request, options, error) {
+	var opts options
 	bareJSON := false
 	var words []string
 	for i := 0; i < len(flags); i++ {
@@ -573,6 +659,12 @@ func positional(q ochazuke.Request, op ochazuke.Operation, words []string) error
 		if _, set := q.Args[name]; !set {
 			open = append(open, name)
 		}
+	}
+	if op.SubjectOmitted(open, words[0]) {
+		// The optional key word (plan 2.6): a first word that is the next
+		// parameter's (a prop name, prop=value) leaves the subject to the
+		// focus or --KEY.
+		open = open[1:]
 	}
 	if rest := slices.IndexFunc(open, func(name string) bool { return op.Parameters[name].Rest }); rest >= 0 {
 		open = open[:rest+1]

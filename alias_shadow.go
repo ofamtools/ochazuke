@@ -28,6 +28,12 @@ import (
 // (settings.apply), that is an exact noun name, then a setting name
 // (exact, then a unique prefix); a word that is both a noun's prefix and
 // a setting's is ambiguous.
+//
+// NOUN is only a one-value noun (owner decision 17, shadowsNoun): one whose
+// verb of the alias's name is the application's own, or whose store is a
+// singleton. A collection's or an instances store's standard verb (set on
+// every store noun) is reached as NOUN VERB, so set pa reads the settings
+// and the palette noun, never a parcel collection.
 
 // BareReading is how a command line that starts with a bare alias reads
 // (ReadBareAlias): the alias and its presets, with the presets of any
@@ -72,7 +78,9 @@ func (r *Runtime) ReadBareAlias(c Context, words []string, nouns []string) (Bare
 		if nouns == nil {
 			nouns = r.shadowNouns(a.Verb)
 		}
-		noun, err := r.shadowNoun(c, a, words[1], nouns)
+		// Only one-value nouns (owner decision 17): a collection's
+		// standard verb never takes a setting's word.
+		noun, err := r.shadowNoun(c, a, words[1], r.shadowWords(nouns, a.Verb))
 		if err != nil {
 			return out, true, &ArgumentError{Err: err}
 		}
@@ -173,7 +181,8 @@ func (r *Runtime) shadowNoun(c Context, a ActionAlias, word string, nouns []stri
 
 // shadowNouns are the words of the nouns that have verb, for a bare alias
 // read outside the palette (the CLI): every registered noun with an
-// action of that verb, by its display word.
+// action of that verb, by its display word. ReadBareAlias keeps only the
+// one-value ones (shadowsNoun).
 func (r *Runtime) shadowNouns(verb string) []string {
 	seen := map[string]bool{}
 	var out []string

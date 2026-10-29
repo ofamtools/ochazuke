@@ -600,6 +600,9 @@ func (ss *Session) check(c ochazuke.Ctx) ochazuke.Result {
 // defineVerb registers a VerbSpec on the demo noun.
 // defineStore declares the demo noun's props and its store (StoreSpec).
 func (ss *Session) defineStore(d *ochazuke.NounBuilder, spec *StoreSpec) (err error) {
+	if spec.Noun != "" {
+		d = ss.R.Define(spec.Noun)
+	}
 	if d.Noun().Store != nil {
 		return errors.New("store: one page declares it")
 	}

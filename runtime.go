@@ -69,6 +69,17 @@ type Parameter struct {
 	// current value, selected as a rename is (rename.select), or, when it
 	// is empty, empty with the prop's Fallback value as its placeholder.
 	Edits string `json:"edits,omitempty"`
+	// ValueOf names the parameter whose argument is a prop of the
+	// operation's noun: this parameter holds a value of that prop, so its
+	// choices (and the palette's check of a typed word) are the prop's own
+	// (its Enum, Source or Noun; true and false for a boolean). A standard
+	// set's value declares ValueOf "prop". The catalog's valueOf.
+	ValueOf string `json:"valueOf,omitempty"`
+	// Pairs marks a parameter that takes NAME=VALUE words of the noun's
+	// props (where, set's several-prop form): a word holding = completes
+	// the values of prop NAME; one without completes the Enum when there
+	// is one, else NAME= for each prop. The catalog's pairs.
+	Pairs bool `json:"pairs,omitempty"`
 }
 
 // Request names an operation and, optionally, the instance it addresses.
