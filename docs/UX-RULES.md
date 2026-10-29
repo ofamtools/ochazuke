@@ -595,6 +595,21 @@ tiers above them. When the two disagree, fix one in the same commit.
   `bindings/editor.json`; an app overrides by binding on a noun or instance
   on the stack or in a binding file; it never edits the JSON. Check: the
   diff.
+- **R9.1a** Every input answers the standard editing keys in insert, as
+  rows of the `editor` noun's insert table (no key names in code):
+  `alt+backspace`/`ctrl+backspace` kill the word before the cursor (what
+  `alt+b` moves over, `input.kill {motion: word-previous}`), `ctrl+w` the
+  WORD or path component before it, `ctrl+u`/`super+backspace` to the
+  line's start, `alt+d`/`ctrl+delete` the word after (`word-next`, what
+  `alt+f` moves over), `ctrl+k` to the line's end; `alt+left`/`ctrl+left`
+  and `alt+right`/`ctrl+right` move by word, `super+left`/`super+right`
+  (and `meta+left`/`meta+right`, how a kitty terminal's cmd+arrow decodes)
+  to the line's ends, beside `ctrl+a`/`ctrl+e`/`home`/`end`. Kills go to
+  the yank history (`ctrl+y`). With a select range open (R9.6) a kill
+  removes the range. The alternate kill rows are hidden from the footer.
+  Tests `TestInputEditingKeys*`, `TestPromptEditingKeys`,
+  `TestTerminalSequencesReachTheRows` (recorded byte sequences); stories
+  `inputs/word-delete-keys.json`, `inputs/word-motion-keys.json`.
 - **R9.2** Offsets count runes; rendering accounts for cell width. Story:
   needed (`inputs/wide-runes`), with a CJK or emoji string.
 - **R9.3** Undo and redo round-trip every editing operation: for each
@@ -610,7 +625,10 @@ tiers above them. When the two disagree, fix one in the same commit.
   select mode. The first text typed or pasted replaces the selection and
   typing continues in insert; backspace or delete removes it; `esc`, a
   motion (`left`/`right` land on its edges), an undo or any other edit
-  closes it and keeps the text; `enter` does what it does on the line,
+  closes it and keeps the text (a motion moves as it would from the
+  range's end: `end`/`ctrl+e` to the end, `home`/`ctrl+a` to the start, a
+  word motion by a word); a kill key removes it as backspace does;
+  `enter` does what it does on the line,
   with the text kept. Every printable key types, `j` included: moving away
   is `esc` then a motion. The selection is drawn in the visual-selection
   style (reverse). Select is a state of the input, not a mode: the person
@@ -652,9 +670,15 @@ tiers above them. When the two disagree, fix one in the same commit.
   once and opens its line selected; `outline.edit {select: true}` and
   `Tree.Edit(id, true)` do the same for an existing line. Typing writes a
   rename after the pause; `esc` keeps the placeholder and writes nothing
-  more. Without `select` the verbs are unchanged (empty line, cursor at the
-  end). Stories as R9.6; tests `TestOutlineAddSelectPlaceholder`,
-  `TestOutlineEditSelect`.
+  more. Editing a line is renaming its node: `outline.edit` without
+  `select` (`i`) follows the `rename.select` setting (default on: opened
+  selected; off: cursor at the end, the opt-out), and so does a record
+  editor whose `RecordSpec.Rename` is set (a rename form). `outline.add`
+  without `select` is unchanged (empty line, cursor at the end). Stories
+  as R9.6 and `tree/rename-select.json`, `tree/rename-select-off.json`;
+  tests `TestOutlineAddSelectPlaceholder`, `TestOutlineEditSelect`,
+  `TestOutlineEditRename*`, `TestOutlineRenameMotionsKeepTheName`,
+  `TestRecordEditorRenameSelects`.
 
 ### R12. Action names and aliases
 
