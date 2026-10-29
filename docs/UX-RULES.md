@@ -739,6 +739,26 @@ tiers above them. When the two disagree, fix one in the same commit.
   card stays selected (a streaming patch, a refresh), and a selection
   that moves (`G`, the filter) or a card that goes hands the focus to the
   selected card. Test `TestTimelineBodyFollowsTheSelection`.
+- **R13.6** Inside a card the body sits under the card: the focus path is
+  body, card, list, timeline, so a key the body does not bind answers as
+  it does on the card (an app's rows on its card noun: `esc`, `R`, `Y`),
+  and the footer and `?` help offer those rows. Story
+  `turns/card-rows-inside.json`.
+- **R13.7** `gj`/`gk` inside move by screen row (`timeline.row {delta}`,
+  counts work): the header step's lines and every body line but blank
+  ones. The marker covers the row alone and the step under it is the
+  current step (`y`, `l`, `h` act on it); `gk` crosses into the step
+  above; past the last row `gj` goes on as `j`, before the first `gk`
+  goes back to the card; `j`/`k` go on by step from the row's step.
+  Story `turns/row-gj-gk.json`.
+- **R13.8** `J`/`K` (and `ctrl+e`/`ctrl+y`) inside scroll the window; a
+  scroll that takes the current step (or row) off screen moves the cursor
+  to the nearest one shown (the first going down, the last going up), so
+  the next step key goes on from what is on screen. A motion pressed
+  before the next frame is drawn (after `G`, an open, a step entered)
+  measures from where that frame puts the window. Stories
+  `turns/scroll-keeps-step.json`, `turns/k-after-g-past-open-card.json`,
+  `turns/opened-tall-step-j-scrolls.json`.
 
 ---
 
