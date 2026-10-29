@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/unixsuperhero/ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/keytest"
 )
 
 func listFixture(t *testing.T) (*Runtime, *List, *Input, []ListItem) {

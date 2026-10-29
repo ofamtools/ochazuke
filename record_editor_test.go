@@ -10,7 +10,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/unixsuperhero/ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/keytest"
 )
 
 // taskFields is the schema the tests edit: a required title, a status

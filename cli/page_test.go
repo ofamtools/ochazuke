@@ -9,7 +9,7 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/keytest"
 )
 
 // pageDoc is an extension's catalog: skills (with columns) listed by

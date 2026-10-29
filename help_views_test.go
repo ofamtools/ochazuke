@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/unixsuperhero/ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/keytest"
 )
 
 // sameAnswers checks that a hypothetical walk (nounRows) answers every key

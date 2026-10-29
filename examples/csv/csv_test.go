@@ -10,7 +10,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"github.com/unixsuperhero/ochazuke"
 	"github.com/unixsuperhero/ochazuke/grid"
-	"github.com/unixsuperhero/ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/keytest"
 )
 
 const fixture = "testdata/people.csv"

@@ -6,7 +6,7 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/keytest"
 )
 
 // The Library page: J/K scroll the selected entry's detail while the

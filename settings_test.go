@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/unixsuperhero/ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/keytest"
 )
 
 func settingsFixture(t *testing.T) (*Runtime, *Model, string) {

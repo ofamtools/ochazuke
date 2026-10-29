@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/unixsuperhero/ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/keytest"
 	"github.com/unixsuperhero/ochazuke/story"
 )
 

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/unixsuperhero/ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/keytest"
 )
 
 // A capture row is consulted outer-first before the inner-first walk, so an

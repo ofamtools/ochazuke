@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/unixsuperhero/ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/keytest"
 )
 
 // verbsFixture is sessionFixture with a free text setting, a list and an

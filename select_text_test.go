@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/keytest"
 )
 
 // selectFixture is a focused single-line input holding text with its whole

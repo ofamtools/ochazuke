@@ -8,7 +8,7 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/unixsuperhero/ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/keytest"
 )
 
 // landLoads runs the commands a key queued and feeds the messages that

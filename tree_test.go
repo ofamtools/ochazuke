@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/keytest"
 )
 
 // treeFixture is an editable outline on a page, focused, with its writes

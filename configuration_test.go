@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/keytest"
 )
 
 // configFixture is a runtime whose config directory is a temp dir, with

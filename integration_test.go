@@ -3,7 +3,7 @@ package ochazuke
 import (
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/keytest"
 )
 
 // Tests for interactions between features that landed on separate

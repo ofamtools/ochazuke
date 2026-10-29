@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/keytest"
 )
 
 // visualPage adds lists to one page in the given order, each with the given

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/keytest"
 )
 
 // fixedTree is treeFixture with the root a fixed (rename, move, delete)

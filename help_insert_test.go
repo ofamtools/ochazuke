@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/keytest"
 )
 
 // helpInsertFixture is a page holding an insert-mode input, focused.

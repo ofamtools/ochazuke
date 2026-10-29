@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/internal/keytest"
+	"github.com/unixsuperhero/ochazuke/keytest"
 )
 
 func TestBindingSetupRoundTrip(t *testing.T) {

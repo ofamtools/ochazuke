@@ -1200,6 +1200,17 @@ Importable package `grid`: 2 source files, 2 test files.
 - funcs: Register, Resolve
 - leans on: grid.go(20)
 
+## Package keytest
+
+Importable package `keytest`: 1 source files, 0 test files.
+
+### keytest/keytest.go
+
+- lines: 113
+- purpose: Model is the part of a Bubble Tea model that receives keys.
+- types: Model (iface)
+- funcs: Msg, Press, Type, Paste
+
 ## Package markdown
 
 Importable package `markdown`: 11 source files, 7 test files.
@@ -1669,6 +1680,7 @@ Exported type -> file.
 - grid.Option -> grid/grid.go
 - grid.Ref -> grid/grid.go
 - grid.Styles -> grid/grid.go
+- keytest.Model -> keytest/keytest.go
 - markdown.DebounceMsg -> markdown/doc.go
 - markdown.Doc -> markdown/doc.go
 - markdown.Element -> markdown/elements.go
