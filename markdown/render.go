@@ -5,6 +5,7 @@
 // only its box character in the source, u and ctrl+r undo and redo. It is
 // a package of its own, built on ochazuke's public API like the grid, so
 // only an application that imports it carries Glamour and its parsers.
+// Tables are drawn by the package (table.go), not by Glamour.
 package markdown
 
 import (
@@ -137,6 +138,7 @@ func renderUncached(text string, width int, style string, opts options) []string
 	if strings.TrimSpace(text) == "" {
 		return nil
 	}
+	text, tables := cutTables(text)
 	rk := rendererKey{width, style, opts}
 	tr := cache.renderers[rk]
 	if tr == nil {
@@ -162,7 +164,7 @@ func renderUncached(text string, width int, style string, opts options) []string
 	if out == "" {
 		out = ansi.Wrap(text, width, "")
 	}
-	lines := strings.Split(out, "\n")
+	lines := spliceTables(strings.Split(out, "\n"), tables, width, style)
 	blank := func(line string) bool { return strings.TrimSpace(ansi.Strip(line)) == "" }
 	for len(lines) > 0 && blank(lines[0]) {
 		lines = lines[1:]
