@@ -6,13 +6,13 @@
       {"id": "t", "editable": true, "nodes": [{"id": "a", "label": "alpha"}, {"id": "b", "label": "beta"}]}
     ]
   },
-  "script": ["j", "tab", "u", "ctrl+r", "i", {"type": "!"}, "esc", "u", "d", "d", "u"],
+  "script": ["j", "tab", "u", "ctrl+r", "i", "end", {"type": "!"}, "esc", "u", "d", "d", "u"],
   "expect": [
     {"after": 2, "contains": ["▾ alpha", "    beta"], "writes": ["move b under a at 0"]},
     {"after": 3, "lacks": ["▾ alpha"], "writes": ["move b under a at 0", "move b under root at 1"]},
     {"after": 4, "contains": ["▾ alpha"]},
-    {"after": 8, "contains": ["beta"], "lacks": ["beta!"]},
-    {"after": 10, "lacks": ["beta"]},
+    {"after": 9, "contains": ["beta"], "lacks": ["beta!"]},
+    {"after": 11, "lacks": ["beta"]},
     {"focus": "b", "contains": ["beta"], "writes": [
       "move b under a at 0", "move b under root at 1", "move b under a at 0",
       "rename b: beta!", "rename b: beta", "delete b", "add b under a at 0: beta"]}

@@ -299,6 +299,13 @@ func (in *Input) killRange(motion string) (int, int, error) {
 		for start > 0 && !unicode.IsSpace(in.Text[start-1]) && in.Text[start-1] != '/' {
 			start--
 		}
+	case "word-previous":
+		// What alt+b moves over: back to the start of the word before the
+		// cursor, punctuation and spaces in between included.
+		start = in.readlineWordBackward(start)
+	case "word-next":
+		// What alt+f moves over: on to the end of the next word.
+		end = in.readlineWordForward(end)
 	case "line-start":
 		start = lineStart
 	case "line-end":

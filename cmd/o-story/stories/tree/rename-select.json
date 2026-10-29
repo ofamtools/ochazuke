@@ -1,0 +1,17 @@
+{
+  "name": "rename: i opens the line with its name selected (rename.select, on by default); end drops the selection, keeps the name and moves to its end; typing then appends",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {"id": "t", "editable": true, "nodes": [{"id": "a", "label": "alpha"}, {"id": "b", "label": "beta"}]}
+    ]
+  },
+  "script": ["i", "end", {"type": "!"}, "esc", "j", "i", {"type": "gamma"}, "esc"],
+  "expect": [
+    {"after": 1, "mode": "insert", "attrs": {"alpha": "reverse"}, "writes": []},
+    {"after": 2, "mode": "insert", "attrs": {"alpha": "-reverse"}},
+    {"after": 4, "mode": "normal", "contains": ["alpha!"], "writes": ["rename a: alpha!"]},
+    {"after": 6, "attrs": {"beta": "reverse"}},
+    {"mode": "normal", "focus": "b", "order": ["alpha!", "gamma"], "lacks": ["beta"], "writes": ["rename a: alpha!", "rename b: gamma"]}
+  ]
+}

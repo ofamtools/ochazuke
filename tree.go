@@ -1229,9 +1229,14 @@ func registerTrees(r *Runtime) {
 			return t.add(c.Context, StringArg(c.Args, "where", "below"), StringArg(c.Args, "text", ""), selected)
 		}), "Add a line below the node (where: below, above, child) holding text and edit it; select opens it with the text selected, so typing replaces it; written at once").When("tree-editable").
 		Verb("edit", edit(func(t *Tree, c Ctx) error {
-			selected, _ := c.Args["select"].(bool)
+			// Editing a line renames its node: without select, the
+			// rename.select setting says whether it opens selected.
+			selected, given := c.Args["select"].(bool)
+			if !given {
+				selected = t.r.RenameSelect()
+			}
 			return t.openLine(t.target(c.Context), selected)
-		}), "Edit the node's line (select: with its text selected, so typing replaces it); typing is written after a pause and when the line is left").When("tree-editable").
+		}), "Edit (rename) the node's line, with its text selected (select; omitted, the rename.select setting decides) so typing replaces it; typing is written after a pause and when the line is left").When("tree-editable").
 		Verb("indent", edit(func(t *Tree, c Ctx) error { return t.shift(c.Context, true) }), "Nest the node under the node above it").When("tree-editable").
 		Verb("outdent", edit(func(t *Tree, c Ctx) error { return t.shift(c.Context, false) }), "Move the node out to follow its parent").When("tree-editable").
 		Verb("move", edit(func(t *Tree, c Ctx) error { return t.move(c.Context, IntArg(c.Args, "delta", 1)) }), "Swap the node with its next (delta 1) or previous (-1) sibling").When("tree-editable").
@@ -1243,7 +1248,7 @@ func registerTrees(r *Runtime) {
 		Verb("next", edit(func(t *Tree, c Ctx) error { return t.add(c.Context, "below", "", false) }), "Write the line and start a new one below it").When("tree-editable")
 	params := map[string]map[string]Parameter{
 		"add":   {"where": {Type: "string", Enum: []string{"below", "above", "child"}}, "text": {Type: "string", Description: "the new line's text, a placeholder when select is set"}, "select": {Type: "boolean", Description: "open the line with its text selected: typing replaces it, esc or a motion keeps it"}},
-		"edit":  {"select": {Type: "boolean", Description: "open the line with its text selected: typing replaces it, esc or a motion keeps it"}},
+		"edit":  {"select": {Type: "boolean", Description: "open the line with its text selected: typing replaces it, esc or a motion keeps it; omitted, the rename.select setting decides"}},
 		"move":  {"delta": {Type: "integer", Required: true}},
 		"paste": {"text": {Type: "string", Required: true}},
 	}

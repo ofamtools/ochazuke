@@ -1,0 +1,15 @@
+{
+  "name": "rename.select off: i opens the line with the cursor at its end, nothing selected; typing appends",
+  "area": "tree",
+  "settings": [{"name": "rename.select", "type": "boolean", "default": false}],
+  "page": {
+    "trees": [
+      {"id": "t", "editable": true, "nodes": [{"id": "a", "label": "alpha"}]}
+    ]
+  },
+  "script": ["i", {"type": "!"}, "esc"],
+  "expect": [
+    {"after": 1, "mode": "insert", "attrs": {"alpha": "-reverse"}},
+    {"mode": "normal", "contains": ["alpha!"], "writes": ["rename a: alpha!"]}
+  ]
+}

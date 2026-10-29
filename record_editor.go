@@ -80,6 +80,11 @@ type RecordSpec struct {
 	// Insert opens the editor with the first field in insert mode when it
 	// is a text field.
 	Insert bool
+	// Rename says the editor renames a thing: it opens in insert like
+	// Insert, and with the start field's text selected (Input.SelectAll)
+	// while the rename.select setting is on, so typing replaces the name
+	// and a motion keeps it.
+	Rename bool
 	// OnLeave runs after the editor closed (form.leave, or form.run's
 	// Submit): every change is written or queued by then; a placed editor
 	// stops being drawn.
@@ -413,8 +418,14 @@ func (e *RecordEditor) start() int {
 // it is a text field; otherwise the editor starts in normal (a form opened
 // from a prompt, the palette's line, does not stay in its insert).
 func (e *RecordEditor) startInsert() error {
-	if f := e.fields[e.start()]; e.spec.Insert && f.input != nil {
-		return e.r.SetMode("insert")
+	if f := e.fields[e.start()]; (e.spec.Insert || e.spec.Rename) && f.input != nil {
+		if err := e.r.SetMode("insert"); err != nil {
+			return err
+		}
+		if e.spec.Rename && e.r.RenameSelect() {
+			return f.input.SelectAll()
+		}
+		return nil
 	}
 	if e.r.Mode.Name == "insert" {
 		return e.r.SetMode("normal")

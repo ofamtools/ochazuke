@@ -32,7 +32,8 @@ func treeFixture(t *testing.T) (*Runtime, *Model, *Tree, *[]string) {
 	return r, m, tree, &writes
 }
 
-// Quitting writes an open line that has not paused yet.
+// Quitting writes an open line that has not paused yet. i opens the line
+// selected (rename.select is on by default), so the typing replaces it.
 func TestTreeQuitFlushesTheOpenLine(t *testing.T) {
 	r, m, _, writes := treeFixture(t)
 	keytest.Press(m, "i")
@@ -44,7 +45,7 @@ func TestTreeQuitFlushesTheOpenLine(t *testing.T) {
 	}
 	r.Quit = true
 	m.Update(nil)
-	if want := []string{"rename a: alpha!?"}; !slices.Equal(*writes, want) {
+	if want := []string{"rename a: !?"}; !slices.Equal(*writes, want) {
 		t.Fatalf("writes %v, want %v", *writes, want)
 	}
 }

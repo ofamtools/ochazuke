@@ -6,9 +6,9 @@
       {"id": "t", "editable": true, "failWrites": 1, "nodes": [{"id": "a", "label": "alpha"}]}
     ]
   },
-  "script": ["i", {"type": "x"}, "esc", "o", "esc"],
+  "script": ["i", "end", {"type": "x"}, "esc", "o", "esc"],
   "expect": [
-    {"after": 3, "contains": ["alphax", "!"], "writes": []},
+    {"after": 4, "contains": ["alphax", "!"], "writes": []},
     {"lacks": ["!"], "writes": ["rename a: alphax", "add t-n1 under root at 1: "]}
   ]
 }

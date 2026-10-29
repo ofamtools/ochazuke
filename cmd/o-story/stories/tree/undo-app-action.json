@@ -7,12 +7,12 @@
     ],
     "bind": [{"noun": "outline-row", "keys": "x", "do": "demo.check"}]
   },
-  "script": ["j", "i", {"type": " two"}, "esc", "x", "u", "u", "ctrl+r", "ctrl+r"],
+  "script": ["j", "i", "end", {"type": " two"}, "esc", "x", "u", "u", "ctrl+r", "ctrl+r"],
   "expect": [
-    {"after": 5, "contains": ["[x] beta two"]},
-    {"after": 6, "contains": ["beta two"], "lacks": ["[x]"]},
-    {"after": 7, "contains": ["beta"], "lacks": ["beta two", "[x]"]},
-    {"after": 8, "contains": ["beta two"], "lacks": ["[x]"]},
+    {"after": 6, "contains": ["[x] beta two"]},
+    {"after": 7, "contains": ["beta two"], "lacks": ["[x]"]},
+    {"after": 8, "contains": ["beta"], "lacks": ["beta two", "[x]"]},
+    {"after": 9, "contains": ["beta two"], "lacks": ["[x]"]},
     {"focus": "b", "contains": ["[x] beta two"], "writes": [
       "rename b: beta two", "check b", "uncheck b", "rename b: beta", "rename b: beta two", "check b"]}
   ]

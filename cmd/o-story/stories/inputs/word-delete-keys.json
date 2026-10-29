@@ -1,0 +1,109 @@
+{
+  "name": "every input answers the standard deleting keys: alt+backspace and ctrl+backspace the word before, cmd+backspace (super) and ctrl+u to the start, alt+d and ctrl+delete the word after, ctrl+k to the end; ctrl+w stays the WORD",
+  "area": "inputs",
+  "width": 40,
+  "height": 3,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "inputs": [
+      {
+        "id": "name",
+        "label": "name",
+        "text": "foo bar.baz qux"
+      }
+    ]
+  },
+  "script": [
+    "A",
+    "alt+backspace",
+    "ctrl+backspace",
+    "super+backspace",
+    {
+      "type": "one two three four"
+    },
+    "home",
+    "alt+d",
+    "ctrl+delete",
+    "ctrl+right",
+    "ctrl+k",
+    "ctrl+w",
+    {
+      "type": "x y.z"
+    },
+    "ctrl+u",
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "mode": "insert",
+      "contains": [
+        "name: foo bar.baz"
+      ],
+      "lacks": [
+        "qux"
+      ]
+    },
+    {
+      "after": 3,
+      "contains": [
+        "name: foo bar."
+      ],
+      "lacks": [
+        "baz"
+      ]
+    },
+    {
+      "after": 4,
+      "lacks": [
+        "foo"
+      ]
+    },
+    {
+      "after": 7,
+      "contains": [
+        "name:  two three four"
+      ],
+      "lacks": [
+        "one"
+      ]
+    },
+    {
+      "after": 8,
+      "contains": [
+        "name:  three four"
+      ],
+      "lacks": [
+        "two"
+      ]
+    },
+    {
+      "after": 10,
+      "contains": [
+        "name:  three"
+      ],
+      "lacks": [
+        "four"
+      ]
+    },
+    {
+      "after": 11,
+      "lacks": [
+        "three"
+      ]
+    },
+    {
+      "after": 12,
+      "contains": [
+        "name:  x y.z"
+      ]
+    },
+    {
+      "mode": "normal",
+      "lacks": [
+        "x y.z"
+      ]
+    }
+  ]
+}

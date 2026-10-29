@@ -6,11 +6,11 @@
       {"id": "t", "editable": true, "nodes": [{"id": "a", "label": "alpha"}]}
     ]
   },
-  "script": ["i", {"type": "bc"}, {"tick": "debounce"}, {"type": "de"}, "esc"],
+  "script": ["i", "end", {"type": "bc"}, {"tick": "debounce"}, {"type": "de"}, "esc"],
   "expect": [
-    {"after": 2, "writes": []},
-    {"after": 3, "writes": ["rename a: alphabc"]},
+    {"after": 3, "writes": []},
     {"after": 4, "writes": ["rename a: alphabc"]},
+    {"after": 5, "writes": ["rename a: alphabc"]},
     {"focus": "a", "mode": "normal", "writes": ["rename a: alphabc", "rename a: alphabcde"]}
   ]
 }

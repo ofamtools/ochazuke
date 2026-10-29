@@ -35,6 +35,11 @@ const (
 	// SequenceSwallow drops the sequence and the key, with a notice
 	// naming the keys.
 	SequenceSwallow = "swallow"
+	// RenameSelectSetting opens a rename (outline.edit without select, a
+	// RecordSpec with Rename) with the whole text selected (Input.SelectAll):
+	// typing replaces it, a motion keeps it. Default on; off opens it with
+	// the cursor at the end.
+	RenameSelectSetting = "rename.select"
 )
 
 // frameworkSettings are the rows of the embedded settings files, each
@@ -158,4 +163,12 @@ func (r *Runtime) sequenceTimeout() time.Duration {
 func (r *Runtime) swallowsUnknown() bool {
 	v, _ := r.settingText(SequenceUnknownSetting)
 	return v == SequenceSwallow
+}
+
+// RenameSelect is the rename.select setting: whether a rename opens with
+// its text selected. Read at the moment a rename opens.
+func (r *Runtime) RenameSelect() bool {
+	v, _ := r.settingValue(RenameSelectSetting)
+	on, _ := v.(bool)
+	return on
 }

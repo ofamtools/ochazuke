@@ -29,7 +29,7 @@
   "expect": [
     {"after": 2, "mode": "insert", "contains": ["name: hello?"]},
     {"after": 3, "modal": "bindings-help", "mode": "normal"},
-    {"after": 5, "modal": "bindings-help", "contains": ["ctrl+\\      bindings.help"]},
+    {"after": 5, "modal": "bindings-help", "contains": ["ctrl+\\           bindings.help"]},
     {"after": 8, "modal": "", "mode": "insert", "focus": "name", "contains": ["name: hello?!"]},
     {"after": 11, "modal": "bindings-help"},
     {"modal": "palette", "mode": "insert"}

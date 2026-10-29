@@ -487,10 +487,15 @@ func registerEditorOperations(r *Runtime) {
 		}
 		return err
 	}))
-	register("kill", "input", "Kill preceding WORD/path component or line into shared yank history", map[string]Parameter{"motion": {Type: "string", Required: true}}, input(func(r *Runtime, in *Input, a Arguments) error {
+	register("kill", "input", "Kill preceding WORD/path component, readline word before or after, or line into shared yank history; kills an open select range", map[string]Parameter{"motion": {Type: "string", Required: true, Enum: []string{"word-backward", "word-previous", "word-next", "line-start", "line-end"}}}, input(func(r *Runtime, in *Input, a Arguments) error {
 		lo, hi, err := in.killRange(StringArg(a, "motion", ""))
 		if err != nil {
 			return err
+		}
+		// An open select range (SelectText) is what a kill removes, as
+		// backspace and delete remove it (UX-RULES R9.6).
+		if slo, shi, ok := in.SelectedText(); ok {
+			lo, hi = slo, shi
 		}
 		in.resetKeys()
 		if lo == hi {

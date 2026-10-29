@@ -1,0 +1,67 @@
+{
+  "name": "every input answers the word and line motions: alt+left/right and ctrl+left/right by word, cmd+left/right (super) to the line's ends",
+  "area": "inputs",
+  "width": 40,
+  "height": 3,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "inputs": [
+      {
+        "id": "name",
+        "label": "name",
+        "text": "one two three"
+      }
+    ]
+  },
+  "script": [
+    "A",
+    "alt+left",
+    {
+      "type": "["
+    },
+    "ctrl+left",
+    {
+      "type": "("
+    },
+    "alt+right",
+    {
+      "type": ")"
+    },
+    "super+left",
+    {
+      "type": "<"
+    },
+    "super+right",
+    {
+      "type": ">"
+    },
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "contains": [
+        "name: one two [three"
+      ]
+    },
+    {
+      "after": 5,
+      "contains": [
+        "name: one (two [three"
+      ]
+    },
+    {
+      "after": 7,
+      "contains": [
+        "name: one (two) [three"
+      ]
+    },
+    {
+      "mode": "normal",
+      "contains": [
+        "name: <one (two) [three>"
+      ]
+    }
+  ]
+}
