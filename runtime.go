@@ -16,6 +16,12 @@ import (
 // Arguments are a request's named arguments, keyed by parameter name.
 type Arguments map[string]any
 
+// AnyParameterType is the Parameter.Type of a value of any type: a word
+// from the CLI or the palette arrives as text, an API request's value as
+// it was sent, and the handler types it (a standard verb's prop value,
+// propValue).
+const AnyParameterType = "any"
+
 // Parameter describes one argument of an operation: its type, whether it is required, and its choices.
 type Parameter struct {
 	Type        string `json:"type"`
@@ -80,10 +86,37 @@ type Request struct {
 	// once with all of them in Ctx.Subjects; any other runs once per
 	// subject (Runtime.eachSubject).
 	Subjects []string `json:"subjects,omitempty"`
+	// Prop, Value and Toggle make the request prop-shaped (props.go):
+	// {noun, prop} reads the prop of the thing the request acts for,
+	// {noun, prop, value} writes it and {noun, prop, toggle} flips a
+	// boolean prop. A prop-shaped request names no verb; it runs as the
+	// noun's standard get or set (propVerbRequest), and history keeps it
+	// as it was sent. Args then holds at most the subject's key.
+	Prop   string `json:"prop,omitempty"`
+	Value  any    `json:"value,omitempty"`
+	Toggle bool   `json:"toggle,omitempty"`
 }
 
-// Key returns the request's operation as noun.verb.
-func (q Request) Key() string { return q.Noun + "." + q.Verb }
+// Key returns the request's operation as noun.verb, or for a prop-shaped
+// request its prop as noun.prop (what hints, history and errors print).
+func (q Request) Key() string {
+	if q.Prop != "" {
+		return q.Noun + "." + q.Prop
+	}
+	return q.Noun + "." + q.Verb
+}
+
+// IsProp reports whether the request is prop-shaped: it reads or writes a
+// prop instead of naming a verb.
+func (q Request) IsProp() bool { return q.Prop != "" || q.Value != nil || q.Toggle }
+
+// Writes reports whether a prop-shaped request writes its prop (a Value
+// or a Toggle) rather than reading it.
+func (q Request) Writes() bool { return q.IsProp() && (q.Value != nil || q.Toggle) }
+
+// Empty reports whether the request names nothing: no verb and no prop (a
+// binding row's null request, an unbind).
+func (q Request) Empty() bool { return q.Verb == "" && !q.IsProp() }
 
 // Context is the derived view of a focus: the instance ids from app down to
 // the focused instance (Path), and the focused input when there is one.
@@ -735,6 +768,14 @@ func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
 func (r *Runtime) execute(c Context, q Request) (any, error) {
 	fromRow := r.rowRequest
 	r.rowRequest = false
+	if q.IsProp() {
+		// A prop-shaped request runs as its noun's standard get or set.
+		pq, err := r.propVerbRequest(q)
+		if err != nil {
+			return nil, err
+		}
+		q = pq
+	}
 	op, ok := r.Operations[q.Key()]
 	if !ok {
 		return nil, fmt.Errorf("unknown operation %q", q.Key())
@@ -886,6 +927,8 @@ func validateArguments(op Operation, args Arguments) error {
 			}
 		case "boolean":
 			_, valid = v.(bool)
+		case AnyParameterType:
+			valid = true
 		case "array":
 			switch v.(type) {
 			case []any, []Predicate:

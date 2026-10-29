@@ -111,8 +111,10 @@ it to the timer's deadline and delivers the timer's message
     store: { props: [{ name: "id", key: true }, { name: "title", role: "label", fallback: "summary" }],
              things: [{ id: "a1", title: "", summary: "first line" }] },
                                      // the demo noun's props and an in-memory store (PropSpec rows):
-                                     // demo.get and demo.list are then standard verbs; reads log
-                                     // "list" and "get KEY" (writes); rows stand for things by id
+                                     // demo.get, list, create, set (patch) and delete are then
+                                     // standard verbs; each call logs "list", "get KEY",
+                                     // "set KEY p=v", "create KEY p=v" or "delete KEY" (writes);
+                                     // rows stand for things by id
     detail: { lines: 50, width: 0 }, // a scrollable detail (AddDetail) on the right:
                                      // "detail 1–11 / 50", then "<row> line N" about the
                                      // focused list row (width 0 = half the page)
@@ -470,7 +472,7 @@ Conformance:
 | terminal | terminal | `terminal.detach` `terminal.send` |
 | visual | input | `input.cancel` |
 | visual-line | confirm | `confirm.accept` |
-| visual-line | demo | `demo.check` `demo.nest` `demo.tag` `demo.zap` |
+| visual-line | demo | `demo.check` `demo.nest` `demo.set` `demo.tag` `demo.zap` |
 | visual-line | input | `input.cancel` |
 | visual-line | list | `list.apply` `list.end-visual` `list.goto` `list.move` `list.yank` |
 | visual-line | mode | `mode.enter` `mode.leave` |
@@ -601,6 +603,7 @@ Mode edges (from → to via):
 - `visual-line` → `normal` via `confirm.accept`
 - `visual-line` → `normal` via `demo.check`
 - `visual-line` → `normal` via `demo.nest`
+- `visual-line` → `normal` via `demo.set`
 - `visual-line` → `normal` via `demo.tag`
 - `visual-line` → `normal` via `demo.zap`
 - `visual-line` → `normal` via `input.cancel`

@@ -572,7 +572,7 @@ func HintBindings(r *Runtime, focus string) []Binding {
 			}
 		}
 		same := fmt.Sprintf("%s\x00%v\x00%v\x00%s", b.Request.Key(), b.Request.Args, b.From, b.Hint)
-		if index[same] && b.Request.Verb != "" {
+		if index[same] && !b.Request.Empty() {
 			continue
 		}
 		index[same] = true
@@ -618,10 +618,10 @@ func rowHint(r *Runtime, b Binding) string {
 	if b.Hint != "" {
 		return hint + " " + modalLabel(b.Hint)
 	}
-	if b.Request.Verb == "" {
+	if b.Request.Empty() {
 		return hint
 	}
-	return hint + " " + modalLabel(r.DisplayKey(b.Request.Key()))
+	return hint + " " + modalLabel(r.displayRequest(b.Request))
 }
 
 // rowKey is a row's key sequence, or its pattern as <pattern>.
@@ -791,19 +791,19 @@ func (r *Runtime) helpRows(w helpWalk, rows []levelRow, depth int) []HelpRow {
 // answering level as its noun and section.
 func (r *Runtime) helpRow(row levelRow, args Arguments) HelpRow {
 	req := ""
-	if row.Request.Verb != "" {
-		req = r.DisplayKey(row.Request.Key())
+	if !row.Request.Empty() {
+		req = r.displayRequest(row.Request)
 	}
 	op := row.Hint
 	if op == "" {
 		op = req
 	}
-	desc := r.Operations[row.Request.Key()].Description
+	desc := r.requestDescription(row.Request)
 	if row.Help != "" {
 		desc = row.Help
 	}
 	var aliases []string
-	if row.Request.Verb != "" {
+	if row.Request.Verb != "" && !row.Request.IsProp() {
 		aliases = r.aliasLabels(row.Request.Key())
 	}
 	if len(aliases) > 0 {

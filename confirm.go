@@ -69,6 +69,14 @@ func (r *Runtime) openConfirm(c Context, q Request, op Operation) (any, error) {
 	addressed := q.Target != "" || inst.Noun == op.Noun
 	prompt := promptField.ReplaceAllStringFunc(op.Confirm, func(m string) string {
 		name := promptField.FindStringSubmatch(m)[1]
+		if _, given := q.Args["label"]; name == "label" && !given && len(q.Subjects) <= 1 {
+			// A standard verb's thing is shown by its label prop, else
+			// its Fallback, read from the store (a key argument or the
+			// instance the request acts for).
+			if label := r.storeLabel(c, q, inst); label != "" {
+				return label
+			}
+		}
 		if !addressed {
 			switch name {
 			case "noun":
@@ -144,4 +152,26 @@ func confirmView(r *Runtime, inst *Instance, width, height int) Block {
 		return Text("")
 	}
 	return Text(inst.Payload.Prompt)
+}
+
+// storeLabel is the label of the thing a standard verb's request acts on,
+// read from its noun's store: the label prop, else its Fallback. "" when
+// the request's operation is not a standard verb, the store reads no
+// things, or the thing has no label.
+func (r *Runtime) storeLabel(c Context, q Request, inst *Instance) string {
+	op := r.Operations[q.Key()]
+	n := r.Nouns[op.Noun]
+	if op.Standard == "" || n == nil || n.Store == nil || n.Store.Get == nil || n.roleProp(RoleLabel) == nil {
+		return ""
+	}
+	ctx := Ctx{Runtime: r, Context: c, Args: q.Args, Instance: inst}
+	key, err := r.subjectKey(n, ctx)
+	if err != nil {
+		return ""
+	}
+	t, err := n.Store.Get(ctx, key)
+	if err != nil || t == nil {
+		return ""
+	}
+	return n.displayLabel(func(name string) any { return t[name] })
 }

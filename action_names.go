@@ -23,6 +23,7 @@ const (
 	AliasFramework = "framework" // the framework's own old names (registered inside Builtin)
 	AliasApp       = "app"       // an application's NounBuilder.Alias, Renamed or Runtime.AliasAction
 	AliasConfig    = "config"    // a row of the user's actions.json
+	AliasStandard  = "standard"  // generated with a standard verb (NOUN.patch for NOUN.set); gives way, unrecorded, to an application verb of its name
 )
 
 // ActionAlias is one extra name of a registered action. Alias is the
@@ -320,6 +321,9 @@ func (r *Runtime) claimName(name string) {
 		return
 	}
 	r.removeAlias(name)
+	if a.Source == AliasStandard {
+		return // a generated alias (patch) gives way to the application's verb
+	}
 	r.actionNames.problems = append(r.actionNames.problems, fmt.Sprintf("alias %s of %s dropped: an action of that name is registered", r.DisplayKey(name), r.DisplayKey(a.Action)))
 }
 

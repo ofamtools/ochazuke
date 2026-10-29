@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -296,21 +297,33 @@ func taskProps() []ochazuke.PropSpec {
 	props := []ochazuke.PropSpec{{Name: "id", Key: true, Parameter: ochazuke.Parameter{Type: "string", Description: "The task's key"}}}
 	for _, f := range taskFields() {
 		p := ochazuke.PropSpec{Name: f.Name, Parameter: f.Parameter, Multiline: f.Multiline}
-		if f.Name == "title" {
+		switch f.Name {
+		case "title":
 			// Optional as a prop: an empty title shows the summary.
 			p.Role, p.Fallback, p.Required = ochazuke.RoleLabel, "summary", false
+		case "status":
+			// task create starts a task as todo unless told otherwise.
+			p.Default, p.Required = "todo", false
 		}
 		props = append(props, p)
 	}
 	return append(props, ochazuke.PropSpec{Name: "summary", ReadOnly: true, Parameter: ochazuke.Parameter{Type: "string", Description: "The first line of the notes"}})
 }
 
-// define gives the task noun its props and its store: task get and task
-// list are then standard verbs, with no handler of the demo's own. The
-// Record page stands for the task it edits, so task get there reads it.
+// define gives the task noun its props and its store: task get, list,
+// create, set (alias patch) and delete are then standard verbs, with no
+// handler of the demo's own, and delete asks first (the default prompt).
+// The Record page stands for the task it edits, so task get and task set
+// there act on it, and x on the page is a prop row that sets its status
+// to done.
 func (t *demoTask) define(r *ochazuke.Runtime) {
 	r.Define("task").Props(taskProps()...).Store(ochazuke.Store{
-		Kind: ochazuke.Collection,
+		Kind:   ochazuke.Collection,
+		Create: func(_ ochazuke.Ctx, values ochazuke.Thing) (ochazuke.Thing, error) { return t.create(values), nil },
+		Patch: func(_ ochazuke.Ctx, id string, changes ochazuke.Thing) (ochazuke.Thing, error) {
+			return t.patch(id, changes)
+		},
+		Delete: func(c ochazuke.Ctx, id string) error { return t.delete(c.Runtime, id) },
 		Get: func(_ ochazuke.Ctx, id string) (ochazuke.Thing, error) {
 			if _, ok := t.tasks[id]; !ok {
 				return nil, fmt.Errorf("no task %q", id)
@@ -326,6 +339,63 @@ func (t *demoTask) define(r *ochazuke.Runtime) {
 		},
 	})
 	r.Instances["task"].Data = ochazuke.Thing{"id": t.editing}
+	if err := r.Bind(ochazuke.Binding{Noun: "task", Mode: "normal", Keys: "x", Request: ochazuke.SetProp("task", "status", "done").Request}); err != nil {
+		panic(err)
+	}
+}
+
+// create stores a new task under the next free key.
+func (t *demoTask) create(values ochazuke.Thing) ochazuke.Thing {
+	id := ""
+	for i := len(t.order) + 1; id == "" || t.tasks[id] != nil; i++ {
+		id = "t" + strconv.Itoa(i)
+	}
+	t.tasks[id] = ochazuke.Record{}
+	t.order = append(t.order, id)
+	t.write(id, values)
+	return t.thing(id)
+}
+
+// patch writes the changed props of a task.
+func (t *demoTask) patch(id string, changes ochazuke.Thing) (ochazuke.Thing, error) {
+	if _, ok := t.tasks[id]; !ok {
+		return nil, fmt.Errorf("no task %q", id)
+	}
+	if id == t.editing && t.editor != nil && !t.editor.Closed() {
+		// The open editor holds the values it loaded: close it rather
+		// than let its next write put them back (e opens it again).
+		t.editor.Close()
+	}
+	t.write(id, changes)
+	return t.thing(id), nil
+}
+
+// write stores props into a task's record, as the editor's text.
+func (t *demoTask) write(id string, values ochazuke.Thing) {
+	for name, v := range values {
+		t.tasks[id][name] = fmt.Sprint(v)
+	}
+	t.writes++
+}
+
+// delete removes a task; the Record page then edits the first one left.
+func (t *demoTask) delete(r *ochazuke.Runtime, id string) error {
+	if _, ok := t.tasks[id]; !ok {
+		return fmt.Errorf("no task %q", id)
+	}
+	if len(t.order) == 1 {
+		return errors.New("the demo keeps one task")
+	}
+	delete(t.tasks, id)
+	t.order = slices.DeleteFunc(t.order, func(o string) bool { return o == id })
+	if id == t.editing {
+		if t.editor != nil && !t.editor.Closed() {
+			t.editor.Close()
+		}
+		t.editing = t.order[0]
+		r.Instances["task"].Data = ochazuke.Thing{"id": t.editing}
+	}
+	return nil
 }
 
 // thing is one stored task as its props: the estimate a number, the

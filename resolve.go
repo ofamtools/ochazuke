@@ -475,6 +475,16 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent) error {
 			}
 		}
 		q.Args = args
+		if q.IsProp() {
+			// A prop row's From fills its value (validatePropRow).
+			if v, ok := args["value"]; ok {
+				q.Value = v
+			}
+			delete(args, "value")
+			if len(args) == 0 {
+				q.Args = nil
+			}
+		}
 	}
 	execute := func(q Request) error {
 		r.rowRequest = true
@@ -625,7 +635,7 @@ func (r *Runtime) allBindings() []Binding {
 // listed once beside it.
 func (r *Runtime) withAliases(rows []Binding) []Binding {
 	for i, row := range rows {
-		if row.Request.Verb != "" {
+		if row.Request.Verb != "" && !row.Request.IsProp() {
 			rows[i].Aliases = r.aliasNames(row.Request.Key())
 		}
 	}
@@ -658,8 +668,8 @@ func SortBindings(rows []Binding) {
 		if ai != bi {
 			return !ai
 		}
-		if (a.Request.Verb == "") != (b.Request.Verb == "") {
-			return a.Request.Verb != ""
+		if a.Request.Empty() != b.Request.Empty() {
+			return !a.Request.Empty()
 		}
 		if a.Request.Verb != b.Request.Verb {
 			return a.Request.Verb < b.Request.Verb
@@ -745,7 +755,7 @@ func (r *Runtime) scanRows(levels []level, mode ModeState, focus string, editing
 					guard = ""
 				}
 				if guard == "" {
-					guard = r.VerbGuard(b.Request.Key())
+					guard = r.VerbGuard(requestOperation(b.Request))
 				}
 			}
 			id := b.Keys + "\x00" + b.Pattern
@@ -1059,8 +1069,8 @@ func requestArg(a Arguments, name string) (*Request, error) {
 		if err := json.Unmarshal(data, &q); err != nil {
 			return nil, fmt.Errorf("%s: %w", name, err)
 		}
-		if q.Verb == "" || q.Noun == "" {
-			return nil, fmt.Errorf("%s needs verb and noun", name)
+		if q.Empty() || q.Noun == "" {
+			return nil, fmt.Errorf("%s needs a noun and a verb or prop", name)
 		}
 		return &q, nil
 	}

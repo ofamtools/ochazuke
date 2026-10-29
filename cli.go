@@ -17,8 +17,8 @@ func decodeRequest(data []byte, q *Request) error {
 	if err := dec.Decode(new(any)); err != io.EOF {
 		return errors.New("expected exactly one JSON request")
 	}
-	if q.Verb == "" || q.Noun == "" {
-		return errors.New("verb and noun are required")
+	if q.Empty() || q.Noun == "" {
+		return errors.New("noun and a verb or prop are required")
 	}
 	return nil
 }

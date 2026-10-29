@@ -185,6 +185,13 @@ func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, depth int,
 // historyKind is the kind of entry q records: its operation's HistoryKind,
 // an action for a request no operation answers.
 func (r *Runtime) historyKind(q Request) string {
+	if q.IsProp() {
+		// A prop write is a change, a prop read a fetch: get's and set's.
+		if q.Writes() {
+			return HistoryChange
+		}
+		return HistoryFetch
+	}
 	if op, ok := r.Operations[q.Key()]; ok {
 		return op.HistoryKindOf()
 	}
@@ -274,8 +281,15 @@ func (r *Runtime) repeatRequest(focus string, steps int) (Request, error) {
 		if e.Kind != HistoryChange {
 			continue
 		}
-		op, ok := r.Operations[e.Request.Key()]
-		if !ok || !op.Repeatable || !e.Result.OK || e.Restored {
+		if !e.Result.OK || e.Restored {
+			continue
+		}
+		// A standard write (a prop row, set) repeats only when its values
+		// are simple (simpleWrite, owner decision 12); a write that is not
+		// leaves the last repeatable change in place, so . after a text
+		// edit repeats the simple write before it.
+		op := r.Operations[e.Request.Key()]
+		if !op.Repeatable && !r.repeatableStandard(e.Request) {
 			continue
 		}
 		q := e.Request
@@ -288,7 +302,7 @@ func (r *Runtime) repeatRequest(focus string, steps int) (Request, error) {
 		}
 		q.Args = args
 		if q.Target != "" && (e.Context.Source != "cli" || r.Instances[q.Target] == nil) {
-			q.Target = ""
+			q.Target, q.Subjects = "", nil
 		}
 		at := focus
 		if q.Target != "" {

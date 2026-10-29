@@ -15,8 +15,8 @@ func (r *Runtime) rowConditions(b Binding) []string {
 	if b.When != "" {
 		out = append(out, b.When)
 	}
-	if !b.Unbind && b.Request.Verb != "" {
-		if g := r.VerbGuard(b.Request.Key()); g != "" && !slices.Contains(out, g) {
+	if !b.Unbind && !b.Request.Empty() {
+		if g := r.VerbGuard(requestOperation(b.Request)); g != "" && !slices.Contains(out, g) {
 			out = append(out, g)
 		}
 	}
@@ -39,12 +39,12 @@ type unreachableRow struct {
 func (r *Runtime) unreachableRows(rows []Binding) []unreachableRow {
 	var out []unreachableRow
 	for j, later := range rows {
-		if later.Unbind || later.Request.Verb == "" {
+		if later.Unbind || later.Request.Empty() {
 			continue
 		}
 		need := r.rowConditions(later)
 		for _, earlier := range rows[:j] {
-			if earlier.Unbind || earlier.Request.Verb == "" || !earlier.sameKeys(later) || earlier.Capture != later.Capture {
+			if earlier.Unbind || earlier.Request.Empty() || !earlier.sameKeys(later) || earlier.Capture != later.Capture {
 				continue
 			}
 			if !slices.ContainsFunc(r.rowConditions(earlier), func(g string) bool { return !slices.Contains(need, g) }) {

@@ -45,7 +45,11 @@ import (
 // pattern ("digit", "any", "one-of:h j k l"); its other fields are
 // "action" (noun.verb, split at the last "."), "args", "hint", "when",
 // "from", "hidden", "help", "replay", "capture", "target", "confirmed" and
-// "unbind" (true, with no action, unbinds the default). The key may
+// "unbind" (true, with no action, unbinds the default). A prop row
+// names a "request" in place of "action": {"noun", "prop", "value"}
+// writes the prop of the thing the key acts for, {"noun", "prop",
+// "toggle": true} flips a boolean prop (SetProp, ToggleProp); its "from"
+// may fill only the value. The key may
 // repeat: rows are in table order, and on a keypress the first row on the
 // key whose action is available answers (Runtime.Available). A row
 // spelled by an alias is written as spelled.
@@ -290,7 +294,11 @@ func parseBindingGroup(raw json.RawMessage) (g BindingGroup, bad []error, err er
 
 // bindingValue is a binding value's object form.
 type bindingValue struct {
-	Action    *string           `json:"action"`
+	Action *string `json:"action"`
+	// Request is a prop row's request ({"noun", "prop", "value"} writes
+	// the prop, {"noun", "prop", "toggle": true} flips a boolean one,
+	// {"noun", "prop"} reads it), in place of action.
+	Request   *propRowRequest   `json:"request,omitempty"`
 	Args      Arguments         `json:"args,omitempty"`
 	Hint      string            `json:"hint,omitempty"`
 	When      string            `json:"when,omitempty"`
@@ -392,6 +400,18 @@ func parseBindingLine(raw json.RawMessage) (Binding, string, error) {
 func (v bindingValue) row() (Binding, error) {
 	row := Binding{Hint: v.Hint, When: v.When, From: v.From, Hidden: v.Hidden, Help: v.Help, Replay: v.Replay, Capture: v.Capture, Unbind: v.Unbind}
 	switch {
+	case v.Request != nil:
+		switch {
+		case v.Action != nil && *v.Action != "":
+			return Binding{}, errors.New(`a row takes "action" or "request", not both`)
+		case v.Unbind:
+			return Binding{}, errors.New("an unbind takes no request")
+		case len(v.Args) > 0:
+			return Binding{}, errors.New(`a prop row takes a value or toggle in its request, not "args"`)
+		case v.Request.Prop == "":
+			return Binding{}, errors.New(`a row's "request" names a noun and a prop`)
+		}
+		row.Request = Request{Noun: v.Request.Noun, Prop: v.Request.Prop, Value: v.Request.Value, Toggle: v.Request.Toggle, Target: v.Target, Confirmed: v.Confirmed}
 	case v.Action != nil && *v.Action != "":
 		if v.Unbind {
 			return Binding{}, errors.New("an unbind takes no action")
@@ -407,6 +427,14 @@ func (v bindingValue) row() (Binding, error) {
 		return Binding{}, errors.New(`no "action" ("unbind": true unbinds)`)
 	}
 	return row, nil
+}
+
+// propRowRequest is a prop row's request as the file spells it.
+type propRowRequest struct {
+	Noun   string `json:"noun"`
+	Prop   string `json:"prop"`
+	Value  any    `json:"value,omitempty"`
+	Toggle bool   `json:"toggle,omitempty"`
 }
 
 // actionRequest is the request an action string names: noun.verb, split
@@ -655,10 +683,14 @@ func formatBindingLine(row Binding) ([]byte, error) {
 		}
 	}
 	// A row with no request is an unbind, as validateRow reads it.
-	row.Unbind = row.Unbind || q.Verb == ""
+	row.Unbind = row.Unbind || q.Empty()
 	var o orderedObject
 	o.add("key", row.Keys+row.Pattern, true)
-	if !row.Unbind {
+	switch {
+	case row.Unbind:
+	case q.IsProp():
+		o.add("request", propRowRequest{Noun: q.Noun, Prop: q.Prop, Value: q.Value, Toggle: q.Toggle}, true)
+	default:
 		o.add("action", q.Key(), true)
 		o.add("args", q.Args, len(q.Args) > 0)
 	}

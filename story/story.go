@@ -116,8 +116,8 @@ type Page struct {
 	// Verbs are demo verbs with declared parameters, for palette stories.
 	Verbs []VerbSpec `json:"verbs,omitempty"`
 	// Store gives the demo noun props and an in-memory store
-	// (ochazuke.NounBuilder.Props and Store): demo.get and demo.list are
-	// then standard verbs over Things.
+	// (ochazuke.NounBuilder.Props and Store): demo.get, list, create, set
+	// (alias patch) and delete are then standard verbs over Things.
 	Store  *StoreSpec  `json:"store,omitempty"`
 	Detail *DetailSpec `json:"detail,omitempty"`
 	// Markdown is a Markdown document (markdown.New) drawn in the page's
@@ -466,9 +466,11 @@ type BindSpec struct {
 }
 
 // StoreSpec is the demo noun's props (ochazuke.PropSpec as JSON) and its
-// things, a collection store in memory. Every read logs to the writes:
-// "list" for a list, "get KEY" for a get. A page's rows of the demo noun
-// stand for the things whose key is their id.
+// things, a collection store in memory that reads and writes. Every call
+// logs to the writes: "list" for a list, "get KEY" for a get, "set KEY
+// prop=value ..." for a set, "create KEY prop=value ..." and "delete KEY".
+// A page's rows of the demo noun stand for the things whose key is their
+// id.
 type StoreSpec struct {
 	Props  []ochazuke.PropSpec `json:"props"`
 	Things []ochazuke.Thing    `json:"things"`

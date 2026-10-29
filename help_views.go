@@ -475,8 +475,8 @@ func (r *Runtime) HelpTable(place NounPlace, pending bool) ([]string, []HelpKey)
 				k.Modes = append(k.Modes, HelpCell{Mode: name})
 			}
 			help := r.helpRow(row, sourceArgs(row.Binding))
-			if row.Request.Verb != "" {
-				help.Operation = r.DisplayKey(row.Request.Key())
+			if !row.Request.Empty() {
+				help.Operation = r.displayRequest(row.Request)
 			}
 			cell := &k.Modes[len(k.Modes)-1]
 			cell.Rows = append(cell.Rows, help)

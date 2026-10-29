@@ -629,8 +629,46 @@ func (ss *Session) defineStore(d *ochazuke.NounBuilder, spec *StoreSpec) (err er
 			ss.Writes = append(ss.Writes, "list")
 			return things, nil
 		},
+		Create: func(_ ochazuke.Ctx, values ochazuke.Thing) (ochazuke.Thing, error) {
+			t := maps.Clone(values)
+			t[key] = fmt.Sprintf("t%d", len(things)+1)
+			things = append(things, t)
+			ss.Writes = append(ss.Writes, "create "+fmt.Sprint(t[key])+storeValues(spec.Props, values))
+			return t, nil
+		},
+		Patch: func(_ ochazuke.Ctx, id string, changes ochazuke.Thing) (ochazuke.Thing, error) {
+			for _, t := range things {
+				if fmt.Sprint(t[key]) == id {
+					maps.Copy(t, changes)
+					ss.Writes = append(ss.Writes, "set "+id+storeValues(spec.Props, changes))
+					return t, nil
+				}
+			}
+			return nil, fmt.Errorf("no %s %q", Demo, id)
+		},
+		Delete: func(_ ochazuke.Ctx, id string) error {
+			n := len(things)
+			things = slices.DeleteFunc(things, func(t ochazuke.Thing) bool { return fmt.Sprint(t[key]) == id })
+			if len(things) == n {
+				return fmt.Errorf("no %s %q", Demo, id)
+			}
+			ss.Writes = append(ss.Writes, "delete "+id)
+			return nil
+		},
 	})
 	return nil
+}
+
+// storeValues is a write's props as the writes log shows them: " name=value"
+// each, in the props' order.
+func storeValues(props []ochazuke.PropSpec, values ochazuke.Thing) string {
+	var b strings.Builder
+	for _, p := range props {
+		if v, ok := values[p.Name]; ok {
+			fmt.Fprintf(&b, " %s=%v", p.Name, v)
+		}
+	}
+	return b.String()
 }
 
 func (ss *Session) defineVerb(d *ochazuke.NounBuilder, v VerbSpec) error {

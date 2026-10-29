@@ -657,14 +657,23 @@ func (r *Runtime) VerbShown(key, focus string, mode ModeState) bool {
 // available (an unavailable one stands aside and the key goes on, out to
 // the next level when none at this one is); the palette, the hints, the
 // help and Execute ask the same question. A guard name that is not
-// registered hides nothing.
+// registered hides nothing. A standard verb also reads its props' guards
+// (PropSpec.When, propsAvailable), and a prop-shaped request is asked as
+// the get or set it runs as.
 func (r *Runtime) Available(q Request, focus string, mode ModeState) bool {
-	name := r.VerbGuard(q.Key())
-	if name == "" {
-		return true
+	if q.IsProp() {
+		pq, err := r.propVerbRequest(q)
+		if err != nil {
+			return false
+		}
+		q = pq
 	}
-	guard := r.guard(name)
-	return guard == nil || guard(r, KeyEvent{Mode: mode, Focus: focus, Level: focus, Args: q.Args})
+	if name := r.VerbGuard(q.Key()); name != "" {
+		if guard := r.guard(name); guard != nil && !guard(r, KeyEvent{Mode: mode, Focus: focus, Level: focus, Args: q.Args}) {
+			return false
+		}
+	}
+	return r.propsAvailable(q, focus, mode)
 }
 
 // SetAvailability makes a registered action available only while the
@@ -1041,10 +1050,17 @@ func (r *Runtime) validateRow(row Binding) (Binding, error) {
 		return row, fmt.Errorf("unknown guard %q", row.When)
 	}
 	row.Aliases = nil
-	if row.Request.Verb == "" {
+	if row.Request.Empty() {
 		row.Unbind = true
 	}
-	if !row.Unbind {
+	if !row.Unbind && row.Request.IsProp() {
+		// A prop row ({"request": {"noun", "prop", "value"|"toggle"}}):
+		// its prop is checked, and it runs as the noun's get or set.
+		row.Request.Noun = r.CanonicalNoun(row.Request.Noun)
+		if err := r.validatePropRow(row); err != nil {
+			return row, err
+		}
+	} else if !row.Unbind {
 		row.Request = r.modernRequest(row.Request)
 		op, ok := r.Operations[row.Request.Key()]
 		if !ok {

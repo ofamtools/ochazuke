@@ -201,8 +201,12 @@ func cloneArgs(args Arguments) Arguments {
 // the first one's label and how many more.
 func (r *Runtime) subjectsLabel(ids []string) string {
 	label := ids[0]
-	if inst := r.Instances[ids[0]]; inst != nil && inst.Label != "" {
-		label = inst.Label
+	if inst := r.Instances[ids[0]]; inst != nil {
+		if l := r.thingLabel(inst); l != "" {
+			label = l // the thing's label prop, else its Fallback
+		} else if inst.Label != "" {
+			label = inst.Label
+		}
 	}
 	if len(ids) == 1 {
 		return label

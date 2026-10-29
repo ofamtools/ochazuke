@@ -601,7 +601,7 @@ func (p *Palette) argument(op Operation, name, word string) (value any, display 
 		}
 	}
 	switch param.Type {
-	case "", "string", PathParameterType:
+	case "", "string", PathParameterType, AnyParameterType:
 		return text, text, nil, nil
 	case "integer":
 		n, err := strconv.Atoi(text)

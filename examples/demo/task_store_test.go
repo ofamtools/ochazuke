@@ -118,7 +118,7 @@ func TestTaskCatalogRoundTrip(t *testing.T) {
 		}
 		standard[v.Name] = v.Standard
 	}
-	if want := map[string]string{"edit": "", "get": "get", "list": "list", "watch": "watch"}; !reflect.DeepEqual(standard, want) {
+	if want := map[string]string{"edit": "", "get": "get", "list": "list", "watch": "watch", "create": "create", "set": "set", "delete": "delete"}; !reflect.DeepEqual(standard, want) {
 		t.Fatalf("standard %v, want %v", standard, want)
 	}
 	if verb, rows := doc.RowSource("task"); verb != "list" || rows != "task" {
@@ -127,5 +127,113 @@ func TestTaskCatalogRoundTrip(t *testing.T) {
 	if testing.Verbose() {
 		b, _ := json.MarshalIndent(noun, "", "  ")
 		t.Log("\n" + string(b))
+	}
+}
+
+// The demo's task creates, sets (patch is set's alias) and deletes from
+// the CLI with no handler of its own; delete asks first, naming the task
+// by its title, else its summary, and --yes answers.
+func TestTaskWritesFromTheCLI(t *testing.T) {
+	read := func(args ...string) map[string]any {
+		t.Helper()
+		var out map[string]any
+		if err := json.Unmarshal([]byte(runDemo(t, args...)), &out); err != nil {
+			t.Fatalf("%v: %v", args, err)
+		}
+		return out
+	}
+	if got := read("task", "create", "Buy milk", "--estimate", "2"); got["id"] != "t4" || got["title"] != "Buy milk" || got["status"] != "todo" || got["estimate"] != float64(2) {
+		t.Fatalf("create = %v", got)
+	}
+	if got := read("task", "set", "t2", "status", "done"); got["status"] != "done" {
+		t.Fatalf("set = %v", got)
+	}
+	if got := read("task", "set", "t2", "title=Ship it", "estimate=5"); got["title"] != "Ship it" || got["estimate"] != float64(5) {
+		t.Fatalf("set pairs = %v", got)
+	}
+	if got := read("task", "patch", "t2", "--changes", `{"status": "doing", "notes": "x"}`); got["status"] != "doing" || got["notes"] != "x" {
+		t.Fatalf("patch = %v", got)
+	}
+	if got := read("task", "delete", "t3", "--yes"); got["deleted"] != "t3" {
+		t.Fatalf("delete = %v", got)
+	}
+	m := New()
+	var stdout, stderr bytes.Buffer
+	app := oden.New("demo", []string{"task", "delete", "t3"}, oden.WithStdio(strings.NewReader("n\n"), &stdout, &stderr), oden.WithPath(t.TempDir()))
+	cli.Mount(app, cli.New(m.Runtime, "demo", strings.NewReader("n\n"), &stdout, &stderr))
+	if err := app.Run(context.Background()); err == nil || !strings.Contains(stderr.String(), "Delete task Call the plumber about the sink?") {
+		t.Fatalf("delete without --yes: %v\n%s", err, stderr.String())
+	}
+}
+
+// From the palette, the API and a key: on the Record page, :task set
+// writes the task the page edits, :task delete asks (y deletes), :task
+// create makes one from its title, a JSON prop request reads and writes a
+// prop, and x (a prop row) sets the status to done.
+func TestTaskWritesFromThePalette(t *testing.T) {
+	m := New()
+	m.Width, m.Height = 100, 24
+	m.Appearance.Theme = "mono"
+	r := m.Runtime
+	if err := r.OpenPage("task"); err != nil {
+		t.Fatal(err)
+	}
+	m.View()
+	keytest.Press(m, "esc")
+	get := func(id, prop string) any {
+		t.Helper()
+		v, err := r.Execute(ochazuke.Request{Noun: "task", Verb: "get", Args: ochazuke.Arguments{"id": id, "prop": prop}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return v
+	}
+	palette := func(line string) string {
+		keytest.Press(m, ":")
+		keytest.Type(m, line)
+		keytest.Press(m, "enter")
+		return ansi.Strip(m.View().Content)
+	}
+	palette("task set t1 estimate 7")
+	if v := get("t1", "estimate"); v != 7 {
+		t.Fatalf("estimate %v", v)
+	}
+	if frame := palette("task delete t2"); !strings.Contains(frame, "Delete task Write the release notes?") {
+		t.Fatalf("no confirm:\n%s", frame)
+	}
+	keytest.Press(m, "y")
+	if _, err := r.Execute(ochazuke.Request{Noun: "task", Verb: "get", Args: ochazuke.Arguments{"id": "t2"}}); err == nil {
+		t.Fatal("t2 is still there")
+	}
+	palette(`task create "Buy milk"`)
+	if v := get("t3", "title"); v != "" {
+		t.Fatalf("t3 title %v", v)
+	}
+	rows, err := r.Execute(ochazuke.Request{Noun: "task", Verb: "list", Args: ochazuke.Arguments{"where": "title=Buy"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows.([]map[string]any)) != 0 {
+		t.Fatalf("where is equality: %v", rows)
+	}
+	if v := get("t4", "title"); v != "Buy milk" {
+		t.Fatalf("created %v", v)
+	}
+	// The API: a JSON request, prop-shaped, the way a socket client sends it.
+	var q ochazuke.Request
+	if err := json.Unmarshal([]byte(`{"noun": "task", "prop": "status", "value": "doing", "args": {"id": "t4"}}`), &q); err != nil {
+		t.Fatal(err)
+	}
+	reply := make(chan ochazuke.Response, 1)
+	r.HandleCall(ochazuke.CallMsg{Request: q, Reply: reply})
+	if res := <-reply; res.Error != "" || get("t4", "status") != "doing" {
+		t.Fatalf("API prop write: %+v", res)
+	}
+	keytest.Press(m, "x")
+	if v := get("t1", "status"); v != "done" {
+		t.Fatalf("x: status %v", v)
+	}
+	if frame := ansi.Strip(m.View().Content); !strings.Contains(frame, "x task.status") {
+		t.Fatalf("the prop row's hint:\n%s", frame)
 	}
 }

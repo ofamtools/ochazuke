@@ -71,8 +71,11 @@ const (
 // this prop's place when this one is empty: display only (list rows,
 // {{label}}, choosers); get still reads the prop itself. Default is what
 // create writes when the value is omitted. A Secret prop is left out of
-// get's and list's records unless asked for by name. Multiline asks a form
-// for a text area.
+// get's and list's records unless asked for by name, and its writes are
+// never repeated or persisted. Multiline asks a form for a text area.
+// When names a guard: where it is false (read where the request acts) the
+// prop is not offered, read or written (the catalog's availability); the
+// guard is the prop's own, apart from the noun's verb guards.
 type PropSpec struct {
 	Name string `json:"name"`
 	Parameter
@@ -84,6 +87,35 @@ type PropSpec struct {
 	Default    any    `json:"default,omitempty"`
 	Secret     bool   `json:"secret,omitempty"`
 	Multiline  bool   `json:"multiline,omitempty"`
+	When       string `json:"availability,omitempty"`
+}
+
+// PropField is a prop as a form field (RecordField): its name, its
+// parameter and whether it is multiline, so a record editor or an args
+// form over a noun's things reads its props.
+func PropField(p PropSpec) RecordField {
+	return RecordField{Name: p.Name, Parameter: p.Parameter, Multiline: p.Multiline}
+}
+
+// writable reports whether set may write the prop: not read-only (a key
+// never is), not create-only.
+func (p PropSpec) writable() bool { return !p.ReadOnly && !p.Key && !p.CreateOnly }
+
+// simple reports whether a write of the prop holds a simple value (owner
+// decision 12): an enum choice, a boolean, a number or a duration, never
+// text, a list, an object or a secret. Only simple writes repeat with .
+// and reach the history file (simpleWrite).
+func (p PropSpec) simple() bool {
+	if p.Secret || p.Multiline {
+		return false
+	}
+	switch p.Type {
+	case SettingBoolean, SettingInteger, SettingNumber, SettingDuration:
+		return true
+	case SettingString, "":
+		return len(p.Enum) > 0 && p.Noun == ""
+	}
+	return false
 }
 
 // Thing is one thing of a noun: its props by name.
@@ -136,10 +168,23 @@ type ListQuery struct {
 }
 
 // Store is a noun's row in the handler table: its kind and the handlers
-// that read its things, each optional. A standard verb exists on the noun
-// exactly when its handler is set (standardVerbs' Needs). Get answers the
-// thing with that key ("" for a singleton); List answers the things.
-// ListParams are list's parameters beside where, props and limit.
+// that read and write its things, each optional. A standard verb exists on
+// the noun exactly when its handler is set (standardVerbs' Needs). Get
+// answers the thing with that key ("" for a singleton); List answers the
+// things. ListParams are list's parameters beside where, props and limit.
+//
+// Create stores a new thing from the props given (typed, each prop's
+// Default filling an omitted one) and answers it, its key filled. Patch
+// writes the changed props of the thing with that key and answers the
+// thing after the write (nil: the runtime reads it back with Get). Delete
+// removes the thing with that key.
+//
+// Confirm is a standard verb's confirm prompt by verb ({{label}} is the
+// thing's label prop, else its Fallback); delete asks
+// DefaultDeleteConfirm unless the store names its own ("" asks nothing).
+// When is a standard verb's availability by verb: a guard name, set on
+// the generated verb as SetAvailability does.
+//
 // Watch, when set, answers watch itself (standard_watch.go): it pushes
 // each event to emit, from any goroutine, until stop; without it watch
 // lists again (List, a singleton's Get) whenever things may have changed.
@@ -147,8 +192,13 @@ type Store struct {
 	Kind       string
 	Get        func(Ctx, string) (Thing, error)
 	List       func(Ctx, ListQuery) ([]Thing, error)
+	Create     func(Ctx, Thing) (Thing, error)
+	Patch      func(Ctx, string, Thing) (Thing, error)
+	Delete     func(Ctx, string) error
 	ListParams map[string]Parameter
 	Watch      func(c Ctx, q WatchQuery, emit func(WatchEvent)) (stop func(), err error)
+	Confirm    map[string]string
+	When       map[string]string
 }
 
 // propTypes are the types a prop declares.
@@ -233,6 +283,7 @@ func (b *NounBuilder) Store(s Store) *NounBuilder {
 		s.Kind = Collection
 	}
 	s.ListParams = cloneParams(s.ListParams)
+	s.Confirm, s.When = maps.Clone(s.Confirm), maps.Clone(s.When)
 	b.n.Store = &s
 	b.r.applyStore(b.n)
 	b.last = ""
@@ -372,6 +423,16 @@ func checkSchema(n *Noun) error {
 	default:
 		return fmt.Errorf("%s: unknown store kind %q", n.Name, s.Kind)
 	}
+	for _, m := range []struct {
+		field string
+		by    map[string]string
+	}{{"Confirm", s.Confirm}, {"When", s.When}} {
+		for verb := range m.by {
+			if !slices.Contains(reservedStandardVerbs, verb) {
+				return fmt.Errorf("%s: store %s names %q, not a standard verb", n.Name, m.field, verb)
+			}
+		}
+	}
 	key := n.keyProp()
 	for name := range s.ListParams {
 		switch {
@@ -459,4 +520,179 @@ func (r *Runtime) thingLabel(inst *Instance) string {
 		return ""
 	}
 	return r.Nouns[inst.Noun].displayLabel(func(name string) any { return dataField(inst.Data, name) })
+}
+
+// Prop-shaped requests: {noun, prop} reads a prop of the thing the request
+// acts for, {noun, prop, value} writes it, {noun, prop, toggle: true}
+// flips a boolean prop. Each runs as the noun's standard get or set
+// (propVerbRequest), so availability, confirms, subjects and the store
+// are the verbs'; history keeps the request as it was sent.
+
+// propVerbRequest is the verb-shaped request a prop-shaped one runs as:
+// get {prop} for a read, set {prop, value} or set {prop, toggle} for a
+// write, with its target, subjects, confirmation and subject key kept.
+func (r *Runtime) propVerbRequest(q Request) (Request, error) {
+	n, p, err := r.requestProp(q)
+	if err != nil {
+		return q, err
+	}
+	out := Request{Noun: n.Name, Verb: "get", Target: q.Target, Subjects: q.Subjects, Confirmed: q.Confirmed, Via: q.Via, Args: Arguments{"prop": p.Name}}
+	if key := n.keyProp(); key != nil {
+		if v, ok := q.Args[key.Name]; ok {
+			out.Args[key.Name] = v
+		}
+	}
+	if q.Writes() {
+		out.Verb = "set"
+		if q.Toggle {
+			out.Args["toggle"] = true
+		} else {
+			out.Args["value"] = q.Value
+		}
+	}
+	if _, ok := r.Operations[out.Key()]; !ok {
+		return q, fmt.Errorf("%s has no %s: its store cannot %s it", r.DisplayNoun(n.Name), out.Verb, map[string]string{"get": "read", "set": "write"}[out.Verb])
+	}
+	return out, nil
+}
+
+// requestProp checks a prop-shaped request's shape and finds its noun and
+// prop: a verb or a prop, never both; value or toggle, never both; no
+// arguments but the subject's key; toggle only on a boolean; a write only
+// to a writable prop.
+func (r *Runtime) requestProp(q Request) (*Noun, *PropSpec, error) {
+	switch {
+	case q.Verb != "":
+		return nil, nil, &ArgumentError{errors.New("a request names a verb or a prop, not both")}
+	case q.Prop == "":
+		return nil, nil, &ArgumentError{errors.New("value and toggle go with a prop")}
+	case q.Toggle && q.Value != nil:
+		return nil, nil, &ArgumentError{errors.New("a prop request takes a value or toggle, not both")}
+	}
+	n := r.Noun(q.Noun)
+	if n == nil {
+		return nil, nil, fmt.Errorf("unknown noun %q", q.Noun)
+	}
+	p := n.prop(q.Prop)
+	if p == nil {
+		if _, ok := r.Operations[n.Name+"."+q.Prop]; ok {
+			return nil, nil, &ArgumentError{fmt.Errorf("%s is a verb, not a prop", r.DisplayKey(n.Name+"."+q.Prop))}
+		}
+		return nil, nil, &ArgumentError{fmt.Errorf("%s has no prop %q", r.DisplayNoun(n.Name), q.Prop)}
+	}
+	key := n.keyProp()
+	for name := range q.Args {
+		if key == nil || name != key.Name {
+			return nil, nil, &ArgumentError{fmt.Errorf("%s is a prop: it takes a value or toggle, not the argument %q", r.displayRequest(q), name)}
+		}
+	}
+	switch {
+	case q.Writes() && !p.writable():
+		return nil, nil, &ArgumentError{fmt.Errorf("%s is read-only", r.displayRequest(q))}
+	case q.Toggle && p.Type != SettingBoolean:
+		return nil, nil, &ArgumentError{fmt.Errorf("%s is %s: only a boolean prop toggles", r.displayRequest(q), p.Type)}
+	}
+	return n, p, nil
+}
+
+// displayRequest is a request's key as messages print it, the noun by its
+// shortest name: noun.verb, or noun.prop.
+func (r *Runtime) displayRequest(q Request) string { return r.DisplayKey(q.Key()) }
+
+// requestOperation is the operation key a request runs: its own, or for a
+// prop-shaped request its noun's get (a read) or set (a write).
+func requestOperation(q Request) string {
+	if !q.IsProp() {
+		return q.Key()
+	}
+	if q.Writes() {
+		return q.Noun + ".set"
+	}
+	return q.Noun + ".get"
+}
+
+// requestDescription is what help says a row's request does: its
+// operation's description, or for a prop row what it writes and the
+// prop's description.
+func (r *Runtime) requestDescription(q Request) string {
+	if !q.IsProp() {
+		return r.Operations[q.Key()].Description
+	}
+	p, _ := r.PropOf(q.Noun, q.Prop)
+	text := "Read " + q.Prop
+	switch {
+	case q.Toggle:
+		text = "Toggle " + q.Prop
+	case q.Value != nil:
+		text = fmt.Sprintf("Set %s to %v", q.Prop, q.Value)
+	}
+	if p.Description != "" {
+		text += ": " + p.Description
+	}
+	return text
+}
+
+// validatePropRow checks a prop-shaped binding row: a known prop of a
+// noun whose store reads it (and, for a write, writes it), written with a
+// value of its type or toggled when it is a boolean; From may fill only
+// the value.
+func (r *Runtime) validatePropRow(row Binding) error {
+	q := row.Request
+	fromValue := false
+	for arg, source := range row.From {
+		if arg != "value" {
+			return fmt.Errorf("a prop row fills only its value, not %q", arg)
+		}
+		if len(strings.Fields(source)) == 0 {
+			return fmt.Errorf("%s has an empty source", arg)
+		}
+		fromValue = true
+	}
+	if fromValue && q.Value == nil && !q.Toggle {
+		q.Value = "" // filled when the key is pressed
+	}
+	n, p, err := r.requestProp(q)
+	if err != nil {
+		return err
+	}
+	if !fromValue && q.Value != nil {
+		if _, err := propValue(*p, q.Value); err != nil {
+			return fmt.Errorf("%s %w", r.displayRequest(q), err)
+		}
+	}
+	if _, ok := r.Operations[requestOperation(q)]; !ok {
+		return fmt.Errorf("%s: %s has no store verb %s", r.displayRequest(q), r.DisplayNoun(n.Name), requestOperation(q))
+	}
+	return nil
+}
+
+// SetProp builds a row that writes value to noun's prop (the file's
+// {"key": KEY, "request": {"noun": NOUN, "prop": PROP, "value": VALUE}}).
+func SetProp(noun, prop string, value any) Binding {
+	return Binding{Request: Request{Noun: noun, Prop: prop, Value: value}}
+}
+
+// ToggleProp builds a row that flips noun's boolean prop
+// ({"request": {"noun": NOUN, "prop": PROP, "toggle": true}}).
+func ToggleProp(noun, prop string) Binding {
+	return Binding{Request: Request{Noun: noun, Prop: prop, Toggle: true}}
+}
+
+// propShown reports whether a prop is offered where a request acts: its
+// When guard holds at focus, or it has none.
+func (r *Runtime) propShown(p PropSpec, focus string, mode ModeState, args Arguments) bool {
+	if p.When == "" {
+		return true
+	}
+	guard := r.guard(p.When)
+	return guard == nil || guard(r, KeyEvent{Mode: mode, Focus: focus, Level: focus, Args: args})
+}
+
+// PropGuard is the guard a noun's prop is available under (PropSpec.When),
+// "" for none: the prop guards, apart from the verb guards (VerbGuard).
+func (r *Runtime) PropGuard(noun, prop string) string {
+	if p := r.Noun(noun).prop(prop); p != nil {
+		return p.When
+	}
+	return ""
 }

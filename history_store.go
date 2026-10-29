@@ -58,6 +58,15 @@ func (r *Runtime) persistable(e HistoryEntry) (HistoryEntry, bool) {
 	if !e.Result.OK && e.Context.Source != "palette" {
 		return e, false
 	}
+	if r.writesValues(e.Request) {
+		// A write of prop values keeps its line, values and all, only
+		// when they are simple (simpleWrite, owner decision 12): a line
+		// without its value would read back as another request.
+		return e, r.simpleWrite(e.Request)
+	}
+	if e.Request.IsProp() {
+		return e, true // a prop read
+	}
 	op, known := r.Operations[e.Request.Key()]
 	if !known {
 		return e, false
@@ -255,7 +264,7 @@ func (r *Runtime) restoreHistory(path string, limit int) [][]byte {
 		}
 		total++
 		var e HistoryEntry
-		if err := json.Unmarshal(line, &e); err != nil || e.Request.Verb == "" {
+		if err := json.Unmarshal(line, &e); err != nil || e.Request.Empty() {
 			bad++
 			if firstBad == 0 {
 				firstBad = i + 1
