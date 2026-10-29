@@ -247,6 +247,49 @@ func (s Styles) Tone(name string) lipgloss.Style {
 	return st.Bold(look.bold).Faint(look.dim)
 }
 
+// hasTone reports whether the styles draw the tone name.
+func (s Styles) hasTone(name string) bool {
+	_, ok := s.tones[name]
+	return ok
+}
+
+// tonedText draws text in base with each run spans tone in its tone's
+// style (Styles.Tone): From and To are rune offsets (To 0: the end), Cell
+// is not read, a later span wins, an unknown tone keeps base. The text is
+// unchanged, only styled.
+func (s Styles) tonedText(text string, spans []ToneSpan, base lipgloss.Style) string {
+	if len(spans) == 0 {
+		return base.Render(text)
+	}
+	runes := []rune(text)
+	tones := make([]string, len(runes))
+	for _, sp := range spans {
+		to := sp.To
+		if to <= 0 || to > len(runes) {
+			to = len(runes)
+		}
+		for i := max(0, sp.From); i < to; i++ {
+			if s.hasTone(sp.Tone) {
+				tones[i] = sp.Tone
+			}
+		}
+	}
+	var b strings.Builder
+	for i := 0; i < len(runes); {
+		j := i + 1
+		for j < len(runes) && tones[j] == tones[i] {
+			j++
+		}
+		style := base
+		if tones[i] != "" {
+			style = s.Tone(tones[i])
+		}
+		b.WriteString(style.Render(string(runes[i:j])))
+		i = j
+	}
+	return b.String()
+}
+
 // toneSGR is a tone's attributes as a list draws them: on the selected
 // row its bold alone; in a faded list (dim-unfocused) its colour carried
 // toward the background as the list's text is. ok is false for an unknown

@@ -953,7 +953,7 @@ const storyCard = "story-card"
 
 // card is a CardSpec as an ochazuke.Card of the story-card noun.
 func card(c CardSpec) ochazuke.Card {
-	out := ochazuke.Card{ID: c.ID, Noun: storyCard, Header: c.Header, Meta: c.Meta, Open: c.Open, Active: c.Active, Muted: c.Muted, Group: c.Group, Event: c.Event}
+	out := ochazuke.Card{ID: c.ID, Noun: storyCard, Header: c.Header, Meta: c.Meta, Open: c.Open, Active: c.Active, Muted: c.Muted, Group: c.Group, Event: c.Event, MetaTones: c.MetaTones, Tone: c.Tone}
 	if c.Body != "" {
 		out.Body = ochazuke.TextBody(c.Body)
 	}

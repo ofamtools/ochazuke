@@ -1,0 +1,51 @@
+{
+  "area": "timeline",
+  "width": 80,
+  "theme": "dark",
+  "name": "timeline: the focused selected card keeps the accent border even when it has a tone; the cards around it keep their tone",
+  "page": {
+    "noHeadings": true,
+    "timeline": {
+      "headerLines": 1,
+      "cards": [
+        {
+          "id": "t1",
+          "muted": true,
+          "meta": "09:20 · ✗ interrupted",
+          "metaTones": [
+            {
+              "tone": "state.errored",
+              "from": 8
+            }
+          ],
+          "tone": "state.errored",
+          "header": "Wrap the help modal"
+        },
+        {
+          "id": "t2",
+          "meta": "10:02 · ✓ done",
+          "metaTones": [
+            {
+              "tone": "state.done",
+              "from": 8
+            }
+          ],
+          "header": "Stream the answer",
+          "tone": "state.working"
+        }
+      ],
+      "height": 10
+    }
+  },
+  "script": [],
+  "expect": [
+    {
+      "focus": "t1",
+      "styled": {
+        "┏━━": "#78BFA5",
+        "╭──": "#7CB7E8",
+        "✓ done": "#8BC48A"
+      }
+    }
+  ]
+}

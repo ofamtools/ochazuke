@@ -1,0 +1,35 @@
+{
+  "area": "timeline",
+  "width": 80,
+  "theme": "dark",
+  "name": "timeline: a card's metaTones colour its status run undimmed (the rest of the meta stays muted) and its tone colours its border, except the focused selection, which keeps the accent; in dark at 80 columns",
+  "page": {
+    "noHeadings": true,
+    "order": ["timeline", "below"],
+    "timeline": {
+      "headerLines": 1,
+      "cards": [
+        {"id": "t1", "muted": true, "meta": "09:12 · ✓ done · 41s", "metaTones": [{"tone": "state.done", "from": 8, "to": 14}], "header": "Read AGENTS.md"},
+        {"id": "t2", "muted": true, "meta": "09:20 · ✗ interrupted · 2m03s", "metaTones": [{"tone": "state.errored", "from": 8, "to": 21}], "tone": "state.errored", "header": "Wrap the help modal"},
+        {"id": "t3", "meta": "10:02 · ● working", "metaTones": [{"tone": "state.working", "from": 8}], "tone": "state.working", "active": true, "header": "Stream the answer"}
+      ],
+      "height": 14
+    },
+    "lists": [{"id": "below", "rows": 2}]
+  },
+  "script": ["j", "j", "j"],
+  "expect": [
+    {
+      "after": 3,
+      "focus": "below1",
+      "contains": ["09:12 · ✓ done · 41s", "09:20 · ✗ interrupted · 2m03s", "10:02 · ● working"],
+      "styled": {
+        "✓ done": "#8BC48A",
+        "✗ interrupted": "#E99B8D",
+        "● working": "#7CB7E8",
+        "╭━ ● ━": "#7CB7E8"
+      },
+      "attrs": {"✗ interrupted": "bold"}
+    }
+  ]
+}

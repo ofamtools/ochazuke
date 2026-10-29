@@ -56,6 +56,19 @@ type Card struct {
 	// something said: indented one level (eventIndent cells), its border
 	// dashed and muted until it is selected. A task's notification is one.
 	Event bool `json:"event,omitempty"`
+	// MetaTones tone runs of Meta (a status word, its glyph) as a list
+	// row's ToneSpan tones a cell: From and To are rune offsets into Meta
+	// (To 0: its end), Cell is not read, a later span wins where two
+	// overlap. A toned run draws in its tone's style instead of the muted
+	// meta style; the text never changes, so widths and copies are the
+	// same as without tones. An unknown tone draws muted, as the rest.
+	MetaTones []ToneSpan `json:"metaTones,omitempty"`
+	// Tone is a tone whose style draws the card's border (and the Active
+	// "●" in it) in place of the border role: a card whose state should
+	// be seen from across the timeline (a running turn, a failed one).
+	// The focused timeline's selected card keeps the accent, so the
+	// focus always reads; an unknown tone, or "", draws the usual border.
+	Tone string `json:"tone,omitempty"`
 }
 
 // eventIndent is how far an event card is indented.
@@ -668,6 +681,9 @@ func (t *Timeline) draw(i int, selected bool) []string {
 		// Something that happened: a dashed, muted border.
 		h, v, border = "┄", "┆", s.Muted
 	}
+	if c.Tone != "" && s.hasTone(c.Tone) {
+		border, selectedBorder = s.Tone(c.Tone), s.Tone(c.Tone)
+	}
 	switch {
 	case selected && t.list.Focused():
 		border = focusedBorder
@@ -739,7 +755,7 @@ func (t *Timeline) draw(i int, selected bool) []string {
 		out = append(out, row(fmt.Sprintf("  … %d more %s", more, word), s.Muted))
 	}
 	if c.Meta != "" {
-		out = append(out, row("  "+modalLabel(c.Meta), s.Muted))
+		out = append(out, row("  "+s.tonedText(modalLabel(c.Meta), c.MetaTones, s.Muted), lipgloss.NewStyle()))
 	}
 	if open {
 		if body := t.body(c, cc); len(body) > 0 {

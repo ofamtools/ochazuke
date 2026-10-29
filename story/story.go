@@ -313,6 +313,10 @@ type CardSpec struct {
 	// Event draws the card as something that happened (Card.Event): a
 	// task's notification, indented, its border dashed and muted.
 	Event bool `json:"event,omitempty"`
+	// MetaTones and Tone are Card.MetaTones and Card.Tone: tone runs of
+	// the meta line, and the tone the border draws in.
+	MetaTones []ochazuke.ToneSpan `json:"metaTones,omitempty"`
+	Tone      string              `json:"tone,omitempty"`
 }
 
 // SectionSpec is one card section (ochazuke.CardSection) with its text;
