@@ -376,9 +376,10 @@ func (r *Runtime) UserAliases() []ActionAlias { return slices.Clone(r.Config().a
 // of an action or of another alias; such a row is skipped and reported, as
 // bindings check reports a bad row. Note is free text listed with it.
 type AliasRow struct {
-	Alias  string `json:"alias"`
-	Action string `json:"action"`
-	Note   string `json:"note,omitempty"`
+	Alias  string    `json:"alias"`
+	Action string    `json:"action"`
+	Note   string    `json:"note,omitempty"`
+	Args   Arguments `json:"args,omitempty"`
 }
 
 // checkUserAlias validates one alias row against r: an earlier row of the
@@ -391,9 +392,12 @@ func (r *Runtime) checkUserAlias(row AliasRow, seen map[string]int) (ActionAlias
 			return ActionAlias{}, fmt.Errorf("alias %s is already declared by entry %d", r.DisplayKey(noun+"."+verb), n)
 		}
 	}
-	a, err := r.checkAlias(ActionAlias{Alias: row.Alias, Action: row.Action, Note: row.Note, Source: AliasConfig})
+	a, err := r.checkAlias(ActionAlias{Alias: row.Alias, Action: row.Action, Note: row.Note, Args: row.Args, Source: AliasConfig})
 	if err != nil {
 		return a, err
+	}
+	if n, dup := seen[a.Alias]; dup {
+		return ActionAlias{}, fmt.Errorf("alias %s is already declared by entry %d", a.Name(), n)
 	}
 	if prev, ok := r.actionNames.aliases[a.Alias]; ok && prev.Source != AliasConfig {
 		return a, fmt.Errorf("alias %s is already an alias of %s (%s)", r.DisplayKey(a.Alias), r.DisplayKey(prev.Action), prev.Source)

@@ -27,6 +27,11 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 		fmt.Fprintln(sh.stderr(), "warning:", problem)
 	}
 	r := sh.Runtime
+	// A bare action alias (bin w!) is its noun's words and its verb.
+	if len(app.Args) > 0 && sh.bareAlias(app.Args[0]) {
+		a, _ := r.ActionAlias(app.Args[0])
+		app.Args = append(append(strings.Split(a.Noun, "."), a.Verb), app.Args[1:]...)
+	}
 	// A dotted noun is one word too (bin ochazuke.settings list): the word is
 	// read as the groups it nests in before oden resolves it.
 	if len(app.Args) > 0 && strings.Contains(app.Args[0], ".") {
@@ -78,9 +83,22 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 		// runs (project associate, alias of pane associate).
 		var aliases []string
 		for _, a := range r.AliasesOf(op.Key()) {
-			if a.Noun == noun {
+			// An alias with preset arguments is a command of its own, so
+			// it runs by its name (and its args) and its presets are
+			// not required words.
+			if a.Noun == noun && len(a.Args) == 0 {
 				aliases = append(aliases, a.Verb)
 				continue
+			}
+			aliasParams := parameters
+			if len(a.Args) > 0 {
+				aliasParams = make([]oden.Parameter, len(parameters))
+				for i, p := range parameters {
+					if _, preset := a.Args[p.Name]; preset {
+						p.Required = false
+					}
+					aliasParams[i] = p
+				}
 			}
 			aliasNoun, aliasVerb := a.Noun, a.Verb
 			ag := root.at(aliasNoun)
@@ -88,7 +106,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 			ag.verbs = append(ag.verbs, oden.Command{
 				Name: aliasVerb, Summary: "alias of " + r.DisplayKey(op.Key()) + ": " + op.Description, Source: a.Alias,
 				Usage:      "[ARG...] [--target ID] [--json ...] [--ARG VALUE] [--format F] [--yes]",
-				Parameters: parameters, Details: details + "\nAlias of: " + op.Key(),
+				Parameters: aliasParams, Details: details + "\nAlias of: " + op.Key() + presetDetails(a),
 				Run: func(ctx context.Context, args []string) error {
 					return sh.Run(ctx, append([]string{aliasNoun, aliasVerb}, args...))
 				},
@@ -227,4 +245,21 @@ func (g *nounGroup) command(name string) oden.Command {
 		source = "namespace"
 	}
 	return oden.Command{Name: name, Summary: strings.Join(summary, " "), Source: source, Children: children}
+}
+
+// presetDetails is the help line naming an alias's preset arguments.
+func presetDetails(a ochazuke.ActionAlias) string {
+	if len(a.Args) == 0 {
+		return ""
+	}
+	names := make([]string, 0, len(a.Args))
+	for k := range a.Args {
+		names = append(names, k)
+	}
+	sort.Strings(names)
+	parts := make([]string, len(names))
+	for i, k := range names {
+		parts[i] = fmt.Sprintf("%s=%v", k, a.Args[k])
+	}
+	return "\nPresets: " + strings.Join(parts, " ")
 }

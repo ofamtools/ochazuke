@@ -1,0 +1,20 @@
+{
+  "name": "a bare actions.json alias with preset args (w! is demo.write {force: true}): the palette's one word, a key on its full name, and a typed argument wins",
+  "area": "actions",
+  "width": 100,
+  "height": 24,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "verbs": [{"verb": "demo.write", "description": "Write the document", "parameters": {"force": {"type": "boolean"}}}]
+  },
+  "config": {
+    "actions.json": [{"alias": "w!", "action": "demo.write", "args": {"force": true}}],
+    "bindings.json": [{"noun": "demo", "mode": "normal", "keys": "W", "request": {"noun": "demo", "verb": "w!"}}]
+  },
+  "script": [":", {"type": "w!"}, "enter", "W", ":", {"type": "w! false"}, "enter"],
+  "expect": [
+    {"after": 3, "writes": ["demo.write force=true via=demo.w!"], "modal": "", "noNotices": true},
+    {"after": 4, "writes": ["demo.write force=true via=demo.w!", "demo.write force=true via=demo.w!"]},
+    {"writes": ["demo.write force=true via=demo.w!", "demo.write force=true via=demo.w!", "demo.write force=false via=demo.w!"], "modal": ""}
+  ]
+}

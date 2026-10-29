@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"sort"
 	"strings"
@@ -30,16 +31,31 @@ const (
 // handler is told (Invocation). Since and RemoveAfter mark a deprecated
 // alias, an old name kept for one release after a rename (Keep actions):
 // its first use in a runtime posts a one-time notice naming the new name.
-// Note is free text shown beside it.
+// Note is free text shown beside it. Args are preset arguments the
+// alias runs its action with ({"force": true} for w!): a typed or
+// bound argument of the same name wins. Bare marks an alias declared
+// without a noun (w!, q): its noun is its action's, and the bare name
+// alone reaches it in the palette, the CLI and the API (Request{Verb:
+// "w!"}); a binding row names it by its full name (restructure.w!).
 type ActionAlias struct {
-	Alias       string `json:"alias"`
-	Action      string `json:"action"`
-	Noun        string `json:"noun,omitempty"`
-	Verb        string `json:"verb,omitempty"`
-	Since       string `json:"since,omitempty"`
-	RemoveAfter string `json:"removeAfter,omitempty"`
-	Note        string `json:"note,omitempty"`
-	Source      string `json:"source,omitempty"`
+	Alias       string    `json:"alias"`
+	Action      string    `json:"action"`
+	Noun        string    `json:"noun,omitempty"`
+	Verb        string    `json:"verb,omitempty"`
+	Since       string    `json:"since,omitempty"`
+	RemoveAfter string    `json:"removeAfter,omitempty"`
+	Note        string    `json:"note,omitempty"`
+	Source      string    `json:"source,omitempty"`
+	Args        Arguments `json:"args,omitempty"`
+	Bare        bool      `json:"bare,omitempty"`
+}
+
+// Name is how the alias is typed: its bare name, else noun.verb.
+func (a ActionAlias) Name() string {
+	if a.Bare {
+		return a.Verb
+	}
+	return a.Alias
 }
 
 // Deprecated reports whether the alias is an old name on its way out.
@@ -139,10 +155,34 @@ func (r *Runtime) checkAlias(a ActionAlias) (ActionAlias, error) {
 	}
 	a.Action = op.Key()
 	noun, verb, ok := r.splitNounName(a.Alias)
-	if !ok {
-		return a, fmt.Errorf("alias %q names no registered noun (an alias is noun.verb)", a.Alias)
+	if a.Bare && ok && noun == op.Noun && !strings.Contains(verb, ".") {
+		// An alias already made bare (its canonical noun.verb) again.
+		a.Alias, ok = verb, false
+	}
+	switch {
+	case ok && !a.Bare:
+	case !strings.Contains(a.Alias, "."):
+		// A bare alias (w!, q): its noun is its action's.
+		bare := a.Alias
+		noun, verb, a.Bare = op.Noun, bare, true
+		if prev, ok := r.bareAlias(bare); ok && prev.Alias != noun+"."+verb {
+			return a, fmt.Errorf("alias %s is already an alias of %s (%s)", bare, r.DisplayKey(prev.Action), prev.Source)
+		}
+		if r.Nouns[r.CanonicalNoun(bare)] != nil {
+			return a, fmt.Errorf("alias %s clashes with the noun %s", bare, bare)
+		}
+		if owner, ok := r.verbOwner(bare); ok && r.AliasShadow() != AliasShadowAllow {
+			return a, fmt.Errorf("alias %s would shadow the verb %s (%s is %s)", bare, r.DisplayKey(owner), AliasShadowSetting, AliasShadowRefuse)
+		}
+	default:
+		return a, fmt.Errorf("alias %q names no registered noun (an alias is noun.verb, or a bare name without a dot)", a.Alias)
 	}
 	a.Noun, a.Verb, a.Alias = noun, verb, noun+"."+verb
+	if len(a.Args) > 0 {
+		if err := validateArguments(op, a.Args); err != nil {
+			return a, fmt.Errorf("alias %s args: %v", a.Name(), err)
+		}
+	}
 	name := r.DisplayKey(a.Alias)
 	if a.Alias == a.Action {
 		return a, fmt.Errorf("alias %s names itself", name)
@@ -173,6 +213,74 @@ func (r *Runtime) splitNounName(name string) (noun, verb string, ok bool) {
 		}
 	}
 	return "", "", false
+}
+
+// bareAlias is the bare alias typed as name, false when none is.
+func (r *Runtime) bareAlias(name string) (ActionAlias, bool) {
+	for _, a := range r.actionNames.aliases {
+		if a.Bare && a.Verb == name {
+			return a, true
+		}
+	}
+	return ActionAlias{}, false
+}
+
+// verbOwner is the first registered action (by key) whose verb is name:
+// what a bare alias of that name would shadow as a typed word.
+func (r *Runtime) verbOwner(name string) (string, bool) {
+	var keys []string
+	for key, op := range r.Operations {
+		if op.Verb == name {
+			keys = append(keys, key)
+		}
+	}
+	if len(keys) == 0 {
+		return "", false
+	}
+	sort.Strings(keys)
+	return keys[0], true
+}
+
+// AliasShadowSetting says whether a bare alias may take the name of a
+// verb (a typed word): refuse (the default: such an alias row is skipped
+// and reported) or allow (the alias loads and, typed alone, wins over the
+// verb of that name; the verb stays reachable as noun verb).
+const AliasShadowSetting = "aliases.shadow"
+
+// The values of AliasShadowSetting.
+const (
+	AliasShadowRefuse = "refuse"
+	AliasShadowAllow  = "allow"
+)
+
+// AliasShadow is the aliases.shadow setting's value (refuse unless set to
+// allow).
+func (r *Runtime) AliasShadow() string {
+	// actions.json loads before EnsureConfigSettings: declare it here so
+	// settings.json's value is read.
+	r.declareFrameworkSettings(AliasShadowSetting)
+	if v, _ := r.settingValue(AliasShadowSetting); v == AliasShadowAllow {
+		return AliasShadowAllow
+	}
+	return AliasShadowRefuse
+}
+
+// withAliasArgs fills q's arguments the alias presets and q leaves out.
+func withAliasArgs(q Request, a ActionAlias) Request {
+	if len(a.Args) == 0 {
+		return q
+	}
+	args := maps.Clone(q.Args)
+	if args == nil {
+		args = Arguments{}
+	}
+	for k, v := range a.Args {
+		if _, set := args[k]; !set {
+			args[k] = v
+		}
+	}
+	q.Args = args
+	return q
 }
 
 // removeAlias drops an alias by name (config reloads, a later Register of
@@ -251,17 +359,25 @@ func (r *Runtime) aliasLabels(key string) []string {
 	return out
 }
 
-// ActionAlias is the alias a name is, its noun resolved (false when the
-// name is no alias).
+// ActionAlias is the alias a name is, its noun resolved, or the bare
+// alias a word without a dot is (false when the name is no alias).
 func (r *Runtime) ActionAlias(name string) (ActionAlias, bool) {
-	a, ok := r.actionNames.aliases[r.CanonicalKey(name)]
-	return a, ok
+	if a, ok := r.actionNames.aliases[r.CanonicalKey(name)]; ok {
+		return a, true
+	}
+	if !strings.Contains(name, ".") {
+		return r.bareAlias(name)
+	}
+	return ActionAlias{}, false
 }
 
 // ResolveAction is the action a name runs and how it was named: the
 // action's own key (noun aliases resolved: settings.set is
 // ochazuke.settings.set) or an alias of it.
 func (r *Runtime) ResolveAction(name string) (Operation, Invocation, bool) {
+	if a, ok := r.bareAlias(strings.TrimPrefix(name, ".")); ok && !strings.Contains(strings.TrimPrefix(name, "."), ".") {
+		name = a.Alias
+	}
 	key := r.CanonicalKey(name)
 	if op, ok := r.Operations[key]; ok {
 		return op, Invocation{Name: key, Noun: op.Noun, Verb: op.Verb}, true

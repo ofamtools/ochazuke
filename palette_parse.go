@@ -153,6 +153,7 @@ type lineIndex struct {
 	// a typed alias resolves to its action, but completions list only the
 	// canonical names (with the aliases on their labels).
 	aliasOps   map[string]Operation
+	aliasVia   map[string]string // an alias's word.verb -> its name in the alias table
 	aliasVerbs map[string][]string
 	aliasNouns map[string][]string
 	canon      map[string]string   // a noun's canonical name -> its word, where they differ (ochazuke.list -> list)
@@ -163,7 +164,7 @@ type lineIndex struct {
 }
 
 func (p *Palette) index() lineIndex {
-	ix := lineIndex{ops: map[string]Operation{}, canon: map[string]string{}, verbs: map[string][]string{}, nouns: map[string][]string{}, aliasOps: map[string]Operation{}, aliasVerbs: map[string][]string{}, aliasNouns: map[string][]string{}}
+	ix := lineIndex{ops: map[string]Operation{}, canon: map[string]string{}, verbs: map[string][]string{}, nouns: map[string][]string{}, aliasOps: map[string]Operation{}, aliasVia: map[string]string{}, aliasVerbs: map[string][]string{}, aliasNouns: map[string][]string{}}
 	for _, op := range p.r.Catalog() {
 		if !p.offered(op) {
 			continue
@@ -189,6 +190,7 @@ func (p *Palette) index() lineIndex {
 			continue
 		}
 		ix.aliasOps[word+"."+a.Verb] = op
+		ix.aliasVia[word+"."+a.Verb] = a.Alias
 		ix.aliasVerbs[a.Verb] = append(ix.aliasVerbs[a.Verb], word)
 		ix.aliasNouns[word] = append(ix.aliasNouns[word], a.Verb)
 	}
@@ -224,7 +226,7 @@ func (ix lineIndex) op(word, verb string) (Operation, string) {
 		return op, ""
 	}
 	if op, ok := ix.aliasOps[word+"."+verb]; ok {
-		return op, word + "." + verb
+		return op, ix.aliasVia[word+"."+verb]
 	}
 	return Operation{}, ""
 }
@@ -317,6 +319,17 @@ func (p *Palette) parseTokens(ix lineIndex, tokens []lineToken) commandLine {
 	}
 	tokens = ix.canonWords(tokens)
 	word := tokens[0].Text
+	// A bare alias typed whole (w!) is its action, on its own noun, before
+	// any verb of that name (aliases.shadow allow lets one share a verb's
+	// name; refuse keeps them apart).
+	if a, ok := p.r.bareAlias(word); ok {
+		if op, offered := ix.aliasOps[p.r.DisplayNoun(a.Noun)+"."+a.Verb]; offered {
+			c.Words = append(c.Words, PaletteWord{Text: word, Kind: "verb", Value: a.Verb})
+			c.Op, c.Via, c.Implied = op, a.Alias, true
+			p.parseParams(&c, tokens[1:], "")
+			return c
+		}
+	}
 	hit, candidates, exact := matchWord(word, append(append([]option{}, ix.byVerbs...), ix.byNouns...))
 	switch {
 	case hit.Value != "":
@@ -489,6 +502,15 @@ func (p *Palette) parseParams(c *commandLine, tokens []lineToken, preset string)
 			return
 		}
 		c.Args[name] = value
+	}
+	// An alias's preset arguments (w! is write {force: true}) fill what
+	// the words left out: a typed word wins.
+	if a, ok := p.r.actionNames.aliases[c.Via]; ok && c.Via != "" {
+		for k, v := range a.Args {
+			if _, set := c.Args[k]; !set {
+				c.Args[k] = v
+			}
+		}
 	}
 	for _, name := range remainingParams(*c) {
 		if c.Op.Parameters[name].Required {

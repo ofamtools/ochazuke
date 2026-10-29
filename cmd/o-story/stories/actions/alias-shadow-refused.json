@@ -1,0 +1,12 @@
+{
+  "name": "aliases.shadow refuse (the default): a bare alias named like a verb is skipped and reported",
+  "area": "actions",
+  "width": 120,
+  "height": 24,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "verbs": [{"verb": "demo.write", "description": "Write", "parameters": {"force": {"type": "boolean"}}}]
+  },
+  "config": {"actions.json": [{"alias": "mark", "action": "demo.write", "args": {"force": true}}]},
+  "expect": {"notices": ["actions.json: alias 1 (mark): alias mark would shadow the verb list.mark (aliases.shadow is refuse) (skipped)"]}
+}

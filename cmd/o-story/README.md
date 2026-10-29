@@ -409,7 +409,7 @@ Conformance:
 | insert | mode | `mode.set` |
 | insert | modes | `modes.list` |
 | insert | outline | `outline.indent` `outline.leave` |
-| insert | palette | `palette.move` `palette.run` |
+| insert | palette | `palette.cancel` `palette.move` `palette.run` |
 | insert | setting-value | `setting-value.cancel` `setting-value.commit` |
 | insert | settings | `settings.edit` |
 | list_filter | list | `list.filter-choose` `list.filter-clear` `list.filter-erase` `list.filter-keep` `list.filter-type` `list.move` |
@@ -418,7 +418,7 @@ Conformance:
 | normal | bindings-help | `bindings-help.mode` `bindings-help.noun` `bindings-help.place` `bindings-help.view` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
-| normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.forget-row` `demo.hide` `demo.launch` `demo.notify` `demo.open` `demo.ping` `demo.reload` `demo.ship` |
+| normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.delete` `demo.finish` `demo.forget-row` `demo.hide` `demo.launch` `demo.notify` `demo.open` `demo.ping` `demo.reload` `demo.ship` `demo.write` |
 | normal | detail | `detail.scroll` |
 | normal | focus | `focus.next` `focus.previous` `focus.set` |
 | normal | form | `form.choose` `form.leave` `form.next` `form.next-missing` `form.redo` `form.run` `form.suggest` `form.undo` |
@@ -474,6 +474,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `markdown.leave`
 - `insert` → `normal` via `mode.set`
 - `insert` → `normal` via `outline.leave`
+- `insert` → `normal` via `palette.cancel`
 - `insert` → `normal` via `palette.run`
 - `insert` → `normal` via `row esc`
 - `insert` → `normal` via `setting-value.cancel`

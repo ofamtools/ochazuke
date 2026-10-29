@@ -786,6 +786,16 @@ tiers above them. When the two disagree, fix one in the same commit.
   skipped and reported (a notice at load; `actions check`, `actions reload`
   and `bindings check` list it). Stories: `actions/user-alias.json`,
   `actions/alias-clash-reported.json`.
+  An alias row may preset arguments (`"args": {"force": true}`): every path
+  that runs the alias (a key, the palette, the CLI, the API) runs its action
+  with them, and a typed word, a flag or a row's argument of the same name
+  wins. A bare alias (`w!`, no noun) takes its action's noun and is typed as
+  one word in the palette and on the CLI; a row names it `noun.w!`. A bare
+  alias named like a verb is refused unless `aliases.shadow` is `allow`
+  (then the typed word runs the alias, `noun verb` still the verb). Stories:
+  `actions/alias-preset-args.json`, `actions/alias-shadow-refused.json`,
+  `actions/alias-shadow-allowed.json`; tests in `alias_args_test.go`,
+  `cli` `TestCLIBareAliasWithArgs`.
 - **R12.5** A write is never filled silently: a request with a required
   parameter missing fails naming it (API, CLI: `NAME is required`), and the
   palette asks for it instead of running; nothing reads the value from the

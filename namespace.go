@@ -138,6 +138,13 @@ func (r *Runtime) knownName(name string) bool {
 // (a dotted verb split where it was declared), and an alias becomes its
 // action with Via recording the alias it was spelled by.
 func (r *Runtime) canonicalRequest(q Request) Request {
+	// A bare alias names a request by one word (Request{Verb: "w!"}, or
+	// Do("w!"), which reads it as the noun).
+	if bare := q.Noun + q.Verb; (q.Noun == "" || q.Verb == "") && bare != "" {
+		if a, ok := r.bareAlias(bare); ok {
+			q.Noun, q.Verb = a.Noun, a.Verb
+		}
+	}
 	q.Noun = r.CanonicalNoun(q.Noun)
 	if q.Verb == "" {
 		return q
@@ -145,6 +152,9 @@ func (r *Runtime) canonicalRequest(q Request) Request {
 	key := r.CanonicalKey(q.Key())
 	if op, ok := r.Operations[key]; ok {
 		q.Noun, q.Verb = op.Noun, op.Verb
+		if a, ok := r.actionNames.aliases[q.Via]; ok && a.Action == key {
+			q = withAliasArgs(q, a)
+		}
 		return q
 	}
 	if a, ok := r.actionNames.aliases[key]; ok {
@@ -153,6 +163,7 @@ func (r *Runtime) canonicalRequest(q Request) Request {
 				q.Via = a.Alias
 			}
 			q.Noun, q.Verb = op.Noun, op.Verb
+			q = withAliasArgs(q, a)
 		}
 	}
 	return q

@@ -149,7 +149,7 @@ func UsageHint(bin string) string {
 // Run executes one command and prints its result on Stdout, as JSON
 // unless --format names another format.
 func (s *Shell) Run(ctx context.Context, args []string) error {
-	if len(args) < 2 {
+	if len(args) < 2 && (len(args) == 0 || !s.bareAlias(args[0])) {
 		return errors.New(s.usage())
 	}
 	// What handlers tell the user (ctx.Notify, ctx.Error, ctx.Info) prints on
@@ -175,15 +175,23 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	r.EnsureConfigSettings()
 	// The noun is the longest run of leading words naming one: app
 	// settings, ochazuke.settings and settings (an alias) are ochazuke.settings.
-	noun, rest, ok := r.NounWords(args)
-	if !ok {
-		noun, rest = args[0], args[1:]
+	var noun, verb string
+	var flags []string
+	if a, ok := r.ActionAlias(args[0]); ok && a.Bare && a.Verb == args[0] {
+		// A bare alias (w!) is its own noun and verb: bin w! --force.
+		noun, verb, flags = a.Noun, a.Verb, args[1:]
+	} else {
+		words, rest, ok := r.NounWords(args)
+		if !ok {
+			words, rest = args[0], args[1:]
+		}
+		v, err := s.verb(words, rest[0])
+		if err != nil {
+			return err
+		}
+		noun, verb, flags = words, v, rest[1:]
 	}
-	verb, err := s.verb(noun, rest[0])
-	if err != nil {
-		return err
-	}
-	q, opts, err := s.request(noun, verb, rest[1:])
+	q, opts, err := s.request(noun, verb, flags)
 	if err != nil {
 		return err
 	}
@@ -715,4 +723,11 @@ func (s *Shell) print(value any) error {
 func resolves(r *ochazuke.Runtime, target string) bool {
 	_, err := r.TargetInstance(target)
 	return err == nil
+}
+
+// bareAlias reports whether word is a bare action alias (w!), which runs
+// with no other words.
+func (s *Shell) bareAlias(word string) bool {
+	a, ok := s.Runtime.ActionAlias(word)
+	return ok && a.Bare && a.Verb == word
 }

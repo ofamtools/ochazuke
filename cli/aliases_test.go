@@ -105,3 +105,20 @@ func TestCatalogPublishesAliases(t *testing.T) {
 		t.Fatalf("show aliases %+v", show.Aliases)
 	}
 }
+
+// A bare alias with preset args runs from the CLI by its one word, and
+// a flag of the same name wins over the preset.
+func TestCLIBareAliasWithArgs(t *testing.T) {
+	f := newFixture(t)
+	if err := f.r.AddActionAlias(ochazuke.ActionAlias{Alias: "red!", Action: "widget.paint", Args: ochazuke.Arguments{"color": "red"}}); err != nil {
+		t.Fatal(err)
+	}
+	out, errOut, err := f.mounted(t, "red!", "--target", "w1")
+	if err != nil || !strings.Contains(out, `"color": "red"`) {
+		t.Fatalf("red!: %v\n%s\n%s", err, out, errOut)
+	}
+	out, _, err = f.mounted(t, "red!", "--target", "w1", "--color", "blue")
+	if err != nil || !strings.Contains(out, `"color": "blue"`) {
+		t.Fatalf("red! --color blue: %v\n%s", err, out)
+	}
+}

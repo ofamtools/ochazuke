@@ -1,0 +1,14 @@
+{
+  "name": "aliases.shadow allow: a bare alias named like a verb loads, and typed alone the palette runs the alias",
+  "area": "actions",
+  "width": 120,
+  "height": 24,
+  "settings": [{"name": "aliases.shadow", "type": "string", "default": "allow", "enum": ["refuse", "allow"]}],
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "verbs": [{"verb": "demo.write", "description": "Write", "parameters": {"force": {"type": "boolean"}}}]
+  },
+  "config": {"actions.json": [{"alias": "mark", "action": "demo.write", "args": {"force": true}}]},
+  "script": [":", {"type": "mark"}, "enter"],
+  "expect": {"noNotices": true, "modal": "", "writes": ["demo.write force=true via=demo.mark"]}
+}

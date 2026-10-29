@@ -1238,7 +1238,8 @@ A user adds names without code: an `actions.json` entry with an `alias` field is
 ```json
 [
   {"alias": "pane.k", "action": "pane.kill", "note": "my short name"},
-  {"alias": "list.walk", "action": "list.move"}
+  {"alias": "list.walk", "action": "list.move"},
+  {"alias": "w!", "action": "restructure.write", "args": {"force": true}}
 ]
 ```
 
@@ -1247,6 +1248,9 @@ A user adds names without code: an `actions.json` entry with an `alias` field is
 | `alias` | The new name, `noun.verb` on a registered noun (a short framework noun name such as `list` works) |
 | `action` | The action it runs: a registered key, or another alias (which resolves to its action) |
 | `note` | Free text, listed with it in `actions aliases` |
+| `args` | Preset arguments the alias runs its action with (`{"force": true}`); a typed word, a flag or a row's own argument of the same name wins. Checked against the action's parameters at load |
+
+A **bare** alias has no noun (`w!`, `q`, `x`: a word without a dot; `!` and other punctuation are fine, the palette splits only on spaces): its noun is its action's, its full name is `noun.alias` (`restructure.w!`, `ActionAlias.Bare`, `ActionAlias.Name()` the word), and the word alone runs it: `:w!` in the palette, `bin w!` on the CLI, `Request{Verb: "w!"}` or `Do("w!")` in code. A `bindings.json` row names it by its full name (`{"noun": "restructure", "verb": "w!"}`). A bare alias may not be a noun's name; one named like a registered verb (`save`, `mark`) follows the setting `aliases.shadow` (`AliasShadowSetting`, in `settings/ochazuke.json`): `refuse` (the default) skips and reports the row, `allow` loads it, and typed alone in the palette or on the CLI the word runs the alias while the verb stays reachable as `noun verb`. On the CLI an alias with presets is a command of its own whose preset parameters are not required (help lists `Presets:`).
 
 Alias rows install after the file's actions, so a row may name a verb the same file adds; `bindings.json` rows may use the alias. A row that would shadow an action or another alias (the framework's, the application's or an earlier row's), names an unknown action or noun, or has an unknown field is skipped and reported like a bad bindings row: a persistent notice at load (a CLI `warning:`), the result of `actions reload`, and the lines of `actions check` and `bindings check`. `bindings check` also accepts a `bindings.json` row spelled by an alias and says what it resolves to (`bindings.json: row 2 C: pane.close resolves to pane.kill (an alias, app)`, plus the new name for an old one).
 
