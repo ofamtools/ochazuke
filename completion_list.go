@@ -76,7 +76,8 @@ type Completer struct {
 	text     string // its text then, to tell an edit from a move
 	tracking bool   // a token's suggestions are wanted
 	token    CompletionToken
-	search   CompletionSearch
+	trigger  CompletionTrigger
+	cursorAt int  // the cursor when the token was asked for
 	open     bool // the list is shown and its rows answer
 	tickDue  bool // a pause timer is to be scheduled at the next drain
 
@@ -270,8 +271,11 @@ func (c *Completer) observe() {
 }
 
 // want asks for a token's suggestions after the pause.
-func (c *Completer) want(tok CompletionToken, search CompletionSearch) {
-	c.tracking, c.token, c.search = true, tok, search
+func (c *Completer) want(tok CompletionToken, trigger CompletionTrigger) {
+	c.tracking, c.token, c.trigger = true, tok, trigger
+	if in := c.r.Input(c.input); in != nil {
+		c.cursorAt = in.Cursor
+	}
 	c.seq++
 	c.tickDue = true
 }
@@ -300,9 +304,10 @@ func (c *Completer) openAt(id string) error {
 // launch starts the latest request's search as a job and opens the list.
 func (c *Completer) launch() {
 	r := c.r
-	seq, query, search := c.seq, c.token.Query, c.search
+	seq, query, trigger := c.seq, c.token.Query, c.trigger
+	q := CompletionQuery{Query: query, Text: c.text, Cursor: c.cursorAt, Token: c.token}
 	work := func(ctx context.Context) (any, error) {
-		rows, err := search(ctx, query)
+		rows, err := trigger.search(ctx, q)
 		return completionAnswer{seq: seq, rows: rows, err: err}, nil
 	}
 	ticket, err := r.Launch(completionID, "ochazuke.completion.search", Pending(work).Label(c.token.Trigger+query), Ctx{Runtime: r, Context: r.contextOf(completionID), Instance: r.Instances[completionID]})
@@ -368,7 +373,7 @@ func (c *Completer) stop() {
 	c.open, c.tracking, c.tickDue = false, false, false
 	c.floor = c.seq
 	c.rows, c.err, c.cursor = nil, nil, -1
-	c.token, c.search = CompletionToken{}, nil
+	c.token, c.trigger = CompletionToken{}, CompletionTrigger{}
 }
 
 // dismiss hides the list where the cursor is; typing in the token asks
@@ -391,7 +396,8 @@ func (c *Completer) move(delta int) {
 }
 
 // accept replaces the token under the cursor with the highlighted
-// suggestion (else the first), keeping the trigger, as its own undo step,
+// suggestion (else the first), keeping the trigger unless it says
+// DropTrigger, as its own undo step,
 // and closes the list.
 func (c *Completer) accept() error {
 	in := c.r.Input(c.input)
@@ -402,14 +408,14 @@ func (c *Completer) accept() error {
 		return errors.New("no suggestion to accept")
 	}
 	pick := c.rows[max(0, c.cursor)]
-	tok, _, ok := completionToken(in, c.r.CompletionTriggers(in.ID))
+	tok, trigger, ok := completionToken(in, c.r.CompletionTriggers(in.ID))
 	if !ok {
 		c.stop()
 		return errors.New("the cursor left the completion token")
 	}
 	// One undoable edit: the typing before it and after it are other steps.
 	in.endGroup()
-	err := in.Replace(tok.Start, tok.End, tok.Trigger+pick.Text)
+	err := in.Replace(tok.Start, tok.End, trigger.replacement(pick.Text))
 	in.endGroup()
 	c.stop()
 	c.seen, c.text = snapshotOf(in), string(in.Text)

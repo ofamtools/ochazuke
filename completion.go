@@ -15,10 +15,13 @@ import (
 // rest of the token, while typing keeps editing the same input.
 //
 // The token runs from the trigger to the next whitespace (a "/" never
-// splits it) and the query is the whole token after the trigger, wherever
+// splits it), or to one of the trigger's Boundaries (a jq "." after "|"
+// or "("), and the query is the whole token after the trigger, wherever
 // the cursor sits inside it. Accepting a suggestion replaces the whole
-// token, keeping the trigger, as one undoable edit. Of triggers that
-// overlap ("[" and "[["), the longest that starts the token wins.
+// token, keeping the trigger unless the trigger says DropTrigger, as one
+// undoable edit. Of triggers that overlap ("[" and "[["), the longest that
+// starts its token wins. A SearchAt search is also given the input's whole
+// text and the cursor (a document path before the token).
 
 // Suggestion is one completion a search offers. Text replaces the token
 // after its trigger; Label is what the list shows ("" shows Text); Detail
@@ -64,6 +67,44 @@ func SearchStrings(search func(ctx context.Context, query string) ([]string, err
 type CompletionTrigger struct {
 	Trigger string
 	Search  CompletionSearch
+	// SearchAt, when set in place of Search, answers with the whole text
+	// and cursor as well as the query (CompletionQuery).
+	SearchAt func(ctx context.Context, q CompletionQuery) ([]Suggestion, error)
+	// DropTrigger makes accepting replace the trigger too: the
+	// suggestion's Text is all that stays (a "\" that only asks for a
+	// symbol). Off, the default, keeps it.
+	DropTrigger bool
+	// Boundaries are the characters besides whitespace that end a token
+	// (both ways), so the trigger can follow one directly: "|(,"
+	// lets a jq "." start after a pipe or an open paren. "" is
+	// whitespace only. They may not hold the trigger's characters.
+	Boundaries string
+}
+
+// CompletionQuery is what a SearchAt search is asked: the query (the
+// token after its trigger), the input's whole text, the cursor (a rune
+// offset) and the token.
+type CompletionQuery struct {
+	Query  string          `json:"query"`
+	Text   string          `json:"text"`
+	Cursor int             `json:"cursor"`
+	Token  CompletionToken `json:"token"`
+}
+
+// search is the trigger's search for q.
+func (t CompletionTrigger) search(ctx context.Context, q CompletionQuery) ([]Suggestion, error) {
+	if t.SearchAt != nil {
+		return t.SearchAt(ctx, q)
+	}
+	return t.Search(ctx, q.Query)
+}
+
+// replacement is the text accepting text puts in place of tok.
+func (t CompletionTrigger) replacement(text string) string {
+	if t.DropTrigger {
+		return text
+	}
+	return t.Trigger + text
 }
 
 // Completions gives an input its completion triggers (AddInput reads it).
@@ -91,8 +132,10 @@ func validTriggers(triggers []CompletionTrigger) error {
 			return errors.New("completion trigger must not be empty")
 		case strings.IndexFunc(t.Trigger, unicode.IsSpace) >= 0:
 			return fmt.Errorf("completion trigger %q must not hold whitespace", t.Trigger)
-		case t.Search == nil:
+		case t.Search == nil && t.SearchAt == nil:
 			return fmt.Errorf("completion trigger %q needs a search", t.Trigger)
+		case strings.ContainsAny(t.Boundaries, t.Trigger):
+			return fmt.Errorf("completion trigger %q must not hold its boundaries %q", t.Trigger, t.Boundaries)
 		}
 	}
 	return nil
@@ -132,40 +175,50 @@ type CompletionToken struct {
 // triggers overlap) and the cursor is past that trigger, at the token's
 // end or anywhere inside it.
 func FindCompletionToken(text []rune, cursor int, triggers []string) (CompletionToken, int, bool) {
-	cursor = max(0, min(cursor, len(text)))
-	start, end := cursor, cursor
-	for start > 0 && !unicode.IsSpace(text[start-1]) {
-		start--
-	}
-	for end < len(text) && !unicode.IsSpace(text[end]) {
-		end++
-	}
-	token := string(text[start:end])
-	best := -1
+	full := make([]CompletionTrigger, len(triggers))
 	for i, t := range triggers {
-		if t != "" && strings.HasPrefix(token, t) && (best < 0 || len(t) > len(triggers[best])) {
-			best = i
-		}
+		full[i] = CompletionTrigger{Trigger: t}
 	}
-	if best < 0 {
-		return CompletionToken{}, -1, false
-	}
-	trigger := triggers[best]
-	if cursor < start+len([]rune(trigger)) {
-		return CompletionToken{}, -1, false
-	}
-	return CompletionToken{Start: start, End: end, Trigger: trigger, Query: strings.TrimPrefix(token, trigger)}, best, true
+	return FindCompletionTokenIn(text, cursor, full)
 }
 
-// completionToken is FindCompletionToken over an input's triggers.
-func completionToken(in *Input, triggers []CompletionTrigger) (CompletionToken, CompletionSearch, bool) {
-	names := make([]string, len(triggers))
+// FindCompletionTokenIn is FindCompletionToken over full triggers: each
+// trigger's token also ends at its Boundaries.
+func FindCompletionTokenIn(text []rune, cursor int, triggers []CompletionTrigger) (CompletionToken, int, bool) {
+	cursor = max(0, min(cursor, len(text)))
+	best := -1
+	var found CompletionToken
 	for i, t := range triggers {
-		names[i] = t.Trigger
+		if t.Trigger == "" || best >= 0 && len(t.Trigger) <= len(triggers[best].Trigger) {
+			continue
+		}
+		ends := func(r rune) bool { return unicode.IsSpace(r) || strings.ContainsRune(t.Boundaries, r) }
+		start, end := cursor, cursor
+		for start > 0 && !ends(text[start-1]) {
+			start--
+		}
+		for end < len(text) && !ends(text[end]) {
+			end++
+		}
+		token := string(text[start:end])
+		if !strings.HasPrefix(token, t.Trigger) {
+			continue
+		}
+		best = i
+		found = CompletionToken{Start: start, End: end, Trigger: t.Trigger, Query: strings.TrimPrefix(token, t.Trigger)}
 	}
-	tok, i, ok := FindCompletionToken(in.Text, in.Cursor, names)
+	// The longest trigger decides; the cursor must be past it.
+	if best < 0 || cursor < found.Start+len([]rune(found.Trigger)) {
+		return CompletionToken{}, -1, false
+	}
+	return found, best, true
+}
+
+// completionToken is FindCompletionTokenIn over an input's triggers.
+func completionToken(in *Input, triggers []CompletionTrigger) (CompletionToken, CompletionTrigger, bool) {
+	tok, i, ok := FindCompletionTokenIn(in.Text, in.Cursor, triggers)
 	if !ok {
-		return CompletionToken{}, nil, false
+		return CompletionToken{}, CompletionTrigger{}, false
 	}
-	return tok, triggers[i].Search, true
+	return tok, triggers[i], true
 }

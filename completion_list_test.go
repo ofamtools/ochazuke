@@ -51,7 +51,10 @@ func newCompletionRig(t *testing.T, text string, multiline bool, extra ...Comple
 	}
 	triggers := []CompletionTrigger{{Trigger: "@", Search: record(SearchStrings(filesSearch))}}
 	for _, tr := range extra {
-		triggers = append(triggers, CompletionTrigger{Trigger: tr.Trigger, Search: record(tr.Search)})
+		if tr.Search != nil {
+			tr.Search = record(tr.Search)
+		}
+		triggers = append(triggers, tr)
 	}
 	g.in = NewInput("prompt-line", text, multiline)
 	if _, err := g.r.AddPage("chat", "Chat", func(r *Runtime, w, h int) Block {
@@ -460,4 +463,81 @@ func TestCompletionOverlayDrawsUnderTheToken(t *testing.T) {
 	if !strings.Contains(view.Content, "\x1b[7m") {
 		t.Fatal("the highlighted row is not reversed")
 	}
+}
+
+// DropTrigger: accepting replaces the trigger too, so only the
+// suggestion's text stays; the default keeps it.
+func TestCompletionDropTrigger(t *testing.T) {
+	g := newCompletionRig(t, "", false, CompletionTrigger{Trigger: "\\", DropTrigger: true, Search: SearchStrings(func(context.Context, string) ([]string, error) {
+		return []string{"λ"}, nil
+	})})
+	g.typeText("x \\la")
+	g.settle()
+	g.keys("tab")
+	if string(g.in.Text) != "x λ" {
+		t.Fatalf("text %q", string(g.in.Text))
+	}
+	g.typeText(" @READ")
+	g.settle()
+	g.keys("tab")
+	if string(g.in.Text) != "x λ @README.md" {
+		t.Fatalf("the default keeps the trigger: %q", string(g.in.Text))
+	}
+}
+
+// Boundaries: a trigger's token also ends at its boundary characters, so
+// a jq "." after "|" or "(" completes; whitespace stays a boundary; a
+// trigger without boundaries is as before.
+func TestCompletionTriggerBoundaries(t *testing.T) {
+	jq := []CompletionTrigger{{Trigger: ".", Boundaries: "|(),"}, {Trigger: "@"}}
+	for _, tc := range []struct{ marked, token, query string }{
+		{".a|.b^", ".b", "b"},
+		{"map(.na^me)", ".name", "name"},
+		{".x, .y^", ".y", "y"},
+		{"a @fi^le", "@file", "file"},
+	} {
+		text, cursor := caretAt(tc.marked)
+		tok, _, ok := FindCompletionTokenIn(text, cursor, jq)
+		if !ok || string(text[tok.Start:tok.End]) != tc.token || tok.Query != tc.query {
+			t.Fatalf("%q: %+v %v", tc.marked, tok, ok)
+		}
+	}
+	// "@" has no boundaries: "a|@file" is one token that does not start
+	// with it.
+	text, cursor := caretAt("a|@fi^")
+	if _, _, ok := FindCompletionTokenIn(text, cursor, jq); ok {
+		t.Fatal("a trigger without boundaries split at |")
+	}
+	if err := validTriggers([]CompletionTrigger{{Trigger: "(", Boundaries: "(", Search: SearchStrings(filesSearch)}}); err == nil {
+		t.Fatal("a trigger holding its own boundary is refused")
+	}
+}
+
+// SearchAt is given the whole text and the cursor besides the query, so a
+// source can complete a document path before the token.
+func TestCompletionSearchAtSeesTheText(t *testing.T) {
+	var got []CompletionQuery
+	g := newCompletionRig(t, "", false, CompletionTrigger{Trigger: ".", Boundaries: "|", SearchAt: func(_ context.Context, q CompletionQuery) ([]Suggestion, error) {
+		got = append(got, q)
+		return []Suggestion{{Text: "name"}}, nil
+	}})
+	g.typeText(".items[]|.na")
+	g.settle()
+	if len(got) == 0 {
+		t.Fatal("SearchAt was not asked")
+	}
+	last := got[len(got)-1]
+	if last.Query != "na" || last.Text != ".items[]|.na" || last.Cursor != 12 || last.Token.Start != 9 {
+		t.Fatalf("query %+v", last)
+	}
+	g.keys("tab")
+	if string(g.in.Text) != ".items[]|.name" {
+		t.Fatalf("text %q", string(g.in.Text))
+	}
+}
+
+// caretAt is text with ^ marking the cursor (| is jq's pipe here).
+func caretAt(marked string) ([]rune, int) {
+	i := strings.Index(marked, "^")
+	return []rune(marked[:i] + marked[i+1:]), len([]rune(marked[:i]))
 }
