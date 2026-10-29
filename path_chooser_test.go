@@ -56,7 +56,7 @@ func TestPathBrowseDescendsAndGoesUp(t *testing.T) {
 	if c.Source() != PathSourceBrowse || !slices.Equal(labels(c.Matches()), []string{"sub/", "a.json", "b.txt"}) {
 		t.Fatalf("source %q rows %v", c.Source(), labels(c.Matches()))
 	}
-	if !strings.Contains(c.Title(), "[browse "+root+"]") || !strings.Contains(c.Title(), "recent typed") {
+	if !strings.Contains(c.Title(), "[browse "+displayPath(root)+"]") || !strings.Contains(c.Title(), "recent typed") {
 		t.Fatalf("title %q", c.Title())
 	}
 	typeText(m, "su")
@@ -70,7 +70,7 @@ func TestPathBrowseDescendsAndGoesUp(t *testing.T) {
 	}
 	pressLand(m, "ctrl+l")
 	pressLand(m, "alt+up")
-	if !strings.Contains(c.Title(), "[browse "+root+"]") {
+	if !strings.Contains(c.Title(), "[browse "+displayPath(root)+"]") {
 		t.Fatalf("alt+up goes up: %q", c.Title())
 	}
 	typeText(m, "b.t")
@@ -85,11 +85,11 @@ func TestPathBrowseDescendsAndGoesUp(t *testing.T) {
 func TestPathDirChooserOpensAndPicks(t *testing.T) {
 	root := pathTree(t)
 	r, m, c, chosen := pathFixture(t, PathPick{Parameter: Parameter{Type: "path", Path: PathDir, Base: root}})
-	if got := labels(c.Matches()); !slices.Equal(got, []string{"sub/", "use " + root}) {
+	if got := labels(c.Matches()); !slices.Equal(got, []string{"sub/", "use " + displayPath(root)}) {
 		t.Fatalf("rows %v", got)
 	}
 	pressLand(m, "enter")
-	if !strings.Contains(c.Title(), "[browse "+filepath.Join(root, "sub")+"]") {
+	if !strings.Contains(c.Title(), "[browse "+displayPath(filepath.Join(root, "sub"))+"]") {
 		t.Fatalf("enter opens the folder: %q", c.Title())
 	}
 	pressLand(m, "alt+enter")
@@ -194,7 +194,7 @@ func TestPathRecentSource(t *testing.T) {
 	if c.Source() != PathSourceRecent {
 		t.Fatalf("source %q", c.Source())
 	}
-	if got := labels(c.Matches()); !slices.Equal(got, []string{"/tmp/app-recent.json", filepath.Join(root, "a.json")}) {
+	if got := labels(c.Matches()); !slices.Equal(got, []string{"/tmp/app-recent.json", displayPath(filepath.Join(root, "a.json"))}) {
 		t.Fatalf("recent rows %v", got)
 	}
 }
@@ -368,5 +368,59 @@ func TestPathArgsForm(t *testing.T) {
 	pressLand(m, "enter")
 	if got != filepath.Join(root, "b.txt") {
 		t.Fatalf("ran with %q (top %q)", got, r.TopModal())
+	}
+}
+
+// Labels show a path under the home folder with ~, rows keep the absolute
+// path: a tree under HOME browses, lists recent and picks the full path,
+// and the shown form expands back to it. A sibling of HOME that only
+// shares its prefix is not shortened.
+func TestPathUnderHomeShowsTilde(t *testing.T) {
+	base, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	home := filepath.Join(base, "home")
+	root := filepath.Join(home, "proj")
+	if err := os.MkdirAll(filepath.Join(root, "sub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "a.json"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HOME", home)
+
+	r, m, c, chosen := pathFixture(t, PathPick{Parameter: Parameter{Type: "path", Base: root}})
+	if !strings.Contains(c.Title(), "[browse ~/proj]") {
+		t.Fatalf("title %q", c.Title())
+	}
+	typeText(m, "a.j")
+	pressLand(m, "enter")
+	want := filepath.Join(root, "a.json")
+	if !slices.Equal(*chosen, []string{want}) {
+		t.Fatalf("chosen %v, want the absolute path", *chosen)
+	}
+	c, err = r.OpenPathChooser(PathChooserSpec{Pick: PathPick{Parameter: Parameter{Type: "path", Base: root}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	landLoads(m, r.PendingCommands())
+	pressLand(m, "tab")
+	rows := c.Matches()
+	if len(rows) != 1 || rows[0].Label != "~/proj/a.json" || rows[0].Data != want {
+		t.Fatalf("recent rows %+v", rows)
+	}
+	for _, p := range []string{home, root, want} {
+		if got := expandPath(displayPath(p), ""); got != p {
+			t.Errorf("round trip %q -> %q -> %q", p, displayPath(p), got)
+		}
+	}
+	if got := displayPath(home + "x/a"); got != home+"x/a" {
+		t.Errorf("sibling of HOME shortened: %q", got)
+	}
+
+	_, _, dc, _ := pathFixture(t, PathPick{Parameter: Parameter{Type: "path", Path: PathDir, Base: root}})
+	if got := labels(dc.Matches()); !slices.Equal(got, []string{"sub/", "use ~/proj"}) {
+		t.Fatalf("dir rows %v", got)
 	}
 }
