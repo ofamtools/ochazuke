@@ -408,7 +408,7 @@ func TestRuntimeHoldsNoComponentFields(t *testing.T) {
 	sort.Strings(fields)
 	want := []string{
 		"BindingTimeout", "Focus", "Instances", "Mode", "Modes", "Nouns", "Operations", "Page", "Pending", "Quit", "ResolveTarget", "actionNames", "aliases",
-		"bindingVersion", "builtinDepth", "commands", "defaults", "deprecations", "guards", "history", "holders", "jobSeq", "jobs", "modalInstances", "modals", "modeExtends", "modeGeneration", "origin", "passthroughModes", "pendingModes", "predicates", "prefix", "rowRequest", "rows", "selectionModes", "seq", "subjects", "watches",
+		"askedAt", "bindingVersion", "builtinDepth", "commands", "defaults", "deprecations", "guards", "history", "holders", "jobSeq", "jobs", "modalInstances", "modals", "modeExtends", "modeGeneration", "origin", "passthroughModes", "pendingModes", "predicates", "prefix", "rowRequest", "rows", "selectionModes", "seq", "subjects", "watches",
 	}
 	if !reflect.DeepEqual(fields, want) {
 		t.Fatalf("Runtime fields:\n got %v\nwant %v", fields, want)

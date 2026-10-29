@@ -1,0 +1,23 @@
+{
+  "name": "standard create fills a fromFocus reference from the focused row: the slot after the title says focus: Work, enter writes project=work and a notice names it (create.from-focus, on by default)",
+  "area": "palette",
+  "width": 110,
+  "height": 30,
+  "page": {
+    "focus": "work",
+    "lists": [{"id": "projects", "items": [{"id": "home", "label": "Home", "noun": "project"}, {"id": "work", "label": "Work", "noun": "project"}]}],
+    "store": {
+      "props": [
+        {"name": "id", "key": true},
+        {"name": "title", "role": "label"},
+        {"name": "project", "noun": "project", "role": "owner", "fromFocus": true}
+      ],
+      "things": [{"id": "t1", "title": "Water the plants", "project": "home"}]
+    }
+  },
+  "script": [":", {"type": "demo create \"Buy milk\" "}, "enter"],
+  "expect": [
+    {"after": 2, "contains": ["project · string · optional · focus: Work"], "writes": []},
+    {"modal": "", "writes": ["create t2 title=Buy milk project=work"], "contains": ["project Work (from the focus)"]}
+  ]
+}

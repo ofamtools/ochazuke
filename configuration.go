@@ -77,7 +77,7 @@ func registerConfiguration(r *Runtime) {
 		return problems, nil
 	}})
 	r.Register(Operation{Verb: "check", Noun: "ochazuke.bindings", Description: "Report the rows of the user bindings file that would be skipped, any merged row that does not validate, and as warnings the file's guard rows (debts) and any row that can never answer; with debts, every guard row of every table too; the status line names the format read (grouped or rows)", Parameters: map[string]Parameter{"debts": {Type: "boolean", Description: "Also list every table's guard rows (rows with when), the debts left to move onto actions' availability"}}, Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		problems := r.CheckUserBindings()
+		problems := append(r.CheckUserBindings(), r.StandardShadows()...)
 		if debts, _ := a["debts"].(bool); debts {
 			lines := r.BindingDebts()
 			for _, line := range lines {

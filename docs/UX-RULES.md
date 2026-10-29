@@ -901,7 +901,15 @@ tiers above them. When the two disagree, fix one in the same commit.
   parameter missing fails naming it (API, CLI: `NAME is required`), and the
   palette asks for it instead of running; nothing reads the value from the
   focus or a guess. Tests `TestWritesAreNeverSilentlyFilled`,
-  `TestCLIAliasesRunTheCanonicalVerb`.
+  `TestCLIAliasesRunTheCanonicalVerb`. The one exception is declared and
+  shown: a parameter with `Focus` (a standard verb's subject, a create
+  parameter of a `FromFocus` reference prop, setting `create.from-focus`)
+  is filled from the focused thing of its noun when omitted, and the fill
+  is visible before it runs (the palette slot says `focus: Work`, the args
+  form holds it) and after (create's notice `project Work (from the
+  focus)`). A required parameter is still never filled. Stories
+  `palette/create-from-focus.json`, `palette/create-from-focus-off.json`;
+  tests `TestCreateFillsFromTheFocus`, `TestTaskCreateFillsTheFocusedProject`.
 - **R12.6** The palette asks for missing arguments with a form. Enter on a
   line whose verb still lacks a required word, or a key whose row leaves a
   required argument out, opens the args form (`Runtime.OpenArgsForm`, modal
@@ -910,7 +918,12 @@ tiers above them. When the two disagree, fix one in the same commit.
   focus on the first missing one (typing, when it is a text field). Choices
   and noun-typed parameters are picked from a type-to-filter chooser
   (`form.suggest`, `/`), free text is typed. Nothing is filled from the
-  focus or a guess (R12.5). `enter` is `form.run` once every field is
+  focus or a guess (R12.5) but what a parameter declares: a `Focus`
+  parameter starts holding the focused thing, and an `Edits` one (a
+  standard `rename`'s name) the subject's current value, selected as a
+  rename is (`rename.select`), or, when that is empty, an empty field with
+  the prop's `Fallback` as a muted placeholder. Stories
+  `palette/rename-chooser.json`, `palette/move-chooser.json`. `enter` is `form.run` once every field is
   valid, else `form.next-missing` (the field that still needs a value,
   opening its chooser); `esc` in normal mode cancels with nothing run and
   the palette's line back as typed; there is no save key. A run that fails

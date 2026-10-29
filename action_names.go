@@ -214,6 +214,9 @@ func (r *Runtime) checkAlias(a ActionAlias) (ActionAlias, error) {
 	if r.Nouns[a.Alias] != nil {
 		return a, fmt.Errorf("alias %s clashes with the noun %s", name, name)
 	}
+	if err := r.aliasPropClash(a); err != nil {
+		return a, err
+	}
 	return a, nil
 }
 

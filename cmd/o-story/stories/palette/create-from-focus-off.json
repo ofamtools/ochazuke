@@ -1,0 +1,24 @@
+{
+  "name": "create.from-focus off: the slot names no focus, enter creates the thing with the reference left empty (never refused), and no notice",
+  "area": "palette",
+  "width": 110,
+  "height": 30,
+  "settings": [{"name": "create.from-focus", "type": "boolean", "default": false}],
+  "page": {
+    "focus": "work",
+    "lists": [{"id": "projects", "items": [{"id": "home", "label": "Home", "noun": "project"}, {"id": "work", "label": "Work", "noun": "project"}]}],
+    "store": {
+      "props": [
+        {"name": "id", "key": true},
+        {"name": "title", "role": "label"},
+        {"name": "project", "noun": "project", "role": "owner", "fromFocus": true}
+      ],
+      "things": [{"id": "t1", "title": "Water the plants", "project": "home"}]
+    }
+  },
+  "script": [":", {"type": "demo create \"Buy milk\" "}, "enter"],
+  "expect": [
+    {"after": 2, "contains": ["project · string · optional"], "lacks": ["focus: Work"], "writes": []},
+    {"modal": "", "writes": ["create t2 title=Buy milk"], "lacks": ["from the focus"]}
+  ]
+}

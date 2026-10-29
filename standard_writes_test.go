@@ -221,7 +221,7 @@ func TestCreateAndDelete(t *testing.T) {
 		t.Fatalf("delete with no prompt = %v", v)
 	}
 	mustPanic(t, "not a standard verb", func() {
-		NewRuntime().Define("task").Props(taskWriteProps()...).Store(Store{Confirm: map[string]string{"archive": "?"}})
+		NewRuntime().Define("task").Props(taskWriteProps()...).Store(Store{Confirm: map[string]string{"frobnicate": "?"}})
 	})
 }
 

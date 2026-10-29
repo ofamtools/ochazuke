@@ -59,9 +59,16 @@ type Parameter struct {
 	// instance the request acts for once ExecuteAt has applied its target
 	// and the focus path (Ctx.Instance, or the nearest instance of Noun
 	// above it). A standard verb's subject parameter (standard_verbs.go)
-	// is the one that declares it; values never come from the focus
-	// unless their parameter says so. The catalog's focus.
+	// declares it, and so does a create parameter of a FromFocus prop;
+	// values never come from the focus unless their parameter says so,
+	// and a fill is always shown (the palette slot, the args form). The
+	// catalog's focus.
 	Focus bool `json:"focus,omitempty"`
+	// Edits names the prop of the subject this parameter writes (rename's
+	// name writes the label prop): the args form opens holding the prop's
+	// current value, selected as a rename is (rename.select), or, when it
+	// is empty, empty with the prop's Fallback value as its placeholder.
+	Edits string `json:"edits,omitempty"`
 }
 
 // Request names an operation and, optionally, the instance it addresses.
@@ -347,6 +354,7 @@ type Runtime struct {
 	predicates       map[string]PredicateFunc // named query predicates (query.go)
 	history          actionHistory            // the executed-request ring and the current source (history.go)
 	origin           string                   // the instance the running request or completion acts for; a modal opens only from the top level
+	askedAt          string                   // the focus the running request was made at, before it moved to its noun's instance (createFill reads a reference's thing there)
 	rowRequest       bool                     // the next execute is a binding row's own request (runRow's level rule targets it)
 	subjects         []string                 // the subjects execute hands the application handler it is about to run (Ctx.Subjects)
 	prefix           pendingPrefix
@@ -830,6 +838,7 @@ func (r *Runtime) execute(c Context, q Request) (any, error) {
 		return nil, err
 	}
 	defer r.actingFor(focus)()
+	defer r.asking(actions)()
 	switch v := r.runChecks(c, q, op); {
 	case v.Refuse != "":
 		return nil, errors.New(v.Refuse)

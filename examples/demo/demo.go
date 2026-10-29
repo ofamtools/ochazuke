@@ -281,9 +281,9 @@ type demoTask struct {
 func newDemoTask() *demoTask {
 	return &demoTask{
 		tasks: map[string]ochazuke.Record{
-			"t1": {"title": "Water the plants", "status": "todo", "estimate": "2"},
-			"t2": {"title": "Write the release notes", "status": "doing", "estimate": "3", "notes": "Start from the CHANGELOG."},
-			"t3": {"title": "", "status": "todo", "estimate": "1", "notes": "Call the plumber about the sink\nbefore Friday"},
+			"t1": {"title": "Water the plants", "status": "todo", "estimate": "2", "project": "home"},
+			"t2": {"title": "Write the release notes", "status": "doing", "estimate": "3", "notes": "Start from the CHANGELOG.", "project": "work"},
+			"t3": {"title": "", "status": "todo", "estimate": "1", "notes": "Call the plumber about the sink\nbefore Friday", "project": "home"},
 		},
 		order:   []string{"t1", "t2", "t3"},
 		editing: "t1",
@@ -291,8 +291,10 @@ func newDemoTask() *demoTask {
 }
 
 // taskProps are the task noun's props: the record's fields (taskFields)
-// as data, its key id, and a read-only summary (the first line of the
-// notes) that stands in for an empty title.
+// as data, its key id, a read-only summary (the first line of the notes)
+// that stands in for an empty title, the project that owns it (move
+// writes it; create fills it from a focused project) and whether it is
+// archived (archive and restore write it).
 func taskProps() []ochazuke.PropSpec {
 	props := []ochazuke.PropSpec{{Name: "id", Key: true, Parameter: ochazuke.Parameter{Type: "string", Description: "The task's key"}}}
 	for _, f := range taskFields() {
@@ -307,16 +309,24 @@ func taskProps() []ochazuke.PropSpec {
 		}
 		props = append(props, p)
 	}
-	return append(props, ochazuke.PropSpec{Name: "summary", ReadOnly: true, Parameter: ochazuke.Parameter{Type: "string", Description: "The first line of the notes"}})
+	return append(props,
+		ochazuke.PropSpec{Name: "summary", ReadOnly: true, Parameter: ochazuke.Parameter{Type: "string", Description: "The first line of the notes"}},
+		ochazuke.PropSpec{Name: "project", Role: ochazuke.RoleOwner, FromFocus: true, Parameter: ochazuke.Parameter{Type: "string", Noun: "project", Description: "The project the task belongs to"}},
+		ochazuke.PropSpec{Name: "archived", Role: ochazuke.RoleArchive, Parameter: ochazuke.Parameter{Type: "boolean", Description: "Archived: kept, out of the way"}},
+	)
 }
 
 // define gives the task noun its props and its store: task get, list,
-// create, set (alias patch) and delete are then standard verbs, with no
-// handler of the demo's own, and delete asks first (the default prompt).
+// create, set (alias patch), delete, rename (the title), move (the
+// project), duplicate, archive and restore are then standard verbs, with
+// no handler of the demo's own, and delete asks first (the default
+// prompt). The project noun is a read-only store of two projects, the
+// choices of task.project.
 // The Record page stands for the task it edits, so task get and task set
 // there act on it, and x on the page is a prop row that sets its status
 // to done.
 func (t *demoTask) define(r *ochazuke.Runtime) {
+	defineProjects(r)
 	r.Define("task").Props(taskProps()...).Store(ochazuke.Store{
 		Kind: ochazuke.Collection,
 		// history.undo reverts the task writes; create keeps a given key,
@@ -345,6 +355,35 @@ func (t *demoTask) define(r *ochazuke.Runtime) {
 	if err := r.Bind(ochazuke.Binding{Noun: "task", Mode: "normal", Keys: "x", Request: ochazuke.SetProp("task", "status", "done").Request}); err != nil {
 		panic(err)
 	}
+}
+
+// demoProjects are the projects a task belongs to: key and name.
+var demoProjects = []ochazuke.Thing{{"id": "home", "name": "Home"}, {"id": "work", "name": "Work"}}
+
+// defineProjects gives the project noun its props and a read-only store
+// (project get and list).
+func defineProjects(r *ochazuke.Runtime) {
+	r.Define("project").Props(
+		ochazuke.PropSpec{Name: "id", Key: true, Parameter: ochazuke.Parameter{Type: "string", Description: "The project's key"}},
+		ochazuke.PropSpec{Name: "name", ReadOnly: true, Role: ochazuke.RoleLabel, Parameter: ochazuke.Parameter{Type: "string", Description: "The project's name"}},
+	).Store(ochazuke.Store{
+		Kind: ochazuke.Collection,
+		Get: func(_ ochazuke.Ctx, id string) (ochazuke.Thing, error) {
+			for _, p := range demoProjects {
+				if p["id"] == id {
+					return maps.Clone(p), nil
+				}
+			}
+			return nil, fmt.Errorf("no project %q", id)
+		},
+		List: func(ochazuke.Ctx, ochazuke.ListQuery) ([]ochazuke.Thing, error) {
+			out := make([]ochazuke.Thing, len(demoProjects))
+			for i, p := range demoProjects {
+				out[i] = maps.Clone(p)
+			}
+			return out, nil
+		},
+	})
 }
 
 // create stores a new task under the key the values give when it is
@@ -411,7 +450,7 @@ func (t *demoTask) delete(r *ochazuke.Runtime, id string) error {
 // summary derived from the notes.
 func (t *demoTask) thing(id string) ochazuke.Thing {
 	rec := t.tasks[id]
-	out := ochazuke.Thing{"id": id, "title": rec["title"], "status": rec["status"], "notes": rec["notes"]}
+	out := ochazuke.Thing{"id": id, "title": rec["title"], "status": rec["status"], "notes": rec["notes"], "project": rec["project"], "archived": rec["archived"] == "true"}
 	if n, err := strconv.Atoi(rec["estimate"]); err == nil {
 		out["estimate"] = n
 	}
@@ -446,7 +485,9 @@ func (t *demoTask) edit(r *ochazuke.Runtime) error {
 		Fields: taskFields(),
 		Load:   func() (ochazuke.Record, error) { return maps.Clone(t.tasks[t.editing]), nil },
 		Save: func(w ochazuke.RecordWrite) ochazuke.Result {
-			t.tasks[t.editing] = maps.Clone(w.Values)
+			// The form holds the record's fields; the props it does not
+			// show (project, archived) are kept.
+			maps.Copy(t.tasks[t.editing], w.Values)
 			t.writes++
 			// The store changed through the editor, not a verb: watches
 			// of task list again.

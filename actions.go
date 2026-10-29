@@ -671,7 +671,7 @@ func registerActions(r *Runtime) {
 		return problems, nil
 	}})
 	r.Register(Operation{Verb: "check", Noun: "ochazuke.actions", Description: "Report the entries of actions.json a load would skip, alias rows that clash with an action or another alias included, without installing anything", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		problems := r.CheckUserActions()
+		problems := append(r.CheckUserActions(), r.StandardShadows()...)
 		if problems == nil {
 			problems = []string{}
 		}

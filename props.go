@@ -55,8 +55,13 @@ const (
 	// RoleLabel is the prop a thing is shown by: list rows' label,
 	// {{label}} in a confirm or an action template, and choosers.
 	RoleLabel = "label"
-	// RoleOwner is the reference prop naming the thing that holds this one.
+	// RoleOwner is the reference prop naming the thing that holds this one
+	// (move writes it).
 	RoleOwner = "owner"
+	// RoleArchive is the boolean prop that says a thing is archived
+	// (archive and restore write it; delete reads it under the
+	// delete.archive setting).
+	RoleArchive = "archive"
 )
 
 // PropSpec is one field of a noun's things. Parameter carries the type,
@@ -73,6 +78,11 @@ const (
 // create writes when the value is omitted. A Secret prop is left out of
 // get's and list's records unless asked for by name, and its writes are
 // never repeated or persisted. Multiline asks a form for a text area.
+// FromFocus, on a reference prop, lets create fill it from the focused
+// thing of its noun when the request omits it (the create.from-focus
+// setting, on by default; the fill is always shown: the palette slot and
+// the args form hold it, and create's notice names it). Values are never
+// read from the focus unless their prop says so.
 // When names a guard: where it is false (read where the request acts) the
 // prop is not offered, read or written (the catalog's availability); the
 // guard is the prop's own, apart from the noun's verb guards.
@@ -84,6 +94,7 @@ type PropSpec struct {
 	Key        bool   `json:"key,omitempty"`
 	Role       string `json:"role,omitempty"`
 	Fallback   string `json:"fallback,omitempty"`
+	FromFocus  bool   `json:"fromFocus,omitempty"`
 	Default    any    `json:"default,omitempty"`
 	Secret     bool   `json:"secret,omitempty"`
 	Multiline  bool   `json:"multiline,omitempty"`
@@ -368,8 +379,18 @@ func (r *Runtime) addProp(n *Noun, p PropSpec) error {
 		if p.Noun == "" {
 			return fmt.Errorf("prop %s: the owner role needs a reference (Noun)", key)
 		}
+	case RoleArchive:
+		if p.Type != SettingBoolean {
+			return fmt.Errorf("prop %s: the archive role is a boolean prop, not %s", key, p.Type)
+		}
 	default:
 		return fmt.Errorf("prop %s: unknown role %q", key, p.Role)
+	}
+	if p.FromFocus && p.Noun == "" {
+		return fmt.Errorf("prop %s: fromFocus is for a reference (Noun)", key)
+	}
+	if err := r.propAliasClash(n, p.Name); err != nil {
+		return err
 	}
 	if p.Key {
 		if p.Type != SettingString && p.Type != SettingInteger {

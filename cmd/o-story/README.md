@@ -80,6 +80,8 @@ it to the timer's deadline and delivers the timer's message
             { id: "d", columns: [{ title: "pane" }, { title: "state" }],
               items: [{ id: "d1", label: "w", cells: ["w", "working"],
                         tones: [{ cell: 1, tone: "state.working" }] }] }], // tones: ToneSpan (tables/tones-*)
+                                  // an item may name its noun ({ id: "work", label: "Work", noun: "project" }):
+                                  // a thing a store's reference prop names (palette/create-from-focus)
     order: ["a", "b", "c"],       // drawing order (default: as listed)
     layout: "stack",              // or "row": lists side by side; "split": the first two lists in Layout.SplitFocusBlock
     focus: "b1", offset: 0, noHeadings: false,
@@ -112,9 +114,10 @@ it to the timer's deadline and delivers the timer's message
              things: [{ id: "a1", title: "", summary: "first line" }] },
                                      // the demo noun's props and an in-memory store (PropSpec rows):
                                      // demo.get, list, create, set (patch) and delete are then
-                                     // standard verbs; each call logs "list", "get KEY",
-                                     // "set KEY p=v", "create KEY p=v" or "delete KEY" (writes);
-                                     // rows stand for things by id
+                                     // standard verbs, and rename, move, duplicate, archive and
+                                     // restore with the label, owner and archive roles; each call
+                                     // logs "list", "get KEY", "set KEY p=v", "create KEY p=v" or
+                                     // "delete KEY" (writes); rows stand for things by id
     detail: { lines: 50, width: 0 }, // a scrollable detail (AddDetail) on the right:
                                      // "detail 1–11 / 50", then "<row> line N" about the
                                      // focused list row (width 0 = half the page)

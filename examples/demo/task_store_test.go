@@ -118,7 +118,8 @@ func TestTaskCatalogRoundTrip(t *testing.T) {
 		}
 		standard[v.Name] = v.Standard
 	}
-	if want := map[string]string{"edit": "", "get": "get", "list": "list", "watch": "watch", "create": "create", "set": "set", "delete": "delete"}; !reflect.DeepEqual(standard, want) {
+	if want := map[string]string{"edit": "", "get": "get", "list": "list", "watch": "watch", "create": "create", "set": "set", "delete": "delete",
+		"rename": "rename", "move": "move", "duplicate": "duplicate", "archive": "archive", "restore": "restore"}; !reflect.DeepEqual(standard, want) {
 		t.Fatalf("standard %v, want %v", standard, want)
 	}
 	if verb, rows := doc.RowSource("task"); verb != "list" || rows != "task" {

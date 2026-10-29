@@ -36,6 +36,9 @@ type RecordField struct {
 	Label string `json:"label,omitempty"` // shown above the value (default Name)
 	Parameter
 	Multiline bool `json:"multiline,omitempty"`
+	// Placeholder is shown, muted, in the field while its text is empty
+	// (a rename's Fallback: what the thing shows with no name).
+	Placeholder string `json:"placeholder,omitempty"`
 	// Validate checks a value the type, Required and the choices allow;
 	// its error is why the value is not written.
 	Validate func(value string) error `json:"-"`
@@ -1079,6 +1082,9 @@ func (e *RecordEditor) Block(width, height int) Block {
 			block := InputBlock(f.input, inner, h)
 			if block.Cursor != nil && e.r.Focus == f.id {
 				cursor = &Pos{X: block.Cursor.X + 2, Y: len(lines) + block.Cursor.Y}
+			}
+			if f.Placeholder != "" && len(f.input.Text) == 0 {
+				block.Text = s.Muted.Render(ansi.Truncate(f.Placeholder, inner, "…"))
 			}
 			for _, row := range strings.Split(block.Text, "\n") {
 				lines = append(lines, "  "+row)

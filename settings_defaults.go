@@ -52,6 +52,17 @@ const (
 	// typing replaces it, a motion keeps it. Default on; off opens it with
 	// the cursor at the end.
 	RenameSelectSetting = "rename.select"
+	// CreateFromFocusSetting lets the standard create fill a reference
+	// prop declared FromFocus from the focused thing of its noun when the
+	// request omits it, the fill shown in the palette slot, the args form
+	// and create's notice. Default on; off fills nothing and the reference
+	// stays empty (never a refusal).
+	CreateFromFocusSetting = "create.from-focus"
+	// DeleteArchiveSetting makes the standard delete archive a live thing
+	// of a noun with a RoleArchive prop (it sets the prop) and delete an
+	// archived one for real; nouns without the role are unchanged. Default
+	// off: delete is the store's delete.
+	DeleteArchiveSetting = "delete.archive"
 	// VisualAfterActionSetting is what a key acting on a visual selection
 	// of list rows leaves: VisualAfterEnd (the default, as in Vim) or
 	// VisualAfterKeep.

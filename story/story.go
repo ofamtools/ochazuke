@@ -256,8 +256,11 @@ type RecordSpec struct {
 // ItemSpec is an explicit row; Cells are its table cells, Tones the
 // tones of its cells (ochazuke.ToneSpan).
 type ItemSpec struct {
-	ID    string              `json:"id"`
-	Label string              `json:"label"`
+	ID    string `json:"id"`
+	Label string `json:"label"`
+	// Noun is the row's noun (default the demo noun): a row of another
+	// noun (project) is a thing a demo prop may name (a reference).
+	Noun  string              `json:"noun,omitempty"`
 	Cells []string            `json:"cells,omitempty"`
 	Tones []ochazuke.ToneSpan `json:"tones,omitempty"`
 }

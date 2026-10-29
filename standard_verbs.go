@@ -49,10 +49,14 @@ type standardVerb struct {
 	Repeatable  bool
 	HistoryKind string
 	Confirm     string
-	Positional  func(n *Noun) []string
-	Params      func(n *Noun) map[string]Parameter
-	Writes      func(n *Noun, a Arguments) ([]string, error)
-	Run         func(r *Runtime, n *Noun, c Ctx) (any, error)
+	// FocusSetting names the boolean setting that turns off the row's
+	// focus fills of values (a parameter with Focus that is not the
+	// subject: create's FromFocus props); "" for none.
+	FocusSetting string
+	Positional   func(n *Noun) []string
+	Params       func(n *Noun) map[string]Parameter
+	Writes       func(n *Noun, a Arguments) ([]string, error)
+	Run          func(r *Runtime, n *Noun, c Ctx) (any, error)
 }
 
 // DefaultDeleteConfirm is the prompt a standard delete asks before it runs
@@ -75,7 +79,7 @@ var standardVerbs = []standardVerb{
 		Subject: true, NoFocus: true, HistoryKind: HistoryFetch, Params: watchParams, Run: runWatch},
 	{Verb: "create", Description: "Create a thing from the props given (each omitted one its default); answers the new thing",
 		Kinds: []string{Collection}, Needs: func(n *Noun) bool { return n.Store.Create != nil && len(createProps(n)) > 0 },
-		HistoryKind: HistoryChange, Positional: labelFirst, Params: createParams, Writes: createWrites, Run: runCreate},
+		HistoryKind: HistoryChange, FocusSetting: CreateFromFocusSetting, Positional: createPositional, Params: createParams, Writes: createWrites, Run: runCreate},
 	{Verb: "set", Description: "Write a thing's props: one prop (prop and value, or toggle on a boolean), or several (changes, or prop=value words); answers the thing after the write",
 		Kinds: []string{Collection, Singleton}, Needs: func(n *Noun) bool { return n.Store.Patch != nil && len(writableProps(n)) > 0 },
 		Subject: true, Many: true, Repeatable: true, HistoryKind: HistoryChange, Positional: func(*Noun) []string { return []string{"prop", "value", "pairs"} },
@@ -87,11 +91,11 @@ var standardVerbs = []standardVerb{
 
 // reservedStandardVerbs are the names of every standard verb, those later
 // phases add included: no prop takes one.
-var reservedStandardVerbs = []string{"get", "list", "create", "set", "patch", "delete", "watch", "rename", "move", "duplicate"}
+var reservedStandardVerbs = []string{"get", "list", "create", "set", "patch", "delete", "watch", "rename", "move", "duplicate", "archive", "restore"}
 
 // standardParamNames are the parameters the standard verbs take beside the
 // subject: no key prop and no store list parameter takes one.
-var standardParamNames = []string{"prop", "props", "where", "limit", "since", "value", "toggle", "changes", "pairs"}
+var standardParamNames = []string{"prop", "props", "where", "limit", "since", "value", "toggle", "changes", "pairs", "to"}
 
 // StandardVerbs lists the verbs of the standard verb table, in order.
 func StandardVerbs() []string {
@@ -492,7 +496,9 @@ func propParameter(p PropSpec) Parameter {
 func createParams(n *Noun) map[string]Parameter {
 	params := map[string]Parameter{}
 	for _, p := range createProps(n) {
-		params[p.Name] = propParameter(p)
+		param := propParameter(p)
+		param.Focus = p.FromFocus // create fills it from the focus (createFill)
+		params[p.Name] = param
 	}
 	return params
 }
@@ -715,10 +721,12 @@ func runCreate(r *Runtime, n *Noun, c Ctx) (any, error) {
 	if name := r.unshownProp(n, c, given); name != "" {
 		return nil, fmt.Errorf("%s.%s is not available here", r.DisplayNoun(n.Name), name)
 	}
+	filled := r.createFill(n, c, values)
 	t, err := n.Store.Create(c, values)
 	if err != nil {
 		return nil, err
 	}
+	filled.notify(c)
 	if t == nil {
 		t = values
 	}
@@ -764,6 +772,9 @@ func runDelete(r *Runtime, n *Noun, c Ctx) (any, error) {
 	key, err := r.subjectKey(n, c)
 	if err != nil {
 		return nil, err
+	}
+	if archived, ok, err := r.archiveOnDelete(n, c, key); ok || err != nil {
+		return archived, err
 	}
 	if err := n.Store.Delete(c, key); err != nil {
 		return nil, err

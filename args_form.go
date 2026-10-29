@@ -92,7 +92,11 @@ func ArgsFields(op Operation) ([]RecordField, error) {
 // verb lacks arguments: one field per parameter (ArgsFields), prefilled
 // from q's arguments, the first missing required one focused (typing,
 // when it is a text field). Every field is filled by the user: nothing is
-// read from the focus or a guess (R12.5). enter runs the form once every
+// read from the focus or a guess (R12.5), except what a parameter declares
+// and the form shows: a Focus parameter starts holding the focused thing
+// (focusValue), and an Edits one the subject's current value of its prop,
+// selected as a rename is, or empty with the prop's Fallback as its
+// placeholder (argsFormStart). enter runs the form once every
 // required field is valid (form.run) and otherwise goes to the field that
 // still needs a value; esc in normal mode cancels and runs nothing.
 // run executes the completed request after the form closed, at the focus
@@ -129,6 +133,7 @@ func (r *Runtime) OpenArgsForm(q Request, run func(Request) error) (*RecordEdito
 	if len(missing) > 0 {
 		start = missing[0]
 	}
+	rename := r.argsFormStart(q, op, fields, values, start)
 	title := "Run " + q.Key()
 	if q.Via != "" {
 		title = "Run " + q.Via
@@ -141,6 +146,7 @@ func (r *Runtime) OpenArgsForm(q Request, run func(Request) error) (*RecordEdito
 		Fields: fields,
 		Load:   func() (Record, error) { return values, nil },
 		Insert: true,
+		Rename: rename,
 		Start:  start,
 		Submit: func(rec Record) Result {
 			done := q
@@ -165,6 +171,70 @@ func (r *Runtime) OpenArgsForm(q Request, run func(Request) error) (*RecordEdito
 		return e, e.choosePath(f)
 	}
 	return e, nil
+}
+
+// argsFormStart fills the args form's declared starting values into
+// values (and placeholders into fields) for the fields q leaves out: a
+// Focus parameter's focused thing (focusValue) and an Edits parameter's
+// current value of the subject's prop, else that prop's Fallback value as
+// the placeholder. It reports whether the start field opens on a current
+// value, which the form then selects as a rename (rename.select).
+func (r *Runtime) argsFormStart(q Request, op Operation, fields []RecordField, values Record, start string) bool {
+	focus := r.BaseFocus()
+	if q.Target != "" {
+		if id, err := r.TargetInstance(q.Target); err == nil {
+			focus = id
+		}
+	}
+	selected := false
+	for i, f := range fields {
+		if _, set := q.Args[f.Name]; set {
+			continue
+		}
+		if t, ok := r.focusValue(op, f.Name, focus); ok {
+			values[f.Name] = t.Key
+		}
+		if f.Edits == "" {
+			continue
+		}
+		current, fallback := r.subjectProp(op, q, focus, f.Edits)
+		switch {
+		case current != "":
+			values[f.Name] = current
+			selected = selected || f.Name == start
+		case fallback != "":
+			fields[i].Placeholder = fallback
+		}
+	}
+	return selected
+}
+
+// subjectProp reads the prop of the thing op's request acts for at focus,
+// and its Fallback prop's value, from the noun's store ("" for both when
+// it cannot be read).
+func (r *Runtime) subjectProp(op Operation, q Request, focus, prop string) (current, fallback string) {
+	n := r.Nouns[op.Noun]
+	p := n.prop(prop)
+	inst := r.Instances[focus]
+	if n == nil || n.Store == nil || n.Store.Get == nil || p == nil || inst == nil {
+		return "", ""
+	}
+	ctx := Ctx{Runtime: r, Context: r.contextOf(focus), Args: q.Args, Instance: inst}
+	key, err := r.subjectKey(n, ctx)
+	if err != nil {
+		return "", ""
+	}
+	t, err := n.Store.Get(ctx, key)
+	if err != nil || t == nil {
+		return "", ""
+	}
+	if v := t[prop]; !emptyProp(v) {
+		current = fmt.Sprint(v)
+	}
+	if p.Fallback != "" && !emptyProp(t[p.Fallback]) {
+		fallback = fmt.Sprint(t[p.Fallback])
+	}
+	return current, fallback
 }
 
 // singlePath is the field of the lone missing required path when

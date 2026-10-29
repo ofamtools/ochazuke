@@ -825,7 +825,11 @@ func rowsOf(l ListSpec) []ochazuke.ListItem {
 	var out []ochazuke.ListItem
 	if len(l.Items) > 0 {
 		for _, it := range l.Items {
-			out = append(out, ochazuke.ListItem{ID: it.ID, Label: it.Label, Noun: Demo, Cells: it.Cells, Tones: it.Tones})
+			noun := it.Noun
+			if noun == "" {
+				noun = Demo
+			}
+			out = append(out, ochazuke.ListItem{ID: it.ID, Label: it.Label, Noun: noun, Cells: it.Cells, Tones: it.Tones})
 		}
 		return out
 	}
@@ -870,6 +874,11 @@ func (ss *Session) addPage(p *Page) error {
 			opts = append(opts, ochazuke.Columns(l.Columns...))
 		}
 		items := rowsOf(l)
+		for _, it := range items {
+			if it.Noun != Demo && r.Noun(it.Noun) == nil {
+				r.Define(it.Noun) // a row of another noun: a thing a reference names
+			}
+		}
 		list, err := r.AddList(l.ID, items, opts...)
 		if err != nil {
 			return fmt.Errorf("list %s: %w", l.ID, err)

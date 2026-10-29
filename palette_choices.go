@@ -156,6 +156,11 @@ func (p *Palette) paramHeader(s Styles, slot paramSlot, width int) string {
 	} else {
 		facts = append(facts, "optional")
 	}
+	if t, ok := p.r.focusValue(slot.Op, slot.Name, focusOf(p.origin)); ok {
+		// Omitted, the value comes from the focus (Parameter.Focus):
+		// the slot says which, so the fill is never silent.
+		facts = append(facts, "focus: "+t.Label)
+	}
 	if len(param.Enum) > 0 {
 		facts = append(facts, fmt.Sprintf("one of %d", len(param.Enum)))
 	}
