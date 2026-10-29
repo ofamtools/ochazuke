@@ -235,6 +235,7 @@ type Runtime struct {
 	pendingModes     map[string]bool
 	passthroughModes map[string]bool   // base modes in which capture rows stand aside (DefinePassthrough)
 	selectionModes   map[string]string // base modes that hold a selection, and its shape (DefineSelection)
+	modeExtends      map[string]string // the mode a mode falls back to for a noun with no table of its own (ModeExtends)
 	guards           map[string]Guard
 	predicates       map[string]PredicateFunc // named query predicates (query.go)
 	history          actionHistory            // the executed-request ring and the current source (history.go)
@@ -275,6 +276,7 @@ func newRuntime() *Runtime {
 		pendingModes:     map[string]bool{},
 		passthroughModes: map[string]bool{},
 		selectionModes:   map[string]string{},
+		modeExtends:      map[string]string{},
 		defaults:         defaultSources{rows: map[string]string{}, extends: map[string]string{}},
 		guards:           builtinGuards(),
 		predicates:       builtinPredicates(),

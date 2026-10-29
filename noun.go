@@ -39,20 +39,6 @@ type Noun struct {
 	Completions []CompletionTrigger `json:"-"`
 }
 
-// tables is what one mode reads on the noun: its own rows, then the rows of
-// the mode it extends, and so on up the chain (table inheritance: a row
-// bound on the child wins, a row bound later on the parent is inherited).
-func (n *Noun) tables(mode string) [][]Binding {
-	var out [][]Binding
-	seen := map[string]bool{}
-	for mode != "" && !seen[mode] {
-		seen[mode] = true
-		out = append(out, n.Bindings[mode])
-		mode = n.Extends[mode]
-	}
-	return out
-}
-
 // Binding is one row of a mode table, identical in code and config:
 // {noun | instance, mode, keys | pattern, request | null, from, when}.
 // Keys is an exact key or a space-separated sequence ("g g"); Pattern is a
@@ -1097,9 +1083,19 @@ func (r *Runtime) validateRow(row Binding) (Binding, error) {
 // DefineMode registers a mode name. A pending mode is exclusive: only rows in
 // its own table answer, and a row that leaves the mode unchanged returns the
 // instance to the mode it shadowed.
-func (r *Runtime) DefineMode(name string, pending bool) error {
+func (r *Runtime) DefineMode(name string, pending bool, opts ...ModeOption) error {
 	if strings.TrimSpace(name) == "" {
 		return errors.New("mode name cannot be empty")
+	}
+	var spec ModeSpec
+	for _, opt := range opts {
+		opt(&spec)
+	}
+	if spec.Extends != "" {
+		if spec.Extends == name || !r.Modes[spec.Extends] && !r.pendingModes[spec.Extends] {
+			return fmt.Errorf("mode %q extends unknown mode %q", name, spec.Extends)
+		}
+		defer func() { r.modeExtends[name] = spec.Extends }()
 	}
 	if pending {
 		delete(r.Modes, name)
@@ -1121,6 +1117,43 @@ func (r *Runtime) DefinePassthrough(name string) error {
 	}
 	r.passthroughModes[name] = true
 	return nil
+}
+
+// ModeOption is a property DefineMode gives a mode, as a bindings file's
+// "modes" entry does.
+type ModeOption func(*ModeSpec)
+
+// ModeExtends makes a mode fall back to parent's rows for every noun with
+// no table of its own in the mode (no rows and no extends there): a mode
+// that is "normal plus a few keys" (o-json's query, visual-line) binds
+// only its own keys, and the nouns it does not mention keep their normal
+// rows. A noun's own table (even an empty one, or one with its own
+// extends) replaces the fallback for that noun.
+func ModeExtends(parent string) ModeOption {
+	return func(s *ModeSpec) { s.Extends = parent }
+}
+
+// ModeParent is the mode name falls back to for a noun with no table of
+// its own (ModeExtends), "" for none.
+func (r *Runtime) ModeParent(name string) string { return r.modeExtends[name] }
+
+// nounTables is what mode reads on n: its own table, then the mode it
+// extends on n (Noun.Extends), and so on; where n has no table of its own
+// for a mode in the chain, the mode's fallback (ModeExtends) continues it.
+func (r *Runtime) nounTables(n *Noun, mode string) [][]Binding {
+	var out [][]Binding
+	seen := map[string]bool{}
+	for mode != "" && !seen[mode] {
+		seen[mode] = true
+		rows, own := n.Bindings[mode]
+		out = append(out, rows)
+		next := n.Extends[mode]
+		if next == "" && !own {
+			next = r.modeExtends[mode]
+		}
+		mode = next
+	}
+	return out
 }
 
 // Selection shapes: a mode that holds a selection says which shape it

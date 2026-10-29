@@ -538,6 +538,8 @@ func (r *Runtime) fileModeProblems(doc BindingsDoc) []string {
 			problems = append(problems, fmt.Sprintf("%s: modes %s: unknown mode; bindings.json cannot define one (ignored)", BindingsFile, name))
 		case spec.Pending != r.pendingModes[name] || spec.Passthrough != r.passthroughModes[name]:
 			problems = append(problems, fmt.Sprintf("%s: modes %s: pending %v, passthrough %v differ from the application's (ignored)", BindingsFile, name, r.pendingModes[name], r.passthroughModes[name]))
+		case spec.Extends != r.modeExtends[name]:
+			problems = append(problems, fmt.Sprintf("%s: modes %s: extends %q differs from the application's %q (ignored)", BindingsFile, name, spec.Extends, r.modeExtends[name]))
 		case spec.Selection != r.selectionModes[name]:
 			problems = append(problems, fmt.Sprintf("%s: modes %s: selection %q differs from the application's %q (ignored)", BindingsFile, name, spec.Selection, r.selectionModes[name]))
 		}

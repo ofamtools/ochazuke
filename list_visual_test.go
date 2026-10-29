@@ -267,3 +267,54 @@ func TestVisualPaletteActsOnTheSelection(t *testing.T) {
 		t.Fatalf("palette zap: %v visual %v mode %s modal %q", *calls, a.Visual(), r.Mode.Name, r.TopModal())
 	}
 }
+
+// A mode that extends another (ModeExtends, a bindings file's "modes"
+// extends) falls back to its rows for every noun with no table of its own
+// there: o-json's query mode binds its own keys once and the nouns keep
+// their normal rows. A noun's own table (rows, an empty group, or its own
+// extends) replaces the fallback for that noun.
+func TestModeExtendsFallsBackForNounsWithoutATable(t *testing.T) {
+	r, m, _, calls := visualList(t)
+	if err := r.DefineMode("query", false, ModeExtends("normal")); err != nil {
+		t.Fatal(err)
+	}
+	if r.ModeParent("query") != "normal" || r.BindingsDoc().Modes["query"].Extends != "normal" {
+		t.Fatalf("query parent %q", r.ModeParent("query"))
+	}
+	if err := r.DefineMode("bad", false, ModeExtends("nope")); err == nil {
+		t.Fatal("a mode extended an unknown mode")
+	}
+	if err := r.SetMode("query"); err != nil {
+		t.Fatal(err)
+	}
+	// row and the list bind nothing in query: their normal rows answer.
+	motionKeys(t, r, m, "j z")
+	if r.Focus != "a2" || strings.Join(*calls, ", ") != "zap a2" || r.Mode.Name != "query" {
+		t.Fatalf("query: focus %s calls %v mode %s", r.Focus, *calls, r.Mode.Name)
+	}
+	// A table of its own stops the fallback for that noun only.
+	r.Define("row").Mode("query").Bind("x", Do("row.zap"))
+	if ok, _ := r.Dispatch(MacroKey{Key: "z"}); ok {
+		t.Fatal("z answered: row has a query table of its own")
+	}
+	motionKeys(t, r, m, "x j")
+	if strings.Join(*calls, ", ") != "zap a2, zap a2" || r.Focus != "a3" {
+		t.Fatalf("own query table: calls %v focus %s", *calls, r.Focus)
+	}
+	// visual-line extends normal: row has a visual-line table of its own
+	// (> nest), so its normal z does not answer there; a noun without one
+	// keeps its normal keys, which then act on the selection.
+	_ = r.SetMode("normal")
+	motionKeys(t, r, m, "V j")
+	if ok, _ := r.Dispatch(MacroKey{Key: "z"}); ok || r.ModeParent("visual-line") != "normal" {
+		t.Fatal("z answered in visual-line over a noun with its own table")
+	}
+	r2, m2, a2, _ := motionPage(t)
+	var zapped []string
+	r2.Define("row").Verb("zap", func(c Ctx) Result { zapped = append(zapped, c.Instance.ID); return Done(nil) }, "zap").
+		Mode("normal").Bind("z", Do("row.zap"))
+	motionKeys(t, r2, m2, "V j z")
+	if strings.Join(zapped, " ") != "a1 a2" || a2.Visual() || r2.Mode.Name != "normal" {
+		t.Fatalf("normal z in visual-line: %v visual %v mode %s", zapped, a2.Visual(), r2.Mode.Name)
+	}
+}

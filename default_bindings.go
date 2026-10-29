@@ -100,6 +100,13 @@ func (r *Runtime) LoadDefaultBindings(source string, data []byte) error {
 		if err == nil && m.Selection != "" {
 			err = r.DefineSelection(name, m.Selection)
 		}
+		if err == nil && m.Extends != "" {
+			if m.Extends == name || !r.Modes[m.Extends] && !r.pendingModes[m.Extends] {
+				err = fmt.Errorf("extends unknown mode %q", m.Extends)
+			} else {
+				r.modeExtends[name] = m.Extends
+			}
+		}
 		if err != nil {
 			return fmt.Errorf("%s: mode %q: %w", source, name, err)
 		}
@@ -138,6 +145,13 @@ func (r *Runtime) LoadDefaultBindings(source string, data []byte) error {
 			}
 			if err := r.installDefaultRow(source, row, batch); err != nil {
 				return fmt.Errorf("%s: %s %q: %w", source, g.label(), row.Keys+row.Pattern, err)
+			}
+		}
+		if g.Instance == "" && len(g.Rows) == 0 {
+			// An empty group is a table of the noun's own: the mode's
+			// fallback (ModeExtends) does not reach the noun there.
+			if n := r.Nouns[nouns[i]]; n != nil && n.Bindings[g.Mode] == nil {
+				n.Bindings[g.Mode] = []Binding{}
 			}
 		}
 		if g.Extends != "" {

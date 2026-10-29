@@ -294,7 +294,8 @@ tiers above them. When the two disagree, fix one in the same commit.
   on cell-mode tables only), and the widths and the column are remembered
   per table across a restart. On every table, cell-mode or not: `Y` copies
   the row's cells joined by tabs, and `V` is a visual row selection drawn
-  into the marks (not on a `NoMarks` table): `j`/`k` extend it without
+  into the marks on every list, table and tree (not on a `NoMarks` one),
+  in the `visual-line` mode (R5.16): `j`/`k` extend it without
   spilling, a row's verb acts on every selected row (R5.15),
   `esc` ends it and restores the marks. A row-select table (a tree's list,
   where `h`/`l` collapse and expand; help; settings; a cli catalog table)
@@ -391,7 +392,10 @@ tiers above them. When the two disagree, fix one in the same commit.
   `Many`. One notice reports the run: info "VERB: done on N rows", or an
   error "VERB: D done, F failed (first failure)" when some failed; only
   when none was done does the action fail. Failures never stop the other
-  rows. The selection ends when the verb runs (vim), motions extend it.
+  rows. The selection ends when the verb runs (vim; `visual.after-action`
+  `keep` keeps it over the rows still shown), motions extend it. The
+  verb's availability is read while the selection is still on, so a verb
+  available only over a selection answers.
   `Y`/`y` copy every selected row, one per line. Where the rows keep an
   undo stack (a tree), the run is one undo step: one `u` restores them
   all. Which verbs take many is data on the verb, never a list of names.
@@ -399,6 +403,29 @@ tiers above them. When the two disagree, fix one in the same commit.
   `tables/visual-partial-failure.json`, `tree/visual-undo-group.json`;
   tests `TestVisualSelection*`, `TestRequestSubjects`,
   `TestVisualYankCopiesEverySelectedRow`.
+
+- **R5.16** A visual row selection is a mode. `V` enters `visual-line`,
+  the line-shaped selection mode (the editor's `V` is the same mode; a
+  mode's selection shape is data, `"modes": {"visual-line": {"selection":
+  "line"}}`, read with `Runtime.SelectionShape`, never a mode name). The
+  header's badge reads `VISUAL-LINE` and the footer shows the mode's keys.
+  In it one key acts on the selection, then visual ends: `d` deletes
+  (`list.apply {verb: delete}`, available only when a selected row's noun
+  has `delete`, else the key goes on out), `y` yanks the rows, an
+  application's own single keys bound in its row noun's `visual-line`
+  table (`>` nest, `p` put) act on every row; `esc` or `V` leaves without
+  acting; `:` and `?` still open the palette and help, and the palette's
+  verbs act on the selection. `visual-line` extends `normal`
+  (`ModeExtends`): a noun with no `visual-line` table of its own keeps its
+  normal keys there (they act on the selection), and a noun with one reads
+  only it, so a `d d` in its normal table never makes `d` wait. A modal
+  opened over the selection (a confirm, the palette, a chooser) holds it;
+  its close resumes it. Leaving the list ends it. Opt out with
+  `visual.list` `marks` (the older selection in normal mode). Stories:
+  `tables/visual-line-delete-two.json`, `tables/visual-line-yank-two.json`,
+  `tables/visual-line-motions-esc.json`, `tables/visual-after-keep.json`,
+  `tables/visual-after-end.json`, `tree/visual-line-nest.json`; tests
+  `list_visual_test.go`.
 
 ### R6. Chrome: footer, hints, help, ticker, notices
 

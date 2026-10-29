@@ -80,6 +80,9 @@ type ModeSpec struct {
 	// Selection is the selection shape the mode holds (char, line, block;
 	// DefineSelection), "" for a mode that selects nothing.
 	Selection string `json:"selection,omitempty"`
+	// Extends is the mode whose rows the mode falls back to for a noun
+	// with no table of its own in it (ModeExtends).
+	Extends string `json:"extends,omitempty"`
 }
 
 // BindingGroup is one table of a grouped bindings file: a noun's or an
@@ -497,6 +500,11 @@ func (r *Runtime) BindingsDoc() BindingsDoc {
 	for name := range r.passthroughModes {
 		m := doc.Modes[name]
 		m.Passthrough = true
+		doc.Modes[name] = m
+	}
+	for name, parent := range r.modeExtends {
+		m := doc.Modes[name]
+		m.Extends = parent
 		doc.Modes[name] = m
 	}
 	for name, shape := range r.selectionModes {

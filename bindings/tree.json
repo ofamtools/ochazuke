@@ -22,6 +22,7 @@
       {"key": "ctrl+r", "action": "ochazuke.outline.redo"},
       {"key": "paste", "action": "ochazuke.outline.paste", "from": {"text": "text"}}
     ]},
+    {"context": "ochazuke.outline/visual-line", "bindings": []},
     {"context": "ochazuke.outline-line/insert", "bindings": [
       {"key": "esc", "action": "ochazuke.outline.leave"},
       {"key": "enter", "action": "ochazuke.outline.next"},

@@ -24,7 +24,7 @@ R|            │ 0           .column?                                          
  |            │ d                                                                             .apply?        │
  |            │ down        .move           .move                                             .move          │
  |            │ end         .column?                                                          .column?       │
- |            │ enter       demo.open       .filter-choose?                                                  │
+ |            │ enter       demo.open       .filter-choose?                                   demo.open      │
  |            │ 1–18 / 70                                                                                    │
  |            │ ──────────────────────────────────────────────────────────────────────────────────────────── │
  |            │ normal       list.column {"to":"first"} when no-count · list                                 │

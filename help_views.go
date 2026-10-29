@@ -440,7 +440,7 @@ func (r *Runtime) modeHasRows(place NounPlace, mode ModeState) bool {
 			}
 		}
 		if lv.noun != nil {
-			for _, rows := range lv.noun.tables(base) {
+			for _, rows := range r.nounTables(lv.noun, base) {
 				for _, b := range rows {
 					if !b.Unbind && !isPrefixCancel(b) {
 						return true

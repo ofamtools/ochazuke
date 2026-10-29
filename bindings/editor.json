@@ -7,7 +7,7 @@
     "operator_pending": {"pending": true},
     "visual": {"selection": "char"},
     "visual-block": {"selection": "block"},
-    "visual-line": {"selection": "line"},
+    "visual-line": {"extends": "normal", "selection": "line"},
     "visual_count_pending": {"pending": true}
   },
   "bindings": [
