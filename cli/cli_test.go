@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -871,6 +872,87 @@ func TestShellSetsASetting(t *testing.T) {
 	}
 	if data, _ := os.ReadFile(filepath.Join(dir, "settings.json")); strings.Contains(string(data), "scrolloff") {
 		t.Fatalf("reset-all left %s", data)
+	}
+}
+
+// The :set line and the setting verbs from a CLI process: no session, so
+// every write goes to settings.json after one question naming every change
+// (-y answers it); a show prints its line on stderr and writes nothing.
+func TestShellAppliesASetLine(t *testing.T) {
+	f := newFixture(t)
+	dir := t.TempDir()
+	f.r.Config().Dir = dir
+	if err := f.r.DeclareSetting(
+		ochazuke.Setting{Name: "scrolloff", Type: ochazuke.SettingInteger, Default: 2, Description: "Rows around the focus"},
+		ochazuke.Setting{Name: "wrap", Type: ochazuke.SettingBoolean, Default: true, Description: "Wrap lines"},
+		ochazuke.Setting{Name: "paths", Type: ochazuke.SettingList, Default: []string{"a"}, Description: "Paths"},
+	); err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(dir, "settings.json")
+	read := func() map[string]any {
+		var got map[string]any
+		data, err := os.ReadFile(file)
+		if err != nil {
+			return nil
+		}
+		if err := json.Unmarshal(data, &got); err != nil {
+			t.Fatal(err)
+		}
+		return got
+	}
+	if _, errOut, err := f.run("", "settings", "apply", "scrolloff=5 nowrap paths+=b"); err == nil || !strings.Contains(errOut, "Write scrolloff = 5, wrap = false, paths = a,b to "+file+"? [y/N]") {
+		t.Fatalf("unanswered apply: %s %v", errOut, err)
+	}
+	if read() != nil {
+		t.Fatal("a declined line wrote settings.json")
+	}
+	out, _, err := f.run("", "settings", "apply", "scrolloff=5 nowrap paths+=b", "-y")
+	if err != nil || !strings.Contains(out, `"changed"`) {
+		t.Fatalf("apply -y: %s %v", out, err)
+	}
+	if got := read(); got["scrolloff"] != 5.0 || got["wrap"] != false || !reflect.DeepEqual(got["paths"], []any{"a", "b"}) {
+		t.Fatalf("file %v", got)
+	}
+	if _, errOut, err := f.run("", "settings", "apply", "scrolloff? wrap?"); err != nil || !strings.Contains(errOut, "status: scrolloff=5  nowrap") {
+		t.Fatalf("show: %s %v", errOut, err)
+	}
+	if _, errOut, err := f.run("", "settings", "apply", "verbose scrolloff?"); err != nil || !strings.Contains(errOut, "status: scrolloff=5 — set in "+file+" line ") {
+		t.Fatalf("verbose show: %s %v", errOut, err)
+	}
+	if _, _, err := f.run("", "settings", "apply", "scrolloff=x wrap"); err == nil || !strings.Contains(err.Error(), "scrolloff takes a whole number: x; nothing was changed") {
+		t.Fatalf("bad line: %v", err)
+	}
+	// The same through each verb directly.
+	for _, c := range []struct {
+		args []string
+		key  string
+		want any
+	}{
+		{[]string{"setting", "set", "scrolloff", "7"}, "scrolloff", 7.0},
+		{[]string{"setting", "increase", "scrolloff", "3"}, "scrolloff", 10.0},
+		{[]string{"setting", "decrease", "scrolloff", "4"}, "scrolloff", 6.0},
+		{[]string{"setting", "multiply", "scrolloff", "2"}, "scrolloff", 12.0},
+		{[]string{"setting", "toggle", "wrap"}, "wrap", true},
+		{[]string{"setting", "cycle", "wrap"}, "wrap", false},
+		{[]string{"setting", "append", "paths", "c,d"}, "paths", []any{"a", "b", "c", "d"}},
+		{[]string{"setting", "prepend", "paths", "z"}, "paths", []any{"z", "a", "b", "c", "d"}},
+		{[]string{"setting", "remove", "paths", "a,c"}, "paths", []any{"z", "b", "d"}},
+		{[]string{"setting", "reset", "scrolloff"}, "scrolloff", nil},
+	} {
+		if _, errOut, err := f.run("", c.args...); err == nil || !strings.Contains(errOut, "? [y/N]") {
+			t.Fatalf("%v did not ask: %s %v", c.args, errOut, err)
+		}
+		out, _, err := f.run("", append(c.args, "--yes")...)
+		if err != nil || !strings.Contains(out, `"written": "file"`) {
+			t.Fatalf("%v --yes: %s %v", c.args, out, err)
+		}
+		if got := read()[c.key]; !reflect.DeepEqual(got, c.want) {
+			t.Fatalf("%v: file holds %v; want %v", c.args, got, c.want)
+		}
+	}
+	if _, errOut, err := f.run("", "setting", "show", "paths", "--verbose"); err != nil || !strings.Contains(errOut, "status: paths=z,b,d — set in "+file) {
+		t.Fatalf("setting show: %s %v", errOut, err)
 	}
 }
 

@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -98,7 +99,7 @@ func (o Origin) String() string {
 			out += " (" + strings.Join(where, ", ") + ")"
 		}
 	case OriginFile:
-		out = "set in " + o.Path
+		out = "set in " + cmp.Or(o.Path, SettingsFile)
 		if o.Line > 0 {
 			out += fmt.Sprintf(" line %d", o.Line)
 		}

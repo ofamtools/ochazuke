@@ -1,0 +1,17 @@
+{
+  "name": "settings apply from the palette: a :set line sets for the session, and its show forms reach the status line together (name=value, a boolean name or noname)",
+  "area": "settings",
+  "width": 120,
+  "height": 10,
+  "settings": [
+    {"name": "scrolloff", "type": "integer", "default": 2, "description": "Rows kept above and below the focus"},
+    {"name": "wrap", "type": "boolean", "default": true, "description": "Wrap long lines"}
+  ],
+  "session": {"scrolloff": 2},
+  "page": {"lists": [{"id": "a", "rows": 1}]},
+  "script": [":", {"type": "settings apply \"scrolloff=5 nowrap scrolloff? wrap?\""}, "enter", ":", {"type": "settings apply \"verbose scrolloff?\""}, "enter"],
+  "expect": [
+    {"after": 3, "modal": "", "contains": ["scrolloff=5  nowrap"]},
+    {"modal": "", "contains": ["scrolloff=5 — set this session by ochazuke.settings.apply"]}
+  ]
+}

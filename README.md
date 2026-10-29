@@ -1356,6 +1356,12 @@ The Settings page draws a session value bold with the saved value beside it whil
 
 and its description reads `Set this session (palette, 14:02); settings.json holds grid. setting.write saves it, setting.revert drops it.` Stories `settings/session-marker*`.
 
+### Setting verbs and `settings.apply`
+
+Every setting value change is a verb of the `setting` noun (`setting_verbs.go`), each with `name` (default: the focused Settings row) and, where it writes, `scope` (`session`, the default, by the writes-through rule above; or `file`): `show {verbose}` (the status line: `name=value`, a boolean `name` or `noname`; `verbose` adds the origin), `set {value}`, `toggle`, `cycle {step}`, `reset`, `increase`/`decrease`/`multiply {by}` (integers, numbers, durations; `multiply` not durations), `append`/`prepend`/`remove {value}` (text, or list items as `a,b` or a JSON array; a list skips items it holds, an absent item or text is not an error). Which verb fits which type is read from the `:set` type table, so `setting.toggle` on an integer says what it is for. A verb computes the new value and checks it whole (type, `Validate`, enum) before it writes; each write is one step of the Settings page's undo. The page's keys run these verbs with `scope: file` in their binding rows (`bindings/settings-editor.json`), so the page saves each change at once, as before; the same verb from the palette or the CLI without a scope writes the session.
+
+`settings.apply {line, verbose, scope}` runs a `:set` line (`set_line.go`): `BIN settings apply 'scrolloff=5 nowrap'`. Every word is checked first, each over what the words before it left its setting at, then each runs as a request to its verb; a refused word changes nothing (`level: must be at most 9; nothing was changed`), and the whole line is one undo step. Show words reach the status line together (`scrolloff=5  nowrap`); a leading `verbose` (or `verb`, unless a setting has that name) adds each value's origin; the empty line (`settings.diff`) and `all` (`settings.list`) answer their lists, which the palette opens as results; `all&` asks first. From a CLI process one question names every change (`Write scrolloff = 5, wrap = false to PATH? [y/N]`; `-y` answers). Stories `settings/set-line-*`.
+
 ## Status segments
 
 Live items (CPU, memory, disk free, a build state) ride the rule under the header, right-aligned, and take no row. Each is a data row:

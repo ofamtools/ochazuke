@@ -1,0 +1,16 @@
+{
+  "name": "settings apply all from the palette opens every setting as a results list",
+  "area": "settings",
+  "width": 100,
+  "height": 14,
+  "settings": [
+    {"name": "scrolloff", "type": "integer", "default": 2, "description": "Rows kept above and below the focus"},
+    {"name": "wrap", "type": "boolean", "default": true, "description": "Wrap long lines"}
+  ],
+  "session": {"scrolloff": 2},
+  "page": {"lists": [{"id": "a", "rows": 1}]},
+  "script": [":", {"type": "settings apply all"}, "enter"],
+  "expect": [
+    {"modal": "palette-results", "contains": ["scrolloff", "ochazuke.settings.apply", "Rows kept a"]}
+  ]
+}

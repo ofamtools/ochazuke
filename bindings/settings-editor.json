@@ -2,16 +2,16 @@
 {
   "bindings": [
     {"context": "ochazuke.setting/normal", "bindings": [
-      {"key": "enter", "action": "ochazuke.setting.edit"},
-      {"key": "l", "action": "ochazuke.setting.cycle", "args": {"step": 1}, "when": "setting-steps", "hidden": true},
-      {"key": "right", "action": "ochazuke.setting.cycle", "args": {"step": 1}, "when": "setting-steps", "hidden": true},
-      {"key": "space", "action": "ochazuke.setting.cycle", "args": {"step": 1}, "when": "setting-steps", "hidden": true},
-      {"key": "h", "action": "ochazuke.setting.cycle", "args": {"step": -1}, "hint": "h/l setting.cycle", "when": "setting-steps"},
-      {"key": "left", "action": "ochazuke.setting.cycle", "args": {"step": -1}, "when": "setting-steps", "hidden": true},
+      {"key": "enter", "action": "ochazuke.setting.edit", "args": {"scope": "file"}},
+      {"key": "l", "action": "ochazuke.setting.cycle", "args": {"step": 1, "scope": "file"}, "when": "setting-steps", "hidden": true},
+      {"key": "right", "action": "ochazuke.setting.cycle", "args": {"step": 1, "scope": "file"}, "when": "setting-steps", "hidden": true},
+      {"key": "space", "action": "ochazuke.setting.cycle", "args": {"step": 1, "scope": "file"}, "when": "setting-steps", "hidden": true},
+      {"key": "h", "action": "ochazuke.setting.cycle", "args": {"step": -1, "scope": "file"}, "hint": "h/l setting.cycle", "when": "setting-steps"},
+      {"key": "left", "action": "ochazuke.setting.cycle", "args": {"step": -1, "scope": "file"}, "when": "setting-steps", "hidden": true},
       {"key": "n", "action": "ochazuke.setting.add", "when": "setting-list"},
-      {"key": "r", "action": "ochazuke.setting.reset"},
-      {"key": "backspace", "action": "ochazuke.setting.reset", "hidden": true},
-      {"key": "delete", "action": "ochazuke.setting.reset", "hidden": true}
+      {"key": "r", "action": "ochazuke.setting.reset", "args": {"scope": "file"}},
+      {"key": "backspace", "action": "ochazuke.setting.reset", "args": {"scope": "file"}, "hidden": true},
+      {"key": "delete", "action": "ochazuke.setting.reset", "args": {"scope": "file"}, "hidden": true}
     ]},
     {"context": "ochazuke.setting-item/normal", "bindings": [
       {"key": "enter", "action": "ochazuke.setting-item.edit", "hint": "enter/i setting-item.edit"},

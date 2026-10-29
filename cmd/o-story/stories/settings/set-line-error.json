@@ -1,0 +1,16 @@
+{
+  "name": "settings apply from the palette: a line with a refused word changes nothing and keeps the palette open with the error",
+  "area": "settings",
+  "width": 80,
+  "height": 10,
+  "settings": [
+    {"name": "scrolloff", "type": "integer", "default": 2, "description": "Rows kept above and below the focus"},
+    {"name": "wrap", "type": "boolean", "default": true, "description": "Wrap long lines"}
+  ],
+  "session": {"scrolloff": 2},
+  "page": {"lists": [{"id": "a", "rows": 1}]},
+  "script": [":", {"type": "settings apply \"nowrap scrolloff=lots\""}, "enter"],
+  "expect": [
+    {"contains": ["scrolloff takes a whole number: lots; nothing was changed"]}
+  ]
+}

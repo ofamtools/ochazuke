@@ -69,16 +69,27 @@ type settingsPage struct {
 	// where it reopens.
 	section string
 	last    string
-	// undo is every change made on the page, oldest first.
-	undo []settingUndo
+	// undo is every change made on the page, oldest first; group is the
+	// step a settings.apply line is gathering (settingsGroup).
+	undo  []settingUndo
+	group *settingUndo
 }
 
-// settingUndo is one change made on the Settings page: the setting and
-// what settings.json held for it before (had false: nothing).
+// settingUndo is one step of the Settings page's undo: what each setting
+// it changed held before, put back together (a :set line of several
+// settings is one step).
 type settingUndo struct {
-	name string
-	raw  json.RawMessage
-	had  bool
+	snaps []settingSnap
+}
+
+// settingSnap is what one setting held at a moment: settings.json's raw
+// value (had false: no key) and its session value (inSession false: none).
+type settingSnap struct {
+	name      string
+	raw       json.RawMessage
+	had       bool
+	session   sessionValue
+	inSession bool
 }
 
 // settingItemRef is an item row's Data: the list setting and the item.
@@ -144,45 +155,38 @@ func registerSettingsEditor(r *Runtime) {
 	r.DefineGuard("settings-undo", func(r *Runtime, ev KeyEvent) bool {
 		return len(r.Settings().page.undo) > 0
 	})
-	r.Register(Operation{Verb: "cycle", Noun: "ochazuke.setting", Description: "Step a boolean, an enum or a number to its next or previous value", Parameters: map[string]Parameter{"step": {Type: "integer", Description: "1 for the next value, -1 for the previous"}}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		one := focusedSetting(r, focusOf(c))
-		if one == nil {
-			return nil, errors.New("no setting is focused")
-		}
-		return stepSetting(r, *one, IntArg(a, "step", 1))
-	}})
+	registerSettingVerbs(r)
+	registerSettingsApply(r)
 	focused := func(c Context) (*Setting, error) {
 		if one := focusedSetting(r, focusOf(c)); one != nil {
 			return one, nil
 		}
 		return nil, errors.New("no setting is focused")
 	}
-	reset := func(r *Runtime, c Context, a Arguments) (any, error) {
-		one, err := focused(c)
+	editParams := map[string]Parameter{
+		"name":  {Type: "string", Description: "Setting name (default: the focused Settings row)", Source: "ochazuke.settings.names"},
+		"scope": {Type: "string", Enum: []string{ScopeSession, ScopeFile}, Description: "Where the value is written: session (the default) or file (the Settings page's keys)"},
+	}
+	r.Register(Operation{Verb: "edit", Noun: "ochazuke.setting", Description: "Edit the setting: flip a boolean, take an enum's next value, add an item to a list, else type a new value", Parameters: editParams, Positional: []string{"name"}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		one, err := settingOfArgs(r, c, a)
 		if err != nil {
 			return nil, err
 		}
-		if err := pageChange(r, one.Name, func() error { return r.Settings().Reset(one.Name) }); err != nil {
+		scope, err := settingScope(a)
+		if err != nil {
 			return nil, err
 		}
-		_ = r.SetFocus(settingRowPrefix + one.Name)
-		return r.Settings().Get(one.Name)
-	}
+		switch {
+		case one.Type == SettingList:
+			return nil, openItemPrompt(r, *one, -1, len(r.Settings().Strings(one.Name)))
+		case one.Type == SettingBoolean || len(one.Enum) > 0:
+			cycle, _ := settingVerbOf("cycle")
+			return runSettingVerb(cycle)(r, c, Arguments{"name": one.Name, "scope": scope})
+		}
+		return nil, openSettingPrompt(r, *one, scope)
+	}})
 	r.Define("ochazuke.setting").
-		Verb("edit", func(r *Runtime, c Context, a Arguments) (any, error) {
-			one, err := focused(c)
-			if err != nil {
-				return nil, err
-			}
-			switch {
-			case one.Type == SettingList:
-				return nil, openItemPrompt(r, *one, -1, len(r.Settings().Strings(one.Name)))
-			case one.Type == SettingBoolean || len(one.Enum) > 0:
-				return stepSetting(r, *one, 1)
-			}
-			return nil, openSettingPrompt(r, *one)
-		}, "Edit the setting: flip a boolean, take an enum's next value, add an item to a list, else type a new value").
-		Verbs("cycle").
+		Verbs("edit").
 		Verb("add", func(r *Runtime, c Context, a Arguments) (any, error) {
 			one, err := focused(c)
 			if err != nil {
@@ -192,8 +196,7 @@ func registerSettingsEditor(r *Runtime) {
 				return nil, fmt.Errorf("%s is not a list", one.Name)
 			}
 			return nil, openItemPrompt(r, *one, -1, len(r.Settings().Strings(one.Name)))
-		}, "Add an item at the end of a list setting").
-		Verb("reset", reset, "Reset the setting to its default")
+		}, "Add an item at the end of a list setting")
 	item := func(c Context) (*Setting, settingItemRef, error) {
 		inst := r.Instances[focusOf(c)]
 		if inst == nil || inst.Noun != settingItemNoun {
@@ -302,7 +305,16 @@ func commitSettingPrompt(r *Runtime, name string, args Arguments, text string) (
 	index, edit := args["index"]
 	insert, add := args["insert"]
 	if !edit && !add {
-		return "", pageChange(r, name, func() error { return s.Set(name, text) })
+		set, _ := settingVerbOf("set")
+		one := s.find(name)
+		if one == nil {
+			return "", s.unknown(name)
+		}
+		p, err := planSetting(set, *one, s.current(*one), Arguments{"value": text, "scope": StringArg(args, "scope", ScopeSession)})
+		if err != nil {
+			return "", err
+		}
+		return "", pageChange(r, name, func() error { _, err := p.write(s); return err })
 	}
 	if strings.TrimSpace(text) == "" {
 		return "", errors.New("an item cannot be empty")
@@ -326,28 +338,94 @@ func commitSettingPrompt(r *Runtime, name string, args Arguments, text string) (
 	return settingItemID(name, at), nil
 }
 
-// pageChange runs a change the Settings page makes to one setting and puts
-// what settings.json held before on the page's undo list when it moved.
+// pageChange runs a change to one setting (a page key, a setting verb)
+// and puts what the setting held before, in settings.json and the session
+// layer, on the page's undo list when it moved. Inside settingsGroup the
+// change joins the group's step instead.
 func pageChange(r *Runtime, name string, change func() error) error {
 	s := r.Settings()
 	s.ensure()
-	before, had := s.raw[name]
+	view := &s.page
+	if g := view.group; g != nil {
+		if !slices.ContainsFunc(g.snaps, func(sn settingSnap) bool { return sn.name == name }) {
+			g.snaps = append(g.snaps, s.snap(name))
+		}
+		return change()
+	}
+	before := s.snap(name)
 	if err := change(); err != nil {
 		return err
 	}
-	if now, has := s.raw[name]; has == had && bytes.Equal(now, before) {
-		return nil
-	}
-	view := &s.page
-	view.undo = append(view.undo, settingUndo{name: name, raw: before, had: had})
-	if len(view.undo) > settingsUndoLimit {
-		view.undo = view.undo[len(view.undo)-settingsUndoLimit:]
+	if s.moved(before) {
+		view.push(settingUndo{snaps: []settingSnap{before}})
 	}
 	return nil
 }
 
-// undoSettingChange puts back what settings.json held before the page's
-// last change and shows that setting's row.
+// settingsGroup runs fn with every change it makes folded into one undo
+// step; when fn fails, what it changed is put back (all or nothing).
+func settingsGroup(r *Runtime, fn func() error) error {
+	s := r.Settings()
+	s.ensure()
+	view := &s.page
+	if view.group != nil {
+		return fn()
+	}
+	view.group = &settingUndo{}
+	err := fn()
+	g := view.group
+	view.group = nil
+	if err != nil {
+		if back := s.restoreStep(*g); back != nil {
+			return errors.Join(err, back)
+		}
+		return err
+	}
+	g.snaps = slices.DeleteFunc(g.snaps, func(sn settingSnap) bool { return !s.moved(sn) })
+	if len(g.snaps) > 0 {
+		view.push(*g)
+	}
+	return nil
+}
+
+// push adds an undo step, keeping the last settingsUndoLimit.
+func (view *settingsPage) push(step settingUndo) {
+	view.undo = append(view.undo, step)
+	if len(view.undo) > settingsUndoLimit {
+		view.undo = view.undo[len(view.undo)-settingsUndoLimit:]
+	}
+}
+
+// snap is what a setting holds now.
+func (s *Settings) snap(name string) settingSnap {
+	sn := settingSnap{name: name}
+	sn.raw, sn.had = s.raw[name]
+	sn.session, sn.inSession = s.session[name]
+	return sn
+}
+
+// moved reports whether a setting holds something else than the snap:
+// another settings.json value, or another session value.
+func (s *Settings) moved(sn settingSnap) bool {
+	if now, has := s.raw[sn.name]; has != sn.had || !bytes.Equal(now, sn.raw) {
+		return true
+	}
+	v, in := s.session[sn.name]
+	return in != sn.inSession || in && (v.reset != sn.session.reset || !sameSetting(v.value, sn.session.value))
+}
+
+// restoreStep puts back every setting of an undo step, the last changed
+// first.
+func (s *Settings) restoreStep(step settingUndo) error {
+	var errs []error
+	for _, sn := range slices.Backward(step.snaps) {
+		errs = append(errs, s.restore(sn))
+	}
+	return errors.Join(errs...)
+}
+
+// undoSettingChange takes back the page's last undo step and shows the
+// first setting it changed.
 func undoSettingChange(r *Runtime) (any, error) {
 	s := r.Settings()
 	view := &s.page
@@ -355,40 +433,51 @@ func undoSettingChange(r *Runtime) (any, error) {
 		return nil, errors.New("no change on the settings page to undo")
 	}
 	last := view.undo[len(view.undo)-1]
-	if err := s.restore(last.name, last.raw, last.had); err != nil {
+	if err := s.restoreStep(last); err != nil {
 		return nil, err
 	}
 	view.undo = view.undo[:len(view.undo)-1]
-	if one := s.find(last.name); one != nil && r.PageOf(SettingsPageID) != nil {
+	name := last.snaps[0].name
+	if one := s.find(name); one != nil && r.PageOf(SettingsPageID) != nil {
 		view.section = one.SectionName()
-		_ = r.SetFocus(settingRowPrefix + last.name)
+		_ = r.SetFocus(settingRowPrefix + name)
 	}
-	return s.Get(last.name)
+	return s.Get(name)
 }
 
-// restore writes back what settings.json held for a setting (had false:
-// nothing), as it was, even a value that does not validate.
-func (s *Settings) restore(name string, raw json.RawMessage, had bool) error {
+// restore puts back what a setting held (settingSnap): settings.json's
+// value as it was, even one that does not validate, and the session value.
+func (s *Settings) restore(sn settingSnap) error {
 	s.ensure()
-	one := s.find(name)
+	one := s.find(sn.name)
 	if one == nil {
-		return s.unknown(name)
+		return s.unknown(sn.name)
 	}
-	old, _ := s.Value(name)
-	next := maps.Clone(s.raw)
-	if had {
-		next[name] = raw
+	old, _ := s.Value(sn.name)
+	if now, has := s.raw[sn.name]; has != sn.had || !bytes.Equal(now, sn.raw) {
+		next := maps.Clone(s.raw)
+		if sn.had {
+			next[sn.name] = sn.raw
+		} else {
+			delete(next, sn.name)
+		}
+		if err := s.write(next); err != nil {
+			return err
+		}
+		delete(s.values, sn.name)
+		s.withdrawFor(sn.name)
+		s.parse(*one)
+	}
+	if sn.inSession {
+		if s.session == nil {
+			s.session = map[string]sessionValue{}
+		}
+		s.session[sn.name] = sn.session
 	} else {
-		delete(next, name)
+		delete(s.session, sn.name)
 	}
-	if err := s.write(next); err != nil {
-		return err
-	}
-	delete(s.values, name)
-	s.dropSession(name)
-	s.withdrawFor(name)
-	s.parse(*one)
-	s.changed(name, old)
+	s.changed(sn.name, old)
+	s.relayer()
 	return nil
 }
 
@@ -818,39 +907,13 @@ func settingSteps(one Setting) bool {
 	return len(one.Enum) > 0
 }
 
-// stepSetting sets a boolean, enum or number to its next value (step 1) or
-// previous one (step -1); an enum wraps.
-func stepSetting(r *Runtime, one Setting, step int) (any, error) {
-	s := r.Settings()
-	current, _ := s.Value(one.Name)
-	var next any
-	switch {
-	case one.Type == SettingBoolean:
-		next = !current.(bool)
-	case len(one.Enum) > 0:
-		i := slices.Index(one.Enum, current.(string))
-		n := len(one.Enum)
-		next = one.Enum[((i+step)%n+n)%n]
-	case one.Type == SettingInteger:
-		next = current.(int) + step
-	case one.Type == SettingNumber:
-		next = current.(float64) + float64(step)
-	default:
-		return nil, fmt.Errorf("%s is a %s: enter edits it", one.Name, one.Type)
-	}
-	if err := pageChange(r, one.Name, func() error { return s.Set(one.Name, next) }); err != nil {
-		return nil, err
-	}
-	return s.Get(one.Name)
-}
-
 // openSettingPrompt opens the one-line value prompt over the page.
-func openSettingPrompt(r *Runtime, one Setting) error {
+func openSettingPrompt(r *Runtime, one Setting, scope string) error {
 	current, _ := r.Settings().Get(one.Name)
 	in := NewInput(settingValueID, settingCell(current.Value), false)
 	in.Cursor = len(in.Text)
 	prompt := fmt.Sprintf("%s (%s)", one.Name, one.Type)
-	request := &Request{Noun: "ochazuke.settings", Verb: "set", Args: Arguments{"name": one.Name}}
+	request := &Request{Noun: "ochazuke.setting", Verb: "set", Args: Arguments{"name": one.Name, "scope": scope}}
 	_, err := r.OpenModal(settingPromptID, Payload{Prompt: prompt, Request: request}, WithInput(in, Kind("ochazuke.setting-value")))
 	return err
 }

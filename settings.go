@@ -106,6 +106,12 @@ type Settings struct {
 	source     func() (source, via string)
 	relayered  func()
 	now        func() time.Time
+	// shown gathers setting.show's lines while a :set line runs
+	// (settingsApply), so they reach the status line together.
+	shown *[]string
+	// applying is the name the running :set line was invoked by, which
+	// the session values it sets record (Origin.Via).
+	applying string
 }
 
 type settingObserver struct {
@@ -845,6 +851,11 @@ func registerSettings(r *Runtime) {
 		source := r.history.source
 		if source == "" {
 			source = "api"
+		}
+		if s.applying != "" {
+			// A :set line's words record the line's name (settings.apply,
+			// or the alias it was typed as), not each word's verb.
+			return source, s.applying
 		}
 		return source, r.Invoked().Name
 	}
