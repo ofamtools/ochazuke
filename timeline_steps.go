@@ -494,6 +494,7 @@ func (t *Timeline) leave() error {
 // NoSpill, stays); past the first k goes back to the card. A count stops
 // at the edge; only a move from the edge spills.
 func (t *Timeline) stepBy(delta, count int) {
+	t.settle()
 	for k := 0; k < max(1, count); k++ {
 		if !t.InBody() || !t.stepOnce(delta, k == 0) {
 			return

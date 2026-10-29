@@ -966,6 +966,7 @@ func (t *Timeline) scroll(lines int) {
 	if n == 0 || t.width <= 0 || t.avail <= 0 {
 		return
 	}
+	t.settle()
 	t.shiftTop(lines)
 	// The cards now on screen: the selection stays among them.
 	at := t.top
@@ -1045,6 +1046,21 @@ func (t *Timeline) drawn() bool {
 	return t.width > 0 && t.avail > 0 && t.indexOf(t.top.id) >= 0
 }
 
+// settle places the window as the next frame would when something since
+// the last frame asked it to move (an open, G, a new selection, a step
+// entered or unfolded), so a motion pressed before that frame is drawn
+// measures from where the window will be, not where it was.
+func (t *Timeline) settle() {
+	if t.width <= 0 || t.avail <= 0 || len(t.list.items) == 0 {
+		return
+	}
+	if !t.reveal && !t.toBottom && !t.seek && t.SelectedID() == t.lastSel && t.indexOf(t.top.id) >= 0 {
+		return
+	}
+	t.frame(t.avail)
+	t.lastSel, t.reveal, t.toBottom, t.seek = t.SelectedID(), false, false, false
+}
+
 // cardMotion is j/k on the cards (list.move on the card list), count
 // times: each press goes to the neighbouring card by the half-page rule
 // (R3.14): when showing it would scroll more than half the window, the
@@ -1054,6 +1070,7 @@ func (t *Timeline) drawn() bool {
 // NoSpill timeline, stays. A count stops at the edge; only a move from
 // the edge spills.
 func (t *Timeline) cardMotion(delta, count int) {
+	t.settle()
 	for k := 0; k < max(1, count); k++ {
 		if !t.cardOnce(delta, k == 0) {
 			return

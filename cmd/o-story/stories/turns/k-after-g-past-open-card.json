@@ -1,0 +1,13 @@
+{
+  "name": "turns: after G, k at once moves to the previous card while an open card taller than the window lies above",
+  "base": "story:turns/page",
+  "script": [
+    "G",
+    "k"
+  ],
+  "expect": [
+    {
+      "focus": "t8"
+    }
+  ]
+}
