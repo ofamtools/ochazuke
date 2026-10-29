@@ -126,21 +126,11 @@ const hashBytes = 16
 // RecordHash is a row's hash: SHA-256 (128 bits, hex) of its line's bytes
 // as the state answer prints them, surrounding space trimmed. A host hashes
 // the line it read, no re-encoding.
-func RecordHash(line []byte) string {
-	sum := sha256.Sum256(bytes.TrimSpace(line))
-	return hex.EncodeToString(sum[:hashBytes])
-}
+func RecordHash(line []byte) string { return ochazuke.RecordHash(line) }
 
 // ListHash is a list's content hash: SHA-256 (128 bits, hex) of its rows'
 // record hashes in order, one per line. An empty list hashes too.
-func ListHash(records []string) string {
-	h := sha256.New()
-	for _, r := range records {
-		h.Write([]byte(r))
-		h.Write([]byte{'\n'})
-	}
-	return hex.EncodeToString(h.Sum(nil)[:hashBytes])
-}
+func ListHash(records []string) string { return ochazuke.ListHash(records) }
 
 var hashPattern = regexp.MustCompile(`^[0-9a-f]{32}$`)
 

@@ -29,7 +29,10 @@ var checklistText string
 
 // New supplies the demo application: example pages, modals and bindings on a
 // fresh runtime. None of these page names are required by the framework.
-func New() *ochazuke.Model {
+func New() *ochazuke.Model { return newWith(newDemoTask()) }
+
+// newWith is New over a task store (a test holds its own).
+func newWith(task *demoTask) *ochazuke.Model {
 	r := ochazuke.NewRuntime()
 	for _, id := range []string{"overview", "playground", "commands", "appearance", "library", "task", "checklist", "help"} {
 		r.Instance(id)
@@ -81,7 +84,6 @@ func New() *ochazuke.Model {
 	}
 	var m *ochazuke.Model
 	lastNoun := ""
-	task := newDemoTask()
 	for _, spec := range []struct {
 		id, title, focus string
 		render           func(*ochazuke.Runtime, int, int) ochazuke.Block
@@ -367,6 +369,9 @@ func (t *demoTask) edit(r *ochazuke.Runtime) error {
 		Save: func(w ochazuke.RecordWrite) ochazuke.Result {
 			t.tasks[t.editing] = maps.Clone(w.Values)
 			t.writes++
+			// The store changed through the editor, not a verb: watches
+			// of task list again.
+			r.Changed("task")
 			return ochazuke.Done(nil)
 		},
 	}, ochazuke.Parent("task"), ochazuke.FocusOnClose("task"))

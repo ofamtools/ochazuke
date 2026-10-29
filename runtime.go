@@ -326,6 +326,7 @@ type Runtime struct {
 	seq              uint64            // instance registration order
 	commands         []tea.Cmd         // off-loop work scheduled since the adapter last drained it
 	jobs             map[uint64]*job   // the jobs list: running jobs and the finished ones retained for jobs.list
+	watches          *watchHub         // the watches of nouns' things (standard_watch.go), made on first use
 	jobSeq           uint64            // last issued job id
 	defaults         defaultSources    // where each default row and extends came from (bindings defaults)
 	deprecations     []string          // rows that named an operation by its old verb.noun spelling, rewritten once
@@ -727,6 +728,7 @@ func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
 	value, err := r.execute(c, q)
 	r.history.depth--
 	r.record(at, q, ctx, depth, from, value, err)
+	r.watchAfterRequest(q, depth)
 	return value, err
 }
 

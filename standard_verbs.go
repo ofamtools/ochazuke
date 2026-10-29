@@ -34,6 +34,9 @@ type standardVerb struct {
 	Kinds       []string
 	Needs       func(Store) bool
 	Subject     bool
+	// NoFocus makes the subject optional and never filled from the focus
+	// (watch: omitted, it watches every thing).
+	NoFocus     bool
 	Rows        bool
 	HistoryKind string
 	Params      func(n *Noun) map[string]Parameter
@@ -49,6 +52,9 @@ var standardVerbs = []standardVerb{
 	{Verb: "list", Description: "List the things, each its props with id and label; where keeps the things whose props equal the values given",
 		Kinds: []string{Collection, Instances}, Needs: func(s Store) bool { return s.List != nil },
 		Rows: true, HistoryKind: HistoryFetch, Params: listParams, Run: runList},
+	{Verb: "watch", Description: "Stream what happens to the things (one, or those where matches): a JSON line per thing added, modified or deleted, from since when given; the CLI streams until interrupted",
+		Kinds: []string{Collection, Singleton, Instances}, Needs: watchFits,
+		Subject: true, NoFocus: true, HistoryKind: HistoryFetch, Params: watchParams, Run: runWatch},
 }
 
 // reservedStandardVerbs are the names of every standard verb, those later
@@ -57,7 +63,7 @@ var reservedStandardVerbs = []string{"get", "list", "create", "set", "patch", "d
 
 // standardParamNames are the parameters the standard verbs take beside the
 // subject: no key prop and no store list parameter takes one.
-var standardParamNames = []string{"prop", "props", "where", "limit"}
+var standardParamNames = []string{"prop", "props", "where", "limit", "since"}
 
 // StandardVerbs lists the verbs of the standard verb table, in order.
 func StandardVerbs() []string {
@@ -104,7 +110,12 @@ func (v standardVerb) operation(r *Runtime, n *Noun) Operation {
 	params := v.Params(n)
 	op := Operation{Verb: v.Verb, Noun: name, Description: v.Description, Parameters: params, Result: "JSON value", HistoryKind: v.HistoryKind, Standard: v.Verb}
 	if key := n.keyProp(); v.Subject && key != nil {
-		params[key.Name] = subjectParameter(r, n, *key)
+		p := subjectParameter(r, n, *key)
+		if v.NoFocus {
+			p.Focus = false
+			p.Description = fmt.Sprintf("The %s's %s: this one alone (default: every %s)", r.DisplayNoun(n.Name), key.Name, r.DisplayNoun(n.Name))
+		}
+		params[key.Name] = p
 		op.Positional = []string{key.Name}
 	}
 	if v.Rows {

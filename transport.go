@@ -38,6 +38,11 @@ type Response struct {
 type CallMsg struct {
 	Request Request
 	Reply   chan Response
+	// Stream asks for a watch (the watch verb's *Watch) live, as the
+	// result, for a caller that reads its events on the loop (the CLI
+	// shell); without it the result is the events so far and the watch
+	// ends.
+	Stream bool
 }
 
 func (r *Runtime) HandleCall(msg CallMsg) {
@@ -46,7 +51,12 @@ func (r *Runtime) HandleCall(msg CallMsg) {
 	result, err := r.Execute(msg.Request)
 	messages := stop()
 	restore()
-	response := callResponse(result, err)
+	var response Response
+	if w, ok := result.(*Watch); ok && err == nil && msg.Stream {
+		response = Response{Result: w} // live: the caller reads it on the loop
+	} else {
+		response = callResponse(result, err)
+	}
 	response.Messages = messages
 	msg.Reply <- response
 }

@@ -239,6 +239,11 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		}
 	}
 	last := lastJob(r)
+	if !s.StateCache.Off {
+		// A watch keeps its versions in the state cache, so a later
+		// command's --since resumes.
+		defer r.SetWatchVersions(r.SetWatchVersions(cacheVersions{s}))
+	}
 	value, err := s.call(q)
 	if err != nil {
 		var bad *ochazuke.ArgumentError
@@ -246,6 +251,9 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 			return fmt.Errorf("%w; pass --target, one of: %s", err, listed(candidates))
 		}
 		return err
+	}
+	if w, ok := value.(*ochazuke.Watch); ok {
+		return s.stream(ctx, w)
 	}
 	for {
 		top := r.Instances[r.TopModal()]
@@ -611,7 +619,7 @@ func typed(kind, v string) (any, error) {
 // call runs one request through the runtime's CLI entry.
 func (s *Shell) call(q ochazuke.Request) (any, error) {
 	reply := make(chan ochazuke.Response, 1)
-	s.Runtime.HandleCall(ochazuke.CallMsg{Request: q, Reply: reply})
+	s.Runtime.HandleCall(ochazuke.CallMsg{Request: q, Reply: reply, Stream: true})
 	res := <-reply
 	if res.Error != "" {
 		if res.Argument {

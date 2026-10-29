@@ -13,7 +13,7 @@ import (
 // (NounBuilder.Props: typed fields, as data) and one store row
 // (NounBuilder.Store: the handlers that read its things), and the runtime
 // gives it the standard verbs the store supports (standard_verbs.go): in
-// this phase get and list.
+// this phase get, list and watch (standard_watch.go).
 //
 // After a noun a word is a verb or a prop, never both: a prop may not take
 // a verb's name on its noun (nor a standard verb's, whether or not its
@@ -140,11 +140,15 @@ type ListQuery struct {
 // exactly when its handler is set (standardVerbs' Needs). Get answers the
 // thing with that key ("" for a singleton); List answers the things.
 // ListParams are list's parameters beside where, props and limit.
+// Watch, when set, answers watch itself (standard_watch.go): it pushes
+// each event to emit, from any goroutine, until stop; without it watch
+// lists again (List, a singleton's Get) whenever things may have changed.
 type Store struct {
 	Kind       string
 	Get        func(Ctx, string) (Thing, error)
 	List       func(Ctx, ListQuery) ([]Thing, error)
 	ListParams map[string]Parameter
+	Watch      func(c Ctx, q WatchQuery, emit func(WatchEvent)) (stop func(), err error)
 }
 
 // propTypes are the types a prop declares.

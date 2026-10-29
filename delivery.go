@@ -353,11 +353,18 @@ func (r *Runtime) Deliver(msg tea.Msg) (bool, error) {
 		}
 		return r.Deliver(fg.Run())
 	}
+	if m, ok := msg.(watchMsg); ok {
+		m.deliver(r)
+		return true, nil
+	}
 	if done, ok := msg.(Completion); ok {
 		// Settling may evict this job from the bounded history.
 		j := r.jobs[done.Job]
 		if !r.Settle(done.Ticket, done.Err) {
 			return true, nil
+		}
+		if j != nil {
+			defer r.watchAfterJob(j.Verb)
 		}
 		defer r.actingFor(done.Owner)()
 		var callbackErr error

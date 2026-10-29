@@ -157,7 +157,7 @@ Root package `ochazuke` is flat: 107 source files, 114 test files. Each entry li
 
 ### delivery.go
 
-- lines: 556 · tests: delivery_test.go
+- lines: 563 · tests: delivery_test.go
 - purpose: Component is the delivery contract every instance that works off the loop implements through Instance.Component.
 - types: Component (iface), Ticket, Completion, Ctx, AppHandler (func), Result, JobInfo
 - methods: Result(4), Runtime(20), job(1)
@@ -541,7 +541,7 @@ Root package `ochazuke` is flat: 107 source files, 114 test files. Each entry li
 
 ### props.go
 
-- lines: 458
+- lines: 462
 - purpose: PropSpec is one field of a noun's things.
 - types: PropSpec, Thing, ListQuery, Store
 - methods: Noun(5), NounBuilder(2), Runtime(5)
@@ -592,7 +592,7 @@ Root package `ochazuke` is flat: 107 source files, 114 test files. Each entry li
 
 ### runtime.go
 
-- lines: 1055 · tests: runtime_test.go
+- lines: 1057 · tests: runtime_test.go
 - purpose: Arguments are a request's named arguments, keyed by parameter name.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
 - methods: Context(1), Operation(4), Request(1), Runtime(19)
@@ -684,11 +684,20 @@ Root package `ochazuke` is flat: 107 source files, 114 test files. Each entry li
 
 ### standard_verbs.go
 
-- lines: 328 · tests: standard_verbs_test.go
+- lines: 339 · tests: standard_verbs_test.go
 - purpose: standardVerb is one row of the table: the verb, the store kinds it fits, the handler it needs, whether it takes a subject, whether its answer is rows of the ...
 - methods: Runtime(2), standardVerb(2)
 - funcs: StandardVerbs
-- leans on: props.go(24), runtime.go(24), noun.go(18), delivery.go(11)
+- leans on: props.go(27), runtime.go(24), noun.go(18), delivery.go(11)
+
+### standard_watch.go
+
+- lines: 625 · tests: standard_watch_test.go
+- purpose: WatchEvent is one change to a watched thing: its type, its key (id, "" for a singleton) and the thing as get answers it (every prop but the secret ones).
+- types: WatchEvent, WatchQuery, WatchVersions (iface), Watch
+- methods: Runtime(8), Watch(15), memoryVersions(2), watchMsg(1), watchSnapshot(1)
+- funcs: RecordHash, ListHash
+- leans on: props.go(21), runtime.go(21), delivery.go(4), standard_verbs.go(4)
 
 ### subjects.go
 
@@ -798,12 +807,12 @@ Root package `ochazuke` is flat: 107 source files, 114 test files. Each entry li
 
 ### transport.go
 
-- lines: 221
+- lines: 231
 - purpose: Response is the reply to a socket call: a result or an error message.
 - types: Response, CallMsg, Lines, Verbatim, Server
 - methods: Runtime(1), Server(2)
 - funcs: Listen, Call, CallResponse
-- leans on: runtime.go(10), delivery.go(5), ui.go(2), cli.go(1)
+- leans on: runtime.go(10), delivery.go(6), ui.go(2), cli.go(1)
 
 ### tree.go
 
@@ -852,7 +861,7 @@ Root package `ochazuke` is flat: 107 source files, 114 test files. Each entry li
 
 ## Package cli
 
-Importable package `cli`: 27 source files, 21 test files.
+Importable package `cli`: 28 source files, 22 test files.
 
 ### cli/catalog.go
 
@@ -1009,12 +1018,12 @@ Importable package `cli`: 27 source files, 21 test files.
 
 ### cli/shell.go
 
-- lines: 767
+- lines: 775
 - purpose: Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--format F] [--yes]: one registered operation in this process through the run...
 - types: Shell
 - methods: Shell(11), stderrSink(5)
 - funcs: New, DefaultUsage, UsageHint, Settle
-- leans on: state.go(5), format.go(3), rows.go(2), shellstate.go(2)
+- leans on: state.go(5), format.go(3), statecache.go(3), rows.go(2)
 
 ### cli/shellstate.go
 
@@ -1025,12 +1034,12 @@ Importable package `cli`: 27 source files, 21 test files.
 
 ### cli/state.go
 
-- lines: 277 · tests: state_test.go
+- lines: 267 · tests: state_test.go
 - purpose: StateList is one list's line of a delta answer.
 - types: StateList, StateAnswer
 - methods: StateAnswer(3)
 - funcs: RecordHash, ListHash, FormatSince, ParseSince, StateFlags, DecodeState
-- leans on: rows.go(3), shell.go(2), page.go(1)
+- leans on: rows.go(3), page.go(1), shell.go(1)
 
 ### cli/statecache.go
 
@@ -1040,6 +1049,13 @@ Importable package `cli`: 27 source files, 21 test files.
 - methods: StateCache(4), currentList(1), stateStore(8)
 - funcs: StatFingerprint
 - leans on: state.go(13), shell.go(2)
+
+### cli/stream.go
+
+- lines: 122 · tests: stream_test.go
+- purpose: stream prints a watch's events as JSON Lines until ctx ends (an interrupt or SIGTERM ends it too, cleanly) or the watch does.
+- methods: Shell(2), cacheVersions(3)
+- leans on: statecache.go(8), shell.go(5)
 
 ### cli/tui.go
 
@@ -1602,6 +1618,10 @@ Exported type -> file.
 - VerbCheck -> verb_checks.go
 - Verbatim -> transport.go
 - Verdict -> verb_checks.go
+- Watch -> standard_watch.go
+- WatchEvent -> standard_watch.go
+- WatchQuery -> standard_watch.go
+- WatchVersions -> standard_watch.go
 - Yank -> registers.go
 - cli.CatalogDetail -> cli/page.go
 - cli.CatalogDoc -> cli/catalog.go
