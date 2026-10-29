@@ -281,6 +281,8 @@ ochazuke.ListItem{ID: "w1", Noun: "pane", Label: "work/claude",
 | `marker.star` | `#B08800` / `#F2CC60` | bold |
 | `marker.queued` | the scheme's `accent` | |
 | `error` (`ToneError`) | background `#F6D3CE` / `#5E2722` | bold |
+| `chip` (`ToneChip`) | background `#E2EAE5` / `#26362F` | |
+| `chip.focused` (`ToneChipFocused`) | the scheme's `surface` on its `accent` | bold |
 
 `mono` and `NO_COLOR` draw the attributes alone. An unknown tone draws plain. The text never changes, so tones never count toward a width or a cut. The selected row stays one reverse-video bar: inside it a tone keeps its bold and drops its colour and dim. In `themes.json` a scheme takes `"tones"`, laid over the built-in ones, and an entry named after a built-in theme may hold tones alone:
 

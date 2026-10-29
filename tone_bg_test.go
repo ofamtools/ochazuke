@@ -92,3 +92,20 @@ func TestThemesToneBg(t *testing.T) {
 		t.Fatalf("Styles.Tone has no background: %v", bg)
 	}
 }
+
+// The chip tones: a dim background, and the focused chip the surface on
+// the accent, bold; both follow a scheme's roles.
+func TestChipTones(t *testing.T) {
+	cols := []Column{{Title: "q"}}
+	_, l := toneFixture(t, "dark", cols, []ListItem{
+		{ID: "z", Label: "top", Noun: "row", Cells: []string{"top"}},
+		{ID: "a", Label: "a", Noun: "row", Cells: []string{".items select"}, Tones: []ToneSpan{SpanTone(0, 0, 6, ToneChip), SpanTone(0, 7, 0, ToneChipFocused)}},
+	})
+	line := strings.Split(l.View(30, 3), "\n")[2]
+	if !strings.Contains(line, bgSGR("#26362F")+"m.items") {
+		t.Fatalf("chip %q", line)
+	}
+	if !strings.Contains(line, bgSGR("#78BFA5")+";1;"+fg("#172720")+"mselect") {
+		t.Fatalf("focused chip %q", line)
+	}
+}

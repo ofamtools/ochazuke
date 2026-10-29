@@ -57,6 +57,11 @@ const (
 	// does not parse): bold on an error background in every built-in
 	// theme, bold alone in mono.
 	ToneError = "error"
+	// ToneChip draws a chip (a query term, a tag) on a dim background;
+	// ToneChipFocused is the chip the focus is on, bright: the scheme's
+	// surface on its accent, bold. mono draws the focused chip bold.
+	ToneChip        = "chip"
+	ToneChipFocused = "chip.focused"
 )
 
 // ToneSpan gives a run of one cell a tone. Cell is the column index (in a
@@ -135,15 +140,17 @@ var toneRoles = []string{"text", "muted", "accent", "border", "surface", "error"
 // starts from them. The state tones keep their meaning without colour:
 // needs-input and errored are bold, exited is dim, so mono reads them too.
 var defaultTones = map[string]ToneStyle{
-	ToneWorking:    {Fg: SchemeColor{"#1F6FB2", "#7CB7E8"}},
-	ToneNeedsInput: {Fg: SchemeColor{"#9A6700", "#E3B341"}, Bold: true},
-	ToneDone:       {Fg: SchemeColor{"#2E7D32", "#8BC48A"}},
-	ToneErrored:    {Fg: SchemeColor{"error", "error"}, Bold: true},
-	ToneIdle:       {Fg: SchemeColor{"muted", "muted"}},
-	ToneExited:     {Fg: SchemeColor{"muted", "muted"}, Dim: true},
-	ToneStar:       {Fg: SchemeColor{"#B08800", "#F2CC60"}, Bold: true},
-	ToneQueued:     {Fg: SchemeColor{"accent", "accent"}},
-	ToneError:      {Bg: SchemeColor{"#F6D3CE", "#5E2722"}, Bold: true},
+	ToneWorking:     {Fg: SchemeColor{"#1F6FB2", "#7CB7E8"}},
+	ToneNeedsInput:  {Fg: SchemeColor{"#9A6700", "#E3B341"}, Bold: true},
+	ToneDone:        {Fg: SchemeColor{"#2E7D32", "#8BC48A"}},
+	ToneErrored:     {Fg: SchemeColor{"error", "error"}, Bold: true},
+	ToneIdle:        {Fg: SchemeColor{"muted", "muted"}},
+	ToneExited:      {Fg: SchemeColor{"muted", "muted"}, Dim: true},
+	ToneStar:        {Fg: SchemeColor{"#B08800", "#F2CC60"}, Bold: true},
+	ToneQueued:      {Fg: SchemeColor{"accent", "accent"}},
+	ToneError:       {Bg: SchemeColor{"#F6D3CE", "#5E2722"}, Bold: true},
+	ToneChip:        {Bg: SchemeColor{"#E2EAE5", "#26362F"}},
+	ToneChipFocused: {Fg: SchemeColor{"surface", "surface"}, Bg: SchemeColor{"accent", "accent"}, Bold: true},
 }
 
 // DefaultTones are the built-in tones and how the built-in themes draw
