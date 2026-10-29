@@ -36,6 +36,8 @@
       {"key": "down", "action": "ochazuke.timeline.step", "args": {"delta": 1}, "from": {"count": "count"}, "hidden": true},
       {"key": "k", "action": "ochazuke.timeline.step", "args": {"delta": -1}, "from": {"count": "count"}},
       {"key": "up", "action": "ochazuke.timeline.step", "args": {"delta": -1}, "from": {"count": "count"}, "hidden": true},
+      {"key": "g j", "action": "ochazuke.timeline.row", "args": {"delta": 1}, "from": {"count": "count"}},
+      {"key": "g k", "action": "ochazuke.timeline.row", "args": {"delta": -1}, "from": {"count": "count"}},
       {"key": "l", "action": "ochazuke.timeline.enter"},
       {"key": "right", "action": "ochazuke.timeline.enter", "hidden": true},
       {"key": "h", "action": "ochazuke.timeline.fold-step"},

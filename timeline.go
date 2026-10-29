@@ -157,6 +157,7 @@ type Timeline struct {
 	in         string
 	step       int
 	seek       bool // the next frame shows the current step (it moved)
+	rowLine    int  // gj/gk's row: a line of the card's drawing, -1 on the whole step
 	parentStop string
 }
 
@@ -201,7 +202,7 @@ func (r *Runtime) AddTimeline(id string, cards []Card, opts ...InstanceOption) (
 	if r.Instances[spec.parent] == nil {
 		return nil, fmt.Errorf("unknown parent %q", spec.parent)
 	}
-	t := &Timeline{r: r, id: id, byID: map[string]int{}, open: map[string]bool{}, folds: map[string]map[string]bool{}, cache: map[string]*cardCache{}, limit: spec.headerLines, tail: spec.followTail, follow: spec.followTail, bodyID: id + "/body", parentStop: spec.parentStop}
+	t := &Timeline{r: r, id: id, byID: map[string]int{}, open: map[string]bool{}, folds: map[string]map[string]bool{}, cache: map[string]*cardCache{}, limit: spec.headerLines, tail: spec.followTail, follow: spec.followTail, bodyID: id + "/body", parentStop: spec.parentStop, rowLine: -1}
 	r.Instance(id, Parent(spec.parent), Kind(timelineNoun), FocusOnClose(spec.closeFocus))
 	r.Instances[id].Component = t
 	listOpts := []InstanceOption{Parent(id), NoMarks()}
@@ -987,6 +988,7 @@ func (t *Timeline) scroll(lines int) {
 	} else if sel > last {
 		t.list.Move(last - sel)
 	}
+	t.keepStepInView(lines > 0)
 	t.lastSel = t.SelectedID()
 }
 
@@ -1288,6 +1290,7 @@ func registerTimelines(r *Runtime) {
 		"leave":     "timeline-on-card",
 		"step":      "timeline-in-body",
 		"yank-step": "timeline-in-body",
+		"row":       "timeline-in-body",
 		"fold-step": "timeline-step-open",
 	} {
 		r.SetAvailability(timelineNoun+"."+verb, guard)

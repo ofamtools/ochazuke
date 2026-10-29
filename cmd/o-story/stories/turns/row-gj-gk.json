@@ -1,0 +1,75 @@
+{
+  "name": "turns: inside a card gj and gk move by screen row: the marker covers the row alone, gk crosses into the step above, j goes on by step from the row's step",
+  "base": "story:turns/page",
+  "script": [
+    "j",
+    "j",
+    "j",
+    "j",
+    "l",
+    "j",
+    "j",
+    "j",
+    "j",
+    "g",
+    "j",
+    "g",
+    "j",
+    "g",
+    "k",
+    "g",
+    "k",
+    "g",
+    "k",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 11,
+      "focus": "turns/body",
+      "contains": [
+        "▌  ok   github.com/unixsuperhero/ochazuke/pkg01",
+        "key g j → timeline.row in normal"
+      ],
+      "lacks": [
+        "▌▾ 4 Bash",
+        "▌  ok   github.com/unixsuperhero/ochazuke/pkg02"
+      ]
+    },
+    {
+      "after": 13,
+      "contains": [
+        "▌  ok   github.com/unixsuperhero/ochazuke/pkg02"
+      ],
+      "lacks": [
+        "▌  ok   github.com/unixsuperhero/ochazuke/pkg01"
+      ]
+    },
+    {
+      "after": 17,
+      "contains": [
+        "▌▾ 4 Bash go test ./... · 41 lines"
+      ],
+      "lacks": [
+        "▌  ok"
+      ]
+    },
+    {
+      "after": 19,
+      "contains": [
+        "▌       return []string{b.Keys, b.Verb, desc}"
+      ],
+      "lacks": [
+        "▌▾ 4 Bash"
+      ]
+    },
+    {
+      "focus": "turns/body",
+      "contains": [
+        "▌▾ 4 Bash go test ./... · 41 lines",
+        "▌  ok   github.com/unixsuperhero/ochazuke/pkg01",
+        "key j → timeline.step in normal"
+      ]
+    }
+  ]
+}

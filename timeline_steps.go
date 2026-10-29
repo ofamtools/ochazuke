@@ -325,32 +325,105 @@ func (t *Timeline) currentSpans() []stepSpan {
 	return t.spansOf(&t.cards[i])
 }
 
+// cardOffsets are shown card i's drawing lines before its parts: g the
+// group rule's lines (0 or 1), the header's rows (from g+1), and start,
+// the first body line (after the meta line and the divider).
+func (t *Timeline) cardOffsets(i int) (g, rows, start int) {
+	c := t.shown(i)
+	if t.groupStarts(i) {
+		g = 1
+	}
+	rows = t.headerRows(c, t.measured(c))
+	start = g + 1 + rows + 1
+	if c.Meta != "" {
+		start++
+	}
+	return g, rows, start
+}
+
 // stepLines is the current step's first and last line in shown card i's
-// drawing (its group rule, border, header, meta and divider counted).
+// drawing (its group rule, border, header, meta and divider counted); on
+// a row (gj/gk) that row alone.
 func (t *Timeline) stepLines(i int) (int, int, bool) {
+	if t.rowLine >= 0 {
+		if line, _, ok := t.rowAt(i); ok {
+			return line, line, true
+		}
+	}
 	c := t.shown(i)
 	spans := t.spansOf(c)
 	if len(spans) == 0 {
 		return 0, 0, false
 	}
-	sp := spans[min(max(t.step, 0), len(spans)-1)]
-	cc := t.measured(c)
-	g := 0
-	if t.groupStarts(i) {
-		g = 1
+	return t.spanLines(i, min(max(t.step, 0), len(spans)-1))
+}
+
+// spanLines is step k's first and last line in shown card i's drawing.
+func (t *Timeline) spanLines(i, k int) (int, int, bool) {
+	spans := t.spansOf(t.shown(i))
+	if k < 0 || k >= len(spans) {
+		return 0, 0, false
 	}
-	rows := t.headerRows(c, cc)
+	sp := spans[k]
+	g, rows, start := t.cardOffsets(i)
 	if sp.header {
 		return g + 1, g + rows, true
-	}
-	start := g + 1 + rows + 1
-	if c.Meta != "" {
-		start++
 	}
 	if sp.end <= sp.start {
 		return start + sp.start, start + sp.start, true
 	}
 	return start + sp.start, start + sp.end - 1, true
+}
+
+// stepRow is a screen row inside an open card that gj/gk land on: its
+// line in the card's drawing and the step it belongs to.
+type stepRow struct{ line, step int }
+
+// stepRows are shown card i's rows in order: the header step's lines and
+// every body line of a step, blank lines left out.
+func (t *Timeline) stepRows(i int) []stepRow {
+	c := t.shown(i)
+	spans := t.spansOf(c)
+	if len(spans) == 0 {
+		return nil
+	}
+	body := t.body(c, t.measured(c))
+	g, rows, start := t.cardOffsets(i)
+	var out []stepRow
+	for k, sp := range spans {
+		if sp.header {
+			for l := 0; l < rows; l++ {
+				out = append(out, stepRow{g + 1 + l, k})
+			}
+			continue
+		}
+		if sp.end <= sp.start {
+			out = append(out, stepRow{start + sp.start, k})
+			continue
+		}
+		for l := sp.start; l < sp.end; l++ {
+			if l < len(body) && body[l].text == "" && !body[l].title {
+				continue
+			}
+			out = append(out, stepRow{start + l, k})
+		}
+	}
+	return out
+}
+
+// rowAt is the row the cursor is on in shown card i (the first at or
+// after rowLine, the last when the card shrank), its index in stepRows.
+func (t *Timeline) rowAt(i int) (line, index int, ok bool) {
+	rows := t.stepRows(i)
+	if len(rows) == 0 {
+		return 0, 0, false
+	}
+	for k, r := range rows {
+		if r.line >= t.rowLine {
+			return r.line, k, true
+		}
+	}
+	return rows[len(rows)-1].line, len(rows) - 1, true
 }
 
 // stepShown is the current step's lines in shown card i's lines (the
@@ -400,7 +473,7 @@ func (t *Timeline) enter(id string) error {
 		if err := t.SetFolded(id, units[sp.fold].name, false); err != nil {
 			return err
 		}
-		t.seek = true
+		t.seek, t.rowLine = true, -1
 		return nil
 	}
 	if !t.open[id] {
@@ -416,7 +489,7 @@ func (t *Timeline) enter(id string) error {
 	if t.width > 0 && len(t.spansOf(&t.cards[t.byID[id]])) == 0 {
 		return nil // nothing inside to step onto
 	}
-	t.in, t.step, t.seek = id, 0, true
+	t.in, t.step, t.seek, t.rowLine = id, 0, true, -1
 	t.follow = false
 	t.placeBody()
 	return t.r.SetFocus(t.bodyID)
@@ -477,7 +550,7 @@ func (t *Timeline) foldStep() error {
 	if err := t.SetFolded(t.in, units[u].name, true); err != nil {
 		return err
 	}
-	t.seek = true
+	t.seek, t.rowLine = true, -1
 	return nil
 }
 
@@ -486,7 +559,7 @@ func (t *Timeline) foldStep() error {
 func (t *Timeline) leaveBody() {
 	to := t.list.focusTarget()
 	t.r.RetargetFocus(func(id string) bool { return id == t.bodyID }, to)
-	t.in = ""
+	t.in, t.rowLine = "", -1
 	t.placeBody()
 }
 
@@ -513,6 +586,7 @@ func (t *Timeline) leave() error {
 // at the edge; only a move from the edge spills.
 func (t *Timeline) stepBy(delta, count int) {
 	t.settle()
+	t.rowLine = -1 // from a row (gj/gk), on by step from the row's step
 	for k := 0; k < max(1, count); k++ {
 		if !t.InBody() || !t.stepOnce(delta, k == 0) {
 			return
@@ -558,6 +632,126 @@ func (t *Timeline) stepOnce(delta int, edge bool) bool {
 		t.step = next
 	}
 	return true
+}
+
+// rowBy is gj/gk inside a card: count screen rows (down when delta is
+// positive); the step under the row is the current one (y yanks it, l and
+// h act on it), and the marker covers the row alone. Past the last row
+// gj goes on as j does past the last step, before the first gk back to
+// the card; a count stops at the edge. j/k go on by step from the row's
+// step.
+func (t *Timeline) rowBy(delta, count int) {
+	t.settle()
+	for k := 0; k < max(1, count); k++ {
+		if !t.InBody() || !t.rowOnce(delta, k == 0) {
+			return
+		}
+	}
+}
+
+func (t *Timeline) rowOnce(delta int, edge bool) bool {
+	i := t.indexOf(t.in)
+	if i < 0 {
+		return false
+	}
+	rows := t.stepRows(i)
+	if len(rows) == 0 {
+		if edge {
+			t.leaveBody()
+		}
+		return false
+	}
+	cur := 0
+	if t.rowLine >= 0 {
+		_, cur, _ = t.rowAt(i)
+	} else {
+		// From the step's first row on screen (its first row when none is).
+		step := min(max(t.step, 0), rows[len(rows)-1].step)
+		first := -1
+		at := t.relStart(i)
+		for k, r := range rows {
+			if r.step != step {
+				continue
+			}
+			if first < 0 {
+				first = k
+			}
+			if !t.drawn() || SpanInView(at+r.line, at+r.line, t.avail) {
+				first = k
+				break
+			}
+		}
+		cur = max(first, 0)
+	}
+	next := cur + delta
+	switch {
+	case next >= len(rows):
+		if !edge {
+			return false
+		}
+		t.rowLine = -1
+		t.step = rows[len(rows)-1].step
+		return t.spillDown()
+	case next < 0:
+		if edge {
+			t.leaveBody()
+		}
+		return false
+	}
+	t.seek = false // the motion places the window itself
+	if t.drawn() {
+		a := t.relStart(i) + rows[next].line
+		t.motionShift(minimalReveal(a, a, t.avail, delta))
+	}
+	t.rowLine, t.step = rows[next].line, rows[next].step
+	return true
+}
+
+// keepStepInView is J/K inside a card: when the scroll took the current
+// step (or row) off screen, the cursor moves to the nearest one on
+// screen, so the next step key goes on from what is shown instead of
+// scrolling back.
+func (t *Timeline) keepStepInView(down bool) {
+	if !t.InBody() || !t.drawn() {
+		return
+	}
+	i := t.indexOf(t.in)
+	if i < 0 {
+		return
+	}
+	at := t.relStart(i)
+	if lo, hi, ok := t.stepLines(i); !ok || SpanInView(at+lo, at+hi, t.avail) {
+		return
+	}
+	inView := func(lo, hi int) bool { return SpanInView(at+lo, at+hi, t.avail) }
+	if t.rowLine >= 0 {
+		rows := t.stepRows(i)
+		pick := -1
+		for k, r := range rows {
+			if inView(r.line, r.line) {
+				pick = k
+				if down {
+					break
+				}
+			}
+		}
+		if pick >= 0 {
+			t.rowLine, t.step = rows[pick].line, rows[pick].step
+		}
+		return
+	}
+	pick := -1
+	for k := range t.spansOf(t.shown(i)) {
+		if lo, hi, ok := t.spanLines(i, k); ok && inView(lo, hi) {
+			pick = k
+			if down {
+				break
+			}
+		}
+	}
+	if pick >= 0 {
+		t.step = pick
+	}
 }
 
 // spillDown is j past the last step: the next card (open or closed) by the
@@ -713,6 +907,19 @@ func registerTimelineSteps(r *Runtime) {
 				t.stepBy(1, delta*max(1, IntArg(a, "count", 1)))
 			case delta < 0:
 				t.stepBy(-1, -delta*max(1, IntArg(a, "count", 1)))
+			}
+			return t.state(), nil
+		}},
+		{"row", "Move by screen rows inside the card (gj/gk): the step under the row is the current one; past the last row on to the next card, before the first back to the card", true, map[string]Parameter{"id": id, "delta": {Type: "integer", Required: true, Description: "Rows to move, down when positive"}, "count": {Type: "integer", Description: "Repeat count (3gj)"}}, func(t *Timeline, _ Context, a Arguments) (any, error) {
+			if !t.InBody() {
+				return nil, errors.New("not inside a card")
+			}
+			delta := IntArg(a, "delta", 1)
+			switch {
+			case delta > 0:
+				t.rowBy(1, delta*max(1, IntArg(a, "count", 1)))
+			case delta < 0:
+				t.rowBy(-1, -delta*max(1, IntArg(a, "count", 1)))
 			}
 			return t.state(), nil
 		}},

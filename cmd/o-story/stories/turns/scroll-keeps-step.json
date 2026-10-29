@@ -1,0 +1,39 @@
+{
+  "name": "turns: J inside a card that scrolls the current step off screen moves the cursor to the first step shown, so the next j goes on from there instead of scrolling back",
+  "base": "story:turns/page",
+  "script": [
+    "j",
+    "j",
+    "j",
+    "j",
+    "l",
+    "1",
+    "2",
+    "J",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 8,
+      "focus": "turns/body",
+      "contains": [
+        "▌▾ 3 Edit help.go · +3 -1",
+        "key J → timeline.scroll in normal at turns"
+      ],
+      "lacks": [
+        "▾ Make the help modal",
+        "▌  ok"
+      ]
+    },
+    {
+      "focus": "turns/body",
+      "contains": [
+        "▌▾ 4 Bash go test ./... · 41 lines"
+      ],
+      "lacks": [
+        "▾ Make the help modal",
+        "▾ 3 Edit help.go"
+      ]
+    }
+  ]
+}
