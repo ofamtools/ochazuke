@@ -79,11 +79,11 @@ Root package `ochazuke` is flat: 119 source files, 139 test files. Each entry li
 
 ### chooser.go
 
-- lines: 755 · tests: chooser_test.go
+- lines: 762 · tests: chooser_test.go
 - purpose: ChooserRow is one choice.
 - types: ChooserRow, ChooserSpec, Chooser
 - methods: Chooser(26), Runtime(3)
-- leans on: delivery.go(27), instance.go(14), table.go(14), block.go(8)
+- leans on: delivery.go(28), instance.go(14), table.go(14), block.go(8)
 
 ### chooser_sources.go
 
@@ -195,10 +195,10 @@ Root package `ochazuke` is flat: 119 source files, 139 test files. Each entry li
 
 ### editor.go
 
-- lines: 572 · tests: editor_test.go
+- lines: 575 · tests: editor_test.go
 - purpose: editorShape is the selection shape mode holds in an input: char, line or block, the shapes the editor draws and edits ("" for any other mode, a component's o...
 - methods: Input(9)
-- leans on: block.go(63), runtime.go(60), noun.go(18), input.go(16)
+- leans on: block.go(63), runtime.go(60), noun.go(18), registers.go(18)
 
 ### editor_block.go
 
@@ -241,7 +241,7 @@ Root package `ochazuke` is flat: 119 source files, 139 test files. Each entry li
 
 ### help.go
 
-- lines: 315 · tests: help_test.go
+- lines: 322 · tests: help_test.go
 - purpose: registerBindingHelp adds bindings.help: a modal listing BindingHelp for the focus it opens over, one row per binding (key, noun.verb, arguments, description)...
 - leans on: model.go(17), noun.go(17), runtime.go(16), instance.go(6)
 
@@ -455,7 +455,7 @@ Root package `ochazuke` is flat: 119 source files, 139 test files. Each entry li
 
 ### palette.go
 
-- lines: 545 · tests: palette_test.go
+- lines: 547 · tests: palette_test.go
 - purpose: Palette is the ex-mode command line: one prompt input whose text is the source of truth, parsed by the grammar in palette_parse.go, with a completion list fo...
 - types: Palette
 - methods: Palette(24)
@@ -518,11 +518,11 @@ Root package `ochazuke` is flat: 119 source files, 139 test files. Each entry li
 
 ### path_chooser.go
 
-- lines: 466 · tests: path_chooser_test.go
+- lines: 502 · tests: path_chooser_test.go
 - purpose: PathPick describes what a path chooser is open for.
 - types: PathPick, PathChooserSpec
 - methods: PathPick(1), Runtime(11)
-- leans on: chooser.go(19), runtime.go(19), delivery.go(16), chooser_sources.go(9)
+- leans on: chooser.go(20), runtime.go(19), delivery.go(16), chooser_sources.go(9)
 
 ### picker.go
 
@@ -590,11 +590,11 @@ Root package `ochazuke` is flat: 119 source files, 139 test files. Each entry li
 
 ### registers.go
 
-- lines: 197
+- lines: 220
 - purpose: Registers is the component that owns the shared yanks, named registers, yank history, the register selected for the next operation and the macro state.
 - types: Registers, Yank, Register
 - methods: Registers(3), Runtime(4)
-- leans on: block.go(15), runtime.go(5), delivery.go(2), editor.go(2)
+- leans on: block.go(18), runtime.go(5), delivery.go(2), editor.go(2)
 
 ### resolve.go
 
@@ -723,7 +723,7 @@ Root package `ochazuke` is flat: 119 source files, 139 test files. Each entry li
 
 ### settings_view.go
 
-- lines: 802
+- lines: 804
 - purpose: settingsPage is the Settings page's state, kept with the settings.
 - methods: Runtime(1), Setting(1), Settings(4), settingsPage(1)
 - leans on: runtime.go(71), settings.go(59), instance.go(21), noun.go(13)
