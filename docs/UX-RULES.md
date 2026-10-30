@@ -258,6 +258,13 @@ tiers above them. When the two disagree, fix one in the same commit.
   nothing. Stories: `timeline/card-half-page.json`,
   `timeline/step-tall.json`, `timeline/card-end-clamp.json`,
   `markdown/motion-long-block.json`; test `TestTimelineHalfPageRule`.
+- **R3.15** One pane alone hides, never closes: `pane.only` draws the
+  focused panel of a split over the body and keeps the other pane's
+  instances; `ctrl+w o` again, `ctrl+w =` or the focus leaving the kept
+  pane (a jump to the hidden side) shows both again, a modal does not.
+  `pane.only {pane}` moves the focus into the named pane first, so the
+  pane kept is always the focused one. Story: `panes/only.json`,
+  `panes/only-restore-keys.json`; test `pane_only_test.go`.
 
 ### R4. Modals
 

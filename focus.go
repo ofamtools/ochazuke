@@ -107,6 +107,7 @@ func (r *Runtime) focusMoved(fromStop string, fromPath []string, to string) {
 	case stopChanged:
 		r.setMode(ModeState{Name: "normal"}, fromPath...)
 	}
+	r.paneOnlyFollow(to)
 	if in != nil && in.Mode != r.BaseMode() {
 		in.transition(r.BaseMode(), false)
 	}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 )
 
 // PanesFile is the remembered pane dividers in the state directory: an
@@ -151,7 +152,83 @@ func (r *Runtime) PaneLayout(id string, l Layout) Layout {
 		page.splitting = true
 	}
 	l.Shift = r.PaneShift(page.ID)
+	l.Only = page.only != ""
 	return l
+}
+
+// paneOnly is the guard of the restore rows: no modal is open and the
+// page holding the focus shows one pane (pane.only).
+func paneOnly(r *Runtime, ev KeyEvent) bool {
+	if r.TopModal() != "" {
+		return false
+	}
+	page := r.pageAt(ev.Focus)
+	return page != nil && page.only != ""
+}
+
+// PaneOnly is the pane instance the page shows alone (pane.only), "" when
+// it shows its split whole.
+func (r *Runtime) PaneOnly(page string) string {
+	if p := r.PageOf(page); p != nil {
+		return p.only
+	}
+	return ""
+}
+
+// ShowPaneOnly makes page draw the pane holding pane alone (Layout.Only),
+// moving the focus into pane first when it is elsewhere; pane "" is the
+// focused stop. The other pane comes back with RestorePanes, or when the
+// focus leaves pane (a jump to the hidden side).
+func (r *Runtime) ShowPaneOnly(page, pane string) error {
+	p := r.PageOf(page)
+	if p == nil {
+		return fmt.Errorf("unknown page %q", page)
+	}
+	if pane == "" {
+		pane = r.stopOf(r.BaseFocus())
+	}
+	if r.Instances[pane] == nil {
+		return fmt.Errorf("unknown pane %q", pane)
+	}
+	if !slices.Contains(r.Ancestry(pane), page) {
+		return fmt.Errorf("pane %q is not on page %q", pane, page)
+	}
+	if !slices.Contains(r.Ancestry(r.BaseFocus()), pane) {
+		// Land as a jump does: the pane's remembered focus, else its
+		// first stop.
+		target := r.landing(pane)
+		if target == pane && !r.focusable(pane) {
+			if stops, _ := r.units(pane, r.focusable); len(stops) > 0 {
+				target = r.landing(stops[0])
+			}
+		}
+		if err := r.SetFocus(target); err != nil {
+			return err
+		}
+	}
+	p.only = pane
+	return nil
+}
+
+// RestorePanes draws page's split whole again (undoes ShowPaneOnly).
+func (r *Runtime) RestorePanes(page string) error {
+	p := r.PageOf(page)
+	if p == nil {
+		return fmt.Errorf("unknown page %q", page)
+	}
+	p.only = ""
+	return nil
+}
+
+// paneOnlyFollow restores the page's panes when the focus leaves the pane
+// shown alone: the focus moving to the hidden side brings it back.
+func (r *Runtime) paneOnlyFollow(to string) {
+	if r.TopModal() != "" {
+		return
+	}
+	if page := r.pageAt(to); page != nil && page.only != "" && !slices.Contains(r.Ancestry(to), page.only) {
+		page.only = ""
+	}
 }
 
 // paneSplit is the guard of the pane rows: no modal is open and the page
@@ -192,6 +269,25 @@ func registerPanes(r *Runtime) {
 			return nil, err
 		}
 		return result(id, shift), nil
+	}})
+	r.DefineGuard("pane-only", paneOnly)
+	r.Register(Operation{Verb: "only", Noun: "ochazuke.pane", Description: "Show only one pane of the page's split, the focused panel over the whole body (Vim's ctrl+w o, the others hidden, not closed); pane.restore, ctrl+w o again or moving the focus to the hidden pane brings them back",
+		Parameters: map[string]Parameter{
+			"pane": {Type: "string", Description: "The instance whose pane to keep (default the focused stop); the focus moves into it"},
+			"page": params["page"],
+		}, Result: "page and pane", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+			id := page(a)
+			if err := r.ShowPaneOnly(id, StringArg(a, "pane", "")); err != nil {
+				return nil, err
+			}
+			return map[string]any{"page": id, "pane": r.PaneOnly(id)}, nil
+		}})
+	r.Register(Operation{Verb: "restore", Noun: "ochazuke.pane", Description: "Show every pane of the page's split again after pane.only", Parameters: map[string]Parameter{"page": params["page"]}, Result: "page and pane", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		id := page(a)
+		if err := r.RestorePanes(id); err != nil {
+			return nil, err
+		}
+		return map[string]any{"page": id, "pane": ""}, nil
 	}})
 	// > and < move the divider (Vim's ctrl+w > and ctrl+w < without the
 	// prefix), = puts it back (ctrl+w =); counts repeat (3>). Only while
