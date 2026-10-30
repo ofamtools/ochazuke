@@ -490,8 +490,13 @@ func Merge(srcs []Source, extPrefixes map[string][]string, actions []UserAction,
 				if cn.Pin != "" {
 					n.Pin = cn.Pin
 				}
+				// A host's mount of an extension's noun has its props but
+				// no store (cli.MountNouns): the props merge on their own,
+				// the extension's kind wins.
 				if cn.Kind != "" && n.Kind == "" {
 					n.Kind, n.Props = cn.Kind, cn.Props
+				} else if len(n.Props) == 0 && len(cn.Props) > 0 {
+					n.Props = cn.Props
 				}
 				if prefix != "" && n.MirrorOf == "" {
 					n.MirrorOf = prefix + "\x00" + rest

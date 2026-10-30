@@ -68,6 +68,15 @@ const (
 	// Default on; off archives without asking (archive is undone by
 	// restore). The real delete of an archived thing always asks.
 	DeleteArchiveConfirmSetting = "delete.archive-confirm"
+	// CLIStandardVerbsSetting is how the CLI's help shows a noun's
+	// standard verbs (cli.Mount): CLIStandardVerbsLine (the default,
+	// owner decision 24) names them on one line of the noun's help and
+	// after "· std" in its summary, its named verbs keeping their
+	// entries; CLIStandardVerbsList lists each as its own entry, as
+	// before standard verbs. Every verb runs either way.
+	CLIStandardVerbsSetting = "cli.standard-verbs"
+	CLIStandardVerbsLine    = "line"
+	CLIStandardVerbsList    = "list"
 	// VisualAfterActionSetting is what a key acting on a visual selection
 	// of list rows leaves: VisualAfterEnd (the default, as in Vim) or
 	// VisualAfterKeep.

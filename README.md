@@ -1482,6 +1482,7 @@ APP config export ~/.config/APP --force   # into the live directory: only with -
 | `settings.json` | Every declared setting at its current value, in declaration order; valid to copy in as is |
 | `settings.reference.json` | Per setting: `name`, `type`, `default`, `enum`, `description`, `value`, `set` (the `settings list` shape), one setting per line |
 | `bindings.reference.json` | Every stored key row of every noun, instance and mode in the `bindings.load` row shape (`bindings list --all`), in the grouped bindings format below (`bindings export`), to copy into `bindings.json` |
+| `props.reference.json` | `{standardVerbs, nouns}`: the standard verb table (kinds, what each needs, aliases, subject, many, repeat, history, confirm) and every noun with props (its store's kind, each prop's type, flags and default, its verbs with their `standard`), one per line; the `standard-verbs` reference page as data |
 | `actions.example.json` | Two actions on the `app` noun (`example-run` in the command form, `example-call` in the base form) using every field, one action per line; installs with no notice |
 | `themes.example.json` | `example` (the built-in palette, every role as `{light, dark}`) and `example-dark` (one colour per role); installs with no notice |
 

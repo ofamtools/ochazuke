@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"runtime/debug"
+	"slices"
 	"sort"
 	"strings"
 
@@ -151,6 +152,12 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 		}
 		g := root.at(noun)
 		g.noun = true
+		if op.Standard != "" {
+			if g.std == nil {
+				g.std = map[string]string{}
+			}
+			g.std[verb] = op.Standard
+		}
 		g.verbs = append(g.verbs, oden.Command{
 			Name: verb, Aliases: aliases, Summary: op.Description, Source: op.Key(),
 			Usage:      "[ARG...] [--target ID] [--json ...] [--ARG VALUE] [--format F] [--yes]",
@@ -173,21 +180,35 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 	}
 	// Each dotted noun nests: ochazuke.settings is the group settings inside
 	// the group ochazuke (bin ochazuke settings list).
-	top := map[string]bool{}
+	var topNames []string
+	top := map[string]*nounGroup{}
 	for _, name := range root.names() {
-		top[name] = true
-		app.Add(root.children[name].command(name))
+		topNames, top[name] = append(topNames, name), root.children[name]
 	}
 	// A short name (settings for ochazuke.settings) is a group of its own too
 	// while no noun of that name shadows it, so bin settings list works.
 	for _, a := range r.Aliases() {
-		if a.Shadowed || top[a.Alias] {
+		if a.Shadowed || top[a.Alias] != nil {
 			continue
 		}
 		if g := root.find(a.Noun); g != nil {
-			top[a.Alias] = true
-			app.Add(g.command(a.Alias))
+			topNames, top[a.Alias] = append(topNames, a.Alias), g
 		}
+	}
+	// A noun's standard verbs are one line of its help (owner decision
+	// 24, setting cli.standard-verbs): when these words ask for a group's
+	// listing, that group lists its named verbs and the line names the
+	// rest. Only the listing changes; every verb still runs.
+	line := r.Settings().String(ochazuke.CLIStandardVerbsSetting) != ochazuke.CLIStandardVerbsList
+	stdLine := ""
+	if line {
+		if g, words := listedGroup(top, topNames, app.Args, line); g != nil && len(g.std) > 0 {
+			g.listing = true
+			stdLine = g.standardLine(strings.Join(append([]string{app.Name}, words...), " "))
+		}
+	}
+	for _, name := range topNames {
+		app.Add(top[name].command(name, line))
 	}
 	app.HelpText = `CLI execution:
   Each call uses a fresh local runtime, not an already-running TUI.
@@ -202,6 +223,9 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
   table from the noun's columns (table cuts to the width on a terminal).
   Scheduled work settles before the command exits.
   Interaction verbs may require UI state and can have no lasting CLI effect.`
+	if stdLine != "" {
+		app.HelpText = stdLine + "\n\n" + app.HelpText
+	}
 	app.Add(oden.Command{
 		Name:    "catalog",
 		Summary: "print the nouns, verbs, bindings and pages as JSON; catalog inspect writes them as an HTML page",
@@ -229,6 +253,12 @@ type nounGroup struct {
 	noun     bool // a registered noun, not only a namespace
 	verbs    []oden.Command
 	children map[string]*nounGroup
+	// std maps a verb to the standard verb it was generated from
+	// (Operation.Standard); listing marks the group whose help these
+	// words print, which then leaves its standard verbs out of the
+	// listing (standardLine names them).
+	std     map[string]string
+	listing bool
 }
 
 // at is the group of a dotted noun name, made as needed.
@@ -268,16 +298,32 @@ func (g *nounGroup) names() []string {
 }
 
 // command is the oden group of g named name: its verbs, then its nested
-// groups. The summary lists the verbs, then the nested nouns.
-func (g *nounGroup) command(name string) oden.Command {
-	children := append([]oden.Command{}, g.verbs...)
-	summary := make([]string, 0, len(g.verbs)+len(g.children))
+// groups. The summary lists the verbs, then the nested nouns; with line
+// (cli.standard-verbs line) the named verbs come first and the standard
+// ones follow after "· std", in the standard verb table's order. A
+// listing group leaves its standard verbs out of its children.
+func (g *nounGroup) command(name string, line bool) oden.Command {
+	children := make([]oden.Command, 0, len(g.verbs)+len(g.children))
+	summary := make([]string, 0, len(g.verbs)+len(g.children)+1)
 	for _, verb := range g.verbs {
-		summary = append(summary, verb.Name)
+		if line && g.std[verb.Name] != "" {
+			if g.listing {
+				continue
+			}
+		} else {
+			summary = append(summary, verb.Name)
+		}
+		children = append(children, verb)
+	}
+	if std := g.standardVerbs(); line && len(std) > 0 {
+		summary = append(summary, "· std")
+		for _, verb := range std {
+			summary = append(summary, verb.Name)
+		}
 	}
 	nested := g.names()
 	for _, child := range nested {
-		children = append(children, g.children[child].command(child))
+		children = append(children, g.children[child].command(child, line))
 	}
 	switch {
 	case len(nested) > 4:
@@ -290,6 +336,82 @@ func (g *nounGroup) command(name string) oden.Command {
 		source = "namespace"
 	}
 	return oden.Command{Name: name, Summary: strings.Join(summary, " "), Source: source, Children: children}
+}
+
+// standardVerbs are g's standard verbs in the standard verb table's
+// order (ochazuke.StandardVerbs), a verb of an unknown row last.
+func (g *nounGroup) standardVerbs() []oden.Command {
+	var out []oden.Command
+	for _, verb := range g.verbs {
+		if g.std[verb.Name] != "" {
+			out = append(out, verb)
+		}
+	}
+	order := ochazuke.StandardVerbs()
+	rank := func(c oden.Command) int {
+		if i := slices.Index(order, g.std[c.Name]); i >= 0 {
+			return i
+		}
+		return len(order)
+	}
+	slices.SortStableFunc(out, func(a, b oden.Command) int { return rank(a) - rank(b) })
+	return out
+}
+
+// standardLine is the help line naming g's standard verbs, each with its
+// aliases in parentheses: "Standard verbs (bin task VERB --help): get,
+// list, set (patch), ...".
+func (g *nounGroup) standardLine(invocation string) string {
+	std := g.standardVerbs()
+	names := make([]string, len(std))
+	for i, verb := range std {
+		names[i] = verb.Name
+		if len(verb.Aliases) > 0 {
+			names[i] += " (" + strings.Join(verb.Aliases, ", ") + ")"
+		}
+	}
+	return fmt.Sprintf("Standard verbs (%s VERB --help for one): %s", invocation, strings.Join(names, ", "))
+}
+
+// listedGroup is the group whose listing args ask for, and the words that
+// named it: words naming groups (resolved as oden resolves them, prefixes
+// included), then nothing or one help flag. Anything else (a verb, an
+// unknown word, another flag) is a command run, not a listing: nil.
+func listedGroup(top map[string]*nounGroup, names []string, args []string, line bool) (*nounGroup, []string) {
+	var g *nounGroup
+	var words []string
+	level := make([]*oden.Command, 0, len(names))
+	for _, name := range names {
+		c := top[name].command(name, line)
+		level = append(level, &c)
+	}
+	for i, word := range args {
+		if word == "-h" || word == "--help" {
+			if i == len(args)-1 && g != nil {
+				return g, words
+			}
+			return nil, nil
+		}
+		res := oden.NewCatalog("", level, nil, nil).Resolve(word)
+		if !res.Resolved() || res.Entry.Command == nil || res.Entry.Command.Children == nil {
+			return nil, nil
+		}
+		name := res.Entry.Command.Name
+		if g == nil {
+			g = top[name]
+		} else {
+			g = g.children[name]
+		}
+		if g == nil {
+			return nil, nil
+		}
+		words = append(words, name)
+		level = level[:0]
+		for j := range res.Entry.Command.Children {
+			level = append(level, &res.Entry.Command.Children[j])
+		}
+	}
+	return g, words
 }
 
 // presetDetails is the help line naming an alias's preset arguments.

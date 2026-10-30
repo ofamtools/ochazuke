@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/unixsuperhero/ochazuke/refdoc"
 )
 
 // ReferenceDir is the directory config.export writes to by default, inside
@@ -20,6 +22,7 @@ const ReferenceDir = "reference"
 const (
 	SettingsReferenceFile = "settings.reference.json"
 	BindingsReferenceFile = "bindings.reference.json"
+	PropsReferenceFile    = "props.reference.json"
 	ActionsExampleFile    = "actions.example.json"
 	ThemesExampleFile     = "themes.example.json"
 	ReferenceReadme       = "README.md"
@@ -129,14 +132,57 @@ func (r *Runtime) exportFiles() ([]exportFile, error) {
 	if err != nil {
 		return nil, err
 	}
+	props, err := r.propsReference()
+	if err != nil {
+		return nil, err
+	}
 	return []exportFile{
 		{ReferenceReadme, r.referenceReadme(len(settings), len(r.allBindings()))},
 		{SettingsFile, current},
 		{SettingsReferenceFile, reference},
 		{BindingsReferenceFile, bindings},
+		{PropsReferenceFile, props},
 		{ActionsExampleFile, actions},
 		{ThemesExampleFile, themesExample()},
 	}, nil
+}
+
+// propsReference is props.reference.json: the reference model's standard
+// verbs and nouns with props (ReferenceModel, the standard-verbs page's
+// data), one noun per line.
+func (r *Runtime) propsReference() ([]byte, error) {
+	m := r.ReferenceModel()
+	nouns := m.Nouns
+	if nouns == nil {
+		nouns = []refdoc.Noun{}
+	}
+	var b strings.Builder
+	b.WriteString("{\n  \"standardVerbs\": [\n")
+	for i, v := range m.StandardVerbs {
+		data, err := json.Marshal(v)
+		if err != nil {
+			return nil, err
+		}
+		b.WriteString("    " + string(data))
+		if i < len(m.StandardVerbs)-1 {
+			b.WriteString(",")
+		}
+		b.WriteString("\n")
+	}
+	b.WriteString("  ],\n  \"nouns\": [\n")
+	for i, n := range nouns {
+		data, err := json.Marshal(n)
+		if err != nil {
+			return nil, err
+		}
+		b.WriteString("    " + string(data))
+		if i < len(nouns)-1 {
+			b.WriteString(",")
+		}
+		b.WriteString("\n")
+	}
+	b.WriteString("  ]\n}\n")
+	return []byte(b.String()), nil
 }
 
 // actionPlaceholderHelp describes every template name an action may use,
@@ -197,6 +243,7 @@ func (r *Runtime) referenceReadme(settings, rows int) []byte {
 	line("| `%s` | Every declared setting (%d) at its current value | Copy the lines you want to change into the live `%s` |", SettingsFile, settings, SettingsFile)
 	line("| `%s` | Each setting's type, default, allowed values (`enum`), description and current value (`set` is true when the live file holds it) | Read it to see what a setting takes |", SettingsReferenceFile)
 	line("| `%s` | Every key row (%d) of every noun, instance and mode, in the grouped `bindings.json` format (`%s bindings export`): one group per `noun/mode` context, a key per line | Copy a group, or a key line into a group, into the live `%s` and change its keys or action |", BindingsReferenceFile, rows, app, BindingsFile)
+	line("| `%s` | The standard verbs (what each needs of a store) and every noun with props: its store's kind, each prop's type, flags and default, its verbs (`standard` names the standard verb a verb was generated from); the reference's `standard-verbs` page as data | Read it to see what `NOUN set PROP VALUE` and the other standard verbs take |", PropsReferenceFile)
 	line("| `%s` | Two example actions on the `app` noun that use every field | Adapt an entry into the live `%s` |", ActionsExampleFile, ActionsFile)
 	line("| `%s` | Two example colour schemes using every role | Adapt a scheme into the live `%s` |", ThemesExampleFile, ThemesFile)
 	line("")

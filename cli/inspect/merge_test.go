@@ -230,3 +230,16 @@ func sorted(a []string) []string {
 	}
 	return out
 }
+
+// A host's mount of an extension's noun (cli.MountNouns) has the props but
+// no store kind: the page still draws its props.
+func TestMergeKeepsAMountedNounsProps(t *testing.T) {
+	host := &Catalog{Name: "host", Nouns: []CatNoun{{Name: "ext-task", Props: []Prop{{Name: "id", Key: true}, {Name: "title", Role: "label"}},
+		Verbs: []CatVerb{{Name: "set", Kind: "application", Standard: "set"}}}}}
+	d := Merge([]Source{{Tool: ToolInfo{Name: "host", Role: RoleHost}, Catalog: host}}, nil, nil, "host")
+	nouns, _ := index(d)
+	n := nouns["host:ext-task"]
+	if n == nil || len(n.Props) != 2 || n.Kind != "" {
+		t.Fatalf("mounted noun %+v (nouns %v)", n, nouns)
+	}
+}

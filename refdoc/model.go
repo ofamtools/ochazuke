@@ -16,6 +16,70 @@ import (
 type Model struct {
 	Settings []Setting `json:"settings"`
 	Bindings []Group   `json:"bindings"`
+	// StandardVerbs are the rows of the standard verb table, in its
+	// order; Nouns the nouns that declare props, with their store's kind,
+	// props and verbs (standard-verbs.md).
+	StandardVerbs []StandardVerb `json:"standardVerbs,omitempty"`
+	Nouns         []Noun         `json:"nouns,omitempty"`
+}
+
+// StandardVerb is one row of the standard verb table: the verb, what it
+// does, the store kinds it fits, what it needs of the noun's store and
+// props, its aliases, whether it takes a subject (the key prop's
+// parameter, filled from the focus), lists rows, runs once over a
+// selection (many), repeats with . (a simple-value write), its history
+// kind and the confirm it asks by default.
+type StandardVerb struct {
+	Verb        string   `json:"verb"`
+	Description string   `json:"description,omitempty"`
+	Kinds       []string `json:"kinds"`
+	Needs       string   `json:"needs"`
+	Aliases     []string `json:"aliases,omitempty"`
+	Subject     bool     `json:"subject,omitempty"`
+	Rows        bool     `json:"rows,omitempty"`
+	Many        bool     `json:"many,omitempty"`
+	Repeatable  bool     `json:"repeatable,omitempty"`
+	History     string   `json:"history,omitempty"`
+	Confirm     string   `json:"confirm,omitempty"`
+}
+
+// Noun is a noun that declares props: its store's kind ("" without a
+// store), its props in declaration order and its verbs by name.
+type Noun struct {
+	Name  string `json:"name"`
+	Kind  string `json:"kind,omitempty"`
+	Props []Prop `json:"props"`
+	Verbs []Verb `json:"verbs,omitempty"`
+}
+
+// Prop is one prop of a noun (the PropSpec fields a reader needs): its
+// type, the noun a reference names, its allowed values, default, role and
+// fallback, and its flags.
+type Prop struct {
+	Name        string   `json:"name"`
+	Type        string   `json:"type"`
+	Description string   `json:"description,omitempty"`
+	Noun        string   `json:"noun,omitempty"`
+	Enum        []string `json:"enum,omitempty"`
+	Default     any      `json:"default,omitempty"`
+	Role        string   `json:"role,omitempty"`
+	Fallback    string   `json:"fallback,omitempty"`
+	When        string   `json:"availability,omitempty"`
+	Key         bool     `json:"key,omitempty"`
+	Required    bool     `json:"required,omitempty"`
+	ReadOnly    bool     `json:"readOnly,omitempty"`
+	CreateOnly  bool     `json:"createOnly,omitempty"`
+	FromFocus   bool     `json:"fromFocus,omitempty"`
+	Secret      bool     `json:"secret,omitempty"`
+	Multiline   bool     `json:"multiline,omitempty"`
+}
+
+// Verb is one verb of a noun with props: its name, the standard verb it
+// was generated from ("" for a verb written by hand) and its aliases.
+type Verb struct {
+	Name     string   `json:"name"`
+	Standard string   `json:"standard,omitempty"`
+	Aliases  []string `json:"aliases,omitempty"`
 }
 
 // Setting is one declared setting: its name, type, default (in its file

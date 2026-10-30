@@ -77,7 +77,7 @@ func TestConfigExportWritesTheReferenceDirectory(t *testing.T) {
 	if export.Dir != ref || export.Config != dir {
 		t.Fatalf("export %+v", export)
 	}
-	for _, name := range []string{SettingsFile, SettingsReferenceFile, BindingsReferenceFile} {
+	for _, name := range []string{SettingsFile, SettingsReferenceFile, BindingsReferenceFile, PropsReferenceFile} {
 		if !slices.Contains(export.Files, filepath.Join(ref, name)) {
 			t.Fatalf("%s not in %v", name, export.Files)
 		}

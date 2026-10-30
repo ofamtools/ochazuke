@@ -54,7 +54,85 @@ func (r *Runtime) ReferenceModel() refdoc.Model {
 			m.Bindings = append(m.Bindings, refdoc.Group{Context: ctx, Rows: []refdoc.Row{}, Yours: yours[ctx]})
 		}
 	}
+	m.StandardVerbs = referenceStandardVerbs()
+	m.Nouns = r.referenceNouns()
 	return m
+}
+
+// standardNeeds says what each standard verb needs of a noun, as the
+// reference prints it: the row's Needs, in words (a test keeps one entry
+// per row).
+var standardNeeds = map[string]string{
+	"get":       "Store.Get",
+	"list":      "Store.List",
+	"watch":     "Store.Watch, else Store.List (a singleton: Store.Get)",
+	"create":    "Store.Create and a prop create writes",
+	"set":       "Store.Patch and a writable prop",
+	"delete":    "Store.Delete",
+	"rename":    "Store.Patch and a writable label prop (role label)",
+	"move":      "Store.Patch and a writable owner reference (role owner)",
+	"duplicate": "Store.Get, Store.Create and a prop create writes",
+	"archive":   "Store.Patch and a writable archive prop (role archive)",
+	"restore":   "Store.Patch and a writable archive prop (role archive)",
+}
+
+// standardAliases are the aliases a standard verb is registered with
+// (patch with set, owner decision 1), as the reference names them.
+var standardAliases = map[string][]string{"set": {"patch"}}
+
+// referenceStandardVerbs are the standard verb table's rows as the
+// reference shows them, in the table's order.
+func referenceStandardVerbs() []refdoc.StandardVerb {
+	out := make([]refdoc.StandardVerb, 0, len(standardVerbs))
+	for _, v := range standardVerbs {
+		row := refdoc.StandardVerb{
+			Verb: v.Verb, Description: v.Description, Kinds: slices.Clone(v.Kinds), Needs: standardNeeds[v.Verb],
+			Subject: v.Subject, Rows: v.Rows, Many: v.Many, Repeatable: v.Repeatable, History: v.HistoryKind, Confirm: v.Confirm,
+		}
+		row.Aliases = slices.Clone(standardAliases[v.Verb])
+		out = append(out, row)
+	}
+	return out
+}
+
+// referenceNouns are the nouns that declare props, by name: each its
+// store's kind, its props and its verbs (each verb's standard row and its
+// aliases on the same noun).
+func (r *Runtime) referenceNouns() []refdoc.Noun {
+	var out []refdoc.Noun
+	for _, name := range slices.Sorted(maps.Keys(r.Nouns)) {
+		n := r.Nouns[name]
+		if len(n.Props) == 0 {
+			continue
+		}
+		noun := refdoc.Noun{Name: name, Kind: n.StoreKind(), Props: make([]refdoc.Prop, 0, len(n.Props))}
+		for _, p := range n.Props {
+			noun.Props = append(noun.Props, refdoc.Prop{
+				Name: p.Name, Type: p.Type, Description: p.Description, Noun: p.Noun, Enum: slices.Clone(p.Enum),
+				Default: p.Default, Role: p.Role, Fallback: p.Fallback, When: p.When, Key: p.Key, Required: p.Required,
+				ReadOnly: p.ReadOnly, CreateOnly: p.CreateOnly, FromFocus: p.FromFocus, Secret: p.Secret, Multiline: p.Multiline,
+			})
+		}
+		var verbs []string
+		for key, op := range r.Operations {
+			if op.Noun == name {
+				verbs = append(verbs, key)
+			}
+		}
+		slices.Sort(verbs)
+		for _, key := range verbs {
+			op := r.Operations[key]
+			verb := refdoc.Verb{Name: op.Verb, Standard: op.Standard}
+			for _, a := range r.AliasesOf(key) {
+				if a.Noun == name && !a.Bare {
+					verb.Aliases = append(verb.Aliases, a.Verb)
+				}
+			}
+			noun.Verbs = append(noun.Verbs, verb)
+		}
+		out = append(out, noun)
+	}
+	return out
 }
 
 // declareBuiltinSetting declares a setting the framework adds for a
@@ -282,7 +360,7 @@ func (v *docsViewer) ModalBlock(s Styles, width, height int) Block {
 // bindings/docs.json; esc closes it through the modal noun.
 func registerDocs(r *Runtime) {
 	r.Define("ochazuke.docs-viewer")
-	r.Register(Operation{Verb: "open", Noun: "ochazuke.docs", Description: "Open a topic of the generated reference (index, settings, bindings) in the docs viewer, rendered from the running catalog",
+	r.Register(Operation{Verb: "open", Noun: "ochazuke.docs", Description: "Open a topic of the generated reference (index, settings, bindings, standard-verbs) in the docs viewer, rendered from the running catalog",
 		Parameters: map[string]Parameter{
 			"topic": {Type: "string", Enum: docsTopics(), Description: "The topic (default index)"},
 		}, Positional: []string{"topic"}, Result: "docs page", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
