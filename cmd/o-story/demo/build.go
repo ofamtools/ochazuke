@@ -371,6 +371,15 @@ func (ss *session) defineDemo(pages []*Page) error {
 				return fmt.Errorf("pending %s: %w", name, err)
 			}
 		}
+		for mode, hue := range p.ModeTones {
+			ss.M.Appearance.SetModeTone(mode, hue)
+		}
+		for _, name := range slices.Sorted(maps.Keys(p.Modes)) {
+			spec := p.Modes[name]
+			if err := r.DefineMode(name, spec.Pending, ochazuke.ModeExtends(spec.Extends)); err != nil {
+				return fmt.Errorf("mode %s: %w", name, err)
+			}
+		}
 		for _, b := range p.Bind {
 			if _, ok := r.Operation(b.Do); !ok {
 				return fmt.Errorf("bind %s: unknown operation %q", b.Keys, b.Do)
@@ -817,6 +826,11 @@ func (ss *session) addPage(p *Page) error {
 			return fmt.Errorf("list %s: %w", l.ID, err)
 		}
 		ss.lists[l.ID] = list
+		if l.Pin != "" {
+			if err := r.PinInstance(l.ID, l.Pin); err != nil {
+				return fmt.Errorf("list %s: %w", l.ID, err)
+			}
+		}
 		if l.Selected > 0 && l.Selected < len(items) {
 			if err := list.Select(items[l.Selected].ID); err != nil {
 				return err
@@ -913,6 +927,11 @@ func (ss *session) addPage(p *Page) error {
 			return fmt.Errorf("input %s: %w", in.ID, err)
 		}
 		ss.inputs[in.ID] = input
+		if in.Pin != "" {
+			if err := r.PinInstance(in.ID, in.Pin); err != nil {
+				return fmt.Errorf("input %s: %w", in.ID, err)
+			}
+		}
 		if focus == "" {
 			focus = in.ID
 		}

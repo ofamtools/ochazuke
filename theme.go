@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"image/color"
+	"maps"
 	"os"
 	"slices"
 	"strings"
@@ -32,6 +33,46 @@ type Appearance struct {
 	// application's own (NewSchemeSet). A pointer keeps Appearance
 	// comparable.
 	Schemes *SchemeSet `json:"-"`
+	// AppTones are the application's own tone rows (SetModeTone, SetTone),
+	// laid over the built-in tones and under every themes.json entry, so
+	// a theme still recolours them. A pointer keeps Appearance comparable.
+	AppTones *ToneRows `json:"-"`
+}
+
+// ToneRows are tone rows by name an application declares
+// (Appearance.AppTones). The zero value and nil hold none.
+type ToneRows struct{ rows map[string]ToneStyle }
+
+// Rows are the rows, a copy.
+func (t *ToneRows) Rows() map[string]ToneStyle {
+	if t == nil {
+		return nil
+	}
+	return maps.Clone(t.rows)
+}
+
+// SetTone declares (or replaces) the application's tone row name, laid
+// over the built-in tones and under themes.json (Appearance.AppTones):
+// an application's own cell tone, or a chrome row (chrome.rich.hint.key).
+func (a *Appearance) SetTone(name string, style ToneStyle) {
+	if a.AppTones == nil {
+		a.AppTones = &ToneRows{}
+	}
+	if a.AppTones.rows == nil {
+		a.AppTones.rows = map[string]ToneStyle{}
+	}
+	a.AppTones.rows[name] = style
+}
+
+// SetModeTone declares the badge hue of a mode: the tone row
+// mode.<mode>, from which the rich and subtle chrome levels derive the
+// badge (rich fills it with hue, subtle draws hue on the surface; off
+// is unchanged). A themes.json theme's mode.<mode> row recolours it, and
+// its chrome.<level>.mode.<mode> row replaces a level's badge whole. A
+// mode with no hue row of its own takes the first row of its chain
+// (mode.pending for a pending mode, the mode it extends, mode).
+func (a *Appearance) SetModeTone(mode string, hue SchemeColor) {
+	a.SetTone("mode."+mode, ToneStyle{Fg: hue})
 }
 
 // NewAppearance registers appearance operations once per runtime.

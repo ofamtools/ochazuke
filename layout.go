@@ -19,6 +19,11 @@ type Layout struct {
 	// page's remembered divider (Runtime.PaneLayout sets it; pane.grow,
 	// pane.shrink and pane.reset change it). Divide applies it.
 	Shift int
+	// Only draws the focused panel of a split alone, filling the body
+	// (pane.only; Runtime.PaneLayout sets it): SplitFocusBlock with a
+	// focused side draws that panel, SplitBlock and Split the left one;
+	// with SplitNone both are drawn.
+	Only bool
 
 	// panelTone is the tone PanelBlock draws the next panel's border in
 	// (WithPanelTone); "" is the plain border.
@@ -534,9 +539,18 @@ const (
 // holding the focus draws in the focused style (accent title and border),
 // the other plain, so a view whose focus moves between its panes (o-json's
 // tree and detail) shows where it is. When both bodies carry a cursor, the
-// focused panel's wins.
+// focused panel's wins. With Only (pane.only) the focused panel is drawn
+// alone over the whole body.
 func (l Layout) SplitFocusBlock(focused SplitSide, leftTitle string, leftBody Block, rightTitle string, rightBody Block) Block {
 	bw, bh := l.BodySize()
+	if l.Only && bw > 0 && bh > 0 {
+		switch focused {
+		case SplitLeft:
+			return l.PanelBlock(leftTitle, leftBody, bw, bh, true)
+		case SplitRight:
+			return l.PanelBlock(rightTitle, rightBody, bw, bh, true)
+		}
+	}
 	stacked := l.Width < layoutStackAt
 	first := l.Divide((bw-1)*2/5, bw-1, PaneMinWidth)
 	if stacked {

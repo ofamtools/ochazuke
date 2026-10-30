@@ -213,7 +213,7 @@ func (in *Input) pasteYank(y Yank, before, literal bool, steps int) error {
 	if !in.Multiline && (y.Shape == "block" || y.Shape == "line" || strings.ContainsAny(y.Text, "\r\n")) {
 		return errors.New("single-line input cannot paste multiline yank")
 	}
-	if literal || in.Mode == "insert" {
+	if literal || modeIs(in.r, in.Mode, "insert") {
 		return in.Replace(in.Cursor, in.Cursor, strings.Repeat(y.Text, steps))
 	}
 	start, end := in.lineBounds(in.Cursor)

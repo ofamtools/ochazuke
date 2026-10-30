@@ -931,7 +931,7 @@ func (m *Model) cursor(block Block) *tea.Cursor {
 		return cursor
 	}
 	switch mode := m.Runtime.Mode.Name; {
-	case mode == "insert":
+	case m.Runtime.ModeIs(mode, "insert"):
 		cursor.Shape = tea.CursorBar
 		cursor.Blink = true
 	case editorShape(m.Runtime, mode) != "":

@@ -1,0 +1,17 @@
+{
+  "name": "panes: with one pane shown, ctrl+w = restores the split (before it resets the divider), and moving the focus to the hidden pane (ctrl+w w, to the row it was on) brings it back too",
+  "area": "panes",
+  "width": 80,
+  "height": 12,
+  "page": {
+    "layout": "split",
+    "lists": [{"id": "shape", "rows": 2}, {"id": "data", "rows": 2}]
+  },
+  "script": ["j", "j", "ctrl+w", "o", "ctrl+w", "=", "ctrl+w", "o", "ctrl+w", "w"],
+  "expect": [
+    {"after": 4, "focus": "data1", "contains": ["━ data ━"], "lacks": ["shape1"]},
+    {"after": 6, "focus": "data1", "contains": ["shape1", "data1"]},
+    {"after": 8, "lacks": ["shape1"]},
+    {"focus": "shape2", "contains": ["shape1", "data1"]}
+  ]
+}

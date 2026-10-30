@@ -25,7 +25,7 @@ R|            │ 0           .column?                                          
  |            │ down        .move           .move                                             .move          │
  |            │ end         .column?                                                          .column?       │
  |            │ enter       demo.open       .filter-choose?                                   demo.open      │
- |            │ 1–18 / 79                                                                                    │
+ |            │ 1–18 / 80                                                                                    │
  |            │ ──────────────────────────────────────────────────────────────────────────────────────────── │
  |            │ normal       list.column {"to":"first"} when no-count · list                                 │
  |            │              then list.scroll-columns {"to":"first"} when row-table-no-count · list          │

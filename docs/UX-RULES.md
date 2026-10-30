@@ -114,11 +114,24 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R2.5** Leaving a pending mode returns to its base (`Payload.Return`),
   never to a hard-coded `normal`. Story: needed (`modes/leave-returns-to-base`).
 - **R2.6** Unknown mode names are errors, not treated as normal or insert.
-  Check: unit test on `SetMode` with a garbage name.
+  Check: unit test on `SetMode` with a garbage name. A registered mode that
+  extends insert (`ModeExtends("insert")`, `"extends": "insert"`, followed
+  up the chain: `Runtime.ModeIs(mode, "insert")`) is insert wherever the
+  framework asks: completion opens in it, an input's typing in it is one
+  undo change, the bar cursor; leaving it for a mode that is normal steps
+  the cursor back. No check names an application's mode. Story:
+  `completion/insert-like-mode.json`; test `insert_like_test.go`.
 - **R2.7** `prompt` pins insert and `terminal` pins terminal; focusing an
   instance of such a noun enters the pinned mode. Story:
   `inputs/lone-input.json` covers insert and escape for a plain input;
-  needed for prompt and terminal pins.
+  needed for prompt and terminal pins. An instance may declare its own base
+  mode (`Instance.Pin`, `Runtime.PinInstance`, `mode.pin`): focus on it, or
+  entering a stop beneath it with no nearer pin, enters that mode; a re-pin
+  of the focused pane applies in the same update when the runtime stands in
+  the mode it declared before (a lifted mode such as insert is kept), never
+  a frame later. An `esc` row returns with `mode.set {mode: declared}`, so
+  no row names a pane's mode. Story: `modes/instance-pin-focus.json`,
+  `modes/instance-pin-live.json`, `modes/esc-declared.json`.
 - **R2.8** A passthrough mode has no capture pass: while `terminal` is the
   base mode, the app's captured `ctrl+c` does not fire. Story:
   `terminal/ctrl-c-reaches-pane.json`.
@@ -170,8 +183,10 @@ tiers above them. When the two disagree, fix one in the same commit.
   `Push`/`Pop`, `OpenPage`, `RemoveInstance`, `RetargetFocus`. No component
   assigns `Runtime.Focus`. Check: grep for `.Focus =` outside `focus.go`.
 - **R3.2** A focus change that leaves the current stop resets the mode to
-  `normal` with an empty payload, or to the new noun's pinned mode. A move
-  inside one stop keeps it. `Pop` and `page.open` restore the mode they left.
+  `normal` with an empty payload, or to the declared mode of the new focus
+  (a pinned input's, its instance's `Pin`, its noun's `Pin`, else the
+  nearest pinning ancestor's; a modal is a boundary). A move inside one stop
+  keeps it, unless the focused instance itself pins. `Pop` and `page.open` restore the mode they left.
   Story: needed (`focus/leaving-stop-resets-mode`,
   `focus/inside-stop-keeps-mode`).
 - **R3.3** Stop order is the page's recorded drawing order, never
@@ -254,6 +269,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   | Region | `)` / `(` | Next / previous region. |
   | Kind | `]x` / `[x` | Next / previous matching kind where a component offers it. |
   | Pane | `ctrl+w l` / `ctrl+w h`, `ctrl+w w` / `ctrl+w W`, `ctrl+a o` | Next / previous focus stop; `ctrl+a o` cycles forward. |
+  | Pane layout | `ctrl+w o`, `ctrl+w =` | Keep the focused pane alone / show both again (R3.16); `ctrl+w o` again also restores. |
   | Tab (planned) | `g t` / `g T` | Next / previous tab inside a page. |
   | Page | `ctrl+j` / `ctrl+k` | Next / previous page. |
   | Jump (planned) | `ctrl+o` / `ctrl+i` / `ctrl+]` | Back / forward through jump history. |
@@ -264,6 +280,13 @@ tiers above them. When the two disagree, fix one in the same commit.
   may replace or unbind a default row. Stories:
   `panes/ctrl-w-l-next-stop.json`, `panes/ctrl-w-h-prev-stop.json`,
   `panes/ctrl-a-o-next-pane.json`.
+- **R3.16** One pane alone hides, never closes: `pane.only` draws the
+  focused panel of a split over the body and keeps the other pane's
+  instances; `ctrl+w o` again, `ctrl+w =` or the focus leaving the kept
+  pane (a jump to the hidden side) shows both again, a modal does not.
+  `pane.only {pane}` moves the focus into the named pane first, so the
+  pane kept is always the focused one. Story: `panes/only.json`,
+  `panes/only-restore-keys.json`; test `pane_only_test.go`.
 
 ### R4. Modals
 

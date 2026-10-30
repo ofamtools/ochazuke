@@ -123,10 +123,11 @@ func TestChromeRowsContrast(t *testing.T) {
 	}
 }
 
-// chromeRowNames are the built-in chrome rows, sorted.
+// chromeRowNames are the built-in chrome rows, sorted, the badge rows the
+// mode hue rows derive included.
 func chromeRowNames() []string {
 	var out []string
-	for name := range defaultTones {
+	for name := range withModeChrome(defaultTones) {
 		if isChromeTone(name) {
 			out = append(out, name)
 		}

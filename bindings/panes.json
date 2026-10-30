@@ -4,7 +4,10 @@
     {"context": "app/normal", "bindings": [
       {"key": "ctrl+w >", "action": "ochazuke.pane.grow", "hint": "ctrl+w >/< resize", "when": "pane-split", "from": {"steps": "count"}},
       {"key": "ctrl+w <", "action": "ochazuke.pane.shrink", "when": "pane-split", "from": {"steps": "count"}, "hidden": true},
+      {"key": "ctrl+w =", "action": "ochazuke.pane.restore", "when": "pane-only", "hidden": true},
       {"key": "ctrl+w =", "action": "ochazuke.pane.reset", "when": "pane-split", "hidden": true},
+      {"key": "ctrl+w o", "action": "ochazuke.pane.restore", "when": "pane-only", "hidden": true},
+      {"key": "ctrl+w o", "action": "ochazuke.pane.only", "when": "pane-split", "hidden": true},
       {"key": "ctrl+w w", "action": "ochazuke.focus.next", "hidden": true},
       {"key": "ctrl+w W", "action": "ochazuke.focus.previous", "hidden": true},
       {"key": "ctrl+w h", "action": "ochazuke.focus.previous", "hidden": true},

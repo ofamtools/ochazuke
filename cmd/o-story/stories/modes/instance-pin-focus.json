@@ -1,0 +1,17 @@
+{
+  "name": "modes: a list that pins its base mode (Runtime.PinInstance) puts the runtime in it when the focus lands on it, j spilling in or } jumping; leaving for an unpinned list goes back to normal",
+  "area": "modes",
+  "width": 60,
+  "height": 12,
+  "page": {
+    "modes": {"table": {"extends": "normal"}},
+    "lists": [{"id": "shape", "rows": 2}, {"id": "data", "rows": 2, "pin": "table"}]
+  },
+  "script": ["j", "j", "k", "}"],
+  "expect": [
+    {"after": 1, "focus": "shape2", "mode": "normal", "badge": "NORMAL"},
+    {"after": 2, "focus": "data1", "mode": "table", "badge": "TABLE"},
+    {"after": 3, "focus": "shape2", "mode": "normal", "badge": "NORMAL"},
+    {"focus": "data1", "mode": "table", "badge": "TABLE"}
+  ]
+}

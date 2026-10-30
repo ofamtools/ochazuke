@@ -17,7 +17,10 @@ import (
 // Unfocusable opts the instance out of being a focus stop although its noun
 // is Focusable (a disabled panel). Label is an optional display name a
 // confirm prompt reads as {{label}}. Data is an opaque application value
-// (a list row's ListItem.Data); the framework never reads it.
+// (a list row's ListItem.Data); the framework never reads it. Pin is the
+// base mode the instance declares (Runtime.PinInstance): focus landing on
+// it, or beneath it with no nearer pin, puts the runtime in that mode, and
+// mode.set {mode: declared} returns to it.
 type Instance struct {
 	ID          string    `json:"id"`
 	Noun        string    `json:"noun"`
@@ -27,6 +30,7 @@ type Instance struct {
 	Unfocusable bool      `json:"unfocusable,omitempty"`
 	Label       string    `json:"label,omitempty"` // a display name (a list row's label, a header name); {{label}} in a confirm prompt
 	Data        any       `json:"data,omitempty"`  // an opaque application value (a list row's ListItem.Data)
+	Pin         string    `json:"pin,omitempty"`   // the declared base mode (PinInstance)
 	Component   any       `json:"-"`
 	seq         uint64
 	returnMode  ModeState // an open modal's mode to restore on Pop, beside Payload.Return

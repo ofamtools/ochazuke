@@ -1,0 +1,20 @@
+{
+  "name": "chrome colour: a themes.json theme's mode.<name> row recolours a built-in mode's badge (insert) and an application's own (jq) at both levels",
+  "area": "chrome",
+  "width": 80,
+  "height": 12,
+  "theme": "dark",
+  "values": {"chrome.color": "subtle"},
+  "themes": {"adaptive": {"tones": {"mode.insert": "#D7875F", "mode.jq": "#5FAFD7"}}},
+  "page": {
+    "modes": {"jq": {"extends": "normal"}},
+    "modeTones": {"jq": {"light": "#984410", "dark": "#F0A060"}},
+    "lists": [{"id": "shape", "rows": 1}, {"id": "data", "rows": 1, "pin": "jq"}],
+    "inputs": [{"id": "name", "label": "name", "text": "hello"}]
+  },
+  "script": ["j", "j", "i"],
+  "expect": [
+    {"after": 1, "mode": "jq", "badge": "JQ", "styled": {"JQ": "#5FAFD7"}},
+    {"mode": "insert", "badge": "INSERT", "styled": {"INSERT": "#D7875F"}}
+  ]
+}

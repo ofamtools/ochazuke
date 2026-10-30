@@ -101,8 +101,13 @@ var (
 	chromeText    = SchemeColor{"text", "text"}
 )
 
-// chromeModes are the badge hues by mode role, shared by both levels:
-// rich fills the badge with the hue, subtle draws the hue on the surface.
+// chromeModes are the built-in badge hues, the default rows of the tones
+// mode.<name> (and mode, any mode without a row of its own): a hue row is
+// data like any tone, so an application (Appearance.SetModeTone) or a
+// themes.json theme's tones declare one for their own modes or recolour
+// a built-in one. Both levels derive their badge rows from it
+// (withModeChrome): rich fills the badge with the hue, subtle draws the
+// hue on the surface.
 var chromeModes = map[string]SchemeColor{
 	"mode":                 chromeAccent,
 	"mode.normal":          chromeAccent,
@@ -120,7 +125,8 @@ var chromeModes = map[string]SchemeColor{
 // chromeTones are the built-in rows of the subtle and rich levels (off has
 // none). rich colours every border (a toned panel by its state, the
 // focused one by the mode), fills the badge and lifts the hint keys;
-// subtle tints foregrounds only and colours only the alert states.
+// subtle tints foregrounds only and colours only the alert states. The
+// badge rows come from the mode hue rows (chromeModes, withModeChrome).
 func chromeTones() map[string]ToneStyle {
 	rows := map[string]ToneStyle{
 		"chrome.rich.border":                   {Fg: chromeTeal},
@@ -141,13 +147,54 @@ func chromeTones() map[string]ToneStyle {
 		"chrome.subtle.hint.key":                 {Fg: chromeText},
 	}
 	for role, hue := range chromeModes {
-		rows["chrome.rich."+role] = ToneStyle{Fg: chromeSurf, Bg: hue, Bold: true}
-		rows["chrome.subtle."+role] = ToneStyle{Fg: hue, Bg: chromeSurf, Bold: true}
+		rows[role] = ToneStyle{Fg: hue}
 	}
 	return rows
 }
 
 func init() { maps.Copy(defaultTones, chromeTones()) }
+
+// isModeHue reports whether a tone is a mode hue row: mode or mode.<name>.
+func isModeHue(name string) bool { return name == "mode" || strings.HasPrefix(name, "mode.") }
+
+// modeChromeLevels are the levels whose badge rows a hue row derives.
+var modeChromeLevels = []string{ChromeRich, ChromeSubtle}
+
+// withModeChrome is tones with the badge rows each mode hue row derives:
+// for the hue row mode.<name> (its fg, else its bg), the rows
+// chrome.rich.mode.<name> (surface ink on the hue, bold) and
+// chrome.subtle.mode.<name> (the hue on the surface, bold), unless tones
+// has that row already (a theme's own chrome row wins). off derives
+// nothing, so it stays the look before the levels. tones is not changed;
+// with no hue rows it is returned as is.
+func withModeChrome(tones map[string]ToneStyle) map[string]ToneStyle {
+	out := tones
+	copied := false
+	for name, t := range tones {
+		if !isModeHue(name) {
+			continue
+		}
+		hue := t.Fg
+		if hue.Light == "" && hue.Dark == "" {
+			hue = t.Bg
+		}
+		for _, level := range modeChromeLevels {
+			row := chromeTonePrefix + level + "." + name
+			if _, ok := tones[row]; ok {
+				continue
+			}
+			if !copied {
+				out, copied = maps.Clone(tones), true
+			}
+			if level == ChromeRich {
+				out[row] = ToneStyle{Fg: chromeSurf, Bg: hue, Bold: true}
+			} else {
+				out[row] = ToneStyle{Fg: hue, Bg: chromeSurf, Bold: true}
+			}
+		}
+	}
+	return out
+}
 
 // chromeTonePrefix is the namespace of the chrome rows.
 const chromeTonePrefix = "chrome."

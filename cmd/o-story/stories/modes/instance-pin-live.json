@@ -1,0 +1,25 @@
+{
+  "name": "modes: re-pinning the focused list (mode.pin, as a view change does) changes the badge in the same update, no frame behind; a re-pin over a lifted mode keeps it, and esc to declared lands on the new pin",
+  "area": "modes",
+  "width": 60,
+  "height": 12,
+  "page": {
+    "modes": {"table": {"extends": "normal"}, "flat": {"extends": "normal"}, "edit": {"extends": "normal"}},
+    "lists": [{"id": "data", "rows": 2, "pin": "table"}],
+    "bind": [
+      {"noun": "demo", "mode": "table", "keys": "D", "do": "ochazuke.mode.pin", "args": {"instance": "data", "mode": "flat"}},
+      {"noun": "demo", "mode": "flat", "keys": "D", "do": "ochazuke.mode.pin", "args": {"instance": "data", "mode": "table"}},
+      {"noun": "demo", "mode": "flat", "keys": "i", "do": "ochazuke.mode.set", "args": {"mode": "edit"}},
+      {"noun": "demo", "mode": "edit", "keys": "D", "do": "ochazuke.mode.pin", "args": {"instance": "data", "mode": "table"}},
+      {"noun": "demo", "mode": "edit", "keys": "esc", "do": "ochazuke.mode.set", "args": {"mode": "declared"}}
+    ]
+  },
+  "script": ["D", "i", "D", "esc"],
+  "expect": [
+    {"after": 0, "mode": "table", "badge": "TABLE"},
+    {"after": 1, "mode": "flat", "badge": "FLAT"},
+    {"after": 2, "mode": "edit", "badge": "EDIT"},
+    {"after": 3, "mode": "edit", "badge": "EDIT"},
+    {"mode": "table", "badge": "TABLE"}
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "name": "completion: a mode that extends insert (an application's JQ line) is insert for completion and undo: typing a trigger offers its suggestions, the badge names the mode, esc then u takes back the whole session",
+  "area": "completion",
+  "width": 56,
+  "height": 12,
+  "page": {
+    "noHeadings": true,
+    "modes": {"jq": {"extends": "insert"}},
+    "bind": [{"noun": "ochazuke.editor", "keys": "J", "do": "ochazuke.mode.set", "args": {"mode": "jq"}}],
+    "inputs": [
+      {
+        "id": "query",
+        "label": "query",
+        "text": "",
+        "completions": [{"trigger": ".", "items": [".name", ".nested", ".id"]}]
+      }
+    ]
+  },
+  "script": [
+    "J",
+    {"type": ".n"},
+    {"tick": "debounce"},
+    {"job": "completion.search"},
+    "esc",
+    "esc",
+    "u"
+  ],
+  "expect": [
+    {"after": 1, "mode": "jq", "badge": "JQ"},
+    {"after": 4, "mode": "jq", "badge": "JQ", "contains": ["query: .n", ".name", ".nested"], "lacks": [".id"]},
+    {"after": 6, "mode": "normal", "contains": ["query: .n"]},
+    {"mode": "normal", "contains": ["query:"], "lacks": ["query: .n"]}
+  ]
+}

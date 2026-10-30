@@ -53,6 +53,11 @@ type Page struct {
 	// Runtime.PaneLayout (splitting collects the frame in progress); the
 	// pane keys answer only then.
 	split, splitting bool
+	// only is the pane instance pane.only keeps on screen ("" for both):
+	// PaneLayout sets Layout.Only while it is set, so the page's split
+	// draws the focused panel alone; pane.restore, or the focus leaving
+	// the pane (focusMoved), clears it.
+	only string
 	// details are the detail components beneath the page (AddDetail and
 	// RegisterPage record them; pageDetail drops removed ones), so finding
 	// the page's detail does not walk its rows.

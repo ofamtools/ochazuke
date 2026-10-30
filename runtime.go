@@ -500,6 +500,7 @@ func (r *Runtime) registerFramework() {
 	registerDetail(r)
 	registerViewScroll(r)
 	registerPanes(r)
+	registerModePin(r)
 	registerQuery(r)
 	registerHistory(r)
 	registerPlacements(r)
@@ -587,9 +588,10 @@ func (r *Runtime) setMode(m ModeState, extra ...string) {
 }
 
 // SetMode sets the global mode by name and clears its payload, as mode.set
-// does: a focused input runs its own transition (insert sessions, visual
+// does (ModeDeclared names the focus's declared mode, DeclaredMode): a focused input runs its own transition (insert sessions, visual
 // anchor), and a pinned input stays in its pinned mode.
 func (r *Runtime) SetMode(mode string) error {
+	mode = r.resolveDeclared(mode)
 	if !r.Modes[mode] {
 		return fmt.Errorf("unknown mode %q", mode)
 	}
@@ -1167,8 +1169,8 @@ func registerCore(r *Runtime) {
 		err := r.SetFocus(id)
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "set", Noun: "ochazuke.mode", Description: "Set the global interaction mode (a registered mode) and clear any pending payload", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "ochazuke.modes"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		mode := StringArg(a, "mode", "")
+	r.Register(Operation{Verb: "set", Noun: "ochazuke.mode", Description: "Set the global interaction mode (a registered mode, or declared: the mode the focus declares, normal if none) and clear any pending payload", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "ochazuke.modes"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		mode := r.resolveDeclared(StringArg(a, "mode", ""))
 		if !r.Modes[mode] {
 			return nil, fmt.Errorf("unknown mode %q", mode)
 		}

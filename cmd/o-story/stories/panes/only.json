@@ -1,0 +1,16 @@
+{
+  "name": "panes: ctrl+w o shows only the focused pane of a split over the whole body (pane.only, Vim's :only without closing); ctrl+w o again brings the other back (pane.restore)",
+  "area": "panes",
+  "width": 80,
+  "height": 12,
+  "page": {
+    "layout": "split",
+    "lists": [{"id": "shape", "rows": 2}, {"id": "data", "rows": 2}]
+  },
+  "script": ["ctrl+w", "o", "ctrl+w", "o"],
+  "expect": [
+    {"after": 0, "contains": ["shape", "data"]},
+    {"after": 2, "focus": "shape1", "contains": ["╭━ shape ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"], "lacks": ["data1", "─ data"]},
+    {"focus": "shape1", "contains": ["shape1", "data1"]}
+  ]
+}

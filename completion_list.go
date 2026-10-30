@@ -97,7 +97,7 @@ func registerCompletion(r *Runtime) {
 	inst.Component = &Completer{r: r, cursor: -1, jobs: map[uint64]uint64{}}
 	r.DefineGuard("completion-available", func(r *Runtime, ev KeyEvent) bool {
 		in := r.Input(ev.Focus)
-		if in == nil || in.Mode != "insert" {
+		if in == nil || !r.ModeIs(in.Mode, "insert") {
 			return false
 		}
 		_, _, ok := completionToken(in, r.CompletionTriggers(in.ID))
@@ -242,7 +242,7 @@ func (c *Completer) observe() {
 	if in != nil {
 		triggers = r.CompletionTriggers(in.ID)
 	}
-	if in == nil || len(triggers) == 0 || r.BaseMode() != "insert" {
+	if in == nil || len(triggers) == 0 || !r.ModeIs(r.BaseMode(), "insert") {
 		c.stop()
 		c.input, c.seen, c.text = "", "", ""
 		return

@@ -81,6 +81,10 @@ type Scheme struct {
 	// builtin marks a themes.json entry named after a built-in theme: it
 	// holds only Tones, laid over that theme's (toneOverrides).
 	builtin bool
+	// given are the tone names the scheme's own "tones" gave (Tones holds
+	// the built-in ones too): an application's row (AppTones) gives way
+	// only to these.
+	given map[string]bool
 }
 
 // defaultScheme is the built-in palette; a user scheme's missing role
@@ -112,17 +116,32 @@ func (a Appearance) scheme() (Scheme, bool) {
 		return s, false
 	}
 	if u, ok := a.Schemes.Get(a.Theme); ok && !u.builtin {
+		if app := a.AppTones.Rows(); len(app) > 0 {
+			// The application's rows sit under the scheme's own.
+			tones := maps.Clone(u.Tones)
+			for name, t := range app {
+				if !u.given[name] {
+					tones[name] = t
+				}
+			}
+			u.Tones = tones
+		}
 		return u, false
 	}
 	s.Tones = a.toneOverrides("adaptive")
 	return s, false
 }
 
-// toneOverrides is the built-in tones with the tones of the themes.json
-// entries named (built-in theme names) laid over them in order.
+// toneOverrides is the built-in tones with the application's rows
+// (AppTones) and then the tones of the themes.json entries named
+// (built-in theme names) laid over them in order.
 func (a Appearance) toneOverrides(names ...string) map[string]ToneStyle {
 	out := defaultTones
 	copied := false
+	if app := a.AppTones.Rows(); len(app) > 0 {
+		out, copied = maps.Clone(out), true
+		maps.Copy(out, app)
+	}
 	for _, name := range names {
 		if o, ok := a.Schemes.Get(name); ok && o.builtin && len(o.Tones) > 0 {
 			if !copied {
@@ -251,6 +270,12 @@ func parseScheme(name string, data json.RawMessage) (Scheme, error) {
 				return Scheme{}, err
 			}
 			s.Tones = tones
+			var own map[string]json.RawMessage
+			_ = json.Unmarshal(value, &own) // parseTones read it
+			s.given = map[string]bool{}
+			for name := range own {
+				s.given[name] = true
+			}
 			continue
 		}
 		field, ok := fields[role]
