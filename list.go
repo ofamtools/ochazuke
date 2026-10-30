@@ -41,6 +41,7 @@ type List struct {
 	r           *Runtime
 	id          string
 	all         []ListItem // every row, as SetItems gave them
+	headerTones []ToneSpan // the header row's tones (SetHeaderTones)
 	items       []ListItem // the rows shown: all, or the ones the filter lets through (list_filter.go)
 	query       string     // the filter query; "" shows every row
 	hay         []string   // each row's filter text (filterHay), built on the first filter; nil after SetItems

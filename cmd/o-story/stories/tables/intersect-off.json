@@ -1,0 +1,25 @@
+{
+  "name": "intersect: with list.intersect off the selected row stays one reverse bar across a highlighted column, and with list.part-tones off the header is bold text on no band and the row numbers draw as data",
+  "area": "tables",
+  "width": 60,
+  "height": 5,
+  "chrome": "none",
+  "theme": "dark",
+  "settings": [
+    {"name": "list.intersect", "type": "boolean", "default": false},
+    {"name": "list.part-tones", "type": "boolean", "default": false}
+  ],
+  "page": {
+    "noHeadings": true,
+    "lists": [{"id": "t",
+      "columns": [{"title": "#", "align": "right", "part": "rownum"}, {"title": "name"}, {"title": "size"}],
+      "headerTones": [{"cell": 2, "tone": "marker.queued", "layer": "column"}],
+      "items": [
+        {"id": "t1", "label": "alpha", "cells": ["1", "alpha", "7kb"], "tones": [{"cell": 2, "tone": "marker.queued", "layer": "column"}]},
+        {"id": "t2", "label": "beta", "cells": ["2", "beta", "40kb"], "tones": [{"cell": 2, "tone": "marker.queued", "layer": "column"}]}
+      ]}]
+  },
+  "expect": [
+    {"focus": "t1", "attrs": {"7kb": "reverse,-bg", "alpha": "reverse,-bg", "size": "bold,-bg", "40kb": "fg,-bg"}}
+  ]
+}

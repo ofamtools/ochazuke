@@ -1,0 +1,124 @@
+{
+  "name": "intersect: where the selected row crosses a highlighted column (a column layer) the cell takes list.cell.intersect, out of the reverse bar; the column's header takes list.header.intersect, the selected row's number list.rownum.intersect; the header and the row numbers draw in their own tones (list.header, list.rownum) so they never read as data",
+  "area": "tables",
+  "width": 60,
+  "height": 6,
+  "chrome": "none",
+  "theme": "dark",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "#",
+            "align": "right",
+            "part": "rownum"
+          },
+          {
+            "title": "name"
+          },
+          {
+            "title": "size"
+          }
+        ],
+        "headerTones": [
+          {
+            "cell": 2,
+            "tone": "marker.queued",
+            "layer": "column"
+          }
+        ],
+        "items": [
+          {
+            "id": "t1",
+            "label": "alpha",
+            "cells": [
+              "1",
+              "alpha",
+              "7kb"
+            ],
+            "tones": [
+              {
+                "cell": 2,
+                "tone": "marker.queued",
+                "layer": "column"
+              }
+            ]
+          },
+          {
+            "id": "t2",
+            "label": "beta",
+            "cells": [
+              "2",
+              "beta",
+              "40kb"
+            ],
+            "tones": [
+              {
+                "cell": 2,
+                "tone": "marker.queued",
+                "layer": "column"
+              }
+            ]
+          },
+          {
+            "id": "t3",
+            "label": "gamma",
+            "cells": [
+              "3",
+              "gamma",
+              "9mb"
+            ],
+            "tones": [
+              {
+                "cell": 2,
+                "tone": "marker.queued",
+                "layer": "column"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "expect": [
+    {
+      "after": 1,
+      "focus": "t2",
+      "attrs": {
+        "40kb": "bg,bold,-reverse",
+        "7kb": "fg,-bg,-reverse",
+        "beta": "reverse,-bg",
+        "alpha": "-reverse,-bg"
+      },
+      "styled": {
+        "40kb": "#1A1A1A",
+        "7kb": "!#1A1A1A"
+      }
+    },
+    {
+      "focus": "t1",
+      "attrs": {
+        "7kb": "bg,bold,-reverse",
+        "alpha": "reverse,-bg",
+        "40kb": "fg,-bg,-reverse",
+        "size": "bg,bold",
+        "name": "bg,bold",
+        "beta": "-bg,-reverse"
+      },
+      "styled": {
+        "7kb": "#1A1A1A"
+      }
+    }
+  ],
+  "script": [
+    {
+      "key": "j"
+    },
+    {
+      "key": "k"
+    }
+  ]
+}

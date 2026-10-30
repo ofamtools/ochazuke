@@ -826,6 +826,9 @@ func (ss *session) addPage(p *Page) error {
 			return fmt.Errorf("list %s: %w", l.ID, err)
 		}
 		ss.lists[l.ID] = list
+		if len(l.HeaderTones) > 0 {
+			list.SetHeaderTones(l.HeaderTones...)
+		}
 		if l.Pin != "" {
 			if err := r.PinInstance(l.ID, l.Pin); err != nil {
 				return fmt.Errorf("list %s: %w", l.ID, err)

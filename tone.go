@@ -65,7 +65,27 @@ const (
 	// surface on its accent, bold. mono draws the focused chip bold.
 	ToneChip        = "chip"
 	ToneChipFocused = "chip.focused"
+	// The table parts: a data cell where two highlight layers cross
+	// (ToneSpan.Layer), the header row, a row-number column
+	// (Column.Part PartRowNumber), and each part's crossing tone (the
+	// part's tone plus IntersectSuffix).
+	ToneCellIntersect      = "list.cell.intersect"
+	ToneHeader             = "list.header"
+	ToneHeaderIntersect    = "list.header.intersect"
+	ToneRowNumber          = "list.rownum"
+	ToneRowNumberIntersect = "list.rownum.intersect"
 )
+
+// IntersectSuffix names a part's crossing tone: the part's tone with it.
+const IntersectSuffix = ".intersect"
+
+// toneCell is the part tone of a data cell, whose crossing tone is
+// list.cell.intersect; it draws nothing of its own.
+const toneCell = "list.cell"
+
+// LayerSelected is the layer the selected row counts as where layers
+// cross.
+const LayerSelected = "selected"
 
 // ToneSpan gives a run of one cell a tone. Cell is the column index (in a
 // list without columns, and a tree without them, 0 is the label); From and
@@ -77,12 +97,32 @@ const (
 // foreground and attributes; Bg alone, with no Tone, only fills. Where
 // spans overlap, the foreground comes from the last span with a Tone and
 // the background from the last span that has one.
+//
+// Layer names the highlight the span belongs to ("column", "row",
+// "search": any word the application picks); a span without one is a
+// plain tone. Highlights compose: where two or more layers cover a cell
+// (the selected row is the layer "selected", a non-data part such as the
+// header or a row-number column is a layer named after its part), the
+// cell takes the intersect tone of its part (list.cell.intersect for a
+// data cell, list.header.intersect, list.rownum.intersect), so a
+// crossing reads at a glance (setting list.intersect, default on). A
+// whole-cell layer span (From and To 0) fills the column's whole width,
+// not only its text.
 type ToneSpan struct {
-	Cell int    `json:"cell"`
-	Tone string `json:"tone,omitempty"`
-	Bg   string `json:"bg,omitempty"`
-	From int    `json:"from,omitempty"`
-	To   int    `json:"to,omitempty"`
+	Cell  int    `json:"cell"`
+	Tone  string `json:"tone,omitempty"`
+	Bg    string `json:"bg,omitempty"`
+	From  int    `json:"from,omitempty"`
+	To    int    `json:"to,omitempty"`
+	Layer string `json:"layer,omitempty"`
+	// part is the part tone a framework span draws a non-data part in
+	// (list.header, list.rownum); "" for a span of the application's.
+	part string
+}
+
+// LayerTone tones a whole cell as one layer of highlight (ToneSpan.Layer).
+func LayerTone(cell int, tone, layer string) ToneSpan {
+	return ToneSpan{Cell: cell, Tone: tone, Layer: layer}
 }
 
 // CellTone tones a whole cell.
@@ -156,6 +196,15 @@ var defaultTones = map[string]ToneStyle{
 	ToneError:       {Bg: SchemeColor{"#F6D3CE", "#5E2722"}, Bold: true},
 	ToneChip:        {Bg: SchemeColor{"#E2EAE5", "#26362F"}},
 	ToneChipFocused: {Fg: SchemeColor{"surface", "surface"}, Bg: SchemeColor{"accent", "accent"}, Bold: true},
+	// Table parts and crossings (ToneSpan.Layer, Column.Part): a crossing
+	// is a warm fill unlike any other tone, the header a band, the row
+	// numbers muted. mono draws the attributes alone: a crossing is bold
+	// out of the reverse bar.
+	ToneCellIntersect:      {Fg: SchemeColor{"#1A1A1A", "#1A1A1A"}, Bg: SchemeColor{"#F2C94C", "#E0B243"}, Bold: true},
+	ToneHeader:             {Fg: SchemeColor{"text", "text"}, Bg: SchemeColor{"#E4E8EE", "#2B323B"}, Bold: true},
+	ToneHeaderIntersect:    {Fg: SchemeColor{"#1A1A1A", "#1A1A1A"}, Bg: SchemeColor{"#E5B53A", "#C99A2E"}, Bold: true},
+	ToneRowNumber:          {Fg: SchemeColor{"muted", "muted"}},
+	ToneRowNumberIntersect: {Fg: SchemeColor{"surface", "surface"}, Bg: SchemeColor{"muted", "muted"}, Bold: true},
 	// The markdown package's note boxes (markdown.NoteTone).
 	"markdown.note": {Fg: SchemeColor{"#875f00", "#d7af5f"}},
 }
@@ -349,6 +398,11 @@ func (s Styles) toneSGR(name string, selected, faded bool) (ansi.Style, bool) {
 type toneSeg struct {
 	x, w     int
 	tone, bg string
+	// layer is the span's highlight layer ("" none); part the part tone
+	// a framework span marks its cells with ("" a data cell); underline
+	// draws the run underlined (a header's current column).
+	layer, part string
+	underline   bool
 }
 
 // bgSGR is the background a segment fills with: its Bg tone's, else its
@@ -386,12 +440,26 @@ func spansOf(tones []ToneSpan, i int) []ToneSpan {
 // drawn text, x where its first cell sits and shown how many of its cells
 // the line shows (a cut cell's "…" counts as shown).
 func cellSegs(spans []ToneSpan, text string, x, shown int) []toneSeg {
-	if len(spans) == 0 || shown <= 0 {
+	return slotSegs(spans, text, x, shown, cellAt{x: x, w: shown, sx: x, sw: shown})
+}
+
+// slotSegs is cellSegs in a column's slot: a whole-cell layer or part
+// span (From and To 0) fills the slot (sx, sw), the column's whole width,
+// rather than only the text.
+func slotSegs(spans []ToneSpan, text string, x, shown int, slot cellAt) []toneSeg {
+	if len(spans) == 0 {
 		return nil
 	}
 	runes := []rune(text)
 	var out []toneSeg
 	for _, sp := range spans {
+		if (sp.Layer != "" || sp.part != "") && sp.From <= 0 && sp.To <= 0 && slot.sw > 0 {
+			out = append(out, toneSeg{x: slot.sx, w: slot.sw, tone: sp.Tone, bg: sp.Bg, layer: sp.Layer, part: sp.part})
+			continue
+		}
+		if shown <= 0 {
+			continue
+		}
 		from, to := max(sp.From, 0), sp.To
 		if to <= 0 || to > len(runes) {
 			to = len(runes)
@@ -404,16 +472,16 @@ func cellSegs(spans []ToneSpan, text string, x, shown int) []toneSeg {
 		if start >= end {
 			continue
 		}
-		out = append(out, toneSeg{x: x + start, w: end - start, tone: sp.Tone, bg: sp.Bg})
+		out = append(out, toneSeg{x: x + start, w: end - start, tone: sp.Tone, bg: sp.Bg, layer: sp.Layer, part: sp.part})
 	}
 	return out
 }
 
 // listTones is the styles a list's tones draw in, nil when there is none
-// to draw (no row carries a tone) or the list is drawn without the
-// Model's styles.
+// to draw (no row carries a tone, no column is a part, no header tones)
+// or the list is drawn without the Model's styles.
 func (l *List) listTones() *Styles {
-	if !slices.ContainsFunc(l.items, func(it ListItem) bool { return len(it.Tones) > 0 }) {
+	if !l.wantsTones() {
 		return nil
 	}
 	styles := l.r.Settings().page.styles
@@ -425,19 +493,64 @@ func (l *List) listTones() *Styles {
 		return nil
 	}
 	s.selectedBg = l.r.SelectedBackground()
+	s.intersect = l.r.settingOn(IntersectSetting)
 	return &s
 }
 
+// wantsTones reports whether the list draws any tone: a row's, the
+// header's (SetHeaderTones, or the header part while list.part-tones is
+// on), or a part column's.
+func (l *List) wantsTones() bool {
+	if slices.ContainsFunc(l.items, func(it ListItem) bool { return len(it.Tones) > 0 }) || len(l.headerTones) > 0 {
+		return true
+	}
+	return len(l.columns) > 0 && l.r.settingOn(PartTonesSetting)
+}
+
+// settingOn is a boolean setting's value, true when it is not declared.
+func (r *Runtime) settingOn(name string) bool {
+	v, ok := r.settingValue(name)
+	if !ok {
+		return true
+	}
+	on, isBool := v.(bool)
+	return !isBool || on
+}
+
+// IntersectSetting: where two or more highlight layers cover a table
+// cell (ToneSpan.Layer, the selected row, a non-data part) the cell
+// takes its part's intersect tone; off draws the layers as before, the
+// later span winning (default on).
+const IntersectSetting = "list.intersect"
+
+// PartTonesSetting: a table's header row and its part columns
+// (Column.Part, a row-number column) draw in their part tones
+// (list.header, list.rownum) so they never read as data; off draws the
+// header bold and the part columns as data, as before (default on).
+const PartTonesSetting = "list.part-tones"
+
 // paintLine draws a plain line with its tones: on the selected row the
 // line is padded to width and reversed, the current cell (cur) reversed
-// and underlined; elsewhere trailing spaces are trimmed and only the toned
-// runs are styled. Each run is written as one SGR sequence and closed, so
-// a tone never leaks into the next cell.
+// and underlined; elsewhere trailing spaces are trimmed (kept under a
+// layer or part span, which fills its slot) and only the toned runs are
+// styled. Where two or more layers cover a run (the selected row counts
+// as one, Styles.intersect on), the run draws in its part's intersect
+// tone instead, out of the reverse bar. Each run is written as one SGR
+// sequence and closed, so a tone never leaks into the next cell.
 func paintLine(line string, width int, segs []toneSeg, st *Styles, selected, faded bool, cur span) string {
 	if selected {
 		line += strings.Repeat(" ", max(0, width-ansi.StringWidth(line)))
 	} else {
 		line = strings.TrimRight(line, " ")
+		fill := 0
+		for _, sg := range segs {
+			if sg.layer != "" || sg.part != "" {
+				fill = max(fill, sg.x+sg.w)
+			}
+		}
+		if fill = min(fill, width); fill > ansi.StringWidth(line) {
+			line += strings.Repeat(" ", fill-ansi.StringWidth(line))
+		}
 	}
 	n := ansi.StringWidth(line)
 	cuts := []int{0, n}
@@ -457,6 +570,19 @@ func paintLine(line string, width int, segs []toneSeg, st *Styles, selected, fad
 		}
 		z = min(z, n)
 		text := ansi.Cut(line, a, z)
+		underline := selected && cur.w > 0 && a >= cur.x && a < cur.x+cur.w
+		for _, sg := range segs {
+			if sg.underline && a >= sg.x && a < sg.x+sg.w {
+				underline = true
+			}
+		}
+		if cross, ok := st.crossing(segs, a, selected, faded); ok {
+			if underline {
+				cross = cross.Underline(true)
+			}
+			b.WriteString(cross.String() + text + ansi.ResetStyle)
+			continue
+		}
 		var style ansi.Style
 		var fill ansi.Style
 		for j := len(segs) - 1; j >= 0; j-- {
@@ -468,13 +594,11 @@ func paintLine(line string, width int, segs []toneSeg, st *Styles, selected, fad
 			}
 		}
 		keep := fill != nil && selected && st.selectedBg == SelectedBackgroundKeep
-		if selected {
-			if cur.w > 0 && a >= cur.x && a < cur.x+cur.w {
-				style = style.Underline(true)
-			}
-			if !keep {
-				style = style.Reverse(true)
-			}
+		if underline {
+			style = style.Underline(true)
+		}
+		if selected && !keep {
+			style = style.Reverse(true)
 		}
 		if fill != nil && (!selected || keep) {
 			style = append(style, fill...)
@@ -497,6 +621,49 @@ func paintLine(line string, width int, segs []toneSeg, st *Styles, selected, fad
 		b.WriteString(style.String() + text + ansi.ResetStyle)
 	}
 	return b.String()
+}
+
+// crossing is the style of the run at cell a when two or more highlight
+// layers cover it: the selected row (LayerSelected), each distinct
+// ToneSpan.Layer, a part span's part. The run takes its part's intersect
+// tone (list.cell.intersect for a data cell), its colours, background and
+// attributes, out of the reverse bar. ok is false under one layer or
+// none, with list.intersect off, or when the theme has no such tone.
+func (s *Styles) crossing(segs []toneSeg, a int, selected, faded bool) (ansi.Style, bool) {
+	if s == nil || !s.intersect {
+		return nil, false
+	}
+	layers := map[string]bool{}
+	if selected {
+		layers[LayerSelected] = true
+	}
+	part := toneCell
+	for _, sg := range segs {
+		if a < sg.x || a >= sg.x+sg.w {
+			continue
+		}
+		if sg.layer != "" {
+			layers[sg.layer] = true
+		}
+		if sg.part != "" {
+			part = sg.part
+		}
+	}
+	if len(layers) < 2 {
+		return nil, false
+	}
+	name := part + IntersectSuffix
+	if !s.hasTone(name) {
+		return nil, false
+	}
+	style, _ := s.toneSGR(name, false, faded)
+	if bg, ok := s.bgSGR(toneSeg{tone: name}, faded); ok {
+		style = append(style, bg...)
+	}
+	if !slices.Contains(style, "1") {
+		style = style.Bold()
+	}
+	return style, true
 }
 
 // SelectedBackgroundSetting says how the selected row draws a run with a

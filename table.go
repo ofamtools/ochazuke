@@ -43,7 +43,11 @@ const (
 // above it in the same section (and every Group column left of it does
 // too), so a run of rows sharing a value (the help's key prefix) shows it
 // once; the first row a frame draws always shows its cells, and the rows'
-// Cells keep the value (TableText does not blank).
+// Cells keep the value (TableText does not blank). Part marks a column
+// that is not data (PartRowNumber, a row-number column; any word an
+// application picks): its cells draw in the tone "list.<part>" and, where
+// a highlight crosses them, "list.<part>.intersect" (ToneSpan.Layer;
+// setting list.part-tones, default on).
 type Column struct {
 	Title    string `json:"title"`
 	Width    int    `json:"width,omitempty"`
@@ -54,6 +58,43 @@ type Column struct {
 	Wrap     bool   `json:"wrap,omitempty"`
 	Pinned   bool   `json:"pinned,omitempty"`
 	Group    bool   `json:"group,omitempty"`
+	Part     string `json:"part,omitempty"`
+}
+
+// PartRowNumber is the Column.Part of a row-number column: tone
+// list.rownum, list.rownum.intersect where a highlight crosses it.
+const PartRowNumber = "rownum"
+
+// partTone is the tone a part draws in: "list.<part>".
+func partTone(part string) string { return "list." + part }
+
+// partHeader is the header row's part (tone list.header).
+const partHeader = "header"
+
+// SetHeaderTones gives the header row's cells tones, as a row's Tones
+// give its cells: Cell is the column. A highlight layer
+// (ToneSpan.Layer) shows on the header of the column it covers, where it
+// crosses the header part (list.header.intersect).
+func (l *List) SetHeaderTones(tones ...ToneSpan) { l.headerTones = slices.Clone(tones) }
+
+// HeaderTones is the header row's tones, a copy.
+func (l *List) HeaderTones() []ToneSpan { return slices.Clone(l.headerTones) }
+
+// withParts is a row's tones under its part columns' (Column.Part) part
+// spans, first so the row's own tones draw over them; tones unchanged
+// with list.part-tones off or no part column.
+func (l *List) withParts(cols []Column, tones []ToneSpan) []ToneSpan {
+	var parts []ToneSpan
+	for i, c := range cols {
+		if c.Part != "" {
+			t := partTone(c.Part)
+			parts = append(parts, ToneSpan{Cell: i, Tone: t, Layer: c.Part, part: t})
+		}
+	}
+	if len(parts) == 0 || !l.r.settingOn(PartTonesSetting) {
+		return tones
+	}
+	return append(parts, tones...)
 }
 
 // tableGap is the space between two columns; defaultColumnMin a flexible
@@ -199,8 +240,9 @@ func tableLine(cols []Column, row []string, shown, widths []int) string {
 }
 
 // cellAt is where tableLineAt put a shown cell: its text starts at cell x
-// of the line and shows w cells (its "…" included when cut).
-type cellAt struct{ x, w int }
+// of the line and shows w cells (its "…" included when cut); its column's
+// slot starts at sx and is sw cells wide.
+type cellAt struct{ x, w, sx, sw int }
 
 // tableLineAt is tableLine with where each shown cell's text sits, for
 // the tones (tone.go).
@@ -212,7 +254,7 @@ func tableLineAt(cols []Column, row []string, shown, widths []int) (string, []ce
 		text := ansi.Truncate(row[i], widths[j], "…")
 		w := ansi.StringWidth(text)
 		pad := strings.Repeat(" ", max(0, widths[j]-w))
-		at[j] = cellAt{x, w}
+		at[j] = cellAt{x: x, w: w, sx: x, sw: widths[j]}
 		if cols[i].Align == AlignRight {
 			parts[j] = pad + text
 			at[j].x += len(pad)
@@ -235,7 +277,8 @@ func rowSegs(toned *Styles, tones []ToneSpan, row []string, shown []int, at []ce
 		if i >= len(row) {
 			continue
 		}
-		out = append(out, cellSegs(spansOf(tones, i), row[i], gutter+at[j].x, at[j].w)...)
+		slot := cellAt{sx: gutter + at[j].sx, sw: at[j].sw}
+		out = append(out, slotSegs(spansOf(tones, i), row[i], gutter+at[j].x, at[j].w, slot)...)
 	}
 	return out
 }
@@ -275,8 +318,7 @@ func (l *List) tableView(width, height int) (string, int, int) {
 			head = ansi.Truncate(head, width-l.edges.w, "") + strings.Repeat(" ", max(0, width-l.edges.w-ansi.StringWidth(head)))
 			head += strings.Repeat(" ", max(0, l.edges.w-ansi.StringWidth(right))) + right
 		}
-		bold := lipgloss.NewStyle().Bold(true)
-		lines = append(lines, styleSpan(strings.TrimRight(head, " "), span, bold, "1;4"))
+		lines = append(lines, l.headerLine(head, width, heads, cols, shown, widths, mark, span))
 	}
 	top := len(lines)
 	if len(l.items) == 0 {
@@ -308,7 +350,7 @@ func (l *List) tableView(width, height int) (string, int, int) {
 		}
 		line = ansi.Truncate(line, width, "…")
 		selected := i == l.selected && marked
-		switch segs := rowSegs(toned, l.items[i].Tones, row, shown, at, mark); {
+		switch segs := rowSegs(toned, l.withParts(cols, l.items[i].Tones), row, shown, at, mark); {
 		case len(segs) > 0:
 			line = paintLine(line, width, segs, toned, selected, faded, span)
 		case selected:
@@ -326,6 +368,28 @@ func (l *List) tableView(width, height int) (string, int, int) {
 		focus, focusHeight = top+l.selected-l.offset, 1
 	}
 	return strings.Join(layoutRows(strings.Join(lines, "\n"), width, height), "\n"), focus, focusHeight
+}
+
+// headerLine draws the header row: in the header part's tone across the
+// width (list.part-tones on, list.header) with the header tones
+// (SetHeaderTones) over their columns and the current column underlined;
+// bold, the current column bold and underlined, without the Model's
+// styles or with list.part-tones off.
+func (l *List) headerLine(head string, width int, heads []string, cols []Column, shown, widths []int, mark int, cur span) string {
+	toned := l.listTones()
+	if toned == nil || !l.r.settingOn(PartTonesSetting) {
+		bold := lipgloss.NewStyle().Bold(true)
+		return styleSpan(strings.TrimRight(head, " "), cur, bold, "1;4")
+	}
+	segs := []toneSeg{{x: 0, w: width, tone: ToneHeader, layer: partHeader, part: ToneHeader}}
+	if len(l.headerTones) > 0 {
+		_, at := tableLineAt(cols, heads, shown, widths)
+		segs = append(segs, rowSegs(toned, l.headerTones, heads, shown, at, mark)...)
+	}
+	if cur.w > 0 {
+		segs = append(segs, toneSeg{x: cur.x, w: cur.w, underline: true})
+	}
+	return paintLine(ansi.Truncate(head, width, ""), width, segs, toned, false, l.faded(), span{})
 }
 
 // cellWidths is the widest cell per column over every row, measured once
@@ -478,10 +542,15 @@ func tableRowLinesAt(toned *Styles, cols []Column, tones []ToneSpan, row []strin
 			continue
 		}
 		for j, i := range shown {
-			if cell[i] == "" || i >= len(row) {
+			if i >= len(row) {
 				continue
 			}
 			spans := spansOf(tones, i)
+			if cell[i] == "" {
+				// A blank line of the cell keeps only its slot's layers and
+				// part, so a highlighted column reads unbroken.
+				spans = slices.DeleteFunc(spans, func(t ToneSpan) bool { return t.Layer == "" && t.part == "" })
+			}
 			if len(parts[j]) > 1 {
 				spans = slices.DeleteFunc(spans, func(t ToneSpan) bool {
 					return t.From > 0 || t.To > 0 && t.To < len([]rune(row[i]))
@@ -490,7 +559,7 @@ func tableRowLinesAt(toned *Styles, cols []Column, tones []ToneSpan, row []strin
 					spans[x].From, spans[x].To = 0, 0
 				}
 			}
-			segs[k] = append(segs[k], cellSegs(spans, cell[i], at[j].x, at[j].w)...)
+			segs[k] = append(segs[k], slotSegs(spans, cell[i], at[j].x, at[j].w, at[j])...)
 		}
 	}
 	return lines, segs
@@ -515,7 +584,7 @@ func (l *List) tallView(lines []string, width, height, body int, cols []Column, 
 	layRow := func(i, top int) ([]string, [][]toneSeg) {
 		item := l.items[i]
 		var out []string
-		lines, segs := tableRowLinesAt(toned, cols, item.Tones, l.rowCells(l.groupedCells(i, top)), shown, widths)
+		lines, segs := tableRowLinesAt(toned, cols, l.withParts(cols, item.Tones), l.rowCells(l.groupedCells(i, top)), shown, widths)
 		for k, line := range lines {
 			if gutter {
 				prefix := "  "

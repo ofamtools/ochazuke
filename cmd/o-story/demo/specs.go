@@ -144,6 +144,9 @@ type ListSpec struct {
 	// Columns make the list a table (ochazuke.Columns); rows bring their
 	// cells in Items.
 	Columns []ochazuke.Column `json:"columns,omitempty"`
+	// HeaderTones tone the header row's cells (List.SetHeaderTones): a
+	// highlight layer over a column's header.
+	HeaderTones []ochazuke.ToneSpan `json:"headerTones,omitempty"`
 	// PanelTone is the tone of the list's panel border in the panels
 	// layout (Layout.WithPanelTone): a state such as state.working.
 	PanelTone string `json:"panelTone,omitempty"`
