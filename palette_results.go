@@ -97,7 +97,7 @@ func (p *Palette) showResults(operation string, value any) error {
 	if p.r.TopModal() != "" {
 		return errModalAbove
 	}
-	inst, err := p.r.OpenModal(paletteResultsID, Payload{})
+	inst, err := p.r.OpenModal(paletteResultsID, Payload{}, ReplaceOpen())
 	if err != nil {
 		return err
 	}

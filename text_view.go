@@ -61,12 +61,14 @@ func registerTextView(r *Runtime) {
 // one line, else many, with the cursor at the start in normal mode. The
 // editor's motions, visual modes and yanks work there; q or esc closes it
 // back to the focus it opened over. title heads it (the palette's is the
-// verb's name).
+// verb's name). Opened while the text view is the top modal, it shows the
+// new text in its place, from the top, over the focus the first opened
+// over (ReplaceOpen, R4.8).
 func (r *Runtime) OpenTextView(title, text string) (*Input, error) {
 	text = strings.TrimRight(text, "\n")
 	in := NewInput(textViewInputID, text, strings.Contains(text, "\n"))
 	in.ReadOnly = true
-	inst, err := r.OpenModal(TextViewID, Payload{Prompt: title}, WithInput(in))
+	inst, err := r.OpenModal(TextViewID, Payload{Prompt: title}, WithInput(in), ReplaceOpen())
 	if err != nil {
 		return nil, err
 	}

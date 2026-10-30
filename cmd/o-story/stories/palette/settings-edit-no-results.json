@@ -1,0 +1,9 @@
+{
+  "name": ":settings edit opens the Settings page with the focus on it; its answer opens no results modal over the page (a verb that opens a page answers nothing the palette shows)",
+  "area": "palette",
+  "width": 100,
+  "height": 30,
+  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
+  "script": [":", {"type": "settings edit"}, "enter"],
+  "expect": {"modal": "", "mode": "normal", "contains": ["Settings"], "lacks": ["Results"]}
+}

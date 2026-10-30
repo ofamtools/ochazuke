@@ -335,11 +335,17 @@ func (p *Palette) dispatch(q Request) error {
 	if err := p.close(); err != nil {
 		return err
 	}
+	// What the palette opened over: a modal still open beneath it (the
+	// text view, the results) and the page. The answer is presented only
+	// while both are what they were, so a command that opened a modal or a
+	// page of its own (settings.edit) is not covered by its answer, and a
+	// second answer over the view the first opened replaces it.
+	under, page := p.r.TopModal(), p.r.Page
 	value, err := p.r.ExecuteAt(origin, q)
 	if err == nil {
 		present := func(value any) error {
-			if p.r.TopModal() != "" {
-				return nil // A command or a newer interaction already opened a modal.
+			if p.r.TopModal() != under || p.r.Page != page {
+				return nil // A command or a newer interaction already opened a modal or a page.
 			}
 			op := p.r.Operations[q.Key()]
 			if value == nil && (q.Verb == "list" || op.Rows != "") {
