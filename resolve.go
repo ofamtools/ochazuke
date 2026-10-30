@@ -755,7 +755,7 @@ func (r *Runtime) scanRows(levels []level, mode ModeState, focus string, editing
 					guard = ""
 				}
 				if guard == "" {
-					guard = r.VerbGuard(requestOperation(b.Request))
+					guard = strings.Join(r.VerbAvailability(requestOperation(b.Request)), " ")
 				}
 			}
 			id := b.Keys + "\x00" + b.Pattern

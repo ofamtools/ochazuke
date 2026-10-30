@@ -29,7 +29,10 @@ type Noun struct {
 	Bindings  map[string][]Binding `json:"bindings"`
 	Extends   map[string]string    `json:"extends,omitempty"`
 	Guards    map[string]string    `json:"guards,omitempty"`
-	Actions   map[string]Handler   `json:"-"`
+	// Availability are the guards added to a verb beside its own
+	// (Runtime.AddVerbAvailability), by verb: every one must hold too.
+	Availability map[string][]string `json:"availability,omitempty"`
+	Actions      map[string]Handler  `json:"-"`
 	// Columns are the table columns a list of the noun's rows draws
 	// (NounBuilder.Columns, the catalog's columns): declared data a host
 	// passes to Columns when it builds the list, never applied on its own.
@@ -668,12 +671,80 @@ func (r *Runtime) Available(q Request, focus string, mode ModeState) bool {
 		}
 		q = pq
 	}
-	if name := r.VerbGuard(q.Key()); name != "" {
+	for _, name := range r.VerbAvailability(q.Key()) {
 		if guard := r.guard(name); guard != nil && !guard(r, KeyEvent{Mode: mode, Focus: focus, Level: focus, Args: q.Args}) {
 			return false
 		}
 	}
 	return r.propsAvailable(q, focus, mode)
+}
+
+// AddVerbAvailability adds a guard to a registered verb (aliases resolve)
+// beside the availability it already has (its own guard, NounBuilder.When
+// or SetAvailability, and guards added before): the verb is available
+// only while every one holds, so the resolver, the palette, the hints, the
+// help and Execute all leave it out where the added guard is false. It is
+// how an application narrows a framework verb it uses
+// (ochazuke.list.choose-column where its own pane draws no columns) without
+// replacing the framework's guard or guarding each binding row. The guard
+// need not be registered yet; one that is not registered when asked hides
+// nothing, as a verb guard does. Adding a guard the verb already has is a
+// no-op.
+func (r *Runtime) AddVerbAvailability(key, guard string) error {
+	if guard == "" {
+		return errors.New("AddVerbAvailability: empty guard name")
+	}
+	op, ok := r.Operation(key)
+	if !ok {
+		return fmt.Errorf("unknown operation %q", key)
+	}
+	n := r.Noun(op.Noun)
+	if n == nil {
+		return fmt.Errorf("unknown noun %q", op.Noun)
+	}
+	if n.Guards[op.Verb] == guard || slices.Contains(n.Availability[op.Verb], guard) {
+		return nil
+	}
+	if n.Availability == nil {
+		n.Availability = map[string][]string{}
+	}
+	n.Availability[op.Verb] = append(slices.Clone(n.Availability[op.Verb]), guard)
+	return nil
+}
+
+// RemoveVerbAvailability takes a guard AddVerbAvailability added off a
+// verb; false when the verb had no such added guard (its own guard stays:
+// SetAvailability changes that one).
+func (r *Runtime) RemoveVerbAvailability(key, guard string) bool {
+	op, ok := r.Operation(key)
+	if !ok {
+		return false
+	}
+	n := r.Noun(op.Noun)
+	if n == nil || !slices.Contains(n.Availability[op.Verb], guard) {
+		return false
+	}
+	n.Availability[op.Verb] = slices.DeleteFunc(slices.Clone(n.Availability[op.Verb]), func(g string) bool { return g == guard })
+	if len(n.Availability[op.Verb]) == 0 {
+		delete(n.Availability, op.Verb)
+	}
+	return true
+}
+
+// VerbAvailability names every guard noun.verb is available under: its own
+// (VerbGuard) first, then those AddVerbAvailability added, in order; nil
+// when it has none.
+func (r *Runtime) VerbAvailability(key string) []string {
+	noun, verb := r.keyParts(key)
+	n := r.Noun(noun)
+	if n == nil {
+		return nil
+	}
+	var out []string
+	if g := n.Guards[verb]; g != "" {
+		out = append(out, g)
+	}
+	return append(out, n.Availability[verb]...)
 }
 
 // SetAvailability makes a registered action available only while the

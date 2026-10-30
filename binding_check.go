@@ -16,8 +16,10 @@ func (r *Runtime) rowConditions(b Binding) []string {
 		out = append(out, b.When)
 	}
 	if !b.Unbind && !b.Request.Empty() {
-		if g := r.VerbGuard(requestOperation(b.Request)); g != "" && !slices.Contains(out, g) {
-			out = append(out, g)
+		for _, g := range r.VerbAvailability(requestOperation(b.Request)) {
+			if !slices.Contains(out, g) {
+				out = append(out, g)
+			}
 		}
 	}
 	return out

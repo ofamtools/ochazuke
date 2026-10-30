@@ -260,3 +260,72 @@ func TestCheckDefaultBindingsReportsUnreachableRows(t *testing.T) {
 		t.Fatalf("problems %q", p)
 	}
 }
+
+// An application adds a guard to a verb that already has one (a framework
+// verb it narrows): the verb is available only while both hold, from keys,
+// hints, the palette's question and Execute alike; the verb's own guard
+// stays; RemoveVerbAvailability takes the added one off.
+func TestAddVerbAvailabilityNarrowsAGuardedVerb(t *testing.T) {
+	r, aOn, bOn, ran := availabilityFixture(t)
+	if err := r.Bind(Binding{Noun: "item", Mode: "normal", Keys: "x", Request: Request{Noun: "item", Verb: "a"}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.AddVerbAvailability("item.a", "b-on"); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.AddVerbAvailability("item.a", "b-on"); err != nil {
+		t.Fatal(err)
+	}
+	if got := r.VerbAvailability("item.a"); !slices.Equal(got, []string{"a-on", "b-on"}) {
+		t.Fatalf("availability %v, want [a-on b-on] (own guard first, added once)", got)
+	}
+	if r.VerbGuard("item.a") != "a-on" {
+		t.Fatalf("the verb's own guard changed: %q", r.VerbGuard("item.a"))
+	}
+	hinted := func() bool {
+		return slices.ContainsFunc(HintBindings(r, r.Focus), func(b Binding) bool { return b.Keys == "x" })
+	}
+	for _, s := range []struct{ a, b, want bool }{{true, true, true}, {true, false, false}, {false, true, false}} {
+		*aOn, *bOn, *ran = s.a, s.b, nil
+		if got := r.VerbShown("item.a", r.Focus, r.Mode); got != s.want {
+			t.Errorf("a=%v b=%v: VerbShown %v, want %v", s.a, s.b, got, s.want)
+		}
+		if got := hinted(); got != s.want {
+			t.Errorf("a=%v b=%v: hinted %v, want %v", s.a, s.b, got, s.want)
+		}
+		_, err := r.Execute(Request{Noun: "item", Verb: "a"})
+		if (err == nil) != s.want {
+			t.Errorf("a=%v b=%v: Execute err %v, want ran=%v", s.a, s.b, err, s.want)
+		}
+	}
+	if !r.RemoveVerbAvailability("item.a", "b-on") || r.RemoveVerbAvailability("item.a", "b-on") {
+		t.Fatal("RemoveVerbAvailability must remove the added guard once")
+	}
+	*aOn, *bOn = true, false
+	if !r.VerbShown("item.a", r.Focus, r.Mode) {
+		t.Error("with the added guard gone the verb's own guard alone decides")
+	}
+	if err := r.AddVerbAvailability("item.nope", "b-on"); err == nil {
+		t.Error("an unknown verb must be an error")
+	}
+}
+
+// A framework verb: the app's guard joins the framework's own, which stays.
+func TestAddVerbAvailabilityOnAFrameworkVerb(t *testing.T) {
+	r := NewRuntime()
+	r.Config().Disable()
+	own := r.VerbGuard("ochazuke.list.choose-column")
+	if own == "" {
+		t.Fatal("choose-column is expected to carry the framework's guard")
+	}
+	if err := r.AddVerbAvailability("list.choose-column", "rows-on-row"); err != nil {
+		t.Fatal(err)
+	}
+	if got := r.VerbAvailability("ochazuke.list.choose-column"); !slices.Equal(got, []string{own, "rows-on-row"}) {
+		t.Fatalf("availability %v", got)
+	}
+	r.DefineGuard("rows-on-row", func(*Runtime, KeyEvent) bool { return false })
+	if r.Available(Request{Noun: "ochazuke.list", Verb: "choose-column"}, "app", r.Mode) {
+		t.Error("an added guard that is false must make the verb unavailable")
+	}
+}
