@@ -1,0 +1,19 @@
+{
+  "name": "an actions.json alias's old parameter name (demo save --overwrite for --force, since v0.58.0): the palette runs it as its parameter with one notice, and never completes it",
+  "area": "actions",
+  "width": 100,
+  "height": 24,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "verbs": [{"verb": "demo.write", "description": "Write the document", "parameters": {"force": {"type": "boolean"}}}]
+  },
+  "config": {
+    "actions.json": [{"alias": "demo.save", "action": "demo.write", "paramAliases": [{"alias": "overwrite", "param": "force", "since": "v0.58.0", "removeAfter": "v0.59.0"}]}]
+  },
+  "script": [":", {"type": "demo save --"}, {"type": "overwrite true"}, "enter", ":", {"type": "demo save --overwrite=false"}, "enter"],
+  "expect": [
+    {"after": 2, "lacks": ["overwrite"]},
+    {"after": 4, "writes": ["demo.write force=true via=demo.save"], "modal": "", "notices": ["demo.save: overwrite is an old name of force (renamed in v0.58.0; removed after v0.59.0)"]},
+    {"writes": ["demo.write force=true via=demo.save", "demo.write force=false via=demo.save"], "modal": ""}
+  ]
+}

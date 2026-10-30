@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"sort"
 	"strings"
@@ -48,19 +49,92 @@ const (
 // Palette keeps a bare alias to the command line inside the app: the CLI
 // leaves the word to the shell's own commands, so bin help stays the
 // shell's help while :help opens the docs viewer, which needs the TUI.
+// ParamAliases are old names of its action's parameters the alias still
+// takes (ParamAlias): --starred for --value on star.
 type ActionAlias struct {
-	Alias       string    `json:"alias"`
-	Action      string    `json:"action"`
-	Noun        string    `json:"noun,omitempty"`
-	Verb        string    `json:"verb,omitempty"`
-	Since       string    `json:"since,omitempty"`
-	RemoveAfter string    `json:"removeAfter,omitempty"`
-	Note        string    `json:"note,omitempty"`
-	Source      string    `json:"source,omitempty"`
-	Args        Arguments `json:"args,omitempty"`
-	Bare        bool      `json:"bare,omitempty"`
-	Shadows     bool      `json:"shadows,omitempty"`
-	Palette     bool      `json:"palette,omitempty"`
+	Alias        string       `json:"alias"`
+	Action       string       `json:"action"`
+	Noun         string       `json:"noun,omitempty"`
+	Verb         string       `json:"verb,omitempty"`
+	Since        string       `json:"since,omitempty"`
+	RemoveAfter  string       `json:"removeAfter,omitempty"`
+	Note         string       `json:"note,omitempty"`
+	Source       string       `json:"source,omitempty"`
+	Args         Arguments    `json:"args,omitempty"`
+	Bare         bool         `json:"bare,omitempty"`
+	Shadows      bool         `json:"shadows,omitempty"`
+	Palette      bool         `json:"palette,omitempty"`
+	ParamAliases []ParamAlias `json:"paramAliases,omitempty"`
+}
+
+// ParamAlias is an old name of a parameter, taken by the action alias
+// that declares it (Keep actions, for a parameter: a renamed flag works
+// for one release). Alias is the old name, Param the parameter of the
+// alias's action it fills. Since and RemoveAfter date a deprecated one:
+// its first use in a runtime posts a one-time notice naming the new name.
+// An old name is read from the CLI (--starred), the palette (--starred),
+// binding rows' args and the API alike; it is never completed and help
+// never lists it. The parameter's own name wins when both are given.
+type ParamAlias struct {
+	Alias       string `json:"alias"`
+	Param       string `json:"param"`
+	Since       string `json:"since,omitempty"`
+	RemoveAfter string `json:"removeAfter,omitempty"`
+	Note        string `json:"note,omitempty"`
+}
+
+// Deprecated reports whether the old name is on its way out.
+func (p ParamAlias) Deprecated() bool { return p.Since != "" || p.RemoveAfter != "" }
+
+// notice is the one-time notice a deprecated parameter name posts on
+// first use, for the alias named name.
+func (p ParamAlias) notice(name string) string {
+	text := fmt.Sprintf("%s: %s is an old name of %s", name, p.Alias, p.Param)
+	var when []string
+	if p.Since != "" {
+		when = append(when, "renamed in "+p.Since)
+	}
+	if p.RemoveAfter != "" {
+		when = append(when, "removed after "+p.RemoveAfter)
+	}
+	if len(when) > 0 {
+		text += " (" + strings.Join(when, "; ") + ")"
+	}
+	return text
+}
+
+// ParamAlias is the old parameter name the alias takes as name, false
+// when name is none.
+func (a ActionAlias) ParamAlias(name string) (ParamAlias, bool) {
+	for _, p := range a.ParamAliases {
+		if p.Alias == name {
+			return p, true
+		}
+	}
+	return ParamAlias{}, false
+}
+
+// renameParams is args with each old parameter name the alias takes moved
+// to its parameter (the parameter's own name wins when both are given),
+// and the old names that were given; args itself when it holds none.
+func (a ActionAlias) renameParams(args Arguments) (Arguments, []ParamAlias) {
+	var used []ParamAlias
+	for _, p := range a.ParamAliases {
+		if _, ok := args[p.Alias]; ok {
+			used = append(used, p)
+		}
+	}
+	if len(used) == 0 {
+		return args, nil
+	}
+	out := maps.Clone(args)
+	for _, p := range used {
+		if _, own := out[p.Param]; !own {
+			out[p.Param] = out[p.Alias]
+		}
+		delete(out, p.Alias)
+	}
+	return out, used
 }
 
 // Name is how the alias is typed: its bare name, else noun.verb.
@@ -194,6 +268,9 @@ func (r *Runtime) checkAlias(a ActionAlias) (ActionAlias, error) {
 		return a, fmt.Errorf("alias %q names no registered noun (an alias is noun.verb, or a bare name without a dot)", a.Alias)
 	}
 	a.Noun, a.Verb, a.Alias = noun, verb, bareName(noun, verb, a.Bare && a.Shadows)
+	if err := checkParamAliases(op, a.ParamAliases); err != nil {
+		return a, fmt.Errorf("alias %s: %v", a.Name(), err)
+	}
 	if len(a.Args) > 0 {
 		// Presets are part of a request: what they give is checked here,
 		// a required argument they leave out when the alias runs.
@@ -218,6 +295,31 @@ func (r *Runtime) checkAlias(a ActionAlias) (ActionAlias, error) {
 		return a, err
 	}
 	return a, nil
+}
+
+// checkParamAliases checks an alias's old parameter names against its
+// action: each names one of its parameters, is no parameter's own name and
+// is given once.
+func checkParamAliases(op Operation, params []ParamAlias) error {
+	seen := map[string]bool{}
+	for _, p := range params {
+		switch {
+		case p.Alias == "" || p.Param == "":
+			return errors.New("a parameter alias needs alias and param")
+		case strings.ContainsAny(p.Alias, " \t\n=") || strings.HasPrefix(p.Alias, "-"):
+			return fmt.Errorf("parameter alias %q must be one name (no spaces, =, or leading -)", p.Alias)
+		case seen[p.Alias]:
+			return fmt.Errorf("parameter alias %s is given twice", p.Alias)
+		}
+		if _, ok := op.Parameters[p.Param]; !ok {
+			return fmt.Errorf("parameter alias %s: %s has no parameter %s", p.Alias, op.Key(), p.Param)
+		}
+		if _, ok := op.Parameters[p.Alias]; ok {
+			return fmt.Errorf("parameter alias %s is a parameter of %s", p.Alias, op.Key())
+		}
+		seen[p.Alias] = true
+	}
+	return nil
 }
 
 // splitNounName splits a name into a registered noun (its canonical name)
@@ -296,11 +398,65 @@ func (r *Runtime) AliasShadow() string {
 // (Operation.WithPresets: a caller's argument also wins over a preset it
 // excludes).
 func withAliasArgs(op Operation, q Request, a ActionAlias) Request {
+	// Old parameter names first, so a preset the new name excludes gives
+	// way (star --starred=false over star's toggle preset).
+	q.Args, _ = a.renameParams(q.Args)
 	if len(a.Args) == 0 {
 		return q
 	}
 	q.Args = op.WithPresets(q.Args, a.Args)
 	return q
+}
+
+// requestAlias is the action alias a request is spelled by: its Via, else
+// its name (noun.verb or a bare word); false when it names its action.
+func (r *Runtime) requestAlias(q Request) (ActionAlias, bool) {
+	if q.IsProp() {
+		return ActionAlias{}, false
+	}
+	if q.Via != "" {
+		a, ok := r.actionNames.aliases[q.Via]
+		return a, ok
+	}
+	if bare := q.Noun + q.Verb; (q.Noun == "" || q.Verb == "") && bare != "" {
+		return r.bareAlias(bare)
+	}
+	a, ok := r.actionNames.aliases[r.CanonicalKey(q.Key())]
+	return a, ok
+}
+
+// UseParamAliases is q with the old parameter names its alias takes moved
+// to their parameters (ParamAlias), and the one-time notices of the
+// deprecated ones it used, each returned once per runtime. Requests run
+// through it (ExecuteAt posts the notices); a host reading words into a
+// request before it runs (the CLI shell, which applies an alias's
+// presets itself) calls it and shows the notices its own way.
+func (r *Runtime) UseParamAliases(q Request) (Request, []string) {
+	a, ok := r.requestAlias(q)
+	if !ok || len(a.ParamAliases) == 0 {
+		return q, nil
+	}
+	var used []ParamAlias
+	q.Args, used = a.renameParams(q.Args)
+	return q, r.paramAliasNotices(a, used)
+}
+
+// paramAliasNotices are the one-time notices of the deprecated old
+// parameter names of a that used names, marking them posted.
+func (r *Runtime) paramAliasNotices(a ActionAlias, used []ParamAlias) []string {
+	var out []string
+	for _, p := range used {
+		key := a.Alias + " " + p.Alias
+		if !p.Deprecated() || r.actionNames.noticed[key] {
+			continue
+		}
+		if r.actionNames.noticed == nil {
+			r.actionNames.noticed = map[string]bool{}
+		}
+		r.actionNames.noticed[key] = true
+		out = append(out, p.notice(r.DisplayKey(a.Alias)))
+	}
+	return out
 }
 
 // removeAlias drops an alias by name (config reloads, a later Register of

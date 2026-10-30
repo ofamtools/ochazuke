@@ -414,6 +414,7 @@ func (r *Runtime) CheckUserBindings() []string {
 				problems = append(problems, note)
 			}
 			problems = append(problems, r.nounAliasRowNotes(f.where, f.row)...)
+			problems = append(problems, r.paramAliasRowNotes(f.where, f.row, row)...)
 			if row.identityGuard() != "" && !row.Unbind {
 				problems = append(problems, fmt.Sprintf("warning: %s: %s %s: when %s is a guard row, a debt: the first row on a key whose action is available answers, so a row needs no condition when its action reports availability", BindingsFile, f.where, row.Keys+row.Pattern, row.When))
 			}
@@ -449,6 +450,31 @@ func (r *Runtime) aliasRowNote(where string, row Binding) string {
 		note += "; " + a.notice(r.DisplayKey) + ": rename the row to " + r.DisplayKey(a.Action)
 	}
 	return note
+}
+
+// paramAliasRowNotes say that a file row's args name a parameter by an
+// old name its alias takes (ParamAlias): accepted, with the name to rename
+// the arg to. raw is the row as written, row as validated.
+func (r *Runtime) paramAliasRowNotes(where string, raw, row Binding) []string {
+	if row.Unbind || row.Request.Via == "" {
+		return nil
+	}
+	a, ok := r.actionNames.aliases[row.Request.Via]
+	if !ok {
+		return nil
+	}
+	var out []string
+	for _, p := range a.ParamAliases {
+		if _, used := raw.Request.Args[p.Alias]; !used {
+			continue
+		}
+		note := fmt.Sprintf("%s: %s %s: arg %s of %s is an old name of %s", BindingsFile, where, row.Keys+row.Pattern, p.Alias, r.DisplayKey(a.Alias), p.Param)
+		if p.Deprecated() {
+			note += "; " + p.notice(r.DisplayKey(a.Alias))
+		}
+		out = append(out, note+": rename the arg to "+p.Param)
+	}
+	return out
 }
 
 // nounAliasRowNotes say that a file row names a noun (its noun or its

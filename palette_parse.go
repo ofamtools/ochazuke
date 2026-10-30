@@ -124,6 +124,10 @@ type commandLine struct {
 	// Old are the words that named a noun by a deprecated alias: the
 	// line runs with each one's notice (NoteNounAlias).
 	Old []string
+	// OldParams are the old parameter names (ParamAlias) the line's
+	// flags named a parameter of its alias by: the line runs with each
+	// deprecated one's notice.
+	OldParams []ParamAlias
 }
 
 // restSpan is the rest parameter a line fills and the rune offset its
@@ -854,7 +858,7 @@ func (p *Palette) fillParams(c *commandLine, tokens []lineToken, order []string)
 			c.Rest = &restSpan{Param: name, Start: token.Start}
 			return true
 		}
-		if name, value, inline, ok := p.flagWord(c.Op, token.Text); ok {
+		if name, value, inline, ok := p.flagWord(c, token.Text); ok {
 			word := PaletteWord{Text: token.Text, Kind: "flag", Value: "--" + name, Param: name}
 			order = slices.DeleteFunc(order, func(n string) bool { return n == name })
 			if !inline {
@@ -910,16 +914,26 @@ func (p *Palette) fillParams(c *commandLine, tokens []lineToken, order []string)
 
 // flagWord reads --NAME or --NAME=VALUE naming a parameter of op; false
 // for any other word (which fills a parameter in order, as before).
-func (p *Palette) flagWord(op Operation, word string) (name, value string, inline, ok bool) {
+// An old name of a parameter the line's alias takes (ParamAlias: --starred
+// on star) reads as that parameter, kept in c.OldParams for its notice.
+func (p *Palette) flagWord(c *commandLine, word string) (name, value string, inline, ok bool) {
 	text, isFlag := strings.CutPrefix(word, "--")
 	if !isFlag || text == "" {
 		return "", "", false, false
 	}
 	name, value, inline = strings.Cut(text, "=")
-	if _, known := op.Parameters[name]; !known {
-		return "", "", false, false
+	if _, known := c.Op.Parameters[name]; known {
+		return name, value, inline, true
 	}
-	return name, value, inline, true
+	if a, found := p.r.actionNames.aliases[c.Via]; found && c.Via != "" {
+		if pa, old := a.ParamAlias(name); old {
+			if _, known := c.Op.Parameters[pa.Param]; known {
+				c.OldParams = append(c.OldParams, pa)
+				return pa.Param, value, inline, true
+			}
+		}
+	}
+	return "", "", false, false
 }
 
 // parseProp reads the words after NOUN PROP (plan 2.6): none reads the

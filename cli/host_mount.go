@@ -183,7 +183,7 @@ func mountAlias(r *ochazuke.Runtime, a ochazuke.ActionAlias, action string, noun
 	alias := ochazuke.ActionAlias{
 		Alias: noun + "." + a.Verb, Action: action,
 		Since: a.Since, RemoveAfter: a.RemoveAfter, Note: a.Note, Source: a.Source,
-		Palette: a.Palette,
+		Palette: a.Palette, ParamAliases: slices.Clone(a.ParamAliases),
 	}
 	if len(a.Args) > 0 {
 		alias.Args = make(ochazuke.Arguments, len(a.Args))
