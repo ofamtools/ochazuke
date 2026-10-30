@@ -601,11 +601,7 @@ func (p *Palette) parseParams(c *commandLine, tokens []lineToken, preset string)
 	// An alias's preset arguments (w! is write {force: true}) fill what
 	// the words left out: a typed word wins.
 	if a, ok := p.r.actionNames.aliases[c.Via]; ok && c.Via != "" {
-		for k, v := range a.Args {
-			if _, set := c.Args[k]; !set {
-				c.Args[k] = v
-			}
-		}
+		c.Args = c.Op.WithPresets(c.Args, a.Args)
 	}
 	for _, name := range remainingParams(*c) {
 		if c.Op.Parameters[name].Required {

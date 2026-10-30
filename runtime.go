@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"sort"
 	"strconv"
@@ -80,6 +81,40 @@ type Parameter struct {
 	// the values of prop NAME; one without completes the Enum when there
 	// is one, else NAME= for each prop. The catalog's pairs.
 	Pairs bool `json:"pairs,omitempty"`
+	// Excludes names the parameters a request cannot give with this one
+	// (set's toggle and value). A preset (an action alias's args) that a
+	// caller's argument excludes, or that excludes it, yields to the
+	// caller's (Operation.WithPresets). The catalog's excludes.
+	Excludes []string `json:"excludes,omitempty"`
+}
+
+// WithPresets is args with presets (an action alias's arguments) filling
+// what args leaves out: a caller's argument wins over a preset of the
+// same name, and over a preset it excludes or that excludes it
+// (Parameter.Excludes: star, task.set {toggle: true}, given value: false
+// writes false). args is not changed.
+func (op Operation) WithPresets(args, presets Arguments) Arguments {
+	if len(presets) == 0 {
+		return args
+	}
+	out := maps.Clone(args)
+	if out == nil {
+		out = Arguments{}
+	}
+	excluded := func(preset string) bool {
+		for name := range args {
+			if slices.Contains(op.Parameters[name].Excludes, preset) || slices.Contains(op.Parameters[preset].Excludes, name) {
+				return true
+			}
+		}
+		return false
+	}
+	for k, v := range presets {
+		if _, set := out[k]; !set && !excluded(k) {
+			out[k] = v
+		}
+	}
+	return out
 }
 
 // Request names an operation and, optionally, the instance it addresses.

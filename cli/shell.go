@@ -217,10 +217,9 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	for k, v := range presets {
-		if _, set := q.Args[k]; !set {
-			q.Args[k] = v
-		}
+	if len(presets) > 0 {
+		op, _ := r.Operation(q.Key())
+		q.Args = op.WithPresets(q.Args, presets)
 	}
 	if q.Target != "" && q.Target != "focused-input" && !resolves(r, q.Target) && s.Reveal != nil {
 		if err := s.Reveal(q.Target); err != nil {

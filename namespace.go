@@ -153,7 +153,7 @@ func (r *Runtime) canonicalRequest(q Request) Request {
 					q.Via = a.Alias
 				}
 				q.Noun, q.Verb = op.Noun, op.Verb
-				return withAliasArgs(q, a)
+				return withAliasArgs(op, q, a)
 			}
 		}
 	}
@@ -165,7 +165,7 @@ func (r *Runtime) canonicalRequest(q Request) Request {
 	if op, ok := r.Operations[key]; ok {
 		q.Noun, q.Verb = op.Noun, op.Verb
 		if a, ok := r.actionNames.aliases[q.Via]; ok && a.Action == key {
-			q = withAliasArgs(q, a)
+			q = withAliasArgs(op, q, a)
 		}
 		return q
 	}
@@ -175,7 +175,7 @@ func (r *Runtime) canonicalRequest(q Request) Request {
 				q.Via = a.Alias
 			}
 			q.Noun, q.Verb = op.Noun, op.Verb
-			q = withAliasArgs(q, a)
+			q = withAliasArgs(op, q, a)
 		}
 	}
 	return q

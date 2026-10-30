@@ -3,7 +3,6 @@ package ochazuke
 import (
 	"errors"
 	"fmt"
-	"maps"
 	"slices"
 	"sort"
 	"strings"
@@ -292,21 +291,14 @@ func (r *Runtime) AliasShadow() string {
 	return AliasShadowRefuse
 }
 
-// withAliasArgs fills q's arguments the alias presets and q leaves out.
-func withAliasArgs(q Request, a ActionAlias) Request {
+// withAliasArgs fills q's arguments the alias presets and q leaves out
+// (Operation.WithPresets: a caller's argument also wins over a preset it
+// excludes).
+func withAliasArgs(op Operation, q Request, a ActionAlias) Request {
 	if len(a.Args) == 0 {
 		return q
 	}
-	args := maps.Clone(q.Args)
-	if args == nil {
-		args = Arguments{}
-	}
-	for k, v := range a.Args {
-		if _, set := args[k]; !set {
-			args[k] = v
-		}
-	}
-	q.Args = args
+	q.Args = op.WithPresets(q.Args, a.Args)
 	return q
 }
 

@@ -591,3 +591,31 @@ func TestStoreConfirmForBuildsThePrompt(t *testing.T) {
 		t.Fatalf("an empty prompt must delete without asking: modal %q", r.TopModal())
 	}
 }
+
+// An alias that presets toggle (task.star is task.set {prop: starred,
+// toggle: true}) yields its toggle to a value the caller gives, so
+// star {value: false} writes false instead of being refused as value
+// plus toggle: a caller's argument wins over a preset it excludes
+// (Parameter.Excludes). Without a value the alias toggles.
+func TestAliasPresetToggleYieldsToAValue(t *testing.T) {
+	r, s := newWriteRuntime(t)
+	if err := r.AddActionAlias(ActionAlias{Alias: "task.star", Action: "task.set", Args: Arguments{"prop": "starred", "toggle": true}}); err != nil {
+		t.Fatal(err)
+	}
+	starred := func() any { return s.find("t1")["starred"] }
+	mustRun(t, r, Request{Noun: "task", Verb: "star", Args: Arguments{"id": "t1"}})
+	if starred() != true {
+		t.Fatalf("toggle: %v", starred())
+	}
+	mustRun(t, r, Request{Noun: "task", Verb: "star", Args: Arguments{"id": "t1", "value": false}})
+	if starred() != false {
+		t.Fatalf("value false: %v", starred())
+	}
+	mustRun(t, r, Request{Noun: "task", Verb: "star", Args: Arguments{"id": "t1", "value": "true"}})
+	if starred() != true {
+		t.Fatalf("value true: %v", starred())
+	}
+	if _, err := r.Execute(Request{Noun: "task", Verb: "set", Args: Arguments{"id": "t1", "prop": "starred", "value": true, "toggle": true}}); err == nil {
+		t.Fatal("a caller giving both value and toggle is still refused")
+	}
+}

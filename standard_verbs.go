@@ -641,7 +641,7 @@ func setParams(n *Noun) map[string]Parameter {
 	return map[string]Parameter{
 		"prop":    {Type: "string", Enum: names, Free: true, Pairs: true, Description: "The prop to write (with value or toggle); a prop=value word starts the several-prop form"},
 		"value":   {Type: AnyParameterType, ValueOf: "prop", Description: "The prop's new value, typed by the prop (a word such as 3, true or 400ms, a JSON array or object)"},
-		"toggle":  {Type: "boolean", Description: "Flip the boolean prop instead of giving a value"},
+		"toggle":  {Type: "boolean", Excludes: []string{"value"}, Description: "Flip the boolean prop instead of giving a value"},
 		"changes": {Type: "object", Description: "Several props at once: an object of prop to value"},
 		"pairs":   {Type: "string", Rest: true, Description: "More prop=value words after prop and value (the several-prop form)"},
 	}
