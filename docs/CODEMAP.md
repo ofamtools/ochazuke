@@ -79,7 +79,7 @@ Root package `ochazuke` is flat: 119 source files, 137 test files. Each entry li
 
 ### chooser.go
 
-- lines: 738 · tests: chooser_test.go
+- lines: 755 · tests: chooser_test.go
 - purpose: ChooserRow is one choice.
 - types: ChooserRow, ChooserSpec, Chooser
 - methods: Chooser(26), Runtime(3)
@@ -278,16 +278,16 @@ Root package `ochazuke` is flat: 119 source files, 137 test files. Each entry li
 
 ### input.go
 
-- lines: 451
+- lines: 478
 - purpose: EditNode is one state in an input's undo tree: its text, cursor, parent and children.
 - types: EditNode, Input
-- methods: Input(19)
+- methods: Input(20)
 - funcs: NewInput, RegisterInputOperations
-- leans on: runtime.go(41), block.go(19), instance.go(11), input_readonly.go(6)
+- leans on: runtime.go(41), block.go(22), instance.go(12), input_readonly.go(6)
 
 ### input_readonly.go
 
-- lines: 60 · tests: input_readonly_test.go
+- lines: 62 · tests: input_readonly_test.go
 - purpose: editorOperatorChanges reports whether an operator changes the text: an operator the table does not know is taken to change it.
 - funcs: ReadOnly
 - leans on: runtime.go(4), instance.go(3), resolve.go(3), input.go(1)
@@ -366,10 +366,10 @@ Root package `ochazuke` is flat: 119 source files, 137 test files. Each entry li
 
 ### list_visual.go
 
-- lines: 399 · tests: list_visual_test.go
+- lines: 403 · tests: list_visual_test.go
 - purpose: Visual reports whether a V selection is active on the list.
 - methods: List(7), Runtime(5)
-- leans on: runtime.go(49), noun.go(24), list.go(17), instance.go(7)
+- leans on: runtime.go(49), noun.go(25), list.go(17), instance.go(7)
 
 ### macros.go
 
@@ -455,7 +455,7 @@ Root package `ochazuke` is flat: 119 source files, 137 test files. Each entry li
 
 ### palette.go
 
-- lines: 530 · tests: palette_test.go
+- lines: 536 · tests: palette_test.go
 - purpose: Palette is the ex-mode command line: one prompt input whose text is the source of truth, parsed by the grammar in palette_parse.go, with a completion list fo...
 - types: Palette
 - methods: Palette(24)
@@ -598,12 +598,12 @@ Root package `ochazuke` is flat: 119 source files, 137 test files. Each entry li
 
 ### resolve.go
 
-- lines: 1078 · tests: resolve_test.go
+- lines: 1174 · tests: resolve_test.go
 - purpose: KeyEvent is what a row receives: the key, the mode it was resolved in and the focused instance.
 - types: KeyEvent, KeyOutcome
 - methods: Binding(1), Runtime(29), level(1), lookResult(1)
 - funcs: SortBindings
-- leans on: runtime.go(105), noun.go(66), instance.go(44), delivery.go(11)
+- leans on: runtime.go(108), noun.go(74), instance.go(45), delivery.go(11)
 
 ### rows_format.go
 
@@ -730,10 +730,10 @@ Root package `ochazuke` is flat: 119 source files, 137 test files. Each entry li
 
 ### standard_derived.go
 
-- lines: 485 · tests: standard_derived_test.go
+- lines: 493 · tests: standard_derived_test.go
 - purpose: writableRole is the noun's prop with that role when set may write it.
 - methods: Runtime(11), focusFills(1)
-- leans on: props.go(50), noun.go(40), runtime.go(37), standard_verbs.go(19)
+- leans on: props.go(50), noun.go(40), runtime.go(37), standard_verbs.go(20)
 
 ### standard_grammar.go
 
@@ -839,7 +839,7 @@ Root package `ochazuke` is flat: 119 source files, 137 test files. Each entry li
 
 ### text_view.go
 
-- lines: 160 · tests: text_view_test.go
+- lines: 162 · tests: text_view_test.go
 - purpose: textView is the text view modal's state: its title and the first line its window shows, kept so the window moves only when the cursor would leave it.
 - methods: NounBuilder(1), Runtime(2)
 - leans on: block.go(8), runtime.go(5), input.go(3), instance.go(3)
@@ -945,7 +945,7 @@ Root package `ochazuke` is flat: 119 source files, 137 test files. Each entry li
 
 ## Package cli
 
-Importable package `cli`: 29 source files, 24 test files.
+Importable package `cli`: 29 source files, 25 test files.
 
 ### cli/catalog.go
 
@@ -1110,7 +1110,7 @@ Importable package `cli`: 29 source files, 24 test files.
 
 ### cli/shell.go
 
-- lines: 877
+- lines: 892
 - purpose: Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--format F] [--yes]: one registered operation in this process through the run...
 - types: Shell
 - methods: Shell(14), stderrSink(5)

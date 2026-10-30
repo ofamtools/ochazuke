@@ -475,7 +475,8 @@ Conformance:
 | normal | form | `form.choose` `form.leave` `form.next` `form.next-missing` `form.redo` `form.run` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
 | normal | history | `history.repeat` |
-| normal | input | `input.begin` `input.move` `input.select` `input.undo` |
+| normal | input | `input.begin` `input.move` `input.operator` `input.select` `input.undo` |
+| normal | key | `key.ignore` |
 | normal | list | `list.column` `list.filter-clear` `list.filter-open` `list.fit-column` `list.fit-columns` `list.goto` `list.mark` `list.move` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.toggle-pin-column` `list.visual` `list.yank` |
 | normal | macro | `macro.record` `macro.start` `macro.stop` |
 | normal | markdown | `markdown.delete` `markdown.fold` `markdown.insert` `markdown.next-block` `markdown.next-kind` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
@@ -614,6 +615,7 @@ Mode edges (from → to via):
 - `normal d` → `normal` via `setting-item.delete`
 - `normal g` → `normal` via `list.goto`
 - `normal g` → `normal` via `mode.leave`
+- `normal g` → `normal` via `row c`
 - `normal g` → `normal` via `settings.tab`
 - `normal g` → `normal` via `tick binding`
 - `normal g` → `normal` via `timeline.row`
@@ -632,6 +634,7 @@ Mode edges (from → to via):
 - `normal z` → `normal` via `timeline.fold`
 - `normal z` → `normal` via `timeline.open-all`
 - `operator_pending` → `normal` via `input.cancel`
+- `operator_pending` → `normal` via `input.operator`
 - `terminal` → `leader_pending` via `mode.enter`
 - `visual` → `normal` via `input.cancel`
 - `visual` → `normal` via `input.operator`
