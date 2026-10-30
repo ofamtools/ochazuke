@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 	"strings"
 )
@@ -73,8 +74,10 @@ func (r *Runtime) takeChanges(depth int) []ThingChange {
 // store's Get around the run: the thing before (a verb with a subject),
 // and the thing after under the subject's key, or under the key prop of
 // the thing it answers (create). A thing that was not there before has no
-// Before, one that is gone after no After; when both are there, only the
-// props the request writes (the row's Writes) are kept. No verb is named:
+// Before, one that is gone after no After; when both are there, the props
+// the request writes (the row's Writes) are kept, and every other writable
+// prop whose value the write changed (sideChanges: what the store did on
+// its own, as a move clearing a parent), so undo restores all of them. No verb is named:
 // the shapes come from the table and the store.
 //
 // A store that does not declare Undo (or has no Get) is not read around
@@ -108,7 +111,7 @@ func (r *Runtime) runRecording(verb string, n *Noun, c Ctx, run func(*Runtime, *
 		names, _ = row.Writes(n, c.Args)
 	}
 	key, keyed := "", false
-	var before map[string]any
+	var before, whole map[string]any
 	if row.Subject {
 		if k, err := r.subjectKey(n, c); err == nil {
 			key, keyed = k, true
@@ -116,6 +119,9 @@ func (r *Runtime) runRecording(verb string, n *Noun, c Ctx, run func(*Runtime, *
 				before = changeProps(n, t, names)
 				if before == nil {
 					before = map[string]any{}
+				}
+				if len(names) > 0 {
+					whole = changeProps(n, t, nil)
 				}
 			}
 		}
@@ -134,6 +140,15 @@ func (r *Runtime) runRecording(verb string, n *Noun, c Ctx, run func(*Runtime, *
 		names = nil // a new thing: all of it
 	}
 	if t := read(key); t != nil {
+		if whole != nil {
+			// The store may change more than the request wrote (a move
+			// that clears the parent): every writable prop that changed
+			// is recorded too, so undo writes it back.
+			for _, extra := range sideChanges(n, whole, changeProps(n, t, nil), names) {
+				names = append(names, extra)
+				before[extra] = whole[extra]
+			}
+		}
 		after = changeProps(n, t, names)
 		if after == nil {
 			after = map[string]any{}
@@ -143,6 +158,23 @@ func (r *Runtime) runRecording(verb string, n *Noun, c Ctx, run func(*Runtime, *
 		r.noteChange(ThingChange{Noun: n.Name, Key: key, Before: before, After: after})
 	}
 	return value, nil
+}
+
+// sideChanges are the writable props, beside the written ones, whose
+// values differ between the whole thing before a write and after it, in
+// prop order: what the store changed on its own (a read-only prop it
+// derives is left out; undo could not write it back).
+func sideChanges(n *Noun, before, after map[string]any, written []string) []string {
+	var out []string
+	for _, p := range writableProps(n) {
+		if p.Key || slices.Contains(written, p.Name) {
+			continue
+		}
+		if !reflect.DeepEqual(before[p.Name], after[p.Name]) {
+			out = append(out, p.Name)
+		}
+	}
+	return out
 }
 
 // answerKey is the key of the thing a verb answered (create's new thing),

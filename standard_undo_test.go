@@ -244,3 +244,32 @@ func TestUndoUnavailableWithoutAnyUndoStore(t *testing.T) {
 		t.Fatal("undo offered with no store that undoes")
 	}
 }
+
+// A write whose store changes more props than the request wrote (mtm's
+// move: the project written, the parent the move cleared) records every
+// writable prop that changed, so undo restores them all; a read-only prop
+// that changed (a summary the store derives) is not written back.
+func TestUndoRestoresPropsTheStoreChangedToo(t *testing.T) {
+	r, s := newUndoRuntime(t, true, true)
+	st := *r.Nouns["task"].Store
+	patch := st.Patch
+	st.Patch = func(c Ctx, id string, changes Thing) (Thing, error) {
+		if _, ok := changes["status"]; ok {
+			if t := s.find(id); t != nil {
+				t["estimate"] = 0 // a side effect: the status write clears the estimate
+				t["summary"] = "derived"
+			}
+		}
+		return patch(c, id, changes)
+	}
+	r.Define("task").Store(st)
+	mustRun(t, r, Request{Noun: "task", Verb: "set", Args: Arguments{"id": "t1", "prop": "status", "value": "done"}})
+	want := []ThingChange{{Noun: "task", Key: "t1", Before: map[string]any{"status": "todo", "estimate": 2}, After: map[string]any{"status": "done", "estimate": 0}}}
+	if got := lastChanges(r); !reflect.DeepEqual(got, want) {
+		t.Fatalf("changes %+v, want %+v", got, want)
+	}
+	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo"})
+	if th := s.find("t1"); th["status"] != "todo" || th["estimate"] != 2 {
+		t.Fatalf("undo left %v", th)
+	}
+}
