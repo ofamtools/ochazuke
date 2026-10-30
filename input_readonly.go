@@ -16,8 +16,10 @@ const InputWritableGuard = "input-writable"
 // read-only input and the request applies an operator that changes the
 // text to the visual selection (a visual mode's d, c, x: no motion), so
 // those rows stand aside and leave the hints. An operator over a motion
-// (d w, d d) stays available: the operator pending mode its first key
-// entered owns the key, and the handler leaves it a no-op.
+// (d w, d d) stays available, and the handler leaves it a no-op; the
+// editor's normal c and d rows carry input-writable as their row guard,
+// so a read-only input never enters operator pending for them and the
+// hint line does not offer them (y still does).
 const OperatorWritableGuard = "input-operator-writable"
 
 // editorOperators says, for each operator input.operator takes, whether it

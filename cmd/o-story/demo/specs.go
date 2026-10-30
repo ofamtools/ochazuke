@@ -318,6 +318,11 @@ type InputSpec struct {
 	// Secret makes the input secret (Input.Secret): the key echo shows
 	// nothing while it has the focus.
 	Secret bool `json:"secret,omitempty"`
+	// ReadOnly makes the input read-only (ochazuke.ReadOnly): motions,
+	// visual modes and yanks work, edits are no-ops.
+	ReadOnly bool `json:"readOnly,omitempty"`
+	// Multiline makes the input many lines (its text's newlines kept).
+	Multiline bool `json:"multiline,omitempty"`
 }
 
 // CompletionSpec is one completion trigger of a story input: its search

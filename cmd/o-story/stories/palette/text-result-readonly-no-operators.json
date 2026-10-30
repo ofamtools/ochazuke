@@ -1,0 +1,15 @@
+{
+  "name": "the read-only text view offers no c or d (R9.8): the hint line lacks them, d and c enter no OPERATOR PENDING and change nothing (the w after each moves), y still yanks",
+  "area": "palette",
+  "width": 120,
+  "height": 24,
+  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
+  "script": [":", {"type": "demo program"}, "enter", "d", "w", "c", "w", "y", "w"],
+  "expect": [
+    {"after": 3, "modal": "text-view", "mode": "normal", "lacks": ["c mode.enter", "d mode.enter"]},
+    {"after": 4, "modal": "text-view", "mode": "normal"},
+    {"after": 6, "modal": "text-view", "mode": "normal", "contains": [".items[] | {name, size: .bytes}"]},
+    {"after": 8, "mode": "operator_pending"},
+    {"modal": "text-view", "mode": "normal", "register": "[] ", "contains": [".items[] | {name, size: .bytes}"]}
+  ]
+}

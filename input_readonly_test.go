@@ -139,3 +139,74 @@ func TestReadOnlyInputAPI(t *testing.T) {
 		t.Fatal("snapshot lacks readOnly")
 	}
 }
+
+// SetText refreshes a read-only input from the program: the new text is
+// the undo root, the cursor and anchor are clamped into it as normal mode
+// leaves them, the same text again keeps the history, and a single-line
+// input keeps its first line.
+func TestInputSetText(t *testing.T) {
+	in := NewInput("viewer", "alpha beta gamma", false)
+	in.ReadOnly = true
+	in.Cursor, in.Anchor = 12, 14
+	in.SetText("short")
+	if string(in.Text) != "short" || in.Cursor != 4 || in.Anchor != 4 || len(in.History) != 1 || in.History[0].Text != "short" || in.Head != 0 {
+		t.Fatalf("SetText: text %q cursor %d anchor %d history %+v head %d", string(in.Text), in.Cursor, in.Anchor, in.History, in.Head)
+	}
+	in.Cursor = 1
+	in.SetText("short")
+	if in.Cursor != 1 || len(in.History) != 1 {
+		t.Fatalf("same text: cursor %d history %d", in.Cursor, len(in.History))
+	}
+	in.SetText("one\ntwo")
+	if string(in.Text) != "one" {
+		t.Fatalf("single-line SetText kept %q", string(in.Text))
+	}
+	multi := NewInput("m", "", true)
+	multi.SetText("one\ntwo")
+	if string(multi.Text) != "one\ntwo" || multi.Cursor != 0 {
+		t.Fatalf("multiline SetText: %q cursor %d", string(multi.Text), multi.Cursor)
+	}
+}
+
+// A focused read-only input owns the editor's keys: a page row on a key
+// the editor binds (p, an edit the input refuses; w, a motion) never runs
+// from it, the refused key is consumed, and the hint line does not offer
+// the page row. A key the editor does not bind still reaches the page.
+func TestReadOnlyInputOwnsEditorKeys(t *testing.T) {
+	r := NewRuntime()
+	if _, err := r.AddPage("p", "P", func(*Runtime, int, int) Block { return Text("") }); err != nil {
+		t.Fatal(err)
+	}
+	in := NewInput("viewer", "one two", false)
+	if err := r.AddInput(in, Parent("p"), ReadOnly()); err != nil {
+		t.Fatal(err)
+	}
+	ran := map[string]int{}
+	for _, verb := range []string{"paste", "write", "reload"} {
+		r.Define("app").Verb(verb, func(Ctx) Result { ran[verb]++; return Done(nil) })
+	}
+	r.Define("app").Mode("normal").Bind("p", Do("app.paste")).Bind("w", Do("app.write")).Bind("R", Do("app.reload"))
+	if err := r.SetFocus(in.ID); err != nil {
+		t.Fatal(err)
+	}
+	NewModel(r)
+	if hints := BindingHints(r, in.ID); strings.Contains(hints, "app.paste") || strings.Contains(hints, "app.write") || !strings.Contains(hints, "app.reload") {
+		t.Fatalf("hints: %q", hints)
+	}
+	if outcome, err := r.DispatchOutcome(MacroKey{Key: "p"}); err != nil || outcome != KeyConsumed {
+		t.Fatalf("p: %v %v", outcome, err)
+	}
+	if _, err := r.Dispatch(MacroKey{Key: "w"}); err != nil || in.Cursor != 4 {
+		t.Fatalf("w: cursor %d, %v", in.Cursor, err)
+	}
+	if _, err := r.Dispatch(MacroKey{Key: "R"}); err != nil {
+		t.Fatal(err)
+	}
+	if ran["paste"] != 0 || ran["write"] != 0 || ran["reload"] != 1 {
+		t.Fatalf("ran %v", ran)
+	}
+	in.ReadOnly = false
+	if _, err := r.Dispatch(MacroKey{Key: "p"}); err != nil || ran["paste"] != 1 {
+		t.Fatalf("a writable input's page row: ran %v, %v", ran, err)
+	}
+}

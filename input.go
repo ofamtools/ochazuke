@@ -170,6 +170,33 @@ func (in *Input) storeMode(mode string) {
 	}
 }
 
+// SetText puts text in the input from the program, read-only or not: a
+// viewer refreshed with what it shows (a jq panel following the query).
+// The text becomes the undo tree's root (nothing to undo back to); the
+// cursor and a visual selection's anchor keep their offsets, clamped into
+// the new text as a motion would leave them (in normal mode not past the
+// line's last character); an open select range and an insert session end.
+// A single-line input keeps the text up to its first line break. The same
+// text again changes nothing, so the undo history stays.
+func (in *Input) SetText(text string) {
+	if !in.Multiline {
+		text, _, _ = strings.Cut(strings.ReplaceAll(text, "\r\n", "\n"), "\n")
+	}
+	if string(in.Text) == text && len(in.History) > 0 {
+		return
+	}
+	in.Text = []rune(text)
+	in.History, in.Head = []EditNode{{Text: text, Parent: -1}}, 0
+	in.groupOpen, in.groupNode, in.goalColumn = false, -1, -1
+	in.typeOver, in.blockChange = nil, nil
+	anchor := in.Cursor
+	in.Cursor = in.Anchor
+	in.clampCursor()
+	in.Cursor, in.Anchor = anchor, in.Cursor
+	in.clampCursor()
+	in.History[0].Cursor = in.Cursor
+}
+
 func (in *Input) Replace(start, end int, text string) error {
 	if start < 0 || end < start || end > len(in.Text) {
 		return errors.New("invalid edit range")

@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -31,6 +32,11 @@ type level struct {
 	inst    *Instance
 	noun    *Noun
 	capture bool
+	// owns marks the editor level of a focused read-only input: it answers
+	// right after the input, and a key one of its rows binds in the mode
+	// is the input's even where no row answers (an edit the input refuses,
+	// a row guarded off), consumed rather than passed to the page.
+	owns bool
 }
 
 // name is the noun a level answers as: its noun table's, else its
@@ -89,6 +95,15 @@ func (b Binding) Captured() Binding { b.Capture = true; return b }
 // focus ends at app: editor rows neither answer nor appear in bindings.list
 // for it; counts, registers and macros are app rows and still do.
 //
+// A focused read-only input (Input.ReadOnly) is a viewer whose keys are
+// the editor's: the editor level answers right after the input's own
+// (before the panel, the page, app), so its motions and selections win
+// over the page's rows in every mode the input is in (visual-line's
+// inherited normal rows included), and a key the editor binds in the mode
+// that does not run there (an edit, refused while read-only) is consumed
+// at that level (level.owns) instead of reaching a page row on the same
+// key. Keys the editor does not bind still reach the page.
+//
 // The top modal is a resolution boundary (a z-index): while one is open
 // and the walked focus is inside it (the live focus always is), the walk is the instances from the focus up to
 // and including the modal instance, then the modal noun, then app. The
@@ -135,6 +150,14 @@ func (r *Runtime) stack(focus string) []level {
 			noun = nil // the editor table is the shared fallback below
 		}
 		out = append(out, level{inst: inst, noun: noun})
+		if i == 0 && editing {
+			if in := r.Input(id); in != nil && in.ReadOnly {
+				if editor := r.Nouns["ochazuke.editor"]; editor != nil {
+					out = append(out, level{noun: editor, owns: true})
+					editing = false // placed: no fallback below
+				}
+			}
+		}
 	}
 	if editor := r.Nouns["ochazuke.editor"]; editor != nil && editing {
 		out = append(out, level{noun: editor})
@@ -364,11 +387,24 @@ func (r *Runtime) lookup(lv level, mode string, exclusive bool, prefix, sequence
 		rank int
 	}
 	var candidates []candidate
+	// owned is a row of an owning level (level.owns) on the key typed,
+	// whether or not it answers: the key is consumed when none does.
+	var owned *Binding
+	matches := func(row *Binding) bool {
+		if row.Keys != "" {
+			return !key.Paste && row.Keys == sequence
+		}
+		ok, _ := matchesPattern(row.Pattern, key)
+		return row.Pattern != "" && prefix == "" && ok
+	}
 	for t, rows := range tables {
 		for i := range rows {
 			row := &rows[i]
 			if row.Unbind || row.Capture != lv.capture {
 				continue
+			}
+			if lv.owns && owned == nil && matches(row) {
+				owned = row
 			}
 			if !r.Available(row.Request, ev.Focus, ev.Mode) {
 				continue // not available here: the walk goes on, as the listings hide it
@@ -408,6 +444,12 @@ func (r *Runtime) lookup(lv level, mode string, exclusive bool, prefix, sequence
 			hit = c.row
 			break
 		}
+	}
+	if hit == nil && owned != nil {
+		// The owning level's key, which nothing here runs: consumed. It
+		// keeps the keys typed, so a longer sequence further out still
+		// waits over it.
+		hit = &Binding{Keys: cmp.Or(owned.Keys, key.Key), Request: Do(NoopAction).Request}
 	}
 	if hit != nil && hit.Keys == "" {
 		look.exact = nil
@@ -729,8 +771,8 @@ func (r *Runtime) scanRows(levels []level, mode ModeState, focus string, editing
 	base, prefix := baseAndPrefix(mode)
 	exclusive := r.pendingModes[mode.Name] || mode.Payload.Shadow != nil
 	seen := map[string]bool{}
-	var out []levelRow
-	var capture, inherited bool
+	var out, owned []levelRow
+	var capture, inherited, owns bool
 	var name string
 	take := func(rows []Binding) {
 		for _, b := range rows {
@@ -738,6 +780,15 @@ func (r *Runtime) scanRows(levels []level, mode ModeState, focus string, editing
 				continue
 			}
 			guard := ""
+			if live && owns && (!r.Available(b.Request, focus, mode) || !r.rowGuardHolds(b.When, KeyEvent{Mode: mode, Focus: focus})) {
+				// A read-only input's editor key that does not run there is
+				// consumed (level.owns): it claims the key, so the page's
+				// row on it is not offered, and shows nothing itself.
+				if prefix == "" || strings.HasPrefix(b.Keys, prefix+" ") {
+					seen[b.Keys+"\x00"+b.Pattern] = true
+				}
+				continue
+			}
 			if live {
 				if capture && b.When != "" {
 					// A capture row standing aside (ctrl+c's no-modal inside the
@@ -773,12 +824,36 @@ func (r *Runtime) scanRows(levels []level, mode ModeState, focus string, editing
 			if guard == "" && (!live || r.rowGuardHolds(b.When, KeyEvent{Mode: mode, Focus: focus})) {
 				seen[id] = true
 			}
-			out = append(out, levelRow{Binding: b, level: name, guard: guard, inherited: inherited})
+			row := levelRow{Binding: b, level: name, guard: guard, inherited: inherited}
+			if owns {
+				// The owning editor level claims its keys first but lists
+				// them where the fallback would: after the page's and
+				// app's, so a modal's own keys (q) still lead the hints.
+				owned = append(owned, row)
+				continue
+			}
+			out = append(out, row)
 		}
 	}
 	for _, lv := range levels {
 		capture = lv.capture
+		owns = lv.owns && live
 		name = lv.name()
+		if owns {
+			before := len(owned)
+			for i, rows := range r.nounTables(lv.noun, base) {
+				inherited = i > 0
+				take(rows)
+			}
+			inherited = false
+			if !exclusive {
+				take(lv.noun.Bindings[""])
+			}
+			if answersEveryKey(owned[before:]) {
+				break
+			}
+			continue
+		}
 		before := len(out)
 		if lv.inst != nil {
 			take(rowsForMode(lv.inst.Bindings, base, exclusive))
@@ -797,6 +872,7 @@ func (r *Runtime) scanRows(levels []level, mode ModeState, focus string, editing
 			break
 		}
 	}
+	out = append(out, owned...)
 	if r.dropsInheritedSequences() {
 		out = dropShadowedInherited(out, prefix)
 	}

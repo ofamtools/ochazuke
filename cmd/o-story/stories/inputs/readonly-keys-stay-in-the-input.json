@@ -1,0 +1,24 @@
+{
+  "name": "a focused read-only input keeps the editor's keys: p, u and ctrl+r (edits, no-ops here) never reach the page's rows on them, and w/e move in normal and visual-line even where the page binds w (no key.ignore rows needed)",
+  "area": "inputs",
+  "width": 60,
+  "height": 10,
+  "page": {
+    "noHeadings": true,
+    "inputs": [{"id": "view", "label": "view", "text": "alpha beta\ngamma delta", "readOnly": true, "multiline": true}],
+    "bind": [
+      {"noun": "app", "keys": "p", "do": "ochazuke.palette.open"},
+      {"noun": "app", "keys": "u", "do": "ochazuke.palette.open"},
+      {"noun": "app", "keys": "ctrl+r", "do": "ochazuke.palette.open"},
+      {"noun": "app", "keys": "w", "do": "ochazuke.palette.open"}
+    ]
+  },
+  "script": ["p", "u", "ctrl+r", "w", "v", "e", "y", "V", "w", "esc"],
+  "expect": [
+    {"after": 3, "modal": "", "mode": "normal", "focus": "view", "contains": ["alpha beta"]},
+    {"after": 4, "modal": "", "mode": "normal"},
+    {"after": 7, "modal": "", "mode": "normal", "register": "beta"},
+    {"after": 9, "modal": "", "mode": "visual-line"},
+    {"modal": "", "mode": "normal", "focus": "view"}
+  ]
+}
