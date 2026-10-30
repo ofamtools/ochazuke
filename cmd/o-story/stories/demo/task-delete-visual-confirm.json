@@ -1,0 +1,118 @@
+{
+  "name": "standard delete over a visual selection: V d asks the row's own prompt with its label read from the store, V j d counts the rows; neither fills {{label}} from list.apply's own arguments (\"Delete demo true?\" in v0.56.0)",
+  "area": "demo",
+  "width": 100,
+  "height": 24,
+  "page": {
+    "lists": [
+      {
+        "id": "tasks",
+        "items": [
+          {
+            "id": "t1",
+            "label": "t1"
+          },
+          {
+            "id": "t2",
+            "label": "t2"
+          },
+          {
+            "id": "t3",
+            "label": "t3"
+          }
+        ]
+      }
+    ],
+    "store": {
+      "props": [
+        {
+          "name": "id",
+          "key": true
+        },
+        {
+          "name": "title",
+          "role": "label",
+          "fallback": "summary"
+        },
+        {
+          "name": "status",
+          "enum": [
+            "todo",
+            "doing",
+            "done"
+          ]
+        },
+        {
+          "name": "summary",
+          "readOnly": true
+        }
+      ],
+      "things": [
+        {
+          "id": "t1",
+          "title": "Water the plants",
+          "status": "todo",
+          "summary": ""
+        },
+        {
+          "id": "t2",
+          "title": "Write notes",
+          "status": "doing",
+          "summary": ""
+        },
+        {
+          "id": "t3",
+          "title": "",
+          "status": "todo",
+          "summary": "Call the plumber"
+        }
+      ]
+    },
+    "bind": [
+      {
+        "noun": "demo",
+        "mode": "visual-line",
+        "keys": "d",
+        "do": "demo.delete"
+      }
+    ]
+  },
+  "script": [
+    "V",
+    "d",
+    "n",
+    "j",
+    "d",
+    "n"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "modal": "confirm",
+      "contains": [
+        "Delete demo Water the plants?"
+      ],
+      "lacks": [
+        "true"
+      ]
+    },
+    {
+      "after": 3,
+      "modal": "",
+      "mode": "visual-line"
+    },
+    {
+      "after": 5,
+      "modal": "confirm",
+      "contains": [
+        "Run demo.delete on 2 rows?"
+      ],
+      "lacks": [
+        "true"
+      ]
+    },
+    {
+      "modal": ""
+    }
+  ]
+}

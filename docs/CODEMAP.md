@@ -142,10 +142,10 @@ Root package `ochazuke` is flat: 119 source files, 138 test files. Each entry li
 
 ### confirm.go
 
-- lines: 191 · tests: confirm_test.go
+- lines: 210 · tests: confirm_test.go
 - purpose: The confirm noun: a framework modal a verb with a Confirm prompt opens before it runs.
-- methods: Runtime(3)
-- leans on: runtime.go(28), noun.go(9), instance.go(8), props.go(7)
+- methods: Runtime(4)
+- leans on: runtime.go(32), noun.go(9), instance.go(8), props.go(8)
 
 ### default_bindings.go
 
@@ -366,7 +366,7 @@ Root package `ochazuke` is flat: 119 source files, 138 test files. Each entry li
 
 ### list_visual.go
 
-- lines: 403 · tests: list_visual_test.go
+- lines: 407 · tests: list_visual_test.go
 - purpose: Visual reports whether a V selection is active on the list.
 - methods: List(7), Runtime(5)
 - leans on: runtime.go(49), noun.go(25), list.go(17), instance.go(7)
@@ -413,12 +413,12 @@ Root package `ochazuke` is flat: 119 source files, 138 test files. Each entry li
 
 ### namespace.go
 
-- lines: 557 · tests: namespace_test.go
+- lines: 573 · tests: namespace_test.go
 - purpose: SplitKey splits an operation key on its last dot: the noun before it (a noun may be dotted: ochazuke.settings, ai.skills) and the verb after it.
 - types: NounAlias
 - methods: NounAlias(2), Runtime(28)
 - funcs: SplitKey, CutKey, Namespaced
-- leans on: runtime.go(34), action_names.go(28), noun.go(20), actions.go(3)
+- leans on: runtime.go(34), action_names.go(29), noun.go(20), actions.go(3)
 
 ### noun.go
 
