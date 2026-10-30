@@ -216,10 +216,11 @@ func TestHelpTableColumns(t *testing.T) {
 	}
 }
 
-// S cycles here → pick → table → here, skipping a view its setting turns
-// off; with both off S is not offered and does nothing.
+// S and tab cycle here → pick → table → here, shift+tab backwards,
+// skipping a view its setting turns off; with both off none of them is
+// the help's (S is not offered and does nothing, tab falls through).
 func TestHelpViewCycle(t *testing.T) {
-	cycle := func(t *testing.T, pick, table bool) []string {
+	cycle := func(t *testing.T, key string, pick, table bool) []string {
 		t.Helper()
 		r, m := helpFixture(t)
 		r.EnsureConfigSettings()
@@ -232,7 +233,7 @@ func TestHelpViewCycle(t *testing.T) {
 		keytest.Press(m, "?")
 		views := []string{r.helpOpen().view}
 		for range 3 {
-			keytest.Press(m, "S")
+			keytest.Press(m, key)
 			views = append(views, r.helpOpen().view)
 		}
 		hints := BindingHints(r, r.Focus)
@@ -242,16 +243,23 @@ func TestHelpViewCycle(t *testing.T) {
 		return views
 	}
 	for _, tc := range []struct {
+		key         string
 		pick, table bool
 		want        string
 	}{
-		{true, true, "here pick table here"},
-		{false, true, "here table here table"},
-		{true, false, "here pick here pick"},
-		{false, false, "here here here here"},
+		{"S", true, true, "here pick table here"},
+		{"S", false, true, "here table here table"},
+		{"S", true, false, "here pick here pick"},
+		{"S", false, false, "here here here here"},
+		{"tab", true, true, "here pick table here"},
+		{"tab", false, true, "here table here table"},
+		{"tab", false, false, "here here here here"},
+		{"shift+tab", true, true, "here table pick here"},
+		{"shift+tab", true, false, "here pick here pick"},
+		{"shift+tab", false, false, "here here here here"},
 	} {
-		if got := strings.Join(cycle(t, tc.pick, tc.table), " "); got != tc.want {
-			t.Errorf("pick %v table %v: %s, want %s", tc.pick, tc.table, got, tc.want)
+		if got := strings.Join(cycle(t, tc.key, tc.pick, tc.table), " "); got != tc.want {
+			t.Errorf("%s pick %v table %v: %s, want %s", tc.key, tc.pick, tc.table, got, tc.want)
 		}
 	}
 }

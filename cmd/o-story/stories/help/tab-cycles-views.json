@@ -1,0 +1,19 @@
+{
+  "name": "tab and shift+tab in ? help cycle its views (here, pick, table, wrapping), as tab cycles the views of anything with views; S still does too",
+  "area": "help",
+  "width": 120,
+  "height": 40,
+  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
+  "script": ["?", "tab", "tab", "shift+tab", "shift+tab", "shift+tab", "tab", "S", "esc"],
+  "expect": [
+    {"after": 1, "modal": "bindings-help", "contains": ["Keys · here"]},
+    {"after": 2, "modal": "bindings-help", "contains": ["Keys · pick"]},
+    {"after": 3, "modal": "bindings-help", "contains": ["Keys · table"]},
+    {"after": 4, "modal": "bindings-help", "contains": ["Keys · pick"]},
+    {"after": 5, "modal": "bindings-help", "contains": ["Keys · here"]},
+    {"after": 6, "modal": "bindings-help", "contains": ["Keys · table"]},
+    {"after": 7, "modal": "bindings-help", "contains": ["Keys · here"]},
+    {"after": 8, "modal": "bindings-help", "contains": ["Keys · pick"]},
+    {"modal": "", "focus": "a2", "mode": "normal"}
+  ]
+}

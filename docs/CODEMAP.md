@@ -262,11 +262,11 @@ Root package `ochazuke` is flat: 121 source files, 142 test files. Each entry li
 
 ### help_views.go
 
-- lines: 708 · tests: help_views_test.go
+- lines: 713 · tests: help_views_test.go
 - purpose: HelpCell is one mode's rows for a key in the help's table view: the first answers, the ones after answer when its guard is false.
 - types: HelpCell, HelpKey
 - methods: Runtime(8), helpState(13)
-- leans on: runtime.go(48), noun.go(25), help.go(21), delivery.go(14)
+- leans on: runtime.go(53), noun.go(25), help.go(21), delivery.go(14)
 
 ### history.go
 

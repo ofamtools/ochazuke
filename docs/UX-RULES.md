@@ -90,6 +90,13 @@ tiers above them. When the two disagree, fix one in the same commit.
   `TestResolverBubblesWhenNoneIsAvailable`, `TestResolverConsumedByNoop`.
 - **R1.9** A paste reaches the walk as one `MacroKey` with `Paste` set and
   matches only `paste` rows. Story: needed (`inputs/paste-is-one-key`).
+- **R1.10** `tab` cycles views; in a search line, the match mode (R5.18).
+  Anything with views binds `tab` to its view verb with `step` 1 and
+  `shift+tab` with `step` -1, wrapping, beside any letter key it already
+  has (the `?` help's `S`). Where a component has no views, `tab` keeps
+  its own meaning (a form's next field, the palette's and the picker's
+  completion, an outline's indent, the Settings page's sections) or falls
+  through to `focus.next` (R3.8). Story: `help/tab-cycles-views.json`.
 
 ### R2. Modes
 

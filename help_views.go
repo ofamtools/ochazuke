@@ -16,11 +16,12 @@ import (
 // the focus were on that noun in that mode (NounHelp). Table is a chosen
 // noun's keys by mode: a row per key or key class, a column per mode with
 // rows for the noun or app, each cell the operation that answers there.
-// S (bindings-help.view) cycles the views the settings leave on; n
-// (bindings-help.noun) chooses the noun of pick and table, m
-// (bindings-help.mode) the mode of pick, p (bindings-help.place) the place
-// of pick and table: one of the noun's recorded places (NounPlaces), whose
-// chain gives the walk the levels between the noun and app, or no place.
+// S and tab (bindings-help.view {step}; shift+tab backwards) cycle the
+// views the settings leave on; n (bindings-help.noun) chooses the noun of
+// pick and table, m (bindings-help.mode) the mode of pick, p
+// (bindings-help.place) the place of pick and table: one of the noun's
+// recorded places (NounPlaces), whose chain gives the walk the levels
+// between the noun and app, or no place.
 // All four are rows on the help modal's noun, guarded so they answer, and
 // are hinted, only where they do something.
 const (
@@ -40,7 +41,7 @@ const (
 	HelpPendingSetting = "help.pending-modes"
 )
 
-// helpViews is the order S cycles in.
+// helpViews is the order S and tab cycle in (shift+tab backwards).
 var helpViews = []string{HelpHere, HelpPick, HelpTable}
 
 // helpNounKind, helpModeKind and helpPlaceKind are the choosers n, m and
@@ -185,28 +186,28 @@ func (r *Runtime) helpFlag(name string, def bool) bool {
 	return b
 }
 
-// views are the views S cycles through, read from the settings each time.
+// views are the views S and tab cycle through, read from the settings each time.
 func (h *helpState) views() []string {
-	out := []string{HelpHere}
-	if h.r.helpFlag(HelpPickSetting, true) {
-		out = append(out, HelpPick)
-	}
-	if h.r.helpFlag(HelpTableSetting, true) {
-		out = append(out, HelpTable)
+	on := map[string]bool{HelpHere: true, HelpPick: h.r.helpFlag(HelpPickSetting, true), HelpTable: h.r.helpFlag(HelpTableSetting, true)}
+	var out []string
+	for _, v := range helpViews {
+		if on[v] {
+			out = append(out, v)
+		}
 	}
 	return out
 }
 
-// cycle moves to the next view in helpViews order that is on.
-func (h *helpState) cycle() {
+// cycle moves step views along helpViews order (wrapping), counting only
+// the views that are on: 1 is the next, -1 the previous.
+func (h *helpState) cycle(step int) {
 	on := h.views()
-	i := slices.Index(helpViews, h.view)
-	for step := 1; step <= len(helpViews); step++ {
-		if next := helpViews[(i+step)%len(helpViews)]; slices.Contains(on, next) {
-			h.view = next
-			return
-		}
+	if len(on) == 0 || step == 0 {
+		return
 	}
+	i := max(0, slices.Index(on, h.view))
+	n := len(on)
+	h.view = on[((i+step)%n+n)%n]
 }
 
 // show draws the current view, made again: its rows and columns differ
@@ -613,10 +614,14 @@ func registerHelpViews(r *Runtime) {
 			return h.view, nil
 		}
 	}
-	r.Register(Operation{Verb: "view", Noun: helpID, Description: "Show the help's next view: here (the focus), pick (a noun and mode you choose), table (a noun's keys by mode)", Result: "view", Run: view(func(h *helpState) error {
-		h.cycle()
-		return h.show()
-	})})
+	r.Register(Operation{Verb: "view", Noun: helpID, Description: "Show the help's next or previous view (wrapping): here (the focus), pick (a noun and mode you choose), table (a noun's keys by mode)", Parameters: map[string]Parameter{
+		"step": {Type: "integer", Description: "1 for the next view (the default), -1 for the previous"},
+	}, Result: "view", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		return view(func(h *helpState) error {
+			h.cycle(IntArg(a, "step", 1))
+			return h.show()
+		})(r, c, a)
+	}})
 	r.Register(Operation{Verb: "noun", Noun: helpID, Description: "Choose the noun the help's pick and table views describe", Result: "view", Run: view(func(h *helpState) error {
 		names := slices.SortedFunc(maps.Keys(h.r.Nouns), func(a, b string) int { return strings.Compare(h.r.DisplayNoun(a), h.r.DisplayNoun(b)) })
 		rows := helpChooserRows(names, h.noun, func(string) any { return nil })
