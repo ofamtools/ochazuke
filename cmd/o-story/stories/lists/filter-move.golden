@@ -2,7 +2,7 @@
  |   › page1
  |  ────────────────────────────────────────────────────────────────────────────
  |  a
-R|  /al                                                                   2 of 5
+R|  /al                                                           2 of 5  substr
 R|  alpha
  |  alphabet
  |
@@ -20,5 +20,5 @@ r|  b1
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────
- |  enter list.filter-keep · esc list.filter-clear
+ |  enter list.filter-keep · esc list.filter-clear · tab search.cycle-match
  |

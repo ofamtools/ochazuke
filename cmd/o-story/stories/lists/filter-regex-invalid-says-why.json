@@ -1,0 +1,16 @@
+{
+  "name": "list filter, search.match regex: an invalid pattern matches nothing and the filter line says why (never a modal); closing it filters again",
+  "area": "lists",
+  "settings": [{"name": "search.match", "type": "string", "default": "regex", "enum": ["substring", "fuzzy", "regex"]}],
+  "page": {
+    "lists": [
+      {"id": "a", "rows": 4, "labels": ["alpha", "beta", "gamma", "delta"]},
+      {"id": "b", "rows": 2}
+    ]
+  },
+  "script": ["/", {"type": "(al"}, {"type": "|be)"}],
+  "expect": [
+    {"after": 2, "mode": "list_filter", "modal": "", "contains": ["/(al", "regex: missing closing )", "regex"], "lacks": ["alpha", "beta"]},
+    {"mode": "list_filter", "contains": ["/(al|be)", "2 of 4", "alpha", "beta"], "lacks": ["gamma", "missing"]}
+  ]
+}

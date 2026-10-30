@@ -57,6 +57,9 @@ type Picker struct {
 	statting  map[string]bool
 	drawnRows int
 	statFunc  func(string) (fs.FileInfo, error)
+	// match is the match mode search.cycle-match or search.set-match
+	// chose while open; "" is the chooser.match setting (search_match.go).
+	match string
 }
 
 type pickerIndexMsg struct {
@@ -231,6 +234,7 @@ func (p *Picker) open(c Context, args Arguments) (any, error) {
 		return nil, err
 	}
 	p.stop()
+	p.match = "" // each open starts in chooser.match
 	p.Origin, p.originInput = c.Clone(), origin
 	p.originText, p.originKind = string(origin.Text), origin.Kind
 	p.start, p.end, p.Filter, p.base = start, end, filter, cwd
@@ -449,15 +453,40 @@ func (p *Picker) queueIndex(root string, shallow bool) {
 func (p *Picker) queueSearch() {
 	id, ctx := p.issue("search")
 	p.searchID = id
-	entries, query, filter, caseMode := p.indexed, p.query, p.Filter, p.Runtime.SearchCase()
+	entries, query, filter := p.indexed, p.query, p.Filter
+	m := p.matcher()
 	p.Loading = true
 	p.pending = append(p.pending, func() tea.Msg {
-		results, err := searchPicker(ctx, entries, query, filter, caseMode)
+		results, err := searchPickerMatch(ctx, entries, m, filter)
 		if err == nil && query == "" && filter != "file" {
 			results = append([]PickerEntry{{Path: ".", Dir: true}}, results...)
 		}
 		return pickerSearchMsg{picker: p, id: id, entries: results, err: err}
 	})
+}
+
+// MatchMode is the picker's match mode: the one search.cycle-match or
+// search.set-match chose while it is open, else the chooser.match
+// setting. It decides how the query (the path after its directory)
+// picks entries.
+func (p *Picker) MatchMode() string {
+	if p.match != "" {
+		return p.match
+	}
+	return p.Runtime.ChooserMatch()
+}
+
+// matcher is the query compiled in the picker's match mode.
+func (p *Picker) matcher() Matcher {
+	return p.Runtime.Matcher(p.MatchMode(), filepath.ToSlash(p.query))
+}
+
+// The matchSearcher contract (search_match.go).
+func (p *Picker) matchMode() string  { return p.MatchMode() }
+func (p *Picker) matchApplies() bool { return p.IsOpen() }
+func (p *Picker) setMatchMode(mode string) {
+	p.match = mode
+	p.pathChanged()
 }
 
 // Close cancels indexing, searching and previews; the picker instance stays

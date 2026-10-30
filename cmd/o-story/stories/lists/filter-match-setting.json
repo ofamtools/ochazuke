@@ -1,0 +1,15 @@
+{
+  "name": "list filter, search.match fuzzy: / opens in fuzzy (the setting is the starting mode), the tag says so",
+  "area": "lists",
+  "settings": [{"name": "search.match", "type": "string", "default": "fuzzy", "enum": ["substring", "fuzzy", "regex"]}],
+  "page": {
+    "lists": [
+      {"id": "a", "rows": 4, "labels": ["alpha", "beta", "gamma", "alphabet"]},
+      {"id": "b", "rows": 2}
+    ]
+  },
+  "script": ["/", {"type": "apb"}],
+  "expect": [
+    {"mode": "list_filter", "contains": ["/apb", "1 of 4", "fuzzy", "alphabet"], "lacks": ["gamma", "substr"]}
+  ]
+}

@@ -7,14 +7,14 @@ r|  a1
  |
  |      ╭──────────────────────────────────────────────╮
  |      │ Fruit                                        │
- |      │ › che                                        │
+ |      │ › che                                  fuzzy │
 R|      │   cherry                                     │
- |      │ enter chooser.pick · esc chooser.cancel      │
+ |      │ enter chooser.pick · esc chooser.cancel · t… │
  |      ╰──────────────────────────────────────────────╯
  |
  |
  |
  |
  |  ────────────────────────────────────────────────────────
- |  enter chooser.pick · esc chooser.cancel
+ |  enter chooser.pick · esc chooser.cancel · tab search.cy…
  |

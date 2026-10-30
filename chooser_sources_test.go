@@ -102,7 +102,7 @@ func sourcesFixture(t *testing.T, kind string, sources ...ChooserSource) (*Runti
 	return r, m, &picked
 }
 
-// tab and shift+tab cycle the sources, wrapping; the query carries over
+// ctrl+o and alt+o cycle the sources, wrapping; the query carries over
 // and the title names the current source in brackets and the others.
 func TestChooserSourcesCycleKeepingTheQuery(t *testing.T) {
 	r, m, picked := sourcesFixture(t, "cyc", rowsSource("one", "alpha", "beta"), rowsSource("two", "alpine", "gamma"), rowsSource("three", "delta"))
@@ -114,34 +114,34 @@ func TestChooserSourcesCycleKeepingTheQuery(t *testing.T) {
 	if got := labels(c.Matches()); !slices.Equal(got, []string{"alpha"}) {
 		t.Fatalf("one al: %v", got)
 	}
-	pressLand(m, "tab")
+	pressLand(m, "ctrl+o")
 	if c.Source() != "two" || c.Query() != "al" || !slices.Equal(labels(c.Matches()), []string{"alpine"}) {
-		t.Fatalf("after tab: source %q query %q rows %v", c.Source(), c.Query(), labels(c.Matches()))
+		t.Fatalf("after ctrl+o: source %q query %q rows %v", c.Source(), c.Query(), labels(c.Matches()))
 	}
 	if !strings.Contains(screen(m), "[two]") {
 		t.Fatalf("the title shows the current source:\n%s", screen(m))
 	}
-	pressLand(m, "tab", "tab")
+	pressLand(m, "ctrl+o", "ctrl+o")
 	if c.Source() != "one" {
-		t.Fatalf("tab wraps: %q", c.Source())
+		t.Fatalf("ctrl+o wraps: %q", c.Source())
 	}
-	pressLand(m, "shift+tab")
+	pressLand(m, "alt+o")
 	if c.Source() != "three" {
-		t.Fatalf("shift+tab wraps back: %q", c.Source())
+		t.Fatalf("alt+o wraps back: %q", c.Source())
 	}
-	pressLand(m, "shift+tab", "enter")
+	pressLand(m, "alt+o", "enter")
 	if !slices.Equal(*picked, []string{"two:alpine"}) {
 		t.Fatalf("picked %v", *picked)
 	}
 }
 
-// A chooser with one source (or none) leaves tab alone: the guard keeps
-// next-source unavailable.
+// A chooser with one source (or none) leaves ctrl+o alone: the guard
+// keeps next-source unavailable.
 func TestChooserOneSourceTabDoesNothing(t *testing.T) {
 	r, m, _ := sourcesFixture(t, "solo", rowsSource("one", "alpha"))
-	pressLand(m, "tab")
+	pressLand(m, "ctrl+o")
 	if c := r.Chooser("solo"); c == nil || c.Source() != "one" {
-		t.Fatal("tab changed a one-source chooser")
+		t.Fatal("ctrl+o changed a one-source chooser")
 	}
 }
 
@@ -191,7 +191,7 @@ func TestChooserRemembersTheSource(t *testing.T) {
 		if err := r.Settings().Set(ChooserRememberSourceSetting, on); err != nil {
 			t.Fatal(err)
 		}
-		pressLand(m, "tab", "esc")
+		pressLand(m, "ctrl+o", "esc")
 		if r.ChooserLastSource("mem") != "two" {
 			t.Fatalf("last source %q", r.ChooserLastSource("mem"))
 		}

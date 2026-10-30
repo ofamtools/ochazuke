@@ -1,5 +1,5 @@
 {
-  "name": "chooser: tab and shift+tab cycle the sources, the query carries over, the title names the current source and the others",
+  "name": "chooser: ctrl+o and alt+o cycle the sources, the query carries over, the title names the current source and the others",
   "area": "chooser",
   "width": 80,
   "height": 14,
@@ -15,7 +15,7 @@
       ]
     }
   },
-  "script": [{"type": "al"}, "tab", "tab", "shift+tab", "enter"],
+  "script": [{"type": "al"}, "ctrl+o", "ctrl+o", "alt+o", "enter"],
   "expect": [
     {"after": 1, "modal": "pick", "contains": ["Pick · [one] two three", "alpha"], "lacks": ["alpine", "beta"]},
     {"after": 2, "contains": ["Pick · one [two] three", "› al", "alpine"], "lacks": ["alpha", "gamma"]},

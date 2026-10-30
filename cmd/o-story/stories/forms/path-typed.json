@@ -1,5 +1,5 @@
 {
-  "name": "form: in the path chooser tab steps to recent and typed; typed completes the path as you type, enter on a folder types it, a typed file fills the field",
+  "name": "form: in the path chooser ctrl+o steps to recent and typed; typed completes the path as you type, enter on a folder types it, a typed file fills the field",
   "area": "forms",
   "width": 100,
   "height": 18,
@@ -11,7 +11,7 @@
     ],
     "focus": "doc/file"
   },
-  "script": ["enter", {"job": "chooser.load"}, "tab", "tab", {"type": "s"}, {"job": "chooser.load"}, "enter", {"job": "chooser.load"}, {"type": "cf"}, {"job": "chooser.load"}, "enter"],
+  "script": ["enter", {"job": "chooser.load"}, "ctrl+o", "ctrl+o", {"type": "s"}, {"job": "chooser.load"}, "enter", {"job": "chooser.load"}, {"type": "cf"}, {"job": "chooser.load"}, "enter"],
   "expect": [
     {"after": 3, "contains": ["browse [recent] typed", "no recent paths"]},
     {"after": 4, "contains": ["browse recent [typed]", "type a path"]},

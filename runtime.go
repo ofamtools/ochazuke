@@ -470,6 +470,7 @@ func (r *Runtime) registerFramework() {
 	registerCore(r)
 	registerJobs(r)
 	registerConfiguration(r)
+	registerSearchMatch(r)
 	registerChooser(r)
 	registerConfig(r)
 	registerActions(r)

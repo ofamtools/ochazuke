@@ -18,7 +18,7 @@
     {"owner": "ochazuke", "id": "palette", "title": "Palette", "description": "The command palette, the CLI's help and the forms a missing argument opens"},
     {"owner": "ochazuke", "id": "records", "title": "Records", "description": "The standard create and delete, and record editors"},
     {"owner": "ochazuke", "id": "lists", "title": "Lists", "description": "Lists, tables and trees: rename, visual selection, zoom and breadcrumbs"},
-    {"owner": "ochazuke", "id": "search", "title": "Search", "description": "How every search and filter treats case: the path picker, choosers and the / list filter"},
+    {"owner": "ochazuke", "id": "search", "title": "Search", "description": "How every search and filter treats case and matches its query: the path picker, choosers and the / list filter"},
     {"owner": "ochazuke", "id": "choosers", "title": "Choosers", "description": "Choosers and the path chooser"},
     {"owner": "ochazuke", "id": "status", "title": "Status bar", "description": "The status segments in the header rule"},
     {"owner": "ochazuke", "id": "pages", "title": "Pages", "description": "Hidden pages and the action history"},

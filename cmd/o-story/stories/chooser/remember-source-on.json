@@ -16,7 +16,7 @@
       ]
     }
   },
-  "script": ["tab", "esc", "c"],
+  "script": ["ctrl+o", "esc", "c"],
   "expect": [
     {"after": 1, "contains": ["Pick · one [two]"]},
     {"after": 2, "modal": ""},
