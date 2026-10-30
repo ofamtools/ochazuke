@@ -38,6 +38,10 @@ type Page struct {
 	// bindings file declares them (ochazuke.ModeSpec: pending, extends),
 	// before its bind rows and its lists' and inputs' pins.
 	Modes map[string]ochazuke.ModeSpec `json:"modes,omitempty"`
+	// ModeTones are badge hues the story's application declares by mode
+	// (Appearance.SetModeTone: the tone row mode.<name>), under any
+	// themes.json theme the story gives.
+	ModeTones map[string]ochazuke.SchemeColor `json:"modeTones,omitempty"`
 	// Verbs are demo verbs with declared parameters, for palette stories.
 	Verbs []VerbSpec `json:"verbs,omitempty"`
 	// Nouns are nouns besides demo, as a host defines an extension's

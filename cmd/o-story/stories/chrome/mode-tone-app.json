@@ -1,0 +1,24 @@
+{
+  "name": "chrome colour: an application declares a hue for its own mode (Appearance.SetModeTone, the tone row mode.<name>): subtle draws the badge in it, rich fills the badge and draws the focused border in it; off draws the badge as before",
+  "area": "chrome",
+  "width": 80,
+  "height": 12,
+  "theme": "dark",
+  "values": {"chrome.color": "subtle"},
+  "page": {
+    "layout": "split",
+    "modes": {"jq": {"extends": "normal"}},
+    "modeTones": {"jq": {"light": "#984410", "dark": "#F0A060"}},
+    "lists": [{"id": "shape", "rows": 1}, {"id": "data", "rows": 1, "pin": "jq"}]
+  },
+  "script": [
+    "j",
+    ":", {"type": "set chrome.color=rich"}, "enter",
+    ":", {"type": "set chrome.color=off"}, "enter"
+  ],
+  "expect": [
+    {"after": 1, "mode": "jq", "badge": "JQ", "styled": {"JQ": "#F0A060"}},
+    {"after": 4, "mode": "jq", "badge": "JQ", "styled": {"JQ": "#172720"}, "attrs": {"JQ": "bold,bg"}, "colored": {"━ data": "#F0A060"}},
+    {"mode": "jq", "badge": "JQ", "styled": {"JQ": "#78BFA5"}, "attrs": {"JQ": "-bold,bg"}, "noColor": ["#F0A060"]}
+  ]
+}

@@ -212,6 +212,7 @@ func resolveTones(scheme Scheme, plain bool, pick func(SchemeColor) color.Color,
 	if len(scheme.Tones) == 0 {
 		return nil
 	}
+	tones := withModeChrome(scheme.Tones)
 	roles := map[string]SchemeColor{"text": scheme.Text, "muted": scheme.Muted, "accent": scheme.Accent, "border": scheme.Border, "surface": scheme.Surface, "error": scheme.Error}
 	side := func(v string, light bool) string {
 		if role, ok := roles[v]; ok {
@@ -241,8 +242,8 @@ func resolveTones(scheme Scheme, plain bool, pick func(SchemeColor) color.Color,
 		}
 		return pick(c), false
 	}
-	out := make(map[string]toneLook, len(scheme.Tones))
-	for name, t := range scheme.Tones {
+	out := make(map[string]toneLook, len(tones))
+	for name, t := range tones {
 		look := toneLook{bold: t.Bold, dim: t.Dim}
 		chrome := isChromeTone(name)
 		look.fg, look.fgMode = colour(t.Fg, chrome)

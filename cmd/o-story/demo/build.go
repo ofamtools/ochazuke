@@ -371,6 +371,9 @@ func (ss *session) defineDemo(pages []*Page) error {
 				return fmt.Errorf("pending %s: %w", name, err)
 			}
 		}
+		for mode, hue := range p.ModeTones {
+			ss.M.Appearance.SetModeTone(mode, hue)
+		}
 		for _, name := range slices.Sorted(maps.Keys(p.Modes)) {
 			spec := p.Modes[name]
 			if err := r.DefineMode(name, spec.Pending, ochazuke.ModeExtends(spec.Extends)); err != nil {
