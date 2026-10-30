@@ -19,9 +19,9 @@
   },
   "script": [",", "j", "R", "j"],
   "expect": [
-    {"after": 1, "contains": ["scrolloff •         ‹ 4 ›", "stack •             ‹ stack ›  (saved: tabs)", "editor •            hx  (saved: vi)"], "lacks": ["(saved: 4)"], "attrs": {"‹ stack ›": "bold", "hx  (saved": "bold", "(saved: tabs)": "-bold"}},
-    {"after": 2, "contains": ["Default is tabs. Set this session (api, 00:00); the default applies", "beneath it. setting.write saves it, setting.revert drops it."]},
-    {"after": 3, "contains": ["stack               ‹ tabs ›", "editor •            hx  (saved: vi)"], "lacks": ["(saved: tabs)"]},
-    {"contains": ["Default is vi. Set this session (api, 00:00); the default applies"]}
+    {"after": 1, "contains": ["scrolloff •  ‹ 4 ›", "stack •      ‹ stack ›  (saved: tabs)", "editor •     hx  (saved: vi)"], "lacks": ["(saved: 4)"], "attrs": {"‹ stack ›": "bold", "hx  (saved": "bold", "(saved: tabs)": "-bold"}},
+    {"after": 2, "contains": ["› app ◦", "General ◦", "Default is tabs. Set this session (api, 00:00); the", "default applies beneath it. setting.write saves it,", "setting.revert drops it."]},
+    {"after": 3, "contains": ["stack        ‹ tabs ›", "editor •     hx  (saved: vi)"], "lacks": ["(saved: tabs)"]},
+    {"contains": ["Default is vi. Set this session (api, 00:00); the", "default applies"]}
   ]
 }

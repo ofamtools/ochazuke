@@ -1,24 +1,24 @@
  |  ◆ o-story                                                            NORMAL
  |   page1  › Settings
  |  ────────────────────────────────────────────────────────────────────────────
- |   › General  help  docs  palette  mode-badge  status  rename  create  15›
- |  ╭━ General (11) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
- |  ┃ scrolloff           ‹ 2 ›                                                ┃
-R|  ┃ stack •             ‹ stack ›  (saved: grid)                             ┃
- |  ┃ editor              vi                                                   ┃
- |  ┃ paths •             2 items  (saved: 1 item)                             ┃
- |  ┃                     ~/proj                                               ┃
- |  ┃                     ~/hub                                                ┃
- |  ┃ modal-dim           ‹ 35 ›                                               ┃
- |  ┃ 1–7 / 13                                                                 ┃
- |  ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
- |  ╭─ stack ──────────────────────────────────────────────────────────────────╮
- |  │ How panes are laid out                                                   │
- |  │                                                                          │
- |  │ Default is tabs. Set this session (api, 00:00); settings.json holds      │
- |  │ grid. setting.write saves it, setting.revert drops it.                   │
- |  │ Takes one of tabs, stack, grid.                                          │
- |  ╰──────────────────────────────────────────────────────────────────────────╯
+ |   › app ◦  ochazuke
+ |  ╭─ Sections ─────╮ ╭━ General (4) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
+r|  │ General ◦    4 │ ┃ scrolloff    ‹ 2 ›                                    ┃
+R|  │                │ ┃ stack •      ‹ stack ›  (saved: grid)                 ┃
+ |  │                │ ┃ editor       vi                                       ┃
+ |  │                │ ┃ paths •      2 items  (saved: 1 item)                 ┃
+ |  │                │ ┃              ~/proj                                   ┃
+ |  │                │ ┃              ~/hub                                    ┃
+ |  │                │ ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
+ |  │                │ ╭─ stack ───────────────────────────────────────────────╮
+ |  │                │ │ How panes are laid out                                │
+ |  │                │ │                                                       │
+ |  │                │ │ Default is tabs. Set this session (api, 00:00);       │
+ |  │                │ │ settings.json holds grid. setting.write saves it,     │
+ |  │                │ │ setting.revert drops it.                              │
+ |  │                │ │ Takes one of tabs, stack, grid.                       │
+ |  │                │ │                                                       │
+ |  ╰────────────────╯ ╰───────────────────────────────────────────────────────╯
  |  ────────────────────────────────────────────────────────────────────────────
- |  enter setting.edit · h/l setting.cycle · r setting.reset · tab settings.sec…
+ |  enter setting.edit · h/l setting.cycle · r setting.reset · ]/[ settings.tab…
  |

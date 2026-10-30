@@ -489,7 +489,8 @@ Conformance:
 | normal | segment | `segment.toggle` |
 | normal | setting | `setting.add` `setting.cycle` `setting.edit` `setting.reset` `setting.revert` `setting.write` |
 | normal | setting-item | `setting-item.add` `setting-item.delete` `setting-item.edit` `setting-item.reset` |
-| normal | settings | `settings.close` `settings.edit` `settings.review` `settings.section` `settings.undo` `settings.write` |
+| normal | settings | `settings.close` `settings.edit` `settings.review` `settings.section` `settings.tab` `settings.undo` `settings.write` |
+| normal | settings-section | `settings-section.open` `settings-section.pick` |
 | normal | story-card | `story-card.timeline-append` `story-card.timeline-stream` |
 | normal | surface | `surface.scroll` |
 | normal | timeline | `timeline.close` `timeline.close-all` `timeline.enter` `timeline.fold` `timeline.fold-step` `timeline.goto` `timeline.leave` `timeline.open` `timeline.open-all` `timeline.row` `timeline.scroll` `timeline.step` `timeline.toggle` `timeline.yank-step` |
@@ -578,6 +579,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `setting-item.edit`
 - `normal` → `insert` via `setting.add`
 - `normal` → `insert` via `setting.edit`
+- `normal` → `insert` via `settings-section.pick`
 - `normal` → `insert` via `settings.close`
 - `normal` → `list_filter` via `list.filter-open`
 - `normal` → `macro_pending` via `mode.enter`
@@ -612,6 +614,7 @@ Mode edges (from → to via):
 - `normal d` → `normal` via `setting-item.delete`
 - `normal g` → `normal` via `list.goto`
 - `normal g` → `normal` via `mode.leave`
+- `normal g` → `normal` via `settings.tab`
 - `normal g` → `normal` via `tick binding`
 - `normal g` → `normal` via `timeline.row`
 - `normal g` → `normal` via `yank-history.open`

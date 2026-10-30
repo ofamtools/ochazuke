@@ -49,6 +49,7 @@ type List struct {
 	offset      int
 	marks       map[string]bool
 	noSpill     bool            // NoSpill: list.move clamps at the edges instead of spilling
+	toSelected  bool            // SpillToSelection: a spill into the list lands on its selected row
 	noMarks     bool            // NoMarks: a read-only view, its rows take no marks
 	choose      bool            // ClearFilterOnEnter: enter in the filter line chooses the match and clears the filter
 	columns     []Column        // Columns: a table; none draws the labels
@@ -90,6 +91,7 @@ func NewList(r *Runtime, id string, items []ListItem, opts ...InstanceOption) (*
 // AddList registers a list instance of the list noun with its rows. Options:
 // Parent(id) (default app), Kind(noun) for a list that answers to its
 // own noun as well, NoSpill() for a list whose motions stay inside it,
+// SpillToSelection() for one a spill lands in on its selected row,
 // NoMarks() for a read-only view, ClearFilterOnEnter() for a list whose
 // filter enter chooses a row and clears, Columns(...) for a table, and
 // CellSelect() for a table with a current column (table_cells.go).
@@ -107,7 +109,7 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 	if r.Instances[spec.parent] == nil {
 		return nil, fmt.Errorf("unknown parent %q", spec.parent)
 	}
-	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}, noSpill: spec.noSpill, noMarks: spec.noMarks, choose: spec.clearFilterOnEnter, columns: slices.Clone(spec.columns), cellSelect: spec.cellSelect}
+	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}, noSpill: spec.noSpill, toSelected: spec.spillToSelection, noMarks: spec.noMarks, choose: spec.clearFilterOnEnter, columns: slices.Clone(spec.columns), cellSelect: spec.cellSelect}
 	r.Instance(id, Parent(spec.parent), Kind(spec.noun), FocusOnClose(spec.closeFocus))
 	r.Instances[id].Component = list
 	if err := list.SetItems(items); err != nil {
@@ -261,7 +263,7 @@ func (l *List) spill(delta int) bool {
 	if !ok {
 		return false
 	}
-	if other := l.r.List(next); other != nil && other.Shown() > 0 {
+	if other := l.r.List(next); other != nil && other.Shown() > 0 && !(other.toSelected && other.selected >= 0) {
 		row := 0
 		if step < 0 {
 			row = other.Shown() - 1

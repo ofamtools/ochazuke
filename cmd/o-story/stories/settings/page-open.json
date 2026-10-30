@@ -1,14 +1,14 @@
 {
-  "name": "settings page: , opens it as a tab, focus on the first setting",
+  "name": "settings page: , opens it as a tab: owner tabs, the shown tab's sections, focus on the first setting",
   "area": "settings",
   "settings": [
     {"name": "scrolloff", "type": "integer", "default": 2, "description": "Rows kept above and below the focus when a page scrolls to follow it."},
     {"name": "theme", "type": "string", "default": "dark", "description": "Colour theme", "enum": ["dark", "light", "mono"]},
     {"name": "wrap", "type": "boolean", "default": false, "description": "Wrap long lines"},
     {"name": "editor", "type": "string", "default": "vi", "description": "The command that opens a file"},
-    {"name": "ext.ai.poll-every", "type": "duration", "default": "30s", "description": "How often the AI extension refreshes its rows"},
-    {"name": "ext.ai.model", "type": "string", "default": "large", "description": "Model the AI extension asks", "enum": ["small", "large"]},
-    {"name": "ext.git.fetch", "type": "boolean", "default": true, "description": "Fetch before listing branches"}
+    {"name": "ext.ai.poll-every", "owner": "extensions", "section": "ai", "type": "duration", "default": "30s", "description": "How often the AI extension refreshes its rows"},
+    {"name": "ext.ai.model", "owner": "extensions", "section": "ai", "type": "string", "default": "large", "description": "Model the AI extension asks", "enum": ["small", "large"]},
+    {"name": "ext.git.fetch", "owner": "extensions", "section": "git", "type": "boolean", "default": true, "description": "Fetch before listing branches"}
   ],
   "page": {
     "title": "Tasks",
@@ -19,7 +19,7 @@
   "script": [",", ","],
   "expect": [
     {"after": 1, "page": "__settings", "modal": "", "mode": "normal", "focus": "__settings/row/scrolloff",
-     "order": ["Tasks", "Settings", "› General", "ext.ai", "ext.git", "General (11)", "scrolloff", "theme", "wrap", "editor", "scrolloff"],
+     "order": ["Tasks", "Settings", "› app", "extensions", "ochazuke", "Sections", "General (4)", "General", "4", "scrolloff", "theme", "wrap", "editor", "scrolloff"],
      "contains": ["Rows kept above and below the focus", "Default is 2."]},
     {"page": "__settings", "focus": "__settings/row/scrolloff"}
   ]

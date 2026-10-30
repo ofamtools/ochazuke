@@ -99,6 +99,11 @@ func TestSettingOwnersAndSectionsOrder(t *testing.T) {
 	if owners[0].Title != "demo" || owners[1].Title != "extensions" || owners[2].Title != "ochazuke" || owners[0].Settings != 6 || owners[0].Sections != 3 {
 		t.Fatalf("owner info %+v", owners)
 	}
+	r.Config().App = OwnerFramework
+	if got := s.Owners()[0].Title; got != "ochazuke (app)" {
+		t.Fatalf("an application named ochazuke: %q", got)
+	}
+	r.Config().App = "demo"
 	if err := r.DeclareSettingOwner(SettingOwner{ID: "extensions", Title: "Extensions", Order: 200}); err != nil {
 		t.Fatal(err)
 	}

@@ -1,24 +1,24 @@
  |  ◆ o-story                                                            NORMAL
  |   Tasks  › Settings
  |  ────────────────────────────────────────────────────────────────────────────
- |   › General  ext.ai  ext.git  help  docs  palette  mode-badge  status  17›
- |  ╭━ General (13) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
- |  ┃ scrolloff •         ‹ 3 ›                                                ┃
-R|  ┃ theme               ‹ dark ›                                             ┃
- |  ┃ wrap                ‹ false ›                                            ┃
- |  ┃ paths               2 items                                              ┃
- |  ┃                     ~/proj                                               ┃
- |  ┃                     ~/hub                                                ┃
- |  ┃ ignore              (none)                                               ┃
- |  ┃ 1–7 / 15                                                                 ┃
- |  ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
- |  ╭─ theme ──────────────────────────────────────────────────────────────────╮
- |  │ Colour theme                                                             │
- |  │                                                                          │
- |  │ Default is dark. Not in settings.json, so the default applies.           │
- |  │ Takes one of dark, light, mono.                                          │
- |  │                                                                          │
- |  ╰──────────────────────────────────────────────────────────────────────────╯
+ |   › app  extensions  ochazuke
+ |  ╭─ Sections ─────╮ ╭━ General (6) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
+r|  │ General      6 │ ┃ scrolloff •  ‹ 3 ›                                    ┃
+R|  │                │ ┃ theme        ‹ dark ›                                 ┃
+ |  │                │ ┃ wrap         ‹ false ›                                ┃
+ |  │                │ ┃ paths        2 items                                  ┃
+ |  │                │ ┃              ~/proj                                   ┃
+ |  │                │ ┃              ~/hub                                    ┃
+ |  │                │ ┃ ignore       (none)                                   ┃
+ |  │                │ ┃ editor       vi                                       ┃
+ |  │                │ ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
+ |  │                │ ╭─ theme ───────────────────────────────────────────────╮
+ |  │                │ │ Colour theme                                          │
+ |  │                │ │                                                       │
+ |  │                │ │ Default is dark. Not in settings.json, so the default │
+ |  │                │ │ applies.                                              │
+ |  │                │ │ Takes one of dark, light, mono.                       │
+ |  ╰────────────────╯ ╰───────────────────────────────────────────────────────╯
  |  ────────────────────────────────────────────────────────────────────────────
- |  enter setting.edit · h/l setting.cycle · r setting.reset · tab settings.sec…
+ |  enter setting.edit · h/l setting.cycle · r setting.reset · ]/[ settings.tab…
  |

@@ -11,7 +11,21 @@
       {"key": "n", "action": "ochazuke.setting.add", "when": "setting-list"},
       {"key": "r", "action": "ochazuke.setting.reset", "args": {"scope": "file"}},
       {"key": "backspace", "action": "ochazuke.setting.reset", "args": {"scope": "file"}, "hidden": true},
-      {"key": "delete", "action": "ochazuke.setting.reset", "args": {"scope": "file"}, "hidden": true}
+      {"key": "delete", "action": "ochazuke.setting.reset", "args": {"scope": "file"}, "hidden": true},
+      {"key": "h", "action": "ochazuke.focus.previous", "hidden": true}
+    ]},
+    {"context": "ochazuke.settings-section/normal", "bindings": [
+      {"key": "l", "action": "ochazuke.settings.section", "args": {"step": 1}, "when": "settings-narrow", "hidden": true},
+      {"key": "right", "action": "ochazuke.settings.section", "args": {"step": 1}, "when": "settings-narrow", "hidden": true},
+      {"key": "h", "action": "ochazuke.settings.section", "args": {"step": -1}, "when": "settings-narrow", "hint": "h/l settings.section"},
+      {"key": "left", "action": "ochazuke.settings.section", "args": {"step": -1}, "when": "settings-narrow", "hidden": true},
+      {"key": "j", "action": "ochazuke.settings-section.open", "when": "settings-narrow", "hidden": true},
+      {"key": "down", "action": "ochazuke.settings-section.open", "when": "settings-narrow", "hidden": true},
+      {"key": "s", "action": "ochazuke.settings-section.pick", "when": "settings-narrow"},
+      {"key": "enter", "action": "ochazuke.settings-section.pick", "when": "settings-narrow", "hidden": true},
+      {"key": "l", "action": "ochazuke.settings-section.open", "hint": "l/enter settings-section.open"},
+      {"key": "right", "action": "ochazuke.settings-section.open", "hidden": true},
+      {"key": "enter", "action": "ochazuke.settings-section.open", "hidden": true}
     ]},
     {"context": "ochazuke.setting-item/normal", "bindings": [
       {"key": "enter", "action": "ochazuke.setting-item.edit", "hint": "enter/i setting-item.edit"},
@@ -25,10 +39,12 @@
       {"key": "esc", "action": "ochazuke.setting-value.cancel"}
     ]},
     {"context": "ochazuke.settings-page/normal", "bindings": [
-      {"key": "tab", "action": "ochazuke.settings.section", "args": {"step": 1}},
-      {"key": "]", "action": "ochazuke.settings.section", "args": {"step": 1}, "hidden": true},
-      {"key": "shift+tab", "action": "ochazuke.settings.section", "args": {"step": -1}, "hidden": true},
-      {"key": "[", "action": "ochazuke.settings.section", "args": {"step": -1}, "hidden": true},
+      {"key": "]", "action": "ochazuke.settings.tab", "args": {"step": 1}, "hint": "]/[ settings.tab"},
+      {"key": "[", "action": "ochazuke.settings.tab", "args": {"step": -1}, "hidden": true},
+      {"key": "g t", "action": "ochazuke.settings.tab", "args": {"step": 1}, "hidden": true},
+      {"key": "g T", "action": "ochazuke.settings.tab", "args": {"step": -1}, "hidden": true},
+      {"key": "tab", "action": "ochazuke.settings.section", "args": {"step": 1, "across": true}, "hidden": true},
+      {"key": "shift+tab", "action": "ochazuke.settings.section", "args": {"step": -1, "across": true}, "hidden": true},
       {"key": "u", "action": "ochazuke.settings.undo", "when": "settings-undo"},
       {"key": "ctrl+z", "action": "ochazuke.settings.undo", "when": "settings-undo", "hidden": true},
       {"key": "q", "action": "ochazuke.settings.close"},

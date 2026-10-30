@@ -1,30 +1,30 @@
  |  ◆ o-story                                                            NORMAL
  |   page1  › Settings
  |  ────────────────────────────────────────────────────────────────────────────
- |   › General  ext.ai  ext.git  help  docs  palette  mode-badge  status  17›
- |  ╭━ General (10) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
- |  ┃ scrolloff           ‹ 2 ›                                                ┃
- |  ┃ theme               ‹ dark ›                                             ┃
-R|  ┃ tab-width           ‹ 4 ›                                                ┃
- |  ┃ modal-dim           ‹ 35 ›                                               ┃
- |  ┃ modal-highlights    ‹ keep ›                                             ┃
- |  ┃ dim-unfocused       ‹ 20 ›                                               ┃
- |  ┃ focus-display       ‹ off ›                                              ┃
- |  ┃ sequence-timeout    0s                                                   ┃
- |  ┃ sequence-unknown    ‹ pass ›                                             ┃
- |  ┃ sequence-inherit    ‹ drop ›                                             ┃
- |  ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
- |  ╭─ tab-width ──────────────────────────────────────────────────────────────╮
- |  │ Columns per tab                                                          │
- |  │                                                                          │
- |  │ Default is 4. Not in settings.json, so the default applies.              │
- |  │ Takes a whole number.                                                    │
- |  │                                                                          │
- |  │                                                                          │
- |  │                                                                          │
- |  │                                                                          │
- |  │                                                                          │
- |  ╰──────────────────────────────────────────────────────────────────────────╯
+ |   › app  extensions  ochazuke
+ |  ╭─ Sections ─────╮ ╭━ General (3) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
+r|  │ General      3 │ ┃ scrolloff    ‹ 2 ›                                    ┃
+ |  │                │ ┃ theme        ‹ dark ›                                 ┃
+R|  │                │ ┃ tab-width    ‹ 4 ›                                    ┃
+ |  │                │ ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
+ |  │                │ ╭─ tab-width ───────────────────────────────────────────╮
+ |  │                │ │ Columns per tab                                       │
+ |  │                │ │                                                       │
+ |  │                │ │ Default is 4. Not in settings.json, so the default    │
+ |  │                │ │ applies.                                              │
+ |  │                │ │ Takes a whole number.                                 │
+ |  │                │ │                                                       │
+ |  │                │ │                                                       │
+ |  │                │ │                                                       │
+ |  │                │ │                                                       │
+ |  │                │ │                                                       │
+ |  │                │ │                                                       │
+ |  │                │ │                                                       │
+ |  │                │ │                                                       │
+ |  │                │ │                                                       │
+ |  │                │ │                                                       │
+ |  │                │ │                                                       │
+ |  ╰────────────────╯ ╰───────────────────────────────────────────────────────╯
  |  ────────────────────────────────────────────────────────────────────────────
- |  enter setting.edit · h/l setting.cycle · r setting.reset · tab settings.sec…
+ |  enter setting.edit · h/l setting.cycle · r setting.reset · ]/[ settings.tab…
  |

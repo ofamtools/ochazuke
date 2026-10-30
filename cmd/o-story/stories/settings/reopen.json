@@ -4,8 +4,8 @@
   "width": 100,
   "settings": [
     {"name": "scrolloff", "type": "integer", "default": 2},
-    {"name": "ext.ai.poll-every", "type": "duration", "default": "30s"},
-    {"name": "ext.ai.model", "type": "string", "default": "large", "enum": ["small", "large"]}
+    {"name": "ext.ai.poll-every", "owner": "extensions", "section": "ai", "type": "duration", "default": "30s"},
+    {"name": "ext.ai.model", "owner": "extensions", "section": "ai", "type": "string", "default": "large", "enum": ["small", "large"]}
   ],
   "page": {
     "lists": [{"id": "a", "rows": 2}],
@@ -15,6 +15,6 @@
   "expect": [
     {"after": 3, "focus": "__settings/row/ext.ai.model"},
     {"after": 4, "page": "page1", "focus": "a1"},
-    {"page": "__settings", "focus": "__settings/row/ext.ai.model", "contains": ["› ext.ai", "model"], "lacks": ["scrolloff"]}
+    {"page": "__settings", "focus": "__settings/row/ext.ai.model", "contains": ["› extensions", "ai (2)", "ext.ai.model"], "lacks": ["scrolloff"]}
   ]
 }

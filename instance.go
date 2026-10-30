@@ -67,6 +67,7 @@ type instanceSpec struct {
 	closeOnDetach, noSpill, noMarks bool
 	clearFilterOnEnter              bool
 	cellSelect                      bool
+	spillToSelection                bool   // SpillToSelection: a spill into the list lands on its selected row
 	defaultHidden                   bool   // DefaultHidden: a page out of the tabs until shown
 	followTail                      bool   // FollowTail: a timeline sticks to its last card
 	headerLines                     int    // HeaderLines: a timeline's closed-card header cap
@@ -109,6 +110,12 @@ func FocusOnClose(id string) InstanceOption {
 // row stays on that row instead of moving the focus to the next (previous)
 // stop on the page. For a list that must keep the focus, such as a picker.
 func NoSpill() InstanceOption { return func(s *instanceSpec) { s.noSpill = true } }
+
+// SpillToSelection makes a spill into a list (j or k past the edge of the
+// stop beside it, R3.4) land on the list's selected row instead of its
+// first or last: for a list that chooses what is drawn beside it (the
+// Settings page's section list), so moving back into it keeps the choice.
+func SpillToSelection() InstanceOption { return func(s *instanceSpec) { s.spillToSelection = true } }
 
 // NoMarks makes a list (or a tree's list) a read-only view: its rows take
 // no marks, so space does not answer with list.mark there (the verb's

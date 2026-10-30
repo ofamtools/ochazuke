@@ -1,0 +1,28 @@
+{
+  "name": "settings page with settings.layout sections: no tabs; the section list holds every owner's sections under a heading per owner; ] and [ jump to the next owner's first section, tab walks every section, j and k walk the list across the headings",
+  "area": "settings",
+  "width": 100,
+  "height": 30,
+  "config": {"settings.json": {"settings.layout": "sections"}},
+  "settings": [
+    {"name": "editor", "type": "string", "default": "vi", "description": "The command that opens a file"},
+    {"name": "panes.group", "type": "string", "default": "project", "enum": ["project", "flat"], "description": "How panes group"},
+    {"name": "ext.ai.model", "owner": "extensions", "section": "ai", "type": "string", "default": "large", "enum": ["small", "large"], "description": "Model the AI extension asks"},
+    {"name": "ext.git.fetch", "owner": "extensions", "section": "git", "type": "boolean", "default": true, "description": "Fetch before listing branches"}
+  ],
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "bind": [{"noun": "demo", "keys": ",", "do": "settings.edit"}]
+  },
+  "script": [",", "]", "]", "[", "tab", "h", "{", "j"],
+  "expect": [
+    {"after": 1, "focus": "__settings/row/editor", "order": ["Sections", "General (1)", "app", "General", "panes", "extensions", "ai", "git", "ochazuke", "Appearance"], "lacks": ["› app"]},
+    {"after": 2, "focus": "__settings/row/ext.ai.model", "contains": ["ai (1)"]},
+    {"after": 3, "focus": "__settings/row/modal-dim", "contains": ["Appearance (7)"]},
+    {"after": 4, "focus": "__settings/row/ext.ai.model"},
+    {"after": 5, "focus": "__settings/row/ext.git.fetch", "contains": ["git (1)"]},
+    {"after": 6, "focus": "__settings/row/ext.git.fetch", "contains": ["‹ false ›"]},
+    {"after": 7, "focus": "__settings/section/extensions/git", "contains": ["1 setting in extensions › git."]},
+    {"focus": "__settings/section/ochazuke/appearance", "page": "__settings", "contains": ["Appearance (7)", "modal-dim"]}
+  ]
+}

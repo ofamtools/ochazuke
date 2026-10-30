@@ -1327,35 +1327,51 @@ A request whose required parameter is missing fails naming it (`NAME is required
 
 ## Settings and the Settings page
 
-An application declares its settings (`Runtime.DeclareSetting(Setting{Name, Type, Default, Description, Enum, Section, Deprecated})`; `Deprecated` lists older names that `settings get|set|reset`, `Value`, a declaration and a `settings.json` key still reach for one release, each warning once, a write moving the file's value to the current name); the framework's own settings that the key resolver reads are rows of the embedded `settings/ochazuke.json` (`sequence-timeout`, duration, default `0s` = wait until a key comes, old name `terminal-leader-timeout`; `sequence-unknown`, `pass` or `swallow`, default `pass`; `sequence-inherit`, `drop` or `keep`, default `drop`: a sequence a mode inherits from the mode it extends does not wait over the mode's own row for the keys typed; `terminal-leader`, default `ctrl+a`; `rename.select`, boolean, default true: a rename (`outline.edit` without `select`, a `RecordSpec` with `Rename`) opens with its text selected, `Runtime.RenameSelect`), declared when the runtime is made (`NewRuntime`), so an application can read or set them at startup and a user's `settings.json` naming them loads with no warning; an application that declares the name itself, before or after, replaces the row with its own default (the embedded check kept when it gives none), and its settings list before the framework's. The leader is a row of `settings/terminal.json`, declared by `EnsureTerminalLeader`. A setting declared after `settings.json` was read (an extension's, a segment's) takes back the file's `unknown setting` warning for its name. `Runtime.BindingTimeout`, when positive, fixes the sequence timeout in code in place of the setting. Their values live in `settings.json` beside `bindings.json`, and the `settings` noun reads and writes them from the CLI and the palette (`settings list|get|set|reset|reload|path`). The declared settings are also the things of the `setting` noun, a read-only store keyed by `name`: `setting list` (with `--where owner=app`, `origin=session`, ...), `setting get NAME [--prop value]` (the focused Settings row when the name is omitted) and `setting watch` are standard verbs, each setting's props `name`, `type`, `default`, `value`, `enum`, `description`, `section`, `owner` (`ochazuke` or `app`) and `origin` (`default`, `file` or `session`); `setting set`, `show`, `reset` and the other value verbs stay the `:set` verbs. Each change is checked against the type and the allowed values and written at once. The types are `string` (with `Enum`, one of a set), `integer`, `number`, `boolean`, `duration` (`"400ms"`) and `list` (`SettingList`: strings, a JSON array in the file; `settings set paths '["~/proj","~/hub"]'`; `Settings.Strings` reads a copy).
+An application declares its settings (`Runtime.DeclareSetting(Setting{Name, Type, Default, Description, Enum, Owner, Section, Group, Deprecated})`; `Deprecated` lists older names that `settings get|set|reset`, `Value`, a declaration and a `settings.json` key still reach for one release, each warning once, a write moving the file's value to the current name); the framework's own settings that the key resolver reads are rows of the embedded `settings/ochazuke.json` (`sequence-timeout`, duration, default `0s` = wait until a key comes, old name `terminal-leader-timeout`; `sequence-unknown`, `pass` or `swallow`, default `pass`; `sequence-inherit`, `drop` or `keep`, default `drop`: a sequence a mode inherits from the mode it extends does not wait over the mode's own row for the keys typed; `terminal-leader`, default `ctrl+a`; `rename.select`, boolean, default true: a rename (`outline.edit` without `select`, a `RecordSpec` with `Rename`) opens with its text selected, `Runtime.RenameSelect`), declared when the runtime is made (`NewRuntime`), so an application can read or set them at startup and a user's `settings.json` naming them loads with no warning; an application that declares the name itself, before or after, replaces the row with its own default (the embedded check kept when it gives none), and its settings list before the framework's. The leader is a row of `settings/terminal.json`, declared by `EnsureTerminalLeader`. A setting declared after `settings.json` was read (an extension's, a segment's) takes back the file's `unknown setting` warning for its name. `Runtime.BindingTimeout`, when positive, fixes the sequence timeout in code in place of the setting. Their values live in `settings.json` beside `bindings.json`, and the `settings` noun reads and writes them from the CLI and the palette (`settings list|get|set|reset|reload|path`). The declared settings are also the things of the `setting` noun, a read-only store keyed by `name`: `setting list` (with `--where owner=app`, `origin=session`, ...), `setting get NAME [--prop value]` (the focused Settings row when the name is omitted) and `setting watch` are standard verbs, each setting's props `name`, `type`, `default`, `value`, `enum`, `description`, `section`, `owner` (the Settings tab it files under: `app`, `ochazuke` or an owner the application declares), `group` and `origin` (`default`, `file` or `session`); `setting set`, `show`, `reset` and the other value verbs stay the `:set` verbs. Each change is checked against the type and the allowed values and written at once. The types are `string` (with `Enum`, one of a set), `integer`, `number`, `boolean`, `duration` (`"400ms"`) and `list` (`SettingList`: strings, a JSON array in the file; `settings set paths '["~/proj","~/hub"]'`; `Settings.Strings` reads a copy).
 
 `settings.edit` opens the **Settings page**, or switches to it when it is already a tab. There is no default key: an application binds it (matomeru binds `,`, the demo `s` on Appearance), and pressing it on the Settings page does nothing.
 
 ```
- › General  ext.ai  ext.git
-╭━ General (6) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
-┃ scrolloff •  ‹ 3 ›                                                       ┃
-┃ theme        ‹ dark ›                                                    ┃
-┃ wrap         ‹ false ›                                                   ┃
-┃ paths        2 items                                                     ┃
-┃              ~/proj                                                      ┃
-┃              ~/hub                                                       ┃
-┃ ignore       (none)                                                      ┃
-┃ editor       vi                                                          ┃
-╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
-╭─ theme ──────────────────────────────────────────────────────────────────╮
-│ Colour theme                                                             │
-│                                                                          │
-│ Default is dark. Not in settings.json, so the default applies.           │
-│ Takes one of dark, light, mono.                                          │
-╰──────────────────────────────────────────────────────────────────────────╯
+ › app  extensions  ochazuke
+╭─ Sections ─────╮ ╭━ General (6) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
+│ General      6 │ ┃ scrolloff •  ‹ 3 ›                                    ┃
+│                │ ┃ theme        ‹ dark ›                                 ┃
+│                │ ┃ wrap         ‹ false ›                                ┃
+│                │ ┃ paths        2 items                                  ┃
+│                │ ┃              ~/proj                                   ┃
+│                │ ┃              ~/hub                                    ┃
+│                │ ┃ ignore       (none)                                   ┃
+│                │ ┃ editor       vi                                       ┃
+│                │ ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
+│                │ ╭─ theme ───────────────────────────────────────────────╮
+│                │ │ Colour theme                                          │
+│                │ │                                                       │
+│                │ │ Default is dark. Not in settings.json, so the default │
+│                │ │ applies.                                              │
+│                │ │ Takes one of dark, light, mono.                       │
+╰────────────────╯ ╰───────────────────────────────────────────────────────╯
 ```
 
 | Part | What it shows |
 |---|---|
-| Tabs | One tab per section: the settings without a section first, as **General**, then each section in the order its first setting was declared. A setting's section is its `Section`, else its name before the last dot (`ext.ai.poll-every` is in `ext.ai`), else General (`Setting.SectionName`). `tab` and `]` show the next section, `shift+tab` and `[` the previous, wrapping (`settings.section {step}`, or `{name}` from the palette); each section keeps its selected row. With one section there is no tab row |
-| Rows | One row per setting, no header: the name on the left (without the section's prefix; a `•` after it when the value is not the default), the value on the right. `‹ value ›` marks a value `h`/`l` steps (boolean, enum, number); text and durations show as they are, empty text as `(empty)`. A list setting's row shows its item count (`2 items`, `(none)` when empty), and each item is a row directly beneath it with the name column blank |
+| Tabs | One tab per **owner** (`Setting.Owner`, `settings_owners.go`): the application (`app`, titled by its name), the owners it declares (an `extensions` tab with a section per extension), then `ochazuke`, by `SettingOwner.Order` and declaration order. No tab row with one owner. `]` and `[` (and `g t`/`g T`, hidden) show the next or previous tab on the section it last showed (`settings.tab {step|name}`). A tab with a session value carries `◦` |
+| Sections | The shown tab's sections, a list on the left (`__settings/sections`, rows of the `ochazuke.settings-section` noun): each section's title (declared by `SettingSection`, else its ID) and its count, `◦` after a title with a session value. A setting's section is its `Section`, else its name before the **first** dot (`tree.zoom.root` is in `tree`), else `general` (titled General). `j`/`k` move the shown section with them; `j` past the last section spills into the settings (R3.4) and `k` on the first setting comes back to the shown section (the list is `SpillToSelection`); `l`/`enter` open a section (`settings-section.open`), `h` on a setting row that does not step goes back to it. `tab` and `shift+tab` walk every section in drawing order across the tabs, wrapping (`settings.section {step, across}`); `{name}` from the palette takes a title or an ID. While the list has the focus the description is the section's line. The section verbs `open`, `reset` (one undo step), `write`, `revert`, `copy` (yank its non-default values as `set NAME=VALUE` lines) and `pick` have twins on `ochazuke.settings-tab` (`owner` parameter) sharing the handlers |
+| Narrow | Below `settings.narrow-width` columns (default 72; 0 never folds) the section list folds into a selector line at the top of the settings panel, `Section ‹ Keys ◦  2/11 ›`, the panel titled `owner › Section (n)`: it is the list's stop, `h`/`l` step the section, `j` goes down into the settings, `s` or `enter` picks one from a chooser (`settings-section.pick`) |
+| Rows | One row per setting, no header: the **full** name on the left (the word `:set` takes; a `•` after it when the value is not the default), the value on the right. Settings with the same `Group` sit together under a heading row (`ListItem.Section`), after the ungrouped ones. `‹ value ›` marks a value `h`/`l` steps (boolean, enum, number); text and durations show as they are, empty text as `(empty)`. A list setting's row shows its item count (`2 items`, `(none)` when empty), and each item is a row directly beneath it with the name column blank |
 | Description | The selected setting's description, then `Default is X.` and where the value comes from: `Not in settings.json, so the default applies.`, `Set in settings.json.`, or `settings.json holds an invalid value (why), so the default applies.`; then what it takes. On an item row it starts with `Item 2 of 3.` `J`/`K` scroll it when it overflows, and `>`/`<` move the divider |
+
+`settings.layout` (default `tabs+sections`) turns the layout off: `tabs` is the page before owners (a tab per section, every owner's, no section list), `sections` drops the tabs and lists every owner's sections under a heading per owner, as Vim's `:options` lists its topics. `]`/`[` then step what the tabs hold (the sections with `tabs`; with `sections`, they jump to the next owner's first section). `settings.mark-session` off drops the `◦` marks with the bold values. The owners and sections are data: `settings.owners` and `settings.sections {owner}` list them, `settings list --json` gives each setting's `owner`, `section` and `group`, and an application titles and orders its own with `DeclareSettingOwner`/`DeclareSettingSection` (the framework's are `settings/sections.json`). Stories `settings/tab-step`, `sections-spill`, `narrow-selector`, `layout-sections`, `page-tabs` (the `tabs` layout).
+
+Compared with Vim:
+
+| Vim | `:help` | ochazuke |
+|---|---|---|
+| `:options` window | `:options` | similar: a page, not a buffer; the section list is its contents |
+| Numbered topic sections (26) | `optwin.lua` headers | similar: topic sections inside each owner, not numbered |
+| One flat namespace, plugins' options inside the topics | `options.txt` | different: owners are tabs, because extensions are separate programs with their own settings files |
+| `<CR>` on a contents line jumps to the section | `:options` | same idea: `l`/`enter` on a section row |
+| A `set` line per option, edited in place | `:options` | similar: the row is edited in place (`h`/`l`, `enter`), and `settings-section.copy` yanks `set` lines |
+| `gt`/`gT` step tab pages | `:help gt` | similar: `g t`/`g T` (and `]`/`[`) step the tabs |
 
 ### Where the focus is: `focus-display`
 

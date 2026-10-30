@@ -1,0 +1,33 @@
+{
+  "name": "settings page: the section list is a stop before the settings; h on a row that does not step goes to it, j and k move the shown section, j past the last section spills into its first setting, k on the first setting spills back, l and enter open a section",
+  "area": "settings",
+  "width": 100,
+  "height": 24,
+  "settings": [
+    {"name": "editor", "type": "string", "default": "vi", "description": "The command that opens a file"},
+    {"name": "panes.group", "type": "string", "default": "project", "enum": ["project", "flat"], "description": "How panes group"},
+    {"name": "panes.percent", "type": "integer", "default": 25, "description": "The queue's share of the height"},
+    {"name": "schedule.gh.enabled", "section": "schedules", "group": "gh-signals", "type": "boolean", "default": true, "description": "Run the gh-signals schedule"},
+    {"name": "schedule.gh.every", "section": "schedules", "group": "gh-signals", "type": "integer", "default": 5, "description": "Minutes between gh-signals runs"},
+    {"name": "schedules.catch-up", "type": "boolean", "default": false, "description": "Run a schedule missed while the app was closed"}
+  ],
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "bind": [{"noun": "demo", "keys": ",", "do": "settings.edit"}]
+  },
+  "script": [",", "h", "j", "j", "j", "k", "k", "l", "h", "{", "k", "enter"],
+  "expect": [
+    {"after": 1, "focus": "__settings/row/editor", "order": ["Sections", "General (1)", "General", "panes", "schedules", "editor"]},
+    {"after": 2, "focus": "__settings/section/app/general", "contains": ["Settings with no section of their own.", "1 setting in app › General.", "l/enter settings-section.open"]},
+    {"after": 3, "focus": "__settings/section/app/panes", "contains": ["panes (2)", "panes.group", "2 settings in app › panes."], "lacks": ["editor"]},
+    {"after": 4, "focus": "__settings/section/app/schedules", "order": ["schedules (3)", "schedules.catch-up", "gh-signals", "schedule.gh.enabled", "schedule.gh.every"]},
+    {"after": 5, "focus": "__settings/row/schedules.catch-up", "contains": ["Run a schedule missed while the app was closed"]},
+    {"after": 6, "focus": "__settings/section/app/schedules"},
+    {"after": 7, "focus": "__settings/section/app/panes"},
+    {"after": 8, "focus": "__settings/row/panes.group", "contains": ["How panes group"]},
+    {"after": 9, "focus": "__settings/row/panes.group", "contains": ["‹ flat ›"]},
+    {"after": 10, "focus": "__settings/section/app/panes"},
+    {"after": 11, "focus": "__settings/section/app/general"},
+    {"focus": "__settings/row/editor", "page": "__settings", "modal": ""}
+  ]
+}

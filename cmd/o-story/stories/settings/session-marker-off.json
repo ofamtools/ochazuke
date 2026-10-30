@@ -14,6 +14,6 @@
   },
   "script": [","],
   "expect": [
-    {"contains": ["stack •             ‹ stack ›"], "lacks": ["(saved:"]}
+    {"contains": ["stack •  ‹ stack ›"], "lacks": ["(saved:", "◦"]}
   ]
 }

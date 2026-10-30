@@ -1,0 +1,31 @@
+{
+  "name": "settings page below settings.narrow-width (72) columns: the section list folds into a selector line at the top of the settings; h/l step it, j goes down into the settings, k on the first setting back to it, s (or enter) picks a section from a chooser",
+  "area": "settings",
+  "width": 60,
+  "height": 24,
+  "settings": [
+    {"name": "editor", "type": "string", "default": "vi", "description": "The command that opens a file"},
+    {"name": "panes.group", "type": "string", "default": "project", "enum": ["project", "flat"], "description": "How panes group"},
+    {"name": "panes.percent", "type": "integer", "default": 25, "description": "The queue's share of the height"},
+    {"name": "schedule.gh.enabled", "section": "schedules", "group": "gh-signals", "type": "boolean", "default": true, "description": "Run the gh-signals schedule"},
+    {"name": "schedules.catch-up", "type": "boolean", "default": false, "description": "Run a schedule missed while the app was closed"}
+  ],
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "bind": [{"noun": "demo", "keys": ",", "do": "settings.edit"}]
+  },
+  "script": [",", "h", "l", "l", "h", "j", "k", "s", "s", "c", "h", "enter", "l", "l"],
+  "expect": [
+    {"after": 1, "focus": "__settings/row/editor", "order": ["› app", "app › General (1)", "Section ‹ General  1/3 ›", "editor"], "lacks": ["Sections", "╭─ Sections"]},
+    {"after": 2, "focus": "__settings/section/app/general", "contains": ["h/l settings.section", "s settings-section.pick", "Settings with no section of their own."]},
+    {"after": 3, "focus": "__settings/section/app/panes", "contains": ["app › panes (2)", "Section ‹ panes  2/3 ›", "panes.group"], "lacks": ["editor"]},
+    {"after": 4, "focus": "__settings/section/app/schedules", "contains": ["Section ‹ schedules  3/3 ›", "gh-signals"]},
+    {"after": 5, "focus": "__settings/section/app/panes"},
+    {"after": 6, "focus": "__settings/row/panes.group", "contains": ["Section ‹ panes  2/3 ›", "How panes group"]},
+    {"after": 7, "focus": "__settings/section/app/panes", "contains": ["Section ‹ panes  2/3 ›"]},
+    {"after": 8, "modal": "settings-section-pick", "mode": "insert", "contains": ["Sections", "General", "panes", "schedules"]},
+    {"after": 12, "modal": "", "focus": "__settings/section/app/schedules", "contains": ["Section ‹ schedules  3/3 ›"]},
+    {"after": 13, "focus": "__settings/section/app/general", "contains": ["Section ‹ General  1/3 ›"]},
+    {"focus": "__settings/section/app/panes", "page": "__settings"}
+  ]
+}

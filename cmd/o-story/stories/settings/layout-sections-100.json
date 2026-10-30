@@ -1,0 +1,18 @@
+{
+  "name": "settings page with settings.layout sections at 100 columns: one section list of every owner's sections, owner headings, the shown section's settings over the detail",
+  "area": "settings",
+  "width": 100,
+  "height": 30,
+  "config": {"settings.json": {"settings.layout": "sections"}},
+  "settings": [
+    {"name": "editor", "type": "string", "default": "vi", "description": "The command that opens a file"},
+    {"name": "panes.group", "type": "string", "default": "project", "enum": ["project", "flat"], "description": "How panes group"},
+    {"name": "ext.ai.model", "owner": "extensions", "section": "ai", "type": "string", "default": "large", "enum": ["small", "large"], "description": "Model the AI extension asks"},
+    {"name": "ext.git.fetch", "owner": "extensions", "section": "git", "type": "boolean", "default": true, "description": "Fetch before listing branches"}
+  ],
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "bind": [{"noun": "demo", "keys": ",", "do": "settings.edit"}]
+  },
+  "script": [",", "h", "j"]
+}

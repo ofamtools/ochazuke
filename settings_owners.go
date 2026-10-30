@@ -76,7 +76,7 @@ type SettingOwnerInfo struct {
 // SettingSectionInfo is a section as settings.sections answers: the
 // declaration filled in (owner and title resolved) with its settings'
 // names in page order (by group, each group in declaration order) and how
-// many hold a session value.
+// many hold a session value that differs from the saved one.
 type SettingSectionInfo struct {
 	SettingSection
 	Settings []string `json:"settings"`
@@ -269,7 +269,7 @@ func (s *Settings) tabs() []settingsOwnerTab {
 					groups = append(groups, one.Group)
 				}
 				byGroup[one.Group] = append(byGroup[one.Group], one.Name)
-				if _, ok := s.session[one.Name]; ok {
+				if s.differsInSession(one) {
 					info.Session++
 				}
 			}
@@ -282,6 +282,16 @@ func (s *Settings) tabs() []settingsOwnerTab {
 		}
 		tab.Owner.Sections = len(tab.Sections)
 		out = append(out, tab)
+	}
+	// Two owners of one title (an application named ochazuke) are told
+	// apart by the ID of the one whose title is not its ID.
+	for i := range out {
+		for j := range out {
+			if i != j && out[i].Owner.Title == out[j].Owner.Title && out[i].Owner.Title != out[i].Owner.ID {
+				out[i].Owner.Title += " (" + out[i].Owner.ID + ")"
+				break
+			}
+		}
 	}
 	return out
 }

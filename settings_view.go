@@ -8,22 +8,22 @@ import (
 	"maps"
 	"slices"
 	"strings"
-
-	"github.com/charmbracelet/x/ansi"
 )
 
 // The Settings page: settings.edit opens (or switches to) a framework page
-// of the declared settings. Its sections are tabs across the top (the
-// settings without a section first, under SettingsGeneral, then each
-// section in the order its first setting was declared; tab, shift+tab, ]
-// and [ step through them, wrapping). Below the tabs the shown section is
-// one list of rows, a setting a row: its name on the left (a • after a
-// name whose value is not the default), its value on the right (‹ value ›
-// for one h/l steps). A list setting's row reads its item count, and each
-// item is a row beneath it with the name column blank. Under the list the
-// selected setting's description says what its default is, where its
-// value comes from (the default, settings.json, or the default because
-// settings.json holds an invalid value) and what it takes; J/K scroll it.
+// of the declared settings, laid out by settings.layout
+// (settings_page_layout.go): by default the owners are tabs across the top
+// (the application, its declared owners, ochazuke; ] and [ step them), the
+// shown tab's sections a list on the left (tab and shift+tab walk every
+// section in drawing order, across the tabs), and the shown section one
+// list of rows on the right, a setting a row: its full name on the left (a
+// • after a name whose value is not the default), its value on the right
+// (‹ value › for one h/l steps); a group's rows sit under its heading. A
+// list setting's row reads its item count, and each item is a row beneath
+// it with the name column blank. Under the list the selected setting's
+// description says what its default is, where its value comes from (the
+// default, settings.json, or the default because settings.json holds an
+// invalid value) and what it takes; J/K scroll it.
 //
 // Every change is saved as it is made; there is no save key. On a setting
 // row enter edits (a boolean flips, an enum takes its next value, a list
@@ -65,10 +65,15 @@ type settingsPage struct {
 	// settings.edit registered the page, so settings.close removes it.
 	from  string
 	owned bool
-	// section is the shown section; last the row the page was left on,
-	// where it reopens.
+	// section is the shown section (unitKey: owner and section); last
+	// the row the page was left on, where it reopens; lastOf the section
+	// each tab last showed, where settings.tab lands; narrow is set while
+	// the last frame folded the section list into its selector line
+	// (settings.narrow-width), which the settings-narrow guard reads.
 	section string
 	last    string
+	lastOf  map[string]string
+	narrow  bool
 	// undo is every change made on the page, oldest first; group is the
 	// step a settings.apply line is gathering (settingsGroup).
 	undo  []settingUndo
@@ -135,12 +140,6 @@ func registerSettingsEditor(r *Runtime) {
 	r.Register(Operation{Verb: "close", Noun: "ochazuke.settings", Description: "Leave the Settings page for the page it was opened from", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.Context(), closeSettingsPage(r)
 	}})
-	r.Register(Operation{Verb: "section", Noun: "ochazuke.settings", Description: "Show the next or previous section of the Settings page (wrapping), or the one named", Parameters: map[string]Parameter{
-		"step": {Type: "integer", Description: "1 for the next section, -1 for the previous"},
-		"name": {Type: "string", Description: "The section to show (General for the settings without one)"},
-	}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		return r.Context(), showSettingsSection(r, StringArg(a, "name", ""), IntArg(a, "step", 1))
-	}})
 	r.Register(Operation{Verb: "undo", Noun: "ochazuke.settings", Description: "Take back the last change made on the Settings page", Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return undoSettingChange(r)
 	}})
@@ -157,6 +156,7 @@ func registerSettingsEditor(r *Runtime) {
 	})
 	registerSettingVerbs(r)
 	registerSettingsApply(r)
+	registerSettingsLayoutView(r)
 	focused := func(c Context) (*Setting, error) {
 		if one := focusedSetting(r, focusOf(c)); one != nil {
 			return one, nil
@@ -440,7 +440,7 @@ func undoSettingChange(r *Runtime) (any, error) {
 	view.undo = view.undo[:len(view.undo)-1]
 	name := last.snaps[0].name
 	if one := s.find(name); one != nil && r.PageOf(SettingsPageID) != nil {
-		view.section = one.SectionName()
+		showUnit(r, unitKey(s.ownerOf(*one), one.SectionName()))
 		_ = r.SetFocus(settingRowPrefix + name)
 	}
 	return s.Get(name)
@@ -502,11 +502,8 @@ func ensureSettingsPage(r *Runtime, owned bool) (*Page, error) {
 		return page, nil
 	}
 	r.Instance(SettingsPageID, Parent("app"), Kind(settingsPageNoun))
+	view.section = currentSection(r)
 	refreshSettingsPage(r)
-	sections := settingSections(r.Settings())
-	if !slices.Contains(sections, view.section) && len(sections) > 0 {
-		view.section = sections[0]
-	}
 	focus := settingsListID(view.section)
 	if inst := r.Instances[view.last]; inst != nil && view.last != "" {
 		focus = view.last
@@ -537,7 +534,7 @@ func closeSettingsPage(r *Runtime) error {
 	}
 	view := &r.Settings().page
 	if r.Page == SettingsPageID {
-		if inst := r.Instances[r.BaseFocus()]; inst != nil && (inst.Noun == "ochazuke.setting" || inst.Noun == settingItemNoun) {
+		if inst := r.Instances[r.BaseFocus()]; inst != nil && (inst.Noun == "ochazuke.setting" || inst.Noun == settingItemNoun || inst.Noun == settingsSectionNoun) {
 			view.last = inst.ID
 		}
 		back := view.from
@@ -564,132 +561,16 @@ func closeSettingsPage(r *Runtime) error {
 	return nil
 }
 
-// showSettingsSection shows the named section, else the one step away
-// from the shown one (wrapping), and focuses its selected row.
-func showSettingsSection(r *Runtime, name string, step int) error {
-	if r.PageOf(SettingsPageID) == nil {
-		return errors.New("the settings page is not open")
-	}
-	sections := settingSections(r.Settings())
-	if len(sections) == 0 {
-		return errors.New("this application declares no settings")
-	}
-	key := currentSection(r)
-	if name != "" {
-		key = name
-		for _, k := range sections {
-			if strings.EqualFold(sectionTitle(r.Settings(), k), name) {
-				key = k
-			}
-		}
-		if !slices.Contains(sections, key) {
-			titles := make([]string, len(sections))
-			for i, k := range sections {
-				titles[i] = sectionTitle(r.Settings(), k)
-			}
-			return fmt.Errorf("no settings section %q: one of %s", name, strings.Join(titles, ", "))
-		}
-	} else {
-		i := slices.Index(sections, key)
-		n := len(sections)
-		key = sections[((i+step)%n+n)%n]
-	}
-	r.Settings().page.section = key
-	list := r.List(settingsListID(key))
-	if list == nil {
-		return nil
-	}
-	if item, ok := list.Selected(); ok {
-		return r.SetFocus(item.ID)
-	}
-	return r.SetFocus(settingsListID(key))
-}
-
-// settingSections is every section in order: each owner's (settings.owners
-// order) in its order (settings.sections).
-func settingSections(s *Settings) []string {
-	var out []string
-	for _, tab := range s.tabs() {
-		for _, sec := range tab.Sections {
-			if !slices.Contains(out, sec.ID) {
-				out = append(out, sec.ID)
-			}
-		}
-	}
-	return out
-}
-
-// sectionTitle is a section's declared title, else its ID.
-func sectionTitle(s *Settings, key string) string {
-	for _, tab := range s.tabs() {
-		for _, sec := range tab.Sections {
-			if sec.ID == key {
-				return sec.Title
-			}
-		}
-	}
-	return key
-}
-
-func settingsListID(key string) string { return "__settings/list/" + key }
-
 func settingItemID(name string, index int) string {
 	return fmt.Sprintf("%s%s/%d", settingItemPrefix, name, index)
 }
 
-// refreshSettingsPage brings the open page up to date: a list per section
-// (a section declared since gets one), each list's rows; selections stay
-// on their rows.
-func refreshSettingsPage(r *Runtime) {
-	if r.Instances[SettingsPageID] == nil {
-		return
-	}
-	s := r.Settings()
-	values := s.List()
-	for _, key := range settingSections(s) {
-		var items []ListItem
-		names := 0
-		for _, v := range values {
-			if v.SectionName() == key {
-				row := settingItem(s, key, v)
-				names = max(names, ansi.StringWidth(strings.TrimSuffix(row.Cells[0], " •")))
-				items = append(items, row)
-				if list, ok := v.Value.([]string); ok {
-					for i, text := range list {
-						items = append(items, ListItem{
-							ID: settingItemID(v.Name, i), Label: text, Noun: settingItemNoun,
-							Data: settingItemRef{Name: v.Name, Index: i}, Cells: []string{"", textCell(text)},
-						})
-					}
-				}
-			}
-		}
-		list := r.List(settingsListID(key))
-		if list == nil {
-			var err error
-			if list, err = r.AddList(settingsListID(key), nil, Parent(SettingsPageID), NoMarks()); err != nil {
-				continue
-			}
-		}
-		// No titles, so no header. The name column is as wide as the
-		// longest name and its dot (up to 30 cells, then a name is cut),
-		// whether a dot shows or not, so a change never moves the values;
-		// the value takes the rest.
-		list.SetColumns(
-			Column{Width: min(names+2, 30)},
-			Column{Min: 6, Priority: 1},
-		)
-		_ = list.SetItems(items)
-	}
-}
-
-// settingItem is one setting's row: the name without its section's prefix
-// (a • after it when the value is not the default) and the value.
-func settingItem(s *Settings, section string, v SettingValue) ListItem {
-	name := strings.TrimPrefix(v.Name, section+".")
-	if name == "" {
-		name = v.Name
-	}
+// settingItem is one setting's row: its full name, the word :set takes (a •
+// after it when the value is not the default), and the value; a grouped
+// setting carries its group as the row's section, a heading above the
+// group's rows.
+func settingItem(s *Settings, v SettingValue) ListItem {
+	name := v.Name
 	if settingDiffers(s, v.Name) {
 		name += " •"
 	}
@@ -702,7 +583,7 @@ func settingItem(s *Settings, section string, v SettingValue) ListItem {
 	}
 	return ListItem{
 		ID: settingRowPrefix + v.Name, Label: name + "  " + value, Noun: "ochazuke.setting", Data: v.Name,
-		Cells: []string{name, value}, Tones: tones,
+		Cells: []string{name, value}, Tones: tones, Section: v.Group,
 	}
 }
 
@@ -760,33 +641,6 @@ func settingCell(v any) string {
 		return strings.Join(t, ", ")
 	}
 	return fmt.Sprint(v)
-}
-
-// currentSection is the section the page shows: the focused list's (the
-// focus moves the tabs with it), else the one last shown.
-func currentSection(r *Runtime) string {
-	s := r.Settings()
-	sections := settingSections(s)
-	for _, key := range sections {
-		if list := r.List(settingsListID(key)); list != nil && list.Focused() {
-			s.page.section = key
-			return key
-		}
-	}
-	if slices.Contains(sections, s.page.section) || len(sections) == 0 {
-		return s.page.section
-	}
-	return sections[0]
-}
-
-// selectedSettingRow is the detail's item: the shown list's selected row.
-func selectedSettingRow(r *Runtime) string {
-	if list := r.List(settingsListID(currentSection(r))); list != nil {
-		if item, ok := list.Selected(); ok {
-			return item.ID
-		}
-	}
-	return ""
 }
 
 // settingOfRow is the setting and item (-1 for the setting's own row) a
@@ -935,67 +789,6 @@ func openItemPrompt(r *Runtime, one Setting, index, insert int) error {
 	request := &Request{Noun: "ochazuke.settings", Verb: "set", Args: args}
 	_, err := r.OpenModal(settingPromptID, Payload{Prompt: prompt, Request: request}, WithInput(in, Kind("ochazuke.setting-value")))
 	return err
-}
-
-// settingsPageView draws the page: the sections as tabs (when there is
-// more than one), the shown section's rows over the selected setting's
-// description (the divider follows the pane keys).
-func settingsPageView(r *Runtime, width, height int) Block {
-	if r.Instances[SettingsPageID] == nil || width <= 0 || height <= 0 {
-		return Block{}
-	}
-	styles := NewStyles(Appearance{Theme: "adaptive", Dark: true})
-	if view := r.Settings().page; view.styles != nil {
-		styles = view.styles()
-	}
-	layout := r.PaneLayout(SettingsPageID, Layout{Styles: styles})
-	key := currentSection(r)
-	sections := settingSections(r.Settings())
-	var rows []string
-	if len(sections) > 1 && height > PaneMinHeight {
-		titles := make([]string, len(sections))
-		for i, k := range sections {
-			titles[i] = sectionTitle(r.Settings(), k)
-		}
-		rows = append(rows, layout.tabs(titles, slices.Index(sections, key), width))
-	}
-	body := height - len(rows)
-	table := r.List(settingsListID(key))
-	if table == nil {
-		return Text(strings.Join(rows, "\n"))
-	}
-	// The rows take what they need (border included) up to three fifths
-	// of the height; the description the rest.
-	th := layout.Divide(min(max(table.Height()+2, PaneMinHeight), body*3/5), body, PaneMinHeight)
-	tw, tth := PanelContentSize(width, th)
-	tableBody := Text(table.View(tw, tth))
-	dw, dch := PanelContentSize(width, body-th)
-	detail := r.Detail(settingsDetailID)
-	title, text := "Detail", ""
-	if name, index := settingOfRow(r, selectedSettingRow(r)); name != "" {
-		title, text = settingDetail(r.Settings(), name, index)
-	}
-	content, marker := "", ""
-	if detail != nil {
-		content, marker = detail.Window(text, dw, dch)
-	}
-	if marker != "" {
-		title += " · " + marker
-	}
-	focused := SplitNone
-	if table.Focused() {
-		focused = SplitLeft
-	}
-	count := 0
-	for _, one := range r.Settings().declared {
-		if one.SectionName() == key {
-			count++
-		}
-	}
-	tableTitle := fmt.Sprintf("%s (%d)", sectionTitle(r.Settings(), key), count)
-	pair := layout.panelPair(tableTitle, tableBody, title, Text(content), width, body, th, true, focused)
-	rows = append(rows, strings.Split(pair.Text, "\n")...)
-	return Text(strings.Join(rows, "\n"))
 }
 
 // settingPromptView is the prompt line over the input.

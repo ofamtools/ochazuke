@@ -23,12 +23,16 @@
     },
     {
       "name": "ext.ai.poll-every",
+      "owner": "extensions",
+      "section": "ai",
       "type": "duration",
       "default": "30s",
       "description": "How often the AI extension refreshes its rows"
     },
     {
       "name": "ext.ai.model",
+      "owner": "extensions",
+      "section": "ai",
       "type": "string",
       "default": "large",
       "description": "Model the AI extension asks",
@@ -39,6 +43,8 @@
     },
     {
       "name": "ext.git.fetch",
+      "owner": "extensions",
+      "section": "git",
       "type": "boolean",
       "default": true,
       "description": "Fetch before listing branches"
@@ -99,7 +105,7 @@
       "focus": "__settings/row/theme",
       "contains": [
         "/th",
-        "2 of 10",
+        "2 of 3",
         "theme",
         "tab-width"
       ],
@@ -113,7 +119,7 @@
       "focus": "__settings/row/theme",
       "contains": [
         "/th",
-        "2 of 10"
+        "2 of 3"
       ]
     },
     {

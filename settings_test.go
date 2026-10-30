@@ -232,7 +232,7 @@ func TestSettingsPageSavesEachChange(t *testing.T) {
 		t.Fatalf("page %q focus %q modal %q status %q", r.Page, r.Focus, r.TopModal(), m.Status)
 	}
 	frame := ansi.Strip(m.View().Content)
-	for _, want := range []string{"General (5)", "› General  Appearance  Keys", "scrolloff", "‹ 2 ›", "Rows kept above and below the focus", "Default is 2.", "a whole number"} {
+	for _, want := range []string{"› app  ochazuke", "Sections", "General (5)", "scrolloff", "‹ 2 ›", "Rows kept above and below the focus", "Default is 2.", "a whole number"} {
 		if !strings.Contains(frame, want) {
 			t.Fatalf("frame lacks %q:\n%s", want, frame)
 		}
@@ -312,7 +312,11 @@ func TestSettingSections(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
-	if got := settingSections(r.Settings()); len(got) < 3 || !reflect.DeepEqual(got[:3], []string{"general", "ext", "look"}) {
+	var got []string
+	for _, u := range settingUnits(r.Settings()) {
+		got = append(got, u.key())
+	}
+	if len(got) < 3 || !reflect.DeepEqual(got[:3], []string{"app/general", "app/ext", "app/look"}) {
 		t.Fatalf("sections %q", got)
 	}
 }
@@ -412,7 +416,7 @@ func TestSettingsPageSourceAndUndo(t *testing.T) {
 	r.Settings().Reload()
 	keytest.Press(m, "ctrl+o")
 	frame := ansi.Strip(m.View().Content)
-	if !strings.Contains(frame, "settings.json holds an invalid value (must be an integer), so the default") {
+	if !strings.Contains(frame, "settings.json holds an invalid value (must be an integer),") {
 		t.Fatalf("source:\n%s", frame)
 	}
 	keytest.Press(m, "l")

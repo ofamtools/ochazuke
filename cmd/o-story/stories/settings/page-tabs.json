@@ -1,13 +1,14 @@
 {
-  "name": "settings page: sections are tabs; tab, shift+tab, ] and [ step them, wrapping, each keeping its row",
+  "name": "settings page with settings.layout tabs (the page before owners): a tab per section, no section list; tab, shift+tab, ] and [ step them, wrapping, each keeping its row",
   "area": "settings",
   "width": 100,
+  "config": {"settings.json": {"settings.layout": "tabs"}},
   "settings": [
     {"name": "scrolloff", "type": "integer", "default": 2, "description": "Rows kept above and below the focus"},
     {"name": "theme", "type": "string", "default": "dark", "description": "Colour theme", "enum": ["dark", "light", "mono"]},
-    {"name": "ext.ai.poll-every", "type": "duration", "default": "30s", "description": "How often the AI extension refreshes its rows"},
-    {"name": "ext.ai.model", "type": "string", "default": "large", "description": "Model the AI extension asks", "enum": ["small", "large"]},
-    {"name": "ext.git.fetch", "type": "boolean", "default": true, "description": "Fetch before listing branches"}
+    {"name": "ext.ai.poll-every", "owner": "extensions", "section": "ai", "type": "duration", "default": "30s", "description": "How often the AI extension refreshes its rows"},
+    {"name": "ext.ai.model", "owner": "extensions", "section": "ai", "type": "string", "default": "large", "description": "Model the AI extension asks", "enum": ["small", "large"]},
+    {"name": "ext.git.fetch", "owner": "extensions", "section": "git", "type": "boolean", "default": true, "description": "Fetch before listing branches"}
   ],
   "page": {
     "lists": [{"id": "a", "rows": 2}],
@@ -15,18 +16,18 @@
   },
   "script": [",", "j", "tab", "j", "tab", "tab", "shift+tab", "[", "]", "]", "[", "[", "[", "shift+tab", "tab"],
   "expect": [
-    {"after": 1, "focus": "__settings/row/scrolloff", "order": ["› General", "ext.ai", "ext.git", "General (9)", "scrolloff", "‹ 2 ›", "theme", "‹ dark ›"], "lacks": ["poll-every"], "contains": ["tab settings.section"]},
+    {"after": 1, "focus": "__settings/row/scrolloff", "order": ["› General", "ai", "git", "Appearance", "General (2)", "scrolloff", "‹ 2 ›", "theme", "‹ dark ›"], "lacks": ["Sections", "poll-every"], "contains": ["]/[ settings.tab"]},
     {"after": 2, "focus": "__settings/row/theme"},
-    {"after": 3, "focus": "__settings/row/ext.ai.poll-every", "order": ["General", "› ext.ai", "ext.git", "ext.ai (2)", "poll-every", "30s", "model", "‹ large ›", "How often the AI extension refreshes its rows"], "lacks": ["scrolloff", "ext.ai.model"]},
+    {"after": 3, "focus": "__settings/row/ext.ai.poll-every", "order": ["General", "› ai", "git", "ai (2)", "ext.ai.poll-every", "30s", "ext.ai.model", "‹ large ›", "How often the AI extension refreshes its rows"], "lacks": ["scrolloff"]},
     {"after": 4, "focus": "__settings/row/ext.ai.model"},
-    {"after": 5, "focus": "__settings/row/ext.git.fetch", "contains": ["› ext.git", "ext.git (1)", "fetch", "‹ true ›"]},
-    {"after": 6, "focus": "__settings/row/help.pick-view", "contains": ["› help"]},
+    {"after": 5, "focus": "__settings/row/ext.git.fetch", "contains": ["› git", "git (1)", "ext.git.fetch", "‹ true ›"]},
+    {"after": 6, "focus": "__settings/row/modal-dim", "contains": ["› Appearance"]},
     {"after": 7, "focus": "__settings/row/ext.git.fetch"},
     {"after": 8, "focus": "__settings/row/ext.ai.model"},
     {"after": 9, "focus": "__settings/row/ext.git.fetch"},
-    {"after": 10, "focus": "__settings/row/help.pick-view"},
+    {"after": 10, "focus": "__settings/row/modal-dim"},
     {"after": 13, "focus": "__settings/row/theme", "contains": ["› General"]},
-    {"after": 14, "focus": "__settings/row/settings.autosave", "contains": ["› settings"]},
+    {"after": 14, "focus": "__settings/row/settings.layout", "contains": ["› Settings"]},
     {"focus": "__settings/row/theme", "page": "__settings", "modal": ""}
   ]
 }

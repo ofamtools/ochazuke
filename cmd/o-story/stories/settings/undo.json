@@ -4,7 +4,7 @@
   "width": 120,
   "settings": [
     {"name": "scrolloff", "type": "integer", "default": 2, "description": "Rows kept above and below the focus"},
-    {"name": "ext.git.fetch", "type": "boolean", "default": true, "description": "Fetch before listing branches"}
+    {"name": "ext.git.fetch", "owner": "extensions", "section": "git", "type": "boolean", "default": true, "description": "Fetch before listing branches"}
   ],
   "page": {
     "lists": [{"id": "a", "rows": 1}],
@@ -13,11 +13,11 @@
   "script": ["S", "l", "l", "tab", "space", "u", "ctrl+z", "u", "u"],
   "expect": [
     {"after": 1, "lacks": ["settings.undo"]},
-    {"after": 3, "contains": ["scrolloff •         ‹ 4 ›", "u settings.undo"]},
-    {"after": 5, "focus": "__settings/row/ext.git.fetch", "contains": ["fetch •  ‹ false ›"]},
-    {"after": 6, "focus": "__settings/row/ext.git.fetch", "contains": ["fetch    ‹ true ›"], "lacks": ["•"]},
-    {"after": 7, "focus": "__settings/row/scrolloff", "contains": ["› General", "scrolloff •         ‹ 3 ›"]},
-    {"after": 8, "focus": "__settings/row/scrolloff", "contains": ["scrolloff           ‹ 2 ›", "Not in settings.json"], "lacks": ["settings.undo", "•"]},
-    {"focus": "__settings/row/scrolloff", "contains": ["scrolloff           ‹ 2 ›"], "lacks": ["settings.undo", "undo"]}
+    {"after": 3, "contains": ["scrolloff •  ‹ 4 ›", "u settings.undo"]},
+    {"after": 5, "focus": "__settings/row/ext.git.fetch", "contains": ["ext.git.fetch •  ‹ false ›"]},
+    {"after": 6, "focus": "__settings/row/ext.git.fetch", "contains": ["ext.git.fetch    ‹ true ›"], "lacks": ["•"]},
+    {"after": 7, "focus": "__settings/row/scrolloff", "contains": ["› app", "General (1)", "scrolloff •  ‹ 3 ›"]},
+    {"after": 8, "focus": "__settings/row/scrolloff", "contains": ["scrolloff    ‹ 2 ›", "Not in settings.json"], "lacks": ["settings.undo", "•"]},
+    {"focus": "__settings/row/scrolloff", "contains": ["scrolloff    ‹ 2 ›"], "lacks": ["settings.undo", "undo"]}
   ]
 }

@@ -1,24 +1,24 @@
  |  ◆ o-story                                                                                                    NORMAL
  |   Tasks  › Settings
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |   › General  ext.ai  ext.git  help  docs  palette  mode-badge  status  rename  create  delete  cli  repeat  12›
- |  ╭━ General (13) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
- |  ┃ scrolloff •         ‹ 3 ›                                                                                        ┃
- |  ┃ theme               ‹ dark ›                                                                                     ┃
- |  ┃ wrap                ‹ false ›                                                                                    ┃
- |  ┃ paths               2 items                                                                                      ┃
-R|  ┃                     ~/proj                                                                                       ┃
- |  ┃                     ~/hub                                                                                        ┃
- |  ┃ ignore              (none)                                                                                       ┃
- |  ┃ 1–7 / 15                                                                                                         ┃
- |  ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
- |  ╭─ paths ──────────────────────────────────────────────────────────────────────────────────────────────────────────╮
- |  │ Item 1 of 2.                                                                                                     │
- |  │ Directories searched for projects, in order                                                                      │
- |  │                                                                                                                  │
- |  │ Default is ~/proj, ~/hub. Not in settings.json, so the default applies.                                          │
- |  │ Takes a list of text items.                                                                                      │
- |  ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+ |   › app  extensions  ochazuke
+ |  ╭─ Sections ─────╮ ╭━ General (6) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
+r|  │ General      6 │ ┃ scrolloff •  ‹ 3 ›                                                                            ┃
+ |  │                │ ┃ theme        ‹ dark ›                                                                         ┃
+ |  │                │ ┃ wrap         ‹ false ›                                                                        ┃
+ |  │                │ ┃ paths        2 items                                                                          ┃
+R|  │                │ ┃              ~/proj                                                                           ┃
+ |  │                │ ┃              ~/hub                                                                            ┃
+ |  │                │ ┃ ignore       (none)                                                                           ┃
+ |  │                │ ┃ editor       vi                                                                               ┃
+ |  │                │ ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
+ |  │                │ ╭─ paths ───────────────────────────────────────────────────────────────────────────────────────╮
+ |  │                │ │ Item 1 of 2.                                                                                  │
+ |  │                │ │ Directories searched for projects, in order                                                   │
+ |  │                │ │                                                                                               │
+ |  │                │ │ Default is ~/proj, ~/hub. Not in settings.json, so the default applies.                       │
+ |  │                │ │ Takes a list of text items.                                                                   │
+ |  ╰────────────────╯ ╰───────────────────────────────────────────────────────────────────────────────────────────────╯
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  enter/i setting-item.edit · n setting-item.add · d d setting-item.delete · r setting-item.reset · tab settings.sect…
+ |  enter/i setting-item.edit · n setting-item.add · d d setting-item.delete · r setting-item.reset · ]/[ settings.tab …
  |

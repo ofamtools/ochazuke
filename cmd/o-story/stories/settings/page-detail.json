@@ -2,7 +2,7 @@
   "name": "settings page: the detail shows the whole description; J/K scroll it, the focus stays",
   "area": "settings",
   "width": 120,
-  "height": 20,
+  "height": 17,
   "settings": [
     {"name": "poll", "type": "duration", "default": "30s", "description": "How often the rows refresh. A shorter wait shows changes sooner and costs more calls; a longer one is quieter. The first refresh runs when the page opens, whatever the wait. Zero turns the refresh off: the rows then change only when you reload them. Values below one second are rounded up to one second so a typo cannot flood the daemon."},
     {"name": "colour", "type": "string", "default": "auto", "description": "Colour mode", "enum": ["auto", "always", "never"]}
