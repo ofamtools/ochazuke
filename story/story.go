@@ -252,6 +252,15 @@ type RecordSpec struct {
 	Insert     bool                   `json:"insert,omitempty"`
 	FailWrites int                    `json:"failWrites,omitempty"`
 	Height     int                    `json:"height,omitempty"` // lines drawn; 0 = the rest of the page
+	// Thing makes the editor edit one of the page's store things (its
+	// key): it loads the thing's props, a write copies the record into
+	// it, and the editor watches the store's noun (RecordSpec.Watch), so
+	// a set from outside reaches it.
+	Thing string `json:"thing,omitempty"`
+	// Reopen is a key (normal mode) that edits the record again once the
+	// editor is closed: a new editor under the same id, focused, as an
+	// application's edit verb places one.
+	Reopen string `json:"reopen,omitempty"`
 }
 
 // ItemSpec is an explicit row; Cells are its table cells, Tones the

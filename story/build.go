@@ -48,6 +48,10 @@ type Session struct {
 	trees map[string]*ochazuke.Tree
 	// records are the page-drawn record editors by id.
 	records map[string]*ochazuke.RecordEditor
+	// storeNoun and storeThing are the page store's noun and its things
+	// by key, unlogged (a RecordSpec.Thing editor's load and write).
+	storeNoun  string
+	storeThing func(id string) ochazuke.Thing
 	// Writes is the log of every change an editable tree, record editor or
 	// Markdown document wrote.
 	Writes  []string
@@ -618,6 +622,15 @@ func (ss *Session) defineStore(d *ochazuke.NounBuilder, spec *StoreSpec) (err er
 		}
 	}
 	things := slices.Clone(spec.Things)
+	ss.storeNoun = d.Noun().Name
+	ss.storeThing = func(id string) ochazuke.Thing {
+		for _, t := range things {
+			if fmt.Sprint(t[key]) == id {
+				return t
+			}
+		}
+		return nil
+	}
 	// A store on the noun with the row-removing delete (the demo noun)
 	// makes its delete the standard delete of the store's things (its
 	// confirm, delete.archive); a store on another noun (StoreSpec.Noun)
@@ -955,6 +968,24 @@ func (ss *Session) addPage(p *Page) error {
 			return fmt.Errorf("record %s: %w", rs.ID, err)
 		}
 		ss.records[rs.ID] = ed
+		if rs.Reopen != "" {
+			rs, parent := rs, p.ID
+			verb := "edit-" + rs.ID
+			r.Define(Demo).Verb(verb, func(c ochazuke.Ctx) ochazuke.Result {
+				if ed := ss.records[rs.ID]; ed != nil && !ed.Closed() {
+					return ochazuke.Done(nil)
+				}
+				ed, err := r.AddRecordEditor(rs.ID, ss.recordSpec(rs), ochazuke.Parent(parent), ochazuke.FocusOnClose(back))
+				if err != nil {
+					return ochazuke.Failed(err)
+				}
+				ss.records[rs.ID] = ed
+				if err := ed.Focus(); err != nil {
+					return ochazuke.Failed(err)
+				}
+				return ochazuke.Done(nil)
+			}, "Edit the record "+rs.ID+" again").Mode("normal").Bind(rs.Reopen, ochazuke.Do(Demo+"."+verb))
+		}
 		if focus == "" {
 			focus = ed.FocusTarget()
 		}
@@ -1341,7 +1372,7 @@ func (ss *Session) recordSpec(rs RecordSpec) ochazuke.RecordSpec {
 	for k, v := range rs.Values {
 		values[k] = ss.files(v)
 	}
-	return ochazuke.RecordSpec{
+	spec := ochazuke.RecordSpec{
 		Title:  rs.Title,
 		Fields: fields,
 		Insert: rs.Insert,
@@ -1355,6 +1386,29 @@ func (ss *Session) recordSpec(rs RecordSpec) ochazuke.RecordSpec {
 			return ochazuke.Done(nil)
 		},
 	}
+	if rs.Thing != "" && ss.storeThing != nil {
+		// The store thing is the record: loaded from it, written whole
+		// into it (every field, as an application's store write does).
+		spec.Watch = ss.storeNoun
+		spec.Load = func() (ochazuke.Record, error) {
+			rec := ochazuke.Record{}
+			for name, v := range ss.storeThing(rs.Thing) {
+				rec[name] = fmt.Sprint(v)
+			}
+			return rec, nil
+		}
+		save := spec.Save
+		spec.Save = func(w ochazuke.RecordWrite) ochazuke.Result {
+			res := save(w)
+			if t := ss.storeThing(rs.Thing); t != nil {
+				for name, v := range w.Values {
+					t[name] = v
+				}
+			}
+			return res
+		}
+	}
+	return spec
 }
 
 // render draws a page: the main column, with the detail to its right when

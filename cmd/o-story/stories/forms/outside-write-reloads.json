@@ -1,0 +1,33 @@
+{
+  "name": "form: a write from outside (:demo set) reloads the open editor; it stays open on its field and mode, and its next write keeps the new value",
+  "area": "forms",
+  "width": 100,
+  "height": 24,
+  "page": {
+    "lists": [{"id": "tasks", "items": [{"id": "t1", "label": "t1"}]}],
+    "store": {
+      "props": [
+        {"name": "id", "key": true},
+        {"name": "title", "role": "label"},
+        {"name": "status", "enum": ["todo", "doing", "done"]}
+      ],
+      "things": [{"id": "t1", "title": "Water the plants", "status": "todo"}]
+    },
+    "records": [
+      {
+        "id": "task",
+        "thing": "t1",
+        "fields": [
+          {"name": "title", "type": "string", "required": true},
+          {"name": "status", "type": "string", "required": true, "enum": ["todo", "doing", "done"]}
+        ]
+      }
+    ],
+    "focus": "task/title"
+  },
+  "script": [":", {"type": "demo set t1 status done"}, "enter", "A", {"type": "!"}, "esc"],
+  "expect": [
+    {"after": 3, "focus": "task/title", "mode": "normal", "modal": "", "contains": ["done ▾", "q form.leave"], "lacks": ["todo ▾"], "noNotices": true},
+    {"focus": "task/title", "mode": "normal", "contains": ["Water the plants!", "done ▾"]}
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "form: a choice field's chooser opens beside the field, sized to its rows, so the field and the lines below it stay visible",
+  "area": "forms",
+  "width": 100,
+  "height": 24,
+  "page": {
+    "records": [
+      {
+        "id": "task",
+        "height": 8,
+        "fields": [
+          {"name": "title", "type": "string", "required": true},
+          {"name": "status", "type": "string", "required": true, "enum": ["todo", "doing", "done"]},
+          {"name": "estimate", "type": "integer"}
+        ],
+        "values": {"title": "Water the plants", "status": "todo", "estimate": "2"}
+      }
+    ],
+    "texts": [{"id": "stored", "text": "stored: the line under the form"}],
+    "focus": "task/status"
+  },
+  "script": ["enter"],
+  "expect": [
+    {"modal": "form-choose", "contains": ["status", "todo ▾", "│ Choose status", "stored: the line under the form"], "order": ["Water the plants", "Choose status", "todo ▾", "doing", "done", "stored: the line under the form"]}
+  ]
+}

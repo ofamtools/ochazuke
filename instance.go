@@ -53,10 +53,13 @@ type Payload struct {
 	Prompt  string     `json:"prompt,omitempty"`
 	Request *Request   `json:"request,omitempty"`
 	Shadow  *ModeState `json:"shadow,omitempty"`
+	// Anchor is the instance a modal is opened for (a form field, for its
+	// chooser): the modal is drawn beside it (modal.anchor).
+	Anchor string `json:"anchor,omitempty"`
 }
 
 func (p Payload) empty() bool {
-	return p.Count == 0 && p.OpCount == 0 && p.Op == "" && p.Prefix == "" && p.Prompt == "" && p.Request == nil && p.Shadow == nil
+	return p.Count == 0 && p.OpCount == 0 && p.Op == "" && p.Prefix == "" && p.Prompt == "" && p.Request == nil && p.Shadow == nil && p.Anchor == ""
 }
 
 type instanceSpec struct {

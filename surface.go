@@ -38,6 +38,13 @@ func ComposeModal(background, title, body, footer string, width, height int, sty
 // result's cursor is the body's, moved to where the panel placed it; the
 // backdrop never contributes one because a modal covers whatever it held.
 func ComposeModalBlock(background, title string, body Block, footer string, width, height int, styles Styles) Block {
+	return composeModalAt(background, title, body, footer, width, height, styles, nil)
+}
+
+// composeModalAt is ComposeModalBlock with the panel placed by place (given
+// the panel's size, its top-left cell) instead of centered when place is
+// not nil.
+func composeModalAt(background, title string, body Block, footer string, width, height int, styles Styles, place func(panelWidth, panelHeight int) (left, top int)) Block {
 	contentWidth, contentHeight, bordered := modalBounds(width, height)
 	if contentWidth == 0 || contentHeight == 0 {
 		if width <= 0 || height <= 0 {
@@ -76,6 +83,9 @@ func ComposeModalBlock(background, title string, body Block, footer string, widt
 		cursor = cursor.Offset(2, 2)
 	}
 	left, top := (width-panelWidth)/2, (height-len(lines))/2
+	if place != nil {
+		left, top = place(panelWidth, len(lines))
+	}
 	// The backdrop is drawn dimmed (Styles.Backdrop, modal-dim) as one layer and the panel as a second layer
 	// on top; the canvas owns cell clipping, including wide graphemes under the
 	// panel's edges.

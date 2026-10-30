@@ -409,11 +409,8 @@ func (t *demoTask) patch(id string, changes ochazuke.Thing) (ochazuke.Thing, err
 	if _, ok := t.tasks[id]; !ok {
 		return nil, fmt.Errorf("no task %q", id)
 	}
-	if id == t.editing && t.editor != nil && !t.editor.Closed() {
-		// The open editor holds the values it loaded: close it rather
-		// than let its next write put them back (e opens it again).
-		t.editor.Close()
-	}
+	// The open editor watches task (RecordSpec.Watch): it loads the new
+	// values once the write has run (forms.outside-write).
 	t.write(id, changes)
 	return t.thing(id), nil
 }
@@ -438,7 +435,11 @@ func (t *demoTask) delete(r *ochazuke.Runtime, id string) error {
 	t.order = slices.DeleteFunc(t.order, func(o string) bool { return o == id })
 	if id == t.editing {
 		if t.editor != nil && !t.editor.Closed() {
-			t.editor.Close()
+			// The editor edits the task that is gone: leave it (e edits
+			// the next one).
+			if err := t.editor.Leave(); err != nil {
+				return err
+			}
 		}
 		t.editing = t.order[0]
 		r.Instances["task"].Data = ochazuke.Thing{"id": t.editing}
@@ -483,7 +484,10 @@ func (t *demoTask) edit(r *ochazuke.Runtime) error {
 	}
 	ed, err := r.AddRecordEditor("task-form", ochazuke.RecordSpec{
 		Fields: taskFields(),
-		Load:   func() (ochazuke.Record, error) { return maps.Clone(t.tasks[t.editing]), nil },
+		// A write of a task from outside the editor (:task set, x) is
+		// loaded into it.
+		Watch: "task",
+		Load:  func() (ochazuke.Record, error) { return maps.Clone(t.tasks[t.editing]), nil },
 		Save: func(w ochazuke.RecordWrite) ochazuke.Result {
 			// The form holds the record's fields; the props it does not
 			// show (project, archived) are kept.
@@ -538,7 +542,7 @@ func demoOverview(m *ochazuke.Model, width int) string {
 	b.WriteString(s.Title.Render("A framework. Your application.") + "\n")
 	b.WriteString(s.Muted.Render("Pages keep their place. Actions share one interface.") + "\n\n")
 	for _, page := range m.Runtime.PageList() {
-		descriptions := map[string]string{"overview": "Start here: navigation and the framework's structure.", "playground": "Edit text, branch undo history, and open nested modals.", "commands": "Inspect real operations, argument schemas, and bindings.", "appearance": "Change the live theme and spacing defaults.", "task": "Edit a record written as you type: choices, undo, no save key.", "checklist": "A Markdown checklist: x toggles an item, saved back to its source."}
+		descriptions := map[string]string{"overview": "Start here: navigation and the framework's structure.", "playground": "Edit text, branch undo history, and open nested modals.", "commands": "Inspect real operations, argument schemas, and bindings.", "appearance": "Change the live theme and spacing defaults.", "library": "A list beside the selected entry's detail; the divider between them resizes.", "task": "Edit a record written as you type: choices, undo, no save key.", "checklist": "A Markdown checklist: x toggles an item, saved back to its source."}
 		fmt.Fprintf(&b, "%s\n  %s\n\n", s.Subtitle.Render(page.Title), s.Muted.Render(descriptions[page.ID]))
 	}
 	b.WriteString(s.Panel.Width(max(1, width-2)).Render("TRY IT\nCtrl-J → i → type → Escape → u\nCtrl-N opens a modal without replacing the page.\n: searches the same actions available through the CLI."))

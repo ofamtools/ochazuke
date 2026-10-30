@@ -1,0 +1,69 @@
+{
+  "name": "form: with modal.anchor off a choice field's chooser is centered over the form as every modal is",
+  "area": "forms",
+  "width": 100,
+  "height": 24,
+  "page": {
+    "records": [
+      {
+        "id": "task",
+        "height": 8,
+        "fields": [
+          {
+            "name": "title",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "status",
+            "type": "string",
+            "required": true,
+            "enum": [
+              "todo",
+              "doing",
+              "done"
+            ]
+          },
+          {
+            "name": "estimate",
+            "type": "integer"
+          }
+        ],
+        "values": {
+          "title": "Water the plants",
+          "status": "todo",
+          "estimate": "2"
+        }
+      }
+    ],
+    "texts": [
+      {
+        "id": "stored",
+        "text": "stored: the line under the form"
+      }
+    ],
+    "focus": "task/status"
+  },
+  "script": [
+    "enter"
+  ],
+  "expect": [
+    {
+      "modal": "form-choose",
+      "contains": [
+        "│ Choose status",
+        "? bindings.help"
+      ],
+      "lacks": [
+        "stored: the line under the form"
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "name": "modal.anchor",
+      "type": "boolean",
+      "default": false
+    }
+  ]
+}

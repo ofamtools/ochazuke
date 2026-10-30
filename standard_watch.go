@@ -27,8 +27,8 @@ import (
 // its List (a singleton's Get): the watch keeps each thing's record hash
 // (RecordHash, the state delta protocol's) and, whenever the runtime is
 // told its things may have changed, lists again and emits the difference.
-// It is told after every request of the change kind (a top-level one, once
-// it has run), after the completion of a job of a change verb, and when the
+// It is told after every top-level request of the change kind, or that
+// ran one (a palette line's set), once it has run, after the completion of a job of a change verb, and when the
 // application calls Runtime.Changed (its store changed some other way).
 // There is no polling loop: nothing runs while nothing happens.
 //
@@ -106,6 +106,9 @@ type watchHub struct {
 	watches    []*Watch
 	versions   WatchVersions
 	refreshing bool
+	// changed is set when a request of the change kind ran inside the
+	// top-level request still running (a palette line's verb).
+	changed bool
 }
 
 func (r *Runtime) watchHub() *watchHub {
@@ -250,10 +253,18 @@ func (r *Runtime) refreshWatches(nouns []string) {
 	}
 }
 
-// afterRequest refreshes the watches once a top-level request of the
-// change kind has run.
+// afterRequest refreshes the watches once a top-level request has run
+// that is of the change kind or ran one (the palette's run of a set).
 func (r *Runtime) watchAfterRequest(q Request, depth int) {
-	if depth == 0 && r.watches != nil && r.historyKind(q) == HistoryChange {
+	h := r.watches
+	if h == nil {
+		return
+	}
+	if r.historyKind(q) == HistoryChange {
+		h.changed = true
+	}
+	if depth == 0 && h.changed {
+		h.changed = false
 		r.refreshWatches(nil)
 	}
 }

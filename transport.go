@@ -123,7 +123,9 @@ type Server struct {
 	once     sync.Once
 }
 
-// Listen requires a private, current-user-owned socket directory and never removes an existing socket.
+// Listen requires a private, current-user-owned socket directory. A socket
+// file left by an application that is gone (nothing answers a connect) is
+// removed and listened on again; a live one is never removed.
 func Listen(path string, send func(CallMsg)) (*Server, error) {
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0700); err != nil {
@@ -134,10 +136,21 @@ func Listen(path string, send func(CallMsg)) (*Server, error) {
 		return nil, err
 	}
 	stat, ok := info.Sys().(*syscall.Stat_t)
-	if !info.IsDir() || info.Mode().Perm()&0077 != 0 || !ok || stat.Uid != uint32(os.Getuid()) {
-		return nil, errors.New("socket parent must be a private directory owned by the current user (mode 0700)")
+	switch {
+	case !info.IsDir():
+		return nil, fmt.Errorf("socket parent %s is not a directory: choose a socket path in a private directory (mode 0700) you own", dir)
+	case !ok || stat.Uid != uint32(os.Getuid()):
+		return nil, fmt.Errorf("socket parent %s is not owned by the current user: choose a socket path in a private directory (mode 0700) you own", dir)
+	case info.Mode().Perm()&0077 != 0:
+		return nil, fmt.Errorf("socket parent %s is mode %04o, readable by others: run chmod 700 %s, or choose a socket path in a private directory you own", dir, info.Mode().Perm(), dir)
 	}
 	ln, err := net.Listen("unix", path)
+	if errors.Is(err, syscall.EADDRINUSE) {
+		if serr := removeStaleSocket(path); serr != nil {
+			return nil, serr
+		}
+		ln, err = net.Listen("unix", path)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -157,6 +170,30 @@ func Listen(path string, send func(CallMsg)) (*Server, error) {
 	}()
 	return s, nil
 }
+
+// removeStaleSocket removes the socket file at path when no application
+// answers on it (a connect is refused: its listener is gone). A socket
+// that answers, or a file that is not a socket, is left alone and named in
+// the error.
+func removeStaleSocket(path string) error {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return err
+	}
+	if info.Mode()&os.ModeSocket == 0 {
+		return fmt.Errorf("listen %s: the path exists and is not a socket", path)
+	}
+	conn, err := net.DialTimeout("unix", path, time.Second)
+	if err == nil {
+		conn.Close()
+		return fmt.Errorf("listen %s: another application is listening on this socket; quit it or choose another socket path", path)
+	}
+	if !errors.Is(err, syscall.ECONNREFUSED) {
+		return fmt.Errorf("listen %s: the socket is in use and did not answer: %w", path, err)
+	}
+	return os.Remove(path)
+}
+
 func (s *Server) Close() error {
 	var err error
 	s.once.Do(func() { close(s.done); err = s.listener.Close() })

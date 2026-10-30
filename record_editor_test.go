@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"context"
 	"errors"
+	"maps"
 	"slices"
 	"strings"
 	"testing"
@@ -542,5 +543,82 @@ func TestRecordSuggestionsLoadOffTheLoop(t *testing.T) {
 	}
 	if !cancelled || r.TopModal() != "" {
 		t.Fatalf("jobs %+v top %q, want the load cancelled", r.Jobs(), r.TopModal())
+	}
+}
+
+// Reload takes a value written outside the editor into a field that holds
+// no unsaved typing, keeps the typing of the field being typed in (written
+// over the new value as the later change), keeps the focus and the mode,
+// and drops the undo steps of the fields it changed.
+func TestRecordReloadKeepsTypingAndFocus(t *testing.T) {
+	r, m, ed, writes := recordFixture(t, nil)
+	stored := Record{"title": "buy milk", "status": "todo"}
+	ed.spec.Load = func() (Record, error) { return maps.Clone(stored), nil }
+	keytest.Press(m, "j")
+	keytest.Press(m, "enter")
+	keytest.Press(m, "j")
+	keytest.Press(m, "enter") // status doing, written
+	keytest.Press(m, "k")
+	keytest.Press(m, "A")
+	keytest.Type(m, " now") // unsaved typing in the title
+	stored["title"], stored["status"] = "buy bread", "done"
+	if err := ed.Reload(); err != nil {
+		t.Fatal(err)
+	}
+	if r.Focus != "ed/title" || r.Mode.Name != "insert" || ed.Closed() {
+		t.Fatalf("focus %s mode %s closed %v", r.Focus, r.Mode.Name, ed.Closed())
+	}
+	if v := ed.Values(); v["title"] != "buy milk now" || v["status"] != "done" {
+		t.Fatalf("values %v, want the typing kept and the status reloaded", v)
+	}
+	if len(ed.undo) != 0 {
+		t.Fatalf("undo %v, want the reloaded fields' steps dropped", ed.undo)
+	}
+	keytest.Press(m, "esc")
+	if got := (*writes)[len(*writes)-1]; got != "write title=\"buy milk now\"" {
+		t.Fatalf("last write %q", got)
+	}
+	if w := ed.Written(); w["status"] != "done" {
+		t.Fatalf("written %v, want the reloaded status kept", w)
+	}
+}
+
+// A field whose write is in flight keeps its value through a reload: the
+// store has not taken the write yet.
+func TestRecordReloadKeepsTheWriteInFlight(t *testing.T) {
+	_, m, ed, _ := recordFixture(t, func(RecordWrite) Result {
+		return Pending(func(context.Context) (any, error) { return nil, nil })
+	})
+	ed.spec.Load = func() (Record, error) { return Record{"title": "buy milk", "status": "todo"}, nil }
+	keytest.Press(m, "j")
+	keytest.Press(m, "enter")
+	keytest.Press(m, "j")
+	keytest.Press(m, "enter") // status doing, in flight
+	if err := ed.Reload(); err != nil {
+		t.Fatal(err)
+	}
+	if v := ed.Values()["status"]; v != "doing" {
+		t.Fatalf("status %q, want the write in flight kept", v)
+	}
+}
+
+// A closed editor's id is free again: Close (the delivery contract's,
+// which leaves the instance) does not stop AddRecordEditor, and Leave
+// removes the instance and gives the focus back.
+func TestRecordClosedEditorIDIsFree(t *testing.T) {
+	r, _, ed, _ := recordFixture(t, nil)
+	ed.Close()
+	again, err := r.AddRecordEditor("ed", RecordSpec{Fields: taskFields()}, Parent("main"), FocusOnClose("t1"))
+	if err != nil {
+		t.Fatalf("reopen after Close: %v", err)
+	}
+	if err := again.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	if err := again.Leave(); err != nil {
+		t.Fatal(err)
+	}
+	if r.Instances["ed"] != nil || r.Focus != "t1" {
+		t.Fatalf("after Leave: instance %v focus %s", r.Instances["ed"] != nil, r.Focus)
 	}
 }

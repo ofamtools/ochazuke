@@ -898,32 +898,73 @@ func (m *Model) render() Block {
 		content = m.pageContent(pageWidth, pageHeight)
 	}
 	m.follow(base, content.Text, pageHeight)
+	yoff := m.viewport(base, content.Text, pageWidth, pageHeight).YOffset()
 	page := m.scrolled(base, content, pageWidth, pageHeight)
 	restore()
+	sidebar := func(b Block) Block { return b }
 	if m.Sidebar {
 		titles, selected := m.pageTitles()
 		width, height := layout.BodySize()
-		page = layout.sidebar("Pages", titles, selected, pageTitle, page, width, height, m.Width < layoutStackAt)
+		sidebar = func(b Block) Block {
+			return layout.sidebar("Pages", titles, selected, pageTitle, b, width, height, m.Width < layoutStackAt)
+		}
+		page = sidebar(page)
 	}
-	surface := layout.Shell(header, page, m.footer())
+	footer := m.footer()
+	surface := layout.Shell(header, page, footer)
+	// toScreen maps a position in the page as rendered to the screen, the
+	// way the page was composed (scrolled, beside the sidebar, in the
+	// shell): where an anchored modal finds its anchor.
+	toScreen := func(p Pos) (Pos, bool) {
+		b := Block{Text: content.Text, Cursor: &p}.Offset(0, -yoff).Clip(pageWidth, pageHeight)
+		if b.Cursor == nil {
+			return Pos{}, false
+		}
+		b = layout.Shell(header, sidebar(b.WithText(page.Text)), footer)
+		if b.Cursor == nil {
+			return Pos{}, false
+		}
+		return *b.Cursor, true
+	}
+	anchored, _ := m.Runtime.settingValue(ModalAnchorSetting)
 	for _, id := range m.Runtime.modals {
 		modalWidth, modalHeight := ModalSize(m.Width, m.Height)
+		var place func(int, int) (int, int)
 		title, body := m.modalContent(id, modalWidth, modalHeight)
+		if inst := m.Runtime.Instances[id]; anchored == true && inst != nil && inst.Payload.Anchor != "" {
+			// Beside the thing it is for, sized to its content.
+			if a, ok := m.anchorRect(inst.Payload.Anchor, content, toScreen); ok {
+				w := min(modalWidth, max(modalAnchorMin, fitWidth(title, body)))
+				rows := min(modalHeight, max(1, lipgloss.Height(body.Text)))
+				if left, top, ok := anchoredPlace(a, rowEnds(surface.Text), m.Width, m.Height, w, rows); ok {
+					place = func(int, int) (int, int) { return left, top }
+					if w < modalWidth {
+						modalWidth = w
+						title, body = m.modalContent(id, modalWidth, modalHeight)
+					}
+				}
+			}
+		}
 		bodyHeight := min(modalHeight, max(1, lipgloss.Height(body.Text)))
 		bodyWidth := min(modalWidth, max(1, lipgloss.Width(body.Text)))
 		body = m.scrolled(id, body, bodyWidth, bodyHeight)
 		// The hint is the modal focus's own binding rows; it may widen the
-		// panel up to a readable width but never past the modal bounds.
-		hint := ansi.Truncate(BindingHints(m.Runtime, m.Runtime.ModalFocus(id)), min(modalWidth, max(bodyWidth, 48)), "…")
+		// panel up to a readable width but never past the modal bounds (an
+		// anchored modal's: its content's).
+		hintWidth := min(modalWidth, max(bodyWidth, 48))
+		if place != nil {
+			hintWidth = modalWidth
+		}
+		hint := ansi.Truncate(BindingHints(m.Runtime, m.Runtime.ModalFocus(id)), hintWidth, "…")
 		if id == m.Runtime.TopModal() {
 			switch {
 			case m.Status != "":
 				hint = "Error: " + m.Status
 			case m.Info != "":
-				hint = ansi.Truncate(m.footerInfo()+" · "+hint, min(modalWidth, max(bodyWidth, 48)), "…")
+				hint = ansi.Truncate(m.footerInfo()+" · "+hint, hintWidth, "…")
 			}
 		}
-		surface = ComposeModalBlock(surface.Text, title, body, hint, m.Width, m.Height, layout.Styles)
+		surface = composeModalAt(surface.Text, title, body, hint, m.Width, m.Height, layout.Styles, place)
 	}
 	// Open suggestions sit over everything, under the token they complete.
 	if c := m.Runtime.Completer(); c != nil {

@@ -102,7 +102,20 @@ type RecordSpec struct {
 	Submit func(Record) Result
 	// Start names the field focused first ("" the first field).
 	Start string
+	// Watch names the noun whose store holds the record: when its things
+	// change other than through this editor (a verb such as set, another
+	// client, Runtime.Changed), the open editor loads the record again
+	// (forms.outside-write: reload keeps it open, close leaves it). ""
+	// watches nothing; Reload does the same on the application's call.
+	Watch string
 }
+
+// FormsOutsideWriteSetting says what an open record editor does when its
+// record is written from outside it (RecordSpec.Watch, Reload): reload
+// (the default) takes the new values and stays open, focus, field and mode
+// kept, a field with unsaved typing keeping the typing; close leaves the
+// editor (e edits again), as before.
+const FormsOutsideWriteSetting = "forms.outside-write"
 
 // DefaultRecordDebounce is how long typing in a field pauses before the
 // record is written.
@@ -216,6 +229,8 @@ type RecordEditor struct {
 	written  Record   // the record as written, or queued to be
 	dirty    []string // fields written in memory, not yet in the store
 	inflight bool
+	sending  []string // the fields of the write in flight
+	watch    *Watch   // the Watch noun's subscription while open
 	writeErr string
 	undo     []recordStep
 	redo     []recordStep
@@ -225,6 +240,7 @@ type RecordEditor struct {
 	typing   bool   // whether a text field was being typed in then
 	modal    bool
 	closed   bool
+	loading  bool // outsideWrite is loading the record
 	ran      bool // form.run handed the values to Submit
 	failure  error
 }
@@ -233,6 +249,7 @@ type RecordEditor struct {
 // application draws it with Block in its page. FocusOnClose names where
 // the focus goes when it leaves. Call Focus to start editing.
 func (r *Runtime) AddRecordEditor(id string, spec RecordSpec, opts ...InstanceOption) (*RecordEditor, error) {
+	r.freeClosedEditor(id)
 	if id == "" || r.Instances[id] != nil {
 		return nil, fmt.Errorf("record editor ID %q must be nonempty and unused", id)
 	}
@@ -250,6 +267,7 @@ func (r *Runtime) AddRecordEditor(id string, spec RecordSpec, opts ...InstanceOp
 // first field focused; leaving closes the modal and restores the focus and
 // mode it opened over.
 func (r *Runtime) OpenRecordEditor(id string, spec RecordSpec) (*RecordEditor, error) {
+	r.freeClosedEditor(id)
 	if id == "" || r.Instances[id] != nil {
 		return nil, fmt.Errorf("record editor ID %q must be nonempty and unused", id)
 	}
@@ -270,6 +288,19 @@ func (r *Runtime) OpenRecordEditor(id string, spec RecordSpec) (*RecordEditor, e
 	}
 	e.focus = r.Focus
 	return e, nil
+}
+
+// freeClosedEditor removes a closed record editor still registered under
+// id (closed through Close, which leaves its instance), so the id can be
+// used again: a closed editor is never in the way of opening one.
+func (r *Runtime) freeClosedEditor(id string) {
+	inst := r.Instances[id]
+	if inst == nil {
+		return
+	}
+	if e, ok := inst.Component.(*RecordEditor); ok && e.closed {
+		_ = r.RemoveInstance(id)
+	}
 }
 
 func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus string) (*RecordEditor, error) {
@@ -337,6 +368,14 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 	}
 	e.seen = e.snapshot()
 	e.focus = r.Focus
+	if spec.Watch != "" {
+		w, err := r.Watch(spec.Watch, Arguments{}, func(WatchEvent) { e.fail(e.outsideWrite()) })
+		if err != nil {
+			_ = r.RemoveInstance(id)
+			return nil, fmt.Errorf("record editor watch: %w", err)
+		}
+		e.watch = w
+	}
 	return e, nil
 }
 
@@ -572,7 +611,11 @@ func (e *RecordEditor) send() error {
 	if e.spec.Save == nil || e.spec.Submit != nil {
 		return nil // a form that runs once keeps its changes on screen
 	}
+	// While Save runs, its fields are this editor's write: a Changed the
+	// application calls from it is not an outside write of them.
+	e.sending = changed
 	res := e.spec.Save(RecordWrite{Values: maps.Clone(e.written), Changed: slices.Clone(changed)})
+	e.sending = nil
 	switch {
 	case res.err != nil:
 		e.requeue(changed)
@@ -593,7 +636,7 @@ func (e *RecordEditor) send() error {
 		if inner != nil {
 			inner(c, v, err)
 		}
-		e.inflight = false
+		e.inflight, e.sending = false, nil
 		if err != nil {
 			e.requeue(changed)
 			e.writeErr = err.Error()
@@ -604,10 +647,10 @@ func (e *RecordEditor) send() error {
 			e.fail(serr)
 		}
 	}
-	e.inflight = true
+	e.inflight, e.sending = true, changed
 	c := Ctx{Runtime: e.r, Context: e.r.contextOf(owner), Instance: e.r.Instances[owner]}
 	if _, err := e.r.Launch(owner, formWriteVerb, res, c); err != nil {
-		e.inflight = false
+		e.inflight, e.sending = false, nil
 		e.requeue(changed)
 		e.writeErr = err.Error()
 		return err
@@ -739,7 +782,7 @@ func (e *RecordEditor) choose(f *recordField) error {
 	for _, c := range f.choices {
 		items = append(items, ListItem{ID: fmt.Sprintf("%s/%d", formChooseList, len(items)), Label: choiceLabel(c), Noun: FormOptionNoun, Data: c.ID})
 	}
-	inst, err := e.r.OpenModal(formChooseID, Payload{})
+	inst, err := e.r.OpenModal(formChooseID, Payload{Anchor: f.id})
 	if err != nil {
 		return err
 	}
@@ -1030,6 +1073,7 @@ func (e *RecordEditor) runFailed(values Record, focused string, err error) error
 func (e *RecordEditor) leave() error {
 	err := e.seal(e.fieldOn(e.r.Focus))
 	e.closed = true
+	e.stopWatch()
 	if e.modal && e.r.TopModal() == e.id {
 		if perr := e.r.Pop(); perr != nil {
 			return errors.Join(err, perr)
@@ -1188,12 +1232,87 @@ func (e *RecordEditor) PendingCommand() tea.Cmd {
 	return cmd
 }
 
-// Close writes what is pending (the editor is being removed).
+// Close writes what is pending (the editor is being removed). It is the
+// delivery contract's Close: to close an editor, an application calls
+// Leave, which also removes it (a closed editor's id is free again either
+// way).
 func (e *RecordEditor) Close() {
+	e.stopWatch()
 	if !e.closed {
 		e.closed = true
 		_ = e.flush()
 	}
+}
+
+// Leave writes what is pending and closes the editor, as form.leave does:
+// a modal editor's modal closes, the editor's instance is removed (the
+// focus goes where FocusOnClose says) and OnLeave runs.
+func (e *RecordEditor) Leave() error {
+	if e.closed {
+		if e.r.Instances[e.id] != nil && e.r.Instances[e.id].Component == e {
+			return e.r.RemoveInstance(e.id)
+		}
+		return nil
+	}
+	return e.leave()
+}
+
+func (e *RecordEditor) stopWatch() {
+	if e.watch != nil {
+		e.watch.Stop()
+		e.watch = nil
+	}
+}
+
+// Reload loads the record again (Spec.Load) and takes in what changed
+// outside the editor; what it does then follows forms.outside-write, as a
+// RecordSpec.Watch event does.
+func (e *RecordEditor) Reload() error { return e.outsideWrite() }
+
+// outsideWrite loads the record again after a change outside the editor.
+// A field whose loaded value differs from the one the editor wrote takes
+// it: shown and written, its undo steps dropped (they no longer start
+// from what is stored). A field with unsaved typing keeps the typing, which
+// is written over the new value at the next pause, as the later change;
+// a field this editor is still writing (queued or in flight) keeps its
+// value. With forms.outside-write close the editor then leaves, writing
+// only what was typed. The focus, the field and the mode are kept.
+func (e *RecordEditor) outsideWrite() error {
+	if e.closed || e.spec.Load == nil || e.loading {
+		return nil
+	}
+	e.loading = true
+	defer func() { e.loading = false }()
+	loaded, err := e.spec.Load()
+	if err != nil {
+		return fmt.Errorf("load record: %w", err)
+	}
+	changed := false
+	for _, f := range e.fields {
+		v, ok := loaded[f.Name]
+		if !ok || v == e.written[f.Name] || slices.Contains(e.dirty, f.Name) || slices.Contains(e.sending, f.Name) {
+			continue
+		}
+		changed = true
+		typed := f.text() != e.written[f.Name]
+		e.written[f.Name], f.before = v, v
+		if !typed {
+			if err := e.set(f, v); err != nil {
+				return err
+			}
+		}
+		drop := func(s recordStep) bool { return s.field == f.Name }
+		e.undo = slices.DeleteFunc(e.undo, drop)
+		e.redo = slices.DeleteFunc(e.redo, drop)
+	}
+	if !changed {
+		return nil
+	}
+	e.seen = e.snapshot()
+	if v, _ := e.r.settingValue(FormsOutsideWriteSetting); v == "close" {
+		return e.leave()
+	}
+	return nil
 }
 
 // Flush writes what is pending now (on quit).
