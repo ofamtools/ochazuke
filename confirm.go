@@ -51,12 +51,15 @@ var promptField = regexp.MustCompile(`\{\{\s*(\w+)\s*\}\}`)
 // The stored request targets the instance the request addressed, so y runs
 // it there even though the confirm body is focused.
 //
-// The prompt's {{id}}, {{target}}, {{noun}} and {{label}} describe that
-// instance when the request addresses one: an explicit target, or an
-// instance of the verb's noun on the focus path. A request that addresses
-// none (a CLI call with positional words, the palette away from any such
-// row) would name app, so they read the request instead: {{noun}} the
-// verb's noun, {{id}}, {{target}} and {{label}} the argument of that name,
+// {{noun}} is always the verb's noun (the request's), never the focused
+// or targeted instance's. A request that names its thing by the noun's key
+// argument (task delete --id t2) is about that thing: {{id}} and
+// {{target}} are the key, {{label}} its label read from the store. Else
+// {{id}}, {{target}} and {{label}} describe the instance the request
+// addresses: an explicit target, or an instance of the verb's noun on the
+// focus path. A request that addresses none (a CLI call with positional
+// words, the palette away from any such row) would name app, so they read
+// the request instead: the argument of that name,
 // else the request's first argument in parameter order (ParameterOrder,
 // then the others by name), and the focus as before when there are no
 // arguments. A label argument always wins for {{label}};
@@ -66,7 +69,16 @@ func (r *Runtime) openConfirm(c Context, q Request, op Operation) (any, error) {
 	stored := q
 	stored.Confirmed = true
 	stored.Target = inst.ID
-	addressed := q.Target != "" || inst.Noun == op.Noun
+	// A request that names its thing by the noun's key argument (task
+	// delete --id t2) is about that thing, whatever instance it targets
+	// (the CLI's owner of the noun's rows, a list) or the focus is.
+	named := ""
+	if n := r.Nouns[op.Noun]; n != nil {
+		if kp := n.keyProp(); kp != nil && !emptyProp(q.Args[kp.Name]) {
+			named = fmt.Sprint(q.Args[kp.Name])
+		}
+	}
+	addressed := named == "" && (q.Target != "" || inst.Noun == op.Noun)
 	prompt := promptField.ReplaceAllStringFunc(op.Confirm, func(m string) string {
 		name := promptField.FindStringSubmatch(m)[1]
 		if _, given := q.Args["label"]; name == "label" && !given && len(q.Subjects) <= 1 {
@@ -77,10 +89,14 @@ func (r *Runtime) openConfirm(c Context, q Request, op Operation) (any, error) {
 				return label
 			}
 		}
+		if name == "noun" {
+			return r.DisplayNoun(op.Noun) // the request's noun, never the focus's
+		}
+		if named != "" && (name == "id" || name == "target") {
+			return named
+		}
 		if !addressed {
 			switch name {
-			case "noun":
-				return r.DisplayNoun(op.Noun)
 			case "id", "target", "label":
 				if v, ok := q.Args[name]; ok {
 					return fmt.Sprint(v)
@@ -93,8 +109,6 @@ func (r *Runtime) openConfirm(c Context, q Request, op Operation) (any, error) {
 		switch name {
 		case "id", "target":
 			return inst.ID
-		case "noun":
-			return r.DisplayNoun(inst.Noun)
 		case "label":
 			if v, ok := q.Args["label"]; ok {
 				return fmt.Sprint(v)

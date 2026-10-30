@@ -51,3 +51,37 @@ func TestConfirmWithoutTargetReadsArguments(t *testing.T) {
 		t.Fatalf("targeted row: %v", got)
 	}
 }
+
+// A request that names its thing by key argument and targets another
+// instance (a CLI call, task delete --id t2, the shell's owner of task
+// rows being their list): the prompt names the request's noun and thing,
+// never the targeted list ("Delete list t2?" was the bug, mtm note
+// delete). The focus on another row (t1) does not leak in either.
+func TestConfirmNamesTheRequestsNounNotTheTarget(t *testing.T) {
+	r, _ := newWriteRuntime(t)
+	if err := r.SetFocus("row-t1"); err != nil {
+		t.Fatal(err)
+	}
+	for _, target := range []string{"tasks/list", "", "row-t1"} {
+		v, err := r.Execute(Request{Noun: "task", Verb: "delete", Target: target, Args: Arguments{"id": "t2"}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := v.(map[string]any)["prompt"]; got != "Delete task Write notes?" {
+			t.Errorf("target %q: prompt %q, want Delete task Write notes?", target, got)
+		}
+		if err := r.Pop(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := r.SetConfirm("task.delete", "Drop {{noun}} {{id}}?"); err != nil {
+		t.Fatal(err)
+	}
+	v, err := r.Execute(Request{Noun: "task", Verb: "delete", Target: "tasks/list", Args: Arguments{"id": "t2"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := v.(map[string]any)["prompt"]; got != "Drop task t2?" {
+		t.Errorf("{{id}} with a key argument: %q, want Drop task t2?", got)
+	}
+}
