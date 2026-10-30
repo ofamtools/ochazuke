@@ -3,16 +3,16 @@ module github.com/unixsuperhero/ochazuke/cmd/o-story
 go 1.26.0
 
 require (
-	charm.land/bubbletea/v2 v2.1.0
 	charm.land/lipgloss/v2 v2.0.6
 	github.com/charmbracelet/x/ansi v0.11.9
-	github.com/unixsuperhero/monogatari v0.0.0-20261030001621-0f76193a31e9
-	github.com/unixsuperhero/ochazuke v0.53.0
+	github.com/unixsuperhero/monogatari v0.1.0
+	github.com/unixsuperhero/ochazuke v0.54.0
 	github.com/unixsuperhero/oden v0.1.1
 )
 
 require (
 	charm.land/bubbles/v2 v2.2.1 // indirect
+	charm.land/bubbletea/v2 v2.1.0 // indirect
 	charm.land/glamour/v2 v2.0.1 // indirect
 	github.com/alecthomas/chroma/v2 v2.14.0 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect

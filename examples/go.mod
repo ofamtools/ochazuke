@@ -6,8 +6,8 @@ require (
 	charm.land/bubbletea/v2 v2.1.0
 	charm.land/lipgloss/v2 v2.0.6
 	github.com/charmbracelet/x/ansi v0.11.9
-	github.com/unixsuperhero/monogatari v0.0.0-20261030001621-0f76193a31e9
-	github.com/unixsuperhero/ochazuke v0.53.0
+	github.com/unixsuperhero/monogatari v0.1.0
+	github.com/unixsuperhero/ochazuke v0.54.0
 	github.com/unixsuperhero/oden v0.1.1
 )
 
