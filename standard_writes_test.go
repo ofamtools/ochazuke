@@ -619,3 +619,39 @@ func TestAliasPresetToggleYieldsToAValue(t *testing.T) {
 		t.Fatal("a caller giving both value and toggle is still refused")
 	}
 }
+
+// list.apply over several rows asks the store's own prompt when the store
+// builds one (Store.ConfirmFor, told every key), not the generic "Run
+// task.delete on 2 rows?": mtm's V j d keeps its orphan counts.
+func TestListApplyAsksTheStoresPromptForManyRows(t *testing.T) {
+	r := NewRuntime()
+	s := &writeStore{taskStore: newTaskStore()}
+	st := s.store()
+	var got []string
+	st.ConfirmFor = func(c Ctx, verb string, keys []string, prompt string) string {
+		got = keys
+		return fmt.Sprintf("Delete %d tasks (%s)?", len(keys), strings.Join(keys, ", "))
+	}
+	r.Define("task").Props(taskWriteProps()...).Store(st)
+	r.Instance("tasks")
+	var rows []ListItem
+	for _, id := range []string{"t1", "t2", "t3"} {
+		rows = append(rows, ListItem{ID: "row-" + id, Label: id, Noun: "task", Data: Thing{"id": id}})
+	}
+	l, err := r.AddList("tasks/list", rows, Parent("tasks"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{"row-t1", "row-t2"} {
+		if err := l.ToggleMark(id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := r.SetFocus("row-t1"); err != nil {
+		t.Fatal(err)
+	}
+	v := mustRun(t, r, Request{Noun: "ochazuke.list", Verb: "apply", Args: Arguments{"id": "tasks/list", "verb": "delete"}})
+	if p := v.(map[string]any)["prompt"]; p != "Delete 2 tasks (t1, t2)?" {
+		t.Fatalf("prompt %q (hook got %v)", p, got)
+	}
+}

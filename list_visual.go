@@ -212,8 +212,12 @@ func (l *List) apply(c Context, a Arguments) (any, error) {
 				if args != nil {
 					q.Args["args"] = args
 				}
+				// One row asks its own prompt; several ask the generic
+				// count unless the store builds the prompt itself
+				// (Store.ConfirmFor, told every row's key above), which
+				// then says what all of them cost.
 				prompt := fmt.Sprintf("Run %s on %d rows?", r.DisplayKey(op.Key()), len(rows))
-				if len(rows) == 1 {
+				if n := r.Nouns[row.Noun]; len(rows) == 1 || n != nil && n.Store != nil && n.Store.ConfirmFor != nil {
 					prompt = ask
 				}
 				return r.openConfirm(r.contextOf(row.ID), q, Operation{Noun: op.Noun, Verb: op.Verb, Confirm: prompt})
