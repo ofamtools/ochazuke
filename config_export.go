@@ -266,7 +266,42 @@ func (r *Runtime) referenceReadme(settings, rows int) []byte {
 	line("## Theme roles")
 	line("")
 	line("`background` is `adaptive`, `light` or `dark`. `text`, `muted`, `accent`, `border`, `surface` and `error` are each one colour or `{\"light\": ..., \"dark\": ...}`; a colour is `#RRGGBB`, `#RGB` or an ANSI index `0` to `255`. A role left out keeps the built-in palette's. `error` must differ from `accent` and `muted`. The built-in themes are %s.", strings.Join(BuiltinThemes, ", "))
+	line("")
+	line("## Chrome colour")
+	line("")
+	line("The `%s` setting (%s) says how much colour the chrome draws. Each level is a family of tones named `chrome.<level>.<role>`, so a theme's `tones` change any of it: `{\"adaptive\": {\"tones\": {\"chrome.rich.border.state.done\": \"border\"}}}` draws done panes in the plain border colour again. A role with no row at the level draws as before the levels; `off` has no rows. A chrome row's colour may name the role `mode`, the current mode's badge colour; an application's accent replaces `accent`, `border` and `mode` in chrome rows. The roles:", ChromeColorSetting, strings.Join(ChromeLevels, ", "))
+	line("")
+	line("| Role | Draws |")
+	line("|---|---|")
+	for _, r := range chromeRoleHelp {
+		line("| `%s` | %s |", r[0], r[1])
+	}
+	line("")
+	line("A pane's border takes the first of: `border.<tone>` (its state), the application's accent, `border.focused` (focused), `border`, the theme's border. Focus is also marked by heavy lines. The badge takes the first of `mode.<name>`, `mode.pending` (a pending mode), `mode.<extends>`, `mode`. The state tones read as ok (`state.done`), warn (`state.needs-input`), error (`state.errored`) and busy (`state.working`).")
+	line("")
+	line("Compared with Vim: the roles are Vim's highlight groups for the chrome. `border` and `border.split` are `hl-WinSeparator`/`hl-VertSplit`, `border.modal` and `border.completion` Neovim's `hl-FloatBorder`, the title and footer rows `hl-StatusLine` (`hl-StatusLineNC` is the `dim-unfocused` setting). Vim has one `hl-ModeMsg` colour for every mode; a colour per mode (`mode.<name>`) is what statusline plugins add, and a border coloured by its pane's state (`border.<tone>`) is like tmux's `pane-active-border-style`, not Vim. themes.json with `themes reload` is `:colorscheme` and `:highlight`; the rows are edited in the file. Selection stays reverse video, unlike `hl-Visual`.")
 	return []byte(b.String())
+}
+
+// chromeRoleHelp names each chrome role and what it draws (the themes
+// reference's "Chrome colour" table).
+var chromeRoleHelp = [][2]string{
+	{"border", "an unfocused panel's border (rich: a teal)"},
+	{"border.focused", "a focused panel's border (rich: the mode's colour, bold)"},
+	{"border.<tone>", "a panel or card given that tone, e.g. `border.state.working` (rich: every agent state; subtle: needs-input and errored)"},
+	{"border.modal", "a modal's border (rich: the mode's colour)"},
+	{"border.completion", "the completion popup's border (rich: the mode's colour)"},
+	{"border.split", "the path picker's split rule"},
+	{"panel.title", "an unfocused panel's title"},
+	{"panel.title.focused", "a focused panel's title (rich: the mode's colour)"},
+	{"title.mark", "the title row's ◆"},
+	{"title", "the application's title"},
+	{"mode.<name>", "the mode badge in that mode, e.g. `mode.insert`, `mode.visual-line` (rich fills the badge, subtle colours its label)"},
+	{"mode.pending", "the badge in a pending mode with no row of its own"},
+	{"mode", "the badge in a mode with no row"},
+	{"hint.key", "a key on a hint line, the footer's and a modal's (rich: the accent, bold; subtle: the text colour)"},
+	{"hint.text", "what the key does"},
+	{"hint.sep", "the ` · ` between hints"},
 }
 
 // actionsExample is actions.example.json: one entry in the command form,

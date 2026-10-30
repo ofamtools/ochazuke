@@ -1,0 +1,38 @@
+{
+  "name": "chrome colour: the mode badge takes its mode's row (mode.<name>, then mode.pending, the mode it extends, mode): subtle draws the hue on the surface, rich fills the badge with it, bold; off draws every mode as before",
+  "area": "chrome",
+  "width": 80,
+  "height": 12,
+  "theme": "dark",
+  "values": {"chrome.color": "subtle"},
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "inputs": [{"id": "name", "label": "name", "text": "hello"}]
+  },
+  "script": [
+    "j",
+    "i",
+    "esc",
+    "v",
+    "esc",
+    "V",
+    "esc",
+    "d",
+    "esc",
+    ":", {"type": "set chrome.color=rich"}, "enter",
+    "i",
+    "esc",
+    ":", {"type": "set chrome.color=off"}, "enter",
+    "i"
+  ],
+  "expect": [
+    {"after": 1, "badge": "NORMAL", "styled": {"NORMAL": "#78BFA5"}, "attrs": {"NORMAL": "bold,bg"}},
+    {"after": 2, "mode": "insert", "badge": "INSERT", "styled": {"INSERT": "#7CB7E8"}},
+    {"after": 4, "badge": "VISUAL", "styled": {"VISUAL": "#C3A6E8"}},
+    {"after": 6, "badge": "VISUAL-LINE", "styled": {"VISUAL-LINE": "#C3A6E8"}},
+    {"after": 8, "mode": "operator_pending", "styled": {"OPERATOR PENDING": "#E3B341"}},
+    {"after": 13, "mode": "insert", "badge": "INSERT", "styled": {"INSERT": "#172720"}, "attrs": {"INSERT": "bold,bg"}},
+    {"after": 14, "badge": "NORMAL", "styled": {"NORMAL": "#172720"}, "attrs": {"NORMAL": "bold,bg"}},
+    {"mode": "insert", "badge": "INSERT", "styled": {"INSERT": "#78BFA5"}, "attrs": {"INSERT": "-bold,bg"}}
+  ]
+}

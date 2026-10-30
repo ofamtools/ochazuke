@@ -683,9 +683,9 @@ func (d *Doc) Block(width, height int, a ochazuke.Appearance) ochazuke.Block {
 	id := d.ListID()
 	d.r.Placed(id)
 	width = max(1, width)
-	if style := StyleOf(a); d.edit == nil && (width != d.width || style != d.style || d.dirty) {
+	if style, opts := StyleOf(a), d.opts.withTones(a); d.edit == nil && (width != d.width || style != d.style || opts != d.opts || d.dirty) {
 		e, off := d.cursor()
-		d.width, d.style = width, style
+		d.width, d.style, d.opts = width, style, opts
 		_ = d.relayout(e, off)
 	}
 	var lines []string

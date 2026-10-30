@@ -54,8 +54,12 @@ func (p *Picker) ViewBlock(width, height int) Block {
 		leftWidth := max(22, width*2/5)
 		left := p.resultRows(leftWidth, bodyHeight)
 		right := p.previewRows(width-leftWidth-1, bodyHeight)
+		split := "│"
+		if styles := p.Runtime.Settings().page.styles; styles != nil {
+			split = styles().chromeRender("border.split", split)
+		}
 		for i := range left {
-			rows = append(rows, left[i]+"│"+right[i])
+			rows = append(rows, left[i]+split+right[i])
 		}
 	}
 	rows = append(rows, helpRows...)

@@ -504,6 +504,6 @@ func (c *Completer) box(width int, s Styles) string {
 	for i, line := range lines {
 		lines[i] = modalCells(line, inner)
 	}
-	panel := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(s.Accent.GetForeground())
+	panel := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(s.Chrome("border.completion", lipgloss.NewStyle().Foreground(s.Accent.GetForeground())).GetForeground())
 	return panel.Render(strings.Join(lines, "\n"))
 }

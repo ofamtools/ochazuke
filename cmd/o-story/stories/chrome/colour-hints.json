@@ -1,0 +1,22 @@
+{
+  "name": "chrome colour: the hint lines draw each key in hint.key and its action in hint.text; rich lifts the keys to the accent, bold, subtle to the text colour; off draws the whole line muted as before, in the footer and a modal alike",
+  "area": "chrome",
+  "width": 80,
+  "theme": "dark",
+  "pages": [
+    {"id": "work", "lists": [{"id": "a", "rows": 2}]}
+  ],
+  "script": [
+    "x",
+    "esc",
+    ":", {"type": "set chrome.color=subtle"}, "enter",
+    ":", {"type": "set chrome.color=off"}, "enter",
+    "x"
+  ],
+  "expect": [
+    {"after": 1, "modal": "confirm", "styled": {"y": "#78BFA5", " confirm.accept": "#93A7A1"}, "attrs": {"y confirm.accept": "bold,-faint"}},
+    {"after": 2, "modal": "", "styled": {"q": "#78BFA5", " app.quit": "#93A7A1"}, "attrs": {"q app.quit": "bold"}},
+    {"after": 5, "styled": {"q": "#DCE9E3", " app.quit": "#93A7A1"}, "attrs": {"q app.quit": "-bold"}},
+    {"modal": "confirm", "styled": {"y confirm.accept": "#93A7A1"}, "attrs": {"y confirm.accept": "faint,-bold"}}
+  ]
+}
