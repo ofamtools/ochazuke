@@ -27,19 +27,19 @@ func TestSettingThingsAndProps(t *testing.T) {
 			t.Fatalf("setting prop %s is writable", p.Name)
 		}
 	}
-	if want := []string{"name", "type", "default", "value", "enum", "description", "section", "owner", "origin"}; !reflect.DeepEqual(props, want) {
+	if want := []string{"name", "type", "default", "value", "enum", "description", "section", "owner", "group", "origin"}; !reflect.DeepEqual(props, want) {
 		t.Fatalf("setting props %v", props)
 	}
 	rec := paletteRequest(t, r, "get", "setting", Arguments{"name": "theme"}).(map[string]any)
 	want := map[string]any{"name": "theme", "type": "string", "default": "dark", "value": "dark", "enum": []string{"dark", "light", "mono"},
-		"description": "Colour theme", "section": "", "owner": "app", "origin": "default"}
+		"description": "Colour theme", "section": "general", "owner": "app", "group": "", "origin": "default"}
 	if !reflect.DeepEqual(rec, want) {
 		t.Fatalf("setting get theme %#v", rec)
 	}
 	if got := paletteRequest(t, r, "get", "setting", Arguments{"name": "rename.select", "prop": "owner"}); got != "ochazuke" {
 		t.Fatalf("rename.select owner %v", got)
 	}
-	if got := paletteRequest(t, r, "get", "setting", Arguments{"name": "rename.select", "prop": "section"}); got != "rename" {
+	if got := paletteRequest(t, r, "get", "setting", Arguments{"name": "rename.select", "prop": "section"}); got != "lists" {
 		t.Fatalf("rename.select section %v", got)
 	}
 	// A setting set this session reads origin session; written, file.

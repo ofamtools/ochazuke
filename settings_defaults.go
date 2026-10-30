@@ -127,6 +127,9 @@ var frameworkSettingFiles = sync.OnceValue(func() map[string][]Setting {
 		panic(err)
 	}
 	for _, entry := range names {
+		if entry.Name() == settingLayoutFile {
+			continue
+		}
 		data, err := settingFiles.ReadFile("settings/" + entry.Name())
 		if err != nil {
 			panic(err)
@@ -142,6 +145,11 @@ var frameworkSettingFiles = sync.OnceValue(func() map[string][]Setting {
 			}
 			one.Default = def
 			one.Validate = settingChecks[one.Name]
+			// The embedded files are the framework's: their rows are
+			// its owner's.
+			if one.Owner == "" {
+				one.Owner = OwnerFramework
+			}
 			files[""] = append(files[""], one)
 			files[entry.Name()] = append(files[entry.Name()], one)
 		}

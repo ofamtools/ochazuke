@@ -26,7 +26,7 @@ func (r *Runtime) ReferenceModel() refdoc.Model {
 	for _, one := range s.List() {
 		out := refdoc.Setting{
 			Name: one.Name, Type: one.Type, Default: one.Default, Enum: slices.Clone(one.Enum),
-			Description: one.Description, Section: one.SectionName(), Framework: s.FrameworkSetting(one.Name),
+			Description: one.Description, Section: s.sectionTitle(one.Owner, one.Section), Framework: s.FrameworkSetting(one.Name),
 		}
 		if (one.Set || one.Session) && !sameValue(one.Value, one.Default) {
 			out.Yours, out.YoursFrom = one.Value, SettingsFile

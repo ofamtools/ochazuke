@@ -282,7 +282,7 @@ func TestSettingsPageMarksSessionValues(t *testing.T) {
 		t.Fatal(err)
 	}
 	row := func() ListItem {
-		for _, it := range r.List(settingsListID("")).Items() {
+		for _, it := range r.List(settingsListID(SettingsGeneralSection)).Items() {
 			if it.ID == settingRowPrefix+"theme" {
 				return it
 			}

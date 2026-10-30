@@ -1,0 +1,27 @@
+// ochazuke setting owners and sections (JSONC): the Settings page's tabs (owners) and the sections of each, {owners: [{id, title,
+// description, order}], sections: [{owner, id, title, description}]}. Owners draw by order, then as listed here; an application's
+// owners (DeclareSettingOwner) default to order 0, so they come after app and before ochazuke. A section row with no owner titles
+// that section in every owner. Sections draw in the order of these rows (then an application's DeclareSettingSection rows), the
+// sections nobody declared after them in the order of their first setting. A setting's owner and section come from its own row
+// (Setting.Owner, Setting.Section, else the name before its first dot), never from code looking at its name.
+{
+  "owners": [
+    {"id": "app", "order": 0, "description": "The application's own settings"},
+    {"id": "ochazuke", "title": "ochazuke", "order": 100, "description": "The framework's settings, every ochazuke application has them: how pages look, keys, lists, choosers, the palette"}
+  ],
+  "sections": [
+    {"id": "general", "title": "General", "description": "Settings with no section of their own"},
+    {"owner": "ochazuke", "id": "appearance", "title": "Appearance", "description": "Colours, dimming, the mode badge and where modals open"},
+    {"owner": "ochazuke", "id": "keys", "title": "Keys", "description": "Key sequences, aliases and dot-repeat"},
+    {"owner": "ochazuke", "id": "terminal", "title": "Terminal", "description": "Terminal panes: the leader key and the emulator"},
+    {"owner": "ochazuke", "id": "help", "title": "Help", "description": "The ? help and the docs viewer"},
+    {"owner": "ochazuke", "id": "palette", "title": "Palette", "description": "The command palette, the CLI's help and the forms a missing argument opens"},
+    {"owner": "ochazuke", "id": "records", "title": "Records", "description": "The standard create and delete, and record editors"},
+    {"owner": "ochazuke", "id": "lists", "title": "Lists", "description": "Lists, tables and trees: rename, visual selection, zoom and breadcrumbs"},
+    {"owner": "ochazuke", "id": "choosers", "title": "Choosers", "description": "Choosers and the path chooser"},
+    {"owner": "ochazuke", "id": "status", "title": "Status bar", "description": "The status segments in the header rule"},
+    {"owner": "ochazuke", "id": "pages", "title": "Pages", "description": "Hidden pages and the action history"},
+    {"owner": "ochazuke", "id": "markdown", "title": "Markdown", "description": "Markdown documents and their notes"},
+    {"owner": "ochazuke", "id": "settings", "title": "Settings", "description": "This page, :set and session values"}
+  ]
+}

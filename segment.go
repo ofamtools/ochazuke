@@ -98,6 +98,10 @@ type Segment struct {
 	Path     string        `json:"path,omitempty"`
 	// Description is the line segment list and the segment's setting show.
 	Description string `json:"description,omitempty"`
+	// Owner is the settings owner of the segment's setting (a tab of the
+	// Settings page, Setting.Owner): an extension's segment names the
+	// extension's owner; "" is the declaring application's.
+	Owner string `json:"owner,omitempty"`
 }
 
 type segmentJSON struct {
@@ -115,11 +119,12 @@ type segmentJSON struct {
 	Enabled     *bool     `json:"enabled,omitempty"`
 	Path        string    `json:"path,omitempty"`
 	Description string    `json:"description,omitempty"`
+	Owner       string    `json:"owner,omitempty"`
 }
 
 // MarshalJSON writes the durations as strings ("2s").
 func (s Segment) MarshalJSON() ([]byte, error) {
-	j := segmentJSON{ID: s.ID, Label: s.Label, Format: s.Format, Provider: s.Provider, Command: s.Command, Verb: s.Verb, Args: s.Args, Tone: s.Tone, Order: s.Order, Enabled: s.Enabled, Path: s.Path, Description: s.Description}
+	j := segmentJSON{ID: s.ID, Label: s.Label, Format: s.Format, Provider: s.Provider, Command: s.Command, Verb: s.Verb, Args: s.Args, Tone: s.Tone, Order: s.Order, Enabled: s.Enabled, Path: s.Path, Description: s.Description, Owner: s.Owner}
 	if s.Every != 0 {
 		j.Every = s.Every.String()
 	}
@@ -138,7 +143,7 @@ func (s *Segment) UnmarshalJSON(data []byte) error {
 	if err := dec.Decode(&j); err != nil {
 		return err
 	}
-	out := Segment{ID: j.ID, Label: j.Label, Format: j.Format, Provider: j.Provider, Command: j.Command, Verb: j.Verb, Args: j.Args, Tone: j.Tone, Order: j.Order, Enabled: j.Enabled, Path: j.Path, Description: j.Description}
+	out := Segment{ID: j.ID, Label: j.Label, Format: j.Format, Provider: j.Provider, Command: j.Command, Verb: j.Verb, Args: j.Args, Tone: j.Tone, Order: j.Order, Enabled: j.Enabled, Path: j.Path, Description: j.Description, Owner: j.Owner}
 	for _, d := range []struct {
 		name, text string
 		into       *time.Duration
@@ -386,7 +391,7 @@ func (r *Runtime) declareSegmentSetting(row *segmentRow) {
 		s.changed(name, old)
 		return
 	}
-	_ = r.DeclareSetting(Setting{Name: name, Type: SettingBoolean, Default: def, Description: desc})
+	_ = r.DeclareSetting(Setting{Name: name, Owner: seg.Owner, Type: SettingBoolean, Default: def, Description: desc})
 }
 
 // EnsureSegments declares the segments area's settings and reads the

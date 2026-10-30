@@ -180,7 +180,8 @@ func EnsureTerminalEngine(r *ochazuke.Runtime) {
 		return
 	}
 	_ = r.DeclareSetting(ochazuke.Setting{
-		Name: TerminalEngineSetting, Type: ochazuke.SettingString, Default: DefaultTerminalEngine,
+		Owner: ochazuke.OwnerFramework,
+		Name:  TerminalEngineSetting, Type: ochazuke.SettingString, Default: DefaultTerminalEngine,
 		Description: "Terminal emulator for newly opened terminals: " + engineSummary(),
 		Enum:        availableEngines(),
 		Validate: func(v any) error {

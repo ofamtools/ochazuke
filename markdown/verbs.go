@@ -215,7 +215,7 @@ func register(r *ochazuke.Runtime) {
 		r.Operations[op.Key()] = op
 	}
 	if r.Settings() != nil {
-		_ = r.DeclareSetting(ochazuke.Setting{Name: AuthorSetting, Type: "string", Default: "owner", Description: "The author a new note in a Markdown document is signed with"})
+		_ = r.DeclareSetting(ochazuke.Setting{Name: AuthorSetting, Owner: ochazuke.OwnerFramework, Type: "string", Default: "owner", Description: "The author a new note in a Markdown document is signed with"})
 	}
 	r.MustLoadDefaultBindings(ochazuke.FrameworkBindingsSource+"markdown/bindings.json", defaultBindings)
 }

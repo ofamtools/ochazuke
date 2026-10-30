@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -38,11 +39,23 @@ type Setting struct {
 	Default     any      `json:"default"`
 	Description string   `json:"description,omitempty"`
 	Enum        []string `json:"enum,omitempty"`
-	// Section files the setting under a section of the Settings page; ""
-	// takes the name before its last dot ("ext.ai.poll-every" is in
-	// "ext.ai"), and a name without a dot is in SettingsGeneral
-	// (SectionName).
+	// Owner says which owner (a tab of the Settings page) the setting
+	// belongs to: "" is the declaring application (OwnerApp), unless the
+	// framework declares it (its embedded rows, a feature's declaration
+	// inside Runtime.Builtin: OwnerFramework). An application that
+	// declares a framework row's name to change its default keeps the
+	// framework's owner unless it sets Owner itself. Settings.OwnerOf
+	// resolves it.
+	Owner string `json:"owner,omitempty"`
+	// Section files the setting under a section of its owner; "" takes
+	// the name before its first dot ("tree.zoom.root" is in "tree"), and
+	// a name without a dot is in SettingsGeneralSection (SectionName).
+	// DeclareSettingSection gives a section its title, order and line.
 	Section string `json:"section,omitempty"`
+	// Group, when set, puts the setting under a heading row of that name
+	// inside its section (the schedules of an application, each with its
+	// own settings).
+	Group string `json:"group,omitempty"`
 	// Validate, when set, checks a value of the right type further: Set
 	// refuses a value it rejects and a file value it rejects reads the
 	// default, as a value of the wrong type does.
@@ -118,6 +131,10 @@ type Settings struct {
 	// applying is the name the running :set line was invoked by, which
 	// the session values it sets record (Origin.Via).
 	applying string
+	// owners and sections are the declared owners and sections
+	// (settings_owners.go): titles, order, a line each.
+	owners   []SettingOwner
+	sections []SettingSection
 }
 
 type settingObserver struct {
@@ -174,7 +191,17 @@ func (r *Runtime) DeclareSetting(settings ...Setting) error {
 		}
 		one.Default = def
 		one.Enum = slices.Clone(one.Enum)
+		if one.Owner == "" && r.builtinDepth > 0 {
+			// A framework feature's setting (Runtime.Builtin, or
+			// declareBuiltinSetting) is the framework's.
+			one.Owner = OwnerFramework
+		}
 		if framework != nil {
+			// An application changing a framework row's default keeps
+			// the row's owner and section unless it gives its own.
+			one.Owner = cmp.Or(one.Owner, framework.Owner)
+			one.Section = cmp.Or(one.Section, framework.Section)
+			one.Group = cmp.Or(one.Group, framework.Group)
 			// The application's own declaration of a framework
 			// setting: its row (default, description) replaces the
 			// embedded one, the embedded check kept when it gives none.
@@ -407,6 +434,9 @@ func (s *Settings) entry(one Setting) SettingValue {
 		out.Session, out.Saved = true, fileForm(s.persisted(one))
 	}
 	one.Default = fileForm(one.Default)
+	// The list says where the setting files: its owner and section,
+	// resolved.
+	one.Owner, one.Section = s.ownerOf(one), one.SectionName()
 	out.Setting = one
 	return out
 }
@@ -879,6 +909,8 @@ func registerSettings(r *Runtime) {
 		s.declared = append(s.declared, one)
 		s.framework[one.Name] = true
 	}
+	s.owners, s.sections = frameworkSettingLayout()
+	registerSettingLayout(r)
 	// Rows naming a setting ({terminal-leader}) follow its value.
 	r.Config().settings.Observe("", func(name string, _ any) { r.rebindSettingRows(name) })
 	name := Parameter{Type: "string", Required: true, Description: "Setting name", Source: "ochazuke.settings.names"}

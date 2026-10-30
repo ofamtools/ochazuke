@@ -232,7 +232,7 @@ func TestSettingsPageSavesEachChange(t *testing.T) {
 		t.Fatalf("page %q focus %q modal %q status %q", r.Page, r.Focus, r.TopModal(), m.Status)
 	}
 	frame := ansi.Strip(m.View().Content)
-	for _, want := range []string{"General (12)", "modal-dim           ‹ 35 ›", "modal-highlights    ‹ keep ›", "scrolloff", "‹ 2 ›", "Rows kept above and below the focus", "Default is 2.", "a whole number"} {
+	for _, want := range []string{"General (5)", "› General  Appearance  Keys", "scrolloff", "‹ 2 ›", "Rows kept above and below the focus", "Default is 2.", "a whole number"} {
 		if !strings.Contains(frame, want) {
 			t.Fatalf("frame lacks %q:\n%s", want, frame)
 		}
@@ -300,8 +300,8 @@ func TestSettingsPageSavesEachChange(t *testing.T) {
 	}
 }
 
-// Sections come from Section, else the name before its last dot; the
-// settings without one come first under General.
+// Sections come from Section, else the name before its first dot; the
+// settings without one come first under General (a declared section).
 func TestSettingSections(t *testing.T) {
 	r := NewRuntime()
 	if err := r.DeclareSetting(
@@ -312,7 +312,7 @@ func TestSettingSections(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
-	if got := settingSections(r.Settings()); len(got) < 3 || !reflect.DeepEqual(got[:3], []string{"", "ext.ai", "look"}) {
+	if got := settingSections(r.Settings()); len(got) < 3 || !reflect.DeepEqual(got[:3], []string{"general", "ext", "look"}) {
 		t.Fatalf("sections %q", got)
 	}
 }

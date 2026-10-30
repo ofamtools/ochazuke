@@ -432,8 +432,9 @@ var settingProps = []PropSpec{
 	{Name: "value", ReadOnly: true, Parameter: Parameter{Description: "The value in effect, in its file form: the session's, else settings.json's, else the default (setting.set writes it)"}},
 	{Name: "enum", ReadOnly: true, Parameter: Parameter{Type: SettingList, Description: "The values allowed, when the setting limits them"}},
 	{Name: "description", ReadOnly: true, Parameter: Parameter{Description: "What the setting does"}},
-	{Name: "section", ReadOnly: true, Parameter: Parameter{Description: "The Settings page section it is filed under (\"\" is General)"}},
-	{Name: "owner", ReadOnly: true, Parameter: Parameter{Enum: []string{FrameworkNamespace, AliasApp}, Description: "Who declared it: ochazuke or the application"}},
+	{Name: "section", ReadOnly: true, Parameter: Parameter{Description: "The section of its owner it is filed under (Setting.Section, else the name before its first dot, else general; settings.sections lists them)"}},
+	{Name: "owner", ReadOnly: true, Parameter: Parameter{Description: "The owner it is filed under, a tab of the Settings page: app (the application's), ochazuke (the framework's, also when the application changed its default) or one the application declares (settings.owners lists them)"}},
+	{Name: "group", ReadOnly: true, Parameter: Parameter{Description: "The heading it sits under inside its section, when it has one"}},
 	{Name: "origin", ReadOnly: true, Parameter: Parameter{Enum: []string{OriginDefault, OriginFile, OriginSession}, Description: "Where the value in effect comes from: the default, settings.json or this session (setting.show --verbose says more)"}},
 }
 
@@ -473,17 +474,13 @@ func settingThing(r *Runtime, name string) (Thing, error) {
 	if err != nil {
 		return nil, err
 	}
-	owner := AliasApp
-	if s.FrameworkSetting(v.Name) {
-		owner = FrameworkNamespace
-	}
 	enum := []string{}
 	if len(v.Enum) > 0 {
 		enum = slices.Clone(v.Enum)
 	}
 	return Thing{
 		"name": v.Name, "type": v.Type, "default": v.Default, "value": v.Value, "enum": enum,
-		"description": v.Description, "section": v.SectionName(), "owner": owner, "origin": origin.Layer,
+		"description": v.Description, "section": v.Section, "owner": v.Owner, "group": v.Group, "origin": origin.Layer,
 	}, nil
 }
 

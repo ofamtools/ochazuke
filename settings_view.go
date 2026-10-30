@@ -99,16 +99,16 @@ type settingItemRef struct {
 }
 
 // SectionName is the section the Settings page files the setting under:
-// Section when declared, else the name before its last dot
-// ("ext.ai.poll-every" is in "ext.ai"), else "" (SettingsGeneral).
+// Section when declared, else the name before its first dot
+// ("tree.zoom.root" is in "tree"), else SettingsGeneralSection.
 func (s Setting) SectionName() string {
 	if s.Section != "" {
 		return s.Section
 	}
-	if i := strings.LastIndex(s.Name, "."); i > 0 {
+	if i := strings.Index(s.Name, "."); i > 0 {
 		return s.Name[:i]
 	}
-	return ""
+	return SettingsGeneralSection
 }
 
 func registerSettingsEditor(r *Runtime) {
@@ -576,14 +576,16 @@ func showSettingsSection(r *Runtime, name string, step int) error {
 	}
 	key := currentSection(r)
 	if name != "" {
-		key = ""
-		if name != SettingsGeneral {
-			key = name
+		key = name
+		for _, k := range sections {
+			if strings.EqualFold(sectionTitle(r.Settings(), k), name) {
+				key = k
+			}
 		}
 		if !slices.Contains(sections, key) {
 			titles := make([]string, len(sections))
 			for i, k := range sections {
-				titles[i] = sectionTitle(k)
+				titles[i] = sectionTitle(r.Settings(), k)
 			}
 			return fmt.Errorf("no settings section %q: one of %s", name, strings.Join(titles, ", "))
 		}
@@ -603,39 +605,33 @@ func showSettingsSection(r *Runtime, name string, step int) error {
 	return r.SetFocus(settingsListID(key))
 }
 
-// settingSections is every section in order: "" (SettingsGeneral) first
-// when it has settings, then the others in the order their first setting
-// was declared.
+// settingSections is every section in order: each owner's (settings.owners
+// order) in its order (settings.sections).
 func settingSections(s *Settings) []string {
 	var out []string
-	general := false
-	for _, one := range s.declared {
-		key := one.SectionName()
-		if key == "" {
-			general = true
-		} else if !slices.Contains(out, key) {
-			out = append(out, key)
+	for _, tab := range s.tabs() {
+		for _, sec := range tab.Sections {
+			if !slices.Contains(out, sec.ID) {
+				out = append(out, sec.ID)
+			}
 		}
-	}
-	if general {
-		out = append([]string{""}, out...)
 	}
 	return out
 }
 
-func sectionTitle(key string) string {
-	if key == "" {
-		return SettingsGeneral
+// sectionTitle is a section's declared title, else its ID.
+func sectionTitle(s *Settings, key string) string {
+	for _, tab := range s.tabs() {
+		for _, sec := range tab.Sections {
+			if sec.ID == key {
+				return sec.Title
+			}
+		}
 	}
 	return key
 }
 
-func settingsListID(key string) string {
-	if key == "" {
-		return "__settings/list"
-	}
-	return "__settings/list/" + key
-}
+func settingsListID(key string) string { return "__settings/list/" + key }
 
 func settingItemID(name string, index int) string {
 	return fmt.Sprintf("%s%s/%d", settingItemPrefix, name, index)
@@ -691,7 +687,7 @@ func refreshSettingsPage(r *Runtime) {
 // (a • after it when the value is not the default) and the value.
 func settingItem(s *Settings, section string, v SettingValue) ListItem {
 	name := strings.TrimPrefix(v.Name, section+".")
-	if section == "" || name == "" {
+	if name == "" {
 		name = v.Name
 	}
 	if settingDiffers(s, v.Name) {
@@ -959,7 +955,7 @@ func settingsPageView(r *Runtime, width, height int) Block {
 	if len(sections) > 1 && height > PaneMinHeight {
 		titles := make([]string, len(sections))
 		for i, k := range sections {
-			titles[i] = sectionTitle(k)
+			titles[i] = sectionTitle(r.Settings(), k)
 		}
 		rows = append(rows, layout.tabs(titles, slices.Index(sections, key), width))
 	}
@@ -996,7 +992,7 @@ func settingsPageView(r *Runtime, width, height int) Block {
 			count++
 		}
 	}
-	tableTitle := fmt.Sprintf("%s (%d)", sectionTitle(key), count)
+	tableTitle := fmt.Sprintf("%s (%d)", sectionTitle(r.Settings(), key), count)
 	pair := layout.panelPair(tableTitle, tableBody, title, Text(content), width, body, th, true, focused)
 	rows = append(rows, strings.Split(pair.Text, "\n")...)
 	return Text(strings.Join(rows, "\n"))

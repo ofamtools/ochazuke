@@ -84,7 +84,7 @@ type Verb struct {
 
 // Setting is one declared setting: its name, type, default (in its file
 // form: "400ms" for a duration), allowed values, description, section
-// (the Settings page tab; "" is General) and who declared it.
+// (the title of its section of the Settings page; "" is General) and who declared it.
 type Setting struct {
 	Name        string   `json:"name"`
 	Type        string   `json:"type"`
