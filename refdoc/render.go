@@ -275,9 +275,7 @@ func renderStandardVerbs(m Model, opts Options) string {
 	}
 	for _, v := range m.StandardVerbs {
 		name := code(v.Verb)
-		for _, a := range v.Aliases {
-			name += " (" + code(a) + ")"
-		}
+		name += aliasList(v.Aliases)
 		line("| %s | %s | %s | %s | %s | %s | %s | %s | %s |", cell(name), cell(strings.Join(v.Kinds, ", ")), cell(v.Needs), yes(v.Subject), yes(v.Many), yes(v.Repeatable), cell(v.History), cell(codeOrEmpty(v.Confirm)), cell(v.Description))
 	}
 	line("")
@@ -301,9 +299,7 @@ func renderStandardVerbs(m Model, opts Options) string {
 		var std, named []string
 		for _, v := range n.Verbs {
 			text := code(v.Name)
-			for _, a := range v.Aliases {
-				text += " (" + code(a) + ")"
-			}
+			text += aliasList(v.Aliases)
 			if v.Standard != "" {
 				std = append(std, text)
 			} else {
@@ -347,6 +343,18 @@ func renderStandardVerbs(m Model, opts Options) string {
 		}
 	}
 	return b.String()
+}
+
+// aliasList is a verb's aliases as " (`a`, `b`)", "" for none.
+func aliasList(aliases []string) string {
+	if len(aliases) == 0 {
+		return ""
+	}
+	parts := make([]string, len(aliases))
+	for i, a := range aliases {
+		parts[i] = code(a)
+	}
+	return " (" + strings.Join(parts, ", ") + ")"
 }
 
 // formatValue writes a setting value: a nonempty string as is, anything

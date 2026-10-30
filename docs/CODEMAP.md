@@ -1353,7 +1353,7 @@ Importable package `refdoc`: 4 source files, 1 test files.
 
 ### refdoc/render.go
 
-- lines: 390
+- lines: 398
 - purpose: TopicFile is the page of a topic, "" for an unknown one.
 - types: Options
 - funcs: TopicFile, Render, Header, Body, HeaderFingerprint
