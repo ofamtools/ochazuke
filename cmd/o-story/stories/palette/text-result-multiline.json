@@ -1,0 +1,16 @@
+{
+  "name": "a multiline text result (:demo mapping, JSON) opens in the read-only text view: j moves, V j selects two lines, y yanks them to the register, i and x change nothing, esc in visual leaves the selection and keeps the view, esc again closes it back on the row",
+  "area": "palette",
+  "width": 80,
+  "height": 24,
+  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
+  "script": [":", {"type": "demo mapping"}, "enter", "j", "V", "j", "y", "i", "x", "V", "esc", "esc"],
+  "expect": [
+    {"after": 3, "modal": "text-view", "mode": "normal", "contains": ["Text", "demo.mapping", "\"name\": \".title\",", "\"tags\": [", "q modal.pop"]},
+    {"after": 6, "modal": "text-view", "mode": "visual-line"},
+    {"after": 7, "modal": "text-view", "mode": "normal", "register": "  \"name\": \".title\",\n  \"size\": \".bytes\",\n"},
+    {"after": 9, "modal": "text-view", "mode": "normal", "contains": ["\"name\": \".title\","], "lacks": ["x\"name\""]},
+    {"after": 11, "modal": "text-view", "mode": "normal"},
+    {"modal": "", "focus": "a2", "mode": "normal"}
+  ]
+}

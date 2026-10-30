@@ -285,6 +285,12 @@ func (ss *session) defineDemo(pages []*Page) error {
 			c.Notify("ping " + label(c.Instance))
 			return ochazuke.Done(nil)
 		}, "Add a notice saying ping and the row").
+		Verb("program", func(ochazuke.Ctx) ochazuke.Result {
+			return ochazuke.Done(`.items[] | {name, size: .bytes}`)
+		}, "Answer a one-line jq program: a text result, opened in the palette's text view").TextResult().
+		Verb("mapping", func(ochazuke.Ctx) ochazuke.Result {
+			return ochazuke.Done(map[string]any{"name": ".title", "size": ".bytes", "tags": []string{".labels[]", ".kind"}})
+		}, "Answer a JSON mapping: a multiline text result, opened in the palette's text view").TextResult().
 		Verb("delete", ss.delete, "Remove the row from its list").Confirm("Delete {{label}}?").
 		Verb("finish", ss.finish, "Finish (or fail) the oldest running job of a demo verb").
 		Verb("check", ss.check, "Toggle a [x] mark on the outline row, an application change on the outline's undo stack").

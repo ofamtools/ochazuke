@@ -475,7 +475,7 @@ Conformance:
 | normal | form | `form.choose` `form.leave` `form.next` `form.next-missing` `form.redo` `form.run` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
 | normal | history | `history.repeat` |
-| normal | input | `input.begin` `input.select` `input.undo` |
+| normal | input | `input.begin` `input.move` `input.select` `input.undo` |
 | normal | list | `list.column` `list.filter-clear` `list.filter-open` `list.fit-column` `list.fit-columns` `list.goto` `list.mark` `list.move` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.toggle-pin-column` `list.visual` `list.yank` |
 | normal | macro | `macro.record` `macro.start` `macro.stop` |
 | normal | markdown | `markdown.delete` `markdown.fold` `markdown.insert` `markdown.next-block` `markdown.next-kind` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
@@ -501,10 +501,10 @@ Conformance:
 | terminal | demo | `demo.hints` |
 | terminal | mode | `mode.enter` |
 | terminal | terminal | `terminal.detach` `terminal.send` |
-| visual | input | `input.cancel` |
+| visual | input | `input.cancel` `input.move` `input.operator` |
 | visual-line | confirm | `confirm.accept` |
 | visual-line | demo | `demo.check` `demo.nest` `demo.set` `demo.tag` `demo.zap` |
-| visual-line | input | `input.cancel` |
+| visual-line | input | `input.cancel` `input.move` `input.operator` |
 | visual-line | list | `list.apply` `list.end-visual` `list.goto` `list.move` `list.yank` |
 | visual-line | mode | `mode.enter` `mode.leave` |
 
@@ -634,6 +634,7 @@ Mode edges (from → to via):
 - `operator_pending` → `normal` via `input.cancel`
 - `terminal` → `leader_pending` via `mode.enter`
 - `visual` → `normal` via `input.cancel`
+- `visual` → `normal` via `input.operator`
 - `visual-line` → `count_pending` via `mode.enter`
 - `visual-line` → `normal` via `confirm.accept`
 - `visual-line` → `normal` via `demo.check`
@@ -642,6 +643,7 @@ Mode edges (from → to via):
 - `visual-line` → `normal` via `demo.tag`
 - `visual-line` → `normal` via `demo.zap`
 - `visual-line` → `normal` via `input.cancel`
+- `visual-line` → `normal` via `input.operator`
 - `visual-line` → `normal` via `list.end-visual`
 - `visual-line` → `normal` via `list.yank`
 - `visual-line` → `visual-line d` via `row d`

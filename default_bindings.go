@@ -26,7 +26,7 @@ var frameworkBindingFiles = []string{
 	"chooser.json", "settings-editor.json", "list.json", "table.json", "list-modes.json",
 	"tree.json", "timeline.json", "form.json", "completion.json", "yank-history.json",
 	"help.json", "macros.json", "confirm.json",
-	"terminal.json", "focus.json", "detail.json", "scroll.json", "panes.json", "history.json", "docs.json", "modal.json",
+	"terminal.json", "focus.json", "detail.json", "scroll.json", "panes.json", "history.json", "docs.json", "modal.json", "text-view.json",
 }
 
 // builtinSelections are the selection shapes the framework's editor file

@@ -819,6 +819,20 @@ tiers above them. When the two disagree, fix one in the same commit.
   `TestCompletionTriggerBoundaries`, `TestCompletionSearchAtSeesTheText`,
   `TestChoicesSeeTheTypedText`, `TestFormSuggestionsFollowTheQuery`,
   `TestPaletteChoicesSeeTheWord`.
+- **R9.8** A read-only input (`Input.ReadOnly`; the text view a palette
+  text result opens) is a viewer, not a disabled field: the cursor, every
+  motion, `v`/`V`/`ctrl+v` and `y` work as in any input, and yanks reach
+  the registers and the system clipboard as other yanks do (`clipboard`).
+  An edit is a silent no-op, never an error: the text and undo tree stay,
+  insert mode is not entered, a delete or change neither deletes nor yanks.
+  The editing verbs are unavailable there (guards `input-writable`,
+  `input-operator-writable`), so their rows stand aside and the hint line
+  offers only what works. `esc` in a visual selection leaves the selection
+  before it closes the modal (the `modal` noun's own empty `visual-line`
+  table keeps `normal`'s `esc` from answering there). Stories
+  `palette/text-result-multiline.json`, `palette/text-result-one-line.json`,
+  `palette/text-result-plain.json`; tests `TestReadOnlyInput*`,
+  `TestPaletteTextResult*`, `TestTextViewScrollsAtAFixedSize`.
 
 ### R10. Delivery and jobs as the user sees them
 

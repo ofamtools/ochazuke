@@ -127,6 +127,7 @@ func newModel(r *Runtime) *Model {
 	m.ModalViews[yankHistoryID] = ModalView{Title: "Yank history", Render: yankHistoryView}
 	m.ModalViews["confirm"] = ModalView{Title: "Confirm", Render: confirmView}
 	m.ModalViews[paletteResultsID] = ModalView{Title: "Results", Render: paletteResultsView}
+	m.ModalViews[TextViewID] = ModalView{Title: "Text", Render: textViewRender}
 	// The Settings page and unfocused page lists draw in the Model's styles.
 	r.Settings().page.styles = m.Styles
 	m.ModalViews[settingPromptID] = ModalView{Title: "Set", Render: settingPromptView}
@@ -1092,7 +1093,12 @@ func InputView(in *Input, width, height int) string { return InputBlock(in, widt
 // Visual selections and an open select range are painted in reverse video
 // (the visual-selection style); the cursor itself is left
 // to the terminal, so compose this block only for the focused input.
-func InputBlock(in *Input, width, height int) Block {
+func InputBlock(in *Input, width, height int) Block { return inputBlockFrom(in, width, height, -1) }
+
+// inputBlockFrom is InputBlock with its first row given: top >= 0 starts
+// the window there (clamped so the cursor's row shows), a negative top
+// keeps the cursor's row at the bottom once it passes the height.
+func inputBlockFrom(in *Input, width, height, top int) Block {
 	if in == nil {
 		return Text("(no focused input)")
 	}
@@ -1121,6 +1127,9 @@ func InputBlock(in *Input, width, height int) Block {
 		cursorColumn = max(cursorColumn, in.goalColumn)
 	}
 	start := max(0, cursorRow-height+1)
+	if top >= 0 {
+		start = min(max(top, start), cursorRow)
+	}
 	offset := max(0, cursorColumn+min(width, cursorWidth)-width)
 	var body strings.Builder
 	rowIndex, column := 0, 0

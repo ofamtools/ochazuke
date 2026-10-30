@@ -74,6 +74,7 @@ type instanceSpec struct {
 	parentStop                      string // ParentStop: where h on a timeline's closed card goes
 	columns                         []Column
 	completions                     []CompletionTrigger
+	readOnly                        bool // ReadOnly: AddInput's input is a viewer
 }
 
 // InstanceOption configures the instance constructors: Instance, AddPage,

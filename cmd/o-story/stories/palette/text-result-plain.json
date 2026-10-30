@@ -1,0 +1,8 @@
+{
+  "name": "palette.text-results plain: a text result opens no text view (the line closes, back on the row, as before)",
+  "area": "palette",
+  "values": {"palette.text-results": "plain"},
+  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
+  "script": [":", {"type": "demo mapping"}, "enter"],
+  "expect": {"modal": "", "focus": "a2", "mode": "normal", "lacks": ["demo.mapping"]}
+}

@@ -1,0 +1,9 @@
+// ochazuke bindings (JSONC): the text view (OpenTextView, a palette text result): a read-only editor whose keys are the editor's; q closes it, as esc does (bindings/modal.json)
+{
+  "bindings": [
+    {"context": "ochazuke.text-view/normal", "bindings": [
+      {"key": "q", "action": "ochazuke.modal.pop"}
+    ]},
+    {"context": "ochazuke.text-view/visual-line", "bindings": []}
+  ]
+}

@@ -20,16 +20,16 @@ R|            │                                                               
  |            │                                                                Offer suggestions for the     │
  |            │                                                                trigger token at the cursor   │
  |            │                                                                now                           │
- |            │   ctrl+k           input.kill          {"motion":"line-end"}   Kill preceding WORD/path      │
+ |            │   ctrl+k           input.kill ?        {"motion":"line-end"}   when input-writable · Kill    │
+ |            │                                                                preceding WORD/path           │
  |            │                                                                component, readline word      │
  |            │                                                                before or after, or line into │
  |            │                                                                shared yank history; kills an │
  |            │                                                                open select range             │
- |            │   ctrl+u           input.kill          {"motion":"line-start…  Kill preceding WORD/path      │
+ |            │   ctrl+u           input.kill ?        {"motion":"line-start…  when input-writable · Kill    │
+ |            │                                                                preceding WORD/path           │
  |            │                                                                component, readline word      │
  |            │                                                                before or after, or line into │
- |            │                                                                shared yank history; kills an │
- |            │                                                                open select range             │
  |            │ 1–7 / 47                                                                                     │
  |            │ space list.mark · S view · n noun · m mode · esc modal.pop · : palette.open · ? bindings.he… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯

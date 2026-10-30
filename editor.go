@@ -307,6 +307,14 @@ func registerEditorOperations(r *Runtime) {
 	}))
 	register("operator", "input", "Yank, delete, or change a selection, whole lines, or an existing motion", map[string]Parameter{"operator": {Type: "string", Required: true}, "motion": {Type: "string"}, "steps": {Type: "integer"}, "line": {Type: "integer"}, "register": {Type: "string"}}, input(func(r *Runtime, in *Input, a Arguments) error {
 		op := StringArg(a, "operator", "")
+		if in.ReadOnly && editorOperatorChanges(op) {
+			// A viewer neither deletes nor yanks what it would have deleted.
+			if in.shape() != "" {
+				in.SetMode("normal")
+			}
+			in.resetKeys()
+			return nil
+		}
 		if op != "y" && op != "d" && op != "c" {
 			return errors.New("operator must be y, d, or c")
 		}
@@ -408,6 +416,11 @@ func registerEditorOperations(r *Runtime) {
 		return r.ExecuteAt(c, Request{Verb: "operator", Noun: "ochazuke.input", Args: args})
 	})
 	register("paste", "input", "Paste a shared register preserving its shape; literal inserts at cursor", map[string]Parameter{"register": {Type: "string"}, "before": {Type: "boolean"}, "literal": {Type: "boolean"}, "steps": {Type: "integer"}}, input(func(r *Runtime, in *Input, a Arguments) error {
+		if in.ReadOnly {
+			r.Registers().Active = ""
+			in.resetKeys()
+			return nil
+		}
 		y, err := r.readYank(StringArg(a, "register", ""))
 		if err != nil {
 			return err
@@ -499,6 +512,10 @@ func registerEditorOperations(r *Runtime) {
 		return err
 	}))
 	register("kill", "input", "Kill preceding WORD/path component, readline word before or after, or line into shared yank history; kills an open select range", map[string]Parameter{"motion": {Type: "string", Required: true, Enum: []string{"word-backward", "word-previous", "word-next", "line-start", "line-end"}}}, input(func(r *Runtime, in *Input, a Arguments) error {
+		if in.ReadOnly {
+			in.resetKeys()
+			return nil
+		}
 		lo, hi, err := in.killRange(StringArg(a, "motion", ""))
 		if err != nil {
 			return err
@@ -551,4 +568,5 @@ func registerEditorOperations(r *Runtime) {
 		key, _, err := registerName(StringArg(a, "name", ""))
 		return r.Registers().Named[key], err
 	})
+	registerReadOnlyInputs(r)
 }

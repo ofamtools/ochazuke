@@ -2,7 +2,7 @@
   "name": ":docs open settings shows the generated settings page headed by the binary's build; :set docs.show-config=false drops only the yours lines; :help and :h reach it too",
   "area": "docs",
   "width": 110,
-  "height": 50,
+  "height": 58,
   "config": {
     "settings.json": {"focus-display": "stack"}
   },

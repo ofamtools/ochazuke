@@ -1,0 +1,14 @@
+{
+  "name": "a one-line text result (:demo program, a jq program) opens in a one-line read-only text view: w moves by word, v $ selects to the end, y yanks it, q closes back on the row",
+  "area": "palette",
+  "width": 80,
+  "height": 24,
+  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
+  "script": [":", {"type": "demo program"}, "enter", "w", "w", "w", "v", "$", "y", "q"],
+  "expect": [
+    {"after": 3, "modal": "text-view", "mode": "normal", "contains": ["demo.program", ".items[] | {name, size: .bytes}"]},
+    {"after": 8, "modal": "text-view", "mode": "visual"},
+    {"after": 9, "modal": "text-view", "mode": "normal", "register": "| {name, size: .bytes}"},
+    {"modal": "", "focus": "a2", "mode": "normal"}
+  ]
+}

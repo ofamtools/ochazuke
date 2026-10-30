@@ -17,11 +17,17 @@ const registersID = "__registers"
 // Runtime fields. Its key rows (q, @, " and the pending modes they enter)
 // sit on the app noun so a page or list focus can record and replay too.
 type Registers struct {
-	Named     map[string]Register
-	History   []Yank
-	Active    string
-	Macro     MacroState
-	selection int // the yank-history modal's highlighted row
+	Named   map[string]Register
+	History []Yank
+	Active  string
+	Macro   MacroState
+	// Copy puts a yank's text on the system clipboard (the clipboard
+	// register + and the clipboard setting); nil sends it through the
+	// terminal as OSC 52 (tea.SetClipboard), which TUIOS and ssh pass on.
+	// An app with a clipboard program of its own (pbcopy) sets it.
+	Copy      func(text string) tea.Cmd
+	selection int     // the yank-history modal's highlighted row
+	clip      *string // the text the next PendingCommand copies
 }
 
 func registerRegisters(r *Runtime) {
@@ -38,8 +44,18 @@ func (r *Runtime) Registers() *Registers {
 // HandleMessage: the registers do no off-loop work.
 func (g *Registers) HandleMessage(tea.Msg) bool { return false }
 
-// PendingCommand: nothing is ever scheduled.
-func (g *Registers) PendingCommand() tea.Cmd { return nil }
+// PendingCommand copies the last yank bound for the system clipboard.
+func (g *Registers) PendingCommand() tea.Cmd {
+	if g.clip == nil {
+		return nil
+	}
+	text := *g.clip
+	g.clip = nil
+	if g.Copy != nil {
+		return g.Copy(text)
+	}
+	return tea.SetClipboard(text)
+}
 
 // Close abandons a recording in progress; the registers themselves stay.
 func (g *Registers) Close() { g.Macro.Recording, g.Macro.Keys = "", nil }
@@ -69,7 +85,10 @@ func registerName(name string) (string, bool, error) {
 	if appendMode {
 		ch += 'a' - 'A'
 	}
-	if !(ch >= 'a' && ch <= 'z' || ch >= '0' && ch <= '9' || ch == '"' || ch == '_' || ch == '-') {
+	if ch == '*' {
+		ch = '+' // one system clipboard: Vim's selection and clipboard registers are the same here
+	}
+	if !(ch >= 'a' && ch <= 'z' || ch >= '0' && ch <= '9' || ch == '"' || ch == '_' || ch == '-' || ch == '+') {
 		return "", false, errors.New("unsupported register")
 	}
 	return string(ch), appendMode, nil
@@ -128,6 +147,10 @@ func (r *Runtime) storeYank(y Yank, name string, deletion bool) error {
 	} else {
 		g.Named["0"] = Register{Yank: y}
 	}
+	if y.Text != "" && r.copiesToClipboard(key, deletion) {
+		text := y.Text
+		g.clip = &text
+	}
 	if y.Text != "" {
 		g.History = append([]Yank{y}, g.History...)
 		if len(g.History) > 100 {
@@ -149,4 +172,26 @@ func (r *Runtime) readYank(name string) (Yank, error) {
 		return Yank{Shape: "char"}, nil
 	}
 	return g.Named[key].Yank, nil
+}
+
+// ClipboardSetting says which yanks also go to the system clipboard
+// (Registers.Copy): none (only the clipboard register "+), yanks (every
+// yank, not a delete: the default) or unnamed (every yank and delete, as
+// Vim's clipboard=unnamed).
+const ClipboardSetting = "clipboard"
+
+// copiesToClipboard reports whether a yank stored in register key goes to
+// the system clipboard: the clipboard register always, else as the
+// clipboard setting says.
+func (r *Runtime) copiesToClipboard(key string, deletion bool) bool {
+	if key == "+" {
+		return true
+	}
+	switch r.Settings().String(ClipboardSetting) {
+	case "unnamed":
+		return true
+	case "yanks":
+		return !deletion
+	}
+	return false
 }

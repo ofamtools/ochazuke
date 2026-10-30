@@ -345,6 +345,11 @@ func (p *Palette) dispatch(q Request) error {
 			if value == nil && (q.Verb == "list" || op.Rows != "") {
 				value = []any{}
 			}
+			if run := p.r.Operations[requestOperation(q)]; p.r.showsText(run, value) {
+				// A text answer opens in the text view (palette.text-results).
+				_, err := p.r.OpenTextView(q.Key(), resultText(value))
+				return err
+			}
 			if run := p.r.Operations[requestOperation(q)]; p.r.StandardVerbsView().Record {
 				if row := standardRow(run.Standard); row != nil && row.Record {
 					// One thing's record (a standard get, or NOUN PROP):

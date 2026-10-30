@@ -26,6 +26,14 @@ type Input struct {
 	// Completions are the input's completion triggers (Completions, the
 	// AddInput option); none falls back to its noun's.
 	Completions []CompletionTrigger
+	// ReadOnly makes the input a viewer: the cursor, motions, visual
+	// selections and yanks work, every edit is a silent no-op (Replace
+	// leaves the text, insert mode is not entered, a delete or change
+	// operator neither deletes nor yanks), and the editing verbs are
+	// unavailable at it (guard input-writable), so their rows stand aside
+	// and leave the hints. Like Vim's 'nomodifiable', without E21: nothing
+	// is reported. Set it before or after AddInput (or the ReadOnly option).
+	ReadOnly    bool
 	Anchor      int
 	History     []EditNode
 	Head        int
@@ -98,7 +106,7 @@ func (in *Input) Snapshot() map[string]any {
 		"multiline": in.Multiline, "pinned": in.pin, "history": in.History, "head": in.Head,
 		"count": in.Count(), "pending": in.Pending(), "kind": in.Kind, "pathFilter": in.PathFilter,
 		"anchor": in.Anchor, "selection": in.selectionSnapshot(), "typeOver": in.typeOverSnapshot(),
-		"insertGroup": in.groupOpen, "row": row, "column": column,
+		"insertGroup": in.groupOpen, "row": row, "column": column, "readOnly": in.ReadOnly,
 	}
 }
 
@@ -112,6 +120,9 @@ func (in *Input) SetMode(mode string) { in.transition(mode, true) }
 func (in *Input) transition(mode string, stepBack bool) {
 	if in.pin != "" {
 		mode = in.pin
+	}
+	if in.ReadOnly && mode == "insert" {
+		mode = in.Mode // a viewer never types: the mode stays
 	}
 	if mode == in.Mode {
 		in.resetKeys()
@@ -160,6 +171,9 @@ func (in *Input) Replace(start, end int, text string) error {
 	}
 	if !in.Multiline && strings.ContainsAny(text, "\r\n") {
 		return errors.New("single-line input cannot contain newlines")
+	}
+	if in.ReadOnly {
+		return nil // a viewer's text never changes (Input.ReadOnly)
 	}
 	inserted := []rune(text)
 	in.typeOver = nil
@@ -285,6 +299,9 @@ func (in *Input) SelectText(start, end int) error {
 	if start < 0 || end < start || end > len(in.Text) {
 		return errors.New("invalid select range")
 	}
+	if in.ReadOnly {
+		return nil // nothing to type over in a viewer
+	}
 	in.SetMode("insert")
 	if in.Mode != "insert" {
 		return errors.New("input is pinned to " + in.Mode)
@@ -346,22 +363,23 @@ func RegisterInputOperations(r *Runtime) {
 		verb, desc string
 		params     map[string]Parameter
 		fn         func(*Input, Arguments) error
+		edit       bool // changes the text: a no-op at a read-only input
 	}{
 		{"insert", "Insert literal text at the rune cursor; it replaces an open select range", map[string]Parameter{"text": {Type: "string", Required: true}}, func(in *Input, a Arguments) error {
 			in.resetKeys()
 			start, end := in.typeOverRange()
 			return in.Replace(start, end, StringArg(a, "text", ""))
-		}},
+		}, true},
 		{"replace", "Replace a half-open rune range", map[string]Parameter{"start": {Type: "integer", Required: true}, "end": {Type: "integer", Required: true}, "text": {Type: "string", Required: true}}, func(in *Input, a Arguments) error {
 			in.resetKeys()
 			return in.Replace(IntArg(a, "start", 0), IntArg(a, "end", 0), StringArg(a, "text", ""))
-		}},
-		{"undo", "Undo changes in this input", map[string]Parameter{"steps": {Type: "integer"}}, func(in *Input, a Arguments) error { return in.Undo(IntArg(a, "steps", 1)) }},
-		{"redo", "Redo changes; branch is a zero-based child index for the first step", map[string]Parameter{"steps": {Type: "integer"}, "branch": {Type: "integer"}}, func(in *Input, a Arguments) error { return in.Redo(IntArg(a, "steps", 1), IntArg(a, "branch", -1)) }},
+		}, true},
+		{"undo", "Undo changes in this input", map[string]Parameter{"steps": {Type: "integer"}}, func(in *Input, a Arguments) error { return in.Undo(IntArg(a, "steps", 1)) }, true},
+		{"redo", "Redo changes; branch is a zero-based child index for the first step", map[string]Parameter{"steps": {Type: "integer"}, "branch": {Type: "integer"}}, func(in *Input, a Arguments) error { return in.Redo(IntArg(a, "steps", 1), IntArg(a, "branch", -1)) }, true},
 		{"move", "Move by left/right/up/down, Vim word-forward/backward/end, Readline word-next/previous, line-start/end, first-line/last-line", map[string]Parameter{"motion": {Type: "string", Required: true}, "steps": {Type: "integer"}, "line": {Type: "integer"}}, func(in *Input, a Arguments) error {
 			return in.move(StringArg(a, "motion", ""), IntArg(a, "steps", 1), IntArg(a, "line", 0))
-		}},
-		{"begin", "Enter insert mode at insert/append/first/end/below/above", map[string]Parameter{"position": {Type: "string"}}, func(in *Input, a Arguments) error { return in.begin(StringArg(a, "position", "insert")) }},
+		}, false},
+		{"begin", "Enter insert mode at insert/append/first/end/below/above", map[string]Parameter{"position": {Type: "string"}}, func(in *Input, a Arguments) error { return in.begin(StringArg(a, "position", "insert")) }, true},
 		{"delete", "Delete forward/backward runes without crossing a normal-mode line; deletes an open select range", map[string]Parameter{"direction": {Type: "string"}, "steps": {Type: "integer"}}, func(in *Input, a Arguments) error {
 			direction, steps := StringArg(a, "direction", "forward"), IntArg(a, "steps", 1)
 			if lo, hi, ok := in.SelectedText(); ok {
@@ -390,13 +408,17 @@ func RegisterInputOperations(r *Runtime) {
 				return r.storeYank(Yank{Text: killed, Shape: "char"}, "", true)
 			}
 			return nil
-		}},
+		}, true},
 	} {
-		fn := spec.fn
+		fn, edit := spec.fn, spec.edit
 		r.Register(Operation{Verb: spec.verb, Noun: "ochazuke.input", Description: spec.desc, Parameters: spec.params, Result: "input state", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 			in := r.Input(c.InputID)
 			if in == nil {
 				return nil, errors.New("no focused input")
+			}
+			if edit && in.ReadOnly {
+				in.resetKeys() // a viewer's edit is a silent no-op
+				return in.Snapshot(), nil
 			}
 			if err := fn(in, a); err != nil {
 				return nil, err

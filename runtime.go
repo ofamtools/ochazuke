@@ -495,6 +495,7 @@ func (r *Runtime) registerFramework() {
 	registerPlacements(r)
 	registerSegments(r)
 	registerDocs(r)
+	registerTextView(r)
 	// The default rows, once every verb and guard they name is registered:
 	// the framework's files in this order (rows two files put in one table,
 	// the app noun's normal table, the list's, keep it). A modal answers esc
@@ -733,6 +734,9 @@ func (r *Runtime) AddInput(in *Input, opts ...InstanceOption) error {
 	}
 	if len(spec.completions) > 0 {
 		in.Completions = spec.completions
+	}
+	if spec.readOnly {
+		in.ReadOnly = true
 	}
 	if err := validTriggers(in.Completions); err != nil {
 		return err

@@ -1,8 +1,10 @@
 // ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, {key, action, args, hint, ...} or {key, unbind: true}; a key may repeat: the first row whose action is available answers
+// visual-line extends normal for lists; the modal noun has its own (empty) visual-line table, so esc in a modal input's V selection leaves the selection instead of closing the modal
 {
   "bindings": [
     {"context": "ochazuke.modal/normal", "bindings": [
       {"key": "esc", "action": "ochazuke.modal.pop"}
-    ]}
+    ]},
+    {"context": "ochazuke.modal/visual-line", "bindings": []}
   ]
 }
