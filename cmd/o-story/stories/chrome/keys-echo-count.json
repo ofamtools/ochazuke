@@ -1,0 +1,16 @@
+{
+  "name": "chrome: keys.echo footer shows a count and its motion as one entry, 5j, at the footer's right end",
+  "area": "chrome",
+  "width": 80,
+  "values": {"keys.echo": "footer"},
+  "page": {
+    "id": "work",
+    "lists": [{"id": "a", "rows": 10}]
+  },
+  "script": ["5", "j", "k", "k"],
+  "expect": [
+    {"after": 1, "contains": ["5…"]},
+    {"after": 2, "focus": "a6", "contains": ["5j"]},
+    {"after": 4, "focus": "a4", "contains": ["5j  k ×2"]}
+  ]
+}

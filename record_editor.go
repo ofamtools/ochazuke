@@ -36,6 +36,9 @@ type RecordField struct {
 	Label string `json:"label,omitempty"` // shown above the value (default Name)
 	Parameter
 	Multiline bool `json:"multiline,omitempty"`
+	// Secret makes the field's input secret (Input.Secret): what is typed
+	// into it is never echoed. PropField sets it from a Secret prop.
+	Secret bool `json:"secret,omitempty"`
 	// Placeholder is shown, muted, in the field while its text is empty
 	// (a rename's Fallback: what the thing shows with no name).
 	Placeholder string `json:"placeholder,omitempty"`
@@ -356,6 +359,7 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 			f.Multiline = multiline
 			f.input = NewInput(f.id, v, multiline)
 			f.input.Cursor = len(f.input.Text)
+			f.input.Secret = field.Secret
 			if err := r.AddInput(f.input, Parent(id), Kind(noun)); err != nil {
 				_ = r.RemoveInstance(id)
 				return nil, err

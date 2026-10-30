@@ -125,6 +125,8 @@ type Header struct {
 	Tabs     []string
 	Active   int
 	Segments []SegmentCell
+	// Keys is the key echo when keys.echo puts it beside the badge.
+	Keys *KeyEchoCell
 }
 
 // Footer is the bottom row of the page chrome: a raw label, styled as an
@@ -135,6 +137,9 @@ type Footer struct {
 	Text  string
 	Error bool
 	Jobs  []string
+	// Keys is the key echo when keys.echo puts it in the footer: drawn at
+	// the right end in the cells it reserves, the text cut before them.
+	Keys *KeyEchoCell
 }
 
 // Shell is the one page chrome: title row, subtitle row, a rule, the body,
@@ -156,6 +161,12 @@ func (l Layout) Shell(h Header, body Block, f Footer) Block {
 		footerStyle = s.Error
 	}
 	footer := footerStyle.Render(ansi.Truncate(modalLabel(f.Text), max(0, bw), "…"))
+	if kw := f.Keys.cells(bw); kw > 0 {
+		// The echo keeps its cells whatever the text: the line never
+		// reflows as keys come and go.
+		text := footerStyle.Render(ansi.Truncate(modalLabel(f.Text), max(0, bw-kw-1), "…"))
+		footer = text + strings.Repeat(" ", max(1, bw-kw-ansi.StringWidth(text))) + l.echoCell(f.Keys.Labels, kw)
+	}
 	var rows []string
 	if l.full() {
 		cursor = cursor.Offset(layoutGutter, 3) // gutter; title, subtitle and rule rows
@@ -188,6 +199,15 @@ func (l Layout) titleRow(h Header, width int) string {
 	}
 	reserved := 0
 	if badge != "" {
+		reserved = ansi.StringWidth(badge) + 1
+	}
+	if kw := h.Keys.cells(width); kw > 0 {
+		// The echo before the badge, in cells it keeps whatever it holds.
+		cell := l.echoCell(h.Keys.Labels, kw)
+		if badge != "" {
+			cell += " "
+		}
+		badge = cell + badge
 		reserved = ansi.StringWidth(badge) + 1
 	}
 	if len(h.Focus) > 0 {

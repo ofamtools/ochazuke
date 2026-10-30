@@ -107,7 +107,7 @@ type PropSpec struct {
 // parameter and whether it is multiline, so a record editor or an args
 // form over a noun's things reads its props.
 func PropField(p PropSpec) RecordField {
-	return RecordField{Name: p.Name, Parameter: p.Parameter, Multiline: p.Multiline}
+	return RecordField{Name: p.Name, Parameter: p.Parameter, Multiline: p.Multiline, Secret: p.Secret}
 }
 
 // writable reports whether set may write the prop: not read-only (a key

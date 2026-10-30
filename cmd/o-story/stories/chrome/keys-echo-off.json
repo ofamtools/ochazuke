@@ -1,0 +1,14 @@
+{
+  "name": "chrome: keys.echo off (the default) shows no keys and keeps the footer as it was",
+  "area": "chrome",
+  "width": 80,
+  "page": {
+    "id": "work",
+    "lists": [{"id": "a", "rows": 10}]
+  },
+  "script": ["5", "j", "g", "g"],
+  "expect": [
+    {"after": 2, "focus": "a6", "lacks": ["5j"]},
+    {"after": 4, "focus": "a1", "lacks": ["g g"]}
+  ]
+}

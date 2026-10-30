@@ -23,6 +23,11 @@ type Input struct {
 	Multiline  bool
 	Kind       string
 	PathFilter string
+	// Secret marks an input whose text is never shown outside it: the key
+	// echo (keys.echo) shows nothing at all while it has the focus, not
+	// even how much was typed. A record editor field over a Secret prop
+	// sets it (RecordField.Secret).
+	Secret bool
 	// Completions are the input's completion triggers (Completions, the
 	// AddInput option); none falls back to its noun's.
 	Completions []CompletionTrigger

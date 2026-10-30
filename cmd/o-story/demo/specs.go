@@ -315,6 +315,9 @@ type InputSpec struct {
 	Label       string           `json:"label,omitempty"`
 	Text        string           `json:"text,omitempty"`
 	Completions []CompletionSpec `json:"completions,omitempty"`
+	// Secret makes the input secret (Input.Secret): the key echo shows
+	// nothing while it has the focus.
+	Secret bool `json:"secret,omitempty"`
 }
 
 // CompletionSpec is one completion trigger of a story input: its search

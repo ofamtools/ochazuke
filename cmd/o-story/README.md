@@ -102,7 +102,7 @@ it to the timer's deadline and delivers the timer's message
     order: ["a", "b", "c"],       // drawing order (default: as listed)
     layout: "stack",              // or "row": lists side by side; "split": the first two lists in Layout.SplitFocusBlock
     focus: "b1", offset: 0, noHeadings: false,
-    inputs: [{ id: "name", label: "name", text: "hello",
+    inputs: [{ id: "name", label: "name", text: "hello", secret: false, // secret: Input.Secret (chrome/keys-echo-secret)
                completions: [{ trigger: "@", items: ["src/main.go"], fail: "" }] }],
     trees: [{ id: "t", editable: true, failWrites: 0, collapsed: ["p1"],
               nodes: [{ id: "p1", label: "one" }, { id: "c1", parent: "p1", label: "child" }],

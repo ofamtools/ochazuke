@@ -869,6 +869,7 @@ func (ss *session) addPage(p *Page) error {
 	}
 	for _, in := range p.Inputs {
 		input := ochazuke.NewInput(in.ID, in.Text, false)
+		input.Secret = in.Secret
 		opts := []ochazuke.InstanceOption{ochazuke.Parent(p.ID)}
 		if len(in.Completions) > 0 {
 			opts = append(opts, ochazuke.Completions(completionFakes(in.Completions)...))

@@ -1,0 +1,12 @@
+{
+  "name": "chrome: keys.echo badge draws the keys on the title row, before the mode badge, not in the footer",
+  "area": "chrome",
+  "width": 80,
+  "values": {"keys.echo": "badge"},
+  "page": {
+    "id": "work",
+    "lists": [{"id": "a", "rows": 10}]
+  },
+  "script": ["3", "j"],
+  "expect": {"focus": "a4", "badge": "NORMAL", "contains": ["3j  NORMAL"], "lacks": ["3j  │"]}
+}

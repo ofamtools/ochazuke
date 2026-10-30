@@ -236,6 +236,14 @@ type Operation struct {
 	// help and bindings list keep them. Set by NounBuilder.Motion; the
 	// framework's own motions are marked as they register (motionOps).
 	Motion bool `json:"motion,omitempty"`
+	// Typing marks an operation that passes the key that ran it on as
+	// content rather than acting on it as a command: typing into an input
+	// (input.insert), keys forwarded to a pane (terminal.send,
+	// terminal.paste). The key echo (keys.echo) collapses a run of them
+	// into the text typed, and hides the ones a passthrough mode forwards
+	// unless keys.echo-terminal is on. The framework's own are marked as
+	// they register (typingOps).
+	Typing bool `json:"typing,omitempty"`
 	// HistoryKind is the kind of entry the operation records
 	// (HistoryAction, HistoryChange, HistoryFetch); empty derives it
 	// (HistoryKindOf). Set it to HistoryFetch on a verb that only asks for
@@ -487,6 +495,7 @@ func (r *Runtime) registerFramework() {
 	registerTerminal(r)
 	registerFocus(r)
 	registerFocusDisplay(r)
+	registerKeyEcho(r)
 	registerDetail(r)
 	registerViewScroll(r)
 	registerPanes(r)
@@ -602,6 +611,12 @@ var motionOps = map[string]bool{
 	"ochazuke.list.column": true, "ochazuke.list.choose-column": true,
 }
 
+// typingOps are the framework's operations that pass their key on as
+// content (Operation.Typing).
+var typingOps = map[string]bool{
+	"ochazuke.input.insert": true, "ochazuke.terminal.send": true, "ochazuke.terminal.paste": true,
+}
+
 // frameworkHistoryKinds are the framework's operations whose history kind
 // is not the derived one (Operation.HistoryKindOf): the reads and reloads
 // are fetches, the interaction verbs that change a setting, a register, a
@@ -660,6 +675,9 @@ func (r *Runtime) Register(o Operation) {
 	}
 	if motionOps[o.Key()] {
 		o.Motion = true
+	}
+	if typingOps[o.Key()] {
+		o.Typing = true
 	}
 	if kind := frameworkHistoryKinds[o.Key()]; kind != "" && o.HistoryKind == "" {
 		o.HistoryKind = kind

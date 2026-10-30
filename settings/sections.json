@@ -12,7 +12,7 @@
   "sections": [
     {"id": "general", "title": "General", "description": "Settings with no section of their own"},
     {"owner": "ochazuke", "id": "appearance", "title": "Appearance", "description": "Colours, dimming, the mode badge and where modals open"},
-    {"owner": "ochazuke", "id": "keys", "title": "Keys", "description": "Key sequences, aliases and dot-repeat"},
+    {"owner": "ochazuke", "id": "keys", "title": "Keys", "description": "Key sequences, aliases, dot-repeat and the key echo"},
     {"owner": "ochazuke", "id": "terminal", "title": "Terminal", "description": "Terminal panes: the leader key and the emulator"},
     {"owner": "ochazuke", "id": "help", "title": "Help", "description": "The ? help and the docs viewer"},
     {"owner": "ochazuke", "id": "palette", "title": "Palette", "description": "The command palette, the CLI's help and the forms a missing argument opens"},

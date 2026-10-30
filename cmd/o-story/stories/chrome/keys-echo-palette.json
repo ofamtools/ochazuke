@@ -1,0 +1,16 @@
+{
+  "name": "chrome: keys.echo shows a palette line as the command typed, :display focus, in place of its keys",
+  "area": "chrome",
+  "width": 80,
+  "values": {"keys.echo": "footer"},
+  "page": {
+    "id": "work",
+    "lists": [{"id": "a", "rows": 3}]
+  },
+  "script": ["j", ":", {"type": "display focus"}, "enter"],
+  "expect": [
+    {"after": 2, "modal": "palette", "contains": ["j  :"]},
+    {"after": 3, "contains": ["\"display focus\""]},
+    {"after": 4, "modal": "", "contains": ["j  :display focus"], "lacks": ["\"display focus\""]}
+  ]
+}

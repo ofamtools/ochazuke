@@ -165,11 +165,19 @@ func (m *Model) JobsTicker(width int) []string {
 // will deliver at its deadline (At), and false when none is scheduled. A
 // host with a fake Now advances the clock to At and delivers the message
 // itself rather than waiting JobLinger.
+//
+// It is the Model's one linger timer: the key echo's entries (keys.echo-
+// linger) ride it too, so the earlier of the two deadlines in flight is the
+// one returned, and its message clears whichever timer it was for.
 func (m *Model) JobLingerTick() (JobLingerMsg, bool) {
-	if m.ticker.tickAt.IsZero() {
+	at := m.ticker.tickAt
+	if e := m.echo.tickAt; !e.IsZero() && (at.IsZero() || e.Before(at)) {
+		at = e
+	}
+	if at.IsZero() {
 		return JobLingerMsg{}, false
 	}
-	return JobLingerMsg{At: m.ticker.tickAt}, true
+	return JobLingerMsg{At: at}, true
 }
 
 func (m *Model) clock() time.Time {

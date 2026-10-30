@@ -1,0 +1,16 @@
+{
+  "name": "chrome: keys.echo collapses text typed into an input into one entry, \"hello\"",
+  "area": "chrome",
+  "width": 80,
+  "values": {"keys.echo": "footer"},
+  "page": {
+    "id": "work",
+    "inputs": [{"id": "name", "label": "name"}],
+    "focus": "name"
+  },
+  "script": ["i", {"type": "hello"}, "esc"],
+  "expect": [
+    {"after": 2, "mode": "insert", "contains": ["i  \"hello\""]},
+    {"after": 3, "mode": "normal", "contains": ["i  \"hello\"  esc"]}
+  ]
+}

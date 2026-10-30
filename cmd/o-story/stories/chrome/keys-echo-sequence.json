@@ -1,0 +1,16 @@
+{
+  "name": "chrome: keys.echo shows a pending prefix with … while it waits, then the sequence as typed, g g",
+  "area": "chrome",
+  "width": 80,
+  "values": {"keys.echo": "footer"},
+  "page": {
+    "id": "work",
+    "lists": [{"id": "a", "rows": 10}],
+    "focus": "a5"
+  },
+  "script": ["g", "g"],
+  "expect": [
+    {"after": 1, "badge": "NORMAL G", "contains": ["g…"]},
+    {"after": 2, "badge": "NORMAL", "focus": "a1", "contains": ["g g"], "lacks": ["g…"]}
+  ]
+}

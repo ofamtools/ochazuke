@@ -76,6 +76,7 @@ type Model struct {
 	followed map[string]string
 	ticker   jobTicker    // the finished jobs the ticker remembers (ticker.go)
 	segTimer segmentTimer // the status segments' refresh timer (segment_view.go)
+	echo     keyEcho      // the keys the key echo shows (key_echo.go)
 	// Now is the Model's clock: the ticker's memory of finished jobs and
 	// the linger timer read it (time.Now by default, time.Now when nil). A
 	// headless host fakes it, advances it to JobLingerTick's deadline and
@@ -227,6 +228,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case JobLingerMsg:
 		m.ticker.fired(v)
+		m.echo.fired(v)
 	case SegmentTickMsg:
 		m.segmentFired(v)
 	case SegmentMsg:
@@ -262,6 +264,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if cmd := m.ticker.lingerCommand(m.clock()); cmd != nil {
 		commands = append(commands, cmd)
 	}
+	m.echo.prune(m.Runtime, m.clock())
+	if cmd := m.echo.lingerCommand(m.Runtime, m.clock()); cmd != nil {
+		commands = append(commands, cmd)
+	}
 	if cmd := m.segmentCommand(m.clock()); cmd != nil {
 		commands = append(commands, cmd)
 	}
@@ -291,8 +297,19 @@ func (m *Model) applyThemeSetting() {
 // the error, if any, in the status line.
 func (m *Model) handleKey(key MacroKey) {
 	m.Status, m.Info = "", "" // a key clears the status line; what its handler sets stands
-	if _, err := m.Runtime.Dispatch(key); err != nil {
+	r := m.Runtime
+	echo := r.KeyEcho() != KeyEchoOff
+	before := echoKey{key: key, mode: r.Mode, focus: r.Focus, nowSeq: r.history.seq}
+	if echo && m.Palette.IsOpen() {
+		before.line = m.Palette.Text()
+	}
+	outcome, err := r.DispatchOutcome(key)
+	if err != nil {
 		m.Status, m.Info = err.Error(), ""
+	}
+	if echo && outcome != KeyUnhandled {
+		before.ran = r.historySince(before.nowSeq)
+		m.echo.observe(r, m.Palette, before, m.clock())
 	}
 	m.Palette.sync()
 }
@@ -505,7 +522,7 @@ func (m *Model) footer() Footer {
 		if notice != "" {
 			text += " · " + notice
 		}
-		return Footer{Text: text, Error: true, Jobs: jobs}
+		return Footer{Text: text, Error: true, Jobs: jobs, Keys: m.footerKeys()}
 	}
 	var parts []string
 	if info := m.footerInfo(); info != "" {
@@ -517,7 +534,23 @@ func (m *Model) footer() Footer {
 	if hints := BindingHints(m.Runtime, m.Runtime.Focus); hints != "" {
 		parts = append(parts, hints)
 	}
-	return Footer{Text: strings.Join(parts, " · "), Jobs: jobs}
+	return Footer{Text: strings.Join(parts, " · "), Jobs: jobs, Keys: m.footerKeys()}
+}
+
+// footerKeys is the key echo when keys.echo puts it in the footer.
+func (m *Model) footerKeys() *KeyEchoCell {
+	if m.Runtime.KeyEcho() != KeyEchoFooter {
+		return nil
+	}
+	return &KeyEchoCell{Labels: m.echo.labels(m.Runtime), Width: m.Runtime.Settings().Int(KeyEchoWidthSetting)}
+}
+
+// badgeKeys is the key echo when keys.echo puts it beside the mode badge.
+func (m *Model) badgeKeys() *KeyEchoCell {
+	if m.Runtime.KeyEcho() != KeyEchoBadge {
+		return nil
+	}
+	return &KeyEchoCell{Labels: m.echo.labels(m.Runtime), Width: m.Runtime.Settings().Int(KeyEchoWidthSetting)}
 }
 
 // footerInfo is the plain status as the footer shows it: one line, at most
@@ -887,7 +920,7 @@ func (m *Model) render() Block {
 	if page := m.Runtime.PageOf(m.Runtime.Page); page != nil {
 		pageTitle = page.Title
 	}
-	header := Header{Title: m.Title, Subtitle: pageTitle, Badge: m.modeBadge(), Focus: m.Runtime.focusDisplayLevels(), Segments: m.Runtime.SegmentCells()}
+	header := Header{Title: m.Title, Subtitle: pageTitle, Badge: m.modeBadge(), Focus: m.Runtime.focusDisplayLevels(), Segments: m.Runtime.SegmentCells(), Keys: m.badgeKeys()}
 	if !m.Sidebar {
 		header.Tabs, header.Active = m.pageTitles()
 	}

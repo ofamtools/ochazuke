@@ -622,6 +622,19 @@ tiers above them. When the two disagree, fix one in the same commit.
   `enabled`), `status.segment-order` (the order `segment.move` writes).
   Existing examples: `focus-display`, `modal-dim`, `dim-unfocused`. Check:
   the diff declares the setting with the feature.
+- **R6.14** The key echo (`keys.echo`, off by default; `footer` or
+  `badge`) shows the keys as the dispatcher handled them, in ochazuke's key
+  names, never the terminal's input: a count joins its motion (`5j`), a
+  sequence is one entry (`g g`, `ctrl+a d`) ending in `…` while it waits, a
+  repeated lone key counts up (`j ×3`), typing (`Operation.Typing`)
+  collapses (`"hello"` or `typed 5`), a palette line shows as typed
+  (`:page open docs`), a secret input (`Input.Secret`) shows nothing, and a
+  pane's keys show only with `keys.echo-terminal`. It reserves
+  `keys.echo-width` cells whether or not it holds keys, so the footer or
+  title row never reflows (R4.9's spirit), dropping the oldest entries with
+  `…`. Entries go after `keys.echo-linger` on the Model's linger timer. The
+  hints and `?` help are unchanged by it. Tests `TestKeyEcho*`
+  (`key_echo_test.go`); stories `chrome/keys-echo-*.json`.
 - **R6.13** Every page can be hidden (R6.12 for pages): one list setting,
   `pages.hidden`, holds the ids left out of the tab row and of
   `page.next`/`page.previous` (ctrl+j/k), the same for an app's own pages,

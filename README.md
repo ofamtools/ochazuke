@@ -1394,6 +1394,27 @@ When the path is wider than the room the badge and the title's first quarter lea
 
 Stories `chrome/focus-*`.
 
+### The keys being pressed: `keys.echo`
+
+`keys.echo` (`KeyEchoSetting`, `settings/ochazuke.json`) shows the last few keys the application received, as a screencast mode does: for recordings (VHS tapes), demos, screen sharing and bug reports. `off` is the default; `footer` draws it at the right end of the footer line, `badge` on the title row before the mode badge. The verb `key.echo {placement}` sets it, or with no placement takes the next of off, footer, badge (no default key; `:echo key`, `BIN key echo footer`).
+
+The echo reads what the dispatcher did with each key (`Model.handleKey`: the mode before and after the key, and the requests the key ran, from the action history), never the terminal's bytes, so keys read in ochazuke's names (`ctrl+w`, `esc`, `space`) and group as typed:
+
+| Typed | Shown |
+|---|---|
+| `5` `j` | `5j` (a count joins what follows it) |
+| `g` (waiting) then `g` | `g…`, then `g g` |
+| `ctrl+a` `d` (the terminal leader) | `ctrl+a d` |
+| `j` `j` `j` | `j ×3` |
+| `h` `e` `l` `l` `o` in an input | `"hello"`, or `typed 5` with `keys.echo-typing` `count` |
+| anything in a secret input (`Input.Secret`, a `Secret` prop's record field) | nothing at all |
+| `:` then `page open docs` `enter` | `:page open docs` (`keys.echo-commands` off: `:…`) |
+| keys an attached terminal pane receives | nothing, unless `keys.echo-terminal` is on |
+
+Typing is a property of the verb (`Operation.Typing`: `input.insert`, `terminal.send`, `terminal.paste`), and a passthrough mode decides what counts as a pane's key, so no key or mode name is special-cased. `keys.echo-width` (default 28) is the cells the echo reserves, at most half the line, whether or not it holds keys, so the line never reflows; the oldest entries give way to `…`, the newest is drawn in the accent. `keys.echo-count` (5) entries are kept, each for `keys.echo-linger` (3s; `0s` keeps them) after its last key, on the Model's one linger timer (`JobLingerTick`), so a story's fake clock moves it. Stories `chrome/keys-echo-*`.
+
+Compared with Vim: Vim's `'showcmd'` (`:help 'showcmd'`) shows the command being typed (a count, an operator, a pending `g`) and clears it once the command completes; `'showcmdloc'` (`:help 'showcmdloc'`: `last`, `statusline`, `tabline`) places it. `keys.echo` is the same idea with the placements `footer` (like `last`) and `badge` (like `tabline`), but it keeps the last few commands after they ran, which a recording needs, collapses typed text and palette lines, and never shows a secret input's keys. Vim has no counterpart to the linger, the entry count or the terminal setting.
+
 Editing saves each change as it is made; there is no save key.
 
 | Keys | On a setting row | On a list item row |
