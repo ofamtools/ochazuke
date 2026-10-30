@@ -457,3 +457,36 @@ func TestChecksReportShadowedStandardVerbs(t *testing.T) {
 		}
 	}
 }
+
+// A required prop other than the label is a word of create before the
+// pairs rest (a rest parameter takes the line's last words), so a store
+// declaring one registers and create fills it by position:
+// note create "Shopping" list kind=x.
+func TestCreateRequiredPropComesBeforePairs(t *testing.T) {
+	r := NewRuntime()
+	s := &derivedStore{key: "id"}
+	func() {
+		defer func() {
+			if p := recover(); p != nil {
+				t.Fatalf("Store with a required prop: %v", p)
+			}
+		}()
+		r.Define("note").Props(
+			PropSpec{Name: "id", Key: true},
+			PropSpec{Name: "title", Role: RoleLabel},
+			PropSpec{Name: "type", Parameter: Parameter{Required: true}},
+			PropSpec{Name: "kind"},
+		).Store(s.store())
+	}()
+	op, ok := r.Operation("note.create")
+	if !ok {
+		t.Fatal("no note.create")
+	}
+	if err := checkRestParameter(op); err != nil {
+		t.Fatal(err)
+	}
+	order := op.ParameterOrder()
+	if i, j := slices.Index(order, "type"), slices.Index(order, "pairs"); i < 0 || i > j {
+		t.Fatalf("order %v: type after pairs", order)
+	}
+}

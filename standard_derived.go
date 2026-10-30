@@ -260,11 +260,19 @@ func runDuplicate(r *Runtime, n *Noun, c Ctx) (any, error) {
 
 // createPositional is create's words: the label prop, then the props
 // filled from the focus (FromFocus), so the slot that shows the fill comes
-// next on the line (task create "Buy milk" ⟨project · focus: Home⟩).
+// next on the line (task create "Buy milk" ⟨project · focus: Home⟩), then
+// the other required props in declared order, then the pairs rest. A
+// rest parameter takes the line's last words, so every required one
+// comes before it (checkRestParameter).
 func createPositional(n *Noun) []string {
 	out := labelFirst(n)
 	for _, p := range createProps(n) {
 		if p.FromFocus && p.Role != RoleLabel {
+			out = append(out, p.Name)
+		}
+	}
+	for _, p := range createProps(n) {
+		if p.Required && !slices.Contains(out, p.Name) {
 			out = append(out, p.Name)
 		}
 	}
