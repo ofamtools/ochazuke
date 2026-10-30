@@ -557,3 +557,37 @@ func TestPropRequestDecodes(t *testing.T) {
 		t.Fatal("a request naming neither verb nor prop decoded")
 	}
 }
+
+// A store's ConfirmFor builds a standard verb's prompt per request: it
+// gets the verb, the keys acted on and the prompt it would ask, and its
+// answer is the template asked ({{label}} still expands); "" asks nothing.
+// mtm's task.delete counts what it orphans this way.
+func TestStoreConfirmForBuildsThePrompt(t *testing.T) {
+	r := NewRuntime()
+	s := &writeStore{taskStore: newTaskStore()}
+	st := s.store()
+	var got []string
+	st.ConfirmFor = func(c Ctx, verb string, keys []string, prompt string) string {
+		got = append([]string{verb}, keys...)
+		if keys[0] == "t3" {
+			return ""
+		}
+		return strings.TrimSuffix(prompt, "?") + fmt.Sprintf(" (%d notes lose it)?", len(keys)+1)
+	}
+	r.Define("task").Props(taskWriteProps()...).Store(st)
+	r.Instance("tasks")
+	v := mustRun(t, r, Request{Noun: "task", Verb: "delete", Args: Arguments{"id": "t2"}})
+	if p := v.(map[string]any)["prompt"]; p != "Delete task Write notes (2 notes lose it)?" {
+		t.Fatalf("prompt %q", p)
+	}
+	if !slices.Equal(got, []string{"delete", "t2"}) {
+		t.Fatalf("hook got %v", got)
+	}
+	if err := r.Pop(); err != nil {
+		t.Fatal(err)
+	}
+	mustRun(t, r, Request{Noun: "task", Verb: "delete", Args: Arguments{"id": "t3"}})
+	if r.TopModal() != "" || s.find("t3") != nil {
+		t.Fatalf("an empty prompt must delete without asking: modal %q", r.TopModal())
+	}
+}

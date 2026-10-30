@@ -211,6 +211,16 @@ type Store struct {
 	ListParams map[string]Parameter
 	Watch      func(c Ctx, q WatchQuery, emit func(WatchEvent)) (stop func(), err error)
 	Confirm    map[string]string
+	// ConfirmFor builds the prompt a standard verb that asks (delete, or
+	// one Confirm gives a prompt) asks for one request: it gets the
+	// request's context and arguments, the verb, the keys of the things
+	// it acts on (one, or a visual selection's) and the prompt it would
+	// ask (Confirm's, the default, or the archive prompt), and answers
+	// the template to ask ({{noun}}, {{label}} and the rest still
+	// expand); "" asks nothing. It is how a store says what a delete
+	// costs (a task's subtasks and notes left without it) without
+	// replacing the standard verb. nil asks the prompt as it is.
+	ConfirmFor func(c Ctx, verb string, keys []string, prompt string) string
 	When       map[string]string
 	// Undo lets history.undo revert this store's standard changes
 	// (standard_undo.go); AcceptsKey says Create keeps a key the values

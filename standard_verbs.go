@@ -206,10 +206,20 @@ func (v standardVerb) operation(r *Runtime, n *Noun) Operation {
 	if prompt, ok := n.Store.Confirm[v.Verb]; ok {
 		op.Confirm = prompt
 	}
-	if confirmFor := v.ConfirmFor; confirmFor != nil && op.Confirm != "" {
+	if confirmFor, verb := v.ConfirmFor, v.Verb; op.Confirm != "" && (confirmFor != nil || n.Store.ConfirmFor != nil) {
 		op.ConfirmFor = func(r *Runtime, c Context, q Request, prompt string) string {
-			if noun := r.Nouns[name]; noun != nil && noun.Store != nil {
-				return confirmFor(r, noun, c, q, prompt)
+			noun := r.Nouns[name]
+			if noun == nil || noun.Store == nil {
+				return prompt
+			}
+			if confirmFor != nil {
+				if prompt = confirmFor(r, noun, c, q, prompt); prompt == "" {
+					return ""
+				}
+			}
+			if hook := noun.Store.ConfirmFor; hook != nil {
+				ctx, keys := r.confirmKeys(noun, c, q)
+				return hook(ctx, verb, keys, prompt)
 			}
 			return prompt
 		}
@@ -244,6 +254,37 @@ func (v standardVerb) operation(r *Runtime, n *Noun) Operation {
 		return one(c)
 	}
 	return op
+}
+
+// confirmKeys are the context a store's ConfirmFor reads and the keys of
+// the things the request acts on: each of a visual selection's subjects,
+// else the one the key argument or the focus names (none when no key
+// resolves).
+func (r *Runtime) confirmKeys(n *Noun, c Context, q Request) (Ctx, []string) {
+	inst := r.Instances[focusOf(c)]
+	ctx := Ctx{Runtime: r, Context: c, Args: q.Args, Instance: inst}
+	insts := []*Instance{inst}
+	if len(q.Subjects) > 1 {
+		insts = insts[:0]
+		for _, id := range q.Subjects {
+			insts = append(insts, r.Instances[id])
+		}
+	}
+	var keys []string
+	for _, in := range insts {
+		one := ctx
+		one.Instance = in
+		if len(q.Subjects) > 1 {
+			if kp := n.keyProp(); kp != nil {
+				one.Args = cloneArgs(q.Args)
+				delete(one.Args, kp.Name)
+			}
+		}
+		if key, err := r.subjectKey(n, one); err == nil && key != "" {
+			keys = append(keys, key)
+		}
+	}
+	return ctx, keys
 }
 
 // subjectParameter is the key parameter of a verb that takes a subject:
