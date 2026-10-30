@@ -8,10 +8,10 @@ import (
 )
 
 // FocusDisplaySetting is the framework setting that shows where the focus
-// is beside the mode in the header: off (the default) leaves the chrome as
-// it was, noun shows the focused instance's noun (NORMAL · pane), stack
+// is left of the mode badge in the header: off (the default) leaves the chrome as
+// it was, noun shows the focused instance's noun (pane  NORMAL), stack
 // the focus path from the outermost level to the innermost, open modals
-// included (NORMAL · panes › pane-list › pane). A row of
+// included (panes › pane-list › pane  NORMAL). A row of
 // settings/ochazuke.json, declared when the runtime is made; read at
 // every frame, so a change (settings set, the Settings page, the
 // focus.display verb, another process's write) shows on the next one.
@@ -31,12 +31,8 @@ var FocusDisplayModes = []string{FocusDisplayOff, FocusDisplayNoun, FocusDisplay
 // level; a level with a longer label, or none, shows its noun.
 const FocusLabelMax = 16
 
-// focusStackSep joins the levels of the stack; focusSep separates the
-// focus from the mode.
-const (
-	focusStackSep = " › "
-	focusSep      = " · "
-)
+// focusStackSep joins the levels of the stack.
+const focusStackSep = " › "
 
 // FocusDisplay is the focus-display value, off when it is undeclared or
 // holds anything else.

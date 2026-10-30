@@ -10,5 +10,5 @@
     "id": "work",
     "lists": [{"id": "a", "rows": 2}]
   },
-  "expect": {"contains": ["NORMAL · work › list › a1"], "styled": {"· work": "#93A7A1"}}
+  "expect": {"contains": ["work › list › a1  NORMAL"], "styled": {"work ›": "#93A7A1"}}
 }

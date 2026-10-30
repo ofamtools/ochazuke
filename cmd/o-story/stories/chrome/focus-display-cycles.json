@@ -12,8 +12,8 @@
     ":", {"type": "display focus"}, "enter"
   ],
   "expect": [
-    {"after": 3, "contains": ["NORMAL · demo"], "lacks": ["› list"]},
-    {"after": 6, "contains": ["NORMAL · work › list › a1"]},
+    {"after": 3, "contains": ["demo  NORMAL"], "lacks": ["› list"]},
+    {"after": 6, "contains": ["work › list › a1  NORMAL"]},
     {"after": 9, "lacks": ["NORMAL ·", "› list"]}
   ]
 }

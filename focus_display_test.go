@@ -55,20 +55,20 @@ func TestFocusDisplaySettingAppliesLive(t *testing.T) {
 	if err := r.Settings().Set(FocusDisplaySetting, "noun"); err != nil {
 		t.Fatal(err)
 	}
-	if row := titleRowOf(m); !strings.HasSuffix(row, "NORMAL · file") {
+	if row := titleRowOf(m); !strings.HasSuffix(row, " file  NORMAL") {
 		t.Fatalf("noun: %q", row)
 	}
 	if err := r.Settings().Set(FocusDisplaySetting, "stack"); err != nil {
 		t.Fatal(err)
 	}
-	if row := titleRowOf(m); !strings.HasSuffix(row, "NORMAL · Work › list › notes.md") {
+	if row := titleRowOf(m); !strings.HasSuffix(row, " Work › list › notes.md  NORMAL") {
 		t.Fatalf("stack: %q", row)
 	}
 	// A focus change redraws the path.
 	if err := r.SetFocus("f2"); err != nil {
 		t.Fatal(err)
 	}
-	if row := titleRowOf(m); !strings.HasSuffix(row, "NORMAL · Work › list › file") {
+	if row := titleRowOf(m); !strings.HasSuffix(row, " Work › list › file  NORMAL") {
 		t.Fatalf("stack after a move: %q", row)
 	}
 	if err := r.Settings().Set(FocusDisplaySetting, "bogus"); err == nil {
@@ -193,7 +193,7 @@ func TestFocusDisplayNarrowHeaderKeepsInnermost(t *testing.T) {
 	}
 	m.Update(tea.WindowSizeMsg{Width: 36, Height: 12})
 	row := titleRowOf(m)
-	if !strings.HasSuffix(row, "NORMAL · …notes.md") {
+	if !strings.Contains(row, "Ochazuke …") || !strings.HasSuffix(row, "es.md  NORMAL") {
 		t.Fatalf("narrow: %q", row)
 	}
 	if ansi.StringWidth(row) > 36 {
@@ -216,7 +216,7 @@ func TestFocusDisplayUserBinding(t *testing.T) {
 	if r.FocusDisplay() != FocusDisplayNoun {
 		t.Fatalf("g f left focus-display %q, want noun", r.FocusDisplay())
 	}
-	if row := titleRowOf(m); !strings.HasSuffix(row, "NORMAL · file") {
+	if row := titleRowOf(m); !strings.HasSuffix(row, " file  NORMAL") {
 		t.Fatalf("after g f: %q", row)
 	}
 }

@@ -1,0 +1,12 @@
+{
+  "name": "chrome: at 30 columns the focus path is cut to its innermost end and the title to its kept quarter; the mode badge stays whole at the right end (R2.10)",
+  "area": "chrome",
+  "width": 30,
+  "values": {"focus-display": "stack"},
+  "page": {
+    "id": "work",
+    "lists": [{"id": "a", "rows": 3}]
+  },
+  "script": ["j"],
+  "expect": {"focus": "a2", "badge": "NORMAL", "contains": ["◆ o-sto… …2  NORMAL"], "lacks": ["work ›"]}
+}

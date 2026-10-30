@@ -112,9 +112,10 @@ func (l Layout) PageBlock(title, subtitle string, body Block, footer string) Blo
 // Header is the top of the page chrome: the title row with an optional
 // right-aligned badge (the shell shows the mode there) and the subtitle row,
 // which is a label or, when Tabs is set, the page tabs with Active marked.
-// Focus is the focus beside the badge (the focus-display setting): its
-// levels, outermost first, drawn dim after "·" and cut from the left
-// (FitFocusPath) so the innermost level stays. Segments are the status
+// The badge is always the right end of the title row. Focus is the focus
+// left of it (the focus-display setting): its levels, outermost first,
+// drawn dim and cut from the left (FitFocusPath) so the innermost level
+// stays. Segments are the status
 // segments (Runtime.SegmentCells), drawn right-aligned in the rule under
 // the header (HeaderRule); they take no row. Every field is a raw label.
 type Header struct {
@@ -127,6 +128,10 @@ type Header struct {
 	Segments []SegmentCell
 	// Keys is the key echo when keys.echo puts it beside the badge.
 	Keys *KeyEchoCell
+	// BadgeWidth is the fewest cells the badge's label takes: a shorter
+	// label is padded inside the badge, so the badge keeps its left edge
+	// as the mode changes (the shell passes Runtime.ModeBadgeWidth).
+	BadgeWidth int
 }
 
 // Footer is the bottom row of the page chrome: a raw label, styled as an
@@ -188,48 +193,51 @@ func (l Layout) Shell(h Header, body Block, f Footer) Block {
 	return cursor.WithText(strings.Join(rows, "\n"))
 }
 
-// titleRow renders the title with the badge right-aligned in width cells,
-// and after the badge the focus (Header.Focus), dim. The focus takes what
-// the badge and the title's first cells (focusTitleKeep) leave.
+// titleRow renders the title row in width cells, left to right: the title,
+// the focus (Header.Focus, dim), the key echo (Header.Keys) and the badge.
+// The badge is the right-most element, flush with the right edge, in at
+// least Header.BadgeWidth cells, so the same row draws it at the same
+// column whatever the focus or the echo hold (R2.10). The echo keeps its
+// own cells left of it; the focus takes what is left once the title keeps
+// its first cells (focusTitleKeep), and is cut first (FitFocusPath), then
+// the title. The badge survives everything but a row narrower than it.
 func (l Layout) titleRow(h Header, width int) string {
 	s := l.Styles
-	badge := ""
+	right, reserved := "", 0
 	if h.Badge != "" {
-		badge = s.Badge.Render(ansi.Truncate(modalLabel(h.Badge), max(0, width-3), "…"))
+		label := modalLabel(h.Badge)
+		// The padding gives way before the label is cut.
+		label += strings.Repeat(" ", max(0, min(h.BadgeWidth, width-3)-ansi.StringWidth(label)))
+		right = s.Badge.Render(ansi.Truncate(label, max(0, width-3), "…"))
+		reserved = ansi.StringWidth(right) + 1
 	}
-	reserved := 0
-	if badge != "" {
-		reserved = ansi.StringWidth(badge) + 1
-	}
-	if kw := h.Keys.cells(width); kw > 0 {
-		// The echo before the badge, in cells it keeps whatever it holds.
+	if kw := h.Keys.cells(width); kw > 0 && kw+reserved+2 <= width {
+		// The echo left of the badge, in cells it keeps whatever it holds.
 		cell := l.echoCell(h.Keys.Labels, kw)
-		if badge != "" {
+		if right != "" {
 			cell += " "
 		}
-		badge = cell + badge
-		reserved = ansi.StringWidth(badge) + 1
+		right = cell + right
+		reserved = ansi.StringWidth(right) + 1
 	}
 	if len(h.Focus) > 0 {
-		// The badge's own padding is the space before the separator.
-		sep := focusSep
-		if badge != "" {
-			sep = strings.TrimLeft(focusSep, " ")
-		}
 		title := ansi.StringWidth(modalLabel(h.Title))
-		room := width - 2 - min(title, focusTitleKeep(width)) - reserved - ansi.StringWidth(sep)
+		room := width - 2 - min(title, focusTitleKeep(width)) - reserved - 1
 		if focus := FitFocusPath(h.Focus, room); focus != "" {
-			focus = s.Muted.Render(sep + focus)
-			badge += focus
-			reserved += ansi.StringWidth(focus)
+			focus = s.Muted.Render(focus)
+			if right != "" {
+				focus += " "
+			}
+			right = focus + right
+			reserved = ansi.StringWidth(right) + 1
 		}
 	}
 	title := s.Accent.Render("◆ ") + s.Title.Render(ansi.Truncate(modalLabel(h.Title), max(0, width-2-reserved), "…"))
-	if badge == "" {
+	if right == "" {
 		return title
 	}
-	gap := max(1, width-ansi.StringWidth(title)-ansi.StringWidth(badge))
-	return title + strings.Repeat(" ", gap) + badge
+	gap := max(1, width-ansi.StringWidth(title)-ansi.StringWidth(right))
+	return title + strings.Repeat(" ", gap) + right
 }
 
 // focusTitleKeep is the most of the title the focus may not take from it:

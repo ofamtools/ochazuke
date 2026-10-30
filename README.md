@@ -1384,13 +1384,13 @@ Compared with Vim:
 
 ### Where the focus is: `focus-display`
 
-The framework declares `focus-display` (`FocusDisplaySetting`, a row of `settings/ochazuke.json`, declared when the runtime is made; an application declaring a setting of that name replaces it). It shows where the focus is beside the mode badge on the title row, dim (the muted role; faint in mono), so it is clear where a motion landed. The text alone carries the meaning under mono and `NO_COLOR`.
+The framework declares `focus-display` (`FocusDisplaySetting`, a row of `settings/ochazuke.json`, declared when the runtime is made; an application declaring a setting of that name replaces it). It shows where the focus is just left of the mode badge on the title row (the badge stays the right end of the row, so the path grows and shrinks leftward and never moves it), dim (the muted role; faint in mono), so it is clear where a motion landed. The text alone carries the meaning under mono and `NO_COLOR`.
 
 | Value | Title row |
 |---|---|
 | `off` (default) | `NORMAL`, as before |
-| `noun` | `NORMAL · pane`: the focused instance's noun as `DisplayNoun` (`list`, not `ochazuke.list`) |
-| `stack` | `NORMAL · panes › pane-list › pane`: the focus path from the outermost level to the innermost, `app` left out, each level its label when it has one of at most `FocusLabelMax` (16) cells (a page's is its title), else its noun. Open modals are levels too, after the focus they opened over (`work › list › a2 › confirm`) |
+| `noun` | `pane  NORMAL`: the focused instance's noun as `DisplayNoun` (`list`, not `ochazuke.list`) |
+| `stack` | `panes › pane-list › pane  NORMAL`: the focus path from the outermost level to the innermost, `app` left out, each level its label when it has one of at most `FocusLabelMax` (16) cells (a page's is its title), else its noun. Open modals are levels too, after the focus they opened over (`work › list › a2 › confirm`) |
 
 When the path is wider than the room the badge and the title's first quarter leave, it is cut from the left a level at a time behind `… › ` (`FitFocusPath`), so the innermost level stays; with less room still the innermost level alone follows `…`. The row is redrawn on every frame, so a focus change, a modal, a mode change or a spill shows at once, and so does a new value: `settings set focus-display stack`, the Settings page, or the verb `focus.display {mode}` (`off`, `noun` or `stack`; with no mode, the next in that order). The verb has no default key; it is in the palette (`display focus`, `display focus stack`) and the CLI (`BIN focus display`), and a user binds a key in `bindings.json`:
 

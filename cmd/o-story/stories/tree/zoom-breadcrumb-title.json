@@ -69,7 +69,7 @@
     {
       "focus": "b",
       "contains": [
-        "NORMAL · root › alpha",
+        "root › alpha  NORMAL",
         "▾ beta"
       ]
     }

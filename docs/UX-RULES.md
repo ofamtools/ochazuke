@@ -131,10 +131,31 @@ tiers above them. When the two disagree, fix one in the same commit.
   name that reads badly is renamed in the data that defines the mode, not
   special-cased in the badge. No setting hides the badge; only a page
   drawn without chrome (`chrome: none` stories, an embedded page body) has
-  no header. Reference: Vim's `showmode` and `showcmd` (P2). Story:
+  no header. The badge is at a fixed position: the right end of the
+  title row, and nothing beside it moves it. Left to right the row reads
+  title … focus (`focus-display`) … key echo (`keys.echo badge`) … badge;
+  the echo keeps its reserved cells, the focus grows and shrinks leftward
+  into the room the title leaves (the title keeps its first quarter,
+  `focusTitleKeep`), and at a narrow width the focus is cut first, then
+  the title, never the badge. With `mode-badge.width` `widest` (the
+  default) every base mode's label is padded inside the badge to the
+  widest base mode's name, so a mode change moves neither the badge's
+  left edge nor what is left of it; `fit` draws each label in its own
+  cells, so only the right edge holds. A pending mode's held keys or a
+  recording may make the badge wider than that; it grows leftward from
+  the same right edge. This is R4.9's stable frame for the chrome: what
+  changes beside the badge never reflows it. Compared with Vim: `showmode`
+  draws `-- INSERT --` at a fixed place (the start of the command line)
+  and `showcmd` keeps a fixed column for the pending keys; here the badge
+  is the fixed place and the echo the `showcmd` column. Reference: Vim's
+  `showmode` and `showcmd` (P2). Story:
   `modes/badge-every-state.json`, `modes/badge-leader-prefix.json`,
-  `modes/badge-recording.json`, `modes/badge-keys-as-typed.json` (the story `badge` expectation reads the
-  title row).
+  `modes/badge-recording.json`, `modes/badge-keys-as-typed.json`,
+  `chrome/badge-corner-focus.json`, `chrome/badge-corner-echo.json`,
+  `chrome/badge-corner-mode.json`, `chrome/badge-corner-narrow.json` (the
+  story `badge` expectation reads the title row; the `badge-corner`
+  stories pin the whole title row at every step, so the badge's column is
+  checked to the cell). Tests `TestBadge*` (`badge_corner_test.go`).
 
 ### R3. Focus and motion
 

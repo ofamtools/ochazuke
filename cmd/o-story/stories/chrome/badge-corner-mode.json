@@ -1,0 +1,15 @@
+{
+  "name": "chrome: mode-badge.width widest pads every mode to the widest one's name, so a mode change moves neither the badge nor the focus beside it (R2.10)",
+  "area": "chrome",
+  "width": 80,
+  "values": {"focus-display": "noun"},
+  "page": {
+    "id": "work",
+    "lists": [{"id": "a", "rows": 3}]
+  },
+  "script": ["V", "esc"],
+  "expect": [
+    {"after": 1, "badge": "VISUAL-LINE", "contains": ["◆ o-story                                                demo  VISUAL-LINE"]},
+    {"after": 2, "badge": "NORMAL", "contains": ["◆ o-story                                                demo  NORMAL"]}
+  ]
+}

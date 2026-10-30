@@ -8,7 +8,7 @@
   },
   "script": [":", {"type": "focus display noun"}, "enter", "j", "x"],
   "expect": [
-    {"after": 4, "contains": ["NORMAL · demo"]},
+    {"after": 4, "contains": ["demo  NORMAL"]},
     {"after": 5, "modal": "confirm"}
   ]
 }

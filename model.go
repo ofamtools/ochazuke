@@ -920,7 +920,7 @@ func (m *Model) render() Block {
 	if page := m.Runtime.PageOf(m.Runtime.Page); page != nil {
 		pageTitle = page.Title
 	}
-	header := Header{Title: m.Title, Subtitle: pageTitle, Badge: m.modeBadge(), Focus: m.Runtime.focusDisplayLevels(), Segments: m.Runtime.SegmentCells(), Keys: m.badgeKeys()}
+	header := Header{Title: m.Title, Subtitle: pageTitle, Badge: m.modeBadge(), Focus: m.Runtime.focusDisplayLevels(), Segments: m.Runtime.SegmentCells(), Keys: m.badgeKeys(), BadgeWidth: m.Runtime.ModeBadgeWidth()}
 	if !m.Sidebar {
 		header.Tabs, header.Active = m.pageTitles()
 	}

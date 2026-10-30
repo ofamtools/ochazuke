@@ -8,7 +8,7 @@
   },
   "script": [":", {"type": "focus display stack"}, "enter", "j", "x"],
   "expect": [
-    {"after": 4, "contains": ["NORMAL · work › list › a2"]},
+    {"after": 4, "contains": ["work › list › a2  NORMAL"]},
     {"after": 5, "modal": "confirm"}
   ]
 }

@@ -1,0 +1,15 @@
+{
+  "name": "chrome: with keys.echo badge the title row reads title, focus, echo, badge; the keys and the path change and the badge holds its column (R2.10, R6.14)",
+  "area": "chrome",
+  "width": 80,
+  "values": {"keys.echo": "badge", "focus-display": "stack"},
+  "page": {
+    "id": "work",
+    "lists": [{"id": "a", "rows": 10}]
+  },
+  "script": ["3", "j", "g", "g"],
+  "expect": [
+    {"after": 2, "focus": "a4", "badge": "NORMAL", "order": ["work › list › a4", "3j", "NORMAL"], "contains": ["◆ o-story       work › list › a4                           3j  NORMAL"]},
+    {"after": 4, "focus": "a1", "badge": "NORMAL", "order": ["work › list › a1", "3j", "g g", "NORMAL"], "contains": ["◆ o-story       work › list › a1                      3j  g g  NORMAL"]}
+  ]
+}

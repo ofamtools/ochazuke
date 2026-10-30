@@ -103,7 +103,7 @@ func TestSetResolvesByTheWordAfterIt(t *testing.T) {
 		{"set appearance", "ochazuke.appearance.set", ""},
 		{"set con", "ochazuke.settings.apply", ""}, // an exact setting over the noun confirm
 		{"set foc", "", `"foc" is ambiguous: noun focus (focus set), or line focus-display`},
-		{"set mod", "", `"mod" is ambiguous: noun mode (mode set), or line modal-dim, modal-highlights, modal.anchor, mode-badge.key-case, mode-line`},
+		{"set mod", "", `"mod" is ambiguous: noun mode (mode set), or line modal-dim, modal-highlights, modal.anchor, mode-badge.key-case, mode-badge.width, …`},
 		{"set focus-display=stack", "ochazuke.settings.apply", ""},
 		{"set scroll", "ochazuke.settings.apply", ""}, // a setting's prefix only
 		{"set conf", "ochazuke.confirm.set", ""},      // a noun's prefix only

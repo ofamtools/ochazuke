@@ -1,6 +1,11 @@
 package ochazuke
 
-import "slices"
+import (
+	"slices"
+	"strings"
+
+	"github.com/charmbracelet/x/ansi"
+)
 
 // ModeBadgeKeyCaseSetting is the framework setting that sets the case of
 // the keys a pending mode holds in the mode badge (R2.10): upper (the
@@ -25,4 +30,38 @@ func (r *Runtime) ModeBadgeKeyCase() string {
 		return v
 	}
 	return ModeBadgeKeysUpper
+}
+
+// ModeBadgeWidthSetting is the framework setting that sets the cells the
+// mode badge reserves (R2.10): widest (the default) pads every label to the
+// widest base mode's name, so the badge keeps both edges as the mode
+// changes; fit draws each label in its own cells, so only its right edge
+// stays. Either way the badge is the right end of the title row. A row of
+// settings/ochazuke.json, read at every frame.
+const ModeBadgeWidthSetting = "mode-badge.width"
+
+// The mode-badge.width values.
+const (
+	ModeBadgeWidthWidest = "widest"
+	ModeBadgeWidthFit    = "fit"
+)
+
+// ModeBadgeWidths are mode-badge.width's values.
+var ModeBadgeWidths = []string{ModeBadgeWidthWidest, ModeBadgeWidthFit}
+
+// ModeBadgeWidth is the cells the mode badge's label reserves
+// (Header.BadgeWidth): with mode-badge.width widest (the default, or any
+// value it does not know), the widest label of a registered base mode
+// (Runtime.Modes, as the badge names it); 0 with fit. Pending modes are left
+// out: they show the keys they hold, so no width fits them, and a longer
+// label grows the badge leftward from the same right edge.
+func (r *Runtime) ModeBadgeWidth() int {
+	if r.Settings().String(ModeBadgeWidthSetting) == ModeBadgeWidthFit {
+		return 0
+	}
+	w := 0
+	for name := range r.Modes {
+		w = max(w, ansi.StringWidth(strings.ToUpper(modeLabelOf(name))))
+	}
+	return w
 }

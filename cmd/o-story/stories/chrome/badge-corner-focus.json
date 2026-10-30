@@ -1,0 +1,21 @@
+{
+  "name": "chrome: the mode badge holds its column at the right end of the title row while the focus display beside it goes off, noun, stack and a longer stack under a modal (R2.10)",
+  "area": "chrome",
+  "width": 80,
+  "page": {
+    "id": "work",
+    "lists": [{"id": "a", "rows": 3}]
+  },
+  "script": [
+    ":", {"type": "display focus"}, "enter",
+    ":", {"type": "display focus"}, "enter",
+    "j", "x", "esc",
+    ":", {"type": "display focus"}, "enter"
+  ],
+  "expect": [
+    {"after": 3, "badge": "NORMAL", "contains": ["demo  NORMAL", "◆ o-story                                                demo  NORMAL"]},
+    {"after": 6, "badge": "NORMAL", "contains": ["work › list › a1  NORMAL", "◆ o-story                                    work › list › a1  NORMAL"]},
+    {"after": 8, "modal": "confirm", "badge": "NORMAL", "contains": ["work › list › a2 › confirm  NORMAL", "◆ o-story                          work › list › a2 › confirm  NORMAL"]},
+    {"after": 12, "badge": "NORMAL", "lacks": ["› list"], "contains": ["◆ o-story                                                      NORMAL"]}
+  ]
+}
