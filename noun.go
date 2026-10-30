@@ -1180,6 +1180,9 @@ func (r *Runtime) DefineMode(name string, pending bool, opts ...ModeOption) erro
 	if strings.TrimSpace(name) == "" {
 		return errors.New("mode name cannot be empty")
 	}
+	if name == ModeDeclared {
+		return fmt.Errorf("mode name %q is reserved (mode.set reads it as the focus's declared mode)", name)
+	}
 	var spec ModeSpec
 	for _, opt := range opts {
 		opt(&spec)

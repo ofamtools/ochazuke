@@ -34,6 +34,10 @@ type Page struct {
 	// pending), before its bind rows, which may enter them (do
 	// "ochazuke.mode.enter", args {"mode": NAME}) or be bound in them.
 	Pending []string `json:"pending,omitempty"`
+	// Modes are modes the story defines, by name, as an application's
+	// bindings file declares them (ochazuke.ModeSpec: pending, extends),
+	// before its bind rows and its lists' and inputs' pins.
+	Modes map[string]ochazuke.ModeSpec `json:"modes,omitempty"`
 	// Verbs are demo verbs with declared parameters, for palette stories.
 	Verbs []VerbSpec `json:"verbs,omitempty"`
 	// Nouns are nouns besides demo, as a host defines an extension's
@@ -139,6 +143,9 @@ type ListSpec struct {
 	// PanelTone is the tone of the list's panel border in the panels
 	// layout (Layout.WithPanelTone): a state such as state.working.
 	PanelTone string `json:"panelTone,omitempty"`
+	// Pin is the base mode the list declares (Runtime.PinInstance): focus
+	// on it puts the runtime in that mode.
+	Pin string `json:"pin,omitempty"`
 }
 
 // TreeSpec is one tree: its nodes (parents before children), drawn in the
@@ -332,6 +339,8 @@ type InputSpec struct {
 	ReadOnly bool `json:"readOnly,omitempty"`
 	// Multiline makes the input many lines (its text's newlines kept).
 	Multiline bool `json:"multiline,omitempty"`
+	// Pin is the base mode the input declares (Runtime.PinInstance).
+	Pin string `json:"pin,omitempty"`
 }
 
 // CompletionSpec is one completion trigger of a story input: its search

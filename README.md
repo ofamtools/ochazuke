@@ -916,6 +916,14 @@ Modal windows and editing modes are different concepts. A modal is an instance o
 
 Applications and extensions register mode names (`mode.register {name, pending?}` or `DefineMode`); the framework does not restrict them to a fixed enum. A base mode reads a noun's mode table and its any-mode table; a pending mode reads only its own table and is left by the key that answers it (see Scoped, customizable keybindings). Rows can be bound inside any mode, pending ones included, on any noun or instance.
 
+### Declared modes: a pane's own base mode
+
+A noun pins a mode for all its instances (`Define(noun).Pin("insert")`: a prompt is always in insert). An instance can declare its own base mode instead (`r.PinInstance(id, mode)`, the field `Instance.Pin`, or the verb `ochazuke.mode.pin {instance, mode}`, `instance` defaulting to the focused stop; an empty mode drops the pin). The focus landing on it, or entering a stop beneath it with no nearer pin, puts the runtime in that mode; a pane whose mode depends on what it shows (a data pane whose view is a table, a flat list or JSON) re-pins on each view change, and the re-pin applies in the same update while the runtime stands in the mode it declared before, so the badge never lags a frame. A mode the user lifted into (insert, an application's EDIT) is kept over a re-pin. `mode.set {mode: declared}` (`SetMode(ModeDeclared)`) sets the focus's declared mode, normal where nothing declares one, so an `esc` row never names a pane's mode: the editor's insert `esc` row is written that way. `declared` is reserved; `DefineMode` refuses it. `r.DeclaredMode(id)` reads it.
+
+The order, nearest first: a pinned input's mode, the instance's `Pin`, its noun's `Pin`, the nearest ancestor's `Pin`; an open modal is a boundary, so a modal's input never takes the pane's pin beneath it. A pin on the focused instance itself applies on every focus move to it (as a noun pin always has); an ancestor's applies when the focus enters a stop beneath it, so moving rows inside a pinned list keeps a lifted mode.
+
+Compared with Vim: Vim's mode follows the window only through autocommands (`:help WinEnter`, `:help BufEnter`, often used to `:startinsert` in a terminal window, `:help startinsert`); here the pane declares it as data. `esc` to the declared mode generalises Vim's `<Esc>` always landing in Normal (`:help i_<Esc>`).
+
 Text fields, single-line text inputs, and multiline text areas support the basic Vim motions and Readline bindings listed above. Normal mode interprets Vim keys; insert mode interprets Readline keys. Full Vim compatibility is not implied.
 
 ## Input-local editing and undo

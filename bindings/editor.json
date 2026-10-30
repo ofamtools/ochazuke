@@ -21,7 +21,7 @@
       {"key": "any", "action": "ochazuke.input.cancel"}
     ]},
     {"context": "ochazuke.editor/insert", "bindings": [
-      {"key": "esc", "action": "ochazuke.mode.set", "args": {"mode": "normal"}, "hidden": true},
+      {"key": "esc", "action": "ochazuke.mode.set", "args": {"mode": "declared"}, "hidden": true},
       {"key": "tab", "action": "ochazuke.completion.open", "hidden": true},
       {"key": "alt+b", "action": "ochazuke.input.move", "args": {"motion": "word-previous"}},
       {"key": "alt+f", "action": "ochazuke.input.move", "args": {"motion": "word-next"}},

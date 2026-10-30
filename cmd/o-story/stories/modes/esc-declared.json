@@ -1,0 +1,23 @@
+{
+  "name": "modes: esc bound to mode.set {mode: declared} names no mode: it lands on the pin of the focused list, and on normal where nothing is pinned",
+  "area": "modes",
+  "width": 60,
+  "height": 12,
+  "page": {
+    "modes": {"shape": {"extends": "normal"}, "edit": {"extends": "normal"}},
+    "lists": [{"id": "tree", "rows": 1, "pin": "shape"}, {"id": "plain", "rows": 1}],
+    "bind": [
+      {"noun": "demo", "mode": "shape", "keys": "e", "do": "ochazuke.mode.set", "args": {"mode": "edit"}},
+      {"noun": "demo", "keys": "e", "do": "ochazuke.mode.set", "args": {"mode": "edit"}},
+      {"noun": "demo", "mode": "edit", "keys": "esc", "do": "ochazuke.mode.set", "args": {"mode": "declared"}}
+    ]
+  },
+  "script": ["e", "esc", "j", "e", "esc"],
+  "expect": [
+    {"after": 1, "mode": "edit", "badge": "EDIT"},
+    {"after": 2, "mode": "shape", "badge": "SHAPE"},
+    {"after": 3, "focus": "plain1", "mode": "normal"},
+    {"after": 4, "mode": "edit"},
+    {"mode": "normal", "badge": "NORMAL"}
+  ]
+}

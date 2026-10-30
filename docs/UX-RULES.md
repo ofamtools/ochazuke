@@ -118,7 +118,14 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R2.7** `prompt` pins insert and `terminal` pins terminal; focusing an
   instance of such a noun enters the pinned mode. Story:
   `inputs/lone-input.json` covers insert and escape for a plain input;
-  needed for prompt and terminal pins.
+  needed for prompt and terminal pins. An instance may declare its own base
+  mode (`Instance.Pin`, `Runtime.PinInstance`, `mode.pin`): focus on it, or
+  entering a stop beneath it with no nearer pin, enters that mode; a re-pin
+  of the focused pane applies in the same update when the runtime stands in
+  the mode it declared before (a lifted mode such as insert is kept), never
+  a frame later. An `esc` row returns with `mode.set {mode: declared}`, so
+  no row names a pane's mode. Story: `modes/instance-pin-focus.json`,
+  `modes/instance-pin-live.json`, `modes/esc-declared.json`.
 - **R2.8** A passthrough mode has no capture pass: while `terminal` is the
   base mode, the app's captured `ctrl+c` does not fire. Story:
   `terminal/ctrl-c-reaches-pane.json`.
@@ -170,8 +177,10 @@ tiers above them. When the two disagree, fix one in the same commit.
   `Push`/`Pop`, `OpenPage`, `RemoveInstance`, `RetargetFocus`. No component
   assigns `Runtime.Focus`. Check: grep for `.Focus =` outside `focus.go`.
 - **R3.2** A focus change that leaves the current stop resets the mode to
-  `normal` with an empty payload, or to the new noun's pinned mode. A move
-  inside one stop keeps it. `Pop` and `page.open` restore the mode they left.
+  `normal` with an empty payload, or to the declared mode of the new focus
+  (a pinned input's, its instance's `Pin`, its noun's `Pin`, else the
+  nearest pinning ancestor's; a modal is a boundary). A move inside one stop
+  keeps it, unless the focused instance itself pins. `Pop` and `page.open` restore the mode they left.
   Story: needed (`focus/leaving-stop-resets-mode`,
   `focus/inside-stop-keeps-mode`).
 - **R3.3** Stop order is the page's recorded drawing order, never

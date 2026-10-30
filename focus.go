@@ -88,27 +88,23 @@ func (r *Runtime) focusable(id string) bool {
 
 // focusMoved applies the mode rule to a focus change. Moving within one
 // focus stop (a grid's cell to the next cell, a list's row to the next row)
-// keeps the mode; moving to another stop resets it to normal with an empty
-// payload, or to the pinned mode of the newly focused noun (prompt pins
-// insert, terminal pins terminal). A focused input then follows the mode.
+// keeps the mode; moving to another stop resets it to the declared mode of
+// the new focus (declaredPin: a pinned input's mode, an instance's Pin, its
+// noun's Pin, a pinning ancestor's Pin), normal when nothing declares one
+// (prompt pins insert, terminal pins terminal). A pin on the focused
+// instance itself applies on every move, as a noun pin always has. A
+// focused input then follows the mode.
 func (r *Runtime) focusMoved(fromStop string, fromPath []string, to string) {
 	r.rememberLeaving(fromPath, to)
-	pin := ""
-	if inst := r.Instances[to]; inst != nil {
-		if noun := r.Nouns[inst.Noun]; noun != nil {
-			pin = noun.Pin
-		}
-	}
+	pin, own := r.declaredPin(to)
 	in := r.Input(to)
-	if in != nil && in.pin != "" {
-		pin = in.pin
-	}
+	stopChanged := fromStop != r.stopOf(to)
 	switch {
-	case pin != "":
+	case pin != "" && (own || stopChanged):
 		if r.BaseMode() != pin || !r.Mode.Payload.empty() {
 			r.setMode(ModeState{Name: pin}, fromPath...)
 		}
-	case fromStop != r.stopOf(to):
+	case stopChanged:
 		r.setMode(ModeState{Name: "normal"}, fromPath...)
 	}
 	if in != nil && in.Mode != r.BaseMode() {
