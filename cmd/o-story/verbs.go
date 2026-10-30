@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/unixsuperhero/ochazuke/story"
+	story "github.com/unixsuperhero/monogatari"
 	"github.com/unixsuperhero/oden"
 )
 
@@ -20,7 +20,7 @@ const (
 // coreMinimum plays the core stories (skipped ones excluded) and derives
 // the verbs and mode edges their scripts exercise.
 func coreMinimum(core []*story.Story) (story.Minimum, error) {
-	lib := story.Library{Stories: core}
+	lib := story.Library{Stories: core, Apps: hostApps}
 	var traces [][]story.Step
 	for _, s := range core {
 		if s.Skip != "" {

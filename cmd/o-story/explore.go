@@ -8,11 +8,9 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-	"sync"
 
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/explore"
-	"github.com/unixsuperhero/ochazuke/story"
+	story "github.com/unixsuperhero/monogatari"
+	"github.com/unixsuperhero/monogatari/explore"
 	"github.com/unixsuperhero/oden"
 )
 
@@ -171,55 +169,10 @@ func appKey(s *story.Story) string {
 	return string(b)
 }
 
-// storySubject explores a story's application: every replay builds the
-// story afresh (its fakes included) and closes it after.
-func storySubject(s *story.Story) explore.Subject {
-	var mu sync.Mutex
-	sessions := map[*ochazuke.Model]*story.Session{}
-	w, h := s.Size()
-	return explore.Subject{
-		Name:     s.Area + "/" + strings.TrimSuffix(filepath.Base(s.Path), ".json"),
-		Size:     [2]int{w, h},
-		Expected: func(op, err string) bool { return explore.FrameworkRefusal(op, err) || storyFake(op, err) },
-		New: func() (*ochazuke.Model, error) {
-			ss, err := story.Build(s, story.Options{Mono: true})
-			if err != nil {
-				return nil, err
-			}
-			mu.Lock()
-			sessions[ss.M] = ss
-			mu.Unlock()
-			return ss.M, nil
-		},
-		Close: func(m *ochazuke.Model) {
-			mu.Lock()
-			ss := sessions[m]
-			delete(sessions, m)
-			mu.Unlock()
-			if ss != nil {
-				ss.Close()
-			}
-		},
-	}
-}
-
-// storyFake reports the errors a story's fakes mean (story/build.go; plain
-// text, so matched by message): finish (W/X/E in the ticker stories) with
-// no job of that verb running, a tree or record store a story fails on
-// purpose (failWrites), and a binding that runs an input verb on a list
-// row only to show its arguments in help (help/arguments).
-func storyFake(op, err string) bool {
-	op = strings.TrimPrefix(op, "app.")
-	switch {
-	case op == "demo.finish" && strings.HasPrefix(err, "no running ") && strings.HasSuffix(err, " job"):
-		return true
-	case err == "store unavailable" || strings.HasSuffix(err, ": store unavailable"):
-		return true
-	case op == "input.insert" && err == "no focused input":
-		return true
-	}
-	return false
-}
+// storySubject explores a story's application through its app's fixture
+// (story.Library.Subject): the app's refusals (demo.Expected) are not
+// findings.
+func storySubject(s *story.Story) explore.Subject { return story.Library{Apps: hostApps}.Subject(s) }
 
 // writeExplore writes the report and one story per finding: the
 // application's story with the finding's keys as its script, skipped as a

@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/unixsuperhero/ochazuke/explore"
+	story "github.com/unixsuperhero/monogatari"
+	"github.com/unixsuperhero/monogatari/explore"
 	"github.com/unixsuperhero/ochazuke/keytest"
-	"github.com/unixsuperhero/ochazuke/story"
 )
 
 const watchStory = "lists/beside-terminal-keeps-row"

@@ -97,4 +97,9 @@
 // is shrunk by delta debugging (replaying subsets until the same check
 // with the same summary no longer shows). Finding.GoTest writes a Go test
 // around Reproduce.
+//
+// Frozen: this package is kept unchanged for one release, then deleted.
+//
+// Deprecated: use github.com/unixsuperhero/monogatari/explore, the same
+// explorer with Subject.Program for an app that wraps its model.
 package explore

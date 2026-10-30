@@ -21,7 +21,17 @@ o-story explore --dedupe DIR [--reproduce] [--out DIR]   # group the findings of
 o story ...                  # the same, through the oden family root
 ```
 
-`go test ./cmd/o-story/...` runs every story in `stories/`.
+`go test ./...` inside `cmd/o-story` runs every story in `stories/`.
+
+o-story is the demo app's host on
+[monogatari](https://github.com/unixsuperhero/monogatari), the story library
+(the format, the runner and driver, recordings, trimming, explore). The
+demo app (`demo/`, `demo.App()`) is registered like any app's: its one
+fixture, `pages`, builds a story's `page` and `pages` fields on a fresh
+runtime, and as o-story's first app it is the default for a story that
+names no `app`. `cmd/o-story` is a nested module requiring ochazuke and
+monogatari; it builds through the untracked `go.work` of the ochazuke
+checkout.
 
 The Turns page (`o-story open turns/page`) is mtm's Turns tab as a story:
 a pane row, the card timeline (a plain turn, tool calls with a diff and a
@@ -201,8 +211,8 @@ rides, cut out of a full shell (give the story height 1).
 
 ### The page builder and the demo noun
 
-One builder (`story.Build`) makes every page; the only application noun is
-`demo`. Pages and rows are of it, so its rows answer everywhere on a story
+One builder (the demo app's `pages` fixture, `demo/build.go`) makes every
+page; the only application noun is `demo`. Pages and rows are of it, so its rows answer everywhere on a story
 page: `q` quits (leaves the story), `r` resets it, `enter` opens a row
 (attaches the fake pane on the terminal's attach row), `n` adds a notice,
 `x` deletes the row behind a confirm (`Delete {{label}}?`), and each job

@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/unixsuperhero/ochazuke/explore"
-	"github.com/unixsuperhero/ochazuke/story"
+	story "github.com/unixsuperhero/monogatari"
+	"github.com/unixsuperhero/monogatari/explore"
 )
 
 // dedupe reads every explore report under in (o-story explore --out's

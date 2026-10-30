@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	story "github.com/unixsuperhero/monogatari"
 	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/story"
 )
 
 // tablesOf is every table's rows in table order, keyed by noun or
@@ -53,7 +53,7 @@ func TestBindingsExportRoundTripsEveryStoryApp(t *testing.T) {
 		if s.Base != "" {
 			continue // a trimmed story replays its base's app
 		}
-		ss, err := story.Build(s, story.Options{Mono: true})
+		ss, err := story.Library{Apps: hostApps}.Build(s, story.Options{Mono: true})
 		if err != nil {
 			continue // a story that does not build is its own test's failure
 		}
@@ -76,7 +76,7 @@ func TestBindingsExportRoundTripsEveryStoryApp(t *testing.T) {
 				t.Fatalf("%s: table %s differs:\n%v\n%v", s.Path, id, rows, got[id])
 			}
 		}
-		fresh, err := story.Build(s, story.Options{Mono: true})
+		fresh, err := story.Library{Apps: hostApps}.Build(s, story.Options{Mono: true})
 		if err != nil {
 			t.Fatalf("%s: %v", s.Path, err)
 		}

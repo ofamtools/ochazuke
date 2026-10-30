@@ -8,9 +8,9 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
+	story "github.com/unixsuperhero/monogatari"
 	"github.com/unixsuperhero/ochazuke"
 	"github.com/unixsuperhero/ochazuke/keytest"
-	"github.com/unixsuperhero/ochazuke/story"
 )
 
 // host is the TUI: an index of stories (itself an ochazuke page) and, while
@@ -149,7 +149,7 @@ func (h *host) open(s *story.Story, replay *story.Recording) tea.Cmd {
 		h.msg = "open " + s.Name + ": " + err.Error()
 		return nil
 	}
-	ss, err := story.Build(resolved, story.Options{})
+	ss, err := h.lib.Build(resolved, story.Options{})
 	if err != nil {
 		h.msg = "open " + s.Name + ": " + err.Error()
 		return nil
@@ -236,19 +236,18 @@ func (h *host) deliver(msg tea.Msg) tea.Cmd {
 	if ev := story.Classify(h.cur, msg); ev != nil {
 		h.rec.Add(*ev)
 	}
-	_, cmd := h.cur.M.Update(msg)
+	cmd := h.cur.Update(msg)
 	if h.cur.R.Quit {
 		return h.leave()
 	}
 	if h.cur.Reset {
-		ss, err := story.Build(h.cur.Story, story.Options{})
+		ss, err := h.cur.Rebuild(false) // closes the old session (Close is idempotent)
 		if err != nil {
 			h.msg = err.Error()
 			return h.leave()
 		}
-		h.cur.Close()
 		h.cur, h.gen = ss, h.gen+1
-		return tea.Batch(story.Wrap(h.gen, ss.R.PendingCommands()), h.outputTick())
+		return tea.Batch(story.Wrap(h.gen, ss.Start()), h.outputTick())
 	}
 	return story.Wrap(h.gen, cmd)
 }

@@ -10,7 +10,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/unixsuperhero/ochazuke/story"
+	story "github.com/unixsuperhero/monogatari"
 )
 
 var updateIndex = flag.Bool("update-index", false, "rewrite testdata/index.golden")
@@ -20,7 +20,7 @@ var updateIndex = flag.Bool("update-index", false, "rewrite testdata/index.golde
 // narrows, the gap reason cut with "…", the focused row the one highlight.
 func TestIndexIsATablePerArea(t *testing.T) {
 	keys := []story.Event{{Key: "j"}, {Key: "k"}, {Key: "enter"}}
-	lib := story.Library{Store: story.Store{Dir: t.TempDir()}, Stories: []*story.Story{
+	lib := story.Library{Apps: hostApps, Store: story.Store{Dir: t.TempDir()}, Stories: []*story.Story{
 		{Name: "j moves down a row", Area: "lists", Width: 40, Height: 6, Script: keys},
 		{Name: "a focused empty list stays visible", Area: "lists", Script: keys[:1]},
 		{Name: "count spills once at the edge", Area: "motions", Width: 60, Height: 10, Script: keys, Skip: "gap: the count is spent on the first stop instead of the spill"},
@@ -77,7 +77,7 @@ func TestOpenStartsOnTheStory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	lib := story.Library{Store: story.Store{Dir: t.TempDir()}, Stories: stories}
+	lib := story.Library{Apps: hostApps, Store: story.Store{Dir: t.TempDir()}, Stories: stories}
 	h, err := newHost(lib)
 	if err != nil {
 		t.Fatal(err)

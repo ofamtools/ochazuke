@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
+	story "github.com/unixsuperhero/monogatari"
 	"github.com/unixsuperhero/ochazuke"
 	ocli "github.com/unixsuperhero/ochazuke/cli"
-	"github.com/unixsuperhero/ochazuke/story"
 )
 
 // The catalog is an ochazuke runtime behind ochazuke/cli, additive to the

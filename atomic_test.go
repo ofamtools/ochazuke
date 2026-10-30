@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/examples/demo"
+	"github.com/unixsuperhero/ochazuke/internal/demo"
 )
 
 // A binding row is atomic: a Request to one registered operation with its

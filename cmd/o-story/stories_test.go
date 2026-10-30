@@ -5,7 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke/story"
+	story "github.com/unixsuperhero/monogatari"
+	"github.com/unixsuperhero/ochazuke/cmd/o-story/demo"
 )
 
 var update = flag.Bool("update", false, "rewrite story goldens")
@@ -21,7 +22,7 @@ func TestStories(t *testing.T) {
 	if len(stories) < 20 {
 		t.Fatalf("%d stories, want at least 20", len(stories))
 	}
-	lib := story.Library{Stories: stories, Store: story.Store{Dir: t.TempDir()}}
+	lib := story.Library{Stories: stories, Store: story.Store{Dir: t.TempDir()}, Apps: hostApps}
 	for _, s := range stories {
 		t.Run(s.Area+"/"+story.Slug(s.Name), func(t *testing.T) {
 			t.Parallel()
@@ -49,7 +50,7 @@ func TestStoryBindingsAreAtomic(t *testing.T) {
 		if s.Base != "" {
 			continue
 		}
-		ss, err := story.Build(s, story.Options{Mono: true})
+		ss, err := story.Library{Apps: hostApps}.Build(s, story.Options{Mono: true})
 		if err != nil {
 			t.Fatalf("%s: %v", s.Name, err)
 		}
@@ -73,11 +74,11 @@ func TestStoreDeleteFollowsTheStoreNoun(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		ss, err := story.Build(s, story.Options{Mono: true})
+		ss, err := story.Library{Apps: hostApps}.Build(s, story.Options{Mono: true})
 		if err != nil {
 			t.Fatalf("noun %q: %v", c.noun, err)
 		}
-		op, ok := ss.R.Operations[story.Demo+".delete"]
+		op, ok := ss.R.Operations[demo.Demo+".delete"]
 		if !ok || op.Standard != c.standard {
 			t.Fatalf("noun %q: demo.delete %v standard %q, want %q", c.noun, ok, op.Standard, c.standard)
 		}

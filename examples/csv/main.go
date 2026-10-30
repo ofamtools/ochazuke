@@ -55,7 +55,7 @@ func run(args []string) error {
 		fmt.Println(ansi.Strip(app.m.View().Content))
 		return nil
 	}
-	_, err = tea.NewProgram(app.m).Run()
+	_, err = tea.NewProgram(app.Program()).Run()
 	return err
 }
 
@@ -103,8 +103,14 @@ func New(path string) (*App, error) {
 	return a, nil
 }
 
-// Model is the Bubble Tea model the application runs.
+// Model is the application's ochazuke model.
 func (a *App) Model() *ochazuke.Model { return a.m }
+
+// Program is the Bubble Tea model main runs. The sheet runs its ochazuke
+// model as is; an app that wraps the model's Update and View returns its
+// wrapper here, and a tester (explore.Subject.Program, a story fixture's
+// Built.Program) drives the same one.
+func (a *App) Program() tea.Model { return a.m }
 
 // render is the sheet page: a status line, the grid, the filter field.
 func (a *App) render(_ *ochazuke.Runtime, width, height int) ochazuke.Block {

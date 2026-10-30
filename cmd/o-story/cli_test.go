@@ -8,8 +8,9 @@ import (
 	"testing"
 	"time"
 
+	story "github.com/unixsuperhero/monogatari"
+	"github.com/unixsuperhero/ochazuke/cmd/o-story/demo"
 	"github.com/unixsuperhero/ochazuke/keytest"
-	"github.com/unixsuperhero/ochazuke/story"
 )
 
 // The README's minimum-verbs section is generated from the stories.
@@ -124,13 +125,13 @@ func TestKeepPromotesOutOfTheRing(t *testing.T) {
 
 func TestReplayHeadlessAssertsOnlyAGivenExpect(t *testing.T) {
 	rec := recording(spillStory(t), time.Now(), "j", "j")
-	if res := story.Replay(rec, nil); !res.OK() {
+	if res := (story.Library{Apps: hostApps}).Replay(rec, nil); !res.OK() {
 		t.Fatalf("no expect: %v %v", res.Err, res.Failed)
 	}
-	if res := story.Replay(rec, story.Expects{{Focus: "b1"}}); !res.OK() {
+	if res := (story.Library{Apps: hostApps}).Replay(rec, story.Expects{{Focus: "b1"}}); !res.OK() {
 		t.Fatalf("expect b1: %v %v", res.Err, res.Failed)
 	}
-	if res := story.Replay(rec, story.Expects{{Focus: "a1"}}); res.OK() {
+	if res := (story.Library{Apps: hostApps}).Replay(rec, story.Expects{{Focus: "a1"}}); res.OK() {
 		t.Fatal("a wrong expect passed")
 	}
 }
@@ -167,8 +168,12 @@ func TestTrimWritesAWindowThatRuns(t *testing.T) {
 	if win.Base != "recording:walk" || win.Start != 1 || len(win.Script) != 6 {
 		t.Fatalf("window: base %q start %d script %v", win.Base, win.Start, win.Script)
 	}
-	if snap.Base != "" || len(snap.Script) != 2 || snap.Pages[0].Focus != "b2" {
-		t.Fatalf("snapshot: base %q script %v focus %q", snap.Base, snap.Script, snap.Pages[0].Focus)
+	var pages []*demo.Page
+	if _, err := snap.Field("pages", &pages); err != nil || len(pages) == 0 {
+		t.Fatalf("snapshot pages: %v (%d)", err, len(pages))
+	}
+	if snap.Base != "" || len(snap.Script) != 2 || pages[0].Focus != "b2" {
+		t.Fatalf("snapshot: base %q script %v focus %q", snap.Base, snap.Script, pages[0].Focus)
 	}
 	for _, st := range []*story.Story{win, snap} {
 		if res := lib.Run(st, story.RunOptions{}); !res.OK() {

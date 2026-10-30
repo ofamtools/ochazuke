@@ -160,7 +160,7 @@ What it shows: motions with counts (`3j`, `2G`, `gg`) through the grid's `move` 
 
 ## Pages and default presentation
 
-`run` launches the demo in `examples/demo` (`demo.New()`), not an application you must adopt; the framework package itself holds no application pages. It starts on **Overview**. The framework accepts your own page IDs, renderers, state, inputs, and registered actions.
+`run` launches the demo in `internal/demo` (`demo.New()`), not an application you must adopt; the framework package itself holds no application pages. It starts on **Overview**. The framework accepts your own page IDs, renderers, state, inputs, and registered actions.
 
 The shell around a page is one chrome, `Layout.Shell`: a title row with the mode badge right-aligned, a subtitle row (the page tabs, or the page title beside the sidebar), a rule, the body, a rule, the footer and a margin, inside a two-cell gutter. `Layout.PageBlock` renders through the same method, so a page and the application around it reserve the same rows and `Layout.BodySize` is the body a renderer receives (less the sidebar). The footer and every modal's hint line are `BindingHints`: the focused instance's binding rows in resolution order (`ctrl+j page.next · : palette.open`, each row its key and `noun.verb`, or the row's `Hint`; the descriptions are in `BindingHelp`), the same data `bindings list` prints, so a hint can never name a key that is not bound and rebinding a key moves its hint. The last key's error replaces the footer until the next key.
 
@@ -710,7 +710,7 @@ result, err := r.Execute(ochazuke.Request{
 | `block.go` | `Block` and `Pos`: rendered text plus the focused input's cursor cell |
 | `model.go` | Bubble Tea adapter (delivers messages and drains commands through the runtime), renders through `Layout.Shell`, `BindingHints`, Bubbles viewports, modal renderers, terminal cursor |
 | `transport.go`, `cli.go`, `cmd/ochazuke` | Private Unix socket and generic CLI dispatch |
-| `examples/demo`, `examples/core`, `examples/full-project` | Runnable demo (`demo.New()`), noninteractive foundation example, configured application with list, modal, confirm and terminal pages |
+| `internal/demo`, `examples/core`, `examples/full-project` | Runnable demo (`demo.New()`), noninteractive foundation example, configured application with list, modal, confirm and terminal pages |
 
 #### Nouns and instances
 
@@ -1615,4 +1615,4 @@ Every command of an importable shell (`cli.Shell`, an app built with `cli.Mount`
 - Modals preserve their own state and existing input instances. Closing a modal restores interaction state, not a stale copy of shared application data.
 - Handler registration and widget construction are Go APIs. User-facing operations, including configuration, palette navigation, field editing, and picker actions, are registered and available through the CLI.
 - Terminals are display and input ownership only: the framework ships no PTY, shell, emulator or daemon client. A `TerminalStream` is the application's; frames are rows of trusted ANSI with a cursor cell, not a cell buffer the framework interprets. Resize, reconnect and session lifetime belong to the stream.
-- The framework package holds no application pages; the demo lives in `examples/demo` and every example is built on the public API.
+- The framework package holds no application pages; the demo lives in `internal/demo` and every example is built on the public API. The examples are a nested module (`examples/go.mod`), as is `cmd/o-story`; they build through the untracked `go.work` (`go work use . ./cmd/o-story ./examples ../monogatari ../oden`).

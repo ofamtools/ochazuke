@@ -35,13 +35,18 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	story "github.com/unixsuperhero/monogatari"
 	ocli "github.com/unixsuperhero/ochazuke/cli"
-	"github.com/unixsuperhero/ochazuke/story"
+	"github.com/unixsuperhero/ochazuke/cmd/o-story/demo"
 	"github.com/unixsuperhero/oden"
 )
 
 //go:embed stories
 var embedded embed.FS
+
+// hostApps are the apps o-story's stories build: the demo is the first, so a
+// story that names no app is a demo story.
+var hostApps = []story.App{demo.App()}
 
 // Tool is one invocation: streams and environment.
 type Tool struct {
@@ -130,7 +135,7 @@ func (t *Tool) library(dir string) (story.Library, error) {
 	}
 	all := append(core, user...)
 	story.Sort(all)
-	return story.Library{Stories: all, Store: story.DefaultStore(t.Getenv)}, nil
+	return story.Library{Stories: all, Store: story.DefaultStore(t.Getenv), Apps: hostApps}, nil
 }
 
 // Run plays the named stories (every one when none is named; an area name
@@ -162,7 +167,7 @@ func (t *Tool) Run(args []string) error {
 				return fmt.Errorf("--expect: %w", err)
 			}
 		}
-		res := story.Replay(e.Rec, x)
+		res := lib.Replay(e.Rec, x)
 		t.report(res, *verbose)
 		if !res.OK() {
 			return &oden.ExitError{Code: 1}

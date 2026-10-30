@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/unixsuperhero/monogatari/explore"
 	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/explore"
 )
 
 // subject is the core example's tree behind a Model (it has no page: the

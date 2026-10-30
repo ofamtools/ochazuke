@@ -5,6 +5,13 @@
 // through events; a frame is a pure function of the story and its events.
 // Stories never read production state: every row, label and pane is in the
 // file.
+//
+// Frozen: this package is kept unchanged for one release so its importers
+// (o-json) keep compiling, then deleted. o-story no longer uses it.
+//
+// Deprecated: use github.com/unixsuperhero/monogatari, the story library
+// with an app seam (App, Fixture, Env, Built). ochazuke's demo pages are
+// the demo app in ochazuke's cmd/o-story/demo.
 package story
 
 import (

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/unixsuperhero/monogatari/explore"
 	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/explore"
 )
 
 // TestExplore surveys the embedded configuration (its console terminal is

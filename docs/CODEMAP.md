@@ -1145,7 +1145,7 @@ Importable package `explore`: 15 source files, 5 test files.
 
 ### explore/doc.go
 
-- lines: 100
+- lines: 105
 
 ### explore/drive.go
 
@@ -1430,7 +1430,7 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/story.go
 
-- lines: 797
+- lines: 804
 - purpose: Story is one scenario file.
 - types: Story, Page, TextSpec, CheckSpec, ChooserSpec, ChooserSourceSpec, ChooserRowSpec, ListSpec, TreeSpec, RecordSpec, ItemSpec, DetailSpec, MarkdownSpec, TimelineSpec, CardSpec, SectionSpec, StepSpec, CommandsSpec, CatalogSpec, InputSpec, CompletionSpec, TermSpec, HintsSpec, MarkSpec, JobSpec, SegmentSpec, BindSpec, StoreSpec, VerbSpec, Event, Expect, Expects
 - methods: Event(3), Expects(2), Story(5)

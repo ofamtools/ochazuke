@@ -11,7 +11,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/examples/demo"
+	"github.com/unixsuperhero/ochazuke/internal/demo"
 )
 
 func main() {

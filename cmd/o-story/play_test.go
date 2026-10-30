@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/x/ansi"
+	story "github.com/unixsuperhero/monogatari"
 	"github.com/unixsuperhero/ochazuke/keytest"
-	"github.com/unixsuperhero/ochazuke/story"
 )
 
 // playHost opens the index on the spill-down story and enters play mode.
@@ -167,7 +167,7 @@ func TestPlayRecordsLiveKeysFromAStep(t *testing.T) {
 	if len(e.Rec.Events) != 2 || e.Rec.Events[0].Key != "j" || e.Rec.Events[1].Key != "j" {
 		t.Fatalf("saved events %+v", e.Rec.Events)
 	}
-	if res := story.Replay(e.Rec, nil); !res.OK() {
+	if res := (story.Library{Apps: hostApps}).Replay(e.Rec, nil); !res.OK() {
 		t.Fatalf("the saved recording does not replay: %v %v", res.Err, res.Failed)
 	}
 }

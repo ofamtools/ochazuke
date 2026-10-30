@@ -9,8 +9,8 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
+	story "github.com/unixsuperhero/monogatari"
 	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/story"
 )
 
 // player plays a story's script one event at a time, headless, and shows
@@ -19,6 +19,7 @@ import (
 // only source of events. Stepping back rebuilds the session and replays
 // up to the step before, so any position is reachable.
 type player struct {
+	lib    story.Library
 	story  *story.Story  // the resolved story (a trimmed one merged with its base)
 	prefix []story.Event // the base's events played before the window
 	d      *story.Driver
@@ -84,7 +85,7 @@ func newPlayer(lib story.Library, s *story.Story) (*player, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := &player{story: resolved, prefix: prefix, speed: playDefault, steps: map[int][]story.Expect{}}
+	p := &player{lib: lib, story: resolved, prefix: prefix, speed: playDefault, steps: map[int][]story.Expect{}}
 	for _, e := range resolved.Expect {
 		p.steps[e.After] = append(p.steps[e.After], e)
 	}
@@ -102,7 +103,7 @@ func (p *player) rebuild(n int) error {
 		p.d = nil
 	}
 	p.at, p.err, p.results, p.golden = 0, nil, map[int][]string{}, nil
-	ss, err := story.Build(p.story, story.Options{})
+	ss, err := p.lib.Build(p.story, story.Options{})
 	if err != nil {
 		return err
 	}
