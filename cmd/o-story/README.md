@@ -504,6 +504,8 @@ Conformance:
 | normal | view | `view.scroll` |
 | normal | yank-history | `yank-history.open` |
 | operator_pending | input | `input.cancel` |
+| register_pending | mode | `mode.leave` |
+| replay_pending | mode | `mode.leave` |
 | terminal | bindings | `bindings.help` |
 | terminal | demo | `demo.hints` |
 | terminal | mode | `mode.enter` |
@@ -642,6 +644,8 @@ Mode edges (from → to via):
 - `normal z` → `normal` via `timeline.open-all`
 - `operator_pending` → `normal` via `input.cancel`
 - `operator_pending` → `normal` via `input.operator`
+- `register_pending` → `visual-line` via `mode.leave`
+- `replay_pending` → `visual-line` via `mode.leave`
 - `terminal` → `leader_pending` via `mode.enter`
 - `visual` → `normal` via `input.cancel`
 - `visual` → `normal` via `input.operator`
@@ -657,6 +661,8 @@ Mode edges (from → to via):
 - `visual-line` → `normal` via `input.operator`
 - `visual-line` → `normal` via `list.end-visual`
 - `visual-line` → `normal` via `list.yank`
+- `visual-line` → `register_pending` via `mode.enter`
+- `visual-line` → `replay_pending` via `mode.enter`
 - `visual-line` → `visual-line d` via `row d`
 - `visual-line d` → `visual-line` via `mode.leave`
 
