@@ -47,6 +47,10 @@ type ChooserRow struct {
 	// only opens (a folder in a file chooser): picking it opens it.
 	Opens  bool
 	NoPick bool
+	// Refuse marks a row that cannot be picked and says why: picking it
+	// fails with Refuse and the chooser stays open (a typed path whose
+	// folder is missing, R7.8).
+	Refuse string
 }
 
 // ChooserSpec opens a chooser. Kind is the modal's kind (one open chooser
@@ -260,6 +264,9 @@ func (c *Chooser) pick() Result {
 			return Failed(err)
 		}
 		return Done(c.state())
+	}
+	if row.Refuse != "" {
+		return Failed(errors.New(row.Refuse))
 	}
 	if err := c.close(); err != nil {
 		return Failed(err)

@@ -1,0 +1,53 @@
+{
+  "name": "esc in MACRO PENDING entered from VISUAL-LINE returns to VISUAL-LINE with the selection kept (R2.5)",
+  "area": "modes",
+  "width": 60,
+  "height": 10,
+  "config": {
+    "bindings.json": [
+      {
+        "noun": "demo",
+        "mode": "normal",
+        "keys": "q",
+        "request": null
+      }
+    ]
+  },
+  "page": {
+    "inputs": [
+      {
+        "id": "name",
+        "label": "name",
+        "text": "one\ntwo\nthree"
+      }
+    ],
+    "focus": "name"
+  },
+  "script": [
+    "V",
+    "j",
+    "q",
+    "esc",
+    "y"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "mode": "visual-line"
+    },
+    {
+      "after": 3,
+      "mode": "macro_pending",
+      "badge": "MACRO PENDING"
+    },
+    {
+      "after": 4,
+      "mode": "visual-line",
+      "badge": "VISUAL-LINE"
+    },
+    {
+      "mode": "normal",
+      "register": "one\ntwo\n"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "a yank in the read-only text view says what it copied: y y copied 1 line, V j y copied 2 lines, v e y the characters (yank.report)",
+  "area": "palette",
+  "width": 80,
+  "height": 24,
+  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
+  "script": [":", {"type": "demo mapping"}, "enter", "j", "y", "y", "V", "j", "y", "w", "v", "e", "y"],
+  "expect": [
+    {"after": 6, "modal": "text-view", "mode": "normal", "contains": ["copied 1 line"]},
+    {"after": 9, "modal": "text-view", "mode": "normal", "contains": ["copied 2 lines"]},
+    {"modal": "text-view", "mode": "normal", "contains": ["copied 5 characters"]}
+  ]
+}

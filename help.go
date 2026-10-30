@@ -41,8 +41,15 @@ func registerBindingHelp(r *Runtime) {
 	r.DefineGuard("help-tree", func(r *Runtime, _ KeyEvent) bool { return r.Tree(helpTreeID) != nil })
 	r.Register(Operation{Verb: "help", Noun: "ochazuke.bindings", Description: "Open the keys the focus answers to, with the operation each runs and its description", Result: "help row[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		focus := focusOf(c)
-		rows, mode, home := BindingHelp(r, focus), ModeState{Name: r.BaseMode()}, helpHome(r, focus)
-		inst, err := r.OpenModal(helpID, Payload{})
+		mode := ModeState{Name: r.BaseMode()}
+		// Opened again while it is the top modal (? or :bindings help
+		// inside the help), the help shows again in its place, for the
+		// focus and mode it opened over (ReplaceOpen, R4.8).
+		if r.TopModal() == helpID {
+			focus, mode = r.ModalReturn(helpID)
+		}
+		rows, home := BindingHelp(r, focus), helpHome(r, focus)
+		inst, err := r.OpenModal(helpID, Payload{}, ReplaceOpen())
 		if err != nil {
 			return nil, err
 		}

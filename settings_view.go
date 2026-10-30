@@ -123,7 +123,9 @@ func registerSettingsEditor(r *Runtime) {
 			return nil, errors.New("this application declares no settings")
 		}
 		if r.Page == SettingsPageID {
-			return s.List(), nil
+			// Already shown: nothing to switch to, and no answer for the
+			// palette to show over the page (R4.8).
+			return nil, nil
 		}
 		fresh := r.PageOf(SettingsPageID) == nil
 		if _, err := ensureSettingsPage(r, fresh); err != nil {

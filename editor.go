@@ -398,6 +398,9 @@ func registerEditorOperations(r *Runtime) {
 			if err := r.storeYank(y, StringArg(a, "register", ""), false); err != nil {
 				return err
 			}
+			if v, _ := r.settingValue(YankReportSetting); v == true {
+				r.UI().Info(yankReport(y))
+			}
 			in.SetMode("normal")
 			in.finishCursor(min(in.Anchor, in.Cursor))
 			return nil

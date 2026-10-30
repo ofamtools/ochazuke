@@ -1,0 +1,14 @@
+{
+  "name": "? or :bindings help while the help is open shows the help again in the same modal, for the focus it opened over: no \"already open\" error, the palette closes, esc closes it back on the row (R4.8)",
+  "area": "help",
+  "width": 120,
+  "height": 40,
+  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
+  "script": ["?", "?", ":", {"type": "bindings help"}, "enter", "esc"],
+  "expect": [
+    {"after": 1, "modal": "bindings-help", "contains": ["Keys"]},
+    {"after": 2, "modal": "bindings-help", "contains": ["Keys", "demo.open"], "lacks": ["already open"]},
+    {"after": 5, "modal": "bindings-help", "contains": ["Keys", "demo.open"], "lacks": ["already open"]},
+    {"modal": "", "focus": "a2", "mode": "normal", "lacks": ["already open"]}
+  ]
+}

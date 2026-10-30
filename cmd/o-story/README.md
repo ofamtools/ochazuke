@@ -469,6 +469,7 @@ Conformance:
 | insert | setting-value | `setting-value.cancel` `setting-value.commit` |
 | insert | settings | `settings.complete` `settings.edit` |
 | list_filter | list | `list.filter` `list.filter-choose` `list.filter-clear` `list.filter-erase` `list.filter-keep` `list.filter-type` `list.move` |
+| macro_pending | mode | `mode.leave` |
 | normal | app | `app.quit` |
 | normal | bindings | `bindings.help` |
 | normal | bindings-help | `bindings-help.mode` `bindings-help.noun` `bindings-help.place` `bindings-help.view` |
@@ -503,6 +504,8 @@ Conformance:
 | normal | view | `view.scroll` |
 | normal | yank-history | `yank-history.open` |
 | operator_pending | input | `input.cancel` |
+| register_pending | mode | `mode.leave` |
+| replay_pending | mode | `mode.leave` |
 | terminal | bindings | `bindings.help` |
 | terminal | demo | `demo.hints` |
 | terminal | mode | `mode.enter` |
@@ -560,6 +563,7 @@ Mode edges (from → to via):
 - `list_filter` → `normal` via `list.filter-keep`
 - `macro_pending` → `insert` via `palette.open`
 - `macro_pending` → `normal` via `macro.start`
+- `macro_pending` → `visual-line` via `mode.leave`
 - `normal` → `count_pending` via `mode.enter`
 - `normal` → `insert` via `bindings-help.mode`
 - `normal` → `insert` via `bindings-help.noun`
@@ -641,10 +645,13 @@ Mode edges (from → to via):
 - `normal z` → `normal` via `timeline.open-all`
 - `operator_pending` → `normal` via `input.cancel`
 - `operator_pending` → `normal` via `input.operator`
+- `register_pending` → `visual-line` via `mode.leave`
+- `replay_pending` → `visual-line` via `mode.leave`
 - `terminal` → `leader_pending` via `mode.enter`
 - `visual` → `normal` via `input.cancel`
 - `visual` → `normal` via `input.operator`
 - `visual-line` → `count_pending` via `mode.enter`
+- `visual-line` → `macro_pending` via `mode.enter`
 - `visual-line` → `normal` via `confirm.accept`
 - `visual-line` → `normal` via `demo.check`
 - `visual-line` → `normal` via `demo.nest`
@@ -655,6 +662,8 @@ Mode edges (from → to via):
 - `visual-line` → `normal` via `input.operator`
 - `visual-line` → `normal` via `list.end-visual`
 - `visual-line` → `normal` via `list.yank`
+- `visual-line` → `register_pending` via `mode.enter`
+- `visual-line` → `replay_pending` via `mode.enter`
 - `visual-line` → `visual-line d` via `row d`
 - `visual-line d` → `visual-line` via `mode.leave`
 

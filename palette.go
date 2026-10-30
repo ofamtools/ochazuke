@@ -346,14 +346,16 @@ func (p *Palette) dispatch(q Request) error {
 	}
 	// What the palette opened over: a modal still open beneath it (the
 	// text view, the results) and the page. The answer is presented only
-	// while both are what they were, so a command that opened a modal or a
-	// page of its own (settings.edit) is not covered by its answer, and a
-	// second answer over the view the first opened replaces it.
-	under, page := p.r.TopModal(), p.r.Page
+	// while both are what they were, the same modal instance, so a command
+	// that opened a modal or a page of its own (settings.edit), or opened
+	// the modal beneath again in its place (bindings.help inside the help),
+	// is not covered by its answer, and a second answer over the view the
+	// first opened replaces it.
+	under, page := p.r.Instances[p.r.TopModal()], p.r.Page
 	value, err := p.r.ExecuteAt(origin, q)
 	if err == nil {
 		present := func(value any) error {
-			if p.r.TopModal() != under || p.r.Page != page {
+			if p.r.Instances[p.r.TopModal()] != under || p.r.Page != page {
 				return nil // A command or a newer interaction already opened a modal or a page.
 			}
 			op := p.r.Operations[q.Key()]

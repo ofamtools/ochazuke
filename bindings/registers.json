@@ -13,7 +13,7 @@
       {"key": "any", "action": "ochazuke.mode.leave", "when": "no-input", "replay": true}
     ]},
     {"context": "app/macro_pending", "bindings": [
-      {"key": "esc", "action": "ochazuke.input.cancel"},
+      {"key": "esc", "action": "ochazuke.mode.leave", "help": "Leave without recording, back to the mode q was pressed in (a visual selection stays)"},
       {"key": "any", "action": "ochazuke.macro.start", "from": {"register": "key"}}
     ]},
     {"context": "app/normal", "bindings": [
@@ -23,11 +23,11 @@
       {"key": "digit-0", "action": "ochazuke.mode.enter", "args": {"mode": "count_pending"}, "from": {"count": "digit"}, "hidden": true, "help": "Start a count for the next key (3j)"}
     ]},
     {"context": "app/register_pending", "bindings": [
-      {"key": "esc", "action": "ochazuke.input.cancel"},
+      {"key": "esc", "action": "ochazuke.mode.leave", "help": "Leave without choosing a register, back to the mode the key was pressed in (a visual selection stays)"},
       {"key": "any", "action": "ochazuke.register.select", "from": {"name": "key"}}
     ]},
     {"context": "app/replay_pending", "bindings": [
-      {"key": "esc", "action": "ochazuke.input.cancel"},
+      {"key": "esc", "action": "ochazuke.mode.leave", "help": "Leave without replaying, back to the mode the key was pressed in (a visual selection stays)"},
       {"key": "any", "action": "ochazuke.macro.replay", "from": {"register": "key", "steps": "count"}}
     ]},
     {"context": "app/visual", "bindings": [

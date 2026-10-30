@@ -742,9 +742,11 @@ tiers above them. When the two disagree, fix one in the same commit.
   `cwd`). A folder under `path.no-auto-list` (external volumes) is never
   listed on its own: browse says so until the person opens into it or
   types the path. Hidden entries list with `path.hidden` or once the
-  typed part starts with `.`. Stories: `forms/path-browse.json`,
+  typed part starts with `.`. A typed path is always a row; one that
+  cannot be used says why on the row. Stories: `forms/path-browse.json`,
   `forms/path-dir.json`, `forms/path-typed.json`,
-  `forms/path-text-field.json`; tests `TestPath*`.
+  `forms/path-text-field.json`, `chooser/typed-missing-dir-says-why.json`;
+  tests `TestPath*`.
 - **R7.9** One grammar for a noun's things, the same in the palette and
   the CLI (standard verbs, plan 2.6). After a noun a word is a verb, else
   a prop, else a key or an instance (`NOUN KEY` alone keeps the default
