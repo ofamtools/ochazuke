@@ -8,7 +8,7 @@ r|  a1
  |
  |    ╭─────────────────────────────────╮
  |    │ Directory                       │
- |    │ ›                               │
+ |    │ ›                         fuzzy │
  |    │   matomeru                      │
 R|    │   ochazuke                      │
  |    │ enter chooser.pick · esc choos… │
@@ -20,5 +20,5 @@ R|    │   ochazuke                      │
  |
  |
  |  ────────────────────────────────────────
- |  enter chooser.pick · esc chooser.cancel
+ |  enter chooser.pick · esc chooser.cancel…
  |

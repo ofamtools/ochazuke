@@ -319,7 +319,8 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R5.5** `List.Move` (the API) always clamps; only the `list.move`
   operation spills. Check: unit test.
 - **R5.6** `/` filters any focused list unless the app binds `/` on the
-  stack: typing narrows the rows (label and cells, every word, case as
+  stack: typing narrows the rows (label and cells, every word by
+  default, the match mode as `search.match` and `tab` say (R5.18), case as
   `search.case` says (R5.17), list order), up/down and `ctrl+n`/`ctrl+p` move among the matches
   without spilling, enter keeps the filter in normal mode, esc clears it and
   goes back to the row `/` found, backspace on an empty query leaves the
@@ -535,6 +536,27 @@ tiers above them. When the two disagree, fix one in the same commit.
   Stories: `lists/filter-smart-case.json`, `lists/filter-ignore-case.json`,
   `forms/path-smart-case-browse.json`, `forms/path-smart-case-typed.json`,
   `forms/path-ignore-case.json`; tests `search_case_test.go`.
+- **R5.18** Every search has a match mode, one of three, shared by the
+  `/` list filter, choosers and the path picker: `substring` (every word
+  of the query, any order), `fuzzy` (the query's characters in order, one
+  scorer for all: `fuzzyScore`) and `regex` (Go RE2; smart case folds
+  through `(?i)` unless the pattern holds an unescaped capital, so `\S`
+  and `\p{Lu}` do not count). `search.match` is the filter's starting mode
+  (`substring`), `chooser.match` the choosers' and picker's (`fuzzy`), so
+  the defaults keep the old behaviour. `tab` (`search.cycle-match`) steps
+  the open search through them, `shift+tab` back, in the filter line and
+  in a chooser; `ctrl+t` in the path picker, whose `tab` completes. The
+  mode is the open search's alone: no setting is written, and a picker
+  starts each open from `chooser.match` again. The search line names the
+  mode at its right end (`substr`, `fuzzy`, `regex`; off with
+  `search.show-match`). An invalid regex matches nothing and the search
+  line says why (`regex: missing closing )`), never a modal or a notice.
+  A chooser whose application filters (`ChooserSpec.Filter`) or a Live
+  source ranks its own rows keeps its own matching: the verb is
+  unavailable there and no tag shows. Stories:
+  `lists/filter-match-cycle.json`, `lists/filter-regex-invalid-says-why.json`,
+  `lists/filter-match-setting.json`, `chooser/match-cycle-tab.json`; tests
+  `search_match_test.go`.
 
 ### R6. Chrome: footer, hints, help, ticker, notices
 
@@ -715,9 +737,9 @@ tiers above them. When the two disagree, fix one in the same commit.
   answers only with no modal open (a page cannot open beneath one):
   `picker/page-picker-not-in-modal.json`.
 - **R7.7** A chooser with sources shows one source's rows at a time:
-  `tab`/`shift+tab` step to the next or previous source, wrapping
-  (`chooser.next-source`/`previous-source`, guard `chooser-sources`, so
-  tab is free in a one-source chooser); the query carries over, and the
+  `ctrl+o`/`alt+o` step to the next or previous source, wrapping
+  (`chooser.next-source`/`previous-source`, guard `chooser-sources`;
+  `tab` is the match mode's, R5.18); the query carries over, and the
   title names the current source in brackets (`Pick · one [two] three`).
   A live source sees the typed text and answers again on every edit. A row
   a source can open (a folder) opens with `enter` (unless

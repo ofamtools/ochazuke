@@ -126,8 +126,8 @@ func TestPickerFuzzyScoreSmartLowercaseEqualsIgnore(t *testing.T) {
 	for _, query := range []string{"mg", "s/ma", "readme", "yzw", "été", "e"} {
 		smart, ignore := CaseFor(SearchCaseSmart, query), CaseFor(SearchCaseIgnore, query)
 		for _, path := range paths {
-			s1, ok1 := pickerFuzzyScore(path, []rune(smart.String(query)), smart)
-			s2, ok2 := pickerFuzzyScore(path, []rune(ignore.String(query)), ignore)
+			s1, ok1 := fuzzyScore(path, []rune(smart.String(query)), smart)
+			s2, ok2 := fuzzyScore(path, []rune(ignore.String(query)), ignore)
 			if s1 != s2 || ok1 != ok2 {
 				t.Errorf("%q in %q: smart %d,%v ignore %d,%v", query, path, s1, ok1, s2, ok2)
 			}

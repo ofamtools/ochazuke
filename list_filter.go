@@ -49,25 +49,33 @@ func filterOpenRow() Binding {
 	return Do("ochazuke.list.filter-open").Guard("list-filterable").Hinted("filter")
 }
 
-// filterTerms splits a query into the words a row must hold, as cm
-// compares them.
-func filterTerms(query string, cm CaseMatch) []string { return strings.Fields(cm.String(query)) }
-
 // filterHay is the text a row is matched against: its label and cells,
-// as cm compares them, separated so a word never spans two cells.
-func filterHay(item ListItem, cm CaseMatch) string {
+// as m compares them, one per line, so a word never spans two cells and a
+// regex's ^ and $ match at each cell's ends.
+func filterHay(item ListItem, m Matcher) string {
 	parts := append([]string{item.Label}, item.Cells...)
-	return cm.String(strings.Join(parts, "\x00"))
+	return m.Prepare(strings.Join(parts, "\n"))
 }
 
-// filterMatches reports whether hay holds every term.
-func filterMatches(hay string, terms []string) bool {
-	for _, term := range terms {
-		if !strings.Contains(hay, term) {
-			return false
-		}
+// MatchMode is the filter's match mode: the one search.cycle-match or
+// search.set-match chose for this list, else the search.match setting.
+func (l *List) MatchMode() string {
+	if l.match != "" {
+		return l.match
 	}
-	return true
+	return l.r.SearchMatch()
+}
+
+// matcher is the filter query compiled in the list's match mode.
+func (l *List) matcher() Matcher { return l.r.Matcher(l.MatchMode(), l.query) }
+
+// The matchSearcher contract (search_match.go): the mode decides the
+// filter while its line shows.
+func (l *List) matchMode() string  { return l.MatchMode() }
+func (l *List) matchApplies() bool { return l.Filtering() }
+func (l *List) setMatchMode(mode string) {
+	l.match = mode
+	l.SetFilter(l.query)
 }
 
 // Filter is the list's filter query ("" when every row is shown).
@@ -113,17 +121,16 @@ func (l *List) refilter(keep string) {
 	if strings.TrimSpace(l.query) == "" {
 		l.items = l.all
 	} else {
-		cm := l.r.CaseFor(l.query)
-		if l.hay == nil || l.hayFold != cm.Fold() {
-			l.hay, l.hayFold = make([]string, len(l.all)), cm.Fold()
+		m := l.matcher()
+		if l.hay == nil || l.hayFold != m.Fold() {
+			l.hay, l.hayFold = make([]string, len(l.all)), m.Fold()
 			for i, item := range l.all {
-				l.hay[i] = filterHay(item, cm)
+				l.hay[i] = filterHay(item, m)
 			}
 		}
-		terms := filterTerms(l.query, cm)
 		shown := make([]ListItem, 0, len(l.all))
 		for i, item := range l.all {
-			if filterMatches(l.hay[i], terms) {
+			if m.MatchPrepared(l.hay[i]) {
 				shown = append(shown, item)
 			}
 		}
@@ -160,7 +167,9 @@ func (l *List) editingFilter() bool {
 
 // filterLine is the line drawn above the rows while the filter is typed or
 // kept: "/" and the query (with a reversed cursor cell while typing) on
-// the left, how many rows match on the right. "" when there is none.
+// the left; on the right how many rows match (or why none can: an invalid
+// regex), then the match mode's tag (search.show-match). "" when there is
+// none.
 func (l *List) filterLine(width int) string {
 	editing := l.editingFilter()
 	if l.query == "" && !editing {
@@ -170,15 +179,26 @@ func (l *List) filterLine(width int) string {
 	if editing {
 		left += lipgloss.NewStyle().Reverse(true).Render(" ")
 	}
-	right := ""
+	var right []string
 	if strings.TrimSpace(l.query) != "" {
-		switch len(l.items) {
-		case 0:
-			right = "no matches"
+		switch err := l.matcher().Err(); {
+		case err != nil:
+			right = append(right, err.Error())
+		case len(l.items) == 0:
+			right = append(right, "no matches")
 		default:
-			right = strconv.Itoa(len(l.items)) + " of " + strconv.Itoa(len(l.all))
+			right = append(right, strconv.Itoa(len(l.items))+" of "+strconv.Itoa(len(l.all)))
 		}
 	}
+	if tag := l.r.matchTagFor(l.MatchMode()); tag != "" {
+		right = append(right, tag)
+	}
+	return searchLine(left, strings.Join(right, "  "), width)
+}
+
+// searchLine is left and right on one line width cells wide, right
+// against the right edge; when both do not fit, left alone, cut.
+func searchLine(left, right string, width int) string {
 	gap := width - ansi.StringWidth(left) - ansi.StringWidth(right)
 	if right == "" || gap < 1 {
 		return ansi.Truncate(left, width, "…")
@@ -278,7 +298,7 @@ func registerListFilter(r *Runtime) {
 		parameters        map[string]Parameter
 		run               func(*List, Arguments) error
 	}{
-		{"filter", "Filter the rows to those whose label or cells hold every word of query, ignoring case; an empty query shows every row", with(map[string]Parameter{"query": {Type: "string", Required: true, Description: "The words every shown row holds; empty clears the filter"}}), func(l *List, a Arguments) error {
+		{"filter", "Filter the rows to those whose label or cells match query in the list's match mode (search.match; substring: every word) and case as search.case says; an empty query shows every row", with(map[string]Parameter{"query": {Type: "string", Required: true, Description: "The words every shown row holds; empty clears the filter"}}), func(l *List, a Arguments) error {
 			l.SetFilter(StringArg(a, "query", ""))
 			return nil
 		}},

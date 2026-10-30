@@ -601,8 +601,23 @@ play/pi               pi           idle     ~/proj/nabe
 | enter | `list.filter-keep`: back to normal mode with the filter kept (the line stays; `/` edits it again). On a list added with `ClearFilterOnEnter()` (or a tree), with a match: `list.filter-choose`, which clears the filter, keeps the selection on the match and goes back to normal mode |
 | esc | `list.filter-clear`: clear the filter and select the row `/` found |
 | `ctrl+u` | `list.filter {query: ""}`: empty the query |
+| `tab` / `shift+tab` | `search.cycle-match {step}`: the next (previous) match mode, below |
 
 In normal mode `esc` on a filtered list clears the filter (`list.filter-clear`, guarded off on an unfiltered list so `esc` there stays the outer level's). The `/` row is an `app` row guarded by `list-filterable` and added after the Model's defaults: an application's own `/` on any level (its row noun, the list, the page) answers first, and the footer's `/ filter` is the hint a narrow footer cuts first.
+
+#### Match modes
+
+Every search matches its query one of three ways, and the `/` list filter, choosers and the path picker share them (`search_match.go`, `Matcher`):
+
+| Mode | Tag | A row matches when |
+|---|---|---|
+| `substring` | `substr` | it holds every whitespace-separated word of the query, in any order |
+| `fuzzy` | `fuzzy` | the query's characters appear in it in order (one scorer, `fuzzyScore`, ranks choosers and the picker) |
+| `regex` | `regex` | the Go RE2 pattern matches it; a list row's label and cells are its lines, so `^` and `$` match at each cell's ends |
+
+`search.match` (ochazuke › Search, default `substring`) is the mode the list filter starts in, `chooser.match` (default `fuzzy`) the one choosers and the path picker start in, so the defaults match as before. `tab` in the filter line or a chooser (`ochazuke.search.cycle-match {step}`; `shift+tab` steps back) and `ctrl+t` in the path picker step the open search through substring, fuzzy, regex and round again; `search.set-match {mode}` picks one. Neither writes the setting: the mode belongs to that list's filter, that chooser or that picker open. The search line shows the mode at its right end (`/al          2 of 5  substr`); `search.show-match` off hides the tag. An invalid regex matches nothing and the line says why (`regex: missing closing )`), never a modal. `search.case` applies to all three; for a regex, folding is the `(?i)` flag and smart case looks for a capital outside escapes (`\S`, `\W`, `\p{Lu}` are syntax, not capitals). A chooser whose application passes its own `Filter`, or whose Live source ranks its rows itself, keeps that matching: the verbs are unavailable there and no tag shows.
+
+Compared with Vim: Vim's `/` is always a regex (`:help pattern`) with its own magic levels (`:help /magic`, `\v` "very magic" is closest to RE2's extended syntax); ochazuke's regex mode is RE2, not Vim's dialect, and has no `\c`/`\C` (case comes from `search.case`). Vim has no substring or fuzzy search mode; fuzzy matching is `matchfuzzy()` (`:help matchfuzzy()`), used by plugins and completion. Vim's smartcase likewise ignores the letter after a backslash (`:help 'smartcase'`).
 
 #### Case in searches
 
@@ -722,7 +737,7 @@ result, err := r.Execute(ochazuke.Request{
 | `picker.go`, `picker_search.go` | Contextual path selection, asynchronous fuzzy indexing, native Git ignores |
 | `pages.go` | Pages as instances of kind `page` (`AddPage`, `RegisterPage`), `Runtime.Page`, remembered focus and mode, navigation, the page picker (`page.pick`), and focus isolation |
 | `chooser.go` | The chooser: a palette-shaped modal of rows (`OpenChooser`, `ChooserSpec`, `ChooserRow`), its ranking and its rows on the `chooser` noun |
-| `chooser_sources.go` | Chooser sources: `ChooserSource{Name, Label, Load(query), Live, Empty, Open, Up, Create, CreateLabel}`, cycling (`tab`/`shift+tab`), opening a row inside its source and stepping out, the remembered source per kind (`chooser.remember-source`), `chooser.enter` |
+| `chooser_sources.go` | Chooser sources: `ChooserSource{Name, Label, Load(query), Live, Empty, Open, Up, Create, CreateLabel}`, cycling (`ctrl+o`/`alt+o`), opening a row inside its source and stepping out, the remembered source per kind (`chooser.remember-source`), `chooser.enter` |
 | `path_chooser.go` | Path parameters (`Type: "path"`, `Path`, `Base`, `New`) and the path chooser (`OpenPathChooser`): browse, recent, typed, then `AddPathSource` sources (each may set `ChooserSource.Keep`, its columns cut last); `PathChooserSpec.Source` names the source it opens on (else `chooser.remember-source`'s); `PathStart`, `SetPathBase`, `SetRecentPaths`; settings `path.start`, `path.field`, `path.hidden`, `path.no-auto-list` |
 | `completion.go`, `completion_list.go` | Inline completion: an input's triggers and searches (`Completions`, `NounBuilder.Completions`, `CompletionTrigger`, `Suggestion`, `SearchStrings`), the token rule (`FindCompletionToken`) and the `Completer`, the suggestion list that answers as the input's inner level while typing keeps editing it |
 | `terminal.go` | The `terminal` noun: `AddTerminal`, `TerminalStream`, frames through the delivery contract, the leader contract, pane cursor |

@@ -181,7 +181,7 @@ it to the timer's deadline and delivers the timer's message
       rows: [{ id: "m", label: "matomeru", cells: ["matomeru", "~/proj/matomeru", "main"],
                preview: "text" }],    // any row with a preview gives the chooser a Preview
       sources: [{ name: "one", rows: [...] }, { name: "two", live: true, rows: [...] }],
-                                     // a chooser with sources (tab cycles them; rows unused); a live
+                                     // a chooser with sources (ctrl+o and alt+o cycle them; rows unused); a live
                                      // source answers "typed: QUERY" then the rows holding the query;
                                      // a pick writes "pick ID"; demo.choose opens the chooser again
     },                               // enter picks and closes
@@ -466,9 +466,11 @@ Conformance:
 | insert | modes | `modes.list` |
 | insert | outline | `outline.indent` `outline.leave` |
 | insert | palette | `palette.cancel` `palette.complete` `palette.move` `palette.run` |
+| insert | search | `search.cycle-match` |
 | insert | setting-value | `setting-value.cancel` `setting-value.commit` |
 | insert | settings | `settings.complete` `settings.edit` |
 | list_filter | list | `list.filter` `list.filter-choose` `list.filter-clear` `list.filter-erase` `list.filter-keep` `list.filter-type` `list.move` |
+| list_filter | search | `search.cycle-match` |
 | macro_pending | mode | `mode.leave` |
 | normal | app | `app.quit` |
 | normal | bindings | `bindings.help` |

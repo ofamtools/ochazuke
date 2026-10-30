@@ -8,10 +8,10 @@ r|  a1
  |
  |        ╭──────────────────────────────────────────────────────────────╮
  |        │ Directory                                                    │
- |        │ ›                                                            │
+ |        │ ›                                                      fuzzy │
  |        │   matomeru                                                   │
 R|        │   ochazuke                                                   │
- |        │ enter chooser.pick · esc chooser.cancel                      │
+ |        │ enter chooser.pick · esc chooser.cancel · tab search.cycle-… │
  |        ╰──────────────────────────────────────────────────────────────╯
  |
  |
@@ -20,5 +20,5 @@ R|        │   ochazuke                                                   │
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────
- |  enter chooser.pick · esc chooser.cancel
+ |  enter chooser.pick · esc chooser.cancel · tab search.cycle-match
  |

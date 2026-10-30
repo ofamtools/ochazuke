@@ -6,6 +6,7 @@
       {"key": "ctrl+p", "action": "ochazuke.picker.move", "args": {"delta": -1}},
       {"key": "alt+up", "action": "ochazuke.picker.parent"},
       {"key": "tab", "action": "ochazuke.picker.complete"},
+      {"key": "ctrl+t", "action": "ochazuke.search.cycle-match"},
       {"key": "enter", "action": "ochazuke.picker.enter"},
       {"key": "ctrl+s", "action": "ochazuke.picker.choose"},
       {"key": "esc", "action": "ochazuke.picker.close"}

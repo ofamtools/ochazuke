@@ -124,7 +124,7 @@ func TestPathDirChooserOpensAndPicks(t *testing.T) {
 func TestPathTypedCompletes(t *testing.T) {
 	root := pathTree(t)
 	_, m, c, chosen := pathFixture(t, PathPick{Parameter: Parameter{Type: "path", Base: root}})
-	pressLand(m, "tab", "tab")
+	pressLand(m, "ctrl+o", "ctrl+o")
 	if c.Source() != PathSourceTyped {
 		t.Fatalf("source %q", c.Source())
 	}
@@ -152,7 +152,7 @@ func TestPathTypedCompletes(t *testing.T) {
 func TestPathTypedNewAndHidden(t *testing.T) {
 	root := pathTree(t)
 	_, m, c, chosen := pathFixture(t, PathPick{Parameter: Parameter{Type: "path", Base: root, New: true}})
-	pressLand(m, "tab", "tab")
+	pressLand(m, "ctrl+o", "ctrl+o")
 	typeText(m, ".h")
 	if got := labels(c.Matches()); !slices.Equal(got, []string{".hidden", "new .h"}) {
 		t.Fatalf("hidden rows %v", got)
@@ -190,7 +190,7 @@ func TestPathRecentSource(t *testing.T) {
 		t.Fatalf("picked %v", got)
 	}
 	c = open()
-	pressLand(m, "tab")
+	pressLand(m, "ctrl+o")
 	if c.Source() != PathSourceRecent {
 		t.Fatalf("source %q", c.Source())
 	}
@@ -405,7 +405,7 @@ func TestPathUnderHomeShowsTilde(t *testing.T) {
 		t.Fatal(err)
 	}
 	landLoads(m, r.PendingCommands())
-	pressLand(m, "tab")
+	pressLand(m, "ctrl+o")
 	rows := c.Matches()
 	if len(rows) != 1 || rows[0].Label != "~/proj/a.json" || rows[0].Data != want {
 		t.Fatalf("recent rows %+v", rows)

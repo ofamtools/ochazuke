@@ -4,7 +4,7 @@
  |    Intro.
  |        ╭──────────────────────────────────────────────────────────────╮
  |        │ Insert                                                       │
- |        │ ›                                                            │
+ |        │ ›                                                      fuzzy │
 R|        │   table                                                      │
  |        │   checklist                                                  │
  |        │   bullets                                                    │
@@ -15,10 +15,10 @@ R|        │   table                                                      │
  |        │   code block                                                 │
  |        │   quote                                                      │
  |        │   rule                                                       │
- |        │ enter chooser.pick · esc chooser.cancel                      │
+ |        │ enter chooser.pick · esc chooser.cancel · tab search.cycle-… │
  |        ╰──────────────────────────────────────────────────────────────╯
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────
- |  enter chooser.pick · esc chooser.cancel
+ |  enter chooser.pick · esc chooser.cancel · tab search.cycle-match
  |

@@ -19,7 +19,9 @@
       {"key": "ctrl+p", "action": "ochazuke.list.move", "args": {"clamp": true, "delta": -1}},
       {"key": "enter", "action": "ochazuke.list.filter-choose", "when": "list-chooses"},
       {"key": "enter", "action": "ochazuke.list.filter-keep"},
-      {"key": "esc", "action": "ochazuke.list.filter-clear"}
+      {"key": "esc", "action": "ochazuke.list.filter-clear"},
+      {"key": "tab", "action": "ochazuke.search.cycle-match"},
+      {"key": "shift+tab", "action": "ochazuke.search.cycle-match", "args": {"step": -1}, "hidden": true}
     ]},
     {"context": "ochazuke.list/normal", "bindings": [
       {"key": "V", "action": "ochazuke.list.visual", "hidden": true},

@@ -10,8 +10,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// A chooser with Sources lists the rows of one source at a time: tab and
-// shift+tab (chooser.next-source, chooser.previous-source) step to the next
+// A chooser with Sources lists the rows of one source at a time: ctrl+o and
+// alt+o (chooser.next-source, chooser.previous-source) step to the next
 // or previous one, the query carries over, and the title names the current
 // source and the others. Each source loads its rows for the query (Load):
 // a Live source again on every edit of the query, as completion does, the

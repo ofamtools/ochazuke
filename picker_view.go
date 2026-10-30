@@ -23,8 +23,28 @@ func (p *Picker) ViewBlock(width, height int) Block {
 		label = "Path: "
 	}
 	label = ansi.Truncate(label, max(0, width-1), "")
-	editor := InputBlock(p.input, width-ansi.StringWidth(label), 1).Offset(ansi.StringWidth(label), 0).Clip(width, 1)
-	rows := []string{label + editor.Text}
+	// The path line's right end says why nothing can match (an invalid
+	// regex) and the match mode (search.show-match), when there is room.
+	var right []string
+	if err := p.matcher().Err(); err != nil {
+		right = append(right, err.Error())
+	}
+	if tag := p.Runtime.matchTagFor(p.MatchMode()); tag != "" {
+		right = append(right, tag)
+	}
+	tail := strings.Join(right, "  ")
+	editorWidth := width - ansi.StringWidth(label)
+	if tail != "" && editorWidth-ansi.StringWidth(tail)-1 >= 12 {
+		editorWidth -= ansi.StringWidth(tail) + 1
+	} else {
+		tail = ""
+	}
+	editor := InputBlock(p.input, editorWidth, 1).Offset(ansi.StringWidth(label), 0).Clip(width, 1)
+	first := label + editor.Text
+	if tail != "" {
+		first = searchLine(first, tail, width)
+	}
+	rows := []string{first}
 	if height == 1 {
 		return editor.WithText(strings.Join(layoutRows(rows[0], width, height), "\n"))
 	}

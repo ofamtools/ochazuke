@@ -12,7 +12,7 @@
     ],
     "focus": "doc/file"
   },
-  "script": ["enter", {"job": "chooser.load"}, {"type": "READ"}, "ctrl+u", "tab", "tab", {"type": "READ"}, {"job": "chooser.load"}],
+  "script": ["enter", {"job": "chooser.load"}, {"type": "READ"}, "ctrl+u", "ctrl+o", "ctrl+o", {"type": "READ"}, {"job": "chooser.load"}],
   "expect": [
     {"after": 3, "contains": ["README.md", "readme.txt"], "lacks": ["notes.txt"]},
     {"contains": ["browse recent [typed]", "README.md", "readme.txt"], "lacks": ["notes.txt"]}

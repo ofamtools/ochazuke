@@ -8,8 +8,8 @@
       {"key": "ctrl+l", "action": "ochazuke.chooser.open"},
       {"key": "alt+up", "action": "ochazuke.chooser.up"},
       {"key": "backspace", "action": "ochazuke.chooser.up", "when": "chooser-up-empty"},
-      {"key": "tab", "action": "ochazuke.chooser.next-source"},
-      {"key": "shift+tab", "action": "ochazuke.chooser.previous-source"},
+      {"key": "ctrl+o", "action": "ochazuke.chooser.next-source"},
+      {"key": "alt+o", "action": "ochazuke.chooser.previous-source"},
       {"key": "esc", "action": "ochazuke.chooser.cancel"},
       {"key": "down", "action": "ochazuke.chooser.move", "args": {"delta": 1}},
       {"key": "ctrl+j", "action": "ochazuke.chooser.move", "args": {"delta": 1}},
@@ -18,7 +18,9 @@
       {"key": "ctrl+p", "action": "ochazuke.chooser.move", "args": {"delta": -1}},
       {"key": "ctrl+k", "action": "ochazuke.chooser.move", "args": {"delta": -1}},
       {"key": "printable", "action": "ochazuke.input.insert", "from": {"text": "text"}, "hidden": true},
-      {"key": "paste", "action": "ochazuke.input.insert", "from": {"text": "text"}, "hidden": true}
+      {"key": "paste", "action": "ochazuke.input.insert", "from": {"text": "text"}, "hidden": true},
+      {"key": "tab", "action": "ochazuke.search.cycle-match"},
+      {"key": "shift+tab", "action": "ochazuke.search.cycle-match", "args": {"step": -1}, "hidden": true}
     ]}
   ]
 }

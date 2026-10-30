@@ -11,7 +11,7 @@
     ],
     "focus": "doc/file"
   },
-  "script": ["enter", {"job": "chooser.load"}, "tab", "tab", {"type": "/nonexistent-dir/x.json"}, {"job": "chooser.load"}, "enter"],
+  "script": ["enter", {"job": "chooser.load"}, "ctrl+o", "ctrl+o", {"type": "/nonexistent-dir/x.json"}, {"job": "chooser.load"}, "enter"],
   "expect": [
     {"after": 6, "contains": ["browse recent [typed]", "/nonexistent-dir/x.json", "/nonexistent-dir does not exist"], "lacks": ["type a path"]},
     {"modal": "path-chooser", "contains": ["/nonexistent-dir does not exist"], "lacks": ["nothing matches"], "writes": []}

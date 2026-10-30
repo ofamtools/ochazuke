@@ -2,7 +2,7 @@
  |   › page1
  |  ────────────────────────────────────────────────────────────────────────────
  |  t
-R|  /idle                                                                 2 of 4
+R|  /idle                                                         2 of 4  substr
  |  pane                  harness      state    cwd
 R|  work/claude           claude-code  idle     ~/proj/matomeru
  |  play/pi               pi           idle     ~/proj/nabe
@@ -20,5 +20,5 @@ r|  b1
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────
- |  enter list.filter-keep · esc list.filter-clear
+ |  enter list.filter-keep · esc list.filter-clear · tab search.cycle-match
  |

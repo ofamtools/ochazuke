@@ -125,6 +125,9 @@ type Chooser struct {
 	// tallest is the most lines the rows view has drawn while open: with
 	// chooser.stable-height it pads to it, so typing never resizes it.
 	tallest int
+	// match is the match mode search.cycle-match or search.set-match
+	// chose while open; "" is the chooser.match setting (search_match.go).
+	match string
 }
 
 // ChooserStableHeightSetting keeps an open chooser at the height it
@@ -225,6 +228,28 @@ func (r *Runtime) chooserAt(inst *Instance) *Chooser {
 		}
 	}
 	return r.Chooser(r.TopModal())
+}
+
+// MatchMode is the chooser's match mode: the one search.cycle-match or
+// search.set-match chose while it is open, else the chooser.match
+// setting. It decides the default filter only (not a Filter of the
+// application's own, not a Live source's own ranking).
+func (c *Chooser) MatchMode() string {
+	if c.match != "" {
+		return c.match
+	}
+	return c.r.ChooserMatch()
+}
+
+// matcher is the query compiled in the chooser's match mode.
+func (c *Chooser) matcher() Matcher { return c.r.Matcher(c.MatchMode(), c.Query()) }
+
+// The matchSearcher contract (search_match.go).
+func (c *Chooser) matchMode() string  { return c.MatchMode() }
+func (c *Chooser) matchApplies() bool { return c.spec.Filter == nil && !c.live() }
+func (c *Chooser) setMatchMode(mode string) {
+	c.match = mode
+	c.refilter()
 }
 
 // Kind is the chooser's modal kind.
@@ -345,7 +370,8 @@ func (c *Chooser) refilter() {
 	cm := c.r.CaseFor(c.seen)
 	filter := c.spec.Filter
 	if filter == nil {
-		filter = func(query string, row ChooserRow) bool { return fuzzyMatch(cm, query, row.Label) }
+		m := c.matcher()
+		filter = func(_ string, row ChooserRow) bool { return m.Match(row.Label) }
 	}
 	var head, tail, fixed []ChooserRow
 	for _, row := range c.spec.Rows {
@@ -422,6 +448,10 @@ func (c *Chooser) refilter() {
 func (c *Chooser) holds(rows []ChooserRow) bool {
 	if len(rows) == 0 {
 		return false
+	}
+	if c.spec.Filter == nil && !c.matcher().Scattered() {
+		// A substring or regex match is spelled in the row, never strewn.
+		return true
 	}
 	label := rows[0].Label
 	cm := c.r.CaseFor(c.seen)
@@ -557,8 +587,30 @@ func previewLines(text string, width, height int) []string {
 // rowsView is View's search line and rows, each line width cells wide.
 func (c *Chooser) rowsView(width, height int) Block {
 	const prefix = "› "
-	line := InputBlock(c.input, max(8, width-ansi.StringWidth(prefix)), 1).Offset(ansi.StringWidth(prefix), 0)
-	lines := []string{prefix + line.Text}
+	// The search line's right end says why nothing can match (an invalid
+	// regex) and the match mode (search.show-match), while they apply.
+	var right []string
+	if c.matchApplies() {
+		if err := c.matcher().Err(); err != nil {
+			right = append(right, err.Error())
+		}
+		if tag := c.r.matchTagFor(c.MatchMode()); tag != "" {
+			right = append(right, tag)
+		}
+	}
+	tail := strings.Join(right, "  ")
+	inputWidth := max(8, width-ansi.StringWidth(prefix))
+	if tail != "" && inputWidth-ansi.StringWidth(tail)-1 >= 8 {
+		inputWidth -= ansi.StringWidth(tail) + 1
+	} else {
+		tail = ""
+	}
+	line := InputBlock(c.input, inputWidth, 1).Offset(ansi.StringWidth(prefix), 0)
+	search := prefix + line.Text
+	if tail != "" {
+		search = searchLine(search, tail, width)
+	}
+	lines := []string{search}
 	rowsHeight := max(1, height-2)
 	switch {
 	case len(c.spec.Rows) == 0 && c.emptyLine() != "":
@@ -748,15 +800,9 @@ func cmpBool(x, y bool) int {
 }
 
 // fuzzyMatch reports whether query's runes appear in text in order, case
-// as cm compares it.
+// as cm compares it (fuzzyScore's rule; an application's Filter may call
+// it through a Matcher instead).
 func fuzzyMatch(cm CaseMatch, query, text string) bool {
-	text = cm.String(text)
-	for _, char := range cm.String(query) {
-		pos := strings.IndexRune(text, char)
-		if pos < 0 {
-			return false
-		}
-		text = text[pos+len(string(char)):]
-	}
-	return true
+	_, ok := fuzzyScore(text, []rune(cm.String(query)), cm)
+	return ok
 }

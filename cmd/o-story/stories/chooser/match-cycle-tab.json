@@ -1,0 +1,23 @@
+{
+  "name": "chooser: tab cycles the match mode fuzzy, regex, substring (shift+tab back); the search line's tag names it; ctrl+o is next-source now",
+  "area": "chooser",
+  "width": 80,
+  "height": 14,
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "chooser": {
+      "kind": "pick",
+      "title": "Pick",
+      "rows": [{"id": "1", "label": "alpha-beta"}, {"id": "2", "label": "albatross"}, {"id": "3", "label": "gamma"}]
+    }
+  },
+  "script": [{"type": "ab"}, "tab", "ctrl+u", {"type": "^al"}, "tab", "shift+tab", "enter"],
+  "expect": [
+    {"after": 1, "modal": "pick", "contains": ["› ab", "fuzzy", "alpha-beta", "albatross"], "lacks": ["gamma"]},
+    {"after": 2, "contains": ["regex", "no matches"]},
+    {"after": 4, "contains": ["› ^al", "regex", "alpha-beta", "albatross"], "lacks": ["gamma"]},
+    {"after": 5, "contains": ["substr", "no matches"]},
+    {"after": 6, "contains": ["regex", "alpha-beta"]},
+    {"modal": ""}
+  ]
+}

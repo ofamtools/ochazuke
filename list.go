@@ -45,6 +45,7 @@ type List struct {
 	query       string     // the filter query; "" shows every row
 	hay         []string   // each row's filter text (filterHay), built on the first filter; nil after SetItems
 	hayFold     bool       // hay was built case-folded (CaseMatch.Fold); a query that changes it rebuilds hay
+	match       string     // the filter's match mode set by search.cycle-match/set-match; "" is search.match (search_match.go)
 	back        string     // the row selected when the filter line opened, which filter-clear selects again
 	selected    int
 	offset      int

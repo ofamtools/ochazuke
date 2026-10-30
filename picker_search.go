@@ -14,7 +14,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-	"unicode"
 )
 
 // PickerEntry is relative to the indexed root. Symlinks are selectable files,
@@ -209,13 +208,19 @@ func indexPickerEntries(ctx context.Context, root string, recursive bool) ([]Pic
 // caseMode is the search.case setting (CaseFor): with no upper-case letter
 // in the query, smart ranks exactly as ignore does.
 func searchPicker(ctx context.Context, entries []PickerEntry, query, filter, caseMode string) ([]PickerEntry, error) {
+	return searchPickerMatch(ctx, entries, NewMatcher(MatchFuzzy, caseMode, filepath.ToSlash(query)), filter)
+}
+
+// searchPickerMatch is the entries m matches (none for an invalid regex),
+// best score first (Matcher.ScorePrepared: fuzzyScore for fuzzy and
+// substring, level for regex), then directories first on a blank query,
+// then lexical path.
+func searchPickerMatch(ctx context.Context, entries []PickerEntry, m Matcher, filter string) ([]PickerEntry, error) {
 	type match struct {
 		entry PickerEntry
 		score int
 	}
-	query = filepath.ToSlash(query)
-	cm := CaseFor(caseMode, query)
-	needle := []rune(cm.String(query))
+	blank := m.needle == nil && m.terms == nil && m.re == nil
 	matches := make([]match, 0)
 	for _, entry := range entries {
 		if err := ctx.Err(); err != nil {
@@ -224,7 +229,7 @@ func searchPicker(ctx context.Context, entries []PickerEntry, query, filter, cas
 		if filter == "dir" && !entry.Dir || filter == "file" && entry.Dir {
 			continue
 		}
-		score, ok := pickerFuzzyScore(entry.Path, needle, cm)
+		score, ok := m.ScorePrepared(m.Prepare(entry.Path))
 		if ok {
 			matches = append(matches, match{entry, score})
 		}
@@ -233,7 +238,7 @@ func searchPicker(ctx context.Context, entries []PickerEntry, query, filter, cas
 		if matches[i].score != matches[j].score {
 			return matches[i].score > matches[j].score
 		}
-		if len(needle) == 0 && matches[i].entry.Dir != matches[j].entry.Dir {
+		if blank && matches[i].entry.Dir != matches[j].entry.Dir {
 			return matches[i].entry.Dir
 		}
 		return matches[i].entry.Path < matches[j].entry.Path
@@ -246,30 +251,4 @@ func searchPicker(ctx context.Context, entries []PickerEntry, query, filter, cas
 		result[i] = match.entry
 	}
 	return result, nil
-}
-
-func pickerFuzzyScore(path string, needle []rune, cm CaseMatch) (int, bool) {
-	if len(needle) == 0 {
-		return 0, true
-	}
-	matched, position, previous, score := 0, 0, -2, 0
-	var before rune
-	for _, original := range path {
-		ch := cm.Rune(original)
-		score--
-		if matched < len(needle) && ch == needle[matched] {
-			if position == previous+1 {
-				score += 12
-			}
-			if position == 0 || before == '/' || before == '-' || before == '_' || unicode.IsSpace(before) {
-				score += 16
-			}
-			score -= position - previous - 1
-			previous = position
-			matched++
-		}
-		before = ch
-		position++
-	}
-	return score, matched == len(needle)
 }
