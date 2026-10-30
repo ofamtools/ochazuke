@@ -655,3 +655,46 @@ func TestListApplyAsksTheStoresPromptForManyRows(t *testing.T) {
 		t.Fatalf("prompt %q (hook got %v)", p, got)
 	}
 }
+
+// A store's ConfirmFor that adds to the standard prompt (mtm's orphan
+// counts): list.apply's confirm fills the prompt's fields from the rows'
+// request, never list.apply's own arguments ("Delete task true?" in
+// v0.56.0). One row names its label read from the store; several name the
+// first and count the rest, the store's lines after it.
+func TestListApplyStorePromptAddsToTheRowsCount(t *testing.T) {
+	r := NewRuntime()
+	s := &writeStore{taskStore: newTaskStore()}
+	st := s.store()
+	var got []string
+	st.ConfirmFor = func(c Ctx, verb string, keys []string, prompt string) string {
+		got = keys
+		return prompt + "\nOrphan: " + strings.Join(keys, ", ")
+	}
+	r.Define("task").Props(taskWriteProps()...).Store(st)
+	r.Instance("tasks")
+	var rows []ListItem
+	for _, id := range []string{"t1", "t2", "t3"} {
+		rows = append(rows, ListItem{ID: "row-" + id, Label: id, Noun: "task", Data: Thing{"id": id}})
+	}
+	l, err := r.AddList("tasks/list", rows, Parent("tasks"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := r.SetFocus("row-t1"); err != nil {
+		t.Fatal(err)
+	}
+	v := mustRun(t, r, Request{Noun: "ochazuke.list", Verb: "apply", Args: Arguments{"id": "tasks/list", "verb": "delete"}})
+	if p := v.(map[string]any)["prompt"]; p != "Delete task Water the plants?\nOrphan: t1" {
+		t.Fatalf("one row: prompt %q (hook got %v)", p, got)
+	}
+	mustRun(t, r, Request{Noun: "ochazuke.modal", Verb: "pop"})
+	for _, id := range []string{"row-t1", "row-t2"} {
+		if err := l.ToggleMark(id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	v = mustRun(t, r, Request{Noun: "ochazuke.list", Verb: "apply", Args: Arguments{"id": "tasks/list", "verb": "delete"}})
+	if p := v.(map[string]any)["prompt"]; p != "Delete task Water the plants and 1 more?\nOrphan: t1, t2" {
+		t.Fatalf("two rows: prompt %q (hook got %v)", p, got)
+	}
+}

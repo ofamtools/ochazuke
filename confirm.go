@@ -54,7 +54,9 @@ var promptField = regexp.MustCompile(`\{\{\s*(\w+)\s*\}\}`)
 // {{noun}} is always the verb's noun (the request's), never the focused
 // or targeted instance's. A request that names its thing by the noun's key
 // argument (task delete --id t2) is about that thing: {{id}} and
-// {{target}} are the key, {{label}} its label read from the store. Else
+// {{target}} are the key, {{label}} its label read from the store. A
+// request over several subjects names the first by its store label and
+// counts the rest ("Water the plants and 1 more"). Else
 // {{id}}, {{target}} and {{label}} describe the instance the request
 // addresses: an explicit target, or an instance of the verb's noun on the
 // focus path. A request that addresses none (a CLI call with positional
@@ -65,8 +67,16 @@ var promptField = regexp.MustCompile(`\{\{\s*(\w+)\s*\}\}`)
 // arguments. A label argument always wins for {{label}};
 // {{<arg>}} is that argument everywhere.
 func (r *Runtime) openConfirm(c Context, q Request, op Operation) (any, error) {
+	return r.openConfirmAbout(c, q, q, op)
+}
+
+// openConfirmAbout is openConfirm for a request run on another's behalf:
+// the prompt's fields read q, the request the prompt is about (task.delete
+// over the rows), and y runs run (the list.apply that asked, confirmed),
+// so {{label}} never reads the asking verb's own arguments.
+func (r *Runtime) openConfirmAbout(c Context, q, run Request, op Operation) (any, error) {
 	inst := r.Instances[focusOf(c)]
-	stored := q
+	stored := run
 	stored.Confirmed = true
 	stored.Target = inst.ID
 	// A request that names its thing by the noun's key argument (task
@@ -87,6 +97,15 @@ func (r *Runtime) openConfirm(c Context, q Request, op Operation) (any, error) {
 			// instance the request acts for).
 			if label := r.storeLabel(c, q, inst); label != "" {
 				return label
+			}
+		}
+		if _, given := q.Args["label"]; name == "label" && !given && named == "" && len(q.Subjects) > 1 {
+			// Several subjects name the first by its store label, as one
+			// does, and count the rest (subjectsLabel's form).
+			if first := r.Instances[q.Subjects[0]]; first != nil {
+				if label := r.storeLabel(c, q, first); label != "" {
+					return fmt.Sprintf("%s and %d more", label, len(q.Subjects)-1)
+				}
 			}
 		}
 		if name == "noun" {

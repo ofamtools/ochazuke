@@ -509,9 +509,10 @@ Conformance:
 | terminal | terminal | `terminal.detach` `terminal.send` |
 | visual | input | `input.cancel` `input.move` `input.operator` |
 | visual-line | confirm | `confirm.accept` |
-| visual-line | demo | `demo.check` `demo.nest` `demo.set` `demo.tag` `demo.zap` |
+| visual-line | demo | `demo.check` `demo.delete` `demo.nest` `demo.set` `demo.tag` `demo.zap` |
 | visual-line | input | `input.cancel` `input.move` `input.operator` |
 | visual-line | list | `list.apply` `list.end-visual` `list.goto` `list.move` `list.yank` |
+| visual-line | modal | `modal.pop` |
 | visual-line | mode | `mode.enter` `mode.leave` |
 
 Mode edges (from → to via):
