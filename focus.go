@@ -374,6 +374,12 @@ func (r *Runtime) OpenModal(kind string, payload Payload, opts ...ModalOption) (
 		if err := r.Pop(); err != nil {
 			return nil, err
 		}
+		// The replacement opens from where the replaced modal opened. Its
+		// opener (the help's own ?, on a row of the help) went with it,
+		// and a gone opener is inside no modal: the help opened over the
+		// docs viewer would refuse its own reopen as coming from beneath
+		// the viewer ("a modal is open above this level").
+		defer r.actingFor(r.Focus)()
 	}
 	if err := r.openFromTopLevel(""); err != nil {
 		return nil, err

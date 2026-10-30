@@ -1,0 +1,15 @@
+{
+  "name": "? inside the help opened over the docs viewer shows the help again in its place, not \"a modal is open above this level\"; esc goes back to the viewer, esc again to the page",
+  "area": "help",
+  "width": 110,
+  "height": 40,
+  "page": {"lists": [{"id": "a", "rows": 2}]},
+  "script": [":", {"type": "help"}, "enter", "?", "?", "esc", "esc"],
+  "expect": [
+    {"after": 3, "modal": "docs-viewer", "contains": ["index"]},
+    {"after": 4, "modal": "bindings-help", "contains": ["Keys", "docs-viewer"]},
+    {"after": 5, "modal": "bindings-help", "contains": ["Keys", "docs-viewer"], "lacks": ["modal is open above", "already open"]},
+    {"after": 6, "modal": "docs-viewer", "contains": ["index"], "lacks": ["modal is open above"]},
+    {"modal": "", "focus": "a1", "lacks": ["modal is open above"]}
+  ]
+}
