@@ -411,10 +411,12 @@ func (p *Palette) parseTokens(ix lineIndex, tokens []lineToken) commandLine {
 	case hit.Value != "":
 		return p.parseRest(ix, hit, tokens)
 	case exact:
-		// A word that is a verb and a noun: the reading that resolves
+		// A word that is a verb and a noun: a typed noun whose next word
+		// is its verb or prop reads as that noun (note rename beside a
+		// focused doc's own note verb); else the reading that resolves
 		// further wins, the verb on a tie.
 		verb, noun := p.parseRest(ix, option{Kind: "verb", Value: word}, tokens), p.parseRest(ix, option{Kind: "noun", Value: word}, tokens)
-		if resolved(noun) > resolved(verb) {
+		if nounReads(noun) || resolved(noun) > resolved(verb) {
 			return noun
 		}
 		return verb
@@ -434,6 +436,22 @@ func (p *Palette) parseTokens(ix lineIndex, tokens []lineToken) commandLine {
 	c.Words = append(c.Words, PaletteWord{Text: word, Candidates: optionValues(candidates)})
 	c.Err = unresolvedError(word, "verb or noun", candidates)
 	return c
+}
+
+// nounReads reports whether a line read with its first word as a noun
+// resolved the second as that noun's verb, prop or instance: the noun
+// reading names a thing of the noun, so it wins over a verb of the same
+// word that would only take the second word as an argument. After the
+// noun the second word keeps readNounWord's verb > prop > key order.
+func nounReads(c commandLine) bool {
+	if len(c.Words) < 2 || c.Words[0].Kind != "noun" {
+		return false
+	}
+	switch c.Words[1].Kind {
+	case "verb", "prop", "instance":
+		return true
+	}
+	return false
 }
 
 // resolved counts the words of a parse before its first failure, and one
