@@ -50,6 +50,17 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 			app.Args = append(append(strings.Split(a.Noun, "."), a.Verb), app.Args[1:]...)
 		}
 	}
+	// A deprecated noun alias (an extension noun's old name, AddNounAlias
+	// with Since or RemoveAfter) has no group, so help does not list it:
+	// the word is read as its noun's groups, with its one-time notice.
+	if len(app.Args) > 0 {
+		if a, ok := r.DeprecatedNounAlias(app.Args[0]); ok {
+			if text, ok := r.NounAliasNotice(a.Alias); ok {
+				fmt.Fprintln(sh.stderr(), "notice:", text)
+			}
+			app.Args = append(strings.Split(a.Noun, "."), app.Args[1:]...)
+		}
+	}
 	// A dotted noun is one word too (bin ochazuke.settings list): the word is
 	// read as the groups it nests in before oden resolves it.
 	if len(app.Args) > 0 && strings.Contains(app.Args[0], ".") {
@@ -185,10 +196,12 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 	for _, name := range root.names() {
 		topNames, top[name] = append(topNames, name), root.children[name]
 	}
-	// A short name (settings for ochazuke.settings) is a group of its own too
-	// while no noun of that name shadows it, so bin settings list works.
+	// A short name (settings for ochazuke.settings, doc for a mounted
+	// json.doc) is a group of its own too while no noun of that name
+	// shadows it, so bin settings list works; a deprecated one is not
+	// listed (it is read above).
 	for _, a := range r.Aliases() {
-		if a.Shadowed || top[a.Alias] != nil {
+		if a.Shadowed || a.Deprecated() || top[a.Alias] != nil {
 			continue
 		}
 		if g := root.find(a.Noun); g != nil {

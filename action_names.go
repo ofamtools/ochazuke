@@ -109,6 +109,7 @@ type actionNames struct {
 	invocation Invocation             // the running request's name
 	noticed    map[string]bool        // deprecated aliases whose notice was posted
 	problems   []string               // aliases dropped because an action took their name
+	nouns      nounNames              // the noun aliases' reverse index, deprecated fields and notices (namespace.go)
 }
 
 // Invoked is the name the running request named its action by (the

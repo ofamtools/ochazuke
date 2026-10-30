@@ -245,9 +245,10 @@ func (p *Palette) accept(entry PaletteEntry) error {
 // a space, so the list moves on to the next word.
 func (p *Palette) appendWord(word string) error {
 	text := p.Text()
-	if _, trailing := tokenize(text); !trailing {
-		i := strings.LastIndexAny(text, " \t")
-		text = text[:i+1]
+	if tokens, trailing := tokenize(text); !trailing {
+		// From where the word being typed starts: a quoted word may hold
+		// spaces ("Pull R).
+		text = string([]rune(text)[:tokens[len(tokens)-1].Start])
 	}
 	return p.setText(text + quoteWord(word) + " ")
 }
@@ -271,6 +272,9 @@ func (p *Palette) run() error {
 	c := p.parse(p.Text())
 	if c.Err != nil {
 		return c.Err
+	}
+	for _, name := range c.Old {
+		p.r.NoteNounAlias(name) // a deprecated noun alias: accepted, with its one-time notice
 	}
 	if c.Missing != "" {
 		if _, param := c.Op.Parameters[c.Missing]; param && c.known() && p.r.missingOpensForm() {

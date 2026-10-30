@@ -68,9 +68,48 @@ func (p *Palette) instanceChoices(noun string) []Choice {
 		if label == "" {
 			label = instance.ID
 		}
-		out = append(out, Choice{ID: instance.ID, Label: label})
+		out = append(out, Choice{ID: instance.ID, Label: label, Word: instance.Word})
 	}
 	return out
+}
+
+// PaletteChoiceWordsSetting says whether the palette offers a choice's
+// own word (Choice.Word, a page's title) or its id.
+const PaletteChoiceWordsSetting = "palette.choice-words"
+
+// choiceWords reports whether choices are offered and read by their words.
+func (p *Palette) choiceWords() bool {
+	return p.r.Settings().String(PaletteChoiceWordsSetting) != "id"
+}
+
+// choiceOptions are the options a choice word matches: each choice's word
+// (resolving to its id) and its id (a prefix of either names it); without
+// palette.choice-words the ids alone.
+func (p *Palette) choiceOptions(kind string, choices []Choice) []option {
+	words := p.choiceWords()
+	out := make([]option, 0, len(choices))
+	for _, choice := range choices {
+		if words && choice.Word != "" && choice.Word != choice.ID {
+			out = append(out, option{Kind: kind, Value: choice.Word, to: choice.ID}, option{Kind: kind, Value: choice.ID})
+			continue
+		}
+		out = append(out, option{Kind: kind, Value: choice.ID})
+	}
+	return out
+}
+
+// choiceEntry is a choice's completion: its word, labelled word then id
+// (JSON  ext/json), when it has one and palette.choice-words is word, else
+// its id.
+func (p *Palette) choiceEntry(choice Choice) PaletteEntry {
+	if p.choiceWords() && choice.Word != "" {
+		label := choice.Word
+		if choice.ID != choice.Word {
+			label += "  " + choice.ID
+		}
+		return PaletteEntry{Value: choice.Word, Kind: "choice", Label: label, ID: choice.ID}
+	}
+	return PaletteEntry{Value: choice.ID, Kind: "choice", Label: choiceLabel(choice), ID: choice.ID}
 }
 
 // choiceLabel shows a choice with its id when the label differs.
@@ -158,6 +197,7 @@ func (p *Palette) currentSlot() (paramSlot, bool) {
 		return paramSlot{}, false
 	}
 	ix := p.index()
+	tokens = ix.nounRuns(p.r, tokens)
 	return p.slot(ix, p.parseTokens(ix, tokens), tokens)
 }
 

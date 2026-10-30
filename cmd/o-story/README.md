@@ -127,6 +127,11 @@ it to the timer's deadline and delivers the timer's message
                                      // "demo.open-file path=main.go" (writes) and returns rows;
                                      // aliases are ActionAlias rows (action is the verb), and a
                                      // run through one logs " via=demo.base.add" after the arguments
+    nouns: [{ noun: "json.doc", verbs: ["rows"],
+              aliases: [{ alias: "doc" }, { alias: "json-doc", since: "v0.57.0" }] }],
+                                     // nouns besides demo, as a host mounts an extension's (json.doc);
+                                     // a run logs "json.doc.rows" (writes); aliases are NounAlias rows
+                                     // (Runtime.AddNounAlias; since/removeAfter: deprecated) (palette/noun-*)
     store: { props: [{ name: "id", key: true }, { name: "title", role: "label", fallback: "summary" }],
              things: [{ id: "a1", title: "", summary: "first line" }] },
                                      // the demo noun's props and an in-memory store (PropSpec rows):

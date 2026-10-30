@@ -413,6 +413,7 @@ func (r *Runtime) CheckUserBindings() []string {
 			if note := r.aliasRowNote(f.where, row); note != "" {
 				problems = append(problems, note)
 			}
+			problems = append(problems, r.nounAliasRowNotes(f.where, f.row)...)
 			if row.identityGuard() != "" && !row.Unbind {
 				problems = append(problems, fmt.Sprintf("warning: %s: %s %s: when %s is a guard row, a debt: the first row on a key whose action is available answers, so a row needs no condition when its action reports availability", BindingsFile, f.where, row.Keys+row.Pattern, row.When))
 			}
@@ -448,6 +449,19 @@ func (r *Runtime) aliasRowNote(where string, row Binding) string {
 		note += "; " + a.notice(r.DisplayKey) + ": rename the row to " + r.DisplayKey(a.Action)
 	}
 	return note
+}
+
+// nounAliasRowNotes say that a file row names a noun (its noun or its
+// request's) by a deprecated noun alias: accepted, with the noun to
+// rename it to.
+func (r *Runtime) nounAliasRowNotes(where string, row Binding) []string {
+	var out []string
+	for _, name := range []string{row.Noun, row.Request.Noun} {
+		if a, ok := r.DeprecatedNounAlias(name); ok {
+			out = append(out, fmt.Sprintf("%s: %s %s: %s resolves to %s; %s: rename the row's noun to %s", BindingsFile, where, row.Keys+row.Pattern, name, a.Noun, a.notice(r.DisplayNoun), r.DisplayNoun(a.Noun)))
+		}
+	}
+	return out
 }
 
 func rowProblem(where string, row Binding, err error) string {

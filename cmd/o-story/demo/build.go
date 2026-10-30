@@ -358,6 +358,9 @@ func (ss *session) defineDemo(pages []*Page) error {
 				return err
 			}
 		}
+		if err := ss.defineNouns(p.Nouns); err != nil {
+			return err
+		}
 		if p.Store != nil {
 			if err := ss.defineStore(d, p.Store); err != nil {
 				return err
@@ -486,6 +489,35 @@ func (ss *session) check(c ochazuke.Ctx) ochazuke.Result {
 		return ochazuke.Done(id)
 	}
 	return ochazuke.Failed(errors.New("not an outline row"))
+}
+
+// defineNouns registers a page's own nouns (Page.Nouns), their verbs
+// logging to writes, and their aliases.
+func (ss *session) defineNouns(nouns []NounSpec) error {
+	for _, n := range nouns {
+		if n.Noun == "" {
+			return errors.New("noun: a name is required")
+		}
+		d := ss.R.Define(n.Noun)
+		for _, verb := range n.Verbs {
+			key := n.Noun + "." + verb
+			d.Verb(verb, func(c ochazuke.Ctx) ochazuke.Result {
+				entry := key
+				for _, name := range slices.Sorted(maps.Keys(c.Args)) {
+					entry += fmt.Sprintf(" %s=%v", name, c.Args[name])
+				}
+				ss.Writes = append(ss.Writes, entry)
+				return ochazuke.Done(nil)
+			}, "Log "+key)
+		}
+		for _, a := range n.Aliases {
+			a.Noun = n.Noun
+			if err := ss.R.AddNounAlias(a); err != nil {
+				return fmt.Errorf("noun %s: %w", n.Noun, err)
+			}
+		}
+	}
+	return nil
 }
 
 // defineVerb registers a VerbSpec on the demo noun.

@@ -350,7 +350,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool) ([]byte, err
 		doc.Segments = append(doc.Segments, catalogSegment(r, s.Segment))
 	}
 	for _, a := range r.Aliases() {
-		if !a.Shadowed {
+		if !a.Shadowed && !a.Deprecated() {
 			if doc.Aliases == nil {
 				doc.Aliases = map[string]string{}
 			}

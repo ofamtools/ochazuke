@@ -13,11 +13,16 @@ import (
 type Choice struct {
 	ID    string `json:"id"`
 	Label string `json:"label"`
+	// Word is what the palette offers and takes for the choice when it is
+	// not the id ("" the id): a page's title for page open. Typed whole,
+	// the id still names it (palette.choice-words).
+	Word string `json:"word,omitempty"`
 }
 
 // ParseChoices reads a source operation's result: []string, []Choice,
 // []PaletteInstance, []Operation (the id is noun.verb), []map whose id is
-// "id", else "key", else "name" and whose label is "label", else "title",
+// "id", else "key", else "name" and whose label is "label", else "title"
+// (and word "word", Choice.Word),
 // or []any of strings or such maps (the JSON-decoded form).
 func ParseChoices(result any) ([]Choice, error) {
 	var out []Choice
@@ -37,14 +42,16 @@ func ParseChoices(result any) ([]Choice, error) {
 				return errors.New("choice map needs a string id, key or name")
 			}
 			label, _ := firstString(item, "label", "title")
-			out = append(out, Choice{ID: id, Label: label})
+			word, _ := firstString(item, "word")
+			out = append(out, Choice{ID: id, Label: label, Word: word})
 		case map[string]string:
 			id, ok := firstString(item, "id", "key", "name")
 			if !ok {
 				return errors.New("choice map needs a string id, key or name")
 			}
 			label, _ := firstString(item, "label", "title")
-			out = append(out, Choice{ID: id, Label: label})
+			word, _ := firstString(item, "word")
+			out = append(out, Choice{ID: id, Label: label, Word: word})
 		default:
 			return fmt.Errorf("unsupported choice %T", v)
 		}

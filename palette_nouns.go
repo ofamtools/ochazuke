@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 )
@@ -10,6 +11,9 @@ import (
 type PaletteInstance struct {
 	ID    string `json:"id"`
 	Label string `json:"label"`
+	// Word is the word the palette offers and takes for it ("" the id):
+	// a page's title (Choice.Word).
+	Word string `json:"word,omitempty"`
 }
 
 // PaletteSource reads current instances in the context captured when the palette opened.
@@ -81,7 +85,7 @@ func (p *Palette) RegisterNoun(noun string, config PaletteNoun) error {
 func PagesPaletteSource(r *Runtime, _ Context) []PaletteInstance {
 	var instances []PaletteInstance
 	for _, page := range r.PageList() {
-		instances = append(instances, PaletteInstance{ID: page.ID, Label: page.Title})
+		instances = append(instances, PaletteInstance{ID: page.ID, Label: page.Title, Word: page.Title})
 	}
 	return instances
 }
@@ -106,6 +110,7 @@ func (p *Palette) completions() []PaletteEntry {
 		tokens = tokens[:len(tokens)-1]
 	}
 	ix := p.index()
+	tokens = ix.nounRuns(p.r, tokens)
 	view := p.r.StandardVerbsView()
 	var out []PaletteEntry
 	verbs := func(names []string, noun string) {
@@ -146,7 +151,7 @@ func (p *Palette) completions() []PaletteEntry {
 		list, _ := p.paramChoices(op, name, partial, args)
 		pairs := op.Parameters[name].Pairs
 		for _, choice := range list {
-			entry := PaletteEntry{Value: choice.ID, Kind: "choice", Label: choiceLabel(choice), ID: choice.ID}
+			entry := p.choiceEntry(choice)
 			if pairs && strings.HasSuffix(choice.ID, "=") {
 				// NAME= of a pairs parameter: taking it leaves the cursor
 				// after the =, for the value.
@@ -163,9 +168,16 @@ func (p *Palette) completions() []PaletteEntry {
 			}
 		}
 		verbs(own, "")
-		nouns(optionValues(ix.byNouns))
+		nouns(ix.nounWords())
+		if partial != "" {
+			out = append(out, ix.spaceEntries("")...)
+		}
 	} else {
 		c := p.parseTokens(ix, tokens)
+		if entries, ok := ix.namespaceAt(p.r, tokens); ok {
+			// After a namespace's words (json ), its nouns' next words.
+			out = append(out, entries...)
+		}
 		switch {
 		case c.Err != nil:
 		case len(tokens) == 1 && c.Words[0].Kind == "verb":
@@ -192,11 +204,69 @@ func (p *Palette) completions() []PaletteEntry {
 	kind := map[string]string{"v": "verb", "n": "noun", "p": "choice"}[p.filter]
 	filtered := out[:0]
 	for _, entry := range out {
-		if (kind == "" || entry.Kind == kind) && (hasPrefixFold(entry.Value, partial) || partial != "" && slices.ContainsFunc(entry.Aliases, func(a string) bool { return hasPrefixFold(a, partial) })) {
+		if (kind == "" || entry.Kind == kind) && (hasPrefixFold(entry.Value, partial) || partial != "" && (slices.ContainsFunc(entry.Aliases, func(a string) bool { return hasPrefixFold(a, partial) }) || entry.ID != "" && entry.ID != entry.Value && hasPrefixFold(entry.ID, partial))) {
 			filtered = append(filtered, entry)
 		}
 	}
 	return filtered
+}
+
+// nounWords are the nouns' own words (byNouns without the other names
+// and tails), in list order.
+func (ix lineIndex) nounWords() []string {
+	var out []string
+	for _, o := range ix.byNouns {
+		if o.to == "" {
+			out = append(out, o.Value)
+		}
+	}
+	return out
+}
+
+// spaceEntries are the completions under namespace prefix ("" the top
+// level: the namespaces themselves, json · namespace): a word that
+// completes a noun shows the noun's word, a deeper namespace says so.
+func (ix lineIndex) spaceEntries(prefix string) []PaletteEntry {
+	var out []PaletteEntry
+	if prefix == "" {
+		for _, name := range slices.Sorted(maps.Keys(ix.spaces)) {
+			if !strings.Contains(name, ".") && !ix.isNounName(name) {
+				out = append(out, PaletteEntry{Value: name, Kind: "noun", Label: name + " · namespace"})
+			}
+		}
+		return out
+	}
+	next := ix.spaces[prefix]
+	for _, word := range slices.Sorted(maps.Keys(next)) {
+		label := word + " · namespace"
+		if next[word] != "" {
+			label = word + " · " + prefix + "." + word
+		}
+		out = append(out, PaletteEntry{Value: word, Kind: "noun", Label: label})
+	}
+	return out
+}
+
+// namespaceAt is the completion after namespace words at a noun position
+// (the line's words so far, or those after a first verb, joined with dots,
+// are a namespace): that namespace's next words. palette.namespace-words.
+func (ix lineIndex) namespaceAt(r *Runtime, tokens []lineToken) ([]PaletteEntry, bool) {
+	if !r.Settings().Bool(PaletteNamespaceWordsSetting) {
+		return nil, false
+	}
+	for _, at := range []int{0, 1} {
+		if at >= len(tokens) || at == 1 && ix.isNounName(tokens[0].Text) {
+			continue
+		}
+		words := make([]string, 0, len(tokens)-at)
+		for _, t := range tokens[at:] {
+			words = append(words, strings.ToLower(t.Text))
+		}
+		if prefix := strings.Join(words, "."); ix.spaces[prefix] != nil {
+			return ix.spaceEntries(prefix), true
+		}
+	}
+	return nil, false
 }
 
 // aliasWords are the words that name op as a verb in the palette besides
@@ -258,6 +328,7 @@ func (p *Palette) restAt(ix lineIndex) (op Operation, name string, start, cursor
 	if len(tokens) == 0 {
 		return Operation{}, "", 0, 0, false
 	}
+	tokens = ix.nounRuns(p.r, tokens)
 	c := p.parseTokens(ix, tokens)
 	if c.Err == nil && c.Rest != nil && at >= c.Rest.Start {
 		return c.Op, c.Rest.Param, c.Rest.Start, at - c.Rest.Start, true

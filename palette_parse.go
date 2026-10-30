@@ -121,6 +121,9 @@ type commandLine struct {
 	// optional key word, Operation.SubjectOmitted): no later word fills
 	// them.
 	Omitted []string
+	// Old are the words that named a noun by a deprecated alias: the
+	// line runs with each one's notice (NoteNounAlias).
+	Old []string
 }
 
 // restSpan is the rest parameter a line fills and the rune offset its
@@ -161,20 +164,44 @@ type option struct {
 	Kind  string // verb, noun, instance, argument
 	Value string
 	alias bool // an action alias's word: it resolves when typed whole, never as a prefix or a completion
+	// to is the word the option resolves to when it differs from Value: a
+	// noun's other names (its canonical name, its aliases) resolve to the
+	// noun's word, a choice's word to its id.
+	to string
+	// tail marks a namespaced noun's last part (doc for json.doc): it
+	// resolves when typed whole and no name claims the word, below an
+	// exact name and above a prefix (palette.noun-tails).
+	tail bool
+}
+
+// resolved is the word an option stands for.
+func (o option) resolved() option {
+	if o.to != "" {
+		o.Value, o.to = o.to, ""
+	}
+	o.alias, o.tail = false, false
+	return o
 }
 
 // matchWord resolves word among options: an exact match (ignoring case)
-// wins, else a unique prefix. Several exact matches (a word that is both a
-// verb and a noun) come back as candidates with exact set.
+// wins, then a namespaced noun's last part (tail options: one is taken,
+// several are candidates), else a unique prefix. Several exact matches (a
+// word that is both a verb and a noun) come back as candidates with exact
+// set. Options resolving to the same word count once.
 func matchWord(word string, options []option) (hit option, candidates []option, exact bool) {
 	lower := strings.ToLower(word)
-	var exacts, prefixes []option
+	var exacts, tails, prefixes []option
 	for _, o := range options {
 		v := strings.ToLower(o.Value)
-		if v == lower {
-			exacts = append(exacts, o)
-		} else if strings.HasPrefix(v, lower) && !o.alias {
-			prefixes = append(prefixes, o)
+		switch {
+		case o.tail:
+			if v == lower {
+				tails = appendResolved(tails, o)
+			}
+		case v == lower:
+			exacts = appendResolved(exacts, o)
+		case strings.HasPrefix(v, lower) && !o.alias:
+			prefixes = appendResolved(prefixes, o)
 		}
 	}
 	switch {
@@ -182,10 +209,25 @@ func matchWord(word string, options []option) (hit option, candidates []option, 
 		return exacts[0], nil, true
 	case len(exacts) > 1:
 		return option{}, exacts, true
+	case len(tails) == 1:
+		return tails[0], nil, false
+	case len(tails) > 1:
+		return option{}, tails, false
 	case len(prefixes) == 1:
 		return prefixes[0], nil, false
 	}
 	return option{}, prefixes, false
+}
+
+// appendResolved adds o's resolution to list unless it is there already.
+func appendResolved(list []option, o option) []option {
+	o = o.resolved()
+	for _, have := range list {
+		if have.Kind == o.Kind && have.Value == o.Value {
+			return list
+		}
+	}
+	return append(list, o)
 }
 
 func optionValues(options []option) []string {
@@ -208,25 +250,40 @@ type lineIndex struct {
 	aliasVia   map[string]string // an alias's word.verb -> its name in the alias table
 	aliasVerbs map[string][]string
 	aliasNouns map[string][]string
-	canon      map[string]string   // a noun's canonical name -> its word, where they differ (ochazuke.list -> list)
-	verbs      map[string][]string // verb -> nouns that have it
-	nouns      map[string][]string // noun -> its verbs
-	byVerbs    []option
-	byNouns    []option
+	// names are a noun's other names (its canonical name and its
+	// aliases, ochazuke.list and json-doc), lower-cased, each -> the
+	// noun's word: typed whole they read as the noun, never completed.
+	names map[string]string
+	// old are the names among them that are deprecated aliases (lower-cased
+	// -> the alias): accepted, with a notice when the line runs
+	// (NoteNounAlias).
+	old map[string]string
+	// tails are the namespaced nouns' last parts no name claims (doc for
+	// json.doc and md.doc) -> those nouns' words (palette.noun-tails).
+	tails map[string][]string
+	// spaces are the namespaces the nouns' names (canonical and aliases)
+	// sit in, lower-cased (json, ai, ochazuke), each -> its next words
+	// (doc) and the noun word each completes to ("" for a deeper
+	// namespace): palette.namespace-words.
+	spaces  map[string]map[string]string
+	verbs   map[string][]string // verb -> nouns that have it
+	nouns   map[string][]string // noun -> its verbs
+	byVerbs []option
+	byNouns []option
 }
 
 func (p *Palette) index() lineIndex {
-	ix := lineIndex{ops: map[string]Operation{}, canon: map[string]string{}, verbs: map[string][]string{}, nouns: map[string][]string{}, aliasOps: map[string]Operation{}, aliasVia: map[string]string{}, aliasVerbs: map[string][]string{}, aliasNouns: map[string][]string{}}
+	ix := lineIndex{ops: map[string]Operation{}, names: map[string]string{}, old: map[string]string{}, tails: map[string][]string{}, spaces: map[string]map[string]string{}, verbs: map[string][]string{}, nouns: map[string][]string{}, aliasOps: map[string]Operation{}, aliasVia: map[string]string{}, aliasVerbs: map[string][]string{}, aliasNouns: map[string][]string{}}
 	for _, op := range p.r.Catalog() {
 		if !p.offered(op) {
 			continue
 		}
 		// A noun is one word, its shortest name (settings for
-		// ochazuke.settings while no app noun shadows it); the canonical
-		// spelling is accepted as typed (canonWords) but not completed.
+		// ochazuke.settings while no app noun shadows it, DisplayNoun);
+		// its other names are accepted as typed (names) but not completed.
 		word := p.r.DisplayNoun(op.Noun)
-		if word != op.Noun {
-			ix.canon[op.Noun] = word
+		if _, seen := ix.nouns[word]; !seen {
+			ix.nameNoun(p.r, op.Noun, word)
 		}
 		ix.ops[word+"."+op.Verb] = op
 		ix.verbs[op.Verb] = append(ix.verbs[op.Verb], word)
@@ -256,9 +313,28 @@ func (p *Palette) index() lineIndex {
 	}
 	for noun := range ix.nouns {
 		ix.byNouns = append(ix.byNouns, option{Kind: "noun", Value: noun})
+		delete(ix.names, strings.ToLower(noun)) // a noun's own word is never another's name
+	}
+	ix.tailNouns(p.r)
+	for name, word := range ix.names {
+		ix.byNouns = append(ix.byNouns, option{Kind: "noun", Value: name, to: word, alias: true})
+	}
+	for tail, words := range ix.tails {
+		for _, word := range words {
+			ix.byNouns = append(ix.byNouns, option{Kind: "noun", Value: tail, to: word, tail: true})
+		}
 	}
 	sort.Slice(ix.byVerbs, func(i, j int) bool { return ix.byVerbs[i].Value < ix.byVerbs[j].Value })
-	sort.Slice(ix.byNouns, func(i, j int) bool { return p.nounBefore(ix.byNouns[i].Value, ix.byNouns[j].Value) })
+	sort.SliceStable(ix.byNouns, func(i, j int) bool {
+		a, b := ix.byNouns[i], ix.byNouns[j]
+		if (a.to == "") != (b.to == "") {
+			return a.to == "" // the nouns' own words first: completion lists only those
+		}
+		if a.to != "" {
+			return a.Value+"\x00"+a.to < b.Value+"\x00"+b.to
+		}
+		return p.nounBefore(a.Value, b.Value)
+	})
 	for _, nouns := range ix.verbs {
 		sort.Slice(nouns, func(i, j int) bool { return p.nounBefore(nouns[i], nouns[j]) })
 	}
@@ -297,6 +373,103 @@ func (ix lineIndex) nounsOf(verb string) []option {
 	}
 	return out
 }
+
+// nounOptions are the options a noun position matches for the noun words
+// of nouns: those words, then their other names and tails.
+func (ix lineIndex) nounOptions(nouns []option) []option {
+	have := map[string]bool{}
+	for _, o := range nouns {
+		have[o.Value] = true
+	}
+	out := append([]option(nil), nouns...)
+	for _, o := range ix.byNouns {
+		if o.to != "" && have[o.to] {
+			out = append(out, o)
+		}
+	}
+	return out
+}
+
+// nameNoun files noun's other names under its word: the canonical name
+// and every alias that reaches it now, live or deprecated.
+func (ix lineIndex) nameNoun(r *Runtime, noun, word string) {
+	if noun != word {
+		ix.names[strings.ToLower(noun)] = word
+	}
+	ix.space(noun, word)
+	for _, a := range r.NounAliasesOf(noun) {
+		if a.Alias == word {
+			continue
+		}
+		ix.names[strings.ToLower(a.Alias)] = word
+		if a.Deprecated() {
+			ix.old[strings.ToLower(a.Alias)] = a.Alias
+		}
+	}
+}
+
+// space files the namespaces a dotted name sits in: json.doc puts doc
+// (completing to word) under json.
+func (ix lineIndex) space(name, word string) {
+	parts := strings.Split(strings.ToLower(name), ".")
+	for i := 1; i < len(parts); i++ {
+		prefix := strings.Join(parts[:i], ".")
+		if ix.spaces[prefix] == nil {
+			ix.spaces[prefix] = map[string]string{}
+		}
+		next := ""
+		if i == len(parts)-1 {
+			next = word
+		}
+		if have, ok := ix.spaces[prefix][parts[i]]; !ok || have == "" {
+			ix.spaces[prefix][parts[i]] = next
+		}
+	}
+}
+
+// tailNouns files each namespaced noun under its last part when no noun
+// word or name claims that word (palette.noun-tails).
+func (ix lineIndex) tailNouns(r *Runtime) {
+	if !r.Settings().Bool(PaletteNounTailsSetting) {
+		return
+	}
+	for word, verbs := range ix.nouns {
+		if len(verbs) == 0 {
+			continue
+		}
+		canonical := word
+		for name, w := range ix.names {
+			if w == word && strings.Contains(name, ".") && (canonical == word || len(name) < len(canonical)) {
+				canonical = name
+			}
+		}
+		i := strings.LastIndex(canonical, ".")
+		if i < 0 {
+			continue
+		}
+		tail := strings.ToLower(canonical[i+1:])
+		if _, own := ix.nouns[tail]; own {
+			continue
+		}
+		if _, named := ix.names[tail]; named {
+			continue
+		}
+		if tail == strings.ToLower(word) {
+			continue
+		}
+		ix.tails[tail] = append(ix.tails[tail], word)
+	}
+	for _, words := range ix.tails {
+		sort.Strings(words)
+	}
+}
+
+// PaletteNounTailsSetting turns the tail reading (doc for json.doc) on.
+const PaletteNounTailsSetting = "palette.noun-tails"
+
+// PaletteNamespaceWordsSetting turns the namespace words (json doc for
+// json.doc) on.
+const PaletteNamespaceWordsSetting = "palette.namespace-words"
 
 // nounBefore orders nouns as the list shows them: the nouns of the focus
 // path the palette opened over first, the focused noun first, then the rest
@@ -338,16 +511,64 @@ func (p *Palette) impliedNoun(ix lineIndex, verb string) string {
 	return ""
 }
 
-// canonWords reads a noun typed in its canonical spelling (ochazuke.settings)
-// as the noun's word (settings) in the two positions a noun takes.
-func (ix lineIndex) canonWords(tokens []lineToken) []lineToken {
-	out := tokens
+// nounRuns reads namespace words (palette.namespace-words): a run of two
+// or more words at a noun position (the first word, or the second after a
+// first word that is no noun name) that joined with dots name a noun or
+// one of its names is one word, the dotted name (json doc rows is
+// json.doc rows), the longest run first, as the CLI reads them
+// (Runtime.NounWords). The result shares no array with tokens.
+func (ix lineIndex) nounRuns(r *Runtime, tokens []lineToken) []lineToken {
+	out := append([]lineToken(nil), tokens...)
+	if !r.Settings().Bool(PaletteNamespaceWordsSetting) {
+		return out
+	}
+	out = ix.joinRun(out, 0)
+	if len(out) > 1 && !ix.isNounName(out[0].Text) {
+		out = ix.joinRun(out, 1)
+	}
+	return out
+}
+
+// joinRun joins the longest run from at that names a noun.
+func (ix lineIndex) joinRun(tokens []lineToken, at int) []lineToken {
+	for n := len(tokens) - at; n >= 2; n-- {
+		words := make([]string, n)
+		for i := range words {
+			words[i] = tokens[at+i].Text
+		}
+		name := strings.Join(words, ".")
+		if !ix.isNounName(name) {
+			continue
+		}
+		joined := tokens[at]
+		joined.Text = name
+		return append(append(tokens[:at:at], joined), tokens[at+n:]...)
+	}
+	return tokens
+}
+
+// isNounName reports whether name (any case) is a noun word or another
+// name of one.
+func (ix lineIndex) isNounName(name string) bool {
+	lower := strings.ToLower(name)
+	if _, ok := ix.names[lower]; ok {
+		return true
+	}
+	for word := range ix.nouns {
+		if strings.ToLower(word) == lower {
+			return true
+		}
+	}
+	return false
+}
+
+// oldNames are the line's words that are deprecated noun aliases, for
+// their notices when it runs.
+func (ix lineIndex) oldNames(tokens []lineToken) []string {
+	var out []string
 	for i := 0; i < len(tokens) && i < 2; i++ {
-		if word, ok := ix.canon[tokens[i].Text]; ok {
-			if &out[0] == &tokens[0] {
-				out = append([]lineToken(nil), tokens...)
-			}
-			out[i].Text = word
+		if name, ok := ix.old[strings.ToLower(tokens[i].Text)]; ok {
+			out = append(out, name)
 		}
 	}
 	return out
@@ -369,7 +590,8 @@ func (p *Palette) parseTokens(ix lineIndex, tokens []lineToken) commandLine {
 		c.Missing = "verb or noun"
 		return c
 	}
-	tokens = ix.canonWords(tokens)
+	tokens = ix.nounRuns(p.r, tokens)
+	c.Old = ix.oldNames(tokens)
 	word := tokens[0].Text
 	// A bare alias typed whole (w!) is its action, on its own noun, before
 	// any verb of that name (aliases.shadow allow lets one share a verb's
@@ -406,20 +628,30 @@ func (p *Palette) parseTokens(ix lineIndex, tokens []lineToken) commandLine {
 			}
 		}
 	}
+	old := c.Old
+	withOld := func(c commandLine) commandLine { c.Old = old; return c }
 	hit, candidates, exact := matchWord(word, append(append([]option{}, ix.byVerbs...), ix.byNouns...))
 	switch {
 	case hit.Value != "":
-		return p.parseRest(ix, hit, tokens)
+		return withOld(p.parseRest(ix, hit, tokens))
 	case exact:
 		// A word that is a verb and a noun: a typed noun whose next word
 		// is its verb or prop reads as that noun (note rename beside a
 		// focused doc's own note verb); else the reading that resolves
 		// further wins, the verb on a tie.
-		verb, noun := p.parseRest(ix, option{Kind: "verb", Value: word}, tokens), p.parseRest(ix, option{Kind: "noun", Value: word}, tokens)
-		if nounReads(noun) || resolved(noun) > resolved(verb) {
-			return noun
+		verbWord, nounWord := option{Kind: "verb", Value: word}, option{Kind: "noun", Value: word}
+		for _, o := range candidates {
+			if o.Kind == "noun" {
+				nounWord = o
+			} else if o.Kind == "verb" {
+				verbWord = o
+			}
 		}
-		return verb
+		verb, noun := p.parseRest(ix, verbWord, tokens), p.parseRest(ix, nounWord, tokens)
+		if nounReads(noun) || resolved(noun) > resolved(verb) {
+			return withOld(noun)
+		}
+		return withOld(verb)
 	}
 	// A prefix of exactly one verb and one noun (tr: transform and
 	// transformations) is settled by the words after it: the reading that
@@ -428,9 +660,9 @@ func (p *Palette) parseTokens(ix lineIndex, tokens []lineToken) commandLine {
 		a, b := p.parseRest(ix, candidates[0], tokens), p.parseRest(ix, candidates[1], tokens)
 		switch ra, rb := resolved(a), resolved(b); {
 		case ra > rb:
-			return a
+			return withOld(a)
 		case rb > ra:
-			return b
+			return withOld(b)
 		}
 	}
 	c.Words = append(c.Words, PaletteWord{Text: word, Candidates: optionValues(candidates)})
@@ -485,7 +717,7 @@ func (p *Palette) parseRest(ix lineIndex, first option, tokens []lineToken) comm
 	rest := tokens[1:]
 	if first.Kind == "verb" {
 		verb := first.Value
-		nouns := ix.nounsOf(verb)
+		nouns := ix.nounOptions(ix.nounsOf(verb))
 		if len(rest) > 0 {
 			hit, candidates, _ := matchWord(rest[0].Text, nouns)
 			if hit.Value != "" {
@@ -555,12 +787,8 @@ func (p *Palette) parseRest(ix lineIndex, first option, tokens []lineToken) comm
 	if len(candidates) == 0 {
 		// An instance of a palette noun runs its default verb.
 		if config, ok := p.nouns[p.r.CanonicalNoun(noun)]; ok {
-			var instances []option
-			for _, choice := range p.instanceChoices(noun) {
-				instances = append(instances, option{Kind: "instance", Value: choice.ID})
-			}
 			var hit option
-			hit, candidates, _ = matchWord(rest[0].Text, instances)
+			hit, candidates, _ = matchWord(rest[0].Text, p.choiceOptions("instance", p.instanceChoices(noun)))
 			if hit.Value != "" {
 				c.Words = append(c.Words, PaletteWord{Text: rest[0].Text, Kind: "instance", Value: hit.Value, Param: config.Argument})
 				c.Op = ix.ops[noun+"."+config.DefaultVerb]
@@ -733,11 +961,7 @@ func (p *Palette) argument(op Operation, name, word string, args Arguments) (val
 	// A ValueOf parameter is checked against the prop it holds a value of.
 	check, _ := p.r.choiceParameter(op, name, args)
 	if len(choices) > 0 || p.r.ChoicesSource(check) != "" {
-		options := make([]option, len(choices))
-		for i, choice := range choices {
-			options[i] = option{Kind: "argument", Value: choice.ID}
-		}
-		hit, matches, _ := matchWord(word, options)
+		hit, matches, _ := matchWord(word, p.choiceOptions("argument", choices))
 		switch {
 		case hit.Value != "":
 			text = hit.Value

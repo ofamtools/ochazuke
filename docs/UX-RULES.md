@@ -774,6 +774,28 @@ tiers above them. When the two disagree, fix one in the same commit.
   the list while typing their name still runs them; `[]` is the palette
   before standard verbs). Stories: `palette/get-record-rows.json`,
   `palette/std-tag-off.json`; test `TestStandardVerbsSetting`.
+- **R7.11** A noun is typed by any of its names, the same as on the CLI.
+  An exact name (the noun's word, its canonical spelling, any alias)
+  beats a prefix of another noun's word (`doc` is the alias of `json.doc`,
+  not a prefix of `docs`); names other than the word are taken typed
+  whole and never completed. Leading words that join with dots into a
+  noun are that noun (`json doc rows`), and after a namespace's words its
+  nouns' next words complete (`palette.namespace-words`). A word no name
+  claims is read as the namespaced nouns ending in it: one is taken,
+  several are offered by their full names (`json.doc, md.doc`) and none
+  is picked (`palette.noun-tails`). A noun is drawn by its shortest live
+  alias (`nouns.display`). Stories: `palette/noun-alias-exact.json`,
+  `palette/noun-namespace-words.json`, `palette/noun-tail-ambiguous.json`;
+  tests `TestPaletteNounAliasesAndNamespaceWords`,
+  `TestPaletteAmbiguousShortNameOffersEveryNamespace`,
+  `TestPaletteNamespaceCompletion`, `TestNounsDisplaySetting`, `cli`
+  `TestCLINounAliasesMatchThePalette`.
+- **R7.12** A choice is offered by its word, not its id: `:page open `
+  lists the pages' titles (`JSON  ext/json`) and takes a title, quoted
+  when it holds a space; the id, or a prefix of it, still names it
+  (`Choice.Word`, `PaletteInstance.Word`; `palette.choice-words` `id`
+  offers ids). Story: `palette/page-open-titles.json`; test
+  `TestPalettePageOpenOffersTitles`.
 
 ### R8. Terminal
 
@@ -981,6 +1003,14 @@ tiers above them. When the two disagree, fix one in the same commit.
   its first use in a runtime posts one notice naming the new name, and a
   `bindings.json` row on the old name still works, `bindings check` saying
   what it resolves to. Story: `actions/old-name-binding.json`.
+  A renamed noun's old name is a deprecated noun alias the same way
+  (`Runtime.AddNounAlias` with `since`/`removeAfter`): it runs with one
+  notice naming the noun, `bindings check` names a row spelled by it, and
+  it is never completed, drawn, listed in CLI help or published in the
+  catalog; `Runtime.Unalias` takes a name back. Story:
+  `palette/noun-alias-deprecated.json`; tests
+  `TestPaletteDeprecatedNounAlias`,
+  `TestBindingsCheckNotesADeprecatedNounAlias`.
 - **R12.4** A bare or short name a user wants is a configured alias row in
   `actions.json` (`{"alias": "pane.k", "action": "pane.kill"}`), not code.
   A row that would take the name of an action or of another alias is

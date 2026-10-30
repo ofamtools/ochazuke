@@ -36,6 +36,12 @@ type Page struct {
 	Pending []string `json:"pending,omitempty"`
 	// Verbs are demo verbs with declared parameters, for palette stories.
 	Verbs []VerbSpec `json:"verbs,omitempty"`
+	// Nouns are nouns besides demo, as a host defines an extension's
+	// nouns mounted under its namespace (json.doc): each verb logs
+	// NOUN.VERB and its arguments to writes, and each alias
+	// (ochazuke.NounAlias: since/removeAfter for a deprecated one) is
+	// registered with Runtime.AddNounAlias.
+	Nouns []NounSpec `json:"nouns,omitempty"`
 	// Store gives the demo noun props and an in-memory store
 	// (ochazuke.NounBuilder.Props and Store): demo.get, list, create, set
 	// (alias patch) and delete are then standard verbs over Things (the
@@ -414,6 +420,13 @@ type StoreSpec struct {
 // VerbSpec is a demo application verb with parameters: running it logs
 // "NOUN.VERB name=value ..." to the writes, and returns Rows (so another
 // verb's parameter can name it as its Source).
+// NounSpec is one noun of a story's own (Page.Nouns).
+type NounSpec struct {
+	Noun    string               `json:"noun"`
+	Verbs   []string             `json:"verbs,omitempty"`
+	Aliases []ochazuke.NounAlias `json:"aliases,omitempty"`
+}
+
 type VerbSpec struct {
 	Verb        string                        `json:"verb"` // demo.<name>
 	Description string                        `json:"description,omitempty"`

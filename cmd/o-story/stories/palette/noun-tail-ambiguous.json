@@ -1,0 +1,18 @@
+{
+  "name": "palette: a short name no alias claims offers every namespaced noun ending in it, by its full name (json.doc, md.doc), and picks none",
+  "area": "palette",
+  "width": 100,
+  "height": 24,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "nouns": [
+      {"noun": "json.doc", "verbs": ["rows"]},
+      {"noun": "md.doc", "verbs": ["rows"]}
+    ]
+  },
+  "script": [":", {"type": "doc rows"}, "enter"],
+  "expect": [
+    {"after": 2, "contains": ["\"doc\" is ambiguous: json.doc, md.doc"]},
+    {"writes": [], "modal": "palette", "contains": ["\"doc\" is ambiguous: json.doc, md.doc"]}
+  ]
+}

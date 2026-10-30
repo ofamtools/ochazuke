@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -197,10 +198,23 @@ func (r *Runtime) Operation(key string) (Operation, bool) {
 // Alias makes alias another name of noun: input naming alias (keys, binding
 // files, actions.json, the palette, the CLI, Do) reaches noun unless the
 // application registers a noun named alias, which then owns the name. The
-// framework registers one per framework noun (settings for ochazuke.settings).
-// An alias holding a dot, or naming a registered noun of its own, is
-// refused.
+// framework registers one per framework noun (settings for ochazuke.settings);
+// a host mounting an extension's nouns under a namespace (json.doc) gives
+// each its bare name (doc) the same way. An alias holding a dot is refused,
+// as is one that already names another noun (Unalias it first). See
+// AddNounAlias for a deprecated alias.
 func (r *Runtime) Alias(alias, noun string) error {
+	return r.AddNounAlias(NounAlias{Alias: alias, Noun: noun})
+}
+
+// AddNounAlias registers a noun alias with its fields: Since and
+// RemoveAfter (either) make it a deprecated name, accepted for now with a
+// one-time notice naming the noun (and a bindings check note for a row
+// spelled by it), but never completed, listed in the CLI's help or drawn
+// (DisplayNoun). Note is free text added to the notice. Shadowed is
+// ignored. Registering the same alias again replaces its fields.
+func (r *Runtime) AddNounAlias(a NounAlias) error {
+	alias, noun := a.Alias, a.Noun
 	switch {
 	case alias == "" || noun == "":
 		return fmt.Errorf("alias and noun must be nonempty")
@@ -212,46 +226,261 @@ func (r *Runtime) Alias(alias, noun string) error {
 	if prev, ok := r.aliases[alias]; ok && prev != noun {
 		return fmt.Errorf("alias %q already names %s", alias, prev)
 	}
-	r.aliases[alias] = noun
+	r.setAlias(alias, noun)
+	a.Shadowed = false
+	if a.Deprecated() || a.Note != "" {
+		if r.actionNames.nouns.meta == nil {
+			r.actionNames.nouns.meta = map[string]NounAlias{}
+		}
+		r.actionNames.nouns.meta[alias] = a
+	} else {
+		delete(r.actionNames.nouns.meta, alias)
+	}
 	return nil
 }
 
-// Aliases lists the alias names, each with the noun it names, sorted by alias.
+// Unalias removes a noun alias, so a host can rename a noun's short name
+// while it runs (Unalias the old, Alias the new, or AddNounAlias it as
+// deprecated). It is an error when alias names no noun.
+func (r *Runtime) Unalias(alias string) error {
+	if _, ok := r.aliases[alias]; !ok {
+		return fmt.Errorf("%q is not a noun alias", alias)
+	}
+	r.dropAlias(alias)
+	return nil
+}
+
+// setAlias files alias -> noun in the table and the reverse index.
+func (r *Runtime) setAlias(alias, noun string) {
+	if r.aliases[alias] == noun {
+		return
+	}
+	r.aliases[alias] = noun
+	if r.actionNames.nouns.of == nil {
+		r.actionNames.nouns.of = map[string][]string{}
+	}
+	r.actionNames.nouns.of[noun] = append(r.actionNames.nouns.of[noun], alias)
+}
+
+// dropAlias takes alias out of the table, the reverse index and the
+// deprecated fields.
+func (r *Runtime) dropAlias(alias string) {
+	noun := r.aliases[alias]
+	delete(r.aliases, alias)
+	delete(r.actionNames.nouns.meta, alias)
+	delete(r.actionNames.nouns.noticed, alias)
+	names := slices.DeleteFunc(r.actionNames.nouns.of[noun], func(a string) bool { return a == alias })
+	if len(names) == 0 {
+		delete(r.actionNames.nouns.of, noun)
+	} else {
+		r.actionNames.nouns.of[noun] = names
+	}
+}
+
+// nounNames holds what the alias table (Runtime.aliases) does not: a
+// noun's aliases (the reverse index DisplayNoun reads), the deprecated
+// aliases' fields and which of them has posted its notice.
+type nounNames struct {
+	of      map[string][]string  // noun -> its aliases, in registration order
+	meta    map[string]NounAlias // alias -> its fields, for a deprecated alias or one with a note
+	noticed map[string]bool      // deprecated aliases whose notice was posted
+	// display is the nouns.display value, kept by an observer once read
+	// (displayRead).
+	display     string
+	displayRead bool
+}
+
+// Aliases lists the alias names, each with the noun it names, sorted by
+// alias; a deprecated alias carries its Since, RemoveAfter and Note.
 func (r *Runtime) Aliases() []NounAlias {
 	out := make([]NounAlias, 0, len(r.aliases))
 	for alias, noun := range r.aliases {
-		out = append(out, NounAlias{Alias: alias, Noun: noun, Shadowed: r.CanonicalNoun(alias) != noun})
+		a := r.nounAlias(alias)
+		a.Shadowed = r.CanonicalNoun(alias) != noun
+		out = append(out, a)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Alias < out[j].Alias })
+	return out
+}
+
+// nounAlias is the alias's entry ({alias, noun} with its fields); the zero
+// NounAlias when alias is not one.
+func (r *Runtime) nounAlias(alias string) NounAlias {
+	noun, ok := r.aliases[alias]
+	if !ok {
+		return NounAlias{}
+	}
+	a, ok := r.actionNames.nouns.meta[alias]
+	if !ok {
+		a = NounAlias{Alias: alias}
+	}
+	a.Noun = noun
+	return a
+}
+
+// NounAliasesOf lists the aliases that reach noun now (not shadowed by an
+// application noun of their name), the live ones shortest first, then the
+// deprecated ones.
+func (r *Runtime) NounAliasesOf(noun string) []NounAlias {
+	noun = r.CanonicalNoun(noun)
+	var out []NounAlias
+	for _, alias := range r.actionNames.nouns.of[noun] {
+		if r.CanonicalNoun(alias) == noun {
+			out = append(out, r.nounAlias(alias))
+		}
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		if di, dj := out[i].Deprecated(), out[j].Deprecated(); di != dj {
+			return dj
+		}
+		if len(out[i].Alias) != len(out[j].Alias) {
+			return len(out[i].Alias) < len(out[j].Alias)
+		}
+		return out[i].Alias < out[j].Alias
+	})
 	return out
 }
 
 // NounAlias is one alias: the short name, the noun it names, and whether
 // an application noun of that name shadows it (the short name then reaches
 // the application's noun and the framework's stays reachable by Noun).
+// Since and RemoveAfter mark a deprecated alias (an old name kept for a
+// release after a rename, Keep actions); Note is free text its notice adds.
 type NounAlias struct {
-	Alias    string `json:"alias"`
-	Noun     string `json:"noun"`
-	Shadowed bool   `json:"shadowed,omitempty"`
+	Alias       string `json:"alias"`
+	Noun        string `json:"noun"`
+	Shadowed    bool   `json:"shadowed,omitempty"`
+	Since       string `json:"since,omitempty"`
+	RemoveAfter string `json:"removeAfter,omitempty"`
+	Note        string `json:"note,omitempty"`
 }
 
-// AliasOf is the alias that reaches noun right now ("" when none does: no
-// alias, or an application noun shadows it).
+// Deprecated reports whether the alias is an old name on its way out.
+func (a NounAlias) Deprecated() bool { return a.Since != "" || a.RemoveAfter != "" }
+
+// notice is the one-time notice a deprecated noun alias posts on first use.
+func (a NounAlias) notice(display func(string) string) string {
+	text := fmt.Sprintf("%s is an old name of %s", a.Alias, display(a.Noun))
+	var when []string
+	if a.Since != "" {
+		when = append(when, "renamed in "+a.Since)
+	}
+	if a.RemoveAfter != "" {
+		when = append(when, "removed after "+a.RemoveAfter)
+	}
+	if len(when) > 0 {
+		text += " (" + strings.Join(when, "; ") + ")"
+	}
+	if a.Note != "" {
+		text += ": " + a.Note
+	}
+	return text
+}
+
+// DeprecatedNounAlias is the deprecated alias name stands for, if it is one
+// that reaches its noun now.
+func (r *Runtime) DeprecatedNounAlias(name string) (NounAlias, bool) {
+	a, ok := r.actionNames.nouns.meta[name]
+	if !ok || !a.Deprecated() || r.aliases[name] == "" || r.CanonicalNoun(name) != r.aliases[name] {
+		return NounAlias{}, false
+	}
+	a.Noun = r.aliases[name]
+	return a, true
+}
+
+// NounAliasNotice is the one-time notice of name when it is a deprecated
+// noun alias whose notice has not been given yet in this runtime, and
+// records it as given; ok is false otherwise. NoteNounAlias posts it; a
+// host printing its own warnings (cli.Mount) takes the text.
+func (r *Runtime) NounAliasNotice(name string) (text string, ok bool) {
+	a, ok := r.DeprecatedNounAlias(name)
+	if !ok || r.actionNames.nouns.noticed[name] {
+		return "", false
+	}
+	if r.actionNames.nouns.noticed == nil {
+		r.actionNames.nouns.noticed = map[string]bool{}
+	}
+	r.actionNames.nouns.noticed[name] = true
+	return a.notice(r.DisplayNoun), true
+}
+
+// NoteNounAlias posts the one-time notice of a deprecated noun alias typed
+// as name (a request's noun, a palette or CLI word); nothing for any other
+// name.
+func (r *Runtime) NoteNounAlias(name string) {
+	if text, ok := r.NounAliasNotice(name); ok {
+		r.UI().Notify(text)
+	}
+}
+
+// AliasOf is the alias DisplayNoun draws noun by ("" when it draws the
+// noun itself): under nouns.display shortest (the default) the shortest
+// live alias that reaches noun now and is shorter than its name; under
+// framework only a framework noun's short name (settings for
+// ochazuke.settings); under canonical none.
 func (r *Runtime) AliasOf(noun string) string {
-	if !strings.HasPrefix(noun, FrameworkNamespace+".") {
+	switch r.nounsDisplay() {
+	case NounsDisplayCanonical:
+		return ""
+	case NounsDisplayFramework:
+		short, ok := strings.CutPrefix(noun, FrameworkNamespace+".")
+		if ok && r.aliases[short] == noun && r.CanonicalNoun(short) == noun {
+			return short
+		}
 		return ""
 	}
-	short := strings.TrimPrefix(noun, FrameworkNamespace+".")
-	if r.aliases[short] == noun && r.CanonicalNoun(short) == noun {
-		return short
+	aliases := r.actionNames.nouns.of[noun]
+	if len(aliases) == 0 {
+		return ""
 	}
-	return ""
+	best := ""
+	for _, alias := range aliases {
+		if a, ok := r.actionNames.nouns.meta[alias]; ok && a.Deprecated() {
+			continue
+		}
+		if r.CanonicalNoun(alias) != noun || len(alias) >= len(noun) {
+			continue
+		}
+		if best == "" || len(alias) < len(best) || len(alias) == len(best) && alias < best {
+			best = alias
+		}
+	}
+	return best
 }
 
-// DisplayNoun is the shortest name that reaches noun: its alias while no
-// application noun shadows it (list for ochazuke.list), else noun itself. The
-// footer's hints, the ? help and the jobs ticker draw it; history,
-// bindings.list, operations.list and the catalog print canonical names.
+// NounsDisplaySetting says which name DisplayNoun draws a noun by.
+const NounsDisplaySetting = "nouns.display"
+
+// The nouns.display values: shortest (the shortest live alias, any noun),
+// framework (only the framework nouns' short names, before v0.57) and
+// canonical (every noun by its registered name).
+const (
+	NounsDisplayShortest  = "shortest"
+	NounsDisplayFramework = "framework"
+	NounsDisplayCanonical = "canonical"
+)
+
+// nounsDisplay is the nouns.display value, read once and then kept by an
+// observer: DisplayNoun runs for every hint of every frame.
+func (r *Runtime) nounsDisplay() string {
+	n := &r.actionNames.nouns
+	if !n.displayRead {
+		n.displayRead = true
+		n.display = r.Settings().String(NounsDisplaySetting)
+		r.Settings().Observe(NounsDisplaySetting, func(_ string, v any) { n.display, _ = v.(string) })
+	}
+	if n.display != "" {
+		return n.display
+	}
+	return NounsDisplayShortest
+}
+
+// DisplayNoun is the shortest name that reaches noun: its alias (AliasOf)
+// while no application noun shadows it (list for ochazuke.list, doc for an
+// extension's json.doc a host aliased doc), else noun itself. The
+// footer's hints, the ? help, the palette and the jobs ticker draw it;
+// history, bindings.list, operations.list and the catalog print canonical
+// names.
 func (r *Runtime) DisplayNoun(noun string) string {
 	if short := r.AliasOf(noun); short != "" {
 		return short
@@ -287,7 +516,7 @@ func (r *Runtime) noteFrameworkNoun(name string) {
 		return
 	}
 	if _, taken := r.aliases[short]; !taken {
-		r.aliases[short] = name
+		r.setAlias(short, name)
 	}
 }
 
@@ -334,6 +563,9 @@ func (r *Runtime) NounWords(words []string) (noun string, rest []string, ok bool
 	for n := len(words) - 1; n >= 1; n-- {
 		name := r.CanonicalNoun(strings.Join(words[:n], "."))
 		if r.Nouns[name] != nil {
+			if n == 1 {
+				r.NoteNounAlias(words[0]) // a deprecated alias: its one-time notice
+			}
 			return name, words[n:], true
 		}
 	}

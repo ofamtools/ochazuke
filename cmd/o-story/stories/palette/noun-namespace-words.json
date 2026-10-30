@@ -1,0 +1,21 @@
+{
+  "name": "palette: namespace words read as the noun they join into (json doc rows is json.doc rows), and after json the namespace's nouns complete",
+  "area": "palette",
+  "width": 100,
+  "height": 24,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "nouns": [
+      {"noun": "json.doc", "verbs": ["rows"]},
+      {"noun": "json.schema", "verbs": ["rows", "check"]},
+      {"noun": "md.doc", "verbs": ["rows"]}
+    ]
+  },
+  "script": [":", {"type": "js"}, {"type": "on "}, {"type": "doc "}, {"type": "rows"}, "enter"],
+  "expect": [
+    {"after": 2, "contains": ["json · namespace"]},
+    {"after": 3, "contains": ["doc · json.doc", "schema · json.schema"], "lacks": ["md.doc"]},
+    {"after": 4, "contains": ["rows"], "lacks": ["check", "is ambiguous"]},
+    {"writes": ["json.doc.rows"], "modal": ""}
+  ]
+}

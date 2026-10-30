@@ -1,0 +1,17 @@
+{
+  "name": "palette: page open offers the pages' titles, not their ids, and takes a title (quoted when it holds a space)",
+  "area": "palette",
+  "width": 100,
+  "height": 24,
+  "pages": [
+    {"id": "ext/json", "title": "JSON", "lists": [{"id": "a", "rows": 2}]},
+    {"id": "ext/pulls", "title": "Pull Requests", "lists": [{"id": "b", "rows": 2}]}
+  ],
+  "script": [":", {"type": "page open "}, {"type": "Pu"}, "ctrl+n", "enter", "enter"],
+  "expect": [
+    {"after": 2, "contains": ["JSON  ext/json", "Pull Requests  ext/pulls"]},
+    {"after": 3, "contains": ["Pull Requests  ext/pulls"], "lacks": ["JSON  ext/json"]},
+    {"after": 5, "contains": [": page open \"Pull Requests\""]},
+    {"page": "ext/pulls", "modal": ""}
+  ]
+}

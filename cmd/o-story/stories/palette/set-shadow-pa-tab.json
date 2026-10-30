@@ -1,5 +1,5 @@
 {
-  "name": "set pa then tab: :set reads only one-value nouns (owner decision 17), so a collection named parcel, whose set is the standard one, is never offered; the palette noun (its own set) and the palette.* and path.* settings are",
+  "name": "set pa then tab: :set reads only one-value nouns (owner decision 17), so a collection named parcel, whose set is the standard one, is never offered; the palette noun (its own set) and the palette.* and path.* settings are (path.start is below the window since the v0.57 palette settings)",
   "area": "palette",
   "width": 100,
   "height": 24,
@@ -22,7 +22,7 @@
   },
   "script": [":", {"type": "set pa"}, "tab", {"type": "rcel"}],
   "expect": [
-    {"after": 2, "contains": ["palette", "palette.standard-verbs", "path.start"], "lacks": ["parcel"]},
+    {"after": 2, "contains": ["palette", "palette.standard-verbs", "path.hidden"], "lacks": ["parcel"]},
     {"after": 3, "contains": ["palette.missing-opens-form"], "lacks": ["parcel ("]},
     {"contains": ["set parcel"], "lacks": ["parcel set", "is ambiguous"]}
   ]
