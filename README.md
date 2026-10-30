@@ -806,8 +806,8 @@ r.BeforeQuit("unsaved", func(r *ochazuke.Runtime, c ochazuke.Context) ochazuke.V
 Local checks:
 
 ```sh
-go test ./...
-go test -race ./...
+make test       # every module: the root, cmd/o-story (the stories) and examples
+OCHAZUKE_NESTED_TESTS=1 go test -race ./...
 go run ./examples/core
 ```
 

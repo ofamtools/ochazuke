@@ -141,17 +141,16 @@ What the framework will not do for you: persistence, domain validation, daemon p
 
 ## Checks
 
+The gate is `make test`: gofmt, `go vet` and `go test` of the root module and of both nested modules (`cmd/o-story`: o-story, the demo app and its stories; `examples`). A bare `go test ./...` at the root runs only the root module, so it skips every story; it fails `TestNestedModulesRunToo` saying so, unless `OCHAZUKE_NESTED_TESTS=1` is set, which `make test` sets.
+
 ```sh
-gofmt -l . && go vet ./...
-go test ./...
-go test -race ./...
+make test
+OCHAZUKE_NESTED_TESTS=1 go test -race ./...   # the root module under -race (make test ran every module)
 go run ./examples/core
 go run ./examples/full-project --smoke
-(cd cmd/o-story && go vet ./... && go test ./...)
-(cd examples && go vet ./... && go test ./...)
 ```
 
-The two nested modules build through the untracked `go.work` (below), against ochazuke and monogatari at HEAD; `make test` runs all three modules. Explorer surveys are not part of `go test` (their tests carry the `explore` build tag): run `make explore` (or `make explore-quick`) when changing `explore/`, the chrome or keys it checks, or before a release if wanted, and `go vet -tags explore ./...`.
+The two nested modules build through the untracked `go.work` (below), against ochazuke and monogatari at HEAD; `GOWORK=off make test` builds them against the tags their `go.mod` files name. Explorer surveys are not part of `go test` (their tests carry the `explore` build tag): run `make explore` (or `make explore-quick`) when changing `explore/`, the chrome or keys it checks, or before a release if wanted, and `go vet -tags explore ./...`.
 
 ## Releasing
 
@@ -159,11 +158,11 @@ Semver tags on `main`; the family bins require the tag. ochazuke requires a tagg
 
 1. Pick the version (`v0.x.y`: minor for API changes, patch for fixes).
 2. Add a `## vX.Y.Z (DATE)` section to CHANGELOG.md above o-inventory's dated entries, with the highlights.
-3. Run the checks above with `GOWORK=off` (the build a fresh clone gets) and `go mod tidy` (no diff); commit and push.
+3. Run the checks above with `GOWORK=off` (the build a fresh clone gets: `GOWORK=off make test`, which tests the nested modules against the tags they require) and `go mod tidy` (no diff); commit and push.
 4. `git tag -a vX.Y.Z -m "..."` on that exact commit, `git push origin vX.Y.Z`, `gh release create vX.Y.Z --notes ...`. Never move or delete a pushed tag; fix forward with the next patch.
 5. Check the proxy: `GOPROXY=https://proxy.golang.org GOFLAGS=-mod=mod go list -m github.com/unixsuperhero/ochazuke@vX.Y.Z`.
 6. Bump consumers (matomeru, nabe, the o-* bins, mtm-mermaid): `go get github.com/unixsuperhero/ochazuke@vX.Y.Z && go mod tidy`, gate with `GOWORK=off`, commit and push.
-7. When the release's stories need a new monogatari (a new story-format field or runner change): bump monogatari to `vX.Y.Z` and tag it (release ochazuke first when monogatari needs an unreleased ochazuke change). Then bump the nested modules: in `cmd/o-story` and `examples`, `GOWORK=off go get github.com/unixsuperhero/ochazuke@vX.Y.Z github.com/unixsuperhero/monogatari@vM && GOWORK=off go mod tidy`, run their gates with `GOWORK=off`, commit and push.
+7. When the release's stories need a new monogatari (a new story-format field or runner change): bump monogatari to `vX.Y.Z` and tag it (release ochazuke first when monogatari needs an unreleased ochazuke change). Then bump the nested modules: in `cmd/o-story` and `examples`, `GOWORK=off go get github.com/unixsuperhero/ochazuke@vX.Y.Z github.com/unixsuperhero/monogatari@vM && GOWORK=off go mod tidy`, pass `GOWORK=off make test` (every module, against the new tags), commit and push.
 
 Local development uses an untracked `go.work` (`go work init . && go work use ./cmd/o-story ./examples ../monogatari ../oden`), ignored via `.gitignore`, so builds use the sibling checkouts while `GOWORK=off` uses the tags. Never commit a `replace` to a local path or a shared `~/proj/go.work`.
 

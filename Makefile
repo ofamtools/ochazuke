@@ -16,9 +16,15 @@ reference:
 # (go work use . ./cmd/o-story ./examples ../monogatari ../oden).
 NESTED := cmd/o-story examples
 
+# test is the gate: gofmt, vet and test of the root module and of every
+# nested module. A bare go test ./... at the root runs the root module only
+# and fails TestNestedModulesRunToo; test sets OCHAZUKE_NESTED_TESTS=1 for
+# it. Run it as GOWORK=off make test against the tags (a release's step 3).
 test:
-	go test ./...
-	for d in $(NESTED); do (cd $$d && go test ./...) || exit 1; done
+	@out=$$(gofmt -l .); if [ -n "$$out" ]; then echo "gofmt:"; echo "$$out"; exit 1; fi
+	go vet ./...
+	OCHAZUKE_NESTED_TESTS=1 go test ./...
+	for d in $(NESTED); do (cd $$d && go vet ./... && go test ./...) || exit 1; done
 
 # Explorer surveys are not part of go test ./...: their tests carry the
 # explore build tag. explore-quick runs them at the small survey budget

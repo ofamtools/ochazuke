@@ -21,7 +21,8 @@ o-story explore --dedupe DIR [--reproduce] [--out DIR]   # group the findings of
 o story ...                  # the same, through the oden family root
 ```
 
-`go test ./...` inside `cmd/o-story` runs every story in `stories/`.
+`go test ./...` inside `cmd/o-story` (or `make test` at the root) runs every
+story in `stories/` through `host.Test`.
 
 o-story is the demo app's host on
 [monogatari](https://github.com/unixsuperhero/monogatari), the story library
@@ -31,7 +32,13 @@ fixture, `pages`, builds a story's `page` and `pages` fields on a fresh
 runtime, and as o-story's first app it is the default for a story that
 names no `app`. `cmd/o-story` is a nested module requiring ochazuke and
 monogatari; it builds through the untracked `go.work` of the ochazuke
-checkout.
+checkout. Everything but the demo app is monogatari's host
+(`monogatari/host`: the commands, the catalog, the index TUI, the player and
+explore's watch mode); `main.go` is `host.Main` over
+`host.Config{Name: "o-story", Apps: []monogatari.App{demo.App()}, Stories: ...}`.
+The name `o-story` keeps the user stories and recordings below at
+`o-story`, whichever command runs it (`o story`, `mtm story`'s
+pass-through); another host (`mtm story`) keeps its own.
 
 The Turns page (`o-story open turns/page`) is mtm's Turns tab as a story:
 a pane row, the card timeline (a plain turn, tool calls with a diff and a
@@ -391,8 +398,14 @@ reports print in order.
 ## Catalog
 
 `o-story catalog` answers like every family tool (ochazuke/cli, schema 1):
-data nouns `story` (list, show, run, state), `recording` (list, show), `verb`
-and `edge` (list, the rows of `o-story verbs`). Every list returns
+data nouns `story` (list, show, run, copy, fixture, recordings, state),
+`recording` (list, show, delete), `fixture` (list, show, stories),
+`application` (list, show, stories, fixtures: the host's apps; ochazuke's
+runtime owns the noun `app`), `verb` and `edge` (list, the rows of
+`o-story verbs`). The relations are one handler on both nouns:
+`story list --app A --fixture F` is `application stories` and
+`fixture stories`, `fixture list --app A` is `application fixtures`,
+`recording list --story NAME` is `story recordings`. Every list returns
 `{id, label, data}` rows; `story state` prints all of them as JSON Lines.
 The `story` noun declares its table (`storyColumns`: story, area, size,
 steps, gap) and its rows carry `cells`, so `--format table` and nabe show
@@ -400,7 +413,11 @@ the same columns the TUI index draws (each area a table without the area
 column, size then steps dropping first as the terminal narrows).
 
 ```
-o-story story list               # id AREA/NAME, data {area, size, chrome, steps, skipped, expect?}, cells
+o-story story list               # id AREA/NAME, data {area, app, fixture, size, chrome, steps, skipped, expect?}, cells
+o-story story copy --target lists/lone-list --as "my lone list"   # into $XDG_CONFIG_HOME/o-story/stories, with its golden
+o-story recording delete --target recording/1
+o-story fixture list             # fixture/demo/pages
+o-story application show --target application/demo
 o-story story run --target lists/lone-list
 o-story recording show --target recording/1
 o-story story state              # {"noun":"verb","id":"verb/normal/list.move",...} per line

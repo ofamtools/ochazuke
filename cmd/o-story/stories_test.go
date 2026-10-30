@@ -2,41 +2,56 @@ package main
 
 import (
 	"flag"
-	"strings"
+	"os"
+	"path/filepath"
 	"testing"
 
 	story "github.com/unixsuperhero/monogatari"
+	"github.com/unixsuperhero/monogatari/host"
 	"github.com/unixsuperhero/ochazuke/cmd/o-story/demo"
 )
 
-var update = flag.Bool("update", false, "rewrite story goldens")
+var update = flag.Bool("update", false, "rewrite story goldens (and the README's verbs section)")
 
-// TestStories plays every story in stories/ headless: per-step and final
-// expectations, else the golden frame. A story marked skip (a known
-// framework gap) runs but is reported as skipped.
+// hostApps are the apps o-story's stories build.
+var hostApps = config("o-story").Apps
+
+// TestStories plays every story in stories/ headless (host.Test): per-step
+// and final expectations, else the golden frame. A story marked skip (a
+// known framework gap) runs but is reported as skipped.
 func TestStories(t *testing.T) {
-	stories, err := story.LoadDir("stories")
+	cfg := config("o-story")
+	cfg.Dir, cfg.Update = "stories", *update
+	host.Test(t, cfg)
+}
+
+// The README's minimum-verbs section is generated from the stories.
+func TestReadmeVerbsTableIsCurrent(t *testing.T) {
+	want, err := os.ReadFile("README.md")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(stories) < 20 {
-		t.Fatalf("%d stories, want at least 20", len(stories))
+	tmp := filepath.Join(t.TempDir(), "README.md")
+	if err := os.WriteFile(tmp, want, 0o644); err != nil {
+		t.Fatal(err)
 	}
-	lib := story.Library{Stories: stories, Store: story.Store{Dir: t.TempDir()}, Apps: hostApps}
-	for _, s := range stories {
-		t.Run(s.Area+"/"+story.Slug(s.Name), func(t *testing.T) {
-			t.Parallel()
-			res := lib.Run(s, story.RunOptions{Golden: true, Update: *update})
-			if res.Skipped {
-				t.Skipf("%s (passes now: %v)", s.Skip, res.Err == nil && len(res.Failed) == 0)
-			}
-			if res.Err != nil {
-				t.Fatal(res.Err)
-			}
-			if len(res.Failed) > 0 {
-				t.Fatal(strings.Join(res.Failed, "\n"))
-			}
-		})
+	cfg := config("o-story")
+	cfg.Getenv = func(string) string { return t.TempDir() }
+	if err := host.Main(cfg, []string{"verbs", "--dir", "stories", "--readme", tmp}, os.Stderr, os.Stderr); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if *update {
+		if err := os.WriteFile("README.md", got, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
+	if string(got) != string(want) {
+		t.Fatal("README minimum-verbs section is stale: cd cmd/o-story && go run . verbs --dir stories --readme README.md")
 	}
 }
 
