@@ -134,10 +134,13 @@ func TestKeyEchoCollapsesTyping(t *testing.T) {
 	wantEcho(t, m, "i", `"hi yo"`)
 	echoPress(m, "esc")
 	wantEcho(t, m, "i", `"hi yo"`, "esc")
+	echoPress(m, "c", "c")
+	wantEcho(t, m, "i", `"hi yo"`, "esc", "c c")
+	echoPress(m, "esc")
 	if err := r.Settings().Set(KeyEchoTypingSetting, KeyEchoTypingCount); err != nil {
 		t.Fatal(err)
 	}
-	wantEcho(t, m, "i", "typed 5", "esc")
+	wantEcho(t, m, "i", "typed 5", "esc", "c c", "esc")
 }
 
 // A secret input shows nothing at all: not the text, not how much.

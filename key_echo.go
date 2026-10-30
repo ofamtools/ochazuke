@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	tea "charm.land/bubbletea/v2"
@@ -145,7 +146,10 @@ func (e *keyEcho) observe(r *Runtime, p *Palette, k echoKey, now time.Time) {
 	}
 	pendingBefore := r.pendingModes[k.mode.Name] || k.mode.Payload.Prefix != ""
 	pendingAfter := r.pending()
-	counted := k.mode.Payload.Count != r.Mode.Payload.Count || k.mode.Payload.OpCount != r.Mode.Payload.OpCount
+	// A digit that changed a count joins the key after it (5j); a key that
+	// only set a count's default (c's operator count of 1) does not (c c).
+	digit := len(k.key.Key) == 1 && unicode.IsDigit(rune(k.key.Key[0]))
+	counted := digit && (k.mode.Payload.Count != r.Mode.Payload.Count || k.mode.Payload.OpCount != r.Mode.Payload.OpCount)
 	typing, command := false, ""
 	hasCommand := false
 	for _, h := range k.ran {

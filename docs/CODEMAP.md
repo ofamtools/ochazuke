@@ -317,7 +317,7 @@ Root package `ochazuke` is flat: 118 source files, 135 test files. Each entry li
 
 ### key_echo.go
 
-- lines: 427 · tests: key_echo_test.go
+- lines: 431 · tests: key_echo_test.go
 - purpose: KeyEcho is the keys.echo value, off when it is undeclared or holds anything else.
 - types: KeyEchoCell
 - methods: KeyEchoCell(1), Layout(1), Model(1), Runtime(3), echoEntry(1), keyEcho(9)
