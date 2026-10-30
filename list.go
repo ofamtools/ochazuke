@@ -163,7 +163,7 @@ func (l *List) SetItems(items []ListItem) error {
 	if !sameCells(l.all, items) {
 		l.widest = nil // a table remeasures; rows drawing the same cells keep the widths
 	}
-	l.all, l.hay = slices.Clone(items), nil
+	l.all, l.hay = cloneItems(items), nil
 	// The filter applies to the new rows; the selection stays on its row
 	// when it still shows, else on the shown row nearest its old index.
 	l.refilter(previous.ID)
@@ -176,8 +176,43 @@ func (l *List) SetItems(items []ListItem) error {
 }
 
 // Items returns a copy of every row in display order, the ones a filter
-// hides included.
-func (l *List) Items() []ListItem { return slices.Clone(l.all) }
+// hides included. Cells and Tones are copies too, so editing a returned
+// row in place changes nothing until SetItems, which re-measures it;
+// Data is the application's value, shared as given.
+func (l *List) Items() []ListItem { return cloneItems(l.all) }
+
+// cloneItems copies rows with their own Cells and Tones (one backing array
+// each for all of them): the list and its callers never share a slice, so
+// SetItems's same-cells test (sameCells) always compares what was drawn
+// with what is given.
+func cloneItems(items []ListItem) []ListItem {
+	out := slices.Clone(items)
+	cells, tones := 0, 0
+	for _, it := range items {
+		cells += len(it.Cells)
+		tones += len(it.Tones)
+	}
+	cellBuf, toneBuf := make([]string, 0, cells), make([]ToneSpan, 0, tones)
+	for i, it := range items {
+		if it.Cells != nil {
+			n := len(cellBuf)
+			cellBuf = append(cellBuf, it.Cells...)
+			out[i].Cells = cellBuf[n:len(cellBuf):len(cellBuf)]
+		}
+		if it.Tones != nil {
+			n := len(toneBuf)
+			toneBuf = append(toneBuf, it.Tones...)
+			out[i].Tones = toneBuf[n:len(toneBuf):len(toneBuf)]
+		}
+	}
+	return out
+}
+
+// cloneItem is one row with its own Cells and Tones.
+func cloneItem(it ListItem) ListItem {
+	it.Cells, it.Tones = slices.Clone(it.Cells), slices.Clone(it.Tones)
+	return it
+}
 
 // Len is the number of rows, the ones a filter hides included (Shown
 // counts the rest).
@@ -188,7 +223,7 @@ func (l *List) Selected() (ListItem, bool) {
 	if l.selected < 0 {
 		return ListItem{}, false
 	}
-	return l.items[l.selected], true
+	return cloneItem(l.items[l.selected]), true
 }
 
 // Move clamps at either end and does not take focus from another component.
@@ -321,7 +356,7 @@ func (l *List) markedIn(rows []ListItem) []ListItem {
 	var out []ListItem
 	for _, item := range rows {
 		if l.marks[item.ID] {
-			out = append(out, item)
+			out = append(out, cloneItem(item))
 		}
 	}
 	return out
