@@ -15,10 +15,10 @@ R|        │   table                                                      │
  |        │   code block                                                 │
  |        │   quote                                                      │
  |        │   rule                                                       │
- |        │ enter chooser.pick · esc chooser.cancel · <printable> input… │
+ |        │ enter chooser.pick · esc chooser.cancel                      │
  |        ╰──────────────────────────────────────────────────────────────╯
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────
- |  enter chooser.pick · esc chooser.cancel · <printable> input.insert
+ |  enter chooser.pick · esc chooser.cancel
  |

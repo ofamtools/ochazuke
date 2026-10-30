@@ -1,0 +1,48 @@
+{
+  "name": "chooser: typing that narrows the matches keeps the panel's height (blank rows hold it), so the search line never moves (chooser.stable-height, R4.9); the frame equals the unfiltered one's outline",
+  "area": "chooser",
+  "width": 60,
+  "height": 20,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "chooser": {
+      "title": "Fruit",
+      "rows": [
+        {
+          "id": "1",
+          "label": "apple"
+        },
+        {
+          "id": "2",
+          "label": "apricot"
+        },
+        {
+          "id": "3",
+          "label": "banana"
+        },
+        {
+          "id": "4",
+          "label": "cherry"
+        },
+        {
+          "id": "5",
+          "label": "date"
+        },
+        {
+          "id": "6",
+          "label": "elderberry"
+        }
+      ]
+    }
+  },
+  "script": [
+    {
+      "type": "che"
+    }
+  ]
+}

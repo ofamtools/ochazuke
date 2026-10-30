@@ -11,7 +11,7 @@ r|  a1
  |        │ ›                                                            │
  |        │   matomeru                                                   │
 R|        │   ochazuke                                                   │
- |        │ enter chooser.pick · esc chooser.cancel · <printable> input… │
+ |        │ enter chooser.pick · esc chooser.cancel                      │
  |        ╰──────────────────────────────────────────────────────────────╯
  |
  |
@@ -20,5 +20,5 @@ R|        │   ochazuke                                                   │
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────
- |  enter chooser.pick · esc chooser.cancel · <printable> input.insert
+ |  enter chooser.pick · esc chooser.cancel
  |

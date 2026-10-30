@@ -10,8 +10,8 @@
       {"key": "down", "action": "ochazuke.palette.recall", "args": {"delta": -1}},
       {"key": "esc", "action": "ochazuke.palette.cancel"},
       {"key": "ctrl+c", "action": "ochazuke.palette.close"},
-      {"key": "printable", "action": "ochazuke.input.insert", "from": {"text": "text"}},
-      {"key": "paste", "action": "ochazuke.input.insert", "from": {"text": "text"}}
+      {"key": "printable", "action": "ochazuke.input.insert", "from": {"text": "text"}, "hidden": true},
+      {"key": "paste", "action": "ochazuke.input.insert", "from": {"text": "text"}, "hidden": true}
     ]},
     {"context": "app/macro_pending", "bindings": [
       {"key": ":", "action": "ochazuke.palette.open", "args": {"recall": 1}, "help": "q: opens the command line on the last command; up and down walk the history (Vim's command-line window, :help q:)"}

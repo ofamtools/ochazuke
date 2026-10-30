@@ -118,7 +118,14 @@ type Chooser struct {
 	loading     bool
 	loadErr     string
 	gen         uint64
+	// tallest is the most lines the rows view has drawn while open: with
+	// chooser.stable-height it pads to it, so typing never resizes it.
+	tallest int
 }
+
+// ChooserStableHeightSetting keeps an open chooser at the height it
+// reached (settings/ochazuke.json).
+const ChooserStableHeightSetting = "chooser.stable-height"
 
 // The delivery contract: a chooser runs no jobs of its own (Choose and
 // Create return their own results). Pending work they return belongs to the
@@ -595,6 +602,16 @@ func (c *Chooser) rowsView(width, height int) Block {
 	}
 	for i := fixedFrom; i < len(c.matches); i++ {
 		draw(i)
+	}
+	// The panel keeps the tallest it has been while open
+	// (chooser.stable-height): as typing narrows the matches, blank lines
+	// hold its height, so a modal centred on it keeps the search line on
+	// its row (R4.9). It grows with more rows, and never past height.
+	if c.r == nil || c.r.Settings().Bool(ChooserStableHeightSetting) {
+		c.tallest = max(c.tallest, len(lines))
+		for len(lines) < min(c.tallest, max(1, height)) {
+			lines = append(lines, "")
+		}
 	}
 	// Every line fills the width, so the panel is the modal's width and
 	// does not resize as typing narrows the rows.

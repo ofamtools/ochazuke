@@ -1,0 +1,51 @@
+{
+  "name": "chooser.stable-height off: the panel sizes to the rows that match, as before (the search line moves as the rows narrow)",
+  "area": "chooser",
+  "width": 60,
+  "height": 20,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "chooser": {
+      "title": "Fruit",
+      "rows": [
+        {
+          "id": "1",
+          "label": "apple"
+        },
+        {
+          "id": "2",
+          "label": "apricot"
+        },
+        {
+          "id": "3",
+          "label": "banana"
+        },
+        {
+          "id": "4",
+          "label": "cherry"
+        },
+        {
+          "id": "5",
+          "label": "date"
+        },
+        {
+          "id": "6",
+          "label": "elderberry"
+        }
+      ]
+    }
+  },
+  "script": [
+    {
+      "type": "che"
+    }
+  ],
+  "values": {
+    "chooser.stable-height": false
+  }
+}

@@ -17,8 +17,8 @@
       {"key": "up", "action": "ochazuke.chooser.move", "args": {"delta": -1}},
       {"key": "ctrl+p", "action": "ochazuke.chooser.move", "args": {"delta": -1}},
       {"key": "ctrl+k", "action": "ochazuke.chooser.move", "args": {"delta": -1}},
-      {"key": "printable", "action": "ochazuke.input.insert", "from": {"text": "text"}},
-      {"key": "paste", "action": "ochazuke.input.insert", "from": {"text": "text"}}
+      {"key": "printable", "action": "ochazuke.input.insert", "from": {"text": "text"}, "hidden": true},
+      {"key": "paste", "action": "ochazuke.input.insert", "from": {"text": "text"}, "hidden": true}
     ]}
   ]
 }
