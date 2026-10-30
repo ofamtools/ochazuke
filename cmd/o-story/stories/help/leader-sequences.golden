@@ -11,19 +11,19 @@ r|  a1
  |          │ Keys · here                                                                  │
  |          │ key                operation           arguments          description        │
  |          │ terminal                                                                     │
- |          │   paste            terminal.paste      {"text":"$text"}   Paste text into    │
+ |          │   paste            terminal.paste      text $text         Paste text into    │
  |          │                                                           the pane, after    │
  |          │                                                           forwarding any     │
  |          │                                                           keys given (the    │
  |          │                                                           leader, under it)  │
- |          │   any              terminal.send       {"keys":"$key"}    Forward key names, │
+ |          │   any              terminal.send       keys $key          Forward key names, │
  |          │                                                           in order, to the   │
  |          │                                                           pane               │
- |          │ ▾ ctrl+a           mode.enter          {"mode":"leader_…  enters             │
- |          │                                                           leader_pending:    │
- |          │                                                           waits for the next │
- |          │                                                           key (3 keys);      │
- |          │                                                           alone, after the   │
+ |          │ ▾ ctrl+a           mode.enter          mode            …  enters             │
+ |          │                                        prefix          …  leader_pending:    │
+ |          │                                        request.args.key…  waits for the next │
+ |          │                                        request.noun    …  key (3 keys);      │
+ |          │                                        request.verb    …  alone, after the   │
  |          │                                                           timeout, terminal. │
  |          │                                                           send ctrl+a        │
  |          │   ▸ ctrl+a ?       bindings.help                          Open the keys the  │

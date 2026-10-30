@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
@@ -39,7 +40,10 @@ const (
 // makes List.View wrap a cell longer than its column onto further lines
 // of the row instead of cutting it: the row is as tall as its tallest
 // wrapped cell, the other cells sit on its first line (TableText still
-// cuts). Group makes List.View draw a cell blank when it repeats the cell
+// cuts); a newline in its cell is a line break. Lines makes List.View
+// break a cell at its newlines and cut each line at the column's width
+// ("…"), so a cell of one item per line keeps an item per line (the
+// help's arguments); with Wrap too, a long line wraps instead. Group makes List.View draw a cell blank when it repeats the cell
 // above it in the same section (and every Group column left of it does
 // too), so a run of rows sharing a value (the help's key prefix) shows it
 // once; the first row a frame draws always shows its cells, and the rows'
@@ -56,6 +60,7 @@ type Column struct {
 	Align    Align  `json:"align,omitempty"`
 	Priority int    `json:"priority,omitempty"`
 	Wrap     bool   `json:"wrap,omitempty"`
+	Lines    bool   `json:"lines,omitempty"`
 	Pinned   bool   `json:"pinned,omitempty"`
 	Group    bool   `json:"group,omitempty"`
 	Part     string `json:"part,omitempty"`
@@ -117,7 +122,9 @@ func (l *List) SetColumns(cols ...Column) { l.columns = slices.Clone(cols) }
 func (l *List) Columns() []Column { return slices.Clone(l.columns) }
 
 // cells is a row's text per column: its Cells, else its Label as the first
-// cell; control characters become spaces.
+// cell; control characters become spaces, a newline in a cell excepted: it
+// is a line break in a Wrap or Lines column (tableRowLinesAt) and a space in
+// any other (tableLineAt).
 func cells(item ListItem, n int) []string {
 	src := item.Cells
 	if len(src) == 0 {
@@ -125,9 +132,30 @@ func cells(item ListItem, n int) []string {
 	}
 	out := make([]string, n)
 	for i := range min(n, len(src)) {
-		out[i] = modalLabel(src[i])
+		out[i] = cellLabel(src[i])
 	}
 	return out
+}
+
+// cellLabel is modalLabel keeping newlines.
+func cellLabel(text string) string {
+	if !strings.Contains(text, "\n") {
+		return modalLabel(text)
+	}
+	parts := strings.Split(text, "\n")
+	for i, part := range parts {
+		parts[i] = modalLabel(part)
+	}
+	return strings.Join(parts, "\n")
+}
+
+// cellTextWidth is a cell's display width: its widest line.
+func cellTextWidth(text string) int {
+	w := 0
+	for line := range strings.SplitSeq(text, "\n") {
+		w = max(w, ansi.StringWidth(line))
+	}
+	return w
 }
 
 // tableLayout picks the columns that fit width and their widths: every
@@ -144,7 +172,7 @@ func cellWidths(rows [][]string, n int) []int {
 	out := make([]int, n)
 	for _, row := range rows {
 		for i := range out {
-			out[i] = max(out[i], ansi.StringWidth(row[i]))
+			out[i] = max(out[i], cellTextWidth(row[i]))
 		}
 	}
 	return out
@@ -251,7 +279,7 @@ func tableLineAt(cols []Column, row []string, shown, widths []int) (string, []ce
 	at := make([]cellAt, len(shown))
 	x := 0
 	for j, i := range shown {
-		text := ansi.Truncate(row[i], widths[j], "…")
+		text := ansi.Truncate(strings.ReplaceAll(row[i], "\n", " "), widths[j], "…")
 		w := ansi.StringWidth(text)
 		pad := strings.Repeat(" ", max(0, widths[j]-w))
 		at[j] = cellAt{x: x, w: w, sx: x, sw: widths[j]}
@@ -480,10 +508,10 @@ func (l *List) groupedCells(i, top int) []string {
 }
 
 // tall reports whether the table's rows can take more than one line: a
-// column wraps, or a row opens a section.
+// column wraps or breaks at newlines (Lines), or a row opens a section.
 func (l *List) tall() bool {
 	for _, c := range l.columns {
-		if c.Wrap {
+		if c.Wrap || c.Lines {
 			return true
 		}
 	}
@@ -496,16 +524,73 @@ func (l *List) tall() bool {
 }
 
 // wrapCell wraps a cell into lines of at most width cells, breaking at
-// spaces and after dots (a noun.verb breaks at its dot).
+// its newlines, at spaces and after dots (a noun.verb breaks at its dot).
 func wrapCell(text string, width int) []string {
+	lines, _ := wrapCellAt(text, width)
+	return lines
+}
+
+// wrapCellAt is wrapCell with the rune offset in text where each line
+// starts, so a tone span keeps its place on the lines it falls on; starts
+// is nil when a line cannot be found in text (the wrap changed it).
+func wrapCellAt(text string, width int) (lines []string, starts []int) {
+	return cellLinesAt(text, width, true)
+}
+
+// cellLinesAt is a cell's lines: broken at its newlines, and each line
+// wrapped at width when wrap is set (else left to be cut where it is
+// drawn); starts as wrapCellAt.
+func cellLinesAt(text string, width int, wrap bool) (lines []string, starts []int) {
 	if width <= 0 {
-		return []string{""}
+		return []string{""}, nil
 	}
-	return strings.Split(ansi.Wrap(text, width, "."), "\n")
+	placed := true
+	offset := 0 // rune offset of the hard line in text
+	for hard := range strings.SplitSeq(text, "\n") {
+		at := 0 // byte offset in hard past the last line placed
+		soft := hard
+		if wrap {
+			soft = ansi.Wrap(hard, width, ".")
+		}
+		for line := range strings.SplitSeq(soft, "\n") {
+			lines = append(lines, line)
+			i := strings.Index(hard[at:], line)
+			if i < 0 {
+				placed = false
+				continue
+			}
+			starts = append(starts, offset+utf8.RuneCountInString(hard[:at+i]))
+			at += i + len(line)
+		}
+		offset += utf8.RuneCountInString(hard) + 1
+	}
+	if !placed {
+		return lines, nil
+	}
+	return lines, starts
+}
+
+// lineSpans are the spans of a cell that fall on one of its wrapped lines,
+// the line starting at rune start and n runes long, as offsets into it.
+func lineSpans(spans []ToneSpan, cellRunes, start, n int) []ToneSpan {
+	var out []ToneSpan
+	for _, sp := range spans {
+		from, to := max(sp.From, 0), sp.To
+		if to <= 0 || to > cellRunes {
+			to = cellRunes
+		}
+		from, to = max(from, start), min(to, start+n)
+		if from >= to {
+			continue
+		}
+		sp.From, sp.To = from-start, to-start
+		out = append(out, sp)
+	}
+	return out
 }
 
 // tableRowLines lays one row out on as many lines as its tallest wrapped
-// cell; a cell of a column without Wrap sits on the first line, cut.
+// cell; a cell of a column without Wrap or Lines sits on the first line, cut.
 func tableRowLines(cols []Column, row []string, shown, widths []int) []string {
 	lines, _ := tableRowLinesAt(nil, cols, nil, row, shown, widths)
 	return lines
@@ -513,14 +598,16 @@ func tableRowLines(cols []Column, row []string, shown, widths []int) []string {
 
 // tableRowLinesAt is tableRowLines with each line's tones (none without
 // toned): a cell on one line keeps its spans; a cell wrapped onto several
-// keeps only the tones of the whole cell, on every line of it, as a run
-// inside it has no fixed place once wrapped.
+// (at its width or its newlines) keeps each span on the lines it falls
+// on; when the wrap cannot be placed back in the text, it keeps only the
+// tones of the whole cell, on every line of it.
 func tableRowLinesAt(toned *Styles, cols []Column, tones []ToneSpan, row []string, shown, widths []int) ([]string, [][]toneSeg) {
 	parts := make([][]string, len(shown))
+	starts := make([][]int, len(shown))
 	n := 1
 	for j, i := range shown {
-		if cols[i].Wrap {
-			parts[j] = wrapCell(row[i], widths[j])
+		if cols[i].Wrap || cols[i].Lines {
+			parts[j], starts[j] = cellLinesAt(row[i], widths[j], cols[i].Wrap)
 		} else {
 			parts[j] = []string{row[i]}
 		}
@@ -551,6 +638,14 @@ func tableRowLinesAt(toned *Styles, cols []Column, tones []ToneSpan, row []strin
 				// part, so a highlighted column reads unbroken.
 				spans = slices.DeleteFunc(spans, func(t ToneSpan) bool { return t.Layer == "" && t.part == "" })
 			}
+			var placed []ToneSpan
+			if len(parts[j]) > 1 && starts[j] != nil && k < len(parts[j]) {
+				// A text span keeps its place on the lines it falls on;
+				// layers and parts stay the slot's, as below.
+				text := slices.DeleteFunc(slices.Clone(spans), func(t ToneSpan) bool { return t.Layer != "" || t.part != "" })
+				placed = lineSpans(text, utf8.RuneCountInString(row[i]), starts[j][k], utf8.RuneCountInString(cell[i]))
+				spans = slices.DeleteFunc(spans, func(t ToneSpan) bool { return t.Layer == "" && t.part == "" })
+			}
 			if len(parts[j]) > 1 {
 				spans = slices.DeleteFunc(spans, func(t ToneSpan) bool {
 					return t.From > 0 || t.To > 0 && t.To < len([]rune(row[i]))
@@ -559,6 +654,7 @@ func tableRowLinesAt(toned *Styles, cols []Column, tones []ToneSpan, row []strin
 					spans[x].From, spans[x].To = 0, 0
 				}
 			}
+			spans = append(spans, placed...)
 			segs[k] = append(segs[k], slotSegs(spans, cell[i], at[j].x, at[j].w, at[j])...)
 		}
 	}

@@ -21,16 +21,16 @@ R|            │ 0           .column?                                          
  |            │ ctrl+n                      .move                                                            │
  |            │ ctrl+p                      .move                                                            │
  |            │ ctrl+u      .scroll         .filter                                           .scroll        │
- |            │ d                                                                             .apply?        │
- |            │ down        .move           .move                                             .move          │
- |            │ end         .column?                                                          .column?       │
- |            │ enter       demo.open       .filter-choose?                                   demo.open      │
- |            │ 1–18 / 80                                                                                    │
+ |            │ 1–14 / 80                                                                                    │
  |            │ ──────────────────────────────────────────────────────────────────────────────────────────── │
- |            │ normal       list.column {"to":"first"} when no-count · list                                 │
- |            │              then list.scroll-columns {"to":"first"} when row-table-no-count · list          │
- |            │ visual-line  list.column {"to":"first"} when no-count · list                                 │
- |            │              then list.scroll-columns {"to":"first"} when row-table-no-count · list          │
+ |            │ normal       list.column when no-count · list                                                │
+ |            │              to first                                                                        │
+ |            │              then list.scroll-columns when row-table-no-count · list                         │
+ |            │                   to first                                                                   │
+ |            │ visual-line  list.column when no-count · list                                                │
+ |            │              to first                                                                        │
+ |            │              then list.scroll-columns when row-table-no-count · list                         │
+ |            │                   to first                                                                   │
  |            │ space list.mark · S view · n noun · p place · esc modal.pop · : palette.open · ? bindings.h… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |

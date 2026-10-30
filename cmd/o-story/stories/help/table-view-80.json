@@ -63,7 +63,7 @@
       "modal": "bindings-help",
       "contains": [
         "visual-line",
-        "ctrl+b",
+        ".goto",
         "‹2"
       ],
       "lacks": [

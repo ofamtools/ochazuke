@@ -1,19 +1,47 @@
 {
-  "name": "help shows and truncates binding arguments",
+  "name": "help shows binding arguments one per line, the name then the value, no JSON, and cuts a long value on its line",
   "area": "help",
   "width": 80,
   "height": 100,
   "page": {
-    "lists": [{"id": "a", "rows": 3}],
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ],
     "bind": [
-      {"noun": "demo", "keys": "s", "do": "input.insert", "args": {"text": "a very long argument that must not wrap into the next help line"}},
-      {"noun": "demo", "keys": "t", "do": "history.list", "args": {"last": 7}}
+      {
+        "noun": "demo",
+        "keys": "s",
+        "do": "input.insert",
+        "args": {
+          "text": "a very long argument that must not wrap into the next help line"
+        }
+      },
+      {
+        "noun": "demo",
+        "keys": "t",
+        "do": "history.list",
+        "args": {
+          "last": 7
+        }
+      }
     ]
   },
-  "script": ["?"],
+  "script": [
+    "?"
+  ],
   "expect": {
     "modal": "bindings-help",
-    "contains": ["{\"text\":", "…", "{\"last\":7}"],
-    "lacks": ["a very long argument that must not wrap into the next help line"]
+    "contains": [
+      "text a very…",
+      "last 7"
+    ],
+    "lacks": [
+      "{\"text\":",
+      "{\"last\":7}",
+      "a very long argument that must not wrap into the next help line"
+    ]
   }
 }

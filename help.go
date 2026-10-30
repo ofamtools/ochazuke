@@ -1,7 +1,6 @@
 package ochazuke
 
 import (
-	"encoding/json"
 	"fmt"
 	"slices"
 	"strconv"
@@ -100,31 +99,21 @@ func bindingHelpArgs(r *Runtime, b Binding, focus string) Arguments {
 	return args
 }
 
-func helpArgsText(args Arguments) string {
-	if len(args) == 0 {
-		return ""
-	}
-	text, err := json.Marshal(args)
-	if err != nil {
-		return safeText(fmt.Sprint(args))
-	}
-	return string(text)
-}
-
 // helpOpWidth is the help's fixed operation column; a longer operation
 // wraps into it.
 const helpOpWidth = 18
 
 // helpColumns are the help table's columns: the key, the whole sequence
 // (R6.10: "ctrl+a v", "g c"), as wide as its widest cell, the operation
-// fixed, the arguments on one line (cut, at most 22 cells, the first to
-// drop when narrow) and the description the rest; the key, operation and
+// fixed, the arguments one per line (helpArgsCell: the name bold, the
+// value plain, each line cut, at most 22 cells, the first to drop when
+// narrow) and the description the rest; the key, operation and
 // description wrap inside their columns; the key column is pinned, so
 // z l scrolls the others.
 var helpColumns = []Column{
 	{Title: "key", Wrap: true, Pinned: true},
 	{Title: "operation", Width: helpOpWidth, Wrap: true},
-	{Title: "arguments", Max: 22, Priority: 2},
+	{Title: "arguments", Max: 22, Priority: 2, Lines: true},
 	{Title: "description", Wrap: true, Priority: 1},
 }
 
@@ -135,10 +124,10 @@ func helpItems(rows []HelpRow) ([]ListItem, []Column) {
 	items := make([]ListItem, len(rows))
 	for i, row := range rows {
 		key := helpKeyText(row)
-		args := helpArgsText(row.Args)
-		label := strings.Join([]string{key, row.Operation, args, row.Description}, "  ")
+		args, tones := helpArgsCell(row.Args, 2)
+		label := strings.Join([]string{key, row.Operation, helpArgsLabel(row.Args), row.Description}, "  ")
 		cells := []string{key, row.Operation, args, row.Description}
-		items[i] = ListItem{ID: fmt.Sprintf("__bindings-help/%d", i), Label: label, Noun: "ochazuke.binding", Data: row, Cells: cells, Section: row.Section}
+		items[i] = ListItem{ID: fmt.Sprintf("__bindings-help/%d", i), Label: label, Noun: "ochazuke.binding", Data: row, Cells: cells, Tones: tones, Section: row.Section}
 	}
 	return items, helpColumns
 }
@@ -161,7 +150,7 @@ func helpNodes(rows []HelpRow) (nodes []TreeNode, collapsed []string) {
 		index[item.ID] = i
 		parents[i] = -1
 		labels[i] = item.Label
-		node := TreeNode{ID: item.ID, Label: item.Label, Noun: item.Noun, Data: row, Cells: item.Cells, Section: item.Section}
+		node := TreeNode{ID: item.ID, Label: item.Label, Noun: item.Noun, Data: row, Cells: item.Cells, Tones: item.Tones, Section: item.Section}
 		if row.Under != "" {
 			node.Parent = parent[row.Section+"\x00"+row.Under]
 			if j, ok := index[node.Parent]; ok {

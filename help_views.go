@@ -290,7 +290,7 @@ func (h *helpState) ModalBlock(s Styles, width, height int) Block {
 	if h.view == HelpTable {
 		if item, ok := list.Selected(); ok {
 			if key, ok := item.Data.(HelpKey); ok {
-				detail = helpKeyDetail(h.r, key, width)
+				detail = helpKeyDetail(h.r, s, key, width)
 			}
 		}
 		room := height - len(top) - 4 // at least three rows and the header
@@ -307,9 +307,10 @@ func (h *helpState) ModalBlock(s Styles, width, height int) Block {
 }
 
 // helpKeyDetail is the selected table row's rows mode by mode: the mode,
-// the operation with its arguments and guard, and the answering level;
-// the rows that answer when a guard is false follow under "then".
-func helpKeyDetail(r *Runtime, key HelpKey, width int) []string {
+// the operation with its guard and the answering level, then its
+// arguments a line each under the operation (helpArgsBlock); the rows that
+// answer when a guard is false follow under "then".
+func helpKeyDetail(r *Runtime, s Styles, key HelpKey, width int) []string {
 	widest := 0
 	for _, cell := range key.Modes {
 		widest = max(widest, ansi.StringWidth(cell.Mode))
@@ -322,9 +323,6 @@ func helpKeyDetail(r *Runtime, key HelpKey, width int) []string {
 				mode = ""
 			}
 			text := row.Operation
-			if args := helpArgsText(row.Args); args != "" {
-				text += " " + args
-			}
 			if row.Guard != "" {
 				text += " when " + row.Guard
 			}
@@ -334,6 +332,13 @@ func helpKeyDetail(r *Runtime, key HelpKey, width int) []string {
 			}
 			line := fmt.Sprintf("%-*s  %s", widest, mode, text)
 			lines = append(lines, ansi.Truncate(line, width, "…"))
+			indent := strings.Repeat(" ", widest+2)
+			if i > 0 {
+				indent += "     " // under the operation, past "then "
+			}
+			for _, arg := range helpArgsBlock(s, row.Args, indent) {
+				lines = append(lines, ansi.Truncate(arg, width, "…"))
+			}
 		}
 	}
 	return lines

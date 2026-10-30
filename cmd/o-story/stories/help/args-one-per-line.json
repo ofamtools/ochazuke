@@ -1,0 +1,85 @@
+{
+  "name": "? help draws a binding's arguments one per line: the name bold on the left, the value plain on the right, the values in one column, a nested object as dotted names, no JSON braces or quotes",
+  "area": "help",
+  "width": 100,
+  "height": 100,
+  "page": {
+    "lists": [
+      {
+        "id": "tasks",
+        "items": [
+          {
+            "id": "t1",
+            "label": "t1"
+          }
+        ]
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": "s",
+        "do": "demo.set",
+        "args": {
+          "prop": "status",
+          "value": "done",
+          "changes": {
+            "note": "hi",
+            "size": 2
+          }
+        }
+      }
+    ],
+    "store": {
+      "props": [
+        {
+          "name": "id",
+          "key": true
+        },
+        {
+          "name": "title",
+          "role": "label"
+        },
+        {
+          "name": "status",
+          "enum": [
+            "todo",
+            "done"
+          ]
+        },
+        {
+          "name": "note"
+        },
+        {
+          "name": "size",
+          "type": "integer"
+        }
+      ],
+      "things": [
+        {
+          "id": "t1",
+          "title": "Water the plants",
+          "status": "todo",
+          "note": "",
+          "size": 1
+        }
+      ]
+    }
+  },
+  "script": [
+    "?"
+  ],
+  "expect": {
+    "modal": "bindings-help",
+    "contains": [
+      "changes.note hi",
+      "changes.size 2",
+      "prop         status",
+      "value        done"
+    ],
+    "lacks": [
+      "{\"prop\"",
+      "\"status\""
+    ]
+  }
+}

@@ -11,69 +11,69 @@ r|  a1
  |
  |            ╭──────────────────────────────────────────────────────────────────────────────────────────────╮
  |            │ Keys · here                                                                                  │
- |            │ key             operation           arguments               description                      │
+ |            │ key             operation           arguments              description                       │
  |            │ demo                                                                                         │
- |            │   q             app.quit                                    Exit the application             │
- |            │   r             demo.reset                                  Rebuild the story from its file  │
- |            │   enter         demo.open                                   Open the row: attach the fake    │
- |            │                                                             pane when the story has one for  │
- |            │                                                             it                               │
- |            │   n             demo.notify                                 Add a persistent notice naming   │
- |            │                                                             the row                          │
- |            │   x             demo.delete                                 Remove the row from its list     │
-R|            │ ▾ g                                                         waits for the next key (2 keys)  │
- |            │   ▾ g c         demo.notify                                 Add a persistent notice naming   │
- |            │                                                             the row                          │
- |            │     ▸ g c x     demo.reset                                  Rebuild the story from its file  │
- |            │     ▸ g c esc   mode.leave                                  Return from a pending mode to    │
- |            │                                                             the mode it shadowed             │
- |            │   ▸ g esc       mode.leave                                  Return from a pending mode to    │
- |            │                                                             the mode it shadowed             │
- |            │ ▾ z                                                         waits for the next key (1 key)   │
- |            │   ▾ z l         demo.open                                   Open the row: attach the fake    │
- |            │                                                             pane when the story has one for  │
- |            │                                                             it                               │
- |            │       z                                                     waits for the next key (z …)     │
- |            │       l         demo.open                                   Open the row: attach the fake    │
- |            │                                                             pane when the story has one for  │
- |            │                                                             it                               │
- |            │   ▸ z esc       mode.leave                                  Return from a pending mode to    │
- |            │                                                             the mode it shadowed             │
+ |            │   q             app.quit                                   Exit the application              │
+ |            │   r             demo.reset                                 Rebuild the story from its file   │
+ |            │   enter         demo.open                                  Open the row: attach the fake     │
+ |            │                                                            pane when the story has one for   │
+ |            │                                                            it                                │
+ |            │   n             demo.notify                                Add a persistent notice naming    │
+ |            │                                                            the row                           │
+ |            │   x             demo.delete                                Remove the row from its list      │
+R|            │ ▾ g                                                        waits for the next key (2 keys)   │
+ |            │   ▾ g c         demo.notify                                Add a persistent notice naming    │
+ |            │                                                            the row                           │
+ |            │     ▸ g c x     demo.reset                                 Rebuild the story from its file   │
+ |            │     ▸ g c esc   mode.leave                                 Return from a pending mode to the │
+ |            │                                                            mode it shadowed                  │
+ |            │   ▸ g esc       mode.leave                                 Return from a pending mode to the │
+ |            │                                                            mode it shadowed                  │
+ |            │ ▾ z                                                        waits for the next key (1 key)    │
+ |            │   ▾ z l         demo.open                                  Open the row: attach the fake     │
+ |            │                                                            pane when the story has one for   │
+ |            │                                                            it                                │
+ |            │       z                                                    waits for the next key (z …)      │
+ |            │       l         demo.open                                  Open the row: attach the fake     │
+ |            │                                                            pane when the story has one for   │
+ |            │                                                            it                                │
+ |            │   ▸ z esc       mode.leave                                 Return from a pending mode to the │
+ |            │                                                            mode it shadowed                  │
  |            │ list                                                                                         │
- |            │   space         list.mark                                   Toggle the mark on a row (the    │
- |            │                                                             selected row by default) for     │
- |            │                                                             fan-out verbs                    │
- |            │   V             list.visual                                 Start a visual row selection at  │
- |            │                                                             the selected row (V, in visual-  │
- |            │                                                             line), or end it (V again, esc): │
- |            │                                                             j/k extend it; a key then acts   │
- |            │                                                             on every selected row            │
+ |            │   space         list.mark                                  Toggle the mark on a row (the     │
+ |            │                                                            selected row by default) for fan- │
+ |            │                                                            out verbs                         │
+ |            │   V             list.visual                                Start a visual row selection at   │
+ |            │                                                            the selected row (V, in visual-   │
+ |            │                                                            line), or end it (V again, esc):  │
+ |            │                                                            j/k extend it; a key then acts on │
+ |            │                                                            every selected row                │
  |            │ app                                                                                          │
- |            │   ctrl+c        app.quit                                    Exit the application             │
- |            │   "             mode.enter          {"mode":"register_pen…  Pick the register the next yank, │
- |            │                                                             delete or paste uses ("a)        │
- |            │   @             mode.enter          {"count":1,"mode":"re…  Replay the macro in the register │
- |            │                                                             typed next (@a), count times     │
- |            │   1-9           mode.enter          {"count":"$digit","mo…  Start a count for the next key   │
- |            │                                                             (3j)                             │
- |            │   .             history.repeat      {"steps":0}             Dot-repeat: run the last         │
- |            │                                                             repeatable change again at the   │
- |            │                                                             current focus, its arguments     │
- |            │                                                             kept; steps replaces its count   │
- |            │   :             palette.open                                Open the command line            │
- |            │   ?             bindings.help                               Open the keys the focus answers  │
- |            │                                                             to, with the operation each runs │
- |            │                                                             and its description              │
- |            │   '             page.pick                                   Choose a page, most recently     │
- |            │                                                             visited first and the current    │
- |            │                                                             one last: type to filter, enter  │
- |            │                                                             opens                            │
- |            │   /             filter                                      Open the list's filter line and  │
- |            │                                                             type its query (list_filter      │
- |            │                                                             mode); a kept filter is edited   │
- |            │   ctrl+space    palette.open                                Open the command line            │
- |            │ ▾ g                                                         waits for the next key (1 key)   │
- |            │ 1–28 / 59                                                                                    │
+ |            │   ctrl+c        app.quit                                   Exit the application              │
+ |            │   "             mode.enter          mode register_pending  Pick the register the next yank,  │
+ |            │                                                            delete or paste uses ("a)         │
+ |            │   @             mode.enter          count 1                Replay the macro in the register  │
+ |            │                                     mode  replay_pending   typed next (@a), count times      │
+ |            │   1-9           mode.enter          count $digit           Start a count for the next key    │
+ |            │                                     mode  count_pending    (3j)                              │
+ |            │   .             history.repeat      steps 0                Dot-repeat: run the last          │
+ |            │                                                            repeatable change again at the    │
+ |            │                                                            current focus, its arguments      │
+ |            │                                                            kept; steps replaces its count    │
+ |            │   :             palette.open                               Open the command line             │
+ |            │   ?             bindings.help                              Open the keys the focus answers   │
+ |            │                                                            to, with the operation each runs  │
+ |            │                                                            and its description               │
+ |            │   '             page.pick                                  Choose a page, most recently      │
+ |            │                                                            visited first and the current one │
+ |            │                                                            last: type to filter, enter opens │
+ |            │   /             filter                                     Open the list's filter line and   │
+ |            │                                                            type its query (list_filter       │
+ |            │                                                            mode); a kept filter is edited    │
+ |            │   ctrl+space    palette.open                               Open the command line             │
+ |            │ ▾ g                                                        waits for the next key (1 key)    │
+ |            │   ▸ g y         yank-history.open                          Select a previous application     │
+ |            │ 1–29 / 59                                                                                    │
  |            │ space list.mark · S view · esc modal.pop · : palette.open · ? bindings.help · / filter       │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |

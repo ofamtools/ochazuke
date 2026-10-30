@@ -270,7 +270,9 @@ func TestHelpArgumentsPreviewAndTruncate(t *testing.T) {
 		}
 	}
 	frame := ansi.Strip(m.View().Content)
-	if !strings.Contains(frame, `{"key":"z"`) || !strings.Contains(frame, "…") || strings.Contains(frame, strings.Repeat("界", 40)) {
+	// One argument per line, the values in one column, no JSON; a long
+	// value is cut on its line.
+	if !strings.Contains(frame, "key   z") || !strings.Contains(frame, "steps 7") || !strings.Contains(frame, "text  界") || strings.Contains(frame, `{"key"`) || !strings.Contains(frame, "…") || strings.Contains(frame, strings.Repeat("界", 40)) {
 		t.Fatalf("arguments not shown and truncated:\n%s", frame)
 	}
 	for _, width := range []int{20, 40, 80} {

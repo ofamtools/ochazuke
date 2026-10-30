@@ -205,6 +205,9 @@ var defaultTones = map[string]ToneStyle{
 	ToneHeaderIntersect:    {Fg: SchemeColor{"#1A1A1A", "#1A1A1A"}, Bg: SchemeColor{"#E5B53A", "#C99A2E"}, Bold: true},
 	ToneRowNumber:          {Fg: SchemeColor{"muted", "muted"}},
 	ToneRowNumberIntersect: {Fg: SchemeColor{"surface", "surface"}, Bg: SchemeColor{"muted", "muted"}, Bold: true},
+	// A binding's arguments in the ? help (help_args.go).
+	ToneHelpArgKey:   {Bold: true},
+	ToneHelpArgValue: {},
 	// The markdown package's note boxes (markdown.NoteTone).
 	"markdown.note": {Fg: SchemeColor{"#875f00", "#d7af5f"}},
 }

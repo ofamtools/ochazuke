@@ -150,8 +150,8 @@ func TestPlainListTonesTheLabel(t *testing.T) {
 	}
 }
 
-// A wrapped cell keeps a whole-cell tone on every line of it and drops a
-// span, which has no place once wrapped.
+// A wrapped cell keeps a whole-cell tone on every line of it and a span
+// on the lines it falls on.
 func TestWrappedCellTones(t *testing.T) {
 	cols := []Column{{Title: "pane", Width: 6}, {Title: "note", Width: 8, Wrap: true}}
 	_, l := toneFixture(t, "dark", cols, []ListItem{
@@ -164,8 +164,8 @@ func TestWrappedCellTones(t *testing.T) {
 	if !strings.Contains(lines[2], blue) || !strings.Contains(lines[3], blue) || !strings.Contains(lines[2], fg("#8BC48A")+"mbu") {
 		t.Fatalf("whole-cell tone on every line:\n%q\n%q", lines[2], lines[3])
 	}
-	if strings.Contains(lines[4], blue) || strings.Contains(lines[5], blue) {
-		t.Fatalf("a span in a wrapped cell drew:\n%q\n%q", lines[4], lines[5])
+	if !strings.Contains(lines[4], blue+"mone\x1b[m two") || strings.Contains(lines[5], blue) {
+		t.Fatalf("a span in a wrapped cell is not on its line:\n%q\n%q", lines[4], lines[5])
 	}
 }
 
