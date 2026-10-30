@@ -510,6 +510,7 @@ Conformance:
 | replay_pending | mode | `mode.leave` |
 | terminal | bindings | `bindings.help` |
 | terminal | demo | `demo.hints` |
+| terminal | focus | `focus.next` |
 | terminal | mode | `mode.enter` |
 | terminal | terminal | `terminal.detach` `terminal.send` |
 | visual | input | `input.cancel` `input.move` `input.operator` |
@@ -556,6 +557,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `settings.edit`
 - `leader_pending` → `hints` via `demo.hints`
 - `leader_pending` → `normal` via `bindings.help`
+- `leader_pending` → `normal` via `focus.next`
 - `leader_pending` → `normal` via `terminal.detach`
 - `leader_pending` → `terminal` via `row x`
 - `leader_pending` → `terminal` via `terminal.send`
@@ -601,6 +603,7 @@ Mode edges (from → to via):
 - `normal` → `normal G` via `row G`
 - `normal` → `normal [` via `row [`
 - `normal` → `normal ]` via `row ]`
+- `normal` → `normal ctrl+a` via `row ctrl+a`
 - `normal` → `normal ctrl+w` via `row ctrl+w`
 - `normal` → `normal d` via `row d`
 - `normal` → `normal g` via `row g`
@@ -618,6 +621,9 @@ Mode edges (from → to via):
 - `normal [` → `normal` via `markdown.previous-same`
 - `normal ]` → `normal` via `markdown.next-kind`
 - `normal ]` → `normal` via `markdown.next-same`
+- `normal ctrl+a` → `normal` via `focus.next`
+- `normal ctrl+w` → `normal` via `focus.next`
+- `normal ctrl+w` → `normal` via `focus.previous`
 - `normal ctrl+w` → `normal` via `pane.grow`
 - `normal ctrl+w` → `normal` via `pane.reset`
 - `normal ctrl+w` → `normal` via `pane.shrink`

@@ -7,6 +7,8 @@
   "bindings": [
     {"context": "ochazuke.terminal/leader_pending", "bindings": [
       {"key": "d", "action": "ochazuke.terminal.detach"},
+      {"key": "o", "action": "ochazuke.focus.next", "hidden": true},
+      {"key": "a", "action": "ochazuke.terminal.send", "args": {"keys": "{terminal-leader}"}, "hidden": true},
       {"key": "{terminal-leader}", "action": "ochazuke.terminal.send", "args": {"keys": "{terminal-leader}"}}
     ]},
     {"context": "ochazuke.terminal/terminal", "bindings": [

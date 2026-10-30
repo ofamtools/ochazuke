@@ -1,0 +1,15 @@
+{
+  "name": "ctrl+w h focuses the previous pane and highlights its selected row",
+  "area": "panes",
+  "width": 80,
+  "page": {
+    "layout": "row",
+    "focus": "right3",
+    "lists": [
+      {"id": "left", "rows": 2, "selected": 1},
+      {"id": "right", "rows": 3, "selected": 2}
+    ]
+  },
+  "script": ["ctrl+w", "h"],
+  "expect": {"focus": "left2", "highlighted": 1, "highlightedText": "left2"}
+}

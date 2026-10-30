@@ -234,14 +234,21 @@ func TestLeaderRowsNameTheSetting(t *testing.T) {
 	}
 	press(t, r, "ctrl+b", "d")
 	*calls = nil
-	press(t, r, "ctrl+b", "ctrl+a")
-	if !reflect.DeepEqual(*calls, []string{"mine", "lit"}) {
+	press(t, r, "ctrl+b")
+	if !reflect.DeepEqual(*calls, []string{"mine"}) {
 		t.Fatalf("app rows: calls %v", *calls)
 	}
+	literal := false
 	for _, b := range r.Nouns["app"].Bindings["normal"] {
 		if b.Keys == "ctrl+b" && b.Hint != "go ctrl+b" {
 			t.Fatalf("app hint %q", b.Hint)
 		}
+		if b.Keys == "ctrl+a" && b.Request.Key() == "test.lit" {
+			literal = true
+		}
+	}
+	if !literal {
+		t.Fatal("the literal ctrl+a row followed the terminal-leader setting")
 	}
 	if err := r.Bind(Binding{Noun: "app", Mode: "normal", Keys: "{no-such-setting}", Request: Request{Noun: "test", Verb: "mine"}}); err == nil || !strings.Contains(err.Error(), "no-such-setting") {
 		t.Fatalf("unknown setting in keys: %v", err)

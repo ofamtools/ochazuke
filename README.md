@@ -360,10 +360,13 @@ Macro recording consumes exactly one register character after `q`, except `:`: `
 | Normal cell table | `zp` | Pin or unpin the current column (`list.toggle-pin-column`); any table: `list.pin-column`, `unpin-column`, `unpin-columns` from the palette |
 | Normal Appearance | `t`, `d` | Cycle theme / density |
 | Normal demo | `Ctrl-J/K` | Next/previous page |
+| Normal app | `Ctrl-W l/h`, `Ctrl-W w/W`, `Ctrl-A o` | Next/previous focus stop in drawing order; wraps at the edge (`Ctrl-A o` cycles forward) |
 | Normal page with a list/detail split | `>`, `<`, `=` | Grow / shrink the list pane by 5% (counts: `3>`), reset the divider; remembered per page |
 | App or modal | `PgUp/PgDn` | Scroll the active surface |
 | App | `Ctrl-C` | Quit (`q` is reserved for macro recording) |
-| Attached terminal | any key | Forwarded to the pane; `Ctrl-A` is the leader (`d` detach, `Ctrl-A` literal, bound key runs, other key sends both, timeout sends the leader) |
+| Attached terminal | any key | Forwarded to the pane; `Ctrl-A` is the leader (`d` detach, `o` next focus stop, `a` or `Ctrl-A` literal, bound key runs, other key sends both, timeout sends the leader) |
+
+Compared with Vim (`:help CTRL-W_h`, `:help CTRL-W_l`, `:help CTRL-W_w`): Vim's `Ctrl-W h/l` move left/right and stop at the edge; ochazuke's move backward/forward through focus stops in drawing order and wrap. Vim's `Ctrl-W w` cycles windows; ochazuke's cycles stops. `Ctrl-A o` follows tmux's prefix `o` pane cycle.
 
 On terminals where Option does not send Meta sequences, configure Option-as-Meta to use `Alt-B/F`. `Ctrl-Space` is received as `ctrl+space` by Bubble Tea v2 (v1 spelled it `ctrl+@`). Every row above is a registered binding: the demo's on its nouns and instances, the editor's in `editor_bindings.json`. `bindings list` prints the rows the focus answers to in its current mode, pending modes included, so `2`, `d` or `"` followed by `bindings list` shows the count, operator or register table.
 

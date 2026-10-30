@@ -243,6 +243,27 @@ tiers above them. When the two disagree, fix one in the same commit.
   nothing. Stories: `timeline/card-half-page.json`,
   `timeline/step-tall.json`, `timeline/card-end-clamp.json`,
   `markdown/motion-long-block.json`; test `TestTimelineHalfPageRule`.
+- **R3.15 Navigation units.** One shared key pair names each unit on every
+  page. An inner component may answer the key for its own unit before the
+  app's row. The default set is:
+
+  | Unit | Keys | Motion |
+  |---|---|---|
+  | Item | `j` / `k` | Next / previous visible item; lists spill at an edge. |
+  | Section (focus stop) | `}` / `{` | Next / previous stop in drawing order. |
+  | Region | `)` / `(` | Next / previous region. |
+  | Kind | `]x` / `[x` | Next / previous matching kind where a component offers it. |
+  | Pane | `ctrl+w l` / `ctrl+w h`, `ctrl+w w` / `ctrl+w W`, `ctrl+a o` | Next / previous focus stop; `ctrl+a o` cycles forward. |
+  | Tab (planned) | `g t` / `g T` | Next / previous tab inside a page. |
+  | Page | `ctrl+j` / `ctrl+k` | Next / previous page. |
+  | Jump (planned) | `ctrl+o` / `ctrl+i` / `ctrl+]` | Back / forward through jump history. |
+  | Hint (planned) | `;` | Choose a visible target by label. |
+
+  `focus.next` and `focus.previous` wrap from the last stop to the first;
+  the pane keys use those verbs, so they wrap too. A user's `bindings.json`
+  may replace or unbind a default row. Stories:
+  `panes/ctrl-w-l-next-stop.json`, `panes/ctrl-w-h-prev-stop.json`,
+  `panes/ctrl-a-o-next-pane.json`.
 
 ### R4. Modals
 

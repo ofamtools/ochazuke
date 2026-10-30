@@ -1,0 +1,10 @@
+{
+  "name": "ctrl+a o from an attached terminal moves to the next focus stop",
+  "area": "terminal",
+  "page": {
+    "lists": [{"id": "a", "rows": 3}],
+    "terminal": {"fake": true, "attach": "a1"}
+  },
+  "script": ["enter", {"tick": "terminal"}, "ctrl+a", "o"],
+  "expect": {"focus": "a1", "mode": "normal", "highlighted": 1, "highlightedText": "a1"}
+}

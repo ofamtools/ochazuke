@@ -73,7 +73,7 @@ R|            │ ▾ g                                                         
  |            │                                                             mode); a kept filter is edited   │
  |            │   ctrl+space    palette.open                                Open the command line            │
  |            │ ▾ g                                                         waits for the next key (1 key)   │
- |            │ 1–28 / 54                                                                                    │
+ |            │ 1–28 / 59                                                                                    │
  |            │ space list.mark · S view · esc modal.pop · : palette.open · ? bindings.help · / filter       │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |

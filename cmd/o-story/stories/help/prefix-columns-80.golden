@@ -73,7 +73,7 @@ R|        │                                                 application  │
  |        │                                                 naming the   │
  |        │                                                 row          │
  |        │   ▸ ctrl+a    mode.leave                        Return from  │
- |        │ 1–15 / 60                                                    │
+ |        │ 1–15 / 64                                                    │
  |        │ space list.mark · S view · esc modal.pop · : palette.open ·… │
  |        ╰──────────────────────────────────────────────────────────────╯
  |

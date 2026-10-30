@@ -1,0 +1,15 @@
+{
+  "name": "ctrl+a a sends one literal leader to the pane and stays attached",
+  "area": "terminal",
+  "page": {
+    "lists": [{"id": "a", "rows": 3}],
+    "terminal": {"fake": true, "attach": "a1"}
+  },
+  "script": ["enter", {"tick": "terminal"}, "ctrl+a", "a", {"tick": "terminal"}],
+  "expect": {
+    "focus": "page1-pane",
+    "mode": "terminal",
+    "contains": ["<ctrl+a>", "pane (attached: ctrl+a d detaches)"],
+    "lacks": ["<ctrl+a><ctrl+a>"]
+  }
+}

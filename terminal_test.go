@@ -196,7 +196,7 @@ func TestTerminalBindingsListLeaderRowsAndNoEditorRows(t *testing.T) {
 		}
 	}
 	press(t, r, "ctrl+a")
-	if got := keys(); !reflect.DeepEqual(got, []string{"ctrl+a ochazuke.terminal.send", "d ochazuke.terminal.detach"}) {
+	if got := keys(); !reflect.DeepEqual(got, []string{"a ochazuke.terminal.send", "ctrl+a ochazuke.terminal.send", "d ochazuke.terminal.detach", "o ochazuke.focus.next"}) {
 		t.Fatalf("leader_pending rows: %v", got)
 	}
 	hints := BindingHints(r, "pane")
@@ -313,10 +313,11 @@ func TestTerminalCursorLandsInsideThePanel(t *testing.T) {
 		t.Fatalf("cursor %+v shown while the pane is not focused", view.Cursor)
 	}
 	deliver(TerminalFrame{Lines: []string{"$"}, Cursor: Pos{X: 1, Y: 0}, Hidden: true})
-	press(t, r, "ctrl+a") // normal mode on the page: not a terminal key
-	if r.Mode.Name != "normal" || len(stream.sent) != 0 {
+	press(t, r, "ctrl+a") // the app's pane prefix, not a terminal key
+	if r.Mode.Name != "normal ctrl+a" || len(stream.sent) != 0 {
 		t.Fatalf("detached pane still took keys: mode %q sent %v", r.Mode.Name, stream.sent)
 	}
+	r.CancelPendingBinding()
 	if _, err := r.Execute(Request{Verb: "attach", Noun: "ochazuke.terminal"}); err == nil {
 		t.Fatal("attach without a terminal on the context or an id must fail")
 	}
