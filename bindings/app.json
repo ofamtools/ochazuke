@@ -2,7 +2,7 @@
 {
   "bindings": [
     {"context": "app", "fallback": true, "bindings": [
-      {"key": "ctrl+space", "action": "ochazuke.palette.open"},
+      {"key": "ctrl+space", "action": "ochazuke.palette.open", "hidden": true},
       {"key": "ctrl+c", "action": "app.quit", "hidden": true},
       {"key": "ctrl+c", "action": "app.quit", "when": "no-modal", "hidden": true, "capture": true},
       {"key": "pgdown", "action": "ochazuke.surface.scroll", "args": {"lines": 8}},

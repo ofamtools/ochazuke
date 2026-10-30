@@ -8,5 +8,5 @@ R|                 │src/main.go     │
  |                 │src/model.go    │
  |                 ╰────────────────╯
  |  ────────────────────────────────────────────────────
- |  esc completion.dismiss · tab completion.accept · ct…
+ |  esc completion.dismiss · tab completion.accept
  |

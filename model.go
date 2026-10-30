@@ -551,14 +551,20 @@ func BindingHints(r *Runtime, focus string) string {
 	return strings.Join(hints, " · ")
 }
 
+// HintsShowHiddenSetting puts the rows marked hidden (the editor's
+// insert keys, the palette key, counts, registers) on the hint lines too;
+// off by default, they are left to ? help and bindings list.
+const HintsShowHiddenSetting = "help.hints-hidden"
+
 // HintBindings is the rows BindingHints shows, in its order: what a check
 // of the footer presses to prove every hint answers.
 func HintBindings(r *Runtime, focus string) []Binding {
 	var out []Binding
 	index := map[string]bool{}
+	showHidden := r.Settings().Bool(HintsShowHiddenSetting)
 	for _, row := range r.groupedRows(focus) {
 		b := row.Binding
-		if b.Hidden || r.Operations[b.Request.Key()].Motion && b.Hint == "" {
+		if b.Hidden && !showHidden || r.Operations[b.Request.Key()].Motion && b.Hint == "" {
 			continue // a motion with its own Hint (J/K detail) shows
 		}
 		if isPrefixCancel(b) && r.Mode.Payload.Prefix == "" {

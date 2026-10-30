@@ -10,6 +10,7 @@
   {"name": "dim-unfocused", "type": "integer", "default": 20, "description": "Percent a list without the focus fades toward the background; its selected row stays marked (0 is off)"},
   {"name": "help.pick-view", "type": "boolean", "default": true, "description": "S in the ? help shows the keys for a noun and mode you pick"},
   {"name": "help.table-view", "type": "boolean", "default": true, "description": "S in the ? help shows a noun's keys as a table, a column per mode"},
+  {"name": "help.hints-hidden", "type": "boolean", "default": false, "description": "The footer and every modal's hint line also show the rows marked hidden: the editor's insert keys (ctrl+k, ctrl+w, backspace), the palette key ctrl+space, counts and registers; off leaves them to ? help and bindings list, as motions are"},
   {"name": "help.pending-modes", "type": "boolean", "default": false, "description": "The ? help's pick and table views offer the pending modes too (counts, operators, the terminal leader, key-sequence prefixes)"},
   {"name": "docs.show-config", "type": "boolean", "default": true, "description": "The docs viewer (docs open, :help) marks where your settings.json and bindings.json differ from the defaults with yours: lines; off, a page reads as the committed reference"},
   {"name": "palette.missing-opens-form", "type": "boolean", "default": true, "description": "Enter on a command line, or a key, whose action lacks a required argument opens a form for its arguments; off names the missing word instead"},

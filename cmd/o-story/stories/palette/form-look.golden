@@ -8,16 +8,16 @@ r|  a1
  |
  |
  |
- |              ╭──────────────────────────────────────────────────╮
- |              │ Run demo.move                                    │
- |              │ from · The file to move                          │
- |              │   old.txt                                        │
- |              │ to · Where it goes · required                    │
- |              │                                                  │
- |              │ force (optional) · Overwrite what is there       │
- |              │   (none) ▾                                       │
- |              │ enter form.next-missing · ctrl+space palette.op… │
- |              ╰──────────────────────────────────────────────────╯
+ |              ╭──╭────────────────────────────────────────────╮──╮
+ |              │ C│ Run demo.move                              │  │
+ |              │ :│ from · The file to move                    │  │
+ |              │  │   old.txt                                  │  │
+ |              │ f│ to · Where it goes · required              │  │
+ |              │  │                                            │  │
+ |              │  │ force (optional) · Overwrite what is there │  │
+ |              │ e│   (none) ▾                                 │… │
+ |              ╰──│ enter form.next-missing                    │──╯
+ |                 ╰────────────────────────────────────────────╯
  |
  |
  |
@@ -26,5 +26,5 @@ r|  a1
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────
- |  enter form.next-missing · ctrl+space palette.open · esc mode.set · ctrl+k i…
+ |  enter form.next-missing
  |

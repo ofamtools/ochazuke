@@ -6,9 +6,9 @@ r|  a1            ╭───────────────────�
  |                │ Context                                                                                                                      │
  |                │ › b                                                                                                                          │
 R|                │   beta                                                                                                                       │
- |                │ enter chooser.pick · esc chooser.cancel · <printable> input.insert · ctrl+space palette.open · ctrl+u input.kill · ctrl+w i… │
+ |                │ enter chooser.pick · esc chooser.cancel · <printable> input.insert                                                           │
  |                ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  enter chooser.pick · esc chooser.cancel · <printable> input.insert · ctrl+space palette.open · ctrl+u input.kill · ctrl+w input.kill · ctrl+y input.paste ·…
+ |  enter chooser.pick · esc chooser.cancel · <printable> input.insert
  |
