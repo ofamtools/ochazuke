@@ -440,3 +440,36 @@ func TestOpenModalReplaceOpen(t *testing.T) {
 		t.Fatalf("closed: modal %q focus %q mode %q, want none over %q %q", r.TopModal(), r.Focus, r.BaseMode(), under, mode)
 	}
 }
+
+// ReplaceOpen over another modal: a modal opened over a modal (the help
+// over the docs viewer) reopened from inside itself (a row of it, gone
+// once it closes) replaces itself, not refused as opened from beneath
+// the modal under it; the one beneath is still there after.
+func TestOpenModalReplaceOpenOverModal(t *testing.T) {
+	r, _ := focusFixture(t)
+	if _, err := r.OpenModal("viewer", Payload{}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.OpenModal("help", Payload{}, ReplaceOpen()); err != nil {
+		t.Fatal(err)
+	}
+	r.Define("help-row")
+	if _, err := r.AddList("help/rows", []ListItem{{ID: "help/row", Noun: "help-row", Label: "row"}}, Parent("help")); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.SetFocus("help/row"); err != nil {
+		t.Fatal(err)
+	}
+	restore := r.actingFor("help/row")
+	again, err := r.OpenModal("help", Payload{}, ReplaceOpen())
+	restore()
+	if err != nil {
+		t.Fatalf("reopen from inside the help over the viewer: %v", err)
+	}
+	if again.Parent != "viewer" || !slices.Equal(r.modals, []string{"viewer", "help"}) || r.Focus != "help" {
+		t.Fatalf("modals %v parent %q focus %q, want viewer, help over viewer, focus help", r.modals, again.Parent, r.Focus)
+	}
+	if err := r.Pop(); err != nil || r.TopModal() != "viewer" {
+		t.Fatalf("pop: %v top %q, want viewer", err, r.TopModal())
+	}
+}

@@ -1,0 +1,14 @@
+{
+  "name": "q closes the help, as it closes the docs viewer: it does not start a macro recording beneath it; esc still closes it too",
+  "area": "help",
+  "width": 120,
+  "height": 40,
+  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
+  "script": ["?", "q", "?", "esc"],
+  "expect": [
+    {"after": 1, "modal": "bindings-help", "contains": ["Keys"]},
+    {"after": 2, "modal": "", "focus": "a2", "mode": "normal", "lacks": ["recording"]},
+    {"after": 3, "modal": "bindings-help", "contains": ["Keys"]},
+    {"modal": "", "focus": "a2", "mode": "normal"}
+  ]
+}
