@@ -114,7 +114,13 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R2.5** Leaving a pending mode returns to its base (`Payload.Return`),
   never to a hard-coded `normal`. Story: needed (`modes/leave-returns-to-base`).
 - **R2.6** Unknown mode names are errors, not treated as normal or insert.
-  Check: unit test on `SetMode` with a garbage name.
+  Check: unit test on `SetMode` with a garbage name. A registered mode that
+  extends insert (`ModeExtends("insert")`, `"extends": "insert"`, followed
+  up the chain: `Runtime.ModeIs(mode, "insert")`) is insert wherever the
+  framework asks: completion opens in it, an input's typing in it is one
+  undo change, the bar cursor; leaving it for a mode that is normal steps
+  the cursor back. No check names an application's mode. Story:
+  `completion/insert-like-mode.json`; test `insert_like_test.go`.
 - **R2.7** `prompt` pins insert and `terminal` pins terminal; focusing an
   instance of such a noun enters the pinned mode. Story:
   `inputs/lone-input.json` covers insert and escape for a plain input;

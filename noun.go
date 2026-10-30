@@ -1233,6 +1233,32 @@ func ModeExtends(parent string) ModeOption {
 // its own (ModeExtends), "" for none.
 func (r *Runtime) ModeParent(name string) string { return r.modeExtends[name] }
 
+// ModeIs reports whether mode is base or extends it (ModeExtends, followed
+// up the chain): a mode that extends insert behaves as insert where the
+// framework asks (completion opens in it, an input groups its typing into
+// one undo change and draws the bar cursor), so an application's own
+// typing mode (a query line's JQ) keeps insert's behaviour under its own
+// name and badge.
+func (r *Runtime) ModeIs(mode, base string) bool {
+	seen := map[string]bool{}
+	for m := mode; m != "" && !seen[m]; m = r.modeExtends[m] {
+		if m == base {
+			return true
+		}
+		seen[m] = true
+	}
+	return false
+}
+
+// modeIs is ModeIs that works without a runtime (an input not yet added):
+// then only mode itself is base.
+func modeIs(r *Runtime, mode, base string) bool {
+	if r == nil {
+		return mode == base
+	}
+	return r.ModeIs(mode, base)
+}
+
 // nounTables is what mode reads on n: its own table, then the mode it
 // extends on n (Noun.Extends), and so on; where n has no table of its own
 // for a mode in the chain, the mode's fallback (ModeExtends) continues it.

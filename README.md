@@ -915,7 +915,7 @@ Modal windows and editing modes are different concepts. A modal is an instance o
 }
 ```
 
-Applications and extensions register mode names (`mode.register {name, pending?}` or `DefineMode`); the framework does not restrict them to a fixed enum. A base mode reads a noun's mode table and its any-mode table; a pending mode reads only its own table and is left by the key that answers it (see Scoped, customizable keybindings). Rows can be bound inside any mode, pending ones included, on any noun or instance.
+Applications and extensions register mode names (`mode.register {name, pending?}` or `DefineMode`); the framework does not restrict them to a fixed enum. A mode that extends another (`DefineMode(name, false, ModeExtends(parent))`, `"extends"` in a bindings file's `"modes"`) reads its parent's rows for a noun with no table of its own, and is its parent wherever the framework asks what kind of mode it is (`r.ModeIs(mode, base)`, which follows the chain): a mode that extends `insert` (an application's JQ line, `SEARCH`) gets completion, groups its typing into one undo change, draws the bar cursor and steps the cursor back when left for a mode that extends `normal`, under its own name and badge. Compared with Vim: Vim has one such family, Insert and Replace (`:help Replace`), where completion (`:help ins-completion`) and undo blocks (`:help undo-blocks`) behave alike; here any mode can join it by extending insert. A base mode reads a noun's mode table and its any-mode table; a pending mode reads only its own table and is left by the key that answers it (see Scoped, customizable keybindings). Rows can be bound inside any mode, pending ones included, on any noun or instance.
 
 ### Declared modes: a pane's own base mode
 

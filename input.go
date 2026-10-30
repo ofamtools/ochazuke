@@ -126,7 +126,7 @@ func (in *Input) transition(mode string, stepBack bool) {
 	if in.pin != "" {
 		mode = in.pin
 	}
-	if in.ReadOnly && mode == "insert" {
+	if in.ReadOnly && modeIs(in.r, mode, "insert") {
 		mode = in.Mode // a viewer never types: the mode stays
 	}
 	if mode == in.Mode {
@@ -135,7 +135,8 @@ func (in *Input) transition(mode string, stepBack bool) {
 	}
 	in.typeOver = nil
 	old := in.Mode
-	if old == "insert" {
+	wasInsert, isInsert := modeIs(in.r, old, "insert"), modeIs(in.r, mode, "insert")
+	if wasInsert {
 		in.finishBlockChange()
 	}
 	edited := in.groupNode == in.Head
@@ -146,10 +147,10 @@ func (in *Input) transition(mode string, stepBack bool) {
 	}
 	in.resetKeys()
 	in.goalColumn = -1
-	if mode == "insert" {
+	if isInsert {
 		in.History[in.Head].Cursor = in.Cursor
 		in.groupOpen = true
-	} else if old == "insert" && mode == "normal" && stepBack {
+	} else if wasInsert && modeIs(in.r, mode, "normal") && stepBack {
 		start, _ := in.lineBounds(in.Cursor)
 		if in.Cursor > start {
 			in.Cursor--
@@ -212,7 +213,7 @@ func (in *Input) Replace(start, end int, text string) error {
 	if slices.Equal(in.Text[start:end], inserted) {
 		return nil
 	}
-	if in.Mode == "insert" && !in.groupOpen {
+	if !in.groupOpen && modeIs(in.r, in.Mode, "insert") {
 		in.groupOpen = true
 		in.groupNode = -1
 		in.History[in.Head].Cursor = in.Cursor
