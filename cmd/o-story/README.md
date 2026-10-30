@@ -453,6 +453,8 @@ Conformance:
 | mode | noun | verbs |
 |---|---|---|
 | count_pending | count | `count.append` |
+| edit | mode | `mode.pin` `mode.set` |
+| flat | mode | `mode.set` |
 | hints | demo | `demo.hint` `demo.hints-cancel` `demo.hints-ignore` |
 | insert | bindings | `bindings.help` |
 | insert | chooser | `chooser.cancel` `chooser.move` `chooser.next-source` `chooser.open` `chooser.pick` `chooser.previous-source` `chooser.up` |
@@ -469,6 +471,11 @@ Conformance:
 | insert | search | `search.cycle-match` |
 | insert | setting-value | `setting-value.cancel` `setting-value.commit` |
 | insert | settings | `settings.complete` `settings.edit` |
+| jq | completion | `completion.dismiss` |
+| jq | input | `input.insert` |
+| jq | list | `list.move` |
+| jq | mode | `mode.set` |
+| jq | palette | `palette.open` |
 | list_filter | list | `list.filter` `list.filter-choose` `list.filter-clear` `list.filter-erase` `list.filter-keep` `list.filter-type` `list.move` |
 | list_filter | search | `search.cycle-match` |
 | macro_pending | mode | `mode.leave` |
@@ -489,12 +496,12 @@ Conformance:
 | normal | macro | `macro.record` `macro.start` `macro.stop` |
 | normal | markdown | `markdown.delete` `markdown.fold` `markdown.insert` `markdown.next-block` `markdown.next-kind` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
 | normal | modal | `modal.pop` |
-| normal | mode | `mode.enter` `mode.leave` |
+| normal | mode | `mode.enter` `mode.leave` `mode.set` |
 | normal | notice | `notice.clear` |
 | normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.indent` `outline.move` `outline.outdent` `outline.paste` `outline.redo` `outline.undo` `outline.zoom-in` `outline.zoom-out` `outline.zoom-reset` |
 | normal | page | `page.next` `page.pick` `page.previous` |
 | normal | palette | `palette.open` |
-| normal | pane | `pane.grow` `pane.reset` `pane.shrink` |
+| normal | pane | `pane.grow` `pane.only` `pane.reset` `pane.restore` `pane.shrink` |
 | normal | segment | `segment.toggle` |
 | normal | setting | `setting.add` `setting.cycle` `setting.edit` `setting.reset` `setting.revert` `setting.write` |
 | normal | setting-item | `setting-item.add` `setting-item.delete` `setting-item.edit` `setting-item.reset` |
@@ -508,6 +515,10 @@ Conformance:
 | operator_pending | input | `input.cancel` |
 | register_pending | mode | `mode.leave` |
 | replay_pending | mode | `mode.leave` |
+| shape | list | `list.move` |
+| shape | mode | `mode.set` |
+| table | list | `list.move` |
+| table | mode | `mode.pin` |
 | terminal | bindings | `bindings.help` |
 | terminal | demo | `demo.hints` |
 | terminal | mode | `mode.enter` |
@@ -538,8 +549,13 @@ Mode edges (from → to via):
 - `count_pending ctrl+w` → `normal` via `pane.grow`
 - `count_pending ctrl+w` → `normal` via `pane.shrink`
 - `count_pending g` → `normal` via `list.goto`
+- `edit` → `normal` via `mode.set`
+- `edit` → `shape` via `mode.set`
+- `edit` → `table` via `mode.set`
+- `flat` → `edit` via `mode.set`
 - `hints` → `terminal` via `demo.hint`
 - `hints` → `terminal` via `demo.hints-cancel`
+- `insert` → `jq` via `palette.run`
 - `insert` → `normal` via `bindings.help`
 - `insert` → `normal` via `chooser.cancel`
 - `insert` → `normal` via `chooser.pick`
@@ -554,6 +570,9 @@ Mode edges (from → to via):
 - `insert` → `normal` via `setting-value.cancel`
 - `insert` → `normal` via `setting-value.commit`
 - `insert` → `normal` via `settings.edit`
+- `jq` → `insert` via `palette.open`
+- `jq` → `normal` via `list.move`
+- `jq` → `normal` via `mode.set`
 - `leader_pending` → `hints` via `demo.hints`
 - `leader_pending` → `normal` via `bindings.help`
 - `leader_pending` → `normal` via `terminal.detach`
@@ -567,6 +586,7 @@ Mode edges (from → to via):
 - `macro_pending` → `normal` via `macro.start`
 - `macro_pending` → `visual-line` via `mode.leave`
 - `normal` → `count_pending` via `mode.enter`
+- `normal` → `edit` via `mode.set`
 - `normal` → `insert` via `bindings-help.mode`
 - `normal` → `insert` via `bindings-help.noun`
 - `normal` → `insert` via `bindings-help.place`
@@ -594,6 +614,8 @@ Mode edges (from → to via):
 - `normal` → `insert` via `setting.edit`
 - `normal` → `insert` via `settings-section.pick`
 - `normal` → `insert` via `settings.close`
+- `normal` → `jq` via `list.move`
+- `normal` → `jq` via `mode.set`
 - `normal` → `list_filter` via `list.filter-open`
 - `normal` → `macro_pending` via `mode.enter`
 - `normal` → `normal <` via `row <`
@@ -606,6 +628,8 @@ Mode edges (from → to via):
 - `normal` → `normal g` via `row g`
 - `normal` → `normal z` via `row z`
 - `normal` → `operator_pending` via `mode.enter`
+- `normal` → `table` via `focus.next`
+- `normal` → `table` via `list.move`
 - `normal` → `terminal` via `command.run`
 - `normal` → `terminal` via `demo.open`
 - `normal` → `visual` via `input.select`
@@ -618,8 +642,11 @@ Mode edges (from → to via):
 - `normal [` → `normal` via `markdown.previous-same`
 - `normal ]` → `normal` via `markdown.next-kind`
 - `normal ]` → `normal` via `markdown.next-same`
+- `normal ctrl+w` → `normal` via `focus.next`
 - `normal ctrl+w` → `normal` via `pane.grow`
+- `normal ctrl+w` → `normal` via `pane.only`
 - `normal ctrl+w` → `normal` via `pane.reset`
+- `normal ctrl+w` → `normal` via `pane.restore`
 - `normal ctrl+w` → `normal` via `pane.shrink`
 - `normal ctrl+w` → `normal` via `row >`
 - `normal d` → `normal` via `markdown.delete`
@@ -649,6 +676,10 @@ Mode edges (from → to via):
 - `operator_pending` → `normal` via `input.operator`
 - `register_pending` → `visual-line` via `mode.leave`
 - `replay_pending` → `visual-line` via `mode.leave`
+- `shape` → `edit` via `mode.set`
+- `shape` → `normal` via `list.move`
+- `table` → `flat` via `mode.pin`
+- `table` → `normal` via `list.move`
 - `terminal` → `leader_pending` via `mode.enter`
 - `visual` → `normal` via `input.cancel`
 - `visual` → `normal` via `input.operator`

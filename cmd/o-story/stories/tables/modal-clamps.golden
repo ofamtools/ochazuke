@@ -7,7 +7,7 @@ r|  a1│ noun: demo · place: page1 › de… │
 R|  b │ $               list.colum…     │
 r|  b1│ 0               list.colum…     │
  |  b2│ G               list.goto       │
- |    │ 1–3 / 76                        │
+ |    │ 1–3 / 77                        │
  |    │ ─────────────────────────────── │
  |    │ normal       list.column {"to"… │
  |    │              then list.scroll-… │
