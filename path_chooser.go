@@ -272,20 +272,22 @@ func (r *Runtime) OpenPathChooser(spec PathChooserSpec) (*Chooser, error) {
 // listDir reads a folder's entries for a chooser: folders first (with a
 // trailing /, Opens; NoPick when the pick wants a file), then files (left
 // out when it wants a folder), each by name, hidden ones only when
-// hidden; only names starting with prefix (any case) when it is set.
-func listDir(dir, prefix string, pick PathPick, hidden bool) ([]ChooserRow, error) {
+// hidden; only names starting with prefix when it is set, compared as
+// the search.case value caseMode says (CaseFor: smart ignores case unless
+// the prefix holds a capital).
+func listDir(dir, prefix string, pick PathPick, hidden bool, caseMode string) ([]ChooserRow, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
 	var dirs, files []ChooserRow
-	lower := strings.ToLower(prefix)
+	cm := CaseFor(caseMode, prefix)
 	for _, e := range entries {
 		name := e.Name()
 		if strings.HasPrefix(name, ".") && !hidden && !strings.HasPrefix(prefix, ".") {
 			continue
 		}
-		if lower != "" && !strings.HasPrefix(strings.ToLower(name), lower) {
+		if prefix != "" && !cm.HasPrefix(name, prefix) {
 			continue
 		}
 		full := filepath.Join(dir, name)
@@ -318,9 +320,9 @@ func (r *Runtime) browseSource(pick PathPick, use func(string) Result) ChooserSo
 		if !asked && !r.autoListable(at) {
 			return Failed(fmt.Errorf("not listed on its own (path.no-auto-list): open it or type a path; %s", displayPath(at)))
 		}
-		hidden := r.showHidden()
+		hidden, caseMode := r.showHidden(), r.SearchCase()
 		return Pending(func(context.Context) (any, error) {
-			rows, err := listDir(at, "", pick, hidden)
+			rows, err := listDir(at, "", pick, hidden, caseMode)
 			if err != nil {
 				return nil, err
 			}
@@ -394,9 +396,9 @@ func (r *Runtime) typedSource(pick PathPick, use func(string) Result) ChooserSou
 			if strings.TrimSpace(query) == "" {
 				return Done([]ChooserRow(nil))
 			}
-			hidden := r.showHidden()
+			hidden, caseMode := r.showHidden(), r.SearchCase()
 			return Pending(func(context.Context) (any, error) {
-				return typedRows(query, pick, hidden), nil
+				return typedRows(query, pick, hidden, caseMode), nil
 			}).Label("complete " + query)
 		},
 		Open: func(row ChooserRow) (string, bool) {
@@ -419,8 +421,11 @@ func (r *Runtime) typedSource(pick PathPick, use func(string) Result) ChooserSou
 	}
 }
 
-// typedRows are the typed source's rows for query.
-func typedRows(query string, pick PathPick, hidden bool) []ChooserRow {
+// typedRows are the typed source's rows for query; caseMode is the
+// search.case setting, applied to the name being completed (the part after
+// the last /), so a capital in a folder already typed never makes the
+// completion case-sensitive.
+func typedRows(query string, pick PathPick, hidden bool, caseMode string) []ChooserRow {
 	path := expandPath(query, pick.Start)
 	dir, prefix := filepath.Dir(path), filepath.Base(path)
 	// Rows read as typed: the query's folder part as written ("sub/",
@@ -446,7 +451,7 @@ func typedRows(query string, pick PathPick, hidden bool) []ChooserRow {
 			fresh = append(fresh, ChooserRow{ID: path, Label: "new " + query, Data: path})
 		}
 	}
-	more, _ := listDir(dir, prefix, pick, hidden)
+	more, _ := listDir(dir, prefix, pick, hidden, caseMode)
 	for _, row := range more {
 		if row.ID == path {
 			continue

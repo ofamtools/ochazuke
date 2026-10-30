@@ -79,7 +79,7 @@ Root package `ochazuke` is flat: 118 source files, 135 test files. Each entry li
 
 ### chooser.go
 
-- lines: 734 · tests: chooser_test.go
+- lines: 738 · tests: chooser_test.go
 - purpose: ChooserRow is one choice.
 - types: ChooserRow, ChooserSpec, Chooser
 - methods: Chooser(26), Runtime(3)
@@ -334,7 +334,7 @@ Root package `ochazuke` is flat: 118 source files, 135 test files. Each entry li
 
 ### list.go
 
-- lines: 725 · tests: list_test.go
+- lines: 726 · tests: list_test.go
 - purpose: ListItem is application-owned identity, display text, and the registered noun the row answers to.
 - types: ListItem, List
 - methods: List(29), Runtime(1)
@@ -352,7 +352,7 @@ Root package `ochazuke` is flat: 118 source files, 135 test files. Each entry li
 
 ### list_filter.go
 
-- lines: 331 · tests: list_filter_test.go
+- lines: 335 · tests: list_filter_test.go
 - purpose: filterOpenRow is the row that opens the filter line: "/" on app in normal mode guarded by list-filterable, like J/K detail, so an application's own "/" on an...
 - methods: List(10), Runtime(1)
 - leans on: runtime.go(32), list.go(30), instance.go(7), resolve.go(5)
@@ -518,7 +518,7 @@ Root package `ochazuke` is flat: 118 source files, 135 test files. Each entry li
 
 ### path_chooser.go
 
-- lines: 461 · tests: path_chooser_test.go
+- lines: 466 · tests: path_chooser_test.go
 - purpose: PathPick describes what a path chooser is open for.
 - types: PathPick, PathChooserSpec
 - methods: PathPick(1), Runtime(11)
@@ -531,7 +531,7 @@ Root package `ochazuke` is flat: 118 source files, 135 test files. Each entry li
 - types: Picker
 - methods: Picker(19)
 - funcs: NewPicker
-- leans on: runtime.go(63), picker_search.go(12), block.go(11), instance.go(9)
+- leans on: runtime.go(64), picker_search.go(12), block.go(11), instance.go(9)
 
 ### picker_preview.go
 
@@ -541,11 +541,11 @@ Root package `ochazuke` is flat: 118 source files, 135 test files. Each entry li
 
 ### picker_search.go
 
-- lines: 272 · tests: picker_search_test.go
+- lines: 275 · tests: picker_search_test.go
 - purpose: PickerEntry is relative to the indexed root.
 - types: PickerEntry
 - methods: pickerIgnore(2)
-- leans on: runtime.go(4), standard_derived.go(3)
+- leans on: runtime.go(4), standard_derived.go(3), search_case.go(2)
 
 ### picker_stats.go
 
@@ -629,6 +629,15 @@ Root package `ochazuke` is flat: 118 source files, 135 test files. Each entry li
 - methods: Appearance(2), Config(3), Runtime(2), SchemeColor(1), SchemeSet(2), Settings(1)
 - funcs: NewSchemeSet, ParseSchemes
 - leans on: tone.go(7), configuration.go(5), settings.go(5), block.go(3)
+
+### search_case.go
+
+- lines: 94 · tests: search_case_test.go
+- purpose: CaseMatch is how one query compares with text: folded (case ignored) or exact.
+- types: CaseMatch
+- methods: CaseMatch(5), Runtime(2)
+- funcs: CaseFor
+- leans on: runtime.go(2)
 
 ### segment.go
 
@@ -1561,6 +1570,7 @@ Exported type -> file.
 - CardRole -> timeline.go
 - CardSection -> timeline.go
 - CardStep -> timeline_steps.go
+- CaseMatch -> search_case.go
 - Choice -> params.go
 - Chooser -> chooser.go
 - ChooserRow -> chooser.go

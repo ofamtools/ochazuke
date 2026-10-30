@@ -131,21 +131,21 @@ func TestPickerFuzzyRelativeFullPathsAndFilters(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	results, err := searchPicker(context.Background(), entries, "s/mg", "file")
+	results, err := searchPicker(context.Background(), entries, "s/mg", "file", SearchCaseIgnore)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got, want := pickerEntryPaths(results), []string{"src/main.go", "src/maps.go", "source/my app.go"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("relative fuzzy ranking got %q want %q", got, want)
 	}
-	results, err = searchPicker(context.Background(), entries, "SRC", "dir")
+	results, err = searchPicker(context.Background(), entries, "SRC", "dir", SearchCaseIgnore)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got, want := pickerEntryPaths(results), []string{"src", "source"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("directory filter got %q want %q", got, want)
 	}
-	results, err = searchPicker(context.Background(), entries, "my ap", "any")
+	results, err = searchPicker(context.Background(), entries, "my ap", "any", SearchCaseIgnore)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +159,7 @@ func TestPickerSearchKeepsEveryMatchAndStableTies(t *testing.T) {
 	for i := range entries {
 		entries[i] = PickerEntry{Path: fmt.Sprintf("file-%04d", len(entries)-i)}
 	}
-	results, err := searchPicker(context.Background(), entries, "file", "file")
+	results, err := searchPicker(context.Background(), entries, "file", "file", SearchCaseIgnore)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +188,7 @@ func TestPickerIndexCancellationAndMissingRoot(t *testing.T) {
 	if err != nil || !slices.Equal(pickerEntryPaths(entries), []string{"visible"}) {
 		t.Fatalf("valid index: %v, %v", entries, err)
 	}
-	results, err := searchPicker(ctx, entries, "vis", "file")
+	results, err := searchPicker(ctx, entries, "vis", "file", SearchCaseIgnore)
 	if err == nil || len(results) != 0 {
 		t.Fatalf("canceled search returned %v, %v", results, err)
 	}

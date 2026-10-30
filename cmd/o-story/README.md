@@ -463,7 +463,7 @@ Conformance:
 | insert | palette | `palette.cancel` `palette.complete` `palette.move` `palette.run` |
 | insert | setting-value | `setting-value.cancel` `setting-value.commit` |
 | insert | settings | `settings.complete` `settings.edit` |
-| list_filter | list | `list.filter-choose` `list.filter-clear` `list.filter-erase` `list.filter-keep` `list.filter-type` `list.move` |
+| list_filter | list | `list.filter` `list.filter-choose` `list.filter-clear` `list.filter-erase` `list.filter-keep` `list.filter-type` `list.move` |
 | normal | app | `app.quit` |
 | normal | bindings | `bindings.help` |
 | normal | bindings-help | `bindings-help.mode` `bindings-help.noun` `bindings-help.place` `bindings-help.view` |

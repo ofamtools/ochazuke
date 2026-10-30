@@ -1,0 +1,15 @@
+{
+  "name": "list filter, search.case ignore: a capital still matches either case",
+  "area": "lists",
+  "settings": [{"name": "search.case", "type": "string", "default": "ignore", "enum": ["smart", "ignore", "sensitive"]}],
+  "page": {
+    "lists": [
+      {"id": "a", "rows": 4, "labels": ["idle worker", "IDLE pane", "Idle task", "busy"]},
+      {"id": "b", "rows": 2}
+    ]
+  },
+  "script": ["/", {"type": "IDLE"}],
+  "expect": [
+    {"mode": "list_filter", "contains": ["/IDLE", "3 of 4", "idle worker", "IDLE pane", "Idle task"], "lacks": ["busy"]}
+  ]
+}

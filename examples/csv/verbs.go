@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/unixsuperhero/ochazuke"
 	"github.com/unixsuperhero/ochazuke/grid"
@@ -339,8 +338,8 @@ func (a *App) sortBy(j int) error {
 	return nil
 }
 
-// filterBy shows the rows whose cell in column j contains query (case
-// insensitive); "" shows every row.
+// filterBy shows the rows whose cell in column j contains query, case as
+// the search.case setting says (Runtime.CaseFor); "" shows every row.
 func (a *App) filterBy(j int, query string) error {
 	if j < 0 || j >= len(a.Header) {
 		return errors.New("no column to filter by")
@@ -351,8 +350,8 @@ func (a *App) filterBy(j int, query string) error {
 		a.grid.SetFilter(nil)
 		return nil
 	}
-	needle := strings.ToLower(query)
-	a.grid.SetFilter(func(row []string) bool { return j < len(row) && strings.Contains(strings.ToLower(row[j]), needle) })
+	cm := a.r.CaseFor(query)
+	a.grid.SetFilter(func(row []string) bool { return j < len(row) && cm.Contains(row[j], query) })
 	return nil
 }
 

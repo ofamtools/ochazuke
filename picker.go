@@ -449,10 +449,10 @@ func (p *Picker) queueIndex(root string, shallow bool) {
 func (p *Picker) queueSearch() {
 	id, ctx := p.issue("search")
 	p.searchID = id
-	entries, query, filter := p.indexed, p.query, p.Filter
+	entries, query, filter, caseMode := p.indexed, p.query, p.Filter, p.Runtime.SearchCase()
 	p.Loading = true
 	p.pending = append(p.pending, func() tea.Msg {
-		results, err := searchPicker(ctx, entries, query, filter)
+		results, err := searchPicker(ctx, entries, query, filter, caseMode)
 		if err == nil && query == "" && filter != "file" {
 			results = append([]PickerEntry{{Path: ".", Dir: true}}, results...)
 		}

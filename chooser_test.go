@@ -76,9 +76,9 @@ func TestChooserSpelledTrailingRowLeadsUnlessAnOrdinaryRowIsSpelled(t *testing.T
 	rows := []ChooserRow{{ID: "notes", Label: "notes"}, {ID: "nopin", Label: "no pin (unpin)", Trailing: true}}
 	strict := func(q string, row ChooserRow) bool {
 		if row.Trailing {
-			return strings.Contains(row.Label, q) || spellsWords(q, row.Label)
+			return strings.Contains(row.Label, q) || spellsWords(CaseFor(SearchCaseIgnore, q), q, row.Label)
 		}
-		return fuzzyMatch(q, row.Label)
+		return fuzzyMatch(CaseFor(SearchCaseIgnore, q), q, row.Label)
 	}
 	_, m, c, _ := chooserTest(t, ChooserSpec{Rows: rows, Filter: strict})
 	keytest.Type(m, "unp")

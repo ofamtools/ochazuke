@@ -14,10 +14,12 @@ import (
 // The list filter: "/" on any focused list (page lists, tables, a
 // catalog page's lists, the Settings page's) opens a one-line query above
 // its rows, and typing narrows the rows to those whose label or cells hold
-// every word of the query, ignoring case, in list order. The filter hides
-// rows from drawing and from motions (j/k, counts, spills) without
-// removing them: their instances, marks and data stay, SetItems while
-// filtered filters the new rows, and clearing the filter shows them all.
+// every word of the query, in list order, comparing case as search.case
+// says (Runtime.CaseFor: ignored unless the query holds a capital, by
+// default). The filter hides rows from drawing and from motions (j/k,
+// counts, spills) without removing them: their instances, marks and data
+// stay, SetItems while filtered filters the new rows, and clearing the
+// filter shows them all.
 //
 // The query is typed in ListFilterMode, a base mode whose rows are on the
 // list noun: printable keys and space type, backspace erases (and on an
@@ -47,14 +49,15 @@ func filterOpenRow() Binding {
 	return Do("ochazuke.list.filter-open").Guard("list-filterable").Hinted("filter")
 }
 
-// filterTerms splits a query into the lowercased words a row must hold.
-func filterTerms(query string) []string { return strings.Fields(strings.ToLower(query)) }
+// filterTerms splits a query into the words a row must hold, as cm
+// compares them.
+func filterTerms(query string, cm CaseMatch) []string { return strings.Fields(cm.String(query)) }
 
 // filterHay is the text a row is matched against: its label and cells,
-// lowercased, separated so a word never spans two cells.
-func filterHay(item ListItem) string {
+// as cm compares them, separated so a word never spans two cells.
+func filterHay(item ListItem, cm CaseMatch) string {
 	parts := append([]string{item.Label}, item.Cells...)
-	return strings.ToLower(strings.Join(parts, "\x00"))
+	return cm.String(strings.Join(parts, "\x00"))
 }
 
 // filterMatches reports whether hay holds every term.
@@ -110,13 +113,14 @@ func (l *List) refilter(keep string) {
 	if strings.TrimSpace(l.query) == "" {
 		l.items = l.all
 	} else {
-		if l.hay == nil {
-			l.hay = make([]string, len(l.all))
+		cm := l.r.CaseFor(l.query)
+		if l.hay == nil || l.hayFold != cm.Fold() {
+			l.hay, l.hayFold = make([]string, len(l.all)), cm.Fold()
 			for i, item := range l.all {
-				l.hay[i] = filterHay(item)
+				l.hay[i] = filterHay(item, cm)
 			}
 		}
-		terms := filterTerms(l.query)
+		terms := filterTerms(l.query, cm)
 		shown := make([]ListItem, 0, len(l.all))
 		for i, item := range l.all {
 			if filterMatches(l.hay[i], terms) {

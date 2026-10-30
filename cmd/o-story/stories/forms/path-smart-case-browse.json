@@ -1,0 +1,20 @@
+{
+  "name": "path chooser, search.case smart: a lower-case query matches either case, a capital narrows to the names spelled that way",
+  "area": "forms",
+  "width": 100,
+  "height": 18,
+  "files": ["README.md", "readme.txt", "notes.txt"],
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "records": [
+      {"id": "doc", "fields": [{"name": "file", "type": "path", "base": "{{files}}"}]}
+    ],
+    "focus": "doc/file"
+  },
+  "script": ["enter", {"job": "chooser.load"}, {"type": "read"}, "ctrl+u", {"type": "READ"}],
+  "expect": [
+    {"after": 2, "modal": "path-chooser", "contains": ["README.md", "readme.txt", "notes.txt"]},
+    {"after": 3, "contains": ["README.md", "readme.txt"], "lacks": ["notes.txt"]},
+    {"contains": ["README.md"], "lacks": ["readme.txt", "notes.txt"]}
+  ]
+}

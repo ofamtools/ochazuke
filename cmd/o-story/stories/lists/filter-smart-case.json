@@ -1,0 +1,15 @@
+{
+  "name": "list filter, search.case smart: a lower-case query matches either case, a capital narrows to the rows spelled that way",
+  "area": "lists",
+  "page": {
+    "lists": [
+      {"id": "a", "rows": 4, "labels": ["idle worker", "IDLE pane", "Idle task", "busy"]},
+      {"id": "b", "rows": 2}
+    ]
+  },
+  "script": ["/", {"type": "idle"}, "ctrl+u", {"type": "IDLE"}],
+  "expect": [
+    {"after": 2, "mode": "list_filter", "contains": ["/idle", "3 of 4", "idle worker", "IDLE pane", "Idle task"], "lacks": ["busy"]},
+    {"mode": "list_filter", "contains": ["/IDLE", "1 of 4", "IDLE pane"], "lacks": ["idle worker", "Idle task", "busy"]}
+  ]
+}

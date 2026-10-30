@@ -51,8 +51,9 @@ type ChooserRow struct {
 
 // ChooserSpec opens a chooser. Kind is the modal's kind (one open chooser
 // per kind). Title is the modal's title. Filter defaults to a fuzzy match
-// on Label; matches whose label holds the query whole come first, otherwise
-// in Rows order. Create is optional; without it Enter on no match fails.
+// on Label, case as the search.case setting says (CaseFor; a Filter of the
+// application's own can read Runtime.CaseFor too); matches whose label
+// holds the query whole come first, otherwise in Rows order. Create is optional; without it Enter on no match fails.
 // CreateLabel names what Enter would create from the query. CreateRow shows
 // that as a "+ <label>" row while the query is not empty, after the matches
 // and trailing rows and before the fixed rows; typing never matches or
@@ -176,9 +177,6 @@ func registerChooser(r *Runtime) {
 func (r *Runtime) OpenChooser(spec ChooserSpec) (*Chooser, error) {
 	if spec.Kind == "" {
 		return nil, errors.New("chooser kind is required")
-	}
-	if spec.Filter == nil {
-		spec.Filter = func(query string, row ChooserRow) bool { return fuzzyMatch(query, row.Label) }
 	}
 	c := &Chooser{r: r, spec: spec, input: NewInput(spec.Kind+"/query", "", false)}
 	if len(spec.Sources) > 0 {
@@ -330,13 +328,18 @@ func (c *Chooser) sync() {
 
 func (c *Chooser) refilter() {
 	c.seen = c.Query()
+	cm := c.r.CaseFor(c.seen)
+	filter := c.spec.Filter
+	if filter == nil {
+		filter = func(query string, row ChooserRow) bool { return fuzzyMatch(cm, query, row.Label) }
+	}
 	var head, tail, fixed []ChooserRow
 	for _, row := range c.spec.Rows {
 		if row.Fixed {
 			fixed = append(fixed, row)
 			continue
 		}
-		if !c.live() && !c.spec.Filter(c.seen, row) {
+		if !c.live() && !filter(c.seen, row) {
 			continue
 		}
 		if row.Trailing {
@@ -348,10 +351,9 @@ func (c *Chooser) refilter() {
 	// A row whose label holds the query whole outranks a scattered fuzzy
 	// match, so the top match is the one the query spells.
 	// A Live source ranked its rows itself.
-	needle := strings.ToLower(c.seen)
 	if !c.live() {
 		slices.SortStableFunc(head, func(x, y ChooserRow) int {
-			return cmpBool(strings.Contains(strings.ToLower(y.Label), needle), strings.Contains(strings.ToLower(x.Label), needle))
+			return cmpBool(cm.Contains(y.Label, c.seen), cm.Contains(x.Label, c.seen))
 		})
 	}
 	// A trailing row the query spells from the start of one of its words
@@ -359,10 +361,10 @@ func (c *Chooser) refilter() {
 	// ordinary row is spelled as well ("no" for a project "notes").
 	spelled := false
 	for _, row := range head {
-		spelled = spelled || spellsWords(c.seen, row.Label)
+		spelled = spelled || spellsWords(cm, c.seen, row.Label)
 	}
 	for i, row := range tail {
-		if !spelled && spellsWords(c.seen, row.Label) {
+		if !spelled && spellsWords(cm, c.seen, row.Label) {
 			head = append([]ChooserRow{row}, head...)
 			tail = append(tail[:i:i], tail[i+1:]...)
 			break
@@ -380,7 +382,7 @@ func (c *Chooser) refilter() {
 	// its place at the end.
 	spelledFixed := -1
 	for i, row := range fixed {
-		if !spelled && spellsWords(c.seen, row.Label) {
+		if !spelled && spellsWords(cm, c.seen, row.Label) {
 			spelledFixed = len(head) + len(tail) + len(create) + i
 			break
 		}
@@ -398,7 +400,7 @@ func (c *Chooser) refilter() {
 }
 
 // holds reports whether the first row is a strong match for the query: it
-// holds the query as a substring, ignoring case and, failing that,
+// holds the query as a substring (case as search.case says) and, failing that,
 // punctuation and spaces ("tuiosinbox" in "tuios-inbox"), spells it from
 // word starts, or matches it compactly inside one word (compactMatch:
 // "chz" in "ochazuke"). A match strewn across words ("unpin" in
@@ -408,30 +410,31 @@ func (c *Chooser) holds(rows []ChooserRow) bool {
 		return false
 	}
 	label := rows[0].Label
-	if strings.Contains(strings.ToLower(label), strings.ToLower(c.seen)) || spellsWords(c.seen, label) {
+	cm := c.r.CaseFor(c.seen)
+	if cm.Contains(label, c.seen) || spellsWords(cm, c.seen, label) {
 		return true
 	}
 	squash := func(s string) string {
 		return strings.Map(func(r rune) rune {
 			if unicode.IsLetter(r) || unicode.IsDigit(r) {
-				return unicode.ToLower(r)
+				return cm.Rune(r)
 			}
 			return -1
 		}, s)
 	}
 	q := squash(c.seen)
-	return q != "" && strings.Contains(squash(label), q) || compactMatch(c.seen, label)
+	return q != "" && strings.Contains(squash(label), q) || compactMatch(cm, c.seen, label)
 }
 
 // compactMatch reports whether query's runes appear in order inside one
-// whitespace-separated word of label, ignoring case, spanning at most
-// twice the query's length plus one.
-func compactMatch(query, label string) bool {
-	q := []rune(strings.ToLower(strings.TrimSpace(query)))
+// whitespace-separated word of label, case as cm compares it, spanning at
+// most twice the query's length plus one.
+func compactMatch(cm CaseMatch, query, label string) bool {
+	q := []rune(cm.String(strings.TrimSpace(query)))
 	if len(q) == 0 {
 		return false
 	}
-	for _, word := range strings.Fields(strings.ToLower(label)) {
+	for _, word := range strings.Fields(cm.String(label)) {
 		w := []rune(word)
 		for start := range w {
 			if w[start] != q[0] {
@@ -686,12 +689,13 @@ func alignCells(cells []string, widths []int) string {
 	return b.String()
 }
 
-// spellsWords reports whether query, ignoring case and punctuation, starts
-// at the beginning of one of label's words and runs on through the words
-// that follow ("unp" and "no pin" spell "no pin (unpin)").
-func spellsWords(query, label string) bool {
+// spellsWords reports whether query, ignoring punctuation and comparing
+// case as cm does, starts at the beginning of one of label's words and
+// runs on through the words that follow ("unp" and "no pin" spell "no pin
+// (unpin)").
+func spellsWords(cm CaseMatch, query, label string) bool {
 	norm := func(s string) []string {
-		return strings.FieldsFunc(strings.ToLower(s), func(r rune) bool {
+		return strings.FieldsFunc(cm.String(s), func(r rune) bool {
 			return !unicode.IsLetter(r) && !unicode.IsDigit(r)
 		})
 	}
@@ -719,11 +723,11 @@ func cmpBool(x, y bool) int {
 	return -1
 }
 
-// fuzzyMatch reports whether query's runes appear in text in order,
-// ignoring case.
-func fuzzyMatch(query, text string) bool {
-	text = strings.ToLower(text)
-	for _, char := range strings.ToLower(query) {
+// fuzzyMatch reports whether query's runes appear in text in order, case
+// as cm compares it.
+func fuzzyMatch(cm CaseMatch, query, text string) bool {
+	text = cm.String(text)
+	for _, char := range cm.String(query) {
 		pos := strings.IndexRune(text, char)
 		if pos < 0 {
 			return false

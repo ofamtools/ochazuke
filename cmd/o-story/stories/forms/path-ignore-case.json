@@ -1,0 +1,20 @@
+{
+  "name": "path chooser, search.case ignore: a capital still matches either case, in browse and in typed completion",
+  "area": "forms",
+  "width": 100,
+  "height": 18,
+  "files": ["README.md", "readme.txt", "notes.txt"],
+  "settings": [{"name": "search.case", "type": "string", "default": "ignore", "enum": ["smart", "ignore", "sensitive"]}],
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "records": [
+      {"id": "doc", "fields": [{"name": "file", "type": "path", "base": "{{files}}"}]}
+    ],
+    "focus": "doc/file"
+  },
+  "script": ["enter", {"job": "chooser.load"}, {"type": "READ"}, "ctrl+u", "tab", "tab", {"type": "READ"}, {"job": "chooser.load"}],
+  "expect": [
+    {"after": 3, "contains": ["README.md", "readme.txt"], "lacks": ["notes.txt"]},
+    {"contains": ["browse recent [typed]", "README.md", "readme.txt"], "lacks": ["notes.txt"]}
+  ]
+}

@@ -166,6 +166,9 @@ func slicesWithout(items []ListItem, id string) []ListItem {
 
 func TestListFilterVerbAndView(t *testing.T) {
 	r, m, list := filterFixture(t)
+	if err := r.Settings().Set(SearchCaseSetting, SearchCaseIgnore); err != nil { // ALPHA finds alpha
+		t.Fatal(err)
+	}
 	res, err := r.Execute(Request{Noun: "ochazuke.list", Verb: "filter", Target: "p/l", Args: Arguments{"query": "ALPHA"}})
 	if err != nil {
 		t.Fatal(err)

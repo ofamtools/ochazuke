@@ -298,8 +298,8 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R5.5** `List.Move` (the API) always clamps; only the `list.move`
   operation spills. Check: unit test.
 - **R5.6** `/` filters any focused list unless the app binds `/` on the
-  stack: typing narrows the rows (label and cells, every word, ignoring
-  case, list order), up/down and `ctrl+n`/`ctrl+p` move among the matches
+  stack: typing narrows the rows (label and cells, every word, case as
+  `search.case` says (R5.17), list order), up/down and `ctrl+n`/`ctrl+p` move among the matches
   without spilling, enter keeps the filter in normal mode, esc clears it and
   goes back to the row `/` found, backspace on an empty query leaves the
   line. On a list added with `ClearFilterOnEnter` (one picks a row from,
@@ -501,6 +501,19 @@ tiers above them. When the two disagree, fix one in the same commit.
   `tables/visual-line-motions-esc.json`, `tables/visual-after-keep.json`,
   `tables/visual-after-end.json`, `tree/visual-line-nest.json`; tests
   `list_visual_test.go`.
+- **R5.17** Every search follows `search.case`: the `/` list filter, a
+  chooser's matching, ranking and word spelling, the path chooser's browse
+  and typed completion, the path picker's fuzzy search, and any search an
+  application adds (through `Runtime.CaseFor`). `smart` (the default)
+  ignores case until the query holds an upper-case letter
+  (`unicode.IsUpper`; separators, digits and punctuation never count; in
+  typed path completion only the name being completed), then matches it
+  exactly; `ignore` and `sensitive` are the opt-outs. No search lower-cases
+  on its own; a lower-case query ranks exactly as under `ignore`.
+  Identifiers (palette words, names, column titles, keys) are not searches.
+  Stories: `lists/filter-smart-case.json`, `lists/filter-ignore-case.json`,
+  `forms/path-smart-case-browse.json`, `forms/path-smart-case-typed.json`,
+  `forms/path-ignore-case.json`; tests `search_case_test.go`.
 
 ### R6. Chrome: footer, hints, help, ticker, notices
 
