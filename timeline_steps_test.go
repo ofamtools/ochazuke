@@ -261,12 +261,13 @@ func TestTimelineActionsReportAvailabilityByCardState(t *testing.T) {
 	if r.Focus != "c1" || !f.tl.IsOpen("c1") {
 		t.Fatalf("h inside: focus %s open %v", r.Focus, f.tl.IsOpen("c1"))
 	}
-	// A key on an action with nothing to do here goes on out: z o on an
-	// open card is not handled (the card is open already).
+	// A sequence on an action with nothing to do here is consumed with
+	// its keys: z o on an open card does nothing (the card is open
+	// already) and o never runs alone.
 	if outcome, _ := r.DispatchOutcome(MacroKey{Key: "z"}); outcome != KeyHandled {
 		t.Fatalf("z starts the sequence: %v", outcome)
 	}
-	if outcome, _ := r.DispatchOutcome(MacroKey{Key: "o"}); outcome != KeyUnhandled || !f.tl.IsOpen("c1") {
+	if outcome, _ := r.DispatchOutcome(MacroKey{Key: "o"}); outcome != KeyConsumed || !f.tl.IsOpen("c1") {
 		t.Fatalf("z o on an open card: %v, open %v", outcome, f.tl.IsOpen("c1"))
 	}
 	// A call names its card: open c2 (closed) is available from c1.

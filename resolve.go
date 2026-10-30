@@ -253,11 +253,13 @@ func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (KeyOut
 	}
 	drop := r.dropsInheritedSequences()
 	levels := r.walk(focus)
+	bound := false // a row on the sequence typed exists but does not answer here
 	// The capture pass: outer-first, the first level that answers wins.
 	for len(levels) > 0 && levels[0].capture {
 		lv := levels[0]
 		levels = levels[1:]
 		hit, look := r.lookup(lv, base, exclusive, prefix, sequence, key, ev)
+		bound = bound || look.bound
 		if look.waits(look.ownExact, drop) {
 			return wait(look.exact)
 		}
@@ -279,6 +281,7 @@ func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (KeyOut
 	for _, lv := range levels {
 		h, look := r.lookup(lv, base, exclusive, prefix, sequence, key, ev)
 		looks = append(looks, look)
+		bound = bound || look.bound
 		ownExact = ownExact || look.ownExact
 		if exact == nil && look.exact != nil {
 			exact = look.exact
@@ -302,6 +305,14 @@ func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (KeyOut
 	}
 	if hit != nil {
 		return run(hitLv, hit)
+	}
+	if held != "" && bound {
+		// The key completes a bound sequence, but no row on it answers
+		// here (its action unavailable, its guard false): the sequence
+		// and the key are consumed together, never handed on as the key
+		// typed alone (g v where values does not apply never runs v).
+		r.leavePrefix()
+		return KeyConsumed, nil
 	}
 	if held != "" {
 		// A key no row continues the sequence with: sequence-unknown
@@ -348,6 +359,9 @@ func baseAndPrefix(mode ModeState) (string, string) {
 type lookResult struct {
 	longer, inherited, ownExact bool
 	exact                       *Binding
+	// bound: a row on exactly the sequence typed (two keys or more) that
+	// does not answer here, its action unavailable or its guard false.
+	bound bool
 }
 
 // waits reports whether the walk waits on this level's sequences: an own
@@ -407,7 +421,13 @@ func (r *Runtime) lookup(lv level, mode string, exclusive bool, prefix, sequence
 				owned = row
 			}
 			if !r.Available(row.Request, ev.Focus, ev.Mode) {
+				if prefix != "" && row.Keys == sequence && !key.Paste {
+					look.bound = true
+				}
 				continue // not available here: the walk goes on, as the listings hide it
+			}
+			if prefix != "" && row.Keys == sequence && !key.Paste && !r.rowGuardHolds(row.When, ev) {
+				look.bound = true
 			}
 			if row.Keys != "" && !key.Paste {
 				if row.Keys == sequence {

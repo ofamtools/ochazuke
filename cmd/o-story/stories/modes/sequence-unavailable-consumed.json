@@ -1,0 +1,17 @@
+{
+  "name": "a key that completes a bound sequence whose row is unavailable here (g c, choose-column, on a plain list) is consumed with the sequence: it never runs as a fresh key (c's own row), and the list stays where it was (P3, Vim beeps on an unmapped g key)",
+  "area": "modes",
+  "width": 80,
+  "height": 12,
+  "page": {
+    "lists": [{"id": "a", "rows": 3}],
+    "focus": "a2",
+    "bind": [{"noun": "app", "keys": "c", "do": "ochazuke.palette.open"}]
+  },
+  "script": ["g", "c", "j"],
+  "expect": [
+    {"after": 1, "mode": "normal g"},
+    {"after": 2, "modal": "", "mode": "normal", "focus": "a2"},
+    {"modal": "", "mode": "normal", "focus": "a3"}
+  ]
+}
