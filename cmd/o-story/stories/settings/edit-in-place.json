@@ -18,7 +18,7 @@
       "page": "__settings",
       "modal": "",
       "focus": "__settings/row/scrolloff",
-      "order": ["Settings", "General (9)", "scrolloff", "‹ 2 ›", "theme", "‹ dark ›", "wrap", "‹ false ›", "Rows kept around the focus", "Default is 2."],
+      "order": ["Settings", "General (10)", "scrolloff", "‹ 2 ›", "theme", "‹ dark ›", "wrap", "‹ false ›", "Rows kept around the focus", "Default is 2."],
       "contains": ["enter setting.edit", "h/l setting.cycle", "r setting.reset", "tab settings.section"], "lacks": ["Sections", "Source"]
     },
     {"after": 2, "contains": ["scrolloff •         ‹ 3 ›", "Set in settings.json."]},

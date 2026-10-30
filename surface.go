@@ -89,6 +89,9 @@ func composeModalAt(background, title string, body Block, footer string, width, 
 	// The backdrop is drawn dimmed (Styles.Backdrop, modal-dim) as one layer and the panel as a second layer
 	// on top; the canvas owns cell clipping, including wide graphemes under the
 	// panel's edges.
+	if styles.backdropPlain {
+		background = unhighlight(background)
+	}
 	backdrop := dim(fitSurface(strings.ReplaceAll(background, "\t", "    "), width, height), styles.Backdrop)
 	canvas := lipgloss.NewCanvas(width, height)
 	canvas.Compose(lipgloss.NewCompositor(
@@ -117,6 +120,58 @@ func dim(text string, muted lipgloss.Style) string {
 		lines[i] = open + line + "\x1b[m"
 	}
 	return strings.Join(lines, "\n")
+}
+
+// unhighlight drops reverse video and underline (SGR 7, 27, 4, 24: a
+// list's cursor bar, a table's current cell) from text's escape
+// sequences, colour parameters (38/48/58 with 5;N or 2;R;G;B) kept whole:
+// the backdrop under modal-highlights plain. Adapted from
+// o-json's unreverse (detail.go).
+func unhighlight(text string) string {
+	if !strings.Contains(text, "\x1b[") {
+		return text
+	}
+	var out strings.Builder
+	for {
+		i := strings.Index(text, "\x1b[")
+		if i < 0 {
+			out.WriteString(text)
+			return out.String()
+		}
+		j := i + 2
+		for j < len(text) && (text[j] >= '0' && text[j] <= '9' || text[j] == ';' || text[j] == ':') {
+			j++
+		}
+		if j >= len(text) || text[j] != 'm' {
+			out.WriteString(text[:j])
+			text = text[j:]
+			continue
+		}
+		out.WriteString(text[:i])
+		params := strings.Split(text[i+2:j], ";")
+		var kept []string
+		for k := 0; k < len(params); k++ {
+			p := params[k]
+			switch {
+			case p == "7" || p == "27" || p == "4" || p == "24" || strings.HasPrefix(p, "4:"):
+				continue
+			case (p == "38" || p == "48" || p == "58") && k+1 < len(params):
+				n := 2
+				if params[k+1] == "2" {
+					n = 4
+				}
+				end := min(len(params), k+1+n)
+				kept = append(kept, params[k:end]...)
+				k = end - 1
+				continue
+			}
+			kept = append(kept, p)
+		}
+		if len(kept) > 0 || len(params) == 1 && params[0] == "" {
+			out.WriteString("\x1b[" + strings.Join(kept, ";") + "m")
+		}
+		text = text[j+1:]
+	}
 }
 
 // modalCells pads or truncates a line to exactly width cells. Trusted styles

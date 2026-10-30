@@ -1,0 +1,32 @@
+{
+  "name": "modal-highlights keep: beneath the confirm the list's selected row is kept, dimmed (the default)",
+  "area": "modals",
+  "page": {
+    "focus": "a2",
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3,
+        "labels": [
+          "alpha",
+          "beta is a row whose label runs wider than the confirm modal drawn over it",
+          "gamma"
+        ]
+      }
+    ]
+  },
+  "script": [
+    "x"
+  ],
+  "settings": [
+    {
+      "name": "modal-highlights",
+      "type": "string",
+      "default": "keep",
+      "enum": [
+        "keep",
+        "plain"
+      ]
+    }
+  ]
+}

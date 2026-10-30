@@ -2,11 +2,12 @@
  |   page1  › Settings
  |  ────────────────────────────────────────────────────────────────────────────
  |   › General  ext.ai  ext.git  help  docs  palette  mode-badge  status  17›
- |  ╭━ General (9) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
+ |  ╭━ General (10) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
  |  ┃ scrolloff           ‹ 2 ›                                                ┃
  |  ┃ theme               ‹ dark ›                                             ┃
 R|  ┃ tab-width           ‹ 4 ›                                                ┃
  |  ┃ modal-dim           ‹ 35 ›                                               ┃
+ |  ┃ modal-highlights    ‹ keep ›                                             ┃
  |  ┃ dim-unfocused       ‹ 20 ›                                               ┃
  |  ┃ focus-display       ‹ off ›                                              ┃
  |  ┃ sequence-timeout    0s                                                   ┃
@@ -18,7 +19,6 @@ R|  ┃ tab-width           ‹ 4 ›                                           
  |  │                                                                          │
  |  │ Default is 4. Not in settings.json, so the default applies.              │
  |  │ Takes a whole number.                                                    │
- |  │                                                                          │
  |  │                                                                          │
  |  │                                                                          │
  |  │                                                                          │

@@ -139,6 +139,7 @@ type Styles struct {
 	plain          bool                // mono or NO_COLOR: a fade is the faint attribute
 	tones          map[string]toneLook // the scheme's tones resolved (Tone, tone.go)
 	selectedBg     string              // tones.selected-background, read by the list that draws (listTones)
+	backdropPlain  bool                // modal-highlights plain: the backdrop drops reverse video and underline
 }
 
 // Dim defaults, in percent toward the background (the settings modal-dim
@@ -201,7 +202,19 @@ func (s Styles) CardBorders() (focused, selected, other lipgloss.Style) {
 const (
 	ModalDimSetting     = "modal-dim"
 	DimUnfocusedSetting = "dim-unfocused"
+	// ModalBackdropHighlightsSetting: keep (the page's reverse video and
+	// underline beneath a modal stay, dimmed) or plain (the backdrop is
+	// drawn without them).
+	ModalBackdropHighlightsSetting = "modal-highlights"
 )
+
+// WithBackdropHighlights says whether a modal's backdrop keeps the page's
+// reverse video and underline (true, the default) or drops them
+// (modal-highlights plain).
+func (s Styles) WithBackdropHighlights(keep bool) Styles {
+	s.backdropPlain = !keep
+	return s
+}
 
 // dimSetting is a dim setting's value, def when it is not declared.
 func (r *Runtime) dimSetting(name string, def int) int {

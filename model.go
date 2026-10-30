@@ -863,10 +863,11 @@ func (m *Model) cursor(block Block) *tea.Cursor {
 }
 
 // Styles is the Model's appearance with the dim settings applied
-// (modal-dim, dim-unfocused); the shell, modals and page lists draw in it.
+// (modal-dim, dim-unfocused, modal-highlights); the shell, modals and page lists draw in it.
 func (m *Model) Styles() Styles {
 	r := m.Runtime
-	return NewStyles(*m.Appearance).WithDims(r.dimSetting(ModalDimSetting, DefaultModalDim), r.dimSetting(DimUnfocusedSetting, DefaultDimUnfocused))
+	return NewStyles(*m.Appearance).WithDims(r.dimSetting(ModalDimSetting, DefaultModalDim), r.dimSetting(DimUnfocusedSetting, DefaultDimUnfocused)).
+		WithBackdropHighlights(r.Settings().String(ModalBackdropHighlightsSetting) != "plain")
 }
 
 // render composes the page shell and the modal stack. Each composer offsets

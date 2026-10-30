@@ -6,6 +6,7 @@
 // names that still read and write the setting for one release. The rows' order is the Settings page's order.
 [
   {"name": "modal-dim", "type": "integer", "default": 35, "description": "Percent the page behind a modal fades toward the background (0 is off)"},
+  {"name": "modal-highlights", "type": "string", "default": "keep", "enum": ["keep", "plain"], "description": "The page's highlights beneath a modal: keep draws them dimmed (a list's cursor bar, a grid's cursor cell, so you see where you were); plain draws the backdrop without reverse video or underline, so no sliver of a cursor bar shows beside a wide modal"},
   {"name": "dim-unfocused", "type": "integer", "default": 20, "description": "Percent a list without the focus fades toward the background; its selected row stays marked (0 is off)"},
   {"name": "help.pick-view", "type": "boolean", "default": true, "description": "S in the ? help shows the keys for a noun and mode you pick"},
   {"name": "help.table-view", "type": "boolean", "default": true, "description": "S in the ? help shows a noun's keys as a table, a column per mode"},

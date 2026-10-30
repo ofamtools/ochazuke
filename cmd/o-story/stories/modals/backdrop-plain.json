@@ -1,0 +1,32 @@
+{
+  "name": "modal-highlights plain: beneath the confirm the list's selected row is drawn plain, no sliver of the cursor bar beside the modal",
+  "area": "modals",
+  "page": {
+    "focus": "a2",
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3,
+        "labels": [
+          "alpha",
+          "beta is a row whose label runs wider than the confirm modal drawn over it",
+          "gamma"
+        ]
+      }
+    ]
+  },
+  "script": [
+    "x"
+  ],
+  "settings": [
+    {
+      "name": "modal-highlights",
+      "type": "string",
+      "default": "plain",
+      "enum": [
+        "keep",
+        "plain"
+      ]
+    }
+  ]
+}
