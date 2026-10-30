@@ -530,6 +530,12 @@ func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, op
 	if err != nil {
 		return q, opts, err
 	}
+	// Old parameter names (ochazuke.ParamAlias) become their parameters
+	// before the presets, so a preset the new name excludes gives way.
+	q, notices := s.Runtime.UseParamAliases(q)
+	for _, text := range notices {
+		fmt.Fprintln(s.stderr(), "notice:", text)
+	}
 	q.Args = op.WithPresets(q.Args, presets)
 	return q, opts, nil
 }
@@ -623,6 +629,12 @@ func (s *Shell) parseFlags(q ochazuke.Request, op ochazuke.Operation, flags []st
 		}
 		p, ok := op.Parameters[name]
 		if !ok {
+			// An old name of a parameter the alias takes (--starred for
+			// --value): typed as its parameter, renamed with its notice
+			// once the words are read (request).
+			p, ok = s.paramAlias(q, op, name)
+		}
+		if !ok {
 			return q, opts, fmt.Errorf("%s has no parameter %q", q.Key(), name)
 		}
 		if p.Type == "boolean" && !inline && (i+1 >= len(flags) || strings.HasPrefix(flags[i+1], "--")) {
@@ -647,6 +659,24 @@ func (s *Shell) parseFlags(q ochazuke.Request, op ochazuke.Operation, flags []st
 		return q, opts, fmt.Errorf("a bare --json asks for JSON output and --format %s for another; pass one (--json '{...}' passes arguments)", opts.format)
 	}
 	return q, opts, nil
+}
+
+// paramAlias is the parameter of op an old name typed on an alias's
+// command fills (ochazuke.ParamAlias), false when name is none.
+func (s *Shell) paramAlias(q ochazuke.Request, op ochazuke.Operation, name string) (ochazuke.Parameter, bool) {
+	if q.Via == "" {
+		return ochazuke.Parameter{}, false
+	}
+	a, ok := s.Runtime.ActionAlias(q.Via)
+	if !ok {
+		return ochazuke.Parameter{}, false
+	}
+	pa, ok := a.ParamAlias(name)
+	if !ok {
+		return ochazuke.Parameter{}, false
+	}
+	p, ok := op.Parameters[pa.Param]
+	return p, ok
 }
 
 // hasParameter reports whether op declares a parameter called name.

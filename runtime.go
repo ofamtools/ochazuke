@@ -829,7 +829,11 @@ func (r *Runtime) Execute(q Request) (any, error) { return r.ExecuteAt(r.Context
 // Every request is appended to the action history with its kind, the
 // context it ran in, its outcome and where it moved the interaction.
 func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
-	r.NoteNounAlias(q.Noun) // a request spelled by a deprecated noun alias: its one-time notice
+	r.NoteNounAlias(q.Noun)            // a request spelled by a deprecated noun alias: its one-time notice
+	q, notices := r.UseParamAliases(q) // an alias's old parameter names: their one-time notices
+	for _, text := range notices {
+		r.UI().Notify(text)
+	}
 	q = r.canonicalRequest(q)
 	source := r.history.source
 	if source == "" {

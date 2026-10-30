@@ -66,3 +66,36 @@ func TestCLIAliasPresetYieldsToAnExcludingFlag(t *testing.T) {
 		t.Fatal("value and toggle both given by the caller: want a refusal")
 	}
 }
+
+// An old parameter name the alias declares (ochazuke.ParamAlias) is a
+// flag of its command, typed as its parameter, with a one-time notice on
+// stderr; help never lists it.
+func TestCLIParamAlias(t *testing.T) {
+	r, things := starRuntime(t)
+	old := []ochazuke.ParamAlias{{Alias: "starred", Param: "value", Since: "v0.57.0", RemoveAfter: "v0.58.0"}}
+	if err := r.AddActionAlias(ochazuke.ActionAlias{Alias: "task.mark", Action: "task.set", Args: ochazuke.Arguments{"prop": "starred", "toggle": true}, ParamAliases: old}); err != nil {
+		t.Fatal(err)
+	}
+	var errOut bytes.Buffer
+	run := func(args ...string) error {
+		var out bytes.Buffer
+		return New(r, "tool", strings.NewReader(""), &out, &errOut).Run(context.Background(), args)
+	}
+	if err := run("task", "mark", "t1", "--starred=false"); err != nil || things["t1"]["starred"] != false {
+		t.Fatalf("mark --starred=false: %v, starred %v\n%s", err, things["t1"]["starred"], errOut.String())
+	}
+	if err := run("task", "mark", "t1", "--starred", "true"); err != nil || things["t1"]["starred"] != true {
+		t.Fatalf("mark --starred true: %v, starred %v\n%s", err, things["t1"]["starred"], errOut.String())
+	}
+	if got := strings.Count(errOut.String(), "notice: task.mark: starred is an old name of value (renamed in v0.57.0; removed after v0.58.0)"); got != 1 {
+		t.Fatalf("want one notice, got %d:\n%s", got, errOut.String())
+	}
+	if err := run("task", "star", "t1", "--starred=false"); err == nil {
+		t.Fatal("task.star declares no old names: --starred must be refused")
+	}
+	var help bytes.Buffer
+	_ = New(r, "tool", strings.NewReader(""), &help, &help).Run(context.Background(), []string{"task", "mark", "--help"})
+	if strings.Contains(help.String(), "starred is") || strings.Contains(help.String(), "--starred") {
+		t.Fatalf("help lists the old name:\n%s", help.String())
+	}
+}

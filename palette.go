@@ -276,6 +276,11 @@ func (p *Palette) run() error {
 	for _, name := range c.Old {
 		p.r.NoteNounAlias(name) // a deprecated noun alias: accepted, with its one-time notice
 	}
+	if a, ok := p.r.actionNames.aliases[c.Via]; ok && len(c.OldParams) > 0 {
+		for _, text := range p.r.paramAliasNotices(a, c.OldParams) {
+			p.r.UI().Notify(text) // an old parameter name: accepted, with its one-time notice
+		}
+	}
 	if c.Missing != "" {
 		if _, param := c.Op.Parameters[c.Missing]; param && c.known() && p.r.missingOpensForm() {
 			// The args form asks for what the line lacks; esc there comes

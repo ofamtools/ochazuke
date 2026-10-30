@@ -403,6 +403,10 @@ type AliasRow struct {
 	Args    Arguments `json:"args,omitempty"`
 	Shadows bool      `json:"shadows,omitempty"`
 	Palette bool      `json:"palette,omitempty"`
+	// ParamAliases are old names of the action's parameters the alias
+	// takes (ActionAlias.ParamAliases): "paramAliases": [{"alias":
+	// "starred", "param": "value"}].
+	ParamAliases []ParamAlias `json:"paramAliases,omitempty"`
 }
 
 // checkUserAlias validates one alias row against r: an earlier row of the
@@ -415,7 +419,7 @@ func (r *Runtime) checkUserAlias(row AliasRow, seen map[string]int) (ActionAlias
 			return ActionAlias{}, fmt.Errorf("alias %s is already declared by entry %d", r.DisplayKey(noun+"."+verb), n)
 		}
 	}
-	a, err := r.checkAlias(ActionAlias{Alias: row.Alias, Action: row.Action, Note: row.Note, Args: row.Args, Shadows: row.Shadows, Palette: row.Palette, Source: AliasConfig})
+	a, err := r.checkAlias(ActionAlias{Alias: row.Alias, Action: row.Action, Note: row.Note, Args: row.Args, Shadows: row.Shadows, Palette: row.Palette, ParamAliases: row.ParamAliases, Source: AliasConfig})
 	if err != nil {
 		return a, err
 	}
