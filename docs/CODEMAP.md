@@ -215,12 +215,12 @@ Root package `ochazuke` is flat: 119 source files, 139 test files. Each entry li
 
 ### focus.go
 
-- lines: 917 · tests: focus_test.go
+- lines: 923 · tests: focus_test.go
 - purpose: Context derives the path view of the focus.
 - types: ModalOption (func), FocusTargeter (iface)
 - methods: Runtime(42)
 - funcs: ReplaceOpen, WithInput
-- leans on: runtime.go(76), instance.go(59), props.go(27), pages.go(15)
+- leans on: runtime.go(76), instance.go(60), props.go(27), pages.go(15)
 
 ### focus_display.go
 
