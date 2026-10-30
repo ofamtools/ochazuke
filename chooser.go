@@ -51,6 +51,12 @@ type ChooserRow struct {
 	// fails with Refuse and the chooser stays open (a typed path whose
 	// folder is missing, R7.8).
 	Refuse string
+	// Tones colour runs of the row through the theme's tones, as a list
+	// row's ToneSpan does (tone.go): Cell indexes Cells, or is 0 for the
+	// Label when the row has no Cells; From and To are rune offsets into
+	// that text (an app dims a path prefix, "parent › "). The highlighted
+	// row keeps them over its reverse bar, as a list's selected row does.
+	Tones []ToneSpan
 }
 
 // ChooserSpec opens a chooser. Kind is the modal's kind (one open chooser
@@ -642,12 +648,17 @@ func (c *Chooser) rowsView(width, height int) Block {
 		offset = c.cursor - scroll + 1
 	}
 	widths := fitWidths(c.cellWidths(), width-2, c.keep()...)
+	toned := c.toneStyles()
 	draw := func(i int) {
 		text := c.matches[i].Label
 		if cells := c.matches[i].Cells; len(cells) > 0 {
 			text = alignCells(cells, widths)
 		}
 		row := ansi.Truncate("  "+modalLabel(text), width, "…")
+		if segs := chooserSegs(toned, c.matches[i], widths, ansi.StringWidth(row)); len(segs) > 0 {
+			lines = append(lines, paintLine(row, width, segs, toned, i == c.cursor, false, span{}))
+			return
+		}
 		if i == c.cursor {
 			row = lipgloss.NewStyle().Reverse(true).Render(ansi.Truncate(row+strings.Repeat(" ", max(0, width-ansi.StringWidth(row))), width, ""))
 		}
@@ -743,6 +754,46 @@ func fitWidths(widths []int, avail int, keep ...int) []int {
 		widths[at]--
 	}
 	return widths
+}
+
+// toneStyles is the theme's tones for drawing rows' Tones, nil without
+// a Model's styles or any tone.
+func (c *Chooser) toneStyles() *Styles {
+	if c.r == nil {
+		return nil
+	}
+	return c.r.toneStyles()
+}
+
+// chooserSegs places a row's Tones on its drawn line (drawn cells wide,
+// after the two-space indent): on the Label's runes, or on each cell where
+// alignCells puts it (cut cells keep their tones on what shows).
+func chooserSegs(st *Styles, row ChooserRow, widths []int, drawn int) []toneSeg {
+	if st == nil || len(row.Tones) == 0 {
+		return nil
+	}
+	const indent = 2
+	if len(row.Cells) == 0 {
+		return cellSegs(spansOf(row.Tones, 0), modalLabel(row.Label), indent, drawn-indent)
+	}
+	var out []toneSeg
+	x := indent
+	for i, cell := range row.Cells {
+		text := modalLabel(cell)
+		w := ansi.StringWidth(text)
+		if i < len(widths) {
+			w = min(w, widths[i])
+		}
+		if shown := min(w, drawn-x); shown > 0 {
+			out = append(out, cellSegs(spansOf(row.Tones, i), text, x, shown)...)
+		}
+		if i < len(widths) {
+			x += widths[i] + 2
+		} else {
+			x += w + 2
+		}
+	}
+	return out
 }
 
 // alignCells pads each cell but the last to its column's width, two

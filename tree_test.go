@@ -80,3 +80,32 @@ func TestPasteLinesNestByIndent(t *testing.T) {
 		t.Fatalf("lines %q depths %v", lines, depths)
 	}
 }
+
+// outline.collapse is available only where it acts: on an open parent (it
+// folds), on a child (it steps to the parent); on a closed top-level node
+// it has nothing to do, so the verb is unavailable and h falls through.
+func TestTreeCollapseUnavailableWithNothingToDo(t *testing.T) {
+	r, _, tree, _ := treeFixture(t)
+	collapse := Request{Noun: "ochazuke.outline", Verb: "collapse"}
+	for _, step := range []struct {
+		focus string
+		fold  bool
+		want  bool
+	}{
+		{"a", false, true},
+		{"b", false, true},
+		{"a", true, false},
+	} {
+		if step.fold {
+			if err := tree.CollapseAll(); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := r.SetFocus(step.focus); err != nil {
+			t.Fatal(err)
+		}
+		if got := r.Available(collapse, r.Focus, r.Mode); got != step.want {
+			t.Fatalf("collapse on %s (folded %v): available %v, want %v", step.focus, step.fold, got, step.want)
+		}
+	}
+}

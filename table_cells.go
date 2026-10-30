@@ -361,11 +361,11 @@ func registerTableCells(r *Runtime) {
 	// is not the last / first in drawing order, so l / h moves the column
 	// rather than the focus.
 	r.DefineGuard("table-column-right", func(r *Runtime, ev KeyEvent) bool {
-		l := r.edgeList(ev.Focus)
+		l := r.edgeList(ev.Focus, 1)
 		return l != nil && l.cellMode() && !l.atColumnEdge(1)
 	})
 	r.DefineGuard("table-column-left", func(r *Runtime, ev KeyEvent) bool {
-		l := r.edgeList(ev.Focus)
+		l := r.edgeList(ev.Focus, -1)
 		return l != nil && l.cellMode() && !l.atColumnEdge(-1)
 	})
 	// The rows are bindings/table.json.
@@ -377,8 +377,9 @@ func registerTableCells(r *Runtime) {
 	// at the edge the focus to the neighbouring stop (as j and k spill),
 	// and where that cannot happen (a modal, NoSpill, the page's last or
 	// first stop) the clamped move, which leaves everything as it is.
-	// None of them answers on a tree's list (edgeList): the tree's own h/l
-	// collapse and expand.
+	// None of them answers on a tree's list (edgeList) while the tree's own
+	// h/l collapse and expand have something to do; on a row where they do
+	// not, the tree.spill setting lets these rows answer (Tree.yieldsEdge).
 	//
 	// A row-select table's $, ^ and 0 scroll its columns (verb guard
 	// table-scrolls), after each key's cell row: on a cell table those

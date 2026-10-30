@@ -453,10 +453,10 @@ tiers above them. When the two disagree, fix one in the same commit.
   stops at the edge; it spills only from the edge. A `NoSpill` table, a
   table in a modal and the page's first or last stop clamp (R3.5, R3.6).
   A row noun's own `h` or `l` answers first, so the scroll and spill apply
-  only where the row noun does not bind the key. A tree's list is never
-  such a table: the tree's own `h`/`l` (R11.1) answer even though the
-  list's level sits inside the tree's, and `z h`/`z l` scroll a tree's
-  columns. Arrows are the same keys.
+  only where the row noun does not bind the key. A tree's list is such a
+  table only where the tree's own `h`/`l` have nothing to do (R11.1,
+  `tree.spill`): elsewhere they answer even though the list's level sits
+  inside the tree's, and `z h`/`z l` scroll a tree's columns. Arrows are the same keys.
   Done with guarded rows (`table-column-*`, `table-scrolls-*`,
   `table-spills-*`) that fall through in order, no combined verb. Story:
   `tables/scroll-then-focus-right.json`,
@@ -1000,11 +1000,18 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R11.1** A tree's rows are a list: j/k move and spill in drawing order,
   one highlighted row; `h`/`l` collapse and expand. On a tree with columns
   too: `l` on an open node steps onto its first child, `right` on a leaf
-  stays in the tree, and the table scroll and spill rows (R5.11) never
-  answer for a tree's list; `z h`/`z l` scroll its columns. Story:
+  stays in the tree, and the table scroll and spill rows (R5.11) answer
+  for a tree's list only where the tree's own key has nothing to do:
+  `h` on a closed or childless top-level node outside a zoom
+  (`outline.collapse` is unavailable there, guard `outline-collapses`)
+  scrolls the columns back, then moves the focus to the previous stop.
+  Setting `tree.spill`: `left` (default), `both` (`l` on a leaf too),
+  `off` (never). `z h`/`z l` scroll its columns. Story:
   `tree/expand-collapse.json`, `tree/spill-to-list.json`,
-  `tree/columns-l-expands.json`, `tree/columns-hidden-l-expands.json`;
-  test `TestTreeHLWinOverTableScroll`.
+  `tree/columns-l-expands.json`, `tree/columns-hidden-l-expands.json`,
+  `tree/h-spills-left.json`, `tree/h-spill-off.json`,
+  `tree/l-spill-both.json`; tests `TestTreeHLWinOverTableScroll`,
+  `TestTreeCollapseUnavailableWithNothingToDo`.
 - **R11.2** Every structural edit of an outline is written before the next
   key; typing is written after the pause and when the line is left; esc
   never discards. Story: `tree/outline-add-nest.json`, `tree/debounce.json`.

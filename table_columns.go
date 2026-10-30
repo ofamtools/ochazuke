@@ -345,17 +345,19 @@ func (l *List) scrollColumns(to string, delta int) {
 }
 
 // edgeList is the focused list the h/l scroll-then-focus rows act on
-// (table-column-*, table-scrolls-*, table-spills-*, the clamps): nil for
-// a tree's own list, so a tree's h/l (collapse, expand) answer at its
-// level outside the list (R11.1); z h / z l still scroll a tree's
-// columns.
-func (r *Runtime) edgeList(focus string) *List {
+// (table-column-*, table-scrolls-*, table-spills-*, the clamps) in
+// direction step (-1 h, 1 l, 0 either, the clamps): a tree's own list
+// only where the tree yields that direction (Tree.yieldsEdge: its own
+// collapse or expand has nothing to do on the row, per tree.spill), so
+// elsewhere a tree's h/l answer at its level outside the list (R11.1);
+// z h / z l still scroll a tree's columns.
+func (r *Runtime) edgeList(focus string, step int) *List {
 	l := r.focusedList(focus)
 	if l == nil {
 		return nil
 	}
 	if inst := r.Instances[l.id]; inst != nil {
-		if t := r.Tree(inst.Parent); t != nil && t.list == l {
+		if t := r.Tree(inst.Parent); t != nil && t.list == l && !t.yieldsEdge(focus, step) {
 			return nil
 		}
 	}
@@ -368,22 +370,22 @@ func registerColumnMotions(r *Runtime) {
 		return l != nil && l.columnsScroll()
 	})
 	r.DefineGuard("table-scrolls-right", func(r *Runtime, ev KeyEvent) bool {
-		l := r.edgeList(ev.Focus)
+		l := r.edgeList(ev.Focus, 1)
 		return l != nil && l.scrollsRight()
 	})
 	r.DefineGuard("table-scrolls-left", func(r *Runtime, ev KeyEvent) bool {
-		l := r.edgeList(ev.Focus)
+		l := r.edgeList(ev.Focus, -1)
 		return l != nil && l.scrollsLeft()
 	})
 	// table-scrolls-clamp: the h/l clamp row's guard, table-scrolls on a
 	// list that is not a tree's (z l / z h keep table-scrolls).
 	r.DefineGuard("table-scrolls-clamp", func(r *Runtime, ev KeyEvent) bool {
-		l := r.edgeList(ev.Focus)
+		l := r.edgeList(ev.Focus, 0)
 		return l != nil && l.columnsScroll()
 	})
 	spills := func(step int) Guard {
 		return func(r *Runtime, ev KeyEvent) bool {
-			l := r.edgeList(ev.Focus)
+			l := r.edgeList(ev.Focus, step)
 			if l == nil || !l.atColumnEdge(step) || l.noSpill || l.visual || !l.Focused() {
 				return false
 			}

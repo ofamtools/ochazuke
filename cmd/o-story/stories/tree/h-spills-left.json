@@ -1,0 +1,36 @@
+{
+  "name": "tree beside a list: h on a child steps to its parent, on an open parent folds it, and on a top-level node with nothing to fold moves the focus to the previous stop (R11.1, R5.11, tree.spill left)",
+  "area": "tree",
+  "width": 60,
+  "height": 14,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [{"id": "a", "rows": 2}],
+    "trees": [
+      {
+        "id": "t",
+        "columns": [
+          {"title": "name", "width": 12},
+          {"title": "state", "width": 8}
+        ],
+        "nodes": [
+          {"id": "p1", "label": "main", "cells": ["main", "open"]},
+          {"id": "c1", "parent": "p1", "label": "editor", "cells": ["editor", "busy"]},
+          {"id": "p2", "label": "work", "cells": ["work", "idle"]}
+        ]
+      }
+    ],
+    "order": ["a", "t"],
+    "focus": "c1"
+  },
+  "script": ["h", "h", "h", "j", "j", "j", "h"],
+  "expect": [
+    {"after": 1, "focus": "p1", "contains": ["editor"]},
+    {"after": 2, "focus": "p1", "lacks": ["editor"]},
+    {"after": 3, "focus": "a1"},
+    {"after": 5, "focus": "p1"},
+    {"after": 6, "focus": "p2"},
+    {"focus": "a2"}
+  ]
+}

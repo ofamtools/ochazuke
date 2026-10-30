@@ -36,6 +36,12 @@ const (
 	// ancestors the breadcrumb names (default 2); farther ones fold into
 	// "…". 0 names them all.
 	TreeBreadcrumbAncestorsSetting = "tree.breadcrumb.ancestors"
+	// TreeSpillSetting is which of a tree's h/l fall through to the list's
+	// edge rows (scroll the columns, then move the focus to the previous
+	// or next stop, R5.11) on a row where the tree's own verb has nothing
+	// to do: TreeSpillLeft (the default) h only, TreeSpillBoth h and l (l
+	// on a leaf), TreeSpillOff neither.
+	TreeSpillSetting = "tree.spill"
 )
 
 // The tree zoom setting values.
@@ -48,6 +54,9 @@ const (
 	TreeBreadcrumbLine  = "line"
 	TreeBreadcrumbTitle = "title"
 	TreeBreadcrumbOff   = "off"
+	TreeSpillLeft       = "left"
+	TreeSpillBoth       = "both"
+	TreeSpillOff        = "off"
 )
 
 // treeAutoContext is how many levels above the selected row an automatic
@@ -71,6 +80,11 @@ func (r *Runtime) TreeZoomMode() string {
 // TreeZoomRoot is the tree.zoom.root setting: crumb or row.
 func (r *Runtime) TreeZoomRoot() string {
 	return r.treeSetting(TreeZoomRootSetting, TreeZoomRootCrumb, TreeZoomRootCrumb, TreeZoomRootRow)
+}
+
+// TreeSpill is the tree.spill setting: left, both or off.
+func (r *Runtime) TreeSpill() string {
+	return r.treeSetting(TreeSpillSetting, TreeSpillLeft, TreeSpillLeft, TreeSpillBoth, TreeSpillOff)
 }
 
 // TreeBreadcrumb is the tree.breadcrumb setting: line, title or off.

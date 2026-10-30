@@ -1,0 +1,33 @@
+{
+  "name": "tree above a list with tree.spill both: l on an open node steps onto its child, on a leaf moves the focus to the next stop",
+  "area": "tree",
+  "settings": [
+    {"name": "tree.spill", "type": "string", "default": "both", "enum": ["left", "both", "off"]}
+  ],
+  "width": 60,
+  "height": 14,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "trees": [
+      {
+        "id": "t",
+        "columns": [
+          {"title": "name", "width": 12},
+          {"title": "state", "width": 8}
+        ],
+        "nodes": [
+          {"id": "p1", "label": "main", "cells": ["main", "open"]},
+          {"id": "c1", "parent": "p1", "label": "editor", "cells": ["editor", "busy"]}
+        ]
+      }
+    ],
+    "lists": [{"id": "b", "rows": 2}],
+    "order": ["t", "b"]
+  },
+  "script": ["l", "l"],
+  "expect": [
+    {"after": 1, "focus": "c1"},
+    {"focus": "b1"}
+  ]
+}

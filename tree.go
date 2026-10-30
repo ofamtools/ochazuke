@@ -1281,6 +1281,41 @@ func (t *Tree) expand(c Context) error {
 	return t.r.SetFocus(first)
 }
 
+// collapses reports whether collapse acts on node id: an open node with
+// children closes, a node with a parent steps onto it (or out of the
+// zoom), the zoomed-on node steps the zoom out. A closed or childless
+// top-level node has nothing to do, so the collapse verb is unavailable
+// there (guard outline-collapses) and h falls through to the next row.
+func (t *Tree) collapses(id string) bool {
+	if id == "" {
+		return false
+	}
+	if t.hasChildren(id) && !t.collapsed[id] {
+		return true
+	}
+	return t.parentOf(id) != "" || t.zoom != "" && id == t.zoom
+}
+
+// expands reports whether expand acts on node id: it opens a closed node
+// or steps onto an open one's first child; a leaf has nothing to do.
+func (t *Tree) expands(id string) bool { return id != "" && t.hasChildren(id) }
+
+// yieldsEdge reports whether the tree's list takes the h/l edge rows
+// (edgeList) in direction step (-1 h, 1 l): the tree's own verb for that
+// direction has nothing to do on the row and the tree.spill setting
+// yields that direction. Then h/l scroll a tree's columns back to the edge
+// and move the focus to the previous or next stop, as on a table (R5.11).
+func (t *Tree) yieldsEdge(focus string, step int) bool {
+	id := t.targetOf(focus)
+	switch mode := t.r.TreeSpill(); {
+	case step < 0:
+		return mode != TreeSpillOff && !t.collapses(id)
+	case step > 0:
+		return mode == TreeSpillBoth && !t.expands(id)
+	}
+	return false
+}
+
 // collapse closes an open node, else steps onto its parent.
 func (t *Tree) collapse(c Context) error {
 	id := t.target(c)
@@ -1326,6 +1361,12 @@ func registerTrees(r *Runtime) {
 	r.DefineGuard("tree-zoom", func(r *Runtime, ev KeyEvent) bool {
 		return r.treeOf(ev.Focus) != nil && r.TreeZoomMode() != TreeZoomOff
 	})
+	// outline-collapses: collapse would act on the row (collapses), so a
+	// row with nothing to fold, no parent and no zoom lets h fall through.
+	r.DefineGuard("outline-collapses", func(r *Runtime, ev KeyEvent) bool {
+		t := r.treeOf(ev.Focus)
+		return t != nil && t.collapses(t.targetOf(ev.Focus))
+	})
 	r.DefineGuard("tree-editable", func(r *Runtime, ev KeyEvent) bool {
 		t := r.treeOf(ev.Focus)
 		return t != nil && t.Editable()
@@ -1361,7 +1402,7 @@ func registerTrees(r *Runtime) {
 	}
 	r.Define("ochazuke.outline").
 		Verb("expand", on(func(t *Tree, c Ctx) error { return t.expand(c.Context) }), "Expand the node, or step onto its first child when it is open").Motion().
-		Verb("collapse", on(func(t *Tree, c Ctx) error { return t.collapse(c.Context) }), "Collapse the node, or step onto its parent when it is closed; past a zoom's top it steps the zoom out to show the parent").Motion().
+		Verb("collapse", on(func(t *Tree, c Ctx) error { return t.collapse(c.Context) }), "Collapse the node, or step onto its parent when it is closed; past a zoom's top it steps the zoom out to show the parent; unavailable on a row with nothing to do (a closed or childless top-level node outside a zoom), so h falls through").Motion().When("outline-collapses").
 		Verb("fold", on(func(t *Tree, c Ctx) error {
 			id := t.target(c.Context)
 			if id == "" || !t.hasChildren(id) {

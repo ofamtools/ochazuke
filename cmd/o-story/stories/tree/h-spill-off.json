@@ -1,0 +1,34 @@
+{
+  "name": "tree beside a list with tree.spill off: h on a top-level leaf keeps the focus in the tree",
+  "area": "tree",
+  "settings": [
+    {"name": "tree.spill", "type": "string", "default": "off", "enum": ["left", "both", "off"]}
+  ],
+  "width": 60,
+  "height": 14,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [{"id": "a", "rows": 2}],
+    "trees": [
+      {
+        "id": "t",
+        "columns": [
+          {"title": "name", "width": 12},
+          {"title": "state", "width": 8}
+        ],
+        "nodes": [
+          {"id": "p1", "label": "main", "cells": ["main", "open"]},
+          {"id": "p2", "label": "work", "cells": ["work", "idle"]}
+        ]
+      }
+    ],
+    "order": ["a", "t"],
+    "focus": "p2"
+  },
+  "script": ["h", "left"],
+  "expect": [
+    {"after": 1, "focus": "p2"},
+    {"focus": "p2"}
+  ]
+}

@@ -487,7 +487,14 @@ func (l *List) listTones() *Styles {
 	if !l.wantsTones() {
 		return nil
 	}
-	styles := l.r.Settings().page.styles
+	return l.r.toneStyles()
+}
+
+// toneStyles is the Model's styles for drawing ToneSpans (a list's rows,
+// a chooser's): nil without a Model's styles or with no tone in the
+// theme; the selected background and intersect settings filled in.
+func (r *Runtime) toneStyles() *Styles {
+	styles := r.Settings().page.styles
 	if styles == nil {
 		return nil
 	}
@@ -495,8 +502,8 @@ func (l *List) listTones() *Styles {
 	if len(s.tones) == 0 {
 		return nil
 	}
-	s.selectedBg = l.r.SelectedBackground()
-	s.intersect = l.r.settingOn(IntersectSetting)
+	s.selectedBg = r.SelectedBackground()
+	s.intersect = r.settingOn(IntersectSetting)
 	return &s
 }
 
