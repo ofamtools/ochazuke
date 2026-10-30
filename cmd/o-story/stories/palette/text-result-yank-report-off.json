@@ -1,0 +1,10 @@
+{
+  "name": "with yank.report off a yank in the read-only text view still yanks but says nothing",
+  "area": "palette",
+  "width": 80,
+  "height": 24,
+  "values": {"yank.report": false},
+  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
+  "script": [":", {"type": "demo mapping"}, "enter", "j", "y", "y"],
+  "expect": {"modal": "text-view", "mode": "normal", "register": "  \"name\": \".title\",\n", "lacks": ["copied"]}
+}

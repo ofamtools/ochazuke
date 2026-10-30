@@ -462,5 +462,41 @@ func typedRows(query string, pick PathPick, hidden bool, caseMode string) []Choo
 			break
 		}
 	}
-	return append(rows, fresh...)
+	rows = append(rows, fresh...)
+	if len(rows) == 0 {
+		// Nothing else stands for it: the typed path is still a row, and
+		// one that cannot be used says why (R7.8).
+		why := pathUnusable(path, pick)
+		rows = append(rows, ChooserRow{ID: path, Label: query + " · " + why, Data: path, Refuse: why})
+	}
+	return rows
+}
+
+// pathUnusable says why path cannot be picked: the outermost folder on it
+// that does not exist, a part that is not a folder, or a path of the wrong
+// kind for the pick.
+func pathUnusable(path string, pick PathPick) string {
+	info, err := os.Stat(path)
+	switch {
+	case err == nil && info.IsDir() && !pick.Dir():
+		return displayPath(path) + " is a folder"
+	case err == nil && !info.IsDir() && pick.Dir():
+		return displayPath(path) + " is not a folder"
+	case err == nil:
+		return displayPath(path) + " cannot be chosen here"
+	case !errors.Is(err, os.ErrNotExist):
+		return err.Error()
+	}
+	missing := path
+	for dir := filepath.Dir(path); dir != missing; dir = filepath.Dir(dir) {
+		info, err := os.Stat(dir)
+		if err == nil {
+			if !info.IsDir() {
+				return displayPath(dir) + " is not a folder"
+			}
+			break
+		}
+		missing = dir
+	}
+	return displayPath(missing) + " does not exist"
 }

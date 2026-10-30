@@ -13,7 +13,7 @@
       {"key": "any", "action": "ochazuke.mode.leave", "when": "no-input", "replay": true}
     ]},
     {"context": "app/macro_pending", "bindings": [
-      {"key": "esc", "action": "ochazuke.input.cancel"},
+      {"key": "esc", "action": "ochazuke.mode.leave", "help": "Leave without recording, back to the mode q was pressed in (a visual selection stays)"},
       {"key": "any", "action": "ochazuke.macro.start", "from": {"register": "key"}}
     ]},
     {"context": "app/normal", "bindings": [

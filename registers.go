@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -179,6 +180,28 @@ func (r *Runtime) readYank(name string) (Yank, error) {
 // yank, not a delete: the default) or unnamed (every yank and delete, as
 // Vim's clipboard=unnamed).
 const ClipboardSetting = "clipboard"
+
+// YankReportSetting names the setting that has an editor's yank say what
+// it copied on the status line (yankReport).
+const YankReportSetting = "yank.report"
+
+// yankReport is what an editor's yank says it copied: whole lines by
+// count (a block's lines too), else characters.
+func yankReport(y Yank) string {
+	plural := func(n int, one string) string {
+		if n == 1 {
+			return "1 " + one
+		}
+		return fmt.Sprintf("%d %ss", n, one)
+	}
+	switch y.Shape {
+	case "line":
+		return "copied " + plural(strings.Count(strings.TrimSuffix(y.Text, "\n"), "\n")+1, "line")
+	case "block":
+		return "copied " + plural(strings.Count(y.Text, "\n")+1, "line") + " (block)"
+	}
+	return "copied " + plural(len([]rune(y.Text)), "character")
+}
 
 // copiesToClipboard reports whether a yank stored in register key goes to
 // the system clipboard: the clipboard register always, else as the
