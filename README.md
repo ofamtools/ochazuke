@@ -10,11 +10,11 @@
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/unixsuperhero/ochazuke"></a>
 </p>
 
-<p align="center">A Go TUI framework on Bubble Tea v2 where nouns, verbs and keybindings are data, so every action in your app is also a command you can run from the shell.</p>
+<p align="center">A modal TUI framework for Go, built on Bubble Tea v2: Vim-style modes and an extensible command model, so every action in your app can be bound to a key, run from the palette or scripted from the shell.</p>
 
 <p align="center"><img alt="The CSV example: moving through 3,000 rows, a palette command on a whole column, a filter, a sort and an edit with undo" src="assets/demo.gif" width="720"></p>
 
-Ochazuke builds on Charmbracelet Bubble Tea v2 (`charm.land/bubbletea/v2`, Lip Gloss v2, Bubbles v2) and adds retained pages, default Lip Gloss styling, partial-screen modals, nouns and instances with one stack walk for actions and bindings, modal text editing, a nested command palette, and live CLI control.
+Ochazuke is a modal TUI framework for Go. It builds on Charmbracelet Bubble Tea v2 (`charm.land/bubbletea/v2`, Lip Gloss v2, Bubbles v2) and adds what a keyboard-first app needs: Vim-style modes and editing, retained pages and a stack of partial-screen modals that keep their state, lists, tables and trees, a command palette, forms and a Settings page, with default Lip Gloss styling. Underneath is a generic command model: every action is a named command with typed arguments that runs the same way from a key, the palette, the CLI (over a local socket) and the Go API. Keys, settings and commands are data, so users rebind and extend them in JSON files, and apps and extensions add their own without forking the framework.
 
 
 Module `github.com/unixsuperhero/ochazuke`; requires Go 1.26 or newer. It builds on [oden](https://github.com/unixsuperhero/oden) for CLI resolution.
