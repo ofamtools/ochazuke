@@ -423,7 +423,7 @@ func (s *Shell) propRequest(noun, prop string, flags []string) (ochazuke.Request
 			op.Parameters[name] = p
 		}
 	}
-	q, opts, err := s.parseFlags(ochazuke.Request{Noun: n.Name, Verb: prop, Args: ochazuke.Arguments{}}, op, flags)
+	q, opts, err := s.parseFlags(ochazuke.Request{Noun: n.Name, Verb: prop, Args: ochazuke.Arguments{}}, op, flags, nil)
 	if err != nil {
 		return q, opts, err
 	}
@@ -520,11 +520,24 @@ func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, op
 	if !ok {
 		return q, options{}, fmt.Errorf("unknown operation %q (%s %s); operations list prints them", q.Key(), noun, verb)
 	}
-	return s.parseFlags(q, op, flags)
+	// An alias's presets (what canonicalising an empty request filled)
+	// apply after the caller's flags (Operation.WithPresets), so a flag
+	// that excludes a preset drops it: star --value=false over star's
+	// toggle preset, as keys, the palette and the API have it.
+	presets := q.Args
+	q.Args = ochazuke.Arguments{}
+	q, opts, err := s.parseFlags(q, op, flags, presets)
+	if err != nil {
+		return q, opts, err
+	}
+	q.Args = op.WithPresets(q.Args, presets)
+	return q, opts, nil
 }
 
 // parseFlags reads a command's words into q's arguments for op (request).
-func (s *Shell) parseFlags(q ochazuke.Request, op ochazuke.Operation, flags []string) (ochazuke.Request, options, error) {
+// presets are an alias's arguments, applied by the caller afterwards: a
+// bare word does not fill a parameter a preset gives.
+func (s *Shell) parseFlags(q ochazuke.Request, op ochazuke.Operation, flags []string, presets ochazuke.Arguments) (ochazuke.Request, options, error) {
 	var opts options
 	bareJSON := false
 	var words []string
@@ -624,7 +637,7 @@ func (s *Shell) parseFlags(q ochazuke.Request, op ochazuke.Operation, flags []st
 			return q, opts, fmt.Errorf("--%s: %w", name, err)
 		}
 	}
-	if err := positional(q, op, words); err != nil {
+	if err := positional(q, op, words, presets); err != nil {
 		return q, opts, err
 	}
 	if opts.since != nil && opts.format != "" && opts.format != "json" {
@@ -642,11 +655,11 @@ func hasParameter(op ochazuke.Operation, name string) bool {
 	return ok
 }
 
-// positional fills the parameters no flag set from words, in
-// Operation.ParameterOrder, typed by each parameter. A boolean takes a
-// bare word only when Operation.Positional names it; otherwise it is set
-// with --NAME.
-func positional(q ochazuke.Request, op ochazuke.Operation, words []string) error {
+// positional fills the parameters no flag (and no alias preset) set from
+// words, in Operation.ParameterOrder, typed by each parameter. A boolean
+// takes a bare word only when Operation.Positional names it; otherwise it
+// is set with --NAME.
+func positional(q ochazuke.Request, op ochazuke.Operation, words []string, presets ochazuke.Arguments) error {
 	if len(words) == 0 {
 		return nil
 	}
@@ -655,7 +668,9 @@ func positional(q ochazuke.Request, op ochazuke.Operation, words []string) error
 		if op.Parameters[name].Type == "boolean" && !slices.Contains(op.Positional, name) {
 			continue
 		}
-		if _, set := q.Args[name]; !set {
+		_, set := q.Args[name]
+		_, preset := presets[name]
+		if !set && !preset {
 			open = append(open, name)
 		}
 	}
