@@ -1,0 +1,26 @@
+{
+  "name": "chrome colour: a modal's border takes the border.modal row; rich tints it with the mode (the palette's insert blue, a confirm's normal accent), subtle and off keep the accent",
+  "area": "chrome",
+  "width": 80,
+  "theme": "dark",
+  "pages": [
+    {"id": "work", "lists": [{"id": "a", "rows": 2}]}
+  ],
+  "script": [
+    ":",
+    "esc",
+    "x",
+    "esc",
+    ":", {"type": "set chrome.color=subtle"}, "enter",
+    ":",
+    "esc",
+    ":", {"type": "set chrome.color=off"}, "enter",
+    ":"
+  ],
+  "expect": [
+    {"after": 1, "modal": "palette", "mode": "insert", "colored": {"╭": "#7CB7E8", "╰": "#7CB7E8"}},
+    {"after": 3, "modal": "confirm", "mode": "normal", "colored": {"╭": "#78BFA5"}, "noColor": ["#7CB7E8"]},
+    {"after": 8, "modal": "palette", "colored": {"╭": "#78BFA5", "╰": "#78BFA5"}, "styled": {"INSERT": "#7CB7E8"}},
+    {"modal": "palette", "colored": {"╭": "#78BFA5"}, "noColor": ["#7CB7E8"]}
+  ]
+}

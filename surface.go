@@ -38,13 +38,17 @@ func ComposeModal(background, title, body, footer string, width, height int, sty
 // result's cursor is the body's, moved to where the panel placed it; the
 // backdrop never contributes one because a modal covers whatever it held.
 func ComposeModalBlock(background, title string, body Block, footer string, width, height int, styles Styles) Block {
-	return composeModalAt(background, title, body, footer, width, height, styles, nil)
+	return composeModalAt(background, title, body, footer, nil, width, height, styles, nil)
 }
 
 // composeModalAt is ComposeModalBlock with the panel placed by place (given
 // the panel's size, its top-left cell) instead of centered when place is
 // not nil.
-func composeModalAt(background, title string, body Block, footer string, width, height int, styles Styles, place func(panelWidth, panelHeight int) (left, top int)) Block {
+//
+// styled, when not nil, draws the footer in the panel's width as the
+// chrome colours a hint line (Styles.hintLine); its ok false, or a nil
+// styled, draws footer as one muted label. footer still sizes the panel.
+func composeModalAt(background, title string, body Block, footer string, styled func(width int) (string, bool), width, height int, styles Styles, place func(panelWidth, panelHeight int) (left, top int)) Block {
 	contentWidth, contentHeight, bordered := modalBounds(width, height)
 	if contentWidth == 0 || contentHeight == 0 {
 		if width <= 0 || height <= 0 {
@@ -75,8 +79,14 @@ func composeModalAt(background, title string, body Block, footer string, width, 
 		rows := make([]string, 0, len(lines)+2)
 		rows = append(rows, styles.Title.Render(modalCells(ansi.Truncate(title, panelWidth, "…"), panelWidth)))
 		rows = append(rows, lines...)
-		rows = append(rows, styles.Muted.Render(modalCells(ansi.Truncate(footer, panelWidth, "…"), panelWidth)))
-		panel := lipgloss.NewStyle().Foreground(styles.Panel.GetForeground()).Border(lipgloss.RoundedBorder()).BorderForeground(styles.Accent.GetForeground()).Padding(0, 1)
+		foot := styles.Muted.Render(modalCells(ansi.Truncate(footer, panelWidth, "…"), panelWidth))
+		if styled != nil {
+			if line, ok := styled(panelWidth); ok {
+				foot = modalCells(line, panelWidth)
+			}
+		}
+		rows = append(rows, foot)
+		panel := lipgloss.NewStyle().Foreground(styles.Panel.GetForeground()).Border(lipgloss.RoundedBorder()).BorderForeground(styles.Chrome("border.modal", lipgloss.NewStyle().Foreground(styles.Accent.GetForeground())).GetForeground()).Padding(0, 1)
 		lines = strings.Split(panel.Render(strings.Join(rows, "\n")), "\n")
 		panelWidth += 4
 		// Border and padding on the left; border and title row above.

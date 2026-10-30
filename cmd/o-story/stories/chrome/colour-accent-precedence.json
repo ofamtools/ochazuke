@@ -1,0 +1,21 @@
+{
+  "name": "chrome colour: on a border a pane's state row wins over an application's accent, which wins over the mode tint and the plain rich border: a pane needing input stays amber in show-all",
+  "area": "chrome",
+  "width": 60,
+  "height": 16,
+  "theme": "dark",
+  "accent": "#E8833A",
+  "page": {
+    "layout": "panels",
+    "noHeadings": true,
+    "lists": [
+      {"id": "focused", "rows": 1},
+      {"id": "needs", "rows": 1, "panelTone": "state.needs-input"},
+      {"id": "shell", "rows": 1}
+    ]
+  },
+  "expect": {
+    "colored": {"focused": "#E8833A", "needs": "#E3B341", "shell": "#E8833A"},
+    "noColor": ["#4F8F7A", "#78BFA5"]
+  }
+}

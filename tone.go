@@ -136,8 +136,9 @@ func (t *ToneStyle) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// toneRoles are the palette roles a tone's Fg may name.
-var toneRoles = []string{"text", "muted", "accent", "border", "surface", "error"}
+// toneRoles are the palette roles a tone's Fg may name; mode is the
+// current mode's badge colour (Styles.WithChrome), resolved per frame.
+var toneRoles = []string{"text", "muted", "accent", "border", "surface", "error", "mode"}
 
 // defaultTones are the tones every built-in theme draws; a user scheme
 // starts from them. The state tones keep their meaning without colour:
@@ -155,6 +156,8 @@ var defaultTones = map[string]ToneStyle{
 	ToneError:       {Bg: SchemeColor{"#F6D3CE", "#5E2722"}, Bold: true},
 	ToneChip:        {Bg: SchemeColor{"#E2EAE5", "#26362F"}},
 	ToneChipFocused: {Fg: SchemeColor{"surface", "surface"}, Bg: SchemeColor{"accent", "accent"}, Bold: true},
+	// The markdown package's note boxes (markdown.NoteTone).
+	"markdown.note": {Fg: SchemeColor{"#875f00", "#d7af5f"}},
 }
 
 // DefaultTones are the built-in tones and how the built-in themes draw
@@ -195,11 +198,17 @@ func parseTones(base map[string]ToneStyle, data json.RawMessage) (map[string]Ton
 type toneLook struct {
 	fg, bg    color.Color
 	bold, dim bool
+	// fgMode and bgMode: the side names the mode role, resolved per frame
+	// to the mode's colour (Styles.moded).
+	fgMode, bgMode bool
 }
 
 // resolveTones turns a scheme's tones into looks: each Fg side a colour or
-// the named role's same side, picked as the scheme picks its roles.
-func resolveTones(scheme Scheme, plain bool, pick func(SchemeColor) color.Color) map[string]toneLook {
+// the named role's same side, picked as the scheme picks its roles. The
+// mode role is left to Styles.moded; in a chrome row (chrome.*) an
+// application's accent (appAccent, nil for none) stands for the accent
+// and border roles, as NewStyles makes it stand for them.
+func resolveTones(scheme Scheme, plain bool, pick func(SchemeColor) color.Color, appAccent color.Color) map[string]toneLook {
 	if len(scheme.Tones) == 0 {
 		return nil
 	}
@@ -213,9 +222,15 @@ func resolveTones(scheme Scheme, plain bool, pick func(SchemeColor) color.Color)
 		}
 		return v
 	}
-	colour := func(v SchemeColor) color.Color {
+	colour := func(v SchemeColor, chrome bool) (color.Color, bool) {
 		if plain || (v.Light == "" && v.Dark == "") {
-			return nil
+			return nil, false
+		}
+		if v.Light == "mode" || v.Dark == "mode" {
+			return nil, true
+		}
+		if chrome && appAccent != nil && (slices.Contains([]string{"accent", "border"}, v.Light) || slices.Contains([]string{"accent", "border"}, v.Dark)) {
+			return appAccent, false
 		}
 		c := SchemeColor{side(v.Light, true), side(v.Dark, false)}
 		if c.Light == "" {
@@ -224,11 +239,15 @@ func resolveTones(scheme Scheme, plain bool, pick func(SchemeColor) color.Color)
 		if c.Dark == "" {
 			c.Dark = c.Light
 		}
-		return pick(c)
+		return pick(c), false
 	}
 	out := make(map[string]toneLook, len(scheme.Tones))
 	for name, t := range scheme.Tones {
-		out[name] = toneLook{bold: t.Bold, dim: t.Dim, fg: colour(t.Fg), bg: colour(t.Bg)}
+		look := toneLook{bold: t.Bold, dim: t.Dim}
+		chrome := isChromeTone(name)
+		look.fg, look.fgMode = colour(t.Fg, chrome)
+		look.bg, look.bgMode = colour(t.Bg, chrome)
+		out[name] = look
 	}
 	return out
 }
@@ -242,6 +261,7 @@ func (s Styles) Tone(name string) lipgloss.Style {
 	if !ok {
 		return st
 	}
+	look = s.moded(look)
 	if look.fg != nil {
 		st = st.Foreground(look.fg)
 	}
@@ -303,6 +323,7 @@ func (s Styles) toneSGR(name string, selected, faded bool) (ansi.Style, bool) {
 	if !ok {
 		return nil, false
 	}
+	look = s.moded(look)
 	var st ansi.Style
 	if look.bold {
 		st = st.Bold()
@@ -337,6 +358,7 @@ func (s Styles) bgSGR(sg toneSeg, faded bool) (ansi.Style, bool) {
 		name = sg.tone
 	}
 	look, ok := s.tones[name]
+	look = s.moded(look)
 	if !ok || look.bg == nil {
 		return nil, false
 	}

@@ -531,10 +531,11 @@ func (m *Model) footer() Footer {
 	if notice != "" {
 		parts = append(parts, notice)
 	}
-	if hints := BindingHints(m.Runtime, m.Runtime.Focus); hints != "" {
+	cells := HintCells(m.Runtime, m.Runtime.Focus)
+	if hints := JoinHints(cells); hints != "" {
 		parts = append(parts, hints)
 	}
-	return Footer{Text: strings.Join(parts, " · "), Jobs: jobs, Keys: m.footerKeys()}
+	return Footer{Text: strings.Join(parts, " · "), Hints: cells, Jobs: jobs, Keys: m.footerKeys()}
 }
 
 // footerKeys is the key echo when keys.echo puts it in the footer.
@@ -578,11 +579,45 @@ func (m *Model) footerInfo() string {
 // It is the data bindings.list prints, so a hint never names a key that is
 // not bound; the descriptions are in BindingHelp (the ? modal).
 func BindingHints(r *Runtime, focus string) string {
-	var hints []string
-	for _, b := range HintBindings(r, focus) {
-		hints = append(hints, rowHint(r, b))
+	return JoinHints(HintCells(r, focus))
+}
+
+// HintCell is one hint of a hint line: the row's key (or "J/K" for a row
+// whose own hint names its keys) and what it does, "" for a key alone.
+// The chrome draws them in the hint.key and hint.text roles.
+type HintCell struct {
+	Key  string `json:"key"`
+	Text string `json:"text,omitempty"`
+}
+
+// String is the hint as BindingHints writes it: "key text".
+func (c HintCell) String() string {
+	if c.Text == "" {
+		return c.Key
 	}
-	return strings.Join(hints, " · ")
+	return c.Key + " " + c.Text
+}
+
+// hintSep is what a hint line puts between hints.
+const hintSep = " · "
+
+// JoinHints is the hint line of cells as plain text, BindingHints' form.
+func JoinHints(cells []HintCell) string {
+	hints := make([]string, len(cells))
+	for i, c := range cells {
+		hints[i] = c.String()
+	}
+	return strings.Join(hints, hintSep)
+}
+
+// HintCells is BindingHints as cells, a key and its text each, for a
+// hint line that colours its keys.
+func HintCells(r *Runtime, focus string) []HintCell {
+	var cells []HintCell
+	for _, b := range HintBindings(r, focus) {
+		cells = append(cells, rowHintCell(r, b))
+	}
+	return cells
 }
 
 // HintsShowHiddenSetting puts the rows marked hidden (the editor's
@@ -650,18 +685,23 @@ func groupLevelRows(rows []levelRow) []levelRow {
 // rowHint is one row as a hint: its key or pattern, then the row's own Hint
 // when it has one, else the operation it runs (noun.verb, the noun by its
 // shortest name: DisplayKey).
-func rowHint(r *Runtime, b Binding) string {
+func rowHint(r *Runtime, b Binding) string { return rowHintCell(r, b).String() }
+
+// rowHintCell is rowHint as a key and its text.
+func rowHintCell(r *Runtime, b Binding) HintCell {
 	hint := modalLabel(rowKey(b))
 	if b.Hint != "" && strings.HasPrefix(b.Hint, rowKey(b)+"/") {
-		return modalLabel(b.Hint) // the hint names its keys: "J/K detail"
+		// The hint names its keys: "J/K detail".
+		key, text, _ := strings.Cut(modalLabel(b.Hint), " ")
+		return HintCell{Key: key, Text: text}
 	}
 	if b.Hint != "" {
-		return hint + " " + modalLabel(b.Hint)
+		return HintCell{Key: hint, Text: modalLabel(b.Hint)}
 	}
 	if b.Request.Empty() {
-		return hint
+		return HintCell{Key: hint}
 	}
-	return hint + " " + modalLabel(r.displayRequest(b.Request))
+	return HintCell{Key: hint, Text: modalLabel(r.displayRequest(b.Request))}
 }
 
 // rowKey is a row's key sequence, or its pattern as <pattern>.
@@ -903,11 +943,13 @@ func (m *Model) cursor(block Block) *tea.Cursor {
 }
 
 // Styles is the Model's appearance with the dim settings applied
-// (modal-dim, dim-unfocused, modal-highlights); the shell, modals and page lists draw in it.
+// (modal-dim, dim-unfocused, modal-highlights) and the chrome level
+// (chrome.color) in the current mode; the shell, modals and page lists draw in it.
 func (m *Model) Styles() Styles {
 	r := m.Runtime
 	return NewStyles(*m.Appearance).WithDims(r.dimSetting(ModalDimSetting, DefaultModalDim), r.dimSetting(DimUnfocusedSetting, DefaultDimUnfocused)).
-		WithBackdropHighlights(r.Settings().String(ModalBackdropHighlightsSetting) != "plain")
+		WithBackdropHighlights(r.Settings().String(ModalBackdropHighlightsSetting) != "plain").
+		WithChrome(r.ChromeLevel(), r.modeRoles())
 }
 
 // render composes the page shell and the modal stack. Each composer offsets
@@ -996,16 +1038,23 @@ func (m *Model) render() Block {
 		if place != nil {
 			hintWidth = modalWidth
 		}
-		hint := ansi.Truncate(BindingHints(m.Runtime, m.Runtime.ModalFocus(id)), hintWidth, "…")
+		cells := HintCells(m.Runtime, m.Runtime.ModalFocus(id))
+		hint := ansi.Truncate(JoinHints(cells), hintWidth, "…")
+		lead := ""
 		if id == m.Runtime.TopModal() {
 			switch {
 			case m.Status != "":
-				hint = "Error: " + m.Status
+				hint, cells = "Error: "+m.Status, nil
 			case m.Info != "":
-				hint = ansi.Truncate(m.footerInfo()+" · "+hint, hintWidth, "…")
+				lead = m.footerInfo()
+				hint = ansi.Truncate(lead+" · "+hint, hintWidth, "…")
 			}
 		}
-		surface = composeModalAt(surface.Text, title, body, hint, m.Width, m.Height, layout.Styles, place)
+		var styled func(int) (string, bool)
+		if len(cells) > 0 {
+			styled = func(w int) (string, bool) { return layout.Styles.hintLine(lead, cells, min(w, hintWidth)) }
+		}
+		surface = composeModalAt(surface.Text, title, body, hint, styled, m.Width, m.Height, layout.Styles, place)
 	}
 	// Open suggestions sit over everything, under the token they complete.
 	if c := m.Runtime.Completer(); c != nil {

@@ -1,0 +1,43 @@
+{
+  "name": "chrome colour: a panel given a state tone draws its border in that state's row (chrome.<level>.border.<tone>); rich colours every agent state and the plain border teal, subtle only the alert states, off draws every border as before",
+  "area": "chrome",
+  "width": 60,
+  "height": 22,
+  "theme": "dark",
+  "page": {
+    "layout": "panels",
+    "noHeadings": true,
+    "lists": [
+      {"id": "working", "rows": 1, "panelTone": "state.working"},
+      {"id": "needs", "rows": 1, "panelTone": "state.needs-input"},
+      {"id": "done", "rows": 1, "panelTone": "state.done"},
+      {"id": "shell", "rows": 1}
+    ]
+  },
+  "script": [
+    ":", {"type": "set chrome.color=rich"}, "enter",
+    ":", {"type": "set chrome.color=subtle"}, "enter",
+    ":", {"type": "set chrome.color=off"}, "enter"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "modal": "",
+      "focus": "working1",
+      "colored": {"working": "#7CB7E8", "needs": "#E3B341", "done": "#8BC48A", "shell": "#4F8F7A"},
+      "styled": {"╭━": "#7CB7E8", "╭─": "#E3B341"},
+      "attrs": {"╭━": "bold", "╰─": "-faint"}
+    },
+    {
+      "after": 6,
+      "modal": "",
+      "colored": {"working": "#78BFA5", "needs": "#E3B341", "done": "#465D55", "shell": "#465D55"},
+      "noColor": ["#7CB7E8", "#8BC48A", "#4F8F7A"]
+    },
+    {
+      "modal": "",
+      "colored": {"working": "#78BFA5", "needs": "#465D55", "done": "#465D55", "shell": "#465D55"},
+      "noColor": ["#7CB7E8", "#8BC48A", "#4F8F7A", "#E3B341"]
+    }
+  ]
+}

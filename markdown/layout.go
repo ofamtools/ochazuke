@@ -65,13 +65,12 @@ type noteStyle struct {
 	border, author, date, fold lipgloss.Style
 }
 
-func noteStyleOf(style string) noteStyle {
+// noteStyleOf is the note style in hex, the NoteTone's colour ("" for
+// none: the plain style).
+func noteStyleOf(hex string) noteStyle {
 	var c color.Color
-	switch style {
-	case StyleDark:
-		c = lipgloss.Color("#d7af5f")
-	case StyleLight:
-		c = lipgloss.Color("#875f00")
+	if hex != "" {
+		c = lipgloss.Color(hex)
 	}
 	s := noteStyle{
 		border: lipgloss.NewStyle(),
@@ -166,7 +165,7 @@ func layoutOf(src string, els []Element, width int, style string, opts options, 
 	for i := range lay.spans {
 		lay.spans[i] = [2]int{-1, -1}
 	}
-	st := noteStyleOf(style)
+	st := noteStyleOf(opts.note)
 	for _, line := range raw {
 		note := -1
 		for _, r := range line {

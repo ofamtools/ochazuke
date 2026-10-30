@@ -106,7 +106,8 @@ func tableRange(src []byte, t *east.Table) (from, to int, ok bool) {
 // spliceTables replaces each placeholder line Glamour drew with its table.
 // The text before the placeholder is the table's indent when it is only
 // spaces or a quote's bar; other text before it keeps a line of its own.
-func spliceTables(lines []string, tables []srcTable, width int, style string) []string {
+// rule colours the rules (#rrggbb, "" for none: unstyled).
+func spliceTables(lines []string, tables []srcTable, width int, style, rule string) []string {
 	if len(tables) == 0 {
 		return lines
 	}
@@ -137,7 +138,7 @@ func spliceTables(lines []string, tables []srcTable, width int, style string) []
 			prefix = strings.Repeat(" ", len(plain)-len(strings.TrimLeft(plain, " ")))
 		}
 		avail := width - ansi.StringWidth(prefix) - margin
-		for _, tl := range drawTable(tables[k], avail, cfg) {
+		for _, tl := range drawTable(tables[k], avail, cfg, rule) {
 			out = append(out, prefix+tl)
 		}
 		if after != "" {
@@ -291,7 +292,7 @@ func primitive(st lipgloss.Style, p gansi.StylePrimitive) lipgloss.Style {
 // spaces. Columns are a space either side and │ between them, the header
 // under a ─ rule with ┼ at the columns, as Glamour draws them; each row's
 // element markers end its first and last lines.
-func drawTable(t srcTable, avail int, cfg gansi.StyleConfig) []string {
+func drawTable(t srcTable, avail int, cfg gansi.StyleConfig, rule string) []string {
 	base := primitive(primitive(lipgloss.NewStyle(), cfg.Document.StylePrimitive), cfg.Table.StylePrimitive)
 	in := &inline{src: t.src, cfg: cfg, keys: map[string]int{}}
 	var rows [][]cellText
@@ -335,9 +336,15 @@ func drawTable(t srcTable, avail int, cfg gansi.StyleConfig) []string {
 			heights[i] = max(heights[i], len(lines[i][c]))
 		}
 	}
+	ruleColor := rule
 	sep, rule, cross := "│", "─", "┼"
 	if r := cfg.Table; r.RowSeparator != nil && r.ColumnSeparator != nil && r.CenterSeparator != nil {
 		sep, rule, cross = *r.ColumnSeparator, *r.RowSeparator, *r.CenterSeparator
+	}
+	paint := func(s string) string { return s }
+	if ruleColor != "" {
+		st := lipgloss.NewStyle().Foreground(lipgloss.Color(ruleColor))
+		paint = func(s string) string { return st.Render(s) }
 	}
 	var out []string
 	for i, r := range rows {
@@ -355,7 +362,7 @@ func drawTable(t srcTable, avail int, cfg gansi.StyleConfig) []string {
 				}
 				parts[c] = " " + align(text, widths[c], alignOf(t.node, c)) + " "
 			}
-			line := strings.Join(parts, sep)
+			line := strings.Join(parts, paint(sep))
 			if l == 0 {
 				line += string(starts)
 			}
@@ -369,7 +376,7 @@ func drawTable(t srcTable, avail int, cfg gansi.StyleConfig) []string {
 			for c := range cols {
 				parts[c] = strings.Repeat(rule, widths[c]+2)
 			}
-			out = append(out, strings.Join(parts, cross))
+			out = append(out, paint(strings.Join(parts, cross)))
 		}
 	}
 	return out

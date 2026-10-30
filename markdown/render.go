@@ -9,12 +9,15 @@
 package markdown
 
 import (
+	"fmt"
+	"image/color"
 	"strings"
 	"sync"
 
 	"charm.land/glamour/v2"
 	gansi "charm.land/glamour/v2/ansi"
 	"charm.land/glamour/v2/styles"
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/unixsuperhero/ochazuke"
 )
@@ -46,6 +49,38 @@ type Option func(*options)
 // options are the rendering choices; the zero value is Glamour's default.
 type options struct {
 	newlines bool
+	// note and rule are the colours (#rrggbb, "" for none) of the tones
+	// NoteTone and RuleTone in the appearance the text is drawn in.
+	note, rule string
+}
+
+// The tones the package draws its own boxes and rules in, rows a
+// themes.json entry may override like any tone: NoteTone a note's box,
+// author and fold line (built in: #875f00 on light, #d7af5f on dark);
+// RuleTone a table's column and header rules (no built-in row: drawn in
+// the text's colour).
+const (
+	NoteTone = "markdown.note"
+	RuleTone = "markdown.rule"
+)
+
+// withTones is o with the note and rule colours of the appearance.
+func (o options) withTones(a ochazuke.Appearance) options {
+	s := ochazuke.NewStyles(a)
+	o.note, o.rule = hexOf(s.Tone(NoteTone).GetForeground()), hexOf(s.Tone(RuleTone).GetForeground())
+	return o
+}
+
+// hexOf is c as #rrggbb, "" for none (no colour, mono).
+func hexOf(c color.Color) string {
+	if c == nil {
+		return ""
+	}
+	if _, ok := c.(lipgloss.NoColor); ok {
+		return ""
+	}
+	r, g, b, _ := c.RGBA()
+	return fmt.Sprintf("#%02x%02x%02x", r>>8, g>>8, b>>8)
 }
 
 func optionsOf(opts []Option) options {
@@ -72,7 +107,7 @@ func PreserveNewlines() Option { return func(o *options) { o.newlines = true } }
 //
 //	body, marker := detail.Window(markdown.Block(text, w, a).Text, w, h)
 func Block(text string, width int, a ochazuke.Appearance, opts ...Option) ochazuke.Block {
-	return ochazuke.Text(strings.Join(render(text, 0, width, StyleOf(a), optionsOf(opts)).lines, "\n"))
+	return ochazuke.Text(strings.Join(render(text, 0, width, StyleOf(a), optionsOf(opts).withTones(a)).lines, "\n"))
 }
 
 // renderKey names one rendering: the text, how many task markers it
@@ -164,7 +199,7 @@ func renderUncached(text string, width int, style string, opts options) []string
 	if out == "" {
 		out = ansi.Wrap(text, width, "")
 	}
-	lines := spliceTables(strings.Split(out, "\n"), tables, width, style)
+	lines := spliceTables(strings.Split(out, "\n"), tables, width, style, opts.rule)
 	blank := func(line string) bool { return strings.TrimSpace(ansi.Strip(line)) == "" }
 	for len(lines) > 0 && blank(lines[0]) {
 		lines = lines[1:]

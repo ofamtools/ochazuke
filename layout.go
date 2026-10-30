@@ -19,6 +19,25 @@ type Layout struct {
 	// page's remembered divider (Runtime.PaneLayout sets it; pane.grow,
 	// pane.shrink and pane.reset change it). Divide applies it.
 	Shift int
+
+	// panelTone is the tone PanelBlock draws the next panel's border in
+	// (WithPanelTone); "" is the plain border.
+	panelTone string
+}
+
+// WithPanelTone is the layout whose panels (Panel, PanelBlock) carry tone,
+// a tone name such as state.working, on their border, as a timeline card
+// carries Card.Tone: the border draws in the chrome row border.<tone> of
+// the chrome.color level (chrome.rich.border.state.working), bold when
+// the panel is focused, and keeps its heavy lines when focused. A level
+// with no such row, or "", draws the panel's usual border. An application
+// passes the state of the thing a panel shows (a terminal pane's agent
+// state):
+//
+//	layout.WithPanelTone(stateTone(pane)).PanelBlock(title, body, w, h, focused)
+func (l Layout) WithPanelTone(tone string) Layout {
+	l.panelTone = tone
+	return l
 }
 
 // The pane limits: PaneStep is the percent points one pane.grow or
@@ -141,6 +160,11 @@ type Header struct {
 type Footer struct {
 	Text  string
 	Error bool
+	// Hints are the binding hints Text ends with (HintCells), so the
+	// chrome can colour their keys (the hint.key, hint.text and hint.sep
+	// roles); without them, or when Text does not end with them, the
+	// whole line draws as one muted label.
+	Hints []HintCell
 	Jobs  []string
 	// Keys is the key echo when keys.echo puts it in the footer: drawn at
 	// the right end in the cells it reserves, the text cut before them.
@@ -165,11 +189,21 @@ func (l Layout) Shell(h Header, body Block, f Footer) Block {
 	if f.Error {
 		footerStyle = s.Error
 	}
-	footer := footerStyle.Render(ansi.Truncate(modalLabel(f.Text), max(0, bw), "…"))
+	footerText := func(width int) string {
+		if !f.Error {
+			if lead, ok := strings.CutSuffix(f.Text, JoinHints(f.Hints)); ok && len(f.Hints) > 0 {
+				if line, ok := s.hintLine(strings.TrimSuffix(lead, hintSep), f.Hints, width); ok {
+					return line
+				}
+			}
+		}
+		return footerStyle.Render(ansi.Truncate(modalLabel(f.Text), max(0, width), "…"))
+	}
+	footer := footerText(bw)
 	if kw := f.Keys.cells(bw); kw > 0 {
 		// The echo keeps its cells whatever the text: the line never
 		// reflows as keys come and go.
-		text := footerStyle.Render(ansi.Truncate(modalLabel(f.Text), max(0, bw-kw-1), "…"))
+		text := footerText(bw - kw - 1)
 		footer = text + strings.Repeat(" ", max(1, bw-kw-ansi.StringWidth(text))) + l.echoCell(f.Keys.Labels, kw)
 	}
 	var rows []string
@@ -232,12 +266,68 @@ func (l Layout) titleRow(h Header, width int) string {
 			reserved = ansi.StringWidth(right) + 1
 		}
 	}
-	title := s.Accent.Render("◆ ") + s.Title.Render(ansi.Truncate(modalLabel(h.Title), max(0, width-2-reserved), "…"))
+	title := s.Chrome("title.mark", s.Accent).Render("◆ ") + s.Chrome("title", s.Title).Render(ansi.Truncate(modalLabel(h.Title), max(0, width-2-reserved), "…"))
 	if right == "" {
 		return title
 	}
 	gap := max(1, width-ansi.StringWidth(title)-ansi.StringWidth(right))
 	return title + strings.Repeat(" ", gap) + right
+}
+
+// hintLine draws a hint line in width cells: lead (a status, a notice;
+// "" for none) muted, then each hint's key in the hint.key role and its
+// text in hint.text, " · " between them in hint.sep, cut with "…". ok is
+// false when the chrome level has none of the hint roles: the line then
+// draws as one muted label, the look before the levels.
+func (s Styles) hintLine(lead string, cells []HintCell, width int) (string, bool) {
+	if !s.HasChrome("hint.key", "hint.text", "hint.sep") {
+		return "", false
+	}
+	key, text, sep := s.Chrome("hint.key", s.Muted), s.Chrome("hint.text", s.Muted), s.Chrome("hint.sep", s.Muted)
+	type piece struct {
+		text  string
+		style lipgloss.Style
+	}
+	var pieces []piece
+	if lead != "" {
+		pieces = append(pieces, piece{modalLabel(lead), s.Muted})
+	}
+	for i, c := range cells {
+		if i > 0 || lead != "" {
+			pieces = append(pieces, piece{hintSep, sep})
+		}
+		pieces = append(pieces, piece{modalLabel(c.Key), key})
+		if c.Text != "" {
+			pieces = append(pieces, piece{" " + modalLabel(c.Text), text})
+		}
+	}
+	var b strings.Builder
+	total := 0
+	for _, p := range pieces {
+		total += ansi.StringWidth(p.text)
+	}
+	if total <= width {
+		for _, p := range pieces {
+			b.WriteString(p.style.Render(p.text))
+		}
+		return b.String(), true
+	}
+	// Cut as ansi.Truncate cuts the plain line: width-1 cells, then "…"
+	// in the style of the piece it falls in.
+	limit := width - 1
+	for _, p := range pieces {
+		if limit < 0 {
+			break
+		}
+		if w := ansi.StringWidth(p.text); w <= limit {
+			b.WriteString(p.style.Render(p.text))
+			limit -= w
+			continue
+		}
+		b.WriteString(p.style.Render(ansi.Cut(p.text, 0, limit) + "…"))
+		break
+	}
+	return b.String(), true
 }
 
 // focusTitleKeep is the most of the title the focus may not take from it:
@@ -387,12 +477,13 @@ func (l Layout) PanelBlock(title string, body Block, width, height int, focused 
 		return body.Clip(width, height).WithText(strings.Join(layoutRows(body.Text, width, height), "\n"))
 	}
 	frame := s.Panel
-	titleStyle := s.Title
+	titleStyle := s.Chrome("panel.title", s.Title)
 	if focused {
-		frame, titleStyle = s.FocusedPanel, s.Accent
+		frame, titleStyle = s.FocusedPanel, s.Chrome("panel.title.focused", s.Accent)
 	}
 	b := frame.GetBorderStyle()
 	edge := lipgloss.NewStyle().Foreground(frame.GetBorderTopForeground())
+	edge = s.panelEdge(l.panelTone, focused, edge)
 	inner := width - 2
 	cw, ih := PanelContentSize(width, height)
 	rows := layoutRows(layoutClip(body.Text, ih, s), cw, ih)

@@ -13,7 +13,7 @@ type Page struct {
 	Title  string     `json:"title,omitempty"`
 	Height int        `json:"height,omitempty"` // legacy spelling of the story's height (first page only)
 	Width  int        `json:"width,omitempty"`
-	Layout string     `json:"layout,omitempty"` // stack (default), row (lists side by side) or split (the first two lists in Layout.SplitFocusBlock, the focused one's panel focused)
+	Layout string     `json:"layout,omitempty"` // stack (default), row (lists side by side), split (the first two lists in Layout.SplitFocusBlock, the focused one's panel focused) or panels (each list in a panel of its own, stacked, the focused one's panel focused, its border in the list's panelTone)
 	Order  []string   `json:"order,omitempty"`  // drawing order of list ids; default the order given
 	Focus  string     `json:"focus,omitempty"`  // instance id focused when the page opens
 	Offset int        `json:"offset,omitempty"` // page scroll offset after the first frame
@@ -136,6 +136,9 @@ type ListSpec struct {
 	// Columns make the list a table (ochazuke.Columns); rows bring their
 	// cells in Items.
 	Columns []ochazuke.Column `json:"columns,omitempty"`
+	// PanelTone is the tone of the list's panel border in the panels
+	// layout (Layout.WithPanelTone): a state such as state.working.
+	PanelTone string `json:"panelTone,omitempty"`
 }
 
 // TreeSpec is one tree: its nodes (parents before children), drawn in the

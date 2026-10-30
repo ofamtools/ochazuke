@@ -140,6 +140,9 @@ type Styles struct {
 	tones          map[string]toneLook // the scheme's tones resolved (Tone, tone.go)
 	selectedBg     string              // tones.selected-background, read by the list that draws (listTones)
 	backdropPlain  bool                // modal-highlights plain: the backdrop drops reverse video and underline
+	chrome         string              // the chrome level (chrome.color), "" before WithChrome (chrome.go)
+	appAccent      color.Color         // Appearance.Accent when it draws (not mono, not NO_COLOR)
+	modeColor      color.Color         // the mode role: the current mode's badge colour (WithChrome)
 }
 
 // Dim defaults, in percent toward the background (the settings modal-dim
@@ -280,8 +283,10 @@ func NewStyles(a Appearance) Styles {
 	accent := pick(scheme.Accent)
 	border := pick(scheme.Border)
 	title := text
+	var appAccent color.Color
 	if a.Accent != nil && !plain {
 		accent, border, title = a.Accent, a.Accent, a.Accent
+		appAccent = a.Accent
 	}
 	surface := pick(scheme.Surface)
 	errorColor := pick(scheme.Error)
@@ -310,7 +315,9 @@ func NewStyles(a Appearance) Styles {
 		accent:       accent,
 		border:       border,
 		plain:        plain,
-		tones:        resolveTones(scheme, plain, pick),
+		tones:        resolveTones(scheme, plain, pick, appAccent),
+		appAccent:    appAccent,
+		modeColor:    accent,
 	}
 	return styles.WithDims(DefaultModalDim, DefaultDimUnfocused)
 }

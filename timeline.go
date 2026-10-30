@@ -66,6 +66,8 @@ type Card struct {
 	// Tone is a tone whose style draws the card's border (and the Active
 	// "●" in it) in place of the border role: a card whose state should
 	// be seen from across the timeline (a running turn, a failed one).
+	// The chrome row border.<tone> of the chrome.color level draws it when
+	// the level has one (chrome.rich.border.state.working), else the tone.
 	// The focused timeline's selected card keeps the accent, so the
 	// focus always reads; an unknown tone, or "", draws the usual border.
 	Tone string `json:"tone,omitempty"`
@@ -681,7 +683,11 @@ func (t *Timeline) draw(i int, selected bool) []string {
 		// Something that happened: a dashed, muted border.
 		h, v, border = "┄", "┆", s.Muted
 	}
-	if c.Tone != "" && s.hasTone(c.Tone) {
+	if c.Tone != "" && s.HasChrome("border."+c.Tone) {
+		// The chrome level's row for the tone (chrome.<level>.border.<tone>).
+		toned := s.Chrome("border."+c.Tone, lipgloss.NewStyle())
+		border, selectedBorder = toned, toned
+	} else if c.Tone != "" && s.hasTone(c.Tone) {
 		border, selectedBorder = s.Tone(c.Tone), s.Tone(c.Tone)
 	}
 	switch {
