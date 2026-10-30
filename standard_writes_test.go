@@ -110,7 +110,7 @@ func TestStandardWriteVerbs(t *testing.T) {
 		t.Fatalf("task.patch alias = %+v %v", a, ok)
 	}
 	create := r.Operations["task.create"]
-	if !slices.Equal(create.Positional, []string{"title"}) {
+	if !slices.Equal(create.Positional, []string{"title", "pairs"}) {
 		t.Fatalf("create positional %v", create.Positional)
 	}
 	for _, name := range []string{"id", "summary"} {

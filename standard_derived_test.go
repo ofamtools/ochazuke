@@ -267,7 +267,7 @@ func TestCreateFillsFromTheFocus(t *testing.T) {
 	sink := &RecordingSink{}
 	r.UI().Attach(sink)
 	create := r.Operations["task.create"]
-	if !create.Parameters["project"].Focus || !slices.Equal(create.Positional, []string{"title", "project"}) {
+	if !create.Parameters["project"].Focus || !slices.Equal(create.Positional, []string{"title", "project", "pairs"}) {
 		t.Fatalf("create %+v", create)
 	}
 	if err := r.SetFocus("row-t1"); err != nil {

@@ -680,7 +680,18 @@ func positional(q ochazuke.Request, op ochazuke.Operation, words []string) error
 		if op.Parameters[name].Rest {
 			// A rest parameter (Parameter.Rest) takes the remaining
 			// words, joined by spaces: bin settings apply scrolloff=5 nowrap.
-			q.Args[name] = strings.Join(words[i:], " ")
+			rest := words[i:]
+			if op.Parameters[name].Pairs {
+				// NAME=VALUE words keep a value holding spaces
+				// one word (text="buy milk"), as the shell gave it.
+				rest = slices.Clone(rest)
+				for j, w := range rest {
+					if k, v, ok := strings.Cut(w, "="); ok && strings.ContainsAny(v, " \t") && !strings.HasPrefix(v, `"`) {
+						rest[j] = k + "=" + strconv.Quote(v)
+					}
+				}
+			}
+			q.Args[name] = strings.Join(rest, " ")
 			return nil
 		}
 		v, err := typed(op.Parameters[name].Type, word)

@@ -571,7 +571,66 @@ func createParams(n *Noun) map[string]Parameter {
 		param.Focus = p.FromFocus // create fills it from the focus (createFill)
 		params[p.Name] = param
 	}
+	params["pairs"] = Parameter{Type: "string", Rest: true, Pairs: true, Description: "prop=value words for the props (plan 2.6: NOUN create [p=v ...]), after the label"}
 	return params
+}
+
+// createArgs reads a create request's props as create writes them: the
+// props given by name, a prop=value word given in a prop's own slot (a
+// bare word on the CLI or the palette: the label's, a focus fill's)
+// whose name is a prop create writes, and the pairs words. A word whose
+// left side names no such prop stays the value of its slot (a label
+// "a=b"); a prop given twice is refused. pairs is consumed.
+func createArgs(n *Noun, a Arguments) (Arguments, error) {
+	pairs := StringArg(a, "pairs", "")
+	_, hasPairs := a["pairs"]
+	out := Arguments{}
+	moved := map[string]bool{}
+	for k, v := range a {
+		if k != "pairs" {
+			out[k] = v
+		}
+	}
+	writes := func(name string) bool {
+		return slices.ContainsFunc(createProps(n), func(p PropSpec) bool { return p.Name == name })
+	}
+	put := func(name string, v any) error {
+		if _, given := out[name]; given || moved[name] {
+			return &ArgumentError{fmt.Errorf("%s is written twice", name)}
+		}
+		out[name], moved[name] = v, true
+		return nil
+	}
+	for _, p := range createProps(n) {
+		word, ok := a[p.Name].(string)
+		if !ok {
+			continue
+		}
+		name, v, ok := strings.Cut(word, "=")
+		if !ok || !writes(name) {
+			continue
+		}
+		delete(out, p.Name)
+		if err := put(name, unquoteWord(v)); err != nil {
+			return nil, err
+		}
+	}
+	for _, w := range splitPairs(pairs) {
+		name, v, ok := strings.Cut(w, "=")
+		switch {
+		case !ok:
+			return nil, &ArgumentError{fmt.Errorf("%q is not prop=value", w)}
+		case !writes(name):
+			return nil, &ArgumentError{fmt.Errorf("%s has no prop %q that create writes", n.Name, name)}
+		}
+		if err := put(name, unquoteWord(v)); err != nil {
+			return nil, err
+		}
+	}
+	if !hasPairs && len(moved) == 0 {
+		return a, nil
+	}
+	return out, nil
 }
 
 func setParams(n *Noun) map[string]Parameter {
@@ -590,6 +649,10 @@ func setParams(n *Noun) map[string]Parameter {
 
 // createWrites are the props a create request gives.
 func createWrites(n *Noun, a Arguments) ([]string, error) {
+	a, err := createArgs(n, a)
+	if err != nil {
+		return nil, err
+	}
 	var out []string
 	for _, p := range createProps(n) {
 		if _, ok := a[p.Name]; ok {
@@ -773,6 +836,11 @@ func (r *Runtime) unshownProp(n *Noun, c Ctx, names []string) string {
 }
 
 func runCreate(r *Runtime, n *Noun, c Ctx) (any, error) {
+	args, err := createArgs(n, c.Args)
+	if err != nil {
+		return nil, err
+	}
+	c.Args = args
 	values := Thing{}
 	for _, p := range createProps(n) {
 		v, ok := c.Args[p.Name]
