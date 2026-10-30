@@ -1,0 +1,141 @@
+{
+  "name": "z f fits the current column to its widest cell (title included) and it stays as the cursor moves; z = makes it automatic again",
+  "area": "tables",
+  "width": 80,
+  "height": 10,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "name"
+          },
+          {
+            "title": "note",
+            "max": 12
+          },
+          {
+            "title": "size"
+          },
+          {
+            "title": "kind"
+          }
+        ],
+        "items": [
+          {
+            "id": "r1",
+            "label": "r1",
+            "cells": [
+              "r1",
+              "short",
+              "7",
+              "file-of-kind-r1"
+            ]
+          },
+          {
+            "id": "r2",
+            "label": "r2",
+            "cells": [
+              "r2",
+              "short",
+              "7",
+              "file-of-kind-r2"
+            ]
+          },
+          {
+            "id": "r3",
+            "label": "r3",
+            "cells": [
+              "r3",
+              "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+              "7",
+              "file-of-kind-r3"
+            ]
+          },
+          {
+            "id": "r4",
+            "label": "r4",
+            "cells": [
+              "r4",
+              "short",
+              "7",
+              "file-of-kind-r4"
+            ]
+          },
+          {
+            "id": "r5",
+            "label": "r5",
+            "cells": [
+              "r5",
+              "short",
+              "7",
+              "file-of-kind-r5"
+            ]
+          },
+          {
+            "id": "r6",
+            "label": "r6",
+            "cells": [
+              "r6",
+              "short",
+              "7",
+              "file-of-kind-r6"
+            ]
+          }
+        ],
+        "selected": 0,
+        "cellSelect": true
+      }
+    ]
+  },
+  "script": [
+    "l",
+    "z",
+    "f",
+    "j",
+    "j",
+    "l",
+    "h",
+    "k",
+    "z",
+    "="
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "contains": [
+        "nnnnnnnnnnn…"
+      ],
+      "lacks": [
+        "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+      ],
+      "cell": "short"
+    },
+    {
+      "after": 3,
+      "contains": [
+        "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+      ],
+      "cell": "short"
+    },
+    {
+      "after": 8,
+      "contains": [
+        "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+      ],
+      "cell": "short"
+    },
+    {
+      "contains": [
+        "nnnnnnnnnnn…"
+      ],
+      "lacks": [
+        "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+      ],
+      "cell": "short"
+    }
+  ]
+}

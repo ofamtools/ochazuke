@@ -18,11 +18,20 @@ const TablesFile = "tables.json"
 // z > and z < (column index to cells; a column left out is automatic) and
 // the pinned columns the user chose (any table's; nil keeps the default
 // pins, an empty list pins none).
+//
+// Version is the format the widths were written in: tableStateVersion
+// (1) since a row-select table remembers the widths z F gives it; a
+// row-select table ignores widths without it (left by v0.12.0, when every
+// table was cell-based).
 type TableState struct {
-	Column int         `json:"column,omitempty"`
-	Widths map[int]int `json:"widths,omitempty"`
-	Pins   *[]int      `json:"pins,omitempty"`
+	Column  int         `json:"column,omitempty"`
+	Widths  map[int]int `json:"widths,omitempty"`
+	Pins    *[]int      `json:"pins,omitempty"`
+	Version int         `json:"version,omitempty"`
 }
+
+// tableStateVersion is the TableState.Version a list writes with widths.
+const tableStateVersion = 1
 
 func (s TableState) empty() bool { return s.Column == 0 && len(s.Widths) == 0 && s.Pins == nil }
 
@@ -95,7 +104,7 @@ func (r *Runtime) SetTableState(id string, s TableState) {
 	}
 	tables := c.tablesState()
 	old := tables[id]
-	if old.Column == s.Column && maps.Equal(old.Widths, s.Widths) && samePins(old.Pins, s.Pins) {
+	if old.Column == s.Column && maps.Equal(old.Widths, s.Widths) && samePins(old.Pins, s.Pins) && old.Version == s.Version {
 		return
 	}
 	if s.empty() {

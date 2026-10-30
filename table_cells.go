@@ -33,16 +33,20 @@ import (
 //	                 on every table (verb guard list-table)
 //	z > / z <        list.resize-column {delta: ±1}: widen or narrow the
 //	                 current column by ColumnWidthStep cells (a count is steps)
+//	z f / z F        list.fit-column / list.fit-columns: the current column
+//	                 / every column at its content's width (z F on every
+//	                 table, table_fit.go)
 //	z =              list.reset-columns: every column automatic again and
-//	                 the default pins back (the verb answers on any table)
+//	                 the default pins back (on any table)
 //	z p              list.toggle-pin-column: pin or unpin the current
 //	                 column (table_pins.go)
 //	z l / z h        list.scroll-columns: the view one column right / left,
 //	                 the current column carried along when it scrolls off
 //	                 (every table that scrolls, table_columns.go)
 //
-// The width keys pick the current column, so a row-select table has none:
-// widths there are the application's (SetColumnWidth), not remembered.
+// The width keys but z F pick the current column, so a row-select table
+// answers only z F and z = of them; its widths (SetColumnWidth, z F) are
+// remembered with its pins.
 // j/k keep the column. The column offset (table_columns.go) follows the
 // current column: each frame scrolls the view as little as shows it, so a
 // column dropped by Priority or past the right edge comes into view as the
@@ -58,9 +62,9 @@ import (
 // (list.scroll-columns, bound after the cell rows so a cell table's column
 // move answers first) and z l/z h scroll its columns.
 //
-// A cell-mode table's current column and the widths given with z > and
-// z <, and any table's pins, are remembered per table id in the state
-// directory (TablesFile, Runtime.TableState).
+// A cell-mode table's current column, any table's widths (z >, z <, z f,
+// z F) and pins are remembered per table id in the state directory
+// (TablesFile, Runtime.TableState).
 
 // ColumnWidthStep is the cells z > and z < add to or take from a column.
 const ColumnWidthStep = 2
@@ -154,13 +158,19 @@ func (l *List) restore() {
 		l.pins, l.pinsSet = slices.Clone(*s.Pins), true
 	}
 	if !l.cellMode() {
-		return // a row-select table remembers its pins only (one cell-based in v0.12.0 may have left widths)
+		// A row-select table remembers its pins and the widths z F gave
+		// it; widths written before TableState.Version (one cell-based in
+		// v0.12.0 may have left some) are not its own.
+		if s.Version >= tableStateVersion {
+			l.colWidths = s.Widths
+		}
+		return
 	}
 	l.col, l.colWidths = s.Column, s.Widths
 }
 
 // remember writes a table's view (Runtime.SetTableState): its pins when
-// they are not the default, and a cell-mode table's column and widths.
+// they are not the default, its widths, and a cell-mode table's column.
 func (l *List) remember() {
 	if len(l.columns) == 0 {
 		return
@@ -173,16 +183,28 @@ func (l *List) remember() {
 		}
 		s.Pins = &pins
 	}
+	s.Widths = l.colWidths
 	if l.cellMode() {
-		s.Column, s.Widths = l.col, l.colWidths
+		s.Column = l.col
+	}
+	if len(s.Widths) > 0 {
+		s.Version = tableStateVersion
 	}
 	l.r.SetTableState(l.id, s)
 }
 
-// layoutColumns is the columns with the widths given by z > and z < as
-// fixed widths.
+// layoutColumns is the columns with the widths given by z >, z <, z f and
+// z F as fixed widths, and, with table.fit-follows-cursor on, a cell-mode
+// table's current column at its content's width unless one was given
+// (table_fit.go).
 func (l *List) layoutColumns() []Column {
-	if len(l.colWidths) == 0 {
+	cursor := -1
+	if l.fitsCursor() {
+		if c := min(max(l.col, 0), len(l.columns)-1); l.colWidths[c] <= 0 {
+			cursor = c
+		}
+	}
+	if len(l.colWidths) == 0 && cursor < 0 {
 		return l.columns
 	}
 	cols := slices.Clone(l.columns)
@@ -190,6 +212,9 @@ func (l *List) layoutColumns() []Column {
 		if i >= 0 && i < len(cols) && w > 0 {
 			cols[i].Width, cols[i].Max = w, 0
 		}
+	}
+	if cursor >= 0 {
+		cols[cursor].Width, cols[cursor].Max = l.fitCap(l.contentWidth(cursor)), 0
 	}
 	return cols
 }
@@ -376,7 +401,8 @@ func registerTableCells(r *Runtime) {
 		return l != nil && (len(l.columns) > 0 || l.visual)
 	})
 	guards["yank"] = "list-yanks"
-	guards["reset-columns"] = "list-table" // z = is a cell row; the palette resets a row-select table's pins
+	// reset-columns' guard is table-resets (table_fit.go): z = on any
+	// table with a width given or pins chosen.
 	id := Parameter{Type: "string", Description: "The list (default: the focused one)"}
 	r.Register(Operation{Verb: "column", Noun: "ochazuke.list", Description: "Move a cell-mode table's current column: to the first or last, to the column numbered index (|), or delta columns; the view scrolls to show it", Parameters: map[string]Parameter{
 		"id":    id,
@@ -502,4 +528,5 @@ func registerTableCells(r *Runtime) {
 		return l.state(), nil
 	}})
 	registerTablePins(r, cells)
+	registerTableFit(r, cells)
 }

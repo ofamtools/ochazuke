@@ -1,0 +1,131 @@
+{
+  "name": "table.fit-follows-cursor on: the current column fits its content as the cursor reaches it and goes back to its width when it leaves; nothing is remembered",
+  "area": "tables",
+  "width": 80,
+  "height": 10,
+  "chrome": "none",
+  "settings": [
+    {
+      "name": "table.fit-follows-cursor",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "columns": [
+          {
+            "title": "name"
+          },
+          {
+            "title": "note",
+            "max": 12
+          },
+          {
+            "title": "size"
+          },
+          {
+            "title": "kind"
+          }
+        ],
+        "items": [
+          {
+            "id": "r1",
+            "label": "r1",
+            "cells": [
+              "r1",
+              "short",
+              "7",
+              "file-of-kind-r1"
+            ]
+          },
+          {
+            "id": "r2",
+            "label": "r2",
+            "cells": [
+              "r2",
+              "short",
+              "7",
+              "file-of-kind-r2"
+            ]
+          },
+          {
+            "id": "r3",
+            "label": "r3",
+            "cells": [
+              "r3",
+              "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+              "7",
+              "file-of-kind-r3"
+            ]
+          },
+          {
+            "id": "r4",
+            "label": "r4",
+            "cells": [
+              "r4",
+              "short",
+              "7",
+              "file-of-kind-r4"
+            ]
+          },
+          {
+            "id": "r5",
+            "label": "r5",
+            "cells": [
+              "r5",
+              "short",
+              "7",
+              "file-of-kind-r5"
+            ]
+          },
+          {
+            "id": "r6",
+            "label": "r6",
+            "cells": [
+              "r6",
+              "short",
+              "7",
+              "file-of-kind-r6"
+            ]
+          }
+        ],
+        "selected": 0,
+        "cellSelect": true
+      }
+    ]
+  },
+  "script": [
+    "l",
+    "l",
+    "h"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "contains": [
+        "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+      ],
+      "cell": "short"
+    },
+    {
+      "after": 2,
+      "contains": [
+        "nnnnnnnnnnn…"
+      ],
+      "lacks": [
+        "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+      ],
+      "cell": "7"
+    },
+    {
+      "contains": [
+        "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+      ],
+      "cell": "short"
+    }
+  ]
+}

@@ -341,9 +341,17 @@ tiers above them. When the two disagree, fix one in the same commit.
   the whole width and the current cell is reversed and underlined inside
   it; the header underlines the current column's title; an unfocused page
   table fades both (R5.1). `y` copies the cell into the registers;
-  `z >`/`z <`/`z =` size the current column (they need one, so they answer
+  `z >`/`z <`/`z f` size the current column (they need one, so they answer
   on cell-mode tables only), and the widths and the column are remembered
-  per table across a restart. On every table, cell-mode or not: `Y` copies
+  per table across a restart. `z f` fits the column to its widest cell or
+  title and `z F` (every table) fits every column, the widest narrowed
+  first when they do not fit; both are sticky (fixed widths, never
+  reflowed by a cursor move, R4.9's stability for tables) and `z =` (every
+  table with a width or pins to undo) makes the columns automatic again.
+  `z F` and `z =` answer only where they would change something, so `z`
+  still waits for nothing on a row-select table that fits (R5.9). The
+  `table.fit-follows-cursor` setting (default off) fits the current column
+  as the cursor reaches it, written nowhere. On every table, cell-mode or not: `Y` copies
   the row's cells joined by tabs, and `V` is a visual row selection drawn
   into the marks on every list, table and tree (not on a `NoMarks` one),
   in the `visual-line` mode (R5.16): `j`/`k` extend it without
@@ -352,14 +360,16 @@ tiers above them. When the two disagree, fix one in the same commit.
   where `h`/`l` collapse and expand; help; settings; a cli catalog table)
   and a plain list answer none of the other keys (`h`/`l` scroll a
   row-select table, R5.11); a row-select table remembers only its pins
-  (R5.13). `RowSelect()` is a deprecated no-op. A row noun
+  (R5.13) and the widths `z F` gave it. `RowSelect()` is a deprecated no-op. A row noun
   binding one of the keys answers first. The movement keys are motions
   (off the footer). Story: `tables/cell-motion.json`,
   `tables/column-count.json`, `tables/column-resize.json`,
+  `tables/fit-column.json`, `tables/fit-columns.json`,
+  `tables/fit-follows-cursor.json`,
   `tables/visual-apply.json` (a row-select table),
   `tables/unfocused-cell-dimmed.json`, `tables/row-select.json`,
   `catalog/groups-table-h.json`; tests `TestCell*`, `TestColumnWidths*`,
-  `TestVisual*`.
+  `TestVisual*`, `TestFit*`.
 - **R5.11** `h`/`l` scroll, then move the focus: the horizontal twin of
   R3.4. On a row-select table `l` scrolls the view one column right until
   the last column shows and `h` one column left until the start; on a
