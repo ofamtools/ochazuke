@@ -26,6 +26,7 @@ const (
 )
 
 func init() {
+	ochazuke.ReserveFrameworkNouns(DocNoun, TaskNoun, LineNoun, NoteNoun, EditNoun, ViewNoun)
 	ochazuke.RegisterTextViewer(ochazuke.TextFormatMarkdown, OpenView)
 	ochazuke.RegisterTextViewer(ochazuke.TextFormatPreformatted, OpenView)
 }

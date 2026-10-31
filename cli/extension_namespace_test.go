@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"io"
+	"strings"
 	"testing"
 
 	"ofam.dev/ochazuke"
@@ -28,6 +29,42 @@ func TestExtensionNamespace(t *testing.T) {
 		if got, err := ExtensionNamespace(bin); err == nil {
 			t.Errorf("ExtensionNamespace(%q) = %q, want an error", bin, got)
 		}
+	}
+}
+
+func TestExtensionNamespaceRefusesLazyFrameworkNamesBeforeUse(t *testing.T) {
+	r := ochazuke.NewRuntime()
+	r.Config().Disable()
+	for _, noun := range []string{
+		CommandNoun, GroupNoun, "ochazuke.grid", "ochazuke.selection",
+		markdown.DocNoun, markdown.TaskNoun, markdown.LineNoun,
+		markdown.NoteNoun, markdown.EditNoun, markdown.ViewNoun,
+	} {
+		if r.Noun(noun) != nil {
+			t.Fatalf("%s is already registered; test must check before first use", noun)
+		}
+		short := strings.TrimPrefix(noun, ochazuke.FrameworkNamespace+".")
+		if got, err := ExtensionNamespace("o-" + short); err == nil {
+			t.Errorf("lazy framework noun %s is accepted as %q before first use", noun, got)
+		}
+	}
+}
+
+func TestExtensionNamespaceRefusesFrameworkReservationAfterCache(t *testing.T) {
+	// Build the eager-name cache before a new lazy constructor is declared.
+	if _, err := ExtensionNamespace("o-settings"); err == nil {
+		t.Fatal("settings is accepted")
+	}
+	const noun = "ochazuke.lazy-namespace-test"
+	ochazuke.ReserveFrameworkNouns(noun)
+	ochazuke.ReserveFrameworkNouns(noun) // declarations are idempotent
+	r := ochazuke.NewRuntime()
+	r.Config().Disable()
+	if r.Noun(noun) != nil {
+		t.Fatal("reservation registered a runtime noun")
+	}
+	if got, err := ExtensionNamespace("o-lazy-namespace-test"); err == nil {
+		t.Fatalf("reserved lazy noun is accepted as %q after cache initialization", got)
 	}
 }
 

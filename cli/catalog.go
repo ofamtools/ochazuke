@@ -493,7 +493,7 @@ func ExtensionNamespace(bin string) (string, error) {
 		return "", fmt.Errorf("extension %q: namespace %q is not a noun word", bin, name)
 	case name == ochazuke.FrameworkNamespace || name == ochazuke.AppNoun:
 		return "", fmt.Errorf("extension %q: namespace %q is reserved", bin, name)
-	case frameworkShortNames()[name]:
+	case frameworkShortNames()[name] || ochazuke.FrameworkNounReserved(ochazuke.Namespaced(ochazuke.FrameworkNamespace, name)):
 		return "", fmt.Errorf("extension %q: namespace %q is the short name of the framework noun %s", bin, name, ochazuke.Namespaced(ochazuke.FrameworkNamespace, name))
 	}
 	return name, nil
@@ -501,10 +501,16 @@ func ExtensionNamespace(bin string) (string, error) {
 
 var extensionWord = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 
-// frameworkShortNames are the aliases of every framework noun: the ones a
-// bare runtime and Model register, and those of the framework packages a
-// host may add (cli's commands and page groups, grid, markdown), which
-// TestExtensionNamespaceRefusesFrameworkNames keeps in step.
+// Reserve optional framework packages' established names even in a host that
+// does not link them. Linked packages reserve their lazy nouns at init too;
+// ExtensionNamespace reads those reservations on every call, outside the
+// cached runtime aliases, so a later reservation takes effect immediately.
+func init() {
+	ochazuke.ReserveFrameworkNouns(CommandNoun, GroupNoun, "ochazuke.grid", "ochazuke.selection", "ochazuke.markdown", "ochazuke.markdown-task", "ochazuke.markdown-line", "ochazuke.markdown-note", "ochazuke.markdown-edit")
+}
+
+// frameworkShortNames are the aliases a bare runtime, Model and Picker
+// register. Lazy framework constructors reserve their names separately.
 var frameworkShortNames = sync.OnceValue(func() map[string]bool {
 	r := ochazuke.NewRuntime()
 	r.Config().Disable()
@@ -513,9 +519,6 @@ var frameworkShortNames = sync.OnceValue(func() map[string]bool {
 	names := map[string]bool{}
 	for _, a := range r.Aliases() {
 		names[a.Alias] = true
-	}
-	for _, noun := range []string{CommandNoun, GroupNoun, "ochazuke.grid", "ochazuke.selection", "ochazuke.markdown", "ochazuke.markdown-task", "ochazuke.markdown-line", "ochazuke.markdown-note", "ochazuke.markdown-edit"} {
-		names[strings.TrimPrefix(noun, ochazuke.FrameworkNamespace+".")] = true
 	}
 	return names
 })

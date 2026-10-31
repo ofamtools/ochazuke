@@ -5,6 +5,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 )
 
 // FrameworkNamespace is the namespace of the framework's own nouns: every
@@ -18,6 +19,30 @@ const FrameworkNamespace = "ochazuke"
 // AppNoun is the noun of the application as a whole (app.quit). It is
 // never namespaced.
 const AppNoun = "app"
+
+var reservedFrameworkNouns sync.Map // canonical noun names, declared before use
+
+// ReserveFrameworkNouns reserves canonical framework noun names for the
+// process without registering nouns, verbs or aliases in a runtime. Packages
+// with lazy constructors call this during init so an extension cannot claim
+// their short names before the first instance opens. Repeated calls are safe.
+// Each name must be ochazuke.<word>, as for a framework short-name alias.
+func ReserveFrameworkNouns(names ...string) {
+	for _, name := range names {
+		short, ok := strings.CutPrefix(name, FrameworkNamespace+".")
+		if !ok || short == "" || strings.Contains(short, ".") {
+			panic(fmt.Sprintf("invalid framework noun reservation %q", name))
+		}
+		reservedFrameworkNouns.Store(name, struct{}{})
+	}
+}
+
+// FrameworkNounReserved reports whether a canonical framework noun name was
+// reserved with ReserveFrameworkNouns, independently of runtime registration.
+func FrameworkNounReserved(name string) bool {
+	_, ok := reservedFrameworkNouns.Load(name)
+	return ok
+}
 
 // legacyNamespace is the framework namespace of v0.16.0: app.<noun> is
 // read as ochazuke.<noun> for one release (legacyNoun).

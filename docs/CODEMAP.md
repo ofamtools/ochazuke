@@ -582,11 +582,11 @@ Root package `ochazuke` is flat: 156 source files, 175 test files. Each entry li
 
 ### namespace.go
 
-- lines: 575 · tests: namespace_test.go
-- purpose: SplitKey splits an operation key on its last dot: the noun before it (a noun may be dotted: ochazuke.settings, ai.skills) and the verb after it.
+- lines: 600 · tests: namespace_test.go
+- purpose: ReserveFrameworkNouns reserves canonical framework noun names for the process without registering nouns, verbs or aliases in a runtime.
 - types: NounAlias
 - methods: NounAlias(2), Runtime(28)
-- funcs: SplitKey, CutKey, Namespaced
+- funcs: ReserveFrameworkNouns, FrameworkNounReserved, SplitKey, CutKey, Namespaced
 - leans on: runtime.go(34), action_names.go(29), noun.go(20), actions.go(3)
 
 ### noun.go
@@ -1231,7 +1231,7 @@ Importable package `cli`: 38 source files, 36 test files.
 
 ### cli/catalog.go
 
-- lines: 521
+- lines: 524
 - purpose: CatalogDoc is the catalog answer: what a runtime registers, grouped by noun, in the runtime's own JSON shapes (ochazuke.Parameter and ochazuke.Binding unchan...
 - types: CatalogDoc, CatalogNoun, CatalogVerb
 - methods: CatalogDoc(5), CatalogNoun(1)
@@ -1908,11 +1908,11 @@ Importable package `markdown`: 15 source files, 11 test files.
 
 ### markdown/view.go
 
-- lines: 232 · tests: view_test.go
+- lines: 233 · tests: view_test.go
 - purpose: viewer is the viewer modal's component: what it shows and the Doc that draws it.
 - methods: viewer(4)
 - funcs: OpenView, Viewer, Preformatted
-- leans on: render.go(6), doc.go(5), edit.go(2), elements.go(1)
+- leans on: doc.go(10), render.go(6), edit.go(2), elements.go(1)
 
 ## Package markdown/cliview
 
