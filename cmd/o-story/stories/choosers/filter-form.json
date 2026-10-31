@@ -1,0 +1,112 @@
+{
+  "name": "filter form over a chooser: ctrl+f opens it, chips and ! filter the chooser's rows, esc goes back to the chooser",
+  "area": "choosers",
+  "width": 100,
+  "height": 24,
+  "chrome": "none",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "nouns": [
+      {
+        "noun": "note",
+        "props": [
+          {
+            "name": "by"
+          },
+          {
+            "name": "status"
+          }
+        ]
+      }
+    ],
+    "chooser": {
+      "kind": "notes",
+      "title": "Notes",
+      "rows": [
+        {
+          "id": "n1",
+          "label": "Owner alpha",
+          "noun": "note",
+          "props": {
+            "by": "owner",
+            "status": "todo"
+          }
+        },
+        {
+          "id": "n2",
+          "label": "Agent beta",
+          "noun": "note",
+          "props": {
+            "by": "agent",
+            "status": "todo"
+          }
+        },
+        {
+          "id": "n3",
+          "label": "Owner gamma",
+          "noun": "note",
+          "props": {
+            "by": "owner",
+            "status": "done"
+          }
+        },
+        {
+          "id": "n4",
+          "label": "Agent delta",
+          "noun": "note",
+          "props": {
+            "by": "agent",
+            "status": "done"
+          }
+        }
+      ]
+    }
+  },
+  "script": [
+    "ctrl+f",
+    "space",
+    "!",
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "modal": "list-filter-form",
+      "contains": [
+        "by \u00b7 is",
+        "\u25cb agent",
+        "\u25cb owner",
+        "status \u00b7 is"
+      ]
+    },
+    {
+      "after": 2,
+      "contains": [
+        "\u25cf agent"
+      ]
+    },
+    {
+      "after": 3,
+      "contains": [
+        "by \u00b7 not"
+      ]
+    },
+    {
+      "modal": "notes",
+      "contains": [
+        "[by != agent]",
+        "Owner alpha",
+        "Owner gamma"
+      ],
+      "lacks": [
+        "Agent beta",
+        "Agent delta"
+      ]
+    }
+  ]
+}

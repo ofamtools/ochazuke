@@ -802,9 +802,42 @@ that filtered view; clearing restores the original collapse state. `/` alone
 filters only the rows exposed by the current folds and does not keep ancestors.
 The filter does not remove list rows or their marks.
 
-`z /` runs `ochazuke.list.filter-prop`: pick a prop, then one of the visible
-rows' distinct values (at most 500; a list prop offers its items and adds a
-`contains` condition). The same verb takes `{prop, op, value}` directly.
+`z /` runs `ochazuke.list.filter-prop`, which opens the **filter form** over
+the list, tree or chooser (setting `list.filter-form`, ochazuke › Search,
+default true; false keeps the older chain: pick a prop, then one of the
+visible rows' distinct values, at most 500). The form is a record editor with
+a field per filterable prop, each shown as `name · is` or `name · not`:
+
+- a finite field (a declared `Enum`, a boolean, a list prop, or a text prop
+  whose values repeat across the rows) shows every value of the rows (and the
+  enum) as chips on the indented lines under it, wrapped across as many lines
+  as needed, in the `chip` tone (`chip.focused` under the cursor). `space`
+  toggles a chip: one chip makes `=`, several `in`; a list prop's chips make
+  a `contains` each (the row holds them all);
+- a finite field with more values than `list.filter-chip-max` (default 24)
+  is a text input of comma-separated values that completes them as you type
+  (`ctrl+n` / `ctrl+p` walk the suggestions, `enter` or `tab` takes one);
+- any other prop (free text, numbers, dates, durations) is a text input:
+  `contains` on text, `=` on the rest; a value of the wrong type is not
+  applied and the label says why.
+
+`!` turns the focused field over (`form.invert`): `=` becomes `!=`, `in`
+`not-in`, `contains` `not-contains`. Changes apply as they are made (typing
+after its pause, or on `esc`), `u` and `ctrl+r` undo and redo them, `C`
+(`form.clear`) empties the form, and `esc` leaves it with the conditions
+kept. On chips `h`/`l` walk a line, `j`/`k` move between lines and spill to
+the field above or below, and `form.chip-edge` takes the four edges (`0`
+first-col, `$` last-col, `g g` first, `G` last). The form opens on the
+active conditions; one a field cannot show (`title in [...]`, two conditions
+of different signs on one prop) is kept as it is. Saved filters round-trip:
+apply one, open the form, change it, save it again.
+
+The same verb takes `{prop, op, value}` directly, and `not: true` turns that
+condition over. The operators are `=`, `!=`, `contains`, `not-contains`, `in`
+and `not-in` (`FilterOps`): each negated operator is its test turned over
+(`NegateFilterOp`, `PropFilter.Negate`), and `in` / `not-in` take an array
+(`--op not-in --value '["done","cancelled"]'`). Saved filters store the op as
+written, so older `list.filters` rows load unchanged.
 `z !` (`filter-prop-clear`) picks one active condition to remove, or takes
 `prop` (the first condition on that prop) or a 1-based `index`. `z C`
 (`filter-props-clear`) clears all prop conditions, keeping `/` text.
@@ -825,7 +858,7 @@ saved-filter pickers open over the chooser and return to its query.
 
 | Chooser key | Action |
 |---|---|
-| `ctrl+f` | Pick a property, then a visible value. With active filters, cycle to the next saved filter when cycling is enabled and saved filters exist; otherwise the picker offers **Clear prop filters**. |
+| `ctrl+f` | Open the filter form over the chooser (with `list.filter-form` off: pick a property, then a visible value). With active filters, cycle to the next saved filter when cycling is enabled and saved filters exist; otherwise the picker offers **Clear prop filters**. |
 | `alt+]` / `alt+[` | Cycle saved filters forward / backward. |
 | `alt+backspace` | Clear all prop conditions and the saved name, keeping search text. |
 
@@ -839,7 +872,10 @@ true); `ChooserSpec.NoPropFilters` opts out one chooser. `list.filter-strip`
 and `list.filter-cycle` apply too.
 
 Compared with Vim: Vim's `:filter` filters command output with a regexp;
-there is no built-in saved typed-prop cycle. Here props filter rows and
+there is no built-in saved typed-prop cycle. Inverting a field is Vim's
+`:filter!` and `:g!` / `:v` (keep what does not match), applied per field
+rather than per command; Vim has no multi-value picker, the chips are
+closer to fzf's `--multi` marks. Here props filter rows and
 combine with the chooser's text search. Chooser filter commands use
 modifier keys so insert-mode letters remain search text.
 

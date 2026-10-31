@@ -1,4 +1,5 @@
 {
+  "values": {"list.filter-form": false},
   "area": "choosers",
   "width": 100,
   "height": 18,
