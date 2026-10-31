@@ -480,6 +480,9 @@ func (l *List) state() map[string]any {
 // even at zero height, and reports its selected row's line (PlacedAt) so
 // the page scrolls to keep that row on screen.
 func (l *List) View(width, height int) string {
+	if t := l.tree(); t != nil && t.guidesShown != t.guidesEnabled() {
+		t.guideRows()
+	}
 	l.r.Placed(l.id)
 	if width <= 0 || height <= 0 {
 		return ""

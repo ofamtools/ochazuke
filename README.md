@@ -776,6 +776,14 @@ Compared with Vim (verified in Neovim 0.12.3):
 Stories: `lists/filter-prop-picker`, `lists/filter-prop-clear`,
 `lists/filter-saved-cycle`, `tree/filter-prop-ancestors`.
 
+### Tree guide lines
+
+`AddTree(..., Guides())` draws branch lines in the indent area: `├─ ` before a child with a later sibling, `└─ ` before the last child, and `│  ` through ancestors whose branches continue. Trees default to plain indentation. The `tree.guides` setting is `app` by default (each tree keeps its app choice); `off` hides guides everywhere. Folding, zoom and filters use the kept branches, so a hidden sibling leaves no dangling line. The `tree.guide` tone is muted and dim in every built-in theme; label tones and fold markers keep their own styling.
+
+Story tree specs take `"guides": true`. Catalog data pages can declare a hierarchical list with `"tree": true, "guides": true`; its source rows carry `"parent": "PARENT_ID"` (empty for roots, parents before children). Lists without `tree` keep their existing rendering. Stories: `tree/guides`, `tree/guides-filtered`, `tree/guides-folded`, `tree/guides-off`.
+
+Compared with Vim/tools: Vim's `:help 'foldcolumn'` draws fold state in a separate gutter; these optional guides connect parent/child rows in the tree's indentation, like a file-tree tool, without changing motions or folding keys.
+
 ### Tree h and l at an edge
 
 On a tree `h` (`outline.collapse`) folds an open node, steps a child onto its parent and steps a zoom out past its top; `l` (`outline.expand`) opens a closed node or steps onto an open one's first child. Where `h` has nothing to do (a closed or childless top-level node outside a zoom) the verb is unavailable (guard `outline-collapses`: no hint, no palette entry), so the key falls through to the next row: on a tree with columns the table rows of R5.11 answer, scrolling the columns back to the start and then moving the focus to the previous stop, as on a table. The setting `tree.spill` (ochazuke › Lists) says which keys fall through that way: `left` (default, `h` only), `both` (`l` on a leaf also scrolls the columns, then moves to the next stop) or `off` (neither; a tree's list never takes the table's `h`/`l` rows, as before). A tree without columns has no such rows, like a plain list, so `h` there reaches the page's and the app's rows. Stories `tree/h-spills-left`, `tree/h-spill-off`, `tree/l-spill-both`.

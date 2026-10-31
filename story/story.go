@@ -234,6 +234,7 @@ type ListSpec struct {
 // the session logs (the writes expect); FailWrites makes the first N writes
 // fail.
 type TreeSpec struct {
+	Guides     bool                `json:"guides,omitempty"` // branch lines (ochazuke.Guides)
 	ID         string              `json:"id"`
 	Nodes      []ochazuke.TreeNode `json:"nodes,omitempty"`
 	Editable   bool                `json:"editable,omitempty"`

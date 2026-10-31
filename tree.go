@@ -164,7 +164,12 @@ type Tree struct {
 	rowCache        map[string]*filterRow
 	filterCollapsed map[string]bool // folds explicitly changed while prop filters show context
 	collapsed       map[string]bool
-	zoom            string // the node the view is zoomed on (tree_zoom.go); "" every level
+	// Guides is the app's choice of branch lines (also set by Guides()).
+	// tree.guides=off overrides it.
+	Guides      bool
+	guidesShown bool
+	guideLast   map[string]string // last kept child of each parent
+	zoom        string            // the node the view is zoomed on (tree_zoom.go); "" every level
 
 	// OnChange makes the tree editable and receives each change as it is
 	// made; an error keeps the change on screen, marks the row and retries
@@ -198,6 +203,7 @@ type Tree struct {
 }
 
 // AddTree registers a tree under Parent (default app) with its nodes.
+// Guides() draws branch lines; trees without it keep plain indentation.
 // Columns(...) makes its rows a table; NoSpill keeps motions inside it;
 // NoMarks makes it a read-only view whose rows take no marks;
 // ClearFilterOnEnter makes enter in its filter line choose the match and
@@ -213,7 +219,7 @@ func (r *Runtime) AddTree(id string, nodes []TreeNode, opts ...InstanceOption) (
 	if r.Instances[spec.parent] == nil {
 		return nil, fmt.Errorf("unknown parent %q", spec.parent)
 	}
-	t := &Tree{r: r, id: id, collapsed: map[string]bool{}, failed: map[string]bool{}, RowNoun: TreeRowNoun, Debounce: DefaultTreeDebounce}
+	t := &Tree{r: r, id: id, collapsed: map[string]bool{}, failed: map[string]bool{}, RowNoun: TreeRowNoun, Debounce: DefaultTreeDebounce, Guides: spec.guides}
 	r.Instance(id, Parent(spec.parent), Kind("ochazuke.outline"), FocusOnClose(spec.closeFocus))
 	r.Instances[id].Component = t
 	listOpts := []InstanceOption{Parent(id)}
@@ -502,7 +508,7 @@ func (t *Tree) prefix(n TreeNode) string {
 	if t.failed[n.ID] {
 		marker = "! "
 	}
-	return strings.Repeat("  ", t.shownDepth(n.ID)) + marker
+	return t.indent(n.ID) + marker
 }
 
 // shiftTones moves a node's cell-0 tones past the row's indent and fold
@@ -620,6 +626,13 @@ func (t *Tree) rows(width, height int) Block {
 		return Text(text)
 	}
 	prefix := t.prefix(t.nodes[i])
+	if t.guidesEnabled() {
+		indent := t.indent(t.nodes[i].ID)
+		if styles := t.r.Settings().page.styles; styles != nil {
+			prefix = styles().Tone(ToneTreeGuide).Render(indent) + strings.TrimPrefix(prefix, indent)
+		}
+		prefix = ansi.Truncate(prefix, max(0, width-1), "")
+	}
 	pw := ansi.StringWidth(prefix)
 	block := InputBlock(t.input, max(1, width-pw), 1)
 	rows[line] = prefix + block.Text

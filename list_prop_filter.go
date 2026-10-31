@@ -60,7 +60,7 @@ func (l *List) cacheRows() {
 }
 
 func (l *List) cachedRow(item ListItem) *filterRow {
-	if t := l.tree(); t != nil && len(l.propFilters) > 0 {
+	if t := l.tree(); t != nil {
 		if row := t.rowCache[item.ID]; row != nil {
 			return row
 		}

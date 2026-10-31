@@ -70,6 +70,7 @@ type instanceSpec struct {
 	parent, noun, focus, closeFocus string
 	closeOnDetach, noSpill, noMarks bool
 	clearFilterOnEnter              bool
+	guides                          bool // Guides: draw a tree's branch lines
 	cellSelect                      bool
 	spillToSelection                bool   // SpillToSelection: a spill into the list lands on its selected row
 	defaultHidden                   bool   // DefaultHidden: a page out of the tabs until shown
@@ -127,6 +128,11 @@ func SpillToSelection() InstanceOption { return func(s *instanceSpec) { s.spillT
 // guard, list-marks, is false; the footer and ? help leave it out) and
 // list.mark refuses. list.apply still runs on the selected row.
 func NoMarks() InstanceOption { return func(s *instanceSpec) { s.noMarks = true } }
+
+// Guides draws branch lines in a tree's indent area. Trees default to no
+// guides; tree.guides=off disables them even for a tree with this option.
+// Only AddTree reads it.
+func Guides() InstanceOption { return func(s *instanceSpec) { s.guides = true } }
 
 // ClearFilterOnEnter makes enter in a list's (or a tree's list's) filter
 // line choose the selected match: list.filter-choose clears the filter

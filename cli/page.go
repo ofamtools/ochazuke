@@ -44,8 +44,12 @@ type CatalogPage struct {
 	Widgets []CatalogWidget `json:"widgets,omitempty"`
 }
 
-// CatalogList is one list of a data page.
+// CatalogList is one list of a data page. Tree draws hierarchical rows
+// (Row.Parent, parents before children); Guides opts that tree into branch
+// lines. Both default false, preserving ordinary lists.
 type CatalogList struct {
+	Tree   bool   `json:"tree,omitempty"`
+	Guides bool   `json:"guides,omitempty"`
 	ID     string `json:"id"`               // the list's instance id
 	Noun   string `json:"noun"`             // the noun whose rows it shows (a state answer's Row.Noun)
 	Source string `json:"source,omitempty"` // NOUN.VERB answering the rows; default the noun's RowSource
@@ -232,6 +236,7 @@ type pageList struct {
 	rowIDs      []string // the row instances SetRows made, keys of PageView.rows
 	hash        string   // the rows' content hash (ListHash) from a delta answer, "" unknown
 	list        *ochazuke.List
+	tree        *ochazuke.Tree
 	err         string
 	loaded      bool
 	loading     bool
@@ -302,11 +307,22 @@ func MountPage(m *ochazuke.Model, doc CatalogDoc, p CatalogPage, cfg PageConfig)
 		if pl.verb != "" {
 			opts = append(opts, ochazuke.Columns(v.columns(pl)...))
 		}
-		list, err := r.AddList(l.ID, nil, opts...)
-		if err != nil {
-			return nil, err
+		if l.Tree {
+			if l.Guides {
+				opts = append(opts, ochazuke.Guides())
+			}
+			tree, err := r.AddTree(l.ID, nil, opts...)
+			if err != nil {
+				return nil, err
+			}
+			pl.tree, pl.list = tree, tree.List()
+		} else {
+			list, err := r.AddList(l.ID, nil, opts...)
+			if err != nil {
+				return nil, err
+			}
+			pl.list = list
 		}
-		pl.list = list
 		if pl.verb == "" {
 			if err := v.listVerbs(pl); err != nil {
 				return nil, err
@@ -575,7 +591,21 @@ func (v *PageView) setRows(pl *pageList, rows []Row, hashes []string) error {
 	if hashes != nil {
 		pl.hash = ListHash(records)
 	}
-	if err := pl.list.SetItems(items); err != nil {
+	var err error
+	if pl.tree != nil {
+		nodes := make([]ochazuke.TreeNode, len(items))
+		for i, item := range items {
+			parent := filed[i].Parent
+			if parent != "" {
+				parent = pl.spec.ID + "/" + parent
+			}
+			nodes[i] = ochazuke.TreeNode{ID: item.ID, Parent: parent, Label: item.Label, Noun: item.Noun, Data: item.Data, Props: item.Props, Cells: item.Cells, Tones: item.Tones}
+		}
+		err = pl.tree.SetNodes(nodes)
+	} else {
+		err = pl.list.SetItems(items)
+	}
+	if err != nil {
 		pl.hash = ""
 		return err
 	}
@@ -763,7 +793,7 @@ var (
 	rowIDFields    = []string{"id", "ID"}
 	rowLabelFields = []string{"label", "Label", "name", "Name", "title", "Title"}
 	// rowFields are a Row's own fields, left out of a record without data.
-	rowFields = []string{"noun", "id", "label", "cells", "tones"}
+	rowFields = []string{"noun", "id", "parent", "label", "cells", "tones"}
 )
 
 func rowOf(noun string, value any) Row {
@@ -780,7 +810,7 @@ func rowOf(noun string, value any) Row {
 		}
 		return ""
 	}
-	row := Row{Noun: noun, ID: pick(rowIDFields), Label: pick(rowLabelFields)}
+	row := Row{Noun: noun, ID: pick(rowIDFields), Parent: pick([]string{"parent"}), Label: pick(rowLabelFields)}
 	if n, ok := obj["noun"].(string); ok && n != "" {
 		row.Noun = n
 	}
@@ -1022,7 +1052,12 @@ func (v *PageView) listPanel(layout ochazuke.Layout, pl *pageList, width, height
 		}
 	}
 	rows := max(0, ch-len(notes))
-	text := pl.list.View(cw, rows)
+	var text string
+	if pl.tree != nil {
+		text = pl.tree.View(cw, rows)
+	} else {
+		text = pl.list.View(cw, rows)
+	}
 	if pl.list.Len() == 0 && rows > 0 && !pl.list.Filtering() {
 		note := "no rows"
 		if pl.loading && !pl.loaded {

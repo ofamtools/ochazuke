@@ -852,6 +852,9 @@ func (ss *session) addPage(p *Page) error {
 	}
 	for _, ts := range p.Trees {
 		topts := []ochazuke.InstanceOption{ochazuke.Parent(p.ID)}
+		if ts.Guides {
+			topts = append(topts, ochazuke.Guides())
+		}
 		if len(ts.Columns) > 0 {
 			topts = append(topts, ochazuke.Columns(ts.Columns...))
 		}

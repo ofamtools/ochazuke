@@ -201,12 +201,13 @@ type anyLine struct {
 	State *int   `json:"state"`
 	Cache string `json:"cache"`
 	StateList
-	Noun  string              `json:"noun"`
-	ID    string              `json:"id"`
-	Label string              `json:"label"`
-	Data  any                 `json:"data"`
-	Cells []string            `json:"cells"`
-	Tones []ochazuke.ToneSpan `json:"tones"`
+	Noun   string              `json:"noun"`
+	ID     string              `json:"id"`
+	Parent string              `json:"parent"`
+	Label  string              `json:"label"`
+	Data   any                 `json:"data"`
+	Cells  []string            `json:"cells"`
+	Tones  []ochazuke.ToneSpan `json:"tones"`
 }
 
 // decodeStateLine reads one line. hashRows asks for a row's record hash
@@ -222,7 +223,7 @@ func decodeStateLine(line []byte, hashRows bool) (stateLine, bool) {
 	case l.List != "" && l.Noun == "":
 		return stateLine{list: &l.StateList}, true
 	case l.Noun != "" && l.ID != "":
-		out := stateLine{row: &Row{Noun: l.Noun, ID: l.ID, Label: l.Label, Data: l.Data, Cells: l.Cells, Tones: l.Tones}}
+		out := stateLine{row: &Row{Noun: l.Noun, ID: l.ID, Parent: l.Parent, Label: l.Label, Data: l.Data, Cells: l.Cells, Tones: l.Tones}}
 		if hashRows {
 			out.hash = RecordHash(line)
 		}

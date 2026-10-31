@@ -24,12 +24,14 @@ import (
 // colours (ochazuke.ToneSpan, ochazuke.ListItem.Tones); optional, and a
 // host that does not know them draws the cells plain.
 type Row struct {
-	Noun  string              `json:"noun"`
-	ID    string              `json:"id"`
-	Label string              `json:"label,omitempty"`
-	Data  any                 `json:"data,omitempty"`
-	Cells []string            `json:"cells,omitempty"`
-	Tones []ochazuke.ToneSpan `json:"tones,omitempty"`
+	// Parent is the parent row's ID in a catalog tree (empty for a root).
+	Parent string              `json:"parent,omitempty"`
+	Noun   string              `json:"noun"`
+	ID     string              `json:"id"`
+	Label  string              `json:"label,omitempty"`
+	Data   any                 `json:"data,omitempty"`
+	Cells  []string            `json:"cells,omitempty"`
+	Tones  []ochazuke.ToneSpan `json:"tones,omitempty"`
 }
 
 // Lines is a result the shell prints as JSON Lines: one compact JSON value

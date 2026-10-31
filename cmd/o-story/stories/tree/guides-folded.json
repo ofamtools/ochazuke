@@ -1,0 +1,63 @@
+{
+  "name": "tree guides-folded",
+  "width": 50,
+  "height": 14,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "trees": [
+      {
+        "id": "t",
+        "guides": true,
+        "nodes": [
+          {
+            "id": "root",
+            "label": "Root"
+          },
+          {
+            "id": "a",
+            "parent": "root",
+            "label": "Alpha"
+          },
+          {
+            "id": "a1",
+            "parent": "a",
+            "label": "Apple"
+          },
+          {
+            "id": "a2",
+            "parent": "a",
+            "label": "Apricot"
+          },
+          {
+            "id": "b",
+            "parent": "root",
+            "label": "Beta"
+          },
+          {
+            "id": "b1",
+            "parent": "b",
+            "label": "Berry"
+          }
+        ],
+        "collapsed": [
+          "a"
+        ]
+      }
+    ]
+  },
+  "area": "tree",
+  "expect": [
+    {
+      "contains": [
+        "\u251c\u2500 \u25b8 Alpha",
+        "\u2514\u2500 \u25be Beta",
+        "   \u2514\u2500   Berry"
+      ],
+      "lacks": [
+        "Apple",
+        "Apricot"
+      ]
+    }
+  ]
+}
