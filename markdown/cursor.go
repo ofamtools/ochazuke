@@ -10,7 +10,8 @@ import (
 
 func (d *Doc) itemCursor() bool { return d.r.Settings().String(CursorSetting) != "line" }
 
-// MoveCursor moves by the configured cursor unit. The underlying line rows
+// MoveCursor moves by the configured cursor unit, visiting inline links when
+// link stops are enabled in item mode. The underlying line rows
 // remain available to paging, scrolling and editing. A long element is read
 // half a window at a time before the cursor crosses its far edge (R3.14).
 func (d *Doc) MoveCursor(delta, count int) error {
@@ -37,12 +38,27 @@ func (d *Doc) MoveCursor(delta, count int) error {
 			return lineMove(dir, 1)
 		}
 		from := d.cursorLine()
+		if _, ok := d.FocusedLink(); ok && d.r.Settings().Bool(LinkStopsSetting) {
+			next := d.linkIndex + dir
+			if next >= 0 && next < len(d.links) && d.links[next].Element == e {
+				_ = d.selectLink(next, false)
+				continue
+			}
+		}
 		next := e + dir
 		for next >= 0 && next < len(d.elems) && (!d.drawn(next) || d.lay.spans[next][0] == d.lay.spans[e][0]) {
 			next += dir
 		}
 		if next >= 0 && next < len(d.elems) {
 			_ = d.SelectElement(next)
+			if dir < 0 && d.r.Settings().Bool(LinkStopsSetting) {
+				if i := d.firstLink(next); i >= 0 {
+					for i+1 < len(d.links) && d.links[i+1].Element == next {
+						i++
+					}
+					_ = d.selectLink(i, false)
+				}
+			}
 			d.halfPage(from)
 			continue
 		}
@@ -97,4 +113,34 @@ func (d *Doc) highlight(line string, width int, a ochazuke.Appearance) string {
 	}
 	plain += strings.Repeat(" ", max(0, width-ansi.StringWidth(plain)))
 	return paint(plain)
+}
+
+// highlightLink keeps the element's reverse selection and adds the theme's
+// accent and underline only to the focused inline link.
+func (d *Doc) highlightLink(line string, row, width int, a ochazuke.Appearance) string {
+	link, ok := d.FocusedLink()
+	if !ok {
+		return d.highlight(line, width, a)
+	}
+	out := d.highlight(line, width, a)
+	st := ochazuke.NewStyles(a).Accent.Underline(true).Reverse(true)
+	paint := func(text string) string {
+		out := st.Render(text)
+		if !d.list.Focused() {
+			out = ochazuke.NewStyles(a).Fade(d.r.Settings().Int(ochazuke.DimUnfocusedSetting)).Render(out)
+		}
+		return out
+	}
+	for _, run := range link.runs {
+		if run.line != row {
+			continue
+		}
+		start, end := min(run.start, width), min(run.end, width)
+		if end <= start {
+			continue
+		}
+		plain := ansi.Strip(out)
+		out = ansi.Cut(out, 0, start) + paint(ansi.Cut(plain, start, end)) + ansi.Cut(out, end, ansi.StringWidth(plain))
+	}
+	return out
 }

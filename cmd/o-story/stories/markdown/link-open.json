@@ -1,0 +1,29 @@
+{
+  "name": "markdown: link-open",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "# Links\n\nBefore [alpha](https://a.example) between [beta](https://b.example) after.\n\nTail.\n"
+    }
+  },
+  "script": [
+    "j",
+    "enter",
+    "g",
+    "x",
+    "y",
+    "l"
+  ],
+  "expect": [
+    {
+      "writes": [
+        "open https://a.example",
+        "open https://a.example"
+      ],
+      "register": "https://a.example",
+      "after": 6
+    }
+  ]
+}

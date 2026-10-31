@@ -1743,23 +1743,23 @@ Importable package `keytest`: 1 source files, 0 test files.
 
 ## Package markdown
 
-Importable package `markdown`: 13 source files, 9 test files.
+Importable package `markdown`: 14 source files, 10 test files.
 
 ### markdown/cursor.go
 
-- lines: 100 · tests: cursor_test.go
-- purpose: MoveCursor moves by the configured cursor unit.
-- methods: Doc(4)
-- leans on: doc.go(6), tasks.go(4)
+- lines: 146 · tests: cursor_test.go
+- purpose: MoveCursor moves by the configured cursor unit, visiting inline links when link stops are enabled in item mode.
+- methods: Doc(5)
+- leans on: doc.go(7), tasks.go(4), elements.go(2), links.go(2)
 
 ### markdown/doc.go
 
-- lines: 923 · tests: doc_test.go
+- lines: 976 · tests: doc_test.go
 - purpose: Source is where a Doc's Markdown lives: Load reads it as it is now and Save stores a new text.
 - types: Source, DebounceMsg, Doc
 - methods: Doc(45), refusal(2)
 - funcs: File, WriteFile, New, Of
-- leans on: tasks.go(20), elements.go(19), render.go(9), edit.go(3)
+- leans on: elements.go(23), tasks.go(20), render.go(9), edit.go(3)
 
 ### markdown/done.go
 
@@ -1799,6 +1799,14 @@ Importable package `markdown`: 13 source files, 9 test files.
 - methods: layout(1)
 - leans on: tasks.go(48), elements.go(9), table.go(8), render.go(2)
 
+### markdown/links.go
+
+- lines: 401 · tests: links_test.go
+- purpose: Link is a rendered link in a document element.
+- types: Link
+- methods: Doc(7)
+- leans on: doc.go(20), elements.go(13), tasks.go(4), tidy.go(4)
+
 ### markdown/notes.go
 
 - lines: 322
@@ -1818,10 +1826,10 @@ Importable package `markdown`: 13 source files, 9 test files.
 
 ### markdown/table.go
 
-- lines: 599 · tests: table_test.go
+- lines: 621 · tests: table_test.go
 - purpose: srcTable is one table cut out of a source.
 - methods: inline(4)
-- leans on: tidy.go(6), tasks.go(5), render.go(1)
+- leans on: tidy.go(6), tasks.go(5), links.go(3), render.go(1)
 
 ### markdown/tasks.go
 
@@ -1839,10 +1847,10 @@ Importable package `markdown`: 13 source files, 9 test files.
 
 ### markdown/verbs.go
 
-- lines: 285
+- lines: 296
 - purpose: Register defines the markdown nouns, their verbs and keys once per runtime (see Doc for the keys).
 - funcs: Register
-- leans on: doc.go(66), insert.go(14), elements.go(9), edit.go(7)
+- leans on: doc.go(71), insert.go(14), elements.go(9), edit.go(7)
 
 ## Package markdown/cliview
 
@@ -1898,7 +1906,7 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/build.go
 
-- lines: 1925
+- lines: 1928
 - purpose: Session is one built story: the runtime, the model and the demo state the verbs act on (fake jobs and panes).
 - types: Session, Options
 - methods: Session(34), datedView(1), storyCommands(3)
@@ -2344,6 +2352,7 @@ Exported type -> file.
 - markdown.DebounceMsg -> markdown/doc.go
 - markdown.Doc -> markdown/doc.go
 - markdown.Element -> markdown/elements.go
+- markdown.Link -> markdown/links.go
 - markdown.Note -> markdown/notes.go
 - markdown.Option -> markdown/render.go
 - markdown.Source -> markdown/doc.go

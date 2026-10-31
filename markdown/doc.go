@@ -119,8 +119,10 @@ type DebounceMsg struct {
 // The document is a sequence of elements (Elements): headings,
 // paragraphs, list items, table rows, code blocks, quotes, rules and notes.
 // The Doc's list child (id/lines, added NoMarks) has a row per drawn line.
-// By default j and k move by element and highlight every line it covers;
-// markdown.cursor=line restores drawn-line movement. gg/G and paging
+// By default j and k visit elements and their inline links, highlighting
+// every line of the containing element. markdown.link-stops=false restores
+// element-only movement. markdown.cursor=line restores drawn-line movement.
+// gg/G and paging
 // remain line-wise list motions. Counts and spills work in either mode.
 // ctrl+e/y scroll within long elements without leaving item mode.
 // }/{ move by element, ]]/[[ to the next element of the same kind, ] or
@@ -145,9 +147,16 @@ type Doc struct {
 	text  string
 	tasks []Task
 	elems []Element
-	opts  options // how View renders (New's options)
-	undo  []step
-	redo  []step
+
+	links                            []Link
+	linkIndex, linkElement, linkLine int
+	linkExplicit                     bool
+	// OpenURL opens a focused link. Nil uses the system default handler.
+	OpenURL func(string) error
+
+	opts options // how View renders (New's options)
+	undo []step
+	redo []step
 	// offset is the first line View shows when it windows the document,
 	// visible how many lines the last View showed then (0 unwindowed).
 	offset  int
@@ -208,7 +217,7 @@ func New(r *ochazuke.Runtime, id, parent string, src Source, opts ...Option) (*D
 		return nil, fmt.Errorf("load markdown: %w", err)
 	}
 	Register(r)
-	d := &Doc{r: r, id: id, src: src, opts: optionsOf(opts), width: 80, style: StyleDark, folds: map[string]bool{}, Debounce: DefaultDebounce}
+	d := &Doc{linkIndex: -1, linkElement: -1, linkLine: -1, r: r, id: id, src: src, opts: optionsOf(opts), width: 80, style: StyleDark, folds: map[string]bool{}, Debounce: DefaultDebounce}
 	r.Instance(id, ochazuke.Parent(parent), ochazuke.Kind(DocNoun)).Component = d
 	list, err := r.AddList(d.ListID(), nil, ochazuke.Parent(id), ochazuke.NoMarks())
 	if err != nil {
@@ -340,8 +349,20 @@ func (d *Doc) Select(i int) error {
 	return fmt.Errorf("task %d is not drawn", i)
 }
 
-// SelectElement puts the cursor on the first line of element e.
-func (d *Doc) SelectElement(e int) error { return d.selectAt(e, 0) }
+// SelectElement puts the cursor on element e, focusing its first link
+// when link stops are enabled, otherwise its first line.
+func (d *Doc) SelectElement(e int) error {
+	if err := d.selectAt(e, 0); err != nil {
+		return err
+	}
+	d.linkIndex, d.linkElement, d.linkLine, d.linkExplicit = -1, e, d.cursorLine(), false
+	if d.r.Settings().Bool(LinkStopsSetting) {
+		if i := d.firstLink(e); i >= 0 {
+			return d.selectLink(i, false)
+		}
+	}
+	return nil
+}
 
 func (d *Doc) selectAt(e, off int) error {
 	if e < 0 || e >= len(d.elems) || e >= len(d.lay.spans) || d.lay.spans[e][0] < 0 {
@@ -417,9 +438,20 @@ func (d *Doc) foldKey(item int) string {
 // relayout draws the rows at the Doc's width and style and puts the
 // cursor on element e at line off within it.
 func (d *Doc) relayout(e, off int) error {
+	old, keep := d.FocusedLink()
+	occurrence := 0
+	if keep {
+		for i := 0; i < d.linkIndex; i++ {
+			l := d.links[i]
+			if l.Element == old.Element && l.URL == old.URL && l.Text == old.Text {
+				occurrence++
+			}
+		}
+	}
 	d.dirty = false
 	hidden, count := d.hiddenElements()
 	d.lay = layoutOf(d.text, d.elems, d.width, d.style, d.opts, d.folded, hidden)
+	d.links = layoutLinks(d.text, d.elems, d.lay)
 	d.doneHidden = count
 	if len(d.lay.rows) == 0 && (d.Editable() || count > 0) {
 		// An empty document still has a line to stand on.
@@ -460,6 +492,17 @@ func (d *Doc) relayout(e, off int) error {
 			break
 		}
 		off = 0
+	}
+	if keep {
+		for i, l := range d.links {
+			if l.Element == old.Element && l.URL == old.URL && l.Text == old.Text {
+				if occurrence == 0 {
+					_ = d.selectLink(i, d.linkExplicit)
+					break
+				}
+				occurrence--
+			}
+		}
 	}
 	return nil
 }
@@ -728,13 +771,17 @@ func (d *Doc) Block(width, height int, a ochazuke.Appearance) ochazuke.Block {
 		}
 		lines = append(lines, lay.lines[min(len(lay.lines), s.top+s.count):]...)
 	} else {
+		if link, ok := d.FocusedLink(); ok {
+			_ = d.selectLink(d.linkIndex, d.linkExplicit)
+			focus = link.Line
+		}
 		lines = append([]string(nil), d.lay.lines...)
 		if item, ok := d.list.Selected(); ok {
 			if line, _ := item.Data.(int); line >= 0 && line < len(lines) {
 				focus = line
 				top, bottom := d.cursorSpan(line)
 				for l := top; l <= bottom; l++ {
-					lines[l] = d.highlight(lines[l], width, a)
+					lines[l] = d.highlightLink(lines[l], l, width, a)
 				}
 			}
 		}
@@ -850,6 +897,9 @@ func (d *Doc) cursorLine() int {
 // on the row nearest the target, until the target shows (a long code
 // block is read half a window per }).
 func (d *Doc) halfPage(from int) {
+	if _, ok := d.FocusedLink(); ok {
+		return
+	}
 	to := d.cursorLine()
 	if d.visible <= 0 || d.edit != nil || from < 0 || to < 0 || to == from {
 		return
@@ -915,6 +965,9 @@ func (d *Doc) Snapshot() map[string]any {
 	selected := d.selected()
 	e, off := d.cursor()
 	out := map[string]any{"id": d.id, "tasks": d.Tasks(), "selected": selected, "undo": len(d.undo), "redo": len(d.redo), "element": e, "line": off, "editing": d.edit != nil, "done": d.Done(), "doneHidden": d.doneHidden}
+	if link, ok := d.FocusedLink(); ok {
+		out["link"] = link
+	}
 	if e >= 0 {
 		out["kind"] = d.elems[e].Kind
 		out["sourceLine"] = d.elems[e].Line

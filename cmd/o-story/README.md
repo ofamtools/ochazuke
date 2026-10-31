@@ -500,7 +500,7 @@ Conformance:
 | normal | key | `key.ignore` |
 | normal | list | `list.column` `list.filter-clear` `list.filter-cycle` `list.filter-open` `list.filter-prop` `list.filter-prop-clear` `list.filter-props-clear` `list.fit-column` `list.fit-columns` `list.goto` `list.mark` `list.move` `list.next-class` `list.previous-class` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.toggle-pin-column` `list.visual` `list.yank` |
 | normal | macro | `macro.record` `macro.start` `macro.stop` |
-| normal | markdown | `markdown.delete` `markdown.fold` `markdown.insert` `markdown.move` `markdown.next-block` `markdown.next-kind` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
+| normal | markdown | `markdown.delete` `markdown.fold` `markdown.insert` `markdown.link-copy` `markdown.link-open` `markdown.move` `markdown.next-block` `markdown.next-kind` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-link` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
 | normal | modal | `modal.pop` |
 | normal | mode | `mode.enter` `mode.leave` `mode.set` |
 | normal | notice | `notice.clear` |
@@ -648,6 +648,7 @@ Mode edges (from → to via):
 - `normal` → `normal ctrl+w` via `row ctrl+w`
 - `normal` → `normal d` via `row d`
 - `normal` → `normal g` via `row g`
+- `normal` → `normal y` via `row y`
 - `normal` → `normal z` via `row z`
 - `normal` → `operator_pending` via `mode.enter`
 - `normal` → `table` via `focus.next`
@@ -664,6 +665,7 @@ Mode edges (from → to via):
 - `normal [` → `normal` via `diff.hunk`
 - `normal [` → `normal` via `list.previous-class`
 - `normal [` → `normal` via `markdown.previous-kind`
+- `normal [` → `normal` via `markdown.previous-link`
 - `normal [` → `normal` via `markdown.previous-same`
 - `normal ]` → `normal` via `diff.file`
 - `normal ]` → `normal` via `diff.hunk`
@@ -684,12 +686,14 @@ Mode edges (from → to via):
 - `normal d` → `normal` via `setting-item.delete`
 - `normal g` → `normal` via `detail.fields`
 - `normal g` → `normal` via `list.goto`
+- `normal g` → `normal` via `markdown.link-open`
 - `normal g` → `normal` via `mode.leave`
 - `normal g` → `normal` via `row c`
 - `normal g` → `normal` via `settings.tab`
 - `normal g` → `normal` via `tick binding`
 - `normal g` → `normal` via `timeline.row`
 - `normal g` → `normal` via `yank-history.open`
+- `normal y` → `normal` via `markdown.link-copy`
 - `normal z` → `insert` via `list.filter-prop`
 - `normal z` → `insert` via `list.filter-prop-clear`
 - `normal z` → `normal` via `list.filter-cycle`

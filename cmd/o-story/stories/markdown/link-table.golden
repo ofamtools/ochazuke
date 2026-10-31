@@ -1,0 +1,24 @@
+ |  ◆ o-story                                                      NORMAL
+ |   › page1
+ |  ────────────────────────────────────────────────────────────────────────────
+ |    # Table
+ |
+ |     name  | target
+ |    -------|----------------------------------------
+C|     first | before cell https://cell.example after
+ |     last  | done
+ |
+ |
+ |
+ |
+ |
+ |
+ |
+ |
+ |
+ |
+ |
+ |
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  enter markdown.link-open · y l markdown.link-copy · i markdown.insert · o m…
+ |

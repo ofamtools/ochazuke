@@ -1018,6 +1018,7 @@ func (ss *Session) addPage(p *Page) error {
 			return fmt.Errorf("markdown: %w", err)
 		}
 		ss.docs[p.ID] = doc
+		doc.OpenURL = func(url string) error { ss.Writes = append(ss.Writes, "open "+url); return nil }
 		doc.Author = p.Markdown.Author
 		if p.Markdown.Today != "" {
 			if day, err := time.Parse("2006-01-02", p.Markdown.Today); err == nil {
@@ -1322,7 +1323,7 @@ func (ss *Session) catalogMarkdown(spec *CatalogSpec) cli.DetailFactory {
 		if err != nil {
 			return nil, err
 		}
-		return datedView{view, spec.Today}, nil
+		return datedView{DetailView: view, today: spec.Today, open: func(url string) error { ss.Writes = append(ss.Writes, "open "+url); return nil }}, nil
 	}
 }
 
@@ -1330,11 +1331,13 @@ func (ss *Session) catalogMarkdown(spec *CatalogSpec) cli.DetailFactory {
 type datedView struct {
 	cli.DetailView
 	today string
+	open  func(string) error
 }
 
 func (d datedView) Block(width, height int) ochazuke.Block {
-	if doc := cliview.DocOf(d.DetailView); doc != nil && d.today != "" {
-		if day, err := time.Parse("2006-01-02", d.today); err == nil {
+	if doc := cliview.DocOf(d.DetailView); doc != nil {
+		doc.OpenURL = d.open
+		if day, err := time.Parse("2006-01-02", d.today); d.today != "" && err == nil {
 			doc.Now = func() time.Time { return day }
 		}
 	}
