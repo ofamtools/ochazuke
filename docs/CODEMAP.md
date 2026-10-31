@@ -1327,7 +1327,7 @@ Importable package `cli`: 37 source files, 35 test files.
 
 ### cli/mount.go
 
-- lines: 467
+- lines: 503
 - purpose: Mount maps the runtime registry to oden command groups and operation metadata.
 - methods: Shell(2), nounGroup(6)
 - funcs: Mount
