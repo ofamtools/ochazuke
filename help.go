@@ -99,27 +99,69 @@ func bindingHelpArgs(r *Runtime, b Binding, focus string) Arguments {
 	return args
 }
 
-// helpOpWidth is the help's fixed operation column; a longer operation
-// wraps into it.
-const helpOpWidth = 18
+// helpOpWidth is the help's operation column when help.operation-max is
+// 0 (fixed, a longer operation wraps into it), and the least it narrows to
+// otherwise; helpArgsMax the arguments' cap then.
+const (
+	helpOpWidth = 18
+	helpArgsMax = 22
+)
+
+// The help's column caps, rows of settings/ochazuke.json (section help):
+// the operation and arguments columns grow to their widest cell up to
+// help.operation-max (default 32; 0: the operation fixed at helpOpWidth,
+// the arguments at most helpArgsMax), and the description wraps within
+// help.description-max (default 80; 0: it takes all the width left).
+const (
+	HelpOperationMaxSetting   = "help.operation-max"
+	HelpDescriptionMaxSetting = "help.description-max"
+)
+
+// helpInt is an integer help setting, def when it is unset or not an
+// integer, never below 0.
+func (r *Runtime) helpInt(name string, def int) int {
+	v, ok := r.Settings().Value(name)
+	n, isInt := v.(int)
+	if !ok || !isInt {
+		return def
+	}
+	return max(0, n)
+}
 
 // helpColumns are the help table's columns: the key, the whole sequence
-// (R6.10: "ctrl+a v", "g c"), as wide as its widest cell, the operation
-// fixed, the arguments one per line (helpArgsCell: the name bold, the
-// value plain, each line cut, at most 22 cells, the first to drop when
-// narrow) and the description the rest; the key, operation and
+// (R6.10: "ctrl+a v", "g c"), as wide as its widest cell; the operation
+// as wide as its widest cell up to opMax (at least helpOpWidth when
+// narrow), or fixed at helpOpWidth when opMax is 0; the arguments one per
+// line (helpArgsCell: the name bold, the value plain, each line cut, at
+// most opMax cells, helpArgsMax when 0, the first to drop when narrow);
+// the description up to descMax (0: the rest). The key, operation and
 // description wrap inside their columns; the key column is pinned, so
-// z l scrolls the others.
-var helpColumns = []Column{
-	{Title: "key", Wrap: true, Pinned: true},
-	{Title: "operation", Width: helpOpWidth, Wrap: true},
-	{Title: "arguments", Max: 22, Priority: 2, Lines: true},
-	{Title: "description", Wrap: true, Priority: 1},
+// z l scrolls the others. Room the capped columns leave is left empty:
+// the table need not fill the modal.
+func helpColumns(opMax, descMax int) []Column {
+	op := Column{Title: "operation", Width: helpOpWidth, Wrap: true}
+	args := Column{Title: "arguments", Max: helpArgsMax, Priority: 2, Lines: true}
+	if opMax > 0 {
+		op = Column{Title: "operation", Min: min(helpOpWidth, opMax), Max: opMax, Wrap: true}
+		args.Max = opMax
+	}
+	return []Column{
+		{Title: "key", Wrap: true, Pinned: true},
+		op,
+		args,
+		{Title: "description", Max: descMax, Wrap: true, Priority: 1},
+	}
+}
+
+// helpColumns are the help's columns at the settings
+// (HelpOperationMaxSetting, HelpDescriptionMaxSetting).
+func (r *Runtime) helpColumns() []Column {
+	return helpColumns(r.helpInt(HelpOperationMaxSetting, 32), r.helpInt(HelpDescriptionMaxSetting, 80))
 }
 
 // helpItems is one table row per help row, each in its level's section,
-// and the columns they draw in (helpColumns), in helpOrder.
-func helpItems(rows []HelpRow) ([]ListItem, []Column) {
+// in helpOrder; they draw in helpColumns.
+func helpItems(rows []HelpRow) []ListItem {
 	rows = helpOrder(rows)
 	items := make([]ListItem, len(rows))
 	for i, row := range rows {
@@ -129,7 +171,7 @@ func helpItems(rows []HelpRow) ([]ListItem, []Column) {
 		cells := []string{key, row.Operation, args, row.Description}
 		items[i] = ListItem{ID: fmt.Sprintf("__bindings-help/%d", i), Label: label, Noun: "ochazuke.binding", Data: row, Cells: cells, Tones: tones, Section: row.Section}
 	}
-	return items, helpColumns
+	return items
 }
 
 // helpNodes are the help's rows as a tree (R6.10): a prefix row (Group)
@@ -140,7 +182,7 @@ func helpItems(rows []HelpRow) ([]ListItem, []Column) {
 // it). A row's label, which the filter reads, holds its steps' and its
 // sequences' text too, so a closed row is found by what is inside it.
 func helpNodes(rows []HelpRow) (nodes []TreeNode, collapsed []string) {
-	items, _ := helpItems(rows)
+	items := helpItems(rows)
 	parent := map[string]string{} // section + key of a prefix row -> node id
 	labels := make([]string, len(items))
 	parents := make([]int, len(items))

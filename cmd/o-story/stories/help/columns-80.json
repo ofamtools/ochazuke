@@ -1,0 +1,52 @@
+{
+  "name": "? help at 80 columns: the operation column keeps at least 18 cells and wraps a longer operation, the description wraps in what is left",
+  "area": "help",
+  "width": 80,
+  "height": 60,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": "T",
+        "do": "demo.toggle-outline-task"
+      },
+      {
+        "noun": "demo",
+        "keys": "C",
+        "do": "demo.choose-column"
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.toggle-outline-task",
+        "description": "Toggle the outline task under the row between open and done"
+      },
+      {
+        "verb": "demo.choose-column",
+        "description": "Choose the column the row sorts by"
+      }
+    ]
+  },
+  "script": [
+    "?"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "modal": "bindings-help",
+      "contains": [
+        "demo.toggle-",
+        "demo.choose-column"
+      ],
+      "lacks": [
+        "demo.toggle-outline-task"
+      ]
+    }
+  ]
+}

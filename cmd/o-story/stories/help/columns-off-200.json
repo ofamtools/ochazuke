@@ -1,0 +1,66 @@
+{
+  "name": "help.operation-max 0 and help.description-max 0: the ? help lays out as it did before the caps, the operation fixed at 18 cells (a longer one wraps) and the description taking all the width left",
+  "area": "help",
+  "width": 200,
+  "height": 40,
+  "settings": [
+    {
+      "name": "help.operation-max",
+      "type": "integer",
+      "default": 0,
+      "description": "off"
+    },
+    {
+      "name": "help.description-max",
+      "type": "integer",
+      "default": 0,
+      "description": "off"
+    }
+  ],
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": "T",
+        "do": "demo.toggle-outline-task"
+      },
+      {
+        "noun": "demo",
+        "keys": "C",
+        "do": "demo.choose-column"
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.toggle-outline-task",
+        "description": "Toggle the outline task under the row between open and done"
+      },
+      {
+        "verb": "demo.choose-column",
+        "description": "Choose the column the row sorts by"
+      }
+    ]
+  },
+  "script": [
+    "?"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "modal": "bindings-help",
+      "contains": [
+        "demo.toggle-",
+        "Rebuild the story from its file"
+      ],
+      "lacks": [
+        "demo.toggle-outline-task"
+      ]
+    }
+  ]
+}

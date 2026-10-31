@@ -1,0 +1,50 @@
+{
+  "name": "? help at 100 columns: the operation column is as wide as its longest operation (help.operation-max 32), so demo.toggle-outline-task stays on one line; the description wraps within help.description-max",
+  "area": "help",
+  "width": 100,
+  "height": 60,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": "T",
+        "do": "demo.toggle-outline-task"
+      },
+      {
+        "noun": "demo",
+        "keys": "C",
+        "do": "demo.choose-column"
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.toggle-outline-task",
+        "description": "Toggle the outline task under the row between open and done"
+      },
+      {
+        "verb": "demo.choose-column",
+        "description": "Choose the column the row sorts by"
+      }
+    ]
+  },
+  "script": [
+    "?"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "modal": "bindings-help",
+      "contains": [
+        "demo.toggle-outline-task",
+        "demo.choose-column"
+      ],
+      "lacks": []
+    }
+  ]
+}

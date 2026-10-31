@@ -6,31 +6,31 @@ r|  a1
  |  a2        ╭──────────────────────────────────────────────────────────────────────────────────────────────╮
  |            │ Keys · pick                                                                                  │
  |            │ noun: demo · mode: normal · place: page1 › demo › list                                       │
- |            │ key             operation           arguments              description                       │
+ |            │ key             operation                 arguments              description                 │
  |            │ demo                                                                                         │
-R|            │   q             app.quit                                   Exit the application              │
- |            │   r             demo.reset                                 Rebuild the story from its file   │
- |            │   enter         demo.open                                  Open the row: attach the fake     │
- |            │                                                            pane when the story has one for   │
- |            │                                                            it                                │
- |            │   n             demo.notify                                Add a persistent notice naming    │
- |            │                                                            the row                           │
- |            │   x             demo.delete                                Remove the row from its list      │
+R|            │   q             app.quit                                         Exit the application        │
+ |            │   r             demo.reset                                       Rebuild the story from its  │
+ |            │                                                                  file                        │
+ |            │   enter         demo.open                                        Open the row: attach the    │
+ |            │                                                                  fake pane when the story    │
+ |            │                                                                  has one for it              │
+ |            │   n             demo.notify                                      Add a persistent notice     │
+ |            │                                                                  naming the row              │
+ |            │   x             demo.delete                                      Remove the row from its     │
+ |            │                                                                  list                        │
  |            │ list                                                                                         │
- |            │   space         list.mark ?                                when list-marks · Toggle the mark │
- |            │                                                            on a row (the selected row by     │
- |            │                                                            default) for fan-out verbs        │
- |            │   y             list.yank ?         what cell              when table-cells · Copy the       │
- |            │                                                            current cell's text (what: cell,  │
- |            │                                                            a cell-mode table) or the row's   │
- |            │                                                            cells joined by tabs (what: row,  │
- |            │                                                            any table) into the registers;    │
- |            │                                                            over a visual selection (V) every │
- |            │                                                            selected row's, one per line      │
- |            │   Y             list.yank ?         what row               when list-yanks · Copy the        │
- |            │                                                            current cell's text (what: cell,  │
- |            │                                                            a cell-mode table) or the row's   │
- |            │ 1–8 / 113                                                                                    │
+ |            │   space         list.mark ?                                      when list-marks · Toggle    │
+ |            │                                                                  the mark on a row (the      │
+ |            │                                                                  selected row by default)    │
+ |            │                                                                  for fan-out verbs           │
+ |            │   y             list.yank ?               what cell              when table-cells · Copy the │
+ |            │                                                                  current cell's text (what:  │
+ |            │                                                                  cell, a cell-mode table) or │
+ |            │                                                                  the row's cells joined by   │
+ |            │                                                                  tabs (what: row, any table) │
+ |            │                                                                  into the registers; over a  │
+ |            │                                                                  visual selection (V) every  │
+ |            │ 1–7 / 113                                                                                    │
  |            │ space list.mark · S view · n noun · m mode · p place · esc modal.pop · : palette.open · ? b… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |

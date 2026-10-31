@@ -9,56 +9,56 @@
 
         ╭──────────────────────────────────────────────────────────────╮
         │ Keys · here                                                  │
-        │ key           operation           arguments     description  │
+        │ key           operation          arguments     description   │
         │ task                                                         │
-        │   enter       task.open                         Open the     │
-        │                                                 task's page  │
-        │   x           task.done                         Mark the     │
-        │                                                 task done    │
-        │                                                 and move it  │
-        │                                                 to the       │
-        │                                                 archive      │
-        │   e           task.edit                         Edit the     │
-        │                                                 task's title │
-        │                                                 in a prompt  │
-        │   n           task.note                         Add a note   │
-        │                                                 to the task  │
-        │ ▾ d                                             waits for    │
-        │                                                 the next key │
-        │                                                 (1 key)      │
-        │   ▸ d d       task.delete                       Delete the   │
-        │                                                 task after a │
-        │                                                 confirm      │
-        │   ▸ d esc     mode.leave                        Return from  │
-        │                                                 a pending    │
-        │                                                 mode to the  │
-        │                                                 mode it      │
-        │                                                 shadowed     │
+        │   enter       task.open                        Open the      │
+        │                                                task's page   │
+        │   x           task.done                        Mark the task │
+        │                                                done and move │
+        │                                                it to the     │
+        │                                                archive       │
+        │   e           task.edit                        Edit the      │
+        │                                                task's title  │
+        │                                                in a prompt   │
+        │   n           task.note                        Add a note to │
+        │                                                the task      │
+        │ ▾ d                                            waits for the │
+        │                                                next key (1   │
+        │                                                key)          │
+        │   ▸ d d       task.delete                      Delete the    │
+        │                                                task after a  │
+        │                                                confirm       │
+        │   ▸ d esc     mode.leave                       Return from a │
+        │                                                pending mode  │
+        │                                                to the mode   │
+        │                                                it shadowed   │
         │ list                                                         │
-        │   space       list.mark                         Toggle the   │
-        │                                                 mark on a    │
-        │                                                 row (the     │
-        │                                                 selected row │
-        │                                                 by default)  │
-        │                                                 for fan-out  │
-        │                                                 verbs        │
-        │   V           list.visual                       Start a      │
-        │                                                 visual row   │
-        │                                                 selection at │
-        │                                                 the selected │
-        │                                                 row (V, in   │
-        │                                                 visual-      │
-        │                                                 line), or    │
-        │                                                 end it (V    │
-        │                                                 again, esc): │
-        │                                                 j/k extend   │
-        │                                                 it; a key    │
-        │                                                 then acts on │
-        │                                                 every        │
-        │                                                 selected row │
+        │   space       list.mark                        Toggle the    │
+        │                                                mark on a row │
+        │                                                (the selected │
+        │                                                row by        │
+        │                                                default) for  │
+        │                                                fan-out verbs │
+        │   V           list.visual                      Start a       │
+        │                                                visual row    │
+        │                                                selection at  │
+        │                                                the selected  │
+        │                                                row (V, in    │
+        │                                                visual-line), │
+        │                                                or end it (V  │
+        │                                                again, esc):  │
+        │                                                j/k extend    │
+        │                                                it; a key     │
+        │                                                then acts on  │
+        │                                                every         │
+        │                                                selected row  │
         │ app                                                          │
-        │   ctrl+c      app.quit                          Exit the     │
-        │ 1–10 / 54                                                    │
+        │   ctrl+c      app.quit                         Exit the      │
+        │                                                application   │
+        │   "           mode.enter         mode regist…  Pick the      │
+        │                                                register the  │
+        │                                                next yank,    │
+        │ 1–11 / 54                                                    │
         │ space list.mark · S view · esc modal.pop · : palette.open ·… │
         ╰──────────────────────────────────────────────────────────────╯
 
