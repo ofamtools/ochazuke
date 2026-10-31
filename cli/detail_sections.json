@@ -1,0 +1,13 @@
+// Read-only catalog section details. Record nouns keep their own y/enter;
+// g m opens the metadata list, whose fields support y/enter directly.
+{
+  "bindings": [
+    {"context": "app/normal", "fallback": true, "bindings": [
+      {"key": "g m", "action": "ochazuke.detail.fields"}
+    ]},
+    {"context": "ochazuke.detail-field/normal", "bindings": [
+      {"key": "enter", "action": "ochazuke.detail-field.show"},
+      {"key": "y", "action": "ochazuke.detail-field.copy"}
+    ]}
+  ]
+}

@@ -1047,6 +1047,86 @@ The integrated implementation was checked locally on macOS with the test suite a
 
 The editor/picker expansion also passed the full suite and race detector. Live terminal/CLI checks exercised all three visual shapes, cross-field block paste and undo, named registers, counted macro replay, history selection without insertion, `o/O`, slash-delimited kills, contextual path replacement, recursive fuzzy ignore-aware picking, and a 48×15 layout.
 
+### Catalog detail sections
+
+A catalog can describe a complete read-only document in `detail.sections`.
+`cli.MountPage` renders it in every host without registering a detail kind:
+
+```json
+{
+  "detail": {
+    "title": "Discussion",
+    "sections": [
+      {"kind": "markdown", "field": "question", "heading": true},
+      {"kind": "thread", "field": "answers"},
+      {"kind": "fields", "region": "side", "title": "Metadata", "fields": [
+        {"label": "Status", "field": "status", "format": "badge"},
+        {"label": "Pane", "field": "source.pane", "format": "short-id"},
+        {"label": "Asked", "field": "asked_at", "format": "relative-time"},
+        {"label": "Tags", "field": "tags", "format": "list"}
+      ]}
+    ]
+  }
+}
+```
+
+Sections keep declaration order within each region (`main` by default,
+`side` for supporting content). Markdown reads a string field, preserving
+paragraphs, links and code styles. `heading: true` renders the text as a
+heading. Thread reads an array of `{author, at, body}` entries; `body` is
+Markdown, sorted stably by RFC3339 `at` oldest first, with undated entries
+first in input order. A thread section can name different entry paths with
+`author`, `at` and `body`. All field paths support nested objects using dots;
+an exact object key wins. Sections are always read-only (`readOnly` defaults
+to true, false is rejected). Editing remains with the application's verbs.
+
+The main content wraps completely, including long words, code and tables;
+there is no answer line limit. One shared `Detail.Window` scrolls the whole
+document with the existing `J`/`K` keys and counts. The detail remains outside
+the focus stops, as a legacy record detail does: `j`/`k` move and spill
+between page lists in drawing order (UX-RULES R3.3–R3.5), while `J`/`K`
+scroll rendered lines (R3.14). Changing the selected record resets the
+offset. A metadata field list is a modal, where list motions clamp (R3.6).
+
+Side content uses one quarter of the detail width on the right when its
+content width reaches `detail.side-width` (default 96, minimum 40), and
+follows the main content below that width. A page's `sideWidth` overrides
+the threshold. `detail.side` defaults true; false hides the side region.
+A page may override it with `side: false|true`, or name its own boolean
+`sideSetting` (when declared, that setting wins). `detail.sections=false`
+opts out of the section renderer and shows the legacy record `fields`.
+Catalogs declaring only `fields` retain their existing rendering.
+
+Metadata fields are `{label, field, format}`. Missing values are omitted;
+displayed values are shortened to their line. `g m` (`detail.fields`) opens
+the visible metadata as a list: `y` (`detail-field.copy`) copies the complete
+value to the active register; `enter` (`detail-field.show`) expands it in
+the read-only text view. `esc` closes each modal. Keys and hints come from
+`cli/detail_sections.json`; record nouns retain their own `y` and `enter`.
+
+| Format | Presentation |
+|---|---|
+| `text` (default) | Plain text; objects become sorted labelled values |
+| `badge` | `[value]` |
+| `relative-time` | `2 hours ago` / `in 1 minute`; full timestamp on copy/expand |
+| `time` | Date, time and zone; RFC3339 on copy/expand |
+| `short-id` | First eight display cells; full ID on copy/expand |
+| `path` | Path text without reading or inspecting the filesystem |
+| `list` | Comma-separated items, objects as labelled values |
+| `json` | Explicit JSON, indented on copy/expand |
+
+Compared with Vim:
+
+| Vim form | Help tag | Catalog detail behavior |
+|---|---|---|
+| `wrap`, `linebreak` | `'wrap'`, `'linebreak'` | Similar: visual word wrapping preserves source bytes; always enabled for section Markdown |
+| `gj`, `gk` | `gj`, `gk` | Similar: J/K scroll one rendered line while the focus stays in the list |
+| `J`, `K` | `J`, `K` | Different: detail scrolling, rather than joining lines or looking up a keyword |
+| `y` | `y` | Similar: the field list copies the complete value into shared registers |
+
+Stories: `catalog/detail-sections-wide`, `-medium`, `-narrow`,
+`-long-markdown-wraps`, `-side-off`, and `catalog/detail-fields-legacy`.
+
 ## Requirements
 
 - General UI infrastructure with a stack of stateful modals.

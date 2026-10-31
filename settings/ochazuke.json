@@ -6,6 +6,9 @@
 // this directory and are declared by the feature that needs them (terminal.json: EnsureTerminalLeader). "deprecated" lists older
 // names that still read and write the setting for one release. The rows' order is their order inside a section.
 [
+  {"name": "detail.sections", "section": "pages", "type": "boolean", "default": true, "description": "Render catalog section details as read-only Markdown, threads and metadata; off shows the legacy record fields"},
+  {"name": "detail.side", "section": "pages", "type": "boolean", "default": true, "description": "Show side regions of catalog section details (a catalog page may override this default or name its own setting)"},
+  {"name": "detail.side-width", "section": "pages", "type": "integer", "default": 96, "description": "Minimum detail content width for side regions on the right; below it they follow the main content (minimum 40, page sideWidth overrides)"},
   {"name": "chooser.prop-filters", "section": "search", "type": "boolean", "default": true, "description": "Enable typed prop filters and saved-filter keys in choosers with declared row props"},
   {"name": "list.filter-strip", "section": "search", "type": "boolean", "default": true, "description": "Show active prop filters in the list, tree or chooser header strip"},
   {"name": "list.filters", "section": "search", "type": "string", "default": "[]", "description": "Saved prop filters as a JSON array: name, noun or list, where (equality props) and conditions (prop/op/value); user rows replace app defaults by name and scope"},

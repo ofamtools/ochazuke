@@ -1,0 +1,104 @@
+{
+  "name": "detail-sections-medium",
+  "area": "catalog",
+  "width": 120,
+  "height": 40,
+  "page": {
+    "id": "questions",
+    "title": "Questions",
+    "catalog": {
+      "nouns": [
+        {
+          "name": "question",
+          "verbs": [
+            {
+              "name": "list",
+              "rows": "question"
+            }
+          ]
+        }
+      ],
+      "page": {
+        "layout": "split",
+        "lists": [
+          {
+            "id": "questions/list",
+            "noun": "question",
+            "title": "Questions"
+          }
+        ],
+        "detail": {
+          "title": "Discussion",
+          "sections": [
+            {
+              "kind": "markdown",
+              "field": "question",
+              "heading": true
+            },
+            {
+              "kind": "thread",
+              "field": "answers"
+            },
+            {
+              "kind": "fields",
+              "region": "side",
+              "title": "Metadata",
+              "fields": [
+                {
+                  "label": "Status",
+                  "field": "status",
+                  "format": "badge"
+                },
+                {
+                  "label": "Project",
+                  "field": "project"
+                },
+                {
+                  "label": "Pane",
+                  "field": "pane",
+                  "format": "short-id"
+                },
+                {
+                  "label": "Tags",
+                  "field": "tags",
+                  "format": "list"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "answers": {
+        "question.list": [
+          {
+            "id": "q1",
+            "label": "Readable answers",
+            "question": "How should a complete answer stay readable?",
+            "answers": [
+              {
+                "author": "codex",
+                "at": "2026-10-31T12:00:00Z",
+                "body": "Keep **the question and answer** central. Context belongs beside them when there is room.\n\n- Wrap every paragraph.\n- Keep `render(value)` and links like [the guide](https://example.test/guide) readable.\n\nFinal answer sentence."
+              }
+            ],
+            "status": "answered",
+            "project": "ochazuke",
+            "pane": "ee6f1a1f-177e-444b-adf9-cf9c18c80e5d",
+            "tags": [
+              "readability",
+              "catalog"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "script": [],
+  "expect": {
+    "contains": [
+      "Final answer sentence.",
+      "Metadata",
+      "[answered]"
+    ]
+  }
+}

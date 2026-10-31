@@ -49,6 +49,7 @@ type Option func(*options)
 // options are the rendering choices; the zero value is Glamour's default.
 type options struct {
 	newlines bool
+	wrapAll  bool
 	// note and rule are the colours (#rrggbb, "" for none) of the tones
 	// NoteTone and RuleTone in the appearance the text is drawn in.
 	note, rule string
@@ -99,6 +100,10 @@ func optionsOf(opts []Option) options {
 // one. Lines longer than the width still wrap. Code blocks and tables are
 // drawn the same either way.
 func PreserveNewlines() Option { return func(o *options) { o.newlines = true } }
+
+// WrapAll wraps every rendered line, including code and long unbroken
+// words, instead of clipping overflow. It changes display only.
+func WrapAll() Option { return func(o *options) { o.wrapAll = true } }
 
 // Block renders Markdown text width cells wide in the appearance's style
 // (StyleOf), without Glamour's blank first and last lines. The result is
@@ -206,6 +211,9 @@ func renderUncached(text string, width int, style string, opts options) []string
 	}
 	for len(lines) > 0 && blank(lines[len(lines)-1]) {
 		lines = lines[:len(lines)-1]
+	}
+	if opts.wrapAll {
+		return strings.Split(ansi.Hardwrap(strings.Join(lines, "\n"), width, true), "\n")
 	}
 	for i, line := range lines {
 		lines[i] = ansi.Truncate(line, width, "")
