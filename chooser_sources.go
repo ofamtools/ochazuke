@@ -93,6 +93,7 @@ type chooserState struct {
 	pathBase    func(PathPick) string
 	recentPaths func(PathPick) []string
 	picked      []string // paths picked through a path chooser, newest first
+	walks       *walkCache
 }
 
 func (s *chooserState) HandleMessage(tea.Msg) bool { return false }
@@ -256,6 +257,34 @@ func (c *Chooser) cycle(delta int) error {
 	return nil
 }
 
+// ChooserBatch is a streaming load's value: a source's Load (or the
+// Pending work it returns) gives one part of its rows, shown at once, and
+// More, pending work whose value is the next ChooserBatch (or the last
+// []ChooserRow). The chooser appends each part as it lands and stays
+// loading until a part has no More; a newer load or closing the chooser
+// cancels the rest. A walk over a folder tree streams this way, so the
+// first rows show before it finishes and the list stays responsive.
+type ChooserBatch struct {
+	Rows []ChooserRow
+	More Result
+}
+
+// chooserRowsOf reads a load's value: its rows and, for a ChooserBatch,
+// the work that loads the rest.
+func chooserRowsOf(value any) ([]ChooserRow, Result) {
+	switch v := value.(type) {
+	case ChooserBatch:
+		return v.Rows, v.More
+	case *ChooserBatch:
+		if v != nil {
+			return v.Rows, v.More
+		}
+	case []ChooserRow:
+		return v, Result{}
+	}
+	return nil, Result{}
+}
+
 // load asks the current source for its rows at the query.
 func (c *Chooser) load() {
 	src := c.current()
@@ -267,34 +296,45 @@ func (c *Chooser) load() {
 	c.loadErr = ""
 	c.gen++
 	gen := c.gen
-	apply := func(value any, err error) {
-		c.loading = false
-		rows, _ := value.([]ChooserRow)
+	var launch func(res Result, first bool)
+	// land shows one part of the load: the first replaces the rows, a
+	// later one (a ChooserBatch's More) appends to them.
+	land := func(value any, err error, first bool) {
+		rows, more := chooserRowsOf(value)
 		if err != nil && !errors.Is(err, context.Canceled) {
 			c.loadErr = err.Error()
-			rows = nil
+			rows, more = nil, Result{}
 		}
+		if !first {
+			rows = append(slices.Clone(c.spec.Rows), rows...)
+		}
+		c.loading = more.work != nil
 		c.SetRows(rows)
-	}
-	res := src.Load(query)
-	if res.work == nil {
-		apply(res.value, res.err)
-		return
-	}
-	c.loading = true
-	inner := res.then
-	res = res.Replacing("source").Then(func(ctx Ctx, value any, err error) {
-		if inner != nil {
-			inner(ctx, value, err)
+		if more.work != nil || more.value != nil || more.err != nil {
+			launch(more, false)
 		}
-		if c.r.Chooser(c.spec.Kind) != c || gen != c.gen {
+	}
+	launch = func(res Result, first bool) {
+		if res.work == nil {
+			land(res.value, res.err, first)
 			return
 		}
-		apply(value, err)
-	})
-	if _, err := c.r.Launch(c.spec.Kind, chooserLoadVerb, res, Ctx{actor: c.r.Actor(), Runtime: c.r, Context: c.r.contextOf(c.spec.Kind), Instance: c.r.Instances[c.spec.Kind]}); err != nil {
-		apply(nil, err)
+		c.loading = true
+		inner := res.then
+		res = res.Replacing("source").Then(func(ctx Ctx, value any, err error) {
+			if inner != nil {
+				inner(ctx, value, err)
+			}
+			if c.r.Chooser(c.spec.Kind) != c || gen != c.gen {
+				return
+			}
+			land(value, err, first)
+		})
+		if _, err := c.r.Launch(c.spec.Kind, chooserLoadVerb, res, Ctx{actor: c.r.Actor(), Runtime: c.r, Context: c.r.contextOf(c.spec.Kind), Instance: c.r.Instances[c.spec.Kind]}); err != nil {
+			land(nil, err, first)
+		}
 	}
+	launch(src.Load(query), true)
 }
 
 // opens reports whether the highlighted row opens inside its source.

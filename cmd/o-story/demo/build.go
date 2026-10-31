@@ -371,6 +371,13 @@ func (ss *session) defineDemo(pages []*Page) error {
 				return err
 			}
 		}
+		if p.PathWalk != nil {
+			walk := ochazuke.PathWalk{Batch: p.PathWalk.Batch}
+			for _, root := range p.PathWalk.Roots {
+				walk.Roots = append(walk.Roots, ochazuke.PathRoot{Path: ss.files(root.Path), Label: root.Label})
+			}
+			r.AddWalkPathSource(func(ochazuke.PathPick) ochazuke.PathWalk { return walk })
+		}
 		for _, name := range p.Pending {
 			if err := r.DefineMode(name, true); err != nil {
 				return fmt.Errorf("pending %s: %w", name, err)

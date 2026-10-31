@@ -18,7 +18,8 @@ import (
 // this run) and typed (completes the path being typed, as a shell does,
 // and offers it when it exists, or when Parameter.New allows a path not
 // there yet), then the sources the application adds (AddPathSource: mtm's
-// known folders, a project's). Browse starts at the field's folder, else
+// known folders, a project's; AddWalkPathSource: every folder under the
+// roots it gives, path_walk.go); path.first names the ones listed first. Browse starts at the field's folder, else
 // the parameter's Base, else as the setting path.start says. It never
 // lists a folder under path.no-auto-list (external volumes) on its own:
 // only once opened into or typed.
@@ -188,22 +189,9 @@ func displayPath(p string) string {
 func (r *Runtime) autoListable(dir string) bool {
 	v, _ := r.settingValue(PathNoAutoListSetting)
 	prefixes, _ := v.([]string)
-	dir = filepath.Clean(dir) + string(filepath.Separator)
-	for _, prefix := range prefixes {
-		prefix = strings.TrimSpace(prefix)
-		if prefix == "" {
-			continue
-		}
-		if !strings.HasSuffix(prefix, "/") {
-			prefix += "/"
-		}
-		// The prefix itself (/Volumes) lists the mounts; a folder under
-		// it is a volume.
-		if strings.HasPrefix(dir, prefix) && dir != prefix {
-			return false
-		}
-	}
-	return true
+	// The prefix itself (/Volumes) lists the mounts; a folder under it is
+	// a volume.
+	return autoListableUnder(prefixes, dir)
 }
 
 func (r *Runtime) showHidden() bool {
@@ -253,6 +241,7 @@ func (r *Runtime) OpenPathChooser(spec PathChooserSpec) (*Chooser, error) {
 			sources = append(sources, src)
 		}
 	}
+	sources = orderPathSources(sources, r.settingList(PathFirstSetting))
 	return r.OpenChooser(ChooserSpec{
 		Kind:    kind,
 		Title:   title,
@@ -267,6 +256,19 @@ func (r *Runtime) OpenPathChooser(spec PathChooserSpec) (*Chooser, error) {
 		},
 		CreateRow: true,
 	})
+}
+
+// orderPathSources puts the sources path.first names first, in its
+// order; the rest keep theirs.
+func orderPathSources(sources []ChooserSource, first []string) []ChooserSource {
+	var head []ChooserSource
+	for _, name := range first {
+		if i := slices.IndexFunc(sources, func(s ChooserSource) bool { return s.Name == name }); i >= 0 {
+			head = append(head, sources[i])
+			sources = slices.Delete(sources, i, i+1)
+		}
+	}
+	return append(head, sources...)
 }
 
 // listDir reads a folder's entries for a chooser: folders first (with a

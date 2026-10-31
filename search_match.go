@@ -269,7 +269,7 @@ func fuzzyScore(text string, needle []rune, cm CaseMatch) (int, bool) {
 	for _, original := range text {
 		ch := cm.Rune(original)
 		score--
-		if matched < len(needle) && ch == needle[matched] {
+		if matched < len(needle) && (ch == needle[matched] || needle[matched] == ' ' && fuzzySeparator(ch)) {
 			if position == previous+1 {
 				score += 12
 			}
@@ -284,6 +284,11 @@ func fuzzyScore(text string, needle []rune, cm CaseMatch) (int, bool) {
 		position++
 	}
 	return score, matched == len(needle)
+}
+
+// fuzzySeparator is a rune a space in a fuzzy needle stands for.
+func fuzzySeparator(ch rune) bool {
+	return ch == '/' || ch == '-' || ch == '_' || ch == '.' || unicode.IsSpace(ch)
 }
 
 // SearchMatch is the search.match setting (substring for any other value

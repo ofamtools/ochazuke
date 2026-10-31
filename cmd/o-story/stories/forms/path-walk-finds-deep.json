@@ -1,0 +1,21 @@
+{
+  "name": "form: a folder field's chooser opens on walk (path.first), which lists every folder under the roots; typing a fragment of a nested path (cmd mtm) finds the deep folder, and .git and node_modules are skipped",
+  "area": "forms",
+  "width": 100,
+  "height": 20,
+  "files": ["cmd/mtm/main.go", "internal/work/", ".git/objects/", "node_modules/left-pad/", ".worktrees/lane-a/cmd/", "docs/"],
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "records": [
+      {"id": "proj", "fields": [{"name": "folder", "type": "path", "path": "dir", "base": "{{files}}"}]}
+    ],
+    "pathWalk": {"roots": [{"path": "{{files}}", "label": "project"}]},
+    "focus": "proj/folder"
+  },
+  "script": ["enter", {"job": "chooser.load"}, {"type": "cmd mtm"}, "enter"],
+  "expect": [
+    {"after": 2, "modal": "path-chooser", "contains": ["Choose folder · [walk ", "cmd/mtm/", "internal/work/", ".worktrees/lane-a/", "project"], "lacks": [".git", "node_modules", "main.go", "…]"]},
+    {"after": 3, "contains": ["cmd/mtm/"], "lacks": ["internal/work/", "docs/"]},
+    {"modal": "", "writes": ["write folder={{files}}/cmd/mtm"]}
+  ]
+}
