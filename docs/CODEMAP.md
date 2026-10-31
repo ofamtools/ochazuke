@@ -1104,11 +1104,11 @@ Root package `ochazuke` is flat: 149 source files, 166 test files. Each entry li
 
 ### tree.go
 
-- lines: 1507 · tests: tree_test.go
+- lines: 1560 · tests: tree_test.go
 - purpose: TreeNode is one node of a tree.
 - types: TreeNode, TreeChange, TreeDebounceMsg, TreeAction, Tree
-- methods: Runtime(3), Tree(67), TreeChange(1), TreeNode(1)
-- leans on: instance.go(60), runtime.go(37), block.go(33), delivery.go(29)
+- methods: Runtime(3), Tree(68), TreeChange(1), TreeNode(1)
+- leans on: instance.go(62), runtime.go(42), block.go(34), delivery.go(31)
 
 ### tree_guides.go
 

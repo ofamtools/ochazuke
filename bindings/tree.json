@@ -28,8 +28,8 @@
     {"context": "ochazuke.outline-line/insert", "bindings": [
       {"key": "esc", "action": "ochazuke.outline.leave"},
       {"key": "enter", "action": "ochazuke.outline.next"},
-      {"key": "tab", "action": "ochazuke.outline.indent"},
-      {"key": "shift+tab", "action": "ochazuke.outline.outdent"},
+      {"key": "tab", "action": "ochazuke.outline.row-key", "from": {"key": "key"}, "hint": "indent"},
+      {"key": "shift+tab", "action": "ochazuke.outline.row-key", "from": {"key": "key"}, "hint": "outdent"},
       {"key": "paste", "action": "ochazuke.outline.paste", "from": {"text": "text"}}
     ]},
     {"context": "ochazuke.outline-row/normal", "bindings": [

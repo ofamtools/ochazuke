@@ -1,0 +1,16 @@
+{
+  "name": "outline: tab while typing nests the line under the one above as tab in normal mode does, and typing goes on where the cursor was",
+  "area": "tree",
+  "width": 60,
+  "height": 10,
+  "page": {
+    "trees": [
+      {"id": "t", "editable": true, "nodes": [{"id": "a", "label": "alpha"}]}
+    ]
+  },
+  "script": ["o", {"type": "beta"}, "left", "left", "tab", {"type": "X"}, "shift+tab", {"type": "Y"}],
+  "expect": [
+    {"after": 5, "mode": "insert", "focus": "t/line", "contains": ["▾ alpha", "    beta"]},
+    {"mode": "insert", "focus": "t/line", "contains": ["beXYta"], "lacks": ["▾ alpha"], "writes": ["add t-n1 under root at 1: ", "rename t-n1: beta", "move t-n1 under a at 0", "rename t-n1: beXta", "move t-n1 under root at 1"]}
+  ]
+}

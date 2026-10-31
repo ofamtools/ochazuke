@@ -1089,6 +1089,57 @@ func (t *Tree) shift(c Context, indent bool) error {
 	return err
 }
 
+// rowKey runs what key does on the open line's row in normal mode: the
+// key resolves through the stack walk at the row (the row noun's own
+// rows first, then the tree's, as in normal mode), so an application's
+// row rows answer it from the line as they do outside it. The line is
+// written and closed first (one undo step for its typing), and afterwards
+// it is opened again on the row the focus is on (the row, or the one the
+// action made of it) with the cursor, or the open select range, where it
+// was: editing goes on in insert, as Vim's insert-mode ctrl-t and ctrl-d
+// keep it. A key whose action leaves the tree (a modal, another pane)
+// leaves the line closed. With no line open it is the key in normal mode
+// on the target row.
+func (t *Tree) rowKey(c Context, key string) error {
+	if key == "" {
+		return errors.New("no key to run on the row")
+	}
+	if t.editing == "" {
+		focus := t.target(c)
+		if focus == "" {
+			return errors.New("tree has no selected node")
+		}
+		_, err := t.r.dispatchIn(focus, ModeState{Name: "normal"}, MacroKey{Key: key})
+		return err
+	}
+	in := t.input
+	start, end, selected := in.SelectedText()
+	if !selected {
+		start, end = in.Cursor, in.Cursor
+	}
+	if err := t.closeLine(true); err != nil {
+		return err
+	}
+	_, err := t.r.dispatchIn(t.r.Focus, ModeState{Name: "normal"}, MacroKey{Key: key})
+	if t.r.Pending != "" {
+		t.r.CancelPendingBinding() // a prefix row in normal mode: no sequence goes on from a line
+	}
+	row := t.r.Focus
+	if t.r.rows[row] != t.list.id || t.index(row) < 0 || t.editing != "" {
+		return err
+	}
+	if oerr := t.openLine(row, false); oerr != nil {
+		return errors.Join(err, oerr)
+	}
+	n := len(t.input.Text)
+	start, end = min(start, n), min(end, n)
+	if selected && end > start {
+		return errors.Join(err, t.input.SelectText(start, end))
+	}
+	t.input.Cursor = end
+	return err
+}
+
 // move swaps a node with its previous or next sibling.
 func (t *Tree) move(c Context, delta int) error {
 	if err := t.closeLine(false); err != nil {
@@ -1490,13 +1541,15 @@ func registerTrees(r *Runtime) {
 		Verb("undo", edit(func(t *Tree, c Ctx) error { return t.history(false) }), "Undo the last change; the undo is written like any change").When("tree-editable").
 		Verb("redo", edit(func(t *Tree, c Ctx) error { return t.history(true) }), "Redo the last undone change").When("tree-editable").
 		Verb("paste", edit(func(t *Tree, c Ctx) error { return t.paste(c.Context, StringArg(c.Args, "text", "")) }), "Add pasted lines below the node, nested by their indent").When("tree-editable").
+		Verb("row-key", edit(func(t *Tree, c Ctx) error { return t.rowKey(c.Context, StringArg(c.Args, "key", "")) }), "Run what key does on the line's row in normal mode (the row's own rows first), then go on editing the line where the cursor was: tab and shift+tab on an open line indent and outdent it, or do what the application binds them to on the row").When("tree-editable").
 		Verb("leave", edit(func(t *Tree, c Ctx) error { return t.closeLine(true) }), "Leave the line: it is written, never discarded").When("tree-editable").
 		Verb("next", edit(func(t *Tree, c Ctx) error { return t.add(c.Context, "below", "", false) }), "Write the line and start a new one below it").When("tree-editable")
 	params := map[string]map[string]Parameter{
-		"add":   {"where": {Type: "string", Enum: []string{"below", "above", "child"}}, "text": {Type: "string", Description: "the new line's text, a placeholder when select is set"}, "select": {Type: "boolean", Description: "open the line with its text selected: typing replaces it, esc or a motion keeps it"}},
-		"edit":  {"select": {Type: "boolean", Description: "open the line with its text selected: typing replaces it, esc or a motion keeps it; omitted, the rename.select setting decides"}},
-		"move":  {"delta": {Type: "integer", Required: true}},
-		"paste": {"text": {Type: "string", Required: true}},
+		"add":     {"where": {Type: "string", Enum: []string{"below", "above", "child"}}, "text": {Type: "string", Description: "the new line's text, a placeholder when select is set"}, "select": {Type: "boolean", Description: "open the line with its text selected: typing replaces it, esc or a motion keeps it"}},
+		"edit":    {"select": {Type: "boolean", Description: "open the line with its text selected: typing replaces it, esc or a motion keeps it; omitted, the rename.select setting decides"}},
+		"move":    {"delta": {Type: "integer", Required: true}},
+		"paste":   {"text": {Type: "string", Required: true}},
+		"row-key": {"key": {Type: "string", Required: true, Description: "the key, as bindings spell it, to run on the row in normal mode"}},
 	}
 	for verb, p := range params {
 		op := r.Operations["ochazuke.outline."+verb]

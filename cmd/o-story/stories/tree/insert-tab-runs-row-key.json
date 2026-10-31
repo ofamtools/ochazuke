@@ -1,0 +1,29 @@
+{
+  "name": "outline: tab and shift+tab on an open line run what they do on the row in normal mode (the row's own rows first), and the line stays open in insert with the cursor where it was",
+  "area": "tree",
+  "width": 60,
+  "height": 10,
+  "page": {
+    "trees": [
+      {"id": "t", "editable": true, "nodes": [
+        {"id": "a", "label": "alpha", "noun": "demo"},
+        {"id": "b", "label": "beta", "noun": "demo"}
+      ]}
+    ],
+    "verbs": [
+      {"verb": "demo.nest", "row": true},
+      {"verb": "demo.lift", "row": true}
+    ],
+    "bind": [
+      {"noun": "demo", "mode": "normal", "keys": "tab", "do": "demo.nest"},
+      {"noun": "demo", "mode": "normal", "keys": "shift+tab", "do": "demo.lift"}
+    ]
+  },
+  "values": {"rename.select": false},
+  "script": ["j", "i", "left", "left", "tab", {"type": "X"}, "shift+tab", {"type": "Y"}],
+  "expect": [
+    {"after": 5, "mode": "insert", "focus": "t/line", "writes": ["demo.nest row=b"]},
+    {"after": 6, "mode": "insert", "contains": ["beXta"]},
+    {"mode": "insert", "focus": "t/line", "contains": ["beXYta"], "writes": ["demo.nest row=b", "rename b: beXta", "demo.lift row=b"]}
+  ]
+}
