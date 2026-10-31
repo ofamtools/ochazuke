@@ -74,6 +74,10 @@ type settingsPage struct {
 	last    string
 	lastOf  map[string]string
 	narrow  bool
+	// searched is the section list's filter the settings lists last
+	// followed (settingsSectionFiltered): a settings list holding it (or
+	// none) follows the next one; one the user filtered itself keeps its own.
+	searched string
 	// undo is every change made on the page, oldest first; group is the
 	// step a settings.apply line is gathering (settingsGroup).
 	undo  []settingUndo
@@ -585,8 +589,28 @@ func settingItem(s *Settings, v SettingValue) ListItem {
 	}
 	return ListItem{
 		ID: settingRowPrefix + v.Name, Label: name + "  " + value, Noun: "ochazuke.setting", Data: v.Name,
-		Cells: []string{name, value}, Tones: tones, Section: v.Group,
+		Cells: []string{name, value}, Tones: tones, Section: v.Group, Search: settingSearch(s, v),
 	}
+}
+
+// settingSearch is the text the / filter finds a setting's row (and its
+// section's) by beside what the row draws, with settings.search-values
+// on: its name, description, value, default, saved value, choices and
+// group. None with it off: the row matches by its name and value, the
+// section row by its title.
+func settingSearch(s *Settings, v SettingValue) []string {
+	if !s.Bool(SettingsSearchValuesSetting) {
+		return nil
+	}
+	out := []string{v.Name, v.Description, settingCell(v.Value), settingCell(v.Default)}
+	if v.Saved != nil {
+		out = append(out, settingCell(v.Saved))
+	}
+	out = append(out, v.Enum...)
+	if v.Group != "" {
+		out = append(out, v.Group)
+	}
+	return out
 }
 
 // savedCell is the persisted value beneath a session value as the

@@ -38,6 +38,11 @@ type ListItem struct {
 	Tones   []ToneSpan `json:"tones,omitempty"`
 	// Classes are application-defined labels for list.next-class and previous-class.
 	Classes []string `json:"classes,omitempty"`
+	// Search is more text the / filter matches the row by, beside its
+	// label and cells, never drawn: what the row stands for (the Settings
+	// page's section row holds its settings' names, descriptions, values,
+	// defaults and choices).
+	Search []string `json:"search,omitempty"`
 }
 
 // List owns flat selection, marks and scrolling on the runtime's event loop.
@@ -88,6 +93,12 @@ type List struct {
 	// callback reapplies that view's text matching without list focus/motions.
 	filterChanged func()
 	filterFocus   string
+	// onFilter, when set (OnFilter), hears every change of the text
+	// filter: a host that draws something by the list's matches follows it.
+	onFilter func(*List)
+	// matchNoun names the rows in the empty line of a filter that lets
+	// none through (SetMatchNoun): "no settings match 'path'".
+	matchNoun string
 
 	// motion is a component's own j/k on the rows (a timeline's cards
 	// scroll by the half-page rule, R3.14); nil moves the list's way.
@@ -224,6 +235,7 @@ func cloneItems(items []ListItem) []ListItem {
 	for i, it := range items {
 		out[i].Props = maps.Clone(it.Props)
 		out[i].Classes = slices.Clone(it.Classes)
+		out[i].Search = slices.Clone(it.Search)
 		if it.Cells != nil {
 			n := len(cellBuf)
 			cellBuf = append(cellBuf, it.Cells...)
@@ -241,7 +253,7 @@ func cloneItems(items []ListItem) []ListItem {
 // cloneItem is one row with its own Cells, Tones and Classes.
 func cloneItem(it ListItem) ListItem {
 	it.Cells, it.Tones = slices.Clone(it.Cells), slices.Clone(it.Tones)
-	it.Classes = slices.Clone(it.Classes)
+	it.Classes, it.Search = slices.Clone(it.Classes), slices.Clone(it.Search)
 	it.Props = maps.Clone(it.Props)
 	return it
 }
@@ -686,7 +698,9 @@ func (l *List) labelSegs(toned *Styles, item ListItem, text string, drawn int, g
 // lands (one thing stands out, UX review 2 F5).
 func (l *List) emptyLine() string {
 	text := "(empty list)"
-	if len(l.items) == 0 && l.Filtering() && !l.r.Settings().Bool("list.filter-strip") {
+	if len(l.items) == 0 && len(l.all) > 0 && l.matchNoun != "" && strings.TrimSpace(l.query) != "" {
+		text = fmt.Sprintf("no %s match '%s'", l.matchNoun, l.query)
+	} else if len(l.items) == 0 && l.Filtering() && !l.r.Settings().Bool("list.filter-strip") {
 		text = fmt.Sprintf("0 of %d (filtered)", len(l.all))
 	} else if len(l.all) > 0 {
 		text = "(no matches)" // every row is filtered out

@@ -340,3 +340,42 @@ func TestListFilterVerbsAreBuiltin(t *testing.T) {
 		}
 	}
 }
+
+// A row's Search text is matched as its label and cells are, never drawn;
+// OnFilter hears each change of the query; SetMatchNoun names the rows in
+// the empty line of a filter that lets none through.
+func TestListFilterSearchTextOnFilterAndMatchNoun(t *testing.T) {
+	r := NewRuntime()
+	r.Define("n")
+	list, err := r.AddList("l", []ListItem{
+		{ID: "a", Label: "alpha", Noun: "n", Search: []string{"hidden words"}},
+		{ID: "b", Label: "beta", Noun: "n"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var heard []string
+	list.OnFilter(func(l *List) { heard = append(heard, l.Filter()) })
+	list.SetFilter("hidden")
+	if list.Shown() != 1 || list.items[0].ID != "a" {
+		t.Fatalf("Search text not matched: %v", list.items)
+	}
+	if strings.Contains(list.View(30, 3), "words") {
+		t.Fatal("Search text is drawn")
+	}
+	list.SetFilter("zzz")
+	if got := ansi.Strip(list.emptyLine()); got != "(no matches)" {
+		t.Fatalf("empty line %q", got)
+	}
+	list.SetMatchNoun("things")
+	if got := ansi.Strip(list.emptyLine()); got != "no things match 'zzz'" {
+		t.Fatalf("empty line %q", got)
+	}
+	list.SetFilter("")
+	if !reflect.DeepEqual(heard, []string{"hidden", "zzz", ""}) {
+		t.Fatalf("OnFilter heard %q", heard)
+	}
+	if items := list.Items(); !reflect.DeepEqual(items[0].Search, []string{"hidden words"}) {
+		t.Fatalf("Items drops Search: %v", items[0])
+	}
+}

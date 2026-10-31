@@ -43,6 +43,12 @@ const (
 	// SettingsNarrowWidthSetting is the page width below which the section
 	// list folds into a selector line; 0 never folds.
 	SettingsNarrowWidthSetting = "settings.narrow-width"
+	// SettingsSearchValuesSetting makes the page's / filters search every
+	// setting: a section row matches by its settings' names, descriptions,
+	// values, defaults and choices, the section list's filter spans every
+	// tab, and the settings pane shows the shown section's matches. Off,
+	// a section row matches by its title alone (the page before it).
+	SettingsSearchValuesSetting = "settings.search-values"
 
 	settingsSectionNoun  = "ochazuke.settings-section"
 	settingsTabNoun      = "ochazuke.settings-tab"
@@ -204,6 +210,7 @@ func refreshSettingsPage(r *Runtime) {
 				continue
 			}
 		}
+		list.SetMatchNoun("settings")
 		// No titles, so no header. The name column is as wide as the
 		// longest name and its dot (up to 30 cells, then a name is cut),
 		// whether a dot shows or not, so a change never moves the values;
@@ -234,10 +241,36 @@ func syncSectionList(r *Runtime, key string) {
 		return
 	}
 	s := r.Settings()
+	list := r.List(settingsSectionsID)
+	if list == nil {
+		var err error
+		if list, err = r.AddList(settingsSectionsID, nil, Parent(SettingsPageID), NoMarks(), SpillToSelection()); err != nil {
+			return
+		}
+	}
+	values := s.searchValues()
+	list.OnFilter(settingsSectionFiltered)
+	list.SetMatchNoun("sections")
 	units := settingUnits(s)
 	shown, _ := unitOf(units, key)
 	listed := listedUnits(s, units, shown)
 	headings := settingsLayout(s) == SettingsLayoutSections
+	if values && list.Filter() != "" && settingsLayout(s) == SettingsLayoutTabsSections {
+		// A search spans every tab: every owner's sections, each under its
+		// owner's heading when there is more than one.
+		listed, headings = units, len(s.tabs()) > 1
+	}
+	var search map[string][]string
+	if values {
+		list.SetMatchNoun("settings")
+		search = map[string][]string{}
+		for _, v := range s.List() {
+			search[v.Name] = settingSearch(s, v)
+			if items, ok := v.Value.([]string); ok {
+				search[v.Name] = append(search[v.Name], items...)
+			}
+		}
+	}
 	items := make([]ListItem, 0, len(listed))
 	titles, counts := 0, 0
 	for _, u := range listed {
@@ -248,19 +281,57 @@ func syncSectionList(r *Runtime, key string) {
 		if headings {
 			item.Section = u.OwnerTitle
 		}
-		items = append(items, item)
-	}
-	list := r.List(settingsSectionsID)
-	if list == nil {
-		var err error
-		if list, err = r.AddList(settingsSectionsID, nil, Parent(SettingsPageID), NoMarks(), SpillToSelection()); err != nil {
-			return
+		if values {
+			item.Search = append(item.Search, u.ID, u.Description)
+			for _, name := range u.Settings {
+				item.Search = append(item.Search, search[name]...)
+			}
 		}
+		items = append(items, item)
 	}
 	list.SetColumns(Column{Min: max(titles, 4), Priority: 1}, Column{Width: max(counts, 1), Align: AlignRight})
 	_ = list.SetItems(items)
 	if !list.Focused() && shown.ID != "" && slices.ContainsFunc(items, func(it ListItem) bool { return it.ID == settingSectionPrefix+key }) {
 		_ = list.Select(settingSectionPrefix + key)
+	}
+}
+
+// searchValues reports whether the page's filters search every setting
+// (settings.search-values).
+func (s *Settings) searchValues() bool { return s.Bool(SettingsSearchValuesSetting) }
+
+// settingsSectionFiltered follows the section list's filter (its OnFilter,
+// with settings.search-values on): the list spans every tab while it
+// filters and the shown tab again when it clears, and each section's
+// settings list takes the same query and match mode, so the settings pane
+// shows the shown section's matching settings. A section that shows by
+// its own title or line, none of its settings matching, shows all of
+// them. A settings list the user filtered itself keeps its filter.
+func settingsSectionFiltered(sections *List) {
+	r := sections.r
+	s := r.Settings()
+	if r.Instances[SettingsPageID] == nil || !s.searchValues() {
+		return
+	}
+	query := sections.Filter()
+	key := currentSection(r)
+	if query == "" && sections.back != "" {
+		// esc in the line: the list narrows to the tab of the row it opened on.
+		key = strings.TrimPrefix(sections.back, settingSectionPrefix)
+	}
+	syncSectionList(r, key)
+	previous := s.page.searched
+	s.page.searched = query
+	for _, u := range settingUnits(s) {
+		list := r.List(settingsListID(u.key()))
+		if list == nil || list.Filter() != "" && list.Filter() != previous {
+			continue
+		}
+		list.match = sections.match
+		list.SetFilter(query)
+		if query != "" && list.Shown() == 0 && sections.shows(settingSectionPrefix+u.key()) {
+			list.SetFilter("")
+		}
 	}
 }
 
