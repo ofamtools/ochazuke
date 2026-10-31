@@ -734,7 +734,7 @@ Root package `ochazuke` is flat: 137 source files, 161 test files. Each entry li
 
 ### runtime.go
 
-- lines: 1257 · tests: runtime_test.go
+- lines: 1262 · tests: runtime_test.go
 - purpose: Arguments are a request's named arguments, keyed by parameter name.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
 - methods: Context(1), Operation(5), Request(4), Runtime(19)
@@ -1081,7 +1081,7 @@ Root package `ochazuke` is flat: 137 source files, 161 test files. Each entry li
 
 ## Package cli
 
-Importable package `cli`: 35 source files, 34 test files.
+Importable package `cli`: 37 source files, 35 test files.
 
 ### cli/agent_metadata.go
 
@@ -1093,12 +1093,20 @@ Importable package `cli`: 35 source files, 34 test files.
 
 ### cli/catalog.go
 
-- lines: 499
+- lines: 517
 - purpose: CatalogDoc is the catalog answer: what a runtime registers, grouped by noun, in the runtime's own JSON shapes (ochazuke.Parameter and ochazuke.Binding unchan...
 - types: CatalogDoc, CatalogNoun, CatalogVerb
 - methods: CatalogDoc(5), CatalogNoun(1)
 - funcs: Catalog, Namespace, Local, ExtensionNamespace
-- leans on: agent_metadata.go(7), page.go(4), statecache.go(4), segments.go(2)
+- leans on: agent_metadata.go(8), commands.go(4), page.go(4), statecache.go(4)
+
+### cli/catalog_extensions.go
+
+- lines: 60
+- purpose: CatalogExtension preserves a mounted app's own words and the local names of its nouns.
+- types: CatalogExtension
+- funcs: MountCatalog
+- leans on: agent_metadata.go(6), host_mount.go(3), catalog.go(1)
 
 ### cli/catalog_inspect.go
 
@@ -1190,18 +1198,26 @@ Importable package `cli`: 35 source files, 34 test files.
 
 ### cli/host_mount.go
 
-- lines: 262 · tests: host_mount_test.go
+- lines: 263 · tests: host_mount_test.go
 - purpose: HostMount says how a host (mtm, nabe) mounts an extension's catalog nouns into its own runtime with MountNouns: the host's name for each catalog noun and the...
 - types: HostMount, MountedNouns
 - funcs: MountNouns, MountParameter
 - leans on: catalog.go(6), agent_metadata.go(2)
 
+### cli/instructions.go
+
+- lines: 121 · tests: instructions_test.go
+- purpose: InstructionTokens estimates tokens without a model-specific tokenizer.
+- methods: CatalogDoc(1)
+- funcs: InstructionTokens, AgentInstructions
+- leans on: agent_metadata.go(9), catalog.go(3), catalog_extensions.go(1)
+
 ### cli/mcp_backend.go
 
-- lines: 549 · tests: mcp_backend_test.go
+- lines: 584 · tests: mcp_backend_test.go
 - purpose: NewMCPServer binds an agent identity from the startup environment.
-- methods: Shell(7), mcpBackend(5), mcpSink(4)
-- leans on: catalog.go(9), shell.go(9), agent_metadata.go(6), statecache.go(4)
+- methods: Shell(9), mcpBackend(5), mcpSink(4)
+- leans on: catalog.go(11), shell.go(11), statecache.go(5), agent_metadata.go(2)
 
 ### cli/mount.go
 
@@ -1209,7 +1225,7 @@ Importable package `cli`: 35 source files, 34 test files.
 - purpose: Mount maps the runtime registry to oden command groups and operation metadata.
 - methods: Shell(2), nounGroup(6)
 - funcs: Mount
-- leans on: catalog.go(3), shell.go(3), statecache.go(1)
+- leans on: catalog.go(4), commands.go(4), shell.go(3), odencommands.go(1)
 
 ### cli/odencommands.go
 
@@ -1283,7 +1299,7 @@ Importable package `cli`: 35 source files, 34 test files.
 
 ### cli/shell.go
 
-- lines: 971
+- lines: 974
 - purpose: Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--format F] [--yes]: one registered operation in this process through the run...
 - types: Shell
 - methods: Shell(15), stderrSink(5)
@@ -1397,7 +1413,7 @@ Importable package `cli/inspect`: 6 source files, 2 test files.
 
 ## Package cli/mcp
 
-Importable package `cli/mcp`: 3 source files, 1 test files.
+Importable package `cli/mcp`: 4 source files, 1 test files.
 
 ### cli/mcp/mcp.go
 
@@ -1407,6 +1423,10 @@ Importable package `cli/mcp`: 3 source files, 1 test files.
 - methods: Server(3), argumentError(1)
 - funcs: New, DefaultTools
 - leans on: validate.go(1)
+
+### cli/mcp/preamble.go
+
+- lines: 8
 
 ### cli/mcp/server.go
 
@@ -2114,6 +2134,7 @@ Exported type -> file.
 - cli.CatalogDetailField -> cli/detail_sections.go
 - cli.CatalogDetailSection -> cli/detail_sections.go
 - cli.CatalogDoc -> cli/catalog.go
+- cli.CatalogExtension -> cli/catalog_extensions.go
 - cli.CatalogList -> cli/page.go
 - cli.CatalogNoun -> cli/catalog.go
 - cli.CatalogOption -> cli/agent_metadata.go

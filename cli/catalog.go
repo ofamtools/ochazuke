@@ -65,12 +65,13 @@ const Schema = 1
 // CatalogWidget: kv, status, table) are drawn above its lists by the
 // framework from their sources' JSON answers.
 type CatalogDoc struct {
-	Schema     int    `json:"schema"`
-	Name       string `json:"name"`
-	Version    string `json:"version"`
-	About      string `json:"about,omitempty"`
-	AgentRules string `json:"agentRules,omitempty"`
-	State      string `json:"state,omitempty"`
+	Schema     int                `json:"schema"`
+	Name       string             `json:"name"`
+	Version    string             `json:"version"`
+	About      string             `json:"about,omitempty"`
+	AgentRules string             `json:"agentRules,omitempty"`
+	Extensions []CatalogExtension `json:"extensions,omitempty"`
+	State      string             `json:"state,omitempty"`
 	// StateDelta is the state delta protocol version (StateDeltaVersion), 0 for none.
 	StateDelta int `json:"stateDelta,omitempty"`
 	// Commands records the mounted CLI's effective names, aliases and losing
@@ -324,6 +325,9 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 	for _, opt := range opts {
 		opt(&doc)
 	}
+	if err := doc.ValidateAgentText(); err != nil {
+		return nil, err
+	}
 	// One entry per noun, nouns by name and each noun's verbs by name: the
 	// operations sorted by key interleave a noun's verbs with the nouns
 	// nested under it (app.quit, app.rows.list, app.state), so they are
@@ -339,6 +343,9 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 		if n := len(doc.Nouns); n == 0 || doc.Nouns[n-1].Name != op.Noun {
 			noun := CatalogNoun{Name: op.Noun}
 			if n := r.Nouns[op.Noun]; n != nil {
+				if !op.CatalogProxy && InstructionTokens(n.About) > AgentTextLimit {
+					return nil, fmt.Errorf("%s about exceeds %d tokens (chars/4)", op.Noun, AgentTextLimit)
+				}
 				noun.About = n.About
 				noun.Pin, noun.Columns = n.Pin, slices.Clone(n.Columns)
 				noun.Filters = slices.Clone(n.Filters)
@@ -430,6 +437,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 	}
 	doc.Pages = declaredPages(r)
 	doc.Sides = declaredSides(r)
+	doc.Extensions = declaredExtensions(r)
 	if err := doc.ValidateSides(); err != nil {
 		return nil, err
 	}
