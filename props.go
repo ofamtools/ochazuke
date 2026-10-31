@@ -7,6 +7,7 @@ import (
 	"maps"
 	"slices"
 	"strings"
+	"time"
 )
 
 // Props and stores: the record side of a noun. A noun declares its props
@@ -612,6 +613,22 @@ func propValue(p PropSpec, value any) (any, error) {
 // the prop when it can be, then compared in their JSON form (so 2 and
 // 2.0, or "2" and 2 for an integer prop, are equal).
 func sameProp(p PropSpec, a, b any) bool {
+	left, leftErr := propValue(p, a)
+	right, rightErr := propValue(p, b)
+	if leftErr == nil && rightErr == nil {
+		switch l := left.(type) {
+		case string:
+			return l == right
+		case bool:
+			return l == right
+		case int:
+			return l == right
+		case float64:
+			return l == right
+		case time.Duration:
+			return l == right
+		}
+	}
 	form := func(v any) string {
 		if typed, err := propValue(p, v); err == nil {
 			v = typed

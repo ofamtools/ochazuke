@@ -49,10 +49,10 @@ type List struct {
 	query       string       // the filter query; "" shows every row
 	propFilters []PropFilter // typed prop conditions, ANDed with the text query
 	savedFilter string       // the applied saved filter's name; empty after an ad-hoc change
-	hay         []string     // each row's filter text (filterHay), built on the first filter; nil after SetItems
-	hayFold     bool         // hay was built case-folded (CaseMatch.Fold); a query that changes it rebuilds hay
-	match       string       // the filter's match mode set by search.cycle-match/set-match; "" is search.match (search_match.go)
-	back        string       // the row selected when the filter line opened, which filter-clear selects again
+	rowCache    map[string]*filterRow
+	nouns       []string
+	match       string // the filter's match mode set by search.cycle-match/set-match; "" is search.match (search_match.go)
+	back        string // the row selected when the filter line opened, which filter-clear selects again
 	selected    int
 	offset      int
 	marks       map[string]bool
@@ -151,11 +151,21 @@ func (l *List) SetItems(items []ListItem) error {
 	gone := map[string]bool{}
 	var drop []string
 	for _, old := range l.all {
-		if !ids[old.ID] {
+		if !ids[old.ID] && !l.treeHasNode(old.ID) {
 			gone[old.ID] = true
 			delete(l.marks, old.ID)
 			delete(l.base, old.ID)
 			drop = append(drop, old.ID)
+		}
+	}
+	if t := l.tree(); t != nil {
+		for id, owner := range l.r.rows {
+			if owner == l.id && !ids[id] && t.index(id) < 0 && !gone[id] {
+				gone[id] = true
+				delete(l.marks, id)
+				delete(l.base, id)
+				drop = append(drop, id)
+			}
 		}
 	}
 	l.r.removeInstances(drop)
@@ -173,11 +183,12 @@ func (l *List) SetItems(items []ListItem) error {
 	if !sameCells(l.all, items) {
 		l.widest = nil // a table remeasures; rows drawing the same cells keep the widths
 	}
-	l.all, l.hay = cloneItems(items), nil
+	l.all = cloneItems(items)
+	l.cacheRows()
 	// The filter applies to the new rows; the selection stays on its row
 	// when it still shows, else on the shown row nearest its old index.
 	l.refilter(previous.ID)
-	if l.selected >= 0 && l.items[l.selected].ID != previous.ID || l.selected < 0 && len(l.items) > 0 {
+	if (l.tree() == nil || !l.treeHasNode(previous.ID)) && (l.selected >= 0 && l.items[l.selected].ID != previous.ID || l.selected < 0 && len(l.items) > 0) {
 		l.selected = min(max(at, 0), len(l.items)-1)
 	}
 	l.syncVisual()
@@ -321,7 +332,7 @@ func (l *List) Select(id string) error {
 func (l *List) selectID(id string) {
 	at := func(item ListItem) bool { return item.ID == id }
 	i := slices.IndexFunc(l.items, at)
-	if i < 0 && l.query != "" {
+	if i < 0 && (l.query != "" || len(l.propFilters) > 0) {
 		l.reveal(id)
 		i = slices.IndexFunc(l.items, at)
 	}
@@ -616,7 +627,9 @@ func (l *List) labelSegs(toned *Styles, item ListItem, text string, drawn int, g
 // lands (one thing stands out, UX review 2 F5).
 func (l *List) emptyLine() string {
 	text := "(empty list)"
-	if len(l.all) > 0 {
+	if len(l.items) == 0 && l.Filtering() && !l.r.Settings().Bool("list.filter-strip") {
+		text = fmt.Sprintf("0 of %d (filtered)", len(l.all))
+	} else if len(l.all) > 0 {
 		text = "(no matches)" // every row is filtered out
 	}
 	if l.Focused() {

@@ -371,7 +371,7 @@ Root package `ochazuke` is flat: 129 source files, 152 test files. Each entry li
 
 ### list.go
 
-- lines: 742 · tests: list_test.go
+- lines: 755 · tests: list_test.go
 - purpose: ListItem is application-owned identity, display text, and the registered noun the row answers to.
 - types: ListItem, List
 - methods: List(29), Runtime(1)
@@ -389,10 +389,10 @@ Root package `ochazuke` is flat: 129 source files, 152 test files. Each entry li
 
 ### list_filter.go
 
-- lines: 379 · tests: list_filter_test.go
+- lines: 380 · tests: list_filter_test.go
 - purpose: filterOpenRow is the row that opens the filter line: "/" on app in normal mode guarded by list-filterable, like J/K detail, so an application's own "/" on an...
 - methods: List(15), Runtime(1)
-- leans on: list.go(36), runtime.go(32), instance.go(7), resolve.go(5)
+- leans on: list.go(38), runtime.go(32), instance.go(7), resolve.go(5)
 
 ### list_motions.go
 
@@ -403,10 +403,10 @@ Root package `ochazuke` is flat: 129 source files, 152 test files. Each entry li
 
 ### list_prop_filter.go
 
-- lines: 413
+- lines: 578
 - purpose: PropFilters returns a copy of the list's active prop conditions.
-- methods: List(12), Runtime(1), Tree(1)
-- leans on: runtime.go(33), list.go(27), prop_filter.go(14), chooser.go(12)
+- methods: List(20), Runtime(1), Tree(1)
+- leans on: runtime.go(45), list.go(43), noun.go(18), prop_filter.go(18)
 
 ### list_visual.go
 
@@ -621,15 +621,15 @@ Root package `ochazuke` is flat: 129 source files, 152 test files. Each entry li
 
 ### prop_filter.go
 
-- lines: 246 · tests: prop_filter_test.go
+- lines: 287 · tests: prop_filter_test.go
 - purpose: PropFilter is one typed condition on a noun's props.
 - types: PropFilter, SavedFilter
-- methods: NounBuilder(1), Runtime(1), SavedFilter(1)
-- leans on: noun.go(8), props.go(8), query.go(6), list.go(3)
+- methods: NounBuilder(1), Runtime(1), SavedFilter(1), Settings(1)
+- leans on: noun.go(9), props.go(8), query.go(6), list.go(4)
 
 ### props.go
 
-- lines: 832
+- lines: 849
 - purpose: PropSpec is one field of a noun's things.
 - types: PropSpec, Thing, ListQuery, Store
 - methods: Noun(5), NounBuilder(2), PropSpec(2), Runtime(15)
@@ -754,7 +754,7 @@ Root package `ochazuke` is flat: 129 source files, 152 test files. Each entry li
 
 ### settings.go
 
-- lines: 1057 · tests: settings_test.go
+- lines: 1058 · tests: settings_test.go
 - purpose: Setting is one declared user preference: its name, type, default, the line the settings list shows and, for a string, the allowed values.
 - types: Setting, SettingValue, Settings, SettingsPollMsg
 - methods: Model(1), Runtime(2), Settings(34)
@@ -762,7 +762,7 @@ Root package `ochazuke` is flat: 129 source files, 152 test files. Each entry li
 
 ### settings_defaults.go
 
-- lines: 271
+- lines: 272
 - purpose: startupSettings are the rows of startupSettingsFile.
 - methods: Runtime(7)
 - leans on: settings.go(10), runtime.go(7), theme.go(4), configuration.go(2)
@@ -975,10 +975,10 @@ Root package `ochazuke` is flat: 129 source files, 152 test files. Each entry li
 
 ### tree.go
 
-- lines: 1456 · tests: tree_test.go
+- lines: 1494 · tests: tree_test.go
 - purpose: TreeNode is one node of a tree.
 - types: TreeNode, TreeChange, TreeDebounceMsg, TreeAction, Tree
-- methods: Runtime(3), Tree(65), TreeChange(1), TreeNode(1)
+- methods: Runtime(3), Tree(67), TreeChange(1), TreeNode(1)
 - leans on: instance.go(58), runtime.go(37), block.go(33), delivery.go(29)
 
 ### tree_zoom.go

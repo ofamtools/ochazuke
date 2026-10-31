@@ -1,0 +1,145 @@
+{
+  "name": "tree text filter keeps deep selection and returns from zero matches without showing ancestors",
+  "width": 100,
+  "height": 16,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "nouns": [
+      {
+        "noun": "note",
+        "props": [
+          {
+            "name": "by"
+          },
+          {
+            "name": "status"
+          }
+        ],
+        "filters": [
+          {
+            "name": "mine",
+            "where": {
+              "by": "owner"
+            }
+          },
+          {
+            "name": "agents",
+            "where": {
+              "by": "agent"
+            }
+          },
+          {
+            "name": "all"
+          }
+        ]
+      }
+    ],
+    "trees": [
+      {
+        "id": "notes",
+        "height": -1,
+        "collapsed": [],
+        "nodes": [
+          {
+            "id": "root",
+            "label": "Context root",
+            "noun": "note",
+            "data": {
+              "by": "agent"
+            }
+          },
+          {
+            "id": "parent",
+            "parent": "root",
+            "label": "Context parent",
+            "noun": "note",
+            "data": {
+              "by": "agent"
+            }
+          },
+          {
+            "id": "mine",
+            "parent": "parent",
+            "label": "My note",
+            "noun": "note",
+            "data": {
+              "by": "owner"
+            }
+          },
+          {
+            "id": "other",
+            "parent": "root",
+            "label": "Other note",
+            "noun": "note",
+            "data": {
+              "by": "agent"
+            }
+          },
+          {
+            "id": "unrelated",
+            "label": "Unrelated root",
+            "noun": "note",
+            "data": {
+              "by": "agent"
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "mine"
+  },
+  "script": [
+    "/",
+    {
+      "type": "My"
+    },
+    "enter",
+    "esc",
+    "/",
+    "z",
+    "backspace",
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "focus": "mine",
+      "contains": [
+        "My note"
+      ],
+      "lacks": [
+        "Context root",
+        "Context parent",
+        "Agent note"
+      ]
+    },
+    {
+      "after": 4,
+      "focus": "mine",
+      "contains": [
+        "Context parent",
+        "Other note"
+      ]
+    },
+    {
+      "after": 6,
+      "focus": "notes/list",
+      "contains": [
+        "no matches"
+      ]
+    },
+    {
+      "after": 7,
+      "focus": "mine"
+    },
+    {
+      "after": 8,
+      "focus": "mine"
+    },
+    {
+      "focus": "mine"
+    }
+  ],
+  "area": "tree"
+}

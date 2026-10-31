@@ -2,6 +2,8 @@ package ochazuke
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -122,6 +124,9 @@ func TestPropFilterPickerCycleAndStrip(t *testing.T) {
 	if l.savedFilter != "mine" || l.Shown() != 3 {
 		t.Fatalf("saved %s shown %d", l.savedFilter, l.Shown())
 	}
+	if hints := BindingHints(r, r.Focus); !strings.Contains(hints, "z / prop filter") || strings.Contains(hints, "z ! clear prop") {
+		t.Fatal(hints)
+	}
 	pressKeys(m, "z", "]")
 	if l.savedFilter != "agents" || l.Shown() != 2 {
 		t.Fatal("cycle agents")
@@ -196,9 +201,11 @@ func TestPropFilterSavedSettingsAndCLI(t *testing.T) {
 	if filters[0].Where["status"] != "doing" {
 		t.Fatal(filters)
 	}
-	_ = r.Settings().Set("list.filters", "broken")
-	if _, err := r.SavedFilters("", "task"); err == nil {
-		t.Fatal("invalid settings ignored")
+	if err := r.Settings().Set("list.filters", "broken"); err == nil || !strings.Contains(err.Error(), "JSON array") {
+		t.Fatalf("invalid setting write: %v", err)
+	}
+	if got := r.Settings().String("list.filters"); got != setting {
+		t.Fatal("invalid write replaced setting")
 	}
 }
 
@@ -364,5 +371,288 @@ func TestPropFilterStandardPositionalOrder(t *testing.T) {
 	op, _ = r.Operation("task.list")
 	if want := []string{"project", "limit", "props", "where", "filter"}; !reflect.DeepEqual(op.ParameterOrder(), want) {
 		t.Fatalf("order %v want %v", op.ParameterOrder(), want)
+	}
+}
+
+func TestPropFilterFocusRevealsHiddenRow(t *testing.T) {
+	r, _, l := propFilterFixture(t)
+	for _, via := range []string{"focus.set", "job focus"} {
+		t.Run(via, func(t *testing.T) {
+			if err := l.ApplyFilter("mine"); err != nil {
+				t.Fatal(err)
+			}
+			if via == "focus.set" {
+				if _, err := r.Execute(Request{Noun: "focus", Verb: "set", Args: Arguments{"id": "r2"}}); err != nil {
+					t.Fatal(err)
+				}
+			} else if err := r.SetFocus("r2"); err != nil {
+				t.Fatal(err)
+			}
+			selected, _ := l.Selected()
+			if selected.ID != "r2" || r.Focus != "r2" || l.Shown() != 5 || len(l.PropFilters()) != 0 {
+				t.Fatalf("focus %s selected %s shown %d", r.Focus, selected.ID, l.Shown())
+			}
+		})
+	}
+}
+
+func propTreeFixture(t *testing.T) (*Runtime, *Tree) {
+	t.Helper()
+	r := NewRuntime()
+	r.Define("node").Props(PropSpec{Name: "by"})
+	tree, err := r.AddTree("tree", []TreeNode{
+		{ID: "root", Label: "Root", Noun: "node", Data: Thing{"by": "agent"}},
+		{ID: "mid", Parent: "root", Label: "Middle", Noun: "node", Data: Thing{"by": "agent"}},
+		{ID: "deep", Parent: "mid", Label: "Deep note", Noun: "node", Data: Thing{"by": "owner"}},
+		{ID: "other", Label: "Other", Noun: "node", Data: Thing{"by": "agent"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return r, tree
+}
+
+func TestPropFilterTreeSelectionMarksAndInstances(t *testing.T) {
+	r, tree := propTreeFixture(t)
+	l := tree.List()
+	_ = tree.SetCollapsed("root", true)
+	if err := l.SetPropFilters([]PropFilter{{"by", "=", "owner"}}); err != nil {
+		t.Fatal(err)
+	}
+	_ = l.Select("deep")
+	_ = r.SetFocus("deep")
+	_ = l.ToggleMark("deep")
+	inst := r.Instances["deep"]
+	if err := l.SetPropFilters(nil); err != nil {
+		t.Fatal(err)
+	}
+	selected, _ := l.Selected()
+	if selected.ID != "root" || r.Focus != "root" {
+		t.Fatalf("selected %s focus %s", selected.ID, r.Focus)
+	}
+	if !l.marks["deep"] || r.Instances["deep"] != inst {
+		t.Fatal("hidden node lost its mark or instance")
+	}
+	_ = tree.SetCollapsed("root", false)
+	_ = l.Select("deep")
+	l.SetFilter("Deep")
+	l.SetFilter("")
+	selected, _ = l.Selected()
+	if selected.ID != "deep" {
+		t.Fatal("clearing text jumped from the deep row")
+	}
+	l.back = "deep"
+	l.SetFilter("nothing")
+	l.SetFilter("")
+	selected, _ = l.Selected()
+	if selected.ID != "deep" {
+		t.Fatal("widening lost the starting row")
+	}
+	nodes := tree.Nodes()[:2]
+	if err := tree.SetNodes(nodes); err != nil {
+		t.Fatal(err)
+	}
+	if l.marks["deep"] || r.Instances["deep"] != nil {
+		t.Fatal("deleted node retained mark or instance")
+	}
+	selected, _ = l.Selected()
+	if selected.ID != "mid" {
+		t.Fatal("deleting a node lost the nearest-index fallback")
+	}
+}
+
+func TestPropFilterTreeFoldsAndTextCompatibility(t *testing.T) {
+	_, tree := propTreeFixture(t)
+	l := tree.List()
+	_ = tree.SetCollapsed("root", true)
+	l.SetFilter("Deep")
+	if l.Shown() != 0 {
+		t.Fatal("text filter expanded a collapsed node")
+	}
+	l.SetFilter("")
+	_ = tree.SetCollapsed("root", false)
+	l.SetFilter("Deep")
+	if got := shownIDs(l); !reflect.DeepEqual(got, []string{"deep"}) {
+		t.Fatal(got)
+	}
+	l.SetFilter("")
+	_ = tree.SetCollapsed("root", true)
+	if err := l.SetPropFilters([]PropFilter{{"by", "=", "owner"}}); err != nil {
+		t.Fatal(err)
+	}
+	_ = tree.SetCollapsed("mid", true)
+	if got := shownIDs(l); !reflect.DeepEqual(got, []string{"root", "mid"}) {
+		t.Fatal(got)
+	}
+	_ = tree.SetCollapsed("mid", false)
+	if l.Shown() != 3 {
+		t.Fatal("expanding filtered context had no visible effect")
+	}
+	_ = l.SetPropFilters(nil)
+	if !tree.Collapsed("root") || tree.Collapsed("mid") {
+		t.Fatal("filter folds changed original collapse state")
+	}
+}
+
+func TestPropFilterCycleInvalidAndEmpty(t *testing.T) {
+	r, m, l := propFilterFixture(t)
+	if err := r.Settings().Set("list.filters", `[{"name":"broken","noun":"a","where":{"missing":"x"}}]`); err != nil {
+		t.Fatal(err)
+	}
+	_ = l.ApplyFilter("all")
+	pressKeys(m, "z", "]")
+	if l.savedFilter != "mine" || !strings.Contains(m.Info, "Skipped saved filters: broken") {
+		t.Fatalf("saved %s info %s", l.savedFilter, m.Info)
+	}
+	_ = l.ApplyFilter("mine")
+	pressKeys(m, "z", "[")
+	if l.savedFilter != "all" || !strings.Contains(m.Info, "broken") {
+		t.Fatalf("reverse %s info %s", l.savedFilter, m.Info)
+	}
+	_ = r.Settings().Set("list.filter-strip", false)
+	_ = l.SetPropFilters([]PropFilter{{"by", "=", "none"}})
+	if text := ansi.Strip(l.View(60, max(1, l.Height()))); !strings.Contains(text, "0 of 5 (filtered)") {
+		t.Fatal(text)
+	}
+}
+
+func TestPropFilterMalformedSettingsLoad(t *testing.T) {
+	r := NewRuntime()
+	r.Config().Dir = t.TempDir()
+	if err := os.WriteFile(filepath.Join(r.Config().Dir, SettingsFile), []byte(`{"list.filters":"broken"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	problems := r.Settings().Problems()
+	if len(problems) != 1 || !strings.Contains(problems[0], "list.filters") || !strings.Contains(problems[0], "JSON array") {
+		t.Fatal(problems)
+	}
+	if r.Settings().String("list.filters") != "[]" {
+		t.Fatal("malformed setting not defaulted")
+	}
+}
+
+func TestPropFilterSavedManagement(t *testing.T) {
+	r, _, l := propFilterFixture(t)
+	r.Config().Dir = t.TempDir()
+	_ = l.ApplyFilter("agents")
+	for _, verb := range []string{"filter-save", "filters", "filter-saved-pick"} {
+		args := Arguments{"id": l.id}
+		if verb == "filter-save" {
+			args["name"] = "local"
+		}
+		if _, err := r.Execute(Request{Noun: "list", Verb: verb, Args: args}); err != nil {
+			t.Fatalf("%s: %v", verb, err)
+		}
+	}
+	if c := r.Chooser("list-filter-saved"); c == nil || len(c.Matches()) != 4 {
+		t.Fatal("saved filter chooser missing definitions")
+	}
+	_ = r.Pop()
+	_ = l.SetPropFilters(nil)
+	if err := l.ApplyFilter("local"); err != nil || l.Shown() != 2 {
+		t.Fatalf("apply: %v shown %d", err, l.Shown())
+	}
+	fresh := NewRuntime()
+	fresh.Config().Dir = r.Config().Dir
+	filters, err := fresh.SavedFilters(l.id, "a")
+	if err != nil || len(filters) != 1 || filters[0].Name != "local" {
+		t.Fatalf("persisted %+v %v", filters, err)
+	}
+	if _, err := r.Execute(Request{Noun: "list", Verb: "filter-saved-delete", Args: Arguments{"id": l.id, "name": "local"}}); err != nil {
+		t.Fatal(err)
+	}
+	filters, err = l.SavedFilters()
+	if err != nil || len(filters) != 3 {
+		t.Fatalf("delete %+v %v", filters, err)
+	}
+}
+
+type countingFilterData struct {
+	calls *int
+	By    string
+}
+
+func (d countingFilterData) MarshalJSON() ([]byte, error) {
+	*d.calls++
+	return json.Marshal(Thing{"by": d.By})
+}
+
+func TestPropFilterCachesAndVisibility(t *testing.T) {
+	r, _, l := propFilterFixture(t)
+	calls := 0
+	items := l.Items()
+	for i := range items {
+		items[i].Data = countingFilterData{&calls, "owner"}
+	}
+	_ = l.SetItems(items)
+	r.DefineGuard("at-list", func(_ *Runtime, ev KeyEvent) bool { return ev.Focus == l.id })
+	r.Noun("a").prop("by").When = "at-list"
+	_ = l.SetPropFilters([]PropFilter{{"by", "=", "owner"}})
+	if l.Shown() != 5 {
+		t.Fatal("matcher used a different visibility focus")
+	}
+	decoded := calls
+	for _, q := range []string{"a", "al", "", "z", ""} {
+		l.SetFilter(q)
+		BindingHints(r, r.Focus)
+	}
+	if calls != decoded || decoded != 5 {
+		t.Fatalf("decoded %d times, want 5", calls)
+	}
+	if err := l.pickPropFilter("by"); err != nil {
+		t.Fatal(err)
+	}
+	_ = r.Pop()
+	items[0].Data = countingFilterData{&calls, "agent"}
+	_ = l.SetItems(items)
+	if l.Shown() != 4 {
+		t.Fatal("SetItems did not invalidate cached props")
+	}
+	if l.matchApplies() {
+		t.Fatal("prop-only filter enables text match-mode keys")
+	}
+	l.SetFilter("a")
+	if !l.matchApplies() {
+		t.Fatal("text filter lost match-mode keys")
+	}
+}
+
+func TestPropFilterTreeCacheInvalidation(t *testing.T) {
+	_, tree := propTreeFixture(t)
+	calls := 0
+	nodes := tree.Nodes()
+	for i := range nodes {
+		nodes[i].Data = countingFilterData{&calls, "owner"}
+	}
+	_ = tree.SetNodes(nodes)
+	_ = tree.List().SetPropFilters([]PropFilter{{"by", "=", "owner"}})
+	decoded := calls
+	for _, q := range []string{"D", "De", "Deep", ""} {
+		tree.List().SetFilter(q)
+	}
+	if calls != decoded || decoded != 4 {
+		t.Fatalf("tree refilter decoded %d times", calls)
+	}
+	nodes[2].Data = countingFilterData{&calls, "agent"}
+	_ = tree.SetNodes(nodes)
+	if tree.List().shows("deep") {
+		t.Fatal("node change kept stale cached props")
+	}
+}
+
+func TestPropFilterTreeExpandKeepsFilter(t *testing.T) {
+	r, tree := propTreeFixture(t)
+	nodes := tree.Nodes()
+	nodes = append(nodes[:1], append([]TreeNode{{ID: "hidden-first", Parent: "root", Label: "Hidden", Noun: "node", Data: Thing{"by": "agent"}}}, nodes[1:]...)...)
+	if err := tree.SetNodes(nodes); err != nil {
+		t.Fatal(err)
+	}
+	_ = tree.List().SetPropFilters([]PropFilter{{"by", "=", "owner"}})
+	_ = r.SetFocus("root")
+	if _, err := r.Execute(Request{Noun: "outline", Verb: "expand"}); err != nil {
+		t.Fatal(err)
+	}
+	if r.Focus != "mid" || len(tree.List().PropFilters()) != 1 {
+		t.Fatalf("focus %s conditions %v", r.Focus, tree.List().PropFilters())
 	}
 }

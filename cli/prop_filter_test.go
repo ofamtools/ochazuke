@@ -98,3 +98,38 @@ func TestPropFilterCatalogPagePreservesForeignID(t *testing.T) {
 		t.Fatal("key prop must use foreign id, not instance id")
 	}
 }
+
+func TestPropFilterShellSavedManagementAndOrder(t *testing.T) {
+	r := ochazuke.NewRuntime()
+	r.Config().Dir = t.TempDir()
+	r.Define("note").Props(ochazuke.PropSpec{Name: "by"}).Filters(ochazuke.SavedFilter{Name: "all"})
+	l, err := r.AddList("notes", []ochazuke.ListItem{{ID: "a", Noun: "note", Data: ochazuke.Thing{"by": "owner"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l.SetPropFilters([]ochazuke.PropFilter{{Prop: "by", Value: "owner"}}); err != nil {
+		t.Fatal(err)
+	}
+	var out, stderr bytes.Buffer
+	shell := New(r, "test", strings.NewReader(""), &out, &stderr)
+	for _, args := range [][]string{
+		{"list", "filter-save", "--id", "notes", "--name", "local"},
+		{"list", "filters", "--id", "notes"},
+		{"list", "filter-saved-delete", "--id", "notes", "--name", "local"},
+	} {
+		out.Reset()
+		if err := shell.Run(context.Background(), args); err != nil {
+			t.Fatalf("%v: %v", args, err)
+		}
+		if args[1] == "filters" && !strings.Contains(out.String(), `"name":"local"`) {
+			t.Fatal(out.String())
+		}
+	}
+	raw, err := json.Marshal(CatalogNoun{Name: "note", Props: []ochazuke.PropSpec{{Name: "by"}}, Filters: []ochazuke.SavedFilter{{Name: "all"}}, Verbs: []CatalogVerb{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Index(string(raw), `"props"`) > strings.Index(string(raw), `"filters"`) || !strings.HasPrefix(string(raw), `{"name":`) {
+		t.Fatal(string(raw))
+	}
+}

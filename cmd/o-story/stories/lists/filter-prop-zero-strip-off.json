@@ -1,0 +1,108 @@
+{
+  "width": 100,
+  "height": 16,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "nouns": [
+      {
+        "noun": "note",
+        "props": [
+          {
+            "name": "by"
+          },
+          {
+            "name": "status"
+          }
+        ],
+        "filters": [
+          {
+            "name": "mine",
+            "where": {
+              "by": "owner"
+            }
+          },
+          {
+            "name": "agents",
+            "where": {
+              "by": "agent"
+            }
+          },
+          {
+            "name": "all"
+          }
+        ]
+      }
+    ],
+    "lists": [
+      {
+        "id": "notes",
+        "height": -1,
+        "items": [
+          {
+            "id": "n1",
+            "label": "Owner alpha",
+            "noun": "note",
+            "data": {
+              "by": "owner",
+              "status": "todo"
+            }
+          },
+          {
+            "id": "n2",
+            "label": "Agent beta",
+            "noun": "note",
+            "data": {
+              "by": "agent",
+              "status": "todo"
+            }
+          },
+          {
+            "id": "n3",
+            "label": "Owner gamma",
+            "noun": "note",
+            "data": {
+              "by": "owner",
+              "status": "done"
+            }
+          }
+        ]
+      }
+    ],
+    "bind": [
+      {
+        "noun": "note",
+        "keys": "f",
+        "do": "ochazuke.list.filter-prop",
+        "args": {
+          "prop": "by",
+          "value": "nobody"
+        }
+      }
+    ]
+  },
+  "name": "prop filter strip opt out still explains zero rows",
+  "script": [
+    "f"
+  ],
+  "expect": [
+    {
+      "contains": [
+        "0 of 3 (filtered)"
+      ],
+      "lacks": [
+        "Owner alpha",
+        "Agent beta",
+        "[by"
+      ]
+    }
+  ],
+  "area": "lists",
+  "settings": [
+    {
+      "name": "list.filter-strip",
+      "type": "boolean",
+      "default": false
+    }
+  ]
+}

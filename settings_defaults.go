@@ -159,6 +159,7 @@ var frameworkSettingFiles = sync.OnceValue(func() map[string][]Setting {
 
 // settingChecks are the framework settings' Validate functions by name.
 var settingChecks = map[string]func(any) error{
+	"list.filters":         validSavedFilters,
 	SequenceTimeoutSetting: nonNegativeDuration,
 	TerminalLeaderSetting:  validLeader,
 	ModalDimSetting:        validDim,

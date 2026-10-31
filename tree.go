@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 	"strings"
 	"time"
@@ -155,13 +156,15 @@ func (t *Tree) Record(a TreeAction) error {
 // (The nouns are "outline", not "tree", so palette prefixes such as "tr"
 // stay unique in apps.)
 type Tree struct {
-	r         *Runtime
-	id        string
-	list      *List
-	nodes     []TreeNode
-	idx       *treeIndex // lookups over nodes, built on demand; nil after any change to their order or parents
-	collapsed map[string]bool
-	zoom      string // the node the view is zoomed on (tree_zoom.go); "" every level
+	r               *Runtime
+	id              string
+	list            *List
+	nodes           []TreeNode
+	idx             *treeIndex // lookups over nodes, built on demand; nil after any change to their order or parents
+	rowCache        map[string]*filterRow
+	filterCollapsed map[string]bool // folds explicitly changed while prop filters show context
+	collapsed       map[string]bool
+	zoom            string // the node the view is zoomed on (tree_zoom.go); "" every level
 
 	// OnChange makes the tree editable and receives each change as it is
 	// made; an error keeps the change on screen, marks the row and retries
@@ -308,7 +311,7 @@ func (t *Tree) SetNodes(nodes []TreeNode) error {
 		}
 	}
 	walk("")
-	t.nodes, t.idx = ordered, nil
+	t.nodes, t.idx, t.rowCache = ordered, nil, nil
 	return t.refresh("")
 }
 
@@ -317,7 +320,7 @@ func (t *Tree) SetCollapsed(id string, collapsed bool) error {
 	if t.index(id) < 0 {
 		return fmt.Errorf("unknown tree node %q", id)
 	}
-	t.collapsed[id] = collapsed
+	t.setCollapsed(id, collapsed)
 	return t.refresh("")
 }
 
@@ -325,7 +328,7 @@ func (t *Tree) SetCollapsed(id string, collapsed bool) error {
 func (t *Tree) CollapseAll() error {
 	for _, n := range t.nodes {
 		if t.hasChildren(n.ID) {
-			t.collapsed[n.ID] = true
+			t.setCollapsed(n.ID, true)
 		}
 	}
 	return t.refresh("")
@@ -333,6 +336,25 @@ func (t *Tree) CollapseAll() error {
 
 // Collapsed reports whether a node is collapsed.
 func (t *Tree) Collapsed(id string) bool { return t.collapsed[id] }
+
+// folded reads the filter's temporary folds while props reveal context.
+func (t *Tree) folded(id string) bool {
+	if len(t.list.propFilters) > 0 {
+		return t.filterCollapsed[id]
+	}
+	return t.collapsed[id]
+}
+
+func (t *Tree) setCollapsed(id string, folded bool) {
+	if len(t.list.propFilters) > 0 {
+		if t.filterCollapsed == nil {
+			t.filterCollapsed = map[string]bool{}
+		}
+		t.filterCollapsed[id] = folded
+	} else {
+		t.collapsed[id] = folded
+	}
+}
 
 // Selected is the node of the selected row.
 func (t *Tree) Selected() (TreeNode, bool) {
@@ -353,7 +375,7 @@ func (t *Tree) Select(id string) error {
 		return fmt.Errorf("unknown tree node %q", id)
 	}
 	for p := t.nodes[i].Parent; p != ""; p = t.parentOf(p) {
-		t.collapsed[p] = false
+		t.setCollapsed(p, false)
 	}
 	return t.refresh(id)
 }
@@ -461,7 +483,7 @@ func (t *Tree) subtreeEnd(i int) int {
 // visible reports whether no ancestor of a node is collapsed.
 func (t *Tree) visible(n TreeNode) bool {
 	for p := n.Parent; p != ""; p = t.parentOf(p) {
-		if t.collapsed[p] {
+		if t.folded(p) {
 			return false
 		}
 	}
@@ -473,7 +495,7 @@ func (t *Tree) prefix(n TreeNode) string {
 	marker := "  "
 	if t.hasChildren(n.ID) {
 		marker = "▾ "
-		if t.collapsed[n.ID] && len(t.list.propFilters) == 0 && strings.TrimSpace(t.list.query) == "" {
+		if t.folded(n.ID) {
 			marker = "▸ "
 		}
 	}
@@ -506,16 +528,28 @@ func shiftTones(tones []ToneSpan, prefix int) []ToneSpan {
 // refresh pushes the visible nodes to the list, selecting id when given.
 func (t *Tree) refresh(selectID string) error {
 	t.fitZoom(selectID)
+	cache := make(map[string]*filterRow, len(t.nodes))
+	for _, n := range t.nodes {
+		row := t.rowCache[n.ID]
+		if row == nil || !reflect.DeepEqual(row.node, n) {
+			noun := n.Noun
+			if noun == "" {
+				noun = t.RowNoun
+			}
+			row = &filterRow{node: n, item: ListItem{ID: n.ID, Label: n.Label, Noun: noun, Data: n.Data, Props: n.Props, Cells: n.Cells}}
+		}
+		cache[n.ID] = row
+	}
+	t.rowCache = cache
 	from, to := t.zoomRange()
 	items := make([]ListItem, 0, to-from)
-	filtering := len(t.list.propFilters) > 0 || strings.TrimSpace(t.list.query) != ""
 	for _, n := range t.nodes[from:to] {
-		if !filtering && !t.visible(n) {
+		if !t.visible(n) {
 			continue
 		}
 		noun := n.Noun
 		if noun == "" {
-			noun = TreeRowNoun
+			noun = t.RowNoun
 		}
 		prefix := t.prefix(n)
 		item := ListItem{ID: n.ID, Label: prefix + n.Label, Noun: noun, Data: n.Data, Props: n.Props, Tones: shiftTones(n.Tones, utf8.RuneCountInString(prefix)), Section: n.Section}
@@ -995,7 +1029,7 @@ func (t *Tree) add(c Context, where, text string, selected bool) error {
 			parent, index = p, pos
 		case "child":
 			parent, index = at, len(t.children(at))
-			t.collapsed[at] = false
+			t.setCollapsed(at, false)
 		default:
 			parent, index = p, pos+1
 		}
@@ -1026,7 +1060,7 @@ func (t *Tree) shift(c Context, indent bool) error {
 			return nil // the first child has nothing to nest under: quiet edge
 		}
 		prev := kids[pos-1]
-		t.collapsed[prev] = false
+		t.setCollapsed(prev, false)
 		change = TreeChange{Op: TreeMove, ID: id, Parent: prev, Index: len(t.children(prev))}
 	} else {
 		if parent == "" {
@@ -1275,15 +1309,19 @@ func (t *Tree) expand(c Context) error {
 	if id == "" || !t.hasChildren(id) {
 		return nil
 	}
-	if t.collapsed[id] {
-		t.collapsed[id] = false
+	if t.folded(id) {
+		t.setCollapsed(id, false)
 		return t.refresh(id)
 	}
-	first := t.children(id)[0]
-	if err := t.list.Select(first); err != nil {
-		return err
+	for _, child := range t.children(id) {
+		if t.list.shows(child) {
+			if err := t.list.Select(child); err != nil {
+				return err
+			}
+			return t.r.SetFocus(child)
+		}
 	}
-	return t.r.SetFocus(first)
+	return nil
 }
 
 // collapses reports whether collapse acts on node id: an open node with
@@ -1295,7 +1333,7 @@ func (t *Tree) collapses(id string) bool {
 	if id == "" {
 		return false
 	}
-	if t.hasChildren(id) && !t.collapsed[id] {
+	if t.hasChildren(id) && !t.folded(id) {
 		return true
 	}
 	return t.parentOf(id) != "" || t.zoom != "" && id == t.zoom
@@ -1327,8 +1365,8 @@ func (t *Tree) collapse(c Context) error {
 	if id == "" {
 		return nil
 	}
-	if t.hasChildren(id) && !t.collapsed[id] {
-		t.collapsed[id] = true
+	if t.hasChildren(id) && !t.folded(id) {
+		t.setCollapsed(id, true)
 		return t.refresh(id)
 	}
 	if out, err := t.stepOut(id); out || err != nil {
@@ -1413,7 +1451,7 @@ func registerTrees(r *Runtime) {
 			if id == "" || !t.hasChildren(id) {
 				return nil
 			}
-			t.collapsed[id] = !t.collapsed[id]
+			t.setCollapsed(id, !t.folded(id))
 			return t.refresh(id)
 		}), "Expand or collapse the node").
 		Verb("zoom-in", on(func(t *Tree, c Ctx) error { return t.zoomIn(c.Context) }), "Zoom on the node: only its subtree is drawn, its ancestors become the breadcrumb (tree.zoom.root: the node ends the breadcrumb, or stays as the top row); view state, never undone").When("tree-zoom").

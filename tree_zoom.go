@@ -112,7 +112,7 @@ func (t *Tree) Zoom(id string) error {
 		return fmt.Errorf("unknown tree node %q", id)
 	}
 	if id != "" {
-		t.collapsed[id] = false
+		t.setCollapsed(id, false)
 	}
 	t.zoom = id
 	sel := ""

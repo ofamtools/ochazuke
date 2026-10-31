@@ -701,9 +701,11 @@ its `Data` supplies the record, with id/label filled from the row when absent.
 `Data` is an opaque handle; catalog pages fill these from their row records,
 keeping the foreign id in `Data` for action dispatch.
 Secret props are excluded. A row without a condition's prop does not match.
-A tree shows matching nodes with their ancestors, including paths beneath
-collapsed nodes; clearing restores the collapse state. The filter does not
-remove list rows or their marks.
+With prop conditions active, a tree shows matching nodes with their ancestors,
+including paths beneath collapsed nodes. `h`, `l` and the fold verb change
+that filtered view; clearing restores the original collapse state. `/` alone
+filters only the rows exposed by the current folds and does not keep ancestors.
+The filter does not remove list rows or their marks.
 
 `z /` runs `ochazuke.list.filter-prop`: pick a prop, then one of the visible
 rows' distinct values. The same verb takes `{prop, op, value}` directly.
@@ -714,9 +716,10 @@ rows' distinct values. The same verb takes `{prop, op, value}` directly.
 the same mechanism to apps. These verbs take `id` for a list or tree, defaulting
 to the focused list. Active conditions appear in the list/tree header strip
 beside the text query; `list.filter-strip=false` hides the prop strip (default
-true). Hints come from the binding rows, which users can replace or unbind.
-The picker row is hidden from the footer like other `z` table commands;
-`?` shows it, and `help.hints-hidden` also exposes it in the footer.
+true); zero matches still show `0 of N (filtered)`. Hints come from the binding
+rows, which users can replace or unbind.
+The footer shows `z / prop filter`; the remove-one `z !` row stays in `?`
+and appears in the footer with `help.hints-hidden`.
 
 Declare app defaults after the noun's props, for example:
 
@@ -748,8 +751,15 @@ app rows within the same scope. Declaration order determines the cycle.
 `z ]` / `z [` cycle forward/backward; `list.filter-cycle=false` disables those
 keys (default true). `list filter-saved --name mine` applies one by name.
 Cycling and applying keep the `/` text query. Declare an empty `all` filter
-to include an unfiltered step. Invalid filter data fails without replacing
-the current conditions. Current conditions are session state; saved definitions
+to include an unfiltered step. Cycling skips invalid saved rows and names them
+in the message line. Malformed `list.filters` JSON is refused on write and
+reported on load. Applying an invalid filter leaves the current conditions intact.
+`list filter-save --name NAME` saves the current prop conditions for this list;
+`list filter-saved-delete --name NAME` deletes the effective user definition
+(removing an override reveals its app default). App defaults remain declarations.
+`list filters --id LIST` lists definitions in the CLI; `list filter-saved-pick`
+opens a chooser. Saving and deleting write `list.filters`, preserving other
+scopes and names. Current conditions are session state; saved definitions
 are settings. Standard noun lists accept `--filter NAME`, ANDed with unchanged
 `--where prop=value`; CLI lookup uses noun scope, because no UI list is named.
 The framework applies saved conditions before `--limit`.
@@ -761,7 +771,7 @@ Compared with Vim (verified in Neovim 0.12.3):
 | `:g/pat/p` | `:global` | Similar selection of matches; typed row props and text hide rows rather than execute Ex commands. |
 | `:v/pat/p` | `:vglobal` | Similar exclusion through `!=`; no buffer edits or global command execution. |
 | `:filter /pat/ command` | `:filter` | Similar restriction of displayed results; conditions stay on the list and trees retain context ancestors. |
-| `:filter! /pat/ command` | `:filter` | Similar inverse selection through `!=`; prop equality is typed and `contains` is literal, not a Vim regex. |
+| `:filter! /pat/ command` | `:filter` | Similar inverse selection through `!=`; rows whose noun lacks the prop do not match. Prop equality is typed and `contains` is literal, not a Vim regex. |
 
 Stories: `lists/filter-prop-picker`, `lists/filter-prop-clear`,
 `lists/filter-saved-cycle`, `tree/filter-prop-ancestors`.

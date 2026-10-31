@@ -1,0 +1,152 @@
+{
+  "name": "prop-filtered tree: h and l and enter fold context ancestors visibly",
+  "width": 100,
+  "height": 16,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "nouns": [
+      {
+        "noun": "note",
+        "props": [
+          {
+            "name": "by"
+          },
+          {
+            "name": "status"
+          }
+        ],
+        "filters": [
+          {
+            "name": "mine",
+            "where": {
+              "by": "owner"
+            }
+          },
+          {
+            "name": "agents",
+            "where": {
+              "by": "agent"
+            }
+          },
+          {
+            "name": "all"
+          }
+        ]
+      }
+    ],
+    "trees": [
+      {
+        "id": "notes",
+        "height": -1,
+        "collapsed": [
+          "root"
+        ],
+        "nodes": [
+          {
+            "id": "root",
+            "label": "Context root",
+            "noun": "note",
+            "data": {
+              "by": "agent"
+            }
+          },
+          {
+            "id": "parent",
+            "parent": "root",
+            "label": "Context parent",
+            "noun": "note",
+            "data": {
+              "by": "agent"
+            }
+          },
+          {
+            "id": "mine",
+            "parent": "parent",
+            "label": "My note",
+            "noun": "note",
+            "data": {
+              "by": "owner"
+            }
+          },
+          {
+            "id": "other",
+            "parent": "root",
+            "label": "Other note",
+            "noun": "note",
+            "data": {
+              "by": "agent"
+            }
+          },
+          {
+            "id": "unrelated",
+            "label": "Unrelated root",
+            "noun": "note",
+            "data": {
+              "by": "agent"
+            }
+          }
+        ]
+      }
+    ],
+    "bind": [
+      {
+        "noun": "note",
+        "keys": "enter",
+        "do": "ochazuke.outline.fold"
+      }
+    ]
+  },
+  "script": [
+    "z",
+    "]",
+    "h",
+    "l",
+    "enter",
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "contains": [
+        "Context parent",
+        "My note"
+      ]
+    },
+    {
+      "after": 3,
+      "contains": [
+        "Context root"
+      ],
+      "lacks": [
+        "Context parent",
+        "My note"
+      ]
+    },
+    {
+      "after": 4,
+      "contains": [
+        "Context parent",
+        "My note"
+      ]
+    },
+    {
+      "after": 5,
+      "lacks": [
+        "My note"
+      ]
+    },
+    {
+      "after": 6,
+      "contains": [
+        "My note"
+      ]
+    },
+    {
+      "contains": [
+        "My note"
+      ]
+    }
+  ],
+  "area": "tree"
+}

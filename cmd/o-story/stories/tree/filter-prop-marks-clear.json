@@ -1,0 +1,130 @@
+{
+  "name": "tree marks and row identity survive clearing a prop filter under a collapsed ancestor",
+  "width": 100,
+  "height": 16,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "nouns": [
+      {
+        "noun": "note",
+        "props": [
+          {
+            "name": "by"
+          },
+          {
+            "name": "status"
+          }
+        ],
+        "filters": [
+          {
+            "name": "mine",
+            "where": {
+              "by": "owner"
+            }
+          },
+          {
+            "name": "agents",
+            "where": {
+              "by": "agent"
+            }
+          },
+          {
+            "name": "all"
+          }
+        ]
+      }
+    ],
+    "trees": [
+      {
+        "id": "notes",
+        "height": -1,
+        "collapsed": [
+          "root"
+        ],
+        "nodes": [
+          {
+            "id": "root",
+            "label": "Context root",
+            "noun": "note",
+            "data": {
+              "by": "agent"
+            }
+          },
+          {
+            "id": "parent",
+            "parent": "root",
+            "label": "Context parent",
+            "noun": "note",
+            "data": {
+              "by": "agent"
+            }
+          },
+          {
+            "id": "mine",
+            "parent": "parent",
+            "label": "My note",
+            "noun": "note",
+            "data": {
+              "by": "owner"
+            }
+          },
+          {
+            "id": "other",
+            "parent": "root",
+            "label": "Other note",
+            "noun": "note",
+            "data": {
+              "by": "agent"
+            }
+          },
+          {
+            "id": "unrelated",
+            "label": "Unrelated root",
+            "noun": "note",
+            "data": {
+              "by": "agent"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "z",
+    "]",
+    "j",
+    "j",
+    "space",
+    "z",
+    "C",
+    "l"
+  ],
+  "expect": [
+    {
+      "after": 4,
+      "focus": "mine"
+    },
+    {
+      "after": 7,
+      "focus": "root",
+      "lacks": [
+        "My note"
+      ]
+    },
+    {
+      "after": 8,
+      "focus": "root",
+      "contains": [
+        "*       My note"
+      ]
+    },
+    {
+      "focus": "root",
+      "contains": [
+        "*       My note"
+      ]
+    }
+  ],
+  "area": "tree"
+}

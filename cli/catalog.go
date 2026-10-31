@@ -109,12 +109,12 @@ type CatalogDoc struct {
 // NounBuilder.Props), in declaration order. A noun with a store has the
 // standard verbs its store supports (CatalogVerb.Standard).
 type CatalogNoun struct {
-	Filters []ochazuke.SavedFilter `json:"filters,omitempty"`
 	Name    string                 `json:"name"`
 	Pin     string                 `json:"pin,omitempty"`
 	Kind    string                 `json:"kind,omitempty"`
 	Columns []ochazuke.Column      `json:"columns,omitempty"`
 	Props   []ochazuke.PropSpec    `json:"props,omitempty"`
+	Filters []ochazuke.SavedFilter `json:"filters,omitempty"`
 	Verbs   []CatalogVerb          `json:"verbs"`
 }
 

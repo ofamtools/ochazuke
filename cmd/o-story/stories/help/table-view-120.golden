@@ -21,7 +21,7 @@ R|            │ 0           .column?                                          
  |            │ ctrl+n                      .move                                                            │
  |            │ ctrl+p                      .move                                                            │
  |            │ ctrl+u      .scroll         .filter                                           .scroll        │
- |            │ 1–14 / 81                                                                                    │
+ |            │ 1–14 / 86                                                                                    │
  |            │ ──────────────────────────────────────────────────────────────────────────────────────────── │
  |            │ normal       list.column when no-count · list                                                │
  |            │              to first                                                                        │

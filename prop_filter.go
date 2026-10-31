@@ -213,9 +213,9 @@ func (r *Runtime) SavedFilters(list string, nouns ...string) ([]SavedFilter, err
 			candidates = append(candidates, n.Filters...)
 		}
 	}
-	var user []SavedFilter
-	if err := json.Unmarshal([]byte(r.Settings().String("list.filters")), &user); err != nil {
-		return nil, fmt.Errorf("list.filters: %w", err)
+	user, err := r.Settings().savedFilters()
+	if err != nil {
+		return nil, err
 	}
 	candidates = append(candidates, user...)
 	out := []SavedFilter{}
@@ -243,4 +243,45 @@ func (r *Runtime) SavedFilters(list string, nouns ...string) ([]SavedFilter, err
 		}
 	}
 	return out, nil
+}
+
+// savedFilterCache belongs to Settings, alongside the source value.
+type savedFilterCache struct {
+	text   string
+	rows   []SavedFilter
+	err    error
+	loaded bool
+}
+
+func parseSavedFilters(text string) ([]SavedFilter, error) {
+	var rows []SavedFilter
+	if err := json.Unmarshal([]byte(text), &rows); err != nil {
+		return nil, fmt.Errorf("list.filters must be a JSON array of saved filters: %w", err)
+	}
+	if rows == nil {
+		return nil, fmt.Errorf("list.filters must be a JSON array, use [] for no filters")
+	}
+	for _, f := range rows {
+		if strings.TrimSpace(f.Name) == "" {
+			return nil, fmt.Errorf("list.filters: a saved filter needs a name")
+		}
+		if f.List == "" && f.Noun == "" {
+			return nil, fmt.Errorf("list.filters: %s needs a noun or list scope", f.Name)
+		}
+	}
+	return rows, nil
+}
+
+func validSavedFilters(value any) error {
+	_, err := parseSavedFilters(value.(string))
+	return err
+}
+
+func (s *Settings) savedFilters() ([]SavedFilter, error) {
+	text := s.String("list.filters")
+	if !s.filterCache.loaded || text != s.filterCache.text {
+		rows, err := parseSavedFilters(text)
+		s.filterCache = savedFilterCache{text: text, rows: rows, err: err, loaded: true}
+	}
+	return s.filterCache.rows, s.filterCache.err
 }

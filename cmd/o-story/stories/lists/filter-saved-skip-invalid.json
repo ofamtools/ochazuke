@@ -1,0 +1,115 @@
+{
+  "width": 100,
+  "height": 16,
+  "chrome": "full",
+  "page": {
+    "noHeadings": true,
+    "nouns": [
+      {
+        "noun": "note",
+        "props": [
+          {
+            "name": "by"
+          },
+          {
+            "name": "status"
+          }
+        ],
+        "filters": [
+          {
+            "name": "mine",
+            "where": {
+              "by": "owner"
+            }
+          },
+          {
+            "name": "agents",
+            "where": {
+              "by": "agent"
+            }
+          },
+          {
+            "name": "all"
+          }
+        ]
+      }
+    ],
+    "lists": [
+      {
+        "id": "notes",
+        "height": -1,
+        "items": [
+          {
+            "id": "n1",
+            "label": "Owner alpha",
+            "noun": "note",
+            "data": {
+              "by": "owner",
+              "status": "todo"
+            }
+          },
+          {
+            "id": "n2",
+            "label": "Agent beta",
+            "noun": "note",
+            "data": {
+              "by": "agent",
+              "status": "todo"
+            }
+          },
+          {
+            "id": "n3",
+            "label": "Owner gamma",
+            "noun": "note",
+            "data": {
+              "by": "owner",
+              "status": "done"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "name": "saved filter cycle skips an invalid row and reports why",
+  "script": [
+    "z",
+    "]",
+    "z",
+    "]",
+    "z",
+    "]",
+    "z",
+    "]"
+  ],
+  "expect": [
+    {
+      "after": 8,
+      "contains": [
+        "[mine]",
+        "Skipped saved filters: broken",
+        "Owner alpha"
+      ],
+      "lacks": [
+        "Agent beta"
+      ]
+    },
+    {
+      "contains": [
+        "[mine]",
+        "Skipped saved filters: broken",
+        "Owner alpha"
+      ],
+      "lacks": [
+        "Agent beta"
+      ]
+    }
+  ],
+  "area": "lists",
+  "settings": [
+    {
+      "name": "list.filters",
+      "type": "string",
+      "default": "[{\"name\": \"broken\", \"noun\": \"note\", \"where\": {\"missing\": \"x\"}}]"
+    }
+  ]
+}

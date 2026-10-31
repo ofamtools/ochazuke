@@ -72,7 +72,7 @@ func (l *List) matcher() Matcher { return l.r.Matcher(l.MatchMode(), l.query) }
 // The matchSearcher contract (search_match.go): the mode decides the
 // filter while its line shows.
 func (l *List) matchMode() string  { return l.MatchMode() }
-func (l *List) matchApplies() bool { return l.Filtering() }
+func (l *List) matchApplies() bool { return l.query != "" || l.editingFilter() }
 func (l *List) setMatchMode(mode string) {
 	l.match = mode
 	l.SetFilter(l.query)
@@ -96,6 +96,9 @@ func (l *List) Height() int {
 	if l.query != "" || l.editingFilter() || l.propStrip() != "" {
 		return len(l.all) + 1
 	}
+	if l.Filtering() {
+		return max(1, len(l.all))
+	}
 	return len(l.all)
 }
 
@@ -113,18 +116,14 @@ func (l *List) SetFilter(query string) {
 	if keep == "" {
 		keep = l.back // nothing matched: widening the query finds the row / started on
 	}
-	if t := l.tree(); t != nil {
-		_ = t.refresh("")
-	} else {
-		l.refilter(keep)
-	}
+	l.refilter(keep)
 	l.syncFocus(previous, nil)
 }
 
 // refilter recomputes the shown rows from every row and the query, then
 // selects keep when it shows, else the first shown row.
 func (l *List) refilter(keep string) {
-	if t := l.tree(); t != nil && (len(l.propFilters) > 0 || strings.TrimSpace(l.query) != "") {
+	if t := l.tree(); t != nil && len(l.propFilters) > 0 {
 		kept := t.filterNodes()
 		l.items = make([]ListItem, 0, len(l.all))
 		for _, item := range l.all {
@@ -136,21 +135,23 @@ func (l *List) refilter(keep string) {
 		l.items = l.all
 	} else {
 		m := l.matcher()
-		if l.hay == nil || l.hayFold != m.Fold() {
-			l.hay, l.hayFold = make([]string, len(l.all)), m.Fold()
-			for i, item := range l.all {
-				l.hay[i] = filterHay(item, m)
-			}
-		}
 		shown := make([]ListItem, 0, len(l.all))
-		for i, item := range l.all {
-			if l.matchesProps(item) && m.MatchPrepared(l.hay[i]) {
+		for _, item := range l.all {
+			if l.matchesProps(item) && m.MatchPrepared(l.preparedRow(item, m)) {
 				shown = append(shown, item)
 			}
 		}
 		l.items = shown
 	}
 	l.selected = slices.IndexFunc(l.items, func(item ListItem) bool { return item.ID == keep })
+	if t := l.tree(); t != nil && l.selected < 0 {
+		for p := t.parentOf(keep); p != "" && l.selected < 0; p = t.parentOf(p) {
+			l.selected = slices.IndexFunc(l.items, func(item ListItem) bool { return item.ID == p })
+		}
+		if l.selected < 0 {
+			l.selected = slices.IndexFunc(l.items, func(item ListItem) bool { return item.ID == l.back })
+		}
+	}
 	if l.selected < 0 && len(l.items) > 0 {
 		l.selected = 0
 	}
@@ -166,7 +167,7 @@ func (l *List) shows(id string) bool {
 // lands on that row (Select, focus.set, a job's focus) shows it. The
 // selection is the caller's to set.
 func (l *List) reveal(id string) {
-	if (l.query == "" && len(l.propFilters) == 0) || l.shows(id) || !slices.ContainsFunc(l.all, func(item ListItem) bool { return item.ID == id }) {
+	if (l.query == "" && len(l.propFilters) == 0) || l.shows(id) || (!slices.ContainsFunc(l.all, func(item ListItem) bool { return item.ID == id }) && !l.treeHasNode(id)) {
 		return
 	}
 	l.query, l.back, l.propFilters, l.savedFilter = "", "", nil, ""

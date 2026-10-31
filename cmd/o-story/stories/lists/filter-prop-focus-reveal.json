@@ -1,0 +1,117 @@
+{
+  "width": 100,
+  "height": 16,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "nouns": [
+      {
+        "noun": "note",
+        "props": [
+          {
+            "name": "by"
+          },
+          {
+            "name": "status"
+          }
+        ],
+        "filters": [
+          {
+            "name": "mine",
+            "where": {
+              "by": "owner"
+            }
+          },
+          {
+            "name": "agents",
+            "where": {
+              "by": "agent"
+            }
+          },
+          {
+            "name": "all"
+          }
+        ]
+      }
+    ],
+    "lists": [
+      {
+        "id": "notes",
+        "height": -1,
+        "items": [
+          {
+            "id": "n1",
+            "label": "Owner alpha",
+            "noun": "note",
+            "data": {
+              "by": "owner",
+              "status": "todo"
+            }
+          },
+          {
+            "id": "n2",
+            "label": "Agent beta",
+            "noun": "note",
+            "data": {
+              "by": "agent",
+              "status": "todo"
+            }
+          },
+          {
+            "id": "n3",
+            "label": "Owner gamma",
+            "noun": "note",
+            "data": {
+              "by": "owner",
+              "status": "done"
+            }
+          }
+        ]
+      }
+    ],
+    "bind": [
+      {
+        "noun": "app",
+        "keys": "f",
+        "do": "ochazuke.focus.set",
+        "args": {
+          "id": "n2"
+        }
+      }
+    ]
+  },
+  "name": "prop filter: focus.set reveals a hidden row with no text query",
+  "script": [
+    "z",
+    "]",
+    "f"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "lacks": [
+        "Agent beta"
+      ]
+    },
+    {
+      "after": 3,
+      "focus": "n2",
+      "contains": [
+        "Agent beta"
+      ],
+      "lacks": [
+        "[mine]"
+      ]
+    },
+    {
+      "focus": "n2",
+      "contains": [
+        "Agent beta"
+      ],
+      "lacks": [
+        "[mine]"
+      ]
+    }
+  ],
+  "area": "lists"
+}

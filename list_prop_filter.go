@@ -20,40 +20,93 @@ func (l *List) tree() *Tree {
 	return nil
 }
 
-func (l *List) filterRows() []ListItem {
-	if t := l.tree(); t != nil {
-		rows := make([]ListItem, 0, len(t.nodes))
-		for _, node := range t.nodes {
-			noun := node.Noun
-			if noun == "" {
-				noun = t.RowNoun
-			}
-			rows = append(rows, ListItem{ID: node.ID, Label: node.Label, Noun: noun, Data: node.Data, Props: node.Props, Cells: node.Cells})
-		}
-		return rows
-	}
-	return l.all
+// filterRow caches the expensive row decoding and prepared search text until
+// SetItems (or a tree node change). Tree display prefixes are not searchable.
+type filterRow struct {
+	item     ListItem
+	node     TreeNode
+	thing    Thing
+	decoded  bool
+	hay      [2]string
+	prepared [2]bool
 }
 
-func (l *List) rowNouns() []string {
+func (l *List) treeHasNode(id string) bool {
+	t := l.tree()
+	return t != nil && t.index(id) >= 0
+}
+
+func (l *List) cacheRows() {
+	l.rowCache = make(map[string]*filterRow, len(l.all))
 	set := map[string]bool{}
-	for _, item := range l.filterRows() {
+	if t := l.tree(); t != nil {
+		for _, n := range t.nodes {
+			row := t.rowCache[n.ID]
+			if row != nil {
+				set[l.r.CanonicalNoun(row.item.Noun)] = true
+			}
+		}
+	}
+	for _, item := range l.all {
+		l.rowCache[item.ID] = &filterRow{item: item}
 		set[l.r.CanonicalNoun(item.Noun)] = true
 	}
-	// Empty lists may declare their row noun as their kind.
 	if len(set) == 0 {
 		if inst := l.r.Instances[l.id]; inst != nil {
 			set[inst.Noun] = true
 		}
 	}
-	return slices.Sorted(maps.Keys(set))
+	l.nouns = slices.Sorted(maps.Keys(set))
 }
 
+func (l *List) cachedRow(item ListItem) *filterRow {
+	if t := l.tree(); t != nil && len(l.propFilters) > 0 {
+		if row := t.rowCache[item.ID]; row != nil {
+			return row
+		}
+	}
+	return l.rowCache[item.ID]
+}
+
+func (l *List) preparedRow(item ListItem, m Matcher) string {
+	row := l.cachedRow(item)
+	if row == nil {
+		return filterHay(item, m)
+	}
+	i := 0
+	if m.Fold() {
+		i = 1
+	}
+	if !row.prepared[i] {
+		row.hay[i], row.prepared[i] = filterHay(row.item, m), true
+	}
+	return row.hay[i]
+}
+
+func (l *List) thing(item ListItem) Thing {
+	row := l.cachedRow(item)
+	if row == nil {
+		return rowThing(l.r.Noun(item.Noun), item)
+	}
+	if !row.decoded {
+		row.thing, row.decoded = rowThing(l.r.Noun(item.Noun), item), true
+	}
+	return row.thing
+}
+
+func (l *List) rowNouns() []string { return l.nouns }
+
+// A stable list focus is shared by matching and both picker stages,
+// including while a chooser temporarily owns the runtime focus.
+func (l *List) propFocus() string { return l.id }
+
 func rowThing(n *Noun, item ListItem) Thing {
-	thing, err := ThingOf(item.Data)
+	var thing Thing
+	var err error
 	if item.Props != nil {
 		thing = maps.Clone(item.Props)
-		err = nil
+	} else {
+		thing, err = ThingOf(item.Data)
 	}
 	if err != nil || thing == nil {
 		thing = Thing{}
@@ -81,11 +134,11 @@ func (l *List) matchesProps(item ListItem) bool {
 	}
 	for _, f := range l.propFilters {
 		p := n.prop(f.Prop)
-		if p == nil || !l.r.propShown(*p, item.ID, l.r.Mode, nil) {
+		if p == nil || !l.r.propShown(*p, l.propFocus(), l.r.Mode, nil) {
 			return false
 		}
 	}
-	return propsMatch(n, rowThing(n, item), l.propFilters)
+	return propsMatch(n, l.thing(item), l.propFilters)
 }
 
 func (l *List) validatePropFilters(filters []PropFilter) error {
@@ -121,6 +174,10 @@ func (l *List) SetPropFilters(filters []PropFilter) error {
 	}
 	l.propFilters = clonePropFilters(filters)
 	l.savedFilter = ""
+	if t := l.tree(); t != nil {
+		t.filterCollapsed = nil
+		return t.refresh("")
+	}
 	l.SetFilter(l.query)
 	return nil
 }
@@ -144,6 +201,87 @@ func (l *List) ApplyFilter(name string) error {
 		}
 	}
 	return fmt.Errorf("unknown saved filter %q", name)
+}
+
+// SaveFilter writes the current conditions as a list-scoped user definition.
+// Existing definitions in other scopes keep their order and content.
+func (l *List) SaveFilter(name string) error {
+	if strings.TrimSpace(name) == "" {
+		return errors.New("saved filter needs a name")
+	}
+	user, err := l.r.Settings().savedFilters()
+	if err != nil {
+		return err
+	}
+	user = slices.Clone(user)
+	f := SavedFilter{Name: name, List: l.id, Conditions: l.PropFilters()}
+	i := slices.IndexFunc(user, func(old SavedFilter) bool { return old.Name == name && old.List == l.id })
+	if i < 0 {
+		user = append(user, f)
+	} else {
+		user[i] = f
+	}
+	raw, err := json.Marshal(user)
+	if err != nil {
+		return err
+	}
+	if err := l.r.Settings().Set("list.filters", string(raw)); err != nil {
+		return err
+	}
+	l.savedFilter = name
+	return nil
+}
+
+// DeleteSavedFilter removes the effective user definition by name. App
+// defaults remain declarations; removing a user override reveals that default.
+func (l *List) DeleteSavedFilter(name string) error {
+	filters, err := l.SavedFilters()
+	if err != nil {
+		return err
+	}
+	i := slices.IndexFunc(filters, func(f SavedFilter) bool { return f.Name == name })
+	if i < 0 {
+		return fmt.Errorf("unknown saved filter %q", name)
+	}
+	f := filters[i]
+	user, err := l.r.Settings().savedFilters()
+	if err != nil {
+		return err
+	}
+	i = slices.IndexFunc(user, func(old SavedFilter) bool { return old.Name == f.Name && old.List == f.List && old.Noun == f.Noun })
+	if i < 0 {
+		return fmt.Errorf("%q is an app default; only user saved filters can be deleted", name)
+	}
+	user = slices.Delete(slices.Clone(user), i, i+1)
+	raw, err := json.Marshal(user)
+	if err != nil {
+		return err
+	}
+	if err := l.r.Settings().Set("list.filters", string(raw)); err != nil {
+		return err
+	}
+	if l.savedFilter == name {
+		l.savedFilter = ""
+	}
+	return nil
+}
+
+func (l *List) pickSavedFilter() error {
+	filters, err := l.SavedFilters()
+	if err != nil {
+		return err
+	}
+	rows := []ChooserRow{}
+	for _, f := range filters {
+		rows = append(rows, ChooserRow{ID: f.Name, Label: f.Name, Data: f})
+	}
+	_, err = l.r.OpenChooser(ChooserSpec{Kind: "list-filter-saved", Title: "Saved filters", Rows: rows, Choose: func(row ChooserRow) Result {
+		if err := l.ApplyFilter(row.ID); err != nil {
+			return Failed(err)
+		}
+		return Done(nil)
+	}})
+	return err
 }
 
 func (r *Runtime) namedPropFilter(n *Noun, name string) ([]PropFilter, error) {
@@ -196,13 +334,11 @@ func (l *List) propStrip() string {
 // one reverse pass propagates descendant matches without walking every
 // ancestor for every node.
 func (t *Tree) filterNodes() map[string]bool {
-	if len(t.list.propFilters) == 0 && strings.TrimSpace(t.list.query) == "" {
-		return nil
-	}
 	kept := map[string]bool{}
 	m := t.list.matcher()
-	for _, item := range t.list.filterRows() {
-		if t.list.matchesProps(item) && m.MatchPrepared(filterHay(item, m)) {
+	for _, n := range t.nodes {
+		item := t.rowCache[n.ID].item
+		if t.list.matchesProps(item) && m.MatchPrepared(t.list.preparedRow(item, m)) {
 			kept[item.ID] = true
 		}
 	}
@@ -219,7 +355,7 @@ func (l *List) filterProps() []string {
 	set := map[string]bool{}
 	for _, noun := range l.rowNouns() {
 		for _, p := range l.r.Props(noun) {
-			if !p.Secret && l.r.propShown(p, l.r.Focus, l.r.Mode, nil) {
+			if !p.Secret && l.r.propShown(p, l.propFocus(), l.r.Mode, nil) {
 				set[p.Name] = true
 			}
 		}
@@ -253,10 +389,10 @@ func (l *List) pickPropFilter(prop string) error {
 			continue
 		}
 		p := n.prop(prop)
-		if p == nil || p.Secret || !l.r.propShown(*p, item.ID, l.r.Mode, nil) {
+		if p == nil || p.Secret || !l.r.propShown(*p, l.propFocus(), l.r.Mode, nil) {
 			continue
 		}
-		value, ok := rowThing(n, item)[prop]
+		value, ok := l.thing(item)[prop]
 		if !ok {
 			continue
 		}
@@ -329,6 +465,13 @@ func registerListPropFilter(r *Runtime) {
 		filters, err := l.SavedFilters()
 		return err == nil && len(filters) > 0
 	})
+	r.Register(Operation{Noun: "ochazuke.list", Verb: "filters", Description: "List the saved prop filters available to a list", Parameters: map[string]Parameter{"id": {Type: "string"}}, Result: "filter[]", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+		l, err := resolve(c, a)
+		if err != nil {
+			return nil, err
+		}
+		return l.SavedFilters()
+	}})
 	for _, spec := range []struct {
 		verb, description, guard string
 		params                   map[string]Parameter
@@ -370,6 +513,9 @@ func registerListPropFilter(r *Runtime) {
 		}},
 		{"filter-props-clear", "Clear every prop condition and saved filter name, keeping / text", "list-prop-filtered", nil, func(l *List, _ Arguments) error { return l.SetPropFilters(nil) }},
 		{"filter-saved", "Apply a saved prop filter by name, keeping / text", "", map[string]Parameter{"name": {Type: "string", Required: true}}, func(l *List, a Arguments) error { return l.ApplyFilter(StringArg(a, "name", "")) }},
+		{"filter-save", "Save current prop conditions as a list-scoped user filter in list.filters", "", map[string]Parameter{"name": {Type: "string", Required: true}}, func(l *List, a Arguments) error { return l.SaveFilter(StringArg(a, "name", "")) }},
+		{"filter-saved-delete", "Delete a user saved filter; removing an override reveals the app default", "", map[string]Parameter{"name": {Type: "string", Required: true}}, func(l *List, a Arguments) error { return l.DeleteSavedFilter(StringArg(a, "name", "")) }},
+		{"filter-saved-pick", "List saved prop filters in a chooser and apply the selected one", "", nil, func(l *List, _ Arguments) error { return l.pickSavedFilter() }},
 		{"filter-cycle", "Cycle the saved prop filters declared for this list or its row nouns", "list-saved-filters", map[string]Parameter{"step": {Type: "integer"}}, func(l *List, a Arguments) error {
 			filters, err := l.SavedFilters()
 			if err != nil {
@@ -387,8 +533,27 @@ func registerListPropFilter(r *Runtime) {
 					i = -1
 				}
 			}
+			if step == 0 {
+				step = 1
+			}
 			i = ((i+step)%len(filters) + len(filters)) % len(filters)
-			return l.ApplyFilter(filters[i].Name)
+			direction := 1
+			if step < 0 {
+				direction = -1
+			}
+			var skipped []string
+			for range len(filters) {
+				if err := l.ApplyFilter(filters[i].Name); err == nil {
+					if len(skipped) > 0 {
+						l.r.UI().Info("Skipped saved filters: " + strings.Join(skipped, "; "))
+					}
+					return nil
+				} else {
+					skipped = append(skipped, filters[i].Name+": "+err.Error())
+				}
+				i = (i + direction + len(filters)) % len(filters)
+			}
+			return fmt.Errorf("no valid saved filters; skipped %s", strings.Join(skipped, "; "))
 		}},
 	} {
 		params := cloneParams(spec.params)

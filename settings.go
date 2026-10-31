@@ -130,7 +130,8 @@ type Settings struct {
 	shown *[]string
 	// applying is the name the running :set line was invoked by, which
 	// the session values it sets record (Origin.Via).
-	applying string
+	applying    string
+	filterCache savedFilterCache // parsed list.filters; refreshed only when its value changes
 	// owners and sections are the declared owners and sections
 	// (settings_owners.go): titles, order, a line each.
 	owners   []SettingOwner
