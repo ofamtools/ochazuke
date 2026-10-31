@@ -1,0 +1,21 @@
+{
+  "name": "form: the walk source streams: with one folder per batch the root's own folders show while the walk goes on (the title counts with …), the deeper ones land with later batches",
+  "area": "forms",
+  "width": 100,
+  "height": 20,
+  "files": ["alpha/beta/gamma/", "zulu/"],
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "records": [
+      {"id": "proj", "fields": [{"name": "folder", "type": "path", "path": "dir", "base": "{{files}}"}]}
+    ],
+    "pathWalk": {"roots": [{"path": "{{files}}", "label": "project"}], "batch": 1},
+    "focus": "proj/folder"
+  },
+  "script": ["enter", {"job": "chooser.load"}, {"job": "chooser.load"}, {"job": "chooser.load"}, {"job": "chooser.load"}, {"job": "chooser.load"}],
+  "expect": [
+    {"after": 2, "modal": "path-chooser", "contains": ["alpha/", "zulu/", "…]"], "lacks": ["alpha/beta/"]},
+    {"after": 3, "contains": ["alpha/beta/", "…]"], "lacks": ["alpha/beta/gamma/"]},
+    {"modal": "path-chooser", "contains": ["alpha/beta/gamma/", "[walk project · 5]"], "lacks": ["…]"]}
+  ]
+}

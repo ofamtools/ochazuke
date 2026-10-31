@@ -58,8 +58,12 @@ type Page struct {
 	// (ochazuke.NounBuilder.Props and Store): demo.get, list, create, set
 	// (alias patch) and delete are then standard verbs over Things (the
 	// standard delete replaces the row-removing demo.delete).
-	Store  *StoreSpec  `json:"store,omitempty"`
-	Detail *DetailSpec `json:"detail,omitempty"`
+	Store *StoreSpec `json:"store,omitempty"`
+	// PathWalk gives every path chooser the walk source
+	// (ochazuke.AddWalkPathSource) over these roots ({{files}} is the
+	// story's file tree); Batch is the folders read per batch.
+	PathWalk *PathWalkSpec `json:"pathWalk,omitempty"`
+	Detail   *DetailSpec   `json:"detail,omitempty"`
 	// Markdown is a Markdown document (markdown.New) drawn in the page's
 	// order with the lists, its task items a focus stop.
 	Markdown *MarkdownSpec `json:"markdown,omitempty"`
@@ -88,6 +92,18 @@ type Page struct {
 	// in the page's order as "readout"): the mode, the focus path
 	// innermost first, and the last key a row answered with what it ran.
 	Readout bool `json:"readout,omitempty"`
+}
+
+// PathWalkSpec is the walk source's roots and batch size.
+type PathWalkSpec struct {
+	Roots []PathRootSpec `json:"roots"`
+	Batch int            `json:"batch,omitempty"`
+}
+
+// PathRootSpec is one walk root: its path and the label its rows show.
+type PathRootSpec struct {
+	Path  string `json:"path"`
+	Label string `json:"label,omitempty"`
 }
 
 // TextSpec is a fixed text drawn on the page.

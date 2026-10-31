@@ -1,0 +1,20 @@
+{
+  "name": "form: path.walk off leaves the walk source out: the folder chooser opens on browse as before, with no walk in its title",
+  "area": "forms",
+  "width": 100,
+  "height": 20,
+  "files": ["a/b/c/"],
+  "settings": [{"name": "path.walk", "type": "boolean", "default": false}],
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "records": [
+      {"id": "proj", "fields": [{"name": "folder", "type": "path", "path": "dir", "base": "{{files}}"}]}
+    ],
+    "pathWalk": {"roots": [{"path": "{{files}}", "label": "project"}]},
+    "focus": "proj/folder"
+  },
+  "script": ["enter", {"job": "chooser.load"}],
+  "expect": [
+    {"modal": "path-chooser", "contains": ["Choose folder · [browse ", "a/", "use "], "lacks": ["walk", "a/b/"]}
+  ]
+}
