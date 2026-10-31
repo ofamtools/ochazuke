@@ -383,10 +383,11 @@ func (s Styles) tonedText(text string, spans []ToneSpan, base lipgloss.Style) st
 }
 
 // toneSGR is a tone's attributes as a list draws them: on the selected
-// row its bold alone; in a faded list (dim-unfocused) its colour carried
-// toward the background as the list's text is. ok is false for an unknown
-// tone, which draws plain.
-func (s Styles) toneSGR(name string, selected, faded bool) (ansi.Style, bool) {
+// row its bold alone; in a faded list its colour carried fade percent
+// toward the background as the list's text is (dim-unfocused; the
+// selected row's runs out of the bar by the bar's percent, barPercent).
+// ok is false for an unknown tone, which draws plain.
+func (s Styles) toneSGR(name string, selected bool, fade int) (ansi.Style, bool) {
 	look, ok := s.tones[name]
 	if !ok {
 		return nil, false
@@ -403,10 +404,7 @@ func (s Styles) toneSGR(name string, selected, faded bool) (ansi.Style, bool) {
 		st = st.Faint()
 	}
 	if fg := look.fg; fg != nil {
-		if faded && s.ground != nil && s.unfocused > 0 {
-			fg = fadeRamp(fg, s.ground)[min(s.unfocused, MaxDim)]
-		}
-		st = st.ForegroundColor(fg)
+		st = st.ForegroundColor(s.fadeBy(fg, fade))
 	}
 	return st, true
 }
@@ -446,7 +444,8 @@ func (r *Runtime) CellCursor() string {
 
 // cellCursor is the SGR a cell-mode table's current cell draws in on the
 // selected row: the list.cell.cursor tone's background behind its
-// foreground, bold, faded with a faded list. It is written as reverse
+// foreground, bold, faded with the selected row's bar in a faded list
+// (barPercent: dim-unfocused plus dim-unfocused-selection). It is written as reverse
 // video with the two colours swapped, so the cell stays part of the
 // selection's reverse run (a story reads it as the current cell: reverse
 // with a background, which nothing else draws). nil, with
@@ -467,8 +466,8 @@ func (r *Runtime) cellCursor(faded bool) ansi.Style {
 		return nil
 	}
 	fade := func(c color.Color) color.Color {
-		if faded && s.ground != nil && s.unfocused > 0 {
-			return fadeRamp(c, s.ground)[min(s.unfocused, MaxDim)]
+		if faded {
+			return s.fadeBy(c, s.barPercent())
 		}
 		return c
 	}
@@ -485,8 +484,9 @@ func (r *Runtime) cellCursor(faded bool) ansi.Style {
 }
 
 // bgSGR is the background a segment fills with: its Bg tone's, else its
-// tone's; faded toward the ground in a faded list. ok is false for none.
-func (s Styles) bgSGR(sg toneSeg, faded bool) (ansi.Style, bool) {
+// tone's; faded fade percent toward the ground (a faded list). ok is
+// false for none.
+func (s Styles) bgSGR(sg toneSeg, fade int) (ansi.Style, bool) {
 	name := sg.bg
 	if name == "" {
 		name = sg.tone
@@ -496,12 +496,8 @@ func (s Styles) bgSGR(sg toneSeg, faded bool) (ansi.Style, bool) {
 	if !ok || look.bg == nil {
 		return nil, false
 	}
-	bg := look.bg
-	if faded && s.ground != nil && s.unfocused > 0 {
-		bg = fadeRamp(bg, s.ground)[min(s.unfocused, MaxDim)]
-	}
 	var st ansi.Style
-	return st.BackgroundColor(bg), true
+	return st.BackgroundColor(s.fadeBy(look.bg, fade)), true
 }
 
 // spansOf is the row's tones of cell i.
@@ -622,8 +618,11 @@ const PartTonesSetting = "list.part-tones"
 // layer or part span, which fills its slot) and only the toned runs are
 // styled. Where two or more layers cover a run (the selected row counts
 // as one, Styles.intersect on), the run draws in its part's intersect
-// tone instead, out of the reverse bar. Each run is written as one SGR
-// sequence and closed, so a tone never leaks into the next cell.
+// tone instead, out of the reverse bar. In a faded list (dim-unfocused)
+// every run fades with the list, and the selected row's bar and the runs
+// on it fade further (dim-unfocused-selection: Styles.selectionBar,
+// barPercent). Each run is written as one SGR sequence and closed, so a
+// tone never leaks into the next cell.
 func paintLine(line string, width int, segs []toneSeg, st *Styles, selected, faded bool, cur span) string {
 	if selected {
 		line += strings.Repeat(" ", max(0, width-ansi.StringWidth(line)))
@@ -637,6 +636,13 @@ func paintLine(line string, width int, segs []toneSeg, st *Styles, selected, fad
 		}
 		if fill = min(fill, width); fill > ansi.StringWidth(line) {
 			line += strings.Repeat(" ", fill-ansi.StringWidth(line))
+		}
+	}
+	fade, bar := 0, ansi.Style(nil)
+	if faded && st != nil {
+		fade = st.unfocused
+		if selected {
+			fade, bar = st.barPercent(), st.selectionBar(true)
 		}
 	}
 	n := ansi.StringWidth(line)
@@ -668,7 +674,7 @@ func paintLine(line string, width int, segs []toneSeg, st *Styles, selected, fad
 				underline = true
 			}
 		}
-		if cross, ok := st.crossing(segs, a, selected, faded); ok {
+		if cross, ok := st.crossing(segs, a, selected, fade); ok {
 			if underline {
 				cross = cross.Underline(true)
 			}
@@ -679,7 +685,7 @@ func paintLine(line string, width int, segs []toneSeg, st *Styles, selected, fad
 		var fill ansi.Style
 		for j := len(segs) - 1; j >= 0; j-- {
 			if sg := segs[j]; a >= sg.x && a < sg.x+sg.w {
-				if bg, ok := st.bgSGR(sg, faded); ok {
+				if bg, ok := st.bgSGR(sg, fade); ok {
 					fill = bg
 					break
 				}
@@ -690,14 +696,18 @@ func paintLine(line string, width int, segs []toneSeg, st *Styles, selected, fad
 			style = style.Underline(true)
 		}
 		if selected && !keep {
-			style = style.Reverse(true)
+			if len(bar) > 0 {
+				style = append(style, bar...)
+			} else {
+				style = style.Reverse(true)
+			}
 		}
 		if fill != nil && (!selected || keep) {
 			style = append(style, fill...)
 		}
 		for j := len(segs) - 1; j >= 0; j-- {
 			if sg := segs[j]; sg.tone != "" && a >= sg.x && a < sg.x+sg.w {
-				if tone, ok := st.toneSGR(sg.tone, selected && !keep, faded); ok {
+				if tone, ok := st.toneSGR(sg.tone, selected && !keep, fade); ok {
 					style = append(style, tone...)
 				}
 				break
@@ -721,7 +731,7 @@ func paintLine(line string, width int, segs []toneSeg, st *Styles, selected, fad
 // tone (list.cell.intersect for a data cell), its colours, background and
 // attributes, out of the reverse bar. ok is false under one layer or
 // none, with list.intersect off, or when the theme has no such tone.
-func (s *Styles) crossing(segs []toneSeg, a int, selected, faded bool) (ansi.Style, bool) {
+func (s *Styles) crossing(segs []toneSeg, a int, selected bool, fade int) (ansi.Style, bool) {
 	if s == nil || !s.intersect {
 		return nil, false
 	}
@@ -748,8 +758,8 @@ func (s *Styles) crossing(segs []toneSeg, a int, selected, faded bool) (ansi.Sty
 	if !s.hasTone(name) {
 		return nil, false
 	}
-	style, _ := s.toneSGR(name, false, faded)
-	if bg, ok := s.bgSGR(toneSeg{tone: name}, faded); ok {
+	style, _ := s.toneSGR(name, false, fade)
+	if bg, ok := s.bgSGR(toneSeg{tone: name}, fade); ok {
 		style = append(style, bg...)
 	}
 	if !slices.Contains(style, "1") {

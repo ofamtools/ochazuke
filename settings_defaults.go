@@ -159,13 +159,14 @@ var frameworkSettingFiles = sync.OnceValue(func() map[string][]Setting {
 
 // settingChecks are the framework settings' Validate functions by name.
 var settingChecks = map[string]func(any) error{
-	RenderMaxFPSSetting:    validRenderFPS,
-	AgentRightsSetting:     validAgentRules,
-	"list.filters":         validSavedFilters,
-	SequenceTimeoutSetting: nonNegativeDuration,
-	TerminalLeaderSetting:  validLeader,
-	ModalDimSetting:        validDim,
-	DimUnfocusedSetting:    validDim,
+	RenderMaxFPSSetting:          validRenderFPS,
+	AgentRightsSetting:           validAgentRules,
+	"list.filters":               validSavedFilters,
+	SequenceTimeoutSetting:       nonNegativeDuration,
+	TerminalLeaderSetting:        validLeader,
+	ModalDimSetting:              validDim,
+	DimUnfocusedSetting:          validDim,
+	DimUnfocusedSelectionSetting: validDim,
 }
 
 // frameworkSetting is one row of the embedded settings: by its name, or

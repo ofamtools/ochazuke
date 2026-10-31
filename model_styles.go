@@ -15,6 +15,7 @@ type styleKey struct {
 	tones               *ToneRows
 	toneGeneration      uint64
 	modalDim, unfocused int
+	selectionDim        int
 	highlights          bool
 }
 
@@ -31,9 +32,10 @@ func (c *modelStyles) get(m *Model) Styles {
 	k := styleKey{
 		theme: a.Theme, density: a.Density, dark: a.Dark,
 		schemes: a.Schemes, tones: a.AppTones, plain: os.Getenv("NO_COLOR") != "",
-		modalDim:   r.dimSetting(ModalDimSetting, DefaultModalDim),
-		unfocused:  r.dimSetting(DimUnfocusedSetting, DefaultDimUnfocused),
-		highlights: r.Settings().String(ModalBackdropHighlightsSetting) != "plain",
+		modalDim:     r.dimSetting(ModalDimSetting, DefaultModalDim),
+		unfocused:    r.dimSetting(DimUnfocusedSetting, DefaultDimUnfocused),
+		selectionDim: r.dimSetting(DimUnfocusedSelectionSetting, DefaultDimUnfocusedSelection),
+		highlights:   r.Settings().String(ModalBackdropHighlightsSetting) != "plain",
 	}
 	if a.Accent != nil {
 		k.accent = true
@@ -45,7 +47,7 @@ func (c *modelStyles) get(m *Model) Styles {
 	roles := r.modeRoles()
 	roleKey, chrome := strings.Join(roles, "\x00"), r.ChromeLevel()
 	if !c.valid || c.key != k {
-		c.base = NewStyles(*a).WithDims(k.modalDim, k.unfocused).WithBackdropHighlights(k.highlights)
+		c.base = NewStyles(*a).WithDims(k.modalDim, k.unfocused).WithSelectionDim(k.selectionDim).WithBackdropHighlights(k.highlights)
 		c.valid, c.key = true, k
 		c.chrome = "" // force the mode-specific styles to be rebuilt too
 	}
