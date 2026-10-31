@@ -193,7 +193,7 @@ func registerChooser(r *Runtime) {
 		Verb("move", verb(func(c *Chooser, ctx Ctx) Result {
 			c.move(IntArg(ctx.Args, "delta", 0))
 			return Done(c.state())
-		}), "Move the highlight; from none, 1 lands on the first row and -1 stays").Motion().
+		}), "Move the highlight; from none, down selects first and up follows chooser.up-from-none").Motion().
 		Verb("cancel", verb(func(c *Chooser, _ Ctx) Result {
 			if err := c.close(); err != nil {
 				return Failed(err)
@@ -543,22 +543,12 @@ func (c *Chooser) createRow() (string, bool) {
 	return "+ " + label(c.seen), true
 }
 
-// move steps the highlight, clamped at both ends (no wrap). From none,
-// down lands on the first row; up stays on none, so ctrl+p never jumps to
-// the last row (UX review 2 F1).
+// move steps the highlight, clamped at both ends (no wrap).
 func (c *Chooser) move(delta int) {
-	if len(c.matches) == 0 || delta == 0 {
-		return
+	c.cursor = c.r.moveHighlight(c.cursor, delta, len(c.matches), false)
+	if delta != 0 && c.cursor >= 0 {
+		c.moved = true
 	}
-	switch {
-	case c.cursor < 0 && delta > 0:
-		c.cursor = 0
-	case c.cursor < 0:
-		return
-	default:
-		c.cursor = min(max(c.cursor+delta, 0), len(c.matches)-1)
-	}
-	c.moved = true
 }
 
 func (c *Chooser) state() map[string]any {

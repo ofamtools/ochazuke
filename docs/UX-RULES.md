@@ -776,8 +776,16 @@ tiers above them. When the two disagree, fix one in the same commit.
   source `palette`. Story: needed (`palette/history-recall`).
 - **R7.6** A chooser is not the palette: its search input opens in insert,
   the top match is highlighted from the first frame and after every edit,
-  enter takes the highlighted row, `ctrl+n`/`ctrl+p` move it clamped (up
-  from no highlight stays), esc closes over the focus and mode it opened on.
+  enter takes the highlighted row, `ctrl+n`/`ctrl+p` move it clamped. From
+  no highlight, down selects the first row and up selects the last, shared
+  by choosers (sources and path choosers included), inline completion and
+  palette completion. `chooser.up-from-none` defaults to `last`; `stay`
+  keeps no selection on up. Owner decision 2026-10-31 supersedes UX review
+  2 F1's "up from none stays" decision. Palette completion still wraps
+  once highlighted; choosers and inline completion still clamp. Stories:
+  `choosers/up-from-none-last.json`, `choosers/up-from-none-stay.json`,
+  `choosers/source-up-from-none-last.json`, `completion/up-from-none-last.json`,
+  `completion/up-from-none-stay.json`. Esc closes over the focus and mode it opened on.
   Every page is reachable from the page picker (`'`, `page.pick`): pages
   visited before, most recent first, then the never-visited in
   registration order, the current page last and marked `current`, so enter

@@ -123,7 +123,7 @@ func registerCompletion(r *Runtime) {
 	r.Define(CompletionNoun).
 		Verb("open", on(func(c *Completer, ctx Context, _ Arguments) error { return c.openAt(focusOf(ctx)) }), "Offer suggestions for the trigger token at the cursor now").
 		When("completion-available").
-		Verb("move", on(func(c *Completer, _ Context, a Arguments) error { c.move(IntArg(a, "delta", 0)); return nil }), "Move the suggestion highlight; from none, 1 lands on the first and -1 stays").Motion().
+		Verb("move", on(func(c *Completer, _ Context, a Arguments) error { c.move(IntArg(a, "delta", 0)); return nil }), "Move the suggestion highlight; from none, down selects first and up follows chooser.up-from-none").Motion().
 		Verb("accept", on(func(c *Completer, _ Context, _ Arguments) error { return c.accept() }), "Replace the token with the highlighted suggestion, else the first, keeping its trigger; one undoable edit").
 		Verb("dismiss", on(func(c *Completer, _ Context, _ Arguments) error { c.dismiss(); return nil }), "Hide the suggestions; the input stays in its mode and typing reopens them")
 	move := r.Operations["ochazuke.completion.move"]
@@ -380,19 +380,9 @@ func (c *Completer) stop() {
 // again.
 func (c *Completer) dismiss() { c.stop() }
 
-// move steps the highlight, clamped at both ends (no wrap): from none, 1
-// lands on the first suggestion and -1 stays on none, as in a chooser.
+// move steps the highlight, clamped at both ends (no wrap).
 func (c *Completer) move(delta int) {
-	if len(c.rows) == 0 || delta == 0 {
-		return
-	}
-	switch {
-	case c.cursor < 0 && delta > 0:
-		c.cursor = 0
-	case c.cursor < 0:
-	default:
-		c.cursor = min(max(c.cursor+delta, 0), len(c.rows)-1)
-	}
+	c.cursor = c.r.moveHighlight(c.cursor, delta, len(c.rows), false)
 }
 
 // accept replaces the token under the cursor with the highlighted

@@ -1,0 +1,16 @@
+ |  ◆ o-story                                                      INSERT
+ |   › page1
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  a
+r|  a1    ╭──────────────────────────────────────────────────────────────╮
+ |        │ Context                                                      │
+ |        │ › zz                                                   fuzzy │
+ |        │   no matches                                                 │
+ |        │   no project                                                 │
+R|        │   no context                                                 │
+ |        │ enter chooser.pick · esc chooser.cancel · tab search.cycle-… │
+ |        ╰──────────────────────────────────────────────────────────────╯
+ |
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  enter chooser.pick · esc chooser.cancel · tab search.cycle-match
+ |

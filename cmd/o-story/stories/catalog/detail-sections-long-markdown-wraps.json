@@ -99,9 +99,12 @@
     "9",
     "J"
   ],
-  "expect": {
-    "contains": [
-      "Final answer sentinel."
-    ]
-  }
+  "expect": [
+    {
+      "contains": [
+        "Final answer sentinel."
+      ],
+      "after": 4
+    }
+  ]
 }

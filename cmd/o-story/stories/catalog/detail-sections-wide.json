@@ -93,17 +93,22 @@
       }
     }
   },
-  "script": [],
-  "expect": {
-    "contains": [
-      "Final answer sentence.",
-      "Metadata",
-      "[answered]"
-    ],
-    "attrs": {
-      "the question and answer": "bold",
-      "render(value)": "fg"
+  "script": [
+    "K"
+  ],
+  "expect": [
+    {
+      "contains": [
+        "Final answer sentence.",
+        "Metadata",
+        "[answered]"
+      ],
+      "attrs": {
+        "the question and answer": "bold",
+        "render(value)": "fg"
+      },
+      "after": 1
     }
-  },
+  ],
   "theme": "dark"
 }

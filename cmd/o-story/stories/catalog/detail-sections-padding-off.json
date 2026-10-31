@@ -1,0 +1,119 @@
+{
+  "name": "detail-sections-padding-off",
+  "area": "catalog",
+  "width": 200,
+  "height": 32,
+  "page": {
+    "id": "questions",
+    "title": "Questions",
+    "catalog": {
+      "nouns": [
+        {
+          "name": "question",
+          "verbs": [
+            {
+              "name": "list",
+              "rows": "question"
+            }
+          ]
+        }
+      ],
+      "page": {
+        "layout": "split",
+        "lists": [
+          {
+            "id": "questions/list",
+            "noun": "question",
+            "title": "Questions"
+          }
+        ],
+        "detail": {
+          "title": "Discussion",
+          "sections": [
+            {
+              "kind": "markdown",
+              "field": "question",
+              "heading": true
+            },
+            {
+              "kind": "thread",
+              "field": "answers"
+            },
+            {
+              "kind": "fields",
+              "region": "side",
+              "title": "Metadata",
+              "fields": [
+                {
+                  "label": "Status",
+                  "field": "status",
+                  "format": "badge"
+                },
+                {
+                  "label": "Project",
+                  "field": "project"
+                },
+                {
+                  "label": "Pane",
+                  "field": "pane",
+                  "format": "short-id"
+                },
+                {
+                  "label": "Tags",
+                  "field": "tags",
+                  "format": "list"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "answers": {
+        "question.list": [
+          {
+            "id": "q1",
+            "label": "Readable answers",
+            "question": "How should a complete answer stay readable?",
+            "answers": [
+              {
+                "author": "author",
+                "body": "Spaced body."
+              },
+              {
+                "author": "next",
+                "body": "Another body."
+              }
+            ],
+            "status": "answered",
+            "project": "ochazuke",
+            "pane": "ee6f1a1f-177e-444b-adf9-cf9c18c80e5d",
+            "tags": [
+              "readability",
+              "catalog"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "script": [
+    "K"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "contains": [
+        "Spaced body.",
+        "Another body."
+      ]
+    }
+  ],
+  "theme": "dark",
+  "settings": [
+    {
+      "name": "detail.padding",
+      "type": "integer",
+      "default": 0
+    }
+  ]
+}

@@ -427,6 +427,24 @@ On terminals where Option does not send Meta sequences, configure Option-as-Meta
 
 ### Palette and selectors
 
+`chooser.up-from-none` (ochazuke › Search) defaults to `last`: when no row
+is highlighted, `ctrl+p` selects the last row and `ctrl+n` selects the first.
+This is shared by choosers, their sources and the path chooser, inline
+completion, and palette completion. Set it to `stay` to keep no selection
+on up. Once selected, chooser and inline completion movements clamp at
+either end; palette completion keeps wrapping.
+
+Compared with Vim: Neovim's completion menu with `completeopt=noselect`
+also selects the last item on `<C-p>` from none (checked on Neovim 0.12.3).
+
+| Vim form | Help tag | Ochazuke behavior |
+|---|---|---|
+| No preselected completion | `'completeopt'` (`noselect`) | Similar: inline and palette completions start with none; choosers can have none when only unspelled fixed rows remain |
+| `<C-p>` from no selection | `i_CTRL-P` | Same: selects the last item by default; `stay` opts out |
+| `<C-n>` from no selection | `i_CTRL-N` | Same: selects the first item |
+| Completion at an edge | `ins-completion` | Similar: palette wraps; choosers and inline completion clamp |
+
+
 - `:` opens the palette: an ex-mode command line, one `prompt` input (insert pinned, the Readline rows edit it: `Ctrl-W` deletes a word, `Ctrl-U` the line). The line's text is the command; there are no stages.
 - Words resolve left to right. The first word is a verb or a noun; the second is the complement (a noun that has the verb, or a verb or instance of the noun); then the operation's parameters in order (required first, then by name). Every word may be a unique prefix (`tr r up`); an ambiguous prefix stays unresolved and the list shows its candidates. A first word that is a prefix of exactly one verb and one noun takes the reading the next words resolve. A value with spaces is quoted (`add note "two words"`).
 - Omit the noun and the verb acts for the nearest instance on the focus path whose noun has it: on a CSV cell `transform upper` changes the cell, `transform row upper` the row under the cursor, `transform column upper` the column, `transform selection upper` the selection (offered only while one exists; verb guards hide verbs the focus does not answer to). The cursor never moves.
@@ -1105,6 +1123,14 @@ the focus stops, as a legacy record detail does: `j`/`k` move and spill
 between page lists in drawing order (UX-RULES R3.3–R3.5), while `J`/`K`
 scroll rendered lines (R3.14). Changing the selected record resets the
 offset. A metadata field list is a modal, where list motions clamp (R3.6).
+
+`detail.padding` defaults to `1`: one blank line above and below the main
+sections and a two-cell inset on either side. Thread bodies are indented
+under their dim author/time line, with a blank line between them; entries
+and sections retain a blank line between them. The right inset leaves a
+clear gutter beside metadata. Each unit adds one line and two cells; `0`
+restores the tight layout. A page can override it with `padding`, including
+`padding: 0`. Insets shrink at very narrow widths to keep content readable.
 
 Side content uses one quarter of the detail width on the right when its
 content width reaches `detail.side-width` (default 96, minimum 40), and

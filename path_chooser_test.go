@@ -424,3 +424,41 @@ func TestPathUnderHomeShowsTilde(t *testing.T) {
 		t.Fatalf("dir rows %v", got)
 	}
 }
+
+func TestPathUpFromNoneSetting(t *testing.T) {
+	for _, policy := range []string{"last", "stay"} {
+		t.Run(policy, func(t *testing.T) {
+			r := NewRuntime()
+			r.Config().Disable()
+			m := NewModel(r)
+			if err := r.Settings().Set("chooser.up-from-none", policy); err != nil {
+				t.Fatal(err)
+			}
+			root := t.TempDir()
+			r.AddPathSource("known", func(PathPick) (ChooserSource, bool) {
+				return ChooserSource{Load: func(string) Result {
+					return Done([]ChooserRow{
+						{ID: "first", Label: "first path", Fixed: true, Data: filepath.Join(root, "first")},
+						{ID: "last", Label: "last path", Fixed: true, Data: filepath.Join(root, "last")},
+					})
+				}}, true
+			})
+			c, err := r.OpenPathChooser(PathChooserSpec{Source: "known", Pick: PathPick{Parameter: Parameter{Type: "path", Base: root}}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			landLoads(m, r.PendingCommands())
+			if highlighted(c) != "" {
+				t.Fatal("fixture starts highlighted")
+			}
+			pressLand(m, "ctrl+p")
+			want := "last"
+			if policy == "stay" {
+				want = ""
+			}
+			if highlighted(c) != want {
+				t.Fatalf("up = %q, want %q", highlighted(c), want)
+			}
+		})
+	}
+}

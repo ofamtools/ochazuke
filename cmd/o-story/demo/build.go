@@ -206,7 +206,7 @@ func (ss *session) chooserSpec(cs *ChooserSpec) ochazuke.ChooserSpec {
 			}
 			for _, row := range src.Rows {
 				if !src.Live || strings.Contains(row.Label, query) {
-					out = append(out, ochazuke.ChooserRow{ID: row.ID, Label: row.Label, Cells: row.Cells, Noun: row.Noun, Props: row.Props})
+					out = append(out, ochazuke.ChooserRow{ID: row.ID, Label: row.Label, Fixed: row.Fixed, Cells: row.Cells, Noun: row.Noun, Props: row.Props})
 				}
 			}
 			return out
@@ -223,7 +223,7 @@ func (ss *session) chooserSpec(cs *ChooserSpec) ochazuke.ChooserSpec {
 	}
 	previews := map[string]string{}
 	for _, row := range cs.Rows {
-		spec.Rows = append(spec.Rows, ochazuke.ChooserRow{ID: row.ID, Label: row.Label, Cells: row.Cells, Noun: row.Noun, Props: row.Props})
+		spec.Rows = append(spec.Rows, ochazuke.ChooserRow{ID: row.ID, Label: row.Label, Fixed: row.Fixed, Cells: row.Cells, Noun: row.Noun, Props: row.Props})
 		if row.Preview != "" {
 			previews[row.ID] = row.Preview
 		}

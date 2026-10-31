@@ -119,6 +119,7 @@ type ChooserSourceSpec struct {
 // ChooserRowSpec is one chooser row; Cells draw it as columns, Preview is
 // its preview text.
 type ChooserRowSpec struct {
+	Fixed   bool           `json:"fixed,omitempty"`
 	Noun    string         `json:"noun,omitempty"`
 	Props   ochazuke.Thing `json:"props,omitempty"`
 	ID      string         `json:"id"`

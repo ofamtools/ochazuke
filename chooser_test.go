@@ -106,8 +106,8 @@ func TestChooserFixedRowsStayAtTheBottomAndAnswerOnlyWhenSpelledOrMoved(t *testi
 		t.Fatalf("no match: %v highlight %q", got, highlighted(c))
 	}
 	keytest.Press(m, "ctrl+p")
-	if highlighted(c) != "" {
-		t.Fatalf("ctrl+p from none moved to %q", highlighted(c))
+	if highlighted(c) != "none" {
+		t.Fatalf("ctrl+p from none did not select the last row: %q", highlighted(c))
 	}
 	keytest.Press(m, "ctrl+n")
 	if highlighted(c) != "none" {
@@ -495,6 +495,41 @@ func TestChooserFillsTheModalWidthWhileTyping(t *testing.T) {
 	for _, line := range strings.Split(c.View(contentWidth, 10).Text, "\n") {
 		if w := ansi.StringWidth(line); w != contentWidth {
 			t.Fatalf("line %q is %d cells, want %d", ansi.Strip(line), w, contentWidth)
+		}
+	}
+}
+
+func TestChooserUpFromNoneSettingAndSources(t *testing.T) {
+	for _, sources := range []bool{false, true} {
+		for _, policy := range []string{"last", "stay"} {
+			t.Run(fmt.Sprintf("sources=%t/%s", sources, policy), func(t *testing.T) {
+				rows := []ChooserRow{{ID: "a", Label: "alpha"}, {ID: "first", Label: "no project", Fixed: true}, {ID: "last", Label: "no context", Fixed: true}}
+				spec := ChooserSpec{Rows: rows}
+				if sources {
+					spec.Sources = []ChooserSource{{Name: "context", Load: func(string) Result { return Done(rows) }}}
+				}
+				r, m, c, _ := chooserTest(t, spec)
+				if err := r.Settings().Set("chooser.up-from-none", policy); err != nil {
+					t.Fatal(err)
+				}
+				keytest.Type(m, "zz")
+				if highlighted(c) != "" {
+					t.Fatal("fixture starts highlighted")
+				}
+				keytest.Press(m, "ctrl+p")
+				want := "last"
+				if policy == "stay" {
+					want = ""
+				}
+				if highlighted(c) != want {
+					t.Fatalf("up = %q, want %q", highlighted(c), want)
+				}
+				keytest.Type(m, "z")
+				keytest.Press(m, "ctrl+n")
+				if highlighted(c) != "first" {
+					t.Fatalf("down from none = %q", highlighted(c))
+				}
+			})
 		}
 	}
 }

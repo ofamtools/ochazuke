@@ -82,6 +82,9 @@ type CatalogDetail struct {
 	// SideWidth is the minimum detail content width for side-by-side
 	// regions (0 uses detail.side-width, default 96).
 	SideWidth int `json:"sideWidth,omitempty"`
+	// Padding overrides detail.padding for this page, including zero. Each
+	// unit adds one outer blank line and two inset cells around main sections.
+	Padding *int `json:"padding,omitempty"`
 }
 
 // The layouts of a data page (CatalogPage.Layout).

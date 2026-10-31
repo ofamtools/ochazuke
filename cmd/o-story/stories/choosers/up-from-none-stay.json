@@ -1,0 +1,52 @@
+{
+  "name": "up-from-none-stay",
+  "area": "choosers",
+  "width": 80,
+  "height": 16,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "chooser": {
+      "title": "Context",
+      "rows": [
+        {
+          "id": "a",
+          "label": "alpha"
+        },
+        {
+          "id": "first",
+          "label": "no project",
+          "fixed": true
+        },
+        {
+          "id": "last",
+          "label": "no context",
+          "fixed": true
+        }
+      ]
+    }
+  },
+  "script": [
+    {
+      "type": "zz"
+    },
+    "ctrl+p"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "highlighted": 0
+    },
+    {
+      "after": 2,
+      "highlighted": 0
+    }
+  ],
+  "values": {
+    "chooser.up-from-none": "stay"
+  }
+}

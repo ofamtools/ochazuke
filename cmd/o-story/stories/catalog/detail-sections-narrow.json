@@ -111,7 +111,8 @@
         "Final answer sentence.",
         "Metadata",
         "[answered]"
-      ]
+      ],
+      "after": 4
     }
   ]
 }

@@ -601,3 +601,38 @@ func TestPaletteParamHeader(t *testing.T) {
 		t.Errorf("noun: %q", got)
 	}
 }
+
+func TestPaletteUpFromNoneSetting(t *testing.T) {
+	for _, policy := range []string{"last", "stay"} {
+		t.Run(policy, func(t *testing.T) {
+			r, p, _ := lineRuntime(t)
+			if err := r.Settings().Set("chooser.up-from-none", policy); err != nil {
+				t.Fatal(err)
+			}
+			typeLine(t, p, "tr")
+			entries := p.completions()
+			if len(entries) < 2 {
+				t.Fatal("need multiple completions")
+			}
+			paletteKeys(t, p, "ctrl+p")
+			want := len(entries) - 1
+			if policy == "stay" {
+				want = -1
+			}
+			if p.highlight != want {
+				t.Fatalf("up = %d, want %d", p.highlight, want)
+			}
+			if policy == "last" {
+				paletteKeys(t, p, "ctrl+n")
+				if p.highlight != 0 {
+					t.Fatal("palette stopped wrapping")
+				}
+			} else {
+				paletteKeys(t, p, "ctrl+n")
+				if p.highlight != 0 {
+					t.Fatal("down from none did not choose first")
+				}
+			}
+		})
+	}
+}
