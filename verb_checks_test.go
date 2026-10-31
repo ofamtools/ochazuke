@@ -19,7 +19,7 @@ func TestBeforeQuitAsksThenQuits(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if got := r.VerbChecks("app.quit"); len(got) != 1 || got[0] != "unsaved" {
+	if got := r.VerbChecks("app.quit"); len(got) != 2 || got[0] != "agent-rights" || got[1] != "unsaved" {
 		t.Fatalf("checks %v", got)
 	}
 	v, err := r.Execute(Request{Noun: "app", Verb: "quit"})
@@ -70,7 +70,7 @@ func TestVerbCheckRefusesInOrderAndReplaces(t *testing.T) {
 	if err := r.AddVerbCheck("doc.write", VerbCheck{Name: "b", Check: allow.Check}); err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Join(r.VerbChecks("doc.write"), ","); got != "a,b,c" {
+	if got := strings.Join(r.VerbChecks("doc.write"), ","); got != "agent-rights,a,b,c" {
 		t.Fatalf("replace keeps the order: %s", got)
 	}
 	if _, err := r.Execute(Request{Noun: "doc", Verb: "write"}); err != nil || ran != 0 || r.TopModal() == "" {

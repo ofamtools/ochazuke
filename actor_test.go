@@ -193,6 +193,9 @@ func TestActorHistoryFilterAndPersistence(t *testing.T) {
 }
 
 func TestActorSocketRequest(t *testing.T) {
+	a := testAgent("wire")
+	rawActor, _ := json.Marshal(a)
+	t.Setenv("OCHAZUKE_ACTOR", string(rawActor))
 	r := NewRuntime()
 	r.Define("work").Verb("who", func(c Ctx) Result { return Done(c.Actor()) })
 	path := filepath.Join(socketDir(t), "s")
@@ -201,8 +204,8 @@ func TestActorSocketRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer server.Close()
-	a := testAgent("wire")
-	value, err := Call(context.Background(), path, Request{Noun: "work", Verb: "who", Actor: &a})
+	owner := Owner()
+	value, err := Call(context.Background(), path, Request{Noun: "work", Verb: "who", Actor: &owner})
 	if err != nil {
 		t.Fatal(err)
 	}

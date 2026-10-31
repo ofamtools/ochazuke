@@ -164,6 +164,11 @@ func (ss *session) start() error {
 		}
 	}
 	for _, p := range ss.all {
+		for _, q := range p.Requests {
+			if _, err := r.Execute(q); err != nil {
+				return err
+			}
+		}
 		for _, sp := range p.Segments {
 			texts, n := sp.Texts, 0
 			r.SegmentProvider("story-"+sp.ID, func(context.Context, ochazuke.Segment) (ochazuke.SegmentValue, error) {

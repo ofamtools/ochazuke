@@ -80,6 +80,7 @@ func (r *Runtime) openConfirmAbout(c Context, q, run Request, op Operation) (any
 	actor := r.Actor()
 	stored.Actor, stored.source = &actor, r.history.source
 	stored.Confirmed = true
+	stored.agentApproved = true
 	stored.Target = inst.ID
 	// A request that names its thing by the noun's key argument (task
 	// delete --id t2) is about that thing, whatever instance it targets
@@ -152,6 +153,9 @@ func (r *Runtime) openConfirmAbout(c Context, q, run Request, op Operation) (any
 	})
 	if strings.TrimSpace(prompt) == "" {
 		prompt = "Run " + q.Key() + "?"
+	}
+	if actor.IsAgent() && r.Settings().Bool(AgentConfirmAttributionSetting) {
+		prompt = actor.String() + " asks:\n" + prompt
 	}
 	body, err := r.OpenModal("confirm", Payload{Prompt: prompt, Request: &stored})
 	if err != nil {

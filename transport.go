@@ -36,7 +36,8 @@ type Response struct {
 
 // CallMsg is delivered to the UI loop; only that loop may call Runtime.Execute.
 type CallMsg struct {
-	Actor Actor
+	Actor    Actor
+	Headless bool
 	// Source is cli by default, mcp for the MCP adapter.
 	Source  string
 	Request Request
@@ -55,9 +56,7 @@ func (r *Runtime) HandleCall(msg CallMsg) {
 	}
 	restore := r.Sourced(source)
 	actor := msg.Actor.normalized()
-	if msg.Request.Actor != nil {
-		actor = msg.Request.Actor.normalized()
-	}
+	defer r.BindActor(actor, !msg.Headless)()
 	defer r.WithActor(actor)()
 	stop := r.UI().capture()
 	result, err := r.Execute(msg.Request)
@@ -130,6 +129,7 @@ func detachLines(lines Lines) (Lines, error) {
 
 // Server serves runtime requests over a Unix socket; see Listen.
 type Server struct {
+	actor    Actor
 	listener net.Listener
 	done     chan struct{}
 	once     sync.Once
@@ -139,6 +139,10 @@ type Server struct {
 // file left by an application that is gone (nothing answers a connect) is
 // removed and listened on again; a live one is never removed.
 func Listen(path string, send func(CallMsg)) (*Server, error) {
+	actor, err := ActorFromEnv(nil)
+	if err != nil {
+		return nil, err
+	}
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return nil, err
@@ -170,7 +174,7 @@ func Listen(path string, send func(CallMsg)) (*Server, error) {
 		ln.Close()
 		return nil, err
 	}
-	s := &Server{listener: ln, done: make(chan struct{})}
+	s := &Server{actor: actor, listener: ln, done: make(chan struct{})}
 	go func() {
 		for {
 			conn, err := ln.Accept()
@@ -225,7 +229,7 @@ func (s *Server) serve(conn net.Conn, send func(CallMsg)) {
 		return
 	}
 	reply := make(chan Response, 1)
-	send(CallMsg{Request: q, Reply: reply})
+	send(CallMsg{Actor: s.actor, Request: q, Reply: reply})
 	select {
 	case response := <-reply:
 		_ = json.NewEncoder(conn).Encode(response)

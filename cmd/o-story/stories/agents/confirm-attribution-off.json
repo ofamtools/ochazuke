@@ -1,0 +1,7 @@
+{
+ "name":"agent confirmation attribution can be hidden",
+ "area":"agents",
+ "config":{"settings.json":{"agents.confirm-attribution":false}},
+ "page":{"focus":"a2", "lists":[{"id":"a", "rows":3, "labels":["alpha","beta","gamma"]}], "requests":[{"noun":"demo", "verb":"delete", "actor":{"kind":"agent", "name":"lane", "pane":"p1"}}]},
+ "expect":{"modal":"confirm", "contains":["Delete beta?"],"lacks":["asks:","pane p1"]}
+}

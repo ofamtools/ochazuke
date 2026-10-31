@@ -121,6 +121,7 @@ func (op Operation) WithPresets(args, presets Arguments) Arguments {
 // Confirmed skips the operation's Confirm prompt: the confirm modal's y sets
 // it on the stored request, and a script may set it to run unattended.
 type Request struct {
+	agentApproved bool
 	// Actor is an explicit API identity; nil inherits the enclosing request or owner.
 	Actor     *Actor    `json:"actor,omitempty"`
 	source    string    // a deferred request preserves its original source
@@ -420,11 +421,12 @@ type Runtime struct {
 	modeExtends      map[string]string // the mode a mode falls back to for a noun with no table of its own (ModeExtends)
 	guards           map[string]Guard
 	predicates       map[string]PredicateFunc // named query predicates (query.go)
-	history          actionHistory            // the executed-request ring and the current source (history.go)
-	origin           string                   // the instance the running request or completion acts for; a modal opens only from the top level
-	askedAt          string                   // the focus the running request was made at, before it moved to its noun's instance (createFill reads a reference's thing there)
-	rowRequest       bool                     // the next execute is a binding row's own request (runRow's level rule targets it)
-	subjects         []string                 // the subjects execute hands the application handler it is about to run (Ctx.Subjects)
+	agentTransport   *agentTransport
+	history          actionHistory // the executed-request ring and the current source (history.go)
+	origin           string        // the instance the running request or completion acts for; a modal opens only from the top level
+	askedAt          string        // the focus the running request was made at, before it moved to its noun's instance (createFill reads a reference's thing there)
+	rowRequest       bool          // the next execute is a binding row's own request (runRow's level rule targets it)
+	subjects         []string      // the subjects execute hands the application handler it is about to run (Ctx.Subjects)
 	prefix           pendingPrefix
 	bindingVersion   uint64
 	modeGeneration   uint64
@@ -485,6 +487,7 @@ func (r *Runtime) registerFramework() {
 	registerConfig(r)
 	registerActions(r)
 	registerSettings(r)
+	registerAgentRights(r)
 	registerSettingsEditor(r)
 	registerConfigExport(r)
 	registerConfigReload(r)
@@ -731,6 +734,10 @@ func (r *Runtime) Register(o Operation) {
 	default:
 		panic("unknown operation kind " + o.Kind)
 	}
+	if o.Agent == "" {
+		o.Agent = frameworkAgentRights[o.Noun]
+	}
+	o.Checks = append([]VerbCheck{{Name: "agent-rights", requestCheck: (*Runtime).agentVerdict}}, o.Checks...)
 	r.Operations[o.Key()] = o
 }
 
@@ -845,7 +852,9 @@ func (r *Runtime) Execute(q Request) (any, error) { return r.ExecuteAt(r.Context
 // context it ran in, its outcome and where it moved the interaction.
 func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
 	actor := r.Actor()
-	if q.Actor != nil {
+	if r.agentTransport != nil {
+		actor = r.agentTransport.actor
+	} else if q.Actor != nil {
 		actor = q.Actor.normalized()
 	}
 	if err := actor.validate(); err != nil {
@@ -957,6 +966,9 @@ func (r *Runtime) execute(c Context, q Request) (any, error) {
 	defer r.asking(actions)()
 	switch v := r.runChecks(c, q, op); {
 	case v.Refuse != "":
+		if v.err != nil {
+			return nil, v.err
+		}
 		return nil, errors.New(v.Refuse)
 	case v.Ask != "":
 		if len(subjects) > 1 {

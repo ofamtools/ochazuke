@@ -24,6 +24,7 @@
     {"owner": "ochazuke", "id": "status", "title": "Status bar", "description": "The status segments in the header rule"},
     {"owner": "ochazuke", "id": "pages", "title": "Pages", "description": "Hidden pages and the action history"},
     {"owner": "ochazuke", "id": "markdown", "title": "Markdown", "description": "Markdown documents and their notes"},
+ {"owner":"ochazuke", "id":"agents", "title":"Agents", "description":"Agent rights and confirmation attribution"},
     {"owner": "ochazuke", "id": "settings", "title": "Settings", "description": "This page, :set and session values"}
   ]
 }

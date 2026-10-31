@@ -166,6 +166,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	}
 	before := s.actor
 	s.actor = actor
+	defer s.Runtime.BindActor(*actor, false)()
 	defer func() { s.actor = before }()
 
 	if len(args) < 2 && (len(args) == 0 || !s.bareAlias(args[0])) {
@@ -795,7 +796,7 @@ func (s *Shell) call(q ochazuke.Request) (any, error) {
 	} else if s.Actor != nil {
 		actor = *s.Actor
 	}
-	s.Runtime.HandleCall(ochazuke.CallMsg{Request: q, Reply: reply, Stream: true, Actor: actor, Source: s.Source})
+	s.Runtime.HandleCall(ochazuke.CallMsg{Headless: true, Request: q, Reply: reply, Stream: true, Actor: actor, Source: s.Source})
 	res := <-reply
 	if res.Error != "" {
 		if res.Argument {

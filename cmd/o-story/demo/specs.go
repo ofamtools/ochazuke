@@ -9,6 +9,8 @@ import (
 
 // Page is one synthetic page: lists, inputs, a fake terminal and jobs.
 type Page struct {
+	// Requests seed API requests after the page is built, before scripted keys.
+	Requests []ochazuke.Request `json:"requests,omitempty"`
 	// Diff makes a page of data-backed diffs.
 	Diff   *DiffSpec  `json:"diff,omitempty"`
 	ID     string     `json:"id,omitempty"`

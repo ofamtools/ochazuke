@@ -2152,8 +2152,33 @@ Mounted extension verbs retain this metadata; their guards remain checked by
 the extension. `agentDeclared` preserves an explicit right separately from `agent`,
 which describes the derived default: destructive or confirmed verbs ask for
 confirmation; fetches, changes and screen actions allow. Standard delete and
-archive verbs are destructive. This metadata does not enforce agent rights yet. The inspector’s checked-by-default
+archive verbs are destructive. The runtime enforces agent rights on every agent request. The inspector’s checked-by-default
 `agent metadata` control hides or shows the added descriptions and agent fields.
+
+### Agent rights
+
+The `agent-rights` verb check runs before other checks, even with `force` or
+`Confirmed`. Destructive or confirm-prompted verbs require the owner's approval;
+other verbs allow agents by default, including screen actions when live control
+is enabled. Framework settings, config, bindings, actions, themes and confirmation
+control verbs declare `never` by default. Apps can declare rights per verb with
+`.Agent(...)`. `agent.rights {verb}` lists the effective policy and its source.
+
+Owner overrides use `agents.rights`, a validated JSON array stored as a string,
+like `list.filters`: `[{"match":"task.*","right":"never","where":"live"}]`.
+Rows match `noun.verb`, `noun.*` or `*`, first match wins; `where` is `live`,
+`headless` or `any`. The `agents.rights-gate` setting defaults to true; false
+restores owner rights. Headless agent calls refuse a confirmation with
+"needs the owner's confirmation"; the agent must ask the owner to run the command.
+Only the owner's acceptance of a live modal approves it. Attribution names the
+agent by default (`agents.confirm-attribution=false` hides it).
+`agents.status-segment` defaults to false; true shows active agent jobs and
+pending confirmations in the header status segments.
+
+Transport adapters bind startup identity with `Runtime.BindActor(actor, live)`;
+request-supplied actors cannot replace it, including in nested requests. The CLI
+and socket server use this binding. Direct in-process API requests may still set
+`Request.Actor`. These are cooperative guard rails, not authentication.
 
 ### Actors and scoped history undo
 

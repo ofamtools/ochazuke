@@ -607,6 +607,9 @@ type SegmentCell struct {
 // and "!" in state.errored.
 func (r *Runtime) SegmentCells() []SegmentCell {
 	var out []SegmentCell
+	if text := r.agentActivity(); text != "" {
+		out = append(out, SegmentCell{ID: "agent", Text: text})
+	}
 	for _, row := range r.active() {
 		seg := row.row()
 		switch {
