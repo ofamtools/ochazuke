@@ -234,10 +234,13 @@ func TestFitAndResetAnswerOnlyWhenTheyChangeSomething(t *testing.T) {
 			t.Fatalf("%s available on a table with nothing to change", verb)
 		}
 	}
-	if ok, _ := r.Dispatch(MacroKey{Key: "z"}); ok {
-		t.Fatal("z waited on a row-select table that fits")
+	if rows := zColumnRows(t, r); len(rows) != 0 {
+		t.Fatalf("z column rows answer on a row-select table that fits: %v", rows)
 	}
 	r2, m2, l2 := fitTable(t, 120, "")
+	if rows := zColumnRows(t, r2); !slices.Contains(rows, "z F fit-columns") || slices.Contains(rows, "z = reset-columns") {
+		t.Fatalf("z column rows before z F: %v", rows)
+	}
 	motionKeys(t, r2, m2, "z F")
 	if r2.Available(Request{Noun: "ochazuke.list", Verb: "fit-columns"}, r2.Focus, r2.Mode) {
 		t.Fatal("z F available again right after z F")

@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 
@@ -97,17 +98,49 @@ func TestColumnOffsetClampsToTheWidth(t *testing.T) {
 	}
 }
 
-// On a table that fits and on a plain list the column keys do not answer,
-// and z does not wait for a second key.
+// columnVerbs are the list verbs that act on a table's columns: the z
+// column rows (z l, z h, z <, z >, z f, z F, z =, z p) and $ ^ 0 run them.
+var columnVerbs = []string{"scroll-columns", "resize-column", "fit-column", "fit-columns", "reset-columns", "toggle-pin-column"}
+
+// zColumnRows are the z sequences at the focus that answer there (their
+// verb available and their own guard holding) and run a column verb.
+func zColumnRows(t *testing.T, r *Runtime) []string {
+	t.Helper()
+	var out []string
+	for _, b := range r.ListBindings(r.Focus) {
+		if !strings.HasPrefix(b.Keys, "z ") || b.Request.Noun != "ochazuke.list" || !slices.Contains(columnVerbs, b.Request.Verb) {
+			continue
+		}
+		if b.When != "" {
+			if holds, known := r.GuardHolds(b.When, r.Focus); !known || !holds {
+				continue
+			}
+		}
+		out = append(out, b.Keys+" "+b.Request.Verb)
+	}
+	return out
+}
+
+// On a table that fits and on a plain list the column keys do not answer:
+// $ ^ 0 fall through, and no z sequence runs a column verb. z itself may
+// still wait, for the rows every list answers (z / filters by a prop).
 func TestColumnMotionsAnswerOnlyWhereColumnsAreHidden(t *testing.T) {
 	r, m, _ := columnTable(t, 120)
-	for _, key := range []string{"$", "^", "0", "z"} {
+	for _, key := range []string{"$", "^", "0"} {
 		if ok, err := r.Dispatch(MacroKey{Key: key}); ok || err != nil {
 			t.Fatalf("%s on a table that fits answered (%v, %v)", key, ok, err)
 		}
 		if r.Mode.Name != "normal" {
 			t.Fatalf("%s left mode %q", key, r.Mode.Name)
 		}
+	}
+	if rows := zColumnRows(t, r); len(rows) != 0 {
+		t.Fatalf("z column rows answer on a table that fits: %v", rows)
+	}
+	// The same table drawn too narrow: z l and z h answer.
+	narrow, _, _ := columnTable(t, 44)
+	if rows := zColumnRows(t, narrow); !slices.Contains(rows, "z l scroll-columns") || !slices.Contains(rows, "z h scroll-columns") {
+		t.Fatalf("z column rows on a table with hidden columns: %v", rows)
 	}
 	_ = m
 	r2, _, _, _ := motionPage(t)
