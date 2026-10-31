@@ -1232,7 +1232,7 @@ to true, false is rejected). Editing remains with the application's verbs.
 
 The main content wraps completely, including long words, code and tables;
 there is no answer line limit. One shared `Detail.Window` scrolls the whole
-document with the existing `J`/`K` keys and counts. The detail remains outside
+document with the existing `J`/`K` keys and counts. Text sections remain outside
 the focus stops, as a legacy record detail does: `j`/`k` move and spill
 between page lists in drawing order (UX-RULES R3.3–R3.5), while `J`/`K`
 scroll rendered lines (R3.14). Changing the selected record resets the
@@ -1254,6 +1254,46 @@ A page may override it with `side: false|true`, or name its own boolean
 `sideSetting` (when declared, that setting wins). `detail.sections=false`
 opts out of the section renderer and shows the legacy record `fields`.
 Catalogs declaring only `fields` retain their existing rendering.
+
+JSON sections render a structure tree beside the selected node's pretty value:
+
+```json
+[
+  {"kind": "json", "field": "arguments", "title": "Request"},
+  {"kind": "json", "field": "response.body", "title": "Response", "parse": true}
+]
+```
+
+They appear in declaration order below the main and side regions, at full
+width (`region: "side"` is rejected). `parse: true` decodes a JSON string;
+invalid strings remain complete plain text. Without `parse`, a string stays
+a JSON string. A missing field shows JSON `null`. Parsed strings preserve
+object key order and number literals; object fields already decoded by the
+catalog transport use that transport's key order (Go maps marshal sorted).
+
+Below 64 content cells, structure and data stack. Each tree/value window
+uses at most eight rows and shrinks with the detail height. The trees are
+focus stops in section order after the page lists; focusing a section
+scrolls it into view. Standard tree keys move and fold (`j/k`, `h/l`,
+`enter`), `J/K` scroll the data with counts, `y` copies the complete selected
+JSON value, and `g v` opens it in a read-only text view. Keys and hints are
+binding rows in `cli/detail_json.json`. The tree's parent retains the
+selected catalog row's noun, id and label, so domain actions still reach
+that row. Changing rows resets JSON selection; refreshed JSON keeps a
+surviving path. `detail.sections=false` restores the legacy detail and
+removes JSON trees from focus order; no new setting is required.
+
+The reusable `ofam.dev/ochazuke/jsontree` package provides ordered `Node`,
+`Build`, `Flatten`, `Pretty`, jq-style `Node.Path`, and `TreeNodes` for a
+framework tree with path/type/count columns. It adapts o-json's document
+model, without importing its application package.
+
+Compared with Vim: folding uses the existing framework tree keys (`enter`
+toggles, `h/l` collapse/expand), similar to Vim's `zc`/`zo` (`:help zc`,
+`:help zo`); this view introduces no new folding mode. `ctrl+w h/l` walks
+focus stops in drawing order, similar to Vim's window motions
+(`:help CTRL-W_h`, `:help CTRL-W_l`). The JSON value follows selection;
+Vim's windows have independent buffers and cursors.
 
 Metadata fields are `{label, field, format}`. Missing values are omitted;
 displayed values are shortened to their line. `g m` (`detail.fields`) opens
