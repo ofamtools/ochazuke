@@ -19,13 +19,17 @@ import (
 // ordered by At oldest first (ties and undated entries retain input order).
 // Its Author, At and Body paths are relative to each entry and default to
 // author, at and body. Fields reads labelled values from the selected row.
-// Region is main (default) or side. ReadOnly defaults true; false is
+// JSON reads any JSON value; Parse decodes a string as JSON, falling back
+// to plain text on invalid input. JSON sections use the full width below
+// the other regions, with a structure tree beside the selected value.
+// Region is main (default) or side (JSON sections require main). ReadOnly defaults true; false is
 // refused: domain edits belong to the application's verbs.
 type CatalogDetailSection struct {
 	Kind     string               `json:"kind"`
 	Region   string               `json:"region,omitempty"`
 	Title    string               `json:"title,omitempty"`
 	Field    string               `json:"field,omitempty"`
+	Parse    bool                 `json:"parse,omitempty"`
 	Heading  bool                 `json:"heading,omitempty"`
 	ReadOnly *bool                `json:"readOnly,omitempty"`
 	Author   string               `json:"author,omitempty"`
@@ -59,16 +63,22 @@ func checkDetailSections(d CatalogDetail) error {
 			return bad("catalog sections are read-only; use application verbs to edit")
 		}
 		switch s.Kind {
-		case "markdown", "thread":
+		case "markdown", "thread", "json":
 			if s.Field == "" {
-				return bad("markdown and thread need a field")
+				return bad("markdown, thread and json need a field")
 			}
 		case "fields":
 			if len(s.Fields) == 0 {
 				return bad("fields needs labelled fields")
 			}
 		default:
-			return bad("kind must be markdown, thread or fields")
+			return bad("kind must be markdown, thread, fields or json")
+		}
+		if s.Parse && s.Kind != "json" {
+			return bad("parse is only supported by json sections")
+		}
+		if s.Kind == "json" && s.Region == "side" {
+			return bad("json sections use the full width below main and side content")
 		}
 		for _, f := range s.Fields {
 			if f.Label == "" || f.Field == "" {
@@ -322,7 +332,7 @@ func (v *PageView) regionText(region string, data any, width int) string {
 		if r == "" {
 			r = "main"
 		}
-		if r == region {
+		if r == region && s.Kind != "json" {
 			if text := v.sectionText(s, data, width); text != "" {
 				parts = append(parts, text)
 			}
@@ -382,6 +392,7 @@ func (v *PageView) sectionsPanel(layout ochazuke.Layout, width, height int) ocha
 			}
 		}
 	}
+	text = v.jsonSectionsText(layout, text, cw, ch)
 	// Already wrapped at each region's width. One offset scrolls the whole
 	// composed document, with no height allocation that can hide the answer.
 	body, marker := v.detail.Window(text, 0, ch)
@@ -391,5 +402,5 @@ func (v *PageView) sectionsPanel(layout ochazuke.Layout, width, height int) ocha
 	if marker != "" {
 		title += " · " + marker
 	}
-	return layout.PanelBlock(title, ochazuke.Text(body), width, height, false)
+	return layout.PanelBlock(title, ochazuke.Text(body), width, height, v.jsonFocused())
 }

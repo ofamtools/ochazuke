@@ -1219,7 +1219,7 @@ Root package `ochazuke` is flat: 156 source files, 175 test files. Each entry li
 
 ## Package cli
 
-Importable package `cli`: 38 source files, 36 test files.
+Importable package `cli`: 39 source files, 37 test files.
 
 ### cli/agent_metadata.go
 
@@ -1269,9 +1269,16 @@ Importable package `cli`: 38 source files, 36 test files.
 - methods: PageView(4), detailFieldsModal(5)
 - leans on: page.go(6), shell.go(5), detail_sections.go(3), commands.go(1)
 
+### cli/detail_json.go
+
+- lines: 280 · tests: detail_json_test.go
+- purpose: jsonSection owns a section's tree and independently scrollable value.
+- methods: PageView(4)
+- leans on: format.go(8), detail_sections.go(5), detail_kind.go(4), page.go(4)
+
 ### cli/detail_kind.go
 
-- lines: 265 · tests: detail_kind_test.go
+- lines: 266 · tests: detail_kind_test.go
 - purpose: DetailView is a mounted page's detail of a registered kind.
 - types: DetailView (iface), DetailHost, DetailFactory (func)
 - methods: DetailHost(1), PageView(6), kindSync(3)
@@ -1280,7 +1287,7 @@ Importable package `cli`: 38 source files, 36 test files.
 
 ### cli/detail_sections.go
 
-- lines: 395 · tests: detail_sections_test.go
+- lines: 406 · tests: detail_sections_test.go
 - purpose: CatalogDetailSection is one ordered part of a read-only catalog detail.
 - types: CatalogDetailSection, CatalogDetailField
 - methods: PageView(5)
@@ -1375,7 +1382,7 @@ Importable package `cli`: 38 source files, 36 test files.
 
 ### cli/page.go
 
-- lines: 1147 · tests: page_test.go
+- lines: 1155 · tests: page_test.go
 - purpose: CatalogPage is a page in registration order.
 - types: CatalogPage, CatalogList, CatalogDetail, PageConfig, PageView
 - methods: CatalogPage(1), PageView(31), pageList(1)
@@ -1783,6 +1790,25 @@ Importable package `grid`: 2 source files, 2 test files.
 - purpose: Register defines the grid and selection operations and the selection shape modes once per runtime.
 - funcs: Register, Resolve
 - leans on: grid.go(20)
+
+## Package jsontree
+
+Importable package `jsontree`: 2 source files, 1 test files.
+
+### jsontree/doc.go
+
+- lines: 324 · tests: doc_test.go
+- purpose: Kind is the JSON type of a node.
+- types: Kind, Node, ParseError
+- methods: Node(6), ParseError(1)
+- funcs: Build, Flatten, Pretty
+
+### jsontree/tree.go
+
+- lines: 25
+- purpose: TreeNodes adapts a document to read-only framework tree rows.
+- funcs: TreeNodes
+- leans on: doc.go(4)
 
 ## Package keytest
 
@@ -2454,6 +2480,9 @@ Exported type -> file.
 - grid.Option -> grid/grid.go
 - grid.Ref -> grid/grid.go
 - grid.Styles -> grid/grid.go
+- jsontree.Kind -> jsontree/doc.go
+- jsontree.Node -> jsontree/doc.go
+- jsontree.ParseError -> jsontree/doc.go
 - keytest.Model -> keytest/keytest.go
 - markdown.DebounceMsg -> markdown/doc.go
 - markdown.Doc -> markdown/doc.go
