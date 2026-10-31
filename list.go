@@ -57,6 +57,7 @@ type List struct {
 	propFilters []PropFilter // typed prop conditions, ANDed with the text query
 	savedFilter string       // the applied saved filter's name; empty after an ad-hoc change
 	rowCache    map[string]*filterRow
+	derived     fieldProps // the rows' undeclared fields as props (list_props.go); nil until asked, cleared with the rows
 	nouns       []string
 	match       string // the filter's match mode set by search.cycle-match/set-match; "" is search.match (search_match.go)
 	back        string // the row selected when the filter line opened, which filter-clear selects again

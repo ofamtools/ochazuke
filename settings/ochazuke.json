@@ -19,6 +19,7 @@
   {"name": "chooser.prop-filters", "section": "search", "type": "boolean", "default": true, "description": "Enable typed prop filters and saved-filter keys in choosers with declared row props"},
   {"name": "list.filter-strip", "section": "search", "type": "boolean", "default": true, "description": "Show active prop filters in the list, tree or chooser header strip"},
   {"name": "list.filters", "section": "search", "type": "string", "default": "[]", "description": "Saved prop filters as a JSON array: name, noun or list, where (equality props) and conditions (prop/op/value); user rows replace app defaults by name and scope"},
+  {"name": "list.props-off", "section": "search", "type": "list", "default": [], "description": "Row fields prop filters never offer, as NOUN.FIELD patterns (path.Match: lane.notes, *.uuid, o-lane.lane.*); every other field of a list's rows is filterable, declared or not, and Secret props never are"},
   {"name": "list.filter-cycle", "section": "search", "type": "boolean", "default": true, "description": "Enable cycling saved prop filters in lists, trees and choosers"},
   {"name": "inspector.enabled", "section": "keys", "type": "boolean", "default": false, "description": "Show the live state inspector strip below the app frame; alt+? toggles it for this session"},
   {"name": "modal-dim", "section": "appearance", "type": "integer", "default": 35, "description": "Percent the page behind a modal fades toward the background (0 is off)"},

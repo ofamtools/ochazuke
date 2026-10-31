@@ -102,6 +102,11 @@ func MountNouns(r *ochazuke.Runtime, nouns []CatalogNoun, h HostMount) MountedNo
 				warn("%s prop %s skipped: %v", n.Name, p.Name, err)
 			}
 		}
+		if len(n.PropsOff) > 0 {
+			if err := try(func() { b.PropsOff(n.PropsOff...) }); err != nil {
+				warn("%s propsOff skipped: %v", n.Name, err)
+			}
+		}
 		for _, f := range n.Filters {
 			f.Noun = local
 			if err := try(func() { b.Filters(f) }); err != nil {

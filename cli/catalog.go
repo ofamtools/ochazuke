@@ -124,7 +124,10 @@ type CatalogNoun struct {
 	Columns []ochazuke.Column      `json:"columns,omitempty"`
 	Props   []ochazuke.PropSpec    `json:"props,omitempty"`
 	Filters []ochazuke.SavedFilter `json:"filters,omitempty"`
-	Verbs   []CatalogVerb          `json:"verbs"`
+	// PropsOff are fields of the noun's rows its lists' prop filters never
+	// offer (ochazuke.NounBuilder.PropsOff); every other field is filterable.
+	PropsOff []string      `json:"propsOff,omitempty"`
+	Verbs    []CatalogVerb `json:"verbs"`
 }
 
 // CatalogVerb is one ochazuke.Operation. Params are the operation's
@@ -349,6 +352,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 				noun.About = n.About
 				noun.Pin, noun.Columns = n.Pin, slices.Clone(n.Columns)
 				noun.Filters = slices.Clone(n.Filters)
+				noun.PropsOff = slices.Clone(n.PropsOff)
 				noun.Kind, noun.Props = n.StoreKind(), r.Props(op.Noun)
 				for i := range noun.Props {
 					// A reference's choices, as a verb parameter's: the

@@ -124,7 +124,8 @@ func TestPropFilterPickerCycleAndStrip(t *testing.T) {
 	if l.savedFilter != "mine" || l.Shown() != 3 {
 		t.Fatalf("saved %s shown %d", l.savedFilter, l.Shown())
 	}
-	if hints := BindingHints(r, r.Focus); !strings.Contains(hints, "z / prop filter") || strings.Contains(hints, "z ! clear prop") {
+	// z / is hidden from the footer (every list with data offers it; ? lists it).
+	if hints := BindingHints(r, r.Focus); strings.Contains(hints, "z / prop filter") || strings.Contains(hints, "z ! clear prop") {
 		t.Fatal(hints)
 	}
 	pressKeys(m, "z", "]")

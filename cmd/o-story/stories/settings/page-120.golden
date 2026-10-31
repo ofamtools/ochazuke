@@ -20,5 +20,5 @@ R|  │                │ ┃              ~/proj                              
  |  │                │ │ Takes a list of text items.                                                                   │
  |  ╰────────────────╯ ╰───────────────────────────────────────────────────────────────────────────────────────────────╯
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  enter/i setting-item.edit · n setting-item.add · d d setting-item.delete · r setting-item.reset · z / prop filter ·…
+ |  enter/i setting-item.edit · n setting-item.add · d d setting-item.delete · r setting-item.reset · ]/[ settings.tab …
  |

@@ -133,3 +133,57 @@ func TestPropFilterShellSavedManagementAndOrder(t *testing.T) {
 		t.Fatal(string(raw))
 	}
 }
+
+// TestPropFilterCatalogRowsOfferFields: a mounted catalog noun that
+// declares no props still filters on its rows' fields, minus the ones its
+// catalog row turns off (propsOff).
+func TestPropFilterCatalogRowsOfferFields(t *testing.T) {
+	doc := pageDoc("stack", false)
+	for i := range doc.Nouns {
+		if doc.Nouns[i].Name == "skill" {
+			doc.Nouns[i].Props = nil
+			doc.Nouns[i].PropsOff = []string{"secret*"}
+		}
+	}
+	r := ochazuke.NewRuntime()
+	r.Config().Disable()
+	mounted := MountNouns(r, doc.Nouns, HostMount{Local: func(name string) string { return name }, Proxy: func(string, CatalogVerb) any { return func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) } }})
+	if len(mounted.Warnings) > 0 {
+		t.Fatal(mounted.Warnings)
+	}
+	if off := r.Noun("skill").PropsOff; len(off) != 1 || off[0] != "secret*" {
+		t.Fatalf("propsOff not mounted: %v", off)
+	}
+	m := ochazuke.NewModel(r)
+	views, err := MountPages(m, doc, PageConfig{Fetch: answers(pageAnswers)})
+	if err != nil || len(views) != 1 {
+		t.Fatalf("views %d: %v", len(views), err)
+	}
+	if err := views[0].SetRows("ai/skills", []Row{
+		{ID: "s1", Label: "Architect", Data: map[string]any{"state": "running", "secretKey": "x"}},
+		{ID: "s2", Label: "Review", Data: map[string]any{"state": "idle", "secretKey": "y"}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	l := m.Runtime.List("ai/skills")
+	if _, err := r.Execute(ochazuke.Request{Noun: "list", Verb: "filter-prop", Args: ochazuke.Arguments{"id": "ai/skills", "prop": "secretKey", "value": "x"}}); err == nil {
+		t.Fatal("a field the catalog turns off must not filter")
+	}
+	if _, err := r.Execute(ochazuke.Request{Noun: "list", Verb: "filter-prop", Args: ochazuke.Arguments{"id": "ai/skills", "prop": "state", "value": "running"}}); err != nil {
+		t.Fatal(err)
+	}
+	if l.Shown() != 1 {
+		t.Fatalf("state=running shown %d", l.Shown())
+	}
+	raw, err := Catalog(r, "test", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out CatalogDoc
+	if err := json.Unmarshal(raw, &out); err != nil {
+		t.Fatal(err)
+	}
+	if n, ok := out.noun("skill"); !ok || len(n.PropsOff) != 1 {
+		t.Fatalf("catalog lost propsOff: %+v", n)
+	}
+}
