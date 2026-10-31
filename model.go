@@ -18,7 +18,9 @@ import (
 // ModalView renders one modal without replacing or inspecting its parent page.
 // Render receives the modal instance (its Payload carries what OpenModal
 // gave it) and returns the body as a Block; its cursor, when the modal holds
-// the focused input, is relative to the body's top-left cell.
+// the focused input, is relative to the body's top-left cell. A registered
+// Render takes precedence over ModalBody and the focused-input fallback,
+// including for built-in modals. Covered modals never report a cursor.
 type ModalView struct {
 	Title  string
 	Render func(*Runtime, *Instance, int, int) Block
@@ -129,6 +131,9 @@ func newModel(r *Runtime) *Model {
 			m.Appearance.Theme = name
 		}
 	})
+	m.ModalViews[paletteID] = ModalView{Title: "Command palette", Render: func(_ *Runtime, _ *Instance, width, height int) Block {
+		return m.Palette.viewBlock(m.Styles(), width, height)
+	}}
 	m.ModalViews[yankHistoryID] = ModalView{Title: "Yank history", Render: yankHistoryView}
 	m.ModalViews["confirm"] = ModalView{Title: "Confirm", Render: confirmView}
 	m.ModalViews[paletteResultsID] = ModalView{Title: "Results", Render: paletteResultsView}
@@ -380,8 +385,6 @@ func (m *Model) modalContent(id string, width, height int) (string, Block) {
 	var body Block
 	focus := m.Runtime.ModalFocus(id)
 	switch {
-	case id == paletteID && m.Palette.IsOpen():
-		return "Command palette", m.Palette.viewBlock(m.Styles(), width, height)
 	case m.ModalViews[id].Render != nil:
 		body = m.ModalViews[id].Render(m.Runtime, m.Runtime.Instances[id], width, height)
 	case m.modalBody(id) != nil:
