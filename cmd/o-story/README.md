@@ -507,6 +507,7 @@ Conformance:
 | normal | setting-item | `setting-item.add` `setting-item.delete` `setting-item.edit` `setting-item.reset` |
 | normal | settings | `settings.close` `settings.edit` `settings.review` `settings.section` `settings.tab` `settings.undo` `settings.write` |
 | normal | settings-section | `settings-section.open` `settings-section.pick` |
+| normal | state | `state.toggle` |
 | normal | story-card | `story-card.timeline-append` `story-card.timeline-stream` |
 | normal | surface | `surface.scroll` |
 | normal | timeline | `timeline.close` `timeline.close-all` `timeline.enter` `timeline.fold` `timeline.fold-step` `timeline.goto` `timeline.leave` `timeline.open` `timeline.open-all` `timeline.row` `timeline.scroll` `timeline.step` `timeline.toggle` `timeline.yank-step` |
@@ -662,6 +663,7 @@ Mode edges (from → to via):
 - `normal g` → `normal` via `mode.leave`
 - `normal g` → `normal` via `row c`
 - `normal g` → `normal` via `settings.tab`
+- `normal g` → `normal` via `state.toggle`
 - `normal g` → `normal` via `tick binding`
 - `normal g` → `normal` via `timeline.row`
 - `normal g` → `normal` via `yank-history.open`

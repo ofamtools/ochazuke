@@ -95,12 +95,14 @@ func (l Layout) BodySize() (width, height int) {
 	return l.Width, l.Height
 }
 
-// BodySizeWith is the body's size with the footer f: BodySize, since the
-// jobs ticker rides the rule line above the footer and takes no body row,
-// so a job starting or lingering out never moves or hides the body (UX
-// review 2 F13).
+// BodySizeWith reserves one body row for an enabled inspector. Jobs ride
+// the existing rule and never consume a body row (UX review 2 F13).
 func (l Layout) BodySizeWith(f Footer) (width, height int) {
-	return l.BodySize()
+	width, height = l.BodySize()
+	if f.Inspector != "" && l.full() {
+		height = max(0, height-1)
+	}
+	return
 }
 
 // TickerRule is the rule line above the footer, width cells: the plain rule
@@ -163,8 +165,10 @@ type Header struct {
 // (Model.JobsTicker), drawn in the rule line above the footer (TickerRule);
 // the body keeps its size, and no jobs means the plain rule.
 type Footer struct {
-	Text  string
-	Error bool
+	// Inspector is an optional raw one-line state summary below the body.
+	Inspector string
+	Text      string
+	Error     bool
 	// Hints are the binding hints Text ends with (HintCells), so the
 	// chrome can colour their keys (the hint.key, hint.text and hint.sep
 	// roles); without them, or when Text does not end with them, the
@@ -218,6 +222,9 @@ func (l Layout) Shell(h Header, body Block, f Footer) Block {
 		rows = append(rows, pad+l.titleRow(h, bw), pad+l.subtitleRow(h, bw), pad+l.HeaderRule(h.Segments, bw))
 		for _, row := range bodyRows {
 			rows = append(rows, pad+row)
+		}
+		if f.Inspector != "" {
+			rows = append(rows, pad+s.Muted.Render(ansi.Truncate(modalLabel(f.Inspector), bw, "…")))
 		}
 		rows = append(rows, pad+l.TickerRule(f.Jobs, bw), pad+footer, "")
 	} else {

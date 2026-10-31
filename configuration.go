@@ -71,6 +71,7 @@ func registerConfiguration(r *Runtime) {
 		if err := writeFileAtomic(path, data); err != nil {
 			return nil, err
 		}
+		r.RecordWrittenFile(path)
 		return path, nil
 	}})
 	r.Register(Operation{Verb: "path", Noun: "ochazuke.bindings", Description: "Print the user bindings file: $XDG_CONFIG_HOME/<app>/bindings.json, else ~/.config/<app>/bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {

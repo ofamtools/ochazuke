@@ -15,6 +15,7 @@
       {"key": "ctrl+j", "action": "ochazuke.page.next"},
       {"key": "ctrl+k", "action": "ochazuke.page.previous"},
       {"key": "/", "action": "ochazuke.list.filter-open", "hint": "filter", "when": "list-filterable"},
+      {"key": "g ?", "action": "ochazuke.state.toggle", "hidden": true},
       {"key": "g y", "action": "ochazuke.yank-history.open", "when": "no-input", "hidden": true}
     ]},
     {"context": "app/visual-line", "fallback": true, "bindings": [

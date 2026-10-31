@@ -214,7 +214,8 @@ type Operation struct {
 	// Data for hosts (the catalog's state); the runtime does not read it.
 	State bool `json:"state,omitempty"`
 	// Quiet marks bookkeeping (a list reload) the jobs ticker does not
-	// show; set by NounBuilder.Quiet. The catalog's quiet.
+	// show and the inspector does not retain as the last user request;
+	// set by NounBuilder.Quiet. The catalog's quiet.
 	Quiet bool `json:"quiet,omitempty"`
 	// Builtin marks an operation the framework registered itself: every
 	// one NewRuntime and NewModel register, and those a framework
@@ -505,6 +506,7 @@ func (r *Runtime) registerFramework() {
 	registerModePin(r)
 	registerQuery(r)
 	registerHistory(r)
+	registerInspector(r)
 	registerPlacements(r)
 	registerSegments(r)
 	registerDocs(r)
@@ -852,6 +854,9 @@ func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
 	value, err := r.execute(c, q)
 	r.history.depth--
 	r.record(at, q, ctx, depth, from, value, err)
+	if depth == 0 {
+		r.inspectRequest(q, value, err)
+	}
 	if err == nil && r.historyKind(q) == HistoryChange {
 		// The open surfaces count every change request that ran (events.go).
 		r.countChange([]string{q.Noun})

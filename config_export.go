@@ -109,6 +109,7 @@ func (r *Runtime) ExportConfig(dir string, force bool) (ConfigExport, error) {
 			return out, err
 		}
 		out.Files = append(out.Files, path)
+		r.RecordWrittenFile(path)
 	}
 	return out, nil
 }

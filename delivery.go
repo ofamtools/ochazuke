@@ -378,6 +378,10 @@ func (r *Runtime) Deliver(msg tea.Msg) (bool, error) {
 				comp.HandleMessage(done)
 			}
 		}
+		r.inspectCompletion(done, done.Err)
+		if callbackErr != nil {
+			r.inspectCompletion(done, callbackErr)
+		}
 		if done.Err != nil {
 			return true, done.Err
 		}
