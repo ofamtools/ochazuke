@@ -1,0 +1,12 @@
+{
+  "name": "inspector: a list yank shows the path in the live register strip",
+  "area": "lists",
+  "width": 100,
+  "height": 16,
+  "page": {"noHeadings": true, "lists": [{"id": "paths", "columns": [{"title": "Path"}], "items": [{"id": "owner", "label": ".items[3].owner.id", "cells": [".items[3].owner.id"]}]}]},
+  "script": ["g", "?", "Y", "g", "?"],
+  "expect": [
+    {"after": 3, "register": ".items[3].owner.id", "contains": ["register \" = \".items[3].owner.id\""]},
+    {"focus": "owner", "lacks": ["register \" ="]}
+  ]
+}

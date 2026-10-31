@@ -100,12 +100,13 @@ type UISink interface {
 // is one instance under app (Runtime.UI), never a Runtime field. With no
 // sink it discards, except that until the first sink attaches it keeps
 // the last 32 messages (the startup ring) and replays them, in order, into
-// that sink; after the first attach nothing is kept, so memory stays
-// bounded whether or not a sink ever attaches.
+// that sink; after the first attach only the last nonempty message is
+// kept, bounded for the inspector.
 //
 // Like the rest of Runtime it is called from the update loop; work off the
 // loop posts from its Then (which gets a Ctx).
 type UI struct {
+	last     *UIMessage // last nonempty message for the live inspector
 	sink     UISink
 	attached bool // a sink attached once: the ring is gone for good
 	ring     []UIMessage
@@ -207,6 +208,11 @@ func (u *UI) Info(text string) {
 }
 
 func (u *UI) post(msg UIMessage) {
+	if msg.Text != "" && msg.Kind != UIClearNotice {
+		v := msg
+		v.Text = inspectText(v.Text).Text
+		u.last = &v
+	}
 	for _, c := range u.captures {
 		*c = append(*c, msg)
 	}

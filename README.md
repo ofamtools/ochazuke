@@ -177,6 +177,48 @@ In normal mode, `Ctrl-J` advances and `Ctrl-K` goes back. The demo does not bind
 
 These are suggested starter/demo pages. Domain pages such as Agents, Panes, Projects, and application Settings belong to consuming applications; the framework does not require those names or behaviors.
 
+### State inspector
+
+`g ?` toggles a one-line state strip below the body. `inspector.enabled`
+defaults to `false`; turn it on in settings to keep the strip visible.
+`ochazuke.state inspect` (or `state inspect`) returns the same snapshot as
+`r.Inspect()`, including JSON through the CLI/API. It shows live and declared
+mode, focus with instance and row ids, registers and yank history head, the
+last nonempty message with its tone, the last nonquiet outer request and its
+result, selection/marks, count/prefix, modals and running jobs. Inspecting and
+toggling do not replace the request being inspected.
+
+Values are copied and bounded to 256 runes (`truncated: true` when shortened).
+Object summaries stop at eight entries and four levels; observation never
+calls an application JSON marshaler.
+Request args and results are display summaries, not persisted history; async
+results replace their pending ticket when delivered. Motion results summarize
+focus/page/mode without encoding list rows. The message remains
+after the status line clears. `Inspection.Compact()` is one line; `Parts()`
+provides stable keys for change highlighting. Selection counts rows for the
+focused list and runes for an input.
+
+```go
+r.AddInspectField("json.path", func() any { return currentPath() })
+// nil removes a field. Callbacks run on the UI loop and must be read-only.
+r.RecordWrittenFile(path) // call on the loop after a successful write
+```
+
+`filesWritten` keeps the last 32 reported paths, deduplicated in write order.
+Config and binding reference exports report successful writes. Other writes
+appear only when their source reports them; the inspector does not infer disk
+writes from action names or scan files. Monogatari also uses its existing app
+write log beneath the preview, outside frame assertions.
+
+Compared with Vim (checked in Neovim using its help and a named register):
+
+| Vim form | Help tag | ochazuke behaviour |
+| --- | --- | --- |
+| `:registers` | `:registers`, `registers` | Similar: named and unnamed register values, bounded for a strip; includes yank history head. |
+| `:messages` | `:messages` | Similar: last nonempty notice/status with its tone; not a complete message history. |
+| `:verbose {command}` | `:verbose` | Similar purpose: request, args and result explain the last action; no Vim script provenance or verbosity levels. |
+| `:redir` | `:redir` | Similar export use: structured JSON through CLI/API; no redirection session or automatic file output. |
+
 ### Registering your own pages
 
 A page is an instance of kind `page` under `app`. `Page` carries a title, the instance it starts focused on (`Focus`, the page itself by default) and a renderer; while another page is open the page remembers its focus and mode (`Page.Remembered`), and `page.open` restores both. Pages, lists, inputs and terminals share one constructor family taking the same options (`Parent`, `Kind`, `Focus`): `r.AddPage(id, title, render, Focus(..))`, `r.AddList(id, items, Parent(..))`, `r.AddInput(in, Parent(..), Kind(..))`, `r.AddTerminal(id, stream, Parent(..))`. `RegisterPage(&Page{...})` and `NewList(r, ...)` are the same registrations for callers that hold the struct or the runtime as a value. Register the page's instances and inputs first when the page starts inside one of them:

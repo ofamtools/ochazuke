@@ -192,7 +192,7 @@ func (m *Model) Init() tea.Cmd {
 	m.Runtime.EnsureHistory()
 	m.Runtime.EnsureNounPlaces()
 	if err := m.Runtime.OpenVisibleStart(); err != nil {
-		m.Status, m.Info = err.Error(), ""
+		m.Runtime.UI().Error(err.Error())
 	}
 	return tea.Batch(tea.RequestBackgroundColor, m.settingsPoll(), m.segmentCommand(m.clock()))
 }
@@ -208,7 +208,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Off-loop results reach their owning instance first; a stale or
 	// orphaned completion is dropped here.
 	if _, err := m.Runtime.Deliver(msg); err != nil {
-		m.Status, m.Info = err.Error(), ""
+		m.Runtime.UI().Error(err.Error())
 	}
 	switch v := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -221,7 +221,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.Status, m.Info = "", "" // what the timed-out request sets stands
 		if handled, err := m.Runtime.HandleBindingTimeout(v); handled {
 			if err != nil {
-				m.Status, m.Info = err.Error(), ""
+				m.Runtime.UI().Error(err.Error())
 			}
 			m.Palette.sync()
 		} else {
@@ -310,7 +310,7 @@ func (m *Model) handleKey(key MacroKey) {
 	}
 	outcome, err := r.DispatchOutcome(key)
 	if err != nil {
-		m.Status, m.Info = err.Error(), ""
+		m.Runtime.UI().Error(err.Error())
 	}
 	if echo && outcome != KeyUnhandled {
 		before.ran = r.historySince(before.nowSeq)
@@ -326,7 +326,7 @@ func (m *Model) layout() Layout {
 }
 func (m *Model) pageSize() (int, int) {
 	layout := m.layout()
-	width, height := layout.BodySizeWith(Footer{Jobs: m.JobsTicker(layout.Width)})
+	width, height := layout.BodySizeWith(Footer{Inspector: m.inspectorLine()})
 	if m.Sidebar {
 		width, height = sidebarMainSize(width, height, m.Width < layoutStackAt)
 	}
@@ -992,13 +992,14 @@ func (m *Model) render() Block {
 	sidebar := func(b Block) Block { return b }
 	if m.Sidebar {
 		titles, selected := m.pageTitles()
-		width, height := layout.BodySize()
+		width, height := layout.BodySizeWith(Footer{Inspector: m.inspectorLine()})
 		sidebar = func(b Block) Block {
 			return layout.sidebar("Pages", titles, selected, pageTitle, b, width, height, m.Width < layoutStackAt)
 		}
 		page = sidebar(page)
 	}
 	footer := m.footer()
+	footer.Inspector = m.inspectorLine()
 	surface := layout.Shell(header, page, footer)
 	// toScreen maps a position in the page as rendered to the screen, the
 	// way the page was composed (scrolled, beside the sidebar, in the
@@ -1318,4 +1319,12 @@ func inputBlockFrom(in *Input, width, height, top int) Block {
 	// The page keeps the whole box on screen when it follows the focus.
 	text = in.r.PlacedAt(in.ID, text, 0, strings.Count(text, "\n")+1)
 	return Block{Text: text, Cursor: &Pos{X: cursorColumn - offset, Y: cursorRow - start}}
+}
+
+// inspectorLine is raw text; Layout escapes and clips it like other chrome.
+func (m *Model) inspectorLine() string {
+	if !m.Runtime.Settings().Bool(InspectorEnabledSetting) {
+		return ""
+	}
+	return m.Runtime.Inspect().Compact()
 }
