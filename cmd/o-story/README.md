@@ -468,7 +468,7 @@ Conformance:
 | insert | markdown | `markdown.cell` `markdown.continue-item` `markdown.end-list` `markdown.indent` `markdown.insert-block` `markdown.leave` `markdown.outdent` `markdown.unmark` |
 | insert | mode | `mode.set` |
 | insert | modes | `modes.list` |
-| insert | outline | `outline.indent` `outline.leave` |
+| insert | outline | `outline.leave` `outline.row-key` |
 | insert | palette | `palette.cancel` `palette.complete` `palette.move` `palette.run` |
 | insert | search | `search.cycle-match` |
 | insert | setting-value | `setting-value.cancel` `setting-value.commit` |
