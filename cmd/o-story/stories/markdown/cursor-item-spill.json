@@ -1,0 +1,63 @@
+{
+  "name": "markdown: item cursor spills in drawing order at both document edges",
+  "area": "markdown",
+  "width": 40,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "- [x] Finish the 日本 release checklist and check every wrapped line before shipping.\n- [ ] Verify item movement over tasks, paragraphs, headings and table rows, then check the dimmed selection in another pane and confirm that all six wrapped lines stay highlighted.\n"
+    },
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      },
+      {
+        "id": "b",
+        "rows": 1
+      }
+    ],
+    "order": [
+      "a",
+      "markdown",
+      "b"
+    ]
+  },
+  "script": [
+    "j",
+    "j",
+    "j",
+    "k",
+    "k",
+    "k"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "highlighted": 3
+    },
+    {
+      "after": 2,
+      "highlighted": 6
+    },
+    {
+      "after": 3,
+      "focus": "b1",
+      "highlighted": 1,
+      "dimmed": 7
+    },
+    {
+      "after": 4,
+      "highlighted": 6
+    },
+    {
+      "after": 5,
+      "highlighted": 3
+    },
+    {
+      "focus": "a1",
+      "highlighted": 1,
+      "dimmed": 4
+    }
+  ]
+}

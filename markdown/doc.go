@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/unixsuperhero/ochazuke"
 )
@@ -99,6 +98,12 @@ const (
 // AuthorSetting names the author a new note is signed with.
 const AuthorSetting = "markdown.note-author"
 
+// CursorSetting chooses element-wise (item, the default) or drawn-line movement.
+const CursorSetting = "markdown.cursor"
+
+// CursorWidthSetting chooses a pane-wide cursor or the former text-only bar.
+const CursorWidthSetting = "markdown.cursor-width"
+
 // DefaultDebounce is how long typing in the block editor pauses before
 // the block is written.
 const DefaultDebounce = 400 * time.Millisecond
@@ -109,14 +114,15 @@ type DebounceMsg struct {
 	Seq int
 }
 
-// Doc is a rendered Markdown document with a line cursor, edited in place.
+// Doc is a rendered Markdown document with an element cursor, edited in place.
 //
 // The document is a sequence of elements (Elements): headings,
 // paragraphs, list items, table rows, code blocks, quotes, rules and notes.
-// The cursor sits on a drawn line: the Doc's list child (id/lines, added
-// NoMarks) has a row per line an element covers, so j and k move by drawn
-// line, gg and G go to the ends, ctrl+d/u and ctrl+f/b page and counts
-// work (the list noun's rows), spilling to the next stop at either end.
+// The Doc's list child (id/lines, added NoMarks) has a row per drawn line.
+// By default j and k move by element and highlight every line it covers;
+// markdown.cursor=line restores drawn-line movement. gg/G and paging
+// remain line-wise list motions. Counts and spills work in either mode.
+// ctrl+e/y scroll within long elements without leaving item mode.
 // }/{ move by element, ]]/[[ to the next element of the same kind, ] or
 // [ with a kind letter (KindLetters) to the next of that kind.
 //
@@ -710,8 +716,9 @@ func (d *Doc) Block(width, height int, a ochazuke.Appearance) ochazuke.Block {
 		if item, ok := d.list.Selected(); ok {
 			if line, _ := item.Data.(int); line >= 0 && line < len(lines) {
 				focus = line
-				if d.list.Focused() {
-					lines[line] = highlight(lines[line])
+				top, bottom := d.cursorSpan(line)
+				for l := top; l <= bottom; l++ {
+					lines[l] = d.highlight(lines[l], width, a)
 				}
 			}
 		}
@@ -743,23 +750,6 @@ func (d *Doc) Block(width, height int, a ochazuke.Appearance) ochazuke.Block {
 	}
 	out := ochazuke.Block{Text: d.r.PlacedAt(id, strings.Join(lines, "\n"), focus, focusHeight), Cursor: cursor}
 	return out
-}
-
-// highlight draws a rendered line's text in reverse video, its indent and
-// trailing padding plain, at the same width; an empty line is one
-// reversed cell.
-func highlight(line string) string {
-	plain := ansi.Strip(line)
-	width := ansi.StringWidth(plain)
-	body := strings.TrimLeft(plain, " ")
-	indent := len(plain) - len(body)
-	body = strings.TrimRight(body, " ")
-	if body == "" {
-		body = " "
-		indent = min(indent, max(0, width-1))
-	}
-	out := strings.Repeat(" ", indent) + lipgloss.NewStyle().Reverse(true).Render(body)
-	return out + strings.Repeat(" ", max(0, width-indent-ansi.StringWidth(body)))
 }
 
 // scrolloff is the open page's margin around the focus (Page.Scrolloff:

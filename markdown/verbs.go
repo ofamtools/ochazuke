@@ -17,8 +17,8 @@ import (
 var defaultBindings []byte
 
 // Register defines the markdown nouns, their verbs and keys once per
-// runtime (see Doc for the keys). The line rows' j/k, gg/G and paging are
-// the list noun's.
+// runtime (see Doc for the keys). Cursor rows own j/k; gg/G and paging
+// remain the list noun's.
 func Register(r *ochazuke.Runtime) {
 	if _, ok := r.Operations[DocNoun+".toggle"]; ok {
 		return
@@ -158,6 +158,9 @@ func register(r *ochazuke.Runtime) {
 	r.Define(NoteNoun)
 	kinds := []string{"h", "t", "x", "l", "c", "q", "n", "p"}
 	r.Define(DocNoun).
+		Verb("move", on(func(d *Doc, a ochazuke.Arguments) error {
+			return d.MoveCursor(ochazuke.IntArg(a, "delta", 1), steps(a))
+		}), "Move by Markdown element, or drawn line with markdown.cursor=line; spill at the document's edges").Motion().
 		Verb("toggle", plain((*Doc).Toggle), "Toggle the checklist item under the cursor: rewrites only its box character in the source, written at once").
 		Verb("undo", plain((*Doc).Undo), "Undo the last edit (a toggle, a typed block, a line deleted or pasted); the undo is written like any edit").
 		Verb("redo", plain((*Doc).Redo), "Redo the last undone edit").
@@ -193,6 +196,7 @@ func register(r *ochazuke.Runtime) {
 	id := ochazuke.Parameter{Type: "string", Description: "The markdown instance (default the one on the focus path)"}
 	count := ochazuke.Parameter{Type: "integer", Description: "Repeat count (3})"}
 	params := map[string]map[string]ochazuke.Parameter{
+		"move":       {"delta": {Type: "integer"}, "steps": count},
 		"next-block": {"steps": count}, "previous-block": {"steps": count},
 		"next-same": {"steps": count}, "previous-same": {"steps": count},
 		"next-kind":     {"steps": count, "kind": {Type: "string", Required: true, Enum: kinds, Description: "h heading, t table, x checklist item, l list item, c code, q quote, n note, p paragraph"}},
@@ -216,6 +220,8 @@ func register(r *ochazuke.Runtime) {
 	}
 	if r.Settings() != nil {
 		_ = r.DeclareSetting(ochazuke.Setting{Name: AuthorSetting, Owner: ochazuke.OwnerFramework, Type: "string", Default: "owner", Description: "The author a new note in a Markdown document is signed with"})
+		_ = r.DeclareSetting(ochazuke.Setting{Name: CursorSetting, Owner: ochazuke.OwnerFramework, Type: "string", Default: "item", Enum: []string{"item", "line"}, Description: "Markdown cursor unit: whole elements, or individual drawn lines"})
+		_ = r.DeclareSetting(ochazuke.Setting{Name: CursorWidthSetting, Owner: ochazuke.OwnerFramework, Type: "string", Default: "pane", Enum: []string{"pane", "text"}, Description: "Markdown cursor highlight width: the whole pane, or only its text"})
 	}
 	r.MustLoadDefaultBindings(ochazuke.FrameworkBindingsSource+"markdown/bindings.json", defaultBindings)
 }

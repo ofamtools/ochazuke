@@ -279,10 +279,11 @@ func TestCustomSource(t *testing.T) {
 // The cursor is one drawn line: it starts on the first, j and k move
 // it line by line (a wrapped item's second line too), ]x jumps to the
 // next checklist item; the one reverse-video highlight follows it, and
-// nothing is highlighted once the focus leaves.
+// the highlight dims once the focus leaves.
 func TestViewHighlightsTheCursorLine(t *testing.T) {
 	src := "# List\n\n- [ ] first item that is long enough to wrap onto a second line here\n- [x] second\n  - [ ] nested\n\n```\n- [ ] code\n```\n"
 	r, d := newDoc(t, Source{Load: func() (string, error) { return src, nil }})
+	_ = r.Settings().Set(CursorSetting, "line")
 	mono := ochazuke.Appearance{Theme: "mono"}
 	reversed := func(view string) []string {
 		var out []string
@@ -326,7 +327,7 @@ func TestViewHighlightsTheCursorLine(t *testing.T) {
 	if err := r.SetFocus("notes"); err != nil {
 		t.Fatal(err)
 	}
-	if got := reversed(d.View(40, 0, mono)); len(got) != 0 {
+	if got := d.View(40, 0, mono); !strings.Contains(got, "\x1b[2m\x1b[7m") {
 		t.Fatalf("unfocused: %q", got)
 	}
 	for _, line := range strings.Split(d.View(40, 0, mono), "\n") {

@@ -2,8 +2,8 @@
  |   › page1
  |  ────────────────────────────────────────────────────────────────────────────
 R|    Standup notes
- |    written as plain lines
- |    one thought per line
+R|    written as plain lines
+R|    one thought per line
  |
  |    [ ] ship the fix
  |    and tell the lane

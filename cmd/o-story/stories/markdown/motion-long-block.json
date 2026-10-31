@@ -88,5 +88,19 @@
         "1–11 / 36"
       ]
     }
+  ],
+  "values": {
+    "markdown.cursor": "line"
+  },
+  "settings": [
+    {
+      "name": "markdown.cursor",
+      "type": "string",
+      "default": "item",
+      "enum": [
+        "item",
+        "line"
+      ]
+    }
   ]
 }

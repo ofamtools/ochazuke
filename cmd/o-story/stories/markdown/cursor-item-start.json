@@ -1,0 +1,22 @@
+{
+  "name": "markdown: the first task starts with three full-width highlighted lines",
+  "area": "markdown",
+  "width": 40,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "- [x] Finish the 日本 release checklist and check every wrapped line before shipping.\n- [ ] Verify item movement over tasks, paragraphs, headings and table rows, then check the dimmed selection in another pane and confirm that all six wrapped lines stay highlighted.\n"
+    }
+  },
+  "script": [],
+  "expect": [
+    {
+      "highlighted": 3,
+      "attrs": {
+        "  [x] Finish": "reverse",
+        "  checklist and check": "reverse",
+        "  wrapped line": "reverse"
+      }
+    }
+  ]
+}

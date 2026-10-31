@@ -1,0 +1,19 @@
+{
+  "name": "markdown: cursor-item-table",
+  "area": "markdown",
+  "width": 40,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "| name | detail |\n|---|---|\n| 日本 | A long detail that wraps across several screen lines |\n| next | short |\n"
+    }
+  },
+  "script": [
+    "j"
+  ],
+  "expect": [
+    {
+      "highlighted": 3
+    }
+  ]
+}

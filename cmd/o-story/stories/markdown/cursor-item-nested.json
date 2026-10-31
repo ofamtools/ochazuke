@@ -1,0 +1,19 @@
+{
+  "name": "markdown: cursor-item-nested",
+  "area": "markdown",
+  "width": 40,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "- parent\n  - [x] A nested 日本 item that wraps across several screen lines and keeps its own selection\n  - sibling\n"
+    }
+  },
+  "script": [
+    "j"
+  ],
+  "expect": [
+    {
+      "highlighted": 4
+    }
+  ]
+}

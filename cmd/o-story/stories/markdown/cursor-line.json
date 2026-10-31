@@ -1,0 +1,34 @@
+{
+  "name": "markdown: cursor-line",
+  "area": "markdown",
+  "width": 40,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "- [x] Finish the 日本 release checklist with enough detail that this task wraps across several screen lines in a narrow pane\n- [ ] Next item\n"
+    }
+  },
+  "script": [
+    "j"
+  ],
+  "expect": [
+    {
+      "highlighted": 1,
+      "highlightedText": "checklist with enough detail"
+    }
+  ],
+  "values": {
+    "markdown.cursor": "line"
+  },
+  "settings": [
+    {
+      "name": "markdown.cursor",
+      "type": "string",
+      "default": "item",
+      "enum": [
+        "item",
+        "line"
+      ]
+    }
+  ]
+}
