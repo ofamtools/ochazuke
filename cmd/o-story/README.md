@@ -463,6 +463,7 @@ Conformance:
 | insert | demo | `demo.edit` `demo.files` `demo.hide` |
 | insert | form | `form.next` `form.run` `form.suggest` |
 | insert | input | `input.insert` `input.kill` `input.move` |
+| insert | list | `list.filter-cycle` `list.filter-prop` `list.filter-props-clear` |
 | insert | macro | `macro.record` |
 | insert | markdown | `markdown.cell` `markdown.continue-item` `markdown.end-list` `markdown.indent` `markdown.insert-block` `markdown.leave` `markdown.outdent` `markdown.unmark` |
 | insert | mode | `mode.set` |
@@ -486,7 +487,8 @@ Conformance:
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
 | normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.choose` `demo.delete` `demo.edit-task` `demo.finish` `demo.forget-row` `demo.hide` `demo.launch` `demo.notify` `demo.open` `demo.ping` `demo.reload` `demo.ship` `demo.synced` `demo.write` |
-| normal | detail | `detail.scroll` |
+| normal | detail | `detail.fields` `detail.scroll` |
+| normal | detail-field | `detail-field.copy` `detail-field.show` |
 | normal | focus | `focus.next` `focus.previous` `focus.set` |
 | normal | form | `form.choose` `form.leave` `form.next` `form.next-missing` `form.redo` `form.run` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
@@ -664,6 +666,7 @@ Mode edges (from → to via):
 - `normal d` → `normal` via `markdown.delete`
 - `normal d` → `normal` via `outline.delete`
 - `normal d` → `normal` via `setting-item.delete`
+- `normal g` → `normal` via `detail.fields`
 - `normal g` → `normal` via `list.goto`
 - `normal g` → `normal` via `mode.leave`
 - `normal g` → `normal` via `row c`
