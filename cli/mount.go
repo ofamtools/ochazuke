@@ -24,6 +24,7 @@ import (
 // extra also declares empty command groups before their operations are registered.
 // Mount leaves app.Default to the application.
 func Mount(app *oden.App, sh *Shell, extra ...string) {
+	sh.mountSetup(app)
 	// The user's actions.json verbs are commands too, so oden's help and
 	// dispatch know them.
 	for _, problem := range sh.Runtime.EnsureUserActions() {
