@@ -23,6 +23,16 @@ type Catalog struct {
 	Nouns      []CatNoun         `json:"nouns"`
 	Bindings   []Binding         `json:"bindings"`
 	Pages      []Page            `json:"pages"`
+	Sides      []Side            `json:"sides,omitempty"`
+}
+
+// Side is a catalog's command template; the inspector only displays it.
+type Side struct {
+	Name    string   `json:"name"`
+	Title   string   `json:"title"`
+	Key     string   `json:"key,omitempty"`
+	Command []string `json:"command,omitempty"`
+	Launch  string   `json:"launch,omitempty"`
 }
 
 type Page struct {
@@ -190,6 +200,7 @@ type ToolInfo struct {
 	Verbs         int    `json:"verbs"`
 	Bindings      int    `json:"bindings"`
 	Pages         []Page `json:"pages,omitempty"`
+	Sides         []Side `json:"sides,omitempty"`
 }
 
 // Output model, inlined in the HTML.
@@ -679,6 +690,7 @@ func Merge(srcs []Source, extPrefixes map[string][]string, actions []UserAction,
 		if s.Catalog != nil {
 			t.About, t.AgentRules = s.Catalog.About, s.Catalog.AgentRules
 			t.Pages = s.Catalog.Pages
+			t.Sides = s.Catalog.Sides
 			for _, n := range d.Nouns {
 				if contains(n.Tools, t.Name) {
 					t.Nouns++

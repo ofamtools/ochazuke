@@ -82,6 +82,8 @@ type CatalogDoc struct {
 	Nouns    []CatalogNoun      `json:"nouns"`
 	Bindings []ochazuke.Binding `json:"bindings"`
 	Pages    []CatalogPage      `json:"pages"`
+	// Sides are command templates a host may launch beside its own panes.
+	Sides []CatalogSide `json:"sides,omitempty"`
 	// Segments are the status segments the tool answers from one of its
 	// own verbs (CatalogSegment), in drawing order: a host mounts them
 	// against the verbs it mounted (CatalogSegments).
@@ -417,6 +419,10 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 		doc.StateDelta = StateDeltaVersion
 	}
 	doc.Pages = declaredPages(r)
+	doc.Sides = declaredSides(r)
+	if err := doc.ValidateSides(); err != nil {
+		return nil, err
+	}
 	doc.Hooks, doc.Events = catalogHooks(r)
 	return json.MarshalIndent(doc, "", "  ")
 }

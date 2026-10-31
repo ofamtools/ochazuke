@@ -273,5 +273,19 @@
       "id": "widgets",
       "title": "Widgets"
     }
+  ],
+  "sides": [
+    {
+      "name": "diff",
+      "title": "Side diff",
+      "key": "g",
+      "command": [
+        "{bin}",
+        "view",
+        "--repo",
+        "{dir}"
+      ],
+      "launch": "command"
+    }
   ]
 }

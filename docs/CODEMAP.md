@@ -1081,7 +1081,7 @@ Root package `ochazuke` is flat: 137 source files, 160 test files. Each entry li
 
 ## Package cli
 
-Importable package `cli`: 34 source files, 33 test files.
+Importable package `cli`: 35 source files, 34 test files.
 
 ### cli/agent_metadata.go
 
@@ -1093,7 +1093,7 @@ Importable package `cli`: 34 source files, 33 test files.
 
 ### cli/catalog.go
 
-- lines: 493
+- lines: 499
 - purpose: CatalogDoc is the catalog answer: what a runtime registers, grouped by noun, in the runtime's own JSON shapes (ochazuke.Parameter and ochazuke.Binding unchan...
 - types: CatalogDoc, CatalogNoun, CatalogVerb
 - methods: CatalogDoc(5), CatalogNoun(1)
@@ -1297,6 +1297,15 @@ Importable package `cli`: 34 source files, 33 test files.
 - methods: Shell(5)
 - leans on: statecache.go(20), state.go(9), shell.go(7), rows.go(6)
 
+### cli/sides.go
+
+- lines: 165 · tests: sides_test.go
+- purpose: CatalogSide declares a program a host may launch beside a pane.
+- types: CatalogSide
+- methods: CatalogDoc(1)
+- funcs: DeclareSide, ExpandSideCommand
+- leans on: catalog.go(1), ptykeys.go(1), shell.go(1)
+
 ### cli/state.go
 
 - lines: 268 · tests: state_test.go
@@ -1359,9 +1368,9 @@ Importable package `cli/inspect`: 6 source files, 2 test files.
 
 ### cli/inspect/catalog.go
 
-- lines: 736
+- lines: 748
 - purpose: Catalog is the JSON an ochazuke tool prints for `BIN catalog` (the cli.CatalogDoc shape), decoded loosely so a catalog written by an older ochazuke (bare fra...
-- types: Catalog, Page, CatNoun, Prop, Example, CatVerb, Param, Params, Request, Binding, UserAction, Source, ToolInfo, Noun, Verb, KeyRow, Data
+- types: Catalog, Side, Page, CatNoun, Prop, Example, CatVerb, Param, Params, Request, Binding, UserAction, Source, ToolInfo, Noun, Verb, KeyRow, Data
 - methods: Params(1), resolver(2)
 - funcs: Merge
 - leans on: annotations.go(2)
@@ -2110,6 +2119,7 @@ Exported type -> file.
 - cli.CatalogOption -> cli/agent_metadata.go
 - cli.CatalogPage -> cli/page.go
 - cli.CatalogSegment -> cli/segments.go
+- cli.CatalogSide -> cli/sides.go
 - cli.CatalogVerb -> cli/catalog.go
 - cli.CatalogWidget -> cli/widget.go
 - cli.CommandEntry -> cli/commands.go
@@ -2154,6 +2164,7 @@ Exported type -> file.
 - cli/inspect.Params -> cli/inspect/catalog.go
 - cli/inspect.Prop -> cli/inspect/catalog.go
 - cli/inspect.Request -> cli/inspect/catalog.go
+- cli/inspect.Side -> cli/inspect/catalog.go
 - cli/inspect.SkippedLine -> cli/inspect/annotations.go
 - cli/inspect.Source -> cli/inspect/catalog.go
 - cli/inspect.Suggestion -> cli/inspect/annotations.go

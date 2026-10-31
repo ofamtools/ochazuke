@@ -545,6 +545,9 @@ func TestMountResolvesNounPrefixesAndShadowsBins(t *testing.T) {
 
 func TestCatalogGolden(t *testing.T) {
 	f := newFixture(t)
+	if err := DeclareSide(f.r, CatalogSide{Name: "diff", Title: "Side diff", Key: "g", Command: []string{"{bin}", "view", "--repo", "{dir}"}}); err != nil {
+		t.Fatal(err)
+	}
 	out, _, err := f.tool(t.TempDir(), "catalog")
 	if err != nil {
 		t.Fatal(err)

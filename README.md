@@ -2006,9 +2006,50 @@ r.OnConfigReload("directories.json", func() []string {
 
 Go: `Runtime.ExportConfig(dir, force) (ConfigExport, error)`, `Config.Paths() ConfigPaths`, `Runtime.ReloadConfig() ([]string, error)`, `Runtime.OnConfigReload(name, fn)`; constants `ReferenceDir`, `ReferenceReadme`, `SettingsReferenceFile`, `BindingsReferenceFile`, `ActionsExampleFile`, `ThemesExampleFile`.
 
+## Catalog sides
+
+An extension declares programs a host may offer beside its panes with
+`cli.DeclareSide(r, cli.CatalogSide{...})`. `cli.Catalog` publishes them in
+the optional `sides` section, in declaration order:
+
+```json
+"sides": [{"name": "diff", "title": "Side diff", "key": "g",
+  "command": ["{bin}", "view", "--page", "compare", "--repo", "{dir}"],
+  "launch": "command"}]
+```
+
+Names are unique within a catalog and contain only `a-z`, `0-9` and `-`.
+`key` is optional and names one key, such as `g` or `ctrl+g`; it declares
+metadata and installs no binding. `launch` defaults to `command`, which
+requires nonempty argv. Another value names a host-defined launcher and
+may omit `command`; the host decides whether it supports that launcher.
+Hosts reading JSON call `CatalogDoc.ValidateSides()` before using the rows.
+
+`cli.ExpandSideCommand(command, vars)` expands each argv element separately:
+
+| Placeholder | Host-supplied value |
+|---|---|
+| `{dir}` | The side's working directory |
+| `{pane}` | The parent pane's id |
+| `{session}` | The parent session's id |
+| `{project}` | The project id, empty when unassociated |
+| `{shell}` | The shell executable |
+| `{bin}` | The extension's registered executable |
+
+Unknown, missing and malformed placeholders are errors. An explicitly empty
+value is allowed. Values are substituted once, with no shell parsing,
+splitting or quoting: a directory containing spaces stays one argument.
+The library validates and publishes templates; hosts own expansion,
+launching, directory, environment, bindings and lifecycle. Declaring a side
+starts no process and adds no page or setting. Catalog schema 1 remains
+compatible: older hosts ignore this optional section.
+
+Compared with Vim: these are host launch declarations, with no editor motion,
+mode or window command counterpart.
+
 ## Catalog inspector (catalog inspect)
 
-Every app mounted with `cli.Mount` has `BIN catalog inspect`: one self-contained HTML page for browsing the app's nouns, verbs, key rows, user actions and the framework nouns, plus any other tools' catalogs. It reads only; it never writes the live config.
+Every app mounted with `cli.Mount` has `BIN catalog inspect`: one self-contained HTML page for browsing the app's nouns, verbs, key rows, user actions and the framework nouns, plus any other tools' catalogs. Each tool's details also list its catalog sides, including their argv templates and launcher names. It reads only; it never writes the live config.
 
 ```sh
 APP catalog inspect                      # writes <state dir>/catalog-inspect.html (the temp dir without one), prints the path
