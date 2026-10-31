@@ -1,5 +1,5 @@
 {
-  "name": "markdown: / then table then a column count puts a header and its delimiter on the line",
+  "name": "markdown: alt+/ then table then a column count puts a header and its delimiter on the line",
   "area": "markdown",
   "width": 80,
   "page": {
@@ -12,7 +12,7 @@
   },
   "script": [
     "o",
-    "/",
+    "alt+/",
     "t",
     "a",
     "b",

@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -106,5 +107,51 @@ func TestStoreDeleteFollowsTheStoreNoun(t *testing.T) {
 			t.Fatalf("noun %q: %v", c.noun, err)
 		}
 		ss.Close()
+	}
+}
+
+// TestStoryTypingIsNotShadowed checks every story runtime the way
+// Runtime.TypingShadows does, at the start and after each event of its
+// script (a filter, a chooser or the palette open): while a field takes
+// text, every printable key and space reaches it; no row binds a key a
+// person types there.
+func TestStoryTypingIsNotShadowed(t *testing.T) {
+	stories, err := story.LoadDir("stories")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range stories {
+		if s.Base != "" {
+			continue
+		}
+		ss, err := story.Library{Apps: hostApps}.Build(s, story.Options{Mono: true})
+		if err != nil {
+			t.Fatalf("%s: %v", s.Name, err)
+		}
+		d := story.NewDriver(ss, story.Options{Mono: true})
+		seen, states := map[string]bool{}, map[string]bool{}
+		check := func(n int) error {
+			r := d.S.R
+			// A state already checked (the same focus, mode, top modal
+			// and instances) is not checked again.
+			state := fmt.Sprint(r.Focus, r.Mode.Name, r.TopModal(), len(r.Instances))
+			if states[state] {
+				return nil
+			}
+			states[state] = true
+			for _, line := range r.TypingShadows() {
+				if !seen[line] {
+					seen[line] = true
+					t.Errorf("%s (after event %d): %s", s.Name, n, line)
+				}
+			}
+			return nil
+		}
+		_ = check(0)
+		events := append(append([]story.Event{}, s.Setup...), s.Script...)
+		// A story whose events fail (its own run reports that) is checked
+		// up to the failing event.
+		_ = d.Play(events, check)
+		d.Close()
 	}
 }
