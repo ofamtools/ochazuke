@@ -1910,3 +1910,17 @@ Every command of an importable shell (`cli.Shell`, an app built with `cli.Mount`
 - Handler registration and widget construction are Go APIs. User-facing operations, including configuration, palette navigation, field editing, and picker actions, are registered and available through the CLI.
 - Terminals are display and input ownership only: the framework ships no PTY, shell, emulator or daemon client. A `TerminalStream` is the application's; frames are rows of trusted ANSI with a cursor cell, not a cell buffer the framework interprets. Resize, reconnect and session lifetime belong to the stream.
 - The framework package holds no application pages; the demo lives in `internal/demo` and every example is built on the public API. The examples are a nested module (`examples/go.mod`), as is `cmd/o-story`; they build through the untracked `go.work` (`go work use . ./cmd/o-story ./examples ../monogatari ../oden`).
+
+### Catalog guidance for agents
+
+Apps can pass `cli.About("…")` and `cli.AgentRules("…")` to `cli.New` or
+`cli.Catalog`. A noun declares its purpose with `NounBuilder.About`;
+a verb adds `.Example(Arguments{…}, "note")`, `.Destructive()` and
+`.Agent("allow" | "confirm" | "never")` after `.Verb`.
+The JSON catalog and `catalog inspect` carry these fields, named guards and
+example templates generated from required parameters when no example is declared.
+Mounted extension verbs retain this metadata; their guards remain checked by
+the extension. `agentDeclared` preserves an explicit right separately from `agent`,
+which describes the derived default: destructive or confirmed verbs ask for
+confirmation; fetches, changes and screen actions allow. Standard delete and
+archive verbs are destructive. This metadata does not enforce agent rights yet.

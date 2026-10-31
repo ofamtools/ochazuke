@@ -65,10 +65,12 @@ const Schema = 1
 // CatalogWidget: kv, status, table) are drawn above its lists by the
 // framework from their sources' JSON answers.
 type CatalogDoc struct {
-	Schema  int    `json:"schema"`
-	Name    string `json:"name"`
-	Version string `json:"version"`
-	State   string `json:"state,omitempty"`
+	Schema     int    `json:"schema"`
+	Name       string `json:"name"`
+	Version    string `json:"version"`
+	About      string `json:"about,omitempty"`
+	AgentRules string `json:"agentRules,omitempty"`
+	State      string `json:"state,omitempty"`
 	// StateDelta is the state delta protocol version (StateDeltaVersion), 0 for none.
 	StateDelta int `json:"stateDelta,omitempty"`
 	// Aliases are the short names that reach a noun of the catalog
@@ -109,6 +111,7 @@ type CatalogDoc struct {
 // NounBuilder.Props), in declaration order. A noun with a store has the
 // standard verbs its store supports (CatalogVerb.Standard).
 type CatalogNoun struct {
+	About   string                 `json:"about,omitempty"`
 	Name    string                 `json:"name"`
 	Pin     string                 `json:"pin,omitempty"`
 	Kind    string                 `json:"kind,omitempty"`
@@ -149,19 +152,25 @@ type CatalogNoun struct {
 // is not builtin and mounts. A catalog written before the field reads
 // every verb as not builtin.
 type CatalogVerb struct {
-	Name        string                        `json:"name"`
-	Description string                        `json:"description,omitempty"`
-	Kind        string                        `json:"kind,omitempty"`
-	Params      map[string]ochazuke.Parameter `json:"params,omitempty"`
-	Result      string                        `json:"result,omitempty"`
-	Confirm     string                        `json:"confirm,omitempty"`
-	Repeatable  bool                          `json:"repeatable,omitempty"`
-	Rows        string                        `json:"rows,omitempty"`
-	Quiet       bool                          `json:"quiet,omitempty"`
-	Many        bool                          `json:"many,omitempty"`
-	Positional  []string                      `json:"positional,omitempty"`
-	History     string                        `json:"history,omitempty"`
-	Builtin     bool                          `json:"builtin"`
+	Guards      []string           `json:"guards,omitempty"`
+	Examples    []ochazuke.Example `json:"examples,omitempty"`
+	Destructive bool               `json:"destructive"`
+	Agent       string             `json:"agent"`
+	// AgentDeclared distinguishes an explicit right from its derived default for hosts.
+	AgentDeclared string                        `json:"agentDeclared,omitempty"`
+	Name          string                        `json:"name"`
+	Description   string                        `json:"description,omitempty"`
+	Kind          string                        `json:"kind,omitempty"`
+	Params        map[string]ochazuke.Parameter `json:"params,omitempty"`
+	Result        string                        `json:"result,omitempty"`
+	Confirm       string                        `json:"confirm,omitempty"`
+	Repeatable    bool                          `json:"repeatable,omitempty"`
+	Rows          string                        `json:"rows,omitempty"`
+	Quiet         bool                          `json:"quiet,omitempty"`
+	Many          bool                          `json:"many,omitempty"`
+	Positional    []string                      `json:"positional,omitempty"`
+	History       string                        `json:"history,omitempty"`
+	Builtin       bool                          `json:"builtin"`
 	// Aliases are the verb's other names (ochazuke.ActionAlias: the alias
 	// as noun.verb, its noun and verb, a deprecated one's since and
 	// removeAfter). A host mounting the catalog may register them as
@@ -299,14 +308,17 @@ func (d CatalogDoc) noun(name string) (CatalogNoun, bool) {
 // pages in registration order (their tab order). A catalog with a state
 // verb declares the state delta protocol (StateDelta), which a Shell
 // answers. The same runtime gives the same bytes on every run.
-func Catalog(r *ochazuke.Runtime, name, version string) ([]byte, error) {
-	return catalog(r, name, version, true)
+func Catalog(r *ochazuke.Runtime, name, version string, opts ...CatalogOption) ([]byte, error) {
+	return catalog(r, name, version, true, opts...)
 }
 
 // catalog is Catalog; delta declares the state delta protocol (a state
 // verb run through a Shell whose StateCache is on).
-func catalog(r *ochazuke.Runtime, name, version string, delta bool) ([]byte, error) {
+func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...CatalogOption) ([]byte, error) {
 	doc := CatalogDoc{Schema: Schema, Name: name, Version: version, Nouns: []CatalogNoun{}, Bindings: []ochazuke.Binding{}, Pages: []CatalogPage{}}
+	for _, opt := range opts {
+		opt(&doc)
+	}
 	// One entry per noun, nouns by name and each noun's verbs by name: the
 	// operations sorted by key interleave a noun's verbs with the nouns
 	// nested under it (app.quit, app.rows.list, app.state), so they are
@@ -322,6 +334,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool) ([]byte, err
 		if n := len(doc.Nouns); n == 0 || doc.Nouns[n-1].Name != op.Noun {
 			noun := CatalogNoun{Name: op.Noun}
 			if n := r.Nouns[op.Noun]; n != nil {
+				noun.About = n.About
 				noun.Pin, noun.Columns = n.Pin, slices.Clone(n.Columns)
 				noun.Filters = slices.Clone(n.Filters)
 				noun.Kind, noun.Props = n.StoreKind(), r.Props(op.Noun)
@@ -337,7 +350,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool) ([]byte, err
 			doc.State = op.Key()
 		}
 		noun := &doc.Nouns[len(doc.Nouns)-1]
-		verb := CatalogVerb{Name: op.Verb, Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable, Rows: op.Rows, Quiet: op.Quiet, Many: op.Many, Positional: op.Positional, History: op.HistoryKindOf(), Builtin: op.Builtin, Aliases: r.AliasesOf(op.Key()), Standard: op.Standard}
+		verb := CatalogVerb{Guards: append(slices.Clone(r.VerbAvailability(op.Key())), op.CatalogGuards...), Examples: op.ExamplesOf(), Destructive: op.Destructive, Agent: op.AgentRightOf(false), AgentDeclared: op.Agent, Name: op.Verb, Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable, Rows: op.Rows, Quiet: op.Quiet, Many: op.Many, Positional: op.Positional, History: op.HistoryKindOf(), Builtin: op.Builtin, Aliases: r.AliasesOf(op.Key()), Standard: op.Standard}
 		if len(op.Parameters) > 0 {
 			verb.Params = make(map[string]ochazuke.Parameter, len(op.Parameters))
 			for name, p := range op.Parameters {

@@ -195,14 +195,19 @@ type Handler func(*Runtime, Context, Arguments) (any, error)
 // (history.repeat, bound to . on app in normal mode) may run again; set it
 // on the Operation passed to Register.
 type Operation struct {
-	Verb        string               `json:"verb"`
-	Noun        string               `json:"noun"`
-	Description string               `json:"description"`
-	Parameters  map[string]Parameter `json:"parameters"`
-	Result      string               `json:"result"`
-	Kind        string               `json:"kind"`
-	Confirm     string               `json:"confirm,omitempty"`
-	Repeatable  bool                 `json:"repeatable,omitempty"`
+	Destructive bool      `json:"destructive,omitempty"`
+	Agent       string    `json:"agent,omitempty"`
+	Examples    []Example `json:"examples,omitempty"`
+	// CatalogGuards preserves a proxy's remote guards; the remote runtime checks them.
+	CatalogGuards []string             `json:"-"`
+	Verb          string               `json:"verb"`
+	Noun          string               `json:"noun"`
+	Description   string               `json:"description"`
+	Parameters    map[string]Parameter `json:"parameters"`
+	Result        string               `json:"result"`
+	Kind          string               `json:"kind"`
+	Confirm       string               `json:"confirm,omitempty"`
+	Repeatable    bool                 `json:"repeatable,omitempty"`
 	// Rows names the noun whose rows the verb's result lists (a list
 	// verb's JSON array of rows of that noun); "" when the result is not
 	// rows. It is data for hosts (the catalog's rows); the runtime does

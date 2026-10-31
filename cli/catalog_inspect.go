@@ -43,7 +43,7 @@ func (s *Shell) catalogCommand(ctx context.Context, args []string) error {
 		}
 		return s.catalogInspect(ctx, args[1:])
 	}
-	data, err := catalog(s.Runtime, s.Bin, s.version(), !s.StateCache.Off)
+	data, err := catalog(s.Runtime, s.Bin, s.version(), !s.StateCache.Off, s.catalogOptions...)
 	if err != nil {
 		return err
 	}
@@ -203,7 +203,7 @@ func (s *Shell) inspectData(ctx context.Context, bins, files, namespaces []strin
 		fmt.Fprintln(s.stderr(), "warning:", problem)
 	}
 	r.EnsureConfigSettings()
-	raw, err := catalog(r, s.Bin, s.version(), !s.StateCache.Off)
+	raw, err := catalog(r, s.Bin, s.version(), !s.StateCache.Off, s.catalogOptions...)
 	if err != nil {
 		return nil, nil, err
 	}

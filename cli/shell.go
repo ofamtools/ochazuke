@@ -126,12 +126,13 @@ type Shell struct {
 	// negative Width never cuts.
 	Width int
 
-	in *bufio.Reader
+	catalogOptions []CatalogOption
+	in             *bufio.Reader
 }
 
 // New is a Shell over r for bin with the standard usage line.
-func New(r *ochazuke.Runtime, bin string, stdin io.Reader, stdout, stderr io.Writer) *Shell {
-	return &Shell{Runtime: r, Bin: bin, Usage: DefaultUsage(bin), Stdin: stdin, Stdout: stdout, Stderr: stderr}
+func New(r *ochazuke.Runtime, bin string, stdin io.Reader, stdout, stderr io.Writer, opts ...CatalogOption) *Shell {
+	return &Shell{catalogOptions: opts, Runtime: r, Bin: bin, Usage: DefaultUsage(bin), Stdin: stdin, Stdout: stdout, Stderr: stderr}
 }
 
 // DefaultUsage is the usage line of a bin with no global flags of its own,

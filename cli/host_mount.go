@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	gomaps "maps"
 	"slices"
 	"strings"
 
@@ -89,6 +90,7 @@ func MountNouns(r *ochazuke.Runtime, nouns []CatalogNoun, h HostMount) MountedNo
 			delete(out.Nouns, n.Name)
 			continue
 		}
+		b.About(n.About)
 		if len(n.Columns) > 0 {
 			b.Columns(n.Columns...)
 		}
@@ -159,6 +161,21 @@ func mountVerb(r *ochazuke.Runtime, b *ochazuke.NounBuilder, local, noun string,
 			v.Positional = nil
 			break
 		}
+	}
+	op.CatalogGuards = slices.Clone(v.Guards)
+	op.Examples = slices.Clone(v.Examples)
+	for i := range op.Examples {
+		op.Examples[i].Args = gomaps.Clone(op.Examples[i].Args)
+	}
+	op.Destructive, op.Agent = v.Destructive, v.AgentDeclared
+	if op.Agent == "" && v.Agent != "" && v.Agent != (ochazuke.Operation{Destructive: v.Destructive, Confirm: v.Confirm}).AgentRightOf(false) {
+		op.Agent = v.Agent
+	}
+	switch op.Agent {
+	case "", ochazuke.AgentAllow, ochazuke.AgentConfirm, ochazuke.AgentNever:
+	default:
+		note("invalid agent right %q; using the default", op.Agent)
+		op.Agent = ""
 	}
 	op.Positional = slices.Clone(v.Positional)
 	op.Quiet, op.Many, op.Repeatable, op.Standard = v.Quiet, v.Many, v.Repeatable, v.Standard

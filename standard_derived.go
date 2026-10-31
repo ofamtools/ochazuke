@@ -61,7 +61,7 @@ var derivedVerbs = []standardVerb{
 		Kinds: []string{Collection}, Needs: func(n *Noun) bool { return n.Store.Get != nil && n.Store.Create != nil && len(createProps(n)) > 0 },
 		Subject: true, HistoryKind: HistoryChange, Positional: func(*Noun) []string { return []string{"pairs"} },
 		Params: duplicateParams, Writes: duplicateWrites, Run: runDuplicate},
-	{Verb: "archive", Description: "Archive a thing: set its archive prop",
+	{Verb: "archive", Destructive: true, Description: "Archive a thing: set its archive prop",
 		Kinds: []string{Collection}, Needs: func(n *Noun) bool { return n.Store.Patch != nil && writableRole(n, RoleArchive) != nil },
 		Subject: true, Many: true, Repeatable: true, HistoryKind: HistoryChange,
 		Writes: roleWrites(RoleArchive), Run: archiveRun(true)},
