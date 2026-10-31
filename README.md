@@ -33,7 +33,7 @@ The [architecture map](docs/architecture-map.html) supports node exploration and
 
 Four generated catalogs sit beside the guide: [Actions](docs/actions.html), [Default bindings](docs/bindings.html), [Go API](docs/api.html), and [CLI, socket and MCP](docs/transport.html). Actions and bindings describe a fresh `internal/demo` registration, including editor rows, rather than a running application's custom configuration. The Go API catalog covers the root package, not subpackages such as `cli`, `cli/mcp`, `grid` or `markdown`.
 
-The [keybinding walkthrough](docs/keybinding-walkthrough.html) and [execution explorer](docs/keybinding-explorer.html) are source snapshots. The explorer supports source previews and highlighted paths; it is not a live debugger. Its reviewed trace, template and pinned source hashes are separate from docgen output.
+The [keybinding walkthrough](docs/keybinding-walkthrough.html) is preserved as a historical document: its Layers/Frames explanations predate the current noun/instance architecture. The regenerated [execution explorer](docs/keybinding-explorer.html) is a source snapshot with source previews and highlighted paths, not a live debugger. Its reviewed trace, template and pinned source hashes are separate from docgen output.
 
 | Artifact | Source and workflow |
 |---|---|
