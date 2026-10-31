@@ -3,7 +3,6 @@
   "area": "forms",
   "width": 100,
   "height": 18,
-  "values": {"render.max-fps": 0},
   "files": ["a.json", "b.txt", "sub/c.json", "sub/deep/"],
   "page": {
     "lists": [{"id": "a", "rows": 1}],
