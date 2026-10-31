@@ -41,7 +41,10 @@ type Appearance struct {
 
 // ToneRows are tone rows by name an application declares
 // (Appearance.AppTones). The zero value and nil hold none.
-type ToneRows struct{ rows map[string]ToneStyle }
+type ToneRows struct {
+	rows       map[string]ToneStyle
+	generation uint64
+}
 
 // Rows are the rows, a copy.
 func (t *ToneRows) Rows() map[string]ToneStyle {
@@ -62,6 +65,7 @@ func (a *Appearance) SetTone(name string, style ToneStyle) {
 		a.AppTones.rows = map[string]ToneStyle{}
 	}
 	a.AppTones.rows[name] = style
+	a.AppTones.generation++
 }
 
 // SetModeTone declares the badge hue of a mode: the tone row

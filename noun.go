@@ -423,6 +423,7 @@ func (r *Runtime) ensureNoun(name string) *Noun {
 		}
 		n = &Noun{Name: name, Bindings: map[string][]Binding{}, Actions: map[string]Handler{}}
 		r.Nouns[name] = n
+		r.renderCache.generation++
 		r.claimBareName(name)
 	}
 	r.noteFrameworkNoun(name)
@@ -831,6 +832,7 @@ func (m *ModeBuilder) Unbind(keysOrPattern string) *ModeBuilder {
 // UnbindGuarded removes the row with these keys or this pattern and this
 // guard ("" is the unguarded row).
 func (m *ModeBuilder) UnbindGuarded(keysOrPattern, guard string) *ModeBuilder {
+	m.r.renderCache.generation++
 	probe := Binding{Noun: m.n.Name, Mode: m.mode, Keys: strings.Join(strings.Fields(keysOrPattern), " "), When: guard}
 	if isPattern(keysOrPattern) {
 		probe.Keys, probe.Pattern = "", keysOrPattern
@@ -862,6 +864,7 @@ func (m *ModeBuilder) When(guard string) *ModeBuilder {
 }
 
 func (m *ModeBuilder) add(row Binding) *ModeBuilder {
+	m.r.renderCache.generation++
 	row.Noun, row.Instance, row.Mode = m.n.Name, "", m.mode
 	row.Request = m.r.modernRequest(row.Request)
 	// A row naming a setting ({terminal-leader}) is resolved here as Bind
@@ -982,6 +985,7 @@ func (r *Runtime) Bind(rows ...Binding) error { return r.bindRows(rows, true, ro
 // the source of the default they replace alone (bindings defaults shows
 // that default again). batch spans the file or the call.
 func (r *Runtime) bindRows(rows []Binding, code bool, batch rowBatch) error {
+	r.renderCache.generation++
 	for _, row := range rows {
 		row, err := r.validateRow(row)
 		if err != nil {
@@ -1364,6 +1368,10 @@ func (r *Runtime) DefineGuard(name string, fn Guard) { r.guards[name] = fn }
 
 // guard resolves a guard name.
 func (r *Runtime) guard(name string) Guard {
+	return r.renderCache.guard(r, name)
+}
+
+func (r *Runtime) rawGuard(name string) Guard {
 	if op, ok := strings.CutPrefix(name, "op:"); ok {
 		return func(_ *Runtime, ev KeyEvent) bool { return ev.Mode.Payload.Op == op }
 	}

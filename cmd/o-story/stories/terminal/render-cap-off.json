@@ -1,0 +1,43 @@
+{
+  "name": "terminal: render.max-fps zero preserves every output frame with coalescing disabled",
+  "area": "terminal",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ],
+    "terminal": {
+      "fake": true,
+      "attach": "a1"
+    }
+  },
+  "script": [
+    "enter",
+    {
+      "tick": "terminal"
+    },
+    {
+      "tick": "output"
+    },
+    {
+      "tick": "terminal"
+    },
+    {
+      "tick": "output"
+    },
+    {
+      "tick": "terminal"
+    }
+  ],
+  "expect": {
+    "contains": [
+      "output 1",
+      "output 2"
+    ]
+  },
+  "values": {
+    "render.max-fps": 0
+  }
+}

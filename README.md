@@ -256,6 +256,26 @@ Ordinary modals block page switching. The palette closes before dispatching its 
 
 ### Styling and modal behavior
 
+Unreleased: rendering reuses styles, binding walks and hint formatting, child
+indexes, short text widths, and unchanged viewport content/windows. Styles
+follow appearance values, tone revisions, mode and dim/chrome settings;
+binding caches recheck application guards and detect public table edits.
+Use `model.Styles()` in app renderers to share its cached styles.
+
+`render.max-fps` defaults to **30** (0–240). It limits background frame
+composition while every message and terminal frame still reaches its owner;
+bursts show their latest state, with one pending frame timer and no idle
+frame timer. Unchanged settings polls, stale completions and identical
+terminal frames reuse the previous view. Keys, paste, resize and API calls
+draw immediately. Set it to **0** to restore per-message composition.
+Hosts that change visible state after `Model.Update`, or take an explicit
+headless snapshot, can call `Model.InvalidateRender()` before `View()`.
+
+These cache and deadline-timer patterns adapt the approach in Gaurav
+Gosain's MIT-licensed [tuios](https://github.com/Gaurav-Gosain/tuios)
+(`internal/app/render.go`, `linewidth.go`, `message_view.go` and
+`overlay/panel.go`); its license is retained in [diffview/LICENSE](diffview/LICENSE).
+
 - Default styling uses restrained teal/green accents, rounded panels, heavier focused borders, page tabs, a mode badge, and a status line. The status line and modal hints are derived from binding rows (`BindingHints`), never written by hand; the picker's own help line is derived the same way.
 - Themes: `adaptive`, `dark`, `light`, `mono`, plus the user's colour schemes (below). Density: `comfortable` or `compact`. Adaptive follows the terminal's detected background; `NO_COLOR` disables theme colors. Focus remains visible through border weight and a tab marker.
 - Modals are centered, content-sized panels, at most about 80% of the terminal width (no fixed column cap) and about 75% of its height; a chooser fills that width. They leave a visible, subdued perimeter of the previous screen whenever the terminal can accommodate it. Nested modals retain the previous modal and page underneath.

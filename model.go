@@ -73,10 +73,13 @@ type Model struct {
 	// followed is the focus each page surface last scrolled to follow, so a
 	// frame scrolls only when the focus moved (pgup and pgdown may leave it
 	// off screen until the next motion).
-	followed map[string]string
-	ticker   jobTicker    // the finished jobs the ticker remembers (ticker.go)
-	segTimer segmentTimer // the status segments' refresh timer (segment_view.go)
-	echo     keyEcho      // the keys the key echo shows (key_echo.go)
+	followed  map[string]string
+	ticker    jobTicker    // the finished jobs the ticker remembers (ticker.go)
+	segTimer  segmentTimer // the status segments' refresh timer (segment_view.go)
+	echo      keyEcho      // the keys the key echo shows (key_echo.go)
+	styles    modelStyles
+	redraw    modelRedraw
+	viewCache modelViewports
 	// Now is the Model's clock: the ticker's memory of finished jobs and
 	// the linger timer read it (time.Now by default, time.Now when nil). A
 	// headless host fakes it, advances it to JobLingerTick's deadline and
@@ -197,6 +200,9 @@ func (m *Model) Init() tea.Cmd {
 	return tea.Batch(tea.RequestBackgroundColor, m.settingsPoll(), m.segmentCommand(m.clock()))
 }
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if cmd, handled := m.redraw.begin(m, msg); handled {
+		return m, cmd
+	}
 	// A foreground program suspends the TUI while it has the terminal
 	// (foreground.go); its exit comes back as the job's completion.
 	if fg, ok := msg.(ForegroundMsg); ok {
@@ -207,7 +213,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	// Off-loop results reach their owning instance first; a stale or
 	// orphaned completion is dropped here.
-	if _, err := m.Runtime.Deliver(msg); err != nil {
+	changed := m.redraw.messageChanges(m, msg)
+	delivered, err := m.Runtime.Deliver(msg)
+	if err != nil {
 		m.Runtime.UI().Error(err.Error())
 	}
 	switch v := msg.(type) {
@@ -235,7 +243,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case SegmentMsg:
 		m.Runtime.settleSegment(v, m.clock())
 	case SettingsPollMsg:
-		m.Runtime.Settings().ReloadIfChanged()
+		changed = m.Runtime.Settings().ReloadIfChanged() || delivered
 	case tea.BackgroundColorMsg:
 		m.Appearance.Dark = v.IsDark()
 	case tea.KeyPressMsg:
@@ -260,6 +268,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	}
 	var commands []tea.Cmd
+	if cmd := m.redraw.schedule(m, msg, changed); cmd != nil {
+		commands = append(commands, cmd)
+	}
 	if cmd := m.Runtime.BindingTimeoutCommand(); cmd != nil {
 		commands = append(commands, cmd)
 	}
@@ -357,9 +368,7 @@ func (m *Model) viewport(key string, content string, width, height int) *viewpor
 		view = &v
 		m.views[key] = view
 	}
-	view.SetWidth(max(1, width))
-	view.SetHeight(max(1, height))
-	view.SetContent(content)
+	m.viewCache.content(key, view, content, width, height)
 	view.SetYOffset(m.scroll[key])
 	return view
 }
@@ -584,7 +593,8 @@ func (m *Model) footerInfo() string {
 // It is the data bindings.list prints, so a hint never names a key that is
 // not bound; the descriptions are in BindingHelp (the ? modal).
 func BindingHints(r *Runtime, focus string) string {
-	return JoinHints(HintCells(r, focus))
+	HintCells(r, focus)
+	return r.renderCache.cells.line
 }
 
 // HintCell is one hint of a hint line: the row's key (or "J/K" for a row
@@ -618,11 +628,7 @@ func JoinHints(cells []HintCell) string {
 // HintCells is BindingHints as cells, a key and its text each, for a
 // hint line that colours its keys.
 func HintCells(r *Runtime, focus string) []HintCell {
-	var cells []HintCell
-	for _, b := range HintBindings(r, focus) {
-		cells = append(cells, rowHintCell(r, b))
-	}
-	return cells
+	return r.renderCache.hintCells(r, focus)
 }
 
 // HintsShowHiddenSetting puts the rows marked hidden (the editor's
@@ -633,10 +639,14 @@ const HintsShowHiddenSetting = "help.hints-hidden"
 // HintBindings is the rows BindingHints shows, in its order: what a check
 // of the footer presses to prove every hint answers.
 func HintBindings(r *Runtime, focus string) []Binding {
+	return r.renderCache.hintBindings(r, focus)
+}
+
+func hintBindingsUncached(r *Runtime, focus string, rows []levelRow) []Binding {
 	var out []Binding
 	index := map[string]bool{}
 	showHidden := r.Settings().Bool(HintsShowHiddenSetting)
-	for _, row := range r.groupedRows(focus) {
+	for _, row := range rows {
 		b := row.Binding
 		if b.Hidden && !showHidden || r.Operations[b.Request.Key()].Motion && b.Hint == "" {
 			continue // a motion with its own Hint (J/K detail) shows
@@ -664,7 +674,7 @@ func HintBindings(r *Runtime, focus string) []Binding {
 // groupedRows is levelRows grouped by the noun of the level that answers,
 // innermost first, a capture row with its own level (app's ctrl+c comes
 // after the focused row's verbs).
-func (r *Runtime) groupedRows(focus string) []levelRow { return groupLevelRows(r.levelRows(focus)) }
+func (r *Runtime) groupedRows(focus string) []levelRow { return r.renderCache.grouped(r, focus) }
 
 // groupLevelRows groups rows in walk order by their level (groupedRows).
 func groupLevelRows(rows []levelRow) []levelRow {
@@ -875,6 +885,10 @@ func (r *Runtime) helpRows(w helpWalk, rows []levelRow, depth int) []HelpRow {
 // operation, the description (the row's Help over the operation's), the
 // answering level as its noun and section.
 func (r *Runtime) helpRow(row levelRow, args Arguments) HelpRow {
+	return r.renderCache.helpRow(r, row, args)
+}
+
+func (r *Runtime) helpRowUncached(row levelRow, args Arguments) HelpRow {
 	req := ""
 	if !row.Request.Empty() {
 		req = r.displayRequest(row.Request)
@@ -915,10 +929,14 @@ func SplitKeys(keys string) (prefix, final string) {
 // modal that holds it: a bar in insert mode, a block in normal mode and an
 // underline in visual modes. It is hidden when the block reports no cursor.
 func (m *Model) View() tea.View {
+	if v, ok := m.redraw.reuse(); ok {
+		return v
+	}
 	block := m.render()
 	v := tea.NewView(block.Text)
 	v.AltScreen = true
 	v.Cursor = m.cursor(block)
+	m.redraw.remember(m, v)
 	return v
 }
 
@@ -951,10 +969,7 @@ func (m *Model) cursor(block Block) *tea.Cursor {
 // (modal-dim, dim-unfocused, modal-highlights) and the chrome level
 // (chrome.color) in the current mode; the shell, modals and page lists draw in it.
 func (m *Model) Styles() Styles {
-	r := m.Runtime
-	return NewStyles(*m.Appearance).WithDims(r.dimSetting(ModalDimSetting, DefaultModalDim), r.dimSetting(DimUnfocusedSetting, DefaultDimUnfocused)).
-		WithBackdropHighlights(r.Settings().String(ModalBackdropHighlightsSetting) != "plain").
-		WithChrome(r.ChromeLevel(), r.modeRoles())
+	return m.styles.get(m)
 }
 
 // render composes the page shell and the modal stack. Each composer offsets
@@ -1134,7 +1149,7 @@ func scrollToShow(offset, top, bottom, height, total, margin int) int {
 // with the scrolled content and dropping it when it scrolls out of view.
 func (m *Model) scrolled(key string, content Block, width, height int) Block {
 	view := m.viewport(key, content.Text, width, height)
-	return content.WithText(view.View()).Offset(0, -view.YOffset()).Clip(width, height)
+	return content.WithText(m.viewCache.text(key, view)).Offset(0, -view.YOffset()).Clip(width, height)
 }
 
 // modeLabelOf shortens a pending mode name for the badge: "normal g" stays,

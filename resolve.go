@@ -787,6 +787,10 @@ func (r *Runtime) levelRows(focus string) []levelRow {
 // follows, so the rows that answer when the guard is false show after it;
 // editing says the editor's implicit input guard holds (an input noun).
 func (r *Runtime) scanRows(levels []level, mode ModeState, focus string, editing bool) []levelRow {
+	return r.renderCache.scan(r, levels, mode, focus, editing)
+}
+
+func (r *Runtime) scanRowsUncached(levels []level, mode ModeState, focus string, editing bool) []levelRow {
 	live := focus != ""
 	base, prefix := baseAndPrefix(mode)
 	exclusive := r.pendingModes[mode.Name] || mode.Payload.Shadow != nil

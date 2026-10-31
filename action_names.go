@@ -207,6 +207,7 @@ func (r *Runtime) AliasAction(alias, action string) error {
 // action; registering the same alias for the same action again is a
 // no-op. Source defaults to app, or framework inside Builtin.
 func (r *Runtime) AddActionAlias(a ActionAlias) error {
+	r.renderCache.generation++
 	if a.Source == "" {
 		a.Source = AliasApp
 		if r.builtinDepth > 0 {
@@ -461,13 +462,17 @@ func (r *Runtime) paramAliasNotices(a ActionAlias, used []ParamAlias) []string {
 
 // removeAlias drops an alias by name (config reloads, a later Register of
 // that name).
-func (r *Runtime) removeAlias(name string) { delete(r.actionNames.aliases, name) }
+func (r *Runtime) removeAlias(name string) {
+	r.renderCache.generation++
+	delete(r.actionNames.aliases, name)
+}
 
 // claimName is called by Register before an action takes name: an alias
 // of that name gives way (the canonical action wins) and the drop is
 // recorded, never a panic, so a host mounting a newer catalog keeps
 // starting.
 func (r *Runtime) claimName(name string) {
+	r.renderCache.generation++
 	a, ok := r.actionNames.aliases[name]
 	if !ok {
 		return
