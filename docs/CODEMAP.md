@@ -1027,7 +1027,7 @@ Root package `ochazuke` is flat: 130 source files, 153 test files. Each entry li
 
 ## Package cli
 
-Importable package `cli`: 30 source files, 29 test files.
+Importable package `cli`: 32 source files, 30 test files.
 
 ### cli/catalog.go
 
@@ -1054,14 +1054,29 @@ Importable package `cli`: 30 source files, 29 test files.
 - funcs: AddCommands
 - leans on: emulator.go(2), pty.go(2), shell.go(2)
 
+### cli/detail_fields.go
+
+- lines: 159
+- purpose: mountSections keeps page-specific state on the detail instance, leaving the runtime's Detail component and J/K contract intact.
+- methods: PageView(4), detailFieldsModal(5)
+- leans on: page.go(6), shell.go(5), detail_sections.go(3), commands.go(1)
+
 ### cli/detail_kind.go
 
-- lines: 266 · tests: detail_kind_test.go
+- lines: 265 · tests: detail_kind_test.go
 - purpose: DetailView is a mounted page's detail of a registered kind.
 - types: DetailView (iface), DetailHost, DetailFactory (func)
 - methods: DetailHost(1), PageView(6), kindSync(3)
 - funcs: RegisterDetailKind, DetailKinds
 - leans on: page.go(9), format.go(7), rows.go(2), commands.go(1)
+
+### cli/detail_sections.go
+
+- lines: 357 · tests: detail_sections_test.go
+- purpose: CatalogDetailSection is one ordered part of a read-only catalog detail.
+- types: CatalogDetailSection, CatalogDetailField
+- methods: PageView(4)
+- leans on: page.go(5), commands.go(4)
 
 ### cli/emulator.go
 
@@ -1137,12 +1152,12 @@ Importable package `cli`: 30 source files, 29 test files.
 
 ### cli/page.go
 
-- lines: 1116 · tests: page_test.go
+- lines: 1144 · tests: page_test.go
 - purpose: CatalogPage is a page in registration order.
 - types: CatalogPage, CatalogList, CatalogDetail, PageConfig, PageView
-- methods: CatalogPage(1), PageView(30), pageList(1)
+- methods: CatalogPage(1), PageView(31), pageList(1)
 - funcs: DeclarePage, MountPages, MountPage, DecodeRows
-- leans on: rows.go(19), commands.go(10), catalog.go(4), widget.go(4)
+- leans on: rows.go(20), commands.go(10), catalog.go(4), widget.go(4)
 
 ### cli/pagestate.go
 
@@ -1446,11 +1461,11 @@ Importable package `markdown`: 11 source files, 7 test files.
 
 ### markdown/render.go
 
-- lines: 224 · tests: render_test.go
+- lines: 232 · tests: render_test.go
 - purpose: StyleOf is the Glamour style an appearance draws Markdown in.
 - types: Option (func)
 - methods: options(1)
-- funcs: StyleOf, PreserveNewlines, Block
+- funcs: StyleOf, PreserveNewlines, WrapAll, Block
 - leans on: table.go(5), tasks.go(3)
 
 ### markdown/table.go
@@ -1842,6 +1857,8 @@ Exported type -> file.
 - WatchVersions -> standard_watch.go
 - Yank -> registers.go
 - cli.CatalogDetail -> cli/page.go
+- cli.CatalogDetailField -> cli/detail_sections.go
+- cli.CatalogDetailSection -> cli/detail_sections.go
 - cli.CatalogDoc -> cli/catalog.go
 - cli.CatalogList -> cli/page.go
 - cli.CatalogNoun -> cli/catalog.go

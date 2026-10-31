@@ -19,12 +19,11 @@ const DetailRecord = "record"
 // A detail kind draws a data page's detail as something other than the
 // record: a catalog names the kind (CatalogDetail.Kind, "markdown") and
 // the host registers what draws it (RegisterDetailKind, or
-// PageConfig.DetailKinds for one mount). Package cli knows no kind but the
-// record, so a kind's dependencies (Glamour for markdown) stay out of
-// every consumer that does not register it: the package providing a kind
-// (markdown/cliview) exports its factory and the host registers it. A
-// page naming a kind the host has not registered shows the record, with a
-// line saying so.
+// PageConfig.DetailKinds for one mount). Built-in CatalogDetail.Sections
+// need no factory. Other views, such as an editable file document, still
+// use registered factories: markdown/cliview exports its factory and the
+// host registers it. A page naming a kind the host has not registered
+// shows the record, with a line saying so.
 //
 // The view is built once per mounted page (DetailFactory) and told the
 // selected row whenever it changes (DetailView.Show): a different row, a

@@ -11,6 +11,32 @@ import (
 
 const sample = "# Notes\n\nSome *text* that is long enough to wrap at forty columns, surely.\n\n- [ ] milk\n- [x] bread\n\n```go\nfunc main() {}\n```\n"
 
+func TestWrapAllKeepsLongCodeAndWords(t *testing.T) {
+	word := strings.Repeat("abcdefghij", 12) + "WORD_END"
+	source := "# Heading\n\n" + word + "\n\n```text\n" + word + "CODE_END\n```"
+	for _, theme := range []string{"mono", "dark", "light"} {
+		text := Block(source, 24, ochazuke.Appearance{Theme: theme, Dark: true}, WrapAll()).Text
+		for _, line := range strings.Split(text, "\n") {
+			if ansi.StringWidth(line) > 24 {
+				t.Fatalf("%s overflow %q", theme, ansi.Strip(line))
+			}
+		}
+		compact := strings.Join(strings.Fields(ansi.Strip(text)), "")
+		if !strings.Contains(compact, word) || !strings.Contains(compact, word+"CODE_END") {
+			t.Fatalf("%s lost code/word tail:\n%s", theme, ansi.Strip(text))
+		}
+		// When a table's minimum columns exceed the width, every glyph
+		// must survive wrapping even though columns span several lines.
+		table := "| First | Second | Third |\n|---|---|---|\n| " + strings.Repeat("α", 20) + " | " + strings.Repeat("β", 20) + " | " + strings.Repeat("γ", 20) + " |"
+		text = Block(table, 24, ochazuke.Appearance{Theme: theme}, WrapAll()).Text
+		for _, cell := range []string{"α", "β", "γ"} {
+			if got := strings.Count(ansi.Strip(text), cell); got != 20 {
+				t.Fatalf("%s: table cell %s has %d glyphs, want 20:\n%s", theme, cell, got, ansi.Strip(text))
+			}
+		}
+	}
+}
+
 // Block renders in the appearance's Glamour style, no wider than the
 // width, without Glamour's blank first and last lines.
 func TestBlockStylesAndWidth(t *testing.T) {

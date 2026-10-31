@@ -56,7 +56,9 @@ type CatalogList struct {
 	Title  string `json:"title,omitempty"`  // the panel title; default the noun
 }
 
-// CatalogDetail is a data page's detail panel. Kind names what draws it:
+// CatalogDetail is a data page's detail panel. Sections declares a built-in
+// read-only document (Markdown, thread and metadata regions). Without
+// Sections, Kind names what draws it:
 // "" or DetailRecord, the selected row's record as key: value lines (in
 // Fields order); any other kind is drawn by the factory the host
 // registered for it (RegisterDetailKind: mtm registers "markdown", an
@@ -70,6 +72,16 @@ type CatalogDetail struct {
 	// PathField names the record field holding the file a kind's view
 	// opens (markdown: the document's path).
 	PathField string `json:"pathField,omitempty"`
+	// Sections is a built-in, read-only document, independent of the host's
+	// registered detail kinds. When present it replaces Fields and Kind.
+	Sections []CatalogDetailSection `json:"sections,omitempty"`
+	// Side overrides detail.side for this page. SideSetting names an app's
+	// boolean setting instead; when declared, it takes precedence over Side.
+	Side        *bool  `json:"side,omitempty"`
+	SideSetting string `json:"sideSetting,omitempty"`
+	// SideWidth is the minimum detail content width for side-by-side
+	// regions (0 uses detail.side-width, default 96).
+	SideWidth int `json:"sideWidth,omitempty"`
 }
 
 // The layouts of a data page (CatalogPage.Layout).
@@ -129,6 +141,11 @@ func checkPage(p CatalogPage) error {
 	}
 	if len(p.Lists) == 0 {
 		return fmt.Errorf("page %s: a data page needs a list", p.ID)
+	}
+	if p.Detail != nil {
+		if err := checkDetailSections(*p.Detail); err != nil {
+			return fmt.Errorf("page %s: detail: %w", p.ID, err)
+		}
 	}
 	seen := map[string]bool{}
 	for _, w := range p.Widgets {
@@ -341,8 +358,12 @@ func MountPage(m *ochazuke.Model, doc CatalogDoc, p CatalogPage, cfg PageConfig)
 			return nil, err
 		}
 		v.detail = d
-		if err := v.mountKind(); err != nil {
-			return nil, err
+		if len(p.Detail.Sections) > 0 {
+			v.mountSections()
+		} else {
+			if err := v.mountKind(); err != nil {
+				return nil, err
+			}
 		}
 	}
 	focus := v.lists[0].list.FocusTarget()
@@ -897,11 +918,15 @@ func (v *PageView) detailText(id string) (title, text string) {
 		}
 		return "", "no row selected"
 	}
-	title = row.Label
-	if v.spec.Detail.Title != "" {
-		title = v.spec.Detail.Title + " · " + row.Label
-	}
+	title = v.detailTitle(row)
 	return title, recordText(row.Data, v.spec.Detail.Fields, row)
+}
+
+func (v *PageView) detailTitle(row Row) string {
+	if v.spec.Detail.Title != "" {
+		return v.spec.Detail.Title + " · " + row.Label
+	}
+	return row.Label
 }
 
 // recordText draws a record: an object's fields (in fields order when
@@ -1097,6 +1122,9 @@ func (v *PageView) statusFor(pl *pageList) string {
 // detailPanel draws the detail of the followed list's selected row: the
 // view of its kind, else the record.
 func (v *PageView) detailPanel(layout ochazuke.Layout, width, height int) ochazuke.Block {
+	if len(v.spec.Detail.Sections) > 0 && v.m.Runtime.Settings().Bool("detail.sections") {
+		return v.sectionsPanel(layout, width, height)
+	}
 	if v.kind != nil {
 		return v.kindPanel(layout, width, height)
 	}
