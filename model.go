@@ -80,6 +80,7 @@ type Model struct {
 	styles    modelStyles
 	redraw    modelRedraw
 	viewCache modelViewports
+	surfaces  modelSurfaces
 	// Now is the Model's clock: the ticker's memory of finished jobs and
 	// the linger timer read it (time.Now by default, time.Now when nil). A
 	// headless host fakes it, advances it to JobLingerTick's deadline and
@@ -1015,7 +1016,7 @@ func (m *Model) render() Block {
 	}
 	footer := m.footer()
 	footer.Inspector = m.inspectorLine()
-	surface := layout.Shell(header, page, footer)
+	surface := m.shellBlock(layout, header, page, footer)
 	// toScreen maps a position in the page as rendered to the screen, the
 	// way the page was composed (scrolled, beside the sidebar, in the
 	// shell): where an anchored modal finds its anchor.
@@ -1075,7 +1076,10 @@ func (m *Model) render() Block {
 		if len(cells) > 0 {
 			styled = func(w int) (string, bool) { return layout.Styles.hintLine(lead, cells, min(w, hintWidth)) }
 		}
-		surface = composeModalAt(surface.Text, title, body, hint, styled, m.Width, m.Height, layout.Styles, place)
+		surface = m.modalBlock(id, layout, surface.Text, title, body, hint, lead, cells, hintWidth, styled, place)
+	}
+	if len(m.Runtime.modals) == 0 {
+		m.surfaces.modals = nil
 	}
 	// Open suggestions sit over everything, under the token they complete.
 	if c := m.Runtime.Completer(); c != nil {

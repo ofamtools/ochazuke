@@ -75,6 +75,7 @@ func TestRenderKeySurvivesBatchedUpdatesAndClockReset(t *testing.T) {
 func TestRenderTerminalOwnsReusedStreamBuffer(t *testing.T) {
 	m, _ := renderFixture(t)
 	term, _ := m.Runtime.AddTerminal("pane", newFakeStream(), Parent("page"))
+	m.Runtime.PageOf("page").Render = func(_ *Runtime, w, h int) Block { return term.ViewBlock(w, h) }
 	lines := []string{"first"}
 	term.acceptFrame(TerminalFrame{Lines: lines})
 	lines[0] = "second"

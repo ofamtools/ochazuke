@@ -271,6 +271,16 @@ draw immediately. Set it to **0** to restore per-message composition.
 Hosts that change visible state after `Model.Update`, or take an explicit
 headless snapshot, can call `Model.InvalidateRender()` before `View()`.
 
+Unreleased: equal visible inputs reuse the shell and modal compositions,
+including unchanged host messages and listings. Hidden terminal reads keep
+their latest frame without querying the page renderer. Panels and shell rows
+share a bounded cache of fitted ANSI/Unicode cells; job ticker observation
+does not allocate a sorted jobs inventory. `render.max-fps=0` also disables
+shell/modal reuse and hidden-frame suppression. No visual or key behavior
+changes. Instrumented test builds with `ochazuke_render_trace` expose
+`Model.TraceRender()` for message, View, render-query and composition counts.
+Compared with Vim: not applicable; these are internal rendering caches.
+
 These cache and deadline-timer patterns adapt the approach in Gaurav
 Gosain's MIT-licensed [tuios](https://github.com/Gaurav-Gosain/tuios)
 (`internal/app/render.go`, `linewidth.go`, `message_view.go` and

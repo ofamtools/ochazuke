@@ -187,14 +187,7 @@ func unhighlight(text string) string {
 // modalCells pads or truncates a line to exactly width cells. Trusted styles
 // are closed so an unclosed SGR cannot color the adjacent cells.
 func modalCells(line string, width int) string {
-	if width <= 0 {
-		return ""
-	}
-	text := ansi.Truncate(line, width, "")
-	if strings.ContainsRune(text, '\x1b') {
-		text += "\x1b[0m"
-	}
-	return text + strings.Repeat(" ", max(0, width-ansi.StringWidth(text)))
+	return fitCells(line, width, "")
 }
 
 func modalLabel(label string) string {

@@ -36,8 +36,9 @@ type modelRedraw struct {
 }
 
 type renderTrace struct {
-	messages      map[string]int
-	views, frames int
+	messages                        map[string]int
+	views, frames                   int
+	compositions, modalCompositions int
 }
 
 func validRenderFPS(value any) error {
@@ -76,13 +77,29 @@ func (c *modelRedraw) messageChanges(m *Model, msg tea.Msg) bool {
 			return false
 		}
 		j := r.jobs[done.Job]
-		if term := r.Terminal(done.Owner); term != nil && j != nil && j.then == nil && j.Verb == "" && done.Err == nil {
+		if term := r.Terminal(done.Owner); term != nil && j != nil && j.then == nil && !tickerShows(r, j.JobInfo) && done.Err == nil {
 			if f, ok := done.Value.(TerminalFrame); ok {
+				if c.ready && !r.rendered(done.Owner) {
+					return false
+				}
 				return f.Cursor != term.frame.Cursor || f.Shape != term.frame.Shape || f.Hidden != term.frame.Hidden || !slices.Equal(f.Lines, term.frame.Lines)
 			}
 		}
 	}
 	return true // a host or a component may have changed arbitrary app state
+}
+
+// A placement belongs to the active page's last frame, not merely to an
+// instance that still exists under an inactive page or a hidden tab.
+func (r *Runtime) rendered(id string) bool {
+	if r.insideModal(id) {
+		return true
+	}
+	page := r.PageOf(r.Page)
+	if page == nil {
+		return false
+	}
+	return slices.ContainsFunc(page.drawn, func(p Placement) bool { return p.ID == id })
 }
 
 func (c *modelRedraw) schedule(m *Model, msg tea.Msg, changed bool) tea.Cmd {

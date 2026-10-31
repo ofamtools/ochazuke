@@ -79,7 +79,11 @@ func settleSegments(t *testing.T, m *Model, cmd tea.Cmd) {
 }
 
 // frame is the model's frame without escapes.
-func frame(m *Model) []string { return strings.Split(ansi.Strip(m.View().Content), "\n") }
+func frame(m *Model) []string {
+	// Explicit fake-clock snapshots do not wait for the background frame timer.
+	m.InvalidateRender()
+	return strings.Split(ansi.Strip(m.View().Content), "\n")
+}
 
 func fixed(text string) SegmentProvider {
 	return func(context.Context, Segment) (SegmentValue, error) { return SegmentValue{Text: text}, nil }

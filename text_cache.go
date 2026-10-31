@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"strings"
 	"sync"
 
 	"github.com/charmbracelet/x/ansi"
@@ -38,7 +39,7 @@ func chromeWidth(text string) int {
 	if len(chromeWidths.rows) >= 1024 {
 		clear(chromeWidths.rows)
 	}
-	chromeWidths.rows[text] = w
+	chromeWidths.rows[strings.Clone(text)] = w
 	chromeWidths.Unlock()
 	return w
 }

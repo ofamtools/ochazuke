@@ -277,12 +277,26 @@ func (r *Runtime) finish(j *job, state string, err error) {
 	if err != nil {
 		j.Error = err.Error()
 	}
-	finished := r.jobList(func(j *job) bool { return j.State != JobRunning })
-	for len(finished) > jobHistory {
-		delete(r.jobs, finished[0].Job)
-		finished = finished[1:]
+	for {
+		count, oldest := 0, uint64(0)
+		for id, job := range r.jobs {
+			if job.State != JobRunning {
+				count++
+				if oldest == 0 || id < oldest {
+					oldest = id
+				}
+			}
+		}
+		if count <= jobHistory {
+			break
+		}
+		delete(r.jobs, oldest)
 	}
 }
+
+// HasRunningJob checks a replacing slot without constructing the sorted
+// public jobs list. Scope is the owner or ancestor used by ReplacingAt.
+func (r *Runtime) HasRunningJob(scope, slot string) bool { return r.slotJob(scope, slot) != nil }
 
 // slotJob is the running job in a slot of a scope, or nil.
 func (r *Runtime) slotJob(scope, slot string) *job {

@@ -146,7 +146,7 @@ func TestRenderMessageTrace(t *testing.T) {
 				m.View()
 			}
 			_ = term
-			t.Logf("%s: messages/s=1000 View/s=1000 compositions/s=%d message-types=%v", kind, *renders-start, m.redraw.trace.messages)
+			t.Logf("%s: messages/s=1000 View/s=1000 render-queries/s=%d compositions/s=%d message-types=%v", kind, *renders-start, m.redraw.trace.compositions-1, m.redraw.trace.messages)
 			if *renders-start > 30 {
 				t.Fatal("background message rate exceeded the render cap")
 			}

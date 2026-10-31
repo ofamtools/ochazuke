@@ -682,11 +682,12 @@ func layoutRows(body string, width, height int) []string {
 		line := ""
 		if i < len(lines) {
 			line = lines[i]
-			if chromeWidth(line) > width && width > 1 {
-				line = ansi.Truncate(line, width, "…")
-			}
 		}
-		rows[i] = modalCells(line, width)
+		tail := ""
+		if width > 1 {
+			tail = "…"
+		}
+		rows[i] = fitCells(line, width, tail)
 	}
 	return rows
 }
