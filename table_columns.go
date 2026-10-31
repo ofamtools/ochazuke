@@ -386,7 +386,7 @@ func registerColumnMotions(r *Runtime) {
 	spills := func(step int) Guard {
 		return func(r *Runtime, ev KeyEvent) bool {
 			l := r.edgeList(ev.Focus, step)
-			if l == nil || !l.atColumnEdge(step) || l.noSpill || l.visual || !l.Focused() {
+			if l == nil || !l.atColumnEdge(step) || l.trapped() || l.visual || !l.Focused() {
 				return false
 			}
 			_, ok := l.neighbour(step)
