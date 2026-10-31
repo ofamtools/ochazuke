@@ -501,6 +501,7 @@ Conformance:
 | normal | list | `list.column` `list.filter-clear` `list.filter-cycle` `list.filter-open` `list.filter-prop` `list.filter-prop-clear` `list.filter-props-clear` `list.fit-column` `list.fit-columns` `list.goto` `list.mark` `list.move` `list.next-class` `list.previous-class` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.toggle-pin-column` `list.visual` `list.yank` |
 | normal | macro | `macro.record` `macro.start` `macro.stop` |
 | normal | markdown | `markdown.delete` `markdown.fold` `markdown.insert` `markdown.link-copy` `markdown.link-open` `markdown.move` `markdown.next-block` `markdown.next-kind` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-link` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
+| normal | markdown-view | `markdown-view.copy` |
 | normal | modal | `modal.pop` |
 | normal | mode | `mode.enter` `mode.leave` `mode.set` |
 | normal | notice | `notice.clear` |
@@ -694,6 +695,7 @@ Mode edges (from → to via):
 - `normal g` → `normal` via `tick binding`
 - `normal g` → `normal` via `timeline.row`
 - `normal g` → `normal` via `yank-history.open`
+- `normal y` → `normal` via `markdown-view.copy`
 - `normal y` → `normal` via `markdown.link-copy`
 - `normal z` → `insert` via `list.filter-prop`
 - `normal z` → `insert` via `list.filter-prop-clear`

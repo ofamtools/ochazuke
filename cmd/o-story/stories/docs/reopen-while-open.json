@@ -1,8 +1,9 @@
 {
-  "name": ":help TOPIC while the docs viewer is open shows that topic in the same viewer: no \"already open\" error, no second viewer, esc closes it to the page",
+  "name": "help.markdown off (the plain docs viewer): :help TOPIC while the docs viewer is open shows that topic in the same viewer: no \"already open\" error, no second viewer, esc closes it to the page",
   "area": "docs",
   "width": 110,
   "height": 40,
+  "values": {"help.markdown": false},
   "page": {
     "lists": [{"id": "a", "rows": 2}]
   },

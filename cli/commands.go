@@ -196,7 +196,7 @@ func (c *Commands) register() {
 		).
 		Verb("list", c.listVerb, "List the tool's commands: inline ones and <bin>-<name> on PATH").Rows(CommandNoun).
 		Verb("run", c.runVerb, "Run a command in a terminal on the page and attach to it (attach again while it runs)").Positional("name", "args").
-		Verb("help", c.helpVerb, "Show a command's help text in the detail").Positional("name").
+		Verb("help", c.helpVerb, "Show a command's help text in the detail (from the palette, also in the help viewer, drawn as written)").Positional("name").PreformattedResult().
 		Verb("which", c.whichVerb, "Report where a command comes from and what it shadows").Positional("name").
 		Verb("stop", c.stopVerb, "End a command's run: hang up its process group and close its terminal").Positional("name").Confirm("Stop {{label}}?").When(commandHasRun)
 	for key, params := range map[string]map[string]ochazuke.Parameter{

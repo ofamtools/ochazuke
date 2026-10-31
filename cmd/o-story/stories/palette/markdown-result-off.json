@@ -1,0 +1,14 @@
+{
+  "name": "help.markdown off: a Markdown result (:demo guide) and a preformatted one (:demo usage) open in the plain text view as before, the Markdown as written",
+  "area": "palette",
+  "width": 80,
+  "height": 24,
+  "values": {"help.markdown": false},
+  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
+  "script": [":", {"type": "demo guide"}, "enter", "esc", ":", {"type": "demo usage"}, "enter"],
+  "expect": [
+    {"after": 3, "modal": "text-view", "contains": ["demo.guide", "# Demo guide", "Rows are **demo** things.", "```sh"]},
+    {"after": 4, "modal": ""},
+    {"modal": "text-view", "contains": ["demo.usage", "  --glob *.md       match files like *.md or __init__"]}
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": ":help settings opens the generated settings page in the Markdown viewer: the build as its title, the topic above, headings and code drawn; ] h steps to the next heading; :h bindings replaces it in place",
+  "area": "docs",
+  "width": 110,
+  "height": 40,
+  "page": {"lists": [{"id": "a", "rows": 2}]},
+  "script": [
+    ":", {"type": "help settings"}, "enter",
+    "]", "h",
+    ":", {"type": "h bindings"}, "enter",
+    "q"
+  ],
+  "expect": [
+    {"after": 3, "modal": "markdown-view", "contains": [" · catalog sha256:", "settings", "Settings"], "lacks": ["docs-viewer"]},
+    {"after": 8, "modal": "markdown-view", "contains": ["bindings", "Default key bindings"]},
+    {"modal": "", "focus": "a1"}
+  ]
+}

@@ -369,6 +369,16 @@ func registerDocs(r *Runtime) {
 			if err != nil {
 				return nil, err
 			}
+			// The pages are Markdown: with a viewer for it (help.markdown,
+			// package markdown linked in) they open there, the build as
+			// the title and the topic above the page.
+			if view := r.TextViewer(TextFormatMarkdown); view != nil {
+				err := view(r, TextDoc{Format: TextFormatMarkdown, Title: header, Label: topic, Text: text})
+				if err != nil {
+					return nil, err
+				}
+				return map[string]any{"topic": topic, "header": header}, nil
+			}
 			// Opened again while it is the top modal (:help TOPIC inside
 			// the viewer), the viewer is replaced by the new topic's.
 			inst, err := r.OpenModal(docsViewerID, Payload{}, ReplaceOpen())

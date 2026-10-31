@@ -26,6 +26,12 @@ func Register(r *ochazuke.Runtime) {
 	r.Builtin(func() { register(r) })
 }
 
+// writableGuard is true unless the focus is in a read-only Doc;
+// writingVerbs are the normal-mode verbs it guards.
+const writableGuard = "markdown-writable"
+
+var writingVerbs = []string{"toggle", "undo", "redo", "insert", "open", "delete", "paste", "note", "resolve"}
+
 // docOf is the Doc the event's focus is in (an input of it included).
 func docOf(r *ochazuke.Runtime, focus string) *Doc {
 	anc := r.Ancestry(focus)
@@ -201,6 +207,21 @@ func register(r *ochazuke.Runtime) {
 		Verb("cell", on(func(d *Doc, a ochazuke.Arguments) error { return d.Cell(ochazuke.IntArg(a, "delta", 1)) }), "Move to the next (delta 1) or previous (-1) table cell; past the last, a new row").Motion().
 		Verb("unmark", plain((*Doc).Unmark), "Take the marker off an empty list item, leaving an indented line under the item above").
 		Verb("insert-block", plain((*Doc).BlockChooser), "On an empty line: choose a block to insert (table, checklist, bullets, numbered list, heading 1 to 3, code block, quote, rule)")
+	// A read-only Doc (no Save: the Markdown viewer) leaves out the verbs
+	// that write, so their keys leave its hints and fall through.
+	r.DefineGuard(writableGuard, func(r *ochazuke.Runtime, ev ochazuke.KeyEvent) bool {
+		d := docOf(r, ev.Focus)
+		return d == nil || d.Editable()
+	})
+	if n := r.Noun(DocNoun); n != nil {
+		if n.Guards == nil {
+			n.Guards = map[string]string{}
+		}
+		for _, verb := range writingVerbs {
+			n.Guards[verb] = writableGuard
+		}
+	}
+	registerView(r)
 	id := ochazuke.Parameter{Type: "string", Description: "The markdown instance (default the one on the focus path)"}
 	count := ochazuke.Parameter{Type: "integer", Description: "Repeat count (3})"}
 	params := map[string]map[string]ochazuke.Parameter{

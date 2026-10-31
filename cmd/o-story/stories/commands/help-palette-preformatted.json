@@ -1,0 +1,20 @@
+{
+  "name": ":command help greet shows the help in the detail and opens it in the Markdown viewer drawn as written (a --help page is never read as Markdown)",
+  "area": "commands",
+  "width": 100,
+  "height": 20,
+  "page": {
+    "title": "Commands",
+    "commands": {
+      "entries": [
+        {"name": "greet", "kind": "inline", "summary": "say hello", "source": "main.go:12",
+         "help": "usage: hello greet [NAME] [--loud]\n\nsay hello to *NAME*\n\nflags:\n  --loud     shout_it"}
+      ]
+    }
+  },
+  "script": [":", {"type": "command help greet"}, "enter", "q"],
+  "expect": [
+    {"after": 3, "modal": "markdown-view", "contains": ["usage: hello greet [NAME] [--loud]", "say hello to *NAME*", "  --loud     shout_it"], "lacks": ["```"]},
+    {"modal": "", "contains": ["greet · help"]}
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "a preformatted result (:demo usage, a --help page) opens in the Markdown viewer drawn as written: spacing, *, _, <> and [] kept, no fences; j steps a paragraph; esc closes it back on the row",
+  "area": "palette",
+  "width": 80,
+  "height": 24,
+  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
+  "script": [":", {"type": "demo usage"}, "enter", "j", "esc"],
+  "expect": [
+    {"after": 3, "modal": "markdown-view", "mode": "normal", "contains": ["demo.usage", "Usage: demo [flags] <command> [ROW]", "  -h, --help        show this help", "  --glob *.md       match files like *.md or __init__", "  open [ROW]        open a row"], "lacks": ["```"]},
+    {"modal": "", "focus": "a2", "mode": "normal"}
+  ]
+}

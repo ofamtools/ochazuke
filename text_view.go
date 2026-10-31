@@ -42,15 +42,7 @@ type textView struct {
 // (Operation.Result ResultText): the palette opens what it answers in the
 // text view, a read-only editor. A string is shown as it is; any other
 // value as indented JSON.
-func (b *NounBuilder) TextResult() *NounBuilder {
-	if b.last == "" {
-		panic("TextResult must follow Verb")
-	}
-	op := b.r.Operations[b.last]
-	op.Result = ResultText
-	b.r.Operations[b.last] = op
-	return b
-}
+func (b *NounBuilder) TextResult() *NounBuilder { return b.result("TextResult", ResultText) }
 
 func registerTextView(r *Runtime) {
 	r.Define(TextViewNoun)
@@ -103,9 +95,9 @@ func resultText(value any) string {
 	return out.String()
 }
 
-// showsText reports whether the palette shows a verb's answer in the text
-// view: a text result unless palette.text-results is plain; with all, any
-// string answer too.
+// showsText reports whether the palette shows a verb's answer in a text
+// modal: a text result (IsTextResult: text, Markdown, preformatted) unless
+// palette.text-results is plain; with all, any string answer too.
 func (r *Runtime) showsText(op Operation, value any) bool {
 	switch r.Settings().String(PaletteTextResultsSetting) {
 	case "plain":
@@ -115,7 +107,16 @@ func (r *Runtime) showsText(op Operation, value any) bool {
 			return true
 		}
 	}
-	return op.Result == ResultText
+	return IsTextResult(op.Result)
+}
+
+// textFormatOf is the format the palette shows a verb's answer in: the
+// verb's own when its result is a text format, else plain.
+func textFormatOf(op Operation) string {
+	if IsTextResult(op.Result) {
+		return op.Result
+	}
+	return TextFormatPlain
 }
 
 // textViewRender draws the text view: the title and, once the text is

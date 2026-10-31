@@ -27,6 +27,13 @@ import (
 // rows are of it, so its rows answer at every level of a story page.
 const Demo = "demo"
 
+// demoGuide and demoUsage are the answers of demo.guide (Markdown) and
+// demo.usage (a --help page, preformatted).
+const (
+	demoGuide = "# Demo guide\n\nRows are **demo** things. Read the [docs](https://example.com/docs).\n\n## Keys\n\n- `enter` opens a row\n- `x` deletes it\n\n```sh\ndemo open ROW\n```\n"
+	demoUsage = "Usage: demo [flags] <command> [ROW]\n\nFlags:\n  -h, --help        show this help\n  --data DIR        keep data in DIR (default ~/.demo)\n  --glob *.md       match files like *.md or __init__\n\nCommands:\n  open [ROW]        open a row\n  delete ROW        delete a row\n"
+)
+
 // session is one built demo story: the runtime, the model and the demo
 // state the verbs act on (fake jobs and panes).
 type session struct {
@@ -304,6 +311,12 @@ func (ss *session) defineDemo(pages []*Page) error {
 		Verb("mapping", func(ochazuke.Ctx) ochazuke.Result {
 			return ochazuke.Done(map[string]any{"name": ".title", "size": ".bytes", "tags": []string{".labels[]", ".kind"}})
 		}, "Answer a JSON mapping: a multiline text result, opened in the palette's text view").TextResult().
+		Verb("guide", func(ochazuke.Ctx) ochazuke.Result {
+			return ochazuke.Done(demoGuide)
+		}, "Answer a Markdown guide: a Markdown result, opened in the palette's Markdown viewer (help.markdown)").MarkdownResult().
+		Verb("usage", func(ochazuke.Ctx) ochazuke.Result {
+			return ochazuke.Done(demoUsage)
+		}, "Answer a --help page: a preformatted result, drawn as written in the palette's viewer (help.markdown)").PreformattedResult().
 		Verb("delete", ss.delete, "Remove the row from its list").Confirm("Delete {{label}}?").
 		Verb("finish", ss.finish, "Finish (or fail) the oldest running job of a demo verb").
 		Verb("check", ss.check, "Toggle a [x] mark on the outline row, an application change on the outline's undo stack").

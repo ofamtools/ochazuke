@@ -1,8 +1,9 @@
 {
-  "name": "scrolling the docs viewer keeps the panel's width: it is sized from the whole page, not the lines in view",
+  "name": "help.markdown off (the plain docs viewer): scrolling the docs viewer keeps the panel's width: it is sized from the whole page, not the lines in view",
   "area": "docs",
   "width": 110,
   "height": 20,
+  "values": {"help.markdown": false},
   "page": {
     "lists": [
       {

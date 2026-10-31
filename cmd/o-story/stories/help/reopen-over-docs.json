@@ -1,8 +1,9 @@
 {
-  "name": "? inside the help opened over the docs viewer shows the help again in its place, not \"a modal is open above this level\"; esc goes back to the viewer, esc again to the page",
+  "name": "help.markdown off (the plain docs viewer): ? inside the help opened over the docs viewer shows the help again in its place, not \"a modal is open above this level\"; esc goes back to the viewer, esc again to the page",
   "area": "help",
   "width": 110,
   "height": 40,
+  "values": {"help.markdown": false},
   "page": {"lists": [{"id": "a", "rows": 2}]},
   "script": [":", {"type": "help"}, "enter", "?", "?", "esc", "esc"],
   "expect": [

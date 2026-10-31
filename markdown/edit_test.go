@@ -461,12 +461,27 @@ func TestEditRefindsAfterExternalChange(t *testing.T) {
 	}
 }
 
-// A read-only Doc refuses every edit.
+// A read-only Doc refuses every edit: its edit verbs are unavailable
+// (the markdown-writable guard), so their keys do nothing, and a direct
+// call says it is read-only.
 func TestReadOnlyRefusesEdits(t *testing.T) {
-	r, _ := newDoc(t, Source{Load: func() (string, error) { return "- a\n", nil }})
-	for _, keys := range [][]string{{"i"}, {"o"}, {"d", "d"}, {"n"}, {"p"}} {
-		if err := press(t, r, keys...); err == nil || !strings.Contains(err.Error(), "read-only") {
+	r, d := newDoc(t, Source{Load: func() (string, error) { return "- a\n", nil }})
+	for _, keys := range [][]string{{"i"}, {"o"}, {"d", "d"}, {"n"}, {"p"}, {"u"}} {
+		if err := press(t, r, keys...); err != nil {
 			t.Fatalf("%v: %v", keys, err)
+		}
+		if d.Text() != "- a\n" || d.Editing() || r.Mode.Name != "normal" {
+			t.Fatalf("%v changed the doc: %q editing %v mode %q", keys, d.Text(), d.Editing(), r.Mode.Name)
+		}
+	}
+	for name, edit := range map[string]func() error{
+		"insert": func() error { return d.Insert("cursor") },
+		"open":   func() error { return d.Open("below") },
+		"delete": d.Delete,
+		"note":   d.AddNote,
+	} {
+		if err := edit(); err == nil || !strings.Contains(err.Error(), "read-only") {
+			t.Fatalf("%s: %v", name, err)
 		}
 	}
 }

@@ -1,0 +1,13 @@
+{
+  "name": "a Markdown result (:demo guide) opens in the Markdown viewer: the heading, list and code drawn, no fences; j steps by element, y a copies the raw Markdown, q closes it back on the row",
+  "area": "palette",
+  "width": 80,
+  "height": 24,
+  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
+  "script": [":", {"type": "demo guide"}, "enter", "j", "y", "a", "q"],
+  "expect": [
+    {"after": 3, "modal": "markdown-view", "mode": "normal", "contains": ["demo.guide", "Demo guide", "Keys", "demo open ROW", "q close", "y a copy all"], "lacks": ["```", "i markdown.insert", "x markdown.toggle"]},
+    {"after": 6, "modal": "markdown-view", "register": "# Demo guide\n\nRows are **demo** things. Read the [docs](https://example.com/docs).\n\n## Keys\n\n- `enter` opens a row\n- `x` deletes it\n\n```sh\ndemo open ROW\n```\n"},
+    {"modal": "", "focus": "a2", "mode": "normal"}
+  ]
+}

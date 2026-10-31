@@ -496,7 +496,7 @@ func (s *Shell) registerMCPVerbs() {
 				return ochazuke.Failed(err)
 			}
 			return ochazuke.Done(server.Instructions())
-		}, "Show generated catalog guidance for agents").Fetch().TextResult()
+		}, "Show generated catalog guidance for agents").Fetch().MarkdownResult()
 		for _, name := range []string{"serve", "tools", "instructions", "config"} {
 			r.Define("mcp").Verb(name, func(ochazuke.Ctx) ochazuke.Result {
 				return ochazuke.Pending(func(ctx context.Context) (any, error) {

@@ -35,6 +35,14 @@ type ModalBody interface {
 	ModalBlock(s Styles, width, height int) Block
 }
 
+// AppearanceModalBody is a ModalBody that draws in the model's appearance
+// (Markdown picks Glamour's dark or light style from it): the model calls
+// ModalBlockIn in place of ModalBlock.
+type AppearanceModalBody interface {
+	ModalBody
+	ModalBlockIn(a Appearance, s Styles, width, height int) Block
+}
+
 // Model is the Bubble Tea adapter. Pages and modal instances retain their
 // state in Runtime; components (picker, registers, application components)
 // are instances the runtime drives through the delivery contract, so the
@@ -389,7 +397,11 @@ func (m *Model) modalContent(id string, width, height int) (string, Block) {
 		body = m.ModalViews[id].Render(m.Runtime, m.Runtime.Instances[id], width, height)
 	case m.modalBody(id) != nil:
 		mb := m.modalBody(id)
-		body = mb.ModalBlock(m.Styles(), width, height)
+		if ab, ok := mb.(AppearanceModalBody); ok && m.Appearance != nil {
+			body = ab.ModalBlockIn(*m.Appearance, m.Styles(), width, height)
+		} else {
+			body = mb.ModalBlock(m.Styles(), width, height)
+		}
 		if id != m.Runtime.TopModal() {
 			body.Cursor = nil
 		}

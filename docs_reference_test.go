@@ -129,11 +129,22 @@ func TestReferenceModelMarksTheUserConfig(t *testing.T) {
 	}
 }
 
+// plainDocsViewer turns help.markdown off: these tests are the plain docs
+// viewer's (the Markdown viewer is package markdown's, linked into this
+// test binary by the external tests; TestDocsOpenUsesTheMarkdownViewer).
+func plainDocsViewer(t *testing.T, r *Runtime) {
+	t.Helper()
+	if err := r.Settings().Set(HelpMarkdownSetting, false); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // docs.open renders a topic into the viewer modal headed by the build;
 // help and h are its bare aliases; an unknown topic is refused.
 func TestDocsOpenShowsATopic(t *testing.T) {
 	r, m, _, _ := configFixture(t)
 	m.Init()
+	plainDocsViewer(t, r)
 	if _, err := r.Execute(Request{Noun: "ochazuke.docs", Verb: "open", Args: Arguments{"topic": "settings"}}); err != nil {
 		t.Fatal(err)
 	}
@@ -174,6 +185,7 @@ func TestDocsOpenShowsATopic(t *testing.T) {
 func TestDocsOpenWhileOpenShowsTheNewTopic(t *testing.T) {
 	r, m, _, _ := configFixture(t)
 	m.Init()
+	plainDocsViewer(t, r)
 	under := r.Focus
 	open := func(topic string) {
 		t.Helper()
@@ -204,6 +216,7 @@ func TestDocsOpenWhileOpenShowsTheNewTopic(t *testing.T) {
 func TestDocsViewerKeepsItsWidthWhileScrolling(t *testing.T) {
 	r, m, _, _ := configFixture(t)
 	m.Init()
+	plainDocsViewer(t, r)
 	if _, err := r.Execute(Request{Noun: "ochazuke.docs", Verb: "open", Args: Arguments{"topic": "index"}}); err != nil {
 		t.Fatal(err)
 	}
