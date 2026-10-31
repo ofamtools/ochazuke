@@ -84,11 +84,12 @@ func parseAgentRules(value any) ([]AgentRule, error) {
 	return rows, nil
 }
 
+func validAgentRules(value any) error {
+	_, err := parseAgentRules(value)
+	return err
+}
+
 func registerAgentRights(r *Runtime) {
-	// Like list.filters, structured rows are a validated JSON string setting.
-	if err := r.DeclareSetting(Setting{Name: AgentRightsSetting, Type: SettingString, Default: "[]", Description: "Ordered JSON rows {match, right, where}: noun.verb, noun.* or *; allow, confirm or never; any, live or headless", Validate: func(v any) error { _, err := parseAgentRules(v); return err }}); err != nil {
-		panic(err)
-	}
 	r.Register(Operation{Noun: "ochazuke.agent", Verb: "rights", Description: "List effective agent rights and the rule that decided each", HistoryKind: HistoryFetch, Parameters: map[string]Parameter{"verb": {Type: "string"}}, Run: func(r *Runtime, c Context, args Arguments) (any, error) {
 		rows := []AgentRight{}
 		for _, op := range r.Catalog() {
@@ -202,9 +203,6 @@ func (r *Runtime) agentActivity() string {
 // without invoking the handler, opening a modal or recording history. Checks
 // should be read-only, as they are when judging an ordinary request.
 func (r *Runtime) CheckRequest(q Request) error {
-	before := r.dryRun
-	r.dryRun = true
-	defer func() { r.dryRun = before }()
 	actor := r.Actor()
 	if r.agentTransport != nil {
 		actor = r.agentTransport.actor
@@ -215,6 +213,6 @@ func (r *Runtime) CheckRequest(q Request) error {
 		return err
 	}
 	defer r.WithActor(actor)()
-	_, err := r.execute(r.Context(), r.canonicalRequest(q))
+	_, err := r.execute(r.Context(), r.canonicalRequest(q), true)
 	return err
 }

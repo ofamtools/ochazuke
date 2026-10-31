@@ -190,3 +190,22 @@ func TestAgentConfirmComposite(t *testing.T) {
 	}
 
 }
+
+// Policy defaults belong to the embedded startup rows, like other universal
+// runtime settings: app settings sort first and may replace their defaults.
+func TestAgentRightsStartupSetting(t *testing.T) {
+	r := NewRuntime()
+	declared := r.Settings().Declared()
+	if len(declared) != len(startupSettings()) {
+		t.Fatalf("startup settings %d, declared %d", len(startupSettings()), len(declared))
+	}
+	if !r.Settings().framework[AgentRightsSetting] {
+		t.Fatal("agent rights must be a replaceable startup setting")
+	}
+	if err := r.DeclareSetting(Setting{Name: AgentRightsSetting, Type: SettingString, Default: `[{"match":"task.*","right":"never"}]`}); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Settings().Set(AgentRightsSetting, `[{"match":"*","right":"invalid"}]`); err == nil {
+		t.Fatal("app override lost framework validation")
+	}
+}
