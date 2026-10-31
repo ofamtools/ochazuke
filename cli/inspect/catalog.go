@@ -53,6 +53,7 @@ type CatNoun struct {
 // ochazuke.PropSpec shape), the fields the page draws.
 type Prop struct {
 	Name        string   `json:"name"`
+	Aliases     []string `json:"aliases,omitempty"`
 	Type        string   `json:"type,omitempty"`
 	Description string   `json:"description,omitempty"`
 	Required    bool     `json:"required,omitempty"`

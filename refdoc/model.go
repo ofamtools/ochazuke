@@ -57,6 +57,7 @@ type Noun struct {
 // fallback, and its flags.
 type Prop struct {
 	Name        string   `json:"name"`
+	Aliases     []string `json:"aliases,omitempty"`
 	Type        string   `json:"type"`
 	Description string   `json:"description,omitempty"`
 	Noun        string   `json:"noun,omitempty"`

@@ -775,6 +775,29 @@ keeping the foreign id in `Data` for action dispatch. A table row with neither
 gets a field per titled column (the title lower-cased, spaces as dashes, the
 cell as text).
 
+Props can declare alternate input names as data:
+
+```go
+r.Define("lane").Props(PropSpec{
+    Name: "state", Aliases: []string{"status"},
+})
+```
+
+`PropOf("lane", "status")` returns the `state` spec. Prop requests,
+`get`/`set`, `where`/`--where`, and `list.filter-prop {prop: "status"}`
+resolve to `state` and read or write that record key. Forms, prop choosers
+and listings offer only `state`, even when old row data also carries
+`status`. Catalog prop rows carry `aliases: ["status"]` through CLI hosts.
+Alias names follow the prop namespace's clash rules. Saved filters using
+an alias resolve when loaded, without changing the settings file; saving
+the active filter again stores main names. A mixed list refuses an alias
+whose declared meaning differs between its row nouns. No new setting is
+needed: declaring aliases is opt-in, and `list.filter-form` still chooses
+between the form and prop chooser.
+
+Compared with Vim: prop schema aliases have no Vim motion, option or
+command-line counterpart; they name application record fields.
+
 **Every field is filterable unless turned off; only declared fields are
 writable.** A prop the row's noun declares (`PropSpec`) keeps its label,
 type, enum and guard. Any other top-level field of the rows (ids included) is

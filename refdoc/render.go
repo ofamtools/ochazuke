@@ -329,6 +329,7 @@ func renderStandardVerbs(m Model, opts Options) string {
 				on   bool
 				text string
 			}{{p.Key, "key"}, {p.Required, "required"}, {p.ReadOnly && !p.Key, "read-only"}, {p.CreateOnly, "create-only"},
+				{len(p.Aliases) > 0, "also: " + strings.Join(p.Aliases, ", ")},
 				{p.Role != "", "role " + p.Role}, {p.Fallback != "", "fallback " + p.Fallback}, {p.FromFocus, "from focus"},
 				{p.Secret, "secret"}, {p.Multiline, "multiline"}, {p.When != "", "when " + p.When}} {
 				if f.on {

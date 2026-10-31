@@ -928,6 +928,13 @@ func (r *Runtime) execute(c Context, q Request, checkOnly bool) (any, error) {
 	if !ok {
 		return nil, fmt.Errorf("unknown operation %q", q.Key())
 	}
+	if op.Standard == "create" && slices.ContainsFunc(r.Noun(op.Noun).Props, func(p PropSpec) bool { return len(p.Aliases) > 0 }) {
+		args, err := createArgs(r.Noun(op.Noun), q.Args)
+		if err != nil {
+			return nil, err
+		}
+		q.Args = args
+	}
 	if err := r.checkArguments(op, q.Args); err != nil {
 		return nil, &ArgumentError{err}
 	}

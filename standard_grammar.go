@@ -63,6 +63,9 @@ func (r *Runtime) readNounWord(noun, word string, verbs []option) NounWord {
 	if len(verbs) > 1 && verbExact {
 		return NounWord{Candidates: optionValues(verbs)}
 	}
+	if p := r.Noun(noun).prop(word); p != nil && len(r.propOptions(noun)) > 0 {
+		return NounWord{Kind: NounWordProp, Value: p.Name}
+	}
 	prop, props, propExact := matchWord(word, r.propOptions(noun))
 	switch {
 	case prop.Value != "" && propExact:
