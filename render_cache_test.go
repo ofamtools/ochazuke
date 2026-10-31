@@ -326,3 +326,75 @@ func BenchmarkChildIndex(b *testing.B) {
 		})
 	}
 }
+
+// A read whose cells are unchanged but whose stream Status changed (a
+// process exiting after its last output) redraws: the application may show
+// that state outside the pane, in a title or a row, drawn or hidden.
+func TestRenderTerminalStatusChangeRedraws(t *testing.T) {
+	for _, drawn := range []bool{true, false} {
+		t.Run(fmt.Sprintf("drawn=%v", drawn), func(t *testing.T) {
+			m, _ := renderFixture(t)
+			now := time.Unix(100, 0)
+			m.Now = func() time.Time { return now }
+			term, err := m.Runtime.AddTerminal("pane", newFakeStream(), Parent("page"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			status := "running" // what the application reads from its stream
+			m.Runtime.PageOf("page").Render = func(_ *Runtime, w, h int) Block {
+				title := "pane · " + status
+				if !drawn {
+					return Text(title)
+				}
+				return Text(title + "\n" + term.ViewBlock(w, h-1).Text)
+			}
+			lines := []string{"hi"}
+			term.acceptFrame(TerminalFrame{Lines: lines, Status: "running"})
+			m.View()
+			now = now.Add(time.Millisecond) // inside the frame budget: coalesced
+			status = "exited 0"
+			_, cmd := m.Update(Completion{Ticket: m.Runtime.jobs[m.Runtime.jobSeq].ticket(), Value: TerminalFrame{Lines: lines, Status: "exited 0"}})
+			m.View()
+			if !m.redraw.dirty || m.redraw.pending.IsZero() || cmd == nil {
+				t.Fatal("a status change was taken for an unchanged frame: no frame scheduled")
+			}
+			now = m.redraw.pending
+			m.Update(renderFrameMsg{m, now})
+			if s := ansi.Strip(m.View().Content); !strings.Contains(s, "pane · exited 0") {
+				t.Fatalf("the exit never showed:\n%s", s)
+			}
+		})
+	}
+}
+
+// A background completion that changes visible rows inside the frame
+// budget is held for the frame tick the same Update returns, never dropped:
+// the next composed frame shows it with render.max-fps at its default.
+func TestRenderBackgroundCompletionShowsInNextFrame(t *testing.T) {
+	m, _ := renderFixture(t)
+	if fps := m.Runtime.Settings().Int(RenderMaxFPSSetting); fps != 30 {
+		t.Fatalf("render.max-fps = %d, want the default 30", fps)
+	}
+	now := time.Unix(100, 0)
+	m.Now = func() time.Time { return now }
+	l := m.Runtime.List("rows")
+	ticket, _, err := m.Runtime.Issue("rows", "", "", Ctx{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.Runtime.jobs[ticket.Job].then = func(_ Ctx, v any, _ error) error {
+		return l.SetItems([]ListItem{{ID: "three", Noun: "app", Label: v.(string)}})
+	}
+	m.View()
+	now = now.Add(time.Millisecond)
+	_, cmd := m.Update(Completion{Ticket: ticket, Value: "Loaded"})
+	if cmd == nil || m.redraw.pending.IsZero() {
+		t.Fatal("the completion scheduled no frame")
+	}
+	m.View() // the loop's View after the coalesced Update may reuse the last frame
+	now = m.redraw.pending
+	m.Update(renderFrameMsg{m, now})
+	if s := ansi.Strip(m.View().Content); !strings.Contains(s, "Loaded") {
+		t.Fatalf("the loaded rows never showed:\n%s", s)
+	}
+}

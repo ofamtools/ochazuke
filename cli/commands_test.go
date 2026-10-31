@@ -227,6 +227,21 @@ func TestCommandsRunAttachesDetachesAndReruns(t *testing.T) {
 	d.until("greet's output", contains("hello world", "greet · exited 0"))
 }
 
+// A program that exits without touching the screen (cat on EOF where the
+// pty does not echo ^D, as on Linux) still shows its exit: the read that
+// reports it changes only the stream's Status, never the cells.
+func TestCommandsShowAnExitThatLeavesTheScreenAlone(t *testing.T) {
+	src := &fakeCommands{argv: map[string][]string{"echo": {"sh", "-c", "sleep 0.2"}}}
+	m, _ := commandsModel(t, src)
+	if fps := m.Runtime.Settings().Int(ochazuke.RenderMaxFPSSetting); fps <= 0 {
+		t.Fatalf("render.max-fps = %d, want frame coalescing on", fps)
+	}
+	d := newDriver(t, m)
+	d.key("j", "enter")
+	d.until("the attached pane", contains("echo · running · attached"))
+	d.until("the exit", contains("echo · exited 0 · attached"))
+}
+
 func TestCommandsStopReleasesTheRun(t *testing.T) {
 	src := &fakeCommands{argv: map[string][]string{"greet": {"sleep", "60"}}}
 	m, c := commandsModel(t, src)

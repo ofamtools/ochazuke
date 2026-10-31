@@ -69,7 +69,9 @@ func (c *modelRedraw) begin(m *Model, msg tea.Msg) (tea.Cmd, bool) {
 
 // A terminal's identical read has no callback or visible job. Inspect its
 // value before delivery, while its ticket is still current. Never suppress
-// an application callback, an error, or a non-terminal completion.
+// an application callback, an error, a non-terminal completion, or a read
+// whose stream Status changed: an application may draw that state outside
+// the pane (a "running"/"exited 0" title), so it is not the pane's cells.
 func (c *modelRedraw) messageChanges(m *Model, msg tea.Msg) bool {
 	if done, ok := msg.(Completion); ok {
 		r := m.Runtime
@@ -79,10 +81,14 @@ func (c *modelRedraw) messageChanges(m *Model, msg tea.Msg) bool {
 		j := r.jobs[done.Job]
 		if term := r.Terminal(done.Owner); term != nil && j != nil && j.then == nil && !tickerShows(r, j.JobInfo) && done.Err == nil {
 			if f, ok := done.Value.(TerminalFrame); ok {
+				// A Status change may show anywhere (a row, a title), drawn or not.
+				if f.Status != term.frame.Status {
+					return true
+				}
 				if c.ready && !r.rendered(done.Owner) {
 					return false
 				}
-				return f.Cursor != term.frame.Cursor || f.Shape != term.frame.Shape || f.Hidden != term.frame.Hidden || !slices.Equal(f.Lines, term.frame.Lines)
+				return !sameTerminalFrame(f, term.frame)
 			}
 		}
 	}

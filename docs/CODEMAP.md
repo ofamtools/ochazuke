@@ -751,10 +751,10 @@ Root package `ochazuke` is flat: 148 source files, 165 test files. Each entry li
 
 ### render_cache.go
 
-- lines: 164 · tests: render_cache_test.go
+- lines: 170 · tests: render_cache_test.go
 - purpose: InvalidateRender forces composition on the next View.
 - methods: Model(1), Runtime(1), modelRedraw(5)
-- leans on: model.go(6), delivery.go(3), runtime.go(3), transport.go(3)
+- leans on: model.go(6), delivery.go(3), runtime.go(3), actor.go(2)
 
 ### render_trace.go
 
@@ -1015,7 +1015,7 @@ Root package `ochazuke` is flat: 148 source files, 165 test files. Each entry li
 
 ### terminal.go
 
-- lines: 436 · tests: terminal_test.go
+- lines: 442 · tests: terminal_test.go
 - purpose: TerminalStream is the application's connection to one pane: a daemon client, never a PTY the framework owns.
 - types: TerminalStream (iface), TerminalReleaser (iface), TerminalFrame, Terminal, TerminalOverlay, OverlayMark
 - methods: Runtime(6), Terminal(15)
@@ -1023,10 +1023,10 @@ Root package `ochazuke` is flat: 148 source files, 165 test files. Each entry li
 
 ### terminal_frame_cache.go
 
-- lines: 14
+- lines: 20
 - purpose: Keep the latest frame while Model coalesces composition.
 - methods: Terminal(1)
-- leans on: transport.go(4), terminal.go(2)
+- leans on: transport.go(4), terminal.go(3)
 
 ### text_cache.go
 
@@ -1326,12 +1326,12 @@ Importable package `cli`: 37 source files, 35 test files.
 
 ### cli/pty.go
 
-- lines: 364 · tests: pty_test.go
+- lines: 375 · tests: pty_test.go
 - purpose: PtyStream is an ochazuke.TerminalStream for a local process: the command runs in a pseudo-terminal (xpty), its output is replayed into a terminal emulator (a...
 - types: PtyStream, PtyOptions
-- methods: PtyStream(15), byteQueue(3)
+- methods: PtyStream(16), byteQueue(3)
 - funcs: StartPty, StartPtyWith
-- leans on: emulator.go(3), pty_unix.go(2), pty_windows.go(2), shell.go(2)
+- leans on: commands.go(3), emulator.go(3), pty_unix.go(2), pty_windows.go(2)
 
 ### cli/pty_unix.go
 

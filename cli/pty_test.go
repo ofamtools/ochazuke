@@ -71,6 +71,16 @@ func TestPtyStreamPrintsAndExits(t *testing.T) {
 	}
 }
 
+// The exit reaches the loop as a read whose Status changed, even when its
+// cells did not, so a title or row showing "exited 0" redraws.
+func TestPtyStreamFrameCarriesTheExit(t *testing.T) {
+	s := startPty(t, 20, 3, "sh", "-c", "exit 3")
+	f := waitFrame(t, s, func(f ochazuke.TerminalFrame) bool { return f.Status != "running" })
+	if f.Status != "exited 3" || f.Status != s.Status() {
+		t.Fatalf("frame status %q, stream status %q", f.Status, s.Status())
+	}
+}
+
 func TestPtyStreamForwardsKeysAndPaste(t *testing.T) {
 	forEachEngine(t, testPtyStreamForwardsKeysAndPaste)
 }

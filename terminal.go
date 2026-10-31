@@ -35,11 +35,17 @@ type TerminalReleaser interface {
 // TerminalFrame is one rendering of a pane: its rows of trusted ANSI, the
 // cursor cell, the cursor shape the pane reports ("block", "bar",
 // "underline"; "" for the default block) and whether the cursor is hidden.
+// Status is the stream's own state beside its cells ("running", "exited 0")
+// for streams whose application draws that state; the framework does not
+// draw it. A read whose cells are unchanged is not redrawn unless its
+// Status changed, so a stream reports here any change an application shows
+// outside the cells (an exit, a reconnect), even while the pane is hidden.
 type TerminalFrame struct {
 	Lines  []string `json:"lines"`
 	Cursor Pos      `json:"cursor"`
 	Shape  string   `json:"shape,omitempty"`
 	Hidden bool     `json:"hidden,omitempty"`
+	Status string   `json:"status,omitempty"`
 }
 
 // Terminal is the component of a terminal instance: it holds the last frame

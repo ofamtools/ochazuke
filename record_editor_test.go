@@ -524,6 +524,11 @@ func TestRecordSuggestionsLoadOffTheLoop(t *testing.T) {
 			m.Update(msg)
 		}
 	}
+	// The completion lands inside the frame budget, so its rows wait for the
+	// frame tick Update returned, which this test does not run; take an
+	// explicit snapshot (TestRenderBackgroundCompletionShowsInNextFrame
+	// covers the tick).
+	m.InvalidateRender()
 	if s := screen(m); !strings.Contains(s, "gpt-5") {
 		t.Fatalf("the source's rows did not land:\n%s", s)
 	}

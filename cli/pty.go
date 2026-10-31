@@ -199,7 +199,13 @@ func (s *PtyStream) Next(ctx context.Context) (ochazuke.TerminalFrame, error) {
 }
 
 // frame is the emulator's screen and cursor. The caller holds the lock.
-func (s *PtyStream) frame() ochazuke.TerminalFrame { return EmulatorFrame(s.emu) }
+// The caller holds the lock. The frame carries Status, so a read that only
+// reports the exit still redraws what shows it.
+func (s *PtyStream) frame() ochazuke.TerminalFrame {
+	f := EmulatorFrame(s.emu)
+	f.Status = s.status()
+	return f
+}
 
 // Send encodes each key name and writes it to the program. An unknown name
 // fails before anything is sent.
@@ -296,6 +302,11 @@ func (s *PtyStream) Done() <-chan struct{} { return s.done }
 func (s *PtyStream) Status() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.status()
+}
+
+// status is Status; the caller holds the lock.
+func (s *PtyStream) status() string {
 	if !s.exited {
 		return "running"
 	}
