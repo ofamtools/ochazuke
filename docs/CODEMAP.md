@@ -818,12 +818,12 @@ Root package `ochazuke` is flat: 148 source files, 165 test files. Each entry li
 
 ### segment.go
 
-- lines: 902 · tests: segment_test.go
+- lines: 909 · tests: segment_test.go
 - purpose: SegmentSetting is the setting that shows or hides one segment.
 - types: Segment, SegmentValue, SegmentProvider (func), SegmentState, SegmentCell, SegmentMsg
 - methods: Runtime(16), Segment(5), segmentRow(1), segmentRun(1), segments(1)
 - funcs: SegmentSetting, On
-- leans on: runtime.go(73), block.go(14), delivery.go(10), actor.go(9)
+- leans on: runtime.go(74), block.go(14), delivery.go(10), actor.go(9)
 
 ### segment_view.go
 
@@ -1959,7 +1959,7 @@ Importable package `strictcheck`: 1 source files, 1 test files.
 
 ## Package sysstat
 
-Importable package `sysstat`: 5 source files, 1 test files.
+Importable package `sysstat`: 7 source files, 1 test files.
 
 ### sysstat/cpu_darwin.go
 
@@ -1975,22 +1975,36 @@ Importable package `sysstat`: 5 source files, 1 test files.
 
 ### sysstat/cpu_other.go
 
-- lines: 7
-- leans on: sysstat.go(9)
+- lines: 10
+- leans on: sysstat.go(10)
 
 ### sysstat/disk_unix.go
 
 - lines: 14
 - leans on: sysstat.go(3)
 
+### sysstat/proc.go
+
+- lines: 145
+- purpose: Proc is a CPU sampler for this process: each Sample is the user plus system time it used since the one before, over the wall time between them, in percent of...
+- types: Proc
+- methods: Proc(1)
+- funcs: NewProc
+- leans on: sysstat.go(5), cpu_other.go(1), proc_unix.go(1)
+
+### sysstat/proc_unix.go
+
+- lines: 19
+- purpose: readProcTime is this process's user plus system CPU time (getrusage RUSAGE_SELF).
+
 ### sysstat/sysstat.go
 
-- lines: 208 · tests: sysstat_test.go
+- lines: 223 · tests: sysstat_test.go
 - purpose: ticks is one reading of the machine-wide cumulative CPU counters, in whatever unit the platform counts; only the difference between two readings means anything.
 - types: CPU, Memory, Disk, Options
 - methods: CPU(1)
 - funcs: NewCPU, ReadMemory, ReadDisk, Bytes, Providers, Segments, Register
-- leans on: cpu_other.go(3), cpu_darwin.go(2), cpu_linux.go(2), disk_unix.go(1)
+- leans on: proc.go(8), cpu_other.go(3), cpu_darwin.go(2), cpu_linux.go(2)
 
 ## Symbol owners
 
@@ -2372,3 +2386,4 @@ Exported type -> file.
 - sysstat.Disk -> sysstat/sysstat.go
 - sysstat.Memory -> sysstat/sysstat.go
 - sysstat.Options -> sysstat/sysstat.go
+- sysstat.Proc -> sysstat/proc.go

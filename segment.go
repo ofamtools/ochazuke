@@ -71,7 +71,8 @@ const (
 // Segment is one status segment row. Format is a template over {{label}}
 // and {{value}} (default "{{label}} {{value}}", or "{{value}}" without a
 // label). Exactly one of Provider, Command and Verb is the source; Args
-// are the verb's arguments. Every is the refresh interval (default
+// are the verb's or the provider's arguments, and a string argument may
+// name a setting as "{name}", read on the loop at each refresh. Every is the refresh interval (default
 // DefaultSegmentEvery, at least MinSegmentEvery) and Timeout the most one
 // refresh may take (default DefaultSegmentTimeout, at most Every). Tone is
 // a named tone (tone.go) the text draws in, unless the answer brings its
@@ -699,6 +700,12 @@ type SegmentMsg struct {
 // runs outside Execute, so a refresh never enters the history.
 func (r *Runtime) startSegment(row *segmentRow, now time.Time) *segmentRun {
 	seg := row.row()
+	if seg.Args != nil {
+		// A string argument naming a setting ("{status.proc-scale}")
+		// reads its value here, on the loop, as a binding row's does,
+		// so a provider off the loop never reads the settings.
+		seg.Args = r.substituteValue(seg.Args).(Arguments)
+	}
 	row.inflight, row.due, row.started = true, false, now
 	run := &segmentRun{id: seg.ID, bound: seg.timeout()}
 	switch seg.sourceKind() {

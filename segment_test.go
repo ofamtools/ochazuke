@@ -383,3 +383,34 @@ func TestSegmentRowsLayer(t *testing.T) {
 		t.Fatalf("names = %v", names)
 	}
 }
+
+// A segment's string argument naming a setting reads the setting's value
+// on the loop at each refresh, so the provider sees the current value.
+func TestSegmentArgsNameASetting(t *testing.T) {
+	r, m, now := segmentFixture(t, nil)
+	if err := r.DeclareSetting(Setting{Name: "demo.scale", Type: SettingString, Default: "core", Enum: []string{"core", "machine"}}); err != nil {
+		t.Fatal(err)
+	}
+	r.SegmentProvider("echo", func(_ context.Context, s Segment) (SegmentValue, error) {
+		v, _ := s.Args["scale"].(string)
+		return SegmentValue{Text: v}, nil
+	})
+	if err := r.AddSegment(Segment{ID: "echo", Provider: "echo", Args: Arguments{"scale": "{demo.scale}"}, Every: time.Second}); err != nil {
+		t.Fatal(err)
+	}
+	settleSegments(t, m, m.Init())
+	if got := m.StatusSegments(); !reflect.DeepEqual(got, []string{"core"}) {
+		t.Fatalf("StatusSegments = %q, want the default", got)
+	}
+	if err := r.Settings().Set("demo.scale", "machine"); err != nil {
+		t.Fatal(err)
+	}
+	*now = now.Add(time.Second)
+	settleSegments(t, m, m.segmentCommand(*now))
+	if got := m.StatusSegments(); !reflect.DeepEqual(got, []string{"machine"}) {
+		t.Fatalf("StatusSegments = %q after the setting changed", got)
+	}
+	if row := r.segs().find("echo").row(); row.Args["scale"] != "{demo.scale}" {
+		t.Fatalf("the row's argument was rewritten: %v", row.Args)
+	}
+}
