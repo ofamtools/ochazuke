@@ -98,22 +98,72 @@ func TestToneColoursItsRunOnly(t *testing.T) {
 }
 
 // The selected row stays one reverse bar: its tones keep their bold and
-// lose their colour and dim; a cell-mode table's current cell keeps its
-// underline over a tone.
+// lose their colour and dim; a cell-mode table's current cell draws in
+// list.cell.cursor out of the bar (list.cell-cursor background, the
+// default), or keeps its underline over a tone (underline).
 func TestSelectedRowDrawsToneAttributesOnly(t *testing.T) {
 	cols := []Column{{Title: "pane"}, {Title: "state"}}
-	_, l := toneFixture(t, "dark", cols, []ListItem{
-		{ID: "a", Label: "a", Noun: "row", Cells: []string{"work", "needs input"}, Tones: []ToneSpan{CellTone(0, ToneExited), CellTone(1, ToneNeedsInput)}},
-	}, CellSelect())
-	line := strings.Split(l.View(30, 2), "\n")[1]
-	if strings.Contains(line, "38;") || strings.Contains(line, "\x1b[2") {
-		t.Fatalf("the selected row draws a tone's colour or dim: %q", line)
+	for _, mode := range []string{CellCursorBackground, CellCursorUnderline} {
+		m, l := toneFixture(t, "dark", cols, []ListItem{
+			{ID: "a", Label: "a", Noun: "row", Cells: []string{"work", "needs input"}, Tones: []ToneSpan{CellTone(0, ToneExited), CellTone(1, ToneNeedsInput)}},
+		}, CellSelect())
+		m.Runtime.EnsureConfigSettings()
+		if err := m.Runtime.Settings().Set(CellCursorSetting, mode); err != nil {
+			t.Fatal(err)
+		}
+		line := strings.Split(l.View(30, 2), "\n")[1]
+		rest, cell := line, "\x1b[4;7mwork\x1b[m"
+		if mode == CellCursorBackground {
+			cursor := m.Runtime.cellCursor(false)
+			if !slices.Contains(cursor, "1") || !slices.Contains(cursor, "7") {
+				t.Fatalf("cursor style %q, want list.cell.cursor bold in the reverse run", cursor)
+			}
+			cell = cursor.String() + "work" + ansi.ResetStyle
+			rest = strings.Replace(line, cell, "", 1)
+		}
+		if !strings.Contains(line, cell) {
+			t.Fatalf("%s: current cell not drawn as %q: %q", mode, cell, line)
+		}
+		if strings.Contains(rest, "38;") || strings.Contains(rest, "\x1b[2") {
+			t.Fatalf("%s: the selected row draws a tone's colour or dim: %q", mode, line)
+		}
+		if !strings.Contains(line, "\x1b[7;1mneeds input\x1b[m") {
+			t.Fatalf("%s: selected row %q", mode, line)
+		}
+		if ansi.StringWidth(line) != 30 {
+			t.Fatalf("%s: the bar spans %d cells, want 30", mode, ansi.StringWidth(line))
+		}
 	}
-	if !strings.Contains(line, "\x1b[4;7mwork\x1b[m") || !strings.Contains(line, "\x1b[7;1mneeds input\x1b[m") {
-		t.Fatalf("selected row %q", line)
-	}
-	if ansi.StringWidth(line) != 30 {
-		t.Fatalf("the bar spans %d cells, want 30", ansi.StringWidth(line))
+}
+
+// A cell-mode table's selected row without tones draws its current cell
+// in list.cell.cursor too (highlightRow): reverse video with the tone's
+// colours swapped, so it shows the tone's background. mono has no
+// background to show and keeps the underline, as list.cell-cursor
+// underline does in every theme.
+func TestCellCursorBackground(t *testing.T) {
+	cols := []Column{{Title: "a"}, {Title: "b"}}
+	for _, theme := range []string{"dark", "light", "mono"} {
+		m, l := toneFixture(t, theme, cols, []ListItem{{ID: "r", Label: "r", Noun: "row", Cells: []string{"one", "two"}}}, CellSelect())
+		cursor := m.Runtime.cellCursor(false)
+		line := strings.Split(l.View(30, 2), "\n")[1]
+		switch {
+		case theme == "mono":
+			if cursor != nil || !strings.Contains(line, "\x1b[4;7mone") {
+				t.Fatalf("mono: cursor %q, current cell %q, want the underline", cursor, line)
+			}
+		case !slices.Contains(cursor, "7") || !slices.ContainsFunc(cursor, func(p string) bool { return strings.HasPrefix(p, "48;") }):
+			t.Fatalf("%s: cursor %q, want reverse with a background", theme, cursor)
+		case !strings.Contains(line, "\x1b["+strings.Join(cursor, ";")+"mone") || strings.Contains(line, "4;7"):
+			t.Fatalf("%s: current cell %q", theme, line)
+		}
+		m.Runtime.EnsureConfigSettings()
+		if err := m.Runtime.Settings().Set(CellCursorSetting, CellCursorUnderline); err != nil {
+			t.Fatal(err)
+		}
+		if line := strings.Split(l.View(30, 2), "\n")[1]; !strings.Contains(line, "\x1b[4;7mone") {
+			t.Fatalf("%s underline: current cell %q", theme, line)
+		}
 	}
 }
 

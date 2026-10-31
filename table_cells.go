@@ -13,8 +13,9 @@ import (
 // current column as well as a selected row, the way a spreadsheet (o-csv,
 // on grid) has a current cell; every other table selects rows (opt-in, so
 // a table whose rows answer h or l keeps them without a guard). The row keeps the list's one highlight; the current cell is drawn
-// underlined inside it and the header underlines the current column's
-// title. Keys, rows of the list noun in normal mode that answer only on a
+// in the list.cell.cursor tone (the accent background; setting
+// list.cell-cursor, underline draws it underlined inside the bar) and the
+// header underlines the current column's title. Keys, rows of the list noun in normal mode that answer only on a
 // cell-mode table (verb guard table-cells), except where noted:
 //
 //	h l left right   list.column {delta: ±1}: one column in drawing order

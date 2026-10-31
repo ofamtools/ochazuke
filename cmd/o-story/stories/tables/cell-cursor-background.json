@@ -1,0 +1,71 @@
+{
+  "name": "cell cursor: a cell-mode table draws its current cell on the accent background (list.cell.cursor), bold, with no underline; the rest of the selected row stays the reverse bar (list.cell-cursor background, the default)",
+  "area": "tables",
+  "width": 48,
+  "height": 5,
+  "chrome": "none",
+  "theme": "dark",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "cellSelect": true,
+        "columns": [
+          {
+            "title": "name"
+          },
+          {
+            "title": "size"
+          },
+          {
+            "title": "kind"
+          }
+        ],
+        "items": [
+          {
+            "id": "t1",
+            "label": "alpha",
+            "cells": [
+              "alpha",
+              "7kb",
+              "file"
+            ]
+          },
+          {
+            "id": "t2",
+            "label": "beta",
+            "cells": [
+              "beta",
+              "40kb",
+              "dir"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "l",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "t1",
+      "cell": "7kb",
+      "attrs": {
+        "7kb": "reverse,bg,bold,-underline",
+        "alpha": "reverse,-bg,-underline"
+      }
+    },
+    {
+      "focus": "t2",
+      "cell": "40kb",
+      "attrs": {
+        "40kb": "reverse,bg,bold,-underline",
+        "beta": "reverse,-bg,-underline"
+      }
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "name": "cell cursor: with list.cell-cursor underline the current cell is reversed and underlined inside the bar, on no background, as before",
+  "area": "tables",
+  "width": 48,
+  "height": 5,
+  "chrome": "none",
+  "theme": "dark",
+  "settings": [
+    {
+      "name": "list.cell-cursor",
+      "type": "string",
+      "default": "underline",
+      "enum": [
+        "background",
+        "underline"
+      ]
+    }
+  ],
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "cellSelect": true,
+        "columns": [
+          {
+            "title": "name"
+          },
+          {
+            "title": "size"
+          },
+          {
+            "title": "kind"
+          }
+        ],
+        "items": [
+          {
+            "id": "t1",
+            "label": "alpha",
+            "cells": [
+              "alpha",
+              "7kb",
+              "file"
+            ]
+          },
+          {
+            "id": "t2",
+            "label": "beta",
+            "cells": [
+              "beta",
+              "40kb",
+              "dir"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "l",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "t1",
+      "cell": "7kb",
+      "attrs": {
+        "7kb": "reverse,underline,-bg",
+        "alpha": "reverse,-underline"
+      }
+    },
+    {
+      "focus": "t2",
+      "cell": "40kb",
+      "attrs": {
+        "40kb": "reverse,underline,-bg",
+        "beta": "reverse,-underline"
+      }
+    }
+  ]
+}

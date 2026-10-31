@@ -505,8 +505,11 @@ tiers above them. When the two disagree, fix one in the same commit.
   **Selection:** the selected row stays the one reverse-video bar (R5.1):
   inside it a tone draws its bold alone, never its colour and never its
   dim, so the bar reads the same in every theme and the row's text keeps
-  full strength; a cell-mode table's current cell keeps its underline over
-  a tone. The colour comes back as soon as the row is left. A page list
+  full strength; a cell-mode table's current cell draws in the
+  `list.cell.cursor` tone (the accent background, bold; setting
+  `list.cell-cursor`, default `background`; `underline`, mono and
+  `NO_COLOR` draw it underlined inside the bar). Stories
+  `tables/cell-cursor-background.json`, `tables/cell-cursor-underline.json`. The colour comes back as soon as the row is left. A page list
   without the focus fades its tones with it (`dim-unfocused`). Stories:
   `tables/tones-table.json`, `tables/tones-selected-row.json`,
   `tables/tones-mono.json`, `tree/tones-tree-row.json`,
