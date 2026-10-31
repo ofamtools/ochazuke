@@ -687,3 +687,77 @@ func TestSetupPackageHasNoTUIImports(t *testing.T) {
 		}
 	}
 }
+
+// Follow manages the file symlinked paths point to: a pair of links to one
+// file (a dotfiles repo's instructions linked as two tools' files) holds one
+// block, install is idempotent, uninstall restores the original, and the
+// links stay links.
+func TestSetupFollowSymlinkedPair(t *testing.T) {
+	block := func(id, path string) Item {
+		return Item{ID: id, Name: id, Kind: Block, Path: path, Begin: "<!-- tool:begin -->", End: "<!-- tool:end -->", Content: "## Note\n\nshared", Follow: true}
+	}
+	s := newSetup(t, []Item{block("one", "~/.a/AGENTS.md"), block("two", "~/.b/CLAUDE.md")}, Options{})
+	home := s.options.Home
+	source := filepath.Join(home, "repo", "AGENTS.md")
+	put(t, source, "# Rules\n")
+	for _, link := range []string{filepath.Join(home, ".a", "AGENTS.md"), filepath.Join(home, ".b", "CLAUDE.md")} {
+		if err := os.MkdirAll(filepath.Dir(link), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Symlink("../repo/AGENTS.md", link); err != nil {
+			t.Fatal(err)
+		}
+	}
+	p, err := s.Plan(testContext, Selection{})
+	if err != nil || len(p.Writes) != 1 || p.Writes[0].Path != source {
+		t.Fatalf("one write to the link target: %+v %v", p, err)
+	}
+	if p.Items[0].State != Missing || p.Items[1].State != Installed {
+		t.Fatalf("the second item sees the first's block: %+v", p.Items)
+	}
+	for range 2 {
+		if _, err = s.Install(testContext, Selection{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want := "# Rules\n<!-- tool:begin -->\n## Note\n\nshared\n<!-- tool:end -->\n"
+	if got := get(t, source); got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+	rows, err := s.List(testContext)
+	if err != nil || rows[0].State != Installed || rows[1].State != Installed {
+		t.Fatalf("%+v %v", rows, err)
+	}
+	if info, err := os.Lstat(filepath.Join(home, ".a", "AGENTS.md")); err != nil || info.Mode()&os.ModeSymlink == 0 {
+		t.Fatal("the link was replaced", err)
+	}
+	if _, err = s.Uninstall(testContext, Selection{}); err != nil {
+		t.Fatal(err)
+	}
+	if got := get(t, source); got != "# Rules\n" {
+		t.Fatalf("uninstall left %q", got)
+	}
+	// A dangling link creates its target; without follow the link is external.
+	if err = os.Remove(source); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.Install(testContext, Selection{IDs: []string{"one"}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := get(t, source); got != "<!-- tool:begin -->\n## Note\n\nshared\n<!-- tool:end -->\n" {
+		t.Fatalf("dangling link: %q", got)
+	}
+	plain := block("plain", "~/.a/AGENTS.md")
+	plain.Follow = false
+	s = newSetup(t, []Item{plain}, Options{Home: home})
+	if rows, err = s.List(testContext); err != nil || rows[0].State != External {
+		t.Fatalf("%+v %v", rows, err)
+	}
+}
+
+func TestSetupFollowRefusedOnCommands(t *testing.T) {
+	_, err := New([]Item{{ID: "c", Name: "c", Kind: Check, Check: []string{"true"}, Advice: "x", Follow: true}}, Options{Tool: "tool"})
+	if err == nil || !strings.Contains(err.Error(), "follow") {
+		t.Fatal(err)
+	}
+}

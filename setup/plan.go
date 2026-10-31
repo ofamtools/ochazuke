@@ -150,6 +150,23 @@ func (s *Setup) plan(ctx context.Context, sel Selection, remove, list bool) (*Pl
 			continue
 		}
 		path := i.Path
+		if i.Follow {
+			resolved, err := followLinks(path)
+			if err != nil {
+				st.State = External
+				st.Reason = err.Error()
+				st.Next = i.Advice
+				if st.Next == "" {
+					st.Next = i.Content
+				}
+				p.Items = append(p.Items, st)
+				continue
+			}
+			path = resolved
+			if path != i.Path {
+				st.Reason = "follows " + i.Path + " to " + path
+			}
+		}
 		if err := regularPath(path); err != nil {
 			st.State = External
 			st.Reason = err.Error()
@@ -399,6 +416,42 @@ func (s *Setup) fileEdit(i Item, have snapshot, remove bool) (snapshot, State, e
 		}
 	}
 	return out, state, nil
+}
+
+// followLinks is path with every symlink resolved, the leaf's included,
+// whether or not the file (or a link's target) exists yet.
+func followLinks(path string) (string, error) {
+	path = filepath.Clean(path)
+	for range 40 {
+		if resolved, err := filepath.EvalSymlinks(path); err == nil {
+			return resolved, nil
+		}
+		info, err := os.Lstat(path)
+		switch {
+		case err == nil && info.Mode()&os.ModeSymlink != 0:
+			target, err := os.Readlink(path)
+			if err != nil {
+				return "", err
+			}
+			if !filepath.IsAbs(target) {
+				target = filepath.Join(filepath.Dir(path), target)
+			}
+			path = filepath.Clean(target)
+			continue
+		case err != nil && !errors.Is(err, os.ErrNotExist):
+			return "", err
+		}
+		parent := filepath.Dir(path)
+		if parent == path {
+			return path, nil
+		}
+		dir, err := followLinks(parent)
+		if err != nil {
+			return "", err
+		}
+		return filepath.Join(dir, filepath.Base(path)), nil
+	}
+	return "", fmt.Errorf("%s: too many levels of symbolic links", path)
 }
 
 // regularPath refuses symlinks at the leaf AND in every parent directory.
