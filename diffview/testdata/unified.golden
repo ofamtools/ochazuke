@@ -1,0 +1,16 @@
+M demo.go  +5 -4  unified
+@@ -1,4 +1,4 @@ package demo
+ 1  1   package demo
+ 2    - func oldName() string {
+ 3    -  return "old"
+    2 + func newName() string {
+    3 +  return "new"
+ 4  4   }
+@@ -30,2 +30,3 @@ tail
+30 30   // tail
+31    - var old = 1
+   31 + var next = 2
+   32 + // added
+@@ -60,1 +61,1 @@ final
+60    - old final
+   61 + new final

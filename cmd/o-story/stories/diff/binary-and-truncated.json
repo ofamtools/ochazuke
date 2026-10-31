@@ -1,0 +1,86 @@
+{
+  "name": "diff: binary-and-truncated",
+  "area": "diff",
+  "width": 80,
+  "height": 18,
+  "chrome": "none",
+  "page": {
+    "diff": {
+      "files": [
+        {
+          "oldPath": "image.bin",
+          "newPath": "image.bin",
+          "status": "M",
+          "binary": true,
+          "oldSize": 512,
+          "newSize": 1024
+        },
+        {
+          "newPath": "generated.go",
+          "status": "A",
+          "truncated": true,
+          "added": 50000,
+          "removed": 0,
+          "hunks": [
+            {
+              "oldStart": 0,
+              "oldCount": 0,
+              "newStart": 1,
+              "newCount": 2,
+              "lines": [
+                {
+                  "kind": 1,
+                  "new": 1,
+                  "text": "package generated"
+                },
+                {
+                  "kind": 1,
+                  "new": 2,
+                  "text": "// first two lines of a bounded snapshot"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "script": [
+    "k",
+    "]",
+    "f",
+    "[",
+    "f",
+    "]",
+    "f"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "contains": [
+        "binary, 512 bytes → 1024 bytes"
+      ]
+    },
+    {
+      "after": 3,
+      "contains": [
+        "generated.go",
+        "+50000 -0",
+        "truncated"
+      ]
+    },
+    {
+      "after": 5,
+      "contains": [
+        "binary, 512 bytes → 1024 bytes"
+      ]
+    },
+    {
+      "after": 7,
+      "contains": [
+        "truncated",
+        "package generated"
+      ]
+    }
+  ]
+}

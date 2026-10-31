@@ -1,0 +1,56 @@
+{
+  "name": "diff: hunk-motions",
+  "area": "diff",
+  "width": 80,
+  "height": 9,
+  "chrome": "none",
+  "page": {
+    "diff": {
+      "text": "diff --git a/demo.go b/demo.go\nindex 1234567..7654321 100644\n--- a/demo.go\n+++ b/demo.go\n@@ -1,4 +1,4 @@ package demo\n package demo\n-func oldName() string {\n- return \"old\"\n+func newName() string {\n+ return \"new\"\n }\n@@ -30,2 +30,3 @@ tail\n // tail\n-var old = 1\n+var next = 2\n+// added\n@@ -60 +61 @@ final\n-old final\n+new final\n"
+    }
+  },
+  "script": [
+    "]",
+    "c",
+    "2",
+    "[",
+    "c",
+    "2",
+    "]",
+    "c",
+    "[",
+    "c"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "contains": [
+        "@@ -30,2 +30,3 @@"
+      ],
+      "lacks": [
+        "@@ -1,4 +1,4 @@"
+      ]
+    },
+    {
+      "after": 5,
+      "contains": [
+        "@@ -1,4 +1,4 @@"
+      ]
+    },
+    {
+      "after": 8,
+      "contains": [
+        "@@ -60,1 +61,1 @@"
+      ],
+      "lacks": [
+        "@@ -1,4 +1,4 @@"
+      ]
+    },
+    {
+      "after": 10,
+      "contains": [
+        "@@ -30,2 +30,3 @@"
+      ]
+    }
+  ]
+}

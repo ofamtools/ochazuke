@@ -9,6 +9,8 @@ import (
 
 // Page is one synthetic page: lists, inputs, a fake terminal and jobs.
 type Page struct {
+	// Diff makes a page of data-backed diffs.
+	Diff   *DiffSpec  `json:"diff,omitempty"`
 	ID     string     `json:"id,omitempty"`
 	Title  string     `json:"title,omitempty"`
 	Height int        `json:"height,omitempty"` // legacy spelling of the story's height (first page only)

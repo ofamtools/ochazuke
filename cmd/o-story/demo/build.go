@@ -788,6 +788,9 @@ func rowsOf(l ListSpec) []ochazuke.ListItem {
 }
 
 func (ss *session) addPage(p *Page) error {
+	if p.Diff != nil {
+		return ss.addDiffPage(p)
+	}
 	if p.Commands != nil {
 		return ss.addCommandsPage(p)
 	}

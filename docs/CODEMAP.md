@@ -1253,6 +1253,75 @@ Importable package `cli`: 30 source files, 29 test files.
 - methods: PageView(4), widgetState(2)
 - leans on: page.go(10), commands.go(7)
 
+## Package diffview
+
+Importable package `diffview`: 9 source files, 2 test files.
+
+### diffview/highlight.go
+
+- lines: 206
+- purpose: lexerFor finds the lexer for a path by its name, then by the first line of the text for a file with no extension (a script with a #! line).
+- funcs: Highlight
+- leans on: types.go(33)
+
+### diffview/model.go
+
+- lines: 41
+- purpose: File is a diff of one file.
+- types: File, Hunk, Line
+- leans on: types.go(2), view.go(1)
+
+### diffview/ops.go
+
+- lines: 62
+- purpose: Register defines verbs, file navigation events and binding rows once per runtime.
+- funcs: Register
+- leans on: view.go(16), types.go(9), model.go(1)
+
+### diffview/pair.go
+
+- lines: 114
+- purpose: Pair is one row of the side by side layout: the index of the line on the left (old) side and on the right (new) side, -1 for a side with no line.
+- types: Pair, Range
+- methods: Range(1)
+- funcs: Pairs, Changed
+- leans on: types.go(5)
+
+### diffview/parse.go
+
+- lines: 219 · tests: parse_test.go
+- purpose: Parse reads ordinary unified patches, including multi-file git diffs, renames, copies, additions, deletions, binary notices and missing newlines.
+- funcs: Parse
+- leans on: model.go(8), types.go(6), view.go(3)
+
+### diffview/render.go
+
+- lines: 275
+- purpose: View draws only visible rows, tokenising their text on first use.
+- methods: View(6)
+- leans on: types.go(24), view.go(11), theme.go(7), pair.go(5)
+
+### diffview/theme.go
+
+- lines: 103
+- purpose: renderTheme resolves semantic ochazuke tones each frame.
+- leans on: types.go(23)
+
+### diffview/types.go
+
+- lines: 75
+- purpose: Class is what a run of code is, as far as its colour goes.
+- types: Class, Span, Kind
+
+### diffview/view.go
+
+- lines: 251 · tests: view_test.go
+- purpose: Layout chooses the visual arrangement; Auto uses Split at SplitWidth.
+- types: Layout, Option (func), View
+- methods: View(14)
+- funcs: WithLayout, WithHighlight, WithSplitWidth, WithFileChange, New, Of
+- leans on: types.go(19), highlight.go(4), model.go(4), ops.go(1)
+
 ## Package explore
 
 Importable package `explore`: 15 source files, 5 test files.
@@ -1872,6 +1941,17 @@ Exported type -> file.
 - cli.StateCache -> cli/statecache.go
 - cli.StateList -> cli/state.go
 - cli.TerminalEngine -> cli/emulator.go
+- diffview.Class -> diffview/types.go
+- diffview.File -> diffview/model.go
+- diffview.Hunk -> diffview/model.go
+- diffview.Kind -> diffview/types.go
+- diffview.Layout -> diffview/view.go
+- diffview.Line -> diffview/model.go
+- diffview.Option -> diffview/view.go
+- diffview.Pair -> diffview/pair.go
+- diffview.Range -> diffview/pair.go
+- diffview.Span -> diffview/types.go
+- diffview.View -> diffview/view.go
 - explore.Budget -> explore/subject.go
 - explore.Check -> explore/subject.go
 - explore.Coverage -> explore/report.go

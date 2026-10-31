@@ -1899,6 +1899,77 @@ Every command of an importable shell (`cli.Shell`, an app built with `cli.Mount`
 
 `cli.TUI(app)` as an oden `Default` gives any oden tool a Commands page over its catalog (inline commands and `<bin>-<name>` executables on `PATH`): `command run` opens the command in a terminal under its row, attached (`ctrl+a d` detaches), `command help` shows its help in the detail beside the list. The terminal is a local pseudo-terminal (`cli.StartPty`). Its emulator is the `terminal.engine` setting: `tuios-vt` (`tuios.dev/vt`, the default), `x-vt` (`charmbracelet/x/vt`) or, in a build with `-tags ghostty`, `ghostty`; a change applies to terminals opened after it. Engines are rows (`cli.RegisterTerminalEngine`) behind one interface, `cli.Emulator`. `examples/hello` is the smallest such tool (`go run ./examples/hello`).
 
+## Data-backed diff view
+
+`diffview` is an optional package for read-only file comparisons. It runs no
+git commands and reads no files. `diffview.Parse(patch)` accepts ordinary
+unified `git diff --no-color --no-ext-diff` output, including multiple files,
+renames, additions, deletions and binary notices. Hosts can supply `File`,
+`Hunk` and `Line` data directly, including binary byte sizes, full added/removed
+counts and `Truncated` when their own fetch limits omitted content. Patch text
+does not carry binary byte sizes; the parser uses -1 (shown as `?`) until the
+host fills them. Combined merge patches are rejected.
+
+```go
+files, err := diffview.Parse(patch)
+if err != nil { return err }
+view, err := diffview.New(r, "compare/diff", pageID, files[0],
+    diffview.WithLayout(diffview.Auto),
+    diffview.WithHighlight(true),
+    diffview.WithSplitWidth(140))
+// In the page renderer:
+body := ochazuke.Text(view.View(model.Styles(), width, height))
+// The host loads another file when asked:
+view.OnFileChange = func(delta int) { /* select file, then view.SetFile(file) */ }
+```
+
+The host owns the settings and maps them to options or the view's `Layout`,
+`Highlight` and `SplitWidth` fields. Defaults are `auto`, highlighting on, and
+split at 140 columns. `unified` and `split` opt out of responsive layout;
+`WithHighlight(false)` opts out of syntax colour. Context belongs to the
+host's data fetch, not the renderer. `SetFile` copies its data, clears its
+bounded token cache and resets the viewport. Register before loading user
+bindings (`diffview.Register`, also called by `New`).
+
+Rows on `ochazuke.diff` bind `] c` / `[ c` to hunk starts, `] f` / `[ f` to
+file requests, and `j` / `k` to display-row motion; counts work. File requests
+emit `diff.file` with `id` and signed `delta`, then call `OnFileChange` if set;
+the host can use either the callback or event hooks. `J` / `K` use the shared
+`view.scroll` verb through `LineScroller`; `ctrl+d` / `ctrl+u` scroll half a
+window. `z l` / `z h` scroll text eight cells sideways per count, with `‹`
+marking hidden text and `…` marking the right edge. Horizontal scrolling keeps
+old/new pairs aligned, each source line one display row and hunk targets
+stable (UX-RULES R3.14); row motions use `MotionScroll`. This text scroller
+clamps at its ends; the ordinary focus keys retain their page meaning.
+Hints and help come from binding rows.
+
+Only shown lines are tokenised, with a bounded cache (1024 lines). Chroma
+selects syntax by filename; lines over 4096 bytes draw plain. Highlighting
+starts fresh for each visible source line, so a multiline comment/string
+that starts on an earlier line may draw as ordinary code. Changed words use
+the paired old/new text; bold/underline and explicit `+`/`-` signs remain in
+mono and small palettes. A `⏎` suffix marks a missing final newline. Source
+controls are made printable before rendering.
+
+Colours derive from the current ochazuke styles each frame. Optional theme
+tones `diff.text` (text and surface), `diff.add`, `diff.remove` and
+`diff.syntax.<class>` override them; otherwise the existing text/surface,
+success/error and semantic state tones apply. RGB grounds are tinted from
+the active theme. Indexed grounds use signs and attributes instead of RGB
+tints; `NO_COLOR` keeps the attributes alone. The pairing, changed-range,
+span rendering and Chroma logic are adapted from Gaurav Gosain's MIT-licensed
+[tuios diffview](https://github.com/Gaurav-Gosain/tuios/tree/main/internal/diffview),
+with its license retained in `diffview/LICENSE`. No Crush code is copied.
+
+Compared with Vim: `]c` / `[c` (`:help ]c`, `:help [c`) have counted,
+non-wrapping jumps here too, targeting parsed hunk starts rather than Vim's
+computed change starts; at an edge this viewer stays put instead of reporting
+an error. `:diffsplit` (`:help :diffsplit`) compares editable buffers in
+windows; `split` here pairs old/new rows inside one read-only data component.
+It provides no diff editing or synchronized editor windows. Stories live in
+`cmd/o-story/stories/diff/`; unified and split goldens also live in
+`diffview/testdata/`.
+
 ## Scope and limits
 
 - Standalone Go module and example application; no gmtm/Matomeru integration.
