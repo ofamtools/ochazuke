@@ -420,7 +420,7 @@ func (r *Runtime) lookup(lv level, mode string, exclusive bool, prefix, sequence
 			if lv.owns && owned == nil && matches(row) {
 				owned = row
 			}
-			if !r.Available(row.Request, ev.Focus, ev.Mode) {
+			if !r.Available(row.Request, r.rowInstance(lv, row.Request, ev.Focus), ev.Mode) {
 				if prefix != "" && row.Keys == sequence && !key.Paste {
 					look.bound = true
 				}
@@ -498,6 +498,30 @@ func rowsForMode(rows []Binding, mode string, exclusive bool) []Binding {
 	return out
 }
 
+// rowInstance is the instance a binding row's request acts at when the
+// row runs from focus at level lv, the one Execute judges its
+// availability at: the instance its target names (a target that names
+// none leaves the focus, and Execute reports it), else the level's
+// instance when the operation is that level's own (d d → row.delete on
+// the row noun deletes that row and its confirm names it), else the
+// focus. Shared operations a level binds (mode.set, input.*, focus.next)
+// keep the focus. The resolver and the live listings ask Available here,
+// so a row its target refuses (list.move at a trapped edge of the list a
+// child's level reaches) stands aside rather than winning the key and
+// being refused when it runs.
+func (r *Runtime) rowInstance(lv level, q Request, focus string) string {
+	if q.Target != "" && q.Target != "focused-input" {
+		if id, err := r.TargetInstance(q.Target); err == nil {
+			return id
+		}
+		return focus
+	}
+	if lv.inst != nil && lv.inst.ID != focus && lv.noun != nil && lv.noun.Name == q.Noun {
+		return lv.inst.ID
+	}
+	return focus
+}
+
 // stayingRequests are the operations that manage the pending mode
 // themselves, or re-dispatch the key inside it (recording).
 var stayingRequests = map[string]bool{"ochazuke.mode.enter": true, "ochazuke.count.append": true, "ochazuke.mode.leave": true, "ochazuke.input.cancel": true, "ochazuke.macro.record": true, "ochazuke.key.dispatch": true}
@@ -517,12 +541,12 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent) error {
 		r.leaveMode()
 	}
 	q := b.Request
-	if q.Target == "" && ev.Level != "" && ev.Level != ev.Focus && lv.noun != nil && lv.noun.Name == q.Noun {
+	if q.Target == "" {
 		// A row addresses the instance of the level it matched at when the
-		// operation is that level's own: d d → row.delete on the row noun
-		// deletes that row and its confirm names it. Shared operations a
-		// level binds (mode.set, input.*, focus.next) keep the focus.
-		q.Target = ev.Level
+		// operation is that level's own (rowInstance).
+		if at := r.rowInstance(lv, q, ev.Focus); at != ev.Focus {
+			q.Target = at
+		}
 	}
 	if len(b.From) > 0 {
 		args := Arguments{}
@@ -798,13 +822,14 @@ func (r *Runtime) scanRowsUncached(levels []level, mode ModeState, focus string,
 	var out, owned []levelRow
 	var capture, inherited, owns bool
 	var name string
+	var cur level
 	take := func(rows []Binding) {
 		for _, b := range rows {
 			if b.Unbind || b.Capture != capture {
 				continue
 			}
 			guard := ""
-			if live && owns && (!r.Available(b.Request, focus, mode) || !r.rowGuardHolds(b.When, KeyEvent{Mode: mode, Focus: focus})) {
+			if live && owns && (!r.Available(b.Request, r.rowInstance(cur, b.Request, focus), mode) || !r.rowGuardHolds(b.When, KeyEvent{Mode: mode, Focus: focus})) {
 				// A read-only input's editor key that does not run there is
 				// consumed (level.owns): it claims the key, so the page's
 				// row on it is not offered, and shows nothing itself.
@@ -821,8 +846,8 @@ func (r *Runtime) scanRowsUncached(levels []level, mode ModeState, focus string,
 						continue
 					}
 				}
-				if !r.Available(b.Request, focus, mode) {
-					continue // guarded off here: hints and bindings list match the palette
+				if !r.Available(b.Request, r.rowInstance(cur, b.Request, focus), mode) {
+					continue // guarded off where it acts: hints and bindings list match the palette
 				}
 			} else {
 				guard = b.When
@@ -860,6 +885,7 @@ func (r *Runtime) scanRowsUncached(levels []level, mode ModeState, focus string,
 		}
 	}
 	for _, lv := range levels {
+		cur = lv
 		capture = lv.capture
 		owns = lv.owns && live
 		name = lv.name()

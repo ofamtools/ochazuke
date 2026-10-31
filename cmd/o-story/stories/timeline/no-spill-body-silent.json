@@ -1,0 +1,22 @@
+{
+  "name": "timeline: list.no-spill timeline:last; j past the last card's last step stays in its body with no status message (the list's j, reached from the body, stands aside at the trapped edge rather than being refused)",
+  "area": "timeline",
+  "settings": [
+    {"name": "list.no-spill", "type": "list", "default": ["timeline:last"]}
+  ],
+  "page": {
+    "noHeadings": true,
+    "timeline": {
+      "cards": [
+        {"id": "t1", "header": "Explain the focus walk.", "body": "Only paragraph.", "meta": "09:12 · done", "open": true},
+        {"id": "t2", "header": "Now the spill rule.", "body": "Spill goes nowhere.", "meta": "09:20 · done", "open": true}
+      ]
+    }
+  },
+  "script": ["j", "l", "j", "j"],
+  "expect": [
+    {"after": 2, "focus": "timeline/body", "contains": ["▌Spill goes nowhere"]},
+    {"after": 3, "focus": "timeline/body", "lacks": ["not applicable"]},
+    {"focus": "timeline/body", "contains": ["▌Spill goes nowhere"], "lacks": ["not applicable"]}
+  ]
+}
