@@ -33,7 +33,11 @@ type Page struct {
 	// Segments are status segments in the header rule, each answering
 	// its Texts in turn, one per refresh (tick segment).
 	Segments []SegmentSpec `json:"segments,omitempty"`
-	Bind     []BindSpec    `json:"bind,omitempty"`
+	// About fixes what the About page reads (ochazuke.SetAboutEnv: the
+	// build, the binary, the pid, the clock; no opener runs) and adds
+	// the application's sections (AddAboutSection).
+	About *AboutSpec `json:"about,omitempty"`
+	Bind  []BindSpec `json:"bind,omitempty"`
 	// Pending are pending modes the story defines (DefineMode with
 	// pending), before its bind rows, which may enter them (do
 	// "ochazuke.mode.enter", args {"mode": NAME}) or be bound in them.
@@ -437,6 +441,40 @@ type SegmentSpec struct {
 	Tone    string   `json:"tone,omitempty"`
 	Order   int      `json:"order,omitempty"`
 	Enabled *bool    `json:"enabled,omitempty"`
+}
+
+// AboutSpec is a fixed build and process for the About page: the main
+// module, its vcs stamps, its dependencies (replace: a local directory;
+// replaceVersion with it: another module), the binary, the pid, the start
+// (local wall time, 2006-01-02T15:04:05) and the uptime; and the
+// application's sections. An about-row.open writes "open PATH".
+type AboutSpec struct {
+	Module   string             `json:"module"`
+	Version  string             `json:"version,omitempty"`
+	Revision string             `json:"revision,omitempty"`
+	Time     string             `json:"time,omitempty"`
+	Modified *bool              `json:"modified,omitempty"`
+	Go       string             `json:"go,omitempty"`
+	Binary   string             `json:"binary,omitempty"`
+	Deps     []AboutDepSpec     `json:"deps,omitempty"`
+	PID      int                `json:"pid,omitempty"`
+	Started  string             `json:"started,omitempty"`
+	Uptime   string             `json:"uptime,omitempty"`
+	Sections []AboutSectionSpec `json:"sections,omitempty"`
+}
+
+// AboutDepSpec is one dependency of an AboutSpec's build.
+type AboutDepSpec struct {
+	Path           string `json:"path"`
+	Version        string `json:"version"`
+	Replace        string `json:"replace,omitempty"`
+	ReplaceVersion string `json:"replaceVersion,omitempty"`
+}
+
+// AboutSectionSpec is an application section of the About page.
+type AboutSectionSpec struct {
+	Title string              `json:"title"`
+	Rows  []ochazuke.AboutRow `json:"rows"`
 }
 
 // BindSpec is an extra binding row: keys on noun in mode run do.

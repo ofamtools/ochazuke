@@ -1919,6 +1919,21 @@ On the palette the line is `:set …` (`set`, `se`, `setlocal`, `setl`, `setglob
 
 Not supported: `opt&vi` (one default per setting), `|` and `"` (the palette runs one command), `$VAR` in values, and hex or octal numbers.
 
+### The About page: `about.open`
+
+`ochazuke.about.open` opens (or switches to) the About page (`about.go`, page `__about`, noun `about-page`): what this program is and where it runs, as sections of rows, each a label and a value.
+
+- **Build**: the main module's path, version (`devel` for a `(devel)` build), commit (12 characters), commit time, whether the tree was modified, the Go version and the binary (`os.Executable`), from `debug.ReadBuildInfo`; the `refdoc` linker stamps (`refdoc.Version`, `Commit`, `Date`, `Dirty`) win, as for `--version`.
+- **The application's sections** (`Runtime.AddAboutSection(title, func() []AboutRow)`): rows of `AboutRow{Label, Value, Kind, Note}`; `Kind: ochazuke.AboutPath` marks a file or directory. The function runs when the page opens, on `about.refresh` (`r`) and on each `about.show`/`about.copy`, never at startup, so a row that asks a daemon costs nothing until someone looks; a function that panics reads one `error` row.
+- **Dependencies**: every module of the build whose path starts with a prefix in `about.dep-prefixes` (default `["github.com/unixsuperhero/"]`), labelled by the rest of the path. A module replaced by a local directory reads the directory (a path row, note `local replace of vX`); one a `go.work` brings in reads `devel` (note `local build (go.work)`); one replaced by another module reads the replacement.
+- **Runtime**: the pid, the start time, the uptime and each status segment's last text.
+
+Verbs, all read-only (agents may run them): `about.open`, `about.close` (`q`/`esc`), `about.refresh` (`r`), `about.show {section}` (the sections as data, for the CLI and MCP: `BIN ochazuke about show`), `about.copy {section}` (`Y`: the sections as aligned text in the registers and the clipboard, for a bug report). A row is an `about-row`: `about-row.copy` (`y`) yanks its value, `about-row.open` (`enter`, hidden `o`; guard `about-row-path`) opens a path row with `open`/`xdg-open`, `about-row.show` answers it. No key opens the page: an application binds `ochazuke.about.open`, or the palette and the CLI run it. Keys are `bindings/about.json`.
+
+With `about.tab` on (the default) the About page is the Settings page's last tab (`Runtime.LinkSettingsTab(SettingsTabLink{Title, Page, Open, Close, Setting})`, a general link: a tab that is a page of its own, shown while its boolean setting is on and `settings.layout` draws tabs): `]` past the last owner and `[` from the first open it, and on the About page `]`/`[` (guard `about-tab`) step back onto the Settings page's tabs; the page left closes, so `q` goes back to where Settings was opened from. Off, the Settings page has no About tab and the About page draws no tab row. Tests and stories fix the build with `Runtime.SetAboutEnv(AboutEnv{BuildInfo, Executable, PID, Started, Now, Open})` (o-story: the page spec's `about` field; stories `about/page`, `about/tab-off`).
+
+Compared with Vim: `:version` prints the version, the patches, the features compiled in and where the vimrc files are looked for, and Neovim's `:checkhealth` reports the providers and paths it found. The About page is the same idea as a page: `about.copy` is the paste-into-a-bug-report text `:version` is used for, and an application's own sections stand where `:checkhealth` lists each plugin's checks. Unlike `:version` it lists only the family's modules, not every compiled-in feature, and it is evaluated on demand rather than printed once.
+
 ## Status segments
 
 Live items (CPU, memory, disk free, a build state) ride the rule under the header, right-aligned, and take no row. Each is a data row:

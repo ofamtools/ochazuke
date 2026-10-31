@@ -1,0 +1,20 @@
+// ochazuke bindings (JSONC): the About page (about.go). No key opens the page: an application binds ochazuke.about.open, or the palette and the CLI run it.
+{
+  "bindings": [
+    {"context": "ochazuke.about-row/normal", "bindings": [
+      {"key": "y", "action": "ochazuke.about-row.copy"},
+      {"key": "enter", "action": "ochazuke.about-row.open", "when": "about-row-path"},
+      {"key": "o", "action": "ochazuke.about-row.open", "when": "about-row-path", "hidden": true}
+    ]},
+    {"context": "ochazuke.about-page/normal", "bindings": [
+      {"key": "]", "action": "ochazuke.settings.tab", "args": {"step": 1}, "when": "about-tab", "hint": "]/[ settings.tab"},
+      {"key": "[", "action": "ochazuke.settings.tab", "args": {"step": -1}, "when": "about-tab", "hidden": true},
+      {"key": "g t", "action": "ochazuke.settings.tab", "args": {"step": 1}, "when": "about-tab", "hidden": true},
+      {"key": "g T", "action": "ochazuke.settings.tab", "args": {"step": -1}, "when": "about-tab", "hidden": true},
+      {"key": "Y", "action": "ochazuke.about.copy"},
+      {"key": "r", "action": "ochazuke.about.refresh"},
+      {"key": "q", "action": "ochazuke.about.close"},
+      {"key": "esc", "action": "ochazuke.about.close"}
+    ]}
+  ]
+}

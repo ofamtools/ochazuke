@@ -481,6 +481,8 @@ Conformance:
 | list_filter | list | `list.filter` `list.filter-choose` `list.filter-clear` `list.filter-erase` `list.filter-keep` `list.filter-type` `list.move` |
 | list_filter | search | `search.cycle-match` |
 | macro_pending | mode | `mode.leave` |
+| normal | about | `about.close` `about.open` |
+| normal | about-row | `about-row.copy` `about-row.open` |
 | normal | app | `app.quit` |
 | normal | bindings | `bindings.help` |
 | normal | bindings-help | `bindings-help.mode` `bindings-help.noun` `bindings-help.place` `bindings-help.view` |

@@ -24,7 +24,7 @@ var frameworkBindings embed.FS
 // component that registers their verbs.
 var frameworkBindingFiles = []string{
 	"editor.json", "registers.json", // first: they define the pending modes (count_pending) others extend
-	"chooser.json", "settings-editor.json", "list.json", "table.json", "list-modes.json",
+	"chooser.json", "settings-editor.json", "about.json", "list.json", "table.json", "list-modes.json",
 	"tree.json", "timeline.json", "form.json", "completion.json", "yank-history.json",
 	"help.json", "macros.json", "confirm.json",
 	"terminal.json", "focus.json", "detail.json", "scroll.json", "panes.json", "history.json", "docs.json", "modal.json", "text-view.json",

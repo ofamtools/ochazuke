@@ -25,6 +25,7 @@
     {"owner": "ochazuke", "id": "pages", "title": "Pages", "description": "Hidden pages and the action history"},
     {"owner": "ochazuke", "id": "markdown", "title": "Markdown", "description": "Markdown documents and their notes"},
  {"owner":"ochazuke", "id":"agents", "title":"Agents", "description":"Agent rights and confirmation attribution"},
+    {"owner": "ochazuke", "id": "about", "title": "About", "description": "The About page: the build, the family dependencies and the process"},
     {"owner": "ochazuke", "id": "settings", "title": "Settings", "description": "This page, :set and session values"}
   ]
 }
