@@ -104,6 +104,10 @@ const CursorSetting = "markdown.cursor"
 // CursorWidthSetting chooses a pane-wide cursor or the former text-only bar.
 const CursorWidthSetting = "markdown.cursor-width"
 
+// ExtraSpaceSetting adds a blank line between rendered Markdown components.
+// The default is false; source text and spacing within a component are unchanged.
+const ExtraSpaceSetting = "markdown.extra-space"
+
 // DefaultDebounce is how long typing in the block editor pauses before
 // the block is written.
 const DefaultDebounce = 400 * time.Millisecond
@@ -450,7 +454,7 @@ func (d *Doc) relayout(e, off int) error {
 	}
 	d.dirty = false
 	hidden, count := d.hiddenElements()
-	d.lay = layoutOf(d.text, d.elems, d.width, d.style, d.opts, d.folded, hidden)
+	d.lay = layoutOf(d.text, d.elems, d.width, d.style, d.opts, d.folded, hidden, d.r.Settings().Bool(ExtraSpaceSetting))
 	d.links = layoutLinks(d.text, d.elems, d.lay)
 	d.doneHidden = count
 	if len(d.lay.rows) == 0 && (d.Editable() || count > 0) {

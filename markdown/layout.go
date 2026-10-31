@@ -175,10 +175,11 @@ func foldLine(open, resolved, indent int, st noteStyle) string {
 // layoutOf draws src (its elements els) width cells wide: Glamour for
 // everything but notes, the Doc's own boxes for notes (folded: one count
 // line under the item, per folded(item)).
-func layoutOf(src string, els []Element, width int, style string, opts options, folded func(item int) bool, hidden []bool) layout {
+func layoutOf(src string, els []Element, width int, style string, opts options, folded func(item int) bool, hidden []bool, extraSpace bool) layout {
 	raw := render(markedSource(src, els, hidden), 0, width, style, opts).lines
 	n := min(len(els), maxMarkers)
 	lay := layout{spans: make([][2]int, len(els)), hidden: hidden}
+	var boxes map[int][2]int
 	for i := range lay.spans {
 		lay.spans[i] = [2]int{-1, -1}
 	}
@@ -216,6 +217,12 @@ func layoutOf(src string, els []Element, width int, style string, opts options, 
 			box, spans := noteBox(notes, indent, width, st)
 			base := len(lay.lines)
 			lay.lines = append(lay.lines, box...)
+			if extraSpace {
+				if boxes == nil {
+					boxes = make(map[int][2]int)
+				}
+				boxes[els[note].Group] = [2]int{base, len(lay.lines) - 1}
+			}
 			for j, k := range group {
 				lay.spans[k] = [2]int{base + spans[j][0], base + spans[j][1]}
 			}
@@ -251,6 +258,9 @@ func layoutOf(src string, els []Element, width int, style string, opts options, 
 		}
 	}
 	lay.fillGaps()
+	if extraSpace {
+		lay.addSpace(els, boxes)
+	}
 	lay.owner = make([]int, len(lay.lines))
 	for i := range lay.owner {
 		lay.owner[i] = -1
@@ -268,6 +278,33 @@ func layoutOf(src string, els []Element, width int, style string, opts options, 
 		}
 	}
 	return lay
+}
+
+// addSpace inserts one blank line at each visible group boundary. Groups keep
+// tables and note boxes whole; each list item is a group of its own. Box bounds
+// include their borders, which are not cursor lines. Spans shift before the
+// owner and cursor rows are built, leaving the new blank lines unselectable.
+func (lay *layout) addSpace(els []Element, boxes map[int][2]int) {
+	lines := make([]string, 0, len(lay.lines)+len(els))
+	at, added, group, end := 0, 0, -1, -1
+	for i, span := range lay.spans {
+		if span[0] < 0 {
+			continue
+		}
+		bounds := span
+		if box, ok := boxes[els[i].Group]; ok {
+			bounds = box
+		}
+		if group >= 0 && group != els[i].Group && bounds[0] > end {
+			lines = append(lines, lay.lines[at:bounds[0]]...)
+			lines = append(lines, "")
+			at = bounds[0]
+			added++
+		}
+		lay.spans[i] = [2]int{span[0] + added, span[1] + added}
+		group, end = els[i].Group, max(end, bounds[1])
+	}
+	lay.lines = append(lines, lay.lines[at:]...)
 }
 
 // fillGaps gives the elements Glamour drew without their markers (a

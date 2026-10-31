@@ -404,3 +404,118 @@ func TestRegisterMarksBuiltin(t *testing.T) {
 		}
 	}
 }
+
+func TestExtraSpaceBetweenComponents(t *testing.T) {
+	for _, theme := range []string{"mono", "dark", "light"} {
+		for _, tc := range []struct {
+			name, source, first, last string
+			gap                       int
+		}{
+			{"checklist", "- [ ] first\n- [ ] last\n", "first", "last", 0},
+			{"bullets", "- first\n- last\n", "first", "last", 0},
+			{"numbered", "1. first\n2. last\n", "first", "last", 0},
+			{"nested", "- [ ] first\n  - [ ] last\n", "first", "last", 0},
+			{"paragraphs", "first\n\nlast\n", "first", "last", 1},
+			{"heading", "# first\n\nlast\n", "first", "last", 1},
+		} {
+			t.Run(theme+"/"+tc.name, func(t *testing.T) {
+				r, d := newDoc(t, Source{Load: func() (string, error) { return tc.source, nil }})
+				a := ochazuke.Appearance{Theme: theme, Dark: true}
+				before := d.View(70, 0, a)
+				assertBlankGap(t, before, tc.first, tc.last, tc.gap)
+				if err := r.Settings().Set(ExtraSpaceSetting, "true"); err != nil {
+					t.Fatal(err)
+				}
+				assertBlankGap(t, d.View(70, 0, a), tc.first, tc.last, tc.gap+1)
+				if err := r.Settings().Set(ExtraSpaceSetting, "false"); err != nil {
+					t.Fatal(err)
+				}
+				if got := d.View(70, 0, a); got != before {
+					t.Fatalf("disabling changed the original rendering:\n%s", ansi.Strip(got))
+				}
+				if d.Text() != tc.source {
+					t.Fatal("display spacing changed the source")
+				}
+			})
+		}
+	}
+}
+
+func assertBlankGap(t *testing.T, view, first, last string, want int) {
+	t.Helper()
+	lines := strings.Split(ansi.Strip(view), "\n")
+	start, end := -1, -1
+	for i, line := range lines {
+		if strings.Contains(line, first) {
+			start = i
+		}
+		if strings.Contains(line, last) {
+			end = i
+			break
+		}
+	}
+	if start < 0 || end <= start {
+		t.Fatalf("missing ordered %q and %q:\n%s", first, last, ansi.Strip(view))
+	}
+	for _, line := range lines[start+1 : end] {
+		if strings.TrimSpace(line) != "" {
+			t.Fatalf("nonblank line in gap: %q", line)
+		}
+	}
+	if got := end - start - 1; got != want {
+		t.Fatalf("%q to %q: %d blank lines, want %d:\n%s", first, last, got, want, ansi.Strip(view))
+	}
+}
+
+func TestExtraSpaceKeepsBodiesAndCursor(t *testing.T) {
+	source := "- [ ] first\n  > **owner** 2026-10-31: note one\n  > **reviewer** 2026-10-31: note two\n- [x] hidden\n- [ ] last\n\n| Name | Value |\n|---|---|\n| row one | a |\n| row two | b |\n\n```\ncode first\ncode last\n```\n"
+	path := writeFile(t, source)
+	r, d := newDoc(t, File(path))
+	if err := d.Select(2); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Settings().Set(ExtraSpaceSetting, "true"); err != nil {
+		t.Fatal(err)
+	}
+	if task, ok := d.Selected(); !ok || task.Text != "last" {
+		t.Fatalf("relayout moved the cursor: %+v", task)
+	}
+	view := ansi.Strip(d.View(70, 0, mono))
+	assertBlankGap(t, view, "code first", "code last", 0)
+	for _, borders := range [][2]string{{"╭", "╯"}, {"Name", "row two"}} {
+		start, end := strings.Index(view, borders[0]), strings.Index(view, borders[1])
+		if start < 0 || end <= start {
+			t.Fatalf("missing body %v:\n%s", borders, view)
+		}
+		for _, line := range strings.Split(strings.TrimSpace(view[start:end]), "\n") {
+			if strings.TrimSpace(line) == "" {
+				t.Fatalf("spacing split a body %v:\n%s", borders, view)
+			}
+		}
+	}
+	if err := r.Settings().Set(DoneSetting, "hide"); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Select(0); err != nil {
+		t.Fatal(err)
+	}
+	if err := press(t, r, "j", "j", "j"); err != nil {
+		t.Fatal(err)
+	}
+	if task, ok := d.Selected(); !ok || task.Text != "last" {
+		t.Fatalf("motions stopped on a gap or hidden task: %+v", task)
+	}
+	if err := press(t, r, "i"); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Settings().Set(ExtraSpaceSetting, "false"); err != nil {
+		t.Fatal(err)
+	}
+	if err := press(t, r, "esc"); err != nil {
+		t.Fatal(err)
+	}
+	assertBlankGap(t, d.View(70, 0, mono), "code first", "code last", 0)
+	if got := readFile(t, path); got != source {
+		t.Fatalf("spacing/edit round trip changed source:\n%q", got)
+	}
+}

@@ -68,7 +68,7 @@ func TestTableColumnsLineUp(t *testing.T) {
 			els := Elements(auditTables)
 			renders := map[string][]string{
 				"block": render(auditTables, 0, width, style, options{}).lines,
-				"doc":   layoutOf(auditTables, els, width, style, options{}, func(int) bool { return false }, nil).lines,
+				"doc":   layoutOf(auditTables, els, width, style, options{}, func(int) bool { return false }, nil, false).lines,
 			}
 			for name, lines := range renders {
 				tables := tableBlocks(lines)
@@ -145,7 +145,7 @@ func sum(xs []int) int {
 // runs from its first line to the line before the next row's.
 func TestDocTableRowSpans(t *testing.T) {
 	els := Elements(auditTables)
-	lay := layoutOf(auditTables, els, 80, StyleDark, options{}, func(int) bool { return false }, nil)
+	lay := layoutOf(auditTables, els, 80, StyleDark, options{}, func(int) bool { return false }, nil, false)
 	var rows []int
 	for i, e := range els {
 		if e.Kind == KindTable && e.Group == els[i].Group {
