@@ -41,7 +41,7 @@ Root package `ochazuke` is flat: 137 source files, 160 test files. Each entry li
 
 ### agent_rights.go
 
-- lines: 220 · tests: agent_rights_test.go
+- lines: 218 · tests: agent_rights_test.go
 - purpose: AgentRule is an ordered owner override.
 - types: AgentRule, AgentRight, RefusedError
 - methods: RefusedError(1), Runtime(6)
@@ -734,7 +734,7 @@ Root package `ochazuke` is flat: 137 source files, 160 test files. Each entry li
 
 ### runtime.go
 
-- lines: 1258 · tests: runtime_test.go
+- lines: 1257 · tests: runtime_test.go
 - purpose: Arguments are a request's named arguments, keyed by parameter name.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
 - methods: Context(1), Operation(5), Request(4), Runtime(19)
@@ -816,7 +816,7 @@ Root package `ochazuke` is flat: 137 source files, 160 test files. Each entry li
 
 ### settings_defaults.go
 
-- lines: 272
+- lines: 273
 - purpose: startupSettings are the rows of startupSettingsFile.
 - methods: Runtime(7)
 - leans on: settings.go(10), runtime.go(7), theme.go(4), actor.go(2)

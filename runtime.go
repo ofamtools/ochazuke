@@ -424,13 +424,12 @@ type Runtime struct {
 	guards           map[string]Guard
 	predicates       map[string]PredicateFunc // named query predicates (query.go)
 	agentApproved    bool                     // the owner approved this request and its nested work
-	dryRun           bool
-	agentTransport   *agentTransport
-	history          actionHistory // the executed-request ring and the current source (history.go)
-	origin           string        // the instance the running request or completion acts for; a modal opens only from the top level
-	askedAt          string        // the focus the running request was made at, before it moved to its noun's instance (createFill reads a reference's thing there)
-	rowRequest       bool          // the next execute is a binding row's own request (runRow's level rule targets it)
-	subjects         []string      // the subjects execute hands the application handler it is about to run (Ctx.Subjects)
+	agentTransport   *agentTransport          // scoped adapter identity and execution environment, shared by nested requests
+	history          actionHistory            // the executed-request ring and the current source (history.go)
+	origin           string                   // the instance the running request or completion acts for; a modal opens only from the top level
+	askedAt          string                   // the focus the running request was made at, before it moved to its noun's instance (createFill reads a reference's thing there)
+	rowRequest       bool                     // the next execute is a binding row's own request (runRow's level rule targets it)
+	subjects         []string                 // the subjects execute hands the application handler it is about to run (Ctx.Subjects)
 	prefix           pendingPrefix
 	bindingVersion   uint64
 	modeGeneration   uint64
@@ -889,7 +888,7 @@ func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
 	depth := r.history.depth
 	from := r.place()
 	r.history.depth++
-	value, err := r.execute(c, q)
+	value, err := r.execute(c, q, false)
 	r.history.depth--
 	r.record(at, q, ctx, depth, from, value, err)
 	if depth == 0 {
@@ -907,7 +906,7 @@ func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
 	return value, err
 }
 
-func (r *Runtime) execute(c Context, q Request) (any, error) {
+func (r *Runtime) execute(c Context, q Request, checkOnly bool) (any, error) {
 	fromRow := r.rowRequest
 	r.rowRequest = false
 	if q.IsProp() {
@@ -964,7 +963,7 @@ func (r *Runtime) execute(c Context, q Request) (any, error) {
 	}
 	// A row's own verb on a row in a visual selection (V) acts on every
 	// selected row, from a key, the palette or the API (subjects.go).
-	if vq, ok := r.visualApply(q, op, focus); ok && !r.dryRun {
+	if vq, ok := r.visualApply(q, op, focus); ok && !checkOnly {
 		return r.ExecuteAt(c, vq)
 	}
 	subjects, err := r.subjectsOf(q, focus)
@@ -980,7 +979,7 @@ func (r *Runtime) execute(c Context, q Request) (any, error) {
 		}
 		return nil, errors.New(v.Refuse)
 	case v.Ask != "":
-		if r.dryRun {
+		if checkOnly {
 			return nil, nil
 		}
 		if len(subjects) > 1 {
@@ -988,7 +987,7 @@ func (r *Runtime) execute(c Context, q Request) (any, error) {
 		}
 		return r.openConfirm(c, q, Operation{Noun: op.Noun, Verb: op.Verb, Confirm: v.Ask})
 	}
-	if r.dryRun {
+	if checkOnly {
 		return nil, nil
 	}
 	if op.Confirm != "" && !q.Confirmed {

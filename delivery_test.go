@@ -407,8 +407,13 @@ func TestRuntimeHoldsNoComponentFields(t *testing.T) {
 	}
 	sort.Strings(fields)
 	// events and watches are runtime registries, not instance components.
+	// agentTransport is the active adapter's bound caller/environment; it must
+	// apply to the whole request chain, not one focused component.
+	// agentApproved is consent scoped to an executing request and its nested
+	// work, like rowRequest/source; it is restored when that request returns.
+	// Dry-run control is an execute argument, not retained runtime state.
 	want := []string{
-		"BindingTimeout", "Focus", "Instances", "Mode", "Modes", "Nouns", "Operations", "Page", "Pending", "Quit", "ResolveTarget", "actionNames", "aliases",
+		"BindingTimeout", "Focus", "Instances", "Mode", "Modes", "Nouns", "Operations", "Page", "Pending", "Quit", "ResolveTarget", "actionNames", "agentApproved", "agentTransport", "aliases",
 		"askedAt", "bindingVersion", "builtinDepth", "commands", "defaults", "deprecations", "events", "guards", "history", "holders", "jobSeq", "jobs", "modalInstances", "modals", "modeExtends", "modeGeneration", "origin", "passthroughModes", "pendingModes", "predicates", "prefix", "rowRequest", "rows", "selectionModes", "seq", "subjects", "watches",
 	}
 	if !reflect.DeepEqual(fields, want) {
