@@ -770,7 +770,7 @@ func (t *Timeline) spillDown() bool {
 			return true
 		}
 	}
-	if l.noSpill {
+	if l.trapped() {
 		return false
 	}
 	if _, ok := l.neighbour(1); !ok {

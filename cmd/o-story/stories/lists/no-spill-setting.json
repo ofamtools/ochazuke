@@ -1,0 +1,25 @@
+{
+  "name": "list.no-spill names the first list: j at its last row stays; the second list still spills back with k",
+  "area": "lists",
+  "settings": [
+    {"name": "list.no-spill", "type": "list", "default": ["a"]}
+  ],
+  "width": 30,
+  "height": 10,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [{"id": "a", "rows": 2}, {"id": "b", "rows": 2}],
+    "order": ["a", "b"],
+    "focus": "a1"
+  },
+  "script": ["j", "j", "j", "}", "k", "k"],
+  "expect": [
+    {"after": 1, "focus": "a2"},
+    {"after": 2, "focus": "a2"},
+    {"after": 3, "focus": "a2"},
+    {"after": 4, "focus": "b1"},
+    {"after": 5, "focus": "a2"},
+    {"focus": "a1"}
+  ]
+}

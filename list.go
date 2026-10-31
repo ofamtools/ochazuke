@@ -282,7 +282,7 @@ func (l *List) Move(delta int) {
 // never wrap.
 func (l *List) spill(delta int) bool {
 	inside := l.selected >= 0 && l.selected+delta >= 0 && l.selected+delta < len(l.items)
-	if delta == 0 || inside || l.noSpill || l.visual || !l.Focused() {
+	if delta == 0 || inside || l.trapped() || l.visual || !l.Focused() {
 		return false
 	}
 	step := 1
@@ -302,6 +302,53 @@ func (l *List) spill(delta int) bool {
 	}
 	l.r.setFocus(l.r.landing(next))
 	return true
+}
+
+// ListNoSpillSetting is list.no-spill: the ids of lists, trees and
+// timelines whose motions clamp at their edges as NoSpill() does (the
+// per-user opt-out from the spill, UX-RULES R6.12). An entry ending in *
+// is a prefix.
+const ListNoSpillSetting = "list.no-spill"
+
+// trapped reports whether the list's motions stay inside it instead of
+// spilling to the neighbouring stop: a list made with NoSpill(), or one the
+// list.no-spill setting names (its own id, or the id of the tree or
+// timeline it holds the rows of). Read on every motion, so a settings
+// change applies at once. Every spill path (j/k past an edge, h/l at a
+// table's column edge, a timeline's last step) asks it.
+func (l *List) trapped() bool {
+	if l.noSpill {
+		return true
+	}
+	ids := []string{l.id}
+	if inst := l.r.Instances[l.id]; inst != nil && inst.Parent != "" {
+		if owner := l.r.Instances[inst.Parent]; owner != nil {
+			switch owner.Component.(type) {
+			case *Tree, *Timeline:
+				ids = append(ids, owner.ID)
+			}
+		}
+	}
+	return l.r.noSpillNames(ids...)
+}
+
+// noSpillNames reports whether the list.no-spill setting names one of ids:
+// an entry is an instance id, or a prefix ending in * (panes/*).
+func (r *Runtime) noSpillNames(ids ...string) bool {
+	v, _ := r.settingValue(ListNoSpillSetting)
+	names, _ := v.([]string)
+	for _, name := range names {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			continue
+		}
+		for _, id := range ids {
+			if prefix, ok := strings.CutSuffix(name, "*"); ok && strings.HasPrefix(id, prefix) || name == id {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // neighbour is the stop after (step 1) or before (step -1) the list in
