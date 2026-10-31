@@ -1942,6 +1942,115 @@ Something happens, the runtime is told with `Runtime.Emit(event, fields)`, and t
 | `'eventignore'` | `'eventignore'` | Similar: `hooks.enabled` off ignores them all; there is no per-event list |
 | Autocommands run synchronously | `autocommand` | Different: an application verb runs as a job off the loop, so a hook never blocks the UI |
 
+## Setup items
+
+Applications declare integrations once with `cli.DeclareSetup`, before
+`cli.Mount`. The `ochazuke/setup` package also works on its own and imports no
+TUI code. The app owns its item data; the library owns inspection, planning,
+ownership, backups and installation. No binding, page or default key is added.
+
+```go
+items := []setup.Item{
+    {
+        ID: "agent-rules", Name: "Agent instructions", Kind: setup.Block,
+        Path: "${AGENT_HOME:-~/.agent}/AGENTS.md",
+        Content: "Use {{.Tool}} to record questions.\n",
+        Group: "agents",
+    },
+}
+if err := cli.DeclareSetup(r, items, setup.Options{Tool: "my-tool"}); err != nil {
+    return err
+}
+cli.Mount(app, shell)
+```
+
+`setup.Load(embeddedFS, "setup.json")` loads the same declarations from an
+embedded JSON array. A user's `setup.json` beside the app's `settings.json` adds
+items in that format; duplicate ids and unknown fields are refused with a
+reason. `setup.skip` is a list of ids, default empty, excluded from installation
+and reported as `skipped`. With no app declarations, no setup noun is mounted.
+
+| Kind | Declaration | Ownership and installation |
+| --- | --- | --- |
+| `file` | `path`, `content`, `comment` | First-line `TOOL setup: ID` owner mark; replace or remove the owned file |
+| `block` | `path`, `content`, optional `comment` or `begin`/`end` | Insert, replace or remove a marked block; preserve surrounding text |
+| `json` | `path`, `pointer`, JSON `content`, optional `match` | Set or remove a JSON object key; keep other keys in order |
+| `json-array` | `path`, `pointer`, JSON array `content`, `match.field` and `match.contains` | Append entries and update or remove only entries carrying the owner substring |
+| `command` | `install`/`uninstall` argv and read-only `probe` or `check` argv | Let the harness CLI write its config; inspect JSON/TOML or a check's output for state |
+| `check` | Read-only `check` argv or `probe`, `advice` | Report success or print the exact manual step; never install anything |
+
+Common fields are `id`, `name`, `description`, `requires`, `advice`, `group`
+and `opt_in`. A requirement is `bin:NAME` or `dir:PATH`; unmet requirements give
+`n/a`. Paths expand `~`, `$ENV` and `${ENV:-default}` (defaults can nest).
+`content`, `advice`, markers, ownership substrings and argv words are Go
+templates over `.Bin`, `.Data`, `.Home` and `.Tool`. `.Bin` is the absolute
+running executable unless the application supplies one. Argv words are passed
+directly to a process, without a shell.
+
+For a command item, `probe` names `path`, `format` (`json` or `toml`), and either
+a JSON `pointer` or a TOML `table` array of literal keys. Without `probe.path`,
+the probe reads `check` argv's stdout. `probe.where` can select a JSON array row
+by relative pointers and exact string values. Without a probe, a check's exit
+code is its state. A typical harness item is:
+
+```json
+[
+  {
+    "id": "agent-mcp", "name": "Agent MCP server", "kind": "command",
+    "requires": ["bin:agent"],
+    "probe": {"path": "~/.agent.json", "pointer": "/mcpServers/my-tool"},
+    "content": "{\"command\":\"{{.Bin}}\",\"args\":[\"mcp\"]}",
+    "match": {"command": "/command", "args": "/args"},
+    "install": ["agent", "mcp", "add", "my-tool", "--", "{{.Bin}}", "mcp"],
+    "uninstall": ["agent", "mcp", "remove", "my-tool"]
+  }
+]
+```
+
+A handmade entry at that pointer with a matching command basename and argument
+array counts as installed and is left as written. An absolute command at a
+different path, or one whose file has gone, is `outdated`. A different command
+or argument list is `conflict`, and installation refuses it. `match.fields`
+can instead identify an owned JSON object by selected relative pointers; other
+differences then mean `outdated`. Whole-value equality also counts as installed.
+
+Every tool exposes `setup` (status), `setup list`, `setup show ITEM`,
+`setup plan [ITEM…]`, `setup install [ITEM…] [--group GROUP]`,
+`setup uninstall [ITEM…]` and `setup copy ITEM`. Status prints each item's state
+and exact next command or text, followed by `run: TOOL setup install`, or
+`everything is set up`. List prints a table. `--json` uses the same stable item
+and plan schema across tools; the registry verbs also work in the palette and
+through `cli.Shell`. Installation and removal ask for confirmation; `--yes`
+accepts. Copy prints content or advice for pasting.
+
+`opt_in: true` items, such as shell rc blocks, report `manual` with their exact
+line and are excluded from a bare install, even with `--group shell`. Name the
+id explicitly to install them. Failed check items also report `manual`. The
+complete state set is `installed`, `missing`, `outdated`, `conflict`, `external`,
+`n/a`, `manual`, `skipped`.
+
+`--home DIR` selects an isolated home, ignores inherited harness path variables
+and gives child commands HOME/XDG directories under that home. Optional
+`setup.Options.Env` values are explicit overrides. User setup items then load
+from `DIR/.config/TOOL/setup.json` (or the explicit XDG override). This supports
+temp-home fixtures and reviewing a plan on another home. `setup plan` writes
+nothing. Symlinked targets or parent directories are `external` and are never
+written through, including instruction files managed by another tool.
+
+All file changes are computed first and staged before replacing any target.
+Writes use temporary files and atomic rename, preserve mode and keep the first
+original as `FILE.TOOL.bak`. A stale plan is refused; a staging failure leaves
+targets unchanged, and a replacement failure rolls back earlier replacements.
+Uninstall restores the original bytes when they can be restored without losing
+later unrelated changes; otherwise it removes only the owned part. Harness
+commands are separate transactions: if a later harness fails, an earlier
+successful registration remains and is named in the error. Hosts can inject
+`setup.Options.Runner` for execution and tests. The fixture in
+`setup/setup_test.go` declares one item of every kind.
+
+Compared with Vim: not applicable; setup adds CLI integrations, with no motions,
+operators, modes or window behavior.
+
 ## Configuration reference (config export)
 
 Every application has a `config` noun. `config path` prints where the user files live; `config export [DIR]` writes a complete reference of the user configuration to copy from; `config reload` reads every config file again:
