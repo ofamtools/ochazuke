@@ -82,6 +82,11 @@ type List struct {
 	applying    bool            // list.apply is running its rows' requests: they are not replaced again (visualApply)
 	part        string          // an instance under the list that holds its focus as a row does (a timeline's body, timeline.go)
 
+	// A detached list filter controller can serve another row view. Its
+	// callback reapplies that view's text matching without list focus/motions.
+	filterChanged func()
+	filterFocus   string
+
 	// motion is a component's own j/k on the rows (a timeline's cards
 	// scroll by the half-page rule, R3.14); nil moves the list's way.
 	motion func(delta, count int)

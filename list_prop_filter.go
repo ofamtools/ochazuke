@@ -14,7 +14,7 @@ import (
 func (l *List) PropFilters() []PropFilter { return clonePropFilters(l.propFilters) }
 
 func (l *List) tree() *Tree {
-	if inst := l.r.Instances[l.id]; inst != nil {
+	if inst := l.r.Instances[l.id]; inst != nil && inst.Component == l {
 		return l.r.Tree(inst.Parent)
 	}
 	return nil
@@ -98,7 +98,12 @@ func (l *List) rowNouns() []string { return l.nouns }
 
 // A stable list focus is shared by matching and both picker stages,
 // including while a chooser temporarily owns the runtime focus.
-func (l *List) propFocus() string { return l.id }
+func (l *List) propFocus() string {
+	if l.filterFocus != "" {
+		return l.filterFocus
+	}
+	return l.id
+}
 
 func rowThing(n *Noun, item ListItem) Thing {
 	var thing Thing
@@ -174,6 +179,10 @@ func (l *List) SetPropFilters(filters []PropFilter) error {
 	}
 	l.propFilters = clonePropFilters(filters)
 	l.savedFilter = ""
+	if l.filterChanged != nil {
+		l.filterChanged()
+		return nil
+	}
 	if t := l.tree(); t != nil {
 		t.filterCollapsed = nil
 		return t.refresh("")
@@ -363,17 +372,26 @@ func (l *List) filterProps() []string {
 	return slices.Sorted(maps.Keys(set))
 }
 
-func (l *List) pickPropFilter(prop string) error {
+func (l *List) pickPropFilter(prop string, offerClear bool) error {
 	if prop == "" {
 		rows := []ChooserRow{}
 		for _, name := range l.filterProps() {
 			rows = append(rows, ChooserRow{ID: name, Label: name})
 		}
+		if offerClear && (len(l.propFilters) > 0 || l.savedFilter != "") {
+			rows = append(rows, ChooserRow{Label: "Clear prop filters", Fixed: true})
+		}
 		if len(rows) == 0 {
 			return errors.New("list rows have no filterable props")
 		}
 		_, err := l.r.OpenChooser(ChooserSpec{Kind: "list-filter-prop", Title: "Filter by prop", Rows: rows, Choose: func(row ChooserRow) Result {
-			if err := l.pickPropFilter(row.ID); err != nil {
+			if row.ID == "" {
+				if err := l.SetPropFilters(nil); err != nil {
+					return Failed(err)
+				}
+				return Done(nil)
+			}
+			if err := l.pickPropFilter(row.ID, offerClear); err != nil {
 				return Failed(err)
 			}
 			return Done(nil)
@@ -423,30 +441,21 @@ func (l *List) pickPropFilter(prop string) error {
 func registerListPropFilter(r *Runtime) {
 	resolve := func(c Context, a Arguments) (*List, error) {
 		if id := StringArg(a, "id", ""); id != "" {
-			if l := r.List(id); l != nil {
+			if l := r.propFilterList(id); l != nil {
 				return l, nil
 			}
-			if t := r.Tree(id); t != nil {
-				return t.list, nil
-			}
-			return nil, fmt.Errorf("unknown list %q", id)
+			return nil, fmt.Errorf("unknown or disabled row view %q", id)
 		}
-		if l := r.focusedList(focusOf(c)); l != nil {
+		if l := r.propFilterList(focusOf(c)); l != nil {
 			return l, nil
 		}
-		return nil, errors.New("no focused list")
+		return nil, errors.New("no focused row view")
 	}
 	guardList := func(ev KeyEvent) *List {
 		if id := StringArg(ev.Args, "id", ""); id != "" {
-			if l := r.List(id); l != nil {
-				return l
-			}
-			if t := r.Tree(id); t != nil {
-				return t.list
-			}
-			return nil
+			return r.propFilterList(id)
 		}
-		return r.focusedList(ev.Focus)
+		return r.propFilterList(ev.Focus)
 	}
 	r.DefineGuard("list-prop-conditions", func(_ *Runtime, ev KeyEvent) bool { l := guardList(ev); return l != nil && len(l.propFilters) > 0 })
 	r.DefineGuard("list-props", func(r *Runtime, ev KeyEvent) bool {
@@ -477,11 +486,12 @@ func registerListPropFilter(r *Runtime) {
 		params                   map[string]Parameter
 		run                      func(*List, Arguments) error
 	}{
-		{"filter-prop", "Add a prop condition (AND); omit prop or value to pick from visible rows", "list-props", map[string]Parameter{"prop": {Type: "string"}, "op": {Type: "string", Enum: []string{"=", "!=", "contains", "in"}}, "value": {Type: "any", Description: "Typed value; in takes an array"}}, func(l *List, a Arguments) error {
+		{"filter-prop", "Add a prop condition (AND); omit prop or value to pick from visible rows", "list-props", map[string]Parameter{"clear": {Type: "boolean", Description: "Offer clearing active prop filters in the prop picker"}, "prop": {Type: "string"}, "op": {Type: "string", Enum: []string{"=", "!=", "contains", "in"}}, "value": {Type: "any", Description: "Typed value; in takes an array"}}, func(l *List, a Arguments) error {
 			prop := StringArg(a, "prop", "")
 			value, ok := a["value"]
 			if prop == "" || !ok {
-				return l.pickPropFilter(prop)
+				offerClear, _ := a["clear"].(bool)
+				return l.pickPropFilter(prop, offerClear)
 			}
 			return l.SetPropFilters(append(l.PropFilters(), PropFilter{Prop: prop, Op: StringArg(a, "op", "="), Value: value}))
 		}},
@@ -560,7 +570,7 @@ func registerListPropFilter(r *Runtime) {
 		if params == nil {
 			params = map[string]Parameter{}
 		}
-		params["id"] = Parameter{Type: "string", Description: "List or tree id (default focused)"}
+		params["id"] = Parameter{Type: "string", Description: "List, tree or chooser id (default focused)"}
 		r.Register(Operation{Noun: "ochazuke.list", Verb: spec.verb, Description: spec.description, Parameters: params, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 			l, err := resolve(c, a)
 			if err != nil {

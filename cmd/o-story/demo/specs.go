@@ -117,10 +117,12 @@ type ChooserSourceSpec struct {
 // ChooserRowSpec is one chooser row; Cells draw it as columns, Preview is
 // its preview text.
 type ChooserRowSpec struct {
-	ID      string   `json:"id"`
-	Label   string   `json:"label"`
-	Cells   []string `json:"cells,omitempty"`
-	Preview string   `json:"preview,omitempty"`
+	Noun    string         `json:"noun,omitempty"`
+	Props   ochazuke.Thing `json:"props,omitempty"`
+	ID      string         `json:"id"`
+	Label   string         `json:"label"`
+	Cells   []string       `json:"cells,omitempty"`
+	Preview string         `json:"preview,omitempty"`
 }
 
 // ListSpec is one list: rows a1..aN labelled by id unless Labels or Items

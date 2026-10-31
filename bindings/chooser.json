@@ -2,6 +2,11 @@
 {
   "bindings": [
     {"context": "ochazuke.chooser", "bindings": [
+      {"key": "ctrl+f", "action": "ochazuke.list.filter-cycle", "when": "list-prop-filtered", "args": {"step": 1}, "hint": "next filter"},
+      {"key": "ctrl+f", "action": "ochazuke.list.filter-prop", "args": {"clear": true}, "hint": "prop filter"},
+      {"key": "alt+]", "action": "ochazuke.list.filter-cycle", "args": {"step": 1}, "hint": "next filter"},
+      {"key": "alt+[", "action": "ochazuke.list.filter-cycle", "args": {"step": -1}, "hint": "previous filter", "hidden": true},
+      {"key": "alt+backspace", "action": "ochazuke.list.filter-props-clear", "hint": "clear props"},
       {"key": "enter", "action": "ochazuke.chooser.open", "when": "chooser-enter-opens"},
       {"key": "enter", "action": "ochazuke.chooser.pick"},
       {"key": "alt+enter", "action": "ochazuke.chooser.pick"},
