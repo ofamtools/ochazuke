@@ -543,12 +543,12 @@ Root package `ochazuke` is flat: 153 source files, 172 test files. Each entry li
 
 ### model.go
 
-- lines: 1349
+- lines: 1352
 - purpose: ModalView renders one modal without replacing or inspecting its parent page.
 - types: ModalView, ModalBody (iface), Model, HintCell, HelpRow
 - methods: HintCell(1), Model(28), Runtime(4), modelSink(4)
 - funcs: NewModel, BindingHints, JoinHints, HintCells, HintBindings, BindingHelp, NounHelp, PlaceHelp, SplitKeys, InputView, InputBlock
-- leans on: runtime.go(148), block.go(55), noun.go(32), resolve.go(19)
+- leans on: runtime.go(149), block.go(56), noun.go(32), instance.go(19)
 
 ### model_hooks.go
 
@@ -1194,7 +1194,7 @@ Root package `ochazuke` is flat: 153 source files, 172 test files. Each entry li
 
 ## Package cli
 
-Importable package `cli`: 37 source files, 35 test files.
+Importable package `cli`: 38 source files, 36 test files.
 
 ### cli/agent_metadata.go
 
@@ -1334,7 +1334,7 @@ Importable package `cli`: 37 source files, 35 test files.
 
 ### cli/mount.go
 
-- lines: 503
+- lines: 504
 - purpose: Mount maps the runtime registry to oden command groups and operation metadata.
 - methods: Shell(2), nounGroup(6)
 - funcs: Mount
@@ -1409,6 +1409,14 @@ Importable package `cli`: 37 source files, 35 test files.
 - types: CatalogSegment
 - funcs: CatalogSegments
 - leans on: catalog.go(1)
+
+### cli/setup.go
+
+- lines: 276 · tests: setup_test.go
+- purpose: setupRow keeps the status schema and supplies the registry's declared table columns, so --format table also works through Shell and mounted extensions.
+- methods: Shell(1)
+- funcs: DeclareSetup
+- leans on: shell.go(9), catalog.go(1), commands.go(1)
 
 ### cli/shell.go
 
@@ -1921,6 +1929,46 @@ Importable package `refdoc`: 4 source files, 1 test files.
 - methods: Stamp(1)
 - funcs: BuildStamp, FromGit
 
+## Package setup
+
+Importable package `setup`: 5 source files, 1 test files.
+
+### setup/apply.go
+
+- lines: 225
+- purpose: Apply preflights the whole plan and stages every file before running harness commands or replacing targets.
+- methods: Setup(2)
+- leans on: setup.go(10), plan.go(9)
+
+### setup/expand.go
+
+- lines: 203
+- purpose: expand implements ~, $ENV and nested ${ENV:-default}; explicit Home ignores inherited path variables so a fixture cannot resolve into the owner's home.
+- methods: Setup(5)
+- leans on: setup.go(19), formats.go(1)
+
+### setup/formats.go
+
+- lines: 374
+- methods: object(2)
+- leans on: setup.go(37), plan.go(2)
+
+### setup/plan.go
+
+- lines: 470
+- purpose: Status carries the rendered declaration and the exact next action.
+- types: Status, Selection, Write, Invocation, Plan
+- methods: Setup(10)
+- leans on: setup.go(112), formats.go(10), apply.go(4)
+
+### setup/setup.go
+
+- lines: 279 · tests: setup_test.go
+- purpose: Match describes adoption and ownership.
+- types: Kind, State, Match, Probe, Item, Runner (func), Options, Setup
+- funcs: New, Decode, Load
+- leans on: formats.go(2)
+
 ## Package story
 
 Importable package `story`: 8 source files, 0 test files.
@@ -2391,6 +2439,19 @@ Exported type -> file.
 - refdoc.Stamp -> refdoc/stamp.go
 - refdoc.StandardVerb -> refdoc/model.go
 - refdoc.Verb -> refdoc/model.go
+- setup.Invocation -> setup/plan.go
+- setup.Item -> setup/setup.go
+- setup.Kind -> setup/setup.go
+- setup.Match -> setup/setup.go
+- setup.Options -> setup/setup.go
+- setup.Plan -> setup/plan.go
+- setup.Probe -> setup/setup.go
+- setup.Runner -> setup/setup.go
+- setup.Selection -> setup/plan.go
+- setup.Setup -> setup/setup.go
+- setup.State -> setup/setup.go
+- setup.Status -> setup/plan.go
+- setup.Write -> setup/plan.go
 - story.BindSpec -> story/story.go
 - story.CardSpec -> story/story.go
 - story.CatalogSpec -> story/story.go

@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/setup"
-	"github.com/unixsuperhero/oden"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/setup"
+	"ofam.dev/oden"
 )
 
 type setupFixture struct {
