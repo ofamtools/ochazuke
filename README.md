@@ -759,15 +759,40 @@ The operation equivalents are `list.focus {id}`, `list.move {id?, delta, clamp?}
 #### Filtering by prop
 
 Lists, trees and choosers also accept structured `PropFilter{Prop, Op, Value}` conditions.
-`=` (the default), `!=`, literal case-sensitive `contains` on strings, and `in`
+`=` (the default), `!=`, literal case-sensitive `contains` on strings (on a
+list of strings, an item equal to the value), and `in`
 (an array of typed alternatives) combine with AND and with the existing `/`
 text query. Equality is the standard `--where` matcher, including prop typing
-(`"2"` equals `2` for an integer prop). The row's noun declares the props;
-its `Data` supplies the record, with id/label filled from the row when absent.
+(`"2"` equals `2` for an integer prop).
+The row's `Data` supplies the record, with id/label filled from the row when absent.
 `ListItem.Props` / `TreeNode.Props` can supply the record separately when
 `Data` is an opaque handle; catalog pages fill these from their row records,
-keeping the foreign id in `Data` for action dispatch.
-Secret props are excluded. A row without a condition's prop does not match.
+keeping the foreign id in `Data` for action dispatch. A table row with neither
+gets a field per titled column (the title lower-cased, spaces as dashes, the
+cell as text).
+
+**Every field is filterable unless turned off; only declared fields are
+writable.** A prop the row's noun declares (`PropSpec`) keeps its label,
+type, enum and guard. Any other top-level field of the rows (ids included) is
+a derived prop, read from the rows when a picker, a guard or a filter first
+asks and kept until the rows change: its type comes from the values (string,
+number, boolean, a list of strings; values of mixed kinds compare as their
+text; objects are not filterable and nested fields are not read, since a prop
+name has no dot). A derived prop is `ReadOnly` and `Derived` and lives only in
+the list's filter layer, never on the noun, so `set`, forms, the palette, the
+CLI and MCP cannot write it (`NOUN has no prop "x"; only declared props are
+writable`). This covers app nouns, nouns mounted from a catalog (whose rows
+come from the extension) and tables. Off only explicitly:
+
+- a `Secret` prop is never offered;
+- a declared prop with `NoFilter: true` is not;
+- a noun's `PropsOff` (`NounBuilder.PropsOff("notes", "raw*")`, the catalog's
+  `nouns[].propsOff`, carried by `cli.MountNouns`) names fields of its rows;
+- the user setting `list.props-off` (ochazuke › Search, a list, default empty)
+  names `NOUN.FIELD` patterns (`path.Match`: `lane.notes`, `*.uuid`,
+  `o-lane.lane.*`; `["*"]` turns every prop filter off).
+
+A row without a condition's prop does not match.
 With prop conditions active, a tree shows matching nodes with their ancestors,
 including paths beneath collapsed nodes. `h`, `l` and the fold verb change
 that filtered view; clearing restores the original collapse state. `/` alone
@@ -775,7 +800,8 @@ filters only the rows exposed by the current folds and does not keep ancestors.
 The filter does not remove list rows or their marks.
 
 `z /` runs `ochazuke.list.filter-prop`: pick a prop, then one of the visible
-rows' distinct values. The same verb takes `{prop, op, value}` directly.
+rows' distinct values (at most 500; a list prop offers its items and adds a
+`contains` condition). The same verb takes `{prop, op, value}` directly.
 `z !` (`filter-prop-clear`) picks one active condition to remove, or takes
 `prop` (the first condition on that prop) or a 1-based `index`. `z C`
 (`filter-props-clear`) clears all prop conditions, keeping `/` text.
@@ -785,8 +811,9 @@ to the focused row view. Active conditions appear in the row view header strip
 beside the text query; `list.filter-strip=false` hides the prop strip (default
 true); zero matches still show `0 of N (filtered)`. Hints come from the binding
 rows, which users can replace or unbind.
-The footer shows `z / prop filter`; the remove-one `z !` row stays in `?`
-and appears in the footer with `help.hints-hidden`.
+Since nearly every list with data now offers prop filters, the `z /` and
+remove-one `z !` rows stay in `?` and out of the footer; they appear there with
+`help.hints-hidden`, or a user row in `bindings.json` without `hidden`.
 
 Choosers share the list prop-filter controller: supply `ChooserSpec.Noun`
 (or `ChooserRow.Noun` per row) and `ChooserRow.Props` when `Data` is an opaque

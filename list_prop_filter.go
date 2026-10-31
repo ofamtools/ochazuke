@@ -38,6 +38,7 @@ func (l *List) treeHasNode(id string) bool {
 
 func (l *List) cacheRows() {
 	l.rowCache = make(map[string]*filterRow, len(l.all))
+	l.derived = nil
 	set := map[string]bool{}
 	if t := l.tree(); t != nil {
 		for _, n := range t.nodes {
@@ -86,12 +87,37 @@ func (l *List) preparedRow(item ListItem, m Matcher) string {
 func (l *List) thing(item ListItem) Thing {
 	row := l.cachedRow(item)
 	if row == nil {
-		return rowThing(l.r.Noun(item.Noun), item)
+		return l.cellThing(item, rowThing(l.r.Noun(item.Noun), item))
 	}
 	if !row.decoded {
-		row.thing, row.decoded = rowThing(l.r.Noun(item.Noun), item), true
+		row.thing, row.decoded = l.cellThing(item, rowThing(l.r.Noun(item.Noun), item)), true
 	}
 	return row.thing
+}
+
+// cellThing gives a table row that carries no data (no Props, no Data) a
+// field per titled column: the title as a prop name (lower case, spaces as
+// dashes), the cell as its text, so its columns filter like fields.
+func (l *List) cellThing(item ListItem, t Thing) Thing {
+	if item.Props != nil || item.Data != nil || len(l.columns) == 0 {
+		return t
+	}
+	for i, col := range l.columns {
+		name := columnField(col.Title)
+		if i >= len(item.Cells) || name == "" || !propName(name) {
+			continue
+		}
+		if _, ok := t[name]; !ok {
+			t[name] = item.Cells[i]
+		}
+	}
+	return t
+}
+
+// columnField is a column title as a field name: trimmed, lower case,
+// spaces as dashes.
+func columnField(title string) string {
+	return strings.ReplaceAll(strings.ToLower(strings.TrimSpace(title)), " ", "-")
 }
 
 func (l *List) rowNouns() []string { return l.nouns }
@@ -137,13 +163,18 @@ func (l *List) matchesProps(item ListItem) bool {
 	if n == nil {
 		return false
 	}
+	t := l.thing(item)
 	for _, f := range l.propFilters {
-		p := n.prop(f.Prop)
-		if p == nil || !l.r.propShown(*p, l.propFocus(), l.r.Mode, nil) {
+		p := l.filterProp(n, f.Prop)
+		if p == nil {
+			return false
+		}
+		value, present := t[f.Prop]
+		if !present || !propMatches(*p, value, f) {
 			return false
 		}
 	}
-	return propsMatch(n, l.thing(item), l.propFilters)
+	return true
 }
 
 func (l *List) validatePropFilters(filters []PropFilter) error {
@@ -151,10 +182,11 @@ func (l *List) validatePropFilters(filters []PropFilter) error {
 		found := false
 		for _, noun := range l.rowNouns() {
 			n := l.r.Noun(noun)
-			if n == nil || n.prop(f.Prop) == nil {
+			p := l.filterProp(n, f.Prop)
+			if p == nil {
 				continue
 			}
-			if _, err := typedFilter(n, f); err != nil {
+			if _, err := typedPropFilter(*p, f); err != nil {
 				return err
 			}
 			found = true
@@ -360,17 +392,7 @@ func (t *Tree) filterNodes() map[string]bool {
 	return kept
 }
 
-func (l *List) filterProps() []string {
-	set := map[string]bool{}
-	for _, noun := range l.rowNouns() {
-		for _, p := range l.r.Props(noun) {
-			if !p.Secret && l.r.propShown(p, l.propFocus(), l.r.Mode, nil) {
-				set[p.Name] = true
-			}
-		}
-	}
-	return slices.Sorted(maps.Keys(set))
-}
+func (l *List) filterProps() []string { return sortedKeys(l.filterSpecs()) }
 
 func (l *List) pickPropFilter(prop string, offerClear bool) error {
 	if prop == "" {
@@ -400,14 +422,12 @@ func (l *List) pickPropFilter(prop string, offerClear bool) error {
 	}
 	// Values come from the rows visible before the picker opened, not from
 	// the enum or the store. Raw typed values travel in Data unchanged.
+	// A list prop offers its items, and its condition is contains.
 	values := map[string]any{}
+	op := "="
 	for _, item := range l.items {
-		n := l.r.Noun(item.Noun)
-		if n == nil {
-			continue
-		}
-		p := n.prop(prop)
-		if p == nil || p.Secret || !l.r.propShown(*p, l.propFocus(), l.r.Mode, nil) {
+		p := l.filterProp(l.r.Noun(item.Noun), prop)
+		if p == nil {
 			continue
 		}
 		value, ok := l.thing(item)[prop]
@@ -418,18 +438,30 @@ func (l *List) pickPropFilter(prop string, offerClear bool) error {
 		if err != nil {
 			continue
 		}
-		raw, _ := json.Marshal(fileForm(typed))
-		values[string(raw)] = typed
+		each := []any{typed}
+		if items, ok := typed.([]string); ok {
+			op, each = "contains", nil
+			for _, one := range items {
+				each = append(each, one)
+			}
+		}
+		for _, one := range each {
+			raw, _ := json.Marshal(fileForm(one))
+			values[string(raw)] = one
+		}
 	}
 	rows := []ChooserRow{}
 	for _, key := range slices.Sorted(maps.Keys(values)) {
+		if len(rows) == propValueCap {
+			break
+		}
 		rows = append(rows, ChooserRow{ID: key, Label: fmt.Sprint(values[key]), Data: values[key]})
 	}
 	if len(rows) == 0 {
 		return fmt.Errorf("no visible values for prop %q", prop)
 	}
 	_, err := l.r.OpenChooser(ChooserSpec{Kind: "list-filter-value", Title: "Filter · " + prop, Rows: rows, Choose: func(row ChooserRow) Result {
-		filters := append(l.PropFilters(), PropFilter{Prop: prop, Op: "=", Value: row.Data})
+		filters := append(l.PropFilters(), PropFilter{Prop: prop, Op: op, Value: row.Data})
 		if err := l.SetPropFilters(filters); err != nil {
 			return Failed(err)
 		}

@@ -1,0 +1,98 @@
+{
+  "width": 100,
+  "height": 16,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "nouns": [
+      {
+        "noun": "lane"
+      }
+    ],
+    "lists": [
+      {
+        "id": "lanes",
+        "height": -1,
+        "items": [
+          {
+            "id": "l1",
+            "label": "props-default",
+            "noun": "lane",
+            "data": {
+              "id": "l1",
+              "state": "running",
+              "project": "ochazuke"
+            }
+          },
+          {
+            "id": "l2",
+            "label": "render-cache",
+            "noun": "lane",
+            "data": {
+              "id": "l2",
+              "state": "done",
+              "project": "ochazuke"
+            }
+          },
+          {
+            "id": "l3",
+            "label": "mcp-m1m2",
+            "noun": "lane",
+            "data": {
+              "id": "l3",
+              "state": "running",
+              "project": "mtm"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "name": "prop filter: a noun that declares no props filters on its rows' fields (z / lists id, project, state; pick state = running)",
+  "script": [
+    "z",
+    "/",
+    "s",
+    "t",
+    "a",
+    "t",
+    "e",
+    "enter",
+    "r",
+    "u",
+    "n",
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "contains": [
+        "Filter by prop",
+        "id",
+        "project",
+        "state"
+      ]
+    },
+    {
+      "after": 8,
+      "contains": [
+        "Filter · state",
+        "done",
+        "running"
+      ]
+    },
+    {
+      "after": 12,
+      "contains": [
+        "[state = running]",
+        "props-default",
+        "mcp-m1m2",
+        "2 of 3"
+      ],
+      "lacks": [
+        "render-cache"
+      ]
+    }
+  ],
+  "area": "lists"
+}

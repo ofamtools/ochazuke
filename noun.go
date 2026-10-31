@@ -48,6 +48,10 @@ type Noun struct {
 	Store *Store     `json:"-"`
 	// Filters are default saved prop filters for lists of this noun's rows.
 	Filters []SavedFilter `json:"filters,omitempty"`
+	// PropsOff are fields of the noun's rows that prop filters never offer
+	// (NounBuilder.PropsOff, the catalog's propsOff): a field name or a
+	// path.Match pattern over it. Every other field is filterable.
+	PropsOff []string `json:"propsOff,omitempty"`
 	// Classes declare the row classes and their optional motion keys.
 	Classes []ClassDecl `json:"classes,omitempty"`
 }

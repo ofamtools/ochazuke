@@ -705,7 +705,7 @@ func setChanges(n *Noun, a Arguments) (map[string]any, []string, error) {
 		p := n.prop(name)
 		switch {
 		case p == nil:
-			return &ArgumentError{fmt.Errorf("%s has no prop %q", n.Name, name)}
+			return &ArgumentError{fmt.Errorf("%s has no prop %q; only declared props are writable", n.Name, name)}
 		case !p.writable():
 			return &ArgumentError{fmt.Errorf("%s.%s is read-only", n.Name, name)}
 		}

@@ -20,5 +20,5 @@ R|  │                │ ┃ theme        ‹ dark ›                        
  |  │                │ │ Takes one of dark, light, mono.                       │
  |  ╰────────────────╯ ╰───────────────────────────────────────────────────────╯
  |  ────────────────────────────────────────────────────────────────────────────
- |  enter setting.edit · h/l setting.cycle · r setting.reset · z / prop filter …
+ |  enter setting.edit · h/l setting.cycle · r setting.reset · ]/[ settings.tab…
  |

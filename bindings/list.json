@@ -7,7 +7,7 @@
       {"key": "k", "action": "ochazuke.list.move", "args": {"delta": -1}, "from": {"steps": "count"}},
       {"key": "up", "action": "ochazuke.list.move", "args": {"delta": -1}, "from": {"steps": "count"}},
       {"key": "space", "action": "ochazuke.list.mark"},
-      {"key": "z /", "action": "ochazuke.list.filter-prop", "hint": "prop filter"},
+      {"key": "z /", "action": "ochazuke.list.filter-prop", "hint": "prop filter", "hidden": true},
       {"key": "z !", "action": "ochazuke.list.filter-prop-clear", "hint": "clear prop", "hidden": true},
       {"key": "z C", "action": "ochazuke.list.filter-props-clear", "hint": "clear props"},
       {"key": "z ]", "action": "ochazuke.list.filter-cycle", "args": {"step": 1}, "hint": "next filter"},

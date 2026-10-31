@@ -89,6 +89,14 @@ const (
 // When names a guard: where it is false (read where the request acts) the
 // prop is not offered, read or written (the catalog's availability); the
 // guard is the prop's own, apart from the noun's verb guards.
+//
+// Prop filters (list_props.go) offer every field of a list's rows, declared
+// or not. NoFilter turns a declared prop off for filtering (a Secret prop
+// never is offered). Derived marks a spec the framework read from row data
+// for a field the noun does not declare: it is ReadOnly and lives only in
+// the list's filter layer, never on the noun, so set, forms, the palette,
+// the CLI and MCP cannot write it. Every field is filterable; only declared
+// fields are writable.
 type PropSpec struct {
 	Name string `json:"name"`
 	Parameter
@@ -102,6 +110,11 @@ type PropSpec struct {
 	Secret     bool   `json:"secret,omitempty"`
 	Multiline  bool   `json:"multiline,omitempty"`
 	When       string `json:"availability,omitempty"`
+	NoFilter   bool   `json:"noFilter,omitempty"`
+	Derived    bool   `json:"derived,omitempty"`
+	// loose marks a derived prop whose rows hold values of several kinds:
+	// propValue reads every scalar as its text, so they compare as strings.
+	loose bool
 }
 
 // PropField is a prop as a form field (RecordField): its name, its
@@ -583,6 +596,9 @@ func checkSchema(n *Noun) error {
 // propValue types a value for a prop: a value of the type, or a word to
 // parse (the CLI's and the palette's), checked against the enum.
 func propValue(p PropSpec, value any) (any, error) {
+	if p.loose {
+		value = looseText(value)
+	}
 	if p.Type == PropObject {
 		switch v := value.(type) {
 		case map[string]any:

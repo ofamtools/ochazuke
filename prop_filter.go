@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"path"
 	"slices"
 	"strings"
 )
@@ -51,6 +52,12 @@ func typedFilter(n *Noun, f PropFilter) (PropFilter, error) {
 	if p == nil {
 		return f, fmt.Errorf("%s has no prop %q", n.Name, f.Prop)
 	}
+	return typedPropFilter(*p, f)
+}
+
+// typedPropFilter checks and types a condition on one prop, declared or
+// derived from the rows (list_props.go).
+func typedPropFilter(p PropSpec, f PropFilter) (PropFilter, error) {
 	if p.Secret {
 		return f, fmt.Errorf("cannot filter secret prop %q", f.Prop)
 	}
@@ -59,14 +66,14 @@ func typedFilter(n *Noun, f PropFilter) (PropFilter, error) {
 	}
 	switch f.Op {
 	case "=", "!=":
-		v, err := propValue(*p, f.Value)
+		v, err := propValue(p, f.Value)
 		if err != nil {
 			return f, fmt.Errorf("filter %s: %w", f.Prop, err)
 		}
 		f.Value = v
 	case "contains":
-		if p.Type != "" && p.Type != "string" {
-			return f, fmt.Errorf("contains needs a string prop: %s", f.Prop)
+		if p.Type != "" && p.Type != SettingString && p.Type != SettingList {
+			return f, fmt.Errorf("contains needs a string or list prop: %s", f.Prop)
 		}
 		if _, ok := f.Value.(string); !ok {
 			return f, fmt.Errorf("contains needs a string value")
@@ -77,7 +84,7 @@ func typedFilter(n *Noun, f PropFilter) (PropFilter, error) {
 			return f, err
 		}
 		for i, value := range values {
-			values[i], err = propValue(*p, value)
+			values[i], err = propValue(p, value)
 			if err != nil {
 				return f, fmt.Errorf("filter %s: %w", f.Prop, err)
 			}
@@ -109,9 +116,19 @@ func propMatches(p PropSpec, value any, f PropFilter) bool {
 	case "!=":
 		return !sameProp(p, value, f.Value)
 	case "contains":
-		text, ok := value.(string)
 		want, valid := f.Value.(string)
-		return ok && valid && strings.Contains(text, want)
+		if !valid {
+			return false
+		}
+		if p.Type == SettingList {
+			items, err := coerceList(value)
+			return err == nil && slices.Contains(items.([]string), want)
+		}
+		if p.loose {
+			value = looseText(value)
+		}
+		text, ok := value.(string)
+		return ok && strings.Contains(text, want)
 	case "in":
 		values, err := filterValues(f.Value)
 		return err == nil && slices.ContainsFunc(values, func(want any) bool { return sameProp(p, value, want) })
@@ -147,13 +164,32 @@ func (b *NounBuilder) Filters(filters ...SavedFilter) *NounBuilder {
 			panic(fmt.Errorf("saved filter %s: %w", f.Name, err))
 		}
 		f.Noun = b.n.Name
+		// A condition on a declared prop is checked now; one on a field the
+		// rows carry (list_props.go) when a list applies it.
 		for _, c := range f.conditions() {
+			if b.n.prop(c.Prop) == nil {
+				continue
+			}
 			if _, err := typedFilter(b.n, c); err != nil {
 				panic(err)
 			}
 		}
 		b.n.Filters = append(b.n.Filters, cloneSavedFilter(f))
 	}
+	b.last = ""
+	return b
+}
+
+// PropsOff names fields of the noun's rows that prop filters never offer: a
+// field name or a path.Match pattern over it (list_props.go). Every other
+// field of the rows is filterable, declared as a prop or not.
+func (b *NounBuilder) PropsOff(fields ...string) *NounBuilder {
+	for _, f := range fields {
+		if _, err := path.Match(f, ""); err != nil || strings.TrimSpace(f) == "" {
+			panic(fmt.Errorf("props off %q: not a field pattern", f))
+		}
+	}
+	b.n.PropsOff = append(b.n.PropsOff, fields...)
 	b.last = ""
 	return b
 }
