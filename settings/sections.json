@@ -20,6 +20,7 @@
     {"owner": "ochazuke", "id": "lists", "title": "Lists", "description": "Lists, tables and trees: rename, visual selection, zoom and breadcrumbs"},
     {"owner": "ochazuke", "id": "search", "title": "Search", "description": "How every search and filter treats case and matches its query: the path picker, choosers and the / list filter"},
     {"owner": "ochazuke", "id": "choosers", "title": "Choosers", "description": "Choosers and the path chooser"},
+    {"owner": "ochazuke", "id": "hooks", "title": "Hooks", "description": "hooks.json: verbs that run when an event happens"},
     {"owner": "ochazuke", "id": "status", "title": "Status bar", "description": "The status segments in the header rule"},
     {"owner": "ochazuke", "id": "pages", "title": "Pages", "description": "Hidden pages and the action history"},
     {"owner": "ochazuke", "id": "markdown", "title": "Markdown", "description": "Markdown documents and their notes"},

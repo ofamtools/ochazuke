@@ -1,0 +1,23 @@
+{
+  "name": "events: a where filter picks the rows: only the row on the noun that changed runs, and a row on another kind of surface does not",
+  "area": "events",
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "verbs": [
+      {"verb": "demo.edit", "description": "Change a thing"},
+      {"verb": "demo.synced", "description": "Record a sync", "parameters": {"reason": {"type": "string"}}}
+    ],
+    "bind": [{"noun": "ochazuke.chooser", "mode": "insert", "keys": "ctrl+e", "do": "demo.edit"}]
+  },
+  "config": {
+    "hooks.json": [
+      {"on": "surface.left", "where": {"changed": "project"}, "do": "demo.synced", "args": {"reason": "project"}},
+      {"on": "surface.left", "where": {"changed": "demo", "kind": "page"}, "do": "demo.synced", "args": {"reason": "page"}},
+      {"on": "surface.left", "where": {"changed": ["project", "demo"], "kind": "modal"}, "do": "demo.synced", "args": {"reason": "modal"}}
+    ]
+  },
+  "script": ["'", "ctrl+e", "esc"],
+  "expect": [
+    {"writes": ["demo.edit", "demo.synced reason=modal"], "modal": "", "noNotices": true}
+  ]
+}

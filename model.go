@@ -183,6 +183,7 @@ func newModel(r *Runtime) *Model {
 func (m *Model) Init() tea.Cmd {
 	m.Runtime.EnsureUserActions()
 	m.Runtime.EnsureUserBindings()
+	m.Runtime.EnsureHooks()
 	m.Runtime.EnsureConfigSettings()
 	m.Runtime.Settings().ensure()
 	// A running UI has a session: session values live until it exits.
@@ -251,6 +252,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if f, ok := inst.Component.(interface{ Flush() error }); ok {
 				_ = f.Flush()
 			}
+		}
+		// app.quitting's hooks run, and their jobs get QuitHookWait.
+		if cmd, wait := m.quitHooks(); wait {
+			return m, cmd
 		}
 		return m, tea.Quit
 	}

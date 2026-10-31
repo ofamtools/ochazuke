@@ -375,6 +375,7 @@ func (ss *Session) loadConfig() error {
 	ss.R.Config().Dir = dir
 	ss.R.EnsureUserActions()
 	ss.R.EnsureUserBindings()
+	ss.R.EnsureHooks()
 	return nil
 }
 

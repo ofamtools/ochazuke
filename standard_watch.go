@@ -228,12 +228,14 @@ func watchScope(noun, key string, where map[string]any) string {
 // other than through a verb of the change kind (an editor's write, a
 // daemon's event delivered on the loop). Call it on the loop.
 func (r *Runtime) Changed(nouns ...string) {
-	if r.watches == nil {
-		return
-	}
 	names := make([]string, len(nouns))
 	for i, n := range nouns {
 		names[i] = r.CanonicalNoun(n)
+	}
+	// The open surfaces count the change too (surface.left, events.go).
+	r.countChange(names)
+	if r.watches == nil {
+		return
 	}
 	r.refreshWatches(names)
 }

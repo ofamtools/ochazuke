@@ -1585,6 +1585,45 @@ A user adds or changes rows in `segments.json` beside `settings.json` (a command
 
 Sources are `provider` (Go), `command` (first line of its output, killed at `timeout`) or `verb` (`NOUN.VERB`, run outside the history); an answer may be `{"text": ..., "tone": ...}`. Refreshes run off the loop, one per segment at a time, so a slow source never blocks a key. Every part can be turned off: `status.segments` (all), `status.segments.<id>` (one), and `status.segment-order` holds the order. The `segment` noun lists, shows, enables, disables, toggles, moves and refreshes them from the palette and the CLI. An extension declares verb-sourced segments in its catalog (`segments`); a host mounts them with `cli.CatalogSegments`.
 
+## Events and hooks (hooks.json)
+
+Something happens, the runtime is told with `Runtime.Emit(event, fields)`, and the rows of the application's `hooks.json` run verbs. One general mechanism: nothing in the framework names a modal, a noun or a verb, so "left the tasks modal after a task changed" is one row's data, not a branch in code.
+
+**The application owns its hooks config.** ochazuke provides the mechanism only: `Emit`, the event registry (`DeclareEvent`, `Events`), the loader, the check and the verbs. There is no framework or global hooks file. Each application's Runtime reads its own `<config dir>/hooks.json` (`~/.config/matomeru/hooks.json` for mtm, `~/.config/o-json/hooks.json` for o-json, `$XDG_CONFIG_HOME/<app>/hooks.json` for any other), merged after that application's own default rows (`AddDefaultHooks`) and the defaults its extensions declare in its catalog (`cli.MountCatalogHooks`). Extensions have no hooks file of their own: their rows reach the host through the catalog, and the host's user drops or replaces them in the host's file.
+
+```jsonc
+// ~/.config/<app>/hooks.json (JSONC): an array of rows, or {"hooks": [rows]}
+[
+  {"on": "surface.left", "where": {"changed": "task"}, "do": "tasks-git.sync", "args": {"reason": "edit-session"}},
+  {"on": "surface.left", "where": {"changed": "project"}, "do": "tasks-git.sync", "args": {"reason": "edit-session"}},
+  {"on": "app.quitting", "where": {"changed": "task"}, "do": "tasks-git.sync", "args": {"reason": "quit"}, "from": {"changes": "changes"}},
+  {"on": "app.quitting", "do": "tasks-git.sync", "off": true}   // drop a default row
+]
+```
+
+- **Events the framework emits.** `surface.opened` when a modal, form (a modal record editor) or page opens (`kind` modal/form/page, `id`, `noun`); `surface.left` when it closes, a page when another page opens (the same, plus `changes`, `changed`, `opened_at`); `app.quitting` when the application quits (`changes`, `changed` since the last `surface.left`). Every event also carries `event`, its own name. `events list` shows them and the application's.
+- **What counts as a change.** A request of the change kind that ran without error (`Operation.HistoryKindOf`: application verbs, standard writes, prop sets) and every `Runtime.Changed(nouns...)` call (an editor's write, a daemon's event): the point where the watch machinery already learns that a change verb ran. Each counts once for every surface open at the time (the current page and every open modal), so a change in a nested modal counts for both and for the page beneath. The framework's own nouns (`ochazuke.*`: typing into an input, moving a list) are interaction, not data, and are not counted; neither is what a hook's verb changes, so hooks never feed themselves. A verb that closes its own modal counts on the surfaces still open after it.
+- **Rows.** `on` the event; `where` fields that must match (a value equals the field, or a list field such as `changed` holds it; a list value matches any of its values; no expressions); `do` the verb (`noun.verb`, aliases resolve); `args`; `from` an argument per event field (`"*"` passes the whole event as an object). Many rows per event and per verb; they run in order: the defaults, then the file's. A file row with the same `on`, `where` and `do` as a default replaces it in place; `"off": true` drops the defaults on that event naming that verb (with `where`, only the ones with the same `where`; without `do`, every default on the event). `source` (`user`, `app`, an extension's name) is written by `hooks list` and `hooks export` and ignored when read, so an export loads back.
+- **Running.** A row's verb runs once the request that emitted the event has finished, at the focus, confirmed (the row is the standing request). An application verb's work runs off the loop as a job, so a slow hook never blocks a key; an interaction verb runs on the loop, as from a key. A failure, at once or when the job ends, is a notice (`hook surface.left → tasks-git.sync failed: …`) and the other rows still run. Events a hook causes run after it, up to `HookChainLimit` (32) in one burst. On quit the Model waits for the jobs `app.quitting`'s rows started, at most `QuitHookWait` (2s).
+- **Apps emit their own events** through the same `Emit`, declared with `DeclareEvent(EventSpec{Name, Description, Fields})` so `hooks check` knows them (mtm will emit `agent.turn-ended`). `events emit EVENT --fields '{...}'` emits one from the palette or the CLI.
+- **Verbs.** `hooks list [EVENT]` (the rows in run order, with their source), `hooks check` (skipped rows: no `on` or `do`, an unknown verb, an argument the verb does not take, an unknown field; warnings: an unknown event, a `where` key or `from` field the event does not carry; for the file and the defaults), `hooks export [PATH] [--force]` (default `<config dir>/reference/hooks.reference.json`; never over the live `hooks.json` without force), `hooks reload`, `hooks path`; `events list`, `events emit`. `config reload` reads `hooks.json` too; a bad row is a notice at startup, as a bad bindings row is.
+- **Catalog.** An extension declares default rows with `AddDefaultHooks` and events with `DeclareEvent`; its catalog carries them (`hooks`, `events`, the framework's events left out) and a host adds them with `cli.MountCatalogHooks(r, doc, name, noun)` (`cli.CatalogHooks`, `cli.CatalogEvents`).
+- **Opt-out.** `hooks.enabled` (default on). Off, the events are still counted and emitted into nothing. An application with no rows behaves as before: the events fire into nothing.
+
+**Compared with Vim.** `hooks.json` rows are Vim's autocommands (`:help autocmd`), with fields in place of file patterns and verbs in place of Ex commands.
+
+| Vim | `:help` | ochazuke |
+|---|---|---|
+| `:autocmd {event} {pat} {cmd}` | `:autocmd` | Similar: a row `{on, where, do}`; `where` matches the event's fields, not a file pattern, and `do` is a verb, not an Ex command |
+| Several autocommands on one event run in the order defined | `autocmd-define` | Same: rows run in order, the defaults first, then the file's |
+| `BufLeave`, `WinLeave`, `BufEnter` | `BufLeave` | Similar: `surface.left` and `surface.opened` for modals, forms and pages, with what changed while it was open |
+| `QuitPre`, `VimLeavePre` | `QuitPre` | Similar: `app.quitting`; it cannot stop the quit (`BeforeQuit` checks do that) |
+| `User` events, `:doautocmd` | `User`, `:doautocmd` | Similar: an application's own events (`DeclareEvent`, `Emit`), `events emit` from the palette or the CLI |
+| `:autocmd!` removes autocommands; `augroup` | `:autocmd-remove`, `:augroup` | Similar: an `off` row drops defaults; rows are grouped by source, not by named groups |
+| `nested`: an autocommand's command may trigger more | `autocmd-nested` | Similar: events a hook causes run, bounded by `HookChainLimit`; Vim nests up to 10 levels |
+| `'eventignore'` | `'eventignore'` | Similar: `hooks.enabled` off ignores them all; there is no per-event list |
+| Autocommands run synchronously | `autocommand` | Different: an application verb runs as a job off the loop, so a hook never blocks the UI |
+
 ## Configuration reference (config export)
 
 Every application has a `config` noun. `config path` prints where the user files live; `config export [DIR]` writes a complete reference of the user configuration to copy from; `config reload` reads every config file again:

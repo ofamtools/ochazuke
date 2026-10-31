@@ -406,6 +406,12 @@ func (r *Runtime) OpenPage(id string) error {
 	} else if r.Focus != from {
 		r.focusMoved(stop, path, r.Focus)
 	}
+	if left != id {
+		if r.Instances[left] != nil {
+			r.surfaceLeft(left, SurfacePage, r.instanceNounOf(left))
+		}
+		r.surfaceOpened(id, SurfacePage)
+	}
 	if page.OnOpen != nil && left != id {
 		page.OnOpen(r, left)
 	}

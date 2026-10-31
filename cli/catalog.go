@@ -84,6 +84,13 @@ type CatalogDoc struct {
 	// own verbs (CatalogSegment), in drawing order: a host mounts them
 	// against the verbs it mounted (CatalogSegments).
 	Segments []CatalogSegment `json:"segments,omitempty"`
+	// Hooks are the tool's default hook rows (ochazuke.Runtime.DefaultHooks,
+	// verbs in the tool's names) and Events the events it declares
+	// (DeclareEvent), the framework's left out: a host adds them to its own
+	// with CatalogHooks and CatalogEvents. The host's user drops or
+	// replaces them in the host's hooks.json; a tool has no hooks file.
+	Hooks  []ochazuke.HookRow   `json:"hooks,omitempty"`
+	Events []ochazuke.EventSpec `json:"events,omitempty"`
 }
 
 // CatalogNoun is a noun and its verbs, by verb name. Pin is the noun's
@@ -395,6 +402,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool) ([]byte, err
 		doc.StateDelta = StateDeltaVersion
 	}
 	doc.Pages = declaredPages(r)
+	doc.Hooks, doc.Events = catalogHooks(r)
 	return json.MarshalIndent(doc, "", "  ")
 }
 

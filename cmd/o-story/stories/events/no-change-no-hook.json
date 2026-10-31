@@ -1,0 +1,18 @@
+{
+  "name": "events: closing a modal with no change runs no surface.left row that asks for a change",
+  "area": "events",
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "verbs": [
+      {"verb": "demo.synced", "description": "Record a sync", "parameters": {"reason": {"type": "string"}}}
+    ]
+  },
+  "config": {
+    "hooks.json": [{"on": "surface.left", "where": {"changed": "demo"}, "do": "demo.synced", "args": {"reason": "edit-session"}}]
+  },
+  "script": ["'", "esc", "'", "esc"],
+  "expect": [
+    {"after": 1, "modal": "page-picker"},
+    {"writes": [], "modal": "", "noNotices": true}
+  ]
+}
