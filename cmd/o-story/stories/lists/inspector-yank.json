@@ -4,9 +4,9 @@
   "width": 100,
   "height": 16,
   "page": {"noHeadings": true, "lists": [{"id": "paths", "columns": [{"title": "Path"}], "items": [{"id": "owner", "label": ".items[3].owner.id", "cells": [".items[3].owner.id"]}]}]},
-  "script": ["g", "?", "Y", "g", "?"],
+  "script": ["alt+?", "Y", "alt+?"],
   "expect": [
-    {"after": 3, "register": ".items[3].owner.id", "contains": ["register \" = \".items[3].owner.id\""]},
+    {"after": 2, "register": ".items[3].owner.id", "contains": ["register \" = \".items[3].owner.id\""]},
     {"focus": "owner", "lacks": ["register \" ="]}
   ]
 }

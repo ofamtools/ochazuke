@@ -179,7 +179,7 @@ These are suggested starter/demo pages. Domain pages such as Agents, Panes, Proj
 
 ### State inspector
 
-`g ?` toggles a one-line state strip below the body. `inspector.enabled`
+`alt+?` toggles a one-line state strip below the body. `inspector.enabled`
 defaults to `false`; turn it on in settings to keep the strip visible.
 `ochazuke.state inspect` (or `state inspect`) returns the same snapshot as
 `r.Inspect()`, including JSON through the CLI/API. It shows live and declared

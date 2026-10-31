@@ -70,10 +70,10 @@ R|            │ ▾ g                                                        w
  |            │   /             filter                                     Open the list's filter line and   │
  |            │                                                            type its query (list_filter       │
  |            │                                                            mode); a kept filter is edited    │
+ |            │   alt+?         state.toggle                               Toggle the live state inspector   │
+ |            │                                                            strip                             │
  |            │   ctrl+space    palette.open                               Open the command line             │
- |            │ ▾ g                                                        waits for the next key (1 key)    │
- |            │   ▸ g y         yank-history.open                          Select a previous application     │
- |            │ 1–29 / 59                                                                                    │
+ |            │ 1–28 / 60                                                                                    │
  |            │ space list.mark · S view · esc modal.pop · : palette.open · ? bindings.help · / filter       │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |

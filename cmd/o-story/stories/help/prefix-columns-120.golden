@@ -73,7 +73,7 @@ R|            │   q             app.quit                                   Exi
  |            │   ?             bindings.help                              Open the keys the focus answers   │
  |            │                                                            to, with the operation each runs  │
  |            │                                                            and its description               │
- |            │ 1–30 / 64                                                                                    │
+ |            │ 1–30 / 65                                                                                    │
  |            │ space list.mark · S view · esc modal.pop · : palette.open · ? bindings.help · / filter       │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |

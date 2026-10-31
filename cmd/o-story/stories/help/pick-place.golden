@@ -30,7 +30,7 @@ R|            │   q             app.quit                                   Exi
  |            │   Y             list.yank ?         what row               when list-yanks · Copy the        │
  |            │                                                            current cell's text (what: cell,  │
  |            │                                                            a cell-mode table) or the row's   │
- |            │ 1–8 / 107                                                                                    │
+ |            │ 1–8 / 108                                                                                    │
  |            │ space list.mark · S view · n noun · m mode · p place · esc modal.pop · : palette.open · ? b… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |

@@ -453,6 +453,7 @@ Conformance:
 | mode | noun | verbs |
 |---|---|---|
 | count_pending | count | `count.append` |
+| count_pending | mode | `mode.enter` |
 | edit | mode | `mode.pin` `mode.set` |
 | flat | mode | `mode.set` |
 | hints | demo | `demo.hint` `demo.hints-cancel` `demo.hints-ignore` |
@@ -538,6 +539,7 @@ Mode edges (from → to via):
 - `count_pending` → `count_pending ]` via `row ]`
 - `count_pending` → `count_pending ctrl+w` via `row ctrl+w`
 - `count_pending` → `count_pending g` via `row g`
+- `count_pending` → `g_pending` via `mode.enter`
 - `count_pending` → `normal` via `detail.scroll`
 - `count_pending` → `normal` via `list.column`
 - `count_pending` → `normal` via `list.goto`
@@ -555,6 +557,8 @@ Mode edges (from → to via):
 - `edit` → `shape` via `mode.set`
 - `edit` → `table` via `mode.set`
 - `flat` → `edit` via `mode.set`
+- `g_pending` → `normal` via `input.move`
+- `g_pending` → `normal` via `yank-history.open`
 - `hints` → `terminal` via `demo.hint`
 - `hints` → `terminal` via `demo.hints-cancel`
 - `insert` → `jq` via `palette.run`
@@ -591,6 +595,7 @@ Mode edges (from → to via):
 - `macro_pending` → `visual-line` via `mode.leave`
 - `normal` → `count_pending` via `mode.enter`
 - `normal` → `edit` via `mode.set`
+- `normal` → `g_pending` via `mode.enter`
 - `normal` → `insert` via `bindings-help.mode`
 - `normal` → `insert` via `bindings-help.noun`
 - `normal` → `insert` via `bindings-help.place`
@@ -663,7 +668,6 @@ Mode edges (from → to via):
 - `normal g` → `normal` via `mode.leave`
 - `normal g` → `normal` via `row c`
 - `normal g` → `normal` via `settings.tab`
-- `normal g` → `normal` via `state.toggle`
 - `normal g` → `normal` via `tick binding`
 - `normal g` → `normal` via `timeline.row`
 - `normal g` → `normal` via `yank-history.open`

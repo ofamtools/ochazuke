@@ -78,16 +78,17 @@ func TestInspectorSnapshotAndPanel(t *testing.T) {
 	if r.Inspect().LastRequest.Key != before {
 		t.Fatal("inspect hid the last action")
 	}
-	if _, err := r.ValidateBindings(); err != nil {
-		t.Fatal(err)
+	problems, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "check"})
+	if err != nil || len(problems.([]string)) != 0 {
+		t.Fatalf("bindings check: %v, %v", problems, err)
 	}
-	motionKeys(t, r, m, "g ?")
+	motionKeys(t, r, m, "alt+?")
 	if !r.Settings().Bool(InspectorEnabledSetting) || !strings.Contains(m.inspectorLine(), ".items[3].owner.id") {
-		t.Fatal("g ? did not show inspector")
+		t.Fatal("alt+? did not show inspector")
 	}
-	motionKeys(t, r, m, "g ?")
+	motionKeys(t, r, m, "alt+?")
 	if m.inspectorLine() != "" {
-		t.Fatal("g ? did not hide inspector")
+		t.Fatal("alt+? did not hide inspector")
 	}
 }
 
