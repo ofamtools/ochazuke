@@ -1,0 +1,192 @@
+{
+  "name": "class motions: classes, counts, edges and shown rows",
+  "area": "lists",
+  "width": 120,
+  "height": 16,
+  "page": {
+    "noHeadings": true,
+    "nouns": [
+      {
+        "noun": "commit",
+        "classes": [
+          {
+            "name": "merge",
+            "key": "m",
+            "title": "merge commit"
+          },
+          {
+            "name": "refs",
+            "key": "r",
+            "title": "decorated commit"
+          },
+          {
+            "name": "first-parent",
+            "title": "first parent"
+          }
+        ]
+      }
+    ],
+    "lists": [
+      {
+        "id": "commits",
+        "items": [
+          {
+            "id": "c1",
+            "label": "keep initial",
+            "noun": "commit",
+            "classes": []
+          },
+          {
+            "id": "c2",
+            "label": "ordinary row",
+            "noun": "commit",
+            "classes": []
+          },
+          {
+            "id": "c3",
+            "label": "keep merge one",
+            "noun": "commit",
+            "classes": [
+              "merge"
+            ]
+          },
+          {
+            "id": "c4",
+            "label": "keep decorated release",
+            "noun": "commit",
+            "classes": [
+              "refs"
+            ]
+          },
+          {
+            "id": "c5",
+            "label": "hidden merge",
+            "noun": "commit",
+            "classes": [
+              "merge"
+            ]
+          },
+          {
+            "id": "c6",
+            "label": "keep merge two",
+            "noun": "commit",
+            "classes": [
+              "merge",
+              "refs"
+            ]
+          },
+          {
+            "id": "c7",
+            "label": "ordinary tail",
+            "noun": "commit",
+            "classes": []
+          },
+          {
+            "id": "c8",
+            "label": "keep merge three",
+            "noun": "commit",
+            "classes": [
+              "merge"
+            ]
+          },
+          {
+            "id": "c9",
+            "label": "keep final ordinary",
+            "noun": "commit",
+            "classes": []
+          }
+        ],
+        "height": -1
+      }
+    ]
+  },
+  "script": [
+    "]",
+    "m",
+    "]",
+    "r",
+    "[",
+    "m",
+    "3",
+    "]",
+    "m",
+    "]",
+    "m",
+    "[",
+    "m",
+    "9",
+    "[",
+    "m",
+    "[",
+    "m",
+    "g",
+    "g",
+    "/",
+    "k",
+    "e",
+    "e",
+    "p",
+    "enter",
+    "]",
+    "m",
+    "]",
+    "m",
+    "]",
+    "m",
+    "[",
+    "m"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "focus": "c3"
+    },
+    {
+      "after": 4,
+      "focus": "c4"
+    },
+    {
+      "after": 6,
+      "focus": "c3"
+    },
+    {
+      "after": 9,
+      "focus": "c8"
+    },
+    {
+      "after": 11,
+      "focus": "c8",
+      "contains": [
+        "No further row of class merge"
+      ]
+    },
+    {
+      "after": 13,
+      "focus": "c6"
+    },
+    {
+      "after": 16,
+      "focus": "c3"
+    },
+    {
+      "after": 18,
+      "focus": "c3"
+    },
+    {
+      "after": 28,
+      "focus": "c3"
+    },
+    {
+      "after": 30,
+      "focus": "c6"
+    },
+    {
+      "after": 32,
+      "focus": "c8"
+    },
+    {
+      "after": 34,
+      "focus": "c6"
+    }
+  ]
+}

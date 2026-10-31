@@ -495,7 +495,7 @@ Conformance:
 | normal | history | `history.repeat` |
 | normal | input | `input.begin` `input.move` `input.operator` `input.select` `input.undo` |
 | normal | key | `key.ignore` |
-| normal | list | `list.column` `list.filter-clear` `list.filter-cycle` `list.filter-open` `list.filter-prop` `list.filter-prop-clear` `list.filter-props-clear` `list.fit-column` `list.fit-columns` `list.goto` `list.mark` `list.move` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.toggle-pin-column` `list.visual` `list.yank` |
+| normal | list | `list.column` `list.filter-clear` `list.filter-cycle` `list.filter-open` `list.filter-prop` `list.filter-prop-clear` `list.filter-props-clear` `list.fit-column` `list.fit-columns` `list.goto` `list.mark` `list.move` `list.next-class` `list.previous-class` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.toggle-pin-column` `list.visual` `list.yank` |
 | normal | macro | `macro.record` `macro.start` `macro.stop` |
 | normal | markdown | `markdown.delete` `markdown.fold` `markdown.insert` `markdown.move` `markdown.next-block` `markdown.next-kind` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
 | normal | modal | `modal.pop` |
@@ -538,6 +538,7 @@ Conformance:
 
 Mode edges (from → to via):
 
+- `count_pending` → `count_pending [` via `row [`
 - `count_pending` → `count_pending ]` via `row ]`
 - `count_pending` → `count_pending ctrl+w` via `row ctrl+w`
 - `count_pending` → `count_pending g` via `row g`
@@ -551,6 +552,8 @@ Mode edges (from → to via):
 - `count_pending` → `normal` via `timeline.step`
 - `count_pending` → `normal` via `view.scroll`
 - `count_pending` → `visual-line` via `list.move`
+- `count_pending [` → `normal` via `list.previous-class`
+- `count_pending ]` → `normal` via `list.next-class`
 - `count_pending ]` → `normal` via `markdown.next-kind`
 - `count_pending ctrl+w` → `normal` via `pane.grow`
 - `count_pending ctrl+w` → `normal` via `pane.shrink`
@@ -650,8 +653,10 @@ Mode edges (from → to via):
 - `normal <` → `normal` via `outline.outdent`
 - `normal >` → `normal` via `outline.indent`
 - `normal G` → `normal` via `mode.leave`
+- `normal [` → `normal` via `list.previous-class`
 - `normal [` → `normal` via `markdown.previous-kind`
 - `normal [` → `normal` via `markdown.previous-same`
+- `normal ]` → `normal` via `list.next-class`
 - `normal ]` → `normal` via `markdown.next-kind`
 - `normal ]` → `normal` via `markdown.next-same`
 - `normal ctrl+a` → `normal` via `focus.next`

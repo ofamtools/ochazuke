@@ -1,0 +1,126 @@
+{
+  "name": "class motion help: generated rows describe each class",
+  "area": "lists",
+  "width": 120,
+  "height": 36,
+  "page": {
+    "noHeadings": true,
+    "nouns": [
+      {
+        "noun": "commit",
+        "classes": [
+          {
+            "name": "merge",
+            "key": "m",
+            "title": "merge commit"
+          },
+          {
+            "name": "refs",
+            "key": "r",
+            "title": "decorated commit"
+          },
+          {
+            "name": "first-parent",
+            "title": "first parent"
+          }
+        ]
+      }
+    ],
+    "lists": [
+      {
+        "id": "commits",
+        "items": [
+          {
+            "id": "c1",
+            "label": "keep initial",
+            "noun": "commit",
+            "classes": []
+          },
+          {
+            "id": "c2",
+            "label": "ordinary row",
+            "noun": "commit",
+            "classes": []
+          },
+          {
+            "id": "c3",
+            "label": "keep merge one",
+            "noun": "commit",
+            "classes": [
+              "merge"
+            ]
+          },
+          {
+            "id": "c4",
+            "label": "keep decorated release",
+            "noun": "commit",
+            "classes": [
+              "refs"
+            ]
+          },
+          {
+            "id": "c5",
+            "label": "hidden merge",
+            "noun": "commit",
+            "classes": [
+              "merge"
+            ]
+          },
+          {
+            "id": "c6",
+            "label": "keep merge two",
+            "noun": "commit",
+            "classes": [
+              "merge",
+              "refs"
+            ]
+          },
+          {
+            "id": "c7",
+            "label": "ordinary tail",
+            "noun": "commit",
+            "classes": []
+          },
+          {
+            "id": "c8",
+            "label": "keep merge three",
+            "noun": "commit",
+            "classes": [
+              "merge"
+            ]
+          },
+          {
+            "id": "c9",
+            "label": "keep final ordinary",
+            "noun": "commit",
+            "classes": []
+          }
+        ],
+        "height": -1
+      }
+    ]
+  },
+  "script": [
+    "?",
+    "/",
+    "c",
+    "l",
+    "a",
+    "s",
+    "s",
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 8,
+      "contains": [
+        "merge commit",
+        "decorated commit",
+        "list.next-class",
+        "list.previous-",
+        "[ m",
+        "] m"
+      ]
+    }
+  ]
+}

@@ -36,6 +36,8 @@ type ListItem struct {
 	Cells   []string   `json:"cells,omitempty"`
 	Section string     `json:"section,omitempty"`
 	Tones   []ToneSpan `json:"tones,omitempty"`
+	// Classes are application-defined labels for list.next-class and previous-class.
+	Classes []string `json:"classes,omitempty"`
 }
 
 // List owns flat selection, marks and scrolling on the runtime's event loop.
@@ -207,8 +209,8 @@ func (l *List) SetItems(items []ListItem) error {
 // Data is the application's value, shared as given.
 func (l *List) Items() []ListItem { return cloneItems(l.all) }
 
-// cloneItems copies rows with their own Cells and Tones (one backing array
-// each for all of them): the list and its callers never share a slice, so
+// cloneItems copies rows with their own Cells, Tones and Classes (one backing
+// array each for all cells and tones): the list and its callers never share a slice, so
 // SetItems's same-cells test (sameCells) always compares what was drawn
 // with what is given.
 func cloneItems(items []ListItem) []ListItem {
@@ -221,6 +223,7 @@ func cloneItems(items []ListItem) []ListItem {
 	cellBuf, toneBuf := make([]string, 0, cells), make([]ToneSpan, 0, tones)
 	for i, it := range items {
 		out[i].Props = maps.Clone(it.Props)
+		out[i].Classes = slices.Clone(it.Classes)
 		if it.Cells != nil {
 			n := len(cellBuf)
 			cellBuf = append(cellBuf, it.Cells...)
@@ -235,9 +238,10 @@ func cloneItems(items []ListItem) []ListItem {
 	return out
 }
 
-// cloneItem is one row with its own Cells and Tones.
+// cloneItem is one row with its own Cells, Tones and Classes.
 func cloneItem(it ListItem) ListItem {
 	it.Cells, it.Tones = slices.Clone(it.Cells), slices.Clone(it.Tones)
+	it.Classes = slices.Clone(it.Classes)
 	it.Props = maps.Clone(it.Props)
 	return it
 }
