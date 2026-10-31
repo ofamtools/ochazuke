@@ -1,0 +1,122 @@
+{
+  "area": "choosers",
+  "width": 100,
+  "height": 18,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "nouns": [
+      {
+        "noun": "note",
+        "props": [
+          {
+            "name": "by"
+          },
+          {
+            "name": "status"
+          }
+        ],
+        "filters": []
+      }
+    ],
+    "chooser": {
+      "kind": "notes",
+      "title": "Notes",
+      "rows": [
+        {
+          "id": "n1",
+          "label": "Owner alpha",
+          "noun": "note",
+          "props": {
+            "by": "owner",
+            "status": "todo"
+          }
+        },
+        {
+          "id": "n2",
+          "label": "Agent beta",
+          "noun": "note",
+          "props": {
+            "by": "agent",
+            "status": "todo"
+          }
+        },
+        {
+          "id": "n3",
+          "label": "Owner gamma",
+          "noun": "note",
+          "props": {
+            "by": "owner",
+            "status": "done"
+          }
+        }
+      ]
+    }
+  },
+  "name": "chooser prop filters picker offers clear without saved cycling",
+  "script": [
+    "ctrl+f",
+    "enter",
+    {
+      "type": "owner"
+    },
+    "enter",
+    "ctrl+f",
+    {
+      "type": "clear"
+    },
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "modal": "list-filter-prop",
+      "contains": [
+        "by",
+        "status"
+      ]
+    },
+    {
+      "after": 2,
+      "modal": "list-filter-value",
+      "contains": [
+        "owner",
+        "agent"
+      ]
+    },
+    {
+      "modal": "notes",
+      "contains": [
+        "[by = owner]",
+        "Owner alpha",
+        "Owner gamma"
+      ],
+      "lacks": [
+        "Agent beta"
+      ],
+      "after": 4
+    },
+    {
+      "after": 5,
+      "modal": "list-filter-prop",
+      "contains": [
+        "Clear prop filters"
+      ]
+    },
+    {
+      "modal": "notes",
+      "contains": [
+        "Owner alpha",
+        "Agent beta",
+        "Owner gamma"
+      ],
+      "lacks": [
+        "[by = owner]"
+      ]
+    }
+  ]
+}

@@ -32,6 +32,10 @@ import (
 // filter never sees them and Enter takes one only once the highlight is
 // moved onto it, or when the query spells it.
 type ChooserRow struct {
+	// Noun names the row's declared props and saved filters; empty uses ChooserSpec.Noun.
+	Noun string
+	// Props supplies typed values when Data is an opaque handle, as on ListItem.
+	Props    Thing
 	ID       string
 	Label    string
 	Data     any
@@ -72,6 +76,11 @@ type ChooserRow struct {
 // ("loading…"). Keep names the cell columns cut last. Preview draws a
 // preview of the highlighted row beside the rows when there is room.
 type ChooserSpec struct {
+	// Noun is the default row noun for prop filtering.
+	Noun string
+	// NoPropFilters opts this chooser out of prop filters and their keys.
+	NoPropFilters bool
+
 	Kind        string
 	Title       string
 	Rows        []ChooserRow
@@ -134,6 +143,11 @@ type Chooser struct {
 	// match is the match mode search.cycle-match or search.set-match
 	// chose while open; "" is the chooser.match setting (search_match.go).
 	match string
+
+	// filters is the shared list prop-filter controller, without a registered
+	// list or row instances: the chooser retains its own ranking and focus.
+	filters      *List
+	propsEnabled bool
 }
 
 // ChooserStableHeightSetting keeps an open chooser at the height it
@@ -203,6 +217,7 @@ func (r *Runtime) OpenChooser(spec ChooserSpec) (*Chooser, error) {
 		c.source = c.startSource()
 		c.spec.Rows = nil
 	}
+	c.initPropFilters()
 	c.refilter()
 	inst, err := r.OpenModal(spec.Kind, Payload{}, WithInput(c.input, Kind(chooserNoun)))
 	if err != nil {
@@ -305,6 +320,9 @@ func (c *Chooser) pick() Result {
 	if c.spec.Choose == nil {
 		return Done(row.ID)
 	}
+	// The callback belongs to the restored focus, including when another
+	// modal remains below this chooser.
+	defer c.r.actingFor(c.r.Focus)()
 	return c.spec.Choose(row)
 }
 
@@ -317,6 +335,7 @@ func (c *Chooser) create() Result {
 	if err := c.close(); err != nil {
 		return Failed(err)
 	}
+	defer c.r.actingFor(c.r.Focus)()
 	return create(query)
 }
 
@@ -328,6 +347,7 @@ func (c *Chooser) SetRows(rows []ChooserRow) {
 		keep = row.ID
 	}
 	c.spec.Rows = rows
+	c.cachePropRows()
 	c.refilter()
 	for i, row := range c.matches {
 		if keep != "" && row.ID == keep {
@@ -362,7 +382,7 @@ func (c *Chooser) Highlighted() (ChooserRow, bool) {
 // sync refilters when the query changed; typing resets the highlight to the
 // top match.
 func (c *Chooser) sync() {
-	if c.Query() == c.seen {
+	if c.Query() == c.seen && c.propsEnabled == c.propFiltersEnabled() {
 		return
 	}
 	if c.live() && c.Query() != c.loadedQuery {
@@ -373,6 +393,7 @@ func (c *Chooser) sync() {
 
 func (c *Chooser) refilter() {
 	c.seen = c.Query()
+	c.propsEnabled = c.propFiltersEnabled()
 	cm := c.r.CaseFor(c.seen)
 	filter := c.spec.Filter
 	if filter == nil {
@@ -381,6 +402,9 @@ func (c *Chooser) refilter() {
 	}
 	var head, tail, fixed []ChooserRow
 	for _, row := range c.spec.Rows {
+		if c.propsEnabled && !c.filters.matchesProps(c.propItem(row)) {
+			continue
+		}
 		if row.Fixed {
 			fixed = append(fixed, row)
 			continue
@@ -421,6 +445,12 @@ func (c *Chooser) refilter() {
 		create = []ChooserRow{{ID: chooserCreateRow, Label: label}}
 	}
 	c.matches = slices.Concat(head, tail, create, fixed)
+	c.filters.items = nil
+	for _, row := range c.matches {
+		if row.ID != chooserCreateRow {
+			c.filters.items = append(c.filters.items, c.propItem(row))
+		}
+	}
 	c.moved = false
 	c.cursor = -1
 	// A fixed row the query spells ("unp", "unpin", "no pin" for "no pin
@@ -533,7 +563,7 @@ func (c *Chooser) move(delta int) {
 
 func (c *Chooser) state() map[string]any {
 	row, _ := c.Highlighted()
-	state := map[string]any{"query": c.Query(), "matches": len(c.matches), "highlighted": row.ID, "moved": c.moved}
+	state := map[string]any{"propFilters": c.PropFilters(), "savedFilter": c.filters.savedFilter, "query": c.Query(), "matches": len(c.matches), "highlighted": row.ID, "moved": c.moved}
 	if len(c.spec.Sources) > 0 {
 		state["source"] = c.Source()
 		state["sources"] = c.sourceNames()
@@ -617,6 +647,11 @@ func (c *Chooser) rowsView(width, height int) Block {
 		search = searchLine(search, tail, width)
 	}
 	lines := []string{search}
+	if c.propsEnabled {
+		if strip := c.filters.propStrip(); strip != "" {
+			lines = append(lines, searchLine(strip, fmt.Sprintf("%d of %d", len(c.filters.items), len(c.spec.Rows)), width))
+		}
+	}
 	rowsHeight := max(1, height-2)
 	switch {
 	case len(c.spec.Rows) == 0 && c.emptyLine() != "":

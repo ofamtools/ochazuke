@@ -121,7 +121,7 @@ func propMatches(p PropSpec, value any, f PropFilter) bool {
 
 // SavedFilter is a named AND of conditions. Where is the convenient
 // equality form, matching --where; Conditions supplies other operators.
-// List scopes a user row to one list id, Noun to every list of those rows.
+// List scopes a row to one list/tree id or chooser kind, Noun to every row view of those rows.
 // A list-specific row wins over a noun row with the same name.
 type SavedFilter struct {
 	Name       string         `json:"name"`
@@ -135,7 +135,7 @@ func (f SavedFilter) conditions() []PropFilter {
 	return append(whereFilters(f.Where), f.Conditions...)
 }
 
-// Filters declares app defaults for every list/tree of this noun's rows.
+// Filters declares app defaults for every list/tree/chooser of this noun's rows.
 // Catalogs carry them to hosts; list.filters in settings.json adds or
 // replaces defaults by scope and name. An empty filter represents "all".
 func (b *NounBuilder) Filters(filters ...SavedFilter) *NounBuilder {

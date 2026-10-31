@@ -691,7 +691,7 @@ The operation equivalents are `list.focus {id}`, `list.move {id?, delta, clamp?}
 
 #### Filtering by prop
 
-Lists and trees also accept structured `PropFilter{Prop, Op, Value}` conditions.
+Lists, trees and choosers also accept structured `PropFilter{Prop, Op, Value}` conditions.
 `=` (the default), `!=`, literal case-sensitive `contains` on strings, and `in`
 (an array of typed alternatives) combine with AND and with the existing `/`
 text query. Equality is the standard `--where` matcher, including prop typing
@@ -713,13 +713,38 @@ rows' distinct values. The same verb takes `{prop, op, value}` directly.
 `prop` (the first condition on that prop) or a 1-based `index`. `z C`
 (`filter-props-clear`) clears all prop conditions, keeping `/` text.
 `List.SetPropFilters`, `PropFilters`, `SavedFilters` and `ApplyFilter` expose
-the same mechanism to apps. These verbs take `id` for a list or tree, defaulting
-to the focused list. Active conditions appear in the list/tree header strip
+the same mechanism to apps. These verbs take `id` for a list, tree or chooser, defaulting
+to the focused row view. Active conditions appear in the row view header strip
 beside the text query; `list.filter-strip=false` hides the prop strip (default
 true); zero matches still show `0 of N (filtered)`. Hints come from the binding
 rows, which users can replace or unbind.
 The footer shows `z / prop filter`; the remove-one `z !` row stays in `?`
 and appears in the footer with `help.hints-hidden`.
+
+Choosers share the list prop-filter controller: supply `ChooserSpec.Noun`
+(or `ChooserRow.Noun` per row) and `ChooserRow.Props` when `Data` is an opaque
+handle. Their existing search still narrows the prop matches. Prop and
+saved-filter pickers open over the chooser and return to its query.
+
+| Chooser key | Action |
+|---|---|
+| `ctrl+f` | Pick a property, then a visible value. With active filters, cycle to the next saved filter when cycling is enabled and saved filters exist; otherwise the picker offers **Clear prop filters**. |
+| `alt+]` / `alt+[` | Cycle saved filters forward / backward. |
+| `alt+backspace` | Clear all prop conditions and the saved name, keeping search text. |
+
+Letters always type into the search. Lists and trees keep their `z` chords
+and `ctrl+f` page-down. `ctrl+[` is Escape in terminals and is not a filter
+binding. The `list.filter-*` verbs accept a chooser kind as `id`; user
+`list.filters` rows can scope `list` to that kind. `Chooser.SetPropFilters`,
+`PropFilters`, `SavedFilters` and `ApplyFilter` expose the same operations.
+`chooser.prop-filters=false` disables filtering, its strip and keys (default
+true); `ChooserSpec.NoPropFilters` opts out one chooser. `list.filter-strip`
+and `list.filter-cycle` apply too.
+
+Compared with Vim: Vim's `:filter` filters command output with a regexp;
+there is no built-in saved typed-prop cycle. Here props filter rows and
+combine with the chooser's text search. Chooser filter commands use
+modifier keys so insert-mode letters remain search text.
 
 Declare app defaults after the noun's props, for example:
 

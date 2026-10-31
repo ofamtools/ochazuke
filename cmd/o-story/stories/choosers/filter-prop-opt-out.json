@@ -1,0 +1,99 @@
+{
+  "area": "choosers",
+  "width": 100,
+  "height": 18,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "nouns": [
+      {
+        "noun": "note",
+        "props": [
+          {
+            "name": "by"
+          },
+          {
+            "name": "status"
+          }
+        ],
+        "filters": [
+          {
+            "name": "mine",
+            "where": {
+              "by": "owner"
+            }
+          },
+          {
+            "name": "agents",
+            "where": {
+              "by": "agent"
+            }
+          },
+          {
+            "name": "all"
+          }
+        ]
+      }
+    ],
+    "chooser": {
+      "kind": "notes",
+      "title": "Notes",
+      "rows": [
+        {
+          "id": "n1",
+          "label": "Owner alpha",
+          "noun": "note",
+          "props": {
+            "by": "owner",
+            "status": "todo"
+          }
+        },
+        {
+          "id": "n2",
+          "label": "Agent beta",
+          "noun": "note",
+          "props": {
+            "by": "agent",
+            "status": "todo"
+          }
+        },
+        {
+          "id": "n3",
+          "label": "Owner gamma",
+          "noun": "note",
+          "props": {
+            "by": "owner",
+            "status": "done"
+          }
+        }
+      ]
+    }
+  },
+  "name": "chooser prop filters opt-out",
+  "script": [
+    "z",
+    "]",
+    "ctrl+f",
+    "alt+]"
+  ],
+  "expect": [
+    {
+      "modal": "notes",
+      "contains": [
+        "\u203a z]"
+      ],
+      "lacks": [
+        "[mine]",
+        "prop filter",
+        "next filter"
+      ]
+    }
+  ],
+  "values": {
+    "chooser.prop-filters": false
+  }
+}

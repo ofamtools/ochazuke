@@ -407,13 +407,11 @@ func TestChooserKeepDrawsTheKeptColumnWhole(t *testing.T) {
 		{ID: "m", Label: "matomeru", Cells: []string{"matomeru", "~/proj/matomeru", "feat/a-very-long-branch-name", "2d"}},
 		{ID: "o", Label: "ochazuke", Cells: []string{"ochazuke", "~/proj/ochazuke", "main", "1h"}},
 	}
-	keep := &Chooser{spec: ChooserSpec{Rows: rows, Keep: []int{1}, Filter: func(string, ChooserRow) bool { return true }}, input: NewInput("q", "", false)}
-	keep.refilter()
+	_, _, keep, _ := chooserTest(t, ChooserSpec{Rows: rows, Keep: []int{1}, Filter: func(string, ChooserRow) bool { return true }})
 	if v := ansi.Strip(keep.View(50, 6).Text); !strings.Contains(v, "~/proj/matomeru") || strings.Contains(v, "a-very-long-branch-name") {
 		t.Fatalf("keep:\n%s", v)
 	}
-	plain := &Chooser{spec: ChooserSpec{Rows: rows, Filter: func(string, ChooserRow) bool { return true }}, input: NewInput("q", "", false)}
-	plain.refilter()
+	_, _, plain, _ := chooserTest(t, ChooserSpec{Rows: rows, Filter: func(string, ChooserRow) bool { return true }})
 	if v := ansi.Strip(plain.View(44, 6).Text); strings.Contains(v, "~/proj/matomeru") {
 		t.Fatalf("without keep the path is cut too:\n%s", v)
 	}
@@ -422,9 +420,7 @@ func TestChooserKeepDrawsTheKeptColumnWhole(t *testing.T) {
 // A chooser narrower than ChooserPreviewMin draws no preview (mtm's
 // context picker test).
 func TestChooserPreviewNeedsTheWidth(t *testing.T) {
-	c := &Chooser{spec: ChooserSpec{Rows: []ChooserRow{{ID: "a", Label: "a"}}, Preview: func(ChooserRow) string { return "preview text" }, Filter: func(string, ChooserRow) bool { return true }},
-		input: NewInput("q", "", false)}
-	c.refilter()
+	_, _, c, _ := chooserTest(t, ChooserSpec{Rows: []ChooserRow{{ID: "a", Label: "a"}}, Preview: func(ChooserRow) string { return "preview text" }, Filter: func(string, ChooserRow) bool { return true }})
 	if v := c.View(ChooserPreviewMin-1, 6).Text; strings.Contains(v, "preview text") {
 		t.Fatalf("narrow:\n%s", v)
 	}

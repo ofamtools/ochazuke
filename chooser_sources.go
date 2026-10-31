@@ -251,6 +251,7 @@ func (c *Chooser) cycle(delta int) error {
 	c.source = ((c.source+delta)%n + n) % n
 	c.r.chooserMemory().lastSource[c.spec.Kind] = c.Source()
 	c.spec.Rows = nil
+	c.cachePropRows()
 	c.load()
 	return nil
 }
@@ -340,6 +341,7 @@ func (c *Chooser) navigated(query string) {
 	_ = c.input.Replace(0, len(c.input.Text), query)
 	c.input.Cursor = len(c.input.Text)
 	c.spec.Rows = nil
+	c.cachePropRows()
 	c.load()
 	c.refilter()
 }
