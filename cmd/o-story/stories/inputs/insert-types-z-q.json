@@ -1,0 +1,36 @@
+{
+  "name": "an input in insert mode types z, q and every printable key; none runs as a key",
+  "area": "inputs",
+  "width": 40,
+  "height": 3,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "inputs": [
+      {
+        "id": "name",
+        "label": "name",
+        "text": "a"
+      }
+    ]
+  },
+  "script": [
+    "A",
+    "z",
+    "q",
+    ":",
+    "g",
+    "/",
+    "j",
+    "?",
+    "space",
+    "1"
+  ],
+  "expect": {
+    "mode": "insert",
+    "focus": "name",
+    "contains": [
+      "name: azq:g/j? 1"
+    ]
+  }
+}

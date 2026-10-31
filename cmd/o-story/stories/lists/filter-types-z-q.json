@@ -1,0 +1,53 @@
+{
+  "name": "list filter: z, q and every printable key are typed into the query, never run as keys",
+  "area": "lists",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3,
+        "labels": [
+          "zq:g/j?k 1",
+          "beta",
+          "gamma"
+        ]
+      }
+    ]
+  },
+  "script": [
+    "/",
+    "z",
+    "q",
+    ":",
+    "g",
+    "/",
+    "j",
+    "?",
+    "k",
+    "space",
+    "1"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "mode": "list_filter",
+      "contains": [
+        "/zq",
+        "1 of 3"
+      ]
+    },
+    {
+      "mode": "list_filter",
+      "focus": "a1",
+      "contains": [
+        "/zq:g/j?k 1",
+        "1 of 3",
+        "zq:g/j?k 1"
+      ],
+      "lacks": [
+        "beta",
+        "gamma"
+      ]
+    }
+  ]
+}

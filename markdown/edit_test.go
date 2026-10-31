@@ -269,12 +269,13 @@ func TestTableCells(t *testing.T) {
 	}
 }
 
-// / on an empty line chooses a block kind; a table asks for its columns.
+// alt+/ on an empty line chooses a block kind; a table asks for its
+// columns. / itself is typed: a field taking text binds no printable key.
 func TestBlockChooser(t *testing.T) {
 	r, _, path := fileDoc(t, "intro\n")
-	mustPress(t, r, "o", "/")
+	mustPress(t, r, "o", "alt+/")
 	if r.TopModal() == "" {
-		t.Fatal("/ did not open the chooser")
+		t.Fatal("alt+/ did not open the chooser")
 	}
 	typeText(t, r, "checklist")
 	mustPress(t, r, "enter")
@@ -283,7 +284,7 @@ func TestBlockChooser(t *testing.T) {
 	if got := readFile(t, path); got != "intro\n\n- [ ] task\n" {
 		t.Fatalf("checklist: %q", got)
 	}
-	mustPress(t, r, "G", "o", "enter", "/")
+	mustPress(t, r, "G", "o", "enter", "alt+/")
 	typeText(t, r, "table")
 	mustPress(t, r, "enter")
 	typeText(t, r, "3")
@@ -299,6 +300,16 @@ func TestBlockChooser(t *testing.T) {
 	mustPress(t, r, "esc")
 	if got := readFile(t, path); got != "intro a/b\n" {
 		t.Fatalf("/ in text types: %q", got)
+	}
+	r, _, path = fileDoc(t, "intro\n")
+	mustPress(t, r, "o")
+	typeText(t, r, "/usr")
+	if r.TopModal() != "" {
+		t.Fatalf("/ on an empty line opened %q", r.TopModal())
+	}
+	mustPress(t, r, "esc")
+	if got := readFile(t, path); got != "intro\n\n/usr\n" {
+		t.Fatalf("/ on an empty line types: %q", got)
 	}
 }
 
@@ -484,5 +495,21 @@ func TestEditIsOneUndoStep(t *testing.T) {
 	mustPress(t, r, "u", "u")
 	if got := readFile(t, path); got != "- [ ] a\n  > **owner** 2026-10-27: hi\n" {
 		t.Fatalf("undo: %q", got)
+	}
+}
+
+// While the editor takes text (insert mode, on an empty line, an item,
+// a table row, a heading) every printable key and space is typed: no
+// markdown row claims one (Runtime.TypingShadows).
+func TestMarkdownTypingIsNotShadowed(t *testing.T) {
+	r, _, _ := fileDoc(t, "# H\n\ntext\n\n- a\n- [ ] b\n\n| x | y |\n| - | - |\n| 1 | 2 |\n\n> q\n")
+	for _, keys := range [][]string{{"o"}, {"esc", "G", "A"}, {"esc", "g", "g", "A"}, {"esc", "j", "j", "A"}, {"esc", "j", "j", "j", "j", "A"}} {
+		mustPress(t, r, keys...)
+		if r.Mode.Name != "insert" {
+			t.Fatalf("after %v mode %q", keys, r.Mode.Name)
+		}
+		for _, line := range r.TypingShadows() {
+			t.Errorf("after %v: %s", keys, line)
+		}
 	}
 }

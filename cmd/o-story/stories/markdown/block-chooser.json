@@ -1,5 +1,5 @@
 {
-  "name": "markdown: / on an empty line chooses a block kind to insert; a table asks for its column count",
+  "name": "markdown: alt+/ on an empty line chooses a block kind to insert; a table asks for its column count",
   "area": "markdown",
   "width": 80,
   "page": {
@@ -12,7 +12,7 @@
   },
   "script": [
     "o",
-    "/"
+    "alt+/"
   ],
   "expect": [
     {

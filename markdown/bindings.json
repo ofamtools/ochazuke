@@ -77,7 +77,7 @@
       {"key": "tab", "action": "ochazuke.markdown.cell", "args": {"delta": 1}, "when": "markdown-table-line"},
       {"key": "shift+tab", "action": "ochazuke.markdown.cell", "args": {"delta": -1}, "when": "markdown-table-line"},
       {"key": "backspace", "action": "ochazuke.markdown.unmark", "when": "markdown-empty-item"},
-      {"key": "/", "action": "ochazuke.markdown.insert-block", "when": "markdown-empty-line"}
+      {"key": "alt+/", "action": "ochazuke.markdown.insert-block", "when": "markdown-empty-line"}
     ]},
     {"context": "ochazuke.markdown-note/normal", "bindings": [
       {"key": "x", "action": "ochazuke.markdown.resolve"}
