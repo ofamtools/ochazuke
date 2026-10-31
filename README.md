@@ -1377,6 +1377,27 @@ The rows go into the default layer exactly where the same rows bound in Go would
 
 `BIN bindings defaults` (`ochazuke.bindings.defaults`, `Runtime.DefaultBindings`) prints the default layer as a bindings file, without the user's rows and with the rows they replaced back in place; every group carries `"source"`: the embedded file (`ochazuke/bindings/list.json`, an app's own path), `go` for a row bound in Go (an instance's rows, a row computed from a spec) or `generated` for a sequence's prefix cancel. Go `Bind` stays for rows that are computed at runtime.
 
+For defaults that change after startup, call
+`r.SetDefaultBindings(source, rows)` with `[]ochazuke.Binding`. It replaces
+every row tagged with that source, including rows originally loaded by
+`LoadDefaultBindings`, and reloads an already loaded `bindings.json` above
+the new defaults. A bad row leaves the old tables and user undo log intact;
+`nil` removes the source's rows. The source must be nonempty and cannot be
+`go` or `generated`. Register modes, nouns, instances, verbs and guards first;
+the method replaces rows, leaving modes and table inheritance unchanged.
+Call it on the runtime's update loop.
+
+User overrides and unbinds keep working against the replacement. When a
+default disappears, its user row stays in the file and is reapplied with a
+notice through `Config.Report`, `BindingProblems` and `bindings check`. An
+override remains a user binding; an unbind has nothing to remove until the
+default returns. Later reloads cannot resurrect the old default. Prefix
+cancels, pending sequences, hints and help follow the new rows. No new
+setting is needed: the user's bindings file remains the override layer.
+
+Compared with Vim: source ownership and automatic reapplication of a user
+layer are library APIs, with no direct editor command counterpart.
+
 ## Atomic bindings
 
 A binding row is atomic. A row is a `Request` (one registered operation, its arguments from the row, the key or the mode payload), a mode transition (`Enter`, `Leave`) or `null` (an unbind). There is no row that runs Go code with the key: `Binding` has no such field, and `TestBindingRowsAreAtomic` validates every table of the framework, the model, the picker, the demo and the full-project example (`Runtime.ValidateBindings`) and parses the resolver to check it names no key. The only code that compares key names is the key classifier (`printableKey`) and one key-name-to-text table (`keyText`).

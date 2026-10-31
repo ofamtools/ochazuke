@@ -425,6 +425,9 @@ func (r *Runtime) CheckUserBindings() []string {
 			if note := r.aliasRowNote(f.where, row); note != "" {
 				problems = append(problems, note)
 			}
+			if note := r.removedDefaultNotice(withImplicitGuard(row)); note != "" {
+				problems = append(problems, fmt.Sprintf("%s: %s %s: %s", BindingsFile, f.where, row.Keys+row.Pattern, note))
+			}
 			problems = append(problems, r.nounAliasRowNotes(f.where, f.row)...)
 			problems = append(problems, r.paramAliasRowNotes(f.where, f.row, row)...)
 			if row.identityGuard() != "" && !row.Unbind {
@@ -444,6 +447,13 @@ func (r *Runtime) CheckUserBindings() []string {
 	// entries and alias clashes are reported here too.
 	problems = append(problems, r.CheckUserActions()...)
 	return problems
+}
+
+func (r *Runtime) removedDefaultNotice(row Binding) string {
+	if source := r.defaults.removed[sourceKey(row)]; source != "" {
+		return fmt.Sprintf("default from %s was removed; user row kept", source)
+	}
+	return ""
 }
 
 // aliasRowNote says what a file row spelled by an alias resolves to ("" for
@@ -647,7 +657,14 @@ func (r *Runtime) applyUserRow(row Binding, batch rowBatch) (string, error) {
 	if followup {
 		return "", nil
 	}
-	return shadowNotice(r.tableRows(normalized), normalized, len(replaced) > 0), nil
+	notice := shadowNotice(r.tableRows(normalized), normalized, len(replaced) > 0)
+	if removed := r.removedDefaultNotice(normalized); removed != "" {
+		if notice != "" {
+			removed += "; " + notice
+		}
+		notice = removed
+	}
+	return notice, nil
 }
 
 // shadowNotice explains a user row that a guarded row on the same keys in

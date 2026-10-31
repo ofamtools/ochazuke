@@ -254,6 +254,45 @@ func (h *helpState) show() error {
 	return tree.Focus()
 }
 
+// refreshBindings updates an open help in place, including when a chooser
+// is above it. Read here at the focus, mode and modal chain it opened over;
+// refreshing must not borrow the help's own keys or move the live focus.
+func (h *helpState) refreshBindings() error {
+	r := h.r
+	origin, mode := r.ModalReturn(helpID)
+	if r.Instances[origin] != nil {
+		at := *r
+		at.Focus, at.Mode = origin, mode
+		if i := slices.Index(at.modals, helpID); i >= 0 {
+			at.modals = at.modals[:i]
+		}
+		h.here = BindingHelp(&at, origin)
+	}
+	if h.view == HelpTable {
+		if list := r.List(helpListID); list != nil {
+			var keys []HelpKey
+			h.modes, keys = r.HelpTable(h.at(), r.helpFlag(HelpPendingSetting, false))
+			list.SetColumns(helpTableColumns(h.modes)...)
+			return list.SetItems(helpTableItems(r.DisplayNoun(h.noun), h.modes, keys))
+		}
+		return nil
+	}
+	rows := h.here
+	if h.view == HelpPick {
+		rows = PlaceHelp(r, h.at(), h.mode)
+	}
+	if tree := r.Tree(helpTreeID); tree != nil {
+		nodes, collapsed := helpNodes(rows)
+		for _, id := range collapsed {
+			if tree.index(id) < 0 {
+				tree.collapsed[id] = true
+			}
+		}
+		return tree.SetNodes(nodes)
+	}
+	return nil
+}
+
 // ModalTitle names the view: "Keys · pick". With only here on, "Keys".
 func (h *helpState) ModalTitle() string {
 	if len(h.views()) == 1 && h.view == HelpHere {

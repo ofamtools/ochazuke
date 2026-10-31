@@ -7,6 +7,7 @@ import (
 	"maps"
 	"path"
 	"slices"
+	"strings"
 	"sync"
 )
 
@@ -173,6 +174,67 @@ func (r *Runtime) MustLoadDefaultBindings(source string, data []byte) {
 	}
 }
 
+// SetDefaultBindings replaces the rows tagged with source, then reloads an
+// already loaded user bindings file above them. It validates every row
+// before changing any table; an error leaves the old rows and user undo log
+// intact. source must be nonempty and cannot be SourceGo or SourceGenerated.
+// Modes and table inheritance are unchanged; declare those before calling.
+// A nil slice removes the source's rows. User rows for removed defaults
+// remain in bindings.json and are reapplied with a notice (an unbind has
+// nothing to remove until that default returns). Call on the runtime's loop.
+func (r *Runtime) SetDefaultBindings(source string, rows []Binding) error {
+	if strings.TrimSpace(source) == "" || source == SourceGo || source == SourceGenerated {
+		return fmt.Errorf("default bindings: source %q must be nonempty and not reserved", source)
+	}
+	normalized := make([]Binding, len(rows))
+	for i, row := range rows {
+		var err error
+		normalized[i], err = r.validateRow(row)
+		if err != nil {
+			return fmt.Errorf("%s: row %d %q: %w", source, i+1, row.Keys+row.Pattern, err)
+		}
+		normalized[i].Request.Args = r.typedArgs(normalized[i].Request)
+		normalized[i] = withImplicitGuard(normalized[i])
+	}
+	c := r.Config()
+	loaded := c.bindingsLoaded
+	r.unapplyUserBindings()
+	for _, old := range r.DefaultBindings() {
+		if r.defaults.rows[sourceKey(old.Binding)] != source {
+			continue
+		}
+		row := old.Binding
+		rest := withPrefixCancels(removeRows(r.tableRows(row), row))
+		if row.Instance != "" {
+			r.Instances[row.Instance].Bindings = rest
+		} else {
+			r.Nouns[row.Noun].Bindings[row.Mode] = rest
+		}
+		key := sourceKey(row)
+		delete(r.defaults.rows, key)
+		if r.defaults.removed == nil {
+			r.defaults.removed = map[string]string{}
+		}
+		r.defaults.removed[key] = source
+		if r.rowTouchesPending(row) {
+			r.CancelPendingBinding()
+		}
+	}
+	batch := rowBatch{}
+	for _, row := range normalized {
+		r.placeDefaultRow(source, row, batch)
+	}
+	if loaded {
+		r.ReloadUserBindings()
+	}
+	if h := r.helpOpen(); h != nil {
+		if err := h.refreshBindings(); err != nil {
+			r.UI().Error("refresh binding help: " + err.Error())
+		}
+	}
+	return nil
+}
+
 // LoadDefaultBindingsFS installs every file of fsys matching the patterns
 // (fs.Glob), each pattern's files in name order, each tagged with its path.
 // A pattern that matches nothing is an error.
@@ -212,6 +274,13 @@ func (r *Runtime) installDefaultRow(source string, row Binding, batch rowBatch) 
 	}
 	row.Request.Args = r.typedArgs(row.Request)
 	row = withImplicitGuard(row)
+	r.placeDefaultRow(source, row, batch)
+	return nil
+}
+
+// placeDefaultRow installs an already validated row; replacement validates
+// its whole batch before removing the previous source or the user layer.
+func (r *Runtime) placeDefaultRow(source string, row Binding, batch rowBatch) {
 	if row.Instance != "" {
 		inst := r.Instances[row.Instance]
 		inst.Bindings = withPrefixCancels(bindRow(inst.Bindings, row, batch))
@@ -223,11 +292,11 @@ func (r *Runtime) installDefaultRow(source string, row Binding, batch rowBatch) 
 		delete(r.defaults.rows, sourceKey(row))
 	} else {
 		r.defaults.rows[sourceKey(row)] = source
+		delete(r.defaults.removed, sourceKey(row))
 	}
 	if r.rowTouchesPending(row) {
 		r.CancelPendingBinding()
 	}
-	return nil
 }
 
 // typedArgs gives a file row's arguments the types its operation's
@@ -254,6 +323,9 @@ func (r *Runtime) typedArgs(q Request) Arguments {
 type defaultSources struct {
 	rows    map[string]string
 	extends map[string]string
+	// removed remembers identities removed by SetDefaultBindings so a
+	// user's surviving override or unbind is reported on later reloads.
+	removed map[string]string
 }
 
 // sourceKey is a stored row's identity across tables: its table, mode,
@@ -270,6 +342,7 @@ func sourceKey(row Binding) string {
 // a row bound in Go took its place.
 func (r *Runtime) forgetDefaultSource(row Binding) {
 	delete(r.defaults.rows, sourceKey(row))
+	delete(r.defaults.removed, sourceKey(row))
 }
 
 // Source labels of bindings defaults for rows no file declared.
