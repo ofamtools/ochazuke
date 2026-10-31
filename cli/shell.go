@@ -30,8 +30,8 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/cli/mcp"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/cli/mcp"
 )
 
 // Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE]

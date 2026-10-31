@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // Standard create on the CLI takes prop=value words as set and duplicate

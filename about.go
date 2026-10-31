@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/unixsuperhero/ochazuke/refdoc"
+	"ofam.dev/ochazuke/refdoc"
 
 	tea "charm.land/bubbletea/v2"
 )

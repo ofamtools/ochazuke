@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/unixsuperhero/ochazuke/keytest"
+	"ofam.dev/ochazuke/keytest"
 )
 
 // reviewFixture is the Settings page fixture with a session, two session

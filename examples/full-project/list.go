@@ -6,7 +6,7 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 func listPageView(r *ochazuke.Runtime, list *ochazuke.List, spec PageConfig, styles ochazuke.Styles, width, height int) ochazuke.Block {

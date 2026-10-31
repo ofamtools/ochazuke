@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // speaksDelta reports whether Reload asks for deltas: the host gave

@@ -11,7 +11,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/unixsuperhero/ochazuke/refdoc"
+	"ofam.dev/ochazuke/refdoc"
 )
 
 // ReferenceDir is the directory config.export writes to by default, inside

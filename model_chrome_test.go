@@ -7,7 +7,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/unixsuperhero/ochazuke/keytest"
+	"ofam.dev/ochazuke/keytest"
 )
 
 // The shell renders through Layout.Shell: every viewport is exactly filled,

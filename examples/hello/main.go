@@ -18,8 +18,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/unixsuperhero/ochazuke/cli"
-	"github.com/unixsuperhero/oden"
+	"ofam.dev/ochazuke/cli"
+	"ofam.dev/oden"
 )
 
 func main() {

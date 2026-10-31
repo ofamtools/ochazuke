@@ -7,7 +7,7 @@ import (
 
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/vt"
-	story "github.com/unixsuperhero/monogatari"
+	story "ofam.dev/monogatari"
 )
 
 // Check the story's actual terminal cells, including the padding. Golden

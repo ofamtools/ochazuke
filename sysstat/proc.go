@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // The proc segment's scales (the status.proc-scale setting): ScaleCore

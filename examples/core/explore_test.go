@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/unixsuperhero/monogatari/explore"
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/monogatari/explore"
+	"ofam.dev/ochazuke"
 )
 
 // subject is the core example's tree behind a Model (it has no page: the

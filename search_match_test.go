@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke/keytest"
+	"ofam.dev/ochazuke/keytest"
 )
 
 // Each matcher under each search.case value: smart folds unless the query

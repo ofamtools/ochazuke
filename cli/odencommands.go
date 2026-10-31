@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/unixsuperhero/oden"
+	"ofam.dev/oden"
 )
 
 // HelpTimeout bounds an external command's --help run for command help.

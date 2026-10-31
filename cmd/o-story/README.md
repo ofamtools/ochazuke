@@ -25,7 +25,7 @@ o story ...                  # the same, through the oden family root
 story in `stories/` through `host.Test`.
 
 o-story is the demo app's host on
-[monogatari](https://github.com/unixsuperhero/monogatari), the story library
+[monogatari](https://github.com/ofamtools/monogatari), the story library
 (the format, the runner and driver, recordings, trimming, explore). The
 demo app (`demo/`, `demo.App()`) is registered like any app's: its one
 fixture, `pages`, builds a story's `page` and `pages` fields on a fresh

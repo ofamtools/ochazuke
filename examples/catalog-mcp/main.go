@@ -13,8 +13,8 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/cli"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/cli"
 )
 
 func main() {

@@ -28,21 +28,21 @@
       "after": 11,
       "focus": "turns/body",
       "contains": [
-        "▌  ok   github.com/unixsuperhero/ochazuke/pkg01",
+        "▌  ok   ofam.dev/ochazuke/pkg01",
         "key g j → timeline.row in normal"
       ],
       "lacks": [
         "▌▾ 4 Bash",
-        "▌  ok   github.com/unixsuperhero/ochazuke/pkg02"
+        "▌  ok   ofam.dev/ochazuke/pkg02"
       ]
     },
     {
       "after": 13,
       "contains": [
-        "▌  ok   github.com/unixsuperhero/ochazuke/pkg02"
+        "▌  ok   ofam.dev/ochazuke/pkg02"
       ],
       "lacks": [
-        "▌  ok   github.com/unixsuperhero/ochazuke/pkg01"
+        "▌  ok   ofam.dev/ochazuke/pkg01"
       ]
     },
     {
@@ -67,7 +67,7 @@
       "focus": "turns/body",
       "contains": [
         "▌▾ 4 Bash go test ./... · 41 lines",
-        "▌  ok   github.com/unixsuperhero/ochazuke/pkg01",
+        "▌  ok   ofam.dev/ochazuke/pkg01",
         "key j → timeline.step in normal"
       ]
     }

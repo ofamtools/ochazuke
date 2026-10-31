@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/keytest"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/keytest"
 )
 
 func TestBindingSetupRoundTrip(t *testing.T) {

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	story "github.com/unixsuperhero/monogatari"
-	"github.com/unixsuperhero/ochazuke"
+	story "ofam.dev/monogatari"
+	"ofam.dev/ochazuke"
 )
 
 // tablesOf is every table's rows in table order, keyed by noun or

@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	story "github.com/unixsuperhero/monogatari"
-	"github.com/unixsuperhero/monogatari/host"
-	"github.com/unixsuperhero/ochazuke/cmd/o-story/demo"
+	story "ofam.dev/monogatari"
+	"ofam.dev/monogatari/host"
+	"ofam.dev/ochazuke/cmd/o-story/demo"
 )
 
 var update = flag.Bool("update", false, "rewrite story goldens (and the README's verbs section)")

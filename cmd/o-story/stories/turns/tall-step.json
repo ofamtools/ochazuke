@@ -48,14 +48,14 @@
       "after": 9,
       "contains": [
         "▌▾ 4 Bash go test ./... · 41 lines",
-        "▌  ok   github.com/unixsuperhero/ochazuke/pkg01"
+        "▌  ok   ofam.dev/ochazuke/pkg01"
       ]
     },
     {
       "after": 10,
       "focus": "turns/body",
       "contains": [
-        "▌  ok   github.com/unixsuperhero/ochazuke/pkg15"
+        "▌  ok   ofam.dev/ochazuke/pkg15"
       ],
       "lacks": [
         "▾ 4 Bash go test"
@@ -65,7 +65,7 @@
       "after": 11,
       "focus": "turns/body",
       "contains": [
-        "▌  ok   github.com/unixsuperhero/ochazuke/pkg27"
+        "▌  ok   ofam.dev/ochazuke/pkg27"
       ]
     },
     {

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke/explore"
+	"ofam.dev/ochazuke/explore"
 )
 
 // TestObserveSeesEveryStepInOrder: Budget.Observe is told about the

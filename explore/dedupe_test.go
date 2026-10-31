@@ -5,7 +5,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke/explore"
+	"ofam.dev/ochazuke/explore"
 )
 
 // TestDedupe groups findings by check and normalized summary across

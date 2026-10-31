@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke/cli"
+	"ofam.dev/ochazuke/cli"
 )
 
 // The catalog is a pure function of the registered runtime: twenty fresh

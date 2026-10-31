@@ -45,7 +45,7 @@ func TestStampShortCommit(t *testing.T) {
 func TestStampFromBuildInfoThenLinker(t *testing.T) {
 	bi := &debug.BuildInfo{
 		Main: debug.Module{Path: "example.com/mtm", Version: "v1.2.3"},
-		Deps: []*debug.Module{{Path: "github.com/unixsuperhero/ochazuke", Version: "v0.50.0"}},
+		Deps: []*debug.Module{{Path: "ofam.dev/ochazuke", Version: "v0.50.0"}},
 		Settings: []debug.BuildSetting{
 			{Key: "vcs.revision", Value: "aaaaaaaaaaaaaaaa"},
 			{Key: "vcs.time", Value: "2026-10-29T12:00:00Z"},
@@ -68,7 +68,7 @@ func TestStampFromBuildInfoThenLinker(t *testing.T) {
 	if got := ochazukeOf(bi); got != "v0.51.0" {
 		t.Errorf("replaced: %q", got)
 	}
-	if got := ochazukeOf(&debug.BuildInfo{Main: debug.Module{Path: "github.com/unixsuperhero/ochazuke", Version: "(devel)"}}); got != "" {
+	if got := ochazukeOf(&debug.BuildInfo{Main: debug.Module{Path: "ofam.dev/ochazuke", Version: "(devel)"}}); got != "" {
 		t.Errorf("devel main: %q", got)
 	}
 }

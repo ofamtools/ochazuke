@@ -476,7 +476,7 @@ func (s *Settings) declaredBy(name string) {
 
 // frameworkPackage is the framework's import path, as runtime.Frame
 // names a function's package.
-const frameworkPackage = "github.com/unixsuperhero/ochazuke"
+const frameworkPackage = "ofam.dev/ochazuke"
 
 // keyLine is the line of settings.json holding the setting's key (its
 // first top-level spelling), 0 when not found.

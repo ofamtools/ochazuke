@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/cli"
-	"github.com/unixsuperhero/ochazuke/keytest"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/cli"
+	"ofam.dev/ochazuke/keytest"
 )
 
 func docsCatalog() cli.CatalogDoc {

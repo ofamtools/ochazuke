@@ -11,10 +11,10 @@ import (
 	"unicode"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/unixsuperhero/ochazuke"
 	gast "github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/text"
 	"github.com/yuin/goldmark/util"
+	"ofam.dev/ochazuke"
 )
 
 // LinkStopsSetting lets j/k visit inline links. False keeps element-only motion.

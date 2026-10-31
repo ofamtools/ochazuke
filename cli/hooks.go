@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // catalogHooks are the runtime's default hook rows with each verb in its

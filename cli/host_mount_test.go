@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/oden"
+	"ofam.dev/ochazuke"
+	"ofam.dev/oden"
 )
 
 // hostTestCatalog is an extension's catalog: a task noun with props and a

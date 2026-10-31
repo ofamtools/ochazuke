@@ -15,9 +15,9 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/keytest"
-	"github.com/unixsuperhero/oden"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/keytest"
+	"ofam.dev/oden"
 )
 
 // fakeCommands is a CommandSource with an inline-looking command whose

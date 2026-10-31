@@ -9,7 +9,7 @@
 // Frozen: this package is kept unchanged for one release so its importers
 // (o-json) keep compiling, then deleted. o-story no longer uses it.
 //
-// Deprecated: use github.com/unixsuperhero/monogatari, the story library
+// Deprecated: use ofam.dev/monogatari, the story library
 // with an app seam (App, Fixture, Env, Built). ochazuke's demo pages are
 // the demo app in ochazuke's cmd/o-story/demo.
 package story
@@ -25,8 +25,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/cli"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/cli"
 )
 
 // Story is one scenario file.

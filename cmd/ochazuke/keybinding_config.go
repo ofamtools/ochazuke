@@ -10,7 +10,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 type sandboxBinding struct {

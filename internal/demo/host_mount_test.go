@@ -10,10 +10,10 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/cli"
-	"github.com/unixsuperhero/ochazuke/keytest"
-	"github.com/unixsuperhero/oden"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/cli"
+	"ofam.dev/ochazuke/keytest"
+	"ofam.dev/oden"
 )
 
 // demoHost is a host (as mtm and nabe are) that mounted the demo's

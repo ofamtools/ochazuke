@@ -30,11 +30,11 @@ func TestCheckCatchesADeprecatedCall(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		write("go.mod", "module example.com/app\n\ngo 1.26.0\n\nrequire github.com/unixsuperhero/ochazuke v0.0.0\n\nreplace github.com/unixsuperhero/ochazuke => "+root+"\n")
+		write("go.mod", "module example.com/app\n\ngo 1.26.0\n\nrequire ofam.dev/ochazuke v0.0.0\n\nreplace ofam.dev/ochazuke => "+root+"\n")
 		write("go.sum", string(sum))
 		write("main.go", `package main
 
-import "github.com/unixsuperhero/ochazuke"
+import "ofam.dev/ochazuke"
 
 func tell(ctx ochazuke.Ctx) { ctx.`+call+`("queued") }
 

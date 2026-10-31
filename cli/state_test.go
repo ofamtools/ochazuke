@@ -12,7 +12,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // stateTool is an extension with a state verb over rows it can change, and

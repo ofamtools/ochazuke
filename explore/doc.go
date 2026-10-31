@@ -100,6 +100,6 @@
 //
 // Frozen: this package is kept unchanged for one release, then deleted.
 //
-// Deprecated: use github.com/unixsuperhero/monogatari/explore, the same
+// Deprecated: use ofam.dev/monogatari/explore, the same
 // explorer with Subject.Program for an app that wraps its model.
 package explore

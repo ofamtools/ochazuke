@@ -9,10 +9,10 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/cli"
-	"github.com/unixsuperhero/ochazuke/keytest"
-	"github.com/unixsuperhero/oden"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/cli"
+	"ofam.dev/ochazuke/keytest"
+	"ofam.dev/oden"
 )
 
 // runDemo runs one demo CLI command and answers its stdout.

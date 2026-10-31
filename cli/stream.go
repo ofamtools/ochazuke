@@ -9,7 +9,7 @@ import (
 	"syscall"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // stream prints a watch's events as JSON Lines until ctx ends (an

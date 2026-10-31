@@ -1,5 +1,5 @@
 // Command o-story is ochazuke's story tester: the host
-// (github.com/unixsuperhero/monogatari/host) of ochazuke's demo app, whose
+// (ofam.dev/monogatari/host) of ochazuke's demo app, whose
 // stories are JSON files describing a synthetic page, a script of events
 // and what must hold afterwards. A family tool (o-<tool>), so o story ARGS
 // runs it.
@@ -28,10 +28,10 @@ import (
 	"io/fs"
 	"os"
 
-	"github.com/unixsuperhero/monogatari"
-	"github.com/unixsuperhero/monogatari/host"
-	"github.com/unixsuperhero/ochazuke/cmd/o-story/demo"
-	"github.com/unixsuperhero/oden"
+	"ofam.dev/monogatari"
+	"ofam.dev/monogatari/host"
+	"ofam.dev/ochazuke/cmd/o-story/demo"
+	"ofam.dev/oden"
 )
 
 //go:embed stories

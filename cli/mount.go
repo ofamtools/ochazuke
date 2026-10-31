@@ -8,8 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/oden"
+	"ofam.dev/ochazuke"
+	"ofam.dev/oden"
 )
 
 // Mount maps the runtime registry to oden command groups and operation metadata.

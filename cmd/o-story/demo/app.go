@@ -7,8 +7,8 @@ package demo
 import (
 	"strings"
 
-	"github.com/unixsuperhero/monogatari"
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/monogatari"
+	"ofam.dev/ochazuke"
 )
 
 // App is the demo app: one fixture, pages, that builds the story's pages.

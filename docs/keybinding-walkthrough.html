@@ -375,7 +375,7 @@ Frames: [
 <div class="card shu">
 <span class="tag fw">Demo</span>
 <h3>NewDemo</h3>
-<p>Owns the page names, the input IDs <code>directory</code>, <code>notes</code>, and <code>dialog</code>, the <code>input.next</code> handler, and the <code>tab</code> and <code>ctrl+n</code> bindings. The comment at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L12">demo.go:12</a> says the framework requires none of these names.</p>
+<p>Owns the page names, the input IDs <code>directory</code>, <code>notes</code>, and <code>dialog</code>, the <code>input.next</code> handler, and the <code>tab</code> and <code>ctrl+n</code> bindings. The comment at <a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L12">demo.go:12</a> says the framework requires none of these names.</p>
 </div>
 </div>
 
@@ -383,7 +383,7 @@ Frames: [
 <p><code>Context</code> says <em>where input goes</em>: an ordered list of layer IDs from <code>app</code> to the innermost layer, plus an optional focused <code>InputID</code>. <code>Frames</code> is the visual <em>and</em> interaction stack: the page frame first, then each open modal, drawn bottom to top. Each frame carries its own <code>Context</code>, so the last frame also decides where keys go. The runtime's current context is the context of the last frame. <a href="#concepts">Full glossary.</a></p>
 
 <figure class="src">
-<figcaption><span>Context, Frame, Runtime (excerpt)</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L30-L33">runtime.go:30-33</a> · <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L65-L69">65-69</a> · <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L109">109</a></figcaption>
+<figcaption><span>Context, Frame, Runtime (excerpt)</span><a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L30-L33">runtime.go:30-33</a> · <a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L65-L69">65-69</a> · <a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L109">109</a></figcaption>
 <pre tabindex="0" aria-label="Go source excerpt">type Context struct {
 	Path    []string `json:"path"`
 	InputID string   `json:"inputId,omitempty"`
@@ -401,7 +401,7 @@ func (r *Runtime) Context() Context { return r.Frames[len(r.Frames)-1].Context.C
 <h3>Where Model.Update hands off</h3>
 <p><code>Model.Update</code> splits ordinary multi-rune key messages into single keys, then calls <code>dispatchKey</code>. The call to <code>HandleBinding</code> comes after the macro, palette, paste, and in-progress input-grammar checks. <a href="#before-bindings">See which interaction gets each key first.</a></p>
 <figure class="src">
-<figcaption><span>Model.dispatchKey tail</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L97-L102">model.go:97-102</a> · <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L150-L159">150-159</a></figcaption>
+<figcaption><span>Model.dispatchKey tail</span><a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L97-L102">model.go:97-102</a> · <a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L150-L159">150-159</a></figcaption>
 <pre tabindex="0" aria-label="Go source excerpt">err := m.dispatchKey(MacroKey{Key: v.String(), Paste: v.Paste})
 ...
 handled, err := r.HandleBinding(key.Key)
@@ -433,14 +433,14 @@ keypress = "a"
 after = { recordingInto: "a" }</pre>
 </div>
 <p>A replay command can also wait for a register. The early macro check handles that pending choice or a recording-stop key. It does not consume every key while recording: ordinary recorded keys continue through dispatch.</p>
-<p><a href="https://github.com/unixsuperhero/ochazuke/blob/4938b935bfe888e53f75f157f9601f827a41f784/model.go#L120-L133">Source: macro recording and early handling</a>.</p>
+<p><a href="https://github.com/ofamtools/ochazuke/blob/4938b935bfe888e53f75f157f9601f827a41f784/model.go#L120-L133">Source: macro recording and early handling</a>.</p>
 </li>
 <li>
 <h4>An open palette takes over routing</h4>
 <p>If the palette is active, <code>dispatchKey</code> calls <code>Palette.HandleKey</code> and returns. The key does not continue through the ordinary page-input path.</p>
 <p>This does <em>not</em> disable configured bindings. The palette handler calls <code>Runtime.HandleBinding</code> itself, using the palette's active context, before its navigation and editor handling.</p>
 <figure class="src">
-<figcaption><span>Palette.HandleKey, binding check</span><a href="https://github.com/unixsuperhero/ochazuke/blob/4938b935bfe888e53f75f157f9601f827a41f784/palette.go#L478-L482">palette.go:478-482</a></figcaption>
+<figcaption><span>Palette.HandleKey, binding check</span><a href="https://github.com/ofamtools/ochazuke/blob/4938b935bfe888e53f75f157f9601f827a41f784/palette.go#L478-L482">palette.go:478-482</a></figcaption>
 <pre tabindex="0" aria-label="Palette binding check">if handled, err := p.r.HandleBinding(key); handled || err != nil {
 	p.collectEditors()
 	p.publish()
@@ -452,7 +452,7 @@ after = { recordingInto: "a" }</pre>
 <h4>A paste is text, not a series of shortcuts</h4>
 <p>On the ordinary page-input path, a paste goes directly to <code>HandleInputKey</code>. Pasting <code>hello</code> should deliver text to the editor, not execute bindings for <code>h</code>, <code>e</code>, and the remaining letters.</p>
 <figure class="src">
-<figcaption><span>Paste bypass in dispatchKey</span><a href="https://github.com/unixsuperhero/ochazuke/blob/4938b935bfe888e53f75f157f9601f827a41f784/model.go#L138-L141">model.go:138-141</a></figcaption>
+<figcaption><span>Paste bypass in dispatchKey</span><a href="https://github.com/ofamtools/ochazuke/blob/4938b935bfe888e53f75f157f9601f827a41f784/model.go#L138-L141">model.go:138-141</a></figcaption>
 <pre tabindex="0" aria-label="Paste dispatch">if key.Paste {
 	_, err := HandleInputKey(r, key.Key)
 	return err
@@ -475,13 +475,13 @@ result = "complete d w: delete a word"
 </div>
 <p>If <code>Input.Pending</code> or <code>Input.Count</code> is set, the input handler gets the key before the configured bindings. Dispatch stops if that handler reports the key handled or returns an error. Otherwise, resolution continues.</p>
 <p>This priority applies to an <em>already-started</em> command. A fresh key still reaches configured bindings before ordinary editor handling. The condition also covers an app-level macro count when no input is focused.</p>
-<p><a href="https://github.com/unixsuperhero/ochazuke/blob/4938b935bfe888e53f75f157f9601f827a41f784/model.go#L142-L149">Source: in-progress grammar and count check</a>.</p>
+<p><a href="https://github.com/ofamtools/ochazuke/blob/4938b935bfe888e53f75f157f9601f827a41f784/model.go#L142-L149">Source: in-progress grammar and count check</a>.</p>
 </li>
 <li>
 <h4>Now the ordinary path resolves configured bindings</h4>
 <p><code>Runtime.HandleBinding(key.Key)</code> resolves the effective bindings and any pending binding sequence. A handled key stops here. It does not also become editor input.</p>
 <p>If binding resolution does not handle the key, the router checks whether normal-mode Escape should close a modal. Otherwise, it falls back to <code>HandleInputKey</code>.</p>
-<p><a href="https://github.com/unixsuperhero/ochazuke/blob/4938b935bfe888e53f75f157f9601f827a41f784/model.go#L150-L159">Source: binding dispatch and final fallback</a>.</p>
+<p><a href="https://github.com/ofamtools/ochazuke/blob/4938b935bfe888e53f75f157f9601f827a41f784/model.go#L150-L159">Source: binding dispatch and final fallback</a>.</p>
 </li>
 </ol>
 
@@ -513,7 +513,7 @@ result = "complete d w: delete a word"
 </div>
 </div>
 <figure class="src">
-<figcaption><span>EffectiveBindings</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L298-L320">runtime.go:298-320</a></figcaption>
+<figcaption><span>EffectiveBindings</span><a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L298-L320">runtime.go:298-320</a></figcaption>
 <pre tabindex="0" aria-label="Go source excerpt">for _, id := range c.Path {
 	layer := r.Layers[id]
 	for _, b := range layer.Bindings {
@@ -529,7 +529,7 @@ result = "complete d w: delete a word"
 }</pre>
 </figure>
 <figure class="src">
-<figcaption><span>ExecuteAt handler lookup</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L235-L240">runtime.go:235-240</a></figcaption>
+<figcaption><span>ExecuteAt handler lookup</span><a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L235-L240">runtime.go:235-240</a></figcaption>
 <pre tabindex="0" aria-label="Go source excerpt">for i := len(c.Path) - 1; i >= 0; i-- {
 	if fn := r.Layers[c.Path[i]].Actions[q.Key()]; fn != nil {
 		return fn(r, c, q.Args)
@@ -537,13 +537,13 @@ result = "complete d w: delete a word"
 }
 return op.Run(r, c, q.Args)</pre>
 </figure>
-<p>The demo uses this split for <code>selection.inspect</code>. The registry default at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L93-L96">demo.go:93-96</a> reports <code>app</code>. The layers <code>playground</code>, <code>agent</code>, and <code>directory</code> override it at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L97-L103">demo.go:97-103</a>.</p>
-<div class="callout"><strong>Note</strong> Bindings overlay complete key sequences, not single keys. A binding for <code>g g</code> replaces another binding for <code>g g</code> and leaves <code>g</code> alone (<a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L297">runtime.go:297</a>).</div>
+<p>The demo uses this split for <code>selection.inspect</code>. The registry default at <a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L93-L96">demo.go:93-96</a> reports <code>app</code>. The layers <code>playground</code>, <code>agent</code>, and <code>directory</code> override it at <a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L97-L103">demo.go:97-103</a>.</p>
+<div class="callout"><strong>Note</strong> Bindings overlay complete key sequences, not single keys. A binding for <code>g g</code> replaces another binding for <code>g g</code> and leaves <code>g</code> alone (<a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L297">runtime.go:297</a>).</div>
 </section>
 
 <section id="tab" aria-labelledby="h-tab">
 <h2 id="h-tab"><span class="n">03</span>Flow 1 · Tab moves directory → notes</h2>
-<p><strong>Starting point.</strong> The user is on the Playground page with the <code>directory</code> field focused. The demo registers that page's frame with that context at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L45">demo.go:45</a>, and <code>OpenPage</code> installs the frame as <code>Frames</code> (<a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/pages.go#L50-L62">pages.go:50-62</a>).</p>
+<p><strong>Starting point.</strong> The user is on the Playground page with the <code>directory</code> field focused. The demo registers that page's frame with that context at <a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L45">demo.go:45</a>, and <code>OpenPage</code> installs the frame as <code>Frames</code> (<a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/pages.go#L50-L62">pages.go:50-62</a>).</p>
 
 <div class="state">
 <span class="lab">Illustrative snapshot · simplified JS, not real output</span>
@@ -574,17 +574,17 @@ Runtime.Pending: ""</pre></div>
 <ol class="flow">
 <li>
 <h4>The user presses Tab</h4>
-<p>Bubble Tea sends a <code>tea.KeyMsg</code> whose <code>String()</code> is <code>"tab"</code>. <code>Model.Update</code> passes it to <code>dispatchKey</code> (<a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L81-L102">model.go:81-102</a>).</p>
+<p>Bubble Tea sends a <code>tea.KeyMsg</code> whose <code>String()</code> is <code>"tab"</code>. <code>Model.Update</code> passes it to <code>dispatchKey</code> (<a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L81-L102">model.go:81-102</a>).</p>
 </li>
 <li>
 <h4>The adapter lets it through</h4>
-<p>No macro is pending, the palette is closed, the key is not a paste, and the <code>directory</code> input has no pending grammar. So the checks at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L128-L149">model.go:128-149</a> do not return, and the call at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L150">model.go:150</a> runs.</p>
+<p>No macro is pending, the palette is closed, the key is not a paste, and the <code>directory</code> input has no pending grammar. So the checks at <a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L128-L149">model.go:128-149</a> do not return, and the call at <a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L150">model.go:150</a> runs.</p>
 </li>
 <li>
 <h4>The runtime finds an exact match</h4>
 <p><code>Pending</code> is empty, so <code>sequence</code> is <code>"tab"</code>. <code>EffectiveBindings</code> includes the playground binding below. It has no mode, so it applies in every mode. Tab is complete with no longer continuation, so the matcher clears pending state and executes immediately.</p>
 <figure class="src">
-<figcaption><span>Demo binding</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L135">demo.go:135</a></figcaption>
+<figcaption><span>Demo binding</span><a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L135">demo.go:135</a></figcaption>
 <pre tabindex="0" aria-label="Go source excerpt">bind("playground", "", "tab", "next", "input", nil)</pre>
 </figure>
 <figure class="src">
@@ -598,13 +598,13 @@ Runtime.Pending: ""</pre></div>
 </li>
 <li>
 <h4>ExecuteAt chooses the handler</h4>
-<p>The request key is <code>input.next</code>. No layer on the path has an <code>Actions["input.next"]</code> entry, so the loop at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L235-L240">runtime.go:235-240</a> falls through to the registered <code>Run</code>. That is the demo's handler.</p>
+<p>The request key is <code>input.next</code>. No layer on the path has an <code>Actions["input.next"]</code> entry, so the loop at <a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L235-L240">runtime.go:235-240</a> falls through to the registered <code>Run</code>. That is the demo's handler.</p>
 </li>
 <li>
 <h4>The demo handler picks the next field</h4>
 <p>The handler refuses to run unless the active page is <code>playground</code> and no modal is open. It finds the current <code>InputID</code> in the ordered list, adds <code>delta</code> (default 1), wraps, and calls <code>r.Focus</code>.</p>
 <figure class="src">
-<figcaption><span>input.next handler</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L77-L92">demo.go:77-92</a></figcaption>
+<figcaption><span>input.next handler</span><a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L77-L92">demo.go:77-92</a></figcaption>
 <pre tabindex="0" aria-label="Go source excerpt">ids := []string{"directory", "notes", "paths"}
 ...
 index = ((index+IntArg(a, "delta", 1))%len(ids) + len(ids)) % len(ids)
@@ -615,7 +615,7 @@ err := r.Focus(ids[index])</pre>
 <h4>The runtime rewrites the top frame's context</h4>
 <p><code>Focus</code> looks up the input's registered path, validates it, and replaces the <em>top frame's</em> <code>Context</code>. No frame is pushed, so <code>Frames</code> keeps its length of 1. Only <code>Context.Path</code> and <code>InputID</code> change.</p>
 <figure class="src">
-<figcaption><span>Runtime.Focus</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L175-L187">runtime.go:175-187</a></figcaption>
+<figcaption><span>Runtime.Focus</span><a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L175-L187">runtime.go:175-187</a></figcaption>
 <pre tabindex="0" aria-label="Go source excerpt">next := Context{Path: path, InputID: id}
 if err := r.validateSelection(next); err != nil {
 	return err
@@ -626,7 +626,7 @@ r.Pending = ""</pre>
 </li>
 <li>
 <h4>The view follows the context</h4>
-<p><code>HandleBinding</code> returns <code>handled = true</code>, so the key never reaches the text editor. On the next <code>View</code>, the playground page renders <code>notes</code> as the active field (<a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L169-L190">demo.go:169-190</a>). The path to <code>notes</code> is registered at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L23">demo.go:23</a>.</p>
+<p><code>HandleBinding</code> returns <code>handled = true</code>, so the key never reaches the text editor. On the next <code>View</code>, the playground page renders <code>notes</code> as the active field (<a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L169-L190">demo.go:169-190</a>). The path to <code>notes</code> is registered at <a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L23">demo.go:23</a>.</p>
 </li>
 </ol>
 <p><strong>Who did what.</strong> The framework matched the key, ran the handler, and moved focus. The demo decided that <code>directory</code>, <code>notes</code>, and <code>paths</code> form a cycle.</p>
@@ -634,7 +634,7 @@ r.Pending = ""</pre>
 
 <section id="ctrl-n" aria-labelledby="h-ctrl-n">
 <h2 id="h-ctrl-n"><span class="n">04</span>Flow 2 · Ctrl-N opens the draft modal</h2>
-<p><strong>Starting point.</strong> The user is in the <code>notes</code> field, in normal mode. A new input starts in <code>"normal"</code> mode (<a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/input.go#L37">input.go:37</a>). This matters: the binding below only exists in normal mode.</p>
+<p><strong>Starting point.</strong> The user is in the <code>notes</code> field, in normal mode. A new input starts in <code>"normal"</code> mode (<a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/input.go#L37">input.go:37</a>). This matters: the binding below only exists in normal mode.</p>
 
 <div class="state">
 <span class="lab">Illustrative snapshot · simplified JS, not real output</span>
@@ -670,7 +670,7 @@ Runtime.Pending: ""</pre></div>
 <h4>The binding exists only for normal mode</h4>
 <p>The binding lives on the <code>playground</code> layer with mode <code>"normal"</code>. <code>EffectiveBindings</code> adds it in the second pass over that layer, because <code>Mode(c)</code> equals <code>"normal"</code>. In insert mode the binding would be absent.</p>
 <figure class="src">
-<figcaption><span>Demo bindings</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L141-L142">demo.go:141-142</a></figcaption>
+<figcaption><span>Demo bindings</span><a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L141-L142">demo.go:141-142</a></figcaption>
 <pre tabindex="0" aria-label="Go source excerpt">bind("playground", "normal", "ctrl+n", "push", "modal", Arguments{"id": "draft", "input": "dialog"})
 bind("dialog", "normal", "ctrl+n", "push", "modal", Arguments{"id": "nested-draft", "input": "nested-dialog"})</pre>
 </figure>
@@ -684,7 +684,7 @@ bind("dialog", "normal", "ctrl+n", "push", "modal", Arguments{"id": "nested-draf
 <h4>The handler lookup falls to the registry default</h4>
 <p>No demo layer defines an action for <code>modal.push</code>. <code>ExecuteAt</code> validates the arguments, then runs the built-in <code>Run</code> from <code>registerCore</code>. This time the framework supplies the handler too.</p>
 <figure class="src">
-<figcaption><span>modal.push operation</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L435-L443">runtime.go:435-443</a></figcaption>
+<figcaption><span>modal.push operation</span><a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L435-L443">runtime.go:435-443</a></figcaption>
 <pre tabindex="0" aria-label="Go source excerpt">id := StringArg(a, "input", "")
 path, ok := r.InputPaths[id]
 if !ok {
@@ -695,9 +695,9 @@ err := r.Push(&amp;Frame{ID: StringArg(a, "id", ""), Context: Context{Path: path
 </li>
 <li>
 <h4>Push adds a frame</h4>
-<p>The new frame's context comes from the input's registered path. The demo registered <code>dialog</code> with path <code>["app","dialog"]</code> (<a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L25">demo.go:25</a>). <code>Push</code> rejects a duplicate frame ID, validates the context, appends, and clears <code>Pending</code>.</p>
+<p>The new frame's context comes from the input's registered path. The demo registered <code>dialog</code> with path <code>["app","dialog"]</code> (<a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L25">demo.go:25</a>). <code>Push</code> rejects a duplicate frame ID, validates the context, appends, and clears <code>Pending</code>.</p>
 <figure class="src">
-<figcaption><span>Runtime.Push</span><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L188-L207">runtime.go:188-207</a></figcaption>
+<figcaption><span>Runtime.Push</span><a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L188-L207">runtime.go:188-207</a></figcaption>
 <pre tabindex="0" aria-label="Go source excerpt">r.Frames = append(r.Frames, frame)
 r.Pending = ""
 return nil</pre>
@@ -705,7 +705,7 @@ return nil</pre>
 </li>
 <li>
 <h4>The view draws the modal over the page</h4>
-<p><code>r.Context()</code> now returns the <code>dialog</code> context, so the next key resolves against <code>["app","dialog"]</code>. The page frame stays underneath, unchanged. The demo registered the <code>draft</code> modal's title and renderer at <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L57-L70">demo.go:57-70</a>.</p>
+<p><code>r.Context()</code> now returns the <code>dialog</code> context, so the next key resolves against <code>["app","dialog"]</code>. The page frame stays underneath, unchanged. The demo registered the <code>draft</code> modal's title and renderer at <a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L57-L70">demo.go:57-70</a>.</p>
 </li>
 </ol>
 <div class="callout"><strong>Contrast with flow 1</strong> Tab changed the <em>top frame's</em> <code>Context.Path</code> and left <code>Frames</code> at length 1. Ctrl-N changed <code>Frames</code> to length 2 and left the page frame's context alone. Different structures, same pipeline.</div>
@@ -887,18 +887,18 @@ history: ["g", "g"]   // newest first in the right-hand column</pre>
 <table>
 <thead><tr><th scope="col">Topic</th><th scope="col">Location</th></tr></thead>
 <tbody>
-<tr><th scope="row"><code>Context</code>, <code>Frame</code>, <code>Runtime</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L30-L89">runtime.go:30-89</a></td></tr>
-<tr><th scope="row"><code>Focus</code>, <code>Push</code>, <code>Pop</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L175-L215">runtime.go:175-215</a></td></tr>
-<tr><th scope="row"><code>ExecuteAt</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L216-L241">runtime.go:216-241</a></td></tr>
-<tr><th scope="row"><code>EffectiveBindings</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L297-L320">runtime.go:297-320</a></td></tr>
+<tr><th scope="row"><code>Context</code>, <code>Frame</code>, <code>Runtime</code></th><td><a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L30-L89">runtime.go:30-89</a></td></tr>
+<tr><th scope="row"><code>Focus</code>, <code>Push</code>, <code>Pop</code></th><td><a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L175-L215">runtime.go:175-215</a></td></tr>
+<tr><th scope="row"><code>ExecuteAt</code></th><td><a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L216-L241">runtime.go:216-241</a></td></tr>
+<tr><th scope="row"><code>EffectiveBindings</code></th><td><a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L297-L320">runtime.go:297-320</a></td></tr>
 <tr><th scope="row"><code>HandleBinding</code> and timeout delivery</th><td><a href="../bindings.go#L30-L152">bindings.go:30-152</a></td></tr>
-<tr><th scope="row"><code>modal.push</code> operation</th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L435-L443">runtime.go:435-443</a></td></tr>
-<tr><th scope="row"><code>Model.Update</code>, <code>dispatchKey</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L70-L160">model.go:70-160</a></td></tr>
-<tr><th scope="row">Default app bindings</th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L56-L66">model.go:56-66</a></td></tr>
-<tr><th scope="row">Demo inputs and paths</th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L22-L26">demo.go:22-26</a></td></tr>
-<tr><th scope="row">Demo <code>input.next</code> handler</th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L77-L92">demo.go:77-92</a></td></tr>
-<tr><th scope="row">Demo <code>tab</code> and <code>ctrl+n</code> bindings</th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L135">demo.go:135</a>, <a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L141-L142">141-142</a></td></tr>
-<tr><th scope="row"><code>OpenPage</code></th><td><a href="https://github.com/unixsuperhero/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/pages.go#L50-L62">pages.go:50-62</a></td></tr>
+<tr><th scope="row"><code>modal.push</code> operation</th><td><a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/runtime.go#L435-L443">runtime.go:435-443</a></td></tr>
+<tr><th scope="row"><code>Model.Update</code>, <code>dispatchKey</code></th><td><a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L70-L160">model.go:70-160</a></td></tr>
+<tr><th scope="row">Default app bindings</th><td><a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/model.go#L56-L66">model.go:56-66</a></td></tr>
+<tr><th scope="row">Demo inputs and paths</th><td><a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L22-L26">demo.go:22-26</a></td></tr>
+<tr><th scope="row">Demo <code>input.next</code> handler</th><td><a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L77-L92">demo.go:77-92</a></td></tr>
+<tr><th scope="row">Demo <code>tab</code> and <code>ctrl+n</code> bindings</th><td><a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L135">demo.go:135</a>, <a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/demo.go#L141-L142">141-142</a></td></tr>
+<tr><th scope="row"><code>OpenPage</code></th><td><a href="https://github.com/ofamtools/ochazuke/blob/527d6808cab37507d75b5f8b575d9937eea4a0dc/pages.go#L50-L62">pages.go:50-62</a></td></tr>
 <tr><th scope="row"><code>keybindingModel.Update</code> and key dispatch</th><td><a href="../cmd/ochazuke/keybinding.go#L39-L119">keybinding.go:39-119</a></td></tr>
 <tr><th scope="row"><code>installBinding</code></th><td><a href="../cmd/ochazuke/keybinding.go#L230-L256">keybinding.go:230-256</a></td></tr>
 </tbody>

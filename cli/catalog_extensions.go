@@ -3,7 +3,7 @@ package cli
 import (
 	"slices"
 
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // CatalogExtension preserves a mounted app's own words and the local names of

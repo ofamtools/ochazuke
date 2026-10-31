@@ -16,11 +16,11 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/unixsuperhero/monogatari"
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/cli"
-	"github.com/unixsuperhero/ochazuke/markdown"
-	"github.com/unixsuperhero/ochazuke/markdown/cliview"
+	"ofam.dev/monogatari"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/cli"
+	"ofam.dev/ochazuke/markdown"
+	"ofam.dev/ochazuke/markdown/cliview"
 )
 
 // Demo is the one application noun a demo story has: page instances and

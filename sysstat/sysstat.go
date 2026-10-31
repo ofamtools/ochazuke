@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // ErrUnsupported is a reading on a platform without a reader.

@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	uv "github.com/charmbracelet/ultraviolet"
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // Emulator is one terminal emulator: what a program writes goes in

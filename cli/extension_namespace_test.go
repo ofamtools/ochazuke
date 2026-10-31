@@ -5,9 +5,9 @@ import (
 	"io"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/grid"
-	"github.com/unixsuperhero/ochazuke/markdown"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/grid"
+	"ofam.dev/ochazuke/markdown"
 )
 
 func TestExtensionNamespace(t *testing.T) {

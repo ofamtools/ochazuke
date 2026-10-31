@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/cli"
-	"github.com/unixsuperhero/ochazuke/keytest"
-	"github.com/unixsuperhero/oden"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/cli"
+	"ofam.dev/ochazuke/keytest"
+	"ofam.dev/oden"
 )
 
 // demo task watch streams a JSON line per task added, modified or deleted:

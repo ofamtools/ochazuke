@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke/cli"
-	"github.com/unixsuperhero/oden"
+	"ofam.dev/ochazuke/cli"
+	"ofam.dev/oden"
 )
 
 // TestCatalogInspect writes the demo's catalog inspector page, with a few

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/refdoc"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/refdoc"
 )
 
 // committedReference is docs/reference from this package's directory.

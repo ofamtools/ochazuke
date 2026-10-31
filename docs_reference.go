@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/unixsuperhero/ochazuke/refdoc"
+	"ofam.dev/ochazuke/refdoc"
 )
 
 // ReferenceModel is the runtime as the generated reference sees it: every

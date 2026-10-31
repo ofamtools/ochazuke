@@ -21,8 +21,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/internal/demo"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/internal/demo"
 )
 
 type action struct {
@@ -132,7 +132,7 @@ func generate() error {
 		}
 		files = append(files, file)
 	}
-	pkg, err := doc.NewFromFiles(fset, files, "github.com/unixsuperhero/ochazuke")
+	pkg, err := doc.NewFromFiles(fset, files, "ofam.dev/ochazuke")
 	if err != nil {
 		return err
 	}

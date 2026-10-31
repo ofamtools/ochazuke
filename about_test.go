@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/unixsuperhero/ochazuke/keytest"
+	"ofam.dev/ochazuke/keytest"
 )
 
 // fakeAboutEnv is a fixed build: a main module with vcs stamps, ochazuke
@@ -21,12 +21,12 @@ func fakeAboutEnv(opened *[]string) AboutEnv {
 		BuildInfo: func() (*debug.BuildInfo, bool) {
 			return &debug.BuildInfo{
 				GoVersion: "go1.26.0",
-				Main:      debug.Module{Path: "github.com/unixsuperhero/matomeru", Version: "(devel)"},
+				Main:      debug.Module{Path: "ofam.dev/matomeru", Version: "(devel)"},
 				Deps: []*debug.Module{
 					{Path: "charm.land/bubbletea/v2", Version: "v2.1.0"},
-					{Path: "github.com/unixsuperhero/ochazuke", Version: "v0.74.0", Replace: &debug.Module{Path: "../ochazuke"}},
-					{Path: "github.com/unixsuperhero/oden", Version: "(devel)"},
-					{Path: "github.com/unixsuperhero/monogatari", Version: "v0.9.0"},
+					{Path: "ofam.dev/ochazuke", Version: "v0.74.0", Replace: &debug.Module{Path: "../ochazuke"}},
+					{Path: "ofam.dev/oden", Version: "(devel)"},
+					{Path: "ofam.dev/monogatari", Version: "v0.9.0"},
 				},
 				Settings: []debug.BuildSetting{
 					{Key: "vcs.revision", Value: "0123456789abcdef0123"},
@@ -81,7 +81,7 @@ func TestAboutSectionsFromFakeBuild(t *testing.T) {
 		t.Fatalf("titles %v", titles)
 	}
 	build := []AboutRow{
-		{Label: "module", Value: "github.com/unixsuperhero/matomeru"},
+		{Label: "module", Value: "ofam.dev/matomeru"},
 		{Label: "version", Value: "devel"},
 		{Label: "commit", Value: "0123456789ab"},
 		{Label: "commit time", Value: "2026-10-30T12:00:00Z"},
@@ -149,7 +149,7 @@ func TestAboutRowsEvaluateLazily(t *testing.T) {
 		t.Fatalf("refresh calls %d", calls)
 	}
 	view := ansi.Strip(m.View().Content)
-	for _, want := range []string{"Build", "Data", "Broken", "daemon gone", "Dependencies", "Runtime", "github.com/unixsuperhero/matomeru"} {
+	for _, want := range []string{"Build", "Data", "Broken", "daemon gone", "Dependencies", "Runtime", "ofam.dev/matomeru"} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("view lacks %q:\n%s", want, view)
 		}
@@ -171,7 +171,7 @@ func TestAboutCopyAndRowVerbs(t *testing.T) {
 		t.Fatal(err)
 	}
 	y, _ := r.ReadYank("")
-	if y.Text != text || !strings.Contains(y.Text, "Build\n  module       github.com/unixsuperhero/matomeru\n") || !strings.Contains(y.Text, "  ochazuke    ../ochazuke  (local replace of v0.74.0)") {
+	if y.Text != text || !strings.Contains(y.Text, "Build\n  module       ofam.dev/matomeru\n") || !strings.Contains(y.Text, "  ochazuke    ../ochazuke  (local replace of v0.74.0)") {
 		t.Fatalf("copy %q", y.Text)
 	}
 	if _, err := r.Execute(Request{Noun: "ochazuke.about", Verb: "open"}); err != nil {
@@ -181,7 +181,7 @@ func TestAboutCopyAndRowVerbs(t *testing.T) {
 		t.Fatalf("focus %q", r.Focus)
 	}
 	keytest.Press(m, "y")
-	if y, _ := r.ReadYank(""); y.Text != "github.com/unixsuperhero/matomeru" {
+	if y, _ := r.ReadYank(""); y.Text != "ofam.dev/matomeru" {
 		t.Fatalf("row yank %q", y.Text)
 	}
 	if _, err := r.Execute(Request{Noun: aboutRowNoun, Verb: "open"}); err == nil || !strings.Contains(err.Error(), "not a path") {

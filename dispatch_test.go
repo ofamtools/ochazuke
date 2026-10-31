@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/unixsuperhero/ochazuke/keytest"
+	"ofam.dev/ochazuke/keytest"
 )
 
 // dispatchTestModel is one focused single-line editor holding text, with each

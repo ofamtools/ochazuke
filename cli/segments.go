@@ -3,7 +3,7 @@ package cli
 import (
 	"time"
 
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // CatalogSegment is a status segment an extension answers from one of

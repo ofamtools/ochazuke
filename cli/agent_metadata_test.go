@@ -8,9 +8,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/cli/inspect"
-	"github.com/unixsuperhero/oden"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/cli/inspect"
+	"ofam.dev/oden"
 )
 
 func TestCatalogAgentMetadata(t *testing.T) {

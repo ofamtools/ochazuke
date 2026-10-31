@@ -3,8 +3,8 @@ package demo
 import (
 	"encoding/json"
 
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/cli"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/cli"
 )
 
 // Page is one synthetic page: lists, inputs, a fake terminal and jobs.

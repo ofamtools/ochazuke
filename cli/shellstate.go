@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // sinceRequest is a state call's --since and --since-cache (the delta

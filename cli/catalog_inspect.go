@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/cli/inspect"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/cli/inspect"
 )
 
 // InspectFile is the page catalog inspect writes without --out, in the

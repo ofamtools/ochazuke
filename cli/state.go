@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // The state delta protocol (CatalogDoc.StateDelta). A host that has a

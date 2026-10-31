@@ -19,7 +19,7 @@
     {
       "focus": "turns/body",
       "contains": [
-        "▌  ok   github.com/unixsuperhero/ochazuke/pkg15"
+        "▌  ok   ofam.dev/ochazuke/pkg15"
       ],
       "lacks": [
         "▾ Make the help modal"

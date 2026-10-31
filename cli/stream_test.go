@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // watchFixture is a runtime with a thing store and thing.feed, a change

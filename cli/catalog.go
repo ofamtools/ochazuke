@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // Schema is the catalog format version Catalog writes.

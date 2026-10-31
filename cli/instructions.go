@@ -8,8 +8,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/cli/mcp"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/cli/mcp"
 )
 
 const (

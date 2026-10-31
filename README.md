@@ -4,10 +4,10 @@
     <img alt="ochazuke" src="assets/logo-animated-light.svg" width="360">
   </picture>
   <br>
-  <a href="https://github.com/unixsuperhero/ochazuke/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/unixsuperhero/ochazuke"></a>
-  <a href="https://pkg.go.dev/github.com/unixsuperhero/ochazuke"><img alt="Go Reference" src="https://pkg.go.dev/badge/github.com/unixsuperhero/ochazuke.svg"></a>
-  <a href="go.mod"><img alt="Go version" src="https://img.shields.io/github/go-mod/go-version/unixsuperhero/ochazuke"></a>
-  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/unixsuperhero/ochazuke"></a>
+  <a href="https://github.com/ofamtools/ochazuke/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/ofamtools/ochazuke"></a>
+  <a href="https://pkg.go.dev/ofam.dev/ochazuke"><img alt="Go Reference" src="https://pkg.go.dev/badge/ofam.dev/ochazuke.svg"></a>
+  <a href="go.mod"><img alt="Go version" src="https://img.shields.io/github/go-mod/go-version/ofamtools/ochazuke"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/ofamtools/ochazuke"></a>
 </p>
 
 <p align="center">A modal TUI framework for Go, built on Bubble Tea v2: Vim-style modes and an extensible command model, so every action in your app can be bound to a key, run from the palette or scripted from the shell.</p>
@@ -17,10 +17,10 @@
 Ochazuke is a modal TUI framework for Go. It builds on Charmbracelet Bubble Tea v2 (`charm.land/bubbletea/v2`, Lip Gloss v2, Bubbles v2) and adds what a keyboard-first app needs: Vim-style modes and editing, retained pages and a stack of partial-screen modals that keep their state, lists, tables and trees, a command palette, forms and a Settings page, with default Lip Gloss styling. Underneath is a generic command model: every action is a named command with typed arguments that runs the same way from a key, the palette, the CLI (over a local socket) and the Go API. Keys, settings and commands are data, so users rebind and extend them in JSON files, and apps and extensions add their own without forking the framework.
 
 
-Module `github.com/unixsuperhero/ochazuke`; requires Go 1.26 or newer. It builds on [oden](https://github.com/unixsuperhero/oden) for CLI resolution.
+Module `ofam.dev/ochazuke`; requires Go 1.26 or newer. It builds on [oden](https://github.com/ofamtools/oden) for CLI resolution.
 
 ```sh
-go get github.com/unixsuperhero/ochazuke@latest
+go get ofam.dev/ochazuke@latest
 ```
 
 ## Explore the architecture
@@ -1613,7 +1613,7 @@ Each host attaches a sink (`ochazuke.UISink`: `Notify(id, text)`, `ClearNotice(i
 Every name ochazuke deprecates lives in `deprecated.go`, built only without the `ochazuke_strict` tag: it keeps working for one release, then goes. An application adds one test and its suite fails on any use, at the line, with the compiler's message (type-checked, so a `Status` method of the app's own types is never flagged):
 
 ```go
-import "github.com/unixsuperhero/ochazuke/strictcheck"
+import "ofam.dev/ochazuke/strictcheck"
 
 func TestNoDeprecatedOchazuke(t *testing.T) { strictcheck.Check(t) }
 ```
@@ -1961,7 +1961,7 @@ Not supported: `opt&vi` (one default per setting), `|` and `"` (the palette runs
 
 - **Build**: the main module's path, version (`devel` for a `(devel)` build), commit (12 characters), commit time, whether the tree was modified, the Go version and the binary (`os.Executable`), from `debug.ReadBuildInfo`; the `refdoc` linker stamps (`refdoc.Version`, `Commit`, `Date`, `Dirty`) win, as for `--version`.
 - **The application's sections** (`Runtime.AddAboutSection(title, func() []AboutRow)`): rows of `AboutRow{Label, Value, Kind, Note}`; `Kind: ochazuke.AboutPath` marks a file or directory. The function runs when the page opens, on `about.refresh` (`r`) and on each `about.show`/`about.copy`, never at startup, so a row that asks a daemon costs nothing until someone looks; a function that panics reads one `error` row.
-- **Dependencies**: every module of the build whose path starts with a prefix in `about.dep-prefixes` (default `["github.com/unixsuperhero/"]`), labelled by the rest of the path. A module replaced by a local directory reads the directory (a path row, note `local replace of vX`); one a `go.work` brings in reads `devel` (note `local build (go.work)`); one replaced by another module reads the replacement.
+- **Dependencies**: every module of the build whose path starts with a prefix in `about.dep-prefixes` (default `["ofam.dev/", "github.com/ofamtools/", "github.com/unixsuperhero/"]`), labelled by the rest of the path. A module replaced by a local directory reads the directory (a path row, note `local replace of vX`); one a `go.work` brings in reads `devel` (note `local build (go.work)`); one replaced by another module reads the replacement.
 - **Runtime**: the pid, the start time, the uptime and each status segment's last text.
 
 Verbs, all read-only (agents may run them): `about.open`, `about.close` (`q`/`esc`), `about.refresh` (`r`), `about.show {section}` (the sections as data, for the CLI and MCP: `BIN ochazuke about show`), `about.copy {section}` (`Y`: the sections as aligned text in the registers and the clipboard, for a bug report). A row is an `about-row`: `about-row.copy` (`y`) yanks its value, `about-row.open` (`enter`, hidden `o`; guard `about-row-path`) opens a path row with `open`/`xdg-open`, `about-row.show` answers it. No key opens the page: an application binds `ochazuke.about.open`, or the palette and the CLI run it. Keys are `bindings/about.json`.

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // formatRuntime is a tool with a noun that declares columns (pane), one

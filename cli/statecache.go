@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // StateCache is how an extension's shell keeps the versions of its state

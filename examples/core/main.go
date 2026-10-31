@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // newRuntime builds the example's tree: two inputs under nested instances,

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/unixsuperhero/ochazuke/keytest"
+	"ofam.dev/ochazuke/keytest"
 )
 
 func TestRenderCoalescesAndFlushesLastFrame(t *testing.T) {

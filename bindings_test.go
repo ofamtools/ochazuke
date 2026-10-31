@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/unixsuperhero/ochazuke/keytest"
+	"ofam.dev/ochazuke/keytest"
 )
 
 func timedBindings(t *testing.T, keys ...string) (*Runtime, *[]string) {

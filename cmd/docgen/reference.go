@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/markdown"
-	"github.com/unixsuperhero/ochazuke/refdoc"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/markdown"
+	"ofam.dev/ochazuke/refdoc"
 )
 
 // The commands the reference's header names.

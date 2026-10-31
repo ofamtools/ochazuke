@@ -19,8 +19,8 @@ import (
 // command embeds: in a linked worktree that build info names the main
 // checkout's HEAD, not the worktree's.
 //
-//	go build -ldflags "-X github.com/unixsuperhero/ochazuke/refdoc.Commit=$(git rev-parse HEAD) \
-//	  -X github.com/unixsuperhero/ochazuke/refdoc.Dirty=true"
+//	go build -ldflags "-X ofam.dev/ochazuke/refdoc.Commit=$(git rev-parse HEAD) \
+//	  -X ofam.dev/ochazuke/refdoc.Dirty=true"
 //
 // Dirty is "true" for a build from a tree with uncommitted changes. Date
 // is the commit date (YYYY-MM-DD).

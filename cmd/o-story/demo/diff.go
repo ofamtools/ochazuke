@@ -3,8 +3,8 @@ package demo
 import (
 	"fmt"
 
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/diffview"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/diffview"
 )
 
 // DiffSpec supplies either unified patch text or structured files. File

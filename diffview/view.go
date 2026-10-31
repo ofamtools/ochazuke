@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // Layout chooses the visual arrangement; Auto uses Split at SplitWidth.

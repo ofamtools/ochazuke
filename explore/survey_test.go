@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke/explore"
+	"ofam.dev/ochazuke/explore"
 )
 
 // The explorer's slow tests (seconds each): go test -tags explore, or

@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/unixsuperhero/monogatari/explore"
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/internal/demo"
+	"ofam.dev/monogatari/explore"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/internal/demo"
 )
 
 // demoSubject is the demo with its path fields pointed at an empty

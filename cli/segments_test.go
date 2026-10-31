@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // The catalog lists the segments a tool answers from its verbs, never a

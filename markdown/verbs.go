@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // defaultBindings are the markdown nouns' keys: the one place they are

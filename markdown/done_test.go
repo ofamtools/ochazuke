@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 const doneSource = "# Plan\n\n- [x] finished\n  - [ ] unfinished child\n  - [X] finished child\n  > **owner** today: concealed note\n\n- [ ] first\n- [x] other finished\n- [ ] last\n"

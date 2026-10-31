@@ -8,7 +8,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // Row is one line of a state answer (CatalogDoc.State) or of a list asked

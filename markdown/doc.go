@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // Source is where a Doc's Markdown lives: Load reads it as it is now and

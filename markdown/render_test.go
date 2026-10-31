@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 const sample = "# Notes\n\nSome *text* that is long enough to wrap at forty columns, surely.\n\n- [ ] milk\n- [x] bread\n\n```go\nfunc main() {}\n```\n"

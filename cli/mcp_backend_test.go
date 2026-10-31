@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/cli/mcp"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/cli/mcp"
 )
 
 func mcpCall(t *testing.T, s *mcp.Server, tool string, args map[string]any) map[string]any {

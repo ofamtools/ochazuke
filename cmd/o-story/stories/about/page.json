@@ -19,9 +19,9 @@
       "binary": "/usr/local/bin/demo",
       "deps": [
         {"path": "charm.land/bubbletea/v2", "version": "v2.1.0"},
-        {"path": "github.com/unixsuperhero/ochazuke", "version": "v0.74.0", "replace": "../ochazuke"},
-        {"path": "github.com/unixsuperhero/oden", "version": "(devel)"},
-        {"path": "github.com/unixsuperhero/monogatari", "version": "v0.3.1"}
+        {"path": "ofam.dev/ochazuke", "version": "v0.74.0", "replace": "../ochazuke"},
+        {"path": "ofam.dev/oden", "version": "(devel)"},
+        {"path": "ofam.dev/monogatari", "version": "v0.3.1"}
       ],
       "pid": 4242,
       "started": "2026-10-31T09:00:00",

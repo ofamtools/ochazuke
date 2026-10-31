@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/cli/inspect"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/cli/inspect"
 )
 
 // pageData reads the data a written inspector page inlines.

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/unixsuperhero/ochazuke"
-	"github.com/unixsuperhero/ochazuke/explore"
+	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/explore"
 )
 
 // buggy is an application with a bug per check: b panics, f fails, s

@@ -4,7 +4,7 @@ import (
 	_ "embed"
 	"errors"
 
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 //go:embed bindings.json

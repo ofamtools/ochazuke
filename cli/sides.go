@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/unixsuperhero/ochazuke"
+	"ofam.dev/ochazuke"
 )
 
 // CatalogSide declares a program a host may launch beside a pane. Command
