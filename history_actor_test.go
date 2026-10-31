@@ -100,8 +100,13 @@ func TestActorUndoCreateDeleteAndGuard(t *testing.T) {
 	if s.find(key) != nil {
 		t.Fatal("create not undone")
 	}
-	mustRun(t, r, Request{Noun: "task", Verb: "delete", Actor: &a, Confirmed: true, Args: Arguments{"id": "t1"}})
-	seq = lastEntry(t, r).Seq
+	mustRun(t, r, Request{Noun: "task", Verb: "delete", Actor: &a, Args: Arguments{"id": "t1"}})
+	mustRun(t, r, Request{Noun: "confirm", Verb: "accept"})
+	for _, e := range r.History(0) {
+		if e.Request.Noun == "task" && e.Request.Verb == "delete" && len(e.Changes) > 0 {
+			seq = e.Seq
+		}
+	}
 	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo", Actor: &a, Args: Arguments{"entry": int(seq)}})
 	if s.find("t1") == nil {
 		t.Fatal("delete not undone")

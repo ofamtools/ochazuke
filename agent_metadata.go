@@ -5,7 +5,7 @@ import (
 	"slices"
 )
 
-// Agent rights are declarations for agent callers. Enforcement is supplied by the host.
+// Agent rights are declarations for agent callers, enforced by the runtime gate.
 const (
 	AgentAllow   = "allow"
 	AgentConfirm = "confirm"

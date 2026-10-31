@@ -6,6 +6,10 @@
 // this directory and are declared by the feature that needs them (terminal.json: EnsureTerminalLeader). "deprecated" lists older
 // names that still read and write the setting for one release. The rows' order is their order inside a section.
 [
+ {"name":"mcp.include-extensions", "section":"agents", "type":"boolean", "default":false, "description":"Include mounted extension verbs in this app MCP catalog; off, use each extension own server"},
+ {"name":"agents.status-segment", "section":"agents", "type":"boolean", "default":false, "description":"Show the agent with an active job or a pending confirmation in the header status segments"},
+  {"name":"agents.rights-gate", "section":"agents", "type":"boolean", "default":true, "description":"Enforce agent rights on every request; off gives agents owner rights"},
+  {"name":"agents.confirm-attribution", "section":"agents", "type":"boolean", "default":true, "description":"Name the agent asking in confirmation prompts"},
   {"name": "detail.sections", "section": "pages", "type": "boolean", "default": true, "description": "Render catalog section details as read-only Markdown, threads and metadata; off shows the legacy record fields"},
   {"name": "detail.padding", "section": "pages", "type": "integer", "default": 1, "description": "Whitespace around catalog main sections: one blank line and two inset cells per unit; also separates thread headers from indented bodies. 0 restores the tight layout; page padding overrides"},
   {"name": "detail.side", "section": "pages", "type": "boolean", "default": true, "description": "Show side regions of catalog section details (a catalog page may override this default or name its own setting)"},

@@ -24,14 +24,16 @@ import (
 // arguments and returns a Verdict. Checks run in the order they were
 // added; the first that does not allow decides.
 type VerbCheck struct {
-	Name  string
-	Check func(r *Runtime, c Context, args Arguments) Verdict
+	requestCheck func(*Runtime, Context, Request, Operation) Verdict
+	Name         string
+	Check        func(r *Runtime, c Context, args Arguments) Verdict
 }
 
 // Verdict is a check's answer: the zero Verdict allows; Ask holds the
 // question the confirm modal asks before the verb runs; Refuse holds the
 // reason the request fails with.
 type Verdict struct {
+	err    error
 	Ask    string
 	Refuse string
 }
@@ -106,10 +108,20 @@ func (r *Runtime) BeforeQuit(name string, check func(r *Runtime, c Context) Verd
 // runChecks is the first verdict of op's checks that does not allow, the
 // zero Verdict when every check allows or the request skips them.
 func (r *Runtime) runChecks(c Context, q Request, op Operation) Verdict {
+	for _, v := range op.Checks {
+		if v.requestCheck != nil {
+			if got := v.requestCheck(r, c, q, op); got != (Verdict{}) {
+				return got
+			}
+		}
+	}
 	if len(op.Checks) == 0 || q.Confirmed || q.Args["force"] == true {
 		return Verdict{}
 	}
 	for _, v := range op.Checks {
+		if v.Check == nil {
+			continue
+		}
 		if got := v.Check(r, c, q.Args); got != (Verdict{}) {
 			return got
 		}

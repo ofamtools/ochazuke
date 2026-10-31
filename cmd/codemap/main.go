@@ -63,9 +63,8 @@ func main() {
 	fmt.Fprintf(os.Stderr, "wrote %s (%d files)\n", out, len(names))
 }
 
-// subpackages lists the importable packages beside the root one: top-level
-// directories holding Go source, other than commands, examples, internal
-// helpers and docs.
+// subpackages lists importable packages at every depth, leaving commands,
+// examples, internal helpers, docs and separate modules to their own maps.
 func subpackages(root string) []string {
 	entries, err := os.ReadDir(root)
 	if err != nil {
@@ -77,8 +76,14 @@ func subpackages(root string) []string {
 		if !e.IsDir() || skip[e.Name()] || strings.HasPrefix(e.Name(), ".") {
 			continue
 		}
+		if _, err := os.Stat(filepath.Join(root, e.Name(), "go.mod")); err == nil {
+			continue
+		}
 		if matches, _ := filepath.Glob(filepath.Join(root, e.Name(), "*.go")); len(matches) > 0 {
 			dirs = append(dirs, e.Name())
+		}
+		for _, nested := range subpackages(filepath.Join(root, e.Name())) {
+			dirs = append(dirs, filepath.ToSlash(filepath.Join(e.Name(), nested)))
 		}
 	}
 	return dirs

@@ -78,8 +78,22 @@ func (r *Runtime) openConfirmAbout(c Context, q, run Request, op Operation) (any
 	inst := r.Instances[focusOf(c)]
 	stored := run
 	actor := r.Actor()
+	if actor.IsAgent() && r.Settings().Bool(AgentRightsGateSetting) {
+		policy := op
+		if registered, ok := r.Operation(op.Key()); ok {
+			policy = registered
+		}
+		right := r.AgentRight(policy, r.agentLive())
+		if right.Right == AgentNever {
+			return nil, &RefusedError{Verb: policy.Key(), Rule: right.Rule, Reason: "agents may never run this verb; ask the owner"}
+		}
+		if !r.agentLive() && !r.agentApproved {
+			return nil, &RefusedError{Verb: policy.Key(), Rule: right.Rule, Reason: "needs the owner's confirmation; ask them to run this command"}
+		}
+	}
 	stored.Actor, stored.source = &actor, r.history.source
 	stored.Confirmed = true
+	stored.agentApproved = true
 	stored.Target = inst.ID
 	// A request that names its thing by the noun's key argument (task
 	// delete --id t2) is about that thing, whatever instance it targets
@@ -152,6 +166,9 @@ func (r *Runtime) openConfirmAbout(c Context, q, run Request, op Operation) (any
 	})
 	if strings.TrimSpace(prompt) == "" {
 		prompt = "Run " + q.Key() + "?"
+	}
+	if actor.IsAgent() && r.Settings().Bool(AgentConfirmAttributionSetting) {
+		prompt = actor.String() + " asks:\n" + prompt
 	}
 	body, err := r.OpenModal("confirm", Payload{Prompt: prompt, Request: &stored})
 	if err != nil {

@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -32,5 +33,25 @@ func TestBuildConstrainedFilesMapTheSameEveryRun(t *testing.T) {
 				t.Fatalf("run %d: %s leans on %q, want %q", run, name, got, w)
 			}
 		}
+	}
+}
+
+// Nested importable packages belong in the agent's map, while fixture and
+// separately versioned module code have their own documentation boundaries.
+func TestSubpackagesIncludeNested(t *testing.T) {
+	root := t.TempDir()
+	for _, name := range []string{"cli/shell.go", "cli/mcp/server.go", "cli/inspect/page.go", "cli/testdata/fake/no.go", "examples/demo/main.go", "separate/module.go", "separate/go.mod"} {
+		path := filepath.Join(root, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("package fixture\n"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got := subpackages(root)
+	want := []string{"cli", "cli/inspect", "cli/mcp"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("packages %v want %v", got, want)
 	}
 }

@@ -2152,8 +2152,88 @@ Mounted extension verbs retain this metadata; their guards remain checked by
 the extension. `agentDeclared` preserves an explicit right separately from `agent`,
 which describes the derived default: destructive or confirmed verbs ask for
 confirmation; fetches, changes and screen actions allow. Standard delete and
-archive verbs are destructive. This metadata does not enforce agent rights yet. The inspector’s checked-by-default
+archive verbs are destructive. The runtime enforces agent rights on every agent request. The inspector’s checked-by-default
 `agent metadata` control hides or shows the added descriptions and agent fields.
+
+### Agent rights
+
+The `agent-rights` verb check runs before other checks, even with `force` or
+`Confirmed`. Destructive or confirm-prompted verbs require the owner's approval;
+other verbs allow agents by default, including screen actions when live control
+is enabled. Framework settings, config, bindings, actions, themes and confirmation
+control verbs declare `never` by default. Apps can declare rights per verb with
+`.Agent(...)`. `agent.rights {verb}` lists the effective policy and its source.
+
+Owner overrides use `agents.rights`, a validated JSON array stored as a string,
+like `list.filters`: `[{"match":"task.*","right":"never","where":"live"}]`.
+Rows match `noun.verb`, `noun.*` or `*`, first match wins; `where` is `live`,
+`headless` or `any`. The `agents.rights-gate` setting defaults to true; false
+restores owner rights. Headless agent calls refuse a confirmation with
+"needs the owner's confirmation"; the agent must ask the owner to run the command.
+Only the owner's acceptance of a live modal approves it. Attribution names the
+agent by default (`agents.confirm-attribution=false` hides it).
+`agents.status-segment` defaults to false; true shows active agent jobs and
+pending confirmations in the header status segments.
+
+Transport adapters bind startup identity with `Runtime.BindActor(actor, live)`;
+request-supplied actors cannot replace it, including in nested requests. The CLI
+and socket server use this binding. Direct in-process API requests may still set
+`Request.Actor`. These are cooperative guard rails, not authentication.
+
+### Catalog MCP server
+
+Every `cli.Shell` supports `BIN mcp serve`, `mcp tools`, `mcp instructions`
+and `mcp config`. `cli.Mount` adds the same command group to oden apps.
+`serve` speaks newline JSON-RPC over stdin/stdout; diagnostics stay on stderr.
+`config` prints a harness entry and writes no harness configuration. Apps with
+global flags set `Shell.MCPCommand` to their stable executable and global argv;
+config entries and owner confirmation commands preserve those flags.
+
+Four fixed tools discover and execute the existing registry:
+
+| Tool | What it does |
+|---|---|
+| `catalog` | Compact nouns and verbs, filtered by noun or search. `include` is `app` (default), `builtin` or `all`; `limit` defaults to 60, and `next_offset` continues a page. The hash includes effective rights. |
+| `describe` | Full parameters and JSON input schema, examples, guards, aliases, confirmation prompt, history kind, destructive intent and effective right/rule. Accepts an exact action/noun alias or a unique prefix. |
+| `run` | `verb`, optional `target` and `args`; returns status, result, structured UI messages, the new history entry and an exact undo call when the store supports it. `dry_run` checks arguments, target, guards and rights without invoking the handler or recording history. |
+| `state` | The headless runtime's page, focus and mode; `include: ["history"]` adds this actor's entries, with optional `limit`. |
+
+The headless backend uses the same `Shell.Run`, `Runtime.HandleCall` and
+`ExecuteAt` path as CLI requests. Jobs settle before the response. The server
+keeps its private runtime across calls so exact undo entries remain usable;
+`serve` loads and flushes normal history persistence. An agent identity is fixed
+at startup, even if the environment changes afterwards. MCP always acts as an
+agent, including when `OCHAZUKE_ACTOR=owner`; without a pane or name it uses a
+server-specific agent name. `actor`, `confirmed` and `force` are not MCP transport
+arguments. A verb may declare its own parameters, but those cannot bypass rights.
+
+A confirmation returns `status: "refused"`, its reason and an `owner_command`.
+Other modals return a CLI failure and are cleared from the headless runtime.
+Headless calls cannot use the owner's selection or marks: `acts: "selection"`
+and `"marks"` refuse. Live sockets and live selection belong to the live backend;
+this server does not discover or attach to an owner's running app.
+
+The tools use read-only annotations for discovery; generic `run` conservatively
+advertises possible destructive effects. `Shell.MCPAliases` is an optional table
+of old tool names over one verb each (`mcp.Alias`), with argument-name mappings.
+`mcp.include-extensions` defaults to false: mounted proxies stay out of discovery
+until the owner enables it, so each extension can use its own server.
+Visible aliases are listed, hidden aliases still answer; both use `run` and the
+same gate. Alias annotations derive from the verb's history/destructive metadata.
+The palette and CLI can also use `ochazuke.catalog.list` and `.describe`.
+
+The server negotiates protocol versions, serves `ochazuke://catalog` and
+`ochazuke://instructions` resources, and offers a `guide` prompt. Initialization,
+the instructions command and the guide share startup instructions; tool results
+carry an explicit data-not-instructions note. The richer instruction generator,
+app text budgets and extension quoting goldens are a separate follow-up.
+`examples/catalog-mcp` is a persistent task-store example requiring an explicit
+`--data` directory; all its task data, configuration and history stay there.
+
+Compared with Vim: `catalog` is similar to `:command` (listing) and `describe`
+to `:help` (on-demand lookup). These read the operation registry and its typed
+parameters. `run` follows the palette's execute-by-name model and the CLI's
+argument and confirmation path. The existing scoped undo comparison applies.
 
 ### Actors and scoped history undo
 

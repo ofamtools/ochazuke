@@ -1,0 +1,7 @@
+{
+ "name":"the owner's confirmation of an agent list action runs all its subjects",
+ "area":"agents",
+ "page":{"focus":"a1", "lists":[{"id":"a", "rows":3, "labels":["alpha","beta","gamma"], "marked":[0,1]}], "requests":[{"noun":"list", "verb":"apply", "target":"a", "args":{"id":"a","verb":"delete"}, "actor":{"kind":"agent","name":"lane","pane":"p1"}}]},
+ "script":["y"],
+ "expect":{"modal":"", "lacks":["alpha","beta"],"contains":["gamma"]}
+}

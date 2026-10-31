@@ -1,0 +1,6 @@
+{
+ "name":"an agent's confirmation names who asked",
+ "area":"agents",
+ "page":{"focus":"a2", "lists":[{"id":"a", "rows":3, "labels":["alpha","beta","gamma"]}], "requests":[{"noun":"demo", "verb":"delete", "actor":{"kind":"agent", "name":"lane", "harness":"test", "pane":"p1"}}]},
+ "expect":{"modal":"confirm", "contains":["agent lane test (pane p1) asks:","Delete beta?"]}
+}

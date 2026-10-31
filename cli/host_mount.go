@@ -162,6 +162,7 @@ func mountVerb(r *ochazuke.Runtime, b *ochazuke.NounBuilder, local, noun string,
 			break
 		}
 	}
+	op.CatalogProxy = true
 	op.CatalogGuards = slices.Clone(v.Guards)
 	op.Examples = slices.Clone(v.Examples)
 	for i := range op.Examples {
