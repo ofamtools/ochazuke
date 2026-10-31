@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/x/ansi"
+	"github.com/unixsuperhero/ochazuke/keytest"
 )
 
 // keyEchoApp is a page with a ten-row list, a plain input and a secret
@@ -57,8 +58,7 @@ func keyEchoApp(t *testing.T) (*Runtime, *Model, *time.Time) {
 // prunes and schedules its timer as it would live.
 func echoPress(m *Model, keys ...string) {
 	for _, key := range keys {
-		m.handleKey(MacroKey{Key: key})
-		m.Update(nil)
+		m.Update(keytest.Msg(key, false, false))
 	}
 }
 

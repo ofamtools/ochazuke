@@ -171,7 +171,7 @@ func (t *Terminal) HandleMessage(msg tea.Msg) bool {
 		return true
 	}
 	if frame, ok := done.Value.(TerminalFrame); ok {
-		t.frame = frame
+		t.acceptFrame(frame)
 	}
 	t.read()
 	return true

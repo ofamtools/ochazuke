@@ -185,6 +185,7 @@ func (r *Runtime) instanceNoun(kind string) string {
 // index components() walks, so delivery costs the number of non-row
 // instances, never the number of rows.
 func (r *Runtime) register(inst *Instance) {
+	r.renderCache.instances.generation++
 	r.Instances[inst.ID] = inst
 	if r.rows[inst.ID] == "" {
 		r.holders = append(r.holders, inst.ID)
@@ -195,6 +196,7 @@ func (r *Runtime) register(inst *Instance) {
 // unregister drops an instance from the registry, the row index and the
 // holder index.
 func (r *Runtime) unregister(id string) {
+	r.renderCache.instances.generation++
 	delete(r.Instances, id)
 	if _, row := r.rows[id]; row {
 		delete(r.rows, id)
@@ -221,16 +223,7 @@ func (r *Runtime) Children(id string) []*Instance {
 // instances: a walk of a tree asks it once instead of scanning the whole
 // map per node (a page of thousands of rows made that quadratic).
 func (r *Runtime) childIndex() map[string][]*Instance {
-	out := map[string][]*Instance{}
-	for _, inst := range r.Instances {
-		if inst.Parent != inst.ID {
-			out[inst.Parent] = append(out[inst.Parent], inst)
-		}
-	}
-	for _, kids := range out {
-		sort.Slice(kids, func(i, j int) bool { return kids[i].seq < kids[j].seq })
-	}
-	return out
+	return r.renderCache.instances.index(r)
 }
 
 // Ancestry walks the parent links from id outward: id first, app last. An

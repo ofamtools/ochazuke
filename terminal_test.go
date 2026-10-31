@@ -269,6 +269,9 @@ func TestTerminalFramesArriveThroughDeliveryAndStaleFramesDrop(t *testing.T) {
 // leaves the pane.
 func TestTerminalCursorLandsInsideThePanel(t *testing.T) {
 	r, term, stream := terminalFixture(t)
+	if err := r.Settings().Set(RenderMaxFPSSetting, 0); err != nil {
+		t.Fatal(err)
+	} // this test requests each stream frame explicitly
 	page := r.PageOf("console")
 	page.Render = func(r *Runtime, width, height int) Block {
 		layout := Layout{Styles: NewStyles(Appearance{Theme: "mono"})}

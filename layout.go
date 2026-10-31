@@ -113,12 +113,12 @@ func (l Layout) BodySizeWith(f Footer) (width, height int) {
 func (l Layout) TickerRule(jobs []string, width int) string {
 	muted := l.Styles.Muted
 	const lead = "── "
-	room := width - ansi.StringWidth(lead) - 2
+	room := width - chromeWidth(lead) - 2
 	if len(jobs) == 0 || room < 1 {
 		return muted.Render(strings.Repeat("─", max(0, width)))
 	}
 	text := ansi.Truncate(modalLabel(strings.Join(jobs[:min(len(jobs), JobTickerRows)], " · ")), room, "…")
-	fill := width - ansi.StringWidth(lead) - ansi.StringWidth(text) - 1
+	fill := width - chromeWidth(lead) - chromeWidth(text) - 1
 	return muted.Render(lead + text + " " + strings.Repeat("─", fill))
 }
 
@@ -213,7 +213,7 @@ func (l Layout) Shell(h Header, body Block, f Footer) Block {
 		// The echo keeps its cells whatever the text: the line never
 		// reflows as keys come and go.
 		text := footerText(bw - kw - 1)
-		footer = text + strings.Repeat(" ", max(1, bw-kw-ansi.StringWidth(text))) + l.echoCell(f.Keys.Labels, kw)
+		footer = text + strings.Repeat(" ", max(1, bw-kw-chromeWidth(text))) + l.echoCell(f.Keys.Labels, kw)
 	}
 	var rows []string
 	if l.full() {
@@ -253,9 +253,9 @@ func (l Layout) titleRow(h Header, width int) string {
 	if h.Badge != "" {
 		label := modalLabel(h.Badge)
 		// The padding gives way before the label is cut.
-		label += strings.Repeat(" ", max(0, min(h.BadgeWidth, width-3)-ansi.StringWidth(label)))
+		label += strings.Repeat(" ", max(0, min(h.BadgeWidth, width-3)-chromeWidth(label)))
 		right = s.Badge.Render(ansi.Truncate(label, max(0, width-3), "…"))
-		reserved = ansi.StringWidth(right) + 1
+		reserved = chromeWidth(right) + 1
 	}
 	if kw := h.Keys.cells(width); kw > 0 && kw+reserved+2 <= width {
 		// The echo left of the badge, in cells it keeps whatever it holds.
@@ -264,10 +264,10 @@ func (l Layout) titleRow(h Header, width int) string {
 			cell += " "
 		}
 		right = cell + right
-		reserved = ansi.StringWidth(right) + 1
+		reserved = chromeWidth(right) + 1
 	}
 	if len(h.Focus) > 0 {
-		title := ansi.StringWidth(modalLabel(h.Title))
+		title := chromeWidth(modalLabel(h.Title))
 		room := width - 2 - min(title, focusTitleKeep(width)) - reserved - 1
 		if focus := FitFocusPath(h.Focus, room); focus != "" {
 			focus = s.Muted.Render(focus)
@@ -275,14 +275,14 @@ func (l Layout) titleRow(h Header, width int) string {
 				focus += " "
 			}
 			right = focus + right
-			reserved = ansi.StringWidth(right) + 1
+			reserved = chromeWidth(right) + 1
 		}
 	}
 	title := s.Chrome("title.mark", s.Accent).Render("◆ ") + s.Chrome("title", s.Title).Render(ansi.Truncate(modalLabel(h.Title), max(0, width-2-reserved), "…"))
 	if right == "" {
 		return title
 	}
-	gap := max(1, width-ansi.StringWidth(title)-ansi.StringWidth(right))
+	gap := max(1, width-chromeWidth(title)-chromeWidth(right))
 	return title + strings.Repeat(" ", gap) + right
 }
 
@@ -316,7 +316,7 @@ func (s Styles) hintLine(lead string, cells []HintCell, width int) (string, bool
 	var b strings.Builder
 	total := 0
 	for _, p := range pieces {
-		total += ansi.StringWidth(p.text)
+		total += chromeWidth(p.text)
 	}
 	if total <= width {
 		for _, p := range pieces {
@@ -331,7 +331,7 @@ func (s Styles) hintLine(lead string, cells []HintCell, width int) (string, bool
 		if limit < 0 {
 			break
 		}
-		if w := ansi.StringWidth(p.text); w <= limit {
+		if w := chromeWidth(p.text); w <= limit {
 			b.WriteString(p.style.Render(p.text))
 			limit -= w
 			continue
@@ -373,7 +373,7 @@ func (l Layout) tabs(titles []string, active, width int) string {
 		} else {
 			cells[i] = s.Tab.Render(modalLabel(title))
 		}
-		total += ansi.StringWidth(cells[i])
+		total += chromeWidth(cells[i])
 	}
 	if total <= width {
 		return strings.Join(cells, "")
@@ -388,10 +388,10 @@ func (l Layout) tabs(titles []string, active, width int) string {
 	for range 3 {
 		budget := width
 		if hideLeft {
-			budget -= ansi.StringWidth(leftMarker(active))
+			budget -= chromeWidth(leftMarker(active))
 		}
 		if hideRight {
-			budget -= ansi.StringWidth(rightMarker(len(titles) - 1 - active))
+			budget -= chromeWidth(rightMarker(len(titles) - 1 - active))
 		}
 		first, last = l.tabWindow(cells, titles, active, budget)
 		left, right := first > 0, last < len(titles)-1
@@ -406,9 +406,9 @@ func (l Layout) tabs(titles []string, active, width int) string {
 	}
 	if first == last && first == active {
 		// The active tab alone: cut it to what the markers leave.
-		room := width - ansi.StringWidth(b.String())
+		room := width - chromeWidth(b.String())
 		if last < len(titles)-1 {
-			room -= ansi.StringWidth(rightMarker(len(titles) - 1 - last))
+			room -= chromeWidth(rightMarker(len(titles) - 1 - last))
 		}
 		b.WriteString(ansi.Truncate(s.ActiveTab.Render(ansi.Truncate(modalLabel(titles[active]), max(1, room-4), "…")), max(0, room), ""))
 	} else {
@@ -424,12 +424,12 @@ func (l Layout) tabs(titles []string, active, width int) string {
 // adding neighbours left and right in turn until neither side fits.
 func (l Layout) tabWindow(cells, titles []string, active, budget int) (first, last int) {
 	first, last = active, active
-	used := ansi.StringWidth(cells[active])
+	used := chromeWidth(cells[active])
 	left, right := active-1, active+1
 	for left >= 0 || right < len(titles) {
 		added := false
 		if left >= 0 {
-			if size := ansi.StringWidth(cells[left]); used+size <= budget {
+			if size := chromeWidth(cells[left]); used+size <= budget {
 				used += size
 				first = left
 				left--
@@ -439,7 +439,7 @@ func (l Layout) tabWindow(cells, titles []string, active, budget int) (first, la
 			}
 		}
 		if right < len(titles) {
-			if size := ansi.StringWidth(cells[right]); used+size <= budget {
+			if size := chromeWidth(cells[right]); used+size <= budget {
 				used += size
 				last = right
 				right++
@@ -504,7 +504,7 @@ func (l Layout) PanelBlock(title string, body Block, width, height int, focused 
 	if inner >= 5 {
 		label = " " + ansi.Truncate(modalLabel(title), inner-4, "…") + " "
 	}
-	fill := max(0, inner-ansi.StringWidth(label)-1)
+	fill := max(0, inner-chromeWidth(label)-1)
 	top := edge.Render(b.TopLeft+b.Top) + titleStyle.Render(label) + edge.Render(strings.Repeat(b.Top, fill)+b.TopRight)
 	if label == "" {
 		top = edge.Render(b.TopLeft + strings.Repeat(b.Top, inner) + b.TopRight)
@@ -682,11 +682,12 @@ func layoutRows(body string, width, height int) []string {
 		line := ""
 		if i < len(lines) {
 			line = lines[i]
-			if ansi.StringWidth(line) > width && width > 1 {
-				line = ansi.Truncate(line, width, "…")
-			}
 		}
-		rows[i] = modalCells(line, width)
+		tail := ""
+		if width > 1 {
+			tail = "…"
+		}
+		rows[i] = fitCells(line, width, tail)
 	}
 	return rows
 }

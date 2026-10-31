@@ -73,21 +73,29 @@ func tickerShows(r *Runtime, j JobInfo) bool {
 // observe remembers the jobs that finished since the last frame, stamped
 // now, and forgets the ones past JobLinger.
 func (t *jobTicker) observe(r *Runtime, now time.Time) {
-	if t.seen == nil {
-		t.seen = map[uint64]bool{}
-	}
-	live := map[uint64]bool{}
-	for _, j := range r.Jobs() {
-		live[j.Job] = true
-		if j.State == JobRunning || t.seen[j.Job] || !tickerShows(r, j) {
+	var fresh []tickerJob
+	for _, j := range r.jobs {
+		if j.State == JobRunning || t.seen[j.Job] || !tickerShows(r, j.JobInfo) {
 			continue
 		}
+		if t.seen == nil {
+			t.seen = map[uint64]bool{}
+		}
 		t.seen[j.Job] = true
-		t.finished = slices.Insert(t.finished, 0, tickerJob{JobInfo: j, at: now})
+		// Jobs completing in one observation keep the same newest-first
+		// order as Jobs(), without sorting and copying the whole job list.
+		at := 0
+		for at < len(fresh) && fresh[at].Job > j.Job {
+			at++
+		}
+		fresh = slices.Insert(fresh, at, tickerJob{JobInfo: j.JobInfo, at: now})
+	}
+	if len(fresh) > 0 {
+		t.finished = append(fresh, t.finished...)
 	}
 	t.finished = slices.DeleteFunc(t.finished, func(j tickerJob) bool { return now.Sub(j.at) >= JobLinger })
 	for id := range t.seen {
-		if !live[id] && !slices.ContainsFunc(t.finished, func(j tickerJob) bool { return j.Job == id }) {
+		if r.jobs[id] == nil && !slices.ContainsFunc(t.finished, func(j tickerJob) bool { return j.Job == id }) {
 			delete(t.seen, id)
 		}
 	}
@@ -98,25 +106,50 @@ func (t *jobTicker) observe(r *Runtime, now time.Time) {
 // JobTickerRows. A running job stays first; when it finishes it falls
 // after the running ones, and a newer job pushes the last entry off. A job finished since the last observe counts as finished now.
 func (t *jobTicker) rows(r *Runtime, now time.Time) []JobInfo {
-	var running, fresh []JobInfo
-	for _, j := range r.Jobs() {
+	var running, fresh [JobTickerRows]JobInfo
+	nrunning, nfresh := 0, 0
+	for _, job := range r.jobs {
+		j := job.JobInfo
 		if !tickerShows(r, j) {
 			continue
 		}
 		switch {
 		case j.State == JobRunning:
-			running = slices.Insert(running, 0, j)
+			tickerNewest(&running, &nrunning, j)
 		case !t.seen[j.Job]:
-			fresh = slices.Insert(fresh, 0, j)
+			tickerNewest(&fresh, &nfresh, j)
 		}
 	}
-	out := append(running, fresh...)
+	var out []JobInfo
+	if nrunning+nfresh+len(t.finished) == 0 {
+		return nil
+	}
+	out = make([]JobInfo, 0, JobTickerRows)
+	out = append(out, running[:nrunning]...)
+	out = append(out, fresh[:min(nfresh, JobTickerRows-len(out))]...)
 	for _, j := range t.finished {
-		if now.Sub(j.at) < JobLinger {
+		if len(out) < JobTickerRows && now.Sub(j.at) < JobLinger {
 			out = append(out, j.JobInfo)
 		}
 	}
 	return out[:min(len(out), JobTickerRows)]
+}
+
+// Keep only the newest entries the ticker can draw. Jobs() remains the
+// complete sorted public inventory; render observation needs neither its
+// allocation nor its sort.
+func tickerNewest(rows *[JobTickerRows]JobInfo, n *int, j JobInfo) {
+	at := 0
+	for at < *n && rows[at].Job > j.Job {
+		at++
+	}
+	if at >= JobTickerRows {
+		return
+	}
+	end := min(*n, JobTickerRows-1)
+	copy(rows[at+1:end+1], rows[at:end])
+	rows[at] = j
+	*n = min(*n+1, JobTickerRows)
 }
 
 // JobsTicker renders the ticker's entries: one message per job,

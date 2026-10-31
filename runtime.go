@@ -432,6 +432,7 @@ type Runtime struct {
 	subjects         []string                 // the subjects execute hands the application handler it is about to run (Ctx.Subjects)
 	prefix           pendingPrefix
 	bindingVersion   uint64
+	renderCache      runtimeRenderCache
 	modeGeneration   uint64
 	rows             map[string]string // list row instance id -> owning list id
 	holders          []string          // every instance that is not a list row, in registration order: the ones that may hold a Component (components())
