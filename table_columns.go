@@ -386,7 +386,7 @@ func registerColumnMotions(r *Runtime) {
 	spills := func(step int) Guard {
 		return func(r *Runtime, ev KeyEvent) bool {
 			l := r.edgeList(ev.Focus, step)
-			if l == nil || !l.atColumnEdge(step) || l.trapped() || l.visual || !l.Focused() {
+			if l == nil || !l.atColumnEdge(step) || l.trappedAt(columnEdge(step)) || l.visual || !l.Focused() {
 				return false
 			}
 			_, ok := l.neighbour(step)
@@ -399,6 +399,23 @@ func registerColumnMotions(r *Runtime) {
 		r.Nouns["ochazuke.list"].Guards = map[string]string{}
 	}
 	r.Nouns["ochazuke.list"].Guards["scroll-columns"] = "table-scrolls"
+	// list-column-moves: list.column and list.scroll-columns by a delta are
+	// unavailable at a column edge the table traps (NoSpill, list.no-spill
+	// ID:first-col / ID:last-col), so the h/l clamp rows stand aside there
+	// as list.move does at a trapped row edge (list-moves).
+	r.DefineGuard("list-column-moves", func(r *Runtime, ev KeyEvent) bool {
+		delta := IntArg(ev.Args, "delta", 0)
+		if delta == 0 {
+			return true
+		}
+		var l *List
+		if id := StringArg(ev.Args, "id", ""); id != "" {
+			l = r.List(id)
+		} else {
+			l = r.focusedList(ev.Focus)
+		}
+		return l == nil || !(l.atColumnEdge(delta) && l.trappedAt(columnEdge(delta)))
+	})
 	r.Register(Operation{Verb: "scroll-columns", Noun: "ochazuke.list", Description: "Scroll a table's columns: to the first or the last, or delta columns right or left; the pinned columns stay", Parameters: map[string]Parameter{
 		"id":    {Type: "string", Description: "The list (default: the focused one)"},
 		"to":    {Type: "string", Enum: []string{"first", "last"}, Description: "The unscrolled view (first) or the one showing the last column (last)"},

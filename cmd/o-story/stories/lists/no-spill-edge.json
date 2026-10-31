@@ -1,0 +1,26 @@
+{
+  "name": "list.no-spill a:last: j at a's last row stays (j unavailable there), k at its first row still spills up; b spills back into a with k",
+  "area": "lists",
+  "settings": [
+    {"name": "list.no-spill", "type": "list", "default": ["a:last"]}
+  ],
+  "width": 30,
+  "height": 12,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [{"id": "x", "rows": 1}, {"id": "a", "rows": 2}, {"id": "b", "rows": 2}],
+    "order": ["x", "a", "b"],
+    "focus": "a1"
+  },
+  "script": ["k", "j", "j", "j", "j", "}", "k"],
+  "expect": [
+    {"after": 1, "focus": "x1"},
+    {"after": 2, "focus": "a1"},
+    {"after": 3, "focus": "a2"},
+    {"after": 4, "focus": "a2"},
+    {"after": 5, "focus": "a2"},
+    {"after": 6, "focus": "b1"},
+    {"focus": "a2"}
+  ]
+}

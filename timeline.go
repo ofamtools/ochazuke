@@ -236,6 +236,7 @@ func (r *Runtime) AddTimeline(id string, cards []Card, opts ...InstanceOption) (
 	r.Instances[t.bodyID].Label = "body"
 	list.part = t.bodyID
 	list.motion = t.cardMotion
+	list.motionAtEdge = t.cardsAtEdge
 	// G on the list instance, above the list noun's list.goto: it also
 	// brings the last card's end into view and resumes following.
 	for _, mode := range []string{"normal", "count_pending"} {
@@ -1098,6 +1099,20 @@ func (t *Timeline) settle() {
 	t.lastSel, t.reveal, t.toBottom, t.seek = t.SelectedID(), false, false, false
 }
 
+// cardsAtEdge reports whether cardMotion(delta) would only spill: the
+// selection is on the first (last) card and, drawn, the timeline's start
+// (end) shows (edgeWant), so there is nothing left to scroll to.
+func (t *Timeline) cardsAtEdge(delta int) bool {
+	l := t.list
+	if l.selected < 0 || delta == 0 {
+		return false
+	}
+	if next := l.selected + delta; next >= 0 && next < len(l.items) {
+		return false
+	}
+	return !t.drawn() || t.edgeWant(delta) == 0
+}
+
 // cardMotion is j/k on the cards (list.move on the card list), count
 // times: each press goes to the neighbouring card by the half-page rule
 // (R3.14): when showing it would scroll more than half the window, the
@@ -1323,6 +1338,21 @@ func registerTimelines(r *Runtime) {
 		"fold-step": "timeline-step-open",
 	} {
 		r.SetAvailability(timelineNoun+"."+verb, guard)
+	}
+	// timeline-step-moves: timeline.step down is unavailable where it would
+	// only spill past the timeline's last edge (the last step of the last
+	// card, its end showing) on a timeline that traps that edge (NoSpill,
+	// list.no-spill ID:last), as list.move is (list-moves).
+	r.DefineGuard("timeline-step-moves", func(r *Runtime, ev KeyEvent) bool {
+		t := r.timelineOf(ev.Focus)
+		if id := StringArg(ev.Args, "id", ""); id != "" {
+			t = r.Timeline(id)
+		}
+		delta := IntArg(ev.Args, "delta", 0)
+		return t == nil || delta <= 0 || !(t.stepsAtLastEdge() && t.list.trappedAt(EdgeLast))
+	})
+	if err := r.AddVerbAvailability(timelineNoun+".step", "timeline-step-moves"); err != nil {
+		panic(err)
 	}
 	// The rows of the timeline and its body are bindings/timeline.json,
 	// with no conditions: l is open then enter (a closed card opens, an
