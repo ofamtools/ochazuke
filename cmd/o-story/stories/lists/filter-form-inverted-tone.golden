@@ -1,0 +1,20 @@
+ |[status != closed]                                                        1 of 2
+r|Second task
+ |
+ |
+ |
+ |
+ |
+ |              ╭──────────────────────────────────────────────────╮
+ |              │ Filter                                           │
+ |              │ status · not                                     │
+ |              │      ● closed   ○ open                           │
+ |              │ space toggle · ! not · q form.leave · u form.un… │
+ |              ╰──────────────────────────────────────────────────╯
+ |
+ |
+ |
+ |
+ |
+ |
+ |

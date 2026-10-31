@@ -12,6 +12,7 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -1210,7 +1211,7 @@ func (e *RecordEditor) Block(width, height int) Block {
 		if f.Free && e.staleChoice(f) {
 			label += " · outside current choices"
 		}
-		lines = append(lines, style.Render(ansi.Truncate(label, width, "…")))
+		lines = append(lines, e.fieldStyle(f, style).Render(ansi.Truncate(label, width, "…")))
 		inner := max(1, width-2)
 		if f.chips {
 			chipLines := e.chipBlock(f, width, 4)
@@ -1234,10 +1235,10 @@ func (e *RecordEditor) Block(width, height int) Block {
 				cursor = &Pos{X: block.Cursor.X + 2, Y: len(lines) + block.Cursor.Y}
 			}
 			if f.Placeholder != "" && len(f.input.Text) == 0 {
-				block.Text = s.Muted.Render(ansi.Truncate(f.Placeholder, inner, "…"))
+				block.Text = e.fieldStyle(f, s.Muted).Render(ansi.Truncate(f.Placeholder, inner, "…"))
 			}
 			for _, row := range strings.Split(block.Text, "\n") {
-				lines = append(lines, "  "+row)
+				lines = append(lines, "  "+e.fieldStyle(f, lipgloss.NewStyle()).Render(row))
 			}
 			continue
 		}
@@ -1251,6 +1252,7 @@ func (e *RecordEditor) Block(width, height int) Block {
 			value = f.value
 		}
 		value = ansi.Truncate(value+" ▾", inner, "…")
+		value = e.fieldStyle(f, lipgloss.NewStyle()).Render(value)
 		if focused && e.r.Focus == f.id {
 			value = reverseVideo(value)
 		}
