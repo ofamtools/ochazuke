@@ -493,7 +493,7 @@ Conformance:
 | normal | detail-field | `detail-field.copy` `detail-field.show` |
 | normal | diff | `diff.file` `diff.hunk` `diff.move` `diff.scroll` `diff.scroll-columns` |
 | normal | focus | `focus.next` `focus.previous` `focus.set` |
-| normal | form | `form.choose` `form.leave` `form.next` `form.next-missing` `form.redo` `form.run` `form.suggest` `form.undo` |
+| normal | form | `form.chip-line` `form.chip-move` `form.chip-toggle` `form.choose` `form.clear` `form.invert` `form.leave` `form.next` `form.next-missing` `form.redo` `form.run` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
 | normal | history | `history.repeat` |
 | normal | input | `input.begin` `input.move` `input.operator` `input.select` `input.undo` |
@@ -579,6 +579,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `chooser.cancel + demo.synced`
 - `insert` → `normal` via `chooser.pick`
 - `insert` → `normal` via `form.run`
+- `insert` → `normal` via `list.filter-prop`
 - `insert` → `normal` via `macro.record`
 - `insert` → `normal` via `markdown.leave`
 - `insert` → `normal` via `mode.set`
@@ -697,6 +698,7 @@ Mode edges (from → to via):
 - `normal z` → `insert` via `list.filter-prop`
 - `normal z` → `insert` via `list.filter-prop-clear`
 - `normal z` → `normal` via `list.filter-cycle`
+- `normal z` → `normal` via `list.filter-prop`
 - `normal z` → `normal` via `list.filter-props-clear`
 - `normal z` → `normal` via `list.fit-column`
 - `normal z` → `normal` via `list.fit-columns`

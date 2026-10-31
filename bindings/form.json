@@ -5,7 +5,28 @@
       {"key": "q", "action": "ochazuke.form.leave"},
       {"key": "esc", "action": "ochazuke.form.leave"},
       {"key": "u", "action": "ochazuke.form.undo"},
-      {"key": "ctrl+r", "action": "ochazuke.form.redo"}
+      {"key": "ctrl+r", "action": "ochazuke.form.redo"},
+      {"key": "C", "action": "ochazuke.form.clear", "hint": "clear"}
+    ]},
+    {"context": "ochazuke.form-chips/normal", "bindings": [
+      {"key": "j", "action": "ochazuke.form.chip-line", "args": {"delta": 1}},
+      {"key": "down", "action": "ochazuke.form.chip-line", "args": {"delta": 1}},
+      {"key": "j", "action": "ochazuke.form.next"},
+      {"key": "down", "action": "ochazuke.form.next"},
+      {"key": "k", "action": "ochazuke.form.chip-line", "args": {"delta": -1}},
+      {"key": "up", "action": "ochazuke.form.chip-line", "args": {"delta": -1}},
+      {"key": "k", "action": "ochazuke.form.previous"},
+      {"key": "up", "action": "ochazuke.form.previous"},
+      {"key": "l", "action": "ochazuke.form.chip-move", "args": {"delta": 1}},
+      {"key": "right", "action": "ochazuke.form.chip-move", "args": {"delta": 1}},
+      {"key": "h", "action": "ochazuke.form.chip-move", "args": {"delta": -1}},
+      {"key": "left", "action": "ochazuke.form.chip-move", "args": {"delta": -1}},
+      {"key": "space", "action": "ochazuke.form.chip-toggle", "hint": "toggle"},
+      {"key": "!", "action": "ochazuke.form.invert", "hint": "not"},
+      {"key": "0", "action": "ochazuke.form.chip-edge", "args": {"edge": "first-col"}, "hidden": true},
+      {"key": "$", "action": "ochazuke.form.chip-edge", "args": {"edge": "last-col"}, "hidden": true},
+      {"key": "g g", "action": "ochazuke.form.chip-edge", "args": {"edge": "first"}, "hidden": true},
+      {"key": "G", "action": "ochazuke.form.chip-edge", "args": {"edge": "last"}, "hidden": true}
     ]},
     {"context": "ochazuke.form-choice/normal", "bindings": [
       {"key": "j", "action": "ochazuke.form.next"},
@@ -27,6 +48,7 @@
       {"key": "shift+tab", "action": "ochazuke.form.previous", "args": {"insert": true}}
     ]},
     {"context": "ochazuke.form-field/normal", "bindings": [
+      {"key": "!", "action": "ochazuke.form.invert", "hint": "not"},
       {"key": "enter", "action": "ochazuke.form.run"},
       {"key": "enter", "action": "ochazuke.form.next-missing"},
       {"key": "j", "action": "ochazuke.form.next"},

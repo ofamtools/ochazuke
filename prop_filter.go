@@ -10,13 +10,80 @@ import (
 )
 
 // PropFilter is one typed condition on a noun's props. Conditions combine
-// with AND. Op is = (also the default), !=, contains (literal substring),
-// or in (Value is an array of alternatives). Equality uses the same typed
-// comparison as the standard list verb's --where.
+// with AND. Op is = (also the default), contains (literal substring, or an
+// item of a list prop), in (Value is an array of alternatives), or one of
+// their negations: !=, not-contains, not-in (filterOps). Equality uses the
+// same typed comparison as the standard list verb's --where. A row without
+// the prop matches no condition, a negated one included.
 type PropFilter struct {
 	Prop  string `json:"prop"`
 	Op    string `json:"op,omitempty"`
 	Value any    `json:"value"`
+}
+
+// filterOp is one operator: the test it runs and whether it turns that
+// test over. A negation is a property of the operator, so every test has
+// one (!= is = turned over) and no operator has a code path of its own.
+type filterOp struct {
+	test  string
+	not   bool
+	label string // how a filter chip spells it
+}
+
+// FilterOps names every prop filter operator, in the order the verb's
+// parameter lists them.
+var FilterOps = []string{"=", "!=", "contains", "not-contains", "in", "not-in"}
+
+var filterOps = map[string]filterOp{
+	"=":            {test: "=", label: "="},
+	"!=":           {test: "=", not: true, label: "!="},
+	"contains":     {test: "contains", label: "contains"},
+	"not-contains": {test: "contains", not: true, label: "not contains"},
+	"in":           {test: "in", label: "in"},
+	"not-in":       {test: "in", not: true, label: "not in"},
+}
+
+// NegateFilterOp is op turned over (= and !=, in and not-in, contains and
+// not-contains); an unknown op comes back unchanged.
+func NegateFilterOp(op string) string {
+	if op == "" {
+		op = "="
+	}
+	o, ok := filterOps[op]
+	if !ok {
+		return op
+	}
+	for _, name := range FilterOps {
+		if other := filterOps[name]; other.test == o.test && other.not != o.not {
+			return name
+		}
+	}
+	return op
+}
+
+// Negate is the condition turned over.
+func (f PropFilter) Negate() PropFilter {
+	f.Op = NegateFilterOp(f.Op)
+	return f
+}
+
+// Label is the condition as a filter chip spells it: status = done,
+// status not in ["done","cancelled"].
+func (f PropFilter) Label() string {
+	op := f.Op
+	if op == "" {
+		op = "="
+	}
+	o, ok := filterOps[op]
+	if !ok {
+		return f.Prop + " " + op + " " + fmt.Sprint(f.Value)
+	}
+	value := fmt.Sprint(f.Value)
+	if o.test == "in" {
+		raw, _ := json.Marshal(f.Value)
+		value = string(raw)
+	}
+	return f.Prop + " " + o.label + " " + value
 }
 
 func whereFilters(where map[string]any) []PropFilter {
@@ -64,8 +131,12 @@ func typedPropFilter(p PropSpec, f PropFilter) (PropFilter, error) {
 	if f.Op == "" {
 		f.Op = "="
 	}
-	switch f.Op {
-	case "=", "!=":
+	o, ok := filterOps[f.Op]
+	if !ok {
+		return f, fmt.Errorf("unknown filter operator %q", f.Op)
+	}
+	switch o.test {
+	case "=":
 		v, err := propValue(p, f.Value)
 		if err != nil {
 			return f, fmt.Errorf("filter %s: %w", f.Prop, err)
@@ -73,10 +144,10 @@ func typedPropFilter(p PropSpec, f PropFilter) (PropFilter, error) {
 		f.Value = v
 	case "contains":
 		if p.Type != "" && p.Type != SettingString && p.Type != SettingList {
-			return f, fmt.Errorf("contains needs a string or list prop: %s", f.Prop)
+			return f, fmt.Errorf("%s needs a string or list prop: %s", f.Op, f.Prop)
 		}
 		if _, ok := f.Value.(string); !ok {
-			return f, fmt.Errorf("contains needs a string value")
+			return f, fmt.Errorf("%s needs a string value", f.Op)
 		}
 	case "in":
 		values, err := filterValues(f.Value)
@@ -90,8 +161,6 @@ func typedPropFilter(p PropSpec, f PropFilter) (PropFilter, error) {
 			}
 		}
 		f.Value = values
-	default:
-		return f, fmt.Errorf("unknown filter operator %q", f.Op)
 	}
 	return f, nil
 }
@@ -109,29 +178,41 @@ func propsMatch(n *Noun, t Thing, filters []PropFilter) bool {
 	return true
 }
 
+// propMatches runs the condition's test and turns it over for a negated
+// operator; an unknown operator matches nothing.
 func propMatches(p PropSpec, value any, f PropFilter) bool {
-	switch f.Op {
-	case "", "=":
-		return sameProp(p, value, f.Value)
-	case "!=":
-		return !sameProp(p, value, f.Value)
+	op := f.Op
+	if op == "" {
+		op = "="
+	}
+	o, ok := filterOps[op]
+	if !ok {
+		return false
+	}
+	return propTest(p, value, o.test, f.Value) != o.not
+}
+
+func propTest(p PropSpec, value any, test string, want any) bool {
+	switch test {
+	case "=":
+		return sameProp(p, value, want)
 	case "contains":
-		want, valid := f.Value.(string)
+		sub, valid := want.(string)
 		if !valid {
 			return false
 		}
 		if p.Type == SettingList {
 			items, err := coerceList(value)
-			return err == nil && slices.Contains(items.([]string), want)
+			return err == nil && slices.Contains(items.([]string), sub)
 		}
 		if p.loose {
 			value = looseText(value)
 		}
 		text, ok := value.(string)
-		return ok && strings.Contains(text, want)
+		return ok && strings.Contains(text, sub)
 	case "in":
-		values, err := filterValues(f.Value)
-		return err == nil && slices.ContainsFunc(values, func(want any) bool { return sameProp(p, value, want) })
+		values, err := filterValues(want)
+		return err == nil && slices.ContainsFunc(values, func(one any) bool { return sameProp(p, value, one) })
 	}
 	return false
 }

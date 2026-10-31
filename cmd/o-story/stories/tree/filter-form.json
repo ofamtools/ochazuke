@@ -1,0 +1,93 @@
+{
+  "name": "filter form over a tree: an inverted chip keeps the matches and their ancestors",
+  "area": "tree",
+  "width": 100,
+  "height": 24,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "nouns": [
+      {
+        "noun": "note",
+        "props": [
+          {
+            "name": "by"
+          }
+        ]
+      }
+    ],
+    "trees": [
+      {
+        "id": "notes",
+        "height": -1,
+        "nodes": [
+          {
+            "id": "root",
+            "label": "Context root",
+            "noun": "note",
+            "data": {
+              "by": "agent"
+            }
+          },
+          {
+            "id": "parent",
+            "parent": "root",
+            "label": "Context parent",
+            "noun": "note",
+            "data": {
+              "by": "agent"
+            }
+          },
+          {
+            "id": "mine",
+            "parent": "parent",
+            "label": "My note",
+            "noun": "note",
+            "data": {
+              "by": "owner"
+            }
+          },
+          {
+            "id": "other",
+            "label": "Other note",
+            "noun": "note",
+            "data": {
+              "by": "agent"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "z",
+    "/",
+    "space",
+    "!",
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "contains": [
+        "Context root",
+        "Context parent",
+        "Other note"
+      ],
+      "lacks": [
+        "My note"
+      ]
+    },
+    {
+      "modal": "",
+      "contains": [
+        "Context root",
+        "Context parent",
+        "My note"
+      ],
+      "lacks": [
+        "Other note"
+      ]
+    }
+  ]
+}

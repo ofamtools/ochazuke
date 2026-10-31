@@ -1,0 +1,167 @@
+{
+  "name": "filter form: C empties every field and turns every field back to is",
+  "area": "lists",
+  "width": 100,
+  "height": 24,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "nouns": [
+      {
+        "noun": "task",
+        "props": [
+          {
+            "name": "status"
+          },
+          {
+            "name": "tags",
+            "type": "list"
+          },
+          {
+            "name": "title"
+          },
+          {
+            "name": "score",
+            "type": "integer"
+          }
+        ],
+        "filters": [
+          {
+            "name": "open",
+            "conditions": [
+              {
+                "prop": "status",
+                "op": "not-in",
+                "value": [
+                  "done",
+                  "cancelled"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "all"
+          }
+        ]
+      }
+    ],
+    "lists": [
+      {
+        "id": "tasks",
+        "height": -1,
+        "items": [
+          {
+            "id": "t1",
+            "label": "Write notes",
+            "noun": "task",
+            "data": {
+              "status": "todo",
+              "title": "Write notes",
+              "tags": [
+                "home"
+              ],
+              "score": 1
+            }
+          },
+          {
+            "id": "t2",
+            "label": "Buy milk",
+            "noun": "task",
+            "data": {
+              "status": "doing",
+              "title": "Buy milk",
+              "tags": [
+                "shop",
+                "home"
+              ],
+              "score": 2
+            }
+          },
+          {
+            "id": "t3",
+            "label": "Fix bike",
+            "noun": "task",
+            "data": {
+              "status": "done",
+              "title": "Fix bike",
+              "tags": [
+                "home"
+              ],
+              "score": 3
+            }
+          },
+          {
+            "id": "t4",
+            "label": "Call mum",
+            "noun": "task",
+            "data": {
+              "status": "todo",
+              "title": "Call mum",
+              "tags": [
+                "phone"
+              ],
+              "score": 4
+            }
+          },
+          {
+            "id": "t5",
+            "label": "Paint fence",
+            "noun": "task",
+            "data": {
+              "status": "cancelled",
+              "title": "Paint fence",
+              "tags": [
+                "home"
+              ],
+              "score": 5
+            }
+          },
+          {
+            "id": "t6",
+            "label": "File taxes",
+            "noun": "task",
+            "data": {
+              "status": "done",
+              "title": "File taxes",
+              "tags": [
+                "desk"
+              ],
+              "score": 6
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "z",
+    "/",
+    "j",
+    "space",
+    "!",
+    "C"
+  ],
+  "expect": [
+    {
+      "after": 5,
+      "contains": [
+        "status \u00b7 not"
+      ],
+      "lacks": [
+        "Paint fence"
+      ]
+    },
+    {
+      "contains": [
+        "status \u00b7 is",
+        "\u25cb cancelled",
+        "Write notes",
+        "Buy milk",
+        "Fix bike",
+        "Call mum",
+        "Paint fence",
+        "File taxes"
+      ]
+    }
+  ]
+}

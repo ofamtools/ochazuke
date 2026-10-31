@@ -108,6 +108,7 @@ func TestPropFilterListTextRefreshMarks(t *testing.T) {
 
 func TestPropFilterPickerCycleAndStrip(t *testing.T) {
 	r, m, l := propFilterFixture(t)
+	chooserChain(t, r)              // the prop chooser then the value chooser (list.filter-form off)
 	pressKeys(m, "z", "/", "enter") // by is the first prop; observed values agent,owner
 	chooser := r.Chooser("list-filter-value")
 	if chooser == nil || len(chooser.Matches()) != 2 {
@@ -301,6 +302,7 @@ func TestPropFilterTargetAndClearOne(t *testing.T) {
 
 func TestPropFilterPickerVisibleValuesOnly(t *testing.T) {
 	r, m, l := propFilterFixture(t)
+	chooserChain(t, r) // the prop chooser then the value chooser (list.filter-form off)
 	l.SetFilter("beta")
 	pressKeys(m, "z", "/", "enter")
 	c := r.Chooser("list-filter-value")
@@ -600,7 +602,7 @@ func TestPropFilterCachesAndVisibility(t *testing.T) {
 	if calls != decoded || decoded != 5 {
 		t.Fatalf("decoded %d times, want 5", calls)
 	}
-	if err := l.pickPropFilter("by", false); err != nil {
+	if err := l.pickPropFilter("by", false, false); err != nil {
 		t.Fatal(err)
 	}
 	_ = r.Pop()

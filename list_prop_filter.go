@@ -357,16 +357,7 @@ func (l *List) propStrip() string {
 		parts = append(parts, "["+modalLabel(l.savedFilter)+"]")
 	}
 	for _, f := range l.propFilters {
-		op := f.Op
-		if op == "" {
-			op = "="
-		}
-		value := fmt.Sprint(f.Value)
-		if op == "in" {
-			raw, _ := json.Marshal(f.Value)
-			value = string(raw)
-		}
-		parts = append(parts, "["+modalLabel(f.Prop+" "+op+" "+value)+"]")
+		parts = append(parts, "["+modalLabel(f.Label())+"]")
 	}
 	return strings.Join(parts, " ")
 }
@@ -394,7 +385,13 @@ func (t *Tree) filterNodes() map[string]bool {
 
 func (l *List) filterProps() []string { return sortedKeys(l.filterSpecs()) }
 
-func (l *List) pickPropFilter(prop string, offerClear bool) error {
+// pickPropFilter opens the filter form (prop empty, list.filter-form on;
+// list_filter_form.go), else the prop chooser (prop empty), then the value
+// chooser; not turns the picked condition over (!=, not-contains).
+func (l *List) pickPropFilter(prop string, offerClear, not bool) error {
+	if prop == "" && l.r.Settings().Bool(ListFilterFormSetting) {
+		return l.openFilterForm()
+	}
 	if prop == "" {
 		rows := []ChooserRow{}
 		for _, name := range l.filterProps() {
@@ -413,7 +410,7 @@ func (l *List) pickPropFilter(prop string, offerClear bool) error {
 				}
 				return Done(nil)
 			}
-			if err := l.pickPropFilter(row.ID, offerClear); err != nil {
+			if err := l.pickPropFilter(row.ID, offerClear, not); err != nil {
 				return Failed(err)
 			}
 			return Done(nil)
@@ -460,9 +457,16 @@ func (l *List) pickPropFilter(prop string, offerClear bool) error {
 	if len(rows) == 0 {
 		return fmt.Errorf("no visible values for prop %q", prop)
 	}
-	_, err := l.r.OpenChooser(ChooserSpec{Kind: "list-filter-value", Title: "Filter · " + prop, Rows: rows, Choose: func(row ChooserRow) Result {
-		filters := append(l.PropFilters(), PropFilter{Prop: prop, Op: op, Value: row.Data})
-		if err := l.SetPropFilters(filters); err != nil {
+	title := "Filter · " + prop
+	if not {
+		title += " · not"
+	}
+	_, err := l.r.OpenChooser(ChooserSpec{Kind: "list-filter-value", Title: title, Rows: rows, Choose: func(row ChooserRow) Result {
+		f := PropFilter{Prop: prop, Op: op, Value: row.Data}
+		if not {
+			f = f.Negate()
+		}
+		if err := l.SetPropFilters(append(l.PropFilters(), f)); err != nil {
 			return Failed(err)
 		}
 		return Done(nil)
@@ -518,14 +522,19 @@ func registerListPropFilter(r *Runtime) {
 		params                   map[string]Parameter
 		run                      func(*List, Arguments) error
 	}{
-		{"filter-prop", "Add a prop condition (AND); omit prop or value to pick from visible rows", "list-props", map[string]Parameter{"clear": {Type: "boolean", Description: "Offer clearing active prop filters in the prop picker"}, "prop": {Type: "string"}, "op": {Type: "string", Enum: []string{"=", "!=", "contains", "in"}}, "value": {Type: "any", Description: "Typed value; in takes an array"}}, func(l *List, a Arguments) error {
+		{"filter-prop", "Add a prop condition (AND); omit prop or value to pick from visible rows", "list-props", map[string]Parameter{"clear": {Type: "boolean", Description: "Offer clearing active prop filters in the prop picker"}, "prop": {Type: "string"}, "op": {Type: "string", Enum: FilterOps}, "value": {Type: "any", Description: "Typed value; in and not-in take an array"}, "not": {Type: "boolean", Description: "Turn the condition over (= to !=, in to not-in, contains to not-contains); with the value chooser, its not toggle starts on"}}, func(l *List, a Arguments) error {
 			prop := StringArg(a, "prop", "")
 			value, ok := a["value"]
+			not, _ := a["not"].(bool)
 			if prop == "" || !ok {
 				offerClear, _ := a["clear"].(bool)
-				return l.pickPropFilter(prop, offerClear)
+				return l.pickPropFilter(prop, offerClear, not)
 			}
-			return l.SetPropFilters(append(l.PropFilters(), PropFilter{Prop: prop, Op: StringArg(a, "op", "="), Value: value}))
+			f := PropFilter{Prop: prop, Op: StringArg(a, "op", "="), Value: value}
+			if not {
+				f = f.Negate()
+			}
+			return l.SetPropFilters(append(l.PropFilters(), f))
 		}},
 		{"filter-prop-clear", "Remove one prop condition; omit prop and index to pick an active condition", "list-prop-conditions", map[string]Parameter{"prop": {Type: "string"}, "index": {Type: "integer", Description: "1-based condition index"}}, func(l *List, a Arguments) error {
 			clear := func(i int) error {
@@ -543,7 +552,7 @@ func registerListPropFilter(r *Runtime) {
 			}
 			rows := []ChooserRow{}
 			for i, f := range l.propFilters {
-				rows = append(rows, ChooserRow{ID: strconv.Itoa(i), Label: fmt.Sprintf("%s %s %v", f.Prop, f.Op, f.Value), Data: i})
+				rows = append(rows, ChooserRow{ID: strconv.Itoa(i), Label: f.Label(), Data: i})
 			}
 			_, err := r.OpenChooser(ChooserSpec{Kind: "list-filter-remove", Title: "Clear prop filter", Rows: rows, Choose: func(row ChooserRow) Result {
 				if err := clear(row.Data.(int)); err != nil {

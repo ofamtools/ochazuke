@@ -79,6 +79,10 @@ type CompletionTrigger struct {
 	// lets a jq "." start after a pipe or an open paren. "" is
 	// whitespace only. They may not hold the trigger's characters.
 	Boundaries string
+	// Every makes the trigger complete every token, its Trigger empty: a
+	// field whose words all come from a list (a filter form's values).
+	// An empty Trigger without Every is refused.
+	Every bool
 }
 
 // CompletionQuery is what a SearchAt search is asked: the query (the
@@ -128,8 +132,10 @@ func (b *NounBuilder) Completions(triggers ...CompletionTrigger) *NounBuilder {
 func validTriggers(triggers []CompletionTrigger) error {
 	for _, t := range triggers {
 		switch {
-		case t.Trigger == "":
+		case t.Trigger == "" && !t.Every:
 			return errors.New("completion trigger must not be empty")
+		case t.Trigger != "" && t.Every:
+			return fmt.Errorf("completion trigger %q completes every token: its Trigger must be empty", t.Trigger)
 		case strings.IndexFunc(t.Trigger, unicode.IsSpace) >= 0:
 			return fmt.Errorf("completion trigger %q must not hold whitespace", t.Trigger)
 		case t.Search == nil && t.SearchAt == nil:
@@ -189,7 +195,7 @@ func FindCompletionTokenIn(text []rune, cursor int, triggers []CompletionTrigger
 	best := -1
 	var found CompletionToken
 	for i, t := range triggers {
-		if t.Trigger == "" || best >= 0 && len(t.Trigger) <= len(triggers[best].Trigger) {
+		if t.Trigger == "" && !t.Every || best >= 0 && len(t.Trigger) <= len(triggers[best].Trigger) {
 			continue
 		}
 		ends := func(r rune) bool { return unicode.IsSpace(r) || strings.ContainsRune(t.Boundaries, r) }

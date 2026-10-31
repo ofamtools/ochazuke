@@ -111,6 +111,7 @@ func TestChooserPropFilterTypingAndOptOut(t *testing.T) {
 
 func TestChooserPropFilterNestedPickerAndSavedPicker(t *testing.T) {
 	r, m, c := chooserPropFixture(t)
+	chooserChain(t, r) // the prop chooser then the value chooser (list.filter-form off)
 	keytest.Press(m, "ctrl+f")
 	keytest.Press(m, "enter")
 	if r.TopModal() != "list-filter-value" {
@@ -133,6 +134,7 @@ func TestChooserPropFilterNestedPickerAndSavedPicker(t *testing.T) {
 
 func TestChooserPropFilterRepeatCtrlFAndClearFallback(t *testing.T) {
 	r, m, c := chooserPropFixture(t)
+	chooserChain(t, r) // the prop chooser then the value chooser (list.filter-form off)
 	keytest.Press(m, "ctrl+f")
 	if r.TopModal() != "list-filter-prop" {
 		t.Fatalf("ctrl+f: %s", r.TopModal())

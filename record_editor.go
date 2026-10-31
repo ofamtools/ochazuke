@@ -45,6 +45,17 @@ type RecordField struct {
 	// Validate checks a value the type, Required and the choices allow;
 	// its error is why the value is not written.
 	Validate func(value string) error `json:"-"`
+	// Chips makes a field with choices take several of them: its value is
+	// a JSON array of choice ids ("" for none), drawn as chips wrapped
+	// across the lines under its label (record_chips.go).
+	Chips bool `json:"chips,omitempty"`
+	// Invertible gives the field a normal and an inverted state
+	// (form.invert); the record carries it as the field's name plus
+	// RecordInvertSuffix, "true" while inverted.
+	Invertible bool `json:"invertible,omitempty"`
+	// Completions complete a text field's tokens as it is typed
+	// (completion.go): ctrl+n and ctrl+p walk the suggestions.
+	Completions []CompletionTrigger `json:"-"`
 }
 
 // RecordWrite is one write an editor hands Save: the record as it is to be
@@ -105,6 +116,9 @@ type RecordSpec struct {
 	Submit func(Record) Result
 	// Start names the field focused first ("" the first field).
 	Start string
+	// Clearable offers form.clear: every field emptied and every inverted
+	// field back to normal, each written (and undone) like any change.
+	Clearable bool
 	// Watch names the noun whose store holds the record: when its things
 	// change other than through this editor (a verb such as set, another
 	// client, Runtime.Changed), the open editor loads the record again
@@ -190,6 +204,12 @@ type recordField struct {
 	choose  bool
 	suggest bool // a free text field with suggestions
 	path    bool // a path field: its chooser is the path chooser
+	chips   bool // a choice field that takes several choices (Chips)
+	chip    int  // the chip under the cursor, an index into choices
+	// lines are the chips' rows as last drawn (indexes into choices), so
+	// j and k move by what is on screen.
+	lines [][]int
+	not   bool // an Invertible field's state as shown
 }
 
 func (f *recordField) text() string {
@@ -323,8 +343,8 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 	}
 	names := map[string]bool{}
 	for _, f := range spec.Fields {
-		if f.Name == "" || names[f.Name] || strings.Contains(f.Name, "/") {
-			return nil, fmt.Errorf("record field name %q must be nonempty, unique and without /", f.Name)
+		if f.Name == "" || names[f.Name] || strings.ContainsAny(f.Name, "/"+RecordInvertSuffix) {
+			return nil, fmt.Errorf("record field name %q must be nonempty, unique and without / or %s", f.Name, RecordInvertSuffix)
 		}
 		names[f.Name] = true
 	}
@@ -332,8 +352,9 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 	r.Instance(id, Parent(parent), Kind(FormNoun), FocusOnClose(closeFocus)).Component = e
 	for _, field := range spec.Fields {
 		f := &recordField{RecordField: field, id: id + "/" + field.Name}
-		f.choose = field.Type == "boolean" || (paramHasChoices(field.Parameter) && !field.Free)
-		f.suggest = !f.choose && paramHasChoices(field.Parameter)
+		f.chips = field.Chips && (paramHasChoices(field.Parameter) || field.Type == "boolean")
+		f.choose = !f.chips && (field.Type == "boolean" || (paramHasChoices(field.Parameter) && !field.Free))
+		f.suggest = !f.chips && !f.choose && paramHasChoices(field.Parameter)
 		if field.Type == PathParameterType {
 			// A path field is a stop that opens the path chooser, or a
 			// text field whose suggestions are the path chooser
@@ -344,10 +365,19 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 		}
 		v := values[field.Name]
 		e.written[field.Name], f.before = v, v
-		if f.choose {
+		if field.Invertible {
+			inv := values[field.Name+RecordInvertSuffix]
+			f.not = inv == "true"
+			e.written[field.Name+RecordInvertSuffix] = invertText(f.not)
+		}
+		switch {
+		case f.chips:
+			f.value = v
+			r.Instance(f.id, Parent(id), Kind(FormChipsNoun))
+		case f.choose:
 			f.value = v
 			r.Instance(f.id, Parent(id), Kind(FormChoiceNoun))
-		} else {
+		default:
 			noun := FormFieldNoun
 			multiline := field.Multiline && !f.suggest
 			switch {
@@ -360,13 +390,17 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 			f.input = NewInput(f.id, v, multiline)
 			f.input.Cursor = len(f.input.Text)
 			f.input.Secret = field.Secret
-			if err := r.AddInput(f.input, Parent(id), Kind(noun)); err != nil {
+			opts := []InstanceOption{Parent(id), Kind(noun)}
+			if len(field.Completions) > 0 {
+				opts = append(opts, Completions(field.Completions...))
+			}
+			if err := r.AddInput(f.input, opts...); err != nil {
 				_ = r.RemoveInstance(id)
 				return nil, err
 			}
 		}
 		e.fields = append(e.fields, f)
-		if f.choose {
+		if f.choose || f.chips {
 			e.loadChoices(f)
 		}
 	}
@@ -520,7 +554,7 @@ func (e *RecordEditor) fieldOn(focus string) *recordField {
 func (e *RecordEditor) snapshot() string {
 	parts := make([]string, len(e.fields))
 	for i, f := range e.fields {
-		parts[i] = f.text()
+		parts[i] = f.text() + "\x01" + invertText(f.not)
 	}
 	return strings.Join(parts, "\x00")
 }
@@ -555,6 +589,9 @@ func (e *RecordEditor) problem(f *recordField) string {
 		}
 		return ""
 	}
+	if f.chips {
+		return e.chipsProblem(f, v)
+	}
 	switch f.Type {
 	case "integer":
 		if _, err := strconv.Atoi(strings.TrimSpace(v)); err != nil {
@@ -587,14 +624,18 @@ func (e *RecordEditor) problem(f *recordField) string {
 // flush takes every changed valid value into the record and writes it.
 func (e *RecordEditor) flush() error {
 	for _, f := range e.fields {
+		if f.Invertible {
+			if inv := invertText(f.not); inv != e.written[f.Name+RecordInvertSuffix] {
+				e.written[f.Name+RecordInvertSuffix] = inv
+				e.requeue([]string{f.Name})
+			}
+		}
 		v := f.text()
 		if v == e.written[f.Name] || e.problem(f) != "" {
 			continue
 		}
 		e.written[f.Name] = v
-		if !slices.Contains(e.dirty, f.Name) {
-			e.dirty = append(e.dirty, f.Name)
-		}
+		e.requeue([]string{f.Name})
 	}
 	return e.send()
 }
@@ -708,11 +749,14 @@ func (e *RecordEditor) history(redo bool) error {
 	}
 	step := (*from)[len(*from)-1]
 	*from = (*from)[:len(*from)-1]
-	f := e.field(step.field)
+	name, inverted := strings.CutSuffix(step.field, RecordInvertSuffix)
+	f := e.field(name)
 	if f == nil {
 		return err
 	}
-	if serr := e.set(f, step.from); serr != nil {
+	if inverted {
+		f.not = step.from == "true"
+	} else if serr := e.set(f, step.from); serr != nil {
 		return serr
 	}
 	werr := e.flush()
@@ -740,6 +784,7 @@ func (e *RecordEditor) move(delta int, insert bool) error {
 		if err := e.r.SetFocus(e.fields[j].id); err != nil {
 			return err
 		}
+		e.landChips(e.fields[j], delta)
 	}
 	if insert && e.fields[j].input != nil {
 		return e.r.SetMode("insert")
@@ -1103,9 +1148,16 @@ func (e *RecordEditor) Block(width, height int) Block {
 	s := e.Styles
 	var lines []string
 	var cursor *Pos
+	focusLine := 0
 	for _, f := range e.fields {
 		focused := e.fieldOn(e.r.Focus) == f
+		if focused {
+			focusLine = len(lines)
+		}
 		label := f.label()
+		if f.Invertible {
+			label += " · " + invertWord(f.not)
+		}
 		style := s.Muted
 		if focused {
 			style = s.Accent
@@ -1122,6 +1174,18 @@ func (e *RecordEditor) Block(width, height int) Block {
 		}
 		lines = append(lines, style.Render(ansi.Truncate(label, width, "…")))
 		inner := max(1, width-2)
+		if f.chips {
+			chipLines := e.chipBlock(f, width, 4)
+			if focused {
+				li, _ := f.chipAt()
+				focusLine = len(lines) + li
+			}
+			if len(chipLines) > 0 {
+				chipLines[0] = e.r.PlacedAt(f.id, chipLines[0], 0, 1)
+			}
+			lines = append(lines, chipLines...)
+			continue
+		}
 		if f.input != nil {
 			h := 1
 			if f.Multiline {
@@ -1160,6 +1224,18 @@ func (e *RecordEditor) Block(width, height int) Block {
 			prefix = "! not run: "
 		}
 		lines = append(lines, s.Error.Render(ansi.Truncate(prefix+e.writeErr, width, "…")))
+	}
+	// A form taller than its room scrolls to keep the focused field's
+	// line (a chips field's cursor line) in view.
+	if len(lines) > height {
+		if cursor != nil {
+			focusLine = cursor.Y
+		}
+		top := min(max(0, focusLine-height/2), len(lines)-height)
+		lines = lines[top : top+height]
+		if cursor != nil {
+			cursor.Y -= top
+		}
 	}
 	return Block{Text: strings.Join(lines, "\n"), Cursor: cursor}
 }
@@ -1371,6 +1447,7 @@ func registerForms(r *Runtime) {
 		r.Operations[FormNoun+"."+verb] = op
 	}
 	r.Define(FormChoiceNoun).Focusable()
+	registerFormChips(r)
 	r.Define(FormOptionNoun).
 		Verb("pick", func(r *Runtime, c Context, _ Arguments) (any, error) {
 			inst := r.Instances[focusOf(c)]
