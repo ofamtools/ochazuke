@@ -82,9 +82,9 @@ var standardVerbs = []standardVerb{
 	{Verb: "get", Description: "Read a thing's props: every prop as an object, one prop's value (prop), or some props (props)",
 		Kinds: []string{Collection, Singleton, Instances}, Needs: func(n *Noun) bool { return n.Store.Get != nil },
 		Subject: true, Record: true, HistoryKind: HistoryFetch, Positional: func(*Noun) []string { return []string{"prop"} }, Params: getParams, Run: runGet},
-	{Verb: "list", Description: "List the things, each its props with id and label; where keeps the things whose props equal the values given",
+	{Verb: "list", Description: "List the things, each its props with id and label; where keeps the things whose props equal the values given; filter applies a named saved prop filter",
 		Kinds: []string{Collection, Instances}, Needs: func(n *Noun) bool { return n.Store.List != nil },
-		Rows: true, HistoryKind: HistoryFetch, Params: listParams, Run: runList},
+		Rows: true, HistoryKind: HistoryFetch, Params: listParams, Positional: listPositional, Run: runList},
 	{Verb: "watch", Description: "Stream what happens to the things (one, or those where matches): a JSON line per thing added, modified or deleted, from since when given; the CLI streams until interrupted",
 		Kinds: []string{Collection, Singleton, Instances}, Needs: func(n *Noun) bool { return watchFits(*n.Store) },
 		Subject: true, NoFocus: true, HistoryKind: HistoryFetch, Params: watchParams, Run: runWatch},
@@ -106,7 +106,7 @@ var reservedStandardVerbs = []string{"get", "list", "create", "set", "patch", "d
 
 // standardParamNames are the parameters the standard verbs take beside the
 // subject: no key prop and no store list parameter takes one.
-var standardParamNames = []string{"prop", "props", "where", "limit", "since", "value", "toggle", "changes", "pairs", "to"}
+var standardParamNames = []string{"prop", "props", "where", "filter", "limit", "since", "value", "toggle", "changes", "pairs", "to"}
 
 // StandardVerbs lists the verbs of the standard verb table, in order.
 func StandardVerbs() []string {
@@ -317,14 +317,24 @@ func getParams(n *Noun) map[string]Parameter {
 
 func listParams(n *Noun) map[string]Parameter {
 	params := map[string]Parameter{
-		"where": {Type: "string", Free: true, Pairs: true, Description: "prop=value pairs, comma- or space-separated: keep the things whose props equal every value"},
-		"props": {Type: "string", Description: "The props each row holds besides id and label, comma-separated (default: every prop but secrets)"},
-		"limit": {Type: "integer", Description: "At most this many rows (0: every row)"},
+		"filter": {Type: "string", Description: "Apply a named saved prop filter for this noun, ANDed with where"},
+		"where":  {Type: "string", Free: true, Pairs: true, Description: "prop=value pairs, comma- or space-separated: keep the things whose props equal every value"},
+		"props":  {Type: "string", Description: "The props each row holds besides id and label, comma-separated (default: every prop but secrets)"},
+		"limit":  {Type: "integer", Description: "At most this many rows (0: every row)"},
 	}
 	for name, p := range n.Store.ListParams {
 		params[name] = p
 	}
 	return params
+}
+
+// Keep existing bare list words in their previous order when adding the
+// optional filter flag. In particular, :setting list 0 value owner=app
+// continues to mean limit, props, where. Store parameters keep their order too.
+func listPositional(n *Noun) []string {
+	params := listParams(n)
+	delete(params, "filter")
+	return (Operation{Parameters: params}).ParameterOrder()
 }
 
 // subjectKey is the key a request's subject has: the key argument when
@@ -470,7 +480,16 @@ func runList(r *Runtime, n *Noun, c Ctx) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	q := ListQuery{Where: where, Limit: max(0, IntArg(c.Args, "limit", 0))}
+	filters, err := r.namedPropFilter(n, StringArg(c.Args, "filter", ""))
+	if err != nil {
+		return nil, err
+	}
+	// A store must not limit before the framework applies saved conditions.
+	limit := max(0, IntArg(c.Args, "limit", 0))
+	q := ListQuery{Where: where, Limit: limit}
+	if len(filters) > 0 {
+		q.Limit = 0
+	}
 	for name := range n.Store.ListParams {
 		if v, ok := c.Args[name]; ok {
 			if q.Args == nil {
@@ -486,7 +505,7 @@ func runList(r *Runtime, n *Noun, c Ctx) (any, error) {
 	key := n.keyProp()
 	rows := []map[string]any{}
 	for _, t := range things {
-		if !thingMatches(n, t, where) {
+		if !thingMatches(n, t, where) || !propsMatch(n, t, filters) {
 			continue
 		}
 		row := thingRecord(n, t, names)
@@ -497,7 +516,7 @@ func runList(r *Runtime, n *Noun, c Ctx) (any, error) {
 			row["label"] = label
 		}
 		rows = append(rows, row)
-		if q.Limit > 0 && len(rows) == q.Limit {
+		if limit > 0 && len(rows) == limit {
 			break
 		}
 	}
@@ -507,7 +526,8 @@ func runList(r *Runtime, n *Noun, c Ctx) (any, error) {
 // thingMatches reports whether a thing's props equal every where value.
 func thingMatches(n *Noun, t Thing, where map[string]any) bool {
 	for name, want := range where {
-		if !sameProp(*n.prop(name), t[name], want) {
+		p := n.prop(name)
+		if p == nil || !propMatches(*p, t[name], PropFilter{Prop: name, Op: "=", Value: want}) {
 			return false
 		}
 	}

@@ -109,12 +109,13 @@ type CatalogDoc struct {
 // NounBuilder.Props), in declaration order. A noun with a store has the
 // standard verbs its store supports (CatalogVerb.Standard).
 type CatalogNoun struct {
-	Name    string              `json:"name"`
-	Pin     string              `json:"pin,omitempty"`
-	Kind    string              `json:"kind,omitempty"`
-	Columns []ochazuke.Column   `json:"columns,omitempty"`
-	Props   []ochazuke.PropSpec `json:"props,omitempty"`
-	Verbs   []CatalogVerb       `json:"verbs"`
+	Filters []ochazuke.SavedFilter `json:"filters,omitempty"`
+	Name    string                 `json:"name"`
+	Pin     string                 `json:"pin,omitempty"`
+	Kind    string                 `json:"kind,omitempty"`
+	Columns []ochazuke.Column      `json:"columns,omitempty"`
+	Props   []ochazuke.PropSpec    `json:"props,omitempty"`
+	Verbs   []CatalogVerb          `json:"verbs"`
 }
 
 // CatalogVerb is one ochazuke.Operation. Params are the operation's
@@ -322,6 +323,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool) ([]byte, err
 			noun := CatalogNoun{Name: op.Noun}
 			if n := r.Nouns[op.Noun]; n != nil {
 				noun.Pin, noun.Columns = n.Pin, slices.Clone(n.Columns)
+				noun.Filters = slices.Clone(n.Filters)
 				noun.Kind, noun.Props = n.StoreKind(), r.Props(op.Noun)
 				for i := range noun.Props {
 					// A reference's choices, as a verb parameter's: the

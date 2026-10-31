@@ -6,6 +6,9 @@
 // this directory and are declared by the feature that needs them (terminal.json: EnsureTerminalLeader). "deprecated" lists older
 // names that still read and write the setting for one release. The rows' order is their order inside a section.
 [
+  {"name": "list.filter-strip", "section": "search", "type": "boolean", "default": true, "description": "Show active prop filters in the list or tree header strip"},
+  {"name": "list.filters", "section": "search", "type": "string", "default": "[]", "description": "Saved prop filters as a JSON array: name, noun or list, where (equality props) and conditions (prop/op/value); user rows replace app defaults by name and scope"},
+  {"name": "list.filter-cycle", "section": "search", "type": "boolean", "default": true, "description": "Enable cycling saved prop filters on z ] and z [ for lists with saved filters"},
   {"name": "inspector.enabled", "section": "keys", "type": "boolean", "default": false, "description": "Show the live state inspector strip below the app frame; alt+? toggles it for this session"},
   {"name": "modal-dim", "section": "appearance", "type": "integer", "default": 35, "description": "Percent the page behind a modal fades toward the background (0 is off)"},
   {"name": "modal-highlights", "section": "appearance", "type": "string", "default": "keep", "enum": ["keep", "plain"], "description": "The page's highlights beneath a modal: keep draws them dimmed (a list's cursor bar, a grid's cursor cell, so you see where you were); plain draws the backdrop without reverse video or underline, so no sliver of a cursor bar shows beside a wide modal"},

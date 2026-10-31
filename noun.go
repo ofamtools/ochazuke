@@ -45,6 +45,8 @@ type Noun struct {
 	// (NounBuilder.Store), nil when it declares none.
 	Props []PropSpec `json:"props,omitempty"`
 	Store *Store     `json:"-"`
+	// Filters are default saved prop filters for lists of this noun's rows.
+	Filters []SavedFilter `json:"filters,omitempty"`
 }
 
 // Binding is one row of a mode table, identical in code and config:

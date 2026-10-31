@@ -587,7 +587,22 @@ func (v *PageView) setRows(pl *pageList, rows []Row, hashes []string) error {
 
 // item is the list row of a row (its label filled in).
 func (v *PageView) item(pl *pageList, row Row) ochazuke.ListItem {
-	return ochazuke.ListItem{ID: pl.spec.ID + "/" + row.ID, Label: row.Label, Noun: pl.rowNoun, Data: row.ID, Cells: row.Cells, Tones: row.Tones}
+	props, err := ochazuke.ThingOf(row.Data)
+	if err != nil || props == nil {
+		props = ochazuke.Thing{}
+	}
+	for _, p := range v.m.Runtime.Props(pl.rowNoun) {
+		if _, ok := props[p.Name]; ok {
+			continue
+		}
+		switch {
+		case p.Key:
+			props[p.Name] = row.ID
+		case p.Role == ochazuke.RoleLabel:
+			props[p.Name] = row.Label
+		}
+	}
+	return ochazuke.ListItem{ID: pl.spec.ID + "/" + row.ID, Label: row.Label, Noun: pl.rowNoun, Data: row.ID, Props: props, Cells: row.Cells, Tones: row.Tones}
 }
 
 // SetState files a state answer's rows (CatalogDoc.State) under the lists

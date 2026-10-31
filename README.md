@@ -680,13 +680,91 @@ Compared with Vim: Vim's `/` is always a regex (`:help pattern`) with its own ma
 
 #### Case in searches
 
-Every search and filter the framework runs compares case the same way: the `/` list filter (tables and trees too), choosers (matching, ranking and word spelling), the path chooser's browse and typed completion, and the path picker's fuzzy search. The setting `search.case` (ochazuke › Search) says how: `smart` (the default) ignores case unless the query holds an upper-case letter, then matches case exactly (`readme` finds `README.md` and `readme.txt`, `README` only `README.md`); `ignore` always ignores it (the behaviour before the setting); `sensitive` always matches it. A capital is any letter `unicode.IsUpper` reports (`É`, `Σ`), never a separator, digit or punctuation; in typed path completion only the name being completed counts, so `Docs/read` still finds `readme.txt` in `Docs`. With no capital in the query, `smart` ranks the picker's results exactly as `ignore` does. Identifiers are not searches and keep their own case-insensitive lookups: palette words, verb, noun and setting names, `:set` completion, column titles, key names. An application's own search reads the same rule with `Runtime.CaseFor(query)` (a `CaseMatch` with `Contains`, `HasPrefix`, `String`, `Rune`), or `CaseFor(mode, query)` with `Runtime.SearchCase()` read on the loop for work that runs off it; `examples/csv`'s column filter does. Stories: `lists/filter-smart-case`, `lists/filter-ignore-case`, `forms/path-smart-case-browse`, `forms/path-smart-case-typed`, `forms/path-ignore-case`.
+Every text search and text filter the framework runs compares case the same way: the `/` list filter (tables and trees too), choosers (matching, ranking and word spelling), the path chooser's browse and typed completion, and the path picker's fuzzy search. The setting `search.case` (ochazuke › Search) says how: `smart` (the default) ignores case unless the query holds an upper-case letter, then matches case exactly (`readme` finds `README.md` and `readme.txt`, `README` only `README.md`); `ignore` always ignores it (the behaviour before the setting); `sensitive` always matches it. A capital is any letter `unicode.IsUpper` reports (`É`, `Σ`), never a separator, digit or punctuation; in typed path completion only the name being completed counts, so `Docs/read` still finds `readme.txt` in `Docs`. With no capital in the query, `smart` ranks the picker's results exactly as `ignore` does. Identifiers are not searches and keep their own case-insensitive lookups: palette words, verb, noun and setting names, `:set` completion, column titles, key names. An application's own search reads the same rule with `Runtime.CaseFor(query)` (a `CaseMatch` with `Contains`, `HasPrefix`, `String`, `Rune`), or `CaseFor(mode, query)` with `Runtime.SearchCase()` read on the loop for work that runs off it; `examples/csv`'s column filter does. Stories: `lists/filter-smart-case`, `lists/filter-ignore-case`, `forms/path-smart-case-browse`, `forms/path-smart-case-typed`, `forms/path-ignore-case`.
 
 Compared with Vim: `smart` is `:set ignorecase smartcase` (`:help 'ignorecase'`, `:help 'smartcase'`), `ignore` is `ignorecase` alone and `sensitive` is `noignorecase`; the capital test is Vim's (an upper-case letter typed in the query). Vim applies `smartcase` only to typed patterns, not to `*`/`#`, which ochazuke does not have yet. Not here: the `\c`/`\C` pattern overrides (`:help /\c`), and Vim's separate `'wildignorecase'`/`'fileignorecase'` for file-name completion: the path chooser and picker follow `search.case` like every other search.
 
 The filter hides rows from drawing and from motions (`j`/`k`, counts, spills) and never removes them: their instances, marks and data stay. `SetItems` and `List.Patch` (which patches every row, hidden ones included) while filtered filter the new rows and keep the selection by id; `list.apply` fans out to the marked rows the filter shows (a mark on a hidden row waits); a command that lands on a hidden row (`Select`, `focus.set`, a job's focus) clears the filter. `Items()` and `Len()` are every row; `Shown()` counts the shown ones, `Filter()` is the query, `Filtering()` reports the line, `SetFilter(q)` sets it, and `Height()` (`Len()` plus the line) is what a host sizing a list to its rows passes to `View`. The CLI form is `list filter --target LIST --query Q` (an empty query clears); the state at `/lists/<id>` then has `filter` and `total`, and its `items` are the shown rows. Stories: `lists/filter-*`, `catalog/filter-setitems`, `tables/filter-by-cell`, `settings/filter`.
 
 The operation equivalents are `list.focus {id}`, `list.move {id?, delta, clamp?}`, `list.goto {id?, position?, row?}`, `list.scroll {id?, delta, half?, steps?}`, `list.scroll-columns {id?, to?, delta?, steps?}`, `list.column {id?, to?, index?, delta?, steps?}`, `list.choose-column {id?}`, `list.yank {id?, what?, register?}`, `list.resize-column {id?, delta, steps?}`, `list.reset-columns {id?}`, `list.pin-column {id?, column?}`, `list.unpin-column {id?, column?}`, `list.toggle-pin-column {id?, column?}`, `list.unpin-columns {id?}`, `list.visual {id?, on?}`, `list.select {id?, item}`, `list.mark {id?, item?}`, `list.apply {id?, verb, args?}` and `list.filter {id?, query}`. Omit `id` to operate on the list on the focus stack. State is inspectable under `/lists/<id>` (rows show their `noun`, `marked` lists marks) and `/instances/<rowId>`. The full-project example's **Items** page mixes `repo`, `worktree` and `branch` rows in one list: each row answers to its noun's verbs and keys, `?` lists the focused row's rows, and Space plus `list.apply` fans one verb out over several rows.
+
+
+#### Filtering by prop
+
+Lists and trees also accept structured `PropFilter{Prop, Op, Value}` conditions.
+`=` (the default), `!=`, literal case-sensitive `contains` on strings, and `in`
+(an array of typed alternatives) combine with AND and with the existing `/`
+text query. Equality is the standard `--where` matcher, including prop typing
+(`"2"` equals `2` for an integer prop). The row's noun declares the props;
+its `Data` supplies the record, with id/label filled from the row when absent.
+`ListItem.Props` / `TreeNode.Props` can supply the record separately when
+`Data` is an opaque handle; catalog pages fill these from their row records,
+keeping the foreign id in `Data` for action dispatch.
+Secret props are excluded. A row without a condition's prop does not match.
+A tree shows matching nodes with their ancestors, including paths beneath
+collapsed nodes; clearing restores the collapse state. The filter does not
+remove list rows or their marks.
+
+`z /` runs `ochazuke.list.filter-prop`: pick a prop, then one of the visible
+rows' distinct values. The same verb takes `{prop, op, value}` directly.
+`z !` (`filter-prop-clear`) picks one active condition to remove, or takes
+`prop` (the first condition on that prop) or a 1-based `index`. `z C`
+(`filter-props-clear`) clears all prop conditions, keeping `/` text.
+`List.SetPropFilters`, `PropFilters`, `SavedFilters` and `ApplyFilter` expose
+the same mechanism to apps. These verbs take `id` for a list or tree, defaulting
+to the focused list. Active conditions appear in the list/tree header strip
+beside the text query; `list.filter-strip=false` hides the prop strip (default
+true). Hints come from the binding rows, which users can replace or unbind.
+The picker row is hidden from the footer like other `z` table commands;
+`?` shows it, and `help.hints-hidden` also exposes it in the footer.
+
+Declare app defaults after the noun's props, for example:
+
+```go
+r.Define("note").Props(PropSpec{Name: "made-by"}).Filters(
+    SavedFilter{Name: "mine", Where: map[string]any{"made-by": "owner"}},
+    SavedFilter{Name: "agents", Conditions: []PropFilter{
+        {Prop: "made-by", Op: "!=", Value: "owner"},
+    }},
+    SavedFilter{Name: "all"},
+)
+```
+
+Catalogs publish these rows as `nouns[].filters`; `cli.MountNouns` carries them
+to the host's noun. Users add or replace defaults in `list.filters`, a string
+holding a JSON array (the setting defaults to `"[]"`), for example this value:
+
+```json
+[
+  {"noun": "note", "name": "mine", "where": {"made-by": "owner"}},
+  {"list": "notes/outline/list", "name": "open", "where": {"status": "todo"}}
+]
+```
+
+In `settings.json` the array is encoded as a string, e.g.
+`"list.filters": "[{\"noun\":\"note\",\"name\":\"all\"}]"`.
+A list-specific name wins over that name's noun default; user rows replace
+app rows within the same scope. Declaration order determines the cycle.
+`z ]` / `z [` cycle forward/backward; `list.filter-cycle=false` disables those
+keys (default true). `list filter-saved --name mine` applies one by name.
+Cycling and applying keep the `/` text query. Declare an empty `all` filter
+to include an unfiltered step. Invalid filter data fails without replacing
+the current conditions. Current conditions are session state; saved definitions
+are settings. Standard noun lists accept `--filter NAME`, ANDed with unchanged
+`--where prop=value`; CLI lookup uses noun scope, because no UI list is named.
+The framework applies saved conditions before `--limit`.
+
+Compared with Vim (verified in Neovim 0.12.3):
+
+| Vim form | Help tag | Ochazuke |
+|---|---|---|
+| `:g/pat/p` | `:global` | Similar selection of matches; typed row props and text hide rows rather than execute Ex commands. |
+| `:v/pat/p` | `:vglobal` | Similar exclusion through `!=`; no buffer edits or global command execution. |
+| `:filter /pat/ command` | `:filter` | Similar restriction of displayed results; conditions stay on the list and trees retain context ancestors. |
+| `:filter! /pat/ command` | `:filter` | Similar inverse selection through `!=`; prop equality is typed and `contains` is literal, not a Vim regex. |
+
+Stories: `lists/filter-prop-picker`, `lists/filter-prop-clear`,
+`lists/filter-saved-cycle`, `tree/filter-prop-ancestors`.
 
 ### Tree h and l at an edge
 

@@ -199,8 +199,10 @@ type RecordSpec struct {
 // ItemSpec is an explicit row; Cells are its table cells, Tones the
 // tones of its cells (ochazuke.ToneSpan).
 type ItemSpec struct {
-	ID    string `json:"id"`
-	Label string `json:"label"`
+	Data  any            `json:"data,omitempty"`
+	Props ochazuke.Thing `json:"props,omitempty"`
+	ID    string         `json:"id"`
+	Label string         `json:"label"`
 	// Noun is the row's noun (default the demo noun): a row of another
 	// noun (project) is a thing a demo prop may name (a reference).
 	Noun  string              `json:"noun,omitempty"`
@@ -441,9 +443,11 @@ type StoreSpec struct {
 // verb's parameter can name it as its Source).
 // NounSpec is one noun of a story's own (Page.Nouns).
 type NounSpec struct {
-	Noun    string               `json:"noun"`
-	Verbs   []string             `json:"verbs,omitempty"`
-	Aliases []ochazuke.NounAlias `json:"aliases,omitempty"`
+	Props   []ochazuke.PropSpec    `json:"props,omitempty"`
+	Filters []ochazuke.SavedFilter `json:"filters,omitempty"`
+	Noun    string                 `json:"noun"`
+	Verbs   []string               `json:"verbs,omitempty"`
+	Aliases []ochazuke.NounAlias   `json:"aliases,omitempty"`
 }
 
 type VerbSpec struct {

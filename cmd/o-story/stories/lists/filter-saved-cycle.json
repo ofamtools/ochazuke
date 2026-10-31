@@ -1,0 +1,128 @@
+{
+  "width": 100,
+  "height": 16,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "nouns": [
+      {
+        "noun": "note",
+        "props": [
+          {
+            "name": "by"
+          },
+          {
+            "name": "status"
+          }
+        ],
+        "filters": [
+          {
+            "name": "mine",
+            "where": {
+              "by": "owner"
+            }
+          },
+          {
+            "name": "agents",
+            "where": {
+              "by": "agent"
+            }
+          },
+          {
+            "name": "all"
+          }
+        ]
+      }
+    ],
+    "lists": [
+      {
+        "id": "notes",
+        "height": -1,
+        "items": [
+          {
+            "id": "n1",
+            "label": "Owner alpha",
+            "noun": "note",
+            "data": {
+              "by": "owner",
+              "status": "todo"
+            }
+          },
+          {
+            "id": "n2",
+            "label": "Agent beta",
+            "noun": "note",
+            "data": {
+              "by": "agent",
+              "status": "todo"
+            }
+          },
+          {
+            "id": "n3",
+            "label": "Owner gamma",
+            "noun": "note",
+            "data": {
+              "by": "owner",
+              "status": "done"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "name": "saved prop filters: cycle mine agents all and back",
+  "script": [
+    "z",
+    "]",
+    "z",
+    "]",
+    "z",
+    "]",
+    "z",
+    "["
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "contains": [
+        "[mine]",
+        "Owner alpha",
+        "Owner gamma"
+      ],
+      "lacks": [
+        "Agent beta"
+      ]
+    },
+    {
+      "after": 4,
+      "contains": [
+        "[agents]",
+        "Agent beta"
+      ],
+      "lacks": [
+        "Owner alpha",
+        "Owner gamma"
+      ]
+    },
+    {
+      "after": 6,
+      "contains": [
+        "[all]",
+        "Owner alpha",
+        "Agent beta",
+        "Owner gamma"
+      ]
+    },
+    {
+      "after": 8,
+      "contains": [
+        "[agents]",
+        "Agent beta"
+      ],
+      "lacks": [
+        "Owner alpha"
+      ]
+    }
+  ],
+  "area": "lists"
+}

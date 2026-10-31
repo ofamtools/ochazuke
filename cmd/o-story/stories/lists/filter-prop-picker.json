@@ -1,0 +1,116 @@
+{
+  "width": 100,
+  "height": 16,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "nouns": [
+      {
+        "noun": "note",
+        "props": [
+          {
+            "name": "by"
+          },
+          {
+            "name": "status"
+          }
+        ],
+        "filters": [
+          {
+            "name": "mine",
+            "where": {
+              "by": "owner"
+            }
+          },
+          {
+            "name": "agents",
+            "where": {
+              "by": "agent"
+            }
+          },
+          {
+            "name": "all"
+          }
+        ]
+      }
+    ],
+    "lists": [
+      {
+        "id": "notes",
+        "height": -1,
+        "items": [
+          {
+            "id": "n1",
+            "label": "Owner alpha",
+            "noun": "note",
+            "data": {
+              "by": "owner",
+              "status": "todo"
+            }
+          },
+          {
+            "id": "n2",
+            "label": "Agent beta",
+            "noun": "note",
+            "data": {
+              "by": "agent",
+              "status": "todo"
+            }
+          },
+          {
+            "id": "n3",
+            "label": "Owner gamma",
+            "noun": "note",
+            "data": {
+              "by": "owner",
+              "status": "done"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "name": "prop filter: picker uses visible distinct values and filters a list",
+  "script": [
+    "z",
+    "/",
+    "enter",
+    "o",
+    "w",
+    "n",
+    "e",
+    "r",
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "contains": [
+        "Filter by prop",
+        "by",
+        "status"
+      ]
+    },
+    {
+      "after": 3,
+      "contains": [
+        "Filter \u00b7 by",
+        "agent",
+        "owner"
+      ]
+    },
+    {
+      "after": 9,
+      "contains": [
+        "[by = owner]",
+        "Owner alpha",
+        "Owner gamma",
+        "2 of 3"
+      ],
+      "lacks": [
+        "Agent beta"
+      ]
+    }
+  ],
+  "area": "lists"
+}

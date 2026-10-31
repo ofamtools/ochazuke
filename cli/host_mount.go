@@ -99,6 +99,12 @@ func MountNouns(r *ochazuke.Runtime, nouns []CatalogNoun, h HostMount) MountedNo
 				warn("%s prop %s skipped: %v", n.Name, p.Name, err)
 			}
 		}
+		for _, f := range n.Filters {
+			f.Noun = local
+			if err := try(func() { b.Filters(f) }); err != nil {
+				warn("%s filter %s skipped: %v", n.Name, f.Name, err)
+			}
+		}
 		for _, v := range n.Verbs {
 			if err := mountVerb(r, b, local, n.Name, v, h, out.Nouns, param, func(format string, a ...any) {
 				warn("%s %s: %s", n.Name, v.Name, fmt.Sprintf(format, a...))

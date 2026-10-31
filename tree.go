@@ -22,6 +22,7 @@ type TreeNode struct {
 	Label  string     `json:"label"`
 	Noun   string     `json:"noun,omitempty"`
 	Data   any        `json:"data,omitempty"`
+	Props  Thing      `json:"props,omitempty"`
 	Cells  []string   `json:"cells,omitempty"`
 	Tones  []ToneSpan `json:"tones,omitempty"`
 	// Section is the label line drawn above a run of rows in one section
@@ -472,7 +473,7 @@ func (t *Tree) prefix(n TreeNode) string {
 	marker := "  "
 	if t.hasChildren(n.ID) {
 		marker = "▾ "
-		if t.collapsed[n.ID] {
+		if t.collapsed[n.ID] && len(t.list.propFilters) == 0 && strings.TrimSpace(t.list.query) == "" {
 			marker = "▸ "
 		}
 	}
@@ -507,8 +508,9 @@ func (t *Tree) refresh(selectID string) error {
 	t.fitZoom(selectID)
 	from, to := t.zoomRange()
 	items := make([]ListItem, 0, to-from)
+	filtering := len(t.list.propFilters) > 0 || strings.TrimSpace(t.list.query) != ""
 	for _, n := range t.nodes[from:to] {
-		if !t.visible(n) {
+		if !filtering && !t.visible(n) {
 			continue
 		}
 		noun := n.Noun
@@ -516,7 +518,7 @@ func (t *Tree) refresh(selectID string) error {
 			noun = TreeRowNoun
 		}
 		prefix := t.prefix(n)
-		item := ListItem{ID: n.ID, Label: prefix + n.Label, Noun: noun, Data: n.Data, Tones: shiftTones(n.Tones, utf8.RuneCountInString(prefix)), Section: n.Section}
+		item := ListItem{ID: n.ID, Label: prefix + n.Label, Noun: noun, Data: n.Data, Props: n.Props, Tones: shiftTones(n.Tones, utf8.RuneCountInString(prefix)), Section: n.Section}
 		if len(n.Cells) > 0 {
 			item.Cells = slices.Clone(n.Cells)
 			item.Cells[0] = prefix + item.Cells[0]
@@ -573,6 +575,9 @@ func (t *Tree) rows(width, height int) Block {
 		return Text(text)
 	}
 	line := t.list.selected - t.list.offset
+	if height > 1 && t.list.filterLine(width) != "" {
+		line++
+	}
 	if len(t.list.columns) > 0 {
 		line++
 	}

@@ -26,10 +26,13 @@ import (
 // inside them, a named tone the theme colours (ToneSpan, tone.go; in a
 // list without columns cell 0 is the label); they never change the text.
 type ListItem struct {
-	ID      string     `json:"id"`
-	Label   string     `json:"label"`
-	Noun    string     `json:"noun"`
-	Data    any        `json:"data,omitempty"`
+	ID    string `json:"id"`
+	Label string `json:"label"`
+	Noun  string `json:"noun"`
+	Data  any    `json:"data,omitempty"`
+	// Props supplies the row's noun prop values when Data is an opaque handle.
+	// Nil reads props from Data via ThingOf instead.
+	Props   Thing      `json:"props,omitempty"`
 	Cells   []string   `json:"cells,omitempty"`
 	Section string     `json:"section,omitempty"`
 	Tones   []ToneSpan `json:"tones,omitempty"`
@@ -40,14 +43,16 @@ type ListItem struct {
 type List struct {
 	r           *Runtime
 	id          string
-	all         []ListItem // every row, as SetItems gave them
-	headerTones []ToneSpan // the header row's tones (SetHeaderTones)
-	items       []ListItem // the rows shown: all, or the ones the filter lets through (list_filter.go)
-	query       string     // the filter query; "" shows every row
-	hay         []string   // each row's filter text (filterHay), built on the first filter; nil after SetItems
-	hayFold     bool       // hay was built case-folded (CaseMatch.Fold); a query that changes it rebuilds hay
-	match       string     // the filter's match mode set by search.cycle-match/set-match; "" is search.match (search_match.go)
-	back        string     // the row selected when the filter line opened, which filter-clear selects again
+	all         []ListItem   // every row, as SetItems gave them
+	headerTones []ToneSpan   // the header row's tones (SetHeaderTones)
+	items       []ListItem   // the rows shown: all, or the ones the filter lets through (list_filter.go)
+	query       string       // the filter query; "" shows every row
+	propFilters []PropFilter // typed prop conditions, ANDed with the text query
+	savedFilter string       // the applied saved filter's name; empty after an ad-hoc change
+	hay         []string     // each row's filter text (filterHay), built on the first filter; nil after SetItems
+	hayFold     bool         // hay was built case-folded (CaseMatch.Fold); a query that changes it rebuilds hay
+	match       string       // the filter's match mode set by search.cycle-match/set-match; "" is search.match (search_match.go)
+	back        string       // the row selected when the filter line opened, which filter-clear selects again
 	selected    int
 	offset      int
 	marks       map[string]bool
@@ -199,6 +204,7 @@ func cloneItems(items []ListItem) []ListItem {
 	}
 	cellBuf, toneBuf := make([]string, 0, cells), make([]ToneSpan, 0, tones)
 	for i, it := range items {
+		out[i].Props = maps.Clone(it.Props)
 		if it.Cells != nil {
 			n := len(cellBuf)
 			cellBuf = append(cellBuf, it.Cells...)
@@ -216,6 +222,7 @@ func cloneItems(items []ListItem) []ListItem {
 // cloneItem is one row with its own Cells and Tones.
 func cloneItem(it ListItem) ListItem {
 	it.Cells, it.Tones = slices.Clone(it.Cells), slices.Clone(it.Tones)
+	it.Props = maps.Clone(it.Props)
 	return it
 }
 
@@ -432,8 +439,14 @@ func (l *List) state() map[string]any {
 		}
 	}
 	out := map[string]any{"id": l.id, "items": slices.Clip(l.items), "selected": l.selected, "selectedId": selected.ID, "offset": l.offset, "focused": l.Focused(), "marked": marked}
-	if l.query != "" {
+	if l.query != "" || len(l.propFilters) > 0 || l.savedFilter != "" {
 		out["filter"], out["total"] = l.query, len(l.all)
+		if len(l.propFilters) > 0 {
+			out["propFilters"] = l.PropFilters()
+		}
+		if l.savedFilter != "" {
+			out["savedFilter"] = l.savedFilter
+		}
 	}
 	if len(l.columns) > 0 {
 		out["columns"] = slices.Clone(l.columns)
@@ -725,4 +738,5 @@ func registerLists(r *Runtime) {
 	registerTableCells(r)
 	registerListVisual(r)
 	registerListFilter(r)
+	registerListPropFilter(r)
 }

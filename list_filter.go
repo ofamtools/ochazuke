@@ -83,7 +83,9 @@ func (l *List) Filter() string { return l.query }
 
 // Filtering reports whether the filter line shows: a filter is set, or
 // its query is being typed on this list.
-func (l *List) Filtering() bool { return l.query != "" || l.editingFilter() }
+func (l *List) Filtering() bool {
+	return l.query != "" || l.editingFilter() || len(l.propFilters) > 0 || l.savedFilter != ""
+}
 
 // Height is the lines the list needs to draw every row without
 // windowing (a table's header aside): Len, plus the filter line while it
@@ -91,7 +93,7 @@ func (l *List) Filtering() bool { return l.query != "" || l.editingFilter() }
 // opening the filter line neither windows the rows nor moves what is drawn
 // below the list as the filter narrows it.
 func (l *List) Height() int {
-	if l.Filtering() {
+	if l.query != "" || l.editingFilter() || l.propStrip() != "" {
 		return len(l.all) + 1
 	}
 	return len(l.all)
@@ -111,14 +113,26 @@ func (l *List) SetFilter(query string) {
 	if keep == "" {
 		keep = l.back // nothing matched: widening the query finds the row / started on
 	}
-	l.refilter(keep)
+	if t := l.tree(); t != nil {
+		_ = t.refresh("")
+	} else {
+		l.refilter(keep)
+	}
 	l.syncFocus(previous, nil)
 }
 
 // refilter recomputes the shown rows from every row and the query, then
 // selects keep when it shows, else the first shown row.
 func (l *List) refilter(keep string) {
-	if strings.TrimSpace(l.query) == "" {
+	if t := l.tree(); t != nil && (len(l.propFilters) > 0 || strings.TrimSpace(l.query) != "") {
+		kept := t.filterNodes()
+		l.items = make([]ListItem, 0, len(l.all))
+		for _, item := range l.all {
+			if kept[item.ID] {
+				l.items = append(l.items, item)
+			}
+		}
+	} else if strings.TrimSpace(l.query) == "" && len(l.propFilters) == 0 {
 		l.items = l.all
 	} else {
 		m := l.matcher()
@@ -130,7 +144,7 @@ func (l *List) refilter(keep string) {
 		}
 		shown := make([]ListItem, 0, len(l.all))
 		for i, item := range l.all {
-			if m.MatchPrepared(l.hay[i]) {
+			if l.matchesProps(item) && m.MatchPrepared(l.hay[i]) {
 				shown = append(shown, item)
 			}
 		}
@@ -152,11 +166,14 @@ func (l *List) shows(id string) bool {
 // lands on that row (Select, focus.set, a job's focus) shows it. The
 // selection is the caller's to set.
 func (l *List) reveal(id string) {
-	if l.query == "" || l.shows(id) || !slices.ContainsFunc(l.all, func(item ListItem) bool { return item.ID == id }) {
+	if (l.query == "" && len(l.propFilters) == 0) || l.shows(id) || !slices.ContainsFunc(l.all, func(item ListItem) bool { return item.ID == id }) {
 		return
 	}
-	l.query, l.back = "", ""
+	l.query, l.back, l.propFilters, l.savedFilter = "", "", nil, ""
 	l.items = l.all
+	if t := l.tree(); t != nil {
+		_ = t.Select(id)
+	}
 }
 
 // editingFilter reports whether the filter line is being typed: the mode
@@ -172,15 +189,22 @@ func (l *List) editingFilter() bool {
 // none.
 func (l *List) filterLine(width int) string {
 	editing := l.editingFilter()
-	if l.query == "" && !editing {
+	strip := l.propStrip()
+	if l.query == "" && !editing && strip == "" {
 		return ""
 	}
-	left := "/" + modalLabel(l.query)
+	left := strip
+	if l.query != "" || editing {
+		if left != "" {
+			left += " "
+		}
+		left += "/" + modalLabel(l.query)
+	}
 	if editing {
 		left += lipgloss.NewStyle().Reverse(true).Render(" ")
 	}
 	var right []string
-	if strings.TrimSpace(l.query) != "" {
+	if strings.TrimSpace(l.query) != "" || strip != "" {
 		switch err := l.matcher().Err(); {
 		case err != nil:
 			right = append(right, err.Error())
@@ -190,7 +214,7 @@ func (l *List) filterLine(width int) string {
 			right = append(right, strconv.Itoa(len(l.items))+" of "+strconv.Itoa(len(l.all)))
 		}
 	}
-	if tag := l.r.matchTagFor(l.MatchMode()); tag != "" {
+	if tag := l.r.matchTagFor(l.MatchMode()); tag != "" && (l.query != "" || editing) {
 		right = append(right, tag)
 	}
 	return searchLine(left, strings.Join(right, "  "), width)
