@@ -1246,3 +1246,79 @@ func TestMountAppNounsWin(t *testing.T) {
 		}
 	}
 }
+
+// An extension's namespace (mcp of mcp.item) is the group mcp. with mcp
+// as its alias: an app command named mcp owns the word in either order,
+// and mcp.item (or mcp. item) still reaches the extension's noun.
+func TestMountAppCommandOwnsANamespaceWord(t *testing.T) {
+	for _, own := range []string{"", "before", "after"} {
+		t.Run("own="+own, func(t *testing.T) {
+			f := newFixture(t)
+			f.r.Config().Disable()
+			var out bytes.Buffer
+			got := MountNouns(f.r, []CatalogNoun{{Name: "item", Verbs: []CatalogVerb{{Name: "list"}}}}, HostMount{
+				Local: Namespace("mcp"),
+				Proxy: func(string, CatalogVerb) any {
+					return func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done("ext-owned") }
+				},
+			})
+			if len(got.Warnings) > 0 || got.Nouns["item"] != "mcp.item" {
+				t.Fatalf("mount: %+v", got)
+			}
+			command := oden.Command{Name: "mcp", Summary: "app-owned", Children: []oden.Command{{Name: "serve", Run: func(_ context.Context, args []string) error {
+				fmt.Fprint(&out, "app-owned serve")
+				return nil
+			}}}}
+			run := func(args ...string) string {
+				t.Helper()
+				out.Reset()
+				sh := New(f.r, "tool", strings.NewReader(""), &out, io.Discard)
+				app := oden.New("tool", args, oden.WithBuiltins(), oden.WithPath(""), oden.WithStdio(strings.NewReader(""), &out, io.Discard))
+				if own == "before" {
+					app.Add(command)
+				}
+				Mount(app, sh)
+				if own == "after" {
+					app.Add(command)
+				}
+				if err := app.Run(context.Background()); err != nil {
+					t.Fatalf("tool %s: %v\n%s", strings.Join(args, " "), err, &out)
+				}
+				return out.String()
+			}
+			for _, args := range [][]string{{"mcp.item", "list"}, {"mcp.", "item", "list"}} {
+				if got := strings.TrimSpace(run(args...)); got != `"ext-owned"` {
+					t.Fatalf("tool %s: %s", strings.Join(args, " "), got)
+				}
+			}
+			help := run("--help")
+			if own == "" {
+				if got := strings.TrimSpace(run("mcp", "item", "list")); got != `"ext-owned"` {
+					t.Fatalf("tool mcp item list: %s", got)
+				}
+				if !strings.Contains(help, "\n  mcp., mcp ") {
+					t.Fatalf("help must list the namespace with its word:\n%s", help)
+				}
+				return
+			}
+			if got := run("mcp", "serve"); got != "app-owned serve" {
+				t.Fatalf("tool mcp serve: %s", got)
+			}
+			if !strings.Contains(help, "shadows alias mcp of mcp. namespace") || !strings.Contains(help, "\n  mcp. ") {
+				t.Fatalf("help must name the shadowed namespace:\n%s", help)
+			}
+			var doc CatalogDoc
+			if err := json.Unmarshal([]byte(run("catalog")), &doc); err != nil {
+				t.Fatal(err)
+			}
+			for _, c := range doc.Commands {
+				if c.Name == "mcp." && slices.Contains(c.Aliases, "mcp") {
+					t.Fatalf("catalog advertises the shadowed namespace word: %+v", c)
+				}
+				if c.Name == "mcp" && (c.Summary != "app-owned" || len(c.Shadowed) == 0) {
+					t.Fatalf("catalog command mcp: %+v", c)
+				}
+			}
+		})
+	}
+}

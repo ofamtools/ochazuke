@@ -16,7 +16,9 @@ import (
 // A dotted noun nests (ochazuke.settings is the group settings in the group ochazuke);
 // a framework alias (settings) is a top-level alias too while no app command
 // or noun of that name shadows it; a dotted first word (ochazuke.settings) is read as the
-// groups it nests in.
+// groups it nests in. A namespace that is no noun (mcp of an extension's
+// mcp.item) is the group NS. with NS as its alias, so an app command named
+// NS owns the word whether it is added before or after Mount.
 // Oden owns command resolution and help; the shell owns operation execution.
 // The catalog command follows the nouns so a noun named catalog wins.
 // extra also declares empty command groups before their operations are registered.
@@ -28,6 +30,10 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 		fmt.Fprintln(sh.stderr(), "warning:", problem)
 	}
 	r := sh.Runtime
+	// spelled: the leading words were spelled from a noun's name here (a
+	// dotted word, an alias), so a namespace among them is its group NS.
+	// even when an application command owns the word NS.
+	spelled := false
 	// A bare action alias (bin w!) is its noun's words and its verb. One
 	// that shadows a verb reads by the word after it (ReadBareAlias: bin
 	// set mode normal is bin mode set normal), and one followed by more
@@ -40,6 +46,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 		case err == nil && reading.Noun != "":
 			noun := r.CanonicalNoun(reading.Noun)
 			app.Args = append(append(strings.Split(noun, "."), a.Verb), app.Args[2:]...)
+			spelled = true
 		case err != nil || a.Shadows || reading.Skip > 1:
 			name := app.Args[0]
 			app.Add(oden.Command{Name: name, Summary: "alias of " + r.DisplayKey(a.Action), Source: a.Alias,
@@ -48,6 +55,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 				}})
 		default:
 			app.Args = append(append(strings.Split(a.Noun, "."), a.Verb), app.Args[1:]...)
+			spelled = true
 		}
 	}
 	// A deprecated noun alias (an extension noun's old name, AddNounAlias
@@ -59,6 +67,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 				fmt.Fprintln(sh.stderr(), "notice:", text)
 			}
 			app.Args = append(strings.Split(a.Noun, "."), app.Args[1:]...)
+			spelled = true
 		}
 	}
 	// A dotted noun is one word too (bin ochazuke.settings list): the word is
@@ -66,6 +75,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 	if len(app.Args) > 0 && strings.Contains(app.Args[0], ".") {
 		if noun := r.CanonicalNoun(app.Args[0]); r.Nouns[noun] != nil {
 			app.Args = append(strings.Split(noun, "."), app.Args[1:]...)
+			spelled = true
 		}
 	}
 	// The v0.16.0 spelling of a framework noun (bin app settings list) is
@@ -75,6 +85,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 		if old := ochazuke.AppNoun + "." + app.Args[1]; r.Nouns[old] == nil {
 			if noun := r.CanonicalNoun(old); noun != old && r.Nouns[noun] != nil {
 				app.Args = append(strings.Split(noun, "."), app.Args[2:]...)
+				spelled = true
 			}
 		}
 	}
@@ -192,15 +203,33 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 	}
 	// Each dotted noun nests: ochazuke.settings is the group settings inside
 	// the group ochazuke (bin ochazuke settings list).
+	//
+	// A namespace that is no noun (mcp of an extension's mcp.item) is the
+	// group NS. with its word NS as an alias: an alias loses to a command
+	// name in either registration order, so an application's own command
+	// of that word (mtm mcp) owns it, as it owns a framework short name,
+	// and NS.NOUN (read as NS. NOUN) still reaches the namespace's nouns.
 	var topNames []string
 	top := map[string]*nounGroup{}
+	shortNames := map[string][]string{}
+	words := map[string]bool{} // the namespace words taken as aliases
 	for _, name := range root.names() {
-		topNames, top[name] = append(topNames, name), root.children[name]
+		g, canonical := root.children[name], name
+		if !g.noun {
+			canonical = name + NamespaceSuffix
+			shortNames[canonical] = []string{name}
+			words[name] = true
+		}
+		topNames, top[canonical] = append(topNames, canonical), g
+	}
+	if spelled && len(app.Args) > 0 {
+		if g := top[app.Args[0]+NamespaceSuffix]; g != nil && !g.noun {
+			app.Args[0] += NamespaceSuffix
+		}
 	}
 	// Use oden aliases, not commands named after aliases: a command name
 	// wins over an alias in either registration order. Keep a canonical
 	// top-level group too, so help identifies what each shortcut reaches.
-	shortNames := map[string][]string{}
 	for _, a := range r.Aliases() {
 		if a.Deprecated() {
 			continue
@@ -209,7 +238,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 			if top[a.Noun] == nil {
 				topNames, top[a.Noun] = append(topNames, a.Noun), g
 			}
-			if !a.Shadowed && top[a.Alias] == nil {
+			if !a.Shadowed && top[a.Alias] == nil && !words[a.Alias] {
 				shortNames[a.Noun] = append(shortNames[a.Noun], a.Alias)
 			}
 		}
@@ -235,6 +264,8 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
   Each call uses a fresh local runtime, not an already-running TUI.
   The framework's nouns are ochazuke.<noun> (ochazuke settings list, ochazuke.settings list);
   a short name (settings list) reaches one unless the tool has a command or noun of its own.
+  A namespace NS (an extension's nouns NS.NOUN) is the group NS. with NS as its alias:
+  a command of the tool's own named NS owns the word, and NS.NOUN still reaches the noun.
   --target selects an instance; some operations require an existing instance.
   --yes (or -y) accepts confirmation; otherwise the CLI asks on stdin.
   Supply prompt values as arguments: non-confirmation UI prompts need the TUI.
@@ -255,6 +286,11 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 		}
 	})
 }
+
+// NamespaceSuffix ends the CLI group name of a namespace that is no noun
+// (mcp. for an extension's mcp.item); the namespace's word is its alias,
+// so an application command of that word owns it (Mount).
+const NamespaceSuffix = "."
 
 // shellCommands is the reserved command table. A real app noun wins; a
 // framework short-name alias cannot hide an existing shell command.
