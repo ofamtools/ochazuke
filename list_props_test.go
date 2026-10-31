@@ -76,6 +76,7 @@ func TestRowPropsOfferUndeclaredFields(t *testing.T) {
 
 func TestRowPropsPickerAndCacheByRows(t *testing.T) {
 	r, m, l := rowPropsFixture(t)
+	chooserChain(t, r) // the prop chooser then the value chooser (list.filter-form off)
 	if err := r.Settings().Set(PropsOffSetting, `["*.count","*.done","*.empty","*.id","*.mixed","*.tags","*.title"]`); err != nil {
 		t.Fatal(err)
 	}

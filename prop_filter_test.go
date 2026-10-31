@@ -108,6 +108,7 @@ func TestPropFilterListTextRefreshMarks(t *testing.T) {
 
 func TestPropFilterPickerCycleAndStrip(t *testing.T) {
 	r, m, l := propFilterFixture(t)
+	chooserChain(t, r)              // the prop chooser then the value chooser (list.filter-form off)
 	pressKeys(m, "z", "/", "enter") // by is the first prop; observed values agent,owner
 	chooser := r.Chooser("list-filter-value")
 	if chooser == nil || len(chooser.Matches()) != 2 {
@@ -301,6 +302,7 @@ func TestPropFilterTargetAndClearOne(t *testing.T) {
 
 func TestPropFilterPickerVisibleValuesOnly(t *testing.T) {
 	r, m, l := propFilterFixture(t)
+	chooserChain(t, r) // the prop chooser then the value chooser (list.filter-form off)
 	l.SetFilter("beta")
 	pressKeys(m, "z", "/", "enter")
 	c := r.Chooser("list-filter-value")

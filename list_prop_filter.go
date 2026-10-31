@@ -385,9 +385,13 @@ func (t *Tree) filterNodes() map[string]bool {
 
 func (l *List) filterProps() []string { return sortedKeys(l.filterSpecs()) }
 
-// pickPropFilter opens the prop chooser (prop empty), then the value
+// pickPropFilter opens the filter form (prop empty, list.filter-form on;
+// list_filter_form.go), else the prop chooser (prop empty), then the value
 // chooser; not turns the picked condition over (!=, not-contains).
 func (l *List) pickPropFilter(prop string, offerClear, not bool) error {
+	if prop == "" && l.r.Settings().Bool(ListFilterFormSetting) {
+		return l.openFilterForm()
+	}
 	if prop == "" {
 		rows := []ChooserRow{}
 		for _, name := range l.filterProps() {
@@ -468,27 +472,6 @@ func (l *List) pickPropFilter(prop string, offerClear, not bool) error {
 		return Done(nil)
 	}})
 	return err
-}
-
-// valueFilters is the condition the picked values make: op (= or
-// contains) for one value; for several, = widens to in, and contains
-// (a list prop) gives one condition per value.
-func valueFilters(prop, op string, picked []ChooserRow) []PropFilter {
-	if len(picked) == 1 {
-		return []PropFilter{{Prop: prop, Op: op, Value: picked[0].Data}}
-	}
-	if op == "=" {
-		values := make([]any, 0, len(picked))
-		for _, row := range picked {
-			values = append(values, row.Data)
-		}
-		return []PropFilter{{Prop: prop, Op: "in", Value: values}}
-	}
-	out := make([]PropFilter, 0, len(picked))
-	for _, row := range picked {
-		out = append(out, PropFilter{Prop: prop, Op: op, Value: row.Data})
-	}
-	return out
 }
 
 func registerListPropFilter(r *Runtime) {
