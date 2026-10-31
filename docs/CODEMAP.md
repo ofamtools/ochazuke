@@ -734,7 +734,7 @@ Root package `ochazuke` is flat: 137 source files, 161 test files. Each entry li
 
 ### runtime.go
 
-- lines: 1257 · tests: runtime_test.go
+- lines: 1262 · tests: runtime_test.go
 - purpose: Arguments are a request's named arguments, keyed by parameter name.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
 - methods: Context(1), Operation(5), Request(4), Runtime(19)
@@ -1093,12 +1093,12 @@ Importable package `cli`: 36 source files, 35 test files.
 
 ### cli/catalog.go
 
-- lines: 499
+- lines: 509
 - purpose: CatalogDoc is the catalog answer: what a runtime registers, grouped by noun, in the runtime's own JSON shapes (ochazuke.Parameter and ochazuke.Binding unchan...
 - types: CatalogDoc, CatalogNoun, CatalogVerb
 - methods: CatalogDoc(5), CatalogNoun(1)
 - funcs: Catalog, Namespace, Local, ExtensionNamespace
-- leans on: agent_metadata.go(7), page.go(4), statecache.go(4), segments.go(2)
+- leans on: agent_metadata.go(7), commands.go(4), page.go(4), statecache.go(4)
 
 ### cli/catalog_inspect.go
 
@@ -1190,7 +1190,7 @@ Importable package `cli`: 36 source files, 35 test files.
 
 ### cli/host_mount.go
 
-- lines: 262 · tests: host_mount_test.go
+- lines: 263 · tests: host_mount_test.go
 - purpose: HostMount says how a host (mtm, nabe) mounts an extension's catalog nouns into its own runtime with MountNouns: the host's name for each catalog noun and the...
 - types: HostMount, MountedNouns
 - funcs: MountNouns, MountParameter
@@ -1198,10 +1198,10 @@ Importable package `cli`: 36 source files, 35 test files.
 
 ### cli/mcp_backend.go
 
-- lines: 549 · tests: mcp_backend_test.go
+- lines: 567 · tests: mcp_backend_test.go
 - purpose: NewMCPServer binds an agent identity from the startup environment.
-- methods: Shell(7), mcpBackend(5), mcpSink(4)
-- leans on: catalog.go(9), shell.go(9), agent_metadata.go(6), statecache.go(4)
+- methods: Shell(8), mcpBackend(5), mcpSink(4)
+- leans on: shell.go(10), catalog.go(9), agent_metadata.go(6), statecache.go(4)
 
 ### cli/mount.go
 
@@ -1209,7 +1209,7 @@ Importable package `cli`: 36 source files, 35 test files.
 - purpose: Mount maps the runtime registry to oden command groups and operation metadata.
 - methods: Shell(2), nounGroup(6)
 - funcs: Mount
-- leans on: catalog.go(3), shell.go(3), statecache.go(1)
+- leans on: catalog.go(4), commands.go(4), shell.go(3), odencommands.go(1)
 
 ### cli/odencommands.go
 
@@ -1291,7 +1291,7 @@ Importable package `cli`: 36 source files, 35 test files.
 
 ### cli/shell.go
 
-- lines: 971
+- lines: 974
 - purpose: Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--format F] [--yes]: one registered operation in this process through the run...
 - types: Shell
 - methods: Shell(15), stderrSink(5)
