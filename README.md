@@ -1595,6 +1595,8 @@ APP config reload                # themes, settings, actions, bindings, then the
 APP config export                # writes ~/.config/APP/reference/
 APP config export ./ref          # anywhere else
 APP config export ~/.config/APP --force   # into the live directory: only with --force
+APP bindings export              # only the key rows: ~/.config/APP/reference/bindings.reference.json
+APP bindings export ./keys.json   # anywhere else; never over the live bindings.json without --force
 ```
 
 | File written | What it holds |
@@ -1615,7 +1617,7 @@ Every config file ochazuke reads (`bindings.json`, `actions.json`, `settings.jso
 
 ### The bindings file format
 
-`bindings.json` is a grouped table, one group per mode table, one row per line (`config export`'s `bindings.reference.json`, `bindings export PATH`, `bindings defaults` and the `cmd/ochazuke` keybinding tool write it; `FormatBindings`):
+`bindings.json` is a grouped table, one group per mode table, one row per line (`config export`'s `bindings.reference.json`, `bindings export [PATH]` (default `<config dir>/reference/bindings.reference.json`, the same file), `bindings defaults` and the `cmd/ochazuke` keybinding tool write it; `FormatBindings`):
 
 ```jsonc
 // ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, ...

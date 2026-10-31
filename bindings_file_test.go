@@ -397,6 +397,45 @@ func TestBindingsExportVerbLoadsBack(t *testing.T) {
 	}
 }
 
+// With no path, bindings export writes <config dir>/reference/
+// bindings.reference.json, the file config export writes, creating the
+// directory, and returns the path it wrote.
+func TestBindingsExportDefaultsToTheReferenceDirectory(t *testing.T) {
+	xdg := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", xdg)
+	r := NewRuntime()
+	recorder(t, r, "alpha")
+	r.Define("app").Mode("normal").Bind("a", Do("test.alpha"))
+	r.Config().App = "exporttest"
+	got, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "export"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(xdg, "exporttest", ReferenceDir, BindingsReferenceFile)
+	if got != want {
+		t.Fatalf("wrote %v, want %s", got, want)
+	}
+	data, err := os.ReadFile(want)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected, err := FormatBindings(r.BindingsDoc())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != string(expected) {
+		t.Fatalf("export differs from FormatBindings:\n%s", data)
+	}
+}
+
+// Without a config directory and without a path, bindings export is an error.
+func TestBindingsExportWithoutConfigDirectoryNeedsAPath(t *testing.T) {
+	r := NewRuntime()
+	if _, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "export"}); err == nil || !strings.Contains(err.Error(), "no config directory") {
+		t.Fatalf("err %v", err)
+	}
+}
+
 // bindings check names the format it read on the status line.
 func TestBindingsCheckReportsFormat(t *testing.T) {
 	for _, tc := range []struct{ text, want string }{
