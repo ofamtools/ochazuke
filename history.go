@@ -59,8 +59,9 @@ type HistoryEntry struct {
 }
 
 // HistoryContext is the interaction state a request ran in. Source is
-// "key:<keys>", "macro:<register>", "palette", "cli" or "api".
+// "key:<keys>", "macro:<register>", "palette", "cli", "mcp" or "api".
 type HistoryContext struct {
+	Actor  Actor  `json:"actor,omitzero"`
 	Focus  string `json:"focus"`
 	Page   string `json:"page,omitempty"`
 	Mode   string `json:"mode"`
@@ -106,6 +107,7 @@ type actionHistory struct {
 	fetches []HistoryEntry
 	seq     uint64
 	source  string
+	actor   Actor
 	depth   int                   // requests running now
 	changes map[int][]ThingChange // the changes noted for the entry at each depth (noteChange)
 	limit   int                   // the ring's bound while persisted (history-limit); 0 is HistoryLimit
@@ -159,6 +161,10 @@ func (r *Runtime) forceSource(source string) (restore func()) {
 // The value is read only for the job a Ticket names: encoding it would cost
 // what the value weighs (a list's snapshot) on every key.
 func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, depth int, from HistoryPlace, value any, err error) {
+	// Attribution belongs to the entry, not its replayable request. A repeat
+	// runs as the caller, never as the actor who originally made the change.
+	q.Actor, q.source = nil, ""
+
 	if len(q.Args) > 0 {
 		args := make(Arguments, len(q.Args))
 		for k, v := range q.Args {
@@ -361,12 +367,12 @@ func registerHistory(r *Runtime) {
 		}
 		return r.ExecuteAt(c, q)
 	}})
-	r.Register(Operation{Verb: "list", Noun: "ochazuke.history", Description: "List the last executed requests, oldest first, with their kind, context, source and result; by default the user's actions and changes", Parameters: map[string]Parameter{"last": {Type: "integer", Description: "How many entries (default 50, 0 for all)"}, "kind": {Type: "string", Description: "Kinds separated by commas (action, change, fetch, system) or all; default action,change"}}, Result: "history[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "list", Noun: "ochazuke.history", Description: "List the last executed requests, oldest first, with their kind, context, source and result; by default the user's actions and changes", Parameters: map[string]Parameter{"last": {Type: "integer", Description: "How many entries (default 50, 0 for all)"}, "limit": {Type: "integer", Description: "How many matching entries; overrides last"}, "actor": {Type: "string", Description: "Actor kind (owner, agent, unknown), self, or exact actor JSON; empty means all"}, "kind": {Type: "string", Description: "Kinds separated by commas (action, change, fetch, system) or all; default action,change"}}, Result: "history[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		kinds, err := historyKinds(StringArg(a, "kind", ""))
 		if err != nil {
 			return nil, err
 		}
-		return r.HistoryOf(IntArg(a, "last", 50), kinds...), nil
+		return r.historyByActor(IntArg(a, "limit", IntArg(a, "last", 50)), kinds, StringArg(a, "actor", ""))
 	}})
 	r.Register(Operation{Verb: "path", Noun: "ochazuke.history", Description: "Print the history file: $XDG_STATE_HOME/<app>/history.jsonl, else ~/.local/state/<app>/history.jsonl", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		path := r.Config().HistoryPath()

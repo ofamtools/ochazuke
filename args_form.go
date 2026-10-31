@@ -219,7 +219,7 @@ func (r *Runtime) subjectProp(op Operation, q Request, focus, prop string) (curr
 	if n == nil || n.Store == nil || n.Store.Get == nil || p == nil || inst == nil {
 		return "", ""
 	}
-	ctx := Ctx{Runtime: r, Context: r.contextOf(focus), Args: q.Args, Instance: inst}
+	ctx := Ctx{actor: r.Actor(), Runtime: r, Context: r.contextOf(focus), Args: q.Args, Instance: inst}
 	key, err := r.subjectKey(n, ctx)
 	if err != nil {
 		return "", ""

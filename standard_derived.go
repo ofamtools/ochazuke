@@ -428,7 +428,7 @@ func deleteConfirm(r *Runtime, n *Noun, c Context, q Request, prompt string) str
 		}
 	}
 	for _, inst := range insts {
-		ctx := Ctx{Runtime: r, Context: c, Args: q.Args, Instance: inst}
+		ctx := Ctx{actor: r.Actor(), Runtime: r, Context: c, Args: q.Args, Instance: inst}
 		key, err := r.subjectKey(n, ctx)
 		if err != nil {
 			return prompt

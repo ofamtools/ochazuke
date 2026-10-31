@@ -121,6 +121,9 @@ func (op Operation) WithPresets(args, presets Arguments) Arguments {
 // Confirmed skips the operation's Confirm prompt: the confirm modal's y sets
 // it on the stored request, and a script may set it to run unattended.
 type Request struct {
+	// Actor is an explicit API identity; nil inherits the enclosing request or owner.
+	Actor     *Actor    `json:"actor,omitempty"`
+	source    string    // a deferred request preserves its original source
 	Verb      string    `json:"verb"`
 	Noun      string    `json:"noun"`
 	Target    string    `json:"target,omitempty"`
@@ -841,6 +844,18 @@ func (r *Runtime) Execute(q Request) (any, error) { return r.ExecuteAt(r.Context
 // Every request is appended to the action history with its kind, the
 // context it ran in, its outcome and where it moved the interaction.
 func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
+	actor := r.Actor()
+	if q.Actor != nil {
+		actor = q.Actor.normalized()
+	}
+	if err := actor.validate(); err != nil {
+		return nil, err
+	}
+	defer r.WithActor(actor)()
+	if q.source != "" {
+		defer r.forceSource(q.source)()
+	}
+
 	r.NoteNounAlias(q.Noun)            // a request spelled by a deprecated noun alias: its one-time notice
 	q, notices := r.UseParamAliases(q) // an alias's old parameter names: their one-time notices
 	for _, text := range notices {
@@ -852,7 +867,7 @@ func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
 		source = "api"
 	}
 	at := time.Now()
-	ctx := HistoryContext{Focus: focusOf(c), Page: r.Page, Mode: r.Mode.Name, Source: source}
+	ctx := HistoryContext{Focus: focusOf(c), Page: r.Page, Mode: r.Mode.Name, Source: source, Actor: actor}
 	depth := r.history.depth
 	from := r.place()
 	r.history.depth++

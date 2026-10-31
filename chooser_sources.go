@@ -291,7 +291,7 @@ func (c *Chooser) load() {
 		}
 		apply(value, err)
 	})
-	if _, err := c.r.Launch(c.spec.Kind, chooserLoadVerb, res, Ctx{Runtime: c.r, Context: c.r.contextOf(c.spec.Kind), Instance: c.r.Instances[c.spec.Kind]}); err != nil {
+	if _, err := c.r.Launch(c.spec.Kind, chooserLoadVerb, res, Ctx{actor: c.r.Actor(), Runtime: c.r, Context: c.r.contextOf(c.spec.Kind), Instance: c.r.Instances[c.spec.Kind]}); err != nil {
 		apply(nil, err)
 	}
 }

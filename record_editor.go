@@ -652,7 +652,7 @@ func (e *RecordEditor) send() error {
 		}
 	}
 	e.inflight, e.sending = true, changed
-	c := Ctx{Runtime: e.r, Context: e.r.contextOf(owner), Instance: e.r.Instances[owner]}
+	c := Ctx{actor: e.r.Actor(), Runtime: e.r, Context: e.r.contextOf(owner), Instance: e.r.Instances[owner]}
 	if _, err := e.r.Launch(owner, formWriteVerb, res, c); err != nil {
 		e.inflight, e.sending = false, nil
 		e.requeue(changed)
@@ -1044,7 +1044,7 @@ func (e *RecordEditor) run() error {
 		return e.runFailed(values, focused, res.err)
 	}
 	if res.work != nil {
-		c := Ctx{Runtime: e.r, Context: e.r.contextOf("app"), Instance: e.r.Instances["app"]}
+		c := Ctx{actor: e.r.Actor(), Runtime: e.r, Context: e.r.contextOf("app"), Instance: e.r.Instances["app"]}
 		if _, err := e.r.Launch("app", formRunVerb, res, c); err != nil {
 			return err
 		}

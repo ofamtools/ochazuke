@@ -263,7 +263,7 @@ func (v standardVerb) operation(r *Runtime, n *Noun) Operation {
 // resolves).
 func (r *Runtime) confirmKeys(n *Noun, c Context, q Request) (Ctx, []string) {
 	inst := r.Instances[focusOf(c)]
-	ctx := Ctx{Runtime: r, Context: c, Args: q.Args, Instance: inst}
+	ctx := Ctx{actor: r.Actor(), Runtime: r, Context: c, Args: q.Args, Instance: inst}
 	insts := []*Instance{inst}
 	if len(q.Subjects) > 1 {
 		insts = insts[:0]

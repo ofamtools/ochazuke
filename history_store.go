@@ -274,6 +274,8 @@ func (r *Runtime) restoreHistory(path string, limit int) [][]byte {
 			}
 			continue
 		}
+		e.Context.Actor = e.Context.Actor.normalized()
+		e.Request.Actor = nil
 		e.Restored = true
 		// A file written before noun namespaces names framework nouns by
 		// their short names (list.move): read it as the canonical key.

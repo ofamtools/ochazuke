@@ -36,6 +36,9 @@ type Response struct {
 
 // CallMsg is delivered to the UI loop; only that loop may call Runtime.Execute.
 type CallMsg struct {
+	Actor Actor
+	// Source is cli by default, mcp for the MCP adapter.
+	Source  string
 	Request Request
 	Reply   chan Response
 	// Stream asks for a watch (the watch verb's *Watch) live, as the
@@ -46,7 +49,16 @@ type CallMsg struct {
 }
 
 func (r *Runtime) HandleCall(msg CallMsg) {
-	restore := r.Sourced("cli")
+	source := msg.Source
+	if source == "" {
+		source = "cli"
+	}
+	restore := r.Sourced(source)
+	actor := msg.Actor.normalized()
+	if msg.Request.Actor != nil {
+		actor = msg.Request.Actor.normalized()
+	}
+	defer r.WithActor(actor)()
 	stop := r.UI().capture()
 	result, err := r.Execute(msg.Request)
 	messages := stop()
