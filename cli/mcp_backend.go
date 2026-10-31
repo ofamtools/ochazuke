@@ -480,6 +480,13 @@ func (s *Shell) registerMCPVerbs() {
 		return
 	}
 	r.Builtin(func() {
+		for _, name := range []string{"serve", "tools", "instructions", "config"} {
+			r.Define("mcp").Verb(name, func(ochazuke.Ctx) ochazuke.Result {
+				return ochazuke.Pending(func(ctx context.Context) (any, error) {
+					return s.mcpValue(ctx, name)
+				})
+			}, "MCP "+name).Fetch().Quiet()
+		}
 		r.Register(ochazuke.Operation{Noun: "ochazuke.catalog", Verb: "list", Description: "Discover nouns, verbs and effective agent rights", HistoryKind: ochazuke.HistoryFetch, Parameters: map[string]ochazuke.Parameter{"noun": {Type: "string"}, "search": {Type: "string"}, "include": {Type: "string", Enum: []string{"app", "builtin", "all"}}, "limit": {Type: "integer"}, "offset": {Type: "integer"}}, Run: func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
 			return (&mcpBackend{shell: s, actor: r.Actor()}).catalog(a)
 		}})
@@ -490,14 +497,26 @@ func (s *Shell) registerMCPVerbs() {
 }
 
 func (s *Shell) mcpCommand(ctx context.Context, args []string) error {
-	server, err := s.NewMCPServer()
-	if err != nil {
+	if len(args) != 1 {
+		return fmt.Errorf("usage: %s ochazuke mcp serve|tools|instructions|config", s.Bin)
+	}
+	value, err := s.mcpValue(ctx, args[0])
+	if err != nil || args[0] == "serve" {
 		return err
 	}
-	if len(args) != 1 {
-		return fmt.Errorf("usage: %s mcp serve|tools|instructions|config", s.Bin)
+	if text, ok := value.(string); ok {
+		_, err = fmt.Fprintln(s.stdout(), text)
+		return err
 	}
-	switch args[0] {
+	return s.print(value)
+}
+
+func (s *Shell) mcpValue(ctx context.Context, verb string) (any, error) {
+	server, err := s.NewMCPServer()
+	if err != nil {
+		return nil, err
+	}
+	switch verb {
 	case "serve":
 		s.Runtime.EnsureHistory()
 		defer s.Runtime.Config().Flush()
@@ -505,17 +524,16 @@ func (s *Shell) mcpCommand(ctx context.Context, args []string) error {
 		if in == nil {
 			in = strings.NewReader("")
 		}
-		return server.Serve(ctx, in, s.stdout())
+		return nil, server.Serve(ctx, in, s.stdout())
 	case "tools":
-		return s.print(server.Tools())
+		return server.Tools(), nil
 	case "instructions":
-		_, err = fmt.Fprintln(s.stdout(), server.Instructions())
-		return err
+		return server.Instructions(), nil
 	case "config":
 		words := s.mcpCommandWords()
-		return s.print(map[string]any{"mcpServers": map[string]any{s.Bin: map[string]any{"command": words[0], "args": append(slices.Clone(words[1:]), "mcp", "serve")}}})
+		return map[string]any{"mcpServers": map[string]any{s.Bin: map[string]any{"command": words[0], "args": append(slices.Clone(words[1:]), "ochazuke", "mcp", "serve")}}}, nil
 	}
-	return fmt.Errorf("unknown mcp command %q", args[0])
+	return nil, fmt.Errorf("unknown mcp command %q", verb)
 }
 
 // The shell's sink can retain structured UI messages while printing the same CLI lines.

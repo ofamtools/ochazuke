@@ -56,7 +56,8 @@ type MountedNouns struct {
 // run, so the host treats the prop as available and the extension refuses
 // it, as it does for verbs. A noun whose host name is taken, and a prop,
 // verb or alias the host's runtime refuses (a clash, a bad name), is
-// skipped with a warning; mounting never panics.
+// skipped with a warning; mounting never panics. A framework short-name
+// alias does not own the name: the mounted noun claims its exact host name.
 func MountNouns(r *ochazuke.Runtime, nouns []CatalogNoun, h HostMount) MountedNouns {
 	out := MountedNouns{Nouns: map[string]string{}}
 	warn := func(format string, a ...any) { out.Warnings = append(out.Warnings, fmt.Sprintf(format, a...)) }
@@ -68,7 +69,7 @@ func MountNouns(r *ochazuke.Runtime, nouns []CatalogNoun, h HostMount) MountedNo
 		switch {
 		case local == "":
 			continue
-		case r.Noun(local) != nil:
+		case r.Nouns[local] != nil:
 			warn("noun %s skipped: the host already has a noun %s", n.Name, local)
 			continue
 		}
@@ -85,7 +86,7 @@ func MountNouns(r *ochazuke.Runtime, nouns []CatalogNoun, h HostMount) MountedNo
 	for _, n := range mounting {
 		local := out.Nouns[n.Name]
 		var b *ochazuke.NounBuilder
-		if err := try(func() { b = r.Define(local) }); err != nil {
+		if err := try(func() { b = r.DefineOwn(local) }); err != nil {
 			warn("noun %s skipped: %v", n.Name, err)
 			delete(out.Nouns, n.Name)
 			continue

@@ -210,9 +210,6 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		fmt.Fprintln(s.stderr(), "warning:", problem)
 	}
 	r.EnsureConfigSettings()
-	if args[0] == "mcp" && r.Nouns[args[0]] == nil {
-		return s.mcpCommand(ctx, args[1:])
-	}
 	// The noun is the longest run of leading words naming one: app
 	// settings, ochazuke.settings and settings (an alias) are ochazuke.settings.
 	var noun, verb string
@@ -246,6 +243,12 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 			return err
 		}
 		noun, verb, prop, flags = words, v, p, rest[1:]
+	}
+	// The stdio server owns stdout until EOF: do not append the shell's
+	// JSON result to the protocol stream. Resolve its noun normally first,
+	// so an application's own noun wins over the framework alias.
+	if noun == "ochazuke.mcp" {
+		return s.mcpCommand(ctx, append([]string{verb}, flags...))
 	}
 	var q ochazuke.Request
 	var opts options

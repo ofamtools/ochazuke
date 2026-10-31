@@ -225,7 +225,7 @@ func TestMCPCommandKeepsGlobalArguments(t *testing.T) {
 
 func TestMCPShellKeepsAppNoun(t *testing.T) {
 	f := newFixture(t)
-	f.r.Define("mcp").Verb("show", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done("app-owned") })
+	f.r.DefineOwn("mcp").Verb("show", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done("app-owned") })
 	for _, mounted := range []bool{false, true} {
 		var out string
 		var err error

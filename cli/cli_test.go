@@ -589,7 +589,7 @@ func TestCatalogGolden(t *testing.T) {
 	if doc.Aliases["settings"] != "ochazuke.settings" || doc.Aliases["confirm"] != "ochazuke.confirm" || doc.CanonicalNoun("history") != "ochazuke.history" {
 		t.Fatalf("aliases %v", doc.Aliases)
 	}
-	doc.Nouns, doc.Bindings, doc.Aliases = nouns, rows, nil
+	doc.Nouns, doc.Bindings, doc.Aliases, doc.Commands = nouns, rows, nil, nil
 	// A pick list's source stays the producing runtime's noun.verb,
 	// verbatim: a host runs it through the extension's bin.
 	for _, v := range nouns[0].Verbs {
@@ -1124,5 +1124,125 @@ func TestNamespaceAndLocal(t *testing.T) {
 	}
 	if _, ok := Local("ai", "aix.skills"); ok {
 		t.Fatal("Local read another namespace")
+	}
+}
+
+// A framework shortcut is an alias; an app command owns its name in either order.
+func TestMountAppCommandsWin(t *testing.T) {
+	for _, name := range []string{"mcp", "view"} {
+		for _, after := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/after=%t", name, after), func(t *testing.T) {
+				f := newFixture(t)
+				f.r.Config().Disable()
+				var out bytes.Buffer
+				sh := New(f.r, "tool", strings.NewReader("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\"}}\n"), &out, io.Discard)
+				app := oden.New("tool", []string{name, "serve"}, oden.WithBuiltins(), oden.WithPath(""), oden.WithStdio(strings.NewReader(""), &out, io.Discard))
+				own := oden.Command{Name: name, Summary: "app-owned", Run: func(_ context.Context, args []string) error {
+					fmt.Fprintf(&out, "app-owned %s", strings.Join(args, " "))
+					return nil
+				}}
+				if !after {
+					app.Add(own)
+				}
+				Mount(app, sh)
+				if after {
+					app.Add(own)
+				}
+				if err := app.Run(context.Background()); err != nil || out.String() != "app-owned serve" {
+					t.Fatalf("short name: %v %q", err, out.String())
+				}
+				out.Reset()
+				app.Args = []string{"--help"}
+				if err := app.Run(context.Background()); err != nil {
+					t.Fatal(err)
+				}
+				if !strings.Contains(out.String(), "app-owned") || !strings.Contains(out.String(), "ochazuke."+name) {
+					t.Fatalf("help: %s", &out)
+				}
+				out.Reset()
+				app.Args = []string{"catalog"}
+				if err := app.Run(context.Background()); err != nil {
+					t.Fatal(err)
+				}
+				var doc CatalogDoc
+				if err := json.Unmarshal(out.Bytes(), &doc); err != nil {
+					t.Fatal(err)
+				}
+				if _, ok := doc.Aliases[name]; ok {
+					t.Fatalf("catalog advertises shadowed alias %s", name)
+				}
+				if _, ok := doc.noun("ochazuke." + name); !ok {
+					t.Fatalf("framework noun missing: %s", name)
+				}
+				found := false
+				for _, command := range doc.Commands {
+					if command.Name == name && command.Summary == "app-owned" {
+						found = true
+					}
+					if command.Name == "ochazuke."+name && slices.Contains(command.Aliases, name) {
+						t.Fatalf("command catalog advertises shadowed alias: %+v", command)
+					}
+				}
+				if !found {
+					t.Fatalf("app command missing from catalog: %+v", doc.Commands)
+				}
+				if name == "mcp" {
+					out.Reset()
+					app.Args = []string{"ochazuke", "mcp", "serve"}
+					if err := app.Run(context.Background()); err != nil || !strings.Contains(out.String(), `"protocolVersion":"2025-11-25"`) {
+						t.Fatalf("framework MCP: %v %s", err, &out)
+					}
+				}
+			})
+		}
+	}
+}
+
+func TestMountAppNounsWin(t *testing.T) {
+	for _, name := range []string{"mcp", "view"} {
+		for _, catalogNoun := range []bool{false, true} {
+			for _, beforeShell := range []bool{false, true} {
+				t.Run(fmt.Sprintf("%s/catalog=%t/before-shell=%t", name, catalogNoun, beforeShell), func(t *testing.T) {
+					f := newFixture(t)
+					f.r.Config().Disable()
+					var out bytes.Buffer
+					var sh *Shell
+					newShell := func() { sh = New(f.r, "tool", strings.NewReader(""), &out, io.Discard) }
+					if !beforeShell {
+						newShell()
+					}
+					handler := func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done("app-owned") }
+					if catalogNoun {
+						got := MountNouns(f.r, []CatalogNoun{{Name: name, Verbs: []CatalogVerb{{Name: "show"}}}}, HostMount{
+							Local: func(n string) string { return n },
+							Proxy: func(string, CatalogVerb) any { return handler },
+						})
+						if len(got.Warnings) > 0 {
+							t.Fatal(got.Warnings)
+						}
+					} else {
+						f.r.DefineOwn(name).Verb("show", handler)
+					}
+					if beforeShell {
+						newShell()
+					}
+					app := oden.New("tool", []string{name, "show"}, oden.WithPath(""), oden.WithStdio(strings.NewReader(""), &out, io.Discard))
+					Mount(app, sh)
+					if command := app.Catalog().Lookup("ochazuke." + name); command == nil || slices.Contains(command.Aliases, name) {
+						t.Fatalf("help must list the framework under its full name: %+v", command)
+					}
+					if err := app.Run(context.Background()); err != nil || strings.TrimSpace(out.String()) != `"app-owned"` {
+						t.Fatalf("app noun: %v %s", err, &out)
+					}
+					out.Reset()
+					if err := sh.Run(context.Background(), []string{name, "show"}); err != nil || strings.TrimSpace(out.String()) != `"app-owned"` {
+						t.Fatalf("shell app noun: %v %s", err, &out)
+					}
+					if op, ok := f.r.Operation("ochazuke." + name + map[string]string{"mcp": ".tools", "view": ".scroll"}[name]); !ok || !op.Builtin {
+						t.Fatal("framework verb was lost")
+					}
+				})
+			}
+		}
 	}
 }

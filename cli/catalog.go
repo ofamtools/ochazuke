@@ -73,9 +73,12 @@ type CatalogDoc struct {
 	State      string `json:"state,omitempty"`
 	// StateDelta is the state delta protocol version (StateDeltaVersion), 0 for none.
 	StateDelta int `json:"stateDelta,omitempty"`
+	// Commands records the mounted CLI's effective names, aliases and losing
+	// claims. Oden commands can own a short name without being runtime nouns.
+	Commands []CommandEntry `json:"commands,omitempty"`
 	// Aliases are the short names that reach a noun of the catalog
 	// (settings for ochazuke.settings: ochazuke.Runtime.Aliases), the ones an
-	// application noun shadows left out. Every name in the catalog is
+	// application noun or mounted CLI command shadows left out. Every name is
 	// canonical; a host resolving a name the extension's user typed reads
 	// CanonicalNoun.
 	Aliases  map[string]string  `json:"aliases,omitempty"`
@@ -373,8 +376,15 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 		}
 		doc.Segments = append(doc.Segments, catalogSegment(r, s.Segment))
 	}
+	commands := map[string]bool{}
+	for _, command := range doc.Commands {
+		commands[command.Name] = true
+	}
 	for _, a := range r.Aliases() {
 		if !a.Shadowed && !a.Deprecated() {
+			if commands[a.Alias] && a.Alias != a.Noun {
+				continue
+			}
 			if doc.Aliases == nil {
 				doc.Aliases = map[string]string{}
 			}
