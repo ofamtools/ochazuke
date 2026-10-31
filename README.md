@@ -2291,9 +2291,32 @@ The palette and CLI can also use `ochazuke.catalog.list` and `.describe`.
 
 The server negotiates protocol versions, serves `ochazuke://catalog` and
 `ochazuke://instructions` resources, and offers a `guide` prompt. Initialization,
-the instructions command and the guide share startup instructions; tool results
-carry an explicit data-not-instructions note. The richer instruction generator,
-app text budgets and extension quoting goldens are a separate follow-up.
+the instructions command and the guide share generated startup instructions;
+tool results carry an explicit data-not-instructions note.
+
+The embedded `cli/mcp/preamble.md` explains discovery, targets, history, actor
+identity, scoped undo, rights and owner confirmations. `cli.AgentInstructions`
+adds the catalog's app `about`, `agentRules` and nouns (sorted by app verb count,
+then name), and a computed live/headless line. Identity includes only the harness
+and pane id. `ochazuke.agent.instructions` is the same fetch through the palette,
+CLI or MCP `run`; `BIN mcp instructions` prints the text when the shortcut is free.
+
+Declare short app paragraphs with `cli.About` and `cli.AgentRules`, and noun
+descriptions with `.About`. Catalog construction rejects host descriptions over
+60 estimated tokens each. The deterministic estimate is Unicode characters/4,
+rounded up. Startup instructions plus all advertised tool descriptions target
+1,200 tokens and have a hard cap of 1,800; noun and extension lists end with
+`N more: call catalog` when they exceed the target. A server whose mandatory text
+or alias descriptions exceed the hard cap fails to start with an error.
+
+Hosts can use `cli.MountCatalog(r, doc, hostMount)` instead of
+`MountNouns(r, doc.AppNouns(), hostMount)` to preserve the extension's app
+`about` and `agentRules` alongside its mounted nouns in `CatalogDoc.Extensions`.
+Extension paragraphs and noun descriptions are quoted as data, stripped of
+control/format characters and newlines, and capped at 240 characters before
+quoting. Guidance never changes runtime rights. The existing
+`mcp.include-extensions=false` default omits extensions from startup guidance as
+well as discovery. No new setting or binding is introduced.
 `examples/catalog-mcp` is a persistent task-store example requiring an explicit
 `--data` directory; all its task data, configuration and history stay there.
 
