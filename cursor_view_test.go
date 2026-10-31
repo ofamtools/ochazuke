@@ -364,4 +364,104 @@ func TestModelViewCursorFollowsPaletteEditor(t *testing.T) {
 	if cell := cellIndex(row, ": o"); cell < 0 || view.Cursor.X != cell+3 {
 		t.Fatalf("cursor %+v is not after the line's text %q", view.Cursor.Position, row)
 	}
+	if !strings.Contains(ansi.Strip(view.Content), "Command palette") {
+		t.Fatal("default palette title is missing")
+	}
+	if _, err := r.OpenModal("palette-cover", Payload{}); err != nil {
+		t.Fatal(err)
+	}
+	_, covered := m.modalContent("palette", 50, 10)
+	if covered.Cursor != nil || m.View().Cursor != nil {
+		t.Fatal("covered palette reports a cursor")
+	}
+	if err := r.Pop(); err != nil {
+		t.Fatal(err)
+	}
+	if view := m.View(); view.Cursor == nil {
+		t.Fatal("uncovered palette did not regain its cursor")
+	}
+}
+
+func TestModelModalViewOverrideParity(t *testing.T) {
+	for _, id := range []string{"palette", "command-review"} {
+		for _, size := range [][2]int{{80, 24}, {42, 12}} {
+			t.Run(fmt.Sprintf("%s/%dx%d", id, size[0], size[1]), func(t *testing.T) {
+				r := NewRuntime()
+				r.Config().Disable()
+				m := NewModel(r)
+				m.Width, m.Height = size[0], size[1]
+				fallback, registered := m.ModalViews[id]
+				if id == "palette" {
+					paletteRequest(t, r, "open", "palette", nil)
+					paletteRequest(t, r, "set", "palette", Arguments{"text": "palette"})
+				} else if _, err := r.OpenChooser(ChooserSpec{
+					Kind: id, Title: "Original chooser",
+					Rows: []ChooserRow{{ID: "first", Label: "Original choice"}},
+				}); err != nil {
+					t.Fatal(err)
+				}
+				m.ModalViews[id] = ModalView{Title: "Caller title", Render: func(got *Runtime, inst *Instance, width, height int) Block {
+					wantWidth, wantHeight := ModalSize(m.Width, m.Height)
+					if got != r || inst == nil || inst.ID != id || width != wantWidth || height != wantHeight {
+						t.Fatalf("renderer received runtime %p, instance %+v, size %dx%d; want %p, %q, %dx%d", got, inst, width, height, r, id, wantWidth, wantHeight)
+					}
+					lines := []string{"Caller input"}
+					for i := 1; i < 40; i++ {
+						lines = append(lines, fmt.Sprintf("Caller row %02d", i))
+					}
+					return Block{Text: strings.Join(lines, "\n"), Cursor: &Pos{X: 3, Y: 0}}
+				}}
+				view := m.View()
+				text := ansi.Strip(view.Content)
+				if !strings.Contains(text, "Caller title") || !strings.Contains(text, "Caller input") || strings.Contains(text, "Original choice") || strings.Contains(text, "Command palette") {
+					t.Fatalf("registered view did not override the modal:\n%s", text)
+				}
+				if view.Cursor == nil {
+					t.Fatal("registered view lost its cursor")
+				}
+				row := strings.Split(text, "\n")[view.Cursor.Y]
+				if cell := cellIndex(row, "Caller input"); cell < 0 || view.Cursor.X != cell+3 {
+					t.Fatalf("cursor %+v is not in caller content: %q", view.Cursor.Position, row)
+				}
+				if _, err := r.OpenModal("review-cover", Payload{}); err != nil {
+					t.Fatal(err)
+				}
+				width, height := ModalSize(m.Width, m.Height)
+				_, covered := m.modalContent(id, width, height)
+				if covered.Cursor != nil || m.View().Cursor != nil {
+					t.Fatal("covered registered view reports a cursor")
+				}
+				if err := r.Pop(); err != nil {
+					t.Fatal(err)
+				}
+				if m.View().Cursor == nil {
+					t.Fatal("uncovered registered view lost its cursor")
+				}
+				if _, err := r.Execute(Request{Noun: "ochazuke.surface", Verb: "scroll", Args: Arguments{"lines": 4}}); err != nil {
+					t.Fatal(err)
+				}
+				view = m.View()
+				text = ansi.Strip(view.Content)
+				if strings.Contains(text, "Caller input") || !strings.Contains(text, "Caller row 04") || view.Cursor != nil {
+					t.Fatalf("registered view did not scroll and clip its cursor:\n%s", text)
+				}
+				if _, err := r.Execute(Request{Noun: "ochazuke.surface", Verb: "scroll", Args: Arguments{"lines": -4}}); err != nil {
+					t.Fatal(err)
+				}
+				if registered {
+					m.ModalViews[id] = fallback
+				} else {
+					delete(m.ModalViews, id)
+				}
+				text = ansi.Strip(m.View().Content)
+				wantTitle, wantBody := "Original chooser", "Original choice"
+				if id == "palette" {
+					wantTitle, wantBody = "Command palette", ": palette"
+				}
+				if !strings.Contains(text, wantTitle) || !strings.Contains(text, wantBody) || strings.Contains(text, "Caller input") {
+					t.Fatalf("restored renderer did not draw %q and %q:\n%s", wantTitle, wantBody, text)
+				}
+			})
+		}
+	}
 }
