@@ -150,3 +150,39 @@ func TestDotSkipsActionsAndFetches(t *testing.T) {
 		t.Fatalf("text %q", in.Text)
 	}
 }
+
+// Framework constructors publish concrete history metadata to app guards.
+func TestFrameworkOperationsDeclareHistory(t *testing.T) {
+	r := NewRuntime()
+	r.Config().Disable()
+	NewModel(r)
+	NewPicker(r)
+	for _, op := range r.Catalog() {
+		if op.Builtin && op.HistoryKind == "" {
+			t.Errorf("%s: effective history %q has no declared kind", op.Key(), op.HistoryKindOf())
+		}
+	}
+}
+
+func TestBuiltinHistoryKeepsRegistrationAnnotations(t *testing.T) {
+	r := NewRuntime()
+	handler := func(Ctx) Result { return Done(nil) }
+	r.Builtin(func() {
+		r.Define("kind-fixture").
+			Verb("rows", handler).Rows("kind-fixture").
+			Verb("state", handler).State().
+			Verb("read", handler).Fetch().
+			Verb("write", handler)
+		r.Register(Operation{Noun: "kind-fixture", Verb: "interaction", HistoryKind: HistoryAction, App: handler})
+	})
+	for verb, want := range map[string]string{"rows": HistoryFetch, "state": HistoryFetch, "read": HistoryFetch, "write": HistoryChange, "interaction": HistoryAction} {
+		if op, ok := r.Operation("ochazuke.kind-fixture." + verb); !ok || !op.Builtin || op.HistoryKind != want {
+			t.Errorf("%s: declared history %q, want %q", verb, op.HistoryKind, want)
+		}
+	}
+	// Application verbs retain their existing live default inference.
+	r.Define("app-fixture").Verb("rows", handler).Rows("app-fixture")
+	if op, _ := r.Operation("app-fixture.rows"); op.HistoryKind != "" || op.HistoryKindOf() != HistoryFetch {
+		t.Fatalf("app history inference changed: %+v", op)
+	}
+}
