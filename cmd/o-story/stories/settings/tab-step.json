@@ -1,5 +1,5 @@
 {
-  "name": "settings page: tab and shift+tab walk every section in drawing order across the tabs (wrapping); ] and [ (and g t, g T) step the tabs, each reopening on the section it last showed",
+  "name": "settings page: tab and shift+tab walk every section in drawing order across the tabs (wrapping); ] and [ (and g t, g T) step the tabs, each reopening on the section it last showed, the About tab (about.tab) last among them",
   "area": "settings",
   "width": 100,
   "settings": [
@@ -13,7 +13,7 @@
     "lists": [{"id": "a", "rows": 2}],
     "bind": [{"noun": "demo", "keys": ",", "do": "settings.edit"}]
   },
-  "script": [",", "tab", "tab", "tab", "tab", "shift+tab", "shift+tab", "shift+tab", "[", "]", "]", "g", "t", "g", "T", "shift+tab"],
+  "script": [",", "tab", "tab", "tab", "tab", "shift+tab", "shift+tab", "shift+tab", "[", "[", "]", "]", "]", "g", "t", "g", "T", "shift+tab"],
   "expect": [
     {"after": 1, "focus": "__settings/row/scrolloff", "order": ["› app", "extensions", "ochazuke", "Sections", "General (1)", "General", "1", "panes", "2", "scrolloff"], "contains": ["]/[ settings.tab"]},
     {"after": 2, "focus": "__settings/row/panes.group", "order": ["› app", "panes (2)", "panes.group", "panes.percent"]},
@@ -23,11 +23,13 @@
     {"after": 6, "focus": "__settings/row/ext.git.fetch"},
     {"after": 7, "focus": "__settings/row/ext.ai.model"},
     {"after": 8, "focus": "__settings/row/panes.group", "contains": ["› app"]},
-    {"after": 9, "focus": "__settings/row/modal-dim", "contains": ["› ochazuke", "Appearance (12)"]},
-    {"after": 10, "focus": "__settings/row/panes.group", "contains": ["› app", "panes (2)"]},
-    {"after": 11, "focus": "__settings/row/ext.ai.model", "contains": ["› extensions"]},
-    {"after": 13, "focus": "__settings/row/modal-dim", "contains": ["› ochazuke"]},
-    {"after": 15, "focus": "__settings/row/ext.ai.model", "contains": ["› extensions"]},
+    {"after": 9, "page": "__about", "contains": ["› About", "Build"]},
+    {"after": 10, "page": "__settings", "focus": "__settings/row/modal-dim", "contains": ["› ochazuke", "Appearance (12)"]},
+    {"after": 11, "page": "__about"},
+    {"after": 12, "page": "__settings", "focus": "__settings/row/panes.group", "contains": ["› app", "panes (2)"]},
+    {"after": 13, "focus": "__settings/row/ext.ai.model", "contains": ["› extensions"]},
+    {"after": 15, "focus": "__settings/row/modal-dim", "contains": ["› ochazuke"]},
+    {"after": 17, "focus": "__settings/row/ext.ai.model", "contains": ["› extensions"]},
     {"focus": "__settings/row/panes.group", "page": "__settings", "modal": "", "contains": ["› app", "panes (2)"]}
   ]
 }

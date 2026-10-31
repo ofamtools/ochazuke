@@ -1,0 +1,47 @@
+{
+  "name": "the About page from a fixed build: Build, the application's section, the family dependencies (a local replace and a go.work module said) and the process; it is the Settings page's last tab, [ from the first tab opens it, y yanks a row's value, enter opens a path row, ] goes back to the first tab, q returns to the page Settings was opened from",
+  "area": "about",
+  "width": 100,
+  "height": 36,
+  "settings": [
+    {"name": "editor", "type": "string", "default": "vi", "description": "The command that opens a file"}
+  ],
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "bind": [{"noun": "demo", "keys": ",", "do": "settings.edit"}],
+    "about": {
+      "module": "github.com/unixsuperhero/demo",
+      "version": "v1.2.3",
+      "revision": "0123456789abcdef0123",
+      "time": "2026-10-30T12:00:00Z",
+      "modified": false,
+      "go": "go1.26.0",
+      "binary": "/usr/local/bin/demo",
+      "deps": [
+        {"path": "charm.land/bubbletea/v2", "version": "v2.1.0"},
+        {"path": "github.com/unixsuperhero/ochazuke", "version": "v0.74.0", "replace": "../ochazuke"},
+        {"path": "github.com/unixsuperhero/oden", "version": "(devel)"},
+        {"path": "github.com/unixsuperhero/monogatari", "version": "v0.3.1"}
+      ],
+      "pid": 4242,
+      "started": "2026-10-31T09:00:00",
+      "uptime": "1h30m",
+      "sections": [
+        {"title": "Data", "rows": [
+          {"label": "database", "value": "/tmp/demo/demo.db", "kind": "path"},
+          {"label": "daemon", "value": "not connected"}
+        ]}
+      ]
+    }
+  },
+  "script": [",", "[", "y", "j", "j", "j", "j", "j", "j", "enter", "]", "[", "q"],
+  "expect": [
+    {"after": 2, "page": "__about", "focus": "__about/row/Build/module", "contains": ["› About", "app", "ochazuke", "github.com/unixsuperhero/demo", "v1.2.3", "0123456789ab", "go1.26.0", "/usr/local/bin/demo", "Data", "/tmp/demo/demo.db", "not connected", "Dependencies", "../ochazuke  (local replace of v0.74.0)", "devel  (local build (go.work))", "v0.3.1", "Runtime", "4242", "2026-10-31 09:00:00", "1h30m0s", "]/[ settings.tab", "y about-row.copy"], "lacks": ["bubbletea"]},
+    {"after": 3, "register": "github.com/unixsuperhero/demo"},
+    {"after": 9, "focus": "__about/row/Build/binary", "contains": ["enter about-row.open"]},
+    {"after": 10, "writes": ["open /usr/local/bin/demo"]},
+    {"after": 11, "page": "__settings", "focus": "__settings/row/editor"},
+    {"after": 12, "page": "__about"},
+    {"page": "page1", "focus": "a1", "lacks": ["Settings", "› About"]}
+  ]
+}

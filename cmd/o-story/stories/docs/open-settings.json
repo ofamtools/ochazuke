@@ -11,18 +11,18 @@
   },
   "script": [
     ":", {"type": "docs open settings"}, "enter",
-    "j", "5", "0", "j",
+    "j", "6", "6", "j",
     "esc",
     ":", {"type": "set docs.show-config=false"}, "enter",
     ":", {"type": "help settings"}, "enter",
-    "5", "0", "j",
+    "6", "6", "j",
     "esc",
     ":", {"type": "h bindings"}, "enter"
   ],
   "expect": [
     {"after": 3, "modal": "docs-viewer", "contains": [" · catalog sha256:", "settings · 1–", "# Settings"]},
     {"after": 4, "modal": "docs-viewer", "contains": ["settings · 2–"]},
-    {"after": 7, "modal": "docs-viewer", "contains": ["settings · 52–", "### `focus-display`", "> yours: `stack` (settings.json)"]},
+    {"after": 7, "modal": "docs-viewer", "contains": ["settings · 68–", "### `focus-display`", "> yours: `stack` (settings.json)"]},
     {"after": 8, "lacks": ["# Settings"]},
     {"after": 17, "modal": "docs-viewer", "contains": ["### `focus-display`", "string · default `off` · choices `off`, `noun`, `stack`"], "lacks": ["yours:"]},
     {"modal": "docs-viewer", "contains": ["bindings · 1–", "# Default key bindings"]}

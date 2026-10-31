@@ -362,10 +362,82 @@ func showSettingsSection(r *Runtime, name string, step int, across bool) error {
 	return focusUnit(r, seq[((i+step)%n+n)%n].key())
 }
 
+// SettingsTabLink is a tab of the Settings page that is a page of its own
+// (the About page): drawn after the owners' tabs while Setting (a boolean
+// setting; "" always) is on and settings.layout draws tabs. ] and [ step
+// onto it by running Open, and from its page back onto the Settings page;
+// a step leaving either page runs the page's close first (Close, or
+// settings.close), so the page the pair was opened from stays the one q
+// goes back to. The linked page draws the tab row itself
+// (SettingsTabTitles).
+type SettingsTabLink struct {
+	Title   string  `json:"title"`
+	Page    string  `json:"page"`
+	Open    Request `json:"open"`
+	Close   Request `json:"close,omitzero"`
+	Setting string  `json:"setting,omitempty"`
+}
+
+// LinkSettingsTab adds a tab to the Settings page that opens another page;
+// a link to the same page again replaces it where it stands.
+func (r *Runtime) LinkSettingsTab(link SettingsTabLink) {
+	view := &r.Settings().page
+	if i := slices.IndexFunc(view.links, func(l SettingsTabLink) bool { return l.Page == link.Page }); i >= 0 {
+		view.links[i] = link
+		return
+	}
+	view.links = append(view.links, link)
+}
+
+// settingsLinkKey is a link's key among the tabs' unit keys.
+func settingsLinkKey(page string) string { return "link:" + page }
+
+// shownLinks are the links drawn as tabs: their setting on, in a layout
+// with tabs, and with settings to show beside them.
+func (s *Settings) shownLinks() []SettingsTabLink {
+	if settingsLayout(s) == SettingsLayoutSections || len(s.declared) == 0 {
+		return nil
+	}
+	var out []SettingsTabLink
+	for _, l := range s.page.links {
+		if l.Setting == "" || s.Bool(l.Setting) {
+			out = append(out, l)
+		}
+	}
+	return out
+}
+
+// SettingsTabTitles are the Settings page's tab titles and the index of
+// the one linked to page (-1 when page is not a shown link): what a linked
+// page draws as its tab row.
+func (r *Runtime) SettingsTabTitles(page string) ([]string, int) {
+	s := r.Settings()
+	titles, keys := settingsTabs(s, settingUnits(s))
+	for i, ks := range keys {
+		if len(ks) == 1 && ks[0] == settingsLinkKey(page) {
+			return titles, i
+		}
+	}
+	return titles, -1
+}
+
 // settingsTabs are the tabs the page draws: one per owner, or one per
-// section with settings.layout tabs; none with sections. Each tab is the
-// units it holds.
+// section with settings.layout tabs; none with sections; then the shown
+// links. Each tab is the units it holds (a link's: its link key).
 func settingsTabs(s *Settings, units []settingsUnit) (titles []string, keys [][]string) {
+	titles, keys = settingsOwnerTabs(s, units)
+	if len(titles) == 0 {
+		return nil, nil
+	}
+	for _, l := range s.shownLinks() {
+		titles = append(titles, l.Title)
+		keys = append(keys, []string{settingsLinkKey(l.Page)})
+	}
+	return titles, keys
+}
+
+// settingsOwnerTabs are the owners' (or the sections') tabs.
+func settingsOwnerTabs(s *Settings, units []settingsUnit) (titles []string, keys [][]string) {
 	layout := settingsLayout(s)
 	if layout == SettingsLayoutSections {
 		return nil, nil
@@ -401,10 +473,13 @@ func settingsTabs(s *Settings, units []settingsUnit) (titles []string, keys [][]
 // section it last showed. With settings.layout sections it steps the
 // owners, landing on an owner's first section.
 func showSettingsTab(r *Runtime, name string, step int) error {
+	s := r.Settings()
+	if done, err := stepSettingsLink(r, name, step); done {
+		return err
+	}
 	if r.PageOf(SettingsPageID) == nil {
 		return errors.New("the settings page is not open")
 	}
-	s := r.Settings()
 	units := settingUnits(s)
 	if len(units) == 0 {
 		return errors.New("this application declares no settings")
@@ -433,6 +508,113 @@ func showSettingsTab(r *Runtime, name string, step int) error {
 		}
 	}
 	return focusUnit(r, target)
+}
+
+// stepSettingsLink runs settings.tab where a link (LinkSettingsTab) is
+// involved: a name naming a link, a name or step from a linked page, or a
+// step from the Settings page that lands past its owners' tabs. done is
+// false when no link is involved, for showSettingsTab's own steps.
+func stepSettingsLink(r *Runtime, name string, step int) (bool, error) {
+	s := r.Settings()
+	links := s.shownLinks()
+	if len(links) == 0 {
+		return false, nil
+	}
+	_, keys := settingsOwnerTabs(s, settingUnits(s))
+	n := len(keys)
+	cur := slices.IndexFunc(links, func(l SettingsTabLink) bool { return l.Page == r.Page })
+	if cur >= 0 {
+		cur += n
+	} else if r.Page == SettingsPageID {
+		key := currentSection(r)
+		cur = slices.IndexFunc(keys, func(ks []string) bool { return slices.Contains(ks, key) })
+	}
+	if cur < 0 {
+		// Neither the Settings page nor a link is current: only a
+		// link's name is ours.
+		if i := linkNamed(links, name); i >= 0 {
+			return true, switchSettingsTab(r, n+i, links, n)
+		}
+		return false, nil
+	}
+	target := -1
+	if name != "" {
+		if i := linkNamed(links, name); i >= 0 {
+			target = n + i
+		} else if cur < n {
+			return false, nil
+		}
+	} else {
+		total := n + len(links)
+		target = ((cur+step)%total + total) % total
+		if cur < n && target < n {
+			return false, nil
+		}
+	}
+	if target < 0 {
+		// A name from a linked page: an owner's or a section's, which
+		// the Settings page resolves once it is open.
+		if err := leaveSettingsTab(r, links, n, cur); err != nil {
+			return true, err
+		}
+		if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "edit"}); err != nil {
+			return true, err
+		}
+		return true, showSettingsTab(r, name, 0)
+	}
+	if target == cur {
+		return true, nil
+	}
+	if err := leaveSettingsTab(r, links, n, cur); err != nil {
+		return true, err
+	}
+	return true, switchSettingsTab(r, target, links, n)
+}
+
+// linkNamed is the index of the link named name (its page or title), -1
+// for none.
+func linkNamed(links []SettingsTabLink, name string) int {
+	if name == "" {
+		return -1
+	}
+	return slices.IndexFunc(links, func(l SettingsTabLink) bool { return l.Page == name || strings.EqualFold(l.Title, name) })
+}
+
+// leaveSettingsTab closes the tab at cur (the Settings page or a link's
+// page) when it is current, so the next one opens from the page the pair
+// was opened from. A close that cannot go back (no other page) leaves the
+// page open.
+func leaveSettingsTab(r *Runtime, links []SettingsTabLink, n, cur int) error {
+	switch {
+	case cur < 0:
+		return nil
+	case cur < n:
+		if r.Page == SettingsPageID {
+			_ = closeSettingsPage(r)
+		}
+	default:
+		if l := links[cur-n]; r.Page == l.Page && l.Close.Noun != "" {
+			_, _ = r.Execute(l.Close)
+		}
+	}
+	return nil
+}
+
+// switchSettingsTab shows tab target: a link's page by its Open, else the
+// Settings page on that owner's (or section's) tab.
+func switchSettingsTab(r *Runtime, target int, links []SettingsTabLink, n int) error {
+	if target >= n {
+		_, err := r.Execute(links[target-n].Open)
+		return err
+	}
+	s := r.Settings()
+	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "edit"}); err != nil {
+		return err
+	}
+	if settingsLayout(s) == SettingsLayoutTabs {
+		return showSettingsSection(r, settingUnits(s)[target].key(), 0, true)
+	}
+	return showSettingsTab(r, s.tabs()[target].Owner.ID, 0)
 }
 
 // unitsOfArgs are the units a section or tab verb acts on: the named

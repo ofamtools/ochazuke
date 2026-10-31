@@ -78,6 +78,8 @@ type settingsPage struct {
 	// step a settings.apply line is gathering (settingsGroup).
 	undo  []settingUndo
 	group *settingUndo
+	// links are the tabs that are pages of their own (LinkSettingsTab).
+	links []SettingsTabLink
 }
 
 // settingUndo is one step of the Settings page's undo: what each setting

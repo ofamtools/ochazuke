@@ -1,13 +1,16 @@
 package demo
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
 	"os/exec"
+	"runtime/debug"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -181,6 +184,11 @@ func (ss *session) start() error {
 			})
 			if err := r.AddSegment(ochazuke.Segment{ID: sp.ID, Label: sp.Label, Provider: "story-" + sp.ID, Tone: sp.Tone, Order: sp.Order, Enabled: sp.Enabled}); err != nil {
 				return fmt.Errorf("segment %s: %w", sp.ID, err)
+			}
+		}
+		if p.About != nil {
+			if err := ss.about(p.About); err != nil {
+				return err
 			}
 		}
 		for _, j := range p.Jobs {
@@ -1805,4 +1813,58 @@ func completionFakes(specs []CompletionSpec) []ochazuke.CompletionTrigger {
 		})})
 	}
 	return out
+}
+
+// about fixes the About page's build and process from a story's spec and
+// adds its sections.
+func (ss *session) about(spec *AboutSpec) error {
+	bi := &debug.BuildInfo{GoVersion: spec.Go, Main: debug.Module{Path: spec.Module, Version: spec.Version}}
+	for _, kv := range [][2]string{{"vcs.revision", spec.Revision}, {"vcs.time", spec.Time}} {
+		if kv[1] != "" {
+			bi.Settings = append(bi.Settings, debug.BuildSetting{Key: kv[0], Value: kv[1]})
+		}
+	}
+	if spec.Modified != nil {
+		bi.Settings = append(bi.Settings, debug.BuildSetting{Key: "vcs.modified", Value: strconv.FormatBool(*spec.Modified)})
+	}
+	for _, d := range spec.Deps {
+		m := &debug.Module{Path: d.Path, Version: d.Version}
+		if d.Replace != "" {
+			m.Replace = &debug.Module{Path: d.Replace, Version: d.ReplaceVersion}
+		}
+		bi.Deps = append(bi.Deps, m)
+	}
+	started := time.Date(2026, 1, 1, 9, 0, 0, 0, time.Local)
+	if spec.Started != "" {
+		at, err := time.ParseInLocation("2006-01-02T15:04:05", spec.Started, time.Local)
+		if err != nil {
+			return fmt.Errorf("about started: %w", err)
+		}
+		started = at
+	}
+	var uptime time.Duration
+	if spec.Uptime != "" {
+		d, err := time.ParseDuration(spec.Uptime)
+		if err != nil {
+			return fmt.Errorf("about uptime: %w", err)
+		}
+		uptime = d
+	}
+	binary := cmp.Or(spec.Binary, "/usr/local/bin/demo")
+	ss.R.SetAboutEnv(ochazuke.AboutEnv{
+		BuildInfo:  func() (*debug.BuildInfo, bool) { return bi, true },
+		Executable: func() (string, error) { return binary, nil },
+		PID:        cmp.Or(spec.PID, 1234),
+		Started:    started,
+		Now:        func() time.Time { return started.Add(uptime) },
+		Open: func(path string) error {
+			ss.Writes = append(ss.Writes, "open "+path)
+			return nil
+		},
+	})
+	for _, sec := range spec.Sections {
+		rows := sec.Rows
+		ss.R.AddAboutSection(sec.Title, func() []ochazuke.AboutRow { return rows })
+	}
+	return nil
 }
