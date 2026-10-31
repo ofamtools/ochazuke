@@ -31,6 +31,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/unixsuperhero/ochazuke"
+	"github.com/unixsuperhero/ochazuke/cli/mcp"
 )
 
 // Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE]
@@ -92,6 +93,12 @@ import (
 // Errors are returned for oden.Report: every failure is exit status 1
 // (oden.ExitCode of a plain error).
 type Shell struct {
+	// MCPCommand is the stable executable and global arguments used by config
+	// and owner confirmation commands. Empty defaults to []string{Bin}.
+	MCPCommand []string
+	// MCPAliases keeps legacy app tool names over registered verbs.
+	MCPAliases []mcp.Alias
+	messages   *[]ochazuke.UIMessage
 	// Actor overrides CLI environment identity (OCHAZUKE_ACTOR); nil reads it
 	// once per Run. MCP servers set this to their startup identity.
 	Actor *ochazuke.Actor
@@ -138,7 +145,9 @@ type Shell struct {
 
 // New is a Shell over r for bin with the standard usage line.
 func New(r *ochazuke.Runtime, bin string, stdin io.Reader, stdout, stderr io.Writer, opts ...CatalogOption) *Shell {
-	return &Shell{catalogOptions: opts, Runtime: r, Bin: bin, Usage: DefaultUsage(bin), Stdin: stdin, Stdout: stdout, Stderr: stderr}
+	s := &Shell{catalogOptions: opts, Runtime: r, Bin: bin, Usage: DefaultUsage(bin), Stdin: stdin, Stdout: stdout, Stderr: stderr}
+	s.registerMCPVerbs()
+	return s
 }
 
 // DefaultUsage is the usage line of a bin with no global flags of its own,
@@ -174,7 +183,11 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	}
 	// What handlers tell the user (ctx.Notify, ctx.Error, ctx.Info) prints on
 	// Stderr while the command runs, setup's messages first.
-	previous := s.Runtime.UI().Attach(stderrSink{s.stderr()})
+	var sink ochazuke.UISink = stderrSink{s.stderr()}
+	if s.messages != nil {
+		sink = mcpSink{UISink: sink, messages: s.messages}
+	}
+	previous := s.Runtime.UI().Attach(sink)
 	defer s.Runtime.UI().Attach(previous)
 	if s.Prepare != nil {
 		if err := s.Prepare(ctx); err != nil {
@@ -197,6 +210,9 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		fmt.Fprintln(s.stderr(), "warning:", problem)
 	}
 	r.EnsureConfigSettings()
+	if args[0] == "mcp" && r.Nouns[args[0]] == nil {
+		return s.mcpCommand(ctx, args[1:])
+	}
 	// The noun is the longest run of leading words naming one: app
 	// settings, ochazuke.settings and settings (an alias) are ochazuke.settings.
 	var noun, verb string
@@ -799,6 +815,9 @@ func (s *Shell) call(q ochazuke.Request) (any, error) {
 	s.Runtime.HandleCall(ochazuke.CallMsg{Headless: true, Request: q, Reply: reply, Stream: true, Actor: actor, Source: s.Source})
 	res := <-reply
 	if res.Error != "" {
+		if res.Refused != nil {
+			return nil, res.Refused
+		}
 		if res.Argument {
 			return nil, &ochazuke.ArgumentError{Err: errors.New(res.Error)}
 		}

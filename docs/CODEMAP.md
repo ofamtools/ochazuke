@@ -41,11 +41,11 @@ Root package `ochazuke` is flat: 137 source files, 160 test files. Each entry li
 
 ### agent_rights.go
 
-- lines: 192 · tests: agent_rights_test.go
+- lines: 220 · tests: agent_rights_test.go
 - purpose: AgentRule is an ordered owner override.
 - types: AgentRule, AgentRight, RefusedError
-- methods: RefusedError(1), Runtime(5)
-- leans on: runtime.go(20), agent_metadata.go(16), actor.go(8), verb_checks.go(8)
+- methods: RefusedError(1), Runtime(6)
+- leans on: runtime.go(23), agent_metadata.go(17), actor.go(11), verb_checks.go(8)
 
 ### alias_shadow.go
 
@@ -181,10 +181,10 @@ Root package `ochazuke` is flat: 137 source files, 160 test files. Each entry li
 
 ### confirm.go
 
-- lines: 216 · tests: confirm_test.go
+- lines: 229 · tests: confirm_test.go
 - purpose: The confirm noun: a framework modal a verb with a Confirm prompt opens before it runs.
 - methods: Runtime(4)
-- leans on: runtime.go(32), noun.go(9), instance.go(8), props.go(8)
+- leans on: runtime.go(33), noun.go(9), instance.go(8), props.go(8)
 
 ### default_bindings.go
 
@@ -734,7 +734,7 @@ Root package `ochazuke` is flat: 137 source files, 160 test files. Each entry li
 
 ### runtime.go
 
-- lines: 1243 · tests: runtime_test.go
+- lines: 1258 · tests: runtime_test.go
 - purpose: Arguments are a request's named arguments, keyed by parameter name.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
 - methods: Context(1), Operation(5), Request(4), Runtime(19)
@@ -1020,12 +1020,12 @@ Root package `ochazuke` is flat: 137 source files, 160 test files. Each entry li
 
 ### transport.go
 
-- lines: 284 · tests: transport_test.go
+- lines: 287 · tests: transport_test.go
 - purpose: Response is the reply to a socket call: a result or an error message.
 - types: Response, CallMsg, Lines, Verbatim, Server
 - methods: Runtime(1), Server(2)
 - funcs: Listen, Call, CallResponse
-- leans on: runtime.go(10), actor.go(6), delivery.go(6), ui.go(2)
+- leans on: runtime.go(10), actor.go(6), delivery.go(6), agent_rights.go(2)
 
 ### tree.go
 
@@ -1081,7 +1081,7 @@ Root package `ochazuke` is flat: 137 source files, 160 test files. Each entry li
 
 ## Package cli
 
-Importable package `cli`: 33 source files, 32 test files.
+Importable package `cli`: 34 source files, 33 test files.
 
 ### cli/agent_metadata.go
 
@@ -1190,19 +1190,26 @@ Importable package `cli`: 33 source files, 32 test files.
 
 ### cli/host_mount.go
 
-- lines: 261 · tests: host_mount_test.go
+- lines: 262 · tests: host_mount_test.go
 - purpose: HostMount says how a host (mtm, nabe) mounts an extension's catalog nouns into its own runtime with MountNouns: the host's name for each catalog noun and the...
 - types: HostMount, MountedNouns
 - funcs: MountNouns, MountParameter
 - leans on: catalog.go(6), agent_metadata.go(2)
 
+### cli/mcp_backend.go
+
+- lines: 549 · tests: mcp_backend_test.go
+- purpose: NewMCPServer binds an agent identity from the startup environment.
+- methods: Shell(7), mcpBackend(5), mcpSink(4)
+- leans on: catalog.go(9), shell.go(9), agent_metadata.go(6), statecache.go(4)
+
 ### cli/mount.go
 
-- lines: 445
+- lines: 467
 - purpose: Mount maps the runtime registry to oden command groups and operation metadata.
-- methods: Shell(1), nounGroup(6)
+- methods: Shell(2), nounGroup(6)
 - funcs: Mount
-- leans on: shell.go(2), catalog.go(1), statecache.go(1)
+- leans on: catalog.go(3), shell.go(3), statecache.go(1)
 
 ### cli/odencommands.go
 
@@ -1276,7 +1283,7 @@ Importable package `cli`: 33 source files, 32 test files.
 
 ### cli/shell.go
 
-- lines: 952
+- lines: 971
 - purpose: Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--format F] [--yes]: one registered operation in this process through the run...
 - types: Shell
 - methods: Shell(15), stderrSink(5)
@@ -1329,6 +1336,81 @@ Importable package `cli`: 33 source files, 32 test files.
 - types: CatalogWidget
 - methods: PageView(4), widgetState(2)
 - leans on: page.go(10), commands.go(7)
+
+## Package cli/inspect
+
+Importable package `cli/inspect`: 6 source files, 2 test files.
+
+### cli/inspect/annotations.go
+
+- lines: 203 · tests: annotations_test.go
+- purpose: Annotations are notes about the catalogs that the catalogs cannot carry: per noun, the verbs someone suggests adding, from one dated source.
+- types: Annotations, AnnotatedTool, AnnotationSection, SkippedLine, AnnotatedNoun, Existing, Suggestion
+- methods: Annotations(3)
+- funcs: ReadAnnotations
+- leans on: catalog.go(21)
+
+### cli/inspect/audit.go
+
+- lines: 266
+- purpose: AuditAnnotations reads the o-family's verb audit (~/hub/o-plans/lists/ verb-audit.md) into Annotations: the "Audited YYYY-MM-DD" date, the "Tools read" table...
+- funcs: AuditAnnotations
+- leans on: annotations.go(19), catalog.go(5)
+
+### cli/inspect/catalog.go
+
+- lines: 736
+- purpose: Catalog is the JSON an ochazuke tool prints for `BIN catalog` (the cli.CatalogDoc shape), decoded loosely so a catalog written by an older ochazuke (bare fra...
+- types: Catalog, Page, CatNoun, Prop, Example, CatVerb, Param, Params, Request, Binding, UserAction, Source, ToolInfo, Noun, Verb, KeyRow, Data
+- methods: Params(1), resolver(2)
+- funcs: Merge
+- leans on: annotations.go(2)
+
+### cli/inspect/doc.go
+
+- lines: 40
+
+### cli/inspect/page.go
+
+- lines: 36
+- purpose: Write renders the page for d to w: template.html with d inlined as JSON (encoding/json escapes <, > and &, so it is safe inside <script>).
+- funcs: Write
+- leans on: catalog.go(1)
+
+### cli/inspect/sources.go
+
+- lines: 207
+- purpose: ParseCatalog decodes one BIN catalog answer.
+- types: Collector
+- methods: Collector(6)
+- funcs: ParseCatalog, Namespaces, RunningOchazuke
+- leans on: catalog.go(24)
+
+## Package cli/mcp
+
+Importable package `cli/mcp`: 3 source files, 1 test files.
+
+### cli/mcp/mcp.go
+
+- lines: 149
+- purpose: Backend dispatches the four catalog tools.
+- types: Backend (iface), Tool, Alias, Options, Server
+- methods: Server(3), argumentError(1)
+- funcs: New, DefaultTools
+- leans on: validate.go(1)
+
+### cli/mcp/server.go
+
+- lines: 217 · tests: server_test.go
+- purpose: Serve uses the bounded newline JSON-RPC loop from matomeru, with lifecycle validation and negotiated structured results.
+- methods: Server(2)
+- leans on: mcp.go(8)
+
+### cli/mcp/validate.go
+
+- lines: 130
+- purpose: Adapted from matomeru internal/mcp: validate the schema subset tools expose.
+- leans on: mcp.go(3)
 
 ## Package diffview
 
@@ -1640,6 +1722,18 @@ Importable package `markdown`: 13 source files, 9 test files.
 - purpose: Register defines the markdown nouns, their verbs and keys once per runtime (see Doc for the keys).
 - funcs: Register
 - leans on: doc.go(66), insert.go(14), elements.go(9), edit.go(7)
+
+## Package markdown/cliview
+
+Importable package `markdown/cliview`: 1 source files, 1 test files.
+
+### markdown/cliview/cliview.go
+
+- lines: 167 · tests: cliview_test.go
+- purpose: Option changes the views a Factory builds.
+- types: Option (func)
+- methods: view(6)
+- funcs: Source, Render, Author, Factory, Register, Of, DocOf
 
 ## Package refdoc
 
@@ -2041,6 +2135,36 @@ Exported type -> file.
 - cli.StateCache -> cli/statecache.go
 - cli.StateList -> cli/state.go
 - cli.TerminalEngine -> cli/emulator.go
+- cli/inspect.AnnotatedNoun -> cli/inspect/annotations.go
+- cli/inspect.AnnotatedTool -> cli/inspect/annotations.go
+- cli/inspect.AnnotationSection -> cli/inspect/annotations.go
+- cli/inspect.Annotations -> cli/inspect/annotations.go
+- cli/inspect.Binding -> cli/inspect/catalog.go
+- cli/inspect.CatNoun -> cli/inspect/catalog.go
+- cli/inspect.CatVerb -> cli/inspect/catalog.go
+- cli/inspect.Catalog -> cli/inspect/catalog.go
+- cli/inspect.Collector -> cli/inspect/sources.go
+- cli/inspect.Data -> cli/inspect/catalog.go
+- cli/inspect.Example -> cli/inspect/catalog.go
+- cli/inspect.Existing -> cli/inspect/annotations.go
+- cli/inspect.KeyRow -> cli/inspect/catalog.go
+- cli/inspect.Noun -> cli/inspect/catalog.go
+- cli/inspect.Page -> cli/inspect/catalog.go
+- cli/inspect.Param -> cli/inspect/catalog.go
+- cli/inspect.Params -> cli/inspect/catalog.go
+- cli/inspect.Prop -> cli/inspect/catalog.go
+- cli/inspect.Request -> cli/inspect/catalog.go
+- cli/inspect.SkippedLine -> cli/inspect/annotations.go
+- cli/inspect.Source -> cli/inspect/catalog.go
+- cli/inspect.Suggestion -> cli/inspect/annotations.go
+- cli/inspect.ToolInfo -> cli/inspect/catalog.go
+- cli/inspect.UserAction -> cli/inspect/catalog.go
+- cli/inspect.Verb -> cli/inspect/catalog.go
+- cli/mcp.Alias -> cli/mcp/mcp.go
+- cli/mcp.Backend -> cli/mcp/mcp.go
+- cli/mcp.Options -> cli/mcp/mcp.go
+- cli/mcp.Server -> cli/mcp/mcp.go
+- cli/mcp.Tool -> cli/mcp/mcp.go
 - diffview.Class -> diffview/types.go
 - diffview.File -> diffview/model.go
 - diffview.Hunk -> diffview/model.go
@@ -2077,6 +2201,7 @@ Exported type -> file.
 - markdown.Option -> markdown/render.go
 - markdown.Source -> markdown/doc.go
 - markdown.Task -> markdown/tasks.go
+- markdown/cliview.Option -> markdown/cliview/cliview.go
 - refdoc.Diff -> refdoc/check.go
 - refdoc.Group -> refdoc/model.go
 - refdoc.Model -> refdoc/model.go

@@ -90,6 +90,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 			app.Args = append(append(append([]string{}, head...), p), rest[1:]...)
 		}
 	}
+
 	root := &nounGroup{}
 	for _, noun := range extra {
 		root.at(noun).noun = true
@@ -200,7 +201,14 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 	// json.doc) is a group of its own too while no noun of that name
 	// shadows it, so bin settings list works; a deprecated one is not
 	// listed (it is read above).
+	reserved := map[string]bool{}
+	for _, command := range sh.shellCommands() {
+		reserved[command.Name] = true
+	}
 	for _, a := range r.Aliases() {
+		if reserved[a.Alias] {
+			continue
+		}
 		if a.Shadowed || a.Deprecated() || top[a.Alias] != nil {
 			continue
 		}
@@ -239,14 +247,28 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 	if stdLine != "" {
 		app.HelpText = stdLine + "\n\n" + app.HelpText
 	}
-	app.Add(oden.Command{
+	app.Add(sh.shellCommands()...)
+}
+
+// shellCommands is the reserved command table. A real app noun wins; a
+// framework short-name alias cannot hide an existing shell command.
+func (sh *Shell) shellCommands() []oden.Command {
+	catalog := oden.Command{
 		Name:    "catalog",
 		Summary: "print the nouns, verbs, bindings and pages as JSON; catalog inspect writes them as an HTML page",
 		Source:  "cli",
 		Usage:   "[inspect [--out FILE] [--open] [--bin PATH]... [--catalog FILE.json]... [--annotations FILE.json | --audit FILE.md]]",
 		Details: "catalog prints the catalog JSON a host reads.\ncatalog inspect writes a self-contained HTML inspector of this tool's nouns, verbs,\neffective key rows, user actions and the framework nouns, plus any --bin tools'\nand --catalog files' catalogs, and prints its path (catalog inspect --help).",
 		Run:     sh.catalogCommand,
-	})
+	}
+	children := []oden.Command{}
+	for _, name := range []string{"serve", "tools", "instructions", "config"} {
+		name := name
+		children = append(children, oden.Command{Name: name, Summary: "MCP " + name, Run: func(ctx context.Context, args []string) error {
+			return sh.Run(ctx, append([]string{"mcp", name}, args...))
+		}})
+	}
+	return []oden.Command{catalog, {Name: "mcp", Summary: "Catalog MCP server", Children: children}}
 }
 
 // version is the shell's Version, else the main module's build version.

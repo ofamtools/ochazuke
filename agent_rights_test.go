@@ -148,3 +148,45 @@ func TestAgentConfirmStatusOptOut(t *testing.T) {
 		t.Fatal("stale attribution")
 	}
 }
+
+func TestAgentConfirmComposite(t *testing.T) {
+	r := NewRuntime()
+	NewModel(r)
+	ran := 0
+	r.Define("task").Verb("delete", func(Ctx) Result { ran++; return Done(nil) }).Confirm("Delete {{label}}?").Destructive()
+	_, err := r.AddPage("tasks", "Tasks", func(*Runtime, int, int) Block { return Text("") })
+	if err != nil {
+		t.Fatal(err)
+	}
+	l, err := r.AddList("tasks/list", []ListItem{{ID: "t1", Noun: "task", Label: "One"}, {ID: "t2", Noun: "task", Label: "Two"}}, Parent("tasks"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	l.marks = map[string]bool{"t1": true, "t2": true}
+	a := testAgent("p")
+	q := Request{Noun: "list", Verb: "apply", Target: "tasks/list", Actor: &a, Args: Arguments{"id": "tasks/list", "verb": "delete"}}
+	restore := r.BindActor(a, false)
+	_, err = r.Execute(q)
+	restore()
+	var refused *RefusedError
+	if !errors.As(err, &refused) || ran != 0 || r.TopModal() != "" {
+		t.Fatalf("headless composite: %v ran %d modal %s", err, ran, r.TopModal())
+	}
+	if _, err = r.Execute(q); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = r.Execute(Request{Noun: "confirm", Verb: "accept"}); err != nil {
+		t.Fatal(err)
+	}
+	if ran != 2 || r.TopModal() != "" {
+		t.Fatalf("approved composite: ran %d modal %s", ran, r.TopModal())
+	}
+	op := r.Operations["task.delete"]
+	op.Agent = AgentNever
+	r.Operations[op.Key()] = op
+	_, err = r.Execute(q)
+	if !errors.As(err, &refused) || r.TopModal() != "" || ran != 2 {
+		t.Fatalf("never composite: %v ran %d modal %s", err, ran, r.TopModal())
+	}
+
+}

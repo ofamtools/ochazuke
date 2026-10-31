@@ -30,7 +30,11 @@ type AgentRight struct {
 
 // RefusedError is a policy refusal, modelled on matomeru's work.RefusedError.
 // Rule tells the owner which declaration or setting decided it.
-type RefusedError struct{ Verb, Rule, Reason string }
+type RefusedError struct {
+	Verb   string `json:"verb"`
+	Rule   string `json:"rule"`
+	Reason string `json:"reason"`
+}
 
 func (e *RefusedError) Error() string { return fmt.Sprintf("%s: %s (%s)", e.Verb, e.Reason, e.Rule) }
 
@@ -98,6 +102,9 @@ func registerAgentRights(r *Runtime) {
 
 // AgentRight resolves owner rows before the operation's declaration/default.
 func (r *Runtime) AgentRight(op Operation, live bool) AgentRight {
+	if !r.Settings().Bool(AgentRightsGateSetting) {
+		return AgentRight{Verb: op.Key(), Right: AgentAllow, Rule: AgentRightsGateSetting + " disabled"}
+	}
 	out := AgentRight{Verb: op.Key(), Right: op.AgentRightOf(live), Rule: "derived default"}
 	if op.Agent != "" {
 		out.Rule = "verb declaration"
@@ -153,7 +160,7 @@ func (r *Runtime) agentVerdict(c Context, q Request, op Operation) Verdict {
 	case AgentNever:
 		return refuse("agents may never run this verb; ask the owner")
 	case AgentConfirm:
-		if q.agentApproved {
+		if q.agentApproved || r.agentApproved {
 			return Allow()
 		}
 		if !r.agentLive() {
@@ -189,4 +196,25 @@ func (r *Runtime) agentActivity() string {
 		return newest.ctx.Actor().String() + " acting"
 	}
 	return ""
+}
+
+// CheckRequest resolves arguments, target, subjects, guards and verb checks
+// without invoking the handler, opening a modal or recording history. Checks
+// should be read-only, as they are when judging an ordinary request.
+func (r *Runtime) CheckRequest(q Request) error {
+	before := r.dryRun
+	r.dryRun = true
+	defer func() { r.dryRun = before }()
+	actor := r.Actor()
+	if r.agentTransport != nil {
+		actor = r.agentTransport.actor
+	} else if q.Actor != nil {
+		actor = q.Actor.normalized()
+	}
+	if err := actor.validate(); err != nil {
+		return err
+	}
+	defer r.WithActor(actor)()
+	_, err := r.execute(r.Context(), r.canonicalRequest(q))
+	return err
 }

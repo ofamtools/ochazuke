@@ -2180,6 +2180,61 @@ request-supplied actors cannot replace it, including in nested requests. The CLI
 and socket server use this binding. Direct in-process API requests may still set
 `Request.Actor`. These are cooperative guard rails, not authentication.
 
+### Catalog MCP server
+
+Every `cli.Shell` supports `BIN mcp serve`, `mcp tools`, `mcp instructions`
+and `mcp config`. `cli.Mount` adds the same command group to oden apps.
+`serve` speaks newline JSON-RPC over stdin/stdout; diagnostics stay on stderr.
+`config` prints a harness entry and writes no harness configuration. Apps with
+global flags set `Shell.MCPCommand` to their stable executable and global argv;
+config entries and owner confirmation commands preserve those flags.
+
+Four fixed tools discover and execute the existing registry:
+
+| Tool | What it does |
+|---|---|
+| `catalog` | Compact nouns and verbs, filtered by noun or search. `include` is `app` (default), `builtin` or `all`; `limit` defaults to 60, and `next_offset` continues a page. The hash includes effective rights. |
+| `describe` | Full parameters and JSON input schema, examples, guards, aliases, confirmation prompt, history kind, destructive intent and effective right/rule. Accepts an exact action/noun alias or a unique prefix. |
+| `run` | `verb`, optional `target` and `args`; returns status, result, structured UI messages, the new history entry and an exact undo call when the store supports it. `dry_run` checks arguments, target, guards and rights without invoking the handler or recording history. |
+| `state` | The headless runtime's page, focus and mode; `include: ["history"]` adds this actor's entries, with optional `limit`. |
+
+The headless backend uses the same `Shell.Run`, `Runtime.HandleCall` and
+`ExecuteAt` path as CLI requests. Jobs settle before the response. The server
+keeps its private runtime across calls so exact undo entries remain usable;
+`serve` loads and flushes normal history persistence. An agent identity is fixed
+at startup, even if the environment changes afterwards. MCP always acts as an
+agent, including when `OCHAZUKE_ACTOR=owner`; without a pane or name it uses a
+server-specific agent name. `actor`, `confirmed` and `force` are not MCP transport
+arguments. A verb may declare its own parameters, but those cannot bypass rights.
+
+A confirmation returns `status: "refused"`, its reason and an `owner_command`.
+Other modals return a CLI failure and are cleared from the headless runtime.
+Headless calls cannot use the owner's selection or marks: `acts: "selection"`
+and `"marks"` refuse. Live sockets and live selection belong to the live backend;
+this server does not discover or attach to an owner's running app.
+
+The tools use read-only annotations for discovery; generic `run` conservatively
+advertises possible destructive effects. `Shell.MCPAliases` is an optional table
+of old tool names over one verb each (`mcp.Alias`), with argument-name mappings.
+`mcp.include-extensions` defaults to false: mounted proxies stay out of discovery
+until the owner enables it, so each extension can use its own server.
+Visible aliases are listed, hidden aliases still answer; both use `run` and the
+same gate. Alias annotations derive from the verb's history/destructive metadata.
+The palette and CLI can also use `ochazuke.catalog.list` and `.describe`.
+
+The server negotiates protocol versions, serves `ochazuke://catalog` and
+`ochazuke://instructions` resources, and offers a `guide` prompt. Initialization,
+the instructions command and the guide share startup instructions; tool results
+carry an explicit data-not-instructions note. The richer instruction generator,
+app text budgets and extension quoting goldens are a separate follow-up.
+`examples/catalog-mcp` is a persistent task-store example requiring an explicit
+`--data` directory; all its task data, configuration and history stay there.
+
+Compared with Vim: `catalog` is similar to `:command` (listing) and `describe`
+to `:help` (on-demand lookup). These read the operation registry and its typed
+parameters. `run` follows the palette's execute-by-name model and the CLI's
+argument and confirmation path. The existing scoped undo comparison applies.
+
 ### Actors and scoped history undo
 
 `Actor` identifies the owner, an agent or an unknown caller, with optional name,

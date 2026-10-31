@@ -203,6 +203,8 @@ type Operation struct {
 	Agent       string    `json:"agent,omitempty"`
 	Examples    []Example `json:"examples,omitempty"`
 	// CatalogGuards preserves a proxy's remote guards; the remote runtime checks them.
+	// CatalogProxy marks a verb forwarded to an extension runtime.
+	CatalogProxy  bool                 `json:"-"`
 	CatalogGuards []string             `json:"-"`
 	Verb          string               `json:"verb"`
 	Noun          string               `json:"noun"`
@@ -421,6 +423,8 @@ type Runtime struct {
 	modeExtends      map[string]string // the mode a mode falls back to for a noun with no table of its own (ModeExtends)
 	guards           map[string]Guard
 	predicates       map[string]PredicateFunc // named query predicates (query.go)
+	agentApproved    bool                     // the owner approved this request and its nested work
+	dryRun           bool
 	agentTransport   *agentTransport
 	history          actionHistory // the executed-request ring and the current source (history.go)
 	origin           string        // the instance the running request or completion acts for; a modal opens only from the top level
@@ -861,6 +865,11 @@ func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
 		return nil, err
 	}
 	defer r.WithActor(actor)()
+	approved := r.agentApproved
+	if q.agentApproved {
+		r.agentApproved = true
+	}
+	defer func() { r.agentApproved = approved }()
 	if q.source != "" {
 		defer r.forceSource(q.source)()
 	}
@@ -955,7 +964,7 @@ func (r *Runtime) execute(c Context, q Request) (any, error) {
 	}
 	// A row's own verb on a row in a visual selection (V) acts on every
 	// selected row, from a key, the palette or the API (subjects.go).
-	if vq, ok := r.visualApply(q, op, focus); ok {
+	if vq, ok := r.visualApply(q, op, focus); ok && !r.dryRun {
 		return r.ExecuteAt(c, vq)
 	}
 	subjects, err := r.subjectsOf(q, focus)
@@ -971,10 +980,16 @@ func (r *Runtime) execute(c Context, q Request) (any, error) {
 		}
 		return nil, errors.New(v.Refuse)
 	case v.Ask != "":
+		if r.dryRun {
+			return nil, nil
+		}
 		if len(subjects) > 1 {
 			q.Subjects = subjects
 		}
 		return r.openConfirm(c, q, Operation{Noun: op.Noun, Verb: op.Verb, Confirm: v.Ask})
+	}
+	if r.dryRun {
+		return nil, nil
 	}
 	if op.Confirm != "" && !q.Confirmed {
 		if len(subjects) > 1 {
