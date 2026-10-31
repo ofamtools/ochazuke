@@ -50,9 +50,10 @@ type ListItem struct {
 type List struct {
 	r           *Runtime
 	id          string
-	all         []ListItem   // every row, as SetItems gave them
-	headerTones []ToneSpan   // the header row's tones (SetHeaderTones)
-	items       []ListItem   // the rows shown: all, or the ones the filter lets through (list_filter.go)
+	all         []ListItem // every row, as SetItems gave them
+	headerTones []ToneSpan // the header row's tones (SetHeaderTones)
+	items       []ListItem // the rows shown: all, or the ones the filter lets through (list_filter.go)
+	linger      filterLinger
 	query       string       // the filter query; "" shows every row
 	propFilters []PropFilter // typed prop conditions, ANDed with the text query
 	savedFilter string       // the applied saved filter's name; empty after an ad-hoc change
@@ -669,17 +670,13 @@ func (l *List) rowsView(width, height int) (string, int, int) {
 	// page list keeps it while unfocused, where View fades the whole list
 	// (dim-unfocused), so the focused row is the one at full strength. Marked
 	// rows take a "* " gutter, which every row gets while the list has a mark.
-	marked, gutter := l.marksSelection(), len(l.marks) > 0
+	marked, gutter := l.marksSelection(), l.hasGutter()
 	toned, faded := l.listTones(), l.faded()
 	for i := l.offset; i < end; i++ {
 		text := modalLabel(l.items[i].Label)
 		label := text
 		if gutter {
-			mark := "  "
-			if l.marks[l.items[i].ID] {
-				mark = "* "
-			}
-			label = mark + label
+			label = l.rowGutter(l.items[i].ID) + label
 		}
 		row := ansi.Truncate(label, width, "…")
 		selected := i == l.selected && marked
@@ -707,14 +704,14 @@ func (l *List) rowsView(width, height int) (string, int, int) {
 // labelSegs places a plain list row's cell-0 tones on its label, after the
 // mark gutter; none without styles to draw them.
 func (l *List) labelSegs(toned *Styles, item ListItem, text string, drawn int, gutter bool) []toneSeg {
-	if toned == nil || len(item.Tones) == 0 {
+	if toned == nil {
 		return nil
 	}
 	x := 0
 	if gutter {
 		x = 2
 	}
-	return cellSegs(spansOf(item.Tones, 0), text, x, drawn-x)
+	return cellSegs(spansOf(l.rowTones(item), 0), text, x, drawn-x)
 }
 
 // emptyLine is what an empty list draws: "(empty list)", in reverse video

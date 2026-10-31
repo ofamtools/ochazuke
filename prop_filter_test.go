@@ -66,6 +66,7 @@ func TestPropFilterMatcher(t *testing.T) {
 
 func TestPropFilterListTextRefreshMarks(t *testing.T) {
 	r, m, l := propFilterFixture(t)
+	_ = r.Settings().Set(ListFilterLingerSetting, "0")
 	_ = l.ToggleMark("r1")
 	if err := l.SetPropFilters([]PropFilter{{"by", "=", "owner"}, {"score", "!=", 5}}); err != nil {
 		t.Fatal(err)
@@ -582,6 +583,7 @@ func (d countingFilterData) MarshalJSON() ([]byte, error) {
 
 func TestPropFilterCachesAndVisibility(t *testing.T) {
 	r, _, l := propFilterFixture(t)
+	_ = r.Settings().Set(ListFilterLingerSetting, "0")
 	calls := 0
 	items := l.Items()
 	for i := range items {
@@ -621,7 +623,8 @@ func TestPropFilterCachesAndVisibility(t *testing.T) {
 }
 
 func TestPropFilterTreeCacheInvalidation(t *testing.T) {
-	_, tree := propTreeFixture(t)
+	r, tree := propTreeFixture(t)
+	_ = r.Settings().Set(ListFilterLingerSetting, "0")
 	calls := 0
 	nodes := tree.Nodes()
 	for i := range nodes {

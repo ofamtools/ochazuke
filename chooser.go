@@ -158,8 +158,8 @@ const ChooserStableHeightSetting = "chooser.stable-height"
 // Create return their own results). Pending work they return belongs to the
 // focus the chooser opened over (runApplication), since the chooser and its
 // input are closed before the callback runs.
-func (c *Chooser) HandleMessage(tea.Msg) bool { return false }
-func (c *Chooser) Close()                     {}
+func (c *Chooser) HandleMessage(msg tea.Msg) bool { return c.filters.HandleMessage(msg) }
+func (c *Chooser) Close()                         { c.filters.Close() }
 
 // PendingCommand follows the query after every event: a Live source loads
 // again for the edited query, and the work it queues is handed over here
@@ -169,10 +169,8 @@ func (c *Chooser) PendingCommand() tea.Cmd {
 		return nil
 	}
 	c.sync()
-	if len(c.r.commands) == 0 {
-		return nil
-	}
-	commands := c.r.commands
+	commands := []tea.Cmd{c.filters.PendingCommand()}
+	commands = append(commands, c.r.commands...)
 	c.r.commands = nil
 	return tea.Batch(commands...)
 }
@@ -269,6 +267,7 @@ func (c *Chooser) matcher() Matcher { return c.r.Matcher(c.MatchMode(), c.Query(
 func (c *Chooser) matchMode() string  { return c.MatchMode() }
 func (c *Chooser) matchApplies() bool { return c.spec.Filter == nil && !c.live() }
 func (c *Chooser) setMatchMode(mode string) {
+	c.filters.linger.reset()
 	c.match = mode
 	c.refilter()
 }
@@ -343,15 +342,16 @@ func (c *Chooser) create() Result {
 // stays on the same row id when the user had moved it.
 func (c *Chooser) SetRows(rows []ChooserRow) {
 	keep := ""
-	if row, ok := c.Highlighted(); ok && c.moved {
+	wasMoved := c.moved
+	if row, ok := c.Highlighted(); ok {
 		keep = row.ID
 	}
 	c.spec.Rows = rows
 	c.cachePropRows()
 	c.refilter()
 	for i, row := range c.matches {
-		if keep != "" && row.ID == keep {
-			c.cursor, c.moved = i, true
+		if keep != "" && row.ID == keep && (wasMoved || c.filters.Lingering(keep)) {
+			c.cursor, c.moved = i, wasMoved
 		}
 	}
 }
@@ -392,6 +392,9 @@ func (c *Chooser) sync() {
 }
 
 func (c *Chooser) refilter() {
+	if c.seen != c.Query() || c.propsEnabled != c.propFiltersEnabled() {
+		c.filters.linger.reset()
+	}
 	c.seen = c.Query()
 	c.propsEnabled = c.propFiltersEnabled()
 	cm := c.r.CaseFor(c.seen)
@@ -445,6 +448,7 @@ func (c *Chooser) refilter() {
 		create = []ChooserRow{{ID: chooserCreateRow, Label: label}}
 	}
 	c.matches = slices.Concat(head, tail, create, fixed)
+	c.lingerRows()
 	c.filters.items = nil
 	for _, row := range c.matches {
 		if row.ID != chooserCreateRow {
@@ -679,8 +683,10 @@ func (c *Chooser) rowsView(width, height int) Block {
 		if cells := c.matches[i].Cells; len(cells) > 0 {
 			text = alignCells(cells, widths)
 		}
-		row := ansi.Truncate("  "+modalLabel(text), width, "…")
-		if segs := chooserSegs(toned, c.matches[i], widths, ansi.StringWidth(row)); len(segs) > 0 {
+		item := c.matches[i]
+		item.Tones = c.filters.rowTones(ListItem{ID: item.ID, Cells: item.Cells, Tones: item.Tones})
+		row := ansi.Truncate(c.filters.rowGutter(item.ID)+modalLabel(text), width, "…")
+		if segs := chooserSegs(toned, item, widths, ansi.StringWidth(row)); len(segs) > 0 {
 			lines = append(lines, paintLine(row, width, segs, toned, i == c.cursor, false, span{}))
 			return
 		}

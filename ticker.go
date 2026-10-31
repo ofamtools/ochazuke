@@ -29,11 +29,15 @@ type jobTicker struct {
 	tickAt   time.Time       // the deadline of the JobLingerMsg in flight, zero when none
 }
 
-// JobLingerMsg is the ticker's one-shot timer: it fires when the oldest
-// remembered finished job passes JobLinger, so the frame it causes drops
-// the row with no key pressed. At is the deadline it was scheduled for;
-// only the message for the timer in flight clears it.
-type JobLingerMsg struct{ At time.Time }
+// JobLingerMsg is a one-shot presentation timer for finished jobs, key
+// echo entries or changed filter rows. At is the scheduled deadline; the
+// message identifies its timer, so a cancelled or stale tick is harmless.
+// Model.JobLingerTick returns the next message for a headless host.
+type JobLingerMsg struct {
+	At     time.Time
+	filter *filterLinger
+	epoch  uint64
+}
 
 // lingerCommand schedules a JobLingerMsg for the earliest remembered
 // finished job, unless one is already in flight for it. Nothing lingers,
@@ -52,7 +56,7 @@ func (t *jobTicker) lingerCommand(now time.Time) tea.Cmd {
 
 // fired clears the timer in flight when its message arrives.
 func (t *jobTicker) fired(msg JobLingerMsg) {
-	if msg.At.Equal(t.tickAt) {
+	if msg.filter == nil && msg.At.Equal(t.tickAt) {
 		t.tickAt = time.Time{}
 	}
 }
@@ -199,18 +203,24 @@ func (m *Model) JobsTicker(width int) []string {
 // host with a fake Now advances the clock to At and delivers the message
 // itself rather than waiting JobLinger.
 //
-// It is the Model's one linger timer: the key echo's entries (keys.echo-
-// linger) ride it too, so the earlier of the two deadlines in flight is the
-// one returned, and its message clears whichever timer it was for.
+// It returns the earliest deadline among the job ticker, key echo and
+// filtered row views. Each view has one cancellable timer, regardless of
+// its row count; the returned message addresses only its own timer.
 func (m *Model) JobLingerTick() (JobLingerMsg, bool) {
 	at := m.ticker.tickAt
 	if e := m.echo.tickAt; !e.IsZero() && (at.IsZero() || e.Before(at)) {
 		at = e
 	}
-	if at.IsZero() {
-		return JobLingerMsg{}, false
+	tick := JobLingerMsg{At: at}
+	for _, inst := range m.Runtime.components() {
+		if view, ok := inst.Component.(interface{ filterController() *List }); ok {
+			f := &view.filterController().linger
+			if !f.tickAt.IsZero() && (tick.At.IsZero() || f.tickAt.Before(tick.At)) {
+				tick = JobLingerMsg{At: f.tickAt, filter: f, epoch: f.epoch}
+			}
+		}
 	}
-	return JobLingerMsg{At: at}, true
+	return tick, !tick.At.IsZero()
 }
 
 func (m *Model) clock() time.Time {

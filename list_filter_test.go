@@ -303,6 +303,7 @@ func TestListFilterAppSlashWins(t *testing.T) {
 // changed not to match hides, the selection stays by id.
 func TestListFilterPatch(t *testing.T) {
 	r, _, list := filterFixture(t)
+	_ = r.Settings().Set(ListFilterLingerSetting, "0")
 	list.SetFilter("al")
 	if err := list.Select("r4"); err != nil {
 		t.Fatal(err)

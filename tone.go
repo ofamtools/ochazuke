@@ -192,6 +192,7 @@ var toneRoles = []string{"text", "muted", "accent", "border", "surface", "error"
 // starts from them. The state tones keep their meaning without colour:
 // needs-input and errored are bold, exited is dim, so mono reads them too.
 var defaultTones = map[string]ToneStyle{
+	ToneLingering:   {Fg: SchemeColor{"accent", "accent"}, Bold: true, Dim: true},
 	ToneTreeGuide:   {Fg: SchemeColor{"muted", "muted"}, Dim: true},
 	ToneWorking:     {Fg: SchemeColor{"#1F6FB2", "#7CB7E8"}},
 	ToneNeedsInput:  {Fg: SchemeColor{"#9A6700", "#E3B341"}, Bold: true},
@@ -584,7 +585,7 @@ func (r *Runtime) toneStyles() *Styles {
 // header's (SetHeaderTones, or the header part while list.part-tones is
 // on), or a part column's.
 func (l *List) wantsTones() bool {
-	if slices.ContainsFunc(l.items, func(it ListItem) bool { return len(it.Tones) > 0 }) || len(l.headerTones) > 0 {
+	if len(l.linger.leaving) > 0 || slices.ContainsFunc(l.items, func(it ListItem) bool { return len(it.Tones) > 0 }) || len(l.headerTones) > 0 {
 		return true
 	}
 	return len(l.columns) > 0 && l.r.settingOn(PartTonesSetting)

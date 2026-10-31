@@ -440,7 +440,7 @@ func TestRuntimeHoldsNoComponentFields(t *testing.T) {
 		t.Fatal(err)
 	}
 	snapshot := r.Snapshot()
-	for path, want := range map[string]any{"/registers/a/yank/text": "shared", "/yankHistory/0/text": "shared", "/inputs/note/id": "note", "/lists/sidebar/id": "sidebar", "/components/__registers/component": "registers", "/components/note/component": "input", "/components/sidebar/contract": false} {
+	for path, want := range map[string]any{"/registers/a/yank/text": "shared", "/yankHistory/0/text": "shared", "/inputs/note/id": "note", "/lists/sidebar/id": "sidebar", "/components/__registers/component": "registers", "/components/note/component": "input", "/components/sidebar/contract": true} {
 		if got, err := JSONPointer(snapshot, path); err != nil || got != want {
 			t.Fatalf("%s = %v (%v), want %v", path, got, err, want)
 		}

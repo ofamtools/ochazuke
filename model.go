@@ -91,7 +91,7 @@ type Model struct {
 	redraw    modelRedraw
 	viewCache modelViewports
 	surfaces  modelSurfaces
-	// Now is the Model's clock: the ticker's memory of finished jobs and
+	// Now is the Model's clock: finished jobs, key echoes, changed filter rows and
 	// the linger timer read it (time.Now by default, time.Now when nil). A
 	// headless host fakes it, advances it to JobLingerTick's deadline and
 	// delivers that message instead of waiting JobLinger.
@@ -108,6 +108,7 @@ func NewModel(r *Runtime) *Model {
 // newModel is NewModel; the operations it registers are builtin.
 func newModel(r *Runtime) *Model {
 	m := &Model{Runtime: r, Palette: NewPalette(r), Appearance: NewAppearance(r), ModalViews: map[string]ModalView{}, Title: "Ochazuke", Width: 80, Height: 24, views: map[string]*viewport.Model{}, scroll: map[string]int{}, followed: map[string]string{}, Now: time.Now}
+	r.UI().Now = m.clock
 	// The Model shows what handlers tell the user: notices in the footer,
 	// the status in the status line. Messages posted before it existed
 	// (setup) are replayed now.

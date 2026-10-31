@@ -209,6 +209,7 @@ func (l *List) SetPropFilters(filters []PropFilter) error {
 	if _, err := json.Marshal(filters); err != nil {
 		return err
 	}
+	l.linger.reset()
 	l.propFilters = clonePropFilters(filters)
 	l.savedFilter = ""
 	if l.filterChanged != nil {
@@ -510,6 +511,15 @@ func registerListPropFilter(r *Runtime) {
 		filters, err := l.SavedFilters()
 		return err == nil && len(filters) > 0
 	})
+	r.Register(Operation{Noun: "ochazuke.list", Verb: "flush-lingering", Description: "Remove changed rows waiting to leave the active filter", Parameters: map[string]Parameter{"id": {Type: "string"}}, Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+		focus := StringArg(a, "id", focusOf(c))
+		l := r.rowFilterList(focus)
+		if l == nil {
+			return nil, errors.New("no row view at " + focus)
+		}
+		l.FlushLingering()
+		return nil, nil
+	}})
 	r.Register(Operation{Noun: "ochazuke.list", Verb: "filters", Description: "List the saved prop filters available to a list", Parameters: map[string]Parameter{"id": {Type: "string"}}, Result: "filter[]", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 		l, err := resolve(c, a)
 		if err != nil {

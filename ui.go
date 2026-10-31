@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"slices"
 	"sync"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -106,6 +107,9 @@ type UISink interface {
 // Like the rest of Runtime it is called from the update loop; work off the
 // loop posts from its Then (which gets a Ctx).
 type UI struct {
+	// Now is the host clock for timed row presentation; nil uses time.Now.
+	// NewModel connects it to Model.Now, including a headless story clock.
+	Now      func() time.Time
 	last     *UIMessage // last nonempty message for the live inspector
 	sink     UISink
 	attached bool // a sink attached once: the ring is gone for good

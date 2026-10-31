@@ -323,7 +323,7 @@ func (l *List) tableView(width, height int) (string, int, int) {
 	if header {
 		body--
 	}
-	gutter := len(l.marks) > 0
+	gutter := l.hasGutter()
 	mark := 0
 	if gutter {
 		mark = 2
@@ -372,15 +372,12 @@ func (l *List) tableView(width, height int) (string, int, int) {
 		row := l.rowCells(l.groupedCells(i, l.offset))
 		line, at := tableLineAt(cols, row, shown, widths)
 		if gutter {
-			prefix := "  "
-			if l.marks[l.items[i].ID] {
-				prefix = "* "
-			}
+			prefix := l.rowGutter(l.items[i].ID)
 			line = prefix + line
 		}
 		line = ansi.Truncate(line, width, "…")
 		selected := i == l.selected && marked
-		switch segs := rowSegs(toned, l.withParts(cols, l.items[i].Tones), row, shown, at, mark); {
+		switch segs := rowSegs(toned, l.withParts(cols, l.rowTones(l.items[i])), row, shown, at, mark); {
 		case len(segs) > 0:
 			line = paintLine(line, width, segs, toned, selected, faded, span)
 		case selected:
@@ -672,7 +669,7 @@ func tableRowLinesAt(toned *Styles, cols []Column, tones []ToneSpan, row []strin
 // whole width on every line, its section label not.
 func (l *List) tallView(lines []string, width, height, body int, cols []Column, shown, widths []int, span span) (string, int, int) {
 	section := lipgloss.NewStyle().Bold(true).Underline(true)
-	gutter := len(l.marks) > 0
+	gutter := l.hasGutter()
 	rows := make([][]string, len(l.items))
 	toneLines := make([][][]toneSeg, len(l.items))
 	opens := make([]bool, len(l.items))
@@ -683,12 +680,12 @@ func (l *List) tallView(lines []string, width, height, body int, cols []Column, 
 	layRow := func(i, top int) ([]string, [][]toneSeg) {
 		item := l.items[i]
 		var out []string
-		lines, segs := tableRowLinesAt(toned, cols, l.withParts(cols, item.Tones), l.rowCells(l.groupedCells(i, top)), shown, widths)
+		lines, segs := tableRowLinesAt(toned, cols, l.withParts(cols, l.rowTones(item)), l.rowCells(l.groupedCells(i, top)), shown, widths)
 		for k, line := range lines {
 			if gutter {
 				prefix := "  "
-				if k == 0 && l.marks[item.ID] {
-					prefix = "* "
+				if k == 0 {
+					prefix = l.rowGutter(item.ID)
 				}
 				line = prefix + line
 				for x := range segs[k] {

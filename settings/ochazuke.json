@@ -6,6 +6,7 @@
 // this directory and are declared by the feature that needs them (terminal.json: EnsureTerminalLeader). "deprecated" lists older
 // names that still read and write the setting for one release. The rows' order is their order inside a section.
 [
+  {"name": "list.filter-linger", "section": "search", "type": "duration", "default": "30s", "description": "Keep changed rows that leave an active filter visible with a ~ marker and the list.lingering tone for this long; 0 disables. Changing the filter or list.flush-lingering removes them at once"},
  {"name":"agents.rights", "section":"agents", "type":"string", "default":"[]", "description":"Ordered JSON rows {match, right, where}: noun.verb, noun.* or *; allow, confirm or never; any, live or headless"},
  {"name":"mcp.include-extensions", "section":"agents", "type":"boolean", "default":false, "description":"Include mounted extension verbs in this app MCP catalog; off, use each extension own server"},
  {"name":"agents.status-segment", "section":"agents", "type":"boolean", "default":false, "description":"Show the agent with an active job or a pending confirmation in the header status segments"},

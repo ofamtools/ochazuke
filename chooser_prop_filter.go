@@ -49,13 +49,21 @@ func (c *Chooser) initPropFilters() {
 // propFilterList resolves the nearest row view. A chooser is a boundary:
 // its filters never target a list underneath it, including when opted out.
 func (r *Runtime) propFilterList(focus string) *List {
+	l := r.rowFilterList(focus)
+	if l != nil && l.filterFocus != "" {
+		if c := r.Chooser(l.id); c != nil && !c.propFiltersEnabled() {
+			return nil
+		}
+	}
+	return l
+}
+
+// rowFilterList also serves text-only choosers that opt out of prop filters.
+func (r *Runtime) rowFilterList(focus string) *List {
 	for _, id := range r.Ancestry(focus) {
 		if c := r.Chooser(id); c != nil {
-			if c.propFiltersEnabled() {
-				c.sync()
-				return c.filters
-			}
-			return nil
+			c.sync()
+			return c.filters
 		}
 		if l := r.List(id); l != nil {
 			return l
@@ -81,3 +89,37 @@ func (c *Chooser) SavedFilters() ([]SavedFilter, error) { return c.filters.Saved
 
 // ApplyFilter applies a named saved filter, keeping the chooser's text query.
 func (c *Chooser) ApplyFilter(name string) error { return c.filters.ApplyFilter(name) }
+
+// lingerRows merges departures with ranked matches without changing either
+// the source records or ranking. Anonymous rows lack stable identity and
+// are never retained, but stay distinct while matching.
+func (c *Chooser) lingerRows() {
+	if c.seen == "" && len(c.filters.propFilters) == 0 || c.r.Settings().Duration(ListFilterLingerSetting) <= 0 {
+		c.filters.linger.reset()
+		return
+	}
+	all, ids := make([]string, 0, len(c.spec.Rows)), make([]string, 0, len(c.matches))
+	byID := make(map[string]ChooserRow, len(c.spec.Rows)+1)
+	for _, row := range c.spec.Rows {
+		all = append(all, row.ID)
+		byID[row.ID] = row
+	}
+	for _, row := range c.matches {
+		ids = append(ids, row.ID)
+		byID[row.ID] = row
+	}
+	duration := c.r.Settings().Duration(ListFilterLingerSetting)
+	matchedRows := make(map[string][]ChooserRow, len(c.matches))
+	for _, row := range c.matches {
+		matchedRows[row.ID] = append(matchedRows[row.ID], row)
+	}
+	shown := c.filters.linger.apply(all, ids, c.filters.filterNow(), duration)
+	c.matches = make([]ChooserRow, 0, len(shown))
+	for _, id := range shown {
+		row := byID[id]
+		if rows := matchedRows[id]; len(rows) > 0 {
+			row, matchedRows[id] = rows[0], rows[1:]
+		}
+		c.matches = append(c.matches, row)
+	}
+}
