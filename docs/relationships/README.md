@@ -1,6 +1,6 @@
 # Runtime relationship diagrams
 
-Read these with the [architecture guide](../architecture.html), [interactive map](../architecture-map.html), and [key walkthrough](../keybinding-walkthrough.html#relationships). The [gallery](index.html) lists only the three diagrams actually exported, in the Solarized theme.
+Read these with the [architecture guide](../architecture.html), [interactive map](../architecture-map.html), and [keybinding explorer](../keybinding-explorer.html). The [gallery](index.html) lists only the three diagrams actually exported, in the Solarized theme.
 
 - `objects.mmd`: ownership and references. Runtime owns noun and instance registries, operations and shared interaction state; typed components live on instances. The Model is a UI adapter, while CLI/MCP can use a headless loop.
 - `context.mmd`: shared key resolution and execution. Context is derived from instance ancestry; it is not a separate layer registry. Capture runs outer first except in passthrough modes, then ordinary rows bubble inner first. The top modal bounds the walk. The editor fallback applies to input paths (read-only inputs have an earlier editor level). Sequences can wait across levels; a key class can stop that scan. `DispatchOutcome` reports handled, consumed or unhandled. Palette and adapter requests enter execution directly.

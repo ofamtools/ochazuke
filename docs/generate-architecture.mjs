@@ -33,8 +33,7 @@ run([cli, 'deliver', 'architecture', spec, raw, '--quality', 'showcase', '--json
 let html = fs.readFileSync(raw, 'utf8');
 const nav = `<nav class="project-docs-nav" aria-label="Project docs">
 <a href="architecture.html">Architecture guide</a>
-<a href="keybinding-walkthrough.html">Key walkthrough</a>
-<a href="keybinding-walkthrough.html#concepts">Concepts glossary</a>
+<a href="keybinding-explorer.html">Keybinding explorer</a>
 <a href="extensibility.html">Extensibility</a>
 <a href="relationships/index.html">Relationships</a>
 </nav>`;
@@ -87,7 +86,7 @@ fs.writeFileSync(path.join(rel, 'index.html'), `<!doctype html>
 :root{color-scheme:light;background:#f4f1ea;color:#242d2a;font-family:"Avenir Next",Avenir,sans-serif}*{box-sizing:border-box}body{margin:0}main{width:90%;max-width:1440px;margin:auto;padding:48px 0}a{color:#315f46;text-underline-offset:4px}a:focus-visible{outline:3px solid #315f46;outline-offset:5px}nav{display:flex;flex-wrap:wrap;gap:16px}h1{font:normal clamp(2.6rem,5vw,5rem)/1.05 Georgia,serif;letter-spacing:-.045em}p{max-width:75ch;line-height:1.7}section{margin-top:48px;border-top:1px solid #c7cebf}figure{margin:0;padding:20px;background:#fdf6e3;border:1px solid #d8dcd2;border-radius:8px}img{display:block;width:100%;height:auto}figcaption{display:flex;flex-wrap:wrap;gap:20px;padding-top:20px}footer{margin-top:48px}
 </style></head><body><main><header><p>Ochazuke / diagram library</p><h1>Runtime relationships</h1>
 <p>Three diagrams of the current runtime. Each has a Mermaid source, a vector SVG, and a Chromium PNG export in the Solarized theme.</p>
-<nav aria-label="Project docs"><a href="../architecture.html">Architecture guide</a><a href="../architecture-map.html">Architecture map</a><a href="../keybinding-walkthrough.html#relationships">Key walkthrough</a><a href="README.md">Sources and regeneration</a></nav>
+<nav aria-label="Project docs"><a href="../architecture.html">Architecture guide</a><a href="../architecture-map.html">Architecture map</a><a href="../keybinding-explorer.html">Keybinding explorer</a><a href="README.md">Sources and regeneration</a></nav>
 <nav aria-label="Diagrams">${diagrams.map(([name, title]) => `<a href="#${name}">${title}</a>`).join('')}</nav></header>
 ${diagrams.map(([name, title, description]) => `<section id="${name}"><h2>${title}</h2><p>${description}</p><figure><a href="${name}.svg"><img src="${name}.svg" alt="${description}" loading="lazy"></a><figcaption><a href="${name}.svg">Open SVG</a><a href="${name}.png">Download PNG</a><a href="${name}.mmd">Mermaid source</a></figcaption></figure></section>`).join('\n')}
 <footer><a href="exports.json">Export evidence</a> · <a href="#top" onclick="window.scrollTo(0,0);return false">Back to top</a></footer></main></body></html>\n`.replace('<main>', '<main id="top">'));
