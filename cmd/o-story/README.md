@@ -489,6 +489,7 @@ Conformance:
 | normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.choose` `demo.delete` `demo.edit-task` `demo.finish` `demo.forget-row` `demo.hide` `demo.launch` `demo.notify` `demo.open` `demo.ping` `demo.reload` `demo.ship` `demo.synced` `demo.write` |
 | normal | detail | `detail.fields` `detail.scroll` |
 | normal | detail-field | `detail-field.copy` `detail-field.show` |
+| normal | diff | `diff.file` `diff.hunk` `diff.move` `diff.scroll` `diff.scroll-columns` |
 | normal | focus | `focus.next` `focus.previous` `focus.set` |
 | normal | form | `form.choose` `form.leave` `form.next` `form.next-missing` `form.redo` `form.run` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
@@ -542,6 +543,7 @@ Mode edges (from → to via):
 - `count_pending` → `count_pending ]` via `row ]`
 - `count_pending` → `count_pending ctrl+w` via `row ctrl+w`
 - `count_pending` → `count_pending g` via `row g`
+- `count_pending` → `count_pending z` via `row z`
 - `count_pending` → `g_pending` via `mode.enter`
 - `count_pending` → `normal` via `detail.scroll`
 - `count_pending` → `normal` via `list.column`
@@ -552,12 +554,15 @@ Mode edges (from → to via):
 - `count_pending` → `normal` via `timeline.step`
 - `count_pending` → `normal` via `view.scroll`
 - `count_pending` → `visual-line` via `list.move`
+- `count_pending [` → `normal` via `diff.hunk`
 - `count_pending [` → `normal` via `list.previous-class`
+- `count_pending ]` → `normal` via `diff.hunk`
 - `count_pending ]` → `normal` via `list.next-class`
 - `count_pending ]` → `normal` via `markdown.next-kind`
 - `count_pending ctrl+w` → `normal` via `pane.grow`
 - `count_pending ctrl+w` → `normal` via `pane.shrink`
 - `count_pending g` → `normal` via `list.goto`
+- `count_pending z` → `normal` via `diff.scroll-columns`
 - `edit` → `normal` via `mode.set`
 - `edit` → `shape` via `mode.set`
 - `edit` → `table` via `mode.set`
@@ -653,9 +658,13 @@ Mode edges (from → to via):
 - `normal <` → `normal` via `outline.outdent`
 - `normal >` → `normal` via `outline.indent`
 - `normal G` → `normal` via `mode.leave`
+- `normal [` → `normal` via `diff.file`
+- `normal [` → `normal` via `diff.hunk`
 - `normal [` → `normal` via `list.previous-class`
 - `normal [` → `normal` via `markdown.previous-kind`
 - `normal [` → `normal` via `markdown.previous-same`
+- `normal ]` → `normal` via `diff.file`
+- `normal ]` → `normal` via `diff.hunk`
 - `normal ]` → `normal` via `list.next-class`
 - `normal ]` → `normal` via `markdown.next-kind`
 - `normal ]` → `normal` via `markdown.next-same`
