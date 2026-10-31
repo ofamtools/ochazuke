@@ -1,0 +1,12 @@
+ |  ◆ o-story                              INSERT
+ |   › page1
+ |  ────────────────────────────────────────────────────
+ |  prompt: review @src/m
+ |                 ╭────────────────╮
+ |                 │src/main.go     │
+ |                 │src/main_test.go│
+ |                 │src/model.go    │
+ |                 ╰────────────────╯
+ |  ────────────────────────────────────────────────────
+ |  esc completion.dismiss · tab completion.accept
+ |

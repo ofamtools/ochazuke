@@ -87,7 +87,7 @@ func newPalette(r *Runtime) *Palette {
 		}
 		return p.setText(StringArg(a, "text", ""))
 	})
-	register("move", "Move the completion highlight; from none, 1 lands on the first entry and -1 on the last", map[string]Parameter{"delta": {Type: "integer", Required: true}}, func(a Arguments) error { return p.move(IntArg(a, "delta", 0)) })
+	register("move", "Move the completion highlight; from none, down selects first and up follows chooser.up-from-none", map[string]Parameter{"delta": {Type: "integer", Required: true}}, func(a Arguments) error { return p.move(IntArg(a, "delta", 0)) })
 	register("complete", "Append the highlighted completion (or value, or the only one) as the next word", map[string]Parameter{"value": {Type: "string", Description: "A completion's word; omit for the highlighted one"}}, p.complete)
 	register("run", "Run the line or append the highlighted completion; a line missing an argument opens the args form for it (palette.missing-opens-form), else names its first missing word", nil, func(Arguments) error { return p.run() })
 	register("cancel", "Clear the command line, or close it when it is empty", nil, func(Arguments) error { return p.cancel() })
@@ -184,15 +184,10 @@ func (p *Palette) move(delta int) error {
 	if len(entries) == 0 {
 		return errors.New("no completions for this word")
 	}
-	n := len(entries)
-	switch _, ok := p.highlighted(entries); {
-	case ok:
-		p.highlight = ((p.highlight+delta)%n + n) % n
-	case delta > 0:
-		p.highlight = 0
-	default:
-		p.highlight = n - 1
+	if _, ok := p.highlighted(entries); !ok {
+		p.highlight = -1
 	}
+	p.highlight = p.r.moveHighlight(p.highlight, delta, len(entries), true)
 	p.marked = p.Text()
 	p.message = ""
 	return nil

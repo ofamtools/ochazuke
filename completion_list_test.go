@@ -541,3 +541,38 @@ func caretAt(marked string) ([]rune, int) {
 	i := strings.Index(marked, "^")
 	return []rune(marked[:i] + marked[i+1:]), len([]rune(marked[:i]))
 }
+
+func TestCompletionUpFromNoneSetting(t *testing.T) {
+	for _, policy := range []string{"last", "stay"} {
+		t.Run(policy, func(t *testing.T) {
+			g := newCompletionRig(t, "", false)
+			if err := g.r.Settings().Set("chooser.up-from-none", policy); err != nil {
+				t.Fatal(err)
+			}
+			g.typeText("@src/m")
+			g.settle()
+			if g.c.Highlighted() != -1 {
+				t.Fatal("fixture starts highlighted")
+			}
+			g.keys("ctrl+p")
+			want := len(g.c.rows) - 1
+			if policy == "stay" {
+				want = -1
+			}
+			if g.c.Highlighted() != want {
+				t.Fatalf("up = %d, want %d", g.c.Highlighted(), want)
+			}
+			if policy == "last" {
+				g.keys("enter")
+				if string(g.in.Text) != "@src/model.go" {
+					t.Fatalf("accepted %q", string(g.in.Text))
+				}
+			} else {
+				g.keys("ctrl+n")
+				if g.c.Highlighted() != 0 {
+					t.Fatal("down from none did not choose first")
+				}
+			}
+		})
+	}
+}
