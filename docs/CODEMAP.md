@@ -1988,15 +1988,15 @@ Importable package `setup`: 5 source files, 1 test files.
 
 ### setup/plan.go
 
-- lines: 470
+- lines: 523
 - purpose: Status carries the rendered declaration and the exact next action.
 - types: Status, Selection, Write, Invocation, Plan
 - methods: Setup(10)
-- leans on: setup.go(112), formats.go(10), apply.go(4)
+- leans on: setup.go(114), formats.go(10), apply.go(4)
 
 ### setup/setup.go
 
-- lines: 279 · tests: setup_test.go
+- lines: 288 · tests: setup_test.go
 - purpose: Match describes adoption and ownership.
 - types: Kind, State, Match, Probe, Item, Runner (func), Options, Setup
 - funcs: New, Decode, Load

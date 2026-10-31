@@ -2155,6 +2155,14 @@ and plan schema across tools; the registry verbs also work in the palette and
 through `cli.Shell`. Installation and removal ask for confirmation; `--yes`
 accepts. Copy prints content or advice for pasting.
 
+A file item whose path is, or passes through, a symlink is `external` and is
+never written through. `follow: true` (file kinds) opts in to managing the file
+the links point to instead, for instruction files kept in a dotfiles repository
+and linked into place: writes, backups and status use the resolved file, the
+links stay links, and a dangling link creates its target. Items that resolve to
+one file share it: one write, and items with the same `begin`/`end` markers see
+each other's block, so two tools' links to one file hold one block.
+
 `opt_in: true` items, such as shell rc blocks, report `manual` with their exact
 line and are excluded from a bare install, even with `--group shell`. Name the
 id explicitly to install them. Failed check items also report `manual`. The

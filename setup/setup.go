@@ -67,6 +67,11 @@ type Probe struct {
 // Item is the same declaration in Go and setup.json. Content is a Go template
 // over Bin, Data, Home and Tool; each argv word and Advice are templates too.
 // Comment is a prefix (#, //) or <!--; explicit Begin/End override markers.
+// Follow (file kinds) manages the file a symlinked Path points to, for files
+// kept in a dotfiles repository and linked into place; without it any
+// symlink on the path makes the item external. Items whose paths resolve to
+// one file share it: one write, and items with the same markers see each
+// other's block.
 type Item struct {
 	ID          string   `json:"id"`
 	Name        string   `json:"name"`
@@ -87,6 +92,7 @@ type Item struct {
 	Advice      string   `json:"advice,omitempty"`
 	Group       string   `json:"group,omitempty"`
 	OptIn       bool     `json:"opt_in,omitempty"`
+	Follow      bool     `json:"follow,omitempty"`
 }
 
 // Runner executes argv directly, never through a shell. env contains a full
@@ -206,6 +212,9 @@ func validate(i Item) error {
 		}
 	default:
 		return fmt.Errorf("unknown kind %q", i.Kind)
+	}
+	if i.Follow && (i.Kind == Command || i.Kind == Check) {
+		return fmt.Errorf("follow applies to file kinds only")
 	}
 	if (i.Kind == JSON || i.Kind == JSONArray) && (i.Pointer == "" || !strings.HasPrefix(i.Pointer, "/")) {
 		return fmt.Errorf("a non-root JSON pointer is required")
