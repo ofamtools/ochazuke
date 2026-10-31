@@ -20,5 +20,5 @@ R|  │                │ ┃ stack •      ‹ stack ›  (saved: grid)      
  |  │                │ │                                                       │
  |  ╰────────────────╯ ╰───────────────────────────────────────────────────────╯
  |  ────────────────────────────────────────────────────────────────────────────
- |  enter setting.edit · h/l setting.cycle · r setting.reset · ]/[ settings.tab…
+ |  enter setting.edit · h/l setting.cycle · r setting.reset · z / prop filter …
  |
