@@ -169,9 +169,29 @@ func helpItems(rows []HelpRow) []ListItem {
 		args, tones := helpArgsCell(row.Args, 2)
 		label := strings.Join([]string{key, row.Operation, helpArgsLabel(row.Args), row.Description}, "  ")
 		cells := []string{key, row.Operation, args, row.Description}
-		items[i] = ListItem{ID: fmt.Sprintf("__bindings-help/%d", i), Label: label, Noun: "ochazuke.binding", Data: row, Cells: cells, Tones: tones, Section: row.Section}
+		items[i] = ListItem{ID: fmt.Sprintf("__bindings-help/%d", i), Label: label, Noun: "ochazuke.binding", Data: row, Cells: cells, Tones: tones, Section: row.Section, Search: helpKeySearch(key, row.Key)}
 	}
 	return items
+}
+
+// helpKeySearch is the hidden text (ListItem.Search) the / filter finds a
+// help row's key by, beside the key cell drawn (shown): every other way
+// the key is spelled, each once and none the cell already holds. Those are
+// the raw key strings (a pattern row's "<digit-0>" for its "0-9") and
+// each sequence without its spaces, as it is typed ("gx" for "g x",
+// "ctrl+ao" for "ctrl+a o").
+func helpKeySearch(shown string, raw ...string) []string {
+	var out []string
+	add := func(text string) {
+		if text != "" && text != shown && !slices.Contains(out, text) {
+			out = append(out, text)
+		}
+	}
+	for _, key := range append([]string{shown}, raw...) {
+		add(key)
+		add(strings.Join(strings.Fields(key), ""))
+	}
+	return out
 }
 
 // helpNodes are the help's rows as a tree (R6.10): a prefix row (Group)
@@ -192,7 +212,7 @@ func helpNodes(rows []HelpRow) (nodes []TreeNode, collapsed []string) {
 		index[item.ID] = i
 		parents[i] = -1
 		labels[i] = item.Label
-		node := TreeNode{ID: item.ID, Label: item.Label, Noun: item.Noun, Data: row, Cells: item.Cells, Tones: item.Tones, Section: item.Section}
+		node := TreeNode{ID: item.ID, Label: item.Label, Noun: item.Noun, Data: row, Cells: item.Cells, Tones: item.Tones, Section: item.Section, Search: item.Search}
 		if row.Under != "" {
 			node.Parent = parent[row.Section+"\x00"+row.Under]
 			if j, ok := index[node.Parent]; ok {
@@ -213,7 +233,7 @@ func helpNodes(rows []HelpRow) (nodes []TreeNode, collapsed []string) {
 			cells := []string{step.Key, step.Operation, "", text}
 			label := strings.Join([]string{step.Key, step.Operation, text}, "  ")
 			labels[i] += "  " + label
-			nodes = append(nodes, TreeNode{ID: id, Parent: item.ID, Label: label, Noun: "ochazuke.binding", Data: step, Cells: cells, Section: item.Section})
+			nodes = append(nodes, TreeNode{ID: id, Parent: item.ID, Label: label, Noun: "ochazuke.binding", Data: step, Cells: cells, Section: item.Section, Search: helpKeySearch(step.Key)})
 		}
 	}
 	// A prefix row's label gathers its sequences' (innermost first, so a

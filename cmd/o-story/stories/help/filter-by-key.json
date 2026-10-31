@@ -1,0 +1,28 @@
+{
+  "name": "? help: / finds a row by its key as shown and as typed (\"z h\", \"zh\", \"gx\", \"ctrl+d\"), in the here and table views",
+  "area": "help",
+  "width": 120,
+  "height": 40,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "bind": [
+      {"noun": "demo", "keys": "g x", "do": "demo.reset"},
+      {"noun": "demo", "keys": "z h", "do": "demo.open"},
+      {"noun": "demo", "keys": "ctrl+d", "do": "demo.reset"}
+    ]
+  },
+  "script": [
+    "?", "/", {"type": "z h"},
+    "ctrl+u", {"type": "zh"},
+    "ctrl+u", {"type": "gx"},
+    "ctrl+u", {"type": "ctrl+d"},
+    "esc", "S", "S", "/", {"type": "gx"}
+  ],
+  "expect": [
+    {"after": 3, "modal": "bindings-help", "contains": ["/z h", "▸ z h", "demo.open"], "lacks": ["g x", "ctrl+d"]},
+    {"after": 5, "contains": ["/zh", "1 of", "▸ z h", "demo.open"], "lacks": ["g x", "ctrl+d", "no matches"]},
+    {"after": 7, "contains": ["/gx", "1 of", "g x", "demo.reset"], "lacks": ["z h", "ctrl+d", "no matches"]},
+    {"after": 9, "contains": ["/ctrl+d", "1 of", "ctrl+d", "demo.reset"], "lacks": ["z h", "g x"]},
+    {"modal": "bindings-help", "contains": ["Keys · table", "/gx", "g x", ".reset"], "lacks": ["z h", "ctrl+d", "no matches"]}
+  ]
+}

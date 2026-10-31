@@ -29,6 +29,9 @@ type TreeNode struct {
 	// Section is the label line drawn above a run of rows in one section
 	// (ListItem.Section); "" none.
 	Section string `json:"section,omitempty"`
+	// Search is more text the / filter matches the node by, never drawn
+	// (ListItem.Search).
+	Search []string `json:"search,omitempty"`
 	// Fixed names the changes the node refuses: TreeRename, TreeMove
 	// (move, indent, outdent) and TreeDelete (deleting it or any
 	// ancestor). An outline's document root is Fixed all three; an array
@@ -542,7 +545,7 @@ func (t *Tree) refresh(selectID string) error {
 			if noun == "" {
 				noun = t.RowNoun
 			}
-			row = &filterRow{node: n, item: ListItem{ID: n.ID, Label: n.Label, Noun: noun, Data: n.Data, Props: n.Props, Cells: n.Cells}}
+			row = &filterRow{node: n, item: ListItem{ID: n.ID, Label: n.Label, Noun: noun, Data: n.Data, Props: n.Props, Cells: n.Cells, Search: n.Search}}
 		}
 		cache[n.ID] = row
 	}
@@ -558,7 +561,7 @@ func (t *Tree) refresh(selectID string) error {
 			noun = t.RowNoun
 		}
 		prefix := t.prefix(n)
-		item := ListItem{ID: n.ID, Label: prefix + n.Label, Noun: noun, Data: n.Data, Props: n.Props, Tones: shiftTones(n.Tones, utf8.RuneCountInString(prefix)), Section: n.Section}
+		item := ListItem{ID: n.ID, Label: prefix + n.Label, Noun: noun, Data: n.Data, Props: n.Props, Tones: shiftTones(n.Tones, utf8.RuneCountInString(prefix)), Section: n.Section, Search: slices.Clone(n.Search)}
 		if len(n.Cells) > 0 {
 			item.Cells = slices.Clone(n.Cells)
 			item.Cells[0] = prefix + item.Cells[0]

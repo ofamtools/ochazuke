@@ -593,9 +593,24 @@ func helpTableItems(noun string, modes []string, keys []HelpKey) []ListItem {
 				cells[j+1] = helpCellText(noun, cell)
 			}
 		}
-		items[i] = ListItem{ID: fmt.Sprintf("__bindings-help/%d", i), Label: strings.Join(cells, "  "), Noun: "ochazuke.binding", Data: k, Cells: cells}
+		items[i] = ListItem{ID: fmt.Sprintf("__bindings-help/%d", i), Label: strings.Join(cells, "  "), Noun: "ochazuke.binding", Data: k, Cells: cells, Search: helpTableSearch(label, k)}
 	}
 	return items
+}
+
+// helpTableSearch is the hidden text the / filter finds a table row by:
+// its key's other spellings (helpKeySearch) and, for every mode column,
+// the full operation its short cell stands for (".reset" is demo.reset).
+func helpTableSearch(shown string, k HelpKey) []string {
+	out := helpKeySearch(shown, k.Key)
+	for _, cell := range k.Modes {
+		for _, row := range cell.Rows {
+			if row.Operation != "" && !slices.Contains(out, row.Operation) {
+				out = append(out, row.Operation)
+			}
+		}
+	}
+	return out
 }
 
 // helpCellText is a table cell: the answering row's operation, ".verb"

@@ -435,6 +435,7 @@ Macro recording consumes exactly one register character after `q`, except `:`: `
 | Normal app | `?` | Open the scrollable keyboard guide |
 | Insert (any input) | `Ctrl-\` | Open the keyboard guide (`?` types itself there) |
 | `?` keyboard guide | `Tab` / `Shift-Tab`, `S` | Next / previous view (here, pick, table, wrapping; `bindings-help.view {step}`): `tab` cycles the views of anything with views, and in a search line the match mode |
+| `?` keyboard guide | `/` | Filter the rows (every view) by key, operation, arguments and description; a key matches as shown and as typed (`z h` or `zh`, `g x` or `gx`, `ctrl+d`, a pattern row by its raw `<digit>`), and the table view also by each mode cell's full operation (`.reset` is found by `demo.reset`). The extra spellings are the rows' `Search` text (`ListItem.Search`, `TreeNode.Search`), never drawn |
 | Normal list | `/` | Filter the list's rows (see Filtering a list) |
 | Normal list | `gg`, `G`, `NG`/`Ngg` | First row, last row, row N (`list.goto`; clamps, never spills) |
 | Normal list | `Ctrl-D/U`, `Ctrl-F/B` | Half a page / a page down and up, the window moving with the selection (`list.scroll`; `3 Ctrl-D` is 3 rows, `2 Ctrl-F` two pages) |
