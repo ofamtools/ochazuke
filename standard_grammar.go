@@ -183,7 +183,7 @@ func (r *Runtime) choiceParameter(op Operation, name string, args Arguments) (Pa
 // 18's where and set's prop=value words): with NAME= typed, the values of
 // prop NAME as NAME=VALUE; without, NAME= for each prop of the noun (the
 // caller offers the Enum instead when the parameter has one).
-func (r *Runtime) pairChoices(c Context, op Operation, word string) ([]Choice, error) {
+func (r *Runtime) pairChoices(c Context, op Operation, word string, siblings ...Arguments) ([]Choice, error) {
 	n := r.Noun(op.Noun)
 	if n == nil {
 		return nil, nil
@@ -200,7 +200,7 @@ func (r *Runtime) pairChoices(c Context, op Operation, word string) ([]Choice, e
 	if p == nil {
 		return nil, nil
 	}
-	values, err := r.propChoices(c, *p)
+	values, err := r.propChoices(c, *p, siblings...)
 	out := make([]Choice, len(values))
 	for i, v := range values {
 		label := v.Label
@@ -214,11 +214,11 @@ func (r *Runtime) pairChoices(c Context, op Operation, word string) ([]Choice, e
 
 // propChoices are the values a prop takes: true and false for a boolean,
 // else its Enum, Source or Noun (Runtime.Choices).
-func (r *Runtime) propChoices(c Context, p PropSpec) ([]Choice, error) {
+func (r *Runtime) propChoices(c Context, p PropSpec, siblings ...Arguments) ([]Choice, error) {
 	if p.Type == SettingBoolean {
 		return []Choice{{ID: "true", Label: "true"}, {ID: "false", Label: "false"}}, nil
 	}
-	return r.Choices(c, p.Parameter)
+	return r.Choices(c, p.Parameter, siblings...)
 }
 
 // The palette.standard-verbs setting (plan 2.10, owner decision 25): one

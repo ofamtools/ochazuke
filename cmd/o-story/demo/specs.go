@@ -519,7 +519,10 @@ type VerbSpec struct {
 	Description string                        `json:"description,omitempty"`
 	Parameters  map[string]ochazuke.Parameter `json:"parameters,omitempty"`
 	Positional  []string                      `json:"positional,omitempty"`
-	Rows        []string                      `json:"rows,omitempty"`
+	// RowsBy returns fixture rows selected by an argument value.
+	RowsBy  map[string][]string `json:"rowsBy,omitempty"`
+	RowsArg string              `json:"rowsArg,omitempty"`
+	Rows    []string            `json:"rows,omitempty"`
 	// Aliases are the verb's other names (ochazuke.ActionAlias: alias as
 	// noun.verb, since/removeAfter for a deprecated one; action is the
 	// verb). A run through an alias logs " via=ALIAS" after its arguments.

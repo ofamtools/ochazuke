@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
@@ -196,16 +197,21 @@ type recordStep struct {
 
 type recordField struct {
 	RecordField
-	id      string
-	input   *Input // nil for a choice field
-	value   string // a choice field's value
-	before  string // the written value when the current edit began
-	choices []Choice
-	choose  bool
-	suggest bool // a free text field with suggestions
-	path    bool // a path field: its chooser is the path chooser
-	chips   bool // a choice field that takes several choices (Chips)
-	chip    int  // the chip under the cursor, an index into choices
+	id            string
+	input         *Input // nil for a choice field
+	value         string // a choice field's value
+	before        string // the written value when the current edit began
+	chooser       *Chooser
+	choiceKey     string
+	choiceSeq     uint64
+	choicesReady  bool
+	choiceLoading bool
+	choices       []Choice
+	choose        bool
+	suggest       bool // a free text field with suggestions
+	path          bool // a path field: its chooser is the path chooser
+	chips         bool // a choice field that takes several choices (Chips)
+	chip          int  // the chip under the cursor, an index into choices
 	// lines are the chips' rows as last drawn (indexes into choices), so
 	// j and k move by what is on screen.
 	lines [][]int
@@ -348,6 +354,13 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 		}
 		names[f.Name] = true
 	}
+	params := map[string]Parameter{}
+	for _, f := range spec.Fields {
+		params[f.Name] = f.Parameter
+	}
+	if err := r.CheckSourceArgs(params); err != nil {
+		return nil, err
+	}
 	e := &RecordEditor{r: r, id: id, spec: spec, written: Record{}}
 	r.Instance(id, Parent(parent), Kind(FormNoun), FocusOnClose(closeFocus)).Component = e
 	for _, field := range spec.Fields {
@@ -400,10 +413,13 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 			}
 		}
 		e.fields = append(e.fields, f)
-		if f.choose || f.chips {
+	}
+	for _, f := range e.fields {
+		if (f.choose || f.chips) && len(f.SourceArgs) == 0 {
 			e.loadChoices(f)
 		}
 	}
+	e.refreshChoices()
 	e.seen = e.snapshot()
 	e.focus = r.Focus
 	if spec.Watch != "" {
@@ -572,11 +588,11 @@ func (e *RecordEditor) loadChoices(f *recordField) {
 	if !paramHasChoices(f.Parameter) {
 		return
 	}
-	choices, err := e.r.Choices(e.r.contextOf(e.id), f.Parameter)
+	choices, err := e.r.Choices(e.r.contextOf(e.id), f.Parameter, e.arguments())
 	if err != nil && len(choices) == 0 {
 		return
 	}
-	f.choices = choices
+	f.choices, f.choicesReady = choices, err == nil
 }
 
 // problem says why a value is not written: required and empty, not of the
@@ -606,10 +622,16 @@ func (e *RecordEditor) problem(f *recordField) string {
 			return "true or false"
 		}
 	}
-	if !f.Free && paramHasChoices(f.Parameter) && len(f.choices) > 0 && !hasChoice(f.choices, v) {
+	if !f.Free && f.choiceLoading {
+		return "loading choices"
+	}
+	if !f.Free && paramHasChoices(f.Parameter) && (len(f.SourceArgs) == 0 && len(f.choices) > 0 || len(f.SourceArgs) > 0 && f.choicesReady) && !hasChoice(f.choices, v) {
 		ids := make([]string, len(f.choices))
 		for i, c := range f.choices {
 			ids[i] = c.ID
+		}
+		if len(ids) == 0 {
+			return "no current choices"
 		}
 		return "one of " + strings.Join(ids, ", ")
 	}
@@ -623,6 +645,7 @@ func (e *RecordEditor) problem(f *recordField) string {
 
 // flush takes every changed valid value into the record and writes it.
 func (e *RecordEditor) flush() error {
+	e.refreshChoices()
 	for _, f := range e.fields {
 		if f.Invertible {
 			if inv := invertText(f.not); inv != e.written[f.Name+RecordInvertSuffix] {
@@ -820,6 +843,9 @@ func (e *RecordEditor) choose(f *recordField) error {
 	if f.path {
 		return e.choosePath(f)
 	}
+	if len(f.SourceArgs) > 0 {
+		return e.suggest(f)
+	}
 	e.loadChoices(f)
 	if len(f.choices) == 0 {
 		return fmt.Errorf("%s has no choices", f.label())
@@ -885,13 +911,14 @@ func (e *RecordEditor) suggest(f *recordField) error {
 			fixed = append(fixed, ChooserRow{ID: "", Label: "(none)", Fixed: true})
 		}
 	}
-	if e.r.ChoicesTakeQuery(f.Parameter) {
-		// The source sees the query: it loads again as the user types.
+	if e.r.ChoicesTakeQuery(f.Parameter) || len(f.SourceArgs) > 0 {
+		// Query sources reload while typing; dependent sources also reload
+		// when a sibling changes while their chooser is open.
 		spec.Sources = []ChooserSource{{
 			Name: "suggestions",
-			Live: true,
+			Live: e.r.ChoicesTakeQuery(f.Parameter),
 			Load: func(query string) Result {
-				res := e.r.choicesLoad(e.r.contextOf(f.id), f.Parameter, query)
+				res := e.r.choicesLoad(e.r.contextOf(f.id), f.Parameter, query, e.arguments())
 				rows := func(value any) []ChooserRow {
 					choices, _ := value.([]Choice)
 					out := make([]ChooserRow, 0, len(choices)+len(fixed))
@@ -904,7 +931,9 @@ func (e *RecordEditor) suggest(f *recordField) error {
 					if res.err != nil {
 						return res
 					}
-					f.choices, _ = res.value.([]Choice)
+					if len(f.SourceArgs) == 0 {
+						f.choices, _ = res.value.([]Choice)
+					}
 					return Done(rows(res.value))
 				}
 				work := res.work
@@ -917,6 +946,9 @@ func (e *RecordEditor) suggest(f *recordField) error {
 				}).Then(func(_ Ctx, value any, _ error) {
 					// value is the rows; the choices they came from are
 					// their ids.
+					if len(f.SourceArgs) > 0 {
+						return
+					}
 					got, _ := value.([]ChooserRow)
 					f.choices = f.choices[:0]
 					for _, row := range got {
@@ -927,7 +959,8 @@ func (e *RecordEditor) suggest(f *recordField) error {
 				})
 			},
 		}}
-		_, err := e.r.OpenChooser(spec)
+		c, err := e.r.OpenChooser(spec)
+		f.chooser = c
 		return err
 	}
 	c, err := e.r.OpenChooser(spec)
@@ -938,7 +971,9 @@ func (e *RecordEditor) suggest(f *recordField) error {
 		if e.r.Chooser(FormSuggestionsKind) != c {
 			return
 		}
-		f.choices = choices
+		if len(f.SourceArgs) == 0 {
+			f.choices = choices
+		}
 		rows := make([]ChooserRow, len(choices))
 		for i, ch := range choices {
 			rows[i] = ChooserRow{ID: ch.ID, Label: choiceLabel(ch)}
@@ -956,7 +991,7 @@ func (e *RecordEditor) suggest(f *recordField) error {
 		done(f.choices, nil)
 		return nil
 	}
-	e.r.loadChoices(e.r.contextOf(f.id), f.Parameter, FormSuggestionsKind, done)
+	e.r.loadChoices(e.r.contextOf(f.id), f.Parameter, FormSuggestionsKind, done, e.arguments())
 	return nil
 }
 
@@ -1172,6 +1207,9 @@ func (e *RecordEditor) Block(width, height int) Block {
 			}
 			style = s.Error
 		}
+		if f.Free && e.staleChoice(f) {
+			label += " · outside current choices"
+		}
 		lines = append(lines, style.Render(ansi.Truncate(label, width, "…")))
 		inner := max(1, width-2)
 		if f.chips {
@@ -1293,6 +1331,7 @@ func (e *RecordEditor) PendingCommand() tea.Cmd {
 	var cmd tea.Cmd
 	changed := false
 	if snap := e.snapshot(); snap != e.seen {
+		e.refreshChoices()
 		e.seen, changed = snap, true
 		e.seq++
 		if typing {
@@ -1388,6 +1427,7 @@ func (e *RecordEditor) outsideWrite() error {
 	if !changed {
 		return nil
 	}
+	e.refreshChoices()
 	e.seen = e.snapshot()
 	if v, _ := e.r.settingValue(FormsOutsideWriteSetting); v == "close" {
 		return e.leave()
@@ -1463,4 +1503,65 @@ func registerForms(r *Runtime) {
 func boolArg(a Arguments, name string) bool {
 	v, _ := a[name].(bool)
 	return v
+}
+
+// DependentChoicesSetting enables refreshing and marking dependent choices as
+// sibling fields change. Values are always retained; Free values remain writable.
+const DependentChoicesSetting = "forms.dependent-choices"
+
+func (e *RecordEditor) arguments() Arguments {
+	args := Arguments{}
+	for _, f := range e.fields {
+		if f.text() == "" {
+			continue
+		}
+		typed, err := argumentsFrom(Operation{Parameters: map[string]Parameter{f.Name: f.Parameter}}, nil, Record{f.Name: f.text()})
+		if err == nil {
+			maps.Copy(args, typed)
+		}
+	}
+	return args
+}
+
+func (e *RecordEditor) staleChoice(f *recordField) bool {
+	return e.r.helpFlag(DependentChoicesSetting, true) && len(f.SourceArgs) > 0 && f.choicesReady && f.text() != "" && !hasChoice(f.choices, f.text())
+}
+
+func (e *RecordEditor) refreshChoices() {
+	if !e.r.helpFlag(DependentChoicesSetting, true) {
+		return
+	}
+	args := e.arguments()
+	for _, f := range e.fields {
+		if len(f.SourceArgs) == 0 {
+			continue
+		}
+		op := e.r.Operations[e.r.ChoicesSource(f.Parameter)]
+		query := ""
+		if e.r.ChoicesTakeQuery(f.Parameter) {
+			query = f.text()
+		}
+		raw, _ := json.Marshal(choicesSourceArgs(op, f.Parameter, query, args))
+		key := string(raw)
+		if f.choiceKey == key {
+			continue
+		}
+		f.choiceKey = key
+		if f.chooser != nil && e.r.Chooser(FormSuggestionsKind) == f.chooser {
+			f.chooser.SetRows(nil)
+			f.chooser.load()
+		}
+		f.choiceSeq++
+		seq := f.choiceSeq
+		f.choicesReady, f.choiceLoading = false, true
+		e.r.loadChoicesFor(e.r.contextOf(f.id), f.Parameter, query, e.id, func(choices []Choice, err error) {
+			if e.closed || seq != f.choiceSeq {
+				return
+			}
+			f.choices, f.choicesReady, f.choiceLoading = choices, err == nil, false
+			if f.choose && !e.typing && f.text() != e.written[f.Name] {
+				e.fail(e.seal(f))
+			}
+		}, args)
+	}
 }

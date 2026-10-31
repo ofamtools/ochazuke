@@ -149,6 +149,9 @@ func (a Action) check(r *Runtime) error {
 	case a.Call != "" && len(strings.Fields(a.Call)) < 2:
 		return fmt.Errorf("call %q must be the noun's words and the verb", a.Call)
 	}
+	if err := r.CheckSourceArgs(a.Parameters); err != nil {
+		return err
+	}
 	for name, p := range a.Parameters {
 		if name == "" || strings.ContainsAny(name, ". \t\n") || actionPlaceholders[name] {
 			return fmt.Errorf("parameter name %q must be one word, not a dot or a reserved name", name)

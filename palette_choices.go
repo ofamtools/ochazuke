@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -35,6 +36,10 @@ func (p *Palette) paramChoices(op Operation, name, word string, args Arguments) 
 	default:
 		key += "\x00" + word
 	}
+	if len(param.SourceArgs) > 0 || pairs {
+		raw, _ := json.Marshal(args)
+		key += "\x00" + string(raw)
+	}
 	if cached, ok := p.choiceCache[key]; ok {
 		return cached.choices, cached.err
 	}
@@ -43,11 +48,11 @@ func (p *Palette) paramChoices(op Operation, name, word string, args Arguments) 
 	if config, ok := p.nouns[op.Noun]; ok && config.DefaultVerb == op.Verb && config.Argument == name {
 		choices = p.instanceChoices(op.Noun)
 	} else if pairs {
-		choices, err = p.r.pairChoices(p.origin.Clone(), op, word)
+		choices, err = p.r.pairChoices(p.origin.Clone(), op, word, args)
 	} else if param.Type == "boolean" {
 		choices = []Choice{{ID: "true", Label: "true"}, {ID: "false", Label: "false"}}
 	} else {
-		choices, err = p.r.ChoicesFor(p.origin.Clone(), param, word)
+		choices, err = p.r.ChoicesFor(p.origin.Clone(), param, word, args)
 	}
 	if p.choiceCache == nil {
 		p.choiceCache = map[string]choiceList{}
