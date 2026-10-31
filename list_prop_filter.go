@@ -169,7 +169,7 @@ func (l *List) matchesProps(item ListItem) bool {
 		if p == nil {
 			return false
 		}
-		value, present := t[f.Prop]
+		value, present := t[p.Name]
 		if !present || !propMatches(*p, value, f) {
 			return false
 		}
@@ -203,13 +203,21 @@ func (l *List) validatePropFilters(filters []PropFilter) error {
 // On trees, matching descendants bring their ancestors into view even
 // when collapsed; clearing restores the original collapse state.
 func (l *List) SetPropFilters(filters []PropFilter) error {
+	filters = clonePropFilters(filters)
+	for i := range filters {
+		name, err := l.r.filterPropName(l.rowNouns(), filters[i].Prop)
+		if err != nil {
+			return err
+		}
+		filters[i].Prop = name
+	}
 	if err := l.validatePropFilters(filters); err != nil {
 		return err
 	}
 	if _, err := json.Marshal(filters); err != nil {
 		return err
 	}
-	l.propFilters = clonePropFilters(filters)
+	l.propFilters = filters
 	l.savedFilter = ""
 	if l.filterChanged != nil {
 		l.filterChanged()
@@ -417,6 +425,11 @@ func (l *List) pickPropFilter(prop string, offerClear, not bool) error {
 		}})
 		return err
 	}
+	name, err := l.r.filterPropName(l.rowNouns(), prop)
+	if err != nil {
+		return err
+	}
+	prop = name
 	// Values come from the rows visible before the picker opened, not from
 	// the enum or the store. Raw typed values travel in Data unchanged.
 	// A list prop offers its items, and its condition is contains.
@@ -461,7 +474,7 @@ func (l *List) pickPropFilter(prop string, offerClear, not bool) error {
 	if not {
 		title += " · not"
 	}
-	_, err := l.r.OpenChooser(ChooserSpec{Kind: "list-filter-value", Title: title, Rows: rows, Choose: func(row ChooserRow) Result {
+	_, err = l.r.OpenChooser(ChooserSpec{Kind: "list-filter-value", Title: title, Rows: rows, Choose: func(row ChooserRow) Result {
 		f := PropFilter{Prop: prop, Op: op, Value: row.Data}
 		if not {
 			f = f.Negate()
@@ -548,6 +561,10 @@ func registerListPropFilter(r *Runtime) {
 				return clear(i - 1)
 			}
 			if prop := StringArg(a, "prop", ""); prop != "" {
+				prop, err := r.filterPropName(l.rowNouns(), prop)
+				if err != nil {
+					return err
+				}
 				return clear(slices.IndexFunc(l.propFilters, func(f PropFilter) bool { return f.Prop == prop }))
 			}
 			rows := []ChooserRow{}

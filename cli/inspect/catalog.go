@@ -68,6 +68,7 @@ type Prop struct {
 	Default     any               `json:"default,omitempty"`
 	Secret      bool              `json:"secret,omitempty"`
 	Multiline   bool              `json:"multiline,omitempty"`
+	Aliases     []string          `json:"aliases,omitempty"`
 }
 
 type Example struct {

@@ -311,7 +311,7 @@ func propNames(n *Noun) []string {
 
 func getParams(n *Noun) map[string]Parameter {
 	return map[string]Parameter{
-		"prop":  {Type: "string", Enum: propNames(n), Description: "One prop: answer its value alone"},
+		"prop":  {Type: "string", Enum: propNames(n), Free: slices.ContainsFunc(n.Props, func(p PropSpec) bool { return len(p.Aliases) > 0 }), Description: "One prop: answer its value alone"},
 		"props": {Type: "string", Description: "The props to answer, comma-separated (default: every prop but secrets)"},
 	}
 }
@@ -383,10 +383,12 @@ func listWords(s string) []string {
 // n; nil when it is empty.
 func pickedProps(n *Noun, a Arguments) ([]string, error) {
 	names := listWords(StringArg(a, "props", ""))
-	for _, name := range names {
-		if n.prop(name) == nil {
+	for i, name := range names {
+		p := n.prop(name)
+		if p == nil {
 			return nil, &ArgumentError{fmt.Errorf("%s has no prop %q", n.Name, name)}
 		}
+		names[i] = p.Name
 	}
 	return names, nil
 }
@@ -417,6 +419,9 @@ func runGet(r *Runtime, n *Noun, c Ctx) (any, error) {
 		return nil, &ArgumentError{errors.New("get takes prop or props, not both")}
 	case prop != "" && n.prop(prop) == nil:
 		return nil, &ArgumentError{fmt.Errorf("%s has no prop %q", n.Name, prop)}
+	}
+	if p := n.prop(prop); p != nil {
+		prop = p.Name
 	}
 	// Only the props offered where the request acts (PropSpec.When).
 	if hidden := r.unshownProp(n, c, append([]string{prop}, names...)); hidden != "" {
@@ -467,7 +472,7 @@ func parseWhere(n *Noun, text string) (map[string]any, error) {
 		if err != nil {
 			return nil, &ArgumentError{fmt.Errorf("where %s %w", name, err)}
 		}
-		out[name] = v
+		out[p.Name] = v
 	}
 	return out, nil
 }
@@ -528,7 +533,7 @@ func runList(r *Runtime, n *Noun, c Ctx) (any, error) {
 func thingMatches(n *Noun, t Thing, where map[string]any) bool {
 	for name, want := range where {
 		p := n.prop(name)
-		if p == nil || !propMatches(*p, t[name], PropFilter{Prop: name, Op: "=", Value: want}) {
+		if p == nil || !propMatches(*p, t[p.Name], PropFilter{Prop: name, Op: "=", Value: want}) {
 			return false
 		}
 	}
@@ -607,15 +612,30 @@ func createArgs(n *Noun, a Arguments) (Arguments, error) {
 	_, hasPairs := a["pairs"]
 	out := Arguments{}
 	moved := map[string]bool{}
-	for k, v := range a {
-		if k != "pairs" {
-			out[k] = v
+	for _, k := range sortedKeys(a) {
+		if k == "pairs" {
+			continue
+		}
+		name := k
+		if p := n.prop(k); p != nil {
+			name = p.Name
+		}
+		if _, exists := out[name]; exists {
+			return nil, &ArgumentError{fmt.Errorf("%s is written twice", name)}
+		}
+		out[name] = a[k]
+		if name != k {
+			moved[name] = true
 		}
 	}
 	writes := func(name string) bool {
-		return slices.ContainsFunc(createProps(n), func(p PropSpec) bool { return p.Name == name })
+		p := n.prop(name)
+		return p != nil && !p.ReadOnly && !p.Key
 	}
 	put := func(name string, v any) error {
+		if p := n.prop(name); p != nil {
+			name = p.Name
+		}
 		if _, given := out[name]; given || moved[name] {
 			return &ArgumentError{fmt.Errorf("%s is written twice", name)}
 		}
@@ -709,6 +729,7 @@ func setChanges(n *Noun, a Arguments) (map[string]any, []string, error) {
 		case !p.writable():
 			return &ArgumentError{fmt.Errorf("%s.%s is read-only", n.Name, name)}
 		}
+		name = p.Name
 		if _, dup := changes[name]; dup {
 			return &ArgumentError{fmt.Errorf("%s is written twice", name)}
 		}
@@ -787,6 +808,9 @@ func setChanges(n *Noun, a Arguments) (map[string]any, []string, error) {
 
 // propIndex is a prop's place in its noun's declaration order.
 func propIndex(n *Noun, name string) int {
+	if p := n.prop(name); p != nil {
+		name = p.Name
+	}
 	return slices.IndexFunc(n.Props, func(p PropSpec) bool { return p.Name == name })
 }
 

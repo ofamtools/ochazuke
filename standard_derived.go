@@ -205,7 +205,13 @@ func duplicateOverrides(n *Noun, a Arguments) (map[string]any, []string, error) 
 		if err != nil {
 			return nil, nil, &ArgumentError{fmt.Errorf("%s %w", name, err)}
 		}
-		out[name] = typed
+		if _, exists := out[p.Name]; exists {
+			return nil, nil, &ArgumentError{fmt.Errorf("%s is written twice", p.Name)}
+		}
+		out[p.Name] = typed
+	}
+	for i, name := range order {
+		order[i] = n.prop(name).Name
 	}
 	return out, order, nil
 }
