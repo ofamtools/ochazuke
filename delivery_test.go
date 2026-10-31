@@ -406,9 +406,10 @@ func TestRuntimeHoldsNoComponentFields(t *testing.T) {
 		fields = append(fields, typ.Field(i).Name)
 	}
 	sort.Strings(fields)
+	// events and watches are runtime registries, not instance components.
 	want := []string{
 		"BindingTimeout", "Focus", "Instances", "Mode", "Modes", "Nouns", "Operations", "Page", "Pending", "Quit", "ResolveTarget", "actionNames", "aliases",
-		"askedAt", "bindingVersion", "builtinDepth", "commands", "defaults", "deprecations", "guards", "history", "holders", "jobSeq", "jobs", "modalInstances", "modals", "modeExtends", "modeGeneration", "origin", "passthroughModes", "pendingModes", "predicates", "prefix", "rowRequest", "rows", "selectionModes", "seq", "subjects", "watches",
+		"askedAt", "bindingVersion", "builtinDepth", "commands", "defaults", "deprecations", "events", "guards", "history", "holders", "jobSeq", "jobs", "modalInstances", "modals", "modeExtends", "modeGeneration", "origin", "passthroughModes", "pendingModes", "predicates", "prefix", "rowRequest", "rows", "selectionModes", "seq", "subjects", "watches",
 	}
 	if !reflect.DeepEqual(fields, want) {
 		t.Fatalf("Runtime fields:\n got %v\nwant %v", fields, want)
