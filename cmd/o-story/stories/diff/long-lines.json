@@ -1,0 +1,31 @@
+{
+  "name": "diff: long-lines",
+  "area": "diff",
+  "width": 80,
+  "height": 18,
+  "chrome": "none",
+  "page": {
+    "diff": {
+      "text": "diff --git a/long.go b/long.go\n--- a/long.go\n+++ b/long.go\n@@ -1 +1 @@\n-const longIdentifier = \"abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij END\"\n+const longResult = \"abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij END\"\n"
+    }
+  },
+  "script": [
+    "1",
+    "2",
+    "z",
+    "l"
+  ],
+  "expect": [
+    {
+      "contains": [
+        "‹",
+        "END"
+      ],
+      "lacks": [
+        "longIdentifier",
+        "longResult"
+      ],
+      "after": 4
+    }
+  ]
+}

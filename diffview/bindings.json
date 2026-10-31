@@ -1,0 +1,22 @@
+// Diff keys: rows on the component noun; no key handling in the view.
+{
+  "bindings": [
+    {"context": "ochazuke.diff/normal", "bindings": [
+      {"key": "] c", "action": "ochazuke.diff.hunk", "args": {"delta": 1}, "from": {"count": "count"}},
+      {"key": "[ c", "action": "ochazuke.diff.hunk", "args": {"delta": -1}, "from": {"count": "count"}},
+      {"key": "] f", "action": "ochazuke.diff.file", "args": {"delta": 1}, "from": {"count": "count"}},
+      {"key": "[ f", "action": "ochazuke.diff.file", "args": {"delta": -1}, "from": {"count": "count"}},
+      {"key": "j", "action": "ochazuke.diff.move", "args": {"delta": 1}, "from": {"count": "count"}},
+      {"key": "k", "action": "ochazuke.diff.move", "args": {"delta": -1}, "from": {"count": "count"}},
+      {"key": "down", "action": "ochazuke.diff.move", "args": {"delta": 1}, "from": {"count": "count"}, "hidden": true},
+      {"key": "up", "action": "ochazuke.diff.move", "args": {"delta": -1}, "from": {"count": "count"}, "hidden": true},
+      {"key": "J", "action": "ochazuke.view.scroll", "args": {"lines": 1}, "from": {"count": "count"}},
+      {"key": "K", "action": "ochazuke.view.scroll", "args": {"lines": -1}, "from": {"count": "count"}},
+      {"key": "ctrl+d", "action": "ochazuke.diff.scroll", "args": {"delta": 1, "half": true}, "from": {"count": "count"}},
+      {"key": "ctrl+u", "action": "ochazuke.diff.scroll", "args": {"delta": -1, "half": true}, "from": {"count": "count"}},
+      {"key": "z l", "action": "ochazuke.diff.scroll-columns", "args": {"delta": 8}, "from": {"count": "count"}},
+      {"key": "z h", "action": "ochazuke.diff.scroll-columns", "args": {"delta": -8}, "from": {"count": "count"}}
+    ]},
+    {"context": "ochazuke.diff/count_pending", "extends": "normal", "bindings": []}
+  ]
+}

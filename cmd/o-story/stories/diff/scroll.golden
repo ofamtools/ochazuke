@@ -1,0 +1,8 @@
+ |M demo.go  +5 -4  unified
+ |@@ -1,4 +1,4 @@ package demo
+ | 1  1   package demo
+ | 2    - func oldName() string {
+R| 3    -  return "old"
+ |    2 + func newName() string {
+ |    3 +  return "new"
+ | 4  4   }
