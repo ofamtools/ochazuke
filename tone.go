@@ -31,7 +31,9 @@ import (
 //     colour.
 //   - On the selected row (reverse video) a tone draws its bold alone: no
 //     colour, no dim, so the row stays one bar that reads in every theme,
-//     and a table's current cell keeps its underline.
+//     and a table's current cell draws in list.cell.cursor, out of the
+//     bar (setting list.cell-cursor: background), or underlined inside
+//     it (underline).
 //   - A page list without the focus fades its tones with it
 //     (dim-unfocused): the tone's colour is carried the same percent toward
 //     the background.
@@ -71,7 +73,11 @@ const (
 	// (ToneSpan.Layer), the header row, a row-number column
 	// (Column.Part PartRowNumber), and each part's crossing tone (the
 	// part's tone plus IntersectSuffix).
-	ToneCellIntersect      = "list.cell.intersect"
+	ToneCellIntersect = "list.cell.intersect"
+	// ToneCellCursor is a cell-mode table's current cell on the selected
+	// row, drawn out of the reverse bar (setting list.cell-cursor
+	// background, the default).
+	ToneCellCursor         = "list.cell.cursor"
 	ToneHeader             = "list.header"
 	ToneHeaderIntersect    = "list.header.intersect"
 	ToneRowNumber          = "list.rownum"
@@ -203,7 +209,10 @@ var defaultTones = map[string]ToneStyle{
 	// is a warm fill unlike any other tone, the header a band, the row
 	// numbers muted. mono draws the attributes alone: a crossing is bold
 	// out of the reverse bar.
-	ToneCellIntersect:      {Fg: SchemeColor{"#1A1A1A", "#1A1A1A"}, Bg: SchemeColor{"#F2C94C", "#E0B243"}, Bold: true},
+	ToneCellIntersect: {Fg: SchemeColor{"#1A1A1A", "#1A1A1A"}, Bg: SchemeColor{"#F2C94C", "#E0B243"}, Bold: true},
+	// The current cell: the scheme's surface on its accent, bold, so it
+	// reads as the focus inside the bar; mono draws it bold out of the bar.
+	ToneCellCursor:         {Fg: SchemeColor{"surface", "surface"}, Bg: SchemeColor{"accent", "accent"}, Bold: true},
 	ToneHeader:             {Fg: SchemeColor{"text", "text"}, Bg: SchemeColor{"#E4E8EE", "#2B323B"}, Bold: true},
 	ToneHeaderIntersect:    {Fg: SchemeColor{"#1A1A1A", "#1A1A1A"}, Bg: SchemeColor{"#E5B53A", "#C99A2E"}, Bold: true},
 	ToneRowNumber:          {Fg: SchemeColor{"muted", "muted"}},
@@ -411,6 +420,67 @@ type toneSeg struct {
 	underline   bool
 }
 
+// CellCursorSetting says how a cell-mode table draws its current cell on
+// the selected row: background (the default: the cell in the
+// list.cell.cursor tone, out of the reverse bar) or underline (reversed
+// and underlined inside the bar, as before).
+const CellCursorSetting = "list.cell-cursor"
+
+// The values of CellCursorSetting.
+const (
+	CellCursorBackground = "background"
+	CellCursorUnderline  = "underline"
+)
+
+// CellCursor is the list.cell-cursor setting's value (default
+// background).
+func (r *Runtime) CellCursor() string {
+	if v, _ := r.settingValue(CellCursorSetting); v == CellCursorUnderline {
+		return CellCursorUnderline
+	}
+	return CellCursorBackground
+}
+
+// cellCursor is the SGR a cell-mode table's current cell draws in on the
+// selected row: the list.cell.cursor tone's background behind its
+// foreground, bold, faded with a faded list. It is written as reverse
+// video with the two colours swapped, so the cell stays part of the
+// selection's reverse run (a story reads it as the current cell: reverse
+// with a background, which nothing else draws). nil, with
+// list.cell-cursor underline, without the Model's styles, when the theme
+// has no such tone or the tone has no background (mono, NO_COLOR), draws
+// the cell reversed and underlined inside the bar.
+func (r *Runtime) cellCursor(faded bool) ansi.Style {
+	if r.CellCursor() != CellCursorBackground {
+		return nil
+	}
+	s := r.toneStyles()
+	if s == nil {
+		return nil
+	}
+	look, ok := s.tones[ToneCellCursor]
+	look = s.moded(look)
+	if !ok || look.bg == nil {
+		return nil
+	}
+	fade := func(c color.Color) color.Color {
+		if faded && s.ground != nil && s.unfocused > 0 {
+			return fadeRamp(c, s.ground)[min(s.unfocused, MaxDim)]
+		}
+		return c
+	}
+	var style ansi.Style
+	style = style.Reverse(true)
+	if look.bold {
+		style = style.Bold()
+	}
+	style = style.ForegroundColor(fade(look.bg))
+	if look.fg != nil {
+		style = style.BackgroundColor(fade(look.fg))
+	}
+	return style
+}
+
 // bgSGR is the background a segment fills with: its Bg tone's, else its
 // tone's; faded toward the ground in a faded list. ok is false for none.
 func (s Styles) bgSGR(sg toneSeg, faded bool) (ansi.Style, bool) {
@@ -543,8 +613,9 @@ const IntersectSetting = "list.intersect"
 const PartTonesSetting = "list.part-tones"
 
 // paintLine draws a plain line with its tones: on the selected row the
-// line is padded to width and reversed, the current cell (cur) reversed
-// and underlined; elsewhere trailing spaces are trimmed (kept under a
+// line is padded to width and reversed, the current cell (cur) in
+// Styles.cellCursor (list.cell.cursor, out of the bar) or, when that is
+// nil, reversed and underlined; elsewhere trailing spaces are trimmed (kept under a
 // layer or part span, which fills its slot) and only the toned runs are
 // styled. Where two or more layers cover a run (the selected row counts
 // as one, Styles.intersect on), the run draws in its part's intersect
@@ -583,7 +654,12 @@ func paintLine(line string, width int, segs []toneSeg, st *Styles, selected, fad
 		}
 		z = min(z, n)
 		text := ansi.Cut(line, a, z)
-		underline := selected && cur.w > 0 && a >= cur.x && a < cur.x+cur.w
+		onCur := selected && cur.w > 0 && a >= cur.x && a < cur.x+cur.w
+		if onCur && st != nil && len(st.cellCursor) > 0 {
+			b.WriteString(st.cellCursor.String() + text + ansi.ResetStyle)
+			continue
+		}
+		underline := onCur
 		for _, sg := range segs {
 			if sg.underline && a >= sg.x && a < sg.x+sg.w {
 				underline = true

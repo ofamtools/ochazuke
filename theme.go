@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // Appearance is event-loop-owned configuration. Operation results are value snapshots.
@@ -185,6 +186,7 @@ type Styles struct {
 	tones          map[string]toneLook // the scheme's tones resolved (Tone, tone.go)
 	selectedBg     string              // tones.selected-background, read by the list that draws (listTones)
 	intersect      bool                // list.intersect, read by the list that draws (listTones)
+	cellCursor     ansi.Style          // list.cell-cursor's style for a table's current cell (Runtime.cellCursor); nil underlines it
 	backdropPlain  bool                // modal-highlights plain: the backdrop drops reverse video and underline
 	chrome         string              // the chrome level (chrome.color), "" before WithChrome (chrome.go)
 	appAccent      color.Color         // Appearance.Accent when it draws (not mono, not NO_COLOR)

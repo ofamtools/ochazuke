@@ -1002,16 +1002,16 @@ Root package `ochazuke` is flat: 152 source files, 170 test files. Each entry li
 
 ### table.go
 
-- lines: 859 · tests: table_test.go
+- lines: 881 · tests: table_test.go
 - purpose: Align is a column's alignment: AlignLeft (the zero value) or AlignRight.
 - types: Align, Column
-- methods: List(15)
+- methods: List(16)
 - funcs: Columns, TableText
-- leans on: tone.go(35), list.go(17), surface.go(7), layout.go(3)
+- leans on: tone.go(35), list.go(18), surface.go(7), layout.go(3)
 
 ### table_cells.go
 
-- lines: 533 · tests: table_cells_test.go
+- lines: 534 · tests: table_cells_test.go
 - purpose: CellSelect makes a table (AddList with Columns) cell-based: a current column beside the selected row, moved with h/l, 0/$, N| and g c, and the cell keys y an...
 - methods: List(13)
 - funcs: CellSelect, RowSelect
@@ -1074,7 +1074,7 @@ Root package `ochazuke` is flat: 152 source files, 170 test files. Each entry li
 
 ### theme.go
 
-- lines: 369 · tests: theme_test.go
+- lines: 371 · tests: theme_test.go
 - purpose: Appearance is event-loop-owned configuration.
 - types: Appearance, ToneRows, Styles
 - methods: Appearance(4), Runtime(1), Styles(4), ToneRows(1)
@@ -1110,12 +1110,12 @@ Root package `ochazuke` is flat: 152 source files, 170 test files. Each entry li
 
 ### tone.go
 
-- lines: 703 · tests: tone_test.go
+- lines: 779 · tests: tone_test.go
 - purpose: ToneSpan gives a run of one cell a tone.
 - types: ToneSpan, ToneStyle
-- methods: List(2), Runtime(3), Styles(6), ToneStyle(1)
+- methods: List(2), Runtime(5), Styles(6), ToneStyle(1)
 - funcs: LayerTone, CellTone, SpanTone, DefaultTones
-- leans on: scheme.go(34), theme.go(13), surface.go(4), list.go(3)
+- leans on: scheme.go(36), theme.go(15), runtime.go(5), surface.go(4)
 
 ### transport.go
 

@@ -16,7 +16,8 @@ import (
 // Cells laid out to computed widths, cut with "…" at the display width,
 // the columns that do not fit dropped by Priority, and the selected row of
 // the focused list highlighted across the whole width, its current cell
-// (cell mode, table_cells.go) underlined inside the highlight and the
+// (cell mode, table_cells.go) in the list.cell.cursor tone (setting
+// list.cell-cursor; underline draws it underlined inside the bar) and the
 // current column's title underlined in the header.
 
 // Align is a column's alignment: AlignLeft (the zero value) or AlignRight.
@@ -366,6 +367,7 @@ func (l *List) tableView(width, height int) (string, int, int) {
 	l.window, l.windowed = visible, len(l.items) > visible
 	marked := l.marksSelection()
 	toned, faded := l.listTones(), l.faded()
+	cursor := l.cursorStyle(span, toned, faded)
 	for i := l.offset; i < end; i++ {
 		row := l.rowCells(l.groupedCells(i, l.offset))
 		line, at := tableLineAt(cols, row, shown, widths)
@@ -382,7 +384,7 @@ func (l *List) tableView(width, height int) (string, int, int) {
 		case len(segs) > 0:
 			line = paintLine(line, width, segs, toned, selected, faded, span)
 		case selected:
-			line = highlightRow(line, width, span)
+			line = highlightRow(line, width, span, cursor)
 		default:
 			line = strings.TrimRight(line, " ")
 		}
@@ -675,6 +677,7 @@ func (l *List) tallView(lines []string, width, height, body int, cols []Column, 
 	toneLines := make([][][]toneSeg, len(l.items))
 	opens := make([]bool, len(l.items))
 	toned, faded := l.listTones(), l.faded()
+	cursor := l.cursorStyle(span, toned, faded)
 	// layRow is item i's lines and tones, its Group cells blanked against
 	// the row above unless i is the first row drawn (top).
 	layRow := func(i, top int) ([]string, [][]toneSeg) {
@@ -762,7 +765,7 @@ func (l *List) tallView(lines []string, width, height, body int, cols []Column, 
 			case len(segs) > 0:
 				line = paintLine(line, width, segs, toned, selected, faded, span)
 			case selected:
-				line = highlightRow(line, width, span)
+				line = highlightRow(line, width, span, cursor)
 			default:
 				line = strings.TrimRight(line, " ")
 			}
@@ -795,11 +798,30 @@ func (l *List) currentSpan(shown, widths []int, mark int) span {
 }
 
 // highlightRow pads a plain line to width and reverses it, the cells of
-// the current column (sp) reversed and underlined: the current cell.
-func highlightRow(line string, width int, sp span) string {
+// the current column (sp), the current cell, in cursor (list.cell.cursor,
+// out of the bar) or, when cursor is nil, reversed and underlined.
+func highlightRow(line string, width int, sp span, cursor ansi.Style) string {
 	line += strings.Repeat(" ", max(0, width-ansi.StringWidth(line)))
 	reverse := lipgloss.NewStyle().Reverse(true)
-	return styleSpan(line, sp, reverse, "4;7")
+	mark := "4;7"
+	if len(cursor) > 0 {
+		mark = strings.Join(cursor, ";")
+	}
+	return styleSpan(line, sp, reverse, mark)
+}
+
+// cursorStyle is the current cell's style for a frame (Runtime.cellCursor),
+// given to the row tones' styles too so paintLine draws it; nil without a
+// current cell or with list.cell-cursor underline.
+func (l *List) cursorStyle(sp span, toned *Styles, faded bool) ansi.Style {
+	if sp.w <= 0 {
+		return nil
+	}
+	cursor := l.r.cellCursor(faded)
+	if toned != nil {
+		toned.cellCursor = cursor
+	}
+	return cursor
 }
 
 // styleSpan draws a plain line in base with the cells of sp in the SGR
