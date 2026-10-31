@@ -600,7 +600,7 @@ func TestPropFilterCachesAndVisibility(t *testing.T) {
 	if calls != decoded || decoded != 5 {
 		t.Fatalf("decoded %d times, want 5", calls)
 	}
-	if err := l.pickPropFilter("by", false); err != nil {
+	if err := l.pickPropFilter("by", false, false); err != nil {
 		t.Fatal(err)
 	}
 	_ = r.Pop()
