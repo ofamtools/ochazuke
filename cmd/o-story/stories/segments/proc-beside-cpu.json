@@ -1,0 +1,56 @@
+{
+  "name": "the program's CPU segment draws beside the machine's cpu, named after the program, and its own setting hides it",
+  "area": "segments",
+  "width": 60,
+  "height": 12,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 6
+      }
+    ],
+    "segments": [
+      {
+        "id": "cpu",
+        "label": "cpu",
+        "texts": ["70%"]
+      },
+      {
+        "id": "proc",
+        "label": "mtm",
+        "texts": ["118%"]
+      },
+      {
+        "id": "ram",
+        "label": "ram",
+        "texts": ["18G/32G"],
+        "order": 1
+      }
+    ],
+    "bind": [
+      {
+        "noun": "app",
+        "keys": "P",
+        "do": "ochazuke.segment.toggle",
+        "args": {"id": "proc"}
+      }
+    ]
+  },
+  "script": [
+    {"tick": "segment"},
+    "P"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "segments": ["cpu 70%", "mtm 118%", "ram 18G/32G"],
+      "order": ["cpu 70% · mtm 118% · ram 18G/32G ──", "a1", "a5"]
+    },
+    {
+      "after": 2,
+      "segments": ["cpu 70%", "ram 18G/32G"],
+      "lacks": ["mtm 118%"]
+    }
+  ]
+}

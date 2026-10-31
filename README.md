@@ -1917,7 +1917,7 @@ Not supported: `opt&vi` (one default per setting), `|` and `"` (the palette runs
 Live items (CPU, memory, disk free, a build state) ride the rule under the header, right-aligned, and take no row. Each is a data row:
 
 ```go
-sysstat.Register(r, sysstat.Options{Enabled: true, DiskPath: dataDir}) // cpu, ram, disk
+sysstat.Register(r, sysstat.Options{Enabled: true, DiskPath: dataDir}) // cpu, proc, ram, disk
 r.SegmentProvider("build", func(ctx context.Context, s ochazuke.Segment) (ochazuke.SegmentValue, error) {
 	return ochazuke.SegmentValue{Text: "green", Tone: ochazuke.ToneDone}, nil
 })
@@ -1933,6 +1933,8 @@ A user adds or changes rows in `segments.json` beside `settings.json` (a command
   {"id": "cpu", "label": "CPU", "order": 1}
 ]
 ```
+
+`cpu` is the whole machine's busy share (100% = every core). `proc` is this program's own CPU use, labelled with the program's name (`mtm 118%`, else `proc`), drawn beside `cpu`: `status.proc-scale` is `core` (default; one core is 100%, as Activity Monitor and top count, so a busy program reads over 100%) or `machine` (the share of every core, as `cpu` reads). Both draw hot at 90% of the machine. A provider's or verb's string argument may name a setting as `"{name}"` (the proc row's `{"scale": "{status.proc-scale}"}`): the runtime reads it on the loop at each refresh, so a provider never reads the settings off the loop.
 
 Sources are `provider` (Go), `command` (first line of its output, killed at `timeout`) or `verb` (`NOUN.VERB`, run outside the history); an answer may be `{"text": ..., "tone": ...}`. Refreshes run off the loop, one per segment at a time, so a slow source never blocks a key. Every part can be turned off: `status.segments` (all), `status.segments.<id>` (one), and `status.segment-order` holds the order. The `segment` noun lists, shows, enables, disables, toggles, moves and refreshes them from the palette and the CLI. An extension declares verb-sourced segments in its catalog (`segments`); a host mounts them with `cli.CatalogSegments`.
 

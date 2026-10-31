@@ -1,9 +1,10 @@
 // Package sysstat samples the machine for status segments: CPU busy
-// percent, memory used and total, and free disk space at a path, on macOS
-// and Linux, without cgo. Register adds them to a runtime as the segment
-// providers cpu, ram and disk and as segment rows, off unless the
-// application turns them on (Options.Enabled), each behind its own
-// status.segments.<id> setting.
+// percent, this process's CPU use, memory used and total, and free disk
+// space at a path, on macOS and Linux, without cgo. Register adds them to
+// a runtime as the segment providers cpu, proc, ram and disk and as
+// segment rows, off unless the application turns them on
+// (Options.Enabled), each behind its own status.segments.<id> setting;
+// status.proc-scale picks the proc segment's scale.
 //
 // The CPU and busy-percent logic is adapted from tuios
 // (internal/app/sysinfo*.go, MIT): a reading is cumulative idle and total
@@ -15,6 +16,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"sync"
 	"time"
 
@@ -128,7 +130,7 @@ const (
 	LowDiskPercent = 5
 )
 
-// Options are Register's: Enabled turns the three segments on by default
+// Options are Register's: Enabled turns the four segments on by default
 // (each still has its setting); DiskPath is the path the disk segment
 // reads (default the user's home directory); Every is their refresh
 // interval (default 2s for cpu and ram, 30s for disk).
@@ -141,13 +143,16 @@ type Options struct {
 // The provider and segment ids Register adds.
 const (
 	IDCPU  = "cpu"
+	IDProc = "proc"
 	IDRAM  = "ram"
 	IDDisk = "disk"
 )
 
-// Providers registers the cpu, ram and disk providers on r. The disk
-// provider reads its segment's Path (default the home directory).
+// Providers registers the cpu, proc, ram and disk providers on r. The
+// disk provider reads its segment's Path (default the home directory);
+// the proc provider its scale argument (ScaleCore or ScaleMachine).
 func Providers(r *ochazuke.Runtime) {
+	r.SegmentProvider(IDProc, procProvider(NewProc(), numCPU()))
 	cpu := NewCPU()
 	r.SegmentProvider(IDCPU, func(ctx context.Context, _ ochazuke.Segment) (ochazuke.SegmentValue, error) {
 		p, err := cpu.Sample(ctx)
@@ -185,7 +190,10 @@ func hot(on bool) string {
 	return ""
 }
 
-// Segments are the cpu, ram and disk rows Register adds.
+// Segments are the cpu, proc, ram and disk rows Register adds. The proc
+// row is labelled with the program's name ("mtm 118%"), else "proc", and
+// draws beside cpu (same order, added after it); its scale argument names
+// the status.proc-scale setting.
 func Segments(o Options) []ochazuke.Segment {
 	every := func(d time.Duration) time.Duration {
 		if o.Every > 0 {
@@ -196,13 +204,20 @@ func Segments(o Options) []ochazuke.Segment {
 	on := ochazuke.On(o.Enabled)
 	return []ochazuke.Segment{
 		{ID: IDCPU, Label: "cpu", Provider: IDCPU, Every: every(2 * time.Second), Order: 100, Enabled: on, Description: "Show the CPU busy percent in the header rule"},
+		{ID: IDProc, Label: procLabel(), Provider: IDProc, Args: ochazuke.Arguments{procScaleArg: "{" + ProcScaleSetting + "}"}, Every: every(2 * time.Second), Order: 100, Enabled: on, Description: "Show this program's CPU use in the header rule (status.proc-scale picks the scale)"},
 		{ID: IDRAM, Label: "ram", Provider: IDRAM, Every: every(2 * time.Second), Order: 101, Enabled: on, Description: "Show memory used/total in the header rule"},
 		{ID: IDDisk, Label: "disk", Provider: IDDisk, Every: every(30 * time.Second), Order: 102, Enabled: on, Path: o.DiskPath, Description: "Show the free disk space of the data volume in the header rule"},
 	}
 }
 
-// Register adds the providers and the cpu, ram and disk segments to r.
+// Register adds the providers, the cpu, proc, ram and disk segments and
+// the status.proc-scale setting to r.
 func Register(r *ochazuke.Runtime, o Options) error {
 	Providers(r)
+	if !slices.ContainsFunc(r.Settings().Declared(), func(s ochazuke.Setting) bool { return s.Name == ProcScaleSetting }) {
+		if err := r.DeclareSetting(procScaleDeclaration()); err != nil {
+			return err
+		}
+	}
 	return r.AddSegment(Segments(o)...)
 }
