@@ -603,6 +603,22 @@ Every list (page lists, tables, trees, a catalog page's lists, the Settings page
 
 A page is the rows the list's own window showed in the last frame when the list windows itself, else the height of the page body it is drawn on (a list drawn at its full length on a scrolling page), else the rows it showed (a list in a modal), else 10 before any frame. The window moves with the selection by the rows moved, so the selected row keeps its line (Vim's `ctrl+d`), and the scrolloff margin then applies as for `j`/`k`. None of them spills to the next stop: at the list's edges they stop quietly. They are motions: off the footer, under `movement` in `?` help. `pgup`/`pgdn` still scroll the surface without moving the focus. Story: `lists/page-motions`.
 
+Apps can label rows with `ListItem.Classes`, for example `[]string{"merge", "refs"}`, and declare their class keys as data on the row noun:
+
+```go
+r.Define("commit").Classes(
+    ochazuke.ClassDecl{Name: "merge", Key: "m", Title: "merge commit"},
+    ochazuke.ClassDecl{Name: "refs", Key: "r", Title: "decorated commit"},
+    ochazuke.ClassDecl{Name: "first-parent"}, // palette-only
+)
+```
+
+Each keyed declaration generates normal-mode `] KEY` and `[ KEY` binding rows on that noun, running `list.next-class` or `list.previous-class` with `{class, steps}`. Counts work (`3]m` counts three matching rows). These motions walk the shown rows in drawing order, skipping filtered rows, and never spill or wrap. A count beyond the remaining matches lands on the last match. With no match ahead, selection stays put and a plain status message says so. The optional `id` parameter targets a list explicitly. An empty `Key` generates no rows, leaving the class accessible through the palette or API. `Title` supplies the help description and footer hint, defaulting to `Name`. Declare classes before user bindings load. Repeating a class name replaces its declaration and keys.
+
+Lists without declarations gain no bindings or hints. The opt-out is `bindings.json`: override or unbind the generated rows on the declaring noun, as with other default rows. Class membership is application data; the framework defines no class names or predicates. Stories: `lists/class-motions`, `lists/class-help`.
+
+Compared with Vim: `]]` and `[[` (`:help ]]`, `:help [[`) count section boundaries in buffer order. Class motions use the same forward/backward bracket shape over application-defined row classes. `]c` and `[c` (`:help ]c`) count changes in a diff; an app can declare a class with key `c` for a similar motion. Vim reports an error when no further change exists; ochazuke keeps selection and reports plain status. Hidden rows are skipped, and these list motions have no text operator range.
+
 `ctrl+e`/`ctrl+y` are rows on `app` in normal mode (`bindings/scroll.json`) to one verb, `view.scroll {lines, count}`, for every scrollable: it scrolls the innermost component on the focus path that windows its lines (`LineScroller`: `CanScrollLines`, `ScrollLines`; a list, so tables and trees, a timeline, a markdown document; a component held by another scroller, a timeline's card list, defers to its holder), else the page's detail while it overflows (as `J`/`K` do). With nothing to scroll the verb is unavailable and the key does nothing. A component of an application scrolls the same way by implementing `LineScroller`. The timeline's own `ctrl+e`/`ctrl+y` rows (`timeline.scroll`) answer first on a timeline. Compared with Vim: the same, but a list that shows every row (drawn at its full length on a scrolling page) has no window of its own, so the key falls to the detail or does nothing; on a table with tall rows a line is a row; an editor's text does not scroll yet. Stories: `scroll/ctrl-e-ctrl-y-list`, `tables/ctrl-e-scroll`, `markdown/ctrl-e-scroll`, `detail/ctrl-e-scrolls-detail`.
 
 #### Tables select rows; cell mode is opt-in

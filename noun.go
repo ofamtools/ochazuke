@@ -47,6 +47,8 @@ type Noun struct {
 	Store *Store     `json:"-"`
 	// Filters are default saved prop filters for lists of this noun's rows.
 	Filters []SavedFilter `json:"filters,omitempty"`
+	// Classes declare the row classes and their optional motion keys.
+	Classes []ClassDecl `json:"classes,omitempty"`
 }
 
 // Binding is one row of a mode table, identical in code and config:

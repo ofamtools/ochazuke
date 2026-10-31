@@ -87,6 +87,25 @@ func registerListMotions(r *Runtime) {
 		}
 		return nil, errors.New("no focused list")
 	}
+	for _, direction := range []struct {
+		verb  string
+		delta int
+	}{{"next-class", 1}, {"previous-class", -1}} {
+		r.Register(Operation{Noun: "ochazuke.list", Verb: direction.verb, Motion: true,
+			Description: "Jump to a shown row of class, counting matches; clamps without spilling; no further match leaves selection in place with a status message",
+			Parameters: map[string]Parameter{
+				"id":    {Type: "string", Description: "The list (default: the focused one)"},
+				"class": {Type: "string", Required: true, Description: "An application-defined row class"},
+				"steps": {Type: "integer", Description: "Number of matching rows (default 1; a count: 3]m)"},
+			}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+				list, err := resolve(c, a)
+				if err != nil {
+					return nil, err
+				}
+				list.jumpClass(StringArg(a, "class", ""), max(1, IntArg(a, "steps", 1)), direction.delta)
+				return list.state(), nil
+			}})
+	}
 	for _, spec := range []struct {
 		verb, description string
 		parameters        map[string]Parameter

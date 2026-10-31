@@ -507,7 +507,7 @@ func (ss *session) defineNouns(nouns []NounSpec) error {
 		if n.Noun == "" {
 			return errors.New("noun: a name is required")
 		}
-		d := ss.R.Define(n.Noun).Props(n.Props...).Filters(n.Filters...)
+		d := ss.R.Define(n.Noun).Props(n.Props...).Filters(n.Filters...).Classes(n.Classes...)
 		for _, verb := range n.Verbs {
 			key := n.Noun + "." + verb
 			d.Verb(verb, func(c ochazuke.Ctx) ochazuke.Result {
@@ -771,7 +771,7 @@ func rowsOf(l ListSpec) []ochazuke.ListItem {
 			if noun == "" {
 				noun = Demo
 			}
-			out = append(out, ochazuke.ListItem{ID: it.ID, Label: it.Label, Noun: noun, Data: it.Data, Props: it.Props, Cells: it.Cells, Tones: it.Tones})
+			out = append(out, ochazuke.ListItem{ID: it.ID, Label: it.Label, Noun: noun, Data: it.Data, Props: it.Props, Classes: it.Classes, Cells: it.Cells, Tones: it.Tones})
 		}
 		return out
 	}
@@ -1731,7 +1731,7 @@ func (ss *session) Snapshot() ([]*Page, []string) {
 			}
 			sel, _ := list.Selected()
 			for i, it := range list.Items() {
-				spec.Items = append(spec.Items, ItemSpec{ID: it.ID, Label: it.Label, Noun: it.Noun, Data: it.Data, Props: it.Props, Cells: it.Cells, Tones: it.Tones})
+				spec.Items = append(spec.Items, ItemSpec{ID: it.ID, Label: it.Label, Noun: it.Noun, Data: it.Data, Props: it.Props, Classes: it.Classes, Cells: it.Cells, Tones: it.Tones})
 				if it.ID == sel.ID {
 					spec.Selected = i
 				}

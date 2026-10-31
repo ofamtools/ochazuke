@@ -1,0 +1,16 @@
+ |  ◆ o-story                                                                                              NORMAL
+ |   › page1
+ |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ |  /keep                                                                                                 6 of 9  substr
+ |  keep initial
+ |  keep merge one
+ |  keep decorated release
+R|  keep merge two
+ |  keep merge three
+ |  keep final ordinary
+ |
+ |
+ |
+ |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ |  ] m list.next-class merge commit · [ m list.previous-class merge commit · ] r list.next-class decorated commit · [ …
+ |

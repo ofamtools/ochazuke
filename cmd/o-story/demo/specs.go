@@ -206,9 +206,10 @@ type ItemSpec struct {
 	Label string         `json:"label"`
 	// Noun is the row's noun (default the demo noun): a row of another
 	// noun (project) is a thing a demo prop may name (a reference).
-	Noun  string              `json:"noun,omitempty"`
-	Cells []string            `json:"cells,omitempty"`
-	Tones []ochazuke.ToneSpan `json:"tones,omitempty"`
+	Noun    string              `json:"noun,omitempty"`
+	Cells   []string            `json:"cells,omitempty"`
+	Tones   []ochazuke.ToneSpan `json:"tones,omitempty"`
+	Classes []string            `json:"classes,omitempty"`
 }
 
 // DetailSpec is a scrollable detail (ochazuke.AddDetail) drawn to the
@@ -444,6 +445,7 @@ type StoreSpec struct {
 // verb's parameter can name it as its Source).
 // NounSpec is one noun of a story's own (Page.Nouns).
 type NounSpec struct {
+	Classes []ochazuke.ClassDecl   `json:"classes,omitempty"`
 	Props   []ochazuke.PropSpec    `json:"props,omitempty"`
 	Filters []ochazuke.SavedFilter `json:"filters,omitempty"`
 	Noun    string                 `json:"noun"`
