@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"html"
 	"slices"
+	"strconv"
 	"strings"
 
 	gansi "charm.land/glamour/v2/ansi"
@@ -155,6 +156,8 @@ type glyph struct {
 	width int
 	style int
 	space bool
+	url   string
+	link  int
 }
 
 // cellText is a cell's glyphs and the element markers it held, which are
@@ -168,11 +171,13 @@ type cellText struct {
 
 // inline turns a cell's inline Markdown into glyphs in Glamour's styles.
 type inline struct {
-	src    []byte
-	cfg    gansi.StyleConfig
-	styles []lipgloss.Style
-	keys   map[string]int
-	cell   *cellText
+	src          []byte
+	cfg          gansi.StyleConfig
+	styles       []lipgloss.Style
+	keys         map[string]int
+	cell         *cellText
+	url          string
+	link, serial int
 }
 
 func (in *inline) styleIndex(s lipgloss.Style) int {
@@ -202,7 +207,7 @@ func (in *inline) add(s string, st lipgloss.Style) {
 			t = " "
 		}
 		w := ansi.StringWidth(t)
-		in.cell.glyphs = append(in.cell.glyphs, glyph{text: t, width: w, style: idx, space: t == " "})
+		in.cell.glyphs = append(in.cell.glyphs, glyph{text: t, width: w, style: idx, space: t == " ", url: in.url, link: in.link})
 		in.cell.widthTotal += w
 	}
 }
@@ -237,12 +242,25 @@ func (in *inline) node(n gast.Node, st lipgloss.Style) {
 	case *east.Strikethrough:
 		in.children(n, primitive(st, in.cfg.Strikethrough))
 	case *gast.Link:
+		old, oldLink := in.url, in.link
+		in.serial++
+		in.link = in.serial
+		in.url = string(n.Destination)
 		in.children(n, primitive(st, in.cfg.LinkText))
 		if url := string(n.Destination); url != "" && url != string(n.Text(in.src)) { //nolint:staticcheck
 			in.add(" "+url, primitive(st, in.cfg.Link))
 		}
+		in.url, in.link = old, oldLink
 	case *gast.AutoLink:
+		old, oldLink := in.url, in.link
+		in.serial++
+		in.link = in.serial
+		in.url = string(n.URL(in.src))
+		if n.AutoLinkType == gast.AutoLinkEmail && !strings.HasPrefix(strings.ToLower(in.url), "mailto:") {
+			in.url = "mailto:" + in.url
+		}
 		in.add(string(n.URL(in.src)), primitive(st, in.cfg.Link))
+		in.url, in.link = old, oldLink
 	case *gast.Image:
 		in.add(string(n.Text(in.src)), primitive(st, in.cfg.ImageText)) //nolint:staticcheck
 	case *gast.RawHTML:
@@ -586,11 +604,15 @@ func wrapCell(glyphs []glyph, width int, styles []lipgloss.Style) []string {
 		for s := 0; s < len(l); {
 			e := s
 			var run strings.Builder
-			for e < len(l) && l[e].style == l[s].style {
+			for e < len(l) && l[e].style == l[s].style && l[e].url == l[s].url && l[e].link == l[s].link {
 				run.WriteString(l[e].text)
 				e++
 			}
-			b.WriteString(styles[l[s].style].Render(run.String()))
+			value := styles[l[s].style].Render(run.String())
+			if l[s].url != "" {
+				value = ansi.SetHyperlink(l[s].url, "id=och-md-"+strconv.Itoa(l[s].link)) + value + ansi.ResetHyperlink()
+			}
+			b.WriteString(value)
 			s = e
 		}
 		out[i] = b.String()

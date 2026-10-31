@@ -1,0 +1,56 @@
+{
+  "name": "markdown: link-stops-off",
+  "area": "markdown",
+  "width": 80,
+  "settings": [
+    {
+      "name": "markdown.link-stops",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "# Links\n\nBefore [alpha](https://a.example) between [beta](https://b.example) after.\n\nTail.\n"
+    }
+  },
+  "script": [
+    "j",
+    "j",
+    "k",
+    "[",
+    "u",
+    "y",
+    "l"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "attrs": {
+        "alpha": "-bold,reverse",
+        "beta": "-bold,reverse"
+      }
+    },
+    {
+      "after": 2,
+      "highlightedText": "Tail."
+    },
+    {
+      "highlightedText": "Before",
+      "writes": [],
+      "after": 3
+    },
+    {
+      "after": 7,
+      "attrs": {
+        "beta": "bold,underline,reverse"
+      },
+      "register": "https://b.example",
+      "writes": []
+    }
+  ],
+  "values": {
+    "markdown.link-stops": false
+  }
+}

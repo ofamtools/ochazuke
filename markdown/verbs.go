@@ -142,6 +142,7 @@ func register(r *ochazuke.Runtime) {
 			return e >= 0 && test(d, e)
 		}
 	}
+	r.DefineGuard("markdown-on-link", cursorIs(func(d *Doc, _ int) bool { _, ok := d.FocusedLink(); return ok }))
 	r.DefineGuard("markdown-on-task", cursorIs(func(d *Doc, e int) bool { return d.elems[e].Kind == KindTask }))
 	r.DefineGuard("markdown-on-item", cursorIs(func(d *Doc, e int) bool { return itemOf(d.elems, e) >= 0 }))
 	r.DefineGuard("markdown-has-notes", cursorIs(func(d *Doc, e int) bool {
@@ -161,6 +162,10 @@ func register(r *ochazuke.Runtime) {
 		Verb("move", on(func(d *Doc, a ochazuke.Arguments) error {
 			return d.MoveCursor(ochazuke.IntArg(a, "delta", 1), steps(a))
 		}), "Move by Markdown element, or drawn line with markdown.cursor=line; spill at the document's edges").Motion().
+		Verb("link-open", plain((*Doc).OpenLink), "Open the focused Markdown link with the system URL handler").
+		Verb("link-copy", plain((*Doc).CopyLink), "Yank the focused Markdown link URL").
+		Verb("next-link", on(func(d *Doc, a ochazuke.Arguments) error { return d.MoveLink(1, steps(a)) }), "Jump to the next Markdown link").Motion().
+		Verb("previous-link", on(func(d *Doc, a ochazuke.Arguments) error { return d.MoveLink(-1, steps(a)) }), "Jump to the previous Markdown link").Motion().
 		Verb("toggle", plain((*Doc).Toggle), "Toggle the checklist item under the cursor: rewrites only its box character in the source, written at once").
 		Verb("done-show", plain(func(d *Doc) error { return d.SetDone("show") }), "Show checked tasks in this document for the session; never changes the source or settings").
 		Verb("done-hide", plain(func(d *Doc) error { return d.SetDone("hide") }), "Hide checked tasks and their subtrees in this document for the session").
@@ -199,6 +204,7 @@ func register(r *ochazuke.Runtime) {
 	id := ochazuke.Parameter{Type: "string", Description: "The markdown instance (default the one on the focus path)"}
 	count := ochazuke.Parameter{Type: "integer", Description: "Repeat count (3})"}
 	params := map[string]map[string]ochazuke.Parameter{
+		"next-link": {"steps": count}, "previous-link": {"steps": count},
 		"move":       {"delta": {Type: "integer"}, "steps": count},
 		"next-block": {"steps": count}, "previous-block": {"steps": count},
 		"next-same": {"steps": count}, "previous-same": {"steps": count},
@@ -218,10 +224,15 @@ func register(r *ochazuke.Runtime) {
 			p[name] = param
 		}
 		op.Parameters = p
+		switch op.Verb {
+		case "link-open", "link-copy", "next-link", "previous-link":
+			op.HistoryKind = ochazuke.HistoryAction
+		}
 		op.Result = "markdown state"
 		r.Operations[op.Key()] = op
 	}
 	if r.Settings() != nil {
+		_ = r.DeclareSetting(ochazuke.Setting{Name: LinkStopsSetting, Owner: ochazuke.OwnerFramework, Type: "boolean", Default: true, Description: "Visit inline Markdown links as focus stops with j and k"})
 		_ = r.DeclareSetting(ochazuke.Setting{Name: AuthorSetting, Owner: ochazuke.OwnerFramework, Type: "string", Default: "owner", Description: "The author a new note in a Markdown document is signed with"})
 		_ = r.DeclareSetting(ochazuke.Setting{Name: CursorSetting, Owner: ochazuke.OwnerFramework, Type: "string", Default: "item", Enum: []string{"item", "line"}, Description: "Markdown cursor unit: whole elements, or individual drawn lines"})
 		_ = r.DeclareSetting(ochazuke.Setting{Name: CursorWidthSetting, Owner: ochazuke.OwnerFramework, Type: "string", Default: "pane", Enum: []string{"pane", "text"}, Description: "Markdown cursor highlight width: the whole pane, or only its text"})

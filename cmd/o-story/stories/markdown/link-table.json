@@ -1,0 +1,27 @@
+{
+  "name": "markdown: link-table",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "# Table\n\n| name | target |\n|---|---|\n| first | before [cell](https://cell.example) after |\n| last | done |\n"
+    }
+  },
+  "script": [
+    "j",
+    "j",
+    "y",
+    "l"
+  ],
+  "expect": [
+    {
+      "attrs": {
+        "cell": "bold,underline,reverse"
+      },
+      "register": "https://cell.example",
+      "writes": [],
+      "after": 4
+    }
+  ]
+}

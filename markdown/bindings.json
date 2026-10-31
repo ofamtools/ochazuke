@@ -23,6 +23,11 @@
     ]},
     {"context": "ochazuke.markdown-note/count_pending", "extends": "normal", "bindings": []},
     {"context": "ochazuke.markdown/normal", "bindings": [
+      {"key": "enter", "action": "ochazuke.markdown.link-open", "when": "markdown-on-link"},
+      {"key": "g x", "action": "ochazuke.markdown.link-open", "when": "markdown-on-link"},
+      {"key": "y l", "action": "ochazuke.markdown.link-copy", "when": "markdown-on-link"},
+      {"key": "] u", "action": "ochazuke.markdown.next-link", "from": {"steps": "count"}},
+      {"key": "[ u", "action": "ochazuke.markdown.previous-link", "from": {"steps": "count"}},
       {"key": "x", "action": "ochazuke.markdown.toggle", "when": "markdown-on-task"},
       {"key": "i", "action": "ochazuke.markdown.insert", "args": {"at": "cursor"}},
       {"key": "o", "action": "ochazuke.markdown.open", "args": {"where": "below"}},
@@ -77,6 +82,10 @@
     {"context": "ochazuke.markdown-note/normal", "bindings": [
       {"key": "x", "action": "ochazuke.markdown.resolve"}
     ]},
+    {"context": "ochazuke.markdown/leader_pending", "extends": "normal", "bindings": []},
+    {"context": "ochazuke.markdown-line/leader_pending", "extends": "normal", "bindings": []},
+    {"context": "ochazuke.markdown-task/leader_pending", "extends": "normal", "bindings": []},
+    {"context": "ochazuke.markdown-note/leader_pending", "extends": "normal", "bindings": []},
     {"context": "ochazuke.markdown/count_pending", "extends": "normal", "bindings": []}
   ]
 }
