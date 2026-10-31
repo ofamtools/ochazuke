@@ -53,3 +53,5 @@ require (
 	golang.org/x/sys v0.47.0
 	ofam.dev/oden v0.2.0
 )
+
+retract v0.80.0 // tagged on the wrong commit; v0.80.1 is the real release
