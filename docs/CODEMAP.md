@@ -141,7 +141,7 @@ Root package `ochazuke` is flat: 126 source files, 150 test files. Each entry li
 
 ### configuration.go
 
-- lines: 716 · tests: configuration_test.go
+- lines: 727 · tests: configuration_test.go
 - purpose: samePath checks a declared path against an instance path, allowing the input itself to be omitted from the declared path.
 - types: Config
 - methods: Config(9), Runtime(13)

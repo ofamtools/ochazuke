@@ -42,11 +42,19 @@ func registerConfiguration(r *Runtime) {
 		}
 		return r.LoadBindings(data)
 	}})
-	r.Register(Operation{Verb: "export", Noun: "ochazuke.bindings", Description: "Write every stored key row to a file in the grouped bindings format (what config export writes as bindings.reference.json); never over the live bindings.json without force", Parameters: map[string]Parameter{
-		"path":  {Type: "string", Required: true, Description: "File to write"},
+	r.Register(Operation{Verb: "export", Noun: "ochazuke.bindings", Description: "Write every stored key row to a file in the grouped bindings format, default <config dir>/reference/bindings.reference.json (the file config export writes); never over the live bindings.json without force", Parameters: map[string]Parameter{
+		"path":  {Type: "string", Description: "File to write (default <config dir>/reference/bindings.reference.json)"},
 		"force": {Type: "boolean", Description: "Allow writing over the live bindings.json"},
 	}, Positional: []string{"path"}, Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		path, err := filepath.Abs(StringArg(a, "path", ""))
+		path := StringArg(a, "path", "")
+		if path == "" {
+			ref := r.Config().Paths().Reference
+			if ref == "" {
+				return nil, errors.New("this application has no config directory: name a file to export to")
+			}
+			path = filepath.Join(ref, BindingsReferenceFile)
+		}
+		path, err := filepath.Abs(path)
 		if err != nil {
 			return nil, err
 		}
@@ -55,6 +63,9 @@ func registerConfiguration(r *Runtime) {
 		}
 		data, err := FormatBindings(r.BindingsDoc())
 		if err != nil {
+			return nil, err
+		}
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			return nil, err
 		}
 		if err := writeFileAtomic(path, data); err != nil {
