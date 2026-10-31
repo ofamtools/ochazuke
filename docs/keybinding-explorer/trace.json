@@ -2,208 +2,264 @@
   "schema": 1,
   "files": [
     {
-      "path": "model.go",
-      "sha256": "855de21cdcff2972624168ee01a205bdcdf5432c65166594fc95ec09e26b427a"
+      "path": "internal/demo/demo.go",
+      "sha256": "07a7b9effbc29bbce128df46893a47b4f3ddc381ec21eedd10c92de85bcf0e95"
     },
     {
-      "path": "bindings.go",
-      "sha256": "0ae3849ed8bcbb92f5b6d95121a5113cf1f9f154855401c285ee25af7bce9b8b"
+      "path": "model.go",
+      "sha256": "815d4d2a4c64cd2b8dc7f79fb47d53e1ea00c6356a6fe9d4e3809220b26bd31e"
+    },
+    {
+      "path": "instance.go",
+      "sha256": "eca8093cac80bac90ead0f2bf2946d8aea9f5705adcb8a9faa155da7570e2b50"
+    },
+    {
+      "path": "resolve.go",
+      "sha256": "ef9a43f81913ae73208f6ffbefe06b2778b8b4908371628803d91d1a2fe70315"
     },
     {
       "path": "runtime.go",
-      "sha256": "431f1935b5f0d44038a4f34d8d899387e8853b6fa96313a9ab31639901ee67c5"
+      "sha256": "86135d1e9e7c26510c11e52f4a48bf2588e25088cf513f554d8d842bde116dd4"
     },
     {
-      "path": "demo.go",
-      "sha256": "0ba7df7e071be94f138ae801de9930a04e3d5587d33dcd2663182d2ba92721d9"
+      "path": "focus.go",
+      "sha256": "cd7467543fad40223c5f0d24ef80748e8934a28c294c04be0c3d57c87adb6c65"
     },
     {
       "path": "cmd/ochazuke/keybinding.go",
-      "sha256": "6cad0ab2cf1e0e9b6a2dc02ab9f99d491c0a20f5215797e80590f6fb90f0989b"
+      "sha256": "a0cdcae863ccdfe524b75169d182a7b64231ed5c1eba30d7edf5824ef9e15e9b"
+    },
+    {
+      "path": "bindings.go",
+      "sha256": "ff8e67eae5633a09736babf8f28c840d7d1028e01f184d2ab3b699c1604f9594"
     }
   ],
   "flows": [
     {
       "id": "tab",
       "label": "Tab",
-      "description": "Demo playground, focus on directory, no modal, palette, macro, pending binding or unfinished editor command: Tab runs input.next and focuses notes. A source-backed path, not a recorded run.",
+      "description": "Demo Playground, directory focused in normal mode, default demo rows, no modal, suggestions, macro recording or pending sequence: Tab runs input.next and focuses notes. Setup is shown first; subsequent steps follow the key and rendering. A source snapshot, not a recorded run.",
       "steps": [
         {
+          "id": "setup",
+          "title": "Setup binds Tab on the playground noun",
+          "module": "internal/demo/demo.go",
+          "file": "internal/demo/demo.go",
+          "start": 220,
+          "end": 244,
+          "highlight": [
+            237,
+            238
+          ],
+          "detail": "The demo creates directory, notes and paths under agent, itself under playground (lines 61–85), and registers playground with directory as its initial focus (lines 88–105). bind stores rows on a noun, or on an input instance when the id names one. Tab and Shift-Tab are mode-less playground rows calling input.next; no key switch is involved.",
+          "edge": "After setup and opening Playground, a Tab key enters Update",
+          "expect": [
+            "bind(\"playground\", \"\", \"tab\", \"next\", \"input\", nil)"
+          ]
+        },
+        {
           "id": "update",
-          "title": "Update receives the key",
+          "title": "Update receives Tab",
           "module": "model.go",
           "file": "model.go",
-          "start": 70,
-          "end": 127,
+          "start": 259,
+          "end": 268,
           "highlight": [
-            107,
-            107
+            263,
+            264
           ],
-          "detail": "Bubble Tea delivers a tea.KeyMsg to Model.Update. A single key is wrapped as a MacroKey and handed to dispatchKey; the resulting error becomes the status line.",
-          "edge": "Update passes the key to dispatchKey",
+          "detail": "Bubble Tea v2 delivers tea.KeyPressMsg. Model.Update converts its String() to a MacroKey and calls handleKey. This is the same entry used for other live keys; paste has its own message case.",
+          "edge": "handleKey sends the MacroKey to the shared runtime dispatcher",
           "expect": [
-            "m.dispatchKey("
+            "case tea.KeyPressMsg:",
+            "m.handleKey(MacroKey{Key: v.String()})"
           ]
         },
         {
           "id": "dispatch",
-          "title": "dispatchKey reaches bindings",
+          "title": "handleKey dispatches through the runtime",
           "module": "model.go",
           "file": "model.go",
-          "start": 131,
-          "end": 173,
+          "start": 326,
+          "end": 345,
           "highlight": [
-            163,
-            166
+            328,
+            338
           ],
-          "detail": "Macro, palette, paste and pending field-grammar checks run first. With none of them claiming the key, dispatchKey calls Runtime.HandleBinding.",
-          "edge": "dispatchKey calls HandleBinding with \"tab\"",
+          "detail": "handleKey clears both status tones and calls DispatchOutcome. The runtime expires any old prefix, takes the current focus and mode, and calls dispatchIn (resolve.go:199–209). Macro recording uses a shadow mode there; this example has none. Errors go through the UI sink, and palette state is synchronized afterward.",
+          "edge": "dispatchIn builds the walk for the focused instance",
           "expect": [
-            "r.HandleBinding(key.Key)"
+            "r.DispatchOutcome(key)",
+            "m.Runtime.UI().Error(err.Error())"
+          ]
+        },
+        {
+          "id": "ancestry",
+          "title": "Ancestry follows Instance.Parent",
+          "module": "instance.go",
+          "file": "instance.go",
+          "start": 229,
+          "end": 250,
+          "highlight": [
+            231,
+            243
+          ],
+          "detail": "The focus is an instance id. Ancestry follows Parent links outward, yielding directory, agent, playground, app. The resolver uses this order; Context paths use its reverse and an InputID for an input. This is instance ownership, with no layer overlay or frame context to replace.",
+          "edge": "stack adds the nouns and shared editor fallback to this ancestry",
+          "expect": [
+            "r.Instances[id]",
+            "out = append(out, id)",
+            "id = inst.Parent"
+          ]
+        },
+        {
+          "id": "walk",
+          "title": "Instance ancestry determines the key stack",
+          "module": "resolve.go",
+          "file": "resolve.go",
+          "start": 90,
+          "end": 165,
+          "highlight": [
+            148,
+            164
+          ],
+          "detail": "With directory focused and no modal, the bubbling stack is directory → agent → playground → app → ochazuke.editor. The editor noun is a shared table fallback for writable inputs. walk/walkOf (lines 54–84) prepends an outer-first capture pass unless the base mode is passthrough. Open suggestions could add an inner level; none are open here. A top modal cuts off the page ancestry.",
+          "edge": "No capture row claims this key; bubbling consults each level’s tables",
+          "expect": [
+            "out = append(out, level{inst: inst, noun: noun})",
+            "out = append(out, level{noun: editor})"
           ]
         },
         {
           "id": "match",
-          "title": "HandleBinding scans bindings",
-          "module": "bindings.go",
-          "file": "bindings.go",
-          "start": 94,
-          "end": 152,
+          "title": "The available tab row wins",
+          "module": "resolve.go",
+          "file": "resolve.go",
+          "start": 254,
+          "end": 308,
           "highlight": [
-            108,
-            119
+            281,
+            307
           ],
-          "detail": "With nothing pending the sequence is just \"tab\". HandleBinding compares it against every effective binding: an exact Keys match is remembered, a longer key with this sequence as prefix would set longer.",
-          "edge": "HandleBinding asks the runtime for the effective bindings",
+          "detail": "lookup reads instance rows, then noun tables for the current mode and its inherited tables, plus mode-less rows when nonexclusive. It tests operation availability and row guards; exact keys rank before patterns (lines 377–477). No capture row answers here. The bubbling scan keeps the innermost hit, but waits if a longer applicable sequence exists anywhere before a class hit stops the scan. Here tab has no longer sequence, so the playground row runs input.next.",
+          "edge": "run records the answering level and invokes runRow",
           "expect": [
-            "sequence := key",
-            "r.EffectiveBindings(r.Context())",
-            "binding.Keys == sequence"
+            "r.lookup(lv, base, exclusive, prefix, sequence, key, ev)",
+            "return wait(exact)",
+            "return run(hitLv, hit)"
           ]
         },
         {
-          "id": "effective",
-          "title": "EffectiveBindings overlays layers",
-          "module": "runtime.go",
-          "file": "runtime.go",
-          "start": 302,
-          "end": 325,
+          "id": "run-row",
+          "title": "runRow executes the binding request",
+          "module": "resolve.go",
+          "file": "resolve.go",
+          "start": 533,
+          "end": 590,
           "highlight": [
-            306,
-            317
+            575,
+            589
           ],
-          "detail": "Walks the context path, layer by layer. Mode-less bindings apply first, then bindings for the current mode, so inner layers override outer ones. The playground layer's tab binding (registered at setup in demo.go, mode \"\") is included.",
-          "edge": "The \"tab\" binding is the exact match and no longer sequence exists",
+          "detail": "runRow records the key as the action source, handles one-shot pending modes, chooses the request target and fills any arguments sourced from the key. A missing required argument may open an args form. These requests are complete, so execute sets rowRequest and calls Runtime.Execute at the current focus context, then ExecuteAt canonicalizes aliases and records the outcome.",
+          "edge": "ExecuteAt calls execute for shared validation and handler selection",
           "expect": [
-            "range c.Path",
-            "byKey[b.Keys] = b"
+            "r.rowRequest = true",
+            "r.Execute(q)",
+            "err = execute(q)"
           ]
         },
         {
           "id": "execute",
-          "title": "Exact match executes",
-          "module": "bindings.go",
-          "file": "bindings.go",
-          "start": 94,
-          "end": 152,
-          "highlight": [
-            140,
-            143
-          ],
-          "detail": "Matched and not a prefix of anything longer: any pending state is cancelled and Runtime.Execute runs the binding's Request (verb next, noun input).",
-          "edge": "Execute resolves the request in the current context via ExecuteAt",
-          "expect": [
-            "r.Execute(exact)"
-          ]
-        },
-        {
-          "id": "execute-at",
-          "title": "ExecuteAt finds the handler",
+          "title": "Shared execution reaches input.next",
           "module": "runtime.go",
           "file": "runtime.go",
-          "start": 222,
-          "end": 246,
+          "start": 1000,
+          "end": 1020,
           "highlight": [
-            240,
-            245
+            1015,
+            1020
           ],
-          "detail": "Looks up the operation \"input.next\", validates arguments and context, tries layer action overrides from innermost outward, then falls back to the operation's Run.",
-          "edge": "No layer overrides input.next, so the registered operation Run executes",
+          "detail": "ExecuteAt canonicalizes the request and calls execute. Earlier in execute, the operation and arguments, target, context, availability, subjects and verb checks are resolved. After confirmation handling, ActionFor can supply the innermost noun override; there is none for input.next in this example, so the registered operation’s Run handles it.",
+          "edge": "The registered input.next handler runs",
           "expect": [
-            "Layers[c.Path[i]]",
-            "op.Run(r, c, q.Args)"
+            "r.ActionFor(actions, q.Key())",
+            "return op.Run(r, c, q.Args)"
           ]
         },
         {
           "id": "next-input",
-          "title": "input.next picks the next field",
-          "module": "demo.go",
-          "file": "demo.go",
-          "start": 77,
-          "end": 92,
+          "title": "The demo handler chooses notes",
+          "module": "internal/demo/demo.go",
+          "file": "internal/demo/demo.go",
+          "start": 129,
+          "end": 147,
           "highlight": [
-            89,
-            91
+            132,
+            146
           ],
-          "detail": "Demo operation registered at setup. On the playground page with no modal open, it advances through directory, notes, paths by delta (default 1, wrapping) and calls Runtime.Focus.",
-          "edge": "input.next calls Focus with the chosen input id",
+          "detail": "input.next is a demo operation. It requires Playground with no open modal, locates c.InputID in directory / notes / paths, advances by delta (default 1, wrapping), and calls SetFocus. Starting at directory therefore chooses notes.",
+          "edge": "SetFocus validates notes and moves the runtime’s focus",
           "expect": [
-            "IntArg(a, \"delta\", 1)",
-            "r.Focus(ids[index])"
+            "register(\"next\", \"input\"",
+            "ochazuke.IntArg(a, \"delta\", 1)",
+            "r.SetFocus(ids[index])"
           ]
         },
         {
           "id": "focus",
-          "title": "Focus replaces the top Context",
-          "module": "runtime.go",
-          "file": "runtime.go",
-          "start": 180,
-          "end": 192,
+          "title": "SetFocus updates focus and applies the mode rule",
+          "module": "focus.go",
+          "file": "focus.go",
+          "start": 128,
+          "end": 175,
           "highlight": [
-            185,
-            190
+            164,
+            174
           ],
-          "detail": "Resolves the input's context path, validates it, stores it as the top frame's Context and cancels any pending binding sequence.",
-          "edge": "Call stack unwinds back to Model.Update",
+          "detail": "SetFocus first validates that notes belongs to the current page and is inside the top modal if one exists. setFocus clamps the id, cancels any prefix, assigns Runtime.Focus and calls focusMoved. Moving from directory to the unpinned notes stop resets the base mode to normal (focusMoved, lines 97–113); the input follows that mode.",
+          "edge": "The handler and dispatcher return to Model.Update",
           "expect": [
-            "r.Frames[len(r.Frames)-1].Context",
-            "r.CancelPendingBinding()"
+            "r.CancelPendingBinding()",
+            "r.Focus = id",
+            "r.focusMoved(stop, path, id)"
           ]
         },
         {
           "id": "update-end",
-          "title": "Update returns commands",
+          "title": "Update returns queued commands",
           "module": "model.go",
           "file": "model.go",
-          "start": 70,
-          "end": 127,
+          "start": 269,
+          "end": 307,
           "highlight": [
-            114,
-            126
+            284,
+            307
           ],
-          "detail": "After dispatch Update checks for quit, collects any binding-timeout and picker commands and returns the model. Bubble Tea then renders the model; rendering is separate from Update and not part of this source range.",
-          "edge": "Return to Bubble Tea; its render phase calls View, not Update itself",
+          "detail": "Control returns to Update. It observes ticker state, settles placement notes and checks quit. For this non-quitting key it collects redraw, sequence-timeout, delivery/job and other scheduled commands, then returns tea.Batch. Rendering happens through Bubble Tea’s View phase; neither the handler nor SetFocus calls View.",
+          "edge": "Bubble Tea renders through Model.View and render",
           "expect": [
-            "BindingTimeoutCommand()",
-            "tea.Batch(commands...)"
+            "m.Runtime.BindingTimeoutCommand()",
+            "m.Runtime.PendingCommands()",
+            "return m, tea.Batch(commands...)"
           ]
         },
         {
           "id": "view",
-          "title": "View renders the retained page",
+          "title": "View renders the current page around notes",
           "module": "model.go",
           "file": "model.go",
-          "start": 256,
-          "end": 311,
+          "start": 991,
+          "end": 1022,
           "highlight": [
-            273,
-            275
+            1005,
+            1017
           ],
-          "detail": "Bubble Tea renders the model after Update returns. The same base Frame remains; pageContent reads the updated runtime, so the newly focused input is reflected on screen. View is not called by Focus.",
+          "detail": "Model.View calls render and returns a tea.View with its cursor (lines 947–956). render uses Runtime.Page, not a retained Frame, and calls pageContent to render the registered Playground page. The runtime now focuses notes. keepFocusShown may retarget an undrawn stop and redraw; notes is drawn here, so its focus is retained.",
           "edge": "",
           "expect": [
-            "base := m.Runtime.Frames[0]",
-            "m.pageContent(width, height)"
+            "base := m.Runtime.Page",
+            "content := m.pageContent(pageWidth, pageHeight)",
+            "m.Runtime.keepFocusShown()"
           ]
         }
       ]
@@ -211,184 +267,228 @@
     {
       "id": "modal",
       "label": "Ctrl-N",
-      "description": "Demo playground in normal mode, no open modal or palette, macro, pending binding or unfinished editor command: Ctrl-N opens the draft modal above the retained page. A source-backed path, not a recorded run.",
+      "description": "Demo Playground, directory focused in normal mode, default demo rows, no modal, suggestions, macro recording or pending sequence: Ctrl-N opens draft around the registered dialog input and keeps the page underneath. Setup is shown first. A source snapshot, not a recorded run.",
       "steps": [
         {
+          "id": "setup",
+          "title": "Setup binds Ctrl-N and registers the draft renderer",
+          "module": "internal/demo/demo.go",
+          "file": "internal/demo/demo.go",
+          "start": 237,
+          "end": 246,
+          "highlight": [
+            243,
+            244
+          ],
+          "detail": "The playground noun binds ctrl+n only in normal mode, to modal.push with id=draft and input=dialog. dialog was registered under app (lines 62–85). ModalViews[\"draft\"] is a demo renderer that draws InputBlock for Runtime.ModalFocus (lines 111–124). Neither the page noun nor the renderer creates a frame.",
+          "edge": "On Playground with directory focused in normal mode, Ctrl-N enters Update",
+          "expect": [
+            "bind(\"playground\", \"normal\", \"ctrl+n\", \"push\", \"modal\"",
+            "\"id\": \"draft\", \"input\": \"dialog\""
+          ]
+        },
+        {
           "id": "update",
-          "title": "Update receives the key",
+          "title": "Update receives Ctrl-N",
           "module": "model.go",
           "file": "model.go",
-          "start": 70,
-          "end": 127,
+          "start": 259,
+          "end": 268,
           "highlight": [
-            107,
-            107
+            263,
+            264
           ],
-          "detail": "The tea.KeyMsg for ctrl+n arrives in Model.Update and is passed to dispatchKey.",
-          "edge": "Update passes the key to dispatchKey",
+          "detail": "Bubble Tea v2 delivers tea.KeyPressMsg. Model.Update converts its String() to a MacroKey and calls handleKey. This is the same entry used for other live keys; paste has its own message case.",
+          "edge": "handleKey sends the MacroKey to the shared runtime dispatcher",
           "expect": [
-            "m.dispatchKey("
+            "case tea.KeyPressMsg:",
+            "m.handleKey(MacroKey{Key: v.String()})"
           ]
         },
         {
           "id": "dispatch",
-          "title": "dispatchKey reaches bindings",
+          "title": "handleKey dispatches through the runtime",
           "module": "model.go",
           "file": "model.go",
-          "start": 131,
-          "end": 173,
+          "start": 326,
+          "end": 345,
           "highlight": [
-            163,
-            166
+            328,
+            338
           ],
-          "detail": "No macro, palette or pending field grammar claims the key, so dispatchKey tries Runtime.HandleBinding before falling back to input handling.",
-          "edge": "dispatchKey calls HandleBinding with \"ctrl+n\"",
+          "detail": "handleKey clears both status tones and calls DispatchOutcome. The runtime expires any old prefix, takes the current focus and mode, and calls dispatchIn (resolve.go:199–209). Macro recording uses a shadow mode there; this example has none. Errors go through the UI sink, and palette state is synchronized afterward.",
+          "edge": "dispatchIn builds the walk for the focused instance",
           "expect": [
-            "r.HandleBinding(key.Key)"
+            "r.DispatchOutcome(key)",
+            "m.Runtime.UI().Error(err.Error())"
+          ]
+        },
+        {
+          "id": "walk",
+          "title": "Instance ancestry determines the key stack",
+          "module": "resolve.go",
+          "file": "resolve.go",
+          "start": 90,
+          "end": 165,
+          "highlight": [
+            148,
+            164
+          ],
+          "detail": "With directory focused and no modal, the bubbling stack is directory → agent → playground → app → ochazuke.editor. The editor noun is a shared table fallback for writable inputs. walk/walkOf (lines 54–84) prepends an outer-first capture pass unless the base mode is passthrough. Open suggestions could add an inner level; none are open here. A top modal cuts off the page ancestry.",
+          "edge": "No capture row claims this key; bubbling consults each level’s tables",
+          "expect": [
+            "out = append(out, level{inst: inst, noun: noun})",
+            "out = append(out, level{noun: editor})"
           ]
         },
         {
           "id": "match",
-          "title": "HandleBinding scans bindings",
-          "module": "bindings.go",
-          "file": "bindings.go",
-          "start": 94,
-          "end": 152,
+          "title": "The available ctrl+n row wins",
+          "module": "resolve.go",
+          "file": "resolve.go",
+          "start": 254,
+          "end": 308,
           "highlight": [
-            108,
-            119
+            281,
+            307
           ],
-          "detail": "The sequence is \"ctrl+n\". Every effective binding for the current context is compared against it.",
-          "edge": "HandleBinding asks the runtime for the effective bindings",
+          "detail": "lookup reads instance rows, then noun tables for the current mode and its inherited tables, plus mode-less rows when nonexclusive. It tests operation availability and row guards; exact keys rank before patterns (lines 377–477). No capture row answers here. The bubbling scan keeps the innermost hit, but waits if a longer applicable sequence exists anywhere before a class hit stops the scan. Here ctrl+n has no longer sequence, so the playground row runs modal.push.",
+          "edge": "run records the answering level and invokes runRow",
           "expect": [
-            "sequence := key",
-            "r.EffectiveBindings(r.Context())",
-            "binding.Keys == sequence"
+            "r.lookup(lv, base, exclusive, prefix, sequence, key, ev)",
+            "return wait(exact)",
+            "return run(hitLv, hit)"
           ]
         },
         {
-          "id": "effective",
-          "title": "EffectiveBindings applies mode",
-          "module": "runtime.go",
-          "file": "runtime.go",
-          "start": 302,
-          "end": 325,
+          "id": "run-row",
+          "title": "runRow executes the binding request",
+          "module": "resolve.go",
+          "file": "resolve.go",
+          "start": 533,
+          "end": 590,
           "highlight": [
-            306,
-            317
+            575,
+            589
           ],
-          "detail": "The playground layer binds ctrl+n only for mode \"normal\" (demo.go setup). It is included only when Mode(c) is normal; in insert mode this binding is absent.",
-          "edge": "ctrl+n matches exactly and nothing longer shares the prefix",
+          "detail": "runRow records the key as the action source, handles one-shot pending modes, chooses the request target and fills any arguments sourced from the key. A missing required argument may open an args form. These requests are complete, so execute sets rowRequest and calls Runtime.Execute at the current focus context, then ExecuteAt canonicalizes aliases and records the outcome.",
+          "edge": "ExecuteAt calls execute for shared validation and handler selection",
           "expect": [
-            "range c.Path",
-            "b.Mode == mode"
+            "r.rowRequest = true",
+            "r.Execute(q)",
+            "err = execute(q)"
           ]
         },
         {
           "id": "execute",
-          "title": "Exact match executes",
-          "module": "bindings.go",
-          "file": "bindings.go",
-          "start": 94,
-          "end": 152,
-          "highlight": [
-            140,
-            143
-          ],
-          "detail": "Runtime.Execute is called with Request push modal and Args id=draft, input=dialog.",
-          "edge": "Execute resolves the request via ExecuteAt",
-          "expect": [
-            "r.Execute(exact)"
-          ]
-        },
-        {
-          "id": "execute-at",
-          "title": "ExecuteAt finds the handler",
+          "title": "Shared execution reaches ochazuke.modal.push",
           "module": "runtime.go",
           "file": "runtime.go",
-          "start": 222,
-          "end": 246,
+          "start": 1000,
+          "end": 1020,
           "highlight": [
-            240,
-            245
+            1015,
+            1020
           ],
-          "detail": "Looks up \"modal.push\", validates the id and input arguments, then runs the operation (no layer override is assumed here; layer actions are checked first).",
-          "edge": "The modal.push operation Run builds a Frame",
+          "detail": "ExecuteAt canonicalizes the request and calls execute. Earlier in execute, the operation and arguments, target, context, availability, subjects and verb checks are resolved. After confirmation handling, ActionFor can supply the innermost noun override; there is none for ochazuke.modal.push in this example, so the registered operation’s Run handles it.",
+          "edge": "The registered ochazuke.modal.push handler runs",
           "expect": [
-            "Layers[c.Path[i]]",
-            "op.Run(r, c, q.Args)"
+            "r.ActionFor(actions, q.Key())",
+            "return op.Run(r, c, q.Args)"
           ]
         },
         {
           "id": "push-op",
-          "title": "modal.push builds the frame",
+          "title": "modal.push passes a registered input to Push",
           "module": "runtime.go",
           "file": "runtime.go",
-          "start": 409,
-          "end": 417,
+          "start": 1253,
+          "end": 1260,
           "highlight": [
-            410,
-            416
+            1253,
+            1259
           ],
-          "detail": "Built-in operation. It resolves the target input's path from InputPaths and pushes a new Frame whose Context focuses that input.",
-          "edge": "modal.push calls Runtime.Push",
+          "detail": "The framework operation’s canonical noun is ochazuke.modal (modal is its short alias). It checks that dialog is a registered input and calls Push(\"draft\", \"dialog\"), returning the resulting context. No InputPaths lookup or Frame construction remains.",
+          "edge": "Push creates a modal instance and remembers where it opened",
           "expect": [
-            "r.InputPaths[id]",
-            "r.Push(&Frame{"
+            "Noun: \"ochazuke.modal\"",
+            "r.Input(id) == nil",
+            "r.Push(StringArg(a, \"id\", \"\"), id)"
           ]
         },
         {
           "id": "push",
-          "title": "Push adds the frame",
-          "module": "runtime.go",
-          "file": "runtime.go",
-          "start": 193,
-          "end": 212,
+          "title": "Push saves the return place and adopts dialog",
+          "module": "focus.go",
+          "file": "focus.go",
+          "start": 275,
+          "end": 323,
           "highlight": [
-            209,
-            210
+            294,
+            321
           ],
-          "detail": "Rejects an empty or already-open modal id, validates the context, appends the frame (it becomes the active context) and cancels any pending binding sequence.",
-          "edge": "Call stack unwinds back to Model.Update",
+          "detail": "Push rejects an empty or already-open id and an opener beneath another modal. draft does not exist, so it registers an ochazuke.modal instance under app. It cancels pending keys, stores the old focus in Payload.Return and the old base mode in returnMode, then appends draft to the modal stack. Because dialog was outside its subtree, Push saves dialog’s parent and temporarily parents it under draft. setFocus(\"dialog\") applies the normal focus/mode rule and emits the surface-open event. The page remains registered underneath; Pop will restore the borrowed parent and return place.",
+          "edge": "The modal operation, runtime dispatcher and handleKey return to Update",
           "expect": [
-            "append(r.Frames, frame)",
-            "r.CancelPendingBinding()"
+            "inst = &Instance{ID: id, Noun: \"ochazuke.modal\"",
+            "inst.Payload.Return = r.Focus",
+            "r.modals = append(r.modals, id)",
+            "target.Parent = id",
+            "r.setFocus(focus)"
           ]
         },
         {
           "id": "update-end",
-          "title": "Update returns commands",
+          "title": "Update returns queued commands",
           "module": "model.go",
           "file": "model.go",
-          "start": 70,
-          "end": 127,
+          "start": 269,
+          "end": 307,
           "highlight": [
-            114,
-            126
+            284,
+            307
           ],
-          "detail": "Update returns the model plus any timeout or picker commands. Bubble Tea then renders the model; rendering is not part of this source range.",
-          "edge": "Return to Bubble Tea; its render phase calls View",
+          "detail": "Control returns to Update. It observes ticker state, settles placement notes and checks quit. For this non-quitting key it collects redraw, sequence-timeout, delivery/job and other scheduled commands, then returns tea.Batch. Rendering happens through Bubble Tea’s View phase; neither the handler nor SetFocus calls View.",
+          "edge": "Bubble Tea renders through Model.View and render",
           "expect": [
-            "BindingTimeoutCommand()",
-            "tea.Batch(commands...)"
+            "m.Runtime.BindingTimeoutCommand()",
+            "m.Runtime.PendingCommands()",
+            "return m, tea.Batch(commands...)"
+          ]
+        },
+        {
+          "id": "modal-content",
+          "title": "Rendering asks the draft’s ModalView for its body",
+          "module": "model.go",
+          "file": "model.go",
+          "start": 390,
+          "end": 421,
+          "highlight": [
+            392,
+            397
+          ],
+          "detail": "After Update, Model.View calls render. It renders the page with beneath’s saved focus/mode, restores the live modal focus, and walks Runtime.modals. modalContent resolves ModalFocus and dispatches to the registered ModalViews renderer, here the demo’s draft InputBlock. A self-drawing component or plain input is a fallback when no explicit renderer exists.",
+          "edge": "The rendered body is composed over the page shell",
+          "expect": [
+            "focus := m.Runtime.ModalFocus(id)",
+            "m.ModalViews[id].Render(m.Runtime, m.Runtime.Instances[id], width, height)"
           ]
         },
         {
           "id": "view",
-          "title": "View composes the modal",
+          "title": "render composes each modal over the page",
           "module": "model.go",
           "file": "model.go",
-          "start": 256,
-          "end": 311,
+          "start": 1050,
+          "end": 1103,
           "highlight": [
-            295,
-            308
+            1094,
+            1094
           ],
-          "detail": "After rendering the base page, View walks Frames[1:] in order. It obtains each modal's content, applies its viewport, and composes it over the background. The draft frame is now visible above its unchanged parent.",
+          "detail": "render iterates the modal ids in stack order, obtains each body, applies its viewport and builds hints from the modal focus’s binding rows. modalBlock composes draft above the page surface, hiding the cursor beneath it. Subsequent keys resolve within dialog → draft → modal noun → app → editor; the covered playground ancestry is excluded by stack’s modal boundary.",
           "edge": "",
           "expect": [
-            "range m.Runtime.Frames[1:]",
-            "ComposeModal("
+            "surface = m.modalBlock(id, layout, surface.Text, title, body"
           ]
         }
       ]
@@ -396,202 +496,232 @@
     {
       "id": "sequence",
       "label": "g g",
-      "description": "Sandbox configured with g g=go-top and no longer sequence: press g twice within the binding timeout (default 1000 ms). The first key waits; the second executes. This is a source-backed path, not a live key log.",
+      "description": "Sandbox with g g=go-top, normal mode, no competing g binding or longer sequence: press g twice before its configured deadline (CLI default 400 ms). The first key enters a pending prefix mode; the second runs the dummy action. Setup is shown first. A source snapshot, not a live key log.",
       "steps": [
         {
-          "id": "key-msg",
-          "title": "Sandbox Update gets each g",
-          "module": "keybinding.go",
+          "id": "setup",
+          "title": "The sandbox installs a declarative g g row",
+          "module": "cmd/ochazuke/keybinding.go",
           "file": "cmd/ochazuke/keybinding.go",
-          "start": 39,
-          "end": 65,
+          "start": 237,
+          "end": 251,
           "highlight": [
-            61,
-            62
+            239,
+            249
           ],
-          "detail": "In sandbox mode each tea.KeyMsg goes to handleKey. This repeats for the first g and again for the second g; the steps below show the first g first.",
-          "edge": "Update hands the first g to handleKey",
+          "detail": "Setup installs g g=go-top as an app noun row in mode \"\" and registers sandbox.go-top, whose handler writes the latest history result. Assume no competing g row or longer g g sequence, normal mode, and sandbox started. runKeybinding defaults --timeout to 400 ms and assigns Runtime.BindingTimeout (lines 185–207); this host override differs from the framework’s default sequence-timeout of 0 (wait indefinitely).",
+          "edge": "The first g arrives as a Tea key press",
           "expect": [
-            "case tea.KeyMsg",
-            "m.handleKey(msg)"
+            "Verb: action, Noun: \"sandbox\"",
+            "\"ACTION: \" + action",
+            "Define(\"app\").Mode(\"\").Bind(keys, ochazuke.Do(\"sandbox.\"+action))"
+          ]
+        },
+        {
+          "id": "key-msg",
+          "title": "Sandbox Update receives the first g",
+          "module": "cmd/ochazuke/keybinding.go",
+          "file": "cmd/ochazuke/keybinding.go",
+          "start": 49,
+          "end": 69,
+          "highlight": [
+            59,
+            67
+          ],
+          "detail": "Once sandbox mode is active, Update forwards each tea.KeyPressMsg to handleKey(msg.String(), false). Paste is logged separately and is not dispatched. Timeout messages go to handleTimeout. This trace follows two g presses before the 400 ms deadline, not a timeout.",
+          "edge": "handleKey logs g and invokes the same runtime used by Model",
+          "expect": [
+            "case tea.KeyPressMsg:",
+            "m.handleKey(msg.String(), false)"
           ]
         },
         {
           "id": "first-g",
-          "title": "First g enters HandleBinding",
-          "module": "keybinding.go",
+          "title": "handleKey records g and calls HandleBinding",
+          "module": "cmd/ochazuke/keybinding.go",
           "file": "cmd/ochazuke/keybinding.go",
-          "start": 69,
-          "end": 103,
+          "start": 72,
+          "end": 95,
           "highlight": [
-            93,
-            93
+            85,
+            94
           ],
-          "detail": "After recording the key in the history, handleKey passes msg.String() (\"g\") to Runtime.HandleBinding.",
-          "edge": "HandleBinding sees \"g\" as a strict prefix of \"g g\"",
+          "detail": "The sandbox adds g to its bounded history and initializes its result to unmatched. HandleBinding is a named-key adapter to Dispatch(MacroKey{Key: key}); Dispatch uses DispatchOutcome. On return, a nonempty Runtime.Pending displays pending: g, and the host returns BindingTimeoutCommand to Bubble Tea.",
+          "edge": "HandleBinding delegates to DispatchOutcome and dispatchIn",
           "expect": [
-            "m.runtime.HandleBinding(msg.String())"
+            "m.runtime.HandleBinding(key)",
+            "m.runtime.Pending != \"\"",
+            "m.runtime.BindingTimeoutCommand()"
           ]
         },
         {
-          "id": "prefix-wait",
-          "title": "Prefix: set Pending and deadline",
-          "module": "bindings.go",
-          "file": "bindings.go",
-          "start": 94,
-          "end": 152,
+          "id": "dispatch",
+          "title": "DispatchOutcome resolves the current mode and focus",
+          "module": "resolve.go",
+          "file": "resolve.go",
+          "start": 188,
+          "end": 239,
           "highlight": [
-            121,
-            138
+            199,
+            222
           ],
-          "detail": "A longer binding shares the prefix, so nothing executes. The runtime saves the context, sets Pending to \"g\", bumps bindingVersion and stores a deadline of now + BindingTimeout (default 1000ms). If \"g\" were also bound, it would be saved as the fallback.",
-          "edge": "Control returns to handleKey with Pending set",
+          "detail": "DispatchOutcome expires a deadline that already passed, captures Runtime.Focus and Runtime.Mode, and enters dispatchIn. On the first g no prefix is held, so sequence is g. On the second g, baseAndPrefix splits the pending normal g mode and joins its held g with the new key to form g g. No macro is recording.",
+          "edge": "lookup examines the app noun’s mode-less g g row",
           "expect": [
-            "longer",
+            "r.expirePrefix()",
+            "return r.dispatchIn(focus, mode, key)",
+            "sequence = prefix + \" \" + key.Key"
+          ]
+        },
+        {
+          "id": "lookup",
+          "title": "lookup finds a longer available sequence",
+          "module": "resolve.go",
+          "file": "resolve.go",
+          "start": 414,
+          "end": 477,
+          "highlight": [
+            432,
+            450
+          ],
+          "detail": "The instance and noun tables include mode-less rows when nonexclusive. lookup ignores unbound rows, rows from the wrong capture pass, unavailable requests and false guards. g is a strict prefix of the sandbox’s g g row, so look.longer becomes true. A generated prefix-cancel row alone never causes a wait. There is no completed g match in this setup.",
+          "edge": "The bubbling scan sees look.longer and waits",
+          "expect": [
+            "strings.HasPrefix(row.Keys, sequence+\" \")",
+            "!isPrefixCancel(*row)",
+            "look.longer = true"
+          ]
+        },
+        {
+          "id": "wait",
+          "title": "The whole-stack scan chooses to wait",
+          "module": "resolve.go",
+          "file": "resolve.go",
+          "start": 254,
+          "end": 308,
+          "highlight": [
+            301,
+            304
+          ],
+          "detail": "The capture pass has no hit. The bubbling pass collects look results across the stack, retaining an innermost completed match if one exists. A longer applicable sequence makes look.waits true and calls wait(exact), rather than immediately running a shorter hit. Here exact is nil; wait calls enterPrefix(\"normal\", \"g\", nil).",
+          "edge": "enterPrefix represents the sequence as a pending mode",
+          "expect": [
+            "if look.waits(ownExact, drop)",
+            "return wait(exact)"
+          ]
+        },
+        {
+          "id": "prefix",
+          "title": "The prefix mode holds g and arms its deadline",
+          "module": "resolve.go",
+          "file": "resolve.go",
+          "start": 1050,
+          "end": 1069,
+          "highlight": [
+            1052,
+            1068
+          ],
+          "detail": "enterPrefix calls enterMode with name normal g and Payload.Prefix=g; the saved Request is nil. enterMode (lines 654–662) saves the base mode in Payload.Return and calls armPrefix. armPrefix publishes Runtime.Pending=g, increments the timer generation and records the focus/mode. In this sandbox the positive BindingTimeout override supplies a 400 ms deadline.",
+          "edge": "handleKey sees Pending=g and returns the timer command",
+          "expect": [
+            "r.enterMode(base+\" \"+sequence",
             "r.Pending = sequence",
-            "r.pendingBinding.deadline"
-          ]
-        },
-        {
-          "id": "record-pending",
-          "title": "Sandbox shows pending",
-          "module": "keybinding.go",
-          "file": "cmd/ochazuke/keybinding.go",
-          "start": 69,
-          "end": 103,
-          "highlight": [
-            97,
-            102
-          ],
-          "detail": "Because Runtime.Pending is not empty, the key history row says \"pending: g\". handleKey then asks the runtime for its timeout command.",
-          "edge": "handleKey requests the timeout command",
-          "expect": [
-            "\"pending: \" + m.runtime.Pending",
-            "BindingTimeoutCommand()"
+            "r.bindingVersion++",
+            "r.prefix.deadline = time.Now().Add(timeout)"
           ]
         },
         {
           "id": "timer",
-          "title": "Timeout command is scheduled",
+          "title": "The custom Tea host schedules the timeout once",
           "module": "bindings.go",
           "file": "bindings.go",
-          "start": 56,
-          "end": 73,
+          "start": 28,
+          "end": 49,
           "highlight": [
-            67,
-            72
+            32,
+            48
           ],
-          "detail": "Returns a Tea command that sleeps until the deadline then sends BindingTimeoutMsg tagged with the current version. If no further key arrives it resolves the sequence; a later key bumps the version so that message becomes stale.",
-          "edge": "A second g arrives before the deadline",
+          "detail": "BindingTimeoutCommand returns a command for a pending, still-current prefix with a finite deadline. It marks it scheduled and captures the current generation. If the second g completes the sequence first, leaving the prefix invalidates this timer; HandleBindingTimeout ignores the stale generation. With the framework’s default infinite wait this method schedules nothing.",
+          "edge": "Before the deadline, the second g repeats Update → handleKey → DispatchOutcome",
           "expect": [
-            "time.Sleep(time.Until(deadline))",
-            "BindingTimeoutMsg{"
+            "r.prefix.scheduled || r.prefix.forever",
+            "deadline, version := r.prefix.deadline, r.bindingVersion",
+            "BindingTimeoutMsg{runtime: r, version: version}"
           ]
         },
         {
           "id": "second-g",
-          "title": "Second g extends the sequence",
-          "module": "bindings.go",
-          "file": "bindings.go",
-          "start": 94,
-          "end": 152,
+          "title": "The second g completes g g and leaves the prefix",
+          "module": "resolve.go",
+          "file": "resolve.go",
+          "start": 216,
+          "end": 308,
           "highlight": [
-            108,
-            119
+            241,
+            252
           ],
-          "detail": "HandleBinding runs again. Pending is \"g\", so the sequence is \"g g\" and is compared with the effective bindings. The bound key \"g g\" matches exactly and nothing longer exists.",
-          "edge": "Exact match on \"g g\"",
+          "detail": "The same dispatchIn entry joins the held prefix and new key into g g (lines 218–222). lookup now finds the exact sandbox row, with no longer sequence. The scan calls run(hitLv, hit) (lines 301–307). run leaves the prefix before executing the row, restores the base mode and invalidates the first g’s timer. It then calls runRow with the answering app level.",
+          "edge": "runRow executes sandbox.go-top through the shared operation path",
           "expect": [
-            "r.Pending + \" \" + key",
-            "binding.Keys == sequence"
+            "if prefix != \"\"",
+            "r.leavePrefix()",
+            "return outcome, r.runRow(lv, *hit, ev)"
           ]
         },
         {
-          "id": "execute",
-          "title": "Exact match executes",
-          "module": "bindings.go",
-          "file": "bindings.go",
-          "start": 94,
-          "end": 152,
+          "id": "run-row",
+          "title": "runRow executes the binding request",
+          "module": "resolve.go",
+          "file": "resolve.go",
+          "start": 533,
+          "end": 590,
           "highlight": [
-            140,
-            143
+            575,
+            589
           ],
-          "detail": "The pending state is cancelled and the matched Request is executed through Runtime.Execute.",
-          "edge": "Execute resolves the request via ExecuteAt",
+          "detail": "runRow records the key as the action source, handles one-shot pending modes, chooses the request target and fills any arguments sourced from the key. A missing required argument may open an args form. These requests are complete, so execute sets rowRequest and calls Runtime.Execute at the current focus context, then ExecuteAt canonicalizes aliases and records the outcome.",
+          "edge": "ExecuteAt calls execute for shared validation and handler selection",
           "expect": [
-            "r.CancelPendingBinding()",
-            "r.Execute(exact)"
+            "r.rowRequest = true",
+            "r.Execute(q)",
+            "err = execute(q)"
           ]
         },
         {
-          "id": "execute-at",
-          "title": "ExecuteAt runs the operation",
-          "module": "runtime.go",
-          "file": "runtime.go",
-          "start": 222,
-          "end": 246,
-          "highlight": [
-            245,
-            245
-          ],
-          "detail": "Finds the sandbox operation by key, validates it and, with no layer action override, calls its Run.",
-          "edge": "Run is the closure installed for this binding",
-          "expect": [
-            "op.Run(r, c, q.Args)"
-          ]
-        },
-        {
-          "id": "sandbox-op",
-          "title": "Sandbox operation records action",
-          "module": "keybinding.go",
+          "id": "action",
+          "title": "sandbox.go-top records ACTION: go-top",
+          "module": "cmd/ochazuke/keybinding.go",
           "file": "cmd/ochazuke/keybinding.go",
-          "start": 230,
-          "end": 256,
+          "start": 237,
+          "end": 251,
           "highlight": [
-            234,
-            236
+            239,
+            244
           ],
-          "detail": "installBinding registered this operation when the binding was defined (setup, not part of the keypress). At run time it writes \"ACTION: <name>\" into the latest history row.",
-          "edge": "Execution returns to handleKey",
+          "detail": "Execute → ExecuteAt → execute validate the request and call the registered operation’s Run (runtime.go:857–1020). This sandbox handler changes no editor cursor: go-top is a user-selected label for a dummy action. It writes ACTION: go-top to the second g’s history slot and returns the action name. handleKey keeps this result because Pending is now empty and the slot is no longer unmatched.",
+          "edge": "Update returns; Bubble Tea renders the sandbox result",
           "expect": [
-            "m.results[(m.count-1)%keyHistorySize]"
-          ]
-        },
-        {
-          "id": "result",
-          "title": "handleKey reports the outcome",
-          "module": "keybinding.go",
-          "file": "cmd/ochazuke/keybinding.go",
-          "start": 69,
-          "end": 103,
-          "highlight": [
-            94,
-            102
-          ],
-          "detail": "No error and nothing pending, so the ACTION row stays. If the second key never came, HandleBindingTimeout would clear this incomplete prefix and report sequence timed out. With an additional shorter binding, a saved fallback could instead execute and produce an ACTION row.",
-          "edge": "Return to Bubble Tea; the sandbox's own View renders the history",
-          "expect": [
-            "switch {",
-            "return m.runtime.BindingTimeoutCommand()"
+            "m.results[(m.count-1)%keyHistorySize] = \"ACTION: \" + action",
+            "return action, nil"
           ]
         },
         {
           "id": "view",
-          "title": "Sandbox View displays the result",
-          "module": "keybinding.go",
+          "title": "The sandbox renders its latest key and history",
+          "module": "cmd/ochazuke/keybinding.go",
           "file": "cmd/ochazuke/keybinding.go",
-          "start": 133,
-          "end": 176,
+          "start": 153,
+          "end": 182,
           "highlight": [
-            145,
-            158
+            153,
+            168
           ],
-          "detail": "The sandbox has its own View rather than Model.View. It displays the latest key and action result alongside recent history and the configured effective bindings.",
+          "detail": "The sandbox’s own View creates a tea.View from render (lines 125–128). render shows the latest quoted key and its ACTION result, the configured runtime timeout, effective sandbox bindings, and the history newest first. The first g remains pending: g in history; the second g shows ACTION: go-top. This is a source-backed example, not a recorded key log.",
           "edge": "",
           "expect": [
-            "m.results[(m.count-1)%keyHistorySize]",
-            "m.runtime.EffectiveBindings(m.runtime.Context())"
+            "m.history[last]",
+            "outcome(m.results[last])",
+            "m.runtime.BindingTimeout.String()"
           ]
         }
       ]
