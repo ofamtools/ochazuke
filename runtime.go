@@ -543,6 +543,8 @@ func (r *Runtime) registerFramework() {
 // registered lazily is marked too. Operations registered before it, or by
 // the application at any other time, keep Builtin false. Calls nest. It is
 // for framework packages; an application's own verbs are not builtin.
+// Builtin also records each new operation's effective history kind after
+// the registration batch, including its builder's Rows/State annotations.
 func (r *Runtime) Builtin(register func()) {
 	before := make(map[string]bool, len(r.Operations))
 	for key := range r.Operations {
@@ -552,8 +554,11 @@ func (r *Runtime) Builtin(register func()) {
 	defer func() { r.builtinDepth-- }()
 	register()
 	for key, op := range r.Operations {
-		if !before[key] && !op.Builtin {
+		if !before[key] {
 			op.Builtin = true
+			if op.HistoryKind == "" {
+				op.HistoryKind = op.HistoryKindOf()
+			}
 			r.Operations[key] = op
 		}
 	}
