@@ -41,6 +41,10 @@ const (
 	HelpPendingSetting = "help.pending-modes"
 )
 
+// helpTableModeMax caps the table view's mode columns when
+// help.operation-max is 0.
+const helpTableModeMax = 24
+
 // helpViews is the order S and tab cycle in (shift+tab backwards).
 var helpViews = []string{HelpHere, HelpPick, HelpTable}
 
@@ -233,7 +237,7 @@ func (h *helpState) show() error {
 		// its mode columns.
 		var keys []HelpKey
 		h.modes, keys = r.HelpTable(h.at(), r.helpFlag(HelpPendingSetting, false))
-		list, err := r.AddList(helpListID, helpTableItems(h.r.DisplayNoun(h.noun), h.modes, keys), Parent(helpID), Columns(helpTableColumns(h.modes)...))
+		list, err := r.AddList(helpListID, helpTableItems(h.r.DisplayNoun(h.noun), h.modes, keys), Parent(helpID), Columns(helpTableColumns(h.modes, r.helpInt(HelpOperationMaxSetting, 32))...))
 		if err != nil {
 			return err
 		}
@@ -241,7 +245,7 @@ func (h *helpState) show() error {
 	default:
 		nodes, collapsed = helpNodes(h.here)
 	}
-	tree, err := r.AddTree(helpTreeID, nil, Parent(helpID), Columns(helpColumns...))
+	tree, err := r.AddTree(helpTreeID, nil, Parent(helpID), Columns(r.helpColumns()...))
 	if err != nil {
 		return err
 	}
@@ -272,7 +276,7 @@ func (h *helpState) refreshBindings() error {
 		if list := r.List(helpListID); list != nil {
 			var keys []HelpKey
 			h.modes, keys = r.HelpTable(h.at(), r.helpFlag(HelpPendingSetting, false))
-			list.SetColumns(helpTableColumns(h.modes)...)
+			list.SetColumns(helpTableColumns(h.modes, r.helpInt(HelpOperationMaxSetting, 32))...)
 			return list.SetItems(helpTableItems(r.DisplayNoun(h.noun), h.modes, keys))
 		}
 		return nil
@@ -562,11 +566,17 @@ func (r *Runtime) HelpTable(place NounPlace, pending bool) ([]string, []HelpKey)
 
 // helpTableColumns are the table view's columns: the key, kept when the
 // columns scroll (z l, z h), then a column per mode, later modes dropped
-// first when narrow.
-func helpTableColumns(modes []string) []Column {
+// first when narrow. A mode's cells are operations, so opMax
+// (help.operation-max) caps them as it caps the operation column; 0 keeps
+// helpTableModeMax.
+func helpTableColumns(modes []string, opMax int) []Column {
+	limit := helpTableModeMax
+	if opMax > 0 {
+		limit = opMax
+	}
 	cols := []Column{{Title: "key"}}
 	for i, mode := range modes {
-		cols = append(cols, Column{Title: mode, Max: 24, Priority: i + 1})
+		cols = append(cols, Column{Title: mode, Max: limit, Priority: i + 1})
 	}
 	return cols
 }

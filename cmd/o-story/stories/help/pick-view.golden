@@ -6,30 +6,30 @@ r|  a1
  |  a2        ╭──────────────────────────────────────────────────────────────────────────────────────────────╮
  |            │ Keys · pick                                                                                  │
  |            │ noun: prompt · mode: insert · place: none                                                    │
- |            │ key                operation           arguments             description                     │
+ |            │ key                operation          arguments             description                      │
  |            │ app                                                                                          │
-R|            │   ctrl+c           app.quit ?                                when no-modal · Exit the        │
-R|            │                                                              application                     │
- |            │   ctrl+space       palette.open                              Open the command line           │
- |            │   ctrl+c           app.quit                                  Exit the application            │
+R|            │   ctrl+c           app.quit ?                               when no-modal · Exit the         │
+R|            │                                                             application                      │
+ |            │   ctrl+space       palette.open                             Open the command line            │
+ |            │   ctrl+c           app.quit                                 Exit the application             │
  |            │ editor                                                                                       │
- |            │   esc              mode.set            mode declared         Set the global interaction mode │
- |            │                                                              (a registered mode, or          │
- |            │                                                              declared: the mode the focus    │
- |            │                                                              declares, normal if none) and   │
- |            │                                                              clear any pending payload       │
- |            │   tab              completion.open ?                         when completion-available ·     │
- |            │                                                              Offer suggestions for the       │
- |            │                                                              trigger token at the cursor now │
- |            │   ctrl+k           input.kill ?        motion line-end       when input-writable · Kill      │
- |            │                                                              preceding WORD/path component,  │
- |            │                                                              readline word before or after,  │
- |            │                                                              or line into shared yank        │
- |            │                                                              history; kills an open select   │
- |            │                                                              range                           │
- |            │   ctrl+u           input.kill ?        motion line-start     when input-writable · Kill      │
- |            │                                                              preceding WORD/path component,  │
- |            │                                                              readline word before or after,  │
+ |            │   esc              mode.set           mode declared         Set the global interaction mode  │
+ |            │                                                             (a registered mode, or declared: │
+ |            │                                                             the mode the focus declares,     │
+ |            │                                                             normal if none) and clear any    │
+ |            │                                                             pending payload                  │
+ |            │   tab              completion.open ?                        when completion-available ·      │
+ |            │                                                             Offer suggestions for the        │
+ |            │                                                             trigger token at the cursor now  │
+ |            │   ctrl+k           input.kill ?       motion line-end       when input-writable · Kill       │
+ |            │                                                             preceding WORD/path component,   │
+ |            │                                                             readline word before or after,   │
+ |            │                                                             or line into shared yank         │
+ |            │                                                             history; kills an open select    │
+ |            │                                                             range                            │
+ |            │   ctrl+u           input.kill ?       motion line-start     when input-writable · Kill       │
+ |            │                                                             preceding WORD/path component,   │
+ |            │                                                             readline word before or after,   │
  |            │ 1–7 / 47                                                                                     │
  |            │ space list.mark · S view · n noun · m mode · esc modal.pop · : palette.open · ? bindings.he… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯

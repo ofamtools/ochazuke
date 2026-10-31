@@ -5,20 +5,20 @@ r|  keep initial
  |  ordinary r╭──────────────────────────────────────────────────────────────────────────────────────────────╮
  |  keep merge│ Keys · here                                                                                  │
  |  keep decor│ /class                                                                       6 of 59  substr │
- |  hidden mer│ key             operation           arguments              description                       │
+ |  hidden mer│ key             operation                      arguments              description            │
  |  keep merge│ movement                                                                                     │
-R|  ordinary t│ ▾ ]                                                        waits for the next key (2 keys)   │
- |  keep merge│   ▸ ] m         list.next-class     class merge            Jump to merge commit (merge)      │
- |  keep final│                 merge commit        steps 1                                                  │
- |            │   ▸ ] r         list.next-class     class refs             Jump to decorated commit (refs)   │
- |            │                 decorated commit    steps 1                                                  │
- |            │ ▾ [                                                        waits for the next key (2 keys)   │
- |            │   ▸ [ m         list.previous-      class merge            Jump to merge commit (merge)      │
- |            │                 class merge commit  steps 1                                                  │
- |            │   ▸ [ r         list.previous-      class refs             Jump to decorated commit (refs)   │
- |            │                 class decorated     steps 1                                                  │
- |            │                 commit                                                                       │
- |            │                                                                                              │
+R|  ordinary t│ ▾ ]                                                                   waits for the next key │
+R|  keep merge│                                                                       (2 keys)               │
+ |  keep final│   ▸ ] m         list.next-class merge commit   class merge            Jump to merge commit   │
+ |            │                                                steps 1                (merge)                │
+ |            │   ▸ ] r         list.next-class decorated      class refs             Jump to decorated      │
+ |            │                 commit                         steps 1                commit (refs)          │
+ |            │ ▾ [                                                                   waits for the next key │
+ |            │                                                                       (2 keys)               │
+ |            │   ▸ [ m         list.previous-class merge      class merge            Jump to merge commit   │
+ |            │                 commit                         steps 1                (merge)                │
+ |            │   ▸ [ r         list.previous-class decorated  class refs             Jump to decorated      │
+ |            │                 commit                         steps 1                commit (refs)          │
  |            │                                                                                              │
  |            │                                                                                              │
  |            │                                                                                              │

@@ -300,9 +300,10 @@ Root package `ochazuke` is flat: 148 source files, 165 test files. Each entry li
 
 ### help.go
 
-- lines: 311 · tests: help_test.go
+- lines: 353 · tests: help_test.go
 - purpose: registerBindingHelp adds bindings.help: a modal listing BindingHelp for the focus it opens over, one row per binding (key, noun.verb, arguments, description)...
-- leans on: noun.go(17), model.go(16), runtime.go(15), instance.go(6)
+- methods: Runtime(2)
+- leans on: noun.go(17), runtime.go(17), model.go(16), table.go(10)
 
 ### help_args.go
 
@@ -327,11 +328,11 @@ Root package `ochazuke` is flat: 148 source files, 165 test files. Each entry li
 
 ### help_views.go
 
-- lines: 757 · tests: help_views_test.go
+- lines: 767 · tests: help_views_test.go
 - purpose: HelpCell is one mode's rows for a key in the help's table view: the first answers, the ones after answer when its guard is false.
 - types: HelpCell, HelpKey
 - methods: Runtime(8), helpState(14)
-- leans on: runtime.go(53), help.go(25), noun.go(25), delivery.go(14)
+- leans on: runtime.go(53), help.go(27), noun.go(25), delivery.go(14)
 
 ### highlight.go
 

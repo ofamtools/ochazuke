@@ -1,0 +1,60 @@
+ |  ◆ o-story                                                      NORMAL
+ |   › page1
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  a
+r|  a1
+ |  a2
+ |
+ |        ╭──────────────────────────────────────────────────────────────╮
+ |        │ Keys · here                                                  │
+ |        │ key           operation            arguments    description  │
+ |        │ demo                                                         │
+R|        │   q           app.quit                          Exit the     │
+R|        │                                                 application  │
+ |        │   r           demo.reset                        Rebuild the  │
+ |        │                                                 story from   │
+ |        │                                                 its file     │
+ |        │   enter       demo.open                         Open the     │
+ |        │                                                 row: attach  │
+ |        │                                                 the fake     │
+ |        │                                                 pane when    │
+ |        │                                                 the story    │
+ |        │                                                 has one for  │
+ |        │                                                 it           │
+ |        │   n           demo.notify                       Add a        │
+ |        │                                                 persistent   │
+ |        │                                                 notice       │
+ |        │                                                 naming the   │
+ |        │                                                 row          │
+ |        │   x           demo.delete                       Remove the   │
+ |        │                                                 row from its │
+ |        │                                                 list         │
+ |        │   T           demo.toggle-                      Toggle the   │
+ |        │               outline-task                      outline task │
+ |        │                                                 under the    │
+ |        │                                                 row between  │
+ |        │                                                 open and     │
+ |        │                                                 done         │
+ |        │   C           demo.choose-column                Choose the   │
+ |        │                                                 column the   │
+ |        │                                                 row sorts by │
+ |        │ list                                                         │
+ |        │   space       list.mark                         Toggle the   │
+ |        │                                                 mark on a    │
+ |        │                                                 row (the     │
+ |        │                                                 selected row │
+ |        │                                                 by default)  │
+ |        │                                                 for fan-out  │
+ |        │                                                 verbs        │
+ |        │   V           list.visual                       Start a      │
+ |        │ 1–9 / 53                                                     │
+ |        │ space list.mark · S view · esc modal.pop · : palette.open ·… │
+ |        ╰──────────────────────────────────────────────────────────────╯
+ |
+ |
+ |
+ |
+ |
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  space list.mark · S view · esc modal.pop · : palette.open · ? bindings.help…
+ |
