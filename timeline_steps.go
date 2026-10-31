@@ -770,7 +770,7 @@ func (t *Timeline) spillDown() bool {
 			return true
 		}
 	}
-	if l.trapped() {
+	if l.trappedAt(EdgeLast) {
 		return false
 	}
 	if _, ok := l.neighbour(1); !ok {
@@ -778,6 +778,24 @@ func (t *Timeline) spillDown() bool {
 	}
 	t.r.setFocus(l.items[l.selected].ID)
 	return l.spill(1)
+}
+
+// stepsAtLastEdge reports whether j inside a card would only spill past
+// the timeline's end (spillDown's last branch): in the body on the last
+// step of the last card, its end showing.
+func (t *Timeline) stepsAtLastEdge() bool {
+	if !t.InBody() {
+		return false
+	}
+	n := len(t.currentSpans())
+	if n == 0 || min(max(t.step, 0), n-1) < n-1 {
+		return false
+	}
+	l := t.list
+	if l.selected < len(l.items)-1 {
+		return false
+	}
+	return !t.drawn() || t.edgeWant(1) == 0
 }
 
 // timelineCard is the timeline and card a focus is on, when it is a card.

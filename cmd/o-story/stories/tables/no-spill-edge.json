@@ -1,0 +1,30 @@
+{
+  "name": "list.no-spill d:last and d:first-col on a table: j at the last row and h at the first column stay; k at the first row and l at the last column still spill",
+  "area": "tables",
+  "settings": [
+    {"name": "list.no-spill", "type": "list", "default": ["d:last", "d:first-col"]}
+  ],
+  "width": 40,
+  "height": 12,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {"id": "x", "rows": 1},
+      {"id": "d", "columns": [{"title": "pane"}, {"title": "state"}],
+       "items": [{"id": "d1", "label": "w", "cells": ["w", "working"]}, {"id": "d2", "label": "v", "cells": ["v", "idle"]}]},
+      {"id": "b", "rows": 1}
+    ],
+    "order": ["x", "d", "b"],
+    "focus": "d1"
+  },
+  "script": ["h", "l", "k", "j", "k", "k"],
+  "expect": [
+    {"after": 1, "focus": "d1"},
+    {"after": 2, "focus": "b1"},
+    {"after": 3, "focus": "d2"},
+    {"after": 4, "focus": "d2"},
+    {"after": 5, "focus": "d1"},
+    {"focus": "x1"}
+  ]
+}

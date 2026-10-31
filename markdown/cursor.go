@@ -18,7 +18,11 @@ func (d *Doc) MoveCursor(delta, count int) error {
 		return err
 	}
 	lineMove := func(delta, count int) error {
-		_, err := d.r.Execute(ochazuke.Request{Noun: "ochazuke.list", Verb: "move", Args: ochazuke.Arguments{"id": d.ListID(), "delta": delta, "steps": count}})
+		q := ochazuke.Request{Noun: "ochazuke.list", Verb: "move", Args: ochazuke.Arguments{"id": d.ListID(), "delta": delta, "steps": count}}
+		if !d.r.Available(q, d.r.Focus, d.r.Mode) {
+			return nil // at an edge the list traps (list.no-spill): it stays
+		}
+		_, err := d.r.Execute(q)
 		return err
 	}
 	if !d.itemCursor() {

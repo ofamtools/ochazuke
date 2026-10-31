@@ -92,6 +92,9 @@ type List struct {
 	// motion is a component's own j/k on the rows (a timeline's cards
 	// scroll by the half-page rule, R3.14); nil moves the list's way.
 	motion func(delta, count int)
+	// motionAtEdge reports whether motion(delta) would only spill (the
+	// component shows all there is on that side); nil: the selection's edge.
+	motionAtEdge func(delta int) bool
 	// undoGroup, when a component under the list keeps an undo stack (a
 	// tree's), starts one undo step for a run over several rows; its end
 	// seals the step (Runtime.undoGroup).
@@ -282,7 +285,7 @@ func (l *List) Move(delta int) {
 // never wrap.
 func (l *List) spill(delta int) bool {
 	inside := l.selected >= 0 && l.selected+delta >= 0 && l.selected+delta < len(l.items)
-	if delta == 0 || inside || l.trapped() || l.visual || !l.Focused() {
+	if delta == 0 || inside || l.trappedAt(rowEdge(delta)) || l.visual || !l.Focused() {
 		return false
 	}
 	step := 1
@@ -304,19 +307,23 @@ func (l *List) spill(delta int) bool {
 	return true
 }
 
-// ListNoSpillSetting is list.no-spill: the ids of lists, trees and
-// timelines whose motions clamp at their edges as NoSpill() does (the
+// ListNoSpillSetting is list.no-spill: the ids of lists, tables, trees
+// and timelines whose motions clamp at their edges as NoSpill() does (the
 // per-user opt-out from the spill, UX-RULES R6.12). An entry ending in *
-// is a prefix.
+// is a prefix; an entry may end in one edge (ID:last, ID:first,
+// ID:first-col, ID:last-col; SpillEdges), else it traps all four.
 const ListNoSpillSetting = "list.no-spill"
 
-// trapped reports whether the list's motions stay inside it instead of
-// spilling to the neighbouring stop: a list made with NoSpill(), or one the
-// list.no-spill setting names (its own id, or the id of the tree or
-// timeline it holds the rows of). Read on every motion, so a settings
-// change applies at once. Every spill path (j/k past an edge, h/l at a
-// table's column edge, a timeline's last step) asks it.
-func (l *List) trapped() bool {
+// trappedAt reports whether the list's motions stay inside it at edge
+// instead of spilling to the neighbouring stop: a list made with
+// NoSpill() (every edge), or one the list.no-spill setting names at that
+// edge or at every edge (its own id, or the id of the tree or timeline it
+// holds the rows of). Read on every motion, so a settings change applies
+// at once. Every spill path (j/k past an edge, h/l at a table's column
+// edge, a timeline's last step) and the availability of the motions at a
+// trapped edge (list-moves, list-column-moves, timeline-step-moves) ask
+// it.
+func (l *List) trappedAt(edge SpillEdge) bool {
 	if l.noSpill {
 		return true
 	}
@@ -329,26 +336,42 @@ func (l *List) trapped() bool {
 			}
 		}
 	}
-	return l.r.noSpillNames(ids...)
+	return l.r.noSpillNames(edge, ids...)
 }
 
-// noSpillNames reports whether the list.no-spill setting names one of ids:
-// an entry is an instance id, or a prefix ending in * (panes/*).
-func (r *Runtime) noSpillNames(ids ...string) bool {
+// noSpillNames reports whether the list.no-spill setting names one of ids
+// at edge: an entry is an instance id or a prefix ending in * (panes/*),
+// with an optional edge suffix (ParseNoSpillEntry).
+func (r *Runtime) noSpillNames(edge SpillEdge, ids ...string) bool {
 	v, _ := r.settingValue(ListNoSpillSetting)
 	names, _ := v.([]string)
-	for _, name := range names {
-		name = strings.TrimSpace(name)
-		if name == "" {
+	for _, entry := range names {
+		name, at := ParseNoSpillEntry(entry)
+		if name == "" || at != "" && at != edge {
 			continue
 		}
 		for _, id := range ids {
-			if prefix, ok := strings.CutSuffix(name, "*"); ok && strings.HasPrefix(id, prefix) || name == id {
+			if noSpillMatches(name, id) {
 				return true
 			}
 		}
 	}
 	return false
+}
+
+// atRowEdge reports whether a list.move of delta would do nothing but
+// spill: the selection is on the edge delta leaves by, and (for a list
+// whose motion is a component's own, a timeline's cards) the component
+// has nothing left to show on that side.
+func (l *List) atRowEdge(delta int) bool {
+	if delta == 0 || l.selected < 0 {
+		return false
+	}
+	if l.motion != nil && !l.visual && l.motionAtEdge != nil {
+		return l.motionAtEdge(delta)
+	}
+	next := l.selected + delta
+	return next < 0 || next >= len(l.items)
 }
 
 // neighbour is the stop after (step 1) or before (step -1) the list in
@@ -806,9 +829,33 @@ func registerLists(r *Runtime) {
 		r.Nouns["ochazuke.list"].Guards = map[string]string{}
 	}
 	r.Nouns["ochazuke.list"].Guards["mark"] = "list-marks"
+	// list-moves: list.move is unavailable where it would only spill past
+	// an edge the list traps (NoSpill, list.no-spill ID:last / ID:first):
+	// the hints and help leave it out there and the key goes on to the
+	// next row bound to it, as any unavailable action's does. A clamped
+	// move (the filter line's) stays available.
+	r.DefineGuard("list-moves", func(r *Runtime, ev KeyEvent) bool {
+		if clamp, _ := ev.Args["clamp"].(bool); clamp {
+			return true
+		}
+		delta := IntArg(ev.Args, "delta", 0)
+		var l *List
+		if id := StringArg(ev.Args, "id", ""); id != "" {
+			l = r.List(id)
+		} else {
+			l = r.focusedList(ev.Focus)
+		}
+		return l == nil || !(l.atRowEdge(delta) && l.trappedAt(rowEdge(delta)))
+	})
+	r.Nouns["ochazuke.list"].Guards["move"] = "list-moves"
 	registerListMotions(r)
 	registerTableCells(r)
 	registerListVisual(r)
 	registerListFilter(r)
 	registerListPropFilter(r)
+	for _, verb := range []string{"ochazuke.list.column", "ochazuke.list.scroll-columns"} {
+		if err := r.AddVerbAvailability(verb, "list-column-moves"); err != nil {
+			panic(err)
+		}
+	}
 }

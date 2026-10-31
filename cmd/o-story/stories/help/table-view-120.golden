@@ -18,8 +18,8 @@ R|            │ 0           .column?                                          
  |            │ ctrl+d      .scroll                                                           .scroll        │
  |            │ ctrl+f      .scroll                                                           .scroll        │
  |            │ ctrl+h                      .filter-keep?                                                    │
- |            │ ctrl+n                      .move                                                            │
- |            │ ctrl+p                      .move                                                            │
+ |            │ ctrl+n                      .move?                                                           │
+ |            │ ctrl+p                      .move?                                                           │
  |            │ ctrl+u      .scroll         .filter                                           .scroll        │
  |            │ 1–14 / 86                                                                                    │
  |            │ ──────────────────────────────────────────────────────────────────────────────────────────── │
