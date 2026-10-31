@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="How Ochazuke applications add actions, register Go handlers, connect configuration, and dispatch requests through the runtime.">
+<meta name="description" content="Extend Ochazuke with binding rows, user actions, nouns, instances, props, stores, asynchronous handlers, events, catalogs and MCP.">
 <title>Ochazuke · Extensibility</title>
 <style>
 :root{--paper:#f3f0e7;--card:#fcfaf4;--ink:#24382f;--muted:#626960;--line:#cccfc0;--green:#284e3c;--accent:#a63d27;--mono:Menlo,Consolas,"Liberation Mono",monospace;--serif:Palatino,"Palatino Linotype",Georgia,serif;--sans:"Avenir Next",Avenir,"Segoe UI",sans-serif}
@@ -54,134 +54,169 @@ footer{padding:28px 0 40px;border-top:1px solid var(--line)}
 </nav>
 <p class="eyebrow">Ochazuke / Application extensions</p>
 <h1>Extensibility</h1>
-<p class="lead">Add behavior to your application without changing Ochazuke itself. Go handlers implement the behavior; configuration connects it to operations and keys.</p>
+<p class="lead">Extend the shared command model through configuration, Go handlers and catalogs. Nouns declare behavior; instances hold components and connect that behavior to focus, mode and delivery.</p>
 <nav class="contents" aria-label="On this page">
-<a href="#extension-model">Code or configuration?</a>
-<a href="#register">A new action</a>
-<a href="#requests">Requests and bindings</a>
-<a href="#dispatch">Runtime dispatch</a>
-<a href="#full-project">Full-project example</a>
-<a href="#boundaries">Current boundaries</a>
+<a href="#extension-model">Code or configuration?</a><a href="#register">A new action</a><a href="#requests">Requests and bindings</a><a href="#dispatch">Runtime dispatch</a><a href="#records">Props and stores</a><a href="#delivery">Async delivery</a><a href="#events">Events and hooks</a><a href="#hosting">Hosting and MCP</a><a href="#full-project">Full-project example</a><a href="#boundaries">Current boundaries</a>
 </nav>
 </header>
 <main>
 <section id="extension-model" aria-labelledby="extension-heading">
 <h2 id="extension-heading">Code or configuration?</h2>
-<p>The framework is extensible through its operation registry. Your application supplies handlers, and the runtime exposes them through the same command system as built-in operations.</p>
-<div class="table-scroll" tabindex="0" role="region" aria-label="Extension options">
-<table>
-<thead><tr><th scope="col">What you want to change</th><th scope="col">What you write</th></tr></thead>
-<tbody>
-<tr><td>Bindings, arguments, modes, and pages or modals using existing renderers</td><td>Application configuration, as demonstrated by <code>examples/full-project</code></td></tr>
-<tr><td>New business logic, integrations, or rendering behavior</td><td>Go code registered with the runtime or application renderer registry</td></tr>
-</tbody>
-</table>
-</div>
-<p>Configuration connects existing behavior. It does not execute scripts or load plugins. The JSON configuration loader in <code>full-project</code> is application code built on the framework's registration APIs.</p>
+<p>Start with an existing verb, setting or catalog capability. The runtime exposes operations through keys, palette, CLI, socket and API; each entrance reads the same metadata and execution checks.</p>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Extension options"><table><thead><tr><th scope="col">Goal</th><th scope="col">Extension point</th></tr></thead><tbody>
+<tr><td>Bind existing behavior or change arguments</td><td>Per-app <code>bindings.json</code>: noun/instance mode rows, named guards, capture, argument sources and unbinds.</td></tr>
+<tr><td>Change declared options or appearance</td><td><code>settings.json</code> and themes; Settings supports file and session values.</td></tr>
+<tr><td>Add an alias or run an external program</td><td>User <code>actions.json</code>: aliases, preset arguments, argv templates or a Base CLI call, parameters and confirmation.</td></tr>
+<tr><td>React to a lifecycle or domain event</td><td><code>hooks.json</code> rows call existing verbs; apps and extensions can declare default hooks.</td></tr>
+<tr><td>Expose records with typed fields</td><td>Go <code>PropSpec</code> and <code>Store</code> handlers; standard verbs and shared forms derive from the schema.</td></tr>
+<tr><td>Add application behavior or rendering</td><td>Go handlers and components; shared lists/tables, trees, timelines, forms, choosers, terminals and text viewers cover common presentation.</td></tr>
+<tr><td>Mount an extension in a host</td><td>Catalog noun/page metadata, namespaced proxy handlers and shared catalog components.</td></tr>
+</tbody></table></div>
+<p>Configuration-defined command actions are implemented. Their argv runs directly, without an implicit shell, as off-loop jobs. This does not load arbitrary Go code into the process. The <a href="../actions.go"><code>Action</code> contract</a> describes templates, timeouts, labels, output parsing and foreground execution.</p>
+<h3>A user action</h3>
+<p>An illustrative <code>actions.json</code> file adds <code>app.hello</code> to the existing app noun:</p>
+<pre tabindex="0" aria-label="User external-command action"><code>[
+  {
+    "noun": "app",
+    "verb": "hello",
+    "description": "Print a greeting",
+    "command": ["printf", "%s\n", "Hello {{name}}"],
+    "parameters": {"name": {"type": "string", "required": true}},
+    "label": "Greeting for {{name}}"
+  }
+]</code></pre>
+<p>On configuration load, the action becomes an application verb visible to bindings, palette, help and catalogs. Its stdout becomes the job result: JSON when parsable, JSON Lines when each line parses, otherwise text. <code>base</code> is the alternative convention for a CLI accepting <code>NOUN VERB --json ARGS</code>; <code>foreground: true</code> hands a program the terminal instead of capturing output.</p>
+<div class="note"><p>Executable commands come only from the user's own action file. Catalogs, socket requests, binding rows and application records cannot supply command definitions. New Go handlers still require rebuilding.</p></div>
+<p>See <a href="../actions.go">actions.go</a>, <a href="../configuration.go">configuration.go</a> and <a href="../settings_session.go">settings_session.go</a>.</p>
 </section>
 <section id="register" aria-labelledby="register-heading">
 <h2 id="register-heading">A new action</h2>
-<p>Your component owns its data and registers operations that act on it. This example belongs inside your application's setup function, where <code>r</code> is an existing <code>*ochazuke.Runtime</code>.</p>
-<pre tabindex="0" aria-label="Go operation registration example"><code>count := 0
-
+<p>A component or application owns its state. Register an <code>AppHandler</code> for domain behavior; it receives <code>Ctx</code> and returns <code>Done</code>, <code>Failed</code> or <code>Pending</code>. This setup fragment uses an existing <code>*ochazuke.Runtime</code> named <code>r</code>:</p>
+<pre tabindex="0" aria-label="Application operation registration"><code>count := 0
 r.Register(ochazuke.Operation{
-	Verb:        "increment",
-	Noun:        "counter",
-	Description: "Increase the counter",
-	Parameters: map[string]ochazuke.Parameter{
-		"by": {Type: "integer"},
-	},
-	Result: "integer",
-	Run: func(
-		_ *ochazuke.Runtime,
-		_ ochazuke.Context,
-		args ochazuke.Arguments,
-	) (any, error) {
-		count += ochazuke.IntArg(args, "by", 1)
-		return count, nil
-	},
+    Noun: "counter", Verb: "increment",
+    Description: "Increase the counter",
+    Parameters: map[string]ochazuke.Parameter{
+        "by": {Type: "integer"},
+    },
+    Result: "integer",
+    App: func(ctx ochazuke.Ctx) ochazuke.Result {
+        count += ochazuke.IntArg(ctx.Args, "by", 1)
+        return ochazuke.Done(count)
+    },
 })</code></pre>
-<p>This registers <code>increment.counter</code> in <code>Runtime.Operations</code>. The handler captures the component's state. Ochazuke's core dispatch code does not need a new case for counters.</p>
-<div class="note"><p>Registering an action makes it callable. It does not create a UI for its state. Your page renderer reads <code>count</code> to display it.</p></div>
-<p>The handler receives the runtime, the resolved context, and validated arguments. It returns a result or an error. In this example, omitting <code>by</code> increments the counter by one.</p>
+<p>This registers <code>counter.increment</code>. <code>r.Define("counter").Verb("increment", handler)</code> is the builder form. A low-level <code>Handler</code> instead receives <code>(*Runtime, Context, Arguments)</code> and returns <code>(any, error)</code>; use it for synchronous interaction operations and noun action overrides.</p>
+<p>Registration does not draw a counter. Use an instance and typed component for addressable UI state, then render it from a page or modal. <code>Instance.Component</code> holds the state, and <code>Parent</code> connects its scope to the focus path. There are no per-component fields to add to Runtime.</p>
+<p>See <a href="../noun.go">noun.go · Define, Verb, Action</a>, <a href="../instance.go">instance.go · Instance</a> and <a href="../delivery.go">delivery.go · AppHandler, Ctx</a>.</p>
 </section>
 <section id="requests" aria-labelledby="requests-heading">
 <h2 id="requests-heading">Requests and bindings</h2>
-<p>A key binding, palette selection, or API caller uses the same request shape. These examples use simplified JavaScript-style data to make the structure visible.</p>
-<pre tabindex="0" aria-label="Request example"><code>{
-	verb: "increment",
-	noun: "counter",
-	args: { by: 5 }
+<p>The request contract names noun, verb, optional target and arguments. These are real JSON examples, though the counter is illustrative application behavior:</p>
+<pre tabindex="0" aria-label="Request JSON"><code>{
+  "noun": "counter",
+  "verb": "increment",
+  "args": {"by": 5}
 }</code></pre>
-<p>A <code>full-project</code> binding can associate that request with a key sequence. This is an example mapping, not a framework default.</p>
-<pre tabindex="0" aria-label="Binding configuration example"><code>{
-	layer: "app",
-	mode: "normal",
-	keys: "g c",
-	request: {
-		verb: "increment",
-		noun: "counter",
-		args: { by: 5 }
-	}
-}</code></pre>
-<p class="caption">Actual JSON configuration requires quoted property names. The <code>layer</code> field selects where the example application's loader installs the binding; the core <code>Binding</code> lives inside that layer.</p>
-<p>Application code can also call the registered operation directly on the runtime's owning event loop:</p>
-<pre tabindex="0" aria-label="Direct Go request example"><code>result, err := r.Execute(ochazuke.Request{
-	Verb: "increment",
-	Noun: "counter",
-	Args: ochazuke.Arguments{"by": 5},
+<p>A flat <code>bindings.json</code> array binds that request in the app noun's normal table. It uses the framework's loader, without requiring the full-project example's application loader:</p>
+<pre tabindex="0" aria-label="Binding JSON"><code>[
+  {
+    "mode": "normal",
+    "noun": "app",
+    "keys": "g c",
+    "request": {
+      "noun": "counter",
+      "verb": "increment",
+      "args": {"by": 5}
+    }
+  }
+]</code></pre>
+<p>The grouped form uses <code>context: "app/normal"</code> and rows with <code>key</code>/<code>action</code>/<code>args</code>. An instance table uses <code>instance</code> instead of <code>noun</code>. Named guards, key patterns and <code>from</code> sources remain data; a row never contains executable handler code. User rows load after application defaults and can override or unbind them.</p>
+<pre tabindex="0" aria-label="Direct Go request"><code>value, err := r.Execute(ochazuke.Request{
+    Noun: "counter", Verb: "increment",
+    Args: ochazuke.Arguments{"by": 5},
 })</code></pre>
-<p>Starting from zero, a successful call returns <code>5</code> and leaves <code>count</code> equal to <code>5</code>. The result and the component state are separate from rendering.</p>
+<p>Called on the owning loop with the counter starting at zero, this returns <code>5</code>. A key and a direct request share operation execution; direct calls do not synthesize key events.</p>
+<p>See <a href="../bindings_file.go">bindings_file.go</a>, <a href="../noun.go">noun.go · Binding</a> and <a href="../default_bindings.go">default_bindings.go</a>.</p>
 </section>
 <section id="dispatch" aria-labelledby="dispatch-heading">
 <h2 id="dispatch-heading">Runtime dispatch</h2>
-<p><code>Runtime.Execute</code> uses the active context and delegates to <code>ExecuteAt</code>. The runtime looks up the operation by <code>noun.verb</code> and validates its arguments before calling a handler.</p>
-<p>After resolving the target and validating the context, <code>ExecuteAt</code> checks <code>Layer.Actions</code> from the deepest active layer toward the application layer. The first matching override handles the request. If no layer overrides it, the runtime calls the operation's registered <code>Run</code> handler.</p>
-<pre tabindex="0" aria-label="Illustrative context and handler lookup"><code>context = {
-	Path: ["app", "project", "editor"],
-	InputID: "notes"
+<p><code>Runtime.Focus</code> is an instance ID. <code>Runtime.Mode</code> is the single mode name plus payload; pending counts, operators and key prefixes live there. <code>Context()</code> derives the path from instance parents. A focus move resets the mode to the destination's declared mode (including pinned modes); page navigation and modal return remember the appropriate base mode.</p>
+<p>For keys, <code>DispatchOutcome</code> checks capture rows outer-first and then bubbles through instance and noun tables inner-first. An input chain includes the shared editor fallback table. Editor motions, Readline keys, counts and operator modes are rows in <code>bindings/editor.json</code>, resolved by this same walk. Named guards allow unavailable rows to fall through. Pending modes are exclusive; multi-key prefixes retain a completed request for timeout or mismatch.</p>
+<p><code>Execute</code> uses the current context and delegates to <code>ExecuteAt</code>. Execution canonicalizes action names and aliases, validates arguments, maps a target through <code>TargetInstance</code>, checks applicability and verb checks, handles confirmation, resolves subjects and dispatches an applicable noun action override or the registered handler. <code>Runtime.ResolveTarget</code> can map foreign record IDs to the instances representing them; an unknown target is refused.</p>
+<pre tabindex="0" aria-label="Illustrative instance ancestry"><code>// Illustrative data, not an additional Context API:
+Instances = {
+  notes:   { Noun: "notes-editor", Parent: "project" },
+  project: { Noun: "workspace", Parent: "app" }
 };
-
-request = { verb: "save", noun: "workspace" };
-
-handlerLookup = [
-	'Layers.editor.Actions["workspace.save"]',
-	'Layers.project.Actions["workspace.save"]',
-	'Layers.app.Actions["workspace.save"]',
-	'Operations["workspace.save"].Run'
-];</code></pre>
-<p>This lets <code>workspace.save</code> behave differently inside an editor without changing the binding. Layer action overrides and key binding overrides are separate mechanisms. A layer action still needs a registered operation and must accept that operation's declared arguments.</p>
-<p>The palette discovers registered operations through the catalog. CLI and socket callers dispatch the same request contract when your application exposes those entry points.</p>
+Focus = "notes";
+// Derived Context.Path: ["app", "project", "notes"]
+// Noun action lookup: notes-editor -> workspace -> app -> default handler</code></pre>
+<p><code>r.Define("notes-editor").Action("workspace.save", handler)</code> installs a context-specific override while that noun is on the instance ancestry. It still needs a registered operation and accepts that operation's schema. Noun action overrides and binding overrides are separate mechanisms.</p>
+<p>See <a href="../resolve.go">resolve.go · DispatchOutcome</a>, <a href="../runtime.go">runtime.go · ExecuteAt, TargetInstance</a> <a href="../instance.go">instance.go · ActionFor</a> and <a href="../focus.go">focus.go · OpenModal, Pop</a>.</p>
+</section>
+<section id="records" aria-labelledby="records-heading">
+<h2 id="records-heading">Props and stores</h2>
+<p>A noun's <code>PropSpec</code> rows describe typed fields, a read-only key, label/owner/archive roles, references, defaults, secrets and availability guards. Its <code>Store</code> supplies Get, List, Create, Patch, Delete and optional Watch handlers. Store kinds are Collection (keyed records), Singleton (one thing) and Instances (live runtime instances).</p>
+<p>The runtime generates supported standard verbs such as get/list/create/set/delete/watch, with <code>patch</code> as an alias of set and further derived verbs where the schema supports them. A prop-shaped get/set/toggle request goes through those same standard verbs. An explicit application verb can replace a generated standard one. A prop and a verb cannot use the same name; key props are read-only, and fallback values affect display only.</p>
+<p>Record editors, argument forms, choices, columns and host catalogs reuse that metadata. <code>RecordSpec</code> supports write-on-change fields or a submit form; applications can use shared lists/tables, outlines, timelines, completion, Settings/About and terminal components before adding custom renderers.</p>
+<p>Watch uses a store's push events when supplied. Otherwise known change requests, job completions and <code>Runtime.Changed</code> trigger relisting and record-hash comparison. It does not poll for arbitrary outside writes.</p>
+<p>See <a href="../props.go">props.go</a>, <a href="../standard_verbs.go">standard_verbs.go</a>, <a href="../standard_watch.go">standard_watch.go</a> and <a href="../record_editor.go">record_editor.go</a>.</p>
+</section>
+<section id="delivery" aria-labelledby="delivery-heading">
+<h2 id="delivery-heading">Async work belongs to an instance</h2>
+<p>The handler's synchronous part runs on the loop. Return <code>Pending</code> for I/O or other slow work, capturing the values it needs before leaving the loop. This handler body assumes <code>load</code> and <code>apply</code> are application functions and imports the standard <code>context</code> package:</p>
+<pre tabindex="0" aria-label="Pending application work"><code>query := ochazuke.StringArg(ctx.Args, "query", "")
+return ochazuke.Pending(func(workCtx context.Context) (any, error) {
+    return load(workCtx, query)
+}).Replacing("search").Then(func(current ochazuke.Ctx, value any, err error) {
+    // Back on the loop, only while this ticket is current.
+    apply(current, value, err)
+})</code></pre>
+<p>A <code>Ticket{Owner, Job, Slot}</code> identifies the job. Empty slot accumulates independent completions; <code>Replacing</code> cancels older work in the owner's slot. <code>ReplacingAt</code> shares a slot across descendants of a specified ancestor while preserving the requesting owner. Closing an owner cancels its jobs; stale completions never run Then.</p>
+<p>A custom <code>Instance.Component</code> can implement <code>HandleMessage</code>, <code>PendingCommand</code> and <code>Close</code>. Runtime delivers messages and drains component commands for the adapter. Application code need not add another component list or key switch to Model.</p>
+<p>Cancellation can prevent applying obsolete results; it cannot roll back external side effects. Do not read or mutate live Runtime state from workers. See <a href="../delivery.go">delivery.go</a> and <a href="../foreground.go">foreground.go</a>.</p>
+</section>
+<section id="events" aria-labelledby="events-heading">
+<h2 id="events-heading">Events call verbs through hook rows</h2>
+<p><code>DeclareEvent</code> publishes a schema and <code>Emit</code> queues a firing. Built-in events are <code>surface.opened</code>, <code>surface.left</code> and <code>app.quitting</code>. Surface events count change verbs and the nouns changed while that surface was open.</p>
+<pre tabindex="0" aria-label="Illustrative hook JSON"><code>[
+  {
+    "on": "surface.left",
+    "where": {"changed": "task"},
+    "do": "tasks-git.sync",
+    "from": {"changes": "changes"}
+  }
+]</code></pre>
+<p>This row assumes the application registered <code>tasks-git.sync</code>. Each application owns its own <code>hooks.json</code>; app and catalog extension defaults merge before user rows. <code>where</code> matches event fields and <code>from</code> supplies arguments. Hook execution uses registered verbs, with a bounded event chain. Hook writes are excluded from surface change counters; <code>hooks.enabled</code> turns dispatch off.</p>
+<p>See <a href="../events.go">events.go</a>, <a href="../hooks.go">hooks.go</a> and <a href="../cli/hooks.go">cli/hooks.go</a>.</p>
+</section>
+<section id="hosting" aria-labelledby="hosting-heading">
+<h2 id="hosting-heading">Catalog hosting and MCP</h2>
+<p>The <code>cli</code> package publishes <code>CatalogDoc</code> metadata for nouns, verbs, props, pages and sources. <code>MountNouns</code> registers host names and proxy handlers through <code>HostMount</code>. Extension namespaces keep the host and its extensions separate; for example, an extension's <code>doc</code> may become <code>json.doc</code>. Shared catalog page and detail renderers consume the declared data.</p>
+<p>Mounting a catalog does not load Go code. The host owns local focus, mode, instances and rendering state; proxy calls reach the extension's records and checks. Guards only the extension understands remain enforced at the extension. A host supplies target resolution/reveal behavior when a foreign record must become a live row instance.</p>
+<p><code>cli.Shell</code> supports headless requests over the same runtime. <code>Shell.NewMCPServer</code> creates a sequential stdio JSON-RPC backend with fixed <code>catalog</code>, <code>describe</code>, <code>run</code> and <code>state</code> tools, plus optional aliases. The backend retains its in-process runtime across calls and does not attach to a running TUI. Family tools use the single mtm MCP gateway for their mounted verbs.</p>
+<h3>Advisory actor identity</h3>
+<p><code>Actor</code> identifies owner, agent or unknown requests for attribution and policy. MCP binds an agent actor once from startup context; tool arguments cannot supply that identity. <code>Ctx.Actor()</code>, request history and nested jobs retain attribution; agent-right rules and verb checks can allow, ask or refuse. Identity is advisory, not authentication. A terminal pane alone does not imply an agent, and returned record/extension text remains data.</p>
+<p>See <a href="../cli/catalog.go">cli/catalog.go</a>, <a href="../cli/host_mount.go">cli/host_mount.go</a>, <a href="../cli/page.go">cli/page.go</a>, <a href="../cli/mcp_backend.go">cli/mcp_backend.go</a>, <a href="../cli/mcp/mcp.go">cli/mcp</a> and <a href="../actor.go">actor.go</a>.</p>
 </section>
 <section id="full-project" aria-labelledby="example-heading">
 <h2 id="example-heading">The full-project example</h2>
-<p>The example application keeps implementation, declarations, and bindings in separate files:</p>
-<ul>
-<li><a href="../examples/full-project/actions.go"><code>actions.go</code></a> contains <code>handlerRegistry</code>, the application's Go handler map.</li>
-<li><a href="../examples/full-project/config/actions.json"><code>config/actions.json</code></a> declares operation names, parameters, and handler names.</li>
-<li><code>registerActions</code> in <code>actions.go</code> resolves those names and calls <code>Runtime.Register</code>. Entries with a layer attach an override instead.</li>
-<li><a href="../examples/full-project/config/bindings.json"><code>config/bindings.json</code></a> connects key sequences to operation requests.</li>
-</ul>
-<p>To add new behavior in that application, add a Go handler to <code>handlerRegistry</code> and declare an action that names it. Add a binding if you want a keyboard shortcut. A plain Ochazuke application can register directly, as the counter example does, without adopting this JSON loader.</p>
-<h3>A working application action</h3>
-<p>The existing <code>workspace.greet</code> operation follows this registration path. Run it from the repository root:</p>
-<pre tabindex="0" aria-label="Example action command"><code>go run ./examples/full-project workspace greet --json '{"name":"Ada","repeat":2}'</code></pre>
-<p>Output:</p>
-<pre tabindex="0" aria-label="Example action result"><code>"Hello, Ada! Hello, Ada!"</code></pre>
+<p>The <a href="../examples/full-project/actions.go">example's actions.go</a> keeps Go handlers in <code>handlerRegistry</code>. <a href="../examples/full-project/config/actions.json">config/actions.json</a> declares names, schemas and handler references. <code>registerActions</code> registers operations first, then installs entries with <code>On</code> as noun action overrides. <a href="../examples/full-project/config/bindings.json">config/bindings.json</a> supplies key requests.</p>
+<p>This example's configuration loader is application code for assembling its demo. Its handler-name declarations are distinct from the framework's per-user <code>actions.json</code> command/alias format. A plain application can use the runtime and noun-builder APIs directly, and use the standard config loader for user customization.</p>
 </section>
 <section id="boundaries" aria-labelledby="boundaries-heading">
 <h2 id="boundaries-heading">Current boundaries</h2>
 <ul>
-<li>New Go handlers require rebuilding the application. Hot-loaded scripts, a plugin loader, and configuration-defined external-command actions are not implemented.</li>
-<li>Handlers run synchronously on the owning event loop. Slow work must not block that loop. Background work should return results to the loop rather than mutate runtime state from another goroutine.</li>
-<li><code>Runtime.Register</code> rejects invalid or duplicate registrations with a panic. Register each operation once; use layer actions for context-specific overrides.</li>
+<li>Runtime and live components belong to one event loop. New Go handlers/renderers require rebuilding; external-command user actions do not.</li>
+<li>Normal duplicate registrations are refused. The builder can install interaction overrides, and an application verb can replace a generated standard verb. Keep each action's schema consistent across overrides.</li>
+<li>Shared focus/mode and instance ancestry determine routing. Creating a modal does not copy a page or preserve removed modal children indefinitely.</li>
+<li>Local Unix sockets and stdio MCP are distinct transports. The headless runtime has no owner's live screen or selection; applicability depends on the backend.</li>
+<li>Actor attribution is advisory. Catalog declarations, event fields and app data do not authenticate callers or authorize arbitrary executable command definitions.</li>
+<li>Rendering callbacks are Go functions. Catalogs configure supported UI modules, not arbitrary in-process plugins.</li>
 </ul>
-<p>The extension point is the operation contract: a name, an argument schema, and a handler. Your application retains ownership of its domain data and presentation.</p>
+<p>For ownership examples and interactive journeys, return to the <a href="architecture.html">architecture field guide</a>. The <a href="api.html">generated Go API</a> covers the root package; subpackage contracts remain in their own source and Go documentation.</p>
 </section>
 </main>
-<footer>
-<p>Source: <a href="../runtime.go"><code>runtime.go</code></a> and <a href="../examples/full-project/actions.go"><code>examples/full-project/actions.go</code></a>. The counter and binding snippets are illustrative, not built-in operations or live runtime state.</p>
-<nav aria-label="Related documentation"><a href="architecture-map.html">Back to the architecture map</a><a href="actions.html">Action catalog</a><a href="api.html">Go API</a><a href="transport.html">CLI &amp; socket</a></nav>
-</footer>
+<footer><p>Authored against the current runtime, noun/instance, delivery and cli contracts. Examples are illustrative application behavior, not built-in operations or live runtime state.</p><nav aria-label="Related documentation"><a href="architecture.html">Architecture guide</a><a href="architecture-map.html">Architecture map</a><a href="actions.html">Action catalog</a><a href="api.html">Go API</a><a href="transport.html">CLI, socket and MCP</a></nav></footer>
 </body>
 </html>

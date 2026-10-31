@@ -25,35 +25,35 @@ go get ofam.dev/ochazuke@latest
 
 ## Explore the architecture
 
-Open the [interactive architecture field guide](docs/architecture.html) locally:
+Open [docs/architecture.html](docs/architecture.html) locally. No server, install or internet connection is needed. Search the components by responsibility or source file, follow keyboard/CLI/picker/modal/store/hook/host journeys, and try the modal ownership lab. It illustrates retained parent inputs, modal subtree removal and shared focus/mode; it does not run a Go backend.
+
+The current model is **nouns, instances and components**: nouns share behavior, instances provide identity and parent links, and typed components hold local state. Runtime owns one focus, mode and current page; the shared resolver handles application and editor binding rows. The [extension guide](docs/extensibility.html) covers user command actions, props/stores, asynchronous jobs, events/hooks, catalog hosting, headless requests, MCP and advisory actor attribution.
+
+The [architecture map](docs/architecture-map.html) supports node exploration and light/dark themes; [architecture-map.json](docs/architecture-map.json) is its editable specification. The [relationship gallery](docs/relationships/index.html) shows the exported diagrams. Follow the [map and relationship regeneration recipe](docs/relationships/README.md) to rebuild compiled artifacts; the map HTML does not load JSON dynamically.
+
+Four generated catalogs sit beside the guide: [Actions](docs/actions.html), [Default bindings](docs/bindings.html), [Go API](docs/api.html), and [CLI, socket and MCP](docs/transport.html). Actions and bindings describe a fresh `internal/demo` registration, including editor rows, rather than a running application's custom configuration. The Go API catalog covers the root package, not subpackages such as `cli`, `cli/mcp`, `grid` or `markdown`.
+
+The [keybinding walkthrough](docs/keybinding-walkthrough.html) and [execution explorer](docs/keybinding-explorer.html) are source snapshots. The explorer supports source previews and highlighted paths; it is not a live debugger. Its reviewed trace, template and pinned source hashes are separate from docgen output.
+
+| Artifact | Source and workflow |
+|---|---|
+| Authored field and extension guides | Edit `docs/architecture.html` and `docs/extensibility.html` against current source; preserve search, journeys and labs. |
+| Actions, bindings, root Go API, transport HTML | `go run ./cmd/docgen`; layout and prose are in `cmd/docgen/main.go`. Do not hand-edit the four generated pages. |
+| Code map and Charm inventory | `make codemap` runs `cmd/codemap` and `cmd/charmrefs`. CODEMAP is a declaration inventory; its identifier-count hints are not a type-resolved dependency graph. Charm inventory depends on locally available reference checkouts. |
+| Settings/default-bindings Markdown reference | `make reference` (`go run ./cmd/docgen -ref docs/reference`); this is separate from the HTML catalogs. |
+| Architecture map and relationship exports | Edit the map JSON and Mermaid sources, then follow [docs/relationships/README.md](docs/relationships/README.md) for the reproducible renderer/export recipe. |
+| Keybinding execution explorer | Review `docs/keybinding-explorer/trace.json` paths, descriptions, ranges and highlights after source changes. Then update source hashes with `python3 docs/keybinding-explorer/generate.py --pin` and build with `python3 docs/keybinding-explorer/generate.py`. Repinning alone does not repair stale mappings. |
+
+Run generation from the repository root. For a state-isolated Go documentation build:
 
 ```sh
-open docs/architecture.html
+doc_scratch=$(mktemp -d /tmp/ochazuke-docs.XXXXXX)
+export XDG_CONFIG_HOME="$doc_scratch/config" XDG_STATE_HOME="$doc_scratch/state"
+export GOFLAGS=-trimpath GOWORK=off
+nice go run ./cmd/docgen
 ```
 
-No server, install, or internet connection is needed. Search 12 components, inspect their responsibilities and source locations, step through keyboard/CLI/picker/modal journeys, and experiment with retained modal state. The state lab illustrates ownership; it does not connect to a running Go application. The linked [architecture map](docs/architecture-map.html) supports node exploration and light/dark themes; its editable specification is [architecture-map.json](docs/architecture-map.json).
-
-The guide links to four generated pages: [Actions](docs/actions.html), [Default bindings](docs/bindings.html), [Go API](docs/api.html), and [CLI & socket](docs/transport.html). Each page has separate navigation links; the action, binding, and Go API pages have their own search. Actions and bindings reflect a fresh demo, not a running application's customized registry. Editor grammar shortcuts remain in the [keyboard guide](#keyboard-guide).
-
-The [keybinding execution walkthrough](docs/keybinding-walkthrough.html) follows Tab through input focus, Ctrl-N through modal creation, and a configured `g g` sequence through timed longest-match resolution (`g`, `g g`, `g g g`). It includes Go excerpts, concrete state snapshots, GitHub source links, and an illustrative sequence stepper.
-
-For a graph beside the code, open the [keybinding execution explorer](docs/keybinding-explorer.html). Hover or focus a function to preview its source; click to pin it. Choose Tab, Ctrl-N, or the sandbox sequence path and follow highlighted source lines. This is a source-backed snapshot, not a live debugger. Rebuild it with `python3 docs/keybinding-explorer/generate.py`; stale source mappings must be reviewed before regeneration.
-
-Regenerate after changing registrations or Go declarations/comments:
-
-```sh
-go run ./cmd/docgen
-```
-
-Go's built-in documentation also works directly in the Ochazuke project directory:
-
-```sh
-go doc
-go doc -all .
-go doc Runtime.Execute
-```
-
-The HTML API catalog uses the standard `go/doc` library, with no documentation-server dependency. Edit `cmd/docgen/main.go` for the layout; do not hand-edit the four generated pages. Keep all four HTML files beside `architecture.html` when copying the guide.
+Docgen does not rebuild authored guides, maps, Mermaid exports or the explorer. Keep the linked catalogs and assets together when copying the offline guide. For terminal API lookup, Go's built-in `go doc`, `go doc -all .` and `go doc Runtime.Execute` work from the repository root.
 
 ## Run on macOS
 
