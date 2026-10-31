@@ -1119,11 +1119,11 @@ Importable package `cli`: 33 source files, 32 test files.
 
 ### cli/detail_sections.go
 
-- lines: 357 · tests: detail_sections_test.go
+- lines: 395 · tests: detail_sections_test.go
 - purpose: CatalogDetailSection is one ordered part of a read-only catalog detail.
 - types: CatalogDetailSection, CatalogDetailField
-- methods: PageView(4)
-- leans on: page.go(5), commands.go(4)
+- methods: PageView(5)
+- leans on: page.go(6), commands.go(4)
 
 ### cli/emulator.go
 
@@ -1199,7 +1199,7 @@ Importable package `cli`: 33 source files, 32 test files.
 
 ### cli/page.go
 
-- lines: 1144 · tests: page_test.go
+- lines: 1147 · tests: page_test.go
 - purpose: CatalogPage is a page in registration order.
 - types: CatalogPage, CatalogList, CatalogDetail, PageConfig, PageView
 - methods: CatalogPage(1), PageView(31), pageList(1)

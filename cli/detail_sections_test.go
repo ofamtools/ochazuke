@@ -46,6 +46,13 @@ func TestCatalogDetailSectionsJSON(t *testing.T) {
 	if err := checkPage(got.Pages[0]); err != nil {
 		t.Fatal(err)
 	}
+	invalid := got.Pages[0]
+	detail := *invalid.Detail
+	invalid.Detail = &detail
+	detail.Padding = new(-1)
+	if err := checkPage(invalid); err == nil {
+		t.Fatal("accepted negative padding")
+	}
 	for _, section := range []CatalogDetailSection{
 		{Kind: "unknown"}, {Kind: "markdown"}, {Kind: "thread", Field: "answers", Region: "footer"},
 		{Kind: "fields"}, {Kind: "fields", Fields: []CatalogDetailField{{Label: "Name", Field: "name", Format: "yaml"}}},
@@ -249,5 +256,39 @@ func TestDetailSectionsKeepsAppMetadataKey(t *testing.T) {
 	press(m, "g", "m")
 	if !ran || r.TopModal() != "" {
 		t.Fatal("catalog default replaced the application's g m")
+	}
+}
+
+func TestDetailSectionsPadding(t *testing.T) {
+	m, v := mountedPage(t, sectionDoc(), PageConfig{}, 200, 40)
+	row := sectionRow("one")
+	_ = v.SetRows("sections/list", []Row{row})
+	got := ansi.Strip(v.regionText("main", row.Data, 70))
+	if !strings.HasPrefix(got, "\n    ") || !strings.HasSuffix(got, "\n") || !strings.Contains(got, "\n  \n      First answer.") {
+		t.Fatalf("missing whitespace: %q", got)
+	}
+	if err := m.Runtime.Settings().Set("detail.padding", 0); err != nil {
+		t.Fatal(err)
+	}
+	tight := ansi.Strip(v.regionText("main", row.Data, 70))
+	if strings.HasPrefix(tight, "\n") || strings.Contains(tight, "    First answer.") {
+		t.Fatalf("padding opt-out: %q", tight)
+	}
+	v.spec.Detail.Padding = new(2)
+	wide := ansi.Strip(v.regionText("main", row.Data, 70))
+	if !strings.HasPrefix(wide, "\n\n      ") {
+		t.Fatalf("page override: %q", wide)
+	}
+	v.spec.Detail.Padding = new(0)
+	if override := ansi.Strip(v.regionText("main", row.Data, 70)); override != tight {
+		t.Fatalf("zero override ignored: %q", override)
+	}
+	for width := 1; width <= 12; width++ {
+		v.spec.Detail.Padding = new(50)
+		for _, line := range strings.Split(ansi.Strip(v.regionText("main", row.Data, width)), "\n") {
+			if ansi.StringWidth(line) > width {
+				t.Fatalf("width %d overflow: %q", width, line)
+			}
+		}
 	}
 }

@@ -117,7 +117,8 @@
     },
     {
       "modal": "",
-      "focus": "questions/list/q1"
+      "focus": "questions/list/q1",
+      "after": 8
     }
   ]
 }

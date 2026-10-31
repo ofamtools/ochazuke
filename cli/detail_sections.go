@@ -47,6 +47,9 @@ func checkDetailSections(d CatalogDetail) error {
 	if d.SideWidth < 0 {
 		return fmt.Errorf("sideWidth must not be negative")
 	}
+	if d.Padding != nil && *d.Padding < 0 {
+		return fmt.Errorf("padding must not be negative")
+	}
 	for i, s := range d.Sections {
 		bad := func(why string) error { return fmt.Errorf("section %d: %s", i+1, why) }
 		if s.Region != "" && s.Region != "main" && s.Region != "side" {
@@ -204,6 +207,23 @@ func (v *PageView) sideVisible() bool {
 	return v.m.Runtime.Settings().Bool("detail.side")
 }
 
+func (v *PageView) sectionPadding(width int) int {
+	padding := v.m.Runtime.Settings().Int("detail.padding")
+	if v.spec.Detail.Padding != nil {
+		padding = *v.spec.Detail.Padding
+	}
+	// Always leave room for at least one content cell.
+	return min(max(0, padding), max(0, (width-1)/4))
+}
+
+func insetDetail(text string, cells int) string {
+	if text == "" || cells == 0 {
+		return text
+	}
+	prefix := strings.Repeat(" ", cells)
+	return prefix + strings.ReplaceAll(text, "\n", "\n"+prefix)
+}
+
 func (v *PageView) sectionText(s CatalogDetailSection, data any, width int) string {
 	if width < 1 {
 		return ""
@@ -250,10 +270,14 @@ func (v *PageView) sectionText(s CatalogDetailSection, data any, width int) stri
 			}
 			var lines []string
 			if label != "" {
-				lines = append(lines, styles.Muted.Render(ansi.Wrap(plainText(label), width, "")))
+				lines = append(lines, styles.Muted.Render(ansi.Hardwrap(ansi.Wrap(plainText(label), width, ""), width, true)))
 			}
 			content, _ := detailValue(e, body).(string)
-			lines = append(lines, markdown.Block(content, width, a, markdown.WrapAll()).Text)
+			indent := 2 * v.sectionPadding(width)
+			if indent > 0 && label != "" {
+				lines = append(lines, "")
+			}
+			lines = append(lines, insetDetail(markdown.Block(content, width-indent, a, markdown.WrapAll()).Text, indent))
 			parts = append(parts, strings.Join(lines, "\n"))
 		}
 		text = strings.Join(parts, "\n\n")
@@ -273,9 +297,13 @@ func (v *PageView) sectionText(s CatalogDetailSection, data any, width int) stri
 		text = strings.Join(lines, "\n")
 	}
 	if s.Title != "" {
-		title := styles.Title.Render(ansi.Wrap(plainText(s.Title), width, ""))
+		title := styles.Title.Render(ansi.Hardwrap(ansi.Wrap(plainText(s.Title), width, ""), width, true))
 		if text != "" {
-			title += "\n" + text
+			gap := "\n"
+			if v.sectionPadding(width) > 0 {
+				gap = "\n\n"
+			}
+			title += gap + text
 		}
 		text = title
 	}
@@ -283,6 +311,11 @@ func (v *PageView) sectionText(s CatalogDetailSection, data any, width int) stri
 }
 
 func (v *PageView) regionText(region string, data any, width int) string {
+	padding := 0
+	if region == "main" {
+		padding = v.sectionPadding(width)
+	}
+	width -= 4 * padding
 	var parts []string
 	for _, s := range v.spec.Detail.Sections {
 		r := s.Region
@@ -295,7 +328,12 @@ func (v *PageView) regionText(region string, data any, width int) string {
 			}
 		}
 	}
-	return strings.Join(parts, "\n\n")
+	text := strings.Join(parts, "\n\n")
+	if text != "" && padding > 0 {
+		margin := strings.Repeat("\n", padding)
+		text = margin + insetDetail(text, 2*padding) + margin
+	}
+	return text
 }
 
 func (v *PageView) sectionsPanel(layout ochazuke.Layout, width, height int) ochazuke.Block {

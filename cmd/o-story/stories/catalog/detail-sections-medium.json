@@ -93,12 +93,17 @@
       }
     }
   },
-  "script": [],
-  "expect": {
-    "contains": [
-      "Final answer sentence.",
-      "Metadata",
-      "[answered]"
-    ]
-  }
+  "script": [
+    "K"
+  ],
+  "expect": [
+    {
+      "contains": [
+        "Final answer sentence.",
+        "Metadata",
+        "[answered]"
+      ],
+      "after": 1
+    }
+  ]
 }

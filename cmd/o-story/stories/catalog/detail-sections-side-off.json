@@ -93,16 +93,21 @@
       }
     }
   },
-  "script": [],
-  "expect": {
-    "contains": [
-      "Final answer sentence."
-    ],
-    "lacks": [
-      "Metadata",
-      "[answered]"
-    ]
-  },
+  "script": [
+    "K"
+  ],
+  "expect": [
+    {
+      "contains": [
+        "Final answer sentence."
+      ],
+      "lacks": [
+        "Metadata",
+        "[answered]"
+      ],
+      "after": 1
+    }
+  ],
   "settings": [
     {
       "name": "detail.side",

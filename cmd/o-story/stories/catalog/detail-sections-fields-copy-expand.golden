@@ -1,0 +1,32 @@
+ |  ◆ o-story                                                                                                                                                                              NORMAL
+ |   › Questions
+ |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ |  ╭━ Questions (1) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮ ╭─ Discussion · Readable answers ───────────────────────────────────────────────────────────────────────────────────╮
+R|  ┃ Readable answers                                                           ┃ │                                                                                    │ Metadata                     │
+ |  ┃                                                                            ┃ │     # How should a complete answer stay readable?                                  │                              │
+ |  ┃                                                                            ┃ │                                                                                    │ Status: [answered]           │
+ |  ┃                                                                            ┃ │   codex · 2026-10-31 12:00 UTC                                                     │ Project: ochazuke            │
+ |  ┃                                                                            ┃ │                                                                                    │ Pane: ee6f1a1f               │
+ |  ┃                                                                            ┃ │       Keep **the question and answer** central. Context belongs beside them        │ Tags: readability, catalog   │
+ |  ┃                                                                            ┃ │       when there is room.                                                          │                              │
+ |  ┃                                                                            ┃ │                                                                                    │                              │
+ |  ┃                                                                            ┃ │       • Wrap every paragraph.                                                      │                              │
+ |  ┃                                                                            ┃ │       • Keep render(value) and links like the guide https://example.test/guide     │                              │
+ |  ┃                                                                            ┃ │       readable.                                                                    │                              │
+ |  ┃                                                                            ┃ │                                                                                    │                              │
+ |  ┃                                                                            ┃ │       Final answer sentence.                                                       │                              │
+ |  ┃                                                                            ┃ │                                                                                    │                              │
+ |  ┃                                                                            ┃ │                                                                                                                   │
+ |  ┃                                                                            ┃ │                                                                                                                   │
+ |  ┃                                                                            ┃ │                                                                                                                   │
+ |  ┃                                                                            ┃ │                                                                                                                   │
+ |  ┃                                                                            ┃ │                                                                                                                   │
+ |  ┃                                                                            ┃ │                                                                                                                   │
+ |  ┃                                                                            ┃ │                                                                                                                   │
+ |  ┃                                                                            ┃ │                                                                                                                   │
+ |  ┃                                                                            ┃ │                                                                                                                   │
+ |  ┃                                                                            ┃ │                                                                                                                   │
+ |  ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯ ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+ |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ |  space list.mark · q app.quit · ctrl+w >/< resize · : palette.open · ? bindings.help · ' page.pick · / filter · g m detail.fields
+ |

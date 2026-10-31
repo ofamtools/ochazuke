@@ -7,6 +7,7 @@
 // names that still read and write the setting for one release. The rows' order is their order inside a section.
 [
   {"name": "detail.sections", "section": "pages", "type": "boolean", "default": true, "description": "Render catalog section details as read-only Markdown, threads and metadata; off shows the legacy record fields"},
+  {"name": "detail.padding", "section": "pages", "type": "integer", "default": 1, "description": "Whitespace around catalog main sections: one blank line and two inset cells per unit; also separates thread headers from indented bodies. 0 restores the tight layout; page padding overrides"},
   {"name": "detail.side", "section": "pages", "type": "boolean", "default": true, "description": "Show side regions of catalog section details (a catalog page may override this default or name its own setting)"},
   {"name": "detail.side-width", "section": "pages", "type": "integer", "default": 96, "description": "Minimum detail content width for side regions on the right; below it they follow the main content (minimum 40, page sideWidth overrides)"},
   {"name": "chooser.prop-filters", "section": "search", "type": "boolean", "default": true, "description": "Enable typed prop filters and saved-filter keys in choosers with declared row props"},

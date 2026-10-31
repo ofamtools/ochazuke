@@ -1106,6 +1106,14 @@ between page lists in drawing order (UX-RULES R3.3–R3.5), while `J`/`K`
 scroll rendered lines (R3.14). Changing the selected record resets the
 offset. A metadata field list is a modal, where list motions clamp (R3.6).
 
+`detail.padding` defaults to `1`: one blank line above and below the main
+sections and a two-cell inset on either side. Thread bodies are indented
+under their dim author/time line, with a blank line between them; entries
+and sections retain a blank line between them. The right inset leaves a
+clear gutter beside metadata. Each unit adds one line and two cells; `0`
+restores the tight layout. A page can override it with `padding`, including
+`padding: 0`. Insets shrink at very narrow widths to keep content readable.
+
 Side content uses one quarter of the detail width on the right when its
 content width reaches `detail.side-width` (default 96, minimum 40), and
 follows the main content below that width. A page's `sideWidth` overrides
