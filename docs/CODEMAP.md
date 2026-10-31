@@ -671,11 +671,11 @@ Root package `ochazuke` is flat: 149 source files, 166 test files. Each entry li
 
 ### path_walk.go
 
-- lines: 488 · tests: path_walk_test.go
+- lines: 517 · tests: path_walk_test.go
 - purpose: PathRoot is one folder a walk lists under.
 - types: PathRoot, PathWalk
 - methods: Runtime(7), walkCache(2), walkOptions(1), walker(8)
-- leans on: path_chooser.go(9), runtime.go(9), chooser_sources.go(7), chooser.go(6)
+- leans on: chooser_sources.go(9), path_chooser.go(9), runtime.go(9), chooser.go(7)
 
 ### picker.go
 

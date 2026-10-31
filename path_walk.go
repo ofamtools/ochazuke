@@ -211,16 +211,23 @@ type walker struct {
 	cache *walkCache
 	now   func() time.Time
 
-	ri      int         // the root being walked
-	queue   []walkQueue // its folders still to read, breadth first
-	entries []walkEntry // what it found so far (cached when it finishes)
-	exclude []string    // the earlier roots inside it: not walked again
-	started bool        // the current root was begun
-	seen    map[string]bool
+	ri      int             // the root being walked
+	queue   []walkQueue     // its folders still to read, breadth first
+	entries []walkEntry     // what it found so far (cached when it finishes)
+	exclude []string        // the earlier roots inside it: not walked again
+	started bool            // the current root was begun
+	seen    map[string]bool // the paths listed
+	covered map[string]bool // the folders a walk found (a later root among them is not walked again)
 
 	found   atomic.Int64
 	done    atomic.Bool
 	limited atomic.Bool
+
+	// What the title says, kept on the loop as each batch lands: the
+	// rows shown, and whether the walk finished or hit the limit.
+	shown      int
+	shownDone  bool
+	shownLimit bool
 }
 
 type walkQueue struct {
@@ -264,11 +271,11 @@ func (r *Runtime) WalkSource(pick PathPick, w PathWalk) ChooserSource {
 		if current == nil {
 			return PathSourceWalk + " " + what
 		}
-		n := current.found.Load()
+		n := current.shown
 		switch {
-		case current.limited.Load():
+		case current.shownLimit:
 			return fmt.Sprintf("%s %s · %d (path.walk-limit)", PathSourceWalk, what, n)
-		case current.done.Load():
+		case current.shownDone:
 			return fmt.Sprintf("%s %s · %d", PathSourceWalk, what, n)
 		}
 		return fmt.Sprintf("%s %s · %d…", PathSourceWalk, what, n)
@@ -278,9 +285,16 @@ func (r *Runtime) WalkSource(pick PathPick, w PathWalk) ChooserSource {
 		Label: label,
 		Empty: "no folders under the roots",
 		Load: func(string) Result {
-			wk := &walker{opts: r.walkOptions(pick), roots: roots, batch: batch, cache: cache, now: time.Now, seen: map[string]bool{}}
+			wk := &walker{opts: r.walkOptions(pick), roots: roots, batch: batch, cache: cache, now: time.Now, seen: map[string]bool{}, covered: map[string]bool{}}
 			current = wk
-			return wk.result()
+			// The roots show at once (no file system read); the folders
+			// under them stream in.
+			var rows []ChooserRow
+			for _, root := range roots {
+				wk.emit(root, walkEntry{rel: ".", dir: true}, &rows)
+			}
+			wk.shown = len(rows)
+			return Done(ChooserBatch{Rows: rows, More: wk.result()})
 		},
 	}
 }
@@ -296,7 +310,15 @@ func (w *walker) result() Result {
 			return ChooserBatch{Rows: rows}, nil
 		}
 		return ChooserBatch{Rows: rows, More: w.result()}, nil
-	}).Label("walk")
+	}).Label("walk").Then(func(_ Ctx, value any, err error) {
+		if err != nil {
+			return
+		}
+		rows, more := chooserRowsOf(value)
+		w.shown += len(rows)
+		w.shownLimit = w.limited.Load()
+		w.shownDone = more.work == nil
+	})
 }
 
 // next walks one batch: up to batch folders read, or pathWalkSlice, and
@@ -338,12 +360,13 @@ func (w *walker) next(ctx context.Context) ([]ChooserRow, error) {
 }
 
 // begin starts a root: its cached walk when fresh (the whole root at
-// once), else its own row and a queue holding it. False skips the root (it
+// once), else a queue holding it (its own row was listed when the walk
+// started). False skips the root (it
 // is gone, under path.no-auto-list, or already listed under an earlier
 // root).
 func (w *walker) begin(root PathRoot, rows *[]ChooserRow) bool {
 	w.queue, w.entries = nil, nil
-	if w.seen[root.Path] || !autoListableUnder(w.opts.noAuto, root.Path) {
+	if w.covered[root.Path] || !autoListableUnder(w.opts.noAuto, root.Path) {
 		return false
 	}
 	info, err := os.Stat(root.Path)
@@ -358,6 +381,9 @@ func (w *walker) begin(root PathRoot, rows *[]ChooserRow) bool {
 	}
 	if cached, ok := w.cache.get(w.cacheKey(root), w.now()); ok {
 		for _, e := range cached {
+			if e.dir {
+				w.covered[filepath.Join(root.Path, e.rel)] = true
+			}
 			w.emit(root, e, rows)
 		}
 		return false // nothing left to read
@@ -407,6 +433,9 @@ func (w *walker) read(root PathRoot, dir walkQueue, rows *[]ChooserRow) {
 		}
 		rel, _ := filepath.Rel(root.Path, full)
 		entry := walkEntry{rel: rel, dir: isDir}
+		if isDir {
+			w.covered[full] = true
+		}
 		w.entries = append(w.entries, entry)
 		w.emit(root, entry, rows)
 		if w.limited.Load() {

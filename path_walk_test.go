@@ -165,14 +165,17 @@ func TestPathWalkSettings(t *testing.T) {
 	}
 }
 
-// The first rows land before the walk finishes: a batch of one folder
-// shows the root's children while the chooser still loads, and closing
-// the chooser cancels the rest.
+// The first rows land before the walk finishes: the roots at once, then a
+// batch of one folder shows the root's children while the chooser still
+// loads, and closing the chooser cancels the rest.
 func TestPathWalkStreams(t *testing.T) {
 	tree := walkTree(t)
 	repo := filepath.Join(tree, "proj/matomeru")
 	r, m := walkFixture(t, []PathRoot{{Path: repo}}, 1, nil)
 	c := openWalk(t, r, dirPick)
+	if got := rowIDs(c.Matches()); !slices.Equal(got, []string{repo}) || !c.Loading() {
+		t.Fatalf("before any batch: loading %v rows %v", c.Loading(), got)
+	}
 	cmd := r.PendingCommands()
 	for _, msg := range quickMsgs(cmd) {
 		_, cmd = m.Update(msg)
@@ -272,8 +275,9 @@ func TestPathWalkOffFirstFilesAndVolumes(t *testing.T) {
 	r, m = walkFixture(t, []PathRoot{{Path: repo}}, 0, map[string]any{PathNoAutoListSetting: []string{tree + "/proj/"}})
 	c = openWalk(t, r, dirPick)
 	landAll(m, r.PendingCommands())
-	if n := len(c.Matches()); n != 0 {
-		t.Fatalf("a root under path.no-auto-list was walked: %v", rowIDs(c.Matches()))
+	// The root itself is a row (naming it reads nothing); nothing under it.
+	if got := rowIDs(c.Matches()); !slices.Equal(got, []string{repo}) {
+		t.Fatalf("a root under path.no-auto-list was walked: %v", got)
 	}
 }
 

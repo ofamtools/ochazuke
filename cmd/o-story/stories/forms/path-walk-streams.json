@@ -1,5 +1,5 @@
 {
-  "name": "form: the walk source streams: with one folder per batch the root's own folders show while the walk goes on (the title counts with …), the deeper ones land with later batches",
+  "name": "form: the walk source streams: the root shows at once, and with one folder per batch the root's own folders show while the walk goes on (the title counts with …), the deeper ones land with later batches",
   "area": "forms",
   "width": 100,
   "height": 20,
@@ -14,6 +14,7 @@
   },
   "script": ["enter", {"job": "chooser.load"}, {"job": "chooser.load"}, {"job": "chooser.load"}, {"job": "chooser.load"}, {"job": "chooser.load"}],
   "expect": [
+    {"after": 1, "modal": "path-chooser", "contains": ["./", "project", "[walk project · 1…]"], "lacks": ["alpha/", "zulu/"]},
     {"after": 2, "modal": "path-chooser", "contains": ["alpha/", "zulu/", "…]"], "lacks": ["alpha/beta/"]},
     {"after": 3, "contains": ["alpha/beta/", "…]"], "lacks": ["alpha/beta/gamma/"]},
     {"modal": "path-chooser", "contains": ["alpha/beta/gamma/", "[walk project · 5]"], "lacks": ["…]"]}
