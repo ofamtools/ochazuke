@@ -434,6 +434,7 @@ func cloneParams(in map[string]Parameter) map[string]Parameter {
 	}
 	out := make(map[string]Parameter, len(in))
 	for k, v := range in {
+		v.SourceArgs = maps.Clone(v.SourceArgs)
 		out[k] = v
 	}
 	return out
@@ -442,6 +443,13 @@ func cloneParams(in map[string]Parameter) map[string]Parameter {
 // applyStore checks the noun's props against its store and registers the
 // standard verbs; it panics on a bad schema.
 func (r *Runtime) applyStore(n *Noun) {
+	params := map[string]Parameter{}
+	for _, p := range n.Props {
+		params[p.Name] = p.Parameter
+	}
+	if err := r.CheckSourceArgs(params); err != nil {
+		panic(n.Name + ": " + err.Error())
+	}
 	if err := checkSchema(n); err != nil {
 		panic(err.Error())
 	}

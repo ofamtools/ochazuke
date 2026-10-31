@@ -304,7 +304,7 @@ func (sh *Shell) shellCommands() []oden.Command {
 		Details: "catalog prints the catalog JSON a host reads.\ncatalog inspect writes a self-contained HTML inspector of this tool's nouns, verbs,\neffective key rows, user actions and the framework nouns, plus any --bin tools'\nand --catalog files' catalogs, and prints its path (catalog inspect --help).",
 		Run:     sh.catalogCommand,
 	}
-	return []oden.Command{catalog}
+	return []oden.Command{catalog, {Name: "complete", Summary: "complete a CLI word using the current argument values", Usage: "-- NOUN VERB [ARG...] WORD", Source: "cli", Run: sh.completeCommand}, {Name: "completion", Summary: "print a bash or zsh completion script", Usage: "bash|zsh", Source: "cli", Run: sh.completionCommand}}
 }
 
 // version is the shell's Version, else the main module's build version.

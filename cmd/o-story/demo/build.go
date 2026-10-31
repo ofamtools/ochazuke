@@ -680,6 +680,9 @@ func (ss *session) defineVerb(d *ochazuke.NounBuilder, v VerbSpec) error {
 			entry += " subjects=" + strings.Join(c.SubjectIDs(), ",")
 		}
 		ss.Writes = append(ss.Writes, ss.unfiles(entry))
+		if v.RowsArg != "" {
+			return ochazuke.Done(v.RowsBy[ochazuke.StringArg(c.Args, v.RowsArg, "")])
+		}
 		if rows != nil {
 			return ochazuke.Done(rows)
 		}

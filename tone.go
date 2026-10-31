@@ -69,6 +69,8 @@ const (
 	// surface on its accent, bold. mono draws the focused chip bold.
 	ToneChip        = "chip"
 	ToneChipFocused = "chip.focused"
+	// ToneRecordInverted marks an Invertible record field in its not state.
+	ToneRecordInverted = "record.inverted"
 	// The table parts: a data cell where two highlight layers cross
 	// (ToneSpan.Layer), the header row, a row-number column
 	// (Column.Part PartRowNumber), and each part's crossing tone (the
@@ -192,19 +194,20 @@ var toneRoles = []string{"text", "muted", "accent", "border", "surface", "error"
 // starts from them. The state tones keep their meaning without colour:
 // needs-input and errored are bold, exited is dim, so mono reads them too.
 var defaultTones = map[string]ToneStyle{
-	ToneTreeGuide:   {Fg: SchemeColor{"muted", "muted"}, Dim: true},
-	ToneWorking:     {Fg: SchemeColor{"#1F6FB2", "#7CB7E8"}},
-	ToneNeedsInput:  {Fg: SchemeColor{"#9A6700", "#E3B341"}, Bold: true},
-	ToneDone:        {Fg: SchemeColor{"#2E7D32", "#8BC48A"}},
-	ToneErrored:     {Fg: SchemeColor{"error", "error"}, Bold: true},
-	ToneIdle:        {Fg: SchemeColor{"muted", "muted"}},
-	ToneExited:      {Fg: SchemeColor{"muted", "muted"}, Dim: true},
-	ToneStar:        {Fg: SchemeColor{"#B08800", "#F2CC60"}, Bold: true},
-	ToneQueued:      {Fg: SchemeColor{"accent", "accent"}},
-	ToneSession:     {Bold: true},
-	ToneError:       {Bg: SchemeColor{"#F6D3CE", "#5E2722"}, Bold: true},
-	ToneChip:        {Bg: SchemeColor{"#E2EAE5", "#26362F"}},
-	ToneChipFocused: {Fg: SchemeColor{"surface", "surface"}, Bg: SchemeColor{"accent", "accent"}, Bold: true},
+	ToneTreeGuide:      {Fg: SchemeColor{"muted", "muted"}, Dim: true},
+	ToneWorking:        {Fg: SchemeColor{"#1F6FB2", "#7CB7E8"}},
+	ToneNeedsInput:     {Fg: SchemeColor{"#9A6700", "#E3B341"}, Bold: true},
+	ToneDone:           {Fg: SchemeColor{"#2E7D32", "#8BC48A"}},
+	ToneErrored:        {Fg: SchemeColor{"error", "error"}, Bold: true},
+	ToneIdle:           {Fg: SchemeColor{"muted", "muted"}},
+	ToneExited:         {Fg: SchemeColor{"muted", "muted"}, Dim: true},
+	ToneStar:           {Fg: SchemeColor{"#B08800", "#F2CC60"}, Bold: true},
+	ToneQueued:         {Fg: SchemeColor{"accent", "accent"}},
+	ToneSession:        {Bold: true},
+	ToneError:          {Bg: SchemeColor{"#F6D3CE", "#5E2722"}, Bold: true},
+	ToneChip:           {Bg: SchemeColor{"#E2EAE5", "#26362F"}},
+	ToneChipFocused:    {Fg: SchemeColor{"surface", "surface"}, Bg: SchemeColor{"accent", "accent"}, Bold: true},
+	ToneRecordInverted: {Fg: SchemeColor{"#B54708", "#FF9B70"}},
 	// Table parts and crossings (ToneSpan.Layer, Column.Part): a crossing
 	// is a warm fill unlike any other tone, the header a band, the row
 	// numbers muted. mono draws the attributes alone: a crossing is bold

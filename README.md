@@ -1825,6 +1825,25 @@ A **bare** alias has no noun (`w!`, `q`, `x`: a word without a dot; `!` and othe
 
 A bare alias row with `shadows: true` (`ActionAlias.Shadows`) may take a verb's name without `aliases.shadow` and yields to it by what follows (`ReadBareAlias`, one rule for the palette and the CLI): followed by a noun that has the verb of its name, the line is that noun's verb; an exact noun wins, then the reading of the action's rest parameter (its source offers the word exactly, then as a prefix); a word that is both a noun's prefix and offered by the rest is an error naming both. Its name is the bare word (`set`), since `NOUN.VERB` is the verb it shadows. Bare aliases of the same action after the first add their presets (`verbose set opt?`).
 
+Parameters can pass sibling values to their choice source with `SourceArgs` (catalog JSON `sourceArgs`). For example, a form's `item` field can declare:
+
+```go
+Parameter{
+    Type: "string", Source: "catalog.items", Free: true,
+    SourceArgs: map[string]string{"category": "kind"},
+}
+```
+
+Here `catalog.items` declares a `category` parameter, and the form or request declares `kind`. Selecting `kind` supplies its current value as `category` when loading `item` choices. Empty or unset siblings are omitted, preserving the source's defaults. Register the source first: `Runtime.Register` checks the dependency map, record editors check their complete field schema, and catalog hosts check after mounting their verbs. Code that fills `Operation.Parameters` directly can call `Runtime.CheckSourceArgs` after assigning the complete schema. `PropSpec` and `PropField` carry the same metadata.
+
+Args forms, record editors, value choosers, palette completion and execution validation use these values. `Choices` and `ChoicesFor` accept an optional `Arguments` map for custom callers; `ParameterChoices` also resolves prop-shaped parameters (`ValueOf`, `Pairs`). Sources can combine mapped arguments with the automatically supplied `query`; an explicit `sourceArgs` entry for `query` takes precedence. Pending sources load off the UI loop, and an older dependency response cannot replace a newer one.
+
+`forms.dependent-choices` defaults to `true`: changing a sibling refreshes the dependent choices. Values are retained so changing one field never erases another. Free fields remain writable and show “outside current choices”; closed fields show a validation problem and require a valid choice before that field is written or a submit form runs. An unavailable source does not discard a value. Setting it to `false` disables automatic refresh and free-value warnings; opening a chooser still passes current sibling values.
+
+Invertible record fields in their `not` state draw their labels, mode markers and values in the `record.inverted` theme tone (red/orange by default). This also colours prop filter forms. Restyle it in `themes.json`; `forms.inverted-tone` (default `true`) turns this emphasis off. Focus and selection emphasis stay in place, and mono or `NO_COLOR` still draws without colour.
+
+The CLI shell exposes the same choice loading through `complete -- NOUN VERB ... WORD`; `WORD` is the current word, empty after a space. Thus completion for `noun verb --a x --b ` sees `a=x`. `completion bash` and `completion zsh` print shell integration scripts; sourcing the generated script enables Tab completion for argument values. They do not edit shell configuration. Catalogs and MCP `describe.params` retain `sourceArgs` for other clients.
+
 A parameter with `Rest: true` (`Parameter.Rest`) takes the rest of the line verbatim: the palette hands it the text from its first word to the end (quotes and spaces as typed), the CLI joins the remaining words with spaces. A verb has at most one, a string with no required parameter after it. Its `Source` is asked with the text as `query` and, when it declares `cursor` (`ChoicesCursorParameter`), the cursor in it; each choice's id is the text up to the cursor completed, which `tab` splices in place with no space after.
 
 Alias rows install after the file's actions, so a row may name a verb the same file adds; `bindings.json` rows may use the alias. A row that would shadow an action or another alias (the framework's, the application's or an earlier row's), names an unknown action or noun, or has an unknown field is skipped and reported like a bad bindings row: a persistent notice at load (a CLI `warning:`), the result of `actions reload`, and the lines of `actions check` and `bindings check`. `bindings check` also accepts a `bindings.json` row spelled by an alias and says what it resolves to (`bindings.json: row 2 C: pane.close resolves to pane.kill (an alias, app)`, plus the new name for an old one).

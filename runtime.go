@@ -34,6 +34,10 @@ type Parameter struct {
 	Enum   []string `json:"enum,omitempty"`
 	Source string   `json:"source,omitempty"`
 	Free   bool     `json:"free,omitempty"`
+	// SourceArgs maps a source parameter to a sibling parameter or record
+	// field. Only set sibling values are forwarded; query is still supplied
+	// automatically unless explicitly mapped here. Register the source first.
+	SourceArgs map[string]string `json:"sourceArgs,omitempty"`
 	// Noun says the value names one of that noun's things: a row of its
 	// list verb (NOUN.list, when it is a read with no required parameter,
 	// stands in for an empty Source), else the id of a live instance of
@@ -734,6 +738,9 @@ func (r *Runtime) Register(o Operation) {
 	if o.Parameters == nil {
 		o.Parameters = map[string]Parameter{}
 	}
+	if err := r.CheckSourceArgs(o.Parameters); err != nil {
+		panic(o.Key() + ": " + err.Error())
+	}
 	if err := checkRestParameter(o); err != nil {
 		panic(err.Error())
 	}
@@ -861,6 +868,14 @@ func (r *Runtime) Execute(q Request) (any, error) { return r.ExecuteAt(r.Context
 // Every request is appended to the action history with its kind, the
 // context it ran in, its outcome and where it moved the interaction.
 func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
+	return r.executeAt(c, q, nil)
+}
+
+// operationRunner selects how an admitted operation is run. Choice reads use
+// a synchronous runner; regular requests retain the delivery contract.
+type operationRunner func(Operation, Context, Arguments) (any, error)
+
+func (r *Runtime) executeAt(c Context, q Request, run operationRunner) (any, error) {
 	actor := r.Actor()
 	if r.agentTransport != nil {
 		actor = r.agentTransport.actor
@@ -895,7 +910,7 @@ func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
 	depth := r.history.depth
 	from := r.place()
 	r.history.depth++
-	value, err := r.execute(c, q, false)
+	value, err := r.execute(c, q, false, run)
 	r.history.depth--
 	r.record(at, q, ctx, depth, from, value, err)
 	if depth == 0 {
@@ -913,7 +928,7 @@ func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
 	return value, err
 }
 
-func (r *Runtime) execute(c Context, q Request, checkOnly bool) (any, error) {
+func (r *Runtime) execute(c Context, q Request, checkOnly bool, run ...operationRunner) (any, error) {
 	fromRow := r.rowRequest
 	r.rowRequest = false
 	if q.IsProp() {
@@ -1017,6 +1032,9 @@ func (r *Runtime) execute(c Context, q Request, checkOnly bool) (any, error) {
 		return fn(r, c, q.Args)
 	}
 	r.subjects = subjects
+	if len(run) > 0 && run[0] != nil {
+		return run[0](op, c, q.Args)
+	}
 	return op.Run(r, c, q.Args)
 }
 
