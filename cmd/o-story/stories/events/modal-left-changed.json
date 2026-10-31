@@ -1,0 +1,21 @@
+{
+  "name": "events: closing a modal after a change runs the hooks.json row on surface.left once, with its args and the event's fields",
+  "area": "events",
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "verbs": [
+      {"verb": "demo.edit", "description": "Change a thing"},
+      {"verb": "demo.synced", "description": "Record a sync", "parameters": {"reason": {"type": "string"}, "noun": {"type": "string"}, "changes": {"type": "integer"}}}
+    ],
+    "bind": [{"noun": "ochazuke.chooser", "mode": "insert", "keys": "ctrl+e", "do": "demo.edit"}]
+  },
+  "config": {
+    "hooks.json": [{"on": "surface.left", "where": {"changed": "demo"}, "do": "demo.synced", "args": {"reason": "edit-session"}, "from": {"noun": "noun", "changes": "changes"}}]
+  },
+  "script": ["'", "ctrl+e", "ctrl+e", "esc"],
+  "expect": [
+    {"after": 1, "writes": []},
+    {"after": 3, "writes": ["demo.edit", "demo.edit"]},
+    {"writes": ["demo.edit", "demo.edit", "demo.synced changes=2 noun=page-picker reason=edit-session"], "modal": "", "noNotices": true}
+  ]
+}

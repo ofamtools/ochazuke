@@ -318,6 +318,7 @@ func (r *Runtime) Push(id, focus string) error {
 		}
 	}
 	r.setFocus(focus)
+	r.surfaceOpened(id, r.modalKind(id))
 	return nil
 }
 
@@ -417,6 +418,8 @@ func (r *Runtime) Pop() error {
 	id := r.modals[len(r.modals)-1]
 	inst := r.Instances[id]
 	r.CancelPendingBinding()
+	kind, noun := r.modalKind(id), inst.Noun
+	defer r.surfaceLeft(id, kind, noun)
 	from := r.Focus
 	stop, path := r.stopOf(from), r.Ancestry(from)
 	back, mode := inst.Payload.Return, inst.returnMode

@@ -427,6 +427,7 @@ type Runtime struct {
 	commands         []tea.Cmd         // off-loop work scheduled since the adapter last drained it
 	jobs             map[uint64]*job   // the jobs list: running jobs and the finished ones retained for jobs.list
 	watches          *watchHub         // the watches of nouns' things (standard_watch.go), made on first use
+	events           *eventHub         // declared events, open surfaces' change counts, hook rows (events.go, hooks.go), made on first use
 	jobSeq           uint64            // last issued job id
 	defaults         defaultSources    // where each default row and extends came from (bindings defaults)
 	deprecations     []string          // rows that named an operation by its old verb.noun spelling, rewritten once
@@ -478,6 +479,7 @@ func (r *Runtime) registerFramework() {
 	registerSettingsEditor(r)
 	registerConfigExport(r)
 	registerConfigReload(r)
+	registerHooks(r)
 	registerPages(r)
 	registerLists(r)
 	registerTrees(r)
@@ -850,7 +852,15 @@ func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
 	value, err := r.execute(c, q)
 	r.history.depth--
 	r.record(at, q, ctx, depth, from, value, err)
+	if err == nil && r.historyKind(q) == HistoryChange {
+		// The open surfaces count every change request that ran (events.go).
+		r.countChange([]string{q.Noun})
+	}
 	r.watchAfterRequest(q, depth)
+	if depth == 0 {
+		// The hooks of what this request emitted run once it is done.
+		r.runHooks()
+	}
 	return value, err
 }
 

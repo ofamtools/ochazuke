@@ -1,0 +1,39 @@
+{
+  "name": "events: hooks.json naming an unknown event loads with a warning notice (hooks check reports the same line)",
+  "area": "events",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.synced",
+        "description": "Record a sync"
+      }
+    ]
+  },
+  "config": {
+    "hooks.json": [
+      {
+        "on": "surface.closed",
+        "do": "demo.synced"
+      }
+    ]
+  },
+  "script": [
+    "'",
+    "esc"
+  ],
+  "expect": [
+    {
+      "notices": [
+        "warning: hooks.json: row 1: surface.closed → demo.synced: unknown event \"surface.closed\" (events list shows the declared ones)"
+      ],
+      "writes": [],
+      "modal": ""
+    }
+  ]
+}

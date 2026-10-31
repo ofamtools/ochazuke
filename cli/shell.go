@@ -172,6 +172,10 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	for _, problem := range r.EnsureUserBindings() {
 		fmt.Fprintln(s.stderr(), "warning:", problem)
 	}
+	// The application's hooks.json: an event the command emits runs its rows.
+	for _, problem := range r.EnsureHooks() {
+		fmt.Fprintln(s.stderr(), "warning:", problem)
+	}
 	r.EnsureConfigSettings()
 	// The noun is the longest run of leading words naming one: app
 	// settings, ochazuke.settings and settings (an alias) are ochazuke.settings.

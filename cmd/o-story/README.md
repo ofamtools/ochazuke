@@ -459,7 +459,7 @@ Conformance:
 | insert | bindings | `bindings.help` |
 | insert | chooser | `chooser.cancel` `chooser.move` `chooser.next-source` `chooser.open` `chooser.pick` `chooser.previous-source` `chooser.up` |
 | insert | completion | `completion.accept` `completion.dismiss` `completion.move` `completion.open` |
-| insert | demo | `demo.files` `demo.hide` |
+| insert | demo | `demo.edit` `demo.files` `demo.hide` |
 | insert | form | `form.next` `form.run` `form.suggest` |
 | insert | input | `input.insert` `input.kill` `input.move` |
 | insert | macro | `macro.record` |
@@ -484,7 +484,7 @@ Conformance:
 | normal | bindings-help | `bindings-help.mode` `bindings-help.noun` `bindings-help.place` `bindings-help.view` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
-| normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.choose` `demo.delete` `demo.edit-task` `demo.finish` `demo.forget-row` `demo.hide` `demo.launch` `demo.notify` `demo.open` `demo.ping` `demo.reload` `demo.ship` `demo.write` |
+| normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.choose` `demo.delete` `demo.edit-task` `demo.finish` `demo.forget-row` `demo.hide` `demo.launch` `demo.notify` `demo.open` `demo.ping` `demo.reload` `demo.ship` `demo.synced` `demo.write` |
 | normal | detail | `detail.scroll` |
 | normal | focus | `focus.next` `focus.previous` `focus.set` |
 | normal | form | `form.choose` `form.leave` `form.next` `form.next-missing` `form.redo` `form.run` `form.suggest` `form.undo` |
@@ -559,6 +559,7 @@ Mode edges (from → to via):
 - `insert` → `jq` via `palette.run`
 - `insert` → `normal` via `bindings.help`
 - `insert` → `normal` via `chooser.cancel`
+- `insert` → `normal` via `chooser.cancel + demo.synced`
 - `insert` → `normal` via `chooser.pick`
 - `insert` → `normal` via `form.run`
 - `insert` → `normal` via `macro.record`
