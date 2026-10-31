@@ -1466,6 +1466,7 @@ A noun may be dotted (`ochazuke.settings`, `ai.skills`), and so may a verb (`dir
 - **Input accepts either name.** `Do("list.move")`, `Request{Noun: "settings"}`, a `bindings.json` or `actions.json` row naming `list`, a palette word (`settings names` or `ochazuke.settings names`, one word each) and the CLI (`bin settings list`, `bin ochazuke settings list`, `bin ochazuke.settings list`) all reach `ochazuke.list` / `ochazuke.settings` (`Runtime.CanonicalNoun`, `CanonicalKey`, `Operation(key)`, `NounWords`).
 - **Output is canonical.** History (and `history.jsonl`, which reads old short-named lines as canonical), `bindings.list`, `operations.list`, the snapshot and the catalog print `ochazuke.settings.set`; the footer's hints, the `?` help, the jobs ticker and confirm prompts draw the shortest name that reaches the noun (`DisplayNoun`, `DisplayKey`: `list.move`).
 - **`Define` extends, `DefineOwn` claims.** `Define("terminal").Verb("copy", …)` (or `Register` with noun `terminal`, or `Kind("prompt")`) adds to the framework's `ochazuke.terminal`. An application with a noun of its own under a framework name declares it with `DefineOwn("settings")`: from then on `settings` (keys, files, palette, CLI) is the application's noun and the framework's stays reachable as `ochazuke.settings`, its verbs intact; nothing is deleted to make room. A noun the application registers under the short name before the framework registers its alias (an instance made before `NewModel`) owns the name the same way.
+- **App CLI commands win.** A top-level oden command owns its name over a framework shortcut whether added before or after `cli.Mount`. Runtime nouns declared with `DefineOwn` and catalog nouns mounted with `MountNouns` also claim their exact names. The framework stays reachable by its full name (`bin ochazuke mcp serve`, `ochazuke.mcp.tools` in the palette). Help lists canonical groups and their active shortcuts; `BIN catalog` includes effective CLI `commands` and omits shortcuts claimed by app commands from `aliases`. This fixes the v0.71.0 `mcp` regression; o-json's add-commands-first workaround is no longer needed.
 - **The v0.16.0 spelling still loads, for one release.** v0.16.0 named the framework's nouns `app.<noun>`; `app.settings`, `app.list.move`, `bin app settings list` and binding, actions and history files holding them are read as `ochazuke.<noun>` (deprecated) unless a noun of that exact name exists or `app` has a verb of that name (an application's `app.state` verb keeps `app.state`). History reads them back canonical.
 - **No overlap.** A noun `x` and a noun `x.y` coexist, but a verb `y` on `x` beside a noun `x.y` (or the reverse) is refused when registered.
 - **Extensions in a host.** A host mounting an extension's catalog names its nouns under the extension (`cli.Namespace("ai")` as `PageConfig.Noun`: `skills` is the host's `ai.skills`; `cli.Local` reads it back), the namespace taken from the binary with `cli.ExtensionNamespace(bin)` (its base name lower-cased without a leading `o-`: `o-ai` is `ai`, `o-qbt` is `qbt`, `mtm-mermaid` stays; an error when that is not one noun word or is `ochazuke`, `app` or a framework noun's short name), so every host mounts an extension under the same name and two extensions and the host never clash; the extension's own binary keeps its short names. The catalog publishes the active aliases (`CatalogDoc.Aliases`, `CatalogDoc.CanonicalNoun`).
@@ -2244,12 +2245,16 @@ and socket server use this binding. Direct in-process API requests may still set
 
 ### Catalog MCP server
 
-Every `cli.Shell` supports `BIN mcp serve`, `mcp tools`, `mcp instructions`
-and `mcp config`. `cli.Mount` adds the same command group to oden apps.
+Every `cli.Shell` supports `BIN ochazuke mcp serve`, `ochazuke mcp tools`,
+`ochazuke mcp instructions` and `ochazuke mcp config` (also dotted, such as
+`ochazuke.mcp tools`). `mcp` is a shortcut while the app has no command or noun
+of that name. `cli.Mount` exposes the same names to oden apps. An app's own
+`mcp` keeps the short name; the framework server uses `ochazuke mcp`.
 `serve` speaks newline JSON-RPC over stdin/stdout; diagnostics stay on stderr.
 `config` prints a harness entry and writes no harness configuration. Apps with
 global flags set `Shell.MCPCommand` to their stable executable and global argv;
-config entries and owner confirmation commands preserve those flags.
+config entries and owner confirmation commands preserve those flags. Server config
+entries use `ochazuke mcp serve`, so an app command cannot redirect them.
 
 Four fixed tools discover and execute the existing registry:
 

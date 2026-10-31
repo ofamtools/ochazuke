@@ -10,7 +10,7 @@ import (
 // An extension's noun mounted as json.doc with a bare alias doc and a
 // deprecated json-doc reads the same on the CLI (Mount and Shell) as in
 // the palette: doc rows, json doc rows, json.doc rows and json-doc rows
-// (with one notice) all run json.doc.rows; help lists doc, never json-doc.
+// (with one notice) all run json.doc.rows; help lists json.doc with alias doc, never json-doc.
 func TestCLINounAliasesMatchThePalette(t *testing.T) {
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
 	f := newFixture(t)
@@ -39,8 +39,8 @@ func TestCLINounAliasesMatchThePalette(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(help, "\n  doc ") || strings.Contains(help, "json-doc") {
-		t.Errorf("help lists doc and not json-doc:\n%s", help)
+	if !strings.Contains(help, "\n  json.doc, doc ") || strings.Contains(help, "json-doc") {
+		t.Errorf("help lists json.doc with alias doc and not json-doc:\n%s", help)
 	}
 	// Unalias takes the name away from the CLI too.
 	if err := f.r.Unalias("doc"); err != nil {

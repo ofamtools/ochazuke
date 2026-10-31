@@ -14,8 +14,8 @@ import (
 
 // Mount maps the runtime registry to oden command groups and operation metadata.
 // A dotted noun nests (ochazuke.settings is the group settings in the group ochazuke);
-// a framework alias (settings) is a top-level group too while no noun of
-// that name shadows it; a dotted first word (ochazuke.settings) is read as the
+// a framework alias (settings) is a top-level alias too while no app command
+// or noun of that name shadows it; a dotted first word (ochazuke.settings) is read as the
 // groups it nests in.
 // Oden owns command resolution and help; the shell owns operation execution.
 // The catalog command follows the nouns so a noun named catalog wins.
@@ -197,23 +197,21 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 	for _, name := range root.names() {
 		topNames, top[name] = append(topNames, name), root.children[name]
 	}
-	// A short name (settings for ochazuke.settings, doc for a mounted
-	// json.doc) is a group of its own too while no noun of that name
-	// shadows it, so bin settings list works; a deprecated one is not
-	// listed (it is read above).
-	reserved := map[string]bool{}
-	for _, command := range sh.shellCommands() {
-		reserved[command.Name] = true
-	}
+	// Use oden aliases, not commands named after aliases: a command name
+	// wins over an alias in either registration order. Keep a canonical
+	// top-level group too, so help identifies what each shortcut reaches.
+	shortNames := map[string][]string{}
 	for _, a := range r.Aliases() {
-		if reserved[a.Alias] {
-			continue
-		}
-		if a.Shadowed || a.Deprecated() || top[a.Alias] != nil {
+		if a.Deprecated() {
 			continue
 		}
 		if g := root.find(a.Noun); g != nil {
-			topNames, top[a.Alias] = append(topNames, a.Alias), g
+			if top[a.Noun] == nil {
+				topNames, top[a.Noun] = append(topNames, a.Noun), g
+			}
+			if !a.Shadowed && top[a.Alias] == nil {
+				shortNames[a.Noun] = append(shortNames[a.Noun], a.Alias)
+			}
 		}
 	}
 	// A noun's standard verbs are one line of its help (owner decision
@@ -223,18 +221,20 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 	line := r.Settings().String(ochazuke.CLIStandardVerbsSetting) != ochazuke.CLIStandardVerbsList
 	stdLine := ""
 	if line {
-		if g, words := listedGroup(top, topNames, app.Args, line); g != nil && len(g.std) > 0 {
+		if g, words := listedGroup(top, topNames, shortNames, app.Args, line); g != nil && len(g.std) > 0 {
 			g.listing = true
 			stdLine = g.standardLine(strings.Join(append([]string{app.Name}, words...), " "))
 		}
 	}
 	for _, name := range topNames {
-		app.Add(top[name].command(name, line))
+		command := top[name].command(name, line)
+		command.Aliases = shortNames[name]
+		app.Add(command)
 	}
 	app.HelpText = `CLI execution:
   Each call uses a fresh local runtime, not an already-running TUI.
   The framework's nouns are ochazuke.<noun> (ochazuke settings list, ochazuke.settings list);
-  a short name (settings list) reaches one unless the tool has a noun of its own.
+  a short name (settings list) reaches one unless the tool has a command or noun of its own.
   --target selects an instance; some operations require an existing instance.
   --yes (or -y) accepts confirmation; otherwise the CLI asks on stdin.
   Supply prompt values as arguments: non-confirmation UI prompts need the TUI.
@@ -248,6 +248,12 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 		app.HelpText = stdLine + "\n\n" + app.HelpText
 	}
 	app.Add(sh.shellCommands()...)
+	sh.catalogOptions = append(sh.catalogOptions, func(doc *CatalogDoc) {
+		doc.Commands = OdenCommands(app).Commands()
+		for i := range doc.Commands {
+			doc.Commands[i].Help = ""
+		}
+	})
 }
 
 // shellCommands is the reserved command table. A real app noun wins; a
@@ -261,14 +267,7 @@ func (sh *Shell) shellCommands() []oden.Command {
 		Details: "catalog prints the catalog JSON a host reads.\ncatalog inspect writes a self-contained HTML inspector of this tool's nouns, verbs,\neffective key rows, user actions and the framework nouns, plus any --bin tools'\nand --catalog files' catalogs, and prints its path (catalog inspect --help).",
 		Run:     sh.catalogCommand,
 	}
-	children := []oden.Command{}
-	for _, name := range []string{"serve", "tools", "instructions", "config"} {
-		name := name
-		children = append(children, oden.Command{Name: name, Summary: "MCP " + name, Run: func(ctx context.Context, args []string) error {
-			return sh.Run(ctx, append([]string{"mcp", name}, args...))
-		}})
-	}
-	return []oden.Command{catalog, {Name: "mcp", Summary: "Catalog MCP server", Children: children}}
+	return []oden.Command{catalog}
 }
 
 // version is the shell's Version, else the main module's build version.
@@ -412,12 +411,13 @@ func (g *nounGroup) standardLine(invocation string) string {
 // named it: words naming groups (resolved as oden resolves them, prefixes
 // included), then nothing or one help flag. Anything else (a verb, an
 // unknown word, another flag) is a command run, not a listing: nil.
-func listedGroup(top map[string]*nounGroup, names []string, args []string, line bool) (*nounGroup, []string) {
+func listedGroup(top map[string]*nounGroup, names []string, aliases map[string][]string, args []string, line bool) (*nounGroup, []string) {
 	var g *nounGroup
 	var words []string
 	level := make([]*oden.Command, 0, len(names))
 	for _, name := range names {
 		c := top[name].command(name, line)
+		c.Aliases = aliases[name]
 		level = append(level, &c)
 	}
 	for i, word := range args {
