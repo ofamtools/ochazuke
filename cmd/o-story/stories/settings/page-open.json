@@ -16,6 +16,7 @@
     "focus": "a2",
     "bind": [{"noun": "demo", "keys": ",", "do": "settings.edit"}]
   },
+  "config": {"settings.json": {"settings.all-section": false}},
   "script": [",", ","],
   "expect": [
     {"after": 1, "page": "__settings", "modal": "", "mode": "normal", "focus": "__settings/row/scrolloff",

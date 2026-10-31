@@ -1,0 +1,92 @@
+{
+  "name": "settings page with settings.all-section false (the opt-out): no All section in the section list, A does nothing and is not offered",
+  "area": "settings",
+  "width": 100,
+  "height": 30,
+  "config": {
+    "settings.json": {
+      "settings.all-section": false
+    }
+  },
+  "settings": [
+    {
+      "name": "scrolloff",
+      "type": "integer",
+      "default": 2,
+      "description": "Rows kept above and below the focus"
+    },
+    {
+      "name": "theme",
+      "type": "string",
+      "default": "dark",
+      "description": "Colour theme",
+      "enum": [
+        "dark",
+        "light",
+        "solarized"
+      ]
+    },
+    {
+      "name": "tab-width",
+      "type": "integer",
+      "default": 4,
+      "description": "Columns per tab"
+    },
+    {
+      "name": "ext.ai.model",
+      "owner": "extensions",
+      "section": "ai",
+      "type": "string",
+      "default": "large",
+      "description": "Model the AI extension asks",
+      "enum": [
+        "small",
+        "large"
+      ]
+    },
+    {
+      "name": "ext.git.fetch",
+      "owner": "extensions",
+      "section": "git",
+      "type": "boolean",
+      "default": true,
+      "description": "Fetch before listing branches"
+    }
+  ],
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": ",",
+        "do": "settings.edit"
+      }
+    ]
+  },
+  "script": [
+    ",",
+    "A",
+    "k"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "focus": "__settings/row/scrolloff",
+      "lacks": [
+        "All (",
+        "A settings.all"
+      ]
+    },
+    {
+      "focus": "__settings/section/app/general",
+      "lacks": [
+        "All "
+      ]
+    }
+  ]
+}

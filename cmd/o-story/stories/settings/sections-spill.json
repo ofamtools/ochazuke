@@ -15,6 +15,7 @@
     "lists": [{"id": "a", "rows": 2}],
     "bind": [{"noun": "demo", "keys": ",", "do": "settings.edit"}]
   },
+  "config": {"settings.json": {"settings.all-section": false}},
   "script": [",", "h", "j", "j", "j", "k", "k", "l", "h", "{", "k", "enter"],
   "expect": [
     {"after": 1, "focus": "__settings/row/editor", "order": ["Sections", "General (1)", "General", "panes", "schedules", "editor"]},

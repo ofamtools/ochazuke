@@ -45,6 +45,7 @@
       {"key": "g T", "action": "ochazuke.settings.tab", "args": {"step": -1}, "hidden": true},
       {"key": "tab", "action": "ochazuke.settings.section", "args": {"step": 1, "across": true}, "hidden": true},
       {"key": "shift+tab", "action": "ochazuke.settings.section", "args": {"step": -1, "across": true}, "hidden": true},
+      {"key": "A", "action": "ochazuke.settings.all"},
       {"key": "u", "action": "ochazuke.settings.undo", "when": "settings-undo"},
       {"key": "ctrl+z", "action": "ochazuke.settings.undo", "when": "settings-undo", "hidden": true},
       {"key": "q", "action": "ochazuke.settings.close"},

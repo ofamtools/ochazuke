@@ -1,5 +1,5 @@
 {
-  "name": "settings page: / in the section list matches a setting by a choice it does not hold (an enum value): solarized keeps General, whose pane shows only theme",
+  "name": "settings page with settings.all-section false (the opt-out): / in the section list matches a setting by a choice it does not hold (an enum value): solarized keeps General, whose pane shows only theme",
   "area": "settings",
   "width": 100,
   "height": 30,
@@ -63,6 +63,7 @@
       }
     ]
   },
+  "config": {"settings.json": {"settings.all-section": false}},
   "script": [
     ",",
     "k",

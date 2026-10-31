@@ -508,7 +508,7 @@ func runSettingVerb(v settingVerb) Handler {
 		// A reset of the focused row's list (its items gone) keeps the
 		// focus on the row.
 		if StringArg(a, "name", "") == "" && v.Reset {
-			_ = r.SetFocus(settingRowPrefix + one.Name)
+			_ = r.SetFocus(settingRowID(r, one.Name, -1))
 		}
 		got, err := s.Get(one.Name)
 		return SettingWritten{SettingValue: got, Written: layer}, err

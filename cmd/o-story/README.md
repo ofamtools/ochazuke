@@ -511,7 +511,7 @@ Conformance:
 | normal | segment | `segment.toggle` |
 | normal | setting | `setting.add` `setting.cycle` `setting.edit` `setting.reset` `setting.revert` `setting.write` |
 | normal | setting-item | `setting-item.add` `setting-item.delete` `setting-item.edit` `setting-item.reset` |
-| normal | settings | `settings.close` `settings.edit` `settings.review` `settings.section` `settings.tab` `settings.undo` `settings.write` |
+| normal | settings | `settings.all` `settings.close` `settings.edit` `settings.review` `settings.section` `settings.tab` `settings.undo` `settings.write` |
 | normal | settings-section | `settings-section.open` `settings-section.pick` |
 | normal | state | `state.toggle` |
 | normal | story-card | `story-card.timeline-append` `story-card.timeline-stream` |

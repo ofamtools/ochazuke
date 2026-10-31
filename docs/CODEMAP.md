@@ -904,11 +904,11 @@ Root package `ochazuke` is flat: 153 source files, 172 test files. Each entry li
 
 ### settings_page_layout.go
 
-- lines: 1114 · tests: settings_page_layout_test.go
+- lines: 1290 · tests: settings_page_layout_test.go
 - purpose: settingsUnit is one section of one owner, as the page shows it.
 - types: SettingsTabLink
-- methods: Runtime(2), Settings(2), settingsUnit(1)
-- leans on: runtime.go(76), settings.go(46), block.go(31), list.go(27)
+- methods: Runtime(2), Settings(2), settingsPage(1), settingsUnit(3)
+- leans on: runtime.go(85), settings.go(57), block.go(31), list.go(27)
 
 ### settings_review.go
 
@@ -926,10 +926,10 @@ Root package `ochazuke` is flat: 153 source files, 172 test files. Each entry li
 
 ### settings_view.go
 
-- lines: 830
+- lines: 836
 - purpose: settingsPage is the Settings page's state, kept with the settings.
 - methods: Runtime(1), Setting(1), Settings(4), settingsPage(1)
-- leans on: runtime.go(71), settings.go(61), instance.go(21), settings_page_layout.go(14)
+- leans on: runtime.go(71), settings.go(62), settings_page_layout.go(23), instance.go(21)
 
 ### spill_edges.go
 

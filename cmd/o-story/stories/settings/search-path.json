@@ -1,5 +1,5 @@
 {
-  "name": "settings page: / in the section list searches every setting of every tab (name, description, value, default, choices): typing path keeps the sections holding path settings under their owner, the settings pane shows the shown section's matches, esc restores the page on the section it was on",
+  "name": "settings page with settings.all-section false (the opt-out, as before it): / in the section list searches every setting of every tab (name, description, value, default, choices): typing path keeps the sections holding path settings under their owner, the settings pane shows the shown section's matches, esc restores the page on the section it was on",
   "area": "settings",
   "width": 100,
   "height": 30,
@@ -63,6 +63,7 @@
       }
     ]
   },
+  "config": {"settings.json": {"settings.all-section": false}},
   "script": [
     ",",
     "k",

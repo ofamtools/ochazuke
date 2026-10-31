@@ -49,12 +49,22 @@ const (
 	// tab, and the settings pane shows the shown section's matches. Off,
 	// a section row matches by its title alone (the page before it).
 	SettingsSearchValuesSetting = "settings.search-values"
+	// SettingsAllSectionSetting lists an All section first in the section
+	// list (and an All tab with settings.layout tabs): every setting in one
+	// list, each under its tab and section. A / search in the section list
+	// (with settings.search-values) lands on it, so every match shows at
+	// once. Off, there is no All section and a search shows the shown
+	// section's matches (the page before it).
+	SettingsAllSectionSetting = "settings.all-section"
 
 	settingsSectionNoun  = "ochazuke.settings-section"
 	settingsTabNoun      = "ochazuke.settings-tab"
 	settingsSectionsID   = "__settings/sections"
 	settingSectionPrefix = "__settings/section/"
 	settingsPickKind     = "settings-section-pick"
+	// settingsAllID is the All section's id; it belongs to no owner, so its
+	// unit key (/all) never clashes with a declared section's.
+	settingsAllID = "all"
 	// settingsSectionMin and settingsSectionMax clamp the section list's
 	// panel width (its widest title and count, borders included).
 	settingsSectionMin = 18
@@ -72,21 +82,85 @@ type settingsUnit struct {
 
 func (u settingsUnit) key() string { return unitKey(u.Owner, u.ID) }
 
+// gathers reports whether the unit is a view over other sections' settings
+// (no owner: the All section) rather than their home. A gathering unit
+// shows in every tab, its rows carry their home section as a heading and
+// have ids of their own (rowPrefix), so a setting is a row in its home
+// list and in the view at once.
+func (u settingsUnit) gathers() bool { return u.Owner == "" }
+
+// rowPrefix starts the ids of the unit's rows: __settings/row/NAME and
+// __settings/item/NAME/I in a setting's home list, __settings/ID/row/NAME
+// in a gathering unit's.
+func (u settingsUnit) rowPrefix() string {
+	if u.gathers() {
+		return "__settings/" + u.ID + "/"
+	}
+	return "__settings/"
+}
+
 // unitKey names an owner's section: the page's settings list of it is
 // __settings/list/KEY, its section row __settings/section/KEY.
 func unitKey(owner, id string) string { return owner + "/" + id }
 
 func settingsListID(key string) string { return "__settings/list/" + key }
 
-// settingUnits is every owner's sections in drawing order.
+// settingUnits is every owner's sections in drawing order, after the All
+// section (settings.all-section) that gathers every setting.
 func settingUnits(s *Settings) []settingsUnit {
 	var out []settingsUnit
+	all := settingsUnit{SettingSectionInfo: SettingSectionInfo{SettingSection: SettingSection{
+		ID: settingsAllID, Title: "All", Description: "Every setting in one list, each under its tab and section",
+	}}}
 	for _, tab := range s.tabs() {
 		for _, sec := range tab.Sections {
 			out = append(out, settingsUnit{OwnerTitle: tab.Owner.Title, SettingSectionInfo: sec})
+			all.Settings = append(all.Settings, sec.Settings...)
+			all.Session += sec.Session
+		}
+	}
+	if len(out) > 0 && s.Bool(SettingsAllSectionSetting) {
+		out = append([]settingsUnit{all}, out...)
+	}
+	return out
+}
+
+// homeUnits maps each setting to its home section (the unit that owns it).
+func homeUnits(units []settingsUnit) map[string]settingsUnit {
+	out := map[string]settingsUnit{}
+	for _, u := range units {
+		if u.gathers() {
+			continue
+		}
+		for _, name := range u.Settings {
+			out[name] = u
 		}
 	}
 	return out
+}
+
+// shownOwner is the owner whose tab shows with the shown unit: its own, or
+// for a gathering unit the tab last shown (else the first).
+func shownOwner(s *Settings, shown settingsUnit) string {
+	if !shown.gathers() {
+		return shown.Owner
+	}
+	tabs := s.tabs()
+	if slices.ContainsFunc(tabs, func(t settingsOwnerTab) bool { return t.Owner.ID == s.page.tab }) {
+		return s.page.tab
+	}
+	if len(tabs) > 0 {
+		return tabs[0].Owner.ID
+	}
+	return ""
+}
+
+// show records u as the shown unit (and its owner as the shown tab).
+func (view *settingsPage) show(u settingsUnit) {
+	view.section = u.key()
+	if !u.gathers() {
+		view.tab = u.Owner
+	}
 }
 
 func unitOf(units []settingsUnit, key string) (settingsUnit, bool) {
@@ -111,7 +185,8 @@ func settingsLayout(s *Settings) string {
 func settingsMarks(s *Settings) bool { return s.Bool(SettingsMarkSessionSetting) }
 
 // listedUnits are the units the section list holds for the shown unit: the
-// shown owner's (tabs+sections), every owner's (sections), none (tabs).
+// shown owner's (tabs+sections), every owner's (sections), none (tabs); a
+// gathering unit (All) in every tab.
 func listedUnits(s *Settings, units []settingsUnit, shown settingsUnit) []settingsUnit {
 	switch settingsLayout(s) {
 	case SettingsLayoutTabs:
@@ -119,12 +194,14 @@ func listedUnits(s *Settings, units []settingsUnit, shown settingsUnit) []settin
 	case SettingsLayoutSections:
 		return units
 	}
-	return slices.DeleteFunc(slices.Clone(units), func(u settingsUnit) bool { return u.Owner != shown.Owner })
+	owner := shownOwner(s, shown)
+	return slices.DeleteFunc(slices.Clone(units), func(u settingsUnit) bool { return !u.gathers() && u.Owner != owner })
 }
 
 // currentSection is the unit the page shows: the focused settings list's,
 // the section list's selected row while it has the focus, else the one last
-// shown, else the first.
+// shown, else the first home section (the page opens on a section, not on
+// the All view).
 func currentSection(r *Runtime) string {
 	s := r.Settings()
 	units := settingUnits(s)
@@ -133,15 +210,15 @@ func currentSection(r *Runtime) string {
 	}
 	for _, u := range units {
 		if list := r.List(settingsListID(u.key())); list != nil && list.Focused() {
-			s.page.section = u.key()
+			s.page.show(u)
 			return u.key()
 		}
 	}
 	if list := r.List(settingsSectionsID); list != nil && list.Focused() {
 		if item, ok := list.Selected(); ok {
 			if key, _ := item.Data.(string); key != "" {
-				if _, ok := unitOf(units, key); ok {
-					s.page.section = key
+				if u, ok := unitOf(units, key); ok {
+					s.page.show(u)
 					return key
 				}
 			}
@@ -150,7 +227,25 @@ func currentSection(r *Runtime) string {
 	if _, ok := unitOf(units, s.page.section); ok {
 		return s.page.section
 	}
+	if i := slices.IndexFunc(units, func(u settingsUnit) bool { return !u.gathers() }); i >= 0 {
+		return units[i].key()
+	}
 	return units[0].key()
+}
+
+// settingRowID is the id of name's row (or of its item index, when index
+// >= 0) in the list the page shows when that list holds it (the All view's
+// own row), else in its home list: where a change made from a row puts the
+// focus back.
+func settingRowID(r *Runtime, name string, index int) string {
+	prefix := "__settings/"
+	if u, ok := unitOf(settingUnits(r.Settings()), currentSection(r)); ok && slices.Contains(u.Settings, name) {
+		prefix = u.rowPrefix()
+	}
+	if index >= 0 {
+		return fmt.Sprintf("%sitem/%s/%d", prefix, name, index)
+	}
+	return prefix + "row/" + name
 }
 
 // selectedSettingRow is the detail's item: the shown list's selected row
@@ -186,18 +281,38 @@ func refreshSettingsPage(r *Runtime) {
 	for _, v := range s.List() {
 		values[v.Name] = v
 	}
-	for _, u := range settingUnits(s) {
+	units := settingUnits(s)
+	homes := homeUnits(units)
+	// The gathering lists (All) are added after the home ones, so before
+	// the first frame (tree order) k from the first section's settings
+	// still spills to the section list.
+	ordered := slices.Concat(
+		slices.DeleteFunc(slices.Clone(units), settingsUnit.gathers),
+		slices.DeleteFunc(slices.Clone(units), func(u settingsUnit) bool { return !u.gathers() }),
+	)
+	for _, u := range ordered {
 		var items []ListItem
 		names := 0
 		for _, name := range u.Settings {
 			v := values[name]
 			row := settingItem(s, v)
+			heading := v.Group
+			if u.gathers() {
+				// A gathered row sits under its home: tab › section (›
+				// group).
+				home := homes[name]
+				heading = home.OwnerTitle + " › " + home.Title
+				if v.Group != "" {
+					heading += " › " + v.Group
+				}
+			}
+			row.ID, row.Section = u.rowPrefix()+"row/"+name, heading
 			names = max(names, ansi.StringWidth(strings.TrimSuffix(row.Cells[0], " •")))
 			items = append(items, row)
 			if list, ok := v.Value.([]string); ok {
 				for i, text := range list {
 					items = append(items, ListItem{
-						ID: settingItemID(v.Name, i), Label: text, Noun: settingItemNoun, Section: v.Group,
+						ID: fmt.Sprintf("%sitem/%s/%d", u.rowPrefix(), v.Name, i), Label: text, Noun: settingItemNoun, Section: heading,
 						Data: settingItemRef{Name: v.Name, Index: i}, Cells: []string{"", textCell(text)},
 					})
 				}
@@ -265,7 +380,8 @@ func syncSectionList(r *Runtime, key string) {
 		list.SetMatchNoun("settings")
 		search = map[string][]string{}
 		for _, v := range s.List() {
-			search[v.Name] = settingSearch(s, v)
+			row := settingItem(s, v)
+			search[v.Name] = append(append([]string{row.Label}, row.Cells...), row.Search...)
 			if items, ok := v.Value.([]string); ok {
 				search[v.Name] = append(search[v.Name], items...)
 			}
@@ -281,7 +397,21 @@ func syncSectionList(r *Runtime, key string) {
 		if headings {
 			item.Section = u.OwnerTitle
 		}
-		if values {
+		switch {
+		case values && u.gathers():
+			// A gathering row (All) holds every setting, whose text
+			// together matches almost any query of several words: it
+			// matches by the settings that match one by one, so it shows
+			// exactly when its list has a match.
+			if query := list.Filter(); query != "" {
+				m := list.matcher()
+				for _, name := range u.Settings {
+					if m.Match(strings.Join(search[name], "\n")) {
+						item.Search = append(item.Search, search[name]...)
+					}
+				}
+			}
+		case values:
 			item.Search = append(item.Search, u.ID, u.Description)
 			for _, name := range u.Settings {
 				item.Search = append(item.Search, search[name]...)
@@ -322,6 +452,7 @@ func settingsSectionFiltered(sections *List) {
 	syncSectionList(r, key)
 	previous := s.page.searched
 	s.page.searched = query
+	var gather string
 	for _, u := range settingUnits(s) {
 		list := r.List(settingsListID(u.key()))
 		if list == nil || list.Filter() != "" && list.Filter() != previous {
@@ -332,6 +463,15 @@ func settingsSectionFiltered(sections *List) {
 		if query != "" && list.Shown() == 0 && sections.shows(settingSectionPrefix+u.key()) {
 			list.SetFilter("")
 		}
+		if gather == "" && u.gathers() && list.Shown() > 0 {
+			gather = settingSectionPrefix + u.key()
+		}
+	}
+	// A search lands on the All section (settings.all-section), so the
+	// settings pane shows every match at once; j and k still step to a
+	// section's own matches.
+	if query != "" && gather != "" && sections.shows(gather) {
+		_ = sections.Select(gather)
 	}
 }
 
@@ -343,11 +483,13 @@ func showUnit(r *Runtime, key string) {
 	if !ok {
 		return
 	}
-	s.page.section = key
+	s.page.show(unit)
 	if s.page.lastOf == nil {
 		s.page.lastOf = map[string]string{}
 	}
-	s.page.lastOf[unit.Owner] = key
+	if !unit.gathers() {
+		s.page.lastOf[unit.Owner] = key
+	}
 	syncSectionList(r, key)
 }
 
@@ -507,6 +649,22 @@ func settingsTabs(s *Settings, units []settingsUnit) (titles []string, keys [][]
 	return titles, keys
 }
 
+// activeTab is the index of the tab showing the unit key: the tab holding
+// it, else (a gathering unit in tabs+sections) the shown owner's.
+func activeTab(s *Settings, keys [][]string, key string) int {
+	if i := slices.IndexFunc(keys, func(ks []string) bool { return slices.Contains(ks, key) }); i >= 0 {
+		return i
+	}
+	shown, ok := unitOf(settingUnits(s), key)
+	if !ok || !shown.gathers() {
+		return -1
+	}
+	owner := shownOwner(s, shown)
+	return slices.IndexFunc(keys, func(ks []string) bool {
+		return slices.ContainsFunc(ks, func(k string) bool { return strings.HasPrefix(k, owner+"/") })
+	})
+}
+
 // settingsOwnerTabs are the owners' (or the sections') tabs.
 func settingsOwnerTabs(s *Settings, units []settingsUnit) (titles []string, keys [][]string) {
 	layout := settingsLayout(s)
@@ -561,7 +719,8 @@ func showSettingsTab(r *Runtime, name string, step int) error {
 	key := currentSection(r)
 	shown, _ := unitOf(units, key)
 	tabs := s.tabs()
-	at := slices.IndexFunc(tabs, func(t settingsOwnerTab) bool { return t.Owner.ID == shown.Owner })
+	owner := shownOwner(s, shown)
+	at := slices.IndexFunc(tabs, func(t settingsOwnerTab) bool { return t.Owner.ID == owner })
 	if name != "" {
 		at = slices.IndexFunc(tabs, func(t settingsOwnerTab) bool { return t.Owner.ID == name || strings.EqualFold(t.Owner.Title, name) })
 		if at < 0 {
@@ -597,8 +756,7 @@ func stepSettingsLink(r *Runtime, name string, step int) (bool, error) {
 	if cur >= 0 {
 		cur += n
 	} else if r.Page == SettingsPageID {
-		key := currentSection(r)
-		cur = slices.IndexFunc(keys, func(ks []string) bool { return slices.Contains(ks, key) })
+		cur = activeTab(s, keys, currentSection(r))
 	}
 	if cur < 0 {
 		// Neither the Settings page nor a link is current: only a
@@ -706,7 +864,7 @@ func unitsOfArgs(r *Runtime, c Context, a Arguments, owner bool) ([]settingsUnit
 	}
 	shown, _ := unitOf(units, key)
 	if owner {
-		id := StringArg(a, "owner", shown.Owner)
+		id := StringArg(a, "owner", shownOwner(s, shown))
 		var out []settingsUnit
 		for _, u := range units {
 			if u.Owner == id || strings.EqualFold(u.OwnerTitle, id) {
@@ -899,6 +1057,19 @@ func registerSettingsLayoutView(r *Runtime) {
 	}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.Context(), showSettingsTab(r, StringArg(a, "name", ""), IntArg(a, "step", 1))
 	}})
+	r.Register(Operation{Verb: "all", Noun: "ochazuke.settings", Description: "Show the Settings page's All section: every setting in one list, each under its tab and section (opens the page when it is closed)", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		if !r.Settings().Bool(SettingsAllSectionSetting) {
+			return nil, errors.New("there is no All section: settings.all-section is off")
+		}
+		if _, err := r.Execute(Request{Noun: settingsSectionNoun, Verb: "open", Args: Arguments{"section": unitKey("", settingsAllID)}}); err != nil {
+			return nil, err
+		}
+		return r.Context(), nil
+	}})
+	r.DefineGuard("settings-all-section", func(r *Runtime, ev KeyEvent) bool {
+		return r.Settings().Bool(SettingsAllSectionSetting)
+	})
+	r.SetAvailability("ochazuke.settings.all", "settings-all-section")
 	r.DefineGuard("settings-narrow", func(r *Runtime, ev KeyEvent) bool {
 		return r.Settings().page.narrow
 	})
@@ -955,8 +1126,7 @@ func settingsPageView(r *Runtime, width, height int) Block {
 	}
 	var rows []string
 	if titles, keys := settingsTabs(s, units); len(titles) > 1 && height > PaneMinHeight {
-		active := slices.IndexFunc(keys, func(ks []string) bool { return slices.Contains(ks, key) })
-		rows = append(rows, layout.tabs(titles, active, width))
+		rows = append(rows, layout.tabs(titles, activeTab(s, keys, key), width))
 	}
 	body := height - len(rows)
 	sections := r.List(settingsSectionsID)
@@ -1001,15 +1171,17 @@ func settingsPageView(r *Runtime, width, height int) Block {
 // count with the borders, clamped to settingsSectionMin..settingsSectionMax
 // and to a third of the page; and the widest count.
 func sectionListWidth(list *List, width int) (int, int) {
-	widest, counts := 0, 1
+	titles, counts, headings := 0, 1, 0
 	for _, item := range list.Items() {
 		counts = max(counts, ansi.StringWidth(item.Cells[1]))
-		w := ansi.StringWidth(item.Cells[0]) + tableGap + ansi.StringWidth(item.Cells[1])
+		titles = max(titles, ansi.StringWidth(item.Cells[0]))
 		if item.Section != "" {
-			w = max(w, ansi.StringWidth(item.Section))
+			headings = max(headings, ansi.StringWidth(item.Section))
 		}
-		widest = max(widest, w)
 	}
+	// The widest title beside the widest count (they are columns), so a
+	// long count (All's) never cuts a title.
+	widest := max(titles+tableGap+counts, headings)
 	return min(max(widest+4, settingsSectionMin), settingsSectionMax, max(width/3, settingsSectionMin)), counts
 }
 
@@ -1075,7 +1247,7 @@ func settingsPanels(r *Runtime, layout Layout, shown settingsUnit, selector Bloc
 		focused = SplitLeft
 	}
 	tableTitle := fmt.Sprintf("%s (%d)", shown.Title, len(shown.Settings))
-	if selector.Text != "" && settingsLayout(s) != SettingsLayoutSections {
+	if selector.Text != "" && settingsLayout(s) != SettingsLayoutSections && shown.OwnerTitle != "" {
 		tableTitle = shown.OwnerTitle + " › " + tableTitle
 	}
 	return layout.panelPair(tableTitle, tableBody, title, Text(content), width, height, th, true, focused)
@@ -1106,7 +1278,11 @@ func sectionDetail(u settingsUnit) (title, text string) {
 	if len(u.Settings) == 1 {
 		n = "setting"
 	}
-	lines = append(lines, fmt.Sprintf("%d %s in %s › %s.", len(u.Settings), n, u.OwnerTitle, u.Title))
+	where := u.Title
+	if u.OwnerTitle != "" {
+		where = u.OwnerTitle + " › " + where
+	}
+	lines = append(lines, fmt.Sprintf("%d %s in %s.", len(u.Settings), n, where))
 	if u.Session > 0 {
 		lines = append(lines, fmt.Sprintf("%d set this session (setting.write saves them, settings-section.write all of them).", u.Session))
 	}

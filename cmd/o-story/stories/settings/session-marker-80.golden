@@ -3,8 +3,8 @@
  |  ────────────────────────────────────────────────────────────────────────────
  |   › app ◦  ochazuke  About
  |  ╭─ Sections ─────╮ ╭━ General (4) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
-r|  │ General ◦    4 │ ┃ scrolloff    ‹ 2 ›                                    ┃
-R|  │                │ ┃ stack •      ‹ stack ›  (saved: grid)                 ┃
+ |  │ All ◦      107 │ ┃ scrolloff    ‹ 2 ›                                    ┃
+R|  │ General ◦    4 │ ┃ stack •      ‹ stack ›  (saved: grid)                 ┃
  |  │                │ ┃ editor       vi                                       ┃
  |  │                │ ┃ paths •      2 items  (saved: 1 item)                 ┃
  |  │                │ ┃              ~/proj                                   ┃

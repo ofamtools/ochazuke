@@ -1,0 +1,102 @@
+{
+  "name": "settings page: A (settings.all) shows the All section: every setting of every tab in one list, each under its tab and section heading, its first setting focused; G walks to the last tab's settings",
+  "area": "settings",
+  "width": 100,
+  "height": 30,
+  "settings": [
+    {
+      "name": "scrolloff",
+      "type": "integer",
+      "default": 2,
+      "description": "Rows kept above and below the focus"
+    },
+    {
+      "name": "theme",
+      "type": "string",
+      "default": "dark",
+      "description": "Colour theme",
+      "enum": [
+        "dark",
+        "light",
+        "solarized"
+      ]
+    },
+    {
+      "name": "tab-width",
+      "type": "integer",
+      "default": 4,
+      "description": "Columns per tab"
+    },
+    {
+      "name": "ext.ai.model",
+      "owner": "extensions",
+      "section": "ai",
+      "type": "string",
+      "default": "large",
+      "description": "Model the AI extension asks",
+      "enum": [
+        "small",
+        "large"
+      ]
+    },
+    {
+      "name": "ext.git.fetch",
+      "owner": "extensions",
+      "section": "git",
+      "type": "boolean",
+      "default": true,
+      "description": "Fetch before listing branches"
+    }
+  ],
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": ",",
+        "do": "settings.edit"
+      }
+    ]
+  },
+  "script": [
+    ",",
+    "A",
+    "G"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "__settings/row/scrolloff",
+      "contains": [
+        "A settings.all"
+      ]
+    },
+    {
+      "after": 2,
+      "focus": "__settings/all/row/scrolloff",
+      "order": [
+        "› app",
+        "All (",
+        "app › General",
+        "scrolloff",
+        "theme",
+        "tab-width"
+      ]
+    },
+    {
+      "page": "__settings",
+      "contains": [
+        "All (",
+        "ochazuke › "
+      ],
+      "lacks": [
+        "app › General"
+      ]
+    }
+  ]
+}

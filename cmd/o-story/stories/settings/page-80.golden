@@ -3,8 +3,8 @@
  |  ────────────────────────────────────────────────────────────────────────────
  |   › app  extensions  ochazuke  About
  |  ╭─ Sections ─────╮ ╭━ General (6) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
-r|  │ General      6 │ ┃ scrolloff •  ‹ 3 ›                                    ┃
-R|  │                │ ┃ theme        ‹ dark ›                                 ┃
+ |  │ All        112 │ ┃ scrolloff •  ‹ 3 ›                                    ┃
+R|  │ General      6 │ ┃ theme        ‹ dark ›                                 ┃
  |  │                │ ┃ wrap         ‹ false ›                                ┃
  |  │                │ ┃ paths        2 items                                  ┃
  |  │                │ ┃              ~/proj                                   ┃

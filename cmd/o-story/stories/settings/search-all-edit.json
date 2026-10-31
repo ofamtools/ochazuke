@@ -1,0 +1,113 @@
+{
+  "name": "settings page: a result of the All section's search is edited in place: / path, enter keeps the filter, l opens All on its first match, enter steps the enum and the focus stays on the All list's row; u takes it back there",
+  "area": "settings",
+  "width": 100,
+  "height": 30,
+  "settings": [
+    {
+      "name": "scrolloff",
+      "type": "integer",
+      "default": 2,
+      "description": "Rows kept above and below the focus"
+    },
+    {
+      "name": "theme",
+      "type": "string",
+      "default": "dark",
+      "description": "Colour theme",
+      "enum": [
+        "dark",
+        "light",
+        "solarized"
+      ]
+    },
+    {
+      "name": "tab-width",
+      "type": "integer",
+      "default": 4,
+      "description": "Columns per tab"
+    },
+    {
+      "name": "ext.ai.model",
+      "owner": "extensions",
+      "section": "ai",
+      "type": "string",
+      "default": "large",
+      "description": "Model the AI extension asks",
+      "enum": [
+        "small",
+        "large"
+      ]
+    },
+    {
+      "name": "ext.git.fetch",
+      "owner": "extensions",
+      "section": "git",
+      "type": "boolean",
+      "default": true,
+      "description": "Fetch before listing branches"
+    }
+  ],
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": ",",
+        "do": "settings.edit"
+      }
+    ]
+  },
+  "script": [
+    ",",
+    "k",
+    "/",
+    "p",
+    "a",
+    "t",
+    "h",
+    "enter",
+    "l",
+    "enter",
+    "u"
+  ],
+  "expect": [
+    {
+      "after": 9,
+      "mode": "normal",
+      "focus": "__settings/all/row/focus-display",
+      "contains": [
+        "All (",
+        "ochazuke › Appearance",
+        "focus-display                 ‹ off ›",
+        "Not in settings.json"
+      ]
+    },
+    {
+      "after": 10,
+      "focus": "__settings/all/row/focus-display",
+      "contains": [
+        "focus-display •               ‹ noun ›",
+        "Set in settings.json.",
+        "ochazuke › Palette",
+        "forms.single-path"
+      ]
+    },
+    {
+      "mode": "normal",
+      "focus": "__settings/all/row/focus-display",
+      "contains": [
+        "focus-display                 ‹ off ›",
+        "/path"
+      ],
+      "lacks": [
+        "focus-display •"
+      ]
+    }
+  ]
+}

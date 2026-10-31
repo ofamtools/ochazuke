@@ -316,7 +316,8 @@ func TestSettingSections(t *testing.T) {
 	for _, u := range settingUnits(r.Settings()) {
 		got = append(got, u.key())
 	}
-	if len(got) < 3 || !reflect.DeepEqual(got[:3], []string{"app/general", "app/ext", "app/look"}) {
+	// The All section (settings.all-section) comes first.
+	if len(got) < 4 || !reflect.DeepEqual(got[:4], []string{"/all", "app/general", "app/ext", "app/look"}) {
 		t.Fatalf("sections %q", got)
 	}
 }

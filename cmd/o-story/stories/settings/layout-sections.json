@@ -3,7 +3,7 @@
   "area": "settings",
   "width": 100,
   "height": 30,
-  "config": {"settings.json": {"settings.layout": "sections"}},
+  "config": {"settings.json": {"settings.all-section": false, "settings.layout": "sections"}},
   "settings": [
     {"name": "editor", "type": "string", "default": "vi", "description": "The command that opens a file"},
     {"name": "panes.group", "type": "string", "default": "project", "enum": ["project", "flat"], "description": "How panes group"},

@@ -11,6 +11,7 @@
     "lists": [{"id": "a", "rows": 2}],
     "bind": [{"noun": "demo", "keys": "S", "do": "settings.edit"}]
   },
+  "config": {"settings.json": {"settings.all-section": false}},
   "script": ["S", "l", "j", "enter", "h", "j", "space", "r", "esc"],
   "expect": [
     {

@@ -46,13 +46,12 @@ const (
 	// SettingsGeneral titles the section of the settings without one.
 	SettingsGeneral = "General"
 
-	settingsPageNoun  = "ochazuke.settings-page"
-	settingItemNoun   = "ochazuke.setting-item"
-	settingsDetailID  = "__settings/detail"
-	settingPromptID   = "setting-prompt"
-	settingValueID    = "__settings/value"
-	settingRowPrefix  = "__settings/row/"
-	settingItemPrefix = "__settings/item/"
+	settingsPageNoun = "ochazuke.settings-page"
+	settingItemNoun  = "ochazuke.setting-item"
+	settingsDetailID = "__settings/detail"
+	settingPromptID  = "setting-prompt"
+	settingValueID   = "__settings/value"
+	settingRowPrefix = "__settings/row/"
 	// settingsUndoLimit bounds the page's undo list.
 	settingsUndoLimit = 50
 )
@@ -71,9 +70,12 @@ type settingsPage struct {
 	// the last frame folded the section list into its selector line
 	// (settings.narrow-width), which the settings-narrow guard reads.
 	section string
-	last    string
-	lastOf  map[string]string
-	narrow  bool
+	// tab is the owner of the last home section shown: the tab that
+	// shows while a gathering unit (All) is shown.
+	tab    string
+	last   string
+	lastOf map[string]string
+	narrow bool
 	// searched is the section list's filter the settings lists last
 	// followed (settingsSectionFiltered): a settings list holding it (or
 	// none) follows the next one; one the user filtered itself keeps its own.
@@ -249,11 +251,11 @@ func registerSettingsEditor(r *Runtime) {
 			// one before, else the setting's row.
 			switch {
 			case ref.Index < len(items):
-				_ = r.SetFocus(settingItemID(one.Name, ref.Index))
+				_ = r.SetFocus(settingRowID(r, one.Name, ref.Index))
 			case len(items) > 0:
-				_ = r.SetFocus(settingItemID(one.Name, len(items)-1))
+				_ = r.SetFocus(settingRowID(r, one.Name, len(items)-1))
 			default:
-				_ = r.SetFocus(settingRowPrefix + one.Name)
+				_ = r.SetFocus(settingRowID(r, one.Name, -1))
 			}
 			return r.Settings().Get(one.Name)
 		}, "Delete the list item").
@@ -266,7 +268,7 @@ func registerSettingsEditor(r *Runtime) {
 				return nil, err
 			}
 			if r.Instances[r.Focus] == nil || r.Instances[r.Focus].Noun != settingItemNoun {
-				_ = r.SetFocus(settingRowPrefix + one.Name)
+				_ = r.SetFocus(settingRowID(r, one.Name, -1))
 			}
 			return r.Settings().Get(one.Name)
 		}, "Reset the whole list to its default")
@@ -344,7 +346,7 @@ func commitSettingPrompt(r *Runtime, name string, args Arguments, text string) (
 	if err := pageChange(r, name, func() error { return s.Set(name, items) }); err != nil {
 		return "", err
 	}
-	return settingItemID(name, at), nil
+	return settingRowID(r, name, at), nil
 }
 
 // pageChange runs a change to one setting (a page key, a setting verb)
@@ -448,8 +450,12 @@ func undoSettingChange(r *Runtime) (any, error) {
 	view.undo = view.undo[:len(view.undo)-1]
 	name := last.snaps[0].name
 	if one := s.find(name); one != nil && r.PageOf(SettingsPageID) != nil {
-		showUnit(r, unitKey(s.ownerOf(*one), one.SectionName()))
-		_ = r.SetFocus(settingRowPrefix + name)
+		// The shown list when it holds the setting (the All view), else
+		// the setting's home section.
+		if u, ok := unitOf(settingUnits(s), currentSection(r)); !ok || !slices.Contains(u.Settings, name) {
+			showUnit(r, unitKey(s.ownerOf(*one), one.SectionName()))
+		}
+		_ = r.SetFocus(settingRowID(r, name, -1))
 	}
 	return s.Get(name)
 }
@@ -569,10 +575,6 @@ func closeSettingsPage(r *Runtime) error {
 	return nil
 }
 
-func settingItemID(name string, index int) string {
-	return fmt.Sprintf("%s%s/%d", settingItemPrefix, name, index)
-}
-
 // settingItem is one setting's row: its full name, the word :set takes (a •
 // after it when the value is not the default), and the value; a grouped
 // setting carries its group as the row's section, a heading above the
@@ -674,12 +676,16 @@ func settingCell(v any) string {
 // settingOfRow is the setting and item (-1 for the setting's own row) a
 // row id names.
 func settingOfRow(r *Runtime, id string) (string, int) {
-	if name, ok := strings.CutPrefix(id, settingRowPrefix); ok {
-		return name, -1
+	inst := r.Instances[id]
+	if inst == nil {
+		return "", -1
 	}
-	if inst := r.Instances[id]; inst != nil {
-		if ref, ok := inst.Data.(settingItemRef); ok {
-			return ref.Name, ref.Index
+	switch data := inst.Data.(type) {
+	case settingItemRef:
+		return data.Name, data.Index
+	case string:
+		if inst.Noun == "ochazuke.setting" {
+			return data, -1
 		}
 	}
 	return "", -1

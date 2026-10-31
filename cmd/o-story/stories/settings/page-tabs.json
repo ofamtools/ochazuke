@@ -2,7 +2,7 @@
   "name": "settings page with settings.layout tabs (the page before owners): a tab per section, no section list; tab, shift+tab, ] and [ step them, wrapping, each keeping its row",
   "area": "settings",
   "width": 100,
-  "config": {"settings.json": {"settings.layout": "tabs"}},
+  "config": {"settings.json": {"settings.all-section": false, "settings.layout": "tabs"}},
   "settings": [
     {"name": "scrolloff", "type": "integer", "default": 2, "description": "Rows kept above and below the focus"},
     {"name": "theme", "type": "string", "default": "dark", "description": "Colour theme", "enum": ["dark", "light", "mono"]},

@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -41,13 +42,21 @@ func TestSettingsSectionAndTabSteps(t *testing.T) {
 	if got := run("section", Arguments{"step": 1}); got != "app/panes" {
 		t.Fatalf("section +1 %q", got)
 	}
+	// The All section (settings.all-section) is the first row of every
+	// tab's section list, so the steps go through it.
+	if got := run("section", Arguments{"step": 1}); got != "/all" {
+		t.Fatalf("section +1 wraps inside the tab to All: %q", got)
+	}
 	if got := run("section", Arguments{"step": 1}); got != "app/general" {
-		t.Fatalf("section +1 wraps inside the tab: %q", got)
+		t.Fatalf("section +1 from All: %q", got)
+	}
+	if got := run("section", Arguments{"step": -1, "across": true}); got != "/all" {
+		t.Fatalf("section -1 across from the first section: %q", got)
 	}
 	if got := run("section", Arguments{"step": -1, "across": true}); got != "ochazuke/settings" {
 		t.Fatalf("section -1 across wraps to the last tab's last section: %q", got)
 	}
-	if got := run("section", Arguments{"step": 1, "across": true}); got != "app/general" {
+	if got := run("section", Arguments{"step": 1, "across": true}); got != "/all" {
 		t.Fatalf("section +1 across wraps to the first: %q", got)
 	}
 	run("section", Arguments{"name": "panes"})
@@ -120,7 +129,7 @@ func TestSettingsLayoutValues(t *testing.T) {
 		t.Fatalf("tabs:\n%s", f)
 	}
 	_ = r.Settings().Set(SettingsLayoutSetting, SettingsLayoutSections)
-	if f := frame(); strings.Contains(f, "› app") || !strings.Contains(f, "extensions") || !strings.Contains(f, "Appearance") {
+	if f := frame(); strings.Contains(f, "› app") || !strings.Contains(f, "extensions") || !strings.Contains(f, "Appearan") {
 		t.Fatalf("sections:\n%s", f)
 	}
 	_ = r.Settings().Set(SettingsLayoutSetting, SettingsLayoutTabsSections)
@@ -129,7 +138,7 @@ func TestSettingsLayoutValues(t *testing.T) {
 		t.Fatalf("session marks:\n%s", f)
 	}
 	m.Width = 60
-	if f := frame(); !strings.Contains(f, "Section ‹ General  1/2 ›") || !r.Settings().page.narrow {
+	if f := frame(); !strings.Contains(f, "Section ‹ General  2/3 ›") || !r.Settings().page.narrow {
 		t.Fatalf("narrow:\n%s", f)
 	}
 	_ = r.Settings().Set(SettingsNarrowWidthSetting, 0)
@@ -198,7 +207,7 @@ func TestSettingsSearchValues(t *testing.T) {
 		return out
 	}
 	sections.SetFilter("zebrafish")
-	if got := ids(sections); !reflect.DeepEqual(got, []string{settingSectionPrefix + "app/panes"}) {
+	if got := ids(sections); !reflect.DeepEqual(got, []string{settingSectionPrefix + "/all", settingSectionPrefix + "app/panes"}) {
 		t.Fatalf("an enum choice finds its section: %v", got)
 	}
 	panes := r.List(settingsListID("app/panes"))
@@ -212,7 +221,8 @@ func TestSettingsSearchValues(t *testing.T) {
 	}
 	// Every tab: the extensions owner's section matches by its setting.
 	sections.SetFilter("ext.ai")
-	if got := ids(sections); !reflect.DeepEqual(got, []string{settingSectionPrefix + "extensions/ai"}) || sections.items[0].Section == "" {
+	// The All row first (settings.all-section), with no heading.
+	if got := ids(sections); !reflect.DeepEqual(got, []string{settingSectionPrefix + "/all", settingSectionPrefix + "extensions/ai"}) || sections.items[1].Section == "" {
 		t.Fatalf("the filter spans every tab, under owner headings: %v", sections.items)
 	}
 	// A settings list the user filtered keeps its own filter.
@@ -223,7 +233,7 @@ func TestSettingsSearchValues(t *testing.T) {
 		t.Fatalf("clearing: general %q, panes %q", general.Filter(), panes.Filter())
 	}
 	for _, it := range sections.items {
-		if !strings.HasPrefix(it.ID, settingSectionPrefix+"app/") && !strings.HasPrefix(it.ID, settingSectionPrefix+"extensions/") {
+		if !strings.HasPrefix(it.ID, settingSectionPrefix+"app/") && !strings.HasPrefix(it.ID, settingSectionPrefix+"extensions/") && it.ID != settingSectionPrefix+"/all" {
 			t.Fatalf("cleared, the list holds the shown tab's sections only: %v", ids(sections))
 		}
 	}
@@ -244,5 +254,94 @@ func TestSettingsSearchValues(t *testing.T) {
 	}
 	if got := ansi.Strip(sections.emptyLine()); got != "no sections match 'zebrafish'" {
 		t.Fatalf("off empty line %q", got)
+	}
+}
+
+// The All section (settings.all-section): a / search in the section list
+// lands on it, so the settings pane shows every match from every section
+// in one list, each under its tab and section; a result is edited in
+// place, the focus staying in the All list; settings.all shows it; off,
+// there is no All section and the search is section by section.
+func TestSettingsAllSection(t *testing.T) {
+	r, m := layoutFixture(t)
+	if err := r.DeclareSetting(
+		Setting{Name: "panes.path", Type: SettingBoolean, Default: false, Description: "Show the path"},
+		Setting{Name: "ext.ai.path", Type: SettingString, Default: "x", Owner: "extensions", Section: "ai"},
+	); err != nil {
+		t.Fatal(err)
+	}
+	refreshSettingsPage(r)
+	m.View()
+	sections := r.List(settingsSectionsID)
+	if err := sections.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	all := r.List(settingsListID("/all"))
+	if all == nil {
+		t.Fatal("no All list")
+	}
+	sections.SetFilter("path")
+	if got, _ := sections.Selected(); got.ID != settingSectionPrefix+"/all" || currentSection(r) != "/all" {
+		t.Fatalf("the search lands on All: %q", got.ID)
+	}
+	var names, heads []string
+	for _, it := range all.items {
+		if it.Noun == "ochazuke.setting" {
+			names = append(names, it.Data.(string))
+			heads = append(heads, it.Section)
+		}
+	}
+	if !slices.Contains(names, "panes.path") || !slices.Contains(names, "ext.ai.path") || slices.Contains(names, "panes.width") {
+		t.Fatalf("All shows every match: %v", names)
+	}
+	if !slices.Contains(heads, "app › panes") || !slices.Contains(heads, "extensions › ai") {
+		t.Fatalf("each under its tab and section: %v", heads)
+	}
+	if f := ansi.Strip(m.View().Content); !strings.Contains(f, "All (") || !strings.Contains(f, "extensions › ai") {
+		t.Fatalf("frame:\n%s", f)
+	}
+	// Edit a result in place: the focus stays on the All list's row.
+	row := "__settings/all/row/panes.path"
+	if err := r.SetFocus(row); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "edit"}); err != nil {
+		t.Fatal(err)
+	}
+	if !r.Settings().Bool("panes.path") || r.Focus != row {
+		t.Fatalf("edited %v, focus %q", r.Settings().Bool("panes.path"), r.Focus)
+	}
+	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "undo"}); err != nil || r.Settings().Bool("panes.path") || r.Focus != row {
+		t.Fatalf("undo stays in All: %v, focus %q", err, r.Focus)
+	}
+	sections.SetFilter("")
+	// settings.all shows the whole list.
+	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "all"}); err != nil {
+		t.Fatal(err)
+	}
+	if currentSection(r) != "/all" || all.Shown() < len(r.Settings().Declared()) {
+		t.Fatalf("settings.all: section %q, %d shown of %d", currentSection(r), all.Shown(), len(r.Settings().Declared()))
+	}
+	// Off: no All section; the search stays section by section.
+	if err := r.Settings().Set(SettingsAllSectionSetting, false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "section", Args: Arguments{"name": "panes"}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := sections.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	sections.SetFilter("path")
+	for _, it := range sections.items {
+		if it.ID == settingSectionPrefix+"/all" {
+			t.Fatalf("off, no All row: %v", sections.items)
+		}
+	}
+	if currentSection(r) == "/all" {
+		t.Fatal("off, the search does not land on All")
+	}
+	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "all"}); err == nil {
+		t.Fatal("settings.all with the All section off")
 	}
 }
