@@ -170,3 +170,79 @@ func TestSpillToSelection(t *testing.T) {
 		t.Fatalf("spill into a SpillToSelection list landed on %q", r.Focus)
 	}
 }
+
+// settings.search-values: the section list's filter matches a section by
+// its settings' descriptions and choices across every tab, the settings
+// lists follow it (a section shown by its title alone shows all its
+// settings), a settings list the user filtered keeps its own filter, and
+// clearing restores the shown tab. Off, a section matches by its title.
+func TestSettingsSearchValues(t *testing.T) {
+	r, m := layoutFixture(t)
+	if err := r.DeclareSetting(Setting{Name: "panes.mode", Type: SettingString, Default: "tile", Enum: []string{"tile", "zebrafish"}, Description: "How panes lay out"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.DeclareSettingSection(SettingSection{ID: "panes", Title: "Window layout"}); err != nil {
+		t.Fatal(err)
+	}
+	refreshSettingsPage(r)
+	m.View()
+	sections := r.List(settingsSectionsID)
+	if err := sections.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	ids := func(l *List) []string {
+		var out []string
+		for _, it := range l.items {
+			out = append(out, it.ID)
+		}
+		return out
+	}
+	sections.SetFilter("zebrafish")
+	if got := ids(sections); !reflect.DeepEqual(got, []string{settingSectionPrefix + "app/panes"}) {
+		t.Fatalf("an enum choice finds its section: %v", got)
+	}
+	panes := r.List(settingsListID("app/panes"))
+	if got := ids(panes); !reflect.DeepEqual(got, []string{settingRowPrefix + "panes.mode"}) {
+		t.Fatalf("the settings pane shows the matches: %v", got)
+	}
+	// A section matching by its title alone shows every setting.
+	sections.SetFilter("window layout")
+	if got := ids(sections); !reflect.DeepEqual(got, []string{settingSectionPrefix + "app/panes"}) || panes.Filter() != "" || panes.Shown() != 3 {
+		t.Fatalf("panes by title: filter %q, %d shown", panes.Filter(), panes.Shown())
+	}
+	// Every tab: the extensions owner's section matches by its setting.
+	sections.SetFilter("ext.ai")
+	if got := ids(sections); !reflect.DeepEqual(got, []string{settingSectionPrefix + "extensions/ai"}) || sections.items[0].Section == "" {
+		t.Fatalf("the filter spans every tab, under owner headings: %v", sections.items)
+	}
+	// A settings list the user filtered keeps its own filter.
+	general := r.List(settingsListID("app/general"))
+	general.SetFilter("own")
+	sections.SetFilter("")
+	if general.Filter() != "own" || panes.Filter() != "" {
+		t.Fatalf("clearing: general %q, panes %q", general.Filter(), panes.Filter())
+	}
+	for _, it := range sections.items {
+		if !strings.HasPrefix(it.ID, settingSectionPrefix+"app/") && !strings.HasPrefix(it.ID, settingSectionPrefix+"extensions/") {
+			t.Fatalf("cleared, the list holds the shown tab's sections only: %v", ids(sections))
+		}
+	}
+	general.SetFilter("")
+	// The settings list matches descriptions too.
+	panes.SetFilter("lay out")
+	if got := ids(panes); !reflect.DeepEqual(got, []string{settingRowPrefix + "panes.mode"}) {
+		t.Fatalf("a settings list matches by description: %v", got)
+	}
+	panes.SetFilter("")
+	if err := r.Settings().Set(SettingsSearchValuesSetting, false); err != nil {
+		t.Fatal(err)
+	}
+	refreshSettingsPage(r)
+	sections.SetFilter("zebrafish")
+	if sections.Shown() != 0 || panes.Filter() != "" {
+		t.Fatalf("off: %v, panes %q", ids(sections), panes.Filter())
+	}
+	if got := ansi.Strip(sections.emptyLine()); got != "no sections match 'zebrafish'" {
+		t.Fatalf("off empty line %q", got)
+	}
+}

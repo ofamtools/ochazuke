@@ -49,12 +49,31 @@ func filterOpenRow() Binding {
 	return Do("ochazuke.list.filter-open").Guard("list-filterable").Hinted("filter")
 }
 
-// filterHay is the text a row is matched against: its label and cells,
-// as m compares them, one per line, so a word never spans two cells and a
-// regex's ^ and $ match at each cell's ends.
+// filterHay is the text a row is matched against: its label, cells and
+// Search text, as m compares them, one per line, so a word never spans two
+// cells and a regex's ^ and $ match at each cell's ends.
 func filterHay(item ListItem, m Matcher) string {
-	parts := append([]string{item.Label}, item.Cells...)
+	parts := make([]string, 0, 1+len(item.Cells)+len(item.Search))
+	parts = append(append(append(parts, item.Label), item.Cells...), item.Search...)
 	return m.Prepare(strings.Join(parts, "\n"))
+}
+
+// OnFilter makes fn hear every change of the list's text filter (typing,
+// erasing, clearing, a match mode change, a command that reveals a hidden
+// row), after the rows and selection follow it; nil stops it. For a host
+// that draws something by the list's matches, as the Settings page's
+// settings follow its section list's filter.
+func (l *List) OnFilter(fn func(*List)) { l.onFilter = fn }
+
+// SetMatchNoun names the list's rows, plural, for a filter that lets none
+// through: its empty line reads "no NOUN match 'QUERY'" instead of "(no
+// matches)". "" restores that.
+func (l *List) SetMatchNoun(plural string) { l.matchNoun = plural }
+
+func (l *List) filterHeard() {
+	if l.onFilter != nil {
+		l.onFilter(l)
+	}
 }
 
 // MatchMode is the filter's match mode: the one search.cycle-match or
@@ -118,6 +137,7 @@ func (l *List) SetFilter(query string) {
 	}
 	l.refilter(keep)
 	l.syncFocus(previous, nil)
+	l.filterHeard()
 }
 
 // refilter recomputes the shown rows from every row and the query, then
@@ -178,6 +198,7 @@ func (l *List) reveal(id string) {
 	if t := l.tree(); t != nil {
 		_ = t.Select(id)
 	}
+	l.filterHeard()
 }
 
 // editingFilter reports whether the filter line is being typed: the mode
@@ -303,8 +324,10 @@ func registerListFilter(r *Runtime) {
 	// line opened on when back is set (esc in the line), else keeping the
 	// selection on its row (esc after enter, filter-choose).
 	unfilter := func(l *List, back string) {
-		l.back = ""
+		// back is cleared after the filter, so a list's OnFilter still
+		// reads the row the line opened on.
 		l.SetFilter("")
+		l.back = ""
 		if back != "" && l.shows(back) {
 			_ = l.Select(back)
 		}

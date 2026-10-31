@@ -8,7 +8,7 @@
       "name": "scrolloff",
       "type": "integer",
       "default": 2,
-      "description": "Rows kept above and below the focus"
+      "description": "Margin rows around a cursor"
     },
     {
       "name": "theme",

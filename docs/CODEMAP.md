@@ -443,7 +443,7 @@ Root package `ochazuke` is flat: 148 source files, 165 test files. Each entry li
 
 ### list.go
 
-- lines: 814 · tests: list_test.go
+- lines: 828 · tests: list_test.go
 - purpose: ListItem is application-owned identity, display text, and the registered noun the row answers to.
 - types: ListItem, List
 - methods: List(30), Runtime(2)
@@ -469,10 +469,10 @@ Root package `ochazuke` is flat: 148 source files, 165 test files. Each entry li
 
 ### list_filter.go
 
-- lines: 383 · tests: list_filter_test.go
+- lines: 406 · tests: list_filter_test.go
 - purpose: filterOpenRow is the row that opens the filter line: "/" on app in normal mode guarded by list-filterable, like J/K detail, so an application's own "/" on an...
-- methods: List(15), Runtime(1)
-- leans on: list.go(38), runtime.go(32), instance.go(7), resolve.go(5)
+- methods: List(18), Runtime(1)
+- leans on: list.go(42), runtime.go(32), instance.go(7), resolve.go(5)
 
 ### list_motions.go
 
@@ -879,10 +879,10 @@ Root package `ochazuke` is flat: 148 source files, 165 test files. Each entry li
 
 ### settings_page_layout.go
 
-- lines: 861 · tests: settings_page_layout_test.go
+- lines: 932 · tests: settings_page_layout_test.go
 - purpose: settingsUnit is one section of one owner, as the page shows it.
-- methods: settingsUnit(1)
-- leans on: runtime.go(67), settings.go(34), block.go(31), list.go(24)
+- methods: Settings(1), settingsUnit(1)
+- leans on: runtime.go(67), settings.go(37), block.go(31), list.go(27)
 
 ### settings_review.go
 
@@ -900,10 +900,10 @@ Root package `ochazuke` is flat: 148 source files, 165 test files. Each entry li
 
 ### settings_view.go
 
-- lines: 804
+- lines: 828
 - purpose: settingsPage is the Settings page's state, kept with the settings.
 - methods: Runtime(1), Setting(1), Settings(4), settingsPage(1)
-- leans on: runtime.go(71), settings.go(59), instance.go(21), noun.go(13)
+- leans on: runtime.go(71), settings.go(61), instance.go(21), noun.go(13)
 
 ### standard_derived.go
 
