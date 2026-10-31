@@ -1,10 +1,11 @@
 flowchart TD
-    F["Top Frame"] -->|contains| C["Context"]
-    F -->|also contains| S["State: frame-local values such as scroll"]
-    C -->|Path| P["Layer IDs: app, screen, field"]
-    C -->|InputID| ID["Input ID: title"]
-    P -->|look up in Runtime.Layers| L["Named binding and action scopes"]
-    L -->|binding precedence| B["Outer to inner: later definitions override"]
-    L -->|action lookup| A["Inner to outer: first handler wins"]
-    ID -->|look up in Runtime.Inputs| I["Input: title"]
-    I -->|owns| E["Text, cursor, mode, undo history"]
+    K["MacroKey: live key or playback"] -->|DispatchOutcome| D["Read Runtime.Focus and shared Runtime.Mode"]
+    D -->|derive stack| A["Focused instance ancestry; top modal bounds the walk"]
+    A -->|unless passthrough mode| C["Capture rows: outer first; editor fallback last"]
+    C -->|then| B["Bubble rows: inner first; modal noun, app; editor for input paths"]
+    A -->|passthrough mode| B
+    B -->|mode tables and guards| Q["Sequences may wait; exact keys and classes choose a row"]
+    Q -->|runRow builds Request| E["ExecuteAt: target resolution, guards, checks, confirm, handler"]
+    X["Palette or adapter Request"] -->|bypasses key resolution| E
+    D -->|derived compatibility view| P["Context: instance path plus nearest InputID"]
+    Q -->|resolver outcome| O["KeyHandled, KeyConsumed, or KeyUnhandled"]

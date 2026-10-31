@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1116.477 409.65" width="1116.477" height="409.65" style="--bg:#fdf6e3;--fg:#657b83;background:var(--bg)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1648.3924999999997 564.5" width="1648.3924999999997" height="564.5" style="--bg:#fdf6e3;--fg:#657b83;background:var(--bg)">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap');
   text { font-family: 'Inter', system-ui, sans-serif; }
@@ -26,89 +26,94 @@
     <polygon points="8 0, 0 2.5, 8 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
   </marker>
 </defs>
-<polyline class="edge" data-from="M" data-to="R" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Runtime pointer" points="118.259,247.00000000000003 154.25900000000001,247.00000000000003 154.25900000000001,220.70000000000002 299.05000000000007,220.7" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
-<polyline class="edge" data-from="M" data-to="MV" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="ModalViews map" points="118.259,259.3 154.25900000000019,259.3 154.25900000000019,285.6 299.05000000000007,285.6" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
-<polyline class="edge" data-from="R" data-to="P" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Pages map" points="386.94200000000006,208.4 395.675,208.4 395.675,90.89999999999999 527.7550000000001,90.9" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
-<polyline class="edge" data-from="R" data-to="F" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Frames slice" points="386.94200000000006,214.55 407.675,214.55 407.675,155.8 527.7550000000001,155.8" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
-<polyline class="edge" data-from="R" data-to="I" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Inputs map" points="386.94200000000006,220.7 636.8320000000003,220.7" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
-<polyline class="edge" data-from="R" data-to="L" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Layers map" points="386.94200000000006,226.85 508.3160000000002,226.85 508.3160000000002,285.6 636.8320000000003,285.6" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
-<polyline class="edge" data-from="R" data-to="O" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Operations map" points="386.94200000000006,233 496.3160000000002,233 496.3160000000002,350.5 636.8320000000003,350.5" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
-<polyline class="edge" data-from="P" data-to="B" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Frame pointer" points="646.0280000000001,84.75 671.2760000000002,84.75 671.2760000000002,58.449999999999996 806.8600000000002,58.45" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
-<polyline class="edge" data-from="P" data-to="V" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Render function" points="646.0280000000001,97.05000000000001 763.1750000000001,97.05000000000001 763.1750000000001,123.35 907.075,123.35000000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="R" data-to="N" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Nouns" points="874.7362999999999,230.10000000000002 874.7362999999999,242.10000000000002 445.76,242.10000000000002 445.76,378.7000000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="R" data-to="I" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Instances" points="911.1360999999999,230.10000000000002 911.1360999999999,254.10000000000002 769.8729999999999,254.10000000000002 769.8729999999999,328.40000000000003" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="R" data-to="S" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="interaction fields" points="947.5358999999999,230.10000000000002 947.5358999999999,254.10000000000002 1088.799,254.10000000000002 1088.799,328.40000000000003" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="R" data-to="O" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Operations" points="983.9356999999999,230.10000000000002 983.9356999999999,242.10000000000002 1438.8469999999998,242.10000000000002 1438.8469999999998,328.40000000000003" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="I" data-to="C" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Component" points="723.7318333333333,365.3 723.7318333333333,407.30000000000007 656.2663333333333,407.30000000000007 656.2663333333333,451.6000000000001 472.3608333333333,451.6000000000001 472.3608333333333,475.6000000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="I" data-to="B" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="rare overrides" points="816.0141666666666,365.3 816.0141666666666,475.6000000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="M" data-to="R" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Runtime pointer" points="603.1491333333332,88.9 603.1491333333332,112.9 828.1410833333332,112.9 828.1410833333332,181.2 899.0028333333332,181.2 899.0028333333332,193.2" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="M" data-to="V" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="View" points="536.8018,88.9 536.8018,112.9 241.4085,112.9 241.4085,193.2" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="V" data-to="C" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="reads" points="241.4085,230.10000000000002 241.4085,451.6000000000001 357.84850000000006,451.6000000000001 357.84850000000006,475.6000000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="H" data-to="R" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="HandleCall and delivery on its loop" points="998.0979999999998,88.9 998.0979999999998,181.2 959.6691666666666,181.2 959.6691666666666,193.2" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<g class="edge-label" data-from="R" data-to="N" data-label="Nouns">
+  <rect x="421.26" y="305.4000000000001" width="48.538000000000004" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="445.529" y="320.55000000000007" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Nouns</text>
+</g>
+<g class="edge-label" data-from="R" data-to="I" data-label="Instances">
+  <rect x="737.8729999999999" y="261.1" width="63.982" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="769.8639999999999" y="276.25" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Instances</text>
+</g>
+<g class="edge-label" data-from="R" data-to="S" data-label="interaction fields">
+  <rect x="1041.299" y="261.1" width="94.27600000000002" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1088.437" y="276.25" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">interaction fields</text>
+</g>
+<g class="edge-label" data-from="R" data-to="O" data-label="Operations">
+  <rect x="1403.8469999999998" y="249.1" width="69.92200000000001" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1438.8079999999998" y="264.25" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Operations</text>
+</g>
+<g class="edge-label" data-from="I" data-to="C" data-label="Component">
+  <rect x="621.2663333333333" y="414.30000000000007" width="69.92200000000001" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="656.2273333333333" y="429.45000000000005" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Component</text>
+</g>
+<g class="edge-label" data-from="I" data-to="B" data-label="rare overrides">
+  <rect x="771.5141666666666" y="414.30000000000007" width="88.33600000000001" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="815.6821666666666" y="429.45000000000005" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">rare overrides</text>
+</g>
 <g class="edge-label" data-from="M" data-to="R" data-label="Runtime pointer">
-  <rect x="162.25900000000001" y="204.70000000000002" width="89.52400000000003" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
-  <text x="207.02100000000002" y="219.85000000000002" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Runtime pointer</text>
+  <rect x="783.1410833333332" y="119.9" width="89.52400000000003" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="827.9030833333333" y="135.05" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Runtime pointer</text>
 </g>
-<g class="edge-label" data-from="M" data-to="MV" data-label="ModalViews map">
-  <rect x="162.25900000000019" y="269.6" width="96.05800000000002" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
-  <text x="210.28800000000018" y="284.75" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">ModalViews map</text>
+<g class="edge-label" data-from="M" data-to="V" data-label="View">
+  <rect x="220.9085" y="119.9" width="40.221999999999994" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="241.0195" y="135.05" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">View</text>
 </g>
-<g class="edge-label" data-from="R" data-to="P" data-label="Pages map">
-  <rect x="403.6750000000001" y="74.89999999999999" width="69.328" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
-  <text x="438.3390000000001" y="90.05" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Pages map</text>
+<g class="edge-label" data-from="V" data-to="C" data-label="reads">
+  <rect x="217.9085" y="390.30000000000007" width="46.162" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="240.9895" y="405.45000000000005" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">reads</text>
 </g>
-<g class="edge-label" data-from="R" data-to="F" data-label="Frames slice">
-  <rect x="415.675" y="139.8" width="78.83200000000001" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
-  <text x="455.091" y="154.95000000000002" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Frames slice</text>
+<g class="edge-label" data-from="H" data-to="R" data-label="HandleCall and delivery on its loop">
+  <rect x="909.0979999999997" y="119.9" width="177.43600000000004" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="997.8159999999998" y="135.05" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">HandleCall and delivery on its loop</text>
 </g>
-<g class="edge-label" data-from="R" data-to="I" data-label="Inputs map">
-  <rect x="516.3160000000003" y="204.70000000000002" width="66.952" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
-  <text x="549.7920000000003" y="219.85000000000002" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Inputs map</text>
+<g class="node" data-id="R" data-label="Runtime: one loop owner" data-shape="rectangle">
+  <rect x="838.3364999999999" y="193.2" width="181.999" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="929.3359999999999" y="211.64999999999998" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Runtime: one loop owner</text>
 </g>
-<g class="edge-label" data-from="R" data-to="L" data-label="Layers map">
-  <rect x="528.3160000000003" y="269.6" width="74.08000000000001" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
-  <text x="565.3560000000002" y="284.75" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Layers map</text>
+<g class="node" data-id="N" data-label="Noun definitions: verbs, bindings, props, stores" data-shape="rectangle">
+  <rect x="288.07050000000004" y="378.7000000000001" width="315.37899999999996" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="445.76" y="397.1500000000001" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Noun definitions: verbs, bindings, props, stores</text>
 </g>
-<g class="edge-label" data-from="R" data-to="O" data-label="Operations map">
-  <rect x="504.31600000000026" y="334.5" width="90.71200000000002" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
-  <text x="549.6720000000003" y="349.65" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Operations map</text>
+<g class="node" data-id="I" data-label="Instance: ID, Noun, Parent, Payload, Data" data-shape="rectangle">
+  <rect x="631.4495" y="328.40000000000003" width="276.8469999999999" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="769.8729999999999" y="346.85" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Instance: ID, Noun, Parent, Payload, Data</text>
 </g>
-<g class="edge-label" data-from="P" data-to="B" data-label="Frame pointer">
-  <rect x="679.2760000000002" y="42.449999999999996" width="83.58400000000002" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
-  <text x="721.0680000000002" y="57.599999999999994" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Frame pointer</text>
+<g class="node" data-id="S" data-label="Focus ID, shared ModeState, current Page ID" data-shape="rectangle">
+  <rect x="936.2964999999999" y="328.40000000000003" width="305.0049999999999" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1088.799" y="346.85" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Focus ID, shared ModeState, current Page ID</text>
 </g>
-<g class="edge-label" data-from="P" data-to="V" data-label="Render function">
-  <rect x="771.1750000000001" y="107.35" width="91.9" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
-  <text x="817.1250000000001" y="122.5" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Render function</text>
+<g class="node" data-id="O" data-label="Operation registry: request contracts and handlers" data-shape="rectangle">
+  <rect x="1269.3014999999998" y="328.40000000000003" width="339.09099999999995" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1438.8469999999998" y="346.85" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Operation registry: request contracts and handlers</text>
 </g>
-<g class="node" data-id="M" data-label="Model" data-shape="rectangle">
-  <rect x="40" y="234.70000000000002" width="78.259" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
-  <text x="79.12950000000001" y="253.15000000000003" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Model</text>
+<g class="node" data-id="C" data-label="Input, List, Page, Terminal, Tree, or other component" data-shape="rectangle">
+  <rect x="243.3361666666667" y="475.6000000000001" width="343.5369999999999" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="415.1046666666667" y="494.05000000000007" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Input, List, Page, Terminal, Tree, or other component</text>
 </g>
-<g class="node" data-id="R" data-label="Runtime" data-shape="rectangle">
-  <rect x="299.05000000000007" y="202.25" width="87.892" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
-  <text x="342.9960000000001" y="220.7" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Runtime</text>
+<g class="node" data-id="B" data-label="Instance binding rows" data-shape="rectangle">
+  <rect x="731.3131666666666" y="475.6000000000001" width="169.402" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="816.0141666666666" y="494.05000000000007" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Instance binding rows</text>
 </g>
-<g class="node" data-id="MV" data-label="Modal render callbacks" data-shape="rectangle">
-  <rect x="299.05000000000007" y="267.15000000000003" width="181.999" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
-  <text x="390.0495000000001" y="285.6" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Modal render callbacks</text>
+<g class="node" data-id="M" data-label="Model: Bubble Tea adapter" data-shape="rectangle">
+  <rect x="470.4544666666666" y="52" width="199.04199999999994" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="569.9754666666665" y="70.45" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Model: Bubble Tea adapter</text>
 </g>
-<g class="node" data-id="P" data-label="Page objects" data-shape="rectangle">
-  <rect x="527.7550000000001" y="72.45" width="118.273" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
-  <text x="586.8915000000001" y="90.9" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Page objects</text>
+<g class="node" data-id="V" data-label="Page.Render returns Block; modal body or renderer overlays" data-shape="rectangle">
+  <rect x="40" y="193.2" width="402.81699999999984" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="241.40849999999992" y="211.64999999999998" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Page.Render returns Block; modal body or renderer overlays</text>
 </g>
-<g class="node" data-id="F" data-label="Active Frame references" data-shape="rectangle">
-  <rect x="527.7550000000001" y="137.35000000000002" width="188.668" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
-  <text x="622.0890000000002" y="155.8" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Active Frame references</text>
-</g>
-<g class="node" data-id="I" data-label="Input objects" data-shape="rectangle">
-  <rect x="636.8320000000003" y="202.25" width="115.30900000000001" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
-  <text x="694.4865000000003" y="220.7" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Input objects</text>
-</g>
-<g class="node" data-id="L" data-label="Layer objects" data-shape="rectangle">
-  <rect x="636.8320000000003" y="267.15000000000003" width="124.20099999999998" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
-  <text x="698.9325000000003" y="285.6" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Layer objects</text>
-</g>
-<g class="node" data-id="O" data-label="Operation definitions" data-shape="rectangle">
-  <rect x="636.8320000000003" y="332.05" width="161.251" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
-  <text x="717.4575000000003" y="350.5" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Operation definitions</text>
-</g>
-<g class="node" data-id="B" data-label="Retained base Frame" data-shape="rectangle">
-  <rect x="806.8600000000002" y="40" width="166.438" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
-  <text x="890.0790000000002" y="58.45" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Retained base Frame</text>
-</g>
-<g class="node" data-id="V" data-label="Page render callback" data-shape="rectangle">
-  <rect x="907.075" y="104.9" width="169.402" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
-  <text x="991.7760000000001" y="123.35000000000001" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Page render callback</text>
+<g class="node" data-id="H" data-label="Headless CLI or MCP adapter" data-shape="rectangle">
+  <rect x="890.0554999999999" y="52" width="216.08499999999998" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="998.098" y="70.45" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Headless CLI or MCP adapter</text>
 </g>
 </svg>

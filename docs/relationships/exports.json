@@ -1,0 +1,99 @@
+{
+  "renderer": "beautiful-mermaid",
+  "version": "1.1.3",
+  "theme": "solarized",
+  "evidenceKind": "automated-browser",
+  "visualReview": "pending",
+  "exports": [
+    {
+      "source": "objects.mmd",
+      "sourceDigest": {
+        "sha256": "19880072d7bc9c4749900da816abcb7a1ab2e3342d68eff275baab8279e21892",
+        "bytes": 706
+      },
+      "svg": "objects.svg",
+      "svgDigest": {
+        "sha256": "2e5be6805521695435e30fae01fc4d018f94957bc6146101ce93ba3c4a6f54f9",
+        "bytes": 14146
+      },
+      "png": "objects.png",
+      "pngDigest": {
+        "sha256": "ff044f502e0dff456c28457b80099c09b6ccc5e0a82e151d3143be3837ecc877",
+        "bytes": 111811
+      },
+      "capture": {
+        "viewport": [
+          3840,
+          2160
+        ],
+        "clip": {
+          "x": 0,
+          "y": 0,
+          "width": 3296.78125,
+          "height": 1128.984375,
+          "scale": 1
+        }
+      }
+    },
+    {
+      "source": "context.mmd",
+      "sourceDigest": {
+        "sha256": "660c3bbd21c05f381fc0a23ee25f0e4fcd4f9437ffe9049c707e256a0f591070",
+        "bytes": 833
+      },
+      "svg": "context.svg",
+      "svgDigest": {
+        "sha256": "76f26fb31f0b5cc672a1f0500c3999ee8a6dabb77fa8958e27c781472a61ff0c",
+        "bytes": 14481
+      },
+      "png": "context.png",
+      "pngDigest": {
+        "sha256": "5aaad0cea2430e287242ee4948b3d842204b869af48083c4d08f4997d83b9633",
+        "bytes": 144075
+      },
+      "capture": {
+        "viewport": [
+          3840,
+          2160
+        ],
+        "clip": {
+          "x": 0,
+          "y": 0,
+          "width": 1697.421875,
+          "height": 2072.1875,
+          "scale": 1
+        }
+      }
+    },
+    {
+      "source": "frames.mmd",
+      "sourceDigest": {
+        "sha256": "70002a67fcea7571ebb74d2fa7f742dab9813095c78feadd08d11017b7e86489",
+        "bytes": 782
+      },
+      "svg": "frames.svg",
+      "svgDigest": {
+        "sha256": "9ff3afa7e5c7d71bb9b56df5f5dd5c90c91c58e0de483554851373783f579d76",
+        "bytes": 14121
+      },
+      "png": "frames.png",
+      "pngDigest": {
+        "sha256": "cbbdc8067beee6c0a09ddcd1f332f3ef2cad54c68f17e7325c225028e61e1499",
+        "bytes": 139942
+      },
+      "capture": {
+        "viewport": [
+          3840,
+          2160
+        ],
+        "clip": {
+          "x": 0,
+          "y": 0,
+          "width": 3245.15625,
+          "height": 1363.390625,
+          "scale": 1
+        }
+      }
+    }
+  ]
+}

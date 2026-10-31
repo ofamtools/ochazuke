@@ -1,8 +1,10 @@
 flowchart TD
-    P["Page: editor"] -->|retains| B["Base Frame: editor"]
-    Q["Page: settings"] -->|retains| U["Base Frame: settings - inactive"]
-    S["Runtime.Frames: active stack"] -->|index 0 - same object| B
-    S -->|index 1| D["Modal Frame: draft"]
-    S -->|index 2 - top| C["Modal Frame: confirm"]
-    C -->|current context| K["Ordinary key routing starts here"]
-    V["Model.View"] -->|draws in order| W["editor, then draft, then confirm"]
+    R["Runtime: Page ID, Focus ID, shared ModeState"] -->|current page instance| P["Page component: Focus, Remembered, saved mode, Render"]
+    R -->|ordered modal IDs| M["Open modal instances: outermost to top"]
+    P -->|OpenPage| S["Save leaving focus and mode; restore destination focus and mode"]
+    M -->|OpenModal| O["Create body at current focus; optional input child"]
+    O -->|Push saves| T["Payload.Return focus + private returnMode"]
+    T -->|Pop| C["Close created subtree through delivery; restore focus and mode"]
+    M -->|top modal| B["Resolution boundary: body ancestry, modal noun, app"]
+    V["Model.View"] -->|draw first| W["Current Page.Render returns Block"]
+    V -->|overlay outermost to top| U["Modal component body or registered renderer"]

@@ -1,10 +1,11 @@
-flowchart LR
-    M["Model"] -->|Runtime pointer| R["Runtime"]
-    M -->|ModalViews map| MV["Modal render callbacks"]
-    R -->|Pages map| P["Page objects"]
-    R -->|Frames slice| F["Active Frame references"]
-    R -->|Inputs map| I["Input objects"]
-    R -->|Layers map| L["Layer objects"]
-    R -->|Operations map| O["Operation definitions"]
-    P -->|Frame pointer| B["Retained base Frame"]
-    P -->|Render function| V["Page render callback"]
+flowchart TD
+    R["Runtime: one loop owner"] -->|Nouns| N["Noun definitions: verbs, bindings, props, stores"]
+    R -->|Instances| I["Instance: ID, Noun, Parent, Payload, Data"]
+    R -->|interaction fields| S["Focus ID, shared ModeState, current Page ID"]
+    R -->|Operations| O["Operation registry: request contracts and handlers"]
+    I -->|Component| C["Input, List, Page, Terminal, Tree, or other component"]
+    I -->|rare overrides| B["Instance binding rows"]
+    M["Model: Bubble Tea adapter"] -->|Runtime pointer| R
+    M -->|View| V["Page.Render returns Block; modal body or renderer overlays"]
+    V -->|reads| C
+    H["Headless CLI or MCP adapter"] -->|HandleCall and delivery on its loop| R
