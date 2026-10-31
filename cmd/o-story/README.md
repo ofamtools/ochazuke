@@ -495,7 +495,7 @@ Conformance:
 | normal | key | `key.ignore` |
 | normal | list | `list.column` `list.filter-clear` `list.filter-cycle` `list.filter-open` `list.filter-prop` `list.filter-prop-clear` `list.filter-props-clear` `list.fit-column` `list.fit-columns` `list.goto` `list.mark` `list.move` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.toggle-pin-column` `list.visual` `list.yank` |
 | normal | macro | `macro.record` `macro.start` `macro.stop` |
-| normal | markdown | `markdown.delete` `markdown.fold` `markdown.insert` `markdown.next-block` `markdown.next-kind` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
+| normal | markdown | `markdown.delete` `markdown.fold` `markdown.insert` `markdown.move` `markdown.next-block` `markdown.next-kind` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
 | normal | modal | `modal.pop` |
 | normal | mode | `mode.enter` `mode.leave` `mode.set` |
 | normal | notice | `notice.clear` |

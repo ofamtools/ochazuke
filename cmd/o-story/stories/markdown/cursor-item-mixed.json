@@ -1,0 +1,39 @@
+{
+  "name": "markdown: cursor-item-mixed",
+  "area": "markdown",
+  "width": 40,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "# Heading\n\nA paragraph that wraps across several screen lines in this narrow pane.\n\n- [ ] task with long details that wrap over more than one screen line here\n- bullet\n\n```\ncode one\ncode two\n```\n"
+    }
+  },
+  "script": [
+    "j",
+    "j",
+    "j",
+    "j",
+    "k"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "highlighted": 3
+    },
+    {
+      "after": 2,
+      "highlighted": 3
+    },
+    {
+      "after": 3,
+      "highlightedText": "bullet"
+    },
+    {
+      "after": 4,
+      "highlighted": 2
+    },
+    {
+      "highlightedText": "bullet"
+    }
+  ]
+}

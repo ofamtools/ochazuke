@@ -1,6 +1,27 @@
 // ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, {key, action, args, hint, ...} or {key, unbind: true}; a key may repeat: the first row whose action is available answers
 {
   "bindings": [
+    {"context": "ochazuke.markdown-line/normal", "bindings": [
+      {"key": "j", "action": "ochazuke.markdown.move", "args": {"delta": 1}, "from": {"steps": "count"}},
+      {"key": "down", "action": "ochazuke.markdown.move", "args": {"delta": 1}, "from": {"steps": "count"}},
+      {"key": "k", "action": "ochazuke.markdown.move", "args": {"delta": -1}, "from": {"steps": "count"}},
+      {"key": "up", "action": "ochazuke.markdown.move", "args": {"delta": -1}, "from": {"steps": "count"}}
+    ]},
+    {"context": "ochazuke.markdown-line/count_pending", "extends": "normal", "bindings": []},
+    {"context": "ochazuke.markdown-task/normal", "bindings": [
+      {"key": "j", "action": "ochazuke.markdown.move", "args": {"delta": 1}, "from": {"steps": "count"}},
+      {"key": "down", "action": "ochazuke.markdown.move", "args": {"delta": 1}, "from": {"steps": "count"}},
+      {"key": "k", "action": "ochazuke.markdown.move", "args": {"delta": -1}, "from": {"steps": "count"}},
+      {"key": "up", "action": "ochazuke.markdown.move", "args": {"delta": -1}, "from": {"steps": "count"}}
+    ]},
+    {"context": "ochazuke.markdown-task/count_pending", "extends": "normal", "bindings": []},
+    {"context": "ochazuke.markdown-note/normal", "bindings": [
+      {"key": "j", "action": "ochazuke.markdown.move", "args": {"delta": 1}, "from": {"steps": "count"}},
+      {"key": "down", "action": "ochazuke.markdown.move", "args": {"delta": 1}, "from": {"steps": "count"}},
+      {"key": "k", "action": "ochazuke.markdown.move", "args": {"delta": -1}, "from": {"steps": "count"}},
+      {"key": "up", "action": "ochazuke.markdown.move", "args": {"delta": -1}, "from": {"steps": "count"}}
+    ]},
+    {"context": "ochazuke.markdown-note/count_pending", "extends": "normal", "bindings": []},
     {"context": "ochazuke.markdown/normal", "bindings": [
       {"key": "x", "action": "ochazuke.markdown.toggle", "when": "markdown-on-task"},
       {"key": "i", "action": "ochazuke.markdown.insert", "args": {"at": "cursor"}},

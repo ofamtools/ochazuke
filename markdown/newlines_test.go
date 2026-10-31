@@ -89,6 +89,7 @@ func TestPreserveNewlinesDoc(t *testing.T) {
 	src := "Plan  \r\nfirst line\r\nsecond line\r\n\r\n- [ ] café 日本\t\r\n  more of it\r\n- [X] two\r\n\r\nafter one\r\nafter two\r\n\r\n```\r\n- [ ] code\r\n```"
 	path := writeFile(t, src)
 	r, d := newDoc(t, File(path), PreserveNewlines())
+	_ = r.Settings().Set(CursorSetting, "line")
 	view := d.View(40, 0, mono)
 	lines := plainLines(view)
 	for _, want := range []string{"first line", "second line", "after one", "after two"} {

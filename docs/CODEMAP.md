@@ -1401,11 +1401,18 @@ Importable package `keytest`: 1 source files, 0 test files.
 
 ## Package markdown
 
-Importable package `markdown`: 11 source files, 7 test files.
+Importable package `markdown`: 12 source files, 8 test files.
+
+### markdown/cursor.go
+
+- lines: 100 · tests: cursor_test.go
+- purpose: MoveCursor moves by the configured cursor unit.
+- methods: Doc(4)
+- leans on: doc.go(6), tasks.go(4)
 
 ### markdown/doc.go
 
-- lines: 907 · tests: doc_test.go
+- lines: 897 · tests: doc_test.go
 - purpose: Source is where a Doc's Markdown lives: Load reads it as it is now and Save stores a new text.
 - types: Source, DebounceMsg, Doc
 - methods: Doc(45), refusal(2)
@@ -1483,10 +1490,10 @@ Importable package `markdown`: 11 source files, 7 test files.
 
 ### markdown/verbs.go
 
-- lines: 260
+- lines: 266
 - purpose: Register defines the markdown nouns, their verbs and keys once per runtime (see Doc for the keys).
 - funcs: Register
-- leans on: doc.go(58), insert.go(14), elements.go(9), edit.go(6)
+- leans on: doc.go(61), insert.go(14), elements.go(9), edit.go(6)
 
 ## Package refdoc
 

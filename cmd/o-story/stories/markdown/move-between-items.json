@@ -37,5 +37,19 @@
       "highlightedText": "[ ] Gate green",
       "writes": []
     }
+  ],
+  "values": {
+    "markdown.cursor": "line"
+  },
+  "settings": [
+    {
+      "name": "markdown.cursor",
+      "type": "string",
+      "default": "item",
+      "enum": [
+        "item",
+        "line"
+      ]
+    }
   ]
 }
