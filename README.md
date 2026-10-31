@@ -2024,3 +2024,54 @@ Every command of an importable shell (`cli.Shell`, an app built with `cli.Mount`
 - Handler registration and widget construction are Go APIs. User-facing operations, including configuration, palette navigation, field editing, and picker actions, are registered and available through the CLI.
 - Terminals are display and input ownership only: the framework ships no PTY, shell, emulator or daemon client. A `TerminalStream` is the application's; frames are rows of trusted ANSI with a cursor cell, not a cell buffer the framework interprets. Resize, reconnect and session lifetime belong to the stream.
 - The framework package holds no application pages; the demo lives in `internal/demo` and every example is built on the public API. The examples are a nested module (`examples/go.mod`), as is `cmd/o-story`; they build through the untracked `go.work` (`go work use . ./cmd/o-story ./examples ../monogatari ../oden`).
+
+### Catalog guidance for agents
+
+Apps can pass `cli.About("…")` and `cli.AgentRules("…")` to `cli.New` or
+`cli.Catalog`. A noun declares its purpose with `NounBuilder.About`;
+a verb adds `.Example(Arguments{…}, "note")`, `.Destructive()` and
+`.Agent("allow" | "confirm" | "never")` after `.Verb`.
+The JSON catalog and `catalog inspect` carry these fields, named guards and
+example templates generated from required parameters when no example is declared.
+Mounted extension verbs retain this metadata; their guards remain checked by
+the extension. `agentDeclared` preserves an explicit right separately from `agent`,
+which describes the derived default: destructive or confirmed verbs ask for
+confirmation; fetches, changes and screen actions allow. Standard delete and
+archive verbs are destructive. This metadata does not enforce agent rights yet. The inspector’s checked-by-default
+`agent metadata` control hides or shows the added descriptions and agent fields.
+
+### Actors and scoped history undo
+
+`Actor` identifies the owner, an agent or an unknown caller, with optional name,
+harness, pane, session and model. Requests default to the owner. An API can set
+`Request.Actor` or `CallMsg.Actor`; an MCP adapter also sets `CallMsg.Source` to
+`"mcp"`. `Runtime.WithActor` scopes nested API calls. Application handlers read
+`ctx.Actor()`; confirmations and pending callbacks keep their initiating actor.
+History records it in `context.actor`, and old history lines load as owner entries.
+Identity is advisory and can be supplied by any process; it is not authentication.
+
+CLI callers opt in with `OCHAZUKE_ACTOR=agent` or an actor JSON object.
+Missing agent fields come from `OCHAZUKE_HARNESS`, `OCHAZUKE_MODEL`,
+`TUIOS_PANE_ID` and `TUIOS_SESSION`. With no explicit actor the CLI remains the
+owner, even inside a terminal pane. `Shell.Actor` lets a server bind identity once
+at startup, and `Shell.Source` labels its requests. MCP servers must never accept
+identity from their tool arguments.
+
+`history.list` accepts `actor` (`owner`, `agent`, `unknown`, `self`, or exact actor
+JSON) and `limit` (an alias for `last`). Filtering happens before limiting.
+`history.undo {entry: N}` reverses that standard change in this session. With no
+entry the owner retains the existing newest-change behavior; an agent selects only
+its own newest change. Agents cannot undo another actor's entry, even with an
+explicit entry. Matching requires an identical identity with a nonempty pane or
+name; anonymous agents cannot claim entries. Restored, failed and already undone
+entries cannot be targeted. Targeted and agent undos check the affected values
+before writing and refuse if later work would be overwritten. A deleted key must
+be provably absent (a successful get or listing) before it can be recreated.
+Repeat runs as its current caller, never the original actor.
+
+Compared with Vim (checked in Neovim 0.12.3):
+
+| Vim form | Help tag | Ochazuke behavior |
+|---|---|---|
+| `:undo` / `u` | `:undo`, `u` | Similar: reverse the newest standard change group; an agent is scoped to its own entries. This is store history, not a buffer undo tree. |
+| `:undo {N}` | `:undo`, `undo-branches` | Different: Vim jumps to the state **after** change N; `history.undo {entry: N}` reverses only entry N, preserving unrelated later changes and refusing conflicting edits. |

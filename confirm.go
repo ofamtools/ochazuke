@@ -77,6 +77,8 @@ func (r *Runtime) openConfirm(c Context, q Request, op Operation) (any, error) {
 func (r *Runtime) openConfirmAbout(c Context, q, run Request, op Operation) (any, error) {
 	inst := r.Instances[focusOf(c)]
 	stored := run
+	actor := r.Actor()
+	stored.Actor, stored.source = &actor, r.history.source
 	stored.Confirmed = true
 	stored.Target = inst.ID
 	// A request that names its thing by the noun's key argument (task
@@ -197,7 +199,7 @@ func (r *Runtime) storeLabel(c Context, q Request, inst *Instance) string {
 	if op.Standard == "" || n == nil || n.Store == nil || n.Store.Get == nil || n.roleProp(RoleLabel) == nil {
 		return ""
 	}
-	ctx := Ctx{Runtime: r, Context: c, Args: q.Args, Instance: inst}
+	ctx := Ctx{actor: r.Actor(), Runtime: r, Context: c, Args: q.Args, Instance: inst}
 	key, err := r.subjectKey(n, ctx)
 	if err != nil {
 		return ""

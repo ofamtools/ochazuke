@@ -249,7 +249,7 @@ func (r *Runtime) undoTarget() int {
 	entries := r.history.entries
 	for i := len(entries) - 1; i >= 0; i-- {
 		e := entries[i]
-		if e.Restored || !e.Result.OK {
+		if e.Restored || !e.Result.OK || (r.Actor().IsAgent() && !r.Actor().SameAgent(e.Context.Actor)) {
 			continue
 		}
 		if slices.ContainsFunc(e.Changes, func(c ThingChange) bool { return !c.Undone }) {
@@ -322,12 +322,15 @@ func (r *Runtime) undoChange(c Ctx, ch ThingChange) error {
 	}
 }
 
-// undo reverts the newest change left (undoTarget): its changes' inverses
+// undo reverts the selected entry (undoEntry): its changes' inverses
 // in reverse order, each marked undone as it succeeds, so an undo that
 // fails part way can be run again for the rest. One notice says what was
 // undone.
-func (r *Runtime) undo(c Context) (any, error) {
-	i := r.undoTarget()
+func (r *Runtime) undo(c Context, a Arguments) (any, error) {
+	i, err := r.undoEntry(a)
+	if err != nil {
+		return nil, err
+	}
 	if err := r.undoable(i); err != nil {
 		if errors.Is(err, errNothingToUndo) {
 			r.UI().Info(err.Error())
@@ -336,7 +339,12 @@ func (r *Runtime) undo(c Context) (any, error) {
 		return nil, err
 	}
 	e := &r.history.entries[i]
-	ctx := Ctx{Runtime: r, Context: c, Args: Arguments{}, Instance: r.Instances[focusOf(c)]}
+	ctx := Ctx{actor: r.Actor(), Runtime: r, Context: c, Args: Arguments{}, Instance: r.Instances[focusOf(c)]}
+	if _, targeted := a["entry"]; targeted || r.Actor().IsAgent() {
+		if err := r.undoCurrent(ctx, e.Changes); err != nil {
+			return nil, err
+		}
+	}
 	var keys []string
 	for j := len(e.Changes) - 1; j >= 0; j-- {
 		ch := &e.Changes[j]
@@ -356,7 +364,12 @@ func (r *Runtime) undo(c Context) (any, error) {
 }
 
 func registerUndo(r *Runtime) {
-	r.DefineGuard(UndoGuard, func(r *Runtime, _ KeyEvent) bool {
+	r.DefineGuard(UndoGuard, func(r *Runtime, e KeyEvent) bool {
+		// An explicit target gets a precise refusal from the handler; the
+		// newest change's guard must not hide an older undoable entry.
+		if _, targeted := e.Args["entry"]; targeted {
+			return true
+		}
 		if i := r.undoTarget(); i >= 0 {
 			return r.undoable(i) == nil
 		}
@@ -370,7 +383,86 @@ func registerUndo(r *Runtime) {
 		return false
 	})
 	r.Register(Operation{Verb: "undo", Noun: "ochazuke.history", HistoryKind: HistoryChange,
-		Description: "Undo the last standard change (create, set, delete; a visual selection's write as one): write the values before it back, delete what it created, create again what it deleted. Only on a store that declares Undo",
-		Result:      "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) { return r.undo(c) }})
+		Description: "Undo a standard change by entry seq, or the newest change; agents undo only their own entries. Only on a store that declares Undo",
+		Parameters:  map[string]Parameter{"entry": {Type: "integer", Description: "History entry seq; omitted, the newest change by this actor (owner: any actor)"}},
+		Result:      "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) { return r.undo(c, a) }})
 	r.SetAvailability("ochazuke.history.undo", UndoGuard)
+}
+
+// undoEntry selects an explicit sequence, or the newest eligible change.
+func (r *Runtime) undoEntry(a Arguments) (int, error) {
+	if _, targeted := a["entry"]; !targeted {
+		return r.undoTarget(), nil
+	}
+	seq := IntArg(a, "entry", 0)
+	if seq <= 0 {
+		return -1, errors.New("entry must be a positive history seq")
+	}
+	for i, e := range r.history.entries {
+		if e.Seq != uint64(seq) {
+			continue
+		}
+		if r.Actor().IsAgent() && !r.Actor().SameAgent(e.Context.Actor) {
+			return -1, fmt.Errorf("an agent may undo only its own history entries; entry %d belongs to %s", seq, e.Context.Actor)
+		}
+		if e.Restored {
+			return -1, fmt.Errorf("history entry %d is from an earlier session and cannot be undone", seq)
+		}
+		if !e.Result.OK || !slices.ContainsFunc(e.Changes, func(c ThingChange) bool { return !c.Undone }) {
+			return -1, fmt.Errorf("history entry %d has no changes left to undo", seq)
+		}
+		return i, nil
+	}
+	return -1, fmt.Errorf("history entry %d is not in this session's change history", seq)
+}
+
+// undoCurrent checks every inverse before any write. Targeting an older entry
+// must not overwrite subsequent edits (by the owner or another agent).
+func (r *Runtime) undoCurrent(ctx Ctx, changes []ThingChange) error {
+	for _, ch := range changes {
+		if ch.Undone {
+			continue
+		}
+		n := r.Nouns[ch.Noun]
+		if n.Store.Get == nil {
+			return fmt.Errorf("%s cannot check whether the thing changed since this entry", r.DisplayNoun(ch.Noun))
+		}
+		current, err := n.Store.Get(ctx, ch.Key)
+		// Get commonly reports absence as an untyped error. If undo would
+		// recreate a deleted key, an unfiltered listing can prove it is free.
+		// A failed read alone must never be treated as proof of absence.
+		if err != nil && ch.After == nil && n.Store.List != nil {
+			rows, listErr := n.Store.List(ctx, ListQuery{})
+			if listErr != nil {
+				return fmt.Errorf("undo %s %s: %w", r.DisplayNoun(ch.Noun), ch.Key, listErr)
+			}
+			if slices.ContainsFunc(rows, func(t Thing) bool { return answerKey(n, t) == ch.Key }) {
+				return fmt.Errorf("%s %s changed since this history entry; undo would overwrite later work", r.DisplayNoun(ch.Noun), ch.Key)
+			}
+			current, err = nil, nil
+		}
+		if err != nil {
+			return fmt.Errorf("undo %s %s: %w", r.DisplayNoun(ch.Noun), ch.Key, err)
+		}
+		same := current == nil && ch.After == nil
+		if current != nil && ch.After != nil {
+			var names []string
+			// Undoing a create deletes the entire thing, so also check
+			// props that were absent at creation and added by later work.
+			if ch.Before != nil {
+				for name := range ch.After {
+					names = append(names, name)
+				}
+			}
+			after := changeProps(n, current, names)
+			if after == nil {
+				after = map[string]any{}
+			}
+			same = reflect.DeepEqual(after, ch.After)
+		}
+		if !same {
+			return fmt.Errorf("%s %s changed since this history entry; undo would overwrite later work", r.DisplayNoun(ch.Noun), ch.Key)
+		}
+	}
+	return nil
 }

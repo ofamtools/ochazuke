@@ -13,14 +13,16 @@ import (
 // cli.CatalogDoc shape), decoded loosely so a catalog written by an older
 // ochazuke (bare framework nouns, no builtin flag) reads too.
 type Catalog struct {
-	Schema   int               `json:"schema"`
-	Name     string            `json:"name"`
-	Version  string            `json:"version"`
-	State    string            `json:"state"`
-	Aliases  map[string]string `json:"aliases"`
-	Nouns    []CatNoun         `json:"nouns"`
-	Bindings []Binding         `json:"bindings"`
-	Pages    []Page            `json:"pages"`
+	About      string            `json:"about,omitempty"`
+	AgentRules string            `json:"agentRules,omitempty"`
+	Schema     int               `json:"schema"`
+	Name       string            `json:"name"`
+	Version    string            `json:"version"`
+	State      string            `json:"state"`
+	Aliases    map[string]string `json:"aliases"`
+	Nouns      []CatNoun         `json:"nouns"`
+	Bindings   []Binding         `json:"bindings"`
+	Pages      []Page            `json:"pages"`
 }
 
 type Page struct {
@@ -29,6 +31,7 @@ type Page struct {
 }
 
 type CatNoun struct {
+	About string    `json:"about,omitempty"`
 	Name  string    `json:"name"`
 	Pin   string    `json:"pin,omitempty"`
 	Kind  string    `json:"kind,omitempty"`
@@ -56,7 +59,17 @@ type Prop struct {
 	Multiline   bool     `json:"multiline,omitempty"`
 }
 
+type Example struct {
+	Args map[string]any `json:"args"`
+	Note string         `json:"note,omitempty"`
+}
+
 type CatVerb struct {
+	Guards      []string  `json:"guards,omitempty"`
+	Examples    []Example `json:"examples,omitempty"`
+	Destructive bool      `json:"destructive,omitempty"`
+	Agent       string    `json:"agent,omitempty"`
+
 	Name        string   `json:"name"`
 	Description string   `json:"description"`
 	Kind        string   `json:"kind"`
@@ -162,6 +175,8 @@ type Source struct {
 }
 
 type ToolInfo struct {
+	About         string `json:"about,omitempty"`
+	AgentRules    string `json:"agentRules,omitempty"`
 	Name          string `json:"name"`
 	Short         string `json:"short"`
 	Bin           string `json:"bin"`
@@ -180,6 +195,7 @@ type ToolInfo struct {
 // Output model, inlined in the HTML.
 
 type Noun struct {
+	About    string   `json:"about,omitempty"`
 	ID       string   `json:"id"`
 	Name     string   `json:"name"`
 	Owner    string   `json:"owner"`
@@ -194,6 +210,11 @@ type Noun struct {
 }
 
 type Verb struct {
+	Guards      []string  `json:"guards,omitempty"`
+	Examples    []Example `json:"examples,omitempty"`
+	Destructive bool      `json:"destructive,omitempty"`
+	Agent       string    `json:"agent,omitempty"`
+
 	ID          string   `json:"id"`
 	Noun        string   `json:"noun"` // noun id
 	Name        string   `json:"name"`
@@ -413,6 +434,7 @@ func toVerb(id, nounID, owner, tool string, v CatVerb) *Verb {
 		Description: v.Description, Kind: v.Kind, History: v.History, Params: params,
 		Result: v.Result, Confirm: v.Confirm, Rows: v.Rows, Builtin: v.Builtin,
 		Quiet: v.Quiet, Repeatable: v.Repeatable, Standard: v.Standard,
+		Guards: v.Guards, Examples: v.Examples, Destructive: v.Destructive, Agent: v.Agent,
 	}
 }
 
@@ -487,6 +509,9 @@ func Merge(srcs []Source, extPrefixes map[string][]string, actions []UserAction,
 					ns, prefix, rest = namespaceOf(name, extPrefixes[tool])
 				}
 				n := ensureNoun(nid, name, nounOwner, ns, tool)
+				if n.About == "" {
+					n.About = cn.About
+				}
 				if cn.Pin != "" {
 					n.Pin = cn.Pin
 				}
@@ -652,6 +677,7 @@ func Merge(srcs []Source, extPrefixes map[string][]string, actions []UserAction,
 		t := s.Tool
 		t.Short = shortName(t.Name)
 		if s.Catalog != nil {
+			t.About, t.AgentRules = s.Catalog.About, s.Catalog.AgentRules
 			t.Pages = s.Catalog.Pages
 			for _, n := range d.Nouns {
 				if contains(n.Tools, t.Name) {

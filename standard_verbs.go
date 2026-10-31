@@ -51,6 +51,7 @@ type standardVerb struct {
 	Many        bool
 	Repeatable  bool
 	HistoryKind string
+	Destructive bool
 	Confirm     string
 	// FocusSetting names the boolean setting that turns off the row's
 	// focus fills of values (a parameter with Focus that is not the
@@ -97,7 +98,7 @@ var standardVerbs = []standardVerb{
 		Params: setParams, Writes: setWrites, Run: runSet},
 	{Verb: "delete", Description: "Delete a thing (asks first)",
 		Kinds: []string{Collection}, Needs: func(n *Noun) bool { return n.Store.Delete != nil },
-		Subject: true, Many: true, HistoryKind: HistoryChange, Confirm: DefaultDeleteConfirm, ConfirmFor: deleteConfirm, Run: runDelete},
+		Subject: true, Many: true, Destructive: true, HistoryKind: HistoryChange, Confirm: DefaultDeleteConfirm, ConfirmFor: deleteConfirm, Run: runDelete},
 }
 
 // reservedStandardVerbs are the names of every standard verb, those later
@@ -185,7 +186,7 @@ func (v standardVerb) operation(r *Runtime, n *Noun) Operation {
 	if v.Params != nil {
 		params = v.Params(n)
 	}
-	op := Operation{Verb: v.Verb, Noun: name, Description: v.Description, Parameters: params, Result: "JSON value", HistoryKind: v.HistoryKind, Standard: v.Verb, Many: v.Many}
+	op := Operation{Verb: v.Verb, Noun: name, Description: v.Description, Parameters: params, Result: "JSON value", HistoryKind: v.HistoryKind, Standard: v.Verb, Many: v.Many, Destructive: v.Destructive}
 	if key := n.keyProp(); v.Subject && key != nil {
 		p := subjectParameter(r, n, *key)
 		if v.NoFocus {
@@ -262,7 +263,7 @@ func (v standardVerb) operation(r *Runtime, n *Noun) Operation {
 // resolves).
 func (r *Runtime) confirmKeys(n *Noun, c Context, q Request) (Ctx, []string) {
 	inst := r.Instances[focusOf(c)]
-	ctx := Ctx{Runtime: r, Context: c, Args: q.Args, Instance: inst}
+	ctx := Ctx{actor: r.Actor(), Runtime: r, Context: c, Args: q.Args, Instance: inst}
 	insts := []*Instance{inst}
 	if len(q.Subjects) > 1 {
 		insts = insts[:0]

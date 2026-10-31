@@ -92,6 +92,12 @@ import (
 // Errors are returned for oden.Report: every failure is exit status 1
 // (oden.ExitCode of a plain error).
 type Shell struct {
+	// Actor overrides CLI environment identity (OCHAZUKE_ACTOR); nil reads it
+	// once per Run. MCP servers set this to their startup identity.
+	Actor *ochazuke.Actor
+	// Source is cli by default; an MCP adapter supplies mcp.
+	Source  string
+	actor   *ochazuke.Actor
 	Runtime *ochazuke.Runtime
 	Bin     string // the bin name, in messages and the catalog
 	Usage   string // the usage line printed for a short command
@@ -126,12 +132,13 @@ type Shell struct {
 	// negative Width never cuts.
 	Width int
 
-	in *bufio.Reader
+	catalogOptions []CatalogOption
+	in             *bufio.Reader
 }
 
 // New is a Shell over r for bin with the standard usage line.
-func New(r *ochazuke.Runtime, bin string, stdin io.Reader, stdout, stderr io.Writer) *Shell {
-	return &Shell{Runtime: r, Bin: bin, Usage: DefaultUsage(bin), Stdin: stdin, Stdout: stdout, Stderr: stderr}
+func New(r *ochazuke.Runtime, bin string, stdin io.Reader, stdout, stderr io.Writer, opts ...CatalogOption) *Shell {
+	return &Shell{catalogOptions: opts, Runtime: r, Bin: bin, Usage: DefaultUsage(bin), Stdin: stdin, Stdout: stdout, Stderr: stderr}
 }
 
 // DefaultUsage is the usage line of a bin with no global flags of its own,
@@ -149,6 +156,18 @@ func UsageHint(bin string) string {
 // Run executes one command and prints its result on Stdout, as JSON
 // unless --format names another format.
 func (s *Shell) Run(ctx context.Context, args []string) error {
+	actor := s.Actor
+	if actor == nil {
+		a, err := ochazuke.ActorFromEnv(nil)
+		if err != nil {
+			return err
+		}
+		actor = &a
+	}
+	before := s.actor
+	s.actor = actor
+	defer func() { s.actor = before }()
+
 	if len(args) < 2 && (len(args) == 0 || !s.bareAlias(args[0])) {
 		return errors.New(s.usage())
 	}
@@ -770,7 +789,13 @@ func typed(kind, v string) (any, error) {
 // call runs one request through the runtime's CLI entry.
 func (s *Shell) call(q ochazuke.Request) (any, error) {
 	reply := make(chan ochazuke.Response, 1)
-	s.Runtime.HandleCall(ochazuke.CallMsg{Request: q, Reply: reply, Stream: true})
+	actor := ochazuke.Owner()
+	if s.actor != nil {
+		actor = *s.actor
+	} else if s.Actor != nil {
+		actor = *s.Actor
+	}
+	s.Runtime.HandleCall(ochazuke.CallMsg{Request: q, Reply: reply, Stream: true, Actor: actor, Source: s.Source})
 	res := <-reply
 	if res.Error != "" {
 		if res.Argument {

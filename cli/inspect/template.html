@@ -121,6 +121,7 @@ code { background: var(--chip); padding: 0 3px; border-radius: 2px; }
     <select id="f-rel" title="relation"><option value="">relation: any</option><option value="any">relation (any)</option><option value="noun">noun-typed param</option><option value="source">source-typed param</option><option value="name">param named like a noun</option></select>
     <select id="f-issue" title="key issues (By key)"><option value="">key rows: all</option><option value="dup">duplicates</option><option value="shadow">same key, other action on another noun</option><option value="app">shadows an app-wide key</option><option value="unresolved">request names no verb</option></select>
     <select id="f-mirror" title="mirror (Relations)"><option value="">mirror: any</option><option value="missing">mirror missing</option><option value="present">mirror present</option></select>
+    <label><input type="checkbox" id="agent-metadata" checked> agent metadata</label>
     <button id="reset" title="clear search and filters">reset</button>
   </div>
   <span id="count"></span>
@@ -282,7 +283,7 @@ for (const v of D.verbs) {
 }
 
 // ---------- state ----------
-const S = { view: "nouns", tokens: [], f: {}, tool: 0, noun: 0, verb: 0, pane: 0, key: 0, rel: 0, gap: 0, gpane: 0, kpane: 0, rpane: 0 };
+const S = { agentMetadata: true, view: "nouns", tokens: [], f: {}, tool: 0, noun: 0, verb: 0, pane: 0, key: 0, rel: 0, gap: 0, gpane: 0, kpane: 0, rpane: 0 };
 const HOST = D.host || "";
 const toolsOrder = [...D.tools].sort((a, b) => {
   const r = {host: 0, tool: 1, saved: 2, framework: 4};
@@ -299,6 +300,7 @@ fillSelect("f-tool", "tool", toolsOrder.map((t) => t.name));
 fillSelect("f-ns", "namespace", uniq(D.nouns.map((n) => n.ns)).sort((a, b) => (a === "app" ? -1 : b === "app" ? 1 : a.localeCompare(b))));
 fillSelect("f-kind", "kind", uniq(D.verbs.map((v) => v.kind).filter(Boolean)).sort());
 fillSelect("f-hist", "effect", uniq(D.verbs.map((v) => v.history).filter(Boolean)).sort());
+$("#agent-metadata").addEventListener("change", (e) => { S.agentMetadata = e.target.checked; render(); });
 const FILTERS = ["tool", "ns", "kind", "hist", "key", "confirm", "rel", "issue", "mirror"];
 for (const f of FILTERS) document.getElementById("f-" + f).addEventListener("change", (e) => { S.f[f] = e.target.value; S.noun = S.verb = S.key = S.rel = S.gap = 0; render(); });
 $("#reset").addEventListener("click", () => { for (const f of FILTERS) { document.getElementById("f-" + f).value = ""; S.f[f] = ""; } $("#q").value = ""; S.tokens = []; render(); });
@@ -429,6 +431,8 @@ function toolDetail(t) {
   return `<h2>${esc(t.name)}</h2>
   <p><span class="tag">${esc(t.role)}</span><span class="tag ${t.status === "ok" || t.status === "merged" ? "ok" : "bad"}">${esc(t.status)}</span></p>
   ${ochNote}
+ ${S.agentMetadata && t.about ? `<p>${esc(t.about)}</p>` : ""}
+ ${S.agentMetadata && t.agentRules ? `<p>Agent rules: ${esc(t.agentRules)}</p>` : ""}
   <table class="t"><tr><th>bin</th><td>${esc(t.bin || "—")}</td></tr>
   <tr><th>catalog version</th><td>${esc(t.version || "—")}</td></tr>
   <tr><th>ochazuke</th><td>${esc(t.ochazuke || "—")}</td></tr>
@@ -446,7 +450,8 @@ function nounDetail(n, tool) {
   ${n.mirrorOf ? `<p>Mirror of <span class="link" data-noun="${esc(n.mirrorOf)}">${esc(n.mirrorOf.replace(":", " "))}</span> (mounted under a prefix).</p>` : ""}
   ${n.aliases && n.aliases.length ? `<p class="muted">CLI aliases: ${n.aliases.map((a) => `<code>${esc(a)}</code>`).join(" ")}</p>` : ""}
   <p class="muted">Carried by: ${n.tools.map(esc).join(", ")}</p>
-  ${propsTable(n.props)}
+  ${S.agentMetadata && n.about ? `<p>${esc(n.about)}</p>` : ""}
+ ${propsTable(n.props)}
   <h4>verbs (${vs.length})</h4>
   <table class="t"><tr><th>verb</th><th>owner</th><th>kind</th><th>keys</th><th>description</th></tr>
   ${vs.map((v) => `<tr><td><span class="link" data-verb="${esc(v.id)}">${esc(v.name)}</span>${v.standard ? ' <span class="tag acc" title="standard verb">std</span>' : ""}</td><td>${esc(v.owner)}</td><td>${esc([v.kind, v.history].filter(Boolean).join(" · "))}</td><td class="k">${esc(uniq((keysByVerb.get(v.id) || []).filter((k) => !k.unbind).map((k) => k.keys || k.pattern)).join(" "))}</td><td>${esc(v.desc)}</td></tr>`).join("")}</table>
@@ -497,7 +502,11 @@ function verbDetail(v, tool) {
   <tr><th>defined by</th><td>${esc(v.owner === "ochazuke" ? "ochazuke (framework builtin)" : v.owner === "user" ? "user actions.json" : v.owner)}; noun <span class="link" data-noun="${esc(n.id)}">${esc(n.name)}</span> owned by ${esc(n.owner)}</td></tr>
   <tr><th>carried by</th><td>${v.tools.map((t) => esc(t) + (toolByName.get(t)?.ochazuke ? ` <span class="faint">(ochazuke ${esc(toolByName.get(t).ochazuke)})</span>` : "")).join(", ")}</td></tr>
   <tr><th>result</th><td>${esc(v.result || "—")}${v.rows ? ` · rows of <code>${esc(v.rows)}</code>` : ""}</td></tr>
-  <tr><th>confirm</th><td>${v.confirm ? esc(v.confirm) : "—"}</td></tr>
+  ${S.agentMetadata ? `<tr><th>agent default</th><td>${esc(v.agent || "—")}${v.destructive ? " · destructive" : ""}</td></tr>
+ <tr><th>guards</th><td>${esc((v.guards || []).join(", ") || "—")}</td></tr>
+ <tr><th>examples</th><td>${esc(JSON.stringify(v.examples || []))}</td></tr>
+ ` : ""}
+ <tr><th>confirm</th><td>${v.confirm ? esc(v.confirm) : "—"}</td></tr>
   <tr><th>aliases</th><td>${n.aliases && n.aliases.length ? "noun: " + n.aliases.map((a) => `<code>${esc(a)}.${esc(v.name)}</code>`).join(" ") : '<span class="muted">none</span>'} <span class="faint">(catalogs carry no verb aliases)</span></td></tr>
   ${v.command ? `<tr><th>command</th><td><code>${esc(v.command)}</code></td></tr>` : ""}
   <tr><th>CLI</th><td><code>${esc(cli)}</code></td></tr>

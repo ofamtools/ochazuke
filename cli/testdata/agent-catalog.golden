@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "name": "test",
+  "version": "v1",
+  "about": "Tracks work",
+  "agentRules": "Stay in your lane",
+  "nouns": [
+    {
+      "about": "Work to do",
+      "name": "task",
+      "verbs": [
+        {
+          "guards": [
+            "owned",
+            "ready"
+          ],
+          "examples": [
+            {
+              "args": {
+                "id": "t1"
+              },
+              "note": "Delete this task"
+            }
+          ],
+          "destructive": true,
+          "agent": "never",
+          "agentDeclared": "never",
+          "name": "delete",
+          "description": "Delete work",
+          "kind": "application",
+          "result": "JSON value",
+          "history": "change",
+          "builtin": false
+        }
+      ]
+    }
+  ],
+  "bindings": null,
+  "pages": null
+}

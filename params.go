@@ -269,7 +269,7 @@ func (r *Runtime) loadChoicesFor(c Context, p Parameter, query, owner string, do
 		}
 		return append(slices.Clone(enum), more...), nil
 	}
-	ctx := Ctx{Runtime: r, Context: c, Instance: r.Instances[focusOf(c)], Args: choicesQueryArgs(op, query)}
+	ctx := Ctx{actor: r.Actor(), Runtime: r, Context: c, Instance: r.Instances[focusOf(c)], Args: choicesQueryArgs(op, query)}
 	res := op.App(ctx)
 	if res.err != nil || res.work == nil {
 		done(parse(res.value, res.err))
@@ -357,7 +357,7 @@ func (r *Runtime) choicesLoad(c Context, p Parameter, query string) Result {
 		}
 		return append(slices.Clone(enum), more...), nil
 	}
-	res := op.App(Ctx{Runtime: r, Context: c, Instance: r.Instances[focusOf(c)], Args: choicesQueryArgs(op, query)})
+	res := op.App(Ctx{actor: r.Actor(), Runtime: r, Context: c, Instance: r.Instances[focusOf(c)], Args: choicesQueryArgs(op, query)})
 	if res.err != nil {
 		return Failed(fmt.Errorf("choices source %q: %w", source, res.err))
 	}

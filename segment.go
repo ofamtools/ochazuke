@@ -735,7 +735,7 @@ func (r *Runtime) segmentVerb(seg Segment) (any, func(context.Context) (any, err
 	}
 	c := r.contextOf("app")
 	if op.App != nil {
-		res := op.App(Ctx{Runtime: r, Context: c, Args: args, Instance: r.Instances["app"]})
+		res := op.App(Ctx{actor: r.Actor(), Runtime: r, Context: c, Args: args, Instance: r.Instances["app"]})
 		return res.value, res.work, res.err
 	}
 	if op.Run == nil {

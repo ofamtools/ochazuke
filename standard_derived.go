@@ -61,7 +61,7 @@ var derivedVerbs = []standardVerb{
 		Kinds: []string{Collection}, Needs: func(n *Noun) bool { return n.Store.Get != nil && n.Store.Create != nil && len(createProps(n)) > 0 },
 		Subject: true, HistoryKind: HistoryChange, Positional: func(*Noun) []string { return []string{"pairs"} },
 		Params: duplicateParams, Writes: duplicateWrites, Run: runDuplicate},
-	{Verb: "archive", Description: "Archive a thing: set its archive prop",
+	{Verb: "archive", Destructive: true, Description: "Archive a thing: set its archive prop",
 		Kinds: []string{Collection}, Needs: func(n *Noun) bool { return n.Store.Patch != nil && writableRole(n, RoleArchive) != nil },
 		Subject: true, Many: true, Repeatable: true, HistoryKind: HistoryChange,
 		Writes: roleWrites(RoleArchive), Run: archiveRun(true)},
@@ -428,7 +428,7 @@ func deleteConfirm(r *Runtime, n *Noun, c Context, q Request, prompt string) str
 		}
 	}
 	for _, inst := range insts {
-		ctx := Ctx{Runtime: r, Context: c, Args: q.Args, Instance: inst}
+		ctx := Ctx{actor: r.Actor(), Runtime: r, Context: c, Args: q.Args, Instance: inst}
 		key, err := r.subjectKey(n, ctx)
 		if err != nil {
 			return prompt

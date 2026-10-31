@@ -22,6 +22,7 @@ import (
 // exclusive and reads only its own table.
 type Noun struct {
 	Name      string               `json:"name"`
+	About     string               `json:"about,omitempty"`
 	Verbs     []string             `json:"verbs,omitempty"`
 	Pin       string               `json:"pin,omitempty"`
 	Focusable bool                 `json:"focusable,omitempty"`

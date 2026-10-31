@@ -168,7 +168,7 @@ type watchKnown struct {
 // at once with the events since (every thing as added when since is
 // empty). Stop ends it.
 func (r *Runtime) Watch(noun string, args Arguments, fn func(WatchEvent)) (*Watch, error) {
-	return r.watch(Ctx{Runtime: r, Context: r.Context(), Args: args}, noun, fn)
+	return r.watch(Ctx{actor: r.Actor(), Runtime: r, Context: r.Context(), Args: args}, noun, fn)
 }
 
 func (r *Runtime) watch(c Ctx, noun string, fn func(WatchEvent)) (*Watch, error) {

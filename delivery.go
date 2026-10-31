@@ -50,6 +50,8 @@ type Completion struct {
 // request runs in, its arguments and the instance it addresses (id, noun,
 // payload).
 type Ctx struct {
+	actor    Actor
+	source   string
 	Runtime  *Runtime
 	Context  Context
 	Args     Arguments
@@ -188,6 +190,15 @@ func (r *Runtime) IssueAt(owner, scope, verb, slot string, c Ctx) (Ticket, conte
 		scope = ""
 	} else if old := r.slotJob(scope, slot); old != nil {
 		r.finish(old, JobCancelled, nil)
+	}
+	if c.actor == (Actor{}) {
+		c.actor = r.Actor()
+	}
+	if c.source == "" {
+		c.source = r.history.source
+		if c.source == "" {
+			c.source = "api"
+		}
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	r.jobSeq++
@@ -367,6 +378,10 @@ func (r *Runtime) Deliver(msg tea.Msg) (bool, error) {
 			defer r.watchAfterJob(j.Verb)
 		}
 		defer r.actingFor(done.Owner)()
+		if j != nil {
+			defer r.WithActor(j.ctx.Actor())()
+			defer r.forceSource(j.ctx.source)()
+		}
 		var callbackErr error
 		if j.then != nil {
 			callbackErr = j.then(j.ctx, done.Value, done.Err)
@@ -517,7 +532,7 @@ const (
 // AppHandler and turns a pending result into a job under the verb's key.
 func (r *Runtime) runApplication(op Operation, c Context, args Arguments) (any, error) {
 	inst := r.Instances[focusOf(c)]
-	ctx := Ctx{Runtime: r, Context: c, Args: args, Instance: inst, Subjects: r.takeSubjects(inst), Invoked: r.Invoked()}
+	ctx := Ctx{actor: r.Actor(), source: r.history.source, Runtime: r, Context: c, Args: args, Instance: inst, Subjects: r.takeSubjects(inst), Invoked: r.Invoked()}
 	ancestry := r.Ancestry(inst.ID)
 	res := op.App(ctx)
 	switch {
