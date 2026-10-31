@@ -1,0 +1,55 @@
+{
+  "name": "markdown: done-all-hidden",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "- [ ] Only task\n"
+    }
+  },
+  "script": [
+    "x",
+    "j",
+    "k",
+    ":",
+    {
+      "type": "markdown done-show"
+    },
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "contains": [
+        "1 done hidden"
+      ],
+      "lacks": [
+        "Only task"
+      ]
+    },
+    {
+      "contains": [
+        "Only task"
+      ],
+      "lacks": [
+        "done hidden"
+      ],
+      "highlightedText": "Only task"
+    }
+  ],
+  "settings": [
+    {
+      "name": "markdown.done",
+      "type": "string",
+      "default": "show",
+      "enum": [
+        "show",
+        "hide"
+      ]
+    }
+  ],
+  "values": {
+    "markdown.done": "hide"
+  }
+}

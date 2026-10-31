@@ -1,0 +1,42 @@
+{
+  "name": "markdown: done-toggle-box",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "- [x] Finished parent\n  - [ ] Unchecked child\n  - [x] Finished child\n- [ ] First visible\n- [x] Finished sibling\n- [ ] Last visible\n"
+    }
+  },
+  "script": [
+    "x"
+  ],
+  "expect": [
+    {
+      "highlightedText": "Last visible",
+      "contains": [
+        "4 done hidden"
+      ],
+      "lacks": [
+        "First visible"
+      ],
+      "writes": [
+        "toggle 4 [x] First visible"
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "name": "markdown.done",
+      "type": "string",
+      "default": "show",
+      "enum": [
+        "show",
+        "hide"
+      ]
+    }
+  ],
+  "values": {
+    "markdown.done": "hide"
+  }
+}

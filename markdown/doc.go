@@ -154,12 +154,14 @@ type Doc struct {
 	visible int
 	// width and style are what the rows were laid out for: the last
 	// View's, 80 and dark before the first.
-	width int
-	style string
-	lay   layout
-	dirty bool
-	folds map[string]bool
-	edit  *session
+	width      int
+	style      string
+	lay        layout
+	dirty      bool
+	folds      map[string]bool
+	done       string // document-local visibility override; empty follows DoneSetting
+	doneHidden int    // checked tasks omitted from the current layout
+	edit       *session
 	// leftAt is where the last element left starts in the source.
 	leftAt int
 	// Debounce is the pause in typing before the open element is written.
@@ -416,8 +418,10 @@ func (d *Doc) foldKey(item int) string {
 // cursor on element e at line off within it.
 func (d *Doc) relayout(e, off int) error {
 	d.dirty = false
-	d.lay = layoutOf(d.text, d.elems, d.width, d.style, d.opts, d.folded)
-	if len(d.lay.rows) == 0 && (d.Editable() || len(d.elems) == 0) && d.Editable() {
+	hidden, count := d.hiddenElements()
+	d.lay = layoutOf(d.text, d.elems, d.width, d.style, d.opts, d.folded, hidden)
+	d.doneHidden = count
+	if len(d.lay.rows) == 0 && (d.Editable() || count > 0) {
 		// An empty document still has a line to stand on.
 		d.lay.lines = append(d.lay.lines, "")
 		d.lay.owner = append(d.lay.owner, -1)
@@ -442,6 +446,13 @@ func (d *Doc) relayout(e, off int) error {
 	d.r.Instances[d.ListID()].Unfocusable = len(items) == 0
 	if e >= len(d.elems) {
 		e = len(d.elems) - 1
+	}
+	if e >= 0 && len(hidden) > e && hidden[e] {
+		for next := e + 1; next < len(d.elems); next++ {
+			if d.drawn(next) {
+				return d.selectAt(next, 0)
+			}
+		}
 	}
 	for ; e >= 0; e-- {
 		if d.drawn(e) {
@@ -694,6 +705,11 @@ func (d *Doc) Block(width, height int, a ochazuke.Appearance) ochazuke.Block {
 		d.width, d.style, d.opts = width, style, opts
 		_ = d.relayout(e, off)
 	}
+	indicator := d.doneIndicator(d.doneHidden)
+	onlyIndicator := indicator != "" && height == 1
+	if indicator != "" && height > 1 {
+		height--
+	}
 	var lines []string
 	focus, focusHeight := 0, 1
 	var cursor *ochazuke.Pos
@@ -747,6 +763,16 @@ func (d *Doc) Block(width, height int, a ochazuke.Appearance) ochazuke.Block {
 			focus, focusHeight = 0, len(window)
 		}
 		lines = window
+	}
+	if indicator != "" {
+		lines = append([]string{indicator}, lines...)
+		focus++
+		if cursor != nil {
+			cursor.Y++
+		}
+		if onlyIndicator {
+			lines, cursor, focus, focusHeight = lines[:1], nil, 0, 1
+		}
 	}
 	out := ochazuke.Block{Text: d.r.PlacedAt(id, strings.Join(lines, "\n"), focus, focusHeight), Cursor: cursor}
 	return out
@@ -888,7 +914,7 @@ func scrollToShow(offset, top, bottom, height, total, margin int) int {
 func (d *Doc) Snapshot() map[string]any {
 	selected := d.selected()
 	e, off := d.cursor()
-	out := map[string]any{"id": d.id, "tasks": d.Tasks(), "selected": selected, "undo": len(d.undo), "redo": len(d.redo), "element": e, "line": off, "editing": d.edit != nil}
+	out := map[string]any{"id": d.id, "tasks": d.Tasks(), "selected": selected, "undo": len(d.undo), "redo": len(d.redo), "element": e, "line": off, "editing": d.edit != nil, "done": d.Done(), "doneHidden": d.doneHidden}
 	if e >= 0 {
 		out["kind"] = d.elems[e].Kind
 		out["sourceLine"] = d.elems[e].Line

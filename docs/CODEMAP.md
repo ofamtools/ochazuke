@@ -1448,7 +1448,7 @@ Importable package `keytest`: 1 source files, 0 test files.
 
 ## Package markdown
 
-Importable package `markdown`: 12 source files, 8 test files.
+Importable package `markdown`: 13 source files, 9 test files.
 
 ### markdown/cursor.go
 
@@ -1459,20 +1459,27 @@ Importable package `markdown`: 12 source files, 8 test files.
 
 ### markdown/doc.go
 
-- lines: 897 · tests: doc_test.go
+- lines: 923 · tests: doc_test.go
 - purpose: Source is where a Doc's Markdown lives: Load reads it as it is now and Save stores a new text.
 - types: Source, DebounceMsg, Doc
 - methods: Doc(45), refusal(2)
 - funcs: File, WriteFile, New, Of
 - leans on: tasks.go(20), elements.go(19), render.go(9), edit.go(3)
 
+### markdown/done.go
+
+- lines: 77 · tests: done_test.go
+- purpose: Done reports this document's effective checked-task visibility: show or hide.
+- methods: Doc(4)
+- leans on: doc.go(4), edit.go(1), elements.go(1)
+
 ### markdown/edit.go
 
-- lines: 1117 · tests: edit_test.go
+- lines: 1120 · tests: edit_test.go
 - purpose: session is the element open in the block editor: the input holding its source (its common indent taken off), where that source sits in the text and what of i...
 - methods: Doc(29), insertion(1), session(1)
 - funcs: Component
-- leans on: doc.go(71), elements.go(50), insert.go(25), tasks.go(13)
+- leans on: doc.go(72), elements.go(50), insert.go(25), tasks.go(13)
 
 ### markdown/elements.go
 
@@ -1492,7 +1499,7 @@ Importable package `markdown`: 12 source files, 8 test files.
 
 ### markdown/layout.go
 
-- lines: 299
+- lines: 319
 - purpose: layout is a Doc drawn at one width: its lines, per element the first and last line it covers ({-1, -1} when it is not drawn), per line the element it belongs...
 - methods: layout(1)
 - leans on: tasks.go(48), elements.go(9), table.go(8), render.go(2)
@@ -1537,10 +1544,10 @@ Importable package `markdown`: 12 source files, 8 test files.
 
 ### markdown/verbs.go
 
-- lines: 266
+- lines: 285
 - purpose: Register defines the markdown nouns, their verbs and keys once per runtime (see Doc for the keys).
 - funcs: Register
-- leans on: doc.go(61), insert.go(14), elements.go(9), edit.go(6)
+- leans on: doc.go(66), insert.go(14), elements.go(9), edit.go(7)
 
 ## Package refdoc
 

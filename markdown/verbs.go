@@ -162,6 +162,9 @@ func register(r *ochazuke.Runtime) {
 			return d.MoveCursor(ochazuke.IntArg(a, "delta", 1), steps(a))
 		}), "Move by Markdown element, or drawn line with markdown.cursor=line; spill at the document's edges").Motion().
 		Verb("toggle", plain((*Doc).Toggle), "Toggle the checklist item under the cursor: rewrites only its box character in the source, written at once").
+		Verb("done-show", plain(func(d *Doc) error { return d.SetDone("show") }), "Show checked tasks in this document for the session; never changes the source or settings").
+		Verb("done-hide", plain(func(d *Doc) error { return d.SetDone("hide") }), "Hide checked tasks and their subtrees in this document for the session").
+		Verb("done-toggle", plain(func(d *Doc) error { return d.SetDone("toggle") }), "Toggle checked-task visibility in this document for the session").
 		Verb("undo", plain((*Doc).Undo), "Undo the last edit (a toggle, a typed block, a line deleted or pasted); the undo is written like any edit").
 		Verb("redo", plain((*Doc).Redo), "Redo the last undone edit").
 		Verb("reload", plain((*Doc).Reload), "Read the Markdown source again").
@@ -222,6 +225,22 @@ func register(r *ochazuke.Runtime) {
 		_ = r.DeclareSetting(ochazuke.Setting{Name: AuthorSetting, Owner: ochazuke.OwnerFramework, Type: "string", Default: "owner", Description: "The author a new note in a Markdown document is signed with"})
 		_ = r.DeclareSetting(ochazuke.Setting{Name: CursorSetting, Owner: ochazuke.OwnerFramework, Type: "string", Default: "item", Enum: []string{"item", "line"}, Description: "Markdown cursor unit: whole elements, or individual drawn lines"})
 		_ = r.DeclareSetting(ochazuke.Setting{Name: CursorWidthSetting, Owner: ochazuke.OwnerFramework, Type: "string", Default: "pane", Enum: []string{"pane", "text"}, Description: "Markdown cursor highlight width: the whole pane, or only its text"})
+		_ = r.DeclareSetting(ochazuke.Setting{Name: DoneSetting, Owner: ochazuke.OwnerFramework, Type: "string", Default: "show", Enum: []string{"show", "hide"}, Description: "Show checked Markdown tasks, or hide them with their nested subtrees"})
+		_ = r.DeclareSetting(ochazuke.Setting{Name: DoneIndicatorSetting, Owner: ochazuke.OwnerFramework, Type: "boolean", Default: true, Description: "Show a dim count above a Markdown document when checked tasks are hidden"})
+		for _, name := range []string{DoneSetting, DoneIndicatorSetting} {
+			r.Settings().Observe(name, func(string, any) {
+				for _, inst := range r.Instances {
+					if d, ok := inst.Component.(*Doc); ok {
+						if d.edit != nil {
+							d.dirty = true
+						} else {
+							e, off := d.cursor()
+							_ = d.relayout(e, off)
+						}
+					}
+				}
+			})
+		}
 	}
 	r.MustLoadDefaultBindings(ochazuke.FrameworkBindingsSource+"markdown/bindings.json", defaultBindings)
 }
