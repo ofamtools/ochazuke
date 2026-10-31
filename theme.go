@@ -182,6 +182,7 @@ type Styles struct {
 	text, ground   color.Color         // the scheme's text and surface, the ends of a fade
 	accent, border color.Color         // the accent and border roles (CardBorders)
 	unfocused      int                 // the dim-unfocused percent WithDims was given
+	selectionDim   int                 // the dim-unfocused-selection percent (WithSelectionDim): the unfocused bar's fade beyond unfocused
 	plain          bool                // mono or NO_COLOR: a fade is the faint attribute
 	tones          map[string]toneLook // the scheme's tones resolved (Tone, tone.go)
 	selectedBg     string              // tones.selected-background, read by the list that draws (listTones)
@@ -198,7 +199,12 @@ type Styles struct {
 const (
 	DefaultModalDim     = 35 // about the scheme's muted colour, as the backdrop always was
 	DefaultDimUnfocused = 20
-	MaxDim              = 90
+	// DefaultDimUnfocusedSelection is how much further than the list the
+	// selected row's bar of a list without the focus fades (setting
+	// dim-unfocused-selection): at the defaults the bar sits halfway
+	// between the text and the background colour.
+	DefaultDimUnfocusedSelection = 30
+	MaxDim                       = 90
 )
 
 // Fade is a style that carries text percent of the way from the scheme's
@@ -229,6 +235,46 @@ func (s Styles) WithDims(modal, unfocused int) Styles {
 	return s
 }
 
+// WithSelectionDim sets how many percent further than the list
+// (dim-unfocused) the selected row's bar of a list without the focus
+// fades toward the background (dim-unfocused-selection). 0 fades the bar
+// with the list, as before the setting.
+func (s Styles) WithSelectionDim(percent int) Styles {
+	s.selectionDim = min(max(percent, 0), MaxDim)
+	return s
+}
+
+// barPercent is how far the selected row of a list without the focus
+// fades toward the background: the list's dim-unfocused plus
+// dim-unfocused-selection, at most MaxDim.
+func (s *Styles) barPercent() int {
+	return min(max(s.unfocused, 0)+s.selectionDim, MaxDim)
+}
+
+// fadeBy carries c percent of the way toward the scheme's surface; c
+// itself for 0, or with no surface.
+func (s *Styles) fadeBy(c color.Color, percent int) color.Color {
+	if c == nil || s.ground == nil || percent <= 0 {
+		return c
+	}
+	return fadeRamp(c, s.ground)[min(percent, MaxDim)]
+}
+
+// selectionBar is the SGR of the selected row's bar in a list: nil for
+// the plain reverse bar (the focused list, dim-unfocused-selection 0, no
+// styles, or mono and NO_COLOR, where the list's faint already dims the
+// bar), else reverse video with the foreground, which the reverse makes
+// the bar's colour, carried barPercent of the way from the scheme's text
+// toward its surface. One rule for every list, table and tree (paintLine,
+// List.bar).
+func (s *Styles) selectionBar(faded bool) ansi.Style {
+	if s == nil || !faded || s.selectionDim <= 0 || s.plain || s.text == nil || s.ground == nil {
+		return nil
+	}
+	var st ansi.Style
+	return st.Reverse(true).ForegroundColor(s.fadeBy(s.text, s.barPercent()))
+}
+
 // CardBorders are the border styles of a card timeline's three states
 // (the selection is the border, never reverse video): selected while the
 // timeline has the focus, the accent in bold; selected without the focus,
@@ -253,6 +299,9 @@ func (s Styles) CardBorders() (focused, selected, other lipgloss.Style) {
 const (
 	ModalDimSetting     = "modal-dim"
 	DimUnfocusedSetting = "dim-unfocused"
+	// DimUnfocusedSelectionSetting: percent the selected row's bar of a
+	// list without the focus fades beyond dim-unfocused (0: with the list).
+	DimUnfocusedSelectionSetting = "dim-unfocused-selection"
 	// ModalBackdropHighlightsSetting: keep (the page's reverse video and
 	// underline beneath a modal stay, dimmed) or plain (the backdrop is
 	// drawn without them).
@@ -367,5 +416,5 @@ func NewStyles(a Appearance) Styles {
 		appAccent:    appAccent,
 		modeColor:    accent,
 	}
-	return styles.WithDims(DefaultModalDim, DefaultDimUnfocused)
+	return styles.WithDims(DefaultModalDim, DefaultDimUnfocused).WithSelectionDim(DefaultDimUnfocusedSelection)
 }
