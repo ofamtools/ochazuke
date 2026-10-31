@@ -1,0 +1,26 @@
+{
+  "name": "markdown: done-show",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "- [x] Finished parent\n  - [ ] Unchecked child\n  - [x] Finished child\n- [ ] First visible\n- [x] Finished sibling\n- [ ] Last visible\n"
+    }
+  },
+  "script": [],
+  "expect": [
+    {
+      "contains": [
+        "Finished parent",
+        "Unchecked child",
+        "Finished child",
+        "Finished sibling"
+      ],
+      "lacks": [
+        "done hidden"
+      ],
+      "highlightedText": "Finished parent"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "name": "markdown: done-toggle-view",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "- [x] Finished parent\n  - [ ] Unchecked child\n  - [x] Finished child\n- [ ] First visible\n- [x] Finished sibling\n- [ ] Last visible\n"
+    }
+  },
+  "script": [
+    ":",
+    {
+      "type": "markdown done-toggle"
+    },
+    "enter",
+    ":",
+    {
+      "type": "markdown done-toggle"
+    },
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "contains": [
+        "3 done hidden"
+      ],
+      "lacks": [
+        "Finished parent"
+      ],
+      "highlightedText": "First visible"
+    },
+    {
+      "contains": [
+        "Finished parent",
+        "Unchecked child"
+      ],
+      "lacks": [
+        "done hidden"
+      ],
+      "highlightedText": "First visible"
+    }
+  ]
+}

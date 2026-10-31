@@ -14,21 +14,38 @@ import (
 // element it belongs to (-1 for none: blank lines, a note box's borders)
 // and the lines the cursor can sit on, in drawing order.
 type layout struct {
-	lines []string
-	spans [][2]int
-	owner []int
-	rows  []int
+	lines  []string
+	spans  [][2]int
+	owner  []int
+	rows   []int
+	hidden []bool // source elements deliberately omitted from this layout
 }
 
 // markedSource is the source Glamour draws: each element's text between
 // its start and end marker, and each blockquote of notes replaced by one
 // placeholder quote line holding its first note's start marker (the Doc
 // draws notes itself).
-func markedSource(src string, els []Element) string {
+func markedSource(src string, els []Element, hidden []bool) string {
 	var b strings.Builder
 	at := 0
-	for i := 0; i < len(els) && i < maxMarkers; i++ {
+	for i := 0; i < len(els); i++ {
 		e := els[i]
+		if len(hidden) > i && hidden[i] {
+			last := i
+			for last+1 < len(els) && hidden[last+1] {
+				last++
+			}
+			b.WriteString(src[at:e.Start])
+			at = els[last].End
+			if at < len(src) && src[at] == '\n' {
+				at++
+			}
+			i = last
+			continue
+		}
+		if i >= maxMarkers {
+			continue
+		}
 		if e.Kind == KindNote {
 			if i > 0 && els[i-1].Kind == KindNote && els[i-1].Group == e.Group {
 				continue
@@ -158,10 +175,10 @@ func foldLine(open, resolved, indent int, st noteStyle) string {
 // layoutOf draws src (its elements els) width cells wide: Glamour for
 // everything but notes, the Doc's own boxes for notes (folded: one count
 // line under the item, per folded(item)).
-func layoutOf(src string, els []Element, width int, style string, opts options, folded func(item int) bool) layout {
-	raw := render(markedSource(src, els), 0, width, style, opts).lines
+func layoutOf(src string, els []Element, width int, style string, opts options, folded func(item int) bool, hidden []bool) layout {
+	raw := render(markedSource(src, els, hidden), 0, width, style, opts).lines
 	n := min(len(els), maxMarkers)
-	lay := layout{spans: make([][2]int, len(els))}
+	lay := layout{spans: make([][2]int, len(els)), hidden: hidden}
 	for i := range lay.spans {
 		lay.spans[i] = [2]int{-1, -1}
 	}
@@ -258,7 +275,7 @@ func layoutOf(src string, els []Element, width int, style string, opts options, 
 // neighbours: nonblank lines first, one each, in order.
 func (lay *layout) fillGaps() {
 	for i := 0; i < len(lay.spans); i++ {
-		if lay.spans[i][0] >= 0 {
+		if lay.spans[i][0] >= 0 || len(lay.hidden) > i && lay.hidden[i] {
 			continue
 		}
 		j := i
@@ -285,6 +302,9 @@ func (lay *layout) fillGaps() {
 			}
 		}
 		for k := i; k < j; k++ {
+			if len(lay.hidden) > k && lay.hidden[k] {
+				continue
+			}
 			switch {
 			case len(free) > 0:
 				lay.spans[k] = [2]int{free[0], free[0]}

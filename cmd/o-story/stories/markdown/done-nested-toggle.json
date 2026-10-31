@@ -1,0 +1,44 @@
+{
+  "name": "markdown: done-nested-toggle",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "- [ ] Parent to finish\n  - [ ] Unchecked child\n  > **owner** today: Nested note\n- [ ] Next visible\n"
+    }
+  },
+  "script": [
+    "x"
+  ],
+  "expect": [
+    {
+      "contains": [
+        "1 done hidden"
+      ],
+      "lacks": [
+        "Parent to finish",
+        "Unchecked child",
+        "Nested note"
+      ],
+      "highlightedText": "Next visible",
+      "writes": [
+        "toggle 1 [x] Parent to finish"
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "name": "markdown.done",
+      "type": "string",
+      "default": "show",
+      "enum": [
+        "show",
+        "hide"
+      ]
+    }
+  ],
+  "values": {
+    "markdown.done": "hide"
+  }
+}

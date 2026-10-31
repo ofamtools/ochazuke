@@ -372,6 +372,9 @@ func (d *Doc) target() (int, int, error) {
 	if found < 0 {
 		return -1, 0, refused("not written: %q changed or is gone in the source", firstLine(raw))
 	}
+	if !d.drawn(found) {
+		return -1, 0, refused("not written: the element is hidden")
+	}
 	_ = d.selectAt(found, off)
 	return found, off, nil
 }

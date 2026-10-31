@@ -1,0 +1,42 @@
+{
+  "name": "markdown: done-indicator-off",
+  "area": "markdown",
+  "width": 80,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "- [x] Finished parent\n  - [ ] Unchecked child\n  - [x] Finished child\n- [ ] First visible\n- [x] Finished sibling\n- [ ] Last visible\n"
+    }
+  },
+  "script": [],
+  "expect": [
+    {
+      "lacks": [
+        "done hidden",
+        "Finished parent",
+        "Unchecked child"
+      ],
+      "highlightedText": "First visible"
+    }
+  ],
+  "settings": [
+    {
+      "name": "markdown.done",
+      "type": "string",
+      "default": "show",
+      "enum": [
+        "show",
+        "hide"
+      ]
+    },
+    {
+      "name": "markdown.done-indicator",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "values": {
+    "markdown.done": "hide",
+    "markdown.done-indicator": false
+  }
+}
