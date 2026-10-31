@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="ochazuke">
+<title>ochazuke</title>
+<style>.w1{transform-box:fill-box;transform-origin:50% 100%}.w2{transform-box:fill-box;transform-origin:50% 100%}@media (prefers-reduced-motion: no-preference){.w1{animation:wisp 3.6s cubic-bezier(.45,0,.25,1) infinite}.w2{animation:wisp 3.6s cubic-bezier(.45,0,.25,1) infinite;animation-delay:0.5s}@keyframes wisp{0%{transform:none;opacity:1}32%{transform:translate(0,-5px) scale(1,1.08);opacity:0}33%{transform:translate(0,4px) scale(1,.9);opacity:0}62%,100%{transform:none;opacity:1}}}</style>
+<rect width="128" height="128" rx="28" fill="#1d2b24"/>
+<g transform="translate(20 18)"><g>
+<path class="w1" d="M32 30c-5-6 5-10 0-16" fill="none" stroke="#6f9c8a" stroke-width="5" stroke-linecap="round"/>
+<path class="w2" d="M48 26c-5-6 5-10 0-16" fill="none" stroke="#6f9c8a" stroke-width="5" stroke-linecap="round"/>
+<ellipse cx="44" cy="50" rx="27" ry="13" fill="#fff6e3" stroke="#d9c89f" stroke-width="2"/>
+<path d="M54 40c4-12 18-14 24-12-2 9-12 16-24 12z" fill="#6fd36a"/>
+<path d="M56 39c6-4 12-7 18-9" fill="none" stroke="#b9ec84" stroke-width="1.6" stroke-linecap="round"/>
+<path d="M2 52h84a42 32 0 0 1-84 0z" fill="#3fa877"/>
+<path d="M2 52h84" stroke="#b9ec84" stroke-width="5" stroke-linecap="round"/>
+<path d="M30 83h28" stroke="#3fa877" stroke-width="6" stroke-linecap="round"/>
+</g></g>
+</svg>
