@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 )
@@ -183,15 +184,15 @@ func enumChoices(p Parameter) []Choice {
 // the result of its choices source (ChoicesSource), or, for a Noun with no
 // list verb, the noun's live instances. A source that asks for
 // confirmation is refused; it must be a read.
-func (r *Runtime) Choices(c Context, p Parameter) ([]Choice, error) {
-	return r.ChoicesFor(c, p, "")
+func (r *Runtime) Choices(c Context, p Parameter, siblings ...Arguments) ([]Choice, error) {
+	return r.ChoicesFor(c, p, "", siblings...)
 }
 
 // ChoicesQueryParameter is the parameter a choices source declares to see
 // the typed text: a source verb with a parameter of this name is called
 // with what the user has typed so far (the word in the palette, the query
 // in a form's suggestions chooser, the value being checked), so it can
-// complete as you type; one without it is called with no arguments.
+// complete as you type; one without it receives only mapped sibling arguments.
 const ChoicesQueryParameter = "query"
 
 // ChoicesTakeQuery reports whether a parameter's choices source sees the
@@ -211,8 +212,10 @@ func choicesQueryArgs(op Operation, query string) Arguments {
 }
 
 // ChoicesFor is Choices for the text typed so far: a source that declares
-// ChoicesQueryParameter receives query.
-func (r *Runtime) ChoicesFor(c Context, p Parameter, query string) ([]Choice, error) {
+// ChoicesQueryParameter receives query. The optional siblings map supplies
+// the surrounding request or form values named by SourceArgs. Pending sources
+// are awaited; UI callers use the asynchronous loaders instead.
+func (r *Runtime) ChoicesFor(c Context, p Parameter, query string, siblings ...Arguments) ([]Choice, error) {
 	out := enumChoices(p)
 	source := r.ChoicesSource(p)
 	if source == "" {
@@ -228,7 +231,7 @@ func (r *Runtime) ChoicesFor(c Context, p Parameter, query string) ([]Choice, er
 	if op.Confirm != "" {
 		return out, fmt.Errorf("choices source %q asks for confirmation", source)
 	}
-	result, err := r.ExecuteAt(c, Request{Verb: op.Verb, Noun: op.Noun, Args: choicesQueryArgs(op, query)})
+	result, err := r.executeAt(c, Request{Verb: op.Verb, Noun: op.Noun, Args: choicesSourceArgs(op, p, query, siblings...)}, r.awaitChoices)
 	if err != nil {
 		return out, fmt.Errorf("choices source %q: %w", source, err)
 	}
@@ -245,17 +248,17 @@ func (r *Runtime) ChoicesFor(c Context, p Parameter, query string) ([]Choice, er
 // owner (closing owner cancels it) and done runs when it lands. done runs
 // at once when nothing is pending, and never for a cancelled load; it
 // reports whether a load is in flight.
-func (r *Runtime) loadChoices(c Context, p Parameter, owner string, done func([]Choice, error)) bool {
-	return r.loadChoicesFor(c, p, "", owner, done)
+func (r *Runtime) loadChoices(c Context, p Parameter, owner string, done func([]Choice, error), siblings ...Arguments) bool {
+	return r.loadChoicesFor(c, p, "", owner, done, siblings...)
 }
 
 // loadChoicesFor is loadChoices for the text typed so far (ChoicesFor).
-func (r *Runtime) loadChoicesFor(c Context, p Parameter, query, owner string, done func([]Choice, error)) bool {
+func (r *Runtime) loadChoicesFor(c Context, p Parameter, query, owner string, done func([]Choice, error), siblings ...Arguments) bool {
 	enum := enumChoices(p)
 	source := r.ChoicesSource(p)
 	op, ok := r.Operations[source]
 	if source == "" || !ok || op.App == nil || op.Confirm != "" {
-		choices, err := r.ChoicesFor(c, p, query)
+		choices, err := r.ChoicesFor(c, p, query, siblings...)
 		done(choices, err)
 		return false
 	}
@@ -269,7 +272,11 @@ func (r *Runtime) loadChoicesFor(c Context, p Parameter, query, owner string, do
 		}
 		return append(slices.Clone(enum), more...), nil
 	}
-	ctx := Ctx{actor: r.Actor(), Runtime: r, Context: c, Instance: r.Instances[focusOf(c)], Args: choicesQueryArgs(op, query)}
+	ctx, err := r.choicesContext(c, op, p, query, siblings...)
+	if err != nil {
+		done(enum, err)
+		return false
+	}
 	res := op.App(ctx)
 	if res.err != nil || res.work == nil {
 		done(parse(res.value, res.err))
@@ -312,7 +319,7 @@ func (r *Runtime) checkArguments(op Operation, args Arguments) error {
 		if !ok || p.Source == "" || p.Free {
 			continue
 		}
-		choices, err := r.ChoicesFor(r.Context(), p, s)
+		choices, err := r.ChoicesFor(r.Context(), p, s, args)
 		if err != nil {
 			continue
 		}
@@ -339,12 +346,12 @@ func choiceError(name string, choices []Choice) error {
 // is a []Choice: Done when they are at hand, Pending when the source verb
 // returns Pending (its work then runs off the loop wherever the caller
 // launches it).
-func (r *Runtime) choicesLoad(c Context, p Parameter, query string) Result {
+func (r *Runtime) choicesLoad(c Context, p Parameter, query string, siblings ...Arguments) Result {
 	enum := enumChoices(p)
 	source := r.ChoicesSource(p)
 	op, ok := r.Operations[source]
 	if source == "" || !ok || op.App == nil || op.Confirm != "" {
-		choices, err := r.ChoicesFor(c, p, query)
+		choices, err := r.ChoicesFor(c, p, query, siblings...)
 		if err != nil && len(choices) == 0 {
 			return Failed(err)
 		}
@@ -357,7 +364,11 @@ func (r *Runtime) choicesLoad(c Context, p Parameter, query string) Result {
 		}
 		return append(slices.Clone(enum), more...), nil
 	}
-	res := op.App(Ctx{actor: r.Actor(), Runtime: r, Context: c, Instance: r.Instances[focusOf(c)], Args: choicesQueryArgs(op, query)})
+	ctx, err := r.choicesContext(c, op, p, query, siblings...)
+	if err != nil {
+		return Failed(err)
+	}
+	res := op.App(ctx)
 	if res.err != nil {
 		return Failed(fmt.Errorf("choices source %q: %w", source, res.err))
 	}
@@ -376,4 +387,114 @@ func (r *Runtime) choicesLoad(c Context, p Parameter, query string) Result {
 		}
 		return parse(value)
 	}).Label(source)
+}
+
+// CheckSourceArgs validates choice dependencies against a complete sibling schema.
+// Sources must already be registered. Catalog hosts call it after mounting all verbs.
+func (r *Runtime) CheckSourceArgs(params map[string]Parameter) error {
+	for _, name := range slices.Sorted(maps.Keys(params)) {
+		p := params[name]
+		if len(p.SourceArgs) == 0 {
+			continue
+		}
+		source := r.ChoicesSource(p)
+		op, ok := r.Operations[source]
+		if !ok {
+			return fmt.Errorf("%s: unknown choices source %q", name, source)
+		}
+		for _, arg := range slices.Sorted(maps.Keys(p.SourceArgs)) {
+			sibling := p.SourceArgs[arg]
+			if _, ok := op.Parameters[arg]; !ok {
+				return fmt.Errorf("%s: choices source %s has no parameter %q", name, source, arg)
+			}
+			if _, ok := params[sibling]; !ok {
+				return fmt.Errorf("%s: sourceArgs names no sibling %q", name, sibling)
+			}
+			if sibling == name {
+				return fmt.Errorf("%s: sourceArgs must name another field", name)
+			}
+		}
+	}
+	return nil
+}
+
+func choicesSourceArgs(op Operation, p Parameter, query string, siblings ...Arguments) Arguments {
+	args := choicesQueryArgs(op, query)
+	for arg, name := range p.SourceArgs {
+		if args == nil {
+			args = Arguments{}
+		}
+		// An explicitly mapped query takes precedence, even when unset.
+		delete(args, arg)
+		if len(siblings) == 0 {
+			continue
+		}
+		if value, ok := siblings[0][name]; ok && value != nil {
+			if text, ok := value.(string); !ok || text != "" {
+				args[arg] = value
+			}
+		}
+	}
+	return args
+}
+
+func (r *Runtime) choicesContext(c Context, op Operation, p Parameter, query string, siblings ...Arguments) (Ctx, error) {
+	args := choicesSourceArgs(op, p, query, siblings...)
+	if err := r.checkArguments(op, args); err != nil {
+		return Ctx{}, err
+	}
+	q := Request{Noun: op.Noun, Verb: op.Verb, Args: args}
+	focus := focusOf(c)
+	if !r.Available(q, focus, r.Mode) {
+		return Ctx{}, fmt.Errorf("choices source %q is not applicable now", op.Key())
+	}
+	if owner := r.nounInstance(op.Noun, focus); owner != "" {
+		c, focus = r.contextOf(owner), owner
+	}
+	verdict := r.runChecks(c, q, op)
+	if verdict.Refuse != "" {
+		return Ctx{}, fmt.Errorf("choices source %q: %s", op.Key(), verdict.Refuse)
+	}
+	if verdict.Ask != "" {
+		return Ctx{}, fmt.Errorf("choices source %q asks for confirmation", op.Key())
+	}
+	return Ctx{actor: r.Actor(), Runtime: r, Context: c, Args: args, Instance: r.Instances[focus]}, nil
+}
+
+// ParameterChoices lists a request parameter's choices, including ValueOf
+// and Pairs prop parameters, with sibling arguments passed to its source.
+func (r *Runtime) ParameterChoices(c Context, op Operation, name, query string, args Arguments) ([]Choice, error) {
+	p, _ := r.choiceParameter(op, name, args)
+	if p.Pairs && (strings.Contains(query, "=") || len(p.Enum) == 0) {
+		return r.pairChoices(c, op, query, args)
+	}
+	if p.Type == "boolean" {
+		return []Choice{{ID: "true", Label: "true"}, {ID: "false", Label: "false"}}, nil
+	}
+	return r.ChoicesFor(c, p, query, args)
+}
+
+// awaitChoices preserves ExecuteAt's admission, overrides and history while
+// waiting for an application's read result instead of returning its job ticket.
+func (r *Runtime) awaitChoices(op Operation, c Context, args Arguments) (any, error) {
+	if op.App == nil {
+		return op.Run(r, c, args)
+	}
+	inst := r.Instances[focusOf(c)]
+	ctx := Ctx{actor: r.Actor(), source: r.history.source, Runtime: r, Context: c, Args: args, Instance: inst, Subjects: r.takeSubjects(inst), Invoked: r.Invoked()}
+	res := op.App(ctx)
+	if res.err != nil {
+		return nil, res.err
+	}
+	if res.fg != nil {
+		return nil, errors.New("a choices source cannot run a foreground program")
+	}
+	if res.work == nil {
+		return res.value, nil
+	}
+	value, err := res.work(context.Background())
+	if res.then != nil {
+		res.then(ctx, value, err)
+	}
+	return value, err
 }

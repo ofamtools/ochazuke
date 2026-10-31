@@ -1,0 +1,20 @@
+{
+  "name": "dim-unfocused-selection: in a split of two lists (mtm's Panes page shape) the list without the focus draws its selected row's bar faded halfway to the background, still reversed; the focus moving back swaps which bar is bright",
+  "area": "lists",
+  "width": 100,
+  "height": 12,
+  "chrome": "none",
+  "theme": "dark",
+  "page": {
+    "layout": "split",
+    "lists": [
+      {"id": "a", "rows": 3},
+      {"id": "b", "rows": 3}
+    ]
+  },
+  "script": ["}", "{"],
+  "expect": [
+    {"after": 1, "focus": "b1", "styled": {"a1": "#72817A", "b1": "!#72817A"}, "attrs": {"a1": "reverse", "b1": "reverse"}},
+    {"after": 2, "focus": "a1", "styled": {"b1": "#72817A", "a1": "!#72817A"}, "attrs": {"a1": "reverse", "b1": "reverse"}}
+  ]
+}

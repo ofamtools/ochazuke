@@ -1,0 +1,99 @@
+{
+  "name": "form choices follow sibling values and retain stale free values",
+  "area": "forms",
+  "page": {
+    "verbs": [
+      {
+        "verb": "demo.options",
+        "parameters": {
+          "kind": {
+            "type": "string"
+          }
+        },
+        "rowsArg": "kind",
+        "rowsBy": {
+          "one": [
+            "one-a",
+            "one-b"
+          ],
+          "two": [
+            "two-a",
+            "two-b"
+          ]
+        }
+      }
+    ],
+    "records": [
+      {
+        "id": "record",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "string",
+            "enum": [
+              "one",
+              "two"
+            ]
+          },
+          {
+            "name": "item",
+            "type": "string",
+            "free": true,
+            "source": "demo.options",
+            "sourceArgs": {
+              "kind": "kind"
+            }
+          }
+        ],
+        "values": {
+          "kind": "one",
+          "item": "one-a"
+        }
+      }
+    ],
+    "focus": "record/kind"
+  },
+  "script": [
+    "j",
+    "enter",
+    "esc",
+    "k",
+    "enter",
+    "j",
+    "enter",
+    "j",
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "modal": "form-suggestions",
+      "contains": [
+        "one-a",
+        "one-b"
+      ],
+      "lacks": [
+        "two-b"
+      ]
+    },
+    {
+      "after": 7,
+      "modal": "",
+      "contains": [
+        "one-a",
+        "outside current choices"
+      ]
+    },
+    {
+      "after": 9,
+      "modal": "form-suggestions",
+      "contains": [
+        "two-a",
+        "two-b"
+      ],
+      "lacks": [
+        "one-b"
+      ]
+    }
+  ]
+}

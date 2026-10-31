@@ -493,7 +493,7 @@ Conformance:
 | normal | detail-field | `detail-field.copy` `detail-field.show` |
 | normal | diff | `diff.file` `diff.hunk` `diff.move` `diff.scroll` `diff.scroll-columns` |
 | normal | focus | `focus.next` `focus.previous` `focus.set` |
-| normal | form | `form.chip-line` `form.chip-move` `form.chip-toggle` `form.choose` `form.clear` `form.invert` `form.leave` `form.next` `form.next-missing` `form.redo` `form.run` `form.suggest` `form.undo` |
+| normal | form | `form.chip-line` `form.chip-move` `form.chip-toggle` `form.choose` `form.clear` `form.invert` `form.leave` `form.next` `form.next-missing` `form.previous` `form.redo` `form.run` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
 | normal | history | `history.repeat` |
 | normal | input | `input.begin` `input.move` `input.operator` `input.select` `input.undo` |

@@ -1,0 +1,77 @@
+{
+  "name": "filter form: inverted tone can be turned off without changing the filter",
+  "area": "lists",
+  "width": 80,
+  "height": 20,
+  "theme": "dark",
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "nouns": [
+      {
+        "noun": "task",
+        "props": [
+          {
+            "name": "status",
+            "enum": [
+              "closed",
+              "open"
+            ]
+          }
+        ]
+      }
+    ],
+    "lists": [
+      {
+        "id": "tasks",
+        "height": -1,
+        "items": [
+          {
+            "id": "t1",
+            "label": "First task",
+            "noun": "task",
+            "data": {
+              "status": "closed"
+            }
+          },
+          {
+            "id": "t2",
+            "label": "Second task",
+            "noun": "task",
+            "data": {
+              "status": "open"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "z",
+    "/",
+    "space",
+    "!"
+  ],
+  "expect": [
+    {
+      "after": 4,
+      "contains": [
+        "status · not",
+        "● closed",
+        "○ open"
+      ],
+      "styled": {
+        "status · not": "!#FF9B70",
+        " ● closed ": "!#FF9B70",
+        " ○ open ": "!#FF9B70"
+      }
+    }
+  ],
+  "settings": [
+    {
+      "name": "forms.inverted-tone",
+      "type": "boolean",
+      "default": false
+    }
+  ]
+}

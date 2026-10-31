@@ -1,0 +1,11 @@
+{
+  "bindings": [
+    {"context": "ochazuke.json-node/normal", "bindings": [
+      {"key": "enter", "action": "ochazuke.outline.fold"},
+      {"key": "g v", "action": "ochazuke.json-node.show"},
+      {"key": "y", "action": "ochazuke.json-node.copy"},
+      {"key": "J", "action": "ochazuke.json-node.scroll", "args": {"lines": 1}, "hint": "data"},
+      {"key": "K", "action": "ochazuke.json-node.scroll", "args": {"lines": -1}, "hint": "data", "hidden": true}
+    ]}
+  ]
+}

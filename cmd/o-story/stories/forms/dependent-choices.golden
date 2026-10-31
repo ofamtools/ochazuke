@@ -1,0 +1,24 @@
+ |  ◆ o-story                                                      INSERT
+ |   › page1
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  record
+ |  kind
+ |    two ▾
+ |  item · outside current choices
+ |    one-a
+ |        ╭──────────────────────────────────────────────────────────────╮
+ |        │ Suggest item                                                 │
+ |        │ ›                                                      fuzzy │
+R|        │   two-a                                                      │
+ |        │   two-b                                                      │
+ |        │ enter chooser.pick · esc chooser.cancel · tab search.cycle-… │
+ |        ╰──────────────────────────────────────────────────────────────╯
+ |
+ |
+ |
+ |
+ |
+ |
+ |  ────────────────────────────────────────────────────────────────────────────
+ |  enter chooser.pick · esc chooser.cancel · tab search.cycle-match
+ |

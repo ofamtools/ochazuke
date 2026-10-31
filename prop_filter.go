@@ -125,6 +125,7 @@ func typedFilter(n *Noun, f PropFilter) (PropFilter, error) {
 // typedPropFilter checks and types a condition on one prop, declared or
 // derived from the rows (list_props.go).
 func typedPropFilter(p PropSpec, f PropFilter) (PropFilter, error) {
+	f.Prop = p.Name
 	if p.Secret {
 		return f, fmt.Errorf("cannot filter secret prop %q", f.Prop)
 	}
@@ -170,8 +171,11 @@ func typedPropFilter(p PropSpec, f PropFilter) (PropFilter, error) {
 func propsMatch(n *Noun, t Thing, filters []PropFilter) bool {
 	for _, f := range filters {
 		p := n.prop(f.Prop)
-		_, present := t[f.Prop]
-		if p == nil || !present || !propMatches(*p, t[f.Prop], f) {
+		if p == nil {
+			return false
+		}
+		value, present := t[p.Name]
+		if !present || !propMatches(*p, value, f) {
 			return false
 		}
 	}
@@ -315,6 +319,24 @@ func cloneSavedFilter(f SavedFilter) SavedFilter {
 	return f
 }
 
+// filterPropName resolves a prop name across row nouns. A mixed list must
+// agree on its meaning; silently choosing a noun would filter the wrong field.
+func (r *Runtime) filterPropName(nouns []string, name string) (string, error) {
+	main := ""
+	for _, noun := range nouns {
+		if p := r.Noun(noun).prop(name); p != nil {
+			if main != "" && main != p.Name {
+				return "", fmt.Errorf("ambiguous prop %q: %s or %s", name, main, p.Name)
+			}
+			main = p.Name
+		}
+	}
+	if main == "" {
+		return name, nil
+	}
+	return main, nil
+}
+
 // SavedFilters resolves the app defaults and the user's list.filters
 // setting (a JSON array string), in declaration order. The same name in a
 // more specific scope replaces the less specific row without moving it.
@@ -357,6 +379,34 @@ func (r *Runtime) SavedFilters(list string, nouns ...string) ([]SavedFilter, err
 		} else if rank >= specificity[f.Name] {
 			out[i] = cloneSavedFilter(f)
 			specificity[f.Name] = rank
+		}
+	}
+	for i := range out {
+		f := &out[i]
+		scope := slices.Sorted(maps.Keys(wanted))
+		if f.List == "" {
+			scope = []string{f.Noun}
+		}
+		where := map[string]any{}
+		for _, name := range sortedKeys(f.Where) {
+			main, err := r.filterPropName(scope, name)
+			if err != nil {
+				return nil, err
+			}
+			if _, exists := where[main]; exists {
+				f.Conditions = append(f.Conditions, PropFilter{Prop: main, Value: f.Where[name]})
+			} else {
+				where[main] = f.Where[name]
+			}
+		}
+		if f.Where != nil {
+			f.Where = where
+		}
+		for j := range f.Conditions {
+			f.Conditions[j].Prop, err = r.filterPropName(scope, f.Conditions[j].Prop)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	return out, nil

@@ -98,7 +98,7 @@ const ChoicesCursorParameter = "cursor"
 // cursor at cursor (a rune offset into text). Each choice's id is text up
 // to the cursor with the completion in place. No rest parameter or no
 // source answers nothing.
-func (r *Runtime) restChoices(c Context, op Operation, text string, cursor int) ([]Choice, error) {
+func (r *Runtime) restChoices(c Context, op Operation, text string, cursor int, siblings ...Arguments) ([]Choice, error) {
 	name := op.RestParameter()
 	if name == "" {
 		return nil, nil
@@ -114,9 +114,9 @@ func (r *Runtime) restChoices(c Context, op Operation, text string, cursor int) 
 	if src.Confirm != "" {
 		return nil, fmt.Errorf("choices source %q asks for confirmation", source)
 	}
-	args := Arguments{}
-	if _, takes := src.Parameters[ChoicesQueryParameter]; takes {
-		args[ChoicesQueryParameter] = text
+	args := choicesSourceArgs(src, op.Parameters[name], text, siblings...)
+	if args == nil {
+		args = Arguments{}
 	}
 	if _, takes := src.Parameters[ChoicesCursorParameter]; takes {
 		args[ChoicesCursorParameter] = max(0, min(cursor, len([]rune(text))))

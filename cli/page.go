@@ -242,6 +242,10 @@ type PageView struct {
 	hashes  map[string]string // row instance id -> its record hash (RecordHash), from a delta answer
 	cache   string            // the cache id of the last delta answer
 	status  string
+
+	// JSON section state stays with this mounted page.
+	jsonSections []*jsonSection
+	jsonParent   string
 	// kind is the detail's view of a registered kind, nil for the record;
 	// kindNote says why a kind the catalog names is drawn as the record.
 	kind     *kindView
@@ -363,6 +367,9 @@ func MountPage(m *ochazuke.Model, doc CatalogDoc, p CatalogPage, cfg PageConfig)
 		v.detail = d
 		if len(p.Detail.Sections) > 0 {
 			v.mountSections()
+			if err := v.mountJSONSections(); err != nil {
+				return nil, err
+			}
 		} else {
 			if err := v.mountKind(); err != nil {
 				return nil, err
@@ -1125,6 +1132,7 @@ func (v *PageView) statusFor(pl *pageList) string {
 // detailPanel draws the detail of the followed list's selected row: the
 // view of its kind, else the record.
 func (v *PageView) detailPanel(layout ochazuke.Layout, width, height int) ochazuke.Block {
+	v.syncJSONSections()
 	if len(v.spec.Detail.Sections) > 0 && v.m.Runtime.Settings().Bool("detail.sections") {
 		return v.sectionsPanel(layout, width, height)
 	}

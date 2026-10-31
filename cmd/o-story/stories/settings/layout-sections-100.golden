@@ -2,7 +2,7 @@
  |   page1  › Settings
  |  ────────────────────────────────────────────────────────────────────────────────────────────────
  |  ╭━ Sections ━━━━━━╮ ╭─ panes (1) ──────────────────────────────────────────────────────────────╮
-r|  ┃ All         111 ┃ │ panes.group    ‹ project ›                                               │
+r|  ┃ All         114 ┃ │ panes.group    ‹ project ›                                               │
  |  ┃ app             ┃ ╰──────────────────────────────────────────────────────────────────────────╯
  |  ┃ General       1 ┃ ╭─ panes ──────────────────────────────────────────────────────────────────╮
 R|  ┃ panes         1 ┃ │ 1 setting in app › panes.                                                │
@@ -10,11 +10,11 @@ R|  ┃ panes         1 ┃ │ 1 setting in app › panes.                     
  |  ┃ ai            1 ┃ │                                                                          │
  |  ┃ git           1 ┃ │                                                                          │
  |  ┃ ochazuke        ┃ │                                                                          │
- |  ┃ Appearance   13 ┃ │                                                                          │
+ |  ┃ Appearance   14 ┃ │                                                                          │
  |  ┃ Keys         16 ┃ │                                                                          │
  |  ┃ Help          8 ┃ │                                                                          │
  |  ┃ Palette       8 ┃ │                                                                          │
- |  ┃ Records       4 ┃ │                                                                          │
+ |  ┃ Records       6 ┃ │                                                                          │
  |  ┃ Lists        11 ┃ │                                                                          │
  |  ┃ Search       13 ┃ │                                                                          │
  |  ┃ Choosers     14 ┃ │                                                                          │

@@ -397,7 +397,11 @@ Every colour is a tone row named `chrome.<level>.<role>` (`chrome.rich.border.st
 - `mono` and `NO_COLOR` draw a row's attributes alone, so a rich badge or a needs-input border is bold where `off` draws it plain.
 - The markdown package's note boxes and table rules read the tones `markdown.note` (built in: today's `#875f00` / `#d7af5f`) and `markdown.rule` (no built-in row: plain), in every level.
 
-Compared with Vim: the roles are Vim's highlight groups for the chrome. `border`/`border.split` are `hl-WinSeparator` (`hl-VertSplit`), `border.modal` and `border.completion` Neovim's `hl-FloatBorder`, the title and footer rows `hl-StatusLine` (`hl-StatusLineNC` is `dim-unfocused`). Vim draws `-- INSERT --` in one `hl-ModeMsg` colour for every mode; a colour per mode is what statusline plugins (lualine) add, here rows. A border coloured by its pane's state is not Vim's (tmux's `pane-active-border-style` is closest). `themes.json` with `themes reload` is `:colorscheme` and `:highlight`, edited in the file. Selection stays reverse video in every scheme, unlike `hl-Visual`.
+Compared with Vim: the roles are Vim's highlight groups for the chrome. `border`/`border.split` are `hl-WinSeparator` (`hl-VertSplit`), `border.modal` and `border.completion` Neovim's `hl-FloatBorder`, the title and footer rows `hl-StatusLine` (`hl-StatusLineNC` is `dim-unfocused`, Neovim's `hl-NormalNC` too). Vim draws `-- INSERT --` in one `hl-ModeMsg` colour for every mode; a colour per mode is what statusline plugins (lualine) add, here rows. A border coloured by its pane's state is not Vim's (tmux's `pane-active-border-style` is closest). `themes.json` with `themes reload` is `:colorscheme` and `:highlight`, edited in the file. Selection stays reverse video in every scheme, unlike `hl-Visual`.
+
+A list without the focus keeps its selected row marked, dimmed: the list fades `dim-unfocused` percent toward the background (default 20) and its selected row's bar `dim-unfocused-selection` percent further (default 30, so the bar sits halfway between text and background), so the focused list's bar is the only one at full strength. `0` draws the bar faded with the list alone; mono and `NO_COLOR` draw it reversed under the list's faint. The current cell of a cell-mode table and any run on that row fade with the bar.
+
+Compared with Vim: `'cursorline'` (`hl-CursorLine`) is window-local and drawn at one strength in every window that sets it; Vim has no non-current variant (`hl-NormalNC` covers a window's text, not its cursor line), so plugins toggle `'cursorline'` on `WinLeave`. `dim-unfocused-selection` is that missing `CursorLineNC`: the row stays marked rather than hidden.
 
 ### Keyboard guide
 
@@ -782,6 +786,29 @@ The row's `Data` supplies the record, with id/label filled from the row when abs
 keeping the foreign id in `Data` for action dispatch. A table row with neither
 gets a field per titled column (the title lower-cased, spaces as dashes, the
 cell as text).
+
+Props can declare alternate input names as data:
+
+```go
+r.Define("lane").Props(PropSpec{
+    Name: "state", Aliases: []string{"status"},
+})
+```
+
+`PropOf("lane", "status")` returns the `state` spec. Prop requests,
+`get`/`set`, `where`/`--where`, and `list.filter-prop {prop: "status"}`
+resolve to `state` and read or write that record key. Forms, prop choosers
+and listings offer only `state`, even when old row data also carries
+`status`. Catalog prop rows carry `aliases: ["status"]` through CLI hosts.
+Alias names follow the prop namespace's clash rules. Saved filters using
+an alias resolve when loaded, without changing the settings file; saving
+the active filter again stores main names. A mixed list refuses an alias
+whose declared meaning differs between its row nouns. No new setting is
+needed: declaring aliases is opt-in, and `list.filter-form` still chooses
+between the form and prop chooser.
+
+Compared with Vim: prop schema aliases have no Vim motion, option or
+command-line counterpart; they name application record fields.
 
 **Every field is filterable unless turned off; only declared fields are
 writable.** A prop the row's noun declares (`PropSpec`) keeps its label,
@@ -1236,7 +1263,7 @@ to true, false is rejected). Editing remains with the application's verbs.
 
 The main content wraps completely, including long words, code and tables;
 there is no answer line limit. One shared `Detail.Window` scrolls the whole
-document with the existing `J`/`K` keys and counts. The detail remains outside
+document with the existing `J`/`K` keys and counts. Text sections remain outside
 the focus stops, as a legacy record detail does: `j`/`k` move and spill
 between page lists in drawing order (UX-RULES R3.3–R3.5), while `J`/`K`
 scroll rendered lines (R3.14). Changing the selected record resets the
@@ -1258,6 +1285,46 @@ A page may override it with `side: false|true`, or name its own boolean
 `sideSetting` (when declared, that setting wins). `detail.sections=false`
 opts out of the section renderer and shows the legacy record `fields`.
 Catalogs declaring only `fields` retain their existing rendering.
+
+JSON sections render a structure tree beside the selected node's pretty value:
+
+```json
+[
+  {"kind": "json", "field": "arguments", "title": "Request"},
+  {"kind": "json", "field": "response.body", "title": "Response", "parse": true}
+]
+```
+
+They appear in declaration order below the main and side regions, at full
+width (`region: "side"` is rejected). `parse: true` decodes a JSON string;
+invalid strings remain complete plain text. Without `parse`, a string stays
+a JSON string. A missing field shows JSON `null`. Parsed strings preserve
+object key order and number literals; object fields already decoded by the
+catalog transport use that transport's key order (Go maps marshal sorted).
+
+Below 64 content cells, structure and data stack. Each tree/value window
+uses at most eight rows and shrinks with the detail height. The trees are
+focus stops in section order after the page lists; focusing a section
+scrolls it into view. Standard tree keys move and fold (`j/k`, `h/l`,
+`enter`), `J/K` scroll the data with counts, `y` copies the complete selected
+JSON value, and `g v` opens it in a read-only text view. Keys and hints are
+binding rows in `cli/detail_json.json`. The tree's parent retains the
+selected catalog row's noun, id and label, so domain actions still reach
+that row. Changing rows resets JSON selection; refreshed JSON keeps a
+surviving path. `detail.sections=false` restores the legacy detail and
+removes JSON trees from focus order; no new setting is required.
+
+The reusable `ofam.dev/ochazuke/jsontree` package provides ordered `Node`,
+`Build`, `Flatten`, `Pretty`, jq-style `Node.Path`, and `TreeNodes` for a
+framework tree with path/type/count columns. It adapts o-json's document
+model, without importing its application package.
+
+Compared with Vim: folding uses the existing framework tree keys (`enter`
+toggles, `h/l` collapse/expand), similar to Vim's `zc`/`zo` (`:help zc`,
+`:help zo`); this view introduces no new folding mode. `ctrl+w h/l` walks
+focus stops in drawing order, similar to Vim's window motions
+(`:help CTRL-W_h`, `:help CTRL-W_l`). The JSON value follows selection;
+Vim's windows have independent buffers and cursors.
 
 Metadata fields are `{label, field, format}`. Missing values are omitted;
 displayed values are shortened to their line. `g m` (`detail.fields`) opens
@@ -1832,6 +1899,25 @@ A user adds names without code: an `actions.json` entry with an `alias` field is
 A **bare** alias has no noun (`w!`, `q`, `x`: a word without a dot; `!` and other punctuation are fine, the palette splits only on spaces): its noun is its action's, its full name is `noun.alias` (`restructure.w!`, `ActionAlias.Bare`, `ActionAlias.Name()` the word), and the word alone runs it: `:w!` in the palette, `bin w!` on the CLI, `Request{Verb: "w!"}` or `Do("w!")` in code. A `bindings.json` row names it by its full name (`{"noun": "restructure", "verb": "w!"}`). A bare alias may not be a noun's name; one named like a registered verb (`save`, `mark`) follows the setting `aliases.shadow` (`AliasShadowSetting`, in `settings/ochazuke.json`): `refuse` (the default) skips and reports the row, `allow` loads it, and typed alone in the palette or on the CLI the word runs the alias while the verb stays reachable as `noun verb`. On the CLI an alias with presets is a command of its own whose preset parameters are not required (help lists `Presets:`).
 
 A bare alias row with `shadows: true` (`ActionAlias.Shadows`) may take a verb's name without `aliases.shadow` and yields to it by what follows (`ReadBareAlias`, one rule for the palette and the CLI): followed by a noun that has the verb of its name, the line is that noun's verb; an exact noun wins, then the reading of the action's rest parameter (its source offers the word exactly, then as a prefix); a word that is both a noun's prefix and offered by the rest is an error naming both. Its name is the bare word (`set`), since `NOUN.VERB` is the verb it shadows. Bare aliases of the same action after the first add their presets (`verbose set opt?`).
+
+Parameters can pass sibling values to their choice source with `SourceArgs` (catalog JSON `sourceArgs`). For example, a form's `item` field can declare:
+
+```go
+Parameter{
+    Type: "string", Source: "catalog.items", Free: true,
+    SourceArgs: map[string]string{"category": "kind"},
+}
+```
+
+Here `catalog.items` declares a `category` parameter, and the form or request declares `kind`. Selecting `kind` supplies its current value as `category` when loading `item` choices. Empty or unset siblings are omitted, preserving the source's defaults. Register the source first: `Runtime.Register` checks the dependency map, record editors check their complete field schema, and catalog hosts check after mounting their verbs. Code that fills `Operation.Parameters` directly can call `Runtime.CheckSourceArgs` after assigning the complete schema. `PropSpec` and `PropField` carry the same metadata.
+
+Args forms, record editors, value choosers, palette completion and execution validation use these values. `Choices` and `ChoicesFor` accept an optional `Arguments` map for custom callers; `ParameterChoices` also resolves prop-shaped parameters (`ValueOf`, `Pairs`). Sources can combine mapped arguments with the automatically supplied `query`; an explicit `sourceArgs` entry for `query` takes precedence. Pending sources load off the UI loop, and an older dependency response cannot replace a newer one.
+
+`forms.dependent-choices` defaults to `true`: changing a sibling refreshes the dependent choices. Values are retained so changing one field never erases another. Free fields remain writable and show “outside current choices”; closed fields show a validation problem and require a valid choice before that field is written or a submit form runs. An unavailable source does not discard a value. Setting it to `false` disables automatic refresh and free-value warnings; opening a chooser still passes current sibling values.
+
+Invertible record fields in their `not` state draw their labels, mode markers and values in the `record.inverted` theme tone (red/orange by default). This also colours prop filter forms. Restyle it in `themes.json`; `forms.inverted-tone` (default `true`) turns this emphasis off. Focus and selection emphasis stay in place, and mono or `NO_COLOR` still draws without colour.
+
+The CLI shell exposes the same choice loading through `complete -- NOUN VERB ... WORD`; `WORD` is the current word, empty after a space. Thus completion for `noun verb --a x --b ` sees `a=x`. `completion bash` and `completion zsh` print shell integration scripts; sourcing the generated script enables Tab completion for argument values. They do not edit shell configuration. Catalogs and MCP `describe.params` retain `sourceArgs` for other clients.
 
 A parameter with `Rest: true` (`Parameter.Rest`) takes the rest of the line verbatim: the palette hands it the text from its first word to the end (quotes and spaces as typed), the CLI joins the remaining words with spaces. A verb has at most one, a string with no required parameter after it. Its `Source` is asked with the text as `query` and, when it declares `cursor` (`ChoicesCursorParameter`), the cursor in it; each choice's id is the text up to the cursor completed, which `tab` splices in place with no space after.
 

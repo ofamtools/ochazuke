@@ -187,3 +187,52 @@ func TestPropFilterCatalogRowsOfferFields(t *testing.T) {
 		t.Fatalf("catalog lost propsOff: %+v", n)
 	}
 }
+
+func TestPropAliasCatalogAndCLI(t *testing.T) {
+	r := ochazuke.NewRuntime()
+	r.Config().Disable()
+	r.Define("ticket").Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "state", Aliases: []string{"status"}}).Store(ochazuke.Store{
+		List: func(_ ochazuke.Ctx, q ochazuke.ListQuery) ([]ochazuke.Thing, error) {
+			if q.Where["state"] != "todo" {
+				t.Fatalf("store got alias in where: %v", q)
+			}
+			return []ochazuke.Thing{{"id": "a", "state": "todo", "status": "done"}, {"id": "b", "state": "done", "status": "todo"}}, nil
+		},
+	}).Filters(ochazuke.SavedFilter{Name: "old", Where: map[string]any{"status": "todo"}})
+	var out, stderr bytes.Buffer
+	sh := New(r, "test", strings.NewReader(""), &out, &stderr)
+	if err := sh.Run(context.Background(), []string{"ticket", "list", "--where", "status=todo", "--filter", "old", "--props", "status"}); err != nil {
+		t.Fatal(err)
+	}
+	var rows []map[string]any
+	if err := json.Unmarshal(out.Bytes(), &rows); err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 1 || rows[0]["state"] != "todo" {
+		t.Fatal(out.String())
+	}
+	if _, ok := rows[0]["status"]; ok {
+		t.Fatal(out.String())
+	}
+	raw, err := Catalog(r, "test", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc CatalogDoc
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	n, ok := doc.noun("ticket")
+	if !ok || len(n.Props) != 2 || len(n.Props[1].Aliases) != 1 || n.Props[1].Aliases[0] != "status" {
+		t.Fatalf("%+v", n)
+	}
+	host := ochazuke.NewRuntime()
+	host.Config().Disable()
+	mounted := MountNouns(host, []CatalogNoun{n}, HostMount{Local: func(name string) string { return "ext." + name }, Proxy: func(string, CatalogVerb) any { return func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) } }})
+	if len(mounted.Warnings) > 0 {
+		t.Fatal(mounted.Warnings)
+	}
+	if p, ok := host.PropOf("ext.ticket", "status"); !ok || p.Name != "state" {
+		t.Fatal(p, ok)
+	}
+}

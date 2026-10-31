@@ -367,7 +367,7 @@ func (l *List) tableView(width, height int) (string, int, int) {
 	l.window, l.windowed = visible, len(l.items) > visible
 	marked := l.marksSelection()
 	toned, faded := l.listTones(), l.faded()
-	cursor := l.cursorStyle(span, toned, faded)
+	cursor, bar := l.cursorStyle(span, toned, faded), l.bar(faded)
 	for i := l.offset; i < end; i++ {
 		row := l.rowCells(l.groupedCells(i, l.offset))
 		line, at := tableLineAt(cols, row, shown, widths)
@@ -381,7 +381,7 @@ func (l *List) tableView(width, height int) (string, int, int) {
 		case len(segs) > 0:
 			line = paintLine(line, width, segs, toned, selected, faded, span)
 		case selected:
-			line = highlightRow(line, width, span, cursor)
+			line = highlightRow(line, width, span, cursor, bar)
 		default:
 			line = strings.TrimRight(line, " ")
 		}
@@ -674,7 +674,7 @@ func (l *List) tallView(lines []string, width, height, body int, cols []Column, 
 	toneLines := make([][][]toneSeg, len(l.items))
 	opens := make([]bool, len(l.items))
 	toned, faded := l.listTones(), l.faded()
-	cursor := l.cursorStyle(span, toned, faded)
+	cursor, bar := l.cursorStyle(span, toned, faded), l.bar(faded)
 	// layRow is item i's lines and tones, its Group cells blanked against
 	// the row above unless i is the first row drawn (top).
 	layRow := func(i, top int) ([]string, [][]toneSeg) {
@@ -762,7 +762,7 @@ func (l *List) tallView(lines []string, width, height, body int, cols []Column, 
 			case len(segs) > 0:
 				line = paintLine(line, width, segs, toned, selected, faded, span)
 			case selected:
-				line = highlightRow(line, width, span, cursor)
+				line = highlightRow(line, width, span, cursor, bar)
 			default:
 				line = strings.TrimRight(line, " ")
 			}
@@ -794,17 +794,43 @@ func (l *List) currentSpan(shown, widths []int, mark int) span {
 	return span{x, w}
 }
 
-// highlightRow pads a plain line to width and reverses it, the cells of
-// the current column (sp), the current cell, in cursor (list.cell.cursor,
-// out of the bar) or, when cursor is nil, reversed and underlined.
-func highlightRow(line string, width int, sp span, cursor ansi.Style) string {
+// highlightRow pads a plain line to width and reverses it (in bar, the
+// dimmed bar of a list without the focus, when it is not nil), the cells
+// of the current column (sp), the current cell, in cursor
+// (list.cell.cursor, out of the bar) or, when cursor is nil, reversed and
+// underlined.
+func highlightRow(line string, width int, sp span, cursor, bar ansi.Style) string {
 	line += strings.Repeat(" ", max(0, width-ansi.StringWidth(line)))
 	reverse := lipgloss.NewStyle().Reverse(true)
 	mark := "4;7"
+	if len(bar) > 0 {
+		mark = "4;" + strings.Join(bar, ";")
+	}
 	if len(cursor) > 0 {
 		mark = strings.Join(cursor, ";")
 	}
+	if len(bar) > 0 {
+		return sgrSpan(line, sp, bar.String(), mark)
+	}
 	return styleSpan(line, sp, reverse, mark)
+}
+
+// sgrSpan is styleSpan with the base written as one SGR sequence (open)
+// around each run outside sp.
+func sgrSpan(line string, sp span, open, mark string) string {
+	n := ansi.StringWidth(line)
+	if sp.w <= 0 || sp.x >= n {
+		return open + line + ansi.ResetStyle
+	}
+	end := min(n, sp.x+sp.w)
+	out := "\x1b[" + mark + "m" + ansi.Cut(line, sp.x, end) + "\x1b[m"
+	if sp.x > 0 {
+		out = open + ansi.Cut(line, 0, sp.x) + ansi.ResetStyle + out
+	}
+	if end < n {
+		out += open + ansi.Cut(line, end, n) + ansi.ResetStyle
+	}
+	return out
 }
 
 // cursorStyle is the current cell's style for a frame (Runtime.cellCursor),
