@@ -97,12 +97,19 @@ func (e Element) Ordered() bool { return e.Marker == "." || e.Marker == ")" }
 // Elements lists the blocks of a Markdown source in source order.
 func Elements(source string) []Element {
 	src := []byte(source)
-	p := &elementParser{src: source}
+	p := &elementParser{src: source, raw: src}
 	doc := parser.Parser().Parse(text.NewReader(src))
 	p.children(doc, ctx{list: -1, root: -1, item: -1})
+	// Lines counted once, not from the top per element.
+	line, at := 1, 0
 	for i := range p.out {
 		e := &p.out[i]
-		e.Line = 1 + strings.Count(source[:e.Start], "\n")
+		if e.Start < at {
+			line, at = 1, 0
+		}
+		line += strings.Count(source[at:e.Start], "\n")
+		at = e.Start
+		e.Line = line
 	}
 	return p.out
 }
@@ -113,7 +120,8 @@ type ctx struct {
 
 type elementParser struct {
 	src string
-	pos int // the end of the last element: the next starts at or after it
+	raw []byte // src as bytes, made once
+	pos int    // the end of the last element: the next starts at or after it
 	out []Element
 }
 
@@ -392,7 +400,7 @@ func (p *elementParser) item(n *gast.ListItem, list *gast.List, c ctx) {
 			return gast.WalkContinue, nil
 		})
 		if box != nil {
-			if t, ok := taskOf([]byte(p.src), box); ok {
+			if t, ok := taskOf(p.raw, box); ok {
 				e.Kind, e.Box, e.Checked = KindTask, t.Box, t.Checked
 				e.ms, e.me = t.start, t.end
 				if e.me <= e.ms {

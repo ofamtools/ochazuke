@@ -1837,7 +1837,7 @@ Importable package `keytest`: 1 source files, 0 test files.
 
 ## Package markdown
 
-Importable package `markdown`: 15 source files, 11 test files.
+Importable package `markdown`: 16 source files, 13 test files.
 
 ### markdown/cursor.go
 
@@ -1872,7 +1872,7 @@ Importable package `markdown`: 15 source files, 11 test files.
 
 ### markdown/elements.go
 
-- lines: 531
+- lines: 539
 - purpose: Element is one block of a Markdown source as a Doc draws and edits it: a heading, a paragraph, a list item (its own lines, not its nested lists or notes), on...
 - types: Element
 - methods: Element(2), elementParser(14)
@@ -1888,10 +1888,10 @@ Importable package `markdown`: 15 source files, 11 test files.
 
 ### markdown/layout.go
 
-- lines: 356
+- lines: 361
 - purpose: layout is a Doc drawn at one width: its lines, per element the first and last line it covers ({-1, -1} when it is not drawn), per line the element it belongs...
 - methods: layout(2)
-- leans on: tasks.go(50), elements.go(15), table.go(8), render.go(2)
+- leans on: tasks.go(51), elements.go(15), table.go(8), render.go(2)
 
 ### markdown/links.go
 
@@ -1916,7 +1916,13 @@ Importable package `markdown`: 15 source files, 11 test files.
 - types: Option (func)
 - methods: options(1)
 - funcs: StyleOf, PreserveNewlines, WrapAll, Block
-- leans on: table.go(5), tasks.go(3)
+- leans on: table.go(5), tasks.go(3), render_chunks.go(1)
+
+### markdown/render_chunks.go
+
+- lines: 319 · tests: render_chunks_test.go
+- purpose: chunkKey names a drawn run: the renderer and the text drawn, its markers renumbered from 0; or, with given set, the run as given, its lead before it and its ...
+- leans on: tasks.go(25), table.go(12), edit.go(11), render.go(5)
 
 ### markdown/table.go
 
@@ -1927,7 +1933,7 @@ Importable package `markdown`: 15 source files, 11 test files.
 
 ### markdown/tasks.go
 
-- lines: 171
+- lines: 175
 - purpose: Task is one task list item of a Markdown source, as goldmark (Glamour's parser, with the GFM task list extension) finds it: a list item whose first line star...
 - types: Task
 - funcs: Tasks

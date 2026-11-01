@@ -185,6 +185,11 @@ func layoutOf(src string, els []Element, width int, style string, opts options, 
 	}
 	st := noteStyleOf(opts.note)
 	for _, line := range raw {
+		if strings.IndexByte(line, markerLead) < 0 {
+			// No marker (each encodes with markerLead first): a plain line.
+			lay.lines = append(lay.lines, line)
+			continue
+		}
 		note := -1
 		for _, r := range line {
 			if r >= startMarker && r < startMarker+rune(n) && els[r-startMarker].Kind == KindNote {
