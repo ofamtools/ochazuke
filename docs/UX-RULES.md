@@ -613,6 +613,19 @@ tiers above them. When the two disagree, fix one in the same commit.
   `lists/filter-match-cycle.json`, `lists/filter-regex-invalid-says-why.json`,
   `lists/filter-match-setting.json`, `chooser/match-cycle-tab.json`; tests
   `search_match_test.go`.
+- **R5.19** One search per shape. On a list-like component `/` is the
+  list filter (R5.6); on a text-like one (the text view, the docs
+  viewer, the Markdown viewer, a timeline) it is the jump search,
+  `search.find`: the find line opens, `enter` moves the component's
+  cursor to the next match (wrapping) and leaves the text whole, `esc`
+  finds nothing, `tab` steps the match mode; `n`/`N` (`search.next`)
+  repeat the last find either way and stand aside before the first. It
+  follows `search.case` (R5.17) and starts in `search.match` (R5.18). A
+  component takes part by implementing `TextFinder` and binding the three
+  rows on its noun; there is no per-component search. Stories:
+  `docs/slash-finds.json`, `text-view/n-next.json`,
+  `timeline/slash-finds-card.json`; tests `search_find_test.go`,
+  `markdown/find_test.go`.
 
 ### R6. Chrome: footer, hints, help, ticker, notices
 

@@ -332,6 +332,10 @@ type docsViewer struct {
 	header string
 	text   string
 	detail *Detail
+	// width is the last frame's width (the page wraps to it); found the
+	// wrapped line the last find landed on, -1 for none (search_find.go).
+	width int
+	found int
 }
 
 // ModalTitle is the build the page was rendered from.
@@ -343,6 +347,7 @@ func (v *docsViewer) ModalBlock(s Styles, width, height int) Block {
 	if width <= 0 || height <= 0 {
 		return Text("")
 	}
+	v.width = width
 	body, marker := v.detail.Window(v.text, width, max(height-1, 1))
 	top := v.topic
 	if marker != "" {
@@ -353,6 +358,33 @@ func (v *docsViewer) ModalBlock(s Styles, width, height int) Block {
 	top = ansi.Truncate(top, width, "…")
 	top += strings.Repeat(" ", max(0, min(width, v.detail.Width())-ansi.StringWidth(top)))
 	return Text(s.Muted.Render(top) + "\n" + body)
+}
+
+// FindText scrolls the page so the next line the query matches is its
+// first (search.find): the viewer has no cursor, so the line the last
+// find landed on stands for it while it shows; else a find down starts at
+// the window's first line and a find up above it.
+func (v *docsViewer) FindText(m Matcher, back bool) bool {
+	text := strings.ReplaceAll(v.text, "\t", "    ")
+	if v.width > 0 {
+		text = ansi.Wrap(text, v.width, "")
+	}
+	lines := strings.Split(text, "\n")
+	top, rows := v.detail.Offset(), v.detail.height
+	from := top - 1
+	if back {
+		from = top
+	}
+	if v.found >= top && (rows <= 0 || v.found < top+rows) {
+		from = v.found
+	}
+	line, ok := FindLine(len(lines), from, back, func(i int) bool { return m.Match(lines[i]) })
+	if !ok {
+		return false
+	}
+	v.found = line
+	v.detail.Scroll(line - top)
+	return true
 }
 
 // registerDocs registers the docs noun: docs.open shows a topic of the
@@ -385,7 +417,7 @@ func registerDocs(r *Runtime) {
 			if err != nil {
 				return nil, err
 			}
-			v := &docsViewer{r: r, topic: topic, header: header, text: text}
+			v := &docsViewer{r: r, topic: topic, header: header, text: text, found: -1}
 			d, err := r.AddDetail(docsTextID, func() string { return v.topic }, Parent(docsViewerID))
 			if err != nil {
 				_ = r.Pop()

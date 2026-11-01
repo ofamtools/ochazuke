@@ -1,0 +1,20 @@
+{
+  "name": "/ in the Markdown viewer (:help settings) finds the next line holding the query and puts the cursor on it; n goes on to the next match, N back",
+  "area": "docs",
+  "width": 110,
+  "height": 40,
+  "page": {"lists": [{"id": "a", "rows": 2}]},
+  "script": [
+    ":", {"type": "help settings"}, "enter",
+    "/", {"type": "search.open-folds"}, "enter",
+    "n",
+    "q"
+  ],
+  "expect": [
+    {"after": 3, "modal": "markdown-view"},
+    {"after": 5, "modal": "find-line", "contains": ["/search.open-folds"]},
+    {"after": 6, "modal": "markdown-view", "highlightedText": "search.open-folds"},
+    {"after": 7, "modal": "markdown-view", "highlightedText": "search.open-folds"},
+    {"modal": "", "focus": "a1"}
+  ]
+}

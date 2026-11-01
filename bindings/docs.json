@@ -12,7 +12,10 @@
       {"key": "ctrl+u", "action": "ochazuke.detail.scroll", "args": {"lines": -15, "id": "__docs-viewer/text"}, "from": {"count": "count"}, "hidden": true},
       {"key": "g g", "action": "ochazuke.detail.scroll", "args": {"lines": -1000000, "id": "__docs-viewer/text"}, "hint": "g g/G ends"},
       {"key": "G", "action": "ochazuke.detail.scroll", "args": {"lines": 1000000, "id": "__docs-viewer/text"}, "hidden": true},
-      {"key": "q", "action": "ochazuke.modal.pop", "hint": "close"}
+      {"key": "q", "action": "ochazuke.modal.pop", "hint": "close"},
+      {"key": "/", "action": "ochazuke.search.find", "hint": "find"},
+      {"key": "n", "action": "ochazuke.search.next", "from": {"count": "count"}, "hidden": true},
+      {"key": "N", "action": "ochazuke.search.next", "args": {"reverse": true}, "from": {"count": "count"}, "hidden": true}
     ]},
     {"context": "ochazuke.docs-viewer/count_pending", "extends": "normal", "bindings": []}
   ]

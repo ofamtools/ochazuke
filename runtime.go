@@ -442,6 +442,7 @@ type Runtime struct {
 	holders          []string          // every instance that is not a list row, in registration order: the ones that may hold a Component (components())
 	modals           []string          // the open modal instances, outermost first; each holds its return focus in Payload.Return
 	modalInstances   map[string]bool   // instances created by Push or OpenModal, removed by Pop
+	lastFind         findState         // the last search.find (n and N repeat it), search_find.go
 	seq              uint64            // instance registration order
 	commands         []tea.Cmd         // off-loop work scheduled since the adapter last drained it
 	jobs             map[uint64]*job   // the jobs list: running jobs and the finished ones retained for jobs.list
@@ -531,6 +532,7 @@ func (r *Runtime) registerFramework() {
 	registerSegments(r)
 	registerDocs(r)
 	registerTextView(r)
+	registerSearchFind(r)
 	// The default rows, once every verb and guard they name is registered:
 	// the framework's files in this order (rows two files put in one table,
 	// the app noun's normal table, the list's, keep it). A modal answers esc

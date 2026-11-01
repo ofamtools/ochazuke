@@ -461,6 +461,7 @@ Conformance:
 | insert | chooser | `chooser.cancel` `chooser.move` `chooser.next-source` `chooser.open` `chooser.pick` `chooser.previous-source` `chooser.up` |
 | insert | completion | `completion.accept` `completion.dismiss` `completion.move` `completion.open` |
 | insert | demo | `demo.edit` `demo.files` `demo.hide` |
+| insert | find-line | `find-line.commit` |
 | insert | form | `form.next` `form.run` `form.suggest` |
 | insert | input | `input.insert` `input.kill` `input.move` |
 | insert | list | `list.filter-cycle` `list.filter-prop` `list.filter-props-clear` |
@@ -509,6 +510,7 @@ Conformance:
 | normal | page | `page.next` `page.pick` `page.previous` |
 | normal | palette | `palette.open` |
 | normal | pane | `pane.grow` `pane.only` `pane.reset` `pane.restore` `pane.shrink` |
+| normal | search | `search.find` `search.next` |
 | normal | segment | `segment.toggle` |
 | normal | setting | `setting.add` `setting.cycle` `setting.edit` `setting.reset` `setting.revert` `setting.write` |
 | normal | setting-item | `setting-item.add` `setting-item.delete` `setting-item.edit` `setting-item.reset` |
@@ -579,6 +581,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `chooser.cancel`
 - `insert` → `normal` via `chooser.cancel + demo.synced`
 - `insert` → `normal` via `chooser.pick`
+- `insert` → `normal` via `find-line.commit`
 - `insert` → `normal` via `form.run`
 - `insert` → `normal` via `list.filter-prop`
 - `insert` → `normal` via `macro.record`
@@ -631,6 +634,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `row R`
 - `normal` → `insert` via `row W`
 - `normal` → `insert` via `row e`
+- `normal` → `insert` via `search.find`
 - `normal` → `insert` via `setting-item.add`
 - `normal` → `insert` via `setting-item.edit`
 - `normal` → `insert` via `setting.add`

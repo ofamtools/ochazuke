@@ -67,7 +67,10 @@
     ]},
     {"context": "ochazuke.markdown-view/normal", "bindings": [
       {"key": "q", "action": "ochazuke.modal.pop", "hint": "close"},
-      {"key": "y a", "action": "ochazuke.markdown-view.copy", "hint": "copy all"}
+      {"key": "y a", "action": "ochazuke.markdown-view.copy", "hint": "copy all"},
+      {"key": "/", "action": "ochazuke.search.find", "hint": "find"},
+      {"key": "n", "action": "ochazuke.search.next", "from": {"count": "count"}, "hidden": true},
+      {"key": "N", "action": "ochazuke.search.next", "args": {"reverse": true}, "from": {"count": "count"}, "hidden": true}
     ]},
     {"context": "ochazuke.markdown-view/count_pending", "extends": "normal", "bindings": []},
     {"context": "ochazuke.markdown-edit/insert", "bindings": [
