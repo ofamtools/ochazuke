@@ -19,7 +19,7 @@
   "expect": [
     {"after": 1, "modal": "pick", "contains": ["Pick · [one] two three", "alpha"], "lacks": ["alpine", "beta"]},
     {"after": 2, "contains": ["Pick · one [two] three", "› al", "alpine"], "lacks": ["alpha", "gamma"]},
-    {"after": 3, "contains": ["one two [three]", "› al", "no matches"]},
+    {"after": 3, "contains": ["one two [three]", "› al", "no rows match"]},
     {"after": 4, "contains": ["one [two] three", "alpine"]},
     {"modal": "", "writes": ["pick 2a"]}
   ]

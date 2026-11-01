@@ -618,7 +618,7 @@ func settingSearch(s *Settings, v SettingValue) []string {
 }
 
 // savedCell is the persisted value beneath a session value as the
-// marker shows it: a list's item count, (empty) for empty text.
+// marker shows it: a list's item count, "empty" for empty text.
 func savedCell(v SettingValue) string {
 	if list, ok := v.Saved.([]string); ok {
 		return itemCount(len(list))
@@ -633,7 +633,7 @@ func settingDiffers(s *Settings, name string) bool {
 }
 
 // settingValueCell is a setting's value as its row shows it: ‹ value ›
-// for one h/l steps, a list's item count, (empty) for empty text.
+// for one h/l steps, a list's item count, "empty" for empty text.
 func settingValueCell(v SettingValue) string {
 	if list, ok := v.Value.([]string); ok {
 		return itemCount(len(list))
@@ -648,17 +648,17 @@ func settingValueCell(v SettingValue) string {
 func itemCount(n int) string {
 	switch n {
 	case 0:
-		return "(none)"
+		return EmptyText("items")
 	case 1:
 		return "1 item"
 	}
 	return fmt.Sprintf("%d items", n)
 }
 
-// textCell is text as a cell shows it: (empty) for none.
+// textCell is text as a cell shows it: "empty" for none (R5.19).
 func textCell(text string) string {
 	if text == "" {
-		return "(empty)"
+		return "empty"
 	}
 	return text
 }
@@ -711,7 +711,7 @@ func settingDetail(s *Settings, name string, index int) (title, text string) {
 	}
 	def := textCell(settingCell(v.Default))
 	if list, ok := v.Default.([]string); ok && len(list) == 0 {
-		def = "(none)"
+		def = EmptyText("items")
 	}
 	lines = append(lines,
 		"Default is "+def+". "+settingSource(s, v),

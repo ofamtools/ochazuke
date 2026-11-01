@@ -1,0 +1,76 @@
+{
+  "name": "empty lists use one format: lower case, no parentheses, the rows' noun named (R5.19)",
+  "area": "lists",
+  "page": {
+    "order": [
+      "a",
+      "b",
+      "c"
+    ],
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3,
+        "labels": [
+          "alpha",
+          "beta",
+          "gamma"
+        ],
+        "placeholder": {
+          "plural": "tasks"
+        }
+      },
+      {
+        "id": "b",
+        "rows": 0,
+        "placeholder": {
+          "plural": "panes"
+        }
+      },
+      {
+        "id": "c",
+        "rows": 0
+      }
+    ],
+    "focus": "a1"
+  },
+  "script": [
+    "/",
+    "z",
+    "z",
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 0,
+      "contains": [
+        "no panes",
+        "no rows"
+      ],
+      "lacks": [
+        "(empty list)",
+        "(no matches)"
+      ]
+    },
+    {
+      "after": 3,
+      "mode": "list_filter",
+      "contains": [
+        "no tasks match"
+      ]
+    },
+    {
+      "after": 4,
+      "mode": "normal",
+      "contains": [
+        "no tasks match 'zz'",
+        "no panes",
+        "no rows"
+      ],
+      "lacks": [
+        "(",
+        "loading"
+      ]
+    }
+  ]
+}

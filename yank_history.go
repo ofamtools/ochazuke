@@ -113,7 +113,7 @@ func yankHistoryView(r *Runtime, inst *Instance, width, height int) Block {
 func yankHistoryText(r *Runtime, width, height int) string {
 	g := r.Registers()
 	if len(g.History) == 0 {
-		return "No yanks yet. Yank or kill text in any field."
+		return EmptyText("yanks") + "; yank or kill text in any field"
 	}
 	selection := g.selection
 	height = max(1, height)

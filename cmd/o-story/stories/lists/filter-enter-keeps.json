@@ -88,7 +88,7 @@
       "focus": "a",
       "contains": [
         "/lx",
-        "no matches"
+        "no rows match"
       ],
       "lacks": [
         "alphabet"

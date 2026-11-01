@@ -81,7 +81,7 @@
         "~/proj",
         "~/hub",
         "ignore",
-        "(none)",
+        "no items",
         "wrap",
         "‹ false ›",
         "Directories searched for projects, in order",
@@ -195,8 +195,8 @@
       "after": 18,
       "focus": "__settings/row/ignore",
       "contains": [
-        "(none)",
-        "Default is (none)."
+        "no items",
+        "Default is no items."
       ]
     },
     {
@@ -220,7 +220,7 @@
     {
       "focus": "__settings/row/ignore",
       "contains": [
-        "(none)"
+        "no items"
       ],
       "lacks": [
         "*.tmp",

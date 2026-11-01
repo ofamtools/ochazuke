@@ -591,7 +591,7 @@ func (l Layout) sidebar(title string, items []string, selected int, mainTitle st
 	}
 	rows := make([]string, 0, max(0, height))
 	if len(items) == 0 {
-		rows = append(rows, l.Styles.Muted.Render("No items."))
+		rows = append(rows, l.Styles.Muted.Render(EmptyText("items")))
 	} else if height > 0 {
 		selected = min(max(0, selected), len(items)-1)
 		visible := height

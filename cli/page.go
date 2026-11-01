@@ -1094,9 +1094,15 @@ func (v *PageView) listPanel(layout ochazuke.Layout, pl *pageList, width, height
 		text = pl.list.View(cw, rows)
 	}
 	if pl.list.Len() == 0 && rows > 0 && !pl.list.Filtering() {
-		note := "no rows"
+		// The one empty format (ochazuke.Placeholder): the list's own
+		// Empty, or its Loading while the first load runs.
+		p := pl.list.Placeholder()
+		note := p.Text(v.m.Runtime)
 		if pl.loading && !pl.loaded {
-			note = "loading…"
+			note = p.Loading
+			if note == "" {
+				note = ochazuke.LoadingText(p.Plural)
+			}
 		}
 		text = s.Muted.Render(note)
 		if len(pl.list.Columns()) > 0 && rows > 1 {

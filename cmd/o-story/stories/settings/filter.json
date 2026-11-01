@@ -147,7 +147,7 @@
       "mode": "list_filter",
       "contains": [
         "/z",
-        "no matches"
+        "no settings match 'z'"
       ]
     },
     {

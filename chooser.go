@@ -72,8 +72,10 @@ type ChooserRow struct {
 // that as a "+ <label>" row while the query is not empty, after the matches
 // and trailing rows and before the fixed rows; typing never matches or
 // ranks it, it is the default only when nothing else matches, and Enter on
-// it creates. Empty is the line shown while there are no rows at all
-// ("loading…"). Keep names the cell columns cut last. Preview draws a
+// it creates. Empty is the line shown while there are no rows at all, and
+// Loading the line while LoadingJob runs and there are none yet; Plural
+// names the rows (Placeholder, one format: "no directories", "loading
+// directories…", "no directories match 'x'"). Keep names the cell columns cut last. Preview draws a
 // preview of the highlighted row beside the rows when there is room.
 type ChooserSpec struct {
 	// Noun is the default row noun for prop filtering.
@@ -90,6 +92,14 @@ type ChooserSpec struct {
 	CreateLabel func(query string) string
 	CreateRow   bool
 	Empty       string
+	// Loading is the line while LoadingJob runs and there are no rows yet
+	// ("" is LoadingText(Plural)); so a chooser opened before its rows
+	// arrive never says it is empty while they load.
+	Loading    string
+	LoadingJob JobSlot
+	// Plural names the rows, plural ("directories"), for the default
+	// Empty and Loading lines and the no-match line; "" is "rows".
+	Plural string
 	// Keep names the columns (indexes into ChooserRow.Cells) cut last when
 	// the cells do not fit (a directory chooser's path): the others narrow
 	// to their minimum first, then the kept ones, widest first.
@@ -653,7 +663,7 @@ func (c *Chooser) rowsView(width, height int) Block {
 		// jump wider when they land.
 		lines = append(lines, ansi.Truncate("  "+c.emptyLine()+strings.Repeat(" ", width), width, ""))
 	case c.matched() == 0:
-		lines = append(lines, "  no matches")
+		lines = append(lines, ansi.Truncate("  "+NoMatchText(c.spec.Plural, c.Query()), width, "…"))
 	}
 	hint := ""
 	if label := c.createLabel(); c.cursor < 0 && c.createFunc() != nil && label != nil {

@@ -40,8 +40,13 @@ type ChooserSource struct {
 	// and the chooser's Filter narrows their rows.
 	Live bool
 	// Empty is the line shown while the source has no rows ("no recent
-	// paths"); the spec's Empty (or "loading…" while a load runs) else.
+	// paths"); the spec's Empty else (its Loading while a load runs).
 	Empty string
+	// Loading and LoadingJob, when set, stand in for the spec's while the
+	// source is current: the line while the job that fills the source runs
+	// (a scan whose completion reloads it), so its Empty never shows then.
+	Loading    string
+	LoadingJob JobSlot
 	// Open navigates into a row marked Opens (browse into a folder) and
 	// returns the query to show next; false leaves everything as it is.
 	// The source then loads again.
@@ -412,17 +417,33 @@ func (c *Chooser) sourceTitle() string {
 	return c.spec.Title + " · " + title
 }
 
-// emptyLine is what the chooser says while it has no rows.
+// emptyLine is what the chooser says while it has no rows, in the one
+// format (Placeholder): the load's error, the source's or the spec's
+// Loading while a source load or their LoadingJob runs, else the source's
+// or the spec's Empty; "" when the spec names neither Empty nor Plural.
 func (c *Chooser) emptyLine() string {
-	switch src := c.current(); {
+	p := Placeholder{Plural: c.spec.Plural, Empty: c.spec.Empty, Loading: c.spec.Loading, LoadingJob: c.spec.LoadingJob}
+	src := c.current()
+	if src != nil && src.LoadingJob.Slot != "" {
+		p.LoadingJob = src.LoadingJob
+	}
+	if src != nil && src.Loading != "" {
+		p.Loading = src.Loading
+	}
+	switch {
 	case c.loadErr != "":
 		return "! " + c.loadErr
-	case c.loading:
-		return "loading…"
+	case c.loading || p.LoadingJob.Running(c.r):
+		if p.Loading != "" {
+			return p.Loading
+		}
+		return LoadingText(p.Plural)
 	case src != nil && src.Empty != "":
 		return src.Empty
+	case p.Empty == "" && p.Plural == "":
+		return ""
 	}
-	return c.spec.Empty
+	return p.Text(c.r)
 }
 
 // createFunc and createLabel are the current source's create, else the

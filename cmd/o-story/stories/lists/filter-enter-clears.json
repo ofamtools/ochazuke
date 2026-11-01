@@ -97,7 +97,7 @@
       "focus": "a",
       "contains": [
         "/xx",
-        "no matches",
+        "no rows match",
         "enter list.filter-keep"
       ],
       "lacks": [
@@ -110,7 +110,7 @@
       "focus": "a",
       "contains": [
         "/xx",
-        "no matches"
+        "no rows match"
       ]
     },
     {
@@ -122,7 +122,7 @@
       ],
       "lacks": [
         "/xx",
-        "no matches"
+        "no rows match"
       ]
     }
   ]
