@@ -401,6 +401,8 @@ Compared with Vim: the roles are Vim's highlight groups for the chrome. `border`
 
 A list without the focus keeps its selected row marked, dimmed: the list fades `dim-unfocused` percent toward the background (default 20) and its selected row's bar `dim-unfocused-selection` percent further (default 30, so the bar sits halfway between text and background), so the focused list's bar is the only one at full strength. `0` draws the bar faded with the list alone; mono and `NO_COLOR` draw it reversed under the list's faint. The current cell of a cell-mode table and any run on that row fade with the bar.
 
+A host with several page lists sharing one detail view can set `List.UnfocusedSelection` to a predicate that identifies the displayed selection. Returning false hides that list's unfocused selected-row bar, not its rows or remembered selection. Nil preserves the default. The predicate runs during rendering and must not mutate runtime state. A focused list always marks its cursor; an unfocused modal list stays plain. Existing fade settings still apply to visible bars.
+
 Compared with Vim: `'cursorline'` (`hl-CursorLine`) is window-local and drawn at one strength in every window that sets it; Vim has no non-current variant (`hl-NormalNC` covers a window's text, not its cursor line), so plugins toggle `'cursorline'` on `WinLeave`. `dim-unfocused-selection` is that missing `CursorLineNC`: the row stays marked rather than hidden.
 
 ### Keyboard guide

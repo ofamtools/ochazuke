@@ -48,6 +48,12 @@ type ListItem struct {
 // List owns flat selection, marks and scrolling on the runtime's event loop.
 // Focus sits on the selected row when there is one, else on the list.
 type List struct {
+	// UnfocusedSelection decides whether an unfocused page list marks its
+	// selected row. Nil keeps the mark. It never changes selection or focus;
+	// focused lists always mark their row, and unfocused modal lists do not.
+	// The predicate runs during rendering and must not mutate runtime state.
+	UnfocusedSelection func() bool
+
 	r           *Runtime
 	id          string
 	all         []ListItem // every row, as SetItems gave them
@@ -611,11 +617,12 @@ func (l *List) View(width, height int) string {
 	return l.r.PlacedAt(l.id, text, focus, focusHeight)
 }
 
-// marksSelection reports whether the selected row is drawn highlighted:
-// always while the list has the focus, and on a page list without it too
-// (dimmed with the list). A list in a modal keeps the older rule, plain
-// until focused, so a modal's secondary list never shows a second cursor.
-func (l *List) marksSelection() bool { return l.Focused() || l.onPage() }
+// marksSelection keeps the focused cursor visible, and lets a page list's
+// host suppress its remembered cursor without changing selection or focus.
+// Unfocused modal lists stay plain.
+func (l *List) marksSelection() bool {
+	return l.Focused() || l.onPage() && (l.UnfocusedSelection == nil || l.UnfocusedSelection())
+}
 
 // faded reports whether View fades the list (dim-unfocused): a page list
 // without the focus, unless it is a tree's list and the focus is the line

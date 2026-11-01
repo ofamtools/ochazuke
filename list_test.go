@@ -594,6 +594,55 @@ func TestUnfocusedPageListKeepsItsRowFaded(t *testing.T) {
 	}
 }
 
+func TestUnfocusedSelectionPredicate(t *testing.T) {
+	for _, table := range []bool{false, true} {
+		name := "list"
+		if table {
+			name = "table"
+		}
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			r, _, _, right := dimFixture(t)
+			if table {
+				right.SetColumns(Column{Title: "Item"})
+			}
+			show := false
+			right.UnfocusedSelection = func() bool { return show }
+			view := right.View(30, 4)
+			if full, faint := reverseRows(view); full != nil || faint != nil {
+				t.Fatalf("hidden remembered cursor: full %q faint %q", full, faint)
+			}
+			if plain := ansi.Strip(view); !strings.Contains(plain, "Ex") || !strings.Contains(plain, "Why") {
+				t.Fatalf("hiding the cursor hid rows: %q", plain)
+			}
+			if selected, ok := right.Selected(); !ok || selected.ID != "x" || r.Focus != "a" {
+				t.Fatalf("render changed selection/focus: selected=%+v focus=%q", selected, r.Focus)
+			}
+			show = true
+			if full, faint := reverseRows(right.View(30, 4)); full != nil || len(faint) != 1 || faint[0] != "Ex" {
+				t.Fatalf("shown remembered cursor: full %q faint %q", full, faint)
+			}
+			show = false
+			if err := r.SetFocus("y"); err != nil {
+				t.Fatal(err)
+			}
+			if full, faint := reverseRows(right.View(30, 4)); len(full) != 1 || full[0] != "Why" || faint != nil {
+				t.Fatalf("focused cursor must remain visible: full %q faint %q", full, faint)
+			}
+			if err := r.SetFocus("a"); err != nil {
+				t.Fatal(err)
+			}
+			if full, faint := reverseRows(right.View(30, 4)); full != nil || faint != nil {
+				t.Fatalf("leaving focus must hide the cursor: full %q faint %q", full, faint)
+			}
+			right.UnfocusedSelection = nil
+			if full, faint := reverseRows(right.View(30, 4)); full != nil || len(faint) != 1 || faint[0] != "Why" {
+				t.Fatalf("restoring default must retain the selected row: full %q faint %q", full, faint)
+			}
+		})
+	}
+}
+
 // A list in a modal keeps the older rule: its selected row is plain until
 // the list has the focus, so a modal shows one cursor.
 func TestUnfocusedModalListDrawsPlain(t *testing.T) {
@@ -609,6 +658,8 @@ func TestUnfocusedModalListDrawsPlain(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	first.UnfocusedSelection = func() bool { return false }
+	second.UnfocusedSelection = func() bool { return true }
 	if err := r.SetFocus("p1"); err != nil {
 		t.Fatal(err)
 	}
