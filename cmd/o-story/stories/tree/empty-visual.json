@@ -1,0 +1,29 @@
+{
+  "name": "V on an empty tree leaves focus, mode and registers alone",
+  "area": "tree",
+  "width": 60,
+  "height": 12,
+  "page": {
+    "noHeadings": true,
+    "trees": [
+      {
+        "id": "empty",
+        "nodes": []
+      }
+    ],
+    "focus": "empty/list"
+  },
+  "script": [
+    "V"
+  ],
+  "expect": {
+    "focus": "empty/list",
+    "mode": "normal",
+    "register": "",
+    "lacks": [
+      "Error:",
+      "list has no selected row",
+      "no row to copy"
+    ]
+  }
+}

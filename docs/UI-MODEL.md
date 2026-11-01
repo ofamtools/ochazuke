@@ -101,6 +101,23 @@ A table added with `CellSelect()` is cell-based (table_cells.go); every other ta
 
 A noun declares its table with `NounBuilder.Columns(...)` (`Noun.Columns`): data only, never applied by the runtime. The CLI catalog carries it as `columns` on the noun (`cli.CatalogNoun.Columns`), state rows bring `cells` (`cli.Row.Cells`), and a host that mounts the noun's rows passes the columns to `Columns` (nabe does). Stories: `cmd/o-story/stories/tables/` (wide, narrow with dropped columns, truncation, empty, spill between a table and a plain list).
 
+### Empty selection and copying
+
+On a valid list, table or tree with no shown row, `list.visual` and
+`list.yank` leave selection, mode, marks, registers and clipboard work
+unchanged. This includes a list whose filter hides every row. Missing or
+invalid list targets still fail. `List.StartVisual` retains its lower-level
+error when there is no selected row. Existing applicability guards remain:
+plain lists and trees leave `Y` free outside a visual selection, and
+`NoMarks` lists refuse visual selection.
+
+Compared with Vim: `V` (`:help V`, `:help visual-start`) selects lines and
+`Y` (`:help Y`) yanks lines. Neovim 0.12.3 keeps one empty line in an empty
+buffer: `V` selects it and `normal! Y` yanks a newline. An ochazuke list can
+have zero rows, so these operations have no subject and quietly do nothing.
+The stories `lists/empty-visual`, `lists/empty-yank`, `tables/empty-visual`,
+`tables/empty-yank`, `tree/empty-visual` and `tree/empty-yank` cover the keys.
+
 ### Details
 
 A detail is the read-only text beside (or below) a list about its selected row, which scrolls while the list keeps the focus. `AddDetail(id, item, Parent(page))` registers an instance of the `detail` noun whose component (`Detail`, detail.go) holds the offset, the item it belongs to and the last window's size; `Runtime` gains no field. `item` is a func naming what the detail shows now (the selected row's id). The page's `Render` draws it with `Detail.Window(text, width, height)`: the text is wrapped to the width, the window cut at the offset, and the marker (`12–40 / 300`) returned when it overflows, for the app to put in its panel title. A new item starts at the top, checked on every `Window` and every scroll, so `j` then `J` typed before the next frame scrolls the new row from its top; the same item keeps its offset while its text refreshes, clamped to the new length. A detail is not a focus stop.

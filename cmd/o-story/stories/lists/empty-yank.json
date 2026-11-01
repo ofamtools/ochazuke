@@ -1,0 +1,29 @@
+{
+  "name": "Y on an empty lists leaves focus, mode and registers alone",
+  "area": "lists",
+  "width": 60,
+  "height": 12,
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "empty",
+        "rows": 0
+      }
+    ],
+    "focus": "empty"
+  },
+  "script": [
+    "Y"
+  ],
+  "expect": {
+    "focus": "empty",
+    "mode": "normal",
+    "register": "",
+    "lacks": [
+      "Error:",
+      "list has no selected row",
+      "no row to copy"
+    ]
+  }
+}

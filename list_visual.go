@@ -363,6 +363,9 @@ func registerListVisual(r *Runtime) {
 		if l == nil {
 			return nil, errors.New("no focused list")
 		}
+		if _, ok := l.Selected(); !ok {
+			return l.state(), nil
+		}
 		on, set := a["on"].(bool)
 		if !set {
 			on = !l.visual

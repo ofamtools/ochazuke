@@ -461,7 +461,7 @@ func registerTableCells(r *Runtime) {
 		}
 		item, ok := l.Selected()
 		if !ok {
-			return nil, errors.New("no row to copy")
+			return nil, nil
 		}
 		what := StringArg(a, "what", "cell")
 		if what != "row" && !l.cellMode() {
