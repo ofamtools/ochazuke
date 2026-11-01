@@ -179,6 +179,7 @@ type kindSync struct{ v *PageView }
 func (k kindSync) HandleMessage(tea.Msg) bool { return false }
 func (k kindSync) Close()                     {}
 func (k kindSync) PendingCommand() tea.Cmd {
+	k.v.syncJSONSections()
 	if k.v.kind != nil {
 		k.v.syncKind(k.v.selectedID())
 	}

@@ -122,6 +122,20 @@ func MountNouns(r *ochazuke.Runtime, nouns []CatalogNoun, h HostMount) MountedNo
 		}
 	}
 	for _, n := range mounting {
+		local := out.Nouns[n.Name]
+		for _, v := range n.Verbs {
+			key := local + "." + v.Name
+			op, ok := r.Operations[key]
+			if !ok {
+				continue
+			}
+			if err := r.CheckSourceArgs(op.Parameters); err != nil {
+				warn("%s skipped: %v", key, err)
+				delete(r.Operations, key)
+			}
+		}
+	}
+	for _, n := range mounting {
 		local, ok := out.Nouns[n.Name]
 		if !ok {
 			continue

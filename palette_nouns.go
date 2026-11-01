@@ -352,10 +352,10 @@ func (p *Palette) restCompletions() ([]PaletteEntry, bool) {
 		return nil, false
 	}
 	rest := string([]rune(p.Text())[start:])
-	key := fmt.Sprintf("%s/%s\x00rest\x00%d\x00%s", op.Key(), name, cursor, rest)
+	key := fmt.Sprintf("%s/%s\x00rest\x00%d\x00%s", op.Key(), name, cursor, p.Text())
 	cached, hit := p.choiceCache[key]
 	if !hit {
-		cached.choices, cached.err = p.r.restChoices(p.origin.Clone(), op, rest, cursor)
+		cached.choices, cached.err = p.r.restChoices(p.origin.Clone(), op, rest, cursor, p.parse(p.Text()).Args)
 		if p.choiceCache == nil {
 			p.choiceCache = map[string]choiceList{}
 		}

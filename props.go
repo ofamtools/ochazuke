@@ -73,6 +73,10 @@ const (
 // type or PropObject ("" is string). A prop whose Parameter.Noun is set is
 // a reference: its value is the key of one of that noun's things.
 //
+// Aliases are alternate input names for this prop. Reads, writes and filters
+// resolve them to Name; lists, forms and choices offer only Name. Alias names
+// follow the same clash rules as prop names and never form separate props.
+//
 // ReadOnly props are never written by set (a Key prop always is);
 // CreateOnly ones are written by create only. Role gives the prop a part
 // (RoleLabel, RoleOwner). Fallback names another prop of the noun shown in
@@ -98,7 +102,8 @@ const (
 // the CLI and MCP cannot write it. Every field is filterable; only declared
 // fields are writable.
 type PropSpec struct {
-	Name string `json:"name"`
+	Name    string   `json:"name"`
+	Aliases []string `json:"aliases,omitempty"`
 	Parameter
 	ReadOnly   bool   `json:"readOnly,omitempty"`
 	CreateOnly bool   `json:"createOnly,omitempty"`
@@ -260,7 +265,7 @@ func (n *Noun) prop(name string) *PropSpec {
 		return nil
 	}
 	for i := range n.Props {
-		if n.Props[i].Name == name {
+		if n.Props[i].Name == name || slices.Contains(n.Props[i].Aliases, name) {
 			return &n.Props[i]
 		}
 	}
@@ -434,6 +439,7 @@ func cloneParams(in map[string]Parameter) map[string]Parameter {
 	}
 	out := make(map[string]Parameter, len(in))
 	for k, v := range in {
+		v.SourceArgs = maps.Clone(v.SourceArgs)
 		out[k] = v
 	}
 	return out
@@ -442,6 +448,13 @@ func cloneParams(in map[string]Parameter) map[string]Parameter {
 // applyStore checks the noun's props against its store and registers the
 // standard verbs; it panics on a bad schema.
 func (r *Runtime) applyStore(n *Noun) {
+	params := map[string]Parameter{}
+	for _, p := range n.Props {
+		params[p.Name] = p.Parameter
+	}
+	if err := r.CheckSourceArgs(params); err != nil {
+		panic(n.Name + ": " + err.Error())
+	}
 	if err := checkSchema(n); err != nil {
 		panic(err.Error())
 	}
@@ -452,7 +465,11 @@ func (r *Runtime) applyStore(n *Noun) {
 // unknown noun or one without props.
 func (r *Runtime) Props(noun string) []PropSpec {
 	if n := r.Noun(noun); n != nil {
-		return slices.Clone(n.Props)
+		out := slices.Clone(n.Props)
+		for i := range out {
+			out[i].Aliases = slices.Clone(out[i].Aliases)
+		}
+		return out
 	}
 	return nil
 }
@@ -460,7 +477,9 @@ func (r *Runtime) Props(noun string) []PropSpec {
 // PropOf is noun's prop of that name.
 func (r *Runtime) PropOf(noun, name string) (PropSpec, bool) {
 	if p := r.Noun(noun).prop(name); p != nil {
-		return *p, true
+		out := *p
+		out.Aliases = slices.Clone(out.Aliases)
+		return out, true
 	}
 	return PropSpec{}, false
 }
@@ -468,17 +487,15 @@ func (r *Runtime) PropOf(noun, name string) (PropSpec, bool) {
 // addProp checks and records one prop of n.
 func (r *Runtime) addProp(n *Noun, p PropSpec) error {
 	key := n.Name + "." + p.Name
-	switch {
-	case p.Name == "" || strings.ContainsAny(p.Name, " \t\n=\".,") || strings.HasPrefix(p.Name, "-"):
-		return fmt.Errorf("prop %q of %s must be one word without a dot", p.Name, n.Name)
-	case slices.Contains(reservedStandardVerbs, p.Name):
-		return fmt.Errorf("prop %s of %s takes a standard verb's name", p.Name, n.Name)
-	case n.prop(p.Name) != nil:
-		return fmt.Errorf("prop %s is already declared", key)
-	case r.Operations[key].Noun != "" && r.Operations[key].Standard == "":
-		return fmt.Errorf("prop %s clashes with the verb %s: a word after a noun is a verb or a prop, never both", p.Name, key)
-	case r.Nouns[key] != nil:
-		return fmt.Errorf("prop %s clashes with the noun %s nested under %s", p.Name, key, n.Name)
+	seen := map[string]bool{}
+	for _, name := range append([]string{p.Name}, p.Aliases...) {
+		if seen[name] {
+			return fmt.Errorf("prop %s: repeated name %q", key, name)
+		}
+		seen[name] = true
+		if err := r.checkPropName(n, name); err != nil {
+			return err
+		}
 	}
 	if p.Type == "" {
 		p.Type = SettingString
@@ -524,8 +541,27 @@ func (r *Runtime) addProp(n *Noun, p PropSpec) error {
 		p.ReadOnly = true // a key is the thing's identity: never written by set
 	}
 	p.Enum = slices.Clone(p.Enum)
+	p.Aliases = slices.Clone(p.Aliases)
 	n.Props = append(n.Props, p)
 	return nil
+}
+
+// checkPropName applies the prop namespace rules to a main name or alias.
+func (r *Runtime) checkPropName(n *Noun, name string) error {
+	key := n.Name + "." + name
+	switch {
+	case name == "" || strings.ContainsAny(name, " \t\n=\".,") || strings.HasPrefix(name, "-"):
+		return fmt.Errorf("prop %q of %s must be one word without a dot", name, n.Name)
+	case slices.Contains(reservedStandardVerbs, name):
+		return fmt.Errorf("prop %s of %s takes a standard verb's name", name, n.Name)
+	case n.prop(name) != nil:
+		return fmt.Errorf("prop %s is already declared", key)
+	case r.Operations[key].Noun != "" && r.Operations[key].Standard == "":
+		return fmt.Errorf("prop %s clashes with the verb %s: a word after a noun is a verb or a prop, never both", name, key)
+	case r.Nouns[key] != nil:
+		return fmt.Errorf("prop %s clashes with the noun %s nested under %s", name, key, n.Name)
+	}
+	return r.propAliasClash(n, name)
 }
 
 // checkSchema checks what holds across props and the store: one prop per
@@ -545,7 +581,7 @@ func checkSchema(n *Noun) error {
 		if p.Key {
 			keys++
 		}
-		if p.Fallback != "" && (p.Fallback == p.Name || n.prop(p.Fallback) == nil) {
+		if p.Fallback != "" && (n.prop(p.Fallback) == nil || n.prop(p.Fallback).Name == p.Name) {
 			return fmt.Errorf("prop %s.%s: fallback %q is not another prop of %s", n.Name, p.Name, p.Fallback, n.Name)
 		}
 		if p.Name == "id" && !p.Key {
@@ -672,7 +708,11 @@ func (n *Noun) displayLabel(read func(name string) any) string {
 		return fmt.Sprint(v)
 	}
 	if p.Fallback != "" {
-		if v := read(p.Fallback); !emptyProp(v) {
+		fallback := p.Fallback
+		if spec := n.prop(fallback); spec != nil {
+			fallback = spec.Name
+		}
+		if v := read(fallback); !emptyProp(v) {
 			return fmt.Sprint(v)
 		}
 	}

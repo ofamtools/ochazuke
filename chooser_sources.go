@@ -245,6 +245,7 @@ func (c *Chooser) keep() []int {
 
 // cycle steps to another source, wrapping; the query stays.
 func (c *Chooser) cycle(delta int) error {
+	c.filters.linger.reset()
 	n := len(c.spec.Sources)
 	if n < 2 {
 		return errors.New("the chooser has one source")
@@ -378,6 +379,7 @@ func (c *Chooser) up() error {
 
 // navigated shows query (cursor at its end) and loads the source again.
 func (c *Chooser) navigated(query string) {
+	c.filters.linger.reset()
 	_ = c.input.Replace(0, len(c.input.Text), query)
 	c.input.Cursor = len(c.input.Text)
 	c.spec.Rows = nil

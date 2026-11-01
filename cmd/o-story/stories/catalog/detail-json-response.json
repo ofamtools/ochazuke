@@ -1,0 +1,93 @@
+{
+  "area": "catalog",
+  "width": 160,
+  "height": 54,
+  "page": {
+    "id": "examples",
+    "title": "Examples",
+    "catalog": {
+      "nouns": [
+        {
+          "name": "example",
+          "verbs": [
+            {
+              "name": "list",
+              "rows": "example"
+            }
+          ]
+        }
+      ],
+      "page": {
+        "layout": "split",
+        "lists": [
+          {
+            "id": "examples/list",
+            "noun": "example"
+          }
+        ],
+        "detail": {
+          "padding": 0,
+          "sections": [
+            {
+              "kind": "fields",
+              "title": "Metadata",
+              "fields": [
+                {
+                  "label": "Tool",
+                  "field": "tool"
+                }
+              ]
+            },
+            {
+              "kind": "json",
+              "title": "Request",
+              "field": "request"
+            },
+            {
+              "kind": "json",
+              "title": "Response",
+              "field": "response",
+              "parse": true
+            }
+          ]
+        }
+      },
+      "answers": {
+        "example.list": [
+          {
+            "id": "one",
+            "label": "One call",
+            "tool": "probe",
+            "request": {
+              "alpha": 12,
+              "nested": {
+                "ok": true
+              }
+            },
+            "response": "{\"result\":[\"first\",\"second\"]}"
+          }
+        ]
+      }
+    }
+  },
+  "script": [
+    "ctrl+w",
+    "l",
+    "ctrl+w",
+    "l",
+    "j",
+    "j",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 7,
+      "contains": [
+        "Response",
+        "Data \u00b7 .result[1]",
+        "\"second\""
+      ]
+    }
+  ],
+  "name": "detail-json-response"
+}

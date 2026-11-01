@@ -1,0 +1,18 @@
+{
+  "name": "dim-unfocused-selection 0 (the opt-out): the list without the focus draws its selected row's bar faded with the list alone, as before the setting",
+  "area": "lists",
+  "width": 100,
+  "height": 12,
+  "chrome": "none",
+  "theme": "dark",
+  "values": {"dim-unfocused-selection": 0},
+  "page": {
+    "layout": "split",
+    "lists": [
+      {"id": "a", "rows": 3},
+      {"id": "b", "rows": 3}
+    ]
+  },
+  "script": ["}"],
+  "expect": {"focus": "b1", "styled": {"a1": "!#72817A"}, "attrs": {"a1": "reverse", "b1": "reverse"}}
+}

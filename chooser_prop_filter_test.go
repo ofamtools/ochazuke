@@ -29,6 +29,7 @@ func chooserPropFixture(t *testing.T) (*Runtime, *Model, *Chooser) {
 
 func TestChooserPropFiltersSharedVerbsRefreshAndHighlight(t *testing.T) {
 	r, m, c := chooserPropFixture(t)
+	_ = r.Settings().Set(ListFilterLingerSetting, "0")
 	keytest.Press(m, "ctrl+n") // moved highlight b
 	if err := c.SetPropFilters([]PropFilter{{Prop: "score", Op: "in", Value: []any{"2", "3"}}}); err != nil {
 		t.Fatal(err)

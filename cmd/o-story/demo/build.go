@@ -625,6 +625,19 @@ func (ss *session) defineStore(d *ochazuke.NounBuilder, spec *StoreSpec) (err er
 			for _, t := range things {
 				if fmt.Sprint(t[key]) == id {
 					maps.Copy(t, changes)
+					// Publish store changes as the owning app does on a live page.
+					for _, l := range ss.lists {
+						var changed []ochazuke.ListItem
+						for _, row := range l.Items() {
+							if row.Noun == d.Noun().Name && row.ID == id {
+								row.Data, row.Props = maps.Clone(t), nil
+								changed = append(changed, row)
+							}
+						}
+						if err := l.Patch(ochazuke.ListPatch{Upsert: changed}); err != nil {
+							return nil, err
+						}
+					}
 					ss.Writes = append(ss.Writes, "set "+id+storeValues(spec.Props, changes))
 					return t, nil
 				}
@@ -680,6 +693,9 @@ func (ss *session) defineVerb(d *ochazuke.NounBuilder, v VerbSpec) error {
 			entry += " subjects=" + strings.Join(c.SubjectIDs(), ",")
 		}
 		ss.Writes = append(ss.Writes, ss.unfiles(entry))
+		if v.RowsArg != "" {
+			return ochazuke.Done(v.RowsBy[ochazuke.StringArg(c.Args, v.RowsArg, "")])
+		}
 		if rows != nil {
 			return ochazuke.Done(rows)
 		}

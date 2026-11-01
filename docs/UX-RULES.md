@@ -343,8 +343,10 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R5.1** Page lists draw no cursor marker; a list's selected row is reverse
   video alone. A page list without the focus keeps its selected row marked and
   is drawn faded as a whole (`dim-unfocused`, default 20 percent toward the
-  background; faint in mono), so the focused list's row is the one highlight
-  at full strength and the row an unfocused list (a tree beside a live
+  background; faint in mono) and its selected row's bar further
+  (`dim-unfocused-selection`, default 30 percent beyond the list; 0 fades
+  it with the list; mono keeps the faint reverse bar), so the focused list's
+  row is the one highlight at full strength and the row an unfocused list (a tree beside a live
   terminal) is on stays visible; a tree whose line is being edited is not
   faded. A list in a modal stays plain until focused. A table's highlight
   spans its row; inside it a cell-mode table marks its current cell (R5.10).

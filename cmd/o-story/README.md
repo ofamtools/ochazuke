@@ -488,17 +488,17 @@ Conformance:
 | normal | bindings-help | `bindings-help.mode` `bindings-help.noun` `bindings-help.place` `bindings-help.view` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
-| normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.choose` `demo.delete` `demo.edit-task` `demo.finish` `demo.forget-row` `demo.hide` `demo.launch` `demo.notify` `demo.open` `demo.ping` `demo.reload` `demo.ship` `demo.synced` `demo.write` |
+| normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.choose` `demo.delete` `demo.edit-task` `demo.finish` `demo.forget-row` `demo.hide` `demo.launch` `demo.notify` `demo.open` `demo.ping` `demo.reload` `demo.set` `demo.ship` `demo.synced` `demo.write` |
 | normal | detail | `detail.fields` `detail.scroll` |
 | normal | detail-field | `detail-field.copy` `detail-field.show` |
 | normal | diff | `diff.file` `diff.hunk` `diff.move` `diff.scroll` `diff.scroll-columns` |
 | normal | focus | `focus.next` `focus.previous` `focus.set` |
-| normal | form | `form.chip-line` `form.chip-move` `form.chip-toggle` `form.choose` `form.clear` `form.invert` `form.leave` `form.next` `form.next-missing` `form.redo` `form.run` `form.suggest` `form.undo` |
+| normal | form | `form.chip-line` `form.chip-move` `form.chip-toggle` `form.choose` `form.clear` `form.invert` `form.leave` `form.next` `form.next-missing` `form.previous` `form.redo` `form.run` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
 | normal | history | `history.repeat` |
 | normal | input | `input.begin` `input.move` `input.operator` `input.select` `input.undo` |
 | normal | key | `key.ignore` |
-| normal | list | `list.column` `list.filter-clear` `list.filter-cycle` `list.filter-open` `list.filter-prop` `list.filter-prop-clear` `list.filter-props-clear` `list.fit-column` `list.fit-columns` `list.goto` `list.mark` `list.move` `list.next-class` `list.previous-class` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.toggle-pin-column` `list.visual` `list.yank` |
+| normal | list | `list.column` `list.filter-clear` `list.filter-cycle` `list.filter-open` `list.filter-prop` `list.filter-prop-clear` `list.filter-props-clear` `list.fit-column` `list.fit-columns` `list.flush-lingering` `list.goto` `list.mark` `list.move` `list.next-class` `list.previous-class` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.toggle-pin-column` `list.visual` `list.yank` |
 | normal | macro | `macro.record` `macro.start` `macro.stop` |
 | normal | markdown | `markdown.delete` `markdown.fold` `markdown.insert` `markdown.link-copy` `markdown.link-open` `markdown.move` `markdown.next-block` `markdown.next-kind` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-link` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
 | normal | markdown-view | `markdown-view.copy` |

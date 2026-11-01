@@ -130,6 +130,7 @@ func (l *List) Shown() int { return len(l.items) }
 // the focus follows it.
 func (l *List) SetFilter(query string) {
 	previous, _ := l.Selected()
+	l.linger.reset()
 	l.query = query
 	keep := previous.ID
 	if keep == "" {
@@ -163,6 +164,7 @@ func (l *List) refilter(keep string) {
 		}
 		l.items = shown
 	}
+	l.items = l.lingerRows(l.items)
 	if t := l.tree(); t != nil {
 		t.guideRows()
 	}
@@ -193,6 +195,7 @@ func (l *List) reveal(id string) {
 	if (l.query == "" && len(l.propFilters) == 0) || l.shows(id) || (!slices.ContainsFunc(l.all, func(item ListItem) bool { return item.ID == id }) && !l.treeHasNode(id)) {
 		return
 	}
+	l.linger.reset()
 	l.query, l.back, l.propFilters, l.savedFilter = "", "", nil, ""
 	l.items = l.all
 	if t := l.tree(); t != nil {

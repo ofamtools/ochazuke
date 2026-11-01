@@ -109,7 +109,7 @@ func (r *Runtime) referenceNouns() []refdoc.Noun {
 		for _, p := range n.Props {
 			noun.Props = append(noun.Props, refdoc.Prop{
 				Name: p.Name, Type: p.Type, Description: p.Description, Noun: p.Noun, Enum: slices.Clone(p.Enum),
-				Default: p.Default, Role: p.Role, Fallback: p.Fallback, When: p.When, Key: p.Key, Required: p.Required,
+				Aliases: slices.Clone(p.Aliases), Default: p.Default, Role: p.Role, Fallback: p.Fallback, When: p.When, Key: p.Key, Required: p.Required,
 				ReadOnly: p.ReadOnly, CreateOnly: p.CreateOnly, FromFocus: p.FromFocus, Secret: p.Secret, Multiline: p.Multiline,
 			})
 		}

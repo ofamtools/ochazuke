@@ -52,21 +52,23 @@ type CatNoun struct {
 // Prop is one field of a noun's things (cli.CatalogNoun.Props, the
 // ochazuke.PropSpec shape), the fields the page draws.
 type Prop struct {
-	Name        string   `json:"name"`
-	Type        string   `json:"type,omitempty"`
-	Description string   `json:"description,omitempty"`
-	Required    bool     `json:"required,omitempty"`
-	Enum        []string `json:"enum,omitempty"`
-	Source      string   `json:"source,omitempty"`
-	Noun        string   `json:"noun,omitempty"`
-	ReadOnly    bool     `json:"readOnly,omitempty"`
-	CreateOnly  bool     `json:"createOnly,omitempty"`
-	Key         bool     `json:"key,omitempty"`
-	Role        string   `json:"role,omitempty"`
-	Fallback    string   `json:"fallback,omitempty"`
-	Default     any      `json:"default,omitempty"`
-	Secret      bool     `json:"secret,omitempty"`
-	Multiline   bool     `json:"multiline,omitempty"`
+	SourceArgs  map[string]string `json:"sourceArgs,omitempty"`
+	Name        string            `json:"name"`
+	Type        string            `json:"type,omitempty"`
+	Description string            `json:"description,omitempty"`
+	Required    bool              `json:"required,omitempty"`
+	Enum        []string          `json:"enum,omitempty"`
+	Source      string            `json:"source,omitempty"`
+	Noun        string            `json:"noun,omitempty"`
+	ReadOnly    bool              `json:"readOnly,omitempty"`
+	CreateOnly  bool              `json:"createOnly,omitempty"`
+	Key         bool              `json:"key,omitempty"`
+	Role        string            `json:"role,omitempty"`
+	Fallback    string            `json:"fallback,omitempty"`
+	Default     any               `json:"default,omitempty"`
+	Secret      bool              `json:"secret,omitempty"`
+	Multiline   bool              `json:"multiline,omitempty"`
+	Aliases     []string          `json:"aliases,omitempty"`
 }
 
 type Example struct {
@@ -96,15 +98,16 @@ type CatVerb struct {
 }
 
 type Param struct {
-	Name        string   `json:"name"`
-	Type        string   `json:"type,omitempty"`
-	Description string   `json:"description,omitempty"`
-	Required    bool     `json:"required,omitempty"`
-	Enum        []string `json:"enum,omitempty"`
-	Source      string   `json:"source,omitempty"`
-	Noun        string   `json:"noun,omitempty"`
-	Free        bool     `json:"free,omitempty"`
-	Positional  int      `json:"positional"` // index in positional, -1 when named only
+	SourceArgs  map[string]string `json:"sourceArgs,omitempty"`
+	Name        string            `json:"name"`
+	Type        string            `json:"type,omitempty"`
+	Description string            `json:"description,omitempty"`
+	Required    bool              `json:"required,omitempty"`
+	Enum        []string          `json:"enum,omitempty"`
+	Source      string            `json:"source,omitempty"`
+	Noun        string            `json:"noun,omitempty"`
+	Free        bool              `json:"free,omitempty"`
+	Positional  int               `json:"positional"` // index in positional, -1 when named only
 }
 
 // Params keeps the catalog's parameter order, which a Go map would lose.

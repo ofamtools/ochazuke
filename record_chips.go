@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -29,6 +30,19 @@ import (
 // RecordInvertSuffix ends the record key that holds an Invertible field's
 // state ("status!" is "true" while status is inverted).
 const RecordInvertSuffix = "!"
+
+// FormsInvertedToneSetting draws inverted fields in ToneRecordInverted.
+const FormsInvertedToneSetting = "forms.inverted-tone"
+
+// fieldStyle keeps the value's focus and selection emphasis while the
+// inverted tone supplies its colours and any additional emphasis.
+func (e *RecordEditor) fieldStyle(f *recordField, base lipgloss.Style) lipgloss.Style {
+	if !f.Invertible || !f.not || !e.r.helpFlag(FormsInvertedToneSetting, true) {
+		return base
+	}
+	tone := e.Styles.Tone(ToneRecordInverted)
+	return tone.Inherit(base).Bold(tone.GetBold() || base.GetBold()).Faint(tone.GetFaint() || base.GetFaint())
+}
 
 // FormChipsNoun is a chips field's instance noun.
 const FormChipsNoun = "ochazuke.form-chips"
@@ -163,12 +177,12 @@ func (e *RecordEditor) chipBlock(f *recordField, width, indent int) []string {
 					st = st.Reverse(true)
 				}
 			}
-			parts = append(parts, st.Render(chipText(c, on)))
+			parts = append(parts, e.fieldStyle(f, st).Render(chipText(c, on)))
 		}
 		out = append(out, ansi.Truncate(strings.Repeat(" ", indent)+strings.Join(parts, " "), width, "…"))
 	}
 	if len(f.choices) == 0 {
-		out = append(out, strings.Repeat(" ", indent)+s.Muted.Render("(no values)"))
+		out = append(out, strings.Repeat(" ", indent)+e.fieldStyle(f, s.Muted).Render("(no values)"))
 	}
 	return out
 }

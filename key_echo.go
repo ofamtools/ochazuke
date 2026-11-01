@@ -299,7 +299,7 @@ func (e *keyEcho) lingerCommand(r *Runtime, now time.Time) tea.Cmd {
 
 // fired clears the timer in flight when its message arrives.
 func (e *keyEcho) fired(msg JobLingerMsg) {
-	if msg.At.Equal(e.tickAt) {
+	if msg.filter == nil && msg.At.Equal(e.tickAt) {
 		e.tickAt = time.Time{}
 	}
 }

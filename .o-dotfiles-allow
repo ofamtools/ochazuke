@@ -1,1 +1,9 @@
 40c80df2da21d507be5291c64c2a9de1a1fbf3a65eb5df21ad209266df37cfcf  CHANGELOG.md:815  # Documentation story identifier, not a credential.
+d3e9f0dedc28e9c7b94f38a6eda0d7ed530266230ff442272327bc596d78e8fc  cli/prop_filter_test.go:163  # Test fixture prop filter key, not a credential.
+de90359b0e5df965f333a92ca092bb7cd4233017a0291e30d2b1e71494fd895e  cli/prop_filter_test.go:164  # Test fixture prop filter key, not a credential.
+80ec9e56a8b5ffa5872d4a65863b223f94a9510c25bb55e22550e85b8b8648dc  cmd/o-story/demo/build.go:976  # Boolean field assignment for masked input, not a credential.
+5e3e70c02c7bb2611bc843c2e2589e797369b37df1b949d49bf3476281cb4ea4  cmd/o-story/stories/settings/session-marker-80.golden:0  # Test golden filename matched sessions deny pattern, not a private path.
+802c511671d8c2e6fc14acbadba1f12e7c764d81ab48a644062f90aa4d3b555c  docs_reference.go:113  # Docgen struct field mapping, not a credential.
+21d3e5259624190154bd80b1217754adfd1bc98754eeb539ad9227abc8af299f  prop_filter_test.go:25  # Test fixture prop value, not a credential.
+61165e441d0a19171a42501447081cdb64550cf7a5325bb3a2d4ebe59e95cc8b  props.go:129  # Struct field mapping for RecordField, not a credential.
+586b5797a99a47e5840320cd71df40f68630f0a5a07f99281d7a32adb050f556  record_editor.go:406  # Boolean field assignment for masked input, not a credential.

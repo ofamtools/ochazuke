@@ -1,0 +1,68 @@
+{
+  "name": "filter form: prop aliases share one field even when rows carry both keys",
+  "area": "lists",
+  "width": 80,
+  "height": 20,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "nouns": [
+      {
+        "noun": "task",
+        "props": [
+          {
+            "name": "state",
+            "aliases": [
+              "status"
+            ],
+            "enum": [
+              "todo",
+              "done"
+            ]
+          }
+        ]
+      }
+    ],
+    "lists": [
+      {
+        "id": "tasks",
+        "height": -1,
+        "items": [
+          {
+            "id": "t1",
+            "noun": "task",
+            "label": "Write notes",
+            "data": {
+              "state": "todo",
+              "status": "todo"
+            }
+          },
+          {
+            "id": "t2",
+            "noun": "task",
+            "label": "File notes",
+            "data": {
+              "state": "done",
+              "status": "done"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "z",
+    "/"
+  ],
+  "expect": [
+    {
+      "modal": "list-filter-form",
+      "contains": [
+        "state \u00b7 is"
+      ],
+      "lacks": [
+        "status"
+      ]
+    }
+  ]
+}

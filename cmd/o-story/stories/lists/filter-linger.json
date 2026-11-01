@@ -1,0 +1,109 @@
+{
+  "name": "filter linger: changed prop stays visible until the story clock expires",
+  "area": "lists",
+  "width": 80,
+  "height": 12,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "store": {
+      "props": [
+        {
+          "name": "id",
+          "key": true
+        },
+        {
+          "name": "status"
+        }
+      ],
+      "things": [
+        {
+          "id": "one",
+          "status": "open"
+        },
+        {
+          "id": "two",
+          "status": "open"
+        }
+      ]
+    },
+    "lists": [
+      {
+        "id": "rows",
+        "height": -1,
+        "items": [
+          {
+            "id": "one",
+            "label": "First row",
+            "data": {
+              "id": "one",
+              "status": "open"
+            }
+          },
+          {
+            "id": "two",
+            "label": "Second row",
+            "data": {
+              "id": "two",
+              "status": "open"
+            }
+          }
+        ]
+      }
+    ],
+    "bind": [
+      {
+        "keys": "f",
+        "do": "list.filter-prop",
+        "args": {
+          "prop": "status",
+          "value": "open"
+        },
+        "noun": "demo"
+      },
+      {
+        "keys": "c",
+        "do": "demo.set",
+        "args": {
+          "prop": "status",
+          "value": "done"
+        },
+        "noun": "demo"
+      },
+      {
+        "keys": "F",
+        "do": "list.flush-lingering",
+        "noun": "demo"
+      }
+    ]
+  },
+  "script": [
+    "f",
+    "c",
+    {
+      "tick": "linger"
+    }
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "focus": "one",
+      "contains": [
+        "First row",
+        "~ ",
+        "Second row"
+      ]
+    },
+    {
+      "after": 3,
+      "focus": "two",
+      "contains": [
+        "Second row"
+      ],
+      "lacks": [
+        "First row",
+        "~ "
+      ]
+    }
+  ]
+}
