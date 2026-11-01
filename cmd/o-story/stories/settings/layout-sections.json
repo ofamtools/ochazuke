@@ -18,11 +18,11 @@
   "expect": [
     {"after": 1, "focus": "__settings/row/editor", "order": ["Sections", "General (1)", "app", "General", "panes", "extensions", "ai", "git", "ochazuke", "Appearance"], "lacks": ["› app"]},
     {"after": 2, "focus": "__settings/row/ext.ai.model", "contains": ["ai (1)"]},
-    {"after": 3, "focus": "__settings/row/modal-dim", "contains": ["Appearance (14)"]},
+    {"after": 3, "focus": "__settings/row/modal-dim", "contains": ["Appearance (15)"]},
     {"after": 4, "focus": "__settings/row/ext.ai.model"},
     {"after": 5, "focus": "__settings/row/ext.git.fetch", "contains": ["git (1)"]},
     {"after": 6, "focus": "__settings/row/ext.git.fetch", "contains": ["‹ false ›"]},
     {"after": 7, "focus": "__settings/section/extensions/git", "contains": ["1 setting in extensions › git."]},
-    {"focus": "__settings/section/ochazuke/appearance", "page": "__settings", "contains": ["Appearance (14)", "modal-dim"]}
+    {"focus": "__settings/section/ochazuke/appearance", "page": "__settings", "contains": ["Appearance (15)", "modal-dim"]}
   ]
 }

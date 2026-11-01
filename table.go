@@ -801,7 +801,7 @@ func (l *List) currentSpan(shown, widths []int, mark int) span {
 // underlined.
 func highlightRow(line string, width int, sp span, cursor, bar ansi.Style) string {
 	line += strings.Repeat(" ", max(0, width-ansi.StringWidth(line)))
-	reverse := lipgloss.NewStyle().Reverse(true)
+	reverse := SelectionStyle(true)
 	mark := "4;7"
 	if len(bar) > 0 {
 		mark = "4;" + strings.Join(bar, ";")

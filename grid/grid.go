@@ -87,7 +87,7 @@ type Styles struct {
 func DefaultStyles() Styles {
 	return Styles{
 		Header:   lipgloss.NewStyle().Bold(true),
-		Cursor:   lipgloss.NewStyle().Reverse(true),
+		Cursor:   ochazuke.SelectionStyle(true),
 		Selected: lipgloss.NewStyle().Underline(true),
 		Marked:   lipgloss.NewStyle().Bold(true).Underline(true),
 		Gutter:   lipgloss.NewStyle().Faint(true),
@@ -587,7 +587,9 @@ func (g *Grid) Snapshot() map[string]any {
 // View renders the header and the visible rows into width x height cells,
 // scrolling both axes to keep the cursor in view. Rows carry a 1-based
 // gutter. The cursor cell is painted with Styles.Cursor, selected cells with
-// Styles.Selected, marked cells with Styles.Marked.
+// Styles.Selected, marked cells with Styles.Marked; without the focus the
+// cursor cell keeps the faded selection (Runtime.Selection;
+// unfocused-selection hide leaves it plain).
 func (g *Grid) View(width, height int) string {
 	g.r.Placed(g.id)
 	if width <= 0 || height <= 0 {
@@ -645,6 +647,10 @@ func (g *Grid) View(width, height int) string {
 			switch {
 			case ref == cursor && g.Focused():
 				text = g.Styles.Cursor.Render(text)
+			case ref == cursor:
+				// Without the focus the cursor cell stays marked, faded
+				// (UX R5.1).
+				text = g.r.Selection(false).Render(text)
 			case g.marks[ref]:
 				text = g.Styles.Marked.Render(text)
 			case selected[ref]:

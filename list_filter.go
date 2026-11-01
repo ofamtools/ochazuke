@@ -7,7 +7,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -229,7 +228,7 @@ func (l *List) filterLine(width int) string {
 		left += "/" + modalLabel(l.query)
 	}
 	if editing {
-		left += lipgloss.NewStyle().Reverse(true).Render(" ")
+		left += SelectionStyle(true).Render(" ")
 	}
 	var right []string
 	if strings.TrimSpace(l.query) != "" || strip != "" {

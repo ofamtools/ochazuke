@@ -208,3 +208,13 @@ func TestPickerSize(t *testing.T) {
 		}
 	}
 }
+
+// The path picker draws no cursor marker (UX R5.1, R7.1): the selected
+// row is the selection bar alone, and every row starts at the left edge.
+func TestPickerResultsHaveNoMarker(t *testing.T) {
+	for i, row := range strings.Split(pickerTableText(pickerTableFixture(true), 60), "\n") {
+		if strings.HasPrefix(row, "> ") || strings.HasPrefix(row, "  ") {
+			t.Fatalf("row %d %q has a marker gutter", i, row)
+		}
+	}
+}

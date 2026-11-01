@@ -125,7 +125,7 @@ Root package `ochazuke` is flat: 157 source files, 180 test files. Each entry li
 
 ### chooser.go
 
-- lines: 890 · tests: chooser_test.go
+- lines: 889 · tests: chooser_test.go
 - purpose: ChooserRow is one choice.
 - types: ChooserRow, ChooserSpec, Chooser
 - methods: Chooser(32), Runtime(3)
@@ -479,7 +479,7 @@ Root package `ochazuke` is flat: 157 source files, 180 test files. Each entry li
 
 ### list_filter.go
 
-- lines: 409 · tests: list_filter_test.go
+- lines: 408 · tests: list_filter_test.go
 - purpose: filterOpenRow is the row that opens the filter line: "/" on app in normal mode guarded by list-filterable, like J/K detail, so an application's own "/" on an...
 - methods: List(18), Runtime(1)
 - leans on: list.go(42), runtime.go(32), instance.go(7), resolve.go(5)
@@ -573,10 +573,10 @@ Root package `ochazuke` is flat: 157 source files, 180 test files. Each entry li
 
 ### model_styles.go
 
-- lines: 59
+- lines: 61
 - purpose: Appearance has public fields, so the key reads values rather than relying on setters.
 - methods: modelStyles(1)
-- leans on: theme.go(13), model.go(1), runtime.go(1), scheme.go(1)
+- leans on: theme.go(14), settings.go(2), model.go(1), runtime.go(1)
 
 ### motion_scroll.go
 
@@ -740,10 +740,10 @@ Root package `ochazuke` is flat: 157 source files, 180 test files. Each entry li
 
 ### picker_view.go
 
-- lines: 211
+- lines: 206
 - purpose: ViewBlock renders the picker and reports the cursor of its path editor on the first row, after the label.
 - methods: Picker(5)
-- leans on: layout.go(6), model.go(6), table.go(6), picker.go(5)
+- leans on: layout.go(6), model.go(6), runtime.go(6), table.go(6)
 
 ### prop_filter.go
 
@@ -1030,7 +1030,7 @@ Root package `ochazuke` is flat: 157 source files, 180 test files. Each entry li
 - types: Align, Column
 - methods: List(16)
 - funcs: Columns, TableText
-- leans on: tone.go(35), list.go(18), surface.go(7), layout.go(3)
+- leans on: tone.go(35), list.go(18), surface.go(7), theme.go(4)
 
 ### table_cells.go
 
@@ -1106,12 +1106,12 @@ Root package `ochazuke` is flat: 157 source files, 180 test files. Each entry li
 
 ### theme.go
 
-- lines: 420 · tests: theme_test.go
+- lines: 489 · tests: theme_test.go
 - purpose: Appearance is event-loop-owned configuration.
 - types: Appearance, ToneRows, Styles
-- methods: Appearance(4), Runtime(1), Styles(8), ToneRows(1)
-- funcs: NewAppearance, NewStyles
-- leans on: runtime.go(24), foreground.go(13), tone.go(7), scheme.go(6)
+- methods: Appearance(4), Runtime(2), Styles(10), ToneRows(1)
+- funcs: NewAppearance, SelectionStyle, NewStyles
+- leans on: runtime.go(25), foreground.go(14), tone.go(7), scheme.go(6)
 
 ### ticker.go
 
@@ -1142,12 +1142,12 @@ Root package `ochazuke` is flat: 157 source files, 180 test files. Each entry li
 
 ### tone.go
 
-- lines: 793 · tests: tone_test.go
+- lines: 792 · tests: tone_test.go
 - purpose: ToneSpan gives a run of one cell a tone.
 - types: ToneSpan, ToneStyle
 - methods: List(2), Runtime(5), Styles(6), ToneStyle(1)
 - funcs: LayerTone, CellTone, SpanTone, DefaultTones
-- leans on: scheme.go(38), theme.go(9), runtime.go(5), surface.go(4)
+- leans on: scheme.go(38), theme.go(11), runtime.go(5), surface.go(4)
 
 ### transport.go
 
@@ -1791,7 +1791,7 @@ Importable package `grid`: 2 source files, 2 test files.
 
 ### grid/grid.go
 
-- lines: 786 · tests: grid_test.go
+- lines: 792 · tests: grid_test.go
 - purpose: Ref addresses one cell by its row index in the application's rows and its column index in the header.
 - types: Ref, Styles, Grid, Nouns, Option (func)
 - methods: Grid(44), Ref(1)
@@ -1841,7 +1841,7 @@ Importable package `markdown`: 15 source files, 11 test files.
 
 ### markdown/cursor.go
 
-- lines: 150 · tests: cursor_test.go
+- lines: 146 · tests: cursor_test.go
 - purpose: MoveCursor moves by the configured cursor unit, visiting inline links when link stops are enabled in item mode.
 - methods: Doc(5)
 - leans on: doc.go(7), tasks.go(4), elements.go(2), links.go(2)
@@ -2082,7 +2082,7 @@ Importable package `story`: 8 source files, 0 test files.
 
 ### story/run.go
 
-- lines: 593
+- lines: 598
 - purpose: Golden is a frame as a golden file holds it: each row stripped of escapes behind a gutter that reads "R|" when the row has full-strength reverse video, "r|" ...
 - types: Library, Result, RunOptions
 - methods: Library(2), Result(1)
