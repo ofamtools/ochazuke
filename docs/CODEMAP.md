@@ -140,7 +140,7 @@ Root package `ochazuke` is flat: 158 source files, 181 test files. Each entry li
 
 ### chooser_sources.go
 
-- lines: 460 · tests: chooser_sources_test.go
+- lines: 472 · tests: chooser_sources_test.go
 - purpose: ChooserSource is one source of a chooser's rows.
 - types: ChooserSource, ChooserBatch
 - methods: Chooser(19), Runtime(2), chooserState(3)

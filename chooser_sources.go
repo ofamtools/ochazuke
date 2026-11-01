@@ -42,6 +42,11 @@ type ChooserSource struct {
 	// Empty is the line shown while the source has no rows ("no recent
 	// paths"); the spec's Empty else (its Loading while a load runs).
 	Empty string
+	// Loading and LoadingJob, when set, stand in for the spec's while the
+	// source is current: the line while the job that fills the source runs
+	// (a scan whose completion reloads it), so its Empty never shows then.
+	Loading    string
+	LoadingJob JobSlot
 	// Open navigates into a row marked Opens (browse into a folder) and
 	// returns the query to show next; false leaves everything as it is.
 	// The source then loads again.
@@ -413,12 +418,19 @@ func (c *Chooser) sourceTitle() string {
 }
 
 // emptyLine is what the chooser says while it has no rows, in the one
-// format (Placeholder): the load's error, the spec's Loading while a
-// source load or the spec's LoadingJob runs, else the source's or the
-// spec's Empty; "" when the spec names neither Empty nor Plural.
+// format (Placeholder): the load's error, the source's or the spec's
+// Loading while a source load or their LoadingJob runs, else the source's
+// or the spec's Empty; "" when the spec names neither Empty nor Plural.
 func (c *Chooser) emptyLine() string {
 	p := Placeholder{Plural: c.spec.Plural, Empty: c.spec.Empty, Loading: c.spec.Loading, LoadingJob: c.spec.LoadingJob}
-	switch src := c.current(); {
+	src := c.current()
+	if src != nil && src.LoadingJob.Slot != "" {
+		p.LoadingJob = src.LoadingJob
+	}
+	if src != nil && src.Loading != "" {
+		p.Loading = src.Loading
+	}
+	switch {
 	case c.loadErr != "":
 		return "! " + c.loadErr
 	case c.loading || p.LoadingJob.Running(c.r):

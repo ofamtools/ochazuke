@@ -75,3 +75,24 @@ func TestChooserLoadingThenEmpty(t *testing.T) {
 		t.Fatalf("empty line %q", c.emptyLine())
 	}
 }
+
+// A source's Loading and LoadingJob stand in for the spec's: its Empty
+// shows only once the job that fills it is done.
+func TestChooserSourceLoadingThenEmpty(t *testing.T) {
+	r, m, _, _ := chooserTest(t, ChooserSpec{Sources: []ChooserSource{{
+		Name: "known", Empty: "no known directories", Loading: "loading known directories…",
+		LoadingJob: JobSlot{Scope: "app", Slot: "dirs"},
+		Load:       func(string) Result { return Done([]ChooserRow(nil)) },
+	}}})
+	ticket, _, err := r.IssueAt("app", "app", "test.dirs", "dirs", Ctx{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if frame := screen(m); !strings.Contains(frame, "loading known directories…") || strings.Contains(frame, "no known directories") {
+		t.Fatalf("while loading:\n%s", frame)
+	}
+	r.Settle(ticket, nil)
+	if frame := screen(m); !strings.Contains(frame, "no known directories") || strings.Contains(frame, "loading") {
+		t.Fatalf("after loading:\n%s", frame)
+	}
+}
