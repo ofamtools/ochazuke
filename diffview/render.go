@@ -59,7 +59,7 @@ func (v *View) View(s ochazuke.Styles, width, height int) string {
 				title := fmt.Sprintf("@@ -%d,%d +%d,%d @@ %s", h.OldStart, h.OldCount, h.NewStart, h.NewCount, printable(h.Header))
 				st := s.Muted.Bold(true)
 				if v.r.Focus == v.id && i == v.cursor {
-					st = st.Reverse(true)
+					st = st.Inherit(v.r.Selection(true))
 				}
 				lines = append(lines, st.Render(fit(title, width)))
 				continue
@@ -149,7 +149,7 @@ func (v *View) number(t renderTheme, n, digits int, k Kind, selected bool) strin
 	}
 	st := t.gutter[k]
 	if selected {
-		st = st.Reverse(true)
+		st = st.Inherit(v.r.Selection(true))
 	}
 	return st.Render(fmt.Sprintf("%*s ", digits, text))
 }

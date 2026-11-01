@@ -101,10 +101,10 @@ func settingsReviewItems(s *Settings, diff []SettingDiff) []ListItem {
 }
 
 // reviewCell is a value as the review shows it: a list's items
-// comma-separated, (empty) for empty text, (none) for an empty list.
+// comma-separated, "empty" for empty text, "no items" for an empty list.
 func reviewCell(v any) string {
 	if list, ok := v.([]string); ok && len(list) == 0 {
-		return "(none)"
+		return EmptyText("items")
 	}
 	return textCell(settingCell(v))
 }

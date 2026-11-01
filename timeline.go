@@ -998,6 +998,51 @@ func (t *Timeline) CanScrollLines() bool { return t.overflow }
 // ScrollLines is timeline.scroll by lines (LineScroller).
 func (t *Timeline) ScrollLines(lines int) { t.scroll(lines) }
 
+// goTo is timeline.goto: card number row (from 1) when row is above 0,
+// else the first card, else the last, whose end shows and which resumes
+// following.
+func (t *Timeline) goTo(first bool, row int) {
+	l := t.list
+	switch {
+	case row > 0:
+		l.goTo(row - 1)
+	case first:
+		l.goTo(0)
+	default:
+		l.goTo(len(l.items) - 1)
+		t.toBottom = true
+		t.follow = t.tail
+	}
+}
+
+// MotionEdges is first and last while there are cards (CursorMotions).
+// A timeline does not move sideways.
+func (t *Timeline) MotionEdges() []SpillEdge {
+	if len(t.list.items) == 0 {
+		return nil
+	}
+	return []SpillEdge{EdgeFirst, EdgeLast}
+}
+
+// MoveToEdge is timeline.goto (CursorMotions): the first or the last card
+// (with row, card number row), from the cards or from inside a card, as
+// Vim's gg and G go to the buffer's ends; the last shows its end and
+// resumes following.
+func (t *Timeline) MoveToEdge(edge SpillEdge, row int) { t.goTo(edge == EdgeFirst, row) }
+
+// PageLines is the window's height while the timeline overflows it
+// (CursorMotions).
+func (t *Timeline) PageLines() int {
+	if !t.overflow {
+		return 0
+	}
+	return t.avail
+}
+
+// MovePage scrolls the window by lines, the selection (inside a card, the
+// step) staying in view (CursorMotions).
+func (t *Timeline) MovePage(lines int) { t.scroll(lines) }
+
 func (t *Timeline) scroll(lines int) {
 	n := len(t.list.items)
 	if n == 0 || t.width <= 0 || t.avail <= 0 {
@@ -1300,17 +1345,7 @@ func registerTimelines(r *Runtime) {
 			return nil
 		}},
 		{"goto", "Select the first or last card, or the card numbered row (5G); the last shows its end and resumes following", true, map[string]Parameter{"id": id, "position": {Type: "string", Enum: []string{"first", "last"}, Description: "Where to go without a row number (default last)"}, "row": {Type: "integer", Description: "The card number, 1 the first (a count: 5G)"}}, func(t *Timeline, _ Context, a Arguments) error {
-			l := t.list
-			switch row := IntArg(a, "row", 0); {
-			case row > 0:
-				l.goTo(row - 1)
-			case StringArg(a, "position", "last") == "first":
-				l.goTo(0)
-			default:
-				l.goTo(len(l.items) - 1)
-				t.toBottom = true
-				t.follow = t.tail
-			}
+			t.goTo(StringArg(a, "position", "last") == "first", IntArg(a, "row", 0))
 			return nil
 		}},
 	} {

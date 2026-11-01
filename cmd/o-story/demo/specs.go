@@ -180,6 +180,9 @@ type ListSpec struct {
 	// Pin is the base mode the list declares (Runtime.PinInstance): focus
 	// on it puts the runtime in that mode.
 	Pin string `json:"pin,omitempty"`
+	// Placeholder is what the list draws with no rows
+	// (ochazuke.List.SetPlaceholder).
+	Placeholder *ochazuke.Placeholder `json:"placeholder,omitempty"`
 }
 
 // TreeSpec is one tree: its nodes (parents before children), drawn in the

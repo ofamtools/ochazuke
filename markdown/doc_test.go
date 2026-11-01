@@ -327,7 +327,7 @@ func TestViewHighlightsTheCursorLine(t *testing.T) {
 	if err := r.SetFocus("notes"); err != nil {
 		t.Fatal(err)
 	}
-	if got := d.View(40, 0, mono); !strings.Contains(got, "\x1b[2m\x1b[7m") {
+	if got := d.View(40, 0, mono); !strings.Contains(got, "\x1b[7;2m") { // faint reverse (Styles.Selection)
 		t.Fatalf("unfocused: %q", got)
 	}
 	for _, line := range strings.Split(d.View(40, 0, mono), "\n") {

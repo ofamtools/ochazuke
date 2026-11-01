@@ -174,7 +174,7 @@ func (e *RecordEditor) chipBlock(f *recordField, width, indent int) []string {
 			if focused && i == f.chip {
 				st = s.Tone(ToneChipFocused)
 				if !s.hasTone(ToneChipFocused) {
-					st = st.Reverse(true)
+					st = st.Inherit(s.Selection(true))
 				}
 			}
 			parts = append(parts, e.fieldStyle(f, st).Render(chipText(c, on)))
@@ -182,7 +182,7 @@ func (e *RecordEditor) chipBlock(f *recordField, width, indent int) []string {
 		out = append(out, ansi.Truncate(strings.Repeat(" ", indent)+strings.Join(parts, " "), width, "…"))
 	}
 	if len(f.choices) == 0 {
-		out = append(out, strings.Repeat(" ", indent)+e.fieldStyle(f, s.Muted).Render("(no values)"))
+		out = append(out, strings.Repeat(" ", indent)+e.fieldStyle(f, s.Muted).Render(EmptyText("values")))
 	}
 	return out
 }

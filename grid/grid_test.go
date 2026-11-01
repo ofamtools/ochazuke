@@ -285,3 +285,19 @@ func TestColumnWidthKeysAndTheirMemory(t *testing.T) {
 		t.Fatalf("z =: %v %v", g.ColumnWidths(), r.TableState("grid"))
 	}
 }
+
+// Without the focus the grid keeps its cursor cell marked, faded (UX
+// R5.1, Runtime.Selection: the faint reverse bar with no styles); the
+// focused grid draws Styles.Cursor.
+func TestUnfocusedGridKeepsItsCursorFaded(t *testing.T) {
+	r, g := sheet(t)
+	cursorLine := func() string { return strings.Split(g.View(20, 3), "\n")[1] }
+	if got := cursorLine(); !strings.Contains(got, "\x1b[7m") {
+		t.Fatalf("focused cursor: %q", got)
+	}
+	r.Instance("other", ochazuke.Parent("page"))
+	r.Focus = "other"
+	if got := cursorLine(); !strings.Contains(got, "\x1b[7;2m") {
+		t.Fatalf("unfocused grid lost its cursor: %q", got)
+	}
+}

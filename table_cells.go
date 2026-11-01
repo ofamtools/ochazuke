@@ -89,6 +89,21 @@ func RowSelect() InstanceOption { return func(*instanceSpec) {} }
 // cellMode reports whether the list is a table with a current column.
 func (l *List) cellMode() bool { return len(l.columns) > 0 && l.cellSelect }
 
+// columnTo makes the first or the last column in drawing order (to
+// "first" or "last") the current one: list.column {to}, view.edge's
+// column edges.
+func (l *List) columnTo(to string) {
+	order := l.order()
+	if len(order) == 0 {
+		return
+	}
+	n := 0
+	if to == "last" {
+		n = len(order) - 1
+	}
+	l.SetColumn(order[n])
+}
+
 // Column is a cell-mode table's current column (an index into Columns);
 // 0 for any other list.
 func (l *List) Column() int {

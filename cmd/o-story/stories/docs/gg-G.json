@@ -1,0 +1,15 @@
+{
+  "name": "help.markdown off (the plain docs viewer): G shows the page's end and g g its top through view.edge (no more ±1000000-line scrolls); ctrl+d moves half the window",
+  "area": "docs",
+  "width": 110,
+  "height": 20,
+  "values": {"help.markdown": false},
+  "page": {"lists": [{"id": "a", "rows": 2}]},
+  "script": [":", {"type": "docs open index"}, "enter", "G", "g", "g", "ctrl+d"],
+  "expect": [
+    {"after": 3, "modal": "docs-viewer", "contains": ["index · 1–"]},
+    {"after": 4, "modal": "docs-viewer", "contains": ["index · 10–19 / 19"]},
+    {"after": 6, "modal": "docs-viewer", "contains": ["index · 1–"]},
+    {"modal": "docs-viewer", "mode": "normal", "lacks": ["index · 1–"]}
+  ]
+}

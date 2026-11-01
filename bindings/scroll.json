@@ -3,7 +3,15 @@
   "bindings": [
     {"context": "app/normal", "bindings": [
       {"key": "ctrl+e", "action": "ochazuke.view.scroll", "args": {"lines": 1}, "from": {"count": "count"}, "hidden": true, "help": "Scroll the window a line down; the cursor stays unless it would leave it (Vim's ctrl+e, 3 ctrl+e)"},
-      {"key": "ctrl+y", "action": "ochazuke.view.scroll", "args": {"lines": -1}, "from": {"count": "count"}, "hidden": true, "help": "Scroll the window a line up; the cursor stays unless it would leave it (Vim's ctrl+y)"}
+      {"key": "ctrl+y", "action": "ochazuke.view.scroll", "args": {"lines": -1}, "from": {"count": "count"}, "hidden": true, "help": "Scroll the window a line up; the cursor stays unless it would leave it (Vim's ctrl+y)"},
+      {"key": "g g", "action": "ochazuke.view.edge", "args": {"edge": "first"}, "from": {"row": "line"}, "hidden": true, "help": "Go to the first row or line, or the row a count names (5gg), of any list, timeline, viewer or component with a cursor (Vim's gg)"},
+      {"key": "G", "action": "ochazuke.view.edge", "args": {"edge": "last"}, "from": {"row": "line"}, "hidden": true, "help": "Go to the last row or line, or the row a count names (5G) (Vim's G)"},
+      {"key": "ctrl+d", "action": "ochazuke.view.page", "args": {"delta": 1, "half": true}, "from": {"steps": "line"}, "hidden": true, "help": "Down half a page; a count is rows (Vim's ctrl+d)"},
+      {"key": "ctrl+u", "action": "ochazuke.view.page", "args": {"delta": -1, "half": true}, "from": {"steps": "line"}, "hidden": true, "help": "Up half a page; a count is rows (Vim's ctrl+u)"},
+      {"key": "ctrl+f", "action": "ochazuke.view.page", "args": {"delta": 1}, "from": {"steps": "line"}, "hidden": true, "help": "Down a page; a count is pages (Vim's ctrl+f)"},
+      {"key": "ctrl+b", "action": "ochazuke.view.page", "args": {"delta": -1}, "from": {"steps": "line"}, "hidden": true, "help": "Up a page; a count is pages (Vim's ctrl+b)"},
+      {"key": "0", "action": "ochazuke.view.edge", "args": {"edge": "first-col"}, "when": "no-count", "hidden": true, "help": "Go to the first column where the cursor moves sideways (Vim's 0)"},
+      {"key": "$", "action": "ochazuke.view.edge", "args": {"edge": "last-col"}, "hidden": true, "help": "Go to the last column where the cursor moves sideways (Vim's $)"}
     ]}
   ]
 }

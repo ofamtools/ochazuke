@@ -189,6 +189,7 @@ type Styles struct {
 	intersect      bool                // list.intersect, read by the list that draws (listTones)
 	cellCursor     ansi.Style          // list.cell-cursor's style for a table's current cell (Runtime.cellCursor); nil underlines it
 	backdropPlain  bool                // modal-highlights plain: the backdrop drops reverse video and underline
+	hideUnfocused  bool                // unfocused-selection hide: a selection without the focus is not drawn (WithUnfocusedSelection)
 	chrome         string              // the chrome level (chrome.color), "" before WithChrome (chrome.go)
 	appAccent      color.Color         // Appearance.Accent when it draws (not mono, not NO_COLOR)
 	modeColor      color.Color         // the mode role: the current mode's badge colour (WithChrome)
@@ -271,8 +272,64 @@ func (s *Styles) selectionBar(faded bool) ansi.Style {
 	if s == nil || !faded || s.selectionDim <= 0 || s.plain || s.text == nil || s.ground == nil {
 		return nil
 	}
+	return selectionSGR().ForegroundColor(s.fadeBy(s.text, s.barPercent()))
+}
+
+// selectionSGR is the plain reverse-video SGR, the focused selection's bar
+// for code that writes raw sequences (paintLine, highlightRow).
+func selectionSGR() ansi.Style {
 	var st ansi.Style
-	return st.Reverse(true).ForegroundColor(s.fadeBy(s.text, s.barPercent()))
+	return st.Reverse(true)
+}
+
+// Selection is the one selection painter: the style of the selected row,
+// cell or item of any component (a list, table, chooser, picker, Doc,
+// settings selector, grid, an app's own rows; UX R5.1). Focused, it is
+// reverse video. Without the focus the selection stays marked, faded: the
+// bar's colour (the foreground, which reverse video makes the bar) is
+// carried dim-unfocused plus dim-unfocused-selection percent from the
+// scheme's text toward its surface; in mono, NO_COLOR or with no styles
+// (a nil receiver) it is the faint reverse bar; under unfocused-selection
+// hide it is no style at all. Components and apps never
+// call Reverse themselves. A component the page already fades as a whole
+// (a page List under dim-unfocused) draws its bar through
+// Styles.selectionBar, which leaves the list's fade to dim it when
+// dim-unfocused-selection is 0.
+func (s *Styles) Selection(focused bool) lipgloss.Style {
+	st := lipgloss.NewStyle().Reverse(true)
+	if focused {
+		return st
+	}
+	if s != nil && s.hideUnfocused {
+		return lipgloss.NewStyle()
+	}
+	if s == nil || s.plain || s.text == nil || s.ground == nil {
+		return st.Faint(true)
+	}
+	if p := s.barPercent(); p > 0 {
+		return st.Foreground(s.fadeBy(s.text, p))
+	}
+	return st
+}
+
+// SelectionStyle is Styles.Selection for code with no Styles at hand (a
+// component's colourless defaults, an overlay mark's fallback, a text
+// cursor block): reverse video focused, faint reverse without the focus.
+func SelectionStyle(focused bool) lipgloss.Style {
+	return (*Styles)(nil).Selection(focused)
+}
+
+// Selection is the Model's selection painter (Styles.Selection), the
+// colourless one before a Model has set its styles. Components and apps
+// draw every selection through it (or Styles.Selection), never Reverse.
+func (r *Runtime) Selection(focused bool) lipgloss.Style {
+	if r != nil {
+		if styles := r.Settings().page.styles; styles != nil {
+			s := styles()
+			return s.Selection(focused)
+		}
+	}
+	return SelectionStyle(focused)
 }
 
 // CardBorders are the border styles of a card timeline's three states
@@ -306,7 +363,19 @@ const (
 	// underline beneath a modal stay, dimmed) or plain (the backdrop is
 	// drawn without them).
 	ModalBackdropHighlightsSetting = "modal-highlights"
+	// UnfocusedSelectionSetting: keep (a component without the focus keeps
+	// its selection marked, faded; UX R5.1) or hide (only the focused
+	// component draws its selection).
+	UnfocusedSelectionSetting = "unfocused-selection"
 )
+
+// WithUnfocusedSelection says whether a selection without the focus is
+// drawn (true, the default: unfocused-selection keep) or left plain
+// (unfocused-selection hide).
+func (s Styles) WithUnfocusedSelection(keep bool) Styles {
+	s.hideUnfocused = !keep
+	return s
+}
 
 // WithBackdropHighlights says whether a modal's backdrop keeps the page's
 // reverse video and underline (true, the default) or drops them

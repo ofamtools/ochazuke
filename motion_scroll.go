@@ -1,6 +1,10 @@
 package ochazuke
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+	"slices"
+)
 
 // The half-page rule (UX-RULES R3.14): one motion key press (j, k, a step,
 // a jump between items) never scrolls a view by more than half its height.
@@ -84,6 +88,142 @@ func (r *Runtime) viewScroller(focus string) func(lines int) {
 	return nil
 }
 
+// CursorMotions is a component with a cursor or a scroll that answers the
+// shared motions (UX-RULES R5.8): view.edge, to one of the four edges
+// named by edge (g g first, G last, 0 first-col, $ last-col; a count on
+// G or g g is the row number), and view.page, a page or half a page (the
+// ctrl+f/ctrl+b and ctrl+d/ctrl+u keys). A list (tables and trees through
+// their list), a timeline, a page detail (the docs viewer) and the yank
+// history implement it; an application's component answers the same keys
+// by implementing it. The innermost one on the focus path answers, unless
+// the component holding it implements it too (a timeline's card list):
+// then the holder does, as view.scroll's holder scrolls.
+type CursorMotions interface {
+	// MotionEdges is the edges the component can move to now: first and
+	// last while it has rows or lines, the column edges only where its
+	// cursor moves sideways (a cell-mode table); nil when nothing moves.
+	MotionEdges() []SpillEdge
+	// MoveToEdge moves the cursor (a view without one, its window) to
+	// edge, clamped, never spilling. For first and last a row above 0 is
+	// the row or line numbered row instead (1 the first: 5G).
+	MoveToEdge(edge SpillEdge, row int)
+	// PageLines is the rows or lines one page moves (its window); 0 when
+	// the component has nothing to page.
+	PageLines() int
+	// MovePage moves the cursor and the window by lines (down when
+	// positive), clamped at the edges, never spilling.
+	MovePage(lines int)
+}
+
+// motionTarget is the component the shared motions move for the focus:
+// the innermost CursorMotions on the focus path (an input excepted: its
+// text is the editor's), or the component holding it when that answers
+// too; nil when none does.
+func (r *Runtime) motionTarget(focus string) CursorMotions {
+	if r.Input(focus) != nil {
+		return nil
+	}
+	path := r.Ancestry(focus)
+	at := func(i int) CursorMotions {
+		if i < len(path) {
+			if inst := r.Instances[path[i]]; inst != nil {
+				if m, ok := inst.Component.(CursorMotions); ok {
+					return m
+				}
+			}
+		}
+		return nil
+	}
+	for i := range path {
+		if m := at(i); m != nil {
+			if holder := at(i + 1); holder != nil {
+				return holder
+			}
+			return m
+		}
+	}
+	return nil
+}
+
+// pageLines is view.page's distance: a page (times steps), or half a page
+// with half (steps rows when given: Vim's [count]ctrl+d), up when delta
+// is negative.
+func pageLines(page, delta, steps int, half bool) int {
+	lines := page
+	switch {
+	case half && steps > 0:
+		lines = steps
+	case half:
+		lines = max(1, page/2)
+	default:
+		lines *= max(1, steps)
+	}
+	if delta < 0 {
+		return -lines
+	}
+	return lines
+}
+
+func registerViewMotions(r *Runtime) {
+	edges := make([]string, len(SpillEdges))
+	for i, e := range SpillEdges {
+		edges[i] = string(e)
+	}
+	r.DefineGuard("view-edge-moves", func(r *Runtime, ev KeyEvent) bool {
+		m := r.motionTarget(ev.Focus)
+		if m == nil {
+			return false
+		}
+		have := m.MotionEdges()
+		if edge := StringArg(ev.Args, "edge", ""); edge != "" {
+			return slices.Contains(have, SpillEdge(edge))
+		}
+		return len(have) > 0
+	})
+	r.DefineGuard("view-pages", func(r *Runtime, ev KeyEvent) bool {
+		m := r.motionTarget(ev.Focus)
+		return m != nil && m.PageLines() > 0
+	})
+	r.Register(Operation{Verb: "edge", Noun: viewNoun, Motion: true,
+		Description: "Move the focused component's cursor to an edge: its first or last row (a row number instead, 5G), or its first or last column; clamps, never spills. Any list, table, tree, timeline (inside a card, its steps), docs viewer or yank history",
+		Parameters: map[string]Parameter{
+			"edge": {Type: "string", Required: true, Enum: edges, Description: "The edge: first, last, first-col or last-col"},
+			"row":  {Type: "integer", Description: "With first or last, the row or line numbered row instead (1 the first; a count: 5G); 0 or absent goes to the edge"},
+		}, Result: "moved", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+			m := r.motionTarget(focusOf(c))
+			if m == nil {
+				return nil, errors.New("nothing to move here")
+			}
+			edge := SpillEdge(StringArg(a, "edge", ""))
+			if !slices.Contains(m.MotionEdges(), edge) {
+				return nil, fmt.Errorf("no %s edge here", edge)
+			}
+			row := 0
+			if edge == EdgeFirst || edge == EdgeLast {
+				row = IntArg(a, "row", 0)
+			}
+			m.MoveToEdge(edge, row)
+			return true, nil
+		}})
+	r.SetAvailability(viewNoun+".edge", "view-edge-moves")
+	r.Register(Operation{Verb: "page", Noun: viewNoun, Motion: true,
+		Description: "Move the focused component's cursor and window a page (half a page with half) down or up; clamps, never spills. Any list, table, tree, timeline, docs viewer or yank history",
+		Parameters: map[string]Parameter{
+			"delta": {Type: "integer", Required: true, Description: "1 down, -1 up"},
+			"half":  {Type: "boolean", Description: "Half a page (ctrl+d, ctrl+u); steps is then rows"},
+			"steps": {Type: "integer", Description: "A count: pages, or rows with half (Vim's [count]ctrl+d); 0 or absent is one page or half a page"},
+		}, Result: "moved", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+			m := r.motionTarget(focusOf(c))
+			if m == nil || m.PageLines() <= 0 {
+				return nil, errors.New("nothing to page here")
+			}
+			half, _ := a["half"].(bool)
+			m.MovePage(pageLines(m.PageLines(), IntArg(a, "delta", 1), IntArg(a, "steps", 0), half))
+			return true, nil
+		}})
+	r.SetAvailability(viewNoun+".page", "view-pages")
+}
+
 // viewNoun is the focused scrollable view, the noun of view.scroll.
 const viewNoun = "ochazuke.view"
 
@@ -104,6 +244,7 @@ func registerViewScroll(r *Runtime) {
 			return true, nil
 		}})
 	r.SetAvailability(viewNoun+".scroll", "view-scrolls")
+	registerViewMotions(r)
 }
 
 // CanScrollLines reports whether the list windowed its rows in the last
@@ -137,3 +278,43 @@ func (l *List) ScrollLines(lines int) {
 		l.Move(hi - l.selected)
 	}
 }
+
+// MotionEdges is first and last while the list has rows, and the column
+// edges on a cell-mode table (CursorMotions).
+func (l *List) MotionEdges() []SpillEdge {
+	if l.selected < 0 || len(l.items) == 0 {
+		return nil
+	}
+	if l.cellMode() {
+		return SpillEdges
+	}
+	return []SpillEdge{EdgeFirst, EdgeLast}
+}
+
+// MoveToEdge is list.goto for the row edges and list.column {to} for the
+// column edges (CursorMotions).
+func (l *List) MoveToEdge(edge SpillEdge, row int) {
+	switch {
+	case row > 0:
+		l.goTo(row - 1)
+	case edge == EdgeFirst:
+		l.goTo(0)
+	case edge == EdgeLast:
+		l.goTo(len(l.items) - 1)
+	case edge == EdgeFirstColumn:
+		l.columnTo("first")
+	case edge == EdgeLastColumn:
+		l.columnTo("last")
+	}
+}
+
+// PageLines is the list's page (CursorMotions), as list.scroll's.
+func (l *List) PageLines() int {
+	if l.selected < 0 {
+		return 0
+	}
+	return l.pageRows()
+}
+
+// MovePage is list.scroll by lines rows (CursorMotions).
+func (l *List) MovePage(lines int) { l.page(lines) }

@@ -140,35 +140,33 @@ func (p *Picker) resultRows(width, height int) []string {
 	// The rows this frame can draw, which the stat job follows.
 	p.drawnRows = max(0, height-min(2, max(0, height-1)))
 	if len(p.Entries) == 0 {
-		return layoutRows("(no matching paths)", width, height)
+		if p.Loading {
+			return layoutRows(LoadingText("paths"), width, height)
+		}
+		return layoutRows(NoMatchText("paths", p.query), width, height)
 	}
 	var rows []string
 	if height > 1 {
 		rows = append(rows, fmt.Sprintf("Results %d/%d", p.Selected+1, len(p.Entries)))
 	}
-	const mark = 2
 	// The path's natural width is the whole row, so it takes every cell
 	// the other columns leave and the columns stay put while scrolling.
-	shown, widths := tableLayoutOf(pickerColumns, []int{width, 0, 0}, max(1, width-mark))
+	shown, widths := tableLayoutOf(pickerColumns, []int{width, 0, 0}, max(1, width))
 	if height > 2 {
 		titles := make([]string, len(pickerColumns))
 		for i, c := range pickerColumns {
 			titles[i] = c.Title
 		}
-		head := strings.TrimRight(strings.Repeat(" ", mark)+tableLine(pickerColumns, titles, shown, widths), " ")
+		head := strings.TrimRight(tableLine(pickerColumns, titles, shown, widths), " ")
 		rows = append(rows, lipgloss.NewStyle().Bold(true).Render(ansi.Truncate(head, width, "…")))
 	}
 	start, end := p.window(p.drawnRows)
 	for i := start; i < end; i++ {
-		prefix := "  "
-		if i == p.Selected {
-			prefix = "> "
-		}
 		stat, _ := p.stats.get(p.statKey(p.Entries[i]))
-		line := prefix + tableLine(pickerColumns, pickerCells(p.Entries[i], stat), shown, widths)
+		line := tableLine(pickerColumns, pickerCells(p.Entries[i], stat), shown, widths)
 		row := modalCells(ansi.Truncate(line, width, "…"), width)
 		if i == p.Selected {
-			row = lipgloss.NewStyle().Reverse(true).Render(row)
+			row = p.Runtime.Selection(true).Render(row)
 		}
 		rows = append(rows, row)
 	}
@@ -177,12 +175,12 @@ func (p *Picker) resultRows(width, height int) []string {
 
 func (p *Picker) previewRows(width, height int) []string {
 	if p.preview.path == "" {
-		return layoutRows("No selection", width, height)
+		return layoutRows("no path selected", width, height)
 	}
 	rows := []string{modalLabel(filepath.Base(p.preview.path)), p.preview.metadata}
 	switch {
 	case p.preview.loading:
-		rows = append(rows, "Loading preview…")
+		rows = append(rows, LoadingText("preview"))
 	case p.preview.err != "":
 		rows = append(rows, "Preview: "+safeText(p.preview.err))
 	default:

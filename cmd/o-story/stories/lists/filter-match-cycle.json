@@ -9,9 +9,9 @@
   },
   "script": ["/", {"type": "aa"}, "tab", "tab", "ctrl+u", {"type": "^a|ta$"}, "tab"],
   "expect": [
-    {"after": 2, "mode": "list_filter", "contains": ["/aa", "no matches", "substr", "tab search.cycle-match"], "lacks": ["alpha"]},
+    {"after": 2, "mode": "list_filter", "contains": ["/aa", "no rows match", "substr", "tab search.cycle-match"], "lacks": ["alpha"]},
     {"after": 3, "mode": "list_filter", "contains": ["3 of 5", "fuzzy", "alpha", "alphabet", "gamma"], "lacks": ["beta", "delta"]},
     {"after": 6, "mode": "list_filter", "contains": ["/^a|ta$", "4 of 5", "regex", "alpha", "beta", "alphabet", "delta"], "lacks": ["gamma"]},
-    {"mode": "list_filter", "contains": ["no matches", "substr"]}
+    {"mode": "list_filter", "contains": ["no rows match", "substr"]}
   ]
 }

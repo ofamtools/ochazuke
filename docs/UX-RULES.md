@@ -350,8 +350,16 @@ tiers above them. When the two disagree, fix one in the same commit.
   terminal) is on stays visible; a tree whose line is being edited is not
   faded. A list in a modal stays plain until focused. A table's highlight
   spans its row; inside it a cell-mode table marks its current cell (R5.10).
+  The same rule holds for every selection, not only lists: a chooser, the
+  path picker, the markdown Doc, the Settings section selector, a grid's
+  cursor cell and an app's own rows all draw through one painter,
+  `Styles.Selection(focused)` (`Runtime.Selection`), and never call
+  `Reverse` themselves; without the focus each keeps its selection marked,
+  faded. Setting `unfocused-selection` (`keep`, the default; `hide` draws
+  only the focused component's selection) turns the unfocused marks off.
   Story: `lists/one-highlight.json`, `lists/unfocused-dimmed.json`,
-  `lists/beside-terminal-keeps-row.json`, `lists/lone-list.json`.
+  `lists/beside-terminal-keeps-row.json`, `lists/lone-list.json`,
+  `settings/selector-unfocused.json`, `settings/selector-unfocused-hide.json`.
   Exception: a card timeline (`AddTimeline`, mtm's Turns) draws its
   selection as the card's border, never reverse video, so a selected
   card's wrapped prompt reads as text: the selected card of the focused
@@ -396,6 +404,17 @@ tiers above them. When the two disagree, fix one in the same commit.
   selection; they clamp at the list's edges and never spill; a row noun's
   own binding of the key answers first. Story: `lists/page-motions.json`;
   tests `TestListGotoEndsAndCounts`, `TestListPageMotionsClampWithoutSpilling`.
+  The same keys answer on every other component with a cursor or a
+  scroll (a timeline, inside its cards too; the docs viewer; the yank
+  history; a markdown document; an app's component) through one interface,
+  `CursorMotions`, and the shared verbs `view.edge {edge, row}` and
+  `view.page {delta, half, steps}`; `view.edge` names the four edges
+  (`first`, `last`, `first-col`, `last-col`; `0` and `$` the column
+  edges, only where the cursor moves sideways). No component fakes an edge
+  with a long scroll. Stories: `yank-history/gg-G`, `docs/gg-G`,
+  `timeline/edges`; tests `TestViewMotionsOnTheYankHistory`,
+  `TestViewMotionsOnTheDocsViewer`, `TestViewMotionsOnTheTimeline`,
+  `TestViewEdgeColumnsOnACellTable`, `TestSharedMotionsMoveTheDocument`.
 - **R5.9** A table that hides a column scrolls its columns: `z l`/`z h`
   move the view one column (a cell-mode table carries its current column
   along); on a row-select table (the default) `$` shows the last column and
@@ -613,6 +632,14 @@ tiers above them. When the two disagree, fix one in the same commit.
   `lists/filter-match-cycle.json`, `lists/filter-regex-invalid-says-why.json`,
   `lists/filter-match-setting.json`, `chooser/match-cycle-tab.json`; tests
   `search_match_test.go`.
+- **R5.19** Empty, loading and no-match texts have one format: lower
+  case, no parentheses, the rows' noun named (`no panes`, `loading
+  panes…`, `no panes match 'x'`). They are data (`Placeholder`:
+  `Empty`, `Loading`, `Plural`, `LoadingJob`; the same fields on
+  `ChooserSpec`), and a component draws `Loading` only while the job that
+  fills it runs, then `Empty`: "loading" never reads as "empty" and an
+  empty list never says it is loading. Story: `lists/empty-format.json`;
+  tests `placeholder_test.go`.
 
 ### R6. Chrome: footer, hints, help, ticker, notices
 

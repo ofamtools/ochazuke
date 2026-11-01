@@ -472,8 +472,7 @@ func (r *Runtime) cellCursor(faded bool) ansi.Style {
 		}
 		return c
 	}
-	var style ansi.Style
-	style = style.Reverse(true)
+	style := selectionSGR()
 	if look.bold {
 		style = style.Bold()
 	}
@@ -700,7 +699,7 @@ func paintLine(line string, width int, segs []toneSeg, st *Styles, selected, fad
 			if len(bar) > 0 {
 				style = append(style, bar...)
 			} else {
-				style = style.Reverse(true)
+				style = append(style, selectionSGR()...)
 			}
 		}
 		if fill != nil && (!selected || keep) {

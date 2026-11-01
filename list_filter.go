@@ -7,7 +7,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -65,10 +64,17 @@ func filterHay(item ListItem, m Matcher) string {
 // settings follow its section list's filter.
 func (l *List) OnFilter(fn func(*List)) { l.onFilter = fn }
 
-// SetMatchNoun names the list's rows, plural, for a filter that lets none
-// through: its empty line reads "no NOUN match 'QUERY'" instead of "(no
-// matches)". "" restores that.
-func (l *List) SetMatchNoun(plural string) { l.matchNoun = plural }
+// SetMatchNoun names the list's rows, plural (the placeholder's Plural):
+// its empty lines read "no NOUN", "no NOUN match 'QUERY'". "" names them
+// "rows".
+func (l *List) SetMatchNoun(plural string) { l.placeholder.Plural = plural }
+
+// SetPlaceholder sets what the list draws with no rows: its Empty and
+// Loading lines and the job that fills it (Placeholder).
+func (l *List) SetPlaceholder(p Placeholder) { l.placeholder = p }
+
+// Placeholder is what the list draws with no rows (SetPlaceholder).
+func (l *List) Placeholder() Placeholder { return l.placeholder }
 
 func (l *List) filterHeard() {
 	if l.onFilter != nil {
@@ -229,7 +235,7 @@ func (l *List) filterLine(width int) string {
 		left += "/" + modalLabel(l.query)
 	}
 	if editing {
-		left += lipgloss.NewStyle().Reverse(true).Render(" ")
+		left += SelectionStyle(true).Render(" ")
 	}
 	var right []string
 	if strings.TrimSpace(l.query) != "" || strip != "" {
@@ -237,7 +243,7 @@ func (l *List) filterLine(width int) string {
 		case err != nil:
 			right = append(right, err.Error())
 		case len(l.items) == 0:
-			right = append(right, "no matches")
+			right = append(right, "no "+pluralOr(l.placeholder.Plural)+" match")
 		default:
 			right = append(right, strconv.Itoa(len(l.items))+" of "+strconv.Itoa(len(l.all)))
 		}

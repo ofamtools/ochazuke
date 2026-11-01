@@ -7,7 +7,6 @@ import (
 	"slices"
 	"strings"
 
-	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -104,9 +103,9 @@ type List struct {
 	// onFilter, when set (OnFilter), hears every change of the text
 	// filter: a host that draws something by the list's matches follows it.
 	onFilter func(*List)
-	// matchNoun names the rows in the empty line of a filter that lets
-	// none through (SetMatchNoun): "no settings match 'path'".
-	matchNoun string
+	// placeholder is what the list draws with no rows (SetPlaceholder;
+	// SetMatchNoun sets its Plural): "no settings match 'path'".
+	placeholder Placeholder
 
 	// motion is a component's own j/k on the rows (a timeline's cards
 	// scroll by the half-page rule, R3.14); nil moves the list's way.
@@ -618,10 +617,11 @@ func (l *List) View(width, height int) string {
 }
 
 // marksSelection keeps the focused cursor visible, and lets a page list's
-// host suppress its remembered cursor without changing selection or focus.
+// host (List.UnfocusedSelection) or the user (unfocused-selection hide)
+// suppress its remembered cursor without changing selection or focus.
 // Unfocused modal lists stay plain.
 func (l *List) marksSelection() bool {
-	return l.Focused() || l.onPage() && (l.UnfocusedSelection == nil || l.UnfocusedSelection())
+	return l.Focused() || l.onPage() && (l.UnfocusedSelection == nil || l.UnfocusedSelection()) && l.r.Settings().String(UnfocusedSelectionSetting) != "hide"
 }
 
 // faded reports whether View fades the list (dim-unfocused): a page list
@@ -655,7 +655,7 @@ func (l *List) bar(faded bool) ansi.Style {
 // when the bar is dimmed.
 func barRow(row string, bar ansi.Style) string {
 	if len(bar) == 0 {
-		return lipgloss.NewStyle().Reverse(true).Render(row)
+		return SelectionStyle(true).Render(row)
 	}
 	return bar.String() + row + ansi.ResetStyle
 }
@@ -743,20 +743,22 @@ func (l *List) labelSegs(toned *Styles, item ListItem, text string, drawn int, g
 	return cellSegs(spansOf(l.rowTones(item), 0), text, x, drawn-x)
 }
 
-// emptyLine is what an empty list draws: "(empty list)", in reverse video
-// while the list has the focus, so a spill into it shows where the next key
-// lands (one thing stands out, UX review 2 F5).
+// emptyLine is what an empty list draws, in the one format (Placeholder):
+// its Loading while the job that fills it runs, its Empty with no rows at
+// all, else the no-match line of the filter that hid every row. It is in
+// reverse video while the list has the focus, so a spill into it shows
+// where the next key lands (one thing stands out, UX review 2 F5).
 func (l *List) emptyLine() string {
-	text := "(empty list)"
-	if len(l.items) == 0 && len(l.all) > 0 && l.matchNoun != "" && strings.TrimSpace(l.query) != "" {
-		text = fmt.Sprintf("no %s match '%s'", l.matchNoun, l.query)
-	} else if len(l.items) == 0 && l.Filtering() && !l.r.Settings().Bool("list.filter-strip") {
-		text = fmt.Sprintf("0 of %d (filtered)", len(l.all))
-	} else if len(l.all) > 0 {
-		text = "(no matches)" // every row is filtered out
+	p := l.placeholder
+	text := p.Text(l.r)
+	if len(l.all) > 0 {
+		text = NoMatchText(p.Plural, l.query)
+		if l.Filtering() && !l.r.Settings().Bool("list.filter-strip") {
+			text += fmt.Sprintf(", 0 of %d", len(l.all)) // no strip to count them
+		}
 	}
 	if l.Focused() {
-		return lipgloss.NewStyle().Reverse(true).Render(text)
+		return l.r.Selection(true).Render(text)
 	}
 	return text
 }

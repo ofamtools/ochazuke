@@ -57,8 +57,10 @@ func highlights(row string) (full, dimmed bool) {
 		if j >= len(row) || row[j] != 'm' {
 			continue
 		}
-		params := strings.Split(row[i+2:j], ";")
-		for _, p := range params {
+		// One sequence sets its attributes at once, in any order
+		// ("7;2" is as faint as "2;7"): apply them all, then judge.
+		reverse := false
+		for _, p := range strings.Split(row[i+2:j], ";") {
 			switch p {
 			case "", "0":
 				faint = false
@@ -67,11 +69,14 @@ func highlights(row string) (full, dimmed bool) {
 			case "22":
 				faint = false
 			case "7":
-				if faint {
-					dimmed = true
-				} else {
-					full = true
-				}
+				reverse = true
+			}
+		}
+		if reverse {
+			if faint {
+				dimmed = true
+			} else {
+				full = true
 			}
 		}
 		i = j

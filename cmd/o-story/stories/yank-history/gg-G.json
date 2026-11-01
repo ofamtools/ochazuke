@@ -1,0 +1,30 @@
+{
+  "name": "the yank history answers G, g g, a count's G and ctrl+d/ctrl+u through the shared motions (view.edge, view.page), as a list does",
+  "area": "yank-history",
+  "width": 60,
+  "height": 14,
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "items": [
+          {"id": "r1", "label": "row 1"},
+          {"id": "r2", "label": "row 2"},
+          {"id": "r3", "label": "row 3"},
+          {"id": "r4", "label": "row 4"}
+        ],
+        "selected": 0
+      }
+    ]
+  },
+  "script": ["V", "y", "j", "V", "y", "j", "V", "y", "j", "V", "y", "g", "y", "G", "g", "g", "3", "G", "ctrl+u", "ctrl+d"],
+  "expect": [
+    {"after": 13, "modal": "__yank-history", "contains": ["› 1 ["]},
+    {"after": 14, "modal": "__yank-history", "contains": ["› 4 ["]},
+    {"after": 16, "modal": "__yank-history", "contains": ["› 1 ["]},
+    {"after": 18, "modal": "__yank-history", "contains": ["› 3 ["]},
+    {"after": 19, "modal": "__yank-history", "contains": ["› 1 ["]},
+    {"modal": "__yank-history", "mode": "normal", "contains": ["› 4 ["]}
+  ]
+}
