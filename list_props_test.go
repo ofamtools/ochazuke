@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -35,9 +36,9 @@ func rowPropsFixture(t *testing.T) (*Runtime, *Model, *List) {
 func TestRowPropsOfferUndeclaredFields(t *testing.T) {
 	_, _, l := rowPropsFixture(t)
 	got := l.filterProps()
-	want := []string{"count", "done", "empty", "id", "mixed", "state", "tags", "title"}
+	want := []string{"count", "done", "empty", "id", "mixed", "nested", "state", "tags", "title"}
 	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("props %v, want %v (no secret, no NoFilter, no object)", got, want)
+		t.Fatalf("props %v, want %v (no secret, no NoFilter; objects as text)", got, want)
 	}
 	specs := l.filterSpecs()
 	for name, typ := range map[string]string{"count": SettingNumber, "done": SettingBoolean, "tags": SettingList, "state": SettingString, "mixed": SettingString} {
@@ -67,7 +68,7 @@ func TestRowPropsOfferUndeclaredFields(t *testing.T) {
 			t.Fatalf("%+v: shown %v, want %v", tc.f, got, tc.want)
 		}
 	}
-	for _, f := range []PropFilter{{"token", "=", "s3cret"}, {"note", "=", "n"}, {"nested", "=", "x"}, {"absent", "=", "x"}} {
+	for _, f := range []PropFilter{{"token", "=", "s3cret"}, {"note", "=", "n"}, {"absent", "=", "x"}} {
 		if err := l.SetPropFilters([]PropFilter{f}); err == nil {
 			t.Fatalf("filter on %s must be refused", f.Prop)
 		}
@@ -77,7 +78,7 @@ func TestRowPropsOfferUndeclaredFields(t *testing.T) {
 func TestRowPropsPickerAndCacheByRows(t *testing.T) {
 	r, m, l := rowPropsFixture(t)
 	chooserChain(t, r) // the prop chooser then the value chooser (list.filter-form off)
-	if err := r.Settings().Set(PropsOffSetting, `["*.count","*.done","*.empty","*.id","*.mixed","*.tags","*.title"]`); err != nil {
+	if err := r.Settings().Set(PropsOffSetting, `["*.count","*.done","*.empty","*.id","*.mixed","*.nested","*.tags","*.title"]`); err != nil {
 		t.Fatal(err)
 	}
 	pressKeys(m, "z", "/")
@@ -124,7 +125,7 @@ func TestRowPropsOffByNounAndSetting(t *testing.T) {
 	if err := r.Settings().Set(PropsOffSetting, `["a.state", "*.mixed"]`); err != nil {
 		t.Fatal(err)
 	}
-	if got := l.filterProps(); !reflect.DeepEqual(got, []string{"done", "empty", "id", "title"}) {
+	if got := l.filterProps(); !reflect.DeepEqual(got, []string{"done", "empty", "id", "nested", "title"}) {
 		t.Fatal(got)
 	}
 	if err := r.Settings().Set(PropsOffSetting, `["*"]`); err != nil {
@@ -198,5 +199,142 @@ func TestRowPropsTableCells(t *testing.T) {
 	}
 	if got := shownIDs(l); !reflect.DeepEqual(got, []string{"y"}) {
 		t.Fatal(got)
+	}
+}
+
+func TestFieldKindObjectsAndListsCompareAsText(t *testing.T) {
+	for _, tc := range []struct {
+		v    any
+		want string
+	}{
+		{nil, ""},
+		{"x", SettingString},
+		{3.0, SettingNumber},
+		{true, SettingBoolean},
+		{[]any{"a", "b"}, SettingList},
+		{[]string{"a"}, SettingList},
+		{[]any{"a", 1}, "mixed"},
+		{[]any{map[string]any{"k": 1}}, "mixed"},
+		{map[string]any{"kind": "owner"}, "mixed"},
+		{Thing{"kind": "owner"}, "mixed"},
+		{Arguments{"kind": "owner"}, "mixed"},
+		{Record{"kind": "owner"}, "mixed"},
+		{struct{ A int }{1}, "mixed"},
+	} {
+		if got := fieldKind(tc.v); got != tc.want {
+			t.Fatalf("fieldKind(%#v) = %q, want %q", tc.v, got, tc.want)
+		}
+	}
+	// Object text is compact JSON with sorted keys, so it is stable.
+	if got := looseText(map[string]any{"name": "me", "kind": "owner", "at": 1}); got != `{"at":1,"kind":"owner","name":"me"}` {
+		t.Fatalf("looseText = %v", got)
+	}
+}
+
+// objectPropsFixture gives the rows of rowPropsFixture a task-like
+// created-by (always an object), changed-by (an object or a string) and
+// deps (a list of objects).
+func objectPropsFixture(t *testing.T) (*Runtime, *Model, *List) {
+	t.Helper()
+	r, m, l := rowPropsFixture(t)
+	items := l.Items()
+	for i := range items {
+		data := items[i].Data.(map[string]any)
+		owner := "owner"
+		if i%2 == 1 {
+			owner = "agent"
+		}
+		data["created-by"] = map[string]any{"name": "n" + owner, "kind": owner}
+		if i%2 == 0 {
+			data["changed-by"] = "cli"
+		} else {
+			data["changed-by"] = map[string]any{"kind": "agent"}
+		}
+		data["deps"] = []any{map[string]any{"id": i}}
+	}
+	if err := l.SetItems(items); err != nil {
+		t.Fatal(err)
+	}
+	return r, m, l
+}
+
+func TestRowPropsObjectFieldsFilterAsText(t *testing.T) {
+	_, _, l := objectPropsFixture(t)
+	specs := l.filterSpecs()
+	for _, name := range []string{"created-by", "changed-by", "deps", "nested"} {
+		p, ok := specs[name]
+		if !ok {
+			t.Fatalf("%s not offered: %v", name, l.filterProps())
+		}
+		if p.Type != SettingString || !p.loose || !p.Derived || !p.ReadOnly {
+			t.Fatalf("%s: %+v", name, p)
+		}
+	}
+	for _, tc := range []struct {
+		f    PropFilter
+		want []string
+	}{
+		{PropFilter{"created-by", "=", `{"kind":"agent","name":"nagent"}`}, []string{"r2", "r4"}},
+		{PropFilter{"created-by", "contains", `"kind":"owner"`}, []string{"r1", "r3", "r5"}},
+		{PropFilter{"changed-by", "=", "cli"}, []string{"r1", "r3", "r5"}},
+		{PropFilter{"changed-by", "=", `{"kind":"agent"}`}, []string{"r2", "r4"}},
+		{PropFilter{"deps", "=", `[{"id":2}]`}, []string{"r3"}},
+		{PropFilter{"nested", "contains", `"x":1`}, []string{"r1", "r2", "r3", "r4", "r5"}},
+	} {
+		if err := l.SetPropFilters([]PropFilter{tc.f}); err != nil {
+			t.Fatalf("%+v: %v", tc.f, err)
+		}
+		if got := shownIDs(l); !reflect.DeepEqual(got, tc.want) {
+			t.Fatalf("%+v: shown %v, want %v", tc.f, got, tc.want)
+		}
+	}
+}
+
+func TestRowPropsObjectValuePickerOffersText(t *testing.T) {
+	r, m, l := objectPropsFixture(t)
+	chooserChain(t, r)
+	if err := r.Settings().Set(PropsOffSetting, `["*.count","*.done","*.empty","*.id","*.mixed","*.nested","*.tags","*.title","*.state","*.changed-by","*.deps"]`); err != nil {
+		t.Fatal(err)
+	}
+	pressKeys(m, "z", "/")
+	c := r.Chooser("list-filter-prop")
+	if c == nil {
+		t.Fatal("prop picker did not open")
+	}
+	if ms := c.Matches(); len(ms) != 1 || ms[0].ID != "created-by" {
+		t.Fatalf("prop picker rows %+v", ms)
+	}
+	pressKeys(m, "enter")
+	v := r.Chooser("list-filter-value")
+	if v == nil {
+		t.Fatal("value picker did not open")
+	}
+	var labels []string
+	for _, row := range v.Matches() {
+		labels = append(labels, row.Label)
+	}
+	want := []string{`{"kind":"agent","name":"nagent"}`, `{"kind":"owner","name":"nowner"}`}
+	if !reflect.DeepEqual(labels, want) {
+		t.Fatalf("value labels %v, want %v", labels, want)
+	}
+	pressKeys(m, "enter")
+	if got := shownIDs(l); !reflect.DeepEqual(got, []string{"r2", "r4"}) {
+		t.Fatalf("picked created-by shown %v", got)
+	}
+}
+
+func TestRowPropsObjectFieldsStillTurnOff(t *testing.T) {
+	r, _, l := objectPropsFixture(t)
+	r.Define("a").Props(PropSpec{Name: "created-by", Secret: true}, PropSpec{Name: "deps", NoFilter: true})
+	r.Define("a").PropsOff("nested")
+	if err := r.Settings().Set(PropsOffSetting, `["a.changed-by"]`); err != nil {
+		t.Fatal(err)
+	}
+	l.derived = nil
+	got := l.filterProps()
+	for _, name := range []string{"created-by", "changed-by", "deps", "nested"} {
+		if slices.Contains(got, name) {
+			t.Fatalf("%s must stay off: %v", name, got)
+		}
 	}
 }

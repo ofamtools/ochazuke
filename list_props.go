@@ -15,8 +15,10 @@ import (
 // (ListItem.Props, else ThingOf(Data)) is a derived prop: its type is read
 // from the values (string, number, boolean, list of strings; values of
 // mixed kinds compare as their text), it is ReadOnly and Derived, and it
-// lives only here, never on the noun, so nothing can write it. Objects are
-// not filterable (no nested fields: a prop name has no dot); nulls say
+// lives only here, never on the noun, so nothing can write it. No field is
+// dropped for its value type: an object, a list of non-strings, or any other
+// value compares as its text (compact JSON, keys sorted), the same way mixed
+// kinds do; nested fields are not read (a prop name has no dot). Nulls say
 // nothing about the type.
 //
 // Off only explicitly: a Secret prop is never offered; a declared prop
@@ -34,7 +36,8 @@ const PropsOffSetting = "list.props-off"
 const propValueCap = 500
 
 // fieldKind is the prop type a row value suggests, "" for one that says
-// nothing (null) and "-" for one that is not filterable (an object).
+// nothing (null) and "mixed" for one that compares as its text (an object,
+// a list of non-strings, anything else).
 func fieldKind(v any) string {
 	switch t := v.(type) {
 	case nil:
@@ -50,18 +53,18 @@ func fieldKind(v any) string {
 	case []any:
 		for _, item := range t {
 			if _, ok := item.(string); !ok {
-				return "-"
+				return "mixed"
 			}
 		}
 		return SettingList
-	case map[string]any, Thing, Arguments, Record:
-		return "-"
 	}
-	return "-"
+	return "mixed"
 }
 
-// looseText is a scalar as text: a derived prop of mixed kinds compares
-// its values this way.
+// looseText is a value as text: a derived prop of mixed kinds (objects
+// included) compares its values this way. Strings stay as they are; other
+// values are compact JSON, whose object keys are sorted, so the text is
+// stable.
 func looseText(v any) any {
 	switch t := v.(type) {
 	case nil, string:
@@ -128,18 +131,13 @@ func (l *List) fieldProps() fieldProps {
 			switch old, seen := kinds[noun][name]; {
 			case !seen || old == "":
 				kinds[noun][name] = kind
-			case old != kind && old != "-" && kind != "-":
+			case old != kind:
 				kinds[noun][name] = "mixed"
-			case kind == "-":
-				kinds[noun][name] = "-"
 			}
 		}
 	}
 	for noun, fields := range kinds {
 		for name, kind := range fields {
-			if kind == "-" {
-				continue
-			}
 			p := PropSpec{Name: name, ReadOnly: true, Derived: true}
 			p.Description = "read from the rows"
 			switch kind {

@@ -17,15 +17,15 @@ Root package `ochazuke` is flat: 157 source files, 180 test files. Each entry li
 
 ### action_names.go
 
-- lines: 669 · tests: action_names_test.go
+- lines: 689 · tests: action_names_test.go
 - purpose: ActionAlias is one extra name of a registered action.
 - types: ActionAlias, ParamAlias, Invocation
-- methods: ActionAlias(5), NounBuilder(3), ParamAlias(2), Runtime(24)
+- methods: ActionAlias(6), NounBuilder(3), ParamAlias(2), Runtime(24)
 - leans on: runtime.go(42), noun.go(24), actions.go(22), standard_derived.go(3)
 
 ### actions.go
 
-- lines: 697 · tests: actions_test.go
+- lines: 699 · tests: actions_test.go
 - purpose: Action is one entry of actions.json: a verb on an existing noun that runs an external command.
 - types: Action, Argv, AliasRow
 - methods: Action(8), Argv(1), Config(1), Runtime(7)
@@ -242,7 +242,7 @@ Root package `ochazuke` is flat: 157 source files, 180 test files. Each entry li
 
 ### docs_reference.go
 
-- lines: 411 · tests: docs_reference_test.go
+- lines: 410 · tests: docs_reference_test.go
 - purpose: ReferenceModel is the runtime as the generated reference sees it: every declared setting (with the user's value where it differs from the default) and every ...
 - methods: Runtime(6), Settings(2), docsViewer(2)
 - leans on: runtime.go(22), settings.go(12), noun.go(11), instance.go(5)
@@ -453,7 +453,7 @@ Root package `ochazuke` is flat: 157 source files, 180 test files. Each entry li
 
 ### list.go
 
-- lines: 895 · tests: list_test.go
+- lines: 902 · tests: list_test.go
 - purpose: ListItem is application-owned identity, display text, and the registered noun the row answers to.
 - types: ListItem, List
 - methods: List(32), Runtime(2)
@@ -514,10 +514,10 @@ Root package `ochazuke` is flat: 157 source files, 180 test files. Each entry li
 
 ### list_props.go
 
-- lines: 260 · tests: list_props_test.go
-- purpose: fieldKind is the prop type a row value suggests, "" for one that says nothing (null) and "-" for one that is not filterable (an object).
+- lines: 258 · tests: list_props_test.go
+- purpose: fieldKind is the prop type a row value suggests, "" for one that says nothing (null) and "mixed" for one that compares as its text (an object, a list of non-...
 - methods: List(4), Runtime(2)
-- leans on: props.go(8), settings.go(7), list.go(6), noun.go(6)
+- leans on: props.go(7), settings.go(7), list.go(6), noun.go(6)
 
 ### list_visual.go
 
@@ -663,11 +663,11 @@ Root package `ochazuke` is flat: 157 source files, 180 test files. Each entry li
 
 ### palette_parse.go
 
-- lines: 1004
+- lines: 1012
 - purpose: lineToken is one word of the line; Text is unquoted.
 - types: PaletteWord
 - methods: Palette(12), commandLine(3), lineIndex(10), option(1)
-- leans on: block.go(58), instance.go(38), runtime.go(23), noun.go(12)
+- leans on: block.go(58), instance.go(39), runtime.go(23), noun.go(13)
 
 ### palette_results.go
 
@@ -694,11 +694,11 @@ Root package `ochazuke` is flat: 157 source files, 180 test files. Each entry li
 
 ### path_chooser.go
 
-- lines: 504 · tests: path_chooser_test.go
+- lines: 571 · tests: path_chooser_test.go
 - purpose: PathPick describes what a path chooser is open for.
 - types: PathPick, PathChooserSpec
 - methods: PathPick(1), Runtime(11)
-- leans on: chooser.go(20), runtime.go(19), delivery.go(16), chooser_sources.go(13)
+- leans on: chooser.go(23), runtime.go(21), delivery.go(16), chooser_sources.go(14)
 
 ### path_walk.go
 
@@ -1848,7 +1848,7 @@ Importable package `markdown`: 15 source files, 11 test files.
 
 ### markdown/doc.go
 
-- lines: 976 · tests: doc_test.go
+- lines: 980 · tests: doc_test.go
 - purpose: Source is where a Doc's Markdown lives: Load reads it as it is now and Save stores a new text.
 - types: Source, DebounceMsg, Doc
 - methods: Doc(45), refusal(2)
@@ -1888,10 +1888,10 @@ Importable package `markdown`: 15 source files, 11 test files.
 
 ### markdown/layout.go
 
-- lines: 319
+- lines: 356
 - purpose: layout is a Doc drawn at one width: its lines, per element the first and last line it covers ({-1, -1} when it is not drawn), per line the element it belongs...
-- methods: layout(1)
-- leans on: tasks.go(48), elements.go(9), table.go(8), render.go(2)
+- methods: layout(2)
+- leans on: tasks.go(50), elements.go(15), table.go(8), render.go(2)
 
 ### markdown/links.go
 
@@ -1941,10 +1941,10 @@ Importable package `markdown`: 15 source files, 11 test files.
 
 ### markdown/verbs.go
 
-- lines: 317
+- lines: 318
 - purpose: Register defines the markdown nouns, their verbs and keys once per runtime (see Doc for the keys).
 - funcs: Register
-- leans on: doc.go(72), insert.go(14), elements.go(9), edit.go(7)
+- leans on: doc.go(74), insert.go(14), elements.go(9), edit.go(7)
 
 ### markdown/view.go
 

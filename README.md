@@ -819,8 +819,9 @@ type, enum and guard. Any other top-level field of the rows (ids included) is
 a derived prop, read from the rows when a picker, a guard or a filter first
 asks and kept until the rows change: its type comes from the values (string,
 number, boolean, a list of strings; values of mixed kinds compare as their
-text; objects are not filterable and nested fields are not read, since a prop
-name has no dot). A derived prop is `ReadOnly` and `Derived` and lives only in
+text; no field is dropped for its value type: an object or a list of
+non-strings compares as its text, compact JSON with sorted keys, and nested
+fields are not read, since a prop name has no dot). A derived prop is `ReadOnly` and `Derived` and lives only in
 the list's filter layer, never on the noun, so `set`, forms, the palette, the
 CLI and MCP cannot write it (`NOUN has no prop "x"; only declared props are
 writable`). This covers app nouns, nouns mounted from a catalog (whose rows
