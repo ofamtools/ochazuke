@@ -1,0 +1,85 @@
+{
+  "name": "unfocused-selection hide: the narrow settings page's selector line draws no highlight once the focus moves to a setting; only the focused row is highlighted",
+  "area": "settings",
+  "width": 60,
+  "height": 24,
+  "theme": "mono",
+  "settings": [
+    {
+      "name": "editor",
+      "type": "string",
+      "default": "vi",
+      "description": "The command that opens a file"
+    },
+    {
+      "name": "panes.group",
+      "type": "string",
+      "default": "project",
+      "enum": [
+        "project",
+        "flat"
+      ],
+      "description": "How panes group"
+    },
+    {
+      "name": "panes.percent",
+      "type": "integer",
+      "default": 25,
+      "description": "The queue's share of the height"
+    },
+    {
+      "name": "schedule.gh.enabled",
+      "section": "schedules",
+      "group": "gh-signals",
+      "type": "boolean",
+      "default": true,
+      "description": "Run the gh-signals schedule"
+    },
+    {
+      "name": "schedules.catch-up",
+      "type": "boolean",
+      "default": false,
+      "description": "Run a schedule missed while the app was closed"
+    }
+  ],
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": ",",
+        "do": "settings.edit"
+      }
+    ]
+  },
+  "config": {
+    "settings.json": {
+      "settings.all-section": false,
+      "unfocused-selection": "hide"
+    }
+  },
+  "script": [
+    ",",
+    "h",
+    "j"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "focus": "__settings/section/app/general",
+      "highlighted": 1,
+      "dimmed": 0
+    },
+    {
+      "focus": "__settings/row/editor",
+      "highlighted": 1,
+      "highlightedText": "editor",
+      "dimmed": 0
+    }
+  ]
+}

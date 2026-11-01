@@ -174,7 +174,7 @@ func (e *RecordEditor) chipBlock(f *recordField, width, indent int) []string {
 			if focused && i == f.chip {
 				st = s.Tone(ToneChipFocused)
 				if !s.hasTone(ToneChipFocused) {
-					st = st.Reverse(true)
+					st = st.Inherit(s.Selection(true))
 				}
 			}
 			parts = append(parts, e.fieldStyle(f, st).Render(chipText(c, on)))

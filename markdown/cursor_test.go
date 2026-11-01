@@ -4,9 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
-	"ofam.dev/ochazuke"
 )
 
 func TestItemCursorMovesAcrossElements(t *testing.T) {
@@ -77,16 +75,14 @@ func TestItemCursorFullWidth(t *testing.T) {
 			if span[1] <= span[0] {
 				t.Fatalf("fixture did not wrap: %q", text)
 			}
-			st := lipgloss.NewStyle().Reverse(true)
+			styles := r.StylesFor(mono)
+			st := styles.Selection(focused) // the one selection painter
 			for l, line := range view {
 				if l < span[0] || l > span[1] {
 					continue
 				}
 				plain := ansi.Truncate(ansi.Strip(d.lay.lines[l]), 36, "")
 				want := st.Render(plain + strings.Repeat(" ", 36-ansi.StringWidth(plain)))
-				if !focused {
-					want = ochazuke.NewStyles(mono).Fade(r.Settings().Int(ochazuke.DimUnfocusedSetting)).Render(want)
-				}
 				if line != want || ansi.StringWidth(line) != 36 {
 					t.Fatalf("full-width cursor on line %d focused=%v:\ngot  %q\nwant %q", l, focused, line, want)
 				}

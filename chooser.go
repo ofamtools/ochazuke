@@ -8,7 +8,6 @@ import (
 	"unicode"
 
 	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -701,7 +700,7 @@ func (c *Chooser) rowsView(width, height int) Block {
 			return
 		}
 		if i == c.cursor {
-			row = lipgloss.NewStyle().Reverse(true).Render(ansi.Truncate(row+strings.Repeat(" ", max(0, width-ansi.StringWidth(row))), width, ""))
+			row = toned.Selection(true).Render(ansi.Truncate(row+strings.Repeat(" ", max(0, width-ansi.StringWidth(row))), width, ""))
 		}
 		lines = append(lines, row)
 	}

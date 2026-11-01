@@ -350,8 +350,16 @@ tiers above them. When the two disagree, fix one in the same commit.
   terminal) is on stays visible; a tree whose line is being edited is not
   faded. A list in a modal stays plain until focused. A table's highlight
   spans its row; inside it a cell-mode table marks its current cell (R5.10).
+  The same rule holds for every selection, not only lists: a chooser, the
+  path picker, the markdown Doc, the Settings section selector, a grid's
+  cursor cell and an app's own rows all draw through one painter,
+  `Styles.Selection(focused)` (`Runtime.Selection`), and never call
+  `Reverse` themselves; without the focus each keeps its selection marked,
+  faded. Setting `unfocused-selection` (`keep`, the default; `hide` draws
+  only the focused component's selection) turns the unfocused marks off.
   Story: `lists/one-highlight.json`, `lists/unfocused-dimmed.json`,
-  `lists/beside-terminal-keeps-row.json`, `lists/lone-list.json`.
+  `lists/beside-terminal-keeps-row.json`, `lists/lone-list.json`,
+  `settings/selector-unfocused.json`, `settings/selector-unfocused-hide.json`.
   Exception: a card timeline (`AddTimeline`, mtm's Turns) draws its
   selection as the card's border, never reverse video, so a selected
   card's wrapped prompt reads as text: the selected card of the focused

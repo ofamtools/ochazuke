@@ -3,7 +3,6 @@ package markdown
 import (
 	"strings"
 
-	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"ofam.dev/ochazuke"
 )
@@ -98,14 +97,10 @@ func (d *Doc) cursorSpan(line int) (int, int) {
 }
 
 func (d *Doc) highlight(line string, width int, a ochazuke.Appearance) string {
-	st := lipgloss.NewStyle().Reverse(true)
-	paint := func(text string) string {
-		out := st.Render(text)
-		if !d.list.Focused() {
-			out = ochazuke.NewStyles(a).Fade(d.r.Settings().Int(ochazuke.DimUnfocusedSetting)).Render(out)
-		}
-		return out
-	}
+	// The one selection painter: reverse video, kept marked and faded
+	// without the focus (UX R5.1, unfocused-selection).
+	styles := d.r.StylesFor(a)
+	paint := styles.Selection(d.list.Focused()).Render
 	plain := ansi.Truncate(ansi.Strip(line), width, "")
 	if d.r.Settings().String(CursorWidthSetting) == "text" {
 		body := strings.Trim(plain, " ")
@@ -127,14 +122,17 @@ func (d *Doc) highlightLink(line string, row, width int, a ochazuke.Appearance) 
 		return d.highlight(line, width, a)
 	}
 	out := d.highlight(line, width, a)
-	st := ochazuke.NewStyles(a).Accent.Underline(true).Reverse(true)
-	paint := func(text string) string {
-		out := st.Render(text)
-		if !d.list.Focused() {
-			out = ochazuke.NewStyles(a).Fade(d.r.Settings().Int(ochazuke.DimUnfocusedSetting)).Render(out)
-		}
-		return out
+	// Focused, the link takes the accent inside the bar; without the focus
+	// it is the faded bar underlined (Runtime.Selection).
+	styles := d.r.StylesFor(a)
+	st := styles.Selection(false)
+	if st.GetReverse() {
+		st = st.Underline(true)
 	}
+	if d.list.Focused() {
+		st = styles.Accent.Underline(true).Inherit(styles.Selection(true))
+	}
+	paint := st.Render
 	for _, run := range link.runs {
 		if run.line != row {
 			continue

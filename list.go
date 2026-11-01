@@ -7,7 +7,6 @@ import (
 	"slices"
 	"strings"
 
-	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -618,10 +617,11 @@ func (l *List) View(width, height int) string {
 }
 
 // marksSelection keeps the focused cursor visible, and lets a page list's
-// host suppress its remembered cursor without changing selection or focus.
+// host (List.UnfocusedSelection) or the user (unfocused-selection hide)
+// suppress its remembered cursor without changing selection or focus.
 // Unfocused modal lists stay plain.
 func (l *List) marksSelection() bool {
-	return l.Focused() || l.onPage() && (l.UnfocusedSelection == nil || l.UnfocusedSelection())
+	return l.Focused() || l.onPage() && (l.UnfocusedSelection == nil || l.UnfocusedSelection()) && l.r.Settings().String(UnfocusedSelectionSetting) != "hide"
 }
 
 // faded reports whether View fades the list (dim-unfocused): a page list
@@ -655,7 +655,7 @@ func (l *List) bar(faded bool) ansi.Style {
 // when the bar is dimmed.
 func barRow(row string, bar ansi.Style) string {
 	if len(bar) == 0 {
-		return lipgloss.NewStyle().Reverse(true).Render(row)
+		return SelectionStyle(true).Render(row)
 	}
 	return bar.String() + row + ansi.ResetStyle
 }
@@ -758,7 +758,7 @@ func (l *List) emptyLine() string {
 		}
 	}
 	if l.Focused() {
-		return lipgloss.NewStyle().Reverse(true).Render(text)
+		return l.r.Selection(true).Render(text)
 	}
 	return text
 }

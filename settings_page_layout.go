@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -1186,15 +1185,16 @@ func sectionListWidth(list *List, width int) (int, int) {
 }
 
 // settingsSelector is the narrow page's selector line: the shown section
-// among the listed ones, ‹ Title ◦  i/n ›, reversed while it has the focus.
+// among the listed ones, ‹ Title ◦  i/n ›, reversed while it has the focus
+// and kept marked, faded, without it (Styles.Selection, UX R5.1).
 // It stands for the section list as its stop (Placed), so j from it and k
 // to it move as from and to the list.
 func settingsSelector(r *Runtime, styles Styles, listed []settingsUnit, shown settingsUnit, width int) Block {
 	r.Placed(settingsSectionsID)
 	at := slices.IndexFunc(listed, func(u settingsUnit) bool { return u.key() == shown.key() })
 	line := fmt.Sprintf("Section ‹ %s  %d/%d ›", sectionCell(r.Settings(), shown.Title, shown.Session), at+1, len(listed))
-	if list := r.List(settingsSectionsID); list != nil && list.Focused() {
-		line = lipgloss.NewStyle().Reverse(true).Render(line)
+	if list := r.List(settingsSectionsID); list != nil {
+		line = styles.Selection(list.Focused()).Render(line)
 	}
 	return Text(line)
 }
