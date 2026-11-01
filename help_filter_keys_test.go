@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/x/ansi"
+	"ofam.dev/ochazuke/keytest"
 )
 
 // A tree node's Search text is matched by the / filter as a list row's
@@ -101,5 +102,87 @@ func TestHelpFilterFindsKeys(t *testing.T) {
 		if !finds(table[0], q) {
 			t.Errorf("table: %q does not find g x (cells %q, search %q)", q, table[0].Cells, table[0].Search)
 		}
+	}
+}
+
+func TestHelpCommandBindingsEffectiveFilterAndEscape(t *testing.T) {
+	for _, command := range []string{"h bindings", "help bindings", "bindings help"} {
+		t.Run(command, func(t *testing.T) {
+			r, m := helpFixture(t)
+			r.Config().Disable()
+			r.DefineGuard("widget-never", func(*Runtime, KeyEvent) bool { return false })
+			r.Define("widget").
+				Verb("blocked", func(Ctx) Result { return Done(nil) }).When("widget-never").
+				Mode("normal").Bind("x", Do("widget.blocked"))
+			op := r.Operations["widget.open"]
+			op.Parameters = map[string]Parameter{"name": {Type: "string"}}
+			r.Operations[op.Key()] = op
+			if err := r.Bind(Binding{Instance: "w1", Mode: "normal", Keys: "i", Request: Request{Noun: "widget", Verb: "open", Args: Arguments{"name": "focused"}}}); err != nil {
+				t.Fatal(err)
+			}
+			typeKeys := func(text string) {
+				t.Helper()
+				for _, ch := range text {
+					key := string(ch)
+					if ch == ' ' {
+						key = "space"
+					}
+					keytest.Press(m, key)
+				}
+			}
+			for cycle := range 2 {
+				keytest.Press(m, ":")
+				typeKeys(command)
+				keytest.Press(m, "enter")
+				if r.TopModal() != helpID {
+					t.Fatalf("cycle %d: %q opened %q instead of effective bindings; status %q\n%s", cycle, command, r.TopModal(), m.Status, ansi.Strip(m.View().Content))
+				}
+				list := r.List(helpListID)
+				found := false
+				for _, item := range list.Items() {
+					row := item.Data.(HelpRow)
+					if row.Key == "x" || row.Request == "widget.edit" {
+						t.Fatalf("unavailable or shadowed binding shown: %+v", row)
+					}
+					if row.Key == "i" {
+						found = row.Request == "widget.open" && row.Args["name"] == "focused"
+					}
+				}
+				if !found {
+					t.Fatal("focused instance binding and arguments are missing")
+				}
+				all := list.Shown()
+				keytest.Press(m, "/")
+				typeKeys("focused")
+				if list.Filter() != "focused" || list.Shown() != 1 || r.Mode.Name != ListFilterMode {
+					t.Fatalf("query %q shown %d mode %q", list.Filter(), list.Shown(), r.Mode.Name)
+				}
+				frame := ansi.Strip(m.View().Content)
+				if !strings.Contains(frame, "widget.open") || !strings.Contains(frame, "focused") || strings.Contains(frame, "widget.blocked") {
+					t.Fatalf("filtered screen:\n%s", frame)
+				}
+				keytest.Press(m, "ctrl+u")
+				if list.Filter() != "" || list.Shown() != all || r.Mode.Name != ListFilterMode {
+					t.Fatalf("clear query: %q shown %d/%d mode %q", list.Filter(), list.Shown(), all, r.Mode.Name)
+				}
+				keytest.Press(m, "esc")
+				if r.TopModal() != helpID || r.Mode.Name != "normal" {
+					t.Fatalf("empty filter esc: modal %q mode %q", r.TopModal(), r.Mode.Name)
+				}
+				keytest.Press(m, "/")
+				typeKeys("no-such-binding")
+				if list.Shown() != 0 {
+					t.Fatalf("unmatched query shows %d rows", list.Shown())
+				}
+				keytest.Press(m, "esc")
+				if r.TopModal() != helpID || list.Filter() != "" || list.Shown() != all || r.Mode.Name != "normal" {
+					t.Fatalf("unmatched filter esc: modal %q query %q shown %d/%d mode %q", r.TopModal(), list.Filter(), list.Shown(), all, r.Mode.Name)
+				}
+				keytest.Press(m, "esc")
+				if r.TopModal() != "" || r.Focus != "w1" || r.Mode.Name != "normal" {
+					t.Fatalf("modal esc: modal %q focus %q mode %q", r.TopModal(), r.Focus, r.Mode.Name)
+				}
+			}
+		})
 	}
 }

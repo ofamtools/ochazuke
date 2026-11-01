@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -191,5 +192,34 @@ func TestAliasPartialPresetArgs(t *testing.T) {
 	paletteLine(t, r, "w! c.txt")
 	if got := runs[len(runs)-1]; got != `doc.w! path="c.txt" force=true` {
 		t.Fatalf("palette w! c.txt ran %s", got)
+	}
+}
+
+func TestUserAliasShadowVerbRoundTrip(t *testing.T) {
+	r, m, _, dir := configFixture(t)
+	if err := r.DeclareSetting(Setting{Name: "demo-limit", Type: SettingInteger, Default: 2}); err != nil {
+		t.Fatal(err)
+	}
+	var rows []AliasRow
+	if err := json.Unmarshal([]byte(`[{"alias":"adjust","action":"ochazuke.settings.apply","shadowVerb":"set"}]`), &rows); err != nil {
+		t.Fatal(err)
+	}
+	data, err := json.Marshal(rows)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ActionsFile), data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	m.Init()
+	paletteRequest(t, r, "open", "palette", nil)
+	paletteLine(t, r, "adjust mode insert")
+	if r.Mode.Name != "insert" {
+		t.Fatalf("declared shadow verb did not change mode: %q", r.Mode.Name)
+	}
+	paletteRequest(t, r, "open", "palette", nil)
+	paletteLine(t, r, "adjust demo-limit=7")
+	if got := r.Settings().Int("demo-limit"); got != 7 {
+		t.Fatalf("alias rest fallback: demo-limit %d, want 7", got)
 	}
 }

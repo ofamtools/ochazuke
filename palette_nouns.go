@@ -182,9 +182,9 @@ func (p *Palette) completions() []PaletteEntry {
 		case c.Err != nil:
 		case len(tokens) == 1 && c.Words[0].Kind == "verb":
 			names := ix.verbs[c.Words[0].Value]
-			if a, bare := p.r.bareAlias(tokens[0].Text); bare && a.Shadows {
+			if a, bare := p.r.bareAlias(tokens[0].Text); bare && a.ShadowedVerb() != "" {
 				// set NOUN reads only one-value nouns (owner decision 17).
-				names = p.r.shadowWords(names, a.Verb)
+				names = p.r.shadowWords(names, a.ShadowedVerb())
 			}
 			nouns(names)
 		case len(tokens) == 1 && c.Words[0].Kind == "noun":

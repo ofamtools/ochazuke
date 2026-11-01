@@ -397,15 +397,17 @@ func (r *Runtime) UserAliases() []ActionAlias { return slices.Clone(r.Config().a
 // of an action or of another alias; such a row is skipped and reported, as
 // bindings check reports a bad row. Note is free text listed with it.
 // Shadows lets a bare alias take a verb's name and yield to it by what
-// follows (ActionAlias.Shadows); Palette keeps a bare alias out of the
-// CLI (ActionAlias.Palette).
+// follows (ActionAlias.Shadows); ShadowVerb declares another verb to yield
+// to (ActionAlias.ShadowVerb). Palette keeps a bare alias out of the CLI
+// (ActionAlias.Palette).
 type AliasRow struct {
-	Alias   string    `json:"alias"`
-	Action  string    `json:"action"`
-	Note    string    `json:"note,omitempty"`
-	Args    Arguments `json:"args,omitempty"`
-	Shadows bool      `json:"shadows,omitempty"`
-	Palette bool      `json:"palette,omitempty"`
+	Alias      string    `json:"alias"`
+	Action     string    `json:"action"`
+	Note       string    `json:"note,omitempty"`
+	Args       Arguments `json:"args,omitempty"`
+	Shadows    bool      `json:"shadows,omitempty"`
+	ShadowVerb string    `json:"shadowVerb,omitempty"`
+	Palette    bool      `json:"palette,omitempty"`
 	// ParamAliases are old names of the action's parameters the alias
 	// takes (ActionAlias.ParamAliases): "paramAliases": [{"alias":
 	// "starred", "param": "value"}].
@@ -422,7 +424,7 @@ func (r *Runtime) checkUserAlias(row AliasRow, seen map[string]int) (ActionAlias
 			return ActionAlias{}, fmt.Errorf("alias %s is already declared by entry %d", r.DisplayKey(noun+"."+verb), n)
 		}
 	}
-	a, err := r.checkAlias(ActionAlias{Alias: row.Alias, Action: row.Action, Note: row.Note, Args: row.Args, Shadows: row.Shadows, Palette: row.Palette, ParamAliases: row.ParamAliases, Source: AliasConfig})
+	a, err := r.checkAlias(ActionAlias{Alias: row.Alias, Action: row.Action, Note: row.Note, Args: row.Args, Shadows: row.Shadows, ShadowVerb: row.ShadowVerb, Palette: row.Palette, ParamAliases: row.ParamAliases, Source: AliasConfig})
 	if err != nil {
 		return a, err
 	}

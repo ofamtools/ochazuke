@@ -7,3 +7,4 @@ de90359b0e5df965f333a92ca092bb7cd4233017a0291e30d2b1e71494fd895e  cli/prop_filte
 21d3e5259624190154bd80b1217754adfd1bc98754eeb539ad9227abc8af299f  prop_filter_test.go:25  # Test fixture prop value, not a credential.
 61165e441d0a19171a42501447081cdb64550cf7a5325bb3a2d4ebe59e95cc8b  props.go:129  # Struct field mapping for RecordField, not a credential.
 586b5797a99a47e5840320cd71df40f68630f0a5a07f99281d7a32adb050f556  record_editor.go:406  # Boolean field assignment for masked input, not a credential.
+68497bf7e1f1916c29c8c9ac4d18e3ff47cb9e93d712e9f283af4dcf2a53fd5a  palette_parse.go:886  # Palette parser token assignment, not a credential.

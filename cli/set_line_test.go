@@ -88,3 +88,30 @@ func TestCLISettingsReviewHasNoSession(t *testing.T) {
 		t.Fatalf("review: %q %q %v", out, errOut, err)
 	}
 }
+
+func TestCLIExplicitShadowVerb(t *testing.T) {
+	for _, mount := range []bool{false, true} {
+		f, dir := setFixture(t)
+		if err := f.r.AddActionAlias(ochazuke.ActionAlias{
+			Alias: "adjust", Action: "ochazuke.settings.apply", ShadowVerb: "set",
+		}); err != nil {
+			t.Fatal(err)
+		}
+		run := f.run
+		if mount {
+			run = func(_ string, args ...string) (string, string, error) { return f.mounted(t, args...) }
+		}
+		if _, errOut, err := run("", "adjust", "mode", "insert"); err != nil {
+			t.Fatalf("mount %v adjust mode: %v\n%s", mount, err, errOut)
+		}
+		if f.r.Mode.Name != "insert" {
+			t.Fatalf("mount %v mode %q, want insert", mount, f.r.Mode.Name)
+		}
+		if _, errOut, err := run("", "adjust", "modal-dim=35", "--yes"); err != nil {
+			t.Fatalf("mount %v adjust setting: %v\n%s", mount, err, errOut)
+		}
+		if got := savedSettings(t, dir); got["modal-dim"] != 35.0 {
+			t.Fatalf("mount %v saved %v", mount, got)
+		}
+	}
+}

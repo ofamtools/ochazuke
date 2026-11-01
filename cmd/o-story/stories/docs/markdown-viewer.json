@@ -1,5 +1,5 @@
 {
-  "name": ":help settings opens the generated settings page in the Markdown viewer: the build as its title, the topic above, headings and code drawn; ] h steps to the next heading; :h bindings replaces it in place",
+  "name": ":help settings opens the generated settings page in the Markdown viewer: the build as its title, the topic above, headings and code drawn; ] h steps to the next heading; :docs open bindings replaces it in place",
   "area": "docs",
   "width": 110,
   "height": 40,
@@ -7,7 +7,7 @@
   "script": [
     ":", {"type": "help settings"}, "enter",
     "]", "h",
-    ":", {"type": "h bindings"}, "enter",
+    ":", {"type": "docs open bindings"}, "enter",
     "q"
   ],
   "expect": [

@@ -355,7 +355,7 @@ const actionsExample = `[
     },
     "foreground": true
   },
-  {"alias": "example-open!", "action": "app.example-open", "args": {}, "shadows": false, "palette": false, "paramAliases": [{"alias": "query", "param": "search", "since": "v1", "removeAfter": "v2", "note": "the old name of search"}], "note": "Example: an alias row; args presets the action's arguments; paramAliases keeps old parameter names working (--query for --search, with a one-time notice); shadows lets a bare alias take a verb's name and yield to NOUN VERB; palette keeps a bare alias to the command line in the app (the CLI leaves the word to its own commands)"}
+  {"alias": "example-open!", "action": "app.example-open", "args": {}, "shadows": false, "shadowVerb": "open", "palette": false, "paramAliases": [{"alias": "query", "param": "search", "since": "v1", "removeAfter": "v2", "note": "the old name of search"}], "note": "Example: an alias row; args presets the action's arguments; paramAliases keeps old parameter names working (--query for --search, with a one-time notice); shadows lets a bare alias take a verb's name and yield to NOUN VERB; shadowVerb selects a differently named noun verb without granting collision permission; palette keeps a bare alias to the command line in the app (the CLI leaves the word to its own commands)"}
 ]
 `
 

@@ -223,7 +223,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		// A bare alias that shadows a verb, followed by a noun with that
 		// verb, is the noun's verb: bin set mode normal is bin mode set
 		// normal.
-		args = append([]string{reading.Noun, reading.Alias.Verb}, args[2:]...)
+		args = append([]string{reading.Noun, reading.Alias.ShadowedVerb()}, args[2:]...)
 		bare = false
 	}
 	prop := ""

@@ -395,14 +395,13 @@ func registerDocs(r *Runtime) {
 			inst.Component = v
 			return map[string]any{"topic": topic, "header": header}, nil
 		}})
-	// :help and :h, Vim's names (owner decision 3). help shadows the verb
-	// help (bindings help, command help) by what follows: help alone or
-	// help TOPIC opens the docs, help bindings is bindings help. Both are
-	// the palette's: the viewer needs the TUI, and bin help is the shell's
-	// help.
+	// :help and :h, Vim's names (owner decision 3), yield to the help
+	// verb by what follows: alone or TOPIC opens the docs, while bindings
+	// selects bindings help. Both are palette-only: the viewer needs the
+	// TUI, and bin help is the shell's help.
 	for _, a := range []ActionAlias{
 		{Alias: "help", Action: "ochazuke.docs.open", Shadows: true, Palette: true, Note: "Vim's :help; help NOUN ... runs NOUN help"},
-		{Alias: "h", Action: "ochazuke.docs.open", Palette: true, Note: "Vim's :h"},
+		{Alias: "h", Action: "ochazuke.docs.open", ShadowVerb: "help", Palette: true, Note: "Vim's :h"},
 	} {
 		if err := r.AddActionAlias(a); err != nil {
 			panic(err)

@@ -46,9 +46,9 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 		switch {
 		case err == nil && reading.Noun != "":
 			noun := r.CanonicalNoun(reading.Noun)
-			app.Args = append(append(strings.Split(noun, "."), a.Verb), app.Args[2:]...)
+			app.Args = append(append(strings.Split(noun, "."), reading.Alias.ShadowedVerb()), app.Args[2:]...)
 			spelled = true
-		case err != nil || a.Shadows || reading.Skip > 1:
+		case err != nil || a.ShadowedVerb() != "" || reading.Skip > 1:
 			name := app.Args[0]
 			app.Add(oden.Command{Name: name, Summary: "alias of " + r.DisplayKey(a.Action), Source: a.Alias,
 				Run: func(ctx context.Context, args []string) error {

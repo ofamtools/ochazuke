@@ -610,15 +610,23 @@ func (p *Palette) parseTokens(ix lineIndex, tokens []lineToken) commandLine {
 			for i, t := range tokens {
 				words[i] = t.Text
 			}
-			reading, _, err := p.r.ReadBareAlias(p.origin.Clone(), words, optionValues(ix.nounsOf(a.Verb)))
+			verb := a.ShadowedVerb()
+			reading, _, err := p.r.ReadBareAlias(p.origin.Clone(), words, optionValues(ix.nounsOf(verb)))
 			switch {
 			case err != nil:
-				c.Words = append(c.Words, PaletteWord{Text: word, Kind: "verb", Value: a.Verb}, PaletteWord{Text: tokens[1].Text})
+				c.Words = append(c.Words, PaletteWord{Text: word, Kind: "verb", Value: verb}, PaletteWord{Text: tokens[1].Text})
 				c.Err = err
 				return c
+			case reading.Noun != "":
+				resolved := p.parseRest(ix, option{Kind: "verb", Value: verb}, tokens)
+				resolved.Old = c.Old
+				return resolved
 			case reading.Noun == "":
 				for _, t := range tokens[:reading.Skip] {
 					c.Words = append(c.Words, PaletteWord{Text: t.Text, Kind: "verb", Value: t.Text})
+				}
+				if verb != "" {
+					c.Words[0].Value = verb
 				}
 				c.Op, c.Via, c.Implied = op, a.Alias, true
 				p.parseParams(&c, tokens[reading.Skip:], "")

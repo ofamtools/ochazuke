@@ -1,0 +1,26 @@
+{
+  "name": ":h bindings opens effective keys; / filters joined key spellings, Escape clears the filter before closing, and repeated opening restores the page focus",
+  "area": "help",
+  "width": 120,
+  "height": 40,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "bind": [
+      {"noun": "demo", "keys": "g x", "do": "demo.reset"},
+      {"noun": "demo", "keys": "ctrl+d", "do": "demo.open"}
+    ]
+  },
+  "script": [
+    ":", {"type": "h bindings"}, "enter", "/", {"type": "gx"}, "esc", "esc",
+    ":", {"type": "h bindings"}, "enter", "/", {"type": "no-such-binding"}, "esc", "esc"
+  ],
+  "expect": [
+    {"after": 3, "modal": "bindings-help", "mode": "normal", "contains": ["g x", "ctrl+d"]},
+    {"after": 5, "modal": "bindings-help", "mode": "list_filter", "contains": ["/gx", "g x", "demo.reset"], "lacks": ["ctrl+d"]},
+    {"after": 6, "modal": "bindings-help", "mode": "normal", "contains": ["g x", "ctrl+d"]},
+    {"after": 7, "modal": "", "focus": "a1", "mode": "normal"},
+    {"after": 12, "modal": "bindings-help", "mode": "list_filter", "contains": ["/no-such-binding"]},
+    {"after": 13, "modal": "bindings-help", "mode": "normal", "contains": ["g x", "ctrl+d"]},
+    {"modal": "", "focus": "a1", "mode": "normal"}
+  ]
+}

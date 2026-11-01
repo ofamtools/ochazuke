@@ -5,11 +5,11 @@ import (
 	"strings"
 )
 
-// A bare alias that shadows a verb (ActionAlias.Shadows) reads by what
+// A bare alias that yields to a verb (ActionAlias.ShadowedVerb) reads by what
 // follows it. One rule, from data, for every such alias:
 //
 //	alias alone                        the alias
-//	alias NOUN ...  (NOUN exact)       NOUN's verb of the alias's name
+//	alias NOUN ...  (NOUN exact)       NOUN's declared shadowed verb
 //	alias WORD ...  (its rest reads    the alias: WORD starts the rest
 //	                 WORD exactly)      parameter's text
 //	alias WORD ...  (a noun's prefix   an ambiguity error naming both
@@ -30,8 +30,8 @@ import (
 // a setting's is ambiguous.
 //
 // NOUN is only a one-value noun (owner decision 17, shadowsNoun): one whose
-// verb of the alias's name is the application's own, or whose store is a
-// singleton. A collection's or an instances store's standard verb (set on
+// shadowed verb is the application's own, or whose store is a singleton.
+// A collection's or an instances store's standard verb (set on
 // every store noun) is reached as NOUN VERB, so set pa reads the settings
 // and the palette noun, never a parcel collection.
 
@@ -39,8 +39,8 @@ import (
 // (ReadBareAlias): the alias and its presets, with the presets of any
 // further bare aliases of the same action right after it (verbose set is
 // settings.apply {verbose: true}), Skip the words they took; or, for an
-// alias that shadows a verb, Noun: the line is that noun's verb of the
-// alias's name (set mode normal is mode set normal).
+// alias that yields to a verb, Noun: the line is that noun's ShadowedVerb
+// (set mode normal is mode set normal).
 type BareReading struct {
 	Alias ActionAlias
 	Args  Arguments
@@ -74,13 +74,13 @@ func (r *Runtime) ReadBareAlias(c Context, words []string, nouns []string) (Bare
 	for k, v := range a.Args {
 		out.Args[k] = v
 	}
-	if a.Shadows && out.Skip == 1 && len(words) > 1 {
+	if verb := a.ShadowedVerb(); verb != "" && out.Skip == 1 && len(words) > 1 {
 		if nouns == nil {
-			nouns = r.shadowNouns(a.Verb)
+			nouns = r.shadowNouns(verb)
 		}
 		// Only one-value nouns (owner decision 17): a collection's
 		// standard verb never takes a setting's word.
-		noun, err := r.shadowNoun(c, a, words[1], r.shadowWords(nouns, a.Verb))
+		noun, err := r.shadowNoun(c, a, words[1], r.shadowWords(nouns, verb))
 		if err != nil {
 			return out, true, &ArgumentError{Err: err}
 		}
@@ -166,7 +166,7 @@ func (r *Runtime) shadowNoun(c Context, a ActionAlias, word string, nouns []stri
 		}
 		var named []string
 		for _, n := range optionValues(prefixed) {
-			named = append(named, fmt.Sprintf("%s (%s %s)", n, n, a.Verb))
+			named = append(named, fmt.Sprintf("%s (%s %s)", n, n, a.ShadowedVerb()))
 		}
 		return "", fmt.Errorf("%q is ambiguous: noun %s, or %s %s", word, strings.Join(named, ", "), op.RestParameter(), strings.Join(ids, ", "))
 	case len(choices) > 0:

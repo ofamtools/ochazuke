@@ -46,6 +46,9 @@ const (
 // the alias; followed by a noun that has the verb of its name, the line
 // is that noun's verb (set mode normal is mode set normal). Its name is
 // the bare word (set), since NOUN.VERB may be the verb it shadows.
+// ShadowVerb declares a different verb to yield to (h yields to help).
+// It enables the same reading without changing the alias's own name or
+// Shadows collision policy. The target may register after the alias.
 // Palette keeps a bare alias to the command line inside the app: the CLI
 // leaves the word to the shell's own commands, so bin help stays the
 // shell's help while :help opens the docs viewer, which needs the TUI.
@@ -63,8 +66,21 @@ type ActionAlias struct {
 	Args         Arguments    `json:"args,omitempty"`
 	Bare         bool         `json:"bare,omitempty"`
 	Shadows      bool         `json:"shadows,omitempty"`
+	ShadowVerb   string       `json:"shadowVerb,omitempty"`
 	Palette      bool         `json:"palette,omitempty"`
 	ParamAliases []ParamAlias `json:"paramAliases,omitempty"`
+}
+
+// ShadowedVerb is the verb a following noun may select, or empty when the
+// alias does not yield to noun verbs.
+func (a ActionAlias) ShadowedVerb() string {
+	if a.ShadowVerb != "" {
+		return a.ShadowVerb
+	}
+	if a.Shadows {
+		return a.Verb
+	}
+	return ""
 }
 
 // ParamAlias is an old name of a parameter, taken by the action alias
@@ -237,6 +253,8 @@ func (r *Runtime) checkAlias(a ActionAlias) (ActionAlias, error) {
 		return a, errors.New("alias and action are both required")
 	case strings.ContainsAny(a.Alias, " \t\n"):
 		return a, fmt.Errorf("alias %q must be one name without spaces", a.Alias)
+	case strings.ContainsAny(a.ShadowVerb, " \t\r\n"):
+		return a, fmt.Errorf("alias %s: shadowVerb must be one verb without spaces", a.Alias)
 	}
 	op, ok := r.Operation(a.Action)
 	if !ok {
@@ -251,6 +269,8 @@ func (r *Runtime) checkAlias(a ActionAlias) (ActionAlias, error) {
 	switch {
 	case ok && !a.Bare && a.Shadows:
 		return a, fmt.Errorf("alias %s: shadows is for a bare alias (a name without a dot)", a.Alias)
+	case ok && !a.Bare && a.ShadowVerb != "":
+		return a, fmt.Errorf("alias %s: shadowVerb is for a bare alias (a name without a dot)", a.Alias)
 	case ok && !a.Bare:
 	case !strings.Contains(a.Alias, "."):
 		// A bare alias (w!, q): its noun is its action's.
