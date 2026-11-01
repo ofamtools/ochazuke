@@ -43,6 +43,7 @@ const (
 	PathFieldSetting      = "path.field"
 	PathHiddenSetting     = "path.hidden"
 	PathNoAutoListSetting = "path.no-auto-list"
+	PathRecentDirsSetting = "path.recent-dirs"
 )
 
 // The path chooser's own sources, in order.
@@ -358,31 +359,97 @@ func (r *Runtime) browseSource(pick PathPick, use func(string) Result) ChooserSo
 }
 
 // recentSource lists the application's recent paths, then the ones picked
-// this run.
+// this run. For a file pick, recent directories open into browseSource
+// (Opens: true, NoPick: true) and cannot be submitted as files.
 func (r *Runtime) recentSource(pick PathPick) ChooserSource {
-	return ChooserSource{
+	var (
+		browser *ChooserSource
+		depth   int
+	)
+	src := ChooserSource{
 		Name:  PathSourceRecent,
 		Empty: "no recent paths",
-		Load: func(string) Result {
-			mem := r.chooserMemory()
-			var paths []string
-			if mem.recentPaths != nil {
-				paths = append(paths, mem.recentPaths(pick)...)
+		Label: func() string {
+			if browser != nil && browser.Label != nil {
+				return strings.Replace(browser.Label(), PathSourceBrowse, PathSourceRecent, 1)
 			}
-			paths = append(paths, mem.picked...)
-			var rows []ChooserRow
-			seen := map[string]bool{}
-			for _, p := range paths {
-				p = expandPath(p, pick.Start)
-				if seen[p] {
-					continue
-				}
-				seen[p] = true
-				rows = append(rows, ChooserRow{ID: p, Label: displayPath(p), Data: p})
-			}
-			return Done(rows)
+			return PathSourceRecent
 		},
 	}
+	src.Load = func(query string) Result {
+		if browser != nil && browser.Load != nil {
+			return browser.Load(query)
+		}
+		mem := r.chooserMemory()
+		var paths []string
+		if mem.recentPaths != nil {
+			paths = append(paths, mem.recentPaths(pick)...)
+		}
+		paths = append(paths, mem.picked...)
+		var rows []ChooserRow
+		recentDirsOn := r.settingOn(PathRecentDirsSetting)
+		seen := map[string]bool{}
+		for _, p := range paths {
+			p = expandPath(p, pick.Start)
+			if seen[p] {
+				continue
+			}
+			seen[p] = true
+			if !pick.Dir() {
+				if fi, err := os.Stat(p); err == nil && fi.IsDir() {
+					if recentDirsOn {
+						label := displayPath(p)
+						if !strings.HasSuffix(label, "/") {
+							label += "/"
+						}
+						rows = append(rows, ChooserRow{ID: p, Label: label, Data: p, Opens: true, NoPick: true})
+					}
+					continue
+				}
+			}
+			rows = append(rows, ChooserRow{ID: p, Label: displayPath(p), Data: p})
+		}
+		return Done(rows)
+	}
+	src.Open = func(row ChooserRow) (string, bool) {
+		if browser != nil && browser.Open != nil {
+			if q, ok := browser.Open(row); ok {
+				depth++
+				return q, true
+			}
+			return "", false
+		}
+		path, ok := row.Data.(string)
+		if !ok {
+			return "", false
+		}
+		b := r.browseSource(PathPick{Start: path, Parameter: pick.Parameter}, nil)
+		q, ok := b.Open(ChooserRow{Data: path})
+		if !ok {
+			return "", false
+		}
+		browser = &b
+		depth = 0
+		return q, true
+	}
+	src.Up = func(query string) (string, bool) {
+		if browser == nil {
+			return "", false
+		}
+		if depth == 0 {
+			browser = nil
+			return "", true
+		}
+		if browser.Up != nil {
+			if q, ok := browser.Up(query); ok {
+				depth--
+				return q, true
+			}
+		}
+		browser = nil
+		return "", true
+	}
+	return src
 }
 
 // typedSource completes the path being typed (relative to the start

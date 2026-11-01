@@ -199,6 +199,117 @@ func TestPathRecentSource(t *testing.T) {
 	}
 }
 
+// For a file pick, recent directories open into the directory (Opens: true,
+// NoPick: true), so pressing enter browses into it rather than picking a
+// directory as a file; up steps back to the recent list.
+func TestPathRecentDirectoryNavigationForFilePick(t *testing.T) {
+	root := pathTree(t)
+	r := NewRuntime()
+	m := NewModel(r)
+	subDir := filepath.Join(root, "sub")
+	recentFile := filepath.Join(root, "b.txt")
+	r.SetRecentPaths(func(PathPick) []string { return []string{subDir, recentFile} })
+	var chosen []string
+	c, err := r.OpenPathChooser(PathChooserSpec{
+		Pick: PathPick{Parameter: Parameter{Type: "path", Base: root}},
+		Choose: func(p string) Result {
+			chosen = append(chosen, p)
+			return Done(p)
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	landLoads(m, r.PendingCommands())
+	pressLand(m, "ctrl+o") // cycle browse -> recent
+	if c.Source() != PathSourceRecent {
+		t.Fatalf("source %q", c.Source())
+	}
+	wantRows := []string{displayPath(subDir) + "/", displayPath(recentFile)}
+	if got := labels(c.Matches()); !slices.Equal(got, wantRows) {
+		t.Fatalf("recent rows %v, want %v", got, wantRows)
+	}
+	// Highlight is on subDir. Pressing enter must NOT pick it as a file; it must open into it.
+	pressLand(m, "enter")
+	if len(chosen) != 0 {
+		t.Fatalf("enter picked directory as file: %v", chosen)
+	}
+	// Inside subDir, files are listed.
+	if got := labels(c.Matches()); !slices.Equal(got, []string{"deep/", "c.json"}) {
+		t.Fatalf("opened recent dir rows %v, want [deep/ c.json]", got)
+	}
+	// Stepping up from subDir returns to the top-level recent list.
+	pressLand(m, "alt+up")
+	if got := labels(c.Matches()); !slices.Equal(got, wantRows) {
+		t.Fatalf("stepped up rows %v, want %v", got, wantRows)
+	}
+	// Selecting the recent file picks it directly.
+	pressLand(m, "down")
+	pressLand(m, "enter")
+	if !slices.Equal(chosen, []string{recentFile}) {
+		t.Fatalf("chosen %v, want %v", chosen, []string{recentFile})
+	}
+}
+
+// For a folder pick, recent directories retain direct selection (Opens: false,
+// NoPick: false), so enter picks the directory directly.
+func TestPathRecentDirectoryDirectSelectionForDirPick(t *testing.T) {
+	root := pathTree(t)
+	r := NewRuntime()
+	m := NewModel(r)
+	subDir := filepath.Join(root, "sub")
+	r.SetRecentPaths(func(PathPick) []string { return []string{subDir} })
+	var chosen []string
+	c, err := r.OpenPathChooser(PathChooserSpec{
+		Pick: PathPick{Parameter: Parameter{Type: "path", Path: PathDir, Base: root}},
+		Choose: func(p string) Result {
+			chosen = append(chosen, p)
+			return Done(p)
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	landLoads(m, r.PendingCommands())
+	pressLand(m, "ctrl+o") // cycle browse -> recent
+	if c.Source() != PathSourceRecent {
+		t.Fatalf("source %q", c.Source())
+	}
+	wantRows := []string{displayPath(subDir)}
+	if got := labels(c.Matches()); !slices.Equal(got, wantRows) {
+		t.Fatalf("recent dir rows %v, want %v", got, wantRows)
+	}
+	// Highlight is on subDir. Pressing enter directly picks it.
+	pressLand(m, "enter")
+	if !slices.Equal(chosen, []string{subDir}) {
+		t.Fatalf("chosen %v, want %v", chosen, []string{subDir})
+	}
+}
+
+// Setting path.recent-dirs to false omits recent directories from file picks,
+// listing only recent files; directory picks retain direct selection.
+func TestPathRecentDirsSettingOptOut(t *testing.T) {
+	root := pathTree(t)
+	r := NewRuntime()
+	r.EnsureConfigSettings()
+	if err := r.Settings().Set(PathRecentDirsSetting, false); err != nil {
+		t.Fatal(err)
+	}
+	m := NewModel(r)
+	subDir := filepath.Join(root, "sub")
+	recentFile := filepath.Join(root, "b.txt")
+	r.SetRecentPaths(func(PathPick) []string { return []string{subDir, recentFile} })
+	c, err := r.OpenPathChooser(PathChooserSpec{Pick: PathPick{Parameter: Parameter{Type: "path", Base: root}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	landLoads(m, r.PendingCommands())
+	pressLand(m, "ctrl+o")
+	if got := labels(c.Matches()); !slices.Equal(got, []string{displayPath(recentFile)}) {
+		t.Fatalf("with path.recent-dirs=false, recent rows %v, want only files", got)
+	}
+}
+
 // Applications add sources after typed; the title lists them.
 func TestPathAppSources(t *testing.T) {
 	root := pathTree(t)

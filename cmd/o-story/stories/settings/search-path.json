@@ -123,7 +123,6 @@
       "mode": "list_filter",
       "focus": "__settings/section/ochazuke/choosers",
       "contains": [
-        "Choosers (14)",
         "path.start",
         "path.hidden",
         "path.no-auto-list"
