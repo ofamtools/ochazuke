@@ -109,6 +109,7 @@ func (d *Doc) open(o opening) error {
 		o.buffer = strings.TrimSuffix(strings.ReplaceAll(o.buffer, "\r\n", "\n"), "\r")
 	}
 	in := ochazuke.NewInput(d.EditID(), o.buffer, true)
+	in.Wrap, in.WrapIndent = d.wraps(), textColumn
 	if err := d.r.AddInput(in, ochazuke.Parent(d.id), ochazuke.Kind(EditNoun)); err != nil {
 		return err
 	}

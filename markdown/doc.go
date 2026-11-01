@@ -104,6 +104,11 @@ const CursorSetting = "markdown.cursor"
 // CursorWidthSetting chooses a pane-wide cursor or the former text-only bar.
 const CursorWidthSetting = "markdown.cursor-width"
 
+// WrapSetting soft-wraps the block editor's long lines at the last space
+// that fits (true, the default) or scrolls them sideways (false). Only the
+// drawing wraps: the source gets no added line breaks.
+const WrapSetting = "markdown.wrap"
+
 // ExtraSpaceSetting adds a blank line between rendered Markdown components.
 // The default is false; source text and spacing within a component are unchanged.
 const ExtraSpaceSetting = "markdown.extra-space"
@@ -763,7 +768,9 @@ func (d *Doc) Block(width, height int, a ochazuke.Appearance) ochazuke.Block {
 	if s := d.edit; s != nil {
 		lay := s.lay
 		lines = append(lines, lay.lines[:s.top]...)
-		block := ochazuke.InputBlock(s.input, max(1, width-s.x), max(1, strings.Count(string(s.input.Text), "\n")+1))
+		w := max(1, width-s.x)
+		s.input.Wrap = d.wraps()
+		block := ochazuke.InputBlock(s.input, w, ochazuke.InputRows(s.input, w))
 		pad := strings.Repeat(" ", s.x)
 		focus = len(lines)
 		for _, l := range strings.Split(block.Text, "\n") {

@@ -38,7 +38,17 @@ type Input struct {
 	// unavailable at it (guard input-writable), so their rows stand aside
 	// and leave the hints. Like Vim's 'nomodifiable', without E21: nothing
 	// is reported. Set it before or after AddInput (or the ReadOnly option).
-	ReadOnly    bool
+	ReadOnly bool
+	// Wrap soft-wraps the input's lines where InputBlock draws them: a
+	// line wider than the block continues on the next row, broken after
+	// the last space that fits (a word wider than the row breaks where it
+	// must). Only the drawing changes; the text holds no added line
+	// breaks. Off, a long line scrolls sideways around the cursor. See
+	// input_wrap.go.
+	Wrap bool
+	// WrapIndent is how many cells a wrapped line's continuation rows are
+	// indented (nil: the line's leading spaces, Vim's 'breakindent').
+	WrapIndent  func(line string) int
 	Anchor      int
 	History     []EditNode
 	Head        int

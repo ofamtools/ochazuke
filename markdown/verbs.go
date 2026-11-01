@@ -259,6 +259,7 @@ func register(r *ochazuke.Runtime) {
 		_ = r.DeclareSetting(ochazuke.Setting{Name: CursorWidthSetting, Owner: ochazuke.OwnerFramework, Type: "string", Default: "pane", Enum: []string{"pane", "text"}, Description: "Markdown cursor highlight width: the whole pane, or only its text"})
 		_ = r.DeclareSetting(ochazuke.Setting{Name: DoneSetting, Owner: ochazuke.OwnerFramework, Type: "string", Default: "show", Enum: []string{"show", "hide"}, Description: "Show checked Markdown tasks, or hide them with their nested subtrees"})
 		_ = r.DeclareSetting(ochazuke.Setting{Name: DoneIndicatorSetting, Owner: ochazuke.OwnerFramework, Type: "boolean", Default: true, Description: "Show a dim count above a Markdown document when checked tasks are hidden"})
+		_ = r.DeclareSetting(ochazuke.Setting{Name: WrapSetting, Owner: ochazuke.OwnerFramework, Type: "boolean", Default: true, Description: "Soft-wrap long lines in the Markdown block editor at the last space that fits; off, they scroll sideways. The source never gets added line breaks"})
 		_ = r.DeclareSetting(ochazuke.Setting{Name: ExtraSpaceSetting, Owner: ochazuke.OwnerFramework, Type: "boolean", Default: false, Description: "Add one blank line between rendered Markdown components, including adjacent list items"})
 		for _, name := range []string{DoneSetting, DoneIndicatorSetting, ExtraSpaceSetting} {
 			r.Settings().Observe(name, func(string, any) {

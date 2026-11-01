@@ -1,0 +1,39 @@
+{
+  "name": "markdown: typing past the pane's edge in the block editor wraps at the last space that fits, a list item's next rows under its text; the file gets no line break",
+  "area": "markdown",
+  "width": 30,
+  "page": {
+    "noHeadings": true,
+    "markdown": {
+      "text": "- one\n",
+      "author": "owner",
+      "today": "2026-10-27"
+    }
+  },
+  "script": [
+    "A",
+    "space", "t", "w", "o",
+    "space", "t", "h", "r", "e", "e",
+    "space", "f", "o", "u", "r",
+    "space", "f", "i", "v", "e",
+    "space", "s", "i", "x",
+    {
+      "tick": "debounce"
+    }
+  ],
+  "expect": [
+    {
+      "mode": "insert",
+      "order": [
+        "- one two three four",
+        "    five six"
+      ],
+      "lacks": [
+        "- one two three four five"
+      ],
+      "writes": [
+        "write 1 -- one +- one two three four five six"
+      ]
+    }
+  ]
+}

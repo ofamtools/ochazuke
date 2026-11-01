@@ -1230,11 +1230,18 @@ func inputBlockFrom(in *Input, width, height, top int) Block {
 	height = max(1, height)
 	cursor := min(max(0, in.Cursor), len(in.Text))
 	clusters := uniseg.NewGraphemes(safeText(string(in.Text)))
+	// breaks are the soft wraps (Input.Wrap): rows start there, indented.
+	breaks, wrapping := in.wrapBreaks(width, cursor)
 	cursorRow, cursorColumn, cursorWidth, runeIndex := 0, 0, 1, 0
+	reached := false
 	for clusters.Next() {
 		text := clusters.Str()
 		count := utf8.RuneCountInString(text)
+		if indent, ok := breaks[runeIndex]; ok {
+			cursorRow, cursorColumn = cursorRow+1, indent
+		}
 		if runeIndex+count > cursor {
+			reached = true
 			cursorWidth = max(1, cellWidth(text))
 			break
 		}
@@ -1246,16 +1253,29 @@ func inputBlockFrom(in *Input, width, height, top int) Block {
 			cursorColumn += cellWidth(text)
 		}
 	}
+	if indent, ok := breaks[runeIndex]; ok && !reached {
+		cursorRow, cursorColumn = cursorRow+1, indent
+	}
 	if in.shape() == SelectionBlock && (cursor == len(in.Text) || in.Text[cursor] == '\n') {
 		cursorColumn = max(cursorColumn, in.goalColumn)
+	}
+	if wrapping {
+		// A space hanging past the edge puts the cursor on the last cell.
+		cursorColumn = min(cursorColumn, width-1)
 	}
 	start := max(0, cursorRow-height+1)
 	if top >= 0 {
 		start = min(max(top, start), cursorRow)
 	}
 	offset := max(0, cursorColumn+min(width, cursorWidth)-width)
+	if wrapping {
+		offset = 0
+	}
 	var body strings.Builder
-	rowIndex, column := 0, 0
+	// rowIndex and column are the drawn row and cell; lineRow and
+	// lineColumn the text line and its cell, which a block selection
+	// reads (they differ only on soft-wrapped rows).
+	rowIndex, column, lineRow, lineColumn := 0, 0, 0, 0
 	write := func(text string, cells int, selected bool) {
 		lo, hi := max(column, offset), min(column+cells, offset+width)
 		visible := rowIndex >= start && rowIndex < start+height
@@ -1288,7 +1308,9 @@ func inputBlockFrom(in *Input, width, height, top int) Block {
 	// cursor lands on a rendered cell and the text keeps the same shape.
 	writeLineEnd := func(selected, onCursor bool) {
 		end := column
-		blockRow := block && rowIndex >= top && rowIndex <= bottom
+		blockRow := block && lineRow >= top && lineRow <= bottom
+		// The block's columns on this row: text cells less the row's start.
+		left, right := left-(lineColumn-column), right-(lineColumn-column)
 		if blockRow {
 			end = max(end, right)
 		} else if !block && selected {
@@ -1311,33 +1333,46 @@ func inputBlockFrom(in *Input, width, height, top int) Block {
 			write(strings.Repeat(" ", next-column), next-column, reversed)
 		}
 	}
+	newRow := func() {
+		if rowIndex >= start && rowIndex < start+height-1 {
+			body.WriteByte('\n')
+		}
+		rowIndex++
+		column = 0
+	}
+	wrapAt := func(i int) {
+		if indent, ok := breaks[i]; ok {
+			newRow()
+			write(strings.Repeat(" ", indent), indent, false)
+		}
+	}
 	clusters.Reset()
 	runeIndex = 0
 	for clusters.Next() {
 		text := clusters.Str()
 		i := runeIndex
 		runeIndex += utf8.RuneCountInString(text)
+		wrapAt(i)
 		onCursor := i <= cursor && cursor < runeIndex
 		selected := painted && i < hi && runeIndex > lo
 		w := cellWidth(text)
 		if block {
-			selected = rowIndex >= top && rowIndex <= bottom && column < right && column+w > left
+			selected = lineRow >= top && lineRow <= bottom && lineColumn < right && lineColumn+w > left
 		}
 		if text == "\n" {
 			writeLineEnd(selected, onCursor)
-			if rowIndex >= start && rowIndex < start+height-1 {
-				body.WriteByte('\n')
-			}
-			rowIndex++
-			column = 0
+			newRow()
+			lineRow++
+			lineColumn = 0
 			continue
 		}
+		lineColumn += w
 		// A block selection crossing part of a wide grapheme blanks the cells
 		// so the selected half can be painted on its own.
-		if selected && block && w > 0 && (column < left || column+w > right) {
-			before := max(0, left-column)
-			middle := min(column+w, right) - max(column, left)
-			after := max(0, column+w-right)
+		if col := lineColumn - w; selected && block && w > 0 && (col < left || col+w > right) {
+			before := max(0, left-col)
+			middle := min(col+w, right) - max(col, left)
+			after := max(0, col+w-right)
 			if before > 0 {
 				write(strings.Repeat(" ", before), before, false)
 			}
@@ -1349,6 +1384,7 @@ func inputBlockFrom(in *Input, width, height, top int) Block {
 			write(text, w, selected)
 		}
 	}
+	wrapAt(runeIndex)
 	writeLineEnd(false, cursor == len(in.Text))
 	text := body.String()
 	// The page keeps the whole box on screen when it follows the focus.

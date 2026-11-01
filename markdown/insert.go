@@ -6,6 +6,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/charmbracelet/x/ansi"
 	"ofam.dev/ochazuke"
 )
 
@@ -394,4 +395,23 @@ func (d *Doc) putLine(text string, cursor int) error {
 	pad := b.line[:len(b.line)-len(strings.TrimLeft(b.line, " "))]
 	full := b.text[:b.lineStart] + pad + text + b.text[b.lineEnd:]
 	return d.replace(full, b.lineStart+len(pad)+cursor)
+}
+
+// wraps reports whether the block editor soft-wraps its long lines (the
+// markdown.wrap setting; on without settings).
+func (d *Doc) wraps() bool {
+	if st := d.r.Settings(); st != nil {
+		if v, ok := st.Value(WrapSetting); ok {
+			b, isBool := v.(bool)
+			return !isBool || b
+		}
+	}
+	return true
+}
+
+// textColumn is where a buffer line's text starts, in cells: after its
+// indent and its list marker, quote or heading marks. A soft-wrapped
+// line's continuation rows are indented to it (Input.WrapIndent).
+func textColumn(line string) int {
+	return ansi.StringWidth(line[:contentStart(line)])
 }
