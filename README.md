@@ -650,6 +650,7 @@ The id (`sidebar` here) identifies the list instance (`r.List("sidebar")` return
 - `SetItems(rows)` copies the records and preserves selection by stable ID. It creates the instance of each new row under the list (`Instance{ID: item.ID, Noun: item.Noun, Parent: <list>}`) and removes the instances of rows that disappear; a retained row keeps its instance and marks. A removed selection falls back to its previous index, clamped to the remaining rows. An empty list focuses the list itself. An empty or duplicate ID, an unregistered noun, or an ID that is already another instance rejects the whole update.
 - Refreshes also move every focus reference (the focus, a page's remembered focus, a modal's return) that pointed at the list or a removed row to the selected row (`RetargetFocus`), so returning from another page/modal cannot restore a removed row's rows.
 - `ToggleMark(id)` and `Marked()` keep a multi-selection. `list.apply {verb, args}` runs `<row noun>.verb` with the row as target and `args` as its arguments for every marked row (the selected row when none is marked), skipping and reporting rows whose noun lacks the verb; a verb with a confirm asks once for all the rows.
+- `SetPlaceholder(Placeholder{Plural, Empty, Loading, LoadingJob})` says what the list draws with no rows, in the one format (UX-RULES R5.19: lower case, no parentheses, the noun named): `Empty` (default `no PLURAL`, `no rows`), `Loading` (default `loading PLURAL…`) while a job runs in the `LoadingJob` slot (`JobSlot{Scope, Slot}`, the scope and slot of `Result.ReplacingAt`), and `no PLURAL match 'q'` when a filter hides every row. `ChooserSpec` has the same `Empty`, `Loading`, `LoadingJob` and `Plural`. `EmptyText`, `LoadingText` and `NoMatchText` give the format to components that draw their own.
 - Call these methods on the runtime's event loop. Data loading and domain actions remain application-owned. There is no tree expansion or built-in search provider.
 
 #### Moving through a list
@@ -885,7 +886,7 @@ written, so older `list.filters` rows load unchanged.
 the same mechanism to apps. These verbs take `id` for a list, tree or chooser, defaulting
 to the focused row view. Active conditions appear in the row view header strip
 beside the text query; `list.filter-strip=false` hides the prop strip (default
-true); zero matches still show `0 of N (filtered)`. Hints come from the binding
+true); zero matches still say so with the count (`no rows match the filter, 0 of N`). Hints come from the binding
 rows, which users can replace or unbind.
 Since nearly every list with data now offers prop filters, the `z /` and
 remove-one `z !` rows stay in `?` and out of the footer; they appear there with

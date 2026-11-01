@@ -88,7 +88,7 @@
   "expect": [
     {
       "contains": [
-        "0 of 3 (filtered)"
+        "no rows match the filter, 0 of 3"
       ],
       "lacks": [
         "Owner alpha",

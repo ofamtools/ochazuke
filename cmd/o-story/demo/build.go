@@ -878,6 +878,9 @@ func (ss *session) addPage(p *Page) error {
 			return fmt.Errorf("list %s: %w", l.ID, err)
 		}
 		ss.lists[l.ID] = list
+		if l.Placeholder != nil {
+			list.SetPlaceholder(*l.Placeholder)
+		}
 		if len(l.HeaderTones) > 0 {
 			list.SetHeaderTones(l.HeaderTones...)
 		}
@@ -1779,7 +1782,7 @@ func (ss *session) Snapshot() ([]*Page, []string) {
 		p.Lists = nil
 		for _, l := range src.Lists {
 			list := ss.lists[l.ID]
-			spec := ListSpec{ID: l.ID, NoSpill: l.NoSpill, ClearFilterOnEnter: l.ClearFilterOnEnter, CellSelect: l.CellSelect, Height: l.Height, Columns: list.Columns()}
+			spec := ListSpec{ID: l.ID, NoSpill: l.NoSpill, ClearFilterOnEnter: l.ClearFilterOnEnter, CellSelect: l.CellSelect, Height: l.Height, Columns: list.Columns(), Placeholder: l.Placeholder}
 			marked := map[string]bool{}
 			for _, it := range list.Marked() {
 				marked[it.ID] = true

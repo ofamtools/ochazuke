@@ -365,7 +365,7 @@ func TestListFilterSearchTextOnFilterAndMatchNoun(t *testing.T) {
 		t.Fatal("Search text is drawn")
 	}
 	list.SetFilter("zzz")
-	if got := ansi.Strip(list.emptyLine()); got != "(no matches)" {
+	if got := ansi.Strip(list.emptyLine()); got != "no rows match 'zzz'" {
 		t.Fatalf("empty line %q", got)
 	}
 	list.SetMatchNoun("things")

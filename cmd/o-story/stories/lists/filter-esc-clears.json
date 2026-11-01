@@ -45,8 +45,8 @@
       "after": 6,
       "mode": "list_filter",
       "contains": [
-        "no matches",
-        "(no matches)"
+        "no rows match",
+        "no rows match '"
       ]
     },
     {
@@ -55,7 +55,7 @@
       "focus": "a",
       "contains": [
         "/dej",
-        "(no matches)"
+        "no rows match '"
       ]
     },
     {

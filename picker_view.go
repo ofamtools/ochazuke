@@ -140,7 +140,10 @@ func (p *Picker) resultRows(width, height int) []string {
 	// The rows this frame can draw, which the stat job follows.
 	p.drawnRows = max(0, height-min(2, max(0, height-1)))
 	if len(p.Entries) == 0 {
-		return layoutRows("(no matching paths)", width, height)
+		if p.Loading {
+			return layoutRows(LoadingText("paths"), width, height)
+		}
+		return layoutRows(NoMatchText("paths", p.query), width, height)
 	}
 	var rows []string
 	if height > 1 {
@@ -177,12 +180,12 @@ func (p *Picker) resultRows(width, height int) []string {
 
 func (p *Picker) previewRows(width, height int) []string {
 	if p.preview.path == "" {
-		return layoutRows("No selection", width, height)
+		return layoutRows("no path selected", width, height)
 	}
 	rows := []string{modalLabel(filepath.Base(p.preview.path)), p.preview.metadata}
 	switch {
 	case p.preview.loading:
-		rows = append(rows, "Loading preview…")
+		rows = append(rows, LoadingText("preview"))
 	case p.preview.err != "":
 		rows = append(rows, "Preview: "+safeText(p.preview.err))
 	default:

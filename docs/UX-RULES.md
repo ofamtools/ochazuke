@@ -613,6 +613,14 @@ tiers above them. When the two disagree, fix one in the same commit.
   `lists/filter-match-cycle.json`, `lists/filter-regex-invalid-says-why.json`,
   `lists/filter-match-setting.json`, `chooser/match-cycle-tab.json`; tests
   `search_match_test.go`.
+- **R5.19** Empty, loading and no-match texts have one format: lower
+  case, no parentheses, the rows' noun named (`no panes`, `loading
+  panes…`, `no panes match 'x'`). They are data (`Placeholder`:
+  `Empty`, `Loading`, `Plural`, `LoadingJob`; the same fields on
+  `ChooserSpec`), and a component draws `Loading` only while the job that
+  fills it runs, then `Empty`: "loading" never reads as "empty" and an
+  empty list never says it is loading. Story: `lists/empty-format.json`;
+  tests `placeholder_test.go`.
 
 ### R6. Chrome: footer, hints, help, ticker, notices
 

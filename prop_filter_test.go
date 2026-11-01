@@ -515,7 +515,7 @@ func TestPropFilterCycleInvalidAndEmpty(t *testing.T) {
 	}
 	_ = r.Settings().Set("list.filter-strip", false)
 	_ = l.SetPropFilters([]PropFilter{{"by", "=", "none"}})
-	if text := ansi.Strip(l.View(60, max(1, l.Height()))); !strings.Contains(text, "0 of 5 (filtered)") {
+	if text := ansi.Strip(l.View(60, max(1, l.Height()))); !strings.Contains(text, "no rows match the filter, 0 of 5") {
 		t.Fatal(text)
 	}
 }

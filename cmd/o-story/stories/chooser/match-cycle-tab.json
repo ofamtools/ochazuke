@@ -14,9 +14,9 @@
   "script": [{"type": "ab"}, "tab", "ctrl+u", {"type": "^al"}, "tab", "shift+tab", "enter"],
   "expect": [
     {"after": 1, "modal": "pick", "contains": ["› ab", "fuzzy", "alpha-beta", "albatross"], "lacks": ["gamma"]},
-    {"after": 2, "contains": ["regex", "no matches"]},
+    {"after": 2, "contains": ["regex", "no rows match"]},
     {"after": 4, "contains": ["› ^al", "regex", "alpha-beta", "albatross"], "lacks": ["gamma"]},
-    {"after": 5, "contains": ["substr", "no matches"]},
+    {"after": 5, "contains": ["substr", "no rows match"]},
     {"after": 6, "contains": ["regex", "alpha-beta"]},
     {"modal": ""}
   ]

@@ -5,7 +5,7 @@
 r|  a1    ╭──────────────────────────────────────────────────────────────╮
  |        │ Context                                                      │
  |        │ › zz                                                   fuzzy │
- |        │   no matches                                                 │
+ |        │   no rows match 'zz'                                         │
  |        │   no project                                                 │
  |        │   no context                                                 │
  |        │ enter chooser.pick · esc chooser.cancel · tab search.cycle-… │
