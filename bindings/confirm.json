@@ -4,8 +4,9 @@
     {"context": "ochazuke.confirm", "bindings": [
       {"key": "y", "action": "ochazuke.confirm.accept"},
       {"key": "enter", "action": "ochazuke.confirm.accept"},
-      {"key": "n", "action": "ochazuke.modal.pop"},
-      {"key": "esc", "action": "ochazuke.modal.pop"},
+      {"key": "n", "action": "ochazuke.modal.close"},
+      {"key": "esc", "action": "ochazuke.modal.close"},
+      {"key": "q", "action": "ochazuke.modal.close", "hidden": true, "help": "Close without running, as q closes every modal"},
       {"key": "any", "action": "ochazuke.key.ignore", "hidden": true}
     ]}
   ]

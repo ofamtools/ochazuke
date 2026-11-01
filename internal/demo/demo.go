@@ -243,9 +243,9 @@ func newWith(task *demoTask) *ochazuke.Model {
 	bind("playground", "normal", "ctrl+n", "push", "modal", ochazuke.Arguments{"id": "draft", "input": "dialog"})
 	bind("dialog", "normal", "ctrl+n", "push", "modal", ochazuke.Arguments{"id": "nested-draft", "input": "nested-dialog"})
 	for _, id := range []string{"dialog", "nested-dialog", "help"} {
-		bind(id, "", "ctrl+g", "pop", "modal", nil)
+		bind(id, "", "ctrl+g", "close", "modal", nil)
 	}
-	bind("help", "", "ctrl+c", "pop", "modal", nil)
+	bind("help", "", "ctrl+c", "close", "modal", nil)
 	bind("playground", "normal", "ctrl+x", "inspect", "selection", nil)
 	bind("appearance", "normal", "t", "cycle", "theme", nil)
 	bind("appearance", "normal", "d", "cycle", "density", nil)

@@ -19,7 +19,7 @@ R|            │ 0           .column?                                          
  |            │ ctrl+f      .scroll                                                           .scroll        │
  |            │ ctrl+h                      .filter-keep?                                                    │
  |            │ ctrl+n                      .move?                                                           │
- |            │ 1–12 / 86                                                                                    │
+ |            │ 1–12 / 87                                                                                    │
  |            │ ──────────────────────────────────────────────────────────────────────────────────────────── │
  |            │ normal       list.column when no-count · list                                                │
  |            │              to first                                                                        │
@@ -31,10 +31,10 @@ R|            │ 0           .column?                                          
  |            │              to first                                                                        │
  |            │              then list.scroll-columns when row-table-no-count · list                         │
  |            │                   to first                                                                   │
- |            │ space list.mark · S view · n noun · p place · esc modal.pop · : palette.open · ? bindings.h… │
+ |            │ space list.mark · S view · n noun · p place · esc modal.close · : palette.open · ? bindings… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  space list.mark · S view · n noun · p place · esc modal.pop · : palette.open · ? bindings.help · / filter
+ |  space list.mark · S view · n noun · p place · esc modal.close · : palette.open · ? bindings.help · / filter
  |

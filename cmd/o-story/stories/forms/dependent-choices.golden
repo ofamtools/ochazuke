@@ -11,7 +11,7 @@
  |        │ ›                                                      fuzzy │
 R|        │   two-a                                                      │
  |        │   two-b                                                      │
- |        │ enter chooser.pick · esc chooser.cancel · tab search.cycle-… │
+ |        │ enter chooser.pick · esc modal.close · tab search.cycle-mat… │
  |        ╰──────────────────────────────────────────────────────────────╯
  |
  |
@@ -20,5 +20,5 @@ R|        │   two-a                                                      │
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────
- |  enter chooser.pick · esc chooser.cancel · tab search.cycle-match
+ |  enter chooser.pick · esc modal.close · tab search.cycle-match
  |

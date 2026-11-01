@@ -46,7 +46,7 @@ func TestPaletteTextResultOpensReadOnlyEditor(t *testing.T) {
 		t.Fatalf("input %+v mode %q", in, r.Mode.Name)
 	}
 	frame := ansi.Strip(m.View().Content)
-	for _, want := range []string{"Text", "record.program", ".a | .b", "q modal.pop"} {
+	for _, want := range []string{"Text", "record.program", ".a | .b", "esc modal.close"} {
 		if !strings.Contains(frame, want) {
 			t.Fatalf("frame lacks %q:\n%s", want, frame)
 		}

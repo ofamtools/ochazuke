@@ -58,6 +58,8 @@ R|            │   q             app.quit                                  Exit
  |            │   ctrl+c        app.quit                                  Exit the application               │
  |            │   "             mode.enter         mode register_pending  Pick the register the next yank,   │
  |            │                                                           delete or paste uses ("a)          │
+ |            │   Q             mode.enter         mode macro_pending     Record a macro into the register   │
+ |            │                                                           typed next (Qa); Q again stops     │
  |            │   @             mode.enter         count 1                Replay the macro in the register   │
  |            │                                    mode  replay_pending   typed next (@a), count times       │
  |            │   1-9           mode.enter         count $digit           Start a count for the next key     │
@@ -71,10 +73,8 @@ R|            │   q             app.quit                                  Exit
  |            │                                                           to, with the operation each runs   │
  |            │                                                           and its description                │
  |            │   '             page.pick                                 Choose a page, most recently       │
- |            │                                                           visited first and the current one  │
- |            │                                                           last: type to filter, enter opens  │
- |            │ 1–31 / 65                                                                                    │
- |            │ space list.mark · S view · esc modal.pop · : palette.open · ? bindings.help · / filter       │
+ |            │ 1–32 / 66                                                                                    │
+ |            │ space list.mark · S view · esc modal.close · : palette.open · ? bindings.help · / filter     │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |
  |
@@ -86,5 +86,5 @@ R|            │   q             app.quit                                  Exit
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  space list.mark · S view · esc modal.pop · : palette.open · ? bindings.help · / filter
+ |  space list.mark · S view · esc modal.close · : palette.open · ? bindings.help · / filter
  |

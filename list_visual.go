@@ -392,7 +392,7 @@ func registerListVisual(r *Runtime) {
 	r.Nouns["ochazuke.list"].Guards["visual"] = "list-selects"
 	// esc's verb guard as well as its row guard: a row guarded off still
 	// takes its key in the listings, so the row guard alone would hide an
-	// outer esc's hint (a modal's esc modal.pop over a table) whenever no
+	// outer esc's hint (a modal's esc modal.close over a table) whenever no
 	// selection is on. The row guard keeps it apart from the filter's esc
 	// row (bound after this, unguarded), which would otherwise replace it.
 	r.Nouns["ochazuke.list"].Guards["end-visual"] = "list-visual"

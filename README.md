@@ -409,7 +409,7 @@ Compared with Vim: `'cursorline'` (`hl-CursorLine`) is window-local and drawn at
 
 The demo starts on Overview in normal mode. Open Playground with `Ctrl-J`; Tab/Shift-Tab cycle its directory, notes, and paths fields. Overview, Commands, and Appearance support `j/k` and up/down scrolling. Demo page shortcuts are normal-mode-only, so insert-mode `Ctrl-K` still kills to line end. The footer of every screen is the live version of this table for the focused instance and its mode: the rows `bindings list` prints, innermost first.
 
-Macro recording consumes exactly one register character after `q`, except `:`: `q:` opens the palette on the last command, Vim's command-line window (`:help q:`; the exact `:` row of `macro_pending` beats its `any` register row, so `:` is never a register, as in Vim). Compared with Vim: there is no history window; the line holds the last command and up/down walk older ones. `q/` and `q?` (search history) are not bound: there is no search history yet. For `qq:`, the first `q` prompts for a register, the second starts recording into `q` and displays `REC @q`, and `:` opens the palette. A normal-mode `q` stops recording. Invalid register input reports an error but does not trap later commands in register selection.
+Macro recording starts on `Q` (Vim's `q`: here `q` closes modals and viewers, one meaning per key across the family; bind `q` to `mode.enter {mode: macro_pending}` in `bindings.json` for Vim's key). It consumes exactly one register character after `Q`, except `:`: `Q:` opens the palette on the last command, Vim's command-line window (`:help q:`; the exact `:` row of `macro_pending` beats its `any` register row, so `:` is never a register, as in Vim). Compared with Vim: there is no history window; the line holds the last command and up/down walk older ones. `Q/` and `Q?` (search history) are not bound: there is no search history yet. For `Qq:`, `Q` prompts for a register, `q` starts recording into `q` and displays `REC @q`, and `:` opens the palette. A normal-mode `Q` stops recording. Invalid register input reports an error but does not trap later commands in register selection.
 
 | Context | Keys | Behavior |
 |---|---|---|
@@ -424,7 +424,8 @@ Macro recording consumes exactly one register character after `q`, except `:`: `
 | Normal input | `yy`, `p`, `P` | Yank a line; paste after/before |
 | Normal app | `g y` | Open shared yank history (`ctrl+y` until this release; `ctrl+y` is now Vim's line scroll) |
 | Normal input | `"a` | Select named register `a` for the next operation |
-| Normal app/input | `qa … q`, `@a`, `@@` | Record macro `a`, replay it, repeat the last macro |
+| Normal app/input | `Qa … Q`, `@a`, `@@` | Record macro `a`, replay it, repeat the last macro |
+| Any modal, normal | `esc`, `q` | Close it (`modal.close`: the modal's close request, else pop back to the focus and mode it opened over) |
 | Insert input | `Ctrl-A/E`, `Ctrl-B/F` | Line start/end, previous/next rune |
 | Insert input | `Ctrl-P/N`, `Alt-B/F` | Previous/next line, previous/next word |
 | Insert input | `Ctrl-W/U/K`, `Ctrl-Y` | Kill path component/to line start/to line end; paste the app's current yank |
@@ -460,7 +461,7 @@ Macro recording consumes exactly one register character after `q`, except `:`: `
 | Normal page with a list/detail split | `Ctrl-W >`, `Ctrl-W <`, `Ctrl-W =` | Grow / shrink the list pane by 5% (counts: `3 Ctrl-W >`), reset the divider; remembered per page |
 | Normal page with a list/detail split | `Ctrl-W o`, `Ctrl-W =` | Keep the focused pane alone; `Ctrl-W o` again or `Ctrl-W =` shows both again (`=` restores before it resets) |
 | App or modal | `PgUp/PgDn` | Scroll the active surface |
-| App | `Ctrl-C` | Quit (`q` is reserved for macro recording) |
+| App | `Ctrl-C` | Quit (`q` closes modals and viewers, `Q` records macros) |
 | Attached terminal | any key | Forwarded to the pane; `Ctrl-A` is the leader (`d` detach, `o` next focus stop, `a` or `Ctrl-A` literal, bound key runs, other key sends both, timeout sends the leader) |
 
 Compared with Vim (`:help CTRL-W_h`, `:help CTRL-W_l`, `:help CTRL-W_w`): Vim's `Ctrl-W h/l` move left/right and stop at the edge; ochazuke's move backward/forward through focus stops in drawing order and wrap. Vim's `Ctrl-W w` cycles windows; ochazuke's cycles stops. `Ctrl-A o` follows tmux's prefix `o` pane cycle.
@@ -1059,7 +1060,7 @@ Every `Input` has a noun and two field settings, plus behavior all inputs share.
 
 | Setting | Value | Effect |
 |---|---|---|
-| noun (`Kind`) | `editor` (default) | Vim editing. Starts in `normal`. `i a I A o O` enter `insert`; Escape returns to `normal`. `v V Ctrl-V` enter `visual`, `visual-line`, `visual-block`. Counts, operators, `g`, `"`, `q` and `@` enter the pending modes `count_pending`, `operator_pending`, `g_pending`, `register_pending`, `macro_pending`, `replay_pending`. |
+| noun (`Kind`) | `editor` (default) | Vim editing. Starts in `normal`. `i a I A o O` enter `insert`; Escape returns to `normal`. `v V Ctrl-V` enter `visual`, `visual-line`, `visual-block`. Counts, operators, `g`, `"`, `Q` and `@` enter the pending modes `count_pending`, `operator_pending`, `g_pending`, `register_pending`, `macro_pending`, `replay_pending`. |
 | noun (`Kind`) | `prompt` | Insert only. Starts in `insert` and `mode.set` keeps it there. Escape has no effect of its own, so a noun on the stack can bind it, as the picker binds cancel. |
 | `Kind` | `""` or `text` | Picker opens at the working directory or a supplied path and inserts at the cursor captured when it opened. |
 | `Kind` | `path` | Picker opens at the whole value and replaces it. |
@@ -1404,7 +1405,7 @@ Illustrative state (JavaScript notation, not a Go API contract):
 
 Opening a directory picker opens another modal. Closing it restores the editor's interaction state. A child can return a result to its parent, such as a selected directory.
 
-In the Go API there are no frames: `Runtime.Focus` is the one focus and an open modal is an instance on the modal chain. `Push(id, focus)` opens modal `id` focused on `focus` and stores the focus (and mode) it opened over in the modal's `Payload.Return`; `Pop` restores both, falling back to the nearest surviving ancestor (ending at the page) when that focus was removed. An id that is not already an instance becomes one of the `modal` noun for as long as it is open, so "Escape pops a modal" is that noun's normal-mode `esc` row and a modal body may carry rows of its own. `OpenModal(kind, Payload{...}, opts...)` is the payload-carrying form: it creates a body instance of noun `kind` parented at the current focus, with the payload (`Prompt`, a stored `Request`, ...) the kind's rows read through `FromPayload` and `request.run`, and removes it (with what it holds) on `Pop` after closing its component. `WithInput(in, Kind("prompt"))` puts an input inside the body and focuses it, so a one-field prompt is one call; the `*Input` keeps its text for the next open. The `confirm` noun is built this way. `RemoveInstance(id)` closes and drops an instance with its descendants and moves every focus reference into it to the nearest surviving ancestor. Cursor, drafts, selection and undo live on the instances; the mode is global; scroll offsets live on the `Model`; application data lives with the application.
+In the Go API there are no frames: `Runtime.Focus` is the one focus and an open modal is an instance on the modal chain. `Push(id, focus)` opens modal `id` focused on `focus` and stores the focus (and mode) it opened over in the modal's `Payload.Return`; `Pop` restores both, falling back to the nearest surviving ancestor (ending at the page) when that focus was removed. An id that is not already an instance becomes one of the `modal` noun for as long as it is open, so "Escape closes a modal" is that noun's normal-mode `esc` row (`q` too), running `modal.close`, and a modal body may carry rows of its own. `modal.close` runs the modal's close request when it has one (`CloseWith(req)` on `OpenModal`, `SetModalClose(id, req)` after a `Push`; the palette clears its line first, a form leaves, a chooser cancels), else pops it, so every modal closes through one verb and one row, and a kind says what closing does as data, not with a verb and rows of its own. Kinds whose input is insert-pinned (chooser, palette, picker, setting prompt) and the confirm (whose `any` row swallows keys) bind their own `esc` to `modal.close` because the modal noun is not reached there. `modal.pop` is its old name (an alias until v0.83.0). `OpenModal(kind, Payload{...}, opts...)` is the payload-carrying form: it creates a body instance of noun `kind` parented at the current focus, with the payload (`Prompt`, a stored `Request`, ...) the kind's rows read through `FromPayload` and `request.run`, and removes it (with what it holds) on `Pop` after closing its component. `WithInput(in, Kind("prompt"))` puts an input inside the body and focuses it, so a one-field prompt is one call; the `*Input` keeps its text for the next open. The `confirm` noun is built this way. `RemoveInstance(id)` closes and drops an instance with its descendants and moves every focus reference into it to the nearest surviving ancestor. Cursor, drafts, selection and undo live on the instances; the mode is global; scroll offsets live on the `Model`; application data lives with the application.
 
 Focus moves between focus stops: instances of nouns declared `Focusable()` (list, grid, palette, terminal) and every input, unless the instance sets `Unfocusable`. `focus.next` and `focus.previous {steps, scope}` walk the top modal (else the page) in drawing order (the order the page's last frame drew its stops: `List.View`, `InputBlock`, `Terminal.ViewBlock`, `grid.View` and `Runtime.Placed(id)` record it; stops no frame drew follow in tree order), without descending into a stop (a grid is one stop, not its cells), wrap, and land on the stop's remembered child (its `FocusTarget`, such as the list's selected row, else the focus last held inside). Scope `region` jumps between instances of nouns declared `Region()` (panels, never stops themselves). The app noun binds `}` `{` and `tab` `shift+tab` to stops and `)` `(` to regions in normal mode, all taking a count; an inner level (a multiline editor's insert table, a palette field) binds its own. `focus.set {id}` is how handlers move focus. On a page, `list.move` (`j` `k` `down` `up`) past a list's last row moves the focus to the next stop in drawing order (a list on its first row), before its first row to the previous stop (on its last row), and stays put at the page's ends; `AddList(..., NoSpill())` keeps a list's motions inside it, and lists in modals never spill. A user turns the spill off for chosen lists without code: the `list.no-spill` setting holds instance ids (a list's, or a tree's or timeline's own id such as `panes/working`; an entry ending in `*` is a prefix) whose motions clamp as `NoSpill()` does, read on every motion. An entry may name one edge: `ID:last` (past the last row: `j`, `down`, a count, a timeline's last step), `ID:first` (before the first row: `k`, `up`), `ID:last-col` and `ID:first-col` (a table's, or a tree with columns', `l`/`h` at its column edge); several entries trap several edges (`["t:last", "t:last-col"]`), and an entry without a suffix traps all four (`NoSpill()` always does). Every list-like component (list, table, tree, timeline, and any other whose motions spill) takes the same four edges, one shared definition (`SpillEdges`, `spill_edges.go`): always cover all four directions. A component with no horizontal motion (a plain list, a timeline) accepts the column edges as a no-op. Paging (`G`, `g g`, `ctrl+d`, `ctrl+f`) never spills, so it is the same trapped or not. At a trapped edge the motion is unavailable, not a silent no-op: `list.move` (guard `list-moves`), `list.column` and `list.scroll-columns` by a delta (`list-column-moves`) and `timeline.step` down (`timeline-step-moves`) are unavailable where they would only spill past an edge the list traps, so the hints and `?` help leave the key out there and the key goes on to the next row bound to it, as any unavailable action's does (no framework row moves the focus on `j`, so the focus stays; an app row on an outer level bound to `j` would answer). A clamped move (the filter line's `list.move {clamp}`) stays available. Focus never rests on what the last frame did not draw: after the Model draws the page, a focus whose stop the frame did not place (a tab switched away from it, a collapsed panel; a list row counts as drawn when its list is) moves to its nearest ancestor below the page that was drawn, else to the page's first stop in drawing order, else to the page, and the page is drawn again before the footer, so the hints and the next key are what is on screen. It is a plain focus change (the mode rule applies; `}` goes back once the stop is drawn again) and waits while a modal is open, before the first frame and after a frame that placed no stop (UX-RULES R3.13).
 
@@ -1481,8 +1482,8 @@ The system clipboard: the clipboard register `+` (and `*`, the same register her
 - `p/P` preserve the yank's shape. Block operations handle ragged rows and wide glyphs; block change repeats a contiguous first-row insertion across selected rows when leaving insert mode. Each block edit is one undo step. Single-line inputs reject line/block-shaped pastes rather than flattening them.
 - `"a` selects register `a` for the next operation; `"A` appends. The unnamed register is shared; `0` holds the last yank, `1`–`9` hold line/multiline deletions, and `-` holds small deletions. `"_` discards without changing shared yanks or history.
 - Normal `g y` or `yank-history.open` opens history (an editor reaches it through its `g` prefix, `g_pending` `y`; the `app` row is guarded `no-input` so an editor's `5gg` keeps its count). `j/k` or arrows highlight an entry; Enter makes it the unnamed yank and closes **without inserting**. Then use `p/P` or insert-mode `Ctrl-Y` to paste. Escape cancels. History keeps the newest 100 entries, including duplicates.
-- `qa … q` records into register `a`; `qA` appends. `@a` replays, `3@a` repeats three times, and `@@` repeats the last macro. Mode changes, bindings, focus changes, and modal/palette interactions use the same dispatcher as live keys. Register yanks and macro recordings share storage: replacing one replaces the other.
-- Macro replay is bounded to 16 nested calls and 10,000 dispatched keys. Errors are reported, not swallowed; earlier edits remain undoable rather than being rolled back as a transaction. Recording is the `macro_recording` shadow mode on the `app` noun: each key is appended, then dispatched again in the mode it shadowed; replay runs at depth and is not re-recorded. The `q`, `@`, `"` and count rows are `app` rows too (`registers_bindings.json`), so a page or list focus records, replays and counts without an input.
+- `Qa … Q` records into register `a`; `QA` appends. `@a` replays, `3@a` repeats three times, and `@@` repeats the last macro. Mode changes, bindings, focus changes, and modal/palette interactions use the same dispatcher as live keys. Register yanks and macro recordings share storage: replacing one replaces the other.
+- Macro replay is bounded to 16 nested calls and 10,000 dispatched keys. Errors are reported, not swallowed; earlier edits remain undoable rather than being rolled back as a transaction. Recording is the `macro_recording` shadow mode on the `app` noun: each key is appended, then dispatched again in the mode it shadowed; replay runs at depth and is not re-recorded. The `Q`, `@`, `"` and count rows are `app` rows too (`registers_bindings.json`), so a page or list focus records, replays and counts without an input.
 
 ```sh
 /tmp/ochazuke yank-history open
@@ -1533,12 +1534,12 @@ for (inst of stack(focus)) {
 Within one level the instance's own rows sit above its noun's, the mode table above the any-mode table, and an exact key beats a class beats `any`; between levels the inner one wins. Key sequences are the exception (Vim typeahead): a sequence extending the keys typed so far at any level, inner or outer, makes the walk wait, with the innermost exact match as the fallback (inner `x` with outer `x x`: `x x` runs the outer row, `x` alone runs the inner one after the timeout); a level answering with a key class (a terminal's `any`) ends that scan. A row whose verb is guarded off at the focus is skipped and the walk goes on. Application rows therefore beat the editor's defaults for a fresh key, while a pending mode (an operator, a count, a register, a macro prefix, a key sequence) is exclusive: only that mode's tables answer, so `dw` reaches the editor even when the app binds `w`. A pending mode is one-shot: the key that answers it consumes it before the request runs, so `d` then `w` leaves `operator_pending` and the operator's own request decides the next mode; a row whose request is `mode.enter` or `count.append` stays or moves on. Every pending condition is such a mode with a small typed payload:
 
 ```js
-normal:           { i: mode.set insert, d: enter operator_pending {op: "d"}, g: enter g_pending, "<digit-0>": enter count_pending {count: digit}, q: enter macro_pending, '"': enter register_pending }
+normal:           { i: mode.set insert, d: enter operator_pending {op: "d"}, g: enter g_pending, "<digit-0>": enter count_pending {count: digit}, Q: enter macro_pending, '"': enter register_pending }
 count_pending:    { "<digit>": count.append, ...normal rows with steps from the count, esc: cancel, any: leave and re-dispatch }
 operator_pending: { w: operator {motion: "word-forward", steps}, d: operator {motion: "line"} when op:d, g: enter operator_g_pending, any: cancel }
 g_pending:        { g: move first-line {line: count}, any: cancel }
 macro_pending:    { any: macro.start {register: key}, esc: cancel }
-macro_recording:  { q: macro.stop when shadow-idle, any | paste: macro.record {key} = macro.append then key.dispatch {mode: "shadow"} }
+macro_recording:  { Q: macro.stop when shadow-idle, any | paste: macro.record {key} = macro.append then key.dispatch {mode: "shadow"} }
 "normal g":       { "g g": … the continuations of the sequence; a timer leaves the mode and runs the completed match }
 ```
 
@@ -1601,12 +1602,12 @@ A binding row is atomic. A row is a `Request` (one registered operation, its arg
 
 The rule is recommended to any application built on the framework that wants to stay extensible and scriptable. Because every row is a `Request`, every key the user can press is also a CLI command (`NOUN VERB --json`), a palette entry, a macro step, a config override (the same row shape in a binding file replaces or unbinds it) and a help line (`bindings list`, the footer, the help modal), with no hidden branch in Go that a script cannot reach. Composite behavior is an operation that calls operations, so a script or an agent can call the pieces on their own; a condition is a named guard, so a config row can carry it (`"when": "shadow-idle"`) and `bindings list` can show it.
 
-The macro recorder's `q` row, before and after:
+The macro recorder's stop row (`Q`), before and after:
 
 ```go
 // Before: a Func row that reads the mode and the key in Go. Not a CLI command,
 // not a palette entry, invisible to bindings list and to a binding file.
-Bind("q", Func(func(r *Runtime, ev KeyEvent) error {
+Bind("Q", Func(func(r *Runtime, ev KeyEvent) error {
 	shadow := ev.Mode.Payload.Shadow
 	if shadow.Name == "normal" && shadow.Payload.empty() {
 		_, err := r.Execute(Request{Verb: "stop", Noun: "macro"})
@@ -1617,11 +1618,11 @@ Bind("q", Func(func(r *Runtime, ev KeyEvent) error {
 
 // After: two atomic rows. q stops under a named guard and falls through to
 // the any row otherwise; recording is an operation that calls two operations.
-Bind("q", Do("macro.stop")).When("shadow-idle").
+Bind("Q", Do("macro.stop")).When("shadow-idle").
 Pattern(Any, Do("macro.record").FromKey("key"))      // macro.append {key}, then key.dispatch {key, mode: "shadow"}
 ```
 
-The same row in a binding file is `{"noun": "app", "mode": "macro_recording", "keys": "q", "when": "shadow-idle", "request": {"verb": "stop", "noun": "macro"}}`, and `ochazuke macro record --json '{"key": "j"}'` is the recorder's step from the command line.
+The same row in a binding file is `{"noun": "app", "mode": "macro_recording", "keys": "Q", "when": "shadow-idle", "request": {"verb": "stop", "noun": "macro"}}`, and `ochazuke macro record --json '{"key": "j"}'` is the recorder's step from the command line.
 
 ## Verb/noun command line
 
@@ -1690,7 +1691,7 @@ Live CLI examples:
 
 ```sh
 /tmp/ochazuke modal push --json '{"id":"draft","input":"dialog"}'
-/tmp/ochazuke modal pop
+/tmp/ochazuke modal close
 /tmp/ochazuke mode set --json '{"mode":"insert"}'
 /tmp/ochazuke bindings list
 /tmp/ochazuke state get --json '{"path":"/modals"}'
@@ -1777,7 +1778,7 @@ An entry is the user action, not the data: the value the operation returned stay
 
 | Kind | What | Examples |
 |---|---|---|
-| `action` | The user's interaction: motions, focus, page and modal moves, modes, the palette's own keys | `list.move`, `focus.next`, `page.open`, `modal.pop`, `mode.enter` |
+| `action` | The user's interaction: motions, focus, page and modal moves, modes, the palette's own keys | `list.move`, `focus.next`, `page.open`, `modal.close`, `mode.enter` |
 | `change` | Edits and verbs that change something; dot-repeat reads these | `input.delete`, `settings.set`, an application verb (`worktree.remove`) |
 | `fetch` | Requests for data: state, list and show verbs, reloads, a host calling an extension | `state.get`, `jobs.list`, `bindings.list`, a verb declaring `Rows` or `State` |
 | `system` | Reserved for what the runtime does on its own (a resize, a finished job); nothing records it yet | |

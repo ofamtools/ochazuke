@@ -10,7 +10,7 @@ r|  beta is a row whose label runs wider than the confirm modal drawn over it
  |        ╭──────────────────────────────────────────────────────────────╮
  |        │ Confirm                                                      │
  |        │ Delete beta is a row whose label runs wider than the confirm │
- |        │ y confirm.accept · n modal.pop                               │
+ |        │ y confirm.accept · n modal.close                             │
  |        ╰──────────────────────────────────────────────────────────────╯
  |
  |
@@ -20,5 +20,5 @@ r|  beta is a row whose label runs wider than the confirm modal drawn over it
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────
- |  y confirm.accept · n modal.pop
+ |  y confirm.accept · n modal.close
  |

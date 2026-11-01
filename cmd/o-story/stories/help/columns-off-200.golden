@@ -22,6 +22,7 @@ R|                    │   q             app.quit                              
  |                    │ app                                                                                                                                                          │
  |                    │   ctrl+c        app.quit                                   Exit the application                                                                              │
  |                    │   "             mode.enter          mode register_pending  Pick the register the next yank, delete or paste uses ("a)                                        │
+ |                    │   Q             mode.enter          mode macro_pending     Record a macro into the register typed next (Qa); Q again stops                                   │
  |                    │   @             mode.enter          count 1                Replay the macro in the register typed next (@a), count times                                     │
  |                    │                                     mode  replay_pending                                                                                                     │
  |                    │   1-9           mode.enter          count $digit           Start a count for the next key (3j)                                                               │
@@ -29,12 +30,11 @@ R|                    │   q             app.quit                              
  |                    │   .             history.repeat      steps 0                Dot-repeat: run the last repeatable change again at the current focus, its arguments kept; steps  │
  |                    │                                                            replaces its count                                                                                │
  |                    │   :             palette.open                               Open the command line                                                                             │
- |                    │   ?             bindings.help                              Open the keys the focus answers to, with the operation each runs and its description              │
- |                    │ 1–16 / 53                                                                                                                                                    │
- |                    │ space list.mark · S view · esc modal.pop · : palette.open · ? bindings.help · / filter                                                                       │
+ |                    │ 1–16 / 54                                                                                                                                                    │
+ |                    │ space list.mark · S view · esc modal.close · : palette.open · ? bindings.help · / filter                                                                     │
  |                    ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  space list.mark · S view · esc modal.pop · : palette.open · ? bindings.help · / filter
+ |  space list.mark · S view · esc modal.close · : palette.open · ? bindings.help · / filter
  |

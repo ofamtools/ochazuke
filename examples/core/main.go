@@ -25,7 +25,7 @@ func main() {
 	exec(ochazuke.Request{Verb: "insert", Noun: "input", Args: ochazuke.Arguments{"text": "x"}})
 	exec(ochazuke.Request{Verb: "push", Noun: "modal", Args: ochazuke.Arguments{"id": "picker", "input": "picker"}})
 	exec(ochazuke.Request{Verb: "insert", Noun: "input", Args: ochazuke.Arguments{"text": "y"}})
-	exec(ochazuke.Request{Verb: "pop", Noun: "modal"})
+	exec(ochazuke.Request{Verb: "close", Noun: "modal"})
 	if r.Context().InputID != "directory" || string(r.Input("directory").Text) != "x/tmp" {
 		panic("modal failed to restore editor")
 	}

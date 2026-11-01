@@ -57,7 +57,7 @@ R|          │                                                          target)
  |          │                                                          focus sent to its   │
  |          │                                                          FocusOnClose        │
  |          │ 1–7 / 8                                                                      │
- |          │ space list.mark · S view · esc modal.pop · : palette.open · ? bindings.help… │
+ |          │ space list.mark · S view · esc modal.close · : palette.open · ? bindings.he… │
  |          ╰──────────────────────────────────────────────────────────────────────────────╯
  |
  |
@@ -66,5 +66,5 @@ R|          │                                                          target)
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────
- |  space list.mark · S view · esc modal.pop · : palette.open · ? bindings.help · / filter
+ |  space list.mark · S view · esc modal.close · : palette.open · ? bindings.help · / filter
  |

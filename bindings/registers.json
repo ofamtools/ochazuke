@@ -13,12 +13,12 @@
       {"key": "any", "action": "ochazuke.mode.leave", "when": "no-input", "replay": true}
     ]},
     {"context": "app/macro_pending", "bindings": [
-      {"key": "esc", "action": "ochazuke.mode.leave", "help": "Leave without recording, back to the mode q was pressed in (a visual selection stays)"},
+      {"key": "esc", "action": "ochazuke.mode.leave", "help": "Leave without recording, back to the mode Q was pressed in (a visual selection stays)"},
       {"key": "any", "action": "ochazuke.macro.start", "from": {"register": "key"}}
     ]},
     {"context": "app/normal", "bindings": [
       {"key": "\"", "action": "ochazuke.mode.enter", "args": {"mode": "register_pending"}, "hidden": true, "help": "Pick the register the next yank, delete or paste uses (\"a)"},
-      {"key": "q", "action": "ochazuke.mode.enter", "args": {"mode": "macro_pending"}, "hidden": true, "help": "Record a macro into the register typed next (qa); q again stops"},
+      {"key": "Q", "action": "ochazuke.mode.enter", "args": {"mode": "macro_pending"}, "hidden": true, "help": "Record a macro into the register typed next (Qa); Q again stops"},
       {"key": "@", "action": "ochazuke.mode.enter", "args": {"mode": "replay_pending"}, "from": {"count": "count"}, "hidden": true, "help": "Replay the macro in the register typed next (@a), count times"},
       {"key": "digit-0", "action": "ochazuke.mode.enter", "args": {"mode": "count_pending"}, "from": {"count": "digit"}, "hidden": true, "help": "Start a count for the next key (3j)"}
     ]},
@@ -32,7 +32,7 @@
     ]},
     {"context": "app/visual", "bindings": [
       {"key": "\"", "action": "ochazuke.mode.enter", "args": {"mode": "register_pending"}, "hidden": true, "help": "Pick the register the next yank, delete or paste uses (\"a)"},
-      {"key": "q", "action": "ochazuke.mode.enter", "args": {"mode": "macro_pending"}, "hidden": true, "help": "Record a macro into the register typed next (qa); q again stops"},
+      {"key": "Q", "action": "ochazuke.mode.enter", "args": {"mode": "macro_pending"}, "hidden": true, "help": "Record a macro into the register typed next (Qa); Q again stops"},
       {"key": "@", "action": "ochazuke.mode.enter", "args": {"mode": "replay_pending"}, "from": {"count": "count"}, "hidden": true, "help": "Replay the macro in the register typed next (@a), count times"}
     ]},
     {"context": "app/visual_count_pending", "extends": "visual", "bindings": []},

@@ -10,8 +10,7 @@
       {"key": "shift+tab", "action": "ochazuke.bindings-help.view", "args": {"step": -1}, "hidden": true, "help": "Previous view"},
       {"key": "n", "action": "ochazuke.bindings-help.noun", "hint": "noun"},
       {"key": "m", "action": "ochazuke.bindings-help.mode", "hint": "mode"},
-      {"key": "p", "action": "ochazuke.bindings-help.place", "hint": "place"},
-      {"key": "q", "action": "ochazuke.modal.pop", "hidden": true, "help": "Close the help, as q closes the docs viewer (esc too)"}
+      {"key": "p", "action": "ochazuke.bindings-help.place", "hint": "place"}
     ]}
   ]
 }

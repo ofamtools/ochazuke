@@ -1,0 +1,26 @@
+{
+  "name": "q closes every modal in normal mode through modal.close, as esc does: the help, a confirm, the yank history, the text view and the Markdown viewer; it never starts a macro recording beneath them (Q records) (K2)",
+  "area": "modals",
+  "width": 100,
+  "height": 30,
+  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
+  "script": [
+    "?", "q",
+    "x", "q",
+    "g", "y", "q",
+    ":", {"type": "demo mapping"}, "enter", "q",
+    ":", {"type": "demo guide"}, "enter", "q"
+  ],
+  "expect": [
+    {"after": 1, "modal": "bindings-help"},
+    {"after": 2, "modal": "", "focus": "a2", "mode": "normal", "lacks": ["REC @"]},
+    {"after": 3, "modal": "confirm"},
+    {"after": 4, "modal": "", "focus": "a2", "mode": "normal", "contains": ["a2"], "lacks": ["REC @"]},
+    {"after": 6, "modal": "__yank-history"},
+    {"after": 7, "modal": "", "focus": "a2", "mode": "normal", "lacks": ["REC @"]},
+    {"after": 10, "modal": "text-view"},
+    {"after": 11, "modal": "", "focus": "a2", "mode": "normal", "lacks": ["REC @"]},
+    {"after": 14, "modal": "markdown-view"},
+    {"modal": "", "focus": "a2", "mode": "normal", "lacks": ["REC @"]}
+  ]
+}

@@ -12,8 +12,7 @@
       {"key": "ctrl+u", "action": "ochazuke.view.page", "args": {"delta": -1, "half": true}, "from": {"steps": "line"}, "hidden": true},
       {"key": "ctrl+f", "action": "ochazuke.view.page", "args": {"delta": 1}, "from": {"steps": "line"}, "hidden": true},
       {"key": "ctrl+b", "action": "ochazuke.view.page", "args": {"delta": -1}, "from": {"steps": "line"}, "hidden": true},
-      {"key": "enter", "action": "ochazuke.yank-history.select"},
-      {"key": "esc", "action": "ochazuke.modal.pop"}
+      {"key": "enter", "action": "ochazuke.yank-history.select"}
     ]}
   ]
 }

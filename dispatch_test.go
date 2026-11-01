@@ -42,7 +42,7 @@ func modeOf(m *Model) string { return m.Runtime.Mode.Name }
 // when an any-mode app row binds it.
 func TestDispatchMacroPendingBeatsLayerBinding(t *testing.T) {
 	m, in, calls := dispatchTestModel(t, "abc", "x")
-	for _, step := range []struct{ key, mode string }{{"q", "macro_pending"}, {"x", "normal"}} {
+	for _, step := range []struct{ key, mode string }{{"Q", "macro_pending"}, {"x", "normal"}} {
 		keytest.Press(m, step.key)
 		if got := modeOf(m); got != step.mode {
 			t.Fatalf("after %s: mode %q, want %q", step.key, got, step.mode)

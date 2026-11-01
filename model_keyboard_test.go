@@ -30,7 +30,7 @@ func TestModelMacroRegisterTransitionsAndPalette(t *testing.T) {
 					r, _ = editorTestRuntime(t, "", true)
 				}
 				m := NewModel(r)
-				modelType(m, "q", batched)
+				modelType(m, "Q", batched)
 				// The footer is the macro_pending table itself: any key starts recording.
 				if !strings.Contains(ansi.Strip(m.View().Content), "<any> macro.start") {
 					t.Fatal("recording prefix did not show the macro_pending rows")
@@ -46,7 +46,7 @@ func TestModelMacroRegisterTransitionsAndPalette(t *testing.T) {
 				if _, err := r.Execute(Request{Verb: "close", Noun: "ochazuke.palette"}); err != nil {
 					t.Fatal(err)
 				}
-				modelType(m, "q", batched)
+				modelType(m, "Q", batched)
 				if got := r.Registers().Named["q"].Yank.Text; got != ":" || r.Registers().Macro.Recording != "" {
 					t.Fatalf("stop saved %q; want only colon and no recording", got)
 				}
@@ -56,7 +56,7 @@ func TestModelMacroRegisterTransitionsAndPalette(t *testing.T) {
 					freshRuntime, _ = editorTestRuntime(t, "", true)
 				}
 				fresh := NewModel(freshRuntime)
-				modelType(fresh, "qq:", batched)
+				modelType(fresh, "Qq:", batched)
 				if fresh.Status != "" || !fresh.Palette.IsActive() || fresh.Runtime.Registers().Macro.Recording != "q" {
 					t.Fatalf("uninterrupted qq: status=%q palette=%t recording=%q", fresh.Status, fresh.Palette.IsActive(), fresh.Runtime.Registers().Macro.Recording)
 				}
@@ -70,12 +70,12 @@ func TestModelMacroConsumesOnlyOneRegisterCharacter(t *testing.T) {
 		t.Run(fmt.Sprintf("batched=%t", batched), func(t *testing.T) {
 			r, in := editorTestRuntime(t, "one two", true)
 			m := NewModel(r)
-			modelType(m, "qabc", batched)
+			modelType(m, "Qabc", batched)
 			if m.Status != "" || r.Registers().Macro.Recording != "a" || in.Pending() != "c" || !strings.Contains(ansi.Strip(m.View().Content), "REC @a") {
 				t.Fatalf("qabc status=%q recording=%q pending=%q", m.Status, r.Registers().Macro.Recording, in.Pending())
 			}
 			keytest.Press(m, "esc")
-			modelType(m, "q", batched)
+			modelType(m, "Q", batched)
 			if got := r.Registers().Named["a"].Yank.Text; got != "bc\x1b" {
 				t.Fatalf("recorded register=%q, want b,c,Escape (not part of register name)", got)
 			}
@@ -88,10 +88,10 @@ func TestModelMacroRecordingReplayAndLiteralPaste(t *testing.T) {
 		t.Run(fmt.Sprintf("batched=%t", batched), func(t *testing.T) {
 			r, in := editorTestRuntime(t, "", true)
 			m := NewModel(r)
-			modelType(m, "qqi", batched)
+			modelType(m, "Qqi", batched)
 			keytest.Paste(m, "qabc:@")
 			keytest.Press(m, "esc")
-			modelType(m, "q2@q", batched)
+			modelType(m, "Q2@q", batched)
 			if got := string(in.Text); got != "qabc:qabc:qabc:@@@" || in.Mode != "normal" || m.Status != "" || r.Registers().Macro.Recording != "" {
 				t.Fatalf("replay text=%q mode=%q status=%q recording=%q", got, in.Mode, m.Status, r.Registers().Macro.Recording)
 			}
@@ -104,7 +104,7 @@ func TestModelMacroRecordingReplayAndLiteralPaste(t *testing.T) {
 
 func TestModelInvalidRegisterRecoversAtNextCommand(t *testing.T) {
 	for _, batched := range []bool{false, true} {
-		for _, prefix := range []string{"q", "@", "\""} {
+		for _, prefix := range []string{"Q", "@", "\""} {
 			t.Run(fmt.Sprintf("batched=%t/prefix=%s", batched, prefix), func(t *testing.T) {
 				r, in := editorTestRuntime(t, "preserve", true)
 				m := NewModel(r)
@@ -122,7 +122,7 @@ func TestModelInvalidRegisterRecoversAtNextCommand(t *testing.T) {
 }
 
 func TestModelNonCharacterRegisterErrorDoesNotTrapCommands(t *testing.T) {
-	for _, prefix := range []string{"q", "@", "\""} {
+	for _, prefix := range []string{"Q", "@", "\""} {
 		t.Run(prefix, func(t *testing.T) {
 			r, in := editorTestRuntime(t, "preserve", true)
 			m := NewModel(r)
@@ -142,7 +142,7 @@ func TestModelNonCharacterRegisterErrorDoesNotTrapCommands(t *testing.T) {
 func TestModelPendingMacroDoesNotInterpretPasteAsRegister(t *testing.T) {
 	r, in := editorTestRuntime(t, "preserve", true)
 	m := NewModel(r)
-	modelType(m, "q", true)
+	modelType(m, "Q", true)
 	keytest.Paste(m, "qabc:")
 	if m.Status != "" || r.Mode.Name != "macro_pending" || string(in.Text) != "preserve" {
 		t.Fatalf("paste consumed register prefix: status=%q mode=%q text=%q", m.Status, r.Mode.Name, string(in.Text))
@@ -156,12 +156,12 @@ func TestModelPendingMacroDoesNotInterpretPasteAsRegister(t *testing.T) {
 func TestModelMacroRecordsPaletteTypingWithoutStopping(t *testing.T) {
 	r, in := editorTestRuntime(t, "preserve", true)
 	m := NewModel(r)
-	modelType(m, "qq:q", true)
+	modelType(m, "Qq:q", true)
 	if !m.Palette.IsActive() || m.Palette.Text() != "q" || r.Registers().Macro.Recording != "q" || m.Status != "" {
 		t.Fatalf("palette typing stopped recording: query=%q recording=%q status=%q", m.Palette.Text(), r.Registers().Macro.Recording, m.Status)
 	}
 	keytest.Press(m, "ctrl+c")
-	modelType(m, "q", true)
+	modelType(m, "Q", true)
 	want := []MacroKey{{Key: ":"}, {Key: "q"}, {Key: "ctrl+c"}}
 	if got := r.Registers().Named["q"].Keys; !reflect.DeepEqual(got, want) {
 		t.Fatalf("palette macro=%+v; want %+v", got, want)

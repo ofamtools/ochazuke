@@ -329,6 +329,59 @@ type modalSpec struct {
 	input   *Input
 	opts    []InstanceOption
 	replace bool
+	close   *Request
+}
+
+// CloseWith says what closing the modal does: modal.close (esc and q on
+// the modal noun) runs req while the modal is the top one, so a kind
+// that does more than pop (the palette clearing its line first, a form
+// sealing its field) closes through the same verb and the same rows as
+// every other modal. Without it modal.close pops the modal.
+func CloseWith(req Request) ModalOption {
+	return func(s *modalSpec) { s.close = &req }
+}
+
+// SetModalClose is CloseWith for a modal opened with Push: modal.close
+// runs req while id is the top modal, until it is closed (Pop clears it,
+// so set it after each Push). A zero Request clears it, so modal.close
+// pops again.
+func (r *Runtime) SetModalClose(id string, req Request) error {
+	inst := r.Instances[id]
+	if inst == nil {
+		return fmt.Errorf("unknown instance %q", id)
+	}
+	if req.Noun == "" && req.Verb == "" {
+		inst.close = nil
+		return nil
+	}
+	inst.close = &req
+	return nil
+}
+
+// CloseModal closes the top modal the way it says (CloseWith,
+// SetModalClose), else pops it: what modal.close runs. A close request
+// that closes the same modal again from inside (a request that runs
+// modal.close) pops it instead of recurring.
+func (r *Runtime) CloseModal(c Context) error {
+	top := r.TopModal()
+	if top == "" {
+		return errors.New("no modal to close")
+	}
+	inst := r.Instances[top]
+	if inst == nil || inst.close == nil {
+		return r.Pop()
+	}
+	// The request is taken off while it runs, so a modal.close from inside
+	// it pops; a modal it leaves open keeps it.
+	req := *inst.close
+	inst.close = nil
+	defer func() {
+		if r.Instances[top] == inst && inst.close == nil && slices.Contains(r.modals, top) {
+			inst.close = &req
+		}
+	}()
+	_, err := r.ExecuteAt(c, req)
+	return err
 }
 
 // ReplaceOpen makes an open of a kind that is already the top modal close
@@ -388,6 +441,7 @@ func (r *Runtime) OpenModal(kind string, payload Payload, opts ...ModalOption) (
 	noun := r.instanceNoun(kind)
 	r.seq++
 	inst := &Instance{ID: kind, Noun: noun, Parent: r.Focus, Payload: payload, seq: r.seq}
+	inst.close = spec.close
 	r.register(inst)
 	r.modalInstances[kind] = true
 	focus := kind
@@ -438,7 +492,8 @@ func (r *Runtime) Pop() error {
 		delete(r.modalInstances, id)
 		r.dropSubtree(id)
 	} else {
-		inst.Payload.Return, inst.returnMode = "", ModeState{}
+		// A close request lasts one opening: the next Push sets its own.
+		inst.Payload.Return, inst.returnMode, inst.close = "", ModeState{}, nil
 	}
 	if r.Instances[back] == nil {
 		back, mode = r.Page, ModeState{}

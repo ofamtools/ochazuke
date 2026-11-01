@@ -209,7 +209,7 @@ func TestChooserFooterListsNoMotions(t *testing.T) {
 	_, m, _, _ := chooserTest(t, ChooserSpec{Rows: []ChooserRow{{ID: "a", Label: "alpha"}}})
 	m.Update(tea.WindowSizeMsg{Width: 120, Height: 24})
 	frame := ansi.Strip(m.View().Content)
-	if strings.Contains(frame, "ochazuke.chooser.move") || !strings.Contains(frame, "enter chooser.pick") || !strings.Contains(frame, "esc chooser.cancel") {
+	if strings.Contains(frame, "ochazuke.chooser.move") || !strings.Contains(frame, "enter chooser.pick") || !strings.Contains(frame, "esc modal.close") {
 		t.Fatalf("chooser hints:\n%s", frame)
 	}
 }

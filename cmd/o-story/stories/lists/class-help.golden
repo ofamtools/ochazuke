@@ -4,7 +4,7 @@
 r|  keep initial
  |  ordinary r╭──────────────────────────────────────────────────────────────────────────────────────────────╮
  |  keep merge│ Keys · here                                                                                  │
- |  keep decor│ /class                                                                       6 of 59  substr │
+ |  keep decor│ /class                                                                       6 of 60  substr │
  |  hidden mer│ key             operation                      arguments              description            │
  |  keep merge│ movement                                                                                     │
 R|  ordinary t│ ▾ ]                                                                   waits for the next key │
@@ -27,10 +27,10 @@ R|  keep merge│                                                               
  |            │                                                                                              │
  |            │                                                                                              │
  |            │                                                                                              │
- |            │ space list.mark · esc list.filter-clear · S view · : palette.open · ? bindings.help · / fil… │
+ |            │ space list.mark · esc list.filter-clear · S view · q modal.close · : palette.open · ? bindi… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  space list.mark · esc list.filter-clear · S view · : palette.open · ? bindings.help · / filter
+ |  space list.mark · esc list.filter-clear · S view · q modal.close · : palette.open · ? bindings.help · / filter
  |

@@ -9,7 +9,7 @@
       {"key": "ctrl+t", "action": "ochazuke.search.cycle-match"},
       {"key": "enter", "action": "ochazuke.picker.enter"},
       {"key": "ctrl+s", "action": "ochazuke.picker.choose"},
-      {"key": "esc", "action": "ochazuke.picker.close"}
+      {"key": "esc", "action": "ochazuke.modal.close"}
     ]}
   ]
 }

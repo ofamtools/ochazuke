@@ -11,10 +11,10 @@ R|      │   cherry                                     │
  |      │                                              │
  |      │                                              │
  |      │                                              │
- |      │ enter chooser.pick · esc chooser.cancel · t… │
+ |      │ enter chooser.pick · esc modal.close · tab … │
  |      ╰──────────────────────────────────────────────╯
  |
  |
  |  ────────────────────────────────────────────────────────
- |  enter chooser.pick · esc chooser.cancel · tab search.cy…
+ |  enter chooser.pick · esc modal.close · tab search.cycle…
  |

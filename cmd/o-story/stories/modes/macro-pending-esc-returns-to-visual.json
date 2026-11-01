@@ -3,16 +3,6 @@
   "area": "modes",
   "width": 60,
   "height": 10,
-  "config": {
-    "bindings.json": [
-      {
-        "noun": "demo",
-        "mode": "normal",
-        "keys": "q",
-        "request": null
-      }
-    ]
-  },
   "page": {
     "inputs": [
       {
@@ -26,7 +16,7 @@
   "script": [
     "V",
     "j",
-    "q",
+    "Q",
     "esc",
     "y"
   ],

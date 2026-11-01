@@ -131,6 +131,10 @@ func (p *Palette) open() error {
 	if err := p.r.Push(paletteID, paletteID); err != nil {
 		return err
 	}
+	// esc (modal.close) clears the line first, closing only an empty one.
+	if err := p.r.SetModalClose(paletteID, Request{Noun: "ochazuke.palette", Verb: "cancel"}); err != nil {
+		return err
+	}
 	p.origin, p.originMode = origin, mode
 	if p.line == nil {
 		p.line = NewInput(paletteLineID, "", false)

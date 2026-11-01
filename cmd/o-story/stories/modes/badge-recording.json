@@ -1,18 +1,8 @@
 {
-  "name": "mode badge: a recording shows its register beside the mode and drops it when q stops (R2.10)",
+  "name": "mode badge: a recording shows its register beside the mode and drops it when Q stops (R2.10)",
   "area": "modes",
   "width": 60,
   "height": 8,
-  "config": {
-    "bindings.json": [
-      {
-        "noun": "demo",
-        "mode": "normal",
-        "keys": "q",
-        "request": null
-      }
-    ]
-  },
   "page": {
     "inputs": [
       {
@@ -24,11 +14,11 @@
     "focus": "name"
   },
   "script": [
-    "q",
+    "Q",
     "a",
     "i",
     "esc",
-    "q"
+    "Q"
   ],
   "expect": [
     {

@@ -1,5 +1,5 @@
 {
-  "name": "q while recording a macro in visual mode stops the recording, so a second q z never fails with recording already active",
+  "name": "Q while recording a macro in visual mode stops the recording, so a second Q z never fails with recording already active",
   "skip": "gap: honest-hints: <any> macro.start fails when pressed: macro recording already active",
   "page": {
     "inputs": [
@@ -12,9 +12,9 @@
   },
   "script": [
     "V",
-    "q",
+    "Q",
     "z",
-    "q",
+    "Q",
     "z"
   ],
   "expect": {

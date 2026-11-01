@@ -120,7 +120,7 @@ func TestPendingModesAreExclusiveAndOneShot(t *testing.T) {
 		t.Fatal("any-mode row must answer in a base mode")
 	}
 	// A failing row still leaves the pending mode.
-	editorTestKeys(t, r, "q")
+	editorTestKeys(t, r, "Q")
 	if _, err := r.Dispatch(MacroKey{Key: "tab"}); err == nil || r.Mode.Name != "normal" {
 		t.Fatalf("invalid register must error and leave macro_pending: %v %s", err, r.Mode.Name)
 	}
@@ -160,24 +160,24 @@ func TestPrefixModeTimeoutRestoresBaseMode(t *testing.T) {
 }
 
 // Recording is a shadow mode on the app noun: keys are appended and then
-// dispatched in the shadowed mode; q stops only from a quiet normal mode.
+// dispatched in the shadowed mode; Q stops only from a quiet normal mode.
 func TestMacroRecordingShadowMode(t *testing.T) {
 	r, in := editorTestRuntime(t, "", true)
-	editorTestKeys(t, r, "q", "a")
+	editorTestKeys(t, r, "Q", "a")
 	if r.Registers().Macro.Recording != "a" || r.Mode.Name != "normal" {
 		t.Fatalf("recording did not start: %+v", r.Registers().Macro)
 	}
-	editorTestKeys(t, r, "i", "q", "esc", "2", "q")
-	if string(in.Text) != "q" || r.Registers().Macro.Recording != "a" {
-		t.Fatalf("q in insert or count_pending must record and re-dispatch: text=%q %+v", in.Text, r.Registers().Macro)
+	editorTestKeys(t, r, "i", "Q", "esc", "2", "Q")
+	if string(in.Text) != "Q" || r.Registers().Macro.Recording != "a" {
+		t.Fatalf("Q in insert or count_pending must record and re-dispatch: text=%q %+v", in.Text, r.Registers().Macro)
 	}
-	editorTestKeys(t, r, "esc", "q")
-	want := []MacroKey{{Key: "i"}, {Key: "q"}, {Key: "esc"}, {Key: "2"}, {Key: "q"}, {Key: "esc"}}
+	editorTestKeys(t, r, "esc", "Q")
+	want := []MacroKey{{Key: "i"}, {Key: "Q"}, {Key: "esc"}, {Key: "2"}, {Key: "Q"}, {Key: "esc"}}
 	if r.Registers().Macro.Recording != "" || !reflect.DeepEqual(r.Registers().Named["a"].Keys, want) {
 		t.Fatalf("recorded %+v; want %+v", r.Registers().Named["a"].Keys, want)
 	}
 	editorTestKeys(t, r, "@", "a")
-	if string(in.Text) != "qq" {
+	if string(in.Text) != "QQ" {
 		t.Fatalf("replay (not re-recorded): %q", in.Text)
 	}
 }

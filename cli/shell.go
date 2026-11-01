@@ -61,7 +61,7 @@ import (
 // operation opened is answered: --yes (or -y) runs
 // confirm.accept, otherwise the prompt is printed and a line read from
 // Stdin (y or yes accepts; anything else, or end of input, declines with
-// modal.pop and a non-zero exit). Any other modal (a prompt, the palette)
+// modal.close and a non-zero exit). Any other modal (a prompt, the palette)
 // needs the TUI and fails, naming the arguments to pass instead.
 //
 // A command without --target has no focus to act from, so the shell names
@@ -313,7 +313,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 			return fmt.Errorf("%s opened a %s modal, which needs the TUI; pass its arguments instead (%s operations list)", q.Key(), top.Noun, s.Bin)
 		}
 		if !opts.yes && !s.accepts(top.Payload.Prompt) {
-			if _, err := s.call(ochazuke.Request{Verb: "pop", Noun: "ochazuke.modal"}); err != nil {
+			if _, err := s.call(ochazuke.Request{Verb: "close", Noun: "ochazuke.modal"}); err != nil {
 				return err
 			}
 			return fmt.Errorf("declined: %s", top.Payload.Prompt)

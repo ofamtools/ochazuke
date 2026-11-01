@@ -15,10 +15,10 @@ R|        │   table                                                      │
  |        │   code block                                                 │
  |        │   quote                                                      │
  |        │   rule                                                       │
- |        │ enter chooser.pick · esc chooser.cancel · tab search.cycle-… │
+ |        │ enter chooser.pick · esc modal.close · tab search.cycle-mat… │
  |        ╰──────────────────────────────────────────────────────────────╯
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────
- |  enter chooser.pick · esc chooser.cancel · tab search.cycle-match
+ |  enter chooser.pick · esc modal.close · tab search.cycle-match
  |
