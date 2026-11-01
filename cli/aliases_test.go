@@ -138,3 +138,32 @@ func TestCLIAliasPartialPresets(t *testing.T) {
 		t.Fatalf("two! --color red: %v\n%s\n%s", err, out, errOut)
 	}
 }
+
+// An exact extension alias must beat a prefix of the framework's docs
+// alias through the outer oden dispatcher, not only Shell.Run.
+func TestMountExactNounAndAliasBeatAnotherNounsPrefix(t *testing.T) {
+	for _, alias := range []bool{false, true} {
+		for _, words := range [][]string{{"doc", "list"}, {"md", "doc", "list"}, {"md.doc", "list"}} {
+			t.Run(strings.Join(words, " ")+map[bool]string{false: "/noun", true: "/alias"}[alias], func(t *testing.T) {
+				f := newFixture(t)
+				f.r.Config().Disable()
+				f.r.Define("md.doc").Verb("list", func(ochazuke.Ctx) ochazuke.Result {
+					return ochazuke.Done("extension documents")
+				})
+				if alias {
+					if err := f.r.Alias("doc", "md.doc"); err != nil {
+						t.Fatal(err)
+					}
+				} else {
+					f.r.DefineOwn("doc").Verb("list", func(ochazuke.Ctx) ochazuke.Result {
+						return ochazuke.Done("extension documents")
+					})
+				}
+				out, errOut, err := f.mounted(t, words...)
+				if err != nil || strings.TrimSpace(out) != `"extension documents"` || errOut != "" {
+					t.Fatalf("outer dispatch: %v, stdout %q, stderr %q", err, out, errOut)
+				}
+			})
+		}
+	}
+}
