@@ -12,7 +12,7 @@ r|  b1│ 0               list.colum…     │
  |    │              to last            │
  |    │              then list.scroll-… │
  |    │                   to last       │
- |    │ visual-line  list.column when … │
+ |    │              then view.edge wh… │
  |    │ space list.mark · S view · n n… │
  |    ╰─────────────────────────────────╯
  |  ────────────────────────────────────────

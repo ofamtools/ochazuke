@@ -138,6 +138,42 @@ func (d *Detail) Scroll(lines int) int {
 	return d.offset
 }
 
+// MotionEdges is the first and the last line while the text overflows
+// its window (CursorMotions): a detail has no cursor, so its edges move
+// the window.
+func (d *Detail) MotionEdges() []SpillEdge {
+	if !d.Overflows() {
+		return nil
+	}
+	return []SpillEdge{EdgeFirst, EdgeLast}
+}
+
+// MoveToEdge shows the text's first or last window, or with row the
+// window starting on line row (1 the first) (CursorMotions).
+func (d *Detail) MoveToEdge(edge SpillEdge, row int) {
+	d.sync()
+	switch {
+	case row > 0:
+		d.offset = d.clamp(row - 1)
+	case edge == EdgeFirst:
+		d.offset = 0
+	case edge == EdgeLast:
+		d.offset = d.clamp(d.total)
+	}
+}
+
+// PageLines is the window's height while the text overflows it
+// (CursorMotions).
+func (d *Detail) PageLines() int {
+	if !d.Overflows() {
+		return 0
+	}
+	return d.height
+}
+
+// MovePage scrolls the window by lines (CursorMotions).
+func (d *Detail) MovePage(lines int) { d.Scroll(lines) }
+
 // sync starts a new item at the top and reports whether it was new.
 func (d *Detail) sync() bool {
 	if d.about == nil {

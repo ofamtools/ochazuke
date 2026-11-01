@@ -8,10 +8,12 @@
       {"key": "up", "action": "ochazuke.detail.scroll", "args": {"lines": -1, "id": "__docs-viewer/text"}, "from": {"count": "count"}, "hidden": true},
       {"key": "J", "action": "ochazuke.detail.scroll", "args": {"lines": 1, "id": "__docs-viewer/text"}, "from": {"count": "count"}, "hidden": true},
       {"key": "K", "action": "ochazuke.detail.scroll", "args": {"lines": -1, "id": "__docs-viewer/text"}, "from": {"count": "count"}, "hidden": true},
-      {"key": "ctrl+d", "action": "ochazuke.detail.scroll", "args": {"lines": 15, "id": "__docs-viewer/text"}, "from": {"count": "count"}, "hint": "ctrl+d/u half page"},
-      {"key": "ctrl+u", "action": "ochazuke.detail.scroll", "args": {"lines": -15, "id": "__docs-viewer/text"}, "from": {"count": "count"}, "hidden": true},
-      {"key": "g g", "action": "ochazuke.detail.scroll", "args": {"lines": -1000000, "id": "__docs-viewer/text"}, "hint": "g g/G ends"},
-      {"key": "G", "action": "ochazuke.detail.scroll", "args": {"lines": 1000000, "id": "__docs-viewer/text"}, "hidden": true},
+      {"key": "g g", "action": "ochazuke.view.edge", "args": {"edge": "first"}, "from": {"row": "line"}, "hint": "g g/G ends"},
+      {"key": "G", "action": "ochazuke.view.edge", "args": {"edge": "last"}, "from": {"row": "line"}, "hidden": true},
+      {"key": "ctrl+d", "action": "ochazuke.view.page", "args": {"delta": 1, "half": true}, "from": {"steps": "line"}, "hint": "ctrl+d/u half page"},
+      {"key": "ctrl+u", "action": "ochazuke.view.page", "args": {"delta": -1, "half": true}, "from": {"steps": "line"}, "hidden": true},
+      {"key": "ctrl+f", "action": "ochazuke.view.page", "args": {"delta": 1}, "from": {"steps": "line"}, "hidden": true},
+      {"key": "ctrl+b", "action": "ochazuke.view.page", "args": {"delta": -1}, "from": {"steps": "line"}, "hidden": true},
       {"key": "q", "action": "ochazuke.modal.pop", "hint": "close"}
     ]},
     {"context": "ochazuke.docs-viewer/count_pending", "extends": "normal", "bindings": []}

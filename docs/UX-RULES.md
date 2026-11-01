@@ -396,6 +396,17 @@ tiers above them. When the two disagree, fix one in the same commit.
   selection; they clamp at the list's edges and never spill; a row noun's
   own binding of the key answers first. Story: `lists/page-motions.json`;
   tests `TestListGotoEndsAndCounts`, `TestListPageMotionsClampWithoutSpilling`.
+  The same keys answer on every other component with a cursor or a
+  scroll (a timeline, inside its cards too; the docs viewer; the yank
+  history; a markdown document; an app's component) through one interface,
+  `CursorMotions`, and the shared verbs `view.edge {edge, row}` and
+  `view.page {delta, half, steps}`; `view.edge` names the four edges
+  (`first`, `last`, `first-col`, `last-col`; `0` and `$` the column
+  edges, only where the cursor moves sideways). No component fakes an edge
+  with a long scroll. Stories: `yank-history/gg-G`, `docs/gg-G`,
+  `timeline/edges`; tests `TestViewMotionsOnTheYankHistory`,
+  `TestViewMotionsOnTheDocsViewer`, `TestViewMotionsOnTheTimeline`,
+  `TestViewEdgeColumnsOnACellTable`, `TestSharedMotionsMoveTheDocument`.
 - **R5.9** A table that hides a column scrolls its columns: `z l`/`z h`
   move the view one column (a cell-mode table carries its current column
   along); on a row-select table (the default) `$` shows the last column and

@@ -355,6 +355,13 @@ func (v *docsViewer) ModalBlock(s Styles, width, height int) Block {
 	return Text(s.Muted.Render(top) + "\n" + body)
 }
 
+// The viewer moves through its detail: g g, G and the page keys answer
+// through the shared motions (view.edge, view.page; CursorMotions).
+func (v *docsViewer) MotionEdges() []SpillEdge           { return v.detail.MotionEdges() }
+func (v *docsViewer) MoveToEdge(edge SpillEdge, row int) { v.detail.MoveToEdge(edge, row) }
+func (v *docsViewer) PageLines() int                     { return v.detail.PageLines() }
+func (v *docsViewer) MovePage(lines int)                 { v.detail.MovePage(lines) }
+
 // registerDocs registers the docs noun: docs.open shows a topic of the
 // generated reference in a modal viewer. The viewer's keys are
 // bindings/docs.json; esc closes it through the modal noun.

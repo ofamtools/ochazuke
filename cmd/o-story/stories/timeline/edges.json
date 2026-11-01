@@ -1,0 +1,22 @@
+{
+  "name": "timeline: from inside a card G goes to the last card and g g to the first (Vim's buffer ends, through view.edge); a count's G to that card",
+  "area": "timeline",
+  "page": {
+    "noHeadings": true,
+    "timeline": {
+      "cards": [
+        {"id": "t1", "header": "First turn.", "body": "One.", "meta": "09:00 · done"},
+        {"id": "t2", "header": "Second turn.", "body": "First paragraph.\n\nSecond paragraph.", "meta": "09:10 · done"},
+        {"id": "t3", "header": "Third turn.", "body": "Three.", "meta": "09:20 · done"}
+      ]
+    }
+  },
+  "script": ["j", "l", "l", "G", "k", "l", "l", "g", "g", "2", "G"],
+  "expect": [
+    {"after": 3, "focus": "timeline/body"},
+    {"after": 4, "focus": "t3", "mode": "normal"},
+    {"after": 7, "focus": "timeline/body"},
+    {"after": 9, "focus": "t1", "mode": "normal"},
+    {"focus": "t2", "mode": "normal"}
+  ]
+}
