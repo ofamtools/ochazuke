@@ -1,0 +1,16 @@
+{
+  "name": "closing a modal restores the focus and mode it opened over: ? from a VISUAL-LINE selection and esc are back in VISUAL-LINE on the same row; when the focus is gone (x y deletes the row) it lands on a surviving row (R4.3)",
+  "area": "modals",
+  "width": 100,
+  "height": 30,
+  "page": {"lists": [{"id": "a", "rows": 4}], "focus": "a2"},
+  "script": ["V", "j", "?", "esc", "esc", "x", "y"],
+  "expect": [
+    {"after": 2, "mode": "visual-line", "focus": "a3"},
+    {"after": 3, "modal": "bindings-help", "mode": "normal"},
+    {"after": 4, "modal": "", "mode": "visual-line", "focus": "a3", "badge": "VISUAL-LINE"},
+    {"after": 5, "modal": "", "mode": "normal", "focus": "a3"},
+    {"after": 6, "modal": "confirm"},
+    {"modal": "", "mode": "normal", "focus": "a4", "lacks": ["a3"]}
+  ]
+}

@@ -22,7 +22,7 @@
     "modal": "confirm",
     "contains": [
       "Delete beta?",
-      "│ y confirm.accept · n modal.pop │"
+      "│ y confirm.accept · n modal.close │"
     ],
     "lacks": [
       "y yes",

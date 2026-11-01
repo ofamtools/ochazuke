@@ -313,6 +313,11 @@ func (r *Runtime) OpenRecordEditor(id string, spec RecordSpec) (*RecordEditor, e
 		_ = r.RemoveInstance(id)
 		return nil, err
 	}
+	// esc and q (modal.close) leave the form: the field is sealed and
+	// OnLeave runs, as form.leave does for an editor placed on a page.
+	if err := r.SetModalClose(id, Request{Noun: FormNoun, Verb: "leave"}); err != nil {
+		return e, err
+	}
 	if err := e.startInsert(); err != nil {
 		return e, err
 	}

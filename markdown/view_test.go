@@ -38,7 +38,7 @@ func TestOpenTextShowsMarkdownInTheViewer(t *testing.T) {
 		t.Fatalf("modal %q doc %v focus %q", r.TopModal(), d, r.Focus)
 	}
 	frame := ansi.Strip(m.View().Content)
-	for _, want := range []string{"record.guide", "Guide", "run it", "q close", "y a copy all"} {
+	for _, want := range []string{"record.guide", "Guide", "run it", "esc modal.close", "y a copy all"} {
 		if !strings.Contains(frame, want) {
 			t.Fatalf("frame lacks %q:\n%s", want, frame)
 		}

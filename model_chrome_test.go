@@ -101,7 +101,7 @@ func TestModelChromeIsLayoutShellWithHintsFromBindings(t *testing.T) {
 		t.Fatal(err)
 	}
 	m.ModalViews["note"] = ModalView{Title: "Note", Render: func(*Runtime, *Instance, int, int) Block { return Text("read me") }}
-	if view := ansi.Strip(m.View().Content); !strings.Contains(view, "esc modal.pop") {
+	if view := ansi.Strip(m.View().Content); !strings.Contains(view, "esc modal.close") {
 		t.Fatalf("modal hint is not derived from the modal rows:\n%s", view)
 	}
 }

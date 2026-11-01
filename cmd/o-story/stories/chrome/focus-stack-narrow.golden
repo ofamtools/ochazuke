@@ -11,7 +11,7 @@ r|  a1
  |    │ ›                         fuzzy │
  |    │   matomeru                      │
 R|    │   ochazuke                      │
- |    │ enter chooser.pick · esc choos… │
+ |    │ enter chooser.pick · esc modal… │
  |    ╰─────────────────────────────────╯
  |
  |
@@ -20,5 +20,5 @@ R|    │   ochazuke                      │
  |
  |
  |  ────────────────────────────────────────
- |  enter chooser.pick · esc chooser.cancel…
+ |  enter chooser.pick · esc modal.close · …
  |

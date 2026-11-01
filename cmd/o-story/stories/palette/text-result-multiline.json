@@ -6,7 +6,7 @@
   "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
   "script": [":", {"type": "demo mapping"}, "enter", "j", "V", "j", "y", "i", "x", "V", "esc", "esc"],
   "expect": [
-    {"after": 3, "modal": "text-view", "mode": "normal", "contains": ["Text", "demo.mapping", "\"name\": \".title\",", "\"tags\": [", "q modal.pop"]},
+    {"after": 3, "modal": "text-view", "mode": "normal", "contains": ["Text", "demo.mapping", "\"name\": \".title\",", "\"tags\": [", "esc modal.close"]},
     {"after": 6, "modal": "text-view", "mode": "visual-line"},
     {"after": 7, "modal": "text-view", "mode": "normal", "register": "  \"name\": \".title\",\n  \"size\": \".bytes\",\n"},
     {"after": 9, "modal": "text-view", "mode": "normal", "contains": ["\"name\": \".title\","], "lacks": ["x\"name\""]},

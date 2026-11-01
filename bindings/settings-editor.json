@@ -36,7 +36,7 @@
     ]},
     {"context": "ochazuke.setting-value/insert", "bindings": [
       {"key": "enter", "action": "ochazuke.setting-value.commit"},
-      {"key": "esc", "action": "ochazuke.setting-value.cancel"}
+      {"key": "esc", "action": "ochazuke.modal.close"}
     ]},
     {"context": "ochazuke.settings-page/normal", "bindings": [
       {"key": "]", "action": "ochazuke.settings.tab", "args": {"step": 1}, "hint": "]/[ settings.tab"},
@@ -59,8 +59,7 @@
     ]},
     {"context": "ochazuke.settings-review/normal", "bindings": [
       {"key": "W", "action": "ochazuke.settings.write"},
-      {"key": "R", "action": "ochazuke.settings.revert"},
-      {"key": "q", "action": "ochazuke.modal.pop"}
+      {"key": "R", "action": "ochazuke.settings.revert"}
     ]}
   ]
 }

@@ -297,12 +297,12 @@ tiers above them. When the two disagree, fix one in the same commit.
   then reads `modal` and `app`. Rows beneath never answer. Story: needed
   (`modals/keys-do-not-reach-page`).
 - **R4.3** Closing a modal restores the focus and mode it opened over; when
-  that focus is gone, the nearest surviving ancestor. Story: needed
-  (`modals/pop-restores-focus-and-mode`).
+  that focus is gone, the nearest surviving ancestor. Story:
+  `modals/pop-restores-focus-and-mode.json`.
 - **R4.4** A second modal opens only from inside the top one; otherwise the
   open is refused with an ordinary error, first wins, no queue. Story:
   needed (`modals/refuse-from-beneath`).
-- **R4.5** A confirm modal: `y` runs the stored request, `n`/`esc` pop, every
+- **R4.5** A confirm modal: `y` runs the stored request, `n`/`esc`/`q` close it (`modal.close`), every
   other key is swallowed, `{{label}}` reads the argument before the target's
   label, and a request addressing no instance of the verb's noun reads its
   arguments (`TestConfirmWithoutTargetReadsArguments`). Story: `modals/confirm-yes.json`, `modals/confirm-label.json`;
@@ -337,6 +337,17 @@ tiers above them. When the two disagree, fix one in the same commit.
   `docs/width-steady-scroll.json`; tests
   `TestDocsViewerKeepsItsWidthWhileScrolling`,
   `TestDetailWidthIsTheWholeTextsWidestLine`.
+- **R4.10** Closing is one verb: `esc` and `q` close every modal through
+  `modal.close` (the rows on `ochazuke.modal/normal`), which runs the
+  modal's close request when it has one (`CloseWith` on `OpenModal`,
+  `SetModalClose` after `Push`: the palette clears its line first, a form
+  leaves, a chooser cancels) and otherwise pops it. A kind never adds a
+  close verb or close rows of its own; it binds `esc` only where the modal
+  noun is not reached (an insert-pinned input, a confirm's swallowing
+  `any` row), and then to `modal.close`. `q` types in an insert-pinned
+  input. Macros record on `Q`, so `q` never starts a recording beneath a
+  modal. Stories: `modals/esc-closes-every-kind.json`,
+  `modals/q-closes-every-kind.json`; tests in `modal_close_test.go`.
 
 ### R5. Lists and selection
 

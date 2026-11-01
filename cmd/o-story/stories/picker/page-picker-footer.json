@@ -62,7 +62,7 @@
     "modal": "page-picker",
     "contains": [
       "enter chooser.pick",
-      "esc chooser.cancel"
+      "esc modal.close"
     ],
     "lacks": [
       "chooser.move"

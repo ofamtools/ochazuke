@@ -480,6 +480,16 @@ func newRuntime() *Runtime {
 	}
 }
 
+// registerModalAliases keeps modal.pop, the close verb until v0.82.0, as
+// an old name of modal.close, which now answers esc and q on every modal
+// (Keep actions: the old name stays one release). It runs once settings
+// exist: an alias's checks read the noun display setting.
+func registerModalAliases(r *Runtime) {
+	if err := r.AddActionAlias(ActionAlias{Alias: "ochazuke.modal.pop", Action: "ochazuke.modal.close", Since: "v0.82.0", RemoveAfter: "v0.83.0"}); err != nil {
+		panic(err)
+	}
+}
+
 // registerFramework registers the framework nouns and operations.
 func (r *Runtime) registerFramework() {
 	r.Instance("app")
@@ -502,6 +512,7 @@ func (r *Runtime) registerFramework() {
 	registerConfigReload(r)
 	registerHooks(r)
 	registerPages(r)
+	registerModalAliases(r)
 	registerLists(r)
 	registerTrees(r)
 	registerTimelines(r)
@@ -1283,7 +1294,7 @@ func registerCore(r *Runtime) {
 		err := r.Push(StringArg(a, "id", ""), id)
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "pop", Noun: "ochazuke.modal", Description: "Close the active modal and restore its parent", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) { err := r.Pop(); return r.Context(), err }})
+	r.Register(Operation{Verb: "close", Noun: "ochazuke.modal", Description: "Close the active modal: run its close request (CloseWith), else pop it back to the focus and mode it opened over", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) { err := r.CloseModal(c); return r.Context(), err }})
 	r.Register(Operation{Verb: "quit", Noun: "app", Description: "Exit the application", Parameters: map[string]Parameter{"force": {Type: "boolean", Description: "quit without running the checks an application hangs on app.quit (BeforeQuit: unsaved edits are lost)"}}, Result: "boolean", Run: func(r *Runtime, c Context, a Arguments) (any, error) { r.Quit = true; return true, nil }})
 	r.Register(Operation{Verb: "ignore", Noun: "ochazuke.key", Description: "The noop: always available, does nothing; a row bound to it consumes its key (DispatchOutcome reports KeyConsumed), how a container clamps a key its children leave unhandled", Result: "null", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
 }

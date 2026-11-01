@@ -8,8 +8,8 @@
   "script": [":", {"type": "help"}, "enter", "?", "?", "esc", "esc"],
   "expect": [
     {"after": 3, "modal": "docs-viewer", "contains": ["index"]},
-    {"after": 4, "modal": "bindings-help", "contains": ["Keys", "docs-viewer"]},
-    {"after": 5, "modal": "bindings-help", "contains": ["Keys", "docs-viewer"], "lacks": ["modal is open above", "already open"]},
+    {"after": 4, "modal": "bindings-help", "contains": ["Keys", "modal.close"]},
+    {"after": 5, "modal": "bindings-help", "contains": ["Keys", "modal.close"], "lacks": ["modal is open above", "already open"]},
     {"after": 6, "modal": "docs-viewer", "contains": ["index"], "lacks": ["modal is open above"]},
     {"modal": "", "focus": "a1", "lacks": ["modal is open above"]}
   ]

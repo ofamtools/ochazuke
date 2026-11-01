@@ -369,7 +369,7 @@ func TestPaletteBindingsListIsTruthful(t *testing.T) {
 			rows[b.Keys] = b.Request.Key()
 		}
 	}
-	for key, want := range map[string]string{"enter": "ochazuke.palette.run", "tab": "ochazuke.palette.complete", "ctrl+n": "ochazuke.palette.move", "ctrl+p": "ochazuke.palette.move", "up": "ochazuke.palette.recall", "down": "ochazuke.palette.recall", "esc": "ochazuke.palette.cancel", "ctrl+c": "ochazuke.palette.close"} {
+	for key, want := range map[string]string{"enter": "ochazuke.palette.run", "tab": "ochazuke.palette.complete", "ctrl+n": "ochazuke.palette.move", "ctrl+p": "ochazuke.palette.move", "up": "ochazuke.palette.recall", "down": "ochazuke.palette.recall", "esc": "ochazuke.modal.close", "ctrl+c": "ochazuke.palette.close"} {
 		if rows[key] != want {
 			t.Fatalf("%s lists %q, want %s (%v)", key, rows[key], want, rows)
 		}

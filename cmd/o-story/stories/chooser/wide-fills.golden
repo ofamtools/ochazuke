@@ -6,9 +6,9 @@ r|  a1            │ Context                                                   
  |                │ › b                                                                                                                    fuzzy │
 R|                │   beta                                                                                                                       │
  |                │                                                                                                                              │
- |                │ enter chooser.pick · esc chooser.cancel · tab search.cycle-match                                                             │
+ |                │ enter chooser.pick · esc modal.close · tab search.cycle-match                                                                │
  |                ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  enter chooser.pick · esc chooser.cancel · tab search.cycle-match
+ |  enter chooser.pick · esc modal.close · tab search.cycle-match
  |

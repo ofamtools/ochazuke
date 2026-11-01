@@ -141,21 +141,21 @@ func TestQColonOpensThePaletteOnItsHistory(t *testing.T) {
 	if p.IsOpen() {
 		t.Fatal("palette still open")
 	}
-	for _, key := range []string{"q", ":"} {
+	for _, key := range []string{"Q", ":"} {
 		if _, err := r.Dispatch(MacroKey{Key: key}); err != nil {
 			t.Fatal(err)
 		}
 	}
 	if !p.IsOpen() || p.Text() != "save sheet" || r.Registers().Macro.Recording != "" {
-		t.Fatalf("q: open %v line %q recording %q", p.IsOpen(), p.Text(), r.Registers().Macro.Recording)
+		t.Fatalf("Q: open %v line %q recording %q", p.IsOpen(), p.Text(), r.Registers().Macro.Recording)
 	}
 	paletteKeys(t, p, "esc", "esc")
-	for _, key := range []string{"q", "a"} {
+	for _, key := range []string{"Q", "a"} {
 		if _, err := r.Dispatch(MacroKey{Key: key}); err != nil {
 			t.Fatal(err)
 		}
 	}
 	if p.IsOpen() || r.Registers().Macro.Recording != "a" {
-		t.Fatalf("q a: palette %v recording %q", p.IsOpen(), r.Registers().Macro.Recording)
+		t.Fatalf("Q a: palette %v recording %q", p.IsOpen(), r.Registers().Macro.Recording)
 	}
 }

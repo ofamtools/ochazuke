@@ -9,7 +9,7 @@ r|Second task
  |              │ Filter                                           │
  |              │ status · not                                     │
  |              │      ● closed   ○ open                           │
- |              │ space toggle · ! not · q form.leave · u form.un… │
+ |              │ space toggle · ! not · u form.undo · ctrl+r for… │
  |              ╰──────────────────────────────────────────────────╯
  |
  |

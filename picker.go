@@ -248,6 +248,9 @@ func (p *Picker) open(c Context, args Arguments) (any, error) {
 	if err := p.Runtime.Push(pickerID, p.input.ID); err != nil {
 		return nil, err
 	}
+	if err := p.Runtime.SetModalClose(pickerID, Request{Noun: "ochazuke.picker", Verb: "close"}); err != nil {
+		return nil, err
+	}
 	p.Directory = ""
 	p.pathChanged()
 	return p.state(), nil

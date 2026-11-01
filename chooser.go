@@ -217,7 +217,7 @@ func (r *Runtime) OpenChooser(spec ChooserSpec) (*Chooser, error) {
 	}
 	c.initPropFilters()
 	c.refilter()
-	inst, err := r.OpenModal(spec.Kind, Payload{}, WithInput(c.input, Kind(chooserNoun)))
+	inst, err := r.OpenModal(spec.Kind, Payload{}, WithInput(c.input, Kind(chooserNoun)), CloseWith(Request{Noun: chooserNoun, Verb: "cancel"}))
 	if err != nil {
 		return nil, err
 	}

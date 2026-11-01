@@ -5,7 +5,7 @@
   },
   "bindings": [
     {"context": "app/macro_recording", "bindings": [
-      {"key": "q", "action": "ochazuke.macro.stop", "when": "shadow-idle"},
+      {"key": "Q", "action": "ochazuke.macro.stop", "when": "shadow-idle"},
       {"key": "any", "action": "ochazuke.macro.record", "from": {"key": "key"}},
       {"key": "paste", "action": "ochazuke.macro.record", "args": {"paste": true}, "from": {"key": "key"}}
     ]}

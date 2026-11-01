@@ -6,8 +6,7 @@
       {"key": "down", "action": "ochazuke.yank-history.move", "args": {"steps": 1}},
       {"key": "k", "action": "ochazuke.yank-history.move", "args": {"steps": -1}},
       {"key": "up", "action": "ochazuke.yank-history.move", "args": {"steps": -1}},
-      {"key": "enter", "action": "ochazuke.yank-history.select"},
-      {"key": "esc", "action": "ochazuke.modal.pop"}
+      {"key": "enter", "action": "ochazuke.yank-history.select"}
     ]}
   ]
 }

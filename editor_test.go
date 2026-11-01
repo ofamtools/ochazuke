@@ -159,15 +159,15 @@ func TestMacrosDispatchModesCountsFocusAndLiteralPaste(t *testing.T) {
 	}
 	r.Define("app").Mode("normal").Bind("tab", Do("ochazuke.input.focus", Arguments{"id": "second"}))
 	m := NewModel(r)
-	modelEditorKeys(t, m, "q", "a", "i", "X", "esc", "q", "2", "@", "a", "@", "@")
+	modelEditorKeys(t, m, "Q", "a", "i", "X", "esc", "Q", "2", "@", "a", "@", "@")
 	if string(in.Text) != "XXXX" || in.Mode != "normal" {
 		t.Fatalf("macro count/transitions: %q %s", string(in.Text), in.Mode)
 	}
-	modelEditorKeys(t, m, "q", "b", "tab", "A")
+	modelEditorKeys(t, m, "Q", "b", "tab", "A")
 	if _, err := r.Dispatch(MacroKey{Key: "[ctrl+a]", Paste: true}); err != nil {
 		t.Fatal(err)
 	}
-	modelEditorKeys(t, m, "esc", "q")
+	modelEditorKeys(t, m, "esc", "Q")
 	if err := r.SetFocus(in.ID); err != nil {
 		t.Fatal(err)
 	}
@@ -327,7 +327,7 @@ func TestAppMacroCountWithoutInputAndUppercaseAppend(t *testing.T) {
 	calls := 0
 	r.Register(Operation{Verb: "count", Noun: "editor-test", Run: func(r *Runtime, c Context, a Arguments) (any, error) { calls++; return calls, nil }})
 	r.Define("app").Mode("").Bind("ctrl+t", Do("editor-test.count"))
-	modelEditorKeys(t, m, "q", "a", "ctrl+t", "q", "q", "A", "ctrl+t", "q", "2", "@", "a", "@", "@")
+	modelEditorKeys(t, m, "Q", "a", "ctrl+t", "Q", "Q", "A", "ctrl+t", "Q", "2", "@", "a", "@", "@")
 	if calls != 8 {
 		t.Fatalf("application macro calls=%d want 8", calls)
 	}

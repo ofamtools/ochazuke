@@ -468,7 +468,7 @@ func TestEditorFallbackNeedsAnInputOnThePath(t *testing.T) {
 	if r.Mode.Name != "normal" {
 		t.Fatalf("mode after unbound editor keys: %s", r.Mode.Name)
 	}
-	editorTestKeys(t, r, "2", "q")
+	editorTestKeys(t, r, "2", "Q")
 	if got := r.Mode; got.Name != "macro_pending" {
 		t.Fatalf("count and macro rows stay available on a row: %+v", got)
 	}
@@ -478,8 +478,8 @@ func TestEditorFallbackNeedsAnInputOnThePath(t *testing.T) {
 			out = append(out, b.Keys)
 		}
 		return
-	}(), " "), "q") {
-		t.Fatal("q is an app row")
+	}(), " "), "Q") {
+		t.Fatal("Q is an app row")
 	}
 	if err := r.SetFocus(input.ID); err != nil {
 		t.Fatal(err)

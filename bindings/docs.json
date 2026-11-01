@@ -11,8 +11,7 @@
       {"key": "ctrl+d", "action": "ochazuke.detail.scroll", "args": {"lines": 15, "id": "__docs-viewer/text"}, "from": {"count": "count"}, "hint": "ctrl+d/u half page"},
       {"key": "ctrl+u", "action": "ochazuke.detail.scroll", "args": {"lines": -15, "id": "__docs-viewer/text"}, "from": {"count": "count"}, "hidden": true},
       {"key": "g g", "action": "ochazuke.detail.scroll", "args": {"lines": -1000000, "id": "__docs-viewer/text"}, "hint": "g g/G ends"},
-      {"key": "G", "action": "ochazuke.detail.scroll", "args": {"lines": 1000000, "id": "__docs-viewer/text"}, "hidden": true},
-      {"key": "q", "action": "ochazuke.modal.pop", "hint": "close"}
+      {"key": "G", "action": "ochazuke.detail.scroll", "args": {"lines": 1000000, "id": "__docs-viewer/text"}, "hidden": true}
     ]},
     {"context": "ochazuke.docs-viewer/count_pending", "extends": "normal", "bindings": []}
   ]

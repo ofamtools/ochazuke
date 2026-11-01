@@ -54,7 +54,7 @@ func TestHistoryRecordsRequestsWithSource(t *testing.T) {
 // Keys a macro replays record as macro:<register>.
 func TestHistoryMacroReplaySource(t *testing.T) {
 	r, in := editorTestRuntime(t, "abcdef", false)
-	editorTestKeys(t, r, "q", "a", "x", "q", "@", "a")
+	editorTestKeys(t, r, "Q", "a", "x", "Q", "@", "a")
 	if string(in.Text) != "cdef" {
 		t.Fatalf("text %q", in.Text)
 	}

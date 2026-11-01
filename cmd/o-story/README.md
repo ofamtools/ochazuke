@@ -458,7 +458,7 @@ Conformance:
 | flat | mode | `mode.set` |
 | hints | demo | `demo.hint` `demo.hints-cancel` `demo.hints-ignore` |
 | insert | bindings | `bindings.help` |
-| insert | chooser | `chooser.cancel` `chooser.move` `chooser.next-source` `chooser.open` `chooser.pick` `chooser.previous-source` `chooser.up` |
+| insert | chooser | `chooser.move` `chooser.next-source` `chooser.open` `chooser.pick` `chooser.previous-source` `chooser.up` |
 | insert | completion | `completion.accept` `completion.dismiss` `completion.move` `completion.open` |
 | insert | demo | `demo.edit` `demo.files` `demo.hide` |
 | insert | form | `form.next` `form.run` `form.suggest` |
@@ -466,12 +466,13 @@ Conformance:
 | insert | list | `list.filter-cycle` `list.filter-prop` `list.filter-props-clear` |
 | insert | macro | `macro.record` |
 | insert | markdown | `markdown.cell` `markdown.continue-item` `markdown.end-list` `markdown.indent` `markdown.insert-block` `markdown.leave` `markdown.outdent` `markdown.unmark` |
+| insert | modal | `modal.close` |
 | insert | mode | `mode.set` |
 | insert | modes | `modes.list` |
 | insert | outline | `outline.leave` `outline.row-key` |
-| insert | palette | `palette.cancel` `palette.complete` `palette.move` `palette.run` |
+| insert | palette | `palette.complete` `palette.move` `palette.run` |
 | insert | search | `search.cycle-match` |
-| insert | setting-value | `setting-value.cancel` `setting-value.commit` |
+| insert | setting-value | `setting-value.commit` |
 | insert | settings | `settings.complete` `settings.edit` |
 | jq | completion | `completion.dismiss` |
 | jq | input | `input.insert` |
@@ -502,7 +503,7 @@ Conformance:
 | normal | macro | `macro.record` `macro.start` `macro.stop` |
 | normal | markdown | `markdown.delete` `markdown.fold` `markdown.insert` `markdown.link-copy` `markdown.link-open` `markdown.move` `markdown.next-block` `markdown.next-kind` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-link` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
 | normal | markdown-view | `markdown-view.copy` |
-| normal | modal | `modal.pop` |
+| normal | modal | `modal.close` |
 | normal | mode | `mode.enter` `mode.leave` `mode.set` |
 | normal | notice | `notice.clear` |
 | normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.fold` `outline.indent` `outline.move` `outline.outdent` `outline.paste` `outline.redo` `outline.undo` `outline.zoom-in` `outline.zoom-out` `outline.zoom-reset` |
@@ -533,11 +534,12 @@ Conformance:
 | terminal | mode | `mode.enter` |
 | terminal | terminal | `terminal.detach` `terminal.send` |
 | visual | input | `input.cancel` `input.move` `input.operator` |
+| visual-line | bindings | `bindings.help` |
 | visual-line | confirm | `confirm.accept` |
 | visual-line | demo | `demo.check` `demo.delete` `demo.nest` `demo.set` `demo.tag` `demo.zap` |
 | visual-line | input | `input.cancel` `input.move` `input.operator` |
 | visual-line | list | `list.apply` `list.end-visual` `list.goto` `list.move` `list.yank` |
-| visual-line | modal | `modal.pop` |
+| visual-line | modal | `modal.close` |
 | visual-line | mode | `mode.enter` `mode.leave` |
 
 Mode edges (from → to via):
@@ -576,19 +578,17 @@ Mode edges (from → to via):
 - `hints` → `terminal` via `demo.hints-cancel`
 - `insert` → `jq` via `palette.run`
 - `insert` → `normal` via `bindings.help`
-- `insert` → `normal` via `chooser.cancel`
-- `insert` → `normal` via `chooser.cancel + demo.synced`
 - `insert` → `normal` via `chooser.pick`
 - `insert` → `normal` via `form.run`
 - `insert` → `normal` via `list.filter-prop`
 - `insert` → `normal` via `macro.record`
 - `insert` → `normal` via `markdown.leave`
+- `insert` → `normal` via `modal.close`
+- `insert` → `normal` via `modal.close + demo.synced`
 - `insert` → `normal` via `mode.set`
 - `insert` → `normal` via `outline.leave`
-- `insert` → `normal` via `palette.cancel`
 - `insert` → `normal` via `palette.run`
 - `insert` → `normal` via `row esc`
-- `insert` → `normal` via `setting-value.cancel`
 - `insert` → `normal` via `setting-value.commit`
 - `insert` → `normal` via `settings.edit`
 - `jq` → `insert` via `palette.open`
@@ -615,7 +615,6 @@ Mode edges (from → to via):
 - `normal` → `insert` via `bindings-help.place`
 - `normal` → `insert` via `demo.choose`
 - `normal` → `insert` via `form.choose`
-- `normal` → `insert` via `form.leave`
 - `normal` → `insert` via `form.next-missing`
 - `normal` → `insert` via `form.suggest`
 - `normal` → `insert` via `input.begin`
@@ -623,7 +622,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `markdown.insert`
 - `normal` → `insert` via `markdown.note`
 - `normal` → `insert` via `markdown.open`
-- `normal` → `insert` via `modal.pop`
+- `normal` → `insert` via `modal.close`
 - `normal` → `insert` via `outline.add`
 - `normal` → `insert` via `outline.edit`
 - `normal` → `insert` via `page.pick`
@@ -660,6 +659,7 @@ Mode edges (from → to via):
 - `normal` → `visual` via `input.select`
 - `normal` → `visual-line` via `input.select`
 - `normal` → `visual-line` via `list.visual`
+- `normal` → `visual-line` via `modal.close`
 - `normal <` → `normal` via `outline.outdent`
 - `normal >` → `normal` via `outline.indent`
 - `normal G` → `normal` via `mode.leave`
@@ -728,6 +728,7 @@ Mode edges (from → to via):
 - `visual` → `normal` via `input.operator`
 - `visual-line` → `count_pending` via `mode.enter`
 - `visual-line` → `macro_pending` via `mode.enter`
+- `visual-line` → `normal` via `bindings.help`
 - `visual-line` → `normal` via `confirm.accept`
 - `visual-line` → `normal` via `demo.check`
 - `visual-line` → `normal` via `demo.nest`
