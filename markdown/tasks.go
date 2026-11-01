@@ -1,6 +1,7 @@
 package markdown
 
 import (
+	"bytes"
 	"strings"
 
 	"github.com/yuin/goldmark"
@@ -73,7 +74,7 @@ func taskOf(src []byte, box *east.TaskCheckBox) (Task, bool) {
 		start++
 	}
 	eol := len(src)
-	if i := strings.IndexByte(string(src[start:]), '\n'); i >= 0 {
+	if i := bytes.IndexByte(src[start:], '\n'); i >= 0 {
 		eol = start + i
 	}
 	end := lines.At(lines.Len() - 1).Stop
@@ -84,7 +85,7 @@ func taskOf(src []byte, box *east.TaskCheckBox) (Task, bool) {
 		Box:     at + 1,
 		Checked: box.IsChecked,
 		Text:    strings.TrimRight(string(src[start:eol]), " \t\r"),
-		Line:    1 + strings.Count(string(src[:at]), "\n"),
+		Line:    1 + bytes.Count(src[:at], []byte("\n")),
 		start:   start,
 		end:     max(start, end),
 	}, true
@@ -99,6 +100,9 @@ const (
 	startMarker = rune(0xF0000)
 	endMarker   = rune(0xF8000)
 	maxMarkers  = 0x8000
+	// markerLead is the first byte of every start and end marker in
+	// UTF-8 (U+F0000 to U+FFFFF), so a line without it holds none.
+	markerLead = 0xF3
 )
 
 // marked is the source with every task's markers in place.

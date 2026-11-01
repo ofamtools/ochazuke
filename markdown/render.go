@@ -197,7 +197,7 @@ func renderUncached(text string, width int, style string, opts options) []string
 	}
 	out := ""
 	if tr != nil {
-		if rendered, err := tr.Render(text); err == nil {
+		if rendered, err := renderRuns(tr, rk, text); err == nil {
 			out = rendered
 		}
 	}
