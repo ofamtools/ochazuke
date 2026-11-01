@@ -10,15 +10,15 @@ in the file. Labels may look real (`"labels": ["tuios-deck", ...]`); they are
 still data.
 
 ```sh
-o-story                      # index of stories by area; enter opens one
-o-story open NAME            # one story live in the real chrome; q returns to the index
-o-story run [NAME|AREA...]   # headless; non-zero exit on failure
-o-story run --update --dir cmd/o-story/stories   # rewrite goldens on disk
-o-story list | history | keep N NAME | replay REF | trim REF ... | verbs
-o-story explore [NAME|AREA...] [--depth N] [--steps N] [--out DIR]   # the state explorer
-o-story explore NAME --watch [--delay D]   # watch the explorer run in a TUI; same report
-o-story explore --dedupe DIR [--reproduce] [--out DIR]   # group the findings of saved reports
-o story ...                  # the same, through the oden family root
+go install ofam.dev/oden/cmd/o@latest   # the family's `o` command: `o X ...` runs o-X
+o story                      # index of stories by area; enter opens one
+o story open NAME            # one story live in the real chrome; q returns to the index
+o story run [NAME|AREA...]   # headless; non-zero exit on failure
+o story run --update --dir cmd/o-story/stories   # rewrite goldens on disk
+o story list | history | keep N NAME | replay REF | trim REF ... | verbs
+o story explore [NAME|AREA...] [--depth N] [--steps N] [--out DIR]   # the state explorer
+o story explore NAME --watch [--delay D]   # watch the explorer run in a TUI; same report
+o story explore --dedupe DIR [--reproduce] [--out DIR]   # group the findings of saved reports
 ```
 
 `go test ./...` inside `cmd/o-story` (or `make test` at the root) runs every
@@ -40,7 +40,7 @@ The name `o-story` keeps the user stories and recordings below at
 `o-story`, whichever command runs it (`o story`, `mtm story`'s
 pass-through); another host (`mtm story`) keeps its own.
 
-The Turns page (`o-story open turns/page`) is mtm's Turns tab as a story:
+The Turns page (`o story open turns/page`) is mtm's Turns tab as a story:
 a pane row, the card timeline (a plain turn, tool calls with a diff and a
 tall output, a subagent, a notification event card), the prompt box with
 `@` and `/` completions, a settings line, and the key readout in the
@@ -250,7 +250,7 @@ from `answers`.
 
 ## The TUI
 
-`o-story` lists stories by area. Enter opens one in the real chrome, drawn
+`o story` lists stories by area. Enter opens one in the real chrome, drawn
 in a box of the story's own size centred on your terminal (a 40x12 story is
 visibly 40x12). Press keys as in any app. `r` resets the story; `q` or
 `ctrl+c` returns to the index. Inside an attached fake pane `ctrl+c` goes to
@@ -301,16 +301,16 @@ is dropped); a name moves it to `$XDG_DATA_HOME/o-story/saved/<name>.json`,
 which the ring never touches. Esc or an empty name leaves it in the ring.
 
 ```sh
-o-story history                 # 1 = newest, and the saved names
-o-story keep 2 spill-bug        # promote ring entry 2
-o-story replay spill-bug        # live, with the recorded timing
-o-story run --from spill-bug [--expect '{"focus":"b1"}']   # headless; asserts only an expect
+o story history                 # 1 = newest, and the saved names
+o story keep 2 spill-bug        # promote ring entry 2
+o story replay spill-bug        # live, with the recorded timing
+o story run --from spill-bug [--expect '{"focus":"b1"}']   # headless; asserts only an expect
 ```
 
 ## How a bug becomes a story
 
 1. Reproduce it in the TUI on the nearest story; leave and name the recording.
-2. `o-story trim NAME --at K` writes `trimmed/NAME-I-J.json`: events
+2. `o story trim NAME --at K` writes `trimmed/NAME-I-J.json`: events
    `[K-3 .. K+2]` as the script, `base: "recording:NAME"`, `start: I`. The
    runner replays the base's events before `I` headless, then runs the
    window. `--snapshot` instead bakes the before-state (lists, rows,
@@ -325,7 +325,7 @@ story before it is fixed.
 
 ## Explore
 
-`o-story explore` runs the state explorer (`explore.Run`, the package doc
+`o story explore` runs the state explorer (`explore.Run`, the package doc
 has the details) over every story-built application: one run per distinct
 application (stories that differ only in script and expect share it;
 trimmed stories with a base are left out). Each replay builds the story
@@ -336,10 +336,10 @@ focus invariants, render fits, honest footer hints, a way home, jobs
 settle, operation errors, modes no row leaves.
 
 ```sh
-o-story explore                        # every application, depth 3, 2000 steps each
-o-story explore lists tables/cell-motion --depth 6 --steps 20000
-o-story explore --out /tmp/explore     # NAME.json reports and NAME/NN-CHECK.json gap stories
-o-story explore --compare-full         # also count states keyed with the screen
+o story explore                        # every application, depth 3, 2000 steps each
+o story explore lists tables/cell-motion --depth 6 --steps 20000
+o story explore --out /tmp/explore     # NAME.json reports and NAME/NN-CHECK.json gap stories
+o story explore --compare-full         # also count states keyed with the screen
 ```
 
 Each report lists findings by check with the shortest key path (shrunk),
@@ -351,7 +351,7 @@ application's story with the finding's keys as its script and
 so they are named in the skip. They are written to `--out`, never to
 `stories/`: move one there once it is a rule.
 
-`o-story explore --dedupe DIR` explores nothing: it reads every report under
+`o story explore --dedupe DIR` explores nothing: it reads every report under
 DIR (`--out`'s `NAME.json`, and the examples' `OCHAZUKE_EXPLORE_OUT`
 reports), groups the findings by check and normalized summary
 (`explore.Dedupe`: ids, numbers and the `app.` namespace stripped), keeps per
@@ -370,7 +370,7 @@ here `storyFake` for the stories' fakes.
 
 ### Watching a run
 
-`o-story explore … --watch` plays the same run in a full-screen TUI (an
+`o story explore … --watch` plays the same run in a full-screen TUI (an
 ochazuke model of its own): on the left the application (n/N) and the
 run's status, the states visited, the steps played of the budget and
 left, the depth, the key path that reached the state shown, and a table
@@ -380,7 +380,7 @@ is full speed) is the pause after each step. Watch mode is a view, not
 another walk: the run calls `Budget.Observe` after every step and the TUI
 holds it there, so the same budget gives the same states, findings and
 report bytes with or without `--watch`; only the elapsed time differs.
-The TUI draws on `/dev/tty`, so `o-story explore --watch > report.txt`
+The TUI draws on `/dev/tty`, so `o story explore --watch > report.txt`
 keeps the report in the file.
 
 | keys | verb | what it does |
@@ -402,12 +402,12 @@ reports print in order.
 
 ## Catalog
 
-`o-story catalog` answers like every family tool (ochazuke/cli, schema 1):
+`o story catalog` answers like every family tool (ochazuke/cli, schema 1):
 data nouns `story` (list, show, run, copy, fixture, recordings, state),
 `recording` (list, show, delete), `fixture` (list, show, stories),
 `application` (list, show, stories, fixtures: the host's apps; ochazuke's
 runtime owns the noun `app`), `verb` and `edge` (list, the rows of
-`o-story verbs`). The relations are one handler on both nouns:
+`o story verbs`). The relations are one handler on both nouns:
 `story list --app A --fixture F` is `application stories` and
 `fixture stories`, `fixture list --app A` is `application fixtures`,
 `recording list --story NAME` is `story recordings`. Every list returns
@@ -418,14 +418,14 @@ the same columns the TUI index draws (each area a table without the area
 column, size then steps dropping first as the terminal narrows).
 
 ```
-o-story story list               # id AREA/NAME, data {area, app, fixture, size, chrome, steps, skipped, expect?}, cells
-o-story story copy --target lists/lone-list --as "my lone list"   # into $XDG_CONFIG_HOME/o-story/stories, with its golden
-o-story recording delete --target recording/1
-o-story fixture list             # fixture/demo/pages
-o-story application show --target application/demo
-o-story story run --target lists/lone-list
-o-story recording show --target recording/1
-o-story story state              # {"noun":"verb","id":"verb/normal/list.move",...} per line
+o story story list               # id AREA/NAME, data {area, app, fixture, size, chrome, steps, skipped, expect?}, cells
+o story story copy --target lists/lone-list --as "my lone list"   # into $XDG_CONFIG_HOME/o-story/stories, with its golden
+o story recording delete --target recording/1
+o story fixture list             # fixture/demo/pages
+o story application show --target application/demo
+o story story run --target lists/lone-list
+o story recording show --target recording/1
+o story story state              # {"noun":"verb","id":"verb/normal/list.move",...} per line
 ```
 
 ## Minimum verbs per component
@@ -433,7 +433,7 @@ o-story story state              # {"noun":"verb","id":"verb/normal/list.move",.
 Every key resolves to a `noun.verb`, so the verbs the core stories exercise
 are the minimum a component needs to be full-featured; which keys reach them
 is the app's choice. The table is derived from the stories (per mode the key
-was resolved in) by `o-story verbs`, and `go test` fails when it drifts.
+was resolved in) by `o story verbs`, and `go test` fails when it drifts.
 The edges are the mode changes the stories make. `demo.*` rows are the
 sandbox's own noun.
 
@@ -443,10 +443,10 @@ Conformance:
   covers the static half (every row atomic and registered).
 - Every mode that can be entered has an exit edge reachable from inside it
   (terminal needs detach, insert needs esc or cancel, a pending mode a
-  timeout or esc); `o-story verbs` fails if a story enters a mode that no
+  timeout or esc); `o story verbs` fails if a story enters a mode that no
   story leaves.
 - The core stories must pass when replayed through the app's bindings:
-  `o-story run --bindings FILE`, a run mode planned for later (not built).
+  `o story run --bindings FILE`, a run mode planned for later (not built).
 
 <!-- verbs:begin (generated by o-story verbs --readme README.md; do not edit) -->
 

@@ -1378,6 +1378,6 @@ Fix hint:  <optional, one line>
 
 The applier replies with the same ids, one line each: `fixed`, `declined
 <reason>`, or `skip: <word>`, followed by the check output (`go test -race
-./...`, `o-story run`, `gofmt -l .`) and the list of files touched. A round
+./...`, `o story run`, `gofmt -l .`) and the list of files touched. A round
 closes when every blocker is `fixed` or overruled by the owner. Three rounds
 at most; what remains open is reported, not looped on.
