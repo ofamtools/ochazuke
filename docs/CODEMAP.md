@@ -847,7 +847,7 @@ Root package `ochazuke` is flat: 161 source files, 187 test files. Each entry li
 
 ### runtime.go
 
-- lines: 1302 · tests: runtime_test.go
+- lines: 1301 · tests: runtime_test.go
 - purpose: Arguments are a request's named arguments, keyed by parameter name.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
 - methods: Context(1), Operation(5), Request(4), Runtime(20)
@@ -874,12 +874,12 @@ Root package `ochazuke` is flat: 161 source files, 187 test files. Each entry li
 
 ### search_find.go
 
-- lines: 383 · tests: search_find_test.go
+- lines: 402 · tests: search_find_test.go
 - purpose: TextFinder is a text-like component the jump search moves through: an input (the text view), the docs viewer, a Markdown Doc, a timeline.
 - types: TextFinder (iface)
-- methods: Input(1), Matcher(1), Runtime(4), findLine(5)
+- methods: Input(1), Matcher(1), Runtime(5), findLine(5), searchState(3)
 - funcs: FindLine
-- leans on: runtime.go(28), block.go(7), instance.go(7), search_match.go(7)
+- leans on: runtime.go(30), instance.go(9), block.go(7), delivery.go(7)
 
 ### search_match.go
 

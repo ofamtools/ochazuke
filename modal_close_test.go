@@ -44,7 +44,7 @@ func TestModalCloseRunsTheCloseRequestElsePops(t *testing.T) {
 	if r.TopModal() != "" {
 		t.Fatalf("modal.pop (alias) left %q open", r.TopModal())
 	}
-	if a, ok := r.ActionAlias("ochazuke.modal.pop"); !ok || a.Action != "ochazuke.modal.close" || !a.Deprecated() {
+	if a, ok := r.ActionAlias("ochazuke.modal.pop"); !ok || a.Action != "ochazuke.modal.close" || !a.Deprecated() || a.Since != "v0.83.0" || a.RemoveAfter != "v0.84.0" {
 		t.Fatalf("modal.pop alias: %+v %v", a, ok)
 	}
 	if _, err := r.Execute(Request{Noun: "ochazuke.modal", Verb: "close"}); err == nil || !strings.Contains(err.Error(), "no modal") {

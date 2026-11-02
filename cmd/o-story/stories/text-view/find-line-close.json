@@ -1,0 +1,19 @@
+{
+  "name": "The find line closes through modal.close on Escape, returning to its text view without changing the last find",
+  "area": "text-view",
+  "width": 100,
+  "height": 24,
+  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
+  "script": [
+    ":", {"type": "demo mapping"}, "enter", "/", {"type": "."}, "enter",
+    "/", {"type": "absent"}, "esc", "y", "y", "n", "y", "y", "q"
+  ],
+  "expect": [
+    {"after": 4, "modal": "find-line", "mode": "insert", "contains": ["esc modal.close"]},
+    {"after": 7, "modal": "find-line", "mode": "insert", "contains": ["esc modal.close"]},
+    {"after": 9, "modal": "text-view", "mode": "normal"},
+    {"after": 11, "register": "  \"name\": \".title\",\n"},
+    {"after": 14, "register": "  \"size\": \".bytes\",\n"},
+    {"modal": "", "focus": "a2", "mode": "normal"}
+  ]
+}

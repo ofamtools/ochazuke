@@ -154,6 +154,82 @@ func TestSearchFindNeedsATextFinder(t *testing.T) {
 	}
 }
 
+// The last pattern, match mode and direction outlive a viewer; another
+// runtime starts without them.
+func TestSearchFindSurvivesViewCloseAndStaysRuntimeLocal(t *testing.T) {
+	r, _ := textResultFixture(t)
+	if query, back := r.LastFind(); query != "" || back {
+		t.Fatalf("initial find: %q, back %v", query, back)
+	}
+	if _, err := r.OpenTextView("first", "zero\none\ntwo"); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.FindText(r.Focus, "^one$", MatchRegex, true, 1); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Execute(Request{Noun: "ochazuke.modal", Verb: "close"}); err != nil {
+		t.Fatal(err)
+	}
+	in, err := r.OpenTextView("second", "zero\none\ntwo\none")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Execute(Request{Noun: "ochazuke.search", Verb: "next"}); err != nil {
+		t.Fatal(err)
+	}
+	if in.Cursor != 13 {
+		t.Fatalf("repeat in the new viewer: cursor %d, want 13", in.Cursor)
+	}
+	if query, back := r.LastFind(); query != "^one$" || !back {
+		t.Fatalf("last find: %q, back %v", query, back)
+	}
+	other, _ := textResultFixture(t)
+	if _, err := other.OpenTextView("other", "one"); err != nil {
+		t.Fatal(err)
+	}
+	if query, back := other.LastFind(); query != "" || back {
+		t.Fatalf("another runtime inherited find: %q, back %v", query, back)
+	}
+	if other.Available(Request{Noun: "ochazuke.search", Verb: "next"}, other.Focus, other.Mode) {
+		t.Fatal("another runtime can repeat a search it never ran")
+	}
+}
+
+// Shared modal closing runs the find line's cancel verb, including its
+// checks; callers can also run cancel directly.
+func TestFindLineCloseRunsCancel(t *testing.T) {
+	for _, req := range []Request{
+		{Noun: "ochazuke.modal", Verb: "close"},
+		{Noun: FindLineNoun, Verb: "cancel"},
+	} {
+		t.Run(req.Key(), func(t *testing.T) {
+			r, _ := textResultFixture(t)
+			in, err := r.OpenTextView("demo", "one\ntwo")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := r.Execute(Request{Noun: "ochazuke.search", Verb: "find"}); err != nil {
+				t.Fatal(err)
+			}
+			cancelled := 0
+			if err := r.AddVerbCheck("ochazuke.find-line.cancel", VerbCheck{
+				Name: "observe-cancel", Check: func(*Runtime, Context, Arguments) Verdict {
+					cancelled++
+					return Allow()
+				},
+			}); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := r.Execute(req); err != nil {
+				t.Fatal(err)
+			}
+			if cancelled != 1 || r.TopModal() != TextViewID || r.Focus != in.ID || r.Mode.Name != "normal" {
+				t.Fatalf("cancel checks %d, modal %q, focus %q, mode %q", cancelled, r.TopModal(), r.Focus, r.Mode.Name)
+			}
+		})
+	}
+}
+
 // The docs viewer (help.markdown off) scrolls the next matching line to
 // its top; n goes on from the line found.
 func TestDocsViewerFinds(t *testing.T) {

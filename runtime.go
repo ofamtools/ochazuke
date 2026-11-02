@@ -442,7 +442,6 @@ type Runtime struct {
 	holders          []string          // every instance that is not a list row, in registration order: the ones that may hold a Component (components())
 	modals           []string          // the open modal instances, outermost first; each holds its return focus in Payload.Return
 	modalInstances   map[string]bool   // instances created by Push or OpenModal, removed by Pop
-	lastFind         findState         // the last search.find (n and N repeat it), search_find.go
 	seq              uint64            // instance registration order
 	commands         []tea.Cmd         // off-loop work scheduled since the adapter last drained it
 	jobs             map[uint64]*job   // the jobs list: running jobs and the finished ones retained for jobs.list
@@ -481,12 +480,12 @@ func newRuntime() *Runtime {
 	}
 }
 
-// registerModalAliases keeps modal.pop, the close verb until v0.82.0, as
+// registerModalAliases keeps modal.pop, the close verb before v0.83.0, as
 // an old name of modal.close, which now answers esc and q on every modal
 // (Keep actions: the old name stays one release). It runs once settings
 // exist: an alias's checks read the noun display setting.
 func registerModalAliases(r *Runtime) {
-	if err := r.AddActionAlias(ActionAlias{Alias: "ochazuke.modal.pop", Action: "ochazuke.modal.close", Since: "v0.82.0", RemoveAfter: "v0.83.0"}); err != nil {
+	if err := r.AddActionAlias(ActionAlias{Alias: "ochazuke.modal.pop", Action: "ochazuke.modal.close", Since: "v0.83.0", RemoveAfter: "v0.84.0"}); err != nil {
 		panic(err)
 	}
 }

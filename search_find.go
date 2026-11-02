@@ -6,6 +6,8 @@ import (
 	"slices"
 	"strings"
 	"unicode/utf8"
+
+	tea "charm.land/bubbletea/v2"
 )
 
 // Text find: the jump search of text-like components (UX-RULES R5.20),
@@ -42,6 +44,7 @@ const (
 	// findLineID is the find line's modal; findLineInputID its input.
 	findLineID      = "find-line"
 	findLineInputID = "__find-line/text"
+	searchStateID   = "__search-state"
 )
 
 // findState is the last find: what n and N repeat (Vim's last search
@@ -52,10 +55,25 @@ type findState struct {
 	mode  string
 }
 
+// searchState owns the runtime-wide last find, independently of the
+// viewers and find lines that come and go. It is one component under app.
+type searchState struct {
+	lastFind findState
+}
+
+func (s *searchState) HandleMessage(tea.Msg) bool { return false }
+func (s *searchState) PendingCommand() tea.Cmd    { return nil }
+func (s *searchState) Close()                     {}
+
+func (r *Runtime) searchState() *searchState {
+	return r.Instances[searchStateID].Component.(*searchState)
+}
+
 // LastFind is the last search.find's query and direction ("" before the
 // first).
 func (r *Runtime) LastFind() (query string, back bool) {
-	return r.lastFind.query, r.lastFind.back
+	last := r.searchState().lastFind
+	return last.query, last.back
 }
 
 // textFinderAt is the innermost TextFinder on focus's path, or nil.
@@ -89,7 +107,7 @@ func (r *Runtime) FindText(focus, query, mode string, back bool, count int) erro
 	if err := m.Err(); err != nil {
 		return err
 	}
-	r.lastFind = findState{query: query, back: back, mode: m.Mode()}
+	r.searchState().lastFind = findState{query: query, back: back, mode: m.Mode()}
 	for range max(1, count) {
 		if !f.FindText(m, back) {
 			return fmt.Errorf("pattern not found: %s", query)
@@ -145,7 +163,7 @@ func (f *findLine) matchApplies() bool { return true }
 // openFindLine opens the find line over focus, empty, in insert mode.
 func (r *Runtime) openFindLine(back bool) error {
 	in := NewInput(findLineInputID, "", false)
-	inst, err := r.OpenModal(findLineID, Payload{}, WithInput(in, Kind(FindLineNoun)))
+	inst, err := r.OpenModal(findLineID, Payload{}, WithInput(in, Kind(FindLineNoun)), CloseWith(Request{Noun: FindLineNoun, Verb: "cancel"}))
 	if err != nil {
 		return err
 	}
@@ -154,9 +172,10 @@ func (r *Runtime) openFindLine(back bool) error {
 }
 
 func registerSearchFind(r *Runtime) {
+	r.Instance(searchStateID, Kind("ochazuke.search-state")).Component = &searchState{}
 	r.DefineGuard("text-findable", func(r *Runtime, ev KeyEvent) bool { return r.textFinderAt(ev.Focus) != nil })
 	r.DefineGuard("text-refindable", func(r *Runtime, ev KeyEvent) bool {
-		return r.lastFind.query != "" && r.textFinderAt(ev.Focus) != nil
+		return r.searchState().lastFind.query != "" && r.textFinderAt(ev.Focus) != nil
 	})
 	focus := func(c Context) string {
 		if f := focusOf(c); f != "" {
@@ -188,13 +207,13 @@ func registerSearchFind(r *Runtime) {
 			"reverse": {Type: "boolean", Description: "Search the other way from the last find (N)"},
 			"count":   {Type: "integer", Description: "Repeat count (default 1)"},
 		}, Result: "the find", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-			last := r.lastFind
+			last := r.searchState().lastFind
 			if last.query == "" {
 				return nil, errors.New("no previous search")
 			}
 			back := last.back != boolArg(a, "reverse")
 			err := r.FindText(focus(c), last.query, last.mode, back, IntArg(a, "count", 1))
-			r.lastFind.back = last.back // N keeps the direction n goes, as in Vim
+			r.searchState().lastFind.back = last.back // N keeps the direction n goes, as in Vim
 			if err != nil {
 				return nil, err
 			}
@@ -220,7 +239,7 @@ func registerSearchFind(r *Runtime) {
 			query := string(in.Text)
 			if query == "" {
 				// An empty line finds the last query again (Vim's /<CR>).
-				query = r.lastFind.query
+				query = r.searchState().lastFind.query
 			}
 			// An invalid regex keeps the line open and says why on it
 			// (R5.18), never in a notice.
