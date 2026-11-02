@@ -229,6 +229,9 @@ func (r *Runtime) AddTree(id string, nodes []TreeNode, opts ...InstanceOption) (
 	if spec.noSpill {
 		listOpts = append(listOpts, NoSpill())
 	}
+	if spec.noSort {
+		listOpts = append(listOpts, NoSort())
+	}
 	if spec.noMarks {
 		listOpts = append(listOpts, NoMarks())
 	}

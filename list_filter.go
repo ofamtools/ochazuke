@@ -170,7 +170,7 @@ func (l *List) refilter(keep string) {
 		}
 		l.items = shown
 	}
-	l.items = l.lingerRows(l.items)
+	l.items = l.sortedRows(l.lingerRows(l.items))
 	if t := l.tree(); t != nil {
 		t.guideRows()
 	}
@@ -203,7 +203,7 @@ func (l *List) reveal(id string) {
 	}
 	l.linger.reset()
 	l.query, l.back, l.propFilters, l.savedFilter = "", "", nil, ""
-	l.items = l.all
+	l.refilter(id)
 	if t := l.tree(); t != nil {
 		_ = t.Select(id)
 	}

@@ -58,9 +58,9 @@ func (t *Tree) guideRows() {
 		kept[item.ID] = true
 	}
 	t.guideLast = make(map[string]string)
-	from, to := t.zoomRange()
-	for i := to - 1; i >= from; i-- {
-		n := t.nodes[i]
+	nodes := t.sortedNodes()
+	for i := len(nodes) - 1; i >= 0; i-- {
+		n := nodes[i]
 		if kept[n.ID] {
 			kept[n.Parent] = true
 			if _, exists := t.guideLast[n.Parent]; !exists {

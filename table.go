@@ -117,7 +117,19 @@ func Columns(cols ...Column) InstanceOption {
 }
 
 // SetColumns replaces the list's columns; none makes it a plain list again.
-func (l *List) SetColumns(cols ...Column) { l.columns = slices.Clone(cols) }
+func (l *List) SetColumns(cols ...Column) {
+	if slices.Equal(l.columns, cols) {
+		return
+	}
+	previous, _ := l.Selected()
+	l.columns = slices.Clone(cols)
+	l.widest = nil
+	l.cacheRows()
+	if len(l.sort) > 0 {
+		l.refilter(previous.ID)
+		l.syncFocus(previous, nil)
+	}
+}
 
 // Columns returns a copy of the list's columns (nil for a plain list).
 func (l *List) Columns() []Column { return slices.Clone(l.columns) }
@@ -330,7 +342,7 @@ func (l *List) tableView(width, height int) (string, int, int) {
 	}
 	titles := make([]string, len(l.columns))
 	for i, c := range l.columns {
-		titles[i] = modalLabel(c.Title)
+		titles[i] = modalLabel(l.sortTitle(c))
 	}
 	l.colHeader = header
 	shown, widths := l.columnLayout(max(1, width-mark))

@@ -71,6 +71,7 @@ type instanceSpec struct {
 	parent, noun, focus, closeFocus string
 	closeOnDetach, noSpill, noMarks bool
 	clearFilterOnEnter              bool
+	noSort                          bool // NoSort: the source owns the row order
 	guides                          bool // Guides: draw a tree's branch lines
 	cellSelect                      bool
 	spillToSelection                bool   // SpillToSelection: a spill into the list lands on its selected row

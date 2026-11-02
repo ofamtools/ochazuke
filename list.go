@@ -61,6 +61,8 @@ type List struct {
 	linger      filterLinger
 	query       string       // the filter query; "" shows every row
 	propFilters []PropFilter // typed prop conditions, ANDed with the text query
+	sort        []SortKey    // stable view order, applied after filtering
+	noSort      bool         // source-owned or virtualized rows cannot sort locally
 	savedFilter string       // the applied saved filter's name; empty after an ad-hoc change
 	rowCache    map[string]*filterRow
 	derived     fieldProps // the rows' undeclared fields as props (list_props.go); nil until asked, cleared with the rows
@@ -130,7 +132,8 @@ func NewList(r *Runtime, id string, items []ListItem, opts ...InstanceOption) (*
 // SpillToSelection() for one a spill lands in on its selected row,
 // NoMarks() for a read-only view, ClearFilterOnEnter() for a list whose
 // filter enter chooses a row and clears, Columns(...) for a table, and
-// CellSelect() for a table with a current column (table_cells.go).
+// CellSelect() for a table with a current column (table_cells.go), and
+// NoSort() when a source owns the order of partial or virtualized rows.
 func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (*List, error) {
 	if id == "" {
 		return nil, errors.New("list ID must be nonempty")
@@ -145,7 +148,7 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 	if r.Instances[spec.parent] == nil {
 		return nil, fmt.Errorf("unknown parent %q", spec.parent)
 	}
-	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}, noSpill: spec.noSpill, toSelected: spec.spillToSelection, noMarks: spec.noMarks, choose: spec.clearFilterOnEnter, columns: slices.Clone(spec.columns), cellSelect: spec.cellSelect}
+	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}, noSpill: spec.noSpill, toSelected: spec.spillToSelection, noMarks: spec.noMarks, choose: spec.clearFilterOnEnter, columns: slices.Clone(spec.columns), cellSelect: spec.cellSelect, noSort: spec.noSort}
 	r.Instance(id, Parent(spec.parent), Kind(spec.noun), FocusOnClose(spec.closeFocus))
 	r.Instances[id].Component = list
 	if err := list.SetItems(items); err != nil {
@@ -157,7 +160,7 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 
 // SetItems copies rows, preserves selection by ID, and falls back to the nearest
 // remaining index if that ID disappears. Invalid updates leave the list unchanged.
-// A filter (SetFilter) stays and applies to the new rows.
+// Filters and view sorting stay and apply to the new rows.
 // It creates one instance per new row under the list and removes the instances
 // of rows that disappear; a retained row keeps its instance and any bindings
 // the application put on it. Rows whose cells are unchanged keep a table's
@@ -224,7 +227,7 @@ func (l *List) SetItems(items []ListItem) error {
 	return nil
 }
 
-// Items returns a copy of every row in display order, the ones a filter
+// Items returns a copy of every row in app order, the ones a filter
 // hides included. Cells and Tones are copies too, so editing a returned
 // row in place changes nothing until SetItems, which re-measures it;
 // Data is the application's value, shared as given.
@@ -548,6 +551,9 @@ func (l *List) state() map[string]any {
 		}
 	}
 	out := map[string]any{"id": l.id, "items": slices.Clip(l.items), "selected": l.selected, "selectedId": selected.ID, "offset": l.offset, "focused": l.Focused(), "marked": marked}
+	if len(l.sort) > 0 {
+		out["sort"] = l.Sort()
+	}
 	if l.query != "" || len(l.propFilters) > 0 || l.savedFilter != "" {
 		out["filter"], out["total"] = l.query, len(l.all)
 		if len(l.propFilters) > 0 {
@@ -896,6 +902,7 @@ func registerLists(r *Runtime) {
 	registerListVisual(r)
 	registerListFilter(r)
 	registerListPropFilter(r)
+	registerListSort(r)
 	for _, verb := range []string{"ochazuke.list.column", "ochazuke.list.scroll-columns"} {
 		if err := r.AddVerbAvailability(verb, "list-column-moves"); err != nil {
 			panic(err)

@@ -220,10 +220,13 @@ func (l *List) layoutColumns() []Column {
 			cursor = c
 		}
 	}
-	if len(l.colWidths) == 0 && cursor < 0 {
+	if len(l.colWidths) == 0 && cursor < 0 && len(l.sort) == 0 {
 		return l.columns
 	}
 	cols := slices.Clone(l.columns)
+	for i := range cols {
+		cols[i].Title = l.sortTitle(cols[i])
+	}
 	for i, w := range l.colWidths {
 		if i >= 0 && i < len(cols) && w > 0 {
 			cols[i].Width, cols[i].Max = w, 0

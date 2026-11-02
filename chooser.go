@@ -81,6 +81,8 @@ type ChooserSpec struct {
 	Noun string
 	// NoPropFilters opts this chooser out of prop filters and their keys.
 	NoPropFilters bool
+	// NoSort keeps the source order when these rows are only a partial view.
+	NoSort bool
 
 	Kind        string
 	Title       string
@@ -433,11 +435,12 @@ func (c *Chooser) refilter() {
 	// A row whose label holds the query whole outranks a scattered fuzzy
 	// match, so the top match is the one the query spells.
 	// A Live source ranked its rows itself.
-	if !c.live() {
+	if !c.live() && (len(c.filters.sort) == 0 || !c.filters.canSort()) {
 		slices.SortStableFunc(head, func(x, y ChooserRow) int {
 			return cmpBool(cm.Contains(y.Label, c.seen), cm.Contains(x.Label, c.seen))
 		})
 	}
+	head = c.sortedRows(head)
 	// A trailing row the query spells from the start of one of its words
 	// ("unp", "no pin") is what the user asked for: it leads, unless an
 	// ordinary row is spelled as well ("no" for a project "notes").
@@ -567,6 +570,9 @@ func (c *Chooser) move(delta int) {
 func (c *Chooser) state() map[string]any {
 	row, _ := c.Highlighted()
 	state := map[string]any{"propFilters": c.PropFilters(), "savedFilter": c.filters.savedFilter, "query": c.Query(), "matches": len(c.matches), "highlighted": row.ID, "moved": c.moved}
+	if len(c.filters.sort) > 0 {
+		state["sort"] = c.filters.Sort()
+	}
 	if len(c.spec.Sources) > 0 {
 		state["source"] = c.Source()
 		state["sources"] = c.sourceNames()
