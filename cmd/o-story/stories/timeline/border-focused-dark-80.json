@@ -70,7 +70,8 @@
     {
       "after": 1,
       "focus": "t2",
-      "highlighted": 0,
+      "highlighted": 1,
+      "highlightedText": "below1",
       "styled": {
         "┏━━━": "#78BFA5",
         "╭───": "#3C514A",

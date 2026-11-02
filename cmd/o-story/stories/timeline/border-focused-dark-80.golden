@@ -18,7 +18,7 @@
  |  │ ▸ 日本語のプロンプトも折り返す: wide runes in a prompt wrap by cells,    │
  |  │   never by bytes, and nothing is cut.                                    │
  |  1–3 / 3
-r|  below1
+R|  below1
  |  ────────────────────────────────────────────────────────────────────────────
  |  a story-card.timeline-append · s story-card.timeline-stream · enter timelin…
  |
