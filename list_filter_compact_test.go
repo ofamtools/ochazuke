@@ -372,7 +372,7 @@ func TestFilterFormNoRedundantChords(t *testing.T) {
 			}
 		}
 	}
-	for _, verb := range []string{"focus", "direction", "save", "delete-saved", "next", "toggle"} {
+	for _, verb := range []string{"focus", "direction", "write-saved", "delete-saved", "next", "toggle"} {
 		if _, ok := r.Operation(filterFormNoun + "." + verb); !ok {
 			t.Fatal("missing verb", verb)
 		}

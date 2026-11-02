@@ -115,7 +115,7 @@
       "bindings": [
         {
           "key": "enter",
-          "action": "ochazuke.filter-form.save",
+          "action": "ochazuke.filter-form.write-saved",
           "hint": "save"
         }
       ]

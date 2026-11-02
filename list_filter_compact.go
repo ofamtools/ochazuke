@@ -721,7 +721,7 @@ func registerFilterViewForm(r *Runtime) {
 		run               func(*filterViewForm, Arguments) error
 	}{
 		{"focus", "Focus a filter form control", map[string]Parameter{"part": {Type: "string", Enum: []string{"field", "sort", "conditions", "save"}}}, func(v *filterViewForm, a Arguments) error { return v.focusPart(StringArg(a, "part", "field")) }},
-		{"save", "Save the current conditions and sort through list.filter-save", nil, func(v *filterViewForm, _ Arguments) error { return v.savedAction("filter-save") }},
+		{"write-saved", "Save the current conditions and sort through list.filter-save", nil, func(v *filterViewForm, _ Arguments) error { return v.savedAction("filter-save") }},
 		{"delete-saved", "Delete the named user filter through list.filter-saved-delete", nil, func(v *filterViewForm, _ Arguments) error { return v.savedAction("filter-saved-delete") }},
 		{"next", "Keep the text condition and return to the field picker", nil, func(v *filterViewForm, _ Arguments) error { return v.focusPart("field") }},
 		{"toggle", "Toggle the highlighted value without leaving its picker", nil, func(v *filterViewForm, _ Arguments) error { return v.toggleHighlighted() }},
@@ -739,5 +739,5 @@ func registerFilterViewForm(r *Runtime) {
 			return nil, run(v, a)
 		}})
 	}
-	r.Nouns[filterFormNoun].Guards = map[string]string{"direction": "filter-form-sort", "next": "filter-form-text", "save": "filter-form-save", "delete-saved": "filter-form-save"}
+	r.Nouns[filterFormNoun].Guards = map[string]string{"direction": "filter-form-sort", "next": "filter-form-text", "write-saved": "filter-form-save", "delete-saved": "filter-form-save"}
 }
