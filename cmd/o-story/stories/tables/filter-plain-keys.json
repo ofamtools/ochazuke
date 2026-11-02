@@ -1,0 +1,122 @@
+{
+  "area": "tables",
+  "width": 100,
+  "height": 26,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "nouns": [
+      {
+        "noun": "entry",
+        "props": [
+          {
+            "name": "rank",
+            "type": "integer"
+          }
+        ]
+      }
+    ],
+    "lists": [
+      {
+        "id": "entries",
+        "height": -1,
+        "cellSelect": true,
+        "columns": [
+          {
+            "title": "rank",
+            "min": 14
+          }
+        ],
+        "items": [
+          {
+            "id": "ten",
+            "noun": "entry",
+            "label": "ten",
+            "cells": [
+              "10"
+            ],
+            "props": {
+              "rank": 10
+            }
+          },
+          {
+            "id": "two",
+            "noun": "entry",
+            "label": "two",
+            "cells": [
+              "2"
+            ],
+            "props": {
+              "rank": 2
+            }
+          },
+          {
+            "id": "five",
+            "noun": "entry",
+            "label": "five",
+            "cells": [
+              "5"
+            ],
+            "props": {
+              "rank": 5
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "name": "filter-plain-keys",
+  "script": [
+    "z",
+    "/",
+    "shift+tab",
+    "r",
+    "a",
+    "n",
+    "k",
+    "enter",
+    "shift+tab",
+    "shift+tab",
+    "enter",
+    "tab",
+    "tab",
+    "tab",
+    "tab",
+    "p",
+    "l",
+    "a",
+    "i",
+    "n",
+    "enter",
+    "esc",
+    "C",
+    "esc",
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 11,
+      "contains": [
+        "Sort ▼"
+      ]
+    },
+    {
+      "after": 21,
+      "contains": [
+        "Applied: plain",
+        "Replace"
+      ]
+    },
+    {
+      "contains": [
+        "10",
+        "2",
+        "5"
+      ],
+      "lacks": [
+        "▼",
+        "▲"
+      ]
+    }
+  ]
+}

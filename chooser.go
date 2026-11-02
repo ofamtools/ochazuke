@@ -85,6 +85,9 @@ type ChooserSpec struct {
 	NoSort bool
 	// Stay keeps the chooser open after a pick (for embedded or repeated choices).
 	Stay bool
+	// NormalMode allows Escape to leave search editing; i resumes insert.
+	// The input still starts in insert; default choosers remain pinned there.
+	NormalMode bool
 
 	Kind        string
 	Title       string
@@ -190,6 +193,11 @@ func (c *Chooser) PendingCommand() tea.Cmd {
 }
 
 func registerChooser(r *Runtime) {
+	r.DefineGuard("chooser-normal-mode", func(r *Runtime, ev KeyEvent) bool {
+		c := r.chooserAt(r.Instances[ev.Focus])
+		return c != nil && c.spec.NormalMode
+	})
+	r.DefineGuard("chooser-typing", func(r *Runtime, _ KeyEvent) bool { return r.ModeIs(r.BaseMode(), "insert") })
 	verb := func(fn func(*Chooser, Ctx) Result) AppHandler {
 		return func(ctx Ctx) Result {
 			c := r.chooserAt(ctx.Instance)
@@ -236,6 +244,9 @@ func (r *Runtime) OpenChooser(spec ChooserSpec) (*Chooser, error) {
 		return nil, err
 	}
 	inst.Component = c
+	if spec.NormalMode {
+		c.input.pin = ""
+	}
 	c.load()
 	return c, nil
 }
@@ -265,6 +276,9 @@ func (r *Runtime) AddChooser(spec ChooserSpec, opts ...InstanceOption) (*Chooser
 	if err := r.AddInput(c.input, Parent(spec.Kind), Kind(chooserNoun)); err != nil {
 		_ = r.RemoveInstance(spec.Kind)
 		return nil, err
+	}
+	if spec.NormalMode {
+		c.input.pin = ""
 	}
 	c.load()
 	return c, nil

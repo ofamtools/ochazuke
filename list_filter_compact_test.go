@@ -1,7 +1,6 @@
 package ochazuke
 
 import (
-	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -28,9 +27,41 @@ func compactKeys(m *Model, keys ...string) {
 	}
 }
 
+func compactPart(t *testing.T, m *Model, part string) {
+	t.Helper()
+	r := m.Runtime
+	v := filterViewAt(r, r.Focus)
+	if v == nil {
+		t.Fatal("no compact form")
+	}
+	target := ""
+	switch part {
+	case "field":
+		target = v.fieldPicker.input.ID
+	case "sort":
+		target = v.sortPicker.input.ID
+	case "direction":
+		target = v.e.field(filterDirectionField).id
+	case "conditions":
+		target = v.conditions.id
+	case "save":
+		target = v.saveInput.ID
+	}
+	for i := 0; i < 16; i++ {
+		if r.Focus == target || part == "conditions" && v.conditions.Focused() {
+			if r.Input(r.Focus) != nil && r.Mode.Name != "insert" {
+				compactKeys(m, "i")
+			}
+			return
+		}
+		compactKeys(m, "tab")
+	}
+	t.Fatalf("Tab could not reach %s from %s", part, r.Focus)
+}
+
 func compactField(t *testing.T, m *Model, name string) {
 	t.Helper()
-	compactKeys(m, "ctrl+alt+f")
+	compactPart(t, m, "field")
 	for _, c := range name {
 		compactKeys(m, string(c))
 	}
@@ -50,7 +81,7 @@ func TestCompactFilterValuesRoundTripAndClear(t *testing.T) {
 	if r.Focus != listFilterFormID+"/field/query" {
 		t.Fatal("Enter did not return to fields", r.Focus)
 	}
-	compactKeys(m, "esc", "z", "/")
+	compactKeys(m, "esc", "esc", "z", "/")
 	if !strings.Contains(ansi.Strip(m.View().Content), "status in") {
 		t.Fatal(m.View().Content)
 	}
@@ -58,7 +89,7 @@ func TestCompactFilterValuesRoundTripAndClear(t *testing.T) {
 	if len(l.PropFilters()) != 1 || r.Input(r.Focus).Text[0] != 'C' {
 		t.Fatal("C cleared from input")
 	}
-	compactKeys(m, "ctrl+g")
+	compactKeys(m, "esc", "C")
 	if len(l.PropFilters()) != 0 || len(l.Sort()) != 0 {
 		t.Fatal("clear did not empty all view state")
 	}
@@ -68,7 +99,11 @@ func TestCompactFilterSortAndKeptConditions(t *testing.T) {
 	if err := l.SetPropFilters([]PropFilter{{Prop: "title", Op: "in", Value: []any{"Buy milk"}}}); err != nil {
 		t.Fatal(err)
 	}
-	compactKeys(m, "z", "/", "ctrl+alt+s", "s", "c", "o", "r", "e", "enter", "ctrl+alt+d")
+	compactKeys(m, "z", "/")
+	compactPart(t, m, "sort")
+	compactKeys(m, "s", "c", "o", "r", "e", "enter")
+	compactPart(t, m, "direction")
+	compactKeys(m, "enter")
 	if len(l.Sort()) != 1 || !l.Sort()[0].Desc || len(l.PropFilters()) != 1 {
 		t.Fatal(l.Snapshot())
 	}
@@ -77,7 +112,7 @@ func TestCompactFilterSortAndKeptConditions(t *testing.T) {
 	if len(l.PropFilters()) != 2 || l.PropFilters()[0].Prop != "title" {
 		t.Fatal("unrepresented condition lost", l.PropFilters())
 	}
-	compactKeys(m, "ctrl+g")
+	compactKeys(m, "esc", "C")
 	if len(l.PropFilters()) != 0 || len(l.Sort()) != 0 {
 		t.Fatal("clear retained unsupported conditions")
 	}
@@ -93,7 +128,9 @@ func TestCompactFilterFreeTextWritesAndUndo(t *testing.T) {
 	if !slices.Equal(shownIDs(l), []string{"t2"}) {
 		t.Fatal("text did not apply live", shownIDs(l))
 	}
-	compactKeys(m, "enter", "ctrl+alt+a", "!")
+	compactKeys(m, "enter")
+	compactPart(t, m, "conditions")
+	compactKeys(m, "!")
 	if l.PropFilters()[0].Op != "not-contains" {
 		t.Fatal(l.PropFilters())
 	}
@@ -122,7 +159,7 @@ func TestCompactFilterTreeAndChooser(t *testing.T) {
 	r, m, c := chooserPropFixture(t)
 	compactKeys(m, "ctrl+f")
 	compactField(t, m, "by")
-	compactKeys(m, "a", "g", "e", "n", "t", "enter", "esc")
+	compactKeys(m, "a", "g", "e", "n", "t", "enter", "esc", "esc")
 	if !slices.Equal(chooserIDs(c), []string{"b"}) {
 		t.Fatal(c.state())
 	}
@@ -149,9 +186,11 @@ func TestCompactFilterSettingsAndBindings(t *testing.T) {
 
 func TestCompactFilterClearResetsPickerQueries(t *testing.T) {
 	r, m, l := compactFixture(t)
-	compactKeys(m, "z", "/", "ctrl+alt+s", "s", "c", "o", "r", "e", "enter")
+	compactKeys(m, "z", "/")
+	compactPart(t, m, "sort")
+	compactKeys(m, "s", "c", "o", "r", "e", "enter")
 	compactField(t, m, "status")
-	compactKeys(m, "d", "o", "n", "e", "enter", "ctrl+g")
+	compactKeys(m, "d", "o", "n", "e", "enter", "esc", "C")
 	v := filterViewAt(r, r.Focus)
 	if v.current != nil || v.sortPicker.Query() != "" || v.fieldPicker.Query() != "" || len(l.PropFilters()) > 0 {
 		t.Fatal("clear retained control state")
@@ -209,11 +248,13 @@ func TestCompactFilterTreeSortChangesSiblingsAndClear(t *testing.T) {
 	m := NewModel(r)
 	m.Width, m.Height = 100, 28
 	_ = tree.List().Focus()
-	compactKeys(m, "z", "/", "ctrl+alt+s", "r", "a", "n", "k", "enter")
+	compactKeys(m, "z", "/")
+	compactPart(t, m, "sort")
+	compactKeys(m, "r", "a", "n", "k", "enter")
 	if !slices.Equal(shownIDs(tree.List()), []string{"a", "z", "za", "zb"}) {
 		t.Fatal(shownIDs(tree.List()))
 	}
-	compactKeys(m, "ctrl+g")
+	compactKeys(m, "esc", "C")
 	if !slices.Equal(shownIDs(tree.List()), []string{"z", "zb", "za", "a"}) {
 		t.Fatal("clear lost tree app order")
 	}
@@ -221,36 +262,142 @@ func TestCompactFilterTreeSortChangesSiblingsAndClear(t *testing.T) {
 
 func TestFilterFormClearTerminalEncoding(t *testing.T) {
 	for _, layout := range []string{"compact", "fields"} {
-		for _, raw := range []string{"\x07", "\x1b[103;5u", "\x1b[27;5;103~"} {
-			t.Run(fmt.Sprintf("%s/%x", layout, raw), func(t *testing.T) {
-				r, m, l := compactFixture(t)
-				_ = r.Settings().Set(ListFilterLayoutSetting, layout)
-				_ = r.Settings().Set(ListFilterSaveSetting, false)
-				_ = l.SetPropFilters([]PropFilter{{Prop: "status", Value: "todo"}})
-				_ = l.SetSort([]SortKey{{Field: "score", Desc: true}})
-				compactKeys(m, "z", "/")
-				hints := BindingHints(r, r.Focus)
-				if layout == "fields" {
-					if strings.Contains(hints, "ctrl+g") || strings.Contains(hints, "ctrl+alt+c") || !strings.Contains(hints, "u form.undo") || strings.Index(hints, "C clear") < strings.Index(hints, "u form.undo") {
-						t.Fatal(hints)
-					}
-					_ = r.SetFocus(r.RecordEditor(listFilterFormID).field("title").id)
-					_ = r.SetMode("insert")
-				} else if !strings.Contains(hints, "ctrl+g clear") {
-					t.Fatal(hints)
-				}
+		t.Run(layout, func(t *testing.T) {
+			r, m, l := compactFixture(t)
+			_ = r.Settings().Set(ListFilterLayoutSetting, layout)
+			_ = r.Settings().Set(ListFilterSaveSetting, false)
+			_ = l.SetPropFilters([]PropFilter{{Prop: "status", Value: "todo"}})
+			_ = l.SetSort([]SortKey{{Field: "score", Desc: true}})
+			compactKeys(m, "z", "/")
+			if layout == "fields" {
+				_ = r.SetFocus(r.RecordEditor(listFilterFormID).field("title").id)
+				_ = r.SetMode("insert")
+			}
+			for _, raw := range []string{"\x1b", "C"} {
 				var decoder uv.EventDecoder
 				n, event := decoder.Decode([]byte(raw))
 				key, ok := event.(uv.KeyPressEvent)
-				if !ok || n != len(raw) || key.String() != "ctrl+g" {
-					t.Fatalf("decoded %x: %d %#v", raw, n, event)
+				if !ok || n != len(raw) {
+					t.Fatalf("decode %x: %#v", raw, event)
 				}
 				m.Update(tea.KeyPressMsg(key))
 				m.View()
-				if len(l.PropFilters()) != 0 || len(l.Sort()) != 0 || l.Shown() != 6 {
-					t.Fatal(l.Snapshot())
-				}
-			})
+			}
+			if len(l.PropFilters()) != 0 || len(l.Sort()) != 0 || l.Shown() != 6 || r.TopModal() != listFilterFormID {
+				t.Fatal(l.Snapshot(), r.TopModal())
+			}
+		})
+	}
+}
+
+// terminalKeys sends legacy bytes through the same decoder Bubble Tea uses.
+func terminalKeys(t *testing.T, m *Model, keys ...string) {
+	t.Helper()
+	codes := map[string]string{"tab": "\t", "shift+tab": "\x1b[Z", "esc": "\x1b", "enter": "\r", "space": " ", "ctrl+r": "\x12", "up": "\x1b[A", "down": "\x1b[B"}
+	for _, key := range keys {
+		raw := key
+		if code, ok := codes[key]; ok {
+			raw = code
 		}
+		var d uv.EventDecoder
+		n, event := d.Decode([]byte(raw))
+		press, ok := event.(uv.KeyPressEvent)
+		if !ok || n != len(raw) {
+			t.Fatalf("decode %q: %d %#v", key, n, event)
+		}
+		t.Logf("%q (%x) -> %s", key, raw, press.String())
+		m.Update(tea.KeyPressMsg(press))
+		m.View()
+	}
+}
+
+func TestCompactFilterPlainTabCycle(t *testing.T) {
+	r, m, l := compactFixture(t)
+	terminalKeys(t, m, "z", "/")
+	prefix := listFilterFormID
+	v := filterViewAt(r, r.Focus)
+	terminalKeys(t, m, "shift+tab")
+	if r.Focus != v.sortPicker.input.ID {
+		t.Fatalf("back from fields: %s", r.Focus)
+	}
+	terminalKeys(t, m, "s", "c", "o", "r", "e", "enter", "shift+tab", "shift+tab")
+	if r.Focus != v.e.field(filterDirectionField).id {
+		t.Fatalf("back to direction: %s", r.Focus)
+	}
+	terminalKeys(t, m, "enter")
+	if len(l.Sort()) != 1 || !l.Sort()[0].Desc {
+		t.Fatal(l.Sort(), r.Focus)
+	}
+	terminalKeys(t, m, "tab", "tab", "s", "t", "a", "t", "u", "s", "enter", "esc", "!")
+	if r.Mode.Name != "normal" || r.TopModal() != prefix {
+		t.Fatal("Escape did not enter normal", r.Mode, r.TopModal())
+	}
+	terminalKeys(t, m, "down", "up", "space", "u")
+	if len(l.PropFilters()) != 0 {
+		t.Fatal("plain u did not undo")
+	}
+	terminalKeys(t, m, "ctrl+r", "enter")
+	if len(l.PropFilters()) != 1 || l.PropFilters()[0].Op != "!=" {
+		t.Fatal(l.PropFilters())
+	}
+	terminalKeys(t, m, "tab", "tab")
+	if r.Focus != v.saveInput.ID {
+		t.Fatalf("forward to save: %s", r.Focus)
+	}
+	terminalKeys(t, m, "k", "e", "p", "t", "enter", "esc", "z", "]", "z", "[", "d", "d")
+	if r.Mode.Name != "normal" {
+		t.Fatal(r.Mode)
+	}
+	saved, _ := l.SavedFilters()
+	if slices.ContainsFunc(saved, func(f SavedFilter) bool { return f.Name == "kept" }) {
+		t.Fatal("plain delete failed")
+	}
+	terminalKeys(t, m, "C")
+	if len(l.PropFilters()) != 0 || len(l.Sort()) != 0 {
+		t.Fatal(l.Snapshot())
+	}
+}
+
+func TestFilterFormNoRedundantChords(t *testing.T) {
+	r := frameworkRuntime(t)
+	data, _ := frameworkBindings.ReadFile("bindings/filter-form.json")
+	file, _, err := ParseBindings(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, g := range file.Groups {
+		for _, b := range g.Rows {
+			if strings.Contains(b.Keys, "alt+") || b.Keys == "ctrl+g" {
+				t.Fatalf("redundant key %s", b.Keys)
+			}
+		}
+	}
+	for _, verb := range []string{"focus", "direction", "save", "delete-saved", "next", "toggle"} {
+		if _, ok := r.Operation(filterFormNoun + "." + verb); !ok {
+			t.Fatal("missing verb", verb)
+		}
+	}
+}
+
+func TestChooserNormalModeOptIn(t *testing.T) {
+	r := NewRuntime()
+	r.Config().Disable()
+	m := NewModel(r)
+	m.Width, m.Height = 90, 25
+	c, err := r.OpenChooser(ChooserSpec{Kind: "normal-capable", NormalMode: true, Rows: []ChooserRow{{ID: "one", Label: "one"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	compactKeys(m, "o", "esc")
+	if r.Mode.Name != "normal" || c.Query() != "o" || r.TopModal() != c.Kind() {
+		t.Fatal(r.Mode, c.Query(), r.TopModal())
+	}
+	compactKeys(m, "i", "n", "e")
+	if c.Query() != "neo" { // Escape moves the cursor back; i resumes there, as in other inputs.
+		t.Fatalf("normal input editing did not resume: %q", c.Query())
+	}
+	compactKeys(m, "esc", "esc")
+	if r.TopModal() != "" {
+		t.Fatal("normal Escape did not close")
 	}
 }

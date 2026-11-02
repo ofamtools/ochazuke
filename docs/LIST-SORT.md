@@ -47,39 +47,47 @@ existing `list.filters` setting. Applying it through `filter-saved`, the
 saved-filter picker or cycling restores both, retaining `/` text. Older
 definitions without sort restore app order. There is no new store or file;
 unsaved sort is not restored on restart. The filter form offers one sort key at its top. `z /` opens it on lists
-and trees; `ctrl+f` opens it in a chooser. `ctrl+alt+s` focuses the sort
-selector: type a prop and Enter to apply it; `ctrl+alt+d` flips asc/desc.
-Multi-key sorting remains available through `list.sort`.
+and trees; `ctrl+f` opens it in a chooser. Tab and Shift+Tab move between
+controls. From the initial field picker, Shift+Tab reaches sort; type a prop
+and Enter to apply it. Shift+Tab twice from fields reaches direction; Enter
+flips asc/desc. Multi-key sorting remains available through `list.sort`.
 
-The compact filter controls share the standard chooser and form record.
-Type a prop and Enter to see its values, then type to narrow them. Enter
-picks one and returns to the field selector; Space toggles several values
-and Enter returns. Counts cover all source rows. Free text applies as typed;
-Enter keeps it and returns. `ctrl+alt+i` flips is/not. `ctrl+alt+a` focuses
-active conditions: Enter edits, `d d` removes, `!` inverts. `ctrl+alt+f`
-returns to fields. Tab walks controls; Escape closes with changes kept.
-`ctrl+g` runs `form.clear`, clearing sort and every condition, including
-conditions the fields cannot represent. Capital C remains text in inputs;
-normal-mode C clears. Normal-mode u / ctrl+r undo / redo written changes.
+The compact controls share the standard chooser and form record. Type a prop
+and Enter to see its values, then type to narrow them. Enter picks one and
+returns to fields; Space toggles several values and Enter returns. Counts
+cover all source rows. Free text applies as typed; Enter keeps it and returns.
+From fields, Tab reaches active conditions and the next Tab reaches the save
+name. On active conditions, Enter edits, `d d` removes and `!` inverts.
+
+In an input, Escape enters normal mode. `!` flips the selected field's is/not;
+`C` runs `form.clear`, clearing sort and every condition, including conditions
+the fields cannot represent. `i` resumes editing; capital C and ! remain text
+while inserting. Normal `u` / `ctrl+r` undo / redo written changes. Escape in
+normal mode closes with changes kept. These composed choosers opt in through
+`ChooserSpec.NormalMode`; ordinary choosers keep their default pinned input
+and single-Escape close behavior.
 
 `list.filter-layout` defaults to `compact`; `fields` keeps the previous
 one-field-per-prop form. `list.filter-sort` defaults to true and hides the
 sort section (and older prop chooser's Sort entry) when false.
 `list.filter-form=false` keeps the older prop/value chooser flow; its Sort
-entry uses the existing sort-field chooser. Virtual/source-owned views do
-not offer sort controls.
+entry uses the existing sort-field chooser. Source-owned views do not offer
+sort controls.
 
-The save row is enabled by `list.filter-save` (default true). `ctrl+alt+w`
-focuses its name input; type a name and Enter to save through
-`list.filter-save`. An existing name shows **Replace** before Enter overwrites
-it. `ctrl+alt+x` deletes that name through `filter-saved-delete`; app defaults
-remain declarations, and deleting a user override reveals the default.
-The row shows the applied name. `z ]` / `z [` cycle saved filters from normal
-mode inside or outside the form; `alt+]` / `alt+[` also work in its inputs.
-Cycling wraps; with no saved filters it remains unavailable. Invalid saved
-conditions or sort are skipped, keeping the existing cycle behavior. View
-edits clear the applied-name marker; the name input stays for easy replacement.
-`list.filter-save=false` hides the entire row without deleting saved data.
+The save row is enabled by `list.filter-save` (default true). Tab to its name,
+type a name and Enter to save through `list.filter-save`. An existing name
+shows **Replace** before Enter overwrites it. In the name input, Escape then
+`d d` deletes through `filter-saved-delete`. App defaults remain declarations;
+deleting a user override reveals the default. The row shows the applied name.
+Normal `z ]` / `z [` cycle inside or outside the form. Cycling wraps; no saved
+filters disables it. Invalid definitions are skipped with the existing notice.
+View edits clear the applied-name marker; the typed name stays for easy
+replacement. `list.filter-save=false` hides the row without deleting data.
+
+The form adds no Ctrl+Alt chords or direct part-focus shortcuts. Tab replaces
+those jumps, direction uses Enter on its control, and normal `!`, `C` and
+`d d` cover the remaining changes. `filter-form.focus`, `.direction`, `.save`
+and `.delete-saved` remain available as verbs, including in the palette.
 
 `list.sort-indicator` defaults to `true` in `settings/ochazuke.json`. It adds
 `▲` / `▼` to sorted column titles, and `▲2` / `▼2` for the second key (and so

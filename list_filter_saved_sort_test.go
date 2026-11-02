@@ -87,7 +87,12 @@ func TestSavedFilterInvalidSortIsAtomicAndCycleSkips(t *testing.T) {
 
 func TestCompactSavedFilterSaveCycleDelete(t *testing.T) {
 	r, m, l := savedSortFixture(t)
-	compactKeys(m, "z", "/", "ctrl+alt+s", "s", "c", "o", "r", "e", "enter", "ctrl+alt+d", "ctrl+alt+w")
+	compactKeys(m, "z", "/")
+	compactPart(t, m, "sort")
+	compactKeys(m, "s", "c", "o", "r", "e", "enter")
+	compactPart(t, m, "direction")
+	compactKeys(m, "enter")
+	compactPart(t, m, "save")
 	compactKeys(m, "r", "a", "n", "k", "e", "d", "enter")
 	if l.savedFilter != "ranked" || len(l.Sort()) != 1 {
 		t.Fatal(l.savedFilter, l.Sort())
@@ -96,8 +101,9 @@ func TestCompactSavedFilterSaveCycleDelete(t *testing.T) {
 	if !strings.Contains(frame, "Applied: ranked") || !strings.Contains(frame, "Replace") {
 		t.Fatal(frame)
 	}
-	compactKeys(m, "esc")                            // save input leaves the modal; reopen shows current name
-	compactKeys(m, "z", "/", "ctrl+alt+a", "z", "]") // normal list focus cycles via shared RowViewProvider
+	compactKeys(m, "esc", "esc", "z", "/")
+	compactPart(t, m, "conditions")
+	compactKeys(m, "z", "]")
 	if l.savedFilter != "open" || len(l.Sort()) != 0 {
 		t.Fatal(l.savedFilter, l.Sort())
 	}
@@ -105,11 +111,13 @@ func TestCompactSavedFilterSaveCycleDelete(t *testing.T) {
 	if l.savedFilter != "ranked" || !l.Sort()[0].Desc {
 		t.Fatal(l.savedFilter, l.Sort())
 	}
-	compactKeys(m, "ctrl+alt+w", "C")
+	compactPart(t, m, "save")
+	compactKeys(m, "C")
 	if !strings.Contains(string(r.Input(r.Focus).Text), "C") || len(l.Sort()) != 1 {
 		t.Fatal("C was not text")
 	}
-	compactKeys(m, "ctrl+alt+w", "r", "a", "n", "k", "e", "d", "ctrl+alt+x")
+	compactPart(t, m, "save")
+	compactKeys(m, "ctrl+e", "ctrl+u", "r", "a", "n", "k", "e", "d", "esc", "d", "d")
 	saved, _ := l.SavedFilters()
 	if slices.ContainsFunc(saved, func(f SavedFilter) bool { return f.Name == "ranked" }) {
 		t.Fatal("delete failed")
@@ -166,7 +174,7 @@ func TestCompactSavedFilterOptOutAndMultiKeyIndicator(t *testing.T) {
 	if strings.Contains(ansi.Strip(m.View().Content), "▼2") {
 		t.Fatal("indicator opt-out ignored")
 	}
-	compactKeys(m, "esc")
+	compactKeys(m, "esc", "esc")
 	_ = r.Settings().Set(ListFilterSaveSetting, false)
 	compactKeys(m, "z", "/")
 	if filterViewAt(r, r.Focus).saveInput != nil || strings.Contains(ansi.Strip(m.View().Content), "Save as") {
@@ -189,15 +197,21 @@ func TestSavedSortInvalidConditionsLeaveSortAndName(t *testing.T) {
 
 func TestCompactSavedFilterChooserUsesSameSaveAndCycle(t *testing.T) {
 	r, m, c := chooserPropFixture(t)
-	compactKeys(m, "ctrl+f", "ctrl+alt+s", "s", "c", "o", "r", "e", "enter", "ctrl+alt+d", "ctrl+alt+w", "r", "a", "n", "k", "e", "d", "enter")
+	compactKeys(m, "ctrl+f")
+	compactPart(t, m, "sort")
+	compactKeys(m, "s", "c", "o", "r", "e", "enter")
+	compactPart(t, m, "direction")
+	compactKeys(m, "enter")
+	compactPart(t, m, "save")
+	compactKeys(m, "r", "a", "n", "k", "e", "d", "enter", "esc")
 	if c.filters.savedFilter != "ranked" || !slices.Equal(chooserIDs(c), []string{"c", "b", "a"}) {
 		t.Fatal(c.state())
 	}
-	compactKeys(m, "alt+]")
+	compactKeys(m, "z", "]")
 	if c.filters.savedFilter != "mine" || len(c.Sort()) != 0 || !slices.Equal(chooserIDs(c), []string{"a", "c"}) {
 		t.Fatal(c.state())
 	}
-	compactKeys(m, "alt+[")
+	compactKeys(m, "z", "[")
 	if c.filters.savedFilter != "ranked" || len(c.Sort()) != 1 || !c.Sort()[0].Desc {
 		t.Fatal(c.state())
 	}

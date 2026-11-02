@@ -38,7 +38,7 @@ func (v *filterViewForm) saveBlock(s Styles, width int) Block {
 	}
 	for _, f := range saved {
 		if f.Name == name {
-			label = "Replace “" + name + "” · Enter overwrites · ctrl+alt+x deletes user filter"
+			label = "Replace “" + name + "” · Enter overwrites · normal d d deletes user filter"
 			break
 		}
 	}

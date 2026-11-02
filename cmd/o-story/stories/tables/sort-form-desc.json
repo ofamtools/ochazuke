@@ -69,13 +69,15 @@
   "script": [
     "z",
     "/",
-    "ctrl+alt+s",
+    "shift+tab",
     "r",
     "a",
     "n",
     "k",
     "enter",
-    "ctrl+alt+d",
+    "shift+tab",
+    "shift+tab",
+    "enter",
     "esc"
   ],
   "expect": [

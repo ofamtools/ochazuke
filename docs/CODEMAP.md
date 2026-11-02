@@ -125,11 +125,11 @@ Root package `ochazuke` is flat: 164 source files, 190 test files. Each entry li
 
 ### chooser.go
 
-- lines: 948 · tests: chooser_test.go
+- lines: 962 · tests: chooser_test.go
 - purpose: ChooserRow is one choice.
 - types: ChooserRow, ChooserSpec, Chooser
 - methods: Chooser(32), Runtime(4)
-- leans on: instance.go(30), delivery.go(29), table.go(15), runtime.go(9)
+- leans on: instance.go(31), delivery.go(29), table.go(15), runtime.go(11)
 
 ### chooser_prop_filter.go
 
@@ -495,7 +495,7 @@ Root package `ochazuke` is flat: 164 source files, 190 test files. Each entry li
 
 ### list_filter_compact.go
 
-- lines: 742 · tests: list_filter_compact_test.go
+- lines: 743 · tests: list_filter_compact_test.go
 - purpose: filterViewForm composes the existing record writer, choosers and list.
 - methods: List(1), filterField(1), filterViewForm(22)
 - leans on: runtime.go(29), instance.go(27), block.go(25), list_filter_form.go(18)

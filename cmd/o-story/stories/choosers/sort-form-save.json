@@ -60,13 +60,14 @@
   },
   "script": [
     "ctrl+f",
-    "ctrl+alt+s",
+    "shift+tab",
     "r",
     "a",
     "n",
     "k",
     "enter",
-    "ctrl+alt+w",
+    "tab",
+    "tab",
     "r",
     "a",
     "n",
@@ -74,20 +75,23 @@
     "e",
     "d",
     "enter",
-    "alt+]",
-    "alt+[",
+    "esc",
+    "z",
+    "]",
+    "z",
+    "[",
     "esc"
   ],
   "expect": [
     {
-      "after": 15,
+      "after": 16,
       "contains": [
         "Applied: ranked",
         "Replace"
       ]
     },
     {
-      "after": 16,
+      "after": 19,
       "contains": [
         "Applied: all"
       ],

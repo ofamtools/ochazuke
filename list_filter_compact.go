@@ -167,7 +167,7 @@ func (l *List) openViewForm() error {
 		for _, name := range sortNames {
 			rows = append(rows, ChooserRow{ID: name, Label: name, Data: name})
 		}
-		v.sortPicker, err = l.r.AddChooser(ChooserSpec{Kind: e.id + "/sort", Rows: rows, Stay: true, NoPropFilters: true, NoSort: true, Choose: func(row ChooserRow) Result {
+		v.sortPicker, err = l.r.AddChooser(ChooserSpec{Kind: e.id + "/sort", Rows: rows, Stay: true, NormalMode: true, NoPropFilters: true, NoSort: true, Choose: func(row ChooserRow) Result {
 			if err := v.setField(filterSortField, row.Data.(string)); err != nil {
 				return Failed(err)
 			}
@@ -190,7 +190,7 @@ func (l *List) openViewForm() error {
 		for _, f := range v.fields {
 			rows = append(rows, ChooserRow{ID: f.prop, Label: f.prop, Data: f.prop})
 		}
-		v.fieldPicker, err = l.r.AddChooser(ChooserSpec{Kind: e.id + "/field", Rows: rows, Stay: true, NoPropFilters: true, NoSort: true, Choose: func(row ChooserRow) Result {
+		v.fieldPicker, err = l.r.AddChooser(ChooserSpec{Kind: e.id + "/field", Rows: rows, Stay: true, NormalMode: true, NoPropFilters: true, NoSort: true, Choose: func(row ChooserRow) Result {
 			if err := v.editField(row.ID); err != nil {
 				return Failed(err)
 			}
@@ -217,6 +217,7 @@ func (l *List) openViewForm() error {
 			_ = e.Leave()
 			return err
 		}
+		l.r.Instances[v.saveInput.ID].Pin = "insert"
 	}
 	v.seen = v.signature()
 	return nil
@@ -327,7 +328,7 @@ func (v *filterViewForm) editField(name string) error {
 	c := v.values[name]
 	if c == nil {
 		var err error
-		c, err = v.l.r.AddChooser(ChooserSpec{Kind: rf.id + "/values", Stay: true, NoPropFilters: true, NoSort: true, Choose: func(row ChooserRow) Result {
+		c, err = v.l.r.AddChooser(ChooserSpec{Kind: rf.id + "/values", Stay: true, NormalMode: true, NoPropFilters: true, NoSort: true, Choose: func(row ChooserRow) Result {
 			if !v.multi {
 				if err := v.toggleValue(row.Data.(string)); err != nil {
 					return Failed(err)
@@ -690,7 +691,7 @@ func filterViewAt(r *Runtime, focus string) *filterViewForm {
 }
 func registerFilterViewForm(r *Runtime) {
 	r.Define(filterFormNoun)
-	r.Define(filterSaveNoun).Pin("insert")
+	r.Define(filterSaveNoun)
 	r.Define(filterValuesNoun)
 	r.Define(filterDirectionNoun).Focusable().Pin("normal")
 	r.Define(filterConditionNoun)
