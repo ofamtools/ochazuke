@@ -89,6 +89,10 @@ func (w RecordWrite) String() string {
 type RecordSpec struct {
 	Title  string // the modal's title; a placed editor's heading is the application's
 	Fields []RecordField
+	// State holds backing values used by composed controls, outside the field
+	// schema. They use the same validation, write, clear and undo behavior;
+	// they have no field layout or focus stops unless the composer supplies one.
+	State []RecordField
 	// Render optionally composes the editor with other controls. Block remains
 	// the standard field layout, usable within this callback.
 	Render func(Styles, int, int) Block
@@ -352,7 +356,12 @@ func (r *Runtime) freeClosedEditor(id string) {
 }
 
 func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus string) (*RecordEditor, error) {
-	if len(spec.Fields) == 0 {
+	fields := slices.Clone(spec.State)
+	for i := range fields {
+		fields[i].Hidden = true
+	}
+	fields = append(fields, spec.Fields...)
+	if len(fields) == 0 {
 		return nil, errors.New("record editor needs at least one field")
 	}
 	if spec.Debounce <= 0 {
@@ -367,14 +376,14 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 		maps.Copy(values, loaded)
 	}
 	names := map[string]bool{}
-	for _, f := range spec.Fields {
+	for _, f := range fields {
 		if f.Name == "" || names[f.Name] || strings.ContainsAny(f.Name, "/"+RecordInvertSuffix) {
 			return nil, fmt.Errorf("record field name %q must be nonempty, unique and without / or %s", f.Name, RecordInvertSuffix)
 		}
 		names[f.Name] = true
 	}
 	params := map[string]Parameter{}
-	for _, f := range spec.Fields {
+	for _, f := range fields {
 		params[f.Name] = f.Parameter
 	}
 	if err := r.CheckSourceArgs(params); err != nil {
@@ -382,7 +391,7 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 	}
 	e := &RecordEditor{r: r, id: id, spec: spec, written: Record{}}
 	r.Instance(id, Parent(parent), Kind(FormNoun), FocusOnClose(closeFocus)).Component = e
-	for _, field := range spec.Fields {
+	for _, field := range fields {
 		f := &recordField{RecordField: field, id: id + "/" + field.Name}
 		f.chips = field.Chips && (paramHasChoices(field.Parameter) || field.Type == "boolean")
 		f.choose = !f.chips && (field.Type == "boolean" || (paramHasChoices(field.Parameter) && !field.Free))
