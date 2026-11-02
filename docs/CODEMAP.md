@@ -495,14 +495,14 @@ Root package `ochazuke` is flat: 164 source files, 190 test files. Each entry li
 
 ### list_filter_compact.go
 
-- lines: 743 · tests: list_filter_compact_test.go
+- lines: 744 · tests: list_filter_compact_test.go
 - purpose: filterViewForm composes the existing record writer, choosers and list.
 - methods: List(1), filterField(1), filterViewForm(22)
 - leans on: runtime.go(29), instance.go(27), block.go(25), list_filter_form.go(18)
 
 ### list_filter_form.go
 
-- lines: 296 · tests: list_filter_form_test.go
+- lines: 297 · tests: list_filter_form_test.go
 - purpose: filterFieldKind is how a filter form field edits its prop.
 - methods: List(4), filterField(5)
 - leans on: prop_filter.go(10), list.go(7), settings.go(6), props.go(4)
@@ -822,7 +822,7 @@ Root package `ochazuke` is flat: 164 source files, 190 test files. Each entry li
 
 ### record_editor.go
 
-- lines: 1612 · tests: record_editor_test.go
+- lines: 1621 · tests: record_editor_test.go
 - purpose: Record is one record's values by field name, as an editor loads and writes them.
 - types: Record, RecordField, RecordWrite, RecordSpec, RecordDebounceMsg, RecordEditor
 - methods: RecordEditor(54), RecordWrite(1), Runtime(6), recordChooser(2), recordField(2)
