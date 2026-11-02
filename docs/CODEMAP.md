@@ -33,12 +33,12 @@ Root package `ochazuke` is flat: 161 source files, 187 test files. Each entry li
 
 ### actor.go
 
-- lines: 144 · tests: actor_test.go
+- lines: 173 · tests: actor_test.go
 - purpose: Actor identifies who issued a request.
 - types: Actor
 - methods: Actor(5), Ctx(1), Runtime(2)
 - funcs: Owner, ParseActor, ActorFromEnv
-- leans on: instance.go(8), runtime.go(4), model.go(3), delivery.go(1)
+- leans on: instance.go(9), model.go(5), runtime.go(4), delivery.go(1)
 
 ### agent_metadata.go
 

@@ -4,18 +4,22 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"ofam.dev/ochazuke"
+	"ofam.dev/oden"
 )
 
 func TestShellActorEnvironment(t *testing.T) {
+	f := newFixture(t)
 	t.Setenv("OCHAZUKE_ACTOR", "agent")
 	t.Setenv("OCHAZUKE_HARNESS", "test")
 	t.Setenv("TUIOS_PANE_ID", "p")
 	t.Setenv("TUIOS_SESSION", "s")
-	f := newFixture(t)
 	if _, _, err := f.run("", "widget", "rename", "--name", "new", "--target", "w1"); err != nil {
 		t.Fatal(err)
 	}
@@ -39,6 +43,7 @@ func TestShellActorEnvironment(t *testing.T) {
 	if len(got) != 1 || got[0].Context.Actor != want {
 		t.Fatalf("history output: %s", out)
 	}
+	t.Setenv("OCHAZUKE_HARNESS", "")
 	t.Setenv("OCHAZUKE_ACTOR", "owner")
 	if _, _, err := f.run("", "widget", "show", "--target", "w1"); err != nil {
 		t.Fatal(err)
@@ -62,5 +67,56 @@ func TestShellActorEnvironment(t *testing.T) {
 	e = entries[len(entries)-1]
 	if e.Context.Actor != want || e.Context.Source != "mcp" {
 		t.Fatalf("explicit identity: %+v", e)
+	}
+}
+
+func TestMountedBindingsAgentRights(t *testing.T) {
+	for _, identity := range []string{"explicit", "detected", "detected-owner-override"} {
+		for _, noun := range []string{"bindings", "ochazuke.bindings", "ochazuke bindings"} {
+			for _, verb := range []string{"list", "check", "defaults", "export", "path", "stops"} {
+				t.Run(identity+"/"+noun+"/"+verb, func(t *testing.T) {
+					dir := t.TempDir()
+					r := ochazuke.NewRuntime()
+					r.Config().Dir = filepath.Join(dir, "config")
+					r.Config().StateDir = filepath.Join(dir, "state")
+					var stdout, stderr bytes.Buffer
+					sh := New(r, "tool", strings.NewReader(""), &stdout, &stderr)
+					actor := ochazuke.Actor{Kind: ochazuke.ActorAgent, Harness: "test"}
+					if identity != "explicit" {
+						env := map[string]string{"CODEX_CI": "1"}
+						if identity == "detected-owner-override" {
+							env["OCHAZUKE_ACTOR"] = "owner"
+						}
+						var err error
+						actor, err = ochazuke.ActorFromEnv(func(k string) string { return env[k] })
+						if err != nil {
+							t.Fatal(err)
+						}
+					}
+					sh.Actor = &actor
+					args := append(strings.Fields(noun), verb)
+					target := filepath.Join(dir, "export.json")
+					if verb == "export" {
+						args = append(args, "--path", target)
+					}
+					if verb == "list" {
+						args = append(args, "--all")
+					}
+					app := oden.New("tool", args, oden.WithStdio(strings.NewReader(""), &stdout, &stderr))
+					Mount(app, sh)
+					err := app.Run(context.Background())
+					var refused *ochazuke.RefusedError
+					if !errors.As(err, &refused) || !strings.Contains(refused.Reason, "agents may never run this verb") {
+						t.Fatalf("actor %+v: want rights refusal, got %v", actor, err)
+					}
+					if stdout.Len() != 0 {
+						t.Fatalf("refused command printed %q", stdout.String())
+					}
+					if _, err := os.Stat(target); !errors.Is(err, os.ErrNotExist) {
+						t.Fatalf("export target: %v", err)
+					}
+				})
+			}
+		}
 	}
 }

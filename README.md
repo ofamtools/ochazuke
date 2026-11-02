@@ -2619,8 +2619,12 @@ pending confirmations in the header status segments.
 
 Transport adapters bind startup identity with `Runtime.BindActor(actor, live)`;
 request-supplied actors cannot replace it, including in nested requests. The CLI
-and socket server use this binding. Direct in-process API requests may still set
-`Request.Actor`. These are cooperative guard rails, not authentication.
+and socket server use this binding. `ActorFromEnv` detects Codex, Claude Code
+and Pi session markers, plus `OCHAZUKE_HARNESS`, `TUIOS_HARNESS` and
+`AGENT_HARNESS`. These signals retain agent status even with an explicit
+`OCHAZUKE_ACTOR=owner` or `unknown`; explicit identity fields still take
+precedence. A pane or model alone does not imply an agent. Direct in-process API
+requests may still set `Request.Actor`. These are cooperative guard rails, not authentication.
 
 ### Catalog MCP server
 
@@ -2714,12 +2718,14 @@ harness, pane, session and model. Requests default to the owner. An API can set
 History records it in `context.actor`, and old history lines load as owner entries.
 Identity is advisory and can be supplied by any process; it is not authentication.
 
-CLI callers opt in with `OCHAZUKE_ACTOR=agent` or an actor JSON object.
-Missing agent fields come from `OCHAZUKE_HARNESS`, `OCHAZUKE_MODEL`,
-`TUIOS_PANE_ID` and `TUIOS_SESSION`. With no explicit actor the CLI remains the
-owner, even inside a terminal pane. `Shell.Actor` lets a server bind identity once
-at startup, and `Shell.Source` labels its requests. MCP servers must never accept
-identity from their tool arguments.
+CLI callers can declare `OCHAZUKE_ACTOR=agent` or an actor JSON object.
+The shared detector also recognises the harness signals listed under
+[Agent rights](#agent-rights). Missing agent fields come from the harness and
+TUIOS metadata; `OCHAZUKE_MODEL` precedes the `AGENT_MODEL` fallback. Without
+an explicit actor or a harness signal, the CLI remains the owner, even inside
+a terminal pane. `Shell.Actor` lets a server bind identity once at startup, and
+`Shell.Source` labels its requests. MCP servers must never accept identity from
+their tool arguments.
 
 `history.list` accepts `actor` (`owner`, `agent`, `unknown`, `self`, or exact actor
 JSON) and `limit` (an alias for `last`). Filtering happens before limiting.

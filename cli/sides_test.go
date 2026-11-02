@@ -181,7 +181,6 @@ func TestExpandSideCommand(t *testing.T) {
 }
 
 func TestCatalogInspectSides(t *testing.T) {
-	t.Parallel()
 	f := newFixture(t)
 	side := CatalogSide{Name: "diff", Title: "Side diff", Key: "g", Command: []string{"{bin}", "view", "{dir}"}}
 	if err := DeclareSide(f.r, side); err != nil {

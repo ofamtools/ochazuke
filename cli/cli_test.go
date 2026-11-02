@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/internal/testenv"
 	"ofam.dev/oden"
 )
 
@@ -30,6 +31,7 @@ type fixture struct {
 
 func newFixture(t *testing.T) *fixture {
 	t.Helper()
+	testenv.ClearActor(t)
 	f := &fixture{r: ochazuke.NewRuntime()}
 	record := func(c ochazuke.Ctx) ochazuke.Result {
 		if c.Instance == nil || c.Instance.Noun != "widget" {

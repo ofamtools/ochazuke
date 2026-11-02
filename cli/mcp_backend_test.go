@@ -260,8 +260,12 @@ func TestMCPBackendExtensionsOptIn(t *testing.T) {
 }
 
 func TestMCPExplicitIdentityOverridesEnvironment(t *testing.T) {
+	_, sh, _ := mcpFixture(t)
 	t.Setenv("OCHAZUKE_ACTOR", "invalid")
-	_, _, server := mcpFixture(t)
+	server, err := sh.NewMCPServer()
+	if err != nil {
+		t.Fatal(err)
+	}
 	result := mcpCall(t, server, "run", map[string]any{"verb": "settings.list"})
 	if result["status"] != "refused" {
 		t.Fatal(result)

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/internal/testenv"
 	"ofam.dev/ochazuke/setup"
 	"ofam.dev/oden"
 )
@@ -21,6 +22,7 @@ type setupFixture struct {
 
 func newSetupFixture(t *testing.T) *setupFixture {
 	t.Helper()
+	testenv.ClearActor(t)
 	home := t.TempDir()
 	home, _ = filepath.EvalSymlinks(home)
 	for _, key := range []string{"HOME", "XDG_CONFIG_HOME", "XDG_STATE_HOME", "XDG_DATA_HOME"} {

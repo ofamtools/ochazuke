@@ -89,27 +89,56 @@ func (a Actor) SameAgent(b Actor) bool {
 	return a.IsAgent() && b.IsAgent() && a == b && (a.Pane != "" || a.Name != "")
 }
 
-// ActorFromEnv reads explicit CLI identity from OCHAZUKE_ACTOR (a kind or JSON),
-// filling an agent's missing fields from OCHAZUKE_HARNESS, OCHAZUKE_MODEL,
-// TUIOS_PANE_ID and TUIOS_SESSION. A terminal pane alone does not imply an agent.
+// ActorFromEnv reads CLI identity from OCHAZUKE_ACTOR (a kind or JSON)
+// and detects agent harnesses from their environment markers. Detection only
+// narrows rights: an explicit owner or unknown kind cannot demote a detected
+// agent. Explicit identity fields win over environment defaults. A terminal
+// pane or model alone does not imply an agent.
 func ActorFromEnv(getenv func(string) string) (Actor, error) {
 	if getenv == nil {
 		getenv = os.Getenv
 	}
-	raw := strings.TrimSpace(getenv("OCHAZUKE_ACTOR"))
-	if raw == "" {
-		return Owner(), nil
+	a := Owner()
+	if raw := strings.TrimSpace(getenv("OCHAZUKE_ACTOR")); raw != "" {
+		var err error
+		a, err = ParseActor(raw)
+		if err != nil {
+			return Actor{}, fmt.Errorf("OCHAZUKE_ACTOR: %w", err)
+		}
 	}
-	a, err := ParseActor(raw)
-	if err != nil {
-		return Actor{}, fmt.Errorf("OCHAZUKE_ACTOR: %w", err)
+	// Adapted from o-lane's CLI detector. A harness declaration supplies
+	// its own name; a harness-specific marker supplies the table's name.
+	for _, signal := range []struct{ key, harness string }{
+		{"OCHAZUKE_HARNESS", ""},
+		{"TUIOS_HARNESS", ""},
+		{"AGENT_HARNESS", ""},
+		{"CODEX_THREAD_ID", "codex"},
+		{"CODEX_CI", "codex"},
+		{"CLAUDE_SESSION_ID", "claude-code"},
+		{"CLAUDE_CODE_SESSION_ID", "claude-code"},
+		{"CLAUDE_CODE_ENTRYPOINT", "claude-code"},
+		{"PI_SESSION_ID", "pi"},
+	} {
+		if value := strings.TrimSpace(getenv(signal.key)); value != "" {
+			a.Kind = ActorAgent
+			if a.Harness == "" {
+				a.Harness = signal.harness
+				if a.Harness == "" {
+					a.Harness = value
+				}
+			}
+			break
+		}
 	}
 	if a.IsAgent() {
-		if a.Harness == "" {
-			a.Harness = getenv("OCHAZUKE_HARNESS")
+		if a.Name == "" {
+			a.Name = getenv("TUIOS_AGENT_NAME")
 		}
 		if a.Model == "" {
 			a.Model = getenv("OCHAZUKE_MODEL")
+			if a.Model == "" {
+				a.Model = getenv("AGENT_MODEL")
+			}
 		}
 		if a.Pane == "" {
 			a.Pane = getenv("TUIOS_PANE_ID")

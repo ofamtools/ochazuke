@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"ofam.dev/ochazuke/internal/testenv"
 )
 
 func testAgent(pane string) Actor {
@@ -33,11 +35,12 @@ func TestActorParseAndEnvironment(t *testing.T) {
 			t.Errorf("accepted %s", raw)
 		}
 	}
-	env := map[string]string{"TUIOS_PANE_ID": "p", "TUIOS_SESSION": "s", "OCHAZUKE_HARNESS": "test", "OCHAZUKE_MODEL": "m"}
+	env := map[string]string{"TUIOS_PANE_ID": "p", "TUIOS_SESSION": "s", "OCHAZUKE_MODEL": "m"}
 	get := func(k string) string { return env[k] }
 	if a, err := ActorFromEnv(get); err != nil || a != Owner() {
 		t.Fatalf("pane without explicit actor: %+v %v", a, err)
 	}
+	env["OCHAZUKE_HARNESS"] = "test"
 	env["OCHAZUKE_ACTOR"] = "agent"
 	a, err := ActorFromEnv(get)
 	if err != nil || a.Pane != "p" || a.Session != "s" || a.Harness != "test" || a.Model != "m" {
@@ -193,6 +196,7 @@ func TestActorHistoryFilterAndPersistence(t *testing.T) {
 }
 
 func TestActorSocketRequest(t *testing.T) {
+	testenv.ClearActor(t)
 	a := testAgent("wire")
 	rawActor, _ := json.Marshal(a)
 	t.Setenv("OCHAZUKE_ACTOR", string(rawActor))
@@ -219,5 +223,41 @@ func TestActorSocketRequest(t *testing.T) {
 	}
 	if got != a {
 		t.Fatalf("socket actor: %+v", got)
+	}
+}
+
+func TestActorHarnessDetection(t *testing.T) {
+	for _, signal := range []struct{ key, value, harness string }{
+		{"OCHAZUKE_HARNESS", "test", "test"},
+		{"TUIOS_HARNESS", "test", "test"},
+		{"AGENT_HARNESS", "test", "test"},
+		{"CODEX_THREAD_ID", "thread", "codex"},
+		{"CODEX_CI", "1", "codex"},
+		{"CLAUDE_SESSION_ID", "session", "claude-code"},
+		{"CLAUDE_CODE_SESSION_ID", "session", "claude-code"},
+		{"CLAUDE_CODE_ENTRYPOINT", "cli", "claude-code"},
+		{"PI_SESSION_ID", "session", "pi"},
+	} {
+		t.Run(signal.key, func(t *testing.T) {
+			for _, raw := range []string{"", "owner", "unknown", "agent", `{"kind":"owner","name":"explicit","harness":"custom","pane":"explicit-pane","session":"explicit-session","model":"explicit-model"}`} {
+				env := map[string]string{signal.key: signal.value, "OCHAZUKE_ACTOR": raw, "TUIOS_AGENT_NAME": "lane", "TUIOS_PANE_ID": "pane", "TUIOS_SESSION": "session", "AGENT_MODEL": "model"}
+				a, err := ActorFromEnv(func(k string) string { return env[k] })
+				if err != nil || !a.IsAgent() {
+					t.Fatalf("actor %q under %s: %+v %v", raw, signal.key, a, err)
+				}
+				want := Actor{Kind: ActorAgent, Name: "lane", Harness: signal.harness, Pane: "pane", Session: "session", Model: "model"}
+				if strings.HasPrefix(raw, "{") {
+					want = Actor{Kind: ActorAgent, Name: "explicit", Harness: "custom", Pane: "explicit-pane", Session: "explicit-session", Model: "explicit-model"}
+				}
+				if a != want {
+					t.Fatalf("actor %q: got %+v, want %+v", raw, a, want)
+				}
+			}
+		})
+	}
+	// A pane or model alone is not evidence that an agent is running.
+	env := map[string]string{"TUIOS_PANE_ID": "pane", "TUIOS_SESSION": "session", "OCHAZUKE_MODEL": "model", "AGENT_MODEL": "model", "TUIOS_AGENT_NAME": "label"}
+	if a, err := ActorFromEnv(func(k string) string { return env[k] }); err != nil || a != Owner() {
+		t.Fatalf("terminal metadata became agent identity: %+v %v", a, err)
 	}
 }

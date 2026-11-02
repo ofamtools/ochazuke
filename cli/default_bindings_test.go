@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/internal/testenv"
 )
 
 // The command noun's embedded keys pass the rule check once the Commands
@@ -25,6 +26,7 @@ func TestCommandBindingsPassTheRuleCheck(t *testing.T) {
 // BIN bindings defaults prints the bindings file as text, unquoted, with
 // the framework's rows tagged by their embedded file.
 func TestBindingsDefaultsPrintsAFile(t *testing.T) {
+	testenv.ClearActor(t)
 	r := ochazuke.NewRuntime()
 	r.Config().Disable()
 	var out, errs strings.Builder

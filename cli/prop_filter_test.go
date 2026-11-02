@@ -8,9 +8,11 @@ import (
 	"testing"
 
 	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/internal/testenv"
 )
 
 func TestPropFilterShellAndCatalog(t *testing.T) {
+	testenv.ClearActor(t)
 	r := ochazuke.NewRuntime()
 	r.Define("note").Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "by"}).Store(ochazuke.Store{List: func(ochazuke.Ctx, ochazuke.ListQuery) ([]ochazuke.Thing, error) {
 		return []ochazuke.Thing{{"id": "a", "by": "agent"}, {"id": "b", "by": "owner"}}, nil
