@@ -22,7 +22,8 @@
           "args": {
             "part": "field"
           },
-          "hint": "field"
+          "hint": "field",
+          "when": "filter-form-compact"
         },
         {
           "key": "ctrl+alt+s",
@@ -39,7 +40,8 @@
           "args": {
             "part": "conditions"
           },
-          "hint": "conditions"
+          "hint": "conditions",
+          "when": "filter-form-compact"
         },
         {
           "key": "ctrl+alt+d",
@@ -62,6 +64,37 @@
           "action": "ochazuke.filter-form.next",
           "when": "filter-form-text",
           "capture": true
+        },
+        {
+          "key": "ctrl+alt+w",
+          "action": "ochazuke.filter-form.focus",
+          "args": {
+            "part": "save"
+          },
+          "when": "filter-form-save",
+          "hint": "save name"
+        },
+        {
+          "key": "ctrl+alt+x",
+          "action": "ochazuke.filter-form.delete-saved",
+          "when": "filter-form-save",
+          "hint": "delete saved"
+        },
+        {
+          "key": "alt+]",
+          "action": "ochazuke.list.filter-cycle",
+          "args": {
+            "step": 1
+          },
+          "hint": "next filter"
+        },
+        {
+          "key": "alt+[",
+          "action": "ochazuke.list.filter-cycle",
+          "args": {
+            "step": -1
+          },
+          "hidden": true
         }
       ]
     },
@@ -150,6 +183,20 @@
           "key": "!",
           "action": "ochazuke.filter-form.invert-condition",
           "hint": "is/not"
+        }
+      ]
+    },
+    {
+      "context": "ochazuke.filter-save/insert",
+      "bindings": [
+        {
+          "key": "enter",
+          "action": "ochazuke.filter-form.save",
+          "hint": "save"
+        },
+        {
+          "key": "esc",
+          "action": "ochazuke.modal.close"
         }
       ]
     }

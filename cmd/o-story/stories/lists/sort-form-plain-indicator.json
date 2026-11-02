@@ -1,0 +1,83 @@
+{
+  "area": "lists",
+  "width": 100,
+  "height": 26,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "nouns": [
+      {
+        "noun": "entry",
+        "props": [
+          {
+            "name": "rank",
+            "type": "integer"
+          }
+        ]
+      }
+    ],
+    "lists": [
+      {
+        "id": "entries",
+        "height": -1,
+        "items": [
+          {
+            "id": "ten",
+            "noun": "entry",
+            "label": "ten",
+            "cells": [
+              "10"
+            ],
+            "props": {
+              "rank": 10
+            }
+          },
+          {
+            "id": "two",
+            "noun": "entry",
+            "label": "two",
+            "cells": [
+              "2"
+            ],
+            "props": {
+              "rank": 2
+            }
+          },
+          {
+            "id": "five",
+            "noun": "entry",
+            "label": "five",
+            "cells": [
+              "5"
+            ],
+            "props": {
+              "rank": 5
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "name": "sort-form-plain-indicator",
+  "script": [
+    "z",
+    "/",
+    "ctrl+alt+s",
+    "r",
+    "a",
+    "n",
+    "k",
+    "enter",
+    "esc"
+  ],
+  "expect": [
+    {
+      "order": [
+        "sort rank \u25b2",
+        "two",
+        "five",
+        "ten"
+      ]
+    }
+  ]
+}

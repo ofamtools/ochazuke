@@ -70,6 +70,9 @@
         "two",
         "five",
         "ten"
+      ],
+      "contains": [
+        "sort rank \u25b2"
       ]
     }
   ]

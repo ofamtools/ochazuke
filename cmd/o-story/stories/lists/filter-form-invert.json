@@ -189,6 +189,7 @@
   ],
   "values": {
     "list.filter-layout": "fields",
-    "list.filter-sort": false
+    "list.filter-sort": false,
+    "list.filter-save": false
   }
 }

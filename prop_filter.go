@@ -221,8 +221,9 @@ func propTest(p PropSpec, value any, test string, want any) bool {
 	return false
 }
 
-// SavedFilter is a named AND of conditions. Where is the convenient
-// equality form, matching --where; Conditions supplies other operators.
+// SavedFilter is a named AND of conditions and an optional view sort.
+// Where is the convenient equality form, matching --where; Conditions
+// supplies other operators.
 // List scopes a row to one list/tree id or chooser kind, Noun to every row view of those rows.
 // A list-specific row wins over a noun row with the same name.
 type SavedFilter struct {
@@ -231,6 +232,7 @@ type SavedFilter struct {
 	Noun       string         `json:"noun,omitempty"`
 	Where      map[string]any `json:"where,omitempty"`
 	Conditions []PropFilter   `json:"conditions,omitempty"`
+	Sort       []SortKey      `json:"sort,omitempty"`
 }
 
 func (f SavedFilter) conditions() []PropFilter {
@@ -316,6 +318,7 @@ func cloneSavedFilter(f SavedFilter) SavedFilter {
 		f.Where[name] = cloneFilterValue(value)
 	}
 	f.Conditions = clonePropFilters(f.Conditions)
+	f.Sort = slices.Clone(f.Sort)
 	return f
 }
 

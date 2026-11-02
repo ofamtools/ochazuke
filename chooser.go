@@ -701,6 +701,9 @@ func (c *Chooser) rowsView(width, height int) Block {
 			lines = append(lines, searchLine(strip, fmt.Sprintf("%d of %d", len(c.filters.items), len(c.spec.Rows)), width))
 		}
 	}
+	if summary := c.filters.sortSummary(); summary != "" {
+		lines = append(lines, ansi.Truncate(summary, width, "…"))
+	}
 	rowsHeight := max(1, height-2)
 	switch {
 	case len(c.spec.Rows) == 0 && c.emptyLine() != "":

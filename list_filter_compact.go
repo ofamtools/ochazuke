@@ -14,6 +14,7 @@ import (
 )
 
 const (
+	filterSaveNoun       = "ochazuke.filter-save"
 	filterFormNoun       = "ochazuke.filter-form"
 	filterValuesNoun     = "ochazuke.filter-values"
 	filterDirectionNoun  = "ochazuke.filter-direction"
@@ -33,6 +34,7 @@ type filterViewForm struct {
 	fieldPicker, sortPicker *Chooser
 	values                  map[string]*Chooser
 	conditions              *List
+	saveInput               *Input
 	current                 *filterField
 	multi                   bool
 	seen                    string
@@ -209,6 +211,13 @@ func (l *List) openViewForm() error {
 			return err
 		}
 	}
+	if l.r.Settings().Bool(ListFilterSaveSetting) {
+		v.saveInput = NewInput(e.id+"/save", l.savedFilter, false)
+		if err := l.r.AddInput(v.saveInput, Parent(e.id), Kind(filterSaveNoun)); err != nil {
+			_ = e.Leave()
+			return err
+		}
+	}
 	v.seen = v.signature()
 	return nil
 }
@@ -259,6 +268,14 @@ func (v *filterViewForm) hideCurrent() {
 
 func (v *filterViewForm) focusPart(part string) error {
 	switch part {
+	case "save":
+		if v.saveInput == nil {
+			return errors.New("save controls are disabled")
+		}
+		if err := v.l.r.SetFocus(v.saveInput.ID); err != nil {
+			return err
+		}
+		return v.saveInput.SelectAll()
 	case "sort":
 		if v.sortPicker == nil {
 			return errors.New("sort controls are disabled")
@@ -519,6 +536,9 @@ func (v *filterViewForm) PendingCommand() tea.Cmd {
 		}
 		v.e.seen = v.e.snapshot()
 		v.e.undo, v.e.redo = nil, nil
+		if v.saveInput != nil && v.l.savedFilter != "" {
+			_ = v.saveInput.Replace(0, len(v.saveInput.Text), v.l.savedFilter)
+		}
 		v.seen = v.signature()
 		v.refreshConditions()
 		v.refreshValues()
@@ -595,11 +615,19 @@ func (v *filterViewForm) render(s Styles, width, height int) Block {
 		}
 	}
 	if v.legacy {
-		b := v.e.Block(width, max(1, height-len(lines)))
+		b := v.e.Block(width, max(1, height-len(lines)-v.saveHeight()))
 		if b.Cursor != nil {
 			b.Cursor = &Pos{X: b.Cursor.X, Y: b.Cursor.Y + len(lines)}
 		}
-		return Block{Text: strings.Join(append(lines, b.Text), "\n"), Cursor: b.Cursor}
+		lines = append(lines, strings.Split(b.Text, "\n")...)
+		if v.saveInput != nil {
+			sb := v.saveBlock(s, width)
+			if sb.Cursor != nil {
+				b.Cursor = &Pos{X: sb.Cursor.X, Y: len(lines) + sb.Cursor.Y}
+			}
+			lines = append(lines, strings.Split(sb.Text, "\n")...)
+		}
+		return Block{Text: strings.Join(lines, "\n"), Cursor: b.Cursor}
 	}
 	lines = append(lines, s.Muted.Render("Filter"))
 	if v.current == nil {
@@ -632,13 +660,20 @@ func (v *filterViewForm) render(s Styles, width, height int) Block {
 	if v.e.writeErr != "" {
 		lines = append(lines, s.Error.Render(v.e.writeErr))
 	}
-	room := max(1, height-1)
+	room := max(1, height-1-v.saveHeight())
 	if len(lines) > room {
 		top := min(max(0, focusLine-room/2), len(lines)-room)
 		lines = lines[top : top+room]
 		if cursor != nil {
 			cursor.Y -= top
 		}
+	}
+	if v.saveInput != nil {
+		sb := v.saveBlock(s, width)
+		if sb.Cursor != nil {
+			cursor = &Pos{X: sb.Cursor.X, Y: len(lines) + sb.Cursor.Y}
+		}
+		lines = append(lines, strings.Split(sb.Text, "\n")...)
 	}
 	lines = append(lines, s.Muted.Render(fmt.Sprintf("%d of %d", v.l.Shown(), len(v.l.allRows()))))
 	return Block{Text: strings.Join(lines, "\n"), Cursor: cursor}
@@ -655,6 +690,7 @@ func filterViewAt(r *Runtime, focus string) *filterViewForm {
 }
 func registerFilterViewForm(r *Runtime) {
 	r.Define(filterFormNoun)
+	r.Define(filterSaveNoun).Pin("insert")
 	r.Define(filterValuesNoun)
 	r.Define(filterDirectionNoun).Focusable().Pin("normal")
 	r.Define(filterConditionNoun)
@@ -662,9 +698,17 @@ func registerFilterViewForm(r *Runtime) {
 		v := filterViewAt(r, ev.Focus)
 		return v != nil && v.current != nil && v.current.kind == filterText && v.e.field(v.current.prop).id == ev.Focus
 	})
+	r.DefineGuard("filter-form-compact", func(r *Runtime, ev KeyEvent) bool {
+		v := filterViewAt(r, ev.Focus)
+		return v != nil && v.fieldPicker != nil
+	})
 	r.DefineGuard("filter-form-tab", func(r *Runtime, ev KeyEvent) bool {
 		v := filterViewAt(r, ev.Focus)
 		return v != nil && !v.legacy && !r.Completer().Open()
+	})
+	r.DefineGuard("filter-form-save", func(r *Runtime, ev KeyEvent) bool {
+		v := filterViewAt(r, ev.Focus)
+		return v != nil && v.saveInput != nil
 	})
 	r.DefineGuard("filter-form-sort", func(r *Runtime, ev KeyEvent) bool {
 		v := filterViewAt(r, ev.Focus)
@@ -675,7 +719,9 @@ func registerFilterViewForm(r *Runtime) {
 		params            map[string]Parameter
 		run               func(*filterViewForm, Arguments) error
 	}{
-		{"focus", "Focus a filter form control", map[string]Parameter{"part": {Type: "string", Enum: []string{"field", "sort", "conditions"}}}, func(v *filterViewForm, a Arguments) error { return v.focusPart(StringArg(a, "part", "field")) }},
+		{"focus", "Focus a filter form control", map[string]Parameter{"part": {Type: "string", Enum: []string{"field", "sort", "conditions", "save"}}}, func(v *filterViewForm, a Arguments) error { return v.focusPart(StringArg(a, "part", "field")) }},
+		{"save", "Save the current conditions and sort through list.filter-save", nil, func(v *filterViewForm, _ Arguments) error { return v.savedAction("filter-save") }},
+		{"delete-saved", "Delete the named user filter through list.filter-saved-delete", nil, func(v *filterViewForm, _ Arguments) error { return v.savedAction("filter-saved-delete") }},
 		{"next", "Keep the text condition and return to the field picker", nil, func(v *filterViewForm, _ Arguments) error { return v.focusPart("field") }},
 		{"toggle", "Toggle the highlighted value without leaving its picker", nil, func(v *filterViewForm, _ Arguments) error { return v.toggleHighlighted() }},
 		{"direction", "Reverse the sort direction", nil, func(v *filterViewForm, _ Arguments) error { return v.flipDirection() }},
@@ -692,5 +738,5 @@ func registerFilterViewForm(r *Runtime) {
 			return nil, run(v, a)
 		}})
 	}
-	r.Nouns[filterFormNoun].Guards = map[string]string{"direction": "filter-form-sort", "next": "filter-form-text"}
+	r.Nouns[filterFormNoun].Guards = map[string]string{"direction": "filter-form-sort", "next": "filter-form-text", "save": "filter-form-save", "delete-saved": "filter-form-save"}
 }

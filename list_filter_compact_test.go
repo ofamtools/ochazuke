@@ -181,3 +181,37 @@ func TestEmbeddedChooserStaysAndUsesDeclaredRowView(t *testing.T) {
 		t.Fatal("placed chooser leaked")
 	}
 }
+
+func TestCompactFilterLegacyPropChooserReachesSort(t *testing.T) {
+	r, m, l := compactFixture(t)
+	_ = r.Settings().Set(ListFilterFormSetting, false)
+	compactKeys(m, "z", "/", "S", "o", "r", "t", "enter")
+	if r.Chooser("list-sort-field") == nil {
+		t.Fatal("Sort entry did not use shared sort picker", r.TopModal())
+	}
+	compactKeys(m, "s", "c", "o", "r", "e", "enter")
+	if len(l.Sort()) != 1 || l.Sort()[0].Field != "score" {
+		t.Fatal(l.Sort())
+	}
+}
+
+func TestCompactFilterTreeSortChangesSiblingsAndClear(t *testing.T) {
+	r := NewRuntime()
+	r.Config().Disable()
+	r.Define("node")
+	tree, err := r.AddTree("tree", []TreeNode{{ID: "z", Noun: "node", Props: Thing{"rank": 2}}, {ID: "zb", Parent: "z", Noun: "node", Props: Thing{"rank": 2}}, {ID: "za", Parent: "z", Noun: "node", Props: Thing{"rank": 1}}, {ID: "a", Noun: "node", Props: Thing{"rank": 1}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := NewModel(r)
+	m.Width, m.Height = 100, 28
+	_ = tree.List().Focus()
+	compactKeys(m, "z", "/", "ctrl+alt+s", "r", "a", "n", "k", "enter")
+	if !slices.Equal(shownIDs(tree.List()), []string{"a", "z", "za", "zb"}) {
+		t.Fatal(shownIDs(tree.List()))
+	}
+	compactKeys(m, "ctrl+alt+c")
+	if !slices.Equal(shownIDs(tree.List()), []string{"z", "zb", "za", "a"}) {
+		t.Fatal("clear lost tree app order")
+	}
+}

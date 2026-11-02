@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// ListSortIndicatorSetting controls sort arrows in table column titles.
+// ListSortIndicatorSetting controls sort arrows and separate labels in row views.
 const ListSortIndicatorSetting = "list.sort-indicator"
 
 // SortKey is one prop of a list's view sort. Earlier keys take precedence;
@@ -44,34 +44,19 @@ func (l *List) canSort() bool {
 func (l *List) Sortable() bool { return l.canSort() && len(l.sortSpecs()) > 0 }
 
 // Sort returns a copy of the view's sort keys. They are in-memory state,
-// preserved by SetItems, Patch and column changes, never saved as filters.
+// preserved by SetItems, Patch and column changes and included in saved filters.
 func (l *List) Sort() []SortKey { return slices.Clone(l.sort) }
 
 // SetSort replaces the view sort without changing Items, marks or the app's
 // order. An empty sort restores that order. Selection and focus follow IDs;
 // invalid updates leave the view unchanged. Trees sort siblings only.
 func (l *List) SetSort(keys []SortKey) error {
-	if len(keys) > 0 && !l.canSort() {
-		return errors.New("row order is owned by the source")
+	keys, err := l.canonicalSort(keys)
+	if err != nil {
+		return err
 	}
-	specs := l.sortSpecs()
-	keys = slices.Clone(keys)
-	seen := map[string]bool{}
-	for i, k := range keys {
-		name, err := l.r.filterPropName(l.rowNouns(), k.Field)
-		if err != nil {
-			return err
-		}
-		if _, ok := specs[name]; !ok {
-			name = columnField(name)
-		}
-		if _, ok := specs[name]; !ok {
-			return fmt.Errorf("unknown or disabled sort field %q", k.Field)
-		}
-		if seen[name] {
-			return fmt.Errorf("repeated sort field %q", name)
-		}
-		seen[name], keys[i].Field = true, name
+	if !slices.Equal(l.sort, keys) {
+		l.savedFilter = ""
 	}
 	l.sort = keys
 	if l.filterChanged != nil {
@@ -83,6 +68,54 @@ func (l *List) SetSort(keys []SortKey) error {
 	l.syncVisual()
 	l.syncFocus(previous, nil)
 	return nil
+}
+
+func (l *List) canonicalSort(keys []SortKey) ([]SortKey, error) {
+	if len(keys) > 0 && !l.canSort() {
+		return nil, errors.New("row order is owned by the source")
+	}
+	specs := l.sortSpecs()
+	keys = slices.Clone(keys)
+	seen := map[string]bool{}
+	for i, k := range keys {
+		name, err := l.r.filterPropName(l.rowNouns(), k.Field)
+		if err != nil {
+			return nil, err
+		}
+		if _, ok := specs[name]; !ok {
+			name = columnField(name)
+		}
+		if _, ok := specs[name]; !ok {
+			return nil, fmt.Errorf("unknown or disabled sort field %q", k.Field)
+		}
+		if seen[name] {
+			return nil, fmt.Errorf("repeated sort field %q", name)
+		}
+		seen[name], keys[i].Field = true, name
+	}
+	return keys, nil
+}
+
+// sortSummary is separate view information, never a prop condition or chip.
+func (l *List) sortSummary() string {
+	if len(l.columns) > 0 || !l.r.Settings().Bool(ListSortIndicatorSetting) {
+		return ""
+	}
+	var parts []string
+	for i, k := range l.sort {
+		arrow := "▲"
+		if k.Desc {
+			arrow = "▼"
+		}
+		if i > 0 {
+			arrow += strconv.Itoa(i + 1)
+		}
+		parts = append(parts, modalLabel(k.Field)+" "+arrow)
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return "sort " + strings.Join(parts, " · ")
 }
 
 // sortSpecs reuses filter props, including derived props. Only rows with

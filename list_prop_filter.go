@@ -203,20 +203,14 @@ func (l *List) validatePropFilters(filters []PropFilter) error {
 // On trees, matching descendants bring their ancestors into view even
 // when collapsed; clearing restores the original collapse state.
 func (l *List) SetPropFilters(filters []PropFilter) error {
-	filters = clonePropFilters(filters)
-	for i := range filters {
-		name, err := l.r.filterPropName(l.rowNouns(), filters[i].Prop)
-		if err != nil {
-			return err
-		}
-		filters[i].Prop = name
-	}
-	if err := l.validatePropFilters(filters); err != nil {
+	filters, err := l.canonicalPropFilters(filters)
+	if err != nil {
 		return err
 	}
-	if _, err := json.Marshal(filters); err != nil {
-		return err
-	}
+	return l.replacePropFilters(filters)
+}
+
+func (l *List) replacePropFilters(filters []PropFilter) error {
 	l.linger.reset()
 	l.propFilters = filters
 	l.savedFilter = ""
@@ -232,6 +226,24 @@ func (l *List) SetPropFilters(filters []PropFilter) error {
 	return nil
 }
 
+func (l *List) canonicalPropFilters(filters []PropFilter) ([]PropFilter, error) {
+	filters = clonePropFilters(filters)
+	for i := range filters {
+		name, err := l.r.filterPropName(l.rowNouns(), filters[i].Prop)
+		if err != nil {
+			return nil, err
+		}
+		filters[i].Prop = name
+	}
+	if err := l.validatePropFilters(filters); err != nil {
+		return nil, err
+	}
+	if _, err := json.Marshal(filters); err != nil {
+		return nil, err
+	}
+	return filters, nil
+}
+
 // SavedFilters returns the defaults and user filters that apply here.
 func (l *List) SavedFilters() ([]SavedFilter, error) { return l.r.SavedFilters(l.id, l.rowNouns()...) }
 
@@ -243,7 +255,17 @@ func (l *List) ApplyFilter(name string) error {
 	}
 	for _, f := range filters {
 		if f.Name == name {
-			if err := l.SetPropFilters(f.conditions()); err != nil {
+			keys, err := l.canonicalSort(f.Sort)
+			if err != nil {
+				return err
+			}
+			// Validate both halves before replacing either view state.
+			conditions, err := l.canonicalPropFilters(f.conditions())
+			if err != nil {
+				return err
+			}
+			l.sort = keys
+			if err := l.replacePropFilters(conditions); err != nil {
 				return err
 			}
 			l.savedFilter = name
@@ -253,7 +275,7 @@ func (l *List) ApplyFilter(name string) error {
 	return fmt.Errorf("unknown saved filter %q", name)
 }
 
-// SaveFilter writes the current conditions as a list-scoped user definition.
+// SaveFilter writes the current conditions and sort as a list-scoped user definition.
 // Existing definitions in other scopes keep their order and content.
 func (l *List) SaveFilter(name string) error {
 	if strings.TrimSpace(name) == "" {
@@ -264,7 +286,7 @@ func (l *List) SaveFilter(name string) error {
 		return err
 	}
 	user = slices.Clone(user)
-	f := SavedFilter{Name: name, List: l.id, Conditions: l.PropFilters()}
+	f := SavedFilter{Name: name, List: l.id, Conditions: l.PropFilters(), Sort: l.Sort()}
 	i := slices.IndexFunc(user, func(old SavedFilter) bool { return old.Name == name && old.List == l.id })
 	if i < 0 {
 		user = append(user, f)
@@ -600,8 +622,8 @@ func registerListPropFilter(r *Runtime) {
 			return err
 		}},
 		{"filter-props-clear", "Clear every prop condition and saved filter name, keeping / text", "list-prop-filtered", nil, func(l *List, _ Arguments) error { return l.SetPropFilters(nil) }},
-		{"filter-saved", "Apply a saved prop filter by name, keeping / text", "", map[string]Parameter{"name": {Type: "string", Required: true}}, func(l *List, a Arguments) error { return l.ApplyFilter(StringArg(a, "name", "")) }},
-		{"filter-save", "Save current prop conditions as a list-scoped user filter in list.filters", "", map[string]Parameter{"name": {Type: "string", Required: true}}, func(l *List, a Arguments) error { return l.SaveFilter(StringArg(a, "name", "")) }},
+		{"filter-saved", "Apply saved conditions and sort by name, keeping / text", "", map[string]Parameter{"name": {Type: "string", Required: true}}, func(l *List, a Arguments) error { return l.ApplyFilter(StringArg(a, "name", "")) }},
+		{"filter-save", "Save current prop conditions and sort as a list-scoped user filter in list.filters", "", map[string]Parameter{"name": {Type: "string", Required: true}}, func(l *List, a Arguments) error { return l.SaveFilter(StringArg(a, "name", "")) }},
 		{"filter-saved-delete", "Delete a user saved filter; removing an override reveals the app default", "", map[string]Parameter{"name": {Type: "string", Required: true}}, func(l *List, a Arguments) error { return l.DeleteSavedFilter(StringArg(a, "name", "")) }},
 		{"filter-saved-pick", "List saved prop filters in a chooser and apply the selected one", "", nil, func(l *List, _ Arguments) error { return l.pickSavedFilter() }},
 		{"filter-cycle", "Cycle the saved prop filters declared for this list or its row nouns", "list-saved-filters", map[string]Parameter{"step": {Type: "integer"}}, func(l *List, a Arguments) error {

@@ -33,6 +33,7 @@ const (
 	ListFilterChipMaxSetting = "list.filter-chip-max"
 	ListFilterLayoutSetting  = "list.filter-layout"
 	ListFilterSortSetting    = "list.filter-sort"
+	ListFilterSaveSetting    = "list.filter-save"
 	listFilterFormID         = "list-filter-form"
 )
 

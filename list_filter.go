@@ -118,7 +118,7 @@ func (l *List) Filtering() bool {
 // opening the filter line neither windows the rows nor moves what is drawn
 // below the list as the filter narrows it.
 func (l *List) Height() int {
-	if l.query != "" || l.editingFilter() || l.propStrip() != "" {
+	if l.query != "" || l.editingFilter() || l.propStrip() != "" || l.sortSummary() != "" {
 		return len(l.all) + 1
 	}
 	if l.Filtering() {
@@ -224,7 +224,8 @@ func (l *List) editingFilter() bool {
 func (l *List) filterLine(width int) string {
 	editing := l.editingFilter()
 	strip := l.propStrip()
-	if l.query == "" && !editing && strip == "" {
+	sort := l.sortSummary()
+	if l.query == "" && !editing && strip == "" && sort == "" {
 		return ""
 	}
 	left := strip
@@ -236,6 +237,12 @@ func (l *List) filterLine(width int) string {
 	}
 	if editing {
 		left += SelectionStyle(true).Render(" ")
+	}
+	if sort != "" {
+		if left != "" {
+			left += " · "
+		}
+		left += sort
 	}
 	var right []string
 	if strings.TrimSpace(l.query) != "" || strip != "" {

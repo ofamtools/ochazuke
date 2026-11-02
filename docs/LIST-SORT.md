@@ -41,9 +41,12 @@ rows. `Sort()` returns a copy of the keys; `SetSort([]SortKey)` replaces them.
 A chooser exposes the same methods and preserves its ordinary-row sort across
 `SetRows`. Fixed, trailing and create rows keep their chooser roles.
 
-Sort keys live only in memory on the list/controller. Saving a prop filter
-saves its existing conditions, not sort keys. There are no new files, saved
-views or restart persistence. The filter form offers one sort key at its top. `z /` opens it on lists
+Ordinary view sort lives in memory on the list/controller. Saving a filter
+through `list.filter-save` stores conditions and optional sort keys in the
+existing `list.filters` setting. Applying it through `filter-saved`, the
+saved-filter picker or cycling restores both, retaining `/` text. Older
+definitions without sort restore app order. There is no new store or file;
+unsaved sort is not restored on restart. The filter form offers one sort key at its top. `z /` opens it on lists
 and trees; `ctrl+f` opens it in a chooser. `ctrl+alt+s` focuses the sort
 selector: type a prop and Enter to apply it; `ctrl+alt+d` flips asc/desc.
 Multi-key sorting remains available through `list.sort`.
@@ -66,10 +69,24 @@ sort section (and older prop chooser's Sort entry) when false.
 entry uses the existing sort-field chooser. Virtual/source-owned views do
 not offer sort controls.
 
+The save row is enabled by `list.filter-save` (default true). `ctrl+alt+w`
+focuses its name input; type a name and Enter to save through
+`list.filter-save`. An existing name shows **Replace** before Enter overwrites
+it. `ctrl+alt+x` deletes that name through `filter-saved-delete`; app defaults
+remain declarations, and deleting a user override reveals the default.
+The row shows the applied name. `z ]` / `z [` cycle saved filters from normal
+mode inside or outside the form; `alt+]` / `alt+[` also work in its inputs.
+Cycling wraps; with no saved filters it remains unavailable. Invalid saved
+conditions or sort are skipped, keeping the existing cycle behavior. View
+edits clear the applied-name marker; the name input stays for easy replacement.
+`list.filter-save=false` hides the entire row without deleting saved data.
+
 `list.sort-indicator` defaults to `true` in `settings/ochazuke.json`. It adds
 `▲` / `▼` to sorted column titles, and `▲2` / `▼2` for the second key (and so
 on). Turning it off hides the indicators and leaves the sort active. The
 arrows take part in normal column sizing; fixed widths still truncate normally.
+Plain lists, trees without columns and choosers show a separate `sort field ▲`
+label. It adds no condition or filter count; the same setting hides it.
 
 For virtual windows and partial/source-owned results, pass `NoSort()` to
 `AddList` / `AddTree`, or set `ChooserSpec.NoSort`. Sorting is unavailable there
