@@ -69,9 +69,10 @@ and single-Escape close behavior.
 
 `list.filter-layout` defaults to `compact`; `fields` keeps the previous
 one-field-per-prop form. `list.filter-sort` defaults to true and hides the
-sort section (and older prop chooser's Sort entry) when false.
-`list.filter-form=false` keeps the older prop/value chooser flow; its Sort
-entry uses the existing sort-field chooser. Source-owned views do not offer
+sort section when false.
+`list.filter-form=false` keeps the older prop/value chooser flow unchanged.
+`list.filter-picker-sort=true` opts into a Sort entry using the existing
+sort-field chooser; this setting defaults to false. Source-owned views do not offer
 sort controls.
 
 The save row is enabled by `list.filter-save` (default true). Tab to its name,

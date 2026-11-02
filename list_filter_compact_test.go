@@ -227,6 +227,7 @@ func TestEmbeddedChooserStaysAndUsesDeclaredRowView(t *testing.T) {
 func TestCompactFilterLegacyPropChooserReachesSort(t *testing.T) {
 	r, m, l := compactFixture(t)
 	_ = r.Settings().Set(ListFilterFormSetting, false)
+	_ = r.Settings().Set(ListFilterPickerSortSetting, true)
 	compactKeys(m, "z", "/", "S", "o", "r", "t", "enter")
 	if r.Chooser("list-sort-field") == nil {
 		t.Fatal("Sort entry did not use shared sort picker", r.TopModal())

@@ -428,7 +428,7 @@ func (l *List) pickPropFilter(prop string, offerClear, not bool) error {
 		for _, name := range l.filterProps() {
 			rows = append(rows, ChooserRow{ID: name, Label: name})
 		}
-		if l.r.Settings().Bool(ListFilterSortSetting) && l.Sortable() {
+		if l.r.Settings().Bool(ListFilterPickerSortSetting) && l.Sortable() {
 			rows = append(rows, ChooserRow{Label: "Sort…", Fixed: true, Data: Request{Noun: "ochazuke.list", Verb: "sort-column", Args: Arguments{"id": l.id}}})
 		}
 		if offerClear && (len(l.propFilters) > 0 || l.savedFilter != "") {
