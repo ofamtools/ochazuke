@@ -186,6 +186,8 @@
     }
   ],
   "values": {
-    "list.filter-chip-max": 3
+    "list.filter-chip-max": 3,
+    "list.filter-layout": "fields",
+    "list.filter-sort": false
   }
 }

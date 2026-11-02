@@ -89,5 +89,9 @@
         "Other note"
       ]
     }
-  ]
+  ],
+  "values": {
+    "list.filter-layout": "fields",
+    "list.filter-sort": false
+  }
 }

@@ -36,6 +36,8 @@ type Record map[string]string
 type RecordField struct {
 	Name  string `json:"name"`
 	Label string `json:"label,omitempty"` // shown above the value (default Name)
+	// Hidden keeps backing state in the record without drawing a field or focus stop.
+	Hidden bool `json:"hidden,omitempty"`
 	Parameter
 	Multiline bool `json:"multiline,omitempty"`
 	// Secret makes the field's input secret (Input.Secret): what is typed
@@ -87,6 +89,17 @@ func (w RecordWrite) String() string {
 type RecordSpec struct {
 	Title  string // the modal's title; a placed editor's heading is the application's
 	Fields []RecordField
+	// Render optionally composes the editor with other controls. Block remains
+	// the standard field layout, usable within this callback.
+	Render func(Styles, int, int) Block
+	// RowView is the backing list of a composite record view. Shared list verbs
+	// resolve it from descendants, including embedded choosers.
+	RowView *List
+	// Immediate writes valid typing on every event, for inexpensive view state.
+	// Otherwise text retains the normal debounce behavior.
+	Immediate bool
+	// OnClear resets composed controls after form.clear empties the record.
+	OnClear func() error
 	// Load reads the record when the editor opens (nil: every field empty).
 	Load func() (Record, error)
 	// Save writes one change: Done, Failed, or Pending work that runs off
@@ -421,6 +434,7 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 		e.fields = append(e.fields, f)
 	}
 	for _, f := range e.fields {
+		r.Instances[f.id].Unfocusable = f.Hidden
 		if (f.choose || f.chips) && len(f.SourceArgs) == 0 {
 			e.loadChoices(f)
 		}
@@ -519,7 +533,12 @@ func (e *RecordEditor) Focus() error {
 // start is the index of the field focused first: Start, else 0.
 func (e *RecordEditor) start() int {
 	for i, f := range e.fields {
-		if f.Name == e.spec.Start {
+		if f.Name == e.spec.Start && !f.Hidden {
+			return i
+		}
+	}
+	for i, f := range e.fields {
+		if !f.Hidden {
 			return i
 		}
 	}
@@ -792,7 +811,7 @@ func (e *RecordEditor) history(redo bool) error {
 	f.before = e.written[f.Name]
 	*to = append(*to, recordStep{field: step.field, from: step.to, to: step.from})
 	e.seen = e.snapshot()
-	if e.r.Focus != f.id {
+	if !f.Hidden && e.r.Focus != f.id {
 		if ferr := e.r.SetFocus(f.id); ferr != nil && werr == nil {
 			werr = ferr
 		}
@@ -809,6 +828,14 @@ func (e *RecordEditor) move(delta int, insert bool) error {
 		i = 0
 	}
 	j := min(max(0, i+delta), len(e.fields)-1)
+	for e.fields[j].Hidden && j != i {
+		next := j + delta
+		if next < 0 || next >= len(e.fields) {
+			j = i
+			break
+		}
+		j = next
+	}
 	if j != i {
 		if err := e.r.SetFocus(e.fields[j].id); err != nil {
 			return err
@@ -1191,6 +1218,9 @@ func (e *RecordEditor) Block(width, height int) Block {
 	var cursor *Pos
 	focusLine := 0
 	for _, f := range e.fields {
+		if f.Hidden {
+			continue
+		}
 		focused := e.fieldOn(e.r.Focus) == f
 		if focused {
 			focusLine = len(lines)
@@ -1298,6 +1328,9 @@ func (e *RecordEditor) ModalTitle() string {
 
 func (e *RecordEditor) ModalBlock(s Styles, width, height int) Block {
 	e.Styles = s
+	if e.spec.Render != nil {
+		return e.spec.Render(s, width, height)
+	}
 	return e.Block(width, height)
 }
 
@@ -1341,7 +1374,9 @@ func (e *RecordEditor) PendingCommand() tea.Cmd {
 		e.refreshChoices()
 		e.seen, changed = snap, true
 		e.seq++
-		if typing {
+		if typing && e.spec.Immediate {
+			e.fail(e.flush())
+		} else if typing {
 			seq, id := e.seq, e.id
 			cmd = tea.Tick(e.spec.Debounce, func(time.Time) tea.Msg { return RecordDebounceMsg{Editor: id, Seq: seq} })
 		}
@@ -1572,3 +1607,6 @@ func (e *RecordEditor) refreshChoices() {
 		}, args)
 	}
 }
+
+// RowView exposes an explicitly declared backing view to shared list verbs.
+func (e *RecordEditor) RowView() *List { return e.spec.RowView }

@@ -83,6 +83,8 @@ type ChooserSpec struct {
 	NoPropFilters bool
 	// NoSort keeps the source order when these rows are only a partial view.
 	NoSort bool
+	// Stay keeps the chooser open after a pick (for embedded or repeated choices).
+	Stay bool
 
 	Kind        string
 	Title       string
@@ -153,7 +155,8 @@ type Chooser struct {
 	tallest int
 	// match is the match mode search.cycle-match or search.set-match
 	// chose while open; "" is the chooser.match setting (search_match.go).
-	match string
+	match    string
+	embedded bool // AddChooser: a placed chooser, not its own modal
 
 	// filters is the shared list prop-filter controller, without a registered
 	// list or row instances: the chooser retains its own ranking and focus.
@@ -237,6 +240,36 @@ func (r *Runtime) OpenChooser(spec ChooserSpec) (*Chooser, error) {
 	return c, nil
 }
 
+// AddChooser places the existing chooser under a parent rather than opening
+// a modal. Its search, ranking, keys and rendering are the same. Stay permits
+// several choices; the host draws View and owns the surrounding layout.
+func (r *Runtime) AddChooser(spec ChooserSpec, opts ...InstanceOption) (*Chooser, error) {
+	if spec.Kind == "" || r.Instances[spec.Kind] != nil {
+		return nil, errors.New("chooser kind must be nonempty and unused")
+	}
+	options := instanceSpec{parent: "app", noun: chooserNoun}
+	for _, opt := range opts {
+		opt(&options)
+	}
+	if r.Instances[options.parent] == nil || r.Noun(options.noun) == nil {
+		return nil, errors.New("unknown chooser parent or noun")
+	}
+	c := &Chooser{r: r, spec: spec, input: NewInput(spec.Kind+"/query", "", false), embedded: true}
+	if len(spec.Sources) > 0 {
+		c.source = c.startSource()
+		c.spec.Rows = nil
+	}
+	c.initPropFilters()
+	c.refilter()
+	r.Instance(spec.Kind, Parent(options.parent), Kind(options.noun)).Component = c
+	if err := r.AddInput(c.input, Parent(spec.Kind), Kind(chooserNoun)); err != nil {
+		_ = r.RemoveInstance(spec.Kind)
+		return nil, err
+	}
+	c.load()
+	return c, nil
+}
+
 // Chooser is the open chooser of kind, nil when none is open.
 func (r *Runtime) Chooser(kind string) *Chooser {
 	if inst := r.Instances[kind]; inst != nil {
@@ -304,6 +337,9 @@ func (c *Chooser) ModalBlock(_ Styles, width, height int) Block { return c.View(
 
 // close pops the chooser's modal so a callback may open the next one.
 func (c *Chooser) close() error {
+	if c.embedded {
+		return c.r.RemoveInstance(c.spec.Kind)
+	}
 	if c.r.TopModal() != c.spec.Kind {
 		return fmt.Errorf("chooser %s is not the top modal", c.spec.Kind)
 	}
@@ -324,8 +360,10 @@ func (c *Chooser) pick() Result {
 	if row.Refuse != "" {
 		return Failed(errors.New(row.Refuse))
 	}
-	if err := c.close(); err != nil {
-		return Failed(err)
+	if !c.spec.Stay {
+		if err := c.close(); err != nil {
+			return Failed(err)
+		}
 	}
 	if c.spec.Choose == nil {
 		return Done(row.ID)
@@ -342,8 +380,10 @@ func (c *Chooser) create() Result {
 		return Failed(errors.New("nothing matches"))
 	}
 	query := c.Query()
-	if err := c.close(); err != nil {
-		return Failed(err)
+	if !c.spec.Stay {
+		if err := c.close(); err != nil {
+			return Failed(err)
+		}
 	}
 	defer c.r.actingFor(c.r.Focus)()
 	return create(query)

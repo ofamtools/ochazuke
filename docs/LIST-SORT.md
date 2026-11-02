@@ -43,8 +43,28 @@ A chooser exposes the same methods and preserves its ordinary-row sort across
 
 Sort keys live only in memory on the list/controller. Saving a prop filter
 saves its existing conditions, not sort keys. There are no new files, saved
-views or restart persistence. The filter form is unchanged while its proposed
-sort section and compact layout await prototype review.
+views or restart persistence. The filter form offers one sort key at its top. `z /` opens it on lists
+and trees; `ctrl+f` opens it in a chooser. `ctrl+alt+s` focuses the sort
+selector: type a prop and Enter to apply it; `ctrl+alt+d` flips asc/desc.
+Multi-key sorting remains available through `list.sort`.
+
+The compact filter controls share the standard chooser and form record.
+Type a prop and Enter to see its values, then type to narrow them. Enter
+picks one and returns to the field selector; Space toggles several values
+and Enter returns. Counts cover all source rows. Free text applies as typed;
+Enter keeps it and returns. `ctrl+alt+i` flips is/not. `ctrl+alt+a` focuses
+active conditions: Enter edits, `d d` removes, `!` inverts. `ctrl+alt+f`
+returns to fields. Tab walks controls; Escape closes with changes kept.
+`ctrl+alt+c` runs `form.clear`, clearing sort and every condition, including
+conditions the fields cannot represent. Capital C remains text in inputs;
+normal-mode C clears. Normal-mode u / ctrl+r undo / redo written changes.
+
+`list.filter-layout` defaults to `compact`; `fields` keeps the previous
+one-field-per-prop form. `list.filter-sort` defaults to true and hides the
+sort section (and older prop chooser's Sort entry) when false.
+`list.filter-form=false` keeps the older prop/value chooser flow; its Sort
+entry uses the existing sort-field chooser. Virtual/source-owned views do
+not offer sort controls.
 
 `list.sort-indicator` defaults to `true` in `settings/ochazuke.json`. It adds
 `▲` / `▼` to sorted column titles, and `▲2` / `▼2` for the second key (and so

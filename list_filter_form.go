@@ -1,7 +1,6 @@
 package ochazuke
 
 import (
-	"context"
 	"fmt"
 	"maps"
 	"slices"
@@ -9,9 +8,9 @@ import (
 )
 
 // The filter form: the prop filter key (list.filter-prop with no prop)
-// opens a record editor over the list, tree or chooser with a field per
-// filterable prop (setting list.filter-form; off keeps the prop chooser
-// then the value chooser). Every field is Invertible (is, not) and takes
+// opens a compact record editor over the list, tree or chooser. It reuses
+// one backing field per prop; list.filter-layout=fields shows those fields
+// directly. list.filter-form=false keeps the prop then value choosers. Every field is Invertible (is, not) and takes
 // its kind from the rows and the declared props, never from a noun's name:
 //
 //   - finite (a declared Enum, a boolean, a list prop, or a text prop whose
@@ -32,6 +31,8 @@ import (
 const (
 	ListFilterFormSetting    = "list.filter-form"
 	ListFilterChipMaxSetting = "list.filter-chip-max"
+	ListFilterLayoutSetting  = "list.filter-layout"
+	ListFilterSortSetting    = "list.filter-sort"
 	listFilterFormID         = "list-filter-form"
 )
 
@@ -263,75 +264,7 @@ func (f *filterField) absorb(conds []PropFilter) (value string, not, ok bool) {
 
 // openFilterForm opens the filter form over the list (a chooser's list
 // too: it opens over the chooser and filters its rows).
-func (l *List) openFilterForm() error {
-	fields := l.filterFields()
-	if len(fields) == 0 {
-		return fmt.Errorf("list rows have no filterable props")
-	}
-	byProp := map[string][]PropFilter{}
-	for _, c := range l.propFilters {
-		byProp[c.Prop] = append(byProp[c.Prop], c)
-	}
-	var kept []PropFilter
-	loaded := Record{}
-	for _, f := range fields {
-		value, not, ok := f.absorb(byProp[f.prop])
-		if !ok {
-			kept = append(kept, byProp[f.prop]...)
-			continue
-		}
-		loaded[f.prop], loaded[f.prop+RecordInvertSuffix] = value, invertText(not)
-	}
-	for _, c := range l.propFilters {
-		if !slices.ContainsFunc(fields, func(f *filterField) bool { return f.prop == c.Prop }) {
-			kept = append(kept, c)
-		}
-	}
-	var schema []RecordField
-	for _, f := range fields {
-		f.sortLabels()
-		rf := RecordField{Name: f.prop, Invertible: true, Placeholder: f.placeholder()}
-		switch f.kind {
-		case filterChips:
-			rf.Chips = true
-			rf.Enum = slices.Clone(f.labels)
-		case filterComplete:
-			labels := slices.Clone(f.labels)
-			rf.Completions = []CompletionTrigger{{Every: true, Boundaries: ",", Search: SearchStrings(func(_ context.Context, q string) ([]string, error) {
-				return completeLabels(labels, q), nil
-			})}}
-		case filterText:
-			rf.Multiline = f.spec.Multiline
-		}
-		field := f
-		rf.Validate = func(v string) error {
-			for _, c := range field.conditions(v, false) {
-				if _, err := typedPropFilter(field.spec, c); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-		schema = append(schema, rf)
-	}
-	_, err := l.r.OpenRecordEditor(listFilterFormID, RecordSpec{
-		Title:     "Filter",
-		Fields:    schema,
-		Clearable: true,
-		Load:      func() (Record, error) { return loaded, nil },
-		Save: func(w RecordWrite) Result {
-			conds := slices.Clone(kept)
-			for _, f := range fields {
-				conds = append(conds, f.conditions(w.Values[f.prop], w.Values[f.prop+RecordInvertSuffix] == "true")...)
-			}
-			if err := l.SetPropFilters(conds); err != nil {
-				return Failed(err)
-			}
-			return Done(nil)
-		},
-	})
-	return err
-}
+func (l *List) openFilterForm() error { return l.openViewForm() }
 
 // placeholder says what an empty text field takes.
 func (f *filterField) placeholder() string {

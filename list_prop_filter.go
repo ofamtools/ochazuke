@@ -406,6 +406,9 @@ func (l *List) pickPropFilter(prop string, offerClear, not bool) error {
 		for _, name := range l.filterProps() {
 			rows = append(rows, ChooserRow{ID: name, Label: name})
 		}
+		if l.r.Settings().Bool(ListFilterSortSetting) && l.Sortable() {
+			rows = append(rows, ChooserRow{Label: "Sort…", Fixed: true, Data: Request{Noun: "ochazuke.list", Verb: "sort-column", Args: Arguments{"id": l.id}}})
+		}
 		if offerClear && (len(l.propFilters) > 0 || l.savedFilter != "") {
 			rows = append(rows, ChooserRow{Label: "Clear prop filters", Fixed: true})
 		}
@@ -413,6 +416,12 @@ func (l *List) pickPropFilter(prop string, offerClear, not bool) error {
 			return errors.New("list rows have no filterable props")
 		}
 		_, err := l.r.OpenChooser(ChooserSpec{Kind: "list-filter-prop", Title: "Filter by prop", Rows: rows, Choose: func(row ChooserRow) Result {
+			if q, ok := row.Data.(Request); ok {
+				if _, err := l.r.Execute(q); err != nil {
+					return Failed(err)
+				}
+				return Done(nil)
+			}
 			if row.ID == "" {
 				if err := l.SetPropFilters(nil); err != nil {
 					return Failed(err)
@@ -489,6 +498,7 @@ func (l *List) pickPropFilter(prop string, offerClear, not bool) error {
 }
 
 func registerListPropFilter(r *Runtime) {
+	registerFilterViewForm(r)
 	resolve := func(c Context, a Arguments) (*List, error) {
 		if id := StringArg(a, "id", ""); id != "" {
 			if l := r.propFilterList(id); l != nil {
@@ -510,7 +520,7 @@ func registerListPropFilter(r *Runtime) {
 	r.DefineGuard("list-prop-conditions", func(_ *Runtime, ev KeyEvent) bool { l := guardList(ev); return l != nil && len(l.propFilters) > 0 })
 	r.DefineGuard("list-props", func(r *Runtime, ev KeyEvent) bool {
 		l := guardList(ev)
-		return l != nil && len(l.filterProps()) > 0
+		return l != nil && (len(l.filterProps()) > 0 || l.r.Settings().Bool(ListFilterSortSetting) && l.Sortable())
 	})
 	r.DefineGuard("list-prop-filtered", func(r *Runtime, ev KeyEvent) bool {
 		l := guardList(ev)

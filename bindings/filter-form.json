@@ -1,0 +1,157 @@
+{
+  "bindings": [
+    {
+      "context": "ochazuke.filter-form",
+      "bindings": [
+        {
+          "key": "tab",
+          "action": "ochazuke.focus.next",
+          "capture": true,
+          "when": "filter-form-tab"
+        },
+        {
+          "key": "shift+tab",
+          "action": "ochazuke.focus.previous",
+          "capture": true,
+          "hidden": true,
+          "when": "filter-form-tab"
+        },
+        {
+          "key": "ctrl+alt+f",
+          "action": "ochazuke.filter-form.focus",
+          "args": {
+            "part": "field"
+          },
+          "hint": "field"
+        },
+        {
+          "key": "ctrl+alt+s",
+          "action": "ochazuke.filter-form.focus",
+          "args": {
+            "part": "sort"
+          },
+          "when": "filter-form-sort",
+          "hint": "sort"
+        },
+        {
+          "key": "ctrl+alt+a",
+          "action": "ochazuke.filter-form.focus",
+          "args": {
+            "part": "conditions"
+          },
+          "hint": "conditions"
+        },
+        {
+          "key": "ctrl+alt+d",
+          "action": "ochazuke.filter-form.direction",
+          "hint": "direction"
+        },
+        {
+          "key": "ctrl+alt+i",
+          "action": "ochazuke.form.invert",
+          "hint": "is/not"
+        },
+        {
+          "key": "ctrl+alt+c",
+          "action": "ochazuke.form.clear",
+          "hint": "clear",
+          "capture": true
+        },
+        {
+          "key": "enter",
+          "action": "ochazuke.filter-form.next",
+          "when": "filter-form-text",
+          "capture": true
+        }
+      ]
+    },
+    {
+      "context": "ochazuke.filter-form/normal",
+      "bindings": [
+        {
+          "key": "C",
+          "action": "ochazuke.form.clear",
+          "hint": "clear"
+        },
+        {
+          "key": "u",
+          "action": "ochazuke.form.undo"
+        },
+        {
+          "key": "ctrl+r",
+          "action": "ochazuke.form.redo"
+        },
+        {
+          "key": "z ]",
+          "action": "ochazuke.list.filter-cycle",
+          "args": {
+            "step": 1
+          },
+          "hint": "next filter"
+        },
+        {
+          "key": "z [",
+          "action": "ochazuke.list.filter-cycle",
+          "args": {
+            "step": -1
+          },
+          "hidden": true
+        }
+      ]
+    },
+    {
+      "context": "ochazuke.filter-values/insert",
+      "bindings": [
+        {
+          "key": "space",
+          "action": "ochazuke.filter-form.toggle",
+          "capture": true,
+          "hint": "toggle"
+        }
+      ]
+    },
+    {
+      "context": "ochazuke.filter-direction/normal",
+      "bindings": [
+        {
+          "key": "enter",
+          "action": "ochazuke.filter-form.direction"
+        },
+        {
+          "key": "space",
+          "action": "ochazuke.filter-form.direction",
+          "hidden": true
+        },
+        {
+          "key": "h",
+          "action": "ochazuke.filter-form.direction",
+          "hidden": true
+        },
+        {
+          "key": "l",
+          "action": "ochazuke.filter-form.direction",
+          "hidden": true
+        }
+      ]
+    },
+    {
+      "context": "ochazuke.filter-condition/normal",
+      "bindings": [
+        {
+          "key": "enter",
+          "action": "ochazuke.filter-form.edit-condition"
+        },
+        {
+          "key": "d d",
+          "action": "ochazuke.filter-form.remove-condition",
+          "hint": "remove"
+        },
+        {
+          "key": "!",
+          "action": "ochazuke.filter-form.invert-condition",
+          "hint": "is/not"
+        }
+      ]
+    }
+  ]
+}

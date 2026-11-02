@@ -308,6 +308,9 @@ func (e *RecordEditor) clear() error {
 			errs = append(errs, e.seal(f))
 		}
 	}
+	if e.spec.OnClear != nil {
+		errs = append(errs, e.spec.OnClear())
+	}
 	return errors.Join(errs...)
 }
 

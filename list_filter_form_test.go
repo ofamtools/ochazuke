@@ -19,6 +19,8 @@ func filterFormFixture(t *testing.T) (*Runtime, *Model, *List) {
 	t.Helper()
 	r := NewRuntime()
 	r.Config().Disable()
+	_ = r.Settings().Set(ListFilterLayoutSetting, "fields")
+	_ = r.Settings().Set(ListFilterSortSetting, false)
 	r.Define("task").Props(PropSpec{Name: "status"}, PropSpec{Name: "tags", Parameter: Parameter{Type: SettingList}}, PropSpec{Name: "title"}, PropSpec{Name: "score", Parameter: Parameter{Type: "integer"}})
 	r.Instance("p")
 	rows := []struct {
@@ -300,6 +302,8 @@ func TestFilterFormSavedFilterRoundTrip(t *testing.T) {
 
 func TestFilterFormInChooser(t *testing.T) {
 	r, m, c := chooserPropFixture(t)
+	_ = r.Settings().Set(ListFilterLayoutSetting, "fields")
+	_ = r.Settings().Set(ListFilterSortSetting, false)
 	keytest.Press(m, "ctrl+f")
 	if r.TopModal() != listFilterFormID {
 		t.Fatalf("top %s", r.TopModal())
@@ -343,6 +347,8 @@ func TestCompletionEveryTrigger(t *testing.T) {
 
 func TestFilterFormTree(t *testing.T) {
 	r, tree := propTreeFixture(t)
+	_ = r.Settings().Set(ListFilterLayoutSetting, "fields")
+	_ = r.Settings().Set(ListFilterSortSetting, false)
 	if err := r.SetFocus("tree"); err != nil {
 		t.Fatal(err)
 	}

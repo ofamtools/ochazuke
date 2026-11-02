@@ -58,8 +58,21 @@ func (r *Runtime) propFilterList(focus string) *List {
 	return l
 }
 
+// RowViewProvider lets composite editors declare the row view they control.
+// This is explicit context, distinct from their own navigation lists/choosers.
+type RowViewProvider interface{ RowView() *List }
+
 // rowFilterList also serves text-only choosers that opt out of prop filters.
 func (r *Runtime) rowFilterList(focus string) *List {
+	for _, id := range r.Ancestry(focus) {
+		if inst := r.Instances[id]; inst != nil {
+			if p, ok := inst.Component.(RowViewProvider); ok {
+				if l := p.RowView(); l != nil {
+					return l
+				}
+			}
+		}
+	}
 	for _, id := range r.Ancestry(focus) {
 		if c := r.Chooser(id); c != nil {
 			c.sync()
