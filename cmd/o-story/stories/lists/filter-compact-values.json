@@ -1,5 +1,5 @@
 {
-  "name": "compact filter: search a prop and toggle two values, then Enter returns to fields",
+  "name": "compact filter: search a prop, Escape then Space toggles two values, and Enter returns to fields",
   "area": "lists",
   "width": 100,
   "height": 24,
@@ -143,6 +143,7 @@
     "u",
     "s",
     "enter",
+    "esc",
     "space",
     "ctrl+n",
     "ctrl+n",

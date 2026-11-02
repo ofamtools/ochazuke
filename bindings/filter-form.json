@@ -59,7 +59,7 @@
       ]
     },
     {
-      "context": "ochazuke.filter-values",
+      "context": "ochazuke.filter-values/normal",
       "bindings": [
         {
           "key": "space",

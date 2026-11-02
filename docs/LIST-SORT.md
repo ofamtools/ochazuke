@@ -54,7 +54,8 @@ flips asc/desc. Multi-key sorting remains available through `list.sort`.
 
 The compact controls share the standard chooser and form record. Type a prop
 and Enter to see its values, then type to narrow them. Enter picks one and
-returns to fields; Space toggles several values and Enter returns. Counts
+returns to fields; Escape then Space toggles several values and Enter
+returns. Space remains search text in insert mode. Counts
 cover all source rows. Free text applies as typed; Enter keeps it and returns.
 From fields, Tab reaches active conditions and the next Tab reaches the save
 name. On active conditions, Enter edits, `d d` removes and `!` inverts.

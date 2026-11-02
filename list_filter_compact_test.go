@@ -74,7 +74,7 @@ func TestCompactFilterValuesRoundTripAndClear(t *testing.T) {
 		t.Fatal(r.Focus)
 	}
 	compactField(t, m, "status")
-	compactKeys(m, "space", "ctrl+n", "ctrl+n", "space", "enter")
+	compactKeys(m, "esc", "space", "ctrl+n", "ctrl+n", "space", "enter")
 	if !slices.Equal(shownIDs(l), []string{"t3", "t5", "t6"}) || l.PropFilters()[0].Op != "in" {
 		t.Fatal(l.PropFilters(), shownIDs(l))
 	}
@@ -400,5 +400,24 @@ func TestChooserNormalModeOptIn(t *testing.T) {
 	compactKeys(m, "esc", "esc")
 	if r.TopModal() != "" {
 		t.Fatal("normal Escape did not close")
+	}
+}
+
+// Search keeps spaces in insert; selecting several uses the same plain key
+// after Escape that works in terminals without an extended keyboard protocol.
+func TestCompactFilterValueSpaceIsTextUntilNormal(t *testing.T) {
+	r, m, l := compactFixture(t)
+	compactKeys(m, "z", "/")
+	compactField(t, m, "status")
+	compactKeys(m, "space")
+	if got := string(r.Input(r.Focus).Text); got != " " || len(l.PropFilters()) != 0 {
+		t.Fatalf("insert Space: query %q, conditions %v", got, l.PropFilters())
+	}
+	if shadows := r.TypingShadows(); len(shadows) != 0 {
+		t.Fatal(shadows)
+	}
+	compactKeys(m, "ctrl+u", "esc", "space")
+	if len(l.PropFilters()) != 1 {
+		t.Fatal("normal Space did not toggle", l.PropFilters())
 	}
 }
