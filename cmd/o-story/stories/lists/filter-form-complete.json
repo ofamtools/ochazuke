@@ -166,11 +166,11 @@
     {
       "after": 11,
       "contains": [
-        "status \u00b7 is",
+        "status · is",
         "doing"
       ],
       "lacks": [
-        "\u25cb doing"
+        "○ doing"
       ]
     },
     {

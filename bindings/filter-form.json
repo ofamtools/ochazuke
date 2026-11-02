@@ -54,9 +54,16 @@
           "hint": "is/not"
         },
         {
-          "key": "ctrl+alt+c",
+          "key": "ctrl+g",
           "action": "ochazuke.form.clear",
           "hint": "clear",
+          "capture": true,
+          "when": "filter-form-compact"
+        },
+        {
+          "key": "ctrl+g",
+          "action": "ochazuke.form.clear",
+          "hidden": true,
           "capture": true
         },
         {
@@ -102,17 +109,17 @@
       "context": "ochazuke.filter-form/normal",
       "bindings": [
         {
-          "key": "C",
-          "action": "ochazuke.form.clear",
-          "hint": "clear"
-        },
-        {
           "key": "u",
           "action": "ochazuke.form.undo"
         },
         {
           "key": "ctrl+r",
           "action": "ochazuke.form.redo"
+        },
+        {
+          "key": "C",
+          "action": "ochazuke.form.clear",
+          "hint": "clear"
         },
         {
           "key": "z ]",

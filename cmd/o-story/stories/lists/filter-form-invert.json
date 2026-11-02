@@ -151,7 +151,7 @@
     {
       "after": 8,
       "contains": [
-        "status \u00b7 not",
+        "status · not",
         "Write notes",
         "Buy milk",
         "Call mum"
@@ -165,7 +165,7 @@
     {
       "after": 11,
       "contains": [
-        "status \u00b7 not",
+        "status · not",
         "Write notes",
         "Paint fence"
       ],
@@ -183,7 +183,7 @@
       ],
       "lacks": [
         "Fix bike",
-        "status \u00b7 not"
+        "status · not"
       ]
     }
   ],

@@ -73,7 +73,7 @@
   "expect": [
     {
       "order": [
-        "sort rank \u25b2",
+        "sort rank ▲",
         "two",
         "five",
         "ten"

@@ -145,7 +145,7 @@
     {
       "after": 5,
       "contains": [
-        "status \u00b7 not"
+        "status · not"
       ],
       "lacks": [
         "Paint fence"
@@ -153,8 +153,8 @@
     },
     {
       "contains": [
-        "status \u00b7 is",
-        "\u25cb cancelled",
+        "status · is",
+        "○ cancelled",
         "Write notes",
         "Buy milk",
         "Fix bike",

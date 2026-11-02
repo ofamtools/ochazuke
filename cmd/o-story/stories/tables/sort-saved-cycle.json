@@ -95,13 +95,13 @@
       "after": 5,
       "contains": [
         "Applied: ranked",
-        "Sort \u25bc"
+        "Sort ▼"
       ]
     },
     {
       "after": 6,
       "order": [
-        "rank \u25bc",
+        "rank ▼",
         "10",
         "5",
         "2"
@@ -115,8 +115,8 @@
         "5"
       ],
       "lacks": [
-        "\u25b2",
-        "\u25bc"
+        "▲",
+        "▼"
       ]
     }
   ]

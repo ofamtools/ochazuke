@@ -153,7 +153,7 @@
     {
       "after": 9,
       "contains": [
-        "status \u00b7 is",
+        "status · is",
         "cancelled",
         "doing",
         "done",

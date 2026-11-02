@@ -1,10 +1,13 @@
 package ochazuke
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
 
+	tea "charm.land/bubbletea/v2"
+	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
 	"ofam.dev/ochazuke/keytest"
 )
@@ -55,7 +58,7 @@ func TestCompactFilterValuesRoundTripAndClear(t *testing.T) {
 	if len(l.PropFilters()) != 1 || r.Input(r.Focus).Text[0] != 'C' {
 		t.Fatal("C cleared from input")
 	}
-	compactKeys(m, "ctrl+alt+c")
+	compactKeys(m, "ctrl+g")
 	if len(l.PropFilters()) != 0 || len(l.Sort()) != 0 {
 		t.Fatal("clear did not empty all view state")
 	}
@@ -74,7 +77,7 @@ func TestCompactFilterSortAndKeptConditions(t *testing.T) {
 	if len(l.PropFilters()) != 2 || l.PropFilters()[0].Prop != "title" {
 		t.Fatal("unrepresented condition lost", l.PropFilters())
 	}
-	compactKeys(m, "ctrl+alt+c")
+	compactKeys(m, "ctrl+g")
 	if len(l.PropFilters()) != 0 || len(l.Sort()) != 0 {
 		t.Fatal("clear retained unsupported conditions")
 	}
@@ -148,7 +151,7 @@ func TestCompactFilterClearResetsPickerQueries(t *testing.T) {
 	r, m, l := compactFixture(t)
 	compactKeys(m, "z", "/", "ctrl+alt+s", "s", "c", "o", "r", "e", "enter")
 	compactField(t, m, "status")
-	compactKeys(m, "d", "o", "n", "e", "enter", "ctrl+alt+c")
+	compactKeys(m, "d", "o", "n", "e", "enter", "ctrl+g")
 	v := filterViewAt(r, r.Focus)
 	if v.current != nil || v.sortPicker.Query() != "" || v.fieldPicker.Query() != "" || len(l.PropFilters()) > 0 {
 		t.Fatal("clear retained control state")
@@ -210,8 +213,44 @@ func TestCompactFilterTreeSortChangesSiblingsAndClear(t *testing.T) {
 	if !slices.Equal(shownIDs(tree.List()), []string{"a", "z", "za", "zb"}) {
 		t.Fatal(shownIDs(tree.List()))
 	}
-	compactKeys(m, "ctrl+alt+c")
+	compactKeys(m, "ctrl+g")
 	if !slices.Equal(shownIDs(tree.List()), []string{"z", "zb", "za", "a"}) {
 		t.Fatal("clear lost tree app order")
+	}
+}
+
+func TestFilterFormClearTerminalEncoding(t *testing.T) {
+	for _, layout := range []string{"compact", "fields"} {
+		for _, raw := range []string{"\x07", "\x1b[103;5u", "\x1b[27;5;103~"} {
+			t.Run(fmt.Sprintf("%s/%x", layout, raw), func(t *testing.T) {
+				r, m, l := compactFixture(t)
+				_ = r.Settings().Set(ListFilterLayoutSetting, layout)
+				_ = r.Settings().Set(ListFilterSaveSetting, false)
+				_ = l.SetPropFilters([]PropFilter{{Prop: "status", Value: "todo"}})
+				_ = l.SetSort([]SortKey{{Field: "score", Desc: true}})
+				compactKeys(m, "z", "/")
+				hints := BindingHints(r, r.Focus)
+				if layout == "fields" {
+					if strings.Contains(hints, "ctrl+g") || strings.Contains(hints, "ctrl+alt+c") || !strings.Contains(hints, "u form.undo") || strings.Index(hints, "C clear") < strings.Index(hints, "u form.undo") {
+						t.Fatal(hints)
+					}
+					_ = r.SetFocus(r.RecordEditor(listFilterFormID).field("title").id)
+					_ = r.SetMode("insert")
+				} else if !strings.Contains(hints, "ctrl+g clear") {
+					t.Fatal(hints)
+				}
+				var decoder uv.EventDecoder
+				n, event := decoder.Decode([]byte(raw))
+				key, ok := event.(uv.KeyPressEvent)
+				if !ok || n != len(raw) || key.String() != "ctrl+g" {
+					t.Fatalf("decoded %x: %d %#v", raw, n, event)
+				}
+				m.Update(tea.KeyPressMsg(key))
+				m.View()
+				if len(l.PropFilters()) != 0 || len(l.Sort()) != 0 || l.Shown() != 6 {
+					t.Fatal(l.Snapshot())
+				}
+			})
+		}
 	}
 }

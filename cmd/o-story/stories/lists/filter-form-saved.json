@@ -157,14 +157,14 @@
     {
       "after": 4,
       "contains": [
-        "status \u00b7 not",
-        "\u25cf cancelled",
-        "\u25cf done"
+        "status · not",
+        "● cancelled",
+        "● done"
       ]
     },
     {
       "contains": [
-        "status \u00b7 not",
+        "status · not",
         "Paint fence"
       ],
       "lacks": [

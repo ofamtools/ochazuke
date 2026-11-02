@@ -58,7 +58,7 @@ and Enter returns. Counts cover all source rows. Free text applies as typed;
 Enter keeps it and returns. `ctrl+alt+i` flips is/not. `ctrl+alt+a` focuses
 active conditions: Enter edits, `d d` removes, `!` inverts. `ctrl+alt+f`
 returns to fields. Tab walks controls; Escape closes with changes kept.
-`ctrl+alt+c` runs `form.clear`, clearing sort and every condition, including
+`ctrl+g` runs `form.clear`, clearing sort and every condition, including
 conditions the fields cannot represent. Capital C remains text in inputs;
 normal-mode C clears. Normal-mode u / ctrl+r undo / redo written changes.
 

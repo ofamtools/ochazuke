@@ -58,7 +58,7 @@
     {
       "modal": "list-filter-form",
       "contains": [
-        "state \u00b7 is"
+        "state · is"
       ],
       "lacks": [
         "status"

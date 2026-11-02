@@ -92,12 +92,12 @@
         "Applied: all"
       ],
       "lacks": [
-        "Sort \u25b2"
+        "Sort ▲"
       ]
     },
     {
       "contains": [
-        "sort rank \u25b2"
+        "sort rank ▲"
       ],
       "order": [
         "two",

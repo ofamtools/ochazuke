@@ -147,19 +147,19 @@
       "after": 2,
       "modal": "list-filter-form",
       "contains": [
-        "score \u00b7 is",
-        "status \u00b7 is",
-        "\u25cb cancelled",
-        "\u25cb todo",
-        "tags \u00b7 is",
-        "\u25cb home",
-        "title \u00b7 is"
+        "score · is",
+        "status · is",
+        "○ cancelled",
+        "○ todo",
+        "tags · is",
+        "○ home",
+        "title · is"
       ]
     },
     {
       "after": 4,
       "contains": [
-        "\u25cf cancelled",
+        "● cancelled",
         "Paint fence"
       ],
       "lacks": [
@@ -168,8 +168,8 @@
     },
     {
       "contains": [
-        "\u25cf cancelled",
-        "\u25cf done",
+        "● cancelled",
+        "● done",
         "Paint fence",
         "Fix bike",
         "File taxes"

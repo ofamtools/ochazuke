@@ -81,7 +81,7 @@
   "expect": [
     {
       "order": [
-        "rank \u25bc",
+        "rank ▼",
         "10",
         "5",
         "2"

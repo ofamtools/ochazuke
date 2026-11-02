@@ -150,7 +150,7 @@
     {
       "after": 8,
       "contains": [
-        "title \u00b7 is",
+        "title · is",
         "Fix bike"
       ],
       "lacks": [
@@ -160,7 +160,7 @@
     },
     {
       "contains": [
-        "title \u00b7 not",
+        "title · not",
         "Write notes",
         "Paint fence"
       ],

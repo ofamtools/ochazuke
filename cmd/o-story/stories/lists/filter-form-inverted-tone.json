@@ -56,14 +56,14 @@
     {
       "after": 4,
       "contains": [
-        "status \u00b7 not",
-        "\u25cf closed",
-        "\u25cb open"
+        "status · not",
+        "● closed",
+        "○ open"
       ],
       "styled": {
-        "status \u00b7 not": "#FF9B70",
-        " \u25cf closed ": "#FF9B70",
-        " \u25cb open ": "#FF9B70"
+        "status · not": "#FF9B70",
+        " ● closed ": "#FF9B70",
+        " ○ open ": "#FF9B70"
       }
     }
   ],
