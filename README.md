@@ -761,6 +761,26 @@ Every search matches its query one of three ways, and the `/` list filter, choos
 
 Compared with Vim: Vim's `/` is always a regex (`:help pattern`) with its own magic levels (`:help /magic`, `\v` "very magic" is closest to RE2's extended syntax); ochazuke's regex mode is RE2, not Vim's dialect, and has no `\c`/`\C` (case comes from `search.case`). Vim has no substring or fuzzy search mode; fuzzy matching is `matchfuzzy()` (`:help matchfuzzy()`), used by plugins and completion. Vim's smartcase likewise ignores the letter after a backslash (`:help 'smartcase'`).
 
+#### Find in text
+
+On a list `/` filters (it hides rows); on a text-like component it finds (`search_find.go`, UX-RULES R5.20): the text view, the docs viewer, the Markdown viewer and a timeline bind `/` to `ochazuke.search.find`, which opens the find line (`/` and the query, the match tag at its right; noun `ochazuke.find-line`, pinned to insert). `enter` (`find-line.commit`) closes it and moves the component's cursor to the next match after it, wrapping round the end; `esc` (`find-line.cancel`) closes it and finds nothing; `tab`/`shift+tab` step its match mode, which starts at `search.match`; an invalid regex keeps the line open and says why under it. An empty line finds the last query again. `n` (`ochazuke.search.next`) repeats the last find in its direction and `N` (`{reverse: true}`) the other way, with a count where the component's keys are not an editor's (the docs viewer, the Markdown viewer, a timeline); both stand aside until a find has run. `search.find {query, back, count}` finds at once from the palette or the CLI. Case follows `search.case`.
+
+What the cursor lands on is the component's own unit: the text view's input puts the cursor on the match's first character; the Markdown viewer selects the drawn line (with `markdown.cursor` `item`, a find down starts after the cursor's whole element); the docs viewer, which has no cursor, scrolls the matching line to its top; a timeline selects the card whose label, header, meta, body, sections or steps match, and opens a closed card found by its body unless `search.open-folds` (default on) is off. A component of an application takes part by implementing `TextFinder` (`FindText(m Matcher, back bool) bool`; `FindLine` walks rows) and binding `/`, `n` and `N` to the two verbs on its noun.
+
+Compared with Vim:
+
+| Vim | `:help` | ochazuke |
+|---|---|---|
+| `/pattern<CR>` | `/` | same on text-like components; the pattern is a query in the search's match mode (`substring` by default), not Vim's regex dialect |
+| `?pattern<CR>` | `?` | `search.find {back: true}` (palette or a row of your own); `?` stays bindings help |
+| `n`, `N` | `n`, `N` | same, `N` going the other way from the last find without changing its direction |
+| `/<CR>` | `/<CR>` | same: an empty line finds the last query |
+| `'wrapscan'` | `'wrapscan'` | always on, without the "search hit BOTTOM" message |
+| `'ignorecase'` `'smartcase'` | `'smartcase'` | `search.case` (`smart` by default) |
+| `'incsearch'` `'hlsearch'` | `'incsearch'` | not yet: the cursor moves on `enter`, and matches are not highlighted |
+| `'foldopen'` search | `'foldopen'` | a timeline card found by its body opens (`search.open-folds`) |
+| a match inside a line | `/` | the text view lands on the match's character; the viewers whose cursor is a line, an element or a card land on that unit |
+
 #### Changed rows leaving a filter
 
 When an existing row changes so it no longer matches the active text or prop filter (including a saved filter or the live filter form), it stays visible in its previous position for `list.filter-linger` (ochazuke › Search, default `30s`). The row shows a `~` marker and the themeable `list.lingering` tone (`ToneLingering`). It remains selectable and its actions still work; an undo that makes it match again clears the marker immediately. New matches appear immediately, and deleting a row removes it immediately.

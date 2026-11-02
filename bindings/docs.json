@@ -13,7 +13,10 @@
       {"key": "ctrl+d", "action": "ochazuke.view.page", "args": {"delta": 1, "half": true}, "from": {"steps": "line"}, "hint": "ctrl+d/u half page"},
       {"key": "ctrl+u", "action": "ochazuke.view.page", "args": {"delta": -1, "half": true}, "from": {"steps": "line"}, "hidden": true},
       {"key": "ctrl+f", "action": "ochazuke.view.page", "args": {"delta": 1}, "from": {"steps": "line"}, "hidden": true},
-      {"key": "ctrl+b", "action": "ochazuke.view.page", "args": {"delta": -1}, "from": {"steps": "line"}, "hidden": true}
+      {"key": "ctrl+b", "action": "ochazuke.view.page", "args": {"delta": -1}, "from": {"steps": "line"}, "hidden": true},
+      {"key": "/", "action": "ochazuke.search.find", "hint": "find"},
+      {"key": "n", "action": "ochazuke.search.next", "from": {"count": "count"}, "hidden": true},
+      {"key": "N", "action": "ochazuke.search.next", "args": {"reverse": true}, "from": {"count": "count"}, "hidden": true}
     ]},
     {"context": "ochazuke.docs-viewer/count_pending", "extends": "normal", "bindings": []}
   ]

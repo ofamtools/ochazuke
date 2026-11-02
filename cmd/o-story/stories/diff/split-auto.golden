@@ -1,5 +1,5 @@
  |M demo.go  +5 -4  unified
-r|@@ -1,4 +1,4 @@ package demo
+R|@@ -1,4 +1,4 @@ package demo
  | 1  1   package demo
  | 2    - func oldName() string {
  | 3    -  return "old"

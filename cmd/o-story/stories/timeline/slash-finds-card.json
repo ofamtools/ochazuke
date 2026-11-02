@@ -1,0 +1,22 @@
+{
+  "name": "timeline: / finds the next card whose text holds the query and selects it, opening a card found by its body (search.open-folds); n goes on round to the first match, N back",
+  "area": "timeline",
+  "page": {
+    "noHeadings": true,
+    "timeline": {
+      "cards": [
+        {"id": "t1", "meta": "09:12 · done", "header": "Read the codemap and name the files that own focus jumps.", "body": "focus.go owns the jumps."},
+        {"id": "t2", "meta": "09:20 · done", "header": "Wrap long help descriptions.", "body": "The table measures widths; the golden needs regenerating."},
+        {"id": "t3", "meta": "10:02 · running", "header": "Regenerate the golden frames after the theme change.", "body": "Streaming the answer…"}
+      ]
+    }
+  },
+  "script": ["/", {"type": "golden"}, "enter", "n", "n", "N"],
+  "expect": [
+    {"after": 2, "modal": "find-line", "contains": ["/golden"]},
+    {"after": 3, "modal": "", "focus": "t2", "contains": ["the golden needs regenerating"]},
+    {"after": 4, "focus": "t3"},
+    {"after": 5, "focus": "t2"},
+    {"focus": "t3"}
+  ]
+}

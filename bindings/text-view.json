@@ -1,7 +1,17 @@
-// ochazuke bindings (JSONC): the text view (OpenTextView, a palette text result): a read-only editor whose keys are the editor's; esc and q close it through the modal noun (bindings/modal.json, modal.close)
+// ochazuke bindings (JSONC): the text view (OpenTextView, a palette text result): a read-only editor whose keys are the editor's; esc and q close it through the modal noun (bindings/modal.json, modal.close); / finds, n and N repeat the find (search.find, R5.20); the find line's own rows follow
 {
   "bindings": [
-    {"context": "ochazuke.text-view/normal", "bindings": []},
-    {"context": "ochazuke.text-view/visual-line", "bindings": []}
+    {"context": "ochazuke.text-view/normal", "bindings": [
+      {"key": "/", "action": "ochazuke.search.find", "hint": "find"},
+      {"key": "n", "action": "ochazuke.search.next", "from": {"count": "count"}, "hidden": true},
+      {"key": "N", "action": "ochazuke.search.next", "args": {"reverse": true}, "from": {"count": "count"}, "hidden": true}
+    ]},
+    {"context": "ochazuke.text-view/visual-line", "bindings": []},
+    {"context": "ochazuke.find-line/insert", "bindings": [
+      {"key": "enter", "action": "ochazuke.find-line.commit", "hint": "find"},
+      {"key": "esc", "action": "ochazuke.find-line.cancel", "hint": "close"},
+      {"key": "tab", "action": "ochazuke.search.cycle-match"},
+      {"key": "shift+tab", "action": "ochazuke.search.cycle-match", "args": {"step": -1}, "hidden": true}
+    ]}
   ]
 }

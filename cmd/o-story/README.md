@@ -461,6 +461,7 @@ Conformance:
 | insert | chooser | `chooser.move` `chooser.next-source` `chooser.open` `chooser.pick` `chooser.previous-source` `chooser.up` |
 | insert | completion | `completion.accept` `completion.dismiss` `completion.move` `completion.open` |
 | insert | demo | `demo.edit` `demo.files` `demo.hide` |
+| insert | find-line | `find-line.commit` |
 | insert | form | `form.next` `form.run` `form.suggest` |
 | insert | input | `input.insert` `input.kill` `input.move` |
 | insert | list | `list.filter-cycle` `list.filter-prop` `list.filter-props-clear` |
@@ -510,6 +511,7 @@ Conformance:
 | normal | page | `page.next` `page.pick` `page.previous` |
 | normal | palette | `palette.open` |
 | normal | pane | `pane.grow` `pane.only` `pane.reset` `pane.restore` `pane.shrink` |
+| normal | search | `search.find` `search.next` |
 | normal | segment | `segment.toggle` |
 | normal | setting | `setting.add` `setting.cycle` `setting.edit` `setting.reset` `setting.revert` `setting.write` |
 | normal | setting-item | `setting-item.add` `setting-item.delete` `setting-item.edit` `setting-item.reset` |
@@ -519,7 +521,7 @@ Conformance:
 | normal | story-card | `story-card.timeline-append` `story-card.timeline-stream` |
 | normal | surface | `surface.scroll` |
 | normal | timeline | `timeline.close` `timeline.close-all` `timeline.enter` `timeline.fold` `timeline.fold-step` `timeline.goto` `timeline.leave` `timeline.open` `timeline.open-all` `timeline.row` `timeline.scroll` `timeline.step` `timeline.toggle` `timeline.yank-step` |
-| normal | view | `view.scroll` |
+| normal | view | `view.edge` `view.page` `view.scroll` |
 | normal | yank-history | `yank-history.open` |
 | operator_pending | input | `input.cancel` |
 | register_pending | mode | `mode.leave` |
@@ -555,8 +557,10 @@ Mode edges (from → to via):
 - `count_pending` → `normal` via `list.goto`
 - `count_pending` → `normal` via `list.move`
 - `count_pending` → `normal` via `list.scroll`
+- `count_pending` → `normal` via `timeline.goto`
 - `count_pending` → `normal` via `timeline.scroll`
 - `count_pending` → `normal` via `timeline.step`
+- `count_pending` → `normal` via `view.edge`
 - `count_pending` → `normal` via `view.scroll`
 - `count_pending` → `visual-line` via `list.move`
 - `count_pending [` → `normal` via `diff.hunk`
@@ -579,6 +583,7 @@ Mode edges (from → to via):
 - `insert` → `jq` via `palette.run`
 - `insert` → `normal` via `bindings.help`
 - `insert` → `normal` via `chooser.pick`
+- `insert` → `normal` via `find-line.commit`
 - `insert` → `normal` via `form.run`
 - `insert` → `normal` via `list.filter-prop`
 - `insert` → `normal` via `macro.record`
@@ -630,6 +635,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `row R`
 - `normal` → `insert` via `row W`
 - `normal` → `insert` via `row e`
+- `normal` → `insert` via `search.find`
 - `normal` → `insert` via `setting-item.add`
 - `normal` → `insert` via `setting-item.edit`
 - `normal` → `insert` via `setting.add`
@@ -694,6 +700,7 @@ Mode edges (from → to via):
 - `normal g` → `normal` via `settings.tab`
 - `normal g` → `normal` via `tick binding`
 - `normal g` → `normal` via `timeline.row`
+- `normal g` → `normal` via `view.edge`
 - `normal g` → `normal` via `yank-history.open`
 - `normal y` → `normal` via `markdown-view.copy`
 - `normal y` → `normal` via `markdown.link-copy`

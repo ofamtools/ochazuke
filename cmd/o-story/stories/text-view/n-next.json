@@ -1,0 +1,16 @@
+{
+  "name": "/ in the text view (a multiline text result) opens the find line; enter jumps the cursor to the first match after it, n to the next, N back and round past the start (search.case smart, search.match substring); q closes the view on the row",
+  "area": "text-view",
+  "width": 80,
+  "height": 24,
+  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
+  "script": [":", {"type": "demo mapping"}, "enter", "/", {"type": "."}, "enter", "y", "y", "n", "y", "y", "N", "N", "y", "y", "q"],
+  "expect": [
+    {"after": 4, "modal": "find-line", "mode": "insert", "contains": ["/", "substr"]},
+    {"after": 6, "modal": "text-view", "mode": "normal"},
+    {"after": 8, "modal": "text-view", "register": "  \"name\": \".title\",\n"},
+    {"after": 11, "register": "  \"size\": \".bytes\",\n"},
+    {"after": 15, "register": "    \".kind\"\n"},
+    {"modal": "", "focus": "a2", "mode": "normal"}
+  ]
+}

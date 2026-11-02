@@ -66,7 +66,10 @@
       {"key": "[ p", "action": "ochazuke.markdown.previous-kind", "args": {"kind": "p"}, "from": {"steps": "count"}}
     ]},
     {"context": "ochazuke.markdown-view/normal", "bindings": [
-      {"key": "y a", "action": "ochazuke.markdown-view.copy", "hint": "copy all"}
+      {"key": "y a", "action": "ochazuke.markdown-view.copy", "hint": "copy all"},
+      {"key": "/", "action": "ochazuke.search.find", "hint": "find"},
+      {"key": "n", "action": "ochazuke.search.next", "from": {"count": "count"}, "hidden": true},
+      {"key": "N", "action": "ochazuke.search.next", "args": {"reverse": true}, "from": {"count": "count"}, "hidden": true}
     ]},
     {"context": "ochazuke.markdown-view/count_pending", "extends": "normal", "bindings": []},
     {"context": "ochazuke.markdown-edit/insert", "bindings": [
