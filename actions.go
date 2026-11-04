@@ -594,7 +594,7 @@ func (r *Runtime) installAction(a Action) {
 	if description == "" {
 		description = "Run " + filepath.Base(a.firstWord()) + " (" + ActionsFile + ")"
 	}
-	r.Register(Operation{Verb: a.Verb, Noun: a.Noun, Description: description, Parameters: params, Result: "JSON value", Positional: slices.Clone(a.Positional), Quiet: a.Quiet, HistoryKind: a.History, Confirm: a.Confirm, App: a.handler()})
+	r.Register(Operation{Verb: a.Verb, Noun: a.Noun, Description: description, Parameters: params, Result: "JSON value", Positional: slices.Clone(a.Positional), Quiet: a.Quiet, Foreground: a.Foreground, HistoryKind: a.History, Confirm: a.Confirm, App: a.handler()})
 	r.Nouns[a.Noun].Verbs = append(r.Nouns[a.Noun].Verbs, a.Verb)
 	c := r.Config()
 	c.actions = append(c.actions, a)

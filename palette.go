@@ -361,11 +361,8 @@ func (p *Palette) dispatch(q Request) error {
 			if value == nil && (q.Verb == "list" || op.Rows != "") {
 				value = []any{}
 			}
-			if run := p.r.Operations[requestOperation(q)]; p.r.showsText(run, value) {
-				// A text answer opens in the text view, Markdown and
-				// preformatted text in their viewer (palette.text-results,
-				// help.markdown).
-				return p.r.OpenText(TextDoc{Format: textFormatOf(run), Title: q.Key(), Text: resultText(value)})
+			if shown, err := p.r.PresentResult(q, value); shown || err != nil {
+				return err
 			}
 			if run := p.r.Operations[requestOperation(q)]; p.r.StandardVerbsView().Record {
 				if row := standardRow(run.Standard); row != nil && row.Record {

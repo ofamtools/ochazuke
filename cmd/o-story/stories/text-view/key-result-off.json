@@ -1,0 +1,8 @@
+{
+  "name": "keys.text-results off keeps key answers from opening a viewer",
+  "area": "text-view",
+  "settings": [{"name": "keys.text-results", "type": "boolean", "default": false}],
+  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2", "bind": [{"noun": "demo", "keys": "v", "do": "demo.mapping"}]},
+  "script": ["v"],
+  "expect": [{"modal": "", "focus": "a2"}]
+}

@@ -553,6 +553,18 @@ func (b *NounBuilder) Quiet() *NounBuilder {
 	return b
 }
 
+// Foreground marks a verb that catalog hosts run on the real terminal.
+// The handler still chooses Foreground(cmd) when running inside its own TUI.
+func (b *NounBuilder) Foreground() *NounBuilder {
+	if b.last == "" {
+		panic("Foreground must follow Verb")
+	}
+	op := b.r.Operations[b.last]
+	op.Foreground = true
+	b.r.Operations[b.last] = op
+	return b
+}
+
 // PersistArgs marks the last declared verb's text-like arguments as safe
 // to keep in the history file (Operation.PersistArgs).
 func (b *NounBuilder) PersistArgs() *NounBuilder {
@@ -1129,6 +1141,11 @@ func (r *Runtime) validateRow(row Binding) (Binding, error) {
 	}
 	if row.Mode != "" && !r.Modes[row.Mode] && !r.pendingModes[row.Mode] {
 		return row, fmt.Errorf("unknown mode %q", row.Mode)
+	}
+	// Remote guards belong to the producing runtime, not the host, even
+	// when a host happens to declare a guard with the same name.
+	if op, ok := r.Operation(row.Request.Key()); ok && op.CatalogProxy {
+		row.When = ""
 	}
 	if row.When != "" && r.guard(row.When) == nil {
 		return row, fmt.Errorf("unknown guard %q", row.When)

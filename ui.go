@@ -212,7 +212,10 @@ func (u *UI) Info(text string) {
 }
 
 func (u *UI) post(msg UIMessage) {
-	if msg.Text != "" && msg.Kind != UIClearNotice {
+	clearStatus := msg.Text == "" && (msg.Kind == UIError || msg.Kind == UIInfo) && u.last != nil && (u.last.Kind == UIError || u.last.Kind == UIInfo)
+	if clearStatus || msg.Kind == UIClearNotice && u.last != nil && u.last.ID == msg.ID {
+		u.last = nil
+	} else if msg.Text != "" && msg.Kind != UIClearNotice {
 		v := msg
 		v.Text = inspectText(v.Text).Text
 		u.last = &v

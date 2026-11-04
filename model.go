@@ -327,7 +327,7 @@ func (m *Model) applyThemeSetting() {
 // handleKey dispatches one key through the runtime's stack walk and shows
 // the error, if any, in the status line.
 func (m *Model) handleKey(key MacroKey) {
-	m.Status, m.Info = "", "" // a key clears the status line; what its handler sets stands
+	m.Runtime.UI().Info("") // a key clears the status line and inspector message
 	r := m.Runtime
 	echo := r.KeyEcho() != KeyEchoOff
 	before := echoKey{key: key, mode: r.Mode, focus: r.Focus, nowSeq: r.history.seq}

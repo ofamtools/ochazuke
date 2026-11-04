@@ -11,9 +11,9 @@ import (
 
 // ResultText is the Operation.Result of a verb whose answer is text to
 // read and copy (a jq program, a JSON mapping), set by
-// NounBuilder.TextResult. The palette shows such an answer in the text
-// view (palette.text-results); the CLI and the API return the value as
-// they return any other.
+// NounBuilder.TextResult. The palette and (with keys.text-results) key
+// bindings show it in the text view (palette.text-results); the CLI and
+// API return the value unchanged.
 const ResultText = "text"
 
 // TextViewID is the text view's modal: the instance id and, canonical as
@@ -30,6 +30,9 @@ const textViewInputID = "__text-view/text"
 // editor, all or plain (settings/ochazuke.json).
 const PaletteTextResultsSetting = "palette.text-results"
 
+// KeyTextResultsSetting enables declared text results from key bindings.
+const KeyTextResultsSetting = "keys.text-results"
+
 // textView is the text view modal's state: its title and the first line
 // its window shows, kept so the window moves only when the cursor would
 // leave it.
@@ -39,10 +42,60 @@ type textView struct {
 }
 
 // TextResult marks the last declared verb's result as text
-// (Operation.Result ResultText): the palette opens what it answers in the
-// text view, a read-only editor. A string is shown as it is; any other
-// value as indented JSON.
+// (Operation.Result ResultText): UI dispatch opens the answer in the text
+// view, a read-only editor. A string is shown as it is; any other value as
+// indented JSON.
 func (b *NounBuilder) TextResult() *NounBuilder { return b.result("TextResult", ResultText) }
+
+// PresentResult presents a completed answer according to the operation's
+// result format and palette.text-results policy. It reports whether the
+// answer has a text presenter; structured answers remain the caller's.
+// CLI/API execution does not call it.
+func (r *Runtime) PresentResult(q Request, value any) (bool, error) {
+	op := r.Operations[requestOperation(r.CanonicalRequest(q))]
+	if !r.showsText(op, value) || value == nil {
+		return false, nil
+	}
+	return true, r.OpenText(TextDoc{Format: textFormatOf(op), Title: q.Key(), Text: resultText(value)})
+}
+
+// keyResultPresenter remembers the interaction that asked. A late answer
+// never covers a different page, selection, mode or newly opened modal.
+func (r *Runtime) keyResultPresenter(q Request) func(any) error {
+	op, _ := r.Operation(q.Key())
+	if !r.Settings().Bool(KeyTextResultsSetting) || !IsTextResult(op.Result) && r.Settings().String(PaletteTextResultsSetting) != "all" {
+		return nil
+	}
+	focus, mode, page := r.Focus, r.BaseMode(), r.Instances[r.Page]
+	under := r.Instances[r.TopModal()]
+	present := func(value any) error {
+		if !r.Settings().Bool(KeyTextResultsSetting) || r.Focus != focus || r.BaseMode() != mode || r.Instances[r.Page] != page || r.Instances[r.TopModal()] != under {
+			return nil
+		}
+		_, err := r.PresentResult(q, value)
+		return err
+	}
+	return func(value any) error {
+		if ticket, pending := value.(Ticket); pending {
+			if job := r.jobs[ticket.Job]; job != nil {
+				then := job.then
+				job.then = func(c Ctx, value any, err error) error {
+					if then != nil {
+						if callbackErr := then(c, value, err); callbackErr != nil {
+							return callbackErr
+						}
+					}
+					if err != nil || r.Instances[ticket.Owner] == nil {
+						return nil
+					}
+					return present(value)
+				}
+			}
+			return nil
+		}
+		return present(value)
+	}
+}
 
 func registerTextView(r *Runtime) {
 	r.Define(TextViewNoun)

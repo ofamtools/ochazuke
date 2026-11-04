@@ -573,8 +573,12 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent) error {
 		}
 	}
 	execute := func(q Request) error {
+		present := r.keyResultPresenter(q)
 		r.rowRequest = true
-		_, err := r.Execute(q)
+		value, err := r.Execute(q)
+		if err == nil && present != nil {
+			err = present(value)
+		}
 		return err
 	}
 	// A request lacking a required argument opens the args form for it

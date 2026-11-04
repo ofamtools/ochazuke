@@ -218,6 +218,8 @@ type Operation struct {
 	Kind          string               `json:"kind"`
 	Confirm       string               `json:"confirm,omitempty"`
 	Repeatable    bool                 `json:"repeatable,omitempty"`
+	// Foreground tells catalog hosts to hand the terminal to this verb.
+	Foreground bool `json:"foreground,omitempty"`
 	// Rows names the noun whose rows the verb's result lists (a list
 	// verb's JSON array of rows of that noun); "" when the result is not
 	// rows. It is data for hosts (the catalog's rows); the runtime does
