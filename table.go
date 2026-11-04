@@ -737,12 +737,14 @@ func (l *List) tallView(lines []string, width, height, body int, cols []Column, 
 	sticky := func(from int) bool {
 		return visible > 1 && l.items[from].Section != "" && !opens[from]
 	}
-	fits := func(from int) bool {
+	// lineSpan is what rows from..to take when from is the first row drawn:
+	// the repeated section label, section labels, lines and gaps.
+	lineSpan := func(from, to int) int {
 		n := 0
 		if sticky(from) {
 			n++
 		}
-		for i := from; i <= l.selected; i++ {
+		for i := from; i <= to; i++ {
 			n += len(rows[i])
 			if opens[i] {
 				n++
@@ -751,11 +753,22 @@ func (l *List) tallView(lines []string, width, height, body int, cols []Column, 
 				n++
 			}
 		}
-		return n <= visible
+		return n
 	}
+	// The selected row keeps the scrolloff margin of rows above and below
+	// it (shrunk in a short window, relaxed at the ends), and the window
+	// never starts so low that rows through the last leave empty lines.
+	margin := min(l.scrolloff(), max(0, (visible-1)/2))
 	l.offset = max(0, min(l.offset, l.selected))
-	for l.offset < l.selected && !fits(l.offset) {
+	if lo := max(0, l.selected-margin); l.offset > lo {
+		l.offset = lo
+	}
+	below := min(len(l.items)-1, l.selected+margin)
+	for l.offset < l.selected && lineSpan(l.offset, below) > visible {
 		l.offset++
+	}
+	for l.offset > 0 && lineSpan(l.offset-1, len(l.items)-1) <= visible {
+		l.offset--
 	}
 	if l.offset > 0 && l.hasGroup() {
 		// The first row drawn shows its Group cells.
