@@ -23,6 +23,9 @@ type Actor struct {
 	Pane    string `json:"pane,omitempty"`
 	Session string `json:"session,omitempty"`
 	Model   string `json:"model,omitempty"`
+	// Via attributes an extension host call to the actor that launched it.
+	// It records provenance, never an independent grant of rights.
+	Via *Actor `json:"via,omitempty"`
 }
 
 // Owner is the owner as an actor.
@@ -86,7 +89,25 @@ func ParseActor(s string) (Actor, error) {
 // entries: at least a pane or a name must identify it, and all identity fields
 // must match (including session, so a reused pane id is not another session).
 func (a Actor) SameAgent(b Actor) bool {
-	return a.IsAgent() && b.IsAgent() && a == b && (a.Pane != "" || a.Name != "")
+	return a.IsAgent() && b.IsAgent() && sameActor(a, b) && (a.Pane != "" || a.Name != "")
+}
+
+func sameActor(a, b Actor) bool {
+	av, bv := a.Via, b.Via
+	a.Via, b.Via = nil, nil
+	if a != b {
+		return false
+	}
+	if av == nil || bv == nil {
+		return av == bv
+	}
+	return sameActor(*av, *bv)
+}
+
+// ThroughExtension narrows an actor to the extension's agent identity.
+func (a Actor) ThroughExtension(name string) Actor {
+	a = a.normalized()
+	return Actor{Kind: ActorAgent, Harness: "extension", Name: name, Via: &a}
 }
 
 // ActorFromEnv reads CLI identity from OCHAZUKE_ACTOR (a kind or JSON)
@@ -146,6 +167,9 @@ func ActorFromEnv(getenv func(string) string) (Actor, error) {
 		if a.Session == "" {
 			a.Session = getenv("TUIOS_SESSION")
 		}
+	}
+	if caller := strings.TrimSpace(getenv("OCHAZUKE_CALLER")); caller != "" {
+		a = a.ThroughExtension(caller)
 	}
 	return a, nil
 }

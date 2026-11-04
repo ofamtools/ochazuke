@@ -656,7 +656,7 @@ func (r *Runtime) argument(source string, ev KeyEvent) any {
 		return jsonShaped(r.rowData(ev))
 	}
 	if field, ok := rowSourceField(source); ok {
-		return dataField(r.rowData(ev), field)
+		return r.rowField(ev, field)
 	}
 	return nil
 }

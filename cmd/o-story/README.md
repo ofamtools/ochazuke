@@ -492,7 +492,7 @@ Conformance:
 | normal | chooser | `chooser.move` `chooser.pick` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
-| normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.choose` `demo.delete` `demo.edit-task` `demo.finish` `demo.forget-row` `demo.hide` `demo.launch` `demo.mapping` `demo.notify` `demo.open` `demo.ping` `demo.read` `demo.reload` `demo.set` `demo.ship` `demo.synced` `demo.thread` `demo.write` |
+| normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.check-bindings` `demo.choose` `demo.delete` `demo.edit-task` `demo.finish` `demo.forget-row` `demo.hide` `demo.inspect` `demo.launch` `demo.load-peers` `demo.mapping` `demo.notify` `demo.open` `demo.ping` `demo.read` `demo.reload` `demo.set` `demo.ship` `demo.synced` `demo.thread` `demo.write` |
 | normal | detail | `detail.fields` `detail.scroll` |
 | normal | detail-field | `detail-field.copy` `detail-field.show` |
 | normal | diff | `diff.file` `diff.hunk` `diff.move` `diff.scroll` `diff.scroll-columns` |
@@ -507,6 +507,7 @@ Conformance:
 | normal | macro | `macro.record` `macro.start` `macro.stop` |
 | normal | markdown | `markdown.delete` `markdown.fold` `markdown.insert` `markdown.link-copy` `markdown.link-open` `markdown.move` `markdown.next-block` `markdown.next-kind` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-link` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
 | normal | markdown-view | `markdown-view.copy` |
+| normal | md.doc | `md.doc.show` |
 | normal | messages | `messages.show` |
 | normal | modal | `modal.close` |
 | normal | mode | `mode.enter` `mode.leave` `mode.set` |

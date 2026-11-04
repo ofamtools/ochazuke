@@ -57,7 +57,10 @@ type Page struct {
 	// NOUN.VERB and its arguments to writes, and each alias
 	// (ochazuke.NounAlias: since/removeAfter for a deprecated one) is
 	// registered with Runtime.AddNounAlias.
-	Nouns []NounSpec `json:"nouns,omitempty"`
+	Nouns        []NounSpec             `json:"nouns,omitempty"`
+	PeerBindings []ochazuke.PeerBinding `json:"peerBindings,omitempty"`
+	// LateNouns are installed by demo.load-peers, then the soft layer reloads.
+	LateNouns []NounSpec `json:"lateNouns,omitempty"`
 	// Store gives the demo noun props and an in-memory store
 	// (ochazuke.NounBuilder.Props and Store): demo.get, list, create, set
 	// (alias patch) and delete are then standard verbs over Things (the
@@ -482,12 +485,13 @@ type AboutSectionSpec struct {
 
 // BindSpec is an extra binding row: keys on noun in mode run do.
 type BindSpec struct {
-	Noun string         `json:"noun"`
-	Mode string         `json:"mode,omitempty"`
-	Keys string         `json:"keys"`
-	Do   string         `json:"do"`
-	Args map[string]any `json:"args,omitempty"`
-	When string         `json:"when,omitempty"`
+	Noun string            `json:"noun"`
+	Mode string            `json:"mode,omitempty"`
+	Keys string            `json:"keys"`
+	Do   string            `json:"do"`
+	Args map[string]any    `json:"args,omitempty"`
+	When string            `json:"when,omitempty"`
+	From map[string]string `json:"from,omitempty"`
 }
 
 // StoreSpec is the demo noun's props (ochazuke.PropSpec as JSON) and its

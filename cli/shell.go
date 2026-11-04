@@ -173,6 +173,14 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		}
 		actor = &a
 	}
+	bound, err := s.hostCallBoundary(*actor)
+	if err != nil {
+		return err
+	}
+	actor = &bound
+	if strings.TrimSpace(os.Getenv("OCHAZUKE_CALLER")) != "" {
+		defer s.Runtime.Config().Flush()
+	}
 	before := s.actor
 	s.actor = actor
 	defer s.Runtime.BindActor(*actor, false)()
