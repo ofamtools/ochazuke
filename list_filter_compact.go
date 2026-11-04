@@ -823,7 +823,7 @@ func registerFilterViewForm(r *Runtime) {
 	})
 	r.DefineGuard("filter-form-delete-saved", func(r *Runtime, ev KeyEvent) bool {
 		v := filterViewAt(r, ev.Focus)
-		return v != nil && v.saveInput != nil && r.Input(r.Focus) == nil
+		return v != nil && v.saveInput != nil && r.Input(ev.Focus) == nil
 	})
 	r.DefineGuard("filter-form-sort", func(r *Runtime, ev KeyEvent) bool {
 		v := filterViewAt(r, ev.Focus)
