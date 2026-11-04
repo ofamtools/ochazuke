@@ -1,0 +1,90 @@
+{
+  "name": "outline: tree.delete-children orphan moves an expanded row's children to the top level, after its top-level ancestor; one u restores them",
+  "area": "tree",
+  "settings": [
+    {
+      "name": "tree.delete-children",
+      "type": "string",
+      "default": "orphan",
+      "enum": [
+        "promote",
+        "orphan",
+        "subtree"
+      ]
+    }
+  ],
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "editable": true,
+        "nodes": [
+          {
+            "id": "a",
+            "label": "alpha"
+          },
+          {
+            "id": "b",
+            "parent": "a",
+            "label": "beta"
+          },
+          {
+            "id": "c",
+            "parent": "b",
+            "label": "gamma"
+          },
+          {
+            "id": "d",
+            "parent": "b",
+            "label": "delta"
+          },
+          {
+            "id": "e",
+            "parent": "a",
+            "label": "epsilon"
+          },
+          {
+            "id": "f",
+            "label": "zeta"
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "d",
+    "d",
+    "u"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "writes": [
+        "move c under root at 1",
+        "move d under root at 2",
+        "delete b"
+      ],
+      "order": [
+        "alpha",
+        "epsilon",
+        "gamma",
+        "delta",
+        "zeta"
+      ],
+      "lacks": [
+        "beta"
+      ]
+    },
+    {
+      "order": [
+        "alpha",
+        "beta",
+        "gamma",
+        "delta",
+        "epsilon",
+        "zeta"
+      ]
+    }
+  ]
+}

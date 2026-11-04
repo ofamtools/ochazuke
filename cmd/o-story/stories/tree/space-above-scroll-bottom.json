@@ -1,0 +1,80 @@
+{
+  "name": "tree: with blank lines in a short window G shows the last row whole and scrolling reaches it",
+  "area": "tree",
+  "width": 40,
+  "height": 8,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "trees": [
+      {
+        "id": "t",
+        "nodes": [
+          {
+            "id": "r0",
+            "label": "row0",
+            "spaceAbove": true
+          },
+          {
+            "id": "r1",
+            "label": "row1",
+            "spaceAbove": true
+          },
+          {
+            "id": "r2",
+            "label": "row2",
+            "spaceAbove": true
+          },
+          {
+            "id": "r3",
+            "label": "row3",
+            "spaceAbove": true
+          },
+          {
+            "id": "r4",
+            "label": "row4",
+            "spaceAbove": true
+          },
+          {
+            "id": "r5",
+            "label": "row5",
+            "spaceAbove": true
+          },
+          {
+            "id": "r6",
+            "label": "row6",
+            "spaceAbove": true
+          },
+          {
+            "id": "r7",
+            "label": "row7",
+            "spaceAbove": true
+          },
+          {
+            "id": "r8",
+            "label": "row8",
+            "spaceAbove": true
+          },
+          {
+            "id": "r9",
+            "label": "row9",
+            "spaceAbove": true
+          },
+          {
+            "id": "r10",
+            "label": "row10",
+            "spaceAbove": true
+          },
+          {
+            "id": "r11",
+            "label": "row11",
+            "spaceAbove": true
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "G"
+  ]
+}

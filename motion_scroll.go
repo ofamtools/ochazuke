@@ -262,13 +262,13 @@ func (l *List) ScrollLines(lines int) {
 		return
 	}
 	total, visible := len(l.items), l.window
-	l.offset = min(max(0, l.offset+lines), total-visible)
+	l.offset = min(max(0, l.offset+lines), l.lastOffset())
 	margin := min(l.scrolloff(), max(0, (visible-1)/2))
 	lo, hi := l.offset+margin, l.offset+visible-1-margin
 	if l.offset == 0 {
 		lo = 0
 	}
-	if l.offset+visible >= total {
+	if l.offset >= l.lastOffset() {
 		hi = total - 1
 	}
 	switch {

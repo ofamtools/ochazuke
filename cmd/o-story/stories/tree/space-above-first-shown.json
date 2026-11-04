@@ -1,0 +1,49 @@
+{
+  "name": "tree: a filter that makes a spaced row the first shown draws no blank line above it",
+  "area": "tree",
+  "width": 40,
+  "height": 10,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "trees": [
+      {
+        "id": "t",
+        "nodes": [
+          {
+            "id": "r0",
+            "label": "row0",
+            "spaceAbove": true
+          },
+          {
+            "id": "r1",
+            "label": "row1",
+            "spaceAbove": true
+          },
+          {
+            "id": "r2",
+            "label": "row2",
+            "spaceAbove": true
+          },
+          {
+            "id": "r3",
+            "label": "row3",
+            "spaceAbove": true
+          },
+          {
+            "id": "r4",
+            "label": "row4",
+            "spaceAbove": true
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "/",
+    {
+      "type": "row3"
+    },
+    "enter"
+  ]
+}

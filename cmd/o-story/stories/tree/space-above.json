@@ -1,0 +1,40 @@
+{
+  "name": "tree: a row that asks for space has a blank line above it, the first row never does",
+  "area": "tree",
+  "width": 40,
+  "height": 14,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "trees": [
+      {
+        "id": "t",
+        "nodes": [
+          {
+            "id": "r0",
+            "label": "row0",
+            "spaceAbove": true
+          },
+          {
+            "id": "r1",
+            "label": "row1",
+            "spaceAbove": true
+          },
+          {
+            "id": "r2",
+            "label": "row2",
+            "spaceAbove": true
+          },
+          {
+            "id": "r3",
+            "label": "row3",
+            "spaceAbove": true
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "j"
+  ]
+}

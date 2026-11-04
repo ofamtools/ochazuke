@@ -1,0 +1,52 @@
+{
+  "name": "outline: d d on a fixed row, or on a row above a fixed one, refuses and writes nothing",
+  "area": "tree",
+  "settings": [
+    {
+      "name": "tree.delete-children",
+      "type": "string",
+      "default": "promote",
+      "enum": [
+        "promote",
+        "orphan",
+        "subtree"
+      ]
+    }
+  ],
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "editable": true,
+        "nodes": [
+          {
+            "id": "a",
+            "label": "alpha"
+          },
+          {
+            "id": "b",
+            "parent": "a",
+            "label": "beta",
+            "fixed": [
+              "delete"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "d",
+    "d",
+    "j",
+    "d",
+    "d"
+  ],
+  "expect": {
+    "writes": [],
+    "contains": [
+      "alpha",
+      "beta"
+    ]
+  }
+}

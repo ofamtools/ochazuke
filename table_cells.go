@@ -492,6 +492,14 @@ func registerTableCells(r *Runtime) {
 		if l.visual {
 			items = l.markedShown()
 			defer r.afterVisualAction(l)
+			if l.yankRows != nil && what == "row" {
+				y, n := l.yankRows(items)
+				if err := r.storeYank(y, StringArg(a, "register", ""), false); err != nil {
+					return nil, err
+				}
+				r.UI().Info(copiedRows(n))
+				return y, nil
+			}
 		}
 		lines := make([]string, len(items))
 		for i, it := range items {

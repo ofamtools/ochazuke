@@ -20,11 +20,16 @@
       {"key": "J", "action": "ochazuke.outline.move", "args": {"delta": 1}},
       {"key": "K", "action": "ochazuke.outline.move", "args": {"delta": -1}},
       {"key": "d d", "action": "ochazuke.outline.delete"},
+      {"key": "y y", "action": "ochazuke.outline.yank"},
+      {"key": "p", "action": "ochazuke.outline.put"},
+      {"key": "P", "action": "ochazuke.outline.put", "args": {"before": true}},
       {"key": "u", "action": "ochazuke.outline.undo"},
       {"key": "ctrl+r", "action": "ochazuke.outline.redo"},
       {"key": "paste", "action": "ochazuke.outline.paste", "from": {"text": "text"}}
     ]},
-    {"context": "ochazuke.outline/visual-line", "bindings": []},
+    {"context": "ochazuke.outline/visual-line", "bindings": [
+      {"key": "d", "action": "ochazuke.outline.delete"}
+    ]},
     {"context": "ochazuke.outline-line/insert", "bindings": [
       {"key": "esc", "action": "ochazuke.outline.leave"},
       {"key": "enter", "action": "ochazuke.outline.next"},

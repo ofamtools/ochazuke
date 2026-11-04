@@ -114,18 +114,20 @@ func (l *List) Filtering() bool {
 }
 
 // Height is the lines the list needs to draw every row without
-// windowing (a table's header aside): Len, plus the filter line while it
+// windowing (a table's header aside): Len, plus the blank lines above rows that
+// ask for space (ListItem.SpaceAbove) and the filter line while it
 // shows. A host that sizes a list to its rows sizes it with Height, so
 // opening the filter line neither windows the rows nor moves what is drawn
 // below the list as the filter narrows it.
 func (l *List) Height() int {
+	gaps := l.spaceLines() // blank lines above SpaceAbove rows
 	if l.query != "" || l.editingFilter() || l.propStrip() != "" || l.sortSummary() != "" {
-		return l.Len() + 1
+		return l.Len() + gaps + 1
 	}
 	if l.Filtering() {
-		return max(1, l.Len())
+		return max(1, l.Len()+gaps)
 	}
-	return l.Len()
+	return l.Len() + gaps
 }
 
 // Shown is the number of rows the filter lets through (Len without one).

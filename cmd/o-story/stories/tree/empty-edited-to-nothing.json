@@ -1,0 +1,62 @@
+{
+  "name": "outline: a row edited down to nothing is removed without writing the blank; one u brings it back as it was",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "editable": true,
+        "nodes": [
+          {
+            "id": "a",
+            "label": "alpha"
+          },
+          {
+            "id": "b",
+            "parent": "a",
+            "label": "beta"
+          },
+          {
+            "id": "c",
+            "label": "gamma"
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "j",
+    "i",
+    "backspace",
+    "esc",
+    "u"
+  ],
+  "expect": [
+    {
+      "after": 5,
+      "mode": "normal",
+      "focus": "b",
+      "writes": [
+        "delete c"
+      ],
+      "contains": [
+        "alpha",
+        "beta"
+      ],
+      "lacks": [
+        "gamma"
+      ]
+    },
+    {
+      "focus": "c",
+      "writes": [
+        "delete c",
+        "add c under root at 1: gamma"
+      ],
+      "contains": [
+        "gamma"
+      ]
+    }
+  ]
+}

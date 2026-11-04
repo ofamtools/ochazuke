@@ -1,0 +1,91 @@
+{
+  "name": "outline: d d on a collapsed row deletes its whole subtree, children included; one u restores it",
+  "area": "tree",
+  "settings": [
+    {
+      "name": "tree.delete-children",
+      "type": "string",
+      "default": "promote",
+      "enum": [
+        "promote",
+        "orphan",
+        "subtree"
+      ]
+    }
+  ],
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "editable": true,
+        "nodes": [
+          {
+            "id": "a",
+            "label": "alpha"
+          },
+          {
+            "id": "b",
+            "parent": "a",
+            "label": "beta"
+          },
+          {
+            "id": "c",
+            "parent": "b",
+            "label": "gamma"
+          },
+          {
+            "id": "d",
+            "parent": "b",
+            "label": "delta"
+          },
+          {
+            "id": "e",
+            "parent": "a",
+            "label": "epsilon"
+          },
+          {
+            "id": "f",
+            "label": "zeta"
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "h",
+    "d",
+    "d",
+    "u"
+  ],
+  "expect": [
+    {
+      "after": 4,
+      "writes": [
+        "delete d",
+        "delete c",
+        "delete b"
+      ],
+      "order": [
+        "alpha",
+        "epsilon",
+        "zeta"
+      ],
+      "lacks": [
+        "beta",
+        "gamma",
+        "delta"
+      ]
+    },
+    {
+      "order": [
+        "alpha",
+        "beta",
+        "gamma",
+        "delta",
+        "epsilon",
+        "zeta"
+      ]
+    }
+  ]
+}

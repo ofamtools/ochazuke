@@ -464,14 +464,14 @@ Conformance:
 | insert | filter-form | `filter-form.move` `filter-form.write-saved` |
 | insert | find-line | `find-line.commit` |
 | insert | form | `form.next` `form.run` `form.suggest` |
-| insert | input | `input.insert` `input.kill` `input.move` |
+| insert | input | `input.delete` `input.insert` `input.kill` `input.move` |
 | insert | list | `list.filter-cycle` `list.filter-prop` |
 | insert | macro | `macro.record` |
 | insert | markdown | `markdown.cell` `markdown.continue-item` `markdown.end-list` `markdown.indent` `markdown.insert-block` `markdown.leave` `markdown.outdent` `markdown.unmark` |
 | insert | modal | `modal.close` |
 | insert | mode | `mode.set` |
 | insert | modes | `modes.list` |
-| insert | outline | `outline.leave` `outline.row-key` |
+| insert | outline | `outline.leave` `outline.next` `outline.row-key` |
 | insert | palette | `palette.complete` `palette.move` `palette.run` |
 | insert | search | `search.cycle-match` |
 | insert | setting-value | `setting-value.commit` |
@@ -511,7 +511,7 @@ Conformance:
 | normal | modal | `modal.close` |
 | normal | mode | `mode.enter` `mode.leave` `mode.set` |
 | normal | notice | `notice.clear` |
-| normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.fold` `outline.indent` `outline.move` `outline.outdent` `outline.paste` `outline.redo` `outline.undo` `outline.zoom-in` `outline.zoom-out` `outline.zoom-reset` |
+| normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.fold` `outline.indent` `outline.move` `outline.outdent` `outline.paste` `outline.put` `outline.redo` `outline.undo` `outline.yank` `outline.zoom-in` `outline.zoom-out` `outline.zoom-reset` |
 | normal | page | `page.next` `page.pick` `page.previous` |
 | normal | palette | `palette.open` |
 | normal | pane | `pane.grow` `pane.only` `pane.reset` `pane.restore` `pane.shrink` |
@@ -548,6 +548,7 @@ Conformance:
 | visual-line | list | `list.apply` `list.end-visual` `list.goto` `list.move` `list.yank` |
 | visual-line | modal | `modal.close` |
 | visual-line | mode | `mode.enter` `mode.leave` |
+| visual-line | outline | `outline.delete` |
 
 Mode edges (from → to via):
 
@@ -722,6 +723,7 @@ Mode edges (from → to via):
 - `normal g` → `normal` via `yank-history.open`
 - `normal y` → `normal` via `markdown-view.copy`
 - `normal y` → `normal` via `markdown.link-copy`
+- `normal y` → `normal` via `outline.yank`
 - `normal z` → `insert` via `list.filter-prop`
 - `normal z` → `insert` via `list.filter-prop-clear`
 - `normal z` → `insert` via `list.sort-column`
@@ -766,6 +768,7 @@ Mode edges (from → to via):
 - `visual-line` → `normal` via `input.operator`
 - `visual-line` → `normal` via `list.end-visual`
 - `visual-line` → `normal` via `list.yank`
+- `visual-line` → `normal` via `outline.delete`
 - `visual-line` → `register_pending` via `mode.enter`
 - `visual-line` → `replay_pending` via `mode.enter`
 - `visual-line` → `visual-line d` via `row d`

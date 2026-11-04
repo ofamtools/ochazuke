@@ -1,0 +1,70 @@
+{
+  "name": "outline: d d then p moves a row: the delete fills the register",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "editable": true,
+        "nodes": [
+          {
+            "id": "a",
+            "label": "alpha"
+          },
+          {
+            "id": "b",
+            "parent": "a",
+            "label": "beta"
+          },
+          {
+            "id": "c",
+            "parent": "b",
+            "label": "gamma"
+          },
+          {
+            "id": "d",
+            "parent": "b",
+            "label": "delta"
+          },
+          {
+            "id": "e",
+            "parent": "a",
+            "label": "epsilon"
+          },
+          {
+            "id": "f",
+            "label": "zeta"
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "G",
+    "d",
+    "d",
+    "g",
+    "g",
+    "p"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "register": "zeta\n"
+    },
+    {
+      "order": [
+        "alpha",
+        "beta",
+        "gamma",
+        "delta",
+        "epsilon",
+        "zeta"
+      ],
+      "writes": [
+        "delete f",
+        "add t-n1 under root at 1: zeta"
+      ]
+    }
+  ]
+}
