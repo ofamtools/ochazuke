@@ -573,3 +573,54 @@ func TestPathUpFromNoneSetting(t *testing.T) {
 		})
 	}
 }
+
+// A query written as a path ("/", "~", "./", "../") is answered by the
+// typed source at once, from any source; a plain word keeps filtering,
+// and emptying the query goes back to the source the user chose.
+func TestPathQueryClaimsTypedSource(t *testing.T) {
+	root := pathTree(t)
+	_, m, c, chosen := pathFixture(t, PathPick{Parameter: Parameter{Type: "path", Base: root}})
+	typeText(m, "a")
+	if c.Source() != PathSourceBrowse {
+		t.Fatalf("a plain word moved to %q", c.Source())
+	}
+	c.SetQuery("")
+	typeText(m, root+"/s")
+	if c.Source() != PathSourceTyped || !slices.Equal(labels(c.Matches()), []string{root + "/sub/"}) {
+		t.Fatalf("source %q rows %v", c.Source(), labels(c.Matches()))
+	}
+	if got := c.r.ChooserLastSource(PathChooserKind); got == PathSourceTyped {
+		t.Fatalf("a claim must not be remembered as the user's source")
+	}
+	c.SetQuery("")
+	landLoads(m, c.r.PendingCommands())
+	if c.Source() != PathSourceBrowse {
+		t.Fatalf("after clearing: source %q", c.Source())
+	}
+	typeText(m, "./sub/c.json")
+	pressLand(m, "enter")
+	if !slices.Equal(*chosen, []string{filepath.Join(root, "sub", "c.json")}) {
+		t.Fatalf("chosen %v", *chosen)
+	}
+}
+
+// A folder chooser takes the typed folder with enter (not browsing into
+// it), refuses a file, and expands ~; no known folders are needed.
+func TestPathQueryFolderChooser(t *testing.T) {
+	root := pathTree(t)
+	t.Setenv("HOME", root)
+	_, m, c, chosen := pathFixture(t, PathPick{Parameter: Parameter{Type: "path", Path: PathDir, Base: "/"}})
+	typeText(m, "~/sub")
+	pressLand(m, "enter")
+	if !slices.Equal(*chosen, []string{filepath.Join(root, "sub")}) {
+		t.Fatalf("chosen %v", *chosen)
+	}
+	c, err := c.r.OpenPathChooser(PathChooserSpec{Pick: PathPick{Parameter: Parameter{Type: "path", Path: PathDir}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	typeText(m, root+"/a.json")
+	if row, ok := c.Highlighted(); !ok || row.Refuse == "" {
+		t.Fatalf("a file for a folder pick: %+v", row)
+	}
+}

@@ -62,6 +62,14 @@ type ChooserSource struct {
 	// current: the cell columns cut last (a known-folder source's path,
 	// its branch and project columns narrowing first).
 	Keep []int
+	// Claims, when set, says the query is this source's to answer (a path
+	// typed into a path chooser: "/", "~", "./", "../"). While
+	// chooser.claim-source is on, the chooser shows the first source
+	// whose Claims holds for the query, whichever is current, and goes
+	// back to the one it left when the query stops being claimed; no key
+	// switches. Stepping to another source by hand (chooser.next-source)
+	// ends the claim until the query is no longer claimed.
+	Claims func(query string) bool
 }
 
 // Chooser settings: rows of settings/ochazuke.json.
@@ -69,6 +77,10 @@ const (
 	// ChooserRememberSourceSetting reopens a chooser with sources on the
 	// source last used for its kind (on), or on its first source (off).
 	ChooserRememberSourceSetting = "chooser.remember-source"
+	// ChooserClaimSourceSetting lets a source that claims the query
+	// (ChooserSource.Claims) answer for it at once (on, the default), or
+	// leaves the source switch to the user (off).
+	ChooserClaimSourceSetting = "chooser.claim-source"
 	// ChooserEnterSetting is what enter does on a row that can be both
 	// opened and picked (a folder in a folder chooser): "open" (the
 	// default; alt+enter picks) or "pick" (ctrl+l opens).
@@ -255,6 +267,8 @@ func (c *Chooser) cycle(delta int) error {
 	if n < 2 {
 		return errors.New("the chooser has one source")
 	}
+	c.suppressed = c.claimedBy(c.Query()) >= 0
+	c.claimed = false
 	c.source = ((c.source+delta)%n + n) % n
 	c.r.chooserMemory().lastSource[c.spec.Kind] = c.Source()
 	c.spec.Rows = nil
@@ -289,6 +303,49 @@ func chooserRowsOf(value any) ([]ChooserRow, Result) {
 		return v, Result{}
 	}
 	return nil, Result{}
+}
+
+// claimedBy is the index of the first source claiming query, -1 for none.
+func (c *Chooser) claimedBy(query string) int {
+	for i, s := range c.spec.Sources {
+		if s.Claims != nil && s.Claims(query) {
+			return i
+		}
+	}
+	return -1
+}
+
+// claim shows the source that claims the query (and goes back to the one
+// it left when none does), loading it; it reports whether it switched.
+func (c *Chooser) claim() bool {
+	if len(c.spec.Sources) < 2 || !c.r.settingOn(ChooserClaimSourceSetting) {
+		return false
+	}
+	want := c.claimedBy(c.Query())
+	if want < 0 {
+		c.suppressed = false
+	}
+	to := -1
+	switch {
+	case c.suppressed:
+		return false
+	case want >= 0 && want != c.source:
+		if !c.claimed {
+			c.base, c.claimed = c.source, true
+		}
+		to = want
+	case want < 0 && c.claimed:
+		to, c.claimed = c.base, false
+	}
+	if to < 0 {
+		return false
+	}
+	c.filters.linger.reset()
+	c.source = to
+	c.spec.Rows = nil
+	c.cachePropRows()
+	c.load()
+	return true
 }
 
 // load asks the current source for its rows at the query.

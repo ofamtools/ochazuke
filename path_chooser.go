@@ -248,6 +248,7 @@ func (r *Runtime) OpenPathChooser(spec PathChooserSpec) (*Chooser, error) {
 		Title:   title,
 		Sources: sources,
 		Source:  spec.Source,
+		Empty:   "nothing here; type a path (/, ~/, ./) to pick one",
 		Choose: func(row ChooserRow) Result {
 			path, ok := row.Data.(string)
 			if !ok || path == "" {
@@ -458,9 +459,10 @@ func (r *Runtime) recentSource(pick PathPick) ChooserSource {
 // row types it with a trailing /; up drops the last part.
 func (r *Runtime) typedSource(pick PathPick, use func(string) Result) ChooserSource {
 	return ChooserSource{
-		Name:  PathSourceTyped,
-		Live:  true,
-		Empty: "type a path",
+		Name:   PathSourceTyped,
+		Live:   true,
+		Empty:  "type a path",
+		Claims: pathQuery,
 		Load: func(query string) Result {
 			if strings.TrimSpace(query) == "" {
 				return Done([]ChooserRow(nil))
@@ -490,6 +492,14 @@ func (r *Runtime) typedSource(pick PathPick, use func(string) Result) ChooserSou
 	}
 }
 
+// pathQuery reports whether query is written as a path ("/", "~", "./",
+// "../"), so the typed source answers it from any source; a plain word
+// is not, and keeps filtering the list.
+func pathQuery(query string) bool {
+	q := query
+	return strings.HasPrefix(q, "/") || q == "~" || strings.HasPrefix(q, "~/") || strings.HasPrefix(q, "./") || strings.HasPrefix(q, "../")
+}
+
 // typedRows are the typed source's rows for query; caseMode is the
 // search.case setting, applied to the name being completed (the part after
 // the last /), so a capital in a folder already typed never makes the
@@ -509,7 +519,9 @@ func typedRows(query string, pick PathPick, hidden bool, caseMode string) []Choo
 	switch {
 	case err == nil && info.IsDir():
 		if pick.Dir() {
-			rows = append(rows, ChooserRow{ID: path, Label: query, Data: path, Opens: true})
+			// The typed folder itself is picked by enter; the folders
+			// under it below it open.
+			rows = append(rows, ChooserRow{ID: path, Label: query, Data: path})
 		}
 	case err == nil:
 		if !pick.Dir() {

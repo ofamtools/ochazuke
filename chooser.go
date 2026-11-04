@@ -150,9 +150,15 @@ type Chooser struct {
 	// generation (an older load's rows never land).
 	source      int
 	loadedQuery string
-	loading     bool
-	loadErr     string
-	gen         uint64
+	// A source that claims the query is shown in place of base (the
+	// source the user chose) while claimed; suppressed after a hand
+	// switch, until the query is no longer claimed.
+	base       int
+	claimed    bool
+	suppressed bool
+	loading    bool
+	loadErr    string
+	gen        uint64
 	// tallest is the most lines the rows view has drawn while open: with
 	// chooser.stable-height it pads to it, so typing never resizes it.
 	tallest int
@@ -479,6 +485,7 @@ func (c *Chooser) sync() {
 	if c.Query() == c.seen && c.propsEnabled == c.propFiltersEnabled() {
 		return
 	}
+	c.claim()
 	if c.live() && c.Query() != c.loadedQuery {
 		c.load()
 	}

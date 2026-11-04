@@ -125,7 +125,7 @@ Root package `ochazuke` is flat: 168 source files, 200 test files. Each entry li
 
 ### chooser.go
 
-- lines: 1005 · tests: chooser_test.go
+- lines: 1012 · tests: chooser_test.go
 - purpose: ChooserRow is one choice.
 - types: ChooserRow, ChooserSpec, Chooser
 - methods: Chooser(33), Runtime(4)
@@ -141,11 +141,11 @@ Root package `ochazuke` is flat: 168 source files, 200 test files. Each entry li
 
 ### chooser_sources.go
 
-- lines: 472 · tests: chooser_sources_test.go
+- lines: 529 · tests: chooser_sources_test.go
 - purpose: ChooserSource is one source of a chooser's rows.
 - types: ChooserSource, ChooserBatch
-- methods: Chooser(19), Runtime(2), chooserState(3)
-- leans on: delivery.go(30), chooser.go(26), instance.go(12), runtime.go(10)
+- methods: Chooser(21), Runtime(2), chooserState(3)
+- leans on: delivery.go(30), chooser.go(28), instance.go(12), runtime.go(10)
 
 ### chrome.go
 
@@ -743,7 +743,7 @@ Root package `ochazuke` is flat: 168 source files, 200 test files. Each entry li
 
 ### path_chooser.go
 
-- lines: 571 · tests: path_chooser_test.go
+- lines: 583 · tests: path_chooser_test.go
 - purpose: PathPick describes what a path chooser is open for.
 - types: PathPick, PathChooserSpec
 - methods: PathPick(1), Runtime(11)
