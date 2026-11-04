@@ -391,6 +391,11 @@ func (m *Model) viewport(key string, content string, width, height int) *viewpor
 // modalContent renders a modal body. Only the top modal's input is focused,
 // so a covered modal reports no cursor.
 func (m *Model) modalContent(id string, width, height int) (string, Block) {
+	if inst := m.Runtime.Instances[id]; inst != nil {
+		inst.drawn = inst.drawn[:0]
+		inst.rendering = true
+		defer func() { inst.rendering = false }()
+	}
 	var body Block
 	focus := m.Runtime.ModalFocus(id)
 	switch {

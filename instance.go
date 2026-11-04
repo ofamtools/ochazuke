@@ -37,9 +37,11 @@ type Instance struct {
 	lastFocus   string    // the focus last inside this instance when focus left it; a jump lands there
 	borrowed    string    // an open modal's adopted focus (Push of a focus outside it) and that focus's own parent, restored on Pop
 	lentParent  string
-	closeFocus  string   // FocusOnClose: where the focus goes when this instance is removed while it holds the focus
-	inner       string   // an instance whose rows answer before this one's while this one is the focus (an input's open suggestions)
-	close       *Request // CloseWith/SetModalClose: what modal.close runs while this instance is the top modal; nil pops it
+	closeFocus  string      // FocusOnClose: where the focus goes when this instance is removed while it holds the focus
+	inner       string      // an instance whose rows answer before this one's while this one is the focus (an input's open suggestions)
+	close       *Request    // CloseWith/SetModalClose: what modal.close runs while this instance is the top modal; nil pops it
+	drawn       []Placement // modal focus stops in the last rendered drawing order
+	rendering   bool
 }
 
 // Payload is the small typed state a mode carries (Runtime.Mode.Payload).

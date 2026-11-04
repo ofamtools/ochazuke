@@ -165,6 +165,12 @@ func (p *Page) focusLines(r *Runtime, focus string) (top, bottom int, ok bool) {
 // frame did not draw is skipped (it is not on screen). A stop drawn by an
 // application view that never calls Placed is therefore skipped too.
 func (r *Runtime) Placed(id string) {
+	for _, at := range r.Ancestry(id) {
+		if inst := r.Instances[at]; inst != nil && inst.rendering {
+			inst.drawn = append(inst.drawn, Placement{ID: id, Line: -1})
+			return
+		}
+	}
 	if page := r.renderingPage(id); page != nil {
 		page.drawing = append(page.drawing, Placement{ID: id, Line: -1})
 	}
@@ -180,6 +186,7 @@ func (r *Runtime) Placed(id string) {
 func (r *Runtime) PlacedAt(id, text string, focus, height int) string {
 	page := r.renderingPage(id)
 	if page == nil || text == "" {
+		r.Placed(id)
 		return text
 	}
 	n := len(page.drawing) - 1

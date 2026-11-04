@@ -756,7 +756,7 @@ func (r *Runtime) units(root string, unit func(string) bool) (out []string, orde
 			}
 		}
 	}
-	if len(drawn) > 0 && !r.insideModal(root) {
+	if len(drawn) > 0 {
 		// Once the page has drawn a frame, a unit it did not draw is not
 		// on screen (a hidden panel, a collapsed pane): jumps and spills
 		// skip it rather than land the focus somewhere invisible.
@@ -782,6 +782,9 @@ func (r *Runtime) insideModal(id string) bool {
 // (root itself or an ancestor), nil when no page holds it or none was drawn.
 func (r *Runtime) drawnUnder(root string) []Placement {
 	for _, id := range r.Ancestry(root) {
+		if inst := r.Instances[id]; inst != nil && slices.Contains(r.modals, id) {
+			return inst.drawn
+		}
 		if page := r.PageOf(id); page != nil {
 			return page.drawn
 		}
