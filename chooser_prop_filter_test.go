@@ -78,6 +78,10 @@ func TestChooserPropFilterTypingAndOptOut(t *testing.T) {
 	if c.Query() != "zebra" {
 		t.Fatalf("fallback dropped z: %q", c.Query())
 	}
+	keytest.Press(m, "alt+backspace")
+	if c.Query() != "" {
+		t.Fatalf("an unfiltered chooser shadowed word deletion: %q", c.Query())
+	}
 	c.SetQuery("")
 	keytest.Type(m, "z]z[z/zC")
 	if c.Query() != "z]z[z/zC" {
