@@ -208,7 +208,7 @@ func equalScanTables(a, b []scanTable) bool {
 }
 
 func equalRenderBinding(a, b Binding) bool {
-	if a.Mode != b.Mode || a.Noun != b.Noun || a.Instance != b.Instance || a.Keys != b.Keys || a.Pattern != b.Pattern || a.When != b.When || a.Unbind != b.Unbind || a.Replay != b.Replay || a.Capture != b.Capture || a.Hint != b.Hint || a.Hidden != b.Hidden || a.Help != b.Help || !maps.Equal(a.From, b.From) {
+	if a.Mode != b.Mode || a.Noun != b.Noun || a.Instance != b.Instance || a.Keys != b.Keys || a.Pattern != b.Pattern || a.When != b.When || a.Unbind != b.Unbind || a.Replay != b.Replay || a.Capture != b.Capture || !slices.Equal(boolList(a.Present), boolList(b.Present)) || a.Hint != b.Hint || a.Hidden != b.Hidden || a.Help != b.Help || !maps.Equal(a.From, b.From) {
 		return false
 	}
 	x, y := a.Request, b.Request
@@ -230,4 +230,12 @@ func (c *runtimeRenderCache) guard(r *Runtime, name string) Guard {
 		entry.guards = append(entry.guards, guardReading{name, ev, true, value})
 		return value
 	}
+}
+
+// boolList is an optional bool as a slice, for comparing rows.
+func boolList(p *bool) []bool {
+	if p == nil {
+		return nil
+	}
+	return []bool{*p}
 }

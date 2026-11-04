@@ -3,7 +3,7 @@
   "bindings": [
     {"context": "ochazuke.command/normal", "bindings": [
       {"key": "enter", "action": "ochazuke.command.run"},
-      {"key": "i", "action": "ochazuke.command.help"},
+      {"key": "i", "action": "ochazuke.command.help", "present": false},
       {"key": "x", "action": "ochazuke.command.stop"}
     ]}
   ]

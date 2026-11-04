@@ -103,9 +103,12 @@ func (r *Runtime) resultPresenter(q Request, show func(any) (bool, error)) func(
 	focus, mode, page := r.Focus, r.BaseMode(), r.Instances[r.Page]
 	under := r.Instances[r.TopModal()]
 	input := r.UI().passthroughInput
-	present := func(value any) (bool, error) {
+	present := func(value any, late bool) (bool, error) {
 		if r.Focus != focus || r.BaseMode() != mode || r.Instances[r.Page] != page || r.Instances[r.TopModal()] != under || r.UI().passthroughInput != input {
-			if value != nil {
+			// Only a late answer is reported: a synchronous one that finds the
+			// interaction changed was moved by its own verb (page.open), which
+			// has said what it has to.
+			if late && value != nil {
 				r.UI().Info("answer not opened: " + r.DisplayKey(q.Key()) + " (interaction changed)\n\n" + resultText(value))
 			}
 			return false, nil
@@ -126,7 +129,7 @@ func (r *Runtime) resultPresenter(q Request, show func(any) (bool, error)) func(
 					if err != nil || r.Instances[ticket.Owner] == nil {
 						return nil
 					}
-					shown, presentErr := present(value)
+					shown, presentErr := present(value, true)
 					if shown && presentErr == nil && job.presented != nil {
 						job.presented(c)
 					}
@@ -135,7 +138,7 @@ func (r *Runtime) resultPresenter(q Request, show func(any) (bool, error)) func(
 			}
 			return nil
 		}
-		_, err := present(value)
+		_, err := present(value, false)
 		return err
 	}
 }

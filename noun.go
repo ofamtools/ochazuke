@@ -100,6 +100,10 @@ type Binding struct {
 	From     map[string]string `json:"from,omitempty"`
 	Replay   bool              `json:"replay,omitempty"`
 	Capture  bool              `json:"capture,omitempty"`
+	// Present false keeps this key's declared text answer out of the viewer
+	// (keys.text-results): for a row whose page already shows the answer.
+	// Nil and true present it. The answer is dropped, not sent to messages.
+	Present *bool `json:"present,omitempty"`
 	// Hint replaces "noun.verb: description" in the footer and the help
 	// for a row whose operation says nothing useful on its own (the
 	// terminal leader's mode.enter); bindings list carries it too.
@@ -372,6 +376,10 @@ func (b Binding) Hinted(text string) Binding { b.Hint = text; return b }
 // Hide keeps the row off the footer (config field "hidden"); ? help and
 // bindings list still show it.
 func (b Binding) Hide() Binding { b.Hidden = true; return b }
+
+// Unpresented keeps the key's declared text answer out of the viewer (config
+// field "present": false); the answer is dropped, not sent to messages.
+func (b Binding) Unpresented() Binding { off := false; b.Present = &off; return b }
 
 func (b Binding) from(arg, source string) Binding {
 	from := map[string]string{}

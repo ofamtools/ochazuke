@@ -1,6 +1,11 @@
 package ochazuke
 
-import "testing"
+import (
+	"strings"
+	"testing"
+
+	"github.com/charmbracelet/x/ansi"
+)
 
 func TestKeyTextResultsPendingAndLate(t *testing.T) {
 	for _, change := range []string{"none", "focus", "modal", "off", "callback"} {
@@ -86,5 +91,48 @@ func TestPromptedAllowKeyStillPresentsText(t *testing.T) {
 	}
 	if in := r.Input(textViewInputID); in == nil || string(in.Text) != "one\ntwo" {
 		t.Fatalf("text result missing: top modal %q", r.TopModal())
+	}
+}
+
+// A binding row with present:false keeps its key's declared text answer out
+// of the viewer; the same verb on another key still opens it.
+func TestBindingPresentFalseKeepsAnswerOutOfViewer(t *testing.T) {
+	r, _ := textResultFixture(t)
+	r.Define("record").Mode("normal").Bind("w", Do("record.program").Unpresented()).Bind("x", Do("record.program"))
+	if _, err := r.Dispatch(MacroKey{Key: "w"}); err != nil {
+		t.Fatal(err)
+	}
+	if r.Input(textViewInputID) != nil {
+		t.Fatal("present:false opened the viewer")
+	}
+	if _, err := r.Dispatch(MacroKey{Key: "x"}); err != nil {
+		t.Fatal(err)
+	}
+	if r.Input(textViewInputID) == nil {
+		t.Fatal("a row without the field must present")
+	}
+	doc, _, err := ParseBindings([]byte(`{"bindings":[{"context":"record/normal","bindings":[{"key":"w","action":"record.program","present":false}]}]}`))
+	if err != nil || len(doc.Rows()) != 1 || doc.Rows()[0].Present == nil || *doc.Rows()[0].Present {
+		t.Fatalf("present:false not read from a bindings file: %+v %v", doc.Rows(), err)
+	}
+	out, err := FormatBindings(doc)
+	if err != nil || !strings.Contains(string(out), `"present": false`) {
+		t.Fatalf("present lost in export: %s %v", out, err)
+	}
+}
+
+// A verb that moves the focus itself and answers at once is not a late
+// answer for a changed interaction: no "answer not opened" notice.
+func TestSyncAnswerAfterVerbMovedFocusIsNotReportedStale(t *testing.T) {
+	r, m := textResultFixture(t)
+	r.Instance("other", Kind("record"))
+	r.Define("record").
+		Verb("jump", func(c Ctx) Result { c.Runtime.SetFocus("other"); return Done("moved") }, "moves then answers").TextResult()
+	r.Define("record").Mode("normal").Bind("j", Do("record.jump"))
+	if _, err := r.Dispatch(MacroKey{Key: "j"}); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(ansi.Strip(m.View().Content), "answer not opened") {
+		t.Fatal("a synchronous answer after the verb moved the focus was called stale")
 	}
 }

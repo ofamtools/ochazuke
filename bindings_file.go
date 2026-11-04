@@ -44,7 +44,7 @@ import (
 // is a key or sequence ("d d", "ctrl+a v") or, when isPattern holds, a
 // pattern ("digit", "any", "one-of:h j k l"); its other fields are
 // "action" (noun.verb, split at the last "."), "args", "hint", "when",
-// "from", "hidden", "help", "replay", "capture", "target", "confirmed" and
+// "from", "hidden", "help", "replay", "capture", "present", "target", "confirmed" and
 // "unbind" (true, with no action, unbinds the default). A prop row
 // names a "request" in place of "action": {"noun", "prop", "value"}
 // writes the prop of the thing the key acts for, {"noun", "prop",
@@ -307,6 +307,7 @@ type bindingValue struct {
 	Help      string            `json:"help,omitempty"`
 	Replay    bool              `json:"replay,omitempty"`
 	Capture   bool              `json:"capture,omitempty"`
+	Present   *bool             `json:"present,omitempty"`
 	Target    string            `json:"target,omitempty"`
 	Confirmed bool              `json:"confirmed,omitempty"`
 	Unbind    bool              `json:"unbind,omitempty"`
@@ -398,7 +399,7 @@ func parseBindingLine(raw json.RawMessage) (Binding, string, error) {
 // row is the Binding a value's object form describes (its table and keys
 // are the caller's).
 func (v bindingValue) row() (Binding, error) {
-	row := Binding{Hint: v.Hint, When: v.When, From: v.From, Hidden: v.Hidden, Help: v.Help, Replay: v.Replay, Capture: v.Capture, Unbind: v.Unbind}
+	row := Binding{Hint: v.Hint, When: v.When, From: v.From, Hidden: v.Hidden, Help: v.Help, Replay: v.Replay, Capture: v.Capture, Present: v.Present, Unbind: v.Unbind}
 	switch {
 	case v.Request != nil:
 		switch {
@@ -701,6 +702,7 @@ func formatBindingLine(row Binding) ([]byte, error) {
 	o.add("help", row.Help, row.Help != "")
 	o.add("replay", row.Replay, row.Replay)
 	o.add("capture", row.Capture, row.Capture)
+	o.add("present", row.Present != nil && *row.Present, row.Present != nil)
 	if !row.Unbind {
 		o.add("target", q.Target, q.Target != "")
 		o.add("confirmed", q.Confirmed, q.Confirmed)

@@ -206,6 +206,9 @@ func referenceRow(b Binding) refdoc.Row {
 	if b.Replay {
 		flags = append(flags, "replay")
 	}
+	if b.Present != nil && !*b.Present {
+		flags = append(flags, "no viewer")
+	}
 	out.Flags = strings.Join(flags, ", ")
 	return out
 }

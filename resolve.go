@@ -577,6 +577,9 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent) error {
 	}
 	execute := func(q Request) error {
 		present := r.keyResultPresenter(q)
+		if b.Present != nil && !*b.Present {
+			present = nil
+		}
 		r.rowRequest = true
 		value, err := r.Execute(q)
 		if err == nil && present != nil {

@@ -159,6 +159,7 @@ type Binding struct {
 	Hidden   bool           `json:"hidden,omitempty"`
 	Capture  bool           `json:"capture,omitempty"`
 	Replay   bool           `json:"replay,omitempty"`
+	Present  *bool          `json:"present,omitempty"`
 	From     map[string]any `json:"from,omitempty"`
 	Request  *Request       `json:"request"`
 }
