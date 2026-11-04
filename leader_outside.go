@@ -26,6 +26,14 @@ func (r *Runtime) dispatchOutside(focus string, mode ModeState, key MacroKey) (b
 			if policy != "all" && (op.Motion || op.FocusBound) {
 				return true, false, nil
 			}
+			if at != focus {
+				inst := r.Instances[at]
+				_, candidates := r.nearestOf(inst.Noun, focus)
+				if err := r.associationAmbiguity(inst.Noun, candidates); err != nil {
+					r.leavePrefix()
+					return true, true, err
+				}
+			}
 			if lv.inst != nil {
 				ev.Level = lv.inst.ID
 			}

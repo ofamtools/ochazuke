@@ -148,14 +148,21 @@ func (r *Runtime) associationSubject(op Operation, q Request, focus string) (str
 		}
 	}
 	id, candidates := r.nearestOf(op.Noun, focus)
-	if len(candidates) > 0 {
-		names := make([]string, len(candidates))
-		for i, t := range candidates {
-			names[i] = t.Label + " (" + t.Key + ")"
-		}
-		return "", fmt.Errorf("ambiguous %s association: %s", r.DisplayNoun(op.Noun), strings.Join(names, ", "))
+	if err := r.associationAmbiguity(op.Noun, candidates); err != nil {
+		return "", err
 	}
 	return id, nil
+}
+
+func (r *Runtime) associationAmbiguity(noun string, candidates []focusThing) error {
+	if len(candidates) == 0 {
+		return nil
+	}
+	names := make([]string, len(candidates))
+	for i, t := range candidates {
+		names[i] = t.Label + " (" + t.Key + ")"
+	}
+	return fmt.Errorf("ambiguous %s association: %s", r.DisplayNoun(noun), strings.Join(names, ", "))
 }
 
 // notifyAssociation shows an implicit subject after a successful action
