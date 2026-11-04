@@ -511,10 +511,12 @@ Conformance:
 | normal | modal | `modal.close` |
 | normal | mode | `mode.enter` `mode.leave` `mode.set` |
 | normal | notice | `notice.clear` |
+| normal | nouns | `nouns.edit` |
 | normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.fold` `outline.indent` `outline.move` `outline.outdent` `outline.paste` `outline.put` `outline.redo` `outline.undo` `outline.yank` `outline.zoom-in` `outline.zoom-out` `outline.zoom-reset` |
 | normal | page | `page.next` `page.pick` `page.previous` |
 | normal | palette | `palette.open` |
 | normal | pane | `pane.grow` `pane.only` `pane.reset` `pane.restore` `pane.shrink` |
+| normal | parcel | `parcel.set` |
 | normal | search | `search.find` `search.next` |
 | normal | segment | `segment.toggle` |
 | normal | setting | `setting.add` `setting.cycle` `setting.edit` `setting.reset` `setting.revert` `setting.write` |
@@ -600,6 +602,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `modal.close`
 - `insert` → `normal` via `modal.close + demo.synced`
 - `insert` → `normal` via `mode.set`
+- `insert` → `normal` via `mode.set + parcel.set`
 - `insert` → `normal` via `outline.leave`
 - `insert` → `normal` via `palette.run`
 - `insert` → `normal` via `row esc`

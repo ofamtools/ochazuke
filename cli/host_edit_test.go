@@ -13,8 +13,8 @@ import (
 	"ofam.dev/ochazuke/keytest"
 )
 
-func TestMountedPageStandardEdit(t *testing.T) {
-	t.Parallel()
+func mountedEditFixture(t *testing.T, mode string) (*ochazuke.Runtime, *ochazuke.Model, ochazuke.Thing) {
+	t.Helper()
 	ext := ochazuke.NewRuntime()
 	thing := ochazuke.Thing{"id": "t1", "title": "Original", "status": "todo", "active": false, "stamp": "fixed"}
 	ext.Define("parcel").Props(
@@ -42,11 +42,19 @@ func TestMountedPageStandardEdit(t *testing.T) {
 		t.Fatal(err)
 	}
 	r := ochazuke.NewRuntime()
+	if _, err := r.Settings().SetSession(ochazuke.EditApplySetting, mode); err != nil {
+		t.Fatal(err)
+	}
 	m := ochazuke.NewModel(r)
 	m.Width, m.Height = 100, 24
 	local := func(noun string) string { return "ext-" + noun }
 	mounted := MountNouns(r, doc.AppNouns(), HostMount{Local: local, Proxy: func(noun string, v CatalogVerb) any {
 		return func(c ochazuke.Ctx) ochazuke.Result {
+			if v.Name == "set" {
+				return ochazuke.Pending(func(context.Context) (any, error) {
+					return ext.Execute(ochazuke.Request{Noun: noun, Verb: v.Name, Args: c.Args})
+				})
+			}
 			value, err := ext.Execute(ochazuke.Request{Noun: noun, Verb: v.Name, Args: c.Args})
 			if err != nil {
 				return ochazuke.Failed(err)
@@ -75,6 +83,12 @@ func TestMountedPageStandardEdit(t *testing.T) {
 	if err := r.SetFocus("rows/t1"); err != nil {
 		t.Fatal(err)
 	}
+	return r, m, thing
+}
+
+func TestMountedPageStandardEdit(t *testing.T) {
+	t.Parallel()
+	r, m, thing := mountedEditFixture(t, "confirm")
 	if handled, err := r.HandleBinding("i"); err != nil || !handled {
 		t.Fatalf("edit key: %t %v", handled, err)
 	}
@@ -100,7 +114,12 @@ func TestMountedPageStandardEdit(t *testing.T) {
 	}
 	keytest.Press(m, "A")
 	keytest.Press(m, "x")
-	keytest.Press(m, "enter")
+	if _, err := r.HandleBinding("enter"); err != nil {
+		t.Fatal(err)
+	}
+	if err := Settle(r, nil); err != nil {
+		t.Fatal(err)
+	}
 	if thing["title"] != "Originalx" || thing["stamp"] != "fixed" || r.TopModal() != "" {
 		t.Fatalf("confirmed %v modal %s", thing, r.TopModal())
 	}
@@ -136,5 +155,35 @@ func TestMountedStandardEditOptOut(t *testing.T) {
 	value, err := r.Execute(ochazuke.Request{Noun: "ext-task", Verb: "set", Args: ochazuke.Arguments{"id": "t1", "prop": "title", "value": "Still writable"}})
 	if err != nil || value != "proxy set" {
 		t.Fatalf("existing write %v %v", value, err)
+	}
+}
+
+func TestMountedPageChangeEditsSurviveClose(t *testing.T) {
+	t.Parallel()
+	r, _, thing := mountedEditFixture(t, "change")
+	if handled, err := r.HandleBinding("i"); err != nil || !handled {
+		t.Fatalf("edit key %t %v", handled, err)
+	}
+	if err := Settle(r, nil); err != nil {
+		t.Fatal(err)
+	}
+	e := r.RecordEditor("edit-form")
+	for _, key := range []string{"A", "x", "esc", "j", "space", "j", "enter", "esc"} {
+		if _, err := r.HandleBinding(key); err != nil {
+			t.Fatal(err)
+		}
+		e.PendingCommand()
+		if thing["title"] != "Original" || thing["status"] != "todo" {
+			t.Fatalf("pending write ran inline after %s: %v", key, thing)
+		}
+	}
+	if r.TopModal() != "" {
+		t.Fatalf("slow save trapped form: %s", r.TopModal())
+	}
+	if err := Settle(r, nil); err != nil {
+		t.Fatal(err)
+	}
+	if thing["title"] != "Originalx" || thing["status"] != "done" || thing["stamp"] != "fixed" {
+		t.Fatalf("mounted save %v", thing)
 	}
 }

@@ -166,6 +166,7 @@ type job struct {
 	then      func(Ctx, any, error) error
 	ctx       Ctx
 	presented func(Ctx)
+	flush     bool // a queued editor write the quit path must drain
 }
 
 func (j *job) ticket() Ticket { return Ticket{Owner: j.Owner, Job: j.Job, Slot: j.Slot} }
@@ -450,13 +451,14 @@ func (r *Runtime) Deliver(msg tea.Msg) (bool, error) {
 // PendingCommands drains the work scheduled since the last call: the
 // runtime's own queue and every component's PendingCommand.
 func (r *Runtime) PendingCommands() tea.Cmd {
-	commands := r.commands
-	r.commands = nil
+	var commands []tea.Cmd
 	for _, inst := range r.components() {
 		if cmd := inst.Component.(Component).PendingCommand(); cmd != nil {
 			commands = append(commands, cmd)
 		}
 	}
+	commands = append(r.commands, commands...)
+	r.commands = nil
 	if len(commands) == 0 {
 		return nil
 	}

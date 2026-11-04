@@ -623,11 +623,20 @@ Types, required fields, enums, sources, references and multiline/secret fields
 come from the prop schema. A pending choices source loads off the update loop.
 
 `task edit t3` in the palette opens the record form on that task's current
-values. Enter confirms the changed props in one standard `set`, with the
-store's usual validation, availability, confirmation and undo history.
-Escape from insert returns to normal; Escape in normal cancels without a
-write. This form uses `RecordSpec.Submit`, unlike the filter form, which
-currently applies view changes immediately through `Save`.
+values. `forms.edit-apply` is read once when the form opens:
+
+- `change`, the default, uses the record form's `Save` route like filters.
+  Typing is debounced by 400 ms; leaving a field or insert mode, closing the
+  form, or quitting flushes pending text. Each changed field runs its own
+  standard `set` with normal validation, availability, checks, rights and undo
+  history. Escape closes without discarding. Undo replaces discard.
+- `confirm` uses `RecordSpec.Submit`. Enter applies changed props together;
+  Escape from insert returns to normal, then Escape cancels without writing.
+
+A rejected prop or store write marks its field without stopping other fields.
+Pending mounted writes run off the loop, serialize later field writes and
+survive closing the form. Quit drains queued editor writes before exiting;
+the existing two-second quit-hook limit does not cancel a queued editor write.
 
 Supplying any prop writes directly, without a form:
 `task edit --id t3 --title "New title" --status done`.
@@ -650,8 +659,9 @@ Compared with Vim:
 | Vim form | Help tag | Ochazuke behavior |
 |---|---|---|
 | `i` | `i` | Text fields keep Insert mode. On a thing with an implicit editor and no inner binding, `i` opens its prop form instead. |
-| Escape in insert | `i_<Esc>` | Same, return to normal and retain the field's text. A second Escape closes the unsubmitted form without writing. |
-| Record form confirmation | Not applicable | Vim has no built-in typed noun/record form. Enter applies changed props as one store write rather than editing a buffer. |
+| Escape in insert | `i_<Esc>` | Same, return to normal and retain text. In change mode it flushes the field; a second Escape closes and keeps the writes. Confirm mode instead cancels unsubmitted changes. |
+| Undo | `undo` | Each standard field write is reversible through history.undo when the store supports undo. Vim has buffer undo; this history acts on store records. |
+| Record form application | Not applicable | Vim has no built-in typed record form. Change mode writes through Save; confirm mode offers an explicit Enter application step. |
 
 
 

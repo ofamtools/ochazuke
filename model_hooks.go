@@ -13,26 +13,32 @@ const QuitHookWait = 2 * time.Second
 // quitHookTimeoutMsg wakes the Model once QuitHookWait has passed.
 type quitHookTimeoutMsg struct{}
 
-// quitHooks is the Model's quit with the app.quitting event: the first
-// time it emits the event (its hooks run now) and, while a job a hook
-// started is still running and QuitHookWait has not passed, answers the
-// commands that let the jobs finish and wait true, so the Model keeps
-// running; every later message asks again. A hook never holds quitting
-// for longer than QuitHookWait.
+// quitHooks emits app.quitting once and runs the commands needed to finish
+// pending work. Hook jobs keep their QuitHookWait deadline; queued editor
+// writes are drained to completion, including writes queued by a finishing save.
 func (m *Model) quitHooks() (tea.Cmd, bool) {
 	r := m.Runtime
 	h := r.eventHub()
+	var timeout tea.Cmd
 	if !h.quitEmitted {
 		h.quitEmitted = true
 		h.quitDeadline = m.clock().Add(QuitHookWait)
 		r.emitQuitting()
-		if !r.quitHooksRunning() {
-			return nil, false
+		if r.quitHooksRunning() {
+			timeout = tea.Tick(QuitHookWait, func(time.Time) tea.Msg { return quitHookTimeoutMsg{} })
 		}
-		return tea.Batch(r.PendingCommands(), tea.Tick(QuitHookWait, func(time.Time) tea.Msg { return quitHookTimeoutMsg{} })), true
 	}
-	if !r.quitHooksRunning() || !m.clock().Before(h.quitDeadline) {
+	if !r.flushJobsRunning() && (!r.quitHooksRunning() || !m.clock().Before(h.quitDeadline)) {
 		return nil, false
 	}
-	return r.PendingCommands(), true
+	return tea.Batch(r.PendingCommands(), timeout), true
+}
+
+func (r *Runtime) flushJobsRunning() bool {
+	for _, j := range r.jobs {
+		if j.flush && j.State == JobRunning {
+			return true
+		}
+	}
+	return false
 }

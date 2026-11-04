@@ -32,6 +32,9 @@ func editFixture(t *testing.T) (*Runtime, *derivedStore) {
 func TestStandardEditConfirmCancelUndo(t *testing.T) {
 	t.Parallel()
 	r, s := editFixture(t)
+	if _, err := r.Settings().SetSession(EditApplySetting, "confirm"); err != nil {
+		t.Fatal(err)
+	}
 	m := NewModel(r)
 	original := maps.Clone(s.find("t1"))
 	mustRun(t, r, Request{Noun: "parcel", Verb: "edit"})
@@ -135,7 +138,7 @@ func TestStandardEditPendingChoicesKeepTyping(t *testing.T) {
 	}
 	keytest.Press(m, "esc")
 	keytest.Press(m, "esc")
-	if r.TopModal() != "" || s.find("t1")["title"] != "Original" {
+	if r.TopModal() != "" || s.find("t1")["title"] != "Originalx" {
 		t.Fatalf("cancel modal %s store %v", r.TopModal(), s.find("t1"))
 	}
 }

@@ -10,6 +10,9 @@ import (
 // declaring stores or mounting a catalog; an application's own edit is unchanged.
 const EditFormsSetting = "forms.edit"
 
+// EditApplySetting chooses immediate debounced writes or one confirmed write.
+const EditApplySetting = "forms.edit-apply"
+
 const editFormID = "edit-form"
 
 func init() {
@@ -35,7 +38,7 @@ func editParams(n *Noun) map[string]Parameter {
 // EditHandler builds the standard edit handler for a declared noun, including a
 // catalog-mounted noun with get and set proxies but no local Store. A nil
 // handler means forms.edit disabled generation. Supplied props go through set;
-// otherwise get loads a confirm-once RecordEditor. Both requests retain normal
+// otherwise get loads a RecordEditor in the chosen apply mode. Both retain normal
 // availability, checks, confirmations and agent rights.
 func (r *Runtime) EditHandler(noun string) AppHandler {
 	if !r.Settings().Bool(EditFormsSetting) {
@@ -90,7 +93,11 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 					continue
 				}
 				field := PropField(p)
-				// Structured props remain JSON text; propValue validates at submission.
+				field.Validate = func(text string) error {
+					_, err := propValue(p, text)
+					return err
+				}
+				// Structured props remain JSON text, validated before each save.
 				if p.Type == SettingList || p.Type == PropObject || p.Type == SettingDuration {
 					field.Type = AnyParameterType
 				}
@@ -107,23 +114,37 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 					}
 				}
 			}
-			_, err = r.OpenRecordEditor(editFormID, RecordSpec{Title: "Edit " + r.DisplayNoun(noun), Fields: fields, Load: func() (Record, error) { return values, nil }, Submit: func(rec Record) Result {
-				changed := map[string]any{}
-				for _, f := range fields {
-					if rec[f.Name] != values[f.Name] {
-						p := n.prop(f.Name)
-						value, err := propValue(*p, rec[f.Name])
-						if err != nil {
-							return Failed(fmt.Errorf("%s %w", f.Name, err))
+			spec := RecordSpec{Title: "Edit " + r.DisplayNoun(noun), Fields: fields, Load: func() (Record, error) { return values, nil }}
+			if r.Settings().String(EditApplySetting) == "confirm" {
+				spec.Submit = func(rec Record) Result {
+					changed := map[string]any{}
+					for _, f := range fields {
+						if rec[f.Name] != values[f.Name] {
+							p := n.prop(f.Name)
+							value, err := propValue(*p, rec[f.Name])
+							if err != nil {
+								return Failed(fmt.Errorf("%s %w", f.Name, err))
+							}
+							changed[f.Name] = value
 						}
-						changed[f.Name] = value
 					}
+					if len(changed) == 0 {
+						return Done(nil)
+					}
+					return write(changed)
 				}
-				if len(changed) == 0 {
-					return Done(nil)
+			} else {
+				spec.FieldWrites = true
+				spec.Save = func(w RecordWrite) Result {
+					name := w.Changed[0]
+					value, err := propValue(*n.prop(name), w.Values[name])
+					if err != nil {
+						return Failed(err)
+					}
+					return write(map[string]any{name: value})
 				}
-				return write(changed)
-			}})
+			}
+			_, err = r.OpenRecordEditor(editFormID, spec)
 			return err
 		}
 		var res Result
