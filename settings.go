@@ -942,7 +942,7 @@ func registerSettings(r *Runtime) {
 		}
 		return s.Get(StringArg(a, "name", ""))
 	}})
-	r.Register(Operation{Verb: "reload", Noun: "ochazuke.settings", Description: "Read settings.json again; observers see every value that changed", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "reload", Noun: "ochazuke.settings", HistoryKind: HistoryFetch, Description: "Read settings.json again; observers see every value that changed", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		problems := r.Settings().Reload()
 		if problems == nil {
 			problems = []string{}

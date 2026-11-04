@@ -892,5 +892,8 @@ func registerFilterViewForm(r *Runtime) {
 		}})
 		_ = r.AddVerbAvailability(filterFormNoun+"."+spec.verb, "filter-form-open")
 	}
+	op := r.Operations[filterFormNoun+".delete-saved"]
+	op.Destructive = true
+	r.Operations[op.Key()] = op
 	r.Nouns[filterFormNoun].Guards = map[string]string{"direction": "filter-form-sort", "next": "filter-form-text", "move": "filter-form-tab", "write-saved": "filter-form-save", "delete-saved": "filter-form-delete-saved"}
 }

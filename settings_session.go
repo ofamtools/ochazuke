@@ -685,10 +685,10 @@ func registerSettingsSession(r *Runtime) {
 		}
 		return names, nil
 	}})
-	r.Register(Operation{Verb: "diff", Noun: "ochazuke.settings", Description: "List the settings whose session value differs from the saved one: name, saved value, session value and origin", Result: "setting-diff[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "diff", Noun: "ochazuke.settings", HistoryKind: HistoryFetch, Description: "List the settings whose session value differs from the saved one: name, saved value, session value and origin", Result: "setting-diff[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.Settings().Diff(), nil
 	}})
-	r.Register(Operation{Verb: "reset-all", Noun: "ochazuke.settings", Checks: []VerbCheck{resetAllCheck}, Description: "Reset every setting to its default: for this session, or in settings.json without a session or with settings.autosave", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "reset-all", Noun: "ochazuke.settings", Destructive: true, Checks: []VerbCheck{resetAllCheck}, Description: "Reset every setting to its default: for this session, or in settings.json without a session or with settings.autosave", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		_, names, err := r.Settings().ResetAll()
 		if names == nil {
 			names = []string{}

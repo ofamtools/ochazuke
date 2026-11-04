@@ -21,7 +21,7 @@ type Example struct {
 // About describes the noun's purpose for catalog readers.
 func (b *NounBuilder) About(text string) *NounBuilder { b.n.About = text; return b }
 
-// Destructive marks the last verb as deleting, archiving or otherwise destroying data.
+// Destructive marks the last verb as destroying user data that cannot be recovered.
 func (b *NounBuilder) Destructive() *NounBuilder {
 	if b.last == "" {
 		panic("Destructive must follow Verb")
@@ -59,14 +59,17 @@ func (b *NounBuilder) Example(args Arguments, note string) *NounBuilder {
 	return b
 }
 
-// AgentRightOf is the declared right, or confirm for a destructive or confirmed
-// verb, else allow. Live screen control is allowed when the host enables live.
-// This describes a default only; it does not enforce rights or read overrides.
+// AgentRightOf refuses destructive verbs before consulting declarations, then
+// defaults prompted verbs to confirm and everything else to allow.
+// This describes a default only; owner overrides are resolved by AgentRight.
 func (o Operation) AgentRightOf(live bool) string {
+	if o.Destructive {
+		return AgentNever
+	}
 	if o.Agent != "" {
 		return o.Agent
 	}
-	if o.Destructive || o.Confirm != "" {
+	if o.Confirm != "" {
 		return AgentConfirm
 	}
 	return AgentAllow

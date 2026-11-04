@@ -763,9 +763,6 @@ func (r *Runtime) Register(o Operation) {
 	default:
 		panic("unknown operation kind " + o.Kind)
 	}
-	if o.Agent == "" {
-		o.Agent = frameworkAgentRights[o.Noun]
-	}
 	o.Checks = append([]VerbCheck{{Name: "agent-rights", requestCheck: (*Runtime).agentVerdict}}, o.Checks...)
 	r.Operations[o.Key()] = o
 }
@@ -1019,7 +1016,7 @@ func (r *Runtime) execute(c Context, q Request, checkOnly bool, run ...operation
 			return nil, v.err
 		}
 		return nil, errors.New(v.Refuse)
-	case v.Ask != "":
+	case v.Ask != "" && !r.agentPassesPrompt(op):
 		if checkOnly {
 			return nil, nil
 		}
@@ -1031,7 +1028,7 @@ func (r *Runtime) execute(c Context, q Request, checkOnly bool, run ...operation
 	if checkOnly {
 		return nil, nil
 	}
-	if op.Confirm != "" && !q.Confirmed {
+	if op.Confirm != "" && !q.Confirmed && !r.agentPassesPrompt(op) {
 		if len(subjects) > 1 {
 			q.Subjects = subjects
 		}
@@ -1259,7 +1256,7 @@ func registerCore(r *Runtime) {
 		}
 		return r.ListBindings(focusOf(c)), nil
 	}})
-	r.Register(Operation{Verb: "defaults", Noun: "ochazuke.bindings", Description: "Print the default bindings (the framework's and the application's, without the user's bindings.json) as a bindings file, each group tagged with its source: the embedded file, go or generated", Result: "bindings file", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "defaults", Noun: "ochazuke.bindings", HistoryKind: HistoryFetch, Description: "Print the default bindings (the framework's and the application's, without the user's bindings.json) as a bindings file, each group tagged with its source: the embedded file, go or generated", Result: "bindings file", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		data, err := FormatBindings(r.defaultBindingsDoc())
 		return Verbatim(data), err
 	}})

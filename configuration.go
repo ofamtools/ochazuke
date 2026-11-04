@@ -81,7 +81,7 @@ func registerConfiguration(r *Runtime) {
 		}
 		return path, nil
 	}})
-	r.Register(Operation{Verb: "reload", Noun: "ochazuke.bindings", Description: "Read the user bindings file again: its rows replace or unbind the defaults, a bad row is skipped and reported", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "reload", Noun: "ochazuke.bindings", HistoryKind: HistoryFetch, Description: "Read the user bindings file again: its rows replace or unbind the defaults, a bad row is skipped and reported", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		problems := r.ReloadUserBindings()
 		if problems == nil {
 			problems = []string{}

@@ -405,6 +405,8 @@ func registerSettingVerbs(r *Runtime) {
 		}
 		if v.Next != nil {
 			op.Checks = []VerbCheck{cliWriteCheck(settingWritePrompt(v))}
+		} else {
+			op.HistoryKind = HistoryFetch
 		}
 		r.Register(op)
 	}

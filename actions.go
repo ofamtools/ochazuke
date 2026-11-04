@@ -669,7 +669,7 @@ func registerActions(r *Runtime) {
 		}
 		return out, nil
 	}})
-	r.Register(Operation{Verb: "reload", Noun: "ochazuke.actions", Description: "Read actions.json again: its verbs replace the last load's, a bad entry is skipped and reported; the user bindings are applied again", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "reload", Noun: "ochazuke.actions", HistoryKind: HistoryFetch, Description: "Read actions.json again: its verbs replace the last load's, a bad entry is skipped and reported; the user bindings are applied again", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		problems := r.ReloadUserActions()
 		if r.Config().bindingsLoaded {
 			problems = append(problems, r.ReloadUserBindings()...)

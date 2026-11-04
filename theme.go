@@ -119,7 +119,7 @@ func newAppearance(r *Runtime) *Appearance {
 	r.Register(Operation{Verb: "list", Noun: "ochazuke.themes", Description: "List the colour schemes: the built-in themes, then those of themes.json", Result: "string[]", Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
 		return a.ThemeNames(), nil
 	}})
-	r.Register(Operation{Verb: "reload", Noun: "ochazuke.themes", Description: "Read themes.json again: a scheme that does not validate is skipped and reported", Result: "problem[]", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
+	r.Register(Operation{Verb: "reload", Noun: "ochazuke.themes", HistoryKind: HistoryFetch, Description: "Read themes.json again: a scheme that does not validate is skipped and reported", Result: "problem[]", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
 		problems := r.reloadThemes()
 		if problems == nil {
 			problems = []string{}
