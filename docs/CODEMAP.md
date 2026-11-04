@@ -8,12 +8,12 @@ Root package `ochazuke` is flat: 164 source files, 194 test files. Each entry li
 
 ### about.go
 
-- lines: 719 · tests: about_test.go
+- lines: 699 · tests: about_test.go
 - purpose: AboutRow is one row of the About page: a label, its value and, for a path, Kind AboutPath.
 - types: AboutRow, AboutSection, AboutEnv, About
-- methods: About(3), AboutEnv(6), Runtime(5)
+- methods: About(3), AboutEnv(6), Runtime(6)
 - funcs: AboutText
-- leans on: runtime.go(56), instance.go(18), noun.go(13), block.go(12)
+- leans on: runtime.go(56), instance.go(19), noun.go(13), block.go(12)
 
 ### action_names.go
 
@@ -588,12 +588,12 @@ Root package `ochazuke` is flat: 164 source files, 194 test files. Each entry li
 
 ### model.go
 
-- lines: 1406
+- lines: 1408
 - purpose: ModalView renders one modal without replacing or inspecting its parent page.
 - types: ModalView, ModalBody (iface), AppearanceModalBody (iface), Model, HintCell, HelpRow
 - methods: HintCell(1), Model(28), Runtime(4), modelSink(4)
 - funcs: NewModel, BindingHints, JoinHints, HintCells, HintBindings, BindingHelp, NounHelp, PlaceHelp, SplitKeys, InputView, InputBlock
-- leans on: runtime.go(150), block.go(57), noun.go(32), theme.go(23)
+- leans on: runtime.go(151), block.go(57), noun.go(32), theme.go(23)
 
 ### model_hooks.go
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"reflect"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -155,8 +156,8 @@ func TestAboutRowsEvaluateLazily(t *testing.T) {
 		}
 	}
 	keytest.Press(m, "q")
-	if r.Page != "main" || r.PageOf(AboutPageID) != nil || r.Focus != "b" {
-		t.Fatalf("q: page %q about %v focus %q", r.Page, r.PageOf(AboutPageID), r.Focus)
+	if r.Page != "main" || r.PageOf(AboutPageID) == nil || r.Focus != "b" {
+		t.Fatalf("q: page %q about registered %v focus %q", r.Page, r.PageOf(AboutPageID) != nil, r.Focus)
 	}
 }
 
@@ -228,7 +229,7 @@ func TestAboutTabOnSettingsPage(t *testing.T) {
 		t.Fatalf("about view:\n%s", view)
 	}
 	keytest.Press(m, "]")
-	if r.Page != SettingsPageID || !strings.HasPrefix(r.Settings().page.section, "app/") || r.PageOf(AboutPageID) != nil {
+	if r.Page != SettingsPageID || !strings.HasPrefix(r.Settings().page.section, "app/") || r.PageOf(AboutPageID) == nil {
 		t.Fatalf("] from About: page %q section %q", r.Page, r.Settings().page.section)
 	}
 	keytest.Press(m, "[")
@@ -287,5 +288,33 @@ func TestAboutVerbsAgentsAndHistory(t *testing.T) {
 		if right := r.AgentRight(op, true); right.Right != AgentAllow {
 			t.Fatalf("%s agent %v", key, right)
 		}
+	}
+}
+
+// The About page is registered once the model starts, hidden from the tabs
+// (the tab row, ] and [ skip it), listed by the page picker, and its rows
+// are not evaluated until it opens; q leaves it registered.
+func TestAboutPageAlwaysRegistered(t *testing.T) {
+	r, m, _ := settingsPageFixture(t)
+	calls := 0
+	r.AddAboutSection("Data", func() []AboutRow { calls++; return nil })
+	m.Init()
+	if r.PageOf(AboutPageID) == nil || !r.PageHidden(AboutPageID) || calls != 0 {
+		t.Fatalf("registered %v hidden %v calls %d", r.PageOf(AboutPageID) != nil, r.PageHidden(AboutPageID), calls)
+	}
+	for _, p := range r.TabPages() {
+		if p.ID == AboutPageID {
+			t.Fatal("about is a tab")
+		}
+	}
+	if err := r.movePage(1); err != nil || r.Page == AboutPageID {
+		t.Fatalf("cycle reached about: %v %q", err, r.Page)
+	}
+	chooser, err := r.OpenPagePicker()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.ContainsFunc(chooser.spec.Rows, func(row ChooserRow) bool { return row.ID == AboutPageID }) {
+		t.Fatalf("picker rows %+v", chooser.spec.Rows)
 	}
 }

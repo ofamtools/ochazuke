@@ -145,6 +145,7 @@ func (ss *session) open1(open string) error {
 	if err := r.OpenPage(open); err != nil {
 		return err
 	}
+	_ = r.EnsureAboutPage() // as Model.Init does, after the pages
 	if err := r.OpenVisibleStart(); err != nil {
 		return err
 	}

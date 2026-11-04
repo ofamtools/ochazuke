@@ -209,6 +209,8 @@ func (m *Model) Init() tea.Cmd {
 	m.applyThemeSetting()
 	m.Runtime.EnsureHistory()
 	m.Runtime.EnsureNounPlaces()
+	// The About page is always registered (hidden from the tabs).
+	_ = m.Runtime.EnsureAboutPage()
 	if err := m.Runtime.OpenVisibleStart(); err != nil {
 		m.Runtime.UI().Error(err.Error())
 	}
