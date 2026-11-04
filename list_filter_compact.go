@@ -491,7 +491,7 @@ func (v *filterViewForm) replaceConditions(conds []PropFilter) error {
 				return err
 			}
 		}
-		if f.Invertible && value != "" && f.not != not {
+		if f.Invertible && f.not != not {
 			if err := v.e.invert(f); err != nil {
 				return err
 			}

@@ -29,3 +29,22 @@ func TestFilterFormAbsentConditionValue(t *testing.T) {
 		})
 	}
 }
+
+func TestFilterFormRemoveNegatedConditionResetsSign(t *testing.T) {
+	r, m, l := compactFixture(t)
+	if err := l.SetPropFilters([]PropFilter{{Prop: "status", Op: "!=", Value: "todo"}}); err != nil {
+		t.Fatal(err)
+	}
+	compactKeys(m, "z", "/")
+	v := filterViewAt(r, r.Focus)
+	if err := v.replaceConditions(nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := v.setField("status", ChipsValue([]string{"done"})); err != nil {
+		t.Fatal(err)
+	}
+	want := []PropFilter{{Prop: "status", Op: "=", Value: "done"}}
+	if !reflect.DeepEqual(l.PropFilters(), want) {
+		t.Fatalf("replacement inherited removed negation: %#v", l.PropFilters())
+	}
+}
