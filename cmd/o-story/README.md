@@ -630,7 +630,6 @@ Mode edges (from → to via):
 - `normal` → `insert` via `filter-form.focus`
 - `normal` → `insert` via `filter-form.move`
 - `normal` → `insert` via `form.choose`
-- `normal` → `insert` via `form.clear`
 - `normal` → `insert` via `form.next-missing`
 - `normal` → `insert` via `form.suggest`
 - `normal` → `insert` via `input.begin`
