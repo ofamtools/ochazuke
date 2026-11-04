@@ -186,3 +186,52 @@ func TestPeerBindingNoticesSetting(t *testing.T) {
 		}
 	}
 }
+
+func TestPeerPolicyRunsBelowOwnerAndPreviousPeerLayers(t *testing.T) {
+	t.Parallel()
+	r, row := peerFixture(t)
+	peerRuns, ownerRuns := 0, 0
+	r.Define("md.doc").Verb("send-notes", func(Ctx) Result { peerRuns++; return Done(nil) })
+	r.Define("lane.lane").Verb("own", func(Ctx) Result { ownerRuns++; return Done(nil) })
+	c := r.Config()
+	c.Dir = t.TempDir()
+	owner := row.Row
+	owner.Request = Request{Noun: "lane.lane", Verb: "own"}
+	data, err := json.Marshal([]Binding{owner})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(c.Dir, BindingsFile), data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	r.ReloadUserBindings()
+	policy := func(peer PeerBinding) string {
+		if peer.Extension != "o-lane" {
+			return "wrong declaring extension"
+		}
+		for _, b := range r.ListBindings(r.Focus) {
+			if b.Keys == "g s" {
+				return "stale peer or owner override seen as a collision"
+			}
+		}
+		return ""
+	}
+	for range 2 {
+		status := r.ReloadPeerBindings([]PeerBinding{row}, nil, policy)
+		if !status[0].Loaded {
+			t.Fatal(status)
+		}
+	}
+	for _, key := range []string{"g", "s"} {
+		if _, err := r.Dispatch(MacroKey{Key: key}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if peerRuns != 0 || ownerRuns != 1 {
+		t.Fatalf("peer=%d owner=%d", peerRuns, ownerRuns)
+	}
+	status := r.ReloadPeerBindings([]PeerBinding{row}, nil, func(PeerBinding) string { return "peer keys disabled" })
+	if status[0].Loaded || status[0].Reason != "peer keys disabled" {
+		t.Fatal(status)
+	}
+}

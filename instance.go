@@ -336,7 +336,7 @@ func (r *Runtime) rowField(ev KeyEvent, field string) any {
 			}
 			if list := r.List(r.rows[id]); list != nil {
 				if row := list.rowCache[id]; row != nil {
-					return dataField(row.item.Props, field)
+					return dataField(map[string]any(row.item.Props), field)
 				}
 			}
 			return nil
@@ -385,7 +385,7 @@ func validRowField(field string) bool {
 func dataField(data any, field string) any {
 	for _, name := range strings.Split(field, ".") {
 		switch m := data.(type) {
-		case nil:
+		case nil, string, bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64, json.Number:
 			return nil
 		case map[string]any:
 			data = m[name]

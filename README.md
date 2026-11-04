@@ -1628,6 +1628,11 @@ set after removal. The soft layer never replaces an existing key; user rows
 load last and may override or unbind it. `Runtime.PeerBindings()` reports each
 row's loaded/dropped status and reason. Missing peers do not block startup or
 leave hints, and `bindings check` keeps their retryable warnings.
+Pass a host key/policy check as an optional third argument,
+`func(PeerBinding) string`. It runs on normalized rows after the old peer and
+user layers are lifted. Return a rejection reason or an empty string.
+This is where host reserved-key and ancestor-key checks belong, so a sync
+does not reject its previous peer rows or the owner's overriding rows.
 
 `bindings.peer-notices` is `user` by default (only user-file peer warnings in
 the footer), `all` (catalog warnings too), or `off` (check only). Changes
@@ -1635,6 +1640,37 @@ withdraw/repost the notices immediately. `CatalogExtension.Version` preserves
 the mounted producer's version; diagnostics check verb presence, never compare
 version numbers. Host-specific registry policy and namespace mapping stay in
 the host, not the library.
+
+### Calling the host from an extension
+
+`cli.HostFromEnv() (host, ok, err)` reads `OCHAZUKE_HOST`, a JSON argv
+including the host executable and global flags such as `--data`. Unset means
+standalone; malformed declarations return an error rather than finding a host
+on PATH. The host supplies `OCHAZUKE_EXTENSION` with the caller's namespace;
+otherwise the client derives it from the tool executable.
+
+`host.Peers(ctx)` reads the compact `extension.peers` response
+(`[]cli.HostPeer`, application nouns/verbs only). `host.Run(ctx, "md.doc.new",
+args)` returns stdout bytes; `host.Call(ctx, noun, verb, args)` makes the noun/
+verb boundary explicit for dotted verbs. Both execute the host, never the peer,
+with closed stdin, no `--yes`, a 60-second deadline, and stderr on failure.
+The argv preserves paths containing spaces and the temporary data directory.
+
+The callback carries `OCHAZUKE_CALLER`, an incremented
+`OCHAZUKE_HOST_DEPTH`, and `OCHAZUKE_HOST_CHAIN` (JSON names). The shell binds
+an agent named for the extension, harness `extension`, with its launching actor
+in `Actor.Via`. Environment detection only narrows that launching identity.
+Even an explicitly owner-bound shell defaults to extension-agent rights;
+headless confirmation refuses and a `never` verb stays refused. Calls use the
+normal history file and flush it before returning. Ordinary CLI calls still
+do not persist history.
+
+Hosts declare `extensions.host-call-depth` (integer, default 4) and, if they
+offer the owner opt-out, `extensions.host-call-rights` (`agent` default,
+`caller` only when the setting is `Protected`). Caller mode inherits the
+already-detected launching actor; it cannot turn a detected agent into owner.
+Depth over the limit refuses before the handler or preparation runs and names
+the chain. These are cooperative guard rails, not authentication.
 
 
 The resolver is one stack walk. For each level from the focused instance outward to `app` (the `modal` noun's level sits just inside `app` while a modal is open) and then the `editor` noun as the fallback every stack ends with:
@@ -1936,7 +1972,7 @@ A TUI's history survives restarts. `Model.Init` calls `Runtime.EnsureHistory`, w
 | Restore | The last `history-limit` entries go into the ring before the session's own, marked `restored: true`. Palette Up/Down recalls their lines; dot-repeat skips them. |
 | Writes | Each entry is marshalled on the loop and appended by one writer goroutine, never on the loop. When the file reaches twice the limit, and at load, it is rewritten with the last `history-limit` lines through a temp file and a rename. `Config.Flush` (the Model calls it on quit) drains the writer. |
 | Problems | Lines that do not parse are skipped. The file gets one notice and is rewritten without them. A write error is one notice, and later entries are not saved. |
-| Off | No file without a state directory: `Config.Disable()` (o-story sessions), a test binary, or an application that sets `Config.NoHistoryFile`. The CLI shell neither reads nor writes the file. |
+| Off | No file without a state directory: `Config.Disable()` (o-story sessions), a test binary, or an application that sets `Config.NoHistoryFile`. Ordinary CLI calls neither read nor write it; extension host callbacks (`OCHAZUKE_CALLER`) do both and flush before returning. |
 
 The in-memory ring still records every kind for `history.list` and dot-repeat. Only the file is filtered. `NoHistoryFile` turns the file off entirely.
 

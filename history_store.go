@@ -211,8 +211,8 @@ func (r *Runtime) historyLimitSetting() int {
 // that do not parse (each such file is one notice), and starts the writer
 // every later entry is appended through. Nothing happens without a state
 // directory (Config.Disable, a test binary) or with Config.NoHistoryFile.
-// Model.Init calls it; the CLI shell does not (a one-shot call is not
-// history worth keeping).
+// Model.Init and MCP call it. The CLI shell also calls it for extension host
+// calls (OCHAZUKE_CALLER); ordinary one-shot CLI calls do not persist history.
 func (r *Runtime) EnsureHistory() {
 	c := r.Config()
 	if c == nil || c.historyStarted {

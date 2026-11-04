@@ -36,7 +36,9 @@ type PeerBindingStatus struct {
 // ReloadPeerBindings replaces the whole soft layer after a host mount/sync.
 // User rows are lifted before it and loaded last, so owner overrides and unbinds
 // always win. Call even with no rows after removing the final extension.
-func (r *Runtime) ReloadPeerBindings(rows []PeerBinding, peers []BindingPeer) []PeerBindingStatus {
+// Optional host policies run on normalized rows after both old layers are
+// lifted, so collision checks cannot see stale peers or owner overrides.
+func (r *Runtime) ReloadPeerBindings(rows []PeerBinding, peers []BindingPeer, policies ...func(PeerBinding) string) []PeerBindingStatus {
 	c := r.Config()
 	r.unapplyUserBindings()
 	r.unapplyBindingRows(c.peerApplied)
@@ -69,6 +71,15 @@ func (r *Runtime) ReloadPeerBindings(rows []PeerBinding, peers []BindingPeer) []
 					if existing.sameKeys(normalized) && !batch[sourceKey(normalized)] && !isPrefixCancel(existing) {
 						reason = "key is already bound"
 						break
+					}
+				}
+				if reason == "" {
+					checked := decl
+					checked.Row = normalized
+					for _, policy := range policies {
+						if reason = policy(checked); reason != "" {
+							break
+						}
 					}
 				}
 				if reason == "" {
