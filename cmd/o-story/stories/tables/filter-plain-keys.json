@@ -70,38 +70,36 @@
     "z",
     "/",
     "shift+tab",
-    "r",
-    "a",
-    "n",
-    "k",
+    "shift+tab",
+    {
+      "type": "rank"
+    },
     "enter",
     "shift+tab",
-    "shift+tab",
     "enter",
     "tab",
     "tab",
     "tab",
-    "tab",
-    "p",
-    "l",
-    "a",
-    "i",
-    "n",
+    {
+      "type": "plain"
+    },
     "enter",
     "esc",
+    "tab",
+    "tab",
     "C",
     "esc",
     "esc"
   ],
   "expect": [
     {
-      "after": 11,
+      "after": 8,
       "contains": [
-        "Sort ▼"
+        "Sort by \u25bc"
       ]
     },
     {
-      "after": 21,
+      "after": 13,
       "contains": [
         "Applied: plain",
         "Replace"
@@ -114,8 +112,8 @@
         "5"
       ],
       "lacks": [
-        "▼",
-        "▲"
+        "\u25bc",
+        "\u25b2"
       ]
     }
   ]

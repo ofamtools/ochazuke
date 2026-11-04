@@ -39,6 +39,7 @@ type filterViewForm struct {
 	current                 *filterField
 	multi                   bool
 	seen                    string
+	focus                   string
 }
 
 func (f *filterField) recordField(hidden bool) RecordField {
@@ -78,6 +79,13 @@ func (v *filterViewForm) loadConditions(conditions []PropFilter) (Record, error)
 	represented := map[string]bool{}
 	for _, f := range v.fields {
 		value, not, ok := f.absorb(byProp[f.prop])
+		if v.e != nil {
+			rf := v.e.field(f.prop)
+			rf.Enum = slices.Clone(f.labels)
+			if rf.chips {
+				rf.choices, rf.lines = enumChoices(rf.Parameter), nil
+			}
+		}
 		if !ok {
 			continue
 		}
@@ -140,6 +148,13 @@ func (v *filterViewForm) write(w RecordWrite) Result {
 				keys = []SortKey{primary}
 			} else {
 				keys[0] = primary
+				tail := keys[1:]
+				keys = keys[:1]
+				for _, key := range tail {
+					if key.Field != primary.Field {
+						keys = append(keys, key)
+					}
+				}
 			}
 		} else {
 			keys = nil
@@ -158,6 +173,15 @@ func (v *filterViewForm) write(w RecordWrite) Result {
 }
 
 func (l *List) openViewForm() error {
+	if e := l.r.RecordEditor(listFilterFormID); e != nil && !e.closed && e.RowView() == l {
+		if err := l.r.openFromTopLevel(e.id); err != nil {
+			return err
+		}
+		if v := filterViewAt(l.r, e.id); v != nil && v.fieldPicker != nil {
+			return v.focusPart("field")
+		}
+		return l.r.SetFocus(e.fields[e.start()].id)
+	}
 	v := &filterViewForm{l: l, fields: l.filterFields(), legacy: l.r.Settings().String(ListFilterLayoutSetting) == "fields", values: map[string]*Chooser{}}
 	if len(v.fields) == 0 && !l.Sortable() {
 		return errors.New("list rows have no filterable props")
@@ -194,14 +218,14 @@ func (l *List) openViewForm() error {
 		return err
 	}
 	v.e = e
-	l.r.Instances[e.id].Noun = filterFormNoun
-	l.r.Instance(e.id+"/controller", Parent(e.id), Kind(filterFormNoun)).Component = v
+	controller := l.r.Instance(e.id+"/controller", Parent(e.id), Kind(filterFormNoun))
+	controller.Component = v
 	if l.r.Settings().Bool(ListFilterSortSetting) && l.Sortable() {
 		rows := []ChooserRow{{ID: "", Label: "App order", Data: ""}}
 		for _, name := range sortNames {
 			rows = append(rows, ChooserRow{ID: name, Label: name, Data: name})
 		}
-		v.sortPicker, err = l.r.AddChooser(ChooserSpec{Kind: e.id + "/sort", Rows: rows, Stay: true, NormalMode: true, NoPropFilters: true, NoSort: true, Choose: func(row ChooserRow) Result {
+		v.sortPicker, err = l.r.AddChooser(ChooserSpec{Kind: e.id + "/sort", Plural: "sort fields", Rows: rows, Stay: true, NormalMode: true, NoPropFilters: true, NoSort: true, Choose: func(row ChooserRow) Result {
 			if err := v.setField(filterSortField, row.Data.(string)); err != nil {
 				return Failed(err)
 			}
@@ -216,15 +240,18 @@ func (l *List) openViewForm() error {
 			return err
 		}
 		v.sortPicker.SetQuery(e.field(filterSortField).text())
-		direction := l.r.Instances[e.field(filterDirectionField).id]
-		direction.Noun, direction.Unfocusable = filterDirectionNoun, false
+		directionID := e.field(filterDirectionField).id
+		if err := l.r.RemoveInstance(directionID); err != nil {
+			return err
+		}
+		l.r.Instance(directionID, Parent(e.id), Kind(filterDirectionNoun))
 	}
 	if !v.legacy {
 		var rows []ChooserRow
 		for _, f := range v.fields {
 			rows = append(rows, ChooserRow{ID: f.prop, Label: f.prop, Data: f.prop})
 		}
-		v.fieldPicker, err = l.r.AddChooser(ChooserSpec{Kind: e.id + "/field", Rows: rows, Stay: true, NormalMode: true, NoPropFilters: true, NoSort: true, Choose: func(row ChooserRow) Result {
+		v.fieldPicker, err = l.r.AddChooser(ChooserSpec{Kind: e.id + "/field", Plural: "fields", Rows: rows, Stay: true, NormalMode: true, NoPropFilters: true, NoSort: true, Choose: func(row ChooserRow) Result {
 			if err := v.editField(row.ID); err != nil {
 				return Failed(err)
 			}
@@ -239,6 +266,7 @@ func (l *List) openViewForm() error {
 			_ = e.Leave()
 			return err
 		}
+		v.conditions.SetPlaceholder(Placeholder{Plural: "conditions"})
 		v.refreshConditions()
 		if err := v.focusPart("field"); err != nil {
 			_ = e.Leave()
@@ -252,6 +280,11 @@ func (l *List) openViewForm() error {
 			return err
 		}
 		l.r.Instances[v.saveInput.ID].Pin = "insert"
+	}
+	for _, inst := range l.r.Children(e.id) {
+		if inst != controller {
+			inst.Parent = controller.ID
+		}
 	}
 	v.seen = v.signature()
 	return nil
@@ -354,6 +387,7 @@ func (v *filterViewForm) editField(name string) error {
 	rf := v.e.field(name)
 	if v.current.kind == filterText {
 		v.l.r.Instances[rf.id].Unfocusable = false
+		v.l.r.Instances[rf.id].Pin = "insert"
 		if err := v.l.r.SetFocus(rf.id); err != nil {
 			return err
 		}
@@ -362,8 +396,9 @@ func (v *filterViewForm) editField(name string) error {
 	c := v.values[name]
 	if c == nil {
 		var err error
-		c, err = v.l.r.AddChooser(ChooserSpec{Kind: rf.id + "/values", Stay: true, NormalMode: true, NoPropFilters: true, NoSort: true, Choose: func(row ChooserRow) Result {
-			if !v.multi {
+		c, err = v.l.r.AddChooser(ChooserSpec{Kind: rf.id + "/values", Plural: "values", Stay: true, NormalMode: true, NoPropFilters: true, NoSort: true, Choose: func(row ChooserRow) Result {
+			chosen, _ := ParseChips(v.e.field(name).text())
+			if !v.multi && !slices.Contains(chosen, row.Data.(string)) {
 				if err := v.toggleValue(row.Data.(string)); err != nil {
 					return Failed(err)
 				}
@@ -483,7 +518,16 @@ func (v *filterViewForm) refreshConditions() {
 	}
 	var rows []ListItem
 	for i, c := range v.l.PropFilters() {
-		rows = append(rows, ListItem{ID: v.e.id + "/condition/" + strconv.Itoa(i), Noun: filterConditionNoun, Label: c.Label(), Data: i})
+		label := c.Label()
+		if op, ok := filterOps[c.Op]; ok && op.test == "in" {
+			values, _ := filterValues(c.Value)
+			labels := make([]string, len(values))
+			for j, value := range values {
+				labels[j] = modalLabel(fmt.Sprint(value))
+			}
+			label = c.Prop + " " + op.label + " " + strings.Join(labels, ", ")
+		}
+		rows = append(rows, ListItem{ID: v.e.id + "/condition/" + strconv.Itoa(i), Noun: filterConditionNoun, Label: label, Data: i})
 	}
 	_ = v.conditions.SetItems(rows)
 }
@@ -504,6 +548,13 @@ func (v *filterViewForm) replaceConditions(conds []PropFilter) error {
 	if err != nil {
 		return err
 	}
+	start := len(v.e.undo)
+	defer func() {
+		if len(v.e.undo)-start > 1 {
+			changes := slices.Clone(v.e.undo[start:])
+			v.e.undo = append(v.e.undo[:start], recordStep{changes: changes})
+		}
+	}()
 	for _, f := range v.e.fields {
 		if f.Name == filterSortField || f.Name == filterDirectionField || f.Name == filterSortKeysField {
 			continue
@@ -560,7 +611,14 @@ func (v *filterViewForm) PendingCommand() tea.Cmd {
 			v.e.fail(err)
 			return nil
 		}
+		var changes []recordStep
 		for _, f := range v.e.fields {
+			if before := v.e.written[f.Name]; before != loaded[f.Name] {
+				changes = append(changes, recordStep{field: f.Name, from: before, to: loaded[f.Name]})
+			}
+			if f.Invertible && invertText(f.not) != loaded[f.Name+RecordInvertSuffix] {
+				changes = append(changes, recordStep{field: f.Name + RecordInvertSuffix, from: invertText(f.not), to: loaded[f.Name+RecordInvertSuffix]})
+			}
 			_ = v.e.set(f, loaded[f.Name])
 			f.not = loaded[f.Name+RecordInvertSuffix] == "true"
 			v.e.written[f.Name] = loaded[f.Name]
@@ -570,17 +628,27 @@ func (v *filterViewForm) PendingCommand() tea.Cmd {
 			}
 		}
 		v.e.seen = v.e.snapshot()
-		v.e.undo, v.e.redo = nil, nil
-		if v.saveInput != nil && v.l.savedFilter != "" {
+		if len(changes) > 0 {
+			v.e.undo = append(v.e.undo, recordStep{changes: changes})
+			v.e.redo = nil
+		}
+		if v.saveInput != nil && len(v.saveInput.Text) == 0 && v.l.savedFilter != "" {
 			_ = v.saveInput.Replace(0, len(v.saveInput.Text), v.l.savedFilter)
 		}
 		v.seen = v.signature()
 		v.refreshConditions()
 		v.refreshValues()
-		if v.sortPicker != nil {
-			v.sortPicker.SetQuery(v.e.field(filterSortField).text())
+	}
+	if v.sortPicker != nil {
+		if v.l.r.Focus == v.sortPicker.input.ID {
+			if v.focus != v.l.r.Focus {
+				v.sortPicker.SetQuery("")
+			}
+		} else if value := v.e.field(filterSortField).text(); v.sortPicker.Query() != value {
+			v.sortPicker.SetQuery(value)
 		}
 	}
+	v.focus = v.l.r.Focus
 	return nil
 }
 
@@ -608,7 +676,7 @@ func (v *filterViewForm) render(s Styles, width, height int) Block {
 				marker = " ▼"
 			}
 		}
-		heading := "Sort" + marker
+		heading := "Sort by" + marker
 		if len(v.l.sort) > 1 {
 			var extra []string
 			for i, k := range v.l.sort[1:] {
@@ -632,11 +700,10 @@ func (v *filterViewForm) render(s Styles, width, height int) Block {
 		if dir == "" {
 			dir = "asc"
 		}
-		if v.l.r.Focus == direction.id {
-			dir = reverseVideo(dir)
-		}
+		focusedDirection := v.l.r.Focus == direction.id
+		dir = s.Selection(focusedDirection).Render(dir)
+		v.l.r.Placed(v.sortPicker.input.ID)
 		row := ansi.Truncate(input.Text+strings.Repeat(" ", max(1, inputWidth-ansi.StringWidth(input.Text)+2))+v.l.r.PlacedAt(direction.id, dir, 0, 1), width, "")
-		v.l.r.PlacedAt(v.sortPicker.input.ID, input.Text, 0, 1)
 		add(Block{Text: row, Cursor: input.Cursor}, v.sortPicker.input.ID)
 		if v.l.r.Focus == direction.id {
 			focusLine = len(lines) - 1
@@ -647,6 +714,9 @@ func (v *filterViewForm) render(s Styles, width, height int) Block {
 			if len(parts) > 1 {
 				lines = append(lines, parts[1:]...)
 			}
+		}
+		if v.l.r.Focus != v.sortPicker.input.ID {
+			lines = append(lines, "", "")
 		}
 	}
 	if v.legacy {
@@ -664,7 +734,7 @@ func (v *filterViewForm) render(s Styles, width, height int) Block {
 		}
 		return Block{Text: strings.Join(lines, "\n"), Cursor: b.Cursor}
 	}
-	lines = append(lines, s.Muted.Render("Filter"))
+	lines = append(lines, s.Muted.Render("Field"))
 	if v.current == nil {
 		v.l.r.PlacedAt(v.fieldPicker.input.ID, "", 0, 1)
 		add(v.fieldPicker.View(width, 5), v.fieldPicker.input.ID)
@@ -687,28 +757,37 @@ func (v *filterViewForm) render(s Styles, width, height int) Block {
 	}
 	lines = append(lines, s.Muted.Render("Active conditions"))
 	if v.conditions != nil {
-		add(Text(v.conditions.View(width, min(3, max(1, v.conditions.Shown())))), v.conditions.id)
+		at := len(lines)
+		rows := max(1, v.conditions.Shown())
+		if v.conditions.Filtering() || v.conditions.Filter() != "" {
+			rows++
+		}
+		add(Text(v.conditions.View(width, min(3, rows))), v.conditions.id)
 		if v.conditions.Focused() {
-			focusLine = len(lines) - 1
+			focusLine = at
 		}
 	}
 	if v.e.writeErr != "" {
 		lines = append(lines, s.Error.Render(v.e.writeErr))
 	}
-	room := max(1, height-1-v.saveHeight())
+	if v.saveInput != nil {
+		add(v.saveBlock(s, width), v.saveInput.ID)
+	}
+	room := max(1, height-1)
 	if len(lines) > room {
-		top := min(max(0, focusLine-room/2), len(lines)-room)
+		top := min(max(0, focusLine-1), len(lines)-room)
 		lines = lines[top : top+room]
 		if cursor != nil {
 			cursor.Y -= top
+			if cursor.Y < 0 || cursor.Y >= room {
+				cursor = nil
+			}
 		}
 	}
-	if v.saveInput != nil {
-		sb := v.saveBlock(s, width)
-		if sb.Cursor != nil {
-			cursor = &Pos{X: sb.Cursor.X, Y: len(lines) + sb.Cursor.Y}
+	if v.l.r.Settings().Bool(ChooserStableHeightSetting) {
+		for len(lines) < room {
+			lines = append(lines, "")
 		}
-		lines = append(lines, strings.Split(sb.Text, "\n")...)
 	}
 	lines = append(lines, s.Muted.Render(fmt.Sprintf("%d of %d", v.l.Shown(), len(v.l.allRows()))))
 	return Block{Text: strings.Join(lines, "\n"), Cursor: cursor}
@@ -725,25 +804,26 @@ func filterViewAt(r *Runtime, focus string) *filterViewForm {
 }
 func registerFilterViewForm(r *Runtime) {
 	r.Define(filterFormNoun)
+	r.DefineGuard("filter-form-open", func(r *Runtime, ev KeyEvent) bool { return filterViewAt(r, ev.Focus) != nil })
 	r.Define(filterSaveNoun)
 	r.Define(filterValuesNoun)
 	r.Define(filterDirectionNoun).Focusable().Pin("normal")
 	r.Define(filterConditionNoun)
 	r.DefineGuard("filter-form-text", func(r *Runtime, ev KeyEvent) bool {
 		v := filterViewAt(r, ev.Focus)
-		return v != nil && v.current != nil && v.current.kind == filterText && v.e.field(v.current.prop).id == ev.Focus
-	})
-	r.DefineGuard("filter-form-compact", func(r *Runtime, ev KeyEvent) bool {
-		v := filterViewAt(r, ev.Focus)
-		return v != nil && v.fieldPicker != nil
+		return v != nil && v.current != nil && v.current.kind == filterText && v.e.field(v.current.prop).id == r.Focus
 	})
 	r.DefineGuard("filter-form-tab", func(r *Runtime, ev KeyEvent) bool {
 		v := filterViewAt(r, ev.Focus)
-		return v != nil && !v.legacy && !r.Completer().Open()
+		return v != nil && !r.Completer().Open()
 	})
 	r.DefineGuard("filter-form-save", func(r *Runtime, ev KeyEvent) bool {
 		v := filterViewAt(r, ev.Focus)
 		return v != nil && v.saveInput != nil
+	})
+	r.DefineGuard("filter-form-delete-saved", func(r *Runtime, ev KeyEvent) bool {
+		v := filterViewAt(r, ev.Focus)
+		return v != nil && v.saveInput != nil && r.Input(r.Focus) == nil
 	})
 	r.DefineGuard("filter-form-sort", func(r *Runtime, ev KeyEvent) bool {
 		v := filterViewAt(r, ev.Focus)
@@ -756,9 +836,10 @@ func registerFilterViewForm(r *Runtime) {
 	}{
 		{"focus", "Focus a filter form control", map[string]Parameter{"part": {Type: "string", Enum: []string{"field", "sort", "conditions", "save"}}}, func(v *filterViewForm, a Arguments) error { return v.focusPart(StringArg(a, "part", "field")) }},
 		{"write-saved", "Save the current conditions and sort through list.filter-save", nil, func(v *filterViewForm, _ Arguments) error { return v.savedAction("filter-save") }},
-		{"delete-saved", "Delete the named user filter through list.filter-saved-delete", nil, func(v *filterViewForm, _ Arguments) error { return v.savedAction("filter-saved-delete") }},
+		{"delete-saved", "Choose a saved filter to delete, with confirmation", nil, func(v *filterViewForm, _ Arguments) error { return v.deleteSaved() }},
 		{"next", "Keep the text condition and return to the field picker", nil, func(v *filterViewForm, _ Arguments) error { return v.focusPart("field") }},
 		{"toggle", "Toggle the highlighted value without leaving its picker", nil, func(v *filterViewForm, _ Arguments) error { return v.toggleHighlighted() }},
+		{"move", "Move between controls in drawing order", map[string]Parameter{"step": {Type: "integer"}}, func(v *filterViewForm, a Arguments) error { return v.l.r.JumpFocus(IntArg(a, "step", 1), "stop") }},
 		{"direction", "Reverse the sort direction", nil, func(v *filterViewForm, _ Arguments) error { return v.flipDirection() }},
 		{"edit-condition", "Edit the selected active condition", nil, func(v *filterViewForm, _ Arguments) error { return v.conditionAction("edit") }},
 		{"remove-condition", "Remove the selected active condition", nil, func(v *filterViewForm, _ Arguments) error { return v.conditionAction("remove") }},
@@ -772,6 +853,7 @@ func registerFilterViewForm(r *Runtime) {
 			}
 			return nil, run(v, a)
 		}})
+		_ = r.AddVerbAvailability(filterFormNoun+"."+spec.verb, "filter-form-open")
 	}
-	r.Nouns[filterFormNoun].Guards = map[string]string{"direction": "filter-form-sort", "next": "filter-form-text", "write-saved": "filter-form-save", "delete-saved": "filter-form-save"}
+	r.Nouns[filterFormNoun].Guards = map[string]string{"direction": "filter-form-sort", "next": "filter-form-text", "move": "filter-form-tab", "write-saved": "filter-form-save", "delete-saved": "filter-form-delete-saved"}
 }

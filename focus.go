@@ -716,15 +716,12 @@ func (r *Runtime) region(id string) bool {
 }
 
 // units lists the instances under root that unit accepts, without
-// descending into one, in drawing order: the order the page holding root
-// drew them in its last frame (Placed), a unit ranked by the first drawn
-// instance in its subtree. Before the page's first frame (or in the CLI,
-// where none is drawn) every unit counts, in tree order (children in added
-// order, depth-first); once a frame drew any of them, a unit the last frame
-// did not draw (hidden, or drawn by no Placed call) is skipped, except in
-// a modal, whose stops the page frame never records. order ranks every instance
-// under root the same way. No map is iterated: the walk is the tree's and
-// the frame's slices.
+// descending into one, in drawing order: the page or modal's last frame
+// (Placed), a unit ranked by the first drawn instance in its subtree.
+// Before the first frame (or in the CLI) every unit counts, in tree order
+// (children in added order, depth-first). Once a frame drew any stops, an
+// undrawn stop is skipped. order ranks every instance under root the same
+// way. No map is iterated: the walk uses the tree and frame slices.
 func (r *Runtime) units(root string, unit func(string) bool) (out []string, order map[string]int) {
 	var tree []string
 	kids := r.childIndex()
@@ -766,9 +763,7 @@ func (r *Runtime) units(root string, unit func(string) bool) (out []string, orde
 	return out, order
 }
 
-// insideModal reports whether id is an open modal or beneath one. A modal's
-// stops are not recorded in its page's frame, so they are never skipped as
-// undrawn.
+// insideModal reports whether id is an open modal or beneath one.
 func (r *Runtime) insideModal(id string) bool {
 	for _, at := range r.Ancestry(id) {
 		if slices.Contains(r.modals, at) {
@@ -778,8 +773,8 @@ func (r *Runtime) insideModal(id string) bool {
 	return false
 }
 
-// drawnUnder is the last frame's drawing order of the page holding root
-// (root itself or an ancestor), nil when no page holds it or none was drawn.
+// drawnUnder is the last drawing order of the modal or page holding root,
+// nil before its first frame or when neither holds it.
 func (r *Runtime) drawnUnder(root string) []Placement {
 	for _, id := range r.Ancestry(root) {
 		if inst := r.Instances[id]; inst != nil && slices.Contains(r.modals, id) {

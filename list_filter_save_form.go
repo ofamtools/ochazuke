@@ -31,14 +31,14 @@ func (v *filterViewForm) savedAction(verb string) error {
 
 func (v *filterViewForm) saveBlock(s Styles, width int) Block {
 	name := strings.TrimSpace(string(v.saveInput.Text))
-	label := "Save as · Enter saves"
+	label := "Save as"
 	saved, err := v.l.SavedFilters()
 	if err != nil {
 		label = "Save · " + err.Error()
 	}
 	for _, f := range saved {
 		if f.Name == name {
-			label = "Replace “" + name + "” · Enter overwrites · normal d d deletes user filter"
+			label = "Replace “" + name + "”"
 			break
 		}
 	}
@@ -54,4 +54,23 @@ func (v *filterViewForm) saveBlock(s Styles, width int) Block {
 		b.Cursor = &Pos{X: b.Cursor.X, Y: b.Cursor.Y + 1}
 	}
 	return Block{Text: s.Muted.Render(ansi.Truncate(label, width, "…")) + "\n" + b.Text, Cursor: b.Cursor}
+}
+
+func (v *filterViewForm) deleteSaved() error {
+	filters, err := v.l.SavedFilters()
+	if err != nil {
+		return err
+	}
+	var rows []ChooserRow
+	for _, f := range filters {
+		rows = append(rows, ChooserRow{ID: f.Name, Label: f.Name})
+	}
+	_, err = v.l.r.OpenChooser(ChooserSpec{Kind: "list-filter-delete", Title: "Delete saved filter", Plural: "saved filters", Rows: rows, NoPropFilters: true, NoSort: true, Choose: func(row ChooserRow) Result {
+		_, err := v.l.r.Execute(Request{Noun: "ochazuke.list", Verb: "filter-saved-delete", Args: Arguments{"id": v.l.id, "name": row.ID}})
+		if err != nil {
+			return Failed(err)
+		}
+		return Done(nil)
+	}})
+	return err
 }

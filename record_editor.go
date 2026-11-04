@@ -813,9 +813,13 @@ func (e *RecordEditor) history(redo bool) error {
 	if steps == nil {
 		steps = []recordStep{step}
 	}
-	inverse := make([]recordStep, 0, len(steps))
+	var inverse recordStep
+	if step.changes != nil {
+		inverse.changes = make([]recordStep, 0, len(steps))
+	}
 	var focus *recordField
-	for _, change := range steps {
+	for i := len(steps) - 1; i >= 0; i-- {
+		change := steps[i]
 		name, inverted := strings.CutSuffix(change.field, RecordInvertSuffix)
 		f := e.field(name)
 		if f == nil {
@@ -826,7 +830,12 @@ func (e *RecordEditor) history(redo bool) error {
 		} else if serr := e.set(f, change.from); serr != nil {
 			return serr
 		}
-		inverse = append(inverse, recordStep{field: change.field, from: change.to, to: change.from})
+		back := recordStep{field: change.field, from: change.to, to: change.from}
+		if step.changes == nil {
+			inverse = back
+		} else {
+			inverse.changes = append(inverse.changes, back)
+		}
 		if !f.Hidden {
 			focus = f
 		}
@@ -835,11 +844,7 @@ func (e *RecordEditor) history(redo bool) error {
 	for _, f := range e.fields {
 		f.before = e.written[f.Name]
 	}
-	if step.changes == nil && len(inverse) == 1 {
-		*to = append(*to, inverse[0])
-	} else {
-		*to = append(*to, recordStep{changes: inverse})
-	}
+	*to = append(*to, inverse)
 	e.seen = e.snapshot()
 	if focus != nil && e.r.Focus != focus.id {
 		if ferr := e.r.SetFocus(focus.id); ferr != nil && werr == nil {

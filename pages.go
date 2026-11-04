@@ -154,17 +154,16 @@ func (p *Page) focusLines(r *Runtime, focus string) (top, bottom int, ok bool) {
 	return 0, 0, false
 }
 
-// Placed records that the instance id is being drawn now, during its page's
-// render: the order of these calls in a frame is the page's drawing order,
-// which focus jumps (focus.next, focus.previous) and list spills walk, so
-// motions follow the screen as drawn and cannot drift from it. List, Input
-// (InputBlock), Terminal and grid views call it; a component of the
-// application's own calls it from its view. Outside a page render it does
-// nothing. There is no other way to order stops: before the first frame the
-// order is the tree's, and once a frame drew any stop, a stop the last
-// frame did not draw is skipped (it is not on screen). A stop drawn by an
-// application view that never calls Placed is therefore skipped too.
+// Placed records that instance id is being drawn during its page or modal's
+// render. Focus jumps and list spills follow these calls in drawing order.
+// List, InputBlock, Terminal and grid views call it; an application's own
+// component calls it from its view. Outside a render it does nothing.
+// Before the first frame, focus uses tree order. After a frame draws any
+// stops, navigation skips stops the frame did not place.
 func (r *Runtime) Placed(id string) {
+	if r == nil {
+		return
+	}
 	for _, at := range r.Ancestry(id) {
 		if inst := r.Instances[at]; inst != nil && inst.rendering {
 			inst.drawn = append(inst.drawn, Placement{ID: id, Line: -1})

@@ -18,8 +18,8 @@ The `ochazuke.list` verbs work from keys, the palette and API alike:
 
 Every verb accepts `id`, defaulting to the focused list, tree or chooser.
 A leading `-` or trailing `!` on a field means descending. Prop aliases resolve
-to their declared names. `list-sortable` guards the sort verbs and `z s`;
-`list-sorted` guards clearing an active sort. Existing actions stay available.
+to their declared names. `list-sortable` guards sorting and `z s`.
+Clearing an already clear sort succeeds with a plain status message.
 
 Sorting reuses the props offered by prop filtering, declared or derived.
 Secrets, `NoFilter`, `PropsOff`, `list.props-off` and prop guards also apply.
@@ -51,27 +51,35 @@ through `list.filter-save` stores conditions and optional sort keys in the
 existing `list.filters` setting. Applying it through `filter-saved`, the
 saved-filter picker or cycling restores both, retaining `/` text. Older
 definitions without sort restore app order. There is no new store or file;
-unsaved sort is not restored on restart. The filter form offers one sort key at its top. `z /` opens it on lists
-and trees; `ctrl+f` opens it in a chooser. Tab and Shift+Tab move between
-controls. From the initial field picker, Shift+Tab reaches sort; type a prop
-and Enter to apply it. Shift+Tab twice from fields reaches direction; Enter
-flips asc/desc. Multi-key sorting remains available through `list.sort`.
+unsaved sort is not restored on restart. The filter form edits the primary sort
+key; changing direction preserves secondary keys, including through undo.
+`z /` opens it on lists and trees; `ctrl+f` opens it in a chooser.
+Tab follows the drawing order: sort field, direction, field picker, the
+current value control when open, active conditions, save name, then back to
+sort. Shift+Tab reverses that order. The form starts on fields, so Shift+Tab
+reaches direction and a second Shift+Tab reaches sort. Enter on direction
+flips asc/desc. Multi-key sorting is available through `list.sort`.
 
 The compact controls share the standard chooser and form record. Type a prop
 and Enter to see its values, then type to narrow them. Enter picks one and
-returns to fields; Escape then Space toggles several values and Enter
-returns. Space remains search text in insert mode. Counts
-cover all source rows. Free text applies as typed; Enter keeps it and returns.
-From fields, Tab reaches active conditions and the next Tab reaches the save
-name. On active conditions, Enter edits, `d d` removes and `!` inverts.
+returns to fields without removing a value already selected. Escape then
+Space toggles several values, and Enter returns to fields. Escape again in
+the value picker's normal mode returns without changing the selection.
+Space remains search text in insert mode. Counts cover all source rows.
+Free text applies as typed; Enter keeps it and returns to fields. Reentering
+a text field starts insert mode. On active conditions, Enter edits, `d d`
+removes and `!` inverts. `/` shows the ordinary list search line there.
 
-In an input, Escape enters normal mode. `!` flips the selected field's is/not;
-`C` runs `form.clear`, clearing sort and every condition, including conditions
-the fields cannot represent. `i` resumes editing; capital C and ! remain text
-while inserting. Normal `u` / `ctrl+r` undo / redo written changes. Escape in
-normal mode closes with changes kept. These composed choosers opt in through
-`ChooserSpec.NormalMode`; ordinary choosers keep their default pinned input
-and single-Escape close behavior.
+Normal-mode text inputs retain their editing keys: `d d` deletes text,
+`u` and `ctrl+r` undo and redo text, and `C` changes to the end of the line.
+On non-text controls, `C` runs `form.clear`, and `u` / `ctrl+r` undo / redo
+view changes. Cycling saved filters is one undo step. `!` flips a filter
+field's is/not. In picker normal mode, `j`, `k`, `g g` and `G` move through
+the choices. `i` resumes editing. Ordinary choosers remain pinned in insert;
+composed choosers opt into these two modes with `ChooserSpec.NormalMode`.
+`chooser.hidden-count` defaults to true and shows off-screen matching rows
+on the query line; false hides the count. `chooser.stable-height=false`
+disables the compact form's fixed-height padding.
 
 `list.filter-layout` defaults to `compact`; `fields` keeps the previous
 one-field-per-prop form. `list.filter-sort` defaults to true and hides the
@@ -85,9 +93,10 @@ sort controls.
 
 The save row is enabled by `list.filter-save` (default true). Tab to its name,
 type a name and Enter to save through `list.filter-save`. An existing name
-shows **Replace** before Enter overwrites it. In the name input, Escape then
-`d d` deletes through `filter-saved-delete`. App defaults remain declarations;
-deleting a user override reveals the default. The row shows the applied name.
+shows **Replace** before Enter overwrites it. The name remains a text input
+in normal mode; its editing keys never delete saved filters. From a non-text
+control, `D` opens a saved-filter deletion picker, then asks for confirmation.
+App defaults remain declarations; deleting an override reveals its default.
 Normal `z ]` / `z [` cycle inside or outside the form. Cycling wraps; no saved
 filters disables it. Invalid definitions are skipped with the existing notice.
 View edits clear the applied-name marker; the typed name stays for easy
@@ -95,8 +104,10 @@ replacement. `list.filter-save=false` hides the row without deleting data.
 
 The form adds no Ctrl+Alt chords or direct part-focus shortcuts. Tab replaces
 those jumps, direction uses Enter on its control, and normal `!`, `C` and
-`d d` cover the remaining changes. `filter-form.focus`, `.direction`, `.save`
-and `.delete-saved` remain available as verbs, including in the palette.
+`d d` on conditions cover the remaining changes. `filter-form.focus`,
+`.direction`, `.write-saved` and `.delete-saved` remain callable while a
+filter form is open. The modal retains `ochazuke.form` on its ancestry,
+so existing user bindings on that noun still apply.
 
 `list.sort-indicator` defaults to `true` in `settings/ochazuke.json`. It adds
 `▲` / `▼` to sorted column titles, and `▲2` / `▼2` for the second key (and so
@@ -108,8 +119,10 @@ label. It adds no condition or filter count; the same setting hides it.
 For virtual windows and partial/source-owned results, pass `NoSort()` to
 `AddList` / `AddTree`, or set `ChooserSpec.NoSort`. Sorting is unavailable there
 and `SetSort` refuses nonempty keys. A chooser's live source also owns its row
-order and cannot sort locally. Hosts must declare partial views explicitly:
-a list cannot infer that the rows it was given are only a source's window.
+order and cannot sort locally. Saved filters still apply their conditions here;
+the view ignores saved sorting while its source owns the order.
+Hosts must declare partial views explicitly: a list cannot infer that the
+rows it was given are only a source's window.
 A future source-side view handler can provide whole-source sorting.
 
 ## Compared with Vim
@@ -119,6 +132,7 @@ A future source-side view handler can provide whole-source sorting.
 | `:sort` | `:help :sort` | Similar ordering; `list.sort` is a stable view over typed props, while Vim edits buffer lines. Clearing restores app order. |
 | `:sort!` | `:help :sort` | Descending is `list.sort {by: "-field"}` or `sort-column {desc: true}`. Blanks remain last. Vim reverses buffer-line order, including blanks. |
 | `zs` | `:help zs` | Different: Vim scrolls horizontally; ochazuke already scrolls columns with `z h` / `z l`, so `z s` cycles view sorting. |
+| `dd`, `u`, `CTRL-R` in a text input | `:help dd`, `:help u`, `:help CTRL-R` | Same text deletion, undo and redo. A save name is text, not a saved-filter deletion command. |
 
 No bare `:sort` / `:sort!` aliases or standard store-list CLI sort parameters
 are added in this scope. The explicit list verbs are available through the

@@ -116,11 +116,19 @@ func TestCompactSavedFilterSaveCycleDelete(t *testing.T) {
 	if !strings.Contains(string(r.Input(r.Focus).Text), "C") || len(l.Sort()) != 1 {
 		t.Fatal("C was not text")
 	}
-	compactPart(t, m, "save")
-	compactKeys(m, "ctrl+e", "ctrl+u", "r", "a", "n", "k", "e", "d", "esc", "d", "d")
+	compactPart(t, m, "conditions")
+	compactKeys(m, "D", "r", "a", "n", "k", "e", "d", "enter")
+	if r.TopModal() != "confirm" {
+		t.Fatal("deletion did not ask", r.TopModal())
+	}
+	savedBefore, _ := l.SavedFilters()
+	if !slices.ContainsFunc(savedBefore, func(f SavedFilter) bool { return f.Name == "ranked" }) {
+		t.Fatal("deleted before confirmation")
+	}
+	compactKeys(m, "y")
 	saved, _ := l.SavedFilters()
 	if slices.ContainsFunc(saved, func(f SavedFilter) bool { return f.Name == "ranked" }) {
-		t.Fatal("delete failed")
+		t.Fatal("delete failed", r.Focus, r.TopModal(), m.Status, saved)
 	}
 }
 

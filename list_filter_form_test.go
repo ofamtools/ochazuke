@@ -107,7 +107,7 @@ func TestFilterFormFieldsAndChips(t *testing.T) {
 	if view := ansi.Strip(m.View().Content); !strings.Contains(view, "● cancelled") || !strings.Contains(view, "● done") {
 		t.Fatal(view)
 	}
-	pressKeys(m, "C")
+	pressKeys(m, "j", "C")
 	if len(l.propFilters) != 0 || len(shownIDs(l)) != 6 {
 		t.Fatalf("clear: %v", l.propFilters)
 	}
